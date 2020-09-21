@@ -41,6 +41,7 @@ Document Structure
    Backtest: Model&Strategy Testing <advanced/backtest.rst>
    Report: Graphical Results <advanced/report.rst>
    Cache: Frequently-Used Data <advanced/cache.rst>
+   Tuner: Tuner <advanced/tuner.rst>
 
 
 .. toctree::

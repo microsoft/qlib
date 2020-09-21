@@ -94,6 +94,7 @@ setup(
         # 'console_scripts': ['mycli=mymodule:cli'],
         "console_scripts": [
             "estimator=qlib.contrib.estimator.launcher:run",
+            "tuner=qlib.contrib.tuner.launcher:run",
         ],
     },
     ext_modules=extensions,
