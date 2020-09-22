@@ -70,12 +70,12 @@ The backtest results are in the following form:
     sub_bench mean    0.000662
               std     0.004487
               annual  0.166720
-              sharpe  2.340526
+              ir      2.340526
               mdd    -0.080516
     sub_cost  mean    0.000577
               std     0.004482
               annual  0.145392
-              sharpe  2.043494
+              ir      2.043494
               mdd    -0.083584
 
 - `sub_bench`
