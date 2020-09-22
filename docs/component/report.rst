@@ -99,11 +99,11 @@ Graphical Result
     - Axis X: Trading day
     - Axis Y: 
         - `ic`
-            The `Pearson correlation coefficient` series between `label` and prediction score.
+            The `Pearson correlation coefficient` series between `label` and `prediction score`.
             In the above example, the `label` is formulated as `Ref($close, -1)/$close - 1`. Please refer to `Data API Featrue <data.html>`_ for more details.
                 
         - `rank_ic`
-            The `Spearman's rank correlation coefficient` series between `label` and prediction score.
+            The `Spearman's rank correlation coefficient` series between `label` and `prediction score`.
 
 .. image:: ../_static/img/analysis/score_ic.png 
 
@@ -260,8 +260,8 @@ API
     :members:
 
 
-Graphical Result
-~~~~~~~~~~~~~~~~~
+Graphical Results
+~~~~~~~~~~~~~~~~~~
 
 .. note::
 

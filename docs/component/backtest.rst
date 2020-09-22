@@ -19,7 +19,7 @@ Introduction
 Example
 ===========================
 
-Users need to generate a prediction score(a pandas DataFrame) with MultiIndex<instrument, datetime> and a `score` column. And users need to assign a strategy used in backtest, if strategy is not assigned,
+Users need to generate a `prediction score`(a pandas DataFrame) with MultiIndex<instrument, datetime> and a `score` column. And users need to assign a strategy used in backtest, if strategy is not assigned,
 a `TopkDropoutStrategy` strategy with `(topk=50, n_drop=5, risk_degree=0.95, limit_threshold=0.0095)` will be used.
 If ``Strategy`` module is not user's interested part, `TopkDropoutStrategy` is enough. 
 
@@ -38,7 +38,7 @@ To know more about the prediction score `pred_score` output by ``Model``, please
 Prediction Score
 -----------------
 
-The prediction score is a pandas DataFrame. Its index is <instrument(str), datetime(pd.Timestamp)> and it must
+The `prediction score` is a pandas DataFrame. Its index is <instrument(str), datetime(pd.Timestamp)> and it must
 contains a `score` column.
 
 A prediction sample is shown as follows.

@@ -70,7 +70,7 @@ TopkDropoutStrategy
         - `Drop`: The number of stocks sold on each trading day
         
         Currently, the number of held stocks is `Topk`.
-        On each trading day, the `Drop` number of held stocks with worst prediction score will be sold, and the same number of unheld stocks with best prediction score will be bought.
+        On each trading day, the `Drop` number of held stocks with worst `prediction score` will be sold, and the same number of unheld stocks with best `prediction score` will be bought.
         
         .. image:: ../_static/img/topk_drop.png
             :alt: Topk-Drop
@@ -103,14 +103,14 @@ Usage & Example
     # custom Strategy, refer to: TODO: Strategy API url
     strategy = TopkDropoutStrategy(**STRATEGY_CONFIG)
 
-    # pred_score is the prediction score output by Model
+    # pred_score is the `prediction score` output by Model
     report_normal, positions_normal = backtest(
         pred_score, strategy=strategy, **BACKTEST_CONFIG
     )
 
 Also, the above example has been given in ``examples\train_backtest_analyze.ipynb``.
 
-To know more about the prediction score `pred_score` output by ``Interday Model``, please refer to `Interday Model: Model Training & Prediction <model.html>`_.
+To know more about the `prediction score` `pred_score` output by ``Interday Model``, please refer to `Interday Model: Model Training & Prediction <model.html>`_.
 
 To know more about ``Intraday Trading``, please refer to `Intraday Trading: Model&Strategy Testing <backtest.html>`_.
 
