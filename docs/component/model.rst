@@ -13,7 +13,7 @@ Because the components in ``Qlib`` are designed in a loosely-coupled way, ``Inte
 Base Class & Interface
 ======================
 
-``Qlib`` provides a base class `qlib.contrib.model.base.Model <../reference/api.html#module-qlib.contrib.model.base>`_, which all models should inherit from.
+``Qlib`` provides a base class `qlib.contrib.model.base.Model <../reference/api.html#module-qlib.contrib.model.base>`_ from which all models should inherit.
 
 The base class provides the following interfaces:
 

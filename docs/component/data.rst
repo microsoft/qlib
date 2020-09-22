@@ -6,7 +6,7 @@ Data Layer: Data Framework&Usage
 Introduction
 ============================
 
-``Data Layer`` is designed to download raw data, retrieve data, construct datasets and get frequently-used data.  
+``Data Layer`` is designed to download raw data, retrieve data, build datasets and get frequently-used data.  
 
 Also, users can building formulaic alphas with ``Data Layer`` easliy. If users are interesting formulaic alphas, please refer to `Building Formulaic Alphas <../advanced/alpha.html>`_.
 
@@ -51,7 +51,7 @@ If users use ``Qlib`` in china-stock mode, china-stock data is required. The scr
 
 US-Stock Market Mode
 -------------------------
-If users use ``Qlib`` in US-stock mode, US-stock data is required. ``Qlib`` does not provide script to download US-stock data. If users want to use ``Qlib`` in US-stock market mode, they need to do as follows.
+If users use ``Qlib`` in US-stock mode, US-stock data is required. ``Qlib`` does not provide script to download US-stock data. If users want to use ``Qlib`` in US-stock mode, they need to do as follows.
 
 - Prepare data in csv format
     Users need to prepare US-stock data in csv format by themselves, which is in the same format as the china-stock data in csv format. Please download the china-stock data in csv format as follows for reference of format.
@@ -121,14 +121,14 @@ To know more about ``Filter``, please refer to `Filter API <../reference/api.htm
 API
 -------------
 
-To know more about ``Data Api``, please refer to `Data Api <../reference/api.html>`_.
+To know more about ``Data API``, please refer to `Data API <../reference/api.html>`_.
 
 Data Handler
 =================
 
-``Data Handler`` is a part of ``estimator`` and can also be used as a single module. 
+Users can use ``Data Handler`` in an automatic workflow by ``Estimator``, refer to `Estimator <estimator.html>`_ for more details. 
 
-``Data Handler`` can be used to load raw data, prepare features and label columns, preprocess data(standardization, remove NaN, etc.), split training, validation, and test sets. It is a subclass of ``qlib.contrib.estimator.handler.BaseDataHandler``, which provides some interfaces, for example:
+Also, ``Data Handler`` can be used as a independent module, by which users can easliy preprocess data(standardization, remove NaN, etc.) and build datasets. It is a subclass of ``qlib.contrib.estimator.handler.BaseDataHandler``, which provides some interfaces as follows.
 
 Base Class & Interface
 ----------------------
@@ -160,7 +160,8 @@ If users want to use qlib data, `QLibDataHandler` is recommended. Users can inhe
 
 Usage
 --------------
-'Data Handler' can be used as a single module, which provides the following mehtod:
+
+``Data Handler`` can be used as a single module, which provides the following mehtod:
 
 - `get_split_data`
     - According to the start and end dates, return features and labels of the pandas DataFrame type used for the 'Model'
@@ -185,14 +186,14 @@ Qlib provides implemented data handler `QLibDataHandlerV1`. The following exampl
 
 .. code-block:: Python
 
-    from qlib.contrib.estimator.handler import QLibDataHandlerV1
+    from qlib.contrib.estimator.handler import QLibDataHandlerClose
     from qlib.contrib.model.gbdt import LGBModel
 
     DATA_HANDLER_CONFIG = {
         "dropna_label": True,
         "start_date": "2007-01-01",
         "end_date": "2020-08-01",
-        "market": "csi500",
+        "market": "csi300",
     }
 
     TRAINER_CONFIG = {
@@ -204,7 +205,7 @@ Qlib provides implemented data handler `QLibDataHandlerV1`. The following exampl
         "test_end_date": "2020-08-01",
     }
 
-    exampleDataHandler = QLibDataHandlerV1(**DATA_HANDLER_CONFIG)
+    exampleDataHandler = QLibDataHandlerClose(**DATA_HANDLER_CONFIG)
 
     # example of 'get_split_data'
     x_train, y_train, x_validate, y_validate, x_test, y_test = exampleDataHandler.get_split_data(**TRAINER_CONFIG)
@@ -227,15 +228,10 @@ To know more abot ``Data Handler``, please refer to `Data Handler API <../refere
 Cache
 ==========
 
-``Cache`` is an optional module that helps accelerate providing data by saving some frequently-used data as cache file. 
+``Cache`` is an optional module that helps accelerate providing data by saving some frequently-used data as cache file. ``Qlib`` provides a `Memcache` class to cache the most-frequently-used data in memory, an inheritable `ExpressionCache` classand an inheritable `DatasetCache` class.
 
 Memory Cache
 --------------
-
-Base Class & Interface
-~~~~~~~~~~~~~~~~~~~~~~~
-
-``Qlib`` provides a `Memcache` class to cache the most-frequently-used data in memory, an inheritable `ExpressionCache` class, and an inheritable `DatasetCache` class.
 
 `Memcache` is a memory cache mechanism that composes of three `MemCacheUnit` instances to cache **Calendar**, **Instruments**, and **Features**. The MemCache is defined globally in `cache.py` as `H`. User can use `H['c'], H['i'], H['f']` to get/set memcache.
 
@@ -246,22 +242,34 @@ Base Class & Interface
     :members:
 
 
-Disk Cache
+ExpressionCache
+----------------
+
+DatasetCache
 --------------
+
+
 
 Base Class & Interface
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-`ExpressionCache` is a disk cache mechanism that saves expressions such as **Mean($close, 5)**. Users can inherit this base class to define their own cache mechanism. Users need to override `self._uri` method to define how their cache file path is generated, `self._expression` method to define what data they want to cache and how to cache it.
+`ExpressionCache` is a cache mechanism that saves expressions such as **Mean($close, 5)**. Users can inherit this base class to define their own cache mechanism that saves expressions according to the following steps.
 
-`DatasetCache` is a disk cache mechanism that saves datasets. A certain dataset is regulated by a stockpool configuration (or a series of instruments, though not recommended), a list of expressions or static feature fields, the start time and end time for the collected features and the frequency. Users need to override `self._uri` method to define how their cache file path is generated, `self._expression` method to define what data they want to cache and how to cache it.
+- Override `self._uri` method to define how cache file path is generated
+- Override `self._expression` method to define what data will be cached and how to cache it.
 
-`ExpressionCache` and `DatasetCache` actually provides the same interfaces with `ExpressionProvider` and `DatasetProvider` so that the disk cache layer is transparent to users and will only be used if they want to define their own cache mechanism. The users can plug the cache mechanism into the server system by assigning the cache class they want to use in `config.py`:
+`DatasetCache` is a cache mechanism that saves datasets. A certain dataset is regulated by a stockpool configuration (or a series of instruments, though not recommended), a list of expressions or static feature fields, the start time and end time for the collected features and the frequency. Users can inherit this base class to define their own cache mechanism that saves datasets according to the following steps.
 
+- Override `self._uri` method to define how their cache file path is generated
+- Override `self._expression` method to define what data will be cached and how to cache it.
+
+.. TODO: rewrite
+
+`ExpressionCache` and `DatasetCache` actually provide the same interfaces with `ExpressionProvider` and `DatasetProvider` so that the disk cache layer is transparent to users and will only be used if they want to define their cache mechanism. The users can plug the cache mechanism into by assigning the cache class they want to use in `config.py`:
 .. code-block:: python
 
-    'ExpressionCache': 'ServerExpressionCache',
-    'DatasetCache': 'ServerDatasetCache',
+    'ExpressionCache': 'DiskExpressionCache',
+    'DatasetCache': 'DiskDatasetCache',
 
 Users can find the cache interface here.
 
@@ -278,14 +286,10 @@ DatasetCache
     :members:
 
 
-Implemented Disk Cache
+Implemented  Cache
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-.. note::
-
-    If the user does not use QlibServer, please ignore the content of this section
-
-Qlib has currently provided `ServerExpressionCache` class and `ServerDatasetCache` class as the cache mechanisms used for QlibServer. The class interface and file structure designed for server cache mechanism is listed below.
+``Qlib`` has currently provided implemented disk cache `DiskExpressionCache` and `DiskDatasetCache` as the cache mechanisms. The class interface and file structure designed for server cache mechanism is listed below.
 
 DiskExpressionCache
 ^^^^^^^^^^^^^^^^^^^^
@@ -317,7 +321,7 @@ Data and Cache File Structure
                 - close.day.bin
                 - ...
             - ...
-        [cached data] updated by server when raw data is updated
+        [cached data] updated when raw data is updated
         - calculated features/
             - sh600000/
                 - [hash(instrtument, field_expression, freq)]
@@ -331,3 +335,5 @@ Data and Cache File Structure
                 - .index : an assorted index file recording the line index of all calendars
             - ...
 
+
+.. TODO: refer to paper
