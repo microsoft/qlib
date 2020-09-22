@@ -1,6 +1,6 @@
 Qlib is an AI-oriented quantitative investment platform, which aims to realize the potential, empower the research, and create the value of AI technologies in quantitative investment.
 
-With Qlib, you can easily apply your favorite model to create a better Quant investment strategy.
+With Qlib, you can easily try your ideas to create better Quant investment strategies.
 
 
 - [Framework of Qlib](#framework-of-qlib)
@@ -19,7 +19,7 @@ With Qlib, you can easily apply your favorite model to create a better Quant inv
 # Framework of Qlib
 ![framework](docs/_static/img/framework.png)
 
-At the module level, Qlib is a platform that consists of the above components. Each component is loose-coupling and can be used stand-alone.
+At the module level, Qlib is a platform that consists of above components. The components are designed as loose-coupled modules and each component could be used stand-alone.
 
 | Name                | Description                                                                                                                                                                                                                                                   |
 | ------              | -----                                                                                                                                                                                                                                                         |
@@ -35,26 +35,36 @@ At the module level, Qlib is a platform that consists of the above components. E
 
 # Quick start
 
+This quick start guide tries to demonstrate
+1. It's very easy to build a complete Quant research workflow and try you ideas with _Qlib_.
+1. Though with *simple data* and *naive models*, machine learning technologies **work very well** in practical Quant investment.
+
 ## Installation
 
-To install Qlib from source you need _Cython_ in addition to the normal dependencies above:
+Before installing _Qlib_ from source, user need to install some dependencies:
 
 ```bash
 pip install numpy
 pip install --upgrade  cython
 ```
 
-Clone the repository and then run:
+Clone the repository and install _Qlib_:
 ```bash
+git clone https://github.com/microsoft/qlib.git
 python setup.py install
 ```
 
 
 ## Get Data
-- Load and prepare the Data: execute the following command to load the stock data:
+Load and prepare data:
   ```bash
   python scripts/get_data.py qlib_data_cn --target_dir ~/.qlib/qlib_data/cn_data
   ```
+
+This dataset created by public data collected by [crawler scripts](scripts/data_collector/), which have been released in
+the same repository.
+User could create the same dataset with it.
+
 <!-- 
 - Run the initialization code and get stock data:
 
@@ -83,9 +93,9 @@ python setup.py install
  -->
 
 ## Auto Quant research workflow with _estimator_
-Qlib provides a tool named `estimator` to run whole workflow automatically(including building dataset, train models, backtest, analysis)
+Qlib provides a tool named `estimator` to run whole workflow automatically(including building dataset, training models, backtest, analysis)
 
-1. Run _estimator_ (_config.yaml_ for: [estimator_config.yaml](examples/estimator/estimator_config.yaml)):
+1. Run `estimator` with [estimator_config.yaml](examples/estimator/estimator_config.yaml)
 
     ```bash
     cd examples  # Avoid running program under the directory contains `qlib`
@@ -108,31 +118,28 @@ Qlib provides a tool named `estimator` to run whole workflow automatically(inclu
               sharpe  2.043494
               mdd    -0.083584
     ```
-    See the full documents for [Use _Estimator_ to Start An Experiment](TODO:URL).
+    Here are detailed documents for [_Estimator_](https://qlib.readthedocs.io/en/latest/component/estimator.html).
 
 2. Analysis
 
-    Run `examples/estimator/analyze_from_estimator.ipynb` in `jupyter notebook`
-    1.  forecasting signal analysis
-        - Cumulative Return
-
+    Run `examples/estimator/analyze_from_estimator.ipynb` with `jupyter notebook`
+    1.  Forecasting signal(model prediction) analysis
+        - Cumulative Return of groups
         ![Cumulative Return](docs/_static/img/analysis/analysis_model_cumulative_return.png)
+        - Return distribution
         ![long_short](docs/_static/img/analysis/analysis_model_long_short.png)
         - Information Coefficient(IC)
-
         ![Information Coefficient](docs/_static/img/analysis/analysis_model_IC.png)        
         ![Monthly IC](docs/_static/img/analysis/analysis_model_monthly_IC.png)        
         ![IC](docs/_static/img/analysis/analysis_model_NDQ.png)
-        - Auto Correlation
-
+        - Auto Correlation of forecasting signal(model prediction)
         ![Auto Correlation](docs/_static/img/analysis/analysis_model_auto_correlation.png)
 
         
 
 
-    2.  portfolio analysis
-        - Report
-  
+    2.  Portfolio analysis
+        - Backtest return
         ![Report](docs/_static/img/analysis/report.png)
         <!-- 
         - Score IC
@@ -145,13 +152,13 @@ Qlib provides a tool named `estimator` to run whole workflow automatically(inclu
         ![Rank Label](docs/_static/img/rank_label.png)
         -->
 
-## Customized Quant research workflow by code
-Automatic workflow may not suite the research workflow of all Quant researchers. To support flexible Quant research workflow, Qlib also provide modularized interface to allow researchers to build their own workflow. [Here](TODO_URL) is a demo for customized Quant research workflow by code
+## Building customized Quant research workflow by code
+Automatic workflow may not suite the research workflow of all Quant researchers. To support flexible Quant research workflow, Qlib also provide modularized interface to allow researchers to build their own workflow by code. [Here](examples/train_backtest_analyze.ipynb) is a demo for customized Quant research workflow by code
 
 
 
 # More About Qlib
-The detailed documents are organized in [docs](docs).
+The detailed documents are organized in [docs](docs/).
 [Sphinx](http://www.sphinx-doc.org) and the readthedocs theme is required to build the documentation in html formats. 
 ```bash
 cd docs/
@@ -160,24 +167,24 @@ conda install sphinx sphinx_rtd_theme -y
 # pip install sphinx sphinx_rtd_theme
 make html
 ```
-You can also view the [latest document](TODO_URL) online directly.
+You can also view the [latest document](http://qlib.readthedocs.io/) online directly.
 
-The roadmap is managed as a [github project](https://github.com/microsoft/qlib/projects/1).
+Qlib is in active and continues development. Our plan is in the roadmap, which is managed as a [github project](https://github.com/microsoft/qlib/projects/1).
 
 
 
-## Offline mode and online mode
-The data server of Qlib can both deployed as offline mode and online mode. The default mode is offline mode.
+# Offline mode and online mode of data server
+The data server of Qlib can either deployed as offline mode or online mode. The default mode is offline mode.
 
 Under offline mode, the data will be deployed locally. 
 
-Under online mode, the data will be deployed as a shared data service. The data and their cache will be shared by clients. The data retrieving performance is expected to be improved due to a higher rate of cache hits. It will use less disk space, too. The documents of the online mode can be found in [Qlib-Server](TODO_link). The online mode can be deployed automatically with [Azure CLI based scripts](TODO_link)
+Under online mode, the data will be deployed as a shared data service. The data and their cache will be shared by all the clients. The data retrieval performance is expected to be improved due to a higher rate of cache hits. It will consume less disk space, too. The documents of the online mode can be found in [Qlib-Server](https://qlib-server.readthedocs.io/). The online mode can be deployed automatically with [Azure CLI based scripts](https://qlib-server.readthedocs.io/en/latest/build.html#one-click-deployment-in-azure)
 
 ## Performance of Qlib Data Server
-The performance of data processing is important to data-driven methods like AI technologies. As an AI-oriented platform, Qlib provides a solution for data storage and data processing. To demonstrate the performance of Qlib, We
-compare Qlib with several other solutions. 
+The performance of data processing is important to data-driven methods like AI technologies. As an AI-oriented platform, Qlib provides a solution for data storage and data processing. To demonstrate the performance of Qlib data server, we
+compare it with several other data storage solutions. 
 
-We evaluate the performance of several solutions by completing the same task,
+We evaluate the performance of several storage solutions by finishing the same task,
 which creates a dataset(14 features/factors) from the basic OHLCV daily data of a stock market(800 stocks each day from 2007 to 2020). The task involves data queries and processing.
 
 |                         | HDF5      | MySQL     | MongoDB   | InfluxDB  | Qlib -E -D  | Qlib +E -D   | Qlib +E +D  |

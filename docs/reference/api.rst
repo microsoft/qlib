@@ -4,7 +4,7 @@ API Reference
 
 
 
-Here you can find all ``QLib`` interfaces.
+Here you can find all ``Qlib`` interfaces.
 
 
 Data

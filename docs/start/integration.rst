@@ -137,7 +137,7 @@ Assuming that the configuration file is ``examples/estimator/estimator_config.ya
 
 .. note:: ``estimator`` is a built-in command of ``Qlib``.
 
-Also, ``Model`` can also be tested as a single module. An example has been given in ``examples.estimator.train_backtest_analyze.ipynb``. 
+Also, ``Model`` can also be tested as a single module. An example has been given in ``examples/train_backtest_analyze.ipynb``. 
 
 
 Reference
