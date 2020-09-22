@@ -79,25 +79,29 @@ The backtest results are in the following form:
               mdd    -0.083584
 
 - `sub_bench`
-    Returns of the portfolio without deduction of fees
+    - `mean`
+        Mean value of the `CAR` (cumulative abnormal return) without cost
+    - `std`
+        The `Standard Deviation` of `CAR` (cumulative abnormal return) without cost.
+    - `annual`
+        The `Annualized Rate` of `CAR` (cumulative abnormal return) without cost.
+    - `ir`
+        The `Information Ratio` without cost. please refer to `Information Ratio – IR <https://www.investopedia.com/terms/i/informationratio.asp>`_.
+    - `mdd`
+        The `Maximum Drawdown` of `CAR` (cumulative abnormal return) without cost, please refer to `Maximum Drawdown (MDD) <https://www.investopedia.com/terms/m/maximum-drawdown-mdd.asp>`_.
 
 - `sub_cost`
-    Returns of the portfolio with deduction of fees
+    - `mean`
+        Mean value of the `CAR` (cumulative abnormal return) series with cost
+    - `std`
+        The `Standard Deviation` of `CAR` (cumulative abnormal return) series with cost.
+    - `annual`
+        The `Annualized Rate` of `CAR` (cumulative abnormal return) with cost.
+    - `ir`
+        The `Information Ratio` with cost. please refer to `Information Ratio – IR <https://www.investopedia.com/terms/i/informationratio.asp>`_.
+    - `mdd`
+        The `Maximum Drawdown` of `CAR` (cumulative abnormal return) with cost, please refer to `Maximum Drawdown (MDD) <https://www.investopedia.com/terms/m/maximum-drawdown-mdd.asp>`_.
 
-- `mean`
-    Mean value of the returns sequence(difference sequence of assets).
-
-- `std`
-    Standard deviation of the returns sequence(difference sequence of assets).
-
-- `annual`
-    Average annualized returns of the portfolio.
-
--  `ir`
-    Information Ratio, please refer to `Information Ratio – IR <https://www.investopedia.com/terms/i/informationratio.asp>`_.
-
-- `mdd`
-    Maximum Drawdown, please refer to `Maximum Drawdown (MDD) <https://www.investopedia.com/terms/m/maximum-drawdown-mdd.asp>`_.
 
 
 Reference
