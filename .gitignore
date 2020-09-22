@@ -1,0 +1,33 @@
+# https://github.com/github/gitignore/blob/master/Python.gitignore
+__pycache__/
+
+*.pyc
+*.so
+*.ipynb
+.ipynb_checkpoints
+_build
+build/
+dist/
+
+
+*.pkl
+*.hd5
+*.csv
+
+.env
+.vim
+.nvimrc
+.vscode
+
+qlib/data/_libs/expanding.cpp
+qlib/data/_libs/rolling.cpp
+examples/estimator/estimator_example/
+
+*.egg-info/
+
+
+# special software
+mlruns/
+
+tags
+

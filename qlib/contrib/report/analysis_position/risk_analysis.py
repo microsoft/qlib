@@ -1,0 +1,271 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
+from typing import Iterable
+
+import pandas as pd
+
+import plotly.graph_objs as py
+
+from ...evaluate import risk_analysis
+
+from ..graph import SubplotsGraph, ScatterGraph
+
+
+def _get_risk_analysis_data_with_report(
+    report_normal_df: pd.DataFrame,
+    # report_long_short_df: pd.DataFrame,
+    date: pd.Timestamp,
+) -> pd.DataFrame:
+    """Get risk analysis data with report
+
+    :param report_normal_df: report data
+    :param report_long_short_df: report data
+    :param date: date string
+    :return:
+    """
+
+    analysis = dict()
+    # if not report_long_short_df.empty:
+    #     analysis["pred_long"] = risk_analysis(report_long_short_df["long"])
+    #     analysis["pred_short"] = risk_analysis(report_long_short_df["short"])
+    #     analysis["pred_long_short"] = risk_analysis(report_long_short_df["long_short"])
+
+    if not report_normal_df.empty:
+        analysis["sub_bench"] = risk_analysis(
+            report_normal_df["return"] - report_normal_df["bench"]
+        )
+        analysis["sub_cost"] = risk_analysis(
+            report_normal_df["return"]
+            - report_normal_df["bench"]
+            - report_normal_df["cost"]
+        )
+    analysis_df = pd.concat(analysis)  # type: pd.DataFrame
+    analysis_df["date"] = date
+    return analysis_df
+
+
+def _get_all_risk_analysis(risk_df: pd.DataFrame) -> pd.DataFrame:
+    """risk_df to standard
+
+    :param risk_df: risk data
+    :return:
+    """
+    if risk_df is None:
+        return pd.DataFrame()
+    risk_df = risk_df.unstack()
+    risk_df.columns = risk_df.columns.droplevel(0)
+    return risk_df.drop("mean", axis=1)
+
+
+def _get_monthly_risk_analysis_with_report(report_normal_df: pd.DataFrame) -> pd.DataFrame:
+    """Get monthly analysis data
+
+    :param report_normal_df:
+    # :param report_long_short_df:
+    :return:
+    """
+
+    # Group by month
+    report_normal_gp = report_normal_df.groupby(
+        [report_normal_df.index.year, report_normal_df.index.month]
+    )
+    # report_long_short_gp = report_long_short_df.groupby(
+    #     [report_long_short_df.index.year, report_long_short_df.index.month]
+    # )
+
+    gp_month = sorted(set(report_normal_gp.size().index))
+
+    _monthly_df = pd.DataFrame()
+    for gp_m in gp_month:
+        _m_report_normal = report_normal_gp.get_group(gp_m)
+        # _m_report_long_short = report_long_short_gp.get_group(gp_m)
+
+        if len(_m_report_normal) < 3:
+            # The month's data is less than 3, not displayed
+            # FIXME: If the trading day of a month is less than 3 days, a breakpoint will appear in the graph
+            continue
+        month_days = pd.Timestamp(year=gp_m[0], month=gp_m[1], day=1).days_in_month
+        _temp_df = _get_risk_analysis_data_with_report(
+            _m_report_normal,
+            # _m_report_long_short,
+            pd.Timestamp(year=gp_m[0], month=gp_m[1], day=month_days),
+        )
+        _monthly_df = _monthly_df.append(_temp_df, sort=False)
+
+    return _monthly_df
+
+
+def _get_monthly_analysis_with_feature(
+    monthly_df: pd.DataFrame, feature: str = "annual"
+) -> pd.DataFrame:
+    """
+
+    :param monthly_df:
+    :param feature:
+    :return:
+    """
+    _monthly_df_gp = monthly_df.reset_index().groupby(["level_1"])
+
+    _name_df = _monthly_df_gp.get_group(feature).set_index(["level_0", "level_1"])
+    _temp_df = _name_df.pivot_table(
+        index="date", values=["risk"], columns=_name_df.index
+    )
+    _temp_df.columns = map(lambda x: "_".join(x[-1]), _temp_df.columns)
+    _temp_df.index = _temp_df.index.strftime("%Y-%m")
+
+    return _temp_df
+
+
+def _get_risk_analysis_figure(analysis_df: pd.DataFrame) -> Iterable[py.Figure]:
+    """Get analysis graph figure
+
+    :param analysis_df:
+    :return:
+    """
+    if analysis_df is None:
+        return []
+
+    _figure = SubplotsGraph(
+        _get_all_risk_analysis(analysis_df), kind_map=dict(kind="BarGraph", kwargs={})
+    ).figure
+    return (_figure,)
+
+
+def _get_monthly_risk_analysis_figure(report_normal_df: pd.DataFrame) -> Iterable[py.Figure]:
+    """Get analysis monthly graph figure
+
+    :param report_normal_df:
+    :param report_long_short_df:
+    :return:
+    """
+
+    # if report_normal_df is None and report_long_short_df is None:
+    #     return []    
+    if report_normal_df is None:
+        return []
+
+    # if report_normal_df is None:
+    #     report_normal_df = pd.DataFrame(index=report_long_short_df.index)
+
+    # if report_long_short_df is None:
+    #     report_long_short_df = pd.DataFrame(index=report_normal_df.index)
+
+    _monthly_df = _get_monthly_risk_analysis_with_report(
+        report_normal_df=report_normal_df,
+        # report_long_short_df=report_long_short_df,
+    )
+
+    for _feature in ["annual", "mdd", "sharpe", "std"]:
+        _temp_df = _get_monthly_analysis_with_feature(_monthly_df, _feature)
+        yield ScatterGraph(
+            _temp_df,
+            layout=dict(title=_feature, xaxis=dict(type="category", tickangle=45)),
+            graph_kwargs={"mode": "lines+markers"},
+        ).figure
+
+
+def risk_analysis_graph(
+    analysis_df: pd.DataFrame = None,
+    report_normal_df: pd.DataFrame = None,
+    report_long_short_df: pd.DataFrame = None,
+    show_notebook: bool = True,
+) -> Iterable[py.Figure]:
+    """Generate analysis graph and monthly analysis
+
+        Example:
+
+
+            .. code-block:: python
+
+                from qlib.contrib.evaluate import risk_analysis, backtest, long_short_backtest
+                from qlib.contrib.strategy import TopkDropoutStrategy
+                from qlib.contrib.report import analysis_position
+
+                # backtest parameters
+                bparas = {}
+                bparas['limit_threshold'] = 0.095
+                bparas['account'] = 1000000000
+
+                sparas = {}
+                sparas['topk'] = 50
+                sparas['n_drop'] = 230
+                strategy = TopkDropoutStrategy(**sparas)
+
+                report_normal_df, positions = backtest(pred_df, strategy, **bparas)
+                # long_short_map = long_short_backtest(pred_df)
+                # report_long_short_df = pd.DataFrame(long_short_map)
+
+                analysis = dict()
+                # analysis['pred_long'] = risk_analysis(report_long_short_df['long'])
+                # analysis['pred_short'] = risk_analysis(report_long_short_df['short'])
+                # analysis['pred_long_short'] = risk_analysis(report_long_short_df['long_short'])
+                analysis['sub_bench'] = risk_analysis(report_normal_df['return'] - report_normal_df['bench'])
+                analysis['sub_cost'] = risk_analysis(report_normal_df['return'] - report_normal_df['bench'] - report_normal_df['cost'])
+                analysis_df = pd.concat(analysis)
+
+                analysis_position.risk_analysis_graph(analysis_df, report_normal_df)
+
+
+
+    :param analysis_df: analysis data, index is **pd.MultiIndex**; columns names is **[risk]**.
+
+
+            .. code-block:: python
+
+                                    risk
+                sub_bench mean    0.000662
+                          std     0.004487
+                          annual  0.166720
+                          sharpe  2.340526
+                          mdd    -0.080516
+                sub_cost  mean    0.000577
+                          std     0.004482
+                          annual  0.145392
+                          sharpe  2.043494
+                          mdd    -0.083584
+
+
+    :param report_normal_df: **df.index.name** must be **date**, df.columns must contain **return**, **turnover**, **cost**, **bench**
+
+
+            .. code-block:: python
+
+                            return	    cost	    bench	    turnover
+                date
+                2017-01-04	0.003421	0.000864	0.011693	0.576325
+                2017-01-05	0.000508	0.000447	0.000721	0.227882
+                2017-01-06	-0.003321	0.000212	-0.004322	0.102765
+                2017-01-09	0.006753	0.000212	0.006874	0.105864
+                2017-01-10	-0.000416	0.000440	-0.003350	0.208396
+
+
+    :param report_long_short_df: **df.index.name** must be **date**, df.columns contain **long**, **short**, **long_short**
+
+
+            .. code-block:: python
+
+                            long	    short	    long_short
+                date
+                2017-01-04	-0.001360	0.001394	0.000034
+                2017-01-05	0.002456	0.000058	0.002514
+                2017-01-06	0.000120	0.002739	0.002859
+                2017-01-09	0.001436	0.001838	0.003273
+                2017-01-10	0.000824	-0.001944	-0.001120
+
+
+    :param show_notebook: Whether to display graphics in a notebook, default **True**
+        If True, show graph in notebook
+        If False, return graph figure
+    :return:
+    """
+    _figure_list = list(_get_risk_analysis_figure(analysis_df)) + list(
+        _get_monthly_risk_analysis_figure(
+            report_normal_df,
+            # report_long_short_df,
+            )
+    )
+    if show_notebook:
+        ScatterGraph.show_graph_in_notebook(_figure_list)
+    else:
+        return _figure_list
