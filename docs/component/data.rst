@@ -260,8 +260,8 @@ Base Class & Interface
 
 .. code-block:: python
 
-    'ExpressionCache': 'ServerExpressionCache',
-    'DatasetCache': 'ServerDatasetCache',
+    'ExpressionCache': 'DiskExpressionCache',
+    'DatasetCache': 'DiskDatasetCache',
 
 Users can find the cache interface here.
 
@@ -285,17 +285,17 @@ Implemented Disk Cache
 
     If the user does not use QlibServer, please ignore the content of this section
 
-Qlib has currently provided `ServerExpressionCache` class and `ServerDatasetCache` class as the cache mechanisms used for QlibServer. The class interface and file structure designed for server cache mechanism is listed below.
+Qlib has currently provided `DiskExpressionCache` class and `DiskDatasetCache` class as the cache mechanisms used for QlibServer. The class interface and file structure designed for server cache mechanism is listed below.
 
 DiskExpressionCache
 ^^^^^^^^^^^^^^^^^^^^
 
-.. autoclass:: qlib.data.cache.ServerExpressionCache
+.. autoclass:: qlib.data.cache.DiskExpressionCache
 
 DiskDatasetCache
 ^^^^^^^^^^^^^^^^^^^^
 
-.. autoclass:: qlib.data.cache.ServerDatasetCache
+.. autoclass:: qlib.data.cache.DiskDatasetCache
 
 
 Data and Cache File Structure

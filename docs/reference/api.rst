@@ -49,10 +49,10 @@ Cache
 .. autoclass:: qlib.data.cache.DatasetCache
     :members:
 
-.. autoclass:: qlib.data.cache.ServerExpressionCache
+.. autoclass:: qlib.data.cache.DiskExpressionCache
     :members:
 
-.. autoclass:: qlib.data.cache.ServerDatasetCache
+.. autoclass:: qlib.data.cache.DiskDatasetCache
     :members:
 
 
