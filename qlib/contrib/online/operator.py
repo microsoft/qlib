@@ -279,7 +279,7 @@ class Operator(object):
         self.show(id, path, bench)
 
     def show(self, id, path, bench="SH000905"):
-        """show the newly report (mean, std, sharpe, annual)
+        """show the newly report (mean, std, information_ratio, annual)
 
         Parameters
         ----------
