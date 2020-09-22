@@ -53,7 +53,7 @@ class User:
 
     def showReport(self, benchmark="SH000905"):
         """
-        show the newly report (mean, std, sharpe, annual)
+        show the newly report (mean, std, information_ratio, annual)
             Parameter
                 benchmark : string
                     bench that to be compared, 'SH000905' for csi500

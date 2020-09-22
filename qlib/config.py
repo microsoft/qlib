@@ -28,7 +28,7 @@ _default_config = {
     "default_disk_cache": 1,  # 0:skip/1:use
     "disable_disk_cache": False,  # disable disk cache; if High-frequency data generally disable_disk_cache=True
     "mem_cache_size_limit": 500,
-    # memory cache expire second, only in used 'ClientDatasetCache' and 'client D.calendar'
+    # memory cache expire second, only in used 'DatasetURICache' and 'client D.calendar'
     # default 1 hour
     "mem_cache_expire": 60 * 60,
     # memory cache space limit, default 5GB, only in used client
@@ -86,8 +86,8 @@ _default_server_config = {
     "redis_task_db": 1,
     "kernels": 64,
     # cache
-    "expression_cache": "ServerExpressionCache",
-    "dataset_cache": "ServerDatasetCache",
+    "expression_cache": "DiskExpressionCache",
+    "dataset_cache": "DiskDatasetCache",
 }
 
 _default_client_config = {
@@ -102,8 +102,8 @@ _default_client_config = {
     "provider_uri": "~/.qlib/qlib_data/cn_data",
     # cache
     # Using parameter 'remote' to announce the client is using server_cache, and the writing access will be disabled.
-    "expression_cache": "ServerExpressionCache",
-    "dataset_cache": "ServerDatasetCache",
+    "expression_cache": "DiskExpressionCache",
+    "dataset_cache": "DiskDatasetCache",
     "calendar_cache": None,
     # client config
     "kernels": 16,

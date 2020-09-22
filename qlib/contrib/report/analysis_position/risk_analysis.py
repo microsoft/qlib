@@ -156,7 +156,7 @@ def _get_monthly_risk_analysis_figure(report_normal_df: pd.DataFrame) -> Iterabl
         # report_long_short_df=report_long_short_df,
     )
 
-    for _feature in ["annual", "mdd", "sharpe", "std"]:
+    for _feature in ["annual", "mdd", "information_ratio", "std"]:
         _temp_df = _get_monthly_analysis_with_feature(_monthly_df, _feature)
         yield ScatterGraph(
             _temp_df,
@@ -213,17 +213,17 @@ def risk_analysis_graph(
 
             .. code-block:: python
 
-                                    risk
-                sub_bench mean    0.000662
-                          std     0.004487
-                          annual  0.166720
-                          sharpe  2.340526
-                          mdd    -0.080516
-                sub_cost  mean    0.000577
-                          std     0.004482
-                          annual  0.145392
-                          sharpe  2.043494
-                          mdd    -0.083584
+                                              risk
+                sub_bench mean               0.000662
+                          std                0.004487
+                          annual             0.166720
+                          information_ratio  2.340526
+                          mdd               -0.080516
+                sub_cost  mean               0.000577
+                          std                0.004482
+                          annual             0.145392
+                          information_ratio  2.043494
+                          mdd               -0.083584
 
 
     :param report_normal_df: **df.index.name** must be **date**, df.columns must contain **return**, **turnover**, **cost**, **bench**

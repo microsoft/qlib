@@ -291,15 +291,16 @@ Implemented  Cache
 
 ``Qlib`` has currently provided implemented disk cache `DiskExpressionCache` and `DiskDatasetCache` as the cache mechanisms. The class interface and file structure designed for server cache mechanism is listed below.
 
+
 DiskExpressionCache
 ^^^^^^^^^^^^^^^^^^^^
 
-.. autoclass:: qlib.data.cache.ServerExpressionCache
+.. autoclass:: qlib.data.cache.DiskExpressionCache
 
 DiskDatasetCache
 ^^^^^^^^^^^^^^^^^^^^
 
-.. autoclass:: qlib.data.cache.ServerDatasetCache
+.. autoclass:: qlib.data.cache.DiskDatasetCache
 
 
 Data and Cache File Structure
