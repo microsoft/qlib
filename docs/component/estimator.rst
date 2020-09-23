@@ -105,7 +105,7 @@ Before using ``estimator``, users need to prepare a configuration file. The foll
 Experiment Section
 --------------------
 
-First, the configuration file needs to have a field about the experiment, whose key is `experiment`. This field and its contents determine how `estimator` tracks and persists this `experiment`. ``Qlib`` used `sacred`, a lightweight open-source tool designed to configure, organize, generate logs, and manage experiment results. The field `experiment` will determine the partial behavior of `sacred`.
+At first, the configuration file needs to contain a section named `experiment` about the basic information. This section describes how `estimator` tracks and persists current `experiment`. ``Qlib`` used `sacred`, a lightweight open-source tool, to configure, organize, generate logs, and manage experiment results. The `experiment` section will determine the partial behavior of `sacred`.
 
 Usually, in the running process of `estimator`, those following will be managed by `sacred`:
 
