@@ -31,10 +31,11 @@ def risk_analysis(r, N=252):
     """
     mean = r.mean()
     std = r.std(ddof=1)
-    annual = mean * N
+    annualized_return = mean * N
     information_ratio = mean / std * np.sqrt(N)
-    mdd = (r.cumsum() - r.cumsum().cummax()).min()
-    data = {"mean": mean, "std": std, "annual": annual, "information_ratio": information_ratio, "mdd": mdd}
+    max_drawdown = (r.cumsum() - r.cumsum().cummax()).min()
+    data = {"mean": mean, "std": std, "annualized_return": annualized_return,
+            "information_ratio": information_ratio, "max_drawdown": max_drawdown}
     res = pd.Series(data, index=data.keys()).to_frame("risk")
     return res
 

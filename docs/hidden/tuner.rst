@@ -185,10 +185,10 @@ This part needs contain these fields:
         optim_type: max
 
 - `report_type`
-    The type of the report, str type, determines which kind of report you want to use. If you want to use the backtest result type, you can choose `pred_long`, `pred_long_short`, `pred_short`, `sub_bench` and `sub_cost`. If you want to use the model result type, you can only choose `model`.
+    The type of the report, str type, determines which kind of report you want to use. If you want to use the backtest result type, you can choose `pred_long`, `pred_long_short`, `pred_short`, `excess_return_without_cost` and `excess_return_with_cost`. If you want to use the model result type, you can only choose `model`.
 
 - `report_factor`
-    The factor you want to use in the report, str type, determines which factor you want to optimize. If your `report_type` is backtest result type, you can choose `annual`, `sharpe`, `mdd`, `mean` and `std`. If your `report_type` is model result type, you can choose `model_score` and `model_pearsonr`.
+    The factor you want to use in the report, str type, determines which factor you want to optimize. If your `report_type` is backtest result type, you can choose `annualized_return`, `information_ratio`, `max_drawdown`, `mean` and `std`. If your `report_type` is model result type, you can choose `model_score` and `model_pearsonr`.
 
 - `optim_type`
     The optimization type, str type, determines what kind of optimization you want to do. you can minimize the factor or maximize the factor, so you can choose `max`, `min` or `correlation` at this field.
