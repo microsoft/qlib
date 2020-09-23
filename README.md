@@ -7,11 +7,11 @@ With Qlib, you can easily try your ideas to create better Quant investment strat
 
 
 - [Framework of Qlib](#framework-of-qlib)
-- [Quick start](#quick-start)
+- [Quick Start](#quick-start)
   - [Installation](#installation)
-  - [Get Data](#get-data)
-  - [Auto Quant research workflow with _estimator_](#auto-quant-research-workflow-with-estimator)
-  - [Building customized Quant research workflow by code](#building-customized-quant-research-workflow-by-code)
+  - [Data Preparation](#get-data)
+  - [Auto Quant Research Workflow with](#auto-quant-research-workflow-with-estimator)
+  - [Building Customized Quant Research Workflow by Code](#building-customized-quant-research-workflow-by-code)
 - [More About Qlib](#more-about-qlib)
 - [Offline mode and online mode of data server](#offline-mode-and-online-mode-of-data-server)
   - [Performance of Qlib Data Server](#performance-of-qlib-data-server)
@@ -62,7 +62,7 @@ Users can easily intsall ``Qlib`` according to the following steps:
   ```
 
 
-## Prepare Data
+## Data Preparation
 Load and prepare data by running the following code:
   ```bash
   python scripts/get_data.py qlib_data_cn --target_dir ~/.qlib/qlib_data/cn_data
@@ -152,7 +152,7 @@ Qlib provides a tool named `Estimator` to run the whole workflow automatically (
       ![Rank Label](docs/_static/img/rank_label.png)
       -->
 
-## Building customized Quant research workflow by code
+## Building Customized Quant Research Workflow by Code
 The automatic workflow may not suite the research workflow of all Quant researchers. To support a flexible Quant research workflow, Qlib also provides a modularized interface to allow researchers to build their own workflow by code. [Here](examples/train_backtest_analyze.ipynb) is a demo for customized Quant research workflow by code
 
 
