@@ -18,14 +18,14 @@ Framework
 
 At module level, ``Qlib`` is a platform that consists of the above components. Each components is loose-coupling and can be used stand-alone.
 
-======================  ========================================================================
+======================  ==========================================================================
 Name                    Description
-======================  ========================================================================
-`Data layer`            `DataServer` focus on providing high performance infrastructure for
-                        users to retrieve and get raw data. `DataEnhancement` will preprocess the
-                        data and provide the best dataset to be fed in to the models 
+======================  ==========================================================================
+`Data layer`            `DataServer` focuses on providing high-performance infrastructure for
+                        users to retrieve and get raw data. `DataEnhancement` will preprocess
+                        the data and provide the best dataset to be fed in to the models
 
-`Interday Model`        `Interday model` focus on producing forecasting signals(aka. `alpha`).
+`Interday Model`        `Interday model` focuses on producing forecasting signals (aka. `alpha`).
                         Models are trained by `Model Creator` and managed by `Model Manager`.
                         Users could choose one or multiple models for forecasting. Multiple 
                         models could be combined with `Ensemble` module
@@ -36,9 +36,9 @@ Name                    Description
 `Intraday Trading`      `Order Executor` is responsible for executing orders output by 
                         `Interday Strategy` and returning the executed results.
 
-`Analysis`              Users could get detailed analysis report of forecasting signal and portfolio
-                        in this part.
-======================  ========================================================================
+`Analysis`              User could get a detailed analysis report of forecasting signals and 
+                        portfolios in this part.
+======================  ==========================================================================
 
 - The modules with hand-drawn style is under development and will be released in the future.
 - The modules with dashed border is highly user-customizable and extendible.

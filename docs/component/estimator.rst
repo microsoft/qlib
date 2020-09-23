@@ -581,7 +581,7 @@ Experiment Result
 
 Form of Experimental Result
 ----------------------------
-The result of the experiment is the result of the backtest, please refer to `Backtest <backtest.html>`_.
+The result of the experiment is also the result of the ``Interdat Trading(Backtest)``, please refer to `Interday Trading <backtest.html>`_.
 
 
 Get Experiment Result
