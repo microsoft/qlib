@@ -1,5 +1,5 @@
 ===============================
-``Qlib``: Quantitative Library
+``Qlib``: Quantitative Platform
 ===============================
 
 Introduction
@@ -10,35 +10,38 @@ Introduction
 With ``Qlib``, users can easily try their ideas to create better Quant investment strategies.
 
 Framework
-==================
+===================
 
 .. image:: ../_static/img/framework.png
     :alt: Framework
 
 
-At module level, ``Qlib`` is a platform that consists of the above components. Each components is loose-coupling and can be used stand-alone.
+At the module level, Qlib is a platform that consists of above components. The components are designed as loose-coupled modules and each component could be used stand-alone.
 
 ======================  ==========================================================================
 Name                    Description
-======================  ==========================================================================
 `Data layer`            `DataServer` focuses on providing high-performance infrastructure for
                         users to retrieve and get raw data. `DataEnhancement` will preprocess
                         the data and provide the best dataset to be fed in to the models
 
 `Interday Model`        `Interday model` focuses on producing forecasting signals (aka. `alpha`).
+=======
+======================  ========================================================================
+`Data layer`            `DataServer` focuses on providing high performance infrastructure for users
+                        to manage and retrieve raw data. `DataEnhancement` will preprocess the data
+                        and provide the best dataset to be fed into the models.
+`Interday Model`        `Interday model` focuses on producing forecasting signals(aka. `alpha`).
                         Models are trained by `Model Creator` and managed by `Model Manager`.
                         Users could choose one or multiple models for forecasting. Multiple 
-                        models could be combined with `Ensemble` module
-
+                        models could be combined with `Ensemble` module.
 `Interday Strategy`     `Portfolio Generator` will take forecasting signals as input and output 
-                        the orders based on current position to achieve target portfolio                  
-                        
+                        the orders based on current position to achieve target portfolio.                                    
 `Intraday Trading`      `Order Executor` is responsible for executing orders output by 
                         `Interday Strategy` and returning the executed results.
+=======
+`Analysis`              Users could get detailed analysis report of forecasting signal and portfolio
+                        in this part.
+======================  ========================================================================
 
-`Analysis`              User could get a detailed analysis report of forecasting signals and 
-                        portfolios in this part.
-======================  ==========================================================================
-
-- The modules with hand-drawn style is under development and will be released in the future.
-- The modules with dashed border is highly user-customizable and extendible.
+- The modules with hand-drawn style are under development and will be released in the future.
+- The modules with dashed borders are highly user-customizable and extendible.

@@ -7,7 +7,7 @@ Estimator: Workflow Management
 Introduction
 ===================
 
-The components in `Qlib Framework <../introduction/introduction.html#framework>`_ is designed in a loosely-coupled way. Users could build their own quant research workflow with these components like `Example <http://TODO_URL>`_
+The components in `Qlib Framework <../introduction/introduction.html#framework>`_ are designed in a loosely-coupled way. Users could build their own quant research workflow with these components like `Example <http://TODO_URL>`_
 
 
 Besides, ``Qlib`` provides more user-friendly interfaces named ``Estimator`` to automatically run the whole workflow defined by a config.  A concrete execution of the whole workflow is called an `experiment`.
@@ -22,18 +22,18 @@ With ``Estimator``, user can easily run an `experiment`, which includes the foll
     - Saving & loading
 - Evaluation(Back-testing)
 
-For each `experiment`, ``Qlib`` will capture the details of model training, performance evalution results and basic infomation(e.g. names, ids). The captured data will be stored in backend-storge(disk or database).
+For each `experiment`, ``Qlib`` will capture the details of model training, performance evalution results and basic infomation (e.g. names, ids). The captured data will be stored in backend-storge (disk or database).
 
 Example
 ===================
 
 The following is an example:
 
-.. note:: Make sure install the latest version of `qlib`, please refer to `Qlib installation <../start/installation.html>`_.
+.. note:: Make sure to install the latest version of `Qlib`, please refer to `Qlib installation <../start/installation.html>`_.
 
 If users want to use the models and data provided by `Qlib`, they only need to do as follows.
 
-First, Write a simple configuration file as following,
+First, write a simple configuration file as following,
 
 .. code-block:: YAML
 
@@ -145,7 +145,7 @@ The meaning of each field is as follows:
 
     - For `file_storage` observer.
         - `dir`   
-            Directory url, str type, directory for `file_storage` observer type, files captures and managed by sacred with observer type of `file_storage` will be save to this directory, default is the directory of `config.json`.
+            Directory url, str type, directory for `file_storage` observer type, files captures and managed by sacred with observer type of `file_storage` will be saved to this directory, default is the directory of `config.json`.
 
     - For `mongo` observer.
         - `mongo_url`
@@ -155,7 +155,7 @@ The meaning of each field is as follows:
             Database name, str type, required if the observer type is `mongo`.
 
 - `finetune`
-    Estimator will produce a model based on this flag
+    Estimator will produce a model based on this flag.
 
     The following table is the processing logic for different situations.
 
@@ -163,7 +163,7 @@ The meaning of each field is as follows:
       .            Static                                                                             Rolling
       .            Finetune=True                              Finetune=False                          Finetune=True                                Finetune=False
     ==========  ===========================================   ====================================    ===========================================  ==========================================
-    Train       - Need to provide model(Static or Rolling)    - No need to provide model              - Need to provide model(Static or Rolling)   - Need to provide model(Static or Rolling)
+    Train       - Need to provide model (Static or Rolling)    - No need to provide model              - Need to provide model (Static or Rolling)   - Need to provide model (Static or Rolling)
                 - The args in model section will be           - The args in model section will be     - The args in model section will be          - The args in model section will be
                   used for finetuning                           used for training                       used for finetuning                          used for finetuning
                 - Update based on the provided model          - Train model from scratch              - Update based on the provided model         - Based on the provided model update
@@ -185,19 +185,20 @@ The meaning of each field is as follows:
         3. If `loader.model_index` is None:
             - In 'Static Finetune=True', if provide 'Rolling', use the last model to update.
 
-            - For RollingTrainer with Finetune=Ture.
+            - For `RollingTrainer` with Finetune=True.
 
-                - If StaticTrainer is used in loader, the model will be used for initialization for finetuning.
+                - If `StaticTrainer` is used in loader, the model will be used for initialization for finetuning.
 
-                - If RollingTrainer is used in loader, the existing models will be used without any modification and the new models will be initialized with the model in the last period and finetune one by one.
+                - If `RollingTrainer` is used in loader, the existing models will be used without any modification and the new models will be initialized with the model in the last period and finetune one by one.
 
 
 - `exp_info_path`
-    experiment info save path, str type, save the experiment info and model `prediction score` after the experiment is finished. Optional parameter, the default value is `config_file_dir/ex_name/exp_info.json`
+    experiment info save path, str type, save the experiment info and model `prediction score` after the experiment is finished. Optional parameter, the default value is `config_file_dir/ex_name/exp_info.json`.
 
 - `mode`
     `train` or `test`, str type, if `mode` is test, it will load the model according to the parameters of `loader`. The default value is `train`.
     Also note that when the load model failed, it will `fit` model.
+    
     .. note::
 
         if users choose `mode` test, they need to make sure:
@@ -222,7 +223,8 @@ The meaning of each field is as follows:
 
     - `observer_type`
         The experiment observer type of the model that needs to be loaded, str type. The default value is the current experiment `observer_type`.
-        .. note:: The observer type is a concept of the `sacred` module, which determines how files, standard input and output which are managed by sacred are stored.
+	
+        .. note:: The observer type is a concept of the `sacred` module, which determines how files, standard input, and output which are managed by sacred are stored.
         
         
         - `file_storage`
@@ -249,9 +251,9 @@ The meaning of each field is as follows:
             
             .. note::
 
-                If users choose mongo observer, they need to make sure:
-                    - have an environment with the mongodb installed and a mongo database dedicated for storing the experiments results.
-                    - The python environment(the version of python and package) to run the experiments and the one to fetch the results are consistent.
+                If users choose the mongo observer, they need to make sure:
+                    - Have an environment with the mongodb installed and a mongo database dedicated to storing the results of the experiments.
+                    - The python environment (the version of python and package) to run the experiments and the one to fetch the results are consistent.
 
 Model Field
 -----------------
@@ -261,7 +263,7 @@ Users can use a specified model by configuration with hyper-parameters.
 Custom Models
 ~~~~~~~~~~~~~~~~~
 
-Qlib support custom models, but it must be a subclass of the `qlib.contrib.model.Model`, the config for custom model may be as following.
+Qlib supports custom models, but it must be a subclass of the `qlib.contrib.model.Model`, the config for a custom model may be as following.
 
 .. code-block:: YAML
 
@@ -274,12 +276,12 @@ Qlib support custom models, but it must be a subclass of the `qlib.contrib.model
 
 The class `SomeModel` should be in the module `custom_model`, and ``Qlib`` could parse the `module_path` to load the class.
 
-To Know more about ``Model``, please refer to `Model <model.html>`_.
+To know more about ``Model``, please refer to `Model <model.html>`_.
 
 Data Field
 -----------------
 
-``Data Handler`` can be used to load raw data, prepare features and label columns, preprocess data(standardization, remove NaN, etc.), split training, validation, and test sets. It is a subclass of `qlib.contrib.estimator.handler.BaseDataHandler`.
+``Data Handler`` can be used to load raw data, prepare features and label columns, preprocess data (standardization, remove NaN, etc.), split training, validation, and test sets. It is a subclass of `qlib.contrib.estimator.handler.BaseDataHandler`.
 
 Users can use the specified data handler by config as follows.
 
@@ -310,32 +312,32 @@ Users can use the specified data handler by config as follows.
                   fend_time: 2018-12-11
 
 - `class`    
-    Data handler class, str type, which should be a subclass of `qlib.contrib.estimator.handler.BaseDataHandler`, and implements 5 important interfaces for loading features, loading raw data, preprocessing raw data, slicing train, validation, and test data. The default value is `ALPHA360`. If users want to write a data handler to retrieve the data in qlib, `QlibDataHandler` is suggested.
+    Data handler class, str type, which should be a subclass of `qlib.contrib.estimator.handler.BaseDataHandler`, and implements 5 important interfaces for loading features, loading raw data, preprocessing raw data, slicing train, validation, and test data. The default value is `ALPHA360`. If users want to write a data handler to retrieve the data in ``Qlib``, `QlibDataHandler` is suggested.
 
 - `module_path`    
-   The module path, str type, absolute url is also supported, indicates the path of the `class` implementation of data processor class. The default value is `qlib.contrib.estimator.handler`.
+   The module path, str type, absolute url is also supported, indicates the path of the `class` implementation of the data processor class. The default value is `qlib.contrib.estimator.handler`.
 
 - `args`
     Parameters used for ``Data Handler`` initialization.
 
     - `train_start_date`
-        Training start time, str type, default value is `2005-01-01`.
+        Training start time, str type, the default value is `2005-01-01`.
 
     - `start_date`
         Data start date, str type. 
 
     - `end_date`
-        Data end date, str type. the data from start_date to end_date decides which part of data will be loaded in datahandler, users can only use these data in the following parts.
+        Data end date, str type. the data from start_date to end_date decides which part of data will be loaded in `datahandler`, users can only use these data in the following parts.
 
     - `dropna_feature` (Optional in args)
-        Drop Nan feature, bool type, default value is False. 
+        Drop Nan feature, bool type, the default value is False. 
 
     - `dropna_label` (Optional in args)
-        Drop Nan label, bool type, default value is True. Some multi-label tasks will use this.
+        Drop Nan label, bool type, the default value is True. Some multi-label tasks will use this.
 
     - `normalize_method` (Optional in args)
-        Normalzie data by given method. str type. ``Qlib`` give two normalize method, `MinMax` and `Std`.
-        If users wants to build their own method, please override `_process_normalize_feature`.
+        Normalize data by a given method. str type. ``Qlib`` gives two normalizing methods, `MinMax` and `Std`.
+        If users want to build their own method, please override `_process_normalize_feature`.
   
 - `filter`
     Dynamically filtering the stocks based on the filter pipeline.
@@ -353,7 +355,7 @@ Users can use the specified data handler by config as follows.
             The module path, str type.
 
         - `args`
-            The filter class parameters, this parameters are set according to the `class`, and all the parameters as kwargs to `class`.
+            The filter class parameters, these parameters are set according to the `class`, and all the parameters as kwargs to `class`.
 
 Custom Data Handler
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -371,15 +373,15 @@ Qlib support custom data handler, but it must be a subclass of the ``qlib.contri
 
 The class `SomeDataHandler` should be in the module `custom_data_handler`, and ``Qlib`` could parse the `module_path` to load the class.
 
-If users want to load features and labels by config, they can inherit ``qlib.contrib.estimator.handler.ConfigDataHandler``, ``Qlib`` also has provided some preprocess method in this subclass.
-If users want to use qlib data, `QLibDataHandler` is recommended, from which users can inherit custom class. `QLibDataHandler` is also a subclass of `ConfigDataHandler`.
+If users want to load features and labels by config, they can inherit ``qlib.contrib.estimator.handler.ConfigDataHandler``, ``Qlib`` also has provided some preprocess methods in this subclass.
+If users want to use qlib data, `QLibDataHandler` is recommended, from which users can inherit the custom class. `QLibDataHandler` is also a subclass of `ConfigDataHandler`.
 
-To Know more about ``Data Handler``, please refer to `Data Framework&Usage <data.html>`_.
+To know more about ``Data Handler``, please refer to `Data Framework&Usage <data.html>`_.
 
 Trainer Field
 -----------------
 
-Users can specify the trainer ``Trainer`` by the config file, which is subclass of ``qlib.contrib.estimator.trainer.BaseTrainer`` and implement three important interfaces for training the model, restoring the model, and getting model predictions as follows.
+Users can specify the trainer ``Trainer`` by the config file, which is a subclass of ``qlib.contrib.estimator.trainer.BaseTrainer`` and implement three important interfaces for training the model, restoring the model, and getting model predictions as follows.
 
 - `train`    
     Implement this interface to train the model.
@@ -447,7 +449,7 @@ Users can specify `trainer` with the configuration file:
 Custom Trainer
 ~~~~~~~~~~~~~~~~~~
 
-Qlib support custom trainer, but it must be a subclass of the `qlib.contrib.estimator.trainer.BaseTrainer`, the config for custom trainer may be as following,
+Qlib supports custom trainer, but it must be a subclass of the `qlib.contrib.estimator.trainer.BaseTrainer`, the config for a custom trainer may be as following:
 
 .. code-block:: YAML
 
@@ -496,7 +498,7 @@ Users can specify strategy through a config file, for example:
 Custom Strategy
 ^^^^^^^^^^^^^^^^^^^
 
-Qlib support custom strategy, but it must be a subclass of the ``qlib.contrib.strategy.strategy.BaseStrategy``, the config for custom strategy may be as following,
+Qlib supports custom strategy, but it must be a subclass of the ``qlib.contrib.strategy.strategy.BaseStrategy``, the config for custom strategy may be as following:
 
 
 .. code-block:: YAML
@@ -507,7 +509,7 @@ Qlib support custom strategy, but it must be a subclass of the ``qlib.contrib.st
 
 The class `SomeStrategy` should be in the module `custom_strategy`, and ``Qlib`` could parse the `module_path` to load the class.
 
-To Know more about ``Strategy``, please refer to `Strategy <strategy.html>`_.
+To know more about ``Strategy``, please refer to `Strategy <strategy.html>`_.
 
 Backtest Field
 -----------------
@@ -532,7 +534,7 @@ Users can specify `backtest` through a config file, for example:
     Normal backtest parameters. All the parameters in this section will be passed to the ``qlib.contrib.evaluate.backtest`` function in the form of `**kwargs`.
 
     - `benchmark`
-        Stock index symbol, str or list type, the default value is `None`.
+        Stock index symbol, str, or list type, the default value is `None`.
 
         .. note::
 
@@ -587,7 +589,7 @@ The result of the experiment is also the result of the ``Interdat Trading(Backte
 Get Experiment Result
 ----------------------------
 
-Users can check the experiment results from file storage directly, or check the experiment results from database, or get the experiment results through two API of a module `fetcher` provided by ``Qlib``.
+Users can check the experiment results from file storage directly, or check the experiment results from the database, or get the experiment results through two API of a module `fetcher` provided by ``Qlib``.
 
 - `get_experiments()`   
     The API takes two parameters. The first parameter is the experiment name. The default is all experiments. The second parameter is the observer type. Users can get the experiment name dictionary with a list of ids and test end date by the API as follows.
@@ -608,8 +610,8 @@ Users can check the experiment results from file storage directly, or check the 
 
 
 - `get_experiment(exp_name, exp_id, fields=None)`
-    The API takes three parameters, the first parameter is the experiment name, the second parameter is the experiment id, and the third parameter is field list.
-    If fields is None, will get all fields.
+    The API takes three parameters, the first parameter is the experiment name, the second parameter is the experiment id, and the third parameter is list of fields.
+    If `fields` is None, will get all fields.
     
     .. note::
         Currently supported fields:
@@ -665,7 +667,7 @@ Here is a simple example of `FileFetcher`, which could fetch files from `file_st
               sharpe  2.043494
               mdd    -0.083584
 
-If users use mongo observer when training, they should initialize their fether with mongo_url
+If users use mongo observer when training, they should initialize their fetcher with mongo_url
 
 .. code-block:: python
 

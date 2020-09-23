@@ -6,7 +6,7 @@ Aanalysis: Evaluation & Results Analysis
 Introduction
 ===================
 
-``Aanalysis`` is designed to show the graphical reports of ``Intraday Trading`` , which helps users to evaluate and analyse investment portfolios visually. There are the following graphics to view:
+``Aanalysis`` is designed to show the graphical reports of ``Intraday Trading`` , which helps users to evaluate and analyse investment portfolios visually. The following are some graphics to view:
 
 - analysis_position
     - report_graph
@@ -36,7 +36,7 @@ Users can run the following code to get all supported reports.
 
 
 
-Usage&Example
+Usage & Example
 ===================
 
 Usage of `analysis_position.report`
@@ -170,7 +170,7 @@ Graphical Result
                 The `Information Ratio` without cost.
             - `sub_cost`
                 The `Information Ratio` with cost.
-            To kown more about `Information Ratio`, please refer to `Information Ratio – IR <https://www.investopedia.com/terms/i/informationratio.asp>`_.
+            To know more about `Information Ratio`, please refer to `Information Ratio – IR <https://www.investopedia.com/terms/i/informationratio.asp>`_.
         -  `mdd`
             - `sub_bench`
                 The `Maximum Drawdown` of `CAR` (cumulative abnormal return) without cost.
@@ -308,12 +308,12 @@ Graphical Results
     - IC
         The distribution of the `Information Coefficient` on each trading day.
     - IC Normal Dist. Q-Q
-        The `Quantile-Quantile Plot` used for the normal distribution of `Information Coefficient` on each trading day.
+        The `Quantile-Quantile Plot` is used for the normal distribution of `Information Coefficient` on each trading day.
 
 .. image:: ../_static/img/analysis/analysis_model_NDQ.png 
 
 .. note::
     - Auto Correlation
-         The `Pearson correlation coefficient` series between `label` and `prediction score`of stocks in portfolio.
+         The `Pearson correlation coefficient` series between `label` and `prediction score` of stocks in portfolio.
 
 .. image:: ../_static/img/analysis/analysis_model_auto_correlation.png 
