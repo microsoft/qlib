@@ -6,16 +6,30 @@ Installation
 .. currentmodule:: qlib
 
 
-How to Install ``Qlib``
+Environment
+============
+
+Operating System
+------------------
+
+`Qlib` supports both `Windows` and `Linux`. It's recommended to use `Qlib` in `Linux`.
+
+Python
+----------------
+``Qlib`` supports Python3, which is up to Python3.8.
+
+Other
+--------------
+
+``Qlib`` Installation
 ====================
 
-``Qlib`` only supports Python3.
-.. and supports up to Python3.8.
+
 
 Please follow the steps below to install ``Qlib``:
 
-- Change the directory to ``Qlib``, in which the file ``setup.py`` exists.
-- Then, please execute the following command:
+- Enter the root directory of ``Qlib``, in which the file ``setup.py`` exists.
+- Then, please execute the following command to install the environment dependencies and install ``Qlib``:
    
    .. code-block:: bash
 
@@ -26,15 +40,14 @@ Please follow the steps below to install ``Qlib``:
 
 
 .. note::
-   It's recommended to use anaconda/miniconda to setup the environment.
-   ``Qlib`` needs lightgbm and pytorch packages, use pip to install them.
+   It's recommended to use anaconda/miniconda to setup the environment. ``Qlib`` needs lightgbm and pytorch packages, use pip to install them.
 
 .. note::
-   Do not import qlib in the repository folder which contains ``qlib``, otherwise, errors may occur.
+   Do not import qlib in the root directory of ``Qlib``, otherwise, errors may occur.
    
 
 
-Use the following code to make sure the installation is successful:
+Use the following code to make sure the installation successful:
 
 .. code-block:: python
 
