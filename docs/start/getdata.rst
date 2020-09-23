@@ -18,7 +18,7 @@ Examples
 
 .. note:: In order to get the data, users need to initialize ``Qlib`` with `qlib.init` first. Please refer to `initialization <initialization.rst>`_.
 
-If user followed steps in `initialization <initialization.rst>`_ and downloaded the data, use should use following code to initialize qlib 
+If user followed steps in `initialization <initialization.rst>`_ and downloaded the data, user should use following code to initialize qlib 
 
 .. code-block:: python
 
@@ -100,7 +100,7 @@ Load features of certain instruments in given time range:
 
 Load features of certain stockpool in given time range:
 
-.. note:: With cache enabled, the qlib data server will cache data on all the time for the requested stockpool and fields, it may take longer to process the request for the first time than that without cache. But after the first time, requests with the same stockpool and fields will hit the cache and be processed faster even the requested time period changes.
+.. note:: With cache enabled, the qlib data server will cache data all the time for the requested stockpool and fields, it may take longer to process the request for the first time than that without cache. But after the first time, requests with the same stockpool and fields will hit the cache and be processed faster even the requested time period changes.
 
 .. code-block:: python
 
@@ -128,7 +128,7 @@ Load features of certain stockpool in given time range:
               2015-06-16    4025.770020	     368.954346
 
 
-.. note:: When calling D.features() at client, use parameter 'disk_cache=0' to skip dataset cache, use 'disk_cache=1' to generate and use dataset cache. In addition, when calling at server, you can use 'disk_cache=2' to update the dataset cache.
+.. note:: When calling ``D.features()`` at client, use parameter ``disk_cache=0`` to skip dataset cache, use ``disk_cache=1`` to generate and use dataset cache. In addition, when calling at server, you can use ``disk_cache=2`` to update the dataset cache.
 
 API
 ====================
