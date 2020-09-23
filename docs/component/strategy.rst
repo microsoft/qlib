@@ -9,9 +9,9 @@ Introduction
 
 ``Interday Strategy`` is designed to adopt different trading strategies, which means that users can adopt different algorithms to generate investment portfolios based on the prediction scores of the ``Interday Model``. Users can use the ``Interday Strategy`` in an automatic workflow by ``Estimator``, please refer to `Estimator <estimator.html>`_.  
 
-Because the componets in ``Qlib`` are designed in a loosely-coupled way, ``Interday Strategy`` can be used as a independent module also.
+Because the components in ``Qlib`` are designed in a loosely-coupled way, ``Interday Strategy`` can be used as an independent module also.
 
-``Qlib`` provides several implemented trading strategy. Also, ``Qlib`` supports costom strategy, users can customize strategies according to their own needs.
+``Qlib`` provides several implemented trading strategies. Also, ``Qlib`` supports custom strategy, users can customize strategies according to their own needs.
 
 Base Class & Interface
 ======================
@@ -27,7 +27,7 @@ Qlib provides a base class ``qlib.contrib.strategy.BaseStrategy``. All strategy 
 - `generate_order_list`
     Rerturn the order list. 
 
-User can inherit `BaseStrategy` to costomize their strategy class.
+Users can inherit `BaseStrategy` to customize their strategy class.
 
 WeightStrategyBase
 --------------------
@@ -49,7 +49,7 @@ Qlib alse provides a class ``qlib.contrib.strategy.WeightStrategyBase`` that is 
 - Generate the target amount of stocks from the target position.
 - Generate the order list from the target amount
 
-Users can inherit `WeightStrategyBase` and implement the inteface `generate_target_weight_position` to costomize their strategy class, which only focuses on the target positions.
+Users can inherit `WeightStrategyBase` and implement the interface `generate_target_weight_position` to customize their strategy class, which only focuses on the target positions.
 
 Implemented Strategy
 ====================
@@ -61,7 +61,7 @@ TopkDropoutStrategy
 ------------------
 `TopkDropoutStrategy` is a subclass of `BaseStrategy` and implement the interface `generate_order_list` whose process is as follows.
 
-- Adopt the the ``Topk-Drop`` algorithm to calculate the target amount of each stock
+- Adopt the ``Topk-Drop`` algorithm to calculate the target amount of each stock
 
     .. note::
         ``Topk-Drop`` algorithm：
@@ -70,7 +70,7 @@ TopkDropoutStrategy
         - `Drop`: The number of stocks sold on each trading day
         
         Currently, the number of held stocks is `Topk`.
-        On each trading day, the `Drop` number of held stocks with worst `prediction score` will be sold, and the same number of unheld stocks with best `prediction score` will be bought.
+        On each trading day, the `Drop` number of held stocks with the worst `prediction score` will be sold, and the same number of unheld stocks with the best `prediction score` will be bought.
         
         .. image:: ../_static/img/topk_drop.png
             :alt: Topk-Drop
@@ -116,4 +116,4 @@ To know more about ``Intraday Trading``, please refer to `Intraday Trading: Mode
 
 Reference
 ===================
-TO konw more about ``Interday Strategy``, please refer to `Strategy API <../reference/api.html>`_.
+To know more about ``Interday Strategy``, please refer to `Strategy API <../reference/api.html>`_.
