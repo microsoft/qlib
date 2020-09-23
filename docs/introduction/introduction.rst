@@ -37,4 +37,4 @@ Name                    Description
 ======================  ========================================================================
 
 - The modules with hand-drawn style are under development and will be released in the future.
-- The modules with a dashed border are highly user-customizable and extendible.
+- The modules with dashed borders are highly user-customizable and extendible.
