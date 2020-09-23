@@ -1,6 +1,5 @@
 
-![logo](docs/_static/img/logo/white_bg_rec+word.png)
-
+<img style="display: block; margin: 0 auto;" src="docs/_static/img/logo/white_bg_rec+word.png" alt="" />
 
 Qlib is an AI-oriented quantitative investment platform, which aims to realize the potential, empower the research, and create the value of AI technologies in quantitative investment.
 
@@ -21,7 +20,8 @@ With Qlib, you can easily try your ideas to create better Quant investment strat
 
 
 # Framework of Qlib
-![framework](docs/_static/img/framework.png)
+<img style="display: block; margin: 0 auto;" src="docs/_static/img/framework.png" alt="" />
+
 
 At the module level, Qlib is a platform that consists of the above components. The components are designed as loose-coupled modules and each component could be used stand-alone.
 
@@ -47,14 +47,14 @@ This quick start guide tries to demonstrate
 
 Users can easily intsall ``Qlib`` according to the following steps:
 
-* Before installing _Qlib_ from source, you need to install some dependencies:
+* Before installing ``Qlib`` from source, you need to install some dependencies:
 
   ```bash
   pip install numpy
   pip install --upgrade  cython
   ```
 
-* Clone the repository and install _Qlib_:
+* Clone the repository and install ``Qlib``:
 
   ```bash
   git clone https://github.com/microsoft/qlib.git && cd qlib
@@ -107,7 +107,7 @@ Qlib provides a tool named `Estimator` to run the whole workflow automatically (
       cd examples  # Avoid running program under the directory contains `qlib`
       estimator -c estimator/estimator_config.yaml
     ```
-    The result of `Estimator` is as follows, please refer to please refer to [Intraday Trading](https://qlib.readthedocs.io/en/latest/component/estimator.html) for more details about the result. 
+    The result of `Estimator` is as follows, please refer to please refer to [Intraday Trading](https://qlib.readthedocs.io/en/latest/component/backtest.html) for more details about the result. 
 
     ```bash
                           risk
@@ -124,7 +124,7 @@ Qlib provides a tool named `Estimator` to run the whole workflow automatically (
     ```
     Here are detailed documents for [Estimator](https://qlib.readthedocs.io/en/latest/component/estimator.html).
 
-2. Graphical Reports Analysis: Run `examples/estimator/analyze_from_estimator.ipynb` with `jupyter notebook` to ger graphical reports
+2. Graphical Reports Analysis: Run `examples/estimator/analyze_from_estimator.ipynb` with `jupyter notebook` to get graphical reports
     - Forecasting signal (model prediction) analysis
       - Cumulative Return of groups
       ![Cumulative Return](docs/_static/img/analysis/analysis_model_cumulative_return.png)
@@ -173,7 +173,7 @@ Qlib is in active and continuing development. Our plan is in the roadmap, which 
 
 
 
-# Offline mode and online mode of the data server
+# Offline Mode and Online Mode of the Data Server
 The data server of Qlib can either deployed as offline mode or online mode. The default mode is offline mode.
 
 Under offline mode, the data will be deployed locally. 

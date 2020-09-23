@@ -6,6 +6,7 @@ Introduction
 ===================
 
 .. image:: ../_static/img/logo/white_bg_rec+word.png
+    :align: center
 
 ``Qlib`` is an AI-oriented quantitative investment platform, which aims to realize the potential, empower the research, and create the value of AI technologies in quantitative investment.
 
@@ -13,9 +14,9 @@ With ``Qlib``, users can easily try their ideas to create better Quant investmen
 
 Framework
 ===================
-
+   
 .. image:: ../_static/img/framework.png
-    :alt: Framework
+    :align: center
 
 
 At the module level, Qlib is a platform that consists of above components. The components are designed as loose-coupled modules and each component could be used stand-alone.

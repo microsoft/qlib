@@ -94,9 +94,11 @@ add_function_parentheses = False
 add_module_names = True
 
 # If true, `todo` and `todoList` produce output, else they produce nothing.
+
+
 todo_include_todos = True
 
-logo_only = True
+
 
 # -- Options for HTML output ----------------------------------------------
 
@@ -124,6 +126,7 @@ html_logo = '_static/img/logo/1.png'
 # }
 #
 html_theme_options = {
+    'logo_only': True,
     'collapse_navigation': False,
     'display_version': False,
     'navigation_depth': 3,
