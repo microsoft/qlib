@@ -18,7 +18,7 @@ Examples
 
 .. note:: In order to get the data, users need to initialize ``Qlib`` with `qlib.init` first. Please refer to `initialization <initialization.rst>`_.
 
-If user followed steps in `initialization <initialization.rst>`_ and downloaded the data, user should use following code to initialize qlib 
+If users followed steps in `initialization <initialization.rst>`_ and downloaded the data, they should use following code to initialize qlib 
 
 .. code-block:: python
 
