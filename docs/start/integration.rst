@@ -9,9 +9,9 @@ Introduction
 
 Users can integrate their own custom models according to the following steps.
 
-- Define a custom model class, which should be a subclass of the `qlib.contrib.model.base.Model <../reference/api.html#module-qlib.contrib.model.base>`_
-- Write a configuration file that describes the path and parameters of the custom model
-- Test the custom model
+- Define a custom model class, which should be a subclass of the `qlib.contrib.model.base.Model <../reference/api.html#module-qlib.contrib.model.base>`_.
+- Write a configuration file that describes the path and parameters of the custom model.
+- Test the custom model.
 
 Custom Model Class
 ===========================
@@ -20,7 +20,7 @@ The Custom models need to inherit `qlib.contrib.model.base.Model <../reference/a
 - Override the `__init__` method
     - ``Qlib`` passes the initialized parameters to the \_\_init\_\_ method
     - The parameter must be consistent with the hyperparameters in the configuration file.
-    - Code Example: In the following example, the hyperparameter filed of the configuration file should contain parameters such as ‘loss:mse’.
+    - Code Example: In the following example, the hyperparameter filed of the configuration file should contain parameters such as `loss:mse`.
     .. code-block:: Python
 
         def __init__(self, loss='mse', **kwargs):
@@ -32,9 +32,9 @@ The Custom models need to inherit `qlib.contrib.model.base.Model <../reference/a
 
 - Override the `fit` method
     - ``Qlib`` calls the fit method to train the model
-    - The parameters must include training feature 'x_train', training label 'y_train', test feature 'x_valid', test label 'y_valid'at least.
-    - The parameters could include some optional parameters with default values, such as train weight 'w_train', test weight 'w_valid' and 'num_boost_round = 1000'.
-    - Code Example: In the following example, 'num_boost_round = 1000' is an optional parameter.
+    - The parameters must include training feature `x_train`, training label `y_train`, test feature `x_valid`, test label `y_valid` at least.
+    - The parameters could include some optional parameters with default values, such as train weight `w_train`, test weight `w_valid` and `num_boost_round = 1000`.
+    - Code Example: In the following example, `num_boost_round = 1000` is an optional parameter.
     .. code-block:: Python
     
         def fit(self, x_train:pd.DataFrame, y_train:pd.DataFrame, x_valid:pd.DataFrame, y_valid:pd.DataFrame,
@@ -64,7 +64,7 @@ The Custom models need to inherit `qlib.contrib.model.base.Model <../reference/a
     - The parameters include the test features
     - Return the `prediction score`
     - Please refer to `qlib.contrib.model.base.Model <../reference/api.html#module-qlib.contrib.model.base>`_ for the parameter types of the fit method
-    - Code Example:In the following example, user need to user dnn to predict the label(such as 'preds') of test data 'x_test' and return it.
+    - Code Example:In the following example, user need to user dnn to predict the label(such as `preds`) of test data `x_test` and return it.
     .. code-block:: Python
 
         def predict(self, x_test:pd.DataFrame, **kwargs)-> numpy.ndarray:
@@ -75,7 +75,7 @@ The Custom models need to inherit `qlib.contrib.model.base.Model <../reference/a
 - Override the `score` method
     - The parameters include the test features and test labels
     - Return the evaluation score of model. It's recommended to adopt the loss between labels and `prediction score`.
-    - Code Example:In the following example, user need to calculate the weighted loss with test data 'x_test',  test label 'y_test' and the weight 'w_test'.
+    - Code Example:In the following example, user need to calculate the weighted loss with test data `x_test`,  test label `y_test` and the weight `w_test`.
     .. code-block:: Python
 
         def score(self, x_test:pd.Dataframe, y_test:pd.Dataframe, w_test:pd.DataFrame = None) -> float:
@@ -106,7 +106,7 @@ Configuration File
 
 The configuration file is described in detail in the `estimator <../advanced/estimator.html#Example>`_ document. In order to integrate the custom model into ``Qlib``, you need to modify the "model" field in the configuration file.
 
-- Example: The following example describes the ‘model’ field of configuration file about the custom lightgbm model mentioned above , where ‘module_path’ is the module path, ‘class’ is the class name, and ‘args’ is the hyperparameter passed into the __init__ method. All parameters in the field is passed to 'self._params' by '\*\*kwargs' in `__init__` except 'loss = mse'. 
+- Example: The following example describes the `model` field of configuration file about the custom lightgbm model mentioned above , where `module_path` is the module path, `class` is the class name, and `args` is the hyperparameter passed into the __init__ method. All parameters in the field is passed to `self._params` by `\*\*kwargs` in `__init__` except `loss = mse`. 
 
 .. code-block:: YAML
     
