@@ -28,9 +28,9 @@ from .data import (
 from .cache import (
     ExpressionCache,
     DatasetCache,
-    ServerExpressionCache,
-    ServerDatasetCache,
+    DiskExpressionCache,
+    DiskDatasetCache,
     SimpleDatasetCache,
-    ClientDatasetCache,
-    ClientCalendarCache,
+    DatasetURICache,
+    MemoryCalendarCache,
 )

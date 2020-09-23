@@ -121,7 +121,7 @@ class Estimator(object):
         else:
             raise ValueError("unexpected mode: %s" % self.ex_config.mode)
         analysis = self.backtest()
-        self.logger.info(analysis)
+        print(analysis)
         self.logger.info(
             "experiment id: {}, experiment name: {}".format(self.ex.experiment.current_run._id, self.ex_config.name)
         )

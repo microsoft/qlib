@@ -6,7 +6,7 @@ Interday Model: Model Training & Prediction
 Introduction
 ===================
 
-``Interday Model`` is designed to make the prediction score about stocks. Users can use the ``Interday Model`` in an automatic workflow by ``Estimator``, please refer to `Estimator <estimator.html>`_.  
+``Interday Model`` is designed to make the `prediction score` about stocks. Users can use the ``Interday Model`` in an automatic workflow by ``Estimator``, please refer to `Estimator <estimator.html>`_.  
 
 Because the components in ``Qlib`` are designed in a loosely-coupled way, ``Interday Model`` can be used as a independent module also.
 
@@ -118,7 +118,7 @@ Example
 ``Qlib`` provides ``LightGBM`` and ``DNN`` models as the baseline, the following steps shows how to run`` LightGBM`` as an independent module.
 
 - Initialize ``Qlib`` with `qlib.init` first, please refer to `initialization <initialization.rst>`_.
-- Run the following code to get the prediction score `pred_score`
+- Run the following code to get the `prediction score` `pred_score`
     .. code-block:: Python
 
         from qlib.contrib.estimator.handler import QLibDataHandlerClose

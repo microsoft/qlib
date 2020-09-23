@@ -35,7 +35,7 @@ def _group_return(
     # Group
     t_df = pd.DataFrame(
         {
-            "Group-%d"
+            "Group%d"
             % (i + 1): pred_label_drop.groupby(level="datetime")["label"].apply(
                 lambda x: x[len(x) // N * i : len(x) // N * (i + 1)].mean()
             )
@@ -45,11 +45,11 @@ def _group_return(
     t_df.index = pd.to_datetime(t_df.index)
 
     # Long-Short
-    t_df["long-short"] = t_df["Group-1"] - t_df["Group-%d" % N]
+    t_df["long-short"] = t_df["Group1"] - t_df["Group%d" % N]
 
     # Long-Average
     t_df["long-average"] = (
-        t_df["Group-1"] - pred_label.groupby(level="datetime")["label"].mean()
+        t_df["Group1"] - pred_label.groupby(level="datetime")["label"].mean()
     )
 
     t_df = t_df.dropna(how="all")  # for days which does not contain label
