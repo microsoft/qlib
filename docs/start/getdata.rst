@@ -22,81 +22,75 @@ If users followed steps in `initialization <initialization.rst>`_ and downloaded
 
 .. code-block:: python
 
-    >>> import qlib
-    >>> qlib.init(provider_uri='~/.qlib/qlib_data/cn_data')
+    >> import qlib
+    >> qlib.init(provider_uri='~/.qlib/qlib_data/cn_data')
 
 
 Load the trading calendar with the given time range and frequency:
 
 .. code-block:: python
 		
-   >>> from qlib.data import D
-   >>> D.calendar(start_time='2010-01-01', end_time='2017-12-31', freq='day')[:2]
+   >> from qlib.data import D
+   >> D.calendar(start_time='2010-01-01', end_time='2017-12-31', freq='day')[:2]
    [Timestamp('2010-01-04 00:00:00'), Timestamp('2010-01-05 00:00:00')]
 
 Parse a given market name into a stock pool config:
 
 .. code-block:: python
 
-   >>> from qlib.data import D
-   >>> D.instruments(market='all')
+   >> from qlib.data import D
+   >> D.instruments(market='all')
    {'market': 'all', 'filter_pipe': []}
 
 Load instruments of certain stock pool in the given time range:
 
 .. code-block:: python
 		
-   >>> from qlib.data import D
-   >>> instruments = D.instruments(market='csi300')
-   >>> D.list_instruments(instruments=instruments, start_time='2010-01-01', end_time='2017-12-31', as_list=True)[:6]
-
+   >> from qlib.data import D
+   >> instruments = D.instruments(market='csi300')
+   >> D.list_instruments(instruments=instruments, start_time='2010-01-01', end_time='2017-12-31', as_list=True)[:6]
+   ['SH600036', 'SH600110', 'SH600087', 'SH600900', 'SH600089', 'SZ000912']
 
 Load dynamic instruments from a base market according to a name filter
 
 .. code-block:: python
 
-   >>> from qlib.data import D
-   >>> from qlib.data.filter import NameDFilter
-   >>> nameDFilter = NameDFilter(name_rule_re='SH[0-9]{4}55')
-   >>> instruments = D.instruments(market='csi300', filter_pipe=[nameDFilter])
-   >>> D.list_instruments(instruments=instruments, start_time='2015-01-01', end_time='2016-02-15', as_list=True)
+   >> from qlib.data import D
+   >> from qlib.data.filter import NameDFilter
+   >> nameDFilter = NameDFilter(name_rule_re='SH[0-9]{4}55')
+   >> instruments = D.instruments(market='csi300', filter_pipe=[nameDFilter])
+   >> D.list_instruments(instruments=instruments, start_time='2015-01-01', end_time='2016-02-15', as_list=True)
+   ['SH600655', 'SH601555']
 
 Load dynamic instruments from a base market according to an expression filter
 
 .. code-block:: python
 
-   >>> from qlib.data import D
-   >>> from qlib.data.filter import ExpressionDFilter
-   >>> expressionDFilter = ExpressionDFilter(rule_expression='$close>100')
-   >>> instruments = D.instruments(market='csi300', filter_pipe=[expressionDFilter])
-   >>> D.list_instruments(instruments=instruments, start_time='2015-01-01', end_time='2016-02-15', as_list=True)
+   >> from qlib.data import D
+   >> from qlib.data.filter import ExpressionDFilter
+   >> expressionDFilter = ExpressionDFilter(rule_expression='$close>2000')
+   >> instruments = D.instruments(market='csi300', filter_pipe=[expressionDFilter])
+   >> D.list_instruments(instruments=instruments, start_time='2015-01-01', end_time='2016-02-15', as_list=True)
+   ['SZ000651', 'SZ000002', 'SH600655', 'SH600570']
 
-For more details about filter, please refer to API Reference: `filter API <../reference/api.html#filter>`_
+For more details about filter, please refer `Filter API <../component/data.html>`_.
 
 Load features of certain instruments in a given time range:
 
 .. code-block:: python
 		
-   >>> from qlib.data import D
-   >>> instruments = ['SH600000']
-   >>> fields = ['$close', '$volume', 'Ref($close, 1)', 'Mean($close, 3)', '$high-$low']
-   >>> D.features(instruments, fields, start_time='2010-01-01', end_time='2017-12-31', freq='day').head()
-		                     $close      $volume      Ref($close,1)   Mean($close,3)  \
-   instrument  datetime
-   SH600000    2010-01-04  81.809998   17144536.0         NaN       81.809998
-	            2010-01-05  82.419998   29827816.0   81.809998       82.114998
-               2010-01-06  80.800003   25070040.0   82.419998       81.676666
-               2010-01-07  78.989998   22077858.0   80.800003       80.736666
-               2010-01-08  79.879997   17019168.0   78.989998       79.889999
-
-                           Sub($high,$low)
-   instrument  datetime
-   SH600000    2010-01-04  2.741158
-	            2010-01-05  3.049736
-               2010-01-06  1.621399
-               2010-01-07  2.856926
-               2010-01-08  1.930397
-               2010-01-08  1.930397
+   >> from qlib.data import D
+   >> instruments = ['SH600000']
+   >> fields = ['$close', '$volume', 'Ref($close, 1)', 'Mean($close, 3)', '$high-$low']
+   >> D.features(instruments, fields, start_time='2010-01-01', end_time='2017-12-31', freq='day').head()
+                              
+                              $close     $volume  Ref($close, 1)  Mean($close, 3)  $high-$low
+      instrument  datetime                                                                      
+      SH600000    2010-01-04  86.778313  16162960.0       88.825928        88.061483    2.907631
+                  2010-01-05  87.433578  28117442.0       86.778313        87.679273    3.235252
+                  2010-01-06  85.713585  23632884.0       87.433578        86.641825    1.720009
+                  2010-01-07  83.788803  20813402.0       85.713585        85.645322    3.030487
+                  2010-01-08  84.730675  16044853.0       83.788803        84.744354    2.047623
 
 Load features of certain stock pool in a given time range:
 
@@ -104,28 +98,22 @@ Load features of certain stock pool in a given time range:
 
 .. code-block:: python
 
-   >>> from qlib.data import D
-   >>> from qlib.data.filter import NameDFilter, ExpressionDFilter
-   >>> nameDFilter = NameDFilter(name_rule_re='SH[0-9]{4}55')
-   >>> expressionDFilter = ExpressionDFilter(rule_expression='($close/$factor)>100')
-   >>> instruments = D.instruments(market='csi300', filter_pipe=[nameDFilter, expressionDFilter])
-   >>> fields = ['$close', '$volume', 'Ref($close, 1)', 'Mean($close, 3)', '$high-$low']
-   >>> D.features(instruments, fields, start_time='2010-01-01', end_time='2017-12-31', freq='day').head()
+   >> from qlib.data import D
+   >> from qlib.data.filter import NameDFilter, ExpressionDFilter
+   >> nameDFilter = NameDFilter(name_rule_re='SH[0-9]{4}55')
+   >> expressionDFilter = ExpressionDFilter(rule_expression='($close/$factor)>100')
+   >> instruments = D.instruments(market='csi300', filter_pipe=[nameDFilter, expressionDFilter])
+   >> instruments = D.list_instruments(instruments=instruments, start_time='2010-01-01', end_time='2017-12-31', as_list=True)
+   >> fields = ['$close', '$volume', 'Ref($close, 1)', 'Mean($close, 3)', '$high-$low']
+   >> D.features(instruments, fields, start_time='2010-01-01', end_time='2017-12-31', freq='day').head()
 
-   		                    $close	    $volume	        Ref($close, 1)	\
-   instrument datetime
-   SH600655	  2015-06-15	4342.160156	258706.359375	4530.459961
-              2015-06-16	4409.270020	257349.718750	4342.160156
-              2015-06-17	4312.330078	235214.890625	4409.270020
-              2015-06-18	4086.729980	196772.859375	4312.330078
-              2015-06-19	3678.250000	182916.453125	4086.729980
-                            Mean($close, 3)	 high− low
-   instrument datetime
-   SH600655   2015-06-15    4480.743327	     285.251465
-              2015-06-16    4427.296712	     298.301270
-              2015-06-16    4354.586751	     356.098145
-              2015-06-16    4269.443359	     363.554932
-              2015-06-16    4025.770020	     368.954346
+                                 $close        $volume  Ref($close, 1)  Mean($close, 3)  $high-$low
+      instrument  datetime                                                                           
+      SH600655    2010-01-04  2699.567383  158193.328125     2619.070312      2626.097738  124.580566
+                  2010-01-05  2686.150635   98594.953125     2699.567383      2668.262777   61.332031
+                  2010-01-06  2672.733154   95985.906250     2686.150635      2686.150391   75.706787
+                  2010-01-07  2584.567627  126389.156250     2672.733154      2647.817139  124.580566
+                  2010-01-08  2612.359619   77501.406250     2584.567627      2623.220133   83.373047
 
 
 .. note:: When calling `D.features()` at the client, use parameter `disk_cache=0` to skip dataset cache, use `disk_cache=1` to generate and use dataset cache. In addition, when calling at the server, users can use `disk_cache=2` to update the dataset cache.
