@@ -179,6 +179,7 @@ Graphical Result
 
 
 .. image:: ../_static/img/analysis/risk_analysis_bar.png 
+    :align: center
 
 .. note:: 
 
@@ -326,6 +327,7 @@ Graphical Results
 
 .. note::
     - Auto Correlation
+        - 
          The `Pearson correlation coefficient` series between `label` and `prediction score` of stocks in portfolio.
 
 .. image:: ../_static/img/analysis/analysis_model_auto_correlation.png 

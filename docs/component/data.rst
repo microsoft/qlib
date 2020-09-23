@@ -8,7 +8,7 @@ Introduction
 
 ``Data Layer`` provides user-friendly APIs to manage and retrieve data. It provides high-performance data infrastructure. 
 
-It is designed for quantitative investment. For example, users could build formulaic alphas with ``Data Layer`` easily. Please refer to `Building Formulaic Alphas <../advanced/alpha.html>`_ for detailed information.
+It is designed for quantitative investment. For example, users could build formulaic alphas with ``Data Layer`` easily. Please refer to `Building Formulaic Alphas <../advanced/alpha.html>`_ for more details.
 
 The introduction of ``Data Layer`` includes the following parts.
 
@@ -16,22 +16,46 @@ The introduction of ``Data Layer`` includes the following parts.
 - Data API
 - Data Handler
 - Cache
-
+- Data and Cache File Structure
 
 
 Data Preparation
 ============================
 
-We've specially designed a data structure to manage financial data. Please refer to the `File storage design section in Qlib paper <TODO_URL>`_ for detailed information.
-Such data will be stored with filename suffix `.bin` (We'll call them `.bin` file or `.bin` format).
-`.bin` file is designed for scientific computing on finance data
+Qlib Format Data
+------------------
 
-Qlib has included the scripts to convert data in other formats into `.bin` files.
-Besides, Qlib has provided an off-the-shelf dataset in `.bin` format to save users' time to prepare data.
+We've specially designed a data structure to manage financial data, please refer to the `File storage design section in Qlib paper <TODO_URL>`_ for detailed information.
+Such data will be stored with filename suffix `.bin` (We'll call them `.bin` file, `.bin` format or qlib format). `.bin` file is designed for scientific computing on finance data
 
-Users could use the script ``scripts/get_data.py`` to download the dataset.
+Qlib Format Dataset
+--------------------
+``Qlib`` has provided an off-the-shelf dataset in `.bin` format, users could use the script ``scripts/get_data.py`` to download the dataset as follows.
 
-When ``Qlib`` is initialized with this dataset, users could build and evaluate their own models with it.  Please refer to `Initialization <../start/initialization.rst>`_ for more information about initialization.
+.. code-block:: bash
+
+    python scripts/get_data.py qlib_data_cn --target_dir ~/.qlib/qlib_data/cn_data
+
+After running the above command, users can find china-stock data in qlib format in the ``~/.qlib/csv_data/cn_data`` directory.
+
+``Qlib`` also provides the scripts in ``scripts/data_collector`` to help users crawl the latest data on the Internet and convert it to qlib format.
+
+When ``Qlib`` is initialized with this dataset, users could build and evaluate their own models with it.  Please refer to `Initialization <../start/initialization.rst>`_ for more details.
+
+Converting CSV Format into Qlib Format
+-------------------------------------------
+
+``Qlib`` has provided the scripts `scripts/dump_bin.py` to convert data in csv format into `.bin` files.
+
+
+Users can download the china-stock data in csv format as follows for reference of format.
+
+.. code-block:: bash
+
+    python scripts/get_data.py csv_data_cn --target_dir ~/.qlib/csv_data/cn_data
+.. code-block:: bash
+
+    python scripts/dump_bin.py dump --csv_path  ~/.qlib/csv_data/us_data --qlib_dir ~/.qlib/qlib_data/us_data --include_fields open,close,high,low,volume,factor
 
 
 China-Stock Market Mode
@@ -40,7 +64,7 @@ China-Stock Market Mode
 If users use ``Qlib`` in china-stock mode, china-stock data is required. The script ``scripts/get_data.py`` can be used to download china-stock data. If users want to use ``Qlib`` in china-stock mode, they need to do as follows.
 
 - Download data in qlib format
-    Run the following command to download china-stock data in csv format. 
+    Run the following command to download china-stock data in qlib format. 
 
     .. code-block:: bash
 
@@ -85,8 +109,6 @@ If users use ``Qlib`` in US-stock mode, US-stock data is required. ``Qlib`` does
         from qlib.config import REG_US
         qlib.init(provider_uri='~/.qlib/qlib_data/us_data', region=REG_US)
         
-
-Please refer to `Script API <../reference/api.html>`_ for more details.
 
 Data API
 ========================
@@ -283,9 +305,9 @@ The following shows the details about the interfaces:
 
 
 Data and Cache File Structure
-----------------------------------
+==================================
 
-The file structure of data and cache is listed as follows.
+We've specially designed a file structure to manage data and cache, please refer to the `File storage design section in Qlib paper <TODO_URL>`_ for detailed information.The file structure of data and cache is listed as follows.
 
 .. code-block:: json
 
