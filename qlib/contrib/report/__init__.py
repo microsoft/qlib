@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-GRAPH_NAME_LISt = [
+GRAPH_NAME_LIST = [
     "analysis_position.report_graph",
     "analysis_position.score_ic_graph",
     "analysis_position.cumulative_return_graph",
