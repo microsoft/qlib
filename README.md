@@ -8,9 +8,9 @@ With Qlib, you can easily try your ideas to create better Quant investment strat
   - [Installation](#installation)
   - [Get Data](#get-data)
   - [Auto Quant research workflow with _estimator_](#auto-quant-research-workflow-with-estimator)
-  - [Customized Quant research workflow by code](#customized-quant-research-workflow-by-code)
+  - [Building customized Quant research workflow by code](#building-customized-quant-research-workflow-by-code)
 - [More About Qlib](#more-about-qlib)
-  - [Offline mode and online mode](#offline-mode-and-online-mode)
+- [Offline mode and online mode of data server](#offline-mode-and-online-mode-of-data-server)
   - [Performance of Qlib Data Server](#performance-of-qlib-data-server)
 - [Contributing](#contributing)
 
@@ -23,7 +23,7 @@ At the module level, Qlib is a platform that consists of above components. The c
 
 | Name                | Description                                                                                                                                                                                                                                                   |
 | ------              | -----                                                                                                                                                                                                                                                         |
-| _Data layer_        | _DataServer_ focus on providing high performance infrastructure  for user to retrieve and get raw data. _DataEnhancement_ will preprocess the data and provide the best dataset to be fed in to the models                                                    |
+| _Data layer_        | _DataServer_ focus on providing high performance infrastructure  for user to manage and retrieve raw data. _DataEnhancement_ will preprocess the data and provide the best dataset to be fed into the models                                                    |
 | _Interday Model_    | _Interday model_ focus on producing forecasting signals(aka. _alpha_). Models are trained by _Model Creator_ and managed by _Model Manager_. User could choose one or multiple models for forecasting. Multiple models could be combined with _Ensemble_ module |
 | _Interday Strategy_ | _Portfolio Generator_ will take forecasting signals as input and output the orders based on current position to achieve target portfolio                                                                                                                      |
 | _Intraday Trading_  | _Order Executor_ is responsible for executing orders produced by _Interday Strategy_ and returning the executed results.                                                                                                                                        |
@@ -37,7 +37,7 @@ At the module level, Qlib is a platform that consists of above components. The c
 
 This quick start guide tries to demonstrate
 1. It's very easy to build a complete Quant research workflow and try you ideas with _Qlib_.
-1. Though with *simple data* and *naive models*, machine learning technologies **work very well** in practical Quant investment.
+1. Though with *public data* and *simple models*, machine learning technologies **work very well** in practical Quant investment.
 
 ## Installation
 
@@ -50,7 +50,7 @@ pip install --upgrade  cython
 
 Clone the repository and install _Qlib_:
 ```bash
-git clone https://github.com/microsoft/qlib.git
+git clone https://github.com/microsoft/qlib.git && cd qlib
 python setup.py install
 ```
 
@@ -178,7 +178,7 @@ The data server of Qlib can either deployed as offline mode or online mode. The 
 
 Under offline mode, the data will be deployed locally. 
 
-Under online mode, the data will be deployed as a shared data service. The data and their cache will be shared by all the clients. The data retrieval performance is expected to be improved due to a higher rate of cache hits. It will consume less disk space, too. The documents of the online mode can be found in [Qlib-Server](https://qlib-server.readthedocs.io/). The online mode can be deployed automatically with [Azure CLI based scripts](https://qlib-server.readthedocs.io/en/latest/build.html#one-click-deployment-in-azure)
+Under online mode, the data will be deployed as a shared data service. The data and their cache will be shared by all the clients. The data retrieval performance is expected to be improved due to a higher rate of cache hits. It will consume less disk space, too. The documents of the online mode can be found in [Qlib-Server](https://qlib-server.readthedocs.io/). The online mode can be deployed automatically with [Azure CLI based scripts](https://qlib-server.readthedocs.io/en/latest/build.html#one-click-deployment-in-azure). The source code of online data server can be found in [qlib-server repository](https://github.com/microsoft/qlib-server)
 
 ## Performance of Qlib Data Server
 The performance of data processing is important to data-driven methods like AI technologies. As an AI-oriented platform, Qlib provides a solution for data storage and data processing. To demonstrate the performance of Qlib data server, we

@@ -8,7 +8,7 @@ Data Retrieval
 Introduction
 ====================
 
-Users can get stock data by ``Qlib``. Following examples will demonstrate the basic user interface.
+Users can get stock data with ``Qlib``. Following examples demonstrates the basic user interface.
 
 Examples
 ====================
@@ -18,7 +18,7 @@ Examples
 
 .. note:: In order to get the data, users need to initialize ``Qlib`` with `qlib.init` first. Please refer to `initialization <initialization.rst>`_.
 
-It is recommended to use the following code to initialize qlib:
+If user followed steps in `initialization <initialization.rst>`_ and downloaded the data, use should use following code to initialize qlib 
 
 .. code-block:: python
 
@@ -71,11 +71,9 @@ Load dynamic instruments from a base market according to an expression filter
    >>> instruments = D.instruments(market='csi300', filter_pipe=[expressionDFilter])
    >>> D.list_instruments(instruments=instruments, start_time='2015-01-01', end_time='2016-02-15', as_list=True)
 
-To know more about how to use the filter or how to build one's own filter, go to API Reference: `filter API <../reference/api.html#filter>`_
+For more details about filter, please refer to API Reference: `filter API <../reference/api.html#filter>`_
 
 Load features of certain instruments in given time range:
-
-.. note:: This is not a recommended way to get features.
 
 .. code-block:: python
 		
@@ -102,7 +100,7 @@ Load features of certain instruments in given time range:
 
 Load features of certain stockpool in given time range:
 
-.. note:: Since the server need to cache all-time data for your request stockpool and fields, it may take longer to process your request than before. But in the second time, your request will be processed and responded in a flash even if you change the timespan.
+.. note:: With cache enabled, the qlib data server will cache data on all the time for the requested stockpool and fields, it may take longer to process the request for the first time than that without cache. But after the first time, requests with the same stockpool and fields will hit the cache and be processed faster even the requested time period changes.
 
 .. code-block:: python
 

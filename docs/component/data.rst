@@ -6,25 +6,33 @@ Data Layer: Data Framework&Usage
 Introduction
 ============================
 
-``Data Layer`` is designed to download raw data, retrieve data, build datasets and get frequently-used data.  
+``Data Layer`` provides user-friendly APIs to manage and retrieve data. It provides high-performance data infrastructure. 
 
-Also, users can building formulaic alphas with ``Data Layer`` easliy. If users are interesting formulaic alphas, please refer to `Building Formulaic Alphas <../advanced/alpha.html>`_.
+It is designed for quantitative investment. For example, user could build formulaic alphas with ``Data Layer`` easily. Please refer to `Building Formulaic Alphas <../advanced/alpha.html>`_ for detailed information.
 
-The ``Data Layer`` framework includes four components as follows.
+The introduction of ``Data Layer`` includes following parts.
 
-- Raw Data
+- Data preparation
 - Data API
 - Data Handler
 - Cache
 
 
 
-Raw Data 
+Data preparation
 ============================
 
-``Qlib`` provides the script ``scripts/get_data.py`` to download the raw data that will be used to initialize the qlib package, please refer to `Initialization <../start/initialization.rst>`_.
+We've specially designed a data structure to manage financial data. Please refer to the `File storage design section in Qlib paper <TODO_URL>`_ for detailed information.
+Such data will stored with filename suffix `.bin` (We'll call them `.bin` file or `.bin` format).
+`.bin` file is designed for scientific computing on finance data
 
-When ``Qlib`` is initialized, users can choose china-stock mode or US-stock mode, please refer to `Initialization <../start/initialization.rst>`_.
+Qlib has included the scripts to convert data in other format into `.bin` files.
+Besides, Qlib has provide an off-the-shelf dataset in `.bin` format to save users' time to prepare data.
+
+Users could use the script ``scripts/get_data.py`` to download the dataset.
+
+When ``Qlib`` is initialized with this dataset, users could build and evaluate their own models with it.  Please refer to `Initialization <../start/initialization.rst>`_ for more information about initialization.
+
 
 China-Stock Market Mode
 --------------------------------
