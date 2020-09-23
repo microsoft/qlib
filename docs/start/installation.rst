@@ -12,7 +12,7 @@ How to Install ``Qlib``
 ``Qlib`` only supports Python3.
 .. and supports up to Python3.8.
 
-Please follow the steps blow to install ``Qlib``:
+Please follow the steps below to install ``Qlib``:
 
 - Change the directory to ``Qlib``, in which the file ``setup.py`` exists.
 - Then, please execute the following command:
@@ -26,11 +26,11 @@ Please follow the steps blow to install ``Qlib``:
 
 
 .. note::
-   It's recommended to use anaconda/miniconda to setup environment.
+   It's recommended to use anaconda/miniconda to setup the environment.
    ``Qlib`` needs lightgbm and pytorch packages, use pip to install them.
 
 .. note::
-   Do not import qlib in the repository folder which contains ``qlib``, otherwise errors may occur.
+   Do not import qlib in the repository folder which contains ``qlib``, otherwise, errors may occur.
    
 
 
