@@ -193,7 +193,7 @@ The meaning of each field is as follows:
 
 
 - `exp_info_path`
-    experiment info save path, str type, save the experiment info and model `prediction score` after the experiment is finished. The default configuration of the optional parameters is in `config_file_dir/ex_name/exp_info.json`.
+    experiment info save path, str type, save the experiment info and model `prediction score` after the experiment is finished. Optional parameter, the default value is `config_file_dir/ex_name/exp_info.json`.
 
 - `mode`
     `train` or `test`, str type, if `mode` is test, it will load the model according to the parameters of `loader`. The default value is `train`.
