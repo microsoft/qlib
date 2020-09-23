@@ -6,7 +6,7 @@ Aanalysis: Evaluation & Results Analysis
 Introduction
 ===================
 
-``Aanalysis`` is designed to show the graphical reports of ``Intraday Trading`` , which helps users to evaluate and analyse investment portfolios visually. There are the following graphics to view:
+``Aanalysis`` is designed to show the graphical reports of ``Intraday Trading`` , which helps users to evaluate and analyse investment portfolios visually. The following are some graphics to view:
 
 - analysis_position
     - report_graph
@@ -36,7 +36,7 @@ Users can run the following code to get all supported reports.
 
 
 
-Usage&Example
+Usage & Example
 ===================
 
 Usage of `analysis_position.report`
