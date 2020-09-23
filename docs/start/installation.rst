@@ -34,7 +34,7 @@ Please follow the steps blow to install ``Qlib``:
    
 
 
-Use the following code to confirm a successful installation:
+Use the following code to make sure the installation is successful:
 
 .. code-block:: python
 
