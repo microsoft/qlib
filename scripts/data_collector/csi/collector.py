@@ -2,6 +2,7 @@
 # Licensed under the MIT License.
 
 import re
+import sys
 import bisect
 from io import BytesIO
 from pathlib import Path
@@ -12,15 +13,16 @@ import pandas as pd
 from lxml import etree
 from loguru import logger
 
+CUR_DIR = Path(__file__).resolve().parent
+sys.path.append(str(CUR_DIR.parent.parent))
+from data_collector.utils import get_hs_calendar_list as get_calendar_list
+
+
 NEW_COMPANIES_URL = "http://www.csindex.com.cn/uploads/file/autofile/cons/000300cons.xls"
 
 CSI300_CHANGES_URL = "http://www.csindex.com.cn/zh-CN/search/total?key=%E5%85%B3%E4%BA%8E%E8%B0%83%E6%95%B4%E6%B2%AA%E6%B7%B1300%E5%92%8C%E4%B8%AD%E8%AF%81%E9%A6%99%E6%B8%AF100%E7%AD%89%E6%8C%87%E6%95%B0%E6%A0%B7%E6%9C%AC%E8%82%A1%E7%9A%84%E5%85%AC%E5%91%8A"
 
-CSI300_BENCH_URL = "http://push2his.eastmoney.com/api/qt/stock/kline/get?secid=1.000300&fields1=f1%2Cf2%2Cf3%2Cf4%2Cf5&fields2=f51%2Cf52%2Cf53%2Cf54%2Cf55%2Cf56%2Cf57%2Cf58&klt=101&fqt=0&beg=19900101&end=20220101"
-
 CSI300_START_DATE = pd.Timestamp("2005-01-01")
-
-CUR_DIR = Path(__file__).resolve().parent
 
 
 class CSI300:
@@ -50,12 +52,7 @@ class CSI300:
         Returns
         -------
         """
-        # TODO: get calendar from MSN
-        if self._calendar_list is None:
-            logger.info("get all trading date")
-            value_list = requests.get(CSI300_BENCH_URL).json()["data"]["klines"]
-            self._calendar_list = sorted(map(lambda x: pd.Timestamp(x.split(",")[0]), value_list))
-        return self._calendar_list
+        return get_calendar_list(bench=True)
 
     def _get_trading_date_by_shift(self, trading_date: pd.Timestamp, shift=1):
         """get trading date by shift
