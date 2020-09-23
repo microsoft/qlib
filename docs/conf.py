@@ -52,6 +52,8 @@ source_suffix = '.rst'
 # The master toctree document.
 master_doc = 'index'
 
+
+
 # General information about the project.
 project = u"QLib"
 copyright = u"Microsoft"
@@ -94,6 +96,7 @@ add_module_names = True
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = True
 
+logo_only = True
 
 # -- Options for HTML output ----------------------------------------------
 
@@ -101,6 +104,10 @@ todo_include_todos = True
 # a list of builtin themes.
 #
 html_theme = "sphinx_rtd_theme"
+
+html_logo = '_static/img/logo/1.png'
+
+
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
