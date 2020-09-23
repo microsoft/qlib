@@ -1,7 +1,6 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-import re
 import sys
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -11,44 +10,32 @@ import requests
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
-from lxml import etree
 from loguru import logger
 from yahooquery import Ticker
 
 CUR_DIR = Path(__file__).resolve().parent
 sys.path.append(str(CUR_DIR.parent.parent))
 from dump_bin import DumpData
+from data_collector.utils import get_hs_calendar_list as get_calendar_list, get_hs_stock_symbols
 
-SYMBOLS_URL = "http://app.finance.ifeng.com/hq/list.php?type=stock_a&class={s_type}"
 CSI300_BENCH_URL = "http://push2his.eastmoney.com/api/qt/stock/kline/get?secid=1.000300&fields1=f1%2Cf2%2Cf3%2Cf4%2Cf5&fields2=f51%2Cf52%2Cf53%2Cf54%2Cf55%2Cf56%2Cf57%2Cf58&klt=101&fqt=0&beg=19900101&end=20220101"
 
 
 class YahooCollector:
-    def __init__(self, save_dir: [str, Path], max_workers=4):
+    def __init__(self, save_dir: [str, Path], max_workers=4, asynchronous=True, max_collector_count=3):
 
         self.save_dir = Path(save_dir).expanduser().resolve()
         self.save_dir.mkdir(parents=True, exist_ok=True)
         self._stock_list = None
         self.max_workers = max_workers
+        self._asynchronous = asynchronous
+        self._max_collector_count = max_collector_count
 
     @property
     def stock_list(self):
         if self._stock_list is None:
-            self._stock_list = self.get_stock_list()
+            self._stock_list = get_hs_stock_symbols()
         return self._stock_list
-
-    @staticmethod
-    def get_stock_list() -> list:
-        _res = set()
-        for _k, _v in (("ha", "ss"), ("sa", "sz"), ("gem", "sz")):
-            resp = requests.get(SYMBOLS_URL.format(s_type=_k))
-            _res |= set(
-                map(
-                    lambda x: "{}.{}".format(re.findall(r"\d+", x)[0], _v),
-                    etree.HTML(resp.text).xpath("//div[@class='result']/ul//li/a/text()"),
-                )
-            )
-        return sorted(list(_res))
 
     def save_stock(self, symbol, df: pd.DataFrame):
         """save stock data to file
@@ -69,19 +56,16 @@ class YahooCollector:
         df["symbol"] = symbol
         df.to_csv(stock_path, index=False)
 
-    def collector_data(self):
-        """collector data
+    def _collector(self, stock_list):
 
-        """
-        logger.info("start collector yahoo data......")
         error_symbol = []
         with ThreadPoolExecutor(max_workers=self.max_workers) as worker:
             futures = {}
-            p_bar = tqdm(total=len(self.stock_list))
-            for symbols in [
-                self.stock_list[i : i + self.max_workers] for i in range(0, len(self.stock_list), self.max_workers)
-            ]:
-                resp = Ticker(symbols, asynchronous=True, max_workers=self.max_workers).history(period="max")
+            p_bar = tqdm(total=len(stock_list))
+            for symbols in [stock_list[i : i + self.max_workers] for i in range(0, len(stock_list), self.max_workers)]:
+                resp = Ticker(symbols, asynchronous=self._asynchronous, max_workers=self.max_workers).history(
+                    period="max"
+                )
                 if isinstance(resp, dict):
                     for symbol, df in resp.items():
                         if isinstance(df, pd.DataFrame):
@@ -106,12 +90,26 @@ class YahooCollector:
                         logger.error(e)
                         error_symbol.append(futures[future])
                     p_bar.update()
+        print(error_symbol)
+        logger.info(f"error symbol nums: {len(error_symbol)}")
+        logger.info(f"current get symbol nums: {len(stock_list)}")
+        return error_symbol
 
-        logger.info(error_symbol)
-        logger.info(len(error_symbol))
-        logger.info(len(self.stock_list))
+    def collector_data(self):
+        """collector data
+
+        """
+        logger.info("start collector yahoo data......")
+        stock_list = self.stock_list
+        for i in range(self._max_collector_count):
+            if not stock_list:
+                break
+            logger.info(f"getting data: {i+1}")
+            stock_list = self._collector(stock_list)
+            logger.info(f"{i+1} finish.")
 
         # TODO: from MSN
+        logger.info(f"get bench data: csi300(SH000300)......")
         df = pd.DataFrame(map(lambda x: x.split(","), requests.get(CSI300_BENCH_URL).json()["data"]["klines"]))
         df.columns = ["date", "open", "close", "high", "low", "volume", "money", "change"]
         df["date"] = pd.to_datetime(df["date"])
@@ -164,8 +162,14 @@ class Run:
         def _normalize(file_path: Path):
             columns = ["open", "close", "high", "low", "volume"]
             df = pd.read_csv(file_path)
-            df.sort_values("date", inplace=True)
-            df.loc[df["volume"] <= 0, set(df.columns) - {"symbol", "date"}] = np.nan
+            df.set_index("date", inplace=True)
+            df.index = pd.to_datetime(df.index)
+
+            # using China stock market data calendar
+            df = df.reindex(pd.Index(get_calendar_list()))
+            df.sort_index(inplace=True)
+
+            df.loc[(df["volume"] <= 0) | np.isnan(df["volume"]), set(df.columns) - {"symbol"}] = np.nan
             df["factor"] = df["adjclose"] / df["close"]
             for _col in columns:
                 if _col == "volume":
@@ -176,7 +180,8 @@ class Run:
             df["change"] = _tmp_series / _tmp_series.shift(1) - 1
             columns += ["change", "factor"]
             df.loc[(df["volume"] <= 0) | np.isnan(df["volume"]), columns] = np.nan
-            df.loc[:, columns + ["date"]].to_csv(self.normalize_dir.joinpath(file_path.name), index=False)
+            df.index.names = ["date"]
+            df.loc[:, columns].to_csv(self.normalize_dir.joinpath(file_path.name))
 
         with ThreadPoolExecutor(max_workers=self.max_workers) as worker:
             file_list = list(self.source_dir.glob("*.csv"))
@@ -192,12 +197,13 @@ class Run:
             $ python collector.py manual_adj_data --normalize_dir ~/.qlib/stock_data/normalize
 
         """
+
         def _adj(file_path: Path):
             df = pd.read_csv(file_path)
-            df = df.loc[:, ["open", "close", "high", "low", "volume", "change", "factor"]]
+            df = df.loc[:, ["open", "close", "high", "low", "volume", "change", "factor", "date"]]
             df.sort_values("date", inplace=True)
             df = df.set_index("date")
-            df = df.loc[df.first_valid_index():]
+            df = df.loc[df.first_valid_index() :]
             _close = df["close"].iloc[0]
             for _col in df.columns:
                 if _col == "volume":
@@ -213,7 +219,6 @@ class Run:
             with tqdm(total=len(file_list)) as p_bar:
                 for _ in worker.map(_adj, file_list):
                     p_bar.update()
-
 
     def dump_data(self):
         """dump yahoo data
