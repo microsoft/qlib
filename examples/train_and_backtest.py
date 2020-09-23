@@ -113,7 +113,7 @@ if __name__ == "__main__":
     # If need a more detailed analysis, refer to: examples/train_and_bakctest.ipynb
     ###################################
     analysis = dict()
-    analysis["sub_bench"] = risk_analysis(report_normal["return"] - report_normal["bench"])
-    analysis["sub_cost"] = risk_analysis(report_normal["return"] - report_normal["bench"] - report_normal["cost"])
+    analysis["excess_return_without_cost"] = risk_analysis(report_normal["return"] - report_normal["bench"])
+    analysis["excess_return_with_cost"] = risk_analysis(report_normal["return"] - report_normal["bench"] - report_normal["cost"])
     analysis_df = pd.concat(analysis)  # type: pd.DataFrame
     print(analysis_df)

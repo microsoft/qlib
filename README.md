@@ -1,5 +1,8 @@
 
-<img style="display: block; margin: 0 auto;" src="docs/_static/img/logo/white_bg_rec+word.png" alt="" />
+<div style="align: center">
+<img src="docs/_static/img/logo/white_bg_rec+word.png" />
+</div>
+
 
 Qlib is an AI-oriented quantitative investment platform, which aims to realize the potential, empower the research, and create the value of AI technologies in quantitative investment.
 
@@ -20,7 +23,9 @@ With Qlib, you can easily try your ideas to create better Quant investment strat
 
 
 # Framework of Qlib
-<img style="display: block; margin: 0 auto;" src="docs/_static/img/framework.png" alt="" />
+<div style="align: center">
+<img src="docs/_static/img/framework.png" />
+</div>
 
 
 At the module level, Qlib is a platform that consists of the above components. The components are designed as loose-coupled modules and each component could be used stand-alone.
@@ -110,17 +115,20 @@ Qlib provides a tool named `Estimator` to run the whole workflow automatically (
     The result of `Estimator` is as follows, please refer to please refer to [Intraday Trading](https://qlib.readthedocs.io/en/latest/component/backtest.html) for more details about the result. 
 
     ```bash
-                          risk
-    sub_bench mean    0.000662
-              std     0.004487
-              annual  0.166720
-              sharpe  2.340526
-              mdd    -0.080516
-    sub_cost  mean    0.000577
-              std     0.004482
-              annual  0.145392
-              sharpe  2.043494
-              mdd    -0.083584
+
+                                                      risk
+    excess_return_without_cost mean               0.000605
+                               std                0.005481
+                               annualized_return  0.152373
+                               information_ratio  1.751319
+                               max_drawdown      -0.059055
+    excess_return_with_cost    mean               0.000410
+                               std                0.005478
+                               annualized_return  0.103265
+                               information_ratio  1.187411
+                               max_drawdown      -0.075024
+
+
     ```
     Here are detailed documents for [Estimator](https://qlib.readthedocs.io/en/latest/component/estimator.html).
 

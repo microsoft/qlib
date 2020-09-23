@@ -67,39 +67,42 @@ The backtest results are in the following form:
 
 .. code-block:: python
 
-    sub_bench mean    0.000662
-              std     0.004487
-              annual  0.166720
-              ir      2.340526
-              mdd    -0.080516
-    sub_cost  mean    0.000577
-              std     0.004482
-              annual  0.145392
-              ir      2.043494
-              mdd    -0.083584
+                                                      risk
+    excess_return_without_cost mean               0.000605
+                               std                0.005481
+                               annualized_return  0.152373
+                               information_ratio  1.751319
+                               max_drawdown      -0.059055
+    excess_return_with_cost    mean               0.000410
+                               std                0.005478
+                               annualized_return  0.103265
+                               information_ratio  1.187411
+                               max_drawdown      -0.075024
 
-- `sub_bench`
+
+
+- `excess_return_without_cost`
     - `mean`
         Mean value of the `CAR` (cumulative abnormal return) without cost
     - `std`
         The `Standard Deviation` of `CAR` (cumulative abnormal return) without cost.
-    - `annual`
+    - `annualized_return`
         The `Annualized Rate` of `CAR` (cumulative abnormal return) without cost.
-    - `ir`
+    - `information_ratio`
         The `Information Ratio` without cost. please refer to `Information Ratio – IR <https://www.investopedia.com/terms/i/informationratio.asp>`_.
-    - `mdd`
+    - `max_drawdown`
         The `Maximum Drawdown` of `CAR` (cumulative abnormal return) without cost, please refer to `Maximum Drawdown (MDD) <https://www.investopedia.com/terms/m/maximum-drawdown-mdd.asp>`_.
 
-- `sub_cost`
+- `excess_return_with_cost`
     - `mean`
         Mean value of the `CAR` (cumulative abnormal return) series with cost
     - `std`
         The `Standard Deviation` of `CAR` (cumulative abnormal return) series with cost.
-    - `annual`
+    - `annualized_return`
         The `Annualized Rate` of `CAR` (cumulative abnormal return) with cost.
-    - `ir`
+    - `information_ratio`
         The `Information Ratio` with cost. please refer to `Information Ratio – IR <https://www.investopedia.com/terms/i/informationratio.asp>`_.
-    - `mdd`
+    - `max_drawdown`
         The `Maximum Drawdown` of `CAR` (cumulative abnormal return) with cost, please refer to `Maximum Drawdown (MDD) <https://www.investopedia.com/terms/m/maximum-drawdown-mdd.asp>`_.
 
 

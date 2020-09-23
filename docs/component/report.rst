@@ -26,8 +26,8 @@ Users can run the following code to get all supported reports.
 
 .. code-block:: python
 
-    >>> import qlib.contrib.report as qcr
-    >>> print(qcr.GRAPH_NAME_LISt)
+    >> import qlib.contrib.report as qcr
+    >> print(qcr.GRAPH_NAME_LISt)
     ['analysis_position.report_graph', 'analysis_position.score_ic_graph', 'analysis_position.cumulative_return_graph', 'analysis_position.risk_analysis_graph', 'analysis_position.rank_label_graph', 'analysis_model.model_performance_graph']
 
 .. note::
@@ -156,64 +156,65 @@ Graphical Result
 
     - general graphics
         - `std`
-            - `sub_bench`
+            - `excess_return_without_cost`
                 The `Standard Deviation` of `CAR` (cumulative abnormal return) without cost.
-            - `sub_cost`
+            - `excess_return_with_cost`
                 The `Standard Deviation` of `CAR` (cumulative abnormal return) with cost.
-        - `annual`
-            - `sub_bench`
+        - `annualized_return`
+            - `excess_return_without_cost`
                 The `Annualized Rate` of `CAR` (cumulative abnormal return) without cost.
-            - `sub_cost`
+            - `excess_return_with_cost`
                 The `Annualized Rate` of `CAR` (cumulative abnormal return) with cost.
-        -  `ir`
-            - `sub_bench`
+        -  `information_ratio`
+            - `excess_return_without_cost`
                 The `Information Ratio` without cost.
-            - `sub_cost`
+            - `excess_return_with_cost`
                 The `Information Ratio` with cost.
             To know more about `Information Ratio`, please refer to `Information Ratio – IR <https://www.investopedia.com/terms/i/informationratio.asp>`_.
-        -  `mdd`
-            - `sub_bench`
+        -  `max_drawdown`
+            - `excess_return_without_cost`
                 The `Maximum Drawdown` of `CAR` (cumulative abnormal return) without cost.
-            - `sub_cost`
+            - `excess_return_with_cost`
                 The `Maximum Drawdown` of `CAR` (cumulative abnormal return) with cost.
 
 
 .. image:: ../_static/img/analysis/risk_analysis_bar.png 
+    :align: center
 
 .. note:: 
 
-    - annual/mdd/ir/std graphics
+    - annualized_return/max_drawdown/information_ratio/std graphics
         - Axis X: Trading days grouped by month
         - Axis Y:
-            - annual graphics
-                - `sub_bench_annual`
+            - annualized_return graphics
+                - `excess_return_without_cost_annualized_return`
                     The `Annualized Rate` series of monthly `CAR` (cumulative abnormal return) without cost.
-                - `sub_cost_annual`
+                - `excess_return_with_cost_annualized_return`
                     The `Annualized Rate` series of monthly `CAR` (cumulative abnormal return) with cost.
-            - mdd graphics
-                - `sub_bench_mdd`
+            - max_drawdown graphics
+                - `excess_return_without_cost_max_drawdown`
                     The `Maximum Drawdown` series of monthly `CAR` (cumulative abnormal return) without cost.
-                - `sub_cost_mdd`
+                - `excess_return_with_cost_max_drawdown`
                     The `Maximum Drawdown` series of monthly `CAR` (cumulative abnormal return) with cost.
-            - ir graphics
-                - `sub_bench_ir`
+            - information_ratio graphics
+                - `excess_return_without_cost_information_ratio`
                     The `Information Ratio` series of monthly `CAR` (cumulative abnormal return) without cost.
-                - `sub_cost_ir`
+                - `excess_return_with_cost_information_ratio`
                     The `Information Ratio` series of monthly `CAR` (cumulative abnormal return) with cost.
             - std graphics
-                - `sub_bench_mdd`
+                - `excess_return_without_cost_max_drawdown`
                     The `Standard Deviation` series of monthly `CAR` (cumulative abnormal return) without cost.
-                - `sub_cost_mdd`
+                - `excess_return_with_cost_max_drawdown`
                     The `Standard Deviation` series of monthly `CAR` (cumulative abnormal return) with cost.
                 
 
-.. image:: ../_static/img/analysis/risk_analysis_annual.png 
+.. image:: ../_static/img/analysis/risk_analysis_annualized_return.png
     :align: center
 
-.. image:: ../_static/img/analysis/risk_analysis_mdd.png 
+.. image:: ../_static/img/analysis/risk_analysis_max_drawdown.png
     :align: center
 
-.. image:: ../_static/img/analysis/risk_analysis_sharpe.png 
+.. image:: ../_static/img/analysis/risk_analysis_information_ratio.png
     :align: center
 
 .. image:: ../_static/img/analysis/risk_analysis_std.png 
@@ -241,10 +242,9 @@ Graphical Result
             Average `ranking ratio`of `label` for stocks that is held/sold/bought on the trading day.
 
             In the above example, the `label` is formulated as `Ref($close, -1)/$close - 1`. The `ranking ratio` can be formulated as follows.
-            
             .. math::
                 
-                \frac{Ascending\ Ranking\ of\ 'Ref($close, -1)/$close - 1'}{Number\ of\ Stocks\ on\ the\ Day} \times 100
+                ranking\ ratio = \frac{Ascending\ Ranking\ of\ label}{Number\ of\ Stocks\ in\ the\ Portfolio}
 
 .. image:: ../_static/img/analysis/rank_label_hold.png 
     :align: center
@@ -287,6 +287,11 @@ Graphical Results
             The Difference series between `Cumulative Return` of `Group1` and of `Group5`
         - `long-average`
             The Difference series between `Cumulative Return` of `Group1` and average `Cumulative Return` for all stocks.
+        
+        The `ranking ratio` can be formulated as follows.
+            .. math::
+                
+                ranking\ ratio = \frac{Ascending\ Ranking\ of\ label}{Number\ of\ Stocks\ in\ the\ Portfolio}
 
 .. image:: ../_static/img/analysis/analysis_model_cumulative_return.png 
     :align: center
@@ -303,7 +308,8 @@ Graphical Results
 
 .. note::
     - Information Coefficient
-        The `Pearson correlation coefficient` series between the latest `label` and the `label` `lag` days ago of stocks in portfolio on each trading day.
+        - The `Pearson correlation coefficient` series between `labels` and `prediction scores` of stocks in portfolio.
+        - The graphics reports can be used to evaluate the `prediction scores`.
 
 .. image:: ../_static/img/analysis/analysis_model_IC.png 
     :align: center
@@ -326,7 +332,9 @@ Graphical Results
 
 .. note::
     - Auto Correlation
-         The `Pearson correlation coefficient` series between `label` and `prediction score` of stocks in portfolio.
+        - The `Pearson correlation coefficient` series between the latest `prediction scores` and the `prediction scores` `lag` days ago of stocks in portfolio on each trading day. 
+        - The graphics reports can be used to estimate the turnover rate.
+         
 
 .. image:: ../_static/img/analysis/analysis_model_auto_correlation.png 
     :align: center

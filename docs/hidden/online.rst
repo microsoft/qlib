@@ -77,20 +77,18 @@ If Your account was saved in "./user_data/", you can see the performance of your
 
     ...
     Result of porfolio:
-    sub_bench:
-                risk
-    mean    0.001157
-    std     0.003039
-    annual  0.289131
-    sharpe  6.017635
-    mdd    -0.013185
-    sub_cost:
-                risk
-    mean    0.000800
-    std     0.003043
-    annual  0.199944
-    sharpe  4.155963
-    mdd    -0.015517
+                                                      risk
+    excess_return_without_cost mean               0.000605
+                               std                0.005481
+                               annualized_return  0.152373
+                               information_ratio  1.751319
+                               max_drawdown      -0.059055
+    excess_return_with_cost    mean               0.000410
+                               std                0.005478
+                               annualized_return  0.103265
+                               information_ratio  1.187411
+                               max_drawdown      -0.075024
+
 
 Here 'SH000905' represents csi500 and 'SH000300' represents csi300
 

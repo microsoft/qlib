@@ -8,7 +8,7 @@ Introduction
 
 ``Data Layer`` provides user-friendly APIs to manage and retrieve data. It provides high-performance data infrastructure. 
 
-It is designed for quantitative investment. For example, users could build formulaic alphas with ``Data Layer`` easily. Please refer to `Building Formulaic Alphas <../advanced/alpha.html>`_ for detailed information.
+It is designed for quantitative investment. For example, users could build formulaic alphas with ``Data Layer`` easily. Please refer to `Building Formulaic Alphas <../advanced/alpha.html>`_ for more details.
 
 The introduction of ``Data Layer`` includes the following parts.
 
@@ -16,77 +16,96 @@ The introduction of ``Data Layer`` includes the following parts.
 - Data API
 - Data Handler
 - Cache
-
+- Data and Cache File Structure
 
 
 Data Preparation
 ============================
 
-We've specially designed a data structure to manage financial data. Please refer to the `File storage design section in Qlib paper <TODO_URL>`_ for detailed information.
-Such data will be stored with filename suffix `.bin` (We'll call them `.bin` file or `.bin` format).
-`.bin` file is designed for scientific computing on finance data
+Qlib Format Data
+------------------
 
-Qlib has included the scripts to convert data in other formats into `.bin` files.
-Besides, Qlib has provided an off-the-shelf dataset in `.bin` format to save users' time to prepare data.
+We've specially designed a data structure to manage financial data, please refer to the `File storage design section in Qlib paper <TODO_URL>`_ for detailed information.
+Such data will be stored with filename suffix `.bin` (We'll call them `.bin` file, `.bin` format or qlib format). `.bin` file is designed for scientific computing on finance data
 
-Users could use the script ``scripts/get_data.py`` to download the dataset.
+Qlib Format Dataset
+--------------------
+``Qlib`` has provided an off-the-shelf dataset in `.bin` format, users could use the script ``scripts/get_data.py`` to download the dataset as follows.
 
-When ``Qlib`` is initialized with this dataset, users could build and evaluate their own models with it.  Please refer to `Initialization <../start/initialization.rst>`_ for more information about initialization.
+.. code-block:: bash
+
+    python scripts/get_data.py qlib_data_cn --target_dir ~/.qlib/qlib_data/cn_data
+
+After running the above command, users can find china-stock data in Qlib format in the ``~/.qlib/csv_data/cn_data`` directory.
+
+``Qlib`` also provides the scripts in ``scripts/data_collector`` to help users crawl the latest data on the Internet and convert it to qlib format.
+
+When ``Qlib`` is initialized with this dataset, users could build and evaluate their own models with it.  Please refer to `Initialization <../start/initialization.rst>`_ for more details.
+
+Converting CSV Format into Qlib Format
+-------------------------------------------
+
+``Qlib`` has provided the script ``scripts/dump_bin.py`` to convert data in CSV format into `.bin` files(Qlib format).
 
 
-China-Stock Market Mode
+Users can download the china-stock data in CSV format as follows for reference to the CSV format.
+
+.. code-block:: bash
+
+    python scripts/get_data.py csv_data_cn --target_dir ~/.qlib/csv_data/cn_data
+
+
+Supposed that users prepare their CSV format data in the directory ``~/.qlib/csv_data/my_data``, they can run the following command to start the conversion.
+
+.. code-block:: bash
+
+    python scripts/dump_bin.py dump --csv_path  ~/.qlib/csv_data/my_data --qlib_dir ~/.qlib/qlib_data/my_data --include_fields open,close,high,low,volume,factor
+
+After conversion, users can find their Qlib format data in the directory `~/.qlib/qlib_data/my_data`.
+
+.. note::
+
+    The arguments of `--include_fields` should correspond with the columns names of CSV files. The columns names of dataset provided by ``Qlib`` includes open,close,high,low,volume,factor.
+    
+    - `open`
+        The opening price
+    - `close`
+        The closing price
+    - `high`
+        The highest price
+    - `low`
+        The lowest price
+    - `volume`
+        The trading volume
+    - `factor`
+        The Restoration factor
+
+
+China-Stock Mode & US-Stock Mode
 --------------------------------
 
-If users use ``Qlib`` in china-stock mode, china-stock data is required. The script ``scripts/get_data.py`` can be used to download china-stock data. If users want to use ``Qlib`` in china-stock mode, they need to do as follows.
+- If users use ``Qlib`` in china-stock mode, china-stock data is required. Users can use ``Qlib`` in china-stock mode according to the following steps:
+    - Download china-stock in qlib format, please refer to section `Qlib Format Dataset <#qlib-format-dataset>`_.
+    - Initialize ``Qlib`` in china-stock mode
+        Supposed that users download their Qlib format data in the directory ``~/.qlib/csv_data/cn_data``. Users only need to initialize ``Qlib`` as follows.
+        
+        .. code-block:: python
 
-- Download data in qlib format
-    Run the following command to download china-stock data in csv format. 
-
-    .. code-block:: bash
-
-        python scripts/get_data.py qlib_data_cn --target_dir ~/.qlib/qlib_data/cn_data
-
-    Users can find china-stock data in qlib format in the'~/.qlib/csv_data/cn_data' directory.
-
-- Initialize ``Qlib`` in china-stock mode
-    Users only need to initialize ``Qlib`` as follows.
-    
-    .. code-block:: python
-
-        from qlib.config import REG_CN
-        qlib.init(provider_uri='~/.qlib/qlib_data/cn_data', region=REG_CN)
+            from qlib.config import REG_CN
+            qlib.init(provider_uri='~/.qlib/qlib_data/cn_data', region=REG_CN)
         
 
-US-Stock Market Mode
--------------------------
-If users use ``Qlib`` in US-stock mode, US-stock data is required. ``Qlib`` does not provide a script to download US-stock data. If users want to use ``Qlib`` in US-stock mode, they need to do as follows.
-
-- Prepare data in csv format
-    Users need to prepare US-stock data in csv format by themselves, which is in the same format as the china-stock data in csv format. Please download the china-stock data in csv format as follows for reference of format.
-
-    .. code-block:: bash
-
-        python scripts/get_data.py csv_data_cn --target_dir ~/.qlib/csv_data/cn_data
-    
-
-- Convert data from csv format to ``Qlib`` format
-    ``Qlib`` provides the script ``scripts/dump_bin.py`` to convert data from csv format to qlib format.
-    Assuming that the users store the US-stock data in csv format in path '~/.qlib/csv_data/us_data', they need to execute the following command to convert the data from csv format to ``Qlib`` format:
-
-    .. code-block:: bash
-
-        python scripts/dump_bin.py dump --csv_path  ~/.qlib/csv_data/us_data --qlib_dir ~/.qlib/qlib_data/us_data --include_fields open,close,high,low,volume,factor
-
-- Initialize ``Qlib`` in US-stock mode
-    Users only need to initialize ``Qlib`` as follows.
-    
-    .. code-block:: python
-
-        from qlib.config import REG_US
-        qlib.init(provider_uri='~/.qlib/qlib_data/us_data', region=REG_US)
+- If users use ``Qlib`` in US-stock mode, US-stock data is required. ``Qlib`` does not provide a script to download US-stock data. Users can use ``Qlib`` in US-stock mode according to the following steps:
+    - Prepare data in CSV format
+    - Convert data from CSV format to Qlib format,  please refer to section `Converting CSV Format into Qlib Format <#converting-csv-format-into-qlib-format>`_.
+    - Initialize ``Qlib`` in US-stock mode
+        Supposed that users prepare their Qlib format data in the directory ``~/.qlib/csv_data/us_data``. Users only need to initialize ``Qlib`` as follows.
         
+        .. code-block:: python
 
-Please refer to `Script API <../reference/api.html>`_ for more details.
+            from qlib.config import REG_US
+            qlib.init(provider_uri='~/.qlib/qlib_data/us_data', region=REG_US)
+        
 
 Data API
 ========================
@@ -101,7 +120,7 @@ Feature
 ``Qlib`` provides `Feature` and `ExpressionOps` to fetch the features according to users' needs.
 
 - `Feature`
-    Load data from the data provider.
+    Load data from the data provider. User can get the features like `$high`, `$low`, `$open`, `$close`, .etc, which should correspond with the arguments of `--include_fields`, please refer to section `Converting CSV Format into Qlib Format <#converting-csv-format-into-qlib-format>`_.
 
 - `ExpressionOps`
     `ExpressionOps` will use operator for feature construction.
@@ -283,9 +302,9 @@ The following shows the details about the interfaces:
 
 
 Data and Cache File Structure
-----------------------------------
+==================================
 
-The file structure of data and cache is listed as follows.
+We've specially designed a file structure to manage data and cache, please refer to the `File storage design section in Qlib paper <TODO_URL>`_ for detailed information.The file structure of data and cache is listed as follows.
 
 .. code-block:: json
 
