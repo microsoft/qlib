@@ -123,8 +123,8 @@ def backtest(pred):
 
 def analyze(report_normal):
     _analysis = dict()
-    _analysis["sub_bench"] = risk_analysis(report_normal["return"] - report_normal["bench"])
-    _analysis["sub_cost"] = risk_analysis(report_normal["return"] - report_normal["bench"] - report_normal["cost"])
+    _analysis["excess_return_without_cost"] = risk_analysis(report_normal["return"] - report_normal["bench"])
+    _analysis["excess_return_with_cost"] = risk_analysis(report_normal["return"] - report_normal["bench"] - report_normal["cost"])
     analysis_df = pd.concat(_analysis)  # type: pd.DataFrame
     print(analysis_df)
     return analysis_df
@@ -157,7 +157,7 @@ class TestAllFlow(unittest.TestCase):
         )
         analyze_df = analyze(TestAllFlow.REPORT_NORMAL)
         self.assertGreaterEqual(
-            analyze_df.loc(axis=0)["sub_cost", "annual"].values[0], 0.10, "backtest failed",
+            analyze_df.loc(axis=0)["excess_return_with_cost", "annualized_return"].values[0], 0.10, "backtest failed",
         )
 
 

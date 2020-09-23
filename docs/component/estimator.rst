@@ -663,17 +663,18 @@ The `FileFetcher` is a subclass of `Fetcher`, which could fetch files from `file
 
     >>> print(f.get_experiment('test_experiment', '1'))
 
-                          risk
-    sub_bench mean    0.000662
-              std     0.004487
-              annual  0.166720
-              sharpe  2.340526
-              mdd    -0.080516
-    sub_cost  mean    0.000577
-              std     0.004482
-              annual  0.145392
-              sharpe  2.043494
-              mdd    -0.083584
+                                                          risk
+        excess_return_without_cost mean               0.000605
+                                   std                0.005481
+                                   annualized_return  0.152373
+                                   information_ratio  1.751319
+                                   max_drawdown      -0.059055
+        excess_return_with_cost    mean               0.000410
+                                   std                0.005478
+                                   annualized_return  0.103265
+                                   information_ratio  1.187411
+                                   max_drawdown      -0.075024
+
 
 
 `MongoFetcher`
