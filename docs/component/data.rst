@@ -8,9 +8,9 @@ Introduction
 
 ``Data Layer`` provides user-friendly APIs to manage and retrieve data. It provides high-performance data infrastructure. 
 
-It is designed for quantitative investment. For example, user could build formulaic alphas with ``Data Layer`` easily. Please refer to `Building Formulaic Alphas <../advanced/alpha.html>`_ for detailed information.
+It is designed for quantitative investment. For example, users could build formulaic alphas with ``Data Layer`` easily. Please refer to `Building Formulaic Alphas <../advanced/alpha.html>`_ for detailed information.
 
-The introduction of ``Data Layer`` includes following parts.
+The introduction of ``Data Layer`` includes the following parts.
 
 - Data preparation
 - Data API
@@ -23,11 +23,11 @@ Data preparation
 ============================
 
 We've specially designed a data structure to manage financial data. Please refer to the `File storage design section in Qlib paper <TODO_URL>`_ for detailed information.
-Such data will stored with filename suffix `.bin` (We'll call them `.bin` file or `.bin` format).
+Such data will be stored with filename suffix `.bin` (We'll call them `.bin` file or `.bin` format).
 `.bin` file is designed for scientific computing on finance data
 
-Qlib has included the scripts to convert data in other format into `.bin` files.
-Besides, Qlib has provide an off-the-shelf dataset in `.bin` format to save users' time to prepare data.
+Qlib has included the scripts to convert data in other formats into `.bin` files.
+Besides, Qlib has provided an off-the-shelf dataset in `.bin` format to save users' time to prepare data.
 
 Users could use the script ``scripts/get_data.py`` to download the dataset.
 
@@ -59,7 +59,7 @@ If users use ``Qlib`` in china-stock mode, china-stock data is required. The scr
 
 US-Stock Market Mode
 -------------------------
-If users use ``Qlib`` in US-stock mode, US-stock data is required. ``Qlib`` does not provide script to download US-stock data. If users want to use ``Qlib`` in US-stock mode, they need to do as follows.
+If users use ``Qlib`` in US-stock mode, US-stock data is required. ``Qlib`` does not provide a script to download US-stock data. If users want to use ``Qlib`` in US-stock mode, they need to do as follows.
 
 - Prepare data in csv format
     Users need to prepare US-stock data in csv format by themselves, which is in the same format as the china-stock data in csv format. Please download the china-stock data in csv format as follows for reference of format.
@@ -98,10 +98,10 @@ Users can use APIs in ``qlib.data`` to retrieve data, please refer to `Data Retr
 Feature
 ------------------
 
-``Qlib`` provides `Feature` and `ExpressionOps` to fetch the features according to users' need.
+``Qlib`` provides `Feature` and `ExpressionOps` to fetch the features according to users' needs.
 
 - `Feature`
-    Load data from data provider.
+    Load data from the data provider.
 
 - `ExpressionOps`
     `ExpressionOps` will use operator for feature construction.
@@ -111,7 +111,7 @@ To know more about  ``Feature``, please refer to `Feature API <../reference/api.
 
 Filter
 -------------------
-``Qlib`` provides `NameDFilter` and `ExpressionDFilter` to filter the instruments according to users' need.
+``Qlib`` provides `NameDFilter` and `ExpressionDFilter` to filter the instruments according to users' needs.
 
 - `NameDFilter`
     Name dynamic instrument filter. Filter the instruments based on a regulated name format. A name rule regular expression is required.
@@ -136,7 +136,7 @@ Data Handler
 
 Users can use ``Data Handler`` in an automatic workflow by ``Estimator``, refer to `Estimator <estimator.html>`_ for more details. 
 
-Also, ``Data Handler`` can be used as a independent module, by which users can easliy preprocess data(standardization, remove NaN, etc.) and build datasets. It is a subclass of ``qlib.contrib.estimator.handler.BaseDataHandler``, which provides some interfaces as follows.
+Also, ``Data Handler`` can be used as an independent module, by which users can easily preprocess data(standardization, remove NaN, etc.) and build datasets. It is a subclass of ``qlib.contrib.estimator.handler.BaseDataHandler``, which provides some interfaces as follows.
 
 Base Class & Interface
 ----------------------
@@ -147,20 +147,20 @@ Qlib provides a base class `qlib.contrib.estimator.BaseDataHandler <../reference
     Implement the interface to load the data features.
 
 - `setup_label`   
-    Implement the interface to load the data labels and calculate user's labels. 
+    Implement the interface to load the data labels and calculate the users' labels. 
 
 - `setup_processed_data`    
     Implement the interface for data preprocessing, such as preparing feature columns, discarding blank lines, and so on.
 
-Qlib also provides two functions to help user init the data handler, user can override them for user's need.
+Qlib also provides two functions to help users init the data handler, users can override them for users' needs.
 
 - `_init_kwargs`
-    User can init the kwargs of the data handler in this function, some kwargs may be used when init the raw df.
+    Users can init the kwargs of the data handler in this function, some kwargs may be used when init the raw df.
     Kwargs are the other attributes in data.args, like dropna_label, dropna_feature
 
 - `_init_raw_df`
-    User can init the raw df, feature names and label names of data handler in this function. 
-    If the index of feature df and label df are not same, user need to override this method to merge them (e.g. inner, left, right merge).
+    Users can init the raw df, feature names, and label names of data handler in this function. 
+    If the index of feature df and label df are not same, users need to override this method to merge them (e.g. inner, left, right merge).
 
 If users want to load features and labels by config, users can inherit ``qlib.contrib.estimator.handler.ConfigDataHandler``, ``Qlib`` also have provided some preprocess method in this subclass.
 If users want to use qlib data, `QLibDataHandler` is recommended. Users can inherit their custom class from `QLibDataHandler`, which is also a subclass of `ConfigDataHandler`.
@@ -169,7 +169,7 @@ If users want to use qlib data, `QLibDataHandler` is recommended. Users can inhe
 Usage
 --------------
 
-``Data Handler`` can be used as a single module, which provides the following mehtod:
+``Data Handler`` can be used as a single module, which provides the following mehtods:
 
 - `get_split_data`
     - According to the start and end dates, return features and labels of the pandas DataFrame type used for the 'Model'
@@ -187,9 +187,9 @@ Example
 
 Know more about how to run ``Data Handler`` with ``estimator``, please refer to `Estimator <estimator.html#about-data>`_.
 
-Qlib provides implemented data handler `QLibDataHandlerV1`. The following example shows how to run 'QLibDataHandlerV1' as a single module. 
+Qlib provides implemented data handler `QLibDataHandlerV1`. The following example shows how to run `QLibDataHandlerV1` as a single module. 
 
-.. note:: User needs to initialize ``Qlib`` with `qlib.init` first, please refer to `initialization <initialization.rst>`_.
+.. note:: Users need to initialize ``Qlib`` with `qlib.init` first, please refer to `initialization <initialization.rst>`_.
 
 
 .. code-block:: Python
@@ -231,17 +231,17 @@ Also, the above example has been given in ``examples.estimator.train_backtest_an
 API
 ---------
 
-To know more abot ``Data Handler``, please refer to `Data Handler API <../reference/api.html#handler>`_.
+To know more about ``Data Handler``, please refer to `Data Handler API <../reference/api.html#handler>`_.
 
 Cache
 ==========
 
-``Cache`` is an optional module that helps accelerate providing data by saving some frequently-used data as cache file. ``Qlib`` provides a `Memcache` class to cache the most-frequently-used data in memory, an inheritable `ExpressionCache` classand an inheritable `DatasetCache` class.
+``Cache`` is an optional module that helps accelerate providing data by saving some frequently-used data as cache file. ``Qlib`` provides a `Memcache` class to cache the most-frequently-used data in memory, an inheritable `ExpressionCache` class and an inheritable `DatasetCache` class.
 
 Memory Cache
 --------------
 
-`Memcache` is a memory cache mechanism that composes of three `MemCacheUnit` instances to cache **Calendar**, **Instruments**, and **Features**. The MemCache is defined globally in `cache.py` as `H`. User can use `H['c'], H['i'], H['f']` to get/set memcache.
+`Memcache` is a memory cache mechanism that composes of three `MemCacheUnit` instances to cache **Calendar**, **Instruments**, and **Features**. The `MemCache` is defined globally in `cache.py` as `H`. Users can use `H['c'], H['i'], H['f']` to get/set `memcache`.
 
 .. autoclass:: qlib.data.cache.MemCacheUnit
     :members:
@@ -263,10 +263,10 @@ Base Class & Interface
 
 `ExpressionCache` is a cache mechanism that saves expressions such as **Mean($close, 5)**. Users can inherit this base class to define their own cache mechanism that saves expressions according to the following steps.
 
-- Override `self._uri` method to define how cache file path is generated
+- Override `self._uri` method to define how the cache file path is generated
 - Override `self._expression` method to define what data will be cached and how to cache it.
 
-`DatasetCache` is a cache mechanism that saves datasets. A certain dataset is regulated by a stockpool configuration (or a series of instruments, though not recommended), a list of expressions or static feature fields, the start time and end time for the collected features and the frequency. Users can inherit this base class to define their own cache mechanism that saves datasets according to the following steps.
+`DatasetCache` is a cache mechanism that saves datasets. A certain dataset is regulated by a stock pool configuration (or a series of instruments, though not recommended), a list of expressions or static feature fields, the start time, and end time for the collected features and the frequency. Users can inherit this base class to define their own cache mechanism that saves datasets according to the following steps.
 
 - Override `self._uri` method to define how their cache file path is generated
 - Override `self._expression` method to define what data will be cached and how to cache it.
@@ -297,7 +297,7 @@ DatasetCache
 Implemented  Cache
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-``Qlib`` has currently provided implemented disk cache `DiskExpressionCache` and `DiskDatasetCache` as the cache mechanisms. The class interface and file structure designed for server cache mechanism is listed below.
+``Qlib`` has currently provided implemented disk cache `DiskExpressionCache` and `DiskDatasetCache` as the cache mechanisms. The class interface and file structure designed for the server cache mechanism is listed below.
 
 
 DiskExpressionCache
