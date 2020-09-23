@@ -7,7 +7,7 @@ Intraday Trading: Model&Strategy Testing
 Introduction
 ===================
 
-``Intraday Trading`` is designed to test models and strategies, which help users to check the performance of custom model/strategy.
+``Intraday Trading`` is designed to test models and strategies, which help users to check the performance of a custom model/strategy.
 
 
 .. note::
@@ -21,9 +21,9 @@ Example
 
 Users need to generate a `prediction score`(a pandas DataFrame) with MultiIndex<instrument, datetime> and a `score` column. And users need to assign a strategy used in backtest, if strategy is not assigned,
 a `TopkDropoutStrategy` strategy with `(topk=50, n_drop=5, risk_degree=0.95, limit_threshold=0.0095)` will be used.
-If ``Strategy`` module is not user's interested part, `TopkDropoutStrategy` is enough. 
+If ``Strategy`` module is not users' interested part, `TopkDropoutStrategy` is enough. 
 
-The simple example with default strategy is as follows.
+The simple example of the default strategy is as follows.
 
 .. code-block:: python
 
@@ -31,7 +31,7 @@ The simple example with default strategy is as follows.
     # pred_score is the prediction score
     report, positions = backtest(pred_score, topk=50, n_drop=0.5, verbose=False, limit_threshold=0.0095)
 
-To know more about backtesting with specific strategy, please refer to `Strategy <strategy.html>`_.
+To know more about backtesting with a specific strategy, please refer to `Strategy <strategy.html>`_.
 
 To know more about the prediction score `pred_score` output by ``Model``, please refer to `Interday Model: Model Training & Prediction <model.html>`_.
 
