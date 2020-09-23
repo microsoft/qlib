@@ -26,7 +26,7 @@ If users followed steps in `initialization <initialization.rst>`_ and downloaded
     >>> qlib.init(provider_uri='~/.qlib/qlib_data/cn_data')
 
 
-Load the trading calendar with the given time range and frequency:
+Load trading calendar with given time range and frequency:
 
 .. code-block:: python
 		

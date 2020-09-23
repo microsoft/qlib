@@ -7,10 +7,10 @@ Estimator: Workflow Management
 Introduction
 ===================
 
-The components in `Qlib Framework <../introduction/introduction.html#framework>`_ are designed in a loosely-coupled way. Users could build their own quant research workflow with these components like `Example <http://TODO_URL>`_
+The components in `Qlib Framework <../introduction/introduction.html#framework>`_ are designed in a loosely-coupled way. Users could build their own Quant research workflow with these components like `Example <https://github.com/microsoft/qlib/blob/main/examples/train_and_backtest.py>`_
 
 
-Besides, ``Qlib`` provides more user-friendly interfaces named ``Estimator`` to automatically run the whole workflow defined by a config.  A concrete execution of the whole workflow is called an `experiment`.
+Besides, ``Qlib`` provides more user-friendly interfaces named ``Estimator`` to automatically run the whole workflow defined by configuration.  A concrete execution of the whole workflow is called an `experiment`.
 With ``Estimator``, user can easily run an `experiment`, which includes the following steps:
 
 - Data
@@ -22,18 +22,13 @@ With ``Estimator``, user can easily run an `experiment`, which includes the foll
     - Saving & loading
 - Evaluation(Back-testing)
 
-For each `experiment`, ``Qlib`` will capture the details of model training, performance evalution results and basic infomation (e.g. names, ids). The captured data will be stored in backend-storge (disk or database).
+For each `experiment`, ``Qlib`` will capture the model training details, performance evaluation results and basic information (e.g. names, ids). The captured data will be stored in backend-storage (disk or database).
 
-Example
+Complete Example
 ===================
 
-The following is an example:
-
-.. note:: Make sure to install the latest version of `Qlib`, please refer to `Qlib installation <../start/installation.html>`_.
-
-If users want to use the models and data provided by `Qlib`, they only need to do as follows.
-
-First, write a simple configuration file as following,
+Before getting into details, here is a complete example of ``Estimator``, which defines the workflow in typical Quant research.
+Below is a typical config file of ``Estimator``.
 
 .. code-block:: YAML
 
@@ -90,23 +85,24 @@ First, write a simple configuration file as following,
       provider_uri: "~/.qlib/qlib_data/cn_data"
       region: "cn"
 
-
-Then run the following command:
+After saving the config into `configuration.yaml`, users could start the workflow and test their ideas with a single command below.
 
 .. code-block:: bash
 
     estimator -c configuration.yaml
 
-.. note:: 'estimator' is a built-in command of our program.
+.. note:: `estimator` will be placed in your $PATH directory when installing ``Qlib``.
 
 
 
 Configuration File
 ===================
 
-Before using ``estimator``, users need to prepare a configuration file. The following shows how to prepare each part of the configuration file.
+Let's get into details of ``Estimator`` in this section.
 
-Experiment Field
+Before using ``estimator``, users need to prepare a configuration file. The following content shows how to prepare each part of the configuration file.
+
+Experiment Section
 --------------------
 
 First, the configuration file needs to have a field about the experiment, whose key is `experiment`. This field and its contents determine how `estimator` tracks and persists this `experiment`. ``Qlib`` used `sacred`, a lightweight open-source tool designed to configure, organize, generate logs, and manage experiment results. The field `experiment` will determine the partial behavior of `sacred`.
