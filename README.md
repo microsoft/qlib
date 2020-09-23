@@ -1,14 +1,20 @@
+
+<div style="align: center">
+<img src="docs/_static/img/logo/white_bg_rec+word.png" />
+</div>
+
+
 Qlib is an AI-oriented quantitative investment platform, which aims to realize the potential, empower the research, and create the value of AI technologies in quantitative investment.
 
 With Qlib, you can easily try your ideas to create better Quant investment strategies.
 
 
 - [Framework of Qlib](#framework-of-qlib)
-- [Quick start](#quick-start)
+- [Quick Start](#quick-start)
   - [Installation](#installation)
-  - [Get Data](#get-data)
-  - [Auto Quant research workflow with _estimator_](#auto-quant-research-workflow-with-estimator)
-  - [Building customized Quant research workflow by code](#building-customized-quant-research-workflow-by-code)
+  - [Data Preparation](#get-data)
+  - [Auto Quant Research Workflow with](#auto-quant-research-workflow-with-estimator)
+  - [Building Customized Quant Research Workflow by Code](#building-customized-quant-research-workflow-by-code)
 - [More About Qlib](#more-about-qlib)
 - [Offline mode and online mode of data server](#offline-mode-and-online-mode-of-data-server)
   - [Performance of Qlib Data Server](#performance-of-qlib-data-server)
@@ -17,17 +23,20 @@ With Qlib, you can easily try your ideas to create better Quant investment strat
 
 
 # Framework of Qlib
-![framework](docs/_static/img/framework.png)
+<div style="align: center">
+<img src="docs/_static/img/framework.png" />
+</div>
+
 
 At the module level, Qlib is a platform that consists of the above components. The components are designed as loose-coupled modules and each component could be used stand-alone.
 
 | Name                | Description                                                                                                                                                                                                                                                   |
 | ------              | -----                                                                                                                                                                                                                                                         |
-| _Data layer_        | _DataServer_ focus on providing high-performance infrastructure for users to manage and retrieve raw data. _DataEnhancement_ will preprocess the data and provide the best dataset to be fed into the models.                                                    |
-| _Interday Model_    | _Interday model_ focus on producing forecasting signals (aka. _alpha_). Models are trained by _Model Creator_ and managed by _Model Manager_. Users could choose one or multiple models for forecasting. Multiple models could be combined with _Ensemble_ module. |
-| _Interday Strategy_ | _Portfolio Generator_ will take forecasting signals as input and output the orders based on the current position to achieve the target portfolio.                                                                                                                      |
-| _Intraday Trading_  | _Order Executor_ is responsible for executing orders output by _Interday Strategy_ and returning the executed results.                                                                                                                                        |
-| _Analysis_          | User could get a detailed analysis report of forecasting signals and portfolios in this part.                                                                                                                                                                     |
+| `Data layer`        | `DataServer` focuses on providing high-performance infrastructure for users to manage and retrieve raw data. `DataEnhancement` will preprocess the data and provide the best dataset to be fed into the models.                                                    |
+| `Interday Model`    | `Interday model` focuses on producing prediction scores (aka. _alpha_). Models are trained by `Model Creator` and managed by `Model Manager`. Users could choose one or multiple models for prediction. Multiple models could be combined with `Ensemble` module. |
+| `Interday Strategy` | `Portfolio Generator` will take prediction scores as input and output the orders based on the current position to achieve the target portfolio.                                                                                                                      |
+| `Intraday Trading`  | `Order Executor` is responsible for executing orders output by `Interday Strategy` and returning the executed results.                                                                                                                                        |
+| `Analysis`          | Users could get a detailed analysis report of forecasting signals and portfolios in this part.                                                                                                                                                                     |
 
 * The modules with hand-drawn style are under development and will be released in the future.
 * The modules with dashed borders are highly user-customizable and extendible.
@@ -41,22 +50,25 @@ This quick start guide tries to demonstrate
 
 ## Installation
 
-Before installing _Qlib_ from source, you need to install some dependencies:
+Users can easily intsall ``Qlib`` according to the following steps:
 
-```bash
-pip install numpy
-pip install --upgrade  cython
-```
+* Before installing ``Qlib`` from source, you need to install some dependencies:
 
-Clone the repository and install _Qlib_:
-```bash
-git clone https://github.com/microsoft/qlib.git && cd qlib
-python setup.py install
-```
+  ```bash
+  pip install numpy
+  pip install --upgrade  cython
+  ```
+
+* Clone the repository and install ``Qlib``:
+
+  ```bash
+  git clone https://github.com/microsoft/qlib.git && cd qlib
+  python setup.py install
+  ```
 
 
-## Get Data
-Load and prepare data:
+## Data Preparation
+Load and prepare data by running the following code:
   ```bash
   python scripts/get_data.py qlib_data_cn --target_dir ~/.qlib/qlib_data/cn_data
   ```
@@ -92,18 +104,16 @@ Users could create the same dataset with it.
   ```
  -->
 
-## Auto Quant research workflow with _estimator_
-Qlib provides a tool named `estimator` to run the whole workflow automatically (including building dataset, training models, backtest, analysis)
+## Auto Quant Research Workflow
+Qlib provides a tool named `Estimator` to run the whole workflow automatically (including building dataset, training models, backtest and evaluation). You can start an auto quant research workflow and have a graphical reports analysis according to the following steps: 
 
-1. Run `estimator` with [estimator_config.yaml](examples/estimator/estimator_config.yaml)
-
+1. Quant Research Workflow: Run  `Estimator` with [estimator_config.yaml](examples/estimator/estimator_config.yaml) as following.
     ```bash
-    cd examples  # Avoid running program under the directory contains `qlib`
-    estimator -c estimator/estimator_config.yaml
+      cd examples  # Avoid running program under the directory contains `qlib`
+      estimator -c estimator/estimator_config.yaml
     ```
-  
-    Estimator result:
-  
+    The result of `Estimator` is as follows, please refer to please refer to [Intraday Trading](https://qlib.readthedocs.io/en/latest/component/backtest.html) for more details about the result. 
+
     ```bash
 
                                                       risk
@@ -120,41 +130,37 @@ Qlib provides a tool named `estimator` to run the whole workflow automatically (
 
 
     ```
-    Here are detailed documents for [_Estimator_](https://qlib.readthedocs.io/en/latest/component/estimator.html).
+    Here are detailed documents for [Estimator](https://qlib.readthedocs.io/en/latest/component/estimator.html).
 
-2. Analysis
-
-    Run `examples/estimator/analyze_from_estimator.ipynb` with `jupyter notebook`
-    1.  Forecasting signal (model prediction) analysis
-        - Cumulative Return of groups
-        ![Cumulative Return](docs/_static/img/analysis/analysis_model_cumulative_return.png)
-        - Return distribution
-        ![long_short](docs/_static/img/analysis/analysis_model_long_short.png)
-        - Information Coefficient (IC)
-        ![Information Coefficient](docs/_static/img/analysis/analysis_model_IC.png)        
-        ![Monthly IC](docs/_static/img/analysis/analysis_model_monthly_IC.png)        
-        ![IC](docs/_static/img/analysis/analysis_model_NDQ.png)
-        - Auto Correlation of forecasting signal (model prediction)
-        ![Auto Correlation](docs/_static/img/analysis/analysis_model_auto_correlation.png)
-
-        
+2. Graphical Reports Analysis: Run `examples/estimator/analyze_from_estimator.ipynb` with `jupyter notebook` to get graphical reports
+    - Forecasting signal (model prediction) analysis
+      - Cumulative Return of groups
+      ![Cumulative Return](docs/_static/img/analysis/analysis_model_cumulative_return.png)
+      - Return distribution
+      ![long_short](docs/_static/img/analysis/analysis_model_long_short.png)
+      - Information Coefficient (IC)
+      ![Information Coefficient](docs/_static/img/analysis/analysis_model_IC.png)        
+      ![Monthly IC](docs/_static/img/analysis/analysis_model_monthly_IC.png)        
+      ![IC](docs/_static/img/analysis/analysis_model_NDQ.png)
+      - Auto Correlation of forecasting signal (model prediction)
+      ![Auto Correlation](docs/_static/img/analysis/analysis_model_auto_correlation.png)
 
 
-    2.  Portfolio analysis
-        - Backtest return
-        ![Report](docs/_static/img/analysis/report.png)
-        <!-- 
-        - Score IC
-        ![Score IC](docs/_static/img/score_ic.png)
-        - Cumulative Return
-        ![Cumulative Return](docs/_static/img/cumulative_return.png)
-        - Risk Analysis
-        ![Risk Analysis](docs/_static/img/risk_analysis.png)
-        - Rank Label
-        ![Rank Label](docs/_static/img/rank_label.png)
-        -->
+    - Portfolio analysis
+      - Backtest return
+      ![Report](docs/_static/img/analysis/report.png)
+      <!-- 
+      - Score IC
+      ![Score IC](docs/_static/img/score_ic.png)
+      - Cumulative Return
+      ![Cumulative Return](docs/_static/img/cumulative_return.png)
+      - Risk Analysis
+      ![Risk Analysis](docs/_static/img/risk_analysis.png)
+      - Rank Label
+      ![Rank Label](docs/_static/img/rank_label.png)
+      -->
 
-## Building customized Quant research workflow by code
+## Building Customized Quant Research Workflow by Code
 The automatic workflow may not suite the research workflow of all Quant researchers. To support a flexible Quant research workflow, Qlib also provides a modularized interface to allow researchers to build their own workflow by code. [Here](examples/train_backtest_analyze.ipynb) is a demo for customized Quant research workflow by code
 
 
@@ -175,7 +181,7 @@ Qlib is in active and continuing development. Our plan is in the roadmap, which 
 
 
 
-# Offline mode and online mode of the data server
+# Offline Mode and Online Mode of the Data Server
 The data server of Qlib can either deployed as offline mode or online mode. The default mode is offline mode.
 
 Under offline mode, the data will be deployed locally. 

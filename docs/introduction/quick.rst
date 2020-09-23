@@ -42,16 +42,16 @@ Load and prepare data by running the following code:
 
     python scripts/get_data.py qlib_data_cn --target_dir ~/.qlib/qlib_data/cn_data
 
-This dataset is created by public data collected by crawler scripts, which have been released in the same repository. Users could create the same dataset with it.
+This dataset is created by public data collected by crawler scripts in ``scripts/data_collector/``, which have been released in the same repository. Users could create the same dataset with it.
 
 To kown more about `prepare data`, please refer to `Data Preparation <../component/data.html>`_.
 
-Auto Quant Research Workflow with ``Estimator``
-===============================================
+Auto Quant Research Workflow
+====================================
 
-``Qlib`` provides a tool named ``Estimator`` to run the whole workflow automatically (including building dataset, training models, backtest, analysis). Users can start the auto quant research workflow according to the following steps: 
+``Qlib`` provides a tool named ``Estimator`` to run the whole workflow automatically (including building dataset, training models, backtest and evaluation). Users can start an auto quant research workflow and have a graphical reports analysis according to the following steps: 
 
-- Estimator: 
+- Quant Research Workflow: 
     - Run  ``Estimator`` with `estimator_config.yaml` as following.
         .. code-block:: 
 
@@ -60,7 +60,7 @@ Auto Quant Research Workflow with ``Estimator``
 
 
     - Estimator result
-        The result of ``Estimator`` is as follows, which is also the result of ``Interday Trading``. Please refer to please refer to `Interdat Trading <backtest.html>`_. for more details for the result. 
+        The result of ``Estimator`` is as follows, which is also the result of ``Interday Trading``. Please refer to please refer to `Interdat Trading <backtest.html>`_. for more details about the result. 
 
         .. code-block:: python
         
@@ -77,9 +77,9 @@ Auto Quant Research Workflow with ``Estimator``
                                        max_drawdown      -0.075024
 
         
-    To know more about `Estimator`, please refer to ``
+    To know more about `Estimator`, please refer to `Estimator ../component/estimator.html`_.
 
-- Analysis:
+- Graphical Reports Analysis:
     - Run ``examples/estimator/analyze_from_estimator.ipynb`` with jupyter notebook
         Users can have portfolio analysis or prediction score (model prediction) analysis by run ``examples/estimator/analyze_from_estimator.ipynb``.
     - Graphical Reports

@@ -179,6 +179,7 @@ Graphical Result
 
 
 .. image:: ../_static/img/analysis/risk_analysis_bar.png 
+    :align: center
 
 .. note:: 
 
@@ -208,12 +209,16 @@ Graphical Result
                 
 
 .. image:: ../_static/img/analysis/risk_analysis_annualized_return.png
+    :align: center
 
 .. image:: ../_static/img/analysis/risk_analysis_max_drawdown.png
+    :align: center
 
 .. image:: ../_static/img/analysis/risk_analysis_information_ratio.png
+    :align: center
 
 .. image:: ../_static/img/analysis/risk_analysis_std.png 
+    :align: center
 
 
 Usage of `analysis_position.rank_label`
@@ -243,10 +248,13 @@ Graphical Result
                 \frac{Ascending\ Ranking\ of\ 'Ref($close, -1)/$close - 1'}{Number\ of\ Stocks\ on\ the\ Day} \times 100
 
 .. image:: ../_static/img/analysis/rank_label_hold.png 
+    :align: center
 
 .. image:: ../_static/img/analysis/rank_label_buy.png 
+    :align: center
 
 .. image:: ../_static/img/analysis/rank_label_sell.png 
+    :align: center
 
 
 
@@ -282,6 +290,7 @@ Graphical Results
             The Difference series between `Cumulative Return` of `Group1` and average `Cumulative Return` for all stocks.
 
 .. image:: ../_static/img/analysis/analysis_model_cumulative_return.png 
+    :align: center
 
 .. note::
     - long-short/long-average
@@ -289,6 +298,7 @@ Graphical Results
 
 
 .. image:: ../_static/img/analysis/analysis_model_long_short.png 
+    :align: center
 
 .. TODO: ask xiao yang for detial
 
@@ -297,12 +307,14 @@ Graphical Results
         The `Pearson correlation coefficient` series between the latest `label` and the `label` `lag` days ago of stocks in portfolio on each trading day.
 
 .. image:: ../_static/img/analysis/analysis_model_IC.png 
+    :align: center
 
 .. note::
     - Monthly IC
         Monthly average of the `Information Coefficient`
 
 .. image:: ../_static/img/analysis/analysis_model_monthly_IC.png 
+    :align: center
 
 .. note::
     - IC
@@ -311,9 +323,12 @@ Graphical Results
         The `Quantile-Quantile Plot` is used for the normal distribution of `Information Coefficient` on each trading day.
 
 .. image:: ../_static/img/analysis/analysis_model_NDQ.png 
+    :align: center
 
 .. note::
     - Auto Correlation
+        -
          The `Pearson correlation coefficient` series between `label` and `prediction score` of stocks in portfolio.
 
 .. image:: ../_static/img/analysis/analysis_model_auto_correlation.png 
+    :align: center

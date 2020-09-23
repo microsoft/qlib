@@ -101,20 +101,21 @@ Load features of certain stock pool in a given time range:
    >> from qlib.data import D
    >> from qlib.data.filter import NameDFilter, ExpressionDFilter
    >> nameDFilter = NameDFilter(name_rule_re='SH[0-9]{4}55')
-   >> expressionDFilter = ExpressionDFilter(rule_expression='($close/$factor)>100')
+   >> expressionDFilter = ExpressionDFilter(rule_expression='$close>Ref($close,1)')
    >> instruments = D.instruments(market='csi300', filter_pipe=[nameDFilter, expressionDFilter])
-   >> instruments = D.list_instruments(instruments=instruments, start_time='2010-01-01', end_time='2017-12-31', as_list=True)
    >> fields = ['$close', '$volume', 'Ref($close, 1)', 'Mean($close, 3)', '$high-$low']
    >> D.features(instruments, fields, start_time='2010-01-01', end_time='2017-12-31', freq='day').head()
 
                                  $close        $volume  Ref($close, 1)  Mean($close, 3)  $high-$low
       instrument  datetime                                                                           
       SH600655    2010-01-04  2699.567383  158193.328125     2619.070312      2626.097738  124.580566
-                  2010-01-05  2686.150635   98594.953125     2699.567383      2668.262777   61.332031
-                  2010-01-06  2672.733154   95985.906250     2686.150635      2686.150391   75.706787
-                  2010-01-07  2584.567627  126389.156250     2672.733154      2647.817139  124.580566
                   2010-01-08  2612.359619   77501.406250     2584.567627      2623.220133   83.373047
+                  2010-01-11  2712.982422  160852.390625     2612.359619      2636.636556  146.621582
+                  2010-01-12  2788.688232  164587.937500     2712.982422      2704.676758  128.413818
+                  2010-01-13  2790.604004  145460.453125     2788.688232      2764.091553  128.413818
 
+
+For more details about features, please refer `Feature API <../component/data.html>`_.
 
 .. note:: When calling `D.features()` at the client, use parameter `disk_cache=0` to skip dataset cache, use `disk_cache=1` to generate and use dataset cache. In addition, when calling at the server, users can use `disk_cache=2` to update the dataset cache.
 
