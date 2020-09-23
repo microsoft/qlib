@@ -8,7 +8,7 @@ Data Retrieval
 Introduction
 ====================
 
-Users can get stock data with ``Qlib``. Following examples demonstrates the basic user interface.
+Users can get stock data with ``Qlib``. The following examples demonstrate the basic user interface.
 
 Examples
 ====================
@@ -18,7 +18,7 @@ Examples
 
 .. note:: In order to get the data, users need to initialize ``Qlib`` with `qlib.init` first. Please refer to `initialization <initialization.rst>`_.
 
-If users followed steps in `initialization <initialization.rst>`_ and downloaded the data, they should use following code to initialize qlib 
+If users followed steps in `initialization <initialization.rst>`_ and downloaded the data, they should use the following code to initialize qlib 
 
 .. code-block:: python
 
@@ -26,7 +26,7 @@ If users followed steps in `initialization <initialization.rst>`_ and downloaded
     >>> qlib.init(provider_uri='~/.qlib/qlib_data/cn_data')
 
 
-Load trading calendar with the given time range and frequency:
+Load the trading calendar with the given time range and frequency:
 
 .. code-block:: python
 		
@@ -34,7 +34,7 @@ Load trading calendar with the given time range and frequency:
    >>> D.calendar(start_time='2010-01-01', end_time='2017-12-31', freq='day')[:2]
    [Timestamp('2010-01-04 00:00:00'), Timestamp('2010-01-05 00:00:00')]
 
-Parse a given market name into a stockpool config:
+Parse a given market name into a stock pool config:
 
 .. code-block:: python
 
@@ -42,7 +42,7 @@ Parse a given market name into a stockpool config:
    >>> D.instruments(market='all')
    {'market': 'all', 'filter_pipe': []}
 
-Load instruments of certain stockpool in the given time range:
+Load instruments of certain stock pool in the given time range:
 
 .. code-block:: python
 		
@@ -73,7 +73,7 @@ Load dynamic instruments from a base market according to an expression filter
 
 For more details about filter, please refer to API Reference: `filter API <../reference/api.html#filter>`_
 
-Load features of certain instruments in given time range:
+Load features of certain instruments in a given time range:
 
 .. code-block:: python
 		
@@ -98,9 +98,9 @@ Load features of certain instruments in given time range:
                2010-01-08  1.930397
                2010-01-08  1.930397
 
-Load features of certain stockpool in given time range:
+Load features of certain stock pool in a given time range:
 
-.. note:: With cache enabled, the qlib data server will cache data all the time for the requested stockpool and fields, it may take longer to process the request for the first time than that without cache. But after the first time, requests with the same stockpool and fields will hit the cache and be processed faster even the requested time period changes.
+.. note:: With cache enabled, the qlib data server will cache data all the time for the requested stock pool and fields, it may take longer to process the request for the first time than that without cache. But after the first time, requests with the same stock pool and fields will hit the cache and be processed faster even the requested time period changes.
 
 .. code-block:: python
 
@@ -128,7 +128,7 @@ Load features of certain stockpool in given time range:
               2015-06-16    4025.770020	     368.954346
 
 
-.. note:: When calling `D.features()` at client, use parameter `disk_cache=0` to skip dataset cache, use `disk_cache=1` to generate and use dataset cache. In addition, when calling at server, users can use `disk_cache=2` to update the dataset cache.
+.. note:: When calling `D.features()` at the client, use parameter `disk_cache=0` to skip dataset cache, use `disk_cache=1` to generate and use dataset cache. In addition, when calling at the server, users can use `disk_cache=2` to update the dataset cache.
 
 API
 ====================
