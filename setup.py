@@ -10,7 +10,7 @@ from setuptools import find_packages, setup, Extension
 
 # Package meta-data.
 NAME = "qlib"
-DESCRIPTION = "A Quantitative-research Library"
+DESCRIPTION = "A Quantitative-research Platform"
 REQUIRES_PYTHON = ">=3.5.0"
 VERSION = "0.4.6.dev"
 

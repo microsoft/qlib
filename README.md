@@ -8,9 +8,9 @@ With Qlib, you can easily try your ideas to create better Quant investment strat
   - [Installation](#installation)
   - [Get Data](#get-data)
   - [Auto Quant research workflow with _estimator_](#auto-quant-research-workflow-with-estimator)
-  - [Customized Quant research workflow by code](#customized-quant-research-workflow-by-code)
+  - [Building customized Quant research workflow by code](#building-customized-quant-research-workflow-by-code)
 - [More About Qlib](#more-about-qlib)
-  - [Offline mode and online mode](#offline-mode-and-online-mode)
+- [Offline mode and online mode of data server](#offline-mode-and-online-mode-of-data-server)
   - [Performance of Qlib Data Server](#performance-of-qlib-data-server)
 - [Contributing](#contributing)
 
@@ -19,29 +19,29 @@ With Qlib, you can easily try your ideas to create better Quant investment strat
 # Framework of Qlib
 ![framework](docs/_static/img/framework.png)
 
-At the module level, Qlib is a platform that consists of above components. The components are designed as loose-coupled modules and each component could be used stand-alone.
+At the module level, Qlib is a platform that consists of the above components. The components are designed as loose-coupled modules and each component could be used stand-alone.
 
 | Name                | Description                                                                                                                                                                                                                                                   |
 | ------              | -----                                                                                                                                                                                                                                                         |
-| _Data layer_        | _DataServer_ focus on providing high performance infrastructure  for user to retrieve and get raw data. _DataEnhancement_ will preprocess the data and provide the best dataset to be fed in to the models                                                    |
-| _Interday Model_    | _Interday model_ focus on producing forecasting signals(aka. _alpha_). Models are trained by _Model Creator_ and managed by _Model Manager_. User could choose one or multiple models for forecasting. Multiple models could be combined with _Ensemble_ module |
-| _Interday Strategy_ | _Portfolio Generator_ will take forecasting signals as input and output the orders based on current position to achieve target portfolio                                                                                                                      |
-| _Intraday Trading_  | _Order Executor_ is responsible for executing orders produced by _Interday Strategy_ and returning the executed results.                                                                                                                                        |
-| _Analysis_          | User could get detailed analysis report of forecasting signal and portfolio in this part.                                                                                                                                                                     |
+| _Data layer_        | _DataServer_ focus on providing high-performance infrastructure for users to manage and retrieve raw data. _DataEnhancement_ will preprocess the data and provide the best dataset to be fed into the models.                                                    |
+| _Interday Model_    | _Interday model_ focus on producing forecasting signals (aka. _alpha_). Models are trained by _Model Creator_ and managed by _Model Manager_. Users could choose one or multiple models for forecasting. Multiple models could be combined with _Ensemble_ module. |
+| _Interday Strategy_ | _Portfolio Generator_ will take forecasting signals as input and output the orders based on the current position to achieve the target portfolio.                                                                                                                      |
+| _Intraday Trading_  | _Order Executor_ is responsible for executing orders output by _Interday Strategy_ and returning the executed results.                                                                                                                                        |
+| _Analysis_          | User could get a detailed analysis report of forecasting signals and portfolios in this part.                                                                                                                                                                     |
 
-* The modules with hand-drawn style is under development and will be  released in the future.
-* The modules with dashed border is highly user-customizable and extendible.
+* The modules with hand-drawn style are under development and will be released in the future.
+* The modules with dashed borders are highly user-customizable and extendible.
 
 
 # Quick start
 
 This quick start guide tries to demonstrate
-1. It's very easy to build a complete Quant research workflow and try you ideas with _Qlib_.
-1. Though with *simple data* and *naive models*, machine learning technologies **work very well** in practical Quant investment.
+1. It's very easy to build a complete Quant research workflow and try your ideas with _Qlib_.
+1. Though with *public data* and *simple models*, machine learning technologies **work very well** in practical Quant investment.
 
 ## Installation
 
-Before installing _Qlib_ from source, user need to install some dependencies:
+Before installing _Qlib_ from source, you need to install some dependencies:
 
 ```bash
 pip install numpy
@@ -50,7 +50,7 @@ pip install --upgrade  cython
 
 Clone the repository and install _Qlib_:
 ```bash
-git clone https://github.com/microsoft/qlib.git
+git clone https://github.com/microsoft/qlib.git && cd qlib
 python setup.py install
 ```
 
@@ -61,9 +61,9 @@ Load and prepare data:
   python scripts/get_data.py qlib_data_cn --target_dir ~/.qlib/qlib_data/cn_data
   ```
 
-This dataset created by public data collected by [crawler scripts](scripts/data_collector/), which have been released in
+This dataset is created by public data collected by [crawler scripts](scripts/data_collector/), which have been released in
 the same repository.
-User could create the same dataset with it.
+Users could create the same dataset with it.
 
 <!-- 
 - Run the initialization code and get stock data:
@@ -93,7 +93,7 @@ User could create the same dataset with it.
  -->
 
 ## Auto Quant research workflow with _estimator_
-Qlib provides a tool named `estimator` to run whole workflow automatically(including building dataset, training models, backtest, analysis)
+Qlib provides a tool named `estimator` to run the whole workflow automatically (including building dataset, training models, backtest, analysis)
 
 1. Run `estimator` with [estimator_config.yaml](examples/estimator/estimator_config.yaml)
 
@@ -123,16 +123,16 @@ Qlib provides a tool named `estimator` to run whole workflow automatically(inclu
 2. Analysis
 
     Run `examples/estimator/analyze_from_estimator.ipynb` with `jupyter notebook`
-    1.  Forecasting signal(model prediction) analysis
+    1.  Forecasting signal (model prediction) analysis
         - Cumulative Return of groups
         ![Cumulative Return](docs/_static/img/analysis/analysis_model_cumulative_return.png)
         - Return distribution
         ![long_short](docs/_static/img/analysis/analysis_model_long_short.png)
-        - Information Coefficient(IC)
+        - Information Coefficient (IC)
         ![Information Coefficient](docs/_static/img/analysis/analysis_model_IC.png)        
         ![Monthly IC](docs/_static/img/analysis/analysis_model_monthly_IC.png)        
         ![IC](docs/_static/img/analysis/analysis_model_NDQ.png)
-        - Auto Correlation of forecasting signal(model prediction)
+        - Auto Correlation of forecasting signal (model prediction)
         ![Auto Correlation](docs/_static/img/analysis/analysis_model_auto_correlation.png)
 
         
@@ -153,7 +153,7 @@ Qlib provides a tool named `estimator` to run whole workflow automatically(inclu
         -->
 
 ## Building customized Quant research workflow by code
-Automatic workflow may not suite the research workflow of all Quant researchers. To support flexible Quant research workflow, Qlib also provide modularized interface to allow researchers to build their own workflow by code. [Here](examples/train_backtest_analyze.ipynb) is a demo for customized Quant research workflow by code
+The automatic workflow may not suite the research workflow of all Quant researchers. To support a flexible Quant research workflow, Qlib also provides a modularized interface to allow researchers to build their own workflow by code. [Here](examples/train_backtest_analyze.ipynb) is a demo for customized Quant research workflow by code
 
 
 
@@ -169,30 +169,30 @@ make html
 ```
 You can also view the [latest document](http://qlib.readthedocs.io/) online directly.
 
-Qlib is in active and continues development. Our plan is in the roadmap, which is managed as a [github project](https://github.com/microsoft/qlib/projects/1).
+Qlib is in active and continuing development. Our plan is in the roadmap, which is managed as a [github project](https://github.com/microsoft/qlib/projects/1).
 
 
 
-# Offline mode and online mode of data server
+# Offline mode and online mode of the data server
 The data server of Qlib can either deployed as offline mode or online mode. The default mode is offline mode.
 
 Under offline mode, the data will be deployed locally. 
 
-Under online mode, the data will be deployed as a shared data service. The data and their cache will be shared by all the clients. The data retrieval performance is expected to be improved due to a higher rate of cache hits. It will consume less disk space, too. The documents of the online mode can be found in [Qlib-Server](https://qlib-server.readthedocs.io/). The online mode can be deployed automatically with [Azure CLI based scripts](https://qlib-server.readthedocs.io/en/latest/build.html#one-click-deployment-in-azure)
+Under online mode, the data will be deployed as a shared data service. The data and their cache will be shared by all the clients. The data retrieval performance is expected to be improved due to a higher rate of cache hits. It will consume less disk space, too. The documents of the online mode can be found in [Qlib-Server](https://qlib-server.readthedocs.io/). The online mode can be deployed automatically with [Azure CLI based scripts](https://qlib-server.readthedocs.io/en/latest/build.html#one-click-deployment-in-azure). The source code of online data server can be found in [qlib-server repository](https://github.com/microsoft/qlib-server).
 
 ## Performance of Qlib Data Server
 The performance of data processing is important to data-driven methods like AI technologies. As an AI-oriented platform, Qlib provides a solution for data storage and data processing. To demonstrate the performance of Qlib data server, we
 compare it with several other data storage solutions. 
 
 We evaluate the performance of several storage solutions by finishing the same task,
-which creates a dataset(14 features/factors) from the basic OHLCV daily data of a stock market(800 stocks each day from 2007 to 2020). The task involves data queries and processing.
+which creates a dataset (14 features/factors) from the basic OHLCV daily data of a stock market (800 stocks each day from 2007 to 2020). The task involves data queries and processing.
 
 |                         | HDF5      | MySQL     | MongoDB   | InfluxDB  | Qlib -E -D  | Qlib +E -D   | Qlib +E +D  |
 | --                      | ------    | ------    | --------  | --------- | ----------- | ------------ | ----------- |
 | Total (1CPU) (seconds)  | 184.4±3.7 | 365.3±7.5 | 253.6±6.7 | 368.2±3.6 | 147.0±8.8   | 47.6±1.0     | **7.4±0.3** |
 | Total (64CPU) (seconds) |           |           |           |           | 8.8±0.6     | **4.2±0.2**  |             |
-* `+(-)E` indicates with(out) `ExpressionCache`
-* `+(-)D` indicates with(out) `DatasetCache`
+* `+(-)E` indicates with (out) `ExpressionCache`
+* `+(-)D` indicates with (out) `DatasetCache`
 
 Most general-purpose databases take too much time on loading data. After looking into the underlying implementation, we find that data go through too many layers of interfaces and unnecessary format transformations in general-purpose database solutions.
 Such overheads greatly slow down the data loading process.
@@ -206,7 +206,7 @@ Qlib data are stored in a compact format, which is efficient to be combined into
 
 This project welcomes contributions and suggestions.  Most contributions require you to agree to a
 Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us
-the rights to use your contribution. For details, visit https://cla.opensource.microsoft.com.
+the right to use your contribution. For details, visit https://cla.opensource.microsoft.com.
 
 When you submit a pull request, a CLA bot will automatically determine whether you need to provide
 a CLA and decorate the PR appropriately (e.g., status check, comment). Simply follow the instructions

@@ -7,7 +7,7 @@ Intraday Trading: Model&Strategy Testing
 Introduction
 ===================
 
-``Intraday Trading`` is designed to test models and strategies, which help users to check the performance of custom model/strategy.
+``Intraday Trading`` is designed to test models and strategies, which help users to check the performance of a custom model/strategy.
 
 
 .. note::
@@ -19,11 +19,11 @@ Introduction
 Example
 ===========================
 
-Users need to generate a prediction score(a pandas DataFrame) with MultiIndex<instrument, datetime> and a `score` column. And users need to assign a strategy used in backtest, if strategy is not assigned,
+Users need to generate a `prediction score`(a pandas DataFrame) with MultiIndex<instrument, datetime> and a `score` column. And users need to assign a strategy used in backtest, if strategy is not assigned,
 a `TopkDropoutStrategy` strategy with `(topk=50, n_drop=5, risk_degree=0.95, limit_threshold=0.0095)` will be used.
-If ``Strategy`` module is not user's interested part, `TopkDropoutStrategy` is enough. 
+If ``Strategy`` module is not users' interested part, `TopkDropoutStrategy` is enough. 
 
-The simple example with default strategy is as follows.
+The simple example of the default strategy is as follows.
 
 .. code-block:: python
 
@@ -31,14 +31,14 @@ The simple example with default strategy is as follows.
     # pred_score is the prediction score
     report, positions = backtest(pred_score, topk=50, n_drop=0.5, verbose=False, limit_threshold=0.0095)
 
-To know more about backtesting with specific strategy, please refer to `Strategy <strategy.html>`_.
+To know more about backtesting with a specific strategy, please refer to `Strategy <strategy.html>`_.
 
 To know more about the prediction score `pred_score` output by ``Model``, please refer to `Interday Model: Model Training & Prediction <model.html>`_.
 
 Prediction Score
 -----------------
 
-The prediction score is a pandas DataFrame. Its index is <instrument(str), datetime(pd.Timestamp)> and it must
+The `prediction score` is a pandas DataFrame. Its index is <instrument(str), datetime(pd.Timestamp)> and it must
 contains a `score` column.
 
 A prediction sample is shown as follows.
@@ -79,25 +79,29 @@ The backtest results are in the following form:
               mdd    -0.083584
 
 - `sub_bench`
-    Returns of the portfolio without deduction of fees
+    - `mean`
+        Mean value of the `CAR` (cumulative abnormal return) without cost
+    - `std`
+        The `Standard Deviation` of `CAR` (cumulative abnormal return) without cost.
+    - `annual`
+        The `Annualized Rate` of `CAR` (cumulative abnormal return) without cost.
+    - `ir`
+        The `Information Ratio` without cost. please refer to `Information Ratio – IR <https://www.investopedia.com/terms/i/informationratio.asp>`_.
+    - `mdd`
+        The `Maximum Drawdown` of `CAR` (cumulative abnormal return) without cost, please refer to `Maximum Drawdown (MDD) <https://www.investopedia.com/terms/m/maximum-drawdown-mdd.asp>`_.
 
 - `sub_cost`
-    Returns of the portfolio with deduction of fees
+    - `mean`
+        Mean value of the `CAR` (cumulative abnormal return) series with cost
+    - `std`
+        The `Standard Deviation` of `CAR` (cumulative abnormal return) series with cost.
+    - `annual`
+        The `Annualized Rate` of `CAR` (cumulative abnormal return) with cost.
+    - `ir`
+        The `Information Ratio` with cost. please refer to `Information Ratio – IR <https://www.investopedia.com/terms/i/informationratio.asp>`_.
+    - `mdd`
+        The `Maximum Drawdown` of `CAR` (cumulative abnormal return) with cost, please refer to `Maximum Drawdown (MDD) <https://www.investopedia.com/terms/m/maximum-drawdown-mdd.asp>`_.
 
-- `mean`
-    Mean value of the returns sequence(difference sequence of assets).
-
-- `std`
-    Standard deviation of the returns sequence(difference sequence of assets).
-
-- `annual`
-    Average annualized returns of the portfolio.
-
--  `ir`
-    Information Ratio, please refer to `Information Ratio – IR <https://www.investopedia.com/terms/i/informationratio.asp>`_.
-
-- `mdd`
-    Maximum Drawdown, please refer to `Maximum Drawdown (MDD) <https://www.investopedia.com/terms/m/maximum-drawdown-mdd.asp>`_.
 
 
 Reference

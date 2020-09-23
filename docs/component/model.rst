@@ -6,9 +6,9 @@ Interday Model: Model Training & Prediction
 Introduction
 ===================
 
-``Interday Model`` is designed to make the prediction score about stocks. Users can use the ``Interday Model`` in an automatic workflow by ``Estimator``, please refer to `Estimator <estimator.html>`_.  
+``Interday Model`` is designed to make the `prediction score` about stocks. Users can use the ``Interday Model`` in an automatic workflow by ``Estimator``, please refer to `Estimator <estimator.html>`_.  
 
-Because the components in ``Qlib`` are designed in a loosely-coupled way, ``Interday Model`` can be used as a independent module also.
+Because the components in ``Qlib`` are designed in a loosely-coupled way, ``Interday Model`` can be used as an independent module also.
 
 Base Class & Interface
 ======================
@@ -48,7 +48,7 @@ The base class provides the following interfaces:
             
             .. note::
             
-                The number and names of the columns is determined by the data handler, please refer to `Data Handler <data.html#data-handler>`_ and `Estimator Data <estimator.html#about-data>`_.
+                The number and names of the columns are determined by the data handler, please refer to `Data Handler <data.html#data-handler>`_ and `Estimator Data <estimator.html#about-data>`_.
             
         - `y_train`, pd.DataFrame type, train label
             The following example explains the value of `y_train`:
@@ -73,7 +73,7 @@ The base class provides the following interfaces:
 
             .. note::
 
-                The number and names of the columns is determined by the ``Data Handler``, please refer to `Data Handler <data.html#data-handler>`_.
+                The number and names of the columns are determined by the ``Data Handler``, please refer to `Data Handler <data.html#data-handler>`_.
 
         - `x_valid`, pd.DataFrame type, validation feature
             The format of `x_valid` is same as `x_train`
@@ -86,7 +86,7 @@ The base class provides the following interfaces:
             `w_train` is a pandas DataFrame, whose shape and index is same as `x_train`. The float value in `w_train` represents the weight of the feature at the same position in `x_train`.
 
         - `w_train`(Optional args, default is None), pd.DataFrame type, validation weight
-            `w_train` is a pandas DataFrame, whose shape and index is same as `x_valid`. The float value in `w_train` represents the weight of the feature at the same position in `x_train`.
+            `w_train` is a pandas DataFrame, whose shape and index is the same as `x_valid`. The float value in `w_train` represents the weight of the feature at the same position in `x_train`.
 
 - `predict(self, x_test, **kwargs)`
     - Predict test data 'x_test'
@@ -115,10 +115,10 @@ For other interfaces such as `save`, `load`, `finetune`, please refer to `Model 
 Example
 ==================
 
-``Qlib`` provides ``LightGBM`` and ``DNN`` models as the baseline, the following steps shows how to run`` LightGBM`` as an independent module.
+``Qlib`` provides ``LightGBM`` and ``DNN`` models as the baseline, the following steps show how to run`` LightGBM`` as an independent module.
 
 - Initialize ``Qlib`` with `qlib.init` first, please refer to `initialization <initialization.rst>`_.
-- Run the following code to get the prediction score `pred_score`
+- Run the following code to get the `prediction score` `pred_score`
     .. code-block:: Python
 
         from qlib.contrib.estimator.handler import QLibDataHandlerClose

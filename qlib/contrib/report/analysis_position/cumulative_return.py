@@ -228,11 +228,11 @@ def cumulative_return_graph(
         Graph desc:
             - Axis X: Trading day
             - Axis Y:
-            - Above axis Y: (((Ref($close, -1)/$close - 1) * weight).sum() / weight.sum()).cumsum()
+            - Above axis Y: `(((Ref($close, -1)/$close - 1) * weight).sum() / weight.sum()).cumsum()`
             - Below axis Y: Daily weight sum
-            - In the sell graph, y < 0 stands for profit; in other cases, y > 0 stands for profit.
-            - In the buy_minus_sell graph, the y value of the weight graph at the bottom is buy_weight + sell_weight.
-            - In each graph, the red line in the histogram on the right represents the average.
+            - In the **sell** graph, `y < 0` stands for profit; in other cases, `y > 0` stands for profit.
+            - In the **buy_minus_sell** graph, the **y** value of the **weight** graph at the bottom is `buy_weight + sell_weight`.
+            - In each graph, the **red line** in the histogram on the right represents the average.
 
     :param position: position data
     :param report_normal:
@@ -250,7 +250,7 @@ def cumulative_return_graph(
 
 
     :param label_data: `D.features` result; index is `pd.MultiIndex`, index name is [`instrument`, `datetime`]; columns names is [`label`].
-    **The ``label`` T is the change from T to T+1**, it is recommended to use ``close``, example: D.features(D.instruments('csi500'), ['Ref($close, -1)/$close-1'])
+    **The label T is the change from T to T+1**, it is recommended to use ``close``, example: `D.features(D.instruments('csi500'), ['Ref($close, -1)/$close-1'])`
 
 
             .. code-block:: python
