@@ -6,25 +6,11 @@ Installation
 .. currentmodule:: qlib
 
 
-Environment
-============
-
-Operating System
-------------------
-
-`Qlib` supports both `Windows` and `Linux`. It's recommended to use `Qlib` in `Linux`.
-
-Python
-----------------
-``Qlib`` supports Python3, which is up to Python3.8.
-
-Other
---------------
-
 ``Qlib`` Installation
-====================
+=====================
+.. note::
 
-
+   `Qlib` supports both `Windows` and `Linux`. It's recommended to use `Qlib` in `Linux`. ``Qlib`` supports Python3, which is up to Python3.8.
 
 Please follow the steps below to install ``Qlib``:
 
@@ -56,3 +42,4 @@ Use the following code to make sure the installation successful:
    <LATEST VERSION>
 
 
+=====================

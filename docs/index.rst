@@ -47,7 +47,7 @@ Document Structure
    :caption: ADVANCED TOPICS:
    
    Building Formulaic Alphas <advanced/alpha.rst>
-
+   Online & Offline mode <advanced/server.rst>
 .. toctree::
    :maxdepth: 3
    :caption: REFERENCE:
