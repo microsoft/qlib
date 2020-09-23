@@ -21,10 +21,10 @@ At the module level, Qlib is a platform that consists of above components. The c
 ======================  ========================================================================
 Name                    Description
 ======================  ========================================================================
-`Data layer`            `DataServer` focus on providing high performance infrastructure for users
+`Data layer`            `DataServer` focuses on providing high performance infrastructure for users
                         to manage and retrieve raw data. `DataEnhancement` will preprocess the data
                         and provide the best dataset to be fed into the models.
-`Interday Model`        `Interday model` focus on producing forecasting signals(aka. `alpha`).
+`Interday Model`        `Interday model` focuses on producing forecasting signals(aka. `alpha`).
                         Models are trained by `Model Creator` and managed by `Model Manager`.
                         Users could choose one or multiple models for forecasting. Multiple 
                         models could be combined with `Ensemble` module.
