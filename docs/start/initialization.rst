@@ -11,7 +11,7 @@ Initialization
 
 Please follow the steps below to initialize ``Qlib``.
 
-- Download and prepare the Data: execute following command to download stock data.
+- Download and prepare the Data: execute the following command to download stock data.
     .. code-block:: bash
     
         python scripts/get_data.py qlib_data_cn --target_dir ~/.qlib/qlib_data/cn_data
@@ -43,7 +43,7 @@ Besides `provider_uri` and `region`, `qlib.init` has other parameters. The follo
         - ``qlib.config.REG_US``: US stock market.
         - ``qlib.config.REG_CN``: China stock market.
 
-        Different mode will result in different trading limitation and cost.
+        Different modse will result in different trading limitations and costs.
 - `redis_host`
     Type: str, optional parameter(default: "127.0.0.1"), host of `redis`
         The lock and cache mechanism relies on redis.
