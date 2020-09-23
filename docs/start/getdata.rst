@@ -128,7 +128,7 @@ Load features of certain stockpool in given time range:
               2015-06-16    4025.770020	     368.954346
 
 
-.. note:: When calling ``D.features()`` at client, use parameter ``disk_cache=0`` to skip dataset cache, use ``disk_cache=1`` to generate and use dataset cache. In addition, when calling at server, you can use ``disk_cache=2`` to update the dataset cache.
+.. note:: When calling `D.features()` at client, use parameter `disk_cache=0` to skip dataset cache, use `disk_cache=1` to generate and use dataset cache. In addition, when calling at server, you can use `disk_cache=2` to update the dataset cache.
 
 API
 ====================
