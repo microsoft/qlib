@@ -54,8 +54,7 @@ Users can inherit `WeightStrategyBase` and implement the interface `generate_tar
 Implemented Strategy
 ====================
 
-Qlib provides several implemented strategy classes `TopkDropoutStrategy`.
-
+Qlib provides a implemented strategy classes named `TopkDropoutStrategy`.
 
 TopkDropoutStrategy
 ------------------

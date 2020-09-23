@@ -589,46 +589,58 @@ The result of the experiment is also the result of the ``Interdat Trading(Backte
 Get Experiment Result
 ----------------------------
 
-Users can check the experiment results from file storage directly, or check the experiment results from the database, or get the experiment results through two API of a module `fetcher` provided by ``Qlib``.
+Base Class & Interface
+~~~~~~~~~~~~~~~~~~~~~~~
 
-- `get_experiments()`   
-    The API takes two parameters. The first parameter is the experiment name. The default is all experiments. The second parameter is the observer type. Users can get the experiment name dictionary with a list of ids and test end date by the API as follows.
+Users can check the experiment results from file storage directly, or check the experiment results from the database, or get the experiment results through two interfaces of a base class `Fetcher` provided by ``Qlib``.
 
-    .. code-block:: JSON
+The `Fetcher` provides the following interface
+    - `get_experiments(self, exp_name=None):`   
+        The interface takes one parameters. The `exp_name` is the experiment name, the default is all experiments. Users can get the returned dictionary with a list of ids and test end date as follows.
 
-        {
-            "ex_a": [
-                {
-                    "id": 1,
-                    "test_end_date": "2017-01-01"
-                }
-            ],
-            "ex_b": [
-                ...
-            ]
-        }
+        .. code-block:: JSON
 
-
-- `get_experiment(exp_name, exp_id, fields=None)`
-    The API takes three parameters, the first parameter is the experiment name, the second parameter is the experiment id, and the third parameter is list of fields.
-    If `fields` is None, will get all fields.
-    
-    .. note::
-        Currently supported fields:
-            ['model', 'analysis', 'positions', 'report_normal', 'pred', 'task_config', 'label']
-
-    .. code-block:: JSON
-
-        {
-            'analysis': analysis_df,
-            'pred': pred_df,
-            'positions': positions_dic,
-            'report_normal': report_normal_df,
-        }
+            {
+                "ex_a": [
+                    {
+                        "id": 1,
+                        "test_end_date": "2017-01-01"
+                    }
+                ],
+                "ex_b": [
+                    ...
+                ]
+            }
 
 
-Here is a simple example of `FileFetcher`, which could fetch files from `file_storage` observer.
+    - `get_experiment(exp_name, exp_id, fields=None)`
+        The interface takes three parameters. The first parameter is the experiment name, the second parameter is the experiment id, and the third parameter is list of fields. The default value of `fields` is None, which means all fields.
+        
 
+        .. note::
+            Currently supported fields:
+                ['model', 'analysis', 'positions', 'report_normal', 'pred', 'task_config', 'label']
+
+        Users can get the returned dictionary as follows.
+
+        .. code-block:: JSON
+
+            {
+                'analysis': analysis_df,
+                'pred': pred_df,
+                'positions': positions_dic,
+                'report_normal': report_normal_df,
+            }
+
+Implemented `Fetcher` s & Examples
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``Qlib`` provides two implemented `Fetcher` s as follows.
+
+`FileFetcher`
+^^^^^^^^^^^^^^^
+
+The `FileFetcher` is a subclass of `Fetcher`, which could fetch files from `file_storage` observer. The following is an example:
 .. code-block:: python
 
     >>> from qlib.contrib.estimator.fetcher import FileFetcher
@@ -667,7 +679,11 @@ Here is a simple example of `FileFetcher`, which could fetch files from `file_st
               sharpe  2.043494
               mdd    -0.083584
 
-If users use mongo observer when training, they should initialize their fetcher with mongo_url
+
+`MongoFetcher`
+^^^^^^^^^^^^^^^
+
+The `FileFetcher` is a subclass of `Fetcher`, which could fetch files from `mongo` observer. Users should initialize the fetcher with `mongo_url`. The following is an example:
 
 .. code-block:: python
 
