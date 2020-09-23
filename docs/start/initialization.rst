@@ -39,7 +39,7 @@ Besides `provider_uri` and `region`, `qlib.init` has other parameters. The follo
     Type: str. The URI of the Qlib data. For example, it could be the location where the data loaded by ``get_data.py`` are stored.
 - `region`
     Type: str, optional parameter(default: ``qlib.config.REG_CN``).
-        Currently: ``qlib.config.REG_US``('us') and ``qlib.config.REG_CN``('cn') is supported. Different value of  ``region`` will result in different stock market mode.
+        Currently: ``qlib.config.REG_US`` ('us') and ``qlib.config.REG_CN`` ('cn') is supported. Different value of  ``region`` will result in different stock market mode.
         - ``qlib.config.REG_US``: US stock market.
         - ``qlib.config.REG_CN``: China stock market.
 
