@@ -242,10 +242,9 @@ Graphical Result
             Average `ranking ratio`of `label` for stocks that is held/sold/bought on the trading day.
 
             In the above example, the `label` is formulated as `Ref($close, -1)/$close - 1`. The `ranking ratio` can be formulated as follows.
-            
             .. math::
                 
-                \frac{Ascending\ Ranking\ of\ 'Ref($close, -1)/$close - 1'}{Number\ of\ Stocks\ on\ the\ Day} \times 100
+                ranking\ ratio = \frac{Ascending\ Ranking\ of\ label}{Number\ of\ Stocks\ in\ the\ Portfolio}
 
 .. image:: ../_static/img/analysis/rank_label_hold.png 
     :align: center
@@ -288,6 +287,11 @@ Graphical Results
             The Difference series between `Cumulative Return` of `Group1` and of `Group5`
         - `long-average`
             The Difference series between `Cumulative Return` of `Group1` and average `Cumulative Return` for all stocks.
+        
+        The `ranking ratio` can be formulated as follows.
+            .. math::
+                
+                ranking\ ratio = \frac{Ascending\ Ranking\ of\ label}{Number\ of\ Stocks\ in\ the\ Portfolio}
 
 .. image:: ../_static/img/analysis/analysis_model_cumulative_return.png 
     :align: center
@@ -304,7 +308,8 @@ Graphical Results
 
 .. note::
     - Information Coefficient
-        The `Pearson correlation coefficient` series between the latest `label` and the `label` `lag` days ago of stocks in portfolio on each trading day.
+        - The `Pearson correlation coefficient` series between `labels` and `prediction scores` of stocks in portfolio.
+        - The graphics reports can be used to evaluate the `prediction scores`.
 
 .. image:: ../_static/img/analysis/analysis_model_IC.png 
     :align: center
@@ -327,8 +332,9 @@ Graphical Results
 
 .. note::
     - Auto Correlation
-        - 
-         The `Pearson correlation coefficient` series between `label` and `prediction score` of stocks in portfolio.
+        - The `Pearson correlation coefficient` series between the latest `prediction scores` and the `prediction scores` `lag` days ago of stocks in portfolio on each trading day. 
+        - The graphics reports can be used to estimate the turnover rate.
+         
 
 .. image:: ../_static/img/analysis/analysis_model_auto_correlation.png 
     :align: center
