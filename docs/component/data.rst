@@ -12,14 +12,14 @@ It is designed for quantitative investment. For example, users could build formu
 
 The introduction of ``Data Layer`` includes the following parts.
 
-- Data preparation
+- Data Preparation
 - Data API
 - Data Handler
 - Cache
 
 
 
-Data preparation
+Data Preparation
 ============================
 
 We've specially designed a data structure to manage financial data. Please refer to the `File storage design section in Qlib paper <TODO_URL>`_ for detailed information.
@@ -187,7 +187,7 @@ Example
 
 Know more about how to run ``Data Handler`` with ``estimator``, please refer to `Estimator <estimator.html#about-data>`_.
 
-Qlib provides implemented data handler `QLibDataHandlerV1`. The following example shows how to run `QLibDataHandlerV1` as a single module. 
+Qlib provides implemented data handler `QLibDataHandlerClose`. The following example shows how to run `QLibDataHandlerV1` as a single module. 
 
 .. note:: Users need to initialize ``Qlib`` with `qlib.init` first, please refer to `initialization <initialization.rst>`_.
 
@@ -238,10 +238,10 @@ Cache
 
 ``Cache`` is an optional module that helps accelerate providing data by saving some frequently-used data as cache file. ``Qlib`` provides a `Memcache` class to cache the most-frequently-used data in memory, an inheritable `ExpressionCache` class and an inheritable `DatasetCache` class.
 
-Memory Cache
---------------
+Global Memory Cache
+---------------------
 
-`Memcache` is a memory cache mechanism that composes of three `MemCacheUnit` instances to cache **Calendar**, **Instruments**, and **Features**. The `MemCache` is defined globally in `cache.py` as `H`. Users can use `H['c'], H['i'], H['f']` to get/set `memcache`.
+`Memcache` is a global memory cache mechanism that composes of three `MemCacheUnit` instances to cache **Calendar**, **Instruments**, and **Features**. The `MemCache` is defined globally in `cache.py` as `H`. Users can use `H['c'], H['i'], H['f']` to get/set `memcache`.
 
 .. autoclass:: qlib.data.cache.MemCacheUnit
     :members:
@@ -251,68 +251,41 @@ Memory Cache
 
 
 ExpressionCache
-----------------
-
-DatasetCache
---------------
-
-
-
-Base Class & Interface
-~~~~~~~~~~~~~~~~~~~~~~~
+-----------------
 
 `ExpressionCache` is a cache mechanism that saves expressions such as **Mean($close, 5)**. Users can inherit this base class to define their own cache mechanism that saves expressions according to the following steps.
 
 - Override `self._uri` method to define how the cache file path is generated
 - Override `self._expression` method to define what data will be cached and how to cache it.
 
+The following shows the details about the interfaces:
+
+.. autoclass:: qlib.data.cache.ExpressionCache
+    :members:
+
+``Qlib`` has currently provided implemented disk cache `DiskExpressionCache` which inherits from `ExpressionCache` . The expressions data will be stored in the disk.
+
+DatasetCache
+-----------------
+
 `DatasetCache` is a cache mechanism that saves datasets. A certain dataset is regulated by a stock pool configuration (or a series of instruments, though not recommended), a list of expressions or static feature fields, the start time, and end time for the collected features and the frequency. Users can inherit this base class to define their own cache mechanism that saves datasets according to the following steps.
 
 - Override `self._uri` method to define how their cache file path is generated
 - Override `self._expression` method to define what data will be cached and how to cache it.
 
-.. TODO: rewrite
-
-`ExpressionCache` and `DatasetCache` actually provide the same interfaces with `ExpressionProvider` and `DatasetProvider` so that the disk cache layer is transparent to users and will only be used if they want to define their cache mechanism. The users can plug the cache mechanism into by assigning the cache class they want to use in `config.py`:
-.. code-block:: python
-
-    'ExpressionCache': 'DiskExpressionCache',
-    'DatasetCache': 'DiskDatasetCache',
-
-Users can find the cache interface here.
-
-ExpressionCache
-^^^^^^^^^^^^^^^^^^^^
-
-.. autoclass:: qlib.data.cache.ExpressionCache
-    :members:
-
-DatasetCache
-^^^^^^^^^^^^^^^^^^^^
+The following shows the details about the interfaces:
 
 .. autoclass:: qlib.data.cache.DatasetCache
     :members:
 
+``Qlib`` has currently provided implemented disk cache `DiskDatasetCache` which inherits from `DatasetCache` . The datasets data will be stored in the disk.
 
-Implemented  Cache
-~~~~~~~~~~~~~~~~~~~~~~~
-
-``Qlib`` has currently provided implemented disk cache `DiskExpressionCache` and `DiskDatasetCache` as the cache mechanisms. The class interface and file structure designed for the server cache mechanism is listed below.
-
-
-DiskExpressionCache
-^^^^^^^^^^^^^^^^^^^^
-
-.. autoclass:: qlib.data.cache.DiskExpressionCache
-
-DiskDatasetCache
-^^^^^^^^^^^^^^^^^^^^
-
-.. autoclass:: qlib.data.cache.DiskDatasetCache
 
 
 Data and Cache File Structure
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+----------------------------------
+
+The file structure of data and cache is listed as follows.
 
 .. code-block:: json
 
