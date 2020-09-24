@@ -666,7 +666,6 @@ The `FileFetcher` is a subclass of `Fetcher`, which could fetch files from `file
         ]
     }
     >>> print(f.get_experiment('test_experiment', '1'))
-
                                                       risk
     excess_return_without_cost mean               0.000605
                                std                0.005481
