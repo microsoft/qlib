@@ -12,14 +12,14 @@ For more details, please refer to our paper ["Qlib: An AI-oriented Quantitative 
 
 
 - [Framework of Qlib](#framework-of-qlib)
-- [Quick Start](#Quick Start)
+- [Quick Start](#Quick-Start)
   - [Installation](#Installation)
-  - [Data Preparation](#Data Preparation)
-  - [Auto Quant Research Workflow with](#Auto Quant Research Workflow)
-  - [Building Customized Quant Research Workflow by Code](#Building Customized Quant Research Workflow by Code)
-- [More About Qlib](#More About Qlib)
-- [Offline mode and online mode of data server](#Offline Mode and Online Mode of the Data Server)
-  - [Performance of Qlib Data Server](#Performance of Qlib Data Server)
+  - [Data Preparation](#Data-Preparation)
+  - [Auto Quant Research Workflow with](#Auto-Quant-Research-Workflow)
+  - [Building Customized Quant Research Workflow by Code](#Building-Customized-Quant-Research-Workflow-by-Code)
+- [More About Qlib](#More-About-Qlib)
+- [Offline mode and online mode of data server](#Offline-Mode-and-Online-Mode-of-the-Data-Server)
+  - [Performance of Qlib Data Server](#Performance-of-Qlib-Data-Server)
 - [Contributing](#Contributing)
 
 
