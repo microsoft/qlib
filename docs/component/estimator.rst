@@ -105,17 +105,17 @@ Before using ``estimator``, users need to prepare a configuration file. The foll
 Experiment Section
 --------------------
 
-At first, the configuration file needs to contain a section named `experiment` about the basic information. This section describes how `estimator` tracks and persists current `experiment`. ``Qlib`` used `sacred`, a lightweight open-source tool, to configure, organize, generate logs, and manage experiment results. The `experiment` section will determine the partial behavior of `sacred`.
+At first, the configuration file needs to contain a section named `experiment` about the basic information. This section describes how `estimator` tracks and persists current `experiment`. ``Qlib`` used `sacred`, a lightweight open-source tool, to configure, organize, generate logs, and manage experiment results. Partial behaviors of `sacred` will base on the `experiment` section.
 
-Usually, in the running process of `estimator`, those following will be managed by `sacred`:
+Following files will be saved by `sacred` after `estimator` finish an `experiment`:
 
 - `model.bin`, model binary file
 - `pred.pkl`, model prediction result file
 - `analysis.pkl`, backtest performance analysis file
-- `positions.pkl`, backtest position record file
+- `positions.pkl`, backtest position records file
 - `run`, the experiment information object, usually contains some meta information such as the experiment name, experiment date, etc.
 
-Usually, it should contain the following:
+Here is the typical configuration of `experiment section`
 
 .. code-block:: YAML
 
@@ -134,14 +134,14 @@ Usually, it should contain the following:
 The meaning of each field is as follows:
 
 - `name`   
-    The experiment name, str type, `sacred` will use this experiment name as an identifier for some important internal processes. Usually, users can see this field in `sacred` by `run` object. The default value is `test_experiment`.
+    The experiment name, str type, `sacred <https://github.com/IDSIA/sacred>_` will use this experiment name as an identifier for some important internal processes. Users can find this field in `run` object of `sacred`.  The default value is `test_experiment`.
 
-- `observer_type`    
-    Observer type, str type, there are two values which are  `file_storage` and `mongo` respectively. If it is `file_storage`, all the above-mentioned managed contents will be stored in the `dir` directory, separated by the number of times of experiments as a subfolder. If it is `mongo`, the content will be stored in the database. The default is `file_storage`.
+- `observer_type`
+    Observer type, str type, there are two choices which include `file_storage` and `mongo` respectively. If `file_storage` is selected, all the above-mentioned managed contents will be stored in the `dir` directory, separated by the number of times of experiments as a subfolder. If it is `mongo`, the content will be stored in the database. The default is `file_storage`.
 
     - For `file_storage` observer.
-        - `dir`   
-            Directory url, str type, directory for `file_storage` observer type, files captures and managed by sacred with observer type of `file_storage` will be saved to this directory, default is the directory of `config.json`.
+        - `dir`
+            Directory URL, str type, directory for `file_storage` observer type, files captured and managed by sacred with `file_storage` observer will be saved to this directory, which is the same directory as `config.json` by default.
 
     - For `mongo` observer.
         - `mongo_url`
@@ -151,15 +151,17 @@ The meaning of each field is as follows:
             Database name, str type, required if the observer type is `mongo`.
 
 - `finetune`
-    Estimator will produce a model based on this flag.
+    ``Estimator``'s behaviors to train models will base on this flag.
+    If you just want to train models from scratch each time instead of based on existing models, please leave `finetune=false`. Otherwise please read the
+    details below.
 
     The following table is the processing logic for different situations.
 
     ==========  ===========================================   ====================================    ===========================================  ==========================================
       .            Static                                                                             Rolling
-      .            Finetune=True                              Finetune=False                          Finetune=True                                Finetune=False
+      .            finetune:true                              finetune:false                          finetune:true                                finetune:false
     ==========  ===========================================   ====================================    ===========================================  ==========================================
-    Train       - Need to provide model (Static or Rolling)    - No need to provide model              - Need to provide model (Static or Rolling)   - Need to provide model (Static or Rolling)
+    Train       - Need to provide model (Static or Rolling)   - No need to provide model              - Need to provide model (Static or Rolling)  - Need to provide model (Static or Rolling)
                 - The args in model section will be           - The args in model section will be     - The args in model section will be          - The args in model section will be
                   used for finetuning                           used for training                       used for finetuning                          used for finetuning
                 - Update based on the provided model          - Train model from scratch              - Update based on the provided model         - Based on the provided model update
@@ -189,27 +191,32 @@ The meaning of each field is as follows:
 
 
 - `exp_info_path`
-    experiment info save path, str type, save the experiment info and model `prediction score` after the experiment is finished. Optional parameter, the default value is `config_file_dir/ex_name/exp_info.json`.
+    save path of experiment info, str type, save the experiment info and model `prediction score` after the experiment is finished. Optional parameter, the default value is `<config_file_dir>/ex_name/exp_info.json`.
 
 - `mode`
-    `train` or `test`, str type, if `mode` is test, it will load the model according to the parameters of `loader`. The default value is `train`.
-    Also note that when the load model failed, it will `fit` model.
+    `train` or `test`, str type.
+        - `test mode` is designed for inference. Under `test mode`, it will load the model according to the parameters of `loader` and skip model training.
+        - `train model`  is the default value. It will train new models by default and 
+    Please note that when it fails to load model, it will fall back to `fit` model.
     
     .. note::
 
-        if users choose `mode` test, they need to make sure:
+        if users choose ` test mode`, they need to make sure:
         - The loader of `test_start_date` must be less than or equal to the current `test_start_date`.
         - If other parameters of the `loader` model args are different, a warning will appear.
 
 
 - `loader`
-    If the `mode` is `test` or `finetune` is `true`, it will be used.
+    If you just want to train models from scratch each time instead of based on existing models, please ignore `loader` section. Otherwise please read the
+    details below.
+
+    The `loader` section only works when the `mode` is `test` or `finetune` is `true`.
 
     - `model_index`
         Model index, int type. The index of the loaded model in loader_models (starting at 0) for the first `finetune`. The default value is None.
 
     - `exp_info_path`
-        Loader model experiment info path, str type. If the field exists, the following parameters will be parsed from `exp_info_path`, and the following parameters will not work. This field and `id` must exist one.
+        Loader model experiment info path, str type. If the field exists, the following parameters will be parsed from `exp_info_path`, and the following parameters will not work. One of this field and `id` must exist at least .
 
     - `id`
         The experiment id of the model that needs to be loaded, int type. If the `mode` is `test`, this value is required. This field and `exp_info_path` must exist one.
@@ -251,7 +258,7 @@ The meaning of each field is as follows:
                     - Have an environment with the mongodb installed and a mongo database dedicated to storing the results of the experiments.
                     - The python environment (the version of python and package) to run the experiments and the one to fetch the results are consistent.
 
-Model Field
+Model Section
 -----------------
 
 Users can use a specified model by configuration with hyper-parameters.
@@ -274,7 +281,7 @@ The class `SomeModel` should be in the module `custom_model`, and ``Qlib`` could
 
 To know more about ``Model``, please refer to `Model <model.html>`_.
 
-Data Field
+Data Section
 -----------------
 
 ``Data Handler`` can be used to load raw data, prepare features and label columns, preprocess data (standardization, remove NaN, etc.), split training, validation, and test sets. It is a subclass of `qlib.contrib.estimator.handler.BaseDataHandler`.
@@ -374,7 +381,7 @@ If users want to use qlib data, `QLibDataHandler` is recommended, from which use
 
 To know more about ``Data Handler``, please refer to `Data Framework&Usage <data.html>`_.
 
-Trainer Field
+Trainer Section
 -----------------
 
 Users can specify the trainer ``Trainer`` by the config file, which is a subclass of ``qlib.contrib.estimator.trainer.BaseTrainer`` and implement three important interfaces for training the model, restoring the model, and getting model predictions as follows.
@@ -463,7 +470,7 @@ Qlib supports custom trainer, but it must be a subclass of the `qlib.contrib.est
 
 The class `SomeTrainer` should be in the module `custom_trainer`, and ``Qlib`` could parse the `module_path` to load the class.
 
-Strategy Field
+Strategy Section
 -----------------
 
 Users can specify strategy through a config file, for example:
@@ -507,7 +514,7 @@ The class `SomeStrategy` should be in the module `custom_strategy`, and ``Qlib``
 
 To know more about ``Strategy``, please refer to `Strategy <strategy.html>`_.
 
-Backtest Field
+Backtest Section
 -----------------
 
 Users can specify `backtest` through a config file, for example:
@@ -554,7 +561,7 @@ Users can specify `backtest` through a config file, for example:
         Subscribe quote fields, array type, the default value is [`deal_price`, $close, $change, $factor].
 
 
-Qlib Data Field
+Qlib Data Section
 --------------------
 
 The `qlib_data` field describes the parameters of qlib initialization.
