@@ -14,9 +14,8 @@ model:
     lambda_l1: 205.6999
     lambda_l2: 580.9768
     max_depth: 8
-    num_leaves: 64
+    num_leaves: 210
     num_threads: 20
-    min_data_in_leaf: 10
 data:
   class: QLibDataHandlerClose
   args:
@@ -52,4 +51,3 @@ qlib_data:
   # when testing, please modify the following parameters according to the specific environment
   provider_uri: "~/.qlib/qlib_data/cn_data"
   region: "cn"
-  redis_port: 4312

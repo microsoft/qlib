@@ -27,14 +27,15 @@ def risk_analysis(r, N=252):
     r : pandas.Series
         daily return series
     N: int
-        scaler for annualizing sharpe ratio (day: 250, week: 50, month: 12)
+        scaler for annualizing information_ratio (day: 250, week: 50, month: 12)
     """
     mean = r.mean()
     std = r.std(ddof=1)
-    annual = mean * N
-    sharpe = mean / std * np.sqrt(N)
-    mdd = (r.cumsum() - r.cumsum().cummax()).min()
-    data = {"mean": mean, "std": std, "annual": annual, "sharpe": sharpe, "mdd": mdd}
+    annualized_return = mean * N
+    information_ratio = mean / std * np.sqrt(N)
+    max_drawdown = (r.cumsum() - r.cumsum().cummax()).min()
+    data = {"mean": mean, "std": std, "annualized_return": annualized_return,
+            "information_ratio": information_ratio, "max_drawdown": max_drawdown}
     res = pd.Series(data, index=data.keys()).to_frame("risk")
     return res
 

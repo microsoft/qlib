@@ -914,10 +914,7 @@ class IdxMax(Rolling):
         if self.N == 0:
             series = series.expanding(min_periods=1).apply(lambda x: x.argmax() + 1, raw=True)
         else:
-            series = series.rolling(self.N, min_periods=1).apply(
-                lambda x: x.argmax() + 1,
-                raw=True,
-            )
+            series = series.rolling(self.N, min_periods=1).apply(lambda x: x.argmax() + 1, raw=True)
         return series
 
 
@@ -965,10 +962,7 @@ class IdxMin(Rolling):
         if self.N == 0:
             series = series.expanding(min_periods=1).apply(lambda x: x.argmin() + 1, raw=True)
         else:
-            series = series.rolling(self.N, min_periods=1).apply(
-                lambda x: x.argmin() + 1,
-                raw=True,
-            )
+            series = series.rolling(self.N, min_periods=1).apply(lambda x: x.argmin() + 1, raw=True)
         return series
 
 
@@ -1194,11 +1188,12 @@ class Rsquare(Rolling):
         super(Rsquare, self).__init__(feature, N, "rsquare")
 
     def _load_internal(self, instrument, start_index, end_index, freq):
-        series = self.feature.load(instrument, start_index, end_index, freq)
+        _series = self.feature.load(instrument, start_index, end_index, freq)
         if self.N == 0:
-            series = pd.Series(expanding_rsquare(series.values), index=series.index)
+            series = pd.Series(expanding_rsquare(_series.values), index=_series.index)
         else:
-            series = pd.Series(rolling_rsquare(series.values, self.N), index=series.index)
+            series = pd.Series(rolling_rsquare(_series.values, self.N), index=_series.index)
+            series.loc[np.isclose(_series.rolling(self.N, min_periods=1).std(), 0, atol=2e-05)] = np.nan
         return series
 
 
@@ -1341,12 +1336,7 @@ class PairRolling(ExpressionOps):
         if self.N == 0:
             return np.inf
         return (
-            max(
-                self.feature_left.get_longest_back_rolling(),
-                self.feature_right.get_longest_back_rolling(),
-            )
-            + self.N
-            - 1
+            max(self.feature_left.get_longest_back_rolling(), self.feature_right.get_longest_back_rolling()) + self.N - 1
         )
 
     def get_extended_window_size(self):
@@ -1382,6 +1372,18 @@ class Corr(PairRolling):
     def __init__(self, feature_left, feature_right, N):
         super(Corr, self).__init__(feature_left, feature_right, N, "corr")
 
+    def _load_internal(self, instrument, start_index, end_index, freq):
+        res = super(Corr, self)._load_internal(instrument, start_index, end_index, freq)
+
+        # NOTE: Load uses MemCache, so calling load again will not cause performance degradation
+        series_left = self.feature_left.load(instrument, start_index, end_index, freq)
+        series_right = self.feature_right.load(instrument, start_index, end_index, freq)
+        res.loc[
+            np.isclose(series_left.rolling(self.N, min_periods=1).std(), 0, atol=2e-05)
+            | np.isclose(series_right.rolling(self.N, min_periods=1).std(), 0, atol=2e-05)
+        ] = np.nan
+        return res
+
 
 class Cov(PairRolling):
     """Rolling Covariance
@@ -1403,3 +1405,4 @@ class Cov(PairRolling):
 
     def __init__(self, feature_left, feature_right, N):
         super(Cov, self).__init__(feature_left, feature_right, N, "cov")
+

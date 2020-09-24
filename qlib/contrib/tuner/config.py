@@ -61,26 +61,26 @@ class OptimizationConfig(object):
             "pred_long",
             "pred_long_short",
             "pred_short",
-            "sub_bench",
-            "sub_cost",
+            "excess_return_without_cost",
+            "excess_return_with_cost",
             "model",
         ]:
             raise ValueError(
-                "report_type should be one of pred_long, pred_long_short, pred_short, sub_bench, sub_cost and model"
+                "report_type should be one of pred_long, pred_long_short, pred_short, excess_return_without_cost, excess_return_with_cost and model"
             )
 
-        self.report_factor = config.get("report_factor", "sharpe")
+        self.report_factor = config.get("report_factor", "information_ratio")
         if self.report_factor not in [
-            "annual",
-            "sharpe",
-            "mdd",
+            "annualized_return",
+            "information_ratio",
+            "max_drawdown",
             "mean",
             "std",
             "model_score",
             "model_pearsonr",
         ]:
             raise ValueError(
-                "report_factor should be one of annual, sharpe, mdd, mean, std, model_pearsonr and model_score"
+                "report_factor should be one of annualized_return, information_ratio, max_drawdown, mean, std, model_pearsonr and model_score"
             )
 
         self.optim_type = config.get("optim_type", "max")

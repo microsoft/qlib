@@ -53,7 +53,7 @@ class User:
 
     def showReport(self, benchmark="SH000905"):
         """
-        show the newly report (mean, std, sharpe, annual)
+        show the newly report (mean, std, information_ratio, annualized_return)
             Parameter
                 benchmark : string
                     bench that to be compared, 'SH000905' for csi500
@@ -61,14 +61,14 @@ class User:
         bench = D.features([benchmark], ["$change"], disk_cache=True).loc[benchmark, "$change"]
         report = self.account.report.generate_report_dataframe()
         report["bench"] = bench
-        analysis_result = {"pred": {}, "sub_bench": {}, "sub_cost": {}}
+        analysis_result = {"pred": {}, "excess_return_without_cost": {}, "excess_return_with_cost": {}}
         r = (report["return"] - report["bench"]).dropna()
-        analysis_result["sub_bench"][0] = risk_analysis(r)
+        analysis_result["excess_return_without_cost"][0] = risk_analysis(r)
         r = (report["return"] - report["bench"] - report["cost"]).dropna()
-        analysis_result["sub_cost"][0] = risk_analysis(r)
+        analysis_result["excess_return_with_cost"][0] = risk_analysis(r)
         self.logger.info("Result of porfolio:")
-        self.logger.info("sub_bench:")
-        self.logger.info(analysis_result["sub_bench"][0])
-        self.logger.info("sub_cost:")
-        self.logger.info(analysis_result["sub_cost"][0])
+        self.logger.info("excess_return_without_cost:")
+        self.logger.info(analysis_result["excess_return_without_cost"][0])
+        self.logger.info("excess_return_with_cost:")
+        self.logger.info(analysis_result["excess_return_with_cost"][0])
         return report

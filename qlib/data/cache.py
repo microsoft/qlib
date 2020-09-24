@@ -385,11 +385,11 @@ class DatasetCache(BaseProviderCache):
         return instruments, fields, freq
 
 
-class ServerExpressionCache(ExpressionCache):
+class DiskExpressionCache(ExpressionCache):
     """Prepared cache mechanism for server."""
 
     def __init__(self, provider, **kwargs):
-        super(ServerExpressionCache, self).__init__(provider)
+        super(DiskExpressionCache, self).__init__(provider)
         self.r = get_redis_connection()
         # remote==True means client is using this module, writing behaviour will not be allowed.
         self.remote = kwargs.get("remote", False)
@@ -575,11 +575,11 @@ class ServerExpressionCache(ExpressionCache):
         return 0
 
 
-class ServerDatasetCache(DatasetCache):
+class DiskDatasetCache(DatasetCache):
     """Prepared cache mechanism for server."""
 
     def __init__(self, provider, **kwargs):
-        super(ServerDatasetCache, self).__init__(provider)
+        super(DiskDatasetCache, self).__init__(provider)
         self.r = get_redis_connection()
         self.remote = kwargs.get("remote", False)
         if self.remote:
@@ -612,7 +612,7 @@ class ServerDatasetCache(DatasetCache):
         :return:
         """
 
-        im = ServerDatasetCache.IndexManager(cache_path)
+        im = DiskDatasetCache.IndexManager(cache_path)
         index_data = im.get_index(start_time, end_time)
         if index_data.shape[0] > 0:
             start, stop = (
@@ -625,9 +625,7 @@ class ServerDatasetCache(DatasetCache):
         with pd.HDFStore(cache_path, mode="r") as store:
             if "/{}".format(im.KEY) in store.keys():
                 df = store.select(key=im.KEY, start=start, stop=stop)
-                df.reset_index(inplace=True)
-                df.set_index(["instrument", "datetime"], inplace=True)
-                df.sort_index(inplace=True)
+                df = df.swaplevel("datetime", "instrument").sort_index()
                 # read cache and need to replace not-space fields to field
                 df = cls.cache_to_origin_data(df, fields)
 
@@ -684,10 +682,7 @@ class ServerDatasetCache(DatasetCache):
                     freq=freq,
                 )
             if not features.empty:
-                features.reset_index(inplace=True)
-                features.set_index(["datetime", "instrument"], inplace=True)
-                features.sort_index(inplace=True)
-                features = features.loc[start_time:end_time]
+                features = features.sort_index().loc(axis=0)[:, start_time:end_time]
         return features
 
     def _dataset_uri(
@@ -851,11 +846,11 @@ class ServerDatasetCache(DatasetCache):
 
         features = self.provider.dataset(instruments, fields, _calendar[0], _calendar[-1], freq)
 
-        # sort index by datetime
-        if not features.empty:
-            features.reset_index(inplace=True)
-            features.set_index(["datetime", "instrument"], inplace=True)
-            features.sort_index(inplace=True)
+        if features.empty:
+            return features
+
+        # swap index and sorted
+        features = features.swaplevel("instrument", "datetime").sort_index()
 
         # write cache data
         with pd.HDFStore(cache_path + ".data") as store:
@@ -881,7 +876,7 @@ class ServerDatasetCache(DatasetCache):
             pickle.dump(meta, f)
         os.chmod(cache_path + ".meta", stat.S_IRWXU | stat.S_IRGRP | stat.S_IROTH)
         # write index file
-        im = ServerDatasetCache.IndexManager(cache_path)
+        im = DiskDatasetCache.IndexManager(cache_path)
         index_data = im.build_index_from_data(features)
         im.update(index_data)
 
@@ -890,7 +885,7 @@ class ServerDatasetCache(DatasetCache):
         # temporarily
         os.replace(cache_path + ".data", cache_path)
         # the fields of the cached features are converted to the original fields
-        return features
+        return features.swaplevel("datetime", "instrument")
 
     def update(self, cache_uri):
         cp_cache_uri = os.path.join(self.dtst_cache_path, cache_uri)
@@ -900,7 +895,7 @@ class ServerDatasetCache(DatasetCache):
             self.clear_cache(cp_cache_uri)
             return 2
 
-        im = ServerDatasetCache.IndexManager(cp_cache_uri)
+        im = DiskDatasetCache.IndexManager(cp_cache_uri)
         with CacheUtils.writer_lock(self.r, "dataset-%s" % cache_uri):
             with open(cp_cache_uri + ".meta", "rb") as f:
                 d = pickle.load(f)
@@ -1061,11 +1056,11 @@ class SimpleDatasetCache(DatasetCache):
             return self.cache_to_origin_data(data, fields)
 
 
-class ClientDatasetCache(DatasetCache):
+class DatasetURICache(DatasetCache):
     """Prepared cache mechanism for server."""
 
     def __init__(self, provider):
-        super(ClientDatasetCache, self).__init__(provider)
+        super(DatasetURICache, self).__init__(provider)
 
     def _uri(self, instruments, fields, start_time, end_time, freq, disk_cache=1, **kwargs):
         return hash_args(*self.normalize_uri_args(instruments, fields, freq), disk_cache)
@@ -1117,7 +1112,7 @@ class ClientDatasetCache(DatasetCache):
             get_module_logger("cache").debug(f"get feature from {C.dataset_provider}")
         else:
             mnt_feature_uri = os.path.join(C.mount_path, C.dataset_cache_dir_name, feature_uri)
-            df = ServerDatasetCache.read_data_from_cache(mnt_feature_uri, start_time, end_time, fields)
+            df = DiskDatasetCache.read_data_from_cache(mnt_feature_uri, start_time, end_time, fields)
             get_module_logger("cache").debug("get feature from uri cache")
 
         return df
@@ -1127,7 +1122,7 @@ class CalendarCache(BaseProviderCache):
     pass
 
 
-class ClientCalendarCache(CalendarCache):
+class MemoryCalendarCache(CalendarCache):
     def calendar(self, start_time=None, end_time=None, freq="day", future=False):
         uri = self._uri(start_time, end_time, freq, future)
         result, expire = MemCacheExpire.get_cache(H["c"], uri)

@@ -279,7 +279,7 @@ class Operator(object):
         self.show(id, path, bench)
 
     def show(self, id, path, bench="SH000905"):
-        """show the newly report (mean, std, sharpe, annual)
+        """show the newly report (mean, std, information_ratio, annualized_return)
 
         Parameters
         ----------
@@ -299,14 +299,14 @@ class Operator(object):
         report["bench"] = bench
         analysis_result = {}
         r = (report["return"] - report["bench"]).dropna()
-        analysis_result["sub_bench"] = risk_analysis(r)
+        analysis_result["excess_return_without_cost"] = risk_analysis(r)
         r = (report["return"] - report["bench"] - report["cost"]).dropna()
-        analysis_result["sub_cost"] = risk_analysis(r)
+        analysis_result["excess_return_with_cost"] = risk_analysis(r)
         print("Result:")
-        print("sub_bench:")
-        print(analysis_result["sub_bench"])
-        print("sub_cost:")
-        print(analysis_result["sub_cost"])
+        print("excess_return_without_cost:")
+        print(analysis_result["excess_return_without_cost"])
+        print("excess_return_with_cost:")
+        print(analysis_result["excess_return_with_cost"])
 
 
 def run():
