@@ -104,7 +104,7 @@ The Custom models need to inherit `qlib.contrib.model.base.Model <../reference/a
 Configuration File
 =======================
 
-The configuration file is described in detail in the `estimator <../advanced/estimator.html#Example>`_ document. In order to integrate the custom model into ``Qlib``, users need to modify the "model" field in the configuration file.
+The configuration file is described in detail in the `estimator <../component/estimator.html#complete-example>`_ document. In order to integrate the custom model into ``Qlib``, users need to modify the "model" field in the configuration file.
 
 - Example: The following example describes the `model` field of configuration file about the custom lightgbm model mentioned above, where `module_path` is the module path, `class` is the class name, and `args` is the hyperparameter passed into the __init__ method. All parameters in the field is passed to `self._params` by `\*\*kwargs` in `__init__` except `loss = mse`. 
 
@@ -143,4 +143,4 @@ Also, ``Model`` can also be tested as a single module. An example has been given
 Reference
 =====================
 
-To know more about ``Model``, please refer to `Interday Model: Model Training & Prediction <../advanced/model.rst>`_ and `Model API <../reference/api.html#module-qlib.contrib.model.base>`_.
+To know more about ``Model``, please refer to `Interday Model: Model Training & Prediction <../component/model.html>`_ and `Model API <../reference/api.html#module-qlib.contrib.model.base>`_.

@@ -16,9 +16,9 @@ Examples
 
 ``QLib`` Initialization:
 
-.. note:: In order to get the data, users need to initialize ``Qlib`` with `qlib.init` first. Please refer to `initialization <initialization.rst>`_.
+.. note:: In order to get the data, users need to initialize ``Qlib`` with `qlib.init` first. Please refer to `initialization <initialization.html>`_.
 
-If users followed steps in `initialization <initialization.rst>`_ and downloaded the data, they should use the following code to initialize qlib 
+If users followed steps in `initialization <initialization.html>`_ and downloaded the data, they should use the following code to initialize qlib
 
 .. code-block:: python
 
@@ -121,4 +121,4 @@ For more details about features, please refer `Feature API <../component/data.ht
 
 API
 ====================
-To know more about how to use the Data, go to API Reference: `Data API <../reference/api.html#Data>`_
+To know more about how to use the Data, go to API Reference: `Data API <../reference/api.html#data>`_

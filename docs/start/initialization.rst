@@ -15,7 +15,7 @@ Please follow the steps below to initialize ``Qlib``.
     .. code-block:: bash
     
         python scripts/get_data.py qlib_data_cn --target_dir ~/.qlib/qlib_data/cn_data
-    Please refer to `Raw Data  <../advanced/data.html#raw-data>`_ for more information about ``get_data.py``,
+    Please refer to `Raw Data  <../component/data.html>`_ for more information about ``get_data.py``,
 
 
 - Initialize Qlib before calling other APIs: run following code in python.
@@ -56,4 +56,4 @@ Besides `provider_uri` and `region`, `qlib.init` has other parameters. The follo
 
     .. note::
         
-        If Qlib fails to connect redis via `redis_host` and `redis_port`, cache mechanism will not be used! Please refer to `Cache <../advanced/cache.rst>`_ for details.
+        If Qlib fails to connect redis via `redis_host` and `redis_port`, cache mechanism will not be used! Please refer to `Cache <../component/data.html#cache>`_ for details.

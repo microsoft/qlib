@@ -572,7 +572,7 @@ The `qlib_data` field describes the parameters of qlib initialization.
     - If region == ``qlib.config.REG_CN``, 'qlib' will be initialized in US-stock mode. 
     - If region == ``qlib.config.REG_US``, 'qlib' will be initialized in china-stock mode.
 
-Please refer to `Initialization <../start/initialization.rst>`_.
+Please refer to `Initialization <../start/initialization.html>`_.
 
 Experiment Result
 ===================
@@ -642,7 +642,6 @@ The `FileFetcher` is a subclass of `Fetcher`, which could fetch files from `file
     >>> from qlib.contrib.estimator.fetcher import FileFetcher
     >>> f = FileFetcher(experiments_dir=r'./')
     >>> print(f.get_experiments())
-
     {
         'test_experiment': [
             {
@@ -659,21 +658,19 @@ The `FileFetcher` is a subclass of `Fetcher`, which could fetch files from `file
             }
         ]
     }
-
-
     >>> print(f.get_experiment('test_experiment', '1'))
 
-                                                          risk
-        excess_return_without_cost mean               0.000605
-                                   std                0.005481
-                                   annualized_return  0.152373
-                                   information_ratio  1.751319
-                                   max_drawdown      -0.059055
-        excess_return_with_cost    mean               0.000410
-                                   std                0.005478
-                                   annualized_return  0.103265
-                                   information_ratio  1.187411
-                                   max_drawdown      -0.075024
+                                                      risk
+    excess_return_without_cost mean               0.000605
+                               std                0.005481
+                               annualized_return  0.152373
+                               information_ratio  1.751319
+                               max_drawdown      -0.059055
+    excess_return_with_cost    mean               0.000410
+                               std                0.005478
+                               annualized_return  0.103265
+                               information_ratio  1.187411
+                               max_drawdown      -0.075024
 
 
 

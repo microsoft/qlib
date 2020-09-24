@@ -60,7 +60,7 @@ Auto Quant Research Workflow
 
 
     - Estimator result
-        The result of ``Estimator`` is as follows, which is also the result of ``Interday Trading``. Please refer to please refer to `Interdat Trading <backtest.html>`_. for more details about the result. 
+        The result of ``Estimator`` is as follows, which is also the result of ``Interday Trading``. Please refer to please refer to `Interdat Trading <../component/backtest.html>`_. for more details about the result.
 
         .. code-block:: python
         
@@ -77,7 +77,7 @@ Auto Quant Research Workflow
                                        max_drawdown      -0.075024
 
         
-    To know more about `Estimator`, please refer to `Estimator ../component/estimator.html`_.
+    To know more about `Estimator`, please refer to `Estimator <../component/estimator.html>`_.
 
 - Graphical Reports Analysis:
     - Run ``examples/estimator/analyze_from_estimator.ipynb`` with jupyter notebook

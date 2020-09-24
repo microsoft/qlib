@@ -25,4 +25,4 @@ Qlib-Server
 
 Reference
 =================
-If users are interested in ``Qlib-Server`` and ``Online`` mode, please refer to `Qlib-Server Project <https://github.com/microsoft/qlib-server>`_ and `Qlib-Server Document <https://readthedocs.org/projects/qlib-server/>`_.
+If users are interested in ``Qlib-Server`` and ``Online`` mode, please refer to `Qlib-Server Project <https://github.com/microsoft/qlib-server>`_ and `Qlib-Server Document <https://qlib-server.readthedocs.io/en/latest/>`_.

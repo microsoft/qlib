@@ -25,7 +25,7 @@ Data Preparation
 Qlib Format Data
 ------------------
 
-We've specially designed a data structure to manage financial data, please refer to the `File storage design section in Qlib paper <TODO_URL>`_ for detailed information.
+We've specially designed a data structure to manage financial data, please refer to the `File storage design section in Qlib paper <https://arxiv.org/abs/2009.11189>`_ for detailed information.
 Such data will be stored with filename suffix `.bin` (We'll call them `.bin` file, `.bin` format or qlib format). `.bin` file is designed for scientific computing on finance data
 
 Qlib Format Dataset
@@ -40,7 +40,7 @@ After running the above command, users can find china-stock data in Qlib format 
 
 ``Qlib`` also provides the scripts in ``scripts/data_collector`` to help users crawl the latest data on the Internet and convert it to qlib format.
 
-When ``Qlib`` is initialized with this dataset, users could build and evaluate their own models with it.  Please refer to `Initialization <../start/initialization.rst>`_ for more details.
+When ``Qlib`` is initialized with this dataset, users could build and evaluate their own models with it.  Please refer to `Initialization <../start/initialization.html>`_ for more details.
 
 Converting CSV Format into Qlib Format
 -------------------------------------------
@@ -208,7 +208,7 @@ Know more about how to run ``Data Handler`` with ``estimator``, please refer to 
 
 Qlib provides implemented data handler `QLibDataHandlerClose`. The following example shows how to run `QLibDataHandlerV1` as a single module. 
 
-.. note:: Users need to initialize ``Qlib`` with `qlib.init` first, please refer to `initialization <initialization.rst>`_.
+.. note:: Users need to initialize ``Qlib`` with `qlib.init` first, please refer to `initialization <initialization.html>`_.
 
 
 .. code-block:: Python
@@ -304,7 +304,7 @@ The following shows the details about the interfaces:
 Data and Cache File Structure
 ==================================
 
-We've specially designed a file structure to manage data and cache, please refer to the `File storage design section in Qlib paper <TODO_URL>`_ for detailed information.The file structure of data and cache is listed as follows.
+We've specially designed a file structure to manage data and cache, please refer to the `File storage design section in Qlib paper <https://arxiv.org/abs/2009.11189>`_ for detailed information.The file structure of data and cache is listed as follows.
 
 .. code-block:: json
 
