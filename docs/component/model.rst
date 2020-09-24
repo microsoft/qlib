@@ -117,7 +117,7 @@ Example
 
 ``Qlib`` provides ``LightGBM`` and ``DNN`` models as the baseline, the following steps show how to run`` LightGBM`` as an independent module.
 
-- Initialize ``Qlib`` with `qlib.init` first, please refer to `initialization <initialization.html>`_.
+- Initialize ``Qlib`` with `qlib.init` first, please refer to `initialization <../start/initialization.html>`_.
 - Run the following code to get the `prediction score` `pred_score`
     .. code-block:: Python
 
