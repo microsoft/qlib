@@ -8,17 +8,19 @@ Qlib is an AI-oriented quantitative investment platform, which aims to realize t
 
 With Qlib, you can easily try your ideas to create better Quant investment strategies.
 
+For more details, please refer to our paper ["Qlib: An AI-oriented Quantitative Investment Platform"](https://arxiv.org/abs/2009.11189).
+
 
 - [Framework of Qlib](#framework-of-qlib)
-- [Quick Start](#quick-start)
-  - [Installation](#installation)
-  - [Data Preparation](#get-data)
-  - [Auto Quant Research Workflow with](#auto-quant-research-workflow-with-estimator)
-  - [Building Customized Quant Research Workflow by Code](#building-customized-quant-research-workflow-by-code)
-- [More About Qlib](#more-about-qlib)
-- [Offline mode and online mode of data server](#offline-mode-and-online-mode-of-data-server)
-  - [Performance of Qlib Data Server](#performance-of-qlib-data-server)
-- [Contributing](#contributing)
+- [Quick Start](#Quick-Start)
+  - [Installation](#Installation)
+  - [Data Preparation](#Data-Preparation)
+  - [Auto Quant Research Workflow with](#Auto-Quant-Research-Workflow)
+  - [Building Customized Quant Research Workflow by Code](#Building-Customized-Quant-Research-Workflow-by-Code)
+- [More About Qlib](#More-About-Qlib)
+- [Offline mode and online mode of data server](#Offline-Mode-and-Online-Mode-of-the-Data-Server)
+  - [Performance of Qlib Data Server](#Performance-of-Qlib-Data-Server)
+- [Contributing](#Contributing)
 
 
 
@@ -42,7 +44,7 @@ At the module level, Qlib is a platform that consists of the above components. T
 * The modules with dashed borders are highly user-customizable and extendible.
 
 
-# Quick start
+# Quick Start
 
 This quick start guide tries to demonstrate
 1. It's very easy to build a complete Quant research workflow and try your ideas with _Qlib_.
