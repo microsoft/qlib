@@ -1,6 +1,6 @@
 
 <div style="align: center">
-<img src="docs/_static/img/logo/white_bg_rec+word.png" />
+<img src="http://fintech.msra.cn/images/logo/white_bg_rec+word.png" />
 </div>
 
 
@@ -26,7 +26,7 @@ For more details, please refer to our paper ["Qlib: An AI-oriented Quantitative 
 
 # Framework of Qlib
 <div style="align: center">
-<img src="docs/_static/img/framework.png" />
+<img src="http://fintech.msra.cn/images/framework.png" />
 </div>
 
 
@@ -137,15 +137,15 @@ Qlib provides a tool named `Estimator` to run the whole workflow automatically (
 2. Graphical Reports Analysis: Run `examples/estimator/analyze_from_estimator.ipynb` with `jupyter notebook` to get graphical reports
     - Forecasting signal (model prediction) analysis
       - Cumulative Return of groups
-      ![Cumulative Return](docs/_static/img/analysis/analysis_model_cumulative_return.png)
+      ![Cumulative Return](http://fintech.msra.cn/images/analysis/analysis_model_cumulative_return.png)
       - Return distribution
-      ![long_short](docs/_static/img/analysis/analysis_model_long_short.png)
+      ![long_short](http://fintech.msra.cn/images/analysis/analysis_model_long_short.png)
       - Information Coefficient (IC)
-      ![Information Coefficient](docs/_static/img/analysis/analysis_model_IC.png)        
-      ![Monthly IC](docs/_static/img/analysis/analysis_model_monthly_IC.png)        
-      ![IC](docs/_static/img/analysis/analysis_model_NDQ.png)
+      ![Information Coefficient](http://fintech.msra.cn/images/analysis/analysis_model_IC.png)        
+      ![Monthly IC](http://fintech.msra.cn/images/analysis/analysis_model_monthly_IC.png)        
+      ![IC](http://fintech.msra.cn/images/analysis/analysis_model_NDQ.png)
       - Auto Correlation of forecasting signal (model prediction)
-      ![Auto Correlation](docs/_static/img/analysis/analysis_model_auto_correlation.png)
+      ![Auto Correlation](http://fintech.msra.cn/images/analysis/analysis_model_auto_correlation.png)
 
 
     - Portfolio analysis
