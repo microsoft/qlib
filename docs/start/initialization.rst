@@ -9,17 +9,16 @@ Qlib Initialization
 Initialization
 =========================
 
-Please execute the following process to initialize ``Qlib``.
+Please follow the steps below to initialize ``Qlib``.
 
-- Download and prepare the Data: execute the following command to download the stock data.
+- Download and prepare the Data: execute the following command to download stock data.
     .. code-block:: bash
     
         python scripts/get_data.py qlib_data_cn --target_dir ~/.qlib/qlib_data/cn_data
+    Please refer to `Raw Data  <../component/data.html>`_ for more information about ``get_data.py``,
 
-    Know more about how to use ``get_data.py``, refer to `Raw Data  <../advanced/data.html#raw-data>`_.
 
-
-- Run the initialization code: run the following code in python:
+- Initialize Qlib before calling other APIs: run following code in python.
 
     .. code-block:: Python
 
@@ -34,17 +33,17 @@ Please execute the following process to initialize ``Qlib``.
 Parameters
 -------------------
 
-In fact, in addition to `provider_uri` and `region`, `qlib.init` has other parameters. The following are all the parameters of `qlib.init`:
+Besides `provider_uri` and `region`, `qlib.init` has other parameters. The following are several important parameters of `qlib.init`:
 
 - `provider_uri`
-    Type: str. The local directory where the data loaded by ``get_data.py`` is stored.
+    Type: str. The URI of the Qlib data. For example, it could be the location where the data loaded by ``get_data.py`` are stored.
 - `region`
-    Type: str, optional parameter(default: ``qlib.config.REG_CN``).
-        Currently: ``qlib.config.REG_US``('us') and ``qlib.config.REG_CN``('cn') is supported. Different value of  ``region`` will
-        result in different stock market mode.
-
+    Type: str, optional parameter(default: `qlib.config.REG_CN`).
+        Currently: ``qlib.config.REG_US`` ('us') and ``qlib.config.REG_CN`` ('cn') is supported. Different value of  `region` will result in different stock market mode.
         - ``qlib.config.REG_US``: US stock market.
         - ``qlib.config.REG_CN``: China stock market.
+
+        Different modse will result in different trading limitations and costs.
 - `redis_host`
     Type: str, optional parameter(default: "127.0.0.1"), host of `redis`
         The lock and cache mechanism relies on redis.
@@ -57,4 +56,4 @@ In fact, in addition to `provider_uri` and `region`, `qlib.init` has other param
 
     .. note::
         
-        If redis connection failed with `redis_host` and `redis_port`, cache will not be used! Please refer to `Cache <../advanced/cache.rst>`_.
+        If Qlib fails to connect redis via `redis_host` and `redis_port`, cache mechanism will not be used! Please refer to `Cache <../component/data.html#cache>`_ for details.

@@ -45,7 +45,7 @@ Example
 
 Users can use ``Data Handler`` to build formulaic alphas `MACD` in qlib:
 
-.. note:: Users need to initialize ``Qlib`` with `qlib.init` first.  Please refer to `initialization <initialization.rst>`_.
+.. note:: Users need to initialize ``Qlib`` with `qlib.init` first.  Please refer to `initialization <../start/initialization.html>`_.
 
 .. code-block:: python
 

@@ -32,10 +32,10 @@ def _get_risk_analysis_data_with_report(
     #     analysis["pred_long_short"] = risk_analysis(report_long_short_df["long_short"])
 
     if not report_normal_df.empty:
-        analysis["sub_bench"] = risk_analysis(
+        analysis["excess_return_without_cost"] = risk_analysis(
             report_normal_df["return"] - report_normal_df["bench"]
         )
-        analysis["sub_cost"] = risk_analysis(
+        analysis["excess_return_with_cost"] = risk_analysis(
             report_normal_df["return"]
             - report_normal_df["bench"]
             - report_normal_df["cost"]
@@ -97,7 +97,7 @@ def _get_monthly_risk_analysis_with_report(report_normal_df: pd.DataFrame) -> pd
 
 
 def _get_monthly_analysis_with_feature(
-    monthly_df: pd.DataFrame, feature: str = "annual"
+    monthly_df: pd.DataFrame, feature: str = "annualized_return"
 ) -> pd.DataFrame:
     """
 
@@ -156,7 +156,7 @@ def _get_monthly_risk_analysis_figure(report_normal_df: pd.DataFrame) -> Iterabl
         # report_long_short_df=report_long_short_df,
     )
 
-    for _feature in ["annual", "mdd", "sharpe", "std"]:
+    for _feature in ["annualized_return", "max_drawdown", "information_ratio", "std"]:
         _temp_df = _get_monthly_analysis_with_feature(_monthly_df, _feature)
         yield ScatterGraph(
             _temp_df,
@@ -200,8 +200,8 @@ def risk_analysis_graph(
                 # analysis['pred_long'] = risk_analysis(report_long_short_df['long'])
                 # analysis['pred_short'] = risk_analysis(report_long_short_df['short'])
                 # analysis['pred_long_short'] = risk_analysis(report_long_short_df['long_short'])
-                analysis['sub_bench'] = risk_analysis(report_normal_df['return'] - report_normal_df['bench'])
-                analysis['sub_cost'] = risk_analysis(report_normal_df['return'] - report_normal_df['bench'] - report_normal_df['cost'])
+                analysis['excess_return_without_cost'] = risk_analysis(report_normal_df['return'] - report_normal_df['bench'])
+                analysis['excess_return_with_cost'] = risk_analysis(report_normal_df['return'] - report_normal_df['bench'] - report_normal_df['cost'])
                 analysis_df = pd.concat(analysis)
 
                 analysis_position.risk_analysis_graph(analysis_df, report_normal_df)
@@ -213,17 +213,17 @@ def risk_analysis_graph(
 
             .. code-block:: python
 
-                                    risk
-                sub_bench mean    0.000662
-                          std     0.004487
-                          annual  0.166720
-                          sharpe  2.340526
-                          mdd    -0.080516
-                sub_cost  mean    0.000577
-                          std     0.004482
-                          annual  0.145392
-                          sharpe  2.043494
-                          mdd    -0.083584
+                                                                  risk
+                excess_return_without_cost mean               0.000692
+                                           std                0.005374
+                                           annualized_return  0.174495
+                                           information_ratio  2.045576
+                                           max_drawdown      -0.079103
+                excess_return_with_cost    mean               0.000499
+                                           std                0.005372
+                                           annualized_return  0.125625
+                                           information_ratio  1.473152
+                                           max_drawdown      -0.088263
 
 
     :param report_normal_df: **df.index.name** must be **date**, df.columns must contain **return**, **turnover**, **cost**, **bench**

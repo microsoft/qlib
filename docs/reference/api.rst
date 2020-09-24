@@ -1,10 +1,11 @@
+.. _api:
 ================================
 API Reference
 ================================
 
 
 
-Here you can find all ``QLib`` interfaces.
+Here you can find all ``Qlib`` interfaces.
 
 
 Data
@@ -49,10 +50,10 @@ Cache
 .. autoclass:: qlib.data.cache.DatasetCache
     :members:
 
-.. autoclass:: qlib.data.cache.ServerExpressionCache
+.. autoclass:: qlib.data.cache.DiskExpressionCache
     :members:
 
-.. autoclass:: qlib.data.cache.ServerDatasetCache
+.. autoclass:: qlib.data.cache.DiskDatasetCache
     :members:
 
 

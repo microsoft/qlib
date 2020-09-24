@@ -16,13 +16,14 @@ Document Structure
 
 .. toctree::
    :maxdepth: 3
-   :caption: INTRODUCTION:
+   :caption: GETTING STARTED:
 
-   Qlib <introduction/introduction.rst>
+   Introduction <introduction/introduction.rst>
+   Quick Start <introduction/quick.rst>
 
 .. toctree::
    :maxdepth: 3
-   :caption: GETTING STARTED:
+   :caption: FIRST STEPS:
    
    Installation <start/installation.rst>
    Initialization <start/initialization.rst>
@@ -46,7 +47,7 @@ Document Structure
    :caption: ADVANCED TOPICS:
    
    Building Formulaic Alphas <advanced/alpha.rst>
-
+   Online & Offline mode <advanced/server.rst>
 .. toctree::
    :maxdepth: 3
    :caption: REFERENCE:

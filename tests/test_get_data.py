@@ -45,7 +45,7 @@ class TestGetData(unittest.TestCase):
     def test_1_csv_data(self):
         GetData().csv_data_cn(SOURCE_DIR)
         stock_name = set(map(lambda x: x.name[:-4].upper(), SOURCE_DIR.glob("*.csv")))
-        self.assertEqual(len(stock_name), 96, "get csv data failed")
+        self.assertEqual(len(stock_name), 85, "get csv data failed")
 
 
 if __name__ == "__main__":

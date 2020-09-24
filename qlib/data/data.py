@@ -24,7 +24,7 @@ from .ops import *
 from ..log import get_module_logger
 from ..utils import parse_field, read_bin, hash_args, normalize_cache_fields
 from .base import Feature
-from .cache import ServerDatasetCache, ServerExpressionCache
+from .cache import DiskDatasetCache, DiskExpressionCache
 
 
 @six.add_metaclass(abc.ABCMeta)
@@ -357,7 +357,7 @@ class DatasetProvider(object):
             whether to skip(0)/use(1)/replace(2) disk_cache
 
         """
-        return ServerDatasetCache._uri(instruments, fields, start_time, end_time, freq, disk_cache)
+        return DiskDatasetCache._uri(instruments, fields, start_time, end_time, freq, disk_cache)
 
     @staticmethod
     def get_instruments_d(instruments, freq):
@@ -452,7 +452,7 @@ class DatasetProvider(object):
 
         if len(new_data) > 0:
             data = pd.concat(new_data, names=["instrument"], sort=False)
-            data = ServerDatasetCache.cache_to_origin_data(data, column_names)
+            data = DiskDatasetCache.cache_to_origin_data(data, column_names)
         else:
             data = pd.DataFrame(columns=column_names)
 
@@ -915,7 +915,7 @@ class ClientDatasetProvider(DatasetProvider):
             try:
                 # pre-mound nfs, used for demo
                 mnt_feature_uri = os.path.join(C.mount_path, C.dataset_cache_dir_name, feature_uri)
-                df = ServerDatasetCache.read_data_from_cache(mnt_feature_uri, start_time, end_time, fields)
+                df = DiskDatasetCache.read_data_from_cache(mnt_feature_uri, start_time, end_time, fields)
                 get_module_logger("data").debug("finish slicing data")
                 if return_uri:
                     return df, feature_uri
