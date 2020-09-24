@@ -8,7 +8,7 @@ Qlib is an AI-oriented quantitative investment platform, which aims to realize t
 
 With Qlib, you can easily try your ideas to create better Quant investment strategies.
 
-For more details, you can find our paper ["Qlib: An AI-oriented Quantitative Investment Platform"](https://arxiv.org/abs/2009.11189).
+For more details, please refer to our paper ["Qlib: An AI-oriented Quantitative Investment Platform"](https://arxiv.org/abs/2009.11189).
 
 
 - [Framework of Qlib](#framework-of-qlib)
