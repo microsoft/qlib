@@ -208,7 +208,7 @@ Know more about how to run ``Data Handler`` with ``estimator``, please refer to 
 
 Qlib provides implemented data handler `QLibDataHandlerClose`. The following example shows how to run `QLibDataHandlerV1` as a single module. 
 
-.. note:: Users need to initialize ``Qlib`` with `qlib.init` first, please refer to `initialization <initialization.html>`_.
+.. note:: Users need to initialize ``Qlib`` with `qlib.init` first, please refer to `initialization <../start/initialization.html>`_.
 
 
 .. code-block:: Python
