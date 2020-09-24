@@ -150,7 +150,7 @@ Qlib provides a tool named `Estimator` to run the whole workflow automatically (
 
     - Portfolio analysis
       - Backtest return
-      ![Report](docs/_static/img/analysis/report.png)
+      ![Report](http://fintech.msra.cn/images/analysis/report.png)
       <!-- 
       - Score IC
       ![Score IC](docs/_static/img/score_ic.png)
