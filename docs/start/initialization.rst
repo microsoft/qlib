@@ -15,7 +15,7 @@ Please follow the steps below to initialize ``Qlib``.
     .. code-block:: bash
     
         python scripts/get_data.py qlib_data_cn --target_dir ~/.qlib/qlib_data/cn_data
-    Please refer to `Raw Data  <../component/data.html>`_ for more information about ``get_data.py``,
+    Please refer to `Data Preparation  <../component/data.html#data-preparation>`_ for more information about `get_data.py`,
 
 
 - Initialize Qlib before calling other APIs: run following code in python.

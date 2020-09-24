@@ -124,9 +124,9 @@ Feature
 
 - `ExpressionOps`
     `ExpressionOps` will use operator for feature construction.
-    To know more about  ``Operator``, please refer to `Operator API <../reference/api.html>`_.
+    To know more about  ``Operator``, please refer to `Operator API <../reference/api.html#module-qlib.data.ops>`_.
 
-To know more about  ``Feature``, please refer to `Feature API <../reference/api.html>`_.
+To know more about  ``Feature``, please refer to `Feature API <../reference/api.html#module-qlib.data.base>`_.
 
 Filter
 -------------------
@@ -142,25 +142,25 @@ Filter
     - `cross-sectional features filter` : rule_expression = '$rank($close)<10'
     - `time-sequence features filter`: rule_expression = '$Ref($close, 3)>100'
 
-To know more about ``Filter``, please refer to `Filter API <../reference/api.html>`_.
+To know more about ``Filter``, please refer to `Filter API <../reference/api.html#module-qlib.data.filter>`_.
 
 
-API
+Reference
 -------------
 
-To know more about ``Data API``, please refer to `Data API <../reference/api.html>`_.
+To know more about ``Data API``, please refer to `Data API <../reference/api.html#data>`_.
 
 Data Handler
 =================
 
-Users can use ``Data Handler`` in an automatic workflow by ``Estimator``, refer to `Estimator <estimator.html>`_ for more details. 
+Users can use ``Data Handler`` in an automatic workflow by ``Estimator``, refer to `Estimator: Workflow Management <estimator.html>`_ for more details. 
 
 Also, ``Data Handler`` can be used as an independent module, by which users can easily preprocess data(standardization, remove NaN, etc.) and build datasets. It is a subclass of ``qlib.contrib.estimator.handler.BaseDataHandler``, which provides some interfaces as follows.
 
 Base Class & Interface
 ----------------------
 
-Qlib provides a base class `qlib.contrib.estimator.BaseDataHandler <../reference/api.html#class-qlib.contrib.estimator.BaseDataHandler>`_, which provides the following interfaces:
+Qlib provides a base class `qlib.contrib.estimator.BaseDataHandler <../reference/api.html#qlib.contrib.estimator.handler.BaseDataHandler>`_, which provides the following interfaces:
 
 - `setup_feature`    
     Implement the interface to load the data features.
@@ -204,7 +204,7 @@ Example
 
 ``Data Handler`` can be run with ``estimator`` by modifying the configuration file, and can also be used as a single module. 
 
-Know more about how to run ``Data Handler`` with ``estimator``, please refer to `Estimator <estimator.html#about-data>`_.
+Know more about how to run ``Data Handler`` with ``Estimator``, please refer to `Estimator: Workflow Management <estimator.html>`_
 
 Qlib provides implemented data handler `QLibDataHandlerClose`. The following example shows how to run `QLibDataHandlerV1` as a single module. 
 
@@ -243,14 +243,14 @@ Qlib provides implemented data handler `QLibDataHandlerClose`. The following exa
         print(x_train, y_train, x_validate, y_validate, x_test, y_test) 
 
 
-.. note:: (x_train, y_train, x_validate, y_validate, x_test, y_test) can be used as arguments for the ``fit``, ``predict``, and ``score`` methods of the 'Model' , please refer to `Model <model.html#Interface>`_.
+.. note:: (x_train, y_train, x_validate, y_validate, x_test, y_test) can be used as arguments for the `fit`, `predic``, and `score` methods of the ``Interday Model`` , please refer to `Model <model.html#base-class-interface>`_.
 
 Also, the above example has been given in ``examples.estimator.train_backtest_analyze.ipynb``.
 
 API
 ---------
 
-To know more about ``Data Handler``, please refer to `Data Handler API <../reference/api.html#handler>`_.
+To know more about ``Data Handler``, please refer to `Data Handler API <../reference/api.html#module-qlib.contrib.estimator.handler>`_.
 
 Cache
 ==========
@@ -336,5 +336,3 @@ We've specially designed a file structure to manage data and cache, please refer
                 - .index : an assorted index file recording the line index of all calendars
             - ...
 
-
-.. TODO: refer to paper

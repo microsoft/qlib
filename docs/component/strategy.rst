@@ -7,7 +7,7 @@ Interday Strategy: Portfolio Management
 Introduction
 ===================
 
-``Interday Strategy`` is designed to adopt different trading strategies, which means that users can adopt different algorithms to generate investment portfolios based on the prediction scores of the ``Interday Model``. Users can use the ``Interday Strategy`` in an automatic workflow by ``Estimator``, please refer to `Estimator <estimator.html>`_.  
+``Interday Strategy`` is designed to adopt different trading strategies, which means that users can adopt different algorithms to generate investment portfolios based on the prediction scores of the ``Interday Model``. Users can use the ``Interday Strategy`` in an automatic workflow by ``Estimator``, please refer to `Estimator: Workflow Management <estimator.html>`_.  
 
 Because the components in ``Qlib`` are designed in a loosely-coupled way, ``Interday Strategy`` can be used as an independent module also.
 
@@ -95,11 +95,13 @@ Usage & Example
         "limit_threshold": 0.095,
         "account": 100000000,
         "benchmark": BENCHMARK,
-        "deal_price": "vwap",
+        "deal_price": "close",
+        "open_cost": 0.0005,
+        "close_cost": 0.0015,
+        "min_cost": 5,
+        
     }
-
     # use default strategy
-    # custom Strategy, refer to: TODO: Strategy API url
     strategy = TopkDropoutStrategy(**STRATEGY_CONFIG)
 
     # pred_score is the `prediction score` output by Model
@@ -115,4 +117,4 @@ To know more about ``Intraday Trading``, please refer to `Intraday Trading: Mode
 
 Reference
 ===================
-To know more about ``Interday Strategy``, please refer to `Strategy API <../reference/api.html>`_.
+To know more about ``Interday Strategy``, please refer to `Strategy API <../reference/api.html#module-qlib.contrib.strategy.strategy>`_.

@@ -6,7 +6,7 @@ Interday Model: Model Training & Prediction
 Introduction
 ===================
 
-``Interday Model`` is designed to make the `prediction score` about stocks. Users can use the ``Interday Model`` in an automatic workflow by ``Estimator``, please refer to `Estimator <estimator.html>`_.  
+``Interday Model`` is designed to make the `prediction score` about stocks. Users can use the ``Interday Model`` in an automatic workflow by ``Estimator``, please refer to `Estimator: Workflow Management <estimator.html>`_.  
 
 Because the components in ``Qlib`` are designed in a loosely-coupled way, ``Interday Model`` can be used as an independent module also.
 
@@ -48,7 +48,7 @@ The base class provides the following interfaces:
             
             .. note::
             
-                The number and names of the columns are determined by the data handler, please refer to `Data Handler <data.html#data-handler>`_ and `Estimator Data <estimator.html#about-data>`_.
+                The number and names of the columns are determined by the data handler, please refer to `Data Handler <data.html#data-handler>`_ and `Estimator Data Section <estimator.html#data-section>`_.
             
         - `y_train`, pd.DataFrame type, train label
             The following example explains the value of `y_train`:
@@ -117,7 +117,7 @@ Example
 
 ``Qlib`` provides ``LightGBM`` and ``DNN`` models as the baseline, the following steps show how to run`` LightGBM`` as an independent module.
 
-- Initialize ``Qlib`` with `qlib.init` first, please refer to `initialization <../start/initialization.html>`_.
+- Initialize ``Qlib`` with `qlib.init` first, please refer to `Initialization <../start/initialization.html>`_.
 - Run the following code to get the `prediction score` `pred_score`
     .. code-block:: Python
 
@@ -157,7 +157,6 @@ Example
             "num_threads": 20,
         }
         # use default model
-        # custom Model, refer to: TODO: Model API url
         model = LGBModel(**MODEL_CONFIG)
         model.fit(x_train, y_train, x_validate, y_validate)
         _pred = model.predict(x_test)

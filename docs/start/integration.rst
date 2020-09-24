@@ -63,7 +63,7 @@ The Custom models need to inherit `qlib.contrib.model.base.Model <../reference/a
 - Override the `predict` method
     - The parameters include the test features.
     - Return the `prediction score`.
-    - Please refer to `qlib.contrib.model.base.Model <../reference/api.html#module-qlib.contrib.model.base>`_ for the parameter types of the fit method.
+    - Please refer to `Model API <../reference/api.html#module-qlib.contrib.model.base>`_ for the parameter types of the fit method.
     - Code Example: In the following example, users need to use dnn to predict the label(such as `preds`) of test data `x_test` and return it.
     .. code-block:: Python
 
@@ -143,4 +143,4 @@ Also, ``Model`` can also be tested as a single module. An example has been given
 Reference
 =====================
 
-To know more about ``Model``, please refer to `Interday Model: Model Training & Prediction <../component/model.html>`_ and `Model API <../reference/api.html#module-qlib.contrib.model.base>`_.
+To know more about ``Interday Model``, please refer to `Interday Model: Model Training & Prediction <../component/model.html>`_ and `Model API <../reference/api.html#module-qlib.contrib.model.base>`_.

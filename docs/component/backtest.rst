@@ -31,9 +31,9 @@ The simple example of the default strategy is as follows.
     # pred_score is the prediction score
     report, positions = backtest(pred_score, topk=50, n_drop=0.5, verbose=False, limit_threshold=0.0095)
 
-To know more about backtesting with a specific strategy, please refer to `Strategy <strategy.html>`_.
+To know more about backtesting with a specific ``Strategy``, please refer to `Strategy <strategy.html>`_.
 
-To know more about the prediction score `pred_score` output by ``Model``, please refer to `Interday Model: Model Training & Prediction <model.html>`_.
+To know more about the prediction score `pred_score` output by ``Interday Model``, please refer to `Interday Model: Model Training & Prediction <model.html>`_.
 
 Prediction Score
 -----------------
@@ -58,7 +58,7 @@ A prediction sample is shown as follows.
     SH603133   2019-04-30 -0.302460
     SZ300760   2019-04-30 -0.126383
 
-``Model`` module can make predictions, please refer to `Model <model.html>`_.
+``Interday Model`` module can make predictions, please refer to `Interday Model: Model Training & Prediction <model.html>`_.
 
 Backtest Result
 ------------------
@@ -110,4 +110,4 @@ The backtest results are in the following form:
 Reference
 ==============
 
-To know more about ``Intraday Trading``, please refer to `Backtest API <../reference/api.html>`_.
+To know more about ``Intraday Trading``, please refer to `Intraday Trading <../reference/api.html#module-qlib.contrib.evaluate>`_.

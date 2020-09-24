@@ -11,14 +11,14 @@ With Qlib, you can easily try your ideas to create better Quant investment strat
 For more details, please refer to our paper ["Qlib: An AI-oriented Quantitative Investment Platform"](https://arxiv.org/abs/2009.11189).
 
 
-- [Framework of Qlib](#framework-of-qlib)
+- [Framework of Qlib](#Framework-of-Qlib)
 - [Quick Start](#Quick-Start)
   - [Installation](#Installation)
   - [Data Preparation](#Data-Preparation)
   - [Auto Quant Research Workflow with](#Auto-Quant-Research-Workflow)
   - [Building Customized Quant Research Workflow by Code](#Building-Customized-Quant-Research-Workflow-by-Code)
 - [More About Qlib](#More-About-Qlib)
-- [Offline mode and online mode of data server](#Offline-Mode-and-Online-Mode-of-the-Data-Server)
+- [Offline Mode and Online Mode](#Offline-Mode-and-Online-Mode)
   - [Performance of Qlib Data Server](#Performance-of-Qlib-Data-Server)
 - [Contributing](#Contributing)
 
@@ -183,12 +183,12 @@ Qlib is in active and continuing development. Our plan is in the roadmap, which 
 
 
 
-# Offline Mode and Online Mode of the Data Server
-The data server of Qlib can either deployed as offline mode or online mode. The default mode is offline mode.
+# Offline Mode and Online Mode
+The data server of Qlib can either deployed as `Offline` mode or `Online` mode. The default mode is offline mode.
 
-Under offline mode, the data will be deployed locally. 
+Under `Offline` mode, the data will be deployed locally. 
 
-Under online mode, the data will be deployed as a shared data service. The data and their cache will be shared by all the clients. The data retrieval performance is expected to be improved due to a higher rate of cache hits. It will consume less disk space, too. The documents of the online mode can be found in [Qlib-Server](https://qlib-server.readthedocs.io/). The online mode can be deployed automatically with [Azure CLI based scripts](https://qlib-server.readthedocs.io/en/latest/build.html#one-click-deployment-in-azure). The source code of online data server can be found in [qlib-server repository](https://github.com/microsoft/qlib-server).
+Under `Online` mode, the data will be deployed as a shared data service. The data and their cache will be shared by all the clients. The data retrieval performance is expected to be improved due to a higher rate of cache hits. It will consume less disk space, too. The documents of the online mode can be found in [Qlib-Server](https://qlib-server.readthedocs.io/). The online mode can be deployed automatically with [Azure CLI based scripts](https://qlib-server.readthedocs.io/en/latest/build.html#one-click-deployment-in-azure). The source code of online data server can be found in [Qlib-Server repository](https://github.com/microsoft/qlib-server).
 
 ## Performance of Qlib Data Server
 The performance of data processing is important to data-driven methods like AI technologies. As an AI-oriented platform, Qlib provides a solution for data storage and data processing. To demonstrate the performance of Qlib data server, we

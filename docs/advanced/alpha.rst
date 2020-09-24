@@ -49,52 +49,53 @@ Users can use ``Data Handler`` to build formulaic alphas `MACD` in qlib:
 
 .. code-block:: python
 
-    >>> from qlib.contrib.estimator.handler import QLibDataHandler
-    >>> fields = ['(EMA($close, 12) - EMA($close, 26))/$close - EMA((EMA($close, 12) - EMA($close, 26))/$close, 9)/$close'] # MACD
-    >>> names = ['MACD']
-    >>> labels = ['Ref($vwap, -2)/Ref($vwap, -1) - 1'] # label
-    >>> label_names = ['LABEL']
-    >>> data_handler = QLibDataHandler(start_date='2010-01-01', end_date='2017-12-31', fields=fields, names=names, labels=labels, label_names=label_names)
-    >>> TRAINER_CONFIG = {
-    ...     "train_start_date": "2007-01-01",
-    ...     "train_end_date": "2014-12-31",
-    ...     "validate_start_date": "2015-01-01",
-    ...     "validate_end_date": "2016-12-31",
-    ...  "test_start_date": "2017-01-01",
-    ...  "test_end_date": "2020-08-01",
-    ... }
-    >>> feature_train, label_train, feature_validate, label_validate, feature_test, label_test = data_handler.get_split_data(**TRAINER_CONFIG)
-    >>> print(feature_train, label_train)
-                                MACD
+    >> from qlib.contrib.estimator.handler import QLibDataHandler
+    >> MACD_EXP = '(EMA($close, 12) - EMA($close, 26))/$close - EMA((EMA($close, 12) - EMA($close, 26))/$close, 9)/$close'
+    >> fields = [MACD_EXP] # MACD
+    >> names = ['MACD']
+    >> labels = ['$close'] # label
+    >> label_names = ['LABEL']
+    >> data_handler = QLibDataHandler(start_date='2010-01-01', end_date='2017-12-31', fields=fields, names=names, labels=labels, label_names=label_names)
+    >> TRAINER_CONFIG = {
+    ..     "train_start_date": "2007-01-01",
+    ..     "train_end_date": "2014-12-31",
+    ..     "validate_start_date": "2015-01-01",
+    ..     "validate_end_date": "2016-12-31",
+    ..  "test_start_date": "2017-01-01",
+    ..  "test_end_date": "2020-08-01",
+    .. }
+    >> feature_train, label_train, feature_validate, label_validate, feature_test, label_test = data_handler.get_split_data(**TRAINER_CONFIG)
+    >> print(feature_train, label_train)
+                            MACD
     instrument  datetime            
-    SH600004    2012-01-04 -0.030853
-                2012-01-05 -0.030452
-                2012-01-06 -0.028252
-                2012-01-09 -0.024507
-                2012-01-10 -0.019744
+    SH600000    2010-01-04 -0.008625
+                2010-01-05 -0.007234
+                2010-01-06 -0.007693
+                2010-01-07 -0.009633
+                2010-01-08 -0.009891
     ...                         ...
-    SZ300273    2014-12-25  0.031339
-                2014-12-26  0.029695
-                2014-12-29  0.025577
-                2014-12-30  0.020493
-                2014-12-31  0.017089
+    SZ300251    2014-12-25  0.043072
+                2014-12-26  0.041345
+                2014-12-29  0.042733
+                2014-12-30  0.042066
+                2014-12-31  0.036299
 
-    [605882 rows x 1 columns]
-                               label
+    [322025 rows x 1 columns]    
+                            LABEL
     instrument  datetime            
-    SH600004    2012-01-04  0.003021
-                2012-01-05  0.017434
-                2012-01-06  0.015490
-                2012-01-09  0.002324
-                2012-01-10 -0.002542
+    SH600000    2010-01-04  4.260015
+                2010-01-05  4.292182
+                2010-01-06  4.207747
+                2010-01-07  4.113258
+                2010-01-08  4.159496
     ...                         ...
-    SZ300273    2014-12-25 -0.032454
-                2014-12-26 -0.016638
-                2014-12-29  0.008263
-                2014-12-30 -0.011985
-                2014-12-31  0.047797
+    SZ300251    2014-12-25  4.343212
+                2014-12-26  4.470587
+                2014-12-29  4.762474
+                2014-12-30  4.369748
+                2014-12-31  4.182222
 
-    [605882 rows x 1 columns]
+    [322025 rows x 1 columns]
 
 Reference
 ===========

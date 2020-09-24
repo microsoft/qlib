@@ -44,7 +44,7 @@ Load and prepare data by running the following code:
 
 This dataset is created by public data collected by crawler scripts in ``scripts/data_collector/``, which have been released in the same repository. Users could create the same dataset with it.
 
-To kown more about `prepare data`, please refer to `Data Preparation <../component/data.html>`_.
+To kown more about `prepare data`, please refer to `Data Preparation <../component/data.html#data-preparation>`_.
 
 Auto Quant Research Workflow
 ====================================
@@ -60,7 +60,7 @@ Auto Quant Research Workflow
 
 
     - Estimator result
-        The result of ``Estimator`` is as follows, which is also the result of ``Interday Trading``. Please refer to please refer to `Interdat Trading <../component/backtest.html>`_. for more details about the result.
+        The result of ``Estimator`` is as follows, which is also the result of ``Intraday Trading``. Please refer to  `Intraday Trading <../component/backtest.html>`_. for more details about the result.
 
         .. code-block:: python
         
@@ -77,7 +77,7 @@ Auto Quant Research Workflow
                                        max_drawdown      -0.075024
 
         
-    To know more about `Estimator`, please refer to `Estimator <../component/estimator.html>`_.
+    To know more about `Estimator`, please refer to `Estimator: Workflow Management <../component/estimator.html>`_.
 
 - Graphical Reports Analysis:
     - Run ``examples/estimator/analyze_from_estimator.ipynb`` with jupyter notebook

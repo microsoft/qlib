@@ -279,7 +279,7 @@ Qlib supports custom models, but it must be a subclass of the `qlib.contrib.mode
 
 The class `SomeModel` should be in the module `custom_model`, and ``Qlib`` could parse the `module_path` to load the class.
 
-To know more about ``Model``, please refer to `Model <model.html>`_.
+To know more about ``Interday Model``, please refer to `Interday Model: Training & Prediction <model.html>`_.
 
 Data Section
 -----------------
@@ -552,7 +552,7 @@ Users can specify `backtest` through a config file, for example:
         Backtest initial cash, integer type. The `account` in `strategy` section is deprecated. It only works when `account` is not set in `backtest` section. It will be overridden by `account` in the `backtest` section. The default value is 1e9.
 
     - `deal_price`
-        Order transaction price field, str type, the default value is vwap.
+        Order transaction price field, str type, the default value is close.
 
     - `min_cost`
         Min transaction cost, float type, the default value is 5.
@@ -586,7 +586,7 @@ Experiment Result
 
 Form of Experimental Result
 ----------------------------
-The result of the experiment is also the result of the ``Interdat Trading(Backtest)``, please refer to `Interday Trading <backtest.html>`_.
+The result of the experiment is also the result of the ``Intraday Trading(Backtest)``, please refer to `Intraday Trading: Model&Strategy Testing <backtest.html>`_.
 
 
 Get Experiment Result
