@@ -60,11 +60,11 @@ class GetData:
         target_dir: str
             data save directory
         version: str
-            data version, value from [V0, V1], by default V1
+            data version, value from [v0, v1], by default v1
 
         Examples
         ---------
-        python get_data.py qlib_data_cn --target_dir ~/.qlib/qlib_data/cn_data --version V1
+        python get_data.py qlib_data_cn --target_dir ~/.qlib/qlib_data/cn_data --version v1
         -------
 
         """
