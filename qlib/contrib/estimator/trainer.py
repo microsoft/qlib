@@ -61,12 +61,11 @@ class BaseTrainer(object):
         """
         pass
 
-    @abstractmethod
     def get_test_performance(self):
         """
         Implement this method indicating how to get the performance of the model.
         """
-        pass
+        raise NotImplementedError(f"Please implement `get_test_performance`")
 
     def get_test_score(self):
         """
@@ -164,7 +163,10 @@ class StaticTrainer(BaseTrainer):
         return pred
 
     def get_test_performance(self):
-        model_score = self.model.score(self.x_test, self.y_test)
+        try:
+            model_score = self.model.score(self.x_test, self.y_test)
+        except NotImplementedError:
+            model_score = None
         # Remove rows from x, y and w, which contain Nan in any columns in y_test.
         x_test, y_test, __ = drop_nan_by_y_index(self.x_test, self.y_test)
         pred_test = self.model.predict(x_test)

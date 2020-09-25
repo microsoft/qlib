@@ -133,7 +133,10 @@ class Estimator(object):
         TimeInspector.set_time_mark()
         # 1. Get pred and prediction score of model(s).
         pred = self.trainer.get_test_score()
-        performance = self.trainer.get_test_performance()
+        try:
+            performance = self.trainer.get_test_performance()
+        except NotImplementedError:
+            performance = None
         # 2. Normal Backtest.
         report_normal, positions_normal = self._normal_backtest(pred)
         # 3. Long-Short Backtest.
