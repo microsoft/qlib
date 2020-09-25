@@ -137,15 +137,15 @@ Qlib provides a tool named `Estimator` to run the whole workflow automatically (
 2. Graphical Reports Analysis: Run `examples/estimator/analyze_from_estimator.ipynb` with `jupyter notebook` to get graphical reports
     - Forecasting signal (model prediction) analysis
       - Cumulative Return of groups
-      ![Cumulative Return](http://fintech.msra.cn/images/analysis/analysis_model_cumulative_return.png)
+      ![Cumulative Return](http://fintech.msra.cn/images/analysis/analysis_model_cumulative_return.png?v=0.1)
       - Return distribution
-      ![long_short](http://fintech.msra.cn/images/analysis/analysis_model_long_short.png)
+      ![long_short](http://fintech.msra.cn/images/analysis/analysis_model_long_short.png?v=0.1)
       - Information Coefficient (IC)
-      ![Information Coefficient](http://fintech.msra.cn/images/analysis/analysis_model_IC.png)        
-      ![Monthly IC](http://fintech.msra.cn/images/analysis/analysis_model_monthly_IC.png)        
-      ![IC](http://fintech.msra.cn/images/analysis/analysis_model_NDQ.png)
+      ![Information Coefficient](http://fintech.msra.cn/images/analysis/analysis_model_IC.png?v=0.1)        
+      ![Monthly IC](http://fintech.msra.cn/images/analysis/analysis_model_monthly_IC.png?v=0.1)
+      ![IC](http://fintech.msra.cn/images/analysis/analysis_model_NDQ.png?v=0.1)
       - Auto Correlation of forecasting signal (model prediction)
-      ![Auto Correlation](http://fintech.msra.cn/images/analysis/analysis_model_auto_correlation.png)
+      ![Auto Correlation](http://fintech.msra.cn/images/analysis/analysis_model_auto_correlation.png?v=0.1)
 
 
     - Portfolio analysis
