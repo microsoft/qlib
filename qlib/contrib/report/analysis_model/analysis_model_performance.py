@@ -264,17 +264,18 @@ def model_performance_graph(
 ) -> [list, tuple]:
     """Model performance
 
-    :param pred_label: index is **pd.MultiIndex**, index name is **[instrument, datetime]**; columns names is **[score, label]**
+    :param pred_label: index is **pd.MultiIndex**, index name is **[instrument, datetime]**; columns names is **[score,
+    label]**. It is usually same as the label of model training(e.g. "Ref($close, -2)/Ref($close, -1) - 1")
 
 
             .. code-block:: python
 
                 instrument	datetime        score       label
                 SH600004	2017-12-11	-0.013502       -0.013502
-                            2017-12-12	-0.072367       -0.072367
-                            2017-12-13	-0.068605       -0.068605
-                            2017-12-14	0.012440        0.012440
-                            2017-12-15	-0.102778       -0.102778
+                                2017-12-12	-0.072367       -0.072367
+                                2017-12-13	-0.068605       -0.068605
+                                2017-12-14	0.012440        0.012440
+                                2017-12-15	-0.102778       -0.102778
 
 
     :param lag: `pred.groupby(level='instrument')['score'].shift(lag)`. It will be only used in the auto-correlation computing.
