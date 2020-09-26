@@ -1,3 +1,4 @@
+[![Gitter](https://img.shields.io/gitter/room/microsoft/qlib)](https://gitter.im/Microsoft/qlib#) [![Join the chat at https://gitter.im/Microsoft/qlib](https://badges.gitter.im/Microsoft/qlib.svg)](https://gitter.im/Microsoft/qlib?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 <div style="align: center">
 <img src="http://fintech.msra.cn/images/logo/white_bg_rec+word.png" />
