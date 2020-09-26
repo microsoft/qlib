@@ -617,7 +617,7 @@ The `Fetcher` provides the following interface
 
 
     - `get_experiment(exp_name, exp_id, fields=None)`
-        The interface takes three parameters. The first parameter is the experiment name, the second parameter is the experiment id, and the third parameter is list of fields. The default value of `fields` is None, which means all fields.
+        The interface takes three parameters. The first parameter is the experiment name, the second parameter is the experiment id, and the third parameter is a list of fields. The default value of `fields` is None, which means all fields.
         
 
         .. note::
