@@ -1,4 +1,6 @@
 
+[![Join the chat at https://gitter.im/Microsoft/qlib](https://badges.gitter.im/Microsoft/qlib.svg)](https://gitter.im/Microsoft/qlib?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 <div style="align: center">
 <img src="http://fintech.msra.cn/images/logo/white_bg_rec+word.png" />
 </div>
@@ -25,8 +27,6 @@ For more details, please refer to our paper ["Qlib: An AI-oriented Quantitative 
 
 
 # Framework of Qlib
-
-[![Join the chat at https://gitter.im/Microsoft/qlib](https://badges.gitter.im/Microsoft/qlib.svg)](https://gitter.im/Microsoft/qlib?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 <div style="align: center">
 <img src="http://fintech.msra.cn/images/framework.png" />
