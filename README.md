@@ -10,19 +10,18 @@ With Qlib, you can easily try your ideas to create better Quant investment strat
 
 For more details, please refer to our paper ["Qlib: An AI-oriented Quantitative Investment Platform"](https://arxiv.org/abs/2009.11189).
 
-
-- [Framework of Qlib](#Framework-of-Qlib)
-- [Quick Start](#Quick-Start)
-  - [Installation](#Installation)
-  - [Data Preparation](#Data-Preparation)
-  - [Auto Quant Research Workflow with](#Auto-Quant-Research-Workflow)
-  - [Building Customized Quant Research Workflow by Code](#Building-Customized-Quant-Research-Workflow-by-Code)
-- [Quant Model Zoo](#Quant-Model-Zoo)
-- [Quant Dataset Zoo](#Quant-Dataset-Zoo)
-- [More About Qlib](#More-About-Qlib)
-- [Offline Mode and Online Mode](#Offline-Mode-and-Online-Mode)
-  - [Performance of Qlib Data Server](#Performance-of-Qlib-Data-Server)
-- [Contributing](#Contributing)
+- [Framework of Qlib](#framework-of-qlib)
+- [Quick Start](#quick-start)
+  - [Installation](#installation)
+  - [Data Preparation](#data-preparation)
+  - [Auto Quant Research Workflow](#auto-quant-research-workflow)
+  - [Building Customized Quant Research Workflow by Code](#building-customized-quant-research-workflow-by-code)
+- [Quant Model Zoo](#quant-model-zoo)
+- [Quant Dataset Zoo](#quant-dataset-zoo)
+- [More About Qlib](#more-about-qlib)
+- [Offline Mode and Online Mode](#offline-mode-and-online-mode)
+  - [Performance of Qlib Data Server](#performance-of-qlib-data-server)
+- [Contributing](#contributing)
 
 
 
@@ -79,7 +78,9 @@ Load and prepare data by running the following code:
 
 This dataset is created by public data collected by [crawler scripts](scripts/data_collector/), which have been released in
 the same repository.
-Users could create the same dataset with it.
+Users could create the same dataset with it. 
+
+*Please pay **ATTENTION** that the data is collected from [Yahoo Finance](https://finance.yahoo.com/lookup) and the data might not be perfect. We recommend users to prepare their own data if they have high-quality dataset. For more information, users can refer to the [related document](https://qlib.readthedocs.io/en/latest/component/data.html#converting-csv-format-into-qlib-format)*
 
 <!-- 
 - Run the initialization code and get stock data:

@@ -34,6 +34,7 @@ class GetData:
             raise requests.exceptions.HTTPError()
 
         chuck_size = 1024
+        logger.warning(f"The data for the example is collected from Yahoo Finance. Please be aware that the quality of the data might not be perfect. (You can refer to the original data source: https://finance.yahoo.com/lookup.)")
         logger.info(f"{file_name} downloading......")
         with tqdm(total=int(resp.headers.get("Content-Length", 0))) as p_bar:
             with target_path.open("wb") as fp:
