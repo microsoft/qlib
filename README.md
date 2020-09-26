@@ -17,6 +17,8 @@ For more details, please refer to our paper ["Qlib: An AI-oriented Quantitative 
   - [Data Preparation](#Data-Preparation)
   - [Auto Quant Research Workflow with](#Auto-Quant-Research-Workflow)
   - [Building Customized Quant Research Workflow by Code](#Building-Customized-Quant-Research-Workflow-by-Code)
+- [Quant Model Zoo](#Quant-Model-Zoo)
+- [Quant Dataset Zoo](#Quant-Dataset-Zoo)
 - [More About Qlib](#More-About-Qlib)
 - [Offline Mode and Online Mode](#Offline-Mode-and-Online-Mode)
   - [Performance of Qlib Data Server](#Performance-of-Qlib-Data-Server)
@@ -166,6 +168,20 @@ Qlib provides a tool named `Estimator` to run the whole workflow automatically (
 The automatic workflow may not suite the research workflow of all Quant researchers. To support a flexible Quant research workflow, Qlib also provides a modularized interface to allow researchers to build their own workflow by code. [Here](examples/train_backtest_analyze.ipynb) is a demo for customized Quant research workflow by code
 
 
+# Quant-model-zoo
+
+Here is a list of models build on `Qlib`.
+- [GBDT based on lightgbm](qlib/contrib/model/gbdt.py)
+- [MLP based on pytroch](qlib/contrib/model/pytorch_nn.py)
+
+Your PR of new Quant models is highly welcomed.
+
+# Quant-dataset-zoo
+Dataset plays a very important role in Quant. Here is a list of the datasets build on `Qlib`.
+- [Alpha360](./qlib/contrib/estimator/handler.py)
+- [QLibDataHandlerClose](./qlib/contrib/estimator/handler.py)
+
+Your PR to build new Quant dataset is highly welcomed.
 
 # More About Qlib
 The detailed documents are organized in [docs](docs/).
