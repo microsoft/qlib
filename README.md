@@ -173,7 +173,7 @@ Qlib provides a tool named `Estimator` to run the whole workflow automatically (
 The automatic workflow may not suite the research workflow of all Quant researchers. To support a flexible Quant research workflow, Qlib also provides a modularized interface to allow researchers to build their own workflow by code. [Here](examples/train_backtest_analyze.ipynb) is a demo for customized Quant research workflow by code
 
 
-# Quant-model-zoo
+# Quant Model Zoo
 
 Here is a list of models build on `Qlib`.
 - [GBDT based on lightgbm](qlib/contrib/model/gbdt.py)
@@ -181,11 +181,12 @@ Here is a list of models build on `Qlib`.
 
 Your PR of new Quant models is highly welcomed.
 
-# Quant-dataset-zoo
+# Quant Dataset Zoo
 Dataset plays a very important role in Quant. Here is a list of the datasets build on `Qlib`.
 - [Alpha360](./qlib/contrib/estimator/handler.py)
 - [QLibDataHandlerClose](./qlib/contrib/estimator/handler.py)
 
+Here is a tutorial to build dataset with `Qlib`.
 Your PR to build new Quant dataset is highly welcomed.
 
 # More About Qlib
