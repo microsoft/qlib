@@ -53,7 +53,7 @@ class GetData:
             for _file in tqdm(zp.namelist()):
                 zp.extract(_file, str(target_dir.resolve()))
 
-    def qlib_data_cn(self, target_dir="~/.qlib/qlib_data/cn_data", version="v1"):
+    def qlib_data_cn(self, target_dir="~/.qlib/qlib_data/cn_data", version="latest"):
         """download cn qlib data from remote
 
         Parameters
@@ -61,7 +61,7 @@ class GetData:
         target_dir: str
             data save directory
         version: str
-            data version, value from [v0, v1], by default v1
+            data version, value from [v0, v1, ..., latest], by default latest
 
         Examples
         ---------

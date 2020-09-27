@@ -12,13 +12,14 @@ With Qlib, you can easily try your ideas to create better Quant investment strat
 
 For more details, please refer to our paper ["Qlib: An AI-oriented Quantitative Investment Platform"](https://arxiv.org/abs/2009.11189).
 
-
 - [Framework of Qlib](#framework-of-qlib)
 - [Quick Start](#quick-start)
   - [Installation](#installation)
   - [Data Preparation](#data-preparation)
   - [Auto Quant Research Workflow](#auto-quant-research-workflow)
   - [Building Customized Quant Research Workflow by Code](#building-customized-quant-research-workflow-by-code)
+- [Quant Model Zoo](#quant-model-zoo)
+- [Quant Dataset Zoo](#quant-dataset-zoo)
 - [More About Qlib](#more-about-qlib)
 - [Offline Mode and Online Mode](#offline-mode-and-online-mode)
   - [Performance of Qlib Data Server](#performance-of-qlib-data-server)
@@ -124,16 +125,17 @@ Qlib provides a tool named `Estimator` to run the whole workflow automatically (
     ```bash
 
                                                       risk
-    excess_return_without_cost mean               0.000605
-                               std                0.005481
-                               annualized_return  0.152373
-                               information_ratio  1.751319
-                               max_drawdown      -0.059055
-    excess_return_with_cost    mean               0.000410
-                               std                0.005478
-                               annualized_return  0.103265
-                               information_ratio  1.187411
-                               max_drawdown      -0.075024
+    excess_return_without_cost mean               0.000675
+                               std                0.005456
+                               annualized_return  0.170077
+                               information_ratio  1.963824
+                               max_drawdown      -0.063646
+    excess_return_with_cost    mean               0.000479
+                               std                0.005453
+                               annualized_return  0.120776
+                               information_ratio  1.395116
+                               max_drawdown      -0.071216
+
 
 
     ```
@@ -171,6 +173,20 @@ Qlib provides a tool named `Estimator` to run the whole workflow automatically (
 The automatic workflow may not suite the research workflow of all Quant researchers. To support a flexible Quant research workflow, Qlib also provides a modularized interface to allow researchers to build their own workflow by code. [Here](examples/train_backtest_analyze.ipynb) is a demo for customized Quant research workflow by code
 
 
+# Quant-model-zoo
+
+Here is a list of models build on `Qlib`.
+- [GBDT based on lightgbm](qlib/contrib/model/gbdt.py)
+- [MLP based on pytroch](qlib/contrib/model/pytorch_nn.py)
+
+Your PR of new Quant models is highly welcomed.
+
+# Quant-dataset-zoo
+Dataset plays a very important role in Quant. Here is a list of the datasets build on `Qlib`.
+- [Alpha360](./qlib/contrib/estimator/handler.py)
+- [QLibDataHandlerClose](./qlib/contrib/estimator/handler.py)
+
+Your PR to build new Quant dataset is highly welcomed.
 
 # More About Qlib
 The detailed documents are organized in [docs](docs/).

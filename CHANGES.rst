@@ -150,3 +150,11 @@ Version 0.4.6
 - Some bugs are fixed
     - The default config in `Version 0.4.5` is not friendly to daily frequency data.
     - Backtest error in TopkWeightStrategy when `WithInteract=True`.
+
+
+Version 0.5.0
+--------------------
+- First opensource version
+    - Refine the docs, code
+    - Add baselines
+    - public data crawler
