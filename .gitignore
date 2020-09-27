@@ -31,3 +31,5 @@ mlruns/
 
 tags
 
+.pytest_cache/
+.vscode/
