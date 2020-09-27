@@ -26,7 +26,7 @@ Qlib Format Data
 ------------------
 
 We've specially designed a data structure to manage financial data, please refer to the `File storage design section in Qlib paper <https://arxiv.org/abs/2009.11189>`_ for detailed information.
-Such data will be stored with filename suffix `.bin` (We'll call them `.bin` file, `.bin` format or qlib format). `.bin` file is designed for scientific computing on finance data
+Such data will be stored with filename suffix `.bin` (We'll call them `.bin` file, `.bin` format, or qlib format). `.bin` file is designed for scientific computing on finance data
 
 Qlib Format Dataset
 --------------------
@@ -45,7 +45,7 @@ When ``Qlib`` is initialized with this dataset, users could build and evaluate t
 Converting CSV Format into Qlib Format
 -------------------------------------------
 
-``Qlib`` has provided the script ``scripts/dump_bin.py`` to convert data in CSV format into `.bin` files(Qlib format).
+``Qlib`` has provided the script ``scripts/dump_bin.py`` to convert data in CSV format into `.bin` files (Qlib format).
 
 
 Users can download the china-stock data in CSV format as follows for reference to the CSV format.
@@ -65,7 +65,7 @@ After conversion, users can find their Qlib format data in the directory `~/.qli
 
 .. note::
 
-    The arguments of `--include_fields` should correspond with the columns names of CSV files. The columns names of dataset provided by ``Qlib`` should include open, close, high, low, volume and factor at least.
+    The arguments of `--include_fields` should correspond with the column names of CSV files. The columns names of dataset provided by ``Qlib`` should include open, close, high, low, volume and factor at least.
     
     - `open`
         The opening price
@@ -180,9 +180,9 @@ Qlib also provides two functions to help users init the data handler, users can 
 
 - `_init_raw_df`
     Users can init the raw df, feature names, and label names of data handler in this function. 
-    If the index of feature df and label df are not same, users need to override this method to merge them (e.g. inner, left, right merge).
+    If the index of feature df and label df are not the same, users need to override this method to merge them (e.g. inner, left, right merge).
 
-If users want to load features and labels by config, users can inherit ``qlib.contrib.estimator.handler.ConfigDataHandler``, ``Qlib`` also have provided some preprocess method in this subclass.
+If users want to load features and labels by config, users can inherit ``qlib.contrib.estimator.handler.ConfigDataHandler``, ``Qlib`` also provides some preprocess method in this subclass.
 If users want to use qlib data, `QLibDataHandler` is recommended. Users can inherit their custom class from `QLibDataHandler`, which is also a subclass of `ConfigDataHandler`.
 
 
@@ -256,7 +256,7 @@ To know more about ``Data Handler``, please refer to `Data Handler API <../refer
 Cache
 ==========
 
-``Cache`` is an optional module that helps accelerate providing data by saving some frequently-used data as cache file. ``Qlib`` provides a `Memcache` class to cache the most-frequently-used data in memory, an inheritable `ExpressionCache` class and an inheritable `DatasetCache` class.
+``Cache`` is an optional module that helps accelerate providing data by saving some frequently-used data as cache file. ``Qlib`` provides a `Memcache` class to cache the most-frequently-used data in memory, an inheritable `ExpressionCache` class, and an inheritable `DatasetCache` class.
 
 Global Memory Cache
 ---------------------
@@ -298,14 +298,14 @@ The following shows the details about the interfaces:
 .. autoclass:: qlib.data.cache.DatasetCache
     :members:
 
-``Qlib`` has currently provided implemented disk cache `DiskDatasetCache` which inherits from `DatasetCache` . The datasets data will be stored in the disk.
+``Qlib`` has currently provided implemented disk cache `DiskDatasetCache` which inherits from `DatasetCache` . The datasets' data will be stored in the disk.
 
 
 
 Data and Cache File Structure
 ==================================
 
-We've specially designed a file structure to manage data and cache, please refer to the `File storage design section in Qlib paper <https://arxiv.org/abs/2009.11189>`_ for detailed information.The file structure of data and cache is listed as follows.
+We've specially designed a file structure to manage data and cache, please refer to the `File storage design section in Qlib paper <https://arxiv.org/abs/2009.11189>`_ for detailed information. The file structure of data and cache is listed as follows.
 
 .. code-block:: json
 

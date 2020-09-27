@@ -1,5 +1,7 @@
 
-<div style="align: center">
+[![Join the chat at https://gitter.im/Microsoft/qlib](https://badges.gitter.im/Microsoft/qlib.svg)](https://gitter.im/Microsoft/qlib?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
+<div style="text-align: center">
 <img src="http://fintech.msra.cn/images/logo/white_bg_rec+word.png" />
 </div>
 
@@ -26,6 +28,7 @@ For more details, please refer to our paper ["Qlib: An AI-oriented Quantitative 
 
 
 # Framework of Qlib
+
 <div style="align: center">
 <img src="http://fintech.msra.cn/images/framework.png" />
 </div>
@@ -55,7 +58,7 @@ This quick start guide tries to demonstrate
 
 Users can easily intsall ``Qlib`` according to the following steps:
 
-* Before installing ``Qlib`` from source, you need to install some dependencies:
+* Before installing ``Qlib`` from source, users need to install some dependencies:
 
   ```bash
   pip install numpy
