@@ -34,7 +34,7 @@ class TestDataset(unittest.TestCase):
         print(close_desc)
         self.assertLessEqual(abs(close_desc.loc["80%"][0]), 0.1, "Close value is abnormal")
         self.assertLessEqual(abs(close_desc.loc["max"][0]), 0.2, "Close value is abnormal")
-        self.assertGreaterEqual(abs(close_desc.loc["min"][0]), -0.2, "Close value is abnormal")
+        self.assertGreaterEqual(close_desc.loc["min"][0], -0.2, "Close value is abnormal")
 
 
 if __name__ == '__main__':

@@ -1,2 +1,2 @@
 # About dataset tests
-This tests is for testing the prepared dataset from Yahoo
+Tests in this folder are for testing the prepared dataset from Yahoo
