@@ -1,5 +1,13 @@
 # Collect Data From Yahoo Finance
 
+> *Please pay **ATTENTION** that the data is collected from [Yahoo Finance](https://finance.yahoo.com/lookup) and the data might not be perfect. We recommend users to prepare their own data if they have high-quality dataset. For more information, users can refer to the [related document](https://qlib.readthedocs.io/en/latest/component/data.html#converting-csv-format-into-qlib-format)*
+
+
+>  **Examples of abnormal data**
+
+- [SH600000](https://finance.yahoo.com/quote/600000.SS/history?period1=1147046400&period2=1147478400&interval=1d&filter=history&frequency=1d)
+- [SH600018](https://finance.yahoo.com/quote/600018.SS/history?period1=1158883200&period2=1161907200&interval=1d&filter=history&frequency=1d)
+
 ## Requirements
 
 ```bash
