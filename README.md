@@ -125,16 +125,17 @@ Qlib provides a tool named `Estimator` to run the whole workflow automatically (
     ```bash
 
                                                       risk
-    excess_return_without_cost mean               0.000605
-                               std                0.005481
-                               annualized_return  0.152373
-                               information_ratio  1.751319
-                               max_drawdown      -0.059055
-    excess_return_with_cost    mean               0.000410
-                               std                0.005478
-                               annualized_return  0.103265
-                               information_ratio  1.187411
-                               max_drawdown      -0.075024
+    excess_return_without_cost mean               0.000675
+                               std                0.005456
+                               annualized_return  0.170077
+                               information_ratio  1.963824
+                               max_drawdown      -0.063646
+    excess_return_with_cost    mean               0.000479
+                               std                0.005453
+                               annualized_return  0.120776
+                               information_ratio  1.395116
+                               max_drawdown      -0.071216
+
 
 
     ```
