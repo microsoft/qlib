@@ -5,8 +5,10 @@
 
 >  **Examples of abnormal data**
 
-- [SH600000](https://finance.yahoo.com/quote/600000.SS/history?period1=1147046400&period2=1147478400&interval=1d&filter=history&frequency=1d)
-- [SH600018](https://finance.yahoo.com/quote/600018.SS/history?period1=1158883200&period2=1161907200&interval=1d&filter=history&frequency=1d)
+- [SH000661](https://finance.yahoo.com/quote/000661.SZ/history?period1=1558310400&period2=1590796800&interval=1d&filter=history&frequency=1d)
+- [SZ300144](https://finance.yahoo.com/quote/300144.SZ/history?period1=1557446400&period2=1589932800&interval=1d&filter=history&frequency=1d)
+
+We have considered **STOCK PRICE ADJUSTMENT**, but some price series seem still very abnormal.
 
 ## Requirements
 
