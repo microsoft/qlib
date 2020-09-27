@@ -108,35 +108,35 @@ Graphical Result
 .. image:: ../_static/img/analysis/score_ic.png 
 
 
-Usage of `analysis_position.cumulative_return`
-----------------------------------------------
-
-API
-~~~~~~~~~~~~~~~~
-
-.. automodule:: qlib.contrib.report.analysis_position.cumulative_return
-    :members:
-
-Graphical Result
-~~~~~~~~~~~~~~~~~
-
-.. note:: 
-
-    - Axis X: Trading day
-    - Axis Y:
-        - Above axis Y: `(((Ref($close, -1)/$close - 1) * weight).sum() / weight.sum()).cumsum()`
-        - Below axis Y: Daily weight sum
-    - In the **sell** graph, `y < 0` stands for profit; in other cases, `y > 0` stands for profit.
-    - In the **buy_minus_sell** graph, the **y** value of the **weight** graph at the bottom is `buy_weight + sell_weight`.
-    - In each graph, the **red line** in the histogram on the right represents the average.                                                                                                        
-
-.. image:: ../_static/img/analysis/cumulative_return_buy.png 
-
-.. image:: ../_static/img/analysis/cumulative_return_sell.png 
-
-.. image:: ../_static/img/analysis/cumulative_return_buy_minus_sell.png 
-
-.. image:: ../_static/img/analysis/cumulative_return_hold.png 
+.. Usage of `analysis_position.cumulative_return`
+.. ----------------------------------------------
+..
+.. API
+.. ~~~~~~~~~~~~~~~~
+..
+.. .. automodule:: qlib.contrib.report.analysis_position.cumulative_return
+..     :members:
+..
+.. Graphical Result
+.. ~~~~~~~~~~~~~~~~~
+..
+.. .. note:: 
+..
+..     - Axis X: Trading day
+..     - Axis Y:
+..         - Above axis Y: `(((Ref($close, -1)/$close - 1) * weight).sum() / weight.sum()).cumsum()`
+..         - Below axis Y: Daily weight sum
+..     - In the **sell** graph, `y < 0` stands for profit; in other cases, `y > 0` stands for profit.
+..     - In the **buy_minus_sell** graph, the **y** value of the **weight** graph at the bottom is `buy_weight + sell_weight`.
+..     - In each graph, the **red line** in the histogram on the right represents the average.
+..
+.. .. image:: ../_static/img/analysis/cumulative_return_buy.png 
+..
+.. .. image:: ../_static/img/analysis/cumulative_return_sell.png 
+..
+.. .. image:: ../_static/img/analysis/cumulative_return_buy_minus_sell.png 
+..
+.. .. image:: ../_static/img/analysis/cumulative_return_hold.png 
 
 
 Usage of `analysis_position.risk_analysis`
@@ -152,7 +152,7 @@ API
 Graphical Result
 ~~~~~~~~~~~~~~~~~
 
-.. note:: 
+.. note::
 
     - general graphics
         - `std`
@@ -178,10 +178,10 @@ Graphical Result
                 The `Maximum Drawdown` of `CAR` (cumulative abnormal return) with cost.
 
 
-.. image:: ../_static/img/analysis/risk_analysis_bar.png 
+.. image:: ../_static/img/analysis/risk_analysis_bar.png
     :align: center
 
-.. note:: 
+.. note::
 
     - annualized_return/max_drawdown/information_ratio/std graphics
         - Axis X: Trading days grouped by month
@@ -220,42 +220,42 @@ Graphical Result
 .. image:: ../_static/img/analysis/risk_analysis_std.png 
     :align: center
 
-
-Usage of `analysis_position.rank_label`
-----------------------------------------------
-
-API
-~~~~~
-
-.. automodule:: qlib.contrib.report.analysis_position.rank_label
-    :members:
-
-
-Graphical Result
-~~~~~~~~~~~~~~~~~
-
-.. note:: 
-
-    - hold/sell/buy graphics:
-        - Axis X: Trading day
-        - Axis Y: 
-            Average `ranking ratio`of `label` for stocks that is held/sold/bought on the trading day.
-
-            In the above example, the `label` is formulated as `Ref($close, -1)/$close - 1`. The `ranking ratio` can be formulated as follows.
-            .. math::
-                
-                ranking\ ratio = \frac{Ascending\ Ranking\ of\ label}{Number\ of\ Stocks\ in\ the\ Portfolio}
-
-.. image:: ../_static/img/analysis/rank_label_hold.png 
-    :align: center
-
-.. image:: ../_static/img/analysis/rank_label_buy.png 
-    :align: center
-
-.. image:: ../_static/img/analysis/rank_label_sell.png 
-    :align: center
-
-
+..
+.. Usage of `analysis_position.rank_label`
+.. ----------------------------------------------
+..
+.. API
+.. ~~~~~
+..
+.. .. automodule:: qlib.contrib.report.analysis_position.rank_label
+..     :members:
+..
+..
+.. Graphical Result
+.. ~~~~~~~~~~~~~~~~~
+..
+.. .. note:: 
+..
+..     - hold/sell/buy graphics:
+..         - Axis X: Trading day
+..         - Axis Y: 
+..             Average `ranking ratio`of `label` for stocks that is held/sold/bought on the trading day.
+..
+..             In the above example, the `label` is formulated as `Ref($close, -1)/$close - 1`. The `ranking ratio` can be formulated as follows.
+..             .. math::
+..                 
+..                 ranking\ ratio = \frac{Ascending\ Ranking\ of\ label}{Number\ of\ Stocks\ in\ the\ Portfolio}
+..
+.. .. image:: ../_static/img/analysis/rank_label_hold.png 
+..     :align: center
+..
+.. .. image:: ../_static/img/analysis/rank_label_buy.png 
+..     :align: center
+..
+.. .. image:: ../_static/img/analysis/rank_label_sell.png 
+..     :align: center
+..
+..
 
 Usage of `analysis_model.analysis_model_performance`
 -----------------------------------------------------

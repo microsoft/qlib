@@ -100,6 +100,6 @@ Users can use ``Data Handler`` to build formulaic alphas `MACD` in qlib:
 Reference
 ===========
 
-To kown more about ``Data Handler``, please refer to `Data Handler <../component/data.html>`_
+To learn more about ``Data Handler``, please refer to `Data Handler <../component/data.html>`_
 
-To kown more about ``Data Api``, please refer to `Data Api <../component/data.html>`_
+To learn more about ``Data API``, please refer to `Data API <../component/data.html>`_

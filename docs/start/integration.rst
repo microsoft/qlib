@@ -72,20 +72,6 @@ The Custom models need to inherit `qlib.contrib.model.base.Model <../reference/a
                 raise ValueError('model is not fitted yet!')
             return self._model.predict(x_test.values)
 
-- Override the `score` method
-    - The parameters include the test features and test labels.
-    - Return the evaluation score of the model. It's recommended to adopt the loss between labels and `prediction score`.
-    - Code Example: In the following example, users need to calculate the weighted loss with test data `x_test`,  test label `y_test` and the weight `w_test`.
-    .. code-block:: Python
-
-        def score(self, x_test:pd.Dataframe, y_test:pd.Dataframe, w_test:pd.DataFrame = None) -> float:
-            # Remove rows from x, y and w, which contain Nan in any columns in y_test.
-            x_test, y_test, w_test = drop_nan_by_y_index(x_test, y_test, w_test)
-            preds = self.predict(x_test)
-            w_test_weight = None if w_test is None else w_test.values
-            scorer = mean_squared_error if self.loss_type == 'mse' else roc_auc_score
-            return scorer(y_test.values, preds, sample_weight=w_test_weight)
-
 - Override the `save` method & `load` method
     - The `save` method parameter includes the a `filename` that represents an absolute path, user need to save model into the path.
     - The `load` method parameter includes the a `buffer` read from the `filename` passed in the `save` method, users need to load model from the `buffer`.
@@ -100,6 +86,20 @@ The Custom models need to inherit `qlib.contrib.model.base.Model <../reference/a
         def load(self, buffer):
             self._model = lgb.Booster(params={'model_str': buffer.decode('utf-8')})
 
+.. Without tuner, this part will not be used
+.. - Override the `score` method(This step is optional)
+..     - The parameters include the test features and test labels.
+..     - Return the evaluation score of the model. It's recommended to adopt the loss between labels and `prediction score`.
+..     - Code Example: In the following example, users need to calculate the weighted loss with test data `x_test`,  test label `y_test` and the weight `w_test`.
+..     .. code-block:: Python
+..
+..         def score(self, x_test:pd.Dataframe, y_test:pd.Dataframe, w_test:pd.DataFrame = None) -> float:
+..             # Remove rows from x, y and w, which contain Nan in any columns in y_test.
+..             x_test, y_test, w_test = drop_nan_by_y_index(x_test, y_test, w_test)
+..             preds = self.predict(x_test)
+..             w_test_weight = None if w_test is None else w_test.values
+..             scorer = mean_squared_error if self.loss_type == 'mse' else roc_auc_score
+..             return scorer(y_test.values, preds, sample_weight=w_test_weight)
 
 Configuration File
 =======================

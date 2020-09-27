@@ -149,7 +149,7 @@ class Exchange:
         self.quote = quote_df.to_dict("index")
 
     def _update_limit(self, buy_limit, sell_limit):
-        self.quote["limit"] = ~self.quote["$change"].between(-sell_limit, buy_limit)
+        self.quote["limit"] = ~self.quote["$change"].between(-sell_limit, buy_limit, inclusive=False)
 
     def check_stock_limit(self, stock_id, trade_date):
         """Parameter

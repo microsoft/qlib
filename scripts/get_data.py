@@ -34,6 +34,7 @@ class GetData:
             raise requests.exceptions.HTTPError()
 
         chuck_size = 1024
+        logger.warning(f"The data for the example is collected from Yahoo Finance. Please be aware that the quality of the data might not be perfect. (You can refer to the original data source: https://finance.yahoo.com/lookup.)")
         logger.info(f"{file_name} downloading......")
         with tqdm(total=int(resp.headers.get("Content-Length", 0))) as p_bar:
             with target_path.open("wb") as fp:
@@ -52,7 +53,7 @@ class GetData:
             for _file in tqdm(zp.namelist()):
                 zp.extract(_file, str(target_dir.resolve()))
 
-    def qlib_data_cn(self, target_dir="~/.qlib/qlib_data/cn_data", version="v1"):
+    def qlib_data_cn(self, target_dir="~/.qlib/qlib_data/cn_data", version="latest"):
         """download cn qlib data from remote
 
         Parameters
@@ -60,7 +61,7 @@ class GetData:
         target_dir: str
             data save directory
         version: str
-            data version, value from [v0, v1], by default v1
+            data version, value from [v0, v1, ..., latest], by default latest
 
         Examples
         ---------

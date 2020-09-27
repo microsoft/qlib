@@ -92,7 +92,10 @@ def train():
     pred_score["score"] = _pred.iloc(axis=1)[0]
 
     # get performance
-    model_score = model.score(x_test, y_test)
+    try:
+        model_score = model.score(x_test, y_test)
+    except NotImplementedError:
+        model_score = None
     # Remove rows from x, y and w, which contain Nan in any columns in y_test.
     x_test, y_test, __ = drop_nan_by_y_index(x_test, y_test)
     pred_test = model.predict(x_test)

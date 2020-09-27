@@ -1,5 +1,7 @@
 
-<div style="align: center">
+[![Join the chat at https://gitter.im/Microsoft/qlib](https://badges.gitter.im/Microsoft/qlib.svg)](https://gitter.im/Microsoft/qlib?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
+<div style="text-align: center">
 <img src="http://fintech.msra.cn/images/logo/white_bg_rec+word.png" />
 </div>
 
@@ -10,21 +12,23 @@ With Qlib, you can easily try your ideas to create better Quant investment strat
 
 For more details, please refer to our paper ["Qlib: An AI-oriented Quantitative Investment Platform"](https://arxiv.org/abs/2009.11189).
 
-
-- [Framework of Qlib](#Framework-of-Qlib)
-- [Quick Start](#Quick-Start)
-  - [Installation](#Installation)
-  - [Data Preparation](#Data-Preparation)
-  - [Auto Quant Research Workflow with](#Auto-Quant-Research-Workflow)
-  - [Building Customized Quant Research Workflow by Code](#Building-Customized-Quant-Research-Workflow-by-Code)
-- [More About Qlib](#More-About-Qlib)
-- [Offline Mode and Online Mode](#Offline-Mode-and-Online-Mode)
-  - [Performance of Qlib Data Server](#Performance-of-Qlib-Data-Server)
-- [Contributing](#Contributing)
+- [Framework of Qlib](#framework-of-qlib)
+- [Quick Start](#quick-start)
+  - [Installation](#installation)
+  - [Data Preparation](#data-preparation)
+  - [Auto Quant Research Workflow](#auto-quant-research-workflow)
+  - [Building Customized Quant Research Workflow by Code](#building-customized-quant-research-workflow-by-code)
+- [Quant Model Zoo](#quant-model-zoo)
+- [Quant Dataset Zoo](#quant-dataset-zoo)
+- [More About Qlib](#more-about-qlib)
+- [Offline Mode and Online Mode](#offline-mode-and-online-mode)
+  - [Performance of Qlib Data Server](#performance-of-qlib-data-server)
+- [Contributing](#contributing)
 
 
 
 # Framework of Qlib
+
 <div style="align: center">
 <img src="http://fintech.msra.cn/images/framework.png" />
 </div>
@@ -54,7 +58,7 @@ This quick start guide tries to demonstrate
 
 Users can easily intsall ``Qlib`` according to the following steps:
 
-* Before installing ``Qlib`` from source, you need to install some dependencies:
+* Before installing ``Qlib`` from source, users need to install some dependencies:
 
   ```bash
   pip install numpy
@@ -77,7 +81,9 @@ Load and prepare data by running the following code:
 
 This dataset is created by public data collected by [crawler scripts](scripts/data_collector/), which have been released in
 the same repository.
-Users could create the same dataset with it.
+Users could create the same dataset with it. 
+
+*Please pay **ATTENTION** that the data is collected from [Yahoo Finance](https://finance.yahoo.com/lookup) and the data might not be perfect. We recommend users to prepare their own data if they have high-quality dataset. For more information, users can refer to the [related document](https://qlib.readthedocs.io/en/latest/component/data.html#converting-csv-format-into-qlib-format)*
 
 <!-- 
 - Run the initialization code and get stock data:
@@ -119,16 +125,17 @@ Qlib provides a tool named `Estimator` to run the whole workflow automatically (
     ```bash
 
                                                       risk
-    excess_return_without_cost mean               0.000605
-                               std                0.005481
-                               annualized_return  0.152373
-                               information_ratio  1.751319
-                               max_drawdown      -0.059055
-    excess_return_with_cost    mean               0.000410
-                               std                0.005478
-                               annualized_return  0.103265
-                               information_ratio  1.187411
-                               max_drawdown      -0.075024
+    excess_return_without_cost mean               0.000675
+                               std                0.005456
+                               annualized_return  0.170077
+                               information_ratio  1.963824
+                               max_drawdown      -0.063646
+    excess_return_with_cost    mean               0.000479
+                               std                0.005453
+                               annualized_return  0.120776
+                               information_ratio  1.395116
+                               max_drawdown      -0.071216
+
 
 
     ```
@@ -137,15 +144,15 @@ Qlib provides a tool named `Estimator` to run the whole workflow automatically (
 2. Graphical Reports Analysis: Run `examples/estimator/analyze_from_estimator.ipynb` with `jupyter notebook` to get graphical reports
     - Forecasting signal (model prediction) analysis
       - Cumulative Return of groups
-      ![Cumulative Return](http://fintech.msra.cn/images/analysis/analysis_model_cumulative_return.png)
+      ![Cumulative Return](http://fintech.msra.cn/images/analysis/analysis_model_cumulative_return.png?v=0.1)
       - Return distribution
-      ![long_short](http://fintech.msra.cn/images/analysis/analysis_model_long_short.png)
+      ![long_short](http://fintech.msra.cn/images/analysis/analysis_model_long_short.png?v=0.1)
       - Information Coefficient (IC)
-      ![Information Coefficient](http://fintech.msra.cn/images/analysis/analysis_model_IC.png)        
-      ![Monthly IC](http://fintech.msra.cn/images/analysis/analysis_model_monthly_IC.png)        
-      ![IC](http://fintech.msra.cn/images/analysis/analysis_model_NDQ.png)
+      ![Information Coefficient](http://fintech.msra.cn/images/analysis/analysis_model_IC.png?v=0.1)        
+      ![Monthly IC](http://fintech.msra.cn/images/analysis/analysis_model_monthly_IC.png?v=0.1)
+      ![IC](http://fintech.msra.cn/images/analysis/analysis_model_NDQ.png?v=0.1)
       - Auto Correlation of forecasting signal (model prediction)
-      ![Auto Correlation](http://fintech.msra.cn/images/analysis/analysis_model_auto_correlation.png)
+      ![Auto Correlation](http://fintech.msra.cn/images/analysis/analysis_model_auto_correlation.png?v=0.1)
 
 
     - Portfolio analysis
@@ -166,6 +173,20 @@ Qlib provides a tool named `Estimator` to run the whole workflow automatically (
 The automatic workflow may not suite the research workflow of all Quant researchers. To support a flexible Quant research workflow, Qlib also provides a modularized interface to allow researchers to build their own workflow by code. [Here](examples/train_backtest_analyze.ipynb) is a demo for customized Quant research workflow by code
 
 
+# Quant-model-zoo
+
+Here is a list of models build on `Qlib`.
+- [GBDT based on lightgbm](qlib/contrib/model/gbdt.py)
+- [MLP based on pytroch](qlib/contrib/model/pytorch_nn.py)
+
+Your PR of new Quant models is highly welcomed.
+
+# Quant-dataset-zoo
+Dataset plays a very important role in Quant. Here is a list of the datasets build on `Qlib`.
+- [Alpha360](./qlib/contrib/estimator/handler.py)
+- [QLibDataHandlerClose](./qlib/contrib/estimator/handler.py)
+
+Your PR to build new Quant dataset is highly welcomed.
 
 # More About Qlib
 The detailed documents are organized in [docs](docs/).

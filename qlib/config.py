@@ -120,7 +120,7 @@ _default_client_config = {
 _default_region_config = {
     REG_CN: {
         "trade_unit": 100,
-        "limit_threshold": 0.1,
+        "limit_threshold": 0.099,
         "deal_price": "vwap",
     },
     REG_US: {
