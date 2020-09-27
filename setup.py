@@ -9,7 +9,7 @@ import numpy
 from setuptools import find_packages, setup, Extension
 
 # Package meta-data.
-NAME = "qlib"
+NAME = "msqlib"
 DESCRIPTION = "A Quantitative-research Platform"
 REQUIRES_PYTHON = ">=3.5.0"
 VERSION = "0.5.0.dev"
@@ -83,6 +83,8 @@ extensions = [
 setup(
     name=NAME,
     version=VERSION,
+    license = "MIT Licence",
+    url = "https://github.com/microsoft/qlib",  
     description=DESCRIPTION,
     long_description=long_description,
     python_requires=REQUIRES_PYTHON,
@@ -102,9 +104,13 @@ setup(
         # Trove classifiers
         # Full list: https://pypi.python.org/pypi?%3Aaction=list_classifiers
         # 'License :: OSI Approved :: MIT License',
+        "Operating System :: POSIX :: Linux",
+        "Operating System :: Microsoft :: Windows",
+        "License :: OSI Approved :: MIT License",
         "Development Status :: 3 - Alpha",
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
     ],
 )
