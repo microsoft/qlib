@@ -63,4 +63,9 @@ It sees the key of the redis lock has existed in your redis db now. You can use 
     > flushdb
 
 
-Also, feel free to post a new issue in our GitHub repository. We always look at each case individually and try to find a root cause.
+.. note::
+
+    ``qlib.config.redis_task_db`` defaults is ``1``, users can use ``qlib.init(redis_task_db=<other_db>)`` settings.
+
+
+Also, feel free to post a new issue in our GitHub repository. We always check each issue carefully and try our best to solve them.

@@ -207,7 +207,7 @@ Example
 
 Know more about how to run ``Data Handler`` with ``Estimator``, please refer to `Estimator: Workflow Management <estimator.html>`_
 
-Qlib provides implemented data handler `Alpha158`. The following example shows how to run `QLibDataHandlerV1` as a single module.
+Qlib provides implemented data handler `Alpha158`. The following example shows how to run `Alpha158` as a single module.
 
 .. note:: Users need to initialize ``Qlib`` with `qlib.init` first, please refer to `initialization <../start/initialization.html>`_.
 
