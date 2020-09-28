@@ -12,7 +12,7 @@ from setuptools import find_packages, setup, Extension
 NAME = "pyqlib"
 DESCRIPTION = "A Quantitative-research Platform"
 REQUIRES_PYTHON = ">=3.5.0"
-VERSION = "0.5.0.dev"
+VERSION = "0.5.0.dev1"
 
 # Detect Cython
 try:
@@ -61,7 +61,10 @@ NUMPY_INCLUDE = numpy.get_include()
 
 here = os.path.abspath(os.path.dirname(__file__))
 
-long_description = "TODO: to be completed"
+this_directory = path.abspath(path.dirname(__file__))
+with open(path.join(this_directory, 'README.md'), encoding='utf-8') as f:
+    long_description = f.read()
+
 
 # Cython Extensions
 extensions = [
@@ -87,6 +90,7 @@ setup(
     url = "https://github.com/microsoft/qlib",  
     description=DESCRIPTION,
     long_description=long_description,
+    long_description_content_type='text/markdown',
     python_requires=REQUIRES_PYTHON,
     packages=find_packages(exclude=("tests",)),
     # if your package is a single module, use this instead of 'packages':
@@ -112,5 +116,6 @@ setup(
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
     ],
 )
