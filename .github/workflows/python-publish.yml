@@ -41,6 +41,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
+    - name: Build wheel on Linux
+      uses: RalfG/python-wheels-manylinux-build@v0.3.1-manylinux2010_x86_64
+      with:
+        python-versions: 'cp36-cp36m cp37-cp37m cp38-cp38'
+        build-requirements: 'numpy cython'
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
@@ -48,11 +53,6 @@ jobs:
     - name: Install dependencies
       run: |
         pip install twine  
-    - name: Build wheel on Linux
-      uses: RalfG/python-wheels-manylinux-build@v0.3.1-manylinux2010_x86_64
-      with:
-        python-versions: 'cp36-cp36m cp37-cp37m cp38-cp38'
-        build-requirements: 'numpy cython'
     - name: Build and publish
       env:
         TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
