@@ -154,10 +154,9 @@ Qlib provides a tool named `Estimator` to run the whole workflow automatically (
       - Auto Correlation of forecasting signal (model prediction)
       ![Auto Correlation](http://fintech.msra.cn/images/analysis/analysis_model_auto_correlation.png?v=0.1)
 
-
     - Portfolio analysis
       - Backtest return
-      ![Report](http://fintech.msra.cn/images/analysis/report.png)
+      ![Report](http://fintech.msra.cn/images/analysis/report.png?v=0.1)
       <!-- 
       - Score IC
       ![Score IC](docs/_static/img/score_ic.png)

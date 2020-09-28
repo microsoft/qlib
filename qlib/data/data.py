@@ -407,11 +407,11 @@ class DatasetProvider(object):
         normalize_column_names = normalize_cache_fields(column_names)
         data = dict()
         # One process for one task, so that the memory will be freed quicker.
+        workers = min(C.kernels, len(instruments_d))
         if C.maxtasksperchild is None:
-            p = Pool(processes=C.kernels)
+            p = Pool(processes=workers)
         else:
-            p = Pool(processes=C.kernels, maxtasksperchild=C.maxtasksperchild)
-
+            p = Pool(processes=workers, maxtasksperchild=C.maxtasksperchild)
         if isinstance(instruments_d, dict):
             for inst, spans in instruments_d.items():
                 data[inst] = p.apply_async(
@@ -718,11 +718,11 @@ class LocalDatasetProvider(DatasetProvider):
             return
         start_time = cal[0]
         end_time = cal[-1]
-
+        workers = min(C.kernels, len(instruments_d))
         if C.maxtasksperchild is None:
-            p = Pool(processes=C.kernels)
+            p = Pool(processes=workers)
         else:
-            p = Pool(processes=C.kernels, maxtasksperchild=C.maxtasksperchild)
+            p = Pool(processes=workers, maxtasksperchild=C.maxtasksperchild)
 
         for inst in instruments_d:
             p.apply_async(
