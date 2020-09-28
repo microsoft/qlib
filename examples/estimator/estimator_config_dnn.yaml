@@ -18,7 +18,7 @@ model:
         batch_size: 4096
         GPU: '0'
 data:
-  class: QLibDataHandlerClose
+  class: Alpha158
   args:
     dropna_label: True
     dropna_feature: True

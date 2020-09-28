@@ -8,7 +8,7 @@ import qlib
 import pandas as pd
 from qlib.config import REG_CN
 from qlib.contrib.model.gbdt import LGBModel
-from qlib.contrib.estimator.handler import QLibDataHandlerClose
+from qlib.contrib.estimator.handler import Alpha158
 from qlib.contrib.strategy.strategy import TopkDropoutStrategy
 from qlib.contrib.evaluate import (
     backtest as normal_backtest,
@@ -54,7 +54,7 @@ if __name__ == "__main__":
 
     # use default DataHandler
     # custom DataHandler, refer to: TODO: DataHandler API url
-    x_train, y_train, x_validate, y_validate, x_test, y_test = QLibDataHandlerClose(
+    x_train, y_train, x_validate, y_validate, x_test, y_test = Alpha158(
         **DATA_HANDLER_CONFIG
     ).get_split_data(**TRAINER_CONFIG)
 
