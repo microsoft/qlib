@@ -28,10 +28,10 @@ Steps to reproduce the behavior:
 
 ## Environment
 
- - Qlib version:
+ - Qlib version (use the command: `print(qlib.__version__)`):
  - Python version:
  - OS (`Windows`, `Linux`, `MacOS`):
- - Commit number:
+ - Commit number (optional, please provide it if you are using the dev version):
 
 ## Additional Notes
 
