@@ -33,7 +33,7 @@ jobs:
     - name: Install test dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install flake8 pytest pep8
+        pip install flake8 pytest
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
     - name: Lint with flake8
@@ -43,19 +43,9 @@ jobs:
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
-    - name: Check PEP8 python code style
-      run: |
-        find . -name \*.py -exec pep8 {} +
-
-
     - name: Test with pytest
       run: |
         pytest ../qlib
-    
-    - name: Test documents
-      run: |
-        pip install sphinx sphinx_rtd_theme
-        make html
 
     - name: Test data downloads and examples
       run: |
