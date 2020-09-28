@@ -56,6 +56,11 @@ Document Structure
 
 .. toctree::
    :maxdepth: 3
+
+   FAQ <FAQ/FAQ.rst>
+
+.. toctree::
+   :maxdepth: 3
    :caption: Change Log:
 
    Change Log <changelog/changelog.rst>
