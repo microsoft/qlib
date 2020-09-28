@@ -17,7 +17,7 @@ model:
     num_leaves: 210
     num_threads: 20
 data:
-  class: QLibDataHandlerClose
+  class: Alpha158
   args:
     dropna_label: True
   filter:

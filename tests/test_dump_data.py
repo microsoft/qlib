@@ -25,7 +25,7 @@ QLIB_DIR.mkdir(exist_ok=True, parents=True)
 
 
 class TestDumpData(unittest.TestCase):
-    FIELDS = "open,close,high,low,volume,factor,change".split(",")
+    FIELDS = "open,close,high,low,volume".split(",")
     QLIB_FIELDS = list(map(lambda x: f"${x}", FIELDS))
     DUMP_DATA = None
     STOCK_NAMES = None
