@@ -28,7 +28,9 @@ Steps to reproduce the behavior:
 
 ## Environment
 
- - Qlib version (use the command: `print(qlib.__version__)`):
+**Note**: One could run `python scripts/collect_info.py` under the `qlib` directory to get the following information.
+
+ - Qlib version:
  - Python version:
  - OS (`Windows`, `Linux`, `MacOS`):
  - Commit number (optional, please provide it if you are using the dev version):
