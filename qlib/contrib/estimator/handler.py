@@ -556,7 +556,7 @@ class QLibDataHandlerV1(ConfigQLibDataHandler):
         return df_labels
 
 
-class QLibDataHandlerClose(QLibDataHandlerV1):
+class Alpha158(QLibDataHandlerV1):
     config_template = {
         'kbar': {},
         'price': {
@@ -568,7 +568,7 @@ class QLibDataHandlerClose(QLibDataHandlerV1):
 
     def _init_kwargs(self, **kwargs):
         kwargs['labels'] = ["Ref($close, -2)/Ref($close, -1) - 1"]
-        super(QLibDataHandlerClose, self)._init_kwargs(**kwargs)
+        super(Alpha158, self)._init_kwargs(**kwargs)
 
 
 # if __name__ == '__main__':

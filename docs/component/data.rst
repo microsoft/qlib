@@ -207,14 +207,14 @@ Example
 
 Know more about how to run ``Data Handler`` with ``Estimator``, please refer to `Estimator: Workflow Management <estimator.html>`_
 
-Qlib provides implemented data handler `QLibDataHandlerClose`. The following example shows how to run `QLibDataHandlerV1` as a single module. 
+Qlib provides implemented data handler `Alpha158`. The following example shows how to run `QLibDataHandlerV1` as a single module.
 
 .. note:: Users need to initialize ``Qlib`` with `qlib.init` first, please refer to `initialization <../start/initialization.html>`_.
 
 
 .. code-block:: Python
 
-    from qlib.contrib.estimator.handler import QLibDataHandlerClose
+    from qlib.contrib.estimator.handler import Alpha158
     from qlib.contrib.model.gbdt import LGBModel
 
     DATA_HANDLER_CONFIG = {
@@ -233,7 +233,7 @@ Qlib provides implemented data handler `QLibDataHandlerClose`. The following exa
         "test_end_date": "2020-08-01",
     }
 
-    exampleDataHandler = QLibDataHandlerClose(**DATA_HANDLER_CONFIG)
+    exampleDataHandler = Alpha158(**DATA_HANDLER_CONFIG)
 
     # example of 'get_split_data'
     x_train, y_train, x_validate, y_validate, x_test, y_test = exampleDataHandler.get_split_data(**TRAINER_CONFIG)

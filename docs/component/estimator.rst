@@ -50,7 +50,7 @@ Below is a typical config file of ``Estimator``.
         num_leaves: 210
         num_threads: 20
     data:
-      class: QLibDataHandlerClose
+      class: Alpha158
       args:
         dropna_label: True
       filter:
@@ -291,7 +291,7 @@ Users can use the specified data handler by config as follows.
 .. code-block:: YAML
 
     data:
-        class: QLibDataHandlerClose
+        class: Alpha158
         args:
             start_date: 2005-01-01
             end_date: 2018-04-30  

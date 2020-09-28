@@ -121,7 +121,7 @@ Example
 - Run the following code to get the `prediction score` `pred_score`
     .. code-block:: Python
 
-        from qlib.contrib.estimator.handler import QLibDataHandlerClose
+        from qlib.contrib.estimator.handler import Alpha158
         from qlib.contrib.model.gbdt import LGBModel
 
         DATA_HANDLER_CONFIG = {
@@ -140,7 +140,7 @@ Example
             "test_end_date": "2020-08-01",
         }
 
-        x_train, y_train, x_validate, y_validate, x_test, y_test = QLibDataHandlerClose(
+        x_train, y_train, x_validate, y_validate, x_test, y_test = Alpha158(
             **DATA_HANDLER_CONFIG
         ).get_split_data(**TRAINER_CONFIG)
 
@@ -163,7 +163,7 @@ Example
         pred_score = pd.DataFrame(index=_pred.index)
         pred_score["score"] = _pred.iloc(axis=1)[0]
 
-    .. note:: `QLibDataHandlerClose` is the data handler provided by ``Qlib``, please refer to `Data Handler <data.html#data-handler>`_.
+    .. note:: `Alpha158` is the data handler provided by ``Qlib``, please refer to `Data Handler <data.html#data-handler>`_.
 
 Also, the above example has been given in ``examples/train_backtest_analyze.ipynb``.
 
