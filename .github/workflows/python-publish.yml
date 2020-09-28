@@ -41,6 +41,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.7
+    - name: Install dependencies
+      run: |
+        pip install twine  
     - name: Build wheel on Linux
       uses: RalfG/python-wheels-manylinux-build@v0.3.1-manylinux2010_x86_64
       with:
