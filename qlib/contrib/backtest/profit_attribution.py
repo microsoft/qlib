@@ -33,7 +33,7 @@ def get_benchmark_weight(
 
     """
     if not path:
-        path = Path(C.mount_path).expanduser() / "raw" / "AIndexMembers" / "weights.csv"
+        path = Path(C.get_data_path()).expanduser() / "raw" / "AIndexMembers" / "weights.csv"
     # TODO: the storage of weights should be implemented in a more elegent way
     # TODO: The benchmark is not consistant with the filename in instruments.
     bench_weight_df = pd.read_csv(path, usecols=["code", "date", "index", "weight"])
