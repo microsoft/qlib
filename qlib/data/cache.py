@@ -388,10 +388,7 @@ class DiskExpressionCache(ExpressionCache):
         self.r = get_redis_connection()
         # remote==True means client is using this module, writing behaviour will not be allowed.
         self.remote = kwargs.get("remote", False)
-        if self.remote:
-            self.expr_cache_path = os.path.join(C.mount_path, C.features_cache_dir_name)
-        else:
-            self.expr_cache_path = os.path.join(C.provider_uri, C.features_cache_dir_name)
+        self.expr_cache_path = os.path.join(C.get_data_path(), C.features_cache_dir_name)
         os.makedirs(self.expr_cache_path, exist_ok=True)
 
     def _uri(self, instrument, field, start_time, end_time, freq):
@@ -562,10 +559,7 @@ class DiskDatasetCache(DatasetCache):
         super(DiskDatasetCache, self).__init__(provider)
         self.r = get_redis_connection()
         self.remote = kwargs.get("remote", False)
-        if self.remote:
-            self.dtst_cache_path = os.path.join(C.mount_path, C.dataset_cache_dir_name)
-        else:
-            self.dtst_cache_path = os.path.join(C.provider_uri, C.dataset_cache_dir_name)
+        self.dtst_cache_path = os.path.join(C.get_data_path(), C.dataset_cache_dir_name)
         os.makedirs(self.dtst_cache_path, exist_ok=True)
 
     @staticmethod
@@ -1003,7 +997,7 @@ class DatasetURICache(DatasetCache):
         # use ClientDatasetProvider
         feature_uri = self._uri(instruments, fields, None, None, freq, disk_cache=disk_cache)
         value, expire = MemCacheExpire.get_cache(H["f"], feature_uri)
-        mnt_feature_uri = os.path.join(C.mount_path, C.dataset_cache_dir_name, feature_uri)
+        mnt_feature_uri = os.path.join(C.get_data_path(), C.dataset_cache_dir_name, feature_uri)
         if value is None or expire or not os.path.exists(mnt_feature_uri):
             df, uri = self.provider.dataset(
                 instruments, fields, start_time, end_time, freq, disk_cache, return_uri=True
@@ -1014,7 +1008,7 @@ class DatasetURICache(DatasetCache):
             # HZ['f'][uri] = df.copy()
             get_module_logger("cache").debug(f"get feature from {C.dataset_provider}")
         else:
-            mnt_feature_uri = os.path.join(C.mount_path, C.dataset_cache_dir_name, feature_uri)
+            mnt_feature_uri = os.path.join(C.get_data_path(), C.dataset_cache_dir_name, feature_uri)
             df = DiskDatasetCache.read_data_from_cache(mnt_feature_uri, start_time, end_time, fields)
             get_module_logger("cache").debug("get feature from uri cache")
 

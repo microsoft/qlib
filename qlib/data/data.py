@@ -502,10 +502,7 @@ class LocalCalendarProvider(CalendarProvider):
     @property
     def _uri_cal(self):
         """Calendar file uri."""
-        if self.remote:
-            return os.path.join(C.mount_path, "calendars", "{}.txt")
-        else:
-            return os.path.join(C.provider_uri, "calendars", "{}.txt")
+        return os.path.join(C.get_data_path(), "calendars", "{}.txt")
 
     def _load_calendar(self, freq, future):
         """Load original calendar timestamp from file.
@@ -568,7 +565,7 @@ class LocalInstrumentProvider(InstrumentProvider):
     @property
     def _uri_inst(self):
         """Instrument file uri."""
-        return os.path.join(C.provider_uri, "instruments", "{}.txt")
+        return os.path.join(C.get_data_path(), "instruments", "{}.txt")
 
     def _load_instruments(self, market):
         fname = self._uri_inst.format(market)
@@ -637,10 +634,7 @@ class LocalFeatureProvider(FeatureProvider):
     @property
     def _uri_data(self):
         """Static feature file uri."""
-        if self.remote:
-            return os.path.join(C.mount_path, "features", "{}", "{}.{}.bin")
-        else:
-            return os.path.join(C.provider_uri, "features", "{}", "{}.{}.bin")
+        return os.path.join(C.get_data_path(), "features", "{}", "{}.{}.bin")
 
     def feature(self, instrument, field, start_index, end_index, freq):
         # validate
@@ -914,7 +908,7 @@ class ClientDatasetProvider(DatasetProvider):
             get_module_logger("data").debug("get result")
             try:
                 # pre-mound nfs, used for demo
-                mnt_feature_uri = os.path.join(C.mount_path, C.dataset_cache_dir_name, feature_uri)
+                mnt_feature_uri = os.path.join(C.get_data_path(), C.dataset_cache_dir_name, feature_uri)
                 df = DiskDatasetCache.read_data_from_cache(mnt_feature_uri, start_time, end_time, fields)
                 get_module_logger("data").debug("finish slicing data")
                 if return_uri:
