@@ -2,7 +2,7 @@
 
 Here is the minimal hardware requirements to run the example.
 - Memory: 16G
-- Free Dick: 5G
+- Free Disk: 5G
 
 
 # NOTE
