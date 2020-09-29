@@ -9,9 +9,15 @@ import numpy as np
 import pandas as pd
 
 from .base import Expression, ExpressionOps
-from ._libs.rolling import rolling_slope, rolling_rsquare, rolling_resi
-from ._libs.expanding import expanding_slope, expanding_rsquare, expanding_resi
 from ..log import get_module_logger
+
+try:
+    from ._libs.rolling import rolling_slope, rolling_rsquare, rolling_resi
+    from ._libs.expanding import expanding_slope, expanding_rsquare, expanding_resi
+except ImportError as err:
+    print(err)
+    print('Do not import qlib package in the repository directory')
+    exit(-1)
 
 __all__ = (
     "Ref",
