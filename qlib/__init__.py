@@ -44,7 +44,7 @@ def init(default_conf="client", **kwargs):
         if k not in C:
             LOG.warning("Unrecognized config %s" % k)
 
-    C.set_region(kwargs.get('region', REG_CN))
+    C.set_region(kwargs.get('region', C['region'] if 'region' in C else REG_CN ))
     C.resolve_path()
 
     if not (C["expression_cache"] is None and C["dataset_cache"] is None):
