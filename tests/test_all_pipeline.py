@@ -141,14 +141,14 @@ class TestAllFlow(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         # use default data
-        provier_uri = "~/.qlib/qlib_data/cn_data"  # target_dir
-        if not exists_qlib_data(provier_uri):
-            print(f"Qlib data is not found in {provier_uri}")
+        provider_uri = "~/.qlib/qlib_data/cn_data"  # target_dir
+        if not exists_qlib_data(provider_uri):
+            print(f"Qlib data is not found in {provider_uri}")
             sys.path.append(str(Path(__file__).resolve().parent.parent.joinpath("scripts")))
             from get_data import GetData
 
-            GetData().qlib_data_cn(provier_uri)
-        qlib.init(provier_uri=provier_uri, region=REG_CN)
+            GetData().qlib_data_cn(provider_uri)
+        qlib.init(provider_uri=provider_uri, region=REG_CN)
 
     def test_0_train(self):
         TestAllFlow.PRED_SCORE, model_pearsonr = train()
