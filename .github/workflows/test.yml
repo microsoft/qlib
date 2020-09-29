@@ -12,8 +12,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-16.04, ubuntu-18.04, windows-latest, macos-latest]
-        python-version: [3.5, 3.6, 3.7, 3.8]
+        os: [windows-latest, ubuntu-16.04, ubuntu-18.04, macos-latest]
+        python-version: [3.6, 3.7, 3.8]
 
     steps:
     - uses: actions/checkout@v2
@@ -27,14 +27,18 @@ jobs:
       run: |
         pip install --upgrade cython
         pip install numpy jupyter jupyter_contrib_nbextensions
-        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
         python setup.py install
+
+    - name: Install Lightgbm for MacOS
+      if: runner.os == 'macOS'
+      run: |
+        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
+        brew install lightgbm
 
     - name: Install test dependencies
       run: |
         python -m pip install --upgrade pip
         pip install flake8 pytest
-        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
     - name: Lint with flake8
       run: |
@@ -43,13 +47,14 @@ jobs:
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
-    - name: Test with pytest
+    - name: Unit tests with Pytest
       run: |
-        pytest ../qlib
+        cd tests
+        pytest . --duration==0
 
     - name: Test data downloads and examples
       run: |
         python scripts/get_data.py qlib_data_cn --target_dir ~/.qlib/qlib_data/cn_data
         cd examples
         estimator -c estimator/estimator_config.yaml
-        jupyter nbconvert --execute estimator/analyze_from_estimator.ipynb
+        jupyter nbconvert --execute estimator/analyze_from_estimator.ipynb --to html
