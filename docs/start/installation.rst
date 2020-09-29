@@ -27,9 +27,6 @@ Please follow the steps below to install ``Qlib``:
 
 .. note::
    It's recommended to use anaconda/miniconda to setup the environment. ``Qlib`` needs lightgbm and pytorch packages, use pip to install them.
-
-.. note::
-   Do not import qlib in the root directory of ``Qlib``, otherwise, errors may occur.
    
 
 

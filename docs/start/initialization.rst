@@ -28,7 +28,8 @@ Please follow the steps below to initialize ``Qlib``.
         provider_uri = "~/.qlib/qlib_data/cn_data"  # target_dir
         qlib.init(provider_uri=provider_uri, region=REG_CN)
     
-
+.. note::
+   Do not import qlib package in the repository directory  of ``Qlib``, otherwise, errors may occur.
 
 Parameters
 -------------------
