@@ -5,9 +5,9 @@
 [![License](https://img.shields.io/pypi/l/pyqlib)](https://github.com/microsoft/qlib/blob/main/LICENSE)
 [![Join the chat at https://gitter.im/Microsoft/qlib](https://badges.gitter.im/Microsoft/qlib.svg)](https://gitter.im/Microsoft/qlib?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-<div style="text-align: center">
-<img src="http://fintech.msra.cn/images/logo/white_bg_rec+word.png" />
-</div>
+<p align="center">
+  <img src="http://fintech.msra.cn/images/logo/1.png" />
+</p>
 
 
 Qlib is an AI-oriented quantitative investment platform, which aims to realize the potential, empower the research, and create the value of AI technologies in quantitative investment.
