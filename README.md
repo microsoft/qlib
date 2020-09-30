@@ -95,7 +95,7 @@ This dataset is created by public data collected by [crawler scripts](scripts/da
 the same repository.
 Users could create the same dataset with it. 
 
-*Please pay **ATTENTION** that the data is collected from [Yahoo Finance](https://finance.yahoo.com/lookup) and the data might not be perfect. We recommend users to prepare their own data if they have high-quality dataset. For more information, users can refer to the [related document](https://qlib.readthedocs.io/en/latest/component/data.html#converting-csv-format-into-qlib-format)*
+*Please pay **ATTENTION** that the data is collected from [Yahoo Finance](https://finance.yahoo.com/lookup) and the data might not be perfect. We recommend users to prepare their own data if they have high-quality dataset. For more information, users can refer to the [related document](https://qlib.readthedocs.io/en/latest/component/data.html#converting-csv-format-into-qlib-format)*.
 
 <!-- 
 - Run the initialization code and get stock data:
@@ -127,7 +127,7 @@ Users could create the same dataset with it.
 ## Auto Quant Research Workflow
 Qlib provides a tool named `Estimator` to run the whole workflow automatically (including building dataset, training models, backtest and evaluation). You can start an auto quant research workflow and have a graphical reports analysis according to the following steps: 
 
-1. Quant Research Workflow: Run  `Estimator` with [estimator_config.yaml](examples/estimator/estimator_config.yaml) as following.
+1. Quant Research Workflow: Run  `Estimator` with [estimator_config.yaml](examples/estimator/estimator_config.yaml) as following. (*Please note that this may **not work** under MacOS with Python 3.8 due to the incompatibility of the `sacred` package we use with Python 3.8. We will fix this bug in the future.*)
     ```bash
       cd examples  # Avoid running program under the directory contains `qlib`
       estimator -c estimator/estimator_config.yaml

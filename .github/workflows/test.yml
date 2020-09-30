@@ -55,6 +55,6 @@ jobs:
     - name: Test data downloads and examples
       run: |
         python scripts/get_data.py qlib_data_cn --target_dir ~/.qlib/qlib_data/cn_data
-        cd examples
-        estimator -c estimator/estimator_config.yaml
-        jupyter nbconvert --execute estimator/analyze_from_estimator.ipynb --to html
+        # cd examples
+        # estimator -c estimator/estimator_config.yaml
+        # jupyter nbconvert --execute estimator/analyze_from_estimator.ipynb --to html
