@@ -141,13 +141,13 @@ class TestAllFlow(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         # use default data
-        provider_uri = "~/.qlib/qlib_data/cn_data"  # target_dir
+        provider_uri = "~/.qlib/qlib_data/cn_data_simple"  # target_dir
         if not exists_qlib_data(provider_uri):
             print(f"Qlib data is not found in {provider_uri}")
             sys.path.append(str(Path(__file__).resolve().parent.parent.joinpath("scripts")))
             from get_data import GetData
 
-            GetData().qlib_data_cn(provider_uri)
+            GetData().qlib_data_cn(name="qlib_data_cn_simple", target_dir=provider_uri)
         qlib.init(provider_uri=provider_uri, region=REG_CN)
 
     def test_0_train(self):
