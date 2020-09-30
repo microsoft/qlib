@@ -158,3 +158,7 @@ Version 0.5.0
     - Refine the docs, code
     - Add baselines
     - public data crawler
+
+Version greater than Version 0.5.0
+----------------------------------
+Please refer to `Github release Notes <https://github.com/microsoft/qlib/releases>`_
