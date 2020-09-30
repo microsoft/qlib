@@ -60,7 +60,13 @@ This quick start guide tries to demonstrate
 
 ## Installation
 
-Users can easily intsall ``Qlib`` according to the following steps:
+Users can easily install ``Qlib`` by pip according to the following command
+
+```bash
+  pip install pyqlib
+```
+
+Also, Users can install ``Qlib`` by the source code according to the following steps:
 
 * Before installing ``Qlib`` from source, users need to install some dependencies:
 
