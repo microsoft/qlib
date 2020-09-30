@@ -131,7 +131,7 @@ class YahooCollector:
             self.save_stock(_symbol, max(_df_list, key=len))
 
         logger.warning(f"less than {MIN_NUMBERS_TRADING} stock list: {list(self._mini_symbol_map.keys())}")
-        
+
         self.download_csi300_data()
 
     def download_csi300_data(self):
