@@ -4,6 +4,7 @@
 [![Documentation Status](https://readthedocs.org/projects/qlib/badge/?version=latest)](https://qlib.readthedocs.io/en/latest/?badge=latest)
 [![License](https://img.shields.io/pypi/l/pyqlib)](https://github.com/microsoft/qlib/blob/main/LICENSE)
 [![Join the chat at https://gitter.im/Microsoft/qlib](https://badges.gitter.im/Microsoft/qlib.svg)](https://gitter.im/Microsoft/qlib?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+![Upload Python Package](https://github.com/microsoft/qlib/workflows/Upload%20Python%20Package/badge.svg)
 
 <p align="center">
   <img src="http://fintech.msra.cn/images/logo/1.png" />
