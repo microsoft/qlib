@@ -8,11 +8,11 @@ on:
     types: [created]
 
 jobs:
-  deploy_windows:
-
-    runs-on: windows-latest
+  deploy_with_bdist_wheel:
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
+        os: [windows-latest, macos-latest]
         python-version: [3.6, 3.7, 3.8]
 
     steps:
@@ -37,7 +37,7 @@ jobs:
       run: |
         twine upload dist/*
         
-  deploy_linux:
+  deploy_with_manylinux:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
