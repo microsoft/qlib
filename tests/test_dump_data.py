@@ -17,7 +17,7 @@ from get_data import GetData
 from dump_bin import DumpData
 
 
-DATA_DIR = Path(__file__).parent.joinpath("test_data")
+DATA_DIR = Path(__file__).parent.joinpath("test_dump_data")
 SOURCE_DIR = DATA_DIR.joinpath("source")
 SOURCE_DIR.mkdir(exist_ok=True, parents=True)
 QLIB_DIR = DATA_DIR.joinpath("qlib")

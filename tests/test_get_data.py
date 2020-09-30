@@ -12,7 +12,7 @@ from get_data import GetData
 import qlib
 from qlib.data import D
 
-DATA_DIR = Path(__file__).parent.joinpath("test_data")
+DATA_DIR = Path(__file__).parent.joinpath("test_get_data")
 SOURCE_DIR = DATA_DIR.joinpath("source")
 SOURCE_DIR.mkdir(exist_ok=True, parents=True)
 QLIB_DIR = DATA_DIR.joinpath("qlib")
