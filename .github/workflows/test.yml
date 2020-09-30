@@ -50,7 +50,7 @@ jobs:
     - name: Unit tests with Pytest
       run: |
         cd tests
-        pytest . --duration==0
+        pytest . --durations=0
 
     - name: Test data downloads and examples
       run: |
