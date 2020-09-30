@@ -207,14 +207,15 @@ class QlibConfig(Config):
     def resolve_path(self):
         # resolve path
         if self["mount_path"] is not None:
-            self["mount_path"]= str(Path(self["mount_path"]).expanduser().resolve())
+            self["mount_path"] = str(Path(self["mount_path"]).expanduser().resolve())
 
         if self.get_uri_type() == QlibConfig.LOCAL_URI:
             self["provider_uri"] = str(Path(self["provider_uri"]).expanduser().resolve())
 
     def get_uri_type(self):
         rm = re.match("^[^/ ]+:.+", self["provider_uri"])
-        if rm is None:
+        # Windows path is "C:\\"
+        if rm is None or Path(self["provider_uri"]).exists():
             return QlibConfig.LOCAL_URI
         else:
             return QlibConfig.NFS_URI
