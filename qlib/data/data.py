@@ -459,7 +459,7 @@ class DatasetProvider(object):
         return data
 
     @staticmethod
-    def expression_calculator(inst, start_time, end_time, freq, column_names, spans=None, C=None):
+    def expression_calculator(inst, start_time, end_time, freq, column_names, spans=None, g_config=None):
         """
         Calculate the expressions for one instrument, return a df result.
         If the expression has been calculated before, load from cache.
@@ -467,6 +467,9 @@ class DatasetProvider(object):
         return value: A data frame with index 'datetime' and other data columns.
 
         """
+        # FIXME: Windows OS or MacOS using spawn: https://docs.python.org/3.8/library/multiprocessing.html?highlight=spawn#contexts-and-start-methods
+        global C
+        C = g_config
         # NOTE: This place is compatible with windows, windows multi-process is spawn
         if getattr(ExpressionD, "_provider", None) is None:
             register_all_wrappers()
