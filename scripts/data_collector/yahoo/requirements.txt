@@ -1,4 +1,4 @@
-logure
+loguru
 fire
 requests
 numpy
