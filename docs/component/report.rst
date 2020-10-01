@@ -51,7 +51,7 @@ API
 Graphical Result
 ~~~~~~~~~~~~~~~~
 
-.. note:: 
+.. note::
 
     - Axis X: Trading day
     - Axis Y: 
