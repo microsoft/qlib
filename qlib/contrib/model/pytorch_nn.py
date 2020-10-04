@@ -133,11 +133,14 @@ class DNNModelPytorch(Model):
         )
 
         self._fitted = False
-        self.dnn_model.cuda()
+        self.use_gpu = torch.cuda.is_available()
 
-        # set the visible GPU
-        if self.visible_GPU:
-            os.environ["CUDA_VISIBLE_DEVICES"] = self.visible_GPU
+        if self.use_gpu:
+            self.dnn_model.cuda()
+
+            # set the visible GPU
+            if self.visible_GPU:
+                os.environ["CUDA_VISIBLE_DEVICES"] = self.visible_GPU
 
     def fit(
         self,
@@ -175,13 +178,14 @@ class DNNModelPytorch(Model):
         train_num = y_train_values.shape[0]
 
         # prepare validation data
-        x_val_cuda = torch.from_numpy(x_valid.values).float()
-        y_val_cuda = torch.from_numpy(y_valid.values).float()
-        w_val_cuda = torch.from_numpy(w_valid.values).float()
+        x_val_auto = torch.from_numpy(x_valid.values).float()
+        y_val_auto = torch.from_numpy(y_valid.values).float()
+        w_val_auto = torch.from_numpy(w_valid.values).float()
 
-        x_val_cuda = x_val_cuda.cuda()
-        y_val_cuda = y_val_cuda.cuda()
-        w_val_cuda = w_val_cuda.cuda()
+        if self.use_gpu:
+            x_val_auto = x_val_auto.cuda()
+            y_val_auto = y_val_auto.cuda()
+            w_val_auto = w_val_auto.cuda()
 
         for step in range(self.max_steps):
             if stop_steps >= self.early_stop_rounds:
@@ -193,17 +197,18 @@ class DNNModelPytorch(Model):
             self.train_optimizer.zero_grad()
 
             choice = np.random.choice(train_num, self.batch_size)
-            x_batch = x_train_values[choice]
-            y_batch = y_train_values[choice]
-            w_batch = w_train_values[choice]
+            x_batch_auto = x_train_values[choice]
+            y_batch_auto = y_train_values[choice]
+            w_batch_auto = w_train_values[choice]
 
-            x_batch_cuda = x_batch.float().cuda()
-            y_batch_cuda = y_batch.float().cuda()
-            w_batch_cuda = w_batch.float().cuda()
+            if self.use_gpu:
+                x_batch_auto = x_batch_auto.float().cuda()
+                y_batch_auto = y_batch_auto.float().cuda()
+                w_batch_auto = w_batch_auto.float().cuda()
 
             # forward
-            preds = self.dnn_model(x_batch_cuda)
-            cur_loss = self.get_loss(preds, w_batch_cuda, y_batch_cuda, self.loss_type)
+            preds = self.dnn_model(x_batch_auto)
+            cur_loss = self.get_loss(preds, w_batch_auto, y_batch_auto, self.loss_type)
             cur_loss.backward()
             self.train_optimizer.step()
             loss.update(cur_loss.item())
@@ -220,8 +225,8 @@ class DNNModelPytorch(Model):
                     loss_val = AverageMeter()
 
                     # forward
-                    preds = self.dnn_model(x_val_cuda)
-                    cur_loss_val = self.get_loss(preds, w_val_cuda, y_val_cuda, self.loss_type)
+                    preds = self.dnn_model(x_val_auto)
+                    cur_loss_val = self.get_loss(preds, w_val_auto, y_val_auto, self.loss_type)
                     loss_val.update(cur_loss_val.item())
                 if verbose:
                     self.logger.info(
@@ -245,7 +250,8 @@ class DNNModelPytorch(Model):
 
         # restore the optimal parameters after training ??
         self.dnn_model.load_state_dict(torch.load(save_path))
-        torch.cuda.empty_cache()
+        if self.use_gpu:
+            torch.cuda.empty_cache()
 
     def get_loss(self, pred, w, target, loss_type):
         if loss_type == "mse":
@@ -261,11 +267,16 @@ class DNNModelPytorch(Model):
     def predict(self, x_test):
         if not self._fitted:
             raise ValueError("model is not fitted yet!")
-        x_test = torch.from_numpy(x_test.values).float().cuda()
+        x_test = torch.from_numpy(x_test.values).float()
+        if self.use_gpu:
+            x_test = x_test.cuda()
         self.dnn_model.eval()
 
         with torch.no_grad():
-            preds = self.dnn_model(x_test).detach().cpu().numpy()
+            if self.use_gpu:
+                preds = self.dnn_model(x_test).detach().cpu().numpy()
+            else:
+                preds = self.dnn_model(x_test).detach().numpy()
         return preds
 
     def score(self, x_test, y_test, w_test=None):

@@ -44,7 +44,7 @@ Besides `provider_uri` and `region`, `qlib.init` has other parameters. The follo
         - ``qlib.config.REG_US``: US stock market.
         - ``qlib.config.REG_CN``: China stock market.
 
-        Different modse will result in different trading limitations and costs.
+        Different modes will result in different trading limitations and costs.
 - `redis_host`
     Type: str, optional parameter(default: "127.0.0.1"), host of `redis`
         The lock and cache mechanism relies on redis.

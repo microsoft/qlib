@@ -574,10 +574,24 @@ The `qlib_data` field describes the parameters of qlib initialization.
       region: "cn"
     
 - `provider_uri`
-    The local directory where the data loaded by 'get_data.py' is stored.
+    Type: str. The URI of the Qlib data. For example, it could be the location where the data loaded by ``get_data.py`` are stored.
 - `region`
-    - If region == ``qlib.config.REG_CN``, 'qlib' will be initialized in US-stock mode. 
-    - If region == ``qlib.config.REG_US``, 'qlib' will be initialized in china-stock mode.
+    - If `region` == "us", ``Qlib`` will be initialized in US-stock mode. 
+    - If `region` == "cn", ``Qlib`` will be initialized in china-stock mode.
+- `redis_host`
+    Type: str, optional parameter(default: "127.0.0.1"), host of `redis`
+        The lock and cache mechanism relies on redis.
+- `redis_port`
+    Type: int, optional parameter(default: 6379), port of `redis`
+
+    .. note:: 
+        
+        The value of `region` should be aligned with the data stored in `provider_uri`. Currently, ``scripts/get_data.py`` only provides China stock market data. If users want to use the US stock market data, they should prepare their own US-stock data in `provider_uri` and switch to US-stock mode.
+
+    .. note::
+        
+        If Qlib fails to connect redis via `redis_host` and `redis_port`, cache mechanism will not be used! Please refer to `Cache <data.html#cache>`_ for details.
+
 
 Please refer to `Initialization <../start/initialization.html>`_.
 

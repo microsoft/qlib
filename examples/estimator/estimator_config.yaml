@@ -51,3 +51,4 @@ qlib_data:
   # when testing, please modify the following parameters according to the specific environment
   provider_uri: "~/.qlib/qlib_data/cn_data"
   region: "cn"
+  redis_port: 1222
