@@ -47,7 +47,7 @@ class DNNModelPytorch(Model):
         self,
         input_dim,
         output_dim,
-        layers=(256, 256, 128),
+        layers=(256, 512, 768, 1024, 768, 512, 256, 128, 64),
         lr=0.001,
         max_steps=300,
         batch_size=2000,
@@ -76,6 +76,7 @@ class DNNModelPytorch(Model):
         self.optimizer = optimizer.lower()
         self.loss_type = loss
         self.visible_GPU = GPU
+        self.use_gpu = torch.cuda.is_available()
 
         self.logger.info(
             "DNN parameters setting:"
@@ -90,7 +91,8 @@ class DNNModelPytorch(Model):
             "\noptimizer : {}"
             "\nloss_type : {}"
             "\neval_steps : {}"
-            "\nvisible_GPU : {}".format(
+            "\nvisible_GPU : {}"
+            "\nuse_GPU : {}".format(
                 layers,
                 lr,
                 max_steps,
@@ -103,6 +105,7 @@ class DNNModelPytorch(Model):
                 loss,
                 eval_steps,
                 GPU,
+                self.use_gpu,
             )
         )
 
@@ -133,7 +136,7 @@ class DNNModelPytorch(Model):
         )
 
         self._fitted = False
-        self.use_gpu = torch.cuda.is_available()
+        
 
         if self.use_gpu:
             self.dnn_model.cuda()
@@ -327,20 +330,20 @@ class AverageMeter(object):
 
 
 class Net(nn.Module):
-    def __init__(self, input_dim, output_dim, layers=(256, 256, 256), loss="mse"):
+    def __init__(self, input_dim, output_dim, layers=(256, 512, 768, 512, 256, 128, 64), loss="mse"):
         super(Net, self).__init__()
         layers = [input_dim] + list(layers)
         dnn_layers = []
-        drop_input = nn.Dropout(0.1)
+        drop_input = nn.Dropout(0.05)
         dnn_layers.append(drop_input)
         for i, (input_dim, hidden_units) in enumerate(zip(layers[:-1], layers[1:])):
             fc = nn.Linear(input_dim, hidden_units)
             activation = nn.ReLU()
             bn = nn.BatchNorm1d(hidden_units)
-            drop = nn.Dropout(0.1)
-            seq = nn.Sequential(fc, bn, activation, drop)
+            seq = nn.Sequential(fc, bn, activation)
             dnn_layers.append(seq)
-
+        drop_input = nn.Dropout(0.05)
+        dnn_layers.append(drop_input)
         if loss == "mse":
             fc = nn.Linear(hidden_units, output_dim)
             dnn_layers.append(fc)

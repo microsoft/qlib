@@ -48,11 +48,8 @@ backtest:
     open_cost: 0.0005
     close_cost: 0.0015
     min_cost: 5
-  long_short_backtest_args:
-    topk: 50
 
 qlib_data:
   # when testing, please modify the following parameters according to the specific environment
   provider_uri: "~/.qlib/qlib_data/cn_data"
   region: "cn"
-  redis_port: 1222
