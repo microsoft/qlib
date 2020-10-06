@@ -68,7 +68,7 @@ Users can easily install ``Qlib`` by pip according to the following command
   pip install pyqlib
 ```
 
-Also, Users can install ``Qlib`` by the source code according to the following steps:
+Also, users can install ``Qlib`` by the source code according to the following steps:
 
 * Before installing ``Qlib`` from source, users need to install some dependencies:
 
@@ -197,7 +197,7 @@ Dataset plays a very important role in Quant. Here is a list of the datasets bui
 - [Alpha360](./qlib/contrib/estimator/handler.py)
 - [Alpha158](./qlib/contrib/estimator/handler.py)
 
-Here is a tutorial to build dataset with `Qlib`.
+[Here](https://qlib.readthedocs.io/en/latest/advanced/alpha.html) is a tutorial to build dataset with `Qlib`.
 Your PR to build new Quant dataset is highly welcomed.
 
 # More About Qlib
