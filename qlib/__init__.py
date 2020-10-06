@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 
-__version__ = "0.5.1"
+__version__ = "0.5.1.dev0"
 
 import os
 import copy
