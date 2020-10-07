@@ -186,14 +186,14 @@ The automatic workflow may not suite the research workflow of all Quant research
 
 # Quant Model Zoo
 
-Here is a list of models build on `Qlib`.
+Here is a list of models built on `Qlib`.
 - [GBDT based on lightgbm](qlib/contrib/model/gbdt.py)
 - [MLP based on pytroch](qlib/contrib/model/pytorch_nn.py)
 
 Your PR of new Quant models is highly welcomed.
 
 # Quant Dataset Zoo
-Dataset plays a very important role in Quant. Here is a list of the datasets build on `Qlib`.
+Dataset plays a very important role in Quant. Here is a list of the datasets built on `Qlib`.
 - [Alpha360](./qlib/contrib/estimator/handler.py)
 - [Alpha158](./qlib/contrib/estimator/handler.py)
 
