@@ -54,9 +54,9 @@ if __name__ == "__main__":
 
     # use default DataHandler
     # custom DataHandler, refer to: TODO: DataHandler API url
-    x_train, y_train, x_validate, y_validate, x_test, y_test = Alpha158(
-        **DATA_HANDLER_CONFIG
-    ).get_split_data(**TRAINER_CONFIG)
+    x_train, y_train, x_validate, y_validate, x_test, y_test = Alpha158(**DATA_HANDLER_CONFIG).get_split_data(
+        **TRAINER_CONFIG
+    )
 
     MODEL_CONFIG = {
         "loss": "mse",
@@ -114,6 +114,8 @@ if __name__ == "__main__":
     ###################################
     analysis = dict()
     analysis["excess_return_without_cost"] = risk_analysis(report_normal["return"] - report_normal["bench"])
-    analysis["excess_return_with_cost"] = risk_analysis(report_normal["return"] - report_normal["bench"] - report_normal["cost"])
+    analysis["excess_return_with_cost"] = risk_analysis(
+        report_normal["return"] - report_normal["bench"] - report_normal["cost"]
+    )
     analysis_df = pd.concat(analysis)  # type: pd.DataFrame
     print(analysis_df)

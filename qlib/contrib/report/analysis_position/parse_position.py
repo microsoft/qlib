@@ -20,13 +20,13 @@ def parse_position(position: dict = None) -> pd.DataFrame:
             print(position_df.head())
             # status: 0-hold, -1-sell, 1-buy
 
-                                        amount	    cash	  count	   price status	weight
-            instrument	datetime
-            SZ000547	2017-01-04	44.154290	211405.285654	1	205.189575	1	0.031255
-            SZ300202	2017-01-04	60.638845	211405.285654	1	154.356506	1	0.032290
-            SH600158	2017-01-04	46.531681	211405.285654	1	153.895142	1	0.024704
-            SH600545	2017-01-04	197.173093	211405.285654	1	48.607037	1	0.033063
-            SZ000930	2017-01-04	103.938300	211405.285654	1	80.759453	1	0.028958
+                                        amount      cash      count    price status weight
+            instrument  datetime
+            SZ000547    2017-01-04  44.154290   211405.285654   1   205.189575  1   0.031255
+            SZ300202    2017-01-04  60.638845   211405.285654   1   154.356506  1   0.032290
+            SH600158    2017-01-04  46.531681   211405.285654   1   153.895142  1   0.024704
+            SH600545    2017-01-04  197.173093  211405.285654   1   48.607037   1   0.033063
+            SZ000930    2017-01-04  103.938300  211405.285654   1   80.759453   1   0.028958
 
 
     """
@@ -63,15 +63,12 @@ def parse_position(position: dict = None) -> pd.DataFrame:
         # Trading day sell
         if not result_df.empty:
             _trading_day_sell_df = result_df.loc[
-                (result_df["date"] == previous_data["date"])
-                & (result_df.index.isin(_cur_day_sell))
+                (result_df["date"] == previous_data["date"]) & (result_df.index.isin(_cur_day_sell))
             ].copy()
             if not _trading_day_sell_df.empty:
                 _trading_day_sell_df["status"] = -1
                 _trading_day_sell_df["date"] = _trading_date
-                _trading_day_df = _trading_day_df.append(
-                    _trading_day_sell_df, sort=False
-                )
+                _trading_day_df = _trading_day_df.append(_trading_day_sell_df, sort=False)
 
         result_df = result_df.append(_trading_day_df, sort=True)
 
@@ -85,9 +82,7 @@ def parse_position(position: dict = None) -> pd.DataFrame:
     return result_df.set_index(["instrument", "datetime"])
 
 
-def _add_label_to_position(
-    position_df: pd.DataFrame, label_data: pd.DataFrame
-) -> pd.DataFrame:
+def _add_label_to_position(position_df: pd.DataFrame, label_data: pd.DataFrame) -> pd.DataFrame:
     """Concat position with custom label
 
     :param position_df: position DataFrame
@@ -98,16 +93,12 @@ def _add_label_to_position(
     _start_time = position_df.index.get_level_values(level="datetime").min()
     _end_time = position_df.index.get_level_values(level="datetime").max()
     label_data = label_data.loc(axis=0)[:, pd.to_datetime(_start_time) :]
-    _result_df = pd.concat([position_df, label_data], axis=1, sort=True).reindex(
-        label_data.index
-    )
+    _result_df = pd.concat([position_df, label_data], axis=1, sort=True).reindex(label_data.index)
     _result_df = _result_df.loc[_result_df.index.get_level_values(1) <= _end_time]
     return _result_df
 
 
-def _add_bench_to_position(
-    position_df: pd.DataFrame = None, bench: pd.Series = None
-) -> pd.DataFrame:
+def _add_bench_to_position(position_df: pd.DataFrame = None, bench: pd.Series = None) -> pd.DataFrame:
     """Concat position with bench
 
     :param position_df: position DataFrame
@@ -135,9 +126,7 @@ def _calculate_label_rank(df: pd.DataFrame) -> pd.DataFrame:
 
         # Sell: -1, Hold: 0, Buy: 1
         for i in [-1, 0, 1]:
-            g_df.loc[g_df["status"] == i, "rank_label_mean"] = g_df[
-                g_df["status"] == i
-            ]["rank_ratio"].mean()
+            g_df.loc[g_df["status"] == i, "rank_label_mean"] = g_df[g_df["status"] == i]["rank_ratio"].mean()
 
         g_df["excess_return"] = g_df[_label_name] - g_df[_label_name].mean()
         return g_df
@@ -181,7 +170,5 @@ def get_position_data(
     _date_list = _position_df.index.get_level_values(level="datetime")
     start_date = _date_list.min() if start_date is None else start_date
     end_date = _date_list.max() if end_date is None else end_date
-    _position_df = _position_df.loc[
-        (start_date <= _date_list) & (_date_list <= end_date)
-    ]
+    _position_df = _position_df.loc[(start_date <= _date_list) & (_date_list <= end_date)]
     return _position_df

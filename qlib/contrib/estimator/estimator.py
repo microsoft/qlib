@@ -186,7 +186,9 @@ class Estimator(object):
         # analysis["pred_short"] = risk_analysis(long_short_reports["short"])
         # analysis["pred_long_short"] = risk_analysis(long_short_reports["long_short"])
         analysis["excess_return_without_cost"] = risk_analysis(report_normal["return"] - report_normal["bench"])
-        analysis["excess_return_with_cost"] = risk_analysis(report_normal["return"] - report_normal["bench"] - report_normal["cost"])
+        analysis["excess_return_with_cost"] = risk_analysis(
+            report_normal["return"] - report_normal["bench"] - report_normal["cost"]
+        )
         analysis_df = pd.concat(analysis)  # type: pd.DataFrame
         TimeInspector.log_cost_time(
             "Finished generating analysis," " average turnover is: {0:.4f}.".format(report_normal["turnover"].mean())

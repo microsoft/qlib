@@ -36,9 +36,7 @@ def _get_cum_return_data_with_position(
         end_date=end_date,
     ).copy()
 
-    _cumulative_return_df["label"] = (
-        _cumulative_return_df["label"] - _cumulative_return_df["bench"]
-    )
+    _cumulative_return_df["label"] = _cumulative_return_df["label"] - _cumulative_return_df["bench"]
     _cumulative_return_df = _cumulative_return_df.dropna()
     df_gp = _cumulative_return_df.groupby(level="datetime")
     result_list = []
@@ -105,26 +103,20 @@ def _get_figure_with_position(
     :return:
     """
 
-    cum_return_df = _get_cum_return_data_with_position(
-        position, report_normal, label_data, start_date, end_date
-    )
+    cum_return_df = _get_cum_return_data_with_position(position, report_normal, label_data, start_date, end_date)
     cum_return_df = cum_return_df.set_index("date")
     # FIXME: support HIGH-FREQ
-    cum_return_df.index = cum_return_df.index.strftime('%Y-%m-%d')
+    cum_return_df.index = cum_return_df.index.strftime("%Y-%m-%d")
 
     # Create figures
     for _t_name in ["buy", "sell", "buy_minus_sell", "hold"]:
         sub_graph_data = [
             (
                 "cum_{}".format(_t_name),
-                dict(
-                    row=1, col=1, graph_kwargs={"mode": "lines+markers", "xaxis": "x3"}
-                ),
+                dict(row=1, col=1, graph_kwargs={"mode": "lines+markers", "xaxis": "x3"}),
             ),
             (
-                "{}_weight".format(
-                    _t_name.replace("minus", "plus") if "minus" in _t_name else _t_name
-                ),
+                "{}_weight".format(_t_name.replace("minus", "plus") if "minus" in _t_name else _t_name),
                 dict(row=2, col=1),
             ),
             (
@@ -240,13 +232,13 @@ def cumulative_return_graph(
 
             .. code-block:: python
 
-                                return	    cost	    bench	    turnover
+                                return      cost        bench       turnover
                 date
-                2017-01-04	0.003421	0.000864	0.011693	0.576325
-                2017-01-05	0.000508	0.000447	0.000721	0.227882
-                2017-01-06	-0.003321	0.000212	-0.004322	0.102765
-                2017-01-09	0.006753	0.000212	0.006874	0.105864
-                2017-01-10	-0.000416	0.000440	-0.003350	0.208396
+                2017-01-04  0.003421    0.000864    0.011693    0.576325
+                2017-01-05  0.000508    0.000447    0.000721    0.227882
+                2017-01-06  -0.003321   0.000212    -0.004322   0.102765
+                2017-01-09  0.006753    0.000212    0.006874    0.105864
+                2017-01-10  -0.000416   0.000440    -0.003350   0.208396
 
 
     :param label_data: `D.features` result; index is `pd.MultiIndex`, index name is [`instrument`, `datetime`]; columns names is [`label`].
@@ -256,12 +248,12 @@ def cumulative_return_graph(
             .. code-block:: python
 
                                                 label
-                instrument	datetime
-                SH600004        2017-12-11	-0.013502
-                                2017-12-12	-0.072367
-                                2017-12-13	-0.068605
-                                2017-12-14	0.012440
-                                2017-12-15	-0.102778
+                instrument  datetime
+                SH600004        2017-12-11  -0.013502
+                                2017-12-12  -0.072367
+                                2017-12-13  -0.068605
+                                2017-12-14  0.012440
+                                2017-12-15  -0.102778
 
 
     :param show_notebook: True or False. If True, show graph in notebook, else return figures
@@ -272,9 +264,7 @@ def cumulative_return_graph(
     position = copy.deepcopy(position)
     report_normal = report_normal.copy()
     label_data.columns = ["label"]
-    _figures = _get_figure_with_position(
-        position, report_normal, label_data, start_date, end_date
-    )
+    _figures = _get_figure_with_position(position, report_normal, label_data, start_date, end_date)
     if show_notebook:
         BaseGraph.show_graph_in_notebook(_figures)
     else:

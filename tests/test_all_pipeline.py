@@ -79,9 +79,9 @@ def train():
             model performance
     """
     # get data
-    x_train, y_train, x_validate, y_validate, x_test, y_test = Alpha158(
-        **DATA_HANDLER_CONFIG
-    ).get_split_data(**TRAINER_CONFIG)
+    x_train, y_train, x_validate, y_validate, x_test, y_test = Alpha158(**DATA_HANDLER_CONFIG).get_split_data(
+        **TRAINER_CONFIG
+    )
 
     # train
     model = LGBModel(**MODEL_CONFIG)
@@ -127,7 +127,9 @@ def backtest(pred):
 def analyze(report_normal):
     _analysis = dict()
     _analysis["excess_return_without_cost"] = risk_analysis(report_normal["return"] - report_normal["bench"])
-    _analysis["excess_return_with_cost"] = risk_analysis(report_normal["return"] - report_normal["bench"] - report_normal["cost"])
+    _analysis["excess_return_with_cost"] = risk_analysis(
+        report_normal["return"] - report_normal["bench"] - report_normal["cost"]
+    )
     analysis_df = pd.concat(_analysis)  # type: pd.DataFrame
     print(analysis_df)
     return analysis_df
@@ -155,12 +157,12 @@ class TestAllFlow(unittest.TestCase):
         self.assertGreaterEqual(model_pearsonr["model_pearsonr"], 0, "train failed")
 
     def test_1_backtest(self):
-        TestAllFlow.REPORT_NORMAL, TestAllFlow.POSITIONS = backtest(
-            TestAllFlow.PRED_SCORE
-        )
+        TestAllFlow.REPORT_NORMAL, TestAllFlow.POSITIONS = backtest(TestAllFlow.PRED_SCORE)
         analyze_df = analyze(TestAllFlow.REPORT_NORMAL)
         self.assertGreaterEqual(
-            analyze_df.loc(axis=0)["excess_return_with_cost", "annualized_return"].values[0], 0.10, "backtest failed",
+            analyze_df.loc(axis=0)["excess_return_with_cost", "annualized_return"].values[0],
+            0.10,
+            "backtest failed",
         )
 
 

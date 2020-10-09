@@ -53,7 +53,6 @@ source_suffix = ".rst"
 master_doc = "index"
 
 
-
 # General information about the project.
 project = u"QLib"
 copyright = u"Microsoft"
@@ -104,8 +103,7 @@ todo_include_todos = True
 #
 html_theme = "sphinx_rtd_theme"
 
-html_logo = '_static/img/logo/1.png'
-
+html_logo = "_static/img/logo/1.png"
 
 
 # Theme options are theme-specific and customize the look and feel of a theme
@@ -161,15 +159,12 @@ latex_elements = {
     # The paper size ('letterpaper' or 'a4paper').
     #
     # 'papersize': 'letterpaper',
-
     # The font size ('10pt', '11pt' or '12pt').
     #
     # 'pointsize': '10pt',
-
     # Additional stuff for the LaTeX preamble.
     #
     # 'preamble': '',
-
     # Latex figure (float) alignment
     #
     # 'figure_align': 'htbp',

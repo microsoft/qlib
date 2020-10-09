@@ -154,7 +154,7 @@ def get_module_by_module_path(module_path):
     :return:
     """
 
-    if  module_path.endswith(".py"):
+    if module_path.endswith(".py"):
         module_spec = importlib.util.spec_from_file_location("", module_path)
         module = importlib.util.module_from_spec(module_spec)
         module_spec.loader.exec_module(module)

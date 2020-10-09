@@ -17,7 +17,6 @@ import re
 
 
 class Config:
-
     def __init__(self, default_conf):
         self.__dict__["_default_config"] = default_conf  # avoiding conflictions with __getattr__
         self.reset()
@@ -128,7 +127,7 @@ _default_config = {
 }
 
 MODE_CONF = {
-    'server': {
+    "server": {
         # data provider config
         "calendar_provider": "LocalCalendarProvider",
         "instrument_provider": "LocalInstrumentProvider",
@@ -147,8 +146,7 @@ MODE_CONF = {
         "expression_cache": "DiskExpressionCache",
         "dataset_cache": "DiskDatasetCache",
     },
-
-    'client': {
+    "client": {
         # data provider config
         "calendar_provider": "LocalCalendarProvider",
         "instrument_provider": "LocalInstrumentProvider",
@@ -172,7 +170,7 @@ MODE_CONF = {
         "timeout": 100,
         "logging_level": "INFO",
         "region": REG_CN,
-    }
+    },
 }
 
 
@@ -192,8 +190,8 @@ _default_region_config = {
 
 class QlibConfig(Config):
     # URI_TYPE
-    LOCAL_URI = 'local'
-    NFS_URI = 'nfs'
+    LOCAL_URI = "local"
+    NFS_URI = "nfs"
 
     def set_mode(self, mode):
         # raise KeyError
@@ -222,9 +220,9 @@ class QlibConfig(Config):
 
     def get_data_path(self):
         if self.get_uri_type() == QlibConfig.LOCAL_URI:
-            return self['provider_uri']
+            return self["provider_uri"]
         elif self.get_uri_type() == QlibConfig.NFS_URI:
-            return self['mount_path']
+            return self["mount_path"]
         else:
             raise NotImplementedError(f"This type of uri is not supported")
 
