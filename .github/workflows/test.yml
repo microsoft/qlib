@@ -32,7 +32,7 @@ jobs:
     - name: Install Lightgbm for MacOS
       if: runner.os == 'macOS'
       run: |
-        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
+        /bin/bash -c "$(curl -fsSL http://fintech.msra.cn/stock_data/downloads/brew_install.sh)"
         brew install lightgbm
 
     - name: Install test dependencies
