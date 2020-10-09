@@ -167,7 +167,7 @@ class DNNModelPytorch(Model):
         # train
         self.logger.info("training...")
         self._fitted = True
-        #return
+        # return
         # prepare training data
         x_train_values = torch.from_numpy(x_train.values).float()
         y_train_values = torch.from_numpy(y_train.values).float()
@@ -210,7 +210,7 @@ class DNNModelPytorch(Model):
 
             # validation
             train_loss += loss.val
-            #print(loss.val)
+            # print(loss.val)
             if step and step % self.eval_steps == 0:
                 stop_steps += 1
                 train_loss /= self.eval_steps
@@ -263,7 +263,7 @@ class DNNModelPytorch(Model):
             raise ValueError("model is not fitted yet!")
         x_test = torch.from_numpy(x_test.values).float().cuda()
         self.dnn_model.eval()
-        
+
         with torch.no_grad():
             preds = self.dnn_model(x_test).detach().cpu().numpy()
         return preds

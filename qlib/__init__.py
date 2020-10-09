@@ -44,7 +44,7 @@ def init(default_conf="client", **kwargs):
         if k not in C:
             LOG.warning("Unrecognized config %s" % k)
 
-    C.set_region(kwargs.get('region', C['region'] if 'region' in C else REG_CN ))
+    C.set_region(kwargs.get("region", C["region"] if "region" in C else REG_CN))
     C.resolve_path()
 
     if not (C["expression_cache"] is None and C["dataset_cache"] is None):
@@ -83,6 +83,7 @@ def init(default_conf="client", **kwargs):
 
 def _mount_nfs_uri(C):
     from .log import get_module_logger
+
     LOG = get_module_logger("mount nfs", level=logging.INFO)
 
     # FIXME: the C["provider_uri"] is modified in this function
@@ -161,9 +162,7 @@ def _mount_nfs_uri(C):
                 command_res = os.popen("dpkg -l | grep nfs-common")
                 command_res = command_res.readlines()
                 if not command_res:
-                    raise OSError(
-                        "nfs-common is not found, please install it by execute: sudo apt install nfs-common"
-                    )
+                    raise OSError("nfs-common is not found, please install it by execute: sudo apt install nfs-common")
                 # manually mount
                 command_status = os.system(mount_command)
                 if command_status == 256:

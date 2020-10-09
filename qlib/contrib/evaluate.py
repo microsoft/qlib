@@ -34,8 +34,13 @@ def risk_analysis(r, N=252):
     annualized_return = mean * N
     information_ratio = mean / std * np.sqrt(N)
     max_drawdown = (r.cumsum() - r.cumsum().cummax()).min()
-    data = {"mean": mean, "std": std, "annualized_return": annualized_return,
-            "information_ratio": information_ratio, "max_drawdown": max_drawdown}
+    data = {
+        "mean": mean,
+        "std": std,
+        "annualized_return": annualized_return,
+        "information_ratio": information_ratio,
+        "max_drawdown": max_drawdown,
+    }
     res = pd.Series(data, index=data.keys()).to_frame("risk")
     return res
 
@@ -230,7 +235,7 @@ def backtest(pred, account=1e9, shift=1, benchmark="SH000905", verbose=True, **k
         limit move 0.1 (10%) for example, long and short with same limit
     extract_codes: bool
         will we pass the codes extracted from the pred to the exchange.
-        
+
         .. note:: This will be faster with offline qlib.
     """
     # check strategy:

@@ -16,7 +16,7 @@ try:
     from ._libs.expanding import expanding_slope, expanding_rsquare, expanding_resi
 except ImportError as err:
     print(err)
-    print('Do not import qlib package in the repository directory')
+    print("Do not import qlib package in the repository directory")
     exit(-1)
 
 __all__ = (
@@ -1342,7 +1342,9 @@ class PairRolling(ExpressionOps):
         if self.N == 0:
             return np.inf
         return (
-            max(self.feature_left.get_longest_back_rolling(), self.feature_right.get_longest_back_rolling()) + self.N - 1
+            max(self.feature_left.get_longest_back_rolling(), self.feature_right.get_longest_back_rolling())
+            + self.N
+            - 1
         )
 
     def get_extended_window_size(self):
@@ -1411,4 +1413,3 @@ class Cov(PairRolling):
 
     def __init__(self, feature_left, feature_right, N):
         super(Cov, self).__init__(feature_left, feature_right, N, "cov")
-

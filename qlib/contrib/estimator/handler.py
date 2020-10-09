@@ -558,16 +558,16 @@ class QLibDataHandlerV1(ConfigQLibDataHandler):
 
 class Alpha158(QLibDataHandlerV1):
     config_template = {
-        'kbar': {},
-        'price': {
-            'windows': [0],
-            'feature': ['OPEN', 'HIGH', 'LOW', 'CLOSE'],
+        "kbar": {},
+        "price": {
+            "windows": [0],
+            "feature": ["OPEN", "HIGH", "LOW", "CLOSE"],
         },
-        'rolling': {}
+        "rolling": {},
     }
 
     def _init_kwargs(self, **kwargs):
-        kwargs['labels'] = ["Ref($close, -2)/Ref($close, -1) - 1"]
+        kwargs["labels"] = ["Ref($close, -2)/Ref($close, -1) - 1"]
         super(Alpha158, self)._init_kwargs(**kwargs)
 
 

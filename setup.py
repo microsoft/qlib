@@ -61,7 +61,7 @@ NUMPY_INCLUDE = numpy.get_include()
 
 here = os.path.abspath(os.path.dirname(__file__))
 
-with open(os.path.join(here, 'README.md'), encoding='utf-8') as f:
+with open(os.path.join(here, "README.md"), encoding="utf-8") as f:
     long_description = f.read()
 
 
@@ -85,11 +85,11 @@ extensions = [
 setup(
     name=NAME,
     version=VERSION,
-    license = "MIT Licence",
-    url = "https://github.com/microsoft/qlib",  
+    license="MIT Licence",
+    url="https://github.com/microsoft/qlib",
     description=DESCRIPTION,
     long_description=long_description,
-    long_description_content_type='text/markdown',
+    long_description_content_type="text/markdown",
     python_requires=REQUIRES_PYTHON,
     packages=find_packages(exclude=("tests",)),
     # if your package is a single module, use this instead of 'packages':

@@ -116,9 +116,7 @@ class YahooCollector:
         return error_symbol
 
     def collector_data(self):
-        """collector data
-
-        """
+        """collector data"""
         logger.info("start collector yahoo data......")
         stock_list = self.stock_list
         for i in range(self._max_collector_count):
@@ -131,7 +129,7 @@ class YahooCollector:
             self.save_stock(_symbol, max(_df_list, key=len))
 
         logger.warning(f"less than {MIN_NUMBERS_TRADING} stock list: {list(self._mini_symbol_map.keys())}")
-        
+
         self.download_csi300_data()
 
     def download_csi300_data(self):
@@ -280,8 +278,7 @@ class Run:
         YahooCollector(self.source_dir).download_csi300_data()
 
     def download_bench_data(self):
-        """download bench stock data(SH000300)
-        """
+        """download bench stock data(SH000300)"""
 
     def collector_data(self):
         """download -> normalize -> dump data
