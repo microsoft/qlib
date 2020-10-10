@@ -38,13 +38,13 @@ def init(default_conf="client", **kwargs):
     LOG.info(f"default_conf: {default_conf}.")
 
     C.set_mode(default_conf)
+    C.set_region(kwargs.get('region', C['region'] if 'region' in C else REG_CN ))
 
     for k, v in kwargs.items():
         C[k] = v
         if k not in C:
             LOG.warning("Unrecognized config %s" % k)
 
-    C.set_region(kwargs.get("region", C["region"] if "region" in C else REG_CN))
     C.resolve_path()
 
     if not (C["expression_cache"] is None and C["dataset_cache"] is None):
