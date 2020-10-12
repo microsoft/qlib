@@ -60,7 +60,7 @@ class Config:
 
 # REGION CONST
 REG_CN = "cn"
-REG_US = "US"
+REG_US = "us"
 
 _default_config = {
     # data provider config

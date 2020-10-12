@@ -136,11 +136,8 @@ class DNNModelPytorch(Model):
         )
 
         self._fitted = False
-        
-
         if self.use_gpu:
             self.dnn_model.cuda()
-
             # set the visible GPU
             if self.visible_GPU:
                 os.environ["CUDA_VISIBLE_DEVICES"] = self.visible_GPU
