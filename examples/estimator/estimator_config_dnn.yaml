@@ -4,7 +4,7 @@ experiment:
   mode: train
 
 model:
-    module_path: qlib.contrib.model.pytorch_nn
+    module_path: qlib.model.pytorch_nn
     class: DNNModelPytorch
     args:
         loss: mse

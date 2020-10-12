@@ -9,7 +9,7 @@ import numpy as np
 import lightgbm as lgb
 from sklearn.metrics import roc_auc_score, mean_squared_error
 
-from .base import Model
+from ...model.base import Model
 from ...utils import drop_nan_by_y_index
 
 

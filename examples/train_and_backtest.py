@@ -8,7 +8,7 @@ import qlib
 import pandas as pd
 from qlib.config import REG_CN
 from qlib.contrib.model.gbdt import LGBModel
-from qlib.contrib.estimator.handler import Alpha158
+from qlib.contrib.data.handler import Alpha158
 from qlib.contrib.strategy.strategy import TopkDropoutStrategy
 from qlib.contrib.evaluate import (
     backtest as normal_backtest,

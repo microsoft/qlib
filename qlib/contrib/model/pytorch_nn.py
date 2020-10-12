@@ -17,7 +17,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 
-from .base import Model
+from ...model.base import Model
 
 
 class DNNModelPytorch(Model):

@@ -103,7 +103,7 @@ class DataConfig(object):
         :param config:         The config dict for data
         :param CONFIG_MANAGER: The estimator config manager
         """
-        self.handler_module_path = config.get("module_path", "qlib.contrib.estimator.handler")
+        self.handler_module_path = config.get("module_path", "qlib.contrib.data.handler")
         self.handler_class = config.get("class", "ALPHA360")
         self.handler_parameters = config.get("args", dict())
         self.handler_filter = config.get("filter", dict())
@@ -118,7 +118,7 @@ class ModelConfig(object):
         :param CONFIG_MANAGER: The estimator config manager
         """
         self.model_class = config.get("class", "Model")
-        self.model_module_path = config.get("module_path", "qlib.contrib.model")
+        self.model_module_path = config.get("module_path", "qlib.model")
         self.save_dir = os.path.join(CONFIG_MANAGER.ex_config.tmp_run_dir, "model")
         self.save_path = config.get("save_path", os.path.join(self.save_dir, "model.bin"))
         self.parameters = config.get("args", dict())

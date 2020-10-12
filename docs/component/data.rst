@@ -156,12 +156,12 @@ Data Handler
 
 Users can use ``Data Handler`` in an automatic workflow by ``Estimator``, refer to `Estimator: Workflow Management <estimator.html>`_ for more details. 
 
-Also, ``Data Handler`` can be used as an independent module, by which users can easily preprocess data(standardization, remove NaN, etc.) and build datasets. It is a subclass of ``qlib.contrib.estimator.handler.BaseDataHandler``, which provides some interfaces as follows.
+Also, ``Data Handler`` can be used as an independent module, by which users can easily preprocess data(standardization, remove NaN, etc.) and build datasets. It is a subclass of ``qlib.data.dataset.handler.BaseDataHandler``, which provides some interfaces as follows.
 
 Base Class & Interface
 ----------------------
 
-Qlib provides a base class `qlib.contrib.estimator.BaseDataHandler <../reference/api.html#qlib.contrib.estimator.handler.BaseDataHandler>`_, which provides the following interfaces:
+Qlib provides a base class `qlib.data.dataset.BaseDataHandler <../reference/api.html#qlib.data.dataset.handler.BaseDataHandler>`_, which provides the following interfaces:
 
 - `setup_feature`    
     Implement the interface to load the data features.
@@ -182,7 +182,7 @@ Qlib also provides two functions to help users init the data handler, users can 
     Users can init the raw df, feature names, and label names of data handler in this function. 
     If the index of feature df and label df are not the same, users need to override this method to merge them (e.g. inner, left, right merge).
 
-If users want to load features and labels by config, users can inherit ``qlib.contrib.estimator.handler.ConfigDataHandler``, ``Qlib`` also provides some preprocess method in this subclass.
+If users want to load features and labels by config, users can inherit ``qlib.data.dataset.handler.ConfigDataHandler``, ``Qlib`` also provides some preprocess method in this subclass.
 If users want to use qlib data, `QLibDataHandler` is recommended. Users can inherit their custom class from `QLibDataHandler`, which is also a subclass of `ConfigDataHandler`.
 
 
@@ -214,7 +214,7 @@ Qlib provides implemented data handler `Alpha158`. The following example shows h
 
 .. code-block:: Python
 
-    from qlib.contrib.estimator.handler import Alpha158
+    from qlib.contrib.data.handler import Alpha158
     from qlib.contrib.model.gbdt import LGBModel
 
     DATA_HANDLER_CONFIG = {
@@ -251,7 +251,7 @@ Also, the above example has been given in ``examples.estimator.train_backtest_an
 API
 ---------
 
-To know more about ``Data Handler``, please refer to `Data Handler API <../reference/api.html#module-qlib.contrib.estimator.handler>`_.
+To know more about ``Data Handler``, please refer to `Data Handler API <../reference/api.html#module-qlib.data.dataset.handler>`_.
 
 Cache
 ==========

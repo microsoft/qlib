@@ -195,8 +195,8 @@ Your PR of new Quant models is highly welcomed.
 
 # Quant Dataset Zoo
 Dataset plays a very important role in Quant. Here is a list of the datasets built on `Qlib`.
-- [Alpha360](./qlib/contrib/estimator/handler.py)
-- [Alpha158](./qlib/contrib/estimator/handler.py)
+- [Alpha360](./qlib/contrib/data/handler.py)
+- [Alpha158](./qlib/contrib/data/handler.py)
 
 [Here](https://qlib.readthedocs.io/en/latest/advanced/alpha.html) is a tutorial to build dataset with `Qlib`.
 Your PR to build new Quant dataset is highly welcomed.

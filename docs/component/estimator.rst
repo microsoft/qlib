@@ -266,7 +266,7 @@ Users can use a specified model by configuration with hyper-parameters.
 Custom Models
 ~~~~~~~~~~~~~~~~~
 
-Qlib supports custom models, but it must be a subclass of the `qlib.contrib.model.Model`, the config for a custom model may be as following.
+Qlib supports custom models, but it must be a subclass of the `qlib.model.Model`, the config for a custom model may be as following.
 
 .. code-block:: YAML
 
@@ -284,7 +284,7 @@ To know more about ``Interday Model``, please refer to `Interday Model: Training
 Data Section
 -----------------
 
-``Data Handler`` can be used to load raw data, prepare features and label columns, preprocess data (standardization, remove NaN, etc.), split training, validation, and test sets. It is a subclass of `qlib.contrib.estimator.handler.BaseDataHandler`.
+``Data Handler`` can be used to load raw data, prepare features and label columns, preprocess data (standardization, remove NaN, etc.), split training, validation, and test sets. It is a subclass of `qlib.data.dataset.handler.BaseDataHandler`.
 
 Users can use the specified data handler by config as follows.
 
@@ -315,10 +315,10 @@ Users can use the specified data handler by config as follows.
                   fend_time: 2018-12-11
 
 - `class`    
-    Data handler class, str type, which should be a subclass of `qlib.contrib.estimator.handler.BaseDataHandler`, and implements 5 important interfaces for loading features, loading raw data, preprocessing raw data, slicing train, validation, and test data. The default value is `ALPHA360`. If users want to write a data handler to retrieve the data in ``Qlib``, `QlibDataHandler` is suggested.
+    Data handler class, str type, which should be a subclass of `qlib.data.dataset.handler.BaseDataHandler`, and implements 5 important interfaces for loading features, loading raw data, preprocessing raw data, slicing train, validation, and test data. The default value is `ALPHA360`. If users want to write a data handler to retrieve the data in ``Qlib``, `QlibDataHandler` is suggested.
 
 - `module_path`    
-   The module path, str type, absolute url is also supported, indicates the path of the `class` implementation of the data processor class. The default value is `qlib.contrib.estimator.handler`.
+   The module path, str type, absolute url is also supported, indicates the path of the `class` implementation of the data processor class. The default value is `qlib.data.dataset.handler`.
 
 - `args`
     Parameters used for ``Data Handler`` initialization.
@@ -376,7 +376,7 @@ Qlib support custom data handler, but it must be a subclass of the ``qlib.contri
 
 The class `SomeDataHandler` should be in the module `custom_data_handler`, and ``Qlib`` could parse the `module_path` to load the class.
 
-If users want to load features and labels by config, they can inherit ``qlib.contrib.estimator.handler.ConfigDataHandler``, ``Qlib`` also has provided some preprocess methods in this subclass.
+If users want to load features and labels by config, they can inherit ``qlib.data.dataset.handler.ConfigDataHandler``, ``Qlib`` also has provided some preprocess methods in this subclass.
 If users want to use qlib data, `QLibDataHandler` is recommended, from which users can inherit the custom class. `QLibDataHandler` is also a subclass of `ConfigDataHandler`.
 
 To know more about ``Data Handler``, please refer to `Data Framework&Usage <data.html>`_.

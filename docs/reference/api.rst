@@ -63,12 +63,12 @@ Contrib
 
 Data Handler
 ---------------
-.. automodule:: qlib.contrib.estimator.handler
+.. automodule:: qlib.data.dataset.handler
     :members:
 
 Model
 --------------------
-.. automodule:: qlib.contrib.model.base
+.. automodule:: qlib.model.base
     :members:
 
 Strategy

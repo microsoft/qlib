@@ -13,7 +13,7 @@ Because the components in ``Qlib`` are designed in a loosely-coupled way, ``Inte
 Base Class & Interface
 ======================
 
-``Qlib`` provides a base class `qlib.contrib.model.base.Model <../reference/api.html#module-qlib.contrib.model.base>`_ from which all models should inherit.
+``Qlib`` provides a base class `qlib.model.base.Model <../reference/api.html#module-qlib.model.base>`_ from which all models should inherit.
 
 The base class provides the following interfaces:
 
@@ -110,7 +110,7 @@ The base class provides the following interfaces:
             The format of `w_test` is same as `w_train` in `fit` method.
     - Return: float type, evaluation score
 
-For other interfaces such as `save`, `load`, `finetune`, please refer to `Model API <../reference/api.html#module-qlib.contrib.model.base>`_.
+For other interfaces such as `save`, `load`, `finetune`, please refer to `Model API <../reference/api.html#module-qlib.model.base>`_.
 
 Example
 ==================
@@ -121,7 +121,7 @@ Example
 - Run the following code to get the `prediction score` `pred_score`
     .. code-block:: Python
 
-        from qlib.contrib.estimator.handler import Alpha158
+        from qlib.contrib.data.handler import Alpha158
         from qlib.contrib.model.gbdt import LGBModel
 
         DATA_HANDLER_CONFIG = {
@@ -175,4 +175,4 @@ Qlib supports custom models. If users are interested in customizing their own mo
 
 API
 ===================
-Please refer to `Model API <../reference/api.html#module-qlib.contrib.model.base>`_.
+Please refer to `Model API <../reference/api.html#module-qlib.model.base>`_.

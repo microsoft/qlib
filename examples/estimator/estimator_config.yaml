@@ -5,7 +5,7 @@ experiment:
 
 model:
   class: LGBModel
-  module_path: qlib.contrib.model.gbdt
+  module_path: qlib.gbdt.model.gbdt
   args:
     loss: mse
     colsample_bytree: 0.8879

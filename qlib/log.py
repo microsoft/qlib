@@ -2,12 +2,12 @@
 # Licensed under the MIT License.
 
 
+import logging
+import logging.handlers
 import os
 import re
-import logging
-from time import time
-import logging.handlers
 from logging import config as logging_config
+from time import time
 
 from .config import C
 
