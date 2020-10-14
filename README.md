@@ -189,7 +189,7 @@ The automatic workflow may not suite the research workflow of all Quant research
 
 Here is a list of models built on `Qlib`.
 - [GBDT based on lightgbm](qlib/contrib/model/gbdt.py)
-- [MLP based on pytroch](qlib/contrib/model/pytorch_nn.py)
+- [MLP based on pytorch](qlib/contrib/model/pytorch_nn.py)
 
 Your PR of new Quant models is highly welcomed.
 
