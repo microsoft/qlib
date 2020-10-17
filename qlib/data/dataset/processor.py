@@ -4,154 +4,209 @@
 import abc
 import numpy as np
 import pandas as pd
+import copy
 
 from ...log import TimeInspector
+from ...utils.serial import Serializable
 
 EPS = 1e-12
 
 
-class Processor(abc.ABC):
-    def __init__(self, feature_names, label_names, **kwargs):
-        self.feature_names = feature_names
-        self.label_names = label_names
+class Processor(Serializable):
+
+    def fit(self, handler, df: pd.DataFrame=None):
+        """
+        learn data processing parameters
+
+        Parameters
+        ----------
+        handler : DataHandlerLP
+            The data handler to processing data
+        df : pd.DataFrame
+            When we fit and process data with processor one by one. The fit function reiles on the output of previous
+            processor, i.e. `df`.
+            
+        """
+        pass
 
     @abc.abstractmethod
-    def __call__(self, df_train, df_valid, df_test):
+    def __call__(self, df: pd.DataFrame):
+        """
+        process the data
+
+        NOTE: The processor should not change the content of `df`
+
+        Parameters
+        ----------
+        df : pd.DataFrame
+            The raw_df of handler or result from previous processor
+        """
         pass
 
 
-class PanelProcessor(Processor):
-    """Panel Preprocessor"""
+def get_cls_kwargs(processor: [dict, str]) ->  (type, dict):
+    """
+    extract class and kwargs from processor info
 
-    STD_NORM = "Std"
-    MINMAX_NORM = "MinMax"
+    Parameters
+    ----------
+    processor : [dict, str]
+        similar to processor
 
-    def __init__(self, feature_names, label_names, **kwargs):
-        super().__init__(feature_names, label_names)
-        # Options.
-        self.dropna_label = kwargs.get("dropna_label", True)
-        self.dropna_feature = kwargs.get("dropna_feature", False)
-        self.normalize_method = kwargs.get("normalize_method", None)
-        self.replace_inf = kwargs.get("replace_inf_feature", False)
+    Returns
+    -------
+    (type, dict):
+        the class object and it's arguments.
+    """
+    if isinstance(processor, dict):
+        # raise AttributeError
+        klass = globals()[processor['class']]
+        kwargs = processor['kwargs']
+    elif isinstance(processor, str):
+        klass = globals()[processor]
+        kwargs = {}
+    else:
+        raise NotImplementedError(f"This type of input is not supported")
+    return klass, kwargs
 
-    def __call__(self, df_train, df_valid, df_test):
+
+# Place the function here to be able to reference the Processor
+def init_proc_obj(processor: [dict, str, Processor]) -> Processor:
+    """
+    Initialize Processor Object
+
+    Parameters
+    ----------
+    processor : [dict, str, Processor]
+        The info to initialize processor 
+
+    Returns
+    -------
+    Processor:
+        initialized Processor
+    """
+    if not isinstance(processor, Processor):
+        klass, pkwargs = get_cls_kwargs(processor)
+        processor = klass(**pkwargs)
+    return processor
+
+
+class InferProcessor(Processor):
+    '''This processor is usable for inference'''
+    def is_for_infer(self) -> bool:
         """
-        Preprocess the data
-        :param df:  the dataframe to process data.
+        Is this processor usable for inference
+
+        Returns
+        -------
+        bool:
+            if it is usable for infenrece
         """
-        # Drop null labels.
-        if self.dropna_label:
-            df_train, df_valid, df_test = self._process_drop_null_label(df_train, df_valid, df_test)
+        return True
 
-        # Dropna if need.
-        if self.dropna_feature:
-            df_train, df_valid, df_test = self._process_drop_null_feature(df_train, df_valid, df_test)
 
-        # replace the 'inf' with the mean the corresponding dimension
-        if self.replace_inf:
-            df_train, df_valid, df_test = self._process_replace_inf_feature(df_train, df_valid, df_test)
-
-        # normalize data in given method.
-        if self.normalize_method is not None:
-            df_train, df_valid, df_test = self._process_normalize_feature(df_train, df_valid, df_test)
-
-        return df_train, df_valid, df_test
-
-    def _process_drop_null_label(self, df_train, df_valid, df_test):
+class NInferProcessor(Processor):
+    '''This processor is not usable for inference'''
+    def is_for_infer(self) -> bool:
         """
-        Drop null labels.
-        """
-        TimeInspector.set_time_mark()
-        df_train = df_train.dropna(subset=self.label_names)
-        df_valid = df_valid.dropna(subset=self.label_names)
-        # The test data's label is Unkown. They can not be seen when preprocessing
-        TimeInspector.log_cost_time("Finished dropping null labels.")
+        Is this processor usable for inference
 
-        return df_train, df_valid, df_test
-
-    def _process_drop_null_feature(self, df_train, df_valid, df_test):
+        Returns
+        -------
+        bool:
+            if it is usable for infenrece
         """
-        Drop data which contain null features if needed.
-        """
-        # TODO - `Pandas.dropna` is a low performance method.
-        TimeInspector.set_time_mark()
-        df_train = df_train.dropna(subset=self.feature_names)
-        df_valid = df_valid.dropna(subset=self.feature_names)
-        df_test = df_test.dropna(subset=self.feature_names)
-        TimeInspector.log_cost_time("Finished dropping nan.")
+        return False
 
-        return df_train, df_valid, df_test
 
-    def _process_replace_inf_feature(self, df_train, df_valid, df_test):
-        """
-        replace the 'inf' in feature with the mean of this dimension.
-        """
-        TimeInspector.set_time_mark()
+class DropnaFeature(InferProcessor):
+    def fit(self, handler, df=None):
+        self.feature_names = copy.deepcopy(handler.get_feature_names())
 
+    def __call__(self, df):
+        return df.dropna(subset=self.feature_names)
+
+
+class DropnaLabel(InferProcessor):
+    def fit(self, handler, df=None):
+        self.label_names = copy.deepcopy(handler.get_label_names())
+
+    def __call__(self, df):
+        return df.dropna(subset=self.label_names)
+
+
+class ProcessInf(InferProcessor):
+    '''Process infinity  '''
+    def __call__(self, df):
         def replace_inf(data):
             def process_inf(df):
                 for col in df.columns:
+                    # FIXME: Such behavior is very weird
                     df[col] = df[col].replace([np.inf, -np.inf], df[col][~np.isinf(df[col])].mean())
                 return df
 
             data = data.groupby("datetime").apply(process_inf)
             data.sort_index(inplace=True)
             return data
-
-        df_train = replace_inf(df_train)
-        df_valid = replace_inf(df_valid)
-        df_test = replace_inf(df_test)
-        TimeInspector.log_cost_time("Finished replace inf.")
-
-        return df_train, df_valid, df_test
-
-    def _process_normalize_feature(self, df_train, df_valid, df_test):
-        """
-        Normalize data if needed, we provide two method now: min-max normalization and standard normalization.
-        """
-        TimeInspector.set_time_mark()
-
-        if self.normalize_method == self.MINMAX_NORM:
-            min_train = np.nanmin(df_train[self.feature_names].values, axis=0)
-            max_train = np.nanmax(df_train[self.feature_names].values, axis=0)
-            ignore = min_train == max_train
-
-            def normalize(x, min_train=min_train, max_train=max_train, ignore=ignore):
-                if (~ignore).all():
-                    return (x - min_train) / (max_train - min_train)
-                for i in range(ignore.size):
-                    if not ignore[i]:
-                        x[i] = (x[i] - min_train) / (max_train - min_train)
-                return x
-
-        elif self.normalize_method == self.STD_NORM:
-            mean_train = np.nanmean(df_train[self.feature_names].values, axis=0)
-            std_train = np.nanstd(df_train[self.feature_names].values, axis=0)
-            ignore = std_train == 0
-
-            def normalize(x, mean_train=mean_train, std_train=std_train, ignore=ignore):
-                if (~ignore).all():
-                    return (x - mean_train) / std_train
-                for i in range(ignore.size):
-                    if not ignore[i]:
-                        x[i] = (x[i] - mean_train) / std_train
-                return x
-
-        else:
-            raise ValueError("Normalize method {} is not allowed".format(self.normalize_method))
-
-        df_train.loc(axis=1)[self.feature_names] = normalize(df_train[self.feature_names].values)
-        df_valid.loc(axis=1)[self.feature_names] = normalize(df_valid[self.feature_names].values)
-        df_test.loc(axis=1)[self.feature_names] = normalize(df_test[self.feature_names].values)
-
-        TimeInspector.log_cost_time("Finished normalizing data.")
-
-        return df_train, df_valid, df_test
+        return replace_inf(df)
 
 
-class ConfigSectionProcessor(Processor):
-    def __init__(self, feature_names, label_names, **kwargs):
-        super().__init__(feature_names, label_names)
+class MinMaxNorm(InferProcessor):
+    def __init__(self, fit_start_time, fit_end_time):
+        self.fit_start_time = fit_start_time
+        self.fit_end_time = fit_end_time
+
+    def fit(self, handler, df):
+        # TODO:  看看这里怎么取数据
+        self.min_val = np.nanmin(df[handler.get_feature_names()].values, axis=0)
+        self.max_val = np.nanmax(df[handler.get_feature_names()].values, axis=0)
+        self.ignore = self.min_val == self.max_val
+        self.feature_names = copy.deepcopy(handler.get_feature_names())
+
+    def __call__(self, df):
+        # FIXME: The df will be changed inplace. It's very dangerous
+        # The code below is ugly
+        df = df.copy()  # currently copy is used
+        def normalize(x, min_val=self.min_val, max_val=self.max_val, ignore=self.ignore):
+            if (~ignore).all():
+                return (x - min_val) / (max_val - min_val)
+            for i in range(ignore.size):
+                if not ignore[i]:
+                    x[i] = (x[i] - min_val) / (max_val - min_val)
+            return x
+        df.loc(axis=1)[self.feature_names] = normalize(df[self.feature_names].values)
+        return df
+
+
+class ZscoreNorm(InferProcessor):
+    def __init__(self, fit_start_time, fit_end_time):
+        self.fit_start_time = fit_start_time
+        self.fit_end_time = fit_end_time
+
+    def fit(self, handler, df):
+        self.mean_train = np.nanmean(df[handler.get_feature_names()].values, axis=0)
+        self.std_train = np.nanstd(df[handler.get_feature_names()].values, axis=0)
+        self.ignore = self.std_train == 0
+        self.feature_names = handler.get_feature_names()
+
+    def __call__(self, df):
+        # FIXME: The df will be changed inplace. It's very dangerous
+        # The code below is ugly
+        df = df.copy()  # currently copy is used
+        def normalize(x, mean_train=self.mean_train, std_train=self.std_train, ignore=self.ignore):
+            if (~ignore).all():
+                return (x - mean_train) / std_train
+            for i in range(ignore.size):
+                if not ignore[i]:
+                    x[i] = (x[i] - mean_train) / std_train
+            return x
+        df.loc(axis=1)[self.feature_names] = normalize(df[self.feature_names].values)
+        return df
+
+
+class ConfigSectionProcessor(InferProcessor):
+    def __init__(self, **kwargs):
+        super().__init__()
         # Options
         self.fillna_feature = kwargs.get("fillna_feature", True)
         self.fillna_label = kwargs.get("fillna_label", True)
@@ -159,8 +214,12 @@ class ConfigSectionProcessor(Processor):
         self.shrink_feature_outlier = kwargs.get("shrink_feature_outlier", True)
         self.clip_label_outlier = kwargs.get("clip_label_outlier", False)
 
-    def __call__(self, *args):
-        return [self._transform(x) for x in args]
+    def fit(self, handler, df=None):
+        self.feature_names = handler.get_feature_names()
+        self.label_names = handler.get_label_names()
+
+    def __call__(self, df):
+        return self._transform(df)
 
     def _transform(self, df):
         def _label_norm(x):

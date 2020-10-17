@@ -24,8 +24,8 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 
-from .config import C
-from .log import get_module_logger
+from ..config import C
+from ..log import get_module_logger
 
 log = get_module_logger("utils")
 
@@ -377,7 +377,7 @@ def is_tradable_date(cur_date):
     date : pandas.Timestamp
         current date
     """
-    from .data import D
+    from ..data import D
 
     return str(cur_date.date()) == str(D.calendar(start_time=cur_date, future=True)[0].date())
 
@@ -390,7 +390,7 @@ def get_date_range(trading_date, shift, future=False):
     :param future: bool
     :return:
     """
-    from .data import D
+    from ..data import D
 
     calendar = D.calendar(future=future)
     if pd.to_datetime(trading_date) not in list(calendar):
@@ -445,7 +445,7 @@ def transform_end_date(end_date=None, freq="day"):
     date : pandas.Timestamp
         current date
     """
-    from .data import D
+    from ..data import D
 
     last_date = D.calendar(freq=freq)[-1]
     if end_date is None or (str(end_date) == "-1") or (pd.Timestamp(last_date) < pd.Timestamp(end_date)):

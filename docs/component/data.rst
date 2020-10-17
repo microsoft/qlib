@@ -156,17 +156,17 @@ Data Handler
 
 Users can use ``Data Handler`` in an automatic workflow by ``Estimator``, refer to `Estimator: Workflow Management <estimator.html>`_ for more details. 
 
-Also, ``Data Handler`` can be used as an independent module, by which users can easily preprocess data(standardization, remove NaN, etc.) and build datasets. It is a subclass of ``qlib.data.dataset.handler.BaseDataHandler``, which provides some interfaces as follows.
+Also, ``Data Handler`` can be used as an independent module, by which users can easily preprocess data(standardization, remove NaN, etc.) and build datasets. It is a subclass of ``qlib.data.dataset.handler.DataHandlerLP``, which provides some interfaces as follows.
 
 Base Class & Interface
 ----------------------
 
-Qlib provides a base class `qlib.data.dataset.BaseDataHandler <../reference/api.html#qlib.data.dataset.handler.BaseDataHandler>`_, which provides the following interfaces:
+Qlib provides a base class `qlib.data.dataset.DataHandlerLP <../reference/api.html#qlib.data.dataset.handler.DataHandlerLP>`_, which provides the following interfaces:
 
-- `setup_feature`    
+- `load_feature`    
     Implement the interface to load the data features.
 
-- `setup_label`   
+- `load_label`   
     Implement the interface to load the data labels and calculate the users' labels. 
 
 - `setup_processed_data`    
@@ -174,11 +174,7 @@ Qlib provides a base class `qlib.data.dataset.BaseDataHandler <../reference/api.
 
 Qlib also provides two functions to help users init the data handler, users can override them for users' needs.
 
-- `_init_kwargs`
-    Users can init the kwargs of the data handler in this function, some kwargs may be used when init the raw df.
-    Kwargs are the other attributes in data.args, like dropna_label, dropna_feature
-
-- `_init_raw_df`
+- `_init_raw_data`
     Users can init the raw df, feature names, and label names of data handler in this function. 
     If the index of feature df and label df are not the same, users need to override this method to merge them (e.g. inner, left, right merge).
 

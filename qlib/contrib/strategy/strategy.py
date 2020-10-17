@@ -11,6 +11,7 @@ from ...utils import get_pre_trading_date
 from .order_generator import OrderGenWInteract
 
 
+# TODO: The base strategies will be moved out of contrib to core code
 class BaseStrategy:
     def __init__(self):
         pass

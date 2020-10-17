@@ -10,14 +10,14 @@ import numpy as np
 from scipy.stats import pearsonr
 
 from ...log import get_module_logger, TimeInspector
-from .handler import BaseDataHandler
+from ...data.dataset.handler import DataHandlerLP
 from .launcher import CONFIG_MANAGER
 from .fetcher import create_fetcher_with_config
 from ...utils import drop_nan_by_y_index, transform_end_date
 
 
 class BaseTrainer(object):
-    def __init__(self, model_class, model_save_path, model_args, data_handler: BaseDataHandler, sacred_ex, **kwargs):
+    def __init__(self, model_class, model_save_path, model_args, data_handler: DataHandlerLP, sacred_ex, **kwargs):
         # 1. Model.
         self.model_class = model_class
         self.model_save_path = model_save_path

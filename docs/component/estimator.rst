@@ -284,7 +284,7 @@ To know more about ``Interday Model``, please refer to `Interday Model: Training
 Data Section
 -----------------
 
-``Data Handler`` can be used to load raw data, prepare features and label columns, preprocess data (standardization, remove NaN, etc.), split training, validation, and test sets. It is a subclass of `qlib.data.dataset.handler.BaseDataHandler`.
+``Data Handler`` can be used to load raw data, prepare features and label columns, preprocess data (standardization, remove NaN, etc.), split training, validation, and test sets. It is a subclass of `qlib.data.dataset.handler.DataHandlerLP`.
 
 Users can use the specified data handler by config as follows.
 
@@ -315,7 +315,7 @@ Users can use the specified data handler by config as follows.
                   fend_time: 2018-12-11
 
 - `class`    
-    Data handler class, str type, which should be a subclass of `qlib.data.dataset.handler.BaseDataHandler`, and implements 5 important interfaces for loading features, loading raw data, preprocessing raw data, slicing train, validation, and test data. The default value is `ALPHA360`. If users want to write a data handler to retrieve the data in ``Qlib``, `QlibDataHandler` is suggested.
+    Data handler class, str type, which should be a subclass of `qlib.data.dataset.handler.DataHandlerLP`, and implements 5 important interfaces for loading features, loading raw data, preprocessing raw data, slicing train, validation, and test data. The default value is `ALPHA360`. If users want to write a data handler to retrieve the data in ``Qlib``, `QlibDataHandler` is suggested.
 
 - `module_path`    
    The module path, str type, absolute url is also supported, indicates the path of the `class` implementation of the data processor class. The default value is `qlib.data.dataset.handler`.
@@ -363,7 +363,7 @@ Users can use the specified data handler by config as follows.
 Custom Data Handler
 ~~~~~~~~~~~~~~~~~~~~~~
 
-Qlib support custom data handler, but it must be a subclass of the ``qlib.contrib.estimator.handler.BaseDataHandler``, the config for custom data handler may be as follows.
+Qlib support custom data handler, but it must be a subclass of the ``qlib.data.dataset.handler.DataHandlerLP``, the config for custom data handler may be as follows.
 
 .. code-block:: YAML
 

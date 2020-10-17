@@ -5,270 +5,342 @@
 import abc
 import bisect
 import logging
+from typing import Union
 
 import pandas as pd
 import numpy as np
 
 from ...log import get_module_logger, TimeInspector
 from ...data import D
+from ...config import C
 from ...utils import parse_config, transform_end_date
+from ...utils.serial import Serializable
+from pathlib import Path
 
 from . import processor as processor_module
 
 
-class BaseDataHandler(abc.ABC):
-    def __init__(self, processors=[], **kwargs):
-        """
-        :param start_date:
-        :param end_date:
-        :param kwargs:
-        """
+# TODO: A more general handler interface which does not relies on internal pd.DataFrame is needed.
+class DataHandler(Serializable):
+    '''
+    The steps to using a handler
+    1. initialized data handler  (call by `init`).
+    2. use the data
+
+
+    The data handler try to maintain a handler with 2 level.
+    `datetime` & `instruments`.
+    
+    Any order of the index level can be suported(The order will implied in the data).
+    The order  <`datetime`, `instruments`> will be used when the dataframe index name is missed.
+
+    Example of the data:
+
+                              $close     $volume  Ref($close, 1)  Mean($close, 3)  $high-$low
+    datetime   instrument
+    2010-01-04 SH600000    81.807068  17145150.0       83.737389        83.016739    2.741058
+               SH600004    13.313329  11800983.0       13.313329        13.317701    0.183632
+               SH600005    37.796539  12231662.0       38.258602        37.919757    0.970325
+               SH600006    22.672380   7095624.0       22.508326        22.573947    0.557785
+
+    '''
+    def __init__(self, init_data=True):
         # Set logger
         self.logger = get_module_logger("DataHandler")
 
-        # init data using kwargs
-        self._init_kwargs(**kwargs)
-
         # Setup data.
-        self.raw_df, self.feature_names, self.label_names = self._init_raw_df()
+        self._data = {}
+        if init_data:
+            self.init()
+        super().__init__()
 
-        # Setup preprocessor
-        self.processors = []
-        for klass in processors:
-            if isinstance(klass, str):
-                try:
-                    klass = getattr(processor_module, klass)
-                except:
-                    raise ValueError("unknown Processor %s" % klass)
-            self.processors.append(klass(self.feature_names, self.label_names, **kwargs))
-
-    def _init_kwargs(self, **kwargs):
+    def init(self, force_reload: bool=True):
         """
-        init the kwargs of DataHandler
+        initialize the data.
+        In case of running intialization for multiple time, it will do nothing for the second time.
+
+        Parameters
+        ----------
+        force_reload : bool
+            force to reload the data even if the data have been initialized
         """
         pass
+        # if force_reload or hasattr(self, '_initialized', False):
 
-    def _init_raw_df(self):
+    def get_level_index(self, df: pd.DataFrame, level=Union[str, int]) -> int:
+        """
+
+        get the level index of `df` given `level`
+
+        Parameters
+        ----------
+        df : pd.DataFrame
+            data
+        level : Union[str, int]
+            index level
+
+        Returns
+        -------
+        int:
+            The level index in the multiple index
+        """
+        if isinstance(level, str):
+            try:
+                return df.index.names.index(level)
+            except (AttributeError, ValueError):
+                # NOTE: If level index is not given in the data, the default level index will be ('datetime', 'instrument') 
+                return ('datetime', 'instrument').index(level)
+        elif isinstance(level, int):
+            return level
+        else:
+            raise NotImplementedError(f"This type of input is not supported")
+
+    def _fetch_df(self, df: pd.DataFrame, selector: Union[pd.Timestamp, slice, str, list], level: Union[str, int]):
+        """
+        fetch data from `data` with `selector` and `level`
+
+        Parameters
+        ----------
+        df : pd.DataFrame
+            the data frame to be selected
+        selector : Union[pd.Timestamp, slice, str, list]
+            selector
+        level : Union[pd.Timestamp, slice, str]
+            the level to use the selector
+        """
+        # Try to get the right index
+        idx_slc = (selector, slice(None, None))
+        if self.get_level_index(df, level) == 1:
+                idx_slc = idx_slc[1], idx_slc[0]
+        return df.loc(axis=0)[idx_slc]
+        
+    def fetch(self, selector: Union[pd.Timestamp, slice, str], level='datetime', key=None) -> Union[pd.DataFrame, dict]:
+        if key is None:
+            res = {}
+            for k, df in self._data.items():
+                res[k] = self._fetch_df(df, selector, level)
+        else:
+            res = self._fetch_df(self._data[key], selector, level)
+        return res
+
+
+class DataHandlerLP(DataHandler):
+    '''
+    DataHandler with **(L)earnable (P)rocessor**
+    '''
+    # data key
+    DK_R = 'raw'
+    DK_I = 'infer'
+    DK_L = 'learn'
+
+    # process type
+    PTYPE_I = 'independent'
+    # - _proc_infer_df will processed by infer_processors
+    # - _proc_learn_df will be processed by learn_processors
+    PTYPE_A = 'append'
+    # - _proc_infer_df will processed by infer_processors
+    # - _proc_learn_df will be processed by infer_processors + learn_processors
+    #   - (e.g. _proc_infer_df processed by learn_processors )
+
+    def __init__(self, infer_processors=[], learn_processors=[], process_type=PTYPE_A, **kwargs):
+        """
+
+        Parameters
+        ----------
+        infer_processors : list
+            list of <description info> of processors to generate data for inference
+            example of <description info>: 
+            1) classname & kwargs:
+                {
+                    "class": "MinMaxNorm",
+                    "kwargs": {
+                        "fit_start_time": "20080101",
+                        "fit_end_time": "20121231"
+                    }
+                }
+            2) Only classname:
+                "DropnaFeature"
+            3) object instance of Processor
+
+        learn_processors : list
+            similar to infer_processors, but for generating data for learning models
+
+        process_type: str
+            PTYPE_I = 'independent'
+            - _proc_infer_df will processed by infer_processors
+            - _proc_learn_df will be processed by learn_processors
+            PTYPE_A = 'append'
+            - _proc_infer_df will processed by infer_processors
+            - _proc_learn_df will be processed by infer_processors + learn_processors
+              - (e.g. _proc_infer_df processed by learn_processors )
+        """
+
+        # Setup preprocessor
+        self.infer_processors = []  # for lint
+        self.learn_processors = []  # for lint
+        for pname in 'infer_processors', 'learn_processors':
+            for proc in locals()[pname]:
+                getattr(self, pname).append(processor_module.init_proc_obj(proc))
+
+        self.process_type = process_type
+        super().__init__(**kwargs)
+
+    def get_all_processors(self):
+        return self.infer_processors + self.learn_processors
+
+    def _init_raw_data(self):
+        """
+        initialize the raw data
+        the raw data will be saved in to `self._data['raw']`
+        """
+        raise NotImplementedError(f"Please implement the `_init_raw_data` method")
+
+    def fit(self):
+        for proc in self.get_all_processors():
+            proc.fit(self)
+
+    def fit_process_data(self):
+        """
+        fit and process data
+
+        The input of the `fit` will be the output of the previous processor
+        """
+        self.process_data(with_fit=True)
+        
+
+    def process_data(self, with_fit: bool=False):
+        """
+        process_data data. Fun `processor.fit` if necessary
+
+        Parameters
+        ----------
+        with_fit : bool
+            The input of the `fit` will be the output of the previous processor
+        """
+        # data for inference
+        _infer_df = self._data[DataHandlerLP.DK_R]
+        for proc in self.infer_processors:
+            if not proc.is_for_infer():
+                raise TypeError("Only processors usable for inference can be used in `infer_processors` ")
+            if with_fit:
+                proc.fit(self, _infer_df)
+            _infer_df = proc(_infer_df)
+
+        # data for learning
+        if self.process_type == DataHandlerLP.PTYPE_I:
+            _learn_df = self._data[DataHandlerLP.DK_R]
+        elif self.process_type == DataHandlerLP.PTYPE_A:
+            # based on `infer_df` and append the processor
+            _learn_df = _infer_df
+        else:
+            raise NotImplementedError(f"This type of input is not supported")
+
+        for proc in self.learn_processors:
+            if with_fit:
+                proc.fit(self, _learn_df)
+            _learn_df = proc(_learn_df)
+        
+        self._data.update({
+            DataHandlerLP.DK_I: _infer_df,
+            DataHandlerLP.DK_L: _learn_df,
+        })
+
+    # init type
+    IT_FIT_SEQ = 'fit_seq'  # the input of `fit` will be the output of the previous processor
+    IT_FIT_IND = 'fit_ind'  # the input of `fit` will be the original df
+    IT_LS = 'load_state'  # The state of the object has been load by pickle
+    
+    def init(self, init_type: str=IT_FIT_SEQ, path: Path=None):
+        """
+        Initialize the data of Qlib
+
+        Parameters
+        ----------
+        init_type : str
+            'fit' or 'load_state'
+        path : path
+            if `init_type` == 'load_state': `path` will be used to load_state
+        """
+        self._init_raw_data()
+
+        if init_type == DataHandlerLP.IT_FIT_IND:
+            self.fit()
+            self.process_data()
+        elif init_type == DataHandlerLP.IT_LS:
+            self.process_data()
+        elif init_type == DataHandlerLP.IT_FIT_SEQ:
+            self.fit_process_data()
+        else:
+            raise NotImplementedError(f"This type of input is not supported")
+
+        # TODO: Be able to cache handler data. Save the memory for data processing
+
+
+class DataHandlerLPWL(DataHandlerLP):
+    '''
+    DataHandler with (L)earnable (P)rocessor with (L)abel
+    '''
+
+    def _init_raw_data(self):
         """
         init raw_df, feature_names, label_names of DataHandler
         if the index of df_feature and df_label are not same, user need to overload this method to merge (e.g. inner, left, right merge).
-
         """
-        df_features = self.setup_feature()
+        df_features = self.load_feature()
         feature_names = df_features.columns
 
-        df_labels = self.setup_label()
+        df_labels = self.load_label()
         label_names = df_labels.columns
 
         raw_df = df_features.merge(df_labels, left_index=True, right_index=True, how="left")
+        self.feature_names = feature_names
+        self.label_names = label_names
+        self._data['raw'] = raw_df
 
-        return raw_df, feature_names, label_names
-
-    def reset_label(self, df_labels):
-        for col in self.label_names:
-            del self.raw_df[col]
-        self.label_names = df_labels.columns
-        self.raw_df = self.raw_df.merge(df_labels, left_index=True, right_index=True, how="left")
-
-    def split_rolling_periods(
-        self,
-        train_start_date,
-        train_end_date,
-        validate_start_date,
-        validate_end_date,
-        test_start_date,
-        test_end_date,
-        rolling_period,
-        calendar_freq="day",
-    ):
-        """
-        Calculating the Rolling split periods, the period rolling on market calendar.
-        :param train_start_date:
-        :param train_end_date:
-        :param validate_start_date:
-        :param validate_end_date:
-        :param test_start_date:
-        :param test_end_date:
-        :param rolling_period:  The market period of rolling
-        :param calendar_freq: The frequence of the market calendar
-        :yield: Rolling split periods
-        """
-
-        def get_start_index(calendar, start_date):
-            start_index = bisect.bisect_left(calendar, start_date)
-            return start_index
-
-        def get_end_index(calendar, end_date):
-            end_index = bisect.bisect_right(calendar, end_date)
-            return end_index - 1
-
-        calendar = self.raw_df.index.get_level_values("datetime").unique()
-
-        train_start_index = get_start_index(calendar, pd.Timestamp(train_start_date))
-        train_end_index = get_end_index(calendar, pd.Timestamp(train_end_date))
-        valid_start_index = get_start_index(calendar, pd.Timestamp(validate_start_date))
-        valid_end_index = get_end_index(calendar, pd.Timestamp(validate_end_date))
-        test_start_index = get_start_index(calendar, pd.Timestamp(test_start_date))
-        test_end_index = test_start_index + rolling_period - 1
-
-        need_stop_split = False
-
-        bound_test_end_index = get_end_index(calendar, pd.Timestamp(test_end_date))
-
-        while not need_stop_split:
-
-            if test_end_index > bound_test_end_index:
-                test_end_index = bound_test_end_index
-                need_stop_split = True
-
-            yield (
-                calendar[train_start_index],
-                calendar[train_end_index],
-                calendar[valid_start_index],
-                calendar[valid_end_index],
-                calendar[test_start_index],
-                calendar[test_end_index],
-            )
-
-            train_start_index += rolling_period
-            train_end_index += rolling_period
-            valid_start_index += rolling_period
-            valid_end_index += rolling_period
-            test_start_index += rolling_period
-            test_end_index += rolling_period
-
-    def get_rolling_data(
-        self,
-        train_start_date,
-        train_end_date,
-        validate_start_date,
-        validate_end_date,
-        test_start_date,
-        test_end_date,
-        rolling_period,
-        calendar_freq="day",
-    ):
-        # Set generator.
-        for period in self.split_rolling_periods(
-            train_start_date,
-            train_end_date,
-            validate_start_date,
-            validate_end_date,
-            test_start_date,
-            test_end_date,
-            rolling_period,
-            calendar_freq,
-        ):
-            (
-                x_train,
-                y_train,
-                x_validate,
-                y_validate,
-                x_test,
-                y_test,
-            ) = self.get_split_data(*period)
-            yield x_train, y_train, x_validate, y_validate, x_test, y_test
-
-    def get_split_data(
-        self,
-        train_start_date,
-        train_end_date,
-        validate_start_date,
-        validate_end_date,
-        test_start_date,
-        test_end_date,
-    ):
-        """
-        all return types are DataFrame
-        """
-        ## TODO: loc can be slow, expecially when we put it at the second level index.
-        if self.raw_df.index.names[0] == "instrument":
-            df_train = self.raw_df.loc(axis=0)[:, train_start_date:train_end_date]
-            df_validate = self.raw_df.loc(axis=0)[:, validate_start_date:validate_end_date]
-            df_test = self.raw_df.loc(axis=0)[:, test_start_date:test_end_date]
-        else:
-            df_train = self.raw_df.loc[train_start_date:train_end_date]
-            df_validate = self.raw_df.loc[validate_start_date:validate_end_date]
-            df_test = self.raw_df.loc[test_start_date:test_end_date]
-
-        TimeInspector.set_time_mark()
-        df_train, df_validate, df_test = self.setup_process_data(df_train, df_validate, df_test)
-        TimeInspector.log_cost_time("Finished setup processed data.")
-
-        x_train = df_train[self.feature_names]
-        y_train = df_train[self.label_names]
-
-        x_validate = df_validate[self.feature_names]
-        y_validate = df_validate[self.label_names]
-
-        x_test = df_test[self.feature_names]
-        y_test = df_test[self.label_names]
-
-        return x_train, y_train, x_validate, y_validate, x_test, y_test
-
-    def setup_process_data(self, df_train, df_valid, df_test):
-        """
-        process the train, valid and test data
-        :return: the processed train, valid and test data.
-        """
-        for processor in self.processors:
-            df_train, df_valid, df_test = processor(df_train, df_valid, df_test)
-        return df_train, df_valid, df_test
-
-    def get_origin_test_label_with_date(self, test_start_date, test_end_date, freq="day"):
-        """Get origin test label
-
-        :param test_start_date: test start date
-        :param test_end_date: test end date
-        :param freq: freq
-        :return: pd.DataFrame
-        """
-        test_end_date = transform_end_date(test_end_date, freq=freq)
-        return self.raw_df.loc[(slice(None), slice(test_start_date, test_end_date)), self.label_names]
-
-    @abc.abstractmethod
-    def setup_feature(self):
+    def load_feature(self):
         """
         Implement this method to load raw feature.
             the format of the feature is below
         return: df_features
         """
-        pass
+        raise NotImplementedError(f"Please implement `load_feature`")
 
-    @abc.abstractmethod
-    def setup_label(self):
+    def load_label(self):
         """
         Implement this method to load and calculate label.
             the format of the label is below
 
         return: df_label
         """
-        pass
+        raise NotImplementedError(f"Please implement `load_label`")
+
+    def get_feature_names(self):
+        return self.feature_names
+
+    def get_label_names(self):
+        return self.label_names
 
 
-class QLibDataHandler(BaseDataHandler):
+class QLibDataHandler(DataHandlerLPWL):
     def __init__(self, start_date, end_date, *args, **kwargs):
         # Dates.
         self.start_date = start_date
         self.end_date = end_date
-        super().__init__(*args, **kwargs)
-
-    def _init_kwargs(self, **kwargs):
 
         # Instruments
-        instruments = kwargs.get("instruments", None)
+        instruments = kwargs.pop("instruments", None)
         if instruments is None:
-            market = kwargs.get("market", "csi500").lower()
-            data_filter_list = kwargs.get("data_filter_list", list())
+            market = kwargs.pop("market", "csi500").lower()
+            data_filter_list = kwargs.pop("data_filter_list", list())
             self.instruments = D.instruments(market, filter_pipe=data_filter_list)
         else:
             self.instruments = instruments
 
         # Config of features and labels
-        self._fields = kwargs.get("fields", [])
-        self._names = kwargs.get("names", [])
-        self._labels = kwargs.get("labels", [])
-        self._label_names = kwargs.get("label_names", [])
+        self._fields = kwargs.pop("fields", [])
+        self._names = kwargs.pop("names", [])
+        self._labels = kwargs.pop("labels", [])
+        self._label_names = kwargs.pop("label_names", [])
 
         # Check arguments
         assert len(self._fields) > 0, "features list is empty"
@@ -278,7 +350,9 @@ class QLibDataHandler(BaseDataHandler):
         # If test_end_date is -1 or greater than the last date, the last date is used
         self.end_date = transform_end_date(self.end_date)
 
-    def setup_feature(self):
+        super().__init__(*args, **kwargs)
+
+    def load_feature(self):
         """
         Load the raw data.
         return: df_features
@@ -297,7 +371,7 @@ class QLibDataHandler(BaseDataHandler):
 
         return df_features
 
-    def setup_label(self):
+    def load_label(self):
         """
         Build up labels in df through users' method
         :return:  df_labels
@@ -498,12 +572,7 @@ def parse_config_to_fields(config):
 class ConfigQLibDataHandler(QLibDataHandler):
     config_template = {}  # template
 
-    def __init__(self, start_date, end_date, processors=None, **kwargs):
-        if processors is None:
-            processors = ["ConfigSectionProcessor"]  # default processor
-        super().__init__(start_date, end_date, processors, **kwargs)
-
-    def _init_kwargs(self, **kwargs):
+    def __init__(self, start_date, end_date, infer_processors=["ConfigSectionProcessor"], learn_processors=[], **kwargs):
         config = self.config_template.copy()
         if "config_update" in kwargs:
             config.update(kwargs["config_update"])
@@ -512,4 +581,5 @@ class ConfigQLibDataHandler(QLibDataHandler):
         kwargs["names"] = names
         if "labels" not in kwargs:
             kwargs["labels"] = ["Ref($vwap, -2)/Ref($vwap, -1) - 1"]
-        super()._init_kwargs(**kwargs)
+
+        super().__init__(start_date, end_date, infer_processors=infer_processors, learn_processors=learn_processors, **kwargs)
