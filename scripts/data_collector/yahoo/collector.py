@@ -19,7 +19,7 @@ sys.path.append(str(CUR_DIR.parent.parent))
 from dump_bin import DumpData
 from data_collector.utils import get_hs_calendar_list as get_calendar_list, get_hs_stock_symbols
 
-CSI300_BENCH_URL = "http://push2his.eastmoney.com/api/qt/stock/kline/get?secid=1.000300&fields1=f1%2Cf2%2Cf3%2Cf4%2Cf5&fields2=f51%2Cf52%2Cf53%2Cf54%2Cf55%2Cf56%2Cf57%2Cf58&klt=101&fqt=0&beg=19900101&end=20220101"
+INDEX_BENCH_URL = "http://push2his.eastmoney.com/api/qt/stock/kline/get?secid=1.{index_code}&fields1=f1%2Cf2%2Cf3%2Cf4%2Cf5&fields2=f51%2Cf52%2Cf53%2Cf54%2Cf55%2Cf56%2Cf57%2Cf58&klt=101&fqt=0&beg=19900101&end=20220101"
 MIN_NUMBERS_TRADING = 252 / 4
 
 
@@ -130,17 +130,23 @@ class YahooCollector:
 
         logger.warning(f"less than {MIN_NUMBERS_TRADING} stock list: {list(self._mini_symbol_map.keys())}")
 
-        self.download_csi300_data()
+        self.download_index_data()
 
-    def download_csi300_data(self):
+    def download_index_data(self):
         # TODO: from MSN
-        logger.info(f"get bench data: csi300(SH000300)......")
-        df = pd.DataFrame(map(lambda x: x.split(","), requests.get(CSI300_BENCH_URL).json()["data"]["klines"]))
-        df.columns = ["date", "open", "close", "high", "low", "volume", "money", "change"]
-        df["date"] = pd.to_datetime(df["date"])
-        df = df.astype(float, errors="ignore")
-        df["adjclose"] = df["close"]
-        df.to_csv(self.save_dir.joinpath("sh000300.csv"), index=False)
+        for _index_name, _index_code in {"csi300": "000300", "csi100": "000903"}.items():
+            logger.info(f"get bench data: {_index_name}({_index_code})......")
+            df = pd.DataFrame(
+                map(
+                    lambda x: x.split(","),
+                    requests.get(INDEX_BENCH_URL.format(index_code=_index_code)).json()["data"]["klines"],
+                )
+            )
+            df.columns = ["date", "open", "close", "high", "low", "volume", "money", "change"]
+            df["date"] = pd.to_datetime(df["date"])
+            df = df.astype(float, errors="ignore")
+            df["adjclose"] = df["close"]
+            df.to_csv(self.save_dir.joinpath(f"sh{_index_code}.csv"), index=False)
 
 
 class Run:
@@ -192,7 +198,7 @@ class Run:
             df = df[~df.index.duplicated(keep="first")]
 
             # using China stock market data calendar
-            df = df.reindex(pd.Index(get_calendar_list()))
+            df = df.reindex(pd.Index(get_calendar_list("ALL")))
             df.sort_index(inplace=True)
 
             df.loc[(df["volume"] <= 0) | np.isnan(df["volume"]), set(df.columns) - {"symbol"}] = np.nan
@@ -274,8 +280,8 @@ class Run:
             delay=delay,
         ).collector_data()
 
-    def download_csi300_data(self):
-        YahooCollector(self.source_dir).download_csi300_data()
+    def download_index_data(self):
+        YahooCollector(self.source_dir).download_index_data()
 
     def download_bench_data(self):
         """download bench stock data(SH000300)"""
