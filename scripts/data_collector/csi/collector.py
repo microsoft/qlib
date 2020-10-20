@@ -2,6 +2,7 @@
 # Licensed under the MIT License.
 
 import re
+import abc
 import sys
 import bisect
 from io import BytesIO
@@ -18,14 +19,12 @@ sys.path.append(str(CUR_DIR.parent.parent))
 from data_collector.utils import get_hs_calendar_list as get_calendar_list
 
 
-NEW_COMPANIES_URL = "http://www.csindex.com.cn/uploads/file/autofile/cons/000300cons.xls"
+NEW_COMPANIES_URL = "http://www.csindex.com.cn/uploads/file/autofile/cons/{index_code}cons.xls"
 
-CSI300_CHANGES_URL = "http://www.csindex.com.cn/zh-CN/search/total?key=%E5%85%B3%E4%BA%8E%E8%B0%83%E6%95%B4%E6%B2%AA%E6%B7%B1300%E5%92%8C%E4%B8%AD%E8%AF%81%E9%A6%99%E6%B8%AF100%E7%AD%89%E6%8C%87%E6%95%B0%E6%A0%B7%E6%9C%AC%E8%82%A1%E7%9A%84%E5%85%AC%E5%91%8A"
-
-CSI300_START_DATE = pd.Timestamp("2005-01-01")
+INDEX_CHANGES_URL = "http://www.csindex.com.cn/zh-CN/search/total?key=%E5%85%B3%E4%BA%8E%E8%B0%83%E6%95%B4%E6%B2%AA%E6%B7%B1300%E5%92%8C%E4%B8%AD%E8%AF%81%E9%A6%99%E6%B8%AF100%E7%AD%89%E6%8C%87%E6%95%B0%E6%A0%B7%E6%9C%AC%E8%82%A1%E7%9A%84%E5%85%AC%E5%91%8A"
 
 
-class CSI300:
+class CSIIndex:
 
     REMOVE = "remove"
     ADD = "add"
@@ -45,6 +44,9 @@ class CSI300:
         self.instruments_dir.mkdir(exist_ok=True, parents=True)
         self._calendar_list = None
 
+        self.cache_dir = Path("~/.cache/csi").expanduser().resolve()
+        self.cache_dir.mkdir(exist_ok=True, parents=True)
+
     @property
     def calendar_list(self) -> list:
         """get history trading date
@@ -52,7 +54,41 @@ class CSI300:
         Returns
         -------
         """
-        return get_calendar_list(bench=True)
+        return get_calendar_list(bench_code=self.index_name.upper())
+
+    @property
+    def new_companies_url(self):
+        return NEW_COMPANIES_URL.format(index_code=self.index_code)
+
+    @property
+    def changes_url(self):
+        return INDEX_CHANGES_URL
+
+    @property
+    @abc.abstractmethod
+    def bench_start_date(self) -> pd.Timestamp:
+        raise NotImplementedError()
+
+    @property
+    @abc.abstractmethod
+    def index_code(self):
+        raise NotImplementedError()
+
+    @property
+    @abc.abstractmethod
+    def index_name(self):
+        raise NotImplementedError()
+
+    @property
+    @abc.abstractmethod
+    def html_table_index(self):
+        """Which table of changes in html
+
+        CSI300: 0
+        CSI100: 1
+        :return:
+        """
+        raise NotImplementedError()
 
     def _get_trading_date_by_shift(self, trading_date: pd.Timestamp, shift=1):
         """get trading date by shift
@@ -119,14 +155,18 @@ class CSI300:
         remove_date = self._get_trading_date_by_shift(add_date, shift=-1)
         logger.info(f"get {add_date} changes")
         try:
-
             excel_url = re.findall('.*href="(.*?xls.*?)".*', _text)[0]
-            _io = BytesIO(requests.get(f"http://www.csindex.com.cn{excel_url}").content)
+            content = requests.get(f"http://www.csindex.com.cn{excel_url}").content
+            _io = BytesIO(content)
             df_map = pd.read_excel(_io, sheet_name=None)
+            with self.cache_dir.joinpath(
+                f"{self.index_name.lower()}_changes_{add_date.strftime('%Y%m%d')}.{excel_url.split('.')[-1]}"
+            ).open("wb") as fp:
+                fp.write(content)
             tmp = []
             for _s_name, _type, _date in [("调入", self.ADD, add_date), ("调出", self.REMOVE, remove_date)]:
                 _df = df_map[_s_name]
-                _df = _df.loc[_df["指数代码"] == "000300", ["证券代码"]]
+                _df = _df.loc[_df["指数代码"] == self.index_code, ["证券代码"]]
                 _df = _df.applymap(self.normalize_symbol)
                 _df.columns = ["symbol"]
                 _df["type"] = _type
@@ -135,8 +175,12 @@ class CSI300:
             df = pd.concat(tmp)
         except Exception:
             df = None
+            _tmp_count = 0
             for _df in pd.read_html(resp.content):
                 if _df.shape[-1] != 4:
+                    continue
+                _tmp_count += 1
+                if self.html_table_index + 1 > _tmp_count:
                     continue
                 tmp = []
                 for _s, _type, _date in [
@@ -149,31 +193,42 @@ class CSI300:
                     _tmp_df["date"] = _date
                     tmp.append(_tmp_df)
                 df = pd.concat(tmp)
+                df.to_csv(
+                    str(
+                        self.cache_dir.joinpath(
+                            f"{self.index_name.lower()}_changes_{add_date.strftime('%Y%m%d')}.csv"
+                        ).resolve()
+                    )
+                )
                 break
         return df
 
-    @staticmethod
-    def _get_change_notices_url() -> list:
+    def _get_change_notices_url(self) -> list:
         """get change notices url
 
         Returns
         -------
 
         """
-        resp = requests.get(CSI300_CHANGES_URL)
+        resp = requests.get(self.changes_url)
         html = etree.HTML(resp.text)
         return html.xpath("//*[@id='itemContainer']//li/a/@href")
 
     def _get_new_companies(self):
 
         logger.info("get new companies")
-        _io = BytesIO(requests.get(NEW_COMPANIES_URL).content)
+        context = requests.get(self.new_companies_url).content
+        with self.cache_dir.joinpath(
+            f"{self.index_name.lower()}_new_companies.{self.new_companies_url.split('.')[-1]}"
+        ).open("wb") as fp:
+            fp.write(context)
+        _io = BytesIO(context)
         df = pd.read_excel(_io)
         df = df.iloc[:, [0, 4]]
         df.columns = ["end_date", "symbol"]
         df["symbol"] = df["symbol"].map(self.normalize_symbol)
         df["end_date"] = pd.to_datetime(df["end_date"])
-        df["start_date"] = CSI300_START_DATE
+        df["start_date"] = self.bench_start_date
         return df
 
     def parse_instruments(self):
@@ -183,7 +238,7 @@ class CSI300:
         -------
             $ python collector.py parse_instruments --qlib_dir ~/.qlib/qlib_data/cn_data
         """
-        logger.info("start parse csi300 companies.....")
+        logger.info(f"start parse {self.index_name.lower()} companies.....")
         instruments_columns = ["symbol", "start_date", "end_date"]
         changers_df = self._get_changes()
         new_df = self._get_new_companies()
@@ -196,15 +251,65 @@ class CSI300:
                 ] = _row.date
             else:
                 _tmp_df = pd.DataFrame(
-                    [[_row.symbol, CSI300_START_DATE, _row.date]], columns=["symbol", "start_date", "end_date"]
+                    [[_row.symbol, self.bench_start_date, _row.date]], columns=["symbol", "start_date", "end_date"]
                 )
                 new_df = new_df.append(_tmp_df, sort=False)
 
         new_df.loc[:, instruments_columns].to_csv(
-            self.instruments_dir.joinpath("csi300.txt"), sep="\t", index=False, header=None
+            self.instruments_dir.joinpath(f"{self.index_name.lower()}.txt"), sep="\t", index=False, header=None
         )
-        logger.info("parse csi300 companies finished.")
+        logger.info(f"parse {self.index_name.lower()} companies finished.")
+
+
+class CSI300(CSIIndex):
+    @property
+    def index_code(self):
+        return "000300"
+
+    @property
+    def index_name(self):
+        return "csi300"
+
+    @property
+    def bench_start_date(self) -> pd.Timestamp:
+        return pd.Timestamp("2005-01-01")
+
+    @property
+    def html_table_index(self):
+        return 0
+
+
+class CSI100(CSIIndex):
+    @property
+    def index_code(self):
+        return "000903"
+
+    @property
+    def index_name(self):
+        return "csi100"
+
+    @property
+    def bench_start_date(self) -> pd.Timestamp:
+        return pd.Timestamp("2006-05-29")
+
+    @property
+    def html_table_index(self):
+        return 1
+
+
+def parse_instruments(qlib_dir: str):
+    """
+
+    Parameters
+    ----------
+    qlib_dir: str
+        qlib data dir, default "Path(__file__).parent/qlib_data"
+    """
+    qlib_dir = Path(qlib_dir).expanduser().resolve()
+    qlib_dir.mkdir(exist_ok=True, parents=True)
+    CSI300(qlib_dir).parse_instruments()
+    CSI100(qlib_dir).parse_instruments()
 
 
 if __name__ == "__main__":
-    fire.Fire(CSI300)
+    fire.Fire(parse_instruments)
