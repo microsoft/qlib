@@ -23,6 +23,7 @@ import contextlib
 import numpy as np
 import pandas as pd
 from pathlib import Path
+from typing import Union, Tuple
 
 from ..config import C
 from ..log import get_module_logger
@@ -162,6 +163,71 @@ def get_module_by_module_path(module_path):
         module = importlib.import_module(module_path)
 
     return module
+
+
+def get_cls_kwargs(config: Union[dict, str], module) ->  (type, dict):
+    """
+    extract class and kwargs from config info
+
+    Parameters
+    ----------
+    config : [dict, str]
+        similar to config
+
+    module : Python module
+        It should be a python module to load the class type
+
+    Returns
+    -------
+    (type, dict):
+        the class object and it's arguments.
+    """
+    if isinstance(config, dict):
+        # raise AttributeError
+        klass = getattr(module, config['class'])
+        kwargs = config['kwargs']
+    elif isinstance(config, str):
+        klass = getattr(module, config)
+        kwargs = {}
+    else:
+        raise NotImplementedError(f"This type of input is not supported")
+    return klass, kwargs
+
+
+def init_instance_by_config(config: Union[str, dict], module=None, accept_types: Tuple[type]=tuple([])) -> object:
+    """
+    get initialized instance with config
+
+    Parameters
+    ----------
+    config : Union[str, dict]
+        dict example.
+        {
+            'class': 'ClassName',
+            'kwargs': dict, #  It is optional. {} will be used if not given
+            'model_path': path, # It is optional if module is given
+        }
+        str example.
+        "ClassName":  getattr(module, config)() will be used.
+    module : Python module
+        Optional. It should be a python module.
+
+    accept_types: Tuple[type]
+        Optional. If the config is a instance of specific type, return the config directly.
+
+    Returns
+    -------
+    object:
+        An initialized object based on the config info
+    """
+    if isinstance(config, accept_types):
+        return config
+
+    if module is None:
+        module = get_module_by_module_path(config["module_path"])
+
+    klass, kwargs = get_cls_kwargs(config, module)
+    return klass(**kwargs)
 
 
 def compare_dict_value(src_data: dict, dst_data: dict):

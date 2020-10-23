@@ -11,7 +11,7 @@ from ..backtest.account import Account
 from ..backtest.exchange import Exchange
 from .user import User
 from .utils import load_instance
-from .utils import save_instance, init_instance_by_config
+from ...utils import save_instance, init_instance_by_config
 
 
 class UserManager:

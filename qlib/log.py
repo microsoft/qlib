@@ -8,6 +8,7 @@ import os
 import re
 from logging import config as logging_config
 from time import time
+from contextlib import contextmanager
 
 from .config import C
 
@@ -78,6 +79,28 @@ class TimeInspector(object):
         """
         cost_time = time() - cls.time_marks.pop()
         cls.timer_logger.info("Time cost: {0:.5f} | {1}".format(cost_time, info))
+
+    @contextmanager
+    @classmethod
+    def logt(cls, name="", show_start=False):
+        """logt.
+        Log the time of the inside code
+
+        Parameters
+        ----------
+        name :
+            name
+        show_start :
+            show_start
+        """
+        if show_start:
+            cls.timer_logger.info(f"Begin {name}")
+        cls.set_time_mark()
+        try:
+            yield None
+        finally:
+            pass
+        cls.log_cost_time()
 
 
 def set_log_with_config(log_config: dict):

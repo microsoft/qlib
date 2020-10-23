@@ -12,16 +12,31 @@ from ...utils.serial import Serializable
 EPS = 1e-12
 
 
+def get_group_columns(df: pd.DataFrame, group: str):
+    """
+    get a group of columns from multi-index columns DataFrame
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        with multi of columns
+    group : str
+        the name of the feature group, i.e. the first level value of the group index.
+    """
+    if group is None:
+        return df.columns
+    else:
+        return df.columns[df.columns.get_loc(group)]
+
+
 class Processor(Serializable):
 
-    def fit(self, handler, df: pd.DataFrame=None):
+    def fit(self, df: pd.DataFrame=None):
         """
         learn data processing parameters
 
         Parameters
         ----------
-        handler : DataHandlerLP
-            The data handler to processing data
         df : pd.DataFrame
             When we fit and process data with processor one by one. The fit function reiles on the output of previous
             processor, i.e. `df`.
@@ -34,7 +49,8 @@ class Processor(Serializable):
         """
         process the data
 
-        NOTE: The processor should not change the content of `df`
+        NOTE: **The processor could change the content of `df` inplace !!!!! **
+        User should keep a copy of data outside
 
         Parameters
         ----------
@@ -43,59 +59,10 @@ class Processor(Serializable):
         """
         pass
 
-
-def get_cls_kwargs(processor: [dict, str]) ->  (type, dict):
-    """
-    extract class and kwargs from processor info
-
-    Parameters
-    ----------
-    processor : [dict, str]
-        similar to processor
-
-    Returns
-    -------
-    (type, dict):
-        the class object and it's arguments.
-    """
-    if isinstance(processor, dict):
-        # raise AttributeError
-        klass = globals()[processor['class']]
-        kwargs = processor['kwargs']
-    elif isinstance(processor, str):
-        klass = globals()[processor]
-        kwargs = {}
-    else:
-        raise NotImplementedError(f"This type of input is not supported")
-    return klass, kwargs
-
-
-# Place the function here to be able to reference the Processor
-def init_proc_obj(processor: [dict, str, Processor]) -> Processor:
-    """
-    Initialize Processor Object
-
-    Parameters
-    ----------
-    processor : [dict, str, Processor]
-        The info to initialize processor 
-
-    Returns
-    -------
-    Processor:
-        initialized Processor
-    """
-    if not isinstance(processor, Processor):
-        klass, pkwargs = get_cls_kwargs(processor)
-        processor = klass(**pkwargs)
-    return processor
-
-
-class InferProcessor(Processor):
-    '''This processor is usable for inference'''
     def is_for_infer(self) -> bool:
         """
         Is this processor usable for inference
+        Some processors are not usable for inference.
 
         Returns
         -------
@@ -105,37 +72,24 @@ class InferProcessor(Processor):
         return True
 
 
-class NInferProcessor(Processor):
-    '''This processor is not usable for inference'''
-    def is_for_infer(self) -> bool:
-        """
-        Is this processor usable for inference
+class DropnaProcessor(Processor):
+    def __init__(self, group=None):
+        self.group = group
 
-        Returns
-        -------
-        bool:
-            if it is usable for infenrece
-        """
+    def __call__(self, df):
+        return df.dropna(subset=get_group_columns(df, self.group))
+
+
+class DropnaLabel(DropnaProcessor):
+    def __init__(self, group='label'):
+        super().__init__(group=group)
+
+    def is_for_infer(self) -> bool:
+        '''The samples are dropped according to label. So it is not usable for inference'''
         return False
 
 
-class DropnaFeature(InferProcessor):
-    def fit(self, handler, df=None):
-        self.feature_names = copy.deepcopy(handler.get_feature_names())
-
-    def __call__(self, df):
-        return df.dropna(subset=self.feature_names)
-
-
-class DropnaLabel(InferProcessor):
-    def fit(self, handler, df=None):
-        self.label_names = copy.deepcopy(handler.get_label_names())
-
-    def __call__(self, df):
-        return df.dropna(subset=self.label_names)
-
-
-class ProcessInf(InferProcessor):
+class ProcessInf(Processor):
     '''Process infinity  '''
     def __call__(self, df):
         def replace_inf(data):
@@ -151,22 +105,20 @@ class ProcessInf(InferProcessor):
         return replace_inf(df)
 
 
-class MinMaxNorm(InferProcessor):
-    def __init__(self, fit_start_time, fit_end_time):
+class MinMaxNorm(Processor):
+    def __init__(self, fit_start_time, fit_end_time, fields_group=None):
         self.fit_start_time = fit_start_time
         self.fit_end_time = fit_end_time
+        self.fields_group = fields_group
 
-    def fit(self, handler, df):
-        # TODO:  看看这里怎么取数据
-        self.min_val = np.nanmin(df[handler.get_feature_names()].values, axis=0)
-        self.max_val = np.nanmax(df[handler.get_feature_names()].values, axis=0)
+    def fit(self, df):
+        cols = get_group_columns(df, self.fields_group)
+        self.min_val = np.nanmin(df[cols].values, axis=0)
+        self.max_val = np.nanmax(df[cols].values, axis=0)
         self.ignore = self.min_val == self.max_val
-        self.feature_names = copy.deepcopy(handler.get_feature_names())
+        self.cols = cols
 
     def __call__(self, df):
-        # FIXME: The df will be changed inplace. It's very dangerous
-        # The code below is ugly
-        df = df.copy()  # currently copy is used
         def normalize(x, min_val=self.min_val, max_val=self.max_val, ignore=self.ignore):
             if (~ignore).all():
                 return (x - min_val) / (max_val - min_val)
@@ -174,25 +126,24 @@ class MinMaxNorm(InferProcessor):
                 if not ignore[i]:
                     x[i] = (x[i] - min_val) / (max_val - min_val)
             return x
-        df.loc(axis=1)[self.feature_names] = normalize(df[self.feature_names].values)
+        df.loc(axis=1)[self.cols] = normalize(df[self.cols].values)
         return df
 
 
-class ZscoreNorm(InferProcessor):
-    def __init__(self, fit_start_time, fit_end_time):
+class ZscoreNorm(Processor):
+    def __init__(self, fit_start_time, fit_end_time, fields_group=None):
         self.fit_start_time = fit_start_time
         self.fit_end_time = fit_end_time
+        self.fields_group = fields_group
 
-    def fit(self, handler, df):
-        self.mean_train = np.nanmean(df[handler.get_feature_names()].values, axis=0)
-        self.std_train = np.nanstd(df[handler.get_feature_names()].values, axis=0)
+    def fit(self, df):
+        cols = get_group_columns(df, self.fields_group)
+        self.mean_train = np.nanmean(df[cols].values, axis=0)
+        self.std_train = np.nanstd(df[cols].values, axis=0)
         self.ignore = self.std_train == 0
-        self.feature_names = handler.get_feature_names()
+        self.cols = cols
 
     def __call__(self, df):
-        # FIXME: The df will be changed inplace. It's very dangerous
-        # The code below is ugly
-        df = df.copy()  # currently copy is used
         def normalize(x, mean_train=self.mean_train, std_train=self.std_train, ignore=self.ignore):
             if (~ignore).all():
                 return (x - mean_train) / std_train
@@ -200,12 +151,27 @@ class ZscoreNorm(InferProcessor):
                 if not ignore[i]:
                     x[i] = (x[i] - mean_train) / std_train
             return x
-        df.loc(axis=1)[self.feature_names] = normalize(df[self.feature_names].values)
+        df.loc(axis=1)[self.cols] = normalize(df[self.cols].values)
         return df
 
 
-class ConfigSectionProcessor(InferProcessor):
-    def __init__(self, **kwargs):
+class CSZScoreNorm(Processor):
+    '''Cross Sectional ZScore Normalization'''
+    def __init__(self, fields_group=None):
+        self.fields_group = fields_group
+
+    def __call__(self, df):
+        # try not modify original dataframe
+        cols = get_group_columns(df,self.fields_group)
+        df[cols] = df[cols].groupby('datetime').apply(lambda df: (df - df.mean()).div(df.std()))
+        return df
+
+
+# TODO: make the config language easier to understand
+class ConfigSectionProcessor(Processor):
+    # TODO: this class is not well tested
+    # FIXME: this will raise error when multi-index is passed in
+    def __init__(self, fields_group=None, **kwargs):
         super().__init__()
         # Options
         self.fillna_feature = kwargs.get("fillna_feature", True)
@@ -214,9 +180,7 @@ class ConfigSectionProcessor(InferProcessor):
         self.shrink_feature_outlier = kwargs.get("shrink_feature_outlier", True)
         self.clip_label_outlier = kwargs.get("clip_label_outlier", False)
 
-    def fit(self, handler, df=None):
-        self.feature_names = handler.get_feature_names()
-        self.label_names = handler.get_label_names()
+        self.fields_group = None
 
     def __call__(self, df):
         return self._transform(df)
@@ -245,19 +209,22 @@ class ConfigSectionProcessor(InferProcessor):
 
         TimeInspector.set_time_mark()
 
-        # Copy
-        df_new = df.copy()
+        # Copy the focus part and change it to single level
+        selected_cols = get_group_columns(df, self.fields_group)
+        df_focus = df[selected_cols].copy()
+        if len(df_focus.columns.levels) > 1:
+            df_focus = df_focus.droplevel(level=0)
 
         # Label
-        cols = df.columns[df.columns.str.contains("^LABEL")]
-        df_new[cols] = df[cols].groupby(level="datetime").apply(_label_norm)
+        cols = df_focus.columns[df_focus.columns.str.contains("^LABEL")]
+        df_focus[cols] = df_focus[cols].groupby(level="datetime").apply(_label_norm)
 
         # Features
-        cols = df.columns[df.columns.str.contains("^KLEN|^KLOW|^KUP")]
-        df_new[cols] = df[cols].apply(lambda x: x ** 0.25).groupby(level="datetime").apply(_feature_norm)
+        cols = df_focus.columns[df_focus.columns.str.contains("^KLEN|^KLOW|^KUP")]
+        df_focus[cols] = df_focus[cols].apply(lambda x: x ** 0.25).groupby(level="datetime").apply(_feature_norm)
 
-        cols = df.columns[df.columns.str.contains("^KLOW2|^KUP2")]
-        df_new[cols] = df[cols].apply(lambda x: x ** 0.5).groupby(level="datetime").apply(_feature_norm)
+        cols = df_focus.columns[df_focus.columns.str.contains("^KLOW2|^KUP2")]
+        df_focus[cols] = df_focus[cols].apply(lambda x: x ** 0.5).groupby(level="datetime").apply(_feature_norm)
 
         _cols = [
             "KMID",
@@ -282,27 +249,29 @@ class ConfigSectionProcessor(InferProcessor):
             "VSUMD",
         ]
         pat = "|".join(["^" + x for x in _cols])
-        cols = df.columns[df.columns.str.contains(pat) & (~df.columns.isin(["HIGH0", "LOW0"]))]
-        df_new[cols] = df[cols].groupby(level="datetime").apply(_feature_norm)
+        cols = df_focus.columns[df_focus.columns.str.contains(pat) & (~df_focus.columns.isin(["HIGH0", "LOW0"]))]
+        df_focus[cols] = df_focus[cols].groupby(level="datetime").apply(_feature_norm)
 
-        cols = df.columns[df.columns.str.contains("^STD|^VOLUME|^VMA|^VSTD")]
-        df_new[cols] = df[cols].apply(np.log).groupby(level="datetime").apply(_feature_norm)
+        cols = df_focus.columns[df_focus.columns.str.contains("^STD|^VOLUME|^VMA|^VSTD")]
+        df_focus[cols] = df_focus[cols].apply(np.log).groupby(level="datetime").apply(_feature_norm)
 
-        cols = df.columns[df.columns.str.contains("^RSQR")]
-        df_new[cols] = df[cols].fillna(0).groupby(level="datetime").apply(_feature_norm)
+        cols = df_focus.columns[df_focus.columns.str.contains("^RSQR")]
+        df_focus[cols] = df_focus[cols].fillna(0).groupby(level="datetime").apply(_feature_norm)
 
-        cols = df.columns[df.columns.str.contains("^MAX|^HIGH0")]
-        df_new[cols] = df[cols].apply(lambda x: (x - 1) ** 0.5).groupby(level="datetime").apply(_feature_norm)
+        cols = df_focus.columns[df_focus.columns.str.contains("^MAX|^HIGH0")]
+        df_focus[cols] = df_focus[cols].apply(lambda x: (x - 1) ** 0.5).groupby(level="datetime").apply(_feature_norm)
 
-        cols = df.columns[df.columns.str.contains("^MIN|^LOW0")]
-        df_new[cols] = df[cols].apply(lambda x: (1 - x) ** 0.5).groupby(level="datetime").apply(_feature_norm)
+        cols = df_focus.columns[df_focus.columns.str.contains("^MIN|^LOW0")]
+        df_focus[cols] = df_focus[cols].apply(lambda x: (1 - x) ** 0.5).groupby(level="datetime").apply(_feature_norm)
 
-        cols = df.columns[df.columns.str.contains("^CORR|^CORD")]
-        df_new[cols] = df[cols].apply(np.exp).groupby(level="datetime").apply(_feature_norm)
+        cols = df_focus.columns[df_focus.columns.str.contains("^CORR|^CORD")]
+        df_focus[cols] = df_focus[cols].apply(np.exp).groupby(level="datetime").apply(_feature_norm)
 
-        cols = df.columns[df.columns.str.contains("^WVMA")]
-        df_new[cols] = df[cols].apply(np.log1p).groupby(level="datetime").apply(_feature_norm)
+        cols = df_focus.columns[df_focus.columns.str.contains("^WVMA")]
+        df_focus[cols] = df_focus[cols].apply(np.log1p).groupby(level="datetime").apply(_feature_norm)
+
+        df[selected_cols] = df_focus.values
 
         TimeInspector.log_cost_time("Finished preprocessing data.")
 
-        return df_new
+        return df

@@ -31,7 +31,7 @@ if __name__ == "__main__":
 
     qlib.init(provider_uri=provider_uri, region=REG_CN)
 
-    MARKET = "CSI300"
+    MARKET = "csi300"
     BENCHMARK = "SH000300"
 
 
@@ -39,27 +39,27 @@ if __name__ == "__main__":
     # train model
     ###################################
     DATA_HANDLER_CONFIG = {
-        "start_date": "2008-01-01",
-        "end_date": "2020-08-01",
+        "start_time": "2008-01-01",
+        "end_time": "2020-08-01",
         "fit_start_time":"2008-01-01",
         "fit_end_time":"2014-12-31",
-        "market": MARKET,
+        "instruments": MARKET,
     }
 
     TRAINER_CONFIG = {
-        "train_start_date": "2008-01-01",
-        "train_end_date": "2014-12-31",
-        "validate_start_date": "2015-01-01",
-        "validate_end_date": "2016-12-31",
-        "test_start_date": "2017-01-01",
-        "test_end_date": "2020-08-01",
+        "train_start_time": "2008-01-01",
+        "train_end_time": "2014-12-31",
+        "validate_start_time": "2015-01-01",
+        "validate_end_time": "2016-12-31",
+        "test_start_time": "2017-01-01",
+        "test_end_time": "2020-08-01",
     }
 
     # use default DataHandler
     # custom DataHandler, refer to: TODO: DataHandler API url
     handler = Alpha158(**DATA_HANDLER_CONFIG)
 
-    data = handler.fetch(slice('2008-01-01', '2014-12-31'), key=handler.DK_I)
+    data = handler.fetch(slice('2008-01-01', '2014-12-31'), data_key=handler.DK_I)
     print(data)
 
     sys.exit(0)   # I have tested the code above  ---------------------------------------------
