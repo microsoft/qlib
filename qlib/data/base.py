@@ -6,12 +6,10 @@ from __future__ import division
 from __future__ import print_function
 
 import abc
-import six
 import pandas as pd
 
 
-@six.add_metaclass(abc.ABCMeta)
-class Expression(object):
+class Expression(abc.ABC):
     """Expression base class"""
 
     def __str__(self):
@@ -218,7 +216,6 @@ class Feature(Expression):
         return 0, 0
 
 
-@six.add_metaclass(abc.ABCMeta)
 class ExpressionOps(Expression):
     """Operator Expression
 

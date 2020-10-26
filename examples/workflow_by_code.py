@@ -16,6 +16,8 @@ from qlib.contrib.evaluate import (
 )
 from qlib.utils import exists_qlib_data
 
+from qlib.model.learner import train_model
+
 
 if __name__ == "__main__":
 
@@ -61,6 +63,48 @@ if __name__ == "__main__":
 
     data = handler.fetch(slice('2008-01-01', '2014-12-31'), data_key=handler.DK_I)
     print(data)
+
+    task = {
+        "model": {
+            "class": "LGBModel",
+            "module_path": "qlib.contrib.model.gbdt",
+            "kwargs": {
+                "loss": "mse",
+                "colsample_bytree": 0.8879,
+                "learning_rate": 0.0421,
+                "subsample": 0.8789,
+                "lambda_l1": 205.6999,
+                "lambda_l2": 580.9768,
+                "max_depth": 8,
+                "num_leaves": 210,
+                "num_threads": 20,
+            }
+        },
+        "data": {
+            "dataset": {
+                "class": "DatasetH",
+                "module_path": "qlib.data.dataset",
+                "kwargs": {
+                    'handler': {
+                        "class": "Alpha158",
+                        "kwargs": DATA_HANDLER_CONFIG
+                    },
+                    "train_start_time": "2008-01-01",
+                    "train_end_time": "2014-12-31",
+                    "validate_start_time": "2015-01-01",
+                    "validate_end_time": "2016-12-31",
+                    "test_start_time": "2017-01-01",
+                    "test_end_time": "2020-08-01",
+                }
+            }
+        },
+        # You shoud record the data in specific sequence
+        # "record": ['SignalRecord', 'SigAnaRecord', 'PortAnaRecord'],
+    }
+
+    model = train_model(task)
+
+
 
     sys.exit(0)   # I have tested the code above  ---------------------------------------------
 

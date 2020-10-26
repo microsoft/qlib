@@ -7,7 +7,6 @@ from __future__ import print_function
 
 import os
 import abc
-import six
 import time
 import queue
 import bisect
@@ -27,8 +26,7 @@ from .base import Feature
 from .cache import DiskDatasetCache, DiskExpressionCache
 
 
-@six.add_metaclass(abc.ABCMeta)
-class CalendarProvider(object):
+class CalendarProvider(abc.ABC):
     """Calendar provider base class
 
     Provide calendar data.
@@ -128,8 +126,7 @@ class CalendarProvider(object):
         return hash_args(start_time, end_time, freq, future)
 
 
-@six.add_metaclass(abc.ABCMeta)
-class InstrumentProvider(object):
+class InstrumentProvider(abc.ABC):
     """Instrument provider base class
 
     Provide instrument data.
@@ -214,8 +211,7 @@ class InstrumentProvider(object):
         raise ValueError(f"Unknown instrument type {inst}")
 
 
-@six.add_metaclass(abc.ABCMeta)
-class FeatureProvider(object):
+class FeatureProvider(abc.ABC):
     """Feature provider class
 
     Provide feature data.
@@ -246,8 +242,7 @@ class FeatureProvider(object):
         raise NotImplementedError("Subclass of FeatureProvider must implement `feature` method")
 
 
-@six.add_metaclass(abc.ABCMeta)
-class ExpressionProvider(object):
+class ExpressionProvider(abc.ABC):
     """Expression provider class
 
     Provide Expression data.
@@ -298,8 +293,7 @@ class ExpressionProvider(object):
         raise NotImplementedError("Subclass of ExpressionProvider must implement `Expression` method")
 
 
-@six.add_metaclass(abc.ABCMeta)
-class DatasetProvider(object):
+class DatasetProvider(abc.ABC):
     """Dataset provider class
 
     Provide Dataset data.
