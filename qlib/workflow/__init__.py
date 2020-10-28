@@ -12,19 +12,19 @@ class Record:
     @contextmanager
     def start_exp(self, experiment_name=None, uri=None, project_path=None, artifact_location=None, nested=False):
         raise NotImplementedError(f"Please implement the `start_exp` method.")
-    
+
     def search_runs(self, experiment_ids=None, filter_string='', run_view_type=1, max_results=100000, order_by=None):
         raise NotImplementedError(f"Please implement the `search_runs` method.")
-    
+
     def get_exp(self, experiment_id):
         raise NotImplementedError(f"Please implement the `get_exp` method.")
 
     def get_exp_by_name(self, experiment_name):
         raise NotImplementedError(f"Please implement the `get_exp_by_name` method.")
-    
+
     def create_exp(self, experiment_name, artifact_location=None):
         raise NotImplementedError(f"Please implement the `create_exp` method.")
-    
+
     def set_exp(self, experiment_name):
         raise NotImplementedError(f"Please implement the `set_exp` method.")
 
@@ -33,10 +33,10 @@ class Record:
 
     def set_tracking_uri(self, uri):
         raise NotImplementedError(f"Please implement the `set_tracking_uri` method.")
-    
+
     def get_tracking_uri(self):
         raise NotImplementedError(f"Please implement the `get_tracking_uri` method.")
-    
+
     def get_recorder(self):
         raise NotImplementedError(f"Please implement the `get_recorder` method.")
 
@@ -48,7 +48,7 @@ class Record:
 
     def load_object(self, name):
         raise NotImplementedError(f"Please implement the `load_object` method.")
-    
+
     def log_param(self, key, value):
         raise NotImplementedError(f"Please implement the `log_param` method.")
 
@@ -60,7 +60,7 @@ class Record:
 
     def log_metrics(self, metrics, step=None):
         raise NotImplementedError(f"Please implement the `log_metrics` method.")
-    
+
     def set_tag(self, key, value):
         raise NotImplementedError(f"Please implement the `set_tag` method.")
 
@@ -69,7 +69,7 @@ class Record:
 
     def delete_tag(self, key):
         raise NotImplementedError(f"Please implement the `delete_tag` method.")
-    
+
     def log_artifact(self, local_path, artifact_path=None):
         raise NotImplementedError(f"Please implement the `log_artifact` method.")
 
@@ -86,19 +86,19 @@ class MLflowRecord(Record):
     @contextmanager
     def start_exp(self, experiment_name=None, uri=None, project_path=None, artifact_location=None, nested=False):
         yield self.exp_manager.start_exp(experiment_name, uri, project_path, artifact_location, nested)
-    
+
     def search_runs(self, experiment_ids=None, filter_string='', run_view_type=1, max_results=100000, order_by=None):
         return self.exp_manager.search_runs(experiment_ids, filter_string, run_view_type, max_results, order_by)
-    
+
     def get_exp(self, experiment_id):
         return self.exp_manager.get_exp(experiment_id)
 
     def get_exp_by_name(self, experiment_name):
         return self.exp_manager.get_exp_by_name(experiment_name)
-    
+
     def create_exp(self, experiment_name, artifact_location=None):
         self.exp_manager.create_exp(experiment_name, artifact_location)
-    
+
     def set_exp(self, experiment_name):
         self.exp_manager.set_exp(experiment_name)
 
@@ -107,10 +107,10 @@ class MLflowRecord(Record):
 
     def set_tracking_uri(self, uri):
         self.exp_manager.set_tracking_uri(uri)
-    
+
     def get_tracking_uri(self):
         return self.exp_manager.get_tracking_uri()
-    
+
     def get_recorder(self):
         return self.exp_manager.get_recorder()
 
@@ -122,7 +122,7 @@ class MLflowRecord(Record):
 
     def load_object(self, name):
         return self.exp_manager.active_recorder.load_object(name)
-    
+
     def log_param(self, key, value):
         self.exp_manager.active_recorder.log_param(key, value)
 
@@ -134,7 +134,7 @@ class MLflowRecord(Record):
 
     def log_metrics(self, metrics, step=None):
         self.exp_manager.active_recorder.log_metrics(metrics, step)
-    
+
     def set_tag(self, key, value):
         self.exp_manager.active_recorder.set_tag(key, value)
 
@@ -143,7 +143,7 @@ class MLflowRecord(Record):
 
     def delete_tag(self, key):
         self.exp_manager.active_recorder.delete_tag(key)
-    
+
     def log_artifact(self, local_path, artifact_path=None):
         self.exp_manager.active_recorder.log_artifact(local_path, artifact_path)
 
