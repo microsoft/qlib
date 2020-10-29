@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 import mlflow
-import shutil
+import shutil, os, pickle, tempfile, codecs
 from pathlib import Path
 from ..utils.objm import FileManager
 
@@ -12,45 +12,39 @@ class Recorder:
     (The link: https://mlflow.org/docs/latest/python_api/mlflow.html)
     """
 
-    def __init__(self, experiment_id, project_path=None):
+    def __init__(self, experiment_id):
         self.experiment_id = experiment_id
         self.recorder_id = None
         self.recorder_name = None
-        self.fm = None
-        self.artifact_uri = None
     
     def set_recorder_name(self, rname):
         self.recorder_name = rname
 
-    def save_object(self, name, data):
+    def save_object(self, data, name, local_path=None):
         """
-        Save object such as prediction file or model checkpoints.
+        Save object such as prediction file or model checkpoints to the artifact URI.
 
         Parameters
         ----------
-        name : str
-            name of the file to be saved.
         data : any type
             the data to be saved.
-
-        Returns
-        -------
-        None.
+        name : str
+            name of the file to be saved.
+        local_path : str
+            if provided, them save the file or directory to the artifact URI.
         """
         raise NotImplementedError(f"Please implement the `save_object` method.")
 
-    def save_objects(self, name_data_list):
+    def save_objects(self, data_name_list, local_path=None):
         """
-        Save objects such as prediction file or model checkpoints.
+        Save objects such as prediction file or model checkpoints to the artifact URI.
 
         Parameters
         ----------
-        name_data_list : list
-            list of (name, data) pairs
-
-        Returns
-        -------
-        None.
+        data_name_list : list
+            list of (data, name) pairs
+        local_path : str
+            if provided, them save the file or directory to the artifact URI.
         """
         raise NotImplementedError(f"Please implement the `save_objects` method.")
 
@@ -98,99 +92,36 @@ class Recorder:
         """
         raise NotImplementedError(f"Please implement the `end_run` method.")
 
-    def log_param(self, key, value):
-        """
-        Log a parameter under the current run.
-
-        Parameters
-        ----------
-        key : str
-            the name of the parameter
-        value : str
-            the value of the parameter
-
-        Returns
-        -------
-        None
-        """
-        raise NotImplementedError(f"Please implement the `log_param` method.")
-
-    def log_params(self, params):
+    def log_params(self, **kwargs):
         """
         Log a batch of params for the current run.
 
         Parameters
         ----------
-        params : dict
-            dictionary of param_name: String -> value: String.
-
-        Returns
-        -------
-        None
+        keyword arguments
+            key, value pair to be logged as parameters.
         """
         raise NotImplementedError(f"Please implement the `log_params` method.")
 
-    def log_metric(self, key, value, step=None):
-        """
-        Log a metric under the current run.
-
-        Parameters
-        ----------
-        key : str
-            the name of the metric
-        value : float
-            the value of the metric
-
-        Returns
-        -------
-        None
-        """
-        raise NotImplementedError(f"Please implement the `log_metric` method.")
-
-    def log_metrics(self, metrics, step=None):
+    def log_metrics(self, step=None, **kwargs):
         """
         Log multiple metrics for the current run.
 
         Parameters
         ----------
-        metrics : dict
-            dictionary of metric_name: String -> value: Float.
-
-        Returns
-        -------
-        None
+        keyword arguments
+            key, value pair to be logged as metrics.
         """
         raise NotImplementedError(f"Please implement the `log_metrics` method.")
-    
-    def set_tag(self, key, value):
-        """
-        Set a tag under the current run.
 
-        Parameters
-        ----------
-        key : str
-            the name of the tag
-        value : str
-            the value of the tag
-
-        Returns
-        -------
-        None
-        """
-        raise NotImplementedError(f"Please implement the `set_tag` method.")
-
-    def set_tags(self, tags):
+    def set_tags(self, **kwargs):
         """
         Log a batch of tags for the current run.
 
         Parameters
         ----------
-        tags : dict
-            dictionary of tag_name: String -> value: String.
-
-        Returns
-        -------
-        None
+        keyword arguments
+            key, value pair to be logged as tags.
         """
         raise NotImplementedError(f"Please implement the `log_tags` method.")
 
@@ -202,67 +133,22 @@ class Recorder:
         ----------
         key : str
             the name of the tag to be deleted.
-
-        Returns
-        -------
-        None
         """
         raise NotImplementedError(f"Please implement the `delete_tag` method.")
-    
-    def log_artifact(self, local_path, artifact_path=None):
-        """
-        Log a local file or directory as an artifact of the currently active run.
-
-        Parameters
-        ----------
-        local_path : str
-            path to the file to write.
-        artifact_path : str
-            the directory in `artifact_uri` to write to.
-
-        Returns
-        -------
-        None
-        """
-        raise NotImplementedError(f"Please implement the `log_artifact` method.")
-
-    def log_artifacts(self, local_dir, artifact_path=None):
-        """
-        Log all the contents of a local directory as artifacts of the run.
-
-        Parameters
-        ----------
-        local_dir : str
-            path to the directory of files to write.
-        artifact_path : str
-            the directory in `artifact_uri` to write to.
-
-        Returns
-        -------
-        None
-        """
-        raise NotImplementedError(f"Please implement the `log_artifacts` method.")
-
-    def get_artifact_uri(self, artifact_path=None):
-        """
-        Get the absolute URI of the specified artifact in the currently active run.
-
-        Parameters
-        ----------
-        artifact_path : str
-            the directory in `artifact_uri` to write to.
-
-        Returns
-        -------
-        An absolute URI referring to the specified artifact or currently active Recorder.
-        """
-        raise NotImplementedError(f"Please implement the `get_artifact_uri` method.")
 
 
 class MLflowRecorder(Recorder):
     '''
     Use mlflow to implement a Recorder.
+
+    Due to the fact that mlflow will only log artifact from a file or directory, we decide to 
+    use file manager to help maintain the objects in the project.
     '''
+    def __init__(self, experiment_id):
+        super(MLflowRecorder, self).__init__(experiment_id)
+        self.fm = None
+        self.temp_dir = None
+
     def start_run(self, run_id=None, experiment_id=None, 
                     run_name=None, nested=False):
         if run_id is None:
@@ -277,65 +163,67 @@ class MLflowRecorder(Recorder):
         self.recorder_id = run.info.run_id
         self.artifact_uri = run.info.artifact_uri
         # set up file manager for saving objects
-        if self.artifact_uri.startswith('file:/'):
-            self.fm = FileManager(Path(urllib.parse.urlparse(self.artifact_uri).path))
-        else:
-            self.fm = FileManager(Path(self.artifact_uri))
-        print(self.artifact_uri)
+        self.temp_dir = tempfile.mkdtemp()
+        self.fm = FileManager(Path(self.temp_dir).absolute())
         return run
     
     def end_run(self):
         mlflow.end_run()
+        shutil.rmtree(self.temp_dir)
 
-    def save_object(self, name, data):
-        self.fm.save_obj(data, name)
-        import urllib
-        print(urllib.parse.urlparse(self.artifact_uri).scheme)
-        try:
-            self.log_artifact(self.fm.path / name)
-        except shutil.SameFileError:
-            pass
-        except Exception as e:
-            print(e)
+    def save_object(self, data, name, local_path=None):
+        if local_path is None:
+            assert data is not None and name is not None, "Please provide data and name input."
+            self.fm.save_obj(data, name)
+            mlflow.log_artifact(self.fm.path / name)
+            self.fm.remove(name)
+        else:
+            mlflow.log_artifact(local_path)
 
-    def save_objects(self, name_data_list):
-        self.fm.save_objs(name_data_list)
-        try:
-            self.log_artifacts(self.fm.path)
-        except shutil.SameFileError:
-            pass
-        except Exception as e:
-            print(e)
+    def save_objects(self, data_name_list, local_path=None):
+        if local_path is None:
+            assert data_name_list is not None, "Please provide data_name_list input."
+            self.fm.save_objs(data_name_list)
+            mlflow.log_artifacts(self.fm.path)
+            for obj, name in data_name_list:
+                self.fm.remove(name)
+        else:
+            mlflow.log_artifacts(local_path)
 
     def load_object(self, name):
-        return self.fm.load_obj(name)
+        client = mlflow.tracking.MlflowClient()
+        path = client.download_artifacts(self.recorder_id, name)
+        try:
+            with Path(path).open('rb') as f:
+                f.seek(0)
+                return pickle.load(f)
+        except:
+            with codecs.open(path, mode="r", encoding='utf-8') as f:
+                    return f.read()
+        
+    def log_params(self, **kwargs):
+        keys = list(kwargs.keys())
+        if len(keys) == 0:
+            mlflow.log_param(keys[0], kwargs.get(keys[0]))
+        else:
+            mlflow.log_params(dict(kwargs))
 
-    def log_param(self, key, value):
-        mlflow.log_param(key, value)
-
-    def log_params(self, params):
-        mlflow.log_params(params)
-
-    def log_metric(self, key, value, step=None):
-        mlflow.log_metric(key, value, step)
-
-    def log_metrics(self, metrics, step=None):
-        mlflow.log_metrics(metrics, step)
+    def log_metrics(self, step=None, **kwargs):
+        keys = list(kwargs.keys())
+        if len(keys) == 0:
+            mlflow.log_metric(keys[0], kwargs.get(keys[0]))
+        else:
+            mlflow.log_metrics(dict(kwargs))
     
-    def set_tag(self, key, value):
-        mlflow.set_tag(key, value)
-
-    def set_tags(self, tags):
-        mlflow.set_tags(tags)
+    def set_tags(self, **kwargs):
+        keys = list(kwargs.keys())
+        if len(keys) == 0:
+            mlflow.set_tag(keys[0], kwargs.get(keys[0]))
+        else:
+            mlflow.set_tags(dict(kwargs))
 
     def delete_tag(self, key):
         mlflow.delete_tag(key)
-    
-    def log_artifact(self, local_path, artifact_path=None):
-        mlflow.log_artifact(local_path, artifact_path)
-
-    def log_artifacts(self, local_dir, artifact_path=None):
-        mlflow.log_artifacts(local_dir, artifact_path)
 
     def get_artifact_uri(self, artifact_path=None):
         if self.artifact_uri is not None:

@@ -611,3 +611,39 @@ def exists_qlib_data(qlib_dir):
         return False
 
     return True
+
+
+#################### Wrapper #####################
+class Wrapper(object):
+    """Data Provider Wrapper"""
+
+    def __init__(self):
+        self._provider = None
+
+    def register(self, provider):
+        self._provider = provider
+
+    def __getattr__(self, key):
+        if self._provider is None:
+            raise AttributeError("Please run qlib.init() first using qlib")
+        return getattr(self._provider, key)
+
+
+def get_provider_obj(config, **params):
+    module = get_module_by_module_path("qlib.data")
+    klass, kwargs = get_cls_kwargs(config, module)
+    kwargs.update(params)
+    return klass(**kwargs)
+
+
+def register_wrapper(wrapper, cls_or_obj):
+    """register_wrapper
+
+    :param wrapper: A wrapper of all kinds of providers
+    :param cls_or_obj:  A class or class name or object instance in data/data.py
+    """
+    if isinstance(cls_or_obj, str):
+        module = get_module_by_module_path("qlib.data")
+        cls_or_obj = getattr(module, cls_or_obj)
+    obj = cls_or_obj() if isinstance(cls_or_obj, type) else cls_or_obj
+    wrapper.register(obj)

@@ -13,7 +13,7 @@ import platform
 import yaml
 from pathlib import Path
 
-from .utils import can_use_cache
+from .utils import can_use_cache, init_instance_by_config, get_module_by_module_path
 
 
 # init qlib
@@ -22,6 +22,7 @@ def init(default_conf="client", **kwargs):
     from .data.data import register_all_wrappers
     from .log import get_module_logger, set_log_with_config
     from .data.cache import H
+    from .workflow import R, QlibRecorder
 
     C.reset()
     H.clear()
@@ -79,6 +80,15 @@ def init(default_conf="client", **kwargs):
 
     if "flask_server" in C:
         LOG.info(f"flask_server={C['flask_server']}, flask_port={C['flask_port']}")
+    
+    # set up QlibRecorder
+    default_uri = str(Path(os.getcwd()).resolve() / "mlruns")
+    current_uri = C['exp_uri'] if C['exp_uri'] is not None else default_uri
+    # exp manager module
+    module = get_module_by_module_path('qlib.workflow')
+    exp_manager = init_instance_by_config(C['exp_manager'], module)
+    qr = QlibRecorder(exp_manager, default_uri, current_uri)
+    R.register(qr)
 
 
 def _mount_nfs_uri(C):

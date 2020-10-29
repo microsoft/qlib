@@ -24,6 +24,7 @@ from ..log import get_module_logger
 from ..utils import parse_field, read_bin, hash_args, normalize_cache_fields
 from .base import Feature
 from .cache import DiskDatasetCache, DiskExpressionCache
+from ..utils import Wrapper, get_provider_obj, register_wrapper
 
 
 class CalendarProvider(abc.ABC):
@@ -1017,44 +1018,6 @@ class ClientProvider(BaseProvider):
             DatasetD.provider.set_conn(self.client)
         else:
             DatasetD.set_conn(self.client)
-
-
-class Wrapper(object):
-    """Data Provider Wrapper"""
-
-    def __init__(self):
-        self._provider = None
-
-    def register(self, provider):
-        self._provider = provider
-
-    def __getattr__(self, key):
-        if self._provider is None:
-            raise AttributeError("Please run qlib.init() first using qlib")
-        return getattr(self._provider, key)
-
-
-def get_cls_from_name(cls_name):
-    return getattr(importlib.import_module(".data", package="qlib"), cls_name)
-
-
-def get_provider_obj(config, **params):
-    if isinstance(config, dict):
-        params.update(config["kwargs"])
-        config = config["class"]
-    return get_cls_from_name(config)(**params)
-
-
-def register_wrapper(wrapper, cls_or_obj):
-    """register_wrapper
-
-    :param wrapper: A wrapper of all kinds of providers
-    :param cls_or_obj:  A class or class name or object instance in data/data.py
-    """
-    if isinstance(cls_or_obj, str):
-        cls_or_obj = get_cls_from_name(cls_or_obj)
-    obj = cls_or_obj() if isinstance(cls_or_obj, type) else cls_or_obj
-    wrapper.register(obj)
 
 
 Cal = Wrapper()
