@@ -194,7 +194,7 @@ def get_cls_kwargs(config: Union[dict, str], module) ->  (type, dict):
     return klass, kwargs
 
 
-def init_instance_by_config(config: Union[str, dict], module=None, accept_types: Tuple[type]=tuple([])) -> object:
+def init_instance_by_config(config: Union[str, dict], module=None, accept_types: Union[type, Tuple[type]]=tuple([])) -> object:
     """
     get initialized instance with config
 
@@ -212,8 +212,9 @@ def init_instance_by_config(config: Union[str, dict], module=None, accept_types:
     module : Python module
         Optional. It should be a python module.
 
-    accept_types: Tuple[type]
+    accept_types: Union[type, Tuple[type]]
         Optional. If the config is a instance of specific type, return the config directly.
+        This will be passed into the second parameter of isinstance.
 
     Returns
     -------

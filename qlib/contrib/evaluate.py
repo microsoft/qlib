@@ -15,6 +15,7 @@ from .backtest.backtest import backtest as backtest_func, get_date_range
 
 from ..data import D
 from ..config import C
+from ..data.dataset.utils import get_level_index
 
 logger = get_module_logger("Evaluate")
 
@@ -158,11 +159,11 @@ def get_exchange(
         if deal_price[0] != "$":
             deal_price = "$" + deal_price
         if extract_codes:
-            codes = sorted(pred.index.get_level_values(0).unique())
+            codes = sorted(pred.index.get_level_values('instrument').unique())
         else:
             codes = "all"  # TODO: We must ensure that 'all.txt' includes all the stocks
 
-        dates = sorted(pred.index.get_level_values(1).unique())
+        dates = sorted(pred.index.get_level_values('datetime').unique())
         dates = np.append(dates, get_date_range(dates[-1], shift=shift))
 
         exchange = Exchange(
@@ -187,7 +188,7 @@ def backtest(pred, account=1e9, shift=1, benchmark="SH000905", verbose=True, **k
 
     # backtest workflow related or commmon arguments
     pred : pandas.DataFrame
-        predict should has <instrument, datetime> index and one `score` column
+        predict should has <datetime, instrument> index and one `score` column
     account : float
         init account value
     shift : int
@@ -297,6 +298,8 @@ def long_short_backtest(
                           "short": short_returns(excess),
                           "long_short": long_short_returns}
     """
+    if get_level_index(pred, level='datetime') == 1:
+        pred = pred.swaplevel().sort_index()
 
     if trade_unit is None:
         trade_unit = C.trade_unit
@@ -333,13 +336,13 @@ def long_short_backtest(
     ls_returns = {}
 
     for pdate, date in zip(predict_dates, trade_dates):
-        score = pred.loc(axis=0)[:, pdate]
+        score = pred.loc(axis=0)[pdate, :]
         score = score.reset_index().sort_values(by="score", ascending=False)
 
         long_stocks = list(score.iloc[:topk]["instrument"])
         short_stocks = list(score.iloc[-topk:]["instrument"])
 
-        score = score.set_index(["instrument", "datetime"]).sort_index()
+        score = score.set_index(["datetime", "instrument"]).sort_index()
 
         long_profit = []
         short_profit = []
@@ -363,7 +366,7 @@ def long_short_backtest(
             else:
                 short_profit.append(-profit)
 
-        for stock in list(score.loc(axis=0)[:, pdate].index.get_level_values(level=0)):
+        for stock in list(score.loc(axis=0)[pdate, :].index.get_level_values(level=0)):
             # exclude the suspend stock
             if trade_exchange.check_stock_suspended(stock_id=stock, trade_date=date):
                 continue

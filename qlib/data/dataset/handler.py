@@ -5,7 +5,7 @@
 import abc
 import bisect
 import logging
-from typing import Union, Tuple
+from typing import Union, Tuple, List
 
 import pandas as pd
 import numpy as np
@@ -15,6 +15,7 @@ from ...data import D
 from ...config import C
 from ...utils import parse_config, transform_end_date, init_instance_by_config
 from ...utils.serial import Serializable
+from .utils import get_level_index
 from pathlib import Path
 from .loader import DataLoader
 
@@ -82,34 +83,6 @@ class DataHandler(Serializable):
         self._data = self.data_loader.load(self.instruments, self.start_time, self.end_time)
         # TODO: cache
 
-    def _get_level_index(self, df: pd.DataFrame, level=Union[str, int]) -> int:
-        """
-
-        get the level index of `df` given `level`
-
-        Parameters
-        ----------
-        df : pd.DataFrame
-            data
-        level : Union[str, int]
-            index level
-
-        Returns
-        -------
-        int:
-            The level index in the multiple index
-        """
-        if isinstance(level, str):
-            try:
-                return df.index.names.index(level)
-            except (AttributeError, ValueError):
-                # NOTE: If level index is not given in the data, the default level index will be ('datetime', 'instrument')
-                return ('datetime', 'instrument').index(level)
-        elif isinstance(level, int):
-            return level
-        else:
-            raise NotImplementedError(f"This type of input is not supported")
-
     def _fetch_df_by_index(self, df: pd.DataFrame, selector: Union[pd.Timestamp, slice, str, list], level: Union[str, int]) -> pd.DataFrame:
         """
         fetch data from `data` with `selector` and `level`
@@ -123,11 +96,11 @@ class DataHandler(Serializable):
         """
         # Try to get the right index
         idx_slc = (selector, slice(None, None))
-        if self._get_level_index(df, level) == 1:
+        if get_level_index(df, level) == 1:
             idx_slc = idx_slc[1], idx_slc[0]
         return df.loc(axis=0)[idx_slc]
 
-    CS_ALL = '_all'
+    CS_ALL = '__all'
 
     def _fetch_df_by_col(self, df: pd.DataFrame, col_set: str) -> pd.DataFrame:
         cln = len(df.columns.levels)
@@ -138,7 +111,10 @@ class DataHandler(Serializable):
         else:
             return df.loc(axis=1)[col_set]
 
-    def fetch(self, selector: Union[pd.Timestamp, slice, str], level: Union[str, int]='datetime', col_set=CS_ALL) -> pd.DataFrame:
+    def fetch(self,
+              selector: Union[pd.Timestamp, slice, str],
+              level: Union[str, int] = 'datetime',
+              col_set: Union[str, List[str]] = CS_ALL) -> pd.DataFrame:
         """
         fetch data from underlying data source
 
@@ -148,8 +124,11 @@ class DataHandler(Serializable):
             describe how to select data by index
         level : Union[str, int]
             which index level to select the data
-        col_set : str
-            select a set of meaningful columns.(e.g. features, columns)
+        col_set : Union[str, List[str]]
+            if isinstance(col_set, str):
+                select a set of meaningful columns.(e.g. features, columns)
+            if isinstance(col_set, List[str]):
+                select several sets of meaningful columns, the returned data has multiple levels
 
         Returns
         -------
@@ -195,7 +174,15 @@ class DataHandlerLP(DataHandler):
     # - _proc_learn_df will be processed by infer_processors + learn_processors
     #   - (e.g. _proc_infer_df processed by learn_processors )
 
-    def __init__(self, instruments, start_time=None, end_time=None, data_loader: Tuple[dict, str, DataLoader]=None, infer_processors=[], learn_processors=[], process_type=PTYPE_A, **kwargs):
+    def __init__(self,
+                 instruments,
+                 start_time=None,
+                 end_time=None,
+                 data_loader: Tuple[dict, str, DataLoader] = None,
+                 infer_processors=[],
+                 learn_processors=[],
+                 process_type=PTYPE_A,
+                 **kwargs):
         """
         Parameters
         ----------

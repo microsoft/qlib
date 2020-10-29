@@ -2,6 +2,7 @@
 # Licensed under the MIT License.
 import abc
 from ..utils.serial import Serializable
+from ..data.dataset import Dataset
 
 
 class BaseModel(Serializable, metaclass=abc.ABCMeta):
@@ -20,45 +21,27 @@ class BaseModel(Serializable, metaclass=abc.ABCMeta):
 class Model(BaseModel):
     '''Learnable Models'''
 
-    # TODO: Make the model easier.
-    def fit(self, x_train, y_train, x_valid, y_valid, w_train=None, w_valid=None, **kwargs):
-        """fix train with cross-validation
-        Fit model when ex_config.finetune is False
+    def fit(self, dataset: Dataset):
+        """
+        Learn model from the base model
+
+        ** NOTE **: The the attribute names of learned model should **not** start with '_'. So that the model could be
+        dumped to disk.
 
         Parameters
         ----------
-        x_train : pd.dataframe
-            train data
-        y_train : pd.dataframe
-            train label
-        x_valid : pd.dataframe
-            valid data
-        y_valid : pd.dataframe
-            valid label
-        w_train : pd.dataframe
-            train weight
-        w_valid : pd.dataframe
-            valid weight
-
-        Returns
-        ----------
-        Model
-            trained model
+        dataset : Dataset
+            dataset will generate the processed data from model training
         """
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def predict(self, x_test, **kwargs):
-        """predict given test data
+    def predict(self, dataset: Dataset) -> object:
+        """give prediction given Dataset
 
         Parameters
         ----------
-        x_test : pd.dataframe
-            test data
-
-        Returns
-        ----------
-        np.ndarray
-            test predict label
+        dataset : Dataset
+            dataset will generate the processed dataset from model training
         """
         raise NotImplementedError()
