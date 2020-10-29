@@ -5,6 +5,7 @@ from contextlib import contextmanager
 from .expm import *
 from ..utils import Wrapper
 
+
 class QlibRecorder:
     def __init__(self, exp_manager, default_uri, current_uri):
         self.exp_manager = exp_manager
@@ -16,16 +17,16 @@ class QlibRecorder:
         run = self.start_exp(experiment_name, self.current_uri)
         yield run
         self.end_exp()
-    
+
     def start_exp(self, experiment_name=None):
-        return self.exp_manager.start_exp(experiment_name, self.current_uri) 
+        return self.exp_manager.start_exp(experiment_name, self.current_uri)
 
     def end_exp(self):
         self.exp_manager.end_exp()
-    
+
     def search_records(self, experiment_ids, **kwargs):
         return self.exp_manager.search_records(experiment_ids, **kwargs)
-    
+
     def get_exp(self, experiment_id=None, experiment_name=None):
         return self.exp_manager.get_exp(experiment_id, experiment_name)
 
@@ -52,12 +53,13 @@ class QlibRecorder:
 
     def log_metrics(self, step=None, **kwargs):
         self.exp_manager.active_recorder.log_metrics(step, **kwargs)
-    
+
     def set_tags(self, **kwargs):
         self.exp_manager.active_recorder.set_tags(**kwargs)
 
     def delete_tag(self, key):
         self.exp_manager.active_recorder.delete_tag(key)
+
 
 # global record
 R = Wrapper()

@@ -159,11 +159,11 @@ def get_exchange(
         if deal_price[0] != "$":
             deal_price = "$" + deal_price
         if extract_codes:
-            codes = sorted(pred.index.get_level_values('instrument').unique())
+            codes = sorted(pred.index.get_level_values("instrument").unique())
         else:
             codes = "all"  # TODO: We must ensure that 'all.txt' includes all the stocks
 
-        dates = sorted(pred.index.get_level_values('datetime').unique())
+        dates = sorted(pred.index.get_level_values("datetime").unique())
         dates = np.append(dates, get_date_range(dates[-1], shift=shift))
 
         exchange = Exchange(
@@ -298,7 +298,7 @@ def long_short_backtest(
                           "short": short_returns(excess),
                           "long_short": long_short_returns}
     """
-    if get_level_index(pred, level='datetime') == 1:
+    if get_level_index(pred, level="datetime") == 1:
         pred = pred.swaplevel().sort_index()
 
     if trade_unit is None:

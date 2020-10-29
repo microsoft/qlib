@@ -25,7 +25,7 @@ from . import loader as data_loader_module
 
 # TODO: A more general handler interface which does not relies on internal pd.DataFrame is needed.
 class DataHandler(Serializable):
-    '''
+    """
     The steps to using a handler
     1. initialized data handler  (call by `init`).
     2. use the data
@@ -46,13 +46,21 @@ class DataHandler(Serializable):
                SH600004    13.313329  11800983.0       13.313329        13.317701    0.183632  0.0042
                SH600005    37.796539  12231662.0       38.258602        37.919757    0.970325  0.0289
 
-    '''
-    def __init__(self, instruments, start_time=None, end_time=None, data_loader: Tuple[dict, str, DataLoader]=None, init_data=True):
+    """
+
+    def __init__(
+        self,
+        instruments,
+        start_time=None,
+        end_time=None,
+        data_loader: Tuple[dict, str, DataLoader] = None,
+        init_data=True,
+    ):
         # Set logger
         self.logger = get_module_logger("DataHandler")
 
         # Setup data loader
-        assert(data_loader is not None)  # to make start_time end_time could have None default value
+        assert data_loader is not None  # to make start_time end_time could have None default value
         self.data_loader = init_instance_by_config(data_loader, data_loader_module, accept_types=DataLoader)
 
         self.instruments = instruments
@@ -62,7 +70,7 @@ class DataHandler(Serializable):
             self.init()
         super().__init__()
 
-    def init(self, enable_cache: bool=True):
+    def init(self, enable_cache: bool = True):
         """
         initialize the data.
         In case of running intialization for multiple time, it will do nothing for the second time.
@@ -83,7 +91,9 @@ class DataHandler(Serializable):
         self._data = self.data_loader.load(self.instruments, self.start_time, self.end_time)
         # TODO: cache
 
-    def _fetch_df_by_index(self, df: pd.DataFrame, selector: Union[pd.Timestamp, slice, str, list], level: Union[str, int]) -> pd.DataFrame:
+    def _fetch_df_by_index(
+        self, df: pd.DataFrame, selector: Union[pd.Timestamp, slice, str, list], level: Union[str, int]
+    ) -> pd.DataFrame:
         """
         fetch data from `data` with `selector` and `level`
 
@@ -100,7 +110,7 @@ class DataHandler(Serializable):
             idx_slc = idx_slc[1], idx_slc[0]
         return df.loc(axis=0)[idx_slc]
 
-    CS_ALL = '__all'
+    CS_ALL = "__all"
 
     def _fetch_df_by_col(self, df: pd.DataFrame, col_set: str) -> pd.DataFrame:
         cln = len(df.columns.levels)
@@ -111,10 +121,12 @@ class DataHandler(Serializable):
         else:
             return df.loc(axis=1)[col_set]
 
-    def fetch(self,
-              selector: Union[pd.Timestamp, slice, str],
-              level: Union[str, int] = 'datetime',
-              col_set: Union[str, List[str]] = CS_ALL) -> pd.DataFrame:
+    def fetch(
+        self,
+        selector: Union[pd.Timestamp, slice, str],
+        level: Union[str, int] = "datetime",
+        col_set: Union[str, List[str]] = CS_ALL,
+    ) -> pd.DataFrame:
         """
         fetch data from underlying data source
 
@@ -157,32 +169,35 @@ class DataHandler(Serializable):
 
 
 class DataHandlerLP(DataHandler):
-    '''
+    """
     DataHandler with **(L)earnable (P)rocessor**
-    '''
+    """
+
     # data key
-    DK_R = 'raw'
-    DK_I = 'infer'
-    DK_L = 'learn'
+    DK_R = "raw"
+    DK_I = "infer"
+    DK_L = "learn"
 
     # process type
-    PTYPE_I = 'independent'
+    PTYPE_I = "independent"
     # - _proc_infer_df will processed by infer_processors
     # - _proc_learn_df will be processed by learn_processors
-    PTYPE_A = 'append'
+    PTYPE_A = "append"
     # - _proc_infer_df will processed by infer_processors
     # - _proc_learn_df will be processed by infer_processors + learn_processors
     #   - (e.g. _proc_infer_df processed by learn_processors )
 
-    def __init__(self,
-                 instruments,
-                 start_time=None,
-                 end_time=None,
-                 data_loader: Tuple[dict, str, DataLoader] = None,
-                 infer_processors=[],
-                 learn_processors=[],
-                 process_type=PTYPE_A,
-                 **kwargs):
+    def __init__(
+        self,
+        instruments,
+        start_time=None,
+        end_time=None,
+        data_loader: Tuple[dict, str, DataLoader] = None,
+        infer_processors=[],
+        learn_processors=[],
+        process_type=PTYPE_A,
+        **kwargs,
+    ):
         """
         Parameters
         ----------
@@ -217,10 +232,11 @@ class DataHandlerLP(DataHandler):
         # Setup preprocessor
         self.infer_processors = []  # for lint
         self.learn_processors = []  # for lint
-        for pname in 'infer_processors', 'learn_processors':
+        for pname in "infer_processors", "learn_processors":
             for proc in locals()[pname]:
-                getattr(self, pname).append(init_instance_by_config(proc, processor_module,
-                    accept_types=(processor_module.Processor,)))
+                getattr(self, pname).append(
+                    init_instance_by_config(proc, processor_module, accept_types=(processor_module.Processor,))
+                )
 
         self.process_type = process_type
         super().__init__(instruments, start_time, end_time, data_loader, **kwargs)
@@ -240,8 +256,7 @@ class DataHandlerLP(DataHandler):
         """
         self.process_data(with_fit=True)
 
-
-    def process_data(self, with_fit: bool=False):
+    def process_data(self, with_fit: bool = False):
         """
         process_data data. Fun `processor.fit` if necessary
 
@@ -281,11 +296,11 @@ class DataHandlerLP(DataHandler):
         self._learn = _learn_df
 
     # init type
-    IT_FIT_SEQ = 'fit_seq'  # the input of `fit` will be the output of the previous processor
-    IT_FIT_IND = 'fit_ind'  # the input of `fit` will be the original df
-    IT_LS = 'load_state'  # The state of the object has been load by pickle
+    IT_FIT_SEQ = "fit_seq"  # the input of `fit` will be the output of the previous processor
+    IT_FIT_IND = "fit_ind"  # the input of `fit` will be the original df
+    IT_LS = "load_state"  # The state of the object has been load by pickle
 
-    def init(self, init_type: str=IT_FIT_SEQ, enable_cache: bool=False):
+    def init(self, init_type: str = IT_FIT_SEQ, enable_cache: bool = False):
         """
         Initialize the data of Qlib
 
@@ -314,15 +329,17 @@ class DataHandlerLP(DataHandler):
 
         # TODO: Be able to cache handler data. Save the memory for data processing
 
-    def _get_df_by_key(self, data_key: str=DK_I) -> pd.DataFrame:
-        df = getattr(self, {self.DK_R: '_data', self.DK_I: "_infer", self.DK_L: "_learn"}[data_key])
+    def _get_df_by_key(self, data_key: str = DK_I) -> pd.DataFrame:
+        df = getattr(self, {self.DK_R: "_data", self.DK_I: "_infer", self.DK_L: "_learn"}[data_key])
         return df
 
-    def fetch(self,
-              selector: Union[pd.Timestamp, slice, str],
-              level: Union[str, int] = 'datetime',
-              col_set=DataHandler.CS_ALL,
-              data_key: str = DK_I) -> pd.DataFrame:
+    def fetch(
+        self,
+        selector: Union[pd.Timestamp, slice, str],
+        level: Union[str, int] = "datetime",
+        col_set=DataHandler.CS_ALL,
+        data_key: str = DK_I,
+    ) -> pd.DataFrame:
         """
         fetch data from underlying data source
 
@@ -345,7 +362,7 @@ class DataHandlerLP(DataHandler):
         df = self._fetch_df_by_index(df, selector, level)
         return self._fetch_df_by_col(df, col_set)
 
-    def get_cols(self, col_set=DataHandler.CS_ALL, data_key: str=DK_I) -> list:
+    def get_cols(self, col_set=DataHandler.CS_ALL, data_key: str = DK_I) -> list:
         """
         get the column names
 

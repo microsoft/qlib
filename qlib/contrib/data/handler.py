@@ -16,21 +16,16 @@ class ALPHA360(DataHandlerLP):
             "kwargs": {
                 "config": {
                     "feature": {
-                        "price": {
-                            "windows": range(60)
-                        },
-                        "volume": {
-                            "windows": range(60)
-                        },
+                        "price": {"windows": range(60)},
+                        "volume": {"windows": range(60)},
                     },
-                    "label": self.get_label_config()
+                    "label": self.get_label_config(),
                 },
-            }
+            },
         }
-        infer_processors = [{
-            "class": "ConfigSectionProcessor",
-            "module_path": "qlib.contrib.data.processor"
-        }]  # ConfigSectionProcessor will normalize LABEL0
+        infer_processors = [
+            {"class": "ConfigSectionProcessor", "module_path": "qlib.contrib.data.processor"}
+        ]  # ConfigSectionProcessor will normalize LABEL0
         super().__init__(instruments, start_time, end_time, data_loader=data_loader, infer_processors=infer_processors)
 
     def get_label_config(self):
@@ -49,12 +44,7 @@ class Alpha158(DataHandlerLP):
         start_time=None,
         end_time=None,
         infer_processors=[],
-        learn_processors=["DropnaLabel", {
-            "class": "CSZScoreNorm",
-            "kwargs": {
-                "fields_group": "label"
-            }
-        }],
+        learn_processors=["DropnaLabel", {"class": "CSZScoreNorm", "kwargs": {"fields_group": "label"}}],
         fit_start_time=None,
         fit_end_time=None,
     ):
@@ -65,11 +55,13 @@ class Alpha158(DataHandlerLP):
                     klass, pkwargs = get_cls_kwargs(p, processor_module)
                     # FIXME: It's hard code here!!!!!
                     if isinstance(klass, (MinMaxNorm, ZscoreNorm)):
-                        assert (fit_start_time is not None and fit_end_time is not None)
-                        pkwargs.update({
-                            "fit_start_time": fit_start_time,
-                            "fit_end_time": fit_end_time,
-                        })
+                        assert fit_start_time is not None and fit_end_time is not None
+                        pkwargs.update(
+                            {
+                                "fit_start_time": fit_start_time,
+                                "fit_end_time": fit_end_time,
+                            }
+                        )
                     new_l.append({"class": klass.__name__, "kwargs": pkwargs})
                 else:
                     new_l.append(p)
@@ -81,18 +73,17 @@ class Alpha158(DataHandlerLP):
         data_loader = {
             "class": "QlibDataLoader",
             "kwargs": {
-                "config": {
-                    "feature": self.get_feature_config(),
-                    "label": self.get_label_config()
-                },
-            }
+                "config": {"feature": self.get_feature_config(), "label": self.get_label_config()},
+            },
         }
-        super().__init__(instruments,
-                         start_time,
-                         end_time,
-                         data_loader=data_loader,
-                         infer_processors=infer_processors,
-                         learn_processors=learn_processors)
+        super().__init__(
+            instruments,
+            start_time,
+            end_time,
+            data_loader=data_loader,
+            infer_processors=infer_processors,
+            learn_processors=learn_processors,
+        )
 
     def get_feature_config(self):
         conf = {
@@ -247,7 +238,8 @@ class Alpha158(DataHandlerLP):
             if use("SUMD"):
                 fields += [
                     "(Sum(Greater($close-Ref($close, 1), 0), %d)-Sum(Greater(Ref($close, 1)-$close, 0), %d))"
-                    "/(Sum(Abs($close-Ref($close, 1)), %d)+1e-12)" % (d, d, d) for d in windows
+                    "/(Sum(Abs($close-Ref($close, 1)), %d)+1e-12)" % (d, d, d)
+                    for d in windows
                 ]
                 names += ["SUMD%d" % d for d in windows]
             if use("VMA"):
@@ -258,26 +250,30 @@ class Alpha158(DataHandlerLP):
                 names += ["VSTD%d" % d for d in windows]
             if use("WVMA"):
                 fields += [
-                    "Std(Abs($close/Ref($close, 1)-1)*$volume, %d)/(Mean(Abs($close/Ref($close, 1)-1)*$volume, %d)+1e-12)" %
-                    (d, d) for d in windows
+                    "Std(Abs($close/Ref($close, 1)-1)*$volume, %d)/(Mean(Abs($close/Ref($close, 1)-1)*$volume, %d)+1e-12)"
+                    % (d, d)
+                    for d in windows
                 ]
                 names += ["WVMA%d" % d for d in windows]
             if use("VSUMP"):
                 fields += [
-                    "Sum(Greater($volume-Ref($volume, 1), 0), %d)/(Sum(Abs($volume-Ref($volume, 1)), %d)+1e-12)" % (d, d)
+                    "Sum(Greater($volume-Ref($volume, 1), 0), %d)/(Sum(Abs($volume-Ref($volume, 1)), %d)+1e-12)"
+                    % (d, d)
                     for d in windows
                 ]
                 names += ["VSUMP%d" % d for d in windows]
             if use("VSUMN"):
                 fields += [
-                    "Sum(Greater(Ref($volume, 1)-$volume, 0), %d)/(Sum(Abs($volume-Ref($volume, 1)), %d)+1e-12)" % (d, d)
+                    "Sum(Greater(Ref($volume, 1)-$volume, 0), %d)/(Sum(Abs($volume-Ref($volume, 1)), %d)+1e-12)"
+                    % (d, d)
                     for d in windows
                 ]
                 names += ["VSUMN%d" % d for d in windows]
             if use("VSUMD"):
                 fields += [
                     "(Sum(Greater($volume-Ref($volume, 1), 0), %d)-Sum(Greater(Ref($volume, 1)-$volume, 0), %d))"
-                    "/(Sum(Abs($volume-Ref($volume, 1)), %d)+1e-12)" % (d, d, d) for d in windows
+                    "/(Sum(Abs($volume-Ref($volume, 1)), %d)+1e-12)" % (d, d, d)
+                    for d in windows
                 ]
                 names += ["VSUMD%d" % d for d in windows]
 

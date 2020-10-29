@@ -30,8 +30,7 @@ def get_group_columns(df: pd.DataFrame, group: str):
 
 
 class Processor(Serializable):
-
-    def fit(self, df: pd.DataFrame=None):
+    def fit(self, df: pd.DataFrame = None):
         """
         learn data processing parameters
 
@@ -40,7 +39,7 @@ class Processor(Serializable):
         df : pd.DataFrame
             When we fit and process data with processor one by one. The fit function reiles on the output of previous
             processor, i.e. `df`.
-            
+
         """
         pass
 
@@ -81,16 +80,17 @@ class DropnaProcessor(Processor):
 
 
 class DropnaLabel(DropnaProcessor):
-    def __init__(self, group='label'):
+    def __init__(self, group="label"):
         super().__init__(group=group)
 
     def is_for_infer(self) -> bool:
-        '''The samples are dropped according to label. So it is not usable for inference'''
+        """The samples are dropped according to label. So it is not usable for inference"""
         return False
 
 
 class ProcessInf(Processor):
-    '''Process infinity  '''
+    """Process infinity  """
+
     def __call__(self, df):
         def replace_inf(data):
             def process_inf(df):
@@ -102,6 +102,7 @@ class ProcessInf(Processor):
             data = data.groupby("datetime").apply(process_inf)
             data.sort_index(inplace=True)
             return data
+
         return replace_inf(df)
 
 
@@ -126,6 +127,7 @@ class MinMaxNorm(Processor):
                 if not ignore[i]:
                     x[i] = (x[i] - min_val) / (max_val - min_val)
             return x
+
         df.loc(axis=1)[self.cols] = normalize(df[self.cols].values)
         return df
 
@@ -151,17 +153,19 @@ class ZscoreNorm(Processor):
                 if not ignore[i]:
                     x[i] = (x[i] - mean_train) / std_train
             return x
+
         df.loc(axis=1)[self.cols] = normalize(df[self.cols].values)
         return df
 
 
 class CSZScoreNorm(Processor):
-    '''Cross Sectional ZScore Normalization'''
+    """Cross Sectional ZScore Normalization"""
+
     def __init__(self, fields_group=None):
         self.fields_group = fields_group
 
     def __call__(self, df):
         # try not modify original dataframe
-        cols = get_group_columns(df,self.fields_group)
-        df[cols] = df[cols].groupby('datetime').apply(lambda df: (df - df.mean()).div(df.std()))
+        cols = get_group_columns(df, self.fields_group)
+        df[cols] = df[cols].groupby("datetime").apply(lambda df: (df - df.mean()).div(df.std()))
         return df

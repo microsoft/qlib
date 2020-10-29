@@ -24,7 +24,7 @@ class ObjManager:
 
     def save_objs(self, obj_name_l):
         """
-        save objects 
+        save objects
 
         Parameters
         ----------
@@ -88,9 +88,10 @@ class ObjManager:
 
 
 class FileManager(ObjManager):
-    '''
+    """
     Use file system to manage objects
-    '''
+    """
+
     def __init__(self, path=None):
         if path is None:
             self.path = Path(self.create_path())
@@ -99,12 +100,12 @@ class FileManager(ObjManager):
 
     def create_path(self) -> str:
         try:
-            return tempfile.mkdtemp(prefix=str(C['file_manager_path']) + os.sep)
+            return tempfile.mkdtemp(prefix=str(C["file_manager_path"]) + os.sep)
         except AttributeError:
             raise NotImplementedError(f"If path is not given, the `create_path` function should be implemented")
 
     def save_obj(self, obj, name):
-        with (self.path / name).open('wb') as f:
+        with (self.path / name).open("wb") as f:
             pickle.dump(obj, f)
 
     def save_objs(self, obj_name_l):
@@ -112,7 +113,7 @@ class FileManager(ObjManager):
             self.save_obj(obj, name)
 
     def load_obj(self, name):
-        with (self.path / name).open('rb') as f:
+        with (self.path / name).open("rb") as f:
             return pickle.load(f)
 
     def exists(self, name):
@@ -123,7 +124,7 @@ class FileManager(ObjManager):
 
     def remove(self, fname=None):
         if fname is None:
-            for fp in self.path.glob('*'):
+            for fp in self.path.glob("*"):
                 fp.unlink()
             self.path.rmdir()
         else:

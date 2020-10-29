@@ -46,10 +46,10 @@ def backtest(pred, strategy, trade_exchange, shift, verbose, account, benchmark)
         benchmark code, default is SH000905 CSI500
     """
     # Convert format if the input format is not expected
-    if get_level_index(pred, level='datetime') == 1:
+    if get_level_index(pred, level="datetime") == 1:
         pred = pred.swaplevel().sort_index()
     if isinstance(pred, pd.Series):
-        pred = pred.to_frame('score')
+        pred = pred.to_frame("score")
 
     trade_account = Account(init_cash=account)
     _pred_dates = pred.index.get_level_values(level="datetime")
@@ -80,8 +80,9 @@ def backtest(pred, strategy, trade_exchange, shift, verbose, account, benchmark)
         # 1. Load the score_series at pred_date
         try:
             score = pred.loc(axis=0)[pred_date, :]  # (trade_date, stock_id) multi_index, score in pdate
-            score_series = score.reset_index(level="datetime",
-                                             drop=True)["score"]  # pd.Series(index:stock_id, data: score)
+            score_series = score.reset_index(level="datetime", drop=True)[
+                "score"
+            ]  # pd.Series(index:stock_id, data: score)
         except KeyError:
             LOG.warning("No score found on predict date[{:%Y-%m-%d}]".format(trade_date))
             score_series = None

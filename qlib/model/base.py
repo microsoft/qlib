@@ -6,7 +6,7 @@ from ..data.dataset import Dataset
 
 
 class BaseModel(Serializable, metaclass=abc.ABCMeta):
-    '''Modeling things'''
+    """Modeling things"""
 
     @abc.abstractmethod
     def predict(self, *args, **kwargs) -> object:
@@ -19,7 +19,7 @@ class BaseModel(Serializable, metaclass=abc.ABCMeta):
 
 
 class Model(BaseModel):
-    '''Learnable Models'''
+    """Learnable Models"""
 
     def fit(self, dataset: Dataset):
         """

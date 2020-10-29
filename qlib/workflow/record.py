@@ -6,6 +6,7 @@ import shutil, os, pickle, tempfile, codecs
 from pathlib import Path
 from ..utils.objm import FileManager
 
+
 class Recorder:
     """
     This is the `Recorder` class for logging the experiments. The API is designed similar to mlflow.
@@ -16,7 +17,7 @@ class Recorder:
         self.experiment_id = experiment_id
         self.recorder_id = None
         self.recorder_name = None
-    
+
     def set_recorder_name(self, rname):
         self.recorder_name = rname
 
@@ -63,10 +64,9 @@ class Recorder:
         """
         raise NotImplementedError(f"Please implement the `load_object` method.")
 
-    def start_run(self, run_id=None, experiment_id=None, 
-                    run_name=None, nested=False):
+    def start_run(self, run_id=None, experiment_id=None, run_name=None, nested=False):
         """
-        Start running the Recorder. The return value can be used as a context manager within a `with` block; 
+        Start running the Recorder. The return value can be used as a context manager within a `with` block;
         otherwise, you must call end_run() to terminate the current run. (See `ActiveRun` class in mlflow)
 
         Parameters
@@ -85,7 +85,7 @@ class Recorder:
         An active running object (e.g. mlflow.ActiveRun object).
         """
         raise NotImplementedError(f"Please implement the `start_run` method.")
-    
+
     def end_run(self):
         """
         End an active Recorder.
@@ -138,19 +138,19 @@ class Recorder:
 
 
 class MLflowRecorder(Recorder):
-    '''
+    """
     Use mlflow to implement a Recorder.
 
-    Due to the fact that mlflow will only log artifact from a file or directory, we decide to 
+    Due to the fact that mlflow will only log artifact from a file or directory, we decide to
     use file manager to help maintain the objects in the project.
-    '''
+    """
+
     def __init__(self, experiment_id):
         super(MLflowRecorder, self).__init__(experiment_id)
         self.fm = None
         self.temp_dir = None
 
-    def start_run(self, run_id=None, experiment_id=None, 
-                    run_name=None, nested=False):
+    def start_run(self, run_id=None, experiment_id=None, run_name=None, nested=False):
         if run_id is None:
             run_id = self.recorder_id
         if experiment_id is None:
@@ -166,7 +166,7 @@ class MLflowRecorder(Recorder):
         self.temp_dir = tempfile.mkdtemp()
         self.fm = FileManager(Path(self.temp_dir).absolute())
         return run
-    
+
     def end_run(self):
         mlflow.end_run()
         shutil.rmtree(self.temp_dir)
@@ -194,13 +194,13 @@ class MLflowRecorder(Recorder):
         client = mlflow.tracking.MlflowClient()
         path = client.download_artifacts(self.recorder_id, name)
         try:
-            with Path(path).open('rb') as f:
+            with Path(path).open("rb") as f:
                 f.seek(0)
                 return pickle.load(f)
         except:
-            with codecs.open(path, mode="r", encoding='utf-8') as f:
-                    return f.read()
-        
+            with codecs.open(path, mode="r", encoding="utf-8") as f:
+                return f.read()
+
     def log_params(self, **kwargs):
         keys = list(kwargs.keys())
         if len(keys) == 0:
@@ -214,7 +214,7 @@ class MLflowRecorder(Recorder):
             mlflow.log_metric(keys[0], kwargs.get(keys[0]))
         else:
             mlflow.log_metrics(dict(kwargs))
-    
+
     def set_tags(self, **kwargs):
         keys = list(kwargs.keys())
         if len(keys) == 0:

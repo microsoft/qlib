@@ -8,9 +8,10 @@ from ...data.dataset.processor import Processor, get_group_columns
 
 
 class ConfigSectionProcessor(Processor):
-    '''
+    """
     This processor is designed for Alpha158. And will be replaced by simple processors in the future
-    '''
+    """
+
     def __init__(self, fields_group=None, **kwargs):
         super().__init__()
         # Options

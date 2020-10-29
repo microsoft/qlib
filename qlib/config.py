@@ -125,10 +125,7 @@ _default_config = {
         "loggers": {"qlib": {"level": "DEBUG", "handlers": ["console"]}},
     },
     # Defatult config for experiment manager
-    "exp_manager": {
-        "class": "MLflowExpManager",
-        "kwargs": {}
-    },
+    "exp_manager": {"class": "MLflowExpManager", "kwargs": {}},
     "exp_uri": None,
 }
 

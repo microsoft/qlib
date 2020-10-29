@@ -39,7 +39,7 @@ def init(default_conf="client", **kwargs):
     LOG.info(f"default_conf: {default_conf}.")
 
     C.set_mode(default_conf)
-    C.set_region(kwargs.get('region', C['region'] if 'region' in C else REG_CN ))
+    C.set_region(kwargs.get("region", C["region"] if "region" in C else REG_CN))
 
     for k, v in kwargs.items():
         C[k] = v
@@ -80,13 +80,13 @@ def init(default_conf="client", **kwargs):
 
     if "flask_server" in C:
         LOG.info(f"flask_server={C['flask_server']}, flask_port={C['flask_port']}")
-    
+
     # set up QlibRecorder
     default_uri = str(Path(os.getcwd()).resolve() / "mlruns")
-    current_uri = C['exp_uri'] if C['exp_uri'] is not None else default_uri
+    current_uri = C["exp_uri"] if C["exp_uri"] is not None else default_uri
     # exp manager module
-    module = get_module_by_module_path('qlib.workflow')
-    exp_manager = init_instance_by_config(C['exp_manager'], module)
+    module = get_module_by_module_path("qlib.workflow")
+    exp_manager = init_instance_by_config(C["exp_manager"], module)
     qr = QlibRecorder(exp_manager, default_uri, current_uri)
     R.register(qr)
 

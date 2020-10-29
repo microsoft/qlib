@@ -8,15 +8,17 @@ from contextlib import contextmanager
 from .exp import MLflowExperiment
 from .record import MLflowRecorder
 
+
 class ExpManager:
     """
     This is the `ExpManager` class for managing the experiments. The API is designed similar to mlflow.
     (The link: https://mlflow.org/docs/latest/python_api/mlflow.html)
     """
+
     def __init__(self):
         self.default_uri = None
-        self.active_recorder = None # only one recorder can running each time
-        self.experiments = dict() # store the experiment name --> Experiment object
+        self.active_recorder = None  # only one recorder can running each time
+        self.experiments = dict()  # store the experiment name --> Experiment object
 
     def start_exp(self, experiment_name=None, uri=None, **kwargs):
         """
@@ -88,7 +90,7 @@ class ExpManager:
         An experiment object.
         """
         raise NotImplementedError(f"Please implement the `create_exp` method.")
-    
+
     def get_exp(self, experiment_id=None, experiment_name=None):
         """
         Retrieve an experiment by experiment_id from the backend store.
@@ -111,7 +113,7 @@ class ExpManager:
         Parameters
         ----------
         experiment_id  : str
-            the experiment id.  
+            the experiment id.
         """
         raise NotImplementedError(f"Please implement the `create_exp` method.")
 
@@ -142,12 +144,13 @@ class ExpManager:
         An Recorder object.
         """
         raise NotImplementedError(f"Please implement the `get_recorder` method.")
-        
+
 
 class MLflowExpManager(ExpManager):
-    '''
+    """
     Use mlflow to implement ExpManager.
-    '''
+    """
+
     def __init__(self):
         super(MLflowExpManager, self).__init__()
         self.default_uri = None
@@ -169,27 +172,31 @@ class MLflowExpManager(ExpManager):
     def end_exp(self):
         self.active_recorder.end_run()
         self.active_recorder = None
-    
+
     def __create_exp(self, experiment_name=None, uri=None):
         # init experiment
         experiment = MLflowExperiment()
         # set the tracking uri
         if uri is None:
-            print('No tracking URI is provided. The default tracking URI is set as `mlruns` under the working directory.')
+            print(
+                "No tracking URI is provided. The default tracking URI is set as `mlruns` under the working directory."
+            )
         else:
             self.current_uri = uri
         mlflow.set_tracking_uri(self.current_uri)
         # start the experiment
         if experiment_name is None:
-            print('No experiment name provided. The default experiment name is set as `experiment`.')
-            experiment_id = mlflow.create_experiment('experiment')
+            print("No experiment name provided. The default experiment name is set as `experiment`.")
+            experiment_id = mlflow.create_experiment("experiment")
             # set the active experiment
-            mlflow.set_experiment('experiment')
-            experiment_name = 'experiment'
+            mlflow.set_experiment("experiment")
+            experiment_name = "experiment"
         else:
             if experiment_name not in self.experiments:
                 if mlflow.get_experiment_by_name(experiment_name) is not None:
-                    raise Exception('The experiment has already been created before. Please pick another name or delete the files under uri.')
+                    raise Exception(
+                        "The experiment has already been created before. Please pick another name or delete the files under uri."
+                    )
                 experiment_id = mlflow.create_experiment(experiment_name)
             else:
                 experiment_id = self.experiments[experiment_name].id
@@ -197,40 +204,42 @@ class MLflowExpManager(ExpManager):
         # set the active experiment
         mlflow.set_experiment(experiment_name)
         # set up experiment
-        experiment.id = experiment_id    
+        experiment.id = experiment_id
         experiment.name = experiment_name
 
         return experiment
-    
+
     def search_records(self, experiment_ids, **kwargs):
-        filter_string = '' if kwargs.get('filter_string') is None else kwargs.get('filter_string')
-        run_view_type = 1 if kwargs.get('run_view_type') is None else kwargs.get('run_view_type')
-        max_results = 100000 if kwargs.get('max_results') is None else kwargs.get('max_results')
-        order_by = kwargs.get('order_by')
+        filter_string = "" if kwargs.get("filter_string") is None else kwargs.get("filter_string")
+        run_view_type = 1 if kwargs.get("run_view_type") is None else kwargs.get("run_view_type")
+        max_results = 100000 if kwargs.get("max_results") is None else kwargs.get("max_results")
+        order_by = kwargs.get("order_by")
         return mlflow.search_runs(experiment_ids, filter_string, run_view_type, max_results, order_by)
-    
+
     def get_exp(self, experiment_id=None, experiment_name=None):
-        assert experiment_id is not None or experiment_name is not None, 'Please provide at least one of the experiment id or name to retrieve an experiment.'
+        assert (
+            experiment_id is not None or experiment_name is not None
+        ), "Please provide at least one of the experiment id or name to retrieve an experiment."
         if experiment_name is not None:
             return self.experiments[experiment_name]
-        elif:
+        elif experiment_id is not None:
             for name in self.experiments:
                 if self.experiments[name].id == experiment_id:
                     return self.experiments[name]
         else:
-            print('No valid experiment is found. Please make sure the id and name are correctly given.')
+            print("No valid experiment is found. Please make sure the id and name are correctly given.")
 
     def delete_exp(self, experiment_id):
         mlflow.delete_experiment(experiment_id)
-        self.experiments = {key:val for key, val in self.experiments.items() if val.id != experiment_id}
+        self.experiments = {key: val for key, val in self.experiments.items() if val.id != experiment_id}
 
     def get_uri(self, type):
-        if uri == 'default':
+        if uri == "default":
             return self.default_uri
-        elif uri == 'current':
+        elif uri == "current":
             return self.current_uri
         else:
-            raise ValueError('Input type is not supported. Please choose type default or current to get the uri.')
+            raise ValueError("Input type is not supported. Please choose type default or current to get the uri.")
 
     def get_recorder(self):
         return self.active_recorder

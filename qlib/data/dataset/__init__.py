@@ -6,11 +6,12 @@ import pandas as pd
 
 
 class Dataset(Serializable):
-    '''
+    """
     Preparing data for model training and inferencing.
-    '''
+    """
+
     def __init__(self, *args, **kwargs):
-        '''
+        """
         init is designed to finish following steps
         - setup data
             - The data related attributes' names should start with '_' so that it will not be saved on disk when serializing
@@ -18,7 +19,7 @@ class Dataset(Serializable):
             - The name of essential state for preparing data should not start with '_' so that it could be serialized on disk when serializing.
 
         The data could specify the info to caculate the essential data for preparation
-        '''
+        """
         self.setup_data(*args, **kwargs)
         super().__init__()
 
@@ -51,14 +52,15 @@ class Dataset(Serializable):
 
 
 class DatasetH(Dataset):
-    '''
+    """
     Dataset with Data(H)anler
 
     User should try to put the data preprocessing functions into handler.
     Only following data processing functions should be placed in Dataset
     - The processing is related to specific model.
     - The processing is related to data split
-    '''
+    """
+
     def __init__(self, handler: Union[dict, DataHandler], segments: list):
         """
         Parameters
@@ -96,10 +98,9 @@ class DatasetH(Dataset):
         self._handler = init_instance_by_config(handler, accept_types=DataHandler)
         self._segments = segments
 
-    def prepare(self,
-                segments: Union[List[str], Tuple[str], str, slice],
-                col_set=DataHandler.CS_ALL,
-                **kwargs) -> Union[List[pd.DataFrame], pd.DataFrame]:
+    def prepare(
+        self, segments: Union[List[str], Tuple[str], str, slice], col_set=DataHandler.CS_ALL, **kwargs
+    ) -> Union[List[pd.DataFrame], pd.DataFrame]:
         """
         prepare the data for learning and inference
 
@@ -124,9 +125,7 @@ class DatasetH(Dataset):
             [TODO:description]
         """
         if isinstance(segments, (list, tuple)):
-            return [
-                self._handler.fetch(slice(*self._segments[seg]), col_set=col_set, **kwargs) for seg in segments
-            ]
+            return [self._handler.fetch(slice(*self._segments[seg]), col_set=col_set, **kwargs) for seg in segments]
         elif isinstance(segments, str):
             return self._handler.fetch(slice(*self._segments[segments]), col_set=col_set, **kwargs)
         else:

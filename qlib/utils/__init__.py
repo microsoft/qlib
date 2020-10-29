@@ -165,7 +165,7 @@ def get_module_by_module_path(module_path):
     return module
 
 
-def get_cls_kwargs(config: Union[dict, str], module) ->  (type, dict):
+def get_cls_kwargs(config: Union[dict, str], module) -> (type, dict):
     """
     extract class and kwargs from config info
 
@@ -184,8 +184,8 @@ def get_cls_kwargs(config: Union[dict, str], module) ->  (type, dict):
     """
     if isinstance(config, dict):
         # raise AttributeError
-        klass = getattr(module, config['class'])
-        kwargs = config['kwargs']
+        klass = getattr(module, config["class"])
+        kwargs = config["kwargs"]
     elif isinstance(config, str):
         klass = getattr(module, config)
         kwargs = {}
@@ -194,7 +194,9 @@ def get_cls_kwargs(config: Union[dict, str], module) ->  (type, dict):
     return klass, kwargs
 
 
-def init_instance_by_config(config: Union[str, dict], module=None, accept_types: Union[type, Tuple[type]]=tuple([])) -> object:
+def init_instance_by_config(
+    config: Union[str, dict], module=None, accept_types: Union[type, Tuple[type]] = tuple([])
+) -> object:
     """
     get initialized instance with config
 
