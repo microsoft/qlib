@@ -184,7 +184,7 @@ class DataHandler(Serializable):
             cur_date (pd.Timestamp or str): current date
             periods (int): number of periods
         """
-        trading_dates = self.get_unique_index('datetime')
+        trading_dates = self._data.index.unique(level='datetime')
         cur_loc = trading_dates.get_loc(cur_date)
         pre_loc = cur_loc - periods + 1
         if pre_loc < 0:
@@ -203,23 +203,12 @@ class DataHandler(Serializable):
             min_periods (int): minimum periods for sliced dataframe
             kwargs (dict): will be passed to `self.fetch`
         """
-        trading_dates = self.get_unique_index('datetime')
+        trading_dates = self._data.index.unique(level='datetime')
         if min_periods is None:
             min_periods = periods
         for cur_date in trading_dates[min_periods:]:
             selector = self.get_range_selector(cur_date, periods)
             yield cur_date, self.fetch(selector, **kwargs)
-
-    def get_unique_index(self, level: Union[str, int] = 'datetime') -> pd.Index:
-        """
-        get unique index by level id (int) or name (str)
-
-        Args:
-            level (str or int): index level
-        """
-        if self._data is None:
-            raise ValueError('data is not loaded!')
-        return self._data.index.unique(level=level)
 
 
 class DataHandlerLP(DataHandler):
