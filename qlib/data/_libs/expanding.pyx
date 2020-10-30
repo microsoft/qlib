@@ -14,7 +14,7 @@ cdef class Expanding(object):
     cdef int na_count
     def __init__(self):
         self.na_count = 0
-        
+
     cdef double update(self, double val):
         pass
 
@@ -25,7 +25,7 @@ cdef class Mean(Expanding):
     def __init__(self):
         super(Mean, self).__init__()
         self.vsum = 0
-        
+
     cdef double update(self, double val):
         self.barv.push_back(val)
         if isnan(val):
@@ -62,7 +62,7 @@ cdef class Slope(Expanding):
         return (N*self.xy_sum - self.x_sum*self.y_sum) / \
             (N*self.x2_sum - self.x_sum*self.x_sum)
 
-        
+
 cdef class Resi(Expanding):
     """1-D array expanding residuals"""
     cdef double x_sum
@@ -94,7 +94,7 @@ cdef class Resi(Expanding):
         interp = y_mean - slope*x_mean
         return val - (slope*size + interp)
 
-    
+
 cdef class Rsquare(Expanding):
     """1-D array expanding rsquare"""
     cdef double x_sum
@@ -117,7 +117,7 @@ cdef class Rsquare(Expanding):
             self.na_count += 1
         else:
             self.x_sum  += size
-            self.x2_sum += size
+            self.x2_sum += size * size
             self.y_sum  += val
             self.y2_sum += val * val
             self.xy_sum += size * val
@@ -126,7 +126,7 @@ cdef class Rsquare(Expanding):
             sqrt((N*self.x2_sum - self.x_sum*self.x_sum) * (N*self.y2_sum - self.y_sum*self.y_sum))
         return rvalue * rvalue
 
-    
+
 cdef np.ndarray[double, ndim=1] expanding(Expanding r, np.ndarray a):
     cdef int  i
     cdef int  N = len(a)

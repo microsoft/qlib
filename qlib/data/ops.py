@@ -8,6 +8,8 @@ from __future__ import print_function
 import numpy as np
 import pandas as pd
 
+from scipy.stats import percentileofscore
+
 from .base import Expression, ExpressionOps
 from ..log import get_module_logger
 
@@ -687,6 +689,8 @@ class Rolling(ExpressionOps):
         # isnull = series.isnull() # NOTE: isnull = NaN, inf is not null
         if self.N == 0:
             series = getattr(series.expanding(min_periods=1), self.func)()
+        elif 0 < self.N < 1:
+            series = series.ewm(alpha=self.N, min_periods=1).mean()
         else:
             series = getattr(series.rolling(self.N, min_periods=1), self.func)()
             # series.iloc[:self.N-1] = np.nan
@@ -696,6 +700,8 @@ class Rolling(ExpressionOps):
     def get_longest_back_rolling(self):
         if self.N == 0:
             return np.inf
+        if 0 < self.N < 1:
+            return int(np.log(1e-6) / np.log(1 - self.N)) # (1 - N)**window == 1e-6
         return self.feature.get_longest_back_rolling() + self.N - 1
 
     def get_extended_window_size(self):
@@ -704,6 +710,11 @@ class Rolling(ExpressionOps):
             # remove such support for N == 0?
             get_module_logger(self.__class__.__name__).warning("The Rolling(ATTR, 0) will not be accurately calculated")
             return self.feature.get_extended_window_size()
+        elif 0 < self.N < 1:
+            lft_etd, rght_etd = self.feature.get_extended_window_size()
+            size = int(np.log(1e-6) / np.log(1 - self.N))
+            lft_etd = max(lft_etd + size - 1, lft_etd)
+            return lft_etd, rght_etd
         else:
             lft_etd, rght_etd = self.feature.get_extended_window_size()
             lft_etd = max(lft_etd + self.N - 1, lft_etd)
@@ -1087,7 +1098,7 @@ class Rank(Rolling):
             x1 = x[~np.isnan(x)]
             if x1.shape[0] == 0:
                 return np.nan
-            return (x1.argsort()[-1] + 1) / len(x1)
+            return percentileofscore(x1, x1[-1]) / len(x1)
 
         if self.N == 0:
             series = series.expanding(min_periods=1).apply(rank, raw=True)
@@ -1273,7 +1284,7 @@ class EMA(Rolling):
     ----------
     feature : Expression
         feature instance
-    N : int
+    N : int, float
         rolling window size
 
     Returns
@@ -1296,6 +1307,8 @@ class EMA(Rolling):
 
         if self.N == 0:
             series = series.expanding(min_periods=1).apply(exp_weighted_mean, raw=True)
+        elif 0 < self.N < 1:
+            series = series.ewm(alpha=self.N, min_periods=1).mean()
         else:
             series = series.ewm(span=self.N, min_periods=1).mean()
         return series
