@@ -13,7 +13,7 @@ Two modes are supported
 
 import copy
 from pathlib import Path
-import re
+import re, os
 
 
 class Config:
