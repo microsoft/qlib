@@ -125,7 +125,7 @@ class DataHandler(Serializable):
         selector: Union[pd.Timestamp, slice, str],
         level: Union[str, int] = "datetime",
         col_set: Union[str, List[str]] = CS_ALL,
-        squeeze: bool = False
+        squeeze: bool = False,
     ) -> pd.DataFrame:
         """
         fetch data from underlying data source
@@ -184,17 +184,18 @@ class DataHandler(Serializable):
             cur_date (pd.Timestamp or str): current date
             periods (int): number of periods
         """
-        trading_dates = self._data.index.unique(level='datetime')
+        trading_dates = self._data.index.unique(level="datetime")
         cur_loc = trading_dates.get_loc(cur_date)
         pre_loc = cur_loc - periods + 1
         if pre_loc < 0:
-            warnings.warn('`periods` is too large. the first date will be returned.')
+            warnings.warn("`periods` is too large. the first date will be returned.")
             pre_loc = 0
         ref_date = trading_dates[pre_loc]
         return slice(ref_date, cur_date)
 
-    def get_range_iterator(self, periods: int, min_periods: Optional[int] = None,
-                           **kwargs) -> Iterator[Tuple[pd.Timestamp, pd.DataFrame]]:
+    def get_range_iterator(
+        self, periods: int, min_periods: Optional[int] = None, **kwargs
+    ) -> Iterator[Tuple[pd.Timestamp, pd.DataFrame]]:
         """
         get a iterator of sliced data with given periods
 
@@ -203,7 +204,7 @@ class DataHandler(Serializable):
             min_periods (int): minimum periods for sliced dataframe
             kwargs (dict): will be passed to `self.fetch`
         """
-        trading_dates = self._data.index.unique(level='datetime')
+        trading_dates = self._data.index.unique(level="datetime")
         if min_periods is None:
             min_periods = periods
         for cur_date in trading_dates[min_periods:]:

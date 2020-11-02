@@ -166,7 +166,7 @@ class MLflowRecorder(Recorder):
         # save the run id and artifact_uri
         self.recorder_id = run.info.run_id
         self.artifact_uri = run.info.artifact_uri
-        self._uri = mlflow.get_tracking_uri() # Fix!!! : this is not proper to have uri in recorder
+        self._uri = mlflow.get_tracking_uri()  # Fix!!! : this is not proper to have uri in recorder
         # set up file manager for saving objects
         self.temp_dir = tempfile.mkdtemp()
         self.fm = FileManager(Path(self.temp_dir).absolute())
@@ -238,7 +238,7 @@ class MLflowRecorder(Recorder):
     def check(self, name, path=None):
         client = mlflow.tracking.MlflowClient(tracking_uri=self._uri)
         artifacts = client.list_artifacts(self.recorder_id, path)
-        for artifact in artifacts
+        for artifact in artifacts:
             if name in artifact.path:
                 return True
         return False

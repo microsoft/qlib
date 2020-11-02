@@ -50,23 +50,24 @@ class SignalRecord(RecordTemp):
     def generate(self, **kwargs):
         # generate prediciton
         pred = self.model.predict(self.dataset)
-        self.recorder.save_object(pred, 'pred.pkl')
-        
+        self.recorder.save_object(pred, "pred.pkl")
+
     def load(self):
         # try to load the saved object
         try:
-            pred = self.recorder.load_object('pred.pkl')
+            pred = self.recorder.load_object("pred.pkl")
             return pred
         except:
-            raise Exception('Something went wrong when loading the saved object.')
+            raise Exception("Something went wrong when loading the saved object.")
 
     def check(self, **kwargs):
-        return self.recorder.check('pred.pkl')
+        return self.recorder.check("pred.pkl")
 
 
 # TODO
 class SigAnaRecord(SignalRecord):
     def __init__(self, recorder, **kwargs):
+        pass
 
     def generate(self):
         pass
@@ -85,7 +86,7 @@ class PortAnaRecord(SignalRecord):
         self.BACKTEST_CONFIG = BACKTEST_CONFIG
         module = get_module_by_module_path("qlib.contrib.strategy")
         self.strategy = init_instance_by_config(STRATEGY_CONFIG, module)
-        self.artifact_path = Path('portfolio_analysis').resolve()
+        self.artifact_path = Path("portfolio_analysis").resolve()
 
     def generate(self, **kwargs):
         """
@@ -99,8 +100,8 @@ class PortAnaRecord(SignalRecord):
         # custom strategy and get backtest
         pred_score = super().load()
         report_normal, positions_normal = normal_backtest(pred_score, strategy=self.strategy, **self.BACKTEST_CONFIG)
-        self.recorder.save_object(report_normal, 'report_normal.pkl', self.artifact_path)
-        self.recorder.save_object(positions_normal, 'positions_normal.pkl', self.artifact_path)
+        self.recorder.save_object(report_normal, "report_normal.pkl", self.artifact_path)
+        self.recorder.save_object(positions_normal, "positions_normal.pkl", self.artifact_path)
 
         # analysis
         analysis = dict()
@@ -109,29 +110,15 @@ class PortAnaRecord(SignalRecord):
             report_normal["return"] - report_normal["bench"] - report_normal["cost"]
         )
         analysis_df = pd.concat(analysis)  # type: pd.DataFrame
-        self.recorder.save_object(pred, 'port_analysis.pkl', self.artifact_path)
+        self.recorder.save_object(pred, "port_analysis.pkl", self.artifact_path)
 
     def load(self):
         # try to load the saved object
         try:
-            pred = self.recorder.load_object(self.artifact_path / 'port_analysis.pkl'')
+            pred = self.recorder.load_object(self.artifact_path / "port_analysis.pkl")
             return pred
         except:
-            raise Exception('Something went wrong when loading the saved object.')
+            raise Exception("Something went wrong when loading the saved object.")
 
     def check(self):
-        return self.recorder.check('port_analysis.pkl', self.artifact_path)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        return self.recorder.check("port_analysis.pkl", self.artifact_path)

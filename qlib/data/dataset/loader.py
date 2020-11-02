@@ -9,10 +9,12 @@ from typing import Tuple
 
 from qlib.data import D
 
+
 class DataLoader(abc.ABC):
-    '''
+    """
     DataLoader is designed for loading raw data from original data source.
-    '''
+    """
+
     @abc.abstractmethod
     def load(self, instruments, start_time=None, end_time=None) -> pd.DataFrame:
         """
@@ -47,7 +49,8 @@ class DataLoader(abc.ABC):
 
 
 class QlibDataLoader(DataLoader):
-    '''Same as QlibDataLoader. The fields can be define by config'''
+    """Same as QlibDataLoader. The fields can be define by config"""
+
     def __init__(self, config: Tuple[list, tuple, dict], filter_pipe=None):
         """
         Parameters
@@ -64,7 +67,7 @@ class QlibDataLoader(DataLoader):
 
             <fields_info> := ["expr", ...] | (["expr", ...], ["col_name", ...])
         """
-        self.is_group =  isinstance(config, dict)
+        self.is_group = isinstance(config, dict)
 
         if self.is_group:
             self.fields = {grp: self._parse_fields_info(fields_info) for grp, fields_info in config.items()}
@@ -86,15 +89,17 @@ class QlibDataLoader(DataLoader):
         if isinstance(instruments, str):
             instruments = D.instruments(instruments, filter_pipe=self.filter_pipe)
         elif self.filter_pipe is not None:
-            warnings.warn('`filter_pipe` is not None, but it will not be used with `instruments` as list')
+            warnings.warn("`filter_pipe` is not None, but it will not be used with `instruments` as list")
+
         def _get_df(exprs, names):
             df = D.features(instruments, exprs, start_time, end_time)
             df.columns = names
             return df
+
         if self.is_group:
             df = pd.concat({grp: _get_df(exprs, names) for grp, (exprs, names) in self.fields.items()}, axis=1)
         else:
             exprs, names = self.fields
             df = _get_df(exprs, names)
-        df = df.swaplevel().sort_index() # NOTE: always return <datetime, instrument>
+        df = df.swaplevel().sort_index()  # NOTE: always return <datetime, instrument>
         return df

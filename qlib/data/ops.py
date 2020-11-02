@@ -701,7 +701,7 @@ class Rolling(ExpressionOps):
         if self.N == 0:
             return np.inf
         if 0 < self.N < 1:
-            return int(np.log(1e-6) / np.log(1 - self.N)) # (1 - N)**window == 1e-6
+            return int(np.log(1e-6) / np.log(1 - self.N))  # (1 - N)**window == 1e-6
         return self.feature.get_longest_back_rolling() + self.N - 1
 
     def get_extended_window_size(self):

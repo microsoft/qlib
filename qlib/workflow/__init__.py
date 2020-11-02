@@ -10,6 +10,7 @@ class QlibRecorder:
     """
     A global system that helps to manage the experiments.
     """
+
     def __init__(self, exp_manager, uri):
         self.exp_manager = exp_manager
         self.uri = uri
@@ -20,7 +21,7 @@ class QlibRecorder:
         try:
             yield run
         except:
-            self.end_exp() # end the experiment if something went wrong
+            self.end_exp()  # end the experiment if something went wrong
         self.end_exp()
 
     def start_exp(self, experiment_name=None):

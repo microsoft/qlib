@@ -22,13 +22,20 @@ class PortfolioOptimizer(object):
         This optimizer always assumes full investment and no-shorting.
     """
 
-    OPT_GMV = 'gmv'
-    OPT_MVO = 'mvo'
-    OPT_RP = 'rp'
-    OPT_INV = 'inv'
+    OPT_GMV = "gmv"
+    OPT_MVO = "mvo"
+    OPT_RP = "rp"
+    OPT_INV = "inv"
 
-    def __init__(self, method: str = 'inv', lamb: float = 0, delta: float = 0,
-                 alpha: float = 0.0, scale_alpha: bool = True, tol: float = 1e-8):
+    def __init__(
+        self,
+        method: str = "inv",
+        lamb: float = 0,
+        delta: float = 0,
+        alpha: float = 0.0,
+        scale_alpha: bool = True,
+        tol: float = 1e-8,
+    ):
         """
         Args:
             method (str): portfolio optimization method
@@ -37,24 +44,26 @@ class PortfolioOptimizer(object):
             alpha (float): l2 norm regularizer
             tol (float): tolerance for optimization termination
         """
-        assert method in [self.OPT_GMV, self.OPT_MVO, self.OPT_RP, self.OPT_INV], \
-                f'method `{method}` is not supported'
+        assert method in [self.OPT_GMV, self.OPT_MVO, self.OPT_RP, self.OPT_INV], f"method `{method}` is not supported"
         self.method = method
 
-        assert lamb >= 0, f'risk aversion parameter `lamb` should be positive'
+        assert lamb >= 0, f"risk aversion parameter `lamb` should be positive"
         self.lamb = lamb
 
-        assert delta >= 0, f'turnover limit `delta` should be positive'
+        assert delta >= 0, f"turnover limit `delta` should be positive"
         self.delta = delta
 
-        assert alpha >= 0, f'l2 norm regularizer `alpha` should be positive'
+        assert alpha >= 0, f"l2 norm regularizer `alpha` should be positive"
         self.alpha = alpha
 
         self.tol = tol
 
-    def __call__(self, S: Union[np.ndarray, pd.DataFrame],
-                 u: Optional[Union[np.ndarray, pd.Series]] = None,
-                 w0: Optional[Union[np.ndarray, pd.Series]] = None) -> Union[np.ndarray, pd.Series]:
+    def __call__(
+        self,
+        S: Union[np.ndarray, pd.DataFrame],
+        u: Optional[Union[np.ndarray, pd.Series]] = None,
+        w0: Optional[Union[np.ndarray, pd.Series]] = None,
+    ) -> Union[np.ndarray, pd.Series]:
         """
         Args:
             S (np.ndarray or pd.DataFrame): covariance matrix
@@ -72,22 +81,22 @@ class PortfolioOptimizer(object):
 
         # transform alpha
         if u is not None:
-            assert len(u) == len(S), '`u` has mismatched shape'
+            assert len(u) == len(S), "`u` has mismatched shape"
             if isinstance(u, pd.Series):
-                assert all(u.index == index), '`u` has mismatched index'
+                assert all(u.index == index), "`u` has mismatched index"
                 u = u.values
 
         # transform initial weights
         if w0 is not None:
-            assert len(w0) == len(S), '`w0` has mismatched shape'
+            assert len(w0) == len(S), "`w0` has mismatched shape"
             if isinstance(w0, pd.Series):
-                assert all(w0.index == index), '`w0` has mismatched index'
+                assert all(w0.index == index), "`w0` has mismatched index"
                 w0 = w0.values
 
         # scale alpha to match volatility
         if u is not None:
             u = u / u.std()
-            u *= np.mean(np.diag(S))**0.5
+            u *= np.mean(np.diag(S)) ** 0.5
 
         # optimize
         w = self._optimize(S, u, w0)
@@ -98,21 +107,20 @@ class PortfolioOptimizer(object):
 
         return w
 
-    def _optimize(self, S: np.ndarray, u: Optional[np.ndarray] = None,
-                  w0: Optional[np.ndarray] = None) -> np.ndarray:
+    def _optimize(self, S: np.ndarray, u: Optional[np.ndarray] = None, w0: Optional[np.ndarray] = None) -> np.ndarray:
 
         # inverse volatility
         if self.method == self.OPT_INV:
             if u is not None:
-                warnings.warn('`u` is set but will not be used for `inv` portfolio')
+                warnings.warn("`u` is set but will not be used for `inv` portfolio")
             if w0 is not None:
-                warnings.warn('`w0` is set but will not be used for `inv` portfolio')
+                warnings.warn("`w0` is set but will not be used for `inv` portfolio")
             return self._optimize_inv(S)
 
         # global minimum variance
         if self.method == self.OPT_GMV:
             if u is not None:
-                warnings.warn('`u` is set but will not be used for `gmv` portfolio')
+                warnings.warn("`u` is set but will not be used for `gmv` portfolio")
             return self._optimize_gmv(S, w0)
 
         # mean-variance
@@ -122,12 +130,12 @@ class PortfolioOptimizer(object):
         # risk parity
         if self.method == self.OPT_RP:
             if u is not None:
-                warnings.warn('`u` is set but will not be used for `rp` portfolio')
+                warnings.warn("`u` is set but will not be used for `rp` portfolio")
             return self._optimize_rp(S, w0)
 
     def _optimize_inv(self, S: np.ndarray) -> np.ndarray:
         """Inverse volatility"""
-        vola = np.diag(S)**0.5
+        vola = np.diag(S) ** 0.5
         w = 1 / vola
         w /= w.sum()
         return w
@@ -140,14 +148,11 @@ class PortfolioOptimizer(object):
             s.t. w >= 0, sum(w) == 1
         where `S` is the covariance matrix.
         """
-        return self._solve(
-            len(S),
-            self._get_objective_gmv(S),
-            *self._get_constrains(w0)
-        )
+        return self._solve(len(S), self._get_objective_gmv(S), *self._get_constrains(w0))
 
-    def _optimize_mvo(self, S: np.ndarray, u: Optional[np.ndarray] = None,
-                      w0: Optional[np.ndarray] = None) -> np.ndarray:
+    def _optimize_mvo(
+        self, S: np.ndarray, u: Optional[np.ndarray] = None, w0: Optional[np.ndarray] = None
+    ) -> np.ndarray:
         """optimize mean-variance portfolio
 
         This method solves the following optimization problem
@@ -156,11 +161,7 @@ class PortfolioOptimizer(object):
         where `S` is the covariance matrix, `u` is the expected returns,
         and `lamb` is the risk aversion parameter.
         """
-        return self._solve(
-            len(S),
-            self._get_objective_mvo(S, u),
-            *self._get_constrains(w0)
-        )
+        return self._solve(len(S), self._get_objective_mvo(S, u), *self._get_constrains(w0))
 
     def _optimize_rp(self, S: np.ndarray, w0: Optional[np.ndarray] = None) -> np.ndarray:
         """optimize risk parity portfolio
@@ -170,11 +171,7 @@ class PortfolioOptimizer(object):
             s.t. w >= 0, sum(w) == 1
         where `S` is the covariance matrix and `N` is the number of stocks.
         """
-        return self._solve(
-            len(S),
-            self._get_objective_rp(S),
-            *self._get_constrains(w0)
-        )
+        return self._solve(len(S), self._get_objective_rp(S), *self._get_constrains(w0))
 
     def _get_objective_gmv(self, S: np.ndarray) -> np.ndarray:
         """global minimum variance optimization objective
@@ -213,7 +210,7 @@ class PortfolioOptimizer(object):
             N = len(x)
             Sx = S @ x
             xSx = x @ Sx
-            return np.sum((x - xSx / Sx / N)**2)
+            return np.sum((x - xSx / Sx / N) ** 2)
 
         return func
 
@@ -230,15 +227,11 @@ class PortfolioOptimizer(object):
         bounds = so.Bounds(0.0, 1.0)
 
         # full investment constraint
-        cons = [
-            {'type': 'eq', 'fun': lambda x: np.sum(x) - 1} # == 0
-        ]
+        cons = [{"type": "eq", "fun": lambda x: np.sum(x) - 1}]  # == 0
 
         # turnover constraint
         if w0 is not None:
-            cons.append(
-                {'type': 'ineq', 'fun': lambda x: self.delta - np.sum(np.abs(x - w0))} # >= 0
-            )
+            cons.append({"type": "ineq", "fun": lambda x: self.delta - np.sum(np.abs(x - w0))})  # >= 0
 
         return bounds, cons
 
@@ -257,9 +250,9 @@ class PortfolioOptimizer(object):
             wrapped_obj = lambda x: obj(x) + self.alpha * np.sum(np.square(x))
 
         # solve
-        x0 = np.ones(n) / n # init results
+        x0 = np.ones(n) / n  # init results
         sol = so.minimize(wrapped_obj, x0, bounds=bounds, constraints=cons, tol=self.tol)
         if not sol.success:
-            warnings.warn(f'optimization not success ({sol.status})')
+            warnings.warn(f"optimization not success ({sol.status})")
 
         return sol.x

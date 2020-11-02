@@ -5,6 +5,7 @@ import mlflow
 from pathlib import Path
 from .recorder import MLflowRecorder
 
+
 class Experiment:
     """
     Thie is the `Experiment` class for each experiment being run. The API is designed
@@ -21,7 +22,7 @@ class Experiment:
 
         Parameters
         ----------
-        
+
         Returns
         -------
         A recorder instance.
