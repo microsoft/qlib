@@ -62,7 +62,7 @@ It sees the key of the redis lock has existed in your redis db now. You can use 
     > select 1
     > flushdb
 
-If the issue is not resolved, use ``key *`` to find if multiple keys exist. If so, try using ``flushall`` to clear all the keys.
+If the issue is not resolved, use ``keys *`` to find if multiple keys exist. If so, try using ``flushall`` to clear all the keys.
 
 .. note::
 
