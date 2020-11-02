@@ -24,7 +24,7 @@ from ..log import get_module_logger
 from ..utils import parse_field, read_bin, hash_args, normalize_cache_fields
 from .base import Feature
 from .cache import DiskDatasetCache, DiskExpressionCache
-from ..utils import Wrapper, get_provider_obj, register_wrapper
+from ..utils import Wrapper, init_instance_by_config, register_wrapper, get_module_by_module_path
 
 
 class CalendarProvider(abc.ABC):
@@ -1031,34 +1031,44 @@ D = Wrapper()
 def register_all_wrappers():
     """register_all_wrappers"""
     logger = get_module_logger("data")
-
-    _calendar_provider = get_provider_obj(C.calendar_provider)
+    module = get_module_by_module_path("qlib.data")
+    
+    _calendar_provider = init_instance_by_config(C.calendar_provider, module)
     if getattr(C, "calendar_cache", None) is not None:
-        _calendar_provider = get_provider_obj(C.calendar_cache, provider=_calendar_provider)
-    register_wrapper(Cal, _calendar_provider)
+        _calendar_cache_config = {}
+        _calendar_cache_config.update(C.calendar_cache)
+        _calendar_cache_config['kwargs'].update(provider=_calendar_provider)
+        _calendar_provider = init_instance_by_config(_calendar_cache_config, module)
+    register_wrapper(Cal, _calendar_provider, "qlib.data")
     logger.debug(f"registering Cal {C.calendar_provider}-{C.calenar_cache}")
 
-    register_wrapper(Inst, C.instrument_provider)
+    register_wrapper(Inst, C.instrument_provider, "qlib.data")
     logger.debug(f"registering Inst {C.instrument_provider}")
 
     if getattr(C, "feature_provider", None) is not None:
-        feature_provider = get_provider_obj(C.feature_provider)
-        register_wrapper(FeatureD, feature_provider)
+        feature_provider = init_instance_by_config(C.feature_provider, module)
+        register_wrapper(FeatureD, feature_provider, "qlib.data")
         logger.debug(f"registering FeatureD {C.feature_provider}")
 
     if getattr(C, "expression_provider", None) is not None:
         # This provider is unnecessary in client provider
-        _eprovider = get_provider_obj(C.expression_provider)
+        _eprovider = init_instance_by_config(C.expression_provider, module)
         if getattr(C, "expression_cache", None) is not None:
-            _eprovider = get_provider_obj(C.expression_cache, provider=_eprovider)
-        register_wrapper(ExpressionD, _eprovider)
+            _expression_cache_config = {}
+            _expression_cache_config.update(C.expression_cache)
+            _expression_cache_config['kwargs'].update(provider=_eprovider)
+            _eprovider = init_instance_by_config(C.expression_cache, module)
+        register_wrapper(ExpressionD, _eprovider, "qlib.data")
         logger.debug(f"registering ExpressioneD {C.expression_provider}-{C.expression_cache}")
 
-    _dprovider = get_provider_obj(C.dataset_provider)
+    _dprovider = init_instance_by_config(C.dataset_provider, module)
     if getattr(C, "dataset_cache", None) is not None:
-        _dprovider = get_provider_obj(C.dataset_cache, provider=_dprovider)
-    register_wrapper(DatasetD, _dprovider)
+        _dataset_cache_config = {}
+        _dataset_cache_config.update(C.dataset_cache)
+        _dataset_cache_config['kwargs'].update(provider=_dprovider)
+        _dprovider = init_instance_by_config(_dataset_cache_config, module)
+    register_wrapper(DatasetD, _dprovider, "qlib.data")
     logger.debug(f"registering DataseteD {C.dataset_provider}-{C.dataset_cache}")
 
-    register_wrapper(D, C.provider)
+    register_wrapper(D, C.provider, "qlib.data")
     logger.debug(f"registering D {C.provider}")

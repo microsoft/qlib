@@ -2,24 +2,29 @@
 # Licensed under the MIT License.
 
 from contextlib import contextmanager
-from .expm import *
+from .expm import MLflowExpManager
 from ..utils import Wrapper
 
 
 class QlibRecorder:
-    def __init__(self, exp_manager, default_uri, current_uri):
+    """
+    A global system that helps to manage the experiments.
+    """
+    def __init__(self, exp_manager, uri):
         self.exp_manager = exp_manager
-        self.default_uri = default_uri
-        self.current_uri = current_uri
+        self.uri = uri
 
     @contextmanager
     def start(self, experiment_name):
-        run = self.start_exp(experiment_name, self.current_uri)
-        yield run
+        run = self.start_exp(experiment_name, self.uri)
+        try:
+            yield run
+        except:
+            self.end_exp() # end the experiment if something went wrong
         self.end_exp()
 
     def start_exp(self, experiment_name=None):
-        return self.exp_manager.start_exp(experiment_name, self.current_uri)
+        return self.exp_manager.start_exp(experiment_name, self.uri)
 
     def end_exp(self):
         self.exp_manager.end_exp()
@@ -33,8 +38,8 @@ class QlibRecorder:
     def delete_exp(self, experiment_id):
         self.exp_manager.delete_exp(experiment_id)
 
-    def get_uri(self, type):
-        return self.exp_manager.get_uri(type)
+    def get_uri(self):
+        return self.exp_manager.get_uri()
 
     def get_recorder(self):
         return self.exp_manager.active_recorder

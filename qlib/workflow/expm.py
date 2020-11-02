@@ -6,8 +6,10 @@ import os
 from pathlib import Path
 from contextlib import contextmanager
 from .exp import MLflowExperiment
-from .record import MLflowRecorder
+from .recorder import MLflowRecorder
+from ..log import get_module_logger
 
+logger = get_module_logger('workflow', 'Warning')
 
 class ExpManager:
     """
@@ -16,7 +18,7 @@ class ExpManager:
     """
 
     def __init__(self):
-        self.default_uri = None
+        self.uri = None
         self.active_recorder = None  # only one recorder can running each time
         self.experiments = dict()  # store the experiment name --> Experiment object
 
@@ -117,20 +119,18 @@ class ExpManager:
         """
         raise NotImplementedError(f"Please implement the `create_exp` method.")
 
-    def get_uri(self, type):
+    def get_uri(self):
         """
         Get the default tracking URI or current URI.
 
         Parameters
         ----------
-        type  : str
-            the type of the tracking URI one wants to retrieve.
 
         Returns
         -------
         The tracking URI string.
         """
-        raise NotImplementedError(f"Please implement the `create_exp` method.")
+        return self.uri
 
     def get_recorder(self):
         """
@@ -143,7 +143,7 @@ class ExpManager:
         -------
         An Recorder object.
         """
-        raise NotImplementedError(f"Please implement the `get_recorder` method.")
+        return self.active_recorder
 
 
 class MLflowExpManager(ExpManager):
@@ -153,17 +153,14 @@ class MLflowExpManager(ExpManager):
 
     def __init__(self):
         super(MLflowExpManager, self).__init__()
-        self.default_uri = None
-        self.current_uri = None
+        self.uri = None
 
     def start_exp(self, experiment_name=None, uri=None):
         # create experiment
         experiment = self.__create_exp(experiment_name, uri)
         # set up recorder
-        recorder = MLflowRecorder(experiment.id)
+        recorder = experiment.create_recorder()
         self.active_recorder = recorder
-        # store the recorder
-        experiment.recorders.append(self.active_recorder)
         # store the experiment
         self.experiments[experiment_name] = experiment
 
@@ -178,15 +175,15 @@ class MLflowExpManager(ExpManager):
         experiment = MLflowExperiment()
         # set the tracking uri
         if uri is None:
-            print(
+            logger.warning(
                 "No tracking URI is provided. The default tracking URI is set as `mlruns` under the working directory."
             )
         else:
-            self.current_uri = uri
-        mlflow.set_tracking_uri(self.current_uri)
+            self.uri = uri
+        mlflow.set_tracking_uri(self.uri)
         # start the experiment
         if experiment_name is None:
-            print("No experiment name provided. The default experiment name is set as `experiment`.")
+            logger.warning("No experiment name provided. The default experiment name is set as `experiment`.")
             experiment_id = mlflow.create_experiment("experiment")
             # set the active experiment
             mlflow.set_experiment("experiment")
@@ -227,19 +224,8 @@ class MLflowExpManager(ExpManager):
                 if self.experiments[name].id == experiment_id:
                     return self.experiments[name]
         else:
-            print("No valid experiment is found. Please make sure the id and name are correctly given.")
+            raise Exception("No valid experiment is found. Please make sure the id and name are correctly given.")
 
     def delete_exp(self, experiment_id):
         mlflow.delete_experiment(experiment_id)
         self.experiments = {key: val for key, val in self.experiments.items() if val.id != experiment_id}
-
-    def get_uri(self, type):
-        if uri == "default":
-            return self.default_uri
-        elif uri == "current":
-            return self.current_uri
-        else:
-            raise ValueError("Input type is not supported. Please choose type default or current to get the uri.")
-
-    def get_recorder(self):
-        return self.active_recorder

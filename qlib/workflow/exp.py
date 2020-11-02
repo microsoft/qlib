@@ -3,7 +3,7 @@
 
 import mlflow
 from pathlib import Path
-
+from .recorder import MLflowRecorder
 
 class Experiment:
     """
@@ -14,6 +14,19 @@ class Experiment:
         self.name = None
         self.id = None
         self.recorders = list()
+
+    def create_recorder(self):
+        """
+        Create a recorder for each experiment.
+
+        Parameters
+        ----------
+        
+        Returns
+        -------
+        A recorder instance.
+        """
+        raise NotImplementedError(f"Please implement the `create_recorder` method.")
 
     def search_records(self, **kwargs):
         """
@@ -36,11 +49,31 @@ class Experiment:
         """
         raise NotImplementedError(f"Please implement the `search_records` method.")
 
+    def delete_recorder(self, rid):
+        """
+        Create a recorder for each experiment.
+
+        Parameters
+        ----------
+        rid : str
+            the id of the recorder to be deleted.
+
+        Returns
+        -------
+        A recorder instance.
+        """
+        raise NotImplementedError(f"Please implement the `delete_recorder` method.")
+
 
 class MLflowExperiment(Experiment):
     """
     Use mlflow to implement Experiment.
     """
+
+    def create_recorder(self):
+        recorder = MLflowRecorder(self.id)
+        self.recorders.append(recorder)
+        return recorders
 
     def search_records(self, **kwargs):
         filter_string = "" if kwargs.get("filter_string") is None else kwargs.get("filter_string")
@@ -48,3 +81,7 @@ class MLflowExperiment(Experiment):
         max_results = 100000 if kwargs.get("max_results") is None else kwargs.get("max_results")
         order_by = kwargs.get("order_by")
         return mlflow.search_runs([self.experiment_id], filter_string, run_view_type, max_results, order_by)
+
+    def delete_recorder(self, rid):
+        mlflow.delete_run(rid)
+        self.recorders = [r for r in self.recorders if r.recorder_id == rid]

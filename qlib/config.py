@@ -126,7 +126,7 @@ _default_config = {
     },
     # Defatult config for experiment manager
     "exp_manager": {"class": "MLflowExpManager", "kwargs": {}},
-    "exp_uri": None,
+    "exp_uri": str(Path(os.getcwd()).resolve() / "mlruns"),
 }
 
 MODE_CONF = {

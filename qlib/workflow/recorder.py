@@ -21,7 +21,7 @@ class Recorder:
     def set_recorder_name(self, rname):
         self.recorder_name = rname
 
-    def save_object(self, data, name, local_path=None):
+    def save_object(self, data=None, name=None, local_path=None, artifact_path=None):
         """
         Save object such as prediction file or model checkpoints to the artifact URI.
 
@@ -33,10 +33,12 @@ class Recorder:
             name of the file to be saved.
         local_path : str
             if provided, them save the file or directory to the artifact URI.
+        artifact_path=None : str
+            the relative path for the artifact to be stored in the URI.
         """
         raise NotImplementedError(f"Please implement the `save_object` method.")
 
-    def save_objects(self, data_name_list, local_path=None):
+    def save_objects(self, data_name_list=None, local_path=None, artifact_path=None):
         """
         Save objects such as prediction file or model checkpoints to the artifact URI.
 
@@ -46,6 +48,8 @@ class Recorder:
             list of (data, name) pairs
         local_path : str
             if provided, them save the file or directory to the artifact URI.
+        artifact_path=None : str
+            the relative path for the artifact to be stored in the URI.
         """
         raise NotImplementedError(f"Please implement the `save_objects` method.")
 
@@ -162,6 +166,7 @@ class MLflowRecorder(Recorder):
         # save the run id and artifact_uri
         self.recorder_id = run.info.run_id
         self.artifact_uri = run.info.artifact_uri
+        self._uri = mlflow.get_tracking_uri() # Fix!!! : this is not proper to have uri in recorder
         # set up file manager for saving objects
         self.temp_dir = tempfile.mkdtemp()
         self.fm = FileManager(Path(self.temp_dir).absolute())
@@ -171,27 +176,27 @@ class MLflowRecorder(Recorder):
         mlflow.end_run()
         shutil.rmtree(self.temp_dir)
 
-    def save_object(self, data, name, local_path=None):
+    def save_object(self, data=None, name=None, local_path=None, artifact_path=None):
+        client = mlflow.tracking.MlflowClient(tracking_uri=self._uri)
         if local_path is None:
             assert data is not None and name is not None, "Please provide data and name input."
             self.fm.save_obj(data, name)
-            mlflow.log_artifact(self.fm.path / name)
-            self.fm.remove(name)
+            client.log_artifact(self.recorder_id, self.fm.path / name, artifact_path)
         else:
-            mlflow.log_artifact(local_path)
+            assert local_path is not None, "Please provide a valid local path for the "
+            client.log_artifact(self.recorder_id, local_path, artifact_path)
 
-    def save_objects(self, data_name_list, local_path=None):
+    def save_objects(self, data_name_list=None, local_path=None, artifact_path=None):
+        client = mlflow.tracking.MlflowClient(tracking_uri=self._uri)
         if local_path is None:
             assert data_name_list is not None, "Please provide data_name_list input."
             self.fm.save_objs(data_name_list)
-            mlflow.log_artifacts(self.fm.path)
-            for obj, name in data_name_list:
-                self.fm.remove(name)
+            client.log_artifacts(self.recorder_id, self.fm.path, artifact_path)
         else:
-            mlflow.log_artifacts(local_path)
+            client.log_artifacts(self.recorder_id, local_path, artifact_path)
 
     def load_object(self, name):
-        client = mlflow.tracking.MlflowClient()
+        client = mlflow.tracking.MlflowClient(tracking_uri=self._uri)
         path = client.download_artifacts(self.recorder_id, name)
         try:
             with Path(path).open("rb") as f:
@@ -229,3 +234,11 @@ class MLflowRecorder(Recorder):
         if self.artifact_uri is not None:
             return self.artifact_uri
         return mlflow.get_artifact_uri(artifact_path)
+
+    def check(self, name, path=None):
+        client = mlflow.tracking.MlflowClient(tracking_uri=self._uri)
+        artifacts = client.list_artifacts(self.recorder_id, path)
+        for artifact in artifacts
+            if name in artifact.path:
+                return True
+        return False

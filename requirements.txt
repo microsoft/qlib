@@ -22,3 +22,4 @@ scikit_learn==0.23.2
 torch==1.6.0
 tqdm==4.49.0
 yahooquery==2.2.7
+mlflow==1.11.0

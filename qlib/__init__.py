@@ -82,12 +82,11 @@ def init(default_conf="client", **kwargs):
         LOG.info(f"flask_server={C['flask_server']}, flask_port={C['flask_port']}")
 
     # set up QlibRecorder
-    default_uri = str(Path(os.getcwd()).resolve() / "mlruns")
-    current_uri = C["exp_uri"] if C["exp_uri"] is not None else default_uri
+    uri = C["exp_uri"]
     # exp manager module
-    module = get_module_by_module_path("qlib.workflow")
+    module = get_module_by_module_path("qlib.workflow.expm")
     exp_manager = init_instance_by_config(C["exp_manager"], module)
-    qr = QlibRecorder(exp_manager, default_uri, current_uri)
+    qr = QlibRecorder(exp_manager, uri)
     R.register(qr)
 
 
