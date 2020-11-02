@@ -180,6 +180,7 @@ class CacheUtils(object):
                     > select {C.redis_task_db}
                     > del "lock:{repr(lock_name)[1:-1]}-wlock"
                     > quit
+                    If the issue is not resolved, use "keys *" to find if multiple keys exist. If so, try using "flushall" to clear all the keys.
                 """
             )
 
