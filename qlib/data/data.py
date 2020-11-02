@@ -1035,10 +1035,7 @@ def register_all_wrappers():
 
     _calendar_provider = init_instance_by_config(C.calendar_provider, module)
     if getattr(C, "calendar_cache", None) is not None:
-        _calendar_cache_config = {}
-        _calendar_cache_config.update(C.calendar_cache)
-        _calendar_cache_config["kwargs"].update(provider=_calendar_provider)
-        _calendar_provider = init_instance_by_config(_calendar_cache_config, module)
+        _calendar_provider = init_instance_by_config(C.calendar_cache, module, provide=_calendar_provider)
     register_wrapper(Cal, _calendar_provider, "qlib.data")
     logger.debug(f"registering Cal {C.calendar_provider}-{C.calenar_cache}")
 
@@ -1054,19 +1051,13 @@ def register_all_wrappers():
         # This provider is unnecessary in client provider
         _eprovider = init_instance_by_config(C.expression_provider, module)
         if getattr(C, "expression_cache", None) is not None:
-            _expression_cache_config = {}
-            _expression_cache_config.update(C.expression_cache)
-            _expression_cache_config["kwargs"].update(provider=_eprovider)
-            _eprovider = init_instance_by_config(C.expression_cache, module)
+            _eprovider = init_instance_by_config(C.expression_cache, module, provider=_eprovider)
         register_wrapper(ExpressionD, _eprovider, "qlib.data")
         logger.debug(f"registering ExpressioneD {C.expression_provider}-{C.expression_cache}")
 
     _dprovider = init_instance_by_config(C.dataset_provider, module)
     if getattr(C, "dataset_cache", None) is not None:
-        _dataset_cache_config = {}
-        _dataset_cache_config.update(C.dataset_cache)
-        _dataset_cache_config["kwargs"].update(provider=_dprovider)
-        _dprovider = init_instance_by_config(_dataset_cache_config, module)
+        _dprovider = init_instance_by_config(C.dataset_cache, module, provider=_dprovider)
     register_wrapper(DatasetD, _dprovider, "qlib.data")
     logger.debug(f"registering DataseteD {C.dataset_provider}-{C.dataset_cache}")
 

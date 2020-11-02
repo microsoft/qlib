@@ -195,7 +195,7 @@ def get_cls_kwargs(config: Union[dict, str], module) -> (type, dict):
 
 
 def init_instance_by_config(
-    config: Union[str, dict], module=None, accept_types: Union[type, Tuple[type]] = tuple([])
+        config: Union[str, dict], module=None, accept_types: Union[type, Tuple[type]] = tuple([]), **kwargs
 ) -> object:
     """
     get initialized instance with config
@@ -229,8 +229,8 @@ def init_instance_by_config(
     if module is None:
         module = get_module_by_module_path(config["module_path"])
 
-    klass, kwargs = get_cls_kwargs(config, module)
-    return klass(**kwargs)
+    klass, cls_kwargs = get_cls_kwargs(config, module)
+    return klass(**cls_kwargs, **kwargs)
 
 
 def compare_dict_value(src_data: dict, dst_data: dict):

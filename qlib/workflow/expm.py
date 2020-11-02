@@ -9,7 +9,7 @@ from .exp import MLflowExperiment
 from .recorder import MLflowRecorder
 from ..log import get_module_logger
 
-logger = get_module_logger("workflow", "Warning")
+logger = get_module_logger("workflow", "WARN")
 
 
 class ExpManager:

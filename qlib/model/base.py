@@ -14,7 +14,7 @@ class BaseModel(Serializable, metaclass=abc.ABCMeta):
         pass
 
     def __call__(self, *args, **kwargs) -> object:
-        """ levarge Python syntactic sugar to make the models' behaviors like functions """
+        """ leverage Python syntactic sugar to make the models' behaviors like functions """
         return self.predict(*args, **kwargs)
 
 

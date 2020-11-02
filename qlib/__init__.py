@@ -35,6 +35,7 @@ def init(default_conf="client", **kwargs):
     if _logging_config:
         set_log_with_config(_logging_config)
 
+    # FIXME: this logger ignored the level in config
     LOG = get_module_logger("Initialization", level=logging.INFO)
     LOG.info(f"default_conf: {default_conf}.")
 
