@@ -5,7 +5,7 @@
 import abc
 import bisect
 import logging
-from typing import Union, Tuple, List
+from typing import Union, Tuple, List, Iterator, Optional
 
 import pandas as pd
 import numpy as np
@@ -113,8 +113,7 @@ class DataHandler(Serializable):
     CS_ALL = "__all"
 
     def _fetch_df_by_col(self, df: pd.DataFrame, col_set: str) -> pd.DataFrame:
-        cln = len(df.columns.levels)
-        if cln == 1:
+        if not isinstance(df.columns, pd.MultiIndex):
             return df
         elif col_set == self.CS_ALL:
             return df.droplevel(axis=1, level=0)
@@ -126,6 +125,7 @@ class DataHandler(Serializable):
         selector: Union[pd.Timestamp, slice, str],
         level: Union[str, int] = "datetime",
         col_set: Union[str, List[str]] = CS_ALL,
+        squeeze: bool = False
     ) -> pd.DataFrame:
         """
         fetch data from underlying data source
@@ -141,13 +141,22 @@ class DataHandler(Serializable):
                 select a set of meaningful columns.(e.g. features, columns)
             if isinstance(col_set, List[str]):
                 select several sets of meaningful columns, the returned data has multiple levels
+        squeeze : bool
+            whether squeeze columns and index
 
         Returns
         -------
         pd.DataFrame:
         """
         df = self._fetch_df_by_index(self._data, selector, level)
-        return self._fetch_df_by_col(df, col_set)
+        df = self._fetch_df_by_col(df, col_set)
+        if squeeze:
+            # squeeze columns
+            df = df.squeeze()
+            # squeeze index
+            if isinstance(selector, (str, pd.Timestamp)):
+                df = df.reset_index(level=level, drop=True)
+        return df
 
     def get_cols(self, col_set=CS_ALL) -> list:
         """
@@ -166,6 +175,40 @@ class DataHandler(Serializable):
         df = self._data.head()
         df = self._fetch_df_by_col(df, col_set)
         return df.columns.to_list()
+
+    def get_range_selector(self, cur_date: Union[pd.Timestamp, str], periods: int) -> slice:
+        """
+        get range selector by number of periods
+
+        Args:
+            cur_date (pd.Timestamp or str): current date
+            periods (int): number of periods
+        """
+        trading_dates = self._data.index.unique(level='datetime')
+        cur_loc = trading_dates.get_loc(cur_date)
+        pre_loc = cur_loc - periods + 1
+        if pre_loc < 0:
+            warnings.warn('`periods` is too large. the first date will be returned.')
+            pre_loc = 0
+        ref_date = trading_dates[pre_loc]
+        return slice(ref_date, cur_date)
+
+    def get_range_iterator(self, periods: int, min_periods: Optional[int] = None,
+                           **kwargs) -> Iterator[Tuple[pd.Timestamp, pd.DataFrame]]:
+        """
+        get a iterator of sliced data with given periods
+
+        Args:
+            periods (int): number of periods
+            min_periods (int): minimum periods for sliced dataframe
+            kwargs (dict): will be passed to `self.fetch`
+        """
+        trading_dates = self._data.index.unique(level='datetime')
+        if min_periods is None:
+            min_periods = periods
+        for cur_date in trading_dates[min_periods:]:
+            selector = self.get_range_selector(cur_date, periods)
+            yield cur_date, self.fetch(selector, **kwargs)
 
 
 class DataHandlerLP(DataHandler):
