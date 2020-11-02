@@ -671,7 +671,8 @@ class LocalExpressionProvider(ExpressionProvider):
         # Ensure that each column type is consistent
         # FIXME: The stock data is currently float. If there is other types of data, this part needs to be re-implemented.
         try:
-            series = series.astype(float)
+            # TODO: the default storage and calculation type should be configurable
+            series = series.astype(np.float32)
         except ValueError:
             pass
         if not series.empty:
