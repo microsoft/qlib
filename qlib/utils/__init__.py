@@ -44,7 +44,7 @@ def read_bin(file_path, start_index, end_index):
         ref_start_index = int(np.frombuffer(f.read(4), dtype="<f")[0])
         si = max(ref_start_index, start_index)
         if si > end_index:
-            return pd.Series()
+            return pd.Series(np.float32)
         # calculate offset
         f.seek(4 * (si - ref_start_index) + 4)
         # read nbytes
@@ -213,6 +213,7 @@ def init_instance_by_config(
         "ClassName":  getattr(module, config)() will be used.
     module : Python module
         Optional. It should be a python module.
+        NOTE: the "module_path" will be override by `module` arguments
 
     accept_types: Union[type, Tuple[type]]
         Optional. If the config is a instance of specific type, return the config directly.

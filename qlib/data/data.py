@@ -640,7 +640,7 @@ class LocalFeatureProvider(FeatureProvider):
         uri_data = self._uri_data.format(instrument.lower(), field, freq)
         if not os.path.exists(uri_data):
             get_module_logger("data").warning("WARN: data not found for %s.%s" % (instrument, field))
-            return pd.Series()
+            return pd.Series(dtype=np.float32)
             # raise ValueError('uri_data not found: ' + uri_data)
         # load
         series = read_bin(uri_data, start_index, end_index)

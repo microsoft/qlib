@@ -7,7 +7,7 @@ from __future__ import print_function
 
 import socketio
 
-from .. import __version__
+import qlib
 from ..log import get_module_logger
 import pickle
 
@@ -59,7 +59,7 @@ class Client(object):
         msg_queue: Queue
             The queue to pass the messsage after callback
         """
-        head_info = {"version": __version__}
+        head_info = {"version": qlib.__version__}
 
         def request_callback(*args):
             """callback_wrapper

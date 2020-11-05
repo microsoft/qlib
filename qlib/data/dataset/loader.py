@@ -14,7 +14,6 @@ class DataLoader(abc.ABC):
     """
     DataLoader is designed for loading raw data from original data source.
     """
-
     @abc.abstractmethod
     def load(self, instruments, start_time=None, end_time=None) -> pd.DataFrame:
         """
@@ -48,10 +47,13 @@ class DataLoader(abc.ABC):
         pass
 
 
-class QlibDataLoader(DataLoader):
-    """Same as QlibDataLoader. The fields can be define by config"""
+class DLWParser(DataLoader):
+    """
+    (D)ata(L)oader (W)ith (P)arser for features and names
 
-    def __init__(self, config: Tuple[list, tuple, dict], filter_pipe=None):
+    Extracting this class so that QlibDataLoader and other dataloaders(such as QdbDataLoader) can share the fields
+    """
+    def __init__(self, config: Tuple[list, tuple, dict]):
         """
         Parameters
         ----------
@@ -74,8 +76,6 @@ class QlibDataLoader(DataLoader):
         else:
             self.fields = self._parse_fields_info(config)
 
-        self.filter_pipe = filter_pipe
-
     def _parse_fields_info(self, fields_info: Tuple[list, tuple]) -> Tuple[list, list]:
         if isinstance(fields_info, list):
             exprs = names = fields_info
@@ -85,21 +85,62 @@ class QlibDataLoader(DataLoader):
             raise NotImplementedError(f"This type of input is not supported")
         return exprs, names
 
-    def load(self, instruments, start_time=None, end_time=None) -> pd.DataFrame:
+    @abc.abstractmethod
+    def load_group_df(self, instruments, exprs: list, names: list, start_time=None, end_time=None) -> pd.DataFrame:
+        """
+        load the dataframe for specific group
+
+        Parameters
+        ----------
+        instruments :
+            the instruments
+        exprs : list
+            The expressions to describe the content of the data
+        names : list
+            The name of the data
+
+        Returns
+        -------
+        pd.DataFrame:
+            the queried dataframe
+        """
+        pass
+
+    def load(self, instruments=None, start_time=None, end_time=None) -> pd.DataFrame:
+        if self.is_group:
+            df = pd.concat(
+                {
+                    grp: self.load_group_df(instruments, exprs, names, start_time, end_time)
+                    for grp, (exprs, names) in self.fields.items()
+                },
+                axis=1)
+        else:
+            exprs, names = self.fields
+            df = self.load_group_df(instruments, exprs, names, start_time, end_time)
+        return df
+
+
+class QlibDataLoader(DLWParser):
+    """Same as QlibDataLoader. The fields can be define by config"""
+    def __init__(self, config: Tuple[list, tuple, dict], filter_pipe=None):
+        """
+        Parameters
+        ----------
+        config : Tuple[list, tuple, dict]
+            Please refer to the doc of DLWParser
+        filter_pipe :
+            Filter pipe for the instruments
+        """
+        self.filter_pipe = filter_pipe
+        super().__init__(config)
+
+    def load_group_df(self, instruments, exprs: list, names: list, start_time=None, end_time=None) -> pd.DataFrame:
         if isinstance(instruments, str):
             instruments = D.instruments(instruments, filter_pipe=self.filter_pipe)
         elif self.filter_pipe is not None:
             warnings.warn("`filter_pipe` is not None, but it will not be used with `instruments` as list")
 
-        def _get_df(exprs, names):
-            df = D.features(instruments, exprs, start_time, end_time)
-            df.columns = names
-            return df
-
-        if self.is_group:
-            df = pd.concat({grp: _get_df(exprs, names) for grp, (exprs, names) in self.fields.items()}, axis=1)
-        else:
-            exprs, names = self.fields
-            df = _get_df(exprs, names)
+        df = D.features(instruments, exprs, start_time, end_time)
+        df.columns = names
         df = df.swaplevel().sort_index()  # NOTE: always return <datetime, instrument>
         return df

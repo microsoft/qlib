@@ -5,6 +5,7 @@
 import abc
 import bisect
 import logging
+import warnings
 from typing import Union, Tuple, List, Iterator, Optional
 
 import pandas as pd
@@ -61,7 +62,9 @@ class DataHandler(Serializable):
 
         # Setup data loader
         assert data_loader is not None  # to make start_time end_time could have None default value
-        self.data_loader = init_instance_by_config(data_loader, data_loader_module, accept_types=DataLoader)
+        self.data_loader = init_instance_by_config(data_loader,
+                                                   None if 'module_path' in data_loader else data_loader_module,
+                                                   accept_types=DataLoader)
 
         self.instruments = instruments
         self.start_time = start_time
@@ -224,12 +227,12 @@ class DataHandlerLP(DataHandler):
 
     # process type
     PTYPE_I = "independent"
-    # - _proc_infer_df will processed by infer_processors
-    # - _proc_learn_df will be processed by learn_processors
+    # - self._infer will processed by infer_processors
+    # - self._learn will be processed by learn_processors
     PTYPE_A = "append"
-    # - _proc_infer_df will processed by infer_processors
-    # - _proc_learn_df will be processed by infer_processors + learn_processors
-    #   - (e.g. _proc_infer_df processed by learn_processors )
+    # - self._infer will processed by infer_processors
+    # - self._learn will be processed by infer_processors + learn_processors
+    #   - (e.g. self._infer processed by learn_processors )
 
     def __init__(
         self,
@@ -265,12 +268,12 @@ class DataHandlerLP(DataHandler):
 
         process_type: str
             PTYPE_I = 'independent'
-            - _proc_infer_df will processed by infer_processors
-            - _proc_learn_df will be processed by learn_processors
+            - self._infer will processed by infer_processors
+            - self._learn will be processed by learn_processors
             PTYPE_A = 'append'
-            - _proc_infer_df will processed by infer_processors
-            - _proc_learn_df will be processed by infer_processors + learn_processors
-              - (e.g. _proc_infer_df processed by learn_processors )
+            - self._infer will processed by infer_processors
+            - self._learn will be processed by infer_processors + learn_processors
+              - (e.g. self._infer processed by learn_processors )
         """
 
         # Setup preprocessor
