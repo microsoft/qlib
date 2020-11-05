@@ -17,7 +17,7 @@ class QlibRecorder:
 
     @contextmanager
     def start(self, experiment_name):
-        run = self.start_exp(experiment_name, self.uri)
+        run = self.start_exp(experiment_name)
         try:
             yield run
         except:

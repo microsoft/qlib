@@ -9,7 +9,7 @@ from .exp import MLflowExperiment
 from .recorder import MLflowRecorder
 from ..log import get_module_logger
 
-logger = get_module_logger("workflow", "WARN")
+logger = get_module_logger("workflow", "WARNING")
 
 
 class ExpManager:
@@ -168,8 +168,9 @@ class MLflowExpManager(ExpManager):
         return self.active_recorder.start_run(experiment_id=experiment.id)
 
     def end_exp(self):
-        self.active_recorder.end_run()
-        self.active_recorder = None
+        if self.active_recorder is not None:
+            self.active_recorder.end_run()
+            self.active_recorder = None
 
     def __create_exp(self, experiment_name=None, uri=None):
         # init experiment

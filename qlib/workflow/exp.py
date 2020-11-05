@@ -74,7 +74,7 @@ class MLflowExperiment(Experiment):
     def create_recorder(self):
         recorder = MLflowRecorder(self.id)
         self.recorders.append(recorder)
-        return recorders
+        return recorder
 
     def search_records(self, **kwargs):
         filter_string = "" if kwargs.get("filter_string") is None else kwargs.get("filter_string")
