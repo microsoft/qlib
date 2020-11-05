@@ -90,7 +90,7 @@ class Alpha158(DataHandlerLP):
             "kbar": {},
             "price": {
                 "windows": [0],
-                "feature": ["OPEN", "HIGH", "LOW", "VWAP"],
+                "feature": ["OPEN", "HIGH", "LOW"],
             },
             "rolling": {},
         }
@@ -281,5 +281,17 @@ class Alpha158(DataHandlerLP):
 
 
 class Alpha158vwap(Alpha158):
+
+    def get_feature_config(self):
+        conf = {
+            "kbar": {},
+            "price": {
+                "windows": [0],
+                "feature": ["OPEN", "HIGH", "LOW", "VWAP"],
+            },
+            "rolling": {},
+        }
+        return self.parse_config_to_fields(conf)
+
     def get_label_config(self):
         return (["Ref($vwap, -2)/Ref($vwap, -1) - 1"], ["LABEL0"])
