@@ -78,10 +78,10 @@ class TimeInspector(object):
             Info that will be log into stdout.
         """
         cost_time = time() - cls.time_marks.pop()
-        cls.timer_logger.info("Time cost: {0:.5f} | {1}".format(cost_time, info))
+        cls.timer_logger.info("Time cost: {0:.3f}s | {1}".format(cost_time, info))
 
-    @contextmanager
     @classmethod
+    @contextmanager
     def logt(cls, name="", show_start=False):
         """logt.
         Log the time of the inside code
@@ -94,13 +94,13 @@ class TimeInspector(object):
             show_start
         """
         if show_start:
-            cls.timer_logger.info(f"Begin {name}")
+            cls.timer_logger.info(f"{name} Begin")
         cls.set_time_mark()
         try:
             yield None
         finally:
             pass
-        cls.log_cost_time()
+        cls.log_cost_time(info=f"{name} Done")
 
 
 def set_log_with_config(log_config: dict):

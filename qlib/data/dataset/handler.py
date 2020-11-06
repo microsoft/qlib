@@ -70,7 +70,8 @@ class DataHandler(Serializable):
         self.start_time = start_time
         self.end_time = end_time
         if init_data:
-            self.init()
+            with TimeInspector.logt("Init data"):
+                self.init()
         super().__init__()
 
     def init(self, enable_cache: bool = True):
@@ -91,7 +92,8 @@ class DataHandler(Serializable):
         """
         # Setup data.
         # _data may be with multiple column index level. The outer level indicates the feature set name
-        self._data = self.data_loader.load(self.instruments, self.start_time, self.end_time)
+        with TimeInspector.logt("Loading data"):
+            self._data = self.data_loader.load(self.instruments, self.start_time, self.end_time)
         # TODO: cache
 
     def _fetch_df_by_index(
@@ -293,7 +295,8 @@ class DataHandlerLP(DataHandler):
 
     def fit(self):
         for proc in self.get_all_processors():
-            proc.fit(self._data)
+            with TimeInspector.logt(f"{proc.__class__.__name__}"):
+                proc.fit(self._data)
 
     def fit_process_data(self):
         """
@@ -320,9 +323,10 @@ class DataHandlerLP(DataHandler):
         for proc in self.infer_processors:
             if not proc.is_for_infer():
                 raise TypeError("Only processors usable for inference can be used in `infer_processors` ")
-            if with_fit:
-                proc.fit(_infer_df)
-            _infer_df = proc(_infer_df)
+            with TimeInspector.logt(f"{proc.__class__.__name__}"):
+                if with_fit:
+                    proc.fit(_infer_df)
+                _infer_df = proc(_infer_df)
         self._infer = _infer_df
 
         # data for learning
@@ -337,9 +341,10 @@ class DataHandlerLP(DataHandler):
         if len(self.learn_processors) > 0:  # avoid modifying the original  data
             _learn_df = _learn_df.copy()
         for proc in self.learn_processors:
-            if with_fit:
-                proc.fit(_learn_df)
-            _learn_df = proc(_learn_df)
+            with TimeInspector.logt(f"{proc.__class__.__name__}"):
+                if with_fit:
+                    proc.fit(_learn_df)
+                _learn_df = proc(_learn_df)
         self._learn = _learn_df
 
     # init type

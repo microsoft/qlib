@@ -8,6 +8,7 @@ import copy
 
 from ...log import TimeInspector
 from ...utils.serial import Serializable
+from ...utils.paral import datetime_groupby_apply
 
 EPS = 1e-12
 
@@ -99,7 +100,7 @@ class ProcessInf(Processor):
                     df[col] = df[col].replace([np.inf, -np.inf], df[col][~np.isinf(df[col])].mean())
                 return df
 
-            data = data.groupby("datetime").apply(process_inf)
+            data = datetime_groupby_apply(data, process_inf)
             data.sort_index(inplace=True)
             return data
 
