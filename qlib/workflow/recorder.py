@@ -201,7 +201,7 @@ class MLflowRecorder(Recorder):
 
     def load_object(self, name):
         client = mlflow.tracking.MlflowClient(tracking_uri=self._uri)
-        path = client.download_artifacts(self.recorder_id, name)
+        path = client.download_artifacts(self.id, name)
         try:
             with Path(path).open("rb") as f:
                 f.seek(0)
@@ -242,5 +242,5 @@ class MLflowRecorder(Recorder):
 
     def list_artifacts(self, artifact_path=None):
         client = mlflow.tracking.MlflowClient(tracking_uri=self._uri)
-        artifacts = client.list_artifacts(self.id, path)
+        artifacts = client.list_artifacts(self.id, artifact_path)
         return artifacts

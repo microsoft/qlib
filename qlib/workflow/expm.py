@@ -184,10 +184,12 @@ class MLflowExpManager(ExpManager):
         else:
             if experiment_name not in self.experiments:
                 if mlflow.get_experiment_by_name(experiment_name) is not None:
-                    raise Exception(
-                        "The experiment has already been created before. Please pick another name or delete the files under uri."
+                    logger.info(
+                        "The experiment has already been created before. Try to resume the experiment..."
                     )
-                experiment_id = mlflow.create_experiment(experiment_name)
+                    experiment_id = mlflow.get_experiment_by_name(experiment_name).experiment_id
+                else:
+                    experiment_id = mlflow.create_experiment(experiment_name)
             else:
                 experiment_id = self.experiments[experiment_name].id
                 experiment = self.experiments[experiment_name]

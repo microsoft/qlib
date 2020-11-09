@@ -4,7 +4,9 @@
 import mlflow
 from pathlib import Path
 from .recorder import MLflowRecorder
+from ..log import get_module_logger
 
+logger = get_module_logger("workflow", "INFO")
 
 class Experiment:
     """

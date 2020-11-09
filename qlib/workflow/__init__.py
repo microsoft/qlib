@@ -43,26 +43,26 @@ class QlibRecorder:
     def get_uri(self):
         return self.exp_manager.get_uri()
 
-    def get_recorder(self):
-        return self.exp_manager.active_recorder
+    def get_recorder(self, recorder_id=None, recorder_name=None):
+        return self.exp_manager.active_experiment.get_recorder(recorder_id, recorder_name)
 
     def save_objects(self, local_path=None, artifact_path=None, **kwargs):
-        self.exp_manager.active_recorder.save_objects(local_path, artifact_path, **kwargs)
+        self.exp_manager.active_experiment.active_recorder.save_objects(local_path, artifact_path, **kwargs)
 
     def load_object(self, name):
-        return self.exp_manager.active_recorder.load_object(name)
+        return self.exp_manager.active_experiment.active_recorder.load_object(name)
 
     def log_params(self, **kwargs):
-        self.exp_manager.active_recorder.log_params(**kwargs)
+        self.exp_manager.active_experiment.active_recorder.log_params(**kwargs)
 
     def log_metrics(self, step=None, **kwargs):
-        self.exp_manager.active_recorder.log_metrics(step, **kwargs)
+        self.exp_manager.active_experiment.active_recorder.log_metrics(step, **kwargs)
 
     def set_tags(self, **kwargs):
-        self.exp_manager.active_recorder.set_tags(**kwargs)
+        self.exp_manager.active_experiment.active_recorder.set_tags(**kwargs)
 
     def delete_tag(self, *key):
-        self.exp_manager.active_recorder.delete_tag(*key)
+        self.exp_manager.active_experiment.active_recorder.delete_tag(*key)
 
 
 # global record
