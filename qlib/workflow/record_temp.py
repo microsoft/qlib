@@ -11,6 +11,11 @@ from ..utils import init_instance_by_config, get_module_by_module_path
 
 
 class RecordTemp:
+    """
+    This is the Records Template class that enables user to generate experiment results such as IC and 
+    backtest in a certain format.
+    """
+
     def __init__(self, *args, **kwargs):
         pass
 
@@ -24,9 +29,22 @@ class RecordTemp:
 
         Return
         ------
-        The generated records.
         """
         raise NotImplementedError(f"Please implement the `generate` method.")
+
+    def load(self, **kwargs):
+        """
+        Load the stored records.
+
+        Parameters
+        ----------
+        kwargs
+
+        Return
+        ------
+        The stored records.
+        """
+        raise NotImplementedError(f"Please implement the `load` method.")
 
     def check(self, **kwargs):
         """
@@ -35,12 +53,20 @@ class RecordTemp:
         Parameters
         ----------
         kwargs
+
+        Return
+        ------
+        Boolean: whether the records are stored properly.
         """
         raise NotImplementedError(f"Please implement the `check` method.")
 
 
 # TODO: this can only be run under R's running experiment.
 class SignalRecord(RecordTemp):
+    """
+    This is the Signal Record class that generates the signal prediction.
+    """
+
     def __init__(self, model, dataset, recorder, **kwargs):
         super(SignalRecord, self).__init__()
         self.model = model
@@ -61,12 +87,16 @@ class SignalRecord(RecordTemp):
             raise Exception("Something went wrong when loading the saved object.")
 
     def check(self, **kwargs):
-        return self.recorder.check("pred.pkl")
+        artifacts = self.recorder.list_artifacts()
+        for artifact in artifacts:
+            if "pred.pkl" in artifact.path:
+                return True
+        return False
 
 
 # TODO
 class SigAnaRecord(SignalRecord):
-    def __init__(self, recorder, **kwargs):
+    def __init__(self, recorder, config, **kwargs):
         pass
 
     def generate(self):
@@ -80,13 +110,16 @@ class SigAnaRecord(SignalRecord):
 
 
 class PortAnaRecord(SignalRecord):
-    def __init__(self, recorder, STRATEGY_CONFIG, BACKTEST_CONFIG, **kwargs):
+    """
+    This is the Portfolio Analysis Record class that generates the results such as those of backtest.
+    """
+
+    def __init__(self, recorder, config, **kwargs):
         self.recorder = recorder
-        self.STRATEGY_CONFIG = STRATEGY_CONFIG
-        self.BACKTEST_CONFIG = BACKTEST_CONFIG
-        module = get_module_by_module_path("qlib.contrib.strategy")
-        self.strategy = init_instance_by_config(STRATEGY_CONFIG, module)
-        self.artifact_path = Path("portfolio_analysis").resolve()
+        self.strategy_config = config['strategy']
+        self.backtest_config = config['backtest']
+        self.strategy = init_instance_by_config(self.strategy_config)
+        self.artifact_path = "portfolio_analysis"
 
     def generate(self, **kwargs):
         """
@@ -121,4 +154,8 @@ class PortAnaRecord(SignalRecord):
             raise Exception("Something went wrong when loading the saved object.")
 
     def check(self):
-        return self.recorder.check("port_analysis.pkl", self.artifact_path)
+        artifacts = self.recorder.list_artifacts(self.artifact_path)
+        for artifact in artifacts:
+            if "port_analysis.pkl" in artifact.path:
+                return True
+        return False

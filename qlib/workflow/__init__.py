@@ -4,31 +4,32 @@
 from contextlib import contextmanager
 from .expm import MLflowExpManager
 from ..utils import Wrapper
-
+from ..config import C
 
 class QlibRecorder:
     """
     A global system that helps to manage the experiments.
     """
 
-    def __init__(self, exp_manager, uri):
+    def __init__(self, exp_manager):
         self.exp_manager = exp_manager
-        self.uri = uri
+        self.uri = C["exp_uri"]
 
     @contextmanager
     def start(self, experiment_name):
         run = self.start_exp(experiment_name)
         try:
             yield run
-        except:
-            self.end_exp()  # end the experiment if something went wrong
-        self.end_exp()
+        except Exception as e:
+            self.end_exp("FAILED")  # end the experiment if something went wrong
+            raise e
+        self.end_exp("FINISHED")
 
     def start_exp(self, experiment_name=None):
         return self.exp_manager.start_exp(experiment_name, self.uri)
 
-    def end_exp(self):
-        self.exp_manager.end_exp()
+    def end_exp(self, status):
+        self.exp_manager.end_exp(status)
 
     def search_records(self, experiment_ids, **kwargs):
         return self.exp_manager.search_records(experiment_ids, **kwargs)
@@ -45,11 +46,8 @@ class QlibRecorder:
     def get_recorder(self):
         return self.exp_manager.active_recorder
 
-    def save_object(self, data=None, name=None, local_path=None):
-        self.exp_manager.active_recorder.save_object(data, name, local_path)
-
-    def save_objects(self, data_name_list=None, local_path=None):
-        self.exp_manager.active_recorder.save_objects(data_name_list, local_path)
+    def save_objects(self, local_path=None, artifact_path=None, **kwargs):
+        self.exp_manager.active_recorder.save_objects(local_path, artifact_path, **kwargs)
 
     def load_object(self, name):
         return self.exp_manager.active_recorder.load_object(name)
@@ -63,8 +61,8 @@ class QlibRecorder:
     def set_tags(self, **kwargs):
         self.exp_manager.active_recorder.set_tags(**kwargs)
 
-    def delete_tag(self, key):
-        self.exp_manager.active_recorder.delete_tag(key)
+    def delete_tag(self, *key):
+        self.exp_manager.active_recorder.delete_tag(*key)
 
 
 # global record

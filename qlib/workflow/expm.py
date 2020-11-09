@@ -9,7 +9,7 @@ from .exp import MLflowExperiment
 from .recorder import MLflowRecorder
 from ..log import get_module_logger
 
-logger = get_module_logger("workflow", "WARNING")
+logger = get_module_logger("workflow", "INFO")
 
 
 class ExpManager:
@@ -20,7 +20,7 @@ class ExpManager:
 
     def __init__(self):
         self.uri = None
-        self.active_recorder = None  # only one recorder can running each time
+        self.active_experiment = None  # only one experiment can running each time
         self.experiments = dict()  # store the experiment name --> Experiment object
 
     def start_exp(self, experiment_name=None, uri=None, **kwargs):
@@ -39,7 +39,7 @@ class ExpManager:
             controls whether run is nested in parent run.
 
         Returns
-        An object wrapped by context manager.
+        An active recorder.
         """
         raise NotImplementedError(f"Please implement the `start_exp` method.")
 
@@ -73,11 +73,14 @@ class ExpManager:
 
         Returns
         -------
-        A pandas.DataFrame of runs.
+        A pandas.DataFrame of records, where each metric, parameter, and tag
+        are expanded into their own columns named metrics.*, params.*, and tags.*
+        respectively. For records that don't have a particular metric, parameter, or tag, their
+        value will be (NumPy) Nan, None, or None respectively.
         """
         raise NotImplementedError(f"Please implement the `search_records` method.")
 
-    def __create_exp(self, experiment_name, artifact_location=None):
+    def create_exp(self, experiment_name, artifact_location=None):
         """
         Create an experiment.
 
@@ -133,19 +136,6 @@ class ExpManager:
         """
         return self.uri
 
-    def get_recorder(self):
-        """
-        Get the current active Recorder.
-
-        Parameters
-        ----------
-
-        Returns
-        -------
-        An Recorder object.
-        """
-        return self.active_recorder
-
 
 class MLflowExpManager(ExpManager):
     """
@@ -158,26 +148,27 @@ class MLflowExpManager(ExpManager):
 
     def start_exp(self, experiment_name=None, uri=None):
         # create experiment
-        experiment = self.__create_exp(experiment_name, uri)
-        # set up recorder
-        recorder = experiment.create_recorder()
-        self.active_recorder = recorder
+        experiment = self.create_exp(experiment_name, uri)
+        # set up active experiment
+        self.active_experiment = experiment
         # store the experiment
         self.experiments[experiment_name] = experiment
+        # start the experiment
+        self.active_experiment.start()
 
-        return self.active_recorder.start_run(experiment_id=experiment.id)
+        return self.active_experiment
 
-    def end_exp(self):
-        if self.active_recorder is not None:
-            self.active_recorder.end_run()
-            self.active_recorder = None
+    def end_exp(self, status):
+        if self.active_experiment is not None:
+            self.active_experiment.end(status)
+            self.active_experiment = None
 
-    def __create_exp(self, experiment_name=None, uri=None):
+    def create_exp(self, experiment_name=None, uri=None):
         # init experiment
         experiment = MLflowExperiment()
         # set the tracking uri
         if uri is None:
-            logger.warning(
+            logger.info(
                 "No tracking URI is provided. The default tracking URI is set as `mlruns` under the working directory."
             )
         else:
@@ -185,7 +176,7 @@ class MLflowExpManager(ExpManager):
         mlflow.set_tracking_uri(self.uri)
         # start the experiment
         if experiment_name is None:
-            logger.warning("No experiment name provided. The default experiment name is set as `experiment`.")
+            logger.info("No experiment name provided. The default experiment name is set as `experiment`.")
             experiment_id = mlflow.create_experiment("experiment")
             # set the active experiment
             mlflow.set_experiment("experiment")
@@ -216,17 +207,19 @@ class MLflowExpManager(ExpManager):
         return mlflow.search_runs(experiment_ids, filter_string, run_view_type, max_results, order_by)
 
     def get_exp(self, experiment_id=None, experiment_name=None):
-        assert (
-            experiment_id is not None or experiment_name is not None
-        ), "Please provide at least one of the experiment id or name to retrieve an experiment."
         if experiment_name is not None:
             return self.experiments[experiment_name]
         elif experiment_id is not None:
             for name in self.experiments:
                 if self.experiments[name].id == experiment_id:
                     return self.experiments[name]
+        elif self.active_experiment is None:
+            raise Exception('No valid active experiment exists. Please make sure experiment manager is running.')
         else:
-            raise Exception("No valid experiment is found. Please make sure the id and name are correctly given.")
+            logger.info(
+                "No experiment id or name is given. Return the current active experiment."
+            )
+            return self.active_experiment
 
     def delete_exp(self, experiment_id):
         mlflow.delete_experiment(experiment_id)

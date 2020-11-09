@@ -6,18 +6,20 @@ from __future__ import division
 from __future__ import print_function
 
 import os
+import logging
 import numpy as np
 import pandas as pd
 from sklearn.metrics import roc_auc_score, mean_squared_error
-import logging
-from ...utils import unpack_archive_with_buffer, save_multiple_parts_file, create_save_path, drop_nan_by_y_index
-from ...log import get_module_logger, TimeInspector
 
 import torch
 import torch.nn as nn
 import torch.optim as optim
 
 from ...model.base import Model
+from ...data.dataset import DatasetH
+from ...data.dataset.handler import DataHandlerLP
+from ...utils import unpack_archive_with_buffer, save_multiple_parts_file, create_save_path, drop_nan_by_y_index
+from ...log import get_module_logger, TimeInspector
 
 
 class DNNModelPytorch(Model):
@@ -144,20 +146,25 @@ class DNNModelPytorch(Model):
 
     def fit(
         self,
-        x_train,
-        y_train,
-        x_valid,
-        y_valid,
-        w_train=None,
-        w_valid=None,
+        dataset: DatasetH,
         evals_result=dict(),
         verbose=True,
         save_path=None,
     ):
 
-        if w_train is None:
+        df_train, df_valid = dataset.prepare(
+            ["train", "valid"], col_set=["feature", "label"], data_key=DataHandlerLP.DK_L
+        )
+        x_train, y_train = df_train["feature"], df_train["label"]
+        x_valid, y_valid = df_valid["feature"], df_valid["label"]
+
+        try:
+            wdf_train, wdf_valid = dataset.prepare(
+                ["train", "valid"], col_set=["weight"], data_key=DataHandlerLP.DK_L
+            )
+            w_train, w_valid = wdf_train["weight"], wdf_valid["weight"]
+        except:
             w_train = pd.DataFrame(np.ones_like(y_train.values), index=y_train.index)
-        if w_valid is None:
             w_valid = pd.DataFrame(np.ones_like(y_valid.values), index=y_valid.index)
 
         save_path = create_save_path(save_path)
@@ -188,6 +195,7 @@ class DNNModelPytorch(Model):
             w_val_auto = w_val_auto.cuda()
 
         for step in range(self.max_steps):
+            self.logger.info(step)
             if stop_steps >= self.early_stop_rounds:
                 if verbose:
                     self.logger.info("\tearly stop")
@@ -195,6 +203,7 @@ class DNNModelPytorch(Model):
             loss = AverageMeter()
             self.dnn_model.train()
             self.train_optimizer.zero_grad()
+            self.logger.info("INIT")
 
             choice = np.random.choice(train_num, self.batch_size)
             x_batch_auto = x_train_values[choice]
@@ -264,10 +273,11 @@ class DNNModelPytorch(Model):
         else:
             raise NotImplementedError("loss {} is not supported!".format(loss_type))
 
-    def predict(self, x_test):
+    def predict(self, dataset):
         if not self._fitted:
             raise ValueError("model is not fitted yet!")
-        x_test = torch.from_numpy(x_test.values).float()
+        x_test_pd = dataset.prepare("test", col_set="feature")
+        x_test = torch.from_numpy(x_test_pd.values).float()
         if self.use_gpu:
             x_test = x_test.cuda()
         self.dnn_model.eval()
@@ -277,13 +287,20 @@ class DNNModelPytorch(Model):
                 preds = self.dnn_model(x_test).detach().cpu().numpy()
             else:
                 preds = self.dnn_model(x_test).detach().numpy()
-        return preds
+        return pd.Series(np.squeeze(preds), index=x_test_pd.index)
 
     def score(self, x_test, y_test, w_test=None):
         # Remove rows from x, y and w, which contain Nan in any columns in y_test.
+        df_test = dataset.prepare("test", col_set=["feature", "label"])
+        x_test, y_test = df_test["feature"], df_test["label"]
         x_test, y_test, w_test = drop_nan_by_y_index(x_test, y_test, w_test)
         preds = self.predict(x_test)
-        w_test_weight = None if w_test is None else w_test.values
+        try:
+            df_test = dataset.prepare("test", col_set=["weight"])
+            w_test = df_test["weight"]
+            w_test_weight = w_test.values
+        except:
+            w_test_weight = None
         return self._scorer(y_test.values, preds, sample_weight=w_test_weight)
 
     def save(self, filename, **kwargs):
@@ -303,7 +320,12 @@ class DNNModelPytorch(Model):
             self.dnn_model.load_state_dict(torch.load(_model_path))
         self._fitted = True
 
-    def finetune(self, x_train, y_train, x_valid, y_valid, w_train=None, w_valid=None, **kwargs):
+    def finetune(self, dataset, w_train=None, w_valid=None, **kwargs):
+        df_train, df_valid = dataset.prepare(
+            ["train", "valid"], col_set=["feature", "label"], data_key=DataHandlerLP.DK_L
+        )
+        x_train, y_train = df_train["feature"], df_train["label"]
+        x_valid, y_valid = df_valid["feature"], df_valid["label"]
         self.fit(x_train, y_train, x_valid, y_valid, w_train=w_train, w_valid=w_valid, **kwargs)
 
 
