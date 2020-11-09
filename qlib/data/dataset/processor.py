@@ -109,6 +109,7 @@ class ProcessInf(Processor):
 
 class MinMaxNorm(Processor):
     def __init__(self, fit_start_time, fit_end_time, fields_group=None):
+        # FIXME: time is not used
         self.fit_start_time = fit_start_time
         self.fit_end_time = fit_end_time
         self.fields_group = fields_group
@@ -135,6 +136,7 @@ class MinMaxNorm(Processor):
 
 class ZscoreNorm(Processor):
     def __init__(self, fit_start_time, fit_end_time, fields_group=None):
+        # FIXME: time is not used
         self.fit_start_time = fit_start_time
         self.fit_end_time = fit_end_time
         self.fields_group = fields_group
