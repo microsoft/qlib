@@ -208,14 +208,9 @@ class Exchange:
             # If the order can only be deal 0 trade_val. Nothing to be updated
             # Otherwise, it will result some stock with 0 amount in the position
             if trade_account:
-                trade_account.update_order(
-                    order=order,
-                    trade_val=trade_val,
-                    cost=trade_cost,
-                    trade_price=trade_price,
-                )
+                trade_account.update_order(order=order, trade_val=trade_val, cost=trade_cost, trade_price=trade_price)
             elif position:
-                position.update_order(order, trade_price)
+                position.update_order(order=order, trade_val=trade_val, cost=trade_cost, trade_price=trade_price)
 
         return trade_val, trade_cost, trade_price
 
