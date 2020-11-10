@@ -195,22 +195,24 @@ def get_cls_kwargs(config: Union[dict, str], module) -> (type, dict):
 
 
 def init_instance_by_config(
-        config: Union[str, dict], module=None, accept_types: Union[type, Tuple[type]] = tuple([]), **kwargs
+        config: Union[str, dict, object], module=None, accept_types: Union[type, Tuple[type]] = tuple([]), **kwargs
 ) -> object:
     """
     get initialized instance with config
 
     Parameters
     ----------
-    config : Union[str, dict]
+    config : Union[str, dict, object]
         dict example.
-        {
-            'class': 'ClassName',
-            'kwargs': dict, #  It is optional. {} will be used if not given
-            'model_path': path, # It is optional if module is given
-        }
+            {
+                'class': 'ClassName',
+                'kwargs': dict, #  It is optional. {} will be used if not given
+                'model_path': path, # It is optional if module is given
+            }
         str example.
-        "ClassName":  getattr(module, config)() will be used.
+            "ClassName":  getattr(module, config)() will be used.
+        object example:
+            instance of accept_types
     module : Python module
         Optional. It should be a python module.
         NOTE: the "module_path" will be override by `module` arguments

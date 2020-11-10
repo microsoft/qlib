@@ -62,9 +62,11 @@ class DataHandler(Serializable):
 
         # Setup data loader
         assert data_loader is not None  # to make start_time end_time could have None default value
-        self.data_loader = init_instance_by_config(data_loader,
-                                                   None if 'module_path' in data_loader else data_loader_module,
-                                                   accept_types=DataLoader)
+
+        self.data_loader = init_instance_by_config(
+            data_loader,
+            None if (isinstance(data_loader, dict) and 'module_path' in data_loader) else data_loader_module,
+            accept_types=DataLoader)
 
         self.instruments = instruments
         self.start_time = start_time
