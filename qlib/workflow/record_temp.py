@@ -76,7 +76,7 @@ class SignalRecord(RecordTemp):
     def generate(self, **kwargs):
         # generate prediciton
         pred = self.model.predict(self.dataset)
-        self.recorder.save_object(pred, "pred.pkl")
+        self.recorder.save_objects(data=pred, name="pred.pkl")
 
     def load(self):
         # try to load the saved object
@@ -132,9 +132,9 @@ class PortAnaRecord(SignalRecord):
         assert super().check(), "Make sure the parent process is completed and store the data properly."
         # custom strategy and get backtest
         pred_score = super().load()
-        report_normal, positions_normal = normal_backtest(pred_score, strategy=self.strategy, **self.BACKTEST_CONFIG)
-        self.recorder.save_object(report_normal, "report_normal.pkl", self.artifact_path)
-        self.recorder.save_object(positions_normal, "positions_normal.pkl", self.artifact_path)
+        report_normal, positions_normal = normal_backtest(pred_score, strategy=self.strategy, **self.backtest_config)
+        self.recorder.save_objects(data=report_normal, name="report_normal.pkl", artifact_path=self.artifact_path)
+        self.recorder.save_objects(data=positions_normal, name="positions_normal.pkl", artifact_path=self.artifact_path)
 
         # analysis
         analysis = dict()
@@ -143,7 +143,7 @@ class PortAnaRecord(SignalRecord):
             report_normal["return"] - report_normal["bench"] - report_normal["cost"]
         )
         analysis_df = pd.concat(analysis)  # type: pd.DataFrame
-        self.recorder.save_object(pred, "port_analysis.pkl", self.artifact_path)
+        self.recorder.save_objects(data=analysis_df, name="port_analysis.pkl", artifact_path=self.artifact_path)
 
     def load(self):
         # try to load the saved object

@@ -82,7 +82,7 @@ def init(default_conf="client", **kwargs):
     if "flask_server" in C:
         LOG.info(f"flask_server={C['flask_server']}, flask_port={C['flask_port']}")
 
-    # exp manager module
+    # set up QlibRecorder
     module = get_module_by_module_path("qlib.workflow.expm")
     exp_manager = init_instance_by_config(C["exp_manager"], module)
     qr = QlibRecorder(exp_manager)
