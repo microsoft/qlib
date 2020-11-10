@@ -235,6 +235,7 @@ class ShrinkCovEstimator(RiskModel):
             return self._get_shrink_target_const_corr(X, S)
         if self.target == self.TGT_SINGLE_FACTOR:
             return self._get_shrink_target_single_factor(X, S)
+        return self.target
 
     def _get_shrink_target_const_var(self, X: np.ndarray, S: np.ndarray) -> np.ndarray:
         """get shrinking target with constant variance
@@ -275,7 +276,7 @@ class ShrinkCovEstimator(RiskModel):
         """get shrinking parameter `alpha`
 
         Note:
-            The Ledoit-Wolf shrinking parameter estimator consists of three different
+            The Ledoit-Wolf shrinking parameter estimator consists of three different methods.
         """
         if self.alpha == self.SHR_OAS:
             return self._get_shrink_param_oas(X, S, F)
