@@ -43,38 +43,44 @@ class Position:
         self.position[stock_id]["price"] = price
         self.position[stock_id]["weight"] = 0  # update the weight in the end of the trade date
 
-    def buy_stock(self, stock_id, amount, price):
+    def buy_stock(self, stock_id, trade_val, cost, trade_price):
+        trade_amount = trade_val / trade_price
         if stock_id not in self.position:
-            self.init_stock(stock_id=stock_id, amount=amount, price=price)
+            self.init_stock(stock_id=stock_id, amount=trade_amount, price=trade_price)
         else:
             # exist, add amount
-            self.position[stock_id]["amount"] += amount
+            self.position[stock_id]["amount"] += trade_amount
 
-    def sell_stock(self, stock_id, amount):
+        self.position["cash"] -= trade_val + cost
+
+    def sell_stock(self, stock_id, trade_val, cost, trade_price):
+        trade_amount = trade_val / trade_price
         if stock_id not in self.position:
             raise KeyError("{} not in current position".format(stock_id))
         else:
             # decrease the amount of stock
-            self.position[stock_id]["amount"] -= amount
+            self.position[stock_id]["amount"] -= trade_amount
             # check if to delete
             if self.position[stock_id]["amount"] < -1e-5:
                 raise ValueError(
-                    "only have {} {}, require {}".format(self.position[stock_id]["amount"], stock_id, amount)
+                    "only have {} {}, require {}".format(self.position[stock_id]["amount"], stock_id, trade_amount)
                 )
             elif abs(self.position[stock_id]["amount"]) <= 1e-5:
                 self.del_stock(stock_id)
 
+        self.position["cash"] += trade_val - cost
+
     def del_stock(self, stock_id):
         del self.position[stock_id]
 
-    def update_order(self, order, trade_price):
+    def update_order(self, order, trade_val, cost, trade_price):
         # handle order, order is a order class, defined in exchange.py
         if order.direction == Order.BUY:
             # BUY
-            self.buy_stock(stock_id=order.stock_id, amount=order.deal_amount, price=trade_price)
+            self.buy_stock(order.stock_id, trade_val, cost, trade_price)
         elif order.direction == Order.SELL:
             # SELL
-            self.sell_stock(stock_id=order.stock_id, amount=order.deal_amount)
+            self.sell_stock(order.stock_id, trade_val, cost, trade_price)
         else:
             raise NotImplementedError("do not suppotr order direction {}".format(order.direction))
 

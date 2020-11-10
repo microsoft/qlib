@@ -49,42 +49,38 @@ class Account:
         return self.current.position["cash"]
 
     def update_state_from_order(self, order, trade_val, cost, trade_price):
-        # update cash
-        if order.direction == Order.SELL:  # 0 for sell
-            self.current.position["cash"] += trade_val - cost
-        elif order.direction == Order.BUY:  # 1 for buy
-            self.current.position["cash"] -= trade_val + cost
-        else:
-            raise NotImplementedError("{} ".format(order.direction))
         # update turnover
         self.to += trade_val
         # update cost
         self.ct += cost
         # update return
         # update self.rtn from order
+        trade_amount = trade_val / trade_price
         if order.direction == Order.SELL:  # 0 for sell
             # when sell stock, get profit from price change
-            profit = trade_val - self.current.get_stock_price(order.stock_id) * order.deal_amount
+            profit = trade_val - self.current.get_stock_price(order.stock_id) * trade_amount
             self.rtn += profit  # note here do not consider cost
         elif order.direction == Order.BUY:  # 1 for buy
             # when buy stock, we get return for the rtn computing method
             # profit in buy order is to make self.rtn is consistent with self.earning at the end of date
-            profit = self.current.get_stock_price(order.stock_id) * order.deal_amount - trade_val
+            profit = self.current.get_stock_price(order.stock_id) * trade_amount - trade_val
             self.rtn += profit
 
     def update_order(self, order, trade_val, cost, trade_price):
         # if stock is sold out, no stock price information in Position, then we should update account first, then update current position
         # if stock is bought, there is no stock in current position, update current, then update account
+        # The cost will be substracted from the cash at last. So the trading logic can ignore the cost calculation
+        trade_amount = trade_val / trade_price
         if order.direction == Order.SELL:
             # sell stock
             self.update_state_from_order(order, trade_val, cost, trade_price)
             # update current position
             # for may sell all of stock_id
-            self.current.update_order(order, trade_price)
+            self.current.update_order(order, trade_val, cost, trade_price)
         else:
             # buy stock
             # deal order, then update state
-            self.current.update_order(order, trade_price)
+            self.current.update_order(order, trade_val, cost, trade_price)
             self.update_state_from_order(order, trade_val, cost, trade_price)
 
     def update_daily_end(self, today, trader):
