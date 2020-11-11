@@ -58,6 +58,7 @@ def init(default_conf="client", **kwargs):
 
     # check path if server/local
     if C.get_uri_type() == QlibConfig.LOCAL_URI:
+        print("?")
         if not os.path.exists(C["provider_uri"]):
             if C["auto_mount"]:
                 LOG.error(

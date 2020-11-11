@@ -211,12 +211,16 @@ class QlibConfig(Config):
             self["provider_uri"] = str(Path(self["provider_uri"]).expanduser().resolve())
 
     def get_uri_type(self):
-        rm = re.match("^[^/ ]+:.+", self["provider_uri"])
+        win_rm = re.match("^[a-zA-Z]:.*", self["provider_uri"])
+        nfs_or_win_rm = re.match("^[^/]+:.+", self["provider_uri"])
         # Windows path is "C:\\"
-        if rm is None or Path(self["provider_uri"]).exists():
-            return QlibConfig.LOCAL_URI
+        if win_rm is None:
+            if nfs_or_win_rm is None:
+                return QlibConfig.LOCAL_URI
+            else:
+                return QlibConfig.NFS_URI
         else:
-            return QlibConfig.NFS_URI
+            return QlibConfig.LOCAL_URI
 
     def get_data_path(self):
         if self.get_uri_type() == QlibConfig.LOCAL_URI:
