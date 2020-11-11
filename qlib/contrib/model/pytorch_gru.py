@@ -170,16 +170,6 @@ class GRU(Model):
         x_train, y_train = df_train["feature"], df_train["label"]
         x_valid, y_valid = df_valid["feature"], df_valid["label"]
 
-        x_train.to_pickle('~/x_train_init.pkl')
-        y_train.to_pickle('~/y_train_init.pkl')
-
-        x_train = x_train.fillna(0)
-        y_train = y_train.fillna(0)
-        x_valid = x_valid.fillna(0)
-        y_valid = y_valid.fillna(0)
-        x_train.to_pickle('~/x_train.pkl')
-        y_train.to_pickle('~/y_train.pkl')
-
         # Lightgbm need 1D array as its label
         save_path = create_save_path(save_path)
         stop_steps = 0
@@ -286,7 +276,6 @@ class GRU(Model):
             raise ValueError("model is not fitted yet!")
 
         x_test = dataset.prepare("test", col_set="feature")
-        x_test = x_test.fillna(0)
         index = x_test.index
         x_test = torch.from_numpy(x_test.values).float()
 
