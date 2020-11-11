@@ -106,6 +106,22 @@ class ProcessInf(Processor):
 
         return replace_inf(df)
 
+class Fillna(Processor):
+    """Process infinity  """
+
+    def __call__(self, df):
+        def fill_na(data):
+            def process_na(df):
+                for col in df.columns:
+                    # FIXME: Such behavior is very weird
+                    df[col] = df[col].fillna(0)
+                return df
+
+            data = datetime_groupby_apply(data, process_na)
+            data.sort_index(inplace=True)
+            return data
+
+        return fill_na(df)
 
 class MinMaxNorm(Processor):
     def __init__(self, fit_start_time, fit_end_time, fields_group=None):

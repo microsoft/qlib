@@ -8,28 +8,80 @@ from ...data.dataset import processor as processor_module
 from ...log import TimeInspector
 import copy
 
-
 class ALPHA360(DataHandlerLP):
-    def __init__(self, instruments="csi500", start_time=None, end_time=None):
+    def __init__(
+        self, 
+        instruments="csi500", 
+        start_time=None, 
+        end_time=None, 
+        fit_start_time=None, 
+        fit_end_time=None
+    ):
         data_loader = {
             "class": "QlibDataLoader",
             "kwargs": {
                 "config": {
-                    "feature": {
-                        "price": {"windows": range(60)},
-                        "volume": {"windows": range(60)},
-                    },
+                    "feature": self.get_feature_config(),
                     "label": self.get_label_config(),
                 },
             },
         }
+
+        learn_processors = [
+                {"class": "DropnaLabel", "kwargs": {'group': 'label'}},
+                {"class": "CSZScoreNorm", "kwargs": {"fields_group": "label"}},
+        ]
         infer_processors = [
-            {"class": "ConfigSectionProcessor", "module_path": "qlib.contrib.data.processor"}
-        ]  # ConfigSectionProcessor will normalize LABEL0
-        super().__init__(instruments, start_time, end_time, data_loader=data_loader, infer_processors=infer_processors)
+                {"class": "ProcessInf", "kwargs": {}},
+                {"class": "ZscoreNorm", "kwargs": {"fit_start_time": fit_start_time, "fit_end_time": fit_end_time}},
+                {"class": "Fillna", "kwargs": {}},
+        ]
+
+        super().__init__(
+                instruments, 
+                start_time, 
+                end_time, 
+                data_loader=data_loader, 
+                learn_processors=learn_processors, 
+                infer_processors=infer_processors
+        )
 
     def get_label_config(self):
         return (["Ref($close, -2)/Ref($close, -1) - 1"], ["LABEL0"])
+
+    def get_feature_config(self):
+
+        fields = []
+        names = []
+
+        for i in range(59,0,-1):
+            fields += ["Ref($close, %d)/$close"%(i)]
+            names += ["CLOSE%d"%(i)]
+            fields += ["Ref($open, %d)/$close"%(i)]
+            names += ["OPEN%d"%(i)]
+            fields += ["Ref($high, %d)/$close"%(i)]
+            names += ["HIGH%d"%(i)]
+            fields += ["Ref($low, %d)/$close"%(i)]
+            names += ["LOW%d"%(i)]
+            fields += ["Ref($vwap, %d)/$close"%(i)]
+            names += ["VWAP%d"%(i)]
+            fields += ["Ref($volume, %d)/$volume"%(i)]
+            names += ["VOLUME%d"%(i)]
+
+        fields += ["$close/$close"]
+        fields += ["$open/$close"]
+        fields += ["$high/$close"]
+        fields += ["$low/$close"]
+        fields += ["$vwap/$close"]
+        fields += ["$volume/$volume"]
+        names += ["CLOSE0"]
+        names += ["OPEN0"]
+        names += ["HIGH0"]
+        names += ["LOW0"]
+        names += ["VWAP0"]
+        names += ["VOLUME0"]
+
+        return fields, names
 
 
 class ALPHA360vwap(ALPHA360):
@@ -90,7 +142,7 @@ class Alpha158(DataHandlerLP):
             "kbar": {},
             "price": {
                 "windows": [0],
-                "feature": ["OPEN", "HIGH", "LOW"],
+                "feature": ["OPEN", "HIGH", "LOW", "VWAP"],
             },
             "rolling": {},
         }
@@ -281,16 +333,5 @@ class Alpha158(DataHandlerLP):
 
 
 class Alpha158vwap(Alpha158):
-    def get_feature_config(self):
-        conf = {
-            "kbar": {},
-            "price": {
-                "windows": [0],
-                "feature": ["OPEN", "HIGH", "LOW", "VWAP"],
-            },
-            "rolling": {},
-        }
-        return self.parse_config_to_fields(conf)
-
     def get_label_config(self):
         return (["Ref($vwap, -2)/Ref($vwap, -1) - 1"], ["LABEL0"])
