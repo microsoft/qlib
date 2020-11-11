@@ -16,7 +16,7 @@ from ...data import D
 from ...config import C
 from ...utils import parse_config, transform_end_date, init_instance_by_config
 from ...utils.serial import Serializable
-from .utils import get_level_index
+from .utils import get_level_index, fetch_df_by_index
 from pathlib import Path
 from .loader import DataLoader
 
@@ -99,25 +99,6 @@ class DataHandler(Serializable):
             self._data = self.data_loader.load(self.instruments, self.start_time, self.end_time)
         # TODO: cache
 
-    def _fetch_df_by_index(
-        self, df: pd.DataFrame, selector: Union[pd.Timestamp, slice, str, list], level: Union[str, int]
-    ) -> pd.DataFrame:
-        """
-        fetch data from `data` with `selector` and `level`
-
-        Parameters
-        ----------
-        selector : Union[pd.Timestamp, slice, str, list]
-            selector
-        level : Union[int, str]
-            the level to use the selector
-        """
-        # Try to get the right index
-        idx_slc = (selector, slice(None, None))
-        if get_level_index(df, level) == 1:
-            idx_slc = idx_slc[1], idx_slc[0]
-        return df.loc(axis=0)[idx_slc]
-
     CS_ALL = "__all"
 
     def _fetch_df_by_col(self, df: pd.DataFrame, col_set: str) -> pd.DataFrame:
@@ -156,7 +137,7 @@ class DataHandler(Serializable):
         -------
         pd.DataFrame:
         """
-        df = self._fetch_df_by_index(self._data, selector, level)
+        df = fetch_df_by_index(self._data, selector, level)
         df = self._fetch_df_by_col(df, col_set)
         if squeeze:
             # squeeze columns
@@ -414,7 +395,7 @@ class DataHandlerLP(DataHandler):
         pd.DataFrame:
         """
         df = self._get_df_by_key(data_key)
-        df = self._fetch_df_by_index(df, selector, level)
+        df = fetch_df_by_index(df, selector, level)
         return self._fetch_df_by_col(df, col_set)
 
     def get_cols(self, col_set=DataHandler.CS_ALL, data_key: str = DK_I) -> list:

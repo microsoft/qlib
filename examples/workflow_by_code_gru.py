@@ -36,15 +36,14 @@ if __name__ == "__main__":
     MARKET = "csi300"
     BENCHMARK = "SH000300"
 
-
     ###################################
     # train model
     ###################################
     DATA_HANDLER_CONFIG = {
         "start_time": "2008-01-01",
         "end_time": "2020-08-01",
-        "fit_start_time":"2008-01-01",
-        "fit_end_time":"2014-12-31",
+        "fit_start_time": "2008-01-01",
+        "fit_end_time": "2014-12-31",
         "instruments": MARKET,
     }
 
@@ -69,37 +68,43 @@ if __name__ == "__main__":
                 "n_epochs": 2000,
                 "lr": 1e-1,
                 "early_stop": 200,
-                "batch_size":800,
+                "batch_size": 800,
                 "smooth_steps": 5,
                 "metric": "mse",
                 "loss": "mse",
                 "seed": 0,
                 "GPU": 0,
-            }
+            },
         },
         "dataset": {
             "class": "DatasetH",
             "module_path": "qlib.data.dataset",
             "kwargs": {
-                'handler': {
+                "handler": {
                     "class": "ALPHA360",
                     "module_path": "qlib.contrib.data.handler",
-                    "kwargs": DATA_HANDLER_CONFIG
+                    "kwargs": DATA_HANDLER_CONFIG,
                 },
-                'segments': {
-                    'train': ("2008-01-01", "2014-12-31"),
-                    'valid': ("2015-01-01", "2016-12-31",),
-                    'test': ("2017-01-01", "2020-08-01",),
-                }
-            }
+                "segments": {
+                    "train": ("2008-01-01", "2014-12-31"),
+                    "valid": (
+                        "2015-01-01",
+                        "2016-12-31",
+                    ),
+                    "test": (
+                        "2017-01-01",
+                        "2020-08-01",
+                    ),
+                },
+            },
         }
         # You shoud record the data in specific sequence
         # "record": ['SignalRecord', 'SigAnaRecord', 'PortAnaRecord'],
     }
 
     # model = train_model(task)
-    model = init_instance_by_config(task['model'])
-    dataset = init_instance_by_config(task['dataset'])
+    model = init_instance_by_config(task["model"])
+    dataset = init_instance_by_config(task["dataset"])
 
     model.fit(dataset)
 

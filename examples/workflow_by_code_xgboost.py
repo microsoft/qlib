@@ -21,7 +21,6 @@ from qlib.utils import init_instance_by_config
 
 if __name__ == "__main__":
 
-
     # use default data
     provider_uri = "~/.qlib/qlib_data/cn_data"  # target_dir
     if not exists_qlib_data(provider_uri):
@@ -36,15 +35,14 @@ if __name__ == "__main__":
     MARKET = "csi300"
     BENCHMARK = "SH000300"
 
-
     ###################################
     # train model
     ###################################
     DATA_HANDLER_CONFIG = {
         "start_time": "2008-01-01",
         "end_time": "2020-08-01",
-        "fit_start_time":"2008-01-01",
-        "fit_end_time":"2014-12-31",
+        "fit_start_time": "2008-01-01",
+        "fit_end_time": "2014-12-31",
         "instruments": MARKET,
     }
 
@@ -62,43 +60,49 @@ if __name__ == "__main__":
             "class": "XGBModel",
             "module_path": "qlib.contrib.model.xgboost",
             "kwargs": {
-                "objective": 'reg:linear',
-                "n_estimators":5000,
+                "objective": "reg:linear",
+                "n_estimators": 5000,
                 "colsample_bytree": 0.85,
                 "learning_rate": 0.0421,
                 "subsample": 0.8789,
                 "max_depth": 8,
                 "num_leaves": 210,
                 "num_threads": 20,
-                "missing":-1,
-                "min_child_weight":1,
-                "nthread":4,
-                "tree_method":'hist',
-            }
+                "missing": -1,
+                "min_child_weight": 1,
+                "nthread": 4,
+                "tree_method": "hist",
+            },
         },
         "dataset": {
             "class": "DatasetH",
             "module_path": "qlib.data.dataset",
             "kwargs": {
-                'handler': {
+                "handler": {
                     "class": "Alpha158",
                     "module_path": "qlib.contrib.data.handler",
-                    "kwargs": DATA_HANDLER_CONFIG
+                    "kwargs": DATA_HANDLER_CONFIG,
                 },
-                'segments': {
-                    'train': ("2008-01-01", "2014-12-31"),
-                    'valid': ("2015-01-01", "2016-12-31",),
-                    'test': ("2017-01-01", "2020-08-01",),
-                }
-            }
+                "segments": {
+                    "train": ("2008-01-01", "2014-12-31"),
+                    "valid": (
+                        "2015-01-01",
+                        "2016-12-31",
+                    ),
+                    "test": (
+                        "2017-01-01",
+                        "2020-08-01",
+                    ),
+                },
+            },
         }
         # You shoud record the data in specific sequence
         # "record": ['SignalRecord', 'SigAnaRecord', 'PortAnaRecord'],
     }
 
     # model = train_model(task)
-    model = init_instance_by_config(task['model'])
-    dataset = init_instance_by_config(task['dataset'])
+    model = init_instance_by_config(task["model"])
+    dataset = init_instance_by_config(task["dataset"])
 
     model.fit(dataset)
     pred_score = model.predict(dataset)

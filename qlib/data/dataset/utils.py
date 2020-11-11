@@ -29,3 +29,27 @@ def get_level_index(df: pd.DataFrame, level=Union[str, int]) -> int:
         return level
     else:
         raise NotImplementedError(f"This type of input is not supported")
+
+
+def fetch_df_by_index(
+    df: pd.DataFrame, selector: Union[pd.Timestamp, slice, str, list], level: Union[str, int]
+) -> pd.DataFrame:
+    """
+    fetch data from `data` with `selector` and `level`
+
+    Parameters
+    ----------
+    selector : Union[pd.Timestamp, slice, str, list]
+        selector
+    level : Union[int, str]
+        the level to use the selector
+
+    Returns
+    -------
+    Data of the given index.
+    """
+    # Try to get the right index
+    idx_slc = (selector, slice(None, None))
+    if get_level_index(df, level) == 1:
+        idx_slc = idx_slc[1], idx_slc[0]
+    return df.loc(axis=0)[idx_slc]

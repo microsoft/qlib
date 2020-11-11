@@ -22,6 +22,7 @@ from ...model.base import Model
 from ...data.dataset import DatasetH
 from ...data.dataset.handler import DataHandlerLP
 
+
 class GRU(Model):
     """GRU Model
 
@@ -127,7 +128,9 @@ class GRU(Model):
             raise NotImplementedError("loss {} is not supported!".format(loss))
         self._scorer = mean_squared_error if loss == "mse" else roc_auc_score
 
-        self.gru_model = GRUModel(d_feat=self.d_feat, hidden_size=self.hidden_size, num_layers=self.num_layers, dropout=self.dropout)
+        self.gru_model = GRUModel(
+            d_feat=self.d_feat, hidden_size=self.hidden_size, num_layers=self.num_layers, dropout=self.dropout
+        )
         if optimizer.lower() == "adam":
             self.train_optimizer = optim.Adam(self.gru_model.parameters(), lr=self.lr)
         elif optimizer.lower() == "gd":
@@ -262,7 +265,7 @@ class GRU(Model):
 
     def get_loss(self, pred, target, loss_type):
         if loss_type == "mse":
-            sqr_loss = (pred - target)**2
+            sqr_loss = (pred - target) ** 2
             loss = sqr_loss.mean()
             return loss
         elif loss_type == "binary":
@@ -307,6 +310,7 @@ class GRU(Model):
             self.gru_model.load_state_dict(torch.load(_model_path))
         self._fitted = True
 
+
 class AverageMeter(object):
     """Computes and stores the average and current value"""
 
@@ -327,7 +331,6 @@ class AverageMeter(object):
 
 
 class GRUModel(nn.Module):
-
     def __init__(self, d_feat=6, hidden_size=64, num_layers=2, dropout=0.0):
         super().__init__()
 
@@ -344,8 +347,7 @@ class GRUModel(nn.Module):
 
     def forward(self, x):
         # x: [N, F*T]
-        x = x.reshape(len(x), self.d_feat, -1) # [N, F, T]
-        x = x.permute(0, 2, 1) # [N, T, F]
+        x = x.reshape(len(x), self.d_feat, -1)  # [N, F, T]
+        x = x.permute(0, 2, 1)  # [N, T, F]
         out, _ = self.rnn(x)
         return self.fc_out(out[:, -1, :]).squeeze()
-

@@ -7,6 +7,7 @@ import pandas as pd
 import copy
 
 from ...log import TimeInspector
+from .utils import fetch_df_by_index
 from ...utils.serial import Serializable
 from ...utils.paral import datetime_groupby_apply
 
@@ -106,6 +107,7 @@ class ProcessInf(Processor):
 
         return replace_inf(df)
 
+
 class Fillna(Processor):
     """Process infinity  """
 
@@ -123,14 +125,15 @@ class Fillna(Processor):
 
         return fill_na(df)
 
+
 class MinMaxNorm(Processor):
     def __init__(self, fit_start_time, fit_end_time, fields_group=None):
-        # FIXME: time is not used
         self.fit_start_time = fit_start_time
         self.fit_end_time = fit_end_time
         self.fields_group = fields_group
 
     def fit(self, df):
+        df = fetch_df_by_index(df, slice(self.fit_start_time, self.fit_end_time), level="datetime")
         cols = get_group_columns(df, self.fields_group)
         self.min_val = np.nanmin(df[cols].values, axis=0)
         self.max_val = np.nanmax(df[cols].values, axis=0)
@@ -152,15 +155,15 @@ class MinMaxNorm(Processor):
 
 class ZscoreNorm(Processor):
     def __init__(self, fit_start_time, fit_end_time, fields_group=None):
-        # FIXME: time is not used
         self.fit_start_time = fit_start_time
         self.fit_end_time = fit_end_time
         self.fields_group = fields_group
 
     def fit(self, df):
+        df = fetch_df_by_index(df, slice(self.fit_start_time, self.fit_end_time), level="datetime")
         cols = get_group_columns(df, self.fields_group)
         self.mean_train = np.nanmean(df[cols].values, axis=0)
-        self.std_train = np.nanstd(df[cols].values, axis=0)
+        self.std_train = np.nanstd(_df[cols].values, axis=0)
         self.ignore = self.std_train == 0
         self.cols = cols
 

@@ -8,15 +8,9 @@ from ...data.dataset import processor as processor_module
 from ...log import TimeInspector
 import copy
 
+
 class ALPHA360(DataHandlerLP):
-    def __init__(
-        self, 
-        instruments="csi500", 
-        start_time=None, 
-        end_time=None, 
-        fit_start_time=None, 
-        fit_end_time=None
-    ):
+    def __init__(self, instruments="csi500", start_time=None, end_time=None, fit_start_time=None, fit_end_time=None):
         data_loader = {
             "class": "QlibDataLoader",
             "kwargs": {
@@ -28,22 +22,22 @@ class ALPHA360(DataHandlerLP):
         }
 
         learn_processors = [
-                {"class": "DropnaLabel", "kwargs": {'group': 'label'}},
-                {"class": "CSZScoreNorm", "kwargs": {"fields_group": "label"}},
+            {"class": "DropnaLabel", "kwargs": {"group": "label"}},
+            {"class": "CSZScoreNorm", "kwargs": {"fields_group": "label"}},
         ]
         infer_processors = [
-                {"class": "ProcessInf", "kwargs": {}},
-                {"class": "ZscoreNorm", "kwargs": {"fit_start_time": fit_start_time, "fit_end_time": fit_end_time}},
-                {"class": "Fillna", "kwargs": {}},
+            {"class": "ProcessInf", "kwargs": {}},
+            {"class": "ZscoreNorm", "kwargs": {"fit_start_time": fit_start_time, "fit_end_time": fit_end_time}},
+            {"class": "Fillna", "kwargs": {}},
         ]
 
         super().__init__(
-                instruments, 
-                start_time, 
-                end_time, 
-                data_loader=data_loader, 
-                learn_processors=learn_processors, 
-                infer_processors=infer_processors
+            instruments,
+            start_time,
+            end_time,
+            data_loader=data_loader,
+            learn_processors=learn_processors,
+            infer_processors=infer_processors,
         )
 
     def get_label_config(self):
@@ -54,19 +48,19 @@ class ALPHA360(DataHandlerLP):
         fields = []
         names = []
 
-        for i in range(59,0,-1):
-            fields += ["Ref($close, %d)/$close"%(i)]
-            names += ["CLOSE%d"%(i)]
-            fields += ["Ref($open, %d)/$close"%(i)]
-            names += ["OPEN%d"%(i)]
-            fields += ["Ref($high, %d)/$close"%(i)]
-            names += ["HIGH%d"%(i)]
-            fields += ["Ref($low, %d)/$close"%(i)]
-            names += ["LOW%d"%(i)]
-            fields += ["Ref($vwap, %d)/$close"%(i)]
-            names += ["VWAP%d"%(i)]
-            fields += ["Ref($volume, %d)/$volume"%(i)]
-            names += ["VOLUME%d"%(i)]
+        for i in range(59, 0, -1):
+            fields += ["Ref($close, %d)/$close" % (i)]
+            names += ["CLOSE%d" % (i)]
+            fields += ["Ref($open, %d)/$close" % (i)]
+            names += ["OPEN%d" % (i)]
+            fields += ["Ref($high, %d)/$close" % (i)]
+            names += ["HIGH%d" % (i)]
+            fields += ["Ref($low, %d)/$close" % (i)]
+            names += ["LOW%d" % (i)]
+            fields += ["Ref($vwap, %d)/$close" % (i)]
+            names += ["VWAP%d" % (i)]
+            fields += ["Ref($volume, %d)/$volume" % (i)]
+            names += ["VOLUME%d" % (i)]
 
         fields += ["$close/$close"]
         fields += ["$open/$close"]

@@ -41,14 +41,14 @@ class XGBModel(Model):
             y_train_1d, y_valid_1d = np.squeeze(y_train.values), np.squeeze(y_valid.values)
         else:
             raise ValueError("XGBoost doesn't support multi-label training")
-        
+
         dtrain = xgb.DMatrix(x_train.values, label=y_train_1d)
         dvalid = xgb.DMatrix(x_valid.values, label=y_valid_1d)
         self.model = xgb.train(
             self._params,
             dtrain=dtrain,
             num_boost_round=num_boost_round,
-            evals=[(dtrain, 'train'), (dvalid, 'valid')],
+            evals=[(dtrain, "train"), (dvalid, "valid")],
             early_stopping_rounds=early_stopping_rounds,
             verbose_eval=verbose_eval,
             evals_result=evals_result,
