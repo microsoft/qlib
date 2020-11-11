@@ -65,8 +65,9 @@ class DataHandler(Serializable):
 
         self.data_loader = init_instance_by_config(
             data_loader,
-            None if (isinstance(data_loader, dict) and 'module_path' in data_loader) else data_loader_module,
-            accept_types=DataLoader)
+            None if (isinstance(data_loader, dict) and "module_path" in data_loader) else data_loader_module,
+            accept_types=DataLoader,
+        )
 
         self.instruments = instruments
         self.start_time = start_time

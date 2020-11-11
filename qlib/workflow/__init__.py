@@ -6,6 +6,7 @@ from .expm import MLflowExpManager
 from ..utils import Wrapper
 from ..config import C
 
+
 class QlibRecorder:
     """
     A global system that helps to manage the experiments.

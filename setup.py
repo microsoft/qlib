@@ -55,7 +55,7 @@ REQUIRED = [
     "loguru",
     "lightgbm",
     "tornado",
-    "joblib>=0.17.0"
+    "joblib>=0.17.0",
 ]
 
 # Numpy include

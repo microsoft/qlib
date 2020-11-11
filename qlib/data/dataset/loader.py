@@ -14,6 +14,7 @@ class DataLoader(abc.ABC):
     """
     DataLoader is designed for loading raw data from original data source.
     """
+
     @abc.abstractmethod
     def load(self, instruments, start_time=None, end_time=None) -> pd.DataFrame:
         """
@@ -53,6 +54,7 @@ class DLWParser(DataLoader):
 
     Extracting this class so that QlibDataLoader and other dataloaders(such as QdbDataLoader) can share the fields
     """
+
     def __init__(self, config: Tuple[list, tuple, dict]):
         """
         Parameters
@@ -113,7 +115,8 @@ class DLWParser(DataLoader):
                     grp: self.load_group_df(instruments, exprs, names, start_time, end_time)
                     for grp, (exprs, names) in self.fields.items()
                 },
-                axis=1)
+                axis=1,
+            )
         else:
             exprs, names = self.fields
             df = self.load_group_df(instruments, exprs, names, start_time, end_time)
@@ -122,6 +125,7 @@ class DLWParser(DataLoader):
 
 class QlibDataLoader(DLWParser):
     """Same as QlibDataLoader. The fields can be define by config"""
+
     def __init__(self, config: Tuple[list, tuple, dict], filter_pipe=None):
         """
         Parameters

@@ -8,6 +8,7 @@ from ..log import get_module_logger
 
 logger = get_module_logger("workflow", "INFO")
 
+
 class Experiment:
     """
     Thie is the `Experiment` class for each experiment being run. The API is designed
@@ -17,22 +18,22 @@ class Experiment:
         self.name = None
         self.id = None
         self.active_recorder = None  # only one recorder can running each time
-        self.recorders = dict() # recorder id -> object
+        self.recorders = dict()  # recorder id -> object
 
     def __repr__(self):
         return str(self.info)
-    
+
     def __str__(self):
-        return str(self.info)    
+        return str(self.info)
 
     @property
     def info(self):
         output = dict()
-        output['class'] = "Experiment"
-        output['id'] = self.id
-        output['name'] = self.name
-        output['active_recorder'] = self.active_recorder.id
-        output['recorders'] = list(self.recorders.keys())
+        output["class"] = "Experiment"
+        output["id"] = self.id
+        output["name"] = self.name
+        output["active_recorder"] = self.active_recorder.id
+        output["recorders"] = list(self.recorders.keys())
 
     def start(self):
         """
@@ -137,7 +138,6 @@ class MLflowExperiment(Experiment):
         run = self.active_recorder.start_run()
         # store the recorder
         self.recorders[self.active_recorder.id] = recorder
-        
         return self.active_recorder
 
     def end(self, status):
@@ -147,7 +147,7 @@ class MLflowExperiment(Experiment):
 
     def create_recorder(self):
         num = len(self.recorders)
-        name = "Recorder_{}".format(num+1)
+        name = "Recorder_{}".format(num + 1)
         recorder = MLflowRecorder(name, self.id)
         return recorder
 
@@ -170,9 +170,7 @@ class MLflowExperiment(Experiment):
                 if self.recorders[rid].name == recorder_name:
                     return self.recorders[rid]
         elif self.active_recorder is None:
-            raise Exception('No valid active recorder exists. Please make sure the experiment is running.')
+            raise Exception("No valid active recorder exists. Please make sure the experiment is running.")
         else:
-            logger.info(
-                "No experiment id or name is given. Return the current active experiment."
-            )
+            logger.info("No experiment id or name is given. Return the current active experiment.")
             return self.active_recorder

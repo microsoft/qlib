@@ -5,8 +5,8 @@ from joblib import Parallel, delayed
 import pandas as pd
 
 
-def datetime_groupby_apply(df, apply_func, axis=0, level='datetime', resample_rule="M", n_jobs=-1, skip_group=False):
-    """ datetime_groupby_apply
+def datetime_groupby_apply(df, apply_func, axis=0, level="datetime", resample_rule="M", n_jobs=-1, skip_group=False):
+    """datetime_groupby_apply
     This function will apply the `apply_func` on the datetime level index.
 
     Parameters
@@ -26,12 +26,14 @@ def datetime_groupby_apply(df, apply_func, axis=0, level='datetime', resample_ru
     Returns:
         pd.DataFrame
     """
+
     def _naive_group_apply(df):
         return df.groupby(axis=axis, level=level).apply(apply_func)
 
     if n_jobs != 1:
-        dfs = Parallel(n_jobs=n_jobs)(delayed(_naive_group_apply)(sub_df)
-                                                 for idx, sub_df in df.resample(resample_rule, axis=axis, level=level))
+        dfs = Parallel(n_jobs=n_jobs)(
+            delayed(_naive_group_apply)(sub_df) for idx, sub_df in df.resample(resample_rule, axis=axis, level=level)
+        )
         return pd.concat(dfs, axis=axis).sort_index()
     else:
         return _naive_group_apply(df)

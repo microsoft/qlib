@@ -12,7 +12,7 @@ from ..utils import init_instance_by_config, get_module_by_module_path
 
 class RecordTemp:
     """
-    This is the Records Template class that enables user to generate experiment results such as IC and 
+    This is the Records Template class that enables user to generate experiment results such as IC and
     backtest in a certain format.
     """
 
@@ -116,8 +116,8 @@ class PortAnaRecord(SignalRecord):
 
     def __init__(self, recorder, config, **kwargs):
         self.recorder = recorder
-        self.strategy_config = config['strategy']
-        self.backtest_config = config['backtest']
+        self.strategy_config = config["strategy"]
+        self.backtest_config = config["backtest"]
         self.strategy = init_instance_by_config(self.strategy_config)
         self.artifact_path = "portfolio_analysis"
 

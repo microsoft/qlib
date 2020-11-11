@@ -43,7 +43,7 @@ jobs:
     - name: Lint with Black
       run: |
         cd ..
-        python -m black qlib -l 120
+        python -m black qlib -l 120 --check
 
     - name: Unit tests with Pytest
       run: |

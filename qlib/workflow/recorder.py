@@ -20,21 +20,21 @@ class Recorder:
         self.name = name
         self.experiment_id = experiment_id
         self.status = "SCHEDULED"
-    
+
     def __repr__(self):
         return str(self.info)
-    
+
     def __str__(self):
-        return str(self.info)    
+        return str(self.info)
 
     @property
     def info(self):
         output = dict()
-        output['class'] = "Recorder"
-        output['id'] = self.id
-        output['name'] = self.name
-        output['experiment_id'] = self.experiment_id
-        output['status'] = self.status
+        output["class"] = "Recorder"
+        output["id"] = self.id
+        output["name"] = self.name
+        output["experiment_id"] = self.experiment_id
+        output["status"] = self.status
 
     def set_recorder_name(self, rname):
         self.recorder_name = rname
@@ -188,16 +188,16 @@ class MLflowRecorder(Recorder):
         client = mlflow.tracking.MlflowClient(tracking_uri=self._uri)
         if local_path is not None:
             client.log_artifacts(self.id, local_path, artifact_path)
-        elif kwargs.get('data') is not None and kwargs.get('name') is not None:
-            data, name = kwargs.get('data'), kwargs.get('name')
+        elif kwargs.get("data") is not None and kwargs.get("name") is not None:
+            data, name = kwargs.get("data"), kwargs.get("name")
             self.fm.save_obj(data, name)
             client.log_artifact(self.id, self.fm.path / name, artifact_path)
-        elif kwargs.get('data_name_list') is not None:
-            data_name_list = kwargs.get('data_name_list')
+        elif kwargs.get("data_name_list") is not None:
+            data_name_list = kwargs.get("data_name_list")
             self.fm.save_objs(data_name_list)
             client.log_artifacts(self.id, self.fm.path, artifact_path)
         else:
-            raise Exception('Please provide valid arguments in order to save object properly.')
+            raise Exception("Please provide valid arguments in order to save object properly.")
 
     def load_object(self, name):
         client = mlflow.tracking.MlflowClient(tracking_uri=self._uri)

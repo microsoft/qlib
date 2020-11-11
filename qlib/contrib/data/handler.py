@@ -281,7 +281,6 @@ class Alpha158(DataHandlerLP):
 
 
 class Alpha158vwap(Alpha158):
-
     def get_feature_config(self):
         conf = {
             "kbar": {},

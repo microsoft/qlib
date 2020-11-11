@@ -184,9 +184,7 @@ class MLflowExpManager(ExpManager):
         else:
             if experiment_name not in self.experiments:
                 if mlflow.get_experiment_by_name(experiment_name) is not None:
-                    logger.info(
-                        "The experiment has already been created before. Try to resume the experiment..."
-                    )
+                    logger.info("The experiment has already been created before. Try to resume the experiment...")
                     experiment_id = mlflow.get_experiment_by_name(experiment_name).experiment_id
                 else:
                     experiment_id = mlflow.create_experiment(experiment_name)
@@ -216,11 +214,9 @@ class MLflowExpManager(ExpManager):
                 if self.experiments[name].id == experiment_id:
                     return self.experiments[name]
         elif self.active_experiment is None:
-            raise Exception('No valid active experiment exists. Please make sure experiment manager is running.')
+            raise Exception("No valid active experiment exists. Please make sure experiment manager is running.")
         else:
-            logger.info(
-                "No experiment id or name is given. Return the current active experiment."
-            )
+            logger.info("No experiment id or name is given. Return the current active experiment.")
             return self.active_experiment
 
     def delete_exp(self, experiment_id):
