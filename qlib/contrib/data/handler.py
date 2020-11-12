@@ -3,9 +3,10 @@
 
 from ...data.dataset.handler import DataHandlerLP
 from ...data.dataset.processor import Processor, MinMaxNorm, ZscoreNorm
-from ...utils import get_cls_kwargs
+from ...utils import get_cls_kwargs, get_module_by_module_path
 from ...data.dataset import processor as processor_module
 from ...log import TimeInspector
+from inspect import isclass
 import copy
 
 
@@ -99,9 +100,11 @@ class Alpha158(DataHandlerLP):
             for p in proc_l:
                 if not isinstance(p, Processor):
                     klass, pkwargs = get_cls_kwargs(p, processor_module)
-                    # FIXME: It's hard code here!!!!!
-                    if isinstance(klass, (MinMaxNorm, ZscoreNorm)):
-                        assert fit_start_time is not None and fit_end_time is not None
+                    processors = get_module_by_module_path(processor_module.__name__)
+                    if klass.__name__ in [c for c in dir(processor_module) if isclass(getattr(processor_module, c))]:
+                        assert (
+                            fit_start_time is not None and fit_end_time is not None
+                        ), "Make sure fit_start_time and fit_end_time are not None."
                         pkwargs.update(
                             {
                                 "fit_start_time": fit_start_time,
