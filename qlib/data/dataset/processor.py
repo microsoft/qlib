@@ -112,16 +112,13 @@ class Fillna(Processor):
     """Process infinity  """
 
     def __call__(self, df):
-        def fill_na(data):
-            def process_na(df):
-                for col in df.columns:
-                    # FIXME: Such behavior is very weird
-                    df[col] = df[col].fillna(0)
-                return df
+        def fill_na(df):
+            for col in df.columns:
+                # FIXME: Such behavior is very weird
+                df[col] = df[col].fillna(0)
 
-            data = datetime_groupby_apply(data, process_na)
-            data.sort_index(inplace=True)
-            return data
+            df.sort_index(inplace=True)
+            return df
 
         return fill_na(df)
 
