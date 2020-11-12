@@ -112,16 +112,13 @@ class Fillna(Processor):
     """Process infinity  """
 
     def __call__(self, df):
-        def fill_na(data):
-            def process_na(df):
-                for col in df.columns:
-                    # FIXME: Such behavior is very weird
-                    df[col] = df[col].fillna(0)
-                return df
+        def fill_na(df):
+            for col in df.columns:
+                # FIXME: Such behavior is very weird
+                df[col] = df[col].fillna(0)
 
-            data = datetime_groupby_apply(data, process_na)
-            data.sort_index(inplace=True)
-            return data
+            df.sort_index(inplace=True)
+            return df
 
         return fill_na(df)
 
@@ -163,7 +160,7 @@ class ZscoreNorm(Processor):
         df = fetch_df_by_index(df, slice(self.fit_start_time, self.fit_end_time), level="datetime")
         cols = get_group_columns(df, self.fields_group)
         self.mean_train = np.nanmean(df[cols].values, axis=0)
-        self.std_train = np.nanstd(_df[cols].values, axis=0)
+        self.std_train = np.nanstd(df[cols].values, axis=0)
         self.ignore = self.std_train == 0
         self.cols = cols
 
