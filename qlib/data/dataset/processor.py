@@ -160,7 +160,7 @@ class ZscoreNorm(Processor):
         df = fetch_df_by_index(df, slice(self.fit_start_time, self.fit_end_time), level="datetime")
         cols = get_group_columns(df, self.fields_group)
         self.mean_train = np.nanmean(df[cols].values, axis=0)
-        self.std_train = np.nanstd(_df[cols].values, axis=0)
+        self.std_train = np.nanstd(df[cols].values, axis=0)
         self.ignore = self.std_train == 0
         self.cols = cols
 
