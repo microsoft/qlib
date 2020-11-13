@@ -112,12 +112,12 @@ class Fillna(Processor):
     """Process infinity  """
 
     def __call__(self, df):
-        def fill_na(df):
-            for col in df.columns:
-                # FIXME: Such behavior is very weird
-                df[col] = df[col].fillna(0)
+        def fill_na(df, columns=None, fill=0):
 
-            df.sort_index(inplace=True)
+            if columns == None:
+                columns = df.columns
+            df[columns] = df[columns].fillna(fill)
+
             return df
 
         return fill_na(df)
