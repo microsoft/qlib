@@ -18,8 +18,9 @@ class ExpManager:
     (The link: https://mlflow.org/docs/latest/python_api/mlflow.html)
     """
 
-    def __init__(self):
-        self.uri = None
+    def __init__(self, uri, default_exp_name):
+        self.uri = uri
+        self.default_exp_name = default_exp_name
         self.active_experiment = None  # only one experiment can running each time
         self.experiments = dict()  # store the experiment name --> Experiment object
 
@@ -39,6 +40,7 @@ class ExpManager:
             controls whether run is nested in parent run.
 
         Returns
+        -------
         An active recorder.
         """
         raise NotImplementedError(f"Please implement the `start_exp` method.")
@@ -112,7 +114,7 @@ class ExpManager:
         """
         raise NotImplementedError(f"Please implement the `get_exp` method.")
 
-    def delete_exp(self, experiment_id):
+    def delete_exp(self, experiment_id=None, experiment_name=None):
         """
         Delete an experiment.
 
@@ -120,15 +122,14 @@ class ExpManager:
         ----------
         experiment_id  : str
             the experiment id.
+        experiment_name  : str
+            the experiment name.
         """
-        raise NotImplementedError(f"Please implement the `create_exp` method.")
+        raise NotImplementedError(f"Please implement the `delete_exp` method.")
 
     def get_uri(self):
         """
         Get the default tracking URI or current URI.
-
-        Parameters
-        ----------
 
         Returns
         -------
@@ -136,25 +137,36 @@ class ExpManager:
         """
         return self.uri
 
+    def list_experiments(self):
+        """
+        List all the existing experiments.
+
+        Returns
+        -------
+        A dictionary (name -> experiment) of experiments information that being stored.
+        """
+        raise NotImplementedError(f"Please implement the `list_experiments` method.")
+
 
 class MLflowExpManager(ExpManager):
     """
     Use mlflow to implement ExpManager.
     """
 
-    def __init__(self):
-        super(MLflowExpManager, self).__init__()
-        self.uri = None
+    def __init__(self, uri, default_exp_name):
+        super(MLflowExpManager, self).__init__(uri, default_exp_name)
+        self._total_exps = 0
+        # get all the exps
+        self.experiments = self.list_experiments()
 
     def start_exp(self, experiment_name=None, uri=None):
         # create experiment
         experiment = self.create_exp(experiment_name, uri)
         # set up active experiment
         self.active_experiment = experiment
-        # store the experiment
-        self.experiments[experiment_name] = experiment
         # start the experiment
         self.active_experiment.start()
+        self._total_exps += 1  # update exp num
 
         return self.active_experiment
 
@@ -162,10 +174,9 @@ class MLflowExpManager(ExpManager):
         if self.active_experiment is not None:
             self.active_experiment.end(status)
             self.active_experiment = None
+            self._total_exps -= 1
 
     def create_exp(self, experiment_name=None, uri=None):
-        # init experiment
-        experiment = MLflowExperiment()
         # set the tracking uri
         if uri is None:
             logger.info(
@@ -176,15 +187,19 @@ class MLflowExpManager(ExpManager):
         mlflow.set_tracking_uri(self.uri)
         # start the experiment
         if experiment_name is None:
-            logger.info("No experiment name provided. The default experiment name is set as `experiment`.")
-            experiment_id = mlflow.create_experiment("experiment")
+            logger.info(
+                f"No experiment name provided. The default experiment name is set as `{self.default_exp_name}`."
+            )
+            experiment_id = mlflow.create_experiment(self.default_exp_name)
             # set the active experiment
-            mlflow.set_experiment("experiment")
-            experiment_name = "experiment"
+            mlflow.set_experiment(self.default_exp_name)
+            experiment_name = self.default_exp_name
         else:
             if experiment_name not in self.experiments:
                 if mlflow.get_experiment_by_name(experiment_name) is not None:
-                    logger.info("The experiment has already been created before. Try to resume the experiment...")
+                    logger.info(
+                        "The experiment has already been created before. Try to resume the experiment with a new recorder..."
+                    )
                     experiment_id = mlflow.get_experiment_by_name(experiment_name).experiment_id
                 else:
                     experiment_id = mlflow.create_experiment(experiment_name)
@@ -193,9 +208,11 @@ class MLflowExpManager(ExpManager):
                 experiment = self.experiments[experiment_name]
         # set the active experiment
         mlflow.set_experiment(experiment_name)
-        # set up experiment
-        experiment.id = experiment_id
-        experiment.name = experiment_name
+        # init experiment
+        experiment = MLflowExperiment(experiment_id, experiment_name, self.uri)
+        experiment._default_name = self.default_exp_name
+        # store the experiment
+        self.experiments[experiment_name] = experiment
 
         return experiment
 
@@ -206,19 +223,73 @@ class MLflowExpManager(ExpManager):
         order_by = kwargs.get("order_by")
         return mlflow.search_runs(experiment_ids, filter_string, run_view_type, max_results, order_by)
 
-    def get_exp(self, experiment_id=None, experiment_name=None):
-        if experiment_name is not None:
-            return self.experiments[experiment_name]
-        elif experiment_id is not None:
-            for name in self.experiments:
-                if self.experiments[name].id == experiment_id:
-                    return self.experiments[name]
-        elif self.active_experiment is None:
-            raise Exception("No valid active experiment exists. Please make sure experiment manager is running.")
+    def get_exp(self, experiment_id=None, experiment_name=None, create=True):
+        if experiment_id is None and experiment_name is None:
+            if self.active_experiment:
+                return self.active_experiment
+            else:
+                if create:
+                    logger.warning("QlibRecorder is not running. Use the Default experiment for further process.")
+                    return self.start_exp()
+                else:
+                    raise Exception(
+                        "Something went wrong when retrieving experiments. Please check if QlibRecorder is running or the name/id of the experiment is correct."
+                    )
         else:
-            logger.info("No experiment id or name is given. Return the current active experiment.")
-            return self.active_experiment
+            if experiment_name is not None:
+                if experiment_name in self.experiments:
+                    return self.experiments[experiment_name]
+                else:
+                    if create:
+                        logger.warning(
+                            f"No valid experiment found. Create experiment with name {experiment_name} for further process."
+                        )
+                        return self.start_exp(experiment_name)
+                    else:
+                        raise Exception(
+                            "Something went wrong when retrieving experiments. Please check if QlibRecorder is running or the name/id of the experiment is correct."
+                        )
+            else:
+                for name in self.experiments:
+                    if self.experiments[name].id == experiment_id:
+                        return self.experiments[name]
+                if create:
+                    logger.warning(f"No valid experiment found. Use the Default experiment for further process.")
+                    return self.start_exp()
+                else:
+                    raise Exception(
+                        "Something went wrong when retrieving experiments. Please check if QlibRecorder is running or the name/id of the experiment is correct."
+                    )
 
-    def delete_exp(self, experiment_id):
-        mlflow.delete_experiment(experiment_id)
-        self.experiments = {key: val for key, val in self.experiments.items() if val.id != experiment_id}
+    def delete_exp(self, experiment_id=None, experiment_name=None):
+        assert (
+            experiment_id is not None or experiment_name is not None
+        ), "Please input a valid experiment id or name before deleting."
+        try:
+            if experiment_id is not None:
+                mlflow.delete_experiment(experiment_id)
+                self.experiments = {key: val for key, val in self.experiments.items() if val.id != experiment_id}
+            else:
+                experiment_id = self.experiments[experiment_name].id
+                mlflow.delete_experiment(experiment_id)
+        except:
+            raise Exception(
+                "Something went wrong when deleting experiment. Please check if the name/id of the experiment is correct."
+            )
+
+    def list_experiments(self):
+        # retrieve all the existing experiments
+        client = mlflow.tracking.MlflowClient(tracking_uri=self.uri)
+        exps = client.list_experiments()
+        experiments = dict()
+        self._total_exps = len(exps)
+        for i in range(len(exps)):
+            eid = exps[i].experiment_id
+            ename = exps[i].name
+            experiment = MLflowExperiment(eid, ename, self.uri)
+            experiment.id = eid
+            experiment.name = ename
+            experiment._uri = self.uri
+            experiments[ename] = experiment
+
+        return experiments

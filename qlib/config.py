@@ -126,8 +126,14 @@ _default_config = {
         "loggers": {"qlib": {"level": "DEBUG", "handlers": ["console"]}},
     },
     # Defatult config for experiment manager
-    "exp_manager": {"class": "MLflowExpManager", "kwargs": {}},
-    "exp_uri": str(Path(os.getcwd()).resolve() / "mlruns"),
+    "exp_manager": {
+        "class": "MLflowExpManager",
+        "module_path": "qlib.workflow.expm",
+        "kwargs": {
+            "uri": str(Path(os.getcwd()).resolve() / "mlruns"),
+            "default_exp_name": "Experiment",
+        },
+    },
 }
 
 MODE_CONF = {

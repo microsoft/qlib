@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 import mlflow
-import shutil, os, pickle, tempfile, codecs
+import shutil, os, pickle, tempfile, codecs, datetime
 from pathlib import Path
 from ..utils.objm import FileManager
 
@@ -19,6 +19,8 @@ class Recorder:
         self.id = None
         self.name = name
         self.experiment_id = experiment_id
+        self.start_time = None
+        self.end_time = None
         self.status = "SCHEDULED"
 
     def __repr__(self):
@@ -34,7 +36,10 @@ class Recorder:
         output["id"] = self.id
         output["name"] = self.name
         output["experiment_id"] = self.experiment_id
+        output["start_time"] = self.start_time
+        output["end_time"] = self.end_time
         output["status"] = self.status
+        return output
 
     def set_recorder_name(self, rname):
         self.recorder_name = rname
@@ -77,9 +82,6 @@ class Recorder:
         """
         Start running or resuming the Recorder. The return value can be used as a context manager within a `with` block;
         otherwise, you must call end_run() to terminate the current run. (See `ActiveRun` class in mlflow)
-
-        Parameters
-        ----------
 
         Returns
         -------
@@ -139,7 +141,7 @@ class Recorder:
 
     def list_artifacts(self, artifact_path=None):
         """
-        Delete some tags from a run.
+        List all the artifacts of a recorder.
 
         Parameters
         ----------
@@ -161,10 +163,13 @@ class MLflowRecorder(Recorder):
     use file manager to help maintain the objects in the project.
     """
 
-    def __init__(self, name, experiment_id):
+    def __init__(self, name, experiment_id, uri):
         super(MLflowRecorder, self).__init__(name, experiment_id)
-        self.fm = None
-        self.temp_dir = None
+        self._uri = uri
+        self.artifact_uri = None
+        # set up file manager for saving objects
+        self.temp_dir = tempfile.mkdtemp()
+        self.fm = FileManager(Path(self.temp_dir).absolute())
 
     def start_run(self):
         # start the run
@@ -172,19 +177,21 @@ class MLflowRecorder(Recorder):
         # save the run id and artifact_uri
         self.id = run.info.run_id
         self.artifact_uri = run.info.artifact_uri
-        self._uri = mlflow.get_tracking_uri()  # Fix!!! : this is not proper to have uri in recorder
-        # set up file manager for saving objects
-        self.temp_dir = tempfile.mkdtemp()
-        self.fm = FileManager(Path(self.temp_dir).absolute())
+        self.start_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.status = "RUNNING"
+
         return run
 
     def end_run(self, status):
+        assert status in ["SCHEDULED", "RUNNING", "FINISHED", "FAILED"], f"The status type {status} is not supported."
         mlflow.end_run(status)
-        self.status = status
+        self.end_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        if self.status is not "FINISHED":
+            self.status = status
         shutil.rmtree(self.temp_dir)
 
     def save_objects(self, data_name_list=None, local_path=None, artifact_path=None, **kwargs):
+        assert self._uri is not None, "Please start the experiment and recorder first before using recorder directly."
         client = mlflow.tracking.MlflowClient(tracking_uri=self._uri)
         if local_path is not None:
             client.log_artifacts(self.id, local_path, artifact_path)
@@ -200,6 +207,7 @@ class MLflowRecorder(Recorder):
             raise Exception("Please provide valid arguments in order to save object properly.")
 
     def load_object(self, name):
+        assert self._uri is not None, "Please start the experiment and recorder first before using recorder directly."
         client = mlflow.tracking.MlflowClient(tracking_uri=self._uri)
         path = client.download_artifacts(self.id, name)
         try:
@@ -235,12 +243,16 @@ class MLflowRecorder(Recorder):
         for count, key in enumerate(keys):
             mlflow.delete_tag(key)
 
-    def get_artifact_uri(self, artifact_path=None):
+    def get_artifact_uri(self):
         if self.artifact_uri is not None:
             return self.artifact_uri
-        return mlflow.get_artifact_uri(artifact_path)
+        else:
+            raise Exception(
+                "Please make sure the recorder has been created and started properly before getting artifact uri."
+            )
 
     def list_artifacts(self, artifact_path=None):
+        assert self._uri is not None, "Please start the experiment and recorder first before using recorder directly."
         client = mlflow.tracking.MlflowClient(tracking_uri=self._uri)
         artifacts = client.list_artifacts(self.id, artifact_path)
         return artifacts

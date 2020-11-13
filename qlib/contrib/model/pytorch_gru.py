@@ -294,7 +294,6 @@ class GRU(Model):
         return pd.Series(preds, index=index)
 
 
-
 class AverageMeter(object):
     """Computes and stores the average and current value"""
 
