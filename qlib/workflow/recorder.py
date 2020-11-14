@@ -139,13 +139,13 @@ class Recorder:
         """
         raise NotImplementedError(f"Please implement the `delete_tags` method.")
 
-    def list_artifacts(self, artifact_path=None):
+    def list_artifacts(self, artifact_path: str = None):
         """
         List all the artifacts of a recorder.
 
         Parameters
         ----------
-        artifact_path=None : str
+        artifact_path : str
             the relative path for the artifact to be stored in the URI.
 
         Returns
@@ -186,7 +186,7 @@ class MLflowRecorder(Recorder):
         assert status in ["SCHEDULED", "RUNNING", "FINISHED", "FAILED"], f"The status type {status} is not supported."
         mlflow.end_run(status)
         self.end_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        if self.status is not "FINISHED":
+        if self.status != "FINISHED":
             self.status = status
         shutil.rmtree(self.temp_dir)
 

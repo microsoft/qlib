@@ -99,10 +99,11 @@ class DataHandler(Serializable):
             self._data = self.data_loader.load(self.instruments, self.start_time, self.end_time)
         # TODO: cache
 
-    CS_ALL = "__all"
+    CS_ALL = "__all"  # return all columns with single-level index column
+    CS_RAW = "__raw"  # return raw data with multi-level index column
 
     def _fetch_df_by_col(self, df: pd.DataFrame, col_set: str) -> pd.DataFrame:
-        if not isinstance(df.columns, pd.MultiIndex):
+        if not isinstance(df.columns, pd.MultiIndex) or col_set == self.CS_RAW:
             return df
         elif col_set == self.CS_ALL:
             return df.droplevel(axis=1, level=0)
@@ -111,7 +112,7 @@ class DataHandler(Serializable):
 
     def fetch(
         self,
-        selector: Union[pd.Timestamp, slice, str],
+        selector: Union[pd.Timestamp, slice, str] = slice(None, None),
         level: Union[str, int] = "datetime",
         col_set: Union[str, List[str]] = CS_ALL,
         squeeze: bool = False,
@@ -371,7 +372,7 @@ class DataHandlerLP(DataHandler):
 
     def fetch(
         self,
-        selector: Union[pd.Timestamp, slice, str],
+        selector: Union[pd.Timestamp, slice, str] = slice(None, None),
         level: Union[str, int] = "datetime",
         col_set=DataHandler.CS_ALL,
         data_key: str = DK_I,

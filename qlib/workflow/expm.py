@@ -14,7 +14,7 @@ logger = get_module_logger("workflow", "INFO")
 
 class ExpManager:
     """
-    This is the `ExpManager` class for managing the experiments. The API is designed similar to mlflow.
+    This is the `ExpManager` class for managing experiments. The API is designed similar to mlflow.
     (The link: https://mlflow.org/docs/latest/python_api/mlflow.html)
     """
 
@@ -34,10 +34,6 @@ class ExpManager:
             name of the active experiment.
         uri : str
             the current tracking URI.
-        artifact_location : str
-            the location to store all the artifacts.
-        nested : boolean
-            controls whether run is nested in parent run.
 
         Returns
         -------
@@ -99,7 +95,7 @@ class ExpManager:
         """
         raise NotImplementedError(f"Please implement the `create_exp` method.")
 
-    def get_exp(self, experiment_id=None, experiment_name=None):
+    def get_exp(self, experiment_id=None, experiment_name=None, create: bool = True):
         """
         Retrieve an experiment by experiment_id from the backend store.
 
@@ -107,6 +103,8 @@ class ExpManager:
         ----------
         experiment_id : str
             the experiment id to return.
+        create : boolean
+            create the experiment if it does not exists
 
         Returns
         -------

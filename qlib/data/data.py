@@ -664,9 +664,11 @@ class LocalExpressionProvider(ExpressionProvider):
         lft_etd, rght_etd = expression.get_extended_window_size()
         series = expression.load(instrument, max(0, start_index - lft_etd), end_index + rght_etd, freq)
         # Ensure that each column type is consistent
-        # FIXME: The stock data is currently float. If there is other types of data, this part needs to be re-implemented.
+        # FIXME:
+        # 1) The stock data is currently float. If there is other types of data, this part needs to be re-implemented.
+        # 2) The the precision should be configurable
         try:
-            series = series.astype(float)
+            series = series.astype(np.float32)
         except ValueError:
             pass
         if not series.empty:
