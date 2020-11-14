@@ -239,7 +239,6 @@ class TopkDropoutStrategy(BaseStrategy, ListAdjustTimer):
         sell_order_list = []
         buy_order_list = []
         # load score
-        cash = current_temp.get_cash()
         current_stock_list = current_temp.get_stock_list()
         last = score_series.reindex(current_stock_list).sort_values(ascending=False).index
         today = (
@@ -276,8 +275,6 @@ class TopkDropoutStrategy(BaseStrategy, ListAdjustTimer):
                 if trade_exchange.check_order(sell_order):
                     sell_order_list.append(sell_order)
                     trade_val, trade_cost, trade_price = trade_exchange.deal_order(sell_order, position=current_temp)
-                    # update cash
-                    cash += trade_val - trade_cost
                     # sold
                     del self.stock_count[code]
                 else:
@@ -293,7 +290,7 @@ class TopkDropoutStrategy(BaseStrategy, ListAdjustTimer):
         # buy new stock
         # note the current has been changed
         current_stock_list = current_temp.get_stock_list()
-        value = cash * self.risk_degree / len(buy) if len(buy) > 0 else 0
+        value = current_temp.get_cash() * self.risk_degree / len(buy) if len(buy) > 0 else 0
 
         # open_cost should be considered in the real trading environment, while the backtest in evaluate.py does not consider it
         # as the aim of demo is to accomplish same strategy as evaluate.py, so comment out this line

@@ -5,6 +5,7 @@
 from __future__ import division
 from __future__ import print_function
 
+import sys
 import numpy as np
 import pandas as pd
 
@@ -19,7 +20,7 @@ try:
 except ImportError as err:
     print(err)
     print("Do not import qlib package in the repository directory")
-    exit(-1)
+    sys.exit(-1)
 
 __all__ = (
     "Ref",
