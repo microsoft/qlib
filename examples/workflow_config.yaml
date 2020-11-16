@@ -1,0 +1,52 @@
+PROVIDER_URI: "~/.qlib/qlib_data/cn_data"
+MARKET: &market csi300
+BENCHMARK: &benchmark SH000300
+DATA_HANDLER_CONFIG: &data_handerler_config
+    start_time: 2008-01-01
+    end_time: 2020-08-01
+    fit_start_time: 2008-01-01
+    fit_end_time: 2014-12-31
+    instruments: *market
+TASK:
+    model:
+        class: LGBModel
+        module_path: qlib.contrib.model.gbdt
+        kwargs:
+            loss: mse
+            colsample_bytree: 0.8879
+            learning_rate: 0.0421
+            subsample: 0.8789
+            lambda_l1: 205.6999
+            lambda_l2: 580.9768
+            max_depth: 8
+            num_leaves: 210
+            num_threads: 20
+    dataset:
+        class: DatasetH
+        module_path: qlib.data.dataset
+        kwargs:
+            handler:
+                class: Alpha158
+                module_path: qlib.contrib.data.handler
+                kwargs: *data_handerler_config
+            segments:
+                train: [2008-01-01, 2014-12-31]
+                valid: [2015-01-01, 2016-12-31]
+                test: [2017-01-01, 2020-08-01]
+    record: [SignalRecord, PortAnaRecord]
+PORT_ANALYSIS_CONFIG:
+    strategy:
+        class: TopkDropoutStrategy
+        module_path: qlib.contrib.strategy.strategy
+        kwargs:
+            topk: 50
+            n_drop: 5
+    backtest:
+        verbose: False
+        limit_threshold: 0.095
+        account: 100000000
+        benchmark: *benchmark
+        deal_price: close
+        open_cost: 0.0005
+        close_cost: 0.0015
+        min_cost: 5

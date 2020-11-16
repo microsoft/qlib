@@ -46,15 +46,6 @@ if __name__ == "__main__":
         "instruments": MARKET,
     }
 
-    TRAINER_CONFIG = {
-        "train_start_time": "2008-01-01",
-        "train_end_time": "2014-12-31",
-        "validate_start_time": "2015-01-01",
-        "validate_end_time": "2016-12-31",
-        "test_start_time": "2017-01-01",
-        "test_end_time": "2020-08-01",
-    }
-
     task = {
         "model": {
             "class": "LGBModel",
@@ -82,14 +73,8 @@ if __name__ == "__main__":
                 },
                 "segments": {
                     "train": ("2008-01-01", "2014-12-31"),
-                    "valid": (
-                        "2015-01-01",
-                        "2016-12-31",
-                    ),
-                    "test": (
-                        "2017-01-01",
-                        "2020-08-01",
-                    ),
+                    "valid": ("2015-01-01", "2016-12-31"),
+                    "test": ("2017-01-01", "2020-08-01"),
                 },
             },
         },
@@ -99,8 +84,12 @@ if __name__ == "__main__":
 
     port_analysis_config = {
         "strategy": {
-            "topk": 50,
-            "n_drop": 5,
+            "class": "TopkDropoutStrategy",
+            "module_path": "qlib.contrib.strategy.strategy",
+            "kwargs": {
+                "topk": 50,
+                "n_drop": 5,
+            }
         },
         "backtest": {
             "verbose": False,
