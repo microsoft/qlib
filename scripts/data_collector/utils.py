@@ -137,5 +137,5 @@ def symbol_prefix_to_sufix(symbol: str, capital: bool = True) -> str:
     return res.upper() if capital else res.lower()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     assert len(get_hs_stock_symbols()) >= MINIMUM_SYMBOLS_NUM

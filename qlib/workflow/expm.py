@@ -6,7 +6,7 @@ import os
 from pathlib import Path
 from contextlib import contextmanager
 from .exp import MLflowExperiment
-from .recorder import MLflowRecorder
+from .recorder import Recorder, MLflowRecorder
 from ..log import get_module_logger
 
 logger = get_module_logger("workflow", "INFO")
@@ -22,11 +22,10 @@ class ExpManager:
         self.uri = uri
         self.default_exp_name = default_exp_name
         self.active_experiment = None  # only one experiment can running each time
-        self.experiments = dict()  # store the experiment name --> Experiment object
 
     def start_exp(self, experiment_name=None, uri=None, **kwargs):
         """
-        Start running an experiment.
+        Start an experiment.
 
         Parameters
         ----------
@@ -37,11 +36,18 @@ class ExpManager:
 
         Returns
         -------
-        An active recorder.
+        An active experiment.
         """
-        raise NotImplementedError(f"Please implement the `start_exp` method.")
+        # create experiment
+        experiment = self.create_exp(experiment_name, uri)
+        # set up active experiment
+        self.active_experiment = experiment
+        # start the experiment
+        self.active_experiment.start()
 
-    def end_exp(self, **kwargs):
+        return self.active_experiment
+
+    def end_exp(self, recorder_status: str = Recorder.STATUS_S, **kwargs):
         """
         End an running experiment.
 
@@ -49,25 +55,17 @@ class ExpManager:
         ----------
         experiment_name : str
             name of the active experiment.
+        recorder_status : str
+            the status of the active recorder of the experiment.
         """
-        raise NotImplementedError(f"Please implement the `end_exp` method.")
+        if self.active_experiment is not None:
+            self.active_experiment.end(recorder_status)
+            self.active_experiment = None
 
     def search_records(self, experiment_ids=None, **kwargs):
         """
-        Get a pandas DataFrame of records that fit the search criteria.
-
-        Parameters
-        ----------
-        experiment_ids : list
-            list of experiment IDs.
-        filter_string : str
-            filter query string, defaults to searching all runs.
-        run_view_type : int
-            one of enum values ACTIVE_ONLY, DELETED_ONLY, or ALL (e.g. in mlflow.entities.ViewType).
-        max_results  : int
-            the maximum number of runs to put in the dataframe.
-        order_by : list
-            list of columns to order by (e.g., “metrics.rmse”).
+        Get a pandas DataFrame of records that fit the search criteria of the experiment.
+        Inputs are the search critera user want to apply.
 
         Returns
         -------
@@ -78,7 +76,7 @@ class ExpManager:
         """
         raise NotImplementedError(f"Please implement the `search_records` method.")
 
-    def create_exp(self, experiment_name, artifact_location=None):
+    def create_exp(self, experiment_name=None, uri=None):
         """
         Create an experiment.
 
@@ -86,8 +84,8 @@ class ExpManager:
         ----------
         experiment_name : str
             the experiment name, which must be unique.
-        artifact_location : str
-            the location to store run artifacts.
+        uri : str
+            the tracking uri of the experiment.
 
         Returns
         -------
@@ -97,14 +95,36 @@ class ExpManager:
 
     def get_exp(self, experiment_id=None, experiment_name=None, create: bool = True):
         """
-        Retrieve an experiment by experiment_id from the backend store.
+        Retrieve an experiment. When user specify experiment id and name, the method will try to return the
+        specific experiment. When user does not provide recorder id or name, the method will try to return the current
+        active experiment. The `create` argument determines whether the method will automatically create a new experiment
+        according to user's specification if the experiment hasn't been created before
+
+        If `create` is True:
+            If R's running:
+                1) no id or name specified, return the active experiment.
+                2) if id or name is specified, return the specified experiment. If no such exp found,
+                create a new experiment with given id or name, and the experiment is set to be running.
+            If R's not running:
+                1) no id or name specified, create a default experiment.
+                2) if id or name is specified, return the specified experiment. If no such exp found,
+                create a new experiment with given id or name, and the experiment is set to be running.
+        Else If `create` is False:
+            If R's running:
+                1) no id or name specified, return the active experiment.
+                2) if id or name is specified, return the specified experiment. If no such exp found,
+                raise Error.
+            If R's not running:
+                1) no id or name specified. If the default experiment exists, return it, otherwise, raise Error.
+                2) if id or name is specified, return the specified experiment. If no such exp found,
+                raise Error.
 
         Parameters
         ----------
         experiment_id : str
             the experiment id to return.
         create : boolean
-            create the experiment if it does not exists
+            create the experiment if hasn't been created before.
 
         Returns
         -------
@@ -153,28 +173,11 @@ class MLflowExpManager(ExpManager):
 
     def __init__(self, uri, default_exp_name):
         super(MLflowExpManager, self).__init__(uri, default_exp_name)
-        self._total_exps = 0
-        # get all the exps
-        self.experiments = self.list_experiments()
-
-    def start_exp(self, experiment_name=None, uri=None):
-        # create experiment
-        experiment = self.create_exp(experiment_name, uri)
-        # set up active experiment
-        self.active_experiment = experiment
-        # start the experiment
-        self.active_experiment.start()
-        self._total_exps += 1  # update exp num
-
-        return self.active_experiment
-
-    def end_exp(self, status):
-        if self.active_experiment is not None:
-            self.active_experiment.end(status)
-            self.active_experiment = None
-            self._total_exps -= 1
+        self.client = mlflow.tracking.MlflowClient(tracking_uri=self.uri)
 
     def create_exp(self, experiment_name=None, uri=None):
+        # retrieve all created experiments
+        experiments = self.list_experiments()
         # set the tracking uri
         if uri is None:
             logger.info(
@@ -188,29 +191,28 @@ class MLflowExpManager(ExpManager):
             logger.info(
                 f"No experiment name provided. The default experiment name is set as `{self.default_exp_name}`."
             )
-            experiment_id = mlflow.create_experiment(self.default_exp_name)
+            if self.default_exp_name not in experiments:
+                experiment_id = self.client.create_experiment(self.default_exp_name)
+            else:
+                experiment_id = self.client.get_experiment_by_name(self.default_exp_name).experiment_id
             # set the active experiment
             mlflow.set_experiment(self.default_exp_name)
             experiment_name = self.default_exp_name
         else:
-            if experiment_name not in self.experiments:
-                if mlflow.get_experiment_by_name(experiment_name) is not None:
+            if experiment_name not in experiments:
+                if self.client.get_experiment_by_name(experiment_name) is not None:
                     logger.info(
                         "The experiment has already been created before. Try to resume the experiment with a new recorder..."
                     )
-                    experiment_id = mlflow.get_experiment_by_name(experiment_name).experiment_id
+                    experiment_id = self.client.get_experiment_by_name(experiment_name).experiment_id
                 else:
-                    experiment_id = mlflow.create_experiment(experiment_name)
+                    experiment_id = self.client.create_experiment(experiment_name)
             else:
-                experiment_id = self.experiments[experiment_name].id
-                experiment = self.experiments[experiment_name]
-        # set the active experiment
-        mlflow.set_experiment(experiment_name)
+                experiment_id = experiments[experiment_name].id
+                experiment = experiments[experiment_name]
         # init experiment
         experiment = MLflowExperiment(experiment_id, experiment_name, self.uri)
         experiment._default_name = self.default_exp_name
-        # store the experiment
-        self.experiments[experiment_name] = experiment
 
         return experiment
 
@@ -219,9 +221,11 @@ class MLflowExpManager(ExpManager):
         run_view_type = 1 if kwargs.get("run_view_type") is None else kwargs.get("run_view_type")
         max_results = 100000 if kwargs.get("max_results") is None else kwargs.get("max_results")
         order_by = kwargs.get("order_by")
-        return mlflow.search_runs(experiment_ids, filter_string, run_view_type, max_results, order_by)
+        return self.client.search_runs(experiment_ids, filter_string, run_view_type, max_results, order_by)
 
     def get_exp(self, experiment_id=None, experiment_name=None, create=True):
+        # retrive all created experiments
+        experiments = self.list_experiments()
         if experiment_id is None and experiment_name is None:
             if self.active_experiment:
                 return self.active_experiment
@@ -230,13 +234,15 @@ class MLflowExpManager(ExpManager):
                     logger.warning("QlibRecorder is not running. Use the Default experiment for further process.")
                     return self.start_exp()
                 else:
+                    if self.default_exp_name in experiments:
+                        return experiments[self.default_exp_name]
                     raise Exception(
                         "Something went wrong when retrieving experiments. Please check if QlibRecorder is running or the name/id of the experiment is correct."
                     )
         else:
             if experiment_name is not None:
-                if experiment_name in self.experiments:
-                    return self.experiments[experiment_name]
+                if experiment_name in experiments:
+                    return experiments[experiment_name]
                 else:
                     if create:
                         logger.warning(
@@ -248,9 +254,9 @@ class MLflowExpManager(ExpManager):
                             "Something went wrong when retrieving experiments. Please check if QlibRecorder is running or the name/id of the experiment is correct."
                         )
             else:
-                for name in self.experiments:
-                    if self.experiments[name].id == experiment_id:
-                        return self.experiments[name]
+                for name in experiments:
+                    if experiments[name].id == experiment_id:
+                        return experiments[name]
                 if create:
                     logger.warning(f"No valid experiment found. Use the Default experiment for further process.")
                     return self.start_exp()
@@ -265,11 +271,10 @@ class MLflowExpManager(ExpManager):
         ), "Please input a valid experiment id or name before deleting."
         try:
             if experiment_id is not None:
-                mlflow.delete_experiment(experiment_id)
-                self.experiments = {key: val for key, val in self.experiments.items() if val.id != experiment_id}
+                self.client.delete_experiment(experiment_id)
             else:
-                experiment_id = self.experiments[experiment_name].id
-                mlflow.delete_experiment(experiment_id)
+                experiment = self.client.get_experiment_by_name(experiment_name)
+                self.client.delete_experiment(experiment.experiment_id)
         except:
             raise Exception(
                 "Something went wrong when deleting experiment. Please check if the name/id of the experiment is correct."
@@ -277,10 +282,8 @@ class MLflowExpManager(ExpManager):
 
     def list_experiments(self):
         # retrieve all the existing experiments
-        client = mlflow.tracking.MlflowClient(tracking_uri=self.uri)
-        exps = client.list_experiments()
+        exps = self.client.list_experiments(view_type=1)
         experiments = dict()
-        self._total_exps = len(exps)
         for i in range(len(exps)):
             eid = exps[i].experiment_id
             ename = exps[i].name

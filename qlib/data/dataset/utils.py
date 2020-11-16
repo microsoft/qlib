@@ -52,4 +52,6 @@ def fetch_df_by_index(
     idx_slc = (selector, slice(None, None))
     if get_level_index(df, level) == 1:
         idx_slc = idx_slc[1], idx_slc[0]
-    return df.loc[pd.IndexSlice[idx_slc], ]  # This could be faster than df.loc(axis=0)[idx_slc]
+    return df.loc[
+        pd.IndexSlice[idx_slc],
+    ]  # This could be faster than df.loc(axis=0)[idx_slc]

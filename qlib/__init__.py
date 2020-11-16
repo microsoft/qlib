@@ -5,17 +5,19 @@
 __version__ = "0.5.1.dev0"
 
 import os
-import copy
-import logging
 import re
-import subprocess
-import platform
+import sys
+import copy
 import yaml
 import atexit
+import signal
+import logging
+import platform
+import subprocess
 from pathlib import Path
 
 from .utils import can_use_cache, init_instance_by_config, get_module_by_module_path
-
+from .workflow.utils import experiment_exception_hook, experiment_kill_signal_handler
 
 # init qlib
 def init(default_conf="client", **kwargs):
@@ -44,9 +46,14 @@ def init(default_conf="client", **kwargs):
     C.set_region(kwargs.get("region", C["region"] if "region" in C else REG_CN))
 
     for k, v in kwargs.items():
-        C[k] = v
-        if k not in C:
-            LOG.warning("Unrecognized config %s" % k)
+        if k == "exp_manager":
+            C["exp_manager"].update({"class": v})
+        elif k == "exp_uri":
+            C["exp_manager"]["kwargs"].update({"uri": v})
+        else:
+            C[k] = v
+            if k not in C:
+                LOG.warning("Unrecognized config %s" % k)
 
     C.resolve_path()
 
@@ -86,7 +93,9 @@ def init(default_conf="client", **kwargs):
     qr = QlibRecorder(exp_manager)
     R.register(qr)
     # clean up experiment when python program ends
-    atexit.register(R.end_exp, status="FAILED")  # will not take effect if experiment ends
+    atexit.register(R.end_exp, recorder_status="FINISHED")  # will not take effect if experiment ends
+    signal.signal(signal.SIGINT, experiment_kill_signal_handler)
+    sys.excepthook = experiment_exception_hook
 
 
 def _mount_nfs_uri(C):

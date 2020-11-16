@@ -58,3 +58,8 @@ Besides `provider_uri` and `region`, `qlib.init` has other parameters. The follo
     .. note::
         
         If Qlib fails to connect redis via `redis_host` and `redis_port`, cache mechanism will not be used! Please refer to `Cache <../component/data.html#cache>`_ for details.
+- `exp_manager`
+    Type: str, optional parameter(default: "MLflowExpManager"), the experiment manager to be used in qlib.
+- `exp_uri`
+    Type: str, optional parameter(default: "mlruns" in local execution path), the tracking uri of the experiment manager.
+        It can either be a local path or a remote uri.

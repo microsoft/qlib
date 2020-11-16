@@ -14,10 +14,9 @@ from qlib.contrib.evaluate import (
     backtest as normal_backtest,
     risk_analysis,
 )
-from qlib.utils import exists_qlib_data
-
-# from qlib.model.learner import train_model
-from qlib.utils import init_instance_by_config
+from qlib.utils import exists_qlib_data, init_instance_by_config
+from qlib.workflow import R
+from qlib.workflow.record_temp import SignalRecord, PortAnaRecord
 
 
 if __name__ == "__main__":
@@ -93,55 +92,41 @@ if __name__ == "__main__":
                     ),
                 },
             },
-        }
+        },
         # You shoud record the data in specific sequence
-        # "record": ['SignalRecord', 'SigAnaRecord', 'PortAnaRecord'],
+        "record": ["SignalRecord", "PortAnaRecord"],
     }
 
-    # model = train_model(task)
+    port_analysis_config = {
+        "strategy": {
+            "topk": 50,
+            "n_drop": 5,
+        },
+        "backtest": {
+            "verbose": False,
+            "limit_threshold": 0.095,
+            "account": 100000000,
+            "benchmark": BENCHMARK,
+            "deal_price": "close",
+            "open_cost": 0.0005,
+            "close_cost": 0.0015,
+            "min_cost": 5,
+        },
+    }
+
+    # model initiaiton
     model = init_instance_by_config(task["model"])
     dataset = init_instance_by_config(task["dataset"])
 
-    model.fit(dataset)
+    # start exp
+    with R.start("workflow"):
+        model.fit(dataset)
 
-    pred_score = model.predict(dataset)
+        # prediction
+        recorder = R.get_recorder()
+        sr = SignalRecord(model, dataset, recorder)
+        sr.generate()
 
-    # save pred_score to file
-    pred_score_path = Path("~/tmp/qlib/pred_score.pkl").expanduser()
-    pred_score_path.parent.mkdir(exist_ok=True, parents=True)
-    pred_score.to_pickle(pred_score_path)
-
-    ###################################
-    # backtest
-    ###################################
-    STRATEGY_CONFIG = {
-        "topk": 50,
-        "n_drop": 5,
-    }
-    BACKTEST_CONFIG = {
-        "verbose": False,
-        "limit_threshold": 0.095,
-        "account": 100000000,
-        "benchmark": BENCHMARK,
-        "deal_price": "close",
-        "open_cost": 0.0005,
-        "close_cost": 0.0015,
-        "min_cost": 5,
-    }
-
-    # use default strategy
-    # custom Strategy, refer to: TODO: Strategy API url
-    strategy = TopkDropoutStrategy(**STRATEGY_CONFIG)
-    report_normal, positions_normal = normal_backtest(pred_score, strategy=strategy, **BACKTEST_CONFIG)
-
-    ###################################
-    # analyze
-    # If need a more detailed analysis, refer to: examples/train_and_bakctest.ipynb
-    ###################################
-    analysis = dict()
-    analysis["excess_return_without_cost"] = risk_analysis(report_normal["return"] - report_normal["bench"])
-    analysis["excess_return_with_cost"] = risk_analysis(
-        report_normal["return"] - report_normal["bench"] - report_normal["cost"]
-    )
-    analysis_df = pd.concat(analysis)  # type: pd.DataFrame
-    print(analysis_df)
+        # backtest
+        par = PortAnaRecord(recorder, port_analysis_config)
+        par.generate()

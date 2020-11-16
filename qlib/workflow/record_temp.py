@@ -8,6 +8,9 @@ from ..contrib.evaluate import (
     risk_analysis,
 )
 from ..utils import init_instance_by_config, get_module_by_module_path
+from ..log import get_module_logger
+
+logger = get_module_logger("workflow", "INFO")
 
 
 class RecordTemp:
@@ -76,7 +79,10 @@ class SignalRecord(RecordTemp):
     def generate(self, **kwargs):
         # generate prediciton
         pred = self.model.predict(self.dataset)
-        self.recorder.save_objects(data=pred, name="pred.pkl")
+        self.recorder.save_objects(**{"pred.pkl": pred})
+        logger.info(
+            f"Signal record 'pred.pkl' has been saved as the artifact of the Experiment {self.recorder.experiment_id}"
+        )
 
     def load(self):
         # try to load the saved object
@@ -133,8 +139,8 @@ class PortAnaRecord(SignalRecord):
         # custom strategy and get backtest
         pred_score = super().load()
         report_normal, positions_normal = normal_backtest(pred_score, strategy=self.strategy, **self.backtest_config)
-        self.recorder.save_objects(data=report_normal, name="report_normal.pkl", artifact_path=self.artifact_path)
-        self.recorder.save_objects(data=positions_normal, name="positions_normal.pkl", artifact_path=self.artifact_path)
+        self.recorder.save_objects(**{"report_normal.pkl": report_normal}, artifact_path=self.artifact_path)
+        self.recorder.save_objects(**{"positions_normal.pkl": positions_normal}, artifact_path=self.artifact_path)
 
         # analysis
         analysis = dict()
@@ -143,7 +149,10 @@ class PortAnaRecord(SignalRecord):
             report_normal["return"] - report_normal["bench"] - report_normal["cost"]
         )
         analysis_df = pd.concat(analysis)  # type: pd.DataFrame
-        self.recorder.save_objects(data=analysis_df, name="port_analysis.pkl", artifact_path=self.artifact_path)
+        self.recorder.save_objects(**{"port_analysis.pkl": analysis_df}, artifact_path=self.artifact_path)
+        logger.info(
+            f"Portfolio analysis record 'port_analysis.pkl' has been saved as the artifact of the Experiment {self.recorder.experiment_id}"
+        )
 
     def load(self):
         # try to load the saved object

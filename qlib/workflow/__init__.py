@@ -3,6 +3,7 @@
 
 from contextlib import contextmanager
 from .expm import MLflowExpManager
+from .recorder import Recorder
 from ..utils import Wrapper
 
 
@@ -31,7 +32,7 @@ class QlibRecorder:
         self.exp_manager = exp_manager
 
     @contextmanager
-    def start(self, experiment_name):
+    def start(self, experiment_name=None):
         """
         Method to start an experiment. This method can only be called within a Python's `with` statement.
 
@@ -53,13 +54,13 @@ class QlibRecorder:
         try:
             yield run
         except Exception as e:
-            self.end_exp("FAILED")  # end the experiment if something went wrong
+            self.end_exp(Recorder.STATUS_FA)  # end the experiment if something went wrong
             raise e
-        self.end_exp("FINISHED")
+        self.end_exp(Recorder.STATUS_FI)
 
     def start_exp(self, experiment_name=None, uri=None):
         """
-        Lower leverl method for starting an experiment. When use this method, one should end the experiment manually
+        Lower level method for starting an experiment. When use this method, one should end the experiment manually
         and the status of the recorder may not be handled properly.
 
         Use case:
@@ -67,7 +68,7 @@ class QlibRecorder:
         ```
         R.start_exp(experiment_name='test')
         ... # further operations
-        R.end_exp('FINISHED')
+        R.end_exp('FINISHED') or R.end_exp(Recorder.STATUS_S)
         ```
 
         Parameters
@@ -83,7 +84,7 @@ class QlibRecorder:
         """
         return self.exp_manager.start_exp(experiment_name, uri)
 
-    def end_exp(self, status):
+    def end_exp(self, recorder_status=Recorder.STATUS_FI):
         """
         Method for ending an experiment manually. It will end the current active experiment, as well as its
         active recorder with the specified `status` type.
@@ -93,7 +94,7 @@ class QlibRecorder:
         ```
         R.start_exp(experiment_name='test')
         ... # further operations
-        R.end_exp('FINISHED')
+        R.end_exp('FINISHED') or R.end_exp(Recorder.STATUS_S)
         ```
 
         Parameters
@@ -101,7 +102,7 @@ class QlibRecorder:
         status : str
             The status of a recorder, which can be SCHEDULED, RUNNING, FINISHED, FAILED.
         """
-        self.exp_manager.end_exp(status)
+        self.exp_manager.end_exp(recorder_status)
 
     def search_records(self, experiment_ids, **kwargs):
         """
@@ -175,7 +176,7 @@ class QlibRecorder:
         """
         return self.get_exp(experiment_id, experiment_name).list_recorders()
 
-    def get_exp(self, experiment_id=None, experiment_name=None, create=True):
+    def get_exp(self, experiment_id=None, experiment_name=None, create: bool = True):
         """
         Method for retrieving an experiment with given id or name. Once the `create` argument is set to
         True, if no valid experiment is found, this method will create one for you. Otherwise, it will
@@ -185,18 +186,18 @@ class QlibRecorder:
             If R's running:
                 1) no id or name specified, return the active experiment.
                 2) if id or name is specified, return the specified experiment. If no such exp found,
-                create a new experiment with given id or name.
+                create a new experiment with given id or name, and the experiment is set to be running.
             If R's not running:
                 1) no id or name specified, create a default experiment.
                 2) if id or name is specified, return the specified experiment. If no such exp found,
-                create a new experiment with given id or name.
+                create a new experiment with given id or name, and the experiment is set to be running.
         Else If `create` is False:
             If R's running:
                 1) no id or name specified, return the active experiment.
                 2) if id or name is specified, return the specified experiment. If no such exp found,
                 raise Error.
             If R's not running:
-                1) no id or name specified, raise Error.
+                1) no id or name specified. If the default experiment exists, return it, otherwise, raise Error.
                 2) if id or name is specified, return the specified experiment. If no such exp found,
                 raise Error.
 
@@ -219,7 +220,7 @@ class QlibRecorder:
         exp = R.get_exp(experiment_name='test')
 
         # Case 5
-        exp = R.get_exp(create=False) -> Error
+        exp = R.get_exp(create=False) -> the default experiment if exists.
         ```
 
         Parameters
@@ -229,7 +230,8 @@ class QlibRecorder:
         experiment_name : str
             name of the experiment.
         create : boolean
-            decide whether to create an default experiment.
+            an argument determines whether the method will automatically create a new experiment
+            according to user's specification if the experiment hasn't been created before.
 
         Returns
         -------
@@ -348,7 +350,8 @@ class QlibRecorder:
     def save_objects(self, local_path=None, artifact_path=None, **kwargs):
         """
         Method for saving objects as artifacts in the experiment to the uri. It supports either saving
-        from a local file/directory, or directly saving objects.
+        from a local file/directory, or directly saving objects. User can use valid python's keywords arguments
+        to specify the object to be saved as well as its name (name: value).
 
         If R's running: it will save the objects through the running recorder.
         If R's not running: the system will create a default experiment, and a new recorder and
@@ -364,28 +367,16 @@ class QlibRecorder:
         # Case 1
         with R.start('test'):
             pred = model.predict(dataset)
-            R.save_objects(data=pred, name='pred.pkl', artifact_path='prediction')
+            kwargs = {"pred.pkl": pred}
+            R.save_objects(**kwargs, artifact_path='prediction')
 
         # Case 2
-        with R.start('test'):
-            pred1 = model1.predict(dataset)
-            pred2 = model2.predict(dataset)
-            dn_list = [(pred1, 'pred1.pkl'), (pred2, 'pred2.pkl')]
-            R.save_objects(data_name_list=dn_list)
-
-        # Case 3
         with R.start('test'):
             R.save_objects(local_path='results/pred.pkl')
         ```
 
         Parameters
         ----------
-        data : any type
-            the data to be saved.
-        name : str
-            name of the file to be saved.
-        data_name_list : list
-            list of (data, name) pairs
         local_path : str
             if provided, them save the file or directory to the artifact URI.
         artifact_path=None : str
@@ -464,10 +455,10 @@ class QlibRecorder:
         ```
         # Case 1
         with R.start('test'):
-            R.set_tags(release_version=2.2.0)
+            R.set_tags(release_version="2.2.0")
 
         # Case 2
-        R.set_tags(release_version=2.2.0)
+        R.set_tags(release_version="2.2.0")
         ```
 
         Parameters

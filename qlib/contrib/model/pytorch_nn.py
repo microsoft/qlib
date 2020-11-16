@@ -161,7 +161,7 @@ class DNNModelPytorch(Model):
         try:
             wdf_train, wdf_valid = dataset.prepare(["train", "valid"], col_set=["weight"], data_key=DataHandlerLP.DK_L)
             w_train, w_valid = wdf_train["weight"], wdf_valid["weight"]
-        except:
+        except KeyError as e:
             w_train = pd.DataFrame(np.ones_like(y_train.values), index=y_train.index)
             w_valid = pd.DataFrame(np.ones_like(y_valid.values), index=y_valid.index)
 
@@ -287,20 +287,6 @@ class DNNModelPytorch(Model):
                 preds = self.dnn_model(x_test).detach().numpy()
         return pd.Series(np.squeeze(preds), index=x_test_pd.index)
 
-    def score(self, x_test, y_test, w_test=None):
-        # Remove rows from x, y and w, which contain Nan in any columns in y_test.
-        df_test = dataset.prepare("test", col_set=["feature", "label"])
-        x_test, y_test = df_test["feature"], df_test["label"]
-        x_test, y_test, w_test = drop_nan_by_y_index(x_test, y_test, w_test)
-        preds = self.predict(x_test)
-        try:
-            df_test = dataset.prepare("test", col_set=["weight"])
-            w_test = df_test["weight"]
-            w_test_weight = w_test.values
-        except:
-            w_test_weight = None
-        return self._scorer(y_test.values, preds, sample_weight=w_test_weight)
-
     def save(self, filename, **kwargs):
         with save_multiple_parts_file(filename) as model_dir:
             model_path = os.path.join(model_dir, os.path.split(model_dir)[-1])
@@ -317,14 +303,6 @@ class DNNModelPytorch(Model):
             # Load model
             self.dnn_model.load_state_dict(torch.load(_model_path))
         self._fitted = True
-
-    def finetune(self, dataset, w_train=None, w_valid=None, **kwargs):
-        df_train, df_valid = dataset.prepare(
-            ["train", "valid"], col_set=["feature", "label"], data_key=DataHandlerLP.DK_L
-        )
-        x_train, y_train = df_train["feature"], df_train["label"]
-        x_valid, y_valid = df_valid["feature"], df_valid["label"]
-        self.fit(x_train, y_train, x_valid, y_valid, w_train=w_train, w_valid=w_valid, **kwargs)
 
 
 class AverageMeter(object):
