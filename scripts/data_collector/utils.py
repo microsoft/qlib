@@ -3,47 +3,55 @@
 
 import re
 import time
+import bisect
 import pickle
 import requests
+import functools
 from pathlib import Path
 
 import pandas as pd
 from lxml import etree
+from loguru import logger
+from yahooquery import Ticker
 
-SYMBOLS_URL = "http://app.finance.ifeng.com/hq/list.php?type=stock_a&class={s_type}"
-CSI300_BENCH_URL = "http://push2his.eastmoney.com/api/qt/stock/kline/get?secid=1.000300&fields1=f1%2Cf2%2Cf3%2Cf4%2Cf5&fields2=f51%2Cf52%2Cf53%2Cf54%2Cf55%2Cf56%2Cf57%2Cf58&klt=101&fqt=0&beg=19900101&end=20220101"
-SH600000_BENCH_URL = "http://push2his.eastmoney.com/api/qt/stock/kline/get?secid=1.600000&fields1=f1%2Cf2%2Cf3%2Cf4%2Cf5&fields2=f51%2Cf52%2Cf53%2Cf54%2Cf55%2Cf56%2Cf57%2Cf58&klt=101&fqt=0&beg=19900101&end=20220101"
+HS_SYMBOLS_URL = "http://app.finance.ifeng.com/hq/list.php?type=stock_a&class={s_type}"
 
-CALENDAR_URL_BASE = "http://push2his.eastmoney.com/api/qt/stock/kline/get?secid=1.{bench_code}&fields1=f1%2Cf2%2Cf3%2Cf4%2Cf5&fields2=f51%2Cf52%2Cf53%2Cf54%2Cf55%2Cf56%2Cf57%2Cf58&klt=101&fqt=0&beg=19900101&end=20220101"
+CALENDAR_URL_BASE = "http://push2his.eastmoney.com/api/qt/stock/kline/get?secid={market}.{bench_code}&fields1=f1%2Cf2%2Cf3%2Cf4%2Cf5&fields2=f51%2Cf52%2Cf53%2Cf54%2Cf55%2Cf56%2Cf57%2Cf58&klt=101&fqt=0&beg=19900101&end=20991231"
 
 CALENDAR_BENCH_URL_MAP = {
-    "CSI300": CALENDAR_URL_BASE.format(bench_code="000300"),
-    "CSI100": CALENDAR_URL_BASE.format(bench_code="000903"),
+    "CSI300": CALENDAR_URL_BASE.format(market=1, bench_code="000300"),
+    "CSI100": CALENDAR_URL_BASE.format(market=1, bench_code="000903"),
     # NOTE: Use the time series of SH600000 as the sequence of all stocks
-    "ALL": CALENDAR_URL_BASE.format(bench_code="600000"),
+    "ALL": CALENDAR_URL_BASE.format(market=1, bench_code="000905"),
+    # NOTE: Use the time series of ^GSPC(SP500) as the sequence of all stocks
+    "US_ALL": "^GSPC",
 }
+
 
 _BENCH_CALENDAR_LIST = None
 _ALL_CALENDAR_LIST = None
 _HS_SYMBOLS = None
+_US_SYMBOLS = None
 _CALENDAR_MAP = {}
 
 # NOTE: Until 2020-10-20 20:00:00
 MINIMUM_SYMBOLS_NUM = 3900
 
 
-def get_hs_calendar_list(bench_code="CSI300") -> list:
+def get_calendar_list(bench_code="CSI300") -> list:
     """get SH/SZ history calendar list
 
     Parameters
     ----------
     bench_code: str
-        value from ["CSI300", "CSI500", "ALL"]
+        value from ["CSI300", "CSI500", "ALL", "US_ALL"]
 
     Returns
     -------
         history calendar list
     """
+
+    logger.info(f"get calendar list: {bench_code}......")
 
     def _get_calendar(url):
         _value_list = requests.get(url).json()["data"]["klines"]
@@ -51,8 +59,13 @@ def get_hs_calendar_list(bench_code="CSI300") -> list:
 
     calendar = _CALENDAR_MAP.get(bench_code, None)
     if calendar is None:
-        calendar = _get_calendar(CALENDAR_BENCH_URL_MAP[bench_code])
+        if bench_code.startswith("US_"):
+            df = Ticker(CALENDAR_BENCH_URL_MAP[bench_code]).history(interval="1d", period="max")
+            calendar = df.index.get_level_values(level="date").map(pd.Timestamp).unique().tolist()
+        else:
+            calendar = _get_calendar(CALENDAR_BENCH_URL_MAP[bench_code])
         _CALENDAR_MAP[bench_code] = calendar
+    logger.info(f"end of get calendar list: {bench_code}.")
     return calendar
 
 
@@ -68,13 +81,14 @@ def get_hs_stock_symbols() -> list:
     def _get_symbol():
         _res = set()
         for _k, _v in (("ha", "ss"), ("sa", "sz"), ("gem", "sz")):
-            resp = requests.get(SYMBOLS_URL.format(s_type=_k))
+            resp = requests.get(HS_SYMBOLS_URL.format(s_type=_k))
             _res |= set(
                 map(
                     lambda x: "{}.{}".format(re.findall(r"\d+", x)[0], _v),
                     etree.HTML(resp.text).xpath("//div[@class='result']/ul//li/a/text()"),
                 )
             )
+            time.sleep(3)
         return _res
 
     if _HS_SYMBOLS is None:
@@ -97,6 +111,84 @@ def get_hs_stock_symbols() -> list:
         _HS_SYMBOLS = sorted(list(symbols))
 
     return _HS_SYMBOLS
+
+
+def get_us_stock_symbols(qlib_data_path: [str, Path] = None) -> list:
+    """get US stock symbols
+
+    Returns
+    -------
+        stock symbols
+    """
+    global _US_SYMBOLS
+
+    @deco_retry
+    def _get_eastmoney():
+        url = "http://4.push2.eastmoney.com/api/qt/clist/get?pn=1&pz=10000&fs=m:105,m:106,m:107&fields=f12"
+        resp = requests.get(url)
+        if resp.status_code != 200:
+            raise ValueError("request error")
+        try:
+            _symbols = [_v["f12"].replace("_", "-P") for _v in resp.json()["data"]["diff"].values()]
+        except Exception as e:
+            logger.warning(f"request error: {e}")
+            raise
+        if len(_symbols) < 8000:
+            raise ValueError("request error")
+        return _symbols
+
+    @deco_retry
+    def _get_nasdaq():
+        _res_symbols = []
+        for _name in ["otherlisted", "nasdaqtraded"]:
+            url = f"ftp://ftp.nasdaqtrader.com/SymbolDirectory/{_name}.txt"
+            df = pd.read_csv(url, sep="|")
+            df = df.rename(columns={"ACT Symbol": "Symbol"})
+            _symbols = df["Symbol"].dropna()
+            _symbols = _symbols.str.replace("$", "-P", regex=False)
+            _symbols = _symbols.str.replace(".W", "-WT", regex=False)
+            _symbols = _symbols.str.replace(".U", "-UN", regex=False)
+            _symbols = _symbols.str.replace(".R", "-RI", regex=False)
+            _symbols = _symbols.str.replace(".", "-", regex=False)
+            _res_symbols += _symbols.unique().tolist()
+        return _res_symbols
+
+    @deco_retry
+    def _get_nyse():
+        url = "https://www.nyse.com/api/quotes/filter"
+        _parms = {
+            "instrumentType": "EQUITY",
+            "pageNumber": 1,
+            "sortColumn": "NORMALIZED_TICKER",
+            "sortOrder": "ASC",
+            "maxResultsPerPage": 10000,
+            "filterToken": "",
+        }
+        resp = requests.post(url, json=_parms)
+        if resp.status_code != 200:
+            raise ValueError("request error")
+        try:
+            _symbols = [_v["symbolTicker"].replace("-", "-P") for _v in resp.json()]
+        except Exception as e:
+            logger.warning(f"request error: {e}")
+            _symbols = []
+        return _symbols
+
+    if _US_SYMBOLS is None:
+        _all_symbols = _get_eastmoney() + _get_nasdaq() + _get_nyse()
+        if qlib_data_path is not None:
+            for _index in ["nasdaq100", "sp500"]:
+                ins_df = pd.read_csv(
+                    Path(qlib_data_path).joinpath(f"instruments/{_index}.txt"),
+                    sep="\t",
+                    names=["symbol", "start_date", "end_date"],
+                )
+                _all_symbols += ins_df["symbol"].unique().tolist()
+        _US_SYMBOLS = sorted(
+            set(map(lambda x: x.replace(".", "-"), filter(lambda x: len(x) < 8 and not x.endswith("WS"), _all_symbols)))
+        )
+
+    return _US_SYMBOLS
 
 
 def symbol_suffix_to_prefix(symbol: str, capital: bool = True) -> str:
@@ -137,5 +229,52 @@ def symbol_prefix_to_sufix(symbol: str, capital: bool = True) -> str:
     return res.upper() if capital else res.lower()
 
 
-if __name__ == '__main__':
+def deco_retry(retry: int = 5, retry_sleep: int = 3):
+    def deco_func(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            _retry = 5 if callable(retry) else retry
+            _result = None
+            for _i in range(1, _retry + 1):
+                try:
+                    _result = func(*args, **kwargs)
+                    break
+                except Exception as e:
+                    logger.warning(f"{func.__name__}: {_i} :{e}")
+                    if _i == _retry:
+                        raise
+                time.sleep(retry_sleep)
+            return _result
+
+        return wrapper
+
+    return deco_func(retry) if callable(retry) else deco_func
+
+
+def get_trading_date_by_shift(trading_list: list, trading_date: pd.Timestamp, shift: int = 1):
+    """get trading date by shift
+
+    Parameters
+    ----------
+    trading_list: list
+        trading calendar list
+    shift : int
+        shift, default is 1
+
+    trading_date : pd.Timestamp
+        trading date
+    Returns
+    -------
+
+    """
+    trading_date = pd.Timestamp(trading_date)
+    left_index = bisect.bisect_left(trading_list, trading_date)
+    try:
+        res = trading_list[left_index + shift]
+    except IndexError:
+        res = trading_date
+    return res
+
+
+if __name__ == "__main__":
     assert len(get_hs_stock_symbols()) >= MINIMUM_SYMBOLS_NUM
