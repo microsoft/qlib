@@ -8,7 +8,7 @@ import qlib
 import pandas as pd
 from qlib.config import REG_CN
 from qlib.contrib.model.pytorch_gru import GRU
-from qlib.contrib.data.handler import ALPHA360
+from qlib.contrib.data.handler import ALPHA360_Denoise
 from qlib.contrib.strategy.strategy import TopkDropoutStrategy
 from qlib.contrib.evaluate import (
     backtest as normal_backtest,
@@ -19,6 +19,7 @@ from qlib.utils import exists_qlib_data
 # from qlib.model.learner import train_model
 from qlib.utils import init_instance_by_config
 
+import pickle
 
 if __name__ == "__main__":
 
@@ -63,14 +64,13 @@ if __name__ == "__main__":
             "kwargs": {
                 "d_feat": 6,
                 "hidden_size": 64,
-                "num_layers": 3,
+                "num_layers": 2,
                 "dropout": 0.0,
-                "n_epochs": 2000,
-                "lr": 1e-1,
-                "early_stop": 200,
+                "n_epochs": 200,
+                "lr": 1e-3,
+                "early_stop": 20,
                 "batch_size": 800,
-                "smooth_steps": 5,
-                "metric": "mse",
+                "metric": "IC",
                 "loss": "mse",
                 "seed": 0,
                 "GPU": 0,
@@ -81,7 +81,7 @@ if __name__ == "__main__":
             "module_path": "qlib.data.dataset",
             "kwargs": {
                 "handler": {
-                    "class": "ALPHA360",
+                    "class": "ALPHA360_Denoise",
                     "module_path": "qlib.contrib.data.handler",
                     "kwargs": DATA_HANDLER_CONFIG,
                 },
@@ -99,7 +99,6 @@ if __name__ == "__main__":
     # model = train_model(task)
     model = init_instance_by_config(task["model"])
     dataset = init_instance_by_config(task["dataset"])
-
     model.fit(dataset)
 
     pred_score = model.predict(dataset)

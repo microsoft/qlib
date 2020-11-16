@@ -36,10 +36,6 @@ class GRU(Model):
         layer sizes
     lr : float
         learning rate
-    lr_decay : float
-        learning rate decay
-    lr_decay_steps : int
-        learning rate decay steps
     optimizer : str
         optimizer name
     GPU : str
@@ -54,13 +50,11 @@ class GRU(Model):
         dropout=0.0,
         n_epochs=200,
         lr=0.001,
+        metric='IC',
         batch_size=2000,
         early_stop=20,
-        eval_steps=5,
         loss="mse",
-        lr_decay=0.96,
-        lr_decay_steps=100,
-        optimizer="gd",
+        optimizer="adam",
         GPU="0",
         seed=0,
         **kwargs
@@ -76,13 +70,11 @@ class GRU(Model):
         self.dropout = dropout
         self.n_epochs = n_epochs
         self.lr = lr
+        self.metric = metric
         self.batch_size = batch_size
         self.early_stop = early_stop
-        self.eval_steps = eval_steps
-        self.lr_decay = lr_decay
-        self.lr_decay_steps = lr_decay_steps
         self.optimizer = optimizer.lower()
-        self.loss_type = loss
+        self.loss = loss
         self.visible_GPU = GPU
         self.use_gpu = torch.cuda.is_available()
         self.seed = seed
@@ -95,11 +87,9 @@ class GRU(Model):
             "\ndropout : {}"
             "\nn_epochs : {}"
             "\nlr : {}"
+            "\nmetric : {}"
             "\nbatch_size : {}"
             "\nearly_stop : {}"
-            "\neval_steps : {}"
-            "\nlr_decay : {}"
-            "\nlr_decay_steps : {}"
             "\noptimizer : {}"
             "\nloss_type : {}"
             "\nvisible_GPU : {}"
@@ -111,11 +101,9 @@ class GRU(Model):
                 dropout,
                 n_epochs,
                 lr,
+                metric,
                 batch_size,
                 early_stop,
-                eval_steps,
-                lr_decay,
-                lr_decay_steps,
                 optimizer.lower(),
                 loss,
                 GPU,
@@ -138,26 +126,104 @@ class GRU(Model):
         else:
             raise NotImplementedError("optimizer {} is not supported!".format(optimizer))
 
-        # Reduce learning rate when loss has stopped decrease
-        self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-            self.train_optimizer,
-            mode="min",
-            factor=0.5,
-            patience=10,
-            verbose=True,
-            threshold=0.0001,
-            threshold_mode="rel",
-            cooldown=0,
-            min_lr=0.00001,
-            eps=1e-08,
-        )
-
         self._fitted = False
         if self.use_gpu:
             self.gru_model.cuda()
             # set the visible GPU
             if self.visible_GPU:
                 os.environ["CUDA_VISIBLE_DEVICES"] = self.visible_GPU
+
+    def mse(self, pred, label):
+        loss = (pred - label)**2
+        return torch.mean(loss)
+
+    def loss_fn(self, pred, label):
+        mask = ~torch.isnan(label)
+
+        if self.loss == 'mse':
+            return self.mse(pred[mask], label[mask])
+
+        raise ValueError('unknown loss `%s`'%self.loss)
+
+    def metric_fn(self, pred, label):
+
+        mask = torch.isfinite(label)
+        if self.metric == 'IC':
+            return self.cal_ic(pred[mask], label[mask])
+
+        if self.metric == '' or self.metric == 'loss': # use loss
+            return -self.loss_fn(pred[mask], label[mask])
+
+        raise ValueError('unknown metric `%s`'%self.metric)
+
+    def cal_ic(self, pred, label):
+        return torch.mean(pred * label) 
+
+    def train_epoch(self, x_train, y_train):
+
+        x_train_values = x_train.values
+        y_train_values = np.squeeze(y_train.values)*100
+
+        self.gru_model.train()
+
+        indices = np.arange(len(x_train_values))
+        np.random.shuffle(indices)
+
+        for i in range(len(indices))[::self.batch_size]:
+
+            if len(indices) - i < self.batch_size:
+                break
+
+            feature = torch.from_numpy(x_train_values[indices[i:i+self.batch_size]]).float()
+            label = torch.from_numpy(y_train_values[indices[i:i+self.batch_size]]).float()
+
+            if self.use_gpu:
+                feature = feature.cuda()
+                label = label.cuda()
+
+            pred = self.gru_model(feature)
+            loss = self.loss_fn(pred, label)
+
+            self.train_optimizer.zero_grad()
+            loss.backward()
+            torch.nn.utils.clip_grad_value_(self.gru_model.parameters(), 3.)
+            self.train_optimizer.step()
+
+
+    def test_epoch(self, data_x, data_y):
+
+        # prepare training data
+        x_values = data_x.values
+        y_values = np.squeeze(data_y.values)
+
+        self.gru_model.eval()
+
+        scores = []
+        losses = []
+
+        indices = np.arange(len(x_values))
+        np.random.shuffle(indices)
+
+        for i in range(len(indices))[::self.batch_size]:
+
+            if len(indices) - i < self.batch_size:
+                break
+
+            feature = torch.from_numpy(x_values[indices[i:i+self.batch_size]]).float()
+            label = torch.from_numpy(y_values[indices[i:i+self.batch_size]]).float()
+
+            if self.use_gpu:
+                feature = feature.cuda()
+                label = label.cuda()
+
+            pred = self.gru_model(feature)
+            loss = self.loss_fn(pred, label)
+            losses.append(loss.item())
+
+            score = self.metric_fn(pred, label)
+            scores.append(score.item())
+
+        return np.mean(losses), np.mean(scores)
 
     def fit(
         self,
@@ -167,17 +233,23 @@ class GRU(Model):
         save_path=None,
     ):
 
-        df_train, df_valid = dataset.prepare(
-            ["train", "valid"], col_set=["feature", "label"], data_key=DataHandlerLP.DK_L
+        df_train, df_valid, df_test = dataset.prepare(
+            ["train", "valid", "test"], col_set=["feature", "label"], data_key=DataHandlerLP.DK_L
         )
+        print(df_test)
+        df_train.to_pickle('~/df_train_2.pkl')
+        df_valid.to_pickle('~/df_valid_2.pkl')
+        df_test.to_pickle('~/df_test_2.pkl')
+
         x_train, y_train = df_train["feature"], df_train["label"]
         x_valid, y_valid = df_valid["feature"], df_valid["label"]
 
-        # Lightgbm need 1D array as its label
-        save_path = create_save_path(save_path)
+        if save_path == None:
+            save_path = create_save_path(save_path)
         stop_steps = 0
         train_loss = 0
-        best_loss = np.inf
+        best_score = -np.inf
+        best_epoch = 0
         evals_result["train"] = []
         evals_result["valid"] = []
 
@@ -185,94 +257,36 @@ class GRU(Model):
         self.logger.info("training...")
         self._fitted = True
         # return
-        # prepare training data
-        x_train_values = torch.from_numpy(x_train.values).float()
-        y_train_values = torch.from_numpy(np.squeeze(y_train.values)).float()
-        train_num = y_train_values.shape[0]
-
-        # prepare validation data
-        x_val_auto = torch.from_numpy(x_valid.values).float()
-        y_val_auto = torch.from_numpy(np.squeeze(y_valid.values)).float()
-
-        if self.use_gpu:
-            x_val_auto = x_val_auto.cuda()
-            y_val_auto = y_val_auto.cuda()
 
         for step in range(self.n_epochs):
-            if stop_steps >= self.early_stop:
-                if verbose:
-                    self.logger.info("\tearly stop")
-                break
-            loss = AverageMeter()
-            self.gru_model.train()
-            self.train_optimizer.zero_grad()
+            self.logger.info('Epoch%d:', step)
+            self.logger.info('training...')
+            self.train_epoch(x_train, y_train)
+            self.logger.info('evaluating...')
+            train_loss, train_score = self.test_epoch(x_train, y_train)
+            val_loss, val_score = self.test_epoch(x_valid, y_valid)
+            self.logger.info('train %.6f, valid %.6f'%(train_score, val_score))
+            evals_result["train"].append(train_score)
+            evals_result["valid"].append(val_score)
 
-            choice = np.random.choice(train_num, self.batch_size)
-            x_batch_auto = x_train_values[choice]
-            y_batch_auto = y_train_values[choice]
-
-            if self.use_gpu:
-                x_batch_auto = x_batch_auto.float().cuda()
-                y_batch_auto = y_batch_auto.float().cuda()
-
-            # forward
-            preds = self.gru_model(x_batch_auto)
-            cur_loss = self.get_loss(preds, y_batch_auto, self.loss_type)
-            cur_loss.backward()
-            self.train_optimizer.step()
-            loss.update(cur_loss.item())
-
-            # validation
-            train_loss += loss.val
-            # print(loss.val)
-            if step and step % self.eval_steps == 0:
+            if val_score > best_score:
+                best_score = val_score
+                stop_steps = 0
+                best_epoch = step
+                best_param = copy.deepcopy(self.gru_model.state_dict())
+            else:
                 stop_steps += 1
-                train_loss /= self.eval_steps
+                if stop_steps >= self.early_stop:
+                    self.logger.info('early stop')
+                    break
 
-                with torch.no_grad():
-                    self.gru_model.eval()
-                    loss_val = AverageMeter()
-
-                    # forward
-                    preds = self.gru_model(x_val_auto)
-                    cur_loss_val = self.get_loss(preds, y_val_auto, self.loss_type)
-                    loss_val.update(cur_loss_val.item())
-
-                if verbose:
-                    self.logger.info(
-                        "[Epoch {}]: train_loss {:.6f}, valid_loss {:.6f}".format(step, train_loss, loss_val.val)
-                    )
-                evals_result["train"].append(train_loss)
-                evals_result["valid"].append(loss_val.val)
-                if loss_val.val < best_loss:
-                    if verbose:
-                        self.logger.info(
-                            "\tvalid loss update from {:.6f} to {:.6f}, save checkpoint.".format(
-                                best_loss, loss_val.val
-                            )
-                        )
-                    best_loss = loss_val.val
-                    stop_steps = 0
-                    torch.save(self.gru_model.state_dict(), save_path)
-                train_loss = 0
-                # update learning rate
-                self.scheduler.step(cur_loss_val)
-
-        # restore the optimal parameters after training ??
-        # self.gru_model.load_state_dict(torch.load(save_path))
+        self.logger.info('best score: %.6lf @ %d'%(best_score, best_epoch))
+        self.gru_model.load_state_dict(best_param)
+        torch.save(best_param, save_path)
+        
         if self.use_gpu:
             torch.cuda.empty_cache()
 
-    def get_loss(self, pred, target, loss_type):
-        if loss_type == "mse":
-            sqr_loss = (pred - target) ** 2
-            loss = sqr_loss.mean()
-            return loss
-        elif loss_type == "binary":
-            loss = nn.BCELoss()
-            return loss(pred, target)
-        else:
-            raise NotImplementedError("loss {} is not supported!".format(loss_type))
 
     def predict(self, dataset):
         if not self._fitted:
@@ -280,37 +294,33 @@ class GRU(Model):
 
         x_test = dataset.prepare("test", col_set="feature")
         index = x_test.index
-        x_test = torch.from_numpy(x_test.values).float()
-
-        if self.use_gpu:
-            x_test = x_test.cuda()
         self.gru_model.eval()
+        x_values = x_test.values
+        sample_num = x_values.shape[0]
+        preds = []
 
-        with torch.no_grad():
-            if self.use_gpu:
-                preds = self.gru_model(x_test).detach().cpu().numpy()
+        for begin in range(sample_num)[::self.batch_size]:
+
+            if sample_num-begin < self.batch_size:
+                end = sample_num
             else:
-                preds = self.gru_model(x_test).detach().numpy()
-        return pd.Series(preds, index=index)
+                end = begin+self.batch_size
+
+            x_batch = torch.from_numpy(x_values[begin:end]).float()
 
 
-class AverageMeter(object):
-    """Computes and stores the average and current value"""
+            if self.use_gpu:
+                x_batch = x_batch.cuda()
 
-    def __init__(self):
-        self.reset()
+            with torch.no_grad():
+                if self.use_gpu:
+                    pred = self.gru_model(x_batch).detach().cpu().numpy()
+                else:
+                    pred = self.gru_model(x_batch).detach().numpy()
 
-    def reset(self):
-        self.val = 0
-        self.avg = 0
-        self.sum = 0
-        self.count = 0
+            preds.append(pred)
 
-    def update(self, val, n=1):
-        self.val = val
-        self.sum += val * n
-        self.count += n
-        self.avg = self.sum / self.count
+        return pd.Series(np.concatenate(preds), index=index)
 
 
 class GRUModel(nn.Module):

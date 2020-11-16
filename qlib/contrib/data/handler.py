@@ -9,6 +9,78 @@ from ...log import TimeInspector
 from inspect import getfullargspec
 import copy
 
+class ALPHA360_Denoise(DataHandlerLP):
+    def __init__(self, instruments="csi500", start_time=None, end_time=None, fit_start_time=None, fit_end_time=None):
+        data_loader = {
+            "class": "QlibDataLoader",
+            "kwargs": {
+                "config": {
+                    "feature": self.get_feature_config(),
+                    "label": self.get_label_config(),
+                },
+            },
+        }
+
+        learn_processors = [
+            {"class": "DropnaLabel", "kwargs": {"group": "label"}},
+            {"class": "CSZScoreNorm", "kwargs": {"fields_group": "label"}},
+        ]
+        infer_processors = [
+            {"class": "ProcessInf", "kwargs": {}},
+            {"class": "TanhProcess", "kwargs": {}},
+            {"class": "Fillna", "kwargs": {}},
+        ]
+
+        super().__init__(
+            instruments,
+            start_time,
+            end_time,
+            data_loader=data_loader,
+            learn_processors=learn_processors,
+            infer_processors=infer_processors,
+        )
+
+    def get_label_config(self):
+        return (["Ref($close, -2)/Ref($close, -1) - 1"], ["LABEL0"])
+
+    def get_feature_config(self):
+
+        fields = []
+        names = []
+
+        for i in range(59, 0, -1):
+            fields += ["Ref($close, %d)/$close" % (i)]
+            names += ["CLOSE%d" % (i)]
+        fields += ["$close/$close"]
+        names += ["CLOSE0"]
+        for i in range(59, 0, -1):
+            fields += ["Ref($open, %d)/$close" % (i)]
+            names += ["OPEN%d" % (i)]
+        fields += ["$open/$close"]
+        names += ["OPEN0"]
+        for i in range(59, 0, -1):
+            fields += ["Ref($high, %d)/$close" % (i)]
+            names += ["HIGH%d" % (i)]
+        fields += ["$high/$close"]
+        names += ["HIGH0"]
+        for i in range(59, 0, -1):
+            fields += ["Ref($low, %d)/$close" % (i)]
+            names += ["LOW%d" % (i)]
+        fields += ["$low/$close"]
+        names += ["LOW0"]
+        for i in range(59, 0, -1):
+            fields += ["Ref($vwap, %d)/$close" % (i)]
+            names += ["VWAP%d" % (i)]
+        fields += ["$vwap/$close"]
+        names += ["VWAP0"]
+        for i in range(59, 0, -1):
+            fields += ["Ref($volume, %d)/$volume" % (i)]
+            names += ["VOLUME%d" % (i)]
+        fields += ["$volume/$volume"]
+        names += ["VOLUME0"]
+
+        return fields, names
+
 
 class ALPHA360(DataHandlerLP):
     def __init__(self, instruments="csi500", start_time=None, end_time=None, fit_start_time=None, fit_end_time=None):
@@ -52,28 +124,32 @@ class ALPHA360(DataHandlerLP):
         for i in range(59, 0, -1):
             fields += ["Ref($close, %d)/$close" % (i)]
             names += ["CLOSE%d" % (i)]
+        fields += ["$close/$close"]
+        names += ["CLOSE0"]
+        for i in range(59, 0, -1):
             fields += ["Ref($open, %d)/$close" % (i)]
             names += ["OPEN%d" % (i)]
+        fields += ["$open/$close"]
+        names += ["OPEN0"]
+        for i in range(59, 0, -1):
             fields += ["Ref($high, %d)/$close" % (i)]
             names += ["HIGH%d" % (i)]
+        fields += ["$high/$close"]
+        names += ["HIGH0"]
+        for i in range(59, 0, -1):
             fields += ["Ref($low, %d)/$close" % (i)]
             names += ["LOW%d" % (i)]
+        fields += ["$low/$close"]
+        names += ["LOW0"]
+        for i in range(59, 0, -1):
             fields += ["Ref($vwap, %d)/$close" % (i)]
             names += ["VWAP%d" % (i)]
+        fields += ["$vwap/$close"]
+        names += ["VWAP0"]
+        for i in range(59, 0, -1):
             fields += ["Ref($volume, %d)/$volume" % (i)]
             names += ["VOLUME%d" % (i)]
-
-        fields += ["$close/$close"]
-        fields += ["$open/$close"]
-        fields += ["$high/$close"]
-        fields += ["$low/$close"]
-        fields += ["$vwap/$close"]
         fields += ["$volume/$volume"]
-        names += ["CLOSE0"]
-        names += ["OPEN0"]
-        names += ["HIGH0"]
-        names += ["LOW0"]
-        names += ["VWAP0"]
         names += ["VOLUME0"]
 
         return fields, names
