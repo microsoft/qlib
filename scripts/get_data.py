@@ -55,7 +55,7 @@ class GetData:
             for _file in tqdm(zp.namelist()):
                 zp.extract(_file, str(target_dir.resolve()))
 
-    def qlib_data_cn(self, name="qlib_data_cn", target_dir="~/.qlib/qlib_data/cn_data", version="latest"):
+    def qlib_data(self, name="qlib_data", target_dir="~/.qlib/qlib_data/us_data", version="latest", intervel="1d", region="cn"):
         """download cn qlib data from remote
 
         Parameters
@@ -63,18 +63,22 @@ class GetData:
         target_dir: str
             data save directory
         name: str
-            dataset name, value from [qlib_data_cn, qlib_data_cn_simple], by default qlib_data_cn
+            dataset name, value from [qlib_data, qlib_data_simple], by default qlib_data_us
         version: str
             data version, value from [v0, v1, ..., latest], by default latest
+        intervel: str
+            data freq, value from [1d, 1m], by default 1d
+        region: str
+            data region, value from [cn, us], by default cn
 
         Examples
         ---------
-        python get_data.py qlib_data_cn --target_dir ~/.qlib/qlib_data/cn_data --version latest
+        python get_data.py qlib_data --name qlib_data --target_dir ~/.qlib/qlib_data/cn_data --version latest --interval 1d --region cn
         -------
 
         """
-        file_name = f"{name}_{version}.zip"
-        self._download_data(file_name, target_dir)
+        file_name = f"{name}_{region}_{intervel}_{version}.zip"
+        self._download_data(file_name.lower(), target_dir)
 
     def csv_data_cn(self, target_dir="~/.qlib/csv_data/cn_data"):
         """download cn csv data from remote
