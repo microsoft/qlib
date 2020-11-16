@@ -236,10 +236,6 @@ class GRU(Model):
         df_train, df_valid, df_test = dataset.prepare(
             ["train", "valid", "test"], col_set=["feature", "label"], data_key=DataHandlerLP.DK_L
         )
-        print(df_test)
-        df_train.to_pickle('~/df_train_2.pkl')
-        df_valid.to_pickle('~/df_valid_2.pkl')
-        df_test.to_pickle('~/df_test_2.pkl')
 
         x_train, y_train = df_train["feature"], df_train["label"]
         x_valid, y_valid = df_valid["feature"], df_valid["label"]
