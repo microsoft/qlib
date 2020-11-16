@@ -226,7 +226,7 @@ class MLflowExperiment(Experiment):
                     return self.active_recorder
                 else:
                     raise Exception(
-                        "Something went wrong when retrieving recorders. Please check if QlibRecorder is running or the name/id of the recorder is correct."
+                        "Something went wrong when retrieving recorders. Please check if QlibRecorder is running."
                     )
         else:
             if recorder_id is not None:
@@ -235,7 +235,7 @@ class MLflowExperiment(Experiment):
                 else:
                     # mlflow does not support create a run with given id
                     raise Exception(
-                        "Something went wrong when retrieving recorders. Please check if QlibRecorder is running or the name/id of the recorder is correct."
+                        "Something went wrong when retrieving recorders. Please check if id of the recorder is correct."
                     )
             else:
                 for rid in recorders:
@@ -250,7 +250,7 @@ class MLflowExperiment(Experiment):
                     return recorder
                 else:
                     raise Exception(
-                        "Something went wrong when retrieving experiments. Please check if QlibRecorder is running or the name/id of the experiment is correct."
+                        "Something went wrong when retrieving experiments. Please check if the name of the experiment is correct."
                     )
 
     def list_recorders(self):

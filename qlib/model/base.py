@@ -45,3 +45,18 @@ class Model(BaseModel):
             dataset will generate the processed dataset from model training
         """
         raise NotImplementedError()
+
+
+class ModelFT(Model):
+    '''Model (F)ine(t)unable'''
+
+    @abc.abstractmethod
+    def finetune(self, dataset: Dataset):
+        """finetune model based given dataset
+
+        Parameters
+        ----------
+        dataset : Dataset
+            dataset will generate the processed dataset from model training
+        """
+        raise NotImplementedError()
