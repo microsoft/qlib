@@ -55,7 +55,7 @@ class GetData:
             for _file in tqdm(zp.namelist()):
                 zp.extract(_file, str(target_dir.resolve()))
 
-    def qlib_data(self, name="qlib_data", target_dir="~/.qlib/qlib_data/us_data", version="latest", intervel="1d", region="cn"):
+    def qlib_data(self, name="qlib_data", target_dir="~/.qlib/qlib_data/cn_data", version="latest", intervel="1d", region="cn"):
         """download cn qlib data from remote
 
         Parameters
@@ -67,7 +67,7 @@ class GetData:
         version: str
             data version, value from [v0, v1, ..., latest], by default latest
         intervel: str
-            data freq, value from [1d, 1m], by default 1d
+            data freq, value from [1d], by default 1d
         region: str
             data region, value from [cn, us], by default cn
 
