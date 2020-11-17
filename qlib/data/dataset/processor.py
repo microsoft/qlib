@@ -89,11 +89,13 @@ class DropnaLabel(DropnaProcessor):
         """The samples are dropped according to label. So it is not usable for inference"""
         return False
 
+
 class TanhProcess(Processor):
     """ Use tanh to process noise data"""
+
     def __call__(self, df):
         def tanh_denoise(data):
-            mask = data.columns.get_level_values(1).str.contains('LABEL')
+            mask = data.columns.get_level_values(1).str.contains("LABEL")
             col = df.columns[~mask]
             data[col] = data[col] - 1
             data[col] = np.tanh(data[col])

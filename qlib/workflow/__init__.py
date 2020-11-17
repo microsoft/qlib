@@ -32,14 +32,14 @@ class QlibRecorder:
         self.exp_manager = exp_manager
 
     @contextmanager
-    def start(self, experiment_name=None):
+    def start(self, experiment_name=None, recorder_name=None):
         """
         Method to start an experiment. This method can only be called within a Python's `with` statement.
 
         Use case:
         ---------
         ```
-        with R.start('test'):
+        with R.start('test', 'recorder_1'):
             model.fit(dataset)
             R.log...
             ... # further operations
@@ -49,8 +49,10 @@ class QlibRecorder:
         ----------
         experiment_name : str
             name of the experiment one wants to start.
+        recorder_name : str
+            name of the recorder under the experiment one wants to start.
         """
-        run = self.start_exp(experiment_name)
+        run = self.start_exp(experiment_name, recorder_name)
         try:
             yield run
         except Exception as e:
@@ -58,7 +60,7 @@ class QlibRecorder:
             raise e
         self.end_exp(Recorder.STATUS_FI)
 
-    def start_exp(self, experiment_name=None, uri=None):
+    def start_exp(self, experiment_name=None, recorder_name=None, uri=None):
         """
         Lower level method for starting an experiment. When use this method, one should end the experiment manually
         and the status of the recorder may not be handled properly.
@@ -66,7 +68,7 @@ class QlibRecorder:
         Use case:
         ---------
         ```
-        R.start_exp(experiment_name='test')
+        R.start_exp(experiment_name='test', recorder_name='recorder_1')
         ... # further operations
         R.end_exp('FINISHED') or R.end_exp(Recorder.STATUS_S)
         ```
@@ -75,14 +77,17 @@ class QlibRecorder:
         ----------
         experiment_name : str
             the name of the experiment to be started
+        recorder_name : str
+            name of the recorder under the experiment one wants to start.
         uri : str
             the tracking uri of the experiment, where all the artifacts/metrics etc. will be stored.
+            The default uri are set in the qlib.config.
 
         Returns
         -------
         An experiment instance being started.
         """
-        return self.exp_manager.start_exp(experiment_name, uri)
+        return self.exp_manager.start_exp(experiment_name, recorder_name, uri)
 
     def end_exp(self, recorder_status=Recorder.STATUS_FI):
         """
@@ -188,9 +193,9 @@ class QlibRecorder:
                 2) if id or name is specified, return the specified experiment. If no such exp found,
                 create a new experiment with given id or name, and the experiment is set to be running.
             If R's not running:
-                1) no id or name specified, create a default experiment.
+                1) no id or name specified, create a default experiment, and the experiment is set to be running.
                 2) if id or name is specified, return the specified experiment. If no such exp found,
-                create a new experiment with given id or name, and the experiment is set to be running.
+                create a new experiment with given name or the default experiment, and the experiment is set to be running.
         Else If `create` is False:
             If R's running:
                 1) no id or name specified, return the active experiment.
@@ -367,8 +372,7 @@ class QlibRecorder:
         # Case 1
         with R.start('test'):
             pred = model.predict(dataset)
-            kwargs = {"pred.pkl": pred}
-            R.save_objects(**kwargs, artifact_path='prediction')
+            R.save_objects(**{"pred.pkl": pred}, artifact_path='prediction')
 
         # Case 2
         with R.start('test'):

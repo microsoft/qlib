@@ -9,6 +9,7 @@ from ...log import TimeInspector
 from inspect import getfullargspec
 import copy
 
+
 class ALPHA360_Denoise(DataHandlerLP):
     def __init__(self, instruments="csi500", start_time=None, end_time=None, fit_start_time=None, fit_end_time=None):
         data_loader = {

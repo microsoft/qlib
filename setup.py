@@ -100,7 +100,7 @@ setup(
     entry_points={
         # 'console_scripts': ['mycli=mymodule:cli'],
         "console_scripts": [
-            "estimator=qlib.contrib.estimator.launcher:run",
+            "workflow_by_config=qlib.workflow.cli:run",
         ],
     },
     ext_modules=extensions,

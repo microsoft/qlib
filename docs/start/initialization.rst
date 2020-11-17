@@ -59,7 +59,14 @@ Besides `provider_uri` and `region`, `qlib.init` has other parameters. The follo
         
         If Qlib fails to connect redis via `redis_host` and `redis_port`, cache mechanism will not be used! Please refer to `Cache <../component/data.html#cache>`_ for details.
 - `exp_manager`
-    Type: str, optional parameter(default: "MLflowExpManager"), the experiment manager to be used in qlib.
-- `exp_uri`
-    Type: str, optional parameter(default: "mlruns" in local execution path), the tracking uri of the experiment manager.
-        It can either be a local path or a remote uri.
+    Type: dict, optional parameter, the setting of experiment manager to be used in qlib. Users can specify an experiment manager class, as well as the tracking URI for all the experiments. However, please be aware that we only support input of a dictionary in the following style for `exp_manager`.
+    ::
+
+        {
+            "class": "MLflowExpManager",
+            "module_path": "qlib.workflow.expm",
+            "kwargs": {
+                "uri": "python_execution_path/mlruns"),
+                "default_exp_name": "Experiment",
+            }
+        }

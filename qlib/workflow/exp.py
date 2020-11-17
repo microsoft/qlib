@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 import mlflow
-from datetime import datetime
+from mlflow.exceptions import MlflowException
 from pathlib import Path
 from .recorder import Recorder, MLflowRecorder
 from ..log import get_module_logger
@@ -38,9 +38,14 @@ class Experiment:
         output["recorders"] = list(recorders.keys())
         return output
 
-    def start(self):
+    def start(self, recorder_name=None):
         """
         Start the experiment and set it to be active. This method will also start a new recorder.
+
+        Parameters
+        ----------
+        recorder_name : str
+            the name of the recorder to be created.
 
         Returns
         -------
@@ -59,9 +64,14 @@ class Experiment:
         """
         raise NotImplementedError(f"Please implement the `end` method.")
 
-    def create_recorder(self):
+    def create_recorder(self, name=None):
         """
         Create a recorder for each experiment.
+
+        Parameters
+        ----------
+        name : str
+            the name of the recorder to be created.
 
         Returns
         -------
@@ -126,6 +136,8 @@ class Experiment:
             the id of the recorder to be deleted.
         recorder_name : str
             the name of the recorder to be deleted.
+        create : boolean
+            create the recorder if it hasn't been created before.
 
         Returns
         -------
@@ -155,12 +167,12 @@ class MLflowExperiment(Experiment):
         self._default_name = None
         self.client = mlflow.tracking.MlflowClient(tracking_uri=self._uri)
 
-    def start(self):
+    def start(self, recorder_name=None):
         # set the active experiment
         mlflow.set_experiment(self.name)
         logger.info(f"Experiment {self.id} starts running ...")
         # set up recorder
-        recorder = self.create_recorder()
+        recorder = self.create_recorder(recorder_name)
         self.active_recorder = recorder
         # start the recorder
         run = self.active_recorder.start_run()
@@ -172,11 +184,12 @@ class MLflowExperiment(Experiment):
             self.active_recorder.end_run(recorder_status)
             self.active_recorder = None
 
-    def create_recorder(self):
-        recorders = self.list_recorders()
-        num = len(recorders)
-        name = "Recorder_{}".format(num + 1)
-        recorder = MLflowRecorder(name, self.id, self._uri)
+    def create_recorder(self, recorder_name=None):
+        if recorder_name is None:
+            recorders = self.list_recorders()
+            num = len(recorders)
+            recorder_name = "Recorder_{}".format(num + 1)
+        recorder = MLflowRecorder(recorder_name, self.id, self._uri)
 
         return recorder
 
@@ -197,14 +210,67 @@ class MLflowExperiment(Experiment):
                 self.client.delete_run(recorder_id)
             else:
                 recorders = self.list_recorders()
-                for r in recorders:
-                    if recorders[r].name == recorder_name:
-                        recorder_id = r
-                        break
-                self.client.delete_run(recorder_id)
-        except:
+                recorder = self._get_recorder_by_name(recorder_name)
+                self.client.delete_run(recorder.id)
+        except MlflowException as e:
             raise Exception(
-                "Something went wrong when deleting recorder. Please check if the name/id of the recorder is correct."
+                f"Error: {e}. Something went wrong when deleting recorder. Please check if the name/id of the recorder is correct."
+            )
+
+    def _get_recorder_by_id(self, recorder_id=None, create=False):
+        """
+        Get a recorder by its id. If the `create` is set to True, this method will also start to run the recorder.
+
+        Parameters
+        ----------
+        recorder_id : str
+            the id of the recorder to be returned.
+        create : boolean
+            create the recorder if it hasn't been created before.
+
+        Returns
+        -------
+        The specific recorder with given id.
+        """
+        recorders = self.list_recorders()
+        if recorder_id in recorders:
+            return recorders[recorder_id]
+        else:
+            if create:
+                logger.warning(f"No valid recorder found. Create a new recorder with name {recorder_name}.")
+                self.start(recorder_name)
+                return self.active_recorder
+            else:
+                raise Exception(
+                    "Something went wrong when retrieving recorders. Please check if id of the recorder is correct."
+                )
+
+    def _get_recorder_by_name(self, recorder_name=None, create=False):
+        """
+        Get a recorder by its name. If the `create` is set to True, this method will also start to run the recorder.
+
+        Parameters
+        ----------
+        recorder_name : str
+            the name of the recorder to be returned.
+        create : boolean
+            create the recorder if it hasn't been created before.
+
+        Returns
+        -------
+        The specific recorder with given name.
+        """
+        recorders = self.list_recorders()
+        for rid in recorders:
+            if recorders[rid].name == recorder_name:
+                return recorders[rid]
+        if create:
+            logger.warning(f"No valid recorder found. Create a new recorder with name {recorder_name}.")
+            self.start(recorder_name)
+            return self.active_recorder
+        else:
+            raise Exception(
+                "Something went wrong when retrieving recorders. Please check if the name of the experiment is correct."
             )
 
     def get_recorder(self, recorder_id=None, recorder_name=None, create=True):
@@ -213,68 +279,22 @@ class MLflowExperiment(Experiment):
         is set to True, this method will not automatically create an active recorder.
         """
         # retrive all the recorders under this experiment
-        recorders = self.list_recorders()
         if recorder_id is None and recorder_name is None:
             if self.active_recorder:
                 return self.active_recorder
             else:
-                if create:
-                    self.start()
-                    logger.warning(
-                        f"Recorder {self.active_recorder.id} is running under the experiment with name {self.name}..."
-                    )
-                    return self.active_recorder
-                else:
-                    raise Exception(
-                        "Something went wrong when retrieving recorders. Please check if QlibRecorder is running."
-                    )
+                return self._get_recorder_by_name(create=create)
         else:
             if recorder_id is not None:
-                if recorder_id in recorders:
-                    return recorders[recorder_id]
-                else:
-                    # mlflow does not support create a run with given id
-                    raise Exception(
-                        "Something went wrong when retrieving recorders. Please check if id of the recorder is correct."
-                    )
+                return self._get_recorder_by_id(recorder_id, create=create)
             else:
-                for rid in recorders:
-                    if recorders[rid].name == recorder_name:
-                        return recorders[rid]
-                if create:
-                    recorders = self.list_recorders()
-                    logger.warning(f"No valid recorder found. Create a new recorder with name {recorder_name}.")
-                    recorder = self.create_recorder()
-                    recorder.name = recorder_name
-                    recorder.start_run()
-                    return recorder
-                else:
-                    raise Exception(
-                        "Something went wrong when retrieving experiments. Please check if the name of the experiment is correct."
-                    )
+                return self._get_recorder_by_name(recorder_name, create=create)
 
     def list_recorders(self):
-        runs = self.client.list_run_infos(self.id, run_view_type=1)[::-1]
+        runs = self.client.search_runs(self.id, run_view_type=1)[::-1]
         recorders = dict()
         for i in range(len(runs)):
-            rid = runs[i].run_id
-            status = runs[i].status
-            start_time = runs[i].start_time
-            end_time = runs[i].end_time
-            recorder = MLflowRecorder(f"Recorder_{i+1}", self.id, self._uri)
-            recorder.id = rid
-            recorder.status = status
-            recorder.start_time = (
-                datetime.fromtimestamp(float(start_time) / 1000.0).strftime("%Y-%m-%d %H:%M:%S")
-                if start_time is not None
-                else None
-            )
-            recorder.end_time = (
-                datetime.fromtimestamp(float(end_time) / 1000.0).strftime("%Y-%m-%d %H:%M:%S")
-                if end_time is not None
-                else None
-            )
-            recorder._uri = self._uri
-            recorders[rid] = recorder
+            recorder = MLflowRecorder(f"Recorder_{i+1}", self.id, self._uri, runs[i])
+            recorders[runs[i].info.run_id] = recorder
 
         return recorders

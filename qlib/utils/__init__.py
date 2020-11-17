@@ -643,7 +643,7 @@ def lexsort_index(df: pd.DataFrame) -> pd.DataFrame:
 
 #################### Wrapper #####################
 class Wrapper(object):
-    """Data Provider Wrapper"""
+    """Wrapper class for anything that needs to set up during qlib.init"""
 
     def __init__(self):
         self._provider = None

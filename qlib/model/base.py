@@ -48,7 +48,7 @@ class Model(BaseModel):
 
 
 class ModelFT(Model):
-    '''Model (F)ine(t)unable'''
+    """Model (F)ine(t)unable"""
 
     @abc.abstractmethod
     def finetune(self, dataset: Dataset):

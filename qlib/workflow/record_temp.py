@@ -3,6 +3,7 @@
 
 import pandas as pd
 from pathlib import Path
+from pprint import pprint
 from ..contrib.evaluate import (
     backtest as normal_backtest,
     risk_analysis,
@@ -83,14 +84,14 @@ class SignalRecord(RecordTemp):
         logger.info(
             f"Signal record 'pred.pkl' has been saved as the artifact of the Experiment {self.recorder.experiment_id}"
         )
+        # print out results
+        pprint(f"The following are prediction results of the {type(self.model).__name__} model.")
+        pprint(pred.head(5))
 
     def load(self):
         # try to load the saved object
-        try:
-            pred = self.recorder.load_object("pred.pkl")
-            return pred
-        except:
-            raise Exception("Something went wrong when loading the saved object.")
+        pred = self.recorder.load_object("pred.pkl")
+        return pred
 
     def check(self, **kwargs):
         artifacts = self.recorder.list_artifacts()
@@ -148,19 +149,51 @@ class PortAnaRecord(SignalRecord):
         analysis["excess_return_with_cost"] = risk_analysis(
             report_normal["return"] - report_normal["bench"] - report_normal["cost"]
         )
+        # log metrics
+        self.recorder.log_metrics(
+            excess_return_without_cost_mean=analysis["excess_return_without_cost"]["risk"]["mean"]
+        )
+        self.recorder.log_metrics(excess_return_without_cost_std=analysis["excess_return_without_cost"]["risk"]["std"])
+        self.recorder.log_metrics(
+            excess_return_without_cost_annualized_return=analysis["excess_return_without_cost"]["risk"][
+                "annualized_return"
+            ]
+        )
+        self.recorder.log_metrics(
+            excess_return_without_cost_information_ratio=analysis["excess_return_without_cost"]["risk"][
+                "information_ratio"
+            ]
+        )
+        self.recorder.log_metrics(
+            excess_return_without_cost_max_drawdown=analysis["excess_return_without_cost"]["risk"]["max_drawdown"]
+        )
+        self.recorder.log_metrics(excess_return_with_cost_mean=analysis["excess_return_with_cost"]["risk"]["mean"])
+        self.recorder.log_metrics(excess_return_with_cost_std=analysis["excess_return_with_cost"]["risk"]["std"])
+        self.recorder.log_metrics(
+            excess_return_with_cost_annualized_return=analysis["excess_return_with_cost"]["risk"]["annualized_return"]
+        )
+        self.recorder.log_metrics(
+            excess_return_with_cost_information_ratio=analysis["excess_return_with_cost"]["risk"]["information_ratio"]
+        )
+        self.recorder.log_metrics(
+            excess_return_with_cost_max_drawdown=analysis["excess_return_with_cost"]["risk"]["max_drawdown"]
+        )
+        # save portfolio analysis results
         analysis_df = pd.concat(analysis)  # type: pd.DataFrame
         self.recorder.save_objects(**{"port_analysis.pkl": analysis_df}, artifact_path=self.artifact_path)
         logger.info(
             f"Portfolio analysis record 'port_analysis.pkl' has been saved as the artifact of the Experiment {self.recorder.experiment_id}"
         )
+        # print out results
+        pprint("The following are analysis results of the excess return without cost.")
+        pprint(analysis["excess_return_without_cost"])
+        pprint("The following are analysis results of the excess return with cost.")
+        pprint(analysis["excess_return_with_cost"])
 
     def load(self):
         # try to load the saved object
-        try:
-            pred = self.recorder.load_object(self.artifact_path / "port_analysis.pkl")
-            return pred
-        except:
-            raise Exception("Something went wrong when loading the saved object.")
+        pred = self.recorder.load_object(self.artifact_path / "port_analysis.pkl")
+        return pred
 
     def check(self):
         artifacts = self.recorder.list_artifacts(self.artifact_path)

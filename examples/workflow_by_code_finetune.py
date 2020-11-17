@@ -89,7 +89,7 @@ if __name__ == "__main__":
             "kwargs": {
                 "topk": 50,
                 "n_drop": 5,
-            }
+            },
         },
         "backtest": {
             "verbose": False,
@@ -112,7 +112,6 @@ if __name__ == "__main__":
         model.fit(dataset)
         R.save_objects(init_model=model)
         rid = R.get_recorder().id
-
 
     # Finetune model based on previous trained model
     with R.start(experiment_name="finetune model"):

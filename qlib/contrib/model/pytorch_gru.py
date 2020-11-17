@@ -50,7 +50,7 @@ class GRU(Model):
         dropout=0.0,
         n_epochs=200,
         lr=0.001,
-        metric='IC',
+        metric="IC",
         batch_size=2000,
         early_stop=20,
         loss="mse",
@@ -134,48 +134,48 @@ class GRU(Model):
                 os.environ["CUDA_VISIBLE_DEVICES"] = self.visible_GPU
 
     def mse(self, pred, label):
-        loss = (pred - label)**2
+        loss = (pred - label) ** 2
         return torch.mean(loss)
 
     def loss_fn(self, pred, label):
         mask = ~torch.isnan(label)
 
-        if self.loss == 'mse':
+        if self.loss == "mse":
             return self.mse(pred[mask], label[mask])
 
-        raise ValueError('unknown loss `%s`'%self.loss)
+        raise ValueError("unknown loss `%s`" % self.loss)
 
     def metric_fn(self, pred, label):
 
         mask = torch.isfinite(label)
-        if self.metric == 'IC':
+        if self.metric == "IC":
             return self.cal_ic(pred[mask], label[mask])
 
-        if self.metric == '' or self.metric == 'loss': # use loss
+        if self.metric == "" or self.metric == "loss":  # use loss
             return -self.loss_fn(pred[mask], label[mask])
 
-        raise ValueError('unknown metric `%s`'%self.metric)
+        raise ValueError("unknown metric `%s`" % self.metric)
 
     def cal_ic(self, pred, label):
-        return torch.mean(pred * label) 
+        return torch.mean(pred * label)
 
     def train_epoch(self, x_train, y_train):
 
         x_train_values = x_train.values
-        y_train_values = np.squeeze(y_train.values)*100
+        y_train_values = np.squeeze(y_train.values) * 100
 
         self.gru_model.train()
 
         indices = np.arange(len(x_train_values))
         np.random.shuffle(indices)
 
-        for i in range(len(indices))[::self.batch_size]:
+        for i in range(len(indices))[:: self.batch_size]:
 
             if len(indices) - i < self.batch_size:
                 break
 
-            feature = torch.from_numpy(x_train_values[indices[i:i+self.batch_size]]).float()
-            label = torch.from_numpy(y_train_values[indices[i:i+self.batch_size]]).float()
+            feature = torch.from_numpy(x_train_values[indices[i : i + self.batch_size]]).float()
+            label = torch.from_numpy(y_train_values[indices[i : i + self.batch_size]]).float()
 
             if self.use_gpu:
                 feature = feature.cuda()
@@ -186,9 +186,8 @@ class GRU(Model):
 
             self.train_optimizer.zero_grad()
             loss.backward()
-            torch.nn.utils.clip_grad_value_(self.gru_model.parameters(), 3.)
+            torch.nn.utils.clip_grad_value_(self.gru_model.parameters(), 3.0)
             self.train_optimizer.step()
-
 
     def test_epoch(self, data_x, data_y):
 
@@ -204,13 +203,13 @@ class GRU(Model):
         indices = np.arange(len(x_values))
         np.random.shuffle(indices)
 
-        for i in range(len(indices))[::self.batch_size]:
+        for i in range(len(indices))[:: self.batch_size]:
 
             if len(indices) - i < self.batch_size:
                 break
 
-            feature = torch.from_numpy(x_values[indices[i:i+self.batch_size]]).float()
-            label = torch.from_numpy(y_values[indices[i:i+self.batch_size]]).float()
+            feature = torch.from_numpy(x_values[indices[i : i + self.batch_size]]).float()
+            label = torch.from_numpy(y_values[indices[i : i + self.batch_size]]).float()
 
             if self.use_gpu:
                 feature = feature.cuda()
@@ -255,13 +254,13 @@ class GRU(Model):
         # return
 
         for step in range(self.n_epochs):
-            self.logger.info('Epoch%d:', step)
-            self.logger.info('training...')
+            self.logger.info("Epoch%d:", step)
+            self.logger.info("training...")
             self.train_epoch(x_train, y_train)
-            self.logger.info('evaluating...')
+            self.logger.info("evaluating...")
             train_loss, train_score = self.test_epoch(x_train, y_train)
             val_loss, val_score = self.test_epoch(x_valid, y_valid)
-            self.logger.info('train %.6f, valid %.6f'%(train_score, val_score))
+            self.logger.info("train %.6f, valid %.6f" % (train_score, val_score))
             evals_result["train"].append(train_score)
             evals_result["valid"].append(val_score)
 
@@ -273,16 +272,15 @@ class GRU(Model):
             else:
                 stop_steps += 1
                 if stop_steps >= self.early_stop:
-                    self.logger.info('early stop')
+                    self.logger.info("early stop")
                     break
 
-        self.logger.info('best score: %.6lf @ %d'%(best_score, best_epoch))
+        self.logger.info("best score: %.6lf @ %d" % (best_score, best_epoch))
         self.gru_model.load_state_dict(best_param)
         torch.save(best_param, save_path)
-        
+
         if self.use_gpu:
             torch.cuda.empty_cache()
-
 
     def predict(self, dataset):
         if not self._fitted:
@@ -295,15 +293,14 @@ class GRU(Model):
         sample_num = x_values.shape[0]
         preds = []
 
-        for begin in range(sample_num)[::self.batch_size]:
+        for begin in range(sample_num)[:: self.batch_size]:
 
-            if sample_num-begin < self.batch_size:
+            if sample_num - begin < self.batch_size:
                 end = sample_num
             else:
-                end = begin+self.batch_size
+                end = begin + self.batch_size
 
             x_batch = torch.from_numpy(x_values[begin:end]).float()
-
 
             if self.use_gpu:
                 x_batch = x_batch.cuda()

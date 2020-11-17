@@ -2,8 +2,9 @@
 # Licensed under the MIT License.
 
 import mlflow
-import shutil, os, pickle, tempfile, codecs, datetime
+import shutil, os, pickle, tempfile, codecs
 from pathlib import Path
+from datetime import datetime
 from ..utils.objm import FileManager
 from ..log import get_module_logger
 
@@ -167,7 +168,7 @@ class MLflowRecorder(Recorder):
     use file manager to help maintain the objects in the project.
     """
 
-    def __init__(self, name, experiment_id, uri):
+    def __init__(self, name, experiment_id, uri, mlflow_run=None):
         super(MLflowRecorder, self).__init__(name, experiment_id)
         self._uri = uri
         self.artifact_uri = None
@@ -175,6 +176,22 @@ class MLflowRecorder(Recorder):
         self.temp_dir = tempfile.mkdtemp()
         self.fm = FileManager(Path(self.temp_dir).absolute())
         self.client = mlflow.tracking.MlflowClient(tracking_uri=self._uri)
+        # construct from mlflow run
+        if mlflow_run is not None:
+            assert isinstance(mlflow_run, mlflow.entities.run.Run), "Please input with a MLflow Run object."
+            self.name = mlflow_run.data.tags["mlflow.runName"] if mlflow_run.data.tags["mlflow.runName"] != "" else name
+            self.id = mlflow_run.info.run_id
+            self.status = mlflow_run.info.status
+            self.start_time = (
+                datetime.fromtimestamp(float(mlflow_run.info.start_time) / 1000.0).strftime("%Y-%m-%d %H:%M:%S")
+                if mlflow_run.info.start_time is not None
+                else None
+            )
+            self.end_time = (
+                datetime.fromtimestamp(float(mlflow_run.info.end_time) / 1000.0).strftime("%Y-%m-%d %H:%M:%S")
+                if mlflow_run.info.end_time is not None
+                else None
+            )
 
     def start_run(self):
         # start the run
@@ -182,7 +199,7 @@ class MLflowRecorder(Recorder):
         # save the run id and artifact_uri
         self.id = run.info.run_id
         self.artifact_uri = run.info.artifact_uri
-        self.start_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.start_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.status = Recorder.STATUS_R
         logger.info(f"Recorder {self.id} starts running under Experiment {self.experiment_id} ...")
 
@@ -196,7 +213,7 @@ class MLflowRecorder(Recorder):
             Recorder.STATUS_FA,
         ], f"The status type {status} is not supported."
         mlflow.end_run(status)
-        self.end_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.end_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         if self.status != Recorder.STATUS_S:
             self.status = status
         shutil.rmtree(self.temp_dir)
@@ -213,31 +230,23 @@ class MLflowRecorder(Recorder):
     def load_object(self, name):
         assert self._uri is not None, "Please start the experiment and recorder first before using recorder directly."
         path = self.client.download_artifacts(self.id, name)
-        try:
-            with Path(path).open("rb") as f:
-                f.seek(0)
-                return pickle.load(f)
-        except:
-            with codecs.open(path, mode="r", encoding="utf-8") as f:
-                return f.read()
+        with Path(path).open("rb") as f:
+            return pickle.load(f)
 
     def log_params(self, **kwargs):
-        keys = list(kwargs.keys())
         for name, data in kwargs.items():
             self.client.log_param(self.id, name, data)
 
     def log_metrics(self, step=None, **kwargs):
-        keys = list(kwargs.keys())
         for name, data in kwargs.items():
             self.client.log_metric(self.id, name, data)
 
     def set_tags(self, **kwargs):
-        keys = list(kwargs.keys())
         for name, data in kwargs.items():
             self.client.set_tag(self.id, name, data)
 
     def delete_tags(self, *keys):
-        for count, key in enumerate(keys):
+        for key in keys:
             self.client.delete_tag(self.id, key)
 
     def get_artifact_uri(self):
