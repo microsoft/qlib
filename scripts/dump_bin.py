@@ -287,7 +287,6 @@ class DumpDataAll(DumpDataBase):
         logger.info("end of features dump.\n")
 
     def dump(self):
-        print("dump 2")
         self._get_all_date()
         self._dump_calendars()
         self._dump_instruments()
