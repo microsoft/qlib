@@ -52,7 +52,7 @@ jobs:
 
     - name: Test data downloads and examples
       run: |
-        python scripts/get_data.py qlib_data_cn --target_dir ~/.qlib/qlib_data/cn_data
+        python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/cn_data --interval 1d --region cn
         # cd examples
         # estimator -c estimator/estimator_config.yaml
         # jupyter nbconvert --execute estimator/analyze_from_estimator.ipynb --to html
