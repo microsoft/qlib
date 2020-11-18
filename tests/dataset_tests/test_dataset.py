@@ -18,7 +18,7 @@ class TestDataset(unittest.TestCase):
             sys.path.append(str(Path(__file__).resolve().parent.parent.parent.joinpath("scripts")))
             from get_data import GetData
 
-            GetData().qlib_data_cn(name="qlib_data_cn_simple", target_dir=provider_uri)
+            GetData().qlib_data(name="qlib_data_simple", target_dir=provider_uri)
         qlib.init(provider_uri=provider_uri, region=REG_CN)
 
     def testCSI300(self):

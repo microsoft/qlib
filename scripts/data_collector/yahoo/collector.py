@@ -313,7 +313,7 @@ class YahooCollectorUS(YahooCollector):
 
     def get_stock_list(self):
         logger.info("get US stock symbols......")
-        symbols = get_us_stock_symbols(qlib_data_path="/data1/data/yahoo_staock_data/backup/us_1d_qlib") + [
+        symbols = get_us_stock_symbols() + [
             "^GSPC",
             "^NDX",
             "^DJI",
