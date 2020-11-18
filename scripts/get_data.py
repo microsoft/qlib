@@ -77,7 +77,10 @@ class GetData:
         -------
 
         """
-        file_name = f"{name}_{region}_{intervel}_{version}.zip"
+        # TODO: The US stock code contains "PRN", and the directory cannot be created on Windows system
+        if region.lower() == "us":
+            logger.warning(f"The US stock code contains 'PRN', and the directory cannot be created on Windows system")
+        file_name = f"{name}_{region.lower()}_{intervel}_{version}.zip"
         self._download_data(file_name.lower(), target_dir)
 
     def csv_data_cn(self, target_dir="~/.qlib/csv_data/cn_data"):
