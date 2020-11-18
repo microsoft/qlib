@@ -20,6 +20,7 @@ import requests
 import tempfile
 import importlib
 import contextlib
+import collections
 import numpy as np
 import pandas as pd
 from pathlib import Path
@@ -639,6 +640,30 @@ def lexsort_index(df: pd.DataFrame) -> pd.DataFrame:
         return df
     else:
         return df.sort_index()
+
+
+def flatten_dict(d, parent_key="", sep="."):
+    """flatten_dict.
+        >>> flatten_dict({'a': 1, 'c': {'a': 2, 'b': {'x': 5, 'y' : 10}}, 'd': [1, 2, 3]})
+        >>> {'a': 1, 'c.a': 2, 'c.b.x': 5, 'd': [1, 2, 3], 'c.b.y': 10}
+
+    Parameters
+    ----------
+    d :
+        d
+    parent_key :
+        parent_key
+    sep :
+        sep
+    """
+    items = []
+    for k, v in d.items():
+        new_key = parent_key + sep + k if parent_key else k
+        if isinstance(v, collections.MutableMapping):
+            items.extend(flatten_dict(v, new_key, sep=sep).items())
+        else:
+            items.append((new_key, v))
+    return dict(items)
 
 
 #################### Wrapper #####################

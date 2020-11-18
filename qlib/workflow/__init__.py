@@ -323,7 +323,6 @@ class QlibRecorder:
         experiment_name : str
             name of the experiment.
 
-
         Returns
         -------
         A recorder instance.

@@ -25,7 +25,7 @@ class Recorder:
     STATUS_FI = "FINISHED"
     STATUS_FA = "FAILED"
 
-    def __init__(self, name, experiment_id):
+    def __init__(self, experiment_id, name):
         self.id = None
         self.name = name
         self.experiment_id = experiment_id
@@ -168,8 +168,8 @@ class MLflowRecorder(Recorder):
     use file manager to help maintain the objects in the project.
     """
 
-    def __init__(self, name, experiment_id, uri, mlflow_run=None):
-        super(MLflowRecorder, self).__init__(name, experiment_id)
+    def __init__(self, experiment_id, uri, name=None, mlflow_run=None):
+        super(MLflowRecorder, self).__init__(experiment_id, name)
         self._uri = uri
         self.artifact_uri = None
         # set up file manager for saving objects
@@ -179,7 +179,7 @@ class MLflowRecorder(Recorder):
         # construct from mlflow run
         if mlflow_run is not None:
             assert isinstance(mlflow_run, mlflow.entities.run.Run), "Please input with a MLflow Run object."
-            self.name = mlflow_run.data.tags["mlflow.runName"] if mlflow_run.data.tags["mlflow.runName"] != "" else name
+            self.name = mlflow_run.data.tags["mlflow.runName"]
             self.id = mlflow_run.info.run_id
             self.status = mlflow_run.info.status
             self.start_time = (

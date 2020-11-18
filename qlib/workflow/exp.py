@@ -165,6 +165,7 @@ class MLflowExperiment(Experiment):
         super(MLflowExperiment, self).__init__(id, name)
         self._uri = uri
         self._default_name = None
+        self._default_rec_name = "mlflow_recorder"
         self.client = mlflow.tracking.MlflowClient(tracking_uri=self._uri)
 
     def start(self, recorder_name=None):
@@ -175,7 +176,7 @@ class MLflowExperiment(Experiment):
         recorder = self.create_recorder(recorder_name)
         self.active_recorder = recorder
         # start the recorder
-        run = self.active_recorder.start_run()
+        self.active_recorder.start_run()
 
         return self.active_recorder
 
@@ -186,12 +187,65 @@ class MLflowExperiment(Experiment):
 
     def create_recorder(self, recorder_name=None):
         if recorder_name is None:
-            recorders = self.list_recorders()
-            num = len(recorders)
-            recorder_name = "Recorder_{}".format(num + 1)
-        recorder = MLflowRecorder(recorder_name, self.id, self._uri)
+            recorder_name = self._default_rec_name
+        recorder = MLflowRecorder(self.id, self._uri, recorder_name)
 
         return recorder
+
+    def get_recorder(self, recorder_id=None, recorder_name=None, create=True):
+        # special case of getting the recorder
+        if recorder_id is None and recorder_name is None:
+            if self.active_recorder is not None:
+                return self.active_recorder
+            recorder_name = self._default_rec_name
+        if create:
+            recorder, is_new = self._get_or_create_rec(recorder_id=recorder_id, recorder_name=recorder_name)
+        else:
+            recorder, is_new = self._get_recorder(recorder_id=recorder_id, recorder_name=recorder_name), False
+        if is_new:
+            mlflow.set_experiment(self.name)
+            self.active_recorder = recorder
+            # start the recorder
+            self.active_recorder.start_run()
+        return recorder
+
+    def _get_or_create_rec(self, recorder_id=None, recorder_name=None) -> (object, bool):
+        """
+        Method for getting or creating a recorder. It will try to first get a valid recorder, if exception occurs, it will
+        automatically create a new recorder based on the given id and name.
+        """
+        try:
+            return self._get_recorder(recorder_id=recorder_id, recorder_name=recorder_name), False
+        except ValueError:
+            if recorder_name is None:
+                recorder_name = self._default_rec_name
+            logger.info(f"No valid recorder found. Create a new recorder with name {recorder_name}.")
+            return self.create(recorder_name), True
+
+    def _get_recorder(self, recorder_id=None, recorder_name=None):
+        """
+        Method for getting or creating a recorder. It will try to first get a valid recorder, if exception occurs, it will
+        raise errors.
+        """
+        assert (
+            recorder_id is not None or recorder_name is not None
+        ), "Please input at least one of recorder id or name before retrieving recorder."
+        if recorder_id is not None:
+            try:
+                run = self.client.get_run(recorder_id)
+                recorder = MLflowRecorder(self.id, self._uri, mlflow_run=run)
+                return recorder
+            except MlflowException as e:
+                raise ValueError("No valid recorder has been found, please make sure the input recorder id is correct.")
+        elif recorder_name is not None:
+            logger.warning(
+                f"Please make sure the recorder name {recorder_name} is unique, we will only return the first recorder if there exist several matched the given name."
+            )
+            recorders = self.list_recorders()
+            for rid in recorders:
+                if recorders[rid].name == recorder_name:
+                    return recorders[rid]
+            raise ValueError("No valid recorder has been found, please make sure the input recorder name is correct.")
 
     def search_records(self, **kwargs):
         filter_string = "" if kwargs.get("filter_string") is None else kwargs.get("filter_string")
@@ -209,7 +263,6 @@ class MLflowExperiment(Experiment):
             if recorder_id is not None:
                 self.client.delete_run(recorder_id)
             else:
-                recorders = self.list_recorders()
                 recorder = self._get_recorder_by_name(recorder_name)
                 self.client.delete_run(recorder.id)
         except MlflowException as e:
@@ -217,84 +270,11 @@ class MLflowExperiment(Experiment):
                 f"Error: {e}. Something went wrong when deleting recorder. Please check if the name/id of the recorder is correct."
             )
 
-    def _get_recorder_by_id(self, recorder_id=None, create=False):
-        """
-        Get a recorder by its id. If the `create` is set to True, this method will also start to run the recorder.
-
-        Parameters
-        ----------
-        recorder_id : str
-            the id of the recorder to be returned.
-        create : boolean
-            create the recorder if it hasn't been created before.
-
-        Returns
-        -------
-        The specific recorder with given id.
-        """
-        recorders = self.list_recorders()
-        if recorder_id in recorders:
-            return recorders[recorder_id]
-        else:
-            if create:
-                logger.warning(f"No valid recorder found. Create a new recorder with name {recorder_name}.")
-                self.start(recorder_name)
-                return self.active_recorder
-            else:
-                raise Exception(
-                    "Something went wrong when retrieving recorders. Please check if id of the recorder is correct."
-                )
-
-    def _get_recorder_by_name(self, recorder_name=None, create=False):
-        """
-        Get a recorder by its name. If the `create` is set to True, this method will also start to run the recorder.
-
-        Parameters
-        ----------
-        recorder_name : str
-            the name of the recorder to be returned.
-        create : boolean
-            create the recorder if it hasn't been created before.
-
-        Returns
-        -------
-        The specific recorder with given name.
-        """
-        recorders = self.list_recorders()
-        for rid in recorders:
-            if recorders[rid].name == recorder_name:
-                return recorders[rid]
-        if create:
-            logger.warning(f"No valid recorder found. Create a new recorder with name {recorder_name}.")
-            self.start(recorder_name)
-            return self.active_recorder
-        else:
-            raise Exception(
-                "Something went wrong when retrieving recorders. Please check if the name of the experiment is correct."
-            )
-
-    def get_recorder(self, recorder_id=None, recorder_name=None, create=True):
-        """
-        MLflow doesn't support create recorder with a specific id. Thus, when user only provides recorder id and `create`
-        is set to True, this method will not automatically create an active recorder.
-        """
-        # retrive all the recorders under this experiment
-        if recorder_id is None and recorder_name is None:
-            if self.active_recorder:
-                return self.active_recorder
-            else:
-                return self._get_recorder_by_name(create=create)
-        else:
-            if recorder_id is not None:
-                return self._get_recorder_by_id(recorder_id, create=create)
-            else:
-                return self._get_recorder_by_name(recorder_name, create=create)
-
     def list_recorders(self):
         runs = self.client.search_runs(self.id, run_view_type=1)[::-1]
         recorders = dict()
         for i in range(len(runs)):
-            recorder = MLflowRecorder(f"Recorder_{i+1}", self.id, self._uri, runs[i])
+            recorder = MLflowRecorder(self.id, self._uri, mlflow_run=runs[i])
             recorders[runs[i].info.run_id] = recorder
 
         return recorders
