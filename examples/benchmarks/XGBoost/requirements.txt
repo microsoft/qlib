@@ -1,0 +1,3 @@
+numpy==1.17.4
+pandas==1.1.2
+xgboost==1.2.1

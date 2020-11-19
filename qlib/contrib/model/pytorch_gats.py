@@ -121,7 +121,11 @@ class GAT(Model):
         self._scorer = mean_squared_error if loss == "mse" else roc_auc_score
 
         self.GAT_model = GATModel(
-            d_feat=self.d_feat, hidden_size=self.hidden_size, num_layers=self.num_layers, dropout=self.dropout, base_model=self.base_model
+            d_feat=self.d_feat,
+            hidden_size=self.hidden_size,
+            num_layers=self.num_layers,
+            dropout=self.dropout,
+            base_model=self.base_model,
         )
         if optimizer.lower() == "adam":
             self.train_optimizer = optim.Adam(self.GAT_model.parameters(), lr=self.lr)
@@ -321,11 +325,10 @@ class GAT(Model):
 
 
 class GATModel(nn.Module):
-    
-    def __init__(self, d_feat=6, hidden_size=64, num_layers=2, dropout=0.0, base_model='GRU'):
+    def __init__(self, d_feat=6, hidden_size=64, num_layers=2, dropout=0.0, base_model="GRU"):
         super().__init__()
 
-        if base_model == 'GRU':
+        if base_model == "GRU":
             self.rnn = nn.GRU(
                 input_size=d_feat,
                 hidden_size=hidden_size,
@@ -333,7 +336,7 @@ class GATModel(nn.Module):
                 batch_first=True,
                 dropout=dropout,
             )
-        elif base_model == 'LSTM':
+        elif base_model == "LSTM":
             self.rnn = nn.LSTM(
                 input_size=d_feat,
                 hidden_size=hidden_size,
@@ -342,7 +345,7 @@ class GATModel(nn.Module):
                 dropout=dropout,
             )
         else:
-            raise ValueError('unknown base model name `%s`'%base_model) 
+            raise ValueError("unknown base model name `%s`" % base_model)
 
         self.hidden_size = hidden_size
         self.bn1 = nn.BatchNorm1d(num_features=hidden_size, track_running_stats=False)
@@ -354,19 +357,19 @@ class GATModel(nn.Module):
 
         self.d_feat = d_feat
 
-    def cal_convariance(self, x, y): # the 2nd dimension of x and y are the same
-        e_x = torch.mean(x, dim = 1).reshape(-1, 1)
-        e_y = torch.mean(y, dim = 1).reshape(-1, 1)
+    def cal_convariance(self, x, y):  # the 2nd dimension of x and y are the same
+        e_x = torch.mean(x, dim=1).reshape(-1, 1)
+        e_y = torch.mean(y, dim=1).reshape(-1, 1)
         e_x_e_y = e_x.mm(torch.t(e_y))
         x_extend = x.reshape(x.shape[0], 1, x.shape[1]).repeat(1, y.shape[0], 1)
         y_extend = y.reshape(1, y.shape[0], y.shape[1]).repeat(x.shape[0], 1, 1)
-        e_xy = torch.mean(x_extend*y_extend, dim = 2)
+        e_xy = torch.mean(x_extend * y_extend, dim=2)
         return e_xy - e_x_e_y
 
     def forward(self, x):
         # x: [N, F*T]
-        x = x.reshape(len(x), self.d_feat, -1) # [N, F, T]
-        x = x.permute(0, 2, 1) # [N, T, F]
+        x = x.reshape(len(x), self.d_feat, -1)  # [N, F, T]
+        x = x.permute(0, 2, 1)  # [N, T, F]
         out, _ = self.rnn(x)
         hidden = out[:, -1, :]
         hidden = self.bn1(hidden)

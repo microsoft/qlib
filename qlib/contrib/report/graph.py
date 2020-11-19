@@ -11,7 +11,7 @@ import pandas as pd
 import plotly.offline as py
 import plotly.graph_objs as go
 
-from plotly.tools import make_subplots
+from plotly.subplots import make_subplots
 from plotly.figure_factory import create_distplot
 
 from ...utils import get_module_by_module_path
@@ -357,7 +357,7 @@ class SubplotsGraph(object):
             #     _item.pop('yaxis', None)
 
             for _g_obj in _graph_data:
-                self._figure.append_trace(_g_obj, row=row, col=col)
+                self._figure.add_trace(_g_obj, row=row, col=col)
 
         if self._sub_graph_layout is not None:
             for k, v in self._sub_graph_layout.items():

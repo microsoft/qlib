@@ -1,6 +1,7 @@
 #  Copyright (c) Microsoft Corporation.
 #  Licensed under the MIT License.
 
+import re
 import pandas as pd
 from pathlib import Path
 from pprint import pprint
@@ -37,12 +38,14 @@ class RecordTemp:
         """
         raise NotImplementedError(f"Please implement the `generate` method.")
 
-    def load(self, **kwargs):
+    def load(self, name, **kwargs):
         """
         Load the stored records.
 
         Parameters
         ----------
+        name : str
+            the name for the file to be load.
         kwargs
 
         Return
@@ -50,6 +53,16 @@ class RecordTemp:
         The stored records.
         """
         raise NotImplementedError(f"Please implement the `load` method.")
+
+    def list(self):
+        """
+        List the stored records.
+
+        Return
+        ------
+        A list of all the stored records.
+        """
+        raise NotImplementedError(f"Please implement the `list` method.")
 
     def check(self, **kwargs):
         """
@@ -81,6 +94,8 @@ class SignalRecord(RecordTemp):
     def generate(self, **kwargs):
         # generate prediciton
         pred = self.model.predict(self.dataset)
+        if isinstance(pred, pd.Series):
+            pred = pred.to_frame("score")
         self.recorder.save_objects(**{"pred.pkl": pred})
         logger.info(
             f"Signal record 'pred.pkl' has been saved as the artifact of the Experiment {self.recorder.experiment_id}"
@@ -89,10 +104,13 @@ class SignalRecord(RecordTemp):
         pprint(f"The following are prediction results of the {type(self.model).__name__} model.")
         pprint(pred.head(5))
 
-    def load(self):
+    def load(self, name="pred.pkl"):
         # try to load the saved object
-        pred = self.recorder.load_object("pred.pkl")
+        pred = self.recorder.load_object(name)
         return pred
+
+    def list(self):
+        return ["pred.pkl"]
 
     def check(self, **kwargs):
         artifacts = self.recorder.list_artifacts()
@@ -165,10 +183,20 @@ class PortAnaRecord(SignalRecord):
         pprint("The following are analysis results of the excess return with cost.")
         pprint(analysis["excess_return_with_cost"])
 
-    def load(self):
+    def load(self, name):
         # try to load the saved object
-        pred = self.recorder.load_object(self.artifact_path / "port_analysis.pkl")
-        return pred
+        if self.artifact_path not in name:
+            file_name = re.split(r" |/|\\", name)[-1]
+            name = f"{self.artifact_path}/{file_name}"
+        result = self.recorder.load_object(name)
+        return result
+
+    def list(self):
+        return [
+            f"{self.artifact_path}/report_normal.pkl",
+            f"{self.artifact_path}/positions_normal.pkl",
+            f"{self.artifact_path}/port_analysis.pkl",
+        ]
 
     def check(self):
         artifacts = self.recorder.list_artifacts(self.artifact_path)

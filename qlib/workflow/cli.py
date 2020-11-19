@@ -6,8 +6,8 @@ from pathlib import Path
 
 import qlib
 import fire
-import yaml
 import pandas as pd
+import ruamel.yaml as yaml
 from qlib.config import REG_CN
 from qlib.utils import init_instance_by_config
 from qlib.workflow import R
@@ -16,7 +16,7 @@ from qlib.workflow.record_temp import SignalRecord
 # worflow handler function
 def workflow(config_path):
     with open(config_path) as fp:
-        config = yaml.load(fp, Loader=yaml.FullLoader)
+        config = yaml.load(fp, Loader=yaml.Loader)
 
     provider_uri = config.get("provider_uri")
     qlib.init(provider_uri=provider_uri, region=REG_CN)
@@ -26,7 +26,8 @@ def workflow(config_path):
     dataset = init_instance_by_config(config.get("task")["dataset"])
 
     # start exp
-    with R.start("workflow"):
+    with R.start(experiment_name="workflow"):
+        R.log_paramters(**flatten_dict(task))
         model.fit(dataset)
         recorder = R.get_recorder()
 

@@ -317,7 +317,6 @@ class LSTM(Model):
 
 
 class LSTMModel(nn.Module):
-
     def __init__(self, d_feat=6, hidden_size=64, num_layers=2, dropout=0.0):
         super().__init__()
 
@@ -334,7 +333,7 @@ class LSTMModel(nn.Module):
 
     def forward(self, x):
         # x: [N, F*T]
-        x = x.reshape(len(x), self.d_feat, -1) # [N, F, T]
-        x = x.permute(0, 2, 1) # [N, T, F]
+        x = x.reshape(len(x), self.d_feat, -1)  # [N, F, T]
+        x = x.permute(0, 2, 1)  # [N, T, F]
         out, _ = self.rnn(x)
         return self.fc_out(out[:, -1, :]).squeeze()

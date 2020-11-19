@@ -1,0 +1,3 @@
+pandas==1.1.2
+numpy==1.17.4
+catboost==0.24.3
