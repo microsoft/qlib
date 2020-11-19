@@ -40,7 +40,7 @@ Load and prepare data by running the following code:
 
 .. code-block::
 
-    python scripts/get_data.py qlib_data_cn --target_dir ~/.qlib/qlib_data/cn_data
+    python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/cn_data --region cn
 
 This dataset is created by public data collected by crawler scripts in ``scripts/data_collector/``, which have been released in the same repository. Users could create the same dataset with it.
 
