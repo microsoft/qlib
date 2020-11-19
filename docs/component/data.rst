@@ -34,7 +34,7 @@ Qlib Format Dataset
 
 .. code-block:: bash
 
-    python scripts/get_data.py qlib_data_cn --target_dir ~/.qlib/qlib_data/cn_data
+    python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/cn_data --region cn
 
 After running the above command, users can find china-stock data in Qlib format in the ``~/.qlib/csv_data/cn_data`` directory.
 

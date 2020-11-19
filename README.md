@@ -91,7 +91,7 @@ Also, users can install ``Qlib`` by the source code according to the following s
 ## Data Preparation
 Load and prepare data by running the following code:
   ```bash
-  python scripts/get_data.py qlib_data_cn --target_dir ~/.qlib/qlib_data/cn_data
+  python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/cn_data --region cn
   ```
 
 This dataset is created by public data collected by [crawler scripts](scripts/data_collector/), which have been released in
