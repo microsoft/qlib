@@ -1,0 +1,3 @@
+pandas==1.1.2
+numpy==1.17.4
+lightgbm==3.1.0
