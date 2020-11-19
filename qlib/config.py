@@ -130,7 +130,7 @@ _default_config = {
         "class": "MLflowExpManager",
         "module_path": "qlib.workflow.expm",
         "kwargs": {
-            "uri": str(Path(os.getcwd()).resolve() / "mlruns"),
+            "uri": 'file:' + str(Path(os.getcwd()).resolve() / "mlruns"),
             "default_exp_name": "Experiment",
         },
     },
