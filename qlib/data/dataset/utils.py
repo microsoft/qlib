@@ -32,7 +32,7 @@ def get_level_index(df: pd.DataFrame, level=Union[str, int]) -> int:
 
 
 def fetch_df_by_index(
-    df: pd.DataFrame, selector: Union[pd.Timestamp, slice, str, list], level: Union[str, int]
+    df: pd.DataFrame, selector: Union[pd.Timestamp, slice, str, list], level: Union[str, int], fetch_orig=True,
 ) -> pd.DataFrame:
     """
     fetch data from `data` with `selector` and `level`
@@ -52,6 +52,11 @@ def fetch_df_by_index(
     idx_slc = (selector, slice(None, None))
     if get_level_index(df, level) == 1:
         idx_slc = idx_slc[1], idx_slc[0]
-    return df.loc[
-        pd.IndexSlice[idx_slc],
-    ]  # This could be faster than df.loc(axis=0)[idx_slc]
+    if fetch_orig:
+        for slc in idx_slc:
+            if slc != slice(None, None):
+                return df.loc[pd.IndexSlice[idx_slc],]
+        else:
+            return df
+    else:
+        return df.loc[pd.IndexSlice[idx_slc],]

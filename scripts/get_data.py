@@ -55,7 +55,7 @@ class GetData:
             for _file in tqdm(zp.namelist()):
                 zp.extract(_file, str(target_dir.resolve()))
 
-    def qlib_data_cn(self, name="qlib_data_cn", target_dir="~/.qlib/qlib_data/cn_data", version="latest"):
+    def qlib_data(self, name="qlib_data", target_dir="~/.qlib/qlib_data/cn_data", version="latest", interval="1d", region="cn"):
         """download cn qlib data from remote
 
         Parameters
@@ -63,18 +63,25 @@ class GetData:
         target_dir: str
             data save directory
         name: str
-            dataset name, value from [qlib_data_cn, qlib_data_cn_simple], by default qlib_data_cn
+            dataset name, value from [qlib_data, qlib_data_simple], by default qlib_data
         version: str
             data version, value from [v0, v1, ..., latest], by default latest
+        interval: str
+            data freq, value from [1d], by default 1d
+        region: str
+            data region, value from [cn, us], by default cn
 
         Examples
         ---------
-        python get_data.py qlib_data_cn --target_dir ~/.qlib/qlib_data/cn_data --version latest
+        python get_data.py qlib_data --name qlib_data --target_dir ~/.qlib/qlib_data/cn_data --version latest --interval 1d --region cn
         -------
 
         """
-        file_name = f"{name}_{version}.zip"
-        self._download_data(file_name, target_dir)
+        # TODO: The US stock code contains "PRN", and the directory cannot be created on Windows system
+        if region.lower() == "us":
+            logger.warning(f"The US stock code contains 'PRN', and the directory cannot be created on Windows system")
+        file_name = f"{name}_{region.lower()}_{interval.lower()}_{version}.zip"
+        self._download_data(file_name.lower(), target_dir)
 
     def csv_data_cn(self, target_dir="~/.qlib/csv_data/cn_data"):
         """download cn csv data from remote

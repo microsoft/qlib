@@ -18,31 +18,29 @@ pip install -r requirements.txt
 
 ## Collector Data
 
-### Download data -> Normalize data -> Dump data
+### Download data and Normalize data
 ```bash
-python collector.py collector_data --source_dir ~/.qlib/stock_data/source --normalize_dir ~/.qlib/stock_data/normalize_dir --qlib_dir ~/.qlib/stock_data/qlib_data
+python collector.py collector_data --source_dir ~/.qlib/stock_data/source --region CN --start 2020-11-01 --end 2020-11-10 --delay 0.1 --interval 1d
 ```
 
-### Download Data From Yahoo Finance
+### Download Data
 
 ```bash
-python collector.py download_data --source_dir ~/.qlib/stock_data/source
+python collector.py download_data --source_dir ~/.qlib/stock_data/source --region CN --start 2020-11-01 --end 2020-11-10 --delay 0.1 --interval 1d
 ```
 
-### Normalize Yahoo Finance Data
+### Normalize Data
 
 ```bash
-python collector.py normalize_data --source_dir ~/.qlib/stock_data/source --normalize_dir ~/.qlib/stock_data/normalize
+python collector.py normalize_data --source_dir ~/.qlib/stock_data/source --normalize_dir ~/.qlib/stock_data/normalize --region CN
 ```
 
-### Manual Ajust Yahoo Finance Data
-
+### Help
 ```bash
-python collector.py manual_adj_data --normalize_dir ~/.qlib/stock_data/normalize
+pythono collector.py collector_data --help
 ```
 
-### Dump Yahoo Finance Data
+## Parameters
 
-```bash
-python collector.py dump_data --normalize_dir ~/.qlib/stock_data/normalize_dir --qlib_dir ~/.qlib/stock_data/qlib_data
-```
+- interval: 1m or 1d
+- region: CN or US

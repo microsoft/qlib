@@ -5,8 +5,8 @@ import sys, traceback, signal, atexit
 from . import R
 from .recorder import Recorder
 from ..log import get_module_logger
-
 logger = get_module_logger("workflow", "INFO")
+
 
 # function to handle the experiment when unusual program ending occurs
 def experiment_exit_handler():
@@ -31,9 +31,11 @@ def experiment_exception_hook(type, value, tb):
     value: Exception's value
     tb: Exception's traceback
     """
-    logger.error("An exception has been raised.")
+    logger.error(f"An exception has been raised[{type.__name__}: {value}].")
+
+    # Same as original format
     traceback.print_tb(tb)
-    print(f"{type}: {value}")
+    print(f"{type.__name__}: {value}")
 
     R.end_exp(recorder_status=Recorder.STATUS_FA)
 
