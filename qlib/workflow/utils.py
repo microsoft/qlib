@@ -31,8 +31,7 @@ def experiment_exception_hook(type, value, tb):
     value: Exception's value
     tb: Exception's traceback
     """
-    error_msg = f"An exception has been raised[{type.__name__}: {value}]."
-    logger.error(error_msg)
+    logger.error(f"An exception has been raised[{type.__name__}: {value}].")
 
     # Same as original format
     traceback.print_tb(tb)

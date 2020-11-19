@@ -193,7 +193,6 @@ class DNNModelPytorch(Model):
             w_val_auto = w_val_auto.cuda()
 
         for step in range(self.max_steps):
-            self.logger.info(step)
             if stop_steps >= self.early_stop_rounds:
                 if verbose:
                     self.logger.info("\tearly stop")
@@ -201,7 +200,6 @@ class DNNModelPytorch(Model):
             loss = AverageMeter()
             self.dnn_model.train()
             self.train_optimizer.zero_grad()
-            self.logger.info("INIT")
 
             choice = np.random.choice(train_num, self.batch_size)
             x_batch_auto = x_train_values[choice]
