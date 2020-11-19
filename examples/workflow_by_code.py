@@ -14,7 +14,7 @@ from qlib.contrib.evaluate import (
     backtest as normal_backtest,
     risk_analysis,
 )
-from qlib.utils import exists_qlib_data, init_instance_by_config
+from qlib.utils import exists_qlib_data, init_instance_by_config, flatten_dict
 from qlib.workflow import R
 from qlib.workflow.record_temp import SignalRecord, PortAnaRecord
 
@@ -107,7 +107,7 @@ if __name__ == "__main__":
 
     # start exp
     with R.start(experiment_name="workflow"):
-        R.log_paramters(**flatten_dict(task))
+        R.log_params(**flatten_dict(task))
         model.fit(dataset)
 
         # prediction
