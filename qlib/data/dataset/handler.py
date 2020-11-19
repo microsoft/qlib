@@ -289,8 +289,12 @@ class DataHandlerLP(DataHandler):
                 getattr(self, pname).append(
                     init_instance_by_config(
                         proc,
-                        None if (isinstance(data_loader, dict) and "module_path" in data_loader) else data_loader_module,
-                        accept_types=processor_module.Processor))
+                        None
+                        if (isinstance(data_loader, dict) and "module_path" in data_loader)
+                        else data_loader_module,
+                        accept_types=processor_module.Processor,
+                    )
+                )
 
         self.process_type = process_type
         super().__init__(instruments, start_time, end_time, data_loader, **kwargs)
