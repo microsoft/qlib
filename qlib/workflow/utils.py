@@ -5,6 +5,7 @@ import sys, traceback, signal, atexit
 from . import R
 from .recorder import Recorder
 from ..log import get_module_logger
+
 logger = get_module_logger("workflow", "INFO")
 
 

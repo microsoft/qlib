@@ -32,18 +32,18 @@ if __name__ == "__main__":
 
     qlib.init(provider_uri=provider_uri, region=REG_CN)
 
-    MARKET = "csi300"
-    BENCHMARK = "SH000300"
+    market = "csi300"
+    benchmark = "SH000300"
 
     ###################################
     # train model
     ###################################
-    DATA_HANDLER_CONFIG = {
+    data_handler_config = {
         "start_time": "2008-01-01",
         "end_time": "2020-08-01",
         "fit_start_time": "2008-01-01",
         "fit_end_time": "2014-12-31",
-        "instruments": MARKET,
+        "instruments": market,
     }
 
     task = {
@@ -69,7 +69,7 @@ if __name__ == "__main__":
                 "handler": {
                     "class": "Alpha158",
                     "module_path": "qlib.contrib.data.handler",
-                    "kwargs": DATA_HANDLER_CONFIG,
+                    "kwargs": data_handler_config,
                 },
                 "segments": {
                     "train": ("2008-01-01", "2014-12-31"),
@@ -78,8 +78,6 @@ if __name__ == "__main__":
                 },
             },
         },
-        # You shoud record the data in specific sequence
-        "record": ["SignalRecord", "PortAnaRecord"],
     }
 
     port_analysis_config = {
@@ -95,7 +93,7 @@ if __name__ == "__main__":
             "verbose": False,
             "limit_threshold": 0.095,
             "account": 100000000,
-            "benchmark": BENCHMARK,
+            "benchmark": benchmark,
             "deal_price": "close",
             "open_cost": 0.0005,
             "close_cost": 0.0015,
@@ -108,7 +106,8 @@ if __name__ == "__main__":
     dataset = init_instance_by_config(task["dataset"])
 
     # start exp
-    with R.start("workflow"):
+    with R.start(experiment_name="workflow"):
+        R.log_paramters(**flatten_dict(task))
         model.fit(dataset)
 
         # prediction
