@@ -242,6 +242,9 @@ class DumpDataBase:
     def dump(self):
         raise NotImplementedError("dump not implemented!")
 
+    def __call__(self, *args, **kwargs):
+        self.dump()
+
 
 class DumpDataAll(DumpDataBase):
     def _get_all_date(self):
