@@ -55,7 +55,9 @@ class GetData:
             for _file in tqdm(zp.namelist()):
                 zp.extract(_file, str(target_dir.resolve()))
 
-    def qlib_data(self, name="qlib_data", target_dir="~/.qlib/qlib_data/cn_data", version="latest", interval="1d", region="cn"):
+    def qlib_data(
+        self, name="qlib_data", target_dir="~/.qlib/qlib_data/cn_data", version="latest", interval="1d", region="cn"
+    ):
         """download cn qlib data from remote
 
         Parameters

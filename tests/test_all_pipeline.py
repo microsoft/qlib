@@ -149,7 +149,9 @@ class TestAllFlow(unittest.TestCase):
             sys.path.append(str(Path(__file__).resolve().parent.parent.joinpath("scripts")))
             from get_data import GetData
 
-            GetData().qlib_data(name="qlib_data_simple", region="cn", version="latest", interval="1d", target_dir=provider_uri)
+            GetData().qlib_data(
+                name="qlib_data_simple", region="cn", version="latest", interval="1d", target_dir=provider_uri
+            )
         qlib.init(provider_uri=provider_uri, region=REG_CN)
 
     def test_0_train(self):

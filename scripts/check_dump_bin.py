@@ -108,9 +108,7 @@ class CheckBin:
             return self.COMPARE_ERROR
 
     def check(self):
-        """Check whether the bin file after ``dump_bin.py`` is executed is consistent with the original csv file data
-
-        """
+        """Check whether the bin file after ``dump_bin.py`` is executed is consistent with the original csv file data"""
         logger.info("start check......")
 
         error_list = []

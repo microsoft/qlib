@@ -14,7 +14,7 @@ from qlib.workflow import R
 from qlib.workflow.record_temp import SignalRecord
 
 # worflow handler function
-def workflow(config_path):
+def workflow(config_path, experiment_name="workflow"):
     with open(config_path) as fp:
         config = yaml.load(fp, Loader=yaml.Loader)
 
@@ -26,12 +26,13 @@ def workflow(config_path):
     dataset = init_instance_by_config(config.get("task")["dataset"])
 
     # start exp
-    with R.start(experiment_name="workflow"):
-        R.log_paramters(**flatten_dict(task))
+    with R.start(experiment_name=experiment_name):
+        # train model
+        R.log_params(**flatten_dict(config.get("task")))
         model.fit(dataset)
         recorder = R.get_recorder()
 
-        # generate records
+        # generate records: prediction, backtest, and analysis
         for record in config.get("task")["record"]:
             if record["class"] == SignalRecord.__name__:
                 srconf = {"model": model, "dataset": dataset, "recorder": recorder}
