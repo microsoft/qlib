@@ -72,7 +72,7 @@ if __name__ == "__main__":
                 "batch_size": 800,
                 "metric": "IC",
                 "loss": "mse",
-                "base_model":"GRU",
+                "base_model": "GRU",
                 "seed": 0,
                 "GPU": 0,
             },
