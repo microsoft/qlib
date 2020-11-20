@@ -159,6 +159,36 @@ class Recorder:
         """
         raise NotImplementedError(f"Please implement the `list_artifacts` method.")
 
+    def list_metrics(self):
+        """
+        List all the metrics of a recorder.
+
+        Returns
+        -------
+        A dictionary of metrics that being stored.
+        """
+        raise NotImplementedError(f"Please implement the `list_metrics` method.")
+
+    def list_params(self):
+        """
+        List all the params of a recorder.
+
+        Returns
+        -------
+        A dictionary of params that being stored.
+        """
+        raise NotImplementedError(f"Please implement the `list_params` method.")
+
+    def list_tags(self):
+        """
+        List all the tags of a recorder.
+
+        Returns
+        -------
+        A dictionary of tags that being stored.
+        """
+        raise NotImplementedError(f"Please implement the `list_tags` method.")
+
 
 class MLflowRecorder(Recorder):
     """
@@ -239,7 +269,7 @@ class MLflowRecorder(Recorder):
 
     def log_metrics(self, step=None, **kwargs):
         for name, data in kwargs.items():
-            self.client.log_metric(self.id, name, data)
+            self.client.log_metric(self.id, name, data, step=step)
 
     def set_tags(self, **kwargs):
         for name, data in kwargs.items():
@@ -261,3 +291,15 @@ class MLflowRecorder(Recorder):
         assert self._uri is not None, "Please start the experiment and recorder first before using recorder directly."
         artifacts = self.client.list_artifacts(self.id, artifact_path)
         return artifacts
+
+    def list_metrics(self):
+        run = self.client.get_run(self.id)
+        return run.data.metrics
+
+    def list_params(self):
+        run = self.client.get_run(self.id)
+        return run.data.params
+
+    def list_tags(self):
+        run = self.client.get_run(self.id)
+        return run.data.tags

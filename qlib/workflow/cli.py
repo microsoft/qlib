@@ -13,13 +13,15 @@ from qlib.utils import init_instance_by_config, flatten_dict
 from qlib.workflow import R
 from qlib.workflow.record_temp import SignalRecord
 
+
 # worflow handler function
 def workflow(config_path, experiment_name="workflow"):
     with open(config_path) as fp:
         config = yaml.load(fp, Loader=yaml.Loader)
 
     provider_uri = config.get("provider_uri")
-    qlib.init(provider_uri=provider_uri, region=REG_CN)
+    region = config.get("region")
+    qlib.init(provider_uri=provider_uri, region=region)
 
     # model initiaiton
     model = init_instance_by_config(config.get("task")["model"])

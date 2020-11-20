@@ -290,7 +290,9 @@ class DataHandlerLP(DataHandler):
                     init_instance_by_config(
                         proc,
                         None if (isinstance(proc, dict) and "module_path" in proc) else processor_module,
-                        accept_types=processor_module.Processor))
+                        accept_types=processor_module.Processor,
+                    )
+                )
 
         self.process_type = process_type
         super().__init__(instruments, start_time, end_time, data_loader, **kwargs)
