@@ -125,7 +125,10 @@ class BaseGraph(object):
 
         :return:
         """
-        return go.Figure(data=self.data, layout=self._get_layout())
+        _figure = go.Figure(data=self.data, layout=self._get_layout())
+        # NOTE: using default 3.x theme
+        _figure["layout"].update(template=None)
+        return _figure
 
 
 class ScatterGraph(BaseGraph):
@@ -363,7 +366,8 @@ class SubplotsGraph(object):
             for k, v in self._sub_graph_layout.items():
                 self._figure["layout"][k].update(v)
 
-        self._figure["layout"].update(self._layout)
+        # NOTE: using default 3.x theme
+        self._figure["layout"].update(self._layout, template=None)
 
     @property
     def figure(self):
