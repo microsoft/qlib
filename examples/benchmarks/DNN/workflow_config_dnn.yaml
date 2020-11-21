@@ -1,4 +1,5 @@
 provider_uri: "~/.qlib/qlib_data/cn_data"
+region: cn
 market: &market csi300
 benchmark: &benchmark SH000300
 data_handler_config: &data_handler_config
@@ -28,18 +29,16 @@ task:
         class: DNNModelPytorch
         module_path: qlib.contrib.model.pytorch_nn
         kwargs:
+            loss: mse
             input_dim: 360
             output_dim: 1
-            layers: [256, 512, 1024, 512, 256, 128, 64]
-            lr: 0.001
-            max_steps: 300
-            batch_size: 2000
-            early_stop_rounds: 50
-            eval_steps: 20
+            lr: 0.002
             lr_decay: 0.96
             lr_decay_steps: 100
-            optimizer: gd
-            loss: mse
+            optimizer: adam
+            max_steps: 8000
+            batch_size: 4096
+            GPU: 0
     dataset:
         class: DatasetH
         module_path: qlib.data.dataset
