@@ -1,7 +1,9 @@
 from ...utils.serial import Serializable
 from typing import Union, List, Tuple
 from ...utils import init_instance_by_config
-from .handler import DataHandler
+from ...log import get_module_logger
+from .handler import DataHandler, DataHandlerLP
+from inspect import getfullargspec
 import pandas as pd
 
 
@@ -98,9 +100,11 @@ class DatasetH(Dataset):
         self._handler = init_instance_by_config(handler, accept_types=DataHandler)
         self._segments = segments.copy()
 
-    def prepare(
-        self, segments: Union[List[str], Tuple[str], str, slice], col_set=DataHandler.CS_ALL, **kwargs
-    ) -> Union[List[pd.DataFrame], pd.DataFrame]:
+    def prepare(self,
+                segments: Union[List[str], Tuple[str], str, slice],
+                col_set=DataHandler.CS_ALL,
+                data_key=DataHandlerLP.DK_I,
+                **kwargs) -> Union[List[pd.DataFrame], pd.DataFrame]:
         """
         prepare the data for learning and inference
 
@@ -111,22 +115,31 @@ class DatasetH(Dataset):
             Here are some examples
             1) 'train'
             2) ['train', 'valid']
-        col_set : [TODO:type]
-            [TODO:description]
+        col_set : str
+            The col_set will be passed to self._handler when fetching data
+        data_key: str
+            The data to fetch:  DK_*
+            Default is DK_I, which indicate fetching data for **inference**
 
         Returns
         -------
         Union[List[pd.DataFrame], pd.DataFrame]:
-            [TODO:description]
 
         Raises
         ------
         NotImplementedError:
-            [TODO:description]
         """
+        logger = get_module_logger("DatasetH")
+        fetch_kwargs = {"col_set": col_set}
+        fetch_kwargs.update(kwargs)
+        if "data_key"in getfullargspec(self._handler.fetch).args:
+            fetch_kwargs['data_key'] = data_key
+        else:
+            logger.info(f"data_key[{data_key}] is ignored.")
+
         if isinstance(segments, (list, tuple)):
-            return [self._handler.fetch(slice(*self._segments[seg]), col_set=col_set, **kwargs) for seg in segments]
+            return [self._handler.fetch(slice(*self._segments[seg]), **fetch_kwargs) for seg in segments]
         elif isinstance(segments, str):
-            return self._handler.fetch(slice(*self._segments[segments]), col_set=col_set, **kwargs)
+            return self._handler.fetch(slice(*self._segments[segments]), **fetch_kwargs)
         else:
             raise NotImplementedError(f"This type of input is not supported")

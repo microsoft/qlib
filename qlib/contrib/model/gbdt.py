@@ -64,7 +64,7 @@ class LGBModel(ModelFT):
     def predict(self, dataset):
         if self.model is None:
             raise ValueError("model is not fitted yet!")
-        x_test = dataset.prepare("test", col_set="feature")
+        x_test = dataset.prepare("test", col_set="feature", data_key=DataHandlerLP.DK_I)
         return pd.Series(self.model.predict(np.squeeze(x_test.values)), index=x_test.index)
 
     def finetune(self, dataset: DatasetH, num_boost_round=10, verbose_eval=20):

@@ -290,7 +290,7 @@ class MLflowRecorder(Recorder):
     def list_artifacts(self, artifact_path=None):
         assert self._uri is not None, "Please start the experiment and recorder first before using recorder directly."
         artifacts = self.client.list_artifacts(self.id, artifact_path)
-        return artifacts
+        return [art.path for art in artifacts]
 
     def list_metrics(self):
         run = self.client.get_run(self.id)
