@@ -6,7 +6,7 @@ from mlflow.exceptions import MlflowException
 import os
 from pathlib import Path
 from contextlib import contextmanager
-from .exp import MLflowExperiment
+from .exp import MLflowExperiment, Experiment
 from .recorder import Recorder, MLflowRecorder
 from ..log import get_module_logger
 
@@ -128,7 +128,61 @@ class ExpManager:
         -------
         An experiment object.
         """
-        raise NotImplementedError(f"Please implement the `get_exp` method.")
+        # special case of getting experiment
+        if experiment_id is None and experiment_name is None:
+            if self.active_experiment is not None:
+                return self.active_experiment
+            # User don't want get active code now.
+            # Don't assume underlying code could handle the case of two None
+            if experiment_id is None and experiment_name is None:
+                experiment_name = self.default_exp_name
+
+        if create:
+            exp, is_new = self._get_or_create_exp(experiment_id=experiment_id, experiment_name=experiment_name)
+        else:
+            exp, is_new = self._get_exp(experiment_id=experiment_id, experiment_name=experiment_name), False
+        if is_new:
+            self.active_experiment = exp
+            # start the recorder
+            self.active_experiment.start()
+        return exp
+
+    def _get_or_create_exp(self, experiment_id=None, experiment_name=None) -> (object, bool):
+        """
+        Method for getting or creating an experiment. It will try to first get a valid experiment, if exception occurs, it will
+        automatically create a new experiment based on the given id and name.
+        """
+        try:
+            if experiment_id is None and experiment_name is None:
+                experiment_name = self.default_exp_name
+            return self._get_exp(experiment_id=experiment_id, experiment_name=experiment_name), False
+        except ValueError:
+            if experiment_name is None:
+                experiment_name = self.default_exp_name
+            logger.info(f"No valid experiment found. Create a new experiment with name {experiment_name}.")
+            return self.create_exp(experiment_name), True
+
+    def _get_exp(self, experiment_id=None, experiment_name=None) -> Experiment:
+        """
+        get specific experiment by name or id. If  it does not exist, raise ValueError
+
+        Parameters
+        ----------
+        experiment_id :
+            The id of experiment
+        experiment_name :
+            The id name experiment
+
+        Returns
+        -------
+        Experiment:
+            The searched experiment
+
+        Raises
+        ------
+        ValueError
+        """
+        raise NotImplementedError(f"Please implement the `_get_exp` method")
 
     def delete_exp(self, experiment_id=None, experiment_name=None):
         """
@@ -197,40 +251,13 @@ class MLflowExpManager(ExpManager):
             self.active_experiment = None
 
     def create_exp(self, experiment_name=None):
+        assert(experiment_name is not None)
         # init experiment
         experiment_id = self.client.create_experiment(experiment_name)
         experiment = MLflowExperiment(experiment_id, experiment_name, self.uri)
         experiment._default_name = self.default_exp_name
 
         return experiment
-
-    def get_exp(self, experiment_id=None, experiment_name=None, create=True):
-        # special case of getting experiment
-        if experiment_id is None and experiment_name is None:
-            if self.active_experiment is not None:
-                return self.active_experiment
-        if create:
-            exp, is_new = self._get_or_create_exp(experiment_id=experiment_id, experiment_name=experiment_name)
-        else:
-            exp, is_new = self._get_exp(experiment_id=experiment_id, experiment_name=experiment_name), False
-        if is_new:
-            self.active_experiment = exp
-            # start the recorder
-            self.active_experiment.start()
-        return exp
-
-    def _get_or_create_exp(self, experiment_id=None, experiment_name=None) -> (object, bool):
-        """
-        Method for getting or creating an experiment. It will try to first get a valid experiment, if exception occurs, it will
-        automatically create a new experiment based on the given id and name.
-        """
-        try:
-            return self._get_exp(experiment_id=experiment_id, experiment_name=experiment_name), False
-        except ValueError:
-            if experiment_name is None:
-                experiment = self.default_exp_name
-            logger.info(f"No valid experiment found. Create a new experiment with name {experiment_name}.")
-            return self.create_exp(experiment_name), True
 
     def _get_exp(self, experiment_id=None, experiment_name=None):
         """
@@ -247,7 +274,7 @@ class MLflowExpManager(ExpManager):
                     raise MlflowException("No valid experiment has been found.")
                 experiment = MLflowExperiment(exp.experiment_id, exp.name, self.uri)
                 return experiment
-            except MlflowException as e:
+            except MlflowException:
                 raise ValueError(
                     "No valid experiment has been found, please make sure the input experiment id is correct."
                 )
@@ -293,6 +320,5 @@ class MLflowExpManager(ExpManager):
         experiments = dict()
         for exp in exps:
             experiment = MLflowExperiment(exp.experiment_id, exp.name, self.uri)
-            experiments[ename] = experiment
-
+            experiments[exp.name] = experiment
         return experiments

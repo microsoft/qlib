@@ -96,7 +96,7 @@ class DatasetH(Dataset):
                 }
         """
         self._handler = init_instance_by_config(handler, accept_types=DataHandler)
-        self._segments = segments
+        self._segments = segments.copy()
 
     def prepare(
         self, segments: Union[List[str], Tuple[str], str, slice], col_set=DataHandler.CS_ALL, **kwargs

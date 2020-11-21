@@ -156,8 +156,9 @@ class DataHandler(Serializable):
         -------
         pd.DataFrame:
         """
-        df = fetch_df_by_index(self._data, selector, level, fetch_orig=self.fetch_orig)
-        df = self._fetch_df_by_col(df, col_set)
+        # Fetch column  first will be more friendly to SepDataFrame
+        df = self._fetch_df_by_col(self._data, col_set)
+        df = fetch_df_by_index(df, selector, level, fetch_orig=self.fetch_orig)
         if squeeze:
             # squeeze columns
             df = df.squeeze()
@@ -417,8 +418,9 @@ class DataHandlerLP(DataHandler):
         pd.DataFrame:
         """
         df = self._get_df_by_key(data_key)
-        df = fetch_df_by_index(df, selector, level, fetch_orig=self.fetch_orig)
-        return self._fetch_df_by_col(df, col_set)
+        # Fetch column  first will be more friendly to SepDataFrame
+        df = self._fetch_df_by_col(df, col_set)
+        return fetch_df_by_index(df, selector, level, fetch_orig=self.fetch_orig)
 
     def get_cols(self, col_set=DataHandler.CS_ALL, data_key: str = DK_I) -> list:
         """
