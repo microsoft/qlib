@@ -100,11 +100,13 @@ class DatasetH(Dataset):
         self._handler = init_instance_by_config(handler, accept_types=DataHandler)
         self._segments = segments.copy()
 
-    def prepare(self,
-                segments: Union[List[str], Tuple[str], str, slice],
-                col_set=DataHandler.CS_ALL,
-                data_key=DataHandlerLP.DK_I,
-                **kwargs) -> Union[List[pd.DataFrame], pd.DataFrame]:
+    def prepare(
+        self,
+        segments: Union[List[str], Tuple[str], str, slice],
+        col_set=DataHandler.CS_ALL,
+        data_key=DataHandlerLP.DK_I,
+        **kwargs,
+    ) -> Union[List[pd.DataFrame], pd.DataFrame]:
         """
         prepare the data for learning and inference
 
@@ -132,8 +134,8 @@ class DatasetH(Dataset):
         logger = get_module_logger("DatasetH")
         fetch_kwargs = {"col_set": col_set}
         fetch_kwargs.update(kwargs)
-        if "data_key"in getfullargspec(self._handler.fetch).args:
-            fetch_kwargs['data_key'] = data_key
+        if "data_key" in getfullargspec(self._handler.fetch).args:
+            fetch_kwargs["data_key"] = data_key
         else:
             logger.info(f"data_key[{data_key}] is ignored.")
 

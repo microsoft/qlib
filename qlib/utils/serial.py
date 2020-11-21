@@ -10,14 +10,14 @@ class Serializable:
     Serializable behaves like pickle.
     But it only saves the state whose name **does not** start with `_`
     """
+
     def __init__(self):
         self._dump_all = False
         self._exclude = []
 
     def __getstate__(self) -> dict:
         return {
-            k: v
-            for k, v in self.__dict__.items() if k not in self.exclude and (self.dump_all or not k.startswith("_"))
+            k: v for k, v in self.__dict__.items() if k not in self.exclude and (self.dump_all or not k.startswith("_"))
         }
 
     def __setstate__(self, state: dict):

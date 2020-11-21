@@ -251,7 +251,7 @@ class MLflowExpManager(ExpManager):
             self.active_experiment = None
 
     def create_exp(self, experiment_name=None):
-        assert(experiment_name is not None)
+        assert experiment_name is not None
         # init experiment
         experiment_id = self.client.create_experiment(experiment_name)
         experiment = MLflowExperiment(experiment_id, experiment_name, self.uri)

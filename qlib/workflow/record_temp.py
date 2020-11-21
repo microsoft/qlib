@@ -119,7 +119,7 @@ class SignalRecord(RecordTemp):
                 raw_label = DatasetH.prepare(**params)
             except TypeError:
                 # The argument number is not right
-                del params['data_key']
+                del params["data_key"]
                 # The backend handler should be DataHandler
                 raw_label = DatasetH.prepare(**params)
             self.recorder.save_objects(**{"label.pkl": raw_label})
@@ -147,7 +147,7 @@ class SigAnaRecord(SignalRecord):
             "IC": ic.mean(),
             "ICIR": ic.mean() / ic.std(),
             "Rank IC": ric.mean(),
-            "Rank ICIR": ric.mean() / ric.std()
+            "Rank ICIR": ric.mean() / ric.std(),
         }
         self.recorder.log_metrics(**metrics)
         self.recorder.save_objects(**{"ic.pkl": ic, "ric.pkl": ric}, artifact_path=self.artifact_path_sig)
