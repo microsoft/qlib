@@ -147,7 +147,7 @@ def backtest_analysis(pred, rid):
     # backtest
     par = PortAnaRecord(recorder, port_analysis_config)
     par.generate()
-    analysis_df = par.load("port_analysis.pkl")
+    analysis_df = par.load(par.get_path("port_analysis.pkl"))
     print(analysis_df)
     return analysis_df
 
