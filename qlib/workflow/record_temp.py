@@ -37,6 +37,19 @@ class RecordTemp:
 
         return "/".join(names)
 
+    artifact_path = None
+
+    @classmethod
+    def get_path(cls, path=None):
+        names = []
+        if cls.artifact_path is not None:
+            names.append(cls.artifact_path)
+
+        if path is not None:
+            names.append(path)
+
+        return "/".join(names)
+
     def __init__(self, recorder):
         self.recorder = recorder
 
