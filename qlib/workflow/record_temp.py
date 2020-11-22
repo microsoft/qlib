@@ -24,31 +24,6 @@ class RecordTemp:
     This is the Records Template class that enables user to generate experiment results such as IC and
     backtest in a certain format.
     """
-    artifact_path = None
-
-    @classmethod
-    def get_path(cls, path=None):
-        names = []
-        if cls.artifact_path is not None:
-            names.append(cls.artifact_path)
-
-        if path is not None:
-            names.append(path)
-
-        return "/".join(names)
-
-    artifact_path = None
-
-    @classmethod
-    def get_path(cls, path=None):
-        names = []
-        if cls.artifact_path is not None:
-            names.append(cls.artifact_path)
-
-        if path is not None:
-            names.append(path)
-
-        return "/".join(names)
 
     artifact_path = None
 

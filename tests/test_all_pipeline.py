@@ -8,7 +8,6 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from scipy.stats import pearsonr
 
 import qlib
 from qlib.config import REG_CN, C
@@ -22,7 +21,7 @@ from qlib.contrib.evaluate import (
 )
 from qlib.utils import exists_qlib_data, init_instance_by_config, flatten_dict
 from qlib.workflow import R
-from qlib.workflow.record_temp import SignalRecord, PortAnaRecord
+from qlib.workflow.record_temp import SignalRecord, SigAnaRecord, PortAnaRecord
 
 
 market = "csi300"
@@ -123,11 +122,13 @@ def train():
         sr.generate()
         pred_score = sr.load()
 
-    y_test = dataset.prepare("test", col_set="label")
-    pred_score, y_test, __ = drop_nan_by_y_index(pred_score, y_test)
-    model_pearsonr = pearsonr(np.ravel(pred_score.values), np.ravel(y_test.values))[0]
+        # calculate ic and ric
+        sar = SigAnaRecord(recorder)
+        sar.generate()
+        ic = sar.load(sar.get_path("ic.pkl"))
+        ric = sar.load(sar.get_path("ric.pkl"))
 
-    return pred_score, {"model_pearsonr": model_pearsonr}, rid
+    return pred_score, {"ic": ic, "ric": ric}, rid
 
 
 def backtest_analysis(pred, rid):
@@ -135,12 +136,15 @@ def backtest_analysis(pred, rid):
 
     Parameters
     ----------
-    pred: pandas.DataFrame
+    pred : pandas.DataFrame
         predict scores
+    rid : str
+        the id of the recorder to be used in this function
 
     Returns
     -------
-    analysis result : pandas.DataFrame
+    analysis : pandas.DataFrame
+        the analysis result
 
     """
     recorder = R.get_recorder(experiment_name="workflow", recorder_id=rid)
@@ -177,8 +181,9 @@ class TestAllFlow(unittest.TestCase):
         shutil.rmtree(str(Path(C["exp_manager"]["kwargs"]["uri"].strip("file:")).resolve()))
 
     def test_0_train(self):
-        TestAllFlow.PRED_SCORE, model_pearsonr, TestAllFlow.RID = train()
-        self.assertGreaterEqual(model_pearsonr["model_pearsonr"], 0, "train failed")
+        TestAllFlow.PRED_SCORE, ic_ric, TestAllFlow.RID = train()
+        self.assertGreaterEqual(ic_ric["ic"].all(), 0, "train failed")
+        self.assertGreaterEqual(ic_ric["ric"].all(), 0, "train failed")
 
     def test_1_backtest(self):
         analyze_df = backtest_analysis(TestAllFlow.PRED_SCORE, TestAllFlow.RID)

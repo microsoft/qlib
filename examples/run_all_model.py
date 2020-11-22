@@ -198,6 +198,10 @@ def gen_and_save_md_table(results):
 
 # function to run the all the models
 def run():
+    """
+    Please be aware that this function can only work under Linux. MacOS and Windows will be supported in the future.
+    Any PR to enhance this method is highly welcomed.
+    """
     # get all folders
     folders = get_all_folders()
     # set up
