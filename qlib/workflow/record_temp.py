@@ -24,6 +24,18 @@ class RecordTemp:
     This is the Records Template class that enables user to generate experiment results such as IC and
     backtest in a certain format.
     """
+    artifact_path = None
+
+    @classmethod
+    def get_path(cls, path=None):
+        names = []
+        if cls.artifact_path is not None:
+            names.append(cls.artifact_path)
+
+        if path is not None:
+            names.append(path)
+
+        return "/".join(names)
 
     def __init__(self, recorder):
         self.recorder = recorder
@@ -79,7 +91,7 @@ class RecordTemp:
         artifacts = set(self.recorder.list_artifacts())
         if parent:
             # Downcasting have to be done here instead of using `super`
-            flist = self.__class__.__base__.list(self)
+            flist = self.__class__.__base__.list(self)  # pylint: disable=E1101
         else:
             flist = self.list()
         for item in flist:
@@ -132,10 +144,12 @@ class SignalRecord(RecordTemp):
 
 
 class SigAnaRecord(SignalRecord):
+
+    artifact_path = "sig_analysis"
+
     def __init__(self, recorder, **kwargs):
         super().__init__(recorder=recorder, **kwargs)
         # The name must be unique. Otherwise it will be overridden
-        self.artifact_path_sig = "sig_analysis"
 
     def generate(self):
         self.check(parent=True)
@@ -150,17 +164,19 @@ class SigAnaRecord(SignalRecord):
             "Rank ICIR": ric.mean() / ric.std(),
         }
         self.recorder.log_metrics(**metrics)
-        self.recorder.save_objects(**{"ic.pkl": ic, "ric.pkl": ric}, artifact_path=self.artifact_path_sig)
+        self.recorder.save_objects(**{"ic.pkl": ic, "ric.pkl": ric}, artifact_path=self.get_path())
         pprint(metrics)
 
     def list(self):
-        return ["{self.artifact_path_sig}/ic.pkl", "{self.artifact_path_sig}/ric.pkl"]
+        return [self.get_path("ic.pkl"), self.get_path("ric.pkl")]
 
 
 class PortAnaRecord(SignalRecord):
     """
     This is the Portfolio Analysis Record class that generates the results such as those of backtest.
     """
+
+    artifact_path = "portfolio_analysis"
 
     def __init__(self, recorder, config, **kwargs):
         """
@@ -174,7 +190,6 @@ class PortAnaRecord(SignalRecord):
         self.strategy_config = config["strategy"]
         self.backtest_config = config["backtest"]
         self.strategy = init_instance_by_config(self.strategy_config)
-        self.artifact_path_port = "portfolio_analysis"
 
     def generate(self, **kwargs):
         # check previously stored prediction results
@@ -183,8 +198,8 @@ class PortAnaRecord(SignalRecord):
         # custom strategy and get backtest
         pred_score = super().load()
         report_normal, positions_normal = normal_backtest(pred_score, strategy=self.strategy, **self.backtest_config)
-        self.recorder.save_objects(**{"report_normal.pkl": report_normal}, artifact_path=self.artifact_path_port)
-        self.recorder.save_objects(**{"positions_normal.pkl": positions_normal}, artifact_path=self.artifact_path_port)
+        self.recorder.save_objects(**{"report_normal.pkl": report_normal}, artifact_path=PortAnaRecord.get_path())
+        self.recorder.save_objects(**{"positions_normal.pkl": positions_normal}, artifact_path=PortAnaRecord.get_path())
 
         # analysis
         analysis = dict()
@@ -197,7 +212,7 @@ class PortAnaRecord(SignalRecord):
         # log metrics
         self.recorder.log_metrics(**flatten_dict(analysis_df["risk"].unstack().T.to_dict()))
         # save results
-        self.recorder.save_objects(**{"port_analysis.pkl": analysis_df}, artifact_path=self.artifact_path_port)
+        self.recorder.save_objects(**{"port_analysis.pkl": analysis_df}, artifact_path=PortAnaRecord.get_path())
         logger.info(
             f"Portfolio analysis record 'port_analysis.pkl' has been saved as the artifact of the Experiment {self.recorder.experiment_id}"
         )
@@ -209,7 +224,7 @@ class PortAnaRecord(SignalRecord):
 
     def list(self):
         return [
-            f"{self.artifact_path_port}/report_normal.pkl",
-            f"{self.artifact_path_port}/positions_normal.pkl",
-            f"{self.artifact_path_port}/port_analysis.pkl",
+            PortAnaRecord.get_path("report_normal.pkl"),
+            PortAnaRecord.get_path("positions_normal.pkl"),
+            PortAnaRecord.get_path("port_analysis.pkl"),
         ]

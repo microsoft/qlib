@@ -101,7 +101,7 @@ setup(
     entry_points={
         # 'console_scripts': ['mycli=mymodule:cli'],
         "console_scripts": [
-            "workflow_by_config=qlib.workflow.cli:run",
+            "qrun=qlib.workflow.cli:run",
         ],
     },
     ext_modules=extensions,
