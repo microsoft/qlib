@@ -15,6 +15,7 @@ import importlib
 import traceback
 import numpy as np
 import pandas as pd
+from pathlib import Path
 from multiprocessing import Pool
 
 from .cache import H
@@ -210,6 +211,20 @@ class InstrumentProvider(abc.ABC):
         if isinstance(inst, (list, tuple, pd.Index, np.ndarray)):
             return cls.LIST
         raise ValueError(f"Unknown instrument type {inst}")
+
+    def convert_instruments(self, instrument):
+        _instruments_map = getattr(self, "_instruments_map", None)
+        if _instruments_map is None:
+            _df_list = []
+            # FIXME: each process will read these files
+            for _path in Path(C.get_data_path()).joinpath("instruments").glob("*.txt"):
+                _df = pd.read_csv(_path, sep="\t", names=["inst", "start_datetime", "end_datetime", "save_inst"])
+                _df_list.append(_df.iloc[:, [0, -1]])
+            df = pd.concat(_df_list, sort=False).sort_values("save_inst")
+            df = df.drop_duplicates(subset=["save_inst"], keep="first").fillna(axis=1, method="ffill")
+            _instruments_map = df.set_index("inst").iloc[:, 0].to_dict()
+            setattr(self, "_instruments_map", _instruments_map)
+        return _instruments_map.get(instrument, instrument)
 
 
 class FeatureProvider(abc.ABC):
@@ -570,19 +585,11 @@ class LocalInstrumentProvider(InstrumentProvider):
         if not os.path.exists(fname):
             raise ValueError("instruments not exists for market " + market)
         _instruments = dict()
-        with open(fname) as f:
-            for line in f:
-                inst_time = line.strip().split()
-                inst = inst_time[0]
-                if len(inst_time) == 3:
-                    # `day`
-                    begin = inst_time[1]
-                    end = inst_time[2]
-                elif len(inst_time) == 5:
-                    # `1min`
-                    begin = inst_time[1] + " " + inst_time[2]
-                    end = inst_time[3] + " " + inst_time[4]
-                _instruments.setdefault(inst, []).append((pd.Timestamp(begin), pd.Timestamp(end)))
+        df = pd.read_csv(fname, sep="\t", names=["inst", "start_datetime", "end_datetime", "save_inst"])
+        df["start_datetime"] = pd.to_datetime(df["start_datetime"])
+        df["end_datetime"] = pd.to_datetime(df["end_datetime"])
+        for row in df.itertuples(index=False):
+            _instruments.setdefault(row[0], []).append((row[1], row[2]))
         return _instruments
 
     def list_instruments(self, instruments, start_time=None, end_time=None, freq="day", as_list=False):
@@ -637,6 +644,7 @@ class LocalFeatureProvider(FeatureProvider):
     def feature(self, instrument, field, start_index, end_index, freq):
         # validate
         field = str(field).lower()[1:]
+        instrument = Inst.convert_instruments(instrument)
         uri_data = self._uri_data.format(instrument.lower(), field, freq)
         if not os.path.exists(uri_data):
             get_module_logger("data").warning("WARN: data not found for %s.%s" % (instrument, field))

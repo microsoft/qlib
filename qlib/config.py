@@ -155,6 +155,7 @@ MODE_CONF = {
         # cache
         "expression_cache": "DiskExpressionCache",
         "dataset_cache": "DiskDatasetCache",
+        "mount_path": None,
     },
     "client": {
         # data provider config

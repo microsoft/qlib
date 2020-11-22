@@ -613,7 +613,9 @@ def exists_qlib_data(qlib_dir):
     # check instruments
     code_names = set(map(lambda x: x.name.lower(), features_dir.iterdir()))
     _instrument = instruments_dir.joinpath("all.txt")
-    miss_code = set(pd.read_csv(_instrument, sep="\t", header=None).loc[:, 0].apply(str.lower)) - set(code_names)
+    df = pd.read_csv(_instrument, sep="\t", names=["inst", "start_datetime", "end_datetime", "save_inst"])
+    df = df.iloc[:, [0, -1]].fillna(axis=1, method="ffill")
+    miss_code = set(df.iloc[:, -1].apply(str.lower)) - set(code_names)
     if miss_code and any(map(lambda x: "sht" not in x, miss_code)):
         return False
 
