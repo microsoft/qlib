@@ -79,9 +79,6 @@ class GetData:
         -------
 
         """
-        # TODO: The US stock code contains "PRN", and the directory cannot be created on Windows system
-        if region.lower() == "us":
-            logger.warning(f"The US stock code contains 'PRN', and the directory cannot be created on Windows system")
         file_name = f"{name}_{region.lower()}_{interval.lower()}_{version}.zip"
         self._download_data(file_name.lower(), target_dir)
 

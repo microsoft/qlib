@@ -24,6 +24,7 @@ class IndexBase:
     INSTRUMENTS_COLUMNS = [SYMBOL_FIELD_NAME, START_DATE_FIELD, END_DATE_FIELD]
     REMOVE = "remove"
     ADD = "add"
+    INST_PREFIX = ""
 
     def __init__(self, index_name: str, qlib_dir: [str, Path] = None, request_retry: int = 5, retry_sleep: int = 3):
         """
@@ -196,7 +197,11 @@ class IndexBase:
                 _tmp_df = pd.DataFrame([[_row.symbol, self.bench_start_date, _row.date]], columns=instruments_columns)
                 new_df = new_df.append(_tmp_df, sort=False)
 
-        new_df.loc[:, instruments_columns].to_csv(
+        inst_df = new_df.loc[:, instruments_columns]
+        _inst_prefix = self.INST_PREFIX.strip()
+        if _inst_prefix:
+            inst_df["save_inst"] = inst_df[self.SYMBOL_FIELD_NAME].apply(lambda x: f"{_inst_prefix}{x}")
+        inst_df.to_csv(
             self.instruments_dir.joinpath(f"{self.index_name.lower()}.txt"), sep="\t", index=False, header=None
         )
         logger.info(f"parse {self.index_name.lower()} companies finished.")

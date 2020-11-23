@@ -184,9 +184,14 @@ def get_us_stock_symbols(qlib_data_path: [str, Path] = None) -> list:
                     names=["symbol", "start_date", "end_date"],
                 )
                 _all_symbols += ins_df["symbol"].unique().tolist()
-        _US_SYMBOLS = sorted(
-            set(map(lambda x: x.replace(".", "-"), filter(lambda x: len(x) < 8 and not x.endswith("WS"), _all_symbols)))
-        )
+
+        def _format(s_):
+            s_ = s_.replace(".", "-")
+            s_ = s_.strip("$")
+            s_ = s_.strip("*")
+            return s_
+
+        _US_SYMBOLS = sorted(set(map(_format, filter(lambda x: len(x) < 8 and not x.endswith("WS"), _all_symbols))))
 
     return _US_SYMBOLS
 
