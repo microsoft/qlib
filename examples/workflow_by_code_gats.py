@@ -30,7 +30,7 @@ if __name__ == "__main__":
         sys.path.append(str(Path(__file__).resolve().parent.parent.joinpath("scripts")))
         from get_data import GetData
 
-        GetData().qlib_data_cn(target_dir=provider_uri)
+        GetData().qlib_data(target_dir=provider_uri, region="cn")
 
     qlib.init(provider_uri=provider_uri, region=REG_CN)
 
