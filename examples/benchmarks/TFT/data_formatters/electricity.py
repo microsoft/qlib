@@ -31,231 +31,224 @@ InputTypes = data_formatters.base.InputTypes
 
 
 class ElectricityFormatter(GenericDataFormatter):
-  """Defines and formats data for the electricity dataset.
+    """Defines and formats data for the electricity dataset.
 
-  Note that per-entity z-score normalization is used here, and is implemented
-  across functions.
+    Note that per-entity z-score normalization is used here, and is implemented
+    across functions.
 
-  Attributes:
-    column_definition: Defines input and data type of column used in the
-      experiment.
-    identifiers: Entity identifiers used in experiments.
-  """
-
-  _column_definition = [
-      ('id', DataTypes.REAL_VALUED, InputTypes.ID),
-      ('hours_from_start', DataTypes.REAL_VALUED, InputTypes.TIME),
-      ('power_usage', DataTypes.REAL_VALUED, InputTypes.TARGET),
-      ('hour', DataTypes.REAL_VALUED, InputTypes.KNOWN_INPUT),
-      ('day_of_week', DataTypes.REAL_VALUED, InputTypes.KNOWN_INPUT),
-      ('hours_from_start', DataTypes.REAL_VALUED, InputTypes.KNOWN_INPUT),
-      ('categorical_id', DataTypes.CATEGORICAL, InputTypes.STATIC_INPUT),
-  ]
-
-  def __init__(self):
-    """Initialises formatter."""
-
-    self.identifiers = None
-    self._real_scalers = None
-    self._cat_scalers = None
-    self._target_scaler = None
-    self._num_classes_per_cat_input = None
-    self._time_steps = self.get_fixed_params()['total_time_steps']
-
-  def split_data(self, df, valid_boundary=1315, test_boundary=1339):
-    """Splits data frame into training-validation-test data frames.
-
-    This also calibrates scaling object, and transforms data for each split.
-
-    Args:
-      df: Source data frame to split.
-      valid_boundary: Starting year for validation data
-      test_boundary: Starting year for test data
-
-    Returns:
-      Tuple of transformed (train, valid, test) data.
+    Attributes:
+      column_definition: Defines input and data type of column used in the
+        experiment.
+      identifiers: Entity identifiers used in experiments.
     """
 
-    print('Formatting train-valid-test splits.')
+    _column_definition = [
+        ("id", DataTypes.REAL_VALUED, InputTypes.ID),
+        ("hours_from_start", DataTypes.REAL_VALUED, InputTypes.TIME),
+        ("power_usage", DataTypes.REAL_VALUED, InputTypes.TARGET),
+        ("hour", DataTypes.REAL_VALUED, InputTypes.KNOWN_INPUT),
+        ("day_of_week", DataTypes.REAL_VALUED, InputTypes.KNOWN_INPUT),
+        ("hours_from_start", DataTypes.REAL_VALUED, InputTypes.KNOWN_INPUT),
+        ("categorical_id", DataTypes.CATEGORICAL, InputTypes.STATIC_INPUT),
+    ]
 
-    index = df['days_from_start']
-    train = df.loc[index < valid_boundary]
-    valid = df.loc[(index >= valid_boundary - 7) & (index < test_boundary)]
-    test = df.loc[index >= test_boundary - 7]
+    def __init__(self):
+        """Initialises formatter."""
 
-    self.set_scalers(train)
+        self.identifiers = None
+        self._real_scalers = None
+        self._cat_scalers = None
+        self._target_scaler = None
+        self._num_classes_per_cat_input = None
+        self._time_steps = self.get_fixed_params()["total_time_steps"]
 
-    return (self.transform_inputs(data) for data in [train, valid, test])
+    def split_data(self, df, valid_boundary=1315, test_boundary=1339):
+        """Splits data frame into training-validation-test data frames.
 
-  def set_scalers(self, df):
-    """Calibrates scalers using the data supplied.
+        This also calibrates scaling object, and transforms data for each split.
 
-    Args:
-      df: Data to use to calibrate scalers.
-    """
-    print('Setting scalers with training data...')
+        Args:
+          df: Source data frame to split.
+          valid_boundary: Starting year for validation data
+          test_boundary: Starting year for test data
 
-    column_definitions = self.get_column_definition()
-    id_column = utils.get_single_col_by_input_type(InputTypes.ID,
-                                                   column_definitions)
-    target_column = utils.get_single_col_by_input_type(InputTypes.TARGET,
-                                                       column_definitions)
+        Returns:
+          Tuple of transformed (train, valid, test) data.
+        """
 
-    # Format real scalers
-    real_inputs = utils.extract_cols_from_data_type(
-        DataTypes.REAL_VALUED, column_definitions,
-        {InputTypes.ID, InputTypes.TIME})
+        print("Formatting train-valid-test splits.")
 
-    # Initialise scaler caches
-    self._real_scalers = {}
-    self._target_scaler = {}
-    identifiers = []
-    for identifier, sliced in df.groupby(id_column):
+        index = df["days_from_start"]
+        train = df.loc[index < valid_boundary]
+        valid = df.loc[(index >= valid_boundary - 7) & (index < test_boundary)]
+        test = df.loc[index >= test_boundary - 7]
 
-      if len(sliced) >= self._time_steps:
+        self.set_scalers(train)
 
-        data = sliced[real_inputs].values
-        targets = sliced[[target_column]].values
-        self._real_scalers[identifier] \
-      = sklearn.preprocessing.StandardScaler().fit(data)
+        return (self.transform_inputs(data) for data in [train, valid, test])
 
-        self._target_scaler[identifier] \
-      = sklearn.preprocessing.StandardScaler().fit(targets)
-      identifiers.append(identifier)
+    def set_scalers(self, df):
+        """Calibrates scalers using the data supplied.
 
-    # Format categorical scalers
-    categorical_inputs = utils.extract_cols_from_data_type(
-        DataTypes.CATEGORICAL, column_definitions,
-        {InputTypes.ID, InputTypes.TIME})
+        Args:
+          df: Data to use to calibrate scalers.
+        """
+        print("Setting scalers with training data...")
 
-    categorical_scalers = {}
-    num_classes = []
-    for col in categorical_inputs:
-      # Set all to str so that we don't have mixed integer/string columns
-      srs = df[col].apply(str)
-      categorical_scalers[col] = sklearn.preprocessing.LabelEncoder().fit(
-          srs.values)
-      num_classes.append(srs.nunique())
+        column_definitions = self.get_column_definition()
+        id_column = utils.get_single_col_by_input_type(InputTypes.ID, column_definitions)
+        target_column = utils.get_single_col_by_input_type(InputTypes.TARGET, column_definitions)
 
-    # Set categorical scaler outputs
-    self._cat_scalers = categorical_scalers
-    self._num_classes_per_cat_input = num_classes
+        # Format real scalers
+        real_inputs = utils.extract_cols_from_data_type(
+            DataTypes.REAL_VALUED, column_definitions, {InputTypes.ID, InputTypes.TIME}
+        )
 
-    # Extract identifiers in case required
-    self.identifiers = identifiers
+        # Initialise scaler caches
+        self._real_scalers = {}
+        self._target_scaler = {}
+        identifiers = []
+        for identifier, sliced in df.groupby(id_column):
 
-  def transform_inputs(self, df):
-    """Performs feature transformations.
+            if len(sliced) >= self._time_steps:
 
-    This includes both feature engineering, preprocessing and normalisation.
+                data = sliced[real_inputs].values
+                targets = sliced[[target_column]].values
+                self._real_scalers[identifier] = sklearn.preprocessing.StandardScaler().fit(data)
 
-    Args:
-      df: Data frame to transform.
+                self._target_scaler[identifier] = sklearn.preprocessing.StandardScaler().fit(targets)
+            identifiers.append(identifier)
 
-    Returns:
-      Transformed data frame.
+        # Format categorical scalers
+        categorical_inputs = utils.extract_cols_from_data_type(
+            DataTypes.CATEGORICAL, column_definitions, {InputTypes.ID, InputTypes.TIME}
+        )
 
-    """
+        categorical_scalers = {}
+        num_classes = []
+        for col in categorical_inputs:
+            # Set all to str so that we don't have mixed integer/string columns
+            srs = df[col].apply(str)
+            categorical_scalers[col] = sklearn.preprocessing.LabelEncoder().fit(srs.values)
+            num_classes.append(srs.nunique())
 
-    if self._real_scalers is None and self._cat_scalers is None:
-      raise ValueError('Scalers have not been set!')
+        # Set categorical scaler outputs
+        self._cat_scalers = categorical_scalers
+        self._num_classes_per_cat_input = num_classes
 
-    # Extract relevant columns
-    column_definitions = self.get_column_definition()
-    id_col = utils.get_single_col_by_input_type(InputTypes.ID,
-                                                column_definitions)
-    real_inputs = utils.extract_cols_from_data_type(
-        DataTypes.REAL_VALUED, column_definitions,
-        {InputTypes.ID, InputTypes.TIME})
-    categorical_inputs = utils.extract_cols_from_data_type(
-        DataTypes.CATEGORICAL, column_definitions,
-        {InputTypes.ID, InputTypes.TIME})
+        # Extract identifiers in case required
+        self.identifiers = identifiers
 
-    # Transform real inputs per entity
-    df_list = []
-    for identifier, sliced in df.groupby(id_col):
+    def transform_inputs(self, df):
+        """Performs feature transformations.
 
-      # Filter out any trajectories that are too short
-      if len(sliced) >= self._time_steps:
-        sliced_copy = sliced.copy()
-        sliced_copy[real_inputs] = self._real_scalers[identifier].transform(
-            sliced_copy[real_inputs].values)
-        df_list.append(sliced_copy)
+        This includes both feature engineering, preprocessing and normalisation.
 
-    output = pd.concat(df_list, axis=0)
+        Args:
+          df: Data frame to transform.
 
-    # Format categorical inputs
-    for col in categorical_inputs:
-      string_df = df[col].apply(str)
-      output[col] = self._cat_scalers[col].transform(string_df)
+        Returns:
+          Transformed data frame.
 
-    return output
+        """
 
-  def format_predictions(self, predictions):
-    """Reverts any normalisation to give predictions in original scale.
+        if self._real_scalers is None and self._cat_scalers is None:
+            raise ValueError("Scalers have not been set!")
 
-    Args:
-      predictions: Dataframe of model predictions.
+        # Extract relevant columns
+        column_definitions = self.get_column_definition()
+        id_col = utils.get_single_col_by_input_type(InputTypes.ID, column_definitions)
+        real_inputs = utils.extract_cols_from_data_type(
+            DataTypes.REAL_VALUED, column_definitions, {InputTypes.ID, InputTypes.TIME}
+        )
+        categorical_inputs = utils.extract_cols_from_data_type(
+            DataTypes.CATEGORICAL, column_definitions, {InputTypes.ID, InputTypes.TIME}
+        )
 
-    Returns:
-      Data frame of unnormalised predictions.
-    """
+        # Transform real inputs per entity
+        df_list = []
+        for identifier, sliced in df.groupby(id_col):
 
-    if self._target_scaler is None:
-      raise ValueError('Scalers have not been set!')
+            # Filter out any trajectories that are too short
+            if len(sliced) >= self._time_steps:
+                sliced_copy = sliced.copy()
+                sliced_copy[real_inputs] = self._real_scalers[identifier].transform(sliced_copy[real_inputs].values)
+                df_list.append(sliced_copy)
 
-    column_names = predictions.columns
+        output = pd.concat(df_list, axis=0)
 
-    df_list = []
-    for identifier, sliced in predictions.groupby('identifier'):
-      sliced_copy = sliced.copy()
-      target_scaler = self._target_scaler[identifier]
+        # Format categorical inputs
+        for col in categorical_inputs:
+            string_df = df[col].apply(str)
+            output[col] = self._cat_scalers[col].transform(string_df)
 
-      for col in column_names:
-        if col not in {'forecast_time', 'identifier'}:
-          sliced_copy[col] = target_scaler.inverse_transform(sliced_copy[col])
-      df_list.append(sliced_copy)
+        return output
 
-    output = pd.concat(df_list, axis=0)
+    def format_predictions(self, predictions):
+        """Reverts any normalisation to give predictions in original scale.
 
-    return output
+        Args:
+          predictions: Dataframe of model predictions.
 
-  # Default params
-  def get_fixed_params(self):
-    """Returns fixed model parameters for experiments."""
+        Returns:
+          Data frame of unnormalised predictions.
+        """
 
-    fixed_params = {
-        'total_time_steps': 8 * 24,
-        'num_encoder_steps': 7 * 24,
-        'num_epochs': 100,
-        'early_stopping_patience': 5,
-        'multiprocessing_workers': 5
-    }
+        if self._target_scaler is None:
+            raise ValueError("Scalers have not been set!")
 
-    return fixed_params
+        column_names = predictions.columns
 
-  def get_default_model_params(self):
-    """Returns default optimised model parameters."""
+        df_list = []
+        for identifier, sliced in predictions.groupby("identifier"):
+            sliced_copy = sliced.copy()
+            target_scaler = self._target_scaler[identifier]
 
-    model_params = {
-        'dropout_rate': 0.1,
-        'hidden_layer_size': 160,
-        'learning_rate': 0.001,
-        'minibatch_size': 64,
-        'max_gradient_norm': 0.01,
-        'num_heads': 4,
-        'stack_size': 1
-    }
+            for col in column_names:
+                if col not in {"forecast_time", "identifier"}:
+                    sliced_copy[col] = target_scaler.inverse_transform(sliced_copy[col])
+            df_list.append(sliced_copy)
 
-    return model_params
+        output = pd.concat(df_list, axis=0)
 
-  def get_num_samples_for_calibration(self):
-    """Gets the default number of training and validation samples.
+        return output
 
-    Use to sub-sample the data for network calibration and a value of -1 uses
-    all available samples.
+    # Default params
+    def get_fixed_params(self):
+        """Returns fixed model parameters for experiments."""
 
-    Returns:
-      Tuple of (training samples, validation samples)
-    """
-    return 450000, 50000
+        fixed_params = {
+            "total_time_steps": 8 * 24,
+            "num_encoder_steps": 7 * 24,
+            "num_epochs": 100,
+            "early_stopping_patience": 5,
+            "multiprocessing_workers": 5,
+        }
+
+        return fixed_params
+
+    def get_default_model_params(self):
+        """Returns default optimised model parameters."""
+
+        model_params = {
+            "dropout_rate": 0.1,
+            "hidden_layer_size": 160,
+            "learning_rate": 0.001,
+            "minibatch_size": 64,
+            "max_gradient_norm": 0.01,
+            "num_heads": 4,
+            "stack_size": 1,
+        }
+
+        return model_params
+
+    def get_num_samples_for_calibration(self):
+        """Gets the default number of training and validation samples.
+
+        Use to sub-sample the data for network calibration and a value of -1 uses
+        all available samples.
+
+        Returns:
+          Tuple of (training samples, validation samples)
+        """
+        return 450000, 50000

@@ -1,5 +1,5 @@
- #Copyright (c) Microsoft Corporation.
- #Licensed under the MIT License.
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
 
 import sys
 from pathlib import Path
@@ -63,22 +63,27 @@ if __name__ == "__main__":
             "class": "DatasetH",
             "module_path": "qlib.data.dataset",
             "kwargs": {
-                'handler': {
+                "handler": {
                     "class": "Alpha158",
                     "module_path": "qlib.contrib.data.handler",
-                    "kwargs": DATA_HANDLER_CONFIG
+                    "kwargs": DATA_HANDLER_CONFIG,
                 },
-                'segments': {
-                    'train': ("2008-01-01", "2014-12-31"),
-                    'valid': ("2015-01-01", "2016-12-31",),
-                    'test': ("2017-01-01", "2020-08-01",),
-                }
-            }
+                "segments": {
+                    "train": ("2008-01-01", "2014-12-31"),
+                    "valid": (
+                        "2015-01-01",
+                        "2016-12-31",
+                    ),
+                    "test": (
+                        "2017-01-01",
+                        "2020-08-01",
+                    ),
+                },
+            },
         }
         # You shoud record the data in specific sequence
         # "record": ['SignalRecord', 'SigAnaRecord', 'PortAnaRecord'],
     }
-    
 
     model = TFTModel()
     dataset = init_instance_by_config(task["dataset"])
@@ -90,7 +95,6 @@ if __name__ == "__main__":
     pred_score_path = Path("~/tmp/qlib/pred_score.pkl").expanduser()
     pred_score_path.parent.mkdir(exist_ok=True, parents=True)
     pred_score.to_pickle(pred_score_path)
-
 
     ###################################
     # backtest
@@ -126,5 +130,3 @@ if __name__ == "__main__":
     )
     analysis_df = pd.concat(analysis)  # type: pd.DataFrame
     print(analysis_df)
-
-

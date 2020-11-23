@@ -36,403 +36,395 @@ Deque = collections.deque
 
 
 class HyperparamOptManager:
-  """Manages hyperparameter optimisation using random search for a single GPU.
+    """Manages hyperparameter optimisation using random search for a single GPU.
 
-  Attributes:
-    param_ranges: Discrete hyperparameter range for random search.
-    results: Dataframe of validation results.
-    fixed_params: Fixed model parameters per experiment.
-    saved_params: Dataframe of parameters trained.
-    best_score: Minimum validation loss observed thus far.
-    optimal_name: Key to best configuration.
-    hyperparam_folder: Where to save optimisation outputs.
-  """
-
-  def __init__(self,
-               param_ranges,
-               fixed_params,
-               model_folder,
-               override_w_fixed_params=True):
-    """Instantiates model.
-
-    Args:
+    Attributes:
       param_ranges: Discrete hyperparameter range for random search.
+      results: Dataframe of validation results.
       fixed_params: Fixed model parameters per experiment.
-      model_folder: Folder to store optimisation artifacts.
-      override_w_fixed_params: Whether to override serialsed fixed model
-        parameters with new supplied values.
+      saved_params: Dataframe of parameters trained.
+      best_score: Minimum validation loss observed thus far.
+      optimal_name: Key to best configuration.
+      hyperparam_folder: Where to save optimisation outputs.
     """
 
-    self.param_ranges = param_ranges
+    def __init__(self, param_ranges, fixed_params, model_folder, override_w_fixed_params=True):
+        """Instantiates model.
 
-    self._max_tries = 1000
-    self.results = pd.DataFrame()
-    self.fixed_params = fixed_params
-    self.saved_params = pd.DataFrame()
+        Args:
+          param_ranges: Discrete hyperparameter range for random search.
+          fixed_params: Fixed model parameters per experiment.
+          model_folder: Folder to store optimisation artifacts.
+          override_w_fixed_params: Whether to override serialsed fixed model
+            parameters with new supplied values.
+        """
 
-    self.best_score = np.Inf
-    self.optimal_name = ""
+        self.param_ranges = param_ranges
 
-    # Setup
-    # Create folder for saving if its not there
-    self.hyperparam_folder = model_folder
-    utils.create_folder_if_not_exist(self.hyperparam_folder)
+        self._max_tries = 1000
+        self.results = pd.DataFrame()
+        self.fixed_params = fixed_params
+        self.saved_params = pd.DataFrame()
 
-    self._override_w_fixed_params = override_w_fixed_params
+        self.best_score = np.Inf
+        self.optimal_name = ""
 
-  def load_results(self):
-    """Loads results from previous hyperparameter optimisation.
+        # Setup
+        # Create folder for saving if its not there
+        self.hyperparam_folder = model_folder
+        utils.create_folder_if_not_exist(self.hyperparam_folder)
 
-    Returns:
-      A boolean indicating if previous results can be loaded.
-    """
-    print("Loading results from", self.hyperparam_folder)
+        self._override_w_fixed_params = override_w_fixed_params
 
-    results_file = os.path.join(self.hyperparam_folder, "results.csv")
-    params_file = os.path.join(self.hyperparam_folder, "params.csv")
+    def load_results(self):
+        """Loads results from previous hyperparameter optimisation.
 
-    if os.path.exists(results_file) and os.path.exists(params_file):
+        Returns:
+          A boolean indicating if previous results can be loaded.
+        """
+        print("Loading results from", self.hyperparam_folder)
 
-      self.results = pd.read_csv(results_file, index_col=0)
-      self.saved_params = pd.read_csv(params_file, index_col=0)
+        results_file = os.path.join(self.hyperparam_folder, "results.csv")
+        params_file = os.path.join(self.hyperparam_folder, "params.csv")
 
-      if not self.results.empty:
-        self.results.at["loss"] = self.results.loc["loss"].apply(float)
-        self.best_score = self.results.loc["loss"].min()
+        if os.path.exists(results_file) and os.path.exists(params_file):
 
-        is_optimal = self.results.loc["loss"] == self.best_score
-        self.optimal_name = self.results.T[is_optimal].index[0]
+            self.results = pd.read_csv(results_file, index_col=0)
+            self.saved_params = pd.read_csv(params_file, index_col=0)
 
-        return True
+            if not self.results.empty:
+                self.results.at["loss"] = self.results.loc["loss"].apply(float)
+                self.best_score = self.results.loc["loss"].min()
 
-    return False
+                is_optimal = self.results.loc["loss"] == self.best_score
+                self.optimal_name = self.results.T[is_optimal].index[0]
 
-  def _get_params_from_name(self, name):
-    """Returns previously saved parameters given a key."""
-    params = self.saved_params
+                return True
 
-    selected_params = dict(params[name])
+        return False
 
-    if self._override_w_fixed_params:
-      for k in self.fixed_params:
-        selected_params[k] = self.fixed_params[k]
+    def _get_params_from_name(self, name):
+        """Returns previously saved parameters given a key."""
+        params = self.saved_params
 
-    return selected_params
+        selected_params = dict(params[name])
 
-  def get_best_params(self):
-    """Returns the optimal hyperparameters thus far."""
+        if self._override_w_fixed_params:
+            for k in self.fixed_params:
+                selected_params[k] = self.fixed_params[k]
 
-    optimal_name = self.optimal_name
+        return selected_params
 
-    return self._get_params_from_name(optimal_name)
+    def get_best_params(self):
+        """Returns the optimal hyperparameters thus far."""
 
-  def clear(self):
-    """Clears all previous results and saved parameters."""
-    shutil.rmtree(self.hyperparam_folder)
-    os.makedirs(self.hyperparam_folder)
-    self.results = pd.DataFrame()
-    self.saved_params = pd.DataFrame()
+        optimal_name = self.optimal_name
 
-  def _check_params(self, params):
-    """Checks that parameter map is properly defined."""
+        return self._get_params_from_name(optimal_name)
 
-    valid_fields = list(self.param_ranges.keys()) + list(
-        self.fixed_params.keys())
-    invalid_fields = [k for k in params if k not in valid_fields]
-    missing_fields = [k for k in valid_fields if k not in params]
+    def clear(self):
+        """Clears all previous results and saved parameters."""
+        shutil.rmtree(self.hyperparam_folder)
+        os.makedirs(self.hyperparam_folder)
+        self.results = pd.DataFrame()
+        self.saved_params = pd.DataFrame()
 
-    if invalid_fields:
-      raise ValueError("Invalid Fields Found {} - Valid ones are {}".format(
-          invalid_fields, valid_fields))
-    if missing_fields:
-      raise ValueError("Missing Fields Found {} - Valid ones are {}".format(
-          missing_fields, valid_fields))
+    def _check_params(self, params):
+        """Checks that parameter map is properly defined."""
 
-  def _get_name(self, params):
-    """Returns a unique key for the supplied set of params."""
+        valid_fields = list(self.param_ranges.keys()) + list(self.fixed_params.keys())
+        invalid_fields = [k for k in params if k not in valid_fields]
+        missing_fields = [k for k in valid_fields if k not in params]
 
-    self._check_params(params)
+        if invalid_fields:
+            raise ValueError("Invalid Fields Found {} - Valid ones are {}".format(invalid_fields, valid_fields))
+        if missing_fields:
+            raise ValueError("Missing Fields Found {} - Valid ones are {}".format(missing_fields, valid_fields))
 
-    fields = list(params.keys())
-    fields.sort()
+    def _get_name(self, params):
+        """Returns a unique key for the supplied set of params."""
 
-    return "_".join([str(params[k]) for k in fields])
+        self._check_params(params)
 
-  def get_next_parameters(self, ranges_to_skip=None):
-    """Returns the next set of parameters to optimise.
+        fields = list(params.keys())
+        fields.sort()
 
-    Args:
-      ranges_to_skip: Explicitly defines a set of keys to skip.
-    """
-    if ranges_to_skip is None:
-      ranges_to_skip = set(self.results.index)
+        return "_".join([str(params[k]) for k in fields])
 
-    if not isinstance(self.param_ranges, dict):
-      raise ValueError("Only works for random search!")
+    def get_next_parameters(self, ranges_to_skip=None):
+        """Returns the next set of parameters to optimise.
 
-    param_range_keys = list(self.param_ranges.keys())
-    param_range_keys.sort()
+        Args:
+          ranges_to_skip: Explicitly defines a set of keys to skip.
+        """
+        if ranges_to_skip is None:
+            ranges_to_skip = set(self.results.index)
 
-    def _get_next():
-      """Returns next hyperparameter set per try."""
+        if not isinstance(self.param_ranges, dict):
+            raise ValueError("Only works for random search!")
 
-      parameters = {
-          k: np.random.choice(self.param_ranges[k]) for k in param_range_keys
-      }
+        param_range_keys = list(self.param_ranges.keys())
+        param_range_keys.sort()
 
-      # Adds fixed params
-      for k in self.fixed_params:
-        parameters[k] = self.fixed_params[k]
+        def _get_next():
+            """Returns next hyperparameter set per try."""
 
-      return parameters
+            parameters = {k: np.random.choice(self.param_ranges[k]) for k in param_range_keys}
 
-    for _ in range(self._max_tries):
+            # Adds fixed params
+            for k in self.fixed_params:
+                parameters[k] = self.fixed_params[k]
 
-      parameters = _get_next()
-      name = self._get_name(parameters)
+            return parameters
 
-      if name not in ranges_to_skip:
-        return parameters
+        for _ in range(self._max_tries):
 
-    raise ValueError("Exceeded max number of hyperparameter searches!!")
+            parameters = _get_next()
+            name = self._get_name(parameters)
 
-  def update_score(self, parameters, loss, model, info=""):
-    """Updates the results from last optimisation run.
+            if name not in ranges_to_skip:
+                return parameters
 
-    Args:
-      parameters: Hyperparameters used in optimisation.
-      loss: Validation loss obtained.
-      model: Model to serialised if required.
-      info: Any ancillary information to tag on to results.
+        raise ValueError("Exceeded max number of hyperparameter searches!!")
 
-    Returns:
-      Boolean flag indicating if the model is the best seen so far.
-    """
+    def update_score(self, parameters, loss, model, info=""):
+        """Updates the results from last optimisation run.
 
-    if np.isnan(loss):
-      loss = np.Inf
+        Args:
+          parameters: Hyperparameters used in optimisation.
+          loss: Validation loss obtained.
+          model: Model to serialised if required.
+          info: Any ancillary information to tag on to results.
 
-    if not os.path.isdir(self.hyperparam_folder):
-      os.makedirs(self.hyperparam_folder)
+        Returns:
+          Boolean flag indicating if the model is the best seen so far.
+        """
 
-    name = self._get_name(parameters)
+        if np.isnan(loss):
+            loss = np.Inf
 
-    is_optimal = self.results.empty or loss < self.best_score
+        if not os.path.isdir(self.hyperparam_folder):
+            os.makedirs(self.hyperparam_folder)
 
-    # save the first model
-    if is_optimal:
-      # Try saving first, before updating info
-      if model is not None:
-        print("Optimal model found, updating")
-        model.save(self.hyperparam_folder)
-      self.best_score = loss
-      self.optimal_name = name
+        name = self._get_name(parameters)
 
-    self.results[name] = pd.Series({"loss": loss, "info": info})
-    self.saved_params[name] = pd.Series(parameters)
+        is_optimal = self.results.empty or loss < self.best_score
 
-    self.results.to_csv(os.path.join(self.hyperparam_folder, "results.csv"))
-    self.saved_params.to_csv(os.path.join(self.hyperparam_folder, "params.csv"))
+        # save the first model
+        if is_optimal:
+            # Try saving first, before updating info
+            if model is not None:
+                print("Optimal model found, updating")
+                model.save(self.hyperparam_folder)
+            self.best_score = loss
+            self.optimal_name = name
 
-    return is_optimal
+        self.results[name] = pd.Series({"loss": loss, "info": info})
+        self.saved_params[name] = pd.Series(parameters)
+
+        self.results.to_csv(os.path.join(self.hyperparam_folder, "results.csv"))
+        self.saved_params.to_csv(os.path.join(self.hyperparam_folder, "params.csv"))
+
+        return is_optimal
 
 
 class DistributedHyperparamOptManager(HyperparamOptManager):
-  """Manages distributed hyperparameter optimisation across many gpus."""
+    """Manages distributed hyperparameter optimisation across many gpus."""
 
-  def __init__(self,
-               param_ranges,
-               fixed_params,
-               root_model_folder,
-               worker_number,
-               search_iterations=1000,
-               num_iterations_per_worker=5,
-               clear_serialised_params=False):
-    """Instantiates optimisation manager.
-
-    This hyperparameter optimisation pre-generates #search_iterations
-    hyperparameter combinations and serialises them
-    at the start. At runtime, each worker goes through their own set of
-    parameter ranges. The pregeneration
-    allows for multiple workers to run in parallel on different machines without
-    resulting in parameter overlaps.
-
-    Args:
-      param_ranges: Discrete hyperparameter range for random search.
-      fixed_params: Fixed model parameters per experiment.
-      root_model_folder: Folder to store optimisation artifacts.
-      worker_number: Worker index definining which set of hyperparameters to
-        test.
-      search_iterations: Maximum numer of random search iterations.
-      num_iterations_per_worker: How many iterations are handled per worker.
-      clear_serialised_params: Whether to regenerate hyperparameter
-        combinations.
-    """
-
-    max_workers = int(np.ceil(search_iterations / num_iterations_per_worker))
-
-    # Sanity checks
-    if worker_number > max_workers:
-      raise ValueError(
-          "Worker number ({}) cannot be larger than the total number of workers!"
-          .format(max_workers))
-    if worker_number > search_iterations:
-      raise ValueError(
-          "Worker number ({}) cannot be larger than the max search iterations ({})!"
-          .format(worker_number, search_iterations))
-
-    print("*** Creating hyperparameter manager for worker {} ***".format(
-        worker_number))
-
-    hyperparam_folder = os.path.join(root_model_folder, str(worker_number))
-    super().__init__(
+    def __init__(
+        self,
         param_ranges,
         fixed_params,
-        hyperparam_folder,
-        override_w_fixed_params=True)
+        root_model_folder,
+        worker_number,
+        search_iterations=1000,
+        num_iterations_per_worker=5,
+        clear_serialised_params=False,
+    ):
+        """Instantiates optimisation manager.
 
-    serialised_ranges_folder = os.path.join(root_model_folder, "hyperparams")
-    if clear_serialised_params:
-      print("Regenerating hyperparameter list")
-      if os.path.exists(serialised_ranges_folder):
-        shutil.rmtree(serialised_ranges_folder)
+        This hyperparameter optimisation pre-generates #search_iterations
+        hyperparameter combinations and serialises them
+        at the start. At runtime, each worker goes through their own set of
+        parameter ranges. The pregeneration
+        allows for multiple workers to run in parallel on different machines without
+        resulting in parameter overlaps.
 
-    utils.create_folder_if_not_exist(serialised_ranges_folder)
+        Args:
+          param_ranges: Discrete hyperparameter range for random search.
+          fixed_params: Fixed model parameters per experiment.
+          root_model_folder: Folder to store optimisation artifacts.
+          worker_number: Worker index definining which set of hyperparameters to
+            test.
+          search_iterations: Maximum numer of random search iterations.
+          num_iterations_per_worker: How many iterations are handled per worker.
+          clear_serialised_params: Whether to regenerate hyperparameter
+            combinations.
+        """
 
-    self.serialised_ranges_path = os.path.join(
-        serialised_ranges_folder, "ranges_{}.csv".format(search_iterations))
-    self.hyperparam_folder = hyperparam_folder  # override
-    self.worker_num = worker_number
-    self.total_search_iterations = search_iterations
-    self.num_iterations_per_worker = num_iterations_per_worker
-    self.global_hyperparam_df = self.load_serialised_hyperparam_df()
-    self.worker_search_queue = self._get_worker_search_queue()
+        max_workers = int(np.ceil(search_iterations / num_iterations_per_worker))
 
-  @property
-  def optimisation_completed(self):
-    return False if self.worker_search_queue else True
+        # Sanity checks
+        if worker_number > max_workers:
+            raise ValueError(
+                "Worker number ({}) cannot be larger than the total number of workers!".format(max_workers)
+            )
+        if worker_number > search_iterations:
+            raise ValueError(
+                "Worker number ({}) cannot be larger than the max search iterations ({})!".format(
+                    worker_number, search_iterations
+                )
+            )
 
-  def get_next_parameters(self):
-    """Returns next dictionary of hyperparameters to optimise."""
-    param_name = self.worker_search_queue.pop()
+        print("*** Creating hyperparameter manager for worker {} ***".format(worker_number))
 
-    params = self.global_hyperparam_df.loc[param_name, :].to_dict()
+        hyperparam_folder = os.path.join(root_model_folder, str(worker_number))
+        super().__init__(param_ranges, fixed_params, hyperparam_folder, override_w_fixed_params=True)
 
-    # Always override!
-    for k in self.fixed_params:
-      print("Overriding saved {}: {}".format(k, self.fixed_params[k]))
+        serialised_ranges_folder = os.path.join(root_model_folder, "hyperparams")
+        if clear_serialised_params:
+            print("Regenerating hyperparameter list")
+            if os.path.exists(serialised_ranges_folder):
+                shutil.rmtree(serialised_ranges_folder)
 
-      params[k] = self.fixed_params[k]
+        utils.create_folder_if_not_exist(serialised_ranges_folder)
 
-    return params
+        self.serialised_ranges_path = os.path.join(serialised_ranges_folder, "ranges_{}.csv".format(search_iterations))
+        self.hyperparam_folder = hyperparam_folder  # override
+        self.worker_num = worker_number
+        self.total_search_iterations = search_iterations
+        self.num_iterations_per_worker = num_iterations_per_worker
+        self.global_hyperparam_df = self.load_serialised_hyperparam_df()
+        self.worker_search_queue = self._get_worker_search_queue()
 
-  def load_serialised_hyperparam_df(self):
-    """Loads serialsed hyperparameter ranges from file.
+    @property
+    def optimisation_completed(self):
+        return False if self.worker_search_queue else True
 
-    Returns:
-      DataFrame containing hyperparameter combinations.
-    """
-    print("Loading params for {} search iterations form {}".format(
-        self.total_search_iterations, self.serialised_ranges_path))
+    def get_next_parameters(self):
+        """Returns next dictionary of hyperparameters to optimise."""
+        param_name = self.worker_search_queue.pop()
 
-    if os.path.exists(self.serialised_ranges_folder):
-      df = pd.read_csv(self.serialised_ranges_path, index_col=0)
-    else:
-      print("Unable to load - regenerating serach ranges instead")
-      df = self.update_serialised_hyperparam_df()
+        params = self.global_hyperparam_df.loc[param_name, :].to_dict()
 
-    return df
+        # Always override!
+        for k in self.fixed_params:
+            print("Overriding saved {}: {}".format(k, self.fixed_params[k]))
 
-  def update_serialised_hyperparam_df(self):
-    """Regenerates hyperparameter combinations and saves to file.
+            params[k] = self.fixed_params[k]
 
-    Returns:
-      DataFrame containing hyperparameter combinations.
-    """
-    search_df = self._generate_full_hyperparam_df()
+        return params
 
-    print("Serialising params for {} search iterations to {}".format(
-        self.total_search_iterations, self.serialised_ranges_path))
+    def load_serialised_hyperparam_df(self):
+        """Loads serialsed hyperparameter ranges from file.
 
-    search_df.to_csv(self.serialised_ranges_path)
+        Returns:
+          DataFrame containing hyperparameter combinations.
+        """
+        print(
+            "Loading params for {} search iterations form {}".format(
+                self.total_search_iterations, self.serialised_ranges_path
+            )
+        )
 
-    return search_df
+        if os.path.exists(self.serialised_ranges_folder):
+            df = pd.read_csv(self.serialised_ranges_path, index_col=0)
+        else:
+            print("Unable to load - regenerating serach ranges instead")
+            df = self.update_serialised_hyperparam_df()
 
-  def _generate_full_hyperparam_df(self):
-    """Generates actual hyperparameter combinations.
+        return df
 
-    Returns:
-      DataFrame containing hyperparameter combinations.
-    """
+    def update_serialised_hyperparam_df(self):
+        """Regenerates hyperparameter combinations and saves to file.
 
-    np.random.seed(131)  # for reproducibility of hyperparam list
+        Returns:
+          DataFrame containing hyperparameter combinations.
+        """
+        search_df = self._generate_full_hyperparam_df()
 
-    name_list = []
-    param_list = []
-    for _ in range(self.total_search_iterations):
-      params = super().get_next_parameters(name_list)
+        print(
+            "Serialising params for {} search iterations to {}".format(
+                self.total_search_iterations, self.serialised_ranges_path
+            )
+        )
 
-      name = self._get_name(params)
+        search_df.to_csv(self.serialised_ranges_path)
 
-      name_list.append(name)
-      param_list.append(params)
+        return search_df
 
-    full_search_df = pd.DataFrame(param_list, index=name_list)
+    def _generate_full_hyperparam_df(self):
+        """Generates actual hyperparameter combinations.
 
-    return full_search_df
+        Returns:
+          DataFrame containing hyperparameter combinations.
+        """
 
-  def clear(self):  # reset when cleared
-    """Clears results for hyperparameter manager and resets."""
-    super().clear()
-    self.worker_search_queue = self._get_worker_search_queue()
+        np.random.seed(131)  # for reproducibility of hyperparam list
 
-  def load_results(self):
-    """Load results from file and queue parameter combinations to try.
+        name_list = []
+        param_list = []
+        for _ in range(self.total_search_iterations):
+            params = super().get_next_parameters(name_list)
 
-    Returns:
-      Boolean indicating if results were successfully loaded.
-    """
-    success = super().load_results()
+            name = self._get_name(params)
 
-    if success:
-      self.worker_search_queue = self._get_worker_search_queue()
+            name_list.append(name)
+            param_list.append(params)
 
-    return success
+        full_search_df = pd.DataFrame(param_list, index=name_list)
 
-  def _get_worker_search_queue(self):
-    """Generates the queue of param combinations for current worker.
+        return full_search_df
 
-    Returns:
-      Queue of hyperparameter combinations outstanding.
-    """
-    global_df = self.assign_worker_numbers(self.global_hyperparam_df)
-    worker_df = global_df[global_df["worker"] == self.worker_num]
+    def clear(self):  # reset when cleared
+        """Clears results for hyperparameter manager and resets."""
+        super().clear()
+        self.worker_search_queue = self._get_worker_search_queue()
 
-    left_overs = [s for s in worker_df.index if s not in self.results.columns]
+    def load_results(self):
+        """Load results from file and queue parameter combinations to try.
 
-    return Deque(left_overs)
+        Returns:
+          Boolean indicating if results were successfully loaded.
+        """
+        success = super().load_results()
 
-  def assign_worker_numbers(self, df):
-    """Updates parameter combinations with the index of the worker used.
+        if success:
+            self.worker_search_queue = self._get_worker_search_queue()
 
-    Args:
-      df: DataFrame of parameter combinations.
+        return success
 
-    Returns:
-      Updated DataFrame with worker number.
-    """
-    output = df.copy()
+    def _get_worker_search_queue(self):
+        """Generates the queue of param combinations for current worker.
 
-    n = self.total_search_iterations
-    batch_size = self.num_iterations_per_worker
+        Returns:
+          Queue of hyperparameter combinations outstanding.
+        """
+        global_df = self.assign_worker_numbers(self.global_hyperparam_df)
+        worker_df = global_df[global_df["worker"] == self.worker_num]
 
-    max_worker_num = int(np.ceil(n / batch_size))
+        left_overs = [s for s in worker_df.index if s not in self.results.columns]
 
-    worker_idx = np.concatenate([
-        np.tile(i + 1, self.num_iterations_per_worker)
-        for i in range(max_worker_num)
-    ])
+        return Deque(left_overs)
 
-    output["worker"] = worker_idx[:len(output)]
+    def assign_worker_numbers(self, df):
+        """Updates parameter combinations with the index of the worker used.
 
-    return output
+        Args:
+          df: DataFrame of parameter combinations.
+
+        Returns:
+          Updated DataFrame with worker number.
+        """
+        output = df.copy()
+
+        n = self.total_search_iterations
+        batch_size = self.num_iterations_per_worker
+
+        max_worker_num = int(np.ceil(n / batch_size))
+
+        worker_idx = np.concatenate([np.tile(i + 1, self.num_iterations_per_worker) for i in range(max_worker_num)])
+
+        output["worker"] = worker_idx[: len(output)]
+
+        return output
