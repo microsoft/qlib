@@ -74,16 +74,16 @@ class Processor(Serializable):
 
 
 class DropnaProcessor(Processor):
-    def __init__(self, group=None):
-        self.group = group
+    def __init__(self, fields_group=None):
+        self.fields_group = fields_group
 
     def __call__(self, df):
-        return df.dropna(subset=get_group_columns(df, self.group))
+        return df.dropna(subset=get_group_columns(df, self.fields_group))
 
 
 class DropnaLabel(DropnaProcessor):
-    def __init__(self, group="label"):
-        super().__init__(group=group)
+    def __init__(self, fields_group="label"):
+        super().__init__(fields_group=fields_group)
 
     def is_for_infer(self) -> bool:
         """The samples are dropped according to label. So it is not usable for inference"""

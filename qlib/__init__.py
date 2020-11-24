@@ -182,7 +182,7 @@ def _mount_nfs_uri(C):
                 LOG.warning(f"{_remote_uri} on {_mount_path} is already mounted")
 
 
-def init_from_yaml_conf(conf_path):
+def init_from_yaml_conf(conf_path, **kwargs):
     """init_from_yaml_conf
 
     :param conf_path: A path to the qlib config in yml format
@@ -190,5 +190,6 @@ def init_from_yaml_conf(conf_path):
 
     with open(conf_path) as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
+    config.update(kwargs)
     default_conf = config.pop("default_conf", "client")
     init(default_conf, **config)

@@ -23,7 +23,7 @@ class ALPHA360_Denoise(DataHandlerLP):
         }
 
         learn_processors = [
-            {"class": "DropnaLabel", "kwargs": {"group": "label"}},
+            {"class": "DropnaLabel", "kwargs": {"fields_group": "label"}},
             {"class": "CSZScoreNorm", "kwargs": {"fields_group": "label"}},
         ]
         infer_processors = [
@@ -96,7 +96,7 @@ class ALPHA360(DataHandlerLP):
         }
 
         learn_processors = [
-            {"class": "DropnaLabel", "kwargs": {"group": "label"}},
+            {"class": "DropnaLabel", "kwargs": {"fields_group": "label"}},
             {"class": "CSZScoreNorm", "kwargs": {"fields_group": "label"}},
         ]
         infer_processors = [
