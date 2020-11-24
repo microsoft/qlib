@@ -225,7 +225,13 @@ class MLflowExpManager(ExpManager):
 
     def __init__(self, uri, default_exp_name):
         super(MLflowExpManager, self).__init__(uri, default_exp_name)
-        self.client = mlflow.tracking.MlflowClient(tracking_uri=self.uri)
+
+    @property
+    def client(self):
+        # Delay the creation of mlflow client in case of creating `mlruns` folder when importing qlib
+        if not hasattr(self, "_client"):
+            self._client = mlflow.tracking.MlflowClient(tracking_uri=self.uri)
+        return self._client
 
     def start_exp(self, experiment_name=None, recorder_name=None, uri=None):
         # create experiment
