@@ -702,10 +702,10 @@ def load_dataset(path_or_obj):
     if isinstance(path_or_obj, pd.DataFrame):
         return path_or_obj
     _, extension = os.path.splitext(path_or_obj)
-    if extension == '.h5':
+    if extension == ".h5":
         return pd.read_hdf(path_or_obj)
-    elif extension == '.pkl':
+    elif extension == ".pkl":
         return pd.read_pickle(path_or_obj)
-    elif extension == '.csv':
+    elif extension == ".csv":
         return pd.read_csv(path_or_obj, parse_dates=True, index_col=[0, 1])
-    raise ValueError(f'unsupported file type `{extension}`')
+    raise ValueError(f"unsupported file type `{extension}`")
