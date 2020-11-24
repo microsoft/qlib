@@ -1,4 +1,5 @@
 .. _initialization:
+
 ====================
 Qlib Initialization
 ====================
@@ -59,7 +60,7 @@ Besides `provider_uri` and `region`, `qlib.init` has other parameters. The follo
         
         If Qlib fails to connect redis via `redis_host` and `redis_port`, cache mechanism will not be used! Please refer to `Cache <../component/data.html#cache>`_ for details.
 - `exp_manager`
-    Type: dict, optional parameter, the setting of experiment manager to be used in qlib. Users can specify an experiment manager class, as well as the tracking URI for all the experiments. However, please be aware that we only support input of a dictionary in the following style for `exp_manager`.
+    Type: dict, optional parameter, the setting of `experiment manager` to be used in qlib. Users can specify an experiment manager class, as well as the tracking URI for all the experiments. However, please be aware that we only support input of a dictionary in the following style for `exp_manager`. For more information about `exp_manager`, users can refer to `Recorder: Experiment Management <../component/recorder.html>`_.
     ::
 
         {

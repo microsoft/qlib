@@ -12,7 +12,7 @@ logger = get_module_logger("workflow", "INFO")
 
 class Experiment:
     """
-    Thie is the `Experiment` class for each experiment being run. The API is designed similar to mlflow.
+    This is the `Experiment` class for each experiment being run. The API is designed similar to mlflow.
     (The link: https://mlflow.org/docs/latest/python_api/mlflow.html)
     """
 
@@ -111,24 +111,29 @@ class Experiment:
         active recorder. The `create` argument determines whether the method will automatically create a new recorder
         according to user's specification if the recorder hasn't been created before
 
-        If `create` is True:
-            If R's running:
-                1) no id or name specified, return the active recorder.
-                2) if id or name is specified, return the specified recorder. If no such exp found,
-                create a new recorder with given id or name, and the recorder shoud be running.
-            If R's not running:
-                1) no id or name specified, create a new recorder.
-                2) if id or name is specified, return the specified experiment. If no such exp found,
-                create a new recorder with given id or name, and the recorder shoud be running.
-        Else If `create` is False:
-            If R's running:
-                1) no id or name specified, return the active recorder.
-                2) if id or name is specified, return the specified recorder. If no such exp found,
-                raise Error.
-            If R's not running:
-                1) no id or name specified, raise Error.
-                2) if id or name is specified, return the specified recorder. If no such exp found,
-                raise Error.
+        * If `create` is True:
+
+            * If R's running:
+
+                * no id or name specified, return the active recorder.
+                * if id or name is specified, return the specified recorder. If no such exp found, create a new recorder with given id or name, and the recorder shoud be running.
+
+            * If R's not running:
+
+                * no id or name specified, create a new recorder.
+                * if id or name is specified, return the specified experiment. If no such exp found, create a new recorder with given id or name, and the recorder shoud be running.
+
+        * Else If `create` is False:
+
+            * If R's running:
+
+                * no id or name specified, return the active recorder.
+                * if id or name is specified, return the specified recorder. If no such exp found, raise Error.
+
+            * If R's not running:
+
+                * no id or name specified, raise Error.
+                * if id or name is specified, return the specified recorder. If no such exp found, raise Error.
 
         Parameters
         ----------
@@ -147,7 +152,8 @@ class Experiment:
 
     def list_recorders(self):
         """
-        List all the existing recorders of this experiment.
+        List all the existing recorders of this experiment. Please first get the experiment instance before calling this method.
+        If user want to use the method `R.list_recorders()`, please refer to the related API document in `QlibRecorder`.
 
         Returns
         -------

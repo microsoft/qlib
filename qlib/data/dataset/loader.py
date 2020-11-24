@@ -161,7 +161,7 @@ class StaticDataLoader(DataLoader):
     DataLoader that supports loading data from file or as provided.
     """
 
-    def __init__(self, config: dict, join='outer'):
+    def __init__(self, config: dict, join="outer"):
         """
         Parameters
         ----------
@@ -187,8 +187,9 @@ class StaticDataLoader(DataLoader):
     def _maybe_load_raw_data(self):
         if self._data is not None:
             return
-        self._data = pd.concat({
-            fields_group: load_dataset(path_or_obj)
-            for fields_group, path_or_obj in self.config.items()
-        }, axis=1, join=self.join)
+        self._data = pd.concat(
+            {fields_group: load_dataset(path_or_obj) for fields_group, path_or_obj in self.config.items()},
+            axis=1,
+            join=self.join,
+        )
         self._data.sort_index(inplace=True)

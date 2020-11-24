@@ -25,8 +25,10 @@ class Model(BaseModel):
         """
         Learn model from the base model
 
-        ** NOTE **: The the attribute names of learned model should **not** start with '_'. So that the model could be
-        dumped to disk.
+        .. note::
+
+            The the attribute names of learned model should `not` start with '_'. So that the model could be
+            dumped to disk.
 
         Parameters
         ----------

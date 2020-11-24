@@ -128,14 +128,14 @@ Users could create the same dataset with it.
  -->
 
 ## Auto Quant Research Workflow
-Qlib provides a tool named `Estimator` to run the whole workflow automatically (including building dataset, training models, backtest and evaluation). You can start an auto quant research workflow and have a graphical reports analysis according to the following steps: 
+Qlib provides a tool named `qrun` to run the whole workflow automatically (including building dataset, training models, backtest and evaluation). You can start an auto quant research workflow and have a graphical reports analysis according to the following steps: 
 
-1. Quant Research Workflow: Run  `Estimator` with [estimator_config.yaml](examples/estimator/estimator_config.yaml) as following. (*Please note that this may **not work** under MacOS with Python 3.8 due to the incompatibility of the `sacred` package we use with Python 3.8. We will fix this bug in the future.*)
+1. Quant Research Workflow: Run  `qrun` with lightgbm workflow config ([workflow_config_lightgbm.yaml](examples/benchmarks/LightGBM/workflow_config_lightgbm.yaml)) as following.
     ```bash
       cd examples  # Avoid running program under the directory contains `qlib`
-      estimator -c estimator/estimator_config.yaml
+      qrun benchmarks/LightGBM/workflow_config_lightgbm.yaml
     ```
-    The result of `Estimator` is as follows, please refer to please refer to [Intraday Trading](https://qlib.readthedocs.io/en/latest/component/backtest.html) for more details about the result. 
+    The result of `qrun` is as follows, please refer to please refer to [Intraday Trading](https://qlib.readthedocs.io/en/latest/component/backtest.html) for more details about the result. 
 
     ```bash
 
@@ -154,9 +154,9 @@ Qlib provides a tool named `Estimator` to run the whole workflow automatically (
 
 
     ```
-    Here are detailed documents for [Estimator](https://qlib.readthedocs.io/en/latest/component/estimator.html).
+    Here are detailed documents for `qrun` and [workflow](https://qlib.readthedocs.io/en/latest/component/workflow.html).
 
-2. Graphical Reports Analysis: Run `examples/estimator/analyze_from_estimator.ipynb` with `jupyter notebook` to get graphical reports
+2. Graphical Reports Analysis: Run `examples/workflow_by_code.ipynb` with `jupyter notebook` to get graphical reports
     - Forecasting signal (model prediction) analysis
       - Cumulative Return of groups
       ![Cumulative Return](http://fintech.msra.cn/images/analysis/analysis_model_cumulative_return.png?v=0.1)
@@ -184,14 +184,20 @@ Qlib provides a tool named `Estimator` to run the whole workflow automatically (
       -->
 
 ## Building Customized Quant Research Workflow by Code
-The automatic workflow may not suite the research workflow of all Quant researchers. To support a flexible Quant research workflow, Qlib also provides a modularized interface to allow researchers to build their own workflow by code. [Here](examples/train_backtest_analyze.ipynb) is a demo for customized Quant research workflow by code
+The automatic workflow may not suite the research workflow of all Quant researchers. To support a flexible Quant research workflow, Qlib also provides a modularized interface to allow researchers to build their own workflow by code. [Here](examples/workflow_by_code.ipynb) is a demo for customized Quant research workflow by code.
 
 
 # Quant Model Zoo
 
 Here is a list of models built on `Qlib`.
-- [GBDT based on lightgbm](qlib/contrib/model/gbdt.py)
+- [GBDT based on LightGBM](qlib/contrib/model/gbdt.py)
+- [GBDT based on Catboost](qlib/contrib/model/catboost_model.py)
+- [GBDT based on XGBoost](qlib/contrib/model/xgboost.py)
 - [MLP based on pytorch](qlib/contrib/model/pytorch_nn.py)
+- [GRU based on pytorch](qlib/contrib/model/pytorch_gru.py)
+- [LSTM based on pytorcn](qlib/contrib/model/pytorch_lstm.py)
+- [GATs based on pytorch](qlib/contrib/model/pytorch_gats.py)
+- [TFT based on tensorflow-1.15.0](examples/benchmarks/TFT/tft.py)
 
 Your PR of new Quant models is highly welcomed.
 

@@ -56,7 +56,12 @@ class RecordTemp:
 
     def load(self, name):
         """
-        Load the stored records.
+        Load the stored records. Due to the fact that some problems occured when we tried to balancing a clean API
+        with the Python's inheritance. This method has to be used in a rather ugly way, and we will try to fix them
+        in the future::
+
+            sar = SigAnaRecord(recorder)
+            ic = sar.load(sar.get_path("ic.pkl"))
 
         Parameters
         ----------
@@ -102,7 +107,7 @@ class RecordTemp:
 
 class SignalRecord(RecordTemp):
     """
-    This is the Signal Record class that generates the signal prediction.
+    This is the Signal Record class that generates the signal prediction. This class inherits the ``RecordTemp`` class.
     """
 
     def __init__(self, model=None, dataset=None, recorder=None, **kwargs):
@@ -145,6 +150,9 @@ class SignalRecord(RecordTemp):
 
 
 class SigAnaRecord(SignalRecord):
+    """
+    This is the Signal Analysis Record class that generates the analysis results such as IC and IR. This class inherits the ``RecordTemp`` class.
+    """
 
     artifact_path = "sig_analysis"
 
@@ -196,7 +204,7 @@ class SigAnaRecord(SignalRecord):
 
 class PortAnaRecord(SignalRecord):
     """
-    This is the Portfolio Analysis Record class that generates the results such as those of backtest.
+    This is the Portfolio Analysis Record class that generates the analysis results such as those of backtest. This class inherits the ``RecordTemp`` class.
     """
 
     artifact_path = "portfolio_analysis"

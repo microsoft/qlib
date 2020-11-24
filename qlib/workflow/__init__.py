@@ -162,6 +162,10 @@ class QlibRecorder:
         """
         Method for listing all the recorders of experiment with given id or name.
 
+        If user doesn't provide the id or name of the experiment, this method will try to retrieve the default experiment and
+        list all the recorders of the default experiment. If the default experiment doesn't exist, the method will first
+        create the default experiment, and then create a new recorder under it.
+
         Use case:
         ---------
         ```
@@ -382,7 +386,7 @@ class QlibRecorder:
         ----------
         local_path : str
             if provided, them save the file or directory to the artifact URI.
-        artifact_path=None : str
+        artifact_path : str
             the relative path for the artifact to be stored in the URI.
         """
         self.get_exp().get_recorder().save_objects(local_path, artifact_path, **kwargs)

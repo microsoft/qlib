@@ -748,7 +748,8 @@ class DiskDatasetCache(DatasetCache):
 
         The format the cache contains 3 parts(followed by typical filename).
 
-        - index    : cache/d41366901e25de3ec47297f12e2ba11d.index
+        - index : cache/d41366901e25de3ec47297f12e2ba11d.index
+
             - The content of the file may be in following format(pandas.Series)
 
                 .. code-block:: python
@@ -765,7 +766,9 @@ class DiskDatasetCache(DatasetCache):
             - It indicates the `end_index` of the data for `timestamp`
 
         - meta data: cache/d41366901e25de3ec47297f12e2ba11d.meta
+
         - data     : cache/d41366901e25de3ec47297f12e2ba11d
+
             - This is a hdf file sorted by datetime
 
         :param cache_path:  The path to store the cache

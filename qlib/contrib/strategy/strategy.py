@@ -137,7 +137,9 @@ class WeightStrategyBase(BaseStrategy, AdjustTimer):
             self.order_generator = order_generator_cls_or_obj
 
     def generate_target_weight_position(self, score, current, trade_date):
-        """Parameter:
+        """
+        Parameters:
+        ---------
         score : pred score for this trade date, pd.Series, index is stock_id, contain 'score' column
         current : current position, use Position() class
         trade_exchange : Exchange()
@@ -148,7 +150,9 @@ class WeightStrategyBase(BaseStrategy, AdjustTimer):
         raise NotImplementedError()
 
     def generate_order_list(self, score_series, current, trade_exchange, pred_date, trade_date):
-        """Parameter
+        """
+        Parameters:
+        ----------
         score_series : pd.Seires
             stock_id , score
         current : Position()
@@ -181,7 +185,9 @@ class WeightStrategyBase(BaseStrategy, AdjustTimer):
 
 class TopkDropoutStrategy(BaseStrategy, ListAdjustTimer):
     def __init__(self, topk, n_drop, method="bottom", risk_degree=0.95, thresh=1, hold_thresh=1, **kwargs):
-        """Parameter
+        """
+        Parameters:
+        -----------
         topk : int
             The number of stocks in the portfolio
         n_drop : int
@@ -218,19 +224,21 @@ class TopkDropoutStrategy(BaseStrategy, ListAdjustTimer):
         return self.risk_degree
 
     def generate_order_list(self, score_series, current, trade_exchange, pred_date, trade_date):
-        """Gnererate order list according to score_series at trade_date.
-            will not change current.
-        Parameter
-            score_series : pd.Seires
-                stock_id , score
-            current : Position()
-                current of account
-            trade_exchange : Exchange()
-                exchange
-            pred_date : pd.Timestamp
-                predict date
-            trade_date : pd.Timestamp
-                trade date
+        """
+        Gnererate order list according to score_series at trade_date, will not change current.
+
+        Parameters:
+        ----------
+        score_series : pd.Series
+            stock_id , score
+        current : Position()
+            current of account
+        trade_exchange : Exchange()
+            exchange
+        pred_date : pd.Timestamp
+            predict date
+        trade_date : pd.Timestamp
+            trade date
         """
         if not self.is_adjust(trade_date):
             return []

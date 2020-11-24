@@ -35,11 +35,12 @@ Document Structure
    :maxdepth: 3
    :caption: COMPONENTS:
 
-   Estimator: Workflow Management <component/estimator.rst>
+   Workflow: Workflow Management <component/workflow.rst>
    Data Layer: Data Framework&Usage <component/data.rst>
    Interday Model: Model Training & Prediction <component/model.rst>
    Interday Strategy: Portfolio Management <component/strategy.rst>
    Intraday Trading: Model&Strategy Testing <component/backtest.rst>
+   Qlib Recorder: Experiment Management <component/recorder.rst>
    Aanalysis: Evaluation & Results Analysis <component/report.rst>
 
 .. toctree::
@@ -48,6 +49,7 @@ Document Structure
    
    Building Formulaic Alphas <advanced/alpha.rst>
    Online & Offline mode <advanced/server.rst>
+
 .. toctree::
    :maxdepth: 3
    :caption: REFERENCE:

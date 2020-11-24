@@ -40,12 +40,15 @@ class DataHandler(Serializable):
 
     Example of the data:
     The multi-index of the columns is optional.
-                             feature                                                            label
-                              $close     $volume  Ref($close, 1)  Mean($close, 3)  $high-$low  LABEL0
-    datetime   instrument
-    2010-01-04 SH600000    81.807068  17145150.0       83.737389        83.016739    2.741058  0.0032
-               SH600004    13.313329  11800983.0       13.313329        13.317701    0.183632  0.0042
-               SH600005    37.796539  12231662.0       38.258602        37.919757    0.970325  0.0289
+
+    .. code-block::
+
+                                feature                                                            label
+                                $close     $volume  Ref($close, 1)  Mean($close, 3)  $high-$low  LABEL0
+        datetime   instrument
+        2010-01-04 SH600000    81.807068  17145150.0       83.737389        83.016739    2.741058  0.0032
+                SH600004    13.313329  11800983.0       13.313329        13.317701    0.183632  0.0042
+                SH600005    37.796539  12231662.0       38.258602        37.919757    0.970325  0.0289
 
     """
 
@@ -107,7 +110,8 @@ class DataHandler(Serializable):
         ----------
         enable_cache : bool
             default value is false
-            if `enable_cache` == True
+            - if `enable_cache` == True:
+
                 the processed data will be saved on disk, and handler will load the cached data from the disk directly
                 when we call `init` next time
         """
@@ -145,16 +149,21 @@ class DataHandler(Serializable):
         level : Union[str, int]
             which index level to select the data
         col_set : Union[str, List[str]]
-            if isinstance(col_set, str):
+
+            - if isinstance(col_set, str):
+
                 select a set of meaningful columns.(e.g. features, columns)
-            if isinstance(col_set, List[str]):
+
+            - if isinstance(col_set, List[str]):
+
                 select several sets of meaningful columns, the returned data has multiple levels
+
         squeeze : bool
             whether squeeze columns and index
 
         Returns
         -------
-        pd.DataFrame:
+        pd.DataFrame.
         """
         # Fetch column  first will be more friendly to SepDataFrame
         df = self._fetch_df_by_col(self._data, col_set)

@@ -116,3 +116,26 @@ Report
     :members:
 
 
+Workflow
+====================
+
+
+Experiment Manager
+--------------------
+.. autoclass:: qlib.workflow.expm.ExpManager
+    :members:
+
+Experiment
+--------------------
+.. autoclass:: qlib.workflow.exp.Experiment
+    :members:
+
+Recorder
+--------------------
+.. autoclass:: qlib.workflow.recorder.Recorder
+    :members:
+
+Record Template
+--------------------
+.. automodule:: qlib.workflow.record_temp
+    :members:

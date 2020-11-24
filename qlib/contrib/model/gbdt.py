@@ -16,7 +16,7 @@ class LGBModel(ModelFT):
     def __init__(self, loss="mse", **kwargs):
         if loss not in {"mse", "binary"}:
             raise NotImplementedError
-        self.params = {"objective": loss, 'verbosity': -1}
+        self.params = {"objective": loss, "verbosity": -1}
         self.params.update(kwargs)
         self.model = None
 

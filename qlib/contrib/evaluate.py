@@ -65,10 +65,14 @@ def get_strategy(
     topk : int (Default value: 50)
         top-N stocks to buy.
     margin : int or float(Default value: 0.5)
-        if isinstance(margin, int):
+        - if isinstance(margin, int):
+
             sell_limit = margin
-        else:
+
+        - else:
+
             sell_limit = pred_in_a_day.count() * margin
+
         buffer margin, in single score_mode, continue holding stock if it is in nlargest(sell_limit)
         sell_limit should be no less than topk
     n_drop : int
@@ -204,10 +208,14 @@ def backtest(pred, account=1e9, shift=1, benchmark="SH000905", verbose=True, **k
     topk : int (Default value: 50)
         top-N stocks to buy.
     margin : int or float(Default value: 0.5)
-        if isinstance(margin, int):
+        - if isinstance(margin, int):
+
             sell_limit = margin
-        else:
+
+        - else:
+
             sell_limit = pred_in_a_day.count() * margin
+
         buffer margin, in single score_mode, continue holding stock if it is in nlargest(sell_limit)
         sell_limit should be no less than topk
     n_drop : int

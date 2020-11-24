@@ -152,16 +152,19 @@ class InstrumentProvider(abc.ABC):
             {`market`=>base market name, `filter_pipe`=>list of filters}
 
             example :
-            {'market': 'csi500',
-             'filter_pipe': [{'filter_type': 'ExpressionDFilter',
-               'rule_expression': '$open<40',
-               'filter_start_time': None,
-               'filter_end_time': None,
-               'keep': False},
-              {'filter_type': 'NameDFilter',
-               'name_rule_re': 'SH[0-9]{4}55',
-               'filter_start_time': None,
-               'filter_end_time': None}]}
+
+            .. code-block::
+
+                {'market': 'csi500',
+                'filter_pipe': [{'filter_type': 'ExpressionDFilter',
+                'rule_expression': '$open<40',
+                'filter_start_time': None,
+                'filter_end_time': None,
+                'keep': False},
+                {'filter_type': 'NameDFilter',
+                'name_rule_re': 'SH[0-9]{4}55',
+                'filter_start_time': None,
+                'filter_end_time': None}]}
         """
         if filter_pipe is None:
             filter_pipe = []
@@ -956,6 +959,8 @@ class BaseProvider:
         disk_cache=None,
     ):
         """
+        Parameters:
+        -----------
         disk_cache : int
             whether to skip(0)/use(1)/replace(2) disk_cache
 
