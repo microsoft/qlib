@@ -215,5 +215,8 @@ class CSRankNorm(Processor):
     def __call__(self, df):
         # try not modify original dataframe
         cols = get_group_columns(df, self.fields_group)
-        df[cols] = df[cols].groupby("datetime").apply(lambda df: (df - df.mean()).div(df.std()))
+        t = df[cols].groupby("datetime").rank(pct=True)
+        t -= 0.5
+        t *= 3.46  # NOTE: towards unit std
+        df[cols] = t
         return df
