@@ -166,22 +166,23 @@ class SigAnaRecord(SignalRecord):
             "Rank IC": ric.mean(),
             "Rank ICIR": ric.mean() / ric.std(),
         }
-        objects = {
-            'ic.pkl': ic,
-            'ric.pkl': ric
-        }
+        objects = {"ic.pkl": ic, "ric.pkl": ric}
         if self.ana_long_short:
             long_short_r, long_avg_r = calc_long_short_return(pred.iloc[:, 0], label.iloc[:, 0])
-            metrics.update({
-                'Long-Short Ann Return': long_short_r.mean() * self.ann_scaler,
-                'Long-Short Ann Sharpe': long_short_r.mean() / long_short_r.std() * self.ann_scaler ** 0.5,
-                'Long-Avg Ann Return': long_avg_r.mean() * self.ann_scaler,
-                'Long-Avg Ann Sharpe': long_avg_r.mean() / long_avg_r.std() * self.ann_scaler ** 0.5,
-            })
-            objects.update({
-                'long_short_r.pkl': long_short_r,
-                'long_avg_r.pkl': long_avg_r,
-            })
+            metrics.update(
+                {
+                    "Long-Short Ann Return": long_short_r.mean() * self.ann_scaler,
+                    "Long-Short Ann Sharpe": long_short_r.mean() / long_short_r.std() * self.ann_scaler ** 0.5,
+                    "Long-Avg Ann Return": long_avg_r.mean() * self.ann_scaler,
+                    "Long-Avg Ann Sharpe": long_avg_r.mean() / long_avg_r.std() * self.ann_scaler ** 0.5,
+                }
+            )
+            objects.update(
+                {
+                    "long_short_r.pkl": long_short_r,
+                    "long_avg_r.pkl": long_avg_r,
+                }
+            )
         self.recorder.log_metrics(**metrics)
         self.recorder.save_objects(**objects, artifact_path=self.get_path())
         pprint(metrics)
@@ -189,7 +190,7 @@ class SigAnaRecord(SignalRecord):
     def list(self):
         paths = [self.get_path("ic.pkl"), self.get_path("ric.pkl")]
         if self.ana_long_short:
-            paths.extend([self.get_path('long_short_r.pkl'), self.get_path('long_avg_r.pkl')])
+            paths.extend([self.get_path("long_short_r.pkl"), self.get_path("long_avg_r.pkl")])
         return paths
 
 
