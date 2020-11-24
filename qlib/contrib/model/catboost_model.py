@@ -61,7 +61,7 @@ class CatBoostModel(Model):
         if self.model is None:
             raise ValueError("model is not fitted yet!")
         x_test = dataset.prepare("test", col_set="feature")
-        return pd.Series(self.model.predict(np.squeeze(x_test.values)), index=x_test.index)
+        return pd.Series(self.model.predict(x_test.values), index=x_test.index)
 
 
 if __name__ == "__main__":

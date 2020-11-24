@@ -61,4 +61,4 @@ class XGBModel(Model):
         if self.model is None:
             raise ValueError("model is not fitted yet!")
         x_test = dataset.prepare("test", col_set="feature")
-        return pd.Series(self.model.predict(xgb.DMatrix(np.squeeze(x_test.values))), index=x_test.index)
+        return pd.Series(self.model.predict(xgb.DMatrix(x_test.values)), index=x_test.index)

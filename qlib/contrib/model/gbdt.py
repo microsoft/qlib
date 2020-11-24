@@ -16,7 +16,7 @@ class LGBModel(ModelFT):
     def __init__(self, loss="mse", **kwargs):
         if loss not in {"mse", "binary"}:
             raise NotImplementedError
-        self.params = {"objective": loss}
+        self.params = {"objective": loss, 'verbosity': -1}
         self.params.update(kwargs)
         self.model = None
 
@@ -65,7 +65,7 @@ class LGBModel(ModelFT):
         if self.model is None:
             raise ValueError("model is not fitted yet!")
         x_test = dataset.prepare("test", col_set="feature", data_key=DataHandlerLP.DK_I)
-        return pd.Series(self.model.predict(np.squeeze(x_test.values)), index=x_test.index)
+        return pd.Series(self.model.predict(x_test.values), index=x_test.index)
 
     def finetune(self, dataset: DatasetH, num_boost_round=10, verbose_eval=20):
         """
