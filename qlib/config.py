@@ -15,6 +15,7 @@ import copy
 from pathlib import Path
 import re
 import os
+import multiprocessing
 
 
 class Config:
@@ -63,6 +64,8 @@ class Config:
 REG_CN = "cn"
 REG_US = "us"
 
+NUM_USABLE_CPU = multiprocessing.cpu_count() - 2
+
 _default_config = {
     # data provider config
     "calendar_provider": "LocalCalendarProvider",
@@ -79,7 +82,7 @@ _default_config = {
     "calendar_cache": None,
     # for simple dataset cache
     "local_cache_path": None,
-    "kernels": 16,
+    "kernels": NUM_USABLE_CPU,
     # How many tasks belong to one process. Recommend 1 for high-frequency data and None for daily data.
     "maxtasksperchild": None,
     "default_disk_cache": 1,  # 0:skip/1:use
@@ -151,7 +154,7 @@ MODE_CONF = {
         "redis_host": "127.0.0.1",
         "redis_port": 6379,
         "redis_task_db": 1,
-        "kernels": 64,
+        "kernels": NUM_USABLE_CPU,
         # cache
         "expression_cache": "DiskExpressionCache",
         "dataset_cache": "DiskDatasetCache",
@@ -173,7 +176,7 @@ MODE_CONF = {
         "dataset_cache": "DiskDatasetCache",
         "calendar_cache": None,
         # client config
-        "kernels": 16,
+        "kernels": NUM_USABLE_CPU,
         "mount_path": None,
         "auto_mount": False,  # The nfs is already mounted on our server[auto_mount: False].
         # The nfs should be auto-mounted by qlib on other
