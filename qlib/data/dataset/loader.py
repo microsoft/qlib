@@ -191,3 +191,4 @@ class StaticDataLoader(DataLoader):
             fields_group: load_dataset(path_or_obj)
             for fields_group, path_or_obj in self.config.items()
         }, axis=1, join=self.join)
+        self._data.sort_index(inplace=True)
