@@ -51,7 +51,7 @@ class DataHandler(Serializable):
 
     def __init__(
         self,
-        instruments,
+        instruments=None,
         start_time=None,
         end_time=None,
         data_loader: Tuple[dict, str, DataLoader] = None,
@@ -242,7 +242,7 @@ class DataHandlerLP(DataHandler):
 
     def __init__(
         self,
-        instruments,
+        instruments=None,
         start_time=None,
         end_time=None,
         data_loader: Tuple[dict, str, DataLoader] = None,

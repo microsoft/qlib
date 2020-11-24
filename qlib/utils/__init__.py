@@ -695,3 +695,17 @@ def register_wrapper(wrapper, cls_or_obj, module_path=None):
         cls_or_obj = getattr(module, cls_or_obj)
     obj = cls_or_obj() if isinstance(cls_or_obj, type) else cls_or_obj
     wrapper.register(obj)
+
+
+def load_dataset(path_or_obj):
+    """load dataset from multiple file formats"""
+    if isinstance(path_or_obj, pd.DataFrame):
+        return path_or_obj
+    _, extension = os.path.splitext(path_or_obj)
+    if extension == '.h5':
+        return pd.read_hdf(path_or_obj)
+    elif extension == '.pkl':
+        return pd.read_pickle(path_or_obj)
+    elif extension == '.csv':
+        return pd.read_csv(path_or_obj, parse_dates=True, index_col=[0, 1])
+    raise ValueError(f'unsupported file type `{extension}`')
