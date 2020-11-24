@@ -50,7 +50,7 @@ REQUIRED = [
     "matplotlib==3.1.3",
     "tables>=3.6.1",
     "pyyaml>=5.3.1",
-    "mlflow>=1.10.0",
+    "mlflow>=1.12.1",
     "tqdm",
     "loguru",
     "lightgbm",
