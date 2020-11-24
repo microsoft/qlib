@@ -701,6 +701,8 @@ def load_dataset(path_or_obj):
     """load dataset from multiple file formats"""
     if isinstance(path_or_obj, pd.DataFrame):
         return path_or_obj
+    if not os.path.exists(path_or_obj):
+        raise ValueError(f'file {path_or_obj} doesn\'t exist')
     _, extension = os.path.splitext(path_or_obj)
     if extension == ".h5":
         return pd.read_hdf(path_or_obj)
