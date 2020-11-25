@@ -97,9 +97,9 @@ def rank_label_graph(
                 qcr.rank_label_graph(positions, features_df, pred_df_dates.min(), pred_df_dates.max())
 
 
-    :param position: position data; **qlib.contrib.backtest.backtest.backtest** result
+    :param position: position data; **qlib.contrib.backtest.backtest.backtest** result.
     :param label_data: **D.features** result; index is **pd.MultiIndex**, index name is **[instrument, datetime]**; columns names is **[label]**.
-    **The label T is the change from T to T+1**, it is recommended to use ``close``, example: `D.features(D.instruments('csi500'), ['Ref($close, -1)/$close-1'])`
+    **The label T is the change from T to T+1**, it is recommended to use ``close``, example: `D.features(D.instruments('csi500'), ['Ref($close, -1)/$close-1'])`.
 
 
             .. code-block:: python
@@ -115,7 +115,7 @@ def rank_label_graph(
 
     :param start_date: start date
     :param end_date: end_date
-    :param show_notebook: **True** or **False**. If True, show graph in notebook, else return figures
+    :param show_notebook: **True** or **False**. If True, show graph in notebook, else return figures.
     :return:
     """
     position = copy.deepcopy(position)

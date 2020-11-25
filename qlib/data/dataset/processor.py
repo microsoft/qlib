@@ -21,7 +21,7 @@ def get_group_columns(df: pd.DataFrame, group: str):
     Parameters
     ----------
     df : pd.DataFrame
-        with multi of columns
+        with multi of columns.
     group : str
         the name of the feature group, i.e. the first level value of the group index.
     """
@@ -56,7 +56,7 @@ class Processor(Serializable):
         Parameters
         ----------
         df : pd.DataFrame
-            The raw_df of handler or result from previous processor
+            The raw_df of handler or result from previous processor.
         """
         pass
 
@@ -68,7 +68,7 @@ class Processor(Serializable):
         Returns
         -------
         bool:
-            if it is usable for infenrece
+            if it is usable for infenrece.
         """
         return True
 

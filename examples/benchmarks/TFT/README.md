@@ -5,7 +5,7 @@
 **GitHub**: https://github.com/google-research/google-research/tree/master/tft
 
 ## Run the Workflow
-Users can follow the ``workflow_by_code_tft.py`` to run the benchmark.
+Users can follow the ``workflow_by_code_tft.py`` to run the benchmark. Please be **aware** that this script can only support Python 3.5 - 3.8.
 
 ### Notes
 1. The model must run in GPU, or an error will be raised.

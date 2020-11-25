@@ -186,7 +186,7 @@ def report_graph(report_df: pd.DataFrame, show_notebook: bool = True) -> [list, 
 
                 qcr.report_graph(report_normal_df)
 
-    :param report_df: **df.index.name** must be **date**, **df.columns** must contain **return**, **turnover**, **cost**, **bench**
+    :param report_df: **df.index.name** must be **date**, **df.columns** must contain **return**, **turnover**, **cost**, **bench**.
 
 
             .. code-block:: python
@@ -200,8 +200,8 @@ def report_graph(report_df: pd.DataFrame, show_notebook: bool = True) -> [list, 
                 2017-01-10  -0.000416   0.000440    -0.003350   0.208396
 
 
-    :param show_notebook: whether to display graphics in notebook, the default is **True**
-    :return: if show_notebook is True, display in notebook; else return **plotly.graph_objs.Figure** list
+    :param show_notebook: whether to display graphics in notebook, the default is **True**.
+    :return: if show_notebook is True, display in notebook; else return **plotly.graph_objs.Figure** list.
     """
     report_df = report_df.copy()
     fig_list = _report_figure(report_df)
