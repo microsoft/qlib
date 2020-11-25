@@ -420,11 +420,11 @@ class SFM(Model):
         index = x_test.index
         x_test = torch.from_numpy(x_test.values).float()
 
-        x_test = x_test.to(device)
+        x_test = x_test.to(self.device)
         self.sfm_model.eval()
 
         with torch.no_grad():
-            if device != 'cpu':
+            if self.device != 'cpu':
                 preds = self.sfm_model(x_test).detach().cpu().numpy()
             else:
                 preds = self.sfm_model(x_test).detach().numpy()

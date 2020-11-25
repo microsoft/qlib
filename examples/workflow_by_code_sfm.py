@@ -66,7 +66,7 @@ if __name__ == "__main__":
                 "freq_dim" : 15,
                 "dropout_W": 0.5,
                 "dropout_U": 0.5,
-                "n_epochs": 200,
+                "n_epochs": 10,
                 "lr": 1e-3,
                 "batch_size": 800,
                 "early_stop": 20,
