@@ -196,10 +196,12 @@ Here is a list of models built on `Qlib`.
 - [MLP based on pytorch](qlib/contrib/model/pytorch_nn.py)
 - [GRU based on pytorch](qlib/contrib/model/pytorch_gru.py)
 - [LSTM based on pytorcn](qlib/contrib/model/pytorch_lstm.py)
+- [ALSTM based on pytorcn](qlib/contrib/model/pytorch_alstm.py)
 - [GATs based on pytorch](qlib/contrib/model/pytorch_gats.py)
 - [TabNet based on pytorch](qlib/contrib/model/tabnet.py)
 - [SFM based on pytorch](qlib/contrib/model/pytorch_sfm.py)
-<!-- - [TFT based on tensorflow](examples/benchmarks/TFT/tft.py) -->
+- [HATs based on pytorch](qlib/contrib/model/pytorch_hats.py)
+- [TFT based on tensorflow](examples/benchmarks/TFT/tft.py)
 
 Your PR of new Quant models is highly welcomed.
 

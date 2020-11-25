@@ -265,12 +265,14 @@ class GAT(Model):
             self.logger.info("Loading pretrained model...")
             if self.base_model == "LSTM":
                 from ...contrib.model.pytorch_lstm import LSTMModel
+
                 pretrained_model = LSTMModel()
-                pretrained_model.load_state_dict(torch.load('benchmarks/LSTM/model_lstm_csi300.pkl'))
+                pretrained_model.load_state_dict(torch.load("benchmarks/LSTM/model_lstm_csi300.pkl"))
             elif self.base_model == "GRU":
                 from ...contrib.model.pytorch_gru import GRUModel
+
                 pretrained_model = GRUModel()
-                pretrained_model.load_state_dict(torch.load('benchmarks/GRU/model_gru_csi300.pkl'))
+                pretrained_model.load_state_dict(torch.load("benchmarks/GRU/model_gru_csi300.pkl"))
             model_dict = self.GAT_model.state_dict()
             pretrained_dict = {k: v for k, v in pretrained_model.state_dict().items() if k in model_dict}
             model_dict.update(pretrained_dict)

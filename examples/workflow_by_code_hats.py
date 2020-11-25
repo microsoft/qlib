@@ -100,7 +100,7 @@ if __name__ == "__main__":
     # model = train_model(task)
     model = init_instance_by_config(task["model"])
     dataset = init_instance_by_config(task["dataset"])
-    model.fit(dataset,save_path='benchmarks/HATS/model_hat.pkl')
+    model.fit(dataset, save_path="benchmarks/HATS/model_hat.pkl")
 
     pred_score = model.predict(dataset)
 

@@ -74,7 +74,7 @@ if __name__ == "__main__":
                 "loss": "mse",
                 "seed": 0,
                 "GPU": 0,
-                "rnn_type": "GRU"
+                "rnn_type": "GRU",
             },
         },
         "dataset": {

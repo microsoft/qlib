@@ -78,7 +78,7 @@ class HATS(Model):
         self.optimizer = optimizer.lower()
         self.loss = loss
         self.base_model = base_model
-        self.with_pretrain = with_pretrain #### True if train HATS with pretrained base model
+        self.with_pretrain = with_pretrain  #### True if train HATS with pretrained base model
         self.visible_GPU = GPU
         self.use_gpu = torch.cuda.is_available()
         self.seed = seed
@@ -97,7 +97,7 @@ class HATS(Model):
             "\noptimizer : {}"
             "\nloss_type : {}"
             "\nbase_model : {}"
-            "\nwith_pretrain : {}" ##### debug
+            "\nwith_pretrain : {}"  ##### debug
             "\nvisible_GPU : {}"
             "\nuse_GPU : {}"
             "\nseed : {}".format(
@@ -113,7 +113,7 @@ class HATS(Model):
                 optimizer.lower(),
                 loss,
                 base_model,
-                with_pretrain, ### debug
+                with_pretrain,  ### debug
                 GPU,
                 self.use_gpu,
                 seed,
@@ -265,12 +265,14 @@ class HATS(Model):
             self.logger.info("loading pretrained model...")
             if self.base_model == "LSTM":
                 from ...contrib.model.pytorch_lstm import LSTMModel
+
                 pretrained_model = LSTMModel()
-                pretrained_model.load_state_dict(torch.load('benchmarks/LSTM/model_lstm_csi300.pkl'))
+                pretrained_model.load_state_dict(torch.load("benchmarks/LSTM/model_lstm_csi300.pkl"))
             elif self.base_model == "GRU":
                 from ...contrib.model.pytorch_gru import GRUModel
+
                 pretrained_model = GRUModel()
-                pretrained_model.load_state_dict(torch.load('benchmarks/GRU/model_gru_csi300.pkl'))
+                pretrained_model.load_state_dict(torch.load("benchmarks/GRU/model_gru_csi300.pkl"))
             model_dict = self.HATS_model.state_dict()
 
             # filter unnecessary parameters
@@ -280,7 +282,6 @@ class HATS(Model):
             # load the new state dict
             self.HATS_model.load_state_dict(model_dict)
             self.logger.info("loading pretrained model Done...")
-
 
         # train
         self.logger.info("training...")
@@ -382,22 +383,24 @@ class HATSModel(nn.Module):
         self.softmax = nn.Softmax(dim=1)
         self.d_feat = d_feat
 
-        num_head_att = [1]*num_layers
-        hidden_dim = [hidden_size]*num_layers
-        dims = [d_feat] + [d*nh for (d, nh) in zip(hidden_dim, num_head_att[:-1])] + [num_head_att[-1]]
+        num_head_att = [1] * num_layers
+        hidden_dim = [hidden_size] * num_layers
+        dims = [d_feat] + [d * nh for (d, nh) in zip(hidden_dim, num_head_att[:-1])] + [num_head_att[-1]]
         in_dims = dims[:-1]
         out_dims = [d // nh for (d, nh) in zip(dims[1:], num_head_att)]
-        self.attn = nn.ModuleList([GraphAttention(i, o, nh, dropout) for (i, o, nh) in zip(in_dims, out_dims,num_head_att)])
+        self.attn = nn.ModuleList(
+            [GraphAttention(i, o, nh, dropout) for (i, o, nh) in zip(in_dims, out_dims, num_head_att)]
+        )
         self.bns = nn.ModuleList([nn.BatchNorm1d(dim) for dim in dims[1:-1]])
         self.dropout = nn.Dropout(dropout)
         self.elu = nn.ELU()
 
     def forward(self, x):
-        x = x.reshape(len(x), self.d_feat, -1) # [N, F, T]
-        x = x.permute(0, 2, 1) # [N, T, F]
-        out,_ = self.model(x)
+        x = x.reshape(len(x), self.d_feat, -1)  # [N, F, T]
+        x = x.permute(0, 2, 1)  # [N, T, F]
+        out, _ = self.model(x)
         hidden = out[:, -1, :]
-        hidden = self.bn1(hidden) 
+        hidden = self.bn1(hidden)
         attention = GraphAttention.cal_attention(hidden, hidden)
         output = attention.mm(hidden)
         output = self.fc(output)
@@ -406,9 +409,7 @@ class HATSModel(nn.Module):
         return self.fc_out(output).squeeze()
 
 
-
 class GraphAttention(nn.Module):
-
     def __init__(self, input_dim, output_dim, num_heads, dropout=0.5):
 
         super().__init__()
@@ -431,7 +432,7 @@ class GraphAttention(nn.Module):
         self.num_heads = num_heads
 
         self.fcs = nn.ModuleList([nn.Linear(input_dim, output_dim) for _ in range(num_heads)])
-        self.a = nn.ModuleList([nn.Linear(2*output_dim, 1) for _ in range(num_heads)])
+        self.a = nn.ModuleList([nn.Linear(2 * output_dim, 1) for _ in range(num_heads)])
 
         self.dropout = nn.Dropout(dropout)
         self.softmax = nn.Softmax(dim=0)
@@ -465,7 +466,6 @@ class GraphAttention(nn.Module):
         sum_degs = np.hstack(([0], np.cumsum([len(row) for row in rows])))
         mapped_nodes = [mapping[v] for v in nodes]
         indices = torch.LongTensor([[v, c] for (v, row) in zip(mapped_nodes, rows) for c in row]).t()
-        
 
         out = []
         for k in range(self.num_heads):
@@ -477,7 +477,7 @@ class GraphAttention(nn.Module):
 
             e = self.leakyrelu(self.a[k](cat_h))
 
-            alpha = [self.softmax(e[lo : hi]) for (lo, hi) in zip(sum_degs, sum_degs[1:])]
+            alpha = [self.softmax(e[lo:hi]) for (lo, hi) in zip(sum_degs, sum_degs[1:])]
             alpha = torch.cat(tuple(alpha), dim=0)
             alpha = alpha.squeeze(1)
             alpha = self.dropout(alpha)
@@ -487,11 +487,18 @@ class GraphAttention(nn.Module):
 
         return out
 
-    def cal_attention(x, y): 
-     
-        att_x = torch.mean(x, dim = 1).reshape(-1, 1)
-        att_y = torch.mean(y, dim = 1).reshape(-1, 1)
+    def cal_attention(x, y):
+
+        att_x = torch.mean(x, dim=1).reshape(-1, 1)
+        att_y = torch.mean(y, dim=1).reshape(-1, 1)
         att = att_x.mm(torch.t(att_y))
         x_att = x.reshape(x.shape[0], 1, x.shape[1]).repeat(1, y.shape[0], 1)
         y_att = y.reshape(1, y.shape[0], y.shape[1]).repeat(x.shape[0], 1, 1)
-        return torch.mean(x.reshape(x.shape[0], 1, x.shape[1]).repeat(1, y.shape[0], 1)*y.reshape(1, y.shape[0], y.shape[1]).repeat(x.shape[0], 1, 1), dim = 2)-att
+        return (
+            torch.mean(
+                x.reshape(x.shape[0], 1, x.shape[1]).repeat(1, y.shape[0], 1)
+                * y.reshape(1, y.shape[0], y.shape[1]).repeat(x.shape[0], 1, 1),
+                dim=2,
+            )
+            - att
+        )

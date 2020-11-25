@@ -18,7 +18,7 @@ class Dataset(Serializable):
 
         - setup data
             - The data related attributes' names should start with '_' so that it will not be saved on disk when serializing
-        
+
         - initialize the state of the dataset(info to prepare the data)
             - The name of essential state for preparing data should not start with '_' so that it could be serialized on disk when serializing.
 
@@ -99,7 +99,7 @@ class DatasetH(Dataset):
             Here are some examples:
 
             .. code-block::
-            
+
                 1) 'segments': {
                         'train': ("2008-01-01", "2014-12-31"),
                         'valid': ("2017-01-01", "2020-08-01",),

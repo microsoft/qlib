@@ -228,7 +228,7 @@ def backtest(pred, account=1e9, shift=1, benchmark="SH000905", verbose=True, **k
         strategy type: TopkAmountStrategy ,TopkWeightStrategy or TopkDropoutStrategy
 
     - **exchange related arguments**
-    
+
     exchange: Exchange()
         pass the exchange for speeding up.
     subscribe_fields: list
