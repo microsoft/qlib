@@ -1,6 +1,8 @@
 # Temporal Fusion Transformers Benchmark
 ## Source
-https://github.com/google-research/google-research/tree/master/tft
+**Reference**: Lim, Bryan, et al. "Temporal fusion transformers for interpretable multi-horizon time series forecasting." arXiv preprint arXiv:1912.09363 (2019).
+
+**GitHub**: https://github.com/google-research/google-research/tree/master/tft
 
 ## Run the Workflow
 Users can follow the ``workflow_by_code_tft.py`` to run the benchmark.
