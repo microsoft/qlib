@@ -13,10 +13,42 @@ from qlib.workflow import R
 from qlib.workflow.record_temp import SignalRecord
 
 
+def get_path_list(path):
+    if isinstance(path, str):
+        return [path]
+    else:
+        return [p for p in path]
+
+
+def sys_config(config, config_path):
+    """
+    Configure the `sys` section
+
+    Parameters
+    ----------
+    config : dict
+        configuration of the workflow
+    config_path : str
+        configuration of the path
+    """
+    sys_config = config.get("sys", {})
+
+    # abspath
+    for p in get_path_list(sys_config.get("path", [])):
+        sys.path.append(p)
+
+    # relative path to config path
+    for p in get_path_list(sys_config.get("rel_path", [])):
+        sys.path.append(str(Path(config_path).parent.resolve().absolute() / p))
+
+
 # worflow handler function
 def workflow(config_path, experiment_name="workflow"):
     with open(config_path) as fp:
         config = yaml.load(fp, Loader=yaml.Loader)
+
+    # config the `sys` section
+    sys_config(config, config_path)
 
     provider_uri = config.get("provider_uri")
     region = config.get("region")

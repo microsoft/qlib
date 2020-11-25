@@ -1,4 +1,5 @@
-
+sys:
+    rel_path: .
 provider_uri: "~/.qlib/qlib_data/cn_data"
 region: cn
 market: &market csi300
@@ -28,7 +29,7 @@ port_analysis_config: &port_analysis_config
 task:
     model:
         class: TFTModel
-        module_path: qlib.examples.benchmarks.TFT
+        module_path: tft
     dataset:
         class: DatasetH
         module_path: qlib.data.dataset
