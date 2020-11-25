@@ -65,6 +65,8 @@ def backtest(pred, strategy, trade_exchange, shift, verbose, account, benchmark)
             get_date_by_shift(predict_dates[-1], shift=shift),
             disk_cache=1,
         )
+        if len(_temp_result) == 0:
+            raise ValueError(f"The benchmark {_codes} does not exist. Please provide the right benchmark")
         bench = _temp_result.groupby(level="datetime")[_temp_result.columns.tolist()[0]].mean()
 
     trade_dates = np.append(predict_dates[shift:], get_date_range(predict_dates[-1], shift=shift))
