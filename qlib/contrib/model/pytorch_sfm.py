@@ -398,7 +398,7 @@ class SFM(Model):
                 # update learning rate
                 self.scheduler.step(cur_loss_val)
 
-        if device != 'cpu':
+        if self.device != 'cpu':
             torch.cuda.empty_cache()
 
     def get_loss(self, pred, target, loss_type):
