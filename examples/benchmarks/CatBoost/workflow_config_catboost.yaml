@@ -35,8 +35,8 @@ task:
             max_depth: 6
             num_leaves: 100
             thread_count: 20
-            grow_policy: 'Lossguide',
-            boostrap_type: 'Poisson'
+            grow_policy: Lossguide
+            boostrap_type: Poisson
     dataset:
         class: DatasetH
         module_path: qlib.data.dataset
