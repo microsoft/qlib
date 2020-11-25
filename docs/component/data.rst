@@ -297,22 +297,7 @@ The ``Processor`` module in ``Qlib`` is designed to be learnable and it is respo
 
 Users can also create their own `processor` by inheriting the base class of ``Processor``. Please refer to the implementation of all the processors for more information (`Processor Link <https://github.com/microsoft/qlib/blob/main/qlib/data/dataset/processor.py>`_). 
 
-API
----------
-
 To know more about ``Processor``, please refer to `Processor API <../reference/api.html#module-qlib.data.dataset.processor>`_.
-
-
-Usage
---------------
-
-``Data Handler`` can be used as a single module, which provides the following mehtods:
-
-- `get_split_data`
-    - According to the start and end dates, return features and labels of the pandas DataFrame type used for the 'Model'
-
-- `get_rolling_data`
-    - According to the start and end dates, and `rolling_period`, an iterator is returned, which can be used to traverse the features and labels used for rolling.
 
 Example
 --------------
