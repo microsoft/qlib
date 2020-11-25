@@ -58,6 +58,7 @@ REQUIRED = [
     "joblib>=0.17.0",
     "fire>=0.3.1",
     "ruamel.yaml>=0.16.12",
+    "pytorch-tabnet>=2.0.1",
 ]
 
 # Numpy include

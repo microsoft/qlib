@@ -44,7 +44,7 @@ task:
         module_path: qlib.data.dataset
         kwargs:
             handler:
-                class: ALPHA360_Denoise
+                class: Alpha158
                 module_path: qlib.contrib.data.handler
                 kwargs: *data_handler_config
             segments:

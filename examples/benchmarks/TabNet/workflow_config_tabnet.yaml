@@ -26,12 +26,19 @@ port_analysis_config: &port_analysis_config
         min_cost: 5
 task:
     model:
-        class: CatBoostModel
-        module_path: qlib.contrib.model.catboost_model
+        class: TabNetModel
+        module_path: qlib.contrib.model.tabnet
         kwargs:
-            loss: RMSE
-            iterations: 5
-            learning_rate: 0.03
+            n_d: 8
+            n_a: 8
+            n_steps: 3
+            gamma: 1.3
+            n_independent: 2
+            n_shared: 2
+            seed: 0
+            momentum: 0.02
+            lambda_sparse: 1e-3
+            optimizer_params: {lr: 2e-3}
     dataset:
         class: DatasetH
         module_path: qlib.data.dataset

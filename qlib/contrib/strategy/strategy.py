@@ -25,7 +25,9 @@ class BaseStrategy:
         return 0.95
 
     def generate_order_list(self, score_series, current, trade_exchange, pred_date, trade_date):
-        """Parameter
+        """
+        Parameters:
+        -----------
         score_series : pd.Seires
             stock_id , score
         current : Position()
@@ -44,8 +46,8 @@ class BaseStrategy:
 
     def update(self, score_series, pred_date, trade_date):
         """User can use this method to update strategy state each trade date.
-        Parameter
-        ---------
+        Parameters:
+        -----------
         score_series : pd.Series
             stock_id , score
         pred_date : pd.Timestamp
@@ -97,7 +99,7 @@ class AdjustTimer:
     Responsible for timing of position adjusting
 
     This is designed as multiple inheritance mechanism due to
-    - the is_adjust may need access to the internel state of a strategyw
+    - the is_adjust may need access to the internel state of a strategy
     - it can be reguard as a enhancement to the existing strategy
     """
 
@@ -139,7 +141,7 @@ class WeightStrategyBase(BaseStrategy, AdjustTimer):
     def generate_target_weight_position(self, score, current, trade_date):
         """
         Parameters:
-        ---------
+        -----------
         score : pred score for this trade date, pd.Series, index is stock_id, contain 'score' column
         current : current position, use Position() class
         trade_exchange : Exchange()
@@ -228,7 +230,7 @@ class TopkDropoutStrategy(BaseStrategy, ListAdjustTimer):
         Gnererate order list according to score_series at trade_date, will not change current.
 
         Parameters:
-        ----------
+        -----------
         score_series : pd.Series
             stock_id , score
         current : Position()

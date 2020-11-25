@@ -71,7 +71,7 @@ if __name__ == "__main__":
                 "seed": 0,
                 "momentum": 0.02,
                 "lambda_sparse": 1e-3,
-                "optimizer_params": {'lr':2e-3}
+                "optimizer_params": {"lr": 2e-3},
             },
         },
         "dataset": {
