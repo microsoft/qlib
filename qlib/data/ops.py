@@ -18,9 +18,8 @@ try:
     from ._libs.rolling import rolling_slope, rolling_rsquare, rolling_resi
     from ._libs.expanding import expanding_slope, expanding_rsquare, expanding_resi
 except ImportError as err:
-    print(err)
-    print("Do not import qlib package in the repository directory")
-    sys.exit(-1)
+    print("Do not import qlib package in the repository directory!")
+    raise
 
 __all__ = (
     "Ref",
@@ -865,6 +864,8 @@ class Skew(Rolling):
     """
 
     def __init__(self, feature, N):
+        if N != 0 and N < 3:
+            raise ValueError("The rolling window size of Skewness operation should >= 3")
         super(Skew, self).__init__(feature, N, "skew")
 
 
@@ -885,6 +886,8 @@ class Kurt(Rolling):
     """
 
     def __init__(self, feature, N):
+        if N != 0 and N < 4:
+            raise ValueError("The rolling window size of Kurtosis operation should >= 5")
         super(Kurt, self).__init__(feature, N, "kurt")
 
 
@@ -1268,7 +1271,7 @@ class WMA(Rolling):
 
         def weighted_mean(x):
             w = np.arange(len(x))
-            w /= w.sum()
+            w = w / w.sum()
             return np.nanmean(w * x)
 
         if self.N == 0:
