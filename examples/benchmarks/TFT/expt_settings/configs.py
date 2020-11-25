@@ -22,10 +22,6 @@ for the main experiments used in the publication.
 
 import os
 
-import data_formatters.electricity
-import data_formatters.favorita
-import data_formatters.traffic
-import data_formatters.volatility
 import data_formatters.qlib_Alpha158
 
 
@@ -43,7 +39,7 @@ class ExperimentConfig(object):
         experiment.
     """
 
-    default_experiments = ["volatility", "electricity", "traffic", "favorita", "Alpha158"]
+    default_experiments = ["Alpha158"]
 
     def __init__(self, experiment="volatility", root_folder=None):
         """Creates configs based on default experiment chosen.
@@ -75,10 +71,6 @@ class ExperimentConfig(object):
     @property
     def data_csv_path(self):
         csv_map = {
-            "volatility": "formatted_omi_vol.csv",
-            "electricity": "hourly_electricity.csv",
-            "traffic": "hourly_data.csv",
-            "favorita": "favorita_consolidated.csv",
             "Alpha158": "Alpha158.csv",
         }
 
@@ -97,10 +89,6 @@ class ExperimentConfig(object):
         """
 
         data_formatter_class = {
-            "volatility": data_formatters.volatility.VolatilityFormatter,
-            "electricity": data_formatters.electricity.ElectricityFormatter,
-            "traffic": data_formatters.traffic.TrafficFormatter,
-            "favorita": data_formatters.favorita.FavoritaFormatter,
             "Alpha158": data_formatters.qlib_Alpha158.Alpha158Formatter,
         }
 
