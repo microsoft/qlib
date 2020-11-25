@@ -1,0 +1,4 @@
+#TabNet
+* TabNet is a novel high-performance and interpretable canonical deep tabular data learning architectur. TabNet uses sequential attention to choose which features to reason from at each decision step, enabling interpretability and more effcient learning as the learning capacity is used for the most salient features.
+* The code used in Qlib is a pyTorch implementation of Tabnet (Arik, S. O., & Pfister, T. (2019). [https://github.com/dreamquark-ai/tabnet](https://github.com/dreamquark-ai/tabnet)
+* Paper: TabNet: Attentive Interpretable Tabular Learning. [https://arxiv.org/pdf/1908.07442.pdf](https://arxiv.org/pdf/1908.07442.pdf).
