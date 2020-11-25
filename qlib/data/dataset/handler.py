@@ -41,7 +41,7 @@ class DataHandler(Serializable):
     Example of the data:
     The multi-index of the columns is optional.
 
-    .. code-block::
+    .. code-block:: python
 
                                 feature                                                            label
                                 $close     $volume  Ref($close, 1)  Mean($close, 3)  $high-$low  LABEL0
@@ -109,7 +109,8 @@ class DataHandler(Serializable):
         Parameters
         ----------
         enable_cache : bool
-            default value is false
+            default value is false:
+
             - if `enable_cache` == True:
 
                 the processed data will be saved on disk, and handler will load the cached data from the disk directly
@@ -378,8 +379,10 @@ class DataHandlerLP(DataHandler):
         init_type : str
             The type `IT_*` listed above
         enable_cache : bool
-            default value is false
-            if `enable_cache` == True:
+            default value is false:
+
+            - if `enable_cache` == True:
+
                 the processed data will be saved on disk, and handler will load the cached data from the disk directly
                 when we call `init` next time
         """

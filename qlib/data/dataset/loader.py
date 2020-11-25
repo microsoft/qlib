@@ -39,14 +39,16 @@ class DataLoader(abc.ABC):
         pd.DataFrame:
             data load from the under layer source
 
-            Example of the data:
-            (The multi-index of the columns is optional.)
-                                    feature                                                             label
-                                    $close     $volume     Ref($close, 1)  Mean($close, 3)  $high-$low  LABEL0
-            datetime    instrument
-            2010-01-04  SH600000    81.807068  17145150.0       83.737389        83.016739    2.741058  0.0032
-                        SH600004    13.313329  11800983.0       13.313329        13.317701    0.183632  0.0042
-                        SH600005    37.796539  12231662.0       38.258602        37.919757    0.970325  0.0289
+            Example of the data (The multi-index of the columns is optional.):
+
+            .. code-block::
+
+                                        feature                                                             label
+                                        $close     $volume     Ref($close, 1)  Mean($close, 3)  $high-$low  LABEL0
+                datetime    instrument
+                2010-01-04  SH600000    81.807068  17145150.0       83.737389        83.016739    2.741058  0.0032
+                            SH600004    13.313329  11800983.0       13.313329        13.317701    0.183632  0.0042
+                            SH600005    37.796539  12231662.0       38.258602        37.919757    0.970325  0.0289
         """
         pass
 
@@ -55,7 +57,7 @@ class DLWParser(DataLoader):
     """
     (D)ata(L)oader (W)ith (P)arser for features and names
 
-    Extracting this class so that QlibDataLoader and other dataloaders(such as QdbDataLoader) can share the fields
+    Extracting this class so that QlibDataLoader and other dataloaders(such as QdbDataLoader) can share the fields.
     """
 
     def __init__(self, config: Tuple[list, tuple, dict]):
@@ -65,14 +67,16 @@ class DLWParser(DataLoader):
         config : Tuple[list, tuple, dict]
             Config will be used to describe the fields and column names
 
-            <config> := {
-                "group_name1": <fields_info1>
-                "group_name2": <fields_info2>
-            }
-            or
-            <config> := <fields_info>
+            .. code-block:: YAML
 
-            <fields_info> := ["expr", ...] | (["expr", ...], ["col_name", ...])
+                <config> := {
+                    "group_name1": <fields_info1>
+                    "group_name2": <fields_info2>
+                }
+                or
+                <config> := <fields_info>
+
+                <fields_info> := ["expr", ...] | (["expr", ...], ["col_name", ...])
         """
         self.is_group = isinstance(config, dict)
 

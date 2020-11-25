@@ -26,7 +26,9 @@ class BaseStrategy:
 
     def generate_order_list(self, score_series, current, trade_exchange, pred_date, trade_date):
         """
-        Parameters:
+        DO NOT directly change the state of current
+
+        Parameters
         -----------
         score_series : pd.Seires
             stock_id , score
@@ -39,14 +41,13 @@ class BaseStrategy:
             predict date
         trade_date : pd.Timestamp
             trade date
-
-        DO NOT directly change the state of current
         """
         pass
 
     def update(self, score_series, pred_date, trade_date):
         """User can use this method to update strategy state each trade date.
-        Parameters:
+
+        Parameters
         -----------
         score_series : pd.Series
             stock_id , score
@@ -98,8 +99,9 @@ class AdjustTimer:
     """AdjustTimer
     Responsible for timing of position adjusting
 
-    This is designed as multiple inheritance mechanism due to
+    This is designed as multiple inheritance mechanism due to:
     - the is_adjust may need access to the internel state of a strategy
+
     - it can be reguard as a enhancement to the existing strategy
     """
 
@@ -140,21 +142,24 @@ class WeightStrategyBase(BaseStrategy, AdjustTimer):
 
     def generate_target_weight_position(self, score, current, trade_date):
         """
-        Parameters:
+        Generate target position from score for this date and the current position.The cash is not considered in the position
+
+        Parameters
         -----------
-        score : pred score for this trade date, pd.Series, index is stock_id, contain 'score' column
-        current : current position, use Position() class
+        score : pd.Series
+            pred score for this trade date, index is stock_id, contain 'score' column
+        current : Position()
+            current position
         trade_exchange : Exchange()
-        trade_date : trade date
-        generate target position from score for this date and the current position
-        The cash is not considered in the position
+        trade_date : pd.Timestamp
+            trade date
         """
         raise NotImplementedError()
 
     def generate_order_list(self, score_series, current, trade_exchange, pred_date, trade_date):
         """
-        Parameters:
-        ----------
+        Parameters
+        -----------
         score_series : pd.Seires
             stock_id , score
         current : Position()
@@ -188,7 +193,7 @@ class WeightStrategyBase(BaseStrategy, AdjustTimer):
 class TopkDropoutStrategy(BaseStrategy, ListAdjustTimer):
     def __init__(self, topk, n_drop, method="bottom", risk_degree=0.95, thresh=1, hold_thresh=1, **kwargs):
         """
-        Parameters:
+        Parameters
         -----------
         topk : int
             The number of stocks in the portfolio
@@ -229,7 +234,7 @@ class TopkDropoutStrategy(BaseStrategy, ListAdjustTimer):
         """
         Gnererate order list according to score_series at trade_date, will not change current.
 
-        Parameters:
+        Parameters
         -----------
         score_series : pd.Series
             stock_id , score

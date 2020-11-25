@@ -30,7 +30,7 @@ task:
         module_path: qlib.contrib.model.pytorch_nn
         kwargs:
             loss: mse
-            input_dim: 360
+            input_dim: 158
             output_dim: 1
             lr: 0.002
             lr_decay: 0.96

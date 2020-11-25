@@ -14,9 +14,11 @@ class Dataset(Serializable):
 
     def __init__(self, *args, **kwargs):
         """
-        init is designed to finish following steps
+        init is designed to finish following steps:
+
         - setup data
             - The data related attributes' names should start with '_' so that it will not be saved on disk when serializing
+        
         - initialize the state of the dataset(info to prepare the data)
             - The name of essential state for preparing data should not start with '_' so that it could be serialized on disk when serializing.
 
@@ -29,11 +31,15 @@ class Dataset(Serializable):
         """
         setup the data
 
-        We split the setup_data function for following situation
-        - 1) User have a Dataset object with learned status on disk
-        - 2) User load the Dataset object from the disk(Note the init function is skiped)
-        - 3) User call `setup_data` to load new data
-        - 4) User prepare data for model based on previous status
+        We split the setup_data function for following situation:
+
+        - User have a Dataset object with learned status on disk
+
+        - User load the Dataset object from the disk(Note the init function is skiped)
+
+        - User call `setup_data` to load new data
+
+        - User prepare data for model based on previous status
         """
         pass
 
@@ -41,8 +47,9 @@ class Dataset(Serializable):
         """
         The type of dataset depends on the model. (It could be pd.DataFrame, pytorch.DataLoader, etc.)
         The parameters should specify the scope for the prepared data
-        The method sould
+        The method should:
         - process the data
+
         - return the processed data
 
         Returns
@@ -55,11 +62,12 @@ class Dataset(Serializable):
 
 class DatasetH(Dataset):
     """
-    Dataset with Data(H)anler
+    Dataset with Data(H)andler
 
     User should try to put the data preprocessing functions into handler.
-    Only following data processing functions should be placed in Dataset
+    Only following data processing functions should be placed in Dataset:
     - The processing is related to specific model.
+
     - The processing is related to data split
     """
 
@@ -81,21 +89,26 @@ class DatasetH(Dataset):
         Parameters
         ----------
         handler : Union[dict, DataHandler]
-            handler could be
-            1) insntance of `DataHandler`
-            2) config of `DataHandler`.  Please refer to `DataHandler`
+            handler could be:
+
+            - insntance of `DataHandler`
+
+            - config of `DataHandler`.  Please refer to `DataHandler`
         segments : list
             Describe the options to segment the data.
-            Here are some examples
-            1) 'segments': {
-                    'train': ("2008-01-01", "2014-12-31"),
-                    'valid': ("2017-01-01", "2020-08-01",),
-                    'test': ("2015-01-01", "2016-12-31",),
-                }
-            2) 'segments': {
-                    'insample': ("2008-01-01", "2014-12-31"),
-                    'outsample': ("2017-01-01", "2020-08-01",),
-                }
+            Here are some examples:
+
+            .. code-block::
+            
+                1) 'segments': {
+                        'train': ("2008-01-01", "2014-12-31"),
+                        'valid': ("2017-01-01", "2020-08-01",),
+                        'test': ("2015-01-01", "2016-12-31",),
+                    }
+                2) 'segments': {
+                        'insample': ("2008-01-01", "2014-12-31"),
+                        'outsample': ("2017-01-01", "2020-08-01",),
+                    }
         """
         self._handler = init_instance_by_config(handler, accept_types=DataHandler)
         self._segments = segments.copy()
@@ -114,9 +127,11 @@ class DatasetH(Dataset):
         ----------
         segments : Union[List[str], Tuple[str], str, slice]
             Describe the scope of the data to be prepared
-            Here are some examples
-            1) 'train'
-            2) ['train', 'valid']
+            Here are some examples:
+
+            - 'train'
+
+            - ['train', 'valid']
         col_set : str
             The col_set will be passed to self._handler when fetching data
         data_key: str

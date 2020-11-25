@@ -190,7 +190,8 @@ def backtest(pred, account=1e9, shift=1, benchmark="SH000905", verbose=True, **k
     Parameters
     ----------
 
-    # backtest workflow related or commmon arguments
+    - **backtest workflow related or commmon arguments**
+
     pred : pandas.DataFrame
         predict should has <datetime, instrument> index and one `score` column
     account : float
@@ -202,7 +203,8 @@ def backtest(pred, account=1e9, shift=1, benchmark="SH000905", verbose=True, **k
     verbose : bool
         whether to print log
 
-    # strategy related arguments
+    - **strategy related arguments**
+
     strategy : Strategy()
         strategy used in backtest
     topk : int (Default value: 50)
@@ -225,7 +227,8 @@ def backtest(pred, account=1e9, shift=1, benchmark="SH000905", verbose=True, **k
     str_type: 'amount', 'weight' or 'dropout'
         strategy type: TopkAmountStrategy ,TopkWeightStrategy or TopkDropoutStrategy
 
-    # exchange related arguments
+    - **exchange related arguments**
+    
     exchange: Exchange()
         pass the exchange for speeding up.
     subscribe_fields: list
