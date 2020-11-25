@@ -229,7 +229,7 @@ class SFM(Model):
             "SFM parameters setting:"
             "\nd_feat : {}"
             "\nhidden_size : {}"
-            "\nfreqency_dimension : {}" 
+            "\nfrequency_dimension : {}" 
             "\ndropout_W: {}"
             "\ndropout_U: {}"
             "\nn_epochs : {}"
