@@ -32,7 +32,11 @@ task:
             loss: RMSE
             learning_rate: 0.0421
             subsample: 0.8789
+            max_depth: 6
+            num_leaves: 100
             thread_count: 20
+            grow_policy: Lossguide
+            boostrap_type: Poisson
     dataset:
         class: DatasetH
         module_path: qlib.data.dataset

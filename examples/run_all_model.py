@@ -178,8 +178,7 @@ def get_all_folders() -> dict:
     folders = dict()
     for f in os.scandir("benchmarks"):
         path = Path("benchmarks") / f.name
-        if f.name != "TFT":
-            folders[f.name] = str(path.resolve())
+        folders[f.name] = str(path.resolve())
     return folders
 
 
