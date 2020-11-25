@@ -7,7 +7,7 @@ from pathlib import Path
 import qlib
 import pandas as pd
 from qlib.config import REG_CN
-from qlib.contrib.model.pytorch_gats import GAT
+from qlib.contrib.model.pytorch_alstm import ALSTM
 from qlib.contrib.data.handler import ALPHA360_Denoise
 from qlib.contrib.strategy.strategy import TopkDropoutStrategy
 from qlib.contrib.evaluate import (
@@ -59,8 +59,8 @@ if __name__ == "__main__":
 
     task = {
         "model": {
-            "class": "GAT",
-            "module_path": "qlib.contrib.model.pytorch_gats",
+            "class": "ALSTM",
+            "module_path": "qlib.contrib.model.pytorch_alstm",
             "kwargs": {
                 "d_feat": 6,
                 "hidden_size": 64,
@@ -70,12 +70,11 @@ if __name__ == "__main__":
                 "lr": 1e-3,
                 "early_stop": 20,
                 "batch_size": 800,
-                "metric": "loss",
+                "metric": "IC",
                 "loss": "mse",
-                "base_model": "LSTM",
-                "with_pretrain": True,
                 "seed": 0,
                 "GPU": 0,
+                "rnn_type": "GRU",
             },
         },
         "dataset": {

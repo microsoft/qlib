@@ -26,25 +26,28 @@ port_analysis_config: &port_analysis_config
         min_cost: 5
 task:
     model:
-        class: DNNModelPytorch
-        module_path: qlib.contrib.model.pytorch_nn
+        class: ALSTM
+        module_path: qlib.contrib.model.pytorch_alstm
         kwargs:
+            d_feat: 6
+            hidden_size: 64
+            num_layers: 2
+            dropout: 0.0
+            n_epochs: 200
+            lr: 1e-3
+            early_stop: 20
+            batch_size: 800
+            metric: IC
             loss: mse
-            input_dim: 158
-            output_dim: 1
-            lr: 0.002
-            lr_decay: 0.96
-            lr_decay_steps: 100
-            optimizer: adam
-            max_steps: 8000
-            batch_size: 4096
+            seed: 0
             GPU: 0
+            rnn_type: GRU
     dataset:
         class: DatasetH
         module_path: qlib.data.dataset
         kwargs:
             handler:
-                class: Alpha158
+                class: ALPHA360_Denoise
                 module_path: qlib.contrib.data.handler
                 kwargs: *data_handler_config
             segments:

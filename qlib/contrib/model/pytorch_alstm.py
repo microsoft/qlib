@@ -23,8 +23,8 @@ from ...data.dataset import DatasetH
 from ...data.dataset.handler import DataHandlerLP
 
 
-class GAT(Model):
-    """GAT Model
+class ALSTM(Model):
+    """ALSTM Model
 
     Parameters
     ----------
@@ -54,16 +54,15 @@ class GAT(Model):
         batch_size=2000,
         early_stop=20,
         loss="mse",
-        base_model="GRU",
-        with_pretrain=True,
         optimizer="adam",
         GPU="0",
         seed=0,
+        rnn_type="GRU",
         **kwargs
     ):
         # Set logger.
-        self.logger = get_module_logger("GAT")
-        self.logger.info("GAT pytorch version...")
+        self.logger = get_module_logger("ALSTM")
+        self.logger.info("ALSTM pytorch version...")
 
         # set hyper-parameters.
         self.d_feat = d_feat
@@ -77,14 +76,13 @@ class GAT(Model):
         self.early_stop = early_stop
         self.optimizer = optimizer.lower()
         self.loss = loss
-        self.base_model = base_model
-        self.with_pretrain = with_pretrain
         self.visible_GPU = GPU
         self.use_gpu = torch.cuda.is_available()
         self.seed = seed
+        self.rnn_type = rnn_type
 
         self.logger.info(
-            "GAT parameters setting:"
+            "ALSTM parameters setting:"
             "\nd_feat : {}"
             "\nhidden_size : {}"
             "\nnum_layers : {}"
@@ -96,11 +94,10 @@ class GAT(Model):
             "\nearly_stop : {}"
             "\noptimizer : {}"
             "\nloss_type : {}"
-            "\nbase_model : {}"
-            "\nwith_pretrain : {}"
             "\nvisible_GPU : {}"
             "\nuse_GPU : {}"
-            "\nseed : {}".format(
+            "\nseed : {}"
+            "\nrnn_type : {}".format(
                 d_feat,
                 hidden_size,
                 num_layers,
@@ -112,11 +109,10 @@ class GAT(Model):
                 early_stop,
                 optimizer.lower(),
                 loss,
-                base_model,
-                with_pretrain,
                 GPU,
                 self.use_gpu,
                 seed,
+                self.rnn_type,
             )
         )
 
@@ -124,23 +120,21 @@ class GAT(Model):
             raise NotImplementedError("loss {} is not supported!".format(loss))
         self._scorer = mean_squared_error if loss == "mse" else roc_auc_score
 
-        self.GAT_model = GATModel(
-            d_feat=self.d_feat,
-            hidden_size=self.hidden_size,
-            num_layers=self.num_layers,
-            dropout=self.dropout,
-            base_model=self.base_model,
+        self.alstm_model = ALSTMModel(
+            d_feat=self.d_feat, hidden_size=self.hidden_size, num_layers=self.num_layers, dropout=self.dropout
         )
+        # def __init__(self, d_feat=6, hidden_size=64, num_layers=2, dropout=0.0, input_day=20, rnn_type="GRU"):
+
         if optimizer.lower() == "adam":
-            self.train_optimizer = optim.Adam(self.GAT_model.parameters(), lr=self.lr)
+            self.train_optimizer = optim.Adam(self.alstm_model.parameters(), lr=self.lr)
         elif optimizer.lower() == "gd":
-            self.train_optimizer = optim.SGD(self.GAT_model.parameters(), lr=self.lr)
+            self.train_optimizer = optim.SGD(self.alstm_model.parameters(), lr=self.lr)
         else:
             raise NotImplementedError("optimizer {} is not supported!".format(optimizer))
 
         self._fitted = False
         if self.use_gpu:
-            self.GAT_model.cuda()
+            self.alstm_model.cuda()
             # set the visible GPU
             if self.visible_GPU:
                 os.environ["CUDA_VISIBLE_DEVICES"] = self.visible_GPU
@@ -176,7 +170,7 @@ class GAT(Model):
         x_train_values = x_train.values
         y_train_values = np.squeeze(y_train.values) * 100
 
-        self.GAT_model.train()
+        self.alstm_model.train()
 
         indices = np.arange(len(x_train_values))
         np.random.shuffle(indices)
@@ -193,12 +187,12 @@ class GAT(Model):
                 feature = feature.cuda()
                 label = label.cuda()
 
-            pred = self.GAT_model(feature)
+            pred = self.alstm_model(feature)
             loss = self.loss_fn(pred, label)
 
             self.train_optimizer.zero_grad()
             loss.backward()
-            torch.nn.utils.clip_grad_value_(self.GAT_model.parameters(), 3.0)
+            torch.nn.utils.clip_grad_value_(self.alstm_model.parameters(), 3.0)
             self.train_optimizer.step()
 
     def test_epoch(self, data_x, data_y):
@@ -207,7 +201,7 @@ class GAT(Model):
         x_values = data_x.values
         y_values = np.squeeze(data_y.values)
 
-        self.GAT_model.eval()
+        self.alstm_model.eval()
 
         scores = []
         losses = []
@@ -227,7 +221,7 @@ class GAT(Model):
                 feature = feature.cuda()
                 label = label.cuda()
 
-            pred = self.GAT_model(feature)
+            pred = self.alstm_model(feature)
             loss = self.loss_fn(pred, label)
             losses.append(loss.item())
 
@@ -260,25 +254,6 @@ class GAT(Model):
         evals_result["train"] = []
         evals_result["valid"] = []
 
-        # load pretrained base_model
-        if self.with_pretrain:
-            self.logger.info("Loading pretrained model...")
-            if self.base_model == "LSTM":
-                from ...contrib.model.pytorch_lstm import LSTMModel
-
-                pretrained_model = LSTMModel()
-                pretrained_model.load_state_dict(torch.load("benchmarks/LSTM/model_lstm_csi300.pkl"))
-            elif self.base_model == "GRU":
-                from ...contrib.model.pytorch_gru import GRUModel
-
-                pretrained_model = GRUModel()
-                pretrained_model.load_state_dict(torch.load("benchmarks/GRU/model_gru_csi300.pkl"))
-            model_dict = self.GAT_model.state_dict()
-            pretrained_dict = {k: v for k, v in pretrained_model.state_dict().items() if k in model_dict}
-            model_dict.update(pretrained_dict)
-            self.GAT_model.load_state_dict(model_dict)
-            self.logger.info("Loading pretrained model Done...")
-
         # train
         self.logger.info("training...")
         self._fitted = True
@@ -299,7 +274,7 @@ class GAT(Model):
                 best_score = val_score
                 stop_steps = 0
                 best_epoch = step
-                best_param = copy.deepcopy(self.GAT_model.state_dict())
+                best_param = copy.deepcopy(self.alstm_model.state_dict())
             else:
                 stop_steps += 1
                 if stop_steps >= self.early_stop:
@@ -307,7 +282,7 @@ class GAT(Model):
                     break
 
         self.logger.info("best score: %.6lf @ %d" % (best_score, best_epoch))
-        self.GAT_model.load_state_dict(best_param)
+        self.alstm_model.load_state_dict(best_param)
         torch.save(best_param, save_path)
 
         if self.use_gpu:
@@ -319,7 +294,7 @@ class GAT(Model):
 
         x_test = dataset.prepare("test", col_set="feature")
         index = x_test.index
-        self.GAT_model.eval()
+        self.alstm_model.eval()
         x_values = x_test.values
         sample_num = x_values.shape[0]
         preds = []
@@ -338,72 +313,82 @@ class GAT(Model):
 
             with torch.no_grad():
                 if self.use_gpu:
-                    pred = self.GAT_model(x_batch).detach().cpu().numpy()
+                    pred = self.alstm_model(x_batch).detach().cpu().numpy()
                 else:
-                    pred = self.GAT_model(x_batch).detach().numpy()
+                    pred = self.alstm_model(x_batch).detach().numpy()
 
             preds.append(pred)
 
         return pd.Series(np.concatenate(preds), index=index)
 
 
-class GATModel(nn.Module):
-    def __init__(self, d_feat=6, hidden_size=64, num_layers=2, dropout=0.0, base_model="GRU"):
+class GRUModel(nn.Module):
+    def __init__(self, d_feat=6, hidden_size=64, num_layers=2, dropout=0.0):
         super().__init__()
 
-        if base_model == "GRU":
-            self.rnn = nn.GRU(
-                input_size=d_feat,
-                hidden_size=hidden_size,
-                num_layers=num_layers,
-                batch_first=True,
-                dropout=dropout,
-            )
-        elif base_model == "LSTM":
-            self.rnn = nn.LSTM(
-                input_size=d_feat,
-                hidden_size=hidden_size,
-                num_layers=num_layers,
-                batch_first=True,
-                dropout=dropout,
-            )
-        else:
-            raise ValueError("unknown base model name `%s`" % base_model)
-
-        self.hidden_size = hidden_size
-        self.bn1 = nn.BatchNorm1d(num_features=hidden_size, track_running_stats=False)
-        self.fc = nn.Linear(hidden_size, hidden_size)
-        self.bn2 = nn.BatchNorm1d(num_features=hidden_size, track_running_stats=False)
+        self.rnn = nn.GRU(
+            input_size=d_feat,
+            hidden_size=hidden_size,
+            num_layers=num_layers,
+            batch_first=True,
+            dropout=dropout,
+        )
         self.fc_out = nn.Linear(hidden_size, 1)
-        self.leaky_relu = nn.LeakyReLU()
-        self.softmax = nn.Softmax(dim=1)
 
         self.d_feat = d_feat
-
-    def cal_convariance(self, x, y):  # the 2nd dimension of x and y are the same
-        e_x = torch.mean(x, dim=1).reshape(-1, 1)
-        e_y = torch.mean(y, dim=1).reshape(-1, 1)
-        e_x_e_y = e_x.mm(torch.t(e_y))
-        x_extend = x.reshape(x.shape[0], 1, x.shape[1]).repeat(1, y.shape[0], 1)
-        y_extend = y.reshape(1, y.shape[0], y.shape[1]).repeat(x.shape[0], 1, 1)
-        e_xy = torch.mean(x_extend * y_extend, dim=2)
-        return e_xy - e_x_e_y
 
     def forward(self, x):
         # x: [N, F*T]
         x = x.reshape(len(x), self.d_feat, -1)  # [N, F, T]
         x = x.permute(0, 2, 1)  # [N, T, F]
         out, _ = self.rnn(x)
-        hidden = out[:, -1, :]
-        hidden = self.bn1(hidden)
+        return self.fc_out(out[:, -1, :]).squeeze()
 
-        gamma = self.cal_convariance(hidden, hidden)
-        # gamma = hidden.mm(torch.t(hidden))
-        # gamma = self.leaky_relu(gamma)
-        # gamma = self.softmax(gamma)
-        # gamma = gamma * (torch.ones(x.shape[0], x.shape[0]).to(device) - torch.diag(torch.ones(x.shape[0])).to(device))
-        output = gamma.mm(hidden)
-        output = self.fc(output)
-        output = self.bn2(output)
-        output = self.leaky_relu(output)
-        return self.fc_out(output).squeeze()
+
+class ALSTMModel(nn.Module):
+    def __init__(self, d_feat=6, hidden_size=64, num_layers=2, dropout=0.0, rnn_type="GRU"):
+        super().__init__()
+        self.hid_size = hidden_size
+        self.input_size = d_feat
+        self.dropout = dropout
+        self.rnn_type = rnn_type
+        self.rnn_layer = num_layers
+        self._build_model()
+
+    def _build_model(self):
+        try:
+            klass = getattr(nn, self.rnn_type.upper())
+        except:
+            raise ValueError("unknown rnn_type `%s`" % self.rnn_type)
+        self.net = nn.Sequential()
+        self.net.add_module("fc_in", nn.Linear(in_features=self.input_size, out_features=self.hid_size))
+        self.net.add_module("act", nn.Tanh())
+        self.rnn = klass(
+            input_size=self.hid_size,
+            hidden_size=self.hid_size,
+            num_layers=self.rnn_layer,
+            batch_first=True,
+            dropout=self.dropout,
+        )
+        self.fc_out = nn.Linear(in_features=self.hid_size * 2, out_features=1)
+        # self.fc_out = nn.Linear(in_features=self.hid_size, out_features=1)
+        self.att_net = nn.Sequential()
+        self.att_net.add_module("att_fc_in", nn.Linear(in_features=self.hid_size, out_features=int(self.hid_size / 2)))
+        self.att_net.add_module("att_dropout", torch.nn.Dropout(self.dropout))
+        self.att_net.add_module("att_act", nn.Tanh())
+        self.att_net.add_module("att_fc_out", nn.Linear(in_features=int(self.hid_size / 2), out_features=1, bias=False))
+        self.att_net.add_module("att_softmax", nn.Softmax(dim=1))
+
+    def forward(self, inputs):
+        # inputs: [batch_size, input_size*input_day]
+        inputs = inputs.view(len(inputs), self.input_size, -1)
+        inputs = inputs.permute(0, 2, 1)  # [batch, input_size, seq_len] -> [batch, seq_len, input_size]
+        rnn_out, _ = self.rnn(self.net(inputs))  # [batch, seq_len, num_directions * hidden_size]
+        attention_score = self.att_net(rnn_out)  # [batch, seq_len, 1]
+        out_att = torch.mul(rnn_out, attention_score)
+        out_att = torch.sum(out_att, dim=1)
+        out = self.fc_out(
+            torch.cat((rnn_out[:, -1, :], out_att), dim=1)
+        )  # [batch, seq_len, num_directions * hidden_size] -> [batch, 1]
+        # out = self.fc_out(rnn_out[:, -1, :] + out_att)
+        return out[..., 0]

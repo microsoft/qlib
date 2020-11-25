@@ -7,7 +7,7 @@ from pathlib import Path
 import qlib
 import pandas as pd
 from qlib.config import REG_CN
-from qlib.contrib.model.pytorch_gats import GAT
+from qlib.contrib.model.pytorch_hats import HATS
 from qlib.contrib.data.handler import ALPHA360_Denoise
 from qlib.contrib.strategy.strategy import TopkDropoutStrategy
 from qlib.contrib.evaluate import (
@@ -30,7 +30,7 @@ if __name__ == "__main__":
         sys.path.append(str(Path(__file__).resolve().parent.parent.joinpath("scripts")))
         from get_data import GetData
 
-        GetData().qlib_data(target_dir=provider_uri, region=REG_CN)
+        GetData().qlib_data_cn(target_dir=provider_uri)
 
     qlib.init(provider_uri=provider_uri, region=REG_CN)
 
@@ -59,21 +59,20 @@ if __name__ == "__main__":
 
     task = {
         "model": {
-            "class": "GAT",
-            "module_path": "qlib.contrib.model.pytorch_gats",
+            "class": "HATS",
+            "module_path": "qlib.contrib.model.pytorch_hats",
             "kwargs": {
                 "d_feat": 6,
                 "hidden_size": 64,
                 "num_layers": 2,
-                "dropout": 0.0,
+                "dropout": 0.6,
                 "n_epochs": 200,
                 "lr": 1e-3,
                 "early_stop": 20,
                 "batch_size": 800,
-                "metric": "loss",
+                "metric": "IC",
                 "loss": "mse",
                 "base_model": "LSTM",
-                "with_pretrain": True,
                 "seed": 0,
                 "GPU": 0,
             },
@@ -101,7 +100,7 @@ if __name__ == "__main__":
     # model = train_model(task)
     model = init_instance_by_config(task["model"])
     dataset = init_instance_by_config(task["dataset"])
-    model.fit(dataset)
+    model.fit(dataset, save_path="benchmarks/HATS/model_hat.pkl")
 
     pred_score = model.predict(dataset)
 

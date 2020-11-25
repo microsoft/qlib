@@ -26,25 +26,28 @@ port_analysis_config: &port_analysis_config
         min_cost: 5
 task:
     model:
-        class: DNNModelPytorch
-        module_path: qlib.contrib.model.pytorch_nn
+        class: HATS
+        module_path: qlib.contrib.model.pytorch_gats
         kwargs:
+            d_feat: 6
+            hidden_size: 64
+            num_layers: 2
+            dropout: 0.6
+            n_epochs: 200
+            lr: 1e-3
+            early_stop: 20
+            batch_size: 800
+            metric: IC
             loss: mse
-            input_dim: 158
-            output_dim: 1
-            lr: 0.002
-            lr_decay: 0.96
-            lr_decay_steps: 100
-            optimizer: adam
-            max_steps: 8000
-            batch_size: 4096
+            base_model: GRU
+            seed: 0
             GPU: 0
     dataset:
         class: DatasetH
         module_path: qlib.data.dataset
         kwargs:
             handler:
-                class: Alpha158
+                class: ALPHA360_Denoise
                 module_path: qlib.contrib.data.handler
                 kwargs: *data_handler_config
             segments:
@@ -55,11 +58,6 @@ task:
         - class: SignalRecord
           module_path: qlib.workflow.record_temp
           kwargs: {}
-        - class: SigAnaRecord
-          module_path: qlib.workflow.record_temp
-          kwargs: 
-            ana_long_short: False
-            ann_scaler: 252
         - class: PortAnaRecord
           module_path: qlib.workflow.record_temp
           kwargs: 
