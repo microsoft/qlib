@@ -27,7 +27,7 @@ port_analysis_config: &port_analysis_config
 task:
     model:
         class: HATS
-        module_path: qlib.contrib.model.pytorch_gats
+        module_path: qlib.contrib.model.pytorch_hats
         kwargs:
             d_feat: 6
             hidden_size: 64
