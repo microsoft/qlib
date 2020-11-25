@@ -26,7 +26,7 @@ class BaseStrategy:
 
     def generate_order_list(self, score_series, current, trade_exchange, pred_date, trade_date):
         """
-        Parameters:
+        Parameters
         -----------
         score_series : pd.Seires
             stock_id , score
@@ -46,7 +46,7 @@ class BaseStrategy:
 
     def update(self, score_series, pred_date, trade_date):
         """User can use this method to update strategy state each trade date.
-        Parameters:
+        Parameters
         -----------
         score_series : pd.Series
             stock_id , score
@@ -140,12 +140,15 @@ class WeightStrategyBase(BaseStrategy, AdjustTimer):
 
     def generate_target_weight_position(self, score, current, trade_date):
         """
-        Parameters:
+        Parameters
         -----------
-        score : pred score for this trade date, pd.Series, index is stock_id, contain 'score' column
-        current : current position, use Position() class
-        trade_exchange : Exchange()
-        trade_date : trade date
+        score : pd.Series
+            pred score for this trade date, index is stock_id, contain 'score' column
+        current : Position
+            current position, use Position() class
+        trade_exchange : Exchange
+        trade_date : str, pd.Timestamp
+            trade date
         generate target position from score for this date and the current position
         The cash is not considered in the position
         """
@@ -153,7 +156,7 @@ class WeightStrategyBase(BaseStrategy, AdjustTimer):
 
     def generate_order_list(self, score_series, current, trade_exchange, pred_date, trade_date):
         """
-        Parameters:
+        Parameters
         ----------
         score_series : pd.Seires
             stock_id , score
@@ -186,16 +189,29 @@ class WeightStrategyBase(BaseStrategy, AdjustTimer):
 
 
 class TopkDropoutStrategy(BaseStrategy, ListAdjustTimer):
-    def __init__(self, topk, n_drop, method="bottom", risk_degree=0.95, thresh=1, hold_thresh=1, **kwargs):
+    def __init__(
+        self,
+        topk,
+        n_drop,
+        method_sell="bottom",
+        method_buy="top",
+        risk_degree=0.95,
+        thresh=1,
+        hold_thresh=1,
+        only_tradable=False,
+        **kwargs,
+    ):
         """
-        Parameters:
-        -----------
+        Parameters
+        ----------
         topk : int
             The number of stocks in the portfolio
         n_drop : int
             number of stocks to be replaced in each trading date
-        method : str
-            dropout method, random/bottom
+        method_sell : str
+            dropout method_sell, random/bottom
+        method_buy : str
+            dropout method_buy, random/top
         risk_degree : float
             position percentage of total value
         thresh : int
@@ -203,12 +219,19 @@ class TopkDropoutStrategy(BaseStrategy, ListAdjustTimer):
         hold_thresh : int
             minimum holding days
             before sell stock , will check current.get_stock_count(order.stock_id) >= self.thresh
+        only_tradable : bool
+            will the strategy only consider the tradable stock when buying and selling.
+            if only_tradable:
+                strategy will make buy sell decision without checking the tradable state of the stock
+            else:
+                strategy will make decision with the tradable state of the stock info and avoid buy and sell them
         """
         super(TopkDropoutStrategy, self).__init__()
         ListAdjustTimer.__init__(self, kwargs.get("adjust_dates", None))
         self.topk = topk
         self.n_drop = n_drop
-        self.method = method
+        self.method_sell = method_sell
+        self.method_buy = method_buy
         self.risk_degree = risk_degree
         self.thresh = thresh
         # self.stock_count['code'] will be the days the stock has been hold
@@ -216,6 +239,7 @@ class TopkDropoutStrategy(BaseStrategy, ListAdjustTimer):
         self.stock_count = {}
 
         self.hold_thresh = hold_thresh
+        self.only_tradable = only_tradable
 
     def get_risk_degree(self, date):
         """get_risk_degree
@@ -226,42 +250,102 @@ class TopkDropoutStrategy(BaseStrategy, ListAdjustTimer):
         return self.risk_degree
 
     def generate_order_list(self, score_series, current, trade_exchange, pred_date, trade_date):
-        """
-        Gnererate order list according to score_series at trade_date, will not change current.
-
-        Parameters:
-        -----------
-        score_series : pd.Series
-            stock_id , score
-        current : Position()
-            current of account
-        trade_exchange : Exchange()
-            exchange
-        pred_date : pd.Timestamp
-            predict date
-        trade_date : pd.Timestamp
-            trade date
+        """Gnererate order list according to score_series at trade_date.
+            will not change current.
+        Parameters
+        ----------
+            score_series : pd.Seires
+                stock_id , score
+            current : Position()
+                current of account
+            trade_exchange : Exchange()
+                exchange
+            pred_date : pd.Timestamp
+                predict date
+            trade_date : pd.Timestamp
+                trade date
         """
         if not self.is_adjust(trade_date):
             return []
+
+        if self.only_tradable:
+            # If The strategy only consider tradable stock when make decision
+            # It needs following actions to filter stocks
+            def get_first_n(l, n, reverse=False):
+                cur_n = 0
+                res = []
+                for si in reversed(l) if reverse else l:
+                    if trade_exchange.is_stock_tradable(stock_id=si, trade_date=trade_date):
+                        res.append(si)
+                        cur_n += 1
+                        if cur_n >= n:
+                            break
+                return res[::-1] if reverse else res
+
+            def get_last_n(l, n):
+                return get_first_n(l, n, reverse=True)
+
+            def filter_stock(l):
+                return [si for si in l if trade_exchange.is_stock_tradable(stock_id=si, trade_date=trade_date)]
+
+        else:
+            # Otherwise, the stock will make decision with out the stock tradable info
+            def get_first_n(l, n):
+                return list(l)[:n]
+
+            def get_last_n(l, n):
+                return list(l)[-n:]
+
+            def filter_stock(l):
+                return l
+
         current_temp = copy.deepcopy(current)
         # generate order list for this adjust date
         sell_order_list = []
         buy_order_list = []
         # load score
+        cash = current_temp.get_cash()
         current_stock_list = current_temp.get_stock_list()
+        # last position (sorted by score)
         last = score_series.reindex(current_stock_list).sort_values(ascending=False).index
-        today = (
-            score_series[~score_series.index.isin(last)]
-            .sort_values(ascending=False)
-            .index[: self.n_drop + self.topk - len(last)]
-        )
-        comb = score_series.reindex(last.union(today)).sort_values(ascending=False).index
-        if self.method == "bottom":
-            sell = last[last.isin(comb[-self.n_drop :])]
-        elif self.method == "random":
-            sell = pd.Index(np.random.choice(last, self.n_drop) if len(last) else [])
+        # The new stocks today want to buy **at most**
+        if self.method_buy == "top":
+            today = get_first_n(
+                score_series[~score_series.index.isin(last)].sort_values(ascending=False).index,
+                self.n_drop + self.topk - len(last),
+            )
+        elif self.method_buy == "random":
+            topk_candi = get_first_n(score_series.sort_values(ascending=False).index, self.topk)
+            candi = list(filter(lambda x: x not in last, topk_candi))
+            n = self.n_drop + self.topk - len(last)
+            try:
+                today = np.random.choice(candi, n, replace=False)
+            except ValueError:
+                today = candi
+        else:
+            raise NotImplementedError(f"This type of input is not supported")
+        # combine(new stocks + last stocks),  we will drop stocks from this list
+        # In case of dropping higher score stock and buying lower score stock.
+        comb = score_series.reindex(last.union(pd.Index(today))).sort_values(ascending=False).index
+
+        # Get the stock list we really want to sell (After filtering the case that we sell high and buy low)
+        if self.method_sell == "bottom":
+            sell = last[last.isin(get_last_n(comb, self.n_drop))]
+        elif self.method_sell == "random":
+            candi = filter_stock(last)
+            try:
+                sell = pd.Index(np.random.choice(candi, self.n_drop, replace=False) if len(last) else [])
+            except ValueError:  #  No enough candidates
+                sell = candi
+        else:
+            raise NotImplementedError(f"This type of input is not supported")
+
+        # Get the stock list we really want to buy
         buy = today[: len(sell) + self.topk - len(last)]
+
+        # buy singal: if a stock falls into topk, it appear in the buy_sinal
+        buy_signal = score_series.sort_values(ascending=False).iloc[: self.topk].index
+
         for code in current_stock_list:
             if not trade_exchange.is_stock_tradable(stock_id=code, trade_date=trade_date):
                 continue
@@ -285,12 +369,14 @@ class TopkDropoutStrategy(BaseStrategy, ListAdjustTimer):
                 if trade_exchange.check_order(sell_order):
                     sell_order_list.append(sell_order)
                     trade_val, trade_cost, trade_price = trade_exchange.deal_order(sell_order, position=current_temp)
+                    # update cash
+                    cash += trade_val - trade_cost
                     # sold
                     del self.stock_count[code]
                 else:
                     # no buy signal, but the stock is kept
                     self.stock_count[code] += 1
-            elif code in buy:
+            elif code in buy_signal:
                 # NOTE: This is different from the original version
                 # get new buy signal
                 # Only the stock fall in to topk will produce buy signal
@@ -300,7 +386,7 @@ class TopkDropoutStrategy(BaseStrategy, ListAdjustTimer):
         # buy new stock
         # note the current has been changed
         current_stock_list = current_temp.get_stock_list()
-        value = current_temp.get_cash() * self.risk_degree / len(buy) if len(buy) > 0 else 0
+        value = cash * self.risk_degree / len(buy) if len(buy) > 0 else 0
 
         # open_cost should be considered in the real trading environment, while the backtest in evaluate.py does not consider it
         # as the aim of demo is to accomplish same strategy as evaluate.py, so comment out this line

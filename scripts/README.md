@@ -43,6 +43,8 @@ python get_data.py qlib_data --help
 
 ### US data
 
+> Need to download data first: [Downlaod US Data](#Downlaod-US-Data)
+
 ```python
 import qlib
 from qlib.config import REG_US
@@ -51,6 +53,8 @@ qlib.init(provider_uri=provider_uri, region=REG_US)
 ```
 
 ### CN data
+
+> Need to download data first: [Download CN Data](#Download-CN-Data)
 
 ```python
 import qlib

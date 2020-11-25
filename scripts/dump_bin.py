@@ -140,7 +140,7 @@ class DumpDataBase:
 
     def _get_source_data(self, file_path: Path) -> pd.DataFrame:
         df = pd.read_csv(str(file_path.resolve()), low_memory=False)
-        df[self.date_field_name] = df[self.date_field_name].astype(np.datetime64)
+        df[self.date_field_name] = df[self.date_field_name].astype(str).astype(np.datetime64)
         # df.drop_duplicates([self.date_field_name], inplace=True)
         return df
 
@@ -339,10 +339,10 @@ class DumpDataFix(DumpDataAll):
     def dump(self):
         self._calendars_list = self._read_calendars(self._calendars_dir.joinpath(f"{self.freq}.txt"))
         # noinspection PyAttributeOutsideInit
-        self._old_instruments = self._read_instruments(
-            self._instruments_dir.joinpath(self.INSTRUMENTS_FILE_NAME)
-        ).to_dict(
-            orient="index"
+        self._old_instruments = (
+            self._read_instruments(self._instruments_dir.joinpath(self.INSTRUMENTS_FILE_NAME))
+            .set_index([self.symbol_field_name])
+            .to_dict(orient="index")
         )  # type: dict
         self._dump_instruments()
         self._dump_features()
