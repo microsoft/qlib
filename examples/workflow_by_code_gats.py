@@ -66,13 +66,12 @@ if __name__ == "__main__":
                 "n_epochs": 200,
                 "lr": 1e-3,
                 "early_stop": 20,
-                "batch_size": 800,
                 "metric": "loss",
                 "loss": "mse",
                 "base_model": "LSTM",
                 "with_pretrain": True,
                 "seed": 0,
-                "GPU": 0,
+                "GPU": "0",
             },
         },
         "dataset": {
@@ -95,7 +94,6 @@ if __name__ == "__main__":
         # "record": ['SignalRecord', 'SigAnaRecord', 'PortAnaRecord'],
     }
 
-    # model = train_model(task)
     model = init_instance_by_config(task["model"])
     dataset = init_instance_by_config(task["dataset"])
     model.fit(dataset)
