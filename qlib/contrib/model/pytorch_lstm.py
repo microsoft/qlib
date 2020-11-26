@@ -28,19 +28,16 @@ class LSTM(Model):
 
     Parameters
     ----------
-    input_dim : int
-        input dimension
-    output_dim : int
-        output dimension
-    layers : tuple
-        layer sizes
-    lr : float
-        learning rate
+    d_feat : int
+        input dimension for each time step
+    metric: str
+        the evaluate metric used in early stop
     optimizer : str
         optimizer name
     GPU : str
         the GPU ID(s) used for training
     """
+
 
     def __init__(
         self,
@@ -111,10 +108,6 @@ class LSTM(Model):
                 seed,
             )
         )
-
-        if loss not in {"mse", "binary"}:
-            raise NotImplementedError("loss {} is not supported!".format(loss))
-        self._scorer = mean_squared_error if loss == "mse" else roc_auc_score
 
         self.lstm_model = LSTMModel(
             d_feat=self.d_feat, hidden_size=self.hidden_size, num_layers=self.num_layers, dropout=self.dropout
@@ -251,7 +244,6 @@ class LSTM(Model):
         # train
         self.logger.info("training...")
         self._fitted = True
-        # return
 
         for step in range(self.n_epochs):
             self.logger.info("Epoch%d:", step)
