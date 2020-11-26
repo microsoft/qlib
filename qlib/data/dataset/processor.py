@@ -166,7 +166,9 @@ class MinMaxNorm(Processor):
         return df
 
 
-class ZscoreNorm(Processor):
+class ZScoreNorm(Processor):
+    """ZScore Normalization"""
+
     def __init__(self, fit_start_time, fit_end_time, fields_group=None):
         self.fit_start_time = fit_start_time
         self.fit_end_time = fit_end_time
@@ -190,6 +192,40 @@ class ZscoreNorm(Processor):
             return x
 
         df.loc(axis=1)[self.cols] = normalize(df[self.cols].values)
+        return df
+
+
+class RobustZScoreNorm(Processor):
+    """Robust ZScore Normalization
+
+    Use robust statistics for Z-Score normalization:
+        mean(x) = median(x)
+        std(x) = MAD(x) * 1.4826
+
+    Reference:
+        https://en.wikipedia.org/wiki/Median_absolute_deviation.
+    """
+
+    def __init__(self, fit_start_time, fit_end_time, fields_group=None, clip_outlier=True):
+        self.fit_start_time = fit_start_time
+        self.fit_end_time = fit_end_time
+        self.fields_group = fields_group
+        self.clip_outlier = clip_outlier
+
+    def fit(self, df):
+        df = fetch_df_by_index(df, slice(self.fit_start_time, self.fit_end_time), level="datetime")
+        self.cols = get_group_columns(df, self.fields_group)
+        X = df[self.cols].values
+        self.mean_train = np.nanmedian(X, axis=0)
+        self.std_train = np.nanmedian(np.abs(X - self.mean_train), axis=0)
+        self.std_train += EPS
+        self.std_train *= 1.4826
+
+    def __call__(self, df):
+        df.loc(axis=1)[self.cols] -= self.mean_train
+        df.loc(axis=1)[self.cols] /= self.std_train
+        if self.clip_outlier:
+            df.clip(-3, 3, inplace=True)
         return df
 
 
