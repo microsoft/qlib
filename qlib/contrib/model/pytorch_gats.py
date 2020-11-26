@@ -370,7 +370,6 @@ class GATModel(nn.Module):
         self.fc_out = nn.Linear(hidden_size, 1)
         self.leaky_relu = nn.LeakyReLU()
         self.softmax = nn.Softmax(dim=1)
-
         self.d_feat = d_feat
 
     def cal_convariance(self, x, y):  # the 2nd dimension of x and y are the same
@@ -389,7 +388,6 @@ class GATModel(nn.Module):
         out, _ = self.rnn(x)
         hidden = out[:, -1, :]
         hidden = self.bn1(hidden)
-
         gamma = self.cal_convariance(hidden, hidden)
         output = gamma.mm(hidden)
         output = self.fc(output)
