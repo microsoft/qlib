@@ -27,9 +27,9 @@ def sys_config(config, config_path):
     Parameters
     ----------
     config : dict
-        configuration of the workflow
+        configuration of the workflow.
     config_path : str
-        configuration of the path
+        configuration of the path.
     """
     sys_config = config.get("sys", {})
 

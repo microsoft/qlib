@@ -129,13 +129,13 @@ class Expression(abc.ABC):
         Parameters
         ----------
         instrument : str
-            instrument code
+            instrument code.
         start_index : str
-            feature start index [in calendar]
+            feature start index [in calendar].
         end_index : str
-            feature end  index  [in calendar]
+            feature end  index  [in calendar].
         freq : str
-            feature frequency
+            feature frequency.
 
         Returns
         ----------

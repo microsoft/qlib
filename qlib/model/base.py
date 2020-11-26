@@ -33,7 +33,7 @@ class Model(BaseModel):
         Parameters
         ----------
         dataset : Dataset
-            dataset will generate the processed data from model training
+            dataset will generate the processed data from model training.
         """
         raise NotImplementedError()
 
@@ -44,7 +44,7 @@ class Model(BaseModel):
         Parameters
         ----------
         dataset : Dataset
-            dataset will generate the processed dataset from model training
+            dataset will generate the processed dataset from model training.
         """
         raise NotImplementedError()
 
@@ -59,6 +59,6 @@ class ModelFT(Model):
         Parameters
         ----------
         dataset : Dataset
-            dataset will generate the processed dataset from model training
+            dataset will generate the processed dataset from model training.
         """
         raise NotImplementedError()

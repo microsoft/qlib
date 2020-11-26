@@ -1,11 +1,11 @@
-##Requirement
+## Requirement
 
 * pandas==1.1.2
 * numpy==1.17.4
 * scikit_learn==0.23.2
 * torch==1.7.0
 
-##HATS
+## HATS
 
 * HATS is a a hierarchical attention network for stock prediction which uses relational data for stock market prediction. HATS selectively aggregates information
 on different relation types and adds the information to the representations of each company. HATS is used as a relational modeling module with initialized node representations.Furthermore, HATS

@@ -60,10 +60,24 @@ Cache
 Contrib
 ====================
 
+Data Loader
+---------------
+.. automodule:: qlib.data.dataset.loader
+    :members:
 
 Data Handler
 ---------------
 .. automodule:: qlib.data.dataset.handler
+    :members:
+
+Processor
+---------------
+.. automodule:: qlib.data.dataset.processor
+    :members:
+
+Dataset
+---------------
+.. automodule:: qlib.data.dataset.__init__
     :members:
 
 Model

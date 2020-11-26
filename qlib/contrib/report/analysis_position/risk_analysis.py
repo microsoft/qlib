@@ -218,7 +218,7 @@ def risk_analysis_graph(
                                            max_drawdown      -0.088263
 
 
-    :param report_normal_df: **df.index.name** must be **date**, df.columns must contain **return**, **turnover**, **cost**, **bench**
+    :param report_normal_df: **df.index.name** must be **date**, df.columns must contain **return**, **turnover**, **cost**, **bench**.
 
 
             .. code-block:: python
@@ -232,7 +232,7 @@ def risk_analysis_graph(
                 2017-01-10  -0.000416   0.000440    -0.003350   0.208396
 
 
-    :param report_long_short_df: **df.index.name** must be **date**, df.columns contain **long**, **short**, **long_short**
+    :param report_long_short_df: **df.index.name** must be **date**, df.columns contain **long**, **short**, **long_short**.
 
 
             .. code-block:: python
@@ -246,7 +246,7 @@ def risk_analysis_graph(
                 2017-01-10  0.000824    -0.001944   -0.001120
 
 
-    :param show_notebook: Whether to display graphics in a notebook, default **True**
+    :param show_notebook: Whether to display graphics in a notebook, default **True**.
         If True, show graph in notebook
         If False, return graph figure
     :return:

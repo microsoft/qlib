@@ -100,16 +100,16 @@ class DLWParser(DataLoader):
         Parameters
         ----------
         instruments :
-            the instruments
+            the instruments.
         exprs : list
-            The expressions to describe the content of the data
+            the expressions to describe the content of the data.
         names : list
-            The name of the data
+            the name of the data.
 
         Returns
         -------
         pd.DataFrame:
-            the queried dataframe
+            the queried dataframe.
         """
         pass
 
