@@ -10,22 +10,6 @@ from ..utils import Wrapper
 class QlibRecorder:
     """
     A global system that helps to manage the experiments.
-
-    The components of the system:
-    1) ExperimentManager: a class managing experiments.
-    2) Experiment: a class of experiment, and each instance of it is responsible for a single experiment.
-    3) Recorder: a class of recorder, and each instance of it is responsible for a single run.
-
-    The general structure of the system:
-    ExperimentManager
-        - Experiment 1
-            - Recorder 1
-            - Recorder 2
-            - ...
-        - Experiment 2
-            - ...
-        - ...
-
     """
 
     def __init__(self, exp_manager):
@@ -34,16 +18,14 @@ class QlibRecorder:
     @contextmanager
     def start(self, experiment_name=None, recorder_name=None):
         """
-        Method to start an experiment. This method can only be called within a Python's `with` statement.
+        Method to start an experiment. This method can only be called within a Python's `with` statement. Here is the example code:
 
-        Use case:
-        ---------
-        ```
-        with R.start('test', 'recorder_1'):
-            model.fit(dataset)
-            R.log...
-            ... # further operations
-        ```
+        .. code-block:: Python
+
+            with R.start('test', 'recorder_1'):
+                model.fit(dataset)
+                R.log...
+                ... # further operations
 
         Parameters
         ----------
@@ -63,15 +45,14 @@ class QlibRecorder:
     def start_exp(self, experiment_name=None, recorder_name=None, uri=None):
         """
         Lower level method for starting an experiment. When use this method, one should end the experiment manually
-        and the status of the recorder may not be handled properly.
+        and the status of the recorder may not be handled properly. Here is the example code:
 
-        Use case:
-        ---------
-        ```
-        R.start_exp(experiment_name='test', recorder_name='recorder_1')
-        ... # further operations
-        R.end_exp('FINISHED') or R.end_exp(Recorder.STATUS_S)
-        ```
+        .. code-block:: Python
+
+            R.start_exp(experiment_name='test', recorder_name='recorder_1')
+            ... # further operations
+            R.end_exp('FINISHED') or R.end_exp(Recorder.STATUS_S)
+
 
         Parameters
         ----------
@@ -92,15 +73,13 @@ class QlibRecorder:
     def end_exp(self, recorder_status=Recorder.STATUS_FI):
         """
         Method for ending an experiment manually. It will end the current active experiment, as well as its
-        active recorder with the specified `status` type.
+        active recorder with the specified `status` type. Here is the example code of the method:
 
-        Use case:
-        ---------
-        ```
-        R.start_exp(experiment_name='test')
-        ... # further operations
-        R.end_exp('FINISHED') or R.end_exp(Recorder.STATUS_S)
-        ```
+        .. code-block:: Python
+
+            R.start_exp(experiment_name='test')
+            ... # further operations
+            R.end_exp('FINISHED') or R.end_exp(Recorder.STATUS_S)
 
         Parameters
         ----------
@@ -111,14 +90,12 @@ class QlibRecorder:
 
     def search_records(self, experiment_ids, **kwargs):
         """
-        Get a pandas DataFrame of records that fit the search criteria.
+        Get a pandas DataFrame of records that fit the search criteria. Here is the example code of the method:
 
-        Use case:
-        ---------
-        ```
-        R.log_metrics(m=2.50, step=0)
-        records = R.search_runs([experiment_id], order_by=["metrics.m DESC"])
-        ```
+        .. code-block:: Python
+
+            R.log_metrics(m=2.50, step=0)
+            records = R.search_runs([experiment_id], order_by=["metrics.m DESC"])
 
         Parameters
         ----------
@@ -146,11 +123,9 @@ class QlibRecorder:
         """
         Method for listing all the existing experiments (except for those being deleted.)
 
-        Use case:
-        ---------
-        ```
-        exps = R.list_experiments()
-        ```
+        .. code-block:: Python
+
+            exps = R.list_experiments()
 
         Returns
         -------
@@ -166,11 +141,11 @@ class QlibRecorder:
         list all the recorders of the default experiment. If the default experiment doesn't exist, the method will first
         create the default experiment, and then create a new recorder under it.
 
-        Use case:
-        ---------
-        ```
-        recorders = R.list_recorders(experiment_name='test')
-        ```
+        Here is the example code:
+
+        .. code-block:: Python
+
+            recorders = R.list_recorders(experiment_name='test')
 
         Parameters
         ----------
@@ -191,46 +166,55 @@ class QlibRecorder:
         True, if no valid experiment is found, this method will create one for you. Otherwise, it will
         only retrieve a specific experiment or raise an Error.
 
-        If `create` is True:
-            If R's running:
-                1) no id or name specified, return the active experiment.
-                2) if id or name is specified, return the specified experiment. If no such exp found,
-                create a new experiment with given id or name, and the experiment is set to be running.
-            If R's not running:
-                1) no id or name specified, create a default experiment, and the experiment is set to be running.
-                2) if id or name is specified, return the specified experiment. If no such exp found,
-                create a new experiment with given name or the default experiment, and the experiment is set to be running.
-        Else If `create` is False:
-            If R's running:
-                1) no id or name specified, return the active experiment.
-                2) if id or name is specified, return the specified experiment. If no such exp found,
-                raise Error.
-            If R's not running:
-                1) no id or name specified. If the default experiment exists, return it, otherwise, raise Error.
-                2) if id or name is specified, return the specified experiment. If no such exp found,
-                raise Error.
+        - If '`create`' is True:
 
-        Use case:
-        ---------
-        ```
-        # Case 1
-        with R.start('test'):
-            exp = R.get_exp()
-            recorders = exp.list_recorders()
+            - If ``R``'s running:
 
-        # Case 2
-        with R.start('test'):
-            exp = R.get_exp('test1')
+                - no id or name specified, return the active experiment.
 
-        # Case 3
-        exp = R.get_exp() -> a default experiment.
+                - if id or name is specified, return the specified experiment. If no such exp found, create a new experiment with given id or name, and the experiment is set to be running.
 
-        # Case 4
-        exp = R.get_exp(experiment_name='test')
+            - If ``R``'s not running:
 
-        # Case 5
-        exp = R.get_exp(create=False) -> the default experiment if exists.
-        ```
+                - no id or name specified, create a default experiment, and the experiment is set to be running.
+
+                - if id or name is specified, return the specified experiment. If no such exp found, create a new experiment with given name or the default experiment, and the experiment is set to be running.
+
+        - Else If '`create`' is False:
+
+            - If ``R``'s running:
+
+                - no id or name specified, return the active experiment.
+
+                - if id or name is specified, return the specified experiment. If no such exp found, raise Error.
+
+            - If ``R``'s not running:
+
+                - no id or name specified. If the default experiment exists, return it, otherwise, raise Error.
+
+                - if id or name is specified, return the specified experiment. If no such exp found, raise Error.
+
+        Here are some use cases:
+
+        .. code-block:: Python
+
+            # Case 1
+            with R.start('test'):
+                exp = R.get_exp()
+                recorders = exp.list_recorders()
+
+            # Case 2
+            with R.start('test'):
+                exp = R.get_exp('test1')
+
+            # Case 3
+            exp = R.get_exp() -> a default experiment.
+
+            # Case 4
+            exp = R.get_exp(experiment_name='test')
+
+            # Case 5
+            exp = R.get_exp(create=False) -> the default experiment if exists.
 
         Parameters
         ----------
@@ -253,11 +237,11 @@ class QlibRecorder:
         Method for deleting the experiment with given id or name. At least one of id or name must be given,
         otherwise, error will occur.
 
-        Use case:
-        ---------
-        ```
-        R.delete_exp(experiment_name='test')
-        ```
+        Here is the example code:
+
+        .. code-block:: Python
+
+            R.delete_exp(experiment_name='test')
 
         Parameters
         ----------
@@ -272,11 +256,11 @@ class QlibRecorder:
         """
         Method for retrieving the uri of current experiment manager.
 
-        Use case:
-        ---------
-        ```
-        uri = R.get_uri()
-        ```
+        Here is the example code:
+
+        .. code-block:: Python
+
+            uri = R.get_uri()
 
         Returns
         -------
@@ -288,35 +272,41 @@ class QlibRecorder:
         """
         Method for retrieving a recorder.
 
-        If R's running: 1) no id or name specified, return the active recorder. 2) if id or name is
-        specified, return the specified recorder.
-        If R's not running: 1) no id or name specified, raise Error. 2) if id or name is specified,
-        and the corresponding experiment_name must be given, return the specified recorder. Otherwise,
-        raise Error.
+        - If ``R``'s running:
+
+            - no id or name specified, return the active recorder.
+
+            - if id or name is specified, return the specified recorder.
+
+        - If ``R``'s not running:
+
+            - no id or name specified, raise Error.
+
+            - if id or name is specified, and the corresponding experiment_name must be given, return the specified recorder. Otherwise, raise Error.
 
         The recorder can be used for further process such as `save_object`, `load_object`, `log_params`,
         `log_metrics`, etc.
 
-        Use case:
-        ---------
-        ```
-        # Case 1
-        with R.start('test'):
-            recorder = R.get_recorder()
+        Here are some use cases:
 
-        # Case 2
-        with R.start('test'):
-            recorder = R.get_recorder(recorder_id='2e7a4efd66574fa49039e00ffaefa99d')
+        .. code-block:: Python
 
-        # Case 3
-        recorder = R.get_recorder() -> Error
+            # Case 1
+            with R.start('test'):
+                recorder = R.get_recorder()
 
-        # Case 4
-        recorder = R.get_recorder(recorder_id='2e7a4efd66574fa49039e00ffaefa99d') -> Error
+            # Case 2
+            with R.start('test'):
+                recorder = R.get_recorder(recorder_id='2e7a4efd66574fa49039e00ffaefa99d')
 
-        # Case 5
-        recorder = R.get_recorder(recorder_id='2e7a4efd66574fa49039e00ffaefa99d', experiment_name='test')
-        ```
+            # Case 3
+            recorder = R.get_recorder() -> Error
+
+            # Case 4
+            recorder = R.get_recorder(recorder_id='2e7a4efd66574fa49039e00ffaefa99d') -> Error
+
+            # Case 5
+            recorder = R.get_recorder(recorder_id='2e7a4efd66574fa49039e00ffaefa99d', experiment_name='test')
 
         Parameters
         ----------
@@ -340,11 +330,11 @@ class QlibRecorder:
         Method for deleting the recorders with given id or name. At least one of id or name must be given,
         otherwise, error will occur.
 
-        Use case:
-        ---------
-        ```
-        R.delete_recorder(recorder_id='2e7a4efd66574fa49039e00ffaefa99d')
-        ```
+        Here is the example code:
+
+        .. code-block:: Python
+
+            R.delete_recorder(recorder_id='2e7a4efd66574fa49039e00ffaefa99d')
 
         Parameters
         ----------
@@ -361,26 +351,25 @@ class QlibRecorder:
         from a local file/directory, or directly saving objects. User can use valid python's keywords arguments
         to specify the object to be saved as well as its name (name: value).
 
-        If R's running: it will save the objects through the running recorder.
-        If R's not running: the system will create a default experiment, and a new recorder and
-        save objects under it.
+        - If R's running: it will save the objects through the running recorder.
+        - If R's not running: the system will create a default experiment, and a new recorder and save objects under it.
 
-        If one wants to save objects with a specific recorder. It is recommended to first
-        get the specific recorder through `get_recorder` API and use the recorder the save objects.
-        The supported arguments are the same as this method.
+        .. note::
 
-        Use case:
-        ---------
-        ```
-        # Case 1
-        with R.start('test'):
-            pred = model.predict(dataset)
-            R.save_objects(**{"pred.pkl": pred}, artifact_path='prediction')
+            If one wants to save objects with a specific recorder. It is recommended to first get the specific recorder through `get_recorder` API and use the recorder the save objects. The supported arguments are the same as this method.
 
-        # Case 2
-        with R.start('test'):
-            R.save_objects(local_path='results/pred.pkl')
-        ```
+        Here are some use cases:
+
+        .. code-block:: Python
+
+            # Case 1
+            with R.start('test'):
+                pred = model.predict(dataset)
+                R.save_objects(**{"pred.pkl": pred}, artifact_path='prediction')
+
+            # Case 2
+            with R.start('test'):
+                R.save_objects(local_path='results/pred.pkl')
 
         Parameters
         ----------
@@ -393,24 +382,21 @@ class QlibRecorder:
 
     def log_params(self, **kwargs):
         """
-        Method for logging parameters during an experiment.
+        Method for logging parameters during an experiment. In addition to using ``R``, one can also log to a specific recorder after getting it with `get_recorder` API.
 
-        If R's running: it will log parameters through the running recorder.
-        If R's not running: the system will create a default experiment as well as a new recorder, and
-        log parameters under it.
+        - If R's running: it will log parameters through the running recorder.
+        - If R's not running: the system will create a default experiment as well as a new recorder, and log parameters under it.
 
-        One can also log to a specific recorder after getting it with `get_recorder` API.
+        Here are some use cases:
 
-        Use case:
-        ---------
-        ```
-        # Case 1
-        with R.start('test'):
+        .. code-block:: Python
+
+            # Case 1
+            with R.start('test'):
+                R.log_params(learning_rate=0.01)
+
+            # Case 2
             R.log_params(learning_rate=0.01)
-
-        # Case 2
-        R.log_params(learning_rate=0.01)
-        ```
 
         Parameters
         ----------
@@ -421,24 +407,21 @@ class QlibRecorder:
 
     def log_metrics(self, step=None, **kwargs):
         """
-        Method for logging metrics during an experiment.
+        Method for logging metrics during an experiment. In addition to using ``R``, one can also log to a specific recorder after getting it with `get_recorder` API.
 
-        If R's running: it will log metrics through the running recorder.
-        If R's not running: the system will create a default experiment as well as a new recorder, and
-        log metrics under it.
+        - If R's running: it will log metrics through the running recorder.
+        - If R's not running: the system will create a default experiment as well as a new recorder, and log metrics under it.
 
-        One can also log to a specific recorder after getting it with `get_recorder` API.
+        Here are some use cases:
 
-        Use case:
-        ---------
-        ```
-        # Case 1
-        with R.start('test'):
+        .. code-block:: Python
+
+            # Case 1
+            with R.start('test'):
+                R.log_metrics(train_loss=0.33, step=1)
+
+            # Case 2
             R.log_metrics(train_loss=0.33, step=1)
-
-        # Case 2
-        R.log_metrics(train_loss=0.33, step=1)
-        ```
 
         Parameters
         ----------
@@ -449,24 +432,21 @@ class QlibRecorder:
 
     def set_tags(self, **kwargs):
         """
-        Method for setting tags for a recorder.
+        Method for setting tags for a recorder. In addition to using ``R``, one can also set the tag to a specific recorder after getting it with `get_recorder` API.
 
-        If R's running: it will set tags through the running recorder.
-        If R's not running: the system will create a default experiment as well as a new recorder, and
-        set the tags under it.
+        - If R's running: it will set tags through the running recorder.
+        - If R's not running: the system will create a default experiment as well as a new recorder, and set the tags under it.
 
-        One can also set the tag to a specific recorder after getting it with `get_recorder` API.
+        Here are some use cases:
 
-        Use case:
-        ---------
-        ```
-        # Case 1
-        with R.start('test'):
+        .. code-block:: Python
+
+            # Case 1
+            with R.start('test'):
+                R.set_tags(release_version="2.2.0")
+
+            # Case 2
             R.set_tags(release_version="2.2.0")
-
-        # Case 2
-        R.set_tags(release_version="2.2.0")
-        ```
 
         Parameters
         ----------
