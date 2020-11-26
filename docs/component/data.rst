@@ -33,13 +33,19 @@ Such data will be stored with filename suffix `.bin` (We'll call them `.bin` fil
 
 Qlib Format Dataset
 --------------------
-``Qlib`` has provided an off-the-shelf dataset in `.bin` format, users could use the script ``scripts/get_data.py`` to download the dataset as follows.
+``Qlib`` has provided an off-the-shelf dataset in `.bin` format, users could use the script ``scripts/get_data.py`` to download the China-Stock dataset as follows.
 
 .. code-block:: bash
 
     python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/cn_data --region cn
 
-After running the above command, users can find china-stock data in Qlib format in the ``~/.qlib/csv_data/cn_data`` directory.
+In addition to China-Stock data, ``Qlib`` also includes a US-Stock dataset, which can be downloaded with the following command:
+
+.. code-block:: bash
+
+    python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/us_data --region us
+
+After running the above command, users can find china-stock and us-stock data in Qlib format in the ``~/.qlib/csv_data/cn_data`` directory and ``~/.qlib/csv_data/us_data`` directory respectively.
 
 ``Qlib`` also provides the scripts in ``scripts/data_collector`` to help users crawl the latest data on the Internet and convert it to qlib format.
 
@@ -51,11 +57,44 @@ Converting CSV Format into Qlib Format
 ``Qlib`` has provided the script ``scripts/dump_bin.py`` to convert data in CSV format into `.bin` files (Qlib format).
 
 
-Users can download the china-stock data in CSV format as follows for reference to the CSV format.
+Users can download the demo china-stock data in CSV format as follows for reference to the CSV format.
 
 .. code-block:: bash
 
     python scripts/get_data.py csv_data_cn --target_dir ~/.qlib/csv_data/cn_data
+
+Users can also provide their own data in CSV format. However, the CSV data **must satisfies** following criterions:
+
+- CSV file is named after a specific stock *or* the CSV file includes a column of the stock name
+
+    - Name the CSV file after a stock: `SH600000.csv`, `AAPL.csv` (not case sensitive).
+    
+    - CSV file includes a column of the stock name. User **must** specify the column name when dumping the data. Here is an example:
+
+        .. code-block:: bash
+
+            python scripts/dump_bin.py dump_all ... --symbol_field_name symbol
+        
+        where the data are in the following format:
+
+        .. code-block:: 
+
+            symbol,close
+            SH600000,120
+
+- CSV file **must** includes a column for the date, and when dumping the data, user must specify the date column name. Here is an example:
+
+    .. code-block:: bash
+
+        python scripts/dump_bin.py dump_all ... --date_field_name date
+    
+    where the data are in the following format:
+
+    .. code-block:: 
+
+        symbol,date,close,open,volume
+        SH600000,2020-11-01,120,121,12300000
+        SH600000,2020-11-02,123,120,12300000
 
 
 Supposed that users prepare their CSV format data in the directory ``~/.qlib/csv_data/my_data``, they can run the following command to start the conversion.
@@ -63,6 +102,12 @@ Supposed that users prepare their CSV format data in the directory ``~/.qlib/csv
 .. code-block:: bash
 
     python scripts/dump_bin.py dump_all --csv_path  ~/.qlib/csv_data/my_data --qlib_dir ~/.qlib/qlib_data/my_data --include_fields open,close,high,low,volume,factor
+
+For other supported parameters when dumping the data into `.bin` file, users can refer to the information by running the following commands:
+
+.. code-block:: bash
+
+    python dump_bin.py dump_all --help
 
 After conversion, users can find their Qlib format data in the directory `~/.qlib/qlib_data/my_data`.
 
@@ -99,9 +144,8 @@ China-Stock Mode & US-Stock Mode
             qlib.init(provider_uri='~/.qlib/qlib_data/cn_data', region=REG_CN)
         
 
-- If users use ``Qlib`` in US-stock mode, US-stock data is required. ``Qlib`` does not provide a script to download US-stock data. Users can use ``Qlib`` in US-stock mode according to the following steps:
-    - Prepare data in CSV format
-    - Convert data from CSV format to Qlib format,  please refer to section `Converting CSV Format into Qlib Format <#converting-csv-format-into-qlib-format>`_.
+- If users use ``Qlib`` in US-stock mode, US-stock data is required. ``Qlib`` also provides a script to download US-stock data. Users can use ``Qlib`` in US-stock mode according to the following steps:
+    - Download china-stock in qlib format, please refer to section `Qlib Format Dataset <#qlib-format-dataset>`_.
     - Initialize ``Qlib`` in US-stock mode
         Supposed that users prepare their Qlib format data in the directory ``~/.qlib/csv_data/us_data``. Users only need to initialize ``Qlib`` as follows.
         
