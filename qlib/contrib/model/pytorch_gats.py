@@ -169,7 +169,7 @@ class GAT(Model):
             daily_shuffle = list(zip(daily_index, daily_count))
             np.random.shuffle(daily_shuffle)
             daily_index, daily_count = zip(*daily_shuffle)
-        return  daily_index, daily_count
+        return daily_index, daily_count
 
     def train_epoch(self, x_train, y_train):
 
