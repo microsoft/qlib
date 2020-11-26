@@ -1,13 +1,13 @@
 .. _report:
 
 ==========================================
-Aanalysis: Evaluation & Results Analysis
+Analysis: Evaluation & Results Analysis
 ==========================================
 
 Introduction
 ===================
 
-``Aanalysis`` is designed to show the graphical reports of ``Intraday Trading`` , which helps users to evaluate and analyse investment portfolios visually. The following are some graphics to view:
+``Analysis`` is designed to show the graphical reports of ``Intraday Trading`` , which helps users to evaluate and analyse investment portfolios visually. The following are some graphics to view:
 
 - analysis_position
     - report_graph

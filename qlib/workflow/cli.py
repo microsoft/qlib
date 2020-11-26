@@ -29,7 +29,7 @@ def sys_config(config, config_path):
     config : dict
         configuration of the workflow
     config_path : str
-        configuration of the path
+        path of the configuration
     """
     sys_config = config.get("sys", {})
 

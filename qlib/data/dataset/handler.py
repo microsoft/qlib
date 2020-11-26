@@ -243,10 +243,10 @@ class DataHandlerLP(DataHandler):
 
     # process type
     PTYPE_I = "independent"
-    # - self._infer will processed by infer_processors
+    # - self._infer will be processed by infer_processors
     # - self._learn will be processed by learn_processors
     PTYPE_A = "append"
-    # - self._infer will processed by infer_processors
+    # - self._infer will be processed by infer_processors
     # - self._learn will be processed by infer_processors + learn_processors
     #   - (e.g. self._infer processed by learn_processors )
 

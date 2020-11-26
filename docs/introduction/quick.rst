@@ -84,7 +84,7 @@ Auto Quant Research Workflow
     - Run ``examples/workflow_by_code.ipynb`` with jupyter notebook
         Users can have portfolio analysis or prediction score (model prediction) analysis by run ``examples/workflow_by_code.ipynb``.
     - Graphical Reports
-        Users can get graphical reports about the analysis, please refer to `Aanalysis: Evaluation & Results Analysis <../component/report.html>`_ for more details.
+        Users can get graphical reports about the analysis, please refer to `Analysis: Evaluation & Results Analysis <../component/report.html>`_ for more details.
 
 
 
