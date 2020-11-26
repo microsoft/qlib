@@ -54,7 +54,6 @@ class HATS(Model):
         n_epochs=200,
         lr=0.01,
         metric="IC",
-        batch_size=800,
         early_stop=20,
         loss="mse",
         base_model="GRU",
@@ -76,7 +75,6 @@ class HATS(Model):
         self.n_epochs = n_epochs
         self.lr = lr
         self.metric = metric
-        self.batch_size = batch_size
         self.early_stop = early_stop
         self.optimizer = optimizer.lower()
         self.loss = loss
@@ -95,7 +93,6 @@ class HATS(Model):
             "\nn_epochs : {}"
             "\nlr : {}"
             "\nmetric : {}"
-            "\nbatch_size : {}"
             "\nearly_stop : {}"
             "\noptimizer : {}"
             "\nloss_type : {}"
@@ -111,7 +108,6 @@ class HATS(Model):
                 n_epochs,
                 lr,
                 metric,
-                batch_size,
                 early_stop,
                 optimizer.lower(),
                 loss,
@@ -169,6 +165,18 @@ class HATS(Model):
     def cal_ic(self, pred, label):
         return torch.mean(pred * label)
 
+    def get_daily_inter(self, df, shuffle=False):
+        # organize the train data into daily inter as daily batches
+        daily_count = df.groupby(level=0).size().values
+        daily_index = np.roll(np.cumsum(daily_count), 1)
+        daily_index[0] = 0
+        if shuffle:
+            # shuffle the daily inter data
+            daily_shuffle = list(zip(daily_index, daily_count))
+            np.random.shuffle(daily_shuffle)
+            daily_index, daily_count = zip(*daily_shuffle)
+        return  daily_index, daily_count
+
     def train_epoch(self, x_train, y_train):
 
         x_train_values = x_train.values
@@ -176,16 +184,13 @@ class HATS(Model):
 
         self.HATS_model.train()
 
-        indices = np.arange(len(x_train_values))
-        np.random.shuffle(indices)
+        # organize the train data into daily inter as daily batches
+        daily_index, daily_count = self.get_daily_inter(x_train, shuffle=True)
 
-        for i in range(len(indices))[:: self.batch_size]:
-
-            if len(indices) - i < self.batch_size:
-                break
-
-            feature = torch.from_numpy(x_train_values[indices[i : i + self.batch_size]]).float()
-            label = torch.from_numpy(y_train_values[indices[i : i + self.batch_size]]).float()
+        for idx, count in zip(daily_index, daily_count):
+            batch = slice(idx, idx + count)
+            feature = torch.from_numpy(x_train_values[batch]).float()
+            label = torch.from_numpy(y_train_values[batch]).float()
 
             if self.use_gpu:
                 feature = feature.cuda()
@@ -210,15 +215,13 @@ class HATS(Model):
         scores = []
         losses = []
 
-        indices = np.arange(len(x_values))
+        # organize the test data into daily inter as daily batches
+        daily_index, daily_count = self.get_daily_inter(data_x, shuffle=False)
 
-        for i in range(len(indices))[:: self.batch_size]:
-
-            if len(indices) - i < self.batch_size:
-                break
-
-            feature = torch.from_numpy(x_values[indices[i : i + self.batch_size]]).float()
-            label = torch.from_numpy(y_values[indices[i : i + self.batch_size]]).float()
+        for idx, count in zip(daily_index, daily_count):
+            batch = slice(idx, idx + count)
+            feature = torch.from_numpy(x_values[batch]).float()
+            label = torch.from_numpy(y_values[batch]).float()
 
             if self.use_gpu:
                 feature = feature.cuda()
@@ -319,14 +322,12 @@ class HATS(Model):
         sample_num = x_values.shape[0]
         preds = []
 
-        for begin in range(sample_num)[:: self.batch_size]:
+        # organize the data into daily inter as daily batches
+        daily_index, daily_count = self.get_daily_inter(x_test, shuffle=False)
 
-            if sample_num - begin < self.batch_size:
-                end = sample_num
-            else:
-                end = begin + self.batch_size
-
-            x_batch = torch.from_numpy(x_values[begin:end]).float()
+        for idx, count in zip(daily_index, daily_count):
+            batch = slice(idx, idx + count)
+            x_batch = torch.from_numpy(x_values[batch]).float()
 
             if self.use_gpu:
                 x_batch = x_batch.cuda()

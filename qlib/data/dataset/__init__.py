@@ -95,6 +95,7 @@ class DatasetH(Dataset):
             - insntance of `DataHandler`
 
             - config of `DataHandler`.  Please refer to `DataHandler`
+
         segments : list
             Describe the options to segment the data.
             Here are some examples:
