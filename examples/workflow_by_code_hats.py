@@ -67,7 +67,7 @@ if __name__ == "__main__":
                 "loss": "mse",
                 "base_model": "LSTM",
                 "seed": 0,
-                "GPU": "1",
+                "GPU": "0",
             },
         },
         "dataset": {
