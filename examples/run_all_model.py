@@ -162,20 +162,6 @@ class ExtendedEnvBuilder(venv.EnvBuilder):
         self.install_script(context, "pip", url)
 
 
-# function to check cuda version on the machine, this case is for the model TFT
-def check_cuda(folders):
-    path = "/usr/local/cuda/version.txt"  # TODO: FIX ME, this will not work on other os systems.
-    exclude_tft = True
-    if os.path.exists(path):
-        with open(path, "r") as f:
-            if "10.1" in str(f.read()) or "10.0" in str(f.read()):
-                exclude_tft = False
-    if exclude_tft and "TFT" in folders:
-        sys.stderr.write("Compatible CUDA version not found! Removing TFT from the workflow...\n")
-        del folders["TFT"]
-    return folders
-
-
 # function to calculate the mean and std of a list in the results dictionary
 def cal_mean_std(results) -> dict:
     mean_std = dict()
@@ -205,7 +191,6 @@ def get_all_folders(models, exclude) -> dict:
         if add:
             path = Path("benchmarks") / f.name
             folders[f.name] = str(path.resolve())
-    folders = check_cuda(folders)
     return folders
 
 

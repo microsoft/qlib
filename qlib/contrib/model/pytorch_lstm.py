@@ -38,7 +38,6 @@ class LSTM(Model):
         the GPU ID(s) used for training
     """
 
-
     def __init__(
         self,
         d_feat=6,
