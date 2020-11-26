@@ -5,8 +5,10 @@
 **GitHub**: https://github.com/google-research/google-research/tree/master/tft
 
 ## Run the Workflow
-Users can follow the ``workflow_by_code_tft.py`` to run the benchmark. Please be **aware** that this script can only support Python 3.5 - 3.8.
+Users can follow the ``workflow_by_code_tft.py`` to run the benchmark. 
 
 ### Notes
-1. The model must run in GPU, or an error will be raised.
-2. New datasets should be registered in ``data_formatters``, for detail please visit the source.
+1. Please be **aware** that this script can only support `Python 3.5 - 3.8`, and `Cuda 10.0 or 10.1`.
+2. Please remember to install `cudatoolkit==10.1` and `cudnn==7.6` on your machine.
+3. The model must run in GPU, or an error will be raised.
+4. New datasets should be registered in ``data_formatters``, for detail please visit the source.
