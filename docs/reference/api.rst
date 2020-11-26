@@ -23,16 +23,13 @@ Filter
 .. automodule:: qlib.data.filter
     :members:
 
-Feature
---------------------
-
 Class
-~~~~~~~~~~~~~~~~~~~~
+--------------------
 .. automodule:: qlib.data.base
     :members:
 
 Operator
-~~~~~~~~~~~~~~~~~~~~
+--------------------
 .. automodule:: qlib.data.ops
     :members:
 	       
@@ -56,29 +53,32 @@ Cache
 .. autoclass:: qlib.data.cache.DiskDatasetCache
     :members:
 
+Dataset
+---------------
 
-Contrib
-====================
+Dataset Class
+~~~~~~~~~~~~~~~~~~~~
+.. automodule:: qlib.data.dataset.__init__
+    :members:
 
 Data Loader
----------------
+~~~~~~~~~~~~~~~~~~~~
 .. automodule:: qlib.data.dataset.loader
     :members:
 
 Data Handler
----------------
+~~~~~~~~~~~~~~~~~~~~
 .. automodule:: qlib.data.dataset.handler
     :members:
 
 Processor
----------------
+~~~~~~~~~~~~~~~~~~~~
 .. automodule:: qlib.data.dataset.processor
     :members:
 
-Dataset
----------------
-.. automodule:: qlib.data.dataset.__init__
-    :members:
+
+Contrib
+====================
 
 Model
 --------------------

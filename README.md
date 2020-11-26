@@ -9,7 +9,7 @@
 
 
 <p align="center">
-  <img src="http://fintech.msra.cn/images/logo/1.png" />
+  <img src="http://fintech.msra.cn/images_v060/logo/1.png" />
 </p>
 
 
@@ -39,7 +39,7 @@ For more details, please refer to our paper ["Qlib: An AI-oriented Quantitative 
 # Framework of Qlib
 
 <div style="align: center">
-<img src="http://fintech.msra.cn/images/framework.png" />
+<img src="http://fintech.msra.cn/images_v060/framework.png" />
 </div>
 
 
@@ -139,17 +139,20 @@ Qlib provides a tool named `qrun` to run the whole workflow automatically (inclu
 
     ```bash
 
-                                                      risk
-    excess_return_without_cost mean               0.000675
-                               std                0.005456
-                               annualized_return  0.170077
-                               information_ratio  1.963824
-                               max_drawdown      -0.063646
-    excess_return_with_cost    mean               0.000479
-                               std                0.005453
-                               annualized_return  0.120776
-                               information_ratio  1.395116
-                               max_drawdown      -0.071216
+    'The following are analysis results of the excess return without cost.'
+                           risk
+    mean               0.000708
+    std                0.005626
+    annualized_return  0.178316
+    information_ratio  1.996555
+    max_drawdown      -0.081806
+    'The following are analysis results of the excess return with cost.'
+                           risk
+    mean               0.000512
+    std                0.005626
+    annualized_return  0.128982
+    information_ratio  1.444287
+    max_drawdown      -0.091078
 
 
 
@@ -159,19 +162,19 @@ Qlib provides a tool named `qrun` to run the whole workflow automatically (inclu
 2. Graphical Reports Analysis: Run `examples/workflow_by_code.ipynb` with `jupyter notebook` to get graphical reports
     - Forecasting signal (model prediction) analysis
       - Cumulative Return of groups
-      ![Cumulative Return](http://fintech.msra.cn/images/analysis/analysis_model_cumulative_return.png?v=0.1)
+      ![Cumulative Return](http://fintech.msra.cn/images_v060/analysis/analysis_model_cumulative_return.png?v=0.1)
       - Return distribution
-      ![long_short](http://fintech.msra.cn/images/analysis/analysis_model_long_short.png?v=0.1)
+      ![long_short](http://fintech.msra.cn/images_v060/analysis/analysis_model_long_short.png?v=0.1)
       - Information Coefficient (IC)
-      ![Information Coefficient](http://fintech.msra.cn/images/analysis/analysis_model_IC.png?v=0.1)        
-      ![Monthly IC](http://fintech.msra.cn/images/analysis/analysis_model_monthly_IC.png?v=0.1)
-      ![IC](http://fintech.msra.cn/images/analysis/analysis_model_NDQ.png?v=0.1)
+      ![Information Coefficient](http://fintech.msra.cn/images_v060/analysis/analysis_model_IC.png?v=0.1)        
+      ![Monthly IC](http://fintech.msra.cn/images_v060/analysis/analysis_model_monthly_IC.png?v=0.1)
+      ![IC](http://fintech.msra.cn/images_v060/analysis/analysis_model_NDQ.png?v=0.1)
       - Auto Correlation of forecasting signal (model prediction)
-      ![Auto Correlation](http://fintech.msra.cn/images/analysis/analysis_model_auto_correlation.png?v=0.1)
+      ![Auto Correlation](http://fintech.msra.cn/images_v060/analysis/analysis_model_auto_correlation.png?v=0.1)
 
     - Portfolio analysis
       - Backtest return
-      ![Report](http://fintech.msra.cn/images/analysis/report.png?v=0.1)
+      ![Report](http://fintech.msra.cn/images_v060/analysis/report.png?v=0.1)
       <!-- 
       - Score IC
       ![Score IC](docs/_static/img/score_ic.png)

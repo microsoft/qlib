@@ -31,6 +31,7 @@ from ...model.base import Model
 from ...data.dataset import DatasetH
 from ...data.dataset.handler import DataHandlerLP
 
+
 class SFM_Model(nn.Module):
     def __init__(self, d_feat=6, output_dim=1, freq_dim=10, hidden_size=64, dropout_W=0.0, dropout_U=0.0, device="cpu"):
         super().__init__()
@@ -75,13 +76,13 @@ class SFM_Model(nn.Module):
         self.states = []
 
     def forward(self, input):
-        input = input.reshape(len(input), self.input_dim, -1) # [N, F, T]
-        input = input.permute(0, 2, 1) # [N, T, F]
+        input = input.reshape(len(input), self.input_dim, -1)  # [N, F, T]
+        input = input.permute(0, 2, 1)  # [N, T, F]
         time_step = input.shape[1]
-        
+
         for ts in range(time_step):
-            x = input[:, ts,:]
-            if len(self.states)==0: #hasn't initialized yet
+            x = input[:, ts, :]
+            if len(self.states) == 0:  # hasn't initialized yet
                 self.init_states(x)
             self.get_constants(x)
             p_tm1 = self.states[0]
@@ -98,64 +99,65 @@ class SFM_Model(nn.Module):
             x_fre = torch.matmul(x * B_W[0], self.W_fre) + self.b_fre
             x_c = torch.matmul(x * B_W[0], self.W_c) + self.b_c
             x_o = torch.matmul(x * B_W[0], self.W_o) + self.b_o
-            
-            i = self.inner_activation(x_i + torch.matmul(h_tm1 * B_U[0], self.U_i)) # not sure whether I am doing in the right unsquuze
-            
+
+            i = self.inner_activation(
+                x_i + torch.matmul(h_tm1 * B_U[0], self.U_i)
+            )  # not sure whether I am doing in the right unsquuze
 
             ste = self.inner_activation(x_ste + torch.matmul(h_tm1 * B_U[0], self.U_ste))
             fre = self.inner_activation(x_fre + torch.matmul(h_tm1 * B_U[0], self.U_fre))
 
             ste = torch.reshape(ste, (-1, self.hidden_dim, 1))
             fre = torch.reshape(fre, (-1, 1, self.freq_dim))
-            
+
             f = ste * fre
-            
+
             c = i * self.activation(x_c + torch.matmul(h_tm1 * B_U[0], self.U_c))
 
             time = time_tm1 + 1
 
             omega = torch.tensor(2 * np.pi) * time * frequency
 
-            re = torch.cos(omega) 
+            re = torch.cos(omega)
             im = torch.sin(omega)
-            
+
             c = torch.reshape(c, (-1, self.hidden_dim, 1))
 
             S_re = f * S_re_tm1 + c * re
             S_im = f * S_im_tm1 + c * im
-            
+
             A = torch.square(S_re) + torch.square(S_im)
 
             A = torch.reshape(A, (-1, self.freq_dim)).float()
             A_a = torch.matmul(A * B_U[0], self.U_a)
             A_a = torch.reshape(A_a, (-1, self.hidden_dim))
             a = self.activation(A_a + self.b_a)
-            
+
             o = self.inner_activation(x_o + torch.matmul(h_tm1 * B_U[0], self.U_o))
 
             h = o * a
             p = torch.matmul(h, self.W_p) + self.b_p
 
             self.states = [p, h, S_re, S_im, time, None, None, None]
-        self.states = []    
+        self.states = []
         return self.fc_out(p).squeeze()
 
     def init_states(self, x):
         reducer_f = torch.zeros((self.hidden_dim, self.freq_dim)).to(self.device)
         reducer_p = torch.zeros((self.hidden_dim, self.output_dim)).to(self.device)
-        
+
         init_state_h = torch.zeros(self.hidden_dim).to(self.device)
         init_state_p = torch.matmul(init_state_h, reducer_p)
-        
+
         init_state = torch.zeros_like(init_state_h).to(self.device)
         init_freq = torch.matmul(init_state_h, reducer_f)
 
         init_state = torch.reshape(init_state, (-1, self.hidden_dim, 1))
         init_freq = torch.reshape(init_freq, (-1, 1, self.freq_dim))
-        
+
         init_state_S_re = init_state * init_freq
         init_state_S_im = init_state * init_freq
-        
+
         init_state_time = torch.tensor(0).to(self.device)
 
         self.states = [init_state_p, init_state_h, init_state_S_re, init_state_S_im, init_state_time, None, None, None]
@@ -201,7 +203,7 @@ class SFM(Model):
         dropout_U=0.0,
         n_epochs=200,
         lr=0.001,
-        metric = "",
+        metric="",
         batch_size=2000,
         early_stop=20,
         eval_steps=5,
@@ -234,7 +236,7 @@ class SFM(Model):
         self.lr_decay_steps = lr_decay_steps
         self.optimizer = optimizer.lower()
         self.loss = loss
-        self.device = "cuda:%d"%(GPU) if torch.cuda.is_available() else "cpu"
+        self.device = "cuda:%d" % (GPU) if torch.cuda.is_available() else "cpu"
         self.use_gpu = torch.cuda.is_available()
         self.seed = seed
 
@@ -243,7 +245,7 @@ class SFM(Model):
             "\nd_feat : {}"
             "\nhidden_size : {}"
             "\noutput_size : {}"
-            "\nfrequency_dimension : {}" 
+            "\nfrequency_dimension : {}"
             "\ndropout_W: {}"
             "\ndropout_U: {}"
             "\nn_epochs : {}"
@@ -286,14 +288,14 @@ class SFM(Model):
         self._scorer = mean_squared_error if loss == "mse" else roc_auc_score
 
         self.sfm_model = SFM_Model(
-            d_feat=self.d_feat, 
+            d_feat=self.d_feat,
             output_dim=self.output_dim,
-            hidden_size=self.hidden_size, 
-            freq_dim=self.freq_dim, 
-            dropout_W=self.dropout_W, 
-            dropout_U=self.dropout_U, 
-            device=self.device
-            )
+            hidden_size=self.hidden_size,
+            freq_dim=self.freq_dim,
+            dropout_W=self.dropout_W,
+            dropout_U=self.dropout_U,
+            device=self.device,
+        )
         if optimizer.lower() == "adam":
             self.train_optimizer = optim.Adam(self.sfm_model.parameters(), lr=self.lr)
         elif optimizer.lower() == "gd":
@@ -414,7 +416,7 @@ class SFM(Model):
     def mse(self, pred, label):
         loss = (pred - label) ** 2
         return torch.mean(loss)
-   
+
     def loss_fn(self, pred, label):
         mask = ~torch.isnan(label)
 
@@ -422,7 +424,7 @@ class SFM(Model):
             return self.mse(pred[mask], label[mask])
 
         raise ValueError("unknown loss `%s`" % self.loss)
-    
+
     def metric_fn(self, pred, label):
 
         mask = torch.isfinite(label)
@@ -436,6 +438,7 @@ class SFM(Model):
 
     def cal_ic(self, pred, label):
         return torch.mean(pred * label)
+
     def predict(self, dataset):
         if not self._fitted:
             raise ValueError("model is not fitted yet!")
@@ -447,7 +450,7 @@ class SFM(Model):
         sample_num = x_values.shape[0]
         preds = []
 
-        for begin in range(sample_num)[::self.batch_size]:
+        for begin in range(sample_num)[:: self.batch_size]:
             if sample_num - begin < self.batch_size:
                 end = sample_num
             else:
@@ -457,16 +460,18 @@ class SFM(Model):
 
             if self.device != "cpu":
                 x_batch = x_batch.to(self.device)
-            
+
             with torch.no_grad():
                 pred = self.sfm_model(x_batch).detach().cpu().numpy()
 
             preds.append(pred)
-        
+
         return pd.Series(np.concatenate(preds), index=index)
+
 
 class AverageMeter(object):
     """Computes and stores the average and current value"""
+
     def __init__(self):
         self.reset()
 

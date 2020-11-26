@@ -243,10 +243,10 @@ class DataHandlerLP(DataHandler):
 
     # process type
     PTYPE_I = "independent"
-    # - self._infer will processed by infer_processors
+    # - self._infer will be processed by infer_processors
     # - self._learn will be processed by learn_processors
     PTYPE_A = "append"
-    # - self._infer will processed by infer_processors
+    # - self._infer will be processed by infer_processors
     # - self._learn will be processed by infer_processors + learn_processors
     #   - (e.g. self._infer processed by learn_processors )
 
@@ -265,30 +265,40 @@ class DataHandlerLP(DataHandler):
         Parameters
         ----------
         infer_processors : list
-            list of <description info> of processors to generate data for inference
-            example of <description info>:
-            1) classname & kwargs:
-                {
-                    "class": "MinMaxNorm",
-                    "kwargs": {
-                        "fit_start_time": "20080101",
-                        "fit_end_time": "20121231"
+            - list of <description info> of processors to generate data for inference
+
+            - example of <description info>:
+
+            .. code-block::
+
+                1) classname & kwargs:
+                    {
+                        "class": "MinMaxNorm",
+                        "kwargs": {
+                            "fit_start_time": "20080101",
+                            "fit_end_time": "20121231"
+                        }
                     }
-                }
-            2) Only classname:
-                "DropnaFeature"
-            3) object instance of Processor
+                2) Only classname:
+                    "DropnaFeature"
+                3) object instance of Processor
 
         learn_processors : list
             similar to infer_processors, but for generating data for learning models
 
         process_type: str
             PTYPE_I = 'independent'
+
             - self._infer will processed by infer_processors
+
             - self._learn will be processed by learn_processors
+
             PTYPE_A = 'append'
+
             - self._infer will processed by infer_processors
+
             - self._learn will be processed by infer_processors + learn_processors
+
               - (e.g. self._infer processed by learn_processors )
         """
 
