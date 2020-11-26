@@ -292,6 +292,7 @@ The ``Processor`` module in ``Qlib`` is designed to be learnable and it is respo
 - ``Fillna``: `processor` that handles N/A values, which will fill the N/A value by 0 or other given number.
 - ``MinMaxNorm``: `processor` that applies min-max normalization.
 - ``ZscoreNorm``: `processor` that applies z-score normalization.
+- ``RobustZScoreNorm``: `processor` that applies robust z-score normalization.
 - ``CSZScoreNorm``: `processor` that applies cross sectional z-score normalization.
 - ``CSRankNorm``: `processor` that applies cross sectional rank normalization.
 

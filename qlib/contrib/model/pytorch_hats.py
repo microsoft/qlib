@@ -261,10 +261,12 @@ class HATS(Model):
             self.logger.info("Loading pretrained model...")
             if self.base_model == "LSTM":
                 from ...contrib.model.pytorch_lstm import LSTMModel
+
                 pretrained_model = LSTMModel()
                 pretrained_model.load_state_dict(torch.load("benchmarks/LSTM/model_lstm_csi300.pkl"))
             elif self.base_model == "GRU":
                 from ...contrib.model.pytorch_gru import GRUModel
+
                 pretrained_model = GRUModel()
                 pretrained_model.load_state_dict(torch.load("benchmarks/GRU/model_gru_csi300.pkl"))
             model_dict = self.HATS_model.state_dict()
@@ -461,7 +463,9 @@ class GraphAttention(nn.Module):
             h = self.fcs[k](features)
 
             nbr_h = torch.cat(tuple([h[row] for row in rows]), dim=0)
-            self_h = torch.cat(tuple([h[mappings[nodes[i]]].repeat(len(row), 1) for (i, row) in enumerate(rows)]), dim=0)
+            self_h = torch.cat(
+                tuple([h[mappings[nodes[i]]].repeat(len(row), 1) for (i, row) in enumerate(rows)]), dim=0
+            )
             cat_h = torch.cat((self_h, nbr_h), dim=1)
 
             e = self.leakyrelu(self.a[k](cat_h))

@@ -34,14 +34,14 @@ class CatBoostModel(Model):
     def fit(
         self,
         dataset: DatasetH,
-        num_boost_round = 1000,
-        early_stopping_rounds = 50,
-        verbose_eval = 20,
-        evals_result = dict(),
+        num_boost_round=1000,
+        early_stopping_rounds=50,
+        verbose_eval=20,
+        evals_result=dict(),
         **kwargs
     ):
         df_train, df_valid = dataset.prepare(
-            ["train", "valid"], col_set = ["feature", "label"], data_key = DataHandlerLP.DK_L
+            ["train", "valid"], col_set=["feature", "label"], data_key=DataHandlerLP.DK_L
         )
         x_train, y_train = df_train["feature"], df_train["label"]
         x_valid, y_valid = df_valid["feature"], df_valid["label"]
@@ -52,8 +52,8 @@ class CatBoostModel(Model):
         else:
             raise ValueError("CatBoost doesn't support multi-label training")
 
-        train_pool = Pool(data = x_train, label = y_train_1d)
-        valid_pool = Pool(data = x_valid, label = y_valid_1d)
+        train_pool = Pool(data=x_train, label=y_train_1d)
+        valid_pool = Pool(data=x_valid, label=y_valid_1d)
 
         # Initialize the catboost model
         self._params["iterations"] = num_boost_round
@@ -63,7 +63,7 @@ class CatBoostModel(Model):
         self.model = CatBoost(self._params, **kwargs)
 
         # train the model
-        self.model.fit(train_pool, eval_set = valid_pool, use_best_model = True, **kwargs)
+        self.model.fit(train_pool, eval_set=valid_pool, use_best_model=True, **kwargs)
 
         evals_result = self.model.get_evals_result()
         evals_result["train"] = list(evals_result["learn"].values())[0]
@@ -72,8 +72,8 @@ class CatBoostModel(Model):
     def predict(self, dataset):
         if self.model is None:
             raise ValueError("model is not fitted yet!")
-        x_test = dataset.prepare("test", col_set = "feature")
-        return pd.Series(self.model.predict(x_test.values), index = x_test.index)
+        x_test = dataset.prepare("test", col_set="feature")
+        return pd.Series(self.model.predict(x_test.values), index=x_test.index)
 
 
 if __name__ == "__main__":

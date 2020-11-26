@@ -90,7 +90,6 @@ if __name__ == "__main__":
         # "record": ['SignalRecord', 'SigAnaRecord', 'PortAnaRecord'],
     }
 
-
     model = init_instance_by_config(task["model"])
     dataset = init_instance_by_config(task["dataset"])
     model.fit(dataset, save_path="benchmarks/HATS/model_hat.pkl")

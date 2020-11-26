@@ -117,7 +117,7 @@ class GAT(Model):
                 seed,
             )
         )
-        
+
         self.GAT_model = GATModel(
             d_feat=self.d_feat,
             hidden_size=self.hidden_size,

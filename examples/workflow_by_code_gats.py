@@ -17,7 +17,6 @@ from qlib.utils import exists_qlib_data
 from qlib.utils import init_instance_by_config
 
 
-
 if __name__ == "__main__":
 
     # use default data
