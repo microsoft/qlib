@@ -1,4 +1,4 @@
-provider_uri: "~/.qlib/qlib_data/cn_data"
+provider_uri: "~/.qlib/qlib_data/cn_data_new"
 region: cn
 market: &market csi300
 benchmark: &benchmark SH000300
@@ -8,6 +8,18 @@ data_handler_config: &data_handler_config
     fit_start_time: 2008-01-01
     fit_end_time: 2014-12-31
     instruments: *market
+    infer_processors: [
+        {
+            "class" : "CSZFillna", 
+            "kwargs":{"fields_group": "feature"}
+        },
+        {
+            "class" : "Fillna", 
+            "kwargs":{"fields_group": "feature"}
+        }
+    ]
+    learn_processors: ["DropnaLabel", {"class": "CSZScoreNorm", "kwargs": {"fields_group": "label"}}]
+
 port_analysis_config: &port_analysis_config
     strategy:
         class: TopkDropoutStrategy

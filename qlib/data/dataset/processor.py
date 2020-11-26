@@ -90,6 +90,7 @@ class DropnaLabel(DropnaProcessor):
         return False
 
 
+
 class TanhProcess(Processor):
     """ Use tanh to process noise data"""
 
@@ -121,7 +122,6 @@ class ProcessInf(Processor):
             return data
 
         return replace_inf(df)
-
 
 class Fillna(Processor):
     """Process NaN"""
@@ -202,7 +202,8 @@ class CSZScoreNorm(Processor):
     def __call__(self, df):
         # try not modify original dataframe
         cols = get_group_columns(df, self.fields_group)
-        df[cols] = df[cols].groupby("datetime").apply(lambda df: (df - df.mean()).div(df.std()))
+        df[cols] = df[cols].groupby("datetime").apply(lambda x: (x - x.mean()).div(x.std()))
+
         return df
 
 
@@ -219,4 +220,15 @@ class CSRankNorm(Processor):
         t -= 0.5
         t *= 3.46  # NOTE: towards unit std
         df[cols] = t
+        return df
+
+class CSZFillna(Processor):
+    """Cross Sectional Fill Nan"""
+
+    def __init__(self, fields_group=None):
+        self.fields_group = fields_group
+
+    def __call__(self, df):
+        cols = get_group_columns(df, self.fields_group)
+        df[cols] = df[cols].groupby("datetime").apply(lambda x: x.fillna(x.mean()))
         return df
