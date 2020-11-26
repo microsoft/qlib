@@ -7,19 +7,13 @@ from pathlib import Path
 import qlib
 import pandas as pd
 from qlib.config import REG_CN
-from qlib.contrib.model.pytorch_alstm import ALSTM
-from qlib.contrib.data.handler import ALPHA360_Denoise
 from qlib.contrib.strategy.strategy import TopkDropoutStrategy
 from qlib.contrib.evaluate import (
     backtest as normal_backtest,
     risk_analysis,
 )
 from qlib.utils import exists_qlib_data
-
-# from qlib.model.learner import train_model
 from qlib.utils import init_instance_by_config
-
-import pickle
 
 if __name__ == "__main__":
 
@@ -73,7 +67,7 @@ if __name__ == "__main__":
                 "metric": "IC",
                 "loss": "mse",
                 "seed": 0,
-                "GPU": 0,
+                "GPU": "0",
                 "rnn_type": "GRU",
             },
         },
@@ -97,7 +91,6 @@ if __name__ == "__main__":
         # "record": ['SignalRecord', 'SigAnaRecord', 'PortAnaRecord'],
     }
 
-    # model = train_model(task)
     model = init_instance_by_config(task["model"])
     dataset = init_instance_by_config(task["dataset"])
     model.fit(dataset)
