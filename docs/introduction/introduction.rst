@@ -21,27 +21,27 @@ Framework
 
 At the module level, Qlib is a platform that consists of above components. The components are designed as loose-coupled modules and each component could be used stand-alone.
 
-======================  ==============================================================================
-Name                    Description
-======================  ==============================================================================
-`Data layer`            `DataServer` focuses on providing high-performance infrastructure for users to
-                        manage and retrieve raw data. `DataEnhancement` will preprocess the data and 
-                        provide the best dataset to be fed into the models.
 
-`Interday Model`        `Interday model` focuses on producing prediction scores (aka. `alpha`). Models
-                        are trained by `Model Creator` and managed by `Model Manager`. Users could 
-                        choose one or multiple models for prediction. Multiple models could be combined
-                        with `Ensemble` module.
 
-`Interday Strategy`     `Portfolio Generator` will take prediction scores as input and output the 
-                        orders based on the current position to achieve the target portfolio.
+========================  ==============================================================================
+Name                      Description
+========================  ==============================================================================
+`Infrastructure` layer    `Infrastructure` layer provides underlying support for Quant research.
+                          `DataServer` provides high-performance infrastructure for users to manage 
+                          and retrieve raw data. `Trainer` provides flexible interface to control
+                          the training process of models which enable algorithms controlling the
+                          training process.
 
-`Intraday Trading`      `Order Executor` is responsible for executing orders output by 
-                        `Interday Strategy` and returning the executed results.
+`Workflow` layer          `Workflow` layer covers the whole workflow of quantitative investment.
+                          `Information Extractor` extracts data for models. `Forecast Model` focuses
+                          on producing all kinds of forecast signals (e.g. _alpha_, risk) for other
+                          modules. With these signals `Portfolio Generator` will generate the target
+                          portfolio and produce orders to be executed by `Order Executor`.
 
-`Analysis`              Users could get a detailed analysis report of forecasting signals and portfolios
-                        in this part.
-======================  ==============================================================================
+`Interface` layer         `Interface` layer tries to present a user-friendly interface for the underlying
+                          system. `Analyser` module will provide users detailed analysis reports of
+                          forecasting signals, portfolios and execution results
+========================  ==============================================================================
 
 - The modules with hand-drawn style are under development and will be released in the future.
 - The modules with dashed borders are highly user-customizable and extendible.

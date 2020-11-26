@@ -8,7 +8,7 @@ import qlib
 import fire
 import pandas as pd
 import ruamel.yaml as yaml
-from ..model.trainer import task_train
+from qlib.model.trainer import task_train
 
 
 def get_path_list(path):
