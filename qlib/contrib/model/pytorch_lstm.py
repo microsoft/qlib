@@ -46,7 +46,7 @@ class LSTM(Model):
         dropout=0.0,
         n_epochs=200,
         lr=0.001,
-        metric="IC",
+        metric="loss",
         batch_size=2000,
         early_stop=20,
         loss="mse",
@@ -154,7 +154,7 @@ class LSTM(Model):
     def train_epoch(self, x_train, y_train):
 
         x_train_values = x_train.values
-        y_train_values = np.squeeze(y_train.values) * 100
+        y_train_values = np.squeeze(y_train.values)
 
         self.lstm_model.train()
 

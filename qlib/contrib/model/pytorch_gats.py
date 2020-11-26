@@ -43,13 +43,13 @@ class GAT(Model):
         d_feat=6,
         hidden_size=64,
         num_layers=2,
-        dropout=0.0,
+        dropout=0.7,
         n_epochs=200,
-        lr=0.001,
-        metric="IC",
+        lr=0.0001,
+        metric="loss",
         early_stop=20,
         loss="mse",
-        base_model="GRU",
+        base_model="LSTM",
         with_pretrain=True,
         optimizer="adam",
         GPU="0",
@@ -174,7 +174,7 @@ class GAT(Model):
     def train_epoch(self, x_train, y_train):
 
         x_train_values = x_train.values
-        y_train_values = np.squeeze(y_train.values) * 100
+        y_train_values = np.squeeze(y_train.values)
         self.GAT_model.train()
 
         # organize the train data into daily inter as daily batches

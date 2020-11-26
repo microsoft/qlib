@@ -52,11 +52,11 @@ class HATS(Model):
         num_layers=2,
         dropout=0.5,
         n_epochs=200,
-        lr=0.01,
-        metric="IC",
+        lr=0.0001,
+        metric="loss",
         early_stop=20,
         loss="mse",
-        base_model="GRU",
+        base_model="LSTM",
         with_pretrain=True,
         optimizer="adam",
         GPU="0",
@@ -180,7 +180,7 @@ class HATS(Model):
     def train_epoch(self, x_train, y_train):
 
         x_train_values = x_train.values
-        y_train_values = np.squeeze(y_train.values) * 100
+        y_train_values = np.squeeze(y_train.values) 
 
         self.HATS_model.train()
 
