@@ -28,14 +28,12 @@ class GAT(Model):
 
     Parameters
     ----------
-    input_dim : int
-        input dimension
-    output_dim : int
-        output dimension
-    layers : tuple
-        layer sizes
     lr : float
         learning rate
+    d_feat : int
+        input dimensions for each time step
+    metric : str
+        the evaluate metric used in early stop
     optimizer : str
         optimizer name
     GPU : str
@@ -119,10 +117,6 @@ class GAT(Model):
                 seed,
             )
         )
-
-        if loss not in {"mse", "binary"}:
-            raise NotImplementedError("loss {} is not supported!".format(loss))
-        self._scorer = mean_squared_error if loss == "mse" else roc_auc_score
 
         self.GAT_model = GATModel(
             d_feat=self.d_feat,
@@ -213,7 +207,6 @@ class GAT(Model):
         losses = []
 
         indices = np.arange(len(x_values))
-        np.random.shuffle(indices)
 
         for i in range(len(indices))[:: self.batch_size]:
 
@@ -377,7 +370,6 @@ class GATModel(nn.Module):
         self.fc_out = nn.Linear(hidden_size, 1)
         self.leaky_relu = nn.LeakyReLU()
         self.softmax = nn.Softmax(dim=1)
-
         self.d_feat = d_feat
 
     def cal_convariance(self, x, y):  # the 2nd dimension of x and y are the same
@@ -396,12 +388,7 @@ class GATModel(nn.Module):
         out, _ = self.rnn(x)
         hidden = out[:, -1, :]
         hidden = self.bn1(hidden)
-
         gamma = self.cal_convariance(hidden, hidden)
-        # gamma = hidden.mm(torch.t(hidden))
-        # gamma = self.leaky_relu(gamma)
-        # gamma = self.softmax(gamma)
-        # gamma = gamma * (torch.ones(x.shape[0], x.shape[0]).to(device) - torch.diag(torch.ones(x.shape[0])).to(device))
         output = gamma.mm(hidden)
         output = self.fc(output)
         output = self.bn2(output)

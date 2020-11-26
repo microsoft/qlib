@@ -9,10 +9,8 @@ import os
 import numpy as np
 import pandas as pd
 import copy
-from sklearn.metrics import roc_auc_score, mean_squared_error
-import logging
-from ...utils import unpack_archive_with_buffer, save_multiple_parts_file, create_save_path, drop_nan_by_y_index
-from ...log import get_module_logger, TimeInspector
+from ...utils import create_save_path
+from ...log import get_module_logger
 
 import torch
 import torch.nn as nn
@@ -28,14 +26,10 @@ class ALSTM(Model):
 
     Parameters
     ----------
-    input_dim : int
-        input dimension
-    output_dim : int
-        output dimension
-    layers : tuple
-        layer sizes
-    lr : float
-        learning rate
+    d_feat : int
+        input dimension for each time step
+    metric: str
+        the evaluate metric used in early stop
     optimizer : str
         optimizer name
     GPU : str
@@ -116,14 +110,9 @@ class ALSTM(Model):
             )
         )
 
-        if loss not in {"mse", "binary"}:
-            raise NotImplementedError("loss {} is not supported!".format(loss))
-        self._scorer = mean_squared_error if loss == "mse" else roc_auc_score
-
         self.alstm_model = ALSTMModel(
             d_feat=self.d_feat, hidden_size=self.hidden_size, num_layers=self.num_layers, dropout=self.dropout
         )
-        # def __init__(self, d_feat=6, hidden_size=64, num_layers=2, dropout=0.0, input_day=20, rnn_type="GRU"):
 
         if optimizer.lower() == "adam":
             self.train_optimizer = optim.Adam(self.alstm_model.parameters(), lr=self.lr)
@@ -152,7 +141,6 @@ class ALSTM(Model):
         raise ValueError("unknown loss `%s`" % self.loss)
 
     def metric_fn(self, pred, label):
-
         mask = torch.isfinite(label)
         if self.metric == "IC":
             return self.cal_ic(pred[mask], label[mask])
@@ -197,7 +185,7 @@ class ALSTM(Model):
 
     def test_epoch(self, data_x, data_y):
 
-        # prepare training data
+        # prepare testing data
         x_values = data_x.values
         y_values = np.squeeze(data_y.values)
 
@@ -207,7 +195,6 @@ class ALSTM(Model):
         losses = []
 
         indices = np.arange(len(x_values))
-        np.random.shuffle(indices)
 
         for i in range(len(indices))[:: self.batch_size]:
 
@@ -248,7 +235,6 @@ class ALSTM(Model):
         if save_path == None:
             save_path = create_save_path(save_path)
         stop_steps = 0
-        train_loss = 0
         best_score = -np.inf
         best_epoch = 0
         evals_result["train"] = []
@@ -257,7 +243,6 @@ class ALSTM(Model):
         # train
         self.logger.info("training...")
         self._fitted = True
-        # return
 
         for step in range(self.n_epochs):
             self.logger.info("Epoch%d:", step)
@@ -334,11 +319,9 @@ class GRUModel(nn.Module):
             dropout=dropout,
         )
         self.fc_out = nn.Linear(hidden_size, 1)
-
         self.d_feat = d_feat
 
     def forward(self, x):
-        # x: [N, F*T]
         x = x.reshape(len(x), self.d_feat, -1)  # [N, F, T]
         x = x.permute(0, 2, 1)  # [N, T, F]
         out, _ = self.rnn(x)
@@ -371,7 +354,6 @@ class ALSTMModel(nn.Module):
             dropout=self.dropout,
         )
         self.fc_out = nn.Linear(in_features=self.hid_size * 2, out_features=1)
-        # self.fc_out = nn.Linear(in_features=self.hid_size, out_features=1)
         self.att_net = nn.Sequential()
         self.att_net.add_module("att_fc_in", nn.Linear(in_features=self.hid_size, out_features=int(self.hid_size / 2)))
         self.att_net.add_module("att_dropout", torch.nn.Dropout(self.dropout))
@@ -390,5 +372,4 @@ class ALSTMModel(nn.Module):
         out = self.fc_out(
             torch.cat((rnn_out[:, -1, :], out_att), dim=1)
         )  # [batch, seq_len, num_directions * hidden_size] -> [batch, 1]
-        # out = self.fc_out(rnn_out[:, -1, :] + out_att)
         return out[..., 0]

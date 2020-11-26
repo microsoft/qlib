@@ -7,19 +7,15 @@ from pathlib import Path
 import qlib
 import pandas as pd
 from qlib.config import REG_CN
-from qlib.contrib.model.pytorch_gats import GAT
-from qlib.contrib.data.handler import ALPHA360_Denoise
+
 from qlib.contrib.strategy.strategy import TopkDropoutStrategy
 from qlib.contrib.evaluate import (
     backtest as normal_backtest,
     risk_analysis,
 )
 from qlib.utils import exists_qlib_data
-
-# from qlib.model.learner import train_model
 from qlib.utils import init_instance_by_config
 
-import pickle
 
 if __name__ == "__main__":
 

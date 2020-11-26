@@ -252,7 +252,7 @@ def model_performance_graph(
     """Model performance
 
     :param pred_label: index is **pd.MultiIndex**, index name is **[instrument, datetime]**; columns names is **[score,
-    label]**. It is usually same as the label of model training(e.g. "Ref($close, -2)/Ref($close, -1) - 1")
+    label]**. It is usually same as the label of model training(e.g. "Ref($close, -2)/Ref($close, -1) - 1").
 
 
             .. code-block:: python
@@ -266,13 +266,13 @@ def model_performance_graph(
 
 
     :param lag: `pred.groupby(level='instrument')['score'].shift(lag)`. It will be only used in the auto-correlation computing.
-    :param N: group number, default 5
-    :param reverse: if `True`, `pred['score'] *= -1`
-    :param rank: if **True**, calculate rank ic
-    :param graph_names: graph names; default ['cumulative_return', 'pred_ic', 'pred_autocorr', 'pred_turnover']
-    :param show_notebook: whether to display graphics in notebook, the default is `True`
-    :param show_nature_day: whether to display the abscissa of non-trading day
-    :return: if show_notebook is True, display in notebook; else return `plotly.graph_objs.Figure` list
+    :param N: group number, default 5.
+    :param reverse: if `True`, `pred['score'] *= -1`.
+    :param rank: if **True**, calculate rank ic.
+    :param graph_names: graph names; default ['cumulative_return', 'pred_ic', 'pred_autocorr', 'pred_turnover'].
+    :param show_notebook: whether to display graphics in notebook, the default is `True`.
+    :param show_nature_day: whether to display the abscissa of non-trading day.
+    :return: if show_notebook is True, display in notebook; else return `plotly.graph_objs.Figure` list.
     """
     figure_list = []
     for graph_name in graph_names:

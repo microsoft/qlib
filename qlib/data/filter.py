@@ -32,7 +32,7 @@ class BaseDFilter(abc.ABC):
         Parameters
         ----------
         config : dict
-            dict of config parameters
+            dict of config parameters.
         """
         raise NotImplementedError("Subclass of BaseDFilter must reimplement `from_config` method")
 
@@ -43,7 +43,7 @@ class BaseDFilter(abc.ABC):
         Returns
         ----------
         dict
-            return the dict of config parameters
+            return the dict of config parameters.
         """
         raise NotImplementedError("Subclass of BaseDFilter must reimplement `to_config` method")
 
@@ -69,9 +69,9 @@ class SeriesDFilter(BaseDFilter):
         Parameters
         ----------
         fstart_time: str
-            the time for the filter rule to start filter the instruments
+            the time for the filter rule to start filter the instruments.
         fend_time: str
-            the time for the filter rule to stop filter the instruments
+            the time for the filter rule to stop filter the instruments.
         """
         super(SeriesDFilter, self).__init__()
         self.filter_start_time = pd.Timestamp(fstart_time) if fstart_time else None
@@ -83,12 +83,12 @@ class SeriesDFilter(BaseDFilter):
         Parameters
         ----------
         instruments: dict
-            the dict of instruments in the form {instrument_name => list of timestamp tuple}
+            the dict of instruments in the form {instrument_name => list of timestamp tuple}.
 
         Returns
         ----------
         pd.Timestamp, pd.Timestamp
-            the lower time bound and upper time bound of all the instruments
+            the lower time bound and upper time bound of all the instruments.
         """
         trange = Cal.calendar(freq=self.filter_freq)
         ubound, lbound = trange[0], trange[-1]
@@ -105,14 +105,14 @@ class SeriesDFilter(BaseDFilter):
         Parameters
         ----------
         time_range : D.calendar
-            the time range of the instruments
+            the time range of the instruments.
         target_timestamp : list
-            the list of tuple (timestamp, timestamp)
+            the list of tuple (timestamp, timestamp).
 
         Returns
         ----------
         pd.Series
-            the series of bool value for an instrument
+            the series of bool value for an instrument.
         """
         # Construct a whole dict of {date => bool}
         timestamp_series = {timestamp: False for timestamp in time_range}
@@ -124,19 +124,19 @@ class SeriesDFilter(BaseDFilter):
         return timestamp_series
 
     def _filterSeries(self, timestamp_series, filter_series):
-        """Filter the timestamp series with filter series by using element-wise AND operation of the two series
+        """Filter the timestamp series with filter series by using element-wise AND operation of the two series.
 
         Parameters
         ----------
         timestamp_series : pd.Series
-            the series of bool value indicating existing time
+            the series of bool value indicating existing time.
         filter_series : pd.Series
-            the series of bool value indicating filter feature
+            the series of bool value indicating filter feature.
 
         Returns
         ----------
         pd.Series
-            the series of bool value indicating whether the date satisfies the filter condition and exists in target timestamp
+            the series of bool value indicating whether the date satisfies the filter condition and exists in target timestamp.
         """
         fstart, fend = list(filter_series.keys())[0], list(filter_series.keys())[-1]
         filter_series = filter_series.astype("bool")  # Make sure the filter_series is boolean
@@ -144,17 +144,17 @@ class SeriesDFilter(BaseDFilter):
         return timestamp_series
 
     def _toTimestamp(self, timestamp_series):
-        """Convert the timestamp series to a list of tuple (timestamp, timestamp) indicating a continuous range of TRUE
+        """Convert the timestamp series to a list of tuple (timestamp, timestamp) indicating a continuous range of TRUE.
 
         Parameters
         ----------
         timestamp_series: pd.Series
-            the series of bool value after being filtered
+            the series of bool value after being filtered.
 
         Returns
         ----------
         list
-            the list of tuple (timestamp, timestamp)
+            the list of tuple (timestamp, timestamp).
         """
         # sort the timestamp_series according to the timestamps
         timestamp_series.sort_index()
@@ -194,18 +194,18 @@ class SeriesDFilter(BaseDFilter):
         Parameters
         ----------
         instruments : dict
-            the dict of instruments to be filtered
+            the dict of instruments to be filtered.
         fstart : pd.Timestamp
-            start time of filter
+            start time of filter.
         fend : pd.Timestamp
-            end time of filter
+            end time of filter.
 
-        .. note:: fstart/fend indicates the intersection of instruments start/end time and filter start/end time
+        .. note:: fstart/fend indicates the intersection of instruments start/end time and filter start/end time.
 
         Returns
         ----------
         pd.Dataframe
-            a series of {pd.Timestamp => bool}
+            a series of {pd.Timestamp => bool}.
         """
         raise NotImplementedError("Subclass of SeriesDFilter must reimplement `getFilterSeries` method")
 
@@ -215,16 +215,16 @@ class SeriesDFilter(BaseDFilter):
         Parameters
         ----------
         instruments: dict
-            input instruments to be filtered
+            input instruments to be filtered.
         start_time: str
-            start of the time range
+            start of the time range.
         end_time: str
-            end of the time range
+            end of the time range.
 
         Returns
         ----------
         dict
-            filtered instruments, same structure as input instruments
+            filtered instruments, same structure as input instruments.
         """
         lbound, ubound = self._getTimeBound(instruments)
         start_time = pd.Timestamp(start_time or lbound)
@@ -272,7 +272,7 @@ class NameDFilter(SeriesDFilter):
         params:
         ------
         name_rule_re: str
-            regular expression for the name rule
+            regular expression for the name rule.
         """
         super(NameDFilter, self).__init__(fstart_time, fend_time)
         self.name_rule_re = name_rule_re
@@ -325,13 +325,13 @@ class ExpressionDFilter(SeriesDFilter):
         params:
         ------
         fstart_time: str
-            filter the feature starting from this time
+            filter the feature starting from this time.
         fend_time: str
-            filter the feature ending by this time
+            filter the feature ending by this time.
         rule_expression: str
-            an input expression for the rule
+            an input expression for the rule.
         keep: bool
-            whether to keep the instruments of which features don't exist in the filter time span
+            whether to keep the instruments of which features don't exist in the filter time span.
         """
         super(ExpressionDFilter, self).__init__(fstart_time, fend_time)
         self.rule_expression = rule_expression

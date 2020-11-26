@@ -5,7 +5,7 @@ Custom Model Integration
 Introduction
 ===================
 
-``Qlib`` provides ``lightGBM`` and ``Dnn`` model as the baseline of ``Interday Model``. In addition to the default model, users can integrate their own custom models into ``Qlib``.
+``Qlib``'s `Model Zoo` includes models such as ``LightGBM``, ``DNN``, ``LSTM``, etc.. These models are treated as the baselines of ``Interday Model``. In addition to the default models ``Qlib`` provide, users can integrate their own custom models into ``Qlib``.
 
 Users can integrate their own custom models according to the following steps.
 
@@ -32,79 +32,76 @@ The Custom models need to inherit `qlib.model.base.Model <../reference/api.html#
 
 - Override the `fit` method
     - ``Qlib`` calls the fit method to train the model
-    - The parameters must include training feature `x_train`, training label `y_train`, test feature `x_valid`, test label `y_valid` at least.
-    - The parameters could include some optional parameters with default values, such as train weight `w_train`, test weight `w_valid` and `num_boost_round = 1000`.
+    - The parameters must include training feature `dataset`.
+    - The parameters could include some optional parameters with default values, such as `num_boost_round = 1000` for `GBDT`.
     - Code Example: In the following example, `num_boost_round = 1000` is an optional parameter.
     .. code-block:: Python
     
-        def fit(self, x_train:pd.DataFrame, y_train:pd.DataFrame, x_valid:pd.DataFrame, y_valid:pd.DataFrame,
-            w_train:pd.DataFrame = None, w_valid:pd.DataFrame = None, num_boost_round = 1000, **kwargs):
+        def fit(self, dataset: DatasetH, num_boost_round = 1000, **kwargs):
+
+            # prepare dataset for lgb training and evaluation
+            df_train, df_valid = dataset.prepare(
+                ["train", "valid"], col_set=["feature", "label"], data_key=DataHandlerLP.DK_L
+            )
+            x_train, y_train = df_train["feature"], df_train["label"]
+            x_valid, y_valid = df_valid["feature"], df_valid["label"]
 
             # Lightgbm need 1D array as its label
             if y_train.values.ndim == 2 and y_train.values.shape[1] == 1:
-                y_train_1d, y_valid_1d = np.squeeze(y_train.values), np.squeeze(y_valid.values)
+                y_train, y_valid = np.squeeze(y_train.values), np.squeeze(y_valid.values)
             else:
-                raise ValueError('LightGBM doesn\'t support multi-label training')
+                raise ValueError("LightGBM doesn't support multi-label training")
 
-            w_train_weight = None if w_train is None else w_train.values
-            w_valid_weight = None if w_valid is None else w_valid.values
+            dtrain = lgb.Dataset(x_train.values, label=y_train)
+            dvalid = lgb.Dataset(x_valid.values, label=y_valid)
 
-            dtrain = lgb.Dataset(x_train.values, label=y_train_1d, weight=w_train_weight)
-            dvalid = lgb.Dataset(x_valid.values, label=y_valid_1d, weight=w_valid_weight)
-            self._model = lgb.train(
-                self._params, 
-                dtrain, 
+            # fit the model
+            self.model = lgb.train(
+                self.params,
+                dtrain,
                 num_boost_round=num_boost_round,
                 valid_sets=[dtrain, dvalid],
-                valid_names=['train', 'valid'],
+                valid_names=["train", "valid"],
+                early_stopping_rounds=early_stopping_rounds,
+                verbose_eval=verbose_eval,
+                evals_result=evals_result,
                 **kwargs
             )
 
 - Override the `predict` method
-    - The parameters include the test features.
+    - The parameters must include training feature `dataset`, which will be userd to get the test dataset.
     - Return the `prediction score`.
     - Please refer to `Model API <../reference/api.html#module-qlib.model.base>`_ for the parameter types of the fit method.
-    - Code Example: In the following example, users need to use dnn to predict the label(such as `preds`) of test data `x_test` and return it.
+    - Code Example: In the following example, users need to use `LightGBM` to predict the label(such as `preds`) of test data `x_test` and return it.
     .. code-block:: Python
 
-        def predict(self, x_test:pd.DataFrame, **kwargs)-> numpy.ndarray:
-            if self._model is None:
-                raise ValueError('model is not fitted yet!')
-            return self._model.predict(x_test.values)
+        def predict(self, dataset: DatasetH, **kwargs)-> pandas.Series:
+            if self.model is None:
+                raise ValueError("model is not fitted yet!")
+            x_test = dataset.prepare("test", col_set="feature", data_key=DataHandlerLP.DK_I)
+            return pd.Series(self.model.predict(x_test.values), index=x_test.index)
 
-- Override the `save` method & `load` method
-    - The `save` method parameter includes the a `filename` that represents an absolute path, user need to save model into the path.
-    - The `load` method parameter includes the a `buffer` read from the `filename` passed in the `save` method, users need to load model from the `buffer`.
-    - Code Example:
+- Override the `finetune` method
+    - The parameters must include training feature `dataset`.
+    - Code Example: In the following example, users will use `LightGBM` as the model and finetune it.
     .. code-block:: Python
 
-        def save(self, filename):
-            if self._model is None:
-                raise ValueError('model is not fitted yet!')
-            self._model.save_model(filename)
-
-        def load(self, buffer):
-            self._model = lgb.Booster(params={'model_str': buffer.decode('utf-8')})
-
-.. Without tuner, this part will not be used
-.. - Override the `score` method(This step is optional)
-..     - The parameters include the test features and test labels.
-..     - Return the evaluation score of the model. It's recommended to adopt the loss between labels and `prediction score`.
-..     - Code Example: In the following example, users need to calculate the weighted loss with test data `x_test`,  test label `y_test` and the weight `w_test`.
-..     .. code-block:: Python
-..
-..         def score(self, x_test:pd.Dataframe, y_test:pd.Dataframe, w_test:pd.DataFrame = None) -> float:
-..             # Remove rows from x, y and w, which contain Nan in any columns in y_test.
-..             x_test, y_test, w_test = drop_nan_by_y_index(x_test, y_test, w_test)
-..             preds = self.predict(x_test)
-..             w_test_weight = None if w_test is None else w_test.values
-..             scorer = mean_squared_error if self.loss_type == 'mse' else roc_auc_score
-..             return scorer(y_test.values, preds, sample_weight=w_test_weight)
+        def finetune(self, dataset: DatasetH, num_boost_round=10, verbose_eval=20):
+            dtrain, _ = self._prepare_data(dataset)
+            self.model = lgb.train(
+                self.params,
+                dtrain,
+                num_boost_round=num_boost_round,
+                init_model=self.model,
+                valid_sets=[dtrain],
+                valid_names=["train"],
+                verbose_eval=verbose_eval,
+            )
 
 Configuration File
 =======================
 
-The configuration file is described in detail in the `estimator <../component/estimator.html#complete-example>`_ document. In order to integrate the custom model into ``Qlib``, users need to modify the "model" field in the configuration file.
+The configuration file is described in detail in the `Workflow <../component/workflow.html#complete-example>`_ document. In order to integrate the custom model into ``Qlib``, users need to modify the "model" field in the configuration file.
 
 - Example: The following example describes the `model` field of configuration file about the custom lightgbm model mentioned above, where `module_path` is the module path, `class` is the class name, and `args` is the hyperparameter passed into the __init__ method. All parameters in the field is passed to `self._params` by `\*\*kwargs` in `__init__` except `loss = mse`. 
 
@@ -124,20 +121,20 @@ The configuration file is described in detail in the `estimator <../component/es
             num_leaves: 210
             num_threads: 20
 
-Users could find configuration file of the baseline of the ``Model`` in ``qlib/examples/estimator/estimator_config.yaml`` and ``qlib/examples/estimator/estimator_config_dnn.yaml``
+Users could find configuration file of the baselines of the ``Model`` in ``examples/benchmarks``. All the configurations of different models are listed under the corresponding model folder.
 
 Model Testing
 =====================
-Assuming that the configuration file is ``examples/estimator/estimator_config.yaml``, users can run the following command to test the custom model:
+Assuming that the configuration file is ``examples/benchmarks/LightGBM/workflow_config_lightgbm.yaml``, users can run the following command to test the custom model:
 
 .. code-block:: bash
 
     cd examples  # Avoid running program under the directory contains `qlib`
-    estimator -c estimator/estimator_config.yaml
+    qrun benchmarks/LightGBM/workflow_config_lightgbm.yaml
 
-.. note:: ``estimator`` is a built-in command of ``Qlib``.
+.. note:: ``qrun`` is a built-in command of ``Qlib``.
 
-Also, ``Model`` can also be tested as a single module. An example has been given in ``examples/train_backtest_analyze.ipynb``. 
+Also, ``Model`` can also be tested as a single module. An example has been given in ``examples/workflow_by_code.ipynb``. 
 
 
 Reference

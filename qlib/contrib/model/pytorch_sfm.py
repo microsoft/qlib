@@ -203,6 +203,7 @@ class SFM(Model):
         dropout_U=0.0,
         n_epochs=200,
         lr=0.001,
+        metric="",
         batch_size=2000,
         early_stop=20,
         eval_steps=5,
@@ -227,13 +228,14 @@ class SFM(Model):
         self.dropout_U = dropout_U
         self.n_epochs = n_epochs
         self.lr = lr
+        self.metric = metric
         self.batch_size = batch_size
         self.early_stop = early_stop
         self.eval_steps = eval_steps
         self.lr_decay = lr_decay
         self.lr_decay_steps = lr_decay_steps
         self.optimizer = optimizer.lower()
-        self.loss_type = loss
+        self.loss = loss
         self.device = "cuda:%d" % (GPU) if torch.cuda.is_available() else "cpu"
         self.use_gpu = torch.cuda.is_available()
         self.seed = seed
@@ -248,6 +250,7 @@ class SFM(Model):
             "\ndropout_U: {}"
             "\nn_epochs : {}"
             "\nlr : {}"
+            "\nmetric : {}"
             "\nbatch_size : {}"
             "\nearly_stop : {}"
             "\neval_steps : {}"
@@ -266,6 +269,7 @@ class SFM(Model):
                 dropout_U,
                 n_epochs,
                 lr,
+                metric,
                 batch_size,
                 early_stop,
                 eval_steps,
@@ -299,24 +303,73 @@ class SFM(Model):
         else:
             raise NotImplementedError("optimizer {} is not supported!".format(optimizer))
 
-        # Reduce learning rate when loss has stopped decrease
-        self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-            self.train_optimizer,
-            mode="min",
-            factor=0.5,
-            patience=10,
-            verbose=True,
-            threshold=0.0001,
-            threshold_mode="rel",
-            cooldown=0,
-            min_lr=0.00001,
-            eps=1e-08,
-        )
-
         self._fitted = False
         self.sfm_model.to(self.device)
 
-    def fit(self, dataset: DatasetH, evals_result=dict(), verbose=True, save_path=None, **kwargs):
+    def test_epoch(self, data_x, data_y):
+
+        # prepare training data
+        x_values = data_x.values
+        y_values = np.squeeze(data_y.values)
+
+        self.sfm_model.eval()
+
+        scores = []
+        losses = []
+
+        indices = np.arange(len(x_values))
+        np.random.shuffle(indices)
+
+        for i in range(len(indices))[:: self.batch_size]:
+
+            if len(indices) - i < self.batch_size:
+                break
+
+            feature = torch.from_numpy(x_values[indices[i : i + self.batch_size]]).float().to(self.device)
+            label = torch.from_numpy(y_values[indices[i : i + self.batch_size]]).float().to(self.device)
+
+            pred = self.sfm_model(feature)
+            loss = self.loss_fn(pred, label)
+            losses.append(loss.item())
+
+            score = self.metric_fn(pred, label)
+            scores.append(score.item())
+
+        return np.mean(losses), np.mean(scores)
+
+    def train_epoch(self, x_train, y_train):
+
+        x_train_values = x_train.values
+        y_train_values = np.squeeze(y_train.values) * 100
+
+        self.sfm_model.train()
+
+        indices = np.arange(len(x_train_values))
+        np.random.shuffle(indices)
+
+        for i in range(len(indices))[:: self.batch_size]:
+
+            if len(indices) - i < self.batch_size:
+                break
+
+            feature = torch.from_numpy(x_train_values[indices[i : i + self.batch_size]]).float().to(self.device)
+            label = torch.from_numpy(y_train_values[indices[i : i + self.batch_size]]).float().to(self.device)
+
+            pred = self.sfm_model(feature)
+            loss = self.loss_fn(pred, label)
+
+            self.train_optimizer.zero_grad()
+            loss.backward()
+            torch.nn.utils.clip_grad_value_(self.sfm_model.parameters(), 3.0)
+            self.train_optimizer.step()
+
+    def fit(
+        self,
+        dataset: DatasetH,
+        evals_result=dict(),
+        verbose=True,
+        save_path=None,
+    ):
 
         df_train, df_valid = dataset.prepare(
             ["train", "valid"], col_set=["feature", "label"], data_key=DataHandlerLP.DK_L
@@ -324,10 +377,10 @@ class SFM(Model):
         x_train, y_train = df_train["feature"], df_train["label"]
         x_valid, y_valid = df_valid["feature"], df_valid["label"]
 
-        save_path = create_save_path(save_path)
         stop_steps = 0
         train_loss = 0
-        best_loss = np.inf
+        best_score = -np.inf
+        best_epoch = 0
         evals_result["train"] = []
         evals_result["valid"] = []
 
@@ -335,89 +388,56 @@ class SFM(Model):
         self.logger.info("training...")
         self._fitted = True
 
-        # prepare training data
-        x_train_values = torch.from_numpy(x_train.values).float()
-        y_train_values = torch.from_numpy(np.squeeze(y_train.values)).float()
-        train_num = y_train_values.shape[0]
-
-        # prepare validation data
-        x_val_auto = torch.from_numpy(x_valid.values).float()
-        y_val_auto = torch.from_numpy(np.squeeze(y_valid.values)).float()
-
-        x_val_auto = x_val_auto.to(self.device)
-        y_val_auto = y_val_auto.to(self.device)
-
         for step in range(self.n_epochs):
-            if stop_steps >= self.early_stop:
-                if verbose:
-                    self.logger.info("\tearly stop")
-                break
-            loss = AverageMeter()
-            self.sfm_model.train()
-            self.train_optimizer.zero_grad()
+            self.logger.info("Epoch%d:", step)
+            self.logger.info("training...")
+            self.train_epoch(x_train, y_train)
+            self.logger.info("evaluating...")
+            train_loss, train_score = self.test_epoch(x_train, y_train)
+            val_loss, val_score = self.test_epoch(x_valid, y_valid)
+            self.logger.info("train %.6f, valid %.6f" % (train_score, val_score))
+            evals_result["train"].append(train_score)
+            evals_result["valid"].append(val_score)
 
-            choice = np.random.choice(train_num, self.batch_size)
-            x_batch_auto = x_train_values[choice]
-            y_batch_auto = y_train_values[choice]
-
-            x_batch_auto = x_batch_auto.to(self.device)
-            y_batch_auto = y_batch_auto.to(self.device)
-
-            # forward
-            preds = self.sfm_model(x_batch_auto)
-            cur_loss = self.get_loss(preds, y_batch_auto, self.loss_type)
-            cur_loss.backward()
-            self.train_optimizer.step()
-            loss.update(cur_loss.item())
-
-            # validation
-            train_loss += loss.val
-            if step and step % self.eval_steps == 0:
+            if val_score > best_score:
+                best_score = val_score
+                stop_steps = 0
+                best_epoch = step
+                best_param = copy.deepcopy(self.sfm_model.state_dict())
+            else:
                 stop_steps += 1
-                train_loss /= self.eval_steps
-
-                with torch.no_grad():
-                    self.sfm_model.eval()
-                    loss_val = AverageMeter()
-
-                    # forward
-                    preds = self.sfm_model(x_val_auto)
-                    cur_loss_val = self.get_loss(preds, y_val_auto, self.loss_type)
-                    loss_val.update(cur_loss_val.item())
-
-                if verbose:
-                    self.logger.info(
-                        "[Epoch {}]: train_loss {:.6f}, valid_loss {:.6f}".format(step, train_loss, loss_val.val)
-                    )
-                evals_result["train"].append(train_loss)
-                evals_result["valid"].append(loss_val.val)
-                if loss_val.val < best_loss:
-                    if verbose:
-                        self.logger.info(
-                            "\tvalid loss update from {:.6f} to {:.6f}, save checkpoint.".format(
-                                best_loss, loss_val.val
-                            )
-                        )
-                    best_loss = loss_val.val
-                    stop_steps = 0
-                    torch.save(self.sfm_model.state_dict(), save_path)
-                train_loss = 0
-                # update learning rate
-                self.scheduler.step(cur_loss_val)
-
+                if stop_steps >= self.early_stop:
+                    self.logger.info("early stop")
+                    break
+        self.logger.info("best score: %.6lf @ %d" % (best_score, best_epoch))
         if self.device != "cpu":
             torch.cuda.empty_cache()
 
-    def get_loss(self, pred, target, loss_type):
-        if loss_type == "mse":
-            sqr_loss = (pred - target) ** 2
-            loss = sqr_loss.mean()
-            return loss
-        elif loss_type == "binary":
-            loss = nn.BCELoss()
-            return loss(pred, target)
-        else:
-            raise NotImplementedError("loss {} is not supported!".format(loss_type))
+    def mse(self, pred, label):
+        loss = (pred - label) ** 2
+        return torch.mean(loss)
+
+    def loss_fn(self, pred, label):
+        mask = ~torch.isnan(label)
+
+        if self.loss == "mse":
+            return self.mse(pred[mask], label[mask])
+
+        raise ValueError("unknown loss `%s`" % self.loss)
+
+    def metric_fn(self, pred, label):
+
+        mask = torch.isfinite(label)
+        if self.metric == "IC":
+            return self.cal_ic(pred[mask], label[mask])
+
+        if self.metric == "" or self.metric == "loss":  # use loss
+            return -self.loss_fn(pred[mask], label[mask])
+
+        raise ValueError("unknown metric `%s`" % self.metric)
+
+    def cal_ic(self, pred, label):
+        return torch.mean(pred * label)
 
     def predict(self, dataset):
         if not self._fitted:
@@ -442,30 +462,11 @@ class SFM(Model):
                 x_batch = x_batch.to(self.device)
 
             with torch.no_grad():
-                if self.device != "cpu":
-                    pred = self.sfm_model(x_batch).detach().cpu().numpy()
-                else:
-                    pred = self.sfm_model(x_batch).detach().cpu().numpy()
+                pred = self.sfm_model(x_batch).detach().cpu().numpy()
+
             preds.append(pred)
 
         return pd.Series(np.concatenate(preds), index=index)
-
-    def save(self, filename, **kwargs):
-        with save_multiple_parts_file(filename) as model_dir:
-            model_path = os.path.join(model_dir, os.path.split(model_dir)[-1])
-            # Save model
-            torch.save(self.sfm_model.state_dict(), model_path)
-
-    def load(self, buffer, **kwargs):
-        with unpack_archive_with_buffer(buffer) as model_dir:
-            # Get model name
-            _model_name = os.path.splitext(list(filter(lambda x: x.startswith("model.bin"), os.listdir(model_dir)))[0])[
-                0
-            ]
-            _model_path = os.path.join(model_dir, _model_name)
-            # Load model
-            self.sfm_model.load_state_dict(torch.load(_model_path))
-        self._fitted = True
 
 
 class AverageMeter(object):

@@ -76,8 +76,8 @@ class MemCache(object):
 
         Parameters
         ----------
-        mem_cache_size_limit: cache max size
-        limit_type: length or sizeof; length(call fun: len), size(call fun: sys.getsizeof)
+        mem_cache_size_limit: cache max size.
+        limit_type: length or sizeof; length(call fun: len), size(call fun: sys.getsizeof).
         """
         if limit_type not in ["length", "sizeof"]:
             raise ValueError(f"limit_type must be length or sizeof, your limit_type is {limit_type}")
@@ -118,9 +118,9 @@ class MemCacheExpire:
     def set_cache(mem_cache, key, value):
         """set cache
 
-        :param mem_cache: MemCache attribute('c'/'i'/'f')
-        :param key: cache key
-        :param value: cache value
+        :param mem_cache: MemCache attribute('c'/'i'/'f').
+        :param key: cache key.
+        :param value: cache value.
         """
         mem_cache[key] = value, time.time()
 
@@ -128,9 +128,9 @@ class MemCacheExpire:
     def get_cache(mem_cache, key):
         """get mem cache
 
-        :param mem_cache: MemCache attribute('c'/'i'/'f')
-        :param key: cache key
-        :return: cache value; if cache not exist, return None
+        :param mem_cache: MemCache attribute('c'/'i'/'f').
+        :param key: cache key.
+        :return: cache value; if cache not exist, return None.
         """
         value = None
         expire = False
@@ -275,12 +275,12 @@ class ExpressionCache(BaseProviderCache):
         Parameters
         ----------
         cache_uri : str
-            the complete uri of expression cache file (include dir path)
+            the complete uri of expression cache file (include dir path).
 
         Returns
         -------
         int
-            0(successful update)/ 1(no need to update)/ 2(update failure)
+            0(successful update)/ 1(no need to update)/ 2(update failure).
         """
         raise NotImplementedError("Implement this method if you want to make expression cache up to date")
 
@@ -348,7 +348,7 @@ class DatasetCache(BaseProviderCache):
         Parameters
         ----------
         cache_uri : str
-            the complete uri of dataset cache file (include dir path)
+            the complete uri of dataset cache file (include dir path).
 
         Returns
         -------
@@ -361,9 +361,9 @@ class DatasetCache(BaseProviderCache):
     def cache_to_origin_data(data, fields):
         """cache data to origin data
 
-        :param data: pd.DataFrame, cache data
-        :param fields: feature fields
-        :return: pd.DataFrame
+        :param data: pd.DataFrame, cache data.
+        :param fields: feature fields.
+        :return: pd.DataFrame.
         """
         not_space_fields = remove_fields_space(fields)
         data = data.loc[:, not_space_fields]
@@ -583,7 +583,7 @@ class DiskDatasetCache(DatasetCache):
         :param cache_path:
         :param start_time:
         :param end_time:
-        :param fields: The fields order of the dataset cache is sorted. So rearrange the columns to make it consistent
+        :param fields: The fields order of the dataset cache is sorted. So rearrange the columns to make it consistent.
         :return:
         """
 
@@ -771,12 +771,12 @@ class DiskDatasetCache(DatasetCache):
 
             - This is a hdf file sorted by datetime
 
-        :param cache_path:  The path to store the cache
-        :param instruments:  The instruments to store the cache
-        :param fields:  The fields to store the cache
-        :param freq:  The freq to store the cache
+        :param cache_path:  The path to store the cache.
+        :param instruments:  The instruments to store the cache.
+        :param fields:  The fields to store the cache.
+        :param freq:  The freq to store the cache.
 
-        :return type pd.DataFrame; The fields of the returned DataFrame are consistent with the parameters of the function
+        :return type pd.DataFrame; The fields of the returned DataFrame are consistent with the parameters of the function.
         """
         # get calendar
         from .data import Cal

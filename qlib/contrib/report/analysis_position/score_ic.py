@@ -36,7 +36,7 @@ def score_ic_graph(pred_label: pd.DataFrame, show_notebook: bool = True) -> [lis
                 analysis_position.score_ic_graph(pred_label)
 
 
-    :param pred_label: index is **pd.MultiIndex**, index name is **[instrument, datetime]**; columns names is **[score, label]**
+    :param pred_label: index is **pd.MultiIndex**, index name is **[instrument, datetime]**; columns names is **[score, label]**.
 
 
             .. code-block:: python
@@ -49,8 +49,8 @@ def score_ic_graph(pred_label: pd.DataFrame, show_notebook: bool = True) -> [lis
                             2017-12-15   -0.102778       -0.102778
 
 
-    :param show_notebook: whether to display graphics in notebook, the default is **True**
-    :return: if show_notebook is True, display in notebook; else return **plotly.graph_objs.Figure** list
+    :param show_notebook: whether to display graphics in notebook, the default is **True**.
+    :return: if show_notebook is True, display in notebook; else return **plotly.graph_objs.Figure** list.
     """
     _ic_df = _get_score_ic(pred_label)
     # FIXME: support HIGH-FREQ

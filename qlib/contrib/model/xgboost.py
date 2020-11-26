@@ -22,10 +22,8 @@ from ...data.dataset.handler import DataHandlerLP
 class XGBModel(Model):
     """XGBModel Model"""
 
-    def __init__(self, obj="mse", **kwargs):
-        if obj not in {"mse", "binary"}:
-            raise NotImplementedError
-        self._params = {"obj": obj}
+    def __init__(self, **kwargs):
+        self._params = {}
         self._params.update(kwargs)
         self.model = None
 

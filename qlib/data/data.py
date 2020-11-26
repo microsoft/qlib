@@ -41,13 +41,13 @@ class CalendarProvider(abc.ABC):
         Parameters
         ----------
         start_time : str
-            start of the time range
+            start of the time range.
         end_time : str
-            end of the time range
+            end of the time range.
         freq : str
-            time frequency, available: year/quarter/month/week/day
+            time frequency, available: year/quarter/month/week/day.
         future : bool
-            whether including future trading day
+            whether including future trading day.
 
         Returns
         ----------
@@ -62,24 +62,24 @@ class CalendarProvider(abc.ABC):
         Parameters
         ----------
         start_time : str
-            start of the time range
+            start of the time range.
         end_time : str
-            end of the time range
+            end of the time range.
         freq : str
-            time frequency, available: year/quarter/month/week/day
+            time frequency, available: year/quarter/month/week/day.
         future : bool
-            whether including future trading day
+            whether including future trading day.
 
         Returns
         -------
         pd.Timestamp
-            the real start time
+            the real start time.
         pd.Timestamp
-            the real end time
+            the real end time.
         int
-            the index of start time
+            the index of start time.
         int
-            the index of end time
+            the index of end time.
         """
         start_time = pd.Timestamp(start_time)
         end_time = pd.Timestamp(end_time)
@@ -103,16 +103,16 @@ class CalendarProvider(abc.ABC):
         Parameters
         ----------
         freq : str
-            frequency of read calendar file
+            frequency of read calendar file.
         future : bool
-            whether including future trading day
+            whether including future trading day.
 
         Returns
         -------
         list
-            list of timestamps
+            list of timestamps.
         dict
-            dict composed by timestamp as key and index as value for fast search
+            dict composed by timestamp as key and index as value for fast search.
         """
         flag = f"{freq}_future_{future}"
         if flag in H["c"]:
@@ -141,14 +141,14 @@ class InstrumentProvider(abc.ABC):
         Parameters
         ----------
         market : str
-            market/industry/index shortname, e.g. all/sse/szse/sse50/csi300/csi500
+            market/industry/index shortname, e.g. all/sse/szse/sse50/csi300/csi500.
         filter_pipe : list
-            the list of dynamic filters
+            the list of dynamic filters.
 
         Returns
         ----------
         dict
-            dict of stockpool config
+            dict of stockpool config.
             {`market`=>base market name, `filter_pipe`=>list of filters}
 
             example :
@@ -182,13 +182,13 @@ class InstrumentProvider(abc.ABC):
         Parameters
         ----------
         instruments : dict
-            stockpool config
+            stockpool config.
         start_time : str
-            start of the time range
+            start of the time range.
         end_time : str
-            end of the time range
+            end of the time range.
         as_list : bool
-            return instruments as list or dict
+            return instruments as list or dict.
 
         Returns
         -------
@@ -243,15 +243,15 @@ class FeatureProvider(abc.ABC):
         Parameters
         ----------
         instrument : str
-            a certain instrument
+            a certain instrument.
         field : str
-            a certain field of feature
+            a certain field of feature.
         start_time : str
-            start of the time range
+            start of the time range.
         end_time : str
-            end of the time range
+            end of the time range.
         freq : str
-            time frequency, available: year/quarter/month/week/day
+            time frequency, available: year/quarter/month/week/day.
 
         Returns
         -------
@@ -294,15 +294,15 @@ class ExpressionProvider(abc.ABC):
         Parameters
         ----------
         instrument : str
-            a certain instrument
+            a certain instrument.
         field : str
-            a certain field of feature
+            a certain field of feature.
         start_time : str
-            start of the time range
+            start of the time range.
         end_time : str
-            end of the time range
+            end of the time range.
         freq : str
-            time frequency, available: year/quarter/month/week/day
+            time frequency, available: year/quarter/month/week/day.
 
         Returns
         -------
@@ -325,20 +325,20 @@ class DatasetProvider(abc.ABC):
         Parameters
         ----------
         instruments : list or dict
-            list/dict of instruments or dict of stockpool config
+            list/dict of instruments or dict of stockpool config.
         fields : list
-            list of feature instances
+            list of feature instances.
         start_time : str
-            start of the time range
+            start of the time range.
         end_time : str
-            end of the time range
+            end of the time range.
         freq : str
-            time frequency
+            time frequency.
 
         Returns
         ----------
         pd.DataFrame
-            a pandas dataframe with <instrument, datetime> index
+            a pandas dataframe with <instrument, datetime> index.
         """
         raise NotImplementedError("Subclass of DatasetProvider must implement `Dataset` method")
 
@@ -357,17 +357,17 @@ class DatasetProvider(abc.ABC):
         Parameters
         ----------
         instruments : list or dict
-            list/dict of instruments or dict of stockpool config
+            list/dict of instruments or dict of stockpool config.
         fields : list
-            list of feature instances
+            list of feature instances.
         start_time : str
-            start of the time range
+            start of the time range.
         end_time : str
-            end of the time range
+            end of the time range.
         freq : str
-            time frequency
+            time frequency.
         disk_cache : int
-            whether to skip(0)/use(1)/replace(2) disk_cache
+            whether to skip(0)/use(1)/replace(2) disk_cache.
 
         """
         return DiskDatasetCache._uri(instruments, fields, start_time, end_time, freq, disk_cache)
@@ -526,7 +526,7 @@ class LocalCalendarProvider(CalendarProvider):
         Parameters
         ----------
         freq : str
-            frequency of read calendar file
+            frequency of read calendar file.
 
         Returns
         ----------

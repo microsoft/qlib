@@ -29,18 +29,15 @@ task:
         class: XGBModel
         module_path: qlib.contrib.model.xgboost
         kwargs:
-            objective: reg:linear
-            n_estimators: 5000
-            colsample_bytree: 0.85
-            learning_rate: 0.0421
-            subsample: 0.8789
-            max_depth: 8
-            num_leaves: 210
-            num_threads: 20
-            missing: -1
-            min_child_weight: 1
+            eval_metric: rmse
+            colsample_bytree: 0.5
+            eta: 0.2
+            gamma: 0.55
+            max_depth: 2
+            min_child_weight: 1.0
+            n_estimators: 647
+            subsample: 0.8
             nthread: 4
-            tree_method: hist
     dataset:
         class: DatasetH
         module_path: qlib.data.dataset

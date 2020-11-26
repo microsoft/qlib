@@ -18,10 +18,8 @@ import os
 import numpy as np
 import pandas as pd
 import copy
-from sklearn.metrics import roc_auc_score, mean_squared_error
-import logging
-from ...utils import unpack_archive_with_buffer, save_multiple_parts_file, create_save_path, drop_nan_by_y_index
-from ...log import get_module_logger, TimeInspector
+from ...utils import create_save_path
+from ...log import get_module_logger
 
 import torch
 import torch.nn as nn
@@ -37,14 +35,10 @@ class HATS(Model):
 
     Parameters
     ----------
-    input_dim : int
-        input dimension
-    output_dim : int
-        output dimension
-    layers : tuple
-        layer sizes
-    lr : float
-        learning rate
+    d_feat : int
+        input dimension for each time step
+    metric: str
+        the evaluate metric used in early stop
     optimizer : str
         optimizer name
     GPU : str
@@ -87,7 +81,7 @@ class HATS(Model):
         self.optimizer = optimizer.lower()
         self.loss = loss
         self.base_model = base_model
-        self.with_pretrain = with_pretrain  #### True if train HATS with pretrained base model
+        self.with_pretrain = with_pretrain
         self.visible_GPU = GPU
         self.use_gpu = torch.cuda.is_available()
         self.seed = seed
@@ -106,7 +100,7 @@ class HATS(Model):
             "\noptimizer : {}"
             "\nloss_type : {}"
             "\nbase_model : {}"
-            "\nwith_pretrain : {}"  ##### debug
+            "\nwith_pretrain : {}"
             "\nvisible_GPU : {}"
             "\nuse_GPU : {}"
             "\nseed : {}".format(
@@ -122,16 +116,12 @@ class HATS(Model):
                 optimizer.lower(),
                 loss,
                 base_model,
-                with_pretrain,  ### debug
+                with_pretrain,
                 GPU,
                 self.use_gpu,
                 seed,
             )
         )
-
-        if loss not in {"mse", "binary"}:
-            raise NotImplementedError("loss {} is not supported!".format(loss))
-        self._scorer = mean_squared_error if loss == "mse" else roc_auc_score
 
         self.HATS_model = HATSModel(
             d_feat=self.d_feat,
@@ -167,7 +157,6 @@ class HATS(Model):
         raise ValueError("unknown loss `%s`" % self.loss)
 
     def metric_fn(self, pred, label):
-
         mask = torch.isfinite(label)
         if self.metric == "IC":
             return self.cal_ic(pred[mask], label[mask])
@@ -212,7 +201,7 @@ class HATS(Model):
 
     def test_epoch(self, data_x, data_y):
 
-        # prepare training data
+        # prepare testing data
         x_values = data_x.values
         y_values = np.squeeze(data_y.values)
 
@@ -222,7 +211,6 @@ class HATS(Model):
         losses = []
 
         indices = np.arange(len(x_values))
-        np.random.shuffle(indices)
 
         for i in range(len(indices))[:: self.batch_size]:
 
@@ -263,7 +251,6 @@ class HATS(Model):
         if save_path == None:
             save_path = create_save_path(save_path)
         stop_steps = 0
-        train_loss = 0
         best_score = -np.inf
         best_epoch = 0
         evals_result["train"] = []
@@ -271,7 +258,7 @@ class HATS(Model):
 
         # load pretrained base_model
         if self.with_pretrain:
-            self.logger.info("loading pretrained model...")
+            self.logger.info("Loading pretrained model...")
             if self.base_model == "LSTM":
                 from ...contrib.model.pytorch_lstm import LSTMModel
 
@@ -283,19 +270,14 @@ class HATS(Model):
                 pretrained_model = GRUModel()
                 pretrained_model.load_state_dict(torch.load("benchmarks/GRU/model_gru_csi300.pkl"))
             model_dict = self.HATS_model.state_dict()
-
-            # filter unnecessary parameters
             pretrained_dict = {k: v for k, v in pretrained_model.state_dict().items() if k in model_dict}
-            # overwrite entries in the existing state dict
             model_dict.update(pretrained_dict)
-            # load the new state dict
             self.HATS_model.load_state_dict(model_dict)
-            self.logger.info("loading pretrained model Done...")
+            self.logger.info("Loading pretrained model Done...")
 
         # train
         self.logger.info("training...")
         self._fitted = True
-        # return
 
         for step in range(self.n_epochs):
             self.logger.info("Epoch%d:", step)
@@ -447,20 +429,20 @@ class GraphAttention(nn.Module):
         self.softmax = nn.Softmax(dim=0)
         self.leakyrelu = nn.LeakyReLU()
 
-    def forward(self, features, nodes, mapping, rows):
+    def forward(self, features, nodes, mappings, rows):
 
         """
         Parameters
         ----------
         features : torch.Tensor
             An (n' x input_dim) tensor of input node features.
-        node_layers : list of numpy array
-            node_layers[i] is an array of the nodes in the ith layer of the
+        nodes : list of numpy array
+            nodes[i] is an array of the nodes in the ith layer of the
             computation graph.
         mappings : list of dictionary
-            mappings[i] is a dictionary mapping node v (labelled 0 to |V|-1)
-            in node_layers[i] to its position in node_layers[i]. For example,
-            if node_layers[i] = [2,5], then mappings[i][2] = 0 and
+            mappings[i] is a dictionary mappings node v (labelled 0 to |V|-1)
+            in nodes[i] to its position in nodes[i]. For example,
+            if nodes[i] = [2,5], then mappings[i][2] = 0 and
             mappings[i][5] = 1.
         rows : numpy array
             rows[i] is an array of neighbors of node i.
@@ -471,9 +453,9 @@ class GraphAttention(nn.Module):
         """
 
         nprime = features.shape[0]
-        rows = [np.array([mapping[v] for v in row], dtype=np.int64) for row in rows]
+        rows = [np.array([mappings[v] for v in row], dtype=np.int64) for row in rows]
         sum_degs = np.hstack(([0], np.cumsum([len(row) for row in rows])))
-        mapped_nodes = [mapping[v] for v in nodes]
+        mapped_nodes = [mappings[v] for v in nodes]
         indices = torch.LongTensor([[v, c] for (v, row) in zip(mapped_nodes, rows) for c in row]).t()
 
         out = []
@@ -481,7 +463,9 @@ class GraphAttention(nn.Module):
             h = self.fcs[k](features)
 
             nbr_h = torch.cat(tuple([h[row] for row in rows]), dim=0)
-            self_h = torch.cat(tuple([h[mapping[nodes[i]]].repeat(len(row), 1) for (i, row) in enumerate(rows)]), dim=0)
+            self_h = torch.cat(
+                tuple([h[mappings[nodes[i]]].repeat(len(row), 1) for (i, row) in enumerate(rows)]), dim=0
+            )
             cat_h = torch.cat((self_h, nbr_h), dim=1)
 
             e = self.leakyrelu(self.a[k](cat_h))
@@ -496,13 +480,11 @@ class GraphAttention(nn.Module):
 
         return out
 
+    @staticmethod
     def cal_attention(x, y):
-
         att_x = torch.mean(x, dim=1).reshape(-1, 1)
         att_y = torch.mean(y, dim=1).reshape(-1, 1)
         att = att_x.mm(torch.t(att_y))
-        x_att = x.reshape(x.shape[0], 1, x.shape[1]).repeat(1, y.shape[0], 1)
-        y_att = y.reshape(1, y.shape[0], y.shape[1]).repeat(x.shape[0], 1, 1)
         return (
             torch.mean(
                 x.reshape(x.shape[0], 1, x.shape[1]).repeat(1, y.shape[0], 1)
