@@ -70,7 +70,7 @@ if __name__ == "__main__":
                 "lr": 1e-3,
                 "early_stop": 20,
                 "batch_size": 800,
-                "metric": "IC",
+                "metric": "loss",
                 "loss": "mse",
                 "seed": 0,
                 "GPU": 0,

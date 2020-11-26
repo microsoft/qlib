@@ -62,12 +62,11 @@ if __name__ == "__main__":
                 "n_epochs": 200,
                 "lr": 1e-3,
                 "early_stop": 20,
-                "batch_size": 800,
                 "metric": "IC",
                 "loss": "mse",
                 "base_model": "LSTM",
                 "seed": 0,
-                "GPU": "0",
+                "GPU": "2",
             },
         },
         "dataset": {

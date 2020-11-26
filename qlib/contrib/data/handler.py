@@ -126,6 +126,7 @@ class ALPHA360(DataHandlerLP):
         learn_processors=_DEFAULT_LEARN_PROCESSORS,
         fit_start_time=None,
         fit_end_time=None,
+        **kwargs,
     ):
         infer_processors = check_transform_proc(infer_processors, fit_start_time, fit_end_time)
         learn_processors = check_transform_proc(learn_processors, fit_start_time, fit_end_time)
@@ -135,7 +136,7 @@ class ALPHA360(DataHandlerLP):
             "kwargs": {
                 "config": {
                     "feature": self.get_feature_config(),
-                    "label": self.get_label_config(),
+                    "label": kwargs.get("label", self.get_label_config()),
                 },
             },
         }
@@ -206,6 +207,7 @@ class Alpha158(DataHandlerLP):
         learn_processors=_DEFAULT_LEARN_PROCESSORS,
         fit_start_time=None,
         fit_end_time=None,
+        **kwargs,
     ):
         infer_processors = check_transform_proc(infer_processors, fit_start_time, fit_end_time)
         learn_processors = check_transform_proc(learn_processors, fit_start_time, fit_end_time)
@@ -213,7 +215,7 @@ class Alpha158(DataHandlerLP):
         data_loader = {
             "class": "QlibDataLoader",
             "kwargs": {
-                "config": {"feature": self.get_feature_config(), "label": self.get_label_config()},
+                "config": {"feature": self.get_feature_config(), "label": kwargs.get("label", self.get_label_config())},
             },
         }
         super().__init__(
