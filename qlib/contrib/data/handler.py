@@ -10,6 +10,28 @@ from inspect import getfullargspec
 import copy
 
 
+def check_transform_proc(proc_l, fit_start_time, fit_end_time):
+    new_l = []
+    for p in proc_l:
+        if not isinstance(p, Processor):
+            klass, pkwargs = get_cls_kwargs(p, processor_module)
+            args = getfullargspec(klass).args
+            if "fit_start_time" in args and "fit_end_time" in args:
+                assert (
+                    fit_start_time is not None and fit_end_time is not None
+                ), "Make sure `fit_start_time` and `fit_end_time` are not None."
+                pkwargs.update(
+                    {
+                        "fit_start_time": fit_start_time,
+                        "fit_end_time": fit_end_time,
+                    }
+                )
+            new_l.append({"class": klass.__name__, "kwargs": pkwargs})
+        else:
+            new_l.append(p)
+    return new_l
+
+
 class ALPHA360_Denoise(DataHandlerLP):
     def __init__(self, instruments="csi500", start_time=None, end_time=None, fit_start_time=None, fit_end_time=None):
         data_loader = {
@@ -83,8 +105,31 @@ class ALPHA360_Denoise(DataHandlerLP):
         return fields, names
 
 
+_DEFAULT_LEARN_PROCESSORS = [
+    {"class": "DropnaLabel"},
+    {"class": "CSZScoreNorm", "kwargs": {"fields_group": "label"}},
+]
+_DEFAULT_INFER_PROCESSORS = [
+    {"class": "ProcessInf", "kwargs": {}},
+    {"class": "ZScoreNorm", "kwargs": {}},
+    {"class": "Fillna", "kwargs": {}},
+]
+
+
 class ALPHA360(DataHandlerLP):
-    def __init__(self, instruments="csi500", start_time=None, end_time=None, fit_start_time=None, fit_end_time=None):
+    def __init__(
+        self,
+        instruments="csi500",
+        start_time=None,
+        end_time=None,
+        infer_processors=_DEFAULT_INFER_PROCESSORS,
+        learn_processors=_DEFAULT_LEARN_PROCESSORS,
+        fit_start_time=None,
+        fit_end_time=None,
+    ):
+        infer_processors = check_transform_proc(infer_processors, fit_start_time, fit_end_time)
+        learn_processors = check_transform_proc(learn_processors, fit_start_time, fit_end_time)
+
         data_loader = {
             "class": "QlibDataLoader",
             "kwargs": {
@@ -94,16 +139,6 @@ class ALPHA360(DataHandlerLP):
                 },
             },
         }
-
-        learn_processors = [
-            {"class": "DropnaLabel", "kwargs": {"fields_group": "label"}},
-            {"class": "CSZScoreNorm", "kwargs": {"fields_group": "label"}},
-        ]
-        infer_processors = [
-            {"class": "ProcessInf", "kwargs": {}},
-            {"class": "ZscoreNorm", "kwargs": {"fit_start_time": fit_start_time, "fit_end_time": fit_end_time}},
-            {"class": "Fillna", "kwargs": {}},
-        ]
 
         super().__init__(
             instruments,
@@ -168,33 +203,12 @@ class Alpha158(DataHandlerLP):
         start_time=None,
         end_time=None,
         infer_processors=[],
-        learn_processors=["DropnaLabel", {"class": "CSZScoreNorm", "kwargs": {"fields_group": "label"}}],
+        learn_processors=_DEFAULT_LEARN_PROCESSORS,
         fit_start_time=None,
         fit_end_time=None,
     ):
-        def check_transform_proc(proc_l):
-            new_l = []
-            for p in proc_l:
-                if not isinstance(p, Processor):
-                    klass, pkwargs = get_cls_kwargs(p, processor_module)
-                    args = getfullargspec(klass).args
-                    if "fit_start_time" in args and "fit_end_time" in args:
-                        assert (
-                            fit_start_time is not None and fit_end_time is not None
-                        ), "Make sure `fit_start_time` and `fit_end_time` are not None."
-                        pkwargs.update(
-                            {
-                                "fit_start_time": fit_start_time,
-                                "fit_end_time": fit_end_time,
-                            }
-                        )
-                    new_l.append({"class": klass.__name__, "kwargs": pkwargs})
-                else:
-                    new_l.append(p)
-            return new_l
-
-        infer_processors = check_transform_proc(infer_processors)
-        learn_processors = check_transform_proc(learn_processors)
+        infer_processors = check_transform_proc(infer_processors, fit_start_time, fit_end_time)
+        learn_processors = check_transform_proc(learn_processors, fit_start_time, fit_end_time)
 
         data_loader = {
             "class": "QlibDataLoader",
