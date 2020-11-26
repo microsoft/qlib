@@ -30,15 +30,15 @@ class XGBModel(Model):
     def fit(
         self,
         dataset: DatasetH,
-        num_boost_round=1000,
-        early_stopping_rounds=50,
-        verbose_eval=20,
-        evals_result=dict(),
+        num_boost_round = 1000,
+        early_stopping_rounds = 50,
+        verbose_eval = 20,
+        evals_result = dict(),
         **kwargs
     ):
 
         df_train, df_valid = dataset.prepare(
-            ["train", "valid"], col_set=["feature", "label"], data_key=DataHandlerLP.DK_L
+            ["train", "valid"], col_set = ["feature", "label"], data_key = DataHandlerLP.DK_L
         )
         x_train, y_train = df_train["feature"], df_train["label"]
         x_valid, y_valid = df_valid["feature"], df_valid["label"]
@@ -49,16 +49,16 @@ class XGBModel(Model):
         else:
             raise ValueError("XGBoost doesn't support multi-label training")
 
-        dtrain = xgb.DMatrix(x_train.values, label=y_train_1d)
-        dvalid = xgb.DMatrix(x_valid.values, label=y_valid_1d)
+        dtrain = xgb.DMatrix(x_train.values, label = y_train_1d)
+        dvalid = xgb.DMatrix(x_valid.values, label = y_valid_1d)
         self.model = xgb.train(
             self._params,
-            dtrain=dtrain,
-            num_boost_round=num_boost_round,
-            evals=[(dtrain, "train"), (dvalid, "valid")],
-            early_stopping_rounds=early_stopping_rounds,
-            verbose_eval=verbose_eval,
-            evals_result=evals_result,
+            dtrain = dtrain,
+            num_boost_round = num_boost_round,
+            evals = [(dtrain, "train"), (dvalid, "valid")],
+            early_stopping_rounds = early_stopping_rounds,
+            verbose_eval = verbose_eval,
+            evals_result = evals_result,
             **kwargs
         )
         evals_result["train"] = list(evals_result["train"].values())[0]
@@ -67,5 +67,5 @@ class XGBModel(Model):
     def predict(self, dataset):
         if self.model is None:
             raise ValueError("model is not fitted yet!")
-        x_test = dataset.prepare("test", col_set="feature")
-        return pd.Series(self.model.predict(xgb.DMatrix(x_test.values)), index=x_test.index)
+        x_test = dataset.prepare("test", col_set = "feature")
+        return pd.Series(self.model.predict(xgb.DMatrix(x_test.values)), index = x_test.index)
