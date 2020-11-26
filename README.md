@@ -27,6 +27,7 @@ For more details, please refer to our paper ["Qlib: An AI-oriented Quantitative 
   - [Data Preparation](#data-preparation)
   - [Auto Quant Research Workflow](#auto-quant-research-workflow)
   - [Building Customized Quant Research Workflow by Code](#building-customized-quant-research-workflow-by-code)
+- [Quant Model Zoo](#quant-model-zoo)
   - [Run a single model](#run-a-single-model)
   - [Run multiple models](#run-multiple-models)
 - [Quant Dataset Zoo](#quant-dataset-zoo)
@@ -189,7 +190,7 @@ Qlib provides a tool named `qrun` to run the whole workflow automatically (inclu
 The automatic workflow may not suite the research workflow of all Quant researchers. To support a flexible Quant research workflow, Qlib also provides a modularized interface to allow researchers to build their own workflow by code. [Here](examples/workflow_by_code.ipynb) is a demo for customized Quant research workflow by code.
 
 
-[# Quant Model Zoo](examples/benchmarks)
+# [Quant Model Zoo](examples/benchmarks)
 
 ## Run a single model
 `Qlib` provides three different ways to run a single model, users can pick the one that fits their cases best:
