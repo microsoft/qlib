@@ -12,14 +12,16 @@ Initialization
 
 Please follow the steps below to initialize ``Qlib``.
 
-- Download and prepare the Data: execute the following command to download stock data. Please pay `attention` that the data is collected from `Yahoo Finance <https://finance.yahoo.com/lookup>`_ and the data might not be perfect. We recommend users to prepare their own data if they have high-quality datasets. Please refer to `Data  <../component/data.html#converting-csv-format-into-qlib-format>` for more information about customized dataset.
+Download and prepare the Data: execute the following command to download stock data. Please pay `attention` that the data is collected from `Yahoo Finance <https://finance.yahoo.com/lookup>`_ and the data might not be perfect. We recommend users to prepare their own data if they have high-quality datasets. Please refer to `Data <../component/data.html#converting-csv-format-into-qlib-format>`_ for more information about customized dataset.
+    
     .. code-block:: bash
     
         python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/cn_data --region cn
-    Please refer to `Data Preparation  <../component/data.html#data-preparation>`_ for more information about `get_data.py`,
+        
+Please refer to `Data Preparation <../component/data.html#data-preparation>`_ for more information about `get_data.py`,
 
 
-- Initialize Qlib before calling other APIs: run following code in python.
+Initialize Qlib before calling other APIs: run following code in python.
 
     .. code-block:: Python
 
