@@ -139,17 +139,20 @@ Qlib provides a tool named `qrun` to run the whole workflow automatically (inclu
 
     ```bash
 
-                                                      risk
-    excess_return_without_cost mean               0.000675
-                               std                0.005456
-                               annualized_return  0.170077
-                               information_ratio  1.963824
-                               max_drawdown      -0.063646
-    excess_return_with_cost    mean               0.000479
-                               std                0.005453
-                               annualized_return  0.120776
-                               information_ratio  1.395116
-                               max_drawdown      -0.071216
+    'The following are analysis results of the excess return without cost.'
+                           risk
+    mean               0.000708
+    std                0.005626
+    annualized_return  0.178316
+    information_ratio  1.996555
+    max_drawdown      -0.081806
+    'The following are analysis results of the excess return with cost.'
+                           risk
+    mean               0.000512
+    std                0.005626
+    annualized_return  0.128982
+    information_ratio  1.444287
+    max_drawdown      -0.091078
 
 
 
