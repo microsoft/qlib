@@ -33,7 +33,7 @@ task:
             colsample_bytree: 0.8879
             eta: 0.0421
             max_depth: 8
-            n_estimators: 650
+            n_estimators: 647
             subsample: 0.8789
             nthread: 20
     dataset:
