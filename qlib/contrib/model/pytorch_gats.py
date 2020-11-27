@@ -19,10 +19,12 @@ import torch.optim as optim
 from ...model.base import Model
 from ...data.dataset import DatasetH
 from ...data.dataset.handler import DataHandlerLP
+from ...contrib.model.pytorch_lstm import LSTMModel
+from ...contrib.model.pytorch_gru import GRUModel
 
 
-class GAT(Model):
-    """GAT Model
+class GATs(Model):
+    """GATs Model
 
     Parameters
     ----------
@@ -57,8 +59,8 @@ class GAT(Model):
         **kwargs
     ):
         # Set logger.
-        self.logger = get_module_logger("GAT")
-        self.logger.info("GAT pytorch version...")
+        self.logger = get_module_logger("GATs")
+        self.logger.info("GATs pytorch version...")
 
         # set hyper-parameters.
         self.d_feat = d_feat
@@ -78,7 +80,7 @@ class GAT(Model):
         self.seed = seed
 
         self.logger.info(
-            "GAT parameters setting:"
+            "GATs parameters setting:"
             "\nd_feat : {}"
             "\nhidden_size : {}"
             "\nnum_layers : {}"
@@ -124,7 +126,9 @@ class GAT(Model):
         elif optimizer.lower() == "gd":
             self.train_optimizer = optim.SGD(self.GAT_model.parameters(), lr=self.lr)
         else:
-            raise NotImplementedError("optimizer {} is not supported!".format(optimizer))
+            raise NotImplementedError(
+                "optimizer {} is not supported!".format(optimizer)
+            )
 
         self._fitted = False
         if self.use_gpu:
@@ -149,18 +153,18 @@ class GAT(Model):
 
         mask = torch.isfinite(label)
 
-        if self.metric == "" or self.metric == "loss":  # use loss
+        if self.metric == "" or self.metric == "loss":
             return -self.loss_fn(pred[mask], label[mask])
 
         raise ValueError("unknown metric `%s`" % self.metric)
 
     def get_daily_inter(self, df, shuffle=False):
-        # organize the train data into daily inter as daily batches
+        # organize the train data into daily batches
         daily_count = df.groupby(level=0).size().values
         daily_index = np.roll(np.cumsum(daily_count), 1)
         daily_index[0] = 0
         if shuffle:
-            # shuffle the daily inter data
+            # shuffle data
             daily_shuffle = list(zip(daily_index, daily_count))
             np.random.shuffle(daily_shuffle)
             daily_index, daily_count = zip(*daily_shuffle)
@@ -172,7 +176,7 @@ class GAT(Model):
         y_train_values = np.squeeze(y_train.values)
         self.GAT_model.train()
 
-        # organize the train data into daily inter as daily batches
+        # organize the train data into daily batches
         daily_index, daily_count = self.get_daily_inter(x_train, shuffle=True)
 
         for idx, count in zip(daily_index, daily_count):
@@ -203,7 +207,7 @@ class GAT(Model):
         scores = []
         losses = []
 
-        # organize the test data into daily inter as daily batches
+        # organize the test data into daily batches
         daily_index, daily_count = self.get_daily_inter(data_x, shuffle=False)
 
         for idx, count in zip(daily_index, daily_count):
@@ -233,7 +237,9 @@ class GAT(Model):
     ):
 
         df_train, df_valid, df_test = dataset.prepare(
-            ["train", "valid", "test"], col_set=["feature", "label"], data_key=DataHandlerLP.DK_L
+            ["train", "valid", "test"],
+            col_set=["feature", "label"],
+            data_key=DataHandlerLP.DK_L,
         )
 
         x_train, y_train = df_train["feature"], df_train["label"]
@@ -251,17 +257,23 @@ class GAT(Model):
         if self.with_pretrain:
             self.logger.info("Loading pretrained model...")
             if self.base_model == "LSTM":
-                from ...contrib.model.pytorch_lstm import LSTMModel
-
                 pretrained_model = LSTMModel()
-                pretrained_model.load_state_dict(torch.load("benchmarks/LSTM/model_lstm_csi300.pkl"))
-            elif self.base_model == "GRU":
-                from ...contrib.model.pytorch_gru import GRUModel
+                pretrained_model.load_state_dict(
+                    torch.load("benchmarks/LSTM/model_lstm_csi300.pkl")
+                )
 
+            elif self.base_model == "GRU":
                 pretrained_model = GRUModel()
-                pretrained_model.load_state_dict(torch.load("benchmarks/GRU/model_gru_csi300.pkl"))
+                pretrained_model.load_state_dict(
+                    torch.load("benchmarks/GRU/model_gru_csi300.pkl")
+                )
+
             model_dict = self.GAT_model.state_dict()
-            pretrained_dict = {k: v for k, v in pretrained_model.state_dict().items() if k in model_dict}
+            pretrained_dict = {
+                k: v
+                for k, v in pretrained_model.state_dict().items()
+                if k in model_dict
+            }
             model_dict.update(pretrained_dict)
             self.GAT_model.load_state_dict(model_dict)
             self.logger.info("Loading pretrained model Done...")
@@ -269,7 +281,6 @@ class GAT(Model):
         # train
         self.logger.info("training...")
         self._fitted = True
-        # return
 
         for step in range(self.n_epochs):
             self.logger.info("Epoch%d:", step)
@@ -310,7 +321,7 @@ class GAT(Model):
         x_values = x_test.values
         preds = []
 
-        # organize the data into daily inter as daily batches
+        # organize the data into daily batches
         daily_index, daily_count = self.get_daily_inter(x_test, shuffle=False)
 
         for idx, count in zip(daily_index, daily_count):
@@ -332,7 +343,9 @@ class GAT(Model):
 
 
 class GATModel(nn.Module):
-    def __init__(self, d_feat=6, hidden_size=64, num_layers=2, dropout=0.0, base_model="GRU"):
+    def __init__(
+        self, d_feat=6, hidden_size=64, num_layers=2, dropout=0.0, base_model="GRU"
+    ):
         super().__init__()
 
         if base_model == "GRU":
@@ -355,22 +368,29 @@ class GATModel(nn.Module):
             raise ValueError("unknown base model name `%s`" % base_model)
 
         self.hidden_size = hidden_size
-        self.bn1 = nn.BatchNorm1d(num_features=hidden_size, track_running_stats=False)
-        self.fc = nn.Linear(hidden_size, hidden_size)
-        self.bn2 = nn.BatchNorm1d(num_features=hidden_size, track_running_stats=False)
+        self.d_feat = d_feat
+        self.transformation = nn.Linear(self.hidden_size, self.hidden_size)
+        self.a = nn.Parameter(torch.randn(self.hidden_size * 2, 1))
+        self.a.requires_grad = True
+        self.fc = nn.Linear(self.hidden_size, self.hidden_size)
         self.fc_out = nn.Linear(hidden_size, 1)
         self.leaky_relu = nn.LeakyReLU()
         self.softmax = nn.Softmax(dim=1)
-        self.d_feat = d_feat
 
-    def cal_convariance(self, x, y):  # the 2nd dimension of x and y are the same
-        e_x = torch.mean(x, dim=1).reshape(-1, 1)
-        e_y = torch.mean(y, dim=1).reshape(-1, 1)
-        e_x_e_y = e_x.mm(torch.t(e_y))
-        x_extend = x.reshape(x.shape[0], 1, x.shape[1]).repeat(1, y.shape[0], 1)
-        y_extend = y.reshape(1, y.shape[0], y.shape[1]).repeat(x.shape[0], 1, 1)
-        e_xy = torch.mean(x_extend * y_extend, dim=2)
-        return e_xy - e_x_e_y
+    def cal_attention(self, x, y):
+        x = self.transformation(x)
+        y = self.transformation(y)
+
+        sample_num = x.shape[0]
+        dim = x.shape[1]
+        e_x = x.expand(sample_num, sample_num, dim)
+        e_y = torch.transpose(e_x, 0, 1)
+        attention_in = torch.cat((e_x, e_y), 2).view(-1, dim * 2)
+        self.a_t = torch.t(self.a)
+        attention_out = self.a_t.mm(torch.t(attention_in)).view(sample_num, sample_num)
+        attention_out = self.leaky_relu(attention_out)
+        att_weight = self.softmax(attention_out)
+        return att_weight
 
     def forward(self, x):
         # x: [N, F*T]
@@ -378,10 +398,8 @@ class GATModel(nn.Module):
         x = x.permute(0, 2, 1)  # [N, T, F]
         out, _ = self.rnn(x)
         hidden = out[:, -1, :]
-        hidden = self.bn1(hidden)
-        gamma = self.cal_convariance(hidden, hidden)
-        output = gamma.mm(hidden)
-        output = self.fc(output)
-        output = self.bn2(output)
-        output = self.leaky_relu(output)
-        return self.fc_out(output).squeeze()
+        att_weight = self.cal_attention(hidden, hidden)
+        hidden = att_weight.mm(hidden) + hidden
+        hidden = self.fc(hidden)
+        hidden = self.leaky_relu(hidden)
+        return self.fc_out(hidden).squeeze()

@@ -38,14 +38,18 @@ class XGBModel(Model):
     ):
 
         df_train, df_valid = dataset.prepare(
-            ["train", "valid"], col_set=["feature", "label"], data_key=DataHandlerLP.DK_L
+            ["train", "valid"],
+            col_set=["feature", "label"],
+            data_key=DataHandlerLP.DK_L,
         )
         x_train, y_train = df_train["feature"], df_train["label"]
         x_valid, y_valid = df_valid["feature"], df_valid["label"]
 
         # Lightgbm need 1D array as its label
         if y_train.values.ndim == 2 and y_train.values.shape[1] == 1:
-            y_train_1d, y_valid_1d = np.squeeze(y_train.values), np.squeeze(y_valid.values)
+            y_train_1d, y_valid_1d = np.squeeze(y_train.values), np.squeeze(
+                y_valid.values
+            )
         else:
             raise ValueError("XGBoost doesn't support multi-label training")
 
@@ -68,4 +72,6 @@ class XGBModel(Model):
         if self.model is None:
             raise ValueError("model is not fitted yet!")
         x_test = dataset.prepare("test", col_set="feature")
-        return pd.Series(self.model.predict(xgb.DMatrix(x_test.values)), index=x_test.index)
+        return pd.Series(
+            self.model.predict(xgb.DMatrix(x_test.values)), index=x_test.index
+        )
