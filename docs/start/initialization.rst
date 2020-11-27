@@ -69,7 +69,7 @@ Besides `provider_uri` and `region`, `qlib.init` has other parameters. The follo
             "class": "MLflowExpManager",
             "module_path": "qlib.workflow.expm",
             "kwargs": {
-                "uri": "python_execution_path/mlruns"),
+                "uri": "python_execution_path/mlruns",
                 "default_exp_name": "Experiment",
             }
         }

@@ -23,4 +23,3 @@ torch==1.6.0
 tqdm==4.49.0
 yahooquery==2.2.7
 mlflow==1.12.1
-pytorch-tabnet==2.0.1
