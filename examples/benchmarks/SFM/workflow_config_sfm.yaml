@@ -55,8 +55,6 @@ task:
             early_stop: 20
             eval_steps: 5
             loss: mse
-            lr_decay: 0.96
-            lr_decay_steps: 100
             optimizer: adam
             GPU: 1
             seed: 710
