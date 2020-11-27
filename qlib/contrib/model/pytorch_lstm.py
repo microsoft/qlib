@@ -146,7 +146,6 @@ class LSTM(Model):
 
         raise ValueError("unknown metric `%s`" % self.metric)
 
-
     def train_epoch(self, x_train, y_train):
 
         x_train_values = x_train.values
