@@ -103,8 +103,8 @@ class BaseGraph(object):
             try:
                 # in notebook
                 _ipykernel = str(type(get_ipython()))
-                if 'google.colab' in _ipykernel:
-                    renderer = 'colab'
+                if "google.colab" in _ipykernel:
+                    renderer = "colab"
             except NameError:
                 pass
 

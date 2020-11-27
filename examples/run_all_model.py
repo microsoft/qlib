@@ -250,7 +250,9 @@ def run(times=1, models=None, exclude=False):
         # run workflow_by_config for multiple times
         for i in range(times):
             sys.stderr.write(f"Running the model: {fn} for iteration {i+1}...\n")
-            errs = execute(f"{python_path} {env_path / 'src/pyqlib/qlib/workflow/cli.py'} {yaml_path} {fn}")
+            errs = execute(
+                f"{python_path} {env_path / 'src/pyqlib/qlib/workflow/cli.py'} {yaml_path} {fn} {exp_manager}"
+            )
             if errs is not None:
                 _errs = errors.get(fn, {})
                 _errs.update({i: errs})

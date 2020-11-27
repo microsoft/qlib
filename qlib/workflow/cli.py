@@ -41,7 +41,7 @@ def sys_config(config, config_path):
 
 
 # worflow handler function
-def workflow(config_path, experiment_name="workflow"):
+def workflow(config_path, experiment_name="workflow", exp_manager=None):
     with open(config_path) as fp:
         config = yaml.load(fp, Loader=yaml.Loader)
 
@@ -50,7 +50,10 @@ def workflow(config_path, experiment_name="workflow"):
 
     provider_uri = config.get("provider_uri")
     region = config.get("region")
-    qlib.init(provider_uri=provider_uri, region=region)
+    if exp_manager:
+        qlib.init(provider_uri=provider_uri, region=region, exp_manager=exp_manager)
+    else:
+        qlib.init(provider_uri=provider_uri, region=region)
 
     task_train(config, experiment_name=experiment_name)
 
