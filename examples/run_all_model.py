@@ -28,11 +28,12 @@ from qlib.utils import exists_qlib_data
 
 # init qlib
 provider_uri = "~/.qlib/qlib_data/cn_data"
+exp_path = str(Path(os.getcwd()).resolve() / "run_all_model_records")
 exp_manager = {
     "class": "MLflowExpManager",
     "module_path": "qlib.workflow.expm",
     "kwargs": {
-        "uri": "file:" + str(Path(os.getcwd()).resolve() / "run_all_model_records"),
+        "uri": "file:" + exp_path,
         "default_exp_name": "Experiment",
     },
 }
@@ -43,7 +44,8 @@ if not exists_qlib_data(provider_uri):
 
     GetData().qlib_data(target_dir=provider_uri, region=REG_CN)
 qlib.init(provider_uri=provider_uri, region=REG_CN, exp_manager=exp_manager)
-shutil.rmtree(str(Path(os.getcwd()).resolve() / "run_all_model_records"))
+if os.path.isdir(exp_path):
+    shutil.rmtree(exp_path)
 
 # decorator to check the arguments
 def only_allow_defined_args(function_to_decorate):
