@@ -1,13 +1,14 @@
 #  Copyright (c) Microsoft Corporation.
 #  Licensed under the MIT License.
 
-import sys
+import sys, os
 from pathlib import Path
 
 import qlib
 import fire
 import pandas as pd
 import ruamel.yaml as yaml
+from qlib.config import C
 from qlib.model.trainer import task_train
 
 
@@ -41,7 +42,7 @@ def sys_config(config, config_path):
 
 
 # worflow handler function
-def workflow(config_path, experiment_name="workflow", exp_manager=None):
+def workflow(config_path, experiment_name="workflow", uri_folder="mlruns"):
     with open(config_path) as fp:
         config = yaml.load(fp, Loader=yaml.Loader)
 
@@ -50,10 +51,9 @@ def workflow(config_path, experiment_name="workflow", exp_manager=None):
 
     provider_uri = config.get("provider_uri")
     region = config.get("region")
-    if exp_manager:
-        qlib.init(provider_uri=provider_uri, region=region, exp_manager=exp_manager)
-    else:
-        qlib.init(provider_uri=provider_uri, region=region)
+    exp_manager = C["exp_manager"]
+    exp_manager["kwargs"]["uri"] = "file:" + str(Path(os.getcwd()).resolve() / uri_folder
+    qlib.init(provider_uri=provider_uri, region=region, exp_manager=exp_manager)
 
     task_train(config, experiment_name=experiment_name)
 

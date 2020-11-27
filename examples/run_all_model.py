@@ -28,7 +28,8 @@ from qlib.utils import exists_qlib_data
 
 # init qlib
 provider_uri = "~/.qlib/qlib_data/cn_data"
-exp_path = str(Path(os.getcwd()).resolve() / "run_all_model_records")
+exp_folder_name = "run_all_model_records"
+exp_path = str(Path(os.getcwd()).resolve() / exp_folder_name)
 exp_manager = {
     "class": "MLflowExpManager",
     "module_path": "qlib.workflow.expm",
@@ -253,7 +254,7 @@ def run(times=1, models=None, exclude=False):
         for i in range(times):
             sys.stderr.write(f"Running the model: {fn} for iteration {i+1}...\n")
             errs = execute(
-                f"{python_path} {env_path / 'src/pyqlib/qlib/workflow/cli.py'} {yaml_path} {fn} '{exp_manager}'"
+                f"{python_path} {env_path / 'src/pyqlib/qlib/workflow/cli.py'} {yaml_path} {fn} {exp_folder_name}"
             )
             if errs is not None:
                 _errs = errors.get(fn, {})
