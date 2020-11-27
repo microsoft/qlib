@@ -17,8 +17,8 @@ class Dataset(Serializable):
         init is designed to finish following steps:
 
         - setup data
-            - The data related attributes' names should start with '_' so that it will not be saved on disk when serializing
-        
+            - The data related attributes' names should start with '_' so that it will not be saved on disk when serializing.
+
         - initialize the state of the dataset(info to prepare the data)
             - The name of essential state for preparing data should not start with '_' so that it could be serialized on disk when serializing.
 
@@ -29,17 +29,17 @@ class Dataset(Serializable):
 
     def setup_data(self, *args, **kwargs):
         """
-        setup the data
+        Setup the data.
 
         We split the setup_data function for following situation:
 
-        - User have a Dataset object with learned status on disk
+        - User have a Dataset object with learned status on disk.
 
-        - User load the Dataset object from the disk(Note the init function is skiped)
+        - User load the Dataset object from the disk(Note the init function is skiped).
 
-        - User call `setup_data` to load new data
+        - User call `setup_data` to load new data.
 
-        - User prepare data for model based on previous status
+        - User prepare data for model based on previous status.
         """
         pass
 
@@ -66,9 +66,10 @@ class DatasetH(Dataset):
 
     User should try to put the data preprocessing functions into handler.
     Only following data processing functions should be placed in Dataset:
+
     - The processing is related to specific model.
 
-    - The processing is related to data split
+    - The processing is related to data split.
     """
 
     def __init__(self, handler: Union[dict, DataHandler], segments: list):
@@ -76,15 +77,15 @@ class DatasetH(Dataset):
         Parameters
         ----------
         handler : Union[dict, DataHandler]
-            handler will be passed into setup_data
+            handler will be passed into setup_data.
         segments : list
-            handler will be passed into setup_data
+            handler will be passed into setup_data.
         """
         super().__init__(handler, segments)
 
     def setup_data(self, handler: Union[dict, DataHandler], segments: list):
         """
-        setup the underlying data
+        Setup the underlying data.
 
         Parameters
         ----------
@@ -94,12 +95,13 @@ class DatasetH(Dataset):
             - insntance of `DataHandler`
 
             - config of `DataHandler`.  Please refer to `DataHandler`
+
         segments : list
             Describe the options to segment the data.
             Here are some examples:
 
             .. code-block::
-            
+
                 1) 'segments': {
                         'train': ("2008-01-01", "2014-12-31"),
                         'valid': ("2017-01-01", "2020-08-01",),
@@ -121,7 +123,7 @@ class DatasetH(Dataset):
         **kwargs,
     ) -> Union[List[pd.DataFrame], pd.DataFrame]:
         """
-        prepare the data for learning and inference
+        Prepare the data for learning and inference.
 
         Parameters
         ----------
@@ -132,11 +134,12 @@ class DatasetH(Dataset):
             - 'train'
 
             - ['train', 'valid']
+
         col_set : str
-            The col_set will be passed to self._handler when fetching data
-        data_key: str
+            The col_set will be passed to self._handler when fetching data.
+        data_key : str
             The data to fetch:  DK_*
-            Default is DK_I, which indicate fetching data for **inference**
+            Default is DK_I, which indicate fetching data for **inference**.
 
         Returns
         -------

@@ -51,6 +51,9 @@ def fetch_df_by_index(
     -------
     Data of the given index.
     """
+    # level = None -> use selector directly
+    if level == None:
+        return df.loc(axis=0)[selector]
     # Try to get the right index
     idx_slc = (selector, slice(None, None))
     if get_level_index(df, level) == 1:

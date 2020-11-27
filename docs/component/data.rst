@@ -1,7 +1,7 @@
 .. _data:
 
 ================================
-Data Layer: Data Framework&Usage
+Data Layer: Data Framework & Usage
 ================================
 
 Introduction
@@ -15,7 +15,9 @@ The introduction of ``Data Layer`` includes the following parts.
 
 - Data Preparation
 - Data API
+- Data Loader
 - Data Handler
+- Dataset
 - Cache
 - Data and Cache File Structure
 
@@ -31,13 +33,19 @@ Such data will be stored with filename suffix `.bin` (We'll call them `.bin` fil
 
 Qlib Format Dataset
 --------------------
-``Qlib`` has provided an off-the-shelf dataset in `.bin` format, users could use the script ``scripts/get_data.py`` to download the dataset as follows.
+``Qlib`` has provided an off-the-shelf dataset in `.bin` format, users could use the script ``scripts/get_data.py`` to download the China-Stock dataset as follows.
 
 .. code-block:: bash
 
     python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/cn_data --region cn
 
-After running the above command, users can find china-stock data in Qlib format in the ``~/.qlib/csv_data/cn_data`` directory.
+In addition to China-Stock data, ``Qlib`` also includes a US-Stock dataset, which can be downloaded with the following command:
+
+.. code-block:: bash
+
+    python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/us_data --region us
+
+After running the above command, users can find china-stock and us-stock data in Qlib format in the ``~/.qlib/csv_data/cn_data`` directory and ``~/.qlib/csv_data/us_data`` directory respectively.
 
 ``Qlib`` also provides the scripts in ``scripts/data_collector`` to help users crawl the latest data on the Internet and convert it to qlib format.
 
@@ -49,11 +57,44 @@ Converting CSV Format into Qlib Format
 ``Qlib`` has provided the script ``scripts/dump_bin.py`` to convert data in CSV format into `.bin` files (Qlib format).
 
 
-Users can download the china-stock data in CSV format as follows for reference to the CSV format.
+Users can download the demo china-stock data in CSV format as follows for reference to the CSV format.
 
 .. code-block:: bash
 
     python scripts/get_data.py csv_data_cn --target_dir ~/.qlib/csv_data/cn_data
+
+Users can also provide their own data in CSV format. However, the CSV data **must satisfies** following criterions:
+
+- CSV file is named after a specific stock *or* the CSV file includes a column of the stock name
+
+    - Name the CSV file after a stock: `SH600000.csv`, `AAPL.csv` (not case sensitive).
+    
+    - CSV file includes a column of the stock name. User **must** specify the column name when dumping the data. Here is an example:
+
+        .. code-block:: bash
+
+            python scripts/dump_bin.py dump_all ... --symbol_field_name symbol
+        
+        where the data are in the following format:
+
+        .. code-block:: 
+
+            symbol,close
+            SH600000,120
+
+- CSV file **must** includes a column for the date, and when dumping the data, user must specify the date column name. Here is an example:
+
+    .. code-block:: bash
+
+        python scripts/dump_bin.py dump_all ... --date_field_name date
+    
+    where the data are in the following format:
+
+    .. code-block:: 
+
+        symbol,date,close,open,volume
+        SH600000,2020-11-01,120,121,12300000
+        SH600000,2020-11-02,123,120,12300000
 
 
 Supposed that users prepare their CSV format data in the directory ``~/.qlib/csv_data/my_data``, they can run the following command to start the conversion.
@@ -61,6 +102,12 @@ Supposed that users prepare their CSV format data in the directory ``~/.qlib/csv
 .. code-block:: bash
 
     python scripts/dump_bin.py dump_all --csv_path  ~/.qlib/csv_data/my_data --qlib_dir ~/.qlib/qlib_data/my_data --include_fields open,close,high,low,volume,factor
+
+For other supported parameters when dumping the data into `.bin` file, users can refer to the information by running the following commands:
+
+.. code-block:: bash
+
+    python dump_bin.py dump_all --help
 
 After conversion, users can find their Qlib format data in the directory `~/.qlib/qlib_data/my_data`.
 
@@ -97,9 +144,8 @@ China-Stock Mode & US-Stock Mode
             qlib.init(provider_uri='~/.qlib/qlib_data/cn_data', region=REG_CN)
         
 
-- If users use ``Qlib`` in US-stock mode, US-stock data is required. ``Qlib`` does not provide a script to download US-stock data. Users can use ``Qlib`` in US-stock mode according to the following steps:
-    - Prepare data in CSV format
-    - Convert data from CSV format to Qlib format,  please refer to section `Converting CSV Format into Qlib Format <#converting-csv-format-into-qlib-format>`_.
+- If users use ``Qlib`` in US-stock mode, US-stock data is required. ``Qlib`` also provides a script to download US-stock data. Users can use ``Qlib`` in US-stock mode according to the following steps:
+    - Download china-stock in qlib format, please refer to section `Qlib Format Dataset <#qlib-format-dataset>`_.
     - Initialize ``Qlib`` in US-stock mode
         Supposed that users prepare their Qlib format data in the directory ``~/.qlib/csv_data/us_data``. Users only need to initialize ``Qlib`` as follows.
         
@@ -141,68 +187,97 @@ Filter
     Expression dynamic instrument filter. Filter the instruments based on a certain expression. An expression rule indicating a certain feature field is required.
     
     - `basic features filter`: rule_expression = '$close/$open>5'
-    - `cross-sectional features filter` : rule_expression = '$rank($close)<10'
+    - `cross-sectional features filter` \: rule_expression = '$rank($close)<10'
     - `time-sequence features filter`: rule_expression = '$Ref($close, 3)>100'
 
 To know more about ``Filter``, please refer to `Filter API <../reference/api.html#module-qlib.data.filter>`_.
-
 
 Reference
 -------------
 
 To know more about ``Data API``, please refer to `Data API <../reference/api.html#data>`_.
 
+
+Data Loader
+=================
+
+``Data Loader`` in ``Qlib`` is designed to load raw data from the original data source. It will be loaded and used in the ``Data Handler`` module.
+
+QlibDataLoader
+---------------
+
+The ``QlibDataLoader`` class in ``Qlib`` is such an interface that allows users to load raw data from the data source.
+
+Interface
+------------
+
+Here are some interfaces of the ``QlibDataLoader`` class:
+
+.. autoclass:: qlib.data.dataset.loader.QlibDataLoader
+    :members: load, load_group_df
+
+API
+-----------
+
+To know more about ``Data Loader``, please refer to `Data Loader API <../reference/api.html#module-qlib.data.dataset.loader>`_.
+
+
 Data Handler
 =================
 
-Users can use ``Data Handler`` in an automatic workflow by ``Estimator``, refer to `Estimator: Workflow Management <estimator.html>`_ for more details. 
+The ``Data Handler`` module in ``Qlib`` is designed to handler those common data processing methods which will be used by most of the models.
 
-Also, ``Data Handler`` can be used as an independent module, by which users can easily preprocess data(standardization, remove NaN, etc.) and build datasets. It is a subclass of ``qlib.data.dataset.handler.DataHandlerLP``, which provides some interfaces as follows.
+Users can use ``Data Handler`` in an automatic workflow by ``qrun``, refer to `Workflow: Workflow Management <workflow.html>`_ for more details. 
 
-Base Class & Interface
+DataHandlerLP
+--------------
+
+In addition to use ``Data Handler`` in an automatic workflow with ``qrun``, ``Data Handler`` can be used as an independent module, by which users can easily preprocess data (standardization, remove NaN, etc.) and build datasets. 
+
+In order to achieve so, ``Qlib`` provides a base class `qlib.data.dataset.DataHandlerLP <../reference/api.html#qlib.data.dataset.handler.DataHandlerLP>`_. The core idea of this class is that: we will have some leanable ``Processors`` which can learn the parameters of data processing. When new data comes in, these `trained` ``Processors`` can then infer on the new data and thus processing real-time data in an efficient way. More information about ``Processors`` will be listed in the next subsection.
+
+
+Interface
 ----------------------
 
-Qlib provides a base class `qlib.data.dataset.DataHandlerLP <../reference/api.html#qlib.data.dataset.handler.DataHandlerLP>`_, which provides the following interfaces:
+Here are some important interfaces that ``DataHandlerLP`` provides:
 
-- `load_feature`    
-    Implement the interface to load the data features.
-
-- `load_label`   
-    Implement the interface to load the data labels and calculate the users' labels. 
-
-- `setup_processed_data`    
-    Implement the interface for data preprocessing, such as preparing feature columns, discarding blank lines, and so on.
-
-Qlib also provides two functions to help users init the data handler, users can override them for users' needs.
-
-- `_init_raw_data`
-    Users can init the raw df, feature names, and label names of data handler in this function. 
-    If the index of feature df and label df are not the same, users need to override this method to merge them (e.g. inner, left, right merge).
+.. autoclass:: qlib.data.dataset.handler.DataHandlerLP
+    :members: __init__, fetch, get_cols
 
 If users want to load features and labels by config, users can inherit ``qlib.data.dataset.handler.ConfigDataHandler``, ``Qlib`` also provides some preprocess method in this subclass.
+
 If users want to use qlib data, `QLibDataHandler` is recommended. Users can inherit their custom class from `QLibDataHandler`, which is also a subclass of `ConfigDataHandler`.
 
 
-Usage
---------------
+Processor
+----------
 
-``Data Handler`` can be used as a single module, which provides the following mehtods:
+The ``Processor`` module in ``Qlib`` is designed to be learnable and it is responsible for handling data processing such as `normalization` and `drop none/nan features/labels`.
 
-- `get_split_data`
-    - According to the start and end dates, return features and labels of the pandas DataFrame type used for the 'Model'
+``Qlib`` provides the following ``Processors``:
 
-- `get_rolling_data`
-    - According to the start and end dates, and `rolling_period`, an iterator is returned, which can be used to traverse the features and labels used for rolling.
+- ``DropnaProcessor``: `processor` that drops N/A features.
+- ``DropnaLabel``: `processor` that drops N/A labels.
+- ``TanhProcess``: `processor` that uses `tanh` to process noise data.
+- ``ProcessInf``: `processor` that handles infinity values, it will be replaces by the mean of the column.
+- ``Fillna``: `processor` that handles N/A values, which will fill the N/A value by 0 or other given number.
+- ``MinMaxNorm``: `processor` that applies min-max normalization.
+- ``ZscoreNorm``: `processor` that applies z-score normalization.
+- ``RobustZScoreNorm``: `processor` that applies robust z-score normalization.
+- ``CSZScoreNorm``: `processor` that applies cross sectional z-score normalization.
+- ``CSRankNorm``: `processor` that applies cross sectional rank normalization.
 
+Users can also create their own `processor` by inheriting the base class of ``Processor``. Please refer to the implementation of all the processors for more information (`Processor Link <https://github.com/microsoft/qlib/blob/main/qlib/data/dataset/processor.py>`_). 
 
-
+To know more about ``Processor``, please refer to `Processor API <../reference/api.html#module-qlib.data.dataset.processor>`_.
 
 Example
 --------------
 
-``Data Handler`` can be run with ``estimator`` by modifying the configuration file, and can also be used as a single module. 
+``Data Handler`` can be run with ``qrun`` by modifying the configuration file, and can also be used as a single module. 
 
-Know more about how to run ``Data Handler`` with ``Estimator``, please refer to `Estimator: Workflow Management <estimator.html>`_
+Know more about how to run ``Data Handler`` with ``qrun``, please refer to `Workflow: Workflow Management <workflow.html>`_
 
 Qlib provides implemented data handler `Alpha158`. The following example shows how to run `Alpha158` as a single module.
 
@@ -211,44 +286,54 @@ Qlib provides implemented data handler `Alpha158`. The following example shows h
 
 .. code-block:: Python
 
+    import qlib
     from qlib.contrib.data.handler import Alpha158
-    from qlib.contrib.model.gbdt import LGBModel
 
-    DATA_HANDLER_CONFIG = {
-        "dropna_label": True,
-        "start_date": "2007-01-01",
-        "end_date": "2020-08-01",
-        "market": "csi300",
+    data_handler_config = {
+        "start_time": "2008-01-01",
+        "end_time": "2020-08-01",
+        "fit_start_time": "2008-01-01",
+        "fit_end_time": "2014-12-31",
+        "instruments": "csi300",
     }
 
-    TRAINER_CONFIG = {
-        "train_start_date": "2007-01-01",
-        "train_end_date": "2014-12-31",
-        "validate_start_date": "2015-01-01",
-        "validate_end_date": "2016-12-31",
-        "test_start_date": "2017-01-01",
-        "test_end_date": "2020-08-01",
-    }
+    if __name__ == "__main__":
+        qlib.init()
+        h = Alpha158(**data_handler_config)
 
-    exampleDataHandler = Alpha158(**DATA_HANDLER_CONFIG)
+        # get all the columns of the data
+        print(h.get_cols())
 
-    # example of 'get_split_data'
-    x_train, y_train, x_validate, y_validate, x_test, y_test = exampleDataHandler.get_split_data(**TRAINER_CONFIG)
+        # fetch all the labels
+        print(h.fetch(col_set="label"))
 
-    # example of 'get_rolling_data'
-
-    for (x_train, y_train, x_validate, y_validate, x_test, y_test) in exampleDataHandler.get_rolling_data(**TRAINER_CONFIG):
-        print(x_train, y_train, x_validate, y_validate, x_test, y_test) 
-
-
-.. note:: (x_train, y_train, x_validate, y_validate, x_test, y_test) can be used as arguments for the `fit`, `predic``, and `score` methods of the ``Interday Model`` , please refer to `Model <model.html#base-class-interface>`_.
-
-Also, the above example has been given in ``examples.estimator.train_backtest_analyze.ipynb``.
+        # fetch all the features
+        print(h.fetch(col_set="feature"))
 
 API
 ---------
 
 To know more about ``Data Handler``, please refer to `Data Handler API <../reference/api.html#module-qlib.data.dataset.handler>`_.
+
+
+Dataset
+=================
+
+The ``Dataset`` module in ``Qlib`` aims to prepare data for model training and inferencing.
+
+The motivation of this module is that we want to maximize the flexibility of of different models to handle data that are suitable for themselves. This module gives the model the rights to process their data in an unique way. For instance, models such as ``GBDT`` may work well on data that contains `nan` or `None` value, while neural networks such as ``DNN`` will break down on such data. 
+
+The ``DatasetH`` class is the `dataset` with `Data Handler`. Here is the most important interface of the class:
+
+.. autoclass:: qlib.data.dataset.__init__.DatasetH
+    :members:
+
+API
+---------
+
+To know more about ``Dataset``, please refer to `Dataset API <../reference/api.html#module-qlib.data.dataset.__init__>`_.
+
+
 
 Cache
 ==========

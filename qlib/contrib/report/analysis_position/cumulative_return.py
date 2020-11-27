@@ -218,10 +218,10 @@ def cumulative_return_graph(
 
 
         Graph desc:
-            - Axis X: Trading day
+            - Axis X: Trading day.
             - Axis Y:
-            - Above axis Y: `(((Ref($close, -1)/$close - 1) * weight).sum() / weight.sum()).cumsum()`
-            - Below axis Y: Daily weight sum
+            - Above axis Y: `(((Ref($close, -1)/$close - 1) * weight).sum() / weight.sum()).cumsum()`.
+            - Below axis Y: Daily weight sum.
             - In the **sell** graph, `y < 0` stands for profit; in other cases, `y > 0` stands for profit.
             - In the **buy_minus_sell** graph, the **y** value of the **weight** graph at the bottom is `buy_weight + sell_weight`.
             - In each graph, the **red line** in the histogram on the right represents the average.

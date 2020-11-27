@@ -333,7 +333,9 @@ class DumpDataFix(DumpDataAll):
                         _dt_map[self.INSTRUMENTS_START_FIELD] = self._format_datetime(_begin_time)
                         _dt_map[self.INSTRUMENTS_END_FIELD] = self._format_datetime(_end_time)
                     p_bar.update()
-        self.save_instruments(pd.DataFrame.from_dict(self._old_instruments, orient="index"))
+        _inst_df = pd.DataFrame.from_dict(self._old_instruments, orient="index")
+        _inst_df.index.names = [self.symbol_field_name]
+        self.save_instruments(_inst_df.reset_index())
         logger.info("end of instruments dump.\n")
 
     def dump(self):

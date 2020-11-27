@@ -23,9 +23,9 @@ class RiskModel(BaseModel):
     def __init__(self, nan_option: str = "ignore", assume_centered: bool = False, scale_return: bool = True):
         """
         Args:
-            nan_option (str): nan handling option (`ignore`/`mask`/`fill`)
-            assume_centered (bool): whether the data is assumed to be centered
-            scale_return (bool): whether scale returns as percentage
+            nan_option (str): nan handling option (`ignore`/`mask`/`fill`).
+            assume_centered (bool): whether the data is assumed to be centered.
+            scale_return (bool): whether scale returns as percentage.
         """
         # nan
         assert nan_option in [
@@ -45,11 +45,11 @@ class RiskModel(BaseModel):
         Args:
             X (pd.Series, pd.DataFrame or np.ndarray): data from which to estimate the covariance,
                 with variables as columns and observations as rows.
-            return_corr (bool): whether return the correlation matrix
-            is_price (bool): whether `X` contains price (if not assume stock returns)
+            return_corr (bool): whether return the correlation matrix.
+            is_price (bool): whether `X` contains price (if not assume stock returns).
 
         Returns:
-            pd.DataFrame or np.ndarray: estimated covariance (or correlation)
+            pd.DataFrame or np.ndarray: estimated covariance (or correlation).
         """
         # transform input into 2D array
         if not isinstance(X, (pd.Series, pd.DataFrame)):
@@ -101,10 +101,10 @@ class RiskModel(BaseModel):
         By default, this method implements the empirical covariance estimation.
 
         Args:
-            X (np.ndarray): data matrix containing multiple variables (columns) and observations (rows)
+            X (np.ndarray): data matrix containing multiple variables (columns) and observations (rows).
 
         Returns:
-            np.ndarray: covariance matrix
+            np.ndarray: covariance matrix.
         """
         xTx = np.asarray(X.T.dot(X))
         N = len(X)
@@ -117,7 +117,7 @@ class RiskModel(BaseModel):
         """handle nan and centerize data
 
         Note:
-            if `nan_option='mask'` then the returned array will be `np.ma.MaskedArray`
+            if `nan_option='mask'` then the returned array will be `np.ma.MaskedArray`.
         """
         # handle nan
         if self.nan_option == self.FILL_NAN:
@@ -139,15 +139,15 @@ class ShrinkCovEstimator(RiskModel):
     where `alpha` is the shrink parameter and `F` is the shrinking target.
 
     The following shrinking parameters (`alpha`) are supported:
-        - `lw` [1][2][3]: use Ledoit-Wolf shrinking parameter
-        - `oas` [4]: use Oracle Approximating Shrinkage shrinking parameter
-        - float: directly specify the shrink parameter, should be between [0, 1]
+        - `lw` [1][2][3]: use Ledoit-Wolf shrinking parameter.
+        - `oas` [4]: use Oracle Approximating Shrinkage shrinking parameter.
+        - float: directly specify the shrink parameter, should be between [0, 1].
 
     The following shrinking targets (`F`) are supported:
-        - `const_var` [1][4][5]: assume stocks have the same constant variance and zero correlation
-        - `const_corr` [2][6]: assume stocks have different variance but equal correlation
-        - `single_factor` [3][7]: assume single factor model as the shrinking target
-        - np.ndarray: provide the shrinking targets directly
+        - `const_var` [1][4][5]: assume stocks have the same constant variance and zero correlation.
+        - `const_corr` [2][6]: assume stocks have different variance but equal correlation.
+        - `single_factor` [3][7]: assume single factor model as the shrinking target.
+        - np.ndarray: provide the shrinking targets directly.
 
     Note:
         - The optimal shrinking parameter depends on the selection of the shrinking target.
@@ -402,13 +402,13 @@ class POETCovEstimator(RiskModel):
     def __init__(self, num_factors: int = 0, thresh: float = 1.0, thresh_method: str = "soft", **kwargs):
         """
         Args:
-            num_factors (int): number of factors (if set to zero, no factor model will be used)
-            thresh (float): the positive constant for thresholding
+            num_factors (int): number of factors (if set to zero, no factor model will be used).
+            thresh (float): the positive constant for thresholding.
             thresh_method (str): thresholding method, which can be
-                - 'soft': soft thresholding
-                - 'hard': hard thresholding
-                - 'scad': scad thresholding
-            kwargs: see `RiskModel` for more information
+                - 'soft': soft thresholding.
+                - 'hard': hard thresholding.
+                - 'scad': scad thresholding.
+            kwargs: see `RiskModel` for more information.
         """
         super().__init__(**kwargs)
 

@@ -43,7 +43,7 @@ REQUIRED = [
     "schedule>=0.6.0",
     "cvxpy==1.0.21",
     "hyperopt==0.1.1",
-    "fire>=0.2.1",
+    "fire>=0.3.1",
     "statsmodels",
     "xlrd>=1.0.0",
     "plotly==4.12.0",
@@ -58,7 +58,6 @@ REQUIRED = [
     "joblib>=0.17.0",
     "fire>=0.3.1",
     "ruamel.yaml>=0.16.12",
-    "pytorch-tabnet>=2.0.1",
 ]
 
 # Numpy include

@@ -31,16 +31,16 @@ class BaseStrategy:
         Parameters
         -----------
         score_series : pd.Seires
-            stock_id , score
+            stock_id , score.
         current : Position()
-            current state of position
-            DO NOT directly change the state of current
+            current state of position.
+            DO NOT directly change the state of current.
         trade_exchange : Exchange()
-            trade exchange
+            trade exchange.
         pred_date : pd.Timestamp
-            predict date
+            predict date.
         trade_date : pd.Timestamp
-            trade date
+            trade date.
         """
         pass
 
@@ -49,11 +49,11 @@ class BaseStrategy:
         Parameters
         -----------
         score_series : pd.Series
-            stock_id , score
+            stock_id , score.
         pred_date : pd.Timestamp
-            oredict date
+            oredict date.
         trade_date : pd.Timestamp
-            trade date
+            trade date.
         """
         pass
 
@@ -67,7 +67,7 @@ class BaseStrategy:
         """
         This method only be used in 'online' module, it will generate the *args to initial the strategy.
             :param
-                mode : model used in 'online' module
+                mode : model used in 'online' module.
         """
         return {}
 
@@ -82,7 +82,7 @@ class StrategyWrapper:
     def __init__(self, inner_strategy):
         """__init__
 
-        :param inner_strategy: set the inner strategy
+        :param inner_strategy: set the inner strategy.
         """
         self.inner_strategy = inner_strategy
 
@@ -99,9 +99,9 @@ class AdjustTimer:
     Responsible for timing of position adjusting
 
     This is designed as multiple inheritance mechanism due to:
-    - the is_adjust may need access to the internel state of a strategy
+    - the is_adjust may need access to the internel state of a strategy.
 
-    - it can be reguard as a enhancement to the existing strategy
+    - it can be reguard as a enhancement to the existing strategy.
     """
 
     # adjust position in each trade date
@@ -146,12 +146,12 @@ class WeightStrategyBase(BaseStrategy, AdjustTimer):
         Parameters
         -----------
         score : pd.Series
-            pred score for this trade date, index is stock_id, contain 'score' column
+            pred score for this trade date, index is stock_id, contain 'score' column.
         current : Position()
-            current position
+            current position.
         trade_exchange : Exchange()
         trade_date : pd.Timestamp
-            trade date
+            trade date.
         """
         raise NotImplementedError()
 
@@ -160,13 +160,13 @@ class WeightStrategyBase(BaseStrategy, AdjustTimer):
         Parameters
         -----------
         score_series : pd.Seires
-            stock_id , score
+            stock_id , score.
         current : Position()
-            current of account
+            current of account.
         trade_exchange : Exchange()
-            exchange
+            exchange.
         trade_date : pd.Timestamp
-            date
+            date.
         """
         # judge if to adjust
         if not self.is_adjust(trade_date):
@@ -206,26 +206,26 @@ class TopkDropoutStrategy(BaseStrategy, ListAdjustTimer):
         Parameters
         -----------
         topk : int
-            The number of stocks in the portfolio
+            the number of stocks in the portfolio.
         n_drop : int
-            number of stocks to be replaced in each trading date
+            number of stocks to be replaced in each trading date.
         method_sell : str
-            dropout method_sell, random/bottom
+            dropout method_sell, random/bottom.
         method_buy : str
-            dropout method_buy, random/top
+            dropout method_buy, random/top.
         risk_degree : float
-            position percentage of total value
+            position percentage of total value.
         thresh : int
-            minimun holding days since last buy singal of the stock
+            minimun holding days since last buy singal of the stock.
         hold_thresh : int
             minimum holding days
-            before sell stock , will check current.get_stock_count(order.stock_id) >= self.thresh
+            before sell stock , will check current.get_stock_count(order.stock_id) >= self.thresh.
         only_tradable : bool
             will the strategy only consider the tradable stock when buying and selling.
             if only_tradable:
-                strategy will make buy sell decision without checking the tradable state of the stock
+                strategy will make buy sell decision without checking the tradable state of the stock.
             else:
-                strategy will make decision with the tradable state of the stock info and avoid buy and sell them
+                strategy will make decision with the tradable state of the stock info and avoid buy and sell them.
         """
         super(TopkDropoutStrategy, self).__init__()
         ListAdjustTimer.__init__(self, kwargs.get("adjust_dates", None))
@@ -245,7 +245,7 @@ class TopkDropoutStrategy(BaseStrategy, ListAdjustTimer):
     def get_risk_degree(self, date):
         """get_risk_degree
         Return the proportion of your total value you will used in investment.
-        Dynamically risk_degree will result in Market timing
+        Dynamically risk_degree will result in Market timing.
         """
         # It will use 95% amoutn of your total value by default
         return self.risk_degree
@@ -257,15 +257,15 @@ class TopkDropoutStrategy(BaseStrategy, ListAdjustTimer):
         Parameters
         -----------
         score_series : pd.Series
-            stock_id , score
+            stock_id , score.
         current : Position()
-            current of account
+            current of account.
         trade_exchange : Exchange()
-            exchange
+            exchange.
         pred_date : pd.Timestamp
-            predict date
+            predict date.
         trade_date : pd.Timestamp
-            trade date
+            trade date.
         """
         if not self.is_adjust(trade_date):
             return []

@@ -9,7 +9,7 @@
 
 
 <p align="center">
-  <img src="http://fintech.msra.cn/images/logo/1.png" />
+  <img src="http://fintech.msra.cn/images_v060/logo/1.png" />
 </p>
 
 
@@ -28,6 +28,8 @@ For more details, please refer to our paper ["Qlib: An AI-oriented Quantitative 
   - [Auto Quant Research Workflow](#auto-quant-research-workflow)
   - [Building Customized Quant Research Workflow by Code](#building-customized-quant-research-workflow-by-code)
 - [Quant Model Zoo](#quant-model-zoo)
+  - [Run a single model](#run-a-single-model)
+  - [Run multiple models](#run-multiple-models)
 - [Quant Dataset Zoo](#quant-dataset-zoo)
 - [More About Qlib](#more-about-qlib)
 - [Offline Mode and Online Mode](#offline-mode-and-online-mode)
@@ -39,19 +41,17 @@ For more details, please refer to our paper ["Qlib: An AI-oriented Quantitative 
 # Framework of Qlib
 
 <div style="align: center">
-<img src="http://fintech.msra.cn/images/framework.png" />
+<img src="http://fintech.msra.cn/images_v060/framework.png" />
 </div>
 
 
 At the module level, Qlib is a platform that consists of the above components. The components are designed as loose-coupled modules and each component could be used stand-alone.
 
-| Name                | Description                                                                                                                                                                                                                                                   |
-| ------              | -----                                                                                                                                                                                                                                                         |
-| `Data layer`        | `DataServer` focuses on providing high-performance infrastructure for users to manage and retrieve raw data. `DataEnhancement` will preprocess the data and provide the best dataset to be fed into the models.                                                    |
-| `Interday Model`    | `Interday model` focuses on producing prediction scores (aka. _alpha_). Models are trained by `Model Creator` and managed by `Model Manager`. Users could choose one or multiple models for prediction. Multiple models could be combined with `Ensemble` module. |
-| `Interday Strategy` | `Portfolio Generator` will take prediction scores as input and output the orders based on the current position to achieve the target portfolio.                                                                                                                      |
-| `Intraday Trading`  | `Order Executor` is responsible for executing orders output by `Interday Strategy` and returning the executed results.                                                                                                                                        |
-| `Analysis`          | Users could get a detailed analysis report of forecasting signals and portfolios in this part.                                                                                                                                                                     |
+| Name                   | Description                                                                                                                                                                                                                                                                                                                                                             |
+| ------                 | -----                                                                                                                                                                                                                                                                                                                                                                   |
+| `Infrastructure` layer | `Infrastructure` layer provides underlying support for Quant research. `DataServer` provides high-performance infrastructure for users to manage and retrieve raw data. `Trainer` provides flexible interface to control the training process of models which enable algorithms controlling the training process.                                                       |
+| `Workflow` layer       | `Workflow` layer covers the whole workflow of quantitative investment. `Information Extractor` extracts data for models. `Forecast Model` focuses on producing all kinds of forecast signals (e.g. _alpha_, risk) for other modules. With these signals `Portfolio Generator` will generate the target portfolio and produce orders to be executed by `Order Executor`. |
+| `Interface` layer      | `Interface` layer tries to present a user-friendly interface for the underlying system. `Analyser` module will provide users detailed analysis reports of forecasting signals, portfolios and execution results                                                                                                                                                                 |
 
 * The modules with hand-drawn style are under development and will be released in the future.
 * The modules with dashed borders are highly user-customizable and extendible.
@@ -139,17 +139,20 @@ Qlib provides a tool named `qrun` to run the whole workflow automatically (inclu
 
     ```bash
 
-                                                      risk
-    excess_return_without_cost mean               0.000675
-                               std                0.005456
-                               annualized_return  0.170077
-                               information_ratio  1.963824
-                               max_drawdown      -0.063646
-    excess_return_with_cost    mean               0.000479
-                               std                0.005453
-                               annualized_return  0.120776
-                               information_ratio  1.395116
-                               max_drawdown      -0.071216
+    'The following are analysis results of the excess return without cost.'
+                           risk
+    mean               0.000708
+    std                0.005626
+    annualized_return  0.178316
+    information_ratio  1.996555
+    max_drawdown      -0.081806
+    'The following are analysis results of the excess return with cost.'
+                           risk
+    mean               0.000512
+    std                0.005626
+    annualized_return  0.128982
+    information_ratio  1.444287
+    max_drawdown      -0.091078
 
 
 
@@ -159,19 +162,19 @@ Qlib provides a tool named `qrun` to run the whole workflow automatically (inclu
 2. Graphical Reports Analysis: Run `examples/workflow_by_code.ipynb` with `jupyter notebook` to get graphical reports
     - Forecasting signal (model prediction) analysis
       - Cumulative Return of groups
-      ![Cumulative Return](http://fintech.msra.cn/images/analysis/analysis_model_cumulative_return.png?v=0.1)
+      ![Cumulative Return](http://fintech.msra.cn/images_v060/analysis/analysis_model_cumulative_return.png?v=0.1)
       - Return distribution
-      ![long_short](http://fintech.msra.cn/images/analysis/analysis_model_long_short.png?v=0.1)
+      ![long_short](http://fintech.msra.cn/images_v060/analysis/analysis_model_long_short.png?v=0.1)
       - Information Coefficient (IC)
-      ![Information Coefficient](http://fintech.msra.cn/images/analysis/analysis_model_IC.png?v=0.1)        
-      ![Monthly IC](http://fintech.msra.cn/images/analysis/analysis_model_monthly_IC.png?v=0.1)
-      ![IC](http://fintech.msra.cn/images/analysis/analysis_model_NDQ.png?v=0.1)
+      ![Information Coefficient](http://fintech.msra.cn/images_v060/analysis/analysis_model_IC.png?v=0.1)        
+      ![Monthly IC](http://fintech.msra.cn/images_v060/analysis/analysis_model_monthly_IC.png?v=0.1)
+      ![IC](http://fintech.msra.cn/images_v060/analysis/analysis_model_NDQ.png?v=0.1)
       - Auto Correlation of forecasting signal (model prediction)
-      ![Auto Correlation](http://fintech.msra.cn/images/analysis/analysis_model_auto_correlation.png?v=0.1)
+      ![Auto Correlation](http://fintech.msra.cn/images_v060/analysis/analysis_model_auto_correlation.png?v=0.1)
 
     - Portfolio analysis
       - Backtest return
-      ![Report](http://fintech.msra.cn/images/analysis/report.png?v=0.1)
+      ![Report](http://fintech.msra.cn/images_v060/analysis/report.png?v=0.1)
       <!-- 
       - Score IC
       ![Score IC](docs/_static/img/score_ic.png)
@@ -187,7 +190,25 @@ Qlib provides a tool named `qrun` to run the whole workflow automatically (inclu
 The automatic workflow may not suite the research workflow of all Quant researchers. To support a flexible Quant research workflow, Qlib also provides a modularized interface to allow researchers to build their own workflow by code. [Here](examples/workflow_by_code.ipynb) is a demo for customized Quant research workflow by code.
 
 
-# Quant Model Zoo
+# [Quant Model Zoo](examples/benchmarks)
+
+## Run a single model
+`Qlib` provides three different ways to run a single model, users can pick the one that fits their cases best:
+- User can use the tool `qrun` mentioned above to run a model's workflow based from a config file.
+- User can create a `workflow_by_code` python script based on the [one](examples/workflow_by_code.py) listed in the `examples` folder.
+- User can use the script [`run_all_model.py`](examples/run_all_model.py) listed in the `examples` folder to run a model. Here is an example of the specific shell command to be used: `python run_all_model.py --models=lightgbm`. For more use cases, please refer to the file's [docstrings](examples/run_all_model.py).
+
+## Run multiple models
+`Qlib` also provides a script [`run_all_model.py`](examples/run_all_model.py) which can run multiple models for several iterations. (**Note**: the script only supprots *Linux* now. Other OS will be supported in the future.)
+
+The script will create a unique virtual environment for each model, and delete the environments after training. Thus, only experiment results such as `IC` and `backtest` results will be generated and stored. 
+
+Here is an example of running all the models for 10 iterations:
+```python
+python run_all_model.py 10
+```
+
+It also provides the API to run specific models at once. For more use cases, please refer to the file's [docstrings](examples/run_all_model.py). 
 
 Here is a list of models built on `Qlib`.
 - [GBDT based on LightGBM](qlib/contrib/model/gbdt.py)
@@ -196,10 +217,12 @@ Here is a list of models built on `Qlib`.
 - [MLP based on pytorch](qlib/contrib/model/pytorch_nn.py)
 - [GRU based on pytorch](qlib/contrib/model/pytorch_gru.py)
 - [LSTM based on pytorcn](qlib/contrib/model/pytorch_lstm.py)
+- [ALSTM based on pytorcn](qlib/contrib/model/pytorch_alstm.py)
 - [GATs based on pytorch](qlib/contrib/model/pytorch_gats.py)
 - [TabNet based on pytorch](qlib/contrib/model/tabnet.py)
 - [SFM based on pytorch](qlib/contrib/model/pytorch_sfm.py)
-<!-- - [TFT based on tensorflow](examples/benchmarks/TFT/tft.py) -->
+- [HATs based on pytorch](qlib/contrib/model/pytorch_hats.py)
+- [TFT based on tensorflow](examples/benchmarks/TFT/tft.py)
 
 Your PR of new Quant models is highly welcomed.
 

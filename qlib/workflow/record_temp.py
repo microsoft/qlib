@@ -15,6 +15,7 @@ from ..utils import init_instance_by_config, get_module_by_module_path
 from ..log import get_module_logger
 from ..utils import flatten_dict
 from ..contrib.eva.alpha import calc_ic, calc_long_short_return
+from ..contrib.strategy.strategy import BaseStrategy
 
 logger = get_module_logger("workflow", "INFO")
 
@@ -220,7 +221,7 @@ class PortAnaRecord(SignalRecord):
 
         self.strategy_config = config["strategy"]
         self.backtest_config = config["backtest"]
-        self.strategy = init_instance_by_config(self.strategy_config)
+        self.strategy = init_instance_by_config(self.strategy_config, accept_types=BaseStrategy)
 
     def generate(self, **kwargs):
         # check previously stored prediction results

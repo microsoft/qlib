@@ -29,7 +29,7 @@ class DataHandler(Serializable):
     """
     The steps to using a handler
     1. initialized data handler  (call by `init`).
-    2. use the data
+    2. use the data.
 
 
     The data handler try to maintain a handler with 2 level.
@@ -65,17 +65,17 @@ class DataHandler(Serializable):
         Parameters
         ----------
         instruments :
-            The stock list to retrive
+            The stock list to retrive.
         start_time :
-            start_time of the original data
+            start_time of the original data.
         end_time :
-            end_time of the original data
+            end_time of the original data.
         data_loader : Tuple[dict, str, DataLoader]
-            data loader to load the data
+            data loader to load the data.
         init_data :
-            intialize the original data in the constructor
+            intialize the original data in the constructor.
         fetch_orig : bool
-            Return the original data instead of copy if possible
+            Return the original data instead of copy if possible.
         """
         # Set logger
         self.logger = get_module_logger("DataHandler")
@@ -219,9 +219,9 @@ class DataHandler(Serializable):
         get a iterator of sliced data with given periods
 
         Args:
-            periods (int): number of periods
-            min_periods (int): minimum periods for sliced dataframe
-            kwargs (dict): will be passed to `self.fetch`
+            periods (int): number of periods.
+            min_periods (int): minimum periods for sliced dataframe.
+            kwargs (dict): will be passed to `self.fetch`.
         """
         trading_dates = self._data.index.unique(level="datetime")
         if min_periods is None:
@@ -243,10 +243,10 @@ class DataHandlerLP(DataHandler):
 
     # process type
     PTYPE_I = "independent"
-    # - self._infer will processed by infer_processors
+    # - self._infer will be processed by infer_processors
     # - self._learn will be processed by learn_processors
     PTYPE_A = "append"
-    # - self._infer will processed by infer_processors
+    # - self._infer will be processed by infer_processors
     # - self._learn will be processed by infer_processors + learn_processors
     #   - (e.g. self._infer processed by learn_processors )
 
@@ -265,30 +265,40 @@ class DataHandlerLP(DataHandler):
         Parameters
         ----------
         infer_processors : list
-            list of <description info> of processors to generate data for inference
-            example of <description info>:
-            1) classname & kwargs:
-                {
-                    "class": "MinMaxNorm",
-                    "kwargs": {
-                        "fit_start_time": "20080101",
-                        "fit_end_time": "20121231"
+            - list of <description info> of processors to generate data for inference
+
+            - example of <description info>:
+
+            .. code-block::
+
+                1) classname & kwargs:
+                    {
+                        "class": "MinMaxNorm",
+                        "kwargs": {
+                            "fit_start_time": "20080101",
+                            "fit_end_time": "20121231"
+                        }
                     }
-                }
-            2) Only classname:
-                "DropnaFeature"
-            3) object instance of Processor
+                2) Only classname:
+                    "DropnaFeature"
+                3) object instance of Processor
 
         learn_processors : list
             similar to infer_processors, but for generating data for learning models
 
         process_type: str
             PTYPE_I = 'independent'
+
             - self._infer will processed by infer_processors
+
             - self._learn will be processed by learn_processors
+
             PTYPE_A = 'append'
+
             - self._infer will processed by infer_processors
+
             - self._learn will be processed by infer_processors + learn_processors
+
               - (e.g. self._infer processed by learn_processors )
         """
 
@@ -377,7 +387,7 @@ class DataHandlerLP(DataHandler):
         Parameters
         ----------
         init_type : str
-            The type `IT_*` listed above
+            The type `IT_*` listed above.
         enable_cache : bool
             default value is false:
 
@@ -419,13 +429,13 @@ class DataHandlerLP(DataHandler):
         Parameters
         ----------
         selector : Union[pd.Timestamp, slice, str]
-            describe how to select data by index
+            describe how to select data by index.
         level : Union[str, int]
-            which index level to select the data
+            which index level to select the data.
         col_set : str
-            select a set of meaningful columns.(e.g. features, columns)
-        data_key: str
-            The data to fetch:  DK_*
+            select a set of meaningful columns.(e.g. features, columns).
+        data_key : str
+            the data to fetch:  DK_*.
 
         Returns
         -------
@@ -443,9 +453,9 @@ class DataHandlerLP(DataHandler):
         Parameters
         ----------
         col_set : str
-            select a set of meaningful columns.(e.g. features, columns)
-        data_key: str
-            The data to fetch:  DK_*
+            select a set of meaningful columns.(e.g. features, columns).
+        data_key : str
+            the data to fetch:  DK_*.
 
         Returns
         -------

@@ -9,10 +9,8 @@ import os
 import numpy as np
 import pandas as pd
 import copy
-from sklearn.metrics import roc_auc_score, mean_squared_error
-import logging
-from ...utils import unpack_archive_with_buffer, save_multiple_parts_file, create_save_path, drop_nan_by_y_index
-from ...log import get_module_logger, TimeInspector
+from ...utils import create_save_path
+from ...log import get_module_logger
 
 import torch
 import torch.nn as nn
@@ -28,14 +26,12 @@ class GAT(Model):
 
     Parameters
     ----------
-    input_dim : int
-        input dimension
-    output_dim : int
-        output dimension
-    layers : tuple
-        layer sizes
     lr : float
         learning rate
+    d_feat : int
+        input dimensions for each time step
+    metric : str
+        the evaluate metric used in early stop
     optimizer : str
         optimizer name
     GPU : str
@@ -50,8 +46,7 @@ class GAT(Model):
         dropout=0.0,
         n_epochs=200,
         lr=0.001,
-        metric="IC",
-        batch_size=2000,
+        metric="",
         early_stop=20,
         loss="mse",
         base_model="GRU",
@@ -73,7 +68,6 @@ class GAT(Model):
         self.n_epochs = n_epochs
         self.lr = lr
         self.metric = metric
-        self.batch_size = batch_size
         self.early_stop = early_stop
         self.optimizer = optimizer.lower()
         self.loss = loss
@@ -92,7 +86,6 @@ class GAT(Model):
             "\nn_epochs : {}"
             "\nlr : {}"
             "\nmetric : {}"
-            "\nbatch_size : {}"
             "\nearly_stop : {}"
             "\noptimizer : {}"
             "\nloss_type : {}"
@@ -108,7 +101,6 @@ class GAT(Model):
                 n_epochs,
                 lr,
                 metric,
-                batch_size,
                 early_stop,
                 optimizer.lower(),
                 loss,
@@ -119,10 +111,6 @@ class GAT(Model):
                 seed,
             )
         )
-
-        if loss not in {"mse", "binary"}:
-            raise NotImplementedError("loss {} is not supported!".format(loss))
-        self._scorer = mean_squared_error if loss == "mse" else roc_auc_score
 
         self.GAT_model = GATModel(
             d_feat=self.d_feat,
@@ -160,34 +148,37 @@ class GAT(Model):
     def metric_fn(self, pred, label):
 
         mask = torch.isfinite(label)
-        if self.metric == "IC":
-            return self.cal_ic(pred[mask], label[mask])
 
         if self.metric == "" or self.metric == "loss":  # use loss
             return -self.loss_fn(pred[mask], label[mask])
 
         raise ValueError("unknown metric `%s`" % self.metric)
 
-    def cal_ic(self, pred, label):
-        return torch.mean(pred * label)
+    def get_daily_inter(self, df, shuffle=False):
+        # organize the train data into daily inter as daily batches
+        daily_count = df.groupby(level=0).size().values
+        daily_index = np.roll(np.cumsum(daily_count), 1)
+        daily_index[0] = 0
+        if shuffle:
+            # shuffle the daily inter data
+            daily_shuffle = list(zip(daily_index, daily_count))
+            np.random.shuffle(daily_shuffle)
+            daily_index, daily_count = zip(*daily_shuffle)
+        return daily_index, daily_count
 
     def train_epoch(self, x_train, y_train):
 
         x_train_values = x_train.values
-        y_train_values = np.squeeze(y_train.values) * 100
-
+        y_train_values = np.squeeze(y_train.values)
         self.GAT_model.train()
 
-        indices = np.arange(len(x_train_values))
-        np.random.shuffle(indices)
+        # organize the train data into daily inter as daily batches
+        daily_index, daily_count = self.get_daily_inter(x_train, shuffle=True)
 
-        for i in range(len(indices))[:: self.batch_size]:
-
-            if len(indices) - i < self.batch_size:
-                break
-
-            feature = torch.from_numpy(x_train_values[indices[i : i + self.batch_size]]).float()
-            label = torch.from_numpy(y_train_values[indices[i : i + self.batch_size]]).float()
+        for idx, count in zip(daily_index, daily_count):
+            batch = slice(idx, idx + count)
+            feature = torch.from_numpy(x_train_values[batch]).float()
+            label = torch.from_numpy(y_train_values[batch]).float()
 
             if self.use_gpu:
                 feature = feature.cuda()
@@ -212,16 +203,13 @@ class GAT(Model):
         scores = []
         losses = []
 
-        indices = np.arange(len(x_values))
-        np.random.shuffle(indices)
+        # organize the test data into daily inter as daily batches
+        daily_index, daily_count = self.get_daily_inter(data_x, shuffle=False)
 
-        for i in range(len(indices))[:: self.batch_size]:
-
-            if len(indices) - i < self.batch_size:
-                break
-
-            feature = torch.from_numpy(x_values[indices[i : i + self.batch_size]]).float()
-            label = torch.from_numpy(y_values[indices[i : i + self.batch_size]]).float()
+        for idx, count in zip(daily_index, daily_count):
+            batch = slice(idx, idx + count)
+            feature = torch.from_numpy(x_values[batch]).float()
+            label = torch.from_numpy(y_values[batch]).float()
 
             if self.use_gpu:
                 feature = feature.cuda()
@@ -254,7 +242,6 @@ class GAT(Model):
         if save_path == None:
             save_path = create_save_path(save_path)
         stop_steps = 0
-        train_loss = 0
         best_score = -np.inf
         best_epoch = 0
         evals_result["train"] = []
@@ -265,12 +252,14 @@ class GAT(Model):
             self.logger.info("Loading pretrained model...")
             if self.base_model == "LSTM":
                 from ...contrib.model.pytorch_lstm import LSTMModel
+
                 pretrained_model = LSTMModel()
-                pretrained_model.load_state_dict(torch.load('benchmarks/LSTM/model_lstm_csi300.pkl'))
+                pretrained_model.load_state_dict(torch.load("benchmarks/LSTM/model_lstm_csi300.pkl"))
             elif self.base_model == "GRU":
                 from ...contrib.model.pytorch_gru import GRUModel
+
                 pretrained_model = GRUModel()
-                pretrained_model.load_state_dict(torch.load('benchmarks/GRU/model_gru_csi300.pkl'))
+                pretrained_model.load_state_dict(torch.load("benchmarks/GRU/model_gru_csi300.pkl"))
             model_dict = self.GAT_model.state_dict()
             pretrained_dict = {k: v for k, v in pretrained_model.state_dict().items() if k in model_dict}
             model_dict.update(pretrained_dict)
@@ -319,17 +308,14 @@ class GAT(Model):
         index = x_test.index
         self.GAT_model.eval()
         x_values = x_test.values
-        sample_num = x_values.shape[0]
         preds = []
 
-        for begin in range(sample_num)[:: self.batch_size]:
+        # organize the data into daily inter as daily batches
+        daily_index, daily_count = self.get_daily_inter(x_test, shuffle=False)
 
-            if sample_num - begin < self.batch_size:
-                end = sample_num
-            else:
-                end = begin + self.batch_size
-
-            x_batch = torch.from_numpy(x_values[begin:end]).float()
+        for idx, count in zip(daily_index, daily_count):
+            batch = slice(idx, idx + count)
+            x_batch = torch.from_numpy(x_values[batch]).float()
 
             if self.use_gpu:
                 x_batch = x_batch.cuda()
@@ -375,7 +361,6 @@ class GATModel(nn.Module):
         self.fc_out = nn.Linear(hidden_size, 1)
         self.leaky_relu = nn.LeakyReLU()
         self.softmax = nn.Softmax(dim=1)
-
         self.d_feat = d_feat
 
     def cal_convariance(self, x, y):  # the 2nd dimension of x and y are the same
@@ -394,12 +379,7 @@ class GATModel(nn.Module):
         out, _ = self.rnn(x)
         hidden = out[:, -1, :]
         hidden = self.bn1(hidden)
-
         gamma = self.cal_convariance(hidden, hidden)
-        # gamma = hidden.mm(torch.t(hidden))
-        # gamma = self.leaky_relu(gamma)
-        # gamma = self.softmax(gamma)
-        # gamma = gamma * (torch.ones(x.shape[0], x.shape[0]).to(device) - torch.diag(torch.ones(x.shape[0])).to(device))
         output = gamma.mm(hidden)
         output = self.fc(output)
         output = self.bn2(output)

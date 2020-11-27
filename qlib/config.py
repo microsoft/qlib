@@ -64,7 +64,7 @@ class Config:
 REG_CN = "cn"
 REG_US = "us"
 
-NUM_USABLE_CPU = multiprocessing.cpu_count() - 2
+NUM_USABLE_CPU = max(multiprocessing.cpu_count() - 2, 1)
 
 _default_config = {
     # data provider config

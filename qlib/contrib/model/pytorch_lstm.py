@@ -28,14 +28,10 @@ class LSTM(Model):
 
     Parameters
     ----------
-    input_dim : int
-        input dimension
-    output_dim : int
-        output dimension
-    layers : tuple
-        layer sizes
-    lr : float
-        learning rate
+    d_feat : int
+        input dimension for each time step
+    metric: str
+        the evaluate metric used in early stop
     optimizer : str
         optimizer name
     GPU : str
@@ -50,7 +46,7 @@ class LSTM(Model):
         dropout=0.0,
         n_epochs=200,
         lr=0.001,
-        metric="IC",
+        metric="",
         batch_size=2000,
         early_stop=20,
         loss="mse",
@@ -112,10 +108,6 @@ class LSTM(Model):
             )
         )
 
-        if loss not in {"mse", "binary"}:
-            raise NotImplementedError("loss {} is not supported!".format(loss))
-        self._scorer = mean_squared_error if loss == "mse" else roc_auc_score
-
         self.lstm_model = LSTMModel(
             d_feat=self.d_feat, hidden_size=self.hidden_size, num_layers=self.num_layers, dropout=self.dropout
         )
@@ -148,21 +140,16 @@ class LSTM(Model):
     def metric_fn(self, pred, label):
 
         mask = torch.isfinite(label)
-        if self.metric == "IC":
-            return self.cal_ic(pred[mask], label[mask])
 
         if self.metric == "" or self.metric == "loss":  # use loss
             return -self.loss_fn(pred[mask], label[mask])
 
         raise ValueError("unknown metric `%s`" % self.metric)
 
-    def cal_ic(self, pred, label):
-        return torch.mean(pred * label)
-
     def train_epoch(self, x_train, y_train):
 
         x_train_values = x_train.values
-        y_train_values = np.squeeze(y_train.values) * 100
+        y_train_values = np.squeeze(y_train.values)
 
         self.lstm_model.train()
 
@@ -201,7 +188,6 @@ class LSTM(Model):
         losses = []
 
         indices = np.arange(len(x_values))
-        np.random.shuffle(indices)
 
         for i in range(len(indices))[:: self.batch_size]:
 
@@ -251,7 +237,6 @@ class LSTM(Model):
         # train
         self.logger.info("training...")
         self._fitted = True
-        # return
 
         for step in range(self.n_epochs):
             self.logger.info("Epoch%d:", step)

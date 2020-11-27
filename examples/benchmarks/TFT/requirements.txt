@@ -1,0 +1,3 @@
+tensorflow-gpu==1.15.0
+numpy == 1.19.4
+pandas==1.1.0
