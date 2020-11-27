@@ -52,7 +52,7 @@ def workflow(config_path, experiment_name="workflow", uri_folder="mlruns"):
     provider_uri = config.get("provider_uri")
     region = config.get("region")
     exp_manager = C["exp_manager"]
-    exp_manager["kwargs"]["uri"] = "file:" + str(Path(os.getcwd()).resolve() / uri_folder
+    exp_manager["kwargs"]["uri"] = "file:" + str(Path(os.getcwd()).resolve() / uri_folder)
     qlib.init(provider_uri=provider_uri, region=region, exp_manager=exp_manager)
 
     task_train(config, experiment_name=experiment_name)
