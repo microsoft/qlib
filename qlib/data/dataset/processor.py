@@ -90,6 +90,18 @@ class DropnaLabel(DropnaProcessor):
         return False
 
 
+class DropCol(Processor):
+    def __init__(self, col_list=[]):
+        self.col_list = col_list
+
+    def __call__(self, df):
+        if isinstance(df.columns, pd.MultiIndex):
+            mask = df.columns.get_level_values(-1).isin(self.col_list)
+        else:
+            mask = df.columns.isin(self.col_list)
+        return df.loc[:, ~mask]
+
+
 class TanhProcess(Processor):
     """ Use tanh to process noise data"""
 
@@ -240,7 +252,8 @@ class CSZScoreNorm(Processor):
     def __call__(self, df):
         # try not modify original dataframe
         cols = get_group_columns(df, self.fields_group)
-        df[cols] = df[cols].groupby("datetime").apply(lambda df: (df - df.mean()).div(df.std()))
+        df[cols] = df[cols].groupby("datetime").apply(lambda x: (x - x.mean()).div(x.std()))
+
         return df
 
 
@@ -257,4 +270,16 @@ class CSRankNorm(Processor):
         t -= 0.5
         t *= 3.46  # NOTE: towards unit std
         df[cols] = t
+        return df
+
+
+class CSZFillna(Processor):
+    """Cross Sectional Fill Nan"""
+
+    def __init__(self, fields_group=None):
+        self.fields_group = fields_group
+
+    def __call__(self, df):
+        cols = get_group_columns(df, self.fields_group)
+        df[cols] = df[cols].groupby("datetime").apply(lambda x: x.fillna(x.mean()))
         return df

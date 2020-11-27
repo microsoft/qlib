@@ -20,6 +20,7 @@ from ...data.dataset import DatasetH
 from ...data.dataset.handler import DataHandlerLP
 from ...utils import unpack_archive_with_buffer, save_multiple_parts_file, create_save_path, drop_nan_by_y_index
 from ...log import get_module_logger, TimeInspector
+from ...workflow import R
 
 
 class DNNModelPytorch(Model):
@@ -49,7 +50,7 @@ class DNNModelPytorch(Model):
         self,
         input_dim,
         output_dim,
-        layers=(256, 512, 768, 1024, 768, 512, 256, 128, 64),
+        layers=(256, 512, 768, 512, 256, 128, 64),
         lr=0.001,
         max_steps=300,
         batch_size=2000,
@@ -78,7 +79,7 @@ class DNNModelPytorch(Model):
         self.optimizer = optimizer.lower()
         self.loss_type = loss
         self.visible_GPU = GPU
-        self.use_gpu = torch.cuda.is_available()
+        self.use_GPU = torch.cuda.is_available()
 
         self.logger.info(
             "DNN parameters setting:"
@@ -107,7 +108,7 @@ class DNNModelPytorch(Model):
                 loss,
                 eval_steps,
                 GPU,
-                self.use_gpu,
+                self.use_GPU,
             )
         )
 
@@ -138,7 +139,7 @@ class DNNModelPytorch(Model):
         )
 
         self._fitted = False
-        if self.use_gpu:
+        if self.use_GPU:
             self.dnn_model.cuda()
             # set the visible GPU
             if self.visible_GPU:
@@ -151,13 +152,11 @@ class DNNModelPytorch(Model):
         verbose=True,
         save_path=None,
     ):
-
         df_train, df_valid = dataset.prepare(
             ["train", "valid"], col_set=["feature", "label"], data_key=DataHandlerLP.DK_L
         )
         x_train, y_train = df_train["feature"], df_train["label"]
         x_valid, y_valid = df_valid["feature"], df_valid["label"]
-
         try:
             wdf_train, wdf_valid = dataset.prepare(["train", "valid"], col_set=["weight"], data_key=DataHandlerLP.DK_L)
             w_train, w_valid = wdf_train["weight"], wdf_valid["weight"]
@@ -171,7 +170,6 @@ class DNNModelPytorch(Model):
         best_loss = np.inf
         evals_result["train"] = []
         evals_result["valid"] = []
-
         # train
         self.logger.info("training...")
         self._fitted = True
@@ -181,13 +179,11 @@ class DNNModelPytorch(Model):
         y_train_values = torch.from_numpy(y_train.values).float()
         w_train_values = torch.from_numpy(w_train.values).float()
         train_num = y_train_values.shape[0]
-
         # prepare validation data
         x_val_auto = torch.from_numpy(x_valid.values).float()
         y_val_auto = torch.from_numpy(y_valid.values).float()
         w_val_auto = torch.from_numpy(w_valid.values).float()
-
-        if self.use_gpu:
+        if self.use_GPU:
             x_val_auto = x_val_auto.cuda()
             y_val_auto = y_val_auto.cuda()
             w_val_auto = w_val_auto.cuda()
@@ -200,16 +196,15 @@ class DNNModelPytorch(Model):
             loss = AverageMeter()
             self.dnn_model.train()
             self.train_optimizer.zero_grad()
-
             choice = np.random.choice(train_num, self.batch_size)
             x_batch_auto = x_train_values[choice]
             y_batch_auto = y_train_values[choice]
             w_batch_auto = w_train_values[choice]
 
-            if self.use_gpu:
-                x_batch_auto = x_batch_auto.float().cuda()
-                y_batch_auto = y_batch_auto.float().cuda()
-                w_batch_auto = w_batch_auto.float().cuda()
+            if self.use_GPU:
+                x_batch_auto = x_batch_auto.cuda()
+                y_batch_auto = y_batch_auto.cuda()
+                w_batch_auto = w_batch_auto.cuda()
 
             # forward
             preds = self.dnn_model(x_batch_auto)
@@ -217,10 +212,10 @@ class DNNModelPytorch(Model):
             cur_loss.backward()
             self.train_optimizer.step()
             loss.update(cur_loss.item())
+            R.log_metrics(train_loss=loss.avg, step=step)
 
             # validation
             train_loss += loss.val
-            # print(loss.val)
             if step and step % self.eval_steps == 0:
                 stop_steps += 1
                 train_loss /= self.eval_steps
@@ -233,6 +228,7 @@ class DNNModelPytorch(Model):
                     preds = self.dnn_model(x_val_auto)
                     cur_loss_val = self.get_loss(preds, w_val_auto, y_val_auto, self.loss_type)
                     loss_val.update(cur_loss_val.item())
+                R.log_metrics(val_loss=loss_val.val, step=step)
                 if verbose:
                     self.logger.info(
                         "[Epoch {}]: train_loss {:.6f}, valid_loss {:.6f}".format(step, train_loss, loss_val.val)
@@ -255,7 +251,7 @@ class DNNModelPytorch(Model):
 
         # restore the optimal parameters after training ??
         self.dnn_model.load_state_dict(torch.load(save_path))
-        if self.use_gpu:
+        if self.use_GPU:
             torch.cuda.empty_cache()
 
     def get_loss(self, pred, w, target, loss_type):
@@ -274,12 +270,12 @@ class DNNModelPytorch(Model):
             raise ValueError("model is not fitted yet!")
         x_test_pd = dataset.prepare("test", col_set="feature")
         x_test = torch.from_numpy(x_test_pd.values).float()
-        if self.use_gpu:
+        if self.use_GPU:
             x_test = x_test.cuda()
         self.dnn_model.eval()
 
         with torch.no_grad():
-            if self.use_gpu:
+            if self.use_GPU:
                 preds = self.dnn_model(x_test).detach().cpu().numpy()
             else:
                 preds = self.dnn_model(x_test).detach().numpy()
@@ -331,7 +327,7 @@ class Net(nn.Module):
         dnn_layers.append(drop_input)
         for i, (input_dim, hidden_units) in enumerate(zip(layers[:-1], layers[1:])):
             fc = nn.Linear(input_dim, hidden_units)
-            activation = nn.ReLU()
+            activation = nn.LeakyReLU(negative_slope=0.1, inplace=False)
             bn = nn.BatchNorm1d(hidden_units)
             seq = nn.Sequential(fc, bn, activation)
             dnn_layers.append(seq)
@@ -354,7 +350,7 @@ class Net(nn.Module):
     def _weight_init(self):
         for m in self.modules():
             if isinstance(m, nn.Linear):
-                nn.init.xavier_normal_(m.weight, gain=1)
+                nn.init.kaiming_normal_(m.weight, a=0.1, mode="fan_in", nonlinearity="leaky_relu")
 
     def forward(self, x):
         cur_output = x

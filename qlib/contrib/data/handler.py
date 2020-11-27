@@ -207,6 +207,7 @@ class Alpha158(DataHandlerLP):
         learn_processors=_DEFAULT_LEARN_PROCESSORS,
         fit_start_time=None,
         fit_end_time=None,
+        process_type=DataHandlerLP.PTYPE_A,
         **kwargs,
     ):
         infer_processors = check_transform_proc(infer_processors, fit_start_time, fit_end_time)
@@ -225,6 +226,7 @@ class Alpha158(DataHandlerLP):
             data_loader=data_loader,
             infer_processors=infer_processors,
             learn_processors=learn_processors,
+            process_type=process_type,
         )
 
     def get_feature_config(self):
