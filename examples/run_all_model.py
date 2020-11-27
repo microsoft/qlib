@@ -153,7 +153,7 @@ def get_all_results(folders) -> dict:
         result["information_ratio_with_cost"] = list()
         result["max_drawdown_with_cost"] = list()
         for recorder_id in recorders:
-            if recorders[recorder_id]["status"] == "FINISHED":
+            if recorders[recorder_id].status == "FINISHED":
                 recorder = R.get_recorder(recorder_id=recorder_id, experiment_name=fn)
                 metrics = recorder.list_metrics()
                 result["annualized_return_with_cost"].append(metrics["excess_return_with_cost.annualized_return"])
