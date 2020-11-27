@@ -22,6 +22,7 @@ from ...utils import unpack_archive_with_buffer, save_multiple_parts_file, creat
 from ...log import get_module_logger, TimeInspector
 from ...workflow import R
 
+
 class DNNModelPytorch(Model):
     """DNN Model
 
@@ -349,7 +350,7 @@ class Net(nn.Module):
     def _weight_init(self):
         for m in self.modules():
             if isinstance(m, nn.Linear):
-                nn.init.kaiming_normal_(m.weight, a=0.1, mode='fan_in', nonlinearity='leaky_relu')
+                nn.init.kaiming_normal_(m.weight, a=0.1, mode="fan_in", nonlinearity="leaky_relu")
 
     def forward(self, x):
         cur_output = x

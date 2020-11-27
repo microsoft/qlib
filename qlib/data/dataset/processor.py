@@ -100,7 +100,8 @@ class DropCol(Processor):
         else:
             mask = df.columns.isin(self.col_list)
         return df.loc[:, ~mask]
-        
+
+
 class TanhProcess(Processor):
     """ Use tanh to process noise data"""
 
@@ -132,6 +133,7 @@ class ProcessInf(Processor):
             return data
 
         return replace_inf(df)
+
 
 class Fillna(Processor):
     """Process NaN"""
@@ -269,6 +271,7 @@ class CSRankNorm(Processor):
         t *= 3.46  # NOTE: towards unit std
         df[cols] = t
         return df
+
 
 class CSZFillna(Processor):
     """Cross Sectional Fill Nan"""

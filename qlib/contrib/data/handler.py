@@ -226,7 +226,7 @@ class Alpha158(DataHandlerLP):
             data_loader=data_loader,
             infer_processors=infer_processors,
             learn_processors=learn_processors,
-            process_type=process_type
+            process_type=process_type,
         )
 
     def get_feature_config(self):
