@@ -102,8 +102,7 @@ class SFM_Model(nn.Module):
 
             i = self.inner_activation(
                 x_i + torch.matmul(h_tm1 * B_U[0], self.U_i)
-            )  # not sure whether I am doing in the right unsquuze
-
+            )  
             ste = self.inner_activation(x_ste + torch.matmul(h_tm1 * B_U[0], self.U_ste))
             fre = self.inner_activation(x_fre + torch.matmul(h_tm1 * B_U[0], self.U_fre))
 
@@ -183,10 +182,6 @@ class SFM(Model):
         output dimension
     lr : float
         learning rate
-    lr_decay : float
-        learning rate decay
-    lr_decay_steps : int
-        learning rate decay steps
     optimizer : str
         optimizer name
     GPU : str
@@ -208,8 +203,6 @@ class SFM(Model):
         early_stop=20,
         eval_steps=5,
         loss="mse",
-        lr_decay=0.96,
-        lr_decay_steps=100,
         optimizer="gd",
         GPU="0",
         seed=0,
@@ -232,8 +225,6 @@ class SFM(Model):
         self.batch_size = batch_size
         self.early_stop = early_stop
         self.eval_steps = eval_steps
-        self.lr_decay = lr_decay
-        self.lr_decay_steps = lr_decay_steps
         self.optimizer = optimizer.lower()
         self.loss = loss
         self.device = "cuda:%d" % (GPU) if torch.cuda.is_available() else "cpu"
@@ -254,8 +245,6 @@ class SFM(Model):
             "\nbatch_size : {}"
             "\nearly_stop : {}"
             "\neval_steps : {}"
-            "\nlr_decay : {}"
-            "\nlr_decay_steps : {}"
             "\noptimizer : {}"
             "\nloss_type : {}"
             "\nvisible_GPU : {}"
@@ -273,8 +262,6 @@ class SFM(Model):
                 batch_size,
                 early_stop,
                 eval_steps,
-                lr_decay,
-                lr_decay_steps,
                 optimizer.lower(),
                 loss,
                 GPU,
