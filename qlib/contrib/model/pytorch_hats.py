@@ -52,11 +52,11 @@ class HATS(Model):
         num_layers=2,
         dropout=0.5,
         n_epochs=200,
-        lr=0.0001,
-        metric="loss",
+        lr=0.01,
+        metric="",
         early_stop=20,
         loss="mse",
-        base_model="LSTM",
+        base_model="GRU",
         with_pretrain=True,
         optimizer="adam",
         GPU="0",
@@ -154,16 +154,11 @@ class HATS(Model):
 
     def metric_fn(self, pred, label):
         mask = torch.isfinite(label)
-        if self.metric == "IC":
-            return self.cal_ic(pred[mask], label[mask])
 
         if self.metric == "" or self.metric == "loss":  # use loss
             return -self.loss_fn(pred[mask], label[mask])
 
         raise ValueError("unknown metric `%s`" % self.metric)
-
-    def cal_ic(self, pred, label):
-        return torch.mean(pred * label)
 
     def get_daily_inter(self, df, shuffle=False):
         # organize the train data into daily inter as daily batches

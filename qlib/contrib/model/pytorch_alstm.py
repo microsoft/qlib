@@ -44,7 +44,7 @@ class ALSTM(Model):
         dropout=0.0,
         n_epochs=200,
         lr=0.001,
-        metric="IC",
+        metric="",
         batch_size=2000,
         early_stop=20,
         loss="mse",
@@ -142,21 +142,16 @@ class ALSTM(Model):
 
     def metric_fn(self, pred, label):
         mask = torch.isfinite(label)
-        if self.metric == "IC":
-            return self.cal_ic(pred[mask], label[mask])
 
         if self.metric == "" or self.metric == "loss":  # use loss
             return -self.loss_fn(pred[mask], label[mask])
 
         raise ValueError("unknown metric `%s`" % self.metric)
 
-    def cal_ic(self, pred, label):
-        return torch.mean(pred * label)
-
     def train_epoch(self, x_train, y_train):
 
         x_train_values = x_train.values
-        y_train_values = np.squeeze(y_train.values) * 100
+        y_train_values = np.squeeze(y_train.values)
 
         self.alstm_model.train()
 

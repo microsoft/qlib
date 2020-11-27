@@ -102,7 +102,7 @@ class SFM_Model(nn.Module):
 
             i = self.inner_activation(
                 x_i + torch.matmul(h_tm1 * B_U[0], self.U_i)
-            )  
+            )  # not sure whether I am doing in the right unsquuze
 
             ste = self.inner_activation(x_ste + torch.matmul(h_tm1 * B_U[0], self.U_ste))
             fre = self.inner_activation(x_fre + torch.matmul(h_tm1 * B_U[0], self.U_fre))
@@ -283,10 +283,6 @@ class SFM(Model):
             )
         )
 
-        if loss not in {"mse", "binary"}:
-            raise NotImplementedError("loss {} is not supported!".format(loss))
-        self._scorer = mean_squared_error if loss == "mse" else roc_auc_score
-
         self.sfm_model = SFM_Model(
             d_feat=self.d_feat,
             output_dim=self.output_dim,
@@ -318,7 +314,6 @@ class SFM(Model):
         losses = []
 
         indices = np.arange(len(x_values))
-        np.random.shuffle(indices)
 
         for i in range(len(indices))[:: self.batch_size]:
 
@@ -428,16 +423,11 @@ class SFM(Model):
     def metric_fn(self, pred, label):
 
         mask = torch.isfinite(label)
-        if self.metric == "IC":
-            return self.cal_ic(pred[mask], label[mask])
 
         if self.metric == "" or self.metric == "loss":  # use loss
             return -self.loss_fn(pred[mask], label[mask])
 
         raise ValueError("unknown metric `%s`" % self.metric)
-
-    def cal_ic(self, pred, label):
-        return torch.mean(pred * label)
 
     def predict(self, dataset):
         if not self._fitted:
