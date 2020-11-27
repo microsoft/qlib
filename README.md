@@ -41,7 +41,7 @@ For more details, please refer to our paper ["Qlib: An AI-oriented Quantitative 
 # Framework of Qlib
 
 <div style="align: center">
-<img src="http://fintech.msra.cn/images_v060/framework.png" />
+<img src="http://fintech.msra.cn/images_v060/framework.png?v=0.1" />
 </div>
 
 
