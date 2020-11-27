@@ -90,7 +90,17 @@ class DropnaLabel(DropnaProcessor):
         return False
 
 
+class DropCol(Processor):
+    def __init__(self, col_list=[]):
+        self.col_list = col_list
 
+    def __call__(self, df):
+        if isinstance(df.columns, pd.MultiIndex):
+            mask = df.columns.get_level_values(-1).isin(self.col_list)
+        else:
+            mask = df.columns.isin(self.col_list)
+        return df.loc[:, ~mask]
+        
 class TanhProcess(Processor):
     """ Use tanh to process noise data"""
 

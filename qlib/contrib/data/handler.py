@@ -171,6 +171,7 @@ class Alpha158(DataHandlerLP):
         learn_processors=["DropnaLabel", {"class": "CSZScoreNorm", "kwargs": {"fields_group": "label"}}],
         fit_start_time=None,
         fit_end_time=None,
+        process_type=DataHandlerLP.PTYPE_A
     ):
         def check_transform_proc(proc_l):
             new_l = []
@@ -209,6 +210,7 @@ class Alpha158(DataHandlerLP):
             data_loader=data_loader,
             infer_processors=infer_processors,
             learn_processors=learn_processors,
+            process_type=process_type
         )
 
     def get_feature_config(self):

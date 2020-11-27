@@ -20,7 +20,7 @@ from ...data.dataset import DatasetH
 from ...data.dataset.handler import DataHandlerLP
 from ...utils import unpack_archive_with_buffer, save_multiple_parts_file, create_save_path, drop_nan_by_y_index
 from ...log import get_module_logger, TimeInspector
-
+from ...workflow import R
 
 class DNNModelPytorch(Model):
     """DNN Model
@@ -151,7 +151,6 @@ class DNNModelPytorch(Model):
         verbose=True,
         save_path=None,
     ):
-
         df_train, df_valid = dataset.prepare(
             ["train", "valid"], col_set=["feature", "label"], data_key=DataHandlerLP.DK_L
         )
@@ -170,7 +169,6 @@ class DNNModelPytorch(Model):
         best_loss = np.inf
         evals_result["train"] = []
         evals_result["valid"] = []
-
         # train
         self.logger.info("training...")
         self._fitted = True
@@ -184,9 +182,6 @@ class DNNModelPytorch(Model):
         x_val_auto = torch.from_numpy(x_valid.values).float()
         y_val_auto = torch.from_numpy(y_valid.values).float()
         w_val_auto = torch.from_numpy(w_valid.values).float()
-        #print('valiadationx:', x_val_auto)
-        #print('valiadationy:', y_val_auto)
-        #print('valiadationw:', w_val_auto)
         if self.use_GPU:
             x_val_auto = x_val_auto.cuda()
             y_val_auto = y_val_auto.cuda()
@@ -200,7 +195,6 @@ class DNNModelPytorch(Model):
             loss = AverageMeter()
             self.dnn_model.train()
             self.train_optimizer.zero_grad()
-
             choice = np.random.choice(train_num, self.batch_size)
             x_batch_auto = x_train_values[choice]
             y_batch_auto = y_train_values[choice]
@@ -213,16 +207,14 @@ class DNNModelPytorch(Model):
 
             # forward
             preds = self.dnn_model(x_batch_auto)
-            #print('pred_train:', preds.detach().cpu().numpy())
-            #print('label_train:', y_batch_auto.cpu().numpy())
             cur_loss = self.get_loss(preds, w_batch_auto, y_batch_auto, self.loss_type)
             cur_loss.backward()
             self.train_optimizer.step()
             loss.update(cur_loss.item())
+            R.log_metrics(train_loss=loss.avg, step=step)
 
             # validation
             train_loss += loss.val
-            # print(loss.val)
             if step and step % self.eval_steps == 0:
                 stop_steps += 1
                 train_loss /= self.eval_steps
@@ -232,10 +224,10 @@ class DNNModelPytorch(Model):
                     loss_val = AverageMeter()
 
                     # forward
-                    
                     preds = self.dnn_model(x_val_auto)
                     cur_loss_val = self.get_loss(preds, w_val_auto, y_val_auto, self.loss_type)
                     loss_val.update(cur_loss_val.item())
+                R.log_metrics(val_loss=loss_val.val, step=step)
                 if verbose:
                     self.logger.info(
                         "[Epoch {}]: train_loss {:.6f}, valid_loss {:.6f}".format(step, train_loss, loss_val.val)
@@ -276,7 +268,6 @@ class DNNModelPytorch(Model):
         if not self._fitted:
             raise ValueError("model is not fitted yet!")
         x_test_pd = dataset.prepare("test", col_set="feature")
-        print(x_test_pd)
         x_test = torch.from_numpy(x_test_pd.values).float()
         if self.use_GPU:
             x_test = x_test.cuda()
@@ -287,7 +278,6 @@ class DNNModelPytorch(Model):
                 preds = self.dnn_model(x_test).detach().cpu().numpy()
             else:
                 preds = self.dnn_model(x_test).detach().numpy()
-        print(preds)
         return pd.Series(np.squeeze(preds), index=x_test_pd.index)
 
     def save(self, filename, **kwargs):
