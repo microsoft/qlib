@@ -1,4 +1,4 @@
-provider_uri: "~/.qlib/qlib_data/cn_data_new"
+provider_uri: "~/.qlib/qlib_data/cn_data"
 region: cn
 market: &market csi300
 benchmark: &benchmark SH000300
