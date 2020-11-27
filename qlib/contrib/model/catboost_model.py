@@ -50,9 +50,7 @@ class CatBoostModel(Model):
 
         # CatBoost needs 1D array as its label
         if y_train.values.ndim == 2 and y_train.values.shape[1] == 1:
-            y_train_1d, y_valid_1d = np.squeeze(y_train.values), np.squeeze(
-                y_valid.values
-            )
+            y_train_1d, y_valid_1d = np.squeeze(y_train.values), np.squeeze(y_valid.values)
         else:
             raise ValueError("CatBoost doesn't support multi-label training")
 

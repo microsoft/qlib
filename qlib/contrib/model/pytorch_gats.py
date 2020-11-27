@@ -126,9 +126,7 @@ class GATs(Model):
         elif optimizer.lower() == "gd":
             self.train_optimizer = optim.SGD(self.GAT_model.parameters(), lr=self.lr)
         else:
-            raise NotImplementedError(
-                "optimizer {} is not supported!".format(optimizer)
-            )
+            raise NotImplementedError("optimizer {} is not supported!".format(optimizer))
 
         self._fitted = False
         if self.use_gpu:
@@ -258,22 +256,14 @@ class GATs(Model):
             self.logger.info("Loading pretrained model...")
             if self.base_model == "LSTM":
                 pretrained_model = LSTMModel()
-                pretrained_model.load_state_dict(
-                    torch.load("benchmarks/LSTM/model_lstm_csi300.pkl")
-                )
+                pretrained_model.load_state_dict(torch.load("benchmarks/LSTM/model_lstm_csi300.pkl"))
 
             elif self.base_model == "GRU":
                 pretrained_model = GRUModel()
-                pretrained_model.load_state_dict(
-                    torch.load("benchmarks/GRU/model_gru_csi300.pkl")
-                )
+                pretrained_model.load_state_dict(torch.load("benchmarks/GRU/model_gru_csi300.pkl"))
 
             model_dict = self.GAT_model.state_dict()
-            pretrained_dict = {
-                k: v
-                for k, v in pretrained_model.state_dict().items()
-                if k in model_dict
-            }
+            pretrained_dict = {k: v for k, v in pretrained_model.state_dict().items() if k in model_dict}
             model_dict.update(pretrained_dict)
             self.GAT_model.load_state_dict(model_dict)
             self.logger.info("Loading pretrained model Done...")
@@ -343,9 +333,7 @@ class GATs(Model):
 
 
 class GATModel(nn.Module):
-    def __init__(
-        self, d_feat=6, hidden_size=64, num_layers=2, dropout=0.0, base_model="GRU"
-    ):
+    def __init__(self, d_feat=6, hidden_size=64, num_layers=2, dropout=0.0, base_model="GRU"):
         super().__init__()
 
         if base_model == "GRU":

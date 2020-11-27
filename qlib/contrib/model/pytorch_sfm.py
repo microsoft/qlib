@@ -56,52 +56,30 @@ class SFM_Model(nn.Module):
         self.hidden_dim = hidden_size
         self.device = device
 
-        self.W_i = nn.Parameter(
-            init.xavier_uniform_(torch.empty((self.input_dim, self.hidden_dim)))
-        )
-        self.U_i = nn.Parameter(
-            init.orthogonal_(torch.empty(self.hidden_dim, self.hidden_dim))
-        )
+        self.W_i = nn.Parameter(init.xavier_uniform_(torch.empty((self.input_dim, self.hidden_dim))))
+        self.U_i = nn.Parameter(init.orthogonal_(torch.empty(self.hidden_dim, self.hidden_dim)))
         self.b_i = nn.Parameter(torch.zeros(self.hidden_dim))
 
-        self.W_ste = nn.Parameter(
-            init.xavier_uniform_(torch.empty(self.input_dim, self.hidden_dim))
-        )
-        self.U_ste = nn.Parameter(
-            init.orthogonal_(torch.empty(self.hidden_dim, self.hidden_dim))
-        )
+        self.W_ste = nn.Parameter(init.xavier_uniform_(torch.empty(self.input_dim, self.hidden_dim)))
+        self.U_ste = nn.Parameter(init.orthogonal_(torch.empty(self.hidden_dim, self.hidden_dim)))
         self.b_ste = nn.Parameter(torch.ones(self.hidden_dim))
 
-        self.W_fre = nn.Parameter(
-            init.xavier_uniform_(torch.empty(self.input_dim, self.freq_dim))
-        )
-        self.U_fre = nn.Parameter(
-            init.orthogonal_(torch.empty(self.hidden_dim, self.freq_dim))
-        )
+        self.W_fre = nn.Parameter(init.xavier_uniform_(torch.empty(self.input_dim, self.freq_dim)))
+        self.U_fre = nn.Parameter(init.orthogonal_(torch.empty(self.hidden_dim, self.freq_dim)))
         self.b_fre = nn.Parameter(torch.ones(self.freq_dim))
 
-        self.W_c = nn.Parameter(
-            init.xavier_uniform_(torch.empty(self.input_dim, self.hidden_dim))
-        )
-        self.U_c = nn.Parameter(
-            init.orthogonal_(torch.empty(self.hidden_dim, self.hidden_dim))
-        )
+        self.W_c = nn.Parameter(init.xavier_uniform_(torch.empty(self.input_dim, self.hidden_dim)))
+        self.U_c = nn.Parameter(init.orthogonal_(torch.empty(self.hidden_dim, self.hidden_dim)))
         self.b_c = nn.Parameter(torch.zeros(self.hidden_dim))
 
-        self.W_o = nn.Parameter(
-            init.xavier_uniform_(torch.empty(self.input_dim, self.hidden_dim))
-        )
-        self.U_o = nn.Parameter(
-            init.orthogonal_(torch.empty(self.hidden_dim, self.hidden_dim))
-        )
+        self.W_o = nn.Parameter(init.xavier_uniform_(torch.empty(self.input_dim, self.hidden_dim)))
+        self.U_o = nn.Parameter(init.orthogonal_(torch.empty(self.hidden_dim, self.hidden_dim)))
         self.b_o = nn.Parameter(torch.zeros(self.hidden_dim))
 
         self.U_a = nn.Parameter(init.orthogonal_(torch.empty(self.freq_dim, 1)))
         self.b_a = nn.Parameter(torch.zeros(self.hidden_dim))
 
-        self.W_p = nn.Parameter(
-            init.xavier_uniform_(torch.empty(self.hidden_dim, self.output_dim))
-        )
+        self.W_p = nn.Parameter(init.xavier_uniform_(torch.empty(self.hidden_dim, self.output_dim)))
         self.b_p = nn.Parameter(torch.zeros(self.output_dim))
 
         self.activation = nn.Tanh()
@@ -137,12 +115,8 @@ class SFM_Model(nn.Module):
             x_o = torch.matmul(x * B_W[0], self.W_o) + self.b_o
 
             i = self.inner_activation(x_i + torch.matmul(h_tm1 * B_U[0], self.U_i))
-            ste = self.inner_activation(
-                x_ste + torch.matmul(h_tm1 * B_U[0], self.U_ste)
-            )
-            fre = self.inner_activation(
-                x_fre + torch.matmul(h_tm1 * B_U[0], self.U_fre)
-            )
+            ste = self.inner_activation(x_ste + torch.matmul(h_tm1 * B_U[0], self.U_ste))
+            fre = self.inner_activation(x_fre + torch.matmul(h_tm1 * B_U[0], self.U_fre))
 
             ste = torch.reshape(ste, (-1, self.hidden_dim, 1))
             fre = torch.reshape(fre, (-1, 1, self.freq_dim))
@@ -331,9 +305,7 @@ class SFM(Model):
         elif optimizer.lower() == "gd":
             self.train_optimizer = optim.SGD(self.sfm_model.parameters(), lr=self.lr)
         else:
-            raise NotImplementedError(
-                "optimizer {} is not supported!".format(optimizer)
-            )
+            raise NotImplementedError("optimizer {} is not supported!".format(optimizer))
 
         self._fitted = False
         self.sfm_model.to(self.device)
@@ -356,16 +328,8 @@ class SFM(Model):
             if len(indices) - i < self.batch_size:
                 break
 
-            feature = (
-                torch.from_numpy(x_values[indices[i : i + self.batch_size]])
-                .float()
-                .to(self.device)
-            )
-            label = (
-                torch.from_numpy(y_values[indices[i : i + self.batch_size]])
-                .float()
-                .to(self.device)
-            )
+            feature = torch.from_numpy(x_values[indices[i : i + self.batch_size]]).float().to(self.device)
+            label = torch.from_numpy(y_values[indices[i : i + self.batch_size]]).float().to(self.device)
 
             pred = self.sfm_model(feature)
             loss = self.loss_fn(pred, label)
@@ -391,16 +355,8 @@ class SFM(Model):
             if len(indices) - i < self.batch_size:
                 break
 
-            feature = (
-                torch.from_numpy(x_train_values[indices[i : i + self.batch_size]])
-                .float()
-                .to(self.device)
-            )
-            label = (
-                torch.from_numpy(y_train_values[indices[i : i + self.batch_size]])
-                .float()
-                .to(self.device)
-            )
+            feature = torch.from_numpy(x_train_values[indices[i : i + self.batch_size]]).float().to(self.device)
+            label = torch.from_numpy(y_train_values[indices[i : i + self.batch_size]]).float().to(self.device)
 
             pred = self.sfm_model(feature)
             loss = self.loss_fn(pred, label)

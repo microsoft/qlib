@@ -124,9 +124,7 @@ class ALSTM(Model):
         elif optimizer.lower() == "gd":
             self.train_optimizer = optim.SGD(self.ALSTM_model.parameters(), lr=self.lr)
         else:
-            raise NotImplementedError(
-                "optimizer {} is not supported!".format(optimizer)
-            )
+            raise NotImplementedError("optimizer {} is not supported!".format(optimizer))
 
         self._fitted = False
         if self.use_gpu:
@@ -171,12 +169,8 @@ class ALSTM(Model):
             if len(indices) - i < self.batch_size:
                 break
 
-            feature = torch.from_numpy(
-                x_train_values[indices[i : i + self.batch_size]]
-            ).float()
-            label = torch.from_numpy(
-                y_train_values[indices[i : i + self.batch_size]]
-            ).float()
+            feature = torch.from_numpy(x_train_values[indices[i : i + self.batch_size]]).float()
+            label = torch.from_numpy(y_train_values[indices[i : i + self.batch_size]]).float()
 
             if self.use_gpu:
                 feature = feature.cuda()
@@ -208,9 +202,7 @@ class ALSTM(Model):
             if len(indices) - i < self.batch_size:
                 break
 
-            feature = torch.from_numpy(
-                x_values[indices[i : i + self.batch_size]]
-            ).float()
+            feature = torch.from_numpy(x_values[indices[i : i + self.batch_size]]).float()
             label = torch.from_numpy(y_values[indices[i : i + self.batch_size]]).float()
 
             if self.use_gpu:
@@ -320,9 +312,7 @@ class ALSTM(Model):
 
 
 class ALSTMModel(nn.Module):
-    def __init__(
-        self, d_feat=6, hidden_size=64, num_layers=2, dropout=0.0, rnn_type="GRU"
-    ):
+    def __init__(self, d_feat=6, hidden_size=64, num_layers=2, dropout=0.0, rnn_type="GRU"):
         super().__init__()
         self.hid_size = hidden_size
         self.input_size = d_feat
@@ -337,9 +327,7 @@ class ALSTMModel(nn.Module):
         except:
             raise ValueError("unknown rnn_type `%s`" % self.rnn_type)
         self.net = nn.Sequential()
-        self.net.add_module(
-            "fc_in", nn.Linear(in_features=self.input_size, out_features=self.hid_size)
-        )
+        self.net.add_module("fc_in", nn.Linear(in_features=self.input_size, out_features=self.hid_size))
         self.net.add_module("act", nn.Tanh())
         self.rnn = klass(
             input_size=self.hid_size,
@@ -365,12 +353,8 @@ class ALSTMModel(nn.Module):
     def forward(self, inputs):
         # inputs: [batch_size, input_size*input_day]
         inputs = inputs.view(len(inputs), self.input_size, -1)
-        inputs = inputs.permute(
-            0, 2, 1
-        )  # [batch, input_size, seq_len] -> [batch, seq_len, input_size]
-        rnn_out, _ = self.rnn(
-            self.net(inputs)
-        )  # [batch, seq_len, num_directions * hidden_size]
+        inputs = inputs.permute(0, 2, 1)  # [batch, input_size, seq_len] -> [batch, seq_len, input_size]
+        rnn_out, _ = self.rnn(self.net(inputs))  # [batch, seq_len, num_directions * hidden_size]
         attention_score = self.att_net(rnn_out)  # [batch, seq_len, 1]
         out_att = torch.mul(rnn_out, attention_score)
         out_att = torch.sum(out_att, dim=1)

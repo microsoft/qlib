@@ -124,9 +124,7 @@ class GRU(Model):
         elif optimizer.lower() == "gd":
             self.train_optimizer = optim.SGD(self.gru_model.parameters(), lr=self.lr)
         else:
-            raise NotImplementedError(
-                "optimizer {} is not supported!".format(optimizer)
-            )
+            raise NotImplementedError("optimizer {} is not supported!".format(optimizer))
 
         self._fitted = False
         if self.use_gpu:
@@ -171,12 +169,8 @@ class GRU(Model):
             if len(indices) - i < self.batch_size:
                 break
 
-            feature = torch.from_numpy(
-                x_train_values[indices[i : i + self.batch_size]]
-            ).float()
-            label = torch.from_numpy(
-                y_train_values[indices[i : i + self.batch_size]]
-            ).float()
+            feature = torch.from_numpy(x_train_values[indices[i : i + self.batch_size]]).float()
+            label = torch.from_numpy(y_train_values[indices[i : i + self.batch_size]]).float()
 
             if self.use_gpu:
                 feature = feature.cuda()
@@ -208,9 +202,7 @@ class GRU(Model):
             if len(indices) - i < self.batch_size:
                 break
 
-            feature = torch.from_numpy(
-                x_values[indices[i : i + self.batch_size]]
-            ).float()
+            feature = torch.from_numpy(x_values[indices[i : i + self.batch_size]]).float()
             label = torch.from_numpy(y_values[indices[i : i + self.batch_size]]).float()
 
             if self.use_gpu:
