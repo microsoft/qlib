@@ -9,8 +9,10 @@ import os
 import numpy as np
 import pandas as pd
 import copy
-from ...utils import create_save_path
-from ...log import get_module_logger
+from sklearn.metrics import roc_auc_score, mean_squared_error
+import logging
+from ...utils import unpack_archive_with_buffer, save_multiple_parts_file, create_save_path, drop_nan_by_y_index
+from ...log import get_module_logger, TimeInspector
 
 import torch
 import torch.nn as nn
@@ -51,7 +53,6 @@ class ALSTM(Model):
         optimizer="adam",
         GPU="0",
         seed=0,
-        rnn_type="GRU",
         **kwargs
     ):
         # Set logger.
@@ -73,7 +74,6 @@ class ALSTM(Model):
         self.visible_GPU = GPU
         self.use_gpu = torch.cuda.is_available()
         self.seed = seed
-        self.rnn_type = rnn_type
 
         self.logger.info(
             "ALSTM parameters setting:"
@@ -90,8 +90,7 @@ class ALSTM(Model):
             "\nloss_type : {}"
             "\nvisible_GPU : {}"
             "\nuse_GPU : {}"
-            "\nseed : {}"
-            "\nrnn_type : {}".format(
+            "\nseed : {}".format(
                 d_feat,
                 hidden_size,
                 num_layers,
@@ -106,24 +105,22 @@ class ALSTM(Model):
                 GPU,
                 self.use_gpu,
                 seed,
-                self.rnn_type,
             )
         )
 
-        self.alstm_model = ALSTMModel(
+        self.ALSTM_model = ALSTMModel(
             d_feat=self.d_feat, hidden_size=self.hidden_size, num_layers=self.num_layers, dropout=self.dropout
         )
-
         if optimizer.lower() == "adam":
-            self.train_optimizer = optim.Adam(self.alstm_model.parameters(), lr=self.lr)
+            self.train_optimizer = optim.Adam(self.ALSTM_model.parameters(), lr=self.lr)
         elif optimizer.lower() == "gd":
-            self.train_optimizer = optim.SGD(self.alstm_model.parameters(), lr=self.lr)
+            self.train_optimizer = optim.SGD(self.ALSTM_model.parameters(), lr=self.lr)
         else:
             raise NotImplementedError("optimizer {} is not supported!".format(optimizer))
 
         self._fitted = False
         if self.use_gpu:
-            self.alstm_model.cuda()
+            self.ALSTM_model.cuda()
             # set the visible GPU
             if self.visible_GPU:
                 os.environ["CUDA_VISIBLE_DEVICES"] = self.visible_GPU
@@ -141,6 +138,7 @@ class ALSTM(Model):
         raise ValueError("unknown loss `%s`" % self.loss)
 
     def metric_fn(self, pred, label):
+
         mask = torch.isfinite(label)
 
         if self.metric == "" or self.metric == "loss":  # use loss
@@ -148,12 +146,13 @@ class ALSTM(Model):
 
         raise ValueError("unknown metric `%s`" % self.metric)
 
+
     def train_epoch(self, x_train, y_train):
 
         x_train_values = x_train.values
         y_train_values = np.squeeze(y_train.values)
 
-        self.alstm_model.train()
+        self.ALSTM_model.train()
 
         indices = np.arange(len(x_train_values))
         np.random.shuffle(indices)
@@ -170,21 +169,21 @@ class ALSTM(Model):
                 feature = feature.cuda()
                 label = label.cuda()
 
-            pred = self.alstm_model(feature)
+            pred = self.ALSTM_model(feature)
             loss = self.loss_fn(pred, label)
 
             self.train_optimizer.zero_grad()
             loss.backward()
-            torch.nn.utils.clip_grad_value_(self.alstm_model.parameters(), 3.0)
+            torch.nn.utils.clip_grad_value_(self.ALSTM_model.parameters(), 3.0)
             self.train_optimizer.step()
 
     def test_epoch(self, data_x, data_y):
 
-        # prepare testing data
+        # prepare training data
         x_values = data_x.values
         y_values = np.squeeze(data_y.values)
 
-        self.alstm_model.eval()
+        self.ALSTM_model.eval()
 
         scores = []
         losses = []
@@ -203,7 +202,7 @@ class ALSTM(Model):
                 feature = feature.cuda()
                 label = label.cuda()
 
-            pred = self.alstm_model(feature)
+            pred = self.ALSTM_model(feature)
             loss = self.loss_fn(pred, label)
             losses.append(loss.item())
 
@@ -230,6 +229,7 @@ class ALSTM(Model):
         if save_path == None:
             save_path = create_save_path(save_path)
         stop_steps = 0
+        train_loss = 0
         best_score = -np.inf
         best_epoch = 0
         evals_result["train"] = []
@@ -254,7 +254,7 @@ class ALSTM(Model):
                 best_score = val_score
                 stop_steps = 0
                 best_epoch = step
-                best_param = copy.deepcopy(self.alstm_model.state_dict())
+                best_param = copy.deepcopy(self.ALSTM_model.state_dict())
             else:
                 stop_steps += 1
                 if stop_steps >= self.early_stop:
@@ -262,7 +262,7 @@ class ALSTM(Model):
                     break
 
         self.logger.info("best score: %.6lf @ %d" % (best_score, best_epoch))
-        self.alstm_model.load_state_dict(best_param)
+        self.ALSTM_model.load_state_dict(best_param)
         torch.save(best_param, save_path)
 
         if self.use_gpu:
@@ -274,7 +274,7 @@ class ALSTM(Model):
 
         x_test = dataset.prepare("test", col_set="feature")
         index = x_test.index
-        self.alstm_model.eval()
+        self.ALSTM_model.eval()
         x_values = x_test.values
         sample_num = x_values.shape[0]
         preds = []
@@ -293,34 +293,13 @@ class ALSTM(Model):
 
             with torch.no_grad():
                 if self.use_gpu:
-                    pred = self.alstm_model(x_batch).detach().cpu().numpy()
+                    pred = self.ALSTM_model(x_batch).detach().cpu().numpy()
                 else:
-                    pred = self.alstm_model(x_batch).detach().numpy()
+                    pred = self.ALSTM_model(x_batch).detach().numpy()
 
             preds.append(pred)
 
         return pd.Series(np.concatenate(preds), index=index)
-
-
-class GRUModel(nn.Module):
-    def __init__(self, d_feat=6, hidden_size=64, num_layers=2, dropout=0.0):
-        super().__init__()
-
-        self.rnn = nn.GRU(
-            input_size=d_feat,
-            hidden_size=hidden_size,
-            num_layers=num_layers,
-            batch_first=True,
-            dropout=dropout,
-        )
-        self.fc_out = nn.Linear(hidden_size, 1)
-        self.d_feat = d_feat
-
-    def forward(self, x):
-        x = x.reshape(len(x), self.d_feat, -1)  # [N, F, T]
-        x = x.permute(0, 2, 1)  # [N, T, F]
-        out, _ = self.rnn(x)
-        return self.fc_out(out[:, -1, :]).squeeze()
 
 
 class ALSTMModel(nn.Module):
