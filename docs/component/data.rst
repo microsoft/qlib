@@ -321,7 +321,7 @@ Dataset
 
 The ``Dataset`` module in ``Qlib`` aims to prepare data for model training and inferencing.
 
-The motivation of this module is that we want to maximize the flexibility of of different models to handle data that are suitable for themselves. This module gives the model the rights to process their data in an unique way. For instance, models such as ``GBDT`` may work well on data that contains `nan` or `None` value, while neural networks such as ``DNN`` will break down on such data. 
+The motivation of this module is that we want to maximize the flexibility of of different models to handle data that are suitable for themselves. This module gives the model the rights to process their data in an unique way. For instance, models such as ``GBDT`` may work well on data that contains `nan` or `None` value, while neural networks such as ``MLP`` will break down on such data. 
 
 The ``DatasetH`` class is the `dataset` with `Data Handler`. Here is the most important interface of the class:
 
