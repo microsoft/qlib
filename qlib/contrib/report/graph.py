@@ -96,7 +96,19 @@ class BaseGraph(object):
         """
         py.init_notebook_mode()
         for _fig in figure_list:
-            py.iplot(_fig)
+            # NOTE: displays figures: https://plotly.com/python/renderers/
+            # default: plotly_mimetype+notebook
+            # support renderers: import plotly.io as pio; print(pio.renderers)
+            renderer = None
+            try:
+                # in notebook
+                _ipykernel = str(type(get_ipython()))
+                if "google.colab" in _ipykernel:
+                    renderer = "colab"
+            except NameError:
+                pass
+
+            _fig.show(renderer=renderer)
 
     def _get_layout(self) -> go.Layout:
         """

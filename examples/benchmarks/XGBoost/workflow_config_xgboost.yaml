@@ -30,14 +30,12 @@ task:
         module_path: qlib.contrib.model.xgboost
         kwargs:
             eval_metric: rmse
-            colsample_bytree: 0.5
-            eta: 0.2
-            gamma: 0.55
-            max_depth: 2
-            min_child_weight: 1.0
+            colsample_bytree: 0.8879
+            eta: 0.0421
+            max_depth: 8
             n_estimators: 647
-            subsample: 0.8
-            nthread: 4
+            subsample: 0.8789
+            nthread: 20
     dataset:
         class: DatasetH
         module_path: qlib.data.dataset

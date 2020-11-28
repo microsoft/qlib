@@ -11,7 +11,12 @@ import pandas as pd
 import copy
 from sklearn.metrics import roc_auc_score, mean_squared_error
 import logging
-from ...utils import unpack_archive_with_buffer, save_multiple_parts_file, create_save_path, drop_nan_by_y_index
+from ...utils import (
+    unpack_archive_with_buffer,
+    save_multiple_parts_file,
+    create_save_path,
+    drop_nan_by_y_index,
+)
 from ...log import get_module_logger, TimeInspector
 
 import torch
@@ -109,7 +114,10 @@ class GRU(Model):
         )
 
         self.gru_model = GRUModel(
-            d_feat=self.d_feat, hidden_size=self.hidden_size, num_layers=self.num_layers, dropout=self.dropout
+            d_feat=self.d_feat,
+            hidden_size=self.hidden_size,
+            num_layers=self.num_layers,
+            dropout=self.dropout,
         )
         if optimizer.lower() == "adam":
             self.train_optimizer = optim.Adam(self.gru_model.parameters(), lr=self.lr)
@@ -141,7 +149,7 @@ class GRU(Model):
 
         mask = torch.isfinite(label)
 
-        if self.metric == "" or self.metric == "loss":  # use loss
+        if self.metric == "" or self.metric == "loss":
             return -self.loss_fn(pred[mask], label[mask])
 
         raise ValueError("unknown metric `%s`" % self.metric)
@@ -219,7 +227,9 @@ class GRU(Model):
     ):
 
         df_train, df_valid, df_test = dataset.prepare(
-            ["train", "valid", "test"], col_set=["feature", "label"], data_key=DataHandlerLP.DK_L
+            ["train", "valid", "test"],
+            col_set=["feature", "label"],
+            data_key=DataHandlerLP.DK_L,
         )
 
         x_train, y_train = df_train["feature"], df_train["label"]

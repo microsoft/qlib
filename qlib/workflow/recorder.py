@@ -224,6 +224,8 @@ class MLflowRecorder(Recorder):
             )
 
     def start_run(self):
+        # set the tracking uri
+        mlflow.set_tracking_uri(self._uri)
         # start the run
         run = mlflow.start_run(self.id, self.experiment_id, self.name)
         # save the run id and artifact_uri

@@ -1,4 +1,3 @@
 # State-Frequency-Memory
-- State Frequency Memory (SFM) is a novel recurrent network that uses Discrete Fourier Transform (DFT) to decompose the hidden states of memory cells and capture the multi-frequency trading patterns from past market data to make stock price predictions. 
-- The code used in Qlib is a pyTorch implementation of SFM (Zhang, L., Aggarwal, C., & Qi, G. J. (2017,)).
-- Paper: Stock Price Prediction via Discovering Multi-Frequency Trading Patterns. https://www.cs.ucf.edu/~gqi/publications/kdd2017_stock.pdf.
+- State Frequency Memory (SFM) is a novel recurrent network that uses Discrete Fourier Transform to decompose the hidden states of memory cells and capture the multi-frequency trading patterns from past market data to make stock price predictions. 
+- Paper: Stock Price Prediction via Discovering Multi-Frequency Trading Patterns. [https://www.cs.ucf.edu/~gqi/publications/kdd2017_stock.pdf.](https://www.cs.ucf.edu/~gqi/publications/kdd2017_stock.pdf.)

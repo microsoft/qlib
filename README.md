@@ -41,7 +41,7 @@ For more details, please refer to our paper ["Qlib: An AI-oriented Quantitative 
 # Framework of Qlib
 
 <div style="align: center">
-<img src="http://fintech.msra.cn/images_v060/framework.png" />
+<img src="http://fintech.msra.cn/images_v060/framework.png?v=0.1" />
 </div>
 
 
@@ -192,24 +192,6 @@ The automatic workflow may not suite the research workflow of all Quant research
 
 # [Quant Model Zoo](examples/benchmarks)
 
-## Run a single model
-`Qlib` provides three different ways to run a single model, users can pick the one that fits their cases best:
-- User can use the tool `qrun` mentioned above to run a model's workflow based from a config file.
-- User can create a `workflow_by_code` python script based on the [one](examples/workflow_by_code.py) listed in the `examples` folder.
-- User can use the script [`run_all_model.py`](examples/run_all_model.py) listed in the `examples` folder to run a model. Here is an example of the specific shell command to be used: `python run_all_model.py --models=lightgbm`. For more use cases, please refer to the file's [docstrings](examples/run_all_model.py).
-
-## Run multiple models
-`Qlib` also provides a script [`run_all_model.py`](examples/run_all_model.py) which can run multiple models for several iterations. (**Note**: the script only supprots *Linux* now. Other OS will be supported in the future.)
-
-The script will create a unique virtual environment for each model, and delete the environments after training. Thus, only experiment results such as `IC` and `backtest` results will be generated and stored. 
-
-Here is an example of running all the models for 10 iterations:
-```python
-python run_all_model.py 10
-```
-
-It also provides the API to run specific models at once. For more use cases, please refer to the file's [docstrings](examples/run_all_model.py). 
-
 Here is a list of models built on `Qlib`.
 - [GBDT based on LightGBM](qlib/contrib/model/gbdt.py)
 - [GBDT based on Catboost](qlib/contrib/model/catboost_model.py)
@@ -219,12 +201,29 @@ Here is a list of models built on `Qlib`.
 - [LSTM based on pytorcn](qlib/contrib/model/pytorch_lstm.py)
 - [ALSTM based on pytorcn](qlib/contrib/model/pytorch_alstm.py)
 - [GATs based on pytorch](qlib/contrib/model/pytorch_gats.py)
-- [TabNet based on pytorch](qlib/contrib/model/tabnet.py)
 - [SFM based on pytorch](qlib/contrib/model/pytorch_sfm.py)
-- [HATs based on pytorch](qlib/contrib/model/pytorch_hats.py)
 - [TFT based on tensorflow](examples/benchmarks/TFT/tft.py)
 
 Your PR of new Quant models is highly welcomed.
+
+## Run a single model
+`Qlib` provides three different ways to run a single model, users can pick the one that fits their cases best:
+- User can use the tool `qrun` mentioned above to run a model's workflow based from a config file.
+- User can create a `workflow_by_code` python script based on the [one](examples/workflow_by_code.py) listed in the `examples` folder.
+- User can use the script [`run_all_model.py`](examples/run_all_model.py) listed in the `examples` folder to run a model. Here is an example of the specific shell command to be used: `python run_all_model.py --models=lightgbm`. For more use cases, please refer to the file's [docstrings](examples/run_all_model.py).
+
+## Run multiple models
+`Qlib` also provides a script [`run_all_model.py`](examples/run_all_model.py) which can run multiple models for several iterations. (**Note**: the script only supprots *Linux* now. Other OS will be supported in the future.)
+
+The script will create a unique virtual environment for each model, and delete the environments after training. Thus, only experiment results such as `IC` and `backtest` results will be generated and stored. (**Note**: the script will erase your previous experiment records created by running itself.)
+
+Here is an example of running all the models for 10 iterations:
+```python
+python run_all_model.py 10
+```
+
+It also provides the API to run specific models at once. For more use cases, please refer to the file's [docstrings](examples/run_all_model.py). 
+
 
 # Quant Dataset Zoo
 Dataset plays a very important role in Quant. Here is a list of the datasets built on `Qlib`.

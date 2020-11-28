@@ -11,7 +11,12 @@ import pandas as pd
 import copy
 from sklearn.metrics import roc_auc_score, mean_squared_error
 import logging
-from ...utils import unpack_archive_with_buffer, save_multiple_parts_file, create_save_path, drop_nan_by_y_index
+from ...utils import (
+    unpack_archive_with_buffer,
+    save_multiple_parts_file,
+    create_save_path,
+    drop_nan_by_y_index,
+)
 from ...log import get_module_logger, TimeInspector
 
 import torch
@@ -109,7 +114,10 @@ class ALSTM(Model):
         )
 
         self.ALSTM_model = ALSTMModel(
-            d_feat=self.d_feat, hidden_size=self.hidden_size, num_layers=self.num_layers, dropout=self.dropout
+            d_feat=self.d_feat,
+            hidden_size=self.hidden_size,
+            num_layers=self.num_layers,
+            dropout=self.dropout,
         )
         if optimizer.lower() == "adam":
             self.train_optimizer = optim.Adam(self.ALSTM_model.parameters(), lr=self.lr)
@@ -141,7 +149,7 @@ class ALSTM(Model):
 
         mask = torch.isfinite(label)
 
-        if self.metric == "" or self.metric == "loss":  # use loss
+        if self.metric == "" or self.metric == "loss":
             return -self.loss_fn(pred[mask], label[mask])
 
         raise ValueError("unknown metric `%s`" % self.metric)
@@ -219,7 +227,9 @@ class ALSTM(Model):
     ):
 
         df_train, df_valid, df_test = dataset.prepare(
-            ["train", "valid", "test"], col_set=["feature", "label"], data_key=DataHandlerLP.DK_L
+            ["train", "valid", "test"],
+            col_set=["feature", "label"],
+            data_key=DataHandlerLP.DK_L,
         )
 
         x_train, y_train = df_train["feature"], df_train["label"]
@@ -328,10 +338,16 @@ class ALSTMModel(nn.Module):
         )
         self.fc_out = nn.Linear(in_features=self.hid_size * 2, out_features=1)
         self.att_net = nn.Sequential()
-        self.att_net.add_module("att_fc_in", nn.Linear(in_features=self.hid_size, out_features=int(self.hid_size / 2)))
+        self.att_net.add_module(
+            "att_fc_in",
+            nn.Linear(in_features=self.hid_size, out_features=int(self.hid_size / 2)),
+        )
         self.att_net.add_module("att_dropout", torch.nn.Dropout(self.dropout))
         self.att_net.add_module("att_act", nn.Tanh())
-        self.att_net.add_module("att_fc_out", nn.Linear(in_features=int(self.hid_size / 2), out_features=1, bias=False))
+        self.att_net.add_module(
+            "att_fc_out",
+            nn.Linear(in_features=int(self.hid_size / 2), out_features=1, bias=False),
+        )
         self.att_net.add_module("att_softmax", nn.Softmax(dim=1))
 
     def forward(self, inputs):

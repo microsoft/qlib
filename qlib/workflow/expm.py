@@ -239,20 +239,17 @@ class MLflowExpManager(ExpManager):
         return self._client
 
     def start_exp(self, experiment_name=None, recorder_name=None, uri=None):
+        # set the tracking uri
+        if uri is None:
+            logger.info("No tracking URI is provided. Use the default tracking URI.")
+        else:
+            self.uri = uri
         # create experiment
         experiment, _ = self._get_or_create_exp(experiment_name=experiment_name)
         # set up active experiment
         self.active_experiment = experiment
         # start the experiment
         self.active_experiment.start(recorder_name)
-        # set the tracking uri
-        if uri is None:
-            logger.info(
-                "No tracking URI is provided. The default tracking URI is set as `mlruns` under the working directory."
-            )
-        else:
-            self.uri = uri
-        mlflow.set_tracking_uri(self.uri)
 
         return self.active_experiment
 

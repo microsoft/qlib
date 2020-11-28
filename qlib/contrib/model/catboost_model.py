@@ -41,7 +41,9 @@ class CatBoostModel(Model):
         **kwargs
     ):
         df_train, df_valid = dataset.prepare(
-            ["train", "valid"], col_set=["feature", "label"], data_key=DataHandlerLP.DK_L
+            ["train", "valid"],
+            col_set=["feature", "label"],
+            data_key=DataHandlerLP.DK_L,
         )
         x_train, y_train = df_train["feature"], df_train["label"]
         x_valid, y_valid = df_valid["feature"], df_valid["label"]
