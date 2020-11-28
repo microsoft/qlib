@@ -61,7 +61,7 @@ Auto Quant Research Workflow
 
 
     - Workflow result
-        The result of ``qrun`` is as follows, which is also the result of ``Intraday Trading``. Please refer to  `Intraday Trading <../component/backtest.html>`_. for more details about the result.
+        The result of ``qrun`` is as follows, which is also the typical result of ``Forecast model(alpha)``. Please refer to  `Intraday Trading <../component/backtest.html>`_. for more details about the result.
 
         .. code-block:: python
         
@@ -91,4 +91,4 @@ Auto Quant Research Workflow
 Custom Model Integration
 ===============================================
 
-``Qlib`` provides several models such as ``lightGBM`` and ``DNN`` model as the baseline of ``Interday Model``. In addition to the default model, users can integrate their own custom models into ``Qlib``. If users are interested in the custom model, please refer to `Custom Model Integration <../start/integration.html>`_.
+``Qlib`` provides a batch of models (such as ``lightGBM`` and ``DNN`` models) as examples of ``Interday Model``. In addition to the default model, users can integrate their own custom models into ``Qlib``. If users are interested in the custom model, please refer to `Custom Model Integration <../start/integration.html>`_.
