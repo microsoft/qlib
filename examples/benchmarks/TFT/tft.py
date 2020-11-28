@@ -234,7 +234,7 @@ class TFTModel(ModelFT):
 
         predict50 = format_score(p50_forecast, "pred", 1)
         predict90 = format_score(p90_forecast, "pred", 1)
-        predict = (predict50 + predict90)/2  # self.label_shift
+        predict = (predict50 + predict90) / 2  # self.label_shift
         # ===========================Predicting Process===========================
         return predict
 
