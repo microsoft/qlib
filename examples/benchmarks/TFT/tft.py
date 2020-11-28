@@ -233,9 +233,8 @@ class TFTModel(ModelFT):
             tf.keras.backend.set_session(default_keras_session)
 
         predict = format_score(p90_forecast, "pred", 0)  # self.label_shift
-        label = format_score(targets, "label", 0)
         # ===========================Predicting Process===========================
-        return predict, label
+        return predict
 
     def finetune(self, dataset: DatasetH):
         """
