@@ -5,7 +5,7 @@ Custom Model Integration
 Introduction
 ===================
 
-``Qlib``'s `Model Zoo` includes models such as ``LightGBM``, ``MLP``, ``LSTM``, etc.. These models are treated as the baselines of ``Interday Model``. In addition to the default models ``Qlib`` provide, users can integrate their own custom models into ``Qlib``.
+``Qlib``'s `Model Zoo` includes models such as ``LightGBM``, ``MLP``, ``LSTM``, etc.. These models are examples of ``Interday Model``. In addition to the default models ``Qlib`` provide, users can integrate their own custom models into ``Qlib``.
 
 Users can integrate their own custom models according to the following steps.
 
@@ -87,6 +87,7 @@ The Custom models need to inherit `qlib.model.base.Model <../reference/api.html#
     .. code-block:: Python
 
         def finetune(self, dataset: DatasetH, num_boost_round=10, verbose_eval=20):
+            # Based on existing model and finetune by train more rounds
             dtrain, _ = self._prepare_data(dataset)
             self.model = lgb.train(
                 self.params,
@@ -101,7 +102,7 @@ The Custom models need to inherit `qlib.model.base.Model <../reference/api.html#
 Configuration File
 =======================
 
-The configuration file is described in detail in the `Workflow <../component/workflow.html#complete-example>`_ document. In order to integrate the custom model into ``Qlib``, users need to modify the "model" field in the configuration file.
+The configuration file is described in detail in the `Workflow <../component/workflow.html#complete-example>`_ document. In order to integrate the custom model into ``Qlib``, users need to modify the "model" field in the configuration file. The configuration describes which models to use and how we can initialize it.
 
 - Example: The following example describes the `model` field of configuration file about the custom lightgbm model mentioned above, where `module_path` is the module path, `class` is the class name, and `args` is the hyperparameter passed into the __init__ method. All parameters in the field is passed to `self._params` by `\*\*kwargs` in `__init__` except `loss = mse`. 
 

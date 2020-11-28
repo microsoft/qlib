@@ -80,6 +80,7 @@ class LGBModel(ModelFT):
         verbose_eval : int
             verbose level
         """
+        # Based on existing model and finetune by train more rounds
         dtrain, _ = self._prepare_data(dataset)
         self.model = lgb.train(
             self.params,

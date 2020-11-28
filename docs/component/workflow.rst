@@ -19,9 +19,10 @@ With ``qrun``, user can easily run an `experiment`, which includes the following
     - Processing
     - Slicing
 - Model
-    - Training and inference (static or rolling)
+    - Training and inference
     - Saving & loading
 - Evaluation
+    - Forecast signal analysis
     - Backtest
 
 For each `experiment`, ``Qlib`` has a complete system to tracking all the information as well as artifacts generated during training, inference and evaluation phase. For more information about how Qlib handles `experiment`, please refer to the related document: `Recorder: Experiment Management <../component/recorder.html>`_.
