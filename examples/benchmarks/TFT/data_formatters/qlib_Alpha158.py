@@ -194,10 +194,10 @@ class Alpha158Formatter(GenericDataFormatter):
         """Returns fixed model parameters for experiments."""
 
         fixed_params = {
-            "total_time_steps": 16 + 6,
-            "num_encoder_steps": 16,
+            "total_time_steps": 6 + 6,
+            "num_encoder_steps": 6,
             "num_epochs": 100,
-            "early_stopping_patience": 5,
+            "early_stopping_patience": 10,
             "multiprocessing_workers": 5,
         }
 
@@ -207,11 +207,11 @@ class Alpha158Formatter(GenericDataFormatter):
         """Returns default optimised model parameters."""
 
         model_params = {
-            "dropout_rate": 0.3,
-            "hidden_layer_size": 160,
-            "learning_rate": 0.001,
-            "minibatch_size": 64,
-            "max_gradient_norm": 0.01,
+            "dropout_rate": 0.4,
+            "hidden_layer_size": 16,
+            "learning_rate": 0.0001,
+            "minibatch_size": 128,
+            "max_gradient_norm": 0.0135,
             "num_heads": 1,
             "stack_size": 1,
         }
