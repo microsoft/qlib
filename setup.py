@@ -12,7 +12,7 @@ from setuptools import find_packages, setup, Extension
 NAME = "pyqlib"
 DESCRIPTION = "A Quantitative-research Platform"
 REQUIRES_PYTHON = ">=3.5.0"
-VERSION = "0.5.1.dev0"
+VERSION = "0.6.0.alpha"
 
 # Detect Cython
 try:

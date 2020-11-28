@@ -56,6 +56,23 @@ class ModelFT(Model):
     def finetune(self, dataset: Dataset):
         """finetune model based given dataset
 
+        A typical use case of finetuning model with qlib.workflow.R
+
+        .. code-block:: python
+
+            # start exp to train init model
+            with R.start(experiment_name="init models"):
+                model.fit(dataset)
+                R.save_objects(init_model=model)
+                rid = R.get_recorder().id
+
+            # Finetune model based on previous trained model
+            with R.start(experiment_name="finetune model"):
+                recorder = R.get_recorder(rid, experiment_name="init models")
+                model = recorder.load_object("init_model")
+                model.finetune(dataset, num_boost_round=10)
+
+
         Parameters
         ----------
         dataset : Dataset
