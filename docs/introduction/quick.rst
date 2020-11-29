@@ -49,18 +49,19 @@ To kown more about `prepare data`, please refer to `Data Preparation <../compone
 Auto Quant Research Workflow
 ====================================
 
-``Qlib`` provides a tool named ``Estimator`` to run the whole workflow automatically (including building dataset, training models, backtest and evaluation). Users can start an auto quant research workflow and have a graphical reports analysis according to the following steps: 
+``Qlib`` provides a tool named ``qrun`` to run the whole workflow automatically (including building dataset, training models, backtest and evaluation). Users can start an auto quant research workflow and have a graphical reports analysis according to the following steps: 
 
 - Quant Research Workflow: 
-    - Run  ``Estimator`` with `estimator_config.yaml` as following.
+    - Run  ``qrun`` with a config file of the LightGBM model `workflow_config_lightgbm.yaml` as following.
+
         .. code-block:: 
 
             cd examples  # Avoid running program under the directory contains `qlib`
-            estimator -c estimator/estimator_config.yaml
+            qrun benchmarks/LightGBM/workflow_config_lightgbm.yaml
 
 
-    - Estimator result
-        The result of ``Estimator`` is as follows, which is also the result of ``Intraday Trading``. Please refer to  `Intraday Trading <../component/backtest.html>`_. for more details about the result.
+    - Workflow result
+        The result of ``qrun`` is as follows, which is also the typical result of ``Forecast model(alpha)``. Please refer to  `Intraday Trading <../component/backtest.html>`_. for more details about the result.
 
         .. code-block:: python
         
@@ -77,17 +78,17 @@ Auto Quant Research Workflow
                                        max_drawdown      -0.075024
 
         
-    To know more about `Estimator`, please refer to `Estimator: Workflow Management <../component/estimator.html>`_.
+    To know more about `workflow` and `qrun`, please refer to `Workflow: Workflow Management <../component/workflow.html>`_.
 
 - Graphical Reports Analysis:
-    - Run ``examples/estimator/analyze_from_estimator.ipynb`` with jupyter notebook
-        Users can have portfolio analysis or prediction score (model prediction) analysis by run ``examples/estimator/analyze_from_estimator.ipynb``.
+    - Run ``examples/workflow_by_code.ipynb`` with jupyter notebook
+        Users can have portfolio analysis or prediction score (model prediction) analysis by run ``examples/workflow_by_code.ipynb``.
     - Graphical Reports
-        Users can get graphical reports about the analysis, please refer to `Aanalysis: Evaluation & Results Analysis <../component/report.html>`_ for more details.
+        Users can get graphical reports about the analysis, please refer to `Analysis: Evaluation & Results Analysis <../component/report.html>`_ for more details.
 
 
 
 Custom Model Integration
 ===============================================
 
-``Qlib`` provides ``lightGBM`` and ``Dnn`` model as the baseline of ``Interday Model``. In addition to the default model, users can integrate their own custom models into ``Qlib``. If users are interested in the custom model, please refer to `Custom Model Integration <../start/integration.html>`_.
+``Qlib`` provides a batch of models (such as ``lightGBM`` and ``MLP`` models) as examples of ``Interday Model``. In addition to the default model, users can integrate their own custom models into ``Qlib``. If users are interested in the custom model, please refer to `Custom Model Integration <../start/integration.html>`_.

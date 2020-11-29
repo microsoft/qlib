@@ -15,6 +15,7 @@ from .backtest.backtest import backtest as backtest_func, get_date_range
 
 from ..data import D
 from ..config import C
+from ..data.dataset.utils import get_level_index
 
 logger = get_module_logger("Evaluate")
 
@@ -25,9 +26,9 @@ def risk_analysis(r, N=252):
     Parameters
     ----------
     r : pandas.Series
-        daily return series
+        daily return series.
     N: int
-        scaler for annualizing information_ratio (day: 250, week: 50, month: 12)
+        scaler for annualizing information_ratio (day: 250, week: 50, month: 12).
     """
     mean = r.mean()
     std = r.std(ddof=1)
@@ -60,22 +61,26 @@ def get_strategy(
     ----------
 
     strategy : Strategy()
-        strategy used in backtest
+        strategy used in backtest.
     topk : int (Default value: 50)
         top-N stocks to buy.
     margin : int or float(Default value: 0.5)
-        if isinstance(margin, int):
+        - if isinstance(margin, int):
+
             sell_limit = margin
-        else:
+
+        - else:
+
             sell_limit = pred_in_a_day.count() * margin
-        buffer margin, in single score_mode, continue holding stock if it is in nlargest(sell_limit)
-        sell_limit should be no less than topk
+
+        buffer margin, in single score_mode, continue holding stock if it is in nlargest(sell_limit).
+        sell_limit should be no less than topk.
     n_drop : int
-        number of stocks to be replaced in each trading date
+        number of stocks to be replaced in each trading date.
     risk_degree: float
-        0-1, 0.95 for example, use 95% money to trade
+        0-1, 0.95 for example, use 95% money to trade.
     str_type: 'amount', 'weight' or 'dropout'
-        strategy type: TopkAmountStrategy ,TopkWeightStrategy or TopkDropoutStrategy
+        strategy type: TopkAmountStrategy ,TopkWeightStrategy or TopkDropoutStrategy.
 
     Returns
     -------
@@ -121,21 +126,21 @@ def get_exchange(
     ----------
 
     # exchange related arguments
-    exchange: Exchange()
+    exchange: Exchange().
     subscribe_fields: list
-        subscribe fields
+        subscribe fields.
     open_cost : float
-        open transaction cost
+        open transaction cost.
     close_cost : float
-        close transaction cost
+        close transaction cost.
     min_cost : float
-        min transaction cost
+        min transaction cost.
     trade_unit : int
-        100 for China A
+        100 for China A.
     deal_price: str
-        dealing price type: 'close', 'open', 'vwap'
+        dealing price type: 'close', 'open', 'vwap'.
     limit_threshold : float
-        limit move 0.1 (10%) for example, long and short with same limit
+        limit move 0.1 (10%) for example, long and short with same limit.
     extract_codes: bool
         will we pass the codes extracted from the pred to the exchange.
         NOTE: This will be faster with offline qlib.
@@ -158,11 +163,11 @@ def get_exchange(
         if deal_price[0] != "$":
             deal_price = "$" + deal_price
         if extract_codes:
-            codes = sorted(pred.index.get_level_values(0).unique())
+            codes = sorted(pred.index.get_level_values("instrument").unique())
         else:
             codes = "all"  # TODO: We must ensure that 'all.txt' includes all the stocks
 
-        dates = sorted(pred.index.get_level_values(1).unique())
+        dates = sorted(pred.index.get_level_values("datetime").unique())
         dates = np.append(dates, get_date_range(dates[-1], shift=shift))
 
         exchange = Exchange(
@@ -185,54 +190,61 @@ def backtest(pred, account=1e9, shift=1, benchmark="SH000905", verbose=True, **k
     Parameters
     ----------
 
-    # backtest workflow related or commmon arguments
-    pred : pandas.DataFrame
-        predict should has <instrument, datetime> index and one `score` column
-    account : float
-        init account value
-    shift : int
-        whether to shift prediction by one day
-    benchmark : str
-        benchmark code, default is SH000905 CSI 500
-    verbose : bool
-        whether to print log
+    - **backtest workflow related or commmon arguments**
 
-    # strategy related arguments
+    pred : pandas.DataFrame
+        predict should has <datetime, instrument> index and one `score` column.
+    account : float
+        init account value.
+    shift : int
+        whether to shift prediction by one day.
+    benchmark : str
+        benchmark code, default is SH000905 CSI 500.
+    verbose : bool
+        whether to print log.
+
+    - **strategy related arguments**
+
     strategy : Strategy()
-        strategy used in backtest
+        strategy used in backtest.
     topk : int (Default value: 50)
         top-N stocks to buy.
     margin : int or float(Default value: 0.5)
-        if isinstance(margin, int):
-            sell_limit = margin
-        else:
-            sell_limit = pred_in_a_day.count() * margin
-        buffer margin, in single score_mode, continue holding stock if it is in nlargest(sell_limit)
-        sell_limit should be no less than topk
-    n_drop : int
-        number of stocks to be replaced in each trading date
-    risk_degree: float
-        0-1, 0.95 for example, use 95% money to trade
-    str_type: 'amount', 'weight' or 'dropout'
-        strategy type: TopkAmountStrategy ,TopkWeightStrategy or TopkDropoutStrategy
+        - if isinstance(margin, int):
 
-    # exchange related arguments
+            sell_limit = margin
+
+        - else:
+
+            sell_limit = pred_in_a_day.count() * margin
+
+        buffer margin, in single score_mode, continue holding stock if it is in nlargest(sell_limit).
+        sell_limit should be no less than topk.
+    n_drop : int
+        number of stocks to be replaced in each trading date.
+    risk_degree: float
+        0-1, 0.95 for example, use 95% money to trade.
+    str_type: 'amount', 'weight' or 'dropout'
+        strategy type: TopkAmountStrategy ,TopkWeightStrategy or TopkDropoutStrategy.
+
+    - **exchange related arguments**
+
     exchange: Exchange()
         pass the exchange for speeding up.
     subscribe_fields: list
-        subscribe fields
+        subscribe fields.
     open_cost : float
         open transaction cost. The default value is 0.002(0.2%).
     close_cost : float
         close transaction cost. The default value is 0.002(0.2%).
     min_cost : float
-        min transaction cost
+        min transaction cost.
     trade_unit : int
-        100 for China A
+        100 for China A.
     deal_price: str
-        dealing price type: 'close', 'open', 'vwap'
+        dealing price type: 'close', 'open', 'vwap'.
     limit_threshold : float
-        limit move 0.1 (10%) for example, long and short with same limit
+        limit move 0.1 (10%) for example, long and short with same limit.
     extract_codes: bool
         will we pass the codes extracted from the pred to the exchange.
 
@@ -279,17 +291,17 @@ def long_short_backtest(
     """
     A backtest for long-short strategy
 
-    :param pred:        The trading signal produced on day `T`
-    :param topk:       The short topk securities and long topk securities
-    :param deal_price:  The price to deal the trading
+    :param pred:        The trading signal produced on day `T`.
+    :param topk:       The short topk securities and long topk securities.
+    :param deal_price:  The price to deal the trading.
     :param shift:       Whether to shift prediction by one day.  The trading day will be T+1 if shift==1.
-    :param open_cost:   open transaction cost
-    :param close_cost:  close transaction cost
-    :param trade_unit:  100 for China A
-    :param limit_threshold: limit move 0.1 (10%) for example, long and short with same limit
-    :param min_cost:    min transaction cost
-    :param subscribe_fields: subscribe fields
-    :param extract_codes:  bool
+    :param open_cost:   open transaction cost.
+    :param close_cost:  close transaction cost.
+    :param trade_unit:  100 for China A.
+    :param limit_threshold: limit move 0.1 (10%) for example, long and short with same limit.
+    :param min_cost:    min transaction cost.
+    :param subscribe_fields: subscribe fields.
+    :param extract_codes:  bool.
                        will we pass the codes extracted from the pred to the exchange.
                        NOTE: This will be faster with offline qlib.
     :return:            The result of backtest, it is represented by a dict.
@@ -297,6 +309,8 @@ def long_short_backtest(
                           "short": short_returns(excess),
                           "long_short": long_short_returns}
     """
+    if get_level_index(pred, level="datetime") == 1:
+        pred = pred.swaplevel().sort_index()
 
     if trade_unit is None:
         trade_unit = C.trade_unit
@@ -333,13 +347,13 @@ def long_short_backtest(
     ls_returns = {}
 
     for pdate, date in zip(predict_dates, trade_dates):
-        score = pred.loc(axis=0)[:, pdate]
+        score = pred.loc(axis=0)[pdate, :]
         score = score.reset_index().sort_values(by="score", ascending=False)
 
         long_stocks = list(score.iloc[:topk]["instrument"])
         short_stocks = list(score.iloc[-topk:]["instrument"])
 
-        score = score.set_index(["instrument", "datetime"]).sort_index()
+        score = score.set_index(["datetime", "instrument"]).sort_index()
 
         long_profit = []
         short_profit = []
@@ -363,7 +377,7 @@ def long_short_backtest(
             else:
                 short_profit.append(-profit)
 
-        for stock in list(score.loc(axis=0)[:, pdate].index.get_level_values(level=0)):
+        for stock in list(score.loc(axis=0)[pdate, :].index.get_level_values(level=0)):
             # exclude the suspend stock
             if trade_exchange.check_stock_suspended(stock_id=stock, trade_date=date):
                 continue

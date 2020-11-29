@@ -7,7 +7,6 @@ from __future__ import print_function
 
 import os
 import abc
-import six
 import time
 import queue
 import bisect
@@ -16,6 +15,7 @@ import importlib
 import traceback
 import numpy as np
 import pandas as pd
+from pathlib import Path
 from multiprocessing import Pool
 
 from .cache import H
@@ -25,10 +25,10 @@ from ..log import get_module_logger
 from ..utils import parse_field, read_bin, hash_args, normalize_cache_fields
 from .base import Feature
 from .cache import DiskDatasetCache, DiskExpressionCache
+from ..utils import Wrapper, init_instance_by_config, register_wrapper, get_module_by_module_path
 
 
-@six.add_metaclass(abc.ABCMeta)
-class CalendarProvider(object):
+class CalendarProvider(abc.ABC):
     """Calendar provider base class
 
     Provide calendar data.
@@ -41,13 +41,13 @@ class CalendarProvider(object):
         Parameters
         ----------
         start_time : str
-            start of the time range
+            start of the time range.
         end_time : str
-            end of the time range
+            end of the time range.
         freq : str
-            time frequency, available: year/quarter/month/week/day
+            time frequency, available: year/quarter/month/week/day.
         future : bool
-            whether including future trading day
+            whether including future trading day.
 
         Returns
         ----------
@@ -62,24 +62,24 @@ class CalendarProvider(object):
         Parameters
         ----------
         start_time : str
-            start of the time range
+            start of the time range.
         end_time : str
-            end of the time range
+            end of the time range.
         freq : str
-            time frequency, available: year/quarter/month/week/day
+            time frequency, available: year/quarter/month/week/day.
         future : bool
-            whether including future trading day
+            whether including future trading day.
 
         Returns
         -------
         pd.Timestamp
-            the real start time
+            the real start time.
         pd.Timestamp
-            the real end time
+            the real end time.
         int
-            the index of start time
+            the index of start time.
         int
-            the index of end time
+            the index of end time.
         """
         start_time = pd.Timestamp(start_time)
         end_time = pd.Timestamp(end_time)
@@ -103,16 +103,16 @@ class CalendarProvider(object):
         Parameters
         ----------
         freq : str
-            frequency of read calendar file
+            frequency of read calendar file.
         future : bool
-            whether including future trading day
+            whether including future trading day.
 
         Returns
         -------
         list
-            list of timestamps
+            list of timestamps.
         dict
-            dict composed by timestamp as key and index as value for fast search
+            dict composed by timestamp as key and index as value for fast search.
         """
         flag = f"{freq}_future_{future}"
         if flag in H["c"]:
@@ -128,8 +128,7 @@ class CalendarProvider(object):
         return hash_args(start_time, end_time, freq, future)
 
 
-@six.add_metaclass(abc.ABCMeta)
-class InstrumentProvider(object):
+class InstrumentProvider(abc.ABC):
     """Instrument provider base class
 
     Provide instrument data.
@@ -142,27 +141,30 @@ class InstrumentProvider(object):
         Parameters
         ----------
         market : str
-            market/industry/index shortname, e.g. all/sse/szse/sse50/csi300/csi500
+            market/industry/index shortname, e.g. all/sse/szse/sse50/csi300/csi500.
         filter_pipe : list
-            the list of dynamic filters
+            the list of dynamic filters.
 
         Returns
         ----------
         dict
-            dict of stockpool config
+            dict of stockpool config.
             {`market`=>base market name, `filter_pipe`=>list of filters}
 
             example :
-            {'market': 'csi500',
-             'filter_pipe': [{'filter_type': 'ExpressionDFilter',
-               'rule_expression': '$open<40',
-               'filter_start_time': None,
-               'filter_end_time': None,
-               'keep': False},
-              {'filter_type': 'NameDFilter',
-               'name_rule_re': 'SH[0-9]{4}55',
-               'filter_start_time': None,
-               'filter_end_time': None}]}
+
+            .. code-block::
+
+                {'market': 'csi500',
+                'filter_pipe': [{'filter_type': 'ExpressionDFilter',
+                'rule_expression': '$open<40',
+                'filter_start_time': None,
+                'filter_end_time': None,
+                'keep': False},
+                {'filter_type': 'NameDFilter',
+                'name_rule_re': 'SH[0-9]{4}55',
+                'filter_start_time': None,
+                'filter_end_time': None}]}
         """
         if filter_pipe is None:
             filter_pipe = []
@@ -180,13 +182,13 @@ class InstrumentProvider(object):
         Parameters
         ----------
         instruments : dict
-            stockpool config
+            stockpool config.
         start_time : str
-            start of the time range
+            start of the time range.
         end_time : str
-            end of the time range
+            end of the time range.
         as_list : bool
-            return instruments as list or dict
+            return instruments as list or dict.
 
         Returns
         -------
@@ -213,9 +215,22 @@ class InstrumentProvider(object):
             return cls.LIST
         raise ValueError(f"Unknown instrument type {inst}")
 
+    def convert_instruments(self, instrument):
+        _instruments_map = getattr(self, "_instruments_map", None)
+        if _instruments_map is None:
+            _df_list = []
+            # FIXME: each process will read these files
+            for _path in Path(C.get_data_path()).joinpath("instruments").glob("*.txt"):
+                _df = pd.read_csv(_path, sep="\t", names=["inst", "start_datetime", "end_datetime", "save_inst"])
+                _df_list.append(_df.iloc[:, [0, -1]])
+            df = pd.concat(_df_list, sort=False).sort_values("save_inst")
+            df = df.drop_duplicates(subset=["save_inst"], keep="first").fillna(axis=1, method="ffill")
+            _instruments_map = df.set_index("inst").iloc[:, 0].to_dict()
+            setattr(self, "_instruments_map", _instruments_map)
+        return _instruments_map.get(instrument, instrument)
 
-@six.add_metaclass(abc.ABCMeta)
-class FeatureProvider(object):
+
+class FeatureProvider(abc.ABC):
     """Feature provider class
 
     Provide feature data.
@@ -228,15 +243,15 @@ class FeatureProvider(object):
         Parameters
         ----------
         instrument : str
-            a certain instrument
+            a certain instrument.
         field : str
-            a certain field of feature
+            a certain field of feature.
         start_time : str
-            start of the time range
+            start of the time range.
         end_time : str
-            end of the time range
+            end of the time range.
         freq : str
-            time frequency, available: year/quarter/month/week/day
+            time frequency, available: year/quarter/month/week/day.
 
         Returns
         -------
@@ -246,8 +261,7 @@ class FeatureProvider(object):
         raise NotImplementedError("Subclass of FeatureProvider must implement `feature` method")
 
 
-@six.add_metaclass(abc.ABCMeta)
-class ExpressionProvider(object):
+class ExpressionProvider(abc.ABC):
     """Expression provider class
 
     Provide Expression data.
@@ -280,15 +294,15 @@ class ExpressionProvider(object):
         Parameters
         ----------
         instrument : str
-            a certain instrument
+            a certain instrument.
         field : str
-            a certain field of feature
+            a certain field of feature.
         start_time : str
-            start of the time range
+            start of the time range.
         end_time : str
-            end of the time range
+            end of the time range.
         freq : str
-            time frequency, available: year/quarter/month/week/day
+            time frequency, available: year/quarter/month/week/day.
 
         Returns
         -------
@@ -298,8 +312,7 @@ class ExpressionProvider(object):
         raise NotImplementedError("Subclass of ExpressionProvider must implement `Expression` method")
 
 
-@six.add_metaclass(abc.ABCMeta)
-class DatasetProvider(object):
+class DatasetProvider(abc.ABC):
     """Dataset provider class
 
     Provide Dataset data.
@@ -312,20 +325,20 @@ class DatasetProvider(object):
         Parameters
         ----------
         instruments : list or dict
-            list/dict of instruments or dict of stockpool config
+            list/dict of instruments or dict of stockpool config.
         fields : list
-            list of feature instances
+            list of feature instances.
         start_time : str
-            start of the time range
+            start of the time range.
         end_time : str
-            end of the time range
+            end of the time range.
         freq : str
-            time frequency
+            time frequency.
 
         Returns
         ----------
         pd.DataFrame
-            a pandas dataframe with <instrument, datetime> index
+            a pandas dataframe with <instrument, datetime> index.
         """
         raise NotImplementedError("Subclass of DatasetProvider must implement `Dataset` method")
 
@@ -344,17 +357,17 @@ class DatasetProvider(object):
         Parameters
         ----------
         instruments : list or dict
-            list/dict of instruments or dict of stockpool config
+            list/dict of instruments or dict of stockpool config.
         fields : list
-            list of feature instances
+            list of feature instances.
         start_time : str
-            start of the time range
+            start of the time range.
         end_time : str
-            end of the time range
+            end of the time range.
         freq : str
-            time frequency
+            time frequency.
         disk_cache : int
-            whether to skip(0)/use(1)/replace(2) disk_cache
+            whether to skip(0)/use(1)/replace(2) disk_cache.
 
         """
         return DiskDatasetCache._uri(instruments, fields, start_time, end_time, freq, disk_cache)
@@ -513,7 +526,7 @@ class LocalCalendarProvider(CalendarProvider):
         Parameters
         ----------
         freq : str
-            frequency of read calendar file
+            frequency of read calendar file.
 
         Returns
         ----------
@@ -575,19 +588,11 @@ class LocalInstrumentProvider(InstrumentProvider):
         if not os.path.exists(fname):
             raise ValueError("instruments not exists for market " + market)
         _instruments = dict()
-        with open(fname) as f:
-            for line in f:
-                inst_time = line.strip().split()
-                inst = inst_time[0]
-                if len(inst_time) == 3:
-                    # `day`
-                    begin = inst_time[1]
-                    end = inst_time[2]
-                elif len(inst_time) == 5:
-                    # `1min`
-                    begin = inst_time[1] + " " + inst_time[2]
-                    end = inst_time[3] + " " + inst_time[4]
-                _instruments.setdefault(inst, []).append((pd.Timestamp(begin), pd.Timestamp(end)))
+        df = pd.read_csv(fname, sep="\t", names=["inst", "start_datetime", "end_datetime", "save_inst"])
+        df["start_datetime"] = pd.to_datetime(df["start_datetime"])
+        df["end_datetime"] = pd.to_datetime(df["end_datetime"])
+        for row in df.itertuples(index=False):
+            _instruments.setdefault(row[0], []).append((row[1], row[2]))
         return _instruments
 
     def list_instruments(self, instruments, start_time=None, end_time=None, freq="day", as_list=False):
@@ -642,10 +647,11 @@ class LocalFeatureProvider(FeatureProvider):
     def feature(self, instrument, field, start_index, end_index, freq):
         # validate
         field = str(field).lower()[1:]
+        instrument = Inst.convert_instruments(instrument)
         uri_data = self._uri_data.format(instrument.lower(), field, freq)
         if not os.path.exists(uri_data):
             get_module_logger("data").warning("WARN: data not found for %s.%s" % (instrument, field))
-            return pd.Series()
+            return pd.Series(dtype=np.float32)
             # raise ValueError('uri_data not found: ' + uri_data)
         # load
         series = read_bin(uri_data, start_index, end_index)
@@ -669,9 +675,10 @@ class LocalExpressionProvider(ExpressionProvider):
         lft_etd, rght_etd = expression.get_extended_window_size()
         series = expression.load(instrument, max(0, start_index - lft_etd), end_index + rght_etd, freq)
         # Ensure that each column type is consistent
-        # FIXME: The stock data is currently float. If there is other types of data, this part needs to be re-implemented.
+        # FIXME:
+        # 1) The stock data is currently float. If there is other types of data, this part needs to be re-implemented.
+        # 2) The the precision should be configurable
         try:
-            # TODO: the default storage and calculation type should be configurable
             series = series.astype(np.float32)
         except ValueError:
             pass
@@ -952,6 +959,8 @@ class BaseProvider:
         disk_cache=None,
     ):
         """
+        Parameters:
+        -----------
         disk_cache : int
             whether to skip(0)/use(1)/replace(2) disk_cache
 
@@ -1026,44 +1035,6 @@ class ClientProvider(BaseProvider):
             DatasetD.set_conn(self.client)
 
 
-class Wrapper(object):
-    """Data Provider Wrapper"""
-
-    def __init__(self):
-        self._provider = None
-
-    def register(self, provider):
-        self._provider = provider
-
-    def __getattr__(self, key):
-        if self._provider is None:
-            raise AttributeError("Please run qlib.init() first using qlib")
-        return getattr(self._provider, key)
-
-
-def get_cls_from_name(cls_name):
-    return getattr(importlib.import_module(".data", package="qlib"), cls_name)
-
-
-def get_provider_obj(config, **params):
-    if isinstance(config, dict):
-        params.update(config["kwargs"])
-        config = config["class"]
-    return get_cls_from_name(config)(**params)
-
-
-def register_wrapper(wrapper, cls_or_obj):
-    """register_wrapper
-
-    :param wrapper: A wrapper of all kinds of providers
-    :param cls_or_obj:  A class or class name or object instance in data/data.py
-    """
-    if isinstance(cls_or_obj, str):
-        cls_or_obj = get_cls_from_name(cls_or_obj)
-    obj = cls_or_obj() if isinstance(cls_or_obj, type) else cls_or_obj
-    wrapper.register(obj)
-
-
 Cal = Wrapper()
 Inst = Wrapper()
 FeatureD = Wrapper()
@@ -1075,34 +1046,35 @@ D = Wrapper()
 def register_all_wrappers():
     """register_all_wrappers"""
     logger = get_module_logger("data")
+    module = get_module_by_module_path("qlib.data")
 
-    _calendar_provider = get_provider_obj(C.calendar_provider)
+    _calendar_provider = init_instance_by_config(C.calendar_provider, module)
     if getattr(C, "calendar_cache", None) is not None:
-        _calendar_provider = get_provider_obj(C.calendar_cache, provider=_calendar_provider)
-    register_wrapper(Cal, _calendar_provider)
+        _calendar_provider = init_instance_by_config(C.calendar_cache, module, provide=_calendar_provider)
+    register_wrapper(Cal, _calendar_provider, "qlib.data")
     logger.debug(f"registering Cal {C.calendar_provider}-{C.calenar_cache}")
 
-    register_wrapper(Inst, C.instrument_provider)
+    register_wrapper(Inst, C.instrument_provider, "qlib.data")
     logger.debug(f"registering Inst {C.instrument_provider}")
 
     if getattr(C, "feature_provider", None) is not None:
-        feature_provider = get_provider_obj(C.feature_provider)
-        register_wrapper(FeatureD, feature_provider)
+        feature_provider = init_instance_by_config(C.feature_provider, module)
+        register_wrapper(FeatureD, feature_provider, "qlib.data")
         logger.debug(f"registering FeatureD {C.feature_provider}")
 
     if getattr(C, "expression_provider", None) is not None:
         # This provider is unnecessary in client provider
-        _eprovider = get_provider_obj(C.expression_provider)
+        _eprovider = init_instance_by_config(C.expression_provider, module)
         if getattr(C, "expression_cache", None) is not None:
-            _eprovider = get_provider_obj(C.expression_cache, provider=_eprovider)
-        register_wrapper(ExpressionD, _eprovider)
+            _eprovider = init_instance_by_config(C.expression_cache, module, provider=_eprovider)
+        register_wrapper(ExpressionD, _eprovider, "qlib.data")
         logger.debug(f"registering ExpressioneD {C.expression_provider}-{C.expression_cache}")
 
-    _dprovider = get_provider_obj(C.dataset_provider)
+    _dprovider = init_instance_by_config(C.dataset_provider, module)
     if getattr(C, "dataset_cache", None) is not None:
-        _dprovider = get_provider_obj(C.dataset_cache, provider=_dprovider)
-    register_wrapper(DatasetD, _dprovider)
+        _dprovider = init_instance_by_config(C.dataset_cache, module, provider=_dprovider)
+    register_wrapper(DatasetD, _dprovider, "qlib.data")
     logger.debug(f"registering DataseteD {C.dataset_provider}-{C.dataset_cache}")
 
-    register_wrapper(D, C.provider)
+    register_wrapper(D, C.provider, "qlib.data")
     logger.debug(f"registering D {C.provider}")

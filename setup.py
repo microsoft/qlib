@@ -12,7 +12,7 @@ from setuptools import find_packages, setup, Extension
 NAME = "pyqlib"
 DESCRIPTION = "A Quantitative-research Platform"
 REQUIRES_PYTHON = ">=3.5.0"
-VERSION = "0.5.1.dev0"
+VERSION = "0.6.0.alpha"
 
 # Detect Cython
 try:
@@ -43,17 +43,21 @@ REQUIRED = [
     "schedule>=0.6.0",
     "cvxpy==1.0.21",
     "hyperopt==0.1.1",
-    "fire>=0.2.1",
+    "fire>=0.3.1",
     "statsmodels",
     "xlrd>=1.0.0",
-    "plotly==3.5.0",
+    "plotly==4.12.0",
     "matplotlib==3.1.3",
     "tables>=3.6.1",
     "pyyaml>=5.3.1",
+    "mlflow>=1.12.1",
     "tqdm",
     "loguru",
     "lightgbm",
     "tornado",
+    "joblib>=0.17.0",
+    "fire>=0.3.1",
+    "ruamel.yaml>=0.16.12",
 ]
 
 # Numpy include
@@ -97,7 +101,7 @@ setup(
     entry_points={
         # 'console_scripts': ['mycli=mymodule:cli'],
         "console_scripts": [
-            "estimator=qlib.contrib.estimator.launcher:run",
+            "qrun=qlib.workflow.cli:run",
         ],
     },
     ext_modules=extensions,

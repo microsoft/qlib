@@ -1,4 +1,5 @@
 .. _strategy:
+
 ========================================
 Interday Strategy: Portfolio Management
 ========================================

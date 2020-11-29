@@ -10,6 +10,7 @@ from ...data import D
 from .account import Account
 from ...config import C
 from ...log import get_module_logger
+from ...data.dataset.utils import get_level_index
 
 LOG = get_module_logger("backtest")
 
@@ -18,7 +19,8 @@ def backtest(pred, strategy, trade_exchange, shift, verbose, account, benchmark)
     """Parameters
     ----------
     pred : pandas.DataFrame
-        predict should has <instrument, datetime> index and one `score` column
+        predict should has <datetime, instrument> index and one `score` column
+        Qlib want to support multi-singal strategy in the future. So pd.Series is not used.
     strategy : Strategy()
         strategy part for backtest
     trade_exchange : Exchange()
@@ -43,6 +45,12 @@ def backtest(pred, strategy, trade_exchange, shift, verbose, account, benchmark)
             `benchmark` is str, will use the daily change as the 'bench'.
         benchmark code, default is SH000905 CSI500
     """
+    # Convert format if the input format is not expected
+    if get_level_index(pred, level="datetime") == 1:
+        pred = pred.swaplevel().sort_index()
+    if isinstance(pred, pd.Series):
+        pred = pred.to_frame("score")
+
     trade_account = Account(init_cash=account)
     _pred_dates = pred.index.get_level_values(level="datetime")
     predict_dates = D.calendar(start_time=_pred_dates.min(), end_time=_pred_dates.max())
@@ -57,6 +65,8 @@ def backtest(pred, strategy, trade_exchange, shift, verbose, account, benchmark)
             get_date_by_shift(predict_dates[-1], shift=shift),
             disk_cache=1,
         )
+        if len(_temp_result) == 0:
+            raise ValueError(f"The benchmark {_codes} does not exist. Please provide the right benchmark")
         bench = _temp_result.groupby(level="datetime")[_temp_result.columns.tolist()[0]].mean()
 
     trade_dates = np.append(predict_dates[shift:], get_date_range(predict_dates[-1], shift=shift))
@@ -71,7 +81,7 @@ def backtest(pred, strategy, trade_exchange, shift, verbose, account, benchmark)
 
         # 1. Load the score_series at pred_date
         try:
-            score = pred.loc(axis=0)[:, pred_date]  # (stock_id, trade_date) multi_index, score in pdate
+            score = pred.loc(axis=0)[pred_date, :]  # (trade_date, stock_id) multi_index, score in pdate
             score_series = score.reset_index(level="datetime", drop=True)[
                 "score"
             ]  # pd.Series(index:stock_id, data: score)

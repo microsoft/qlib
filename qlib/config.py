@@ -14,6 +14,8 @@ Two modes are supported
 import copy
 from pathlib import Path
 import re
+import os
+import multiprocessing
 
 
 class Config:
@@ -62,6 +64,8 @@ class Config:
 REG_CN = "cn"
 REG_US = "us"
 
+NUM_USABLE_CPU = max(multiprocessing.cpu_count() - 2, 1)
+
 _default_config = {
     # data provider config
     "calendar_provider": "LocalCalendarProvider",
@@ -78,7 +82,7 @@ _default_config = {
     "calendar_cache": None,
     # for simple dataset cache
     "local_cache_path": None,
-    "kernels": 16,
+    "kernels": NUM_USABLE_CPU,
     # How many tasks belong to one process. Recommend 1 for high-frequency data and None for daily data.
     "maxtasksperchild": None,
     "default_disk_cache": 1,  # 0:skip/1:use
@@ -124,6 +128,15 @@ _default_config = {
         },
         "loggers": {"qlib": {"level": "DEBUG", "handlers": ["console"]}},
     },
+    # Defatult config for experiment manager
+    "exp_manager": {
+        "class": "MLflowExpManager",
+        "module_path": "qlib.workflow.expm",
+        "kwargs": {
+            "uri": "file:" + str(Path(os.getcwd()).resolve() / "mlruns"),
+            "default_exp_name": "Experiment",
+        },
+    },
 }
 
 MODE_CONF = {
@@ -141,10 +154,11 @@ MODE_CONF = {
         "redis_host": "127.0.0.1",
         "redis_port": 6379,
         "redis_task_db": 1,
-        "kernels": 64,
+        "kernels": NUM_USABLE_CPU,
         # cache
         "expression_cache": "DiskExpressionCache",
         "dataset_cache": "DiskDatasetCache",
+        "mount_path": None,
     },
     "client": {
         # data provider config
@@ -162,7 +176,7 @@ MODE_CONF = {
         "dataset_cache": "DiskDatasetCache",
         "calendar_cache": None,
         # client config
-        "kernels": 16,
+        "kernels": NUM_USABLE_CPU,
         "mount_path": None,
         "auto_mount": False,  # The nfs is already mounted on our server[auto_mount: False].
         # The nfs should be auto-mounted by qlib on other
@@ -212,7 +226,9 @@ class QlibConfig(Config):
 
     def get_uri_type(self):
         is_win = re.match("^[a-zA-Z]:.*", self["provider_uri"]) is not None  # such as 'C:\\data', 'D:'
-        is_nfs_or_win = re.match("^[^/]+:.+", self["provider_uri"]) is not None  # such as 'host:/data/'   (User may define short hostname by themselves or use localhost)
+        is_nfs_or_win = (
+            re.match("^[^/]+:.+", self["provider_uri"]) is not None
+        )  # such as 'host:/data/'   (User may define short hostname by themselves or use localhost)
 
         if is_nfs_or_win and not is_win:
             return QlibConfig.NFS_URI

@@ -1,4 +1,5 @@
 .. _alpha:
+
 ===========================
 Building Formulaic Alphas 
 ===========================
@@ -49,7 +50,7 @@ Users can use ``Data Handler`` to build formulaic alphas `MACD` in qlib:
 
 .. code-block:: python
 
-    >> from qlib.contrib.estimator.handler import QLibDataHandler
+    >> from qlib.data.dataset.handler import QLibDataHandler
     >> MACD_EXP = '(EMA($close, 12) - EMA($close, 26))/$close - EMA((EMA($close, 12) - EMA($close, 26))/$close, 9)/$close'
     >> fields = [MACD_EXP] # MACD
     >> names = ['MACD']

@@ -20,7 +20,6 @@ python get_data.py qlib_data --target_dir ~/.qlib/qlib_data/cn_data --region cn
 
 ### Downlaod US Data
 
-> The US stock code contains 'PRN', and the directory cannot be created on Windows system: https://superuser.com/questions/613313/why-cant-we-make-con-prn-null-folder-in-windows
 
 ```bash
 python get_data.py qlib_data --target_dir ~/.qlib/qlib_data/us_data --region us
@@ -44,6 +43,8 @@ python get_data.py qlib_data --help
 
 ### US data
 
+> Need to download data first: [Downlaod US Data](#Downlaod-US-Data)
+
 ```python
 import qlib
 from qlib.config import REG_US
@@ -52,6 +53,8 @@ qlib.init(provider_uri=provider_uri, region=REG_US)
 ```
 
 ### CN data
+
+> Need to download data first: [Download CN Data](#Download-CN-Data)
 
 ```python
 import qlib

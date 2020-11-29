@@ -43,16 +43,17 @@ jobs:
     - name: Lint with Black
       run: |
         cd ..
-        python -m black qlib -l 120
+        python -m black qlib -l 120 --check --diff
 
     - name: Unit tests with Pytest
       run: |
         cd tests
         pytest . --durations=0
 
-    - name: Test data downloads and examples
+    - name: Test data downloads
       run: |
         python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/cn_data --interval 1d --region cn
-        # cd examples
-        # estimator -c estimator/estimator_config.yaml
-        # jupyter nbconvert --execute estimator/analyze_from_estimator.ipynb --to html
+
+    - name: Test workflow by config
+      run: |
+        qrun examples/benchmarks/LightGBM/workflow_config_lightgbm.yaml 

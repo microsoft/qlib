@@ -2,68 +2,95 @@
 # Licensed under the MIT License.
 
 import sys
+import shutil
 import unittest
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from scipy.stats import pearsonr
 
 import qlib
-from qlib.config import REG_CN
+from qlib.config import REG_CN, C
 from qlib.utils import drop_nan_by_y_index
 from qlib.contrib.model.gbdt import LGBModel
-from qlib.contrib.estimator.handler import Alpha158
+from qlib.contrib.data.handler import Alpha158
 from qlib.contrib.strategy.strategy import TopkDropoutStrategy
 from qlib.contrib.evaluate import (
     backtest as normal_backtest,
     risk_analysis,
 )
-from qlib.utils import exists_qlib_data
+from qlib.utils import exists_qlib_data, init_instance_by_config, flatten_dict
+from qlib.workflow import R
+from qlib.workflow.record_temp import SignalRecord, SigAnaRecord, PortAnaRecord
 
 
-DATA_HANDLER_CONFIG = {
-    "dropna_label": True,
-    "start_date": "2008-01-01",
-    "end_date": "2020-08-01",
-    "market": "CSI300",
+market = "csi300"
+benchmark = "SH000300"
+
+###################################
+# train model
+###################################
+data_handler_config = {
+    "start_time": "2008-01-01",
+    "end_time": "2020-08-01",
+    "fit_start_time": "2008-01-01",
+    "fit_end_time": "2014-12-31",
+    "instruments": market,
 }
 
-MODEL_CONFIG = {
-    "loss": "mse",
-    "colsample_bytree": 0.8879,
-    "learning_rate": 0.0421,
-    "subsample": 0.8789,
-    "lambda_l1": 205.6999,
-    "lambda_l2": 580.9768,
-    "max_depth": 8,
-    "num_leaves": 210,
-    "num_threads": 20,
+task = {
+    "model": {
+        "class": "LGBModel",
+        "module_path": "qlib.contrib.model.gbdt",
+        "kwargs": {
+            "loss": "mse",
+            "colsample_bytree": 0.8879,
+            "learning_rate": 0.0421,
+            "subsample": 0.8789,
+            "lambda_l1": 205.6999,
+            "lambda_l2": 580.9768,
+            "max_depth": 8,
+            "num_leaves": 210,
+            "num_threads": 20,
+        },
+    },
+    "dataset": {
+        "class": "DatasetH",
+        "module_path": "qlib.data.dataset",
+        "kwargs": {
+            "handler": {
+                "class": "Alpha158",
+                "module_path": "qlib.contrib.data.handler",
+                "kwargs": data_handler_config,
+            },
+            "segments": {
+                "train": ("2008-01-01", "2014-12-31"),
+                "valid": ("2015-01-01", "2016-12-31"),
+                "test": ("2017-01-01", "2020-08-01"),
+            },
+        },
+    },
 }
 
-TRAINER_CONFIG = {
-    "train_start_date": "2008-01-01",
-    "train_end_date": "2014-12-31",
-    "validate_start_date": "2015-01-01",
-    "validate_end_date": "2016-12-31",
-    "test_start_date": "2017-01-01",
-    "test_end_date": "2020-08-01",
-}
-
-STRATEGY_CONFIG = {
-    "topk": 50,
-    "n_drop": 5,
-}
-
-BACKTEST_CONFIG = {
-    "verbose": False,
-    "limit_threshold": 0.095,
-    "account": 100000000,
-    "benchmark": "SH000300",
-    "deal_price": "close",
-    "open_cost": 0.0005,
-    "close_cost": 0.0015,
-    "min_cost": 5,
+port_analysis_config = {
+    "strategy": {
+        "class": "TopkDropoutStrategy",
+        "module_path": "qlib.contrib.strategy.strategy",
+        "kwargs": {
+            "topk": 50,
+            "n_drop": 5,
+        },
+    },
+    "backtest": {
+        "verbose": False,
+        "limit_threshold": 0.095,
+        "account": 100000000,
+        "benchmark": benchmark,
+        "deal_price": "close",
+        "open_cost": 0.0005,
+        "close_cost": 0.0015,
+        "min_cost": 5,
+    },
 }
 
 
@@ -78,59 +105,53 @@ def train():
         performance: dict
             model performance
     """
-    # get data
-    x_train, y_train, x_validate, y_validate, x_test, y_test = Alpha158(**DATA_HANDLER_CONFIG).get_split_data(
-        **TRAINER_CONFIG
-    )
 
-    # train
-    model = LGBModel(**MODEL_CONFIG)
-    model.fit(x_train, y_train, x_validate, y_validate)
-    _pred = model.predict(x_test)
-    _pred = pd.DataFrame(_pred, index=x_test.index, columns=y_test.columns)
-    pred_score = pd.DataFrame(index=_pred.index)
-    pred_score["score"] = _pred.iloc(axis=1)[0]
+    # model initiaiton
+    model = init_instance_by_config(task["model"])
+    dataset = init_instance_by_config(task["dataset"])
 
-    # get performance
-    try:
-        model_score = model.score(x_test, y_test)
-    except NotImplementedError:
-        model_score = None
-    # Remove rows from x, y and w, which contain Nan in any columns in y_test.
-    x_test, y_test, __ = drop_nan_by_y_index(x_test, y_test)
-    pred_test = model.predict(x_test)
-    model_pearsonr = pearsonr(np.ravel(pred_test), np.ravel(y_test.values))[0]
+    # start exp
+    with R.start(experiment_name="workflow"):
+        R.log_params(**flatten_dict(task))
+        model.fit(dataset)
 
-    return pred_score, {"model_score": model_score, "model_pearsonr": model_pearsonr}
+        # prediction
+        recorder = R.get_recorder()
+        rid = recorder.id
+        sr = SignalRecord(model, dataset, recorder)
+        sr.generate()
+        pred_score = sr.load()
+
+        # calculate ic and ric
+        sar = SigAnaRecord(recorder)
+        sar.generate()
+        ic = sar.load(sar.get_path("ic.pkl"))
+        ric = sar.load(sar.get_path("ric.pkl"))
+
+    return pred_score, {"ic": ic, "ric": ric}, rid
 
 
-def backtest(pred):
-    """backtest
+def backtest_analysis(pred, rid):
+    """backtest and analysis
 
     Parameters
     ----------
-    pred: pandas.DataFrame
+    pred : pandas.DataFrame
         predict scores
+    rid : str
+        the id of the recorder to be used in this function
 
     Returns
     -------
-    report_normal: pandas.DataFrame
-
-    positions_normal: dict
+    analysis : pandas.DataFrame
+        the analysis result
 
     """
-    strategy = TopkDropoutStrategy(**STRATEGY_CONFIG)
-    _report_normal, _positions_normal = normal_backtest(pred, strategy=strategy, **BACKTEST_CONFIG)
-    return _report_normal, _positions_normal
-
-
-def analyze(report_normal):
-    _analysis = dict()
-    _analysis["excess_return_without_cost"] = risk_analysis(report_normal["return"] - report_normal["bench"])
-    _analysis["excess_return_with_cost"] = risk_analysis(
-        report_normal["return"] - report_normal["bench"] - report_normal["cost"]
-    )
-    analysis_df = pd.concat(_analysis)  # type: pd.DataFrame
+    recorder = R.get_recorder(experiment_name="workflow", recorder_id=rid)
+    # backtest
+    par = PortAnaRecord(recorder, port_analysis_config)
+    par.generate()
+    analysis_df = par.load(par.get_path("port_analysis.pkl"))
     print(analysis_df)
     return analysis_df
 
@@ -139,6 +160,7 @@ class TestAllFlow(unittest.TestCase):
     PRED_SCORE = None
     REPORT_NORMAL = None
     POSITIONS = None
+    RID = None
 
     @classmethod
     def setUpClass(cls) -> None:
@@ -149,16 +171,22 @@ class TestAllFlow(unittest.TestCase):
             sys.path.append(str(Path(__file__).resolve().parent.parent.joinpath("scripts")))
             from get_data import GetData
 
-            GetData().qlib_data(name="qlib_data_simple", region="cn", version="latest", interval="1d", target_dir=provider_uri)
+            GetData().qlib_data(
+                name="qlib_data_simple", region="cn", version="latest", interval="1d", target_dir=provider_uri
+            )
         qlib.init(provider_uri=provider_uri, region=REG_CN)
 
+    @classmethod
+    def tearDownClass(cls) -> None:
+        shutil.rmtree(str(Path(C["exp_manager"]["kwargs"]["uri"].strip("file:")).resolve()))
+
     def test_0_train(self):
-        TestAllFlow.PRED_SCORE, model_pearsonr = train()
-        self.assertGreaterEqual(model_pearsonr["model_pearsonr"], 0, "train failed")
+        TestAllFlow.PRED_SCORE, ic_ric, TestAllFlow.RID = train()
+        self.assertGreaterEqual(ic_ric["ic"].all(), 0, "train failed")
+        self.assertGreaterEqual(ic_ric["ric"].all(), 0, "train failed")
 
     def test_1_backtest(self):
-        TestAllFlow.REPORT_NORMAL, TestAllFlow.POSITIONS = backtest(TestAllFlow.PRED_SCORE)
-        analyze_df = analyze(TestAllFlow.REPORT_NORMAL)
+        analyze_df = backtest_analysis(TestAllFlow.PRED_SCORE, TestAllFlow.RID)
         self.assertGreaterEqual(
             analyze_df.loc(axis=0)["excess_return_with_cost", "annualized_return"].values[0],
             0.10,

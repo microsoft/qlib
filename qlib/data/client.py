@@ -7,7 +7,7 @@ from __future__ import print_function
 
 import socketio
 
-from .. import __version__
+import qlib
 from ..log import get_module_logger
 import pickle
 
@@ -51,15 +51,15 @@ class Client(object):
         Parameters
         ----------
         request_type : str
-            type of proposed request, 'calendar'/'instrument'/'feature'
+            type of proposed request, 'calendar'/'instrument'/'feature'.
         request_content : dict
-            records the information of the request
+            records the information of the request.
         msg_proc_func : func
-            the function to process the message when receiving response, should have arg `*args`
+            the function to process the message when receiving response, should have arg `*args`.
         msg_queue: Queue
-            The queue to pass the messsage after callback
+            The queue to pass the messsage after callback.
         """
-        head_info = {"version": __version__}
+        head_info = {"version": qlib.__version__}
 
         def request_callback(*args):
             """callback_wrapper

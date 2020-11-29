@@ -75,11 +75,12 @@ def _report_figure(df: pd.DataFrame) -> [list, tuple]:
     max_start_date, max_end_date = _calculate_maximum(report_df)
     ex_max_start_date, ex_max_end_date = _calculate_maximum(report_df, True)
 
+    index_name = report_df.index.name
     _temp_df = report_df.reset_index()
     _temp_df.loc[-1] = 0
     _temp_df = _temp_df.shift(1)
-    _temp_df.loc[0, "index"] = "T0"
-    _temp_df.set_index("index", inplace=True)
+    _temp_df.loc[0, index_name] = "T0"
+    _temp_df.set_index(index_name, inplace=True)
     _temp_df.iloc[0] = 0
     report_df = _temp_df
 
@@ -99,13 +100,13 @@ def _report_figure(df: pd.DataFrame) -> [list, tuple]:
         ("cum_ex_return_wo_cost_mdd", dict(row=7, col=1, graph_kwargs=_temp_fill_args)),
     ]
 
-    _subplot_layout = dict(
-        xaxis=dict(showline=True, type="category", tickangle=45),
-        yaxis=dict(zeroline=True, showline=True, showticklabels=True),
-    )
-    for i in range(2, 8):
+    _subplot_layout = dict()
+    for i in range(1, 8):
         # yaxis
         _subplot_layout.update({"yaxis{}".format(i): dict(zeroline=True, showline=True, showticklabels=True)})
+        _show_line = i == 7
+        _subplot_layout.update({"xaxis{}".format(i): dict(showline=_show_line, type="category", tickangle=45)})
+
     _layout_style = dict(
         height=1200,
         title=" ",
@@ -185,7 +186,7 @@ def report_graph(report_df: pd.DataFrame, show_notebook: bool = True) -> [list, 
 
                 qcr.report_graph(report_normal_df)
 
-    :param report_df: **df.index.name** must be **date**, **df.columns** must contain **return**, **turnover**, **cost**, **bench**
+    :param report_df: **df.index.name** must be **date**, **df.columns** must contain **return**, **turnover**, **cost**, **bench**.
 
 
             .. code-block:: python
@@ -199,8 +200,8 @@ def report_graph(report_df: pd.DataFrame, show_notebook: bool = True) -> [list, 
                 2017-01-10  -0.000416   0.000440    -0.003350   0.208396
 
 
-    :param show_notebook: whether to display graphics in notebook, the default is **True**
-    :return: if show_notebook is True, display in notebook; else return **plotly.graph_objs.Figure** list
+    :param show_notebook: whether to display graphics in notebook, the default is **True**.
+    :return: if show_notebook is True, display in notebook; else return **plotly.graph_objs.Figure** list.
     """
     report_df = report_df.copy()
     fig_list = _report_figure(report_df)

@@ -55,7 +55,9 @@ class GetData:
             for _file in tqdm(zp.namelist()):
                 zp.extract(_file, str(target_dir.resolve()))
 
-    def qlib_data(self, name="qlib_data", target_dir="~/.qlib/qlib_data/cn_data", version="latest", interval="1d", region="cn"):
+    def qlib_data(
+        self, name="qlib_data", target_dir="~/.qlib/qlib_data/cn_data", version="latest", interval="1d", region="cn"
+    ):
         """download cn qlib data from remote
 
         Parameters
@@ -77,9 +79,6 @@ class GetData:
         -------
 
         """
-        # TODO: The US stock code contains "PRN", and the directory cannot be created on Windows system
-        if region.lower() == "us":
-            logger.warning(f"The US stock code contains 'PRN', and the directory cannot be created on Windows system")
         file_name = f"{name}_{region.lower()}_{interval.lower()}_{version}.zip"
         self._download_data(file_name.lower(), target_dir)
 

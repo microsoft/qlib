@@ -23,16 +23,13 @@ Filter
 .. automodule:: qlib.data.filter
     :members:
 
-Feature
---------------------
-
 Class
-~~~~~~~~~~~~~~~~~~~~
+--------------------
 .. automodule:: qlib.data.base
     :members:
 
 Operator
-~~~~~~~~~~~~~~~~~~~~
+--------------------
 .. automodule:: qlib.data.ops
     :members:
 	       
@@ -56,19 +53,36 @@ Cache
 .. autoclass:: qlib.data.cache.DiskDatasetCache
     :members:
 
+Dataset
+---------------
+
+Dataset Class
+~~~~~~~~~~~~~~~~~~~~
+.. automodule:: qlib.data.dataset.__init__
+    :members:
+
+Data Loader
+~~~~~~~~~~~~~~~~~~~~
+.. automodule:: qlib.data.dataset.loader
+    :members:
+
+Data Handler
+~~~~~~~~~~~~~~~~~~~~
+.. automodule:: qlib.data.dataset.handler
+    :members:
+
+Processor
+~~~~~~~~~~~~~~~~~~~~
+.. automodule:: qlib.data.dataset.processor
+    :members:
+
 
 Contrib
 ====================
 
-
-Data Handler
----------------
-.. automodule:: qlib.contrib.estimator.handler
-    :members:
-
 Model
 --------------------
-.. automodule:: qlib.contrib.model.base
+.. automodule:: qlib.model.base
     :members:
 
 Strategy
@@ -116,3 +130,26 @@ Report
     :members:
 
 
+Workflow
+====================
+
+
+Experiment Manager
+--------------------
+.. autoclass:: qlib.workflow.expm.ExpManager
+    :members:
+
+Experiment
+--------------------
+.. autoclass:: qlib.workflow.exp.Experiment
+    :members:
+
+Recorder
+--------------------
+.. autoclass:: qlib.workflow.recorder.Recorder
+    :members:
+
+Record Template
+--------------------
+.. automodule:: qlib.workflow.record_temp
+    :members:

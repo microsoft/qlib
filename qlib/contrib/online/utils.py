@@ -7,7 +7,7 @@ import yaml
 import pandas as pd
 from ...data import D
 from ...log import get_module_logger
-from ...utils import get_module_by_module_path
+from ...utils import get_module_by_module_path, init_instance_by_config
 from ...utils import get_next_trading_date
 from ..backtest.exchange import Exchange
 
@@ -43,21 +43,6 @@ def save_instance(instance, file_path):
     file_path = pathlib.Path(file_path)
     with file_path.open("wb") as fr:
         pickle.dump(instance, fr)
-
-
-def init_instance_by_config(config):
-    """
-    generate an instance with settings in config
-        Parameter
-            config : dict
-                python dict indicate a init parameters to create an item
-        :return
-            An instance
-    """
-    module = get_module_by_module_path(config["module_path"])
-    instance_class = getattr(module, config["class"])
-    instance = instance_class(**config["args"])
-    return instance
 
 
 def create_user_folder(path):

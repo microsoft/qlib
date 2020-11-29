@@ -75,7 +75,9 @@ class TestDumpData(unittest.TestCase):
 
     def test_4_dump_features_simple(self):
         stock = self.STOCK_NAMES[0]
-        dump_data = DumpDataFix(csv_path=SOURCE_DIR.joinpath(f"{stock.lower()}.csv"), qlib_dir=QLIB_DIR, include_fields=self.FIELDS)
+        dump_data = DumpDataFix(
+            csv_path=SOURCE_DIR.joinpath(f"{stock.lower()}.csv"), qlib_dir=QLIB_DIR, include_fields=self.FIELDS
+        )
         dump_data.dump()
 
         df = D.features([stock], self.QLIB_FIELDS)

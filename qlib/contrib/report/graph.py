@@ -11,7 +11,7 @@ import pandas as pd
 import plotly.offline as py
 import plotly.graph_objs as go
 
-from plotly.tools import make_subplots
+from plotly.subplots import make_subplots
 from plotly.figure_factory import create_distplot
 
 from ...utils import get_module_by_module_path
@@ -96,7 +96,19 @@ class BaseGraph(object):
         """
         py.init_notebook_mode()
         for _fig in figure_list:
-            py.iplot(_fig)
+            # NOTE: displays figures: https://plotly.com/python/renderers/
+            # default: plotly_mimetype+notebook
+            # support renderers: import plotly.io as pio; print(pio.renderers)
+            renderer = None
+            try:
+                # in notebook
+                _ipykernel = str(type(get_ipython()))
+                if "google.colab" in _ipykernel:
+                    renderer = "colab"
+            except NameError:
+                pass
+
+            _fig.show(renderer=renderer)
 
     def _get_layout(self) -> go.Layout:
         """
@@ -125,7 +137,10 @@ class BaseGraph(object):
 
         :return:
         """
-        return go.Figure(data=self.data, layout=self._get_layout())
+        _figure = go.Figure(data=self.data, layout=self._get_layout())
+        # NOTE: using default 3.x theme
+        _figure["layout"].update(template=None)
+        return _figure
 
 
 class ScatterGraph(BaseGraph):
@@ -357,13 +372,14 @@ class SubplotsGraph(object):
             #     _item.pop('yaxis', None)
 
             for _g_obj in _graph_data:
-                self._figure.append_trace(_g_obj, row=row, col=col)
+                self._figure.add_trace(_g_obj, row=row, col=col)
 
         if self._sub_graph_layout is not None:
             for k, v in self._sub_graph_layout.items():
                 self._figure["layout"][k].update(v)
 
-        self._figure["layout"].update(self._layout)
+        # NOTE: using default 3.x theme
+        self._figure["layout"].update(self._layout, template=None)
 
     @property
     def figure(self):

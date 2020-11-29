@@ -2,19 +2,20 @@
 # Licensed under the MIT License.
 
 
-__version__ = "0.5.1.dev0"
+__version__ = "0.6.0.alpha"
 
 import os
-import copy
-import logging
 import re
-import subprocess
-import platform
+import sys
+import copy
 import yaml
+import logging
+import platform
+import subprocess
 from pathlib import Path
 
-from .utils import can_use_cache
-
+from .utils import can_use_cache, init_instance_by_config, get_module_by_module_path
+from .workflow.utils import experiment_exit_handler
 
 # init qlib
 def init(default_conf="client", **kwargs):
@@ -22,6 +23,7 @@ def init(default_conf="client", **kwargs):
     from .data.data import register_all_wrappers
     from .log import get_module_logger, set_log_with_config
     from .data.cache import H
+    from .workflow import R, QlibRecorder
 
     C.reset()
     H.clear()
@@ -34,17 +36,18 @@ def init(default_conf="client", **kwargs):
     if _logging_config:
         set_log_with_config(_logging_config)
 
+    # FIXME: this logger ignored the level in config
     LOG = get_module_logger("Initialization", level=logging.INFO)
     LOG.info(f"default_conf: {default_conf}.")
 
     C.set_mode(default_conf)
+    C.set_region(kwargs.get("region", C["region"] if "region" in C else REG_CN))
 
     for k, v in kwargs.items():
         C[k] = v
         if k not in C:
             LOG.warning("Unrecognized config %s" % k)
 
-    C.set_region(kwargs.get("region", C["region"] if "region" in C else REG_CN))
     C.resolve_path()
 
     if not (C["expression_cache"] is None and C["dataset_cache"] is None):
@@ -61,12 +64,10 @@ def init(default_conf="client", **kwargs):
         if not os.path.exists(C["provider_uri"]):
             if C["auto_mount"]:
                 LOG.error(
-                    "Invalid provider uri: {}, please check if a valid provider uri has been set. This path does not exist.".format(
-                        C["provider_uri"]
-                    )
+                    f"Invalid provider uri: {C['provider_uri']}, please check if a valid provider uri has been set. This path does not exist."
                 )
             else:
-                LOG.warning("auto_path is False, please make sure {} is mounted".format(C["mount_path"]))
+                LOG.warning(f"auto_path is False, please make sure {C['mount_path']} is mounted")
     elif C.get_uri_type() == QlibConfig.NFS_URI:
         _mount_nfs_uri(C)
     else:
@@ -79,6 +80,13 @@ def init(default_conf="client", **kwargs):
 
     if "flask_server" in C:
         LOG.info(f"flask_server={C['flask_server']}, flask_port={C['flask_port']}")
+
+    # set up QlibRecorder
+    exp_manager = init_instance_by_config(C["exp_manager"])
+    qr = QlibRecorder(exp_manager)
+    R.register(qr)
+    # clean up experiment when python program ends
+    experiment_exit_handler()
 
 
 def _mount_nfs_uri(C):
@@ -94,9 +102,7 @@ def _mount_nfs_uri(C):
     if not C["auto_mount"]:
         if not os.path.exists(C["mount_path"]):
             raise FileNotFoundError(
-                "Invalid mount path: {}! Please mount manually: {} or Set init parameter `auto_mount=True`".format(
-                    C["mount_path"], mount_command
-                )
+                f"Invalid mount path: {C['mount_path']}! Please mount manually: {mount_command} or Set init parameter `auto_mount=True`"
             )
     else:
         # Judging system type
@@ -153,9 +159,7 @@ def _mount_nfs_uri(C):
                     os.makedirs(C["mount_path"], exist_ok=True)
                 except Exception:
                     raise OSError(
-                        "Failed to create directory {}, please create {} manually!".format(
-                            C["mount_path"], C["mount_path"]
-                        )
+                        f"Failed to create directory {C['mount_path']}, please create {C['mount_path']} manually!"
                     )
 
                 # check nfs-common
@@ -167,20 +171,18 @@ def _mount_nfs_uri(C):
                 command_status = os.system(mount_command)
                 if command_status == 256:
                     raise OSError(
-                        "mount {} on {} error! Needs SUDO! Please mount manually: {}".format(
-                            C["provider_uri"], C["mount_path"], mount_command
-                        )
+                        f"mount {C['provider_uri']} on {C['mount_path']} error! Needs SUDO! Please mount manually: {mount_command}"
                     )
                 elif command_status == 32512:
                     # LOG.error("Command error")
-                    raise OSError("mount {} on {} error! Command error".format(C["provider_uri"], C["mount_path"]))
+                    raise OSError(f"mount {C['provider_uri']} on {C['mount_path']} error! Command error")
                 elif command_status == 0:
                     LOG.info("Mount finished")
             else:
-                LOG.warning("{} on {} is already mounted".format(_remote_uri, _mount_path))
+                LOG.warning(f"{_remote_uri} on {_mount_path} is already mounted")
 
 
-def init_from_yaml_conf(conf_path):
+def init_from_yaml_conf(conf_path, **kwargs):
     """init_from_yaml_conf
 
     :param conf_path: A path to the qlib config in yml format
@@ -188,5 +190,6 @@ def init_from_yaml_conf(conf_path):
 
     with open(conf_path) as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
+    config.update(kwargs)
     default_conf = config.pop("default_conf", "client")
     init(default_conf, **config)

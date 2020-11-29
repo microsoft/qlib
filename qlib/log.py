@@ -2,12 +2,13 @@
 # Licensed under the MIT License.
 
 
+import logging
+import logging.handlers
 import os
 import re
-import logging
-from time import time
-import logging.handlers
 from logging import config as logging_config
+from time import time
+from contextlib import contextmanager
 
 from .config import C
 
@@ -77,7 +78,29 @@ class TimeInspector(object):
             Info that will be log into stdout.
         """
         cost_time = time() - cls.time_marks.pop()
-        cls.timer_logger.info("Time cost: {0:.5f} | {1}".format(cost_time, info))
+        cls.timer_logger.info("Time cost: {0:.3f}s | {1}".format(cost_time, info))
+
+    @classmethod
+    @contextmanager
+    def logt(cls, name="", show_start=False):
+        """logt.
+        Log the time of the inside code
+
+        Parameters
+        ----------
+        name :
+            name
+        show_start :
+            show_start
+        """
+        if show_start:
+            cls.timer_logger.info(f"{name} Begin")
+        cls.set_time_mark()
+        try:
+            yield None
+        finally:
+            pass
+        cls.log_cost_time(info=f"{name} Done")
 
 
 def set_log_with_config(log_config: dict):
