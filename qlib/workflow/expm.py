@@ -3,6 +3,7 @@
 
 import mlflow
 from mlflow.exceptions import MlflowException
+from mlflow.entities import ViewType
 import os
 from pathlib import Path
 from contextlib import contextmanager
@@ -324,7 +325,7 @@ class MLflowExpManager(ExpManager):
 
     def list_experiments(self):
         # retrieve all the existing experiments
-        exps = self.client.list_experiments(view_type=1)
+        exps = self.client.list_experiments(view_type=ViewType.ACTIVE_ONLY)
         experiments = dict()
         for exp in exps:
             experiment = MLflowExperiment(exp.experiment_id, exp.name, self.uri)
