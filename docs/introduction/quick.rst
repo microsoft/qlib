@@ -91,4 +91,4 @@ Auto Quant Research Workflow
 Custom Model Integration
 ===============================================
 
-``Qlib`` provides a batch of models (such as ``lightGBM`` and ``DNN`` models) as examples of ``Interday Model``. In addition to the default model, users can integrate their own custom models into ``Qlib``. If users are interested in the custom model, please refer to `Custom Model Integration <../start/integration.html>`_.
+``Qlib`` provides a batch of models (such as ``lightGBM`` and ``MLP`` models) as examples of ``Interday Model``. In addition to the default model, users can integrate their own custom models into ``Qlib``. If users are interested in the custom model, please refer to `Custom Model Integration <../start/integration.html>`_.

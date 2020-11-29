@@ -202,15 +202,18 @@ Here is a list of models built on `Qlib`.
 - [ALSTM based on pytorcn](qlib/contrib/model/pytorch_alstm.py)
 - [GATs based on pytorch](qlib/contrib/model/pytorch_gats.py)
 - [SFM based on pytorch](qlib/contrib/model/pytorch_sfm.py)
-- [TFT based on tensorflow](examples/benchmarks/TFT/tft.py)
+<!-- - [TFT based on tensorflow](examples/benchmarks/TFT/tft.py) -->
 
 Your PR of new Quant models is highly welcomed.
 
 ## Run a single model
+All the models listed above are runnable with ``Qlib``. Users can find the config files we provide and some details about the model through the [benchmarks](examples/benchmarks) folder. More information can be retrieved at the model files listed above.
+
 `Qlib` provides three different ways to run a single model, users can pick the one that fits their cases best:
 - User can use the tool `qrun` mentioned above to run a model's workflow based from a config file.
 - User can create a `workflow_by_code` python script based on the [one](examples/workflow_by_code.py) listed in the `examples` folder.
-- User can use the script [`run_all_model.py`](examples/run_all_model.py) listed in the `examples` folder to run a model. Here is an example of the specific shell command to be used: `python run_all_model.py --models=lightgbm`(the available models can be found  in [benchmarks](examples/benchmarks/)). For more use cases, please refer to the file's [docstrings](examples/run_all_model.py).
+
+- User can use the script [`run_all_model.py`](examples/run_all_model.py) listed in the `examples` folder to run a model. Here is an example of the specific shell command to be used: `python run_all_model.py --models=lightgbm`, where the `--models` arguments can take any number of models listed above(the available models can be found  in [benchmarks](examples/benchmarks/)). For more use cases, please refer to the file's [docstrings](examples/run_all_model.py).
 
 ## Run multiple models
 `Qlib` also provides a script [`run_all_model.py`](examples/run_all_model.py) which can run multiple models for several iterations. (**Note**: the script only supprots *Linux* now. Other OS will be supported in the future.)

@@ -63,7 +63,7 @@ For other interfaces such as `finetune`, please refer to `Model API <../referenc
 Example
 ==================
 
-``Qlib``'s `Model Zoo` includes models such as ``LightGBM``, ``DNN``, ``LSTM``, etc.. These models are treated as the baselines of ``Interday Model``. The following steps show how to run`` LightGBM`` as an independent module.
+``Qlib``'s `Model Zoo` includes models such as ``LightGBM``, ``MLP``, ``LSTM``, etc.. These models are treated as the baselines of ``Interday Model``. The following steps show how to run`` LightGBM`` as an independent module.
 
 - Initialize ``Qlib`` with `qlib.init` first, please refer to `Initialization <../start/initialization.html>`_.
 - Run the following code to get the `prediction score` `pred_score`

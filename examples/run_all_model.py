@@ -204,16 +204,16 @@ def run(times=1, models=None, exclude=False):
         python run_all_model.py 3
 
         # Case 2 - run specific models multiple times
-        python run_all_model.py 3 dnn
+        python run_all_model.py 3 mlp
 
         # Case 3 - run other models except those are given as arguments for multiple times
-        python run_all_model.py 3 [dnn,tft,lstm] True
+        python run_all_model.py 3 [mlp,tft,lstm] True
 
         # Case 4 - run specific models for one time
-        python run_all_model.py --models=[dnn,lightgbm]
+        python run_all_model.py --models=[mlp,lightgbm]
 
         # Case 5 - run other models except those are given as aruments for one time
-        python run_all_model.py --models=[dnn,tft,sfm] --exclude=True
+        python run_all_model.py --models=[mlp,tft,sfm] --exclude=True
 
     """
     # get all folders
