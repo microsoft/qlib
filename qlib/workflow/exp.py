@@ -114,24 +114,24 @@ class Experiment:
 
         * If `create` is True:
 
-            * If R's running:
+            * If `active recorder` exists:
 
                 * no id or name specified, return the active recorder.
-                * if id or name is specified, return the specified recorder. If no such exp found, create a new recorder with given id or name, and the recorder shoud be running.
+                * if id or name is specified, return the specified recorder. If no such exp found, create a new recorder with given id or name, and the recorder shoud be active.
 
-            * If R's not running:
+            * If `active recorder` not exists:
 
                 * no id or name specified, create a new recorder.
-                * if id or name is specified, return the specified experiment. If no such exp found, create a new recorder with given id or name, and the recorder shoud be running.
+                * if id or name is specified, return the specified experiment. If no such exp found, create a new recorder with given id or name, and the recorder shoud be active.
 
         * Else If `create` is False:
 
-            * If R's running:
+            * If `active recorder` exists:
 
                 * no id or name specified, return the active recorder.
                 * if id or name is specified, return the specified recorder. If no such exp found, raise Error.
 
-            * If R's not running:
+            * If `active recorder` not exists:
 
                 * no id or name specified, raise Error.
                 * if id or name is specified, return the specified recorder. If no such exp found, raise Error.

@@ -23,12 +23,12 @@ class ExpManager:
     def __init__(self, uri, default_exp_name):
         self.uri = uri
         self.default_exp_name = default_exp_name
-        self.active_experiment = None  # only one experiment can running each time
+        self.active_experiment = None  # only one experiment can active each time
 
     def start_exp(self, experiment_name=None, recorder_name=None, uri=None, **kwargs):
         """
         Start an experiment. This method includes first get_or_create an experiment, and then
-        set it to be running.
+        set it to be active.
 
         Parameters
         ----------
@@ -47,7 +47,7 @@ class ExpManager:
 
     def end_exp(self, recorder_status: str = Recorder.STATUS_S, **kwargs):
         """
-        End an running experiment.
+        End an active experiment.
 
         Parameters
         ----------
@@ -90,7 +90,7 @@ class ExpManager:
     def get_exp(self, experiment_id=None, experiment_name=None, create: bool = True):
         """
         Retrieve an experiment. This method includes getting an active experiment, and get_or_create a specific experiment.
-        The returned experiment will be running.
+        The returned experiment will be active.
 
         When user specify experiment id and name, the method will try to return the specific experiment.
         When user does not provide recorder id or name, the method will try to return the current active experiment.
@@ -99,24 +99,24 @@ class ExpManager:
 
         * If `create` is True:
 
-            * If R's running:
+            * If `active experiment` exists:
 
                 * no id or name specified, return the active experiment.
-                * if id or name is specified, return the specified experiment. If no such exp found, create a new experiment with given id or name, and the experiment is set to be running.
+                * if id or name is specified, return the specified experiment. If no such exp found, create a new experiment with given id or name, and the experiment is set to be active.
 
-            * If R's not running:
+            * If `active experiment` not exists:
 
                 * no id or name specified, create a default experiment.
-                * if id or name is specified, return the specified experiment. If no such exp found, create a new experiment with given id or name, and the experiment is set to be running.
+                * if id or name is specified, return the specified experiment. If no such exp found, create a new experiment with given id or name, and the experiment is set to be active.
 
         * Else If `create` is False:
 
-            * If R's running:
+            * If `active experiment` exists:
 
                 * no id or name specified, return the active experiment.
                 * if id or name is specified, return the specified experiment. If no such exp found, raise Error.
 
-            * If R's not running:
+            * If `active experiment` not exists:
 
                 *  no id or name specified. If the default experiment exists, return it, otherwise, raise Error.
                 * if id or name is specified, return the specified experiment. If no such exp found, raise Error.

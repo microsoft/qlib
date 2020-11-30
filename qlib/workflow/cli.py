@@ -49,13 +49,11 @@ def workflow(config_path, experiment_name="workflow", uri_folder="mlruns"):
     # config the `sys` section
     sys_config(config, config_path)
 
-    provider_uri = config.get("provider_uri")
-    region = config.get("region")
     exp_manager = C["exp_manager"]
     exp_manager["kwargs"]["uri"] = "file:" + str(Path(os.getcwd()).resolve() / uri_folder)
-    qlib.init(provider_uri=provider_uri, region=region, exp_manager=exp_manager)
+    qlib.init(**config.get("qlib_init"), exp_manager=exp_manager)
 
-    task_train(config, experiment_name=experiment_name)
+    task_train(config.get("task"), experiment_name=experiment_name)
 
 
 # function to run worklflow by config

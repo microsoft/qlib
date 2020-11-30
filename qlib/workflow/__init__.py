@@ -90,7 +90,11 @@ class QlibRecorder:
 
     def search_records(self, experiment_ids, **kwargs):
         """
-        Get a pandas DataFrame of records that fit the search criteria. Here is the example code of the method:
+        Get a pandas DataFrame of records that fit the search criteria.
+
+        The arguments of this function are not set to be rigid, and they will be different with different implementation of
+        ``ExpManager`` in ``Qlib``. ``Qlib`` now provides an implementation of ``ExpManager`` with mlflow, and here is the
+        example code of the this method with the ``MLflowExpManager``:
 
         .. code-block:: Python
 
@@ -139,7 +143,8 @@ class QlibRecorder:
 
         If user doesn't provide the id or name of the experiment, this method will try to retrieve the default experiment and
         list all the recorders of the default experiment. If the default experiment doesn't exist, the method will first
-        create the default experiment, and then create a new recorder under it.
+        create the default experiment, and then create a new recorder under it. (More information about the default experiment
+        can be found `here <../component/recorder.html#qlib.workflow.exp.Experiment>`_).
 
         Here is the example code:
 
@@ -168,27 +173,27 @@ class QlibRecorder:
 
         - If '`create`' is True:
 
-            - If ``R``'s running:
+            - If `active experiment` exists:
 
                 - no id or name specified, return the active experiment.
 
-                - if id or name is specified, return the specified experiment. If no such exp found, create a new experiment with given id or name, and the experiment is set to be running.
+                - if id or name is specified, return the specified experiment. If no such exp found, create a new experiment with given id or name, and the experiment is set to be active.
 
-            - If ``R``'s not running:
+            - If `active experiment` not exists:
 
-                - no id or name specified, create a default experiment, and the experiment is set to be running.
+                - no id or name specified, create a default experiment, and the experiment is set to be active.
 
-                - if id or name is specified, return the specified experiment. If no such exp found, create a new experiment with given name or the default experiment, and the experiment is set to be running.
+                - if id or name is specified, return the specified experiment. If no such exp found, create a new experiment with given name or the default experiment, and the experiment is set to be active.
 
         - Else If '`create`' is False:
 
-            - If ``R``'s running:
+            - If ``active experiment` exists:
 
                 - no id or name specified, return the active experiment.
 
                 - if id or name is specified, return the specified experiment. If no such exp found, raise Error.
 
-            - If ``R``'s not running:
+            - If `active experiment` not exists:
 
                 - no id or name specified. If the default experiment exists, return it, otherwise, raise Error.
 
@@ -272,13 +277,13 @@ class QlibRecorder:
         """
         Method for retrieving a recorder.
 
-        - If ``R``'s running:
+        - If `active recorder` exists:
 
             - no id or name specified, return the active recorder.
 
             - if id or name is specified, return the specified recorder.
 
-        - If ``R``'s not running:
+        - If `active recorder` not exists:
 
             - no id or name specified, raise Error.
 
@@ -351,8 +356,8 @@ class QlibRecorder:
         from a local file/directory, or directly saving objects. User can use valid python's keywords arguments
         to specify the object to be saved as well as its name (name: value).
 
-        - If R's running: it will save the objects through the running recorder.
-        - If R's not running: the system will create a default experiment, and a new recorder and save objects under it.
+        - If `active recorder` exists: it will save the objects through the active recorder.
+        - If `active recorder` not exists: the system will create a default experiment, and a new recorder and save objects under it.
 
         .. note::
 
@@ -384,8 +389,8 @@ class QlibRecorder:
         """
         Method for logging parameters during an experiment. In addition to using ``R``, one can also log to a specific recorder after getting it with `get_recorder` API.
 
-        - If R's running: it will log parameters through the running recorder.
-        - If R's not running: the system will create a default experiment as well as a new recorder, and log parameters under it.
+        - If `active recorder` exists: it will log parameters through the active recorder.
+        - If `active recorder` not exists: the system will create a default experiment as well as a new recorder, and log parameters under it.
 
         Here are some use cases:
 
@@ -409,8 +414,8 @@ class QlibRecorder:
         """
         Method for logging metrics during an experiment. In addition to using ``R``, one can also log to a specific recorder after getting it with `get_recorder` API.
 
-        - If R's running: it will log metrics through the running recorder.
-        - If R's not running: the system will create a default experiment as well as a new recorder, and log metrics under it.
+        - If `active recorder` exists: it will log metrics through the active recorder.
+        - If `active recorder` not exists: the system will create a default experiment as well as a new recorder, and log metrics under it.
 
         Here are some use cases:
 
@@ -434,8 +439,8 @@ class QlibRecorder:
         """
         Method for setting tags for a recorder. In addition to using ``R``, one can also set the tag to a specific recorder after getting it with `get_recorder` API.
 
-        - If R's running: it will set tags through the running recorder.
-        - If R's not running: the system will create a default experiment as well as a new recorder, and set the tags under it.
+        - If `active recorder` exists: it will set tags through the active recorder.
+        - If `active recorder` not exists: the system will create a default experiment as well as a new recorder, and set the tags under it.
 
         Here are some use cases:
 

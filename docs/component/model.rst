@@ -18,45 +18,10 @@ Base Class & Interface
 
 The base class provides the following interfaces:
 
-- `__init__(**kwargs)`
-    - Initialization.
+.. autoclass:: qlib.model.base.Model
+    :members:
 
-- `fit(self, dataset, **kwargs)`
-    - Train model.
-    - Parameter:
-        - `dataset`, ``Qlib``'s ``DatasetH`` type. For more information about ``DatasetH``, users can refer to the related document: `Qlib Dataset <../component/data.html#dataset>`_.
-            The `dataset` is passed into the `model`'s method because there are some unique data preprocessing procedures for each, we want to give each model maximum flexibility to handle the data that is suitable for their own.
-            The following code example shows how to retrieve `x_train`, `y_train` and `w_train` from the `dataset`:
-
-            .. code-block:: Python
-
-                # get features and labels
-                df_train, df_valid = dataset.prepare(
-                    ["train", "valid"], col_set=["feature", "label"], data_key=DataHandlerLP.DK_L
-                )
-                x_train, y_train = df_train["feature"], df_train["label"]
-                x_valid, y_valid = df_valid["feature"], df_valid["label"]
-
-                # get weights
-                try:
-                    wdf_train, wdf_valid = dataset.prepare(["train", "valid"], col_set=["weight"], data_key=DataHandlerLP.DK_L)
-                    w_train, w_valid = wdf_train["weight"], wdf_valid["weight"]
-                except KeyError as e:
-                    w_train = pd.DataFrame(np.ones_like(y_train.values), index=y_train.index)
-                    w_valid = pd.DataFrame(np.ones_like(y_valid.values), index=y_valid.index)
-        
-- `predict(self, dataset, **kwargs)`
-    - Predict test data.
-    - Parameter:
-        - `dataset`, ``Qlib``'s ``DatasetH`` type. The usage is similar to the example above.
-    - Returns:
-        - Predic results with type: `pandas.Series`.
-
-- `finetune(self, dataset, **kwargs)`
-    - Finetune the model.
-    - Parameter:
-        - `dataset`, ``Qlib``'s ``DatasetH`` type. The usage is similar to the example above.
-
+``Qlib`` also provides a base class `qlib.model.base.ModelFT <../reference/api.html#qlib.model.base.ModelFT>`_, which includes the method for finetuning the model.
     
 For other interfaces such as `finetune`, please refer to `Model API <../reference/api.html#module-qlib.model.base>`_.
 
