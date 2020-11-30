@@ -113,6 +113,9 @@ class ALSTM(Model):
             )
         )
 
+        np.random.seed(self.seed)
+        torch.manual_seed(self.seed)
+        
         self.ALSTM_model = ALSTMModel(
             d_feat=self.d_feat,
             hidden_size=self.hidden_size,
