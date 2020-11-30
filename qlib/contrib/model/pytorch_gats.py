@@ -9,10 +9,15 @@ import os
 import numpy as np
 import pandas as pd
 import copy
-from ...utils import create_save_path
-from ...log import get_module_logger
-
-
+from sklearn.metrics import roc_auc_score, mean_squared_error
+import logging
+from ...utils import (
+    unpack_archive_with_buffer,
+    save_multiple_parts_file,
+    create_save_path,
+    drop_nan_by_y_index,
+)
+from ...log import get_module_logger, TimeInspector
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -54,6 +59,7 @@ class GATs(Model):
         loss="mse",
         base_model="GRU",
         with_pretrain=True,
+        model_path=None,
         optimizer="adam",
         GPU="0",
         seed=0,
@@ -76,6 +82,7 @@ class GATs(Model):
         self.loss = loss
         self.base_model = base_model
         self.with_pretrain = with_pretrain
+        self.model_path = model_path
         self.visible_GPU = GPU
         self.use_gpu = torch.cuda.is_available()
         self.seed = seed
@@ -94,6 +101,7 @@ class GATs(Model):
             "\nloss_type : {}"
             "\nbase_model : {}"
             "\nwith_pretrain : {}"
+            "\nmodel_path : {}"
             "\nvisible_GPU : {}"
             "\nuse_GPU : {}"
             "\nseed : {}".format(
@@ -109,12 +117,14 @@ class GATs(Model):
                 loss,
                 base_model,
                 with_pretrain,
+                model_path,
                 GPU,
                 self.use_gpu,
                 seed,
             )
         )
-
+        np.random.seed(self.seed)
+        torch.manual_seed(self.seed)
         self.GAT_model = GATModel(
             d_feat=self.d_feat,
             hidden_size=self.hidden_size,
@@ -254,14 +264,17 @@ class GATs(Model):
 
         # load pretrained base_model
         if self.with_pretrain:
+            if self.model_path == None:
+                raise ValueError("the path of the pretrained model should be given first!")
             self.logger.info("Loading pretrained model...")
             if self.base_model == "LSTM":
                 pretrained_model = LSTMModel()
-                pretrained_model.load_state_dict(torch.load("benchmarks/LSTM/model_lstm_csi300.pkl"))
-
+                pretrained_model.load_state_dict(torch.load(self.model_path))
             elif self.base_model == "GRU":
                 pretrained_model = GRUModel()
-                pretrained_model.load_state_dict(torch.load("benchmarks/GRU/model_gru_csi300.pkl"))
+                pretrained_model.load_state_dict(torch.load(self.model_path))
+            else:
+                raise ValueError("unknown base model name `%s`" % self.base_model)
 
             model_dict = self.GAT_model.state_dict()
             pretrained_dict = {k: v for k, v in pretrained_model.state_dict().items() if k in model_dict}
