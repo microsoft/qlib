@@ -13,7 +13,7 @@ Introduction
 
 .. note::
 
-    ``Intraday Trading`` uses ``Order Executor`` to trade and execute orders output by ``Interday Strategy``. ``Order Executor`` is a component in `Qlib Framework <../introduction/introduction.html#framework>`_, which can execute orders. ``Vwap Executor`` and ``Close Executor`` is supported by ``Qlib`` now. In the future, ``Qlib`` will support ``HighFreq Executor`` also. 
+    ``Intraday Trading`` uses ``Order Executor`` to trade and execute orders output by ``Portfolio Strategy``. ``Order Executor`` is a component in `Qlib Framework <../introduction/introduction.html#framework>`_, which can execute orders. ``VWAP Executor`` and ``Close Executor`` is supported by ``Qlib`` now. In the future, ``Qlib`` will support ``HighFreq Executor`` also. 
 
 
 
@@ -32,34 +32,34 @@ The simple example of the default strategy is as follows.
     # pred_score is the prediction score
     report, positions = backtest(pred_score, topk=50, n_drop=0.5, verbose=False, limit_threshold=0.0095)
 
-To know more about backtesting with a specific ``Strategy``, please refer to `Strategy <strategy.html>`_.
+To know more about backtesting with a specific ``Strategy``, please refer to `Portfolio Strategy <strategy.html>`_.
 
-To know more about the prediction score `pred_score` output by ``Interday Model``, please refer to `Interday Model: Model Training & Prediction <model.html>`_.
+To know more about the prediction score `pred_score` output by ``Forecast Model``, please refer to `Forecast Model: Model Training & Prediction <model.html>`_.
 
 Prediction Score
 -----------------
 
-The `prediction score` is a pandas DataFrame. Its index is <instrument(str), datetime(pd.Timestamp)> and it must
+The `prediction score` is a pandas DataFrame. Its index is <datetime(pd.Timestamp), instrument(str)> and it must
 contains a `score` column.
 
 A prediction sample is shown as follows.
 
 .. code-block:: python
 
-    instrument datetime   score
-    SH600000   2019-01-04 -0.505488
-    SZ002531   2019-01-04 -0.320391
-    SZ000999   2019-01-04  0.583808
-    SZ300569   2019-01-04  0.819628
-    SZ001696   2019-01-04 -0.137140
-    ...                         ...
-    SZ000996   2019-04-30 -1.027618
-    SH603127   2019-04-30  0.225677
-    SH603126   2019-04-30  0.462443
-    SH603133   2019-04-30 -0.302460
-    SZ300760   2019-04-30 -0.126383
+      datetime instrument     score
+    2019-01-04   SH600000 -0.505488
+    2019-01-04   SZ002531 -0.320391
+    2019-01-04   SZ000999  0.583808
+    2019-01-04   SZ300569  0.819628
+    2019-01-04   SZ001696 -0.137140
+                 ...            ...
+    2019-04-30   SZ000996 -1.027618
+    2019-04-30   SH603127  0.225677
+    2019-04-30   SH603126  0.462443
+    2019-04-30   SH603133 -0.302460
+    2019-04-30   SZ300760 -0.126383
 
-``Interday Model`` module can make predictions, please refer to `Interday Model: Model Training & Prediction <model.html>`_.
+``Forecast Model`` module can make predictions, please refer to `Forecast Model: Model Training & Prediction <model.html>`_.
 
 Backtest Result
 ------------------

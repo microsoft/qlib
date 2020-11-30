@@ -37,8 +37,8 @@ Document Structure
 
    Workflow: Workflow Management <component/workflow.rst>
    Data Layer: Data Framework&Usage <component/data.rst>
-   Interday Model: Model Training & Prediction <component/model.rst>
-   Interday Strategy: Portfolio Management <component/strategy.rst>
+   Forecast Model: Model Training & Prediction <component/model.rst>
+   Strategy: Portfolio Management <component/strategy.rst>
    Intraday Trading: Model&Strategy Testing <component/backtest.rst>
    Qlib Recorder: Experiment Management <component/recorder.rst>
    Analysis: Evaluation & Results Analysis <component/report.rst>

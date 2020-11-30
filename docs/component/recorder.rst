@@ -7,7 +7,7 @@ Qlib Recorder: Experiment Management
 
 Introduction
 ===================
-``Qlib`` contains an experiment management system named ``QlibRecorder``, which is designed to help users handle experiment and analysis results in an efficient way. 
+``Qlib`` contains an experiment management system named ``QlibRecorder``, which is designed to help users handle experiment and analyse results in an efficient way. 
 
 There are three components of the system:
 
@@ -34,8 +34,7 @@ Here is a general view of the structure of the system:
             - Recorder 2
             - ...
         - ...
-
-Currently, the components of this experiment management system are implemented using the machine learning platform: ``MLFlow`` (`link <https://mlflow.org/>`_). 
+This experiment management system defines a set of interface and provided a concrete implementation based on the machine learning platform: ``MLFlow`` (`link <https://mlflow.org/>`_). 
 
 
 Qlib Recorder
