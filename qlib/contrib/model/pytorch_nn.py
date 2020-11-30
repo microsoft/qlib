@@ -61,6 +61,7 @@ class DNNModelPytorch(Model):
         optimizer="gd",
         loss="mse",
         GPU="0",
+        seed=0,
         **kwargs
     ):
         # Set logger.
@@ -80,6 +81,7 @@ class DNNModelPytorch(Model):
         self.loss_type = loss
         self.visible_GPU = GPU
         self.use_GPU = torch.cuda.is_available()
+        self.seed = seed
 
         self.logger.info(
             "DNN parameters setting:"
@@ -94,6 +96,7 @@ class DNNModelPytorch(Model):
             "\noptimizer : {}"
             "\nloss_type : {}"
             "\neval_steps : {}"
+            "\nseed : {}"
             "\nvisible_GPU : {}"
             "\nuse_GPU : {}".format(
                 layers,
@@ -107,10 +110,14 @@ class DNNModelPytorch(Model):
                 optimizer,
                 loss,
                 eval_steps,
+                seed,
                 GPU,
                 self.use_GPU,
             )
         )
+
+        np.random.seed(self.seed)
+        torch.manual_seed(self.seed)
 
         if loss not in {"mse", "binary"}:
             raise NotImplementedError("loss {} is not supported!".format(loss))
