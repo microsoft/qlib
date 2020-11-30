@@ -282,6 +282,9 @@ class SFM(Model):
             )
         )
 
+        np.random.seed(self.seed)
+        torch.manual_seed(self.seed)
+
         self.sfm_model = SFM_Model(
             d_feat=self.d_feat,
             output_dim=self.output_dim,

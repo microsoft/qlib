@@ -113,6 +113,9 @@ class GRU(Model):
             )
         )
 
+        np.random.seed(self.seed)
+        torch.manual_seed(self.seed)
+
         self.gru_model = GRUModel(
             d_feat=self.d_feat,
             hidden_size=self.hidden_size,

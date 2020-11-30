@@ -113,6 +113,9 @@ class LSTM(Model):
             )
         )
 
+        np.random.seed(self.seed)
+        torch.manual_seed(self.seed)
+
         self.lstm_model = LSTMModel(
             d_feat=self.d_feat,
             hidden_size=self.hidden_size,
