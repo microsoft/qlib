@@ -27,13 +27,32 @@ class Model(BaseModel):
 
         .. note::
 
-            The the attribute names of learned model should `not` start with '_'. So that the model could be
+            The attribute names of learned model should `not` start with '_'. So that the model could be
             dumped to disk.
 
         Parameters
         ----------
         dataset : Dataset
             dataset will generate the processed data from model training.
+
+        The following code example shows how to retrieve `x_train`, `y_train` and `w_train` from the `dataset`:
+
+            .. code-block:: Python
+
+                # get features and labels
+                df_train, df_valid = dataset.prepare(
+                    ["train", "valid"], col_set=["feature", "label"], data_key=DataHandlerLP.DK_L
+                )
+                x_train, y_train = df_train["feature"], df_train["label"]
+                x_valid, y_valid = df_valid["feature"], df_valid["label"]
+
+                # get weights
+                try:
+                    wdf_train, wdf_valid = dataset.prepare(["train", "valid"], col_set=["weight"], data_key=DataHandlerLP.DK_L)
+                    w_train, w_valid = wdf_train["weight"], wdf_valid["weight"]
+                except KeyError as e:
+                    w_train = pd.DataFrame(np.ones_like(y_train.values), index=y_train.index)
+                    w_valid = pd.DataFrame(np.ones_like(y_valid.values), index=y_valid.index)
         """
         raise NotImplementedError()
 
@@ -45,6 +64,10 @@ class Model(BaseModel):
         ----------
         dataset : Dataset
             dataset will generate the processed dataset from model training.
+
+        Returns
+        -------
+        Prediction results with certain type such as `pandas.Series`.
         """
         raise NotImplementedError()
 

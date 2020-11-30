@@ -11,8 +11,8 @@ Introduction
 The components in `Qlib Framework <../introduction/introduction.html#framework>`_ are designed in a loosely-coupled way. Users could build their own Quant research workflow with these components like `Example <https://github.com/microsoft/qlib/blob/main/examples/workflow_by_code.py>`_.
 
 
-Besides, ``Qlib`` provides more user-friendly interfaces named ``qrun`` to automatically run the whole workflow defined by configuration.  A concrete execution of the whole workflow is called an `experiment`.
-With ``qrun``, user can easily run an `experiment`, which includes the following steps:
+Besides, ``Qlib`` provides more user-friendly interfaces named ``qrun`` to automatically run the whole workflow defined by configuration. Running the whole workflow is called an `execution`.
+With ``qrun``, user can easily start an `execution`, which includes the following steps:
 
 - Data
     - Loading
@@ -25,7 +25,7 @@ With ``qrun``, user can easily run an `experiment`, which includes the following
     - Forecast signal analysis
     - Backtest
 
-For each `experiment`, ``Qlib`` has a complete system to tracking all the information as well as artifacts generated during training, inference and evaluation phase. For more information about how Qlib handles `experiment`, please refer to the related document: `Recorder: Experiment Management <../component/recorder.html>`_.
+For each `execution`, ``Qlib`` has a complete system to tracking all the information as well as artifacts generated during training, inference and evaluation phase. For more information about how ``Qlib`` handles this, please refer to the related document: `Recorder: Experiment Management <../component/recorder.html>`_.
 
 Complete Example
 ===================
@@ -35,8 +35,9 @@ Below is a typical config file of ``qrun``.
 
 .. code-block:: YAML
 
-    provider_uri: "~/.qlib/qlib_data/cn_data"
-    region: cn
+    qlib_init:
+        provider_uri: "~/.qlib/qlib_data/cn_data"
+        region: cn
     market: &market csi300
     benchmark: &benchmark SH000300
     data_handler_config: &data_handler_config
@@ -100,11 +101,15 @@ After saving the config into `configuration.yaml`, users could start the workflo
 
 .. code-block:: bash
 
-    qrun -c configuration.yaml
+    qrun configuration.yaml
 
 .. note:: 
 
     `qrun` will be placed in your $PATH directory when installing ``Qlib``.
+
+.. note:: 
+        
+    The symbol `&` in `yaml` file stands for an anchor of a field, which is useful when another fields include this parameter as part of the value. Taking the configuration file above as an example, users can directly change the value of `market` and `benchmark` without traversing the entire configuration file.
 
 
 Configuration File
@@ -114,17 +119,15 @@ Let's get into details of ``qrun`` in this section.
 
 Before using ``qrun``, users need to prepare a configuration file. The following content shows how to prepare each part of the configuration file.
 
-Qlib Data Section
+Qlib Init Section
 --------------------
 
-At first, the configuration file needs to contain several basic parameters about the data, which will be used for qlib initialization, data handling and backtest.
+At first, the configuration file needs to contain several basic parameters which will be used for qlib initialization.
 
 .. code-block:: YAML
 
     provider_uri: "~/.qlib/qlib_data/cn_data"
     region: cn
-    market: &market csi300
-    benchmark: &benchmark SH000300
 
 The meaning of each field is as follows:
 
@@ -139,34 +142,14 @@ The meaning of each field is as follows:
         
         The value of `region` should be aligned with the data stored in `provider_uri`.
 
-- `market`
-    Type: str. Index name, the default value is `csi500`.
 
-- `benchmark`
-    Type: str, list or pandas.Series. Stock index symbol, the default value is `SH000905`.
+Task Section
+--------------------
 
-    .. note::
-
-        * If `benchmark` is str, it will use the daily change as the 'bench'.
-
-        * If `benchmark` is list, it will use the daily average change of the stock pool in the list as the 'bench'.
-
-        * If `benchmark` is pandas.Series, whose `index` is trading date and the value T is the change from T-1 to T, it will be directly used as the 'bench'. An example is as following:
-        
-            .. code-block:: python
-
-                print(D.features(D.instruments('csi500'), ['$close/Ref($close, 1)-1'])['$close/Ref($close, 1)-1'].head())
-                    2017-01-04    0.011693
-                    2017-01-05    0.000721
-                    2017-01-06   -0.004322
-                    2017-01-09    0.006874
-                    2017-01-10   -0.003350
-.. note:: 
-        
-    The symbol `&` in `yaml` file stands for an anchor of a field, which is useful when another fields include this parameter as part of the value. Taking the configuration file above as an example, users can directly change the value of `market` and `benchmark` without traversing the entire configuration file.
+The `task` field in the configuration corresponds to a `task`, which contains the parameters of three different subsections: `Model`, `Dataset` and `Record`.
 
 Model Section
---------------------
+~~~~~~~~~~~~~~~~~~~~
 
 In the `task` field, the `model` section describes the parameters of the model to be used for training and inference. For more information about the base ``Model`` class, please refer to `Qlib Model <../component/model.html>`_.
 
@@ -202,7 +185,7 @@ The meaning of each field is as follows:
     ``Qlib`` provides a util named: ``init_instance_by_config`` to initialize any class inside ``Qlib`` with the configuration includes the fields: `class`, `module_path` and `kwargs`.
 
 Dataset Section
---------------------
+~~~~~~~~~~~~~~~~~~~~
 
 The `dataset` field describes the parameters for the ``Dataset`` module in ``Qlib`` as well those for the module ``DataHandler``. For more information about the ``Dataset`` module, please refer to `Qlib Model <../component/data.html#dataset>`_.
 
@@ -237,9 +220,9 @@ Here is the configuration for the ``Dataset`` module which will take care of dat
                 test: [2017-01-01, 2020-08-01]
 
 Record Section
---------------------
+~~~~~~~~~~~~~~~~~~~~
 
-The `record` field is about the parameters the ``Record`` module in ``Qlib``. ``Record`` is responsible for generating certain analysis and evaluation results such as `prediction`, `information Coefficient (IC)` and `backtest`.
+The `record` field is about the parameters the ``Record`` module in ``Qlib``. ``Record`` is responsible for tracking training process and results such as `information Coefficient (IC)` and `backtest` in a standard format.
 
 The following script is the configuration of `backtest` and the `strategy` used in `backtest`:
 

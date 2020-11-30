@@ -1,7 +1,8 @@
 sys:
     rel_path: .
-provider_uri: "~/.qlib/qlib_data/cn_data"
-region: cn
+qlib_init:
+    provider_uri: "~/.qlib/qlib_data/cn_data"
+    region: cn
 market: &market csi300
 benchmark: &benchmark SH000300
 data_handler_config: &data_handler_config
@@ -46,6 +47,11 @@ task:
         - class: SignalRecord
           module_path: qlib.workflow.record_temp
           kwargs: {}
+        - class: SigAnaRecord
+          module_path: qlib.workflow.record_temp
+          kwargs: 
+            ana_long_short: False
+            ann_scaler: 252
         - class: PortAnaRecord
           module_path: qlib.workflow.record_temp
           kwargs: 

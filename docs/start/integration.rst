@@ -19,8 +19,8 @@ The Custom models need to inherit `qlib.model.base.Model <../reference/api.html#
 
 - Override the `__init__` method
     - ``Qlib`` passes the initialized parameters to the \_\_init\_\_ method.
-    - The parameter must be consistent with the hyperparameters in the configuration file.
-    - Code Example: In the following example, the hyperparameter filed of the configuration file should contain parameters such as `loss:mse`.
+    - The hyperparameters of model in the configuration must be consistent with those defined in the `__init__` method.
+    - Code Example: In the following example, the hyperparameters of model in the configuration file should contain parameters such as `loss:mse`.
     .. code-block:: Python
 
         def __init__(self, loss='mse', **kwargs):
@@ -31,9 +31,9 @@ The Custom models need to inherit `qlib.model.base.Model <../reference/api.html#
             self._model = None
 
 - Override the `fit` method
-    - ``Qlib`` calls the fit method to train the model
-    - The parameters must include training feature `dataset`.
-    - The parameters could include some optional parameters with default values, such as `num_boost_round = 1000` for `GBDT`.
+    - ``Qlib`` calls the fit method to train the model.
+    - The parameters must include training feature `dataset`, which is designed in the interface.
+    - The parameters could include some `optional` parameters with default values, such as `num_boost_round = 1000` for `GBDT`.
     - Code Example: In the following example, `num_boost_round = 1000` is an optional parameter.
     .. code-block:: Python
     
@@ -69,7 +69,7 @@ The Custom models need to inherit `qlib.model.base.Model <../reference/api.html#
             )
 
 - Override the `predict` method
-    - The parameters must include training feature `dataset`, which will be userd to get the test dataset.
+    - The parameters must include the parameter `dataset`, which will be userd to get the test dataset.
     - Return the `prediction score`.
     - Please refer to `Model API <../reference/api.html#module-qlib.model.base>`_ for the parameter types of the fit method.
     - Code Example: In the following example, users need to use `LightGBM` to predict the label(such as `preds`) of test data `x_test` and return it.
@@ -81,8 +81,9 @@ The Custom models need to inherit `qlib.model.base.Model <../reference/api.html#
             x_test = dataset.prepare("test", col_set="feature", data_key=DataHandlerLP.DK_I)
             return pd.Series(self.model.predict(x_test.values), index=x_test.index)
 
-- Override the `finetune` method
-    - The parameters must include training feature `dataset`.
+- Override the `finetune` method (Optional)
+    - This method is optional to the users, and when users one to use this method on their own models, they should inherit the ``ModelFT`` base class, which includes the interface of `finetune`.
+    - The parameters must include the parameter `dataset`.
     - Code Example: In the following example, users will use `LightGBM` as the model and finetune it.
     .. code-block:: Python
 

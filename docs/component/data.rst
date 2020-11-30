@@ -29,7 +29,18 @@ Qlib Format Data
 ------------------
 
 We've specially designed a data structure to manage financial data, please refer to the `File storage design section in Qlib paper <https://arxiv.org/abs/2009.11189>`_ for detailed information.
-Such data will be stored with filename suffix `.bin` (We'll call them `.bin` file, `.bin` format, or qlib format). `.bin` file is designed for scientific computing on finance data
+Such data will be stored with filename suffix `.bin` (We'll call them `.bin` file, `.bin` format, or qlib format). `.bin` file is designed for scientific computing on finance data.
+
+``Qlib`` provides two different off-the-shelf dataset, which can be accessed through this `link <https://github.com/microsoft/qlib/blob/main/qlib/contrib/data/handler.py>`_:
+
+========================  =================  ================
+Dataset                   US Market          China Market
+========================  =================  ================
+Alpha360                  √                  √
+
+Alpha158                  √                  √
+========================  =================  ================
+
 
 Qlib Format Dataset
 --------------------
@@ -45,7 +56,7 @@ In addition to China-Stock data, ``Qlib`` also includes a US-Stock dataset, whic
 
     python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/us_data --region us
 
-After running the above command, users can find china-stock and us-stock data in Qlib format in the ``~/.qlib/csv_data/cn_data`` directory and ``~/.qlib/csv_data/us_data`` directory respectively.
+After running the above command, users can find china-stock and us-stock data in ``Qlib`` format in the ``~/.qlib/csv_data/cn_data`` directory and ``~/.qlib/csv_data/us_data`` directory respectively.
 
 ``Qlib`` also provides the scripts in ``scripts/data_collector`` to help users crawl the latest data on the Internet and convert it to qlib format.
 
@@ -54,8 +65,7 @@ When ``Qlib`` is initialized with this dataset, users could build and evaluate t
 Converting CSV Format into Qlib Format
 -------------------------------------------
 
-``Qlib`` has provided the script ``scripts/dump_bin.py`` to convert data in CSV format into `.bin` files (Qlib format).
-
+``Qlib`` has provided the script ``scripts/dump_bin.py`` to convert **any** data in CSV format into `.bin` files (``Qlib`` format) as long as they are in the correct format.
 
 Users can download the demo china-stock data in CSV format as follows for reference to the CSV format.
 
@@ -130,8 +140,20 @@ After conversion, users can find their Qlib format data in the directory `~/.qli
 
     In the convention of `Qlib` data processing, `open, close, high, low, volume, money and factor` will be set to NaN if the stock is suspended. 
 
-China-Stock Mode & US-Stock Mode
+Multiple Stock Modes
 --------------------------------
+
+``Qlib`` now provides two different stock modes for users: China-Stock Mode & US-Stock Mode. Here are some different settings of these two modes:
+
+==============  =================  ================
+Region          Trade Unit         Limit Threshold
+==============  =================  ================
+China           100                0.099
+
+US              1                  None
+==============  =================  ================
+
+The `trade unit` defines the unit number of stocks can be used in a trade, and the `limit threshold` defines the bound set to the percentage of ups and downs of a stock.
 
 - If users use ``Qlib`` in china-stock mode, china-stock data is required. Users can use ``Qlib`` in china-stock mode according to the following steps:
     - Download china-stock in qlib format, please refer to section `Qlib Format Dataset <#qlib-format-dataset>`_.
@@ -208,13 +230,19 @@ QlibDataLoader
 
 The ``QlibDataLoader`` class in ``Qlib`` is such an interface that allows users to load raw data from the ``Qlib`` data source.
 
+StaticDataLoader
+---------------
+
+The ``StaticDataLoader`` class in ``Qlib`` is such an interface that allows users to load raw data from file or as provided.
+
+
 Interface
 ------------
 
 Here are some interfaces of the ``QlibDataLoader`` class:
 
-.. autoclass:: qlib.data.dataset.loader.QlibDataLoader
-    :members: load, load_group_df
+.. autoclass:: qlib.data.dataset.loader.DataLoader
+    :members:
 
 API
 -----------
