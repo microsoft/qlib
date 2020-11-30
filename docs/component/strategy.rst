@@ -1,18 +1,18 @@
 .. _strategy:
 
 ========================================
-Interday Strategy: Portfolio Management
+Portfolio Strategy: Portfolio Management
 ========================================
 .. currentmodule:: qlib
 
 Introduction
 ===================
 
-``Interday Strategy`` is designed to adopt different trading strategies, which means that users can adopt different algorithms to generate investment portfolios based on the prediction scores of the ``Interday Model``. Users can use the ``Interday Strategy`` in an automatic workflow by ``Estimator``, please refer to `Estimator: Workflow Management <estimator.html>`_.  
+``Portfolio Strategy`` is designed to adopt different portfolio strategies, which means that users can adopt different algorithms to generate investment portfolios based on the prediction scores of the ``Forecast Model``. Users can use the ``Portfolio Strategy`` in an automatic workflow by ``Workflow`` module, please refer to `Workflow: Workflow Management <workflow.html>`_.  
 
-Because the components in ``Qlib`` are designed in a loosely-coupled way, ``Interday Strategy`` can be used as an independent module also.
+Because the components in ``Qlib`` are designed in a loosely-coupled way, ``Portfolio Strategy`` can be used as an independent module also.
 
-``Qlib`` provides several implemented trading strategies. Also, ``Qlib`` supports custom strategy, users can customize strategies according to their own needs.
+``Qlib`` provides several implemented portfolio strategies. Also, ``Qlib`` supports custom strategy, users can customize strategies according to their own needs.
 
 Base Class & Interface
 ======================
@@ -26,19 +26,20 @@ Qlib provides a base class ``qlib.contrib.strategy.BaseStrategy``. All strategy 
     Return the proportion of your total value you will use in investment. Dynamically risk_degree will result in Market timing.
 
 - `generate_order_list`
-    Rerturn the order list. 
+    Return the order list. 
 
 Users can inherit `BaseStrategy` to customize their strategy class.
 
 WeightStrategyBase
 --------------------
 
-Qlib alse provides a class ``qlib.contrib.strategy.WeightStrategyBase`` that is a subclass of `BaseStrategy`. 
+Qlib also provides a class ``qlib.contrib.strategy.WeightStrategyBase`` that is a subclass of `BaseStrategy`. 
 
 `WeightStrategyBase` only focuses on the target positions, and automatically generates an order list based on positions. It provides the `generate_target_weight_position` interface.
 
 - `generate_target_weight_position`
-    - According to the current position and trading date to generate the target position. The cash is not considered.
+    - According to the current position and trading date to generate the target position. The cash is not considered in
+      the output weight distribution.
     - Return the target position.
 
     .. note::
@@ -81,7 +82,7 @@ TopkDropoutStrategy
 
 Usage & Example
 ====================
-``Interday Strategy`` can be specified in the ``Intraday Trading(Backtest)``, the example is as follows.
+``Portfolio Strategy`` can be specified in the ``Intraday Trading(Backtest)``, the example is as follows.
 
 .. code-block:: python
 
@@ -110,12 +111,12 @@ Usage & Example
         pred_score, strategy=strategy, **BACKTEST_CONFIG
     )
 
-Also, the above example has been given in ``examples\train_backtest_analyze.ipynb``.
+Also, the above example has been given in ``examples/train_backtest_analyze.ipynb``.
 
-To know more about the `prediction score` `pred_score` output by ``Interday Model``, please refer to `Interday Model: Model Training & Prediction <model.html>`_.
+To know more about the `prediction score` `pred_score` output by ``Forecast Model``, please refer to `Forecast Model: Model Training & Prediction <model.html>`_.
 
 To know more about ``Intraday Trading``, please refer to `Intraday Trading: Model&Strategy Testing <backtest.html>`_.
 
 Reference
 ===================
-To know more about ``Interday Strategy``, please refer to `Strategy API <../reference/api.html#module-qlib.contrib.strategy.strategy>`_.
+To know more about ``Portfolio Strategy``, please refer to `Strategy API <../reference/api.html#module-qlib.contrib.strategy.strategy>`_.

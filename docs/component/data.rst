@@ -206,7 +206,7 @@ Data Loader
 QlibDataLoader
 ---------------
 
-The ``QlibDataLoader`` class in ``Qlib`` is such an interface that allows users to load raw data from the data source.
+The ``QlibDataLoader`` class in ``Qlib`` is such an interface that allows users to load raw data from the ``Qlib`` data source.
 
 Interface
 ------------
@@ -234,7 +234,7 @@ DataHandlerLP
 
 In addition to use ``Data Handler`` in an automatic workflow with ``qrun``, ``Data Handler`` can be used as an independent module, by which users can easily preprocess data (standardization, remove NaN, etc.) and build datasets. 
 
-In order to achieve so, ``Qlib`` provides a base class `qlib.data.dataset.DataHandlerLP <../reference/api.html#qlib.data.dataset.handler.DataHandlerLP>`_. The core idea of this class is that: we will have some leanable ``Processors`` which can learn the parameters of data processing. When new data comes in, these `trained` ``Processors`` can then infer on the new data and thus processing real-time data in an efficient way. More information about ``Processors`` will be listed in the next subsection.
+In order to achieve so, ``Qlib`` provides a base class `qlib.data.dataset.DataHandlerLP <../reference/api.html#qlib.data.dataset.handler.DataHandlerLP>`_. The core idea of this class is that: we will have some leanable ``Processors`` which can learn the parameters of data processing(e.g., parameters for zscore normalization). When new data comes in, these `trained` ``Processors`` can then process the new data and thus processing real-time data in an efficient way becomes possible. More information about ``Processors`` will be listed in the next subsection.
 
 
 Interface
@@ -321,7 +321,10 @@ Dataset
 
 The ``Dataset`` module in ``Qlib`` aims to prepare data for model training and inferencing.
 
-The motivation of this module is that we want to maximize the flexibility of of different models to handle data that are suitable for themselves. This module gives the model the rights to process their data in an unique way. For instance, models such as ``GBDT`` may work well on data that contains `nan` or `None` value, while neural networks such as ``MLP`` will break down on such data. 
+The motivation of this module is that we want to maximize the flexibility of of different models to handle data that are suitable for themselves. This module gives the model the flexibility to process their data in an unique way. For instance, models such as ``GBDT`` may work well on data that contains `nan` or `None` value, while neural networks such as ``MLP`` will break down on such data. 
+
+If user's model need process its data in a different way, user could implement his own ``Dataset`` class. If the model's
+data processing is not special, ``DatasetH`` can be used directly.
 
 The ``DatasetH`` class is the `dataset` with `Data Handler`. Here is the most important interface of the class:
 

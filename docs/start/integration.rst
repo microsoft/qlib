@@ -5,7 +5,7 @@ Custom Model Integration
 Introduction
 ===================
 
-``Qlib``'s `Model Zoo` includes models such as ``LightGBM``, ``MLP``, ``LSTM``, etc.. These models are examples of ``Interday Model``. In addition to the default models ``Qlib`` provide, users can integrate their own custom models into ``Qlib``.
+``Qlib``'s `Model Zoo` includes models such as ``LightGBM``, ``MLP``, ``LSTM``, etc.. These models are examples of ``Forecast Model``. In addition to the default models ``Qlib`` provide, users can integrate their own custom models into ``Qlib``.
 
 Users can integrate their own custom models according to the following steps.
 
@@ -141,4 +141,4 @@ Also, ``Model`` can also be tested as a single module. An example has been given
 Reference
 =====================
 
-To know more about ``Interday Model``, please refer to `Interday Model: Model Training & Prediction <../component/model.html>`_ and `Model API <../reference/api.html#module-qlib.model.base>`_.
+To know more about ``Forecast Model``, please refer to `Forecast Model: Model Training & Prediction <../component/model.html>`_ and `Model API <../reference/api.html#module-qlib.model.base>`_.
