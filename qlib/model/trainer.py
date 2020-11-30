@@ -28,7 +28,7 @@ def task_train(task_config: dict, experiment_name):
         recorder = R.get_recorder()
 
         # generate records: prediction, backtest, and analysis
-        for record in task_config.get["record"]:
+        for record in task_config["record"]:
             if record["class"] == SignalRecord.__name__:
                 srconf = {"model": model, "dataset": dataset, "recorder": recorder}
                 record["kwargs"].update(srconf)
