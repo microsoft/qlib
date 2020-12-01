@@ -243,11 +243,11 @@ def run(times=1, models=None, exclude=False):
         execute(f"{python_path} -m pip install --upgrade cython")  # TODO: FIX ME!
         if fn == "TFT":
             execute(
-                f"cd {env_path} && {python_path} -m pip install --upgrade --force-reinstall --ignore-installed PyYAML -e git+https://github.com/you-n-g/qlib#egg=pyqlib"
+                f"cd {env_path} && {python_path} -m pip install --upgrade --force-reinstall --ignore-installed PyYAML -e git+https://github.com/microsoft/qlib#egg=pyqlib"
             )  # TODO: FIX ME!
         else:
             execute(
-                f"cd {env_path} && {python_path} -m pip install --upgrade --force-reinstall -e git+https://github.com/you-n-g/qlib#egg=pyqlib"
+                f"cd {env_path} && {python_path} -m pip install --upgrade --force-reinstall -e git+https://github.com/microsoft/qlib#egg=pyqlib"
             )  # TODO: FIX ME!
         sys.stderr.write("\n")
         # run workflow_by_config for multiple times
