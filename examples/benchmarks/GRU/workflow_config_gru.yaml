@@ -54,7 +54,6 @@ task:
             batch_size: 800
             metric: loss
             loss: mse
-            seed: 0
             GPU: 0
     dataset:
         class: DatasetH

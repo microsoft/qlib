@@ -152,6 +152,10 @@ def get_all_results(folders) -> dict:
         result["annualized_return_with_cost"] = list()
         result["information_ratio_with_cost"] = list()
         result["max_drawdown_with_cost"] = list()
+        result["ic"] = list()
+        result["icir"] = list()
+        result["rank_ic"] = list()
+        result["rank_icir"] = list()
         for recorder_id in recorders:
             if recorders[recorder_id].status == "FINISHED":
                 recorder = R.get_recorder(recorder_id=recorder_id, experiment_name=fn)
@@ -159,19 +163,27 @@ def get_all_results(folders) -> dict:
                 result["annualized_return_with_cost"].append(metrics["excess_return_with_cost.annualized_return"])
                 result["information_ratio_with_cost"].append(metrics["excess_return_with_cost.information_ratio"])
                 result["max_drawdown_with_cost"].append(metrics["excess_return_with_cost.max_drawdown"])
+                result["ic"].append(metrics["IC"])
+                result["icir"].append(metrics["ICIR"])
+                result["rank_ic"].append(metrics["Rank IC"])
+                result["rank_icir"].append(metrics["Rank ICIR"])
         results[fn] = result
     return results
 
 
 # function to generate and save markdown table
 def gen_and_save_md_table(metrics):
-    table = "| Model Name | Annualized Return | Information Ratio | Max Drawdown |\n"
-    table += "|---|---|---|---|\n"
+    table = "| Model Name | Annualized Return | Information Ratio | Max Drawdown | IC | ICIR | Rank IC | Rank ICIR |\n"
+    table += "|---|---|---|---|---|---|---|---|\n"
     for fn in metrics:
         ar = metrics[fn]["annualized_return_with_cost"]
         ir = metrics[fn]["information_ratio_with_cost"]
         md = metrics[fn]["max_drawdown_with_cost"]
-        table += f"| {fn} | {ar[0]:9.4f}±{ar[1]:9.2f} | {ir[0]:9.4f}±{ir[1]:9.2f}| {md[0]:9.4f}±{md[1]:9.2f} |\n"
+        ic = metrics[fn]["ic"]
+        icir = metrics[fn]["icir"]
+        ric = metrics[fn]["rank_ic"]
+        ricir = metrics[fn]["rank_icir"]
+        table += f"| {fn} | {ar[0]:5.4f}±{ar[1]:2.2f} | {ir[0]:5.4f}±{ir[1]:2.2f}| {md[0]:5.4f}±{md[1]:2.2f} | {ic[0]:5.4f}±{ic[1]:2.2f} | {icir[0]:5.4f}±{icir[1]:2.2f}| {ric[0]:5.4f}±{ric[1]:2.2f} | {ricir[0]:5.4f}±{ricir[1]:2.2f} |\n"
     pprint(table)
     with open("table.md", "w") as f:
         f.write(table)
@@ -240,6 +252,7 @@ def run(times=1, models=None, exclude=False):
             sys.stderr.write("\n")
         # install qlib
         sys.stderr.write("Installing qlib...\n")
+        execute(f"{python_path} -m pip install --upgrade pip")  # TODO: FIX ME!
         execute(f"{python_path} -m pip install --upgrade cython")  # TODO: FIX ME!
         if fn == "TFT":
             execute(

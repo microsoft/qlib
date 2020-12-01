@@ -61,7 +61,7 @@ class DNNModelPytorch(Model):
         optimizer="gd",
         loss="mse",
         GPU="0",
-        seed=0,
+        seed=None,
         **kwargs
     ):
         # Set logger.
@@ -116,8 +116,9 @@ class DNNModelPytorch(Model):
             )
         )
 
-        np.random.seed(self.seed)
-        torch.manual_seed(self.seed)
+        if self.seed is not None:
+            np.random.seed(self.seed)
+            torch.manual_seed(self.seed)
 
         if loss not in {"mse", "binary"}:
             raise NotImplementedError("loss {} is not supported!".format(loss))

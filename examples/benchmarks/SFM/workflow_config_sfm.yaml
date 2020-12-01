@@ -58,7 +58,6 @@ task:
             loss: mse
             optimizer: adam
             GPU: 1
-            seed: 710
     dataset:
         class: DatasetH
         module_path: qlib.data.dataset

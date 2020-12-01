@@ -57,7 +57,7 @@ class LSTM(Model):
         loss="mse",
         optimizer="adam",
         GPU="0",
-        seed=0,
+        seed=None,
         **kwargs
     ):
         # Set logger.
@@ -113,8 +113,9 @@ class LSTM(Model):
             )
         )
 
-        np.random.seed(self.seed)
-        torch.manual_seed(self.seed)
+        if self.seed is not None:
+            np.random.seed(self.seed)
+            torch.manual_seed(self.seed)
 
         self.lstm_model = LSTMModel(
             d_feat=self.d_feat,

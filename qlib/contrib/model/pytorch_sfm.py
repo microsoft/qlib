@@ -217,7 +217,7 @@ class SFM(Model):
         loss="mse",
         optimizer="gd",
         GPU="0",
-        seed=0,
+        seed=None,
         **kwargs
     ):
         # Set logger.
@@ -282,8 +282,9 @@ class SFM(Model):
             )
         )
 
-        np.random.seed(self.seed)
-        torch.manual_seed(self.seed)
+        if self.seed is not None:
+            np.random.seed(self.seed)
+            torch.manual_seed(self.seed)
 
         self.sfm_model = SFM_Model(
             d_feat=self.d_feat,

@@ -57,7 +57,7 @@ class GRU(Model):
         loss="mse",
         optimizer="adam",
         GPU="0",
-        seed=0,
+        seed=None,
         **kwargs
     ):
         # Set logger.
@@ -113,8 +113,9 @@ class GRU(Model):
             )
         )
 
-        np.random.seed(self.seed)
-        torch.manual_seed(self.seed)
+        if self.seed is not None:
+            np.random.seed(self.seed)
+            torch.manual_seed(self.seed)
 
         self.gru_model = GRUModel(
             d_feat=self.d_feat,

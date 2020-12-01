@@ -62,7 +62,7 @@ class GATs(Model):
         model_path=None,
         optimizer="adam",
         GPU="0",
-        seed=0,
+        seed=None,
         **kwargs
     ):
         # Set logger.
@@ -123,8 +123,11 @@ class GATs(Model):
                 seed,
             )
         )
-        np.random.seed(self.seed)
-        torch.manual_seed(self.seed)
+
+        if self.seed is not None:
+            np.random.seed(self.seed)
+            torch.manual_seed(self.seed)
+
         self.GAT_model = GATModel(
             d_feat=self.d_feat,
             hidden_size=self.hidden_size,

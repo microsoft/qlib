@@ -56,7 +56,6 @@ task:
             base_model: LSTM
             with_pretrain: True
             model_path: "benchmarks/LSTM/model_lstm_csi300.pkl"
-            seed: 0
             GPU: 0
     dataset:
         class: DatasetH
