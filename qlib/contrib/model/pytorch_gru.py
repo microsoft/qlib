@@ -76,7 +76,7 @@ class GRU(Model):
         self.early_stop = early_stop
         self.optimizer = optimizer.lower()
         self.loss = loss
-        self.visible_GPU = GPU
+        self.device = "cuda:%d" % (GPU) if torch.cuda.is_available() else "cpu"
         self.use_gpu = torch.cuda.is_available()
         self.seed = seed
 
@@ -131,11 +131,7 @@ class GRU(Model):
             raise NotImplementedError("optimizer {} is not supported!".format(optimizer))
 
         self._fitted = False
-        if self.use_gpu:
-            self.gru_model.cuda()
-            # set the visible GPU
-            if self.visible_GPU:
-                os.environ["CUDA_VISIBLE_DEVICES"] = str(self.visible_GPU)
+        self.gru_model.to(self.device)
 
     def mse(self, pred, label):
         loss = (pred - label) ** 2
@@ -173,12 +169,8 @@ class GRU(Model):
             if len(indices) - i < self.batch_size:
                 break
 
-            feature = torch.from_numpy(x_train_values[indices[i : i + self.batch_size]]).float()
-            label = torch.from_numpy(y_train_values[indices[i : i + self.batch_size]]).float()
-
-            if self.use_gpu:
-                feature = feature.cuda()
-                label = label.cuda()
+            feature = torch.from_numpy(x_train_values[indices[i : i + self.batch_size]]).float().to(self.device)
+            label = torch.from_numpy(y_train_values[indices[i : i + self.batch_size]]).float().to(self.device)
 
             pred = self.gru_model(feature)
             loss = self.loss_fn(pred, label)
@@ -206,12 +198,8 @@ class GRU(Model):
             if len(indices) - i < self.batch_size:
                 break
 
-            feature = torch.from_numpy(x_values[indices[i : i + self.batch_size]]).float()
-            label = torch.from_numpy(y_values[indices[i : i + self.batch_size]]).float()
-
-            if self.use_gpu:
-                feature = feature.cuda()
-                label = label.cuda()
+            feature = torch.from_numpy(x_values[indices[i : i + self.batch_size]]).float().to(self.device)
+            label = torch.from_numpy(y_values[indices[i : i + self.batch_size]]).float().to(self.device)
 
             pred = self.gru_model(feature)
             loss = self.loss_fn(pred, label)
@@ -299,10 +287,7 @@ class GRU(Model):
             else:
                 end = begin + self.batch_size
 
-            x_batch = torch.from_numpy(x_values[begin:end]).float()
-
-            if self.use_gpu:
-                x_batch = x_batch.cuda()
+            x_batch = torch.from_numpy(x_values[begin:end]).float().to(self.device)
 
             with torch.no_grad():
                 if self.use_gpu:
