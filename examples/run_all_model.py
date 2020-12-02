@@ -291,7 +291,8 @@ def run(times=1, models=None, exclude=False):
     pprint(errors)
     sys.stderr.write("\n")
     # move results folder
-    shutil.move(exp_path, exp_path + f"_{datetime.now().strftime("%Y-%m-%d_%H:%M:%S")}")
+    shutil.move(exp_path, exp_path + f"_{datetime.now().strftime('%Y-%m-%d_%H:%M:%S')}")
+
 
 if __name__ == "__main__":
     fire.Fire(run)  # run all the model

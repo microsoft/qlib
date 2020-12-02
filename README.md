@@ -27,10 +27,10 @@ For more details, please refer to our paper ["Qlib: An AI-oriented Quantitative 
   - [Data Preparation](#data-preparation)
   - [Auto Quant Research Workflow](#auto-quant-research-workflow)
   - [Building Customized Quant Research Workflow by Code](#building-customized-quant-research-workflow-by-code)
-- [**Quant Model Zoo**](#quant-model-zoo)
+- [Quant Model Zoo](#quant-model-zoo)
   - [Run a single model](#run-a-single-model)
   - [Run multiple models](#run-multiple-models)
-- [**Quant Dataset Zoo**](#quant-dataset-zoo)
+- [Quant Dataset Zoo](#quant-dataset-zoo)
 - [More About Qlib](#more-about-qlib)
 - [Offline Mode and Online Mode](#offline-mode-and-online-mode)
   - [Performance of Qlib Data Server](#performance-of-qlib-data-server)
@@ -218,7 +218,7 @@ All the models listed above are runnable with ``Qlib``. Users can find the confi
 ## Run multiple models
 `Qlib` also provides a script [`run_all_model.py`](examples/run_all_model.py) which can run multiple models for several iterations. (**Note**: the script only supprots *Linux* now. Other OS will be supported in the future.)
 
-The script will create a unique virtual environment for each model, and delete the environments after training. Thus, only experiment results such as `IC` and `backtest` results will be generated and stored. (**Note**: the script will erase your previous experiment records created by running itself.)
+The script will create a unique virtual environment for each model, and delete the environments after training. Thus, only experiment results such as `IC` and `backtest` results will be generated and stored.
 
 Here is an example of running all the models for 10 iterations:
 ```python
