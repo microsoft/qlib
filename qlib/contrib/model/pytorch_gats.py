@@ -83,7 +83,7 @@ class GATs(Model):
         self.base_model = base_model
         self.with_pretrain = with_pretrain
         self.model_path = model_path
-        self.device = "cuda:%d" % (GPU) if torch.cuda.is_available() else "cpu"
+        self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() else "cpu")
         self.use_gpu = torch.cuda.is_available()
         self.seed = seed
 

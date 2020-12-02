@@ -79,7 +79,7 @@ class DNNModelPytorch(Model):
         self.lr_decay_steps = lr_decay_steps
         self.optimizer = optimizer.lower()
         self.loss_type = loss
-        self.device = "cuda:%d" % (GPU) if torch.cuda.is_available() else "cpu"
+        self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() else "cpu")
         self.use_GPU = torch.cuda.is_available()
         self.seed = seed
 
