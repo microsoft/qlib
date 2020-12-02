@@ -15,6 +15,7 @@ import traceback
 import functools
 import statistics
 import subprocess
+from datetime import datetime
 from pathlib import Path
 from operator import xor
 from pprint import pprint
@@ -45,8 +46,6 @@ if not exists_qlib_data(provider_uri):
 
     GetData().qlib_data(target_dir=provider_uri, region=REG_CN)
 qlib.init(provider_uri=provider_uri, region=REG_CN, exp_manager=exp_manager)
-if os.path.isdir(exp_path):
-    shutil.rmtree(exp_path)
 
 # decorator to check the arguments
 def only_allow_defined_args(function_to_decorate):
@@ -291,7 +290,8 @@ def run(times=1, models=None, exclude=False):
     sys.stderr.write(f"Here are some of the errors of the models...\n")
     pprint(errors)
     sys.stderr.write("\n")
-
+    # move results folder
+    shutil.move(exp_path, exp_path + f"_{datetime.now().strftime("%Y-%m-%d_%H:%M:%S")}")
 
 if __name__ == "__main__":
     fire.Fire(run)  # run all the model
