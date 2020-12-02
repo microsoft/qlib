@@ -135,7 +135,7 @@ class ALSTM(Model):
             self.ALSTM_model.cuda()
             # set the visible GPU
             if self.visible_GPU:
-                os.environ["CUDA_VISIBLE_DEVICES"] = self.visible_GPU
+                os.environ["CUDA_VISIBLE_DEVICES"] = str(self.visible_GPU)
 
     def mse(self, pred, label):
         loss = (pred - label) ** 2

@@ -57,7 +57,7 @@ task:
             eval_steps: 5
             loss: mse
             optimizer: adam
-            GPU: 1
+            GPU: 0
     dataset:
         class: DatasetH
         module_path: qlib.data.dataset
