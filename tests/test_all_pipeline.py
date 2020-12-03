@@ -22,7 +22,7 @@ from qlib.contrib.evaluate import (
 from qlib.utils import exists_qlib_data, init_instance_by_config, flatten_dict
 from qlib.workflow import R
 from qlib.workflow.record_temp import SignalRecord, SigAnaRecord, PortAnaRecord
-from qlib.tests.get_data import GetData
+from qlib.tests.data import GetData
 from qlib.tests import TestAutoData
 
 
