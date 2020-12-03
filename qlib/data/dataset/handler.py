@@ -155,6 +155,9 @@ class DataHandler(Serializable):
 
                 select a set of meaningful columns.(e.g. features, columns)
 
+                if cal_set == CS_RAW:
+                    the raw dataset will be returned.
+
             - if isinstance(col_set, List[str]):
 
                 select several sets of meaningful columns, the returned data has multiple levels

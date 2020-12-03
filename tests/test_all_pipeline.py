@@ -22,6 +22,8 @@ from qlib.contrib.evaluate import (
 from qlib.utils import exists_qlib_data, init_instance_by_config, flatten_dict
 from qlib.workflow import R
 from qlib.workflow.record_temp import SignalRecord, SigAnaRecord, PortAnaRecord
+from qlib.tests.get_data import GetData
+from qlib.tests import TestAutoData
 
 
 market = "csi300"
@@ -156,25 +158,11 @@ def backtest_analysis(pred, rid):
     return analysis_df
 
 
-class TestAllFlow(unittest.TestCase):
+class TestAllFlow(TestAutoData):
     PRED_SCORE = None
     REPORT_NORMAL = None
     POSITIONS = None
     RID = None
-
-    @classmethod
-    def setUpClass(cls) -> None:
-        # use default data
-        provider_uri = "~/.qlib/qlib_data/cn_data_simple"  # target_dir
-        if not exists_qlib_data(provider_uri):
-            print(f"Qlib data is not found in {provider_uri}")
-            sys.path.append(str(Path(__file__).resolve().parent.parent.joinpath("scripts")))
-            from get_data import GetData
-
-            GetData().qlib_data(
-                name="qlib_data_simple", region="cn", version="latest", interval="1d", target_dir=provider_uri
-            )
-        qlib.init(provider_uri=provider_uri, region=REG_CN)
 
     @classmethod
     def tearDownClass(cls) -> None:
