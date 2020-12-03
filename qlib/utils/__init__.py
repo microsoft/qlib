@@ -622,9 +622,9 @@ def exists_qlib_data(qlib_dir):
     return True
 
 
-def lexsort_index(df: pd.DataFrame) -> pd.DataFrame:
+def lazy_sort_index(df: pd.DataFrame, axis=0) -> pd.DataFrame:
     """
-    make the df index lexsorted
+    make the df index sorted
 
     df.sort_index() will take a lot of time even when `df.is_lexsorted() == True`
     This function could avoid such case
@@ -638,10 +638,11 @@ def lexsort_index(df: pd.DataFrame) -> pd.DataFrame:
     pd.DataFrame:
         sorted dataframe
     """
-    if df.index.is_lexsorted():
+    idx = df.index if axis == 0 else df.columns
+    if idx.is_monotonic_increasing:
         return df
     else:
-        return df.sort_index()
+        return df.sort_index(axis=axis)
 
 
 def flatten_dict(d, parent_key="", sep="."):

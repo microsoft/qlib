@@ -5,6 +5,10 @@ from ...log import get_module_logger
 from .handler import DataHandler, DataHandlerLP
 from inspect import getfullargspec
 import pandas as pd
+import numpy as np
+import bisect
+from ...utils import lazy_sort_index
+from .utils import get_level_index
 
 
 class Dataset(Serializable):
@@ -115,6 +119,16 @@ class DatasetH(Dataset):
         self._handler = init_instance_by_config(handler, accept_types=DataHandler)
         self._segments = segments.copy()
 
+    def _prepare_seg(self, slc: slice, **kwargs):
+        """
+        Give a slice, retrieve the according data
+
+        Parameters
+        ----------
+        slc : slice
+        """
+        return self._handler.fetch(slc, **kwargs)
+
     def prepare(
         self,
         segments: Union[List[str], Tuple[str], str, slice],
@@ -157,9 +171,157 @@ class DatasetH(Dataset):
         else:
             logger.info(f"data_key[{data_key}] is ignored.")
 
+        # Handle all kinds of segments format
         if isinstance(segments, (list, tuple)):
-            return [self._handler.fetch(slice(*self._segments[seg]), **fetch_kwargs) for seg in segments]
+            return [self._prepare_seg(slice(*self._segments[seg]), **fetch_kwargs) for seg in segments]
         elif isinstance(segments, str):
-            return self._handler.fetch(slice(*self._segments[segments]), **fetch_kwargs)
+            return self._prepare_seg(slice(*self._segments[segments]), **fetch_kwargs)
+        elif isinstance(segments, slice):
+            return self._prepare_seg(segments, **fetch_kwargs)
         else:
             raise NotImplementedError(f"This type of input is not supported")
+
+
+class TSDataSampler:
+    """
+    (T)ime-(S)eries DataSampler
+    This is the result of TSDatasetH
+
+    It works like `torch.data.utils.Dataset`, it provides a very convient interface for constructing time-series
+    dataset based on tabular data.
+
+    If user have further requirements for processing data, user could process
+
+    """
+
+    def __init__(self, data, start, end, step_len):
+        self.start = start
+        self.end = end
+        self.step_len = step_len
+        assert get_level_index(data, "datetime") == 0
+        self.data = lazy_sort_index(data)
+        # The index of usable data is between start_idx and end_idx
+        self.start_idx, self.end_idx = self.data.index.slice_locs(start=pd.Timestamp(start), end=pd.Timestamp(end))
+        # self.index_link = self.build_link(self.data)
+        self.idx_df, self.idx_map = self.build_index(self.data)
+
+    @staticmethod
+    def build_index(data: pd.DataFrame) -> dict:
+        """
+        The relation of the data
+
+        Parameters
+        ----------
+        data : pd.DataFrame
+            The dataframe with <datetime, DataFrame>
+
+        Returns
+        -------
+        dict:
+            {<index>: <prev_index or None>}
+            # get the previous index of a line given index
+        """
+        # object incase of pandas converting int to flaot
+        idx_df = pd.Series(range(data.shape[0]), index=data.index, dtype=np.object)
+        idx_df = lazy_sort_index(idx_df.unstack())
+        # NOTE: the correctness of `__getitem__` depends on columns sorted here
+        idx_df = lazy_sort_index(idx_df, axis=1)
+
+        idx_map = {}
+        for i, (_, row) in enumerate(idx_df.iterrows()):
+            for j, real_idx in enumerate(row):
+                if not np.isnan(real_idx):
+                    idx_map[real_idx] = (i, j)
+        return idx_df, idx_map
+
+    def __getitem__(self, idx: Union[int, Tuple[object, str]]):
+        """
+        # We have two method to get the time-series of a sample
+        tsds is a instance of TSDataSampler
+
+        # 1) sample by int index directly
+        tsds[len(tsds) - 1]
+
+        # 2) sample by <datetime,instrument> index
+        tsds['2016-12-31', "SZ300315"]
+
+        # The return value will be similar to the data retrieved by following code
+        df.loc(axis=0)['2015-01-01':'2016-12-31', "SZ300315"].iloc[-30:]
+
+        Parameters
+        ----------
+        idx : Union[int, Tuple[object, str]]
+        """
+        # The the right row number `i` and col number `j` in idx_df
+        if isinstance(idx, int):
+            real_idx = self.start_idx + idx
+            if self.start_idx <= real_idx < self.end_idx:
+                i, j = self.idx_map[real_idx]
+        elif isinstance(idx, tuple):
+            # <TSDataSampler object>["datetime", "instruments"]
+            date, inst = idx
+            date = pd.Timestamp(date)
+            i = bisect.bisect_right(self.idx_df.index, date) - 1
+            # NOTE: This relies on the idx_df columns sorted in `__init__`
+            j = bisect.bisect_left(self.idx_df.columns, inst)
+        else:
+            raise KeyError(f"{real_idx} is out of [{self.start_idx}, {self.end_idx})")
+
+        data_l = []
+        indices = self.idx_df.iloc[max(i - self.step_len + 1, 0) : i + 1, j].values
+        indices = indices.reshape(-1)
+        if len(indices) < self.step_len:
+            indices = np.concatenate([np.full((self.step_len - len(indices),), np.nan), indices])
+        for idx in indices:
+            if np.isnan(idx):
+                data_l.append(np.full((self.data.shape[1],), np.nan))
+            else:
+                data_l.append(self.data.iloc[idx])
+        return np.array(data_l)
+
+    def __len__(self):
+        return self.end_idx - self.start_idx
+
+
+class TSDatasetH(DatasetH):
+    """
+    (T)ime-(S)eries Dataset (H)andler
+
+
+    Covnert the tabular data to Time-Series data
+
+    Requirements analysis
+
+    The typical workflow of a user to get time-series data for an sample
+    - process features
+    - slice proper data from data handler:  dimension of sample <feature, >
+    - Build relation of samples by <time, instrument> index
+        - Be able to sample times series of data <timestep, feature>
+        - It will be better if the interface is like "torch.utils.data.Dataset"
+    - User could build customized batch based on the data
+        - The dimension of a batch of data <batch_idx, feature, timestep>
+    """
+
+    def __init__(self, step_len=30, *args, **kwargs):
+        self.step_len = step_len
+        super().__init__(*args, **kwargs)
+
+    def setup_data(self, *args, **kwargs):
+        super().setup_data(*args, **kwargs)
+        cal = self._handler.fetch(col_set=self._handler.CS_RAW).index.get_level_values("datetime").unique()
+        cal = sorted(cal)
+        # Get the datatime index for building timestamp
+        self.cal = cal
+
+    def _prepare_seg(self, slc: slice, **kwargs) -> TSDataSampler:
+        # Dataset decide how to slice data(Get more data for timeseries).
+        start, end = slc.start, slc.stop
+        start_idx = bisect.bisect_left(self.cal, pd.Timestamp(start))
+        pad_start_idx = max(0, start_idx - self.step_len)
+        pad_start = self.cal[pad_start_idx]
+
+        # TSDatasetH will retrieve more data for complete
+        data = super()._prepare_seg(slice(pad_start, end), **kwargs)
+
+        tsds = TSDataSampler(data=data, start=start, end=end, step_len=self.step_len)
+        return tsds
