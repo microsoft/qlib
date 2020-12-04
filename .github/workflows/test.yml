@@ -57,4 +57,4 @@ jobs:
 
     - name: Test workflow by config
       run: |
-        qrun examples/benchmarks/LightGBM/workflow_config_lightgbm.yaml 
+        qrun examples/benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml 
