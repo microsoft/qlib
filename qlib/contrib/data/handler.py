@@ -43,7 +43,7 @@ _DEFAULT_INFER_PROCESSORS = [
 ]
 
 
-class ALPHA360(DataHandlerLP):
+class Alpha360(DataHandlerLP):
     def __init__(
         self,
         instruments="csi500",
@@ -119,7 +119,7 @@ class ALPHA360(DataHandlerLP):
         return fields, names
 
 
-class ALPHA360vwap(ALPHA360):
+class Alpha360vwap(Alpha360):
     def get_label_config(self):
         return (["Ref($vwap, -2)/Ref($vwap, -1) - 1"], ["LABEL0"])
 

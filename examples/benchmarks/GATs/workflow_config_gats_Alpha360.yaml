@@ -41,26 +41,28 @@ port_analysis_config: &port_analysis_config
         min_cost: 5
 task:
     model:
-        class: LSTM
-        module_path: qlib.contrib.model.pytorch_lstm
+        class: GATs
+        module_path: qlib.contrib.model.pytorch_gats
         kwargs:
             d_feat: 6
             hidden_size: 64
             num_layers: 2
-            dropout: 0.0
+            dropout: 0.7
             n_epochs: 200
-            lr: 1e-3
+            lr: 1e-4
             early_stop: 20
-            batch_size: 800
             metric: loss
             loss: mse
+            base_model: LSTM
+            with_pretrain: True
+            model_path: "benchmarks/LSTM/model_lstm_csi300.pkl"
             GPU: 0
     dataset:
         class: DatasetH
         module_path: qlib.data.dataset
         kwargs:
             handler:
-                class: ALPHA360
+                class: Alpha360
                 module_path: qlib.contrib.data.handler
                 kwargs: *data_handler_config
             segments:
