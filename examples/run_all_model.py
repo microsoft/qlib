@@ -135,9 +135,9 @@ def get_all_folders(models, exclude) -> dict:
 
 
 # function to get all the files under the model folder
-def get_all_files(folder_path) -> (str, str):
-    yaml_path = str(Path(f"{folder_path}") / "*.yaml")
-    req_path = str(Path(f"{folder_path}") / "*.txt")
+def get_all_files(folder_path, dataset) -> (str, str):
+    yaml_path = str(Path(f"{folder_path}") / f"*{dataset}*.yaml")
+    req_path = str(Path(f"{folder_path}") / f"*{dataset}*.txt")
     return glob.glob(yaml_path)[0], glob.glob(req_path)[0]
 
 
@@ -191,7 +191,7 @@ def gen_and_save_md_table(metrics):
 
 # function to run the all the models
 @only_allow_defined_args
-def run(times=1, models=None, exclude=False):
+def run(times=1, models=None, dataset='Alpha360', exclude=False):
     """
     Please be aware that this function can only work under Linux. MacOS and Windows will be supported in the future.
     Any PR to enhance this method is highly welcomed.
@@ -204,6 +204,8 @@ def run(times=1, models=None, exclude=False):
         determines the specific model or list of models to run or exclude.
     exclude : boolean
         determines whether the model being used is excluded or included.
+    dataset : str
+        determines the dataset to be used for each model.
 
     Usage:
     -------
@@ -217,13 +219,16 @@ def run(times=1, models=None, exclude=False):
         # Case 2 - run specific models multiple times
         python run_all_model.py 3 mlp
 
-        # Case 3 - run other models except those are given as arguments for multiple times
-        python run_all_model.py 3 [mlp,tft,lstm] True
+        # Case 3 - run specific models multiple times with specific dataset
+        python run_all_model.py 3 mlp Alpha158
 
-        # Case 4 - run specific models for one time
+        # Case 4 - run other models except those are given as arguments for multiple times
+        python run_all_model.py 3 [mlp,tft,lstm] --exclude=True
+
+        # Case 5 - run specific models for one time
         python run_all_model.py --models=[mlp,lightgbm]
 
-        # Case 5 - run other models except those are given as aruments for one time
+        # Case 6 - run other models except those are given as aruments for one time
         python run_all_model.py --models=[mlp,tft,sfm] --exclude=True
 
     """
@@ -237,7 +242,7 @@ def run(times=1, models=None, exclude=False):
         env_path, python_path, conda_activate = create_env()
         # get all files
         sys.stderr.write("Retrieving files...\n")
-        yaml_path, req_path = get_all_files(folders[fn])
+        yaml_path, req_path = get_all_files(folders[fn], dataset)
         sys.stderr.write("\n")
         # install requirements.txt
         sys.stderr.write("Installing requirements.txt...\n")
@@ -291,7 +296,8 @@ def run(times=1, models=None, exclude=False):
     pprint(errors)
     sys.stderr.write("\n")
     # move results folder
-    shutil.move(exp_path, exp_path + f"_{datetime.now().strftime('%Y-%m-%d_%H:%M:%S')}")
+    shutil.move(exp_path, exp_path + f"_{dataset}_{datetime.now().strftime('%Y-%m-%d_%H:%M:%S')}")
+    shutil.move("table.md", f"table_{dataset}_{datetime.now().strftime('%Y-%m-%d_%H:%M:%S')}.md")
 
 
 if __name__ == "__main__":
