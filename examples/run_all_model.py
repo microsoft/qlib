@@ -191,7 +191,7 @@ def gen_and_save_md_table(metrics):
 
 # function to run the all the models
 @only_allow_defined_args
-def run(times=1, models=None, dataset='Alpha360', exclude=False):
+def run(times=1, models=None, dataset="Alpha360", exclude=False):
     """
     Please be aware that this function can only work under Linux. MacOS and Windows will be supported in the future.
     Any PR to enhance this method is highly welcomed.

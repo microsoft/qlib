@@ -94,7 +94,12 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     python_requires=REQUIRES_PYTHON,
-    packages=find_packages(exclude=("tests",)),
+    packages=find_packages(
+        exclude=(
+            "tests",
+            "examples",
+        )
+    ),
     # if your package is a single module, use this instead of 'packages':
     # py_modules=['qlib'],
     entry_points={
