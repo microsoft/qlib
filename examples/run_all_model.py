@@ -137,7 +137,7 @@ def get_all_folders(models, exclude) -> dict:
 # function to get all the files under the model folder
 def get_all_files(folder_path, dataset) -> (str, str):
     yaml_path = str(Path(f"{folder_path}") / f"*{dataset}*.yaml")
-    req_path = str(Path(f"{folder_path}") / f"*{dataset}*.txt")
+    req_path = str(Path(f"{folder_path}") / f"*.txt")
     return glob.glob(yaml_path)[0], glob.glob(req_path)[0]
 
 
@@ -172,17 +172,17 @@ def get_all_results(folders) -> dict:
 
 # function to generate and save markdown table
 def gen_and_save_md_table(metrics, dataset):
-    table = "| Model Name | Dataset | Annualized Return | Information Ratio | Max Drawdown | IC | ICIR | Rank IC | Rank ICIR |\n"
+    table = "| Model Name | Dataset | IC | ICIR | Rank IC | Rank ICIR | Annualized Return | Information Ratio | Max Drawdown |\n"
     table += "|---|---|---|---|---|---|---|---|---|\n"
     for fn in metrics:
-        ar = metrics[fn]["annualized_return_with_cost"]
-        ir = metrics[fn]["information_ratio_with_cost"]
-        md = metrics[fn]["max_drawdown_with_cost"]
         ic = metrics[fn]["ic"]
         icir = metrics[fn]["icir"]
         ric = metrics[fn]["rank_ic"]
         ricir = metrics[fn]["rank_icir"]
-        table += f"| {fn} | {dataset} | {ar[0]:5.4f}±{ar[1]:2.2f} | {ir[0]:5.4f}±{ir[1]:2.2f}| {md[0]:5.4f}±{md[1]:2.2f} | {ic[0]:5.4f}±{ic[1]:2.2f} | {icir[0]:5.4f}±{icir[1]:2.2f}| {ric[0]:5.4f}±{ric[1]:2.2f} | {ricir[0]:5.4f}±{ricir[1]:2.2f} |\n"
+        ar = metrics[fn]["annualized_return_with_cost"]
+        ir = metrics[fn]["information_ratio_with_cost"]
+        md = metrics[fn]["max_drawdown_with_cost"]
+        table += f"| {fn} | {dataset} | {ic[0]:5.4f}±{ic[1]:2.2f} | {icir[0]:5.4f}±{icir[1]:2.2f}| {ric[0]:5.4f}±{ric[1]:2.2f} | {ricir[0]:5.4f}±{ricir[1]:2.2f} | {ar[0]:5.4f}±{ar[1]:2.2f} | {ir[0]:5.4f}±{ir[1]:2.2f}| {md[0]:5.4f}±{md[1]:2.2f} |\n"
     pprint(table)
     with open("table.md", "w") as f:
         f.write(table)
