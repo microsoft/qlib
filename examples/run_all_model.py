@@ -15,6 +15,7 @@ import traceback
 import functools
 import statistics
 import subprocess
+from datetime import datetime
 from pathlib import Path
 from operator import xor
 from pprint import pprint
@@ -45,8 +46,6 @@ if not exists_qlib_data(provider_uri):
 
     GetData().qlib_data(target_dir=provider_uri, region=REG_CN)
 qlib.init(provider_uri=provider_uri, region=REG_CN, exp_manager=exp_manager)
-if os.path.isdir(exp_path):
-    shutil.rmtree(exp_path)
 
 # decorator to check the arguments
 def only_allow_defined_args(function_to_decorate):
@@ -136,9 +135,9 @@ def get_all_folders(models, exclude) -> dict:
 
 
 # function to get all the files under the model folder
-def get_all_files(folder_path) -> (str, str):
-    yaml_path = str(Path(f"{folder_path}") / "*.yaml")
-    req_path = str(Path(f"{folder_path}") / "*.txt")
+def get_all_files(folder_path, dataset) -> (str, str):
+    yaml_path = str(Path(f"{folder_path}") / f"*{dataset}*.yaml")
+    req_path = str(Path(f"{folder_path}") / f"*.txt")
     return glob.glob(yaml_path)[0], glob.glob(req_path)[0]
 
 
@@ -152,6 +151,10 @@ def get_all_results(folders) -> dict:
         result["annualized_return_with_cost"] = list()
         result["information_ratio_with_cost"] = list()
         result["max_drawdown_with_cost"] = list()
+        result["ic"] = list()
+        result["icir"] = list()
+        result["rank_ic"] = list()
+        result["rank_icir"] = list()
         for recorder_id in recorders:
             if recorders[recorder_id].status == "FINISHED":
                 recorder = R.get_recorder(recorder_id=recorder_id, experiment_name=fn)
@@ -159,19 +162,27 @@ def get_all_results(folders) -> dict:
                 result["annualized_return_with_cost"].append(metrics["excess_return_with_cost.annualized_return"])
                 result["information_ratio_with_cost"].append(metrics["excess_return_with_cost.information_ratio"])
                 result["max_drawdown_with_cost"].append(metrics["excess_return_with_cost.max_drawdown"])
+                result["ic"].append(metrics["IC"])
+                result["icir"].append(metrics["ICIR"])
+                result["rank_ic"].append(metrics["Rank IC"])
+                result["rank_icir"].append(metrics["Rank ICIR"])
         results[fn] = result
     return results
 
 
 # function to generate and save markdown table
-def gen_and_save_md_table(metrics):
-    table = "| Model Name | Annualized Return | Information Ratio | Max Drawdown |\n"
-    table += "|---|---|---|---|\n"
+def gen_and_save_md_table(metrics, dataset):
+    table = "| Model Name | Dataset | IC | ICIR | Rank IC | Rank ICIR | Annualized Return | Information Ratio | Max Drawdown |\n"
+    table += "|---|---|---|---|---|---|---|---|---|\n"
     for fn in metrics:
+        ic = metrics[fn]["ic"]
+        icir = metrics[fn]["icir"]
+        ric = metrics[fn]["rank_ic"]
+        ricir = metrics[fn]["rank_icir"]
         ar = metrics[fn]["annualized_return_with_cost"]
         ir = metrics[fn]["information_ratio_with_cost"]
         md = metrics[fn]["max_drawdown_with_cost"]
-        table += f"| {fn} | {ar[0]:9.4f}±{ar[1]:9.2f} | {ir[0]:9.4f}±{ir[1]:9.2f}| {md[0]:9.4f}±{md[1]:9.2f} |\n"
+        table += f"| {fn} | {dataset} | {ic[0]:5.4f}±{ic[1]:2.2f} | {icir[0]:5.4f}±{icir[1]:2.2f}| {ric[0]:5.4f}±{ric[1]:2.2f} | {ricir[0]:5.4f}±{ricir[1]:2.2f} | {ar[0]:5.4f}±{ar[1]:2.2f} | {ir[0]:5.4f}±{ir[1]:2.2f}| {md[0]:5.4f}±{md[1]:2.2f} |\n"
     pprint(table)
     with open("table.md", "w") as f:
         f.write(table)
@@ -180,7 +191,7 @@ def gen_and_save_md_table(metrics):
 
 # function to run the all the models
 @only_allow_defined_args
-def run(times=1, models=None, exclude=False):
+def run(times=1, models=None, dataset="Alpha360", exclude=False):
     """
     Please be aware that this function can only work under Linux. MacOS and Windows will be supported in the future.
     Any PR to enhance this method is highly welcomed.
@@ -193,6 +204,8 @@ def run(times=1, models=None, exclude=False):
         determines the specific model or list of models to run or exclude.
     exclude : boolean
         determines whether the model being used is excluded or included.
+    dataset : str
+        determines the dataset to be used for each model.
 
     Usage:
     -------
@@ -206,13 +219,16 @@ def run(times=1, models=None, exclude=False):
         # Case 2 - run specific models multiple times
         python run_all_model.py 3 mlp
 
-        # Case 3 - run other models except those are given as arguments for multiple times
-        python run_all_model.py 3 [mlp,tft,lstm] True
+        # Case 3 - run specific models multiple times with specific dataset
+        python run_all_model.py 3 mlp Alpha158
 
-        # Case 4 - run specific models for one time
+        # Case 4 - run other models except those are given as arguments for multiple times
+        python run_all_model.py 3 [mlp,tft,lstm] --exclude=True
+
+        # Case 5 - run specific models for one time
         python run_all_model.py --models=[mlp,lightgbm]
 
-        # Case 5 - run other models except those are given as aruments for one time
+        # Case 6 - run other models except those are given as aruments for one time
         python run_all_model.py --models=[mlp,tft,sfm] --exclude=True
 
     """
@@ -226,7 +242,7 @@ def run(times=1, models=None, exclude=False):
         env_path, python_path, conda_activate = create_env()
         # get all files
         sys.stderr.write("Retrieving files...\n")
-        yaml_path, req_path = get_all_files(folders[fn])
+        yaml_path, req_path = get_all_files(folders[fn], dataset)
         sys.stderr.write("\n")
         # install requirements.txt
         sys.stderr.write("Installing requirements.txt...\n")
@@ -240,6 +256,7 @@ def run(times=1, models=None, exclude=False):
             sys.stderr.write("\n")
         # install qlib
         sys.stderr.write("Installing qlib...\n")
+        execute(f"{python_path} -m pip install --upgrade pip")  # TODO: FIX ME!
         execute(f"{python_path} -m pip install --upgrade cython")  # TODO: FIX ME!
         if fn == "TFT":
             execute(
@@ -272,12 +289,15 @@ def run(times=1, models=None, exclude=False):
     results = cal_mean_std(results)
     # generating md table
     sys.stderr.write(f"Generating markdown table...\n")
-    gen_and_save_md_table(results)
+    gen_and_save_md_table(results, dataset)
     sys.stderr.write("\n")
     # print erros
     sys.stderr.write(f"Here are some of the errors of the models...\n")
     pprint(errors)
     sys.stderr.write("\n")
+    # move results folder
+    shutil.move(exp_path, exp_path + f"_{dataset}_{datetime.now().strftime('%Y-%m-%d_%H:%M:%S')}")
+    shutil.move("table.md", f"table_{dataset}_{datetime.now().strftime('%Y-%m-%d_%H:%M:%S')}.md")
 
 
 if __name__ == "__main__":

@@ -41,27 +41,29 @@ port_analysis_config: &port_analysis_config
         min_cost: 5
 task:
     model:
-        class: LSTM
-        module_path: qlib.contrib.model.pytorch_lstm
+        class: SFM
+        module_path: qlib.contrib.model.pytorch_sfm
         kwargs:
             d_feat: 6
             hidden_size: 64
-            num_layers: 2
-            dropout: 0.0
-            n_epochs: 200
+            output_dim: 32
+            freq_dim: 25
+            dropout_W: 0.5
+            dropout_U: 0.5
+            n_epochs: 20
             lr: 1e-3
+            batch_size: 1600
             early_stop: 20
-            batch_size: 800
-            metric: loss
+            eval_steps: 5
             loss: mse
-            seed: 0
+            optimizer: adam
             GPU: 0
     dataset:
         class: DatasetH
         module_path: qlib.data.dataset
         kwargs:
             handler:
-                class: ALPHA360
+                class: Alpha360
                 module_path: qlib.contrib.data.handler
                 kwargs: *data_handler_config
             segments:

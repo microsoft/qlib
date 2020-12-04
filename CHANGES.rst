@@ -114,7 +114,7 @@ Version 0.4.1
 Version 0.4.2
 --------------------
 - Refactor DataHandler
-- Add ``ALPHA360`` DataHandler
+- Add ``Alpha360`` DataHandler
 
 
 Version 0.4.3

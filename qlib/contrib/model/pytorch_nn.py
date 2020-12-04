@@ -61,7 +61,7 @@ class DNNModelPytorch(Model):
         optimizer="gd",
         loss="mse",
         GPU="0",
-        seed=0,
+        seed=None,
         **kwargs
     ):
         # Set logger.
@@ -79,7 +79,7 @@ class DNNModelPytorch(Model):
         self.lr_decay_steps = lr_decay_steps
         self.optimizer = optimizer.lower()
         self.loss_type = loss
-        self.visible_GPU = GPU
+        self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() else "cpu")
         self.use_GPU = torch.cuda.is_available()
         self.seed = seed
 
@@ -116,8 +116,9 @@ class DNNModelPytorch(Model):
             )
         )
 
-        np.random.seed(self.seed)
-        torch.manual_seed(self.seed)
+        if self.seed is not None:
+            np.random.seed(self.seed)
+            torch.manual_seed(self.seed)
 
         if loss not in {"mse", "binary"}:
             raise NotImplementedError("loss {} is not supported!".format(loss))
@@ -146,11 +147,7 @@ class DNNModelPytorch(Model):
         )
 
         self._fitted = False
-        if self.use_GPU:
-            self.dnn_model.cuda()
-            # set the visible GPU
-            if self.visible_GPU:
-                os.environ["CUDA_VISIBLE_DEVICES"] = self.visible_GPU
+        self.dnn_model.to(self.device)
 
     def fit(
         self,
@@ -187,13 +184,9 @@ class DNNModelPytorch(Model):
         w_train_values = torch.from_numpy(w_train.values).float()
         train_num = y_train_values.shape[0]
         # prepare validation data
-        x_val_auto = torch.from_numpy(x_valid.values).float()
-        y_val_auto = torch.from_numpy(y_valid.values).float()
-        w_val_auto = torch.from_numpy(w_valid.values).float()
-        if self.use_GPU:
-            x_val_auto = x_val_auto.cuda()
-            y_val_auto = y_val_auto.cuda()
-            w_val_auto = w_val_auto.cuda()
+        x_val_auto = torch.from_numpy(x_valid.values).float().to(self.device)
+        y_val_auto = torch.from_numpy(y_valid.values).float().to(self.device)
+        w_val_auto = torch.from_numpy(w_valid.values).float().to(self.device)
 
         for step in range(self.max_steps):
             if stop_steps >= self.early_stop_rounds:
@@ -204,14 +197,9 @@ class DNNModelPytorch(Model):
             self.dnn_model.train()
             self.train_optimizer.zero_grad()
             choice = np.random.choice(train_num, self.batch_size)
-            x_batch_auto = x_train_values[choice]
-            y_batch_auto = y_train_values[choice]
-            w_batch_auto = w_train_values[choice]
-
-            if self.use_GPU:
-                x_batch_auto = x_batch_auto.cuda()
-                y_batch_auto = y_batch_auto.cuda()
-                w_batch_auto = w_batch_auto.cuda()
+            x_batch_auto = x_train_values[choice].to(self.device)
+            y_batch_auto = y_train_values[choice].to(self.device)
+            w_batch_auto = w_train_values[choice].to(self.device)
 
             # forward
             preds = self.dnn_model(x_batch_auto)
@@ -276,9 +264,7 @@ class DNNModelPytorch(Model):
         if not self._fitted:
             raise ValueError("model is not fitted yet!")
         x_test_pd = dataset.prepare("test", col_set="feature")
-        x_test = torch.from_numpy(x_test_pd.values).float()
-        if self.use_GPU:
-            x_test = x_test.cuda()
+        x_test = torch.from_numpy(x_test_pd.values).float().to(self.device)
         self.dnn_model.eval()
 
         with torch.no_grad():

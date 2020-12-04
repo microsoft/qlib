@@ -62,7 +62,7 @@ class GATs(Model):
         model_path=None,
         optimizer="adam",
         GPU="0",
-        seed=0,
+        seed=None,
         **kwargs
     ):
         # Set logger.
@@ -83,7 +83,7 @@ class GATs(Model):
         self.base_model = base_model
         self.with_pretrain = with_pretrain
         self.model_path = model_path
-        self.visible_GPU = GPU
+        self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() else "cpu")
         self.use_gpu = torch.cuda.is_available()
         self.seed = seed
 
@@ -123,8 +123,11 @@ class GATs(Model):
                 seed,
             )
         )
-        np.random.seed(self.seed)
-        torch.manual_seed(self.seed)
+
+        if self.seed is not None:
+            np.random.seed(self.seed)
+            torch.manual_seed(self.seed)
+
         self.GAT_model = GATModel(
             d_feat=self.d_feat,
             hidden_size=self.hidden_size,
@@ -140,11 +143,7 @@ class GATs(Model):
             raise NotImplementedError("optimizer {} is not supported!".format(optimizer))
 
         self._fitted = False
-        if self.use_gpu:
-            self.GAT_model.cuda()
-            # set the visible GPU
-            if self.visible_GPU:
-                os.environ["CUDA_VISIBLE_DEVICES"] = self.visible_GPU
+        self.GAT_model.to(self.device)
 
     def mse(self, pred, label):
         loss = (pred - label) ** 2
@@ -190,12 +189,8 @@ class GATs(Model):
 
         for idx, count in zip(daily_index, daily_count):
             batch = slice(idx, idx + count)
-            feature = torch.from_numpy(x_train_values[batch]).float()
-            label = torch.from_numpy(y_train_values[batch]).float()
-
-            if self.use_gpu:
-                feature = feature.cuda()
-                label = label.cuda()
+            feature = torch.from_numpy(x_train_values[batch]).float().to(self.device)
+            label = torch.from_numpy(y_train_values[batch]).float().to(self.device)
 
             pred = self.GAT_model(feature)
             loss = self.loss_fn(pred, label)
@@ -221,12 +216,8 @@ class GATs(Model):
 
         for idx, count in zip(daily_index, daily_count):
             batch = slice(idx, idx + count)
-            feature = torch.from_numpy(x_values[batch]).float()
-            label = torch.from_numpy(y_values[batch]).float()
-
-            if self.use_gpu:
-                feature = feature.cuda()
-                label = label.cuda()
+            feature = torch.from_numpy(x_values[batch]).float().to(self.device)
+            label = torch.from_numpy(y_values[batch]).float().to(self.device)
 
             pred = self.GAT_model(feature)
             loss = self.loss_fn(pred, label)
@@ -330,10 +321,7 @@ class GATs(Model):
 
         for idx, count in zip(daily_index, daily_count):
             batch = slice(idx, idx + count)
-            x_batch = torch.from_numpy(x_values[batch]).float()
-
-            if self.use_gpu:
-                x_batch = x_batch.cuda()
+            x_batch = torch.from_numpy(x_values[batch]).float().to(self.device)
 
             with torch.no_grad():
                 if self.use_gpu:
