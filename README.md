@@ -154,10 +154,6 @@ Qlib provides a tool named `qrun` to run the whole workflow automatically (inclu
     information_ratio  1.444287
     max_drawdown      -0.091078
     ```
-
-
-
-    ```
     Here are detailed documents for `qrun` and [workflow](https://qlib.readthedocs.io/en/latest/component/workflow.html).
 
 2. Graphical Reports Analysis: Run `examples/workflow_by_code.ipynb` with `jupyter notebook` to get graphical reports
