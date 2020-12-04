@@ -23,6 +23,7 @@ for the main experiments used in the publication.
 import os
 
 import data_formatters.qlib_Alpha158
+import data_formatters.qlib_Alpha360
 
 
 class ExperimentConfig(object):
@@ -39,7 +40,7 @@ class ExperimentConfig(object):
         experiment.
     """
 
-    default_experiments = ["Alpha158"]
+    default_experiments = ["Alpha158", "Alpha360"]
 
     def __init__(self, experiment="volatility", root_folder=None):
         """Creates configs based on default experiment chosen.
@@ -72,6 +73,7 @@ class ExperimentConfig(object):
     def data_csv_path(self):
         csv_map = {
             "Alpha158": "Alpha158.csv",
+            "Alpha360": "Alpha360.csv",
         }
 
         return os.path.join(self.data_folder, csv_map[self.experiment])
@@ -90,6 +92,7 @@ class ExperimentConfig(object):
 
         data_formatter_class = {
             "Alpha158": data_formatters.qlib_Alpha158.Alpha158Formatter,
+            "Alpha360": data_formatters.qlib_Alpha360.Alpha360Formatter,
         }
 
         return data_formatter_class[self.experiment]()
