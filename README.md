@@ -153,9 +153,6 @@ Qlib provides a tool named `qrun` to run the whole workflow automatically (inclu
     annualized_return  0.128982
     information_ratio  1.444287
     max_drawdown      -0.091078
-
-
-
     ```
     Here are detailed documents for `qrun` and [workflow](https://qlib.readthedocs.io/en/latest/component/workflow.html).
 
@@ -218,7 +215,7 @@ All the models listed above are runnable with ``Qlib``. Users can find the confi
 ## Run multiple models
 `Qlib` also provides a script [`run_all_model.py`](examples/run_all_model.py) which can run multiple models for several iterations. (**Note**: the script only supprots *Linux* now. Other OS will be supported in the future.)
 
-The script will create a unique virtual environment for each model, and delete the environments after training. Thus, only experiment results such as `IC` and `backtest` results will be generated and stored. (**Note**: the script will erase your previous experiment records created by running itself.)
+The script will create a unique virtual environment for each model, and delete the environments after training. Thus, only experiment results such as `IC` and `backtest` results will be generated and stored.
 
 Here is an example of running all the models for 10 iterations:
 ```python
@@ -234,7 +231,7 @@ Dataset plays a very important role in Quant. Here is a list of the datasets bui
 | Dataset                                    | US Market | China Market |
 | --                                         | --        | --           |
 | [Alpha360](./qlib/contrib/data/handler.py) |  √        |  √           |
-| [Alpha158](./qlib/contrib/data/handler.py) |  √        |  √           | 
+| [Alpha158](./qlib/contrib/data/handler.py) |  √        |  √           |
 
 [Here](https://qlib.readthedocs.io/en/latest/advanced/alpha.html) is a tutorial to build dataset with `Qlib`.
 Your PR to build new Quant dataset is highly welcomed.

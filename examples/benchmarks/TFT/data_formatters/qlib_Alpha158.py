@@ -208,7 +208,7 @@ class Alpha158Formatter(GenericDataFormatter):
 
         model_params = {
             "dropout_rate": 0.4,
-            "hidden_layer_size": 16,
+            "hidden_layer_size": 160,
             "learning_rate": 0.0001,
             "minibatch_size": 128,
             "max_gradient_norm": 0.0135,

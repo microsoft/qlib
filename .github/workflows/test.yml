@@ -27,6 +27,7 @@ jobs:
       run: |
         pip install --upgrade cython
         pip install numpy jupyter jupyter_contrib_nbextensions
+        pip install -U scipy scikit-learn # installing without this line will cause errors on GitHub Actions, while instsalling locally won't
         python setup.py install
 
     - name: Install Lightgbm for MacOS
@@ -56,4 +57,4 @@ jobs:
 
     - name: Test workflow by config
       run: |
-        qrun examples/benchmarks/LightGBM/workflow_config_lightgbm.yaml 
+        qrun examples/benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml 
