@@ -32,13 +32,13 @@ task:
         class: TFTModel
         module_path: tft
         kwargs:
-            DATASET: Alpha158
+            DATASET: Alpha360
     dataset:
         class: DatasetH
         module_path: qlib.data.dataset
         kwargs:
             handler:
-                class: Alpha158
+                class: Alpha360
                 module_path: qlib.contrib.data.handler
                 kwargs: *data_handler_config
             segments:
