@@ -27,10 +27,10 @@ For more details, please refer to our paper ["Qlib: An AI-oriented Quantitative 
   - [Data Preparation](#data-preparation)
   - [Auto Quant Research Workflow](#auto-quant-research-workflow)
   - [Building Customized Quant Research Workflow by Code](#building-customized-quant-research-workflow-by-code)
-- [Quant Model Zoo](#quant-model-zoo)
+- [**Quant Model Zoo**](#quant-model-zoo)
   - [Run a single model](#run-a-single-model)
   - [Run multiple models](#run-multiple-models)
-- [Quant Dataset Zoo](#quant-dataset-zoo)
+- [**Quant Dataset Zoo**](#quant-dataset-zoo)
 - [More About Qlib](#more-about-qlib)
 - [Offline Mode and Online Mode](#offline-mode-and-online-mode)
   - [Performance of Qlib Data Server](#performance-of-qlib-data-server)
@@ -153,6 +153,7 @@ Qlib provides a tool named `qrun` to run the whole workflow automatically (inclu
     annualized_return  0.128982
     information_ratio  1.444287
     max_drawdown      -0.091078
+    ```
 
 
 
@@ -234,7 +235,7 @@ Dataset plays a very important role in Quant. Here is a list of the datasets bui
 | Dataset                                    | US Market | China Market |
 | --                                         | --        | --           |
 | [Alpha360](./qlib/contrib/data/handler.py) |  √        |  √           |
-| [Alpha158](./qlib/contrib/data/handler.py) |  √        |  √           | 
+| [Alpha158](./qlib/contrib/data/handler.py) |  √        |  √           |
 
 [Here](https://qlib.readthedocs.io/en/latest/advanced/alpha.html) is a tutorial to build dataset with `Qlib`.
 Your PR to build new Quant dataset is highly welcomed.
