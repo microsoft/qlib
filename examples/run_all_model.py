@@ -171,9 +171,9 @@ def get_all_results(folders) -> dict:
 
 
 # function to generate and save markdown table
-def gen_and_save_md_table(metrics):
-    table = "| Model Name | Annualized Return | Information Ratio | Max Drawdown | IC | ICIR | Rank IC | Rank ICIR |\n"
-    table += "|---|---|---|---|---|---|---|---|\n"
+def gen_and_save_md_table(metrics, dataset):
+    table = "| Model Name | Dataset | Annualized Return | Information Ratio | Max Drawdown | IC | ICIR | Rank IC | Rank ICIR |\n"
+    table += "|---|---|---|---|---|---|---|---|---|\n"
     for fn in metrics:
         ar = metrics[fn]["annualized_return_with_cost"]
         ir = metrics[fn]["information_ratio_with_cost"]
@@ -182,7 +182,7 @@ def gen_and_save_md_table(metrics):
         icir = metrics[fn]["icir"]
         ric = metrics[fn]["rank_ic"]
         ricir = metrics[fn]["rank_icir"]
-        table += f"| {fn} | {ar[0]:5.4f}±{ar[1]:2.2f} | {ir[0]:5.4f}±{ir[1]:2.2f}| {md[0]:5.4f}±{md[1]:2.2f} | {ic[0]:5.4f}±{ic[1]:2.2f} | {icir[0]:5.4f}±{icir[1]:2.2f}| {ric[0]:5.4f}±{ric[1]:2.2f} | {ricir[0]:5.4f}±{ricir[1]:2.2f} |\n"
+        table += f"| {fn} | {dataset} | {ar[0]:5.4f}±{ar[1]:2.2f} | {ir[0]:5.4f}±{ir[1]:2.2f}| {md[0]:5.4f}±{md[1]:2.2f} | {ic[0]:5.4f}±{ic[1]:2.2f} | {icir[0]:5.4f}±{icir[1]:2.2f}| {ric[0]:5.4f}±{ric[1]:2.2f} | {ricir[0]:5.4f}±{ricir[1]:2.2f} |\n"
     pprint(table)
     with open("table.md", "w") as f:
         f.write(table)
@@ -289,7 +289,7 @@ def run(times=1, models=None, dataset="Alpha360", exclude=False):
     results = cal_mean_std(results)
     # generating md table
     sys.stderr.write(f"Generating markdown table...\n")
-    gen_and_save_md_table(results)
+    gen_and_save_md_table(results, dataset)
     sys.stderr.write("\n")
     # print erros
     sys.stderr.write(f"Here are some of the errors of the models...\n")
