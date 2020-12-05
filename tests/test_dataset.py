@@ -62,7 +62,7 @@ class TestDataset(TestAutoData):
         )
         tsds_train = tsdh.prepare("train")  # Test the correctness
         tsds = tsdh.prepare("valid")  # prepare a dataset with is friendly to converting tabular data to time-series
-        train_loader = DataLoader(tsds_train, batch_size=800, shuffle=True)
+        train_loader = DataLoader(tsds_train, batch_size=800, shuffle=True, num_workers=10)
         for data in train_loader:
             now = time.localtime()
             print(time.strftime("%Y-%m-%d-%H_%M_%S", now))
