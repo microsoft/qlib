@@ -101,6 +101,23 @@ class DropCol(Processor):
             mask = df.columns.isin(self.col_list)
         return df.loc[:, ~mask]
 
+class FilterCol(Processor):
+    def __init__(self, fields_group="feature", col_list=[]):
+        self.fields_group = fields_group
+        self.col_list = col_list
+
+    def __call__(self, df):
+
+        cols = get_group_columns(df, self.fields_group)
+        all_cols = df.columns
+        diff_cols = np.setdiff1d(all_cols.get_level_values(-1), cols.get_level_values(-1))
+        self.col_list = np.union1d(diff_cols, self.col_list)
+
+        if isinstance(df.columns, pd.MultiIndex):
+            mask = df.columns.get_level_values(-1).isin(self.col_list)
+        else:
+            mask = df.columns.isin(self.col_list)
+        return df.loc[:, mask]
 
 class TanhProcess(Processor):
     """ Use tanh to process noise data"""
