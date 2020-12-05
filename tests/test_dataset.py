@@ -23,35 +23,17 @@ class TestDataset(TestAutoData):
                     "fit_end_time": "2014-12-31",
                     "instruments": "csi300",
                     "infer_processors": [
-                                    {
-                                        "class" : "DropCol", 
-                                        "kwargs":{"col_list": ["VWAP0"]}
-                                    },
-                                    {
-                                        "class" : "FilterCol", 
-                                        "kwargs":{"col_list": ["RESI5", "WVMA5", "RSQR5"]}
-                                    },
-                                    {
-                                        "class" : "CSZFillna", 
-                                        "kwargs":{"fields_group": "feature"}
-                                    }
-                                ],
-                    "learn_processors": [
-                        {
-                            "class" : "DropCol", 
-                            "kwargs":{"col_list": ["VWAP0"]}
-                        },
-                        {
-                            "class" : "DropnaProcessor", 
-                            "kwargs":{"fields_group": "feature"}
-                        },
-                        "DropnaLabel",
-                        {
-                            "class": "CSZScoreNorm", 
-                            "kwargs": {"fields_group": "label"}
-                        }
+                        {"class": "DropCol", "kwargs": {"col_list": ["VWAP0"]}},
+                        {"class": "FilterCol", "kwargs": {"col_list": ["RESI5", "WVMA5", "RSQR5"]}},
+                        {"class": "CSZFillna", "kwargs": {"fields_group": "feature"}},
                     ],
-                    "process_type": "independent"
+                    "learn_processors": [
+                        {"class": "DropCol", "kwargs": {"col_list": ["VWAP0"]}},
+                        {"class": "DropnaProcessor", "kwargs": {"fields_group": "feature"}},
+                        "DropnaLabel",
+                        {"class": "CSZScoreNorm", "kwargs": {"fields_group": "label"}},
+                    ],
+                    "process_type": "independent",
                 },
             },
             segments={
@@ -62,10 +44,26 @@ class TestDataset(TestAutoData):
         )
         tsds_train = tsdh.prepare("train")  # Test the correctness
         tsds = tsdh.prepare("valid")  # prepare a dataset with is friendly to converting tabular data to time-series
+
+        t = time.time()
+        for idx in np.random.randint(0, len(tsds_train), size=2000):
+            data = tsds_train[idx]
+        print(f"2000 sample takes {time.time() - t}s")
+
+        # FIXME: Please remove pytorch related function. Otherwise the CI tests will fail
         train_loader = DataLoader(tsds_train, batch_size=800, shuffle=True, num_workers=10)
+        t = time.time()
         for data in train_loader:
-            now = time.localtime()
-            print(time.strftime("%Y-%m-%d-%H_%M_%S", now))
+            pass
+        print(f"Passing all training batches takes {time.time() - t}s")
+
+        # Here is an example of ffill+bfill for index
+        tsds_train.config(fillna_type="ffill+bfill")
+        train_loader = DataLoader(tsds_train, batch_size=800, shuffle=True, num_workers=10)
+        t = time.time()
+        for data in train_loader:
+            pass
+        print(f"Passing all training batches with fill takes {time.time() - t}s")
 
         # The dimension of sample is same as tabular data, but it will return timeseries data of the sample
 

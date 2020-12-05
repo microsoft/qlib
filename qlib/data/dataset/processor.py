@@ -101,6 +101,7 @@ class DropCol(Processor):
             mask = df.columns.isin(self.col_list)
         return df.loc[:, ~mask]
 
+
 class FilterCol(Processor):
     def __init__(self, fields_group="feature", col_list=[]):
         self.fields_group = fields_group
@@ -118,6 +119,7 @@ class FilterCol(Processor):
         else:
             mask = df.columns.isin(self.col_list)
         return df.loc[:, mask]
+
 
 class TanhProcess(Processor):
     """ Use tanh to process noise data"""
