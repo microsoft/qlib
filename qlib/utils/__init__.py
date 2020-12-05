@@ -55,6 +55,22 @@ def read_bin(file_path, start_index, end_index):
     return series
 
 
+def np_ffill(arr: np.array):
+    """
+    forward fill a 1D numpy array
+
+    Parameters
+    ----------
+    arr : np.array
+        Input numpy 1D array
+    """
+    mask = np.isnan(arr.astype(np.float))  # np.isnan only works on np.float
+    # get fill index
+    idx = np.where(~mask, np.arange(mask.shape[0]), 0)
+    np.maximum.accumulate(idx, out=idx)
+    return arr[idx]
+
+
 #################### Search ####################
 def lower_bound(data, val, level=0):
     """multi fields list lower bound.
