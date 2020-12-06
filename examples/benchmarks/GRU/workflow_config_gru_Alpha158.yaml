@@ -56,7 +56,7 @@ task:
             hidden_size: 64
             num_layers: 2
             dropout: 0.0
-            n_epochs: 2
+            n_epochs: 200
             lr: 1e-3
             early_stop: 10
             batch_size: 800
