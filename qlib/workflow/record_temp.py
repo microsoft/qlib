@@ -141,6 +141,12 @@ class SignalRecord(RecordTemp):
                 del params["data_key"]
                 # The backend handler should be DataHandler
                 raw_label = DatasetH.prepare(**params)
+
+            if not isinstance(raw_label, pd.DataFrame):
+                index = raw_label.get_index()
+                raw_label = raw_label.data.loc[index]
+                raw_label = raw_label.iloc[:,-1:]
+
             self.recorder.save_objects(**{"label.pkl": raw_label})
 
     def list(self):
