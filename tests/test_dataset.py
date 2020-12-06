@@ -10,6 +10,7 @@ from torch.utils.data import DataLoader
 import time
 from qlib.data.dataset.handler import DataHandlerLP
 
+
 class TestDataset(TestAutoData):
     def testTSDataset(self):
         tsdh = TSDatasetH(
@@ -24,12 +25,12 @@ class TestDataset(TestAutoData):
                     "instruments": "csi300",
                     "infer_processors": [
                         {"class": "FilterCol", "kwargs": {"col_list": ["RESI5", "WVMA5", "RSQR5"]}},
-                        {"class": "RobustZScoreNorm", "kwargs": {"fields_group": "feature", "clip_outlier":"true"}},
+                        {"class": "RobustZScoreNorm", "kwargs": {"fields_group": "feature", "clip_outlier": "true"}},
                         {"class": "Fillna", "kwargs": {"fields_group": "feature"}},
                     ],
                     "learn_processors": [
                         "DropnaLabel",
-                        {"class": "CSZScoreNorm", "kwargs": {"fields_group": "label"}}, # CSRankNorm 
+                        {"class": "CSRankNorm", "kwargs": {"fields_group": "label"}},  # CSRankNorm
                     ],
                 },
             },
@@ -44,7 +45,7 @@ class TestDataset(TestAutoData):
 
         t = time.time()
         for idx in np.random.randint(0, len(tsds_train), size=2000):
-            data = tsds_train[idx]
+            _ = tsds_train[idx]
         print(f"2000 sample takes {time.time() - t}s")
 
         # FIXME: Please remove pytorch related function. Otherwise the CI tests will fail
@@ -74,7 +75,12 @@ class TestDataset(TestAutoData):
 
         # Check the data
         # Get data from DataFrame Directly
-        data_from_df = tsdh._handler.fetch().loc(axis=0)["2015-01-01":"2016-12-31", "SZ300315"].iloc[-30:].values
+        data_from_df = (
+            tsdh._handler.fetch(data_key=DataHandlerLP.DK_L)
+            .loc(axis=0)["2015-01-01":"2016-12-31", "SZ300315"]
+            .iloc[-30:]
+            .values
+        )
 
         equal = np.isclose(data_from_df, data_from_ds)
         self.assertTrue(equal[~np.isnan(data_from_df)].all())
