@@ -183,8 +183,8 @@ class GATs(Model):
         self.ALSTM_model.train()
 
         for data in data_loader:
-            feature = data[:,:,0:-1].to(self.device)
-            label = data[:,-1,-1].to(self.device) 
+            feature = data[:, :, 0:-1].to(self.device)
+            label = data[:, -1, -1].to(self.device)
 
             pred = self.ALSTM_model(feature.float())
             loss = self.loss_fn(pred, label)
@@ -203,9 +203,9 @@ class GATs(Model):
 
         for data in data_loader:
 
-            feature = data[:,:,0:-1].to(self.device)
+            feature = data[:, :, 0:-1].to(self.device)
             # feature[torch.isnan(feature)] = 0
-            label = data[:,-1,-1].to(self.device)
+            label = data[:, -1, -1].to(self.device)
 
             pred = self.ALSTM_model(feature.float())
             loss = self.loss_fn(pred, label)
@@ -227,8 +227,8 @@ class GATs(Model):
         dl_train = dataset.prepare("train", data_key=DataHandlerLP.DK_L)
         dl_valid = dataset.prepare("valid", data_key=DataHandlerLP.DK_L)
 
-        dl_train.config(fillna_type="ffill+bfill") # process nan brought by dataloader
-        dl_valid.config(fillna_type="ffill+bfill") # process nan brought by dataloader
+        dl_train.config(fillna_type="ffill+bfill")  # process nan brought by dataloader
+        dl_valid.config(fillna_type="ffill+bfill")  # process nan brought by dataloader
 
         train_loader = DataLoader(dl_train, batch_size=self.batch_size, shuffle=True, num_workers=self.n_jobs)
         valid_loader = DataLoader(dl_valid, batch_size=self.batch_size, shuffle=False, num_workers=self.n_jobs)
@@ -308,7 +308,7 @@ class GATs(Model):
 
         for data in test_loader:
 
-            feature = data[:,:,0:-1].to(self.device)
+            feature = data[:, :, 0:-1].to(self.device)
 
             with torch.no_grad():
                 if self.use_gpu:

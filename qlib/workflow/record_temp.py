@@ -145,7 +145,7 @@ class SignalRecord(RecordTemp):
             if not isinstance(raw_label, pd.DataFrame):
                 index = raw_label.get_index()
                 raw_label = raw_label.data.loc[index]
-                raw_label = raw_label.iloc[:,-1:]
+                raw_label = raw_label.iloc[:, -1:]
 
             self.recorder.save_objects(**{"label.pkl": raw_label})
 
