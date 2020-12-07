@@ -32,7 +32,6 @@ from ...contrib.model.pytorch_gru import GRUModel
 
 
 class DailyBatchSampler(Sampler):
-
     def __init__(self, data_source):
         self.data_source = data_source
         self.data = self.data_source.data.loc[self.data_source.get_index()]
@@ -41,7 +40,7 @@ class DailyBatchSampler(Sampler):
 
     def __iter__(self):
         for idx, count in zip(self.daily_index, self.daily_count):
-            yield slice(idx, idx+count)
+            yield slice(idx, idx + count)
 
     def __len__(self):
         return len(self.data_source)
@@ -272,10 +271,14 @@ class GATs(Model):
                 raise ValueError("the path of the pretrained model should be given first!")
             self.logger.info("Loading pretrained model...")
             if self.base_model == "LSTM":
-                pretrained_model = LSTMModel(d_feat=self.d_feat, hidden_size=self.hidden_size, num_layers=self.num_layers)
+                pretrained_model = LSTMModel(
+                    d_feat=self.d_feat, hidden_size=self.hidden_size, num_layers=self.num_layers
+                )
                 pretrained_model.load_state_dict(torch.load(self.model_path))
             elif self.base_model == "GRU":
-                pretrained_model = GRUModel(d_feat=self.d_feat, hidden_size=self.hidden_size, num_layers=self.num_layers)
+                pretrained_model = GRUModel(
+                    d_feat=self.d_feat, hidden_size=self.hidden_size, num_layers=self.num_layers
+                )
                 pretrained_model.load_state_dict(torch.load(self.model_path))
             else:
                 raise ValueError("unknown base model name `%s`" % self.base_model)
