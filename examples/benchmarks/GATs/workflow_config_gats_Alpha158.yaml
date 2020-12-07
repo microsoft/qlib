@@ -51,7 +51,7 @@ task:
         class: GATs
         module_path: qlib.contrib.model.pytorch_gats_ts
         kwargs:
-            d_feat: 6
+            d_feat: 20
             hidden_size: 64
             num_layers: 2
             dropout: 0.7
@@ -62,7 +62,7 @@ task:
             loss: mse
             base_model: LSTM
             with_pretrain: True
-            model_path: "benchmarks/LSTM/model_lstm_ts.pkl"
+            model_path: "benchmarks/LSTM/csi300_lstm_ts.pkl"
             GPU: 0
     dataset:
         class: TSDatasetH
