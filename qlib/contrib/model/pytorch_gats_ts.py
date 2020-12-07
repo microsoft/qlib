@@ -21,6 +21,7 @@ from ...log import get_module_logger, TimeInspector
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from torch.utils.data import DataLoader
 
 from ...model.base import Model
 from ...data.dataset import DatasetH
@@ -62,7 +63,9 @@ class GATs(Model):
         model_path=None,
         optimizer="adam",
         GPU="0",
+        n_jobs=10,
         seed=None,
+        batch_size=800,
         **kwargs
     ):
         # Set logger.
@@ -84,8 +87,10 @@ class GATs(Model):
         self.with_pretrain = with_pretrain
         self.model_path = model_path
         self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() else "cpu")
+        self.n_jobs = n_jobs
         self.use_gpu = torch.cuda.is_available()
         self.seed = seed
+        self.batch_size = batch_size
 
         self.logger.info(
             "GATs parameters setting:"
@@ -218,7 +223,7 @@ class GATs(Model):
 
     def fit(
         self,
-        dataset: DatasetH,
+        dataset,
         evals_result=dict(),
         verbose=True,
         save_path=None,

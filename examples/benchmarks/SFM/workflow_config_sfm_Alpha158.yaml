@@ -57,7 +57,7 @@ task:
             num_layers: 2
             dropout: 0.0
             n_epochs: 200
-            lr: 1e-3
+            lr: 1e-2
             early_stop: 10
             batch_size: 800
             metric: loss

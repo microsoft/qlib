@@ -1,7 +1,6 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-
 from __future__ import division
 from __future__ import print_function
 
@@ -21,264 +20,13 @@ from ...log import get_module_logger, TimeInspector
 
 import torch
 import torch.nn as nn
+import torch.nn.init as init
 import torch.optim as optim
 from torch.utils.data import DataLoader
 
 from ...model.base import Model
-from ...data.dataset import DatasetH, TSDatasetH
+from ...data.dataset import DatasetH
 from ...data.dataset.handler import DataHandlerLP
-
-
-class SFM(Model):
-    """SFM Model
-
-    Parameters
-    ----------
-    d_feat : int
-        input dimension for each time step
-    metric: str
-        the evaluate metric used in early stop
-    optimizer : str
-        optimizer name
-    GPU : str
-        the GPU ID(s) used for training
-    """
-
-    def __init__(
-        self,
-        d_feat=6,
-        hidden_size=64,
-        num_layers=2,
-        dropout=0.0,
-        n_epochs=200,
-        lr=0.001,
-        metric="",
-        batch_size=2000,
-        early_stop=20,
-        loss="mse",
-        optimizer="adam",
-        n_jobs=10,
-        GPU="0",
-        seed=None,
-        **kwargs
-    ):
-        # Set logger.
-        self.logger = get_module_logger("SFM")
-        self.logger.info("SFM pytorch version...")
-
-        # set hyper-parameters.
-        self.d_feat = d_feat
-        self.hidden_size = hidden_size
-        self.num_layers = num_layers
-        self.dropout = dropout
-        self.n_epochs = n_epochs
-        self.lr = lr
-        self.metric = metric
-        self.batch_size = batch_size
-        self.early_stop = early_stop
-        self.optimizer = optimizer.lower()
-        self.loss = loss
-        self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() else "cpu")
-        self.n_jobs = n_jobs
-        self.use_gpu = torch.cuda.is_available()
-        self.seed = seed
-
-        self.logger.info(
-            "SFM parameters setting:"
-            "\nd_feat : {}"
-            "\nhidden_size : {}"
-            "\nnum_layers : {}"
-            "\ndropout : {}"
-            "\nn_epochs : {}"
-            "\nlr : {}"
-            "\nmetric : {}"
-            "\nbatch_size : {}"
-            "\nearly_stop : {}"
-            "\noptimizer : {}"
-            "\nloss_type : {}"
-            "\nvisible_GPU : {}"
-            "\nn_jobs : {}"
-            "\nuse_GPU : {}"
-            "\nseed : {}".format(
-                d_feat,
-                hidden_size,
-                num_layers,
-                dropout,
-                n_epochs,
-                lr,
-                metric,
-                batch_size,
-                early_stop,
-                optimizer.lower(),
-                loss,
-                GPU,
-                n_jobs,
-                self.use_gpu,
-                seed,
-            )
-        )
-
-        if self.seed is not None:
-            np.random.seed(self.seed)
-            torch.manual_seed(self.seed)
-
-        self.SFM_model = SFM_Model(
-            d_feat=self.d_feat,
-            hidden_size=self.hidden_size,
-            num_layers=self.num_layers,
-            dropout=self.dropout,
-        ).to(self.device)
-        if optimizer.lower() == "adam":
-            self.train_optimizer = optim.Adam(self.SFM_model.parameters(), lr=self.lr)
-        elif optimizer.lower() == "gd":
-            self.train_optimizer = optim.SGD(self.SFM_model.parameters(), lr=self.lr)
-        else:
-            raise NotImplementedError("optimizer {} is not supported!".format(optimizer))
-
-        self._fitted = False
-        self.SFM_model.to(self.device)
-
-    def mse(self, pred, label):
-        loss = (pred - label) ** 2
-        return torch.mean(loss)
-
-    def loss_fn(self, pred, label):
-        mask = ~torch.isnan(label)
-
-        if self.loss == "mse":
-            return self.mse(pred[mask], label[mask])
-
-        raise ValueError("unknown loss `%s`" % self.loss)
-
-    def metric_fn(self, pred, label):
-
-        mask = torch.isfinite(label)
-
-        if self.metric == "" or self.metric == "loss":
-            return -self.loss_fn(pred[mask], label[mask])
-
-        raise ValueError("unknown metric `%s`" % self.metric)
-
-    def train_epoch(self, data_loader):
-
-        self.SFM_model.train()
-
-        for data in data_loader:
-            feature = data[:, :, 0:-1].to(self.device)
-            label = data[:, -1, -1].to(self.device)
-
-            pred = self.SFM_model(feature.float())
-            loss = self.loss_fn(pred, label)
-
-            self.train_optimizer.zero_grad()
-            loss.backward()
-            torch.nn.utils.clip_grad_value_(self.SFM_model.parameters(), 3.0)
-            self.train_optimizer.step()
-
-    def test_epoch(self, data_loader):
-
-        self.SFM_model.eval()
-
-        scores = []
-        losses = []
-
-        for data in data_loader:
-
-            feature = data[:, :, 0:-1].to(self.device)
-            # feature[torch.isnan(feature)] = 0
-            label = data[:, -1, -1].to(self.device)
-
-            pred = self.SFM_model(feature.float())
-            loss = self.loss_fn(pred, label)
-            losses.append(loss.item())
-
-            score = self.metric_fn(pred, label)
-            scores.append(score.item())
-
-        return np.mean(losses), np.mean(scores)
-
-    def fit(
-        self,
-        dataset,
-        evals_result=dict(),
-        verbose=True,
-        save_path=None,
-    ):
-        dl_train = dataset.prepare("train", data_key=DataHandlerLP.DK_L)
-        dl_valid = dataset.prepare("valid", data_key=DataHandlerLP.DK_L)
-
-        dl_train.config(fillna_type="ffill+bfill")  # process nan brought by dataloader
-        dl_valid.config(fillna_type="ffill+bfill")  # process nan brought by dataloader
-
-        train_loader = DataLoader(dl_train, batch_size=self.batch_size, shuffle=True, num_workers=self.n_jobs)
-        valid_loader = DataLoader(dl_valid, batch_size=self.batch_size, shuffle=False, num_workers=self.n_jobs)
-
-        if save_path == None:
-            save_path = create_save_path(save_path)
-
-        stop_steps = 0
-        train_loss = 0
-        best_score = -np.inf
-        best_epoch = 0
-        evals_result["train"] = []
-        evals_result["valid"] = []
-
-        # train
-        self.logger.info("training...")
-        self._fitted = True
-
-        for step in range(self.n_epochs):
-            self.logger.info("Epoch%d:", step)
-            self.logger.info("training...")
-            self.train_epoch(train_loader)
-            self.logger.info("evaluating...")
-            train_loss, train_score = self.test_epoch(train_loader)
-            val_loss, val_score = self.test_epoch(valid_loader)
-            self.logger.info("train %.6f, valid %.6f" % (train_score, val_score))
-            evals_result["train"].append(train_score)
-            evals_result["valid"].append(val_score)
-
-            if val_score > best_score:
-                best_score = val_score
-                stop_steps = 0
-                best_epoch = step
-                best_param = copy.deepcopy(self.SFM_model.state_dict())
-            else:
-                stop_steps += 1
-                if stop_steps >= self.early_stop:
-                    self.logger.info("early stop")
-                    break
-
-        self.logger.info("best score: %.6lf @ %d" % (best_score, best_epoch))
-        self.SFM_model.load_state_dict(best_param)
-        torch.save(best_param, save_path)
-
-        if self.use_gpu:
-            torch.cuda.empty_cache()
-
-    def predict(self, dataset):
-        if not self._fitted:
-            raise ValueError("model is not fitted yet!")
-
-        dl_test = dataset.prepare("test", data_key=DataHandlerLP.DK_I)
-        dl_test.config(fillna_type="ffill+bfill")
-        test_loader = DataLoader(dl_test, batch_size=self.batch_size, num_workers=20)
-        self.SFM_model.eval()
-        preds = []
-
-        for data in test_loader:
-
-            feature = data[:, :, 0:-1].to(self.device)
-
-            with torch.no_grad():
-                if self.use_gpu:
-                    pred = self.SFM_model(feature.float()).detach().cpu().numpy()
-                else:
-                    pred = self.SFM_model(feature.float()).detach().numpy()
-
-            preds.append(pred)
-
-        return pd.Series(np.concatenate(preds), index=dl_test.get_index())
 
 
 class SFM_Model(nn.Module):
@@ -334,6 +82,8 @@ class SFM_Model(nn.Module):
         self.states = []
 
     def forward(self, input):
+        input = input.reshape(len(input), self.input_dim, -1)  # [N, F, T]
+        input = input.permute(0, 2, 1)  # [N, T, F]
         time_step = input.shape[1]
 
         for ts in range(time_step):
@@ -432,3 +182,290 @@ class SFM_Model(nn.Module):
         constants.append(torch.tensor(array).to(self.device))
 
         self.states[5:] = constants
+
+
+class SFM(Model):
+    """SFM Model
+
+    Parameters
+    ----------
+    input_dim : int
+        input dimension
+    output_dim : int
+        output dimension
+    lr : float
+        learning rate
+    optimizer : str
+        optimizer name
+    GPU : str
+        the GPU ID(s) used for training
+    """
+
+    def __init__(
+        self,
+        d_feat=6,
+        hidden_size=64,
+        output_dim=1,
+        freq_dim=10,
+        dropout_W=0.0,
+        dropout_U=0.0,
+        n_epochs=200,
+        lr=0.001,
+        metric="",
+        batch_size=2000,
+        early_stop=20,
+        eval_steps=5,
+        loss="mse",
+        optimizer="gd",
+        n_jobs=10,
+        GPU="0",
+        seed=None,
+        **kwargs
+    ):
+        # Set logger.
+        self.logger = get_module_logger("SFM")
+        self.logger.info("SFM pytorch version...")
+
+        # set hyper-parameters.
+        self.d_feat = d_feat
+        self.hidden_size = hidden_size
+        self.output_dim = output_dim
+        self.freq_dim = freq_dim
+        self.dropout_W = dropout_W
+        self.dropout_U = dropout_U
+        self.n_epochs = n_epochs
+        self.lr = lr
+        self.metric = metric
+        self.batch_size = batch_size
+        self.early_stop = early_stop
+        self.eval_steps = eval_steps
+        self.optimizer = optimizer.lower()
+        self.loss = loss
+        self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() else "cpu")
+        self.n_jobs = n_jobs
+        self.use_gpu = torch.cuda.is_available()
+        self.seed = seed
+
+        self.logger.info(
+            "SFM parameters setting:"
+            "\nd_feat : {}"
+            "\nhidden_size : {}"
+            "\noutput_size : {}"
+            "\nfrequency_dimension : {}"
+            "\ndropout_W: {}"
+            "\ndropout_U: {}"
+            "\nn_epochs : {}"
+            "\nlr : {}"
+            "\nmetric : {}"
+            "\nbatch_size : {}"
+            "\nearly_stop : {}"
+            "\neval_steps : {}"
+            "\noptimizer : {}"
+            "\nloss_type : {}"
+            "\nvisible_GPU : {}"
+            "\nuse_GPU : {}"
+            "\nseed : {}".format(
+                d_feat,
+                hidden_size,
+                output_dim,
+                freq_dim,
+                dropout_W,
+                dropout_U,
+                n_epochs,
+                lr,
+                metric,
+                batch_size,
+                early_stop,
+                eval_steps,
+                optimizer.lower(),
+                loss,
+                GPU,
+                self.use_gpu,
+                seed,
+            )
+        )
+
+        if self.seed is not None:
+            np.random.seed(self.seed)
+            torch.manual_seed(self.seed)
+
+        self.sfm_model = SFM_Model(
+            d_feat=self.d_feat,
+            output_dim=self.output_dim,
+            hidden_size=self.hidden_size,
+            freq_dim=self.freq_dim,
+            dropout_W=self.dropout_W,
+            dropout_U=self.dropout_U,
+            device=self.device,
+        )
+        if optimizer.lower() == "adam":
+            self.train_optimizer = optim.Adam(self.sfm_model.parameters(), lr=self.lr)
+        elif optimizer.lower() == "gd":
+            self.train_optimizer = optim.SGD(self.sfm_model.parameters(), lr=self.lr)
+        else:
+            raise NotImplementedError("optimizer {} is not supported!".format(optimizer))
+
+        self._fitted = False
+        self.sfm_model.to(self.device)
+
+    def train_epoch(self, data_loader):
+
+        self.sfm_model.train()
+
+        for data in data_loader:
+            feature = data[:, :, 0:-1].to(self.device)
+            label = data[:, -1, -1].to(self.device)
+
+            pred = self.sfm_model(feature.float())
+            loss = self.loss_fn(pred, label)
+
+            self.train_optimizer.zero_grad()
+            loss.backward()
+            torch.nn.utils.clip_grad_value_(self.sfm_model.parameters(), 3.0)
+            self.train_optimizer.step()
+
+    def test_epoch(self, data_loader):
+
+        self.sfm_model.eval()
+
+        scores = []
+        losses = []
+
+        for data in data_loader:
+
+            feature = data[:, :, 0:-1].to(self.device)
+            # feature[torch.isnan(feature)] = 0
+            label = data[:, -1, -1].to(self.device)
+
+            pred = self.sfm_model(feature.float())
+            loss = self.loss_fn(pred, label)
+            losses.append(loss.item())
+
+            score = self.metric_fn(pred, label)
+            scores.append(score.item())
+
+        return np.mean(losses), np.mean(scores)
+
+    def fit(
+        self,
+        dataset: DatasetH,
+        evals_result=dict(),
+        verbose=True,
+        save_path=None,
+    ):
+
+        dl_train = dataset.prepare("train", data_key=DataHandlerLP.DK_L)
+        dl_valid = dataset.prepare("valid", data_key=DataHandlerLP.DK_L)
+
+        dl_train.config(fillna_type="ffill+bfill")  # process nan brought by dataloader
+        dl_valid.config(fillna_type="ffill+bfill")  # process nan brought by dataloader
+
+        train_loader = DataLoader(dl_train, batch_size=self.batch_size, shuffle=True, num_workers=self.n_jobs)
+        valid_loader = DataLoader(dl_valid, batch_size=self.batch_size, shuffle=False, num_workers=self.n_jobs)
+
+        if save_path == None:
+            save_path = create_save_path(save_path)
+
+        stop_steps = 0
+        train_loss = 0
+        best_score = -np.inf
+        best_epoch = 0
+        evals_result["train"] = []
+        evals_result["valid"] = []
+
+        # train
+        self.logger.info("training...")
+        self._fitted = True
+
+        for step in range(self.n_epochs):
+            self.logger.info("Epoch%d:", step)
+            self.logger.info("training...")
+            self.train_epoch(train_loader)
+            self.logger.info("evaluating...")
+            train_loss, train_score = self.test_epoch(train_loader)
+            val_loss, val_score = self.test_epoch(valid_loader)
+            self.logger.info("train %.6f, valid %.6f" % (train_score, val_score))
+            evals_result["train"].append(train_score)
+            evals_result["valid"].append(val_score)
+
+            if val_score > best_score:
+                best_score = val_score
+                stop_steps = 0
+                best_epoch = step
+                best_param = copy.deepcopy(self.sfm_model.state_dict())
+            else:
+                stop_steps += 1
+                if stop_steps >= self.early_stop:
+                    self.logger.info("early stop")
+                    break
+
+        self.logger.info("best score: %.6lf @ %d" % (best_score, best_epoch))
+        self.sfm_model.load_state_dict(best_param)
+        torch.save(best_param, save_path)
+
+        if self.use_gpu:
+            torch.cuda.empty_cache()
+
+    def mse(self, pred, label):
+        loss = (pred - label) ** 2
+        return torch.mean(loss)
+
+    def loss_fn(self, pred, label):
+        mask = ~torch.isnan(label)
+
+        if self.loss == "mse":
+            return self.mse(pred[mask], label[mask])
+
+        raise ValueError("unknown loss `%s`" % self.loss)
+
+    def metric_fn(self, pred, label):
+
+        mask = torch.isfinite(label)
+
+        if self.metric == "" or self.metric == "loss":
+            return -self.loss_fn(pred[mask], label[mask])
+
+        raise ValueError("unknown metric `%s`" % self.metric)
+
+    def predict(self, dataset):
+        if not self._fitted:
+            raise ValueError("model is not fitted yet!")
+
+        dl_test = dataset.prepare("test", data_key=DataHandlerLP.DK_I)
+        dl_test.config(fillna_type="ffill+bfill")
+        test_loader = DataLoader(dl_test, batch_size=self.batch_size, num_workers=20)
+        self.sfm_model.eval()
+        preds = []
+
+        for data in test_loader:
+
+            feature = data[:, :, 0:-1].to(self.device)
+
+            with torch.no_grad():
+                if self.use_gpu:
+                    pred = self.sfm_model(feature.float()).detach().cpu().numpy()
+                else:
+                    pred = self.sfm_model(feature.float()).detach().numpy()
+
+            preds.append(pred)
+
+        return pd.Series(np.concatenate(preds), index=dl_test.get_index())
+
+
+class AverageMeter(object):
+    """Computes and stores the average and current value"""
+
+    def __init__(self):
+        self.reset()
+
+    def reset(self):
+        self.val = 0
+        self.avg = 0
+        self.sum = 0
+        self.count = 0
+
+    def update(self, val, n=1):
+        self.val = val
+        self.sum += val * n
+        self.count += n
+        self.avg = self.sum / self.count
