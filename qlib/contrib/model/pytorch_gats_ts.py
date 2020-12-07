@@ -32,15 +32,16 @@ from ...contrib.model.pytorch_gru import GRUModel
 
 
 class DailyBatchSampler(Sampler):
-    def __init__(self, data_souce):
+
+    def __init__(self, data_source):
         self.data_source = data_source
-        self.data = self.data_source.loc[self.data_source.get_index()]
+        self.data = self.data_source.data.loc[self.data_source.get_index()]
         self.daily_count = self.data.groupby(level=0).size().values
         self.daily_index = np.roll(np.cumsum(self.daily_count), 1)
 
     def __iter__(self):
         for idx, count in zip(self.daily_index, self.daily_count):
-            yield slice(idx, idx + count)
+            yield slice(idx, idx+count)
 
     def __len__(self):
         return len(self.data_source)
@@ -65,7 +66,7 @@ class GATs(Model):
 
     def __init__(
         self,
-        d_feat=6,
+        d_feat=20,
         hidden_size=64,
         num_layers=2,
         dropout=0.0,
@@ -81,7 +82,6 @@ class GATs(Model):
         GPU="0",
         n_jobs=10,
         seed=None,
-        batch_size=800,
         **kwargs
     ):
         # Set logger.
@@ -106,7 +106,6 @@ class GATs(Model):
         self.n_jobs = n_jobs
         self.use_gpu = torch.cuda.is_available()
         self.seed = seed
-        self.batch_size = batch_size
 
         self.logger.info(
             "GATs parameters setting:"
@@ -201,23 +200,23 @@ class GATs(Model):
 
     def train_epoch(self, data_loader):
 
-        self.ALSTM_model.train()
+        self.GAT_model.train()
 
         for data in data_loader:
             feature = data[:, :, 0:-1].to(self.device)
             label = data[:, -1, -1].to(self.device)
 
-            pred = self.ALSTM_model(feature.float())
+            pred = self.GAT_model(feature.float())
             loss = self.loss_fn(pred, label)
 
             self.train_optimizer.zero_grad()
             loss.backward()
-            torch.nn.utils.clip_grad_value_(self.ALSTM_model.parameters(), 3.0)
+            torch.nn.utils.clip_grad_value_(self.GAT_model.parameters(), 3.0)
             self.train_optimizer.step()
 
     def test_epoch(self, data_loader):
 
-        self.ALSTM_model.eval()
+        self.GAT_model.eval()
 
         scores = []
         losses = []
@@ -228,7 +227,7 @@ class GATs(Model):
             # feature[torch.isnan(feature)] = 0
             label = data[:, -1, -1].to(self.device)
 
-            pred = self.ALSTM_model(feature.float())
+            pred = self.GAT_model(feature.float())
             loss = self.loss_fn(pred, label)
             losses.append(loss.item())
 
@@ -273,10 +272,10 @@ class GATs(Model):
                 raise ValueError("the path of the pretrained model should be given first!")
             self.logger.info("Loading pretrained model...")
             if self.base_model == "LSTM":
-                pretrained_model = LSTMModel()
+                pretrained_model = LSTMModel(d_feat=self.d_feat, hidden_size=self.hidden_size, num_layers=self.num_layers)
                 pretrained_model.load_state_dict(torch.load(self.model_path))
             elif self.base_model == "GRU":
-                pretrained_model = GRUModel()
+                pretrained_model = GRUModel(d_feat=self.d_feat, hidden_size=self.hidden_size, num_layers=self.num_layers)
                 pretrained_model.load_state_dict(torch.load(self.model_path))
             else:
                 raise ValueError("unknown base model name `%s`" % self.base_model)
@@ -306,7 +305,7 @@ class GATs(Model):
                 best_score = val_score
                 stop_steps = 0
                 best_epoch = step
-                best_param = copy.deepcopy(self.ALSTM_model.state_dict())
+                best_param = copy.deepcopy(self.GAT_model.state_dict())
             else:
                 stop_steps += 1
                 if stop_steps >= self.early_stop:
@@ -314,7 +313,7 @@ class GATs(Model):
                     break
 
         self.logger.info("best score: %.6lf @ %d" % (best_score, best_epoch))
-        self.ALSTM_model.load_state_dict(best_param)
+        self.GAT_model.load_state_dict(best_param)
         torch.save(best_param, save_path)
 
         if self.use_gpu:
@@ -328,7 +327,7 @@ class GATs(Model):
         dl_test.config(fillna_type="ffill+bfill")
         sampler_test = DailyBatchSampler(dl_test)
         test_loader = DataLoader(dl_test, sampler=sampler_test, num_workers=self.n_jobs)
-        self.ALSTM_model.eval()
+        self.GAT_model.eval()
         preds = []
 
         for data in test_loader:
@@ -337,9 +336,9 @@ class GATs(Model):
 
             with torch.no_grad():
                 if self.use_gpu:
-                    pred = self.ALSTM_model(feature.float()).detach().cpu().numpy()
+                    pred = self.GAT_model(feature.float()).detach().cpu().numpy()
                 else:
-                    pred = self.ALSTM_model(feature.float()).detach().numpy()
+                    pred = self.GAT_model(feature.float()).detach().numpy()
 
             preds.append(pred)
 
