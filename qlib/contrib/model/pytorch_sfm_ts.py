@@ -122,7 +122,7 @@ class SFM(Model):
             np.random.seed(self.seed)
             torch.manual_seed(self.seed)
 
-        self.SFM_model = SFMModel(
+        self.SFM_model = SFM_Model(
             d_feat=self.d_feat,
             hidden_size=self.hidden_size,
             num_layers=self.num_layers,
