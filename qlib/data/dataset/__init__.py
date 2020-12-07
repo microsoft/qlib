@@ -238,7 +238,7 @@ class TSDataSampler:
         self.start_idx, self.end_idx = self.data.index.slice_locs(start=pd.Timestamp(start), end=pd.Timestamp(end))
         # self.index_link = self.build_link(self.data)
         self.idx_df, self.idx_map = self.build_index(self.data)
-        self.idx_arr = np.array(self.idx_df.values, dtype=np.float64) # for better performance
+        self.idx_arr = np.array(self.idx_df.values, dtype=np.float64)  # for better performance
 
     def get_index(self):
         """
@@ -367,7 +367,6 @@ class TSDataSampler:
             indices = np.concatenate(indices)
         else:
             indices = self._get_indices(*self._get_row_col(idx))
-
 
         # 1) for better performance, use the last nan line for padding the lost date
         # 2) In case of precision problems. We use np.float64. # TODO: I'm not sure if whether np.float64 will result in
