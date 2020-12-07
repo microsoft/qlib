@@ -262,7 +262,7 @@ class ALSTM(Model):
 
         dl_test = dataset.prepare("test", data_key=DataHandlerLP.DK_I)
         dl_test.config(fillna_type="ffill+bfill")
-        test_loader = DataLoader(dl_test, batch_size=self.batch_size, num_workers=20)
+        test_loader = DataLoader(dl_test, batch_size=self.batch_size, num_workers=self.n_jobs)
         self.ALSTM_model.eval()
         preds = []
 
