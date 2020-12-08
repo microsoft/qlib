@@ -125,9 +125,9 @@ class DNNModelPytorch(Model):
 
         self.dnn_model = Net(input_dim, output_dim, layers, loss=self.loss_type)
         if optimizer.lower() == "adam":
-            self.train_optimizer = optim.Adam(self.dnn_model.parameters(), lr=self.lr, weight_decay=2e-4)
+            self.train_optimizer = optim.Adam(self.dnn_model.parameters(), lr=self.lr)
         elif optimizer.lower() == "gd":
-            self.train_optimizer = optim.SGD(self.dnn_model.parameters(), lr=self.lr, weight_decay=2e-4)
+            self.train_optimizer = optim.SGD(self.dnn_model.parameters(), lr=self.lr)
         else:
             raise NotImplementedError("optimizer {} is not supported!".format(optimizer))
 
