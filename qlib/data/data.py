@@ -223,8 +223,11 @@ class InstrumentProvider(abc.ABC):
             for _path in Path(C.get_data_path()).joinpath("instruments").glob("*.txt"):
                 _df = pd.read_csv(_path, sep="\t", names=["inst", "start_datetime", "end_datetime", "save_inst"])
                 _df_list.append(_df.iloc[:, [0, -1]])
-            df = pd.concat(_df_list, sort=False).sort_values("save_inst")
-            df = df.drop_duplicates(subset=["save_inst"], keep="first").fillna(axis=1, method="ffill")
+            df = pd.concat(_df_list, sort=False)
+            df["inst"] = df["inst"].astype(str)
+            df = df.fillna(axis=1, method="ffill")
+            df = df.sort_values("inst").drop_duplicates(subset=["inst"], keep="first")
+            df["save_inst"] = df["save_inst"].astype(str)
             _instruments_map = df.set_index("inst").iloc[:, 0].to_dict()
             setattr(self, "_instruments_map", _instruments_map)
         return _instruments_map.get(instrument, instrument)
@@ -591,6 +594,8 @@ class LocalInstrumentProvider(InstrumentProvider):
         df = pd.read_csv(fname, sep="\t", names=["inst", "start_datetime", "end_datetime", "save_inst"])
         df["start_datetime"] = pd.to_datetime(df["start_datetime"])
         df["end_datetime"] = pd.to_datetime(df["end_datetime"])
+        df["inst"] = df["inst"].astype(str)
+        df["save_inst"] = df.loc[:, ["inst", "save_inst"]].fillna(axis=1, method="ffill")["save_inst"].astype(str)
         for row in df.itertuples(index=False):
             _instruments.setdefault(row[0], []).append((row[1], row[2]))
         return _instruments
