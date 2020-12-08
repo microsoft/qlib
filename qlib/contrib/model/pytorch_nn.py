@@ -49,7 +49,7 @@ class DNNModelPytorch(Model):
         self,
         input_dim,
         output_dim,
-        layers=(256,),
+        layers=(256, 256),
         lr=0.001,
         max_steps=300,
         batch_size=2000,
