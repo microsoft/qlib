@@ -57,7 +57,7 @@ task:
             dropout: 0.7
             n_epochs: 200
             lr: 1e-4
-            early_stop: 20
+            early_stop: 10
             metric: loss
             loss: mse
             base_model: LSTM
