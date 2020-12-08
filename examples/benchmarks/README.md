@@ -1,6 +1,6 @@
 # Benchmarks Performance
 
-Here are the results of each benchmark model running on the `Alpha158` and `Alpha360` dataset respectively. The value of each metric are the mean and std calculated based on 10 runs.
+Here are the results of each benchmark model running on Qlib's `Alpha158` and `Alpha360` dataset with China's A shared-stock & CSI300 data respectively. The values of each metric are the mean and std calculated based on 10 runs.
 
 The numbers shown below demonstrate the performance of the entire `workflow` of each model. We will update the `workflow` as well as models in the near future for better results.
 

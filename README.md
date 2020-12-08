@@ -27,10 +27,10 @@ For more details, please refer to our paper ["Qlib: An AI-oriented Quantitative 
   - [Data Preparation](#data-preparation)
   - [Auto Quant Research Workflow](#auto-quant-research-workflow)
   - [Building Customized Quant Research Workflow by Code](#building-customized-quant-research-workflow-by-code)
-- [Quant Model Zoo](#quant-model-zoo)
+- [**Quant Model Zoo**](#quant-model-zoo)
   - [Run a single model](#run-a-single-model)
   - [Run multiple models](#run-multiple-models)
-- [Quant Dataset Zoo](#quant-dataset-zoo)
+- [**Quant Dataset Zoo**](#quant-dataset-zoo)
 - [More About Qlib](#more-about-qlib)
 - [Offline Mode and Online Mode](#offline-mode-and-online-mode)
   - [Performance of Qlib Data Server](#performance-of-qlib-data-server)
@@ -228,7 +228,7 @@ It also provides the API to run specific models at once. For more use cases, ple
 
 
 # Quant Dataset Zoo
-Dataset plays a very important role in Quant. Here is a list of the datasets built on `Qlib`.
+Dataset plays a very important role in Quant. Here is a list of the datasets built on `Qlib`:
 
 | Dataset                                    | US Market | China Market |
 | --                                         | --        | --           |
