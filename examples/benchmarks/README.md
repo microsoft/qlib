@@ -1,22 +1,8 @@
 # Benchmarks Performance
 
-Here are the results of each benchmark model running on Qlib's `Alpha158` and `Alpha360` dataset with China's A shared-stock & CSI300 data respectively. The values of each metric are the mean and std calculated based on 10 runs.
+Here are the results of each benchmark model running on Qlib's `Alpha360` and `Alpha158` dataset with China's A shared-stock & CSI300 data respectively. The values of each metric are the mean and std calculated based on 10 runs.
 
 The numbers shown below demonstrate the performance of the entire `workflow` of each model. We will update the `workflow` as well as models in the near future for better results.
-
-## Alpha158 dataset
-| Model Name | Dataset | IC | ICIR | Rank IC | Rank ICIR | Annualized Return | Information Ratio | Max Drawdown |
-|---|---|---|---|---|---|---|---|---|
-| Linear | Alpha158 | 0.0393±0.00 | 0.2980±0.00| 0.0475±0.00 | 0.3546±0.00 | 0.0795±0.00 | 1.0712±0.00| -0.1449±0.00 |
-| CatBoost | Alpha158 | 0.0503±0.00 | 0.3586±0.00| 0.0483±0.00 | 0.3667±0.00 | 0.1080±0.00 | 1.1567±0.00| -0.0787±0.00 |
-| XGBoost | Alpha158 | 0.0481±0.00 | 0.3659±0.00| 0.0495±0.00 | 0.4033±0.00 | 0.1111±0.00 | 1.2915±0.00| -0.0893±0.00 |
-| LightGBM | Alpha158 | 0.0475±0.00 | 0.3979±0.00| 0.0485±0.00 | 0.4123±0.00 | 0.1143±0.00 | 1.2744±0.00| -0.0800±0.00 |
-| MLP | Alpha158 | 0.0321±0.00 | 0.2493±0.04| 0.0408±0.00 | 0.3134±0.03 | 0.0661±0.03 | 0.7884±0.39| -0.1038±0.03 |
-| TFT | Alpha158 | 0.0287±0.00 | 0.1663±0.01| 0.0016±0.00 | 0.0095±0.02 | 0.0205±0.02 | 0.1758±0.19| -0.1990±0.04 |
-| GRU | Alpha158 (with selected 20 features) | 0.0313±0.00 | 0.2427±0.01 | 0.0416±0.00 | 0.3370±0.01 | 0.0335±0.01 | 0.4808±0.22 | -0.1112±0.03 |
-| LSTM | Alpha158 (with selected 20 features) | 0.0337±0.01 | 0.2562±0.05 | 0.0427±0.01 | 0.3392±0.04 | 0.0269±0.06 | 0.3385±0.74 | -0.1285±0.04 |
-| ALSTM | Alpha158 (with selected 20 features) | 0.0366±0.00 | 0.2803±0.04 | 0.0478±0.00 | 0.3770±0.02 | 0.0520±0.03 | 0.7115±0.30 | -0.0986±0.01 |
-| GATs | Alpha158 (with selected 20 features) | 0.0355±0.00 | 0.2576±0.02 | 0.0465±0.00 | 0.3585±0.00 | 0.0509±0.02 | 0.7212±0.22 | -0.0821±0.01 |
 
 ## Alpha360 dataset
 | Model Name | Dataset | IC | ICIR | Rank IC | Rank ICIR | Annualized Return | Information Ratio | Max Drawdown |
@@ -30,3 +16,17 @@ The numbers shown below demonstrate the performance of the entire `workflow` of 
 | LSTM | Alpha360 | 0.0466±0.01 | 0.3644±0.06| 0.0555±0.00 | 0.4451±0.04 | 0.0783±0.05 | 1.0539±0.65| -0.0844±0.03 |
 | ALSTM | Alpha360 | 0.0472±0.00 | 0.3558±0.04| 0.0577±0.00 | 0.4522±0.04 | 0.0522±0.02 | 0.7090±0.32| -0.1059±0.03 |
 | GATs | Alpha360 | 0.0480±0.00 | 0.3555±0.02| 0.0598±0.00 | 0.4616±0.01 | 0.0857±0.03 | 1.1317±0.42| -0.0917±0.01 |
+
+## Alpha158 dataset
+| Model Name | Dataset | IC | ICIR | Rank IC | Rank ICIR | Annualized Return | Information Ratio | Max Drawdown |
+|---|---|---|---|---|---|---|---|---|
+| Linear | Alpha158 | 0.0393±0.00 | 0.2980±0.00| 0.0475±0.00 | 0.3546±0.00 | 0.0795±0.00 | 1.0712±0.00| -0.1449±0.00 |
+| CatBoost | Alpha158 | 0.0503±0.00 | 0.3586±0.00| 0.0483±0.00 | 0.3667±0.00 | 0.1080±0.00 | 1.1567±0.00| -0.0787±0.00 |
+| XGBoost | Alpha158 | 0.0481±0.00 | 0.3659±0.00| 0.0495±0.00 | 0.4033±0.00 | 0.1111±0.00 | 1.2915±0.00| -0.0893±0.00 |
+| LightGBM | Alpha158 | 0.0475±0.00 | 0.3979±0.00| 0.0485±0.00 | 0.4123±0.00 | 0.1143±0.00 | 1.2744±0.00| -0.0800±0.00 |
+| MLP | Alpha158 | 0.0321±0.00 | 0.2493±0.04| 0.0408±0.00 | 0.3134±0.03 | 0.0661±0.03 | 0.7884±0.39| -0.1038±0.03 |
+| TFT | Alpha158 (with selected 10 features) | 0.0287±0.00 | 0.1663±0.01| 0.0016±0.00 | 0.0095±0.02 | 0.0205±0.02 | 0.1758±0.19| -0.1990±0.04 |
+| GRU | Alpha158 (with selected 20 features) | 0.0313±0.00 | 0.2427±0.01 | 0.0416±0.00 | 0.3370±0.01 | 0.0335±0.01 | 0.4808±0.22 | -0.1112±0.03 |
+| LSTM | Alpha158 (with selected 20 features) | 0.0337±0.01 | 0.2562±0.05 | 0.0427±0.01 | 0.3392±0.04 | 0.0269±0.06 | 0.3385±0.74 | -0.1285±0.04 |
+| ALSTM | Alpha158 (with selected 20 features) | 0.0366±0.00 | 0.2803±0.04 | 0.0478±0.00 | 0.3770±0.02 | 0.0520±0.03 | 0.7115±0.30 | -0.0986±0.01 |
+| GATs | Alpha158 (with selected 20 features) | 0.0355±0.00 | 0.2576±0.02 | 0.0465±0.00 | 0.3585±0.00 | 0.0509±0.02 | 0.7212±0.22 | -0.0821±0.01 |
