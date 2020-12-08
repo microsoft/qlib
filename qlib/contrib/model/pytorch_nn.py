@@ -116,7 +116,7 @@ class DNNModelPytorch(Model):
                 seed,
                 GPU,
                 self.use_GPU,
-                weight_decay
+                weight_decay,
             )
         )
 
