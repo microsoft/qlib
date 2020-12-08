@@ -27,10 +27,10 @@ For more details, please refer to our paper ["Qlib: An AI-oriented Quantitative 
   - [Data Preparation](#data-preparation)
   - [Auto Quant Research Workflow](#auto-quant-research-workflow)
   - [Building Customized Quant Research Workflow by Code](#building-customized-quant-research-workflow-by-code)
-- [**Quant Model Zoo**](#quant-model-zoo)
+- [Quant Model Zoo](#quant-model-zoo)
   - [Run a single model](#run-a-single-model)
   - [Run multiple models](#run-multiple-models)
-- [**Quant Dataset Zoo**](#quant-dataset-zoo)
+- [Quant Dataset Zoo](#quant-dataset-zoo)
 - [More About Qlib](#more-about-qlib)
 - [Offline Mode and Online Mode](#offline-mode-and-online-mode)
   - [Performance of Qlib Data Server](#performance-of-qlib-data-server)
@@ -199,9 +199,11 @@ Here is a list of models built on `Qlib`.
 - [ALSTM based on pytorcn](qlib/contrib/model/pytorch_alstm.py)
 - [GATs based on pytorch](qlib/contrib/model/pytorch_gats.py)
 - [SFM based on pytorch](qlib/contrib/model/pytorch_sfm.py)
-<!-- - [TFT based on tensorflow](examples/benchmarks/TFT/tft.py) -->
+- [TFT based on tensorflow](examples/benchmarks/TFT/tft.py)
 
 Your PR of new Quant models is highly welcomed.
+
+The performance of each model on the `Alpha158` and `Alpha360` dataset can be found [here](examples/benchmarks/README.md).
 
 ## Run a single model
 All the models listed above are runnable with ``Qlib``. Users can find the config files we provide and some details about the model through the [benchmarks](examples/benchmarks) folder. More information can be retrieved at the model files listed above.
