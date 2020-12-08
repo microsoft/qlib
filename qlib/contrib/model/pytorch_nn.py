@@ -25,7 +25,6 @@ from ...workflow import R
 
 class DNNModelPytorch(Model):
     """DNN Model
-
     Parameters
     ----------
     input_dim : int
@@ -126,9 +125,9 @@ class DNNModelPytorch(Model):
 
         self.dnn_model = Net(input_dim, output_dim, layers, loss=self.loss_type)
         if optimizer.lower() == "adam":
-            self.train_optimizer = optim.Adam(self.dnn_model.parameters(), lr=self.lr)
+            self.train_optimizer = optim.Adam(self.dnn_model.parameters(), lr=self.lr, weight_decay=2e-4)
         elif optimizer.lower() == "gd":
-            self.train_optimizer = optim.SGD(self.dnn_model.parameters(), lr=self.lr)
+            self.train_optimizer = optim.SGD(self.dnn_model.parameters(), lr=self.lr, weight_decay=2e-4)
         else:
             raise NotImplementedError("optimizer {} is not supported!".format(optimizer))
 
