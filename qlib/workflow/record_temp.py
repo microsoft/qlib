@@ -148,7 +148,7 @@ class SignalRecord(RecordTemp):
                 raw_label = self.dataset.prepare(**params)
 
             self.recorder.save_objects(**{"label.pkl": raw_label})
-            self.dataset.__class__ =  orig_cls
+            self.dataset.__class__ = orig_cls
 
     def list(self):
         return ["pred.pkl", "label.pkl"]
