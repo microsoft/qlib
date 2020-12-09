@@ -113,11 +113,7 @@ class FilterCol(Processor):
         all_cols = df.columns
         diff_cols = np.setdiff1d(all_cols.get_level_values(-1), cols.get_level_values(-1))
         self.col_list = np.union1d(diff_cols, self.col_list)
-
-        if isinstance(df.columns, pd.MultiIndex):
-            mask = df.columns.get_level_values(-1).isin(self.col_list)
-        else:
-            mask = df.columns.isin(self.col_list)
+        mask = df.columns.get_level_values(-1).isin(self.col_list)
         return df.loc[:, mask]
 
 

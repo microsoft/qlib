@@ -131,7 +131,13 @@ class SignalRecord(RecordTemp):
         pprint(pred.head(5))
 
         # save according label
-        if isinstance(self.dataset, DatasetH):
+        if isinstance(self.dataset, TSDatasetH):
+            index = raw_label.get_index()
+            raw_label = raw_label.data.loc[index]
+            raw_label = raw_label[:, -1:]
+            self.recorder.save_objects(**{"label.pkl": raw_label})
+
+        elif isinstance(self.dataset, DatasetH):
             params = dict(self=self.dataset, segments="test", col_set="label", data_key=DataHandlerLP.DK_R)
             try:
                 # Assume the backend handler is DataHandlerLP
@@ -141,11 +147,6 @@ class SignalRecord(RecordTemp):
                 del params["data_key"]
                 # The backend handler should be DataHandler
                 raw_label = DatasetH.prepare(**params)
-
-            if not isinstance(raw_label, pd.DataFrame):
-                index = raw_label.get_index()
-                raw_label = raw_label.data.loc[index]
-                raw_label = raw_label.iloc[:, -1:]
 
             self.recorder.save_objects(**{"label.pkl": raw_label})
 
