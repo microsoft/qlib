@@ -54,6 +54,16 @@ class Alpha158Formatter(GenericDataFormatter):
         ("CORR10", DataTypes.REAL_VALUED, InputTypes.OBSERVED_INPUT),
         ("ROC60", DataTypes.REAL_VALUED, InputTypes.OBSERVED_INPUT),
         ("RESI10", DataTypes.REAL_VALUED, InputTypes.OBSERVED_INPUT),
+        ("VSTD5", DataTypes.REAL_VALUED, InputTypes.OBSERVED_INPUT),
+        ("RSQR60", DataTypes.REAL_VALUED, InputTypes.OBSERVED_INPUT),
+        ("CORR60", DataTypes.REAL_VALUED, InputTypes.OBSERVED_INPUT),
+        ("WVMA60", DataTypes.REAL_VALUED, InputTypes.OBSERVED_INPUT),
+        ("STD5", DataTypes.REAL_VALUED, InputTypes.OBSERVED_INPUT),
+        ("RSQR20", DataTypes.REAL_VALUED, InputTypes.OBSERVED_INPUT),
+        ("CORD60", DataTypes.REAL_VALUED, InputTypes.OBSERVED_INPUT),
+        ("CORD10", DataTypes.REAL_VALUED, InputTypes.OBSERVED_INPUT),
+        ("CORR20", DataTypes.REAL_VALUED, InputTypes.OBSERVED_INPUT),
+        ("KLOW", DataTypes.REAL_VALUED, InputTypes.OBSERVED_INPUT),
         ("const", DataTypes.CATEGORICAL, InputTypes.STATIC_INPUT),
     ]
 
