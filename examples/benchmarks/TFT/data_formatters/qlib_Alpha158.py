@@ -43,7 +43,7 @@ class Alpha158Formatter(GenericDataFormatter):
         ("date", DataTypes.DATE, InputTypes.TIME),
         ("month", DataTypes.CATEGORICAL, InputTypes.KNOWN_INPUT),
         ("day_of_week", DataTypes.CATEGORICAL, InputTypes.KNOWN_INPUT),
-        # Selected 10 features
+        # Selected features
         ("RESI5", DataTypes.REAL_VALUED, InputTypes.OBSERVED_INPUT),
         ("WVMA5", DataTypes.REAL_VALUED, InputTypes.OBSERVED_INPUT),
         ("RSQR5", DataTypes.REAL_VALUED, InputTypes.OBSERVED_INPUT),
