@@ -6,7 +6,6 @@ import sys
 from qlib.tests import TestAutoData
 from qlib.data.dataset import TSDatasetH
 import numpy as np
-from torch.utils.data import DataLoader
 import time
 from qlib.data.dataset.handler import DataHandlerLP
 
@@ -53,21 +52,6 @@ class TestDataset(TestAutoData):
             data = tsds_train[np.random.randint(0, len(tsds_train), size=2000)]
         print(data.shape)
         print(f"2000 sample(batch index) * 20 times takes {time.time() - t}s")
-
-        # FIXME: Please remove pytorch related function. Otherwise the CI tests will fail
-        train_loader = DataLoader(tsds_train, batch_size=800, shuffle=True, num_workers=10)
-        t = time.time()
-        for data in train_loader:
-            pass
-        print(f"Passing all training batches takes {time.time() - t}s")
-
-        # Here is an example of ffill+bfill for index
-        tsds_train.config(fillna_type="ffill+bfill")
-        train_loader = DataLoader(tsds_train, batch_size=800, shuffle=True, num_workers=10)
-        t = time.time()
-        for data in train_loader:
-            pass
-        print(f"Passing all training batches with fill takes {time.time() - t}s")
 
         # The dimension of sample is same as tabular data, but it will return timeseries data of the sample
 
