@@ -79,6 +79,7 @@ Also, users can install ``Qlib`` by the source code according to the following s
   pip install numpy
   pip install --upgrade  cython
   ```
+  **Note**: please pay attention that installing cython in Python 3.6 will raise some error when installing ``Qlib`` from source. If users use Python 3.6 on their machines, it is recommended to *upgrade* Python to version 3.7 or use `conda`'s Python to install ``Qlib`` from source.
 
 * Clone the repository and install ``Qlib``:
 
