@@ -1385,6 +1385,7 @@ class Cov(PairRolling):
     def __init__(self, feature_left, feature_right, N):
         super(Cov, self).__init__(feature_left, feature_right, N, "cov")
 
+
 Operators = OpsWrapper()
 
 OpsList = [

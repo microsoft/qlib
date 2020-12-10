@@ -729,13 +729,16 @@ def load_dataset(path_or_obj):
         return pd.read_csv(path_or_obj, parse_dates=True, index_col=[0, 1])
     raise ValueError(f"unsupported file type `{extension}`")
 
+
 #################### Operator Wrapper #####################
+
 
 class OpsWrapper(object):
     """Ops Wrapper"""
 
     def __init__(self):
         self._ops = {}
+
     def register(self, ops_list):
 
         for operator in ops_list:
