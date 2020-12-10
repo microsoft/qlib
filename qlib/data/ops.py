@@ -13,6 +13,7 @@ from scipy.stats import percentileofscore
 
 from .base import Expression, ExpressionOps
 from ..log import get_module_logger
+from ..utils import OpsWrapper
 
 try:
     from ._libs.rolling import rolling_slope, rolling_rsquare, rolling_resi
@@ -21,53 +22,6 @@ except ImportError as err:
     print("Do not import qlib package in the repository directory!")
     raise
 
-__all__ = (
-    "Ref",
-    "Max",
-    "Min",
-    "Sum",
-    "Mean",
-    "Std",
-    "Var",
-    "Skew",
-    "Kurt",
-    "Med",
-    "Mad",
-    "Slope",
-    "Rsquare",
-    "Resi",
-    "Rank",
-    "Quantile",
-    "Count",
-    "EMA",
-    "WMA",
-    "Corr",
-    "Cov",
-    "Delta",
-    "Abs",
-    "Sign",
-    "Log",
-    "Power",
-    "Add",
-    "Sub",
-    "Mul",
-    "Div",
-    "Greater",
-    "Less",
-    "And",
-    "Or",
-    "Not",
-    "Gt",
-    "Ge",
-    "Lt",
-    "Le",
-    "Eq",
-    "Ne",
-    "Mask",
-    "IdxMax",
-    "IdxMin",
-    "If",
-)
 
 np.seterr(invalid="ignore")
 
@@ -1430,3 +1384,55 @@ class Cov(PairRolling):
 
     def __init__(self, feature_left, feature_right, N):
         super(Cov, self).__init__(feature_left, feature_right, N, "cov")
+
+Operators = OpsWrapper()
+
+OpsList = [
+    Ref,
+    Max,
+    Min,
+    Sum,
+    Mean,
+    Std,
+    Var,
+    Skew,
+    Kurt,
+    Med,
+    Mad,
+    Slope,
+    Rsquare,
+    Resi,
+    Rank,
+    Quantile,
+    Count,
+    EMA,
+    WMA,
+    Corr,
+    Cov,
+    Delta,
+    Abs,
+    Sign,
+    Log,
+    Power,
+    Add,
+    Sub,
+    Mul,
+    Div,
+    Greater,
+    Less,
+    And,
+    Or,
+    Not,
+    Gt,
+    Ge,
+    Lt,
+    Le,
+    Eq,
+    Ne,
+    Mask,
+    IdxMax,
+    IdxMin,
+    If,
+]
+
+Operators.register(OpsList)
