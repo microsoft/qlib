@@ -1,1 +1,3 @@
 Cython==0.29.21
+scipy
+scikit-learn
