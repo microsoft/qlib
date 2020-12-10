@@ -1,7 +1,5 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
-
-# -*- coding: utf-8 -*-
 import io
 import os
 import numpy
@@ -96,12 +94,7 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     python_requires=REQUIRES_PYTHON,
-    packages=find_packages(
-        exclude=(
-            "tests",
-            "examples",
-        )
-    ),
+    packages=find_packages(exclude=("tests",)),
     # if your package is a single module, use this instead of 'packages':
     # py_modules=['qlib'],
     entry_points={
