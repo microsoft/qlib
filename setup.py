@@ -55,7 +55,6 @@ REQUIRED = [
     "lightgbm",
     "tornado",
     "joblib>=0.17.0",
-    "fire>=0.3.1",
     "ruamel.yaml>=0.16.12",
 ]
 
