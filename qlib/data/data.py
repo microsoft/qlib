@@ -20,7 +20,7 @@ from multiprocessing import Pool
 
 from .cache import H
 from ..config import C
-from .ops import *
+from .ops import Operators
 from ..log import get_module_logger
 from ..utils import parse_field, read_bin, hash_args, normalize_cache_fields
 from .base import Feature
