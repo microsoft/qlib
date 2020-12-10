@@ -1,1 +1,2 @@
-Cython==0.29.21
+Cython
+numpy
