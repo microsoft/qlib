@@ -27,7 +27,6 @@ jobs:
       run:   |
         if [ "$RUNNER_OS" == "Windows" ]; then
           $CONDA\\python.exe -m pip install --upgrade cython
-          $CONDA\\python.exe -m pip install --upgrade cython
           $CONDA\\python.exe -m pip install numpy jupyter jupyter_contrib_nbextensions
           $CONDA\\python.exe -m pip install -U scipy scikit-learn # installing without this line will cause errors on GitHub Actions, while instsalling locally won't
           $CONDA\\python.exe setup.py install
