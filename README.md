@@ -94,7 +94,7 @@ Also, users can install the latest dev version ``Qlib`` by the source code accor
     git clone https://github.com/microsoft/qlib.git && cd qlib
     pip install .
     ```
-  **Note**: **Only** the command ``pip install .`` **can** overwrite the stable version installed by ``pip install pyqlib``, which the command ``python setup.py install`` **can't** do.
+  **Note**: **Only** the command ``pip install .`` **can** overwrite the stable version installed by ``pip install pyqlib``, while the command ``python setup.py install`` **can't**.
 
 ## Data Preparation
 Load and prepare data by running the following code:
