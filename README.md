@@ -71,9 +71,9 @@ Users can easily install ``Qlib`` by pip according to the following command
   pip install pyqlib
 ```
 
-**NOTE**: pip will install latest stable qlib. However the main branch of qlib is in active development. If you want to test the latest scripts or functions in main branch. Please install qlib with the methods below.
+**NOTE**: pip will install the latest stable qlib. However, the main branch of qlib is in active development. If you want to test the latest scripts or functions in the main branch. Please install qlib with the methods below.
 
-Also, users can install ``Qlib`` by the source code according to the following steps:
+Also, users can install the latest developed ``Qlib`` by the source code according to the following steps:
 
 * Before installing ``Qlib`` from source, users need to install some dependencies:
 
@@ -81,15 +81,20 @@ Also, users can install ``Qlib`` by the source code according to the following s
   pip install numpy
   pip install --upgrade  cython
   ```
-  **Note**: please pay attention that installing cython in Python 3.6 will raise some error when installing ``Qlib`` from source. If users use Python 3.6 on their machines, it is recommended to *upgrade* Python to version 3.7 or use `conda`'s Python to install ``Qlib`` from source.
+  **Note**: Please pay attention that installing cython in Python 3.6 will raise some error when installing ``Qlib`` from source. If users use Python 3.6 on their machines, it is recommended to *upgrade* Python to version 3.7 or use `conda`'s Python to install ``Qlib`` from source.
 
-* Clone the repository and install ``Qlib``:
-
-  ```bash
-  git clone https://github.com/microsoft/qlib.git && cd qlib
-  python setup.py install
-  ```
-
+* Clone the repository and install ``Qlib`` as follows.
+  * If you haven't installed qlib by the command ``pip install pyqlib`` before:
+    ```bash
+    git clone https://github.com/microsoft/qlib.git && cd qlib
+    python setup.py install
+    ```
+  * If you have installed the stable by the command ``pip install pyqlib``:
+    ```bash
+    git clone https://github.com/microsoft/qlib.git && cd qlib
+    pip install .
+    ```
+  **Note**: **Only** the command ``pip install .`` **can** overwrite the stable version installed by ``pip install pyqlib``, which the command ``python setup.py install`` **can't** do.
 
 ## Data Preparation
 Load and prepare data by running the following code:
