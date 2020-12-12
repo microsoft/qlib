@@ -71,7 +71,7 @@ Users can easily install ``Qlib`` by pip according to the following command
   pip install pyqlib
 ```
 
-**NOTE**: pip will install the latest stable qlib. However, the main branch of qlib is in active development. If you want to test the latest scripts or functions in the main branch. Please install qlib with the methods below.
+**Note**: pip will install the latest stable qlib. However, the main branch of qlib is in active development. If you want to test the latest scripts or functions in the main branch. Please install qlib with the methods below.
 
 Also, users can install the latest developed ``Qlib`` by the source code according to the following steps:
 
