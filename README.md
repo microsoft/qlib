@@ -73,7 +73,7 @@ Users can easily install ``Qlib`` by pip according to the following command
 
 **Note**: pip will install the latest stable qlib. However, the main branch of qlib is in active development. If you want to test the latest scripts or functions in the main branch. Please install qlib with the methods below.
 
-Also, users can install the latest developed ``Qlib`` by the source code according to the following steps:
+Also, users can install the latest dev version ``Qlib`` by the source code according to the following steps:
 
 * Before installing ``Qlib`` from source, users need to install some dependencies:
 
@@ -89,12 +89,12 @@ Also, users can install the latest developed ``Qlib`` by the source code accordi
     git clone https://github.com/microsoft/qlib.git && cd qlib
     python setup.py install
     ```
-  * If you have installed the stable by the command ``pip install pyqlib``:
+  * If you have already installed the stable version by the command ``pip install pyqlib``:
     ```bash
     git clone https://github.com/microsoft/qlib.git && cd qlib
     pip install .
     ```
-  **Note**: **Only** the command ``pip install .`` **can** overwrite the stable version installed by ``pip install pyqlib``, which the command ``python setup.py install`` **can't** do.
+  **Note**: **Only** the command ``pip install .`` **can** overwrite the stable version installed by ``pip install pyqlib``, which the command ``python setup.py install`` **can't**.
 
 ## Data Preparation
 Load and prepare data by running the following code:
