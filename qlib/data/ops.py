@@ -143,6 +143,11 @@ class Sign(ElemOperator):
     def __init__(self, feature):
         super(Sign, self).__init__(feature, "sign")
 
+    def _load_internal(self, instrument, start_index, end_index, freq):
+        series = self.feature.load(instrument, start_index, end_index, freq)
+        series = series.astype(np.float32)
+        return getattr(np, self.func)(series)
+
 
 class Log(ElemOperator):
     """Feature Log
