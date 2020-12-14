@@ -22,9 +22,58 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
+
+    - name: Lint with Black
+      run: |
+        cd ..
+        if [ "$RUNNER_OS" == "Windows" ]; then
+          $CONDA\\python.exe -m pip install black
+          $CONDA\\python.exe -m black qlib -l 120 --check --diff
+        else
+          sudo $CONDA/bin/python -m pip install black
+          $CONDA/bin/python -m black qlib -l 120 --check --diff
+        fi
+      shell: bash
+
+    # Test Qlib installed with pip
+    - name: Install Qlib with pip
+      run: |
+        if [ "$RUNNER_OS" == "Windows" ]; then
+          $CONDA\\python.exe -m pip install pyqlib --ignore-installed ruamel.yaml --user
+        else
+          sudo $CONDA/bin/python -m pip install pyqlib --ignore-installed ruamel.yaml
+        fi
+      shell: bash
     
-    - name: Install dependencies
-      run:   |
+    - name: Install Lightgbm for MacOS
+      if: runner.os == 'macOS'
+      run: |
+        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Microsoft/qlib/main/.github/brew_install.sh)"
+        HOMEBREW_NO_AUTO_UPDATE=1 brew install lightgbm
+
+    - name: Test data downloads
+      run: |
+        if [ "$RUNNER_OS" == "Windows" ]; then
+          $CONDA\\python.exe scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/cn_data --interval 1d --region cn
+        else
+          $CONDA/bin/python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/cn_data --interval 1d --region cn
+        fi
+      shell: bash
+
+    - name: Test workflow by config (install from pip)
+      run: |
+        if [ "$RUNNER_OS" == "Windows" ]; then
+          $CONDA\\python.exe qlib\\workflow\\cli.py examples\\benchmarks\\LightGBM\\workflow_config_lightgbm_Alpha158.yaml 
+          $CONDA\\python.exe -m pip uninstall -y pyqlib
+        else
+          $CONDA/bin/python qlib/workflow/cli.py examples/benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml 
+          sudo $CONDA/bin/python -m pip uninstall -y pyqlib
+        fi
+      shell: bash
+      
+    # Test Qlib installed from source
+    - name: Install Qlib from source
+      run: |
         if [ "$RUNNER_OS" == "Windows" ]; then
           $CONDA\\python.exe -m pip install --upgrade cython
           $CONDA\\python.exe -m pip install numpy jupyter jupyter_contrib_nbextensions
@@ -36,13 +85,7 @@ jobs:
           sudo $CONDA/bin/python -m pip install -U scipy scikit-learn # installing without this line will cause errors on GitHub Actions, while instsalling locally won't
           sudo $CONDA/bin/python setup.py install
         fi
-      shell: bash        
-
-    - name: Install Lightgbm for MacOS
-      if: runner.os == 'macOS'
-      run: |
-        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Microsoft/qlib/main/.github/brew_install.sh)"
-        HOMEBREW_NO_AUTO_UPDATE=1 brew install lightgbm
+      shell: bash
 
     - name: Install test dependencies
       run: |
@@ -54,16 +97,6 @@ jobs:
           sudo $CONDA/bin/python -m pip install black pytest
         fi
       shell: bash 
-        
-    - name: Lint with Black
-      run: |
-        cd ..
-        if [ "$RUNNER_OS" == "Windows" ]; then
-          $CONDA\\python.exe -m black qlib -l 120 --check --diff
-        else
-          $CONDA/bin/python -m black qlib -l 120 --check --diff
-        fi
-      shell: bash 
 
     - name: Unit tests with Pytest
       run: |
@@ -73,18 +106,9 @@ jobs:
         else
           $CONDA/bin/python -m pytest . --durations=0
         fi
-      shell: bash 
+      shell: bash
 
-    - name: Test data downloads
-      run: |
-        if [ "$RUNNER_OS" == "Windows" ]; then
-          $CONDA\\python.exe scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/cn_data --interval 1d --region cn
-        else
-          $CONDA/bin/python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/cn_data --interval 1d --region cn
-        fi
-      shell: bash 
-
-    - name: Test workflow by config
+    - name: Test workflow by config (install from source)
       run: |
         if [ "$RUNNER_OS" == "Windows" ]; then
           $CONDA\\python.exe qlib\\workflow\\cli.py examples\\benchmarks\\LightGBM\\workflow_config_lightgbm_Alpha158.yaml 

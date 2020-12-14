@@ -68,9 +68,8 @@ def only_allow_defined_args(function_to_decorate):
 def handler(signum, frame):
     os.system("kill -9 %d" % os.getpid())
 
-
-signal.signal(signal.SIGTSTP, handler)
 signal.signal(signal.SIGINT, handler)
+
 
 # function to calculate the mean and std of a list in the results dictionary
 def cal_mean_std(results) -> dict:
