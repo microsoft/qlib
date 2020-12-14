@@ -144,7 +144,11 @@ class Sign(ElemOperator):
         super(Sign, self).__init__(feature, "sign")
 
     def _load_internal(self, instrument, start_index, end_index, freq):
+        """
+        To avoid error raised by bool type input, we transform the data into float32.
+        """
         series = self.feature.load(instrument, start_index, end_index, freq)
+        # TODO:  More precision types should be configurable
         series = series.astype(np.float32)
         return getattr(np, self.func)(series)
 
