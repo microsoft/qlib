@@ -68,6 +68,7 @@ def only_allow_defined_args(function_to_decorate):
 def handler(signum, frame):
     os.system("kill -9 %d" % os.getpid())
 
+
 signal.signal(signal.SIGINT, handler)
 
 
