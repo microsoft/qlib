@@ -65,7 +65,7 @@ This quick start guide tries to demonstrate
 
 ## Installation
 
-Users can easily install ``Qlib`` by pip according to the following command
+Users can easily install ``Qlib`` by pip according to the following command(Currently, Qlib only support Python 3.6, 3.7 and 3.8). 
 
 ```bash
   pip install pyqlib
