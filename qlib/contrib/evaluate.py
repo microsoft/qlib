@@ -168,7 +168,7 @@ def get_exchange(
             codes = "all"  # TODO: We must ensure that 'all.txt' includes all the stocks
 
         dates = sorted(pred.index.get_level_values("datetime").unique())
-        dates = np.append(dates, get_date_range(dates[-1], shift=shift))
+        dates = np.append(dates, get_date_range(dates[-1], left_shift=1, right_shift=shift))
 
         exchange = Exchange(
             trade_dates=dates,
@@ -340,7 +340,7 @@ def long_short_backtest(
 
     _pred_dates = pred.index.get_level_values(level="datetime")
     predict_dates = D.calendar(start_time=_pred_dates.min(), end_time=_pred_dates.max())
-    trade_dates = np.append(predict_dates[shift:], get_date_range(predict_dates[-1], shift=shift))
+    trade_dates = np.append(predict_dates[shift:], get_date_range(predict_dates[-1], left_shift=1, right_shift=shift))
 
     long_returns = {}
     short_returns = {}

@@ -69,7 +69,7 @@ def backtest(pred, strategy, trade_exchange, shift, verbose, account, benchmark)
             raise ValueError(f"The benchmark {_codes} does not exist. Please provide the right benchmark")
         bench = _temp_result.groupby(level="datetime")[_temp_result.columns.tolist()[0]].mean()
 
-    trade_dates = np.append(predict_dates[shift:], get_date_range(predict_dates[-1], shift=shift))
+    trade_dates = np.append(predict_dates[shift:], get_date_range(predict_dates[-1], left_shift=1, right_shift=shift))
     executor = SimulatorExecutor(trade_exchange, verbose=verbose)
 
     # trading apart
