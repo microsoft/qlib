@@ -38,7 +38,7 @@ def _calculate_report_data(df: pd.DataFrame) -> pd.DataFrame:
     :param df:
     :return:
     """
-
+    index_names = df.index.names
     df.index = df.index.strftime("%Y-%m-%d")
 
     report_df = pd.DataFrame()
@@ -58,6 +58,8 @@ def _calculate_report_data(df: pd.DataFrame) -> pd.DataFrame:
 
     report_df["turnover"] = df["turnover"]
     report_df.sort_index(ascending=True, inplace=True)
+
+    report_df.index.names = index_names
     return report_df
 
 
