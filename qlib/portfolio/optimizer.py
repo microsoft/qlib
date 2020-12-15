@@ -9,7 +9,7 @@ import scipy.optimize as so
 from typing import Optional, Union, Callable, List
 
 
-class PortfolioOptimizer(object):
+class PortfolioOptimizer:
     """Portfolio Optimizer
 
     The following optimization algorithms are supported:

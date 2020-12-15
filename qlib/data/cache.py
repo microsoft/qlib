@@ -68,7 +68,7 @@ class MemCacheUnit(OrderedDict):
                 self.popitem(last=False)
 
 
-class MemCache(object):
+class MemCache:
     """Memory cache."""
 
     def __init__(self, mem_cache_size_limit=None, limit_type="length"):
@@ -140,7 +140,7 @@ class MemCacheExpire:
         return value, expire
 
 
-class CacheUtils(object):
+class CacheUtils:
     LOCK_ID = "QLIB"
 
     @staticmethod
@@ -224,7 +224,7 @@ class CacheUtils(object):
             current_cache_wlock.release()
 
 
-class BaseProviderCache(object):
+class BaseProviderCache:
     """Provider cache base class"""
 
     def __init__(self, provider):

@@ -19,7 +19,7 @@ from hyperopt import fmin, tpe
 from hyperopt import STATUS_OK, STATUS_FAIL
 
 
-class Tuner(object):
+class Tuner:
     def __init__(self, tuner_config, optim_config):
 
         self.logger = get_module_logger("Tuner", sh_level=logging.INFO)

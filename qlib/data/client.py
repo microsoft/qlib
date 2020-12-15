@@ -12,7 +12,7 @@ from ..log import get_module_logger
 import pickle
 
 
-class Client(object):
+class Client:
     """A client class
 
     Provide the connection tool functions for ClientProvider.

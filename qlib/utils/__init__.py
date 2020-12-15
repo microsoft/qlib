@@ -686,7 +686,7 @@ def flatten_dict(d, parent_key="", sep="."):
 
 
 #################### Wrapper #####################
-class Wrapper(object):
+class Wrapper:
     """Wrapper class for anything that needs to set up during qlib.init"""
 
     def __init__(self):

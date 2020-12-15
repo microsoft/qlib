@@ -8,7 +8,7 @@ from libc.math cimport sqrt, isnan, NAN
 from libcpp.vector cimport vector
 
 
-cdef class Expanding(object):
+cdef class Expanding:
     """1-D array expanding"""
     cdef vector[double] barv
     cdef int na_count
