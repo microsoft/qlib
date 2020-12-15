@@ -91,7 +91,7 @@ Record Template
 
 The ``RecordTemp`` class is a class that enables generate experiment results such as IC and backtest in a certain format. We have provided three different `Record Template` class:
 
-- ``SignalRecord``: This class generates the `preidction` results of the model.
+- ``SignalRecord``: This class generates the `prediction` results of the model.
 - ``SigAnaRecord``: This class generates the `IC`, `ICIR`, `Rank IC` and `Rank ICIR` of the model.
 - ``PortAnaRecord``: This class generates the results of `backtest`. The detailed information about `backtest` as well as the available `strategy`, users can refer to `Strategy <../component/strategy.html>`_ and `Backtest <../component/backtest.html>`_.
 
