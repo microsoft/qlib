@@ -36,7 +36,7 @@ def get_module_logger(module_name, level=None):
     return module_logger
 
 
-class TimeInspector(object):
+class TimeInspector:
 
     timer_logger = get_module_logger("timer", level=logging.WARNING)
 

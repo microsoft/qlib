@@ -25,7 +25,7 @@ import os
 import data_formatters.qlib_Alpha158
 
 
-class ExperimentConfig(object):
+class ExperimentConfig:
     """Defines experiment configs and paths to outputs.
 
     Attributes:
