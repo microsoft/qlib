@@ -1,6 +1,6 @@
 # Requirements
 
-Here is the minimal hardware requirements to run the example.
+Here is the minimal hardware requirements to run the `workflow_by_code` example.
 - Memory: 16G
 - Free Disk: 5G
 
