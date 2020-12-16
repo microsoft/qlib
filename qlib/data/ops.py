@@ -18,7 +18,9 @@ try:
     from ._libs.rolling import rolling_slope, rolling_rsquare, rolling_resi
     from ._libs.expanding import expanding_slope, expanding_rsquare, expanding_resi
 except ImportError as err:
-    print("#### Do not import qlib package in the repository directory in case of importing qlib from . without compiling #####")
+    print(
+        "#### Do not import qlib package in the repository directory in case of importing qlib from . without compiling #####"
+    )
     raise
 
 __all__ = (
