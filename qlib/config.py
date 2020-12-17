@@ -27,10 +27,10 @@ class Config:
         return self.__dict__["_config"][key]
 
     def __getattr__(self, attr):
-        try:
+        if attr in self.__dict__["_config"]:
             return self.__dict__["_config"][attr]
-        except KeyError:
-            return AttributeError(f"No such {attr} in self._config")
+        
+        raise AttributeError(f"No such {attr} in self._config")
 
     def __setitem__(self, key, value):
         self.__dict__["_config"][key] = value
