@@ -1052,7 +1052,7 @@ def register_all_wrappers():
     if getattr(C, "calendar_cache", None) is not None:
         _calendar_provider = init_instance_by_config(C.calendar_cache, module, provide=_calendar_provider)
     register_wrapper(Cal, _calendar_provider, "qlib.data")
-    logger.debug(f"registering Cal {C.calendar_provider}-{C.calenar_cache}")
+    logger.debug(f"registering Cal {C.calendar_provider}-{C.calendar_cache}")
 
     register_wrapper(Inst, C.instrument_provider, "qlib.data")
     logger.debug(f"registering Inst {C.instrument_provider}")
