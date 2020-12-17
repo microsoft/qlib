@@ -29,7 +29,7 @@ class Config:
     def __getattr__(self, attr):
         if attr in self.__dict__["_config"]:
             return self.__dict__["_config"][attr]
-        
+
         raise AttributeError(f"No such {attr} in self._config")
 
     def __setitem__(self, key, value):
