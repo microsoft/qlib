@@ -464,7 +464,7 @@ class SFM(Model):
         return pd.Series(np.concatenate(preds), index=index)
 
 
-class AverageMeter(object):
+class AverageMeter:
     """Computes and stores the average and current value"""
 
     def __init__(self):
