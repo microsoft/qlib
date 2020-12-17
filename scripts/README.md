@@ -43,7 +43,7 @@ python get_data.py qlib_data --help
 
 ### US data
 
-> Need to download data first: [Downlaod US Data](#Downlaod-US-Data)
+> Need to download data first: [Download US Data](#Download-US-Data)
 
 ```python
 import qlib
