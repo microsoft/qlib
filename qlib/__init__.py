@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 
-__version__ = "0.6.1.dev"
+__version__ = "0.6.1.99.dev"
 
 
 import os
@@ -15,7 +15,7 @@ import platform
 import subprocess
 from pathlib import Path
 
-from .utils import can_use_cache, init_instance_by_config, get_module_by_module_path
+from .utils import can_use_cache, init_instance_by_config, check_qlib_data
 from .workflow.utils import experiment_exit_handler
 
 # init qlib
@@ -88,6 +88,7 @@ def init(default_conf="client", **kwargs):
     R.register(qr)
     # clean up experiment when python program ends
     experiment_exit_handler()
+    check_qlib_data(C)
 
 
 def _mount_nfs_uri(C):

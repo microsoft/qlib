@@ -15,14 +15,13 @@ import importlib
 import traceback
 import numpy as np
 import pandas as pd
-from pathlib import Path
 from multiprocessing import Pool
 
 from .cache import H
 from ..config import C
 from .ops import *
 from ..log import get_module_logger
-from ..utils import parse_field, read_bin, hash_args, normalize_cache_fields
+from ..utils import parse_field, read_bin, hash_args, normalize_cache_fields, code_to_fname
 from .base import Feature
 from .cache import DiskDatasetCache, DiskExpressionCache
 from ..utils import Wrapper, init_instance_by_config, register_wrapper, get_module_by_module_path
@@ -214,23 +213,6 @@ class InstrumentProvider(abc.ABC):
         if isinstance(inst, (list, tuple, pd.Index, np.ndarray)):
             return cls.LIST
         raise ValueError(f"Unknown instrument type {inst}")
-
-    def convert_instruments(self, instrument):
-        _instruments_map = getattr(self, "_instruments_map", None)
-        if _instruments_map is None:
-            _df_list = []
-            # FIXME: each process will read these files
-            for _path in Path(C.get_data_path()).joinpath("instruments").glob("*.txt"):
-                _df = pd.read_csv(_path, sep="\t", names=["inst", "start_datetime", "end_datetime", "save_inst"])
-                _df_list.append(_df.iloc[:, [0, -1]])
-            df = pd.concat(_df_list, sort=False)
-            df["inst"] = df["inst"].astype(str)
-            df = df.fillna(axis=1, method="ffill")
-            df = df.sort_values("inst").drop_duplicates(subset=["inst"], keep="first")
-            df["save_inst"] = df["save_inst"].astype(str)
-            _instruments_map = df.set_index("inst").iloc[:, 0].to_dict()
-            setattr(self, "_instruments_map", _instruments_map)
-        return _instruments_map.get(instrument, instrument)
 
 
 class FeatureProvider(abc.ABC):
@@ -590,12 +572,16 @@ class LocalInstrumentProvider(InstrumentProvider):
         fname = self._uri_inst.format(market)
         if not os.path.exists(fname):
             raise ValueError("instruments not exists for market " + market)
+
         _instruments = dict()
-        df = pd.read_csv(fname, sep="\t", names=["inst", "start_datetime", "end_datetime", "save_inst"])
-        df["start_datetime"] = pd.to_datetime(df["start_datetime"])
-        df["end_datetime"] = pd.to_datetime(df["end_datetime"])
-        df["inst"] = df["inst"].astype(str)
-        df["save_inst"] = df.loc[:, ["inst", "save_inst"]].fillna(axis=1, method="ffill")["save_inst"].astype(str)
+        df = pd.read_csv(
+            fname,
+            sep="\t",
+            usecols=[0, 1, 2],
+            names=["inst", "start_datetime", "end_datetime"],
+            dtype={"inst": str},
+            parse_dates=["start_datetime", "end_datetime"],
+        )
         for row in df.itertuples(index=False):
             _instruments.setdefault(row[0], []).append((row[1], row[2]))
         return _instruments
@@ -652,7 +638,7 @@ class LocalFeatureProvider(FeatureProvider):
     def feature(self, instrument, field, start_index, end_index, freq):
         # validate
         field = str(field).lower()[1:]
-        instrument = Inst.convert_instruments(instrument)
+        instrument = code_to_fname(instrument)
         uri_data = self._uri_data.format(instrument.lower(), field, freq)
         if not os.path.exists(uri_data):
             get_module_logger("data").warning("WARN: data not found for %s.%s" % (instrument, field))
