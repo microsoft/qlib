@@ -414,7 +414,7 @@ class YahooCollectorUS(YahooCollector, ABC):
         pass
 
     def normalize_symbol(self, symbol):
-        return symbol.upper()
+        return code_to_fname(symbol).upper()
 
     @property
     def _timezone(self):
