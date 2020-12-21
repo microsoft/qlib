@@ -60,8 +60,8 @@ Users can use ``Data Handler`` to build formulaic alphas `MACD` in qlib:
     ..     "feature": (fields, names),
     ..     "label": (labels, label_names)
     .. }
-    >> data_handler = QlibDataLoader(config=data_loader_config)
-    >> df = data_handler.load(instruments='csi300', start_time='2010-01-01', end_time='2017-12-31')
+    >> data_loader = QlibDataLoader(config=data_loader_config)
+    >> df = data_loader.load(instruments='csi300', start_time='2010-01-01', end_time='2017-12-31')
     >> print(df)
                             feature     label
                                MACD     LABEL
@@ -81,6 +81,6 @@ Users can use ``Data Handler`` to build formulaic alphas `MACD` in qlib:
 Reference
 ===========
 
-To learn more about ``Data Handler``, please refer to `Data Handler <../component/data.html>`_
+To learn more about ``Data Loader``, please refer to `Data Loader <../component/data.html#data-loader>`_
 
 To learn more about ``Data API``, please refer to `Data API <../component/data.html>`_
