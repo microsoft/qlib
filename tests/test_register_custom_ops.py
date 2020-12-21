@@ -4,14 +4,11 @@
 import sys
 import unittest
 import numpy as np
-import pandas as pd
-from pathlib import Path
 
 import qlib
 from qlib.data import D
 from qlib.data.ops import Operators, ElemOperator, PairOperator
 from qlib.config import REG_CN
-from qlib.utils import exists_qlib_data
 from qlib.tests import TestAutoData
 
 
@@ -74,4 +71,4 @@ class TestRegiterCustomOps(TestAutoData):
 
 
 if __name__ == "__main__":
-    unittest.main(verbosity=10)
+    unittest.main()
