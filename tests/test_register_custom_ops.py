@@ -1,16 +1,18 @@
-#  Copyright (c) Microsoft Corporation.
-#  Licensed under the MIT License.
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
 
 import sys
+import unittest
+import numpy as np
+import pandas as pd
 from pathlib import Path
 
 import qlib
-import numpy as np
-import pandas as pd
 from qlib.data import D
 from qlib.data.ops import Operators, ElemOperator, PairOperator
 from qlib.config import REG_CN
 from qlib.utils import exists_qlib_data
+from qlib.tests import TestAutoData
 
 
 class Diff(ElemOperator):
@@ -61,23 +63,20 @@ class Distance(PairOperator):
         series_right = self.feature_right.load(instrument, start_index, end_index, freq)
         return np.abs(series_left - series_right)
 
+class TestRegiterCustomOps(TestAutoData):
+    
+    def test_regiter_custom_ops(self):
+        OpsList = [Diff, Distance]
+        Operators.register(OpsList)
+        instruments = ["SH600000"]
+        fields = ["Diff($close)", "Distance($close, Ref($close, 1))"]
+        print(D.features(instruments, fields, start_time="2010-01-01", end_time="2017-12-31", freq="day"))
+
 
 if __name__ == "__main__":
+    unittest.main(verbosity=10)
 
-    # register custom operators
-    OpsList = [Diff, Distance]
-    Operators.register(OpsList)
-    # use default data
-    provider_uri = "~/.qlib/qlib_data/cn_data"  # target_dir
-    if not exists_qlib_data(provider_uri):
-        print(f"Qlib data is not found in {provider_uri}")
-        sys.path.append(str(Path(__file__).resolve().parent.parent.joinpath("scripts")))
-        from get_data import GetData
-
-        GetData().qlib_data(target_dir=provider_uri, region=REG_CN)
-
-    qlib.init(provider_uri=provider_uri, region=REG_CN)
-
-    instruments = ["SH600000"]
-    fields = ["Diff($close)", "Distance($close, Ref($close, 1))"]
-    print(D.features(instruments, fields, start_time="2010-01-01", end_time="2017-12-31", freq="day"))
+    # User could use following code to run test when using line_profiler
+    # td = TestDataset()
+    # td.setUpClass()
+    # td.testTSDataset()

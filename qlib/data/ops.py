@@ -13,7 +13,6 @@ from scipy.stats import percentileofscore
 
 from .base import Expression, ExpressionOps
 from ..log import get_module_logger
-from ..utils import OpsWrapper
 
 try:
     from ._libs.rolling import rolling_slope, rolling_rsquare, rolling_resi
@@ -1386,8 +1385,27 @@ class Cov(PairRolling):
         super(Cov, self).__init__(feature_left, feature_right, N, "cov")
 
 
-Operators = OpsWrapper()
+class OpsWrapper(object):
+    """Ops Wrapper"""
 
+    def __init__(self):
+        self._ops = {}
+
+    def register(self, ops_list):
+        for operator in ops_list:
+            if operator.__name__ in self._ops:
+                get_module_logger(self.__class__.__name__).warning(
+                    "The custom operator [{}] will override the qlib default definition".format(operator.__name__)
+                )
+            self._ops[operator.__name__] = operator
+
+    def __getattr__(self, key):
+        if key not in self._ops:
+            raise AttributeError("The operator [{}] is not registered".format(key))
+        return self._ops[key]
+
+
+Operators = OpsWrapper()
 OpsList = [
     Ref,
     Max,
