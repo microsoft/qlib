@@ -63,8 +63,8 @@ class Distance(PairOperator):
         series_right = self.feature_right.load(instrument, start_index, end_index, freq)
         return np.abs(series_left - series_right)
 
+
 class TestRegiterCustomOps(TestAutoData):
-    
     def test_regiter_custom_ops(self):
         OpsList = [Diff, Distance]
         Operators.register(OpsList)
@@ -75,8 +75,3 @@ class TestRegiterCustomOps(TestAutoData):
 
 if __name__ == "__main__":
     unittest.main(verbosity=10)
-
-    # User could use following code to run test when using line_profiler
-    # td = TestDataset()
-    # td.setUpClass()
-    # td.testTSDataset()
