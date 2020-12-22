@@ -174,9 +174,9 @@ class MemCache:
         mem_cache_size_limit: cache max size.
         limit_type: length or sizeof; length(call fun: len), size(call fun: sys.getsizeof).
         """
-        
+
         size_limit = C.mem_cache_size_limit if mem_cache_size_limit is None else mem_cache_size_limit
-        
+
         if limit_type == "length":
             self.__calendar_mem_cache = MemCacheLengthUnit(size_limit)
             self.__instrument_mem_cache = MemCacheLengthUnit(size_limit)
