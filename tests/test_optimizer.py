@@ -43,9 +43,7 @@ class TestOptimizer(unittest.TestCase):
         self.assertEqual(sol["status"], "optimal")
         w_cvxopt = np.array(sol["x"]).squeeze()
 
-        for algo, w in [("Initial", self.w0),
-                        ("Qlib", w_qlib),
-                        ("CVXOPT", w_cvxopt)]:
+        for algo, w in [("Initial", self.w0), ("Qlib", w_qlib), ("CVXOPT", w_cvxopt)]:
             self.assertTrue(np.all(w <= upper_bound), msg=algo)
             self.assertTrue(np.all(lower_bound <= w), msg=algo)
             self.assertAlmostEqual(w.sum(), 1.0, msg=algo)
@@ -77,9 +75,7 @@ class TestOptimizer(unittest.TestCase):
         self.assertEqual(sol["status"], "optimal")
         w_cvxopt = np.array(sol["x"]).squeeze()
 
-        for algo, w in [("Initial", self.w0),
-                        ("Qlib", w_qlib),
-                        ("CVXOPT", w_cvxopt)]:
+        for algo, w in [("Initial", self.w0), ("Qlib", w_qlib), ("CVXOPT", w_cvxopt)]:
             self.assertTrue(np.all(G @ w <= h))
             self.assertTrue(np.allclose(A @ w, b))
 
