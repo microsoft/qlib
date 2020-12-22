@@ -174,15 +174,15 @@ class MemCache:
         size_limit = C.mem_cache_size_limit if mem_cache_size_limit is None else mem_cache_size_limit
 
         if limit_type == "length":
-            self.__calendar_mem_cache = MemCacheLengthUnit(size_limit)
-            self.__instrument_mem_cache = MemCacheLengthUnit(size_limit)
-            self.__feature_mem_cache = MemCacheLengthUnit(size_limit)
+            klass = MemCacheLengthUnit
         elif limit_type == "sizeof":
-            self.__calendar_mem_cache = MemCacheSizeofUnit(size_limit)
-            self.__instrument_mem_cache = MemCacheSizeofUnit(size_limit)
-            self.__feature_mem_cache = MemCacheSizeofUnit(size_limit)
+            klass = MemCacheSizeofUnit
         else:
             raise ValueError(f"limit_type must be length or sizeof, your limit_type is {limit_type}")
+
+        self.__calendar_mem_cache = klass(size_limit)
+        self.__instrument_mem_cache = klass(size_limit)
+        self.__feature_mem_cache = klass(size_limit)
 
     def __getitem__(self, key):
         if key == "c":
