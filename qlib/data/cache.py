@@ -47,12 +47,8 @@ class MemCacheUnit(abc.ABC):
         self.size_limit = kwargs.pop("size_limit", 0)
         self.limit_type = kwargs.pop("limit_type", "length")
 
-        assert self.limit_type in ["length", "sizeof"], ValueError(
-            "limit_type shoule be one of ['length', 'sizeof']"
-        )
-        assert self.size_limit >= 0, ValueError(
-            "size_limit shoule not be negative.The default 0 means unlimited!"
-        )
+        assert self.limit_type in ["length", "sizeof"], ValueError("limit_type shoule be one of ['length', 'sizeof']")
+        assert self.size_limit >= 0, ValueError("size_limit shoule not be negative.The default 0 means unlimited!")
 
         # limit_flag: whether to popitem or not
         self._limit_flag = 1 if self.size_limit > 0 else 0
