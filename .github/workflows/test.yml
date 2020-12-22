@@ -91,10 +91,10 @@ jobs:
       run: |
         if [ "$RUNNER_OS" == "Windows" ]; then
           $CONDA\\python.exe -m pip install --upgrade pip
-          $CONDA\\python.exe -m pip install black pytest
+          $CONDA\\python.exe -m pip install black pytest cvxopt
         else
           sudo $CONDA/bin/python -m pip install --upgrade pip
-          sudo $CONDA/bin/python -m pip install black pytest
+          sudo $CONDA/bin/python -m pip install black pytest cvxopt
         fi
       shell: bash 
 
