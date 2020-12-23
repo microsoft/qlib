@@ -60,8 +60,10 @@ class Distance(PairOperator):
         series_right = self.feature_right.load(instrument, start_index, end_index, freq)
         return np.abs(series_left - series_right)
 
+
 OpsList = [Diff, Distance]
 Operators.register(OpsList)
+
 
 class TestRegiterCustomOps(TestAutoData):
     def test_regiter_custom_ops(self):
