@@ -202,9 +202,6 @@ class MLflowRecorder(Recorder):
         super(MLflowRecorder, self).__init__(experiment_id, name)
         self._uri = uri
         self.artifact_uri = None
-        # set up file manager for saving objects
-        self.temp_dir = tempfile.mkdtemp()
-        self.fm = FileManager(Path(self.temp_dir).absolute())
         self.client = mlflow.tracking.MlflowClient(tracking_uri=self._uri)
         # construct from mlflow run
         if mlflow_run is not None:
@@ -222,6 +219,15 @@ class MLflowRecorder(Recorder):
                 if mlflow_run.info.end_time is not None
                 else None
             )
+
+    @property
+    def fm(self):
+        # only create temp dir when using file managers
+        if not hasattr(self, "_fm"):
+            # set up file manager for saving objects
+            self._temp_dir = tempfile.mkdtemp()
+            self._fm = FileManager(Path(self._temp_dir).absolute())
+        return self._fm
 
     def start_run(self):
         # set the tracking uri
@@ -248,7 +254,7 @@ class MLflowRecorder(Recorder):
         self.end_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         if self.status != Recorder.STATUS_S:
             self.status = status
-        shutil.rmtree(self.temp_dir)
+        shutil.rmtree(self._temp_dir)
 
     def save_objects(self, local_path=None, artifact_path=None, **kwargs):
         assert self._uri is not None, "Please start the experiment and recorder first before using recorder directly."
