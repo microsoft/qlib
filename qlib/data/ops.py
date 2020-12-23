@@ -1401,7 +1401,7 @@ class OpsWrapper(object):
 
     def __getattr__(self, key):
         if key not in self._ops:
-            raise AttributeError("The operator [{}] is not registered".format(key))
+            raise AttributeError("The operator [{0}] is not registered, and all dict is {1}".format(key, self._ops))
         return self._ops[key]
 
 
