@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 import mlflow
-import shutil, os, pickle, tempfile, codecs
+import shutil, os, pickle, tempfile, codecs, pickle
 from pathlib import Path
 from datetime import datetime
 from ..utils.objm import FileManager
@@ -220,15 +220,6 @@ class MLflowRecorder(Recorder):
                 else None
             )
 
-    @property
-    def fm(self):
-        # only create temp dir when using file managers
-        if not hasattr(self, "_fm"):
-            # set up file manager for saving objects
-            self._temp_dir = tempfile.mkdtemp()
-            self._fm = FileManager(Path(self._temp_dir).absolute())
-        return self._fm
-
     def start_run(self):
         # set the tracking uri
         mlflow.set_tracking_uri(self._uri)
@@ -254,16 +245,18 @@ class MLflowRecorder(Recorder):
         self.end_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         if self.status != Recorder.STATUS_S:
             self.status = status
-        shutil.rmtree(self._temp_dir)
 
     def save_objects(self, local_path=None, artifact_path=None, **kwargs):
         assert self._uri is not None, "Please start the experiment and recorder first before using recorder directly."
         if local_path is not None:
             self.client.log_artifacts(self.id, local_path, artifact_path)
         else:
+            temp_dir = Path(tempfile.mkdtemp()).resolve()
             for name, data in kwargs.items():
-                self.fm.save_obj(data, name)
-                self.client.log_artifact(self.id, self.fm.path / name, artifact_path)
+                with (temp_dir / name).open("wb") as f:
+                    pickle.dump(data, f)
+                self.client.log_artifact(self.id, temp_dir / name, artifact_path)
+            shutil.rmtree(temp_dir)
 
     def load_object(self, name):
         assert self._uri is not None, "Please start the experiment and recorder first before using recorder directly."
