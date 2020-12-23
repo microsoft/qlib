@@ -45,13 +45,6 @@ class MemCacheUnit(abc.ABC):
 
     def __init__(self, *args, **kwargs):
         self.size_limit = kwargs.pop("size_limit", 0)
-        self.limit_type = kwargs.pop("limit_type", "length")
-
-        assert self.limit_type in ["length", "sizeof"], ValueError("limit_type shoule be one of ['length', 'sizeof']")
-        assert self.size_limit >= 0, ValueError("size_limit shoule not be negative.The default 0 means unlimited!")
-
-        # limit_flag: whether to popitem or not
-        self._limit_flag = 1 if self.size_limit > 0 else 0
         self._size = 0
         self.od = OrderedDict()
 
@@ -66,9 +59,10 @@ class MemCacheUnit(abc.ABC):
         # move the key to end,make it latest
         self.od.move_to_end(key)
 
-        # pop the oldest items beyond size limit
-        while self._size * self._limit_flag > self.size_limit:
-            self.popitem(last=False)
+        if self.limited:
+            # pop the oldest items beyond size limit
+            while self._size > self.size_limit:
+                self.popitem(last=False)
 
     def __getitem__(self, key):
         v = self.od.__getitem__(key)
@@ -82,17 +76,15 @@ class MemCacheUnit(abc.ABC):
         return self.od.__len__()
 
     def __repr__(self):
-        return f"{self.__class__.__name__}<limit_type:{self.limit_type} size_limit:{self.size_limit if self.is_limited else 'no limit'} total_size:{self._size}>\n{self.od.__repr__()}"
+        return f"{self.__class__.__name__}<size_limit:{self.size_limit if self.limited else 'no limit'} total_size:{self._size}>\n{self.od.__repr__()}"
 
     def set_limit_size(self, limit):
         self.size_limit = limit
 
-    def set_limit(self, is_limited=True):
-        self._limit_flag = 1 if is_limited else 0
-
     @property
-    def is_limited(self):
-        return bool(self._limit_flag)
+    def limited(self):
+        """whether memory cache is limited"""
+        return self.size_limit > 0
 
     @property
     def total_size(self):
@@ -102,61 +94,43 @@ class MemCacheUnit(abc.ABC):
         self._size = 0
         self.od.clear()
 
-    @abc.abstractmethod
-    def _adjust_size(self, key, value):
-        raise NotImplementedError
-
-    @abc.abstractmethod
     def popitem(self, last=True):
-        raise NotImplementedError
+        k, v = self.od.popitem(last=last)
+        self._size -= self._get_value_size(v)
+
+        return k, v
+
+    def pop(self, key):
+        v = self.od.pop(key)
+        self._size -= self._get_value_size(v)
+
+        return v
+
+    def _adjust_size(self, key, value):
+        if key in self.od:
+            self._size -= sys.getsizeof(self.od[key])
+
+        self._size += self._get_value_size(value)
 
     @abc.abstractmethod
-    def pop(self, key):
+    def _get_value_size(self, value):
         raise NotImplementedError
 
 
 class MemCacheLengthUnit(MemCacheUnit):
     def __init__(self, size_limit=0):
-        super().__init__(size_limit=size_limit, limit_type="length")
+        super().__init__(size_limit=size_limit)
 
-    def _adjust_size(self, key, value):
-        if key not in self.od:
-            self._size += 1
-
-    def popitem(self, last=True):
-        k, v = self.od.popitem(last=last)
-        self._size -= 1
-
-        return k, v
-
-    def pop(self, key):
-        v = self.od.pop(key)
-        self._size -= 1
-
-        return v
+    def _get_value_size(self, value):
+        return 1
 
 
 class MemCacheSizeofUnit(MemCacheUnit):
     def __init__(self, size_limit=0):
-        super().__init__(size_limit=size_limit, limit_type="sizeof")
+        super().__init__(size_limit=size_limit)
 
-    def _adjust_size(self, key, value):
-        if key in self.od:
-            self._size = self._size - sys.getsizeof(self.od[key]) + sys.getsizeof(value)
-        else:
-            self._size += sys.getsizeof(value)
-
-    def popitem(self, last=True):
-        k, v = self.od.popitem(last=last)
-        self._size -= sys.getsizeof(v)
-
-        return k, v
-
-    def pop(self, key):
-        v = self.od.pop(key)
-        self._size -= sys.getsizeof(v)
-
-        return v
+    def _get_value_size(self, value):
+        return sys.getsizeof(value)
 
 
 class MemCache:
