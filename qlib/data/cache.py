@@ -108,7 +108,7 @@ class MemCacheUnit(abc.ABC):
 
     def _adjust_size(self, key, value):
         if key in self.od:
-            self._size -= sys.getsizeof(self.od[key])
+            self._size -= self._get_value_size(self.od[key])
 
         self._size += self._get_value_size(value)
 
