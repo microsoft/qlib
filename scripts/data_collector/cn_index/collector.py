@@ -5,6 +5,7 @@ import re
 import abc
 import sys
 import importlib
+from tqdm import tqdm
 from io import BytesIO
 from typing import List
 from pathlib import Path
