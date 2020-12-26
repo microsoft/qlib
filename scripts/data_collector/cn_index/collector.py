@@ -316,73 +316,74 @@ class CSIIndex(IndexBase):
 
 
 class CSI300(CSIIndex):
-	@property
-	def index_code(self):
-		return "000300"
+    @property
+    def index_code(self):
+        return "000300"
 
-	@property
-	def bench_start_date(self) -> pd.Timestamp:
-		return pd.Timestamp("2005-01-01")
+    @property
+    def bench_start_date(self) -> pd.Timestamp:
+        return pd.Timestamp("2005-01-01")
 
-	@property
-	def html_table_index(self):
-		return 1
+    @property
+    def html_table_index(self):
+        return 0
 
 
 class CSI100(CSIIndex):
-	@property
-	def index_code(self):
-		return "000903"
+    @property
+    def index_code(self):
+        return "000903"
 
-	@property
-	def bench_start_date(self) -> pd.Timestamp:
-		return pd.Timestamp("2006-05-29")
+    @property
+    def bench_start_date(self) -> pd.Timestamp:
+        return pd.Timestamp("2006-05-29")
 
-	@property
-	def html_table_index(self):
-		return 2
+    @property
+    def html_table_index(self):
+        return 1
 
 
 class CSI500(CSIIndex):
-	@property
-	def index_code(self):
-		return "000905"
 
-	@property
-	def bench_start_date(self) -> pd.Timestamp:
-		return pd.Timestamp("2007-01-15")
+    @property
+    def index_code(self):
+        return "000905"
 
-	@property
-	def html_table_index(self):
-		return 0
+    @property
+    def bench_start_date(self) -> pd.Timestamp:
+        return pd.Timestamp("2007-01-15")
 
-	def get_changes(self):
-		return self.get_changes_with_history_companies(self.get_history_companies())
+    @property
+    def html_table_index(self):
+        return 0
 
-	def get_history_companies(self):
-		"""
-		Data source: http://baostock.com/baostock/index.php/%E4%B8%AD%E8%AF%81500%E6%88%90%E5%88%86%E8%82%A1
+    def get_changes(self):
+        return self.get_changes_with_history_companies(self.get_history_companies())
+
+    def get_history_companies(self):
+        """
+		Data source：http://baostock.com/baostock/index.php/%E4%B8%AD%E8%AF%81500%E6%88%90%E5%88%86%E8%82%A1
 			Avoid a large number of parallel data acquisition,
 			such as 1000 times of concurrent data acquisition, because IP will be blocked
 		Returns
 		-------
 
 		"""
-		lg = bs.login()
-		today = pd.datetime.now()
-		date_range = pd.DataFrame(pd.date_range(start='2007-01-15', end=today, freq="7D"))[0].dt.date
-		ret_list = []
-		col = ['date', 'symbol', 'code_name']
-		for date in tqdm(date_range, desc='Download CSI500'):
-			rs = bs.query_zz500_stocks(date=str(date))
-			zz500_stocks = []
-			while (rs.error_code == '0') & rs.next():
-				zz500_stocks.append(rs.get_row_data())
-			result = pd.DataFrame(zz500_stocks, columns=col)
-			result['symbol'] = result['symbol'].apply(lambda x: x.replace('.', '').upper())
-			ret_list.append(result[['date', 'symbol']])
-		bs.logout()
-		return pd.concat(ret_list, sort=False)
+        lg = bs.login()
+        today = pd.datetime.now()
+        date_range = pd.DataFrame(pd.date_range(start="2007-01-15", end=today, freq="7D"))[0].dt.date
+        ret_list = []
+        col = ["date", "symbol", "code_name"]
+        for date in tqdm(date_range, desc="Download CSI500"):
+            rs = bs.query_zz500_stocks(date=str(date))
+            zz500_stocks = []
+            while (rs.error_code == "0") & rs.next():
+                zz500_stocks.append(rs.get_row_data())
+            result = pd.DataFrame(zz500_stocks, columns=col)
+            result["symbol"] = result["symbol"].apply(lambda x: x.replace(".", "").upper())
+            ret_list.append(result[["date", "symbol"]])
+        bs.logout()
+        return pd.concat(ret_list, sort=False)
 
 
 def get_instruments(
@@ -427,4 +428,4 @@ def get_instruments(
 
 
 if __name__ == "__main__":
-	fire.Fire(get_instruments)
+    fire.Fire(get_instruments)

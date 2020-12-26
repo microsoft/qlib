@@ -176,130 +176,134 @@ def get_calendar_list_by_ratio(
 
 
 def get_hs_stock_symbols() -> list:
-	"""get SH/SZ stock symbols
+    """get SH/SZ stock symbols
 
 	Returns
 	-------
 		stock symbols
 	"""
-	global _HS_SYMBOLS
+    global _HS_SYMBOLS
 
-	def _get_symbol():
-		_res = set()
-		for _k, _v in (("ha", "ss"), ("sa", "sz"), ("gem", "sz")):
-			resp = requests.get(HS_SYMBOLS_URL.format(s_type=_k))
-			_res |= set(
-				map(
-					lambda x: "{}.{}".format(re.findall(r"\d+", x)[0], _v),
-					etree.HTML(resp.text).xpath("//div[@class='result']/ul//li/a/text()"),
-				)
-			)
-			time.sleep(3)
-		return _res
+    def _get_symbol():
+        _res = set()
+        for _k, _v in (("ha", "ss"), ("sa", "sz"), ("gem", "sz")):
+            resp = requests.get(HS_SYMBOLS_URL.format(s_type=_k))
+            _res |= set(
+                map(
+                    lambda x: "{}.{}".format(re.findall(r"\d+", x)[0], _v),
+                    etree.HTML(resp.text).xpath("//div[@class='result']/ul//li/a/text()"),
+                )
+            )
+            time.sleep(3)
+        return _res
 
-	if _HS_SYMBOLS is None:
-		symbols = set()
-		_retry = 60
-		# It may take multiple times to get the complete
-		while len(symbols) < MINIMUM_SYMBOLS_NUM:
-			symbols |= _get_symbol()
-			time.sleep(3)
+    if _HS_SYMBOLS is None:
+        symbols = set()
+        _retry = 60
+        # It may take multiple times to get the complete
+        while len(symbols) < MINIMUM_SYMBOLS_NUM:
+            symbols |= _get_symbol()
+            time.sleep(3)
 
-		symbol_cache_path = Path("~/.cache/hs_symbols_cache.pkl").expanduser().resolve()
-		symbol_cache_path.parent.mkdir(parents=True, exist_ok=True)
-		if symbol_cache_path.exists():
-			with symbol_cache_path.open("rb") as fp:
-				cache_symbols = pickle.load(fp)
-				symbols |= cache_symbols
-		with symbol_cache_path.open("wb") as fp:
-			pickle.dump(symbols, fp)
+        symbol_cache_path = Path("~/.cache/hs_symbols_cache.pkl").expanduser().resolve()
+        symbol_cache_path.parent.mkdir(parents=True, exist_ok=True)
+        if symbol_cache_path.exists():
+            with symbol_cache_path.open("rb") as fp:
+                cache_symbols = pickle.load(fp)
+                symbols |= cache_symbols
+        with symbol_cache_path.open("wb") as fp:
+            pickle.dump(symbols, fp)
 
-		_HS_SYMBOLS = sorted(list(symbols))
+        _HS_SYMBOLS = sorted(list(symbols))
 
-	return _HS_SYMBOLS
+    return _HS_SYMBOLS
 
 
 def get_us_stock_symbols(qlib_data_path: [str, Path] = None) -> list:
-	"""get US stock symbols
+    """get US stock symbols
 
 	Returns
 	-------
 		stock symbols
 	"""
-	global _US_SYMBOLS
+    global _US_SYMBOLS
 
-	@deco_retry
-	def _get_eastmoney():
-		url = "http://4.push2.eastmoney.com/api/qt/clist/get?pn=1&pz=10000&fs=m:105,m:106,m:107&fields=f12"
-		resp = requests.get(url)
-		if resp.status_code != 200:
-			raise ValueError("request error")
-		try:
-			_symbols = [_v["f12"].replace("_", "-P") for _v in resp.json()["data"]["diff"].values()]
-		except Exception as e:
-			logger.warning(f"request error: {e}")
-			raise
-		if len(_symbols) < 8000:
-			raise ValueError("request error")
-		return _symbols
+    @deco_retry
+    def _get_eastmoney():
+        url = "http://4.push2.eastmoney.com/api/qt/clist/get?pn=1&pz=10000&fs=m:105,m:106,m:107&fields=f12"
+        resp = requests.get(url)
+        if resp.status_code != 200:
+            raise ValueError("request error")
 
-	@deco_retry
-	def _get_nasdaq():
-		_res_symbols = []
-		for _name in ["otherlisted", "nasdaqtraded"]:
-			url = f"ftp://ftp.nasdaqtrader.com/SymbolDirectory/{_name}.txt"
-			df = pd.read_csv(url, sep="|")
-			df = df.rename(columns={"ACT Symbol": "Symbol"})
-			_symbols = df["Symbol"].dropna()
-			_symbols = _symbols.str.replace("$", "-P", regex=False)
-			_symbols = _symbols.str.replace(".W", "-WT", regex=False)
-			_symbols = _symbols.str.replace(".U", "-UN", regex=False)
-			_symbols = _symbols.str.replace(".R", "-RI", regex=False)
-			_symbols = _symbols.str.replace(".", "-", regex=False)
-			_res_symbols += _symbols.unique().tolist()
-		return _res_symbols
+        try:
+            _symbols = [_v["f12"].replace("_", "-P") for _v in resp.json()["data"]["diff"].values()]
+        except Exception as e:
+            logger.warning(f"request error: {e}")
+            raise
 
-	@deco_retry
-	def _get_nyse():
-		url = "https://www.nyse.com/api/quotes/filter"
-		_parms = {
-			"instrumentType": "EQUITY",
-			"pageNumber": 1,
-			"sortColumn": "NORMALIZED_TICKER",
-			"sortOrder": "ASC",
-			"maxResultsPerPage": 10000,
-			"filterToken": "",
-		}
-		resp = requests.post(url, json=_parms)
-		if resp.status_code != 200:
-			raise ValueError("request error")
-		try:
-			_symbols = [_v["symbolTicker"].replace("-", "-P") for _v in resp.json()]
-		except Exception as e:
-			logger.warning(f"request error: {e}")
-			_symbols = []
-		return _symbols
+        if len(_symbols) < 8000:
+            raise ValueError("request error")
 
-	if _US_SYMBOLS is None:
-		_all_symbols = _get_eastmoney() + _get_nasdaq() + _get_nyse()
-		if qlib_data_path is not None:
-			for _index in ["nasdaq100", "sp500"]:
-				ins_df = pd.read_csv(
-					Path(qlib_data_path).joinpath(f"instruments/{_index}.txt"),
-					sep="\t",
-					names=["symbol", "start_date", "end_date"],
-				)
-				_all_symbols += ins_df["symbol"].unique().tolist()
+        return _symbols
 
-		def _format(s_):
-			s_ = s_.replace(".", "-")
-			s_ = s_.strip("$")
-			s_ = s_.strip("*")
-			return s_
+    @deco_retry
+    def _get_nasdaq():
+        _res_symbols = []
+        for _name in ["otherlisted", "nasdaqtraded"]:
+            url = f"ftp://ftp.nasdaqtrader.com/SymbolDirectory/{_name}.txt"
+            df = pd.read_csv(url, sep="|")
+            df = df.rename(columns={"ACT Symbol": "Symbol"})
+            _symbols = df["Symbol"].dropna()
+            _symbols = _symbols.str.replace("$", "-P", regex=False)
+            _symbols = _symbols.str.replace(".W", "-WT", regex=False)
+            _symbols = _symbols.str.replace(".U", "-UN", regex=False)
+            _symbols = _symbols.str.replace(".R", "-RI", regex=False)
+            _symbols = _symbols.str.replace(".", "-", regex=False)
+            _res_symbols += _symbols.unique().tolist()
+        return _res_symbols
 
-		_US_SYMBOLS = sorted(set(map(_format, filter(lambda x: len(x) < 8 and not x.endswith("WS"), _all_symbols))))
+    @deco_retry
+    def _get_nyse():
+        url = "https://www.nyse.com/api/quotes/filter"
+        _parms = {
+            "instrumentType": "EQUITY",
+            "pageNumber": 1,
+            "sortColumn": "NORMALIZED_TICKER",
+            "sortOrder": "ASC",
+            "maxResultsPerPage": 10000,
+            "filterToken": "",
+        }
+        resp = requests.post(url, json=_parms)
+        if resp.status_code != 200:
+            raise ValueError("request error")
 
-	return _US_SYMBOLS
+        try:
+            _symbols = [_v["symbolTicker"].replace("-", "-P") for _v in resp.json()]
+        except Exception as e:
+            logger.warning(f"request error: {e}")
+            _symbols = []
+        return _symbols
+
+    if _US_SYMBOLS is None:
+        _all_symbols = _get_eastmoney() + _get_nasdaq() + _get_nyse()
+        if qlib_data_path is not None:
+            for _index in ["nasdaq100", "sp500"]:
+                ins_df = pd.read_csv(
+                    Path(qlib_data_path).joinpath(f"instruments/{_index}.txt"),
+                    sep="\t",
+                    names=["symbol", "start_date", "end_date"],
+                )
+                _all_symbols += ins_df["symbol"].unique().tolist()
+
+        def _format(s_):
+            s_ = s_.replace(".", "-")
+            s_ = s_.strip("$")
+            s_ = s_.strip("*")
+            return s_
+
+        _US_SYMBOLS = sorted(set(map(_format, filter(lambda x: len(x) < 8 and not x.endswith("WS"), _all_symbols))))
+
+    return _US_SYMBOLS
 
 
 def get_in_stock_symbols(qlib_data_path: [str, Path] = None) -> list:
@@ -411,7 +415,7 @@ def get_cg_crypto_symbols(qlib_data_path: [str, Path] = None) -> list:
 
 
 def symbol_suffix_to_prefix(symbol: str, capital: bool = True) -> str:
-	"""symbol suffix to prefix
+    """symbol suffix to prefix
 
 	Parameters
 	----------
@@ -423,16 +427,16 @@ def symbol_suffix_to_prefix(symbol: str, capital: bool = True) -> str:
 	-------
 
 	"""
-	code, exchange = symbol.split(".")
-	if exchange.lower() in ["sh", "ss"]:
-		res = f"sh{code}"
-	else:
-		res = f"{exchange}{code}"
-	return res.upper() if capital else res.lower()
+    code, exchange = symbol.split(".")
+    if exchange.lower() in ["sh", "ss"]:
+        res = f"sh{code}"
+    else:
+        res = f"{exchange}{code}"
+    return res.upper() if capital else res.lower()
 
 
 def symbol_prefix_to_sufix(symbol: str, capital: bool = True) -> str:
-	"""symbol prefix to sufix
+    """symbol prefix to sufix
 
 	Parameters
 	----------
@@ -444,34 +448,38 @@ def symbol_prefix_to_sufix(symbol: str, capital: bool = True) -> str:
 	-------
 
 	"""
-	res = f"{symbol[:-2]}.{symbol[-2:]}"
-	return res.upper() if capital else res.lower()
+    res = f"{symbol[:-2]}.{symbol[-2:]}"
+    return res.upper() if capital else res.lower()
 
 
 def deco_retry(retry: int = 5, retry_sleep: int = 3):
-	def deco_func(func):
-		@functools.wraps(func)
-		def wrapper(*args, **kwargs):
-			_retry = 5 if callable(retry) else retry
-			_result = None
-			for _i in range(1, _retry + 1):
-				try:
-					_result = func(*args, **kwargs)
-					break
-				except Exception as e:
-					logger.warning(f"{func.__name__}: {_i} :{e}")
-					if _i == _retry:
-						raise
-				time.sleep(retry_sleep)
-			return _result
 
-		return wrapper
+    def deco_func(func):
 
-	return deco_func(retry) if callable(retry) else deco_func
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            _retry = 5 if callable(retry) else retry
+            _result = None
+            for _i in range(1, _retry + 1):
+                try:
+                    _result = func(*args, **kwargs)
+                    break
+
+                except Exception as e:
+                    logger.warning(f"{func.__name__}: {_i} :{e}")
+                    if _i == _retry:
+                        raise
+
+                time.sleep(retry_sleep)
+            return _result
+
+        return wrapper
+
+    return deco_func(retry) if callable(retry) else deco_func
 
 
 def get_trading_date_by_shift(trading_list: list, trading_date: pd.Timestamp, shift: int = 1):
-	"""get trading date by shift
+    """get trading date by shift
 
 	Parameters
 	----------
@@ -486,13 +494,13 @@ def get_trading_date_by_shift(trading_list: list, trading_date: pd.Timestamp, sh
 	-------
 
 	"""
-	trading_date = pd.Timestamp(trading_date)
-	left_index = bisect.bisect_left(trading_list, trading_date)
-	try:
-		res = trading_list[left_index + shift]
-	except IndexError:
-		res = trading_date
-	return res
+    trading_date = pd.Timestamp(trading_date)
+    left_index = bisect.bisect_left(trading_list, trading_date)
+    try:
+        res = trading_list[left_index + shift]
+    except IndexError:
+        res = trading_date
+    return res
 
 
 def generate_minutes_calendar_from_daily(
@@ -531,4 +539,4 @@ def generate_minutes_calendar_from_daily(
 
 
 if __name__ == "__main__":
-	assert len(get_hs_stock_symbols()) >= MINIMUM_SYMBOLS_NUM
+    assert len(get_hs_stock_symbols()) >= MINIMUM_SYMBOLS_NUM
