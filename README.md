@@ -100,6 +100,8 @@ Also, users can install the latest dev version ``Qlib`` by the source code accor
     ```
   **Note**: **Only** the command ``pip install .`` **can** overwrite the stable version installed by ``pip install pyqlib``, while the command ``python setup.py install`` **can't**.
 
+**Tips**: If you fail to install `Qlib` or run the examples in your environment,  comparing your steps and the [CI workflow](.github/workflows/test.yml) may help you find the problem.
+
 ## Data Preparation
 Load and prepare data by running the following code:
   ```bash
