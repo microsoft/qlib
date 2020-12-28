@@ -9,11 +9,12 @@ QLIB_PATH = Path(__file__).absolute().resolve().parent.parent
 
 
 class InfoCollector:
-    '''
+    """
     User could collect system info by following commands
     `cd scripts && python collect_info.py all`
     - NOTE: please avoid running this script in the project folder which contains `qlib`
-    '''
+    """
+
     def sys(self):
         """collect system related info"""
         for method in ["system", "machine", "platform", "version"]:
