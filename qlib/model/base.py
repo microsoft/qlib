@@ -30,11 +30,6 @@ class Model(BaseModel):
             The attribute names of learned model should `not` start with '_'. So that the model could be
             dumped to disk.
 
-        Parameters
-        ----------
-        dataset : Dataset
-            dataset will generate the processed data from model training.
-
         The following code example shows how to retrieve `x_train`, `y_train` and `w_train` from the `dataset`:
 
             .. code-block:: Python
@@ -53,6 +48,12 @@ class Model(BaseModel):
                 except KeyError as e:
                     w_train = pd.DataFrame(np.ones_like(y_train.values), index=y_train.index)
                     w_valid = pd.DataFrame(np.ones_like(y_valid.values), index=y_valid.index)
+
+        Parameters
+        ----------
+        dataset : Dataset
+            dataset will generate the processed data from model training.
+
         """
         raise NotImplementedError()
 
