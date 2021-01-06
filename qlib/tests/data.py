@@ -31,20 +31,20 @@ class GetData:
         if resp.status_code != 200:
             raise requests.exceptions.HTTPError()
 
-        chuck_size = 1024
+        chunk_size = 1024
         logger.warning(
             f"The data for the example is collected from Yahoo Finance. Please be aware that the quality of the data might not be perfect. (You can refer to the original data source: https://finance.yahoo.com/lookup.)"
         )
         logger.info(f"{file_name} downloading......")
         with tqdm(total=int(resp.headers.get("Content-Length", 0))) as p_bar:
             with target_path.open("wb") as fp:
-                for chuck in resp.iter_content(chunk_size=chuck_size):
-                    fp.write(chuck)
-                    p_bar.update(chuck_size)
+                for chunk in resp.iter_content(chunk_size=chunk_size):
+                    fp.write(chunk)
+                    p_bar.update(chunk_size)
 
         self._unzip(target_path, target_dir)
         if self.delete_zip_file:
-            target_path.unlike()
+            target_path.unlink()
 
     @staticmethod
     def _unzip(file_path: Path, target_dir: Path):
