@@ -295,6 +295,7 @@ The ``Processor`` module in ``Qlib`` is designed to be learnable and it is respo
 - ``RobustZScoreNorm``: `processor` that applies robust z-score normalization.
 - ``CSZScoreNorm``: `processor` that applies cross sectional z-score normalization.
 - ``CSRankNorm``: `processor` that applies cross sectional rank normalization.
+- ``CSZFillna``: `processor` that fills N/A values in a cross sectional way by the mean of the column.
 
 Users can also create their own `processor` by inheriting the base class of ``Processor``. Please refer to the implementation of all the processors for more information (`Processor Link <https://github.com/microsoft/qlib/blob/main/qlib/data/dataset/processor.py>`_). 
 

@@ -226,3 +226,8 @@ epub_exclude_files = ["search.html"]
 
 autodoc_member_order = "bysource"
 autodoc_default_flags = ["members"]
+autodoc_default_options = {
+    "members": True,
+    "member-order": "bysource",
+    "special-members": "__init__",
+}

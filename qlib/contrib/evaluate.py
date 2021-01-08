@@ -16,6 +16,7 @@ from .backtest.backtest import backtest as backtest_func, get_date_range
 from ..data import D
 from ..config import C
 from ..data.dataset.utils import get_level_index
+from ..utils import init_instance_by_config
 
 logger = get_module_logger("Evaluate")
 
@@ -52,10 +53,13 @@ def get_strategy(
     margin=0.5,
     n_drop=5,
     risk_degree=0.95,
-    str_type="amount",
+    str_type="dropout",
     adjust_dates=None,
 ):
     """get_strategy
+
+    There will be 3 ways to return a stratgy. Please follow the code.
+
 
     Parameters
     ----------
@@ -87,7 +91,10 @@ def get_strategy(
     :class: Strategy
     an initialized strategy object
     """
+
+    # There  will be 3 ways to return a strategy.
     if strategy is None:
+        # 1) create strategy with param `strategy`
         str_cls_dict = {
             "amount": "TopkAmountStrategy",
             "weight": "TopkWeightStrategy",
@@ -102,6 +109,11 @@ def get_strategy(
             risk_degree=risk_degree,
             adjust_dates=adjust_dates,
         )
+    elif isinstance(strategy, (dict, str)):
+        # 2) create strategy with init_instance_by_config
+        strategy = init_instance_by_config(strategy)
+
+    # else: nothing happens. 3) Use the strategy directly
     if not isinstance(strategy, BaseStrategy):
         raise TypeError("Strategy not supported")
     return strategy
