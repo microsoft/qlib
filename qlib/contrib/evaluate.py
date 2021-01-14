@@ -11,7 +11,7 @@ from ..log import get_module_logger
 from . import strategy as strategy_pool
 from .strategy.strategy import BaseStrategy
 from .backtest.exchange import Exchange
-from .backtest.backtest import backtest as backtest_func, get_date_range
+from .backtest.backtest import backtest as backtest_func, get_date_range, backtest_highfreq as backtest_highfreq_func
 
 from ..data import D
 from ..config import C
@@ -272,19 +272,46 @@ def backtest(pred, account=1e9, shift=1, benchmark="SH000905", verbose=True, **k
     ex_args = {k: v for k, v in kwargs.items() if k in spec.args}
     trade_exchange = get_exchange(pred, **ex_args)
 
-    # run backtest
-    report_df, positions = backtest_func(
-        pred=pred,
-        strategy=strategy,
-        trade_exchange=trade_exchange,
-        shift=shift,
-        verbose=verbose,
-        account=account,
-        benchmark=benchmark,
-    )
-    # for  compatibility of the old API. return the dict positions
-    positions = {k: p.position for k, p in positions.items()}
-    return report_df, positions
+    
+    if kwargs.get('highfreq_executor', False):
+        order_set = backtest_func(
+            pred=pred,
+            strategy=strategy,
+            trade_exchange=trade_exchange,
+            shift=shift,
+            verbose=verbose,
+            account=account,
+            benchmark=benchmark,
+            return_order=True,
+        )
+        executor = init_instance_by_config(kwargs.get('highfreq_executor'))
+        report_df, positions = backtest_highfreq_func(
+            pred=pred,
+            executor=executor,
+            trade_exchange=trade_exchange,
+            shift=shift,
+            order_set=order_set,
+            verbose=verbose,
+            account=account,
+            benchmark=benchmark
+        )
+        positions = {k: p.position for k, p in positions.items()}
+        return report_df, positions
+    else:
+        # run backtest
+        report_df, positions = backtest_func(
+            pred=pred,
+            strategy=strategy,
+            trade_exchange=trade_exchange,
+            shift=shift,
+            verbose=verbose,
+            account=account,
+            benchmark=benchmark,
+            return_order=False,
+        )
+        # for  compatibility of the old API. return the dict positions
+        positions = {k: p.position for k, p in positions.items()}
+        return report_df, positions
 
 
 def long_short_backtest(
