@@ -271,8 +271,6 @@ def backtest(pred, account=1e9, shift=1, benchmark="SH000905", verbose=True, **k
     spec = inspect.getfullargspec(get_exchange)
     ex_args = {k: v for k, v in kwargs.items() if k in spec.args}
     trade_exchange = get_exchange(pred, **ex_args)
-
-    
     if kwargs.get('highfreq_executor', False):
         order_set = backtest_func(
             pred=pred,
