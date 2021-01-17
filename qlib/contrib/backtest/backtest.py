@@ -123,9 +123,6 @@ def backtest(pred, strategy, trade_exchange, shift, verbose, account, benchmark,
         return report_df, positions
 
 def backtest_highfreq(pred, executor, trade_exchange, shift, order_set, verbose, account, benchmark):
-    if get_level_index(pred, level="datetime") == 1:
-        pred = pred.swaplevel().sort_index()
-
     trade_account_highfreq = Account(init_cash=account)
     _pred_dates = pred.index.get_level_values(level="datetime")
     predict_dates = D.calendar(start_time=_pred_dates.min(), end_time=_pred_dates.max())
@@ -149,9 +146,16 @@ def backtest_highfreq(pred, executor, trade_exchange, shift, order_set, verbose,
         if verbose:
             LOG.info("[I {:%Y-%m-%d}]: highfreq trade begin.".format(trade_date))
         ## TODO: kanren group need to merge code here
-        trade_info = executor.execute(trade_account, order_list, trade_date)
-        update_account(trade_account_highfreq, trade_info, trade_exchange, trade_date)
+        print(trade_account, order_list, trade_date)
+        executor.execute(trade_account, order_list, trade_date)
 
+    for trade_account, order_list, trade_date in order_set:
+        trade_info = executor.get_res()
+        print(trade_info)
+        update_account(trade_account_highfreq, trade_info, trade_exchange, trade_date)
+        if verbose:
+            LOG.info("[I {:%Y-%m-%d}]: highfreq trade end.".format(trade_date))
+    executor.close()
     report_df = trade_account_highfreq.report.generate_report_dataframe()
     report_df["bench"] = bench
     positions = trade_account_highfreq.get_positions()

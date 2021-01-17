@@ -39,10 +39,10 @@ if __name__ == "__main__":
     # train model
     ###################################
     data_handler_config = {
-        "start_time": "2008-01-01",
-        "end_time": "2020-08-01",
-        "fit_start_time": "2008-01-01",
-        "fit_end_time": "2014-12-31",
+        "start_time": "2012-01-01",
+        "end_time": "2019-06-01",
+        "fit_start_time": "2012-01-01",
+        "fit_end_time": "2017-04-30",
         "instruments": market,
     }
 
@@ -72,9 +72,9 @@ if __name__ == "__main__":
                     "kwargs": data_handler_config,
                 },
                 "segments": {
-                    "train": ("2008-01-01", "2014-12-31"),
-                    "valid": ("2015-01-01", "2016-12-31"),
-                    "test": ("2017-01-01", "2020-08-01"),
+                    "train": ("2012-01-01", "2017-04-30"),
+                    "valid": ("2017-05-01", "2019-04-30"),
+                    "test": ("2019-05-01", "2019-06-01"),
                 },
             },
         },
@@ -89,7 +89,7 @@ if __name__ == "__main__":
             'device': 'cpu',
         },
         "paths": {
-            "raw_dir": "/shared_data/data/v-xiabi/highfreq-exe/data/backtest_test_multi/",
+            "raw_dir": "/shared_data/data/v-xiabi/highfreq-exe/data/backtest_test_multi",
             "feature_conf": "/shared_data/data/v-xiabi/highfreq-exe/code/rl4execution/config/test_feature_all1620.json",
         },
         "env_conf": {
