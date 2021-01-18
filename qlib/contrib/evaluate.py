@@ -11,7 +11,8 @@ from ..log import get_module_logger
 from . import strategy as strategy_pool
 from .strategy.strategy import BaseStrategy
 from .backtest.exchange import Exchange
-from .backtest.backtest import backtest as backtest_func, get_date_range, backtest_highfreq as backtest_highfreq_func
+from .backtest.backtest import backtest as backtest_func, get_date_range
+from .online.executor import BaseExecutor, SimulatorExecutor
 
 from ..data import D
 from ..config import C
@@ -100,7 +101,7 @@ def get_strategy(
             "weight": "TopkWeightStrategy",
             "dropout": "TopkDropoutStrategy",
         }
-        logger.info("Create new streategy ")
+        logger.info("Create new strategy ")
         str_cls = getattr(strategy_pool, str_cls_dict.get(str_type))
         strategy = str_cls(
             topk=topk,
@@ -111,6 +112,7 @@ def get_strategy(
         )
     elif isinstance(strategy, (dict, str)):
         # 2) create strategy with init_instance_by_config
+        logger.info("Create new strategy ")
         strategy = init_instance_by_config(strategy)
 
     # else: nothing happens. 3) Use the strategy directly
@@ -196,8 +198,48 @@ def get_exchange(
     return exchange
 
 
+def get_executor(
+    executor=None,
+    trade_exchange=None,
+    verbose=True,
+):
+    """get_executor
+
+    There will be 3 ways to return a executor. Please follow the code.
+
+    Parameters
+    ----------
+
+    executor : BaseExecutor
+        executor used in backtest.
+    trade_exchange : Exchange
+        exchange used in executor
+    verbose : bool
+        whether to print log.
+
+    Returns
+    -------
+    :class: BaseExecutor
+    an initialized BaseExecutor object
+    """
+    # There  will be 3 ways to return a executor.
+    if executor is None:
+        # 1) create executor with param `executor`
+        logger.info("Create new executor ")
+        executor = SimulatorExecutor(trade_exchange=trade_exchange, verbose=verbose)
+    elif isinstance(executor, (dict, str)):
+        # 2) create executor with config
+        logger.info("Create new executor ")
+        executor = init_instance_by_config(executor)
+
+    # 3) Use the executor directly
+    if not isinstance(executor, BaseExecutor):
+        raise TypeError("Executor not supported")
+    return executor
+
+
 # This is the API for compatibility for legacy code
-def backtest(pred, account=1e9, shift=1, benchmark="SH000905", verbose=True, **kwargs):
+def backtest(pred, account=1e9, shift=1, benchmark="SH000905", verbose=True, return_order=False, **kwargs):
     """This function will help you set a reasonable Exchange and provide default value for strategy
     Parameters
     ----------
@@ -214,6 +256,8 @@ def backtest(pred, account=1e9, shift=1, benchmark="SH000905", verbose=True, **k
         benchmark code, default is SH000905 CSI 500.
     verbose : bool
         whether to print log.
+    return_order : bool
+        whther to return order list
 
     - **strategy related arguments**
 
@@ -261,6 +305,14 @@ def backtest(pred, account=1e9, shift=1, benchmark="SH000905", verbose=True, **k
         will we pass the codes extracted from the pred to the exchange.
 
         .. note:: This will be faster with offline qlib.
+
+    - **executor related arguments**
+
+    executor : BaseExecutor()
+        executor used in backtest.
+    verbose : bool
+        whether to print log.
+
     """
     # check strategy:
     spec = inspect.getfullargspec(get_strategy)
@@ -271,45 +323,27 @@ def backtest(pred, account=1e9, shift=1, benchmark="SH000905", verbose=True, **k
     spec = inspect.getfullargspec(get_exchange)
     ex_args = {k: v for k, v in kwargs.items() if k in spec.args}
     trade_exchange = get_exchange(pred, **ex_args)
-    if kwargs.get('highfreq_executor', False):
-        order_set = backtest_func(
-            pred=pred,
-            strategy=strategy,
-            trade_exchange=trade_exchange,
-            shift=shift,
-            verbose=verbose,
-            account=account,
-            benchmark=benchmark,
-            return_order=True,
-        )
-        executor = init_instance_by_config(kwargs.get('highfreq_executor'))
-        report_df, positions = backtest_highfreq_func(
-            pred=pred,
-            executor=executor,
-            trade_exchange=trade_exchange,
-            shift=shift,
-            order_set=order_set,
-            verbose=verbose,
-            account=account,
-            benchmark=benchmark
-        )
-        positions = {k: p.position for k, p in positions.items()}
-        return report_df, positions
-    else:
-        # run backtest
-        report_df, positions = backtest_func(
-            pred=pred,
-            strategy=strategy,
-            trade_exchange=trade_exchange,
-            shift=shift,
-            verbose=verbose,
-            account=account,
-            benchmark=benchmark,
-            return_order=False,
-        )
-        # for  compatibility of the old API. return the dict positions
-        positions = {k: p.position for k, p in positions.items()}
-        return report_df, positions
+
+    # init executor:
+    executor = get_executor(executor=kwargs.get("executor"), trade_exchange=trade_exchange, verbose=verbose)
+
+    # run backtest
+    report_dict = backtest_func(
+        pred=pred,
+        strategy=strategy,
+        executor=executor,
+        trade_exchange=trade_exchange,
+        shift=shift,
+        verbose=verbose,
+        account=account,
+        benchmark=benchmark,
+        return_order=return_order,
+    )
+    # for  compatibility of the old API. return the dict positions
+
+    positions = report_dict.get("positions")
+    report_dict.update({"positions": {k: p.position for k, p in positions.items()}})
+    return report_dict
 
 
 def long_short_backtest(

@@ -98,6 +98,7 @@ if __name__ == "__main__":
             "open_cost": 0.0005,
             "close_cost": 0.0015,
             "min_cost": 5,
+            "return_order": True,
         },
     }
 
