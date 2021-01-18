@@ -16,6 +16,7 @@ from ...config import C
 
 logger = get_module_logger("backtest caller")
 
+
 def get_strategy(
     strategy=None,
     topk=50,
@@ -61,7 +62,6 @@ def get_strategy(
     an initialized strategy object
     """
 
-    
     # There  will be 3 ways to return a strategy.
     if strategy is None:
         # 1) create strategy with param `strategy`
@@ -72,6 +72,7 @@ def get_strategy(
         }
         logger.info("Create new strategy ")
         from .. import strategy as strategy_pool
+
         str_cls = getattr(strategy_pool, str_cls_dict.get(str_type))
         strategy = str_cls(
             topk=topk,
@@ -86,6 +87,7 @@ def get_strategy(
         strategy = init_instance_by_config(strategy)
 
     from ..strategy.strategy import BaseStrategy
+
     # else: nothing happens. 3) Use the strategy directly
     if not isinstance(strategy, BaseStrategy):
         raise TypeError("Strategy not supported")
@@ -193,12 +195,13 @@ def get_executor(
     :class: BaseExecutor
     an initialized BaseExecutor object
     """
-    
+
     # There  will be 3 ways to return a executor.
     if executor is None:
         # 1) create executor with param `executor`
         logger.info("Create new executor ")
         from ..online.executor import SimulatorExecutor
+
         executor = SimulatorExecutor(trade_exchange=trade_exchange, verbose=verbose)
     elif isinstance(executor, (dict, str)):
         # 2) create executor with config
@@ -206,10 +209,12 @@ def get_executor(
         executor = init_instance_by_config(executor)
 
     from ..online.executor import BaseExecutor
+
     # 3) Use the executor directly
     if not isinstance(executor, BaseExecutor):
         raise TypeError("Executor not supported")
     return executor
+
 
 # This is the API for compatibility for legacy code
 def backtest(pred, account=1e9, shift=1, benchmark="SH000905", verbose=True, return_order=False, **kwargs):
