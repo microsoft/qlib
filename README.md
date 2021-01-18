@@ -69,7 +69,20 @@ Here is a quick **[demo](https://terminalizer.com/view/3f24561a4470)** shows how
 
 ## Installation
 
-Users can easily install ``Qlib`` by pip according to the following command(Currently, Qlib only support Python 3.6, 3.7 and 3.8). 
+This table demonstrates the supported Python version of `Qlib`:
+|               | install with pip           | install from source  | plot |
+| ------------- |:---------------------:|:--------------------:|:----:|
+| Python 3.6    | :heavy_check_mark:    | :heavy_check_mark: (only with `Anaconda`)                  | :heavy_check_mark: |
+| Python 3.7    | :heavy_check_mark:    | :heavy_check_mark:   | :heavy_check_mark: |
+| Python 3.8    | :heavy_check_mark:    | :heavy_check_mark:   | :heavy_check_mark: |
+| Python 3.9    | :x:                   | :heavy_check_mark:   | :x: |
+
+**Note**: 
+1. Please pay attention that installing cython in Python 3.6 will raise some error when installing ``Qlib`` from source. If users use Python 3.6 on their machines, it is recommended to *upgrade* Python to version 3.7 or use `conda`'s Python to install ``Qlib`` from source.
+2. For Python 3.9, `Qlib` supports running workflows such as training models, doing backtest and plot most of the related figures (those included in [notebook](examples/workflow_by_code.ipynb)). However, plotting for the *model performance* is not supported for now and we will fix this when the dependent packages are upgraded in the future.
+
+### Install with pip
+Users can easily install ``Qlib`` by pip according to the following command.
 
 ```bash
   pip install pyqlib
@@ -77,6 +90,7 @@ Users can easily install ``Qlib`` by pip according to the following command(Curr
 
 **Note**: pip will install the latest stable qlib. However, the main branch of qlib is in active development. If you want to test the latest scripts or functions in the main branch. Please install qlib with the methods below.
 
+### Install from source
 Also, users can install the latest dev version ``Qlib`` by the source code according to the following steps:
 
 * Before installing ``Qlib`` from source, users need to install some dependencies:
@@ -85,7 +99,6 @@ Also, users can install the latest dev version ``Qlib`` by the source code accor
   pip install numpy
   pip install --upgrade  cython
   ```
-  **Note**: Please pay attention that installing cython in Python 3.6 will raise some error when installing ``Qlib`` from source. If users use Python 3.6 on their machines, it is recommended to *upgrade* Python to version 3.7 or use `conda`'s Python to install ``Qlib`` from source.
 
 * Clone the repository and install ``Qlib`` as follows.
   * If you haven't installed qlib by the command ``pip install pyqlib`` before:
@@ -148,6 +161,10 @@ Qlib provides a tool named `qrun` to run the whole workflow automatically (inclu
     ```bash
       cd examples  # Avoid running program under the directory contains `qlib`
       qrun benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml
+    ```
+    If users want to use `qrun` under debug mode, please use the following command:
+    ```bash
+    python -m pdb qlib/workflow/cli.py examples/benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml
     ```
     The result of `qrun` is as follows, please refer to [Intraday Trading](https://qlib.readthedocs.io/en/latest/component/backtest.html) for more details about the result. 
 
