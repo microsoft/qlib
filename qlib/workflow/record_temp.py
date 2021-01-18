@@ -5,10 +5,9 @@ import re
 import pandas as pd
 from pathlib import Path
 from pprint import pprint
-from ..contrib.evaluate import (
-    backtest as normal_backtest,
-    risk_analysis,
-)
+from ..contrib.evaluate import risk_analysis
+from ..contrib.backtest import backtest as normal_backtest
+
 from ..data.dataset import DatasetH
 from ..data.dataset.handler import DataHandlerLP
 from ..utils import init_instance_by_config, get_module_by_module_path
