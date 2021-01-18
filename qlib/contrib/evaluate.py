@@ -45,7 +45,6 @@ def risk_analysis(r, N=252):
     return res
 
 
-
 # This is the API for compatibility for legacy code
 def backtest(pred, account=1e9, shift=1, benchmark="SH000905", verbose=True, **kwargs):
     """This function will help you set a reasonable Exchange and provide default value for strategy
@@ -120,8 +119,12 @@ def backtest(pred, account=1e9, shift=1, benchmark="SH000905", verbose=True, **k
         whether to print log.
 
     """
-    warnings.warn("this function is deprecated, please use backtest function in qlib.contrib.backtest", DeprecationWarning)
-    report_dict = backtest_func(pred=pred, account=account, shift=shift, benchmark=benchmark, verbose=verbose, return_order=False, **kwargs)
+    warnings.warn(
+        "this function is deprecated, please use backtest function in qlib.contrib.backtest", DeprecationWarning
+    )
+    report_dict = backtest_func(
+        pred=pred, account=account, shift=shift, benchmark=benchmark, verbose=verbose, return_order=False, **kwargs
+    )
     return report_dict.get("report_df"), report_dict.get("positions")
 
 
