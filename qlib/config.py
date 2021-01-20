@@ -59,6 +59,9 @@ class Config:
     def update(self, *args, **kwargs):
         self.__dict__["_config"].update(*args, **kwargs)
 
+    def set_conf_from_C(self, config_c):
+        self.update(**config_c.__dict__["_config"])
+
 
 # REGION CONST
 REG_CN = "cn"

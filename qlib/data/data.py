@@ -25,7 +25,7 @@ from ..log import get_module_logger
 from ..utils import parse_field, read_bin, hash_args, normalize_cache_fields
 from .base import Feature
 from .cache import DiskDatasetCache, DiskExpressionCache
-from ..utils import Wrapper, init_instance_by_config, register_wrapper, get_module_by_module_path
+from ..utils import Wrapper, init_instance_by_config, register_wrapper, get_module_by_module_path, config_based_on_c
 
 
 class CalendarProvider(abc.ABC):
@@ -481,11 +481,10 @@ class DatasetProvider(abc.ABC):
 
         """
         # FIXME: Windows OS or MacOS using spawn: https://docs.python.org/3.8/library/multiprocessing.html?highlight=spawn#contexts-and-start-methods
-        global C
-        C = g_config
         # NOTE: This place is compatible with windows, windows multi-process is spawn
         if getattr(ExpressionD, "_provider", None) is None:
-            register_all_wrappers()
+            C.set_conf_from_C(g_config)
+            config_based_on_c(g_config)
 
         obj = dict()
         for field in column_names:
@@ -1043,7 +1042,7 @@ DatasetD = Wrapper()
 D = Wrapper()
 
 
-def register_all_wrappers():
+def register_all_wrappers(C):
     """register_all_wrappers"""
     logger = get_module_logger("data")
     module = get_module_by_module_path("qlib.data")

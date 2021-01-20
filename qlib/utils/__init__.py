@@ -15,6 +15,7 @@ import bisect
 import shutil
 import difflib
 import hashlib
+import logging
 import datetime
 import requests
 import tempfile
@@ -26,8 +27,9 @@ import pandas as pd
 from pathlib import Path
 from typing import Union, Tuple
 
-from ..config import C
-from ..log import get_module_logger
+from ..config import C, REG_CN
+from ..log import get_module_logger, set_log_with_config
+
 
 log = get_module_logger("utils")
 
@@ -728,3 +730,53 @@ def load_dataset(path_or_obj):
     elif extension == ".csv":
         return pd.read_csv(path_or_obj, parse_dates=True, index_col=[0, 1])
     raise ValueError(f"unsupported file type `{extension}`")
+
+
+def set_config(config_c, default_conf="client", **kwargs):
+
+    config_c.reset()
+
+    _logging_config = config_c.logging_config
+    if "logging_config" in kwargs:
+        _logging_config = kwargs["logging_config"]
+
+    # set global config
+    if _logging_config:
+        set_log_with_config(_logging_config)
+
+    # FIXME: this logger ignored the level in config
+    logger = get_module_logger("Initialization", level=logging.INFO)
+    logger.info(f"default_conf: {default_conf}.")
+
+    config_c.set_mode(default_conf)
+    config_c.set_region(kwargs.get("region", config_c["region"] if "region" in config_c else REG_CN))
+
+    for k, v in kwargs.items():
+        if k not in config_c:
+            logger.warning("Unrecognized config %s" % k)
+        config_c[k] = v
+
+    config_c.resolve_path()
+
+    if not (config_c["expression_cache"] is None and config_c["dataset_cache"] is None):
+        # check redis
+        if not can_use_cache():
+            logger.warning(
+                f"redis connection failed(host={config_c['redis_host']} port={config_c['redis_port']}), cache will not be used!"
+            )
+            config_c["expression_cache"] = None
+            config_c["dataset_cache"] = None
+
+
+def config_based_on_c(config_c):
+    from ..data.data import register_all_wrappers
+    from ..workflow import R, QlibRecorder
+    from ..workflow.utils import experiment_exit_handler
+
+    register_all_wrappers(config_c)
+    # set up QlibRecorder
+    exp_manager = init_instance_by_config(config_c["exp_manager"])
+    qr = QlibRecorder(exp_manager)
+    R.register(qr)
+    # clean up experiment when python program ends
+    experiment_exit_handler()
