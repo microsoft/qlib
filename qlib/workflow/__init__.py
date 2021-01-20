@@ -38,9 +38,7 @@ class QlibRecorder:
         try:
             yield run
         except Exception as e:
-            self.end_exp(
-                Recorder.STATUS_FA
-            )  # end the experiment if something went wrong
+            self.end_exp(Recorder.STATUS_FA)  # end the experiment if something went wrong
             raise e
         self.end_exp(Recorder.STATUS_FI)
 
