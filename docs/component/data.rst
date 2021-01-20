@@ -195,7 +195,7 @@ Feature
 - `ExpressionOps`
     `ExpressionOps` will use operator for feature construction.
     To know more about  ``Operator``, please refer to `Operator API <../reference/api.html#module-qlib.data.ops>`_.
-    Also, ``Qlib`` supports users to define their own custom ``Operator``, an example has been given in ``qlib/examples/workflow_with_custom_ops.py``.
+    Also, ``Qlib`` supports users to define their own custom ``Operator``, an example has been given in ``qlib/tests/test_register_ops.py``.
 
 To know more about  ``Feature``, please refer to `Feature API <../reference/api.html#module-qlib.data.base>`_.
 
