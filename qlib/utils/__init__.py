@@ -783,10 +783,12 @@ def set_config(config_c, default_conf="client", **kwargs):
 
 
 def config_based_on_c(config_c):
+    from ..data.ops import register_custom_ops
     from ..data.data import register_all_wrappers
     from ..workflow import R, QlibRecorder
     from ..workflow.utils import experiment_exit_handler
 
+    register_custom_ops(config_c)
     register_all_wrappers(config_c)
     # set up QlibRecorder
     exp_manager = init_instance_by_config(config_c["exp_manager"])

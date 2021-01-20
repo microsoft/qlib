@@ -187,6 +187,8 @@ MODE_CONF = {
         "timeout": 100,
         "logging_level": "INFO",
         "region": REG_CN,
+        ## Custom Operator
+        "custom_ops": [],
     },
 }
 
