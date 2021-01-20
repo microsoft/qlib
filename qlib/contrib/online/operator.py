@@ -21,7 +21,7 @@ from .executor import SimulatorExecutor
 from .executor import save_score_series, load_score_series
 
 
-class Operator(object):
+class Operator:
     def __init__(self, client: str):
         """
         Parameters

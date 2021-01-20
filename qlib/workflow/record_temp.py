@@ -5,10 +5,9 @@ import re
 import pandas as pd
 from pathlib import Path
 from pprint import pprint
-from ..contrib.evaluate import (
-    backtest as normal_backtest,
-    risk_analysis,
-)
+from ..contrib.evaluate import risk_analysis
+from ..contrib.backtest import backtest as normal_backtest
+
 from ..data.dataset import DatasetH
 from ..data.dataset.handler import DataHandlerLP
 from ..utils import init_instance_by_config, get_module_by_module_path
@@ -213,6 +212,11 @@ class SigAnaRecord(SignalRecord):
 class PortAnaRecord(SignalRecord):
     """
     This is the Portfolio Analysis Record class that generates the analysis results such as those of backtest. This class inherits the ``RecordTemp`` class.
+
+    The following files will be stored in recorder
+    - report_normal.pkl & positions_normal.pkl:
+        - The return report and detailed positions of the backtest, returned by `qlib/contrib/evaluate.py:backtest`
+    - port_analysis.pkl : The risk analysis of your portfolio, returned by `qlib/contrib/evaluate.py:risk_analysis`
     """
 
     artifact_path = "portfolio_analysis"
@@ -236,9 +240,14 @@ class PortAnaRecord(SignalRecord):
 
         # custom strategy and get backtest
         pred_score = super().load()
-        report_normal, positions_normal = normal_backtest(pred_score, strategy=self.strategy, **self.backtest_config)
+        report_dict = normal_backtest(pred_score, strategy=self.strategy, **self.backtest_config)
+        report_normal = report_dict.get("report_df")
+        positions_normal = report_dict.get("positions")
         self.recorder.save_objects(**{"report_normal.pkl": report_normal}, artifact_path=PortAnaRecord.get_path())
         self.recorder.save_objects(**{"positions_normal.pkl": positions_normal}, artifact_path=PortAnaRecord.get_path())
+        order_normal = report_dict.get("order_list")
+        if order_normal:
+            self.recorder.save_objects(**{"order_normal.pkl": order_normal}, artifact_path=PortAnaRecord.get_path())
 
         # analysis
         analysis = dict()

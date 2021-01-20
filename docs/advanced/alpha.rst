@@ -50,57 +50,37 @@ Users can use ``Data Handler`` to build formulaic alphas `MACD` in qlib:
 
 .. code-block:: python
 
-    >> from qlib.data.dataset.handler import QLibDataHandler
+    >> from qlib.data.dataset.loader import QlibDataLoader
     >> MACD_EXP = '(EMA($close, 12) - EMA($close, 26))/$close - EMA((EMA($close, 12) - EMA($close, 26))/$close, 9)/$close'
     >> fields = [MACD_EXP] # MACD
     >> names = ['MACD']
-    >> labels = ['$close'] # label
+    >> labels = ['Ref($close, -2)/Ref($close, -1) - 1'] # label
     >> label_names = ['LABEL']
-    >> data_handler = QLibDataHandler(start_date='2010-01-01', end_date='2017-12-31', fields=fields, names=names, labels=labels, label_names=label_names)
-    >> TRAINER_CONFIG = {
-    ..     "train_start_date": "2007-01-01",
-    ..     "train_end_date": "2014-12-31",
-    ..     "validate_start_date": "2015-01-01",
-    ..     "validate_end_date": "2016-12-31",
-    ..  "test_start_date": "2017-01-01",
-    ..  "test_end_date": "2020-08-01",
+    >> data_loader_config = {
+    ..     "feature": (fields, names),
+    ..     "label": (labels, label_names)
     .. }
-    >> feature_train, label_train, feature_validate, label_validate, feature_test, label_test = data_handler.get_split_data(**TRAINER_CONFIG)
-    >> print(feature_train, label_train)
-                            MACD
-    instrument  datetime            
-    SH600000    2010-01-04 -0.008625
-                2010-01-05 -0.007234
-                2010-01-06 -0.007693
-                2010-01-07 -0.009633
-                2010-01-08 -0.009891
-    ...                         ...
-    SZ300251    2014-12-25  0.043072
-                2014-12-26  0.041345
-                2014-12-29  0.042733
-                2014-12-30  0.042066
-                2014-12-31  0.036299
-
-    [322025 rows x 1 columns]    
-                            LABEL
-    instrument  datetime            
-    SH600000    2010-01-04  4.260015
-                2010-01-05  4.292182
-                2010-01-06  4.207747
-                2010-01-07  4.113258
-                2010-01-08  4.159496
-    ...                         ...
-    SZ300251    2014-12-25  4.343212
-                2014-12-26  4.470587
-                2014-12-29  4.762474
-                2014-12-30  4.369748
-                2014-12-31  4.182222
-
-    [322025 rows x 1 columns]
+    >> data_loader = QlibDataLoader(config=data_loader_config)
+    >> df = data_loader.load(instruments='csi300', start_time='2010-01-01', end_time='2017-12-31')
+    >> print(df)
+                            feature     label
+                               MACD     LABEL
+    datetime   instrument                    
+    2010-01-04 SH600000   -0.011547 -0.019672
+               SH600004    0.002745 -0.014721
+               SH600006    0.010133  0.002911
+               SH600008   -0.001113  0.009818
+               SH600009    0.025878 -0.017758
+    ...                         ...       ...
+    2017-12-29 SZ300124    0.007306 -0.005074
+               SZ300136   -0.013492  0.056352
+               SZ300144   -0.000966  0.011853
+               SZ300251    0.004383  0.021739
+               SZ300315   -0.030557  0.012455
 
 Reference
 ===========
 
-To learn more about ``Data Handler``, please refer to `Data Handler <../component/data.html>`_
+To learn more about ``Data Loader``, please refer to `Data Loader <../component/data.html#data-loader>`_
 
 To learn more about ``Data API``, please refer to `Data API <../component/data.html>`_

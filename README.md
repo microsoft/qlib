@@ -34,6 +34,7 @@ For more details, please refer to our paper ["Qlib: An AI-oriented Quantitative 
 - [More About Qlib](#more-about-qlib)
 - [Offline Mode and Online Mode](#offline-mode-and-online-mode)
   - [Performance of Qlib Data Server](#performance-of-qlib-data-server)
+- [Related Reports](#related-reports)
 - [Contributing](#contributing)
 
 
@@ -61,17 +62,36 @@ At the module level, Qlib is a platform that consists of the above components. T
 
 This quick start guide tries to demonstrate
 1. It's very easy to build a complete Quant research workflow and try your ideas with _Qlib_.
-1. Though with *public data* and *simple models*, machine learning technologies **work very well** in practical Quant investment.
+2. Though with *public data* and *simple models*, machine learning technologies **work very well** in practical Quant investment.
+
+Here is a quick **[demo](https://terminalizer.com/view/3f24561a4470)** shows how to install ``Qlib``, and run LightGBM with ``qrun``. **But**, please make sure you have already prepared the data following the [instruction](#data-preparation).
+
 
 ## Installation
 
-Users can easily install ``Qlib`` by pip according to the following command
+This table demonstrates the supported Python version of `Qlib`:
+|               | install with pip           | install from source  | plot |
+| ------------- |:---------------------:|:--------------------:|:----:|
+| Python 3.6    | :heavy_check_mark:    | :heavy_check_mark: (only with `Anaconda`)                  | :heavy_check_mark: |
+| Python 3.7    | :heavy_check_mark:    | :heavy_check_mark:   | :heavy_check_mark: |
+| Python 3.8    | :heavy_check_mark:    | :heavy_check_mark:   | :heavy_check_mark: |
+| Python 3.9    | :x:                   | :heavy_check_mark:   | :x: |
+
+**Note**: 
+1. Please pay attention that installing cython in Python 3.6 will raise some error when installing ``Qlib`` from source. If users use Python 3.6 on their machines, it is recommended to *upgrade* Python to version 3.7 or use `conda`'s Python to install ``Qlib`` from source.
+2. For Python 3.9, `Qlib` supports running workflows such as training models, doing backtest and plot most of the related figures (those included in [notebook](examples/workflow_by_code.ipynb)). However, plotting for the *model performance* is not supported for now and we will fix this when the dependent packages are upgraded in the future.
+
+### Install with pip
+Users can easily install ``Qlib`` by pip according to the following command.
 
 ```bash
   pip install pyqlib
 ```
 
-Also, users can install ``Qlib`` by the source code according to the following steps:
+**Note**: pip will install the latest stable qlib. However, the main branch of qlib is in active development. If you want to test the latest scripts or functions in the main branch. Please install qlib with the methods below.
+
+### Install from source
+Also, users can install the latest dev version ``Qlib`` by the source code according to the following steps:
 
 * Before installing ``Qlib`` from source, users need to install some dependencies:
 
@@ -80,13 +100,20 @@ Also, users can install ``Qlib`` by the source code according to the following s
   pip install --upgrade  cython
   ```
 
-* Clone the repository and install ``Qlib``:
+* Clone the repository and install ``Qlib`` as follows.
+  * If you haven't installed qlib by the command ``pip install pyqlib`` before:
+    ```bash
+    git clone https://github.com/microsoft/qlib.git && cd qlib
+    python setup.py install
+    ```
+  * If you have already installed the stable version by the command ``pip install pyqlib``:
+    ```bash
+    git clone https://github.com/microsoft/qlib.git && cd qlib
+    pip install .
+    ```
+  **Note**: **Only** the command ``pip install .`` **can** overwrite the stable version installed by ``pip install pyqlib``, while the command ``python setup.py install`` **can't**.
 
-  ```bash
-  git clone https://github.com/microsoft/qlib.git && cd qlib
-  python setup.py install
-  ```
-
+**Tips**: If you fail to install `Qlib` or run the examples in your environment,  comparing your steps and the [CI workflow](.github/workflows/test.yml) may help you find the problem.
 
 ## Data Preparation
 Load and prepare data by running the following code:
@@ -130,12 +157,16 @@ Users could create the same dataset with it.
 ## Auto Quant Research Workflow
 Qlib provides a tool named `qrun` to run the whole workflow automatically (including building dataset, training models, backtest and evaluation). You can start an auto quant research workflow and have a graphical reports analysis according to the following steps: 
 
-1. Quant Research Workflow: Run  `qrun` with lightgbm workflow config ([workflow_config_lightgbm.yaml](examples/benchmarks/LightGBM/workflow_config_lightgbm.yaml)) as following.
+1. Quant Research Workflow: Run  `qrun` with lightgbm workflow config ([workflow_config_lightgbm_Alpha158.yaml](examples/benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml) as following.
     ```bash
       cd examples  # Avoid running program under the directory contains `qlib`
-      qrun benchmarks/LightGBM/workflow_config_lightgbm.yaml
+      qrun benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml
     ```
-    The result of `qrun` is as follows, please refer to please refer to [Intraday Trading](https://qlib.readthedocs.io/en/latest/component/backtest.html) for more details about the result. 
+    If users want to use `qrun` under debug mode, please use the following command:
+    ```bash
+    python -m pdb qlib/workflow/cli.py examples/benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml
+    ```
+    The result of `qrun` is as follows, please refer to [Intraday Trading](https://qlib.readthedocs.io/en/latest/component/backtest.html) for more details about the result. 
 
     ```bash
 
@@ -190,16 +221,16 @@ The automatic workflow may not suite the research workflow of all Quant research
 # [Quant Model Zoo](examples/benchmarks)
 
 Here is a list of models built on `Qlib`.
-- [GBDT based on LightGBM](qlib/contrib/model/gbdt.py)
-- [GBDT based on Catboost](qlib/contrib/model/catboost_model.py)
-- [GBDT based on XGBoost](qlib/contrib/model/xgboost.py)
+- [GBDT based on LightGBM (Guolin Ke, et al.)](qlib/contrib/model/gbdt.py)
+- [GBDT based on Catboost (Liudmila Prokhorenkova, et al.)](qlib/contrib/model/catboost_model.py)
+- [GBDT based on XGBoost (Tianqi Chen, et al.)](qlib/contrib/model/xgboost.py)
 - [MLP based on pytorch](qlib/contrib/model/pytorch_nn.py)
-- [GRU based on pytorch](qlib/contrib/model/pytorch_gru.py)
-- [LSTM based on pytorcn](qlib/contrib/model/pytorch_lstm.py)
-- [ALSTM based on pytorcn](qlib/contrib/model/pytorch_alstm.py)
-- [GATs based on pytorch](qlib/contrib/model/pytorch_gats.py)
-- [SFM based on pytorch](qlib/contrib/model/pytorch_sfm.py)
-- [TFT based on tensorflow](examples/benchmarks/TFT/tft.py)
+- [GRU based on pytorch (Kyunghyun Cho, et al.)](qlib/contrib/model/pytorch_gru.py)
+- [LSTM based on pytorcn (Sepp Hochreiter, et al.)](qlib/contrib/model/pytorch_lstm.py)
+- [ALSTM based on pytorcn (Yao Qin, et al.)](qlib/contrib/model/pytorch_alstm.py)
+- [GATs based on pytorch (Petar Velickovic, et al.)](qlib/contrib/model/pytorch_gats.py)
+- [SFM based on pytorch (Liheng Zhang, et al.)](qlib/contrib/model/pytorch_sfm.py)
+- [TFT based on tensorflow (Bryan Lim, et al.)](examples/benchmarks/TFT/tft.py)
 
 Your PR of new Quant models is highly welcomed.
 
@@ -280,7 +311,10 @@ Such overheads greatly slow down the data loading process.
 Qlib data are stored in a compact format, which is efficient to be combined into arrays for scientific computation.
 
 
-
+# Related Reports
+- [【华泰金工林晓明团队】微软AI量化投资平台Qlib体验——华泰人工智能系列之四十](https://mp.weixin.qq.com/s/Brcd7im4NibJOJzZfMn6tQ)
+- [微软也搞AI量化平台？还是开源的！](https://mp.weixin.qq.com/s/47bP5YwxfTp2uTHjUBzJQQ)
+- [微矿Qlib：业内首个AI量化投资开源平台](https://mp.weixin.qq.com/s/vsJv7lsgjEi-ALYUz4CvtQ)
 
 
 # Contributing

@@ -126,17 +126,17 @@ After conversion, users can find their Qlib format data in the directory `~/.qli
     The arguments of `--include_fields` should correspond with the column names of CSV files. The columns names of dataset provided by ``Qlib`` should include open, close, high, low, volume and factor at least.
     
     - `open`
-        The opening price
+        The adjusted opening price
     - `close`
-        The closing price
+        The adjusted closing price
     - `high`
-        The highest price
+        The adjusted highest price
     - `low`
-        The lowest price
+        The adjusted lowest price
     - `volume`
-        The trading volume
+        The adjusted trading volume
     - `factor`
-        The Restoration factor
+        The Restoration factor. Normally, original_price = adj_price / factor 
 
     In the convention of `Qlib` data processing, `open, close, high, low, volume, money and factor` will be set to NaN if the stock is suspended. 
 
@@ -296,6 +296,7 @@ The ``Processor`` module in ``Qlib`` is designed to be learnable and it is respo
 - ``RobustZScoreNorm``: `processor` that applies robust z-score normalization.
 - ``CSZScoreNorm``: `processor` that applies cross sectional z-score normalization.
 - ``CSRankNorm``: `processor` that applies cross sectional rank normalization.
+- ``CSZFillna``: `processor` that fills N/A values in a cross sectional way by the mean of the column.
 
 Users can also create their own `processor` by inheriting the base class of ``Processor``. Please refer to the implementation of all the processors for more information (`Processor Link <https://github.com/microsoft/qlib/blob/main/qlib/data/dataset/processor.py>`_). 
 

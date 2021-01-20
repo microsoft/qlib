@@ -1,1 +1,5 @@
-Cython==0.29.21
+Cython
+cmake
+numpy
+scipy
+scikit-learn

@@ -5,7 +5,6 @@
 import numpy as np
 import pandas as pd
 from ...utils import get_date_by_shift, get_date_range
-from ..online.executor import SimulatorExecutor
 from ...data import D
 from .account import Account
 from ...config import C
@@ -15,7 +14,7 @@ from ...data.dataset.utils import get_level_index
 LOG = get_module_logger("backtest")
 
 
-def backtest(pred, strategy, trade_exchange, shift, verbose, account, benchmark):
+def backtest(pred, strategy, executor, trade_exchange, shift, verbose, account, benchmark, return_order):
     """Parameters
     ----------
     pred : pandas.DataFrame
@@ -69,9 +68,9 @@ def backtest(pred, strategy, trade_exchange, shift, verbose, account, benchmark)
             raise ValueError(f"The benchmark {_codes} does not exist. Please provide the right benchmark")
         bench = _temp_result.groupby(level="datetime")[_temp_result.columns.tolist()[0]].mean()
 
-    trade_dates = np.append(predict_dates[shift:], get_date_range(predict_dates[-1], shift=shift))
-    executor = SimulatorExecutor(trade_exchange, verbose=verbose)
-
+    trade_dates = np.append(predict_dates[shift:], get_date_range(predict_dates[-1], left_shift=1, right_shift=shift))
+    if return_order:
+        multi_order_list = []
     # trading apart
     for pred_date, trade_date in zip(predict_dates, trade_dates):
         # for loop predict date and trading date
@@ -103,6 +102,8 @@ def backtest(pred, strategy, trade_exchange, shift, verbose, account, benchmark)
             )
         else:
             order_list = []
+        if return_order:
+            multi_order_list.append((trade_account, order_list, trade_date))
         # 4. Get result after executing order list
         # NOTE: The following operation will modify order.amount.
         # NOTE: If it is buy and the cash is insufficient, the tradable amount will be recalculated
@@ -115,7 +116,11 @@ def backtest(pred, strategy, trade_exchange, shift, verbose, account, benchmark)
     report_df = trade_account.report.generate_report_dataframe()
     report_df["bench"] = bench
     positions = trade_account.get_positions()
-    return report_df, positions
+
+    report_dict = {"report_df": report_df, "positions": positions}
+    if return_order:
+        report_dict.update({"order_list": multi_order_list})
+    return report_dict
 
 
 def update_account(trade_account, trade_info, trade_exchange, trade_date):

@@ -320,7 +320,7 @@ class InterpretableMultiHeadAttention:
         return outputs, attn
 
 
-class TFTDataCache(object):
+class TFTDataCache:
     """Caches data for the TFT."""
 
     _data_cache = {}
@@ -348,7 +348,7 @@ class TFTDataCache(object):
 
 
 # TFT model definitions.
-class TemporalFusionTransformer(object):
+class TemporalFusionTransformer:
     """Defines Temporal Fusion Transformer.
 
     Attributes:
@@ -972,7 +972,7 @@ class TemporalFusionTransformer(object):
             valid_quantiles = self.quantiles
             output_size = self.output_size
 
-            class QuantileLossCalculator(object):
+            class QuantileLossCalculator:
                 """Computes the combined quantile loss for prespecified quantiles.
 
                 Attributes:

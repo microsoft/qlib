@@ -18,7 +18,9 @@ try:
     from ._libs.rolling import rolling_slope, rolling_rsquare, rolling_resi
     from ._libs.expanding import expanding_slope, expanding_rsquare, expanding_resi
 except ImportError as err:
-    print("Do not import qlib package in the repository directory!")
+    print(
+        "#### Do not import qlib package in the repository directory in case of importing qlib from . without compiling #####"
+    )
     raise
 
 
@@ -95,6 +97,15 @@ class Sign(ElemOperator):
 
     def __init__(self, feature):
         super(Sign, self).__init__(feature, "sign")
+
+    def _load_internal(self, instrument, start_index, end_index, freq):
+        """
+        To avoid error raised by bool type input, we transform the data into float32.
+        """
+        series = self.feature.load(instrument, start_index, end_index, freq)
+        # TODO:  More precision types should be configurable
+        series = series.astype(np.float32)
+        return getattr(np, self.func)(series)
 
 
 class Log(ElemOperator):
