@@ -5,6 +5,7 @@ import re
 import time
 import bisect
 import pickle
+import random
 import requests
 import functools
 from pathlib import Path
@@ -17,6 +18,7 @@ from yahooquery import Ticker
 HS_SYMBOLS_URL = "http://app.finance.ifeng.com/hq/list.php?type=stock_a&class={s_type}"
 
 CALENDAR_URL_BASE = "http://push2his.eastmoney.com/api/qt/stock/kline/get?secid={market}.{bench_code}&fields1=f1%2Cf2%2Cf3%2Cf4%2Cf5&fields2=f51%2Cf52%2Cf53%2Cf54%2Cf55%2Cf56%2Cf57%2Cf58&klt=101&fqt=0&beg=19900101&end=20991231"
+SZSE_CALENDAR_URL = "http://www.szse.cn/api/report/exchange/onepersistenthour/monthList?month={month}&random={random}"
 
 CALENDAR_BENCH_URL_MAP = {
     "CSI300": CALENDAR_URL_BASE.format(market=1, bench_code="000300"),
@@ -63,7 +65,29 @@ def get_calendar_list(bench_code="CSI300") -> list:
             df = Ticker(CALENDAR_BENCH_URL_MAP[bench_code]).history(interval="1d", period="max")
             calendar = df.index.get_level_values(level="date").map(pd.Timestamp).unique().tolist()
         else:
-            calendar = _get_calendar(CALENDAR_BENCH_URL_MAP[bench_code])
+            if bench_code.upper() == "ALL":
+
+                @deco_retry
+                def _get_calendar(month):
+                    _cal = []
+                    try:
+                        resp = requests.get(SZSE_CALENDAR_URL.format(month=month, random=random.random)).json()
+                        for _r in resp["data"]:
+                            if int(_r["jybz"]):
+                                _cal.append(pd.Timestamp(_r["jyrq"]))
+                    except Exception as e:
+                        raise ValueError(f"{month}-->{e}")
+                    return _cal
+
+                month_range = pd.date_range(start="2000-01", end=pd.Timestamp.now() + pd.Timedelta(days=31), freq="M")
+                calendar = []
+                for _m in month_range:
+                    cal = _get_calendar(_m.strftime("%Y-%m"))
+                    if cal:
+                        calendar += cal
+                calendar = list(filter(lambda x: x <= pd.Timestamp.now(), calendar))
+            else:
+                calendar = _get_calendar(CALENDAR_BENCH_URL_MAP[bench_code])
         _CALENDAR_MAP[bench_code] = calendar
     logger.info(f"end of get calendar list: {bench_code}.")
     return calendar

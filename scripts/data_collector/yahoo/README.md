@@ -18,22 +18,80 @@ pip install -r requirements.txt
 
 ## Collector Data
 
-### Download data and Normalize data
-```bash
-python collector.py collector_data --source_dir ~/.qlib/stock_data/source --region CN --start 2020-11-01 --end 2020-11-10 --delay 0.1 --interval 1d --normalize_dir ~/.qlib/stock_data/normalize
-```
 
-### Download Data
+### CN Data
+
+#### 1d
 
 ```bash
-python collector.py download_data --source_dir ~/.qlib/stock_data/source --region CN --start 2020-11-01 --end 2020-11-10 --delay 0.1 --interval 1d
+
+# download from yahoo finance
+python collector.py download_data --source_dir ~/.qlib/stock_data/source/cn_1d --region CN --start 2020-11-01 --end 2020-11-10 --delay 0.1 --interval 1d
+
+# normalize
+python collector.py normalize_data --source_dir ~/.qlib/stock_data/source/cn_1d --normalize_dir ~/.qlib/stock_data/source/cn_1d_nor --region CN --interval 1d
+
+# dump data
+cd qlib/scripts
+python dump_bin.py dump_all --csv_path ~/.qlib/stock_data/source/cn_1d_nor --qlib_dir ~/.qlib/stock_data/source/qlib_cn_1d --freq day --exclude_fields date,adjclose,dividends,splits,symbol
+
+# using
+import qlib
+from qlib.data import D
+
+qlib.init(provider_uri="~/.qlib/stock_data/source/qlib_cn_1d", region="CN")
+df = D.features(D.instruments("all"), ["$close"], freq="day")
+
 ```
 
-### Normalize Data
+#### 1min
 
 ```bash
-python collector.py normalize_data --source_dir ~/.qlib/stock_data/source --normalize_dir ~/.qlib/stock_data/normalize --region CN
+
+# download from yahoo finance
+python collector.py download_data --source_dir ~/.qlib/stock_data/source/cn_1min --region CN --start 2020-11-01 --end 2020-11-10 --delay 0.1 --interval 1min
+
+# normalize
+python collector.py normalize_data --source_dir ~/.qlib/stock_data/source/cn_1min --normalize_dir ~/.qlib/stock_data/source/cn_1min_nor --region CN --interval 1min
+
+# dump data
+cd qlib/scripts
+python dump_bin.py dump_all --csv_path ~/.qlib/stock_data/source/cn_1min_nor --qlib_dir ~/.qlib/stock_data/source/qlib_cn_1min --freq 1min --exclude_fields date,adjclose,dividends,splits,symbol
+
+# using
+import qlib
+from qlib.data import D
+
+qlib.init(provider_uri="~/.qlib/stock_data/source/qlib_cn_1min", region="CN")
+df = D.features(D.instruments("all"), ["$close"], freq="1min")
+
 ```
+
+### US Data
+
+#### 1d
+
+```bash
+
+# download from yahoo finance
+python collector.py download_data --source_dir ~/.qlib/stock_data/source/us_1d --region US --start 2020-11-01 --end 2020-11-10 --delay 0.1 --interval 1d
+
+# normalize
+python collector.py normalize_data --source_dir ~/.qlib/stock_data/source/us_1d --normalize_dir ~/.qlib/stock_data/source/us_1d_nor --region US --interval 1d
+
+# dump data
+cd qlib/scripts
+python dump_bin.py dump_all --csv_path ~/.qlib/stock_data/source/cn_1d_nor --qlib_dir ~/.qlib/stock_data/source/qlib_us_1d --freq day --exclude_fields date,adjclose,dividends,splits,symbol
+
+# using
+import qlib
+from qlib.data import D
+
+qlib.init(provider_uri="~/.qlib/stock_data/source/qlib_us_1d", region="US")
+df = D.features(D.instruments("all"), ["$close"], freq="day")
+
+```
+
 
 ### Help
 ```bash
@@ -42,5 +100,5 @@ pythono collector.py collector_data --help
 
 ## Parameters
 
-- interval: 1m or 1d
+- interval: 1min or 1d
 - region: CN or US

@@ -136,7 +136,7 @@ After conversion, users can find their Qlib format data in the directory `~/.qli
     - `volume`
         The adjusted trading volume
     - `factor`
-        The Restoration factor. Normally, original_price = adj_price / factor 
+        The Restoration factor. Normally, ``factor = adjusted_price / original_price``, `adjusted price` reference: `split adjusted <https://www.investopedia.com/terms/s/splitadjusted.asp>`_
 
     In the convention of `Qlib` data processing, `open, close, high, low, volume, money and factor` will be set to NaN if the stock is suspended. 
 
