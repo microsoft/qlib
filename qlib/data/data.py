@@ -221,7 +221,11 @@ class InstrumentProvider(abc.ABC):
             _df_list = []
             # FIXME: each process will read these files
             for _path in Path(C.get_data_path()).joinpath("instruments").glob("*.txt"):
-                _df = pd.read_csv(_path, sep="\t", names=["inst", "start_datetime", "end_datetime", "save_inst"])
+                _df = pd.read_csv(
+                    _path,
+                    sep="\t",
+                    names=["inst", "start_datetime", "end_datetime", "save_inst"],
+                )
                 _df_list.append(_df.iloc[:, [0, -1]])
             df = pd.concat(_df_list, sort=False).sort_values("save_inst")
             df = df.drop_duplicates(subset=["save_inst"], keep="first").fillna(axis=1, method="ffill")
@@ -587,7 +591,11 @@ class LocalInstrumentProvider(InstrumentProvider):
         if not os.path.exists(fname):
             raise ValueError("instruments not exists for market " + market)
         _instruments = dict()
-        df = pd.read_csv(fname, sep="\t", names=["inst", "start_datetime", "end_datetime", "save_inst"])
+        df = pd.read_csv(
+            fname,
+            sep="\t",
+            names=["inst", "start_datetime", "end_datetime", "save_inst"],
+        )
         df["start_datetime"] = pd.to_datetime(df["start_datetime"])
         df["end_datetime"] = pd.to_datetime(df["end_datetime"])
         for row in df.itertuples(index=False):
@@ -1034,12 +1042,31 @@ class ClientProvider(BaseProvider):
             DatasetD.set_conn(self.client)
 
 
-Cal = Wrapper()
-Inst = Wrapper()
-FeatureD = Wrapper()
-ExpressionD = Wrapper()
-DatasetD = Wrapper()
-D = Wrapper()
+import sys
+
+if sys.version_info >= (3, 9):
+    from typing import Annotated
+
+    CalendarProviderWrapper = Annotated[CalendarProvider, Wrapper]
+    InstrumentProviderWrapper = Annotated[InstrumentProvider, Wrapper]
+    FeatureProviderWrapper = Annotated[FeatureProvider, Wrapper]
+    ExpressionProviderWrapper = Annotated[ExpressionProvider, Wrapper]
+    DatasetProviderWrapper = Annotated[DatasetProvider, Wrapper]
+    BaseProviderWrapper = Annotated[BaseProvider, Wrapper]
+else:
+    CalendarProviderWrapper = CalendarProvider
+    InstrumentProviderWrapper = InstrumentProvider
+    FeatureProviderWrapper = FeatureProvider
+    ExpressionProviderWrapper = ExpressionProvider
+    DatasetProviderWrapper = DatasetProvider
+    BaseProviderWrapper = BaseProvider
+
+Cal: CalendarProviderWrapper = Wrapper()
+Inst: InstrumentProviderWrapper = Wrapper()
+FeatureD: FeatureProviderWrapper = Wrapper()
+ExpressionD: ExpressionProviderWrapper = Wrapper()
+DatasetD: DatasetProviderWrapper = Wrapper()
+D: BaseProviderWrapper = Wrapper()
 
 
 def register_all_wrappers(C):

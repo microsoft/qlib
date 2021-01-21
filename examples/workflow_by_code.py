@@ -106,6 +106,11 @@ if __name__ == "__main__":
     model = init_instance_by_config(task["model"])
     dataset = init_instance_by_config(task["dataset"])
 
+    # NOTE: This line is optional
+    # It demonstrates that the dataset can be used standalone.
+    example_df = dataset.prepare("train")
+    print(example_df.head())
+
     # start exp
     with R.start(experiment_name="workflow"):
         R.log_params(**flatten_dict(task))
