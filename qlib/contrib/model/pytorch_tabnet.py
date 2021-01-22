@@ -28,7 +28,7 @@ from ...data.dataset import DatasetH
 from ...data.dataset.handler import DataHandlerLP
 
 
-class TabNet_Model(Model):
+class TabnetModel(Model):
     def __init__(
         self,
         d_feat=158,
