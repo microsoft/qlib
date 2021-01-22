@@ -50,22 +50,21 @@ class Position:
         else:
             # exist, add amount
             self.position[stock_id]["amount"] += trade_amount
+            # check if to delete
+            if abs(self.position[stock_id]["amount"]) <= 1e-5:
+                self.del_stock(stock_id)            
 
         self.position["cash"] -= trade_val + cost
 
     def sell_stock(self, stock_id, trade_val, cost, trade_price):
         trade_amount = trade_val / trade_price
         if stock_id not in self.position:
-            raise KeyError("{} not in current position".format(stock_id))
+            self.init_stock(stock_id=stock_id, amount=-trade_amount, price=trade_price)
         else:
             # decrease the amount of stock
             self.position[stock_id]["amount"] -= trade_amount
             # check if to delete
-            if self.position[stock_id]["amount"] < -1e-5:
-                raise ValueError(
-                    "only have {} {}, require {}".format(self.position[stock_id]["amount"], stock_id, trade_amount)
-                )
-            elif abs(self.position[stock_id]["amount"]) <= 1e-5:
+            if abs(self.position[stock_id]["amount"]) <= 1e-5:
                 self.del_stock(stock_id)
 
         self.position["cash"] += trade_val - cost
