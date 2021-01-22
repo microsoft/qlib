@@ -41,9 +41,7 @@ class Position:
         self.position[stock_id]["count"] = 0  # update count in the end of this date
         self.position[stock_id]["amount"] = amount
         self.position[stock_id]["price"] = price
-        self.position[stock_id][
-            "weight"
-        ] = 0  # update the weight in the end of the trade date
+        self.position[stock_id]["weight"] = 0  # update the weight in the end of the trade date
 
     def buy_stock(self, stock_id, trade_val, cost, trade_price):
         trade_amount = trade_val / trade_price
@@ -83,9 +81,7 @@ class Position:
             # SELL
             self.sell_stock(order.stock_id, trade_val, cost, trade_price)
         else:
-            raise NotImplementedError(
-                "do not suppotr order direction {}".format(order.direction)
-            )
+            raise NotImplementedError("do not suppotr order direction {}".format(order.direction))
 
     def update_stock_price(self, stock_id, price):
         self.position[stock_id]["price"] = price
@@ -103,9 +99,7 @@ class Position:
         stock_list = self.get_stock_list()
         value = 0
         for stock_id in stock_list:
-            value += (
-                self.position[stock_id]["amount"] * self.position[stock_id]["price"]
-            )
+            value += self.position[stock_id]["amount"] * self.position[stock_id]["price"]
         return value
 
     def calculate_value(self):
@@ -155,11 +149,7 @@ class Position:
         d = {}
         stock_list = self.get_stock_list()
         for stock_code in stock_list:
-            d[stock_code] = (
-                self.position[stock_code]["amount"]
-                * self.position[stock_code]["price"]
-                / position_value
-            )
+            d[stock_code] = self.position[stock_code]["amount"] * self.position[stock_code]["price"] / position_value
         return d
 
     def add_count_all(self):
@@ -179,9 +169,7 @@ class Position:
         cash["init_cash"] = self.init_cash
         cash["cash"] = p["cash"]
         cash["today_account_value"] = p["today_account_value"]
-        cash["last_trade_date"] = (
-            str(last_trade_date.date()) if last_trade_date else None
-        )
+        cash["last_trade_date"] = str(last_trade_date.date()) if last_trade_date else None
         del p["cash"]
         del p["today_account_value"]
         positions = pd.DataFrame.from_dict(p, orient="index")
