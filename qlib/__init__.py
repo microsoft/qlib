@@ -11,8 +11,6 @@ import logging
 import platform
 import subprocess
 
-from .utils import set_config, config_based_on_c
-
 
 # init qlib
 def init(default_conf="client", **kwargs):
@@ -25,7 +23,7 @@ def init(default_conf="client", **kwargs):
     # FIXME: this logger ignored the level in config
     logger = get_module_logger("Initialization", level=logging.INFO)
 
-    set_config(C, default_conf, **kwargs)
+    C.set(default_conf, **kwargs)
 
     # check path if server/local
     if C.get_uri_type() == C.LOCAL_URI:
@@ -44,7 +42,7 @@ def init(default_conf="client", **kwargs):
     if "flask_server" in C:
         logger.info(f"flask_server={C['flask_server']}, flask_port={C['flask_port']}")
 
-    config_based_on_c(C)
+    C.register()
 
     logger.info("qlib successfully initialized based on %s settings." % default_conf)
     logger.info(f"data_path={C.get_data_path()}")

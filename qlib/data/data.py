@@ -25,7 +25,7 @@ from ..log import get_module_logger
 from ..utils import parse_field, read_bin, hash_args, normalize_cache_fields
 from .base import Feature
 from .cache import DiskDatasetCache, DiskExpressionCache
-from ..utils import Wrapper, init_instance_by_config, register_wrapper, get_module_by_module_path, config_based_on_c
+from ..utils import Wrapper, init_instance_by_config, register_wrapper, get_module_by_module_path
 
 
 class CalendarProvider(abc.ABC):
@@ -486,9 +486,9 @@ class DatasetProvider(abc.ABC):
         """
         # FIXME: Windows OS or MacOS using spawn: https://docs.python.org/3.8/library/multiprocessing.html?highlight=spawn#contexts-and-start-methods
         # NOTE: This place is compatible with windows, windows multi-process is spawn
-        if getattr(ExpressionD, "_provider", None) is None:
+        if not C.registered:
             C.set_conf_from_C(g_config)
-            config_based_on_c(g_config)
+            C.register()
 
         obj = dict()
         for field in column_names:
