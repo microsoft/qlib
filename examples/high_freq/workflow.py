@@ -24,6 +24,7 @@ from qlib.data.data import Cal
 
 from highfreq_ops import DayFirst, DayLast, FFillNan, Date, Select, IsNull
 
+
 def save_dataset(dataset, path: [Path, str]):
     """
     save dataset to path
@@ -34,6 +35,7 @@ def save_dataset(dataset, path: [Path, str]):
         path to save
     """
     dataset.to_pickle(path=path)
+
 
 def load_dataset(path: [Path, str], init_type=DataHandlerLP.IT_LS):
     """
@@ -48,7 +50,7 @@ def load_dataset(path: [Path, str], init_type=DataHandlerLP.IT_LS):
         - if `init_type` == DataHandlerLP.IT_FIT_SEQ:
 
             the input of `DataHandlerLP.fit` will be the output of the previous processor
-        
+
         - if `init_type` == DataHandlerLP.IT_FIT_IND:
 
             the input of `DataHandlerLP.fit` will be the original df
@@ -57,17 +59,24 @@ def load_dataset(path: [Path, str], init_type=DataHandlerLP.IT_LS):
 
             The state of the object has been load by pickle
     """
-    fd = open(path, 'rb')
+    fd = open(path, "rb")
     dataset = pickle.load(fd)
     dataset.init(init_type=init_type)
     fd.close()
     return dataset
 
+
 if __name__ == "__main__":
 
     # use default data
     provider_uri = "/mnt/v-xiabi/data/qlib/high_freq"  # target_dir
-    qlib.init(provider_uri=provider_uri, custom_ops=[DayFirst, DayLast, FFillNan, Date, Select, IsNull], redis_port=233, region=REG_CN, auto_mount=False)
+    qlib.init(
+        provider_uri=provider_uri,
+        custom_ops=[DayFirst, DayLast, FFillNan, Date, Select, IsNull],
+        redis_port=233,
+        region=REG_CN,
+        auto_mount=False,
+    )
 
     MARKET = "csi300"
     BENCHMARK = "SH000300"
@@ -134,4 +143,3 @@ if __name__ == "__main__":
     Cal.get_calender_day(freq="1min")  # TO FIX: load the calendar day for cache
     dataset = init_instance_by_config(task["dataset"])
     dataset_backtest = init_instance_by_config(task["dataset_backtest"])
-

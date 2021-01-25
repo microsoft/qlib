@@ -389,6 +389,7 @@ class DataHandlerLP(DataHandler):
 
         if self.drop_raw:
             del self._data
+
     # init type
     IT_FIT_SEQ = "fit_seq"  # the input of `fit` will be the output of the previous processor
     IT_FIT_IND = "fit_ind"  # the input of `fit` will be the original df
@@ -431,7 +432,7 @@ class DataHandlerLP(DataHandler):
             df = getattr(self, {self.DK_R: "_data", self.DK_I: "_infer", self.DK_L: "_learn"}[data_key])
         except AttributeError:
             print("please set drop_raw = False if you want to use raw data")
-            raise        
+            raise
         return df
 
     def fetch(

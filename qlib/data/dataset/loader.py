@@ -94,7 +94,9 @@ class DLWParser(DataLoader):
         return exprs, names
 
     @abc.abstractmethod
-    def load_group_df(self, instruments, exprs: list, names: list, start_time=None, end_time=None, freq="day") -> pd.DataFrame:
+    def load_group_df(
+        self, instruments, exprs: list, names: list, start_time=None, end_time=None, freq="day"
+    ) -> pd.DataFrame:
         """
         load the dataframe for specific group
 
@@ -148,7 +150,9 @@ class QlibDataLoader(DLWParser):
         print("swap level", swap_level)
         super().__init__(config)
 
-    def load_group_df(self, instruments, exprs: list, names: list, start_time=None, end_time=None, freq="day") -> pd.DataFrame:
+    def load_group_df(
+        self, instruments, exprs: list, names: list, start_time=None, end_time=None, freq="day"
+    ) -> pd.DataFrame:
         if instruments is None:
             warnings.warn("`instruments` is not set, will load all stocks")
             instruments = "all"

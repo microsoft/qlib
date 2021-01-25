@@ -50,7 +50,6 @@ class HighFreqHandler(DataHandlerLP):
             drop_raw=drop_raw,
         )
 
-
     def get_feature_config(self):
         fields = []
         names = []
@@ -98,7 +97,7 @@ class HighFreqHandler(DataHandlerLP):
             )
         ]
         names += ["$open", "$high", "$low", "$close", "$vwap"]
-        
+
         fields += [
             "Ref({0}, 240)/Ref(DayLast({1}), 240)".format(
                 template_if.format(
@@ -205,7 +204,9 @@ class HighFreqBacktestHandler(DataHandler):
         template_paused = "Select(Eq($paused, 0.0), {0})"
         template_fillnan = "FFillNan({0})"
 
-        fields += [template_fillnan.format(template_paused.format("$close")),]
+        fields += [
+            template_fillnan.format(template_paused.format("$close")),
+        ]
         names += ["$close0"]
         fields += [
             "If(Eq({1}, np.nan), 0, If(Or(Gt({2}, Mul(1.001, {4})), Lt({2}, Mul(0.999, {3}))), 0, {1}))".format(

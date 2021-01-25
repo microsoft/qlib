@@ -9,7 +9,7 @@ from qlib.data.data import Cal
 class DayFirst(ElemOperator):
     def __init__(self, feature):
         super(DayFirst, self).__init__(feature, "day_first")
-    
+
     def _load_internal(self, instrument, start_index, end_index, freq):
         _calendar = Cal.get_calender_day(freq=freq)[0]
         series = self.feature.load(instrument, start_index, end_index, freq)
@@ -44,6 +44,7 @@ class Date(ElemOperator):
         series = self.feature.load(instrument, start_index, end_index, freq)
         return pd.Series(_calendar[series.index], index=series.index)
 
+
 class Select(PairOperator):
     def __init__(self, condition, feature):
         super(Select, self).__init__(condition, feature, "select")
@@ -52,6 +53,7 @@ class Select(PairOperator):
         series_condition = self.feature_left.load(instrument, start_index, end_index, freq)
         series_feature = self.feature_right.load(instrument, start_index, end_index, freq)
         return series_feature.loc[series_condition]
+
 
 class IsNull(ElemOperator):
     def __init__(self, feature):

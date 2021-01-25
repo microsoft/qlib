@@ -87,7 +87,6 @@ class DatasetH(Dataset):
         """
         super().__init__(handler, segments)
 
-
     def init(self, init_type: str = DataHandlerLP.IT_FIT_SEQ, enable_cache: bool = False):
         """
         Initialize the data of Qlib
@@ -98,7 +97,7 @@ class DatasetH(Dataset):
             - if `init_type` == DataHandlerLP.IT_FIT_SEQ:
 
                 the input of `DataHandlerLP.fit` will be the output of the previous processor
-            
+
             - if `init_type` == DataHandlerLP.IT_FIT_IND:
 
                 the input of `DataHandlerLP.fit` will be the original df
