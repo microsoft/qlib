@@ -19,7 +19,7 @@ class DataLoader(abc.ABC):
     """
 
     @abc.abstractmethod
-    def load(self, instruments, start_time=None, end_time=None) -> pd.DataFrame:
+    def load(self, instruments, start_time=None, end_time=None, freq="day") -> pd.DataFrame:
         """
         load the data as pd.DataFrame.
 
@@ -94,7 +94,7 @@ class DLWParser(DataLoader):
         return exprs, names
 
     @abc.abstractmethod
-    def load_group_df(self, instruments, exprs: list, names: list, start_time=None, end_time=None) -> pd.DataFrame:
+    def load_group_df(self, instruments, exprs: list, names: list, start_time=None, end_time=None, freq="day") -> pd.DataFrame:
         """
         load the dataframe for specific group
 
@@ -114,25 +114,25 @@ class DLWParser(DataLoader):
         """
         pass
 
-    def load(self, instruments=None, start_time=None, end_time=None) -> pd.DataFrame:
+    def load(self, instruments=None, start_time=None, end_time=None, freq="day") -> pd.DataFrame:
         if self.is_group:
             df = pd.concat(
                 {
-                    grp: self.load_group_df(instruments, exprs, names, start_time, end_time)
+                    grp: self.load_group_df(instruments, exprs, names, start_time, end_time, freq)
                     for grp, (exprs, names) in self.fields.items()
                 },
                 axis=1,
             )
         else:
             exprs, names = self.fields
-            df = self.load_group_df(instruments, exprs, names, start_time, end_time)
+            df = self.load_group_df(instruments, exprs, names, start_time, end_time, freq)
         return df
 
 
 class QlibDataLoader(DLWParser):
     """Same as QlibDataLoader. The fields can be define by config"""
 
-    def __init__(self, config: Tuple[list, tuple, dict], filter_pipe=None):
+    def __init__(self, config: Tuple[list, tuple, dict], filter_pipe=None, swap_level=True):
         """
         Parameters
         ----------
@@ -140,11 +140,15 @@ class QlibDataLoader(DLWParser):
             Please refer to the doc of DLWParser
         filter_pipe :
             Filter pipe for the instruments
+        swap_level :
+            Whether to swap level of MultiIndex
         """
         self.filter_pipe = filter_pipe
+        self.swap_level = swap_level
+        print("swap level", swap_level)
         super().__init__(config)
 
-    def load_group_df(self, instruments, exprs: list, names: list, start_time=None, end_time=None) -> pd.DataFrame:
+    def load_group_df(self, instruments, exprs: list, names: list, start_time=None, end_time=None, freq="day") -> pd.DataFrame:
         if instruments is None:
             warnings.warn("`instruments` is not set, will load all stocks")
             instruments = "all"
@@ -153,9 +157,10 @@ class QlibDataLoader(DLWParser):
         elif self.filter_pipe is not None:
             warnings.warn("`filter_pipe` is not None, but it will not be used with `instruments` as list")
 
-        df = D.features(instruments, exprs, start_time, end_time)
+        df = D.features(instruments, exprs, start_time, end_time, freq)
         df.columns = names
-        df = df.swaplevel().sort_index()  # NOTE: always return <datetime, instrument>
+        if self.swap_level:
+            df = df.swaplevel().sort_index()  # NOTE: if swaplevel, return <datetime, instrument>
         return df
 
 
@@ -177,7 +182,7 @@ class StaticDataLoader(DataLoader):
         self.join = join
         self._data = None
 
-    def load(self, instruments=None, start_time=None, end_time=None) -> pd.DataFrame:
+    def load(self, instruments=None, start_time=None, end_time=None, freq="day") -> pd.DataFrame:
         self._maybe_load_raw_data()
         if instruments is None:
             df = self._data

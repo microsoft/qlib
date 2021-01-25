@@ -49,6 +49,7 @@ class Alpha360(DataHandlerLP):
         instruments="csi500",
         start_time=None,
         end_time=None,
+        freq="day",
         infer_processors=_DEFAULT_INFER_PROCESSORS,
         learn_processors=_DEFAULT_LEARN_PROCESSORS,
         fit_start_time=None,
@@ -69,9 +70,10 @@ class Alpha360(DataHandlerLP):
         }
 
         super().__init__(
-            instruments,
-            start_time,
-            end_time,
+            instruments=instruments,
+            start_time=start_time,
+            end_time=end_time,
+            freq="day",
             data_loader=data_loader,
             learn_processors=learn_processors,
             infer_processors=infer_processors,
@@ -130,6 +132,7 @@ class Alpha158(DataHandlerLP):
         instruments="csi500",
         start_time=None,
         end_time=None,
+        freq="day",
         infer_processors=[],
         learn_processors=_DEFAULT_LEARN_PROCESSORS,
         fit_start_time=None,
@@ -147,9 +150,10 @@ class Alpha158(DataHandlerLP):
             },
         }
         super().__init__(
-            instruments,
-            start_time,
-            end_time,
+            instruments=instruments,
+            start_time=start_time,
+            end_time=end_time,
+            freq=freq,
             data_loader=data_loader,
             infer_processors=infer_processors,
             learn_processors=learn_processors,

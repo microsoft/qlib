@@ -123,6 +123,16 @@ class CalendarProvider(abc.ABC):
             H["c"][flag] = _calendar, _calendar_index
         return _calendar, _calendar_index
 
+    def get_calender_day(self, freq="day", future=False):
+        flag = f"{freq}_future_{future}_day"
+        if flag in H["c"]:
+            _calendar, _calendar_index = H["c"][flag]
+        else:
+            _calendar = np.array(list(map(lambda x: x.date(), self._load_calendar(freq, future))))
+            _calendar_index = {x: i for i, x in enumerate(_calendar)}  # for fast search
+            H["c"][flag] = _calendar, _calendar_index
+        return _calendar, _calendar_index
+        
     def _uri(self, start_time, end_time, freq, future=False):
         """Get the uri of calendar generation task."""
         return hash_args(start_time, end_time, freq, future)
@@ -686,7 +696,10 @@ class LocalExpressionProvider(ExpressionProvider):
         # 1) The stock data is currently float. If there is other types of data, this part needs to be re-implemented.
         # 2) The the precision should be configurable
         try:
-            series = series.astype(np.float32)
+            if series.dtype == np.float64:
+                series = series.astype(np.float32)
+            elif series.dtype == np.bool:
+                series = series.astype(np.int8)
         except ValueError:
             pass
         if not series.empty:

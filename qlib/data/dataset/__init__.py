@@ -87,6 +87,36 @@ class DatasetH(Dataset):
         """
         super().__init__(handler, segments)
 
+
+    def init(self, init_type: str = DataHandlerLP.IT_FIT_SEQ, enable_cache: bool = False):
+        """
+        Initialize the data of Qlib
+
+        Parameters
+        ----------
+        init_type : str
+            - if `init_type` == DataHandlerLP.IT_FIT_SEQ:
+
+                the input of `DataHandlerLP.fit` will be the output of the previous processor
+            
+            - if `init_type` == DataHandlerLP.IT_FIT_IND:
+
+                the input of `DataHandlerLP.fit` will be the original df
+
+            - if `init_type` == DataHandlerLP.IT_LS:
+
+                The state of the object has been load by pickle
+
+        enable_cache : bool
+            default value is false:
+
+            - if `enable_cache` == True:
+
+                the processed data will be saved on disk, and handler will load the cached data from the disk directly
+                when we call `init` next time
+        """
+        self.handler.init(init_type=init_type, enable_cache=enable_cache)
+
     def setup_data(self, handler: Union[dict, DataHandler], segments: list):
         """
         Setup the underlying data.
@@ -116,8 +146,8 @@ class DatasetH(Dataset):
                         'outsample': ("2017-01-01", "2020-08-01",),
                     }
         """
-        self._handler = init_instance_by_config(handler, accept_types=DataHandler)
-        self._segments = segments.copy()
+        self.handler = init_instance_by_config(handler, accept_types=DataHandler)
+        self.segments = segments.copy()
 
     def _prepare_seg(self, slc: slice, **kwargs):
         """
@@ -127,7 +157,7 @@ class DatasetH(Dataset):
         ----------
         slc : slice
         """
-        return self._handler.fetch(slc, **kwargs)
+        return self.handler.fetch(slc, **kwargs)
 
     def prepare(
         self,
@@ -150,7 +180,7 @@ class DatasetH(Dataset):
             - ['train', 'valid']
 
         col_set : str
-            The col_set will be passed to self._handler when fetching data.
+            The col_set will be passed to self.handler when fetching data.
         data_key : str
             The data to fetch:  DK_*
             Default is DK_I, which indicate fetching data for **inference**.
@@ -166,16 +196,16 @@ class DatasetH(Dataset):
         logger = get_module_logger("DatasetH")
         fetch_kwargs = {"col_set": col_set}
         fetch_kwargs.update(kwargs)
-        if "data_key" in getfullargspec(self._handler.fetch).args:
+        if "data_key" in getfullargspec(self.handler.fetch).args:
             fetch_kwargs["data_key"] = data_key
         else:
             logger.info(f"data_key[{data_key}] is ignored.")
 
         # Handle all kinds of segments format
         if isinstance(segments, (list, tuple)):
-            return [self._prepare_seg(slice(*self._segments[seg]), **fetch_kwargs) for seg in segments]
+            return [self._prepare_seg(slice(*self.segments[seg]), **fetch_kwargs) for seg in segments]
         elif isinstance(segments, str):
-            return self._prepare_seg(slice(*self._segments[segments]), **fetch_kwargs)
+            return self._prepare_seg(slice(*self.segments[segments]), **fetch_kwargs)
         elif isinstance(segments, slice):
             return self._prepare_seg(segments, **fetch_kwargs)
         else:
@@ -409,7 +439,7 @@ class TSDatasetH(DatasetH):
 
     def setup_data(self, *args, **kwargs):
         super().setup_data(*args, **kwargs)
-        cal = self._handler.fetch(col_set=self._handler.CS_RAW).index.get_level_values("datetime").unique()
+        cal = self.handler.fetch(col_set=self.handler.CS_RAW).index.get_level_values("datetime").unique()
         cal = sorted(cal)
         # Get the datatime index for building timestamp
         self.cal = cal
