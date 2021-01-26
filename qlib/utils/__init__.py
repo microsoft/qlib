@@ -15,7 +15,6 @@ import bisect
 import shutil
 import difflib
 import hashlib
-import logging
 import datetime
 import requests
 import tempfile
@@ -27,9 +26,8 @@ import pandas as pd
 from pathlib import Path
 from typing import Union, Tuple
 
-from ..config import C, REG_CN
+from ..config import C
 from ..log import get_module_logger, set_log_with_config
-
 
 log = get_module_logger("utils")
 
@@ -645,13 +643,26 @@ def exists_qlib_data(qlib_dir):
     # check instruments
     code_names = set(map(lambda x: x.name.lower(), features_dir.iterdir()))
     _instrument = instruments_dir.joinpath("all.txt")
-    df = pd.read_csv(_instrument, sep="\t", names=["inst", "start_datetime", "end_datetime", "save_inst"])
-    df = df.iloc[:, [0, -1]].fillna(axis=1, method="ffill")
-    miss_code = set(df.iloc[:, -1].apply(str.lower)) - set(code_names)
+    miss_code = set(pd.read_csv(_instrument, sep="\t", header=None).loc[:, 0].apply(str.lower)) - set(code_names)
     if miss_code and any(map(lambda x: "sht" not in x, miss_code)):
         return False
 
     return True
+
+
+def check_qlib_data(qlib_config):
+    inst_dir = Path(qlib_config["provider_uri"]).joinpath("instruments")
+    for _p in inst_dir.glob("*.txt"):
+        try:
+            assert len(pd.read_csv(_p, sep="\t", nrows=0, header=None).columns) == 3, (
+                f"\nThe {str(_p.resolve())} of qlib data is not equal to 3 columns:"
+                f"\n\tIf you are using the data provided by qlib: "
+                f"https://qlib.readthedocs.io/en/latest/component/data.html#qlib-format-dataset"
+                f"\n\tIf you are using your own data, please dump the data again: "
+                f"https://qlib.readthedocs.io/en/latest/component/data.html#converting-csv-format-into-qlib-format"
+            )
+        except AssertionError:
+            raise
 
 
 def lazy_sort_index(df: pd.DataFrame, axis=0) -> pd.DataFrame:
@@ -744,3 +755,36 @@ def load_dataset(path_or_obj):
     elif extension == ".csv":
         return pd.read_csv(path_or_obj, parse_dates=True, index_col=[0, 1])
     raise ValueError(f"unsupported file type `{extension}`")
+
+
+def code_to_fname(code: str):
+    """stock code to file name
+
+    Parameters
+    ----------
+    code: str
+    """
+    # NOTE: In windows, the following name is I/O device, and the file with the corresponding name cannot be created
+    # reference: https://superuser.com/questions/86999/why-cant-i-name-a-folder-or-file-con-in-windows
+    replace_names = ["CON", "PRN", "AUX", "NUL"]
+    replace_names += [f"COM{i}" for i in range(10)]
+    replace_names += [f"LPT{i}" for i in range(10)]
+
+    prefix = "_qlib_"
+    if str(code).upper() in replace_names:
+        code = prefix + str(code)
+
+    return code
+
+
+def fname_to_code(fname: str):
+    """file name to stock code
+
+    Parameters
+    ----------
+    fname: str
+    """
+    prefix = "_qlib_"
+    if fname.startswith(prefix):
+        fname = fname.lstrip(prefix)
+    return fname

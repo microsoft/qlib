@@ -27,11 +27,6 @@ class Serializable:
     def dump_all(self):
         """
         will the object dump all object
-
-        Parameters
-        ----------
-        self : [TODO:type]
-            [TODO:description]
         """
         return getattr(self, "_dump_all", False)
 
@@ -39,11 +34,6 @@ class Serializable:
     def exclude(self):
         """
         What attribute will be dumped
-
-        Parameters
-        ----------
-        self : [TODO:type]
-            [TODO:description]
         """
         return getattr(self, "_exclude", [])
 

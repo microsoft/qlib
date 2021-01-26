@@ -62,13 +62,8 @@ class Distance(PairOperator):
 class TestRegiterCustomOps(TestAutoData):
     @classmethod
     def setUpClass(cls) -> None:
-        # use default data
-        provider_uri = "~/.qlib/qlib_data/cn_data_simple_1"  # target_dir
-        if not exists_qlib_data(provider_uri):
-            print(f"Qlib data is not found in {provider_uri}")
-
-            GetData().qlib_data(name="qlib_data_simple", region="cn", interval="1d", target_dir=provider_uri)
-        qlib.init(provider_uri=provider_uri, custom_ops=[Diff, Distance], region=REG_CN)
+        cls._setup_kwargs.update({"custom_ops": [Diff, Distance]})
+        super().setUpClass()
 
     def test_regiter_custom_ops(self):
         instruments = ["SH600000"]
