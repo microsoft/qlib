@@ -472,7 +472,14 @@ class YahooNormalize:
         df.index = pd.to_datetime(df.index)
         df = df[~df.index.duplicated(keep="first")]
         if calendar_list is not None:
-            df = df.reindex(pd.DataFrame(index=calendar_list).loc[df.index.min() : df.index.max()].index)
+            df = df.reindex(
+                pd.DataFrame(index=calendar_list)
+                .loc[
+                    pd.Timestamp(df.index.min()).date() : pd.Timestamp(df.index.max()).date()
+                    + pd.Timedelta(hours=23, minutes=59)
+                ]
+                .index
+            )
         df.sort_index(inplace=True)
         df.loc[(df["volume"] <= 0) | np.isnan(df["volume"]), set(df.columns) - {symbol_field_name}] = np.nan
         _tmp_series = df["close"].fillna(method="ffill")
@@ -614,6 +621,7 @@ class YahooNormalize1min(YahooNormalize, ABC):
         data_1d = YahooData.get_data_from_remote(self.symbol_to_yahoo(symbol), interval="1d", start=_start, end=_end)
         if data_1d is None or data_1d.empty:
             df["factor"] = 1
+            # TODO: np.nan or 1 or 0
             df["paused"] = np.nan
         else:
             data_1d = self.data_1d_obj.normalize(data_1d)  # type: pd.DataFrame
