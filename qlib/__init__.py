@@ -6,89 +6,46 @@ __version__ = "0.6.1.dev"
 
 
 import os
-import re
-import sys
-import copy
 import yaml
 import logging
 import platform
 import subprocess
-from pathlib import Path
 
-from .utils import can_use_cache, init_instance_by_config, get_module_by_module_path
-from .workflow.utils import experiment_exit_handler
 
 # init qlib
 def init(default_conf="client", **kwargs):
-    from .config import C, REG_CN, REG_US, QlibConfig
-    from .data.data import register_all_wrappers
-    from .log import get_module_logger, set_log_with_config
+    from .config import C
+    from .log import get_module_logger
     from .data.cache import H
-    from .workflow import R, QlibRecorder
 
-    C.reset()
     H.clear()
 
-    _logging_config = C.logging_config
-    if "logging_config" in kwargs:
-        _logging_config = kwargs["logging_config"]
-
-    # set global config
-    if _logging_config:
-        set_log_with_config(_logging_config)
-
     # FIXME: this logger ignored the level in config
-    LOG = get_module_logger("Initialization", level=logging.INFO)
-    LOG.info(f"default_conf: {default_conf}.")
+    logger = get_module_logger("Initialization", level=logging.INFO)
 
-    C.set_mode(default_conf)
-    C.set_region(kwargs.get("region", C["region"] if "region" in C else REG_CN))
-
-    for k, v in kwargs.items():
-        if k not in C:
-            LOG.warning("Unrecognized config %s" % k)
-        else:
-            C[k] = v
-
-    C.resolve_path()
-
-    if not (C["expression_cache"] is None and C["dataset_cache"] is None):
-        # check redis
-        if not can_use_cache():
-            LOG.warning(
-                f"redis connection failed(host={C['redis_host']} port={C['redis_port']}), cache will not be used!"
-            )
-            C["expression_cache"] = None
-            C["dataset_cache"] = None
+    C.set(default_conf, **kwargs)
 
     # check path if server/local
-    if C.get_uri_type() == QlibConfig.LOCAL_URI:
+    if C.get_uri_type() == C.LOCAL_URI:
         if not os.path.exists(C["provider_uri"]):
             if C["auto_mount"]:
-                LOG.error(
+                logger.error(
                     f"Invalid provider uri: {C['provider_uri']}, please check if a valid provider uri has been set. This path does not exist."
                 )
             else:
-                LOG.warning(f"auto_path is False, please make sure {C['mount_path']} is mounted")
-    elif C.get_uri_type() == QlibConfig.NFS_URI:
+                logger.warning(f"auto_path is False, please make sure {C['mount_path']} is mounted")
+    elif C.get_uri_type() == C.NFS_URI:
         _mount_nfs_uri(C)
     else:
         raise NotImplementedError(f"This type of URI is not supported")
 
-    LOG.info("qlib successfully initialized based on %s settings." % default_conf)
-    register_all_wrappers()
-
-    LOG.info(f"data_path={C.get_data_path()}")
-
     if "flask_server" in C:
-        LOG.info(f"flask_server={C['flask_server']}, flask_port={C['flask_port']}")
+        logger.info(f"flask_server={C['flask_server']}, flask_port={C['flask_port']}")
 
-    # set up QlibRecorder
-    exp_manager = init_instance_by_config(C["exp_manager"])
-    qr = QlibRecorder(exp_manager)
-    R.register(qr)
-    # clean up experiment when python program ends
-    experiment_exit_handler()
+    C.register()
+
+    logger.info("qlib successfully initialized based on %s settings." % default_conf)
+    logger.info(f"data_path={C.get_data_path()}")
 
 
 def _mount_nfs_uri(C):

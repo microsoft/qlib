@@ -23,53 +23,6 @@ except ImportError as err:
     )
     raise
 
-__all__ = (
-    "Ref",
-    "Max",
-    "Min",
-    "Sum",
-    "Mean",
-    "Std",
-    "Var",
-    "Skew",
-    "Kurt",
-    "Med",
-    "Mad",
-    "Slope",
-    "Rsquare",
-    "Resi",
-    "Rank",
-    "Quantile",
-    "Count",
-    "EMA",
-    "WMA",
-    "Corr",
-    "Cov",
-    "Delta",
-    "Abs",
-    "Sign",
-    "Log",
-    "Power",
-    "Add",
-    "Sub",
-    "Mul",
-    "Div",
-    "Greater",
-    "Less",
-    "And",
-    "Or",
-    "Not",
-    "Gt",
-    "Ge",
-    "Lt",
-    "Le",
-    "Eq",
-    "Ne",
-    "Mask",
-    "IdxMax",
-    "IdxMin",
-    "If",
-)
 
 np.seterr(invalid="ignore")
 
@@ -1441,3 +1394,87 @@ class Cov(PairRolling):
 
     def __init__(self, feature_left, feature_right, N):
         super(Cov, self).__init__(feature_left, feature_right, N, "cov")
+
+
+OpsList = [
+    Ref,
+    Max,
+    Min,
+    Sum,
+    Mean,
+    Std,
+    Var,
+    Skew,
+    Kurt,
+    Med,
+    Mad,
+    Slope,
+    Rsquare,
+    Resi,
+    Rank,
+    Quantile,
+    Count,
+    EMA,
+    WMA,
+    Corr,
+    Cov,
+    Delta,
+    Abs,
+    Sign,
+    Log,
+    Power,
+    Add,
+    Sub,
+    Mul,
+    Div,
+    Greater,
+    Less,
+    And,
+    Or,
+    Not,
+    Gt,
+    Ge,
+    Lt,
+    Le,
+    Eq,
+    Ne,
+    Mask,
+    IdxMax,
+    IdxMin,
+    If,
+]
+
+
+class OpsWrapper(object):
+    """Ops Wrapper"""
+
+    def __init__(self):
+        self._ops = {}
+
+    def register(self, ops_list):
+        for operator in ops_list:
+            if not issubclass(operator, ExpressionOps):
+                raise TypeError("operator must be subclass of ExpressionOps, not {}".format(operator))
+
+            if operator.__name__ in self._ops:
+                get_module_logger(self.__class__.__name__).warning(
+                    "The custom operator [{}] will override the qlib default definition".format(operator.__name__)
+                )
+            self._ops[operator.__name__] = operator
+
+    def __getattr__(self, key):
+        if key not in self._ops:
+            raise AttributeError("The operator [{0}] is not registered".format(key))
+        return self._ops[key]
+
+
+Operators = OpsWrapper()
+Operators.register(OpsList)
+
+
+def register_custom_ops(C):
+    """register custom operator"""
+    logger = get_module_logger("ops")
+    if getattr(C, "custom_ops", None) is not None:
+        Operators.register(C.custom_ops)
+        logger.debug("register custom operator {}".format(C.custom_ops))

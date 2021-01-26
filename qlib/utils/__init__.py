@@ -15,6 +15,7 @@ import bisect
 import shutil
 import difflib
 import hashlib
+import logging
 import datetime
 import requests
 import tempfile
@@ -26,8 +27,9 @@ import pandas as pd
 from pathlib import Path
 from typing import Union, Tuple
 
-from ..config import C
-from ..log import get_module_logger
+from ..config import C, REG_CN
+from ..log import get_module_logger, set_log_with_config
+
 
 log = get_module_logger("utils")
 
@@ -162,7 +164,7 @@ def parse_field(field):
     # - $open+$close -> Feature("open")+Feature("close")
     if not isinstance(field, str):
         field = str(field)
-    return re.sub(r"\$(\w+)", r'Feature("\1")', field)
+    return re.sub(r"\$(\w+)", r'Feature("\1")', re.sub(r"(\w+\s*)\(", r"Operators.\1(", field))
 
 
 def get_module_by_module_path(module_path):
