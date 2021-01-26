@@ -33,7 +33,6 @@ class InfoCollector:
             "scipy",
             "requests",
             "sacred",
-            "pymongo",
             "python-socketio",
             "redis",
             "python-redis-lock",

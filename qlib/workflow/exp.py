@@ -65,13 +65,13 @@ class Experiment:
         """
         raise NotImplementedError(f"Please implement the `end` method.")
 
-    def create_recorder(self, name=None):
+    def create_recorder(self, recorder_name=None):
         """
         Create a recorder for each experiment.
 
         Parameters
         ----------
-        name : str
+        recorder_name : str
             the name of the recorder to be created.
 
         Returns

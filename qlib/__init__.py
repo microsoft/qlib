@@ -45,9 +45,10 @@ def init(default_conf="client", **kwargs):
     C.set_region(kwargs.get("region", C["region"] if "region" in C else REG_CN))
 
     for k, v in kwargs.items():
-        C[k] = v
         if k not in C:
             LOG.warning("Unrecognized config %s" % k)
+        else:
+            C[k] = v
 
     C.resolve_path()
 

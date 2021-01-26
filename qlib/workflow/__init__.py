@@ -461,5 +461,14 @@ class QlibRecorder:
         self.get_exp().get_recorder().set_tags(**kwargs)
 
 
+import sys
+
+if sys.version_info >= (3, 9):
+    from typing import Annotated
+
+    QlibRecorderWrapper = Annotated[QlibRecorder, Wrapper]
+else:
+    QlibRecorderWrapper = QlibRecorder
+
 # global record
-R = Wrapper()
+R: QlibRecorderWrapper = Wrapper()

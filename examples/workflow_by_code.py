@@ -98,12 +98,18 @@ if __name__ == "__main__":
             "open_cost": 0.0005,
             "close_cost": 0.0015,
             "min_cost": 5,
+            "return_order": True,
         },
     }
 
     # model initiaiton
     model = init_instance_by_config(task["model"])
     dataset = init_instance_by_config(task["dataset"])
+
+    # NOTE: This line is optional
+    # It demonstrates that the dataset can be used standalone.
+    example_df = dataset.prepare("train")
+    print(example_df.head())
 
     # start exp
     with R.start(experiment_name="workflow"):

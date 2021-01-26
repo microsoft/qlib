@@ -126,17 +126,17 @@ After conversion, users can find their Qlib format data in the directory `~/.qli
     The arguments of `--include_fields` should correspond with the column names of CSV files. The columns names of dataset provided by ``Qlib`` should include open, close, high, low, volume and factor at least.
     
     - `open`
-        The opening price
+        The adjusted opening price
     - `close`
-        The closing price
+        The adjusted closing price
     - `high`
-        The highest price
+        The adjusted highest price
     - `low`
-        The lowest price
+        The adjusted lowest price
     - `volume`
-        The trading volume
+        The adjusted trading volume
     - `factor`
-        The Restoration factor
+        The Restoration factor. Normally, original_price = adj_price / factor 
 
     In the convention of `Qlib` data processing, `open, close, high, low, volume, money and factor` will be set to NaN if the stock is suspended. 
 

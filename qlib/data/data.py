@@ -24,7 +24,12 @@ from ..log import get_module_logger
 from ..utils import parse_field, read_bin, hash_args, normalize_cache_fields, code_to_fname
 from .base import Feature
 from .cache import DiskDatasetCache, DiskExpressionCache
-from ..utils import Wrapper, init_instance_by_config, register_wrapper, get_module_by_module_path
+from ..utils import (
+    Wrapper,
+    init_instance_by_config,
+    register_wrapper,
+    get_module_by_module_path,
+)
 
 
 class CalendarProvider(abc.ABC):
@@ -1026,12 +1031,31 @@ class ClientProvider(BaseProvider):
             DatasetD.set_conn(self.client)
 
 
-Cal = Wrapper()
-Inst = Wrapper()
-FeatureD = Wrapper()
-ExpressionD = Wrapper()
-DatasetD = Wrapper()
-D = Wrapper()
+import sys
+
+if sys.version_info >= (3, 9):
+    from typing import Annotated
+
+    CalendarProviderWrapper = Annotated[CalendarProvider, Wrapper]
+    InstrumentProviderWrapper = Annotated[InstrumentProvider, Wrapper]
+    FeatureProviderWrapper = Annotated[FeatureProvider, Wrapper]
+    ExpressionProviderWrapper = Annotated[ExpressionProvider, Wrapper]
+    DatasetProviderWrapper = Annotated[DatasetProvider, Wrapper]
+    BaseProviderWrapper = Annotated[BaseProvider, Wrapper]
+else:
+    CalendarProviderWrapper = CalendarProvider
+    InstrumentProviderWrapper = InstrumentProvider
+    FeatureProviderWrapper = FeatureProvider
+    ExpressionProviderWrapper = ExpressionProvider
+    DatasetProviderWrapper = DatasetProvider
+    BaseProviderWrapper = BaseProvider
+
+Cal: CalendarProviderWrapper = Wrapper()
+Inst: InstrumentProviderWrapper = Wrapper()
+FeatureD: FeatureProviderWrapper = Wrapper()
+ExpressionD: ExpressionProviderWrapper = Wrapper()
+DatasetD: DatasetProviderWrapper = Wrapper()
+D: BaseProviderWrapper = Wrapper()
 
 
 def register_all_wrappers():
