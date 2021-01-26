@@ -62,7 +62,7 @@ class Distance(PairOperator):
 class TestRegiterCustomOps(TestAutoData):
     @classmethod
     def setUpClass(cls) -> None:
-        cls._setup_kwargs.update({"custom_ops":[Diff, Distance]})
+        cls._setup_kwargs.update({"custom_ops": [Diff, Distance]})
         super().setUpClass()
 
     def test_regiter_custom_ops(self):
