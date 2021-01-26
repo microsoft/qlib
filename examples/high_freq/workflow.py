@@ -38,12 +38,12 @@ if __name__ == "__main__":
 
     MARKET = "all"
     BENCHMARK = "SH000300"
-    DROP_LOAD_DATASET = False # flag wether to test [drop and load dataset]
+    DROP_LOAD_DATASET = False  # flag wether to test [drop and load dataset]
 
-    #start_time = "2019-01-01 00:00:00"
-    #end_time = "2019-12-31 15:00:00"
-    #train_end_time = "2019-05-31 15:00:00"
-    #test_start_time = "2019-06-01 00:00:00"
+    # start_time = "2019-01-01 00:00:00"
+    # end_time = "2019-12-31 15:00:00"
+    # train_end_time = "2019-05-31 15:00:00"
+    # test_start_time = "2019-06-01 00:00:00"
     start_time = "2020-09-14 00:00:00"
     end_time = "2021-01-18 16:00:00"
     train_end_time = "2020-11-30 16:00:00"
@@ -108,11 +108,12 @@ if __name__ == "__main__":
         },
     }
     ##=============load the calendar for cache=============
-    Cal.calendar(freq="1min")
-    Cal.get_calendar_day(freq="1min")
+    # unnecessary, but may accelerate
+    Cal.calendar(freq="1min")  # load the calendar for cache
+    Cal.get_calendar_day(freq="1min")  # load the calendar for cache
 
     ##=============get data=============
-    
+
     dataset = init_instance_by_config(task["dataset"])
     xtrain, xtest = dataset.prepare(["train", "test"])
     print(xtrain, xtest)
@@ -124,7 +125,7 @@ if __name__ == "__main__":
     del xtrain, xtest
     del backtest_train, backtest_test
 
-
+    ## example to show how to save the dataset and reload it, and how to use different data
     if DROP_LOAD_DATASET:
 
         ##=============dump dataset=============
@@ -147,6 +148,7 @@ if __name__ == "__main__":
         dataset_backtest.init(init_type=DataHandlerLP.IT_LS)
 
         ##=============reinit qlib=============
+        ## Unless you want to modify the provider_uri and other configurations, reinit is unnecessary
         qlib.init(
             provider_uri=provider_uri,
             custom_ops=[DayFirst, DayLast, FFillNan, Date, Select, IsNull],
@@ -158,7 +160,7 @@ if __name__ == "__main__":
         Cal.calendar(freq="1min")  # load the calendar for cache
         Cal.get_calendar_day(freq="1min")  # load the calendar for cache
 
-        ##=============test dataset
+        ##=============test dataset=============
         xtrain, xtest = dataset.prepare(["train", "test"])
         backtest_train, backtest_test = dataset_backtest.prepare(["train", "test"])
 

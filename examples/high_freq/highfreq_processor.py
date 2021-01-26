@@ -58,7 +58,6 @@ class HighFreqNorm(Processor):
         # print("start_call_feature_reshape")
         idx = df_features.index.droplevel("datetime").drop_duplicates()
         idx.set_names(["instrument", "datetime"], inplace=True)
-        print(df_values.shape)
         feat = df_values[:, [0, 1, 2, 3, 4, 10]].reshape(-1, 6 * 240)
         feat_1 = df_values[:, [5, 6, 7, 8, 9, 11]].reshape(-1, 6 * 240)
         df_new_features = pd.DataFrame(
