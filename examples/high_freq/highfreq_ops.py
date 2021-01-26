@@ -11,7 +11,7 @@ class DayFirst(ElemOperator):
         super(DayFirst, self).__init__(feature, "day_first")
 
     def _load_internal(self, instrument, start_index, end_index, freq):
-        _calendar = Cal.get_calender_day(freq=freq)[0]
+        _calendar = Cal.get_calendar_day(freq=freq)[0]
         series = self.feature.load(instrument, start_index, end_index, freq)
         return series.groupby(_calendar[series.index]).transform("first")
 
@@ -21,7 +21,7 @@ class DayLast(ElemOperator):
         super(DayLast, self).__init__(feature, "day_last")
 
     def _load_internal(self, instrument, start_index, end_index, freq):
-        _calendar = Cal.get_calender_day(freq=freq)[0]
+        _calendar = Cal.get_calendar_day(freq=freq)[0]
         series = self.feature.load(instrument, start_index, end_index, freq)
         return series.groupby(_calendar[series.index]).transform("last")
 
@@ -40,7 +40,7 @@ class Date(ElemOperator):
         super(Date, self).__init__(feature, "date")
 
     def _load_internal(self, instrument, start_index, end_index, freq):
-        _calendar = Cal.get_calender_day(freq=freq)[0]
+        _calendar = Cal.get_calendar_day(freq=freq)[0]
         series = self.feature.load(instrument, start_index, end_index, freq)
         return pd.Series(_calendar[series.index], index=series.index)
 

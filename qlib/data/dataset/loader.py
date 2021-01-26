@@ -147,7 +147,6 @@ class QlibDataLoader(DLWParser):
         """
         self.filter_pipe = filter_pipe
         self.swap_level = swap_level
-        print("swap level", swap_level)
         super().__init__(config)
 
     def load_group_df(

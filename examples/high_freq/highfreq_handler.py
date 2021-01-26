@@ -29,8 +29,8 @@ class HighFreqHandler(DataHandlerLP):
                 new_l.append(p)
             return new_l
 
-        infer_processors = []
-        learn_processors = []
+        infer_processors = check_transform_proc(infer_processors)
+        learn_processors = check_transform_proc(learn_processors)
 
         data_loader = {
             "class": "QlibDataLoader",
@@ -179,8 +179,6 @@ class HighFreqBacktestHandler(DataHandler):
         end_time=None,
         freq="1min",
     ):
-        infer_processors = check_transform_proc(infer_processors)
-        learn_processors = check_transform_proc(learn_processors)
         data_loader = {
             "class": "QlibDataLoader",
             "kwargs": {
@@ -207,7 +205,7 @@ class HighFreqBacktestHandler(DataHandler):
         fields += [
             template_fillnan.format(template_paused.format("$close")),
         ]
-        names += ["$close0"]
+        names += ["$vwap0"]
         fields += [
             "If(Eq({1}, np.nan), 0, If(Or(Gt({2}, Mul(1.001, {4})), Lt({2}, Mul(0.999, {3}))), 0, {1}))".format(
                 template_fillnan.format(template_paused.format("$close")),

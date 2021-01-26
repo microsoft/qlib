@@ -123,7 +123,7 @@ class CalendarProvider(abc.ABC):
             H["c"][flag] = _calendar, _calendar_index
         return _calendar, _calendar_index
 
-    def get_calender_day(self, freq="day", future=False):
+    def get_calendar_day(self, freq="day", future=False):
         flag = f"{freq}_future_{future}_day"
         if flag in H["c"]:
             _calendar, _calendar_index = H["c"][flag]

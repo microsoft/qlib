@@ -17,10 +17,12 @@ from ..log import get_module_logger
 try:
     from ._libs.rolling import rolling_slope, rolling_rsquare, rolling_resi
     from ._libs.expanding import expanding_slope, expanding_rsquare, expanding_resi
-except ImportError as err:
+except ImportError:
     print(
         "#### Do not import qlib package in the repository directory in case of importing qlib from . without compiling #####"
     )
+    raise
+except:
     raise
 
 
@@ -1451,6 +1453,9 @@ class OpsWrapper(object):
     def __init__(self):
         self._ops = {}
 
+    def reset(self):
+        self._ops = {}
+
     def register(self, ops_list):
         for operator in ops_list:
             if not issubclass(operator, ExpressionOps):
@@ -1469,12 +1474,15 @@ class OpsWrapper(object):
 
 
 Operators = OpsWrapper()
-Operators.register(OpsList)
 
 
-def register_custom_ops(C):
-    """register custom operator"""
+def register_all_ops(C):
+    """register all operator"""
     logger = get_module_logger("ops")
+    
+    Operators.reset()
+    Operators.register(OpsList)
+
     if getattr(C, "custom_ops", None) is not None:
         Operators.register(C.custom_ops)
         logger.debug("register custom operator {}".format(C.custom_ops))

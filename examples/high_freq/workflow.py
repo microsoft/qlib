@@ -73,31 +73,36 @@ if __name__ == "__main__":
     qlib.init(
         provider_uri=provider_uri,
         custom_ops=[DayFirst, DayLast, FFillNan, Date, Select, IsNull],
-        redis_port=233,
+        redis_port=-1,
         region=REG_CN,
         auto_mount=False,
     )
 
-    MARKET = "csi300"
+    MARKET = "test_10"
     BENCHMARK = "SH000300"
+
+    start_time = "2019-01-01 00:00:00"
+    end_time = "2019-12-31 15:00:00"
+    train_end_time = "2019-05-31 15:00:00"
+    test_start_time = "2019-06-01 00:00:00"
 
     ###################################
     # train model
     ###################################
     DATA_HANDLER_CONFIG0 = {
-        "start_time": "2017-01-01 00:00:00",
-        "end_time": "2020-11-30 15:00:00",
+        "start_time": start_time,
+        "end_time": end_time,
         "freq": "1min",
-        "fit_start_time": "2017-01-01 00:00:00",
-        "fit_end_time": "2020-08-31 15:00:00",
-        "instruments": "all",
+        "fit_start_time": start_time,
+        "fit_end_time": train_end_time,
+        "instruments": MARKET,
         "infer_processors": [{"class": "HighFreqNorm", "module_path": "highfreq_processor", "kwargs": {}}],
     }
     DATA_HANDLER_CONFIG1 = {
-        "start_time": "2017-01-01 00:00:00",
-        "end_time": "2020-11-30 15:00:00",
+        "start_time": start_time,
+        "end_time": end_time,
         "freq": "1min",
-        "instruments": "all",
+        "instruments": MARKET,
     }
 
     task = {
@@ -111,10 +116,10 @@ if __name__ == "__main__":
                     "kwargs": DATA_HANDLER_CONFIG0,
                 },
                 "segments": {
-                    "train": ("2017-01-01 00:00:00", "2020-08-31 15:00:00"),
+                    "train": (start_time, train_end_time),
                     "test": (
-                        "2020-09-01 00:00:00",
-                        "2020-11-30 15:00:00",
+                        test_start_time,
+                        end_time,
                     ),
                 },
             },
@@ -127,19 +132,72 @@ if __name__ == "__main__":
             "kwargs": {
                 "handler": {
                     "class": "HighFreqBacktestHandler",
-                    "module_path": "highfreq_hander",
+                    "module_path": "highfreq_handler",
                     "kwargs": DATA_HANDLER_CONFIG1,
                 },
                 "segments": {
-                    "train": ("2017-01-01 00:00:00", "2020-08-31 15:00:00"),
+                    "train": (start_time, train_end_time),
                     "test": (
-                        "2020-09-01 00:00:00",
-                        "2020-11-30 15:00:00",
+                        test_start_time,
+                        end_time,
                     ),
                 },
             },
         },
     }
-    Cal.get_calender_day(freq="1min")  # TO FIX: load the calendar day for cache
+    ##=============load the calendar for cache=============
+    Cal.calendar(freq="1min")
+    Cal.get_calendar_day(freq="1min") 
+    
+
+    ##=============get data=============
     dataset = init_instance_by_config(task["dataset"])
     dataset_backtest = init_instance_by_config(task["dataset_backtest"])
+    xtrain, xtest = dataset.prepare(['train', 'test'])
+    backtest_train, backtest_test = dataset_backtest.prepare(['train', 'test'])
+    print(xtrain, xtest)
+    print(backtest_train, backtest_test)
+    del xtrain, xtest
+    del backtest_train, backtest_test
+
+    ##=============dump dataset=============
+    dataset.to_pickle(path="dataset.pkl")
+    dataset_backtest.to_pickle(path="dataset_backtest.pkl")
+
+    del dataset, dataset_backtest
+    ##=============reload dataset=============
+    file_dataset = open("dataset.pkl", "rb")
+    dataset = pickle.load(file_dataset)
+    file_dataset.close()
+
+    file_dataset_backtest = open("dataset_backtest.pkl", "rb")
+    dataset_backtest = pickle.load(file_dataset_backtest)
+    
+    file_dataset_backtest.close()
+
+    ##=============reload_dataset=============
+    dataset.init(init_type=DataHandlerLP.IT_LS)
+    dataset_backtest.init(init_type=DataHandlerLP.IT_LS)
+
+
+
+    ##=============reinit qlib=============
+    qlib.init(
+        provider_uri=provider_uri,
+        custom_ops=[DayFirst, DayLast, FFillNan, Date, Select, IsNull],
+        redis_port=-1,
+        region=REG_CN,
+        auto_mount=False,
+    )
+
+    Cal.calendar(freq="1min") #load the calendar for cache
+    Cal.get_calendar_day(freq="1min") #load the calendar for cache
+
+    ##=============test dataset
+    xtrain, xtest = dataset.prepare(['train', 'test'])
+    backtest_train, backtest_test = dataset_backtest.prepare(['train', 'test'])
+
+    print(xtrain, xtest)
+    print(backtest_train, backtest_test)
+    del xtrain, xtest
+    del backtest_train, backtest_test

@@ -87,34 +87,16 @@ class DatasetH(Dataset):
         """
         super().__init__(handler, segments)
 
-    def init(self, init_type: str = DataHandlerLP.IT_FIT_SEQ, enable_cache: bool = False):
-        """
-        Initialize the data of Qlib
+    def init(self, **kwargs):
 
-        Parameters
-        ----------
-        init_type : str
-            - if `init_type` == DataHandlerLP.IT_FIT_SEQ:
-
-                the input of `DataHandlerLP.fit` will be the output of the previous processor
-
-            - if `init_type` == DataHandlerLP.IT_FIT_IND:
-
-                the input of `DataHandlerLP.fit` will be the original df
-
-            - if `init_type` == DataHandlerLP.IT_LS:
-
-                The state of the object has been load by pickle
-
-        enable_cache : bool
-            default value is false:
-
-            - if `enable_cache` == True:
-
-                the processed data will be saved on disk, and handler will load the cached data from the disk directly
-                when we call `init` next time
-        """
-        self.handler.init(init_type=init_type, enable_cache=enable_cache)
+        logger = get_module_logger("DatasetH")
+        handler_init_kwargs = {}
+        for arg_key, arg_value in kwargs.items():
+            if arg_key in getfullargspec(self.handler.init).args:
+                handler_init_kwargs[arg_key] = arg_value
+            else:
+                logger.info(f"init arguments[{arg_key}] is ignored.")
+        self.handler.init(**handler_init_kwargs)
 
     def setup_data(self, handler: Union[dict, DataHandler], segments: list):
         """

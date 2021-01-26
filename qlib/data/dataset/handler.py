@@ -433,6 +433,8 @@ class DataHandlerLP(DataHandler):
         except AttributeError:
             print("please set drop_raw = False if you want to use raw data")
             raise
+        except:
+            raise
         return df
 
     def fetch(
