@@ -27,7 +27,7 @@ from highfreq_ops import DayFirst, DayLast, FFillNan, Date, Select, IsNull
 if __name__ == "__main__":
 
     # use default data
-    provider_uri = "/mnt/v-xiabi/data/qlib/high_freq"  # target_dir
+    provider_uri = "/nfs_data/qlib_data/yahoo_high_qlib"  # target_dir
     qlib.init(
         provider_uri=provider_uri,
         custom_ops=[DayFirst, DayLast, FFillNan, Date, Select, IsNull],
@@ -38,12 +38,16 @@ if __name__ == "__main__":
 
     MARKET = "all"
     BENCHMARK = "SH000300"
+    DROP_LOAD_DATASET = False # flag wether to test [drop and load dataset]
 
-    start_time = "2019-01-01 00:00:00"
-    end_time = "2019-12-31 15:00:00"
-    train_end_time = "2019-05-31 15:00:00"
-    test_start_time = "2019-06-01 00:00:00"
-
+    #start_time = "2019-01-01 00:00:00"
+    #end_time = "2019-12-31 15:00:00"
+    #train_end_time = "2019-05-31 15:00:00"
+    #test_start_time = "2019-06-01 00:00:00"
+    start_time = "2020-09-14 00:00:00"
+    end_time = "2021-01-18 16:00:00"
+    train_end_time = "2020-11-30 16:00:00"
+    test_start_time = "2020-12-01 00:00:00"
     ###################################
     # train model
     ###################################
@@ -108,51 +112,57 @@ if __name__ == "__main__":
     Cal.get_calendar_day(freq="1min")
 
     ##=============get data=============
+    
     dataset = init_instance_by_config(task["dataset"])
+    xtrain, xtest = dataset.prepare(["train", "test"])
+    print(xtrain, xtest)
+
     dataset_backtest = init_instance_by_config(task["dataset_backtest"])
-    xtrain, xtest = dataset.prepare(["train", "test"])
     backtest_train, backtest_test = dataset_backtest.prepare(["train", "test"])
-    print(xtrain, xtest)
     print(backtest_train, backtest_test)
+
     del xtrain, xtest
     del backtest_train, backtest_test
 
-    ##=============dump dataset=============
-    dataset.to_pickle(path="dataset.pkl")
-    dataset_backtest.to_pickle(path="dataset_backtest.pkl")
 
-    del dataset, dataset_backtest
-    ##=============reload dataset=============
-    file_dataset = open("dataset.pkl", "rb")
-    dataset = pickle.load(file_dataset)
-    file_dataset.close()
+    if DROP_LOAD_DATASET:
 
-    file_dataset_backtest = open("dataset_backtest.pkl", "rb")
-    dataset_backtest = pickle.load(file_dataset_backtest)
+        ##=============dump dataset=============
+        dataset.to_pickle(path="dataset.pkl")
+        dataset_backtest.to_pickle(path="dataset_backtest.pkl")
 
-    file_dataset_backtest.close()
+        del dataset, dataset_backtest
+        ##=============reload dataset=============
+        file_dataset = open("dataset.pkl", "rb")
+        dataset = pickle.load(file_dataset)
+        file_dataset.close()
 
-    ##=============reload_dataset=============
-    dataset.init(init_type=DataHandlerLP.IT_LS)
-    dataset_backtest.init(init_type=DataHandlerLP.IT_LS)
+        file_dataset_backtest = open("dataset_backtest.pkl", "rb")
+        dataset_backtest = pickle.load(file_dataset_backtest)
 
-    ##=============reinit qlib=============
-    qlib.init(
-        provider_uri=provider_uri,
-        custom_ops=[DayFirst, DayLast, FFillNan, Date, Select, IsNull],
-        redis_port=-1,
-        region=REG_CN,
-        auto_mount=False,
-    )
+        file_dataset_backtest.close()
 
-    Cal.calendar(freq="1min")  # load the calendar for cache
-    Cal.get_calendar_day(freq="1min")  # load the calendar for cache
+        ##=============reload_dataset=============
+        dataset.init(init_type=DataHandlerLP.IT_LS)
+        dataset_backtest.init(init_type=DataHandlerLP.IT_LS)
 
-    ##=============test dataset
-    xtrain, xtest = dataset.prepare(["train", "test"])
-    backtest_train, backtest_test = dataset_backtest.prepare(["train", "test"])
+        ##=============reinit qlib=============
+        qlib.init(
+            provider_uri=provider_uri,
+            custom_ops=[DayFirst, DayLast, FFillNan, Date, Select, IsNull],
+            redis_port=-1,
+            region=REG_CN,
+            auto_mount=False,
+        )
 
-    print(xtrain, xtest)
-    print(backtest_train, backtest_test)
-    del xtrain, xtest
-    del backtest_train, backtest_test
+        Cal.calendar(freq="1min")  # load the calendar for cache
+        Cal.get_calendar_day(freq="1min")  # load the calendar for cache
+
+        ##=============test dataset
+        xtrain, xtest = dataset.prepare(["train", "test"])
+        backtest_train, backtest_test = dataset_backtest.prepare(["train", "test"])
+
+        print(xtrain, xtest)
+        print(backtest_train, backtest_test)
+        del xtrain, xtest
+        del backtest_train, backtest_test

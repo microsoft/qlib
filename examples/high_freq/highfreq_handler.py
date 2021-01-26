@@ -7,7 +7,7 @@ from qlib.log import TimeInspector
 class HighFreqHandler(DataHandlerLP):
     def __init__(
         self,
-        instruments="csi500",
+        instruments="csi300",
         start_time=None,
         end_time=None,
         freq="1min",
@@ -55,8 +55,10 @@ class HighFreqHandler(DataHandlerLP):
         names = []
 
         template_if = "If(IsNull({1}), {0}, {1})"
-        template_paused = "Select(Eq($paused, 0.0), {0})"
+        #template_paused = "Select(Eq($paused, 0.0), {0})"
+        template_paused="{0}"
         template_fillnan = "FFillNan({0})"
+        simpson_vwap = "($open + 2*$high + 2*$low + $close)/6"
         fields += [
             "{0}/Ref(DayLast({1}), 240)".format(
                 template_if.format(
@@ -87,11 +89,9 @@ class HighFreqHandler(DataHandlerLP):
         fields += ["{0}/Ref(DayLast({0}), 240)".format(template_fillnan.format(template_paused.format("$close")))]
         fields += [
             "{0}/Ref(DayLast({1}), 240)".format(
-                "If(IsNull({1}), {0}, If(Or(Or(Or(Eq({1}, np.inf), Eq({1}, -np.inf)), Eq({1}, 0)), Or(Gt({1}, Mul(1.001, {3})), Lt({1}, Mul(0.999, {2})))), {0}, {1}))".format(
+                template_if.format(
                     template_fillnan.format(template_paused.format("$close")),
-                    template_paused.format("$vwap"),
-                    template_paused.format("$low"),
-                    template_paused.format("$high"),
+                    template_paused.format(simpson_vwap),
                 ),
                 template_fillnan.format(template_paused.format("$close")),
             )
@@ -128,13 +128,12 @@ class HighFreqHandler(DataHandlerLP):
         fields += [
             "Ref({0}, 240)/Ref(DayLast({0}), 240)".format(template_fillnan.format(template_paused.format("$close")))
         ]
+        
         fields += [
             "Ref({0}, 240)/Ref(DayLast({1}), 240)".format(
-                "If(IsNull({1}), {0}, If(Or(Or(Or(Eq({1}, np.inf), Eq({1}, -np.inf)), Eq({1}, 0)), Or(Gt({1}, Mul(1.001, {3})), Lt({1}, Mul(0.999, {2})))), {0}, {1}))".format(
+                template_if.format(
                     template_fillnan.format(template_paused.format("$close")),
-                    template_paused.format("$vwap"),
-                    template_paused.format("$low"),
-                    template_paused.format("$high"),
+                    template_paused.format(simpson_vwap),
                 ),
                 template_fillnan.format(template_paused.format("$close")),
             )
@@ -143,10 +142,9 @@ class HighFreqHandler(DataHandlerLP):
 
         fields += [
             "{0}/Ref(DayLast(Mean({0}, 7200)), 240)".format(
-                "If(IsNull({1}), 0, If(Or(Gt({2}, Mul(1.001, {4})), Lt({2}, Mul(0.999, {3}))), 0, {1}))".format(
-                    template_fillnan.format(template_paused.format("$close")),
+                "If(IsNull({0}), 0, If(Or(Gt({1}, Mul(1.001, {3})), Lt({1}, Mul(0.999, {2}))), 0, {0}))".format(
                     template_paused.format("$volume"),
-                    template_paused.format("$vwap"),
+                    template_paused.format(simpson_vwap),
                     template_paused.format("$low"),
                     template_paused.format("$high"),
                 )
@@ -155,10 +153,9 @@ class HighFreqHandler(DataHandlerLP):
         names += ["$volume"]
         fields += [
             "Ref({0}, 240)/Ref(DayLast(Mean({0}, 7200)), 240)".format(
-                "If(IsNull({1}), 0, If(Or(Gt({2}, Mul(1.001, {4})), Lt({2}, Mul(0.999, {3}))), 0, {1}))".format(
-                    template_fillnan.format(template_paused.format("$close")),
+                "If(IsNull({0}), 0, If(Or(Gt({1}, Mul(1.001, {3})), Lt({1}, Mul(0.999, {2}))), 0, {0}))".format(
                     template_paused.format("$volume"),
-                    template_paused.format("$vwap"),
+                    template_paused.format(simpson_vwap),
                     template_paused.format("$low"),
                     template_paused.format("$high"),
                 )
@@ -199,21 +196,26 @@ class HighFreqBacktestHandler(DataHandler):
         names = []
 
         template_if = "If(Eq({1}, np.nan), {0}, {1})"
-        template_paused = "Select(Eq($paused, 0.0), {0})"
+        #template_paused = "Select(Eq($paused, 0.0), {0})"
+        template_paused="{0}"
         template_fillnan = "FFillNan({0})"
-
+        simpson_vwap = "($open + 2*$high + 2*$low + $close)/6"
+        #fields += [
+        #    template_fillnan.format(template_paused.format("$close")),
+        #]
+        fields += [template_if.format(
+                    template_fillnan.format(template_paused.format("$close")),
+                    template_paused.format(simpson_vwap),
+                )]
+        names += ["$vwap_0"]
         fields += [
-            template_fillnan.format(template_paused.format("$close")),
-        ]
-        names += ["$vwap0"]
-        fields += [
-            "If(Eq({1}, np.nan), 0, If(Or(Gt({2}, Mul(1.001, {4})), Lt({2}, Mul(0.999, {3}))), 0, {1}))".format(
-                template_fillnan.format(template_paused.format("$close")),
+            "If(IsNull({0}), 0, If(Or(Gt({1}, Mul(1.001, {3})), Lt({1}, Mul(0.999, {2}))), 0, {0}))".format(
                 template_paused.format("$volume"),
-                template_paused.format("$vwap"),
+                template_paused.format(simpson_vwap),
                 template_paused.format("$low"),
                 template_paused.format("$high"),
             )
         ]
-        names += ["$volume0"]
+        names += ["$volume_0"]
+
         return fields, names
