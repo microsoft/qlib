@@ -37,7 +37,7 @@ class TestGetData(unittest.TestCase):
 
     def test_0_qlib_data(self):
 
-        GetData().qlib_data(name="qlib_data_simple", target_dir=QLIB_DIR, region="cn", interval="1d", version="latest")
+        GetData().qlib_data(name="qlib_data_simple", target_dir=QLIB_DIR, region="cn", interval="1d", delete_old=False)
         df = D.features(D.instruments("csi300"), self.FIELDS)
         self.assertListEqual(list(df.columns), self.FIELDS, "get qlib data failed")
         self.assertFalse(df.dropna().empty, "get qlib data failed")

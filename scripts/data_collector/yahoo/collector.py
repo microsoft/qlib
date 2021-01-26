@@ -18,6 +18,7 @@ from tqdm import tqdm
 from loguru import logger
 from yahooquery import Ticker
 from dateutil.tz import tzlocal
+from qlib.utils import code_to_fname
 
 CUR_DIR = Path(__file__).resolve().parent
 sys.path.append(str(CUR_DIR.parent.parent))
@@ -40,7 +41,7 @@ class YahooCollector:
         end=None,
         interval="1d",
         max_workers=4,
-        max_collector_count=5,
+        max_collector_count=2,
         delay=0,
         check_data_length: bool = False,
         limit_nums: int = None,
@@ -55,7 +56,7 @@ class YahooCollector:
         max_workers: int
             workers, default 4
         max_collector_count: int
-            default 5
+            default 2
         delay: float
             time.sleep(delay), default 0
         interval: str
@@ -147,11 +148,10 @@ class YahooCollector:
         stock_path = self.save_dir.joinpath(f"{symbol}.csv")
         df["symbol"] = symbol
         if stock_path.exists():
-            with stock_path.open("a") as fp:
-                df.to_csv(fp, index=False, header=False)
+            _temp_df = pd.read_csv(stock_path, nrows=0)
+            df.loc[:, _temp_df.columns].to_csv(stock_path, index=False, header=False, mode="a")
         else:
-            with stock_path.open("w") as fp:
-                df.to_csv(fp, index=False)
+            df.to_csv(stock_path, index=False, mode="w")
 
     def _save_small_data(self, symbol, df):
         if len(df) <= self.min_numbers_trading:
@@ -350,7 +350,7 @@ class YahooCollectorUS(YahooCollector):
         pass
 
     def normalize_symbol(self, symbol):
-        return symbol.upper()
+        return code_to_fname(symbol).upper()
 
     @property
     def _timezone(self):

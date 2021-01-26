@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 
-__version__ = "0.6.1.dev"
+__version__ = "0.6.1.99"
 
 
 import os
@@ -39,11 +39,10 @@ def init(default_conf="client", **kwargs):
     else:
         raise NotImplementedError(f"This type of URI is not supported")
 
-    if "flask_server" in C:
-        logger.info(f"flask_server={C['flask_server']}, flask_port={C['flask_port']}")
-
     C.register()
 
+    if "flask_server" in C:
+        logger.info(f"flask_server={C['flask_server']}, flask_port={C['flask_port']}")
     logger.info("qlib successfully initialized based on %s settings." % default_conf)
     logger.info(f"data_path={C.get_data_path()}")
 
