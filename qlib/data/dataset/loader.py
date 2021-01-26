@@ -10,7 +10,9 @@ import pandas as pd
 from typing import Tuple, Union
 
 from qlib.data import D
-from qlib.utils import load_dataset
+from qlib.data import filter as filter_module
+from qlib.data.filter import BaseDFilter
+from qlib.utils import load_dataset, init_instance_by_config
 
 
 class DataLoader(abc.ABC):
@@ -145,6 +147,13 @@ class QlibDataLoader(DLWParser):
         swap_level :
             Whether to swap level of MultiIndex
         """
+        if filter_pipe is not None:
+            assert isinstance(filter_pipe, list), "The type of `filter_pipe` must be list."
+            filter_pipe = [
+                init_instance_by_config(fp, None if "module_path" in fp else filter_module, accept_types=BaseDFilter)
+                for fp in filter_pipe
+            ]
+
         self.filter_pipe = filter_pipe
         self.swap_level = swap_level
         super().__init__(config)
