@@ -1479,7 +1479,7 @@ Operators = OpsWrapper()
 def register_all_ops(C):
     """register all operator"""
     logger = get_module_logger("ops")
-    
+
     Operators.reset()
     Operators.register(OpsList)
 

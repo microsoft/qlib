@@ -147,14 +147,13 @@ if __name__ == "__main__":
     }
     ##=============load the calendar for cache=============
     Cal.calendar(freq="1min")
-    Cal.get_calendar_day(freq="1min") 
-    
+    Cal.get_calendar_day(freq="1min")
 
     ##=============get data=============
     dataset = init_instance_by_config(task["dataset"])
     dataset_backtest = init_instance_by_config(task["dataset_backtest"])
-    xtrain, xtest = dataset.prepare(['train', 'test'])
-    backtest_train, backtest_test = dataset_backtest.prepare(['train', 'test'])
+    xtrain, xtest = dataset.prepare(["train", "test"])
+    backtest_train, backtest_test = dataset_backtest.prepare(["train", "test"])
     print(xtrain, xtest)
     print(backtest_train, backtest_test)
     del xtrain, xtest
@@ -172,14 +171,12 @@ if __name__ == "__main__":
 
     file_dataset_backtest = open("dataset_backtest.pkl", "rb")
     dataset_backtest = pickle.load(file_dataset_backtest)
-    
+
     file_dataset_backtest.close()
 
     ##=============reload_dataset=============
     dataset.init(init_type=DataHandlerLP.IT_LS)
     dataset_backtest.init(init_type=DataHandlerLP.IT_LS)
-
-
 
     ##=============reinit qlib=============
     qlib.init(
@@ -190,12 +187,12 @@ if __name__ == "__main__":
         auto_mount=False,
     )
 
-    Cal.calendar(freq="1min") #load the calendar for cache
-    Cal.get_calendar_day(freq="1min") #load the calendar for cache
+    Cal.calendar(freq="1min")  # load the calendar for cache
+    Cal.get_calendar_day(freq="1min")  # load the calendar for cache
 
     ##=============test dataset
-    xtrain, xtest = dataset.prepare(['train', 'test'])
-    backtest_train, backtest_test = dataset_backtest.prepare(['train', 'test'])
+    xtrain, xtest = dataset.prepare(["train", "test"])
+    backtest_train, backtest_test = dataset_backtest.prepare(["train", "test"])
 
     print(xtrain, xtest)
     print(backtest_train, backtest_test)
