@@ -21,13 +21,21 @@ from qlib.utils import init_instance_by_config
 from qlib.data.dataset.handler import DataHandlerLP
 from qlib.data.ops import Operators
 from qlib.data.data import Cal
+from qlib.utils import exists_qlib_data
 
 from highfreq_ops import DayFirst, DayLast, FFillNan, Date, Select, IsNull
 
 if __name__ == "__main__":
 
-    # use default data
-    provider_uri = "/nfs_data/qlib_data/yahoo_high_qlib"  # target_dir
+    # use yahoo_cn_1min data
+    provider_uri = "~/.qlib/qlib_data/yahoo_cn_1min"
+    if not exists_qlib_data(provider_uri):
+        print(f"Qlib data is not found in {provider_uri}")
+        sys.path.append(str(Path(__file__).resolve().parent.parent.parent.joinpath("scripts")))
+        from get_data import GetData
+
+        GetData().qlib_data(target_dir=provider_uri, interval="1min", region=REG_CN)
+
     qlib.init(
         provider_uri=provider_uri,
         custom_ops=[DayFirst, DayLast, FFillNan, Date, Select, IsNull],
