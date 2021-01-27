@@ -55,7 +55,7 @@ class HighFreqHandler(DataHandlerLP):
         names = []
 
         template_if = "If(IsNull({1}), {0}, {1})"
-        template_paused = "Select(Eq($paused, 0.0), {0})"
+        template_paused = "Select(Or(IsNull($paused), Eq($paused, 0.0)), {0})"
         # template_paused="{0}"
         template_fillnan = "FFillNan({0})"
         simpson_vwap = "($open + 2*$high + 2*$low + $close)/6"
@@ -196,7 +196,7 @@ class HighFreqBacktestHandler(DataHandler):
         names = []
 
         template_if = "If(IsNull({1}), {0}, {1})"
-        template_paused = "Select(Eq($paused, 0.0), {0})"
+        template_paused = "Select(Or(IsNull($paused), Eq($paused, 0.0)), {0})"
         # template_paused="{0}"
         template_fillnan = "FFillNan({0})"
         simpson_vwap = "($open + 2*$high + 2*$low + $close)/6"
