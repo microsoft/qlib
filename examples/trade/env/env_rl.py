@@ -51,9 +51,7 @@ class StockEnv(gym.Env):
         obs_conf["time_interval"] = self.time_interval
         obs_conf["max_step_num"] = self.max_step_num
         self.obs = getattr(observation, config["obs"]["name"])(obs_conf)
-        self.action_func = getattr(action, config["action"]["name"])(
-            config["action"]["config"]
-        )
+        self.action_func = getattr(action, config["action"]["name"])(config["action"]["config"])
         self.reward_func_list = []
         self.reward_log_dict = {}
         self.reward_coef = []
@@ -87,19 +85,13 @@ class StockEnv(gym.Env):
                 self.target,
                 self.is_buy,
             ) = sample
-        self.raw_df = pd.DataFrame(
-            index=self.raw_df_index,
-            data=self.raw_df_values,
-            columns=self.raw_df_columns,
-        )
+        self.raw_df = pd.DataFrame(index=self.raw_df_index, data=self.raw_df_values, columns=self.raw_df_columns,)
         del self.raw_df_values, self.raw_df_columns, self.raw_df_index
         start_time = time.time()
         self.load_time = time.time() - start_time
         self.day_vwap = nan_weighted_avg(
             self.raw_df["$vwap0"].values[self.offset : self.offset + self.max_step_num],
-            self.raw_df["$volume0"].values[
-                self.offset : self.offset + self.max_step_num
-            ],
+            self.raw_df["$volume0"].values[self.offset : self.offset + self.max_step_num],
         )
         try:
             assert not (np.isnan(self.day_vwap) or np.isinf(self.day_vwap))
@@ -108,9 +100,7 @@ class StockEnv(gym.Env):
             print(self.ins)
             print(self.day_vwap)
             self.raw_df.to_pickle("/nfs_data1/kanren/error_df.pkl")
-        self.day_twap = np.nanmean(
-            self.raw_df["$vwap0"].values[self.offset : self.offset + self.max_step_num]
-        )
+        self.day_twap = np.nanmean(self.raw_df["$vwap0"].values[self.offset : self.offset + self.max_step_num])
         self.t = -1 + self.offset
         self.interval = 0
         self.position = self.target
@@ -130,9 +120,7 @@ class StockEnv(gym.Env):
         if self.log:
             index_array = [
                 np.array([self.ins] * self.max_step_num),
-                self.raw_df.index.to_numpy()[
-                    self.offset : self.offset + self.max_step_num
-                ],
+                self.raw_df.index.to_numpy()[self.offset : self.offset + self.max_step_num],
                 np.array([self.date] * self.max_step_num),
             ]
             self.traded_log = pd.DataFrame(
@@ -142,9 +130,7 @@ class StockEnv(gym.Env):
                         self.offset : self.offset + self.max_step_num
                     ],
                     "$traded_t": np.nan,
-                    "$vwap_t": self.raw_df["$vwap0"].values[
-                        self.offset : self.offset + self.max_step_num
-                    ],
+                    "$vwap_t": self.raw_df["$vwap0"].values[self.offset : self.offset + self.max_step_num],
                     "action": np.nan,
                 },
                 index=index_array,
@@ -239,18 +225,14 @@ class StockEnv(gym.Env):
         self.real_eps_time += time.time() - start_time
         if self.done:
             this_traded = self.target - self.position
-            this_vwap = (
-                (self.this_cash / this_traded) if this_traded > ZERO else self.day_vwap
-            )
+            this_vwap = (self.this_cash / this_traded) if this_traded > ZERO else self.day_vwap
             valid = min(self.target, self.this_valid)
             this_ffr = (this_traded / valid) if valid > ZERO else 1.0
             if abs(this_ffr - 1.0) < ZERO:
                 this_ffr = 1.0
             this_ffr *= 100
             this_vv_ratio = this_vwap / self.day_vwap
-            vwap = self.raw_df["$vwap0"].values[
-                self.offset : self.max_step_num + self.offset
-            ]
+            vwap = self.raw_df["$vwap0"].values[self.offset : self.max_step_num + self.offset]
             this_tt_ratio = this_vwap / np.nanmean(vwap)
 
             if self.is_buy:
@@ -262,9 +244,7 @@ class StockEnv(gym.Env):
 
             for i, reward_func in enumerate(self.reward_func_list):
                 if not reward_func.isinstant:
-                    tmp_r = reward_func(
-                        performance_raise, this_ffr, this_tt_ratio, self.is_buy
-                    )
+                    tmp_r = reward_func(performance_raise, this_ffr, this_tt_ratio, self.is_buy)
                     reward += tmp_r * self.reward_coef[i]
                     self.reward_log_dict[type(reward_func).__name__] += tmp_r
 
@@ -405,18 +385,14 @@ class StockEnv_Acc(StockEnv):
         self.real_eps_time += time.time() - start_time
         if self.done:
             this_traded = self.target - self.position
-            this_vwap = (
-                (self.this_cash / this_traded) if this_traded > ZERO else self.day_vwap
-            )
+            this_vwap = (self.this_cash / this_traded) if this_traded > ZERO else self.day_vwap
             valid = min(self.target, self.this_valid)
             this_ffr = (this_traded / valid) if valid > ZERO else 1.0
             if abs(this_ffr - 1.0) < ZERO:
                 this_ffr = 1.0
             this_ffr *= 100
             this_vv_ratio = this_vwap / self.day_vwap
-            vwap = self.raw_df["$vwap0"].values[
-                self.offset : self.max_step_num + self.offset
-            ]
+            vwap = self.raw_df["$vwap0"].values[self.offset : self.max_step_num + self.offset]
             this_tt_ratio = this_vwap / np.nanmean(vwap)
 
             if self.is_buy:
@@ -428,9 +404,7 @@ class StockEnv_Acc(StockEnv):
 
             for i, reward_func in enumerate(self.reward_func_list):
                 if not reward_func.isinstant:
-                    tmp_r = reward_func(
-                        performance_raise, this_ffr, this_tt_ratio, self.is_buy
-                    )
+                    tmp_r = reward_func(performance_raise, this_ffr, this_tt_ratio, self.is_buy)
                     reward += tmp_r * self.reward_coef[i]
                     self.reward_log_dict[type(reward_func).__name__] += tmp_r
 

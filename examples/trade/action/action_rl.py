@@ -25,4 +25,3 @@ class Static_Action(Base_Action):
 
         """
         return min(target * self.action_map[action], position)
-

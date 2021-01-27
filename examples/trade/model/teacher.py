@@ -18,24 +18,12 @@ class Teacher_Extractor(nn.Module):
 
         self.rnn = nn.GRU(64, hidden_size, batch_first=True)
         self.rnn2 = nn.GRU(64, hidden_size, batch_first=True)
-        self.dnn = nn.Sequential(
-            nn.Linear(2, 64),
-            nn.ReLU(),
-        )
-        self.cnn = nn.Sequential(
-            nn.Conv1d(self.cnn_shape[1], 3, 3),
-            nn.ReLU(),
-        )
-        self.raw_fc = nn.Sequential(
-            nn.Linear((self.cnn_shape[0] - 2) * 3, 64),
-            nn.ReLU(),
-        )
+        self.dnn = nn.Sequential(nn.Linear(2, 64), nn.ReLU(),)
+        self.cnn = nn.Sequential(nn.Conv1d(self.cnn_shape[1], 3, 3), nn.ReLU(),)
+        self.raw_fc = nn.Sequential(nn.Linear((self.cnn_shape[0] - 2) * 3, 64), nn.ReLU(),)
 
         self.fc = nn.Sequential(
-            nn.Linear(hidden_size * 2, hidden_size),
-            nn.ReLU(),
-            nn.Linear(hidden_size, 32),
-            nn.ReLU(),
+            nn.Linear(hidden_size * 2, hidden_size), nn.ReLU(), nn.Linear(hidden_size, 32), nn.ReLU(),
         )
 
     def forward(self, inp):

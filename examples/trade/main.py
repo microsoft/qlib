@@ -48,11 +48,7 @@ def run(config):
     if config["task"] == "train":
         return executor.train(**config["optim"])
     elif config["task"] == "eval":
-        return executor.eval(
-            config["test_paths"]["order_dir"],
-            save_res=True,
-            logdir=config["log_dir"] + "/test/",
-        )
+        return executor.eval(config["test_paths"]["order_dir"], save_res=True, logdir=config["log_dir"] + "/test/",)
     else:
         raise NotImplementedError
 
@@ -76,9 +72,7 @@ if __name__ == "__main__":
             if "PT_OUTPUT_DIR" in os.environ:
                 config["log_dir"] = os.environ["PT_OUTPUT_DIR"]
             else:
-                log_prefix = (
-                    os.environ["OUTPUT_DIR"] if "OUTPUT_DIR" in os.environ else "../log"
-                )
+                log_prefix = os.environ["OUTPUT_DIR"] if "OUTPUT_DIR" in os.environ else "../log"
                 config["log_dir"] = os.path.join(log_prefix, config["log_dir"])
             config = get_full_config(config, config_path)
             run(config)
@@ -116,32 +110,17 @@ if __name__ == "__main__":
                 redis_server.set(f"{EXP_NAME}_{index}", "Running")
                 print(f"Trail_{index} is running")
                 try:
-                    res = subprocess.run(
-                        [
-                            "python",
-                            "main.py",
-                            "--config",
-                            args.config,
-                            "--index",
-                            str(index),
-                        ],
-                    )
+                    res = subprocess.run(["python", "main.py", "--config", args.config, "--index", str(index),],)
                 except KeyboardInterrupt:
                     redis_server.set(f"{EXP_NAME}_{index}", "Failed")
-                    print(
-                        f"Trail_{index} has failed, {redis_server.llen(EXP_NAME)} trails to run"
-                    )
+                    print(f"Trail_{index} has failed, {redis_server.llen(EXP_NAME)} trails to run")
                     break
                 if res.returncode == 0:
                     redis_server.set(f"{EXP_NAME}_{index}", "Finished")
-                    print(
-                        f"Finish running one trail, {redis_server.llen(EXP_NAME)} trails to run"
-                    )
+                    print(f"Finish running one trail, {redis_server.llen(EXP_NAME)} trails to run")
                 else:
                     redis_server.set(f"{EXP_NAME}_{index}", "Failed")
-                    print(
-                        f"Trail_{index} has failed, {redis_server.llen(EXP_NAME)} trails to run"
-                    )
+                    print(f"Trail_{index} has failed, {redis_server.llen(EXP_NAME)} trails to run")
 
     elif os.path.isfile(config_path):
         assert config_path.endswith(".yml"), "Config file should be an yaml file"
@@ -149,9 +128,7 @@ if __name__ == "__main__":
         with open(config_path, "r") as f:
             config = yaml.load(f, Loader=loader)
         config = get_full_config(config, os.path.dirname(config_path))
-        log_prefix = (
-            os.environ["OUTPUT_DIR"] if "OUTPUT_DIR" in os.environ else "../log"
-        )
+        log_prefix = os.environ["OUTPUT_DIR"] if "OUTPUT_DIR" in os.environ else "../log"
         config["log_dir"] = os.path.join(log_prefix, config["log_dir"])
         run(config)
     else:
