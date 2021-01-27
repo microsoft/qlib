@@ -195,7 +195,7 @@ class HighFreqBacktestHandler(DataHandler):
         fields = []
         names = []
 
-        template_if = "If(Eq({1}, np.nan), {0}, {1})"
+        template_if = "If(IsNull({1}), {0}, {1})"
         template_paused = "Select(Eq($paused, 0.0), {0})"
         # template_paused="{0}"
         template_fillnan = "FFillNan({0})"
