@@ -11,14 +11,9 @@ from tianshou.data import to_torch
 class Attention(nn.Module):
     def __init__(self, in_dim, out_dim):
         super().__init__()
-        self.get_w = nn.Sequential(
-            nn.Linear(in_dim * 2, in_dim), nn.ReLU(), nn.Linear(in_dim, 1)
-        )
+        self.get_w = nn.Sequential(nn.Linear(in_dim * 2, in_dim), nn.ReLU(), nn.Linear(in_dim, 1))
 
-        self.fc = nn.Sequential(
-            nn.Linear(in_dim, out_dim),
-            nn.ReLU(),
-        )
+        self.fc = nn.Sequential(nn.Linear(in_dim, out_dim), nn.ReLU(),)
 
     def forward(self, value, key):
         key = key.unsqueeze(dim=1)
@@ -34,14 +29,9 @@ class Attention(nn.Module):
 class MaskAttention(nn.Module):
     def __init__(self, in_dim, out_dim):
         super().__init__()
-        self.get_w = nn.Sequential(
-            nn.Linear(in_dim * 2, in_dim), nn.ReLU(), nn.Linear(in_dim, 1)
-        )
+        self.get_w = nn.Sequential(nn.Linear(in_dim * 2, in_dim), nn.ReLU(), nn.Linear(in_dim, 1))
 
-        self.fc = nn.Sequential(
-            nn.Linear(in_dim, out_dim),
-            nn.ReLU(),
-        )
+        self.fc = nn.Sequential(nn.Linear(in_dim, out_dim), nn.ReLU(),)
 
     def forward(self, value, key, seq_len, maxlen=9):
         # seq_len: (batch,)
@@ -61,14 +51,9 @@ class MaskAttention(nn.Module):
 class TFMaskAttention(nn.Module):
     def __init__(self, in_dim, out_dim):
         super().__init__()
-        self.get_w = nn.Sequential(
-            nn.Linear(in_dim * 2, in_dim), nn.ReLU(), nn.Linear(in_dim, 1)
-        )
+        self.get_w = nn.Sequential(nn.Linear(in_dim * 2, in_dim), nn.ReLU(), nn.Linear(in_dim, 1))
 
-        self.fc = nn.Sequential(
-            nn.Linear(in_dim, out_dim),
-            nn.ReLU(),
-        )
+        self.fc = nn.Sequential(nn.Linear(in_dim, out_dim), nn.ReLU(),)
 
     def forward(self, value, key, seq_len, maxlen=9):
         device = value.device
@@ -155,14 +140,10 @@ class DARNN(nn.Module):
     def forward(self, inputs):
         inputs = inputs.view(-1, self.input_length, self.input_size)  # [B, T, F]
         today_input = inputs[:, : self.today_length, :]
-        today_input = torch.cat(
-            (torch.zeros_like(today_input[:, :1, :]), today_input), dim=1
-        )
+        today_input = torch.cat((torch.zeros_like(today_input[:, :1, :]), today_input), dim=1)
         prev_input = inputs[:, 240 : 240 + self.prev_length, :]
         if self.emb_dim != 0:
-            embedding = self.pos_emb(
-                torch.arange(end=self.today_length + 1, device=inputs.device)
-            )
+            embedding = self.pos_emb(torch.arange(end=self.today_length + 1, device=inputs.device))
             embedding = embedding.repeat([today_input.size()[0], 1, 1])
             today_input = torch.cat((today_input, embedding), dim=-1)
         prev_outs, _ = self.prev_rnn(prev_input)
@@ -205,8 +186,6 @@ def onehot_enc(y, len):
 def sequence_mask(lengths, maxlen=None, dtype=torch.bool, device=None):
     if maxlen is None:
         maxlen = lengths.max()
-    mask = ~(
-        torch.ones((len(lengths), maxlen), device=device).cumsum(dim=1).t() > lengths
-    ).t()
+    mask = ~(torch.ones((len(lengths), maxlen), device=device).cumsum(dim=1).t() > lengths).t()
     mask.type(dtype)
     return mask

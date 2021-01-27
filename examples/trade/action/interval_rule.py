@@ -24,6 +24,7 @@ class Rule_Static_Interval(Base_Action):
         """
         return target / (interval_num) * action
 
+
 class Rule_Dynamic_Interval(Base_Action):
     """ """
 

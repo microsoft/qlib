@@ -16,9 +16,7 @@ def nan_weighted_avg(vals, weights, axis=None):
     :param axis: On which axis to calculate the weighted avrage. (Default value = None)
 
     """
-    assert vals.shape == weights.shape, AssertionError(
-        f"{vals.shape} & {weights.shape}"
-    )
+    assert vals.shape == weights.shape, AssertionError(f"{vals.shape} & {weights.shape}")
     vals = vals.copy()
     weights = weights.copy()
     res = (vals * weights).sum(axis=axis) / weights.sum(axis=axis)
@@ -53,11 +51,7 @@ def merge_dicts(d1, d2):
 
 
 def deep_update(
-    original,
-    new_dict,
-    new_keys_allowed=False,
-    whitelist=None,
-    override_all_if_type_changes=None,
+    original, new_dict, new_keys_allowed=False, whitelist=None, override_all_if_type_changes=None,
 ):
     """Updates original dict with values from new_dict recursively.
     If new key is introduced in new_dict, then if new_keys_allowed is not
@@ -140,18 +134,9 @@ def generate_seq(seqlen, list):
     maxlen = np.max(seqlen)
     for i in seqlen:
         if isinstance(list, torch.Tensor):
-            res.append(
-                torch.cat(
-                    (list[index : index + i], torch.zeros_like(list[: maxlen - i])),
-                    dim=0,
-                )
-            )
+            res.append(torch.cat((list[index : index + i], torch.zeros_like(list[: maxlen - i])), dim=0,))
         else:
-            res.append(
-                np.concatenate(
-                    (list[index : index + i], np.zeros_like(list[: maxlen - i])), axis=0
-                )
-            )
+            res.append(np.concatenate((list[index : index + i], np.zeros_like(list[: maxlen - i])), axis=0))
         index += i
     if isinstance(list, torch.Tensor):
         res = torch.stack(res, dim=0)
@@ -298,9 +283,7 @@ def to_torch(
     return x
 
 
-def to_torch_as(
-    x: Union[torch.Tensor, dict, Batch, np.ndarray], y: torch.Tensor
-) -> Union[dict, Batch, torch.Tensor]:
+def to_torch_as(x: Union[torch.Tensor, dict, Batch, np.ndarray], y: torch.Tensor) -> Union[dict, Batch, torch.Tensor]:
     """
 
     :param x: Union[torch.Tensor:

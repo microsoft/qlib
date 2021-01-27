@@ -48,15 +48,7 @@ def setup_seed(seed):
 
 class BaseExecutor(object):
     def __init__(
-        self,
-        log_dir,
-        resources,
-        env_conf,
-        optim=None,
-        policy_conf=None,
-        network=None,
-        policy_path=None,
-        seed=None,
+        self, log_dir, resources, env_conf, optim=None, policy_conf=None, network=None, policy_path=None, seed=None,
     ):
         """A base class for executor
 
@@ -88,9 +80,7 @@ class BaseExecutor(object):
         if seed:
             setup_seed(seed)
 
-        assert (
-            not policy_path is None or not policy_conf is None
-        ), "Policy must be defined"
+        assert not policy_path is None or not policy_conf is None, "Policy must be defined"
         if policy_path:
             self.policy = torch.load(policy_path, map_location=self.device)
             self.policy.actor.extractor.device = self.device
@@ -106,17 +96,11 @@ class BaseExecutor(object):
                     device=self.device, **network["config"]
                 )
             else:
-                net = getattr(model, network["name"] + "_Extractor")(
-                    device=self.device, **network["config"]
-                )
+                net = getattr(model, network["name"] + "_Extractor")(device=self.device, **network["config"])
             net.to(self.device)
-            actor = getattr(model, network["name"] + "_Actor")(
-                extractor=net, device=self.device, **network["config"]
-            )
+            actor = getattr(model, network["name"] + "_Actor")(extractor=net, device=self.device, **network["config"])
             actor.to(self.device)
-            critic = getattr(model, network["name"] + "_Critic")(
-                extractor=net, device=self.device, **network["config"]
-            )
+            critic = getattr(model, network["name"] + "_Critic")(extractor=net, device=self.device, **network["config"])
             critic.to(self.device)
             self.optim = torch.optim.Adam(
                 list(actor.parameters()) + list(critic.parameters()),
@@ -162,9 +146,7 @@ class BaseExecutor(object):
         """
         raise NotImplementedError
 
-    def train_round(
-        self, repeat_per_collect, collect_per_step, batch_size, *args, **kargs
-    ):
+    def train_round(self, repeat_per_collect, collect_per_step, batch_size, *args, **kargs):
         """Do an round of training
 
         :param collect_per_step: Number of episodes to collect before one bp.
@@ -228,29 +210,18 @@ class Executor(BaseExecutor):
         :param buffer_size: The size of replay buffer, defaults to 200000
         :type buffer_size: int, optional
         """
-        super().__init__(
-            log_dir, resources, env_conf, optim, policy_conf, network, policy_path, seed
-        )
+        super().__init__(log_dir, resources, env_conf, optim, policy_conf, network, policy_path, seed)
         single_env = getattr(env, env_conf["name"])
         env_conf = merge_dicts(env_conf, train_paths)
         env_conf["log"] = True
         print("CPU_COUNT:", resources["num_cpus"])
         if share_memory:
-            self.env = ShmemVectorEnv(
-                [lambda: single_env(env_conf) for _ in range(resources["num_cpus"])]
-            )
+            self.env = ShmemVectorEnv([lambda: single_env(env_conf) for _ in range(resources["num_cpus"])])
         else:
-            self.env = SubprocVectorEnv(
-                [lambda: single_env(env_conf) for _ in range(resources["num_cpus"])]
-            )
-        self.test_collector = Collector(
-            policy=self.policy, env=self.env, testing=True, reward_metric=np.sum
-        )
+            self.env = SubprocVectorEnv([lambda: single_env(env_conf) for _ in range(resources["num_cpus"])])
+        self.test_collector = Collector(policy=self.policy, env=self.env, testing=True, reward_metric=np.sum)
         self.train_collector = Collector(
-            self.policy,
-            self.env,
-            buffer=ts.data.ReplayBuffer(buffer_size),
-            reward_metric=np.sum,
+            self.policy, self.env, buffer=ts.data.ReplayBuffer(buffer_size), reward_metric=np.sum,
         )
         self.train_paths = train_paths
         self.test_paths = test_paths
@@ -259,9 +230,7 @@ class Executor(BaseExecutor):
         train_sampler_conf["features"] = env_conf["features"]
         test_sampler_conf = test_paths
         test_sampler_conf["features"] = env_conf["features"]
-        self.train_sampler = getattr(sampler, io_conf["train_sampler"])(
-            train_sampler_conf
-        )
+        self.train_sampler = getattr(sampler, io_conf["train_sampler"])(train_sampler_conf)
         self.test_sampler = getattr(sampler, io_conf["test_sampler"])(test_sampler_conf)
         self.train_logger = logger.InfoLogger()
         self.test_logger = getattr(logger, io_conf["test_logger"])
@@ -286,32 +255,23 @@ class Executor(BaseExecutor):
         best_epoch, best_reward = -1, -1
         stat = {}
         for epoch in range(1, 1 + max_epoch):
-            with tqdm.tqdm(
-                total=step_per_epoch, desc=f"Epoch #{epoch}", **tqdm_config
-            ) as t:
+            with tqdm.tqdm(total=step_per_epoch, desc=f"Epoch #{epoch}", **tqdm_config) as t:
                 while t.n < t.total:
-                    result, losses = self.train_round(
-                        repeat_per_collect, collect_per_step, batch_size, iteration
-                    )
+                    result, losses = self.train_round(repeat_per_collect, collect_per_step, batch_size, iteration)
                     global_step += result["n/st"]
                     iteration += 1
                     for k in result.keys():
-                        self.writer.add_scalar(
-                            "Train/" + k, result[k], global_step=global_step
-                        )
+                        self.writer.add_scalar("Train/" + k, result[k], global_step=global_step)
                     for k in losses.keys():
                         if stat.get(k) is None:
                             stat[k] = MovAvg()
                         stat[k].add(losses[k])
-                        self.writer.add_scalar(
-                            "Train/" + k, stat[k].get(), global_step=global_step
-                        )
+                        self.writer.add_scalar("Train/" + k, stat[k].get(), global_step=global_step)
                     t.update(1)
             if t.n <= t.total:
                 t.update()
             result = self.eval(
-                self.valid_paths["order_dir"],
-                logdir=f"{self.log_dir}/valid/{iteration}/" if log_valid else None,
+                self.valid_paths["order_dir"], logdir=f"{self.log_dir}/valid/{iteration}/" if log_valid else None,
             )
             for k in result.keys():
                 self.writer.add_scalar("Valid/" + k, result[k], global_step=global_step)
@@ -333,31 +293,22 @@ class Executor(BaseExecutor):
                 break
         print("Testing...")
         self.policy.load_state_dict(best_state)
-        result = self.eval(
-            self.test_paths["order_dir"], logdir=f"{self.log_dir}/test/", save_res=True
-        )
+        result = self.eval(self.test_paths["order_dir"], logdir=f"{self.log_dir}/test/", save_res=True)
         for k in result.keys():
             self.writer.add_scalar("Test/" + k, result[k], global_step=global_step)
         return result
 
-    def train_round(
-        self, repeat_per_collect, collect_per_step, batch_size, *args, **kargs
-    ):
+    def train_round(self, repeat_per_collect, collect_per_step, batch_size, *args, **kargs):
         self.policy.train()
         self.env.toggle_log(False)
         self.env.sampler = self.train_sampler
         if not self.q_learning:
             self.train_collector.reset()
-        result = self.train_collector.collect(
-            n_episode=collect_per_step, log_fn=self.train_logger
-        )
+        result = self.train_collector.collect(n_episode=collect_per_step, log_fn=self.train_logger)
         result = merge_dicts(result, self.train_logger.summary())
         if not self.q_learning:
             losses = self.policy.update(
-                0,
-                self.train_collector.buffer,
-                batch_size=batch_size,
-                repeat=repeat_per_collect,
+                0, self.train_collector.buffer, batch_size=batch_size, repeat=repeat_per_collect,
             )
         else:
             losses = self.policy.update(batch_size, self.train_collector.buffer,)

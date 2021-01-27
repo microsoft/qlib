@@ -58,40 +58,27 @@ class PPO_sup(PGPolicy):
         self._batch = 64
         assert 0 <= gae_lambda <= 1, "GAE lambda should be in [0, 1]."
         self._lambda = gae_lambda
-        assert (
-            dual_clip is None or dual_clip > 1
-        ), "Dual-clip PPO parameter should greater than 1."
+        assert dual_clip is None or dual_clip > 1, "Dual-clip PPO parameter should greater than 1."
         self._dual_clip = dual_clip
         self._value_clip = value_clip
         self._rew_norm = reward_normalization
 
-    def process_fn(
-        self, batch: Batch, buffer: ReplayBuffer, indice: np.ndarray
-    ) -> Batch:
+    def process_fn(self, batch: Batch, buffer: ReplayBuffer, indice: np.ndarray) -> Batch:
         if self._rew_norm:
             mean, std = batch.rew.mean(), batch.rew.std()
             if not np.isclose(std, 0):
                 batch.rew = (batch.rew - mean) / std
         if self._lambda in [0, 1]:
-            return self.compute_episodic_return(
-                batch, None, gamma=self._gamma, gae_lambda=self._lambda
-            )
+            return self.compute_episodic_return(batch, None, gamma=self._gamma, gae_lambda=self._lambda)
         else:
             v_ = []
             with torch.no_grad():
                 for b in batch.split(self._batch, shuffle=False):
                     v_.append(self.critic(b.obs_next))
             v_ = to_numpy(torch.cat(v_, dim=0))
-            return self.compute_episodic_return(
-                batch, v_, gamma=self._gamma, gae_lambda=self._lambda
-            )
+            return self.compute_episodic_return(batch, v_, gamma=self._gamma, gae_lambda=self._lambda)
 
-    def forward(
-        self,
-        batch: Batch,
-        state: Optional[Union[dict, Batch, np.ndarray]] = None,
-        **kwargs
-    ) -> Batch:
+    def forward(self, batch: Batch, state: Optional[Union[dict, Batch, np.ndarray]] = None, **kwargs) -> Batch:
         logits, h = self.actor(batch.obs, state=state, info=batch.info)
         if isinstance(logits, tuple):
             dist = self.dist_fn(*logits)
@@ -105,9 +92,7 @@ class PPO_sup(PGPolicy):
             act = act.clamp(self._range[0], self._range[1])
         return Batch(logits=logits, act=act, state=h, dist=dist)
 
-    def learn(
-        self, batch: Batch, batch_size: int, repeat: int, **kwargs
-    ) -> Dict[str, List[float]]:
+    def learn(self, batch: Batch, batch_size: int, repeat: int, **kwargs) -> Dict[str, List[float]]:
         self._batch = batch_size
         losses, clip_losses, vf_losses, ent_losses, kl_losses, supervision_losses = (
             [],
@@ -156,16 +141,12 @@ class PPO_sup(PGPolicy):
                 surr1 = ratio * b.adv
                 surr2 = ratio.clamp(1.0 - self._eps_clip, 1.0 + self._eps_clip) * b.adv
                 if self._dual_clip:
-                    clip_loss = -torch.max(
-                        torch.min(surr1, surr2), self._dual_clip * b.adv
-                    ).mean()
+                    clip_loss = -torch.max(torch.min(surr1, surr2), self._dual_clip * b.adv).mean()
                 else:
                     clip_loss = -torch.min(surr1, surr2).mean()
                 clip_losses.append(clip_loss.item())
                 if self._value_clip:
-                    v_clip = b.v + (value - b.v).clamp(
-                        -self._vf_clip_para, self._vf_clip_para
-                    )
+                    v_clip = b.v + (value - b.v).clamp(-self._vf_clip_para, self._vf_clip_para)
                     vf1 = (b.returns - value).pow(2)
                     vf2 = (b.returns - v_clip).pow(2)
                     vf_loss = torch.max(vf1, vf2).mean()
@@ -173,27 +154,19 @@ class PPO_sup(PGPolicy):
                     vf_loss = (b.returns - value).pow(2).mean()
                 supervision_loss = F.nll_loss(logits.log(), b.teacher_action)
                 supervision_losses.append(supervision_loss.item())
-                kl = torch.distributions.kl.kl_divergence(
-                    self.dist_fn(b.old_logits), dist
-                )
+                kl = torch.distributions.kl.kl_divergence(self.dist_fn(b.old_logits), dist)
                 kl_loss = kl.mean()
                 kl_losses.append(kl_loss.item())
                 vf_losses.append(vf_loss.item())
                 e_loss = dist.entropy().mean()
                 ent_losses.append(e_loss.item())
-                loss = (
-                    clip_loss
-                    + self._w_vf * vf_loss
-                    - self._w_ent * e_loss
-                    + self.kl_coef * kl_loss
-                )
+                loss = clip_loss + self._w_vf * vf_loss - self._w_ent * e_loss + self.kl_coef * kl_loss
                 loss += self.sup_coef * supervision_loss
                 losses.append(loss.item())
                 self.optim.zero_grad()
                 loss.backward()
                 nn.utils.clip_grad_norm_(
-                    list(self.actor.parameters()) + list(self.critic.parameters()),
-                    self._max_grad_norm,
+                    list(self.actor.parameters()) + list(self.critic.parameters()), self._max_grad_norm,
                 )
                 self.optim.step()
                 if hasattr(self.actor, "callback"):

@@ -52,24 +52,18 @@ class DFLogger(object):
                         summary[k + "_mean"] = np.nanmean(v)
                 try:
                     for k in ["PR_sell", "ffr_sell", "PA_sell"]:
-                        summary["weighted_" + k] = np.average(
-                            stat_cache[k], weights=stat_cache["money_sell"]
-                        )
+                        summary["weighted_" + k] = np.average(stat_cache[k], weights=stat_cache["money_sell"])
                 except:
                     # summary["weighted_" + k] = np.average(stat_cache[k], weights=stat_cache['money_sell'])
                     pass
                 try:
                     for k in ["PR_buy", "ffr_buy", "PA_buy"]:
-                        summary["weighted_" + k] = np.average(
-                            stat_cache[k], weights=stat_cache["money_buy"]
-                        )
+                        summary["weighted_" + k] = np.average(stat_cache[k], weights=stat_cache["money_buy"])
                 except:
                     pass
                 try:
                     for k in ["obs0_PR", "ffr", "PA"]:
-                        summary["weighted_" + k] = np.average(
-                            stat_cache[k], weights=stat_cache["money"]
-                        )
+                        summary["weighted_" + k] = np.average(stat_cache[k], weights=stat_cache["money"])
                 except:
                     pass
                 summary["GLR"] = GLR(stat_cache["PA"])
@@ -114,11 +108,7 @@ class DFLogger(object):
         while not self.queue.empty():
             self.queue.get()
         assert self.queue.empty()
-        self.child = Process(
-            target=self._worker,
-            args=(self.log_dir, self.order_dir, self.queue),
-            daemon=True,
-        )
+        self.child = Process(target=self._worker, args=(self.log_dir, self.order_dir, self.queue), daemon=True,)
         self.child.start()
 
     def set_step(self, step):
@@ -170,23 +160,17 @@ class InfoLogger(DFLogger):
                         summary[k + "_mean"] = np.nanmean(v)
                 try:
                     for k in ["PR_sell", "ffr_sell", "PA_sell"]:
-                        summary["weighted_" + k] = np.average(
-                            stat_cache[k], weights=stat_cache["money_sell"]
-                        )
+                        summary["weighted_" + k] = np.average(stat_cache[k], weights=stat_cache["money_sell"])
                 except:
                     pass
                 try:
                     for k in ["PR_buy", "ffr_buy", "PA_buy"]:
-                        summary["weighted_" + k] = np.average(
-                            stat_cache[k], weights=stat_cache["money_buy"]
-                        )
+                        summary["weighted_" + k] = np.average(stat_cache[k], weights=stat_cache["money_buy"])
                 except:
                     pass
                 try:
                     for k in ["obs0_PR", "ffr", "PA"]:
-                        summary["weighted_" + k] = np.average(
-                            stat_cache[k], weights=stat_cache["money"]
-                        )
+                        summary["weighted_" + k] = np.average(stat_cache[k], weights=stat_cache["money"])
                 except:
                     pass
                 summary["GLR"] = GLR(stat_cache["PA"])
