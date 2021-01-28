@@ -1,0 +1,2 @@
+# Universal Trading for Order Execution with Oracle Policy Distillation
+This is the experiment code for our AAAI 2021 paper "[Universal Trading for Order Execution with Oracle Policy Distillation](https://seqml.github.io/opd/paper.pdf)", including the implementation of all compared method in the paper and a general reinforcement learning framework for order execution. 
