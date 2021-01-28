@@ -272,9 +272,9 @@ Dataset plays a very important role in Quant. Here is a list of the datasets bui
 Your PR to build new Quant dataset is highly welcomed.
 
 # High-Frequency Execution
-High-frequency order execution is a very important problem in the financial market.
-It aims to maximize the profit of order execution by intraday timing.
-AI has the potential to mine patterns from a huge mass of high-frequency trading data and helps users make better decisions during intraday trading.
+High-frequency order execution is a fundamental problem in quantitative finance.
+It aims at fulfilling a specific trading order, either liquidation or acquirement, for a given instrument.
+AI has the potential to mine patterns from a huge mass of high-frequency market data and helps traders make better decisions during order execution.
 Here is a list of solutions built on `Qlib`.
 - [Universal Trading for Order Execution with Oracle Policy Distillation](examples/trade/)
 
