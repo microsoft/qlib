@@ -27,7 +27,7 @@ if __name__ == "__main__":
         print(f"Qlib data is not found in {provider_uri}")
         GetData().qlib_data(target_dir=provider_uri, region=REG_CN)
 
-    qlib.init(provider_uri=provider_uri, region=REG_CN, redis_port=-1)
+    qlib.init(provider_uri=provider_uri, region=REG_CN)
 
     market = "csi300"
     benchmark = "SH000300"
