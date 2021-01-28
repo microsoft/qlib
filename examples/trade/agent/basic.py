@@ -1,5 +1,3 @@
-from joblib import Parallel, delayed
-from numba import njit, prange
 from tianshou.policy import BasePolicy
 from tianshou.data import Batch
 import numpy as np
@@ -67,5 +65,7 @@ class AC(VWAP):
         t = t + 1
         k_tild = self.lamb / self.eta * sig * sig
         k = np.arccosh(k_tild / 2 + 1)
-        act = (np.sinh(k * (self.T - t)) - np.sinh(k * (self.T - t - 1))) / np.sinh(k * self.T)
+        act = (np.sinh(k * (self.T - t)) - np.sinh(k * (self.T - t - 1))) / np.sinh(
+            k * self.T
+        )
         return Batch(act=act, state=state)
