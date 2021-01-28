@@ -26,7 +26,7 @@ class HighFreqNorm(Processor):
             if name == "volume":
                 part_values = np.log1p(part_values)
             self.feature_med[name] = np.nanmedian(part_values)
-            part_values = part_values - self.feature_med[name]  # mean, copy
+            part_values = part_values - self.feature_med[name]
             self.feature_std[name] = np.nanmedian(np.absolute(part_values)) * 1.4826 + 1e-12
             part_values = part_values / self.feature_std[name]
             self.feature_vmax[name] = np.nanmax(part_values)
@@ -41,23 +41,27 @@ class HighFreqNorm(Processor):
         }
 
         for name, name_val in names.items():
-            part_values = df_values[:, name_val]
             if name == "volume":
-                part_values[:] = np.log1p(part_values)
-            part_values -= self.feature_med[name]
-            part_values /= self.feature_std[name]
-            slice0 = part_values > 3.0
-            slice1 = part_values > 3.5
-            slice2 = part_values < -3.0
-            slice3 = part_values < -3.5
+                df_values[:, name_val] = np.log1p(df_values[:, name_val])
+            df_values[:, name_val] -= self.feature_med[name]
+            df_values[:, name_val] /= self.feature_std[name]
+            slice0 = df_values[:, name_val] > 3.0
+            slice1 = df_values[:, name_val] > 3.5
+            slice2 = df_values[:, name_val] < -3.0
+            slice3 = df_values[:, name_val] < -3.5
 
-            part_values[slice0] = 3.0 + (part_values[slice0] - 3.0) / (self.feature_vmax[name] - 3) * 0.5
-            part_values[slice1] = 3.5
-            part_values[slice2] = -3.0 - (part_values[slice2] + 3.0) / (self.feature_vmin[name] + 3) * 0.5
-            part_values[slice3] = -3.5
-        # print("start_call_feature_reshape")
+            df_values[:, name_val][slice0] = (
+                3.0 + (df_values[:, name_val][slice0] - 3.0) / (self.feature_vmax[name] - 3) * 0.5
+            )
+            df_values[:, name_val][slice1] = 3.5
+            df_values[:, name_val][slice2] = (
+                -3.0 - (df_values[:, name_val][slice2] + 3.0) / (self.feature_vmin[name] + 3) * 0.5
+            )
+            df_values[:, name_val][slice3] = -3.5
         idx = df_features.index.droplevel("datetime").drop_duplicates()
         idx.set_names(["instrument", "datetime"], inplace=True)
+
+        # Reshape is specifically for adapting to RL high-freq executor
         feat = df_values[:, [0, 1, 2, 3, 4, 10]].reshape(-1, 6 * 240)
         feat_1 = df_values[:, [5, 6, 7, 8, 9, 11]].reshape(-1, 6 * 240)
         df_new_features = pd.DataFrame(

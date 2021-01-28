@@ -88,15 +88,8 @@ class DatasetH(Dataset):
         super().__init__(handler, segments)
 
     def init(self, **kwargs):
-
-        logger = get_module_logger("DatasetH")
-        handler_init_kwargs = {}
-        for arg_key, arg_value in kwargs.items():
-            if arg_key in getfullargspec(self.handler.init).args:
-                handler_init_kwargs[arg_key] = arg_value
-            else:
-                logger.info(f"init arguments[{arg_key}] is ignored.")
-        self.handler.init(**handler_init_kwargs)
+        """Initialize the DatasetH, Only parameters belonging to handler.init will be passed in"""
+        self.handler.init(**kwargs)
 
     def setup_data(self, handler: Union[dict, DataHandler], segments: list):
         """

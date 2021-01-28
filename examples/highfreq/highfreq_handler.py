@@ -56,88 +56,44 @@ class HighFreqHandler(DataHandlerLP):
 
         template_if = "If(IsNull({1}), {0}, {1})"
         template_paused = "Select(Or(IsNull($paused), Eq($paused, 0.0)), {0})"
-        # template_paused="{0}"
-        template_fillnan = "FFillNan({0})"
+        template_fillnan = "BFillNan(FFillNan({0}))"
+        # Because there is no vwap field in the yahoo data, a method similar to Simpson integration is used to approximate vwap
         simpson_vwap = "($open + 2*$high + 2*$low + $close)/6"
-        fields += [
-            "{0}/Ref(DayLast({1}), 240)".format(
+
+        def get_04_price_feature(price_field):
+            """Get 0~4 column price feature ops"""
+            feature_ops = "{0}/Ref(DayLast({1}), 240)".format(
                 template_if.format(
                     template_fillnan.format(template_paused.format("$close")),
-                    template_paused.format("$open"),
+                    template_paused.format(price_field),
                 ),
                 template_fillnan.format(template_paused.format("$close")),
             )
-        ]
-        fields += [
-            "{0}/Ref(DayLast({1}), 240)".format(
-                template_if.format(
-                    template_fillnan.format(template_paused.format("$close")),
-                    template_paused.format("$high"),
-                ),
-                template_fillnan.format(template_paused.format("$close")),
-            )
-        ]
-        fields += [
-            "{0}/Ref(DayLast({1}), 240)".format(
-                template_if.format(
-                    template_fillnan.format(template_paused.format("$close")),
-                    template_paused.format("$low"),
-                ),
-                template_fillnan.format(template_paused.format("$close")),
-            )
-        ]
-        fields += ["{0}/Ref(DayLast({0}), 240)".format(template_fillnan.format(template_paused.format("$close")))]
-        fields += [
-            "{0}/Ref(DayLast({1}), 240)".format(
-                template_if.format(
-                    template_fillnan.format(template_paused.format("$close")),
-                    template_paused.format(simpson_vwap),
-                ),
-                template_fillnan.format(template_paused.format("$close")),
-            )
-        ]
+            return feature_ops
+
+        fields += [get_04_price_feature("$open")]
+        fields += [get_04_price_feature("$high")]
+        fields += [get_04_price_feature("$low")]
+        fields += [get_04_price_feature("$close")]
+        fields += [get_04_price_feature(simpson_vwap)]
         names += ["$open", "$high", "$low", "$close", "$vwap"]
 
-        fields += [
-            "Ref({0}, 240)/Ref(DayLast({1}), 240)".format(
+        def get_59_price_feature(price_field):
+            """Get 5~9 column price feature ops"""
+            feature_ops = "Ref({0}, 240)/Ref(DayLast({1}), 240)".format(
                 template_if.format(
                     template_fillnan.format(template_paused.format("$close")),
-                    template_paused.format("$open"),
+                    template_paused.format(price_field),
                 ),
                 template_fillnan.format(template_paused.format("$close")),
             )
-        ]
-        fields += [
-            "Ref({0}, 240)/Ref(DayLast({1}), 240)".format(
-                template_if.format(
-                    template_fillnan.format(template_paused.format("$close")),
-                    template_paused.format("$high"),
-                ),
-                template_fillnan.format(template_paused.format("$close")),
-            )
-        ]
-        fields += [
-            "Ref({0}, 240)/Ref(DayLast({1}), 240)".format(
-                template_if.format(
-                    template_fillnan.format(template_paused.format("$close")),
-                    template_paused.format("$low"),
-                ),
-                template_fillnan.format(template_paused.format("$close")),
-            )
-        ]
-        fields += [
-            "Ref({0}, 240)/Ref(DayLast({0}), 240)".format(template_fillnan.format(template_paused.format("$close")))
-        ]
+            return feature_ops
 
-        fields += [
-            "Ref({0}, 240)/Ref(DayLast({1}), 240)".format(
-                template_if.format(
-                    template_fillnan.format(template_paused.format("$close")),
-                    template_paused.format(simpson_vwap),
-                ),
-                template_fillnan.format(template_paused.format("$close")),
-            )
-        ]
+        fields += [get_59_price_feature("$open")]
+        fields += [get_59_price_feature("$high")]
+        fields += [get_59_price_feature("$low")]
+        fields += [get_59_price_feature("$close")]
+        fields += [get_59_price_feature(simpson_vwap)]
         names += ["$open_1", "$high_1", "$low_1", "$close_1", "$vwap_1"]
 
         fields += [
@@ -197,19 +153,20 @@ class HighFreqBacktestHandler(DataHandler):
 
         template_if = "If(IsNull({1}), {0}, {1})"
         template_paused = "Select(Or(IsNull($paused), Eq($paused, 0.0)), {0})"
-        # template_paused="{0}"
-        template_fillnan = "FFillNan({0})"
+        template_fillnan = "BFillNan(FFillNan({0}))"
+        # Because there is no vwap field in the yahoo data, a method similar to Simpson integration is used to approximate vwap
         simpson_vwap = "($open + 2*$high + 2*$low + $close)/6"
-        # fields += [
-        #    template_fillnan.format(template_paused.format("$close")),
-        # ]
+        fields += [
+            template_fillnan.format(template_paused.format("$close")),
+        ]
+        names += ["$close0"]
         fields += [
             template_if.format(
                 template_fillnan.format(template_paused.format("$close")),
                 template_paused.format(simpson_vwap),
             )
         ]
-        names += ["$vwap_0"]
+        names += ["$vwap0"]
         fields += [
             "If(IsNull({0}), 0, If(Or(Gt({1}, Mul(1.001, {3})), Lt({1}, Mul(0.999, {2}))), 0, {0}))".format(
                 template_paused.format("$volume"),
@@ -218,6 +175,6 @@ class HighFreqBacktestHandler(DataHandler):
                 template_paused.format("$high"),
             )
         ]
-        names += ["$volume_0"]
+        names += ["$volume0"]
 
         return fields, names

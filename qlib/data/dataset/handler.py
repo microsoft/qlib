@@ -428,13 +428,11 @@ class DataHandlerLP(DataHandler):
         # TODO: Be able to cache handler data. Save the memory for data processing
 
     def _get_df_by_key(self, data_key: str = DK_I) -> pd.DataFrame:
-        try:
-            df = getattr(self, {self.DK_R: "_data", self.DK_I: "_infer", self.DK_L: "_learn"}[data_key])
-        except AttributeError:
-            print("please set drop_raw = False if you want to use raw data")
-            raise
-        except:
-            raise
+        if data_key == self.DK_R and self.drop_raw:
+            raise AttributeError(
+                "DataHandlerLP has not attribute _data, please set drop_raw = False if you want to use raw data"
+            )
+        df = getattr(self, {self.DK_R: "_data", self.DK_I: "_infer", self.DK_L: "_learn"}[data_key])
         return df
 
     def fetch(

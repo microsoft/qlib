@@ -193,6 +193,12 @@ MODE_CONF = {
     },
 }
 
+HIGH_FREQ_CONFIG = {
+    "provider_uri": "~/.qlib/qlib_data/yahoo_cn_1min",
+    "dataset_cache": None,
+    "expression_cache": "DiskExpressionCache",
+    "region": REG_CN,
+}
 
 _default_region_config = {
     REG_CN: {

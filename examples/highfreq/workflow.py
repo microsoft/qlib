@@ -2,13 +2,14 @@
 #  Licensed under the MIT License.
 
 import sys
+import fire
 from pathlib import Path
 
 import qlib
 import pickle
 import numpy as np
 import pandas as pd
-from qlib.config import REG_CN
+from qlib.config import HIGH_FREQ_CONFIG
 from qlib.contrib.model.gbdt import LGBModel
 from qlib.contrib.data.handler import Alpha158
 from qlib.contrib.strategy.strategy import TopkDropoutStrategy
@@ -23,42 +24,22 @@ from qlib.data.ops import Operators
 from qlib.data.data import Cal
 from qlib.utils import exists_qlib_data
 
-from highfreq_ops import DayFirst, DayLast, FFillNan, Date, Select, IsNull
+from highfreq_ops import get_calendar_day, DayLast, FFillNan, BFillNan, Date, Select, IsNull
 
-if __name__ == "__main__":
 
-    # use yahoo_cn_1min data
-    provider_uri = "~/.qlib/qlib_data/yahoo_cn_1min"
-    if not exists_qlib_data(provider_uri):
-        print(f"Qlib data is not found in {provider_uri}")
-        sys.path.append(str(Path(__file__).resolve().parent.parent.parent.joinpath("scripts")))
-        from get_data import GetData
+class HighfreqWorkflow(object):
 
-        GetData().qlib_data(target_dir=provider_uri, interval="1min", region=REG_CN)
-
-    qlib.init(
-        provider_uri=provider_uri,
-        custom_ops=[DayFirst, DayLast, FFillNan, Date, Select, IsNull],
-        redis_port=-1,
-        region=REG_CN,
-        auto_mount=False,
-    )
+    SPEC_CONF = {"custom_ops": [DayLast, FFillNan, BFillNan, Date, Select, IsNull], "expression_cache": None}
 
     MARKET = "all"
     BENCHMARK = "SH000300"
     DROP_LOAD_DATASET = False  # flag wether to test [drop and load dataset]
 
-    # start_time = "2019-01-01 00:00:00"
-    # end_time = "2019-12-31 15:00:00"
-    # train_end_time = "2019-05-31 15:00:00"
-    # test_start_time = "2019-06-01 00:00:00"
     start_time = "2020-09-14 00:00:00"
     end_time = "2021-01-18 16:00:00"
     train_end_time = "2020-11-30 16:00:00"
     test_start_time = "2020-12-01 00:00:00"
-    ###################################
-    # train model
-    ###################################
+
     DATA_HANDLER_CONFIG0 = {
         "start_time": start_time,
         "end_time": end_time,
@@ -94,8 +75,6 @@ if __name__ == "__main__":
                 },
             },
         },
-        # You shoud record the data in specific sequence
-        # "record": ['SignalRecord', 'SigAnaRecord', 'PortAnaRecord'],
         "dataset_backtest": {
             "class": "DatasetH",
             "module_path": "qlib.data.dataset",
@@ -115,26 +94,50 @@ if __name__ == "__main__":
             },
         },
     }
-    ##=============load the calendar for cache=============
-    # unnecessary, but may accelerate
-    Cal.calendar(freq="1min")  # load the calendar for cache
-    Cal.get_calendar_day(freq="1min")  # load the calendar for cache
 
-    ##=============get data=============
+    def _init_qlib(self):
+        """initialize qlib"""
+        # use yahoo_cn_1min data
+        QLIB_INIT_CONFIG = {**HIGH_FREQ_CONFIG, **self.SPEC_CONF}
+        provider_uri = QLIB_INIT_CONFIG.get("provider_uri")
+        if not exists_qlib_data(provider_uri):
+            print(f"Qlib data is not found in {provider_uri}")
+            sys.path.append(str(Path(__file__).resolve().parent.parent.parent.joinpath("scripts")))
+            from get_data import GetData
 
-    dataset = init_instance_by_config(task["dataset"])
-    xtrain, xtest = dataset.prepare(["train", "test"])
-    print(xtrain, xtest)
+            GetData().qlib_data(target_dir=provider_uri, interval="1min", region=REG_CN)
+        qlib.init(**QLIB_INIT_CONFIG)
 
-    dataset_backtest = init_instance_by_config(task["dataset_backtest"])
-    backtest_train, backtest_test = dataset_backtest.prepare(["train", "test"])
-    print(backtest_train, backtest_test)
+    def _prepare_calender_cache(self):
+        """preload the calendar for cache"""
 
-    del xtrain, xtest
-    del backtest_train, backtest_test
+        # This code used the copy-on-write feature of Linux to avoid calculating the calendar multiple times in the subprocess
+        # This code may accelerate, but may be not useful on Windows and Mac Os
+        Cal.calendar(freq="1min")
+        get_calendar_day(freq="1min")
 
-    ## example to show how to save the dataset and reload it, and how to use different data
-    if DROP_LOAD_DATASET:
+    def get_data(self):
+        """use dataset to get highreq data"""
+        self._init_qlib()
+        self._prepare_calender_cache()
+
+        dataset = init_instance_by_config(self.task["dataset"])
+        xtrain, xtest = dataset.prepare(["train", "test"])
+        print(xtrain, xtest)
+
+        dataset_backtest = init_instance_by_config(self.task["dataset_backtest"])
+        backtest_train, backtest_test = dataset_backtest.prepare(["train", "test"])
+        print(backtest_train, backtest_test)
+
+        del xtrain, xtest
+        del backtest_train, backtest_test
+
+    def dump_and_load_dataset(self):
+        """dump and load dataset state on disk"""
+        self._init_qlib()
+        self._prepare_calender_cache()
+        dataset = init_instance_by_config(self.task["dataset"])
+        dataset_backtest = init_instance_by_config(self.task["dataset_backtest"])
 
         ##=============dump dataset=============
         dataset.to_pickle(path="dataset.pkl")
@@ -142,33 +145,18 @@ if __name__ == "__main__":
 
         del dataset, dataset_backtest
         ##=============reload dataset=============
-        file_dataset = open("dataset.pkl", "rb")
-        dataset = pickle.load(file_dataset)
-        file_dataset.close()
+        with open("dataset.pkl", "rb") as file_dataset:
+            dataset = pickle.load(file_dataset)
 
-        file_dataset_backtest = open("dataset_backtest.pkl", "rb")
-        dataset_backtest = pickle.load(file_dataset_backtest)
+        with open("dataset_backtest.pkl", "rb") as file_dataset_backtest:
+            dataset_backtest = pickle.load(file_dataset_backtest)
 
-        file_dataset_backtest.close()
-
+        self._prepare_calender_cache()
         ##=============reload_dataset=============
         dataset.init(init_type=DataHandlerLP.IT_LS)
-        dataset_backtest.init(init_type=DataHandlerLP.IT_LS)
+        dataset_backtest.init()
 
-        ##=============reinit qlib=============
-        ## Unless you want to modify the provider_uri and other configurations, reinit is unnecessary
-        qlib.init(
-            provider_uri=provider_uri,
-            custom_ops=[DayFirst, DayLast, FFillNan, Date, Select, IsNull],
-            redis_port=-1,
-            region=REG_CN,
-            auto_mount=False,
-        )
-
-        Cal.calendar(freq="1min")  # load the calendar for cache
-        Cal.get_calendar_day(freq="1min")  # load the calendar for cache
-
-        ##=============test dataset=============
+        ##=============get data=============
         xtrain, xtest = dataset.prepare(["train", "test"])
         backtest_train, backtest_test = dataset_backtest.prepare(["train", "test"])
 
@@ -176,3 +164,7 @@ if __name__ == "__main__":
         print(backtest_train, backtest_test)
         del xtrain, xtest
         del backtest_train, backtest_test
+
+
+if __name__ == "__main__":
+    fire.Fire(HighfreqWorkflow)
