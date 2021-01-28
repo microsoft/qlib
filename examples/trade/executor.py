@@ -5,7 +5,7 @@ import logger
 import json
 import os
 import agent
-import model
+import network
 import policy
 import random
 import tianshou as ts
@@ -48,7 +48,15 @@ def setup_seed(seed):
 
 class BaseExecutor(object):
     def __init__(
-        self, log_dir, resources, env_conf, optim=None, policy_conf=None, network=None, policy_path=None, seed=None,
+        self,
+        log_dir,
+        resources,
+        env_conf,
+        optim=None,
+        policy_conf=None,
+        network_conf=None,
+        policy_path=None,
+        seed=None,
     ):
         """A base class for executor
 
@@ -62,8 +70,8 @@ class BaseExecutor(object):
         :type optim: dict, optional
         :param policy_conf: Configurations for the RL algorithm, defaults to None
         :type policy_conf: dict, optional
-        :param network: Configurations for policy network, defaults to None
-        :type network: dict, optional
+        :param network_conf: Configurations for policy network_conf, defaults to None
+        :type network_conf: dict, optional
         :param policy_path: If is not None, would load the policy from this path, defaults to None
         :type policy_path: string, optional
         :param seed: Random seed, defaults to None
@@ -90,17 +98,23 @@ class BaseExecutor(object):
             self.policy = getattr(agent, policy_conf["name"])(policy_conf["config"])
             # print(self.policy)
         else:
-            assert not network is None
-            if "extractor" in network.keys():
-                net = getattr(model, network["extractor"]["name"] + "_Extractor")(
-                    device=self.device, **network["config"]
+            assert not network_conf is None
+            if "extractor" in network_conf.keys():
+                net = getattr(network, network_conf["extractor"]["name"] + "_Extractor")(
+                    device=self.device, **network_conf["config"]
                 )
             else:
-                net = getattr(model, network["name"] + "_Extractor")(device=self.device, **network["config"])
+                net = getattr(network, network_conf["name"] + "_Extractor")(
+                    device=self.device, **network_conf["config"]
+                )
             net.to(self.device)
-            actor = getattr(model, network["name"] + "_Actor")(extractor=net, device=self.device, **network["config"])
+            actor = getattr(network, network_conf["name"] + "_Actor")(
+                extractor=net, device=self.device, **network_conf["config"]
+            )
             actor.to(self.device)
-            critic = getattr(model, network["name"] + "_Critic")(extractor=net, device=self.device, **network["config"])
+            critic = getattr(network, network_conf["name"] + "_Critic")(
+                extractor=net, device=self.device, **network_conf["config"]
+            )
             critic.to(self.device)
             self.optim = torch.optim.Adam(
                 list(actor.parameters()) + list(critic.parameters()),
@@ -180,7 +194,7 @@ class Executor(BaseExecutor):
         io_conf,
         optim=None,
         policy_conf=None,
-        network=None,
+        network_conf=None,
         policy_path=None,
         seed=None,
         share_memory=False,
@@ -210,7 +224,7 @@ class Executor(BaseExecutor):
         :param buffer_size: The size of replay buffer, defaults to 200000
         :type buffer_size: int, optional
         """
-        super().__init__(log_dir, resources, env_conf, optim, policy_conf, network, policy_path, seed)
+        super().__init__(log_dir, resources, env_conf, optim, policy_conf, network_conf, policy_path, seed)
         single_env = getattr(env, env_conf["name"])
         env_conf = merge_dicts(env_conf, train_paths)
         env_conf["log"] = True
