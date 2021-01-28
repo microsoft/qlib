@@ -61,7 +61,7 @@ class HighFreqHandler(DataHandlerLP):
         simpson_vwap = "($open + 2*$high + 2*$low + $close)/6"
 
         def get_normalized_price_feature(price_field, shift=0):
-            """Get 0~4 column price feature ops"""
+            """Get normalized price feature ops"""
             if shift == 0:
                 template_norm = "{0}/Ref(DayLast({1}), 240)"
             else:
