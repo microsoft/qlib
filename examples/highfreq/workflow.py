@@ -33,7 +33,6 @@ class HighfreqWorkflow(object):
 
     MARKET = "all"
     BENCHMARK = "SH000300"
-    DROP_LOAD_DATASET = False  # flag wether to test [drop and load dataset]
 
     start_time = "2020-09-14 00:00:00"
     end_time = "2021-01-18 16:00:00"
