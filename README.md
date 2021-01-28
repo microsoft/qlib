@@ -31,6 +31,7 @@ For more details, please refer to our paper ["Qlib: An AI-oriented Quantitative 
   - [Run a single model](#run-a-single-model)
   - [Run multiple models](#run-multiple-models)
 - [**Quant Dataset Zoo**](#quant-dataset-zoo)
+- [High frequency execution](#high-frequency-execution)
 - [More About Qlib](#more-about-qlib)
 - [Offline Mode and Online Mode](#offline-mode-and-online-mode)
   - [Performance of Qlib Data Server](#performance-of-qlib-data-server)
@@ -269,6 +270,14 @@ Dataset plays a very important role in Quant. Here is a list of the datasets bui
 
 [Here](https://qlib.readthedocs.io/en/latest/advanced/alpha.html) is a tutorial to build dataset with `Qlib`.
 Your PR to build new Quant dataset is highly welcomed.
+
+# High Frequency Execution
+High-frequency order execution is a very important problem in the financial market.
+It aims to maximize the profit of order execution by intraday timing.
+AI has the potential to mine patterns from a huge mass of high-frequency trading data and helps users make better decisions during intraday trading.
+Here is a list of solutions built on `Qlib`.
+- [Universal Trading for Order Execution with Oracle Policy Distillation](qlib/examples/trade/)
+
 
 # More About Qlib
 The detailed documents are organized in [docs](docs/).
