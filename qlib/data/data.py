@@ -117,7 +117,7 @@ class CalendarProvider(abc.ABC):
         if flag in H["c"]:
             _calendar, _calendar_index = H["c"][flag]
         else:
-            _calendar = np.array(self._load_calendar(freq, future))
+            _calendar = np.array(self.load_calendar(freq, future))
             _calendar_index = {x: i for i, x in enumerate(_calendar)}  # for fast search
             H["c"][flag] = _calendar, _calendar_index
         return _calendar, _calendar_index
@@ -504,7 +504,7 @@ class LocalCalendarProvider(CalendarProvider):
         """Calendar file uri."""
         return os.path.join(C.get_data_path(), "calendars", "{}.txt")
 
-    def _load_calendar(self, freq, future):
+    def load_calendar(self, freq, future):
         """Load original calendar timestamp from file.
 
         Parameters
@@ -671,6 +671,8 @@ class LocalExpressionProvider(ExpressionProvider):
         try:
             series = series.astype(np.float32)
         except ValueError:
+            pass
+        except TypeError:
             pass
         if not series.empty:
             series = series.loc[start_index:end_index]

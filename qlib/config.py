@@ -193,6 +193,12 @@ MODE_CONF = {
     },
 }
 
+HIGH_FREQ_CONFIG = {
+    "provider_uri": "~/.qlib/qlib_data/yahoo_cn_1min",
+    "dataset_cache": None,
+    "expression_cache": "DiskExpressionCache",
+    "region": REG_CN,
+}
 
 _default_region_config = {
     REG_CN: {
@@ -291,12 +297,12 @@ class QlibConfig(Config):
 
     def register(self):
         from .utils import init_instance_by_config
-        from .data.ops import register_custom_ops
+        from .data.ops import register_all_ops
         from .data.data import register_all_wrappers
         from .workflow import R, QlibRecorder
         from .workflow.utils import experiment_exit_handler
 
-        register_custom_ops(self)
+        register_all_ops(self)
         register_all_wrappers(self)
         # set up QlibRecorder
         exp_manager = init_instance_by_config(self["exp_manager"])

@@ -57,6 +57,7 @@ class DataHandler(Serializable):
         instruments=None,
         start_time=None,
         end_time=None,
+        freq="day",
         data_loader: Tuple[dict, str, DataLoader] = None,
         init_data=True,
         fetch_orig=True,
@@ -70,6 +71,8 @@ class DataHandler(Serializable):
             start_time of the original data.
         end_time :
             end_time of the original data.
+        freq :
+            frequency of data
         data_loader : Tuple[dict, str, DataLoader]
             data loader to load the data.
         init_data :
@@ -92,6 +95,7 @@ class DataHandler(Serializable):
         self.instruments = instruments
         self.start_time = start_time
         self.end_time = end_time
+        self.freq = freq
         self.fetch_orig = fetch_orig
         if init_data:
             with TimeInspector.logt("Init data"):
@@ -119,7 +123,7 @@ class DataHandler(Serializable):
         # Setup data.
         # _data may be with multiple column index level. The outer level indicates the feature set name
         with TimeInspector.logt("Loading data"):
-            self._data = self.data_loader.load(self.instruments, self.start_time, self.end_time)
+            self._data = self.data_loader.load(self.instruments, self.start_time, self.end_time, self.freq)
         # TODO: cache
 
     CS_ALL = "__all"  # return all columns with single-level index column
@@ -258,10 +262,12 @@ class DataHandlerLP(DataHandler):
         instruments=None,
         start_time=None,
         end_time=None,
+        freq="day",
         data_loader: Tuple[dict, str, DataLoader] = None,
         infer_processors=[],
         learn_processors=[],
         process_type=PTYPE_A,
+        drop_raw=False,
         **kwargs,
     ):
         """
@@ -303,6 +309,8 @@ class DataHandlerLP(DataHandler):
             - self._learn will be processed by infer_processors + learn_processors
 
               - (e.g. self._infer processed by learn_processors )
+        drop_raw: bool
+            Whether to drop the raw data
         """
 
         # Setup preprocessor
@@ -319,7 +327,8 @@ class DataHandlerLP(DataHandler):
                 )
 
         self.process_type = process_type
-        super().__init__(instruments, start_time, end_time, data_loader, **kwargs)
+        self.drop_raw = drop_raw
+        super().__init__(instruments, start_time, end_time, freq, data_loader, **kwargs)
 
     def get_all_processors(self):
         return self.infer_processors + self.learn_processors
@@ -348,7 +357,7 @@ class DataHandlerLP(DataHandler):
         """
         # data for inference
         _infer_df = self._data
-        if len(self.infer_processors) > 0:  # avoid modifying the original  data
+        if len(self.infer_processors) > 0 and not self.drop_raw:  # avoid modifying the original  data
             _infer_df = _infer_df.copy()
 
         for proc in self.infer_processors:
@@ -377,6 +386,9 @@ class DataHandlerLP(DataHandler):
                     proc.fit(_learn_df)
                 _learn_df = proc(_learn_df)
         self._learn = _learn_df
+
+        if self.drop_raw:
+            del self._data
 
     # init type
     IT_FIT_SEQ = "fit_seq"  # the input of `fit` will be the output of the previous processor
@@ -416,6 +428,10 @@ class DataHandlerLP(DataHandler):
         # TODO: Be able to cache handler data. Save the memory for data processing
 
     def _get_df_by_key(self, data_key: str = DK_I) -> pd.DataFrame:
+        if data_key == self.DK_R and self.drop_raw:
+            raise AttributeError(
+                "DataHandlerLP has not attribute _data, please set drop_raw = False if you want to use raw data"
+            )
         df = getattr(self, {self.DK_R: "_data", self.DK_I: "_infer", self.DK_L: "_learn"}[data_key])
         return df
 
