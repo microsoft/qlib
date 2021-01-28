@@ -26,9 +26,6 @@ class Diff(ElemOperator):
         a feature instance with first difference
     """
 
-    def __init__(self, feature):
-        super(Diff, self).__init__(feature, "diff")
-
     def _load_internal(self, instrument, start_index, end_index, freq):
         series = self.feature.load(instrument, start_index, end_index, freq)
         return series.diff()
@@ -49,9 +46,6 @@ class Distance(PairOperator):
     Expression
         a feature instance with distance
     """
-
-    def __init__(self, feature_left, feature_right):
-        super(Distance, self).__init__(feature_left, feature_right, "distance")
 
     def _load_internal(self, instrument, start_index, end_index, freq):
         series_left = self.feature_left.load(instrument, start_index, end_index, freq)

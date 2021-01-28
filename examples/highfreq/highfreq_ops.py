@@ -18,9 +18,6 @@ def get_calendar_day(freq="day", future=False):
 
 
 class DayLast(ElemOperator):
-    def __init__(self, feature):
-        super(DayLast, self).__init__(feature)
-
     def _load_internal(self, instrument, start_index, end_index, freq):
         _calendar = get_calendar_day(freq=freq)
         series = self.feature.load(instrument, start_index, end_index, freq)
@@ -28,27 +25,18 @@ class DayLast(ElemOperator):
 
 
 class FFillNan(ElemOperator):
-    def __init__(self, feature):
-        super(FFillNan, self).__init__(feature)
-
     def _load_internal(self, instrument, start_index, end_index, freq):
         series = self.feature.load(instrument, start_index, end_index, freq)
         return series.fillna(method="ffill")
 
 
 class BFillNan(ElemOperator):
-    def __init__(self, feature):
-        super(BFillNan, self).__init__(feature)
-
     def _load_internal(self, instrument, start_index, end_index, freq):
         series = self.feature.load(instrument, start_index, end_index, freq)
         return series.fillna(method="bfill")
 
 
 class Date(ElemOperator):
-    def __init__(self, feature):
-        super(Date, self).__init__(feature)
-
     def _load_internal(self, instrument, start_index, end_index, freq):
         _calendar = get_calendar_day(freq=freq)
         series = self.feature.load(instrument, start_index, end_index, freq)
@@ -56,9 +44,6 @@ class Date(ElemOperator):
 
 
 class Select(PairOperator):
-    def __init__(self, condition, feature):
-        super(Select, self).__init__(condition, feature)
-
     def _load_internal(self, instrument, start_index, end_index, freq):
         series_condition = self.feature_left.load(instrument, start_index, end_index, freq)
         series_feature = self.feature_right.load(instrument, start_index, end_index, freq)
@@ -66,9 +51,6 @@ class Select(PairOperator):
 
 
 class IsNull(ElemOperator):
-    def __init__(self, feature):
-        super(IsNull, self).__init__(feature)
-
     def _load_internal(self, instrument, start_index, end_index, freq):
         series = self.feature.load(instrument, start_index, end_index, freq)
         return series.isnull()

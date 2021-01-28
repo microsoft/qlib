@@ -18,11 +18,11 @@ from qlib.contrib.evaluate import (
     risk_analysis,
 )
 
-from qlib.utils import init_instance_by_config
+from qlib.utils import init_instance_by_config, exists_qlib_data
 from qlib.data.dataset.handler import DataHandlerLP
 from qlib.data.ops import Operators
 from qlib.data.data import Cal
-from qlib.utils import exists_qlib_data
+from qlib.tests.data import GetData
 
 from highfreq_ops import get_calendar_day, DayLast, FFillNan, BFillNan, Date, Select, IsNull
 
@@ -102,9 +102,6 @@ class HighfreqWorkflow(object):
         provider_uri = QLIB_INIT_CONFIG.get("provider_uri")
         if not exists_qlib_data(provider_uri):
             print(f"Qlib data is not found in {provider_uri}")
-            sys.path.append(str(Path(__file__).resolve().parent.parent.parent.joinpath("scripts")))
-            from get_data import GetData
-
             GetData().qlib_data(target_dir=provider_uri, interval="1min", region=REG_CN)
         qlib.init(**QLIB_INIT_CONFIG)
 

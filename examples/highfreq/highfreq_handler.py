@@ -60,9 +60,14 @@ class HighFreqHandler(DataHandlerLP):
         # Because there is no vwap field in the yahoo data, a method similar to Simpson integration is used to approximate vwap
         simpson_vwap = "($open + 2*$high + 2*$low + $close)/6"
 
-        def get_04_price_feature(price_field):
+        def get_normalized_price_feature(price_field, shift=0):
             """Get 0~4 column price feature ops"""
-            feature_ops = "{0}/Ref(DayLast({1}), 240)".format(
+            if shift == 0:
+                template_norm = "{0}/Ref(DayLast({1}), 240)"
+            else:
+                template_norm = "Ref({0}, " + str(shift) + ")/Ref(DayLast({1}), 240)"
+
+            feature_ops = template_norm.format(
                 template_if.format(
                     template_fillnan.format(template_paused.format("$close")),
                     template_paused.format(price_field),
@@ -71,29 +76,18 @@ class HighFreqHandler(DataHandlerLP):
             )
             return feature_ops
 
-        fields += [get_04_price_feature("$open")]
-        fields += [get_04_price_feature("$high")]
-        fields += [get_04_price_feature("$low")]
-        fields += [get_04_price_feature("$close")]
-        fields += [get_04_price_feature(simpson_vwap)]
+        fields += [get_normalized_price_feature("$open", 0)]
+        fields += [get_normalized_price_feature("$high", 0)]
+        fields += [get_normalized_price_feature("$low", 0)]
+        fields += [get_normalized_price_feature("$close", 0)]
+        fields += [get_normalized_price_feature(simpson_vwap, 0)]
         names += ["$open", "$high", "$low", "$close", "$vwap"]
 
-        def get_59_price_feature(price_field):
-            """Get 5~9 column price feature ops"""
-            feature_ops = "Ref({0}, 240)/Ref(DayLast({1}), 240)".format(
-                template_if.format(
-                    template_fillnan.format(template_paused.format("$close")),
-                    template_paused.format(price_field),
-                ),
-                template_fillnan.format(template_paused.format("$close")),
-            )
-            return feature_ops
-
-        fields += [get_59_price_feature("$open")]
-        fields += [get_59_price_feature("$high")]
-        fields += [get_59_price_feature("$low")]
-        fields += [get_59_price_feature("$close")]
-        fields += [get_59_price_feature(simpson_vwap)]
+        fields += [get_normalized_price_feature("$open", 240)]
+        fields += [get_normalized_price_feature("$high", 240)]
+        fields += [get_normalized_price_feature("$low", 240)]
+        fields += [get_normalized_price_feature("$close", 240)]
+        fields += [get_normalized_price_feature(simpson_vwap, 240)]
         names += ["$open_1", "$high_1", "$low_1", "$close_1", "$vwap_1"]
 
         fields += [
