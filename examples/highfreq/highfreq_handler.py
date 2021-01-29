@@ -62,9 +62,9 @@ class HighFreqHandler(DataHandlerLP):
         def get_normalized_price_feature(price_field, shift=0):
             """Get normalized price feature ops"""
             if shift == 0:
-                template_norm = "{0}/Ref(DayLast({1}), 240)"
+                template_norm = "Cut({0}/Ref(DayLast({1}), 240), 240, None)"
             else:
-                template_norm = "Ref({0}, " + str(shift) + ")/Ref(DayLast({1}), 240)"
+                template_norm = "Cut(Ref({0}, " + str(shift) + ")/Ref(DayLast({1}), 240), 240, None)"
 
             feature_ops = template_norm.format(
                 template_if.format(
@@ -90,7 +90,7 @@ class HighFreqHandler(DataHandlerLP):
         names += ["$open_1", "$high_1", "$low_1", "$close_1", "$vwap_1"]
 
         fields += [
-            "{0}/Ref(DayLast(Mean({0}, 7200)), 240)".format(
+            "Cut({0}/Ref(DayLast(Mean({0}, 7200)), 240), 240, None)".format(
                 "If(IsNull({0}), 0, If(Or(Gt({1}, Mul(1.001, {3})), Lt({1}, Mul(0.999, {2}))), 0, {0}))".format(
                     template_paused.format("$volume"),
                     template_paused.format(simpson_vwap),
@@ -101,7 +101,7 @@ class HighFreqHandler(DataHandlerLP):
         ]
         names += ["$volume"]
         fields += [
-            "Ref({0}, 240)/Ref(DayLast(Mean({0}, 7200)), 240)".format(
+            "Cut(Ref({0}, 240)/Ref(DayLast(Mean({0}, 7200)), 240), 240, None)".format(
                 "If(IsNull({0}), 0, If(Or(Gt({1}, Mul(1.001, {3})), Lt({1}, Mul(0.999, {2}))), 0, {0}))".format(
                     template_paused.format("$volume"),
                     template_paused.format(simpson_vwap),
@@ -112,7 +112,7 @@ class HighFreqHandler(DataHandlerLP):
         ]
         names += ["$volume_1"]
 
-        fields += [template_paused.format("Date($close)")]
+        fields += ["Cut({0}, 240, None)".format(template_paused.format("Date($close)"))]
         names += ["date"]
         return fields, names
 
@@ -149,18 +149,20 @@ class HighFreqBacktestHandler(DataHandler):
         # Because there is no vwap field in the yahoo data, a method similar to Simpson integration is used to approximate vwap
         simpson_vwap = "($open + 2*$high + 2*$low + $close)/6"
         fields += [
-            template_fillnan.format(template_paused.format("$close")),
+            "Cut({0}, 240, None)".format(template_fillnan.format(template_paused.format("$close"))),
         ]
         names += ["$close0"]
         fields += [
-            template_if.format(
-                template_fillnan.format(template_paused.format("$close")),
-                template_paused.format(simpson_vwap),
+            "Cut({0}, 240, None)".format(
+                template_if.format(
+                    template_fillnan.format(template_paused.format("$close")),
+                    template_paused.format(simpson_vwap),
+                )
             )
         ]
         names += ["$vwap0"]
         fields += [
-            "If(IsNull({0}), 0, If(Or(Gt({1}, Mul(1.001, {3})), Lt({1}, Mul(0.999, {2}))), 0, {0}))".format(
+            "Cut(If(IsNull({0}), 0, If(Or(Gt({1}, Mul(1.001, {3})), Lt({1}, Mul(0.999, {2}))), 0, {0})), 240, None)".format(
                 template_paused.format("$volume"),
                 template_paused.format(simpson_vwap),
                 template_paused.format("$low"),

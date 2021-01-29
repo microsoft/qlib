@@ -54,3 +54,25 @@ class IsNull(ElemOperator):
     def _load_internal(self, instrument, start_index, end_index, freq):
         series = self.feature.load(instrument, start_index, end_index, freq)
         return series.isnull()
+
+
+class Cut(ElemOperator):
+    def __init__(self, feature, l=None, r=None):
+        self.l = l
+        self.r = r
+        if (self.l != None and self.l <= 0) or (self.r != None and self.r >= 0):
+            raise ValueError("Cut operator l shoud > 0 and r should < 0")
+
+        super(Cut, self).__init__(feature)
+
+    def _load_internal(self, instrument, start_index, end_index, freq):
+        series = self.feature.load(instrument, start_index, end_index, freq)
+        return series.iloc[self.l : self.r]
+
+    def get_extended_window_size(self):
+        ll = 0 if self.l == None else self.l
+        rr = 0 if self.r == None else abs(self.r)
+        lft_etd, rght_etd = self.feature.get_extended_window_size()
+        lft_etd = lft_etd + ll
+        rght_etd = rght_etd + rr
+        return lft_etd, rght_etd

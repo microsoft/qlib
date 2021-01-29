@@ -24,17 +24,17 @@ from qlib.data.ops import Operators
 from qlib.data.data import Cal
 from qlib.tests.data import GetData
 
-from highfreq_ops import get_calendar_day, DayLast, FFillNan, BFillNan, Date, Select, IsNull
+from highfreq_ops import get_calendar_day, DayLast, FFillNan, BFillNan, Date, Select, IsNull, Cut
 
 
 class HighfreqWorkflow(object):
 
-    SPEC_CONF = {"custom_ops": [DayLast, FFillNan, BFillNan, Date, Select, IsNull], "expression_cache": None}
+    SPEC_CONF = {"custom_ops": [DayLast, FFillNan, BFillNan, Date, Select, IsNull, Cut], "expression_cache": None}
 
-    MARKET = "all"
+    MARKET = ["SH600004"]
     BENCHMARK = "SH000300"
 
-    start_time = "2020-09-14 00:00:00"
+    start_time = "2020-09-15 00:00:00"
     end_time = "2021-01-18 16:00:00"
     train_end_time = "2020-11-30 16:00:00"
     test_start_time = "2020-12-01 00:00:00"
