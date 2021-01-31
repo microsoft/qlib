@@ -75,7 +75,7 @@ class Alpha360(DataHandlerLP):
             instruments=instruments,
             start_time=start_time,
             end_time=end_time,
-            freq="day",
+            freq=freq,
             data_loader=data_loader,
             learn_processors=learn_processors,
             infer_processors=infer_processors,
