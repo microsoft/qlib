@@ -10,7 +10,6 @@ class HighFreqHandler(DataHandlerLP):
         instruments="csi300",
         start_time=None,
         end_time=None,
-        freq="1min",
         infer_processors=[],
         learn_processors=[],
         fit_start_time=None,
@@ -37,13 +36,13 @@ class HighFreqHandler(DataHandlerLP):
             "kwargs": {
                 "config": self.get_feature_config(),
                 "swap_level": False,
+                "freq": "1min",
             },
         }
         super().__init__(
             instruments=instruments,
             start_time=start_time,
             end_time=end_time,
-            freq=freq,
             data_loader=data_loader,
             infer_processors=infer_processors,
             learn_processors=learn_processors,
@@ -124,20 +123,19 @@ class HighFreqBacktestHandler(DataHandler):
         instruments="csi300",
         start_time=None,
         end_time=None,
-        freq="1min",
     ):
         data_loader = {
             "class": "QlibDataLoader",
             "kwargs": {
                 "config": self.get_feature_config(),
                 "swap_level": False,
+                "freq": "1min",
             },
         }
         super().__init__(
             instruments=instruments,
             start_time=start_time,
             end_time=end_time,
-            freq=freq,
             data_loader=data_loader,
         )
 
