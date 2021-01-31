@@ -21,7 +21,7 @@ class DataLoader(abc.ABC):
     """
 
     @abc.abstractmethod
-    def load(self, instruments, start_time=None, end_time=None, freq="day") -> pd.DataFrame:
+    def load(self, instruments, start_time=None, end_time=None) -> pd.DataFrame:
         """
         load the data as pd.DataFrame.
 
@@ -78,6 +78,7 @@ class DLWParser(DataLoader):
                 <config> := <fields_info>
 
                 <fields_info> := ["expr", ...] | (["expr", ...], ["col_name", ...])
+                # NOTE: list or tuple will be treated as the things when parsing
         """
         self.is_group = isinstance(config, dict)
 
@@ -87,18 +88,22 @@ class DLWParser(DataLoader):
             self.fields = self._parse_fields_info(config)
 
     def _parse_fields_info(self, fields_info: Tuple[list, tuple]) -> Tuple[list, list]:
-        if isinstance(fields_info, list):
+        if len(fields_info) == 0:
+            raise ValueError("The size of fields must be greater than 0")
+
+        if not isinstance(fields_info, (list, tuple)):
+            raise TypeError("Unsupported type")
+
+        if isinstance(fields_info[0], str):
             exprs = names = fields_info
-        elif isinstance(fields_info, tuple):
+        elif isinstance(fields_info[0], (list, tuple)):
             exprs, names = fields_info
         else:
             raise NotImplementedError(f"This type of input is not supported")
         return exprs, names
 
     @abc.abstractmethod
-    def load_group_df(
-        self, instruments, exprs: list, names: list, start_time=None, end_time=None, freq="day"
-    ) -> pd.DataFrame:
+    def load_group_df(self, instruments, exprs: list, names: list, start_time=None, end_time=None) -> pd.DataFrame:
         """
         load the dataframe for specific group
 
@@ -118,25 +123,25 @@ class DLWParser(DataLoader):
         """
         pass
 
-    def load(self, instruments=None, start_time=None, end_time=None, freq="day") -> pd.DataFrame:
+    def load(self, instruments=None, start_time=None, end_time=None) -> pd.DataFrame:
         if self.is_group:
             df = pd.concat(
                 {
-                    grp: self.load_group_df(instruments, exprs, names, start_time, end_time, freq)
+                    grp: self.load_group_df(instruments, exprs, names, start_time, end_time)
                     for grp, (exprs, names) in self.fields.items()
                 },
                 axis=1,
             )
         else:
             exprs, names = self.fields
-            df = self.load_group_df(instruments, exprs, names, start_time, end_time, freq)
+            df = self.load_group_df(instruments, exprs, names, start_time, end_time)
         return df
 
 
 class QlibDataLoader(DLWParser):
     """Same as QlibDataLoader. The fields can be define by config"""
 
-    def __init__(self, config: Tuple[list, tuple, dict], filter_pipe=None, swap_level=True):
+    def __init__(self, config: Tuple[list, tuple, dict], filter_pipe=None, swap_level=True, freq="day"):
         """
         Parameters
         ----------
@@ -156,11 +161,10 @@ class QlibDataLoader(DLWParser):
 
         self.filter_pipe = filter_pipe
         self.swap_level = swap_level
+        self.freq = freq
         super().__init__(config)
 
-    def load_group_df(
-        self, instruments, exprs: list, names: list, start_time=None, end_time=None, freq="day"
-    ) -> pd.DataFrame:
+    def load_group_df(self, instruments, exprs: list, names: list, start_time=None, end_time=None) -> pd.DataFrame:
         if instruments is None:
             warnings.warn("`instruments` is not set, will load all stocks")
             instruments = "all"
@@ -169,7 +173,7 @@ class QlibDataLoader(DLWParser):
         elif self.filter_pipe is not None:
             warnings.warn("`filter_pipe` is not None, but it will not be used with `instruments` as list")
 
-        df = D.features(instruments, exprs, start_time, end_time, freq)
+        df = D.features(instruments, exprs, start_time, end_time, self.freq)
         df.columns = names
         if self.swap_level:
             df = df.swaplevel().sort_index()  # NOTE: if swaplevel, return <datetime, instrument>
@@ -194,7 +198,7 @@ class StaticDataLoader(DataLoader):
         self.join = join
         self._data = None
 
-    def load(self, instruments=None, start_time=None, end_time=None, freq="day") -> pd.DataFrame:
+    def load(self, instruments=None, start_time=None, end_time=None) -> pd.DataFrame:
         self._maybe_load_raw_data()
         if instruments is None:
             df = self._data

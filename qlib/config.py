@@ -90,7 +90,6 @@ _default_config = {
     # How many tasks belong to one process. Recommend 1 for high-frequency data and None for daily data.
     "maxtasksperchild": None,
     "default_disk_cache": 1,  # 0:skip/1:use
-    "disable_disk_cache": False,  # disable disk cache; if High-frequency data generally disable_disk_cache=True
     "mem_cache_size_limit": 500,
     # memory cache expire second, only in used 'DatasetURICache' and 'client D.calendar'
     # default 1 hour
