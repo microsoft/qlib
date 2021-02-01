@@ -58,7 +58,7 @@ class ALSTM(Model):
         loss="mse",
         optimizer="adam",
         n_jobs=10,
-        GPU="0",
+        GPU=0,
         seed=None,
         **kwargs
     ):
