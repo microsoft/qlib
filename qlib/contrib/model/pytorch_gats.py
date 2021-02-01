@@ -61,7 +61,7 @@ class GATs(Model):
         with_pretrain=True,
         model_path=None,
         optimizer="adam",
-        GPU="0",
+        GPU=0,
         seed=None,
         **kwargs
     ):
