@@ -60,7 +60,6 @@ class DataHandler(Serializable):
         data_loader: Tuple[dict, str, DataLoader] = None,
         init_data=True,
         fetch_orig=True,
-        **kwargs,
     ):
         """
         Parameters
@@ -77,8 +76,6 @@ class DataHandler(Serializable):
             intialize the original data in the constructor.
         fetch_orig : bool
             Return the original data instead of copy if possible.
-        **kwargs:
-            it will be passed into data_loader
         """
         # Set logger
         self.logger = get_module_logger("DataHandler")
@@ -91,7 +88,6 @@ class DataHandler(Serializable):
             data_loader,
             None if (isinstance(data_loader, dict) and "module_path" in data_loader) else data_loader_module,
             accept_types=DataLoader,
-            **kwargs,
         )
 
         # what data to be loaded from data source
