@@ -68,6 +68,7 @@ class Alpha360(DataHandlerLP):
                     "label": kwargs.get("label", self.get_label_config()),
                 },
                 "filter_pipe": filter_pipe,
+                "freq": freq,
             },
         }
 
@@ -75,7 +76,6 @@ class Alpha360(DataHandlerLP):
             instruments=instruments,
             start_time=start_time,
             end_time=end_time,
-            freq=freq,
             data_loader=data_loader,
             learn_processors=learn_processors,
             infer_processors=infer_processors,
@@ -154,13 +154,13 @@ class Alpha158(DataHandlerLP):
                     "label": kwargs.get("label", self.get_label_config()),
                 },
                 "filter_pipe": filter_pipe,
+                "freq": freq,
             },
         }
         super().__init__(
             instruments=instruments,
             start_time=start_time,
             end_time=end_time,
-            freq=freq,
             data_loader=data_loader,
             infer_processors=infer_processors,
             learn_processors=learn_processors,
