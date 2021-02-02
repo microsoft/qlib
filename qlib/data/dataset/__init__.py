@@ -76,13 +76,13 @@ class DatasetH(Dataset):
     - The processing is related to data split.
     """
 
-    def __init__(self, handler: Union[dict, DataHandler], segments: list):
+    def __init__(self, handler: Union[dict, DataHandler], segments: dict):
         """
         Parameters
         ----------
         handler : Union[dict, DataHandler]
             handler will be passed into setup_data.
-        segments : list
+        segments : dict
             handler will be passed into setup_data.
         """
         super().__init__(handler, segments)
@@ -91,7 +91,7 @@ class DatasetH(Dataset):
         """Initialize the DatasetH, Only parameters belonging to handler.init will be passed in"""
         self.handler.init(**kwargs)
 
-    def setup_data(self, handler: Union[dict, DataHandler], segments: list):
+    def setup_data(self, handler: Union[dict, DataHandler], segments: dict):
         """
         Setup the underlying data.
 
@@ -104,7 +104,7 @@ class DatasetH(Dataset):
 
             - config of `DataHandler`.  Please refer to `DataHandler`
 
-        segments : list
+        segments : dict
             Describe the options to segment the data.
             Here are some examples:
 
