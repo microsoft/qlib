@@ -9,7 +9,7 @@ import qlib
 import pickle
 import numpy as np
 import pandas as pd
-from qlib.config import HIGH_FREQ_CONFIG
+from qlib.config import REG_CN, HIGH_FREQ_CONFIG
 from qlib.contrib.model.gbdt import LGBModel
 from qlib.contrib.data.handler import Alpha158
 from qlib.contrib.strategy.strategy import TopkDropoutStrategy
