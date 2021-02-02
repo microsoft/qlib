@@ -48,7 +48,11 @@ Qlib Format Dataset
 
 .. code-block:: bash
 
+    # download 1d
     python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/cn_data --region cn
+
+    # download 1min
+    python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/qlib_cn_1min --region cn --interval 1min
 
 In addition to China-Stock data, ``Qlib`` also includes a US-Stock dataset, which can be downloaded with the following command:
 
