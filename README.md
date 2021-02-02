@@ -118,7 +118,12 @@ Also, users can install the latest dev version ``Qlib`` by the source code accor
 ## Data Preparation
 Load and prepare data by running the following code:
   ```bash
+  # get 1d data
   python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/cn_data --region cn
+
+  # get 1min data
+  python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/cn_data_1min --region cn --interval 1min
+
   ```
 
 This dataset is created by public data collected by [crawler scripts](scripts/data_collector/), which have been released in
