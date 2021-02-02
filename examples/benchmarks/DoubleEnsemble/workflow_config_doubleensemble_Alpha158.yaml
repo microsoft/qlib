@@ -33,7 +33,7 @@ task:
             base: "gbm"
             loss: mse
             k: 6
-            enable_sr: False
+            enable_sr: True
             enable_fs: True
             alpha1: 1
             alpha2: 1
