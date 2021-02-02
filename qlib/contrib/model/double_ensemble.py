@@ -28,6 +28,7 @@ class DEnsembleModel(Model):
             decay=None,
             sample_ratios=None,
             sub_weights=None,
+            epochs=100,
             **kwargs):
         self.base = base  # "gbm" or "mlp", specifically, we use lgbm for "gbm"
         self.k = k
@@ -44,6 +45,7 @@ class DEnsembleModel(Model):
         if not len(sub_weights) == k:
             raise ValueError("The length of sub_weights should be equal to k.")
         self.sub_weights = sub_weights
+        self.epochs = epochs
         self.logger = get_module_logger("DEnsembleModel")
         self.logger.info("Double Ensemble Model...")
         self.ensemble = []  # the current ensemble model, a list contains all the sub-models
@@ -97,6 +99,7 @@ class DEnsembleModel(Model):
         model = lgb.train(
             self.params,
             dtrain,
+            num_boost_round=self.epochs,
             valid_sets=[dtrain, dvalid],
             valid_names=["train", "valid"],
             verbose_eval=20,

@@ -33,7 +33,7 @@ task:
             base: "gbm"
             loss: mse
             k: 6
-            enable_sr: True
+            enable_sr: False
             enable_fs: True
             alpha1: 1
             alpha2: 1
@@ -53,6 +53,7 @@ task:
                 - 0.2
                 - 0.2
                 - 0.2
+            epochs: 28
             colsample_bytree: 0.8879
             learning_rate: 0.2
             subsample: 0.8789
@@ -62,8 +63,6 @@ task:
             num_leaves: 210
             num_threads: 20
             verbosity: -1
-            num_iterations: 28
-            early_stopping_round: None
     dataset:
         class: DatasetH
         module_path: qlib.data.dataset

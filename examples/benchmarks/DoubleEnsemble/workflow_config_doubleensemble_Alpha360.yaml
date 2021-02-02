@@ -38,28 +38,29 @@ task:
         module_path: qlib.contrib.model.double_ensemble
         kwargs:
             base: "gbm"
-                loss: mse
-                k: 6
-                enable_sr: True
-                enable_fs: True
-                alpha1: 1
-                alpha2: 1
-                bins_sr: 10
-                bins_fs: 5
-                decay: 0.5
-                sample_ratios:
-                    - 0.8
-                    - 0.7
-                    - 0.6
-                    - 0.5
-                    - 0.4
-                sub_weights:
-                    - 1
-                    - 0.2
-                    - 0.2
-                    - 0.2
-                    - 0.2
-                    - 0.2
+            loss: mse
+            k: 6
+            enable_sr: True
+            enable_fs: True
+            alpha1: 1
+            alpha2: 1
+            bins_sr: 10
+            bins_fs: 5
+            decay: 0.5
+            sample_ratios:
+                - 0.8
+                - 0.7
+                - 0.6
+                - 0.5
+                - 0.4
+            sub_weights:
+                - 1
+                - 0.2
+                - 0.2
+                - 0.2
+                - 0.2
+                - 0.2
+            epochs: 136
             colsample_bytree: 0.8879
             learning_rate: 0.0421
             subsample: 0.8789
@@ -69,8 +70,6 @@ task:
             num_leaves: 210
             num_threads: 20
             verbosity: -1
-            num_iterations: 28
-            early_stopping_round: None
     dataset:
         class: DatasetH
         module_path: qlib.data.dataset
