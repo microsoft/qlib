@@ -1,8 +1,8 @@
 .. _data:
 
-================================
+===================================
 Data Layer: Data Framework & Usage
-================================
+===================================
 
 Introduction
 ============================
@@ -232,7 +232,7 @@ QlibDataLoader
 The ``QlibDataLoader`` class in ``Qlib`` is such an interface that allows users to load raw data from the ``Qlib`` data source.
 
 StaticDataLoader
----------------
+----------------
 
 The ``StaticDataLoader`` class in ``Qlib`` is such an interface that allows users to load raw data from file or as provided.
 
