@@ -16,7 +16,7 @@ The High-Frequency Dataset is implemented as `qlib.data.dataset.DatasetH` in the
 
 ### About Reinitialization
 
-After reloading `Dataset` from disk, `Qlib` also support reinitialize the dataset. It means that users can reset some config of `Dataset` or `DataHandler` such as `instruments`, `start_time`, `end_time` and `segmens`, etc.
+After reloading `Dataset` from disk, `Qlib` also support reinitializing the dataset. It means that users can reset some config of `Dataset` or `DataHandler` such as `instruments`, `start_time`, `end_time` and `segmens`, etc.
 
 The example is given in `workflow.py`, users can run the code as follows.
 
