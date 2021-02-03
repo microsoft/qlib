@@ -42,7 +42,6 @@ class HighfreqWorkflow(object):
     DATA_HANDLER_CONFIG0 = {
         "start_time": start_time,
         "end_time": end_time,
-        "freq": "1min",
         "fit_start_time": start_time,
         "fit_end_time": train_end_time,
         "instruments": MARKET,
@@ -51,7 +50,6 @@ class HighfreqWorkflow(object):
     DATA_HANDLER_CONFIG1 = {
         "start_time": start_time,
         "end_time": end_time,
-        "freq": "1min",
         "instruments": MARKET,
     }
 
