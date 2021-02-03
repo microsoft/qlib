@@ -87,19 +87,19 @@ class DatasetH(Dataset):
         """
         super().__init__(handler, segments)
 
-    def init(self, handler_kwargs:dict = None, segment_kwargs:dict = None):
+    def init(self, handler_kwargs: dict = None, segment_kwargs: dict = None):
         """
         Initialize the DatasetH
-        
+
         Parameters
         ----------
         handler_kwargs : dict
             Config of DataHanlder, which could include the following arguments:
-            
+
             - arguments of DataHandler.conf_data, such as 'instruments', 'start_time' and 'end_time'.
 
             - arguments of DataHandler.init, such as 'enable_cache', etc.
-        
+
         segment_kwargs : dict
             Config of segments which is same as 'segments' in DatasetH.setup_data
 
@@ -112,10 +112,10 @@ class DatasetH(Dataset):
             conf_data_arg = {"instruments", "start_time", "end_time"}
             for k, v in handler_kwargs.items():
                 if k in conf_data_arg:
-                    kwargs_conf_data.update({k:v})
+                    kwargs_conf_data.update({k: v})
                 else:
-                    kwargs_init.update({k:v})
-            
+                    kwargs_init.update({k: v})
+
             self.handler.conf_data(**kwargs_conf_data)
             self.handler.init(**kwargs_init)
 
