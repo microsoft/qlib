@@ -26,6 +26,7 @@ from qlib.tests.data import GetData
 
 from highfreq_ops import get_calendar_day, DayLast, FFillNan, BFillNan, Date, Select, IsNull
 
+
 class HighfreqWorkflow(object):
 
     SPEC_CONF = {"custom_ops": [DayLast, FFillNan, BFillNan, Date, Select, IsNull], "expression_cache": None}
@@ -146,29 +147,29 @@ class HighfreqWorkflow(object):
         self._prepare_calender_cache()
         ##=============reinit dataset=============
         dataset.init(
-            handler_kwargs = {
-                "init_type" : DataHandlerLP.IT_LS,
-                "start_time" : "2021-01-19 00:00:00",
-                "end_time" : "2021-01-25 16:00:00",
+            handler_kwargs={
+                "init_type": DataHandlerLP.IT_LS,
+                "start_time": "2021-01-19 00:00:00",
+                "end_time": "2021-01-25 16:00:00",
             },
-            segment_kwargs = {
+            segment_kwargs={
                 "test": (
-                    "2021-01-19 00:00:00", 
+                    "2021-01-19 00:00:00",
                     "2021-01-25 16:00:00",
                 ),
-            }
+            },
         )
         dataset_backtest.init(
-            handler_kwargs = {
-                "start_time" : "2021-01-19 00:00:00",
-                "end_time" : "2021-01-25 16:00:00",
+            handler_kwargs={
+                "start_time": "2021-01-19 00:00:00",
+                "end_time": "2021-01-25 16:00:00",
             },
-            segment_kwargs = {
+            segment_kwargs={
                 "test": (
-                    "2021-01-19 00:00:00", 
+                    "2021-01-19 00:00:00",
                     "2021-01-25 16:00:00",
                 ),
-            }
+            },
         )
 
         ##=============get data=============
