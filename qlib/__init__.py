@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 
-__version__ = "0.6.3"
+__version__ = "0.6.3.99"
 
 
 import os
