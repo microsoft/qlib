@@ -99,7 +99,7 @@ if __name__ == "__main__":
         },
     }
 
-    # model initiation
+    # model initialization
     model = init_instance_by_config(task["model"])
     dataset = init_instance_by_config(task["dataset"])
 
