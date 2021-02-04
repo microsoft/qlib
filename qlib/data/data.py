@@ -478,13 +478,13 @@ class DatasetProvider(abc.ABC):
 
         data = pd.DataFrame(obj)
         _calendar = Cal.calendar(freq=freq)
-        data.index = _calendar[data.index.values.astype(np.int)]
+        data.index = _calendar[data.index.values.astype(int)]
         data.index.names = ["datetime"]
 
         if spans is None:
             return data
         else:
-            mask = np.zeros(len(data), dtype=np.bool)
+            mask = np.zeros(len(data), dtype=bool)
             for begin, end in spans:
                 mask |= (data.index >= begin) & (data.index <= end)
             return data[mask]

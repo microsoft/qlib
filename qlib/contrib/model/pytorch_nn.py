@@ -150,7 +150,7 @@ class DNNModelPytorch(Model):
             eps=1e-08,
         )
 
-        self._fitted = False
+        self.fitted = False
         self.dnn_model.to(self.device)
 
     def fit(
@@ -180,7 +180,7 @@ class DNNModelPytorch(Model):
         evals_result["valid"] = []
         # train
         self.logger.info("training...")
-        self._fitted = True
+        self.fitted = True
         # return
         # prepare training data
         x_train_values = torch.from_numpy(x_train.values).float()
@@ -265,7 +265,7 @@ class DNNModelPytorch(Model):
             raise NotImplementedError("loss {} is not supported!".format(loss_type))
 
     def predict(self, dataset):
-        if not self._fitted:
+        if not self.fitted:
             raise ValueError("model is not fitted yet!")
         x_test_pd = dataset.prepare("test", col_set="feature")
         x_test = torch.from_numpy(x_test_pd.values).float().to(self.device)
