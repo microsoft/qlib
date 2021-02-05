@@ -54,6 +54,7 @@ class Alpha360(DataHandlerLP):
         learn_processors=_DEFAULT_LEARN_PROCESSORS,
         fit_start_time=None,
         fit_end_time=None,
+        filter_pipe=None,
         **kwargs,
     ):
         infer_processors = check_transform_proc(infer_processors, fit_start_time, fit_end_time)
@@ -66,6 +67,8 @@ class Alpha360(DataHandlerLP):
                     "feature": self.get_feature_config(),
                     "label": kwargs.get("label", self.get_label_config()),
                 },
+                "filter_pipe": filter_pipe,
+                "freq": freq,
             },
         }
 
@@ -73,7 +76,6 @@ class Alpha360(DataHandlerLP):
             instruments=instruments,
             start_time=start_time,
             end_time=end_time,
-            freq="day",
             data_loader=data_loader,
             learn_processors=learn_processors,
             infer_processors=infer_processors,
@@ -138,6 +140,7 @@ class Alpha158(DataHandlerLP):
         fit_start_time=None,
         fit_end_time=None,
         process_type=DataHandlerLP.PTYPE_A,
+        filter_pipe=None,
         **kwargs,
     ):
         infer_processors = check_transform_proc(infer_processors, fit_start_time, fit_end_time)
@@ -146,14 +149,18 @@ class Alpha158(DataHandlerLP):
         data_loader = {
             "class": "QlibDataLoader",
             "kwargs": {
-                "config": {"feature": self.get_feature_config(), "label": kwargs.get("label", self.get_label_config())},
+                "config": {
+                    "feature": self.get_feature_config(),
+                    "label": kwargs.get("label", self.get_label_config()),
+                },
+                "filter_pipe": filter_pipe,
+                "freq": freq,
             },
         }
         super().__init__(
             instruments=instruments,
             start_time=start_time,
             end_time=end_time,
-            freq=freq,
             data_loader=data_loader,
             infer_processors=infer_processors,
             learn_processors=learn_processors,

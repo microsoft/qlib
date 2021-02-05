@@ -60,7 +60,7 @@ class DNNModelPytorch(Model):
         lr_decay_steps=100,
         optimizer="gd",
         loss="mse",
-        GPU="0",
+        GPU=0,
         seed=None,
         weight_decay=0.0,
         **kwargs

@@ -153,3 +153,13 @@ Record Template
 --------------------
 .. automodule:: qlib.workflow.record_temp
     :members:
+
+
+Utils
+====================
+
+Serializable
+--------------------
+
+.. automodule:: qlib.utils.serial.Serializable
+    :members:

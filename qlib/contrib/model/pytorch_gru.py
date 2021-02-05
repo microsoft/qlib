@@ -56,7 +56,7 @@ class GRU(Model):
         early_stop=20,
         loss="mse",
         optimizer="adam",
-        GPU="0",
+        GPU=0,
         seed=None,
         **kwargs
     ):

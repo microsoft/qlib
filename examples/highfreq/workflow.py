@@ -42,7 +42,6 @@ class HighfreqWorkflow(object):
     DATA_HANDLER_CONFIG0 = {
         "start_time": start_time,
         "end_time": end_time,
-        "freq": "1min",
         "fit_start_time": start_time,
         "fit_end_time": train_end_time,
         "instruments": MARKET,
@@ -51,7 +50,6 @@ class HighfreqWorkflow(object):
     DATA_HANDLER_CONFIG1 = {
         "start_time": start_time,
         "end_time": end_time,
-        "freq": "1min",
         "instruments": MARKET,
     }
 
@@ -125,8 +123,7 @@ class HighfreqWorkflow(object):
         backtest_train, backtest_test = dataset_backtest.prepare(["train", "test"])
         print(backtest_train, backtest_test)
 
-        del xtrain, xtest
-        del backtest_train, backtest_test
+        return
 
     def dump_and_load_dataset(self):
         """dump and load dataset state on disk"""
@@ -148,18 +145,39 @@ class HighfreqWorkflow(object):
             dataset_backtest = pickle.load(file_dataset_backtest)
 
         self._prepare_calender_cache()
-        ##=============reload_dataset=============
-        dataset.init(init_type=DataHandlerLP.IT_LS)
-        dataset_backtest.init()
+        ##=============reinit dataset=============
+        dataset.init(
+            handler_kwargs={
+                "init_type": DataHandlerLP.IT_LS,
+                "start_time": "2021-01-19 00:00:00",
+                "end_time": "2021-01-25 16:00:00",
+            },
+            segment_kwargs={
+                "test": (
+                    "2021-01-19 00:00:00",
+                    "2021-01-25 16:00:00",
+                ),
+            },
+        )
+        dataset_backtest.init(
+            handler_kwargs={
+                "start_time": "2021-01-19 00:00:00",
+                "end_time": "2021-01-25 16:00:00",
+            },
+            segment_kwargs={
+                "test": (
+                    "2021-01-19 00:00:00",
+                    "2021-01-25 16:00:00",
+                ),
+            },
+        )
 
         ##=============get data=============
-        xtrain, xtest = dataset.prepare(["train", "test"])
-        backtest_train, backtest_test = dataset_backtest.prepare(["train", "test"])
+        xtest = dataset.prepare(["test"])
+        backtest_test = dataset_backtest.prepare(["test"])
 
-        print(xtrain, xtest)
-        print(backtest_train, backtest_test)
-        del xtrain, xtest
-        del backtest_train, backtest_test
+        print(xtest, backtest_test)
+        return
 
 
 if __name__ == "__main__":

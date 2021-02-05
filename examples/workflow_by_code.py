@@ -99,7 +99,7 @@ if __name__ == "__main__":
         },
     }
 
-    # model initiaiton
+    # model initialization
     model = init_instance_by_config(task["model"])
     dataset = init_instance_by_config(task["dataset"])
 
@@ -118,6 +118,7 @@ if __name__ == "__main__":
         sr = SignalRecord(model, dataset, recorder)
         sr.generate()
 
-        # backtest
+        # backtest. If users want to use backtest based on their own prediction,
+        # please refer to https://qlib.readthedocs.io/en/latest/component/recorder.html#record-template.
         par = PortAnaRecord(recorder, port_analysis_config)
         par.generate()

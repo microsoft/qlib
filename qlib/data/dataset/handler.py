@@ -57,7 +57,6 @@ class DataHandler(Serializable):
         instruments=None,
         start_time=None,
         end_time=None,
-        freq="day",
         data_loader: Tuple[dict, str, DataLoader] = None,
         init_data=True,
         fetch_orig=True,
@@ -71,8 +70,6 @@ class DataHandler(Serializable):
             start_time of the original data.
         end_time :
             end_time of the original data.
-        freq :
-            frequency of data
         data_loader : Tuple[dict, str, DataLoader]
             data loader to load the data.
         init_data :
@@ -86,23 +83,42 @@ class DataHandler(Serializable):
         # Setup data loader
         assert data_loader is not None  # to make start_time end_time could have None default value
 
+        # what data source to load data
         self.data_loader = init_instance_by_config(
             data_loader,
             None if (isinstance(data_loader, dict) and "module_path" in data_loader) else data_loader_module,
             accept_types=DataLoader,
         )
 
+        # what data to be loaded from data source
+        # For IDE auto-completion.
         self.instruments = instruments
         self.start_time = start_time
         self.end_time = end_time
-        self.freq = freq
+
         self.fetch_orig = fetch_orig
         if init_data:
             with TimeInspector.logt("Init data"):
                 self.init()
         super().__init__()
 
-    def init(self, enable_cache: bool = True):
+    def conf_data(self, **kwargs):
+        """
+        configuration of data.
+        # what data to be loaded from data source
+
+        This method will be used when loading pickled handler from dataset.
+        The data will be initialized with different time range.
+
+        """
+        attr_list = {"instruments", "start_time", "end_time"}
+        for k, v in kwargs.items():
+            if k in attr_list:
+                setattr(self, k, v)
+            else:
+                raise KeyError("Such config is not supported.")
+
+    def init(self, enable_cache: bool = False):
         """
         initialize the data.
         In case of running intialization for multiple time, it will do nothing for the second time.
@@ -123,7 +139,7 @@ class DataHandler(Serializable):
         # Setup data.
         # _data may be with multiple column index level. The outer level indicates the feature set name
         with TimeInspector.logt("Loading data"):
-            self._data = self.data_loader.load(self.instruments, self.start_time, self.end_time, self.freq)
+            self._data = self.data_loader.load(self.instruments, self.start_time, self.end_time)
         # TODO: cache
 
     CS_ALL = "__all"  # return all columns with single-level index column
@@ -262,7 +278,6 @@ class DataHandlerLP(DataHandler):
         instruments=None,
         start_time=None,
         end_time=None,
-        freq="day",
         data_loader: Tuple[dict, str, DataLoader] = None,
         infer_processors=[],
         learn_processors=[],
@@ -328,7 +343,7 @@ class DataHandlerLP(DataHandler):
 
         self.process_type = process_type
         self.drop_raw = drop_raw
-        super().__init__(instruments, start_time, end_time, freq, data_loader, **kwargs)
+        super().__init__(instruments, start_time, end_time, data_loader, **kwargs)
 
     def get_all_processors(self):
         return self.infer_processors + self.learn_processors
