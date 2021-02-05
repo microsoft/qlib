@@ -12,7 +12,7 @@ Introduction
 Serializable Class
 ========================
 
-``Qlib`` provides a base class ``qlib.utils.serial.Serializable``, whose state can be dumped in or loaded from disk in `pickle` format. 
+``Qlib`` provides a base class ``qlib.utils.serial.Serializable``, whose state can be dumped into or loaded from disk in `pickle` format. 
 When users dump the state of the ``Serializable`` instance, the attributes of the instance whose name **does not** start with `_` will be saved on the disk.
 
 Example
@@ -23,7 +23,7 @@ Specifically, ``qlib.data.dataset.DatasetH`` is one of them. Users can serialize
 .. code-block:: Python
 
     ##=============dump dataset=============
-    dataset.to_pickle(path="dataset.pkl") # dataset is the instance of qlib.data.dataset.DatasetH
+    dataset.to_pickle(path="dataset.pkl") # dataset is an instance of qlib.data.dataset.DatasetH
 
     ##=============reload dataset=============
     with open("dataset.pkl", "rb") as file_dataset:
