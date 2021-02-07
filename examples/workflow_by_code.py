@@ -112,6 +112,7 @@ if __name__ == "__main__":
     with R.start(experiment_name="workflow"):
         R.log_params(**flatten_dict(task))
         model.fit(dataset)
+        R.save_objects(**{"params.pkl": model})
 
         # prediction
         recorder = R.get_recorder()
