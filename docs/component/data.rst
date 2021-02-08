@@ -172,7 +172,7 @@ The `trade unit` defines the unit number of stocks can be used in a trade, and t
         
 
 - If users use ``Qlib`` in US-stock mode, US-stock data is required. ``Qlib`` also provides a script to download US-stock data. Users can use ``Qlib`` in US-stock mode according to the following steps:
-    - Download china-stock in qlib format, please refer to section `Qlib Format Dataset <#qlib-format-dataset>`_.
+    - Download us-stock in qlib format, please refer to section `Qlib Format Dataset <#qlib-format-dataset>`_.
     - Initialize ``Qlib`` in US-stock mode
         Supposed that users prepare their Qlib format data in the directory ``~/.qlib/csv_data/us_data``. Users only need to initialize ``Qlib`` as follows.
         
