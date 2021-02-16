@@ -39,7 +39,7 @@ python dump_bin.py dump_all --csv_path ~/.qlib/stock_data/source/cn_1d_nor --qli
 import qlib
 from qlib.data import D
 
-qlib.init(provider_uri="~/.qlib/stock_data/source/qlib_cn_1d", region="CN")
+qlib.init(provider_uri="~/.qlib/stock_data/source/qlib_cn_1d", region="cn")
 df = D.features(D.instruments("all"), ["$close"], freq="day")
 
 ```
@@ -81,13 +81,13 @@ python collector.py normalize_data --source_dir ~/.qlib/stock_data/source/us_1d 
 
 # dump data
 cd qlib/scripts
-python dump_bin.py dump_all --csv_path ~/.qlib/stock_data/source/cn_1d_nor --qlib_dir ~/.qlib/stock_data/source/qlib_us_1d --freq day --exclude_fields date,adjclose,dividends,splits,symbol
+python dump_bin.py dump_all --csv_path ~/.qlib/stock_data/source/us_1d_nor --qlib_dir ~/.qlib/stock_data/source/qlib_us_1d --freq day --exclude_fields date,adjclose,dividends,splits,symbol
 
 # using
 import qlib
 from qlib.data import D
 
-qlib.init(provider_uri="~/.qlib/stock_data/source/qlib_us_1d", region="US")
+qlib.init(provider_uri="~/.qlib/stock_data/source/qlib_us_1d", region="us")
 df = D.features(D.instruments("all"), ["$close"], freq="day")
 
 ```
