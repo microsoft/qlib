@@ -128,7 +128,7 @@ def parse_config(config):
     # Check whether config is file
     if os.path.exists(config):
         with open(config, "r") as f:
-            return yaml.load(f)
+            return yaml.load(f, Loader=yaml.SafeLoader)
     # Check whether the str can be parsed
     try:
         return yaml.load(config)
