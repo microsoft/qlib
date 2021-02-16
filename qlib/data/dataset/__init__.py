@@ -87,9 +87,42 @@ class DatasetH(Dataset):
         """
         super().__init__(handler, segments)
 
-    def init(self, **kwargs):
-        """Initialize the DatasetH, Only parameters belonging to handler.init will be passed in"""
-        self.handler.init(**kwargs)
+    def init(self, handler_kwargs: dict = None, segment_kwargs: dict = None):
+        """
+        Initialize the DatasetH
+
+        Parameters
+        ----------
+        handler_kwargs : dict
+            Config of DataHanlder, which could include the following arguments:
+
+            - arguments of DataHandler.conf_data, such as 'instruments', 'start_time' and 'end_time'.
+
+            - arguments of DataHandler.init, such as 'enable_cache', etc.
+
+        segment_kwargs : dict
+            Config of segments which is same as 'segments' in DatasetH.setup_data
+
+        """
+        if handler_kwargs:
+            if not isinstance(handler_kwargs, dict):
+                raise TypeError(f"param handler_kwargs must be type dict, not {type(handler_kwargs)}")
+            kwargs_init = {}
+            kwargs_conf_data = {}
+            conf_data_arg = {"instruments", "start_time", "end_time"}
+            for k, v in handler_kwargs.items():
+                if k in conf_data_arg:
+                    kwargs_conf_data.update({k: v})
+                else:
+                    kwargs_init.update({k: v})
+
+            self.handler.conf_data(**kwargs_conf_data)
+            self.handler.init(**kwargs_init)
+
+        if segment_kwargs:
+            if not isinstance(segment_kwargs, dict):
+                raise TypeError(f"param handler_kwargs must be type dict, not {type(segment_kwargs)}")
+            self.segments = segment_kwargs.copy()
 
     def setup_data(self, handler: Union[dict, DataHandler], segments: dict):
         """

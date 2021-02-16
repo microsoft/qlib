@@ -82,13 +82,10 @@ This table demonstrates the supported Python version of `Qlib`:
 2. For Python 3.9, `Qlib` supports running workflows such as training models, doing backtest and plot most of the related figures (those included in [notebook](examples/workflow_by_code.ipynb)). However, plotting for the *model performance* is not supported for now and we will fix this when the dependent packages are upgraded in the future.
 
 ### Install with pip
-**Note**: Due to latest numpy release: version 1.20.0, unexpected errors will occur if you install or run Qlib with `numpy==1.20.0`. We recommend to use lower version of `numpy==1.19.5` for now and we will fix this incompatibility in the neaar future.
-
 Users can easily install ``Qlib`` by pip according to the following command.
 
 ```bash
-  pip install numpy==1.19.5
-  pip install pyqlib --ignore-installed numpy
+  pip install pyqlib
 ```
 
 **Note**: pip will install the latest stable qlib. However, the main branch of qlib is in active development. If you want to test the latest scripts or functions in the main branch. Please install qlib with the methods below.
@@ -121,7 +118,12 @@ Also, users can install the latest dev version ``Qlib`` by the source code accor
 ## Data Preparation
 Load and prepare data by running the following code:
   ```bash
+  # get 1d data
   python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/cn_data --region cn
+
+  # get 1min data
+  python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/cn_data_1min --region cn --interval 1min
+
   ```
 
 This dataset is created by public data collected by [crawler scripts](scripts/data_collector/), which have been released in

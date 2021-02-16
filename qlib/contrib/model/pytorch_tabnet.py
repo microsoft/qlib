@@ -88,6 +88,7 @@ class TabnetModel(Model):
             "\nGPU : {}"
             "\npretrain: {}".format(self.batch_size, vbs, GPU, pretrain)
         )
+        self.fitted = False
         np.random.seed(self.seed)
         torch.manual_seed(self.seed)
 
@@ -187,7 +188,7 @@ class TabnetModel(Model):
         evals_result["valid"] = []
 
         self.logger.info("training...")
-        self._fitted = True
+        self.fitted = True
 
         for epoch_idx in range(self.n_epochs):
             self.logger.info("epoch: %s" % (epoch_idx))
@@ -212,7 +213,7 @@ class TabnetModel(Model):
         self.logger.info("best score: %.6lf @ %d" % (best_score, best_epoch))
 
     def predict(self, dataset):
-        if not self._fitted:
+        if not self.fitted:
             raise ValueError("model is not fitted yet!")
 
         x_test = dataset.prepare("test", col_set="feature", data_key=DataHandlerLP.DK_I)

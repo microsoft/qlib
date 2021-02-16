@@ -86,7 +86,6 @@ class GetData:
 
     @staticmethod
     def _delete_qlib_data(file_dir: Path):
-        logger.info(f"delete {file_dir}")
         rm_dirs = []
         for _name in ["features", "calendars", "instruments", "features_cache", "dataset_cache"]:
             _p = file_dir.joinpath(_name)
@@ -133,7 +132,11 @@ class GetData:
 
         Examples
         ---------
+        # get 1d data
         python get_data.py qlib_data --name qlib_data --target_dir ~/.qlib/qlib_data/cn_data --interval 1d --region cn
+
+        # get 1min data
+        python get_data.py qlib_data --name qlib_data --target_dir ~/.qlib/qlib_data/cn_data_1min --interval 1min --region cn
         -------
 
         """

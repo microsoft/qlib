@@ -31,7 +31,7 @@ Qlib Format Data
 We've specially designed a data structure to manage financial data, please refer to the `File storage design section in Qlib paper <https://arxiv.org/abs/2009.11189>`_ for detailed information.
 Such data will be stored with filename suffix `.bin` (We'll call them `.bin` file, `.bin` format, or qlib format). `.bin` file is designed for scientific computing on finance data.
 
-``Qlib`` provides two different off-the-shelf dataset, which can be accessed through this `link <https://github.com/microsoft/qlib/blob/main/qlib/contrib/data/handler.py>`_:
+``Qlib`` provides two different off-the-shelf datasets, which can be accessed through this `link <https://github.com/microsoft/qlib/blob/main/qlib/contrib/data/handler.py>`_:
 
 ========================  =================  ================
 Dataset                   US Market          China Market
@@ -41,6 +41,7 @@ Alpha360                  √                  √
 Alpha158                  √                  √
 ========================  =================  ================
 
+Also, ``Qlib`` provides a high-frequency dataset. Users can run a high-frequency dataset example through this `link <https://github.com/microsoft/qlib/tree/main/examples/highfreq>`_.
 
 Qlib Format Dataset
 --------------------
@@ -48,7 +49,11 @@ Qlib Format Dataset
 
 .. code-block:: bash
 
+    # download 1d
     python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/cn_data --region cn
+
+    # download 1min
+    python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/qlib_cn_1min --region cn --interval 1min
 
 In addition to China-Stock data, ``Qlib`` also includes a US-Stock dataset, which can be downloaded with the following command:
 
@@ -167,7 +172,7 @@ The `trade unit` defines the unit number of stocks can be used in a trade, and t
         
 
 - If users use ``Qlib`` in US-stock mode, US-stock data is required. ``Qlib`` also provides a script to download US-stock data. Users can use ``Qlib`` in US-stock mode according to the following steps:
-    - Download china-stock in qlib format, please refer to section `Qlib Format Dataset <#qlib-format-dataset>`_.
+    - Download us-stock in qlib format, please refer to section `Qlib Format Dataset <#qlib-format-dataset>`_.
     - Initialize ``Qlib`` in US-stock mode
         Supposed that users prepare their Qlib format data in the directory ``~/.qlib/csv_data/us_data``. Users only need to initialize ``Qlib`` as follows.
         
