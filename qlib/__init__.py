@@ -147,7 +147,7 @@ def init_from_yaml_conf(conf_path, **kwargs):
     """
 
     with open(conf_path) as f:
-        config = yaml.load(f, Loader=yaml.SafeLoader)
+        config = yaml.safe_load(f)
     config.update(kwargs)
     default_conf = config.pop("default_conf", "client")
     init(default_conf, **config)
