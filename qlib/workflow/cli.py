@@ -44,7 +44,7 @@ def sys_config(config, config_path):
 # worflow handler function
 def workflow(config_path, experiment_name="workflow", uri_folder="mlruns"):
     with open(config_path) as fp:
-        config = yaml.load(fp, Loader=yaml.SafeLoader)
+        config = yaml.safe_load(fp)
 
     # config the `sys` section
     sys_config(config, config_path)
