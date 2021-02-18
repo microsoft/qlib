@@ -265,7 +265,7 @@ def run(times=1, models=None, dataset="Alpha360", exclude=False):
             )  # TODO: FIX ME!
         else:
             execute(
-                f"cd {env_path} && {python_path} -m pip install --upgrade --force-reinstall -e git+https://github.com/meng-ustc/qlib#egg=pyqlib"
+                f"cd {env_path} && {python_path} -m pip install --upgrade --force-reinstall -e git+https://github.com/microsoft/qlib#egg=pyqlib"
             )  # TODO: FIX ME!
         sys.stderr.write("\n")
         # run workflow_by_config for multiple times
