@@ -29,6 +29,15 @@ NOTE: A lot of details is not considered in this script
 	2) Scenarios:
 		§ Online anomaly detection: monitoring streaming data.
 Offline anomaly detection: verifying whole historical data.
+
+
+2021-2-19:
+
+Effectiveness metrics
+- Standard metrics:
+    - [X] IC(Information Coefficient)  #case_3_1
+    - [ ] IR(Information Ratio): Informatio Ratio is related to backest
+    - [X] RankIC   #case_3_3
 """
 
 # AUTO download data
@@ -51,10 +60,15 @@ from qlib.data.monitor.metric import format_conv
 from qlib.data.monitor.metric import MeanM, SkewM, KurtM, StdM, AutoCM, CorrM
 from qlib.data.monitor.detector import NDDetector, SWNDD, ThresholdD
 from qlib.data import D
+import fire
+
+
+UNIVERSE = "csi300"
+START_TIME = "20200101"
 
 
 def get_factor_df(col_idx=0):
-    dh = Alpha158(instruments="csi300", infer_processors=[], learn_processors=[], start_time="20200101")
+    dh = Alpha158(instruments=UNIVERSE, infer_processors=[], learn_processors=[], start_time=START_TIME)
     df = dh.fetch()
 
     print(df.head())
@@ -106,7 +120,7 @@ def case_1_3_1_4():
     # case 1.3 and case 1.4
     # factor_df = get_factor_df()
     qdl = QlibDataLoader(config=(["$close/Ref($close, 1) - 1"], ["return"]))
-    df = qdl.load(instruments=["SH600519"], start_time="20200101")
+    df = qdl.load(instruments=["SH600519"], start_time=START_TIME)
     df = format_conv(df)
     s = df.iloc[:, 0]
     print(s)
@@ -146,9 +160,37 @@ def case_2_2():
     print(check_res.value_counts())
 
 
+def get_target(horizon=5):
+    target = f"Ref($close, -{horizon + 1})/Ref($close, -1) - 1"  # There are lots of targets: return is one of them
+    qdl = QlibDataLoader(config=([target], ["target"]))
+    df = qdl.load(instruments=UNIVERSE, start_time=START_TIME)  # Aligning with factor will improve performance
+    df = format_conv(df["target"])
+    return df
+
+
+def case_3_1_3_3():
+    target, factor = get_target(), get_factor_df(0)
+    ic_m, rank_ic_m = CorrM(), CorrM(mode="spearman")
+    ic, rank_ic = ic_m.extract(factor, target), rank_ic_m.extract(factor, target)
+    print(pd.DataFrame({"ic": ic, "rank_ic": rank_ic}))
+
+
+def run(test_list=["case_1_1", "case_1_2", "case_1_3_1_4", "case_2_1", "case_2_2", "case_3_1_3_3"]):
+    """
+    run the specific tests
+
+    python monitor.py case_3_1_3_3
+
+    Parameters
+    ----------
+    test_list :  str[]
+        The tests to run
+    """
+    if isinstance(test_list, str):
+        test_list = [test_list]
+    for fn in test_list:
+        globals()[fn]()
+
+
 if __name__ == "__main__":
-    case_1_1()
-    case_1_2()
-    case_1_3_1_4()
-    case_2_1()
-    case_2_2()
+    fire.Fire(run)
