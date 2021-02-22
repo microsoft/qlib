@@ -6,8 +6,10 @@ import pandas as pd
 import cvxpy as cp
 from typing import Union
 
+from ...portfolio.optimizer import BaseOptimizer
 
-class EnhancedIndexingOptimizer:
+
+class EnhancedIndexingOptimizer(BaseOptimizer):
     """
     Portfolio Optimizer with Enhanced Indexing
 
