@@ -291,7 +291,7 @@ class EnhancedIndexingOptimizer(BaseOptimizer):
         lamb: float = 10,
         delta: float = 0.4,
         bench_dev: float = 0.01,
-        inds_dev: float = 0.01,
+        inds_dev: float = None,
         scale_alpha: bool = True,
         verbose: bool = False,
         warm_start: str = DO_NOT_START_FROM,
@@ -302,7 +302,8 @@ class EnhancedIndexingOptimizer(BaseOptimizer):
             lamb (float): risk aversion parameter (larger `lamb` means less focus on return)
             delta (float): turnover rate limit
             bench_dev (float): benchmark deviation limit
-            inds_dev (float): industry deviation limit
+            inds_dev (float/None): industry deviation limit, set `inds_dev` to None to ignore industry specific
+                                   restriction
             scale_alpha (bool): if to scale alpha to match the volatility of the covariance matrix
             verbose (bool): if print detailed information about the solver
             warm_start (str): whether try to warm start (`w0`/`benchmark`/``)
@@ -341,7 +342,7 @@ class EnhancedIndexingOptimizer(BaseOptimizer):
         varU: np.ndarray,
         w0: np.ndarray,
         w_bench: np.ndarray,
-        inds_onehot: np.ndarray,
+        inds_onehot: np.ndarray = None,
     ) -> Union[np.ndarray, pd.Series]:
         """
         Args:
@@ -354,6 +355,8 @@ class EnhancedIndexingOptimizer(BaseOptimizer):
         Returns:
             np.ndarray or pd.Series: optimized portfolio allocation
         """
+        assert inds_onehot is not None or self.inds_dev is None, "Industry onehot vector is required."
+
         # scale alpha to match volatility
         if self.scale_alpha:
             u = u / u.std()
@@ -366,15 +369,18 @@ class EnhancedIndexingOptimizer(BaseOptimizer):
         risk = cp.quad_form(v, covB) + cp.sum(cp.multiply(varU, w ** 2))
         obj = cp.Maximize(ret - self.lamb * risk)
         d_bench = w - w_bench
-        d_inds = d_bench @ inds_onehot
         cons = [
             w >= 0,
             cp.sum(w) == 1,
             d_bench >= -self.bench_dev,
             d_bench <= self.bench_dev,
-            d_inds >= -self.inds_dev,
-            d_inds <= self.inds_dev,
         ]
+
+        if self.inds_dev is not None:
+            d_inds = d_bench @ inds_onehot
+            cons.append(d_inds >= -self.inds_dev)
+            cons.append(d_inds <= self.inds_dev)
+
         if w0 is not None:
             turnover = cp.sum(cp.abs(w - w0))
             cons.append(turnover <= self.delta)
