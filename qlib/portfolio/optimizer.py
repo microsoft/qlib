@@ -85,14 +85,14 @@ class PortfolioOptimizer:
         if u is not None:
             assert len(u) == len(S), "`u` has mismatched shape"
             if isinstance(u, pd.Series):
-                assert all(u.index == index), "`u` has mismatched index"
+                assert u.index.equals(index), "`u` has mismatched index"
                 u = u.values
 
         # transform initial weights
         if w0 is not None:
             assert len(w0) == len(S), "`w0` has mismatched shape"
             if isinstance(w0, pd.Series):
-                assert all(w0.index == index), "`w0` has mismatched index"
+                assert w0.index.equals(index), "`w0` has mismatched index"
                 w0 = w0.values
 
         # scale alpha to match volatility
@@ -175,7 +175,7 @@ class PortfolioOptimizer:
         """
         return self._solve(len(S), self._get_objective_rp(S), *self._get_constrains(w0))
 
-    def _get_objective_gmv(self, S: np.ndarray) -> np.ndarray:
+    def _get_objective_gmv(self, S: np.ndarray) -> Callable:
         """global minimum variance optimization objective
 
         Optimization objective
@@ -187,7 +187,7 @@ class PortfolioOptimizer:
 
         return func
 
-    def _get_objective_mvo(self, S: np.ndarray, u: np.ndarray = None) -> np.ndarray:
+    def _get_objective_mvo(self, S: np.ndarray, u: np.ndarray = None) -> Callable:
         """mean-variance optimization objective
 
         Optimization objective
@@ -201,7 +201,7 @@ class PortfolioOptimizer:
 
         return func
 
-    def _get_objective_rp(self, S: np.ndarray) -> np.ndarray:
+    def _get_objective_rp(self, S: np.ndarray) -> Callable:
         """risk-parity optimization objective
 
         Optimization objective
