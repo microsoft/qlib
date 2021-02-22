@@ -1,11 +1,10 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-import warnings
 import numpy as np
 import pandas as pd
-
 from typing import Union
+from sklearn.decomposition import PCA, FactorAnalysis
 
 from qlib.model.base import BaseModel
 
@@ -124,7 +123,7 @@ class RiskModel(BaseModel):
             X = np.nan_to_num(X)
         elif self.nan_option == self.MASK_NAN:
             X = np.ma.masked_invalid(X)
-        # centerize
+        # centralize
         if not self.assume_centered:
             X = X - np.nanmean(X, axis=0)
         return X
@@ -162,8 +161,9 @@ class ShrinkCovEstimator(RiskModel):
         [3] Ledoit, O., & Wolf, M. (2003). Improved estimation of the covariance matrix of stock returns
             with an application to portfolio selection.
             Journal of Empirical Finance, 10(5), 603–621. https://doi.org/10.1016/S0927-5398(03)00007-0
-        [4] Chen, Y., Wiesel, A., Eldar, Y. C., & Hero, A. O. (2010). Shrinkage algorithms for MMSE covariance estimation.
-            IEEE Transactions on Signal Processing, 58(10), 5016–5029. https://doi.org/10.1109/TSP.2010.2053029
+        [4] Chen, Y., Wiesel, A., Eldar, Y. C., & Hero, A. O. (2010). Shrinkage algorithms for MMSE covariance
+            estimation. IEEE Transactions on Signal Processing, 58(10), 5016–5029.
+            https://doi.org/10.1109/TSP.2010.2053029
         [5] https://www.econ.uzh.ch/dam/jcr:ffffffff-935a-b0d6-0000-00007f64e5b9/cov1para.m.zip
         [6] https://www.econ.uzh.ch/dam/jcr:ffffffff-935a-b0d6-ffff-ffffde5e2d4e/covCor.m.zip
         [7] https://www.econ.uzh.ch/dam/jcr:ffffffff-935a-b0d6-0000-0000648dfc98/covMarket.m.zip
