@@ -311,7 +311,11 @@ class SubplotsGraph:
             _temp_row_data = (
                 column_name,
                 dict(
-                    row=row, col=col, name=res_name, kind=self._kind_map["kind"], graph_kwargs=self._kind_map["kwargs"],
+                    row=row,
+                    col=col,
+                    name=res_name,
+                    kind=self._kind_map["kind"],
+                    graph_kwargs=self._kind_map["kwargs"],
                 ),
             )
             self._sub_graph_data.append(_temp_row_data)

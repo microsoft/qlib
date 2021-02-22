@@ -150,13 +150,21 @@ class SimulatorExecutor(BaseExecutor):
                     if order.direction == Order.SELL:  # sell
                         print(
                             "[I {:%Y-%m-%d}]: sell {}, price {:.2f}, amount {}, value {:.2f}.".format(
-                                trade_date, order.stock_id, trade_price, order.deal_amount, trade_val,
+                                trade_date,
+                                order.stock_id,
+                                trade_price,
+                                order.deal_amount,
+                                trade_val,
                             )
                         )
                     else:
                         print(
                             "[I {:%Y-%m-%d}]: buy {}, price {:.2f}, amount {}, value {:.2f}.".format(
-                                trade_date, order.stock_id, trade_price, order.deal_amount, trade_val,
+                                trade_date,
+                                order.stock_id,
+                                trade_price,
+                                order.deal_amount,
+                                trade_val,
                             )
                         )
 
@@ -263,13 +271,21 @@ def load_order_list(user_path, trade_date):
     for stock_id in order_dict["sell"]:
         amount, factor = order_dict["sell"][stock_id]
         order = Order(
-            stock_id=stock_id, amount=amount, trade_date=pd.Timestamp(trade_date), direction=Order.SELL, factor=factor,
+            stock_id=stock_id,
+            amount=amount,
+            trade_date=pd.Timestamp(trade_date),
+            direction=Order.SELL,
+            factor=factor,
         )
         order_list.append(order)
     for stock_id in order_dict["buy"]:
         amount, factor = order_dict["buy"][stock_id]
         order = Order(
-            stock_id=stock_id, amount=amount, trade_date=pd.Timestamp(trade_date), direction=Order.BUY, factor=factor,
+            stock_id=stock_id,
+            amount=amount,
+            trade_date=pd.Timestamp(trade_date),
+            direction=Order.BUY,
+            factor=factor,
         )
         order_list.append(order)
     return order_list

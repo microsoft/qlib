@@ -23,7 +23,11 @@ def _get_figure_with_position(
     :return:
     """
     _position_df = get_position_data(
-        position, label_data, calculate_label_rank=True, start_date=start_date, end_date=end_date,
+        position,
+        label_data,
+        calculate_label_rank=True,
+        start_date=start_date,
+        end_date=end_date,
     )
 
     res_dict = dict()
@@ -47,14 +51,20 @@ def _get_figure_with_position(
         yield ScatterGraph(
             _res_df.loc[:, [_col]],
             layout=dict(
-                title=_col, xaxis=dict(type="category", tickangle=45), yaxis=dict(title="lable-rank-ratio: %"),
+                title=_col,
+                xaxis=dict(type="category", tickangle=45),
+                yaxis=dict(title="lable-rank-ratio: %"),
             ),
             graph_kwargs=dict(mode="lines+markers"),
         ).figure
 
 
 def rank_label_graph(
-    position: dict, label_data: pd.DataFrame, start_date=None, end_date=None, show_notebook=True,
+    position: dict,
+    label_data: pd.DataFrame,
+    start_date=None,
+    end_date=None,
+    show_notebook=True,
 ) -> Iterable[go.Figure]:
     """Ranking percentage of stocks buy, sell, and holding on the trading day.
     Average rank-ratio(similar to **sell_df['label'].rank(ascending=False) / len(sell_df)**) of daily trading

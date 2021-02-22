@@ -328,7 +328,14 @@ class DatasetProvider(abc.ABC):
         raise NotImplementedError("Subclass of DatasetProvider must implement `Dataset` method")
 
     def _uri(
-        self, instruments, fields, start_time=None, end_time=None, freq="day", disk_cache=1, **kwargs,
+        self,
+        instruments,
+        fields,
+        start_time=None,
+        end_time=None,
+        freq="day",
+        disk_cache=1,
+        **kwargs,
     ):
         """Get task uri, used when generating rabbitmq task in qlib_server
 
@@ -407,13 +414,29 @@ class DatasetProvider(abc.ABC):
             for inst, spans in instruments_d.items():
                 data[inst] = p.apply_async(
                     DatasetProvider.expression_calculator,
-                    args=(inst, start_time, end_time, freq, normalize_column_names, spans, C,),
+                    args=(
+                        inst,
+                        start_time,
+                        end_time,
+                        freq,
+                        normalize_column_names,
+                        spans,
+                        C,
+                    ),
                 )
         else:
             for inst in instruments_d:
                 data[inst] = p.apply_async(
                     DatasetProvider.expression_calculator,
-                    args=(inst, start_time, end_time, freq, normalize_column_names, None, C,),
+                    args=(
+                        inst,
+                        start_time,
+                        end_time,
+                        freq,
+                        normalize_column_names,
+                        None,
+                        C,
+                    ),
                 )
 
         p.close()
@@ -575,7 +598,12 @@ class LocalInstrumentProvider(InstrumentProvider):
         start_time = pd.Timestamp(start_time or cal[0])
         end_time = pd.Timestamp(end_time or cal[-1])
         _instruments_filtered = {
-            inst: list(filter(lambda x: x[0] <= x[1], [(max(start_time, x[0]), min(end_time, x[1])) for x in spans],))
+            inst: list(
+                filter(
+                    lambda x: x[0] <= x[1],
+                    [(max(start_time, x[0]), min(end_time, x[1])) for x in spans],
+                )
+            )
             for inst, spans in _instruments.items()
         }
         _instruments_filtered = {key: value for key, value in _instruments_filtered.items() if value}
@@ -695,7 +723,14 @@ class LocalDatasetProvider(DatasetProvider):
 
         for inst in instruments_d:
             p.apply_async(
-                LocalDatasetProvider.cache_walker, args=(inst, start_time, end_time, freq, column_names,),
+                LocalDatasetProvider.cache_walker,
+                args=(
+                    inst,
+                    start_time,
+                    end_time,
+                    freq,
+                    column_names,
+                ),
             )
 
         p.close()
@@ -728,7 +763,12 @@ class ClientCalendarProvider(CalendarProvider):
     def calendar(self, start_time=None, end_time=None, freq="day", future=False):
         self.conn.send_request(
             request_type="calendar",
-            request_content={"start_time": str(start_time), "end_time": str(end_time), "freq": freq, "future": future,},
+            request_content={
+                "start_time": str(start_time),
+                "end_time": str(end_time),
+                "freq": freq,
+                "future": future,
+            },
             msg_queue=self.queue,
             msg_proc_func=lambda response_content: [pd.Timestamp(c) for c in response_content],
         )
@@ -792,7 +832,14 @@ class ClientDatasetProvider(DatasetProvider):
         self.queue = queue.Queue()
 
     def dataset(
-        self, instruments, fields, start_time=None, end_time=None, freq="day", disk_cache=0, return_uri=False,
+        self,
+        instruments,
+        fields,
+        start_time=None,
+        end_time=None,
+        freq="day",
+        disk_cache=0,
+        return_uri=False,
     ):
         if Inst.get_inst_type(instruments) == Inst.DICT:
             get_module_logger("data").warning(
@@ -895,7 +942,13 @@ class BaseProvider:
         return Inst.list_instruments(instruments, start_time, end_time, freq, as_list)
 
     def features(
-        self, instruments, fields, start_time=None, end_time=None, freq="day", disk_cache=None,
+        self,
+        instruments,
+        fields,
+        start_time=None,
+        end_time=None,
+        freq="day",
+        disk_cache=None,
     ):
         """
         Parameters:

@@ -229,11 +229,17 @@ class GATs(Model):
         return np.mean(losses), np.mean(scores)
 
     def fit(
-        self, dataset: DatasetH, evals_result=dict(), verbose=True, save_path=None,
+        self,
+        dataset: DatasetH,
+        evals_result=dict(),
+        verbose=True,
+        save_path=None,
     ):
 
         df_train, df_valid, df_test = dataset.prepare(
-            ["train", "valid", "test"], col_set=["feature", "label"], data_key=DataHandlerLP.DK_L,
+            ["train", "valid", "test"],
+            col_set=["feature", "label"],
+            data_key=DataHandlerLP.DK_L,
         )
 
         x_train, y_train = df_train["feature"], df_train["label"]
@@ -334,11 +340,19 @@ class GATModel(nn.Module):
 
         if base_model == "GRU":
             self.rnn = nn.GRU(
-                input_size=d_feat, hidden_size=hidden_size, num_layers=num_layers, batch_first=True, dropout=dropout,
+                input_size=d_feat,
+                hidden_size=hidden_size,
+                num_layers=num_layers,
+                batch_first=True,
+                dropout=dropout,
             )
         elif base_model == "LSTM":
             self.rnn = nn.LSTM(
-                input_size=d_feat, hidden_size=hidden_size, num_layers=num_layers, batch_first=True, dropout=dropout,
+                input_size=d_feat,
+                hidden_size=hidden_size,
+                num_layers=num_layers,
+                batch_first=True,
+                dropout=dropout,
             )
         else:
             raise ValueError("unknown base model name `%s`" % base_model)

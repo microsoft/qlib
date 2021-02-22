@@ -28,7 +28,10 @@ class Tuner:
         self.optim_config = optim_config
 
         self.max_evals = self.tuner_config.get("max_evals", 10)
-        self.ex_dir = os.path.join(self.tuner_config["experiment"]["dir"], self.tuner_config["experiment"]["name"],)
+        self.ex_dir = os.path.join(
+            self.tuner_config["experiment"]["dir"],
+            self.tuner_config["experiment"]["name"],
+        )
 
         self.best_params = None
         self.best_res = None
@@ -39,7 +42,10 @@ class Tuner:
 
         TimeInspector.set_time_mark()
         fmin(
-            fn=self.objective, space=self.space, algo=tpe.suggest, max_evals=self.max_evals,
+            fn=self.objective,
+            space=self.space,
+            algo=tpe.suggest,
+            max_evals=self.max_evals,
         )
         self.logger.info("Local best params: {} ".format(self.best_params))
         TimeInspector.log_cost_time(
@@ -153,7 +159,8 @@ class QLibTuner(Tuner):
             estimator_config["data"]["args"].update(params["data_label_space"])
 
         estimator_path = os.path.join(
-            self.tuner_config["experiment"].get("dir", "../"), QLibTuner.ESTIMATOR_CONFIG_NAME,
+            self.tuner_config["experiment"].get("dir", "../"),
+            QLibTuner.ESTIMATOR_CONFIG_NAME,
         )
 
         with open(estimator_path, "w") as fp:
@@ -166,20 +173,27 @@ class QLibTuner(Tuner):
         model_space_name = self.tuner_config["model"].get("space", None)
         if model_space_name is None:
             raise ValueError("Please give the search space of model.")
-        model_space = getattr(importlib.import_module(".space", package="qlib.contrib.tuner"), model_space_name,)
+        model_space = getattr(
+            importlib.import_module(".space", package="qlib.contrib.tuner"),
+            model_space_name,
+        )
 
         # 2. Setup strategy space
         strategy_space_name = self.tuner_config["strategy"].get("space", None)
         if strategy_space_name is None:
             raise ValueError("Please give the search space of strategy.")
-        strategy_space = getattr(importlib.import_module(".space", package="qlib.contrib.tuner"), strategy_space_name,)
+        strategy_space = getattr(
+            importlib.import_module(".space", package="qlib.contrib.tuner"),
+            strategy_space_name,
+        )
 
         # 3. Setup data label space if given
         if self.tuner_config.get("data_label", None) is not None:
             data_label_space_name = self.tuner_config["data_label"].get("space", None)
             if data_label_space_name is not None:
                 data_label_space = getattr(
-                    importlib.import_module(".space", package="qlib.contrib.tuner"), data_label_space_name,
+                    importlib.import_module(".space", package="qlib.contrib.tuner"),
+                    data_label_space_name,
                 )
         else:
             data_label_space_name = None

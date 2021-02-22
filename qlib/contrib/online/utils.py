@@ -79,7 +79,11 @@ def prepare(um, today, user_id, exchange_config=None):
         log.warning("user_id:{}, last trading date {} after today {}".format(user_id, latest_trading_date, today))
         return [pd.Timestamp(latest_trading_date)], None
 
-    dates = D.calendar(start_time=pd.Timestamp(latest_trading_date), end_time=pd.Timestamp(today), future=True,)
+    dates = D.calendar(
+        start_time=pd.Timestamp(latest_trading_date),
+        end_time=pd.Timestamp(today),
+        future=True,
+    )
     dates = list(dates)
     dates.append(get_next_trading_date(dates[-1], future=True))
     if exchange_config:

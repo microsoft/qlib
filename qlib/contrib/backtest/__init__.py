@@ -18,7 +18,13 @@ logger = get_module_logger("backtest caller")
 
 
 def get_strategy(
-    strategy=None, topk=50, margin=0.5, n_drop=5, risk_degree=0.95, str_type="dropout", adjust_dates=None,
+    strategy=None,
+    topk=50,
+    margin=0.5,
+    n_drop=5,
+    risk_degree=0.95,
+    str_type="dropout",
+    adjust_dates=None,
 ):
     """get_strategy
 
@@ -69,7 +75,11 @@ def get_strategy(
 
         str_cls = getattr(strategy_pool, str_cls_dict.get(str_type))
         strategy = str_cls(
-            topk=topk, buffer_margin=margin, n_drop=n_drop, risk_degree=risk_degree, adjust_dates=adjust_dates,
+            topk=topk,
+            buffer_margin=margin,
+            n_drop=n_drop,
+            risk_degree=risk_degree,
+            adjust_dates=adjust_dates,
         )
     elif isinstance(strategy, (dict, str)):
         # 2) create strategy with init_instance_by_config
@@ -162,7 +172,9 @@ def get_exchange(
 
 
 def get_executor(
-    executor=None, trade_exchange=None, verbose=True,
+    executor=None,
+    trade_exchange=None,
+    verbose=True,
 ):
     """get_executor
 

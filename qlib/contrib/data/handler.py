@@ -21,7 +21,10 @@ def check_transform_proc(proc_l, fit_start_time, fit_end_time):
                     fit_start_time is not None and fit_end_time is not None
                 ), "Make sure `fit_start_time` and `fit_end_time` are not None."
                 pkwargs.update(
-                    {"fit_start_time": fit_start_time, "fit_end_time": fit_end_time,}
+                    {
+                        "fit_start_time": fit_start_time,
+                        "fit_end_time": fit_end_time,
+                    }
                 )
             new_l.append({"class": klass.__name__, "kwargs": pkwargs})
         else:
@@ -167,7 +170,10 @@ class Alpha158(DataHandlerLP):
     def get_feature_config(self):
         conf = {
             "kbar": {},
-            "price": {"windows": [0], "feature": ["OPEN", "HIGH", "LOW", "VWAP"],},
+            "price": {
+                "windows": [0],
+                "feature": ["OPEN", "HIGH", "LOW", "VWAP"],
+            },
             "rolling": {},
         }
         return self.parse_config_to_fields(conf)
