@@ -39,13 +39,7 @@ class YahooData:
     INTERVAL_1d = "1d"
 
     def __init__(
-        self,
-        timezone: str = None,
-        start=None,
-        end=None,
-        interval="1d",
-        delay=0,
-        show_1min_logging: bool = False,
+        self, timezone: str = None, start=None, end=None, interval="1d", delay=0, show_1min_logging: bool = False,
     ):
         """
 
@@ -125,11 +119,7 @@ class YahooData:
             self._sleep()
             _remote_interval = "1m" if self._interval == self.INTERVAL_1min else self._interval
             return self.get_data_from_remote(
-                symbol,
-                interval=_remote_interval,
-                start=start_,
-                end=end_,
-                show_1min_logging=self._show_1min_logging,
+                symbol, interval=_remote_interval, start=start_, end=end_, show_1min_logging=self._show_1min_logging,
             )
 
         _result = None
@@ -438,9 +428,7 @@ class YahooNormalize:
     DAILY_FORMAT = "%Y-%m-%d"
 
     def __init__(
-        self,
-        date_field_name: str = "date",
-        symbol_field_name: str = "symbol",
+        self, date_field_name: str = "date", symbol_field_name: str = "symbol",
     ):
         """
 
@@ -458,10 +446,7 @@ class YahooNormalize:
 
     @staticmethod
     def normalize_yahoo(
-        df: pd.DataFrame,
-        calendar_list: list = None,
-        date_field_name: str = "date",
-        symbol_field_name: str = "symbol",
+        df: pd.DataFrame, calendar_list: list = None, date_field_name: str = "date", symbol_field_name: str = "symbol",
     ):
         if df.empty:
             return df
@@ -566,9 +551,7 @@ class YahooNormalize1min(YahooNormalize, ABC):
     CONSISTENT_1d = False
 
     def __init__(
-        self,
-        date_field_name: str = "date",
-        symbol_field_name: str = "symbol",
+        self, date_field_name: str = "date", symbol_field_name: str = "symbol",
     ):
         """
 

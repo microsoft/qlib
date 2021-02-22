@@ -63,13 +63,7 @@ class HighfreqWorkflow(object):
                     "module_path": "highfreq_handler",
                     "kwargs": DATA_HANDLER_CONFIG0,
                 },
-                "segments": {
-                    "train": (start_time, train_end_time),
-                    "test": (
-                        test_start_time,
-                        end_time,
-                    ),
-                },
+                "segments": {"train": (start_time, train_end_time), "test": (test_start_time, end_time,),},
             },
         },
         "dataset_backtest": {
@@ -81,13 +75,7 @@ class HighfreqWorkflow(object):
                     "module_path": "highfreq_handler",
                     "kwargs": DATA_HANDLER_CONFIG1,
                 },
-                "segments": {
-                    "train": (start_time, train_end_time),
-                    "test": (
-                        test_start_time,
-                        end_time,
-                    ),
-                },
+                "segments": {"train": (start_time, train_end_time), "test": (test_start_time, end_time,),},
             },
         },
     }
@@ -152,24 +140,11 @@ class HighfreqWorkflow(object):
                 "start_time": "2021-01-19 00:00:00",
                 "end_time": "2021-01-25 16:00:00",
             },
-            segment_kwargs={
-                "test": (
-                    "2021-01-19 00:00:00",
-                    "2021-01-25 16:00:00",
-                ),
-            },
+            segment_kwargs={"test": ("2021-01-19 00:00:00", "2021-01-25 16:00:00",),},
         )
         dataset_backtest.init(
-            handler_kwargs={
-                "start_time": "2021-01-19 00:00:00",
-                "end_time": "2021-01-25 16:00:00",
-            },
-            segment_kwargs={
-                "test": (
-                    "2021-01-19 00:00:00",
-                    "2021-01-25 16:00:00",
-                ),
-            },
+            handler_kwargs={"start_time": "2021-01-19 00:00:00", "end_time": "2021-01-25 16:00:00",},
+            segment_kwargs={"test": ("2021-01-19 00:00:00", "2021-01-25 16:00:00",),},
         )
 
         ##=============get data=============

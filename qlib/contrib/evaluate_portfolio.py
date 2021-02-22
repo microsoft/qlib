@@ -64,12 +64,7 @@ def get_position_value(evaluate_date, position):
     instruments = list(set(instruments) - set(["cash"]))  # filter 'cash'
     fields = ["$close"]
     close_data_df = D.features(
-        instruments,
-        fields,
-        start_time=evaluate_date,
-        end_time=evaluate_date,
-        freq="day",
-        disk_cache=0,
+        instruments, fields, start_time=evaluate_date, end_time=evaluate_date, freq="day", disk_cache=0,
     )
     value = _get_position_value_from_df(evaluate_date, position, close_data_df)
     return value
@@ -87,14 +82,7 @@ def get_position_list_value(positions):
     start_date, end_date = day_list[0], day_list[-1]
     # load data
     fields = ["$close"]
-    close_data_df = D.features(
-        instruments,
-        fields,
-        start_time=start_date,
-        end_time=end_date,
-        freq="day",
-        disk_cache=0,
-    )
+    close_data_df = D.features(instruments, fields, start_time=start_date, end_time=end_date, freq="day", disk_cache=0,)
     # generate value
     # return dict for time:position_value
     value_dict = OrderedDict()

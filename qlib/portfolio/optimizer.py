@@ -38,13 +38,13 @@ class PortfolioOptimizer(BaseOptimizer):
     OPT_INV = "inv"
 
     def __init__(
-            self,
-            method: str = "inv",
-            lamb: float = 0,
-            delta: float = 0,
-            alpha: float = 0.0,
-            scale_alpha: bool = True,
-            tol: float = 1e-8,
+        self,
+        method: str = "inv",
+        lamb: float = 0,
+        delta: float = 0,
+        alpha: float = 0.0,
+        scale_alpha: bool = True,
+        tol: float = 1e-8,
     ):
         """
         Args:
@@ -71,10 +71,10 @@ class PortfolioOptimizer(BaseOptimizer):
         self.scale_alpha = scale_alpha
 
     def __call__(
-            self,
-            S: Union[np.ndarray, pd.DataFrame],
-            u: Optional[Union[np.ndarray, pd.Series]] = None,
-            w0: Optional[Union[np.ndarray, pd.Series]] = None,
+        self,
+        S: Union[np.ndarray, pd.DataFrame],
+        u: Optional[Union[np.ndarray, pd.Series]] = None,
+        w0: Optional[Union[np.ndarray, pd.Series]] = None,
     ) -> Union[np.ndarray, pd.Series]:
         """
         Args:
@@ -163,7 +163,7 @@ class PortfolioOptimizer(BaseOptimizer):
         return self._solve(len(S), self._get_objective_gmv(S), *self._get_constrains(w0))
 
     def _optimize_mvo(
-            self, S: np.ndarray, u: Optional[np.ndarray] = None, w0: Optional[np.ndarray] = None
+        self, S: np.ndarray, u: Optional[np.ndarray] = None, w0: Optional[np.ndarray] = None
     ) -> np.ndarray:
         """optimize mean-variance portfolio
 
@@ -259,6 +259,7 @@ class PortfolioOptimizer(BaseOptimizer):
         # add l2 regularization
         wrapped_obj = obj
         if self.alpha > 0:
+
             def opt_obj(x):
                 return obj(x) + self.alpha * np.sum(np.square(x))
 
@@ -281,12 +282,21 @@ class EnhancedIndexingOptimizer(BaseOptimizer):
         This optimizer always assumes full investment and no-shorting.
     """
 
-    START_FROM_W0 = 'w0'
-    START_FROM_BENCH = 'benchmark'
-    DO_NOT_START_FROM = 'no_warm_start'
+    START_FROM_W0 = "w0"
+    START_FROM_BENCH = "benchmark"
+    DO_NOT_START_FROM = "no_warm_start"
 
-    def __init__(self, lamb: float = 10, delta: float = 0.4, bench_dev: float = 0.01, inds_dev: float = 0.01,
-                 scale_alpha=True, verbose: bool = False, warm_start: str = DO_NOT_START_FROM, max_iters: int = 10000):
+    def __init__(
+        self,
+        lamb: float = 10,
+        delta: float = 0.4,
+        bench_dev: float = 0.01,
+        inds_dev: float = 0.01,
+        scale_alpha=True,
+        verbose: bool = False,
+        warm_start: str = DO_NOT_START_FROM,
+        max_iters: int = 10000,
+    ):
         """
         Args:
             lamb (float): risk aversion parameter (larger `lamb` means less focus on return)
@@ -310,18 +320,28 @@ class EnhancedIndexingOptimizer(BaseOptimizer):
         assert inds_dev >= 0, "industry deviation limit `inds_dev` should be positive"
         self.inds_dev = inds_dev
 
-        assert warm_start in [self.DO_NOT_START_FROM, self.START_FROM_W0,
-                              self.START_FROM_BENCH], "illegal warm start option"
-        self.start_from_w0 = (warm_start == self.START_FROM_W0)
-        self.start_from_bench = (warm_start == self.START_FROM_BENCH)
+        assert warm_start in [
+            self.DO_NOT_START_FROM,
+            self.START_FROM_W0,
+            self.START_FROM_BENCH,
+        ], "illegal warm start option"
+        self.start_from_w0 = warm_start == self.START_FROM_W0
+        self.start_from_bench = warm_start == self.START_FROM_BENCH
 
         self.scale_alpha = scale_alpha
         self.verbose = verbose
         self.max_iters = max_iters
 
-    def __call__(self, u: np.ndarray, F: np.ndarray, covB: np.ndarray, varU: np.ndarray, w0: np.ndarray,
-                 w_bench: np.ndarray, inds_onehot: np.ndarray
-                 ) -> Union[np.ndarray, pd.Series]:
+    def __call__(
+        self,
+        u: np.ndarray,
+        F: np.ndarray,
+        covB: np.ndarray,
+        varU: np.ndarray,
+        w0: np.ndarray,
+        w_bench: np.ndarray,
+        inds_onehot: np.ndarray,
+    ) -> Union[np.ndarray, pd.Series]:
         """
         Args:
             u (np.ndarray): expected returns (a.k.a., alpha)
@@ -352,7 +372,7 @@ class EnhancedIndexingOptimizer(BaseOptimizer):
             d_bench >= -self.bench_dev,
             d_bench <= self.bench_dev,
             d_inds >= -self.inds_dev,
-            d_inds <= self.inds_dev
+            d_inds <= self.inds_dev,
         ]
         if w0 is not None:
             turnover = cp.sum(cp.abs(w - w0))
@@ -361,7 +381,7 @@ class EnhancedIndexingOptimizer(BaseOptimizer):
         warm_start = False
         if self.start_from_w0:
             if w0 is None:
-                print('Warning: try warm start with w0, but w0 is `None`.')
+                print("Warning: try warm start with w0, but w0 is `None`.")
             else:
                 w.value = w0
                 warm_start = True
@@ -372,7 +392,7 @@ class EnhancedIndexingOptimizer(BaseOptimizer):
         prob = cp.Problem(obj, cons)
         prob.solve(solver=cp.SCS, verbose=self.verbose, warm_start=warm_start, max_iters=self.max_iters)
 
-        if prob.status != 'optimal':
-            print('Warning: solve failed.', prob.status)
+        if prob.status != "optimal":
+            print("Warning: solve failed.", prob.status)
 
         return np.asarray(w.value)

@@ -341,12 +341,7 @@ class ExpressionDFilter(SeriesDFilter):
         # do not use dataset cache
         try:
             _features = DatasetD.dataset(
-                instruments,
-                [self.rule_expression],
-                fstart,
-                fend,
-                freq=self.filter_freq,
-                disk_cache=0,
+                instruments, [self.rule_expression], fstart, fend, freq=self.filter_freq, disk_cache=0,
             )
         except TypeError:
             # use LocalDatasetProvider

@@ -38,7 +38,7 @@ class RiskModel(BaseModel):
         self.scale_return = scale_return
 
     def predict(
-            self, X: Union[pd.Series, pd.DataFrame, np.ndarray], return_corr: bool = False, is_price: bool = True
+        self, X: Union[pd.Series, pd.DataFrame, np.ndarray], return_corr: bool = False, is_price: bool = True
     ) -> Union[pd.DataFrame, np.ndarray]:
         """
         Args:
@@ -373,8 +373,7 @@ class ShrinkCovEstimator(RiskModel):
         roff1 = np.sum(v1 * cov_mkt[:, None].T) / var_mkt - np.sum(np.diag(v1) * cov_mkt) / var_mkt
         v3 = z.T.dot(z) / t - var_mkt * S
         roff3 = (
-                np.sum(v3 * np.outer(cov_mkt, cov_mkt)) / var_mkt ** 2 - np.sum(
-            np.diag(v3) * cov_mkt ** 2) / var_mkt ** 2
+            np.sum(v3 * np.outer(cov_mkt, cov_mkt)) / var_mkt ** 2 - np.sum(np.diag(v3) * cov_mkt ** 2) / var_mkt ** 2
         )
         roff = 2 * roff1 - roff3
         rho = rdiag + roff
@@ -434,7 +433,7 @@ class POETCovEstimator(RiskModel):
         if self.num_factors > 0:
             Dd, V = np.linalg.eig(Y.T.dot(Y))
             V = V[:, np.argsort(Dd)]
-            F = V[:, -self.num_factors:][:, ::-1] * np.sqrt(n)
+            F = V[:, -self.num_factors :][:, ::-1] * np.sqrt(n)
             LamPCA = Y.dot(F) / n
             uhat = np.asarray(Y - LamPCA.dot(F.T))
             Lowrank = np.asarray(LamPCA.dot(LamPCA.T))
@@ -490,8 +489,14 @@ class StructuredCovEstimator(RiskModel):
     FACTOR_MODEL_PCA = "pca"
     FACTOR_MODEL_FA = "fa"
 
-    def __init__(self, factor_model: str = 'pca', num_factors: int = 10, nan_option: str = "ignore",
-                 assume_centered: bool = False, scale_return: bool = True):
+    def __init__(
+        self,
+        factor_model: str = "pca",
+        num_factors: int = 10,
+        nan_option: str = "ignore",
+        assume_centered: bool = False,
+        scale_return: bool = True,
+    ):
         """
         Args:
             factor_model (str): the latent factor models used to estimate the structured covariance (`pca`/`fa`).
@@ -505,14 +510,17 @@ class StructuredCovEstimator(RiskModel):
         assert factor_model in [
             self.FACTOR_MODEL_PCA,
             self.FACTOR_MODEL_FA,
-        ], 'factor_model={} is not supported'.format(factor_model)
+        ], "factor_model={} is not supported".format(factor_model)
         self.solver = PCA if factor_model == self.FACTOR_MODEL_PCA else FactorAnalysis
 
         self.num_factors = num_factors
 
     def predict(
-            self, X: Union[pd.Series, pd.DataFrame, np.ndarray], return_corr: bool = False, is_price: bool = True,
-            return_decomposed_components=False
+        self,
+        X: Union[pd.Series, pd.DataFrame, np.ndarray],
+        return_corr: bool = False,
+        is_price: bool = True,
+        return_decomposed_components=False,
     ) -> Union[pd.DataFrame, np.ndarray, tuple]:
         """
         Args:
@@ -525,8 +533,9 @@ class StructuredCovEstimator(RiskModel):
         Returns:
             tuple or pd.DataFrame or np.ndarray: decomposed covariance matrix or estimated covariance or correlation.
         """
-        assert not return_corr or not return_decomposed_components, \
-            'Can only return either correlation matrix or decomposed components.'
+        assert (
+            not return_corr or not return_decomposed_components
+        ), "Can only return either correlation matrix or decomposed components."
 
         # transform input into 2D array
         if not isinstance(X, (pd.Series, pd.DataFrame)):

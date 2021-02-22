@@ -57,10 +57,7 @@ class SoftTopkStrategy(WeightStrategyBase):
                     final_stock_weight[stock_id] -= sw
             if self.buy_method == "first_fill":
                 for stock_id in buy_signal_stocks:
-                    add_weight = min(
-                        max(1 / self.topk - final_stock_weight.get(stock_id, 0), 0.0),
-                        sold_stock_weight,
-                    )
+                    add_weight = min(max(1 / self.topk - final_stock_weight.get(stock_id, 0), 0.0), sold_stock_weight,)
                     final_stock_weight[stock_id] = final_stock_weight.get(stock_id, 0.0) + add_weight
                     sold_stock_weight -= add_weight
             elif self.buy_method == "average_fill":

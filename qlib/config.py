@@ -115,12 +115,7 @@ _default_config = {
                 "format": "[%(process)s:%(threadName)s](%(asctime)s) %(levelname)s - %(name)s - [%(filename)s:%(lineno)d] - %(message)s"
             }
         },
-        "filters": {
-            "field_not_found": {
-                "()": "qlib.log.LogFilter",
-                "param": [".*?WARN: data not found for.*?"],
-            }
-        },
+        "filters": {"field_not_found": {"()": "qlib.log.LogFilter", "param": [".*?WARN: data not found for.*?"],}},
         "handlers": {
             "console": {
                 "class": "logging.StreamHandler",
@@ -135,10 +130,7 @@ _default_config = {
     "exp_manager": {
         "class": "MLflowExpManager",
         "module_path": "qlib.workflow.expm",
-        "kwargs": {
-            "uri": "file:" + str(Path(os.getcwd()).resolve() / "mlruns"),
-            "default_exp_name": "Experiment",
-        },
+        "kwargs": {"uri": "file:" + str(Path(os.getcwd()).resolve() / "mlruns"), "default_exp_name": "Experiment",},
     },
 }
 
@@ -200,16 +192,8 @@ HIGH_FREQ_CONFIG = {
 }
 
 _default_region_config = {
-    REG_CN: {
-        "trade_unit": 100,
-        "limit_threshold": 0.099,
-        "deal_price": "vwap",
-    },
-    REG_US: {
-        "trade_unit": 1,
-        "limit_threshold": None,
-        "deal_price": "close",
-    },
+    REG_CN: {"trade_unit": 100, "limit_threshold": 0.099, "deal_price": "vwap",},
+    REG_US: {"trade_unit": 1, "limit_threshold": None, "deal_price": "close",},
 }
 
 
