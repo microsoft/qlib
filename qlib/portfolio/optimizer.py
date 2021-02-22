@@ -292,7 +292,7 @@ class EnhancedIndexingOptimizer(BaseOptimizer):
         delta: float = 0.4,
         bench_dev: float = 0.01,
         inds_dev: float = 0.01,
-        scale_alpha=True,
+        scale_alpha: bool = True,
         verbose: bool = False,
         warm_start: str = DO_NOT_START_FROM,
         max_iters: int = 10000,
@@ -303,6 +303,7 @@ class EnhancedIndexingOptimizer(BaseOptimizer):
             delta (float): turnover rate limit
             bench_dev (float): benchmark deviation limit
             inds_dev (float): industry deviation limit
+            scale_alpha (bool): if to scale alpha to match the volatility of the covariance matrix
             verbose (bool): if print detailed information about the solver
             warm_start (str): whether try to warm start (`w0`/`benchmark`/``)
                               (https://www.cvxpy.org/tutorial/advanced/index.html#warm-start)
