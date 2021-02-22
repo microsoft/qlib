@@ -20,7 +20,10 @@ class HighFreqHandler(DataHandlerLP):
             new_l = []
             for p in proc_l:
                 p["kwargs"].update(
-                    {"fit_start_time": fit_start_time, "fit_end_time": fit_end_time,}
+                    {
+                        "fit_start_time": fit_start_time,
+                        "fit_end_time": fit_end_time,
+                    }
                 )
                 new_l.append(p)
             return new_l
@@ -30,7 +33,11 @@ class HighFreqHandler(DataHandlerLP):
 
         data_loader = {
             "class": "QlibDataLoader",
-            "kwargs": {"config": self.get_feature_config(), "swap_level": False, "freq": "1min",},
+            "kwargs": {
+                "config": self.get_feature_config(),
+                "swap_level": False,
+                "freq": "1min",
+            },
         }
         super().__init__(
             instruments=instruments,
@@ -61,7 +68,8 @@ class HighFreqHandler(DataHandlerLP):
 
             feature_ops = template_norm.format(
                 template_if.format(
-                    template_fillnan.format(template_paused.format("$close")), template_paused.format(price_field),
+                    template_fillnan.format(template_paused.format("$close")),
+                    template_paused.format(price_field),
                 ),
                 template_fillnan.format(template_paused.format("$close")),
             )
@@ -111,14 +119,24 @@ class HighFreqHandler(DataHandlerLP):
 
 class HighFreqBacktestHandler(DataHandler):
     def __init__(
-        self, instruments="csi300", start_time=None, end_time=None,
+        self,
+        instruments="csi300",
+        start_time=None,
+        end_time=None,
     ):
         data_loader = {
             "class": "QlibDataLoader",
-            "kwargs": {"config": self.get_feature_config(), "swap_level": False, "freq": "1min",},
+            "kwargs": {
+                "config": self.get_feature_config(),
+                "swap_level": False,
+                "freq": "1min",
+            },
         }
         super().__init__(
-            instruments=instruments, start_time=start_time, end_time=end_time, data_loader=data_loader,
+            instruments=instruments,
+            start_time=start_time,
+            end_time=end_time,
+            data_loader=data_loader,
         )
 
     def get_feature_config(self):
@@ -137,7 +155,8 @@ class HighFreqBacktestHandler(DataHandler):
         fields += [
             "Cut({0}, 240, None)".format(
                 template_if.format(
-                    template_fillnan.format(template_paused.format("$close")), template_paused.format(simpson_vwap),
+                    template_fillnan.format(template_paused.format("$close")),
+                    template_paused.format(simpson_vwap),
                 )
             )
         ]

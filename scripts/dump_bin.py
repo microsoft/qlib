@@ -153,13 +153,22 @@ class DumpDataBase:
 
     @staticmethod
     def _read_calendars(calendar_path: Path) -> List[pd.Timestamp]:
-        return sorted(map(pd.Timestamp, pd.read_csv(calendar_path, header=None).loc[:, 0].tolist(),))
+        return sorted(
+            map(
+                pd.Timestamp,
+                pd.read_csv(calendar_path, header=None).loc[:, 0].tolist(),
+            )
+        )
 
     def _read_instruments(self, instrument_path: Path) -> pd.DataFrame:
         df = pd.read_csv(
             instrument_path,
             sep=self.INSTRUMENTS_SEP,
-            names=[self.symbol_field_name, self.INSTRUMENTS_START_FIELD, self.INSTRUMENTS_END_FIELD,],
+            names=[
+                self.symbol_field_name,
+                self.INSTRUMENTS_START_FIELD,
+                self.INSTRUMENTS_END_FIELD,
+            ],
         )
 
         return df

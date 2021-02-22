@@ -78,7 +78,10 @@ port_analysis_config = {
     "strategy": {
         "class": "TopkDropoutStrategy",
         "module_path": "qlib.contrib.strategy.strategy",
-        "kwargs": {"topk": 50, "n_drop": 5,},
+        "kwargs": {
+            "topk": 50,
+            "n_drop": 5,
+        },
     },
     "backtest": {
         "verbose": False,
@@ -173,7 +176,9 @@ class TestAllFlow(TestAutoData):
     def test_1_backtest(self):
         analyze_df = backtest_analysis(TestAllFlow.PRED_SCORE, TestAllFlow.RID)
         self.assertGreaterEqual(
-            analyze_df.loc(axis=0)["excess_return_with_cost", "annualized_return"].values[0], 0.10, "backtest failed",
+            analyze_df.loc(axis=0)["excess_return_with_cost", "annualized_return"].values[0],
+            0.10,
+            "backtest failed",
         )
 
 

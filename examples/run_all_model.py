@@ -34,7 +34,10 @@ exp_path = str(Path(os.getcwd()).resolve() / exp_folder_name)
 exp_manager = {
     "class": "MLflowExpManager",
     "module_path": "qlib.workflow.expm",
-    "kwargs": {"uri": "file:" + exp_path, "default_exp_name": "Experiment",},
+    "kwargs": {
+        "uri": "file:" + exp_path,
+        "default_exp_name": "Experiment",
+    },
 }
 if not exists_qlib_data(provider_uri):
     print(f"Qlib data is not found in {provider_uri}")

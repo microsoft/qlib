@@ -81,7 +81,10 @@ if __name__ == "__main__":
         "strategy": {
             "class": "TopkDropoutStrategy",
             "module_path": "qlib.contrib.strategy.strategy",
-            "kwargs": {"topk": 50, "n_drop": 5,},
+            "kwargs": {
+                "topk": 50,
+                "n_drop": 5,
+            },
         },
         "backtest": {
             "verbose": False,
