@@ -87,7 +87,7 @@ class DFLogger(object):
                     df_cache[ins] = (
                         [],
                         [],
-                        len(pd.read_pickle(order_dir + ins + ".pkl.target")),
+                        (pd.read_pickle(order_dir + ins + ".pkl.target")['amount'] != 0).sum(),
                     )
                 df_cache[ins][0].append(df)
                 df_cache[ins][1].append(res)
