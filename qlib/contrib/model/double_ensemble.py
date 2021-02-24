@@ -15,21 +15,22 @@ class DEnsembleModel(Model):
     """Double Ensemble Model"""
 
     def __init__(
-            self,
-            base="gbm",
-            loss="mse",
-            k=6,
-            enable_sr=True,
-            enable_fs=True,
-            alpha1=1.,
-            alpha2=1.,
-            bins_sr=10,
-            bins_fs=5,
-            decay=None,
-            sample_ratios=None,
-            sub_weights=None,
-            epochs=100,
-            **kwargs):
+        self,
+        base="gbm",
+        loss="mse",
+        k=6,
+        enable_sr=True,
+        enable_fs=True,
+        alpha1=1.0,
+        alpha2=1.0,
+        bins_sr=10,
+        bins_fs=5,
+        decay=None,
+        sample_ratios=None,
+        sub_weights=None,
+        epochs=100,
+        **kwargs
+    ):
         self.base = base  # "gbm" or "mlp", specifically, we use lgbm for "gbm"
         self.k = k
         self.enable_sr = enable_sr
@@ -54,10 +55,7 @@ class DEnsembleModel(Model):
         self.params.update(kwargs)
         self.loss = loss
 
-    def fit(
-        self,
-        dataset: DatasetH
-    ):
+    def fit(self, dataset: DatasetH):
         df_train, df_valid = dataset.prepare(
             ["train", "valid"], col_set=["feature", "label"], data_key=DataHandlerLP.DK_L
         )
@@ -71,7 +69,7 @@ class DEnsembleModel(Model):
         # train k sub-models
         for i_k in range(self.k):
             self.sub_features.append(features)
-            self.logger.info("Training sub-model: ({}/{})".format(i_k+1, self.k))
+            self.logger.info("Training sub-model: ({}/{})".format(i_k + 1, self.k))
             model_k = self.train_submodel(df_train, df_valid, weights, features)
             self.ensemble.append(model_k)
             # no further sample re-weight and feature selection needed for the last sub-model
@@ -82,12 +80,12 @@ class DEnsembleModel(Model):
             loss_curve = self.retrieve_loss_curve(model_k, df_train, features)
             pred_k = self.predict_sub(model_k, df_train, features)
             pred_sub.iloc[:, i_k] = pred_k
-            pred_ensemble = pred_sub.iloc[:, :i_k+1].mean(axis=1)
+            pred_ensemble = pred_sub.iloc[:, : i_k + 1].mean(axis=1)
             loss_values = pd.Series(self.get_loss(y_train.values.squeeze(), pred_ensemble.values))
 
             if self.enable_sr:
                 self.logger.info("Sample re-weighting...")
-                weights = self.sample_reweight(loss_curve, loss_values, i_k+1)
+                weights = self.sample_reweight(loss_curve, loss_values, i_k + 1)
 
             if self.enable_fs:
                 self.logger.info("Feature selection...")
@@ -148,14 +146,14 @@ class DEnsembleModel(Model):
         # calculate h-value for each sample
         h1 = loss_values_norm
         h2 = (l_end / l_start).rank(pct=True)
-        h = pd.DataFrame({'h_value': self.alpha1 * h1 + self.alpha2 * h2})
+        h = pd.DataFrame({"h_value": self.alpha1 * h1 + self.alpha2 * h2})
 
         # calculate weights
-        h['bins'] = pd.cut(h['h_value'], self.bins_sr)
-        h_avg = h.groupby('bins')['h_value'].mean()
+        h["bins"] = pd.cut(h["h_value"], self.bins_sr)
+        h_avg = h.groupby("bins")["h_value"].mean()
         weights = pd.Series(np.zeros(N, dtype=float))
         for i_b, b in enumerate(h_avg.index):
-            weights[h['bins'] == b] = 1. / (self.decay ** k_th * h_avg[i_b] + 0.1)
+            weights[h["bins"] == b] = 1.0 / (self.decay ** k_th * h_avg[i_b] + 0.1)
         return weights
 
     def feature_selection(self, df_train, loss_values):
@@ -170,7 +168,7 @@ class DEnsembleModel(Model):
         x_train, y_train = df_train["feature"], df_train["label"]
         features = x_train.columns
         N, F = x_train.shape
-        g = pd.DataFrame({'g_value': np.zeros(F, dtype=float)})
+        g = pd.DataFrame({"g_value": np.zeros(F, dtype=float)})
         M = len(self.ensemble)
 
         # shuffle specific columns and calculate g-value for each feature
@@ -179,23 +177,27 @@ class DEnsembleModel(Model):
             x_train_tmp.loc[:, feat] = np.random.permutation(x_train_tmp.loc[:, feat].values)
             pred = pd.Series(np.zeros(N), index=x_train_tmp.index)
             for i_s, submodel in enumerate(self.ensemble):
-                pred += pd.Series(submodel.predict(x_train_tmp.loc[:, self.sub_features[i_s]].values),
-                                  index=x_train_tmp.index) / M
+                pred += (
+                    pd.Series(
+                        submodel.predict(x_train_tmp.loc[:, self.sub_features[i_s]].values), index=x_train_tmp.index
+                    )
+                    / M
+                )
             loss_feat = self.get_loss(y_train.values.squeeze(), pred.values)
-            g.loc[i_f, 'g_value'] = np.mean(loss_feat - loss_values) / np.std(loss_feat - loss_values)
+            g.loc[i_f, "g_value"] = np.mean(loss_feat - loss_values) / np.std(loss_feat - loss_values)
             x_train_tmp.loc[:, feat] = x_train.loc[:, feat].copy()
 
         # one column in train features is all-nan # if g['g_value'].isna().any()
-        g['g_value'].replace(np.nan, 0, inplace=True)
+        g["g_value"].replace(np.nan, 0, inplace=True)
 
         # divide features into bins_fs bins
-        g['bins'] = pd.cut(g['g_value'], self.bins_fs)
+        g["bins"] = pd.cut(g["g_value"], self.bins_fs)
 
         # randomly sample features from bins to construct the new features
         res_feat = []
-        sorted_bins = sorted(g['bins'].unique(), reverse=True)
+        sorted_bins = sorted(g["bins"].unique(), reverse=True)
         for i_b, b in enumerate(sorted_bins):
-            b_feat = features[g['bins'] == b]
+            b_feat = features[g["bins"] == b]
             num_feat = int(np.ceil(self.sample_ratios[i_b] * len(b_feat)))
             res_feat = res_feat + np.random.choice(b_feat, size=num_feat).tolist()
         return pd.Index(res_feat)
@@ -233,12 +235,13 @@ class DEnsembleModel(Model):
         pred = pd.Series(np.zeros(x_test.shape[0]), index=x_test.index)
         for i_sub, submodel in enumerate(self.ensemble):
             feat_sub = self.sub_features[i_sub]
-            pred += pd.Series(submodel.predict(x_test.loc[:, feat_sub].values), index=x_test.index) * self.sub_weights[i_sub]
+            pred += (
+                pd.Series(submodel.predict(x_test.loc[:, feat_sub].values), index=x_test.index)
+                * self.sub_weights[i_sub]
+            )
         return pred
 
     def predict_sub(self, submodel, df_data, features):
         x_data, y_data = df_data["feature"].loc[:, features], df_data["label"]
         pred_sub = pd.Series(submodel.predict(x_data.values), index=x_data.index)
         return pred_sub
-
-
