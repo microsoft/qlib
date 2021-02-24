@@ -52,7 +52,7 @@ def w_order(f, start, end):
         all_path = os.path.join(data_path, "order/all/")
         if not os.path.exists(all_path):
             os.makedirs(all_path)
-        order_test.to_pickle(all_path + f[:-9] + '.target')
+        order.to_pickle(all_path + f[:-9] + '.target')
     return 0
 
 res = Parallel(n_jobs=64)(delayed(w_order)(f, 0, 239) for f in os.listdir(in_dir))
