@@ -55,6 +55,7 @@ REQUIRED = [
     "tornado",
     "joblib>=0.17.0",
     "ruamel.yaml>=0.16.12",
+    "pymongo==3.7.2",  # For task management
 ]
 
 # Numpy include
