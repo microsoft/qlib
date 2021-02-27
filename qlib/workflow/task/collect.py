@@ -5,11 +5,12 @@ from tqdm.auto import tqdm
 
 
 class RollingEnsemble:
-    '''
+    """
     Rolling Models Ensemble based on (R)ecord
 
     This shares nothing with Ensemble
-    '''
+    """
+
     # TODO: 这边还可以加加速
     def __init__(self, get_key_func, flt_func=None):
         self.get_key_func = get_key_func
@@ -44,9 +45,8 @@ class RollingEnsemble:
         for k, rec_l in recs_group.items():
             pred_l = []
             for rec in rec_l:
-                pred_l.append(rec.load_object('pred.pkl').iloc[:, 0])
+                pred_l.append(rec.load_object("pred.pkl").iloc[:, 0])
             pred = pd.concat(pred_l).sort_index()
             reduce_group[k] = pred
 
         return reduce_group
-

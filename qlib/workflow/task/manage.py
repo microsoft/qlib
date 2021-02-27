@@ -19,6 +19,8 @@ import time
 import concurrent
 import pymongo
 from qlib.config import C
+from .utils import get_mongodb
+from qlib import auto_init
 
 
 class TaskManager:
@@ -41,12 +43,13 @@ class TaskManager:
     NOTE:
     - 假设： 存储在db里面的都是encode过的， 拿出来的都是decode过的
     """
-    STATUS_WAITING = 'waiting'
-    STATUS_RUNNING = 'running'
-    STATUS_DONE = 'done'
-    STATUS_PART_DONE = 'part_done'
 
-    ENCODE_FIELDS_PREFIX = ['def', 'res']
+    STATUS_WAITING = "waiting"
+    STATUS_RUNNING = "running"
+    STATUS_DONE = "done"
+    STATUS_PART_DONE = "part_done"
+
+    ENCODE_FIELDS_PREFIX = ["def", "res"]
 
     def __init__(self, task_pool=None):
         self.mdb = get_mongodb()
@@ -73,7 +76,7 @@ class TaskManager:
         if task_pool is None:
             task_pool = self.task_pool
         if task_pool is None:
-            raise ValueError('You must specify a task pool.')
+            raise ValueError("You must specify a task pool.")
         if isinstance(task_pool, str):
             return getattr(self.mdb, task_pool)
         return task_pool
@@ -85,11 +88,11 @@ class TaskManager:
         # 这里的假设是从接口拿出来的都是decode过的，在接口内部的都是 encode过的
         new_task = self._encode_task(new_task)
         task_pool = self._get_task_pool(task_pool)
-        query = {'_id': ObjectId(task['_id'])}
+        query = {"_id": ObjectId(task["_id"])}
         try:
             task_pool.replace_one(query, new_task)
         except InvalidDocument:
-            task['filter'] = self._dict_to_str(task['filter'])
+            task["filter"] = self._dict_to_str(task["filter"])
             task_pool.replace_one(query, new_task)
 
     def insert_task(self, task, task_pool=None):
@@ -97,16 +100,18 @@ class TaskManager:
         try:
             task_pool.insert_one(task)
         except InvalidDocument:
-            task['filter'] = self._dict_to_str(task['filter'])
+            task["filter"] = self._dict_to_str(task["filter"])
             task_pool.insert_one(task)
 
     def insert_task_def(self, task_def, task_pool=None):
         task_pool = self._get_task_pool(task_pool)
-        task = self._encode_task({
-            'def': task_def,
-            'filter': task_def,  # FIXME: catch the raised error
-            'status': self.STATUS_WAITING,
-        })
+        task = self._encode_task(
+            {
+                "def": task_def,
+                "filter": task_def,  # FIXME: catch the raised error
+                "status": self.STATUS_WAITING,
+            }
+        )
         self.insert_task(task, task_pool)
 
     def create_task(self, task_def_l, task_pool=None, dry_run=False, print_nt=False):
@@ -114,9 +119,9 @@ class TaskManager:
         new_tasks = []
         for t in task_def_l:
             try:
-                r = task_pool.find_one({'filter': t})
+                r = task_pool.find_one({"filter": t})
             except InvalidDocument:
-                r = task_pool.find_one({'filter': self._dict_to_str(t)})
+                r = task_pool.find_one({"filter": self._dict_to_str(t)})
             if r is None:
                 new_tasks.append(t)
         print("Total Tasks, New Tasks:", len(task_def_l), len(new_tasks))
@@ -134,17 +139,16 @@ class TaskManager:
     def fetch_task(self, query={}, task_pool=None):
         task_pool = self._get_task_pool(task_pool)
         query = query.copy()
-        if '_id' in query:
-            query['_id'] = ObjectId(query['_id'])
-        query.update({'status': self.STATUS_WAITING})
-        task = task_pool.find_one_and_update(query, {'$set': {
-            'status': self.STATUS_RUNNING
-        }},
-                                             sort=[('priority', pymongo.DESCENDING)])
+        if "_id" in query:
+            query["_id"] = ObjectId(query["_id"])
+        query.update({"status": self.STATUS_WAITING})
+        task = task_pool.find_one_and_update(
+            query, {"$set": {"status": self.STATUS_RUNNING}}, sort=[("priority", pymongo.DESCENDING)]
+        )
         # 这里我的 priority 必须是 高数优先级更高，因为 null会被在 ASCENDING时被排在最前面
         if task is None:
             return None
-        task['status'] = self.STATUS_RUNNING
+        task["status"] = self.STATUS_RUNNING
         return self._decode_task(task)
 
     @contextmanager
@@ -154,9 +158,9 @@ class TaskManager:
             yield task
         except Exception:
             if task is not None:
-                logger.info('Returning task before raising error')
+                logger.info("Returning task before raising error")
                 self.return_task(task)
-                logger.info('Task returned')
+                logger.info("Task returned")
             raise
 
     def task_fetcher_iter(self, query={}, task_pool=None):
@@ -175,8 +179,8 @@ class TaskManager:
         :param task_pool:
         """
         query = query.copy()
-        if '_id' in query:
-            query['_id'] = ObjectId(query['_id'])
+        if "_id" in query:
+            query["_id"] = ObjectId(query["_id"])
         task_pool = self._get_task_pool(task_pool)
         for t in task_pool.find(query):
             yield self._decode_task(t)
@@ -186,44 +190,44 @@ class TaskManager:
         # A workaround to use the class attribute.
         if status is None:
             status = TaskManager.STATUS_DONE
-        task_pool.update_one({"_id": task['_id']}, {'$set': {'status': status, 'res': Binary(pickle.dumps(res))}})
+        task_pool.update_one({"_id": task["_id"]}, {"$set": {"status": status, "res": Binary(pickle.dumps(res))}})
 
     def return_task(self, task, status=None, task_pool=None):
         task_pool = self._get_task_pool(task_pool)
         if status is None:
             status = TaskManager.STATUS_WAITING
-        update_dict = {'$set': {'status': status}}
-        task_pool.update_one({"_id": task['_id']}, update_dict)
+        update_dict = {"$set": {"status": status}}
+        task_pool.update_one({"_id": task["_id"]}, update_dict)
 
     def remove(self, query={}, task_pool=None):
         query = query.copy()
         task_pool = self._get_task_pool(task_pool)
-        if '_id' in query:
-            query['_id'] = ObjectId(query['_id'])
+        if "_id" in query:
+            query["_id"] = ObjectId(query["_id"])
         task_pool.delete_many(query)
 
     def task_stat(self, query={}, task_pool=None):
         query = query.copy()
-        if '_id' in query:
-            query['_id'] = ObjectId(query['_id'])
+        if "_id" in query:
+            query["_id"] = ObjectId(query["_id"])
         tasks = self.query(task_pool=task_pool, query=query, decode=False)
         status_stat = {}
         for t in tasks:
-            status_stat[t['status']] = status_stat.get(t['status'], 0) + 1
+            status_stat[t["status"]] = status_stat.get(t["status"], 0) + 1
         return status_stat
 
     def reset_waiting(self, query={}, task_pool=None):
         query = query.copy()
         # default query
-        if 'status' not in query:
-            query['status'] = self.STATUS_RUNNING
+        if "status" not in query:
+            query["status"] = self.STATUS_RUNNING
         return self.reset_status(query=query, status=self.STATUS_WAITING, task_pool=task_pool)
 
     def reset_status(self, query, status, task_pool=None):
         query = query.copy()
         task_pool = self._get_task_pool(task_pool)
-        if '_id' in query:
-            query['_id'] = ObjectId(query['_id'])
+        if "_id" in query:
+            query["_id"] = ObjectId(query["_id"])
         print(task_pool.update_many(query, {"$set": {"status": status}}))
 
     def _get_undone_n(self, task_stat):
@@ -274,17 +278,18 @@ def run_task(task_func, task_pool, force_release=False, *args, **kwargs):
         with tm.safe_fetch_task() as task:
             if task is None:
                 break
-            logger.info(task['def'])
+            logger.info(task["def"])
             if force_release:
                 with concurrent.futures.ProcessPoolExecutor(max_workers=1) as executor:
-                    res = executor.submit(task_func, task['def'], *args, **kwargs).result()
+                    res = executor.submit(task_func, task["def"], *args, **kwargs).result()
             else:
-                res = task_func(task['def'], *args, **kwargs)
+                res = task_func(task["def"], *args, **kwargs)
             tm.commit_task_res(task, res)
             ever_run = True
 
     return ever_run
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
+    auto_init()
     Fire(TaskManager)
