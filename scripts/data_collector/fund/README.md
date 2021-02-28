@@ -23,7 +23,7 @@ python collector.py download_data --source_dir ~/.qlib/fund_data/source/cn_1d --
 
 # dump data
 cd qlib/scripts
-python dump_bin.py dump_all --csv_path ~/.qlib/stock_data/source/cn_1d_nor --qlib_dir ~/.qlib/qlib_data/qlib_cn_1d --freq day --exclude_fields date,adjclose,dividends,splits,symbol
+python dump_bin.py dump_all --csv_path ~/.qlib/fund_data/source/cn_1d --qlib_dir ~/.qlib/qlib_data/cn_fund_data --freq day --date_field_name FSRQ --include_fields DWJZ,LJJZ
 
 ```
 
@@ -33,8 +33,8 @@ python dump_bin.py dump_all --csv_path ~/.qlib/stock_data/source/cn_1d_nor --qli
 import qlib
 from qlib.data import D
 
-qlib.init(provider_uri="~/.qlib/qlib_data/qlib_cn_1d", region="CN")
-df = D.features(D.instruments("all"), ["$close"], freq="day")
+qlib.init(provider_uri="~/.qlib/qlib_data/cn_fund_data")
+df = D.features(D.instruments(market="all"), ["$DWJZ", "$LJJZ"], freq="day")
 ```
 
 
@@ -45,5 +45,5 @@ pythono collector.py collector_data --help
 
 ## Parameters
 
-- interval: 1min or 1d
-- region: CN or US
+- interval: 1d
+- region: CN
