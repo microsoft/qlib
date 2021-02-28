@@ -34,6 +34,7 @@ _BENCH_CALENDAR_LIST = None
 _ALL_CALENDAR_LIST = None
 _HS_SYMBOLS = None
 _US_SYMBOLS = None
+_EN_FUND_SYMBOLS = None
 _CALENDAR_MAP = {}
 
 # NOTE: Until 2020-10-20 20:00:00
@@ -218,6 +219,42 @@ def get_us_stock_symbols(qlib_data_path: [str, Path] = None) -> list:
         _US_SYMBOLS = sorted(set(map(_format, filter(lambda x: len(x) < 8 and not x.endswith("WS"), _all_symbols))))
 
     return _US_SYMBOLS
+
+
+def get_en_fund_symbols(qlib_data_path: [str, Path] = None) -> list:
+    """get en fund symbols
+
+    Returns
+    -------
+        fund symbols in China
+    """
+    global _EN_FUND_SYMBOLS
+
+    @deco_retry
+    def _get_eastmoney():
+        url = "http://fund.eastmoney.com/js/fundcode_search.js"
+        resp = requests.get(url)
+        if resp.status_code != 200:
+            raise ValueError("request error")
+        try:
+            _symbols = []
+            for sub_data in re.findall(r"[\[](.*?)[\]]", resp.content.decode().split("= [")[-1].replace("];", "")):
+                data = sub_data.replace("\"","").replace("'","")
+                # TODO: do we need other informations, like fund_name from ['000001', 'HXCZHH', '华夏成长混合', '混合型', 'HUAXIACHENGZHANGHUNHE']
+                _symbols.append(data.split(",")[0])
+        except Exception as e:
+            logger.warning(f"request error: {e}")
+            raise
+        if len(_symbols) < 8000:
+            raise ValueError("request error")
+        return _symbols
+
+    if _EN_FUND_SYMBOLS is None:
+        _all_symbols = _get_eastmoney()
+
+        _EN_FUND_SYMBOLS = sorted(set(_all_symbols))
+
+    return _EN_FUND_SYMBOLS
 
 
 def symbol_suffix_to_prefix(symbol: str, capital: bool = True) -> str:

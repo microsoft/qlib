@@ -17,8 +17,8 @@ pip install -r requirements.txt
 
 ```bash
 
-# download from yahoo finance
-python collector.py download_data --source_dir ~/.qlib/stock_data/source/cn_1d --region CN --start 2020-11-01 --end 2020-11-10 --delay 0.1 --interval 1d
+# download from eastmoney.com
+python collector.py download_data --source_dir ~/.qlib/fund_data/source/cn_1d --region CN --start 2020-11-01 --end 2020-11-10 --delay 0.1 --interval 1d
 
 
 # dump data
