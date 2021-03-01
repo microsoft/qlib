@@ -239,7 +239,7 @@ def get_en_fund_symbols(qlib_data_path: [str, Path] = None) -> list:
         try:
             _symbols = []
             for sub_data in re.findall(r"[\[](.*?)[\]]", resp.content.decode().split("= [")[-1].replace("];", "")):
-                data = sub_data.replace("\"","").replace("'","")
+                data = sub_data.replace('"', "").replace("'", "")
                 # TODO: do we need other informations, like fund_name from ['000001', 'HXCZHH', '华夏成长混合', '混合型', 'HUAXIACHENGZHANGHUNHE']
                 _symbols.append(data.split(",")[0])
         except Exception as e:

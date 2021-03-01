@@ -28,6 +28,7 @@ from data_collector.utils import get_en_fund_symbols
 INDEX_BENCH_URL = "http://api.fund.eastmoney.com/f10/lsjz?callback=jQuery_&fundCode={index_code}&pageIndex=1&pageSize={numberOfHistoricalDaysToCrawl}&startDate={startDate}&endDate={endDate}"
 REGION_CN = "CN"
 
+
 class FundData:
     START_DATETIME = pd.Timestamp("2000-01-01")
     END_DATETIME = pd.Timestamp(datetime.datetime.now() + pd.Timedelta(days=1))
@@ -85,12 +86,14 @@ class FundData:
 
         try:
             # TODO: numberOfHistoricalDaysToCrawl should be bigger enouhg
-            url = INDEX_BENCH_URL.format(index_code=symbol, numberOfHistoricalDaysToCrawl=10000, startDate=start, endDate=end)
+            url = INDEX_BENCH_URL.format(
+                index_code=symbol, numberOfHistoricalDaysToCrawl=10000, startDate=start, endDate=end
+            )
             resp = requests.get(url, headers={"referer": "http://fund.eastmoney.com/110022.html"})
 
             if resp.status_code != 200:
                 raise ValueError("request error")
-            
+
             data = json.loads(resp.text.split("(")[-1].split(")")[0])
 
             # Some funds don't show the net value, example: http://fundf10.eastmoney.com/jjjz_010288.html
@@ -280,6 +283,7 @@ class FundCollector:
             logger.warning(f"less than {self.min_numbers_trading} fund list: {list(self._mini_symbol_map.keys())}")
         logger.info(f"total {len(self.fund_list)}, error: {len(set(fund_list))}")
 
+
 class FundollectorCN(FundCollector, ABC):
     def get_fund_list(self):
         logger.info("get cn fund symbols......")
@@ -296,6 +300,7 @@ class FundCollectorCN1d(FundollectorCN):
     @property
     def min_numbers_trading(self):
         return 252 / 4
+
 
 class Run:
     def __init__(self, source_dir=None, max_workers=4, region=REGION_CN):
@@ -354,9 +359,7 @@ class Run:
             $ python collector.py download_data --source_dir ~/.qlib/fund_data/source/cn_1d --region CN --start 2020-11-01 --end 2020-11-10 --delay 0.1 --interval 1d
         """
 
-        _class = getattr(
-            self._cur_module, f"FundCollector{self.region.upper()}{interval}"
-        )  # type: Type[FundCollector]
+        _class = getattr(self._cur_module, f"FundCollector{self.region.upper()}{interval}")  # type: Type[FundCollector]
         _class(
             self.source_dir,
             max_workers=self.max_workers,
@@ -368,6 +371,7 @@ class Run:
             check_data_length=check_data_length,
             limit_nums=limit_nums,
         ).collector_data()
+
 
 if __name__ == "__main__":
     fire.Fire(Run)
