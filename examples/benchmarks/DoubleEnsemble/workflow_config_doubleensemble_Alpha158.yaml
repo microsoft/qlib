@@ -30,9 +30,9 @@ task:
         class: DEnsembleModel
         module_path: qlib.contrib.model.double_ensemble
         kwargs:
-            base: "gbm"
+            base_model: "gbm"
             loss: mse
-            k: 6
+            num_models: 6
             enable_sr: True
             enable_fs: True
             alpha1: 1

@@ -16,9 +16,9 @@ class DEnsembleModel(Model):
 
     def __init__(
         self,
-        base="gbm",
+        base_model="gbm",
         loss="mse",
-        k=6,
+        num_models=6,
         enable_sr=True,
         enable_fs=True,
         alpha1=1.0,
@@ -31,8 +31,8 @@ class DEnsembleModel(Model):
         epochs=100,
         **kwargs
     ):
-        self.base = base  # "gbm" or "mlp", specifically, we use lgbm for "gbm"
-        self.k = k
+        self.base_model = base_model  # "gbm" or "mlp", specifically, we use lgbm for "gbm"
+        self.num_models = num_models  # the number of sub-models
         self.enable_sr = enable_sr
         self.enable_fs = enable_fs
         self.alpha1 = alpha1
@@ -43,8 +43,8 @@ class DEnsembleModel(Model):
         if not len(sample_ratios) == bins_fs:
             raise ValueError("The length of sample_ratios should be equal to bins_fs.")
         self.sample_ratios = sample_ratios
-        if not len(sub_weights) == k:
-            raise ValueError("The length of sub_weights should be equal to k.")
+        if not len(sub_weights) == num_models:
+            raise ValueError("The length of sub_weights should be equal to num_models.")
         self.sub_weights = sub_weights
         self.epochs = epochs
         self.logger = get_module_logger("DEnsembleModel")
@@ -65,27 +65,27 @@ class DEnsembleModel(Model):
         weights = pd.Series(np.ones(N, dtype=float))
         # initialize the features
         features = x_train.columns
-        pred_sub = pd.DataFrame(np.zeros((N, self.k), dtype=float), index=x_train.index)
-        # train k sub-models
-        for i_k in range(self.k):
+        pred_sub = pd.DataFrame(np.zeros((N, self.num_models), dtype=float), index=x_train.index)
+        # train sub-models
+        for k in range(self.num_models):
             self.sub_features.append(features)
-            self.logger.info("Training sub-model: ({}/{})".format(i_k + 1, self.k))
+            self.logger.info("Training sub-model: ({}/{})".format(k + 1, self.num_models))
             model_k = self.train_submodel(df_train, df_valid, weights, features)
             self.ensemble.append(model_k)
             # no further sample re-weight and feature selection needed for the last sub-model
-            if i_k + 1 == self.k:
+            if k + 1 == self.num_models:
                 break
 
             self.logger.info("Retrieving loss curve and loss values...")
             loss_curve = self.retrieve_loss_curve(model_k, df_train, features)
             pred_k = self.predict_sub(model_k, df_train, features)
-            pred_sub.iloc[:, i_k] = pred_k
-            pred_ensemble = pred_sub.iloc[:, : i_k + 1].mean(axis=1)
+            pred_sub.iloc[:, k] = pred_k
+            pred_ensemble = pred_sub.iloc[:, : k + 1].mean(axis=1)
             loss_values = pd.Series(self.get_loss(y_train.values.squeeze(), pred_ensemble.values))
 
             if self.enable_sr:
                 self.logger.info("Sample re-weighting...")
-                weights = self.sample_reweight(loss_curve, loss_values, i_k + 1)
+                weights = self.sample_reweight(loss_curve, loss_values, k + 1)
 
             if self.enable_fs:
                 self.logger.info("Feature selection...")
@@ -209,7 +209,7 @@ class DEnsembleModel(Model):
             raise ValueError("not implemented yet")
 
     def retrieve_loss_curve(self, model, df_train, features):
-        if self.base == "gbm":
+        if self.base_model == "gbm":
             num_trees = model.num_trees()
             x_train, y_train = df_train["feature"].loc[:, features], df_train["label"]
             # Lightgbm need 1D array as its label
