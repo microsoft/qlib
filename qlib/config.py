@@ -33,6 +33,9 @@ class Config:
 
         raise AttributeError(f"No such {attr} in self._config")
 
+    def get(self, key, default=None):
+        return self.__dict__["_config"].get(key, default)
+
     def __setitem__(self, key, value):
         self.__dict__["_config"][key] = value
 
@@ -310,7 +313,21 @@ class QlibConfig(Config):
         # clean up experiment when python program ends
         experiment_exit_handler()
 
+        # Supporting user reset qlib version (useful when user want to connect to qlib server with old version)
+        self.reset_qlib_version()
+
         self._registered = True
+
+    def reset_qlib_version(self):
+        import qlib
+
+        reset_version = self.get("qlib_reset_version", None)
+        if reset_version is not None:
+            qlib.__version__ = reset_version
+        else:
+            qlib.__version__ = getattr(qlib, "__version__bak")
+            # Due to a bug? that converting __version__ to _QlibConfig__version__bak
+            # Using  __version__bak instead of __version__
 
     @property
     def registered(self):

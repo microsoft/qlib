@@ -1,8 +1,8 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
-'''
+"""
 this is a task generator
-'''
+"""
 import abc
 import copy
 import typing
@@ -54,8 +54,8 @@ class RollingGen(TaskGen):
         self.rtype = rtype
         self.ta = TimeAdjuster(future=True)  # 为了保证test最后的日期不是None, 所以这边要改一改
 
-        self.test_key = 'test'
-        self.train_key = 'train'
+        self.test_key = "test"
+        self.train_key = "train"
 
     def __call__(self, task: dict):
         """
@@ -102,7 +102,7 @@ class RollingGen(TaskGen):
             if prev_seg is None:
                 # First rolling
                 # 1) prepare the end porint
-                segments = copy.deepcopy(self.ta.align_seg(t['dataset']['kwargs']['segments']))
+                segments = copy.deepcopy(self.ta.align_seg(t["dataset"]["kwargs"]["segments"]))
                 test_end = self.ta.max() if segments[self.test_key][1] is None else segments[self.test_key][1]
                 # 2) and the init test segments
                 test_start_idx = self.ta.align_idx(segments[self.test_key][0])
@@ -120,14 +120,12 @@ class RollingGen(TaskGen):
                         segments[k] = self.ta.shift(seg, step=self.step, rtype=rtype)
                     if segments[self.test_key][0] > test_end:
                         break
-                except  KeyError:
+                except KeyError:
                     # We reach the end of tasks
                     # No more rolling
                     break
 
-            t['dataset']['kwargs']['segments'] = copy.deepcopy(segments)
+            t["dataset"]["kwargs"]["segments"] = copy.deepcopy(segments)
             prev_seg = segments
             res.append(t)
         return res
-
-

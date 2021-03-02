@@ -10,17 +10,18 @@ from pymongo import MongoClient
 
 def get_mongodb():
     try:
-        cfg = C['mongo']
+        cfg = C["mongo"]
     except KeyError:
         get_module_logger("task").error("Please configure `C['mongo']` before using TaskManager")
         raise
 
-    client = MongoClient(cfg['task_url'])
-    return client.get_database(name=cfg['task_db_name'])
+    client = MongoClient(cfg["task_url"])
+    return client.get_database(name=cfg["task_db_name"])
 
 
 class TimeAdjuster:
-    '''找到合适的日期，然后adjust date'''
+    """找到合适的日期，然后adjust date"""
+
     def __init__(self, future=False):
         self.cals = D.calendar(future=future)
 
@@ -45,9 +46,9 @@ class TimeAdjuster:
 
     def align_idx(self, time_point, tp_type="start"):
         time_point = pd.Timestamp(time_point)
-        if tp_type == 'start':
+        if tp_type == "start":
             idx = bisect.bisect_left(self.cals, time_point)
-        elif tp_type == 'end':
+        elif tp_type == "end":
             idx = bisect.bisect_right(self.cals, time_point) - 1
         else:
             raise NotImplementedError(f"This type of input is not supported")
@@ -91,7 +92,7 @@ class TimeAdjuster:
             new_seg = []
             for time_point in segment:
                 tp_idx = min(self.align_idx(time_point), test_idx - days)
-                assert (tp_idx > 0)
+                assert tp_idx > 0
                 new_seg.append(self.get(tp_idx))
             return tuple(new_seg)
         else:
