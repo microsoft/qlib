@@ -723,8 +723,7 @@ class Wrapper:
         self._provider = provider
 
     def __repr__(self):
-        return ('{name}(provider={provider})'.format(name=self.__class__.__name__,
-                                                     provider=self._provider))
+        return "{name}(provider={provider})".format(name=self.__class__.__name__, provider=self._provider)
 
     def __getattr__(self, key):
         if self._provider is None:
