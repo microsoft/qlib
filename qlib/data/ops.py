@@ -1182,7 +1182,7 @@ class Slope(Rolling):
     Returns
     ----------
     Expression
-        a feature instance with regression slope of given window
+        a feature instance with linear regression slope of given window
     """
 
     def __init__(self, feature, N):
@@ -1210,7 +1210,7 @@ class Rsquare(Rolling):
     Returns
     ----------
     Expression
-        a feature instance with regression r-value square of given window
+        a feature instance with linear regression r-value square of given window
     """
 
     def __init__(self, feature, N):
