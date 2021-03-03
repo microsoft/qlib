@@ -722,6 +722,9 @@ class Wrapper:
     def register(self, provider):
         self._provider = provider
 
+    def __repr__(self):
+        return "{name}(provider={provider})".format(name=self.__class__.__name__, provider=self._provider)
+
     def __getattr__(self, key):
         if self._provider is None:
             raise AttributeError("Please run qlib.init() first using qlib")
