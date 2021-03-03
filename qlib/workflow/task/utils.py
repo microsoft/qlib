@@ -6,9 +6,19 @@ from qlib.data import D
 from qlib.config import C
 from qlib.log import get_module_logger
 from pymongo import MongoClient
-
+from typing import Union
 
 def get_mongodb():
+    """
+
+    get database in MongoDB, which means you need to declare the address and the name of database.
+    for example:
+        C["mongo"] = {
+            "task_url" : "mongodb://localhost:27017/",
+            "task_db_name" : "rolling_db"
+        }
+
+    """
     try:
         cfg = C["mongo"]
     except KeyError:
@@ -20,7 +30,9 @@ def get_mongodb():
 
 
 class TimeAdjuster:
-    """找到合适的日期，然后adjust date"""
+    """
+    find appropriate date and adjust date.
+    """
 
     def __init__(self, future=False):
         self.cals = D.calendar(future=future)
@@ -40,7 +52,7 @@ class TimeAdjuster:
 
     def max(self):
         """
-        Return return the max calendar date
+        Return the max calendar date
         """
         return max(self.cals)
 
@@ -56,7 +68,7 @@ class TimeAdjuster:
 
     def align_time(self, time_point, tp_type="start"):
         """
-        Align a timepoint to calendar  weekdays
+        Align a timepoint to calendar weekdays
 
         Parameters
         ----------
@@ -67,7 +79,7 @@ class TimeAdjuster:
         """
         return self.cals[self.align_idx(time_point, tp_type=tp_type)]
 
-    def align_seg(self, segment):
+    def align_seg(self, segment: Union[dict, tuple]):
         if isinstance(segment, dict):
             return {k: self.align_seg(seg) for k, seg in segment.items()}
         elif isinstance(segment, tuple):
@@ -75,14 +87,15 @@ class TimeAdjuster:
         else:
             raise NotImplementedError(f"This type of input is not supported")
 
-    def truncate(self, segment, test_start, days: int):
+    def truncate(self, segment: tuple, test_start, days: int):
         """
         truncate the segment based on the test_start date
 
         Parameters
         ----------
-        segment :
+        segment : tuple
             time segment
+        test_start
         days : int
             The trading days to be truncated
             大部分情况是因为这个时间段的数据(一般是特征)会用到 `days` 天的数据
@@ -101,7 +114,7 @@ class TimeAdjuster:
     SHIFT_SD = "sliding"
     SHIFT_EX = "expanding"
 
-    def shift(self, seg, step: int, rtype=SHIFT_SD):
+    def shift(self, seg: tuple, step: int, rtype=SHIFT_SD):
         """
         shift the datatiem of segment
 

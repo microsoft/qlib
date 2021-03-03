@@ -36,12 +36,8 @@ class TaskManager:
     The tasks manager assume that you will only update the tasks you fetched.
     The mongo fetch one and update will make it date updating secure.
 
-    Usage Examples from the CLI.
-    python -m blocks.tasks.__init__ task_stat --task_pool meta_task_rule
-
-
     NOTE:
-    - 假设： 存储在db里面的都是encode过的， 拿出来的都是decode过的
+    - assumption: the data in MongoDB was encoded and the data out of MongoDB was decoded
     """
 
     STATUS_WAITING = "waiting"
@@ -85,7 +81,7 @@ class TaskManager:
         return {k: str(v) for k, v in flt.items()}
 
     def replace_task(self, task, new_task, task_pool=None):
-        # 这里的假设是从接口拿出来的都是decode过的，在接口内部的都是 encode过的
+        # assume that the data out of interface was decoded and the data in interface was encoded
         new_task = self._encode_task(new_task)
         task_pool = self._get_task_pool(task_pool)
         query = {"_id": ObjectId(task["_id"])}

@@ -4,17 +4,17 @@ from typing import Union
 from tqdm.auto import tqdm
 
 
-class RollingEnsemble:
+class RollingCollector:
     """
     Rolling Models Ensemble based on (R)ecord
 
     This shares nothing with Ensemble
     """
 
-    # TODO: 这边还可以加加速
+    # TODO: speed up this class
     def __init__(self, get_key_func, flt_func=None):
-        self.get_key_func = get_key_func
-        self.flt_func = flt_func
+        self.get_key_func = get_key_func  # user need to implement this method to get the key of a task based on task config
+        self.flt_func = flt_func  # determine whether a task can be retained based on task config
 
     def __call__(self, exp_name) -> Union[pd.Series, dict]:
         # TODO;
@@ -26,7 +26,6 @@ class RollingEnsemble:
 
         recs_flt = {}
         for rid, rec in tqdm(recs.items(), desc="Loading data"):
-            # rec = exp.get_recorder(recorder_id=rid)
             params = rec.load_object("param")
             if rec.status == rec.STATUS_FI:
                 if self.flt_func is None or self.flt_func(params):
