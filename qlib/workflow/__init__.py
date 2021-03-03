@@ -16,8 +16,11 @@ class QlibRecorder:
     def __init__(self, exp_manager):
         self.exp_manager = exp_manager
 
+    def __repr__(self):
+        return "{name}(manager={manager})".format(name=self.__class__.__name__, manager=self.exp_manager)
+
     @contextmanager
-    def start(self, experiment_name=None, recorder_name=None):
+    def start(self, experiment_name=None, recorder_name=None, uri=None):
         """
         Method to start an experiment. This method can only be called within a Python's `with` statement. Here is the example code:
 
@@ -34,8 +37,11 @@ class QlibRecorder:
             name of the experiment one wants to start.
         recorder_name : str
             name of the recorder under the experiment one wants to start.
+        uri : str
+            the tracking uri of the experiment, where all the artifacts/metrics etc. will be stored.
+            The default uri are set in the qlib.config.
         """
-        run = self.start_exp(experiment_name, recorder_name)
+        run = self.start_exp(experiment_name, recorder_name, uri)
         try:
             yield run
         except Exception as e:

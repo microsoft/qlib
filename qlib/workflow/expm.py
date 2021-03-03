@@ -25,6 +25,9 @@ class ExpManager:
         self.default_exp_name = default_exp_name
         self.active_experiment = None  # only one experiment can active each time
 
+    def __repr__(self):
+        return "{name}(uri={uri})".format(name=self.__class__.__name__, uri=self.uri)
+
     def start_exp(self, experiment_name=None, recorder_name=None, uri=None, **kwargs):
         """
         Start an experiment. This method includes first get_or_create an experiment, and then
