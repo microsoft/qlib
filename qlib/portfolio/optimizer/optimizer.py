@@ -1,23 +1,14 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-import abc
+
 import warnings
 import numpy as np
 import pandas as pd
 import scipy.optimize as so
 from typing import Optional, Union, Callable, List
 
-from qlib.portfolio.enhanced_indexing import EnhancedIndexingOptimizer
-
-
-class BaseOptimizer(abc.ABC):
-    """ Construct portfolio with a optimization related method """
-
-    @abc.abstractmethod
-    def __call__(self, *args, **kwargs) -> object:
-        """ Generate a optimized portfolio allocation """
-        pass
+from qlib.portfolio.optimizer import BaseOptimizer
 
 
 class PortfolioOptimizer(BaseOptimizer):

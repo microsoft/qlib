@@ -7,10 +7,6 @@ from typing import Union
 
 from qlib.model.base import BaseModel
 
-from qlib.model.riskmodel_poet import POETCovEstimator
-from qlib.model.riskmodel_shrink import ShrinkCovEstimator
-from qlib.model.riskmodel_structured import StructuredCovEstimator
-
 
 class RiskModel(BaseModel):
     """Risk Model
