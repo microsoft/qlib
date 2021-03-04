@@ -176,8 +176,6 @@ class MLflowExperiment(Experiment):
         self.client = mlflow.tracking.MlflowClient(tracking_uri=self._uri)
 
     def start(self, recorder_name=None):
-        # set the active experiment
-        mlflow.set_experiment(self.name)
         logger.info(f"Experiment {self.id} starts running ...")
         # set up recorder
         recorder = self.create_recorder(recorder_name)
