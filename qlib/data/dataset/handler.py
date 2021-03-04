@@ -83,22 +83,42 @@ class DataHandler(Serializable):
         # Setup data loader
         assert data_loader is not None  # to make start_time end_time could have None default value
 
+        # what data source to load data
         self.data_loader = init_instance_by_config(
             data_loader,
             None if (isinstance(data_loader, dict) and "module_path" in data_loader) else data_loader_module,
             accept_types=DataLoader,
         )
 
+        # what data to be loaded from data source
+        # For IDE auto-completion.
         self.instruments = instruments
         self.start_time = start_time
         self.end_time = end_time
+
         self.fetch_orig = fetch_orig
         if init_data:
             with TimeInspector.logt("Init data"):
                 self.init()
         super().__init__()
 
-    def init(self, enable_cache: bool = True):
+    def conf_data(self, **kwargs):
+        """
+        configuration of data.
+        # what data to be loaded from data source
+
+        This method will be used when loading pickled handler from dataset.
+        The data will be initialized with different time range.
+
+        """
+        attr_list = {"instruments", "start_time", "end_time"}
+        for k, v in kwargs.items():
+            if k in attr_list:
+                setattr(self, k, v)
+            else:
+                raise KeyError("Such config is not supported.")
+
+    def init(self, enable_cache: bool = False):
         """
         initialize the data.
         In case of running intialization for multiple time, it will do nothing for the second time.
@@ -262,6 +282,7 @@ class DataHandlerLP(DataHandler):
         infer_processors=[],
         learn_processors=[],
         process_type=PTYPE_A,
+        drop_raw=False,
         **kwargs,
     ):
         """
@@ -303,6 +324,8 @@ class DataHandlerLP(DataHandler):
             - self._learn will be processed by infer_processors + learn_processors
 
               - (e.g. self._infer processed by learn_processors )
+        drop_raw: bool
+            Whether to drop the raw data
         """
 
         # Setup preprocessor
@@ -319,6 +342,7 @@ class DataHandlerLP(DataHandler):
                 )
 
         self.process_type = process_type
+        self.drop_raw = drop_raw
         super().__init__(instruments, start_time, end_time, data_loader, **kwargs)
 
     def get_all_processors(self):
@@ -348,7 +372,7 @@ class DataHandlerLP(DataHandler):
         """
         # data for inference
         _infer_df = self._data
-        if len(self.infer_processors) > 0:  # avoid modifying the original  data
+        if len(self.infer_processors) > 0 and not self.drop_raw:  # avoid modifying the original  data
             _infer_df = _infer_df.copy()
 
         for proc in self.infer_processors:
@@ -377,6 +401,9 @@ class DataHandlerLP(DataHandler):
                     proc.fit(_learn_df)
                 _learn_df = proc(_learn_df)
         self._learn = _learn_df
+
+        if self.drop_raw:
+            del self._data
 
     # init type
     IT_FIT_SEQ = "fit_seq"  # the input of `fit` will be the output of the previous processor
@@ -416,6 +443,10 @@ class DataHandlerLP(DataHandler):
         # TODO: Be able to cache handler data. Save the memory for data processing
 
     def _get_df_by_key(self, data_key: str = DK_I) -> pd.DataFrame:
+        if data_key == self.DK_R and self.drop_raw:
+            raise AttributeError(
+                "DataHandlerLP has not attribute _data, please set drop_raw = False if you want to use raw data"
+            )
         df = getattr(self, {self.DK_R: "_data", self.DK_I: "_infer", self.DK_L: "_learn"}[data_key])
         return df
 

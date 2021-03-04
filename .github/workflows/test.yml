@@ -13,7 +13,7 @@ jobs:
     strategy:
       matrix:
         os: [windows-latest, ubuntu-16.04, ubuntu-18.04, ubuntu-20.04, macos-latest]
-        python-version: [3.6, 3.7, 3.8]
+        python-version: [3.6, 3.7, 3.8, 3.9]
 
     steps:
     - uses: actions/checkout@v2
@@ -39,9 +39,11 @@ jobs:
     - name: Install Qlib with pip
       run: |
         if [ "$RUNNER_OS" == "Windows" ]; then
-          $CONDA\\python.exe -m pip install pyqlib --ignore-installed ruamel.yaml --user
+          $CONDA\\python.exe -m pip install numpy==1.19.5
+          $CONDA\\python.exe -m pip install pyqlib --ignore-installed ruamel.yaml numpy --user
         else
-          sudo $CONDA/bin/python -m pip install pyqlib --ignore-installed ruamel.yaml
+          sudo $CONDA/bin/python -m pip install numpy==1.19.5
+          sudo $CONDA/bin/python -m pip install pyqlib --ignore-installed ruamel.yaml numpy
         fi
       shell: bash
     

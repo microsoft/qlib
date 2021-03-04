@@ -26,6 +26,7 @@ def task_train(task_config: dict, experiment_name):
         R.log_params(**flatten_dict(task_config))
         model.fit(dataset)
         recorder = R.get_recorder()
+        R.save_objects(**{"params.pkl": model})
 
         # generate records: prediction, backtest, and analysis
         for record in task_config["record"]:

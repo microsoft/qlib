@@ -60,7 +60,7 @@ class DNNModelPytorch(Model):
         lr_decay_steps=100,
         optimizer="gd",
         loss="mse",
-        GPU="0",
+        GPU=0,
         seed=None,
         weight_decay=0.0,
         **kwargs
@@ -150,7 +150,7 @@ class DNNModelPytorch(Model):
             eps=1e-08,
         )
 
-        self._fitted = False
+        self.fitted = False
         self.dnn_model.to(self.device)
 
     def fit(
@@ -180,7 +180,7 @@ class DNNModelPytorch(Model):
         evals_result["valid"] = []
         # train
         self.logger.info("training...")
-        self._fitted = True
+        self.fitted = True
         # return
         # prepare training data
         x_train_values = torch.from_numpy(x_train.values).float()
@@ -259,13 +259,13 @@ class DNNModelPytorch(Model):
             loss = torch.mul(sqr_loss, w).mean()
             return loss
         elif loss_type == "binary":
-            loss = nn.BCELoss()
+            loss = nn.BCELoss(weight=w)
             return loss(pred, target)
         else:
             raise NotImplementedError("loss {} is not supported!".format(loss_type))
 
     def predict(self, dataset):
-        if not self._fitted:
+        if not self.fitted:
             raise ValueError("model is not fitted yet!")
         x_test_pd = dataset.prepare("test", col_set="feature")
         x_test = torch.from_numpy(x_test_pd.values).float().to(self.device)

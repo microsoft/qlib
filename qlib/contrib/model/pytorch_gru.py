@@ -56,7 +56,7 @@ class GRU(Model):
         early_stop=20,
         loss="mse",
         optimizer="adam",
-        GPU="0",
+        GPU=0,
         seed=None,
         **kwargs
     ):
@@ -130,7 +130,7 @@ class GRU(Model):
         else:
             raise NotImplementedError("optimizer {} is not supported!".format(optimizer))
 
-        self._fitted = False
+        self.fitted = False
         self.gru_model.to(self.device)
 
     def mse(self, pred, label):
@@ -238,7 +238,7 @@ class GRU(Model):
 
         # train
         self.logger.info("training...")
-        self._fitted = True
+        self.fitted = True
 
         for step in range(self.n_epochs):
             self.logger.info("Epoch%d:", step)
@@ -270,7 +270,7 @@ class GRU(Model):
             torch.cuda.empty_cache()
 
     def predict(self, dataset):
-        if not self._fitted:
+        if not self.fitted:
             raise ValueError("model is not fitted yet!")
 
         x_test = dataset.prepare("test", col_set="feature")

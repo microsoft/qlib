@@ -3,6 +3,7 @@
 
 from contextlib import contextmanager
 from .expm import MLflowExpManager
+from .exp import Experiment
 from .recorder import Recorder
 from ..utils import Wrapper
 
@@ -165,7 +166,7 @@ class QlibRecorder:
         """
         return self.get_exp(experiment_id, experiment_name).list_recorders()
 
-    def get_exp(self, experiment_id=None, experiment_name=None, create: bool = True):
+    def get_exp(self, experiment_id=None, experiment_name=None, create: bool = True) -> Experiment:
         """
         Method for retrieving an experiment with given id or name. Once the `create` argument is set to
         True, if no valid experiment is found, this method will create one for you. Otherwise, it will
@@ -461,5 +462,14 @@ class QlibRecorder:
         self.get_exp().get_recorder().set_tags(**kwargs)
 
 
+import sys
+
+if sys.version_info >= (3, 9):
+    from typing import Annotated
+
+    QlibRecorderWrapper = Annotated[QlibRecorder, Wrapper]
+else:
+    QlibRecorderWrapper = QlibRecorder
+
 # global record
-R = Wrapper()
+R: QlibRecorderWrapper = Wrapper()

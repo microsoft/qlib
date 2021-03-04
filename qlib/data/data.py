@@ -15,14 +15,13 @@ import importlib
 import traceback
 import numpy as np
 import pandas as pd
-from pathlib import Path
 from multiprocessing import Pool
 
 from .cache import H
 from ..config import C
-from .ops import *
+from .ops import Operators
 from ..log import get_module_logger
-from ..utils import parse_field, read_bin, hash_args, normalize_cache_fields
+from ..utils import parse_field, read_bin, hash_args, normalize_cache_fields, code_to_fname
 from .base import Feature
 from .cache import DiskDatasetCache, DiskExpressionCache
 from ..utils import Wrapper, init_instance_by_config, register_wrapper, get_module_by_module_path
@@ -118,7 +117,7 @@ class CalendarProvider(abc.ABC):
         if flag in H["c"]:
             _calendar, _calendar_index = H["c"][flag]
         else:
-            _calendar = np.array(self._load_calendar(freq, future))
+            _calendar = np.array(self.load_calendar(freq, future))
             _calendar_index = {x: i for i, x in enumerate(_calendar)}  # for fast search
             H["c"][flag] = _calendar, _calendar_index
         return _calendar, _calendar_index
@@ -214,20 +213,6 @@ class InstrumentProvider(abc.ABC):
         if isinstance(inst, (list, tuple, pd.Index, np.ndarray)):
             return cls.LIST
         raise ValueError(f"Unknown instrument type {inst}")
-
-    def convert_instruments(self, instrument):
-        _instruments_map = getattr(self, "_instruments_map", None)
-        if _instruments_map is None:
-            _df_list = []
-            # FIXME: each process will read these files
-            for _path in Path(C.get_data_path()).joinpath("instruments").glob("*.txt"):
-                _df = pd.read_csv(_path, sep="\t", names=["inst", "start_datetime", "end_datetime", "save_inst"])
-                _df_list.append(_df.iloc[:, [0, -1]])
-            df = pd.concat(_df_list, sort=False).sort_values("save_inst")
-            df = df.drop_duplicates(subset=["save_inst"], keep="first").fillna(axis=1, method="ffill")
-            _instruments_map = df.set_index("inst").iloc[:, 0].to_dict()
-            setattr(self, "_instruments_map", _instruments_map)
-        return _instruments_map.get(instrument, instrument)
 
 
 class FeatureProvider(abc.ABC):
@@ -481,11 +466,10 @@ class DatasetProvider(abc.ABC):
 
         """
         # FIXME: Windows OS or MacOS using spawn: https://docs.python.org/3.8/library/multiprocessing.html?highlight=spawn#contexts-and-start-methods
-        global C
-        C = g_config
         # NOTE: This place is compatible with windows, windows multi-process is spawn
-        if getattr(ExpressionD, "_provider", None) is None:
-            register_all_wrappers()
+        if not C.registered:
+            C.set_conf_from_C(g_config)
+            C.register()
 
         obj = dict()
         for field in column_names:
@@ -494,13 +478,13 @@ class DatasetProvider(abc.ABC):
 
         data = pd.DataFrame(obj)
         _calendar = Cal.calendar(freq=freq)
-        data.index = _calendar[data.index.values.astype(np.int)]
+        data.index = _calendar[data.index.values.astype(int)]
         data.index.names = ["datetime"]
 
         if spans is None:
             return data
         else:
-            mask = np.zeros(len(data), dtype=np.bool)
+            mask = np.zeros(len(data), dtype=bool)
             for begin, end in spans:
                 mask |= (data.index >= begin) & (data.index <= end)
             return data[mask]
@@ -520,7 +504,7 @@ class LocalCalendarProvider(CalendarProvider):
         """Calendar file uri."""
         return os.path.join(C.get_data_path(), "calendars", "{}.txt")
 
-    def _load_calendar(self, freq, future):
+    def load_calendar(self, freq, future):
         """Load original calendar timestamp from file.
 
         Parameters
@@ -587,10 +571,16 @@ class LocalInstrumentProvider(InstrumentProvider):
         fname = self._uri_inst.format(market)
         if not os.path.exists(fname):
             raise ValueError("instruments not exists for market " + market)
+
         _instruments = dict()
-        df = pd.read_csv(fname, sep="\t", names=["inst", "start_datetime", "end_datetime", "save_inst"])
-        df["start_datetime"] = pd.to_datetime(df["start_datetime"])
-        df["end_datetime"] = pd.to_datetime(df["end_datetime"])
+        df = pd.read_csv(
+            fname,
+            sep="\t",
+            usecols=[0, 1, 2],
+            names=["inst", "start_datetime", "end_datetime"],
+            dtype={"inst": str},
+            parse_dates=["start_datetime", "end_datetime"],
+        )
         for row in df.itertuples(index=False):
             _instruments.setdefault(row[0], []).append((row[1], row[2]))
         return _instruments
@@ -647,7 +637,7 @@ class LocalFeatureProvider(FeatureProvider):
     def feature(self, instrument, field, start_index, end_index, freq):
         # validate
         field = str(field).lower()[1:]
-        instrument = Inst.convert_instruments(instrument)
+        instrument = code_to_fname(instrument)
         uri_data = self._uri_data.format(instrument.lower(), field, freq)
         if not os.path.exists(uri_data):
             get_module_logger("data").warning("WARN: data not found for %s.%s" % (instrument, field))
@@ -681,6 +671,8 @@ class LocalExpressionProvider(ExpressionProvider):
         try:
             series = series.astype(np.float32)
         except ValueError:
+            pass
+        except TypeError:
             pass
         if not series.empty:
             series = series.loc[start_index:end_index]
@@ -969,8 +961,7 @@ class BaseProvider:
         is a provider class.
         """
         disk_cache = C.default_disk_cache if disk_cache is None else disk_cache
-        if C.disable_disk_cache:
-            disk_cache = False
+        fields = list(fields)  # In case of tuple.
         try:
             return DatasetD.dataset(instruments, fields, start_time, end_time, freq, disk_cache)
         except TypeError:
@@ -1035,15 +1026,34 @@ class ClientProvider(BaseProvider):
             DatasetD.set_conn(self.client)
 
 
-Cal = Wrapper()
-Inst = Wrapper()
-FeatureD = Wrapper()
-ExpressionD = Wrapper()
-DatasetD = Wrapper()
-D = Wrapper()
+import sys
+
+if sys.version_info >= (3, 9):
+    from typing import Annotated
+
+    CalendarProviderWrapper = Annotated[CalendarProvider, Wrapper]
+    InstrumentProviderWrapper = Annotated[InstrumentProvider, Wrapper]
+    FeatureProviderWrapper = Annotated[FeatureProvider, Wrapper]
+    ExpressionProviderWrapper = Annotated[ExpressionProvider, Wrapper]
+    DatasetProviderWrapper = Annotated[DatasetProvider, Wrapper]
+    BaseProviderWrapper = Annotated[BaseProvider, Wrapper]
+else:
+    CalendarProviderWrapper = CalendarProvider
+    InstrumentProviderWrapper = InstrumentProvider
+    FeatureProviderWrapper = FeatureProvider
+    ExpressionProviderWrapper = ExpressionProvider
+    DatasetProviderWrapper = DatasetProvider
+    BaseProviderWrapper = BaseProvider
+
+Cal: CalendarProviderWrapper = Wrapper()
+Inst: InstrumentProviderWrapper = Wrapper()
+FeatureD: FeatureProviderWrapper = Wrapper()
+ExpressionD: ExpressionProviderWrapper = Wrapper()
+DatasetD: DatasetProviderWrapper = Wrapper()
+D: BaseProviderWrapper = Wrapper()
 
 
-def register_all_wrappers():
+def register_all_wrappers(C):
     """register_all_wrappers"""
     logger = get_module_logger("data")
     module = get_module_by_module_path("qlib.data")

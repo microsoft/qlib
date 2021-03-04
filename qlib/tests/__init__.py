@@ -7,6 +7,9 @@ from ..config import REG_CN
 
 
 class TestAutoData(unittest.TestCase):
+
+    _setup_kwargs = {}
+
     @classmethod
     def setUpClass(cls) -> None:
         # use default data
@@ -15,6 +18,10 @@ class TestAutoData(unittest.TestCase):
             print(f"Qlib data is not found in {provider_uri}")
 
             GetData().qlib_data(
-                name="qlib_data_simple", region="cn", version="latest", interval="1d", target_dir=provider_uri
+                name="qlib_data_simple",
+                region="cn",
+                interval="1d",
+                target_dir=provider_uri,
+                delete_old=False,
             )
-        init(provider_uri=provider_uri, region=REG_CN)
+        init(provider_uri=provider_uri, region=REG_CN, **cls._setup_kwargs)

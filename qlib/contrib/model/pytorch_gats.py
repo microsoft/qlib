@@ -61,7 +61,7 @@ class GATs(Model):
         with_pretrain=True,
         model_path=None,
         optimizer="adam",
-        GPU="0",
+        GPU=0,
         seed=None,
         **kwargs
     ):
@@ -142,7 +142,7 @@ class GATs(Model):
         else:
             raise NotImplementedError("optimizer {} is not supported!".format(optimizer))
 
-        self._fitted = False
+        self.fitted = False
         self.GAT_model.to(self.device)
 
     def mse(self, pred, label):
@@ -275,7 +275,7 @@ class GATs(Model):
 
         # train
         self.logger.info("training...")
-        self._fitted = True
+        self.fitted = True
 
         for step in range(self.n_epochs):
             self.logger.info("Epoch%d:", step)
@@ -307,7 +307,7 @@ class GATs(Model):
             torch.cuda.empty_cache()
 
     def predict(self, dataset):
-        if not self._fitted:
+        if not self.fitted:
             raise ValueError("model is not fitted yet!")
 
         x_test = dataset.prepare("test", col_set="feature")

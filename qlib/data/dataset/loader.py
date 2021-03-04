@@ -10,7 +10,9 @@ import pandas as pd
 from typing import Tuple, Union
 
 from qlib.data import D
-from qlib.utils import load_dataset
+from qlib.data import filter as filter_module
+from qlib.data.filter import BaseDFilter
+from qlib.utils import load_dataset, init_instance_by_config
 
 
 class DataLoader(abc.ABC):
@@ -76,6 +78,7 @@ class DLWParser(DataLoader):
                 <config> := <fields_info>
 
                 <fields_info> := ["expr", ...] | (["expr", ...], ["col_name", ...])
+                # NOTE: list or tuple will be treated as the things when parsing
         """
         self.is_group = isinstance(config, dict)
 
@@ -85,9 +88,15 @@ class DLWParser(DataLoader):
             self.fields = self._parse_fields_info(config)
 
     def _parse_fields_info(self, fields_info: Tuple[list, tuple]) -> Tuple[list, list]:
-        if isinstance(fields_info, list):
+        if len(fields_info) == 0:
+            raise ValueError("The size of fields must be greater than 0")
+
+        if not isinstance(fields_info, (list, tuple)):
+            raise TypeError("Unsupported type")
+
+        if isinstance(fields_info[0], str):
             exprs = names = fields_info
-        elif isinstance(fields_info, tuple):
+        elif isinstance(fields_info[0], (list, tuple)):
             exprs, names = fields_info
         else:
             raise NotImplementedError(f"This type of input is not supported")
@@ -132,7 +141,7 @@ class DLWParser(DataLoader):
 class QlibDataLoader(DLWParser):
     """Same as QlibDataLoader. The fields can be define by config"""
 
-    def __init__(self, config: Tuple[list, tuple, dict], filter_pipe=None):
+    def __init__(self, config: Tuple[list, tuple, dict], filter_pipe=None, swap_level=True, freq="day"):
         """
         Parameters
         ----------
@@ -140,8 +149,19 @@ class QlibDataLoader(DLWParser):
             Please refer to the doc of DLWParser
         filter_pipe :
             Filter pipe for the instruments
+        swap_level :
+            Whether to swap level of MultiIndex
         """
+        if filter_pipe is not None:
+            assert isinstance(filter_pipe, list), "The type of `filter_pipe` must be list."
+            filter_pipe = [
+                init_instance_by_config(fp, None if "module_path" in fp else filter_module, accept_types=BaseDFilter)
+                for fp in filter_pipe
+            ]
+
         self.filter_pipe = filter_pipe
+        self.swap_level = swap_level
+        self.freq = freq
         super().__init__(config)
 
     def load_group_df(self, instruments, exprs: list, names: list, start_time=None, end_time=None) -> pd.DataFrame:
@@ -153,9 +173,10 @@ class QlibDataLoader(DLWParser):
         elif self.filter_pipe is not None:
             warnings.warn("`filter_pipe` is not None, but it will not be used with `instruments` as list")
 
-        df = D.features(instruments, exprs, start_time, end_time)
+        df = D.features(instruments, exprs, start_time, end_time, self.freq)
         df.columns = names
-        df = df.swaplevel().sort_index()  # NOTE: always return <datetime, instrument>
+        if self.swap_level:
+            df = df.swaplevel().sort_index()  # NOTE: if swaplevel, return <datetime, instrument>
         return df
 
 

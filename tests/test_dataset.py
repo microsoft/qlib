@@ -66,7 +66,7 @@ class TestDataset(TestAutoData):
         # Check the data
         # Get data from DataFrame Directly
         data_from_df = (
-            tsdh._handler.fetch(data_key=DataHandlerLP.DK_L)
+            tsdh.handler.fetch(data_key=DataHandlerLP.DK_L)
             .loc(axis=0)["2015-01-01":"2016-12-31", "SZ300315"]
             .iloc[-30:]
             .values

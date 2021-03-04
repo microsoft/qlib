@@ -33,7 +33,7 @@ from ..utils import (
 from ..log import get_module_logger
 from .base import Feature
 
-from .ops import *
+from .ops import Operators
 
 
 class QlibCacheException(RuntimeError):
@@ -825,8 +825,8 @@ class DiskDatasetCache(DatasetCache):
 
             .. note:: The start is closed. The end is open!!!!!
 
-            - Each line contains two element <timestamp, end_index>
-            - It indicates the `end_index` of the data for `timestamp`
+            - Each line contains two element <start_index, end_index> with a timestamp as its index.
+            - It indicates the `start_index`(included) and `end_index`(excluded) of the data for `timestamp`
 
         - meta data: cache/d41366901e25de3ec47297f12e2ba11d.meta
 

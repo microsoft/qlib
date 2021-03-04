@@ -76,18 +76,55 @@ class DatasetH(Dataset):
     - The processing is related to data split.
     """
 
-    def __init__(self, handler: Union[dict, DataHandler], segments: list):
+    def __init__(self, handler: Union[dict, DataHandler], segments: dict):
         """
         Parameters
         ----------
         handler : Union[dict, DataHandler]
             handler will be passed into setup_data.
-        segments : list
+        segments : dict
             handler will be passed into setup_data.
         """
         super().__init__(handler, segments)
 
-    def setup_data(self, handler: Union[dict, DataHandler], segments: list):
+    def init(self, handler_kwargs: dict = None, segment_kwargs: dict = None):
+        """
+        Initialize the DatasetH
+
+        Parameters
+        ----------
+        handler_kwargs : dict
+            Config of DataHanlder, which could include the following arguments:
+
+            - arguments of DataHandler.conf_data, such as 'instruments', 'start_time' and 'end_time'.
+
+            - arguments of DataHandler.init, such as 'enable_cache', etc.
+
+        segment_kwargs : dict
+            Config of segments which is same as 'segments' in DatasetH.setup_data
+
+        """
+        if handler_kwargs:
+            if not isinstance(handler_kwargs, dict):
+                raise TypeError(f"param handler_kwargs must be type dict, not {type(handler_kwargs)}")
+            kwargs_init = {}
+            kwargs_conf_data = {}
+            conf_data_arg = {"instruments", "start_time", "end_time"}
+            for k, v in handler_kwargs.items():
+                if k in conf_data_arg:
+                    kwargs_conf_data.update({k: v})
+                else:
+                    kwargs_init.update({k: v})
+
+            self.handler.conf_data(**kwargs_conf_data)
+            self.handler.init(**kwargs_init)
+
+        if segment_kwargs:
+            if not isinstance(segment_kwargs, dict):
+                raise TypeError(f"param handler_kwargs must be type dict, not {type(segment_kwargs)}")
+            self.segments = segment_kwargs.copy()
+
+    def setup_data(self, handler: Union[dict, DataHandler], segments: dict):
         """
         Setup the underlying data.
 
@@ -100,7 +137,7 @@ class DatasetH(Dataset):
 
             - config of `DataHandler`.  Please refer to `DataHandler`
 
-        segments : list
+        segments : dict
             Describe the options to segment the data.
             Here are some examples:
 
@@ -116,8 +153,8 @@ class DatasetH(Dataset):
                         'outsample': ("2017-01-01", "2020-08-01",),
                     }
         """
-        self._handler = init_instance_by_config(handler, accept_types=DataHandler)
-        self._segments = segments.copy()
+        self.handler = init_instance_by_config(handler, accept_types=DataHandler)
+        self.segments = segments.copy()
 
     def _prepare_seg(self, slc: slice, **kwargs):
         """
@@ -127,7 +164,7 @@ class DatasetH(Dataset):
         ----------
         slc : slice
         """
-        return self._handler.fetch(slc, **kwargs)
+        return self.handler.fetch(slc, **kwargs)
 
     def prepare(
         self,
@@ -150,7 +187,7 @@ class DatasetH(Dataset):
             - ['train', 'valid']
 
         col_set : str
-            The col_set will be passed to self._handler when fetching data.
+            The col_set will be passed to self.handler when fetching data.
         data_key : str
             The data to fetch:  DK_*
             Default is DK_I, which indicate fetching data for **inference**.
@@ -166,16 +203,16 @@ class DatasetH(Dataset):
         logger = get_module_logger("DatasetH")
         fetch_kwargs = {"col_set": col_set}
         fetch_kwargs.update(kwargs)
-        if "data_key" in getfullargspec(self._handler.fetch).args:
+        if "data_key" in getfullargspec(self.handler.fetch).args:
             fetch_kwargs["data_key"] = data_key
         else:
             logger.info(f"data_key[{data_key}] is ignored.")
 
         # Handle all kinds of segments format
         if isinstance(segments, (list, tuple)):
-            return [self._prepare_seg(slice(*self._segments[seg]), **fetch_kwargs) for seg in segments]
+            return [self._prepare_seg(slice(*self.segments[seg]), **fetch_kwargs) for seg in segments]
         elif isinstance(segments, str):
-            return self._prepare_seg(slice(*self._segments[segments]), **fetch_kwargs)
+            return self._prepare_seg(slice(*self.segments[segments]), **fetch_kwargs)
         elif isinstance(segments, slice):
             return self._prepare_seg(segments, **fetch_kwargs)
         else:
@@ -409,7 +446,7 @@ class TSDatasetH(DatasetH):
 
     def setup_data(self, *args, **kwargs):
         super().setup_data(*args, **kwargs)
-        cal = self._handler.fetch(col_set=self._handler.CS_RAW).index.get_level_values("datetime").unique()
+        cal = self.handler.fetch(col_set=self.handler.CS_RAW).index.get_level_values("datetime").unique()
         cal = sorted(cal)
         # Get the datatime index for building timestamp
         self.cal = cal

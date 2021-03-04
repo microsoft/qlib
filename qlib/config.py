@@ -11,16 +11,17 @@ Two modes are supported
 
 """
 
-import copy
-from pathlib import Path
-import re
 import os
+import re
+import copy
+import logging
 import multiprocessing
+from pathlib import Path
 
 
 class Config:
     def __init__(self, default_conf):
-        self.__dict__["_default_config"] = default_conf  # avoiding conflictions with __getattr__
+        self.__dict__["_default_config"] = copy.deepcopy(default_conf)  # avoiding conflictions with __getattr__
         self.reset()
 
     def __getitem__(self, key):
@@ -59,6 +60,9 @@ class Config:
     def update(self, *args, **kwargs):
         self.__dict__["_config"].update(*args, **kwargs)
 
+    def set_conf_from_C(self, config_c):
+        self.update(**config_c.__dict__["_config"])
+
 
 # REGION CONST
 REG_CN = "cn"
@@ -86,7 +90,6 @@ _default_config = {
     # How many tasks belong to one process. Recommend 1 for high-frequency data and None for daily data.
     "maxtasksperchild": None,
     "default_disk_cache": 1,  # 0:skip/1:use
-    "disable_disk_cache": False,  # disable disk cache; if High-frequency data generally disable_disk_cache=True
     "mem_cache_size_limit": 500,
     # memory cache expire second, only in used 'DatasetURICache' and 'client D.calendar'
     # default 1 hour
@@ -184,9 +187,17 @@ MODE_CONF = {
         "timeout": 100,
         "logging_level": "INFO",
         "region": REG_CN,
+        ## Custom Operator
+        "custom_ops": [],
     },
 }
 
+HIGH_FREQ_CONFIG = {
+    "provider_uri": "~/.qlib/qlib_data/yahoo_cn_1min",
+    "dataset_cache": None,
+    "expression_cache": "DiskExpressionCache",
+    "region": REG_CN,
+}
 
 _default_region_config = {
     REG_CN: {
@@ -206,6 +217,10 @@ class QlibConfig(Config):
     # URI_TYPE
     LOCAL_URI = "local"
     NFS_URI = "nfs"
+
+    def __init__(self, default_conf):
+        super().__init__(default_conf)
+        self._registered = False
 
     def set_mode(self, mode):
         # raise KeyError
@@ -242,6 +257,64 @@ class QlibConfig(Config):
             return self["mount_path"]
         else:
             raise NotImplementedError(f"This type of uri is not supported")
+
+    def set(self, default_conf="client", **kwargs):
+        from .utils import set_log_with_config, get_module_logger, can_use_cache
+
+        self.reset()
+
+        _logging_config = self.logging_config
+        if "logging_config" in kwargs:
+            _logging_config = kwargs["logging_config"]
+
+        # set global config
+        if _logging_config:
+            set_log_with_config(_logging_config)
+
+        # FIXME: this logger ignored the level in config
+        logger = get_module_logger("Initialization", level=logging.INFO)
+        logger.info(f"default_conf: {default_conf}.")
+
+        self.set_mode(default_conf)
+        self.set_region(kwargs.get("region", self["region"] if "region" in self else REG_CN))
+
+        for k, v in kwargs.items():
+            if k not in self:
+                logger.warning("Unrecognized config %s" % k)
+            self[k] = v
+
+        self.resolve_path()
+
+        if not (self["expression_cache"] is None and self["dataset_cache"] is None):
+            # check redis
+            if not can_use_cache():
+                logger.warning(
+                    f"redis connection failed(host={self['redis_host']} port={self['redis_port']}), cache will not be used!"
+                )
+                self["expression_cache"] = None
+                self["dataset_cache"] = None
+
+    def register(self):
+        from .utils import init_instance_by_config
+        from .data.ops import register_all_ops
+        from .data.data import register_all_wrappers
+        from .workflow import R, QlibRecorder
+        from .workflow.utils import experiment_exit_handler
+
+        register_all_ops(self)
+        register_all_wrappers(self)
+        # set up QlibRecorder
+        exp_manager = init_instance_by_config(self["exp_manager"])
+        qr = QlibRecorder(exp_manager)
+        R.register(qr)
+        # clean up experiment when python program ends
+        experiment_exit_handler()
+
+        self._registered = True
+
+    @property
+    def registered(self):
+        return self._registered
 
 
 # global config

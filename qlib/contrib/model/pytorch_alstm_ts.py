@@ -58,7 +58,7 @@ class ALSTM(Model):
         loss="mse",
         optimizer="adam",
         n_jobs=10,
-        GPU="0",
+        GPU=0,
         seed=None,
         **kwargs
     ):
@@ -135,7 +135,7 @@ class ALSTM(Model):
         else:
             raise NotImplementedError("optimizer {} is not supported!".format(optimizer))
 
-        self._fitted = False
+        self.fitted = False
         self.ALSTM_model.to(self.device)
 
     def mse(self, pred, label):
@@ -204,8 +204,8 @@ class ALSTM(Model):
         verbose=True,
         save_path=None,
     ):
-        dl_train = dataset.prepare("train", data_key=DataHandlerLP.DK_L)
-        dl_valid = dataset.prepare("valid", data_key=DataHandlerLP.DK_L)
+        dl_train = dataset.prepare("train", col_set=["feature", "label"], data_key=DataHandlerLP.DK_L)
+        dl_valid = dataset.prepare("valid", col_set=["feature", "label"], data_key=DataHandlerLP.DK_L)
 
         dl_train.config(fillna_type="ffill+bfill")  # process nan brought by dataloader
         dl_valid.config(fillna_type="ffill+bfill")  # process nan brought by dataloader
@@ -225,7 +225,7 @@ class ALSTM(Model):
 
         # train
         self.logger.info("training...")
-        self._fitted = True
+        self.fitted = True
 
         for step in range(self.n_epochs):
             self.logger.info("Epoch%d:", step)
@@ -257,10 +257,10 @@ class ALSTM(Model):
             torch.cuda.empty_cache()
 
     def predict(self, dataset):
-        if not self._fitted:
+        if not self.fitted:
             raise ValueError("model is not fitted yet!")
 
-        dl_test = dataset.prepare("test", data_key=DataHandlerLP.DK_I)
+        dl_test = dataset.prepare("test", col_set=["feature", "label"], data_key=DataHandlerLP.DK_I)
         dl_test.config(fillna_type="ffill+bfill")
         test_loader = DataLoader(dl_test, batch_size=self.batch_size, num_workers=self.n_jobs)
         self.ALSTM_model.eval()

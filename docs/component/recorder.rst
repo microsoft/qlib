@@ -34,8 +34,9 @@ Here is a general view of the structure of the system:
             - Recorder 2
             - ...
         - ...
-This experiment management system defines a set of interface and provided a concrete implementation based on the machine learning platform: ``MLFlow`` (`link <https://mlflow.org/>`_). 
+This experiment management system defines a set of interface and provided a concrete implementation ``MLflowExpManager``, which is based on the machine learning platform: ``MLFlow`` (`link <https://mlflow.org/>`_). 
 
+If users set the implementation of ``ExpManager`` to be ``MLflowExpManager``, they can use the command `mlflow ui` to visualize and check the experiment results. For more information, pleaes refer to the related documents `here <https://www.mlflow.org/docs/latest/cli.html#mlflow-ui>`_.
 
 Qlib Recorder
 ===================
@@ -93,6 +94,52 @@ The ``RecordTemp`` class is a class that enables generate experiment results suc
 
 - ``SignalRecord``: This class generates the `prediction` results of the model.
 - ``SigAnaRecord``: This class generates the `IC`, `ICIR`, `Rank IC` and `Rank ICIR` of the model.
+
+Here is a simple example of what is done in ``SigAnaRecord``, which users can refer to if they want to calculate IC, Rank IC, Long-Short Return with their own prediction and label.
+
+.. code-block:: Python
+
+    from qlib.contrib.eva.alpha import calc_ic, calc_long_short_return
+
+    ic, ric = calc_ic(pred.iloc[:, 0], label.iloc[:, 0])
+    long_short_r, long_avg_r = calc_long_short_return(pred.iloc[:, 0], label.iloc[:, 0])
+
 - ``PortAnaRecord``: This class generates the results of `backtest`. The detailed information about `backtest` as well as the available `strategy`, users can refer to `Strategy <../component/strategy.html>`_ and `Backtest <../component/backtest.html>`_.
+
+Here is a simple exampke of what is done in ``PortAnaRecord``, which users can refer to if they want to do backtest based on their own prediction and label.
+
+.. code-block:: Python
+
+    from qlib.contrib.strategy.strategy import TopkDropoutStrategy
+    from qlib.contrib.evaluate import (
+        backtest as normal_backtest,
+        risk_analysis,
+    )
+
+    # backtest
+    STRATEGY_CONFIG = {
+        "topk": 50,
+        "n_drop": 5,
+    }
+    BACKTEST_CONFIG = {
+        "verbose": False,
+        "limit_threshold": 0.095,
+        "account": 100000000,
+        "benchmark": BENCHMARK,
+        "deal_price": "close",
+        "open_cost": 0.0005,
+        "close_cost": 0.0015,
+        "min_cost": 5,
+    }
+    
+    strategy = TopkDropoutStrategy(**STRATEGY_CONFIG)
+    report_normal, positions_normal = normal_backtest(pred_score, strategy=strategy, **BACKTEST_CONFIG)
+
+    # analysis
+    analysis = dict()
+    analysis["excess_return_without_cost"] = risk_analysis(report_normal["return"] - report_normal["bench"])
+    analysis["excess_return_with_cost"] = risk_analysis(report_normal["return"] - report_normal["bench"] - report_normal["cost"])
+    analysis_df = pd.concat(analysis)  # type: pd.DataFrame
+    print(analysis_df)
 
 For more information about the APIs, please refer to `Record Template API <../reference/api.html#module-qlib.workflow.record_temp>`_.
