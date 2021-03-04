@@ -38,8 +38,10 @@ class QlibRecorder:
         recorder_name : str
             name of the recorder under the experiment one wants to start.
         uri : str
-            the tracking uri of the experiment, where all the artifacts/metrics etc. will be stored.
-            The default uri are set in the qlib.config.
+            The tracking uri of the experiment, where all the artifacts/metrics etc. will be stored.
+            The default uri are set in the qlib.config. Note that this uri argument will not change the one defined in the config file.
+            Therefore, the next time when user call this function in the same experiment,
+            they have to also specify this argument with the same value. Otherwise, inconsistent uri may occur.
         """
         run = self.start_exp(experiment_name, recorder_name, uri)
         try:

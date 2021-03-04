@@ -110,7 +110,10 @@ def train():
 
     # model initiaiton
     model = init_instance_by_config(task["model"])
+    print(model)
     dataset = init_instance_by_config(task["dataset"])
+    print(dataset)
+    print(R)
 
     # start exp
     with R.start(experiment_name="workflow"):
@@ -119,6 +122,7 @@ def train():
 
         # prediction
         recorder = R.get_recorder()
+        print(recorder)
         rid = recorder.id
         sr = SignalRecord(model, dataset, recorder)
         sr.generate()

@@ -11,7 +11,7 @@ from ..log import get_module_logger
 logger = get_module_logger("workflow", "INFO")
 
 
-class Experiment:
+class Experiment(object):
     """
     This is the `Experiment` class for each experiment being run. The API is designed similar to mlflow.
     (The link: https://mlflow.org/docs/latest/python_api/mlflow.html)
@@ -23,7 +23,7 @@ class Experiment:
         self.active_recorder = None  # only one recorder can running each time
 
     def __repr__(self):
-        return str(self.info)
+        return "{name}(info={info})".format(name=self.__class__.__name__, info=self.info)
 
     def __str__(self):
         return str(self.info)

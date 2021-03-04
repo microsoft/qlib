@@ -14,7 +14,7 @@ from ..log import get_module_logger
 logger = get_module_logger("workflow", "INFO")
 
 
-class ExpManager:
+class ExpManager(object):
     """
     This is the `ExpManager` class for managing experiments. The API is designed similar to mlflow.
     (The link: https://mlflow.org/docs/latest/python_api/mlflow.html)
