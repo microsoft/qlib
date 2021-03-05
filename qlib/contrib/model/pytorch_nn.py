@@ -42,8 +42,8 @@ class DNNModelPytorch(Model):
         learning rate decay steps
     optimizer : str
         optimizer name
-    GPU : str
-        the GPU ID(s) used for training
+    GPU : int
+        the GPU ID used for training
     """
 
     def __init__(
@@ -80,7 +80,7 @@ class DNNModelPytorch(Model):
         self.lr_decay_steps = lr_decay_steps
         self.optimizer = optimizer.lower()
         self.loss_type = loss
-        self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() else "cpu")
+        self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
         self.use_GPU = torch.cuda.is_available()
         self.seed = seed
         self.weight_decay = weight_decay
