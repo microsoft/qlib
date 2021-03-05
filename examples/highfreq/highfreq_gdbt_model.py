@@ -10,6 +10,7 @@ from qlib.data.dataset import DatasetH
 from qlib.data.dataset.handler import DataHandlerLP
 import warnings
 
+
 class HF_LGBModel(ModelFT):
     """LightGBM Model"""
 
@@ -19,23 +20,23 @@ class HF_LGBModel(ModelFT):
         self.params = {"objective": loss, "verbosity": -1}
         self.params.update(kwargs)
         self.model = None
-        
+
     def _cal_signal_metrics(self, y_test, l_cut, r_cut):
         """
         Calcaute the signal metrics by daily level
         """
-        up_pre, down_pre = [],[]
+        up_pre, down_pre = [], []
         up_alpha_ll, down_alpha_ll = [], []
         for date in y_test.index.get_level_values(0).unique():
-            df_res = y_test.loc[date].sort_values('pred')
-            if int(l_cut*len(df_res)) < 10:
-                    warnings.warn("Warning: threhold is too low or instruments number is not enough")
-                    continue
-            top = df_res.iloc[:int(l_cut*len(df_res))]
-            bottom = df_res.iloc[int(r_cut*len(df_res)):]
+            df_res = y_test.loc[date].sort_values("pred")
+            if int(l_cut * len(df_res)) < 10:
+                warnings.warn("Warning: threhold is too low or instruments number is not enough")
+                continue
+            top = df_res.iloc[: int(l_cut * len(df_res))]
+            bottom = df_res.iloc[int(r_cut * len(df_res)) :]
 
-            down_precision = len(top[top[top.columns[0]] < 0])/(len(top))
-            up_precision = len(bottom[bottom[top.columns[0]] > 0])/(len(bottom))
+            down_precision = len(top[top[top.columns[0]] < 0]) / (len(top))
+            up_precision = len(bottom[bottom[top.columns[0]] > 0]) / (len(bottom))
 
             down_alpha = top[top.columns[0]].mean()
             up_alpha = bottom[bottom.columns[0]].mean()
@@ -44,56 +45,57 @@ class HF_LGBModel(ModelFT):
             down_pre.append(down_precision)
             up_alpha_ll.append(up_alpha)
             down_alpha_ll.append(down_alpha)
-        
-        return np.array(up_pre).mean(), np.array(down_pre).mean(),np.array(up_alpha_ll).mean(),np.array(down_alpha_ll).mean()
 
-    def hf_signal_test(self, dataset: DatasetH, threhold = 0.2):
+        return (
+            np.array(up_pre).mean(),
+            np.array(down_pre).mean(),
+            np.array(up_alpha_ll).mean(),
+            np.array(down_alpha_ll).mean(),
+        )
+
+    def hf_signal_test(self, dataset: DatasetH, threhold=0.2):
         """
         Test the sigal in high frequency test set
         """
         if self.model == None:
             raise ValueError("Model hasn't been trained yet")
-        df_test = dataset.prepare(
-            "test", col_set=["feature", "label"], data_key=DataHandlerLP.DK_I
-        )
-        df_test.dropna(inplace = True)
-        x_test, y_test =  df_test['feature'], df_test['label']
+        df_test = dataset.prepare("test", col_set=["feature", "label"], data_key=DataHandlerLP.DK_I)
+        df_test.dropna(inplace=True)
+        x_test, y_test = df_test["feature"], df_test["label"]
         # Convert label into alpha
-        y_test[y_test.columns[0]] = y_test[y_test.columns[0]]-y_test[y_test.columns[0]].mean(level=0)
+        y_test[y_test.columns[0]] = y_test[y_test.columns[0]] - y_test[y_test.columns[0]].mean(level=0)
 
         res = pd.Series(self.model.predict(x_test.values), index=x_test.index)
-        y_test['pred'] = res
-                                                                                                                                
-        up_p, down_p, up_a, down_a = self._cal_signal_metrics(y_test, threhold, 1-threhold)
-        print("===============================") 
+        y_test["pred"] = res
+
+        up_p, down_p, up_a, down_a = self._cal_signal_metrics(y_test, threhold, 1 - threhold)
+        print("===============================")
         print("High frequency signal test")
-        print("===============================")                                                                            
+        print("===============================")
         print("Test set precision: ")
         print("Positive precision: {}, Negative precision: {}".format(up_p, down_p))
         print("Test Alpha Average in test set: ")
         print("Positive average alpha: {}, Negative average alpha: {}".format(up_a, down_a))
 
-        
     def _prepare_data(self, dataset: DatasetH):
         df_train, df_valid = dataset.prepare(
             ["train", "valid"], col_set=["feature", "label"], data_key=DataHandlerLP.DK_L
         )
-        
-        x_train, y_train = df_train['feature'], df_train['label']
-        x_valid, y_valid = df_train['feature'], df_valid['label']
+
+        x_train, y_train = df_train["feature"], df_train["label"]
+        x_valid, y_valid = df_train["feature"], df_valid["label"]
         if y_train.values.ndim == 2 and y_train.values.shape[1] == 1:
-            l_name = df_train['label'].columns[0]
+            l_name = df_train["label"].columns[0]
             # Convert label into alpha
-            df_train['label'][l_name] = df_train['label'][l_name] - df_train['label'][l_name].mean(level=0)
-            df_valid['label'][l_name] = df_valid['label'][l_name] - df_valid['label'][l_name].mean(level=0)
+            df_train["label"][l_name] = df_train["label"][l_name] - df_train["label"][l_name].mean(level=0)
+            df_valid["label"][l_name] = df_valid["label"][l_name] - df_valid["label"][l_name].mean(level=0)
             mapping_fn = lambda x: 0 if x < 0 else 1
-            df_train['label_c'] = df_train['label'][l_name].apply(mapping_fn)
-            df_valid['label_c'] = df_valid['label'][l_name].apply(mapping_fn)
-            x_train, y_train = df_train['feature'], df_train['label_c'].values
-            x_valid, y_valid = df_valid['feature'], df_valid['label_c'].values
+            df_train["label_c"] = df_train["label"][l_name].apply(mapping_fn)
+            df_valid["label_c"] = df_valid["label"][l_name].apply(mapping_fn)
+            x_train, y_train = df_train["feature"], df_train["label_c"].values
+            x_valid, y_valid = df_valid["feature"], df_valid["label_c"].values
         else:
             raise ValueError("LightGBM doesn't support multi-label training")
-        
 
         dtrain = lgb.Dataset(x_train.values, label=y_train)
         dvalid = lgb.Dataset(x_valid.values, label=y_valid)
