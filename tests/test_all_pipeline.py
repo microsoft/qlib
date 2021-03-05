@@ -149,10 +149,10 @@ def fake_experiment():
 
     # start exp
     default_uri = R.get_uri()
-    current_uri = 'file:./temp-test-exp-mag'
+    current_uri = "file:./temp-test-exp-mag"
     with R.start(experiment_name="fake_workflow_for_expm", uri=current_uri):
         R.log_params(**flatten_dict(task))
-        
+
         current_uri_to_check = R.get_uri()
     default_uri_to_check = R.get_uri()
     return default_uri == default_uri_to_check, current_uri == current_uri_to_check, current_uri
@@ -208,8 +208,8 @@ class TestAllFlow(TestAutoData):
 
     def test_2_expmanager(self):
         pass_default, pass_current, uri_path = fake_experiment()
-        self.assertTrue(pass_default, msg='default uri is incorrect')
-        self.assertTrue(pass_current, msg='current uri is incorrect')
+        self.assertTrue(pass_default, msg="default uri is incorrect")
+        self.assertTrue(pass_current, msg="current uri is incorrect")
         shutil.rmtree(str(Path(uri_path.strip("file:")).resolve()))
 
 

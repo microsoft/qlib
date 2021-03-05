@@ -274,7 +274,7 @@ class MLflowExpManager(ExpManager):
 
     def _set_uri(self):
         self._client = mlflow.tracking.MlflowClient(tracking_uri=self.uri)
-        logger.info('{:}'.format(self._client))
+        logger.info("{:}".format(self._client))
 
     @property
     def client(self):
