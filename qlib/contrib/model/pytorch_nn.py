@@ -15,6 +15,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 
+from .pytorch_utils import count_parameters
 from ...model.base import Model
 from ...data.dataset import DatasetH
 from ...data.dataset.handler import DataHandlerLP
@@ -129,6 +130,9 @@ class DNNModelPytorch(Model):
         self._scorer = mean_squared_error if loss == "mse" else roc_auc_score
 
         self.dnn_model = Net(input_dim, output_dim, layers, loss=self.loss_type)
+        self.logger.info("model:\n{:}".format(self.dnn_model))
+        self.logger.info("model size: {:.4f} MB".format(count_parameters(self.dnn_model)))
+
         if optimizer.lower() == "adam":
             self.train_optimizer = optim.Adam(self.dnn_model.parameters(), lr=self.lr, weight_decay=self.weight_decay)
         elif optimizer.lower() == "gd":

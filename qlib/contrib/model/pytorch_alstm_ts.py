@@ -24,6 +24,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 
+from .pytorch_utils import count_parameters
 from ...model.base import Model
 from ...data.dataset import DatasetH, TSDatasetH
 from ...data.dataset.handler import DataHandlerLP
@@ -127,7 +128,10 @@ class ALSTM(Model):
             hidden_size=self.hidden_size,
             num_layers=self.num_layers,
             dropout=self.dropout,
-        ).to(self.device)
+        )
+        self.logger.info("model:\n{:}".format(self.ALSTM_model))
+        self.logger.info("model size: {:.4f} MB".format(count_parameters(self.ALSTM_model)))
+
         if optimizer.lower() == "adam":
             self.train_optimizer = optim.Adam(self.ALSTM_model.parameters(), lr=self.lr)
         elif optimizer.lower() == "gd":
