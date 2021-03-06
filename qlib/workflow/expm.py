@@ -33,6 +33,10 @@ class ExpManager:
             name=self.__class__.__name__, duri=self._default_uri, curi=self._current_uri
         )
 
+    def reset_default_uri(self, uri: Text):
+        self._default_uri = uri
+        self.set_uri(None)
+
     def start_exp(
         self,
         experiment_name: Optional[Text] = None,
