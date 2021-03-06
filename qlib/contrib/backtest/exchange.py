@@ -325,7 +325,7 @@ class Exchange:
             deal_amount = self.get_real_deal_amount(current_amount, target_amount, factor)
             if deal_amount == 0:
                 continue
-            elif deal_amount > 0:
+            if deal_amount > 0:
                 # buy stock
                 buy_order_list.append(
                     Order(
