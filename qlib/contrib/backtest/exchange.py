@@ -93,7 +93,7 @@ class Exchange:
         self.limit_threshold = limit_threshold
         # TODO: the quote, trade_dates, codes are not necessray.
         # It is just for performance consideration.
-        if trade_dates is not None and len(trade_dates):
+        if trade_dates is not None and trade_dates:
             start_date, end_date = trade_dates[0], trade_dates[-1]
         else:
             self.logger.warning("trade_dates have not been assigned, all dates will be loaded")
