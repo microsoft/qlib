@@ -229,9 +229,6 @@ class MLflowExpManager(ExpManager):
     Use mlflow to implement ExpManager.
     """
 
-    def __init__(self, uri, default_exp_name):
-        super(MLflowExpManager, self).__init__(uri, default_exp_name)
-
     @property
     def client(self):
         # Delay the creation of mlflow client in case of creating `mlruns` folder when importing qlib
