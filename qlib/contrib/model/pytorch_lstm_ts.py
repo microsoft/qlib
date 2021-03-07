@@ -201,7 +201,6 @@ class LSTM(Model):
         self,
         dataset,
         evals_result=dict(),
-        verbose=True,
         save_path=None,
     ):
         dl_train = dataset.prepare("train", col_set=["feature", "label"], data_key=DataHandlerLP.DK_L)

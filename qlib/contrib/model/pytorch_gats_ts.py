@@ -249,7 +249,6 @@ class GATs(Model):
         self,
         dataset,
         evals_result=dict(),
-        verbose=True,
         save_path=None,
     ):
 

@@ -218,7 +218,6 @@ class ALSTM(Model):
         self,
         dataset: DatasetH,
         evals_result=dict(),
-        verbose=True,
         save_path=None,
     ):
 
