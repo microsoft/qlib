@@ -105,7 +105,11 @@ def return_date_list(source_dir, date_field_name: str, file_path: Path):
 
 
 def get_calendar_list_by_ratio(
-    source_dir: [str, Path], date_field_name: str = "date", threshold: float = 0.5, minimum_count: int = 10, max_workers: int = 16
+    source_dir: [str, Path],
+    date_field_name: str = "date",
+    threshold: float = 0.5,
+    minimum_count: int = 10,
+    max_workers: int = 16,
 ) -> list:
     """get calendar list by selecting the date when few funds trade in this day
 
@@ -134,7 +138,7 @@ def get_calendar_list_by_ratio(
     _number_all_funds = len(file_list)
 
     logger.info(f"count how many funds trade in this day......")
-    _dict_count_trade = dict() # dict{date:count}
+    _dict_count_trade = dict()  # dict{date:count}
     _fun = partial(return_date_list, source_dir, date_field_name)
     with tqdm(total=_number_all_funds) as p_bar:
         with ProcessPoolExecutor(max_workers=max_workers) as executor:
@@ -146,9 +150,9 @@ def get_calendar_list_by_ratio(
                     _dict_count_trade[date] += 1
 
                 p_bar.update()
-    
+
     logger.info(f"count how many funds have founded in this day......")
-    _dict_count_founding = {date:_number_all_funds for date in _dict_count_trade.keys()}   # dict{date:count}
+    _dict_count_founding = {date: _number_all_funds for date in _dict_count_trade.keys()}  # dict{date:count}
     with tqdm(total=_number_all_funds) as p_bar:
         with ProcessPoolExecutor(max_workers=max_workers) as executor:
             for date_list in executor.map(_fun, file_list[:_number_all_funds]):
@@ -157,7 +161,11 @@ def get_calendar_list_by_ratio(
                     if date < oldest_date:
                         _dict_count_founding[date] -= 1
 
-    calendar = [date for date in _dict_count_trade if _dict_count_trade[date] >= max(int(_dict_count_founding[date] * threshold), minimum_count)]
+    calendar = [
+        date
+        for date in _dict_count_trade
+        if _dict_count_trade[date] >= max(int(_dict_count_founding[date] * threshold), minimum_count)
+    ]
 
     return calendar
 
