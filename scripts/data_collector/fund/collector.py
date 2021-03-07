@@ -23,7 +23,7 @@ from dateutil.tz import tzlocal
 
 CUR_DIR = Path(__file__).resolve().parent
 sys.path.append(str(CUR_DIR.parent.parent))
-from data_collector.utils import get_en_fund_symbols
+from data_collector.utils import get_calendar_list, get_en_fund_symbols
 
 INDEX_BENCH_URL = "http://api.fund.eastmoney.com/f10/lsjz?callback=jQuery_&fundCode={index_code}&pageIndex=1&pageSize={numberOfHistoricalDaysToCrawl}&startDate={startDate}&endDate={endDate}"
 REGION_CN = "CN"
@@ -302,14 +302,149 @@ class FundCollectorCN1d(FundollectorCN):
         return 252 / 4
 
 
+class FundNormalize:
+    COLUMNS = ["open", "close", "high", "low", "volume"]
+    DAILY_FORMAT = "%Y-%m-%d"
+
+    def __init__(
+        self,
+        date_field_name: str = "date",
+        symbol_field_name: str = "symbol",
+    ):
+        """
+
+        Parameters
+        ----------
+        date_field_name: str
+            date field name, default is date
+        symbol_field_name: str
+            symbol field name, default is symbol
+        """
+        self._date_field_name = date_field_name
+        self._symbol_field_name = symbol_field_name
+
+        self._calendar_list = self._get_calendar_list()
+        print (self._calendar_list)
+
+    @staticmethod
+    def normalize_fund(
+        df: pd.DataFrame,
+        calendar_list: list = None,
+        date_field_name: str = "date",
+        symbol_field_name: str = "symbol",
+    ):
+        if df.empty:
+            return df
+        df = df.copy()
+        df.set_index(date_field_name, inplace=True)
+        df.index = pd.to_datetime(df.index)
+        df = df[~df.index.duplicated(keep="first")]
+        if calendar_list is not None:
+            df = df.reindex(
+                pd.DataFrame(index=calendar_list)
+                .loc[
+                    pd.Timestamp(df.index.min()).date() : pd.Timestamp(df.index.max()).date()
+                    + pd.Timedelta(hours=23, minutes=59)
+                ]
+                .index
+            )
+        df.sort_index(inplace=True)
+
+        df.index.names = [date_field_name]
+        return df.reset_index()
+
+    def normalize(self, df: pd.DataFrame) -> pd.DataFrame:
+        # normalize
+        df = self.normalize_fund(df, self._calendar_list, self._date_field_name, self._symbol_field_name)
+        return df
+
+    @abc.abstractmethod
+    def _get_calendar_list(self):
+        """Get benchmark calendar"""
+        raise NotImplementedError("")
+
+
+class FundNormalize1d(FundNormalize, ABC):
+    DAILY_FORMAT = "%Y-%m-%d"
+
+    def normalize(self, df: pd.DataFrame) -> pd.DataFrame:
+        df = super(FundNormalize, self).normalize(df)
+        return df
+
+
+class FundNormalizeCN:
+    def _get_calendar_list(self):
+        return get_calendar_list("ALL")
+
+
+class FundNormalizeCN1d(FundNormalizeCN, FundNormalize1d):
+    pass
+
+
+class Normalize:
+    def __init__(
+        self,
+        source_dir: [str, Path],
+        target_dir: [str, Path],
+        normalize_class: Type[FundNormalize],
+        max_workers: int = 16,
+        date_field_name: str = "date",
+        symbol_field_name: str = "symbol",
+    ):
+        """
+
+        Parameters
+        ----------
+        source_dir: str or Path
+            The directory where the raw data collected from the Internet is saved
+        target_dir: str or Path
+            Directory for normalize data
+        normalize_class: Type[FundNormalize]
+            normalize class
+        max_workers: int
+            Concurrent number, default is 16
+        date_field_name: str
+            date field name, default is date
+        symbol_field_name: str
+            symbol field name, default is symbol
+        """
+        if not (source_dir and target_dir):
+            raise ValueError("source_dir and target_dir cannot be None")
+        self._source_dir = Path(source_dir).expanduser()
+        self._target_dir = Path(target_dir).expanduser()
+        self._target_dir.mkdir(parents=True, exist_ok=True)
+
+        self._max_workers = max_workers
+
+        self._normalize_obj = normalize_class(date_field_name=date_field_name, symbol_field_name=symbol_field_name)
+
+    def _executor(self, file_path: Path):
+        file_path = Path(file_path)
+        df = pd.read_csv(file_path)
+        df = self._normalize_obj.normalize(df)
+        if not df.empty:
+            df.to_csv(self._target_dir.joinpath(file_path.name), index=False)
+
+    def normalize(self):
+        logger.info("normalize data......")
+
+        with ProcessPoolExecutor(max_workers=self._max_workers) as worker:
+            file_list = list(self._source_dir.glob("*.csv"))
+            with tqdm(total=len(file_list)) as p_bar:
+                for _ in worker.map(self._executor, file_list):
+                    p_bar.update()
+
+
 class Run:
-    def __init__(self, source_dir=None, max_workers=4, region=REGION_CN):
+    def __init__(self, source_dir=None, normalize_dir=None, max_workers=4, region=REGION_CN):
         """
 
         Parameters
         ----------
         source_dir: str
             The directory where the raw data collected from the Internet is saved, default "Path(__file__).parent/source"
+        normalize_dir: str
+            Directory for normalize data, default "Path(__file__).parent/normalize"
         max_workers: int
             Concurrent number, default is 4
         region: str
@@ -319,6 +454,11 @@ class Run:
             source_dir = CUR_DIR.joinpath("source")
         self.source_dir = Path(source_dir).expanduser().resolve()
         self.source_dir.mkdir(parents=True, exist_ok=True)
+
+        if normalize_dir is None:
+            normalize_dir = CUR_DIR.joinpath("normalize")
+        self.normalize_dir = Path(normalize_dir).expanduser().resolve()
+        self.normalize_dir.mkdir(parents=True, exist_ok=True)
 
         self._cur_module = importlib.import_module("collector")
         self.max_workers = max_workers
@@ -371,6 +511,33 @@ class Run:
             check_data_length=check_data_length,
             limit_nums=limit_nums,
         ).collector_data()
+
+    def normalize_data(self, interval: str = "1d", date_field_name: str = "date", symbol_field_name: str = "symbol"):
+        """normalize data
+
+        Parameters
+        ----------
+        interval: str
+            freq, value from [1d], default 1d
+        date_field_name: str
+            date field name, default date
+        symbol_field_name: str
+            symbol field name, default symbol
+
+        Examples
+        ---------
+            $ python collector.py normalize_data --source_dir ~/.qlib/fund_data/source/cn_1d --normalize_dir ~/.qlib/fund_data/source/cn_1d_nor --region CN --interval 1d --date_field_name FSRQ
+        """
+        _class = getattr(self._cur_module, f"FundNormalize{self.region.upper()}{interval}")
+        fc = Normalize(
+            source_dir=self.source_dir,
+            target_dir=self.normalize_dir,
+            normalize_class=_class,
+            max_workers=self.max_workers,
+            date_field_name=date_field_name,
+            symbol_field_name=symbol_field_name,
+        )
+        fc.normalize()
 
 
 if __name__ == "__main__":

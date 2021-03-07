@@ -98,14 +98,14 @@ def get_calendar_list(bench_code="CSI300") -> list:
     return calendar
 
 
-def return_date_list(source_dir, date_field_name, file_path):
-    df = pd.read_csv(Path(source_dir).joinpath(file_path), sep=",", index_col=0)
-
-    return df[date_field_name].to_list()
+def return_date_list(source_dir, date_field_name: str, file_path: Path):
+    file_path = Path(file_path)
+    date_list = pd.read_csv(Path(source_dir).joinpath(file_path), sep=",", index_col=0)[date_field_name].to_list()
+    return sorted(map(lambda x: pd.Timestamp(x), date_list))
 
 
 def get_calendar_list_by_ratio(
-    source_dir: [str, Path], date_field_name: str = "date", threshold: float = 0.5, max_workers: int = 16
+    source_dir: [str, Path], date_field_name: str = "date", threshold: float = 0.5, minimum_count: int = 10, max_workers: int = 16
 ) -> list:
     """get calendar list by selecting the date when few funds trade in this day
 
@@ -117,6 +117,8 @@ def get_calendar_list_by_ratio(
             date field name, default is date
     threshold: float
         threshold to exclude some days when few funds trade in this day, default 0.5
+    minimum_count: int
+        minimum count of funds should trade in one day
     max_workers: int
         Concurrent number, default is 16
 
@@ -126,25 +128,36 @@ def get_calendar_list_by_ratio(
     """
     logger.info(f"get calendar list from {source_dir} by threshold = {threshold}......")
 
-    _number_all_funds = len(os.listdir(source_dir))
+    source_dir = Path(source_dir).expanduser()
+    file_list = list(source_dir.glob("*.csv"))
 
-    _list_all_date = dict()
+    _number_all_funds = len(file_list)
 
+    logger.info(f"count how many funds trade in this day......")
+    _dict_count_trade = dict() # dict{date:count}
     _fun = partial(return_date_list, source_dir, date_field_name)
-
     with tqdm(total=_number_all_funds) as p_bar:
         with ProcessPoolExecutor(max_workers=max_workers) as executor:
-            for date_list in executor.map(_fun, os.listdir(source_dir)):
+            for date_list in executor.map(_fun, file_list[:_number_all_funds]):
                 for date in date_list:
-                    if date in _list_all_date.keys():
-                        _list_all_date[date] += 1
-                    else:
-                        _list_all_date[date] = 0
+                    if date not in _dict_count_trade.keys():
+                        _dict_count_trade[date] = 0
+
+                    _dict_count_trade[date] += 1
 
                 p_bar.update()
+    
+    logger.info(f"count how many funds have founded in this day......")
+    _dict_count_founding = {date:_number_all_funds for date in _dict_count_trade.keys()}   # dict{date:count}
+    with tqdm(total=_number_all_funds) as p_bar:
+        with ProcessPoolExecutor(max_workers=max_workers) as executor:
+            for date_list in executor.map(_fun, file_list[:_number_all_funds]):
+                oldest_date = sorted(date_list)[0]  # this fund haven't found before this day
+                for date in _dict_count_founding.keys():
+                    if date < oldest_date:
+                        _dict_count_founding[date] -= 1
 
-    _threshold_number = int(_number_all_funds * threshold)
-    calendar = [date for date in _list_all_date if _list_all_date[date] >= _threshold_number]
+    calendar = [date for date in _dict_count_trade if _dict_count_trade[date] >= max(int(_dict_count_founding[date] * threshold), minimum_count)]
 
     return calendar
 
