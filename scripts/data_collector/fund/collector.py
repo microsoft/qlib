@@ -324,7 +324,6 @@ class FundNormalize:
         self._symbol_field_name = symbol_field_name
 
         self._calendar_list = self._get_calendar_list()
-        print (self._calendar_list)
 
     @staticmethod
     def normalize_fund(
@@ -368,7 +367,7 @@ class FundNormalize1d(FundNormalize, ABC):
     DAILY_FORMAT = "%Y-%m-%d"
 
     def normalize(self, df: pd.DataFrame) -> pd.DataFrame:
-        df = super(FundNormalize, self).normalize(df)
+        df = super(FundNormalize1d, self).normalize(df)
         return df
 
 
