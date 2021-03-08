@@ -38,8 +38,11 @@ class RiskModel(BaseModel):
         self.scale_return = scale_return
 
     def predict(
-            self, X: Union[pd.Series, pd.DataFrame, np.ndarray], return_corr: bool = False, is_price: bool = True,
-            return_decomposed_components=False,
+        self,
+        X: Union[pd.Series, pd.DataFrame, np.ndarray],
+        return_corr: bool = False,
+        is_price: bool = True,
+        return_decomposed_components=False,
     ) -> Union[pd.DataFrame, np.ndarray, tuple]:
         """
         Args:
@@ -53,7 +56,7 @@ class RiskModel(BaseModel):
             pd.DataFrame or np.ndarray: estimated covariance (or correlation).
         """
         assert (
-                not return_corr or not return_decomposed_components
+            not return_corr or not return_decomposed_components
         ), "Can only return either correlation matrix or decomposed components."
 
         # transform input into 2D array
@@ -84,8 +87,9 @@ class RiskModel(BaseModel):
 
         # return decomposed components if needed
         if return_decomposed_components:
-            assert 'return_decomposed_components' in inspect.getfullargspec(self._predict).args, \
-                'This risk model does not support return decomposed components of the covariance matrix '
+            assert (
+                "return_decomposed_components" in inspect.getfullargspec(self._predict).args
+            ), "This risk model does not support return decomposed components of the covariance matrix "
 
             F, cov_b, var_u = self._predict(X, return_decomposed_components=True)
             return F, cov_b, var_u

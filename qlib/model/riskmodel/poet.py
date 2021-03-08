@@ -50,7 +50,7 @@ class POETCovEstimator(RiskModel):
         if self.num_factors > 0:
             Dd, V = np.linalg.eig(Y.T.dot(Y))
             V = V[:, np.argsort(Dd)]
-            F = V[:, -self.num_factors:][:, ::-1] * np.sqrt(n)
+            F = V[:, -self.num_factors :][:, ::-1] * np.sqrt(n)
             LamPCA = Y.dot(F) / n
             uhat = np.asarray(Y - LamPCA.dot(F.T))
             Lowrank = np.asarray(LamPCA.dot(LamPCA.T))

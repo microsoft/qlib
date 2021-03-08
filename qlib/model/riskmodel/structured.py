@@ -32,23 +32,19 @@ class StructuredCovEstimator(RiskModel):
     FACTOR_MODEL_FA = "fa"
     DEFAULT_NAN_OPTION = "fill"
 
-    def __init__(
-            self,
-            factor_model: str = "pca",
-            num_factors: int = 10,
-            **kwargs
-    ):
+    def __init__(self, factor_model: str = "pca", num_factors: int = 10, **kwargs):
         """
         Args:
             factor_model (str): the latent factor models used to estimate the structured covariance (`pca`/`fa`).
             num_factors (int): number of components to keep.
             kwargs: see `RiskModel` for more information
         """
-        if 'nan_option' in kwargs.keys():
-            assert kwargs['nan_option'] in [self.DEFAULT_NAN_OPTION], \
-                "nan_option={} is not supported".format(kwargs['nan_option'])
+        if "nan_option" in kwargs.keys():
+            assert kwargs["nan_option"] in [self.DEFAULT_NAN_OPTION], "nan_option={} is not supported".format(
+                kwargs["nan_option"]
+            )
         else:
-            kwargs['nan_option'] = self.DEFAULT_NAN_OPTION
+            kwargs["nan_option"] = self.DEFAULT_NAN_OPTION
 
         super().__init__(**kwargs)
 

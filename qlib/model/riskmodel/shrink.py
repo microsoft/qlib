@@ -248,8 +248,7 @@ class ShrinkCovEstimator(RiskModel):
         roff1 = np.sum(v1 * cov_mkt[:, None].T) / var_mkt - np.sum(np.diag(v1) * cov_mkt) / var_mkt
         v3 = z.T.dot(z) / t - var_mkt * S
         roff3 = (
-                np.sum(v3 * np.outer(cov_mkt, cov_mkt)) / var_mkt ** 2 - np.sum(
-            np.diag(v3) * cov_mkt ** 2) / var_mkt ** 2
+            np.sum(v3 * np.outer(cov_mkt, cov_mkt)) / var_mkt ** 2 - np.sum(np.diag(v3) * cov_mkt ** 2) / var_mkt ** 2
         )
         roff = 2 * roff1 - roff3
         rho = rdiag + roff
