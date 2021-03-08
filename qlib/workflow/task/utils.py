@@ -8,6 +8,7 @@ from qlib.log import get_module_logger
 from pymongo import MongoClient
 from typing import Union
 
+
 def get_mongodb():
     """
 

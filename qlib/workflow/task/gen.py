@@ -79,6 +79,7 @@ class TaskGen(metaclass=abc.ABCMeta):
         output: a set of tasks with different losses
 
     """
+
     @abc.abstractmethod
     def generate(self, task: dict) -> typing.List[dict]:
         """
