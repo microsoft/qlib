@@ -60,81 +60,13 @@ class StructuredCovEstimator(RiskModel):
 
         self.num_factors = num_factors
 
-    def predict(
-            self,
-            X: Union[pd.Series, pd.DataFrame, np.ndarray],
-            return_corr: bool = False,
-            is_price: bool = True,
-            return_decomposed_components=False,
-    ) -> Union[pd.DataFrame, np.ndarray, tuple]:
-        """
-        Args:
-            X (pd.Series, pd.DataFrame or np.ndarray): data from which to estimate the covariance,
-                with variables as columns and observations as rows.
-            return_corr (bool): whether return the correlation matrix.
-            is_price (bool): whether `X` contains price (if not assume stock returns).
-            return_decomposed_components (bool): whether return decomposed components of the covariance matrix.
-
-        Returns:
-            tuple or pd.DataFrame or np.ndarray: decomposed covariance matrix or estimated covariance or correlation.
-        """
-        assert (
-                not return_corr or not return_decomposed_components
-        ), "Can only return either correlation matrix or decomposed components."
-
-        # transform input into 2D array
-        if not isinstance(X, (pd.Series, pd.DataFrame)):
-            columns = None
-        else:
-            if isinstance(X.index, pd.MultiIndex):
-                if isinstance(X, pd.DataFrame):
-                    X = X.iloc[:, 0].unstack(level="instrument")  # always use the first column
-                else:
-                    X = X.unstack(level="instrument")
-            else:
-                # X is 2D DataFrame
-                pass
-            columns = X.columns  # will be used to restore dataframe
-            X = X.values
-
-        # calculate pct_change
-        if is_price:
-            X = X[1:] / X[:-1] - 1  # NOTE: resulting `n - 1` rows
-
-        # scale return
-        if self.scale_return:
-            X *= 100
-
-        # handle nan and centered
-        X = self._preprocess(X)
-
-        if return_decomposed_components:
-            F, cov_b, var_u = self._predict(X, return_structured=True)
-            return F, cov_b, var_u
-        else:
-            # estimate covariance
-            S = self._predict(X)
-
-            # return correlation if needed
-            if return_corr:
-                vola = np.sqrt(np.diag(S))
-                corr = S / np.outer(vola, vola)
-                if columns is None:
-                    return corr
-                return pd.DataFrame(corr, index=columns, columns=columns)
-
-            # return covariance
-            if columns is None:
-                return S
-            return pd.DataFrame(S, index=columns, columns=columns)
-
-    def _predict(self, X: np.ndarray, return_structured=False) -> Union[np.ndarray, tuple]:
+    def _predict(self, X: np.ndarray, return_decomposed_components=False) -> Union[np.ndarray, tuple]:
         """
         covariance estimation implementation
 
         Args:
             X (np.ndarray): data matrix containing multiple variables (columns) and observations (rows).
-            return_structured (bool): whether return decomposed components of the covariance matrix.
+            return_decomposed_components (bool): whether return decomposed components of the covariance matrix.
 
         Returns:
             tuple or np.ndarray: decomposed covariance matrix or covariance matrix.
@@ -148,7 +80,7 @@ class StructuredCovEstimator(RiskModel):
         cov_b = np.cov(B.T)  # num_factors x num_factors
         var_u = np.var(U, axis=0)  # diagonal
 
-        if return_structured:
+        if return_decomposed_components:
             return F, cov_b, var_u
 
         cov_x = F @ cov_b @ F.T + np.diag(var_u)

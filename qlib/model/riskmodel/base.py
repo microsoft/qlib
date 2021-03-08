@@ -1,6 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+import inspect
 import numpy as np
 import pandas as pd
 from typing import Union
@@ -37,18 +38,24 @@ class RiskModel(BaseModel):
         self.scale_return = scale_return
 
     def predict(
-        self, X: Union[pd.Series, pd.DataFrame, np.ndarray], return_corr: bool = False, is_price: bool = True
-    ) -> Union[pd.DataFrame, np.ndarray]:
+            self, X: Union[pd.Series, pd.DataFrame, np.ndarray], return_corr: bool = False, is_price: bool = True,
+            return_decomposed_components=False,
+    ) -> Union[pd.DataFrame, np.ndarray, tuple]:
         """
         Args:
             X (pd.Series, pd.DataFrame or np.ndarray): data from which to estimate the covariance,
                 with variables as columns and observations as rows.
             return_corr (bool): whether return the correlation matrix.
             is_price (bool): whether `X` contains price (if not assume stock returns).
+            return_decomposed_components (bool): whether return decomposed components of the covariance matrix.
 
         Returns:
             pd.DataFrame or np.ndarray: estimated covariance (or correlation).
         """
+        assert (
+                not return_corr or not return_decomposed_components
+        ), "Can only return either correlation matrix or decomposed components."
+
         # transform input into 2D array
         if not isinstance(X, (pd.Series, pd.DataFrame)):
             columns = None
@@ -74,6 +81,14 @@ class RiskModel(BaseModel):
 
         # handle nan and centered
         X = self._preprocess(X)
+
+        # return decomposed components if needed
+        if return_decomposed_components:
+            assert 'return_decomposed_components' in inspect.getfullargspec(self._predict).args, \
+                'This risk model does not support return decomposed components of the covariance matrix '
+
+            F, cov_b, var_u = self._predict(X, return_decomposed_components=True)
+            return F, cov_b, var_u
 
         # estimate covariance
         S = self._predict(X)
@@ -126,12 +141,3 @@ class RiskModel(BaseModel):
         if not self.assume_centered:
             X = X - np.nanmean(X, axis=0)
         return X
-
-
-
-
-
-
-
-
-

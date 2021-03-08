@@ -28,7 +28,7 @@ class TestStructuredCovEstimator(unittest.TestCase):
         self.assertTrue(if_identical)
 
     def test_nan_option_covariance(self):
-        # Try to estimate the covariance from a randomly generated matrix.
+        # Test if nan_option is correctly passed.
         NUM_VARIABLE = 10
         NUM_OBSERVATION = 200
         EPS = 1e-6
@@ -44,6 +44,19 @@ class TestStructuredCovEstimator(unittest.TestCase):
         if_identical = (delta < EPS).all()
 
         self.assertTrue(if_identical)
+
+    def test_decompose_covariance(self):
+        # Test if return_decomposed_components is correctly passed.
+        NUM_VARIABLE = 10
+        NUM_OBSERVATION = 200
+
+        estimator = StructuredCovEstimator(scale_return=False, assume_centered=True, nan_option='fill')
+
+        X = np.random.rand(NUM_OBSERVATION, NUM_VARIABLE)
+
+        F, cov_b, var_u = estimator.predict(X, is_price=False, return_decomposed_components=True)
+
+        self.assertTrue(F is not None and cov_b is not None and var_u is not None)
 
     def test_constructed_covariance(self):
         # Try to estimate the covariance from a specially crafted matrix.
