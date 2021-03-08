@@ -34,7 +34,7 @@ class Recorder:
         self.status = Recorder.STATUS_S
 
     def __repr__(self):
-        return str(self.info)
+        return "{name}(info={info})".format(name=self.__class__.__name__, info=self.info)
 
     def __str__(self):
         return str(self.info)

@@ -35,7 +35,7 @@ class DataHandler(Serializable):
     The data handler try to maintain a handler with 2 level.
     `datetime` & `instruments`.
 
-    Any order of the index level can be suported(The order will implied in the data).
+    Any order of the index level can be suported (The order will be implied in the data).
     The order  <`datetime`, `instruments`> will be used when the dataframe index name is missed.
 
     Example of the data:
@@ -47,8 +47,8 @@ class DataHandler(Serializable):
                                 $close     $volume  Ref($close, 1)  Mean($close, 3)  $high-$low  LABEL0
         datetime   instrument
         2010-01-04 SH600000    81.807068  17145150.0       83.737389        83.016739    2.741058  0.0032
-                SH600004    13.313329  11800983.0       13.313329        13.317701    0.183632  0.0042
-                SH600005    37.796539  12231662.0       38.258602        37.919757    0.970325  0.0289
+                   SH600004    13.313329  11800983.0       13.313329        13.317701    0.183632  0.0042
+                   SH600005    37.796539  12231662.0       38.258602        37.919757    0.970325  0.0289
 
     """
 

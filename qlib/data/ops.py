@@ -1489,7 +1489,7 @@ OpsList = [
 ]
 
 
-class OpsWrapper(object):
+class OpsWrapper:
     """Ops Wrapper"""
 
     def __init__(self):

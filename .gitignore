@@ -34,3 +34,5 @@ tags
 
 .pytest_cache/
 .vscode/
+
+*.swp
