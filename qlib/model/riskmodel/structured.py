@@ -30,7 +30,7 @@ class StructuredCovEstimator(RiskModel):
 
     FACTOR_MODEL_PCA = "pca"
     FACTOR_MODEL_FA = "fa"
-    NAN_OPTION = "fill"
+    DEFAULT_NAN_OPTION = "fill"
 
     def __init__(
             self,
@@ -38,6 +38,7 @@ class StructuredCovEstimator(RiskModel):
             num_factors: int = 10,
             assume_centered: bool = False,
             scale_return: bool = True,
+            nan_option: str = DEFAULT_NAN_OPTION
     ):
         """
         Args:
@@ -45,8 +46,11 @@ class StructuredCovEstimator(RiskModel):
             num_factors (int): number of components to keep.
             assume_centered (bool): whether the data is assumed to be centered.
             scale_return (bool): whether scale returns as percentage.
+            nan_option (str): nan handling option (`fill`).
         """
-        super().__init__(self.NAN_OPTION, assume_centered, scale_return)
+        assert nan_option in [self.DEFAULT_NAN_OPTION], "nan_option={} is not supported".format(nan_option)
+
+        super().__init__(nan_option, assume_centered, scale_return)
 
         assert factor_model in [
             self.FACTOR_MODEL_PCA,
