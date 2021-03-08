@@ -27,6 +27,24 @@ class TestStructuredCovEstimator(unittest.TestCase):
 
         self.assertTrue(if_identical)
 
+    def test_nan_option_covariance(self):
+        # Try to estimate the covariance from a randomly generated matrix.
+        NUM_VARIABLE = 10
+        NUM_OBSERVATION = 200
+        EPS = 1e-6
+
+        estimator = StructuredCovEstimator(scale_return=False, assume_centered=True, nan_option='fill')
+
+        X = np.random.rand(NUM_OBSERVATION, NUM_VARIABLE)
+
+        est_cov = estimator.predict(X, is_price=False)
+        np_cov = np.cov(X.T)  # While numpy assume row means variable, qlib assume the other wise.
+
+        delta = abs(est_cov - np_cov)
+        if_identical = (delta < EPS).all()
+
+        self.assertTrue(if_identical)
+
     def test_constructed_covariance(self):
         # Try to estimate the covariance from a specially crafted matrix.
         # There should be some significant correlation since X is specially crafted.
