@@ -36,21 +36,21 @@ class StructuredCovEstimator(RiskModel):
             self,
             factor_model: str = "pca",
             num_factors: int = 10,
-            assume_centered: bool = False,
-            scale_return: bool = True,
-            nan_option: str = DEFAULT_NAN_OPTION
+            **kwargs
     ):
         """
         Args:
             factor_model (str): the latent factor models used to estimate the structured covariance (`pca`/`fa`).
             num_factors (int): number of components to keep.
-            assume_centered (bool): whether the data is assumed to be centered.
-            scale_return (bool): whether scale returns as percentage.
-            nan_option (str): nan handling option (`fill`).
+            kwargs: see `RiskModel` for more information
         """
-        assert nan_option in [self.DEFAULT_NAN_OPTION], "nan_option={} is not supported".format(nan_option)
+        if 'nan_option' in kwargs.keys():
+            assert kwargs['nan_option'] in [self.DEFAULT_NAN_OPTION], \
+                "nan_option={} is not supported".format(kwargs['nan_option'])
+        else:
+            kwargs['nan_option'] = self.DEFAULT_NAN_OPTION
 
-        super().__init__(nan_option, assume_centered, scale_return)
+        super().__init__(**kwargs)
 
         assert factor_model in [
             self.FACTOR_MODEL_PCA,
