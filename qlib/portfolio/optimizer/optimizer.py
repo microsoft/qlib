@@ -30,13 +30,13 @@ class PortfolioOptimizer(BaseOptimizer):
     OPT_INV = "inv"
 
     def __init__(
-            self,
-            method: str = "inv",
-            lamb: float = 0,
-            delta: float = 0,
-            alpha: float = 0.0,
-            scale_alpha: bool = True,
-            tol: float = 1e-8,
+        self,
+        method: str = "inv",
+        lamb: float = 0,
+        delta: float = 0,
+        alpha: float = 0.0,
+        scale_alpha: bool = True,
+        tol: float = 1e-8,
     ):
         """
         Args:
@@ -63,10 +63,10 @@ class PortfolioOptimizer(BaseOptimizer):
         self.scale_alpha = scale_alpha
 
     def __call__(
-            self,
-            S: Union[np.ndarray, pd.DataFrame],
-            u: Optional[Union[np.ndarray, pd.Series]] = None,
-            w0: Optional[Union[np.ndarray, pd.Series]] = None,
+        self,
+        S: Union[np.ndarray, pd.DataFrame],
+        u: Optional[Union[np.ndarray, pd.Series]] = None,
+        w0: Optional[Union[np.ndarray, pd.Series]] = None,
     ) -> Union[np.ndarray, pd.Series]:
         """
         Args:
@@ -155,7 +155,7 @@ class PortfolioOptimizer(BaseOptimizer):
         return self._solve(len(S), self._get_objective_gmv(S), *self._get_constrains(w0))
 
     def _optimize_mvo(
-            self, S: np.ndarray, u: Optional[np.ndarray] = None, w0: Optional[np.ndarray] = None
+        self, S: np.ndarray, u: Optional[np.ndarray] = None, w0: Optional[np.ndarray] = None
     ) -> np.ndarray:
         """optimize mean-variance portfolio
 
@@ -251,6 +251,7 @@ class PortfolioOptimizer(BaseOptimizer):
         # add l2 regularization
         wrapped_obj = obj
         if self.alpha > 0:
+
             def opt_obj(x):
                 return obj(x) + self.alpha * np.sum(np.square(x))
 

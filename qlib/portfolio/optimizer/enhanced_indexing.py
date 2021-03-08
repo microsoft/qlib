@@ -21,15 +21,15 @@ class EnhancedIndexingOptimizer(BaseOptimizer):
     START_FROM_BENCH = "benchmark"
 
     def __init__(
-            self,
-            lamb: float = 10,
-            delta: float = 0.4,
-            bench_dev: float = 0.01,
-            inds_dev: float = None,
-            scale_alpha: bool = True,
-            verbose: bool = False,
-            warm_start: str = None,
-            max_iters: int = 10000,
+        self,
+        lamb: float = 10,
+        delta: float = 0.4,
+        bench_dev: float = 0.01,
+        inds_dev: float = None,
+        scale_alpha: bool = True,
+        verbose: bool = False,
+        warm_start: str = None,
+        max_iters: int = 10000,
     ):
         """
         Args:
@@ -56,11 +56,7 @@ class EnhancedIndexingOptimizer(BaseOptimizer):
         assert inds_dev is None or inds_dev >= 0, "industry deviation limit `inds_dev` should be positive or None."
         self.inds_dev = inds_dev
 
-        assert warm_start in [
-            None,
-            self.START_FROM_W0,
-            self.START_FROM_BENCH,
-        ], "illegal warm start option"
+        assert warm_start in [None, self.START_FROM_W0, self.START_FROM_BENCH,], "illegal warm start option"
         self.start_from_w0 = warm_start == self.START_FROM_W0
         self.start_from_bench = warm_start == self.START_FROM_BENCH
 
@@ -69,14 +65,14 @@ class EnhancedIndexingOptimizer(BaseOptimizer):
         self.max_iters = max_iters
 
     def __call__(
-            self,
-            u: Union[np.ndarray, pd.Series],
-            F: np.ndarray,
-            covB: np.ndarray,
-            varU: np.ndarray,
-            w0: np.ndarray,
-            w_bench: np.ndarray,
-            inds_onehot: np.ndarray = None,
+        self,
+        u: Union[np.ndarray, pd.Series],
+        F: np.ndarray,
+        covB: np.ndarray,
+        varU: np.ndarray,
+        w0: np.ndarray,
+        w_bench: np.ndarray,
+        inds_onehot: np.ndarray = None,
     ) -> Union[np.ndarray, pd.Series]:
         """
         Args:
