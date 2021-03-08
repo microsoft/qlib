@@ -100,7 +100,9 @@ class TabnetModel(Model):
             self.device
         )
         self.logger.info("model:\n{:}\n{:}".format(self.tabnet_model, self.tabnet_decoder))
-        self.logger.info("model size: {:.4f} MB".format(count_parameters(self.tabnet_model) + count_parameters(self.tabnet_decoder)))
+        self.logger.info(
+            "model size: {:.4f} MB".format(count_parameters(self.tabnet_model) + count_parameters(self.tabnet_decoder))
+        )
 
         if optimizer.lower() == "adam":
             self.pretrain_optimizer = optim.Adam(
