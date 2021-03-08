@@ -19,7 +19,6 @@ class EnhancedIndexingOptimizer(BaseOptimizer):
 
     START_FROM_W0 = "w0"
     START_FROM_BENCH = "benchmark"
-    DO_NOT_START_FROM = "no_warm_start"
 
     def __init__(
             self,
@@ -29,7 +28,7 @@ class EnhancedIndexingOptimizer(BaseOptimizer):
             inds_dev: float = None,
             scale_alpha: bool = True,
             verbose: bool = False,
-            warm_start: str = DO_NOT_START_FROM,
+            warm_start: str = None,
             max_iters: int = 10000,
     ):
         """
@@ -58,7 +57,7 @@ class EnhancedIndexingOptimizer(BaseOptimizer):
         self.inds_dev = inds_dev
 
         assert warm_start in [
-            self.DO_NOT_START_FROM,
+            None,
             self.START_FROM_W0,
             self.START_FROM_BENCH,
         ], "illegal warm start option"
