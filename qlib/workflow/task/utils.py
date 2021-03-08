@@ -52,11 +52,30 @@ class TimeAdjuster:
 
     def max(self):
         """
-        Return the max calendar date
+        (Deprecated)
+        Return the max calendar datetime
         """
         return max(self.cals)
 
+    def last_date(self) -> pd.Timestamp:
+        """
+        Return the last datetime in the calendar
+        """
+        return self.cals[-1]
+
     def align_idx(self, time_point, tp_type="start"):
+        """
+        align the index of time_point in the calendar
+
+        Parameters
+        ----------
+        time_point
+        tp_type : str
+
+        Returns
+        -------
+        index : int
+        """
         time_point = pd.Timestamp(time_point)
         if tp_type == "start":
             idx = bisect.bisect_left(self.cals, time_point)
@@ -68,11 +87,11 @@ class TimeAdjuster:
 
     def align_time(self, time_point, tp_type="start"):
         """
-        Align a timepoint to calendar weekdays
+        Align time_point to trade date of calendar
 
         Parameters
         ----------
-        time_point :
+        time_point
             Time point
         tp_type : str
             time point type (`"start"`, `"end"`)
@@ -80,6 +99,24 @@ class TimeAdjuster:
         return self.cals[self.align_idx(time_point, tp_type=tp_type)]
 
     def align_seg(self, segment: Union[dict, tuple]):
+        """
+        align the given date to trade date
+
+        for example:
+            input: {'train': ('2008-01-01', '2014-12-31'), 'valid': ('2015-01-01', '2016-12-31'), 'test': ('2017-01-01', '2020-08-01')}
+
+            output: {'train': (Timestamp('2008-01-02 00:00:00'), Timestamp('2014-12-31 00:00:00')),
+                    'valid': (Timestamp('2015-01-05 00:00:00'), Timestamp('2016-12-30 00:00:00')),
+                    'test': (Timestamp('2017-01-03 00:00:00'), Timestamp('2020-07-31 00:00:00'))}
+
+        Parameters
+        ----------
+        segment
+
+        Returns
+        -------
+        the start and end trade date (pd.Timestamp) between the given start and end date.
+        """
         if isinstance(segment, dict):
             return {k: self.align_seg(seg) for k, seg in segment.items()}
         elif isinstance(segment, tuple):
@@ -98,7 +135,7 @@ class TimeAdjuster:
         test_start
         days : int
             The trading days to be truncated
-            大部分情况是因为这个时间段的数据(一般是特征)会用到 `days` 天的数据
+            the data in this segment may need 'days' data
         """
         test_idx = self.align_idx(test_start)
         if isinstance(segment, tuple):
@@ -116,7 +153,7 @@ class TimeAdjuster:
 
     def shift(self, seg: tuple, step: int, rtype=SHIFT_SD):
         """
-        shift the datatiem of segment
+        shift the datatime of segment
 
         Parameters
         ----------

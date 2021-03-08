@@ -17,7 +17,7 @@ def task_generator(*args, **kwargs) -> list:
 
     for example:
         There are 3 task_config(a,b,c) and 2 TaskGen(A,B). A will double the task_config and B will triple.
-        task_generator(a=a, b=b, c=c, A=A, B=B) will finally generate 18 task_config.
+        task_generator(a_key=a, b_key=b, c_key=c, A, B) will finally generate 3*2*3 = 18 task_config.
 
     Parameters
     ----------
@@ -57,27 +57,37 @@ def task_generator(*args, **kwargs) -> list:
     for gen in gen_list:
         new_task_list = []
         for task in tasks_list:
-            new_task_list.extend(gen(task))
+            new_task_list.extend(gen.generate(task))
         gen_task_list = new_task_list
     return gen_task_list
 
 
 class TaskGen(metaclass=abc.ABCMeta):
+    """
+    the base class for generate different tasks
+
+    Example 1:
+
+        input: a specific task template and rolling steps
+
+        output: rolling version of the tasks
+
+    Example 2:
+
+        input: a specific task template and losses list
+
+        output: a set of tasks with different losses
+
+    """
     @abc.abstractmethod
-    def __call__(self, *args, **kwargs) -> typing.List[dict]:
+    def generate(self, task: dict) -> typing.List[dict]:
         """
-        the base class for generate different tasks
+        generate different tasks based on a task template
 
         Parameters
         ----------
-        args, kwargs:
-            The info for generating tasks
-            Example 1):
-                input: a specific task template
-                output: rolling version of the tasks
-            Example 2):
-                input: a specific task template
-                output: a set of tasks with different losses
+        task: dict
+            a task template
 
         Returns
         -------
@@ -89,7 +99,7 @@ class TaskGen(metaclass=abc.ABCMeta):
 
 class RollingGen(TaskGen):
     ROLL_EX = TimeAdjuster.SHIFT_EX  # fixed start date, expanding end date
-    ROLL_SD = TimeAdjuster.SHIFT_SD  # fixed window size, slide it from start date
+    ROLL_SD = TimeAdjuster.SHIFT_SD  # fixed segments size, slide it from start date
 
     def __init__(self, step: int = 40, rtype: str = ROLL_EX):
         """
@@ -104,12 +114,13 @@ class RollingGen(TaskGen):
         """
         self.step = step
         self.rtype = rtype
-        self.ta = TimeAdjuster(future=True)  # 为了保证test最后的日期不是None, 所以这边要改一改
+        # TODO: Ask pengrong to update future date in dataset
+        self.ta = TimeAdjuster(future=True)
 
         self.test_key = "test"
         self.train_key = "train"
 
-    def __call__(self, task: dict):
+    def generate(self, task: dict):
         """
         Converting the task into a rolling task
 
@@ -153,9 +164,9 @@ class RollingGen(TaskGen):
             # calculate segments
             if prev_seg is None:
                 # First rolling
-                # 1) prepare the end porint
+                # 1) prepare the end point
                 segments = copy.deepcopy(self.ta.align_seg(t["dataset"]["kwargs"]["segments"]))
-                test_end = self.ta.max() if segments[self.test_key][1] is None else segments[self.test_key][1]
+                test_end = self.ta.last_date() if segments[self.test_key][1] is None else segments[self.test_key][1]
                 # 2) and the init test segments
                 test_start_idx = self.ta.align_idx(segments[self.test_key][0])
                 segments[self.test_key] = (self.ta.get(test_start_idx), self.ta.get(test_start_idx + self.step - 1))
@@ -164,6 +175,7 @@ class RollingGen(TaskGen):
                 try:
                     for k, seg in prev_seg.items():
                         # decide how to shift
+                        # expanding only for train data, the segments size of test data and valid data won't change
                         if k == self.train_key and self.rtype == self.ROLL_EX:
                             rtype = self.ta.SHIFT_EX
                         else:
@@ -177,6 +189,7 @@ class RollingGen(TaskGen):
                     # No more rolling
                     break
 
+            # update segments of this task
             t["dataset"]["kwargs"]["segments"] = copy.deepcopy(segments)
             prev_seg = segments
             res.append(t)
