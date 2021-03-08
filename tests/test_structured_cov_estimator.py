@@ -33,7 +33,7 @@ class TestStructuredCovEstimator(unittest.TestCase):
         NUM_OBSERVATION = 200
         EPS = 1e-6
 
-        estimator = StructuredCovEstimator(scale_return=False, assume_centered=True, nan_option='fill')
+        estimator = StructuredCovEstimator(scale_return=False, assume_centered=True, nan_option="fill")
 
         X = np.random.rand(NUM_OBSERVATION, NUM_VARIABLE)
 
@@ -50,7 +50,7 @@ class TestStructuredCovEstimator(unittest.TestCase):
         NUM_VARIABLE = 10
         NUM_OBSERVATION = 200
 
-        estimator = StructuredCovEstimator(scale_return=False, assume_centered=True, nan_option='fill')
+        estimator = StructuredCovEstimator(scale_return=False, assume_centered=True, nan_option="fill")
 
         X = np.random.rand(NUM_OBSERVATION, NUM_VARIABLE)
 

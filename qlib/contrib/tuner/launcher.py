@@ -13,11 +13,7 @@ from .config import TunerConfigManager
 
 args_parser = argparse.ArgumentParser(prog="tuner")
 args_parser.add_argument(
-    "-c",
-    "--config_path",
-    required=True,
-    type=str,
-    help="config path indicates where to load yaml config.",
+    "-c", "--config_path", required=True, type=str, help="config path indicates where to load yaml config.",
 )
 
 args = args_parser.parse_args()

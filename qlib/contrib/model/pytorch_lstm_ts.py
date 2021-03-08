@@ -123,10 +123,7 @@ class LSTM(Model):
             torch.manual_seed(self.seed)
 
         self.LSTM_model = LSTMModel(
-            d_feat=self.d_feat,
-            hidden_size=self.hidden_size,
-            num_layers=self.num_layers,
-            dropout=self.dropout,
+            d_feat=self.d_feat, hidden_size=self.hidden_size, num_layers=self.num_layers, dropout=self.dropout,
         ).to(self.device)
         if optimizer.lower() == "adam":
             self.train_optimizer = optim.Adam(self.LSTM_model.parameters(), lr=self.lr)
@@ -198,11 +195,7 @@ class LSTM(Model):
         return np.mean(losses), np.mean(scores)
 
     def fit(
-        self,
-        dataset,
-        evals_result=dict(),
-        verbose=True,
-        save_path=None,
+        self, dataset, evals_result=dict(), verbose=True, save_path=None,
     ):
         dl_train = dataset.prepare("train", col_set=["feature", "label"], data_key=DataHandlerLP.DK_L)
         dl_valid = dataset.prepare("valid", col_set=["feature", "label"], data_key=DataHandlerLP.DK_L)
@@ -286,11 +279,7 @@ class LSTMModel(nn.Module):
         super().__init__()
 
         self.rnn = nn.LSTM(
-            input_size=d_feat,
-            hidden_size=hidden_size,
-            num_layers=num_layers,
-            batch_first=True,
-            dropout=dropout,
+            input_size=d_feat, hidden_size=hidden_size, num_layers=num_layers, batch_first=True, dropout=dropout,
         )
         self.fc_out = nn.Linear(hidden_size, 1)
 

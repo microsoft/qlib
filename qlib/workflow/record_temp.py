@@ -193,10 +193,7 @@ class SigAnaRecord(SignalRecord):
                 }
             )
             objects.update(
-                {
-                    "long_short_r.pkl": long_short_r,
-                    "long_avg_r.pkl": long_avg_r,
-                }
+                {"long_short_r.pkl": long_short_r, "long_avg_r.pkl": long_avg_r,}
             )
         self.recorder.log_metrics(**metrics)
         self.recorder.save_objects(**objects, artifact_path=self.get_path())

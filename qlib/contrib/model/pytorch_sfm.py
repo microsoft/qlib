@@ -30,14 +30,7 @@ from ...data.dataset.handler import DataHandlerLP
 
 class SFM_Model(nn.Module):
     def __init__(
-        self,
-        d_feat=6,
-        output_dim=1,
-        freq_dim=10,
-        hidden_size=64,
-        dropout_W=0.0,
-        dropout_U=0.0,
-        device="cpu",
+        self, d_feat=6, output_dim=1, freq_dim=10, hidden_size=64, dropout_W=0.0, dropout_U=0.0, device="cpu",
     ):
         super().__init__()
 
@@ -362,17 +355,11 @@ class SFM(Model):
             self.train_optimizer.step()
 
     def fit(
-        self,
-        dataset: DatasetH,
-        evals_result=dict(),
-        verbose=True,
-        save_path=None,
+        self, dataset: DatasetH, evals_result=dict(), verbose=True, save_path=None,
     ):
 
         df_train, df_valid = dataset.prepare(
-            ["train", "valid"],
-            col_set=["feature", "label"],
-            data_key=DataHandlerLP.DK_L,
+            ["train", "valid"], col_set=["feature", "label"], data_key=DataHandlerLP.DK_L,
         )
         x_train, y_train = df_train["feature"], df_train["label"]
         x_valid, y_valid = df_valid["feature"], df_valid["label"]

@@ -244,12 +244,7 @@ def long_short_backtest(
         short_returns[date] = np.mean(short_profit) + np.mean(all_profit)
         ls_returns[date] = np.mean(short_profit) + np.mean(long_profit)
 
-    return dict(
-        zip(
-            ["long", "short", "long_short"],
-            map(pd.Series, [long_returns, short_returns, ls_returns]),
-        )
-    )
+    return dict(zip(["long", "short", "long_short"], map(pd.Series, [long_returns, short_returns, ls_returns]),))
 
 
 def t_run():
