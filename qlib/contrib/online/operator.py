@@ -125,7 +125,9 @@ class Operator:
                 trade_date=trade_date,
             )
             save_order_list(
-                order_list=order_list, user_path=(pathlib.Path(path) / user_id), trade_date=trade_date,
+                order_list=order_list,
+                user_path=(pathlib.Path(path) / user_id),
+                trade_date=trade_date,
             )
             self.logger.info("Generate order list at {} for {}".format(trade_date, user_id))
             um.save_user_data(user_id)
@@ -158,7 +160,9 @@ class Operator:
             order_list = load_order_list(user_path=(pathlib.Path(path) / user_id), trade_date=trade_date)
             trade_info = executor.execute(order_list=order_list, trade_account=user.account, trade_date=trade_date)
             executor.save_executed_file_from_trade_info(
-                trade_info=trade_info, user_path=(pathlib.Path(path) / user_id), trade_date=trade_date,
+                trade_info=trade_info,
+                user_path=(pathlib.Path(path) / user_id),
+                trade_date=trade_date,
             )
             self.logger.info("execute order list at {} for {}".format(trade_date.date(), user_id))
 

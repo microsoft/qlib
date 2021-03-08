@@ -56,7 +56,11 @@ class EnhancedIndexingOptimizer(BaseOptimizer):
         assert inds_dev is None or inds_dev >= 0, "industry deviation limit `inds_dev` should be positive or None."
         self.inds_dev = inds_dev
 
-        assert warm_start in [None, self.START_FROM_W0, self.START_FROM_BENCH,], "illegal warm start option"
+        assert warm_start in [
+            None,
+            self.START_FROM_W0,
+            self.START_FROM_BENCH,
+        ], "illegal warm start option"
         self.start_from_w0 = warm_start == self.START_FROM_W0
         self.start_from_bench = warm_start == self.START_FROM_BENCH
 

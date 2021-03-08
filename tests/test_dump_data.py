@@ -40,7 +40,9 @@ class TestDumpData(unittest.TestCase):
         TestDumpData.STOCK_NAMES = list(map(lambda x: x.name[:-4].upper(), SOURCE_DIR.glob("*.csv")))
         provider_uri = str(QLIB_DIR.resolve())
         qlib.init(
-            provider_uri=provider_uri, expression_cache=None, dataset_cache=None,
+            provider_uri=provider_uri,
+            expression_cache=None,
+            dataset_cache=None,
         )
 
     @classmethod
@@ -52,7 +54,10 @@ class TestDumpData(unittest.TestCase):
 
     def test_1_dump_calendars(self):
         ori_calendars = set(
-            map(pd.Timestamp, pd.read_csv(QLIB_DIR.joinpath("calendars", "day.txt"), header=None).loc[:, 0].values,)
+            map(
+                pd.Timestamp,
+                pd.read_csv(QLIB_DIR.joinpath("calendars", "day.txt"), header=None).loc[:, 0].values,
+            )
         )
         res_calendars = set(D.calendar())
         assert len(ori_calendars - res_calendars) == len(res_calendars - ori_calendars) == 0, "dump calendars failed"

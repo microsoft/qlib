@@ -35,7 +35,11 @@ def calc_ic(pred: pd.Series, label: pd.Series, date_col="datetime", dropna=False
 
 
 def calc_long_short_return(
-    pred: pd.Series, label: pd.Series, date_col: str = "datetime", quantile: float = 0.2, dropna: bool = False,
+    pred: pd.Series,
+    label: pd.Series,
+    date_col: str = "datetime",
+    quantile: float = 0.2,
+    dropna: bool = False,
 ) -> Tuple[pd.Series, pd.Series]:
     """
     calculate long-short return

@@ -118,7 +118,10 @@ class LSTM(Model):
             torch.manual_seed(self.seed)
 
         self.lstm_model = LSTMModel(
-            d_feat=self.d_feat, hidden_size=self.hidden_size, num_layers=self.num_layers, dropout=self.dropout,
+            d_feat=self.d_feat,
+            hidden_size=self.hidden_size,
+            num_layers=self.num_layers,
+            dropout=self.dropout,
         )
         if optimizer.lower() == "adam":
             self.train_optimizer = optim.Adam(self.lstm_model.parameters(), lr=self.lr)
@@ -208,11 +211,17 @@ class LSTM(Model):
         return np.mean(losses), np.mean(scores)
 
     def fit(
-        self, dataset: DatasetH, evals_result=dict(), verbose=True, save_path=None,
+        self,
+        dataset: DatasetH,
+        evals_result=dict(),
+        verbose=True,
+        save_path=None,
     ):
 
         df_train, df_valid, df_test = dataset.prepare(
-            ["train", "valid", "test"], col_set=["feature", "label"], data_key=DataHandlerLP.DK_L,
+            ["train", "valid", "test"],
+            col_set=["feature", "label"],
+            data_key=DataHandlerLP.DK_L,
         )
 
         x_train, y_train = df_train["feature"], df_train["label"]
@@ -296,7 +305,11 @@ class LSTMModel(nn.Module):
         super().__init__()
 
         self.rnn = nn.LSTM(
-            input_size=d_feat, hidden_size=hidden_size, num_layers=num_layers, batch_first=True, dropout=dropout,
+            input_size=d_feat,
+            hidden_size=hidden_size,
+            num_layers=num_layers,
+            batch_first=True,
+            dropout=dropout,
         )
         self.fc_out = nn.Linear(hidden_size, 1)
 

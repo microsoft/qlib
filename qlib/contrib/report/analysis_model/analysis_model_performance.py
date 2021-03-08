@@ -53,7 +53,8 @@ def _group_return(pred_label: pd.DataFrame = None, reverse: bool = False, N: int
     t_df.index = t_df.index.strftime("%Y-%m-%d")
     # Cumulative Return By Group
     group_scatter_figure = ScatterGraph(
-        t_df.cumsum(), layout=dict(title="Cumulative Return", xaxis=dict(type="category", tickangle=45)),
+        t_df.cumsum(),
+        layout=dict(title="Cumulative Return", xaxis=dict(type="category", tickangle=45)),
     ).figure
 
     t_df = t_df.loc[:, ["long-short", "long-average"]]
@@ -61,7 +62,12 @@ def _group_return(pred_label: pd.DataFrame = None, reverse: bool = False, N: int
     group_hist_figure = SubplotsGraph(
         t_df,
         kind_map=dict(kind="DistplotGraph", kwargs=dict(bin_size=_bin_size)),
-        subplots_kwargs=dict(rows=1, cols=2, print_grid=False, subplot_titles=["long-short", "long-average"],),
+        subplots_kwargs=dict(
+            rows=1,
+            cols=2,
+            print_grid=False,
+            subplot_titles=["long-short", "long-average"],
+        ),
     ).figure
 
     return group_scatter_figure, group_hist_figure
@@ -96,12 +102,15 @@ def _pred_ic(pred_label: pd.DataFrame = None, rank: bool = False, **kwargs) -> t
     _index = ic.index.get_level_values(0).astype("str").str.replace("-", "").str.slice(0, 6)
     _monthly_ic = ic.groupby(_index).mean()
     _monthly_ic.index = pd.MultiIndex.from_arrays(
-        [_monthly_ic.index.str.slice(0, 4), _monthly_ic.index.str.slice(4, 6)], names=["year", "month"],
+        [_monthly_ic.index.str.slice(0, 4), _monthly_ic.index.str.slice(4, 6)],
+        names=["year", "month"],
     )
 
     # fill month
     _month_list = pd.date_range(
-        start=pd.Timestamp(f"{_index.min()[:4]}0101"), end=pd.Timestamp(f"{_index.max()[:4]}1231"), freq="1M",
+        start=pd.Timestamp(f"{_index.min()[:4]}0101"),
+        end=pd.Timestamp(f"{_index.max()[:4]}1231"),
+        freq="1M",
     )
     _years = []
     _month = []
@@ -133,15 +142,32 @@ def _pred_ic(pred_label: pd.DataFrame = None, rank: bool = False, **kwargs) -> t
 
     _bin_size = ((_ic_df.max() - _ic_df.min()) / 20).min()
     _sub_graph_data = [
-        ("ic", dict(row=1, col=1, name="", kind="DistplotGraph", graph_kwargs=dict(bin_size=_bin_size),),),
+        (
+            "ic",
+            dict(
+                row=1,
+                col=1,
+                name="",
+                kind="DistplotGraph",
+                graph_kwargs=dict(bin_size=_bin_size),
+            ),
+        ),
         (_qqplot_fig, dict(row=1, col=2)),
     ]
     ic_hist_figure = SubplotsGraph(
         _ic_df.dropna(),
         kind_map=dict(kind="HistogramGraph", kwargs=dict()),
-        subplots_kwargs=dict(rows=1, cols=2, print_grid=False, subplot_titles=["IC", "IC %s Dist. Q-Q" % dist_name],),
+        subplots_kwargs=dict(
+            rows=1,
+            cols=2,
+            print_grid=False,
+            subplot_titles=["IC", "IC %s Dist. Q-Q" % dist_name],
+        ),
         sub_graph_data=_sub_graph_data,
-        layout=dict(yaxis2=dict(title="Observed Quantile"), xaxis2=dict(title=f"{dist_name} Distribution Quantile"),),
+        layout=dict(
+            yaxis2=dict(title="Observed Quantile"),
+            xaxis2=dict(title=f"{dist_name} Distribution Quantile"),
+        ),
     ).figure
 
     return ic_bar_figure, ic_heatmap_figure, ic_hist_figure
@@ -155,7 +181,8 @@ def _pred_autocorr(pred_label: pd.DataFrame, lag=1, **kwargs) -> tuple:
     _df = ac.to_frame("value")
     _df.index = _df.index.strftime("%Y-%m-%d")
     ac_figure = ScatterGraph(
-        _df, layout=dict(title="Auto Correlation", xaxis=dict(type="category", tickangle=45)),
+        _df,
+        layout=dict(title="Auto Correlation", xaxis=dict(type="category", tickangle=45)),
     ).figure
     return (ac_figure,)
 
@@ -175,11 +202,17 @@ def _pred_turnover(pred_label: pd.DataFrame, N=5, lag=1, **kwargs) -> tuple:
         .sum()
         / (len(x) // N)
     )
-    r_df = pd.DataFrame({"Top": top, "Bottom": bottom,})
+    r_df = pd.DataFrame(
+        {
+            "Top": top,
+            "Bottom": bottom,
+        }
+    )
     # FIXME: support HIGH-FREQ
     r_df.index = r_df.index.strftime("%Y-%m-%d")
     turnover_figure = ScatterGraph(
-        r_df, layout=dict(title="Top-Bottom Turnover", xaxis=dict(type="category", tickangle=45)),
+        r_df,
+        layout=dict(title="Top-Bottom Turnover", xaxis=dict(type="category", tickangle=45)),
     ).figure
     return (turnover_figure,)
 
@@ -197,7 +230,11 @@ def ic_figure(ic_df: pd.DataFrame, show_nature_day=True, **kwargs) -> go.Figure:
     # FIXME: support HIGH-FREQ
     ic_df.index = ic_df.index.strftime("%Y-%m-%d")
     ic_bar_figure = BarGraph(
-        ic_df, layout=dict(title="Information Coefficient (IC)", xaxis=dict(type="category", tickangle=45),),
+        ic_df,
+        layout=dict(
+            title="Information Coefficient (IC)",
+            xaxis=dict(type="category", tickangle=45),
+        ),
     ).figure
     return ic_bar_figure
 
@@ -240,7 +277,12 @@ def model_performance_graph(
     figure_list = []
     for graph_name in graph_names:
         fun_res = eval(f"_{graph_name}")(
-            pred_label=pred_label, lag=lag, N=N, reverse=reverse, rank=rank, show_nature_day=show_nature_day,
+            pred_label=pred_label,
+            lag=lag,
+            N=N,
+            reverse=reverse,
+            rank=rank,
+            show_nature_day=show_nature_day,
         )
         figure_list += fun_res
 

@@ -12,7 +12,10 @@ from pathlib import Path
 
 
 def get_benchmark_weight(
-    bench, start_date=None, end_date=None, path=None,
+    bench,
+    start_date=None,
+    end_date=None,
+    path=None,
 ):
     """get_benchmark_weight
 
@@ -213,7 +216,12 @@ def get_stock_group(stock_group_field_df, bench_stock_weight_df, group_method, g
 
 
 def brinson_pa(
-    positions, bench="SH000905", group_field="industry", group_method="category", group_n=None, deal_price="vwap",
+    positions,
+    bench="SH000905",
+    group_field="industry",
+    group_method="category",
+    group_n=None,
+    deal_price="vwap",
 ):
     """brinson profit attribution
 
@@ -247,10 +255,17 @@ def brinson_pa(
     # suspend stock is NAN. So we have to get more date to forward fill the NAN
     shift_start_date = start_date - datetime.timedelta(days=250)
     instruments = D.list_instruments(
-        D.instruments(market="all"), start_time=shift_start_date, end_time=end_date, as_list=True,
+        D.instruments(market="all"),
+        start_time=shift_start_date,
+        end_time=end_date,
+        as_list=True,
     )
     stock_df = D.features(
-        instruments, [group_field, deal_price], start_time=shift_start_date, end_time=end_date, freq="day",
+        instruments,
+        [group_field, deal_price],
+        start_time=shift_start_date,
+        end_time=end_date,
+        freq="day",
     )
     stock_df.columns = [group_field, "deal_price"]
 
