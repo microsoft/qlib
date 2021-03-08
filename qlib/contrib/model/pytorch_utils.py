@@ -1,15 +1,18 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-import numpy as np
 import torch.nn as nn
 
 
-def count_parameters(model_or_parameters, unit="mb"):
-    if isinstance(model_or_parameters, nn.Module):
-        counts = np.sum(np.prod(v.size()) for v in model_or_parameters.parameters())
+def count_parameters(models_or_parameters, unit="mb"):
+    if isinstance(models_or_parameters, nn.Module):
+        counts = sum(v.numel() for v in models_or_parameters.parameters())
+    elif isinstance(models_or_parameters, nn.Parameter):
+        counts = models_or_parameters.numel()
+    elif isinstance(models_or_parameters, (list, tuple)):
+        return sum(count_parameters(x, unit) for x in model_or_parameters)
     else:
-        counts = np.sum(np.prod(v.size()) for v in model_or_parameters)
+        counts = sum(v.numel() for v in models_or_parameters)
     if unit.lower() == "mb":
         counts /= 1e6
     elif unit.lower() == "kb":
