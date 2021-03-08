@@ -3,6 +3,7 @@
 
 import torch.nn as nn
 
+
 def count_parameters(models_or_parameters, unit="mb"):
     if isinstance(models_or_parameters, nn.Module):
         counts = sum(v.numel() for v in models_or_parameters.parameters())
