@@ -9,6 +9,7 @@ import abc
 import pandas as pd
 
 
+
 class Expression(abc.ABC):
     """Expression base class"""
 
@@ -224,3 +225,208 @@ class ExpressionOps(Expression):
     """
 
     pass
+
+
+class PExpression(abc.ABC):
+    """PExpression base class"""
+
+    def __str__(self):
+        return type(self).__name__
+
+    def __repr__(self):
+        return str(self)
+
+    def __gt__(self, other):
+        from .ops import PGt
+
+        return PGt(self, other)
+
+    def __ge__(self, other):
+        from .ops import PGe
+
+        return PGe(self, other)
+
+    def __lt__(self, other):
+        from .ops import PLt
+
+        return PLt(self, other)
+
+    def __le__(self, other):
+        from .ops import PLe
+
+        return PLe(self, other)
+
+    def __eq__(self, other):
+        from .ops import PEq
+
+        return PEq(self, other)
+
+    def __ne__(self, other):
+        from .ops import PNe
+
+        return PNe(self, other)
+
+    def __add__(self, other):
+        from .ops import PAdd
+
+        return PAdd(self, other)
+
+    def __radd__(self, other):
+        from .ops import PAdd
+
+        return PAdd(other, self)
+
+    def __sub__(self, other):
+        from .ops import PSub
+
+        return PSub(self, other)
+
+    def __rsub__(self, other):
+        from .ops import PSub
+
+        return PSub(other, self)
+
+    def __mul__(self, other):
+        from .ops import PMul
+
+        return PMul(self, other)
+
+    def __rmul__(self, other):
+        from .ops import PMul
+
+        return PMul(self, other)
+
+    def __div__(self, other):
+        from .ops import PDiv
+
+        return PDiv(self, other)
+
+    def __rdiv__(self, other):
+        from .ops import PDiv
+
+        return PDiv(other, self)
+
+    def __truediv__(self, other):
+        from .ops import PDiv
+
+        return PDiv(self, other)
+
+    def __rtruediv__(self, other):
+        from .ops import PDiv
+
+        return PDiv(other, self)
+
+    def __pow__(self, other):
+        from .ops import PPower
+
+        return PPower(self, other)
+
+    def __and__(self, other):
+        from .ops import PAnd
+
+        return PAnd(self, other)
+
+    def __rand__(self, other):
+        from .ops import PAnd
+
+        return PAnd(other, self)
+
+    def __or__(self, other):
+        from .ops import POr
+
+        return POr(self, other)
+
+    def __ror__(self, other):
+        from .ops import POr
+
+        return POr(other, self)
+
+
+    @abc.abstractmethod
+    def load_period_data(self, instrument, start_offset, end_offset, cur_index):
+        raise NotImplementedError("This function must be implemented in your newly defined feature")
+
+    @abc.abstractmethod
+    def get_period_offset(self, cur_index):
+        raise NotImplementedError("This function must be implemented in your newly defined feature")
+
+    def load(self, instrument, start_index, end_index, freq):
+        from .cache import H
+
+        # cache
+        args = str(self), instrument, start_index, end_index, freq
+        if args in H["f"]:
+            return H["f"][args]
+        if start_index is None or end_index is None or start_index > end_index:
+            raise ValueError("Invalid index range: {} {}".format(start_index, end_index))
+        
+        resample_series = pd.Series(index=pd.RangeIndex(start_index, end_index + 1), dtype='float32', name=str(self))
+        for cur_index in range(start_index, end_index + 1):
+            start_offset, end_offset = self.get_period_offset(cur_index)
+            resample_data[cur_index] = self.load_period_data(instrument, start_offset, end_offset, cur_index).iloc[-1]
+        
+        H["f"][args] = resample_series
+        return resample_data
+    
+    def get_longest_back_rolling(self):
+        return 0
+
+    def get_extended_window_size(self):
+        return 0, 0
+
+
+class PFeature(PExpression):
+
+    def __init__(self, name=None):
+        if name:
+            self._name = name.lower()
+        else:
+            self._name = type(self).__name__.lower()
+
+    def __str__(self):
+        return "$" + self._name
+
+    def load_period_data(self, instrument, start_offset, end_offset, cur_index):
+        ### Zhou Code
+        return pd.Series([1,2,3])
+
+    def get_period_offset(self, cur_index):
+        return 0
+
+
+class PExpressionOps(PExpression):
+    """Operator Expression
+
+    This kind of feature will use operator for feature
+    construction on the fly.
+    """
+
+    pass
+    
+class OpsWrapper:
+    """Ops Wrapper"""
+
+    def __init__(self):
+        self._ops = {}
+
+    def reset(self):
+        self._ops = {}
+
+    def register(self, ops_list):
+        for operator in ops_list:
+            if not issubclass(operator, ExpressionOps) and not issubclass(operator, PExpressionOps):
+                raise TypeError("operator must be subclass of ExpressionOps or PExpressionOps, not {}".format(operator))
+
+            if operator.__name__ in self._ops:
+                get_module_logger(self.__class__.__name__).warning(
+                    "The custom operator [{}] will override the qlib default definition".format(operator.__name__)
+                )
+            self._ops[operator.__name__] = operator
+
+    def __getattr__(self, key):
+        if key not in self._ops:
+            raise AttributeError("The operator [{0}] is not registered".format(key))
+        return self._ops[key]
+
+
+Operators = OpsWrapper()

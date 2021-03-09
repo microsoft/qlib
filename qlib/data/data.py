@@ -19,10 +19,9 @@ from multiprocessing import Pool
 
 from .cache import H
 from ..config import C
-from .ops import Operators
 from ..log import get_module_logger
 from ..utils import parse_field, read_bin, hash_args, normalize_cache_fields, code_to_fname
-from .base import Feature
+from .base import Feature, PFeature, Operators
 from .cache import DiskDatasetCache, DiskExpressionCache
 from ..utils import Wrapper, init_instance_by_config, register_wrapper, get_module_by_module_path
 
@@ -480,7 +479,6 @@ class DatasetProvider(abc.ABC):
         _calendar = Cal.calendar(freq=freq)
         data.index = _calendar[data.index.values.astype(int)]
         data.index.names = ["datetime"]
-
         if spans is None:
             return data
         else:

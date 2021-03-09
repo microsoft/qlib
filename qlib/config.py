@@ -189,6 +189,7 @@ MODE_CONF = {
         "region": REG_CN,
         ## Custom Operator
         "custom_ops": [],
+        "custom_period_ops": [],
     },
 }
 
@@ -297,11 +298,13 @@ class QlibConfig(Config):
     def register(self):
         from .utils import init_instance_by_config
         from .data.ops import register_all_ops
+        from .data.ops_period import register_all_period_ops
         from .data.data import register_all_wrappers
         from .workflow import R, QlibRecorder
         from .workflow.utils import experiment_exit_handler
 
         register_all_ops(self)
+        register_all_period_ops(self)
         register_all_wrappers(self)
         # set up QlibRecorder
         exp_manager = init_instance_by_config(self["exp_manager"])

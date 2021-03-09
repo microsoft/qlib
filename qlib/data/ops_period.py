@@ -12,7 +12,7 @@ import pandas as pd
 
 from scipy.stats import percentileofscore
 
-from .base import Expression, ExpressionOps
+from .base import PExpression, PExpressionOps
 from ..log import get_module_logger
 
 try:
@@ -30,19 +30,7 @@ np.seterr(invalid="ignore")
 #################### Element-Wise Operator ####################
 
 
-class ElemOperator(ExpressionOps):
-    """Element-wise Operator
-
-    Parameters
-    ----------
-    feature : Expression
-        feature instance
-
-    Returns
-    ----------
-    Expression
-        feature operation output
-    """
+class PElemOperator(PExpressionOps):
 
     def __init__(self, feature):
         self.feature = feature
@@ -50,14 +38,11 @@ class ElemOperator(ExpressionOps):
     def __str__(self):
         return "{}({})".format(type(self).__name__, self.feature)
 
-    def get_longest_back_rolling(self):
-        return self.feature.get_longest_back_rolling()
-
-    def get_extended_window_size(self):
-        return self.feature.get_extended_window_size()
+    def get_period_offset(self, cur_index):
+        return self.feature.get_period_offset(cur_index)
 
 
-class NpElemOperator(ElemOperator):
+class PNpElemOperator(PElemOperator):
     """Numpy Element-wise Operator
 
     Parameters
@@ -75,14 +60,13 @@ class NpElemOperator(ElemOperator):
 
     def __init__(self, feature, func):
         self.func = func
-        super(NpElemOperator, self).__init__(feature)
+        super(PNpElemOperator, self).__init__(feature)
 
-    def _load_internal(self, instrument, start_index, end_index, freq):
-        series = self.feature.load(instrument, start_index, end_index, freq)
+    def load_period_data(self, instrument, start_offset, end_offset, cur_index):
+        series = self.feature.load_period_data(instrument, start_offset, end_offset, cur_index)
         return getattr(np, self.func)(series)
 
-
-class Abs(NpElemOperator):
+class PAbs(PNpElemOperator):
     """Feature Absolute Value
 
     Parameters
@@ -97,11 +81,11 @@ class Abs(NpElemOperator):
     """
 
     def __init__(self, feature):
-        super(Abs, self).__init__(feature, "abs")
+        super(PAbs, self).__init__(feature, "abs")
 
 
-class Sign(NpElemOperator):
-    """Feature Sign
+class PSign(PNpElemOperator):
+    """Feature PSign
 
     Parameters
     ----------
@@ -115,20 +99,20 @@ class Sign(NpElemOperator):
     """
 
     def __init__(self, feature):
-        super(Sign, self).__init__(feature, "sign")
+        super(PSign, self).__init__(feature, "sign")
 
-    def _load_internal(self, instrument, start_index, end_index, freq):
+    def load_period_data(self, instrument, start_offset, end_offset, cur_index):
         """
         To avoid error raised by bool type input, we transform the data into float32.
         """
-        series = self.feature.load(instrument, start_index, end_index, freq)
+        series = self.feature.load_period_data(instrument, start_offset, end_offset, cur_index)
         # TODO:  More precision types should be configurable
         series = series.astype(np.float32)
         return getattr(np, self.func)(series)
 
 
-class Log(NpElemOperator):
-    """Feature Log
+class PLog(PNpElemOperator):
+    """Feature PLog
 
     Parameters
     ----------
@@ -142,11 +126,11 @@ class Log(NpElemOperator):
     """
 
     def __init__(self, feature):
-        super(Log, self).__init__(feature, "log")
+        super(PLog, self).__init__(feature, "log")
 
 
-class Power(NpElemOperator):
-    """Feature Power
+class PPower(PNpElemOperator):
+    """Feature PPower
 
     Parameters
     ----------
@@ -160,19 +144,19 @@ class Power(NpElemOperator):
     """
 
     def __init__(self, feature, exponent):
-        super(Power, self).__init__(feature, "power")
+        super(PPower, self).__init__(feature, "power")
         self.exponent = exponent
 
     def __str__(self):
         return "{}({},{})".format(type(self).__name__, self.feature, self.exponent)
 
-    def _load_internal(self, instrument, start_index, end_index, freq):
-        series = self.feature.load(instrument, start_index, end_index, freq)
+    def load_period_data(self, instrument, start_offset, end_offset, cur_index):
+        series = self.feature.load_period_data(instrument, start_offset, end_offset, cur_index)
         return getattr(np, self.func)(series, self.exponent)
 
 
-class Mask(NpElemOperator):
-    """Feature Mask
+class PMask(PNpElemOperator):
+    """Feature PMask
 
     Parameters
     ----------
@@ -188,18 +172,19 @@ class Mask(NpElemOperator):
     """
 
     def __init__(self, feature, instrument):
-        super(Mask, self).__init__(feature, "mask")
+        super(PMask, self).__init__(feature, "mask")
         self.instrument = instrument
 
     def __str__(self):
         return "{}({},{})".format(type(self).__name__, self.feature, self.instrument.lower())
 
-    def _load_internal(self, instrument, start_index, end_index, freq):
-        return self.feature.load(self.instrument, start_index, end_index, freq)
+    def load_period_data(self, instrument, start_offset, end_offset, cur_index):
+        
+        return self.feature.load_period_data(self.instrument, start_offset, end_offset, cur_index)
 
 
-class Not(NpElemOperator):
-    """Not Operator
+class PNot(PNpElemOperator):
+    """PNot Operator
 
     Parameters
     ----------
@@ -215,11 +200,11 @@ class Not(NpElemOperator):
     """
 
     def __init__(self, feature):
-        super(Not, self).__init__(feature, "bitwise_not")
+        super(PNot, self).__init__(feature, "bitwise_not")
 
 
 #################### Pair-Wise Operator ####################
-class PairOperator(ExpressionOps):
+class PPairOperator(PExpressionOps):
     """Pair-wise operator
 
     Parameters
@@ -244,32 +229,19 @@ class PairOperator(ExpressionOps):
     def __str__(self):
         return "{}({},{})".format(type(self).__name__, self.feature_left, self.feature_right)
 
-    def get_longest_back_rolling(self):
-        if isinstance(self.feature_left, Expression):
-            left_br = self.feature_left.get_longest_back_rolling()
+    def get_period_offset(self, cur_index):
+        if isinstance(self.feature_left, PExpression):
+            left_br = self.feature_left.get_period_offset(cur_index)
         else:
             left_br = 0
 
-        if isinstance(self.feature_right, Expression):
-            right_br = self.feature_right.get_longest_back_rolling()
+        if isinstance(self.feature_right, PExpression):
+            right_br = self.feature_right.get_period_offset(cur_index)
         else:
             right_br = 0
         return max(left_br, right_br)
 
-    def get_extended_window_size(self):
-        if isinstance(self.feature_left, Expression):
-            ll, lr = self.feature_left.get_extended_window_size()
-        else:
-            ll, lr = 0, 0
-
-        if isinstance(self.feature_right, Expression):
-            rl, rr = self.feature_right.get_extended_window_size()
-        else:
-            rl, rr = 0, 0
-        return max(ll, rl), max(lr, rr)
-
-
-class NpPairOperator(PairOperator):
+class PNpPairOperator(PPairOperator):
     """Numpy Pair-wise operator
 
     Parameters
@@ -288,26 +260,28 @@ class NpPairOperator(PairOperator):
     """
 
     def __init__(self, feature_left, feature_right, func):
+        self.feature_left = feature_left
+        self.feature_right = feature_right
         self.func = func
-        super(NpPairOperator, self).__init__(feature_left, feature_right)
+        super(PNpPairOperator, self).__init__(feature_left, feature_right)
 
-    def _load_internal(self, instrument, start_index, end_index, freq):
+    def load_period_data(self, instrument, start_offset, end_offset, cur_index):
         assert any(
             [isinstance(self.feature_left, Expression), self.feature_right, Expression]
         ), "at least one of two inputs is Expression instance"
         if isinstance(self.feature_left, Expression):
-            series_left = self.feature_left.load(instrument, start_index, end_index, freq)
+            series_left = self.feature_left.load_period_data(instrument, start_offset, end_offset, cur_index)
         else:
             series_left = self.feature_left  # numeric value
         if isinstance(self.feature_right, Expression):
-            series_right = self.feature_right.load(instrument, start_index, end_index, freq)
+            series_right = self.feature_right.load_period_data(instrument, start_offset, end_offset, cur_index)
         else:
             series_right = self.feature_right
         return getattr(np, self.func)(series_left, series_right)
 
 
-class Add(NpPairOperator):
-    """Add Operator
+class PAdd(PNpPairOperator):
+    """PAdd Operator
 
     Parameters
     ----------
@@ -323,10 +297,10 @@ class Add(NpPairOperator):
     """
 
     def __init__(self, feature_left, feature_right):
-        super(Add, self).__init__(feature_left, feature_right, "add")
+        super(PAdd, self).__init__(feature_left, feature_right, "add")
 
 
-class Sub(NpPairOperator):
+class PSub(PNpPairOperator):
     """Subtract Operator
 
     Parameters
@@ -343,10 +317,10 @@ class Sub(NpPairOperator):
     """
 
     def __init__(self, feature_left, feature_right):
-        super(Sub, self).__init__(feature_left, feature_right, "subtract")
+        super(PSub, self).__init__(feature_left, feature_right, "subtract")
 
 
-class Mul(NpPairOperator):
+class PMul(PNpPairOperator):
     """Multiply Operator
 
     Parameters
@@ -363,10 +337,10 @@ class Mul(NpPairOperator):
     """
 
     def __init__(self, feature_left, feature_right):
-        super(Mul, self).__init__(feature_left, feature_right, "multiply")
+        super(PMul, self).__init__(feature_left, feature_right, "multiply")
 
 
-class Div(NpPairOperator):
+class PDiv(PNpPairOperator):
     """Division Operator
 
     Parameters
@@ -383,11 +357,11 @@ class Div(NpPairOperator):
     """
 
     def __init__(self, feature_left, feature_right):
-        super(Div, self).__init__(feature_left, feature_right, "divide")
+        super(PDiv, self).__init__(feature_left, feature_right, "divide")
 
 
-class Greater(NpPairOperator):
-    """Greater Operator
+class PGreater(PNpPairOperator):
+    """PGreater Operator
 
     Parameters
     ----------
@@ -403,11 +377,11 @@ class Greater(NpPairOperator):
     """
 
     def __init__(self, feature_left, feature_right):
-        super(Greater, self).__init__(feature_left, feature_right, "maximum")
+        super(PGreater, self).__init__(feature_left, feature_right, "maximum")
 
 
-class Less(NpPairOperator):
-    """Less Operator
+class PLess(PNpPairOperator):
+    """PLess Operator
 
     Parameters
     ----------
@@ -423,11 +397,11 @@ class Less(NpPairOperator):
     """
 
     def __init__(self, feature_left, feature_right):
-        super(Less, self).__init__(feature_left, feature_right, "minimum")
+        super(PLess, self).__init__(feature_left, feature_right, "minimum")
 
 
-class Gt(NpPairOperator):
-    """Greater Than Operator
+class PGt(PNpPairOperator):
+    """PGreater Than Operator
 
     Parameters
     ----------
@@ -443,11 +417,11 @@ class Gt(NpPairOperator):
     """
 
     def __init__(self, feature_left, feature_right):
-        super(Gt, self).__init__(feature_left, feature_right, "greater")
+        super(PGt, self).__init__(feature_left, feature_right, "greater")
 
 
-class Ge(NpPairOperator):
-    """Greater Equal Than Operator
+class PGe(PNpPairOperator):
+    """PGreater Equal Than Operator
 
     Parameters
     ----------
@@ -463,11 +437,11 @@ class Ge(NpPairOperator):
     """
 
     def __init__(self, feature_left, feature_right):
-        super(Ge, self).__init__(feature_left, feature_right, "greater_equal")
+        super(PGe, self).__init__(feature_left, feature_right, "greater_equal")
 
 
-class Lt(NpPairOperator):
-    """Less Than Operator
+class PLt(PNpPairOperator):
+    """PLess Than Operator
 
     Parameters
     ----------
@@ -483,11 +457,11 @@ class Lt(NpPairOperator):
     """
 
     def __init__(self, feature_left, feature_right):
-        super(Lt, self).__init__(feature_left, feature_right, "less")
+        super(PLt, self).__init__(feature_left, feature_right, "less")
 
 
-class Le(NpPairOperator):
-    """Less Equal Than Operator
+class PLe(PNpPairOperator):
+    """PLess Equal Than Operator
 
     Parameters
     ----------
@@ -503,10 +477,10 @@ class Le(NpPairOperator):
     """
 
     def __init__(self, feature_left, feature_right):
-        super(Le, self).__init__(feature_left, feature_right, "less_equal")
+        super(PLe, self).__init__(feature_left, feature_right, "less_equal")
 
 
-class Eq(NpPairOperator):
+class PEq(PNpPairOperator):
     """Equal Operator
 
     Parameters
@@ -523,11 +497,11 @@ class Eq(NpPairOperator):
     """
 
     def __init__(self, feature_left, feature_right):
-        super(Eq, self).__init__(feature_left, feature_right, "equal")
+        super(PEq, self).__init__(feature_left, feature_right, "equal")
 
 
-class Ne(NpPairOperator):
-    """Not Equal Operator
+class PNe(PNpPairOperator):
+    """PNot Equal Operator
 
     Parameters
     ----------
@@ -543,11 +517,11 @@ class Ne(NpPairOperator):
     """
 
     def __init__(self, feature_left, feature_right):
-        super(Ne, self).__init__(feature_left, feature_right, "not_equal")
+        super(PNe, self).__init__(feature_left, feature_right, "not_equal")
 
 
-class And(NpPairOperator):
-    """And Operator
+class PAnd(PNpPairOperator):
+    """PAnd Operator
 
     Parameters
     ----------
@@ -563,11 +537,11 @@ class And(NpPairOperator):
     """
 
     def __init__(self, feature_left, feature_right):
-        super(And, self).__init__(feature_left, feature_right, "bitwise_and")
+        super(PAnd, self).__init__(feature_left, feature_right, "bitwise_and")
 
 
-class Or(NpPairOperator):
-    """Or Operator
+class POr(PNpPairOperator):
+    """POr Operator
 
     Parameters
     ----------
@@ -583,12 +557,12 @@ class Or(NpPairOperator):
     """
 
     def __init__(self, feature_left, feature_right):
-        super(Or, self).__init__(feature_left, feature_right, "bitwise_or")
+        super(POr, self).__init__(feature_left, feature_right, "bitwise_or")
 
 
 #################### Triple-wise Operator ####################
-class If(ExpressionOps):
-    """If Operator
+class PIf(PExpressionOps):
+    """PIf Operator
 
     Parameters
     ----------
@@ -606,63 +580,47 @@ class If(ExpressionOps):
         self.feature_right = feature_right
 
     def __str__(self):
-        return "If({},{},{})".format(self.condition, self.feature_left, self.feature_right)
+        return "PIf({},{},{})".format(self.condition, self.feature_left, self.feature_right)
 
-    def _load_internal(self, instrument, start_index, end_index, freq):
-        series_cond = self.condition.load(instrument, start_index, end_index, freq)
+    def load_period_data(self, instrument, start_offset, end_offset, cur_index):
+        series_cond = self.condition.load_period_data(instrument, start_offset, end_offset, cur_index)
         if isinstance(self.feature_left, Expression):
-            series_left = self.feature_left.load(instrument, start_index, end_index, freq)
+            series_left = self.feature_left.load_period_data(instrument, start_offset, end_offset, cur_index)
         else:
             series_left = self.feature_left
         if isinstance(self.feature_right, Expression):
-            series_right = self.feature_right.load(instrument, start_index, end_index, freq)
+            series_right = self.feature_right.load_period_data(instrument, start_offset, end_offset, cur_index)
         else:
             series_right = self.feature_right
         series = pd.Series(np.where(series_cond, series_left, series_right), index=series_cond.index)
         return series
 
-    def get_longest_back_rolling(self):
+    def get_period_offset(self, cur_index):
         if isinstance(self.feature_left, Expression):
-            left_br = self.feature_left.get_longest_back_rolling()
+            left_br = self.feature_left.get_period_offset(cur_index)
         else:
             left_br = 0
 
         if isinstance(self.feature_right, Expression):
-            right_br = self.feature_right.get_longest_back_rolling()
+            right_br = self.feature_right.get_period_offset(cur_index)
         else:
             right_br = 0
 
         if isinstance(self.condition, Expression):
-            c_br = self.condition.get_longest_back_rolling()
+            c_br = self.condition.get_period_offset(cur_index)
         else:
             c_br = 0
         return max(left_br, right_br, c_br)
 
-    def get_extended_window_size(self):
-        if isinstance(self.feature_left, Expression):
-            ll, lr = self.feature_left.get_extended_window_size()
-        else:
-            ll, lr = 0, 0
-
-        if isinstance(self.feature_right, Expression):
-            rl, rr = self.feature_right.get_extended_window_size()
-        else:
-            rl, rr = 0, 0
-
-        if isinstance(self.condition, Expression):
-            cl, cr = self.condition.get_extended_window_size()
-        else:
-            cl, cr = 0, 0
-        return max(ll, rl, cl), max(lr, rr, cr)
 
 
-#################### Rolling ####################
+#################### PRolling ####################
 # NOTE: methods like `rolling.mean` are optimized with cython,
 # and are super faster than `rolling.apply(np.mean)`
 
 
-class Rolling(ExpressionOps):
-    """Rolling Operator
+class PRolling(PExpressionOps):
+    """PRolling Operator
 
     Parameters
     ----------
@@ -687,8 +645,8 @@ class Rolling(ExpressionOps):
     def __str__(self):
         return "{}({},{})".format(type(self).__name__, self.feature, self.N)
 
-    def _load_internal(self, instrument, start_index, end_index, freq):
-        series = self.feature.load(instrument, start_index, end_index, freq)
+    def load_period_data(self, instrument, start_offset, end_offset, cur_index):
+        series = self.feature.load_period_data(instrument, start_offset, end_offset, cur_index)
         # NOTE: remove all null check,
         # now it's user's responsibility to decide whether use features in null days
         # isnull = series.isnull() # NOTE: isnull = NaN, inf is not null
@@ -702,31 +660,15 @@ class Rolling(ExpressionOps):
         # series[isnull] = np.nan
         return series
 
-    def get_longest_back_rolling(self):
+    def get_period_offset(self, cur_index):
         if self.N == 0:
             return np.inf
         if 0 < self.N < 1:
             return int(np.log(1e-6) / np.log(1 - self.N))  # (1 - N)**window == 1e-6
-        return self.feature.get_longest_back_rolling() + self.N - 1
-
-    def get_extended_window_size(self):
-        if self.N == 0:
-            # FIXME: How to make this accurate and efficiently? Or  should we
-            # remove such support for N == 0?
-            get_module_logger(self.__class__.__name__).warning("The Rolling(ATTR, 0) will not be accurately calculated")
-            return self.feature.get_extended_window_size()
-        elif 0 < self.N < 1:
-            lft_etd, rght_etd = self.feature.get_extended_window_size()
-            size = int(np.log(1e-6) / np.log(1 - self.N))
-            lft_etd = max(lft_etd + size - 1, lft_etd)
-            return lft_etd, rght_etd
-        else:
-            lft_etd, rght_etd = self.feature.get_extended_window_size()
-            lft_etd = max(lft_etd + self.N - 1, lft_etd)
-            return lft_etd, rght_etd
+        return self.feature.get_period_offset(cur_index) + self.N - 1
 
 
-class Ref(Rolling):
+class PRef(PRolling):
     """Feature Reference
 
     Parameters
@@ -743,10 +685,10 @@ class Ref(Rolling):
     """
 
     def __init__(self, feature, N):
-        super(Ref, self).__init__(feature, N, "ref")
+        super(PRef, self).__init__(feature, N, "ref")
 
-    def _load_internal(self, instrument, start_index, end_index, freq):
-        series = self.feature.load(instrument, start_index, end_index, freq)
+    def load_period_data(self, instrument, start_offset, end_offset, cur_index):
+        series = self.feature.load_period_data(instrument, start_offset, end_offset, cur_index)
         # N = 0, return first day
         if series.empty:
             return series  # Pandas bug, see: https://github.com/pandas-dev/pandas/issues/21049
@@ -756,24 +698,13 @@ class Ref(Rolling):
             series = series.shift(self.N)  # copy
         return series
 
-    def get_longest_back_rolling(self):
+    def get_period_offset(self, cur_index):
         if self.N == 0:
             return np.inf
-        return self.feature.get_longest_back_rolling() + self.N
+        return self.feature.get_period_offset(cur_index) + self.N
 
-    def get_extended_window_size(self):
-        if self.N == 0:
-            get_module_logger(self.__class__.__name__).warning("The Ref(ATTR, 0) will not be accurately calculated")
-            return self.feature.get_extended_window_size()
-        else:
-            lft_etd, rght_etd = self.feature.get_extended_window_size()
-            lft_etd = max(lft_etd + self.N, lft_etd)
-            rght_etd = max(rght_etd - self.N, rght_etd)
-            return lft_etd, rght_etd
-
-
-class Mean(Rolling):
-    """Rolling Mean (MA)
+class PMean(PRolling):
+    """PRolling PMean (MA)
 
     Parameters
     ----------
@@ -789,11 +720,11 @@ class Mean(Rolling):
     """
 
     def __init__(self, feature, N):
-        super(Mean, self).__init__(feature, N, "mean")
+        super(PMean, self).__init__(feature, N, "mean")
 
 
-class Sum(Rolling):
-    """Rolling Sum
+class PSum(PRolling):
+    """PRolling PSum
 
     Parameters
     ----------
@@ -809,11 +740,11 @@ class Sum(Rolling):
     """
 
     def __init__(self, feature, N):
-        super(Sum, self).__init__(feature, N, "sum")
+        super(PSum, self).__init__(feature, N, "sum")
 
 
-class Std(Rolling):
-    """Rolling Std
+class PStd(PRolling):
+    """PRolling PStd
 
     Parameters
     ----------
@@ -829,11 +760,11 @@ class Std(Rolling):
     """
 
     def __init__(self, feature, N):
-        super(Std, self).__init__(feature, N, "std")
+        super(PStd, self).__init__(feature, N, "std")
 
 
-class Var(Rolling):
-    """Rolling Variance
+class PVar(PRolling):
+    """PRolling Variance
 
     Parameters
     ----------
@@ -849,11 +780,11 @@ class Var(Rolling):
     """
 
     def __init__(self, feature, N):
-        super(Var, self).__init__(feature, N, "var")
+        super(PVar, self).__init__(feature, N, "var")
 
 
-class Skew(Rolling):
-    """Rolling Skewness
+class PSkew(PRolling):
+    """PRolling Skewness
 
     Parameters
     ----------
@@ -871,11 +802,11 @@ class Skew(Rolling):
     def __init__(self, feature, N):
         if N != 0 and N < 3:
             raise ValueError("The rolling window size of Skewness operation should >= 3")
-        super(Skew, self).__init__(feature, N, "skew")
+        super(PSkew, self).__init__(feature, N, "skew")
 
 
-class Kurt(Rolling):
-    """Rolling Kurtosis
+class PKurt(PRolling):
+    """PRolling Kurtosis
 
     Parameters
     ----------
@@ -893,11 +824,11 @@ class Kurt(Rolling):
     def __init__(self, feature, N):
         if N != 0 and N < 4:
             raise ValueError("The rolling window size of Kurtosis operation should >= 5")
-        super(Kurt, self).__init__(feature, N, "kurt")
+        super(PKurt, self).__init__(feature, N, "kurt")
 
 
-class Max(Rolling):
-    """Rolling Max
+class PMax(PRolling):
+    """PRolling PMax
 
     Parameters
     ----------
@@ -913,11 +844,11 @@ class Max(Rolling):
     """
 
     def __init__(self, feature, N):
-        super(Max, self).__init__(feature, N, "max")
+        super(PMax, self).__init__(feature, N, "max")
 
 
-class IdxMax(Rolling):
-    """Rolling Max Index
+class PIdxMax(PRolling):
+    """PRolling PMax Index
 
     Parameters
     ----------
@@ -933,10 +864,10 @@ class IdxMax(Rolling):
     """
 
     def __init__(self, feature, N):
-        super(IdxMax, self).__init__(feature, N, "idxmax")
+        super(PIdxMax, self).__init__(feature, N, "idxmax")
 
-    def _load_internal(self, instrument, start_index, end_index, freq):
-        series = self.feature.load(instrument, start_index, end_index, freq)
+    def load_period_data(self, instrument, start_offset, end_offset, cur_index):
+        series = self.feature.load_period_data(instrument, start_offset, end_offset, cur_index)
         if self.N == 0:
             series = series.expanding(min_periods=1).apply(lambda x: x.argmax() + 1, raw=True)
         else:
@@ -944,8 +875,8 @@ class IdxMax(Rolling):
         return series
 
 
-class Min(Rolling):
-    """Rolling Min
+class PMin(PRolling):
+    """PRolling PMin
 
     Parameters
     ----------
@@ -961,11 +892,11 @@ class Min(Rolling):
     """
 
     def __init__(self, feature, N):
-        super(Min, self).__init__(feature, N, "min")
+        super(PMin, self).__init__(feature, N, "min")
 
 
-class IdxMin(Rolling):
-    """Rolling Min Index
+class PIdxMin(PRolling):
+    """PRolling PMin Index
 
     Parameters
     ----------
@@ -981,10 +912,10 @@ class IdxMin(Rolling):
     """
 
     def __init__(self, feature, N):
-        super(IdxMin, self).__init__(feature, N, "idxmin")
+        super(PIdxMin, self).__init__(feature, N, "idxmin")
 
-    def _load_internal(self, instrument, start_index, end_index, freq):
-        series = self.feature.load(instrument, start_index, end_index, freq)
+    def load_period_data(self, instrument, start_offset, end_offset, cur_index):
+        series = self.feature.load_period_data(instrument, start_offset, end_offset, cur_index)
         if self.N == 0:
             series = series.expanding(min_periods=1).apply(lambda x: x.argmin() + 1, raw=True)
         else:
@@ -992,8 +923,8 @@ class IdxMin(Rolling):
         return series
 
 
-class Quantile(Rolling):
-    """Rolling Quantile
+class PQuantile(PRolling):
+    """PRolling PQuantile
 
     Parameters
     ----------
@@ -1009,14 +940,14 @@ class Quantile(Rolling):
     """
 
     def __init__(self, feature, N, qscore):
-        super(Quantile, self).__init__(feature, N, "quantile")
+        super(PQuantile, self).__init__(feature, N, "quantile")
         self.qscore = qscore
 
     def __str__(self):
         return "{}({},{},{})".format(type(self).__name__, self.feature, self.N, self.qscore)
 
-    def _load_internal(self, instrument, start_index, end_index, freq):
-        series = self.feature.load(instrument, start_index, end_index, freq)
+    def load_period_data(self, instrument, start_offset, end_offset, cur_index):
+        series = self.feature.load_period_data(instrument, start_offset, end_offset, cur_index)
         if self.N == 0:
             series = series.expanding(min_periods=1).quantile(self.qscore)
         else:
@@ -1024,8 +955,8 @@ class Quantile(Rolling):
         return series
 
 
-class Med(Rolling):
-    """Rolling Median
+class PMed(PRolling):
+    """PRolling Median
 
     Parameters
     ----------
@@ -1041,11 +972,11 @@ class Med(Rolling):
     """
 
     def __init__(self, feature, N):
-        super(Med, self).__init__(feature, N, "median")
+        super(PMed, self).__init__(feature, N, "median")
 
 
-class Mad(Rolling):
-    """Rolling Mean Absolute Deviation
+class PMad(PRolling):
+    """PRolling PMean Absolute Deviation
 
     Parameters
     ----------
@@ -1061,10 +992,10 @@ class Mad(Rolling):
     """
 
     def __init__(self, feature, N):
-        super(Mad, self).__init__(feature, N, "mad")
+        super(PMad, self).__init__(feature, N, "mad")
 
-    def _load_internal(self, instrument, start_index, end_index, freq):
-        series = self.feature.load(instrument, start_index, end_index, freq)
+    def load_period_data(self, instrument, start_offset, end_offset, cur_index):
+        series = self.feature.load_period_data(instrument, start_offset, end_offset, cur_index)
         # TODO: implement in Cython
 
         def mad(x):
@@ -1078,8 +1009,8 @@ class Mad(Rolling):
         return series
 
 
-class Rank(Rolling):
-    """Rolling Rank (Percentile)
+class PRank(PRolling):
+    """PRolling PRank (Percentile)
 
     Parameters
     ----------
@@ -1095,10 +1026,10 @@ class Rank(Rolling):
     """
 
     def __init__(self, feature, N):
-        super(Rank, self).__init__(feature, N, "rank")
+        super(PRank, self).__init__(feature, N, "rank")
 
-    def _load_internal(self, instrument, start_index, end_index, freq):
-        series = self.feature.load(instrument, start_index, end_index, freq)
+    def load_period_data(self, instrument, start_offset, end_offset, cur_index):
+        series = self.feature.load_period_data(instrument, start_offset, end_offset, cur_index)
         # TODO: implement in Cython
 
         def rank(x):
@@ -1116,8 +1047,8 @@ class Rank(Rolling):
         return series
 
 
-class Count(Rolling):
-    """Rolling Count
+class PCount(PRolling):
+    """PRolling PCount
 
     Parameters
     ----------
@@ -1133,11 +1064,11 @@ class Count(Rolling):
     """
 
     def __init__(self, feature, N):
-        super(Count, self).__init__(feature, N, "count")
+        super(PCount, self).__init__(feature, N, "count")
 
 
-class Delta(Rolling):
-    """Rolling Delta
+class PDelta(PRolling):
+    """PRolling PDelta
 
     Parameters
     ----------
@@ -1153,10 +1084,10 @@ class Delta(Rolling):
     """
 
     def __init__(self, feature, N):
-        super(Delta, self).__init__(feature, N, "delta")
+        super(PDelta, self).__init__(feature, N, "delta")
 
-    def _load_internal(self, instrument, start_index, end_index, freq):
-        series = self.feature.load(instrument, start_index, end_index, freq)
+    def load_period_data(self, instrument, start_offset, end_offset, cur_index):
+        series = self.feature.load_period_data(instrument, start_offset, end_offset, cur_index)
         if self.N == 0:
             series = series - series.iloc[0]
         else:
@@ -1165,9 +1096,9 @@ class Delta(Rolling):
 
 
 # TODO:
-# support pair-wise rolling like `Slope(A, B, N)`
-class Slope(Rolling):
-    """Rolling Slope
+# support pair-wise rolling like `PSlope(A, B, N)`
+class PSlope(PRolling):
+    """PRolling PSlope
 
     Parameters
     ----------
@@ -1183,10 +1114,10 @@ class Slope(Rolling):
     """
 
     def __init__(self, feature, N):
-        super(Slope, self).__init__(feature, N, "slope")
+        super(PSlope, self).__init__(feature, N, "slope")
 
-    def _load_internal(self, instrument, start_index, end_index, freq):
-        series = self.feature.load(instrument, start_index, end_index, freq)
+    def load_period_data(self, instrument, start_offset, end_offset, cur_index):
+        series = self.feature.load_period_data(instrument, start_offset, end_offset, cur_index)
         if self.N == 0:
             series = pd.Series(expanding_slope(series.values), index=series.index)
         else:
@@ -1194,8 +1125,8 @@ class Slope(Rolling):
         return series
 
 
-class Rsquare(Rolling):
-    """Rolling R-value Square
+class PRsquare(PRolling):
+    """PRolling R-value Square
 
     Parameters
     ----------
@@ -1211,10 +1142,10 @@ class Rsquare(Rolling):
     """
 
     def __init__(self, feature, N):
-        super(Rsquare, self).__init__(feature, N, "rsquare")
+        super(PRsquare, self).__init__(feature, N, "rsquare")
 
-    def _load_internal(self, instrument, start_index, end_index, freq):
-        _series = self.feature.load(instrument, start_index, end_index, freq)
+    def load_period_data(self, instrument, start_offset, end_offset, cur_index):
+        _series = self.feature.load_period_data(instrument, start_offset, end_offset, cur_index)
         if self.N == 0:
             series = pd.Series(expanding_rsquare(_series.values), index=_series.index)
         else:
@@ -1223,8 +1154,8 @@ class Rsquare(Rolling):
         return series
 
 
-class Resi(Rolling):
-    """Rolling Regression Residuals
+class PResi(PRolling):
+    """PRolling Regression Residuals
 
     Parameters
     ----------
@@ -1240,10 +1171,10 @@ class Resi(Rolling):
     """
 
     def __init__(self, feature, N):
-        super(Resi, self).__init__(feature, N, "resi")
+        super(PResi, self).__init__(feature, N, "resi")
 
-    def _load_internal(self, instrument, start_index, end_index, freq):
-        series = self.feature.load(instrument, start_index, end_index, freq)
+    def load_period_data(self, instrument, start_offset, end_offset, cur_index):
+        series = self.feature.load_period_data(instrument, start_offset, end_offset, cur_index)
         if self.N == 0:
             series = pd.Series(expanding_resi(series.values), index=series.index)
         else:
@@ -1251,8 +1182,8 @@ class Resi(Rolling):
         return series
 
 
-class WMA(Rolling):
-    """Rolling WMA
+class PWMA(PRolling):
+    """PRolling PWMA
 
     Parameters
     ----------
@@ -1268,10 +1199,10 @@ class WMA(Rolling):
     """
 
     def __init__(self, feature, N):
-        super(WMA, self).__init__(feature, N, "wma")
+        super(PWMA, self).__init__(feature, N, "wma")
 
-    def _load_internal(self, instrument, start_index, end_index, freq):
-        series = self.feature.load(instrument, start_index, end_index, freq)
+    def load_period_data(self, instrument, start_offset, end_offset, cur_index):
+        series = self.feature.load_period_data(instrument, start_offset, end_offset, cur_index)
         # TODO: implement in Cython
 
         def weighted_mean(x):
@@ -1286,8 +1217,8 @@ class WMA(Rolling):
         return series
 
 
-class EMA(Rolling):
-    """Rolling Exponential Mean (EMA)
+class PEMA(PRolling):
+    """PRolling Exponential PMean (PEMA)
 
     Parameters
     ----------
@@ -1303,10 +1234,10 @@ class EMA(Rolling):
     """
 
     def __init__(self, feature, N):
-        super(EMA, self).__init__(feature, N, "ema")
+        super(PEMA, self).__init__(feature, N, "ema")
 
-    def _load_internal(self, instrument, start_index, end_index, freq):
-        series = self.feature.load(instrument, start_index, end_index, freq)
+    def load_period_data(self, instrument, start_offset, end_offset, cur_index):
+        series = self.feature.load_period_data(instrument, start_offset, end_offset, cur_index)
 
         def exp_weighted_mean(x):
             a = 1 - 2 / (1 + len(x))
@@ -1323,9 +1254,9 @@ class EMA(Rolling):
         return series
 
 
-#################### Pair-Wise Rolling ####################
-class PairRolling(ExpressionOps):
-    """Pair Rolling Operator
+#################### Pair-Wise PRolling ####################
+class PairRolling(PExpressionOps):
+    """Pair PRolling Operator
 
     Parameters
     ----------
@@ -1351,20 +1282,20 @@ class PairRolling(ExpressionOps):
     def __str__(self):
         return "{}({},{},{})".format(type(self).__name__, self.feature_left, self.feature_right, self.N)
 
-    def _load_internal(self, instrument, start_index, end_index, freq):
-        series_left = self.feature_left.load(instrument, start_index, end_index, freq)
-        series_right = self.feature_right.load(instrument, start_index, end_index, freq)
+    def load_period_data(self, instrument, start_offset, end_offset, cur_index):
+        series_left = self.feature_left.load_period_data(instrument, start_offset, end_offset, cur_index)
+        series_right = self.feature_right.load_period_data(instrument, start_offset, end_offset, cur_index)
         if self.N == 0:
             series = getattr(series_left.expanding(min_periods=1), self.func)(series_right)
         else:
             series = getattr(series_left.rolling(self.N, min_periods=1), self.func)(series_right)
         return series
 
-    def get_longest_back_rolling(self):
+    def get_period_offset(self, cur_index):
         if self.N == 0:
             return np.inf
         return (
-            max(self.feature_left.get_longest_back_rolling(), self.feature_right.get_longest_back_rolling())
+            max(self.feature_left.get_period_offset(cur_index), self.feature_right.get_period_offset(cur_index))
             + self.N
             - 1
         )
@@ -1381,8 +1312,8 @@ class PairRolling(ExpressionOps):
             return max(ll, rl) + self.N - 1, max(lr, rr)
 
 
-class Corr(PairRolling):
-    """Rolling Correlation
+class PCorr(PairRolling):
+    """PRolling Correlation
 
     Parameters
     ----------
@@ -1400,14 +1331,14 @@ class Corr(PairRolling):
     """
 
     def __init__(self, feature_left, feature_right, N):
-        super(Corr, self).__init__(feature_left, feature_right, N, "corr")
+        super(PCorr, self).__init__(feature_left, feature_right, N, "corr")
 
-    def _load_internal(self, instrument, start_index, end_index, freq):
-        res = super(Corr, self)._load_internal(instrument, start_index, end_index, freq)
+    def load_period_data(self, instrument, start_offset, end_offset, cur_index):
+        res = super(PCorr, self)._load_internal(instrument, start_index, end_index, freq)
 
-        # NOTE: Load uses MemCache, so calling load again will not cause performance degradation
-        series_left = self.feature_left.load(instrument, start_index, end_index, freq)
-        series_right = self.feature_right.load(instrument, start_index, end_index, freq)
+        # NOTE: Load uses MemCache, so calling load_period_data again will not cause performance degradation
+        series_left = self.feature_left.load_period_data(instrument, start_offset, end_offset, cur_index)
+        series_right = self.feature_right.load_period_data(instrument, start_offset, end_offset, cur_index)
         res.loc[
             np.isclose(series_left.rolling(self.N, min_periods=1).std(), 0, atol=2e-05)
             | np.isclose(series_right.rolling(self.N, min_periods=1).std(), 0, atol=2e-05)
@@ -1415,8 +1346,8 @@ class Corr(PairRolling):
         return res
 
 
-class Cov(PairRolling):
-    """Rolling Covariance
+class PCov(PairRolling):
+    """PRolling Covariance
 
     Parameters
     ----------
@@ -1434,59 +1365,59 @@ class Cov(PairRolling):
     """
 
     def __init__(self, feature_left, feature_right, N):
-        super(Cov, self).__init__(feature_left, feature_right, N, "cov")
+        super(PCov, self).__init__(feature_left, feature_right, N, "cov")
 
 
 OpsList = [
-    Ref,
-    Max,
-    Min,
-    Sum,
-    Mean,
-    Std,
-    Var,
-    Skew,
-    Kurt,
-    Med,
-    Mad,
-    Slope,
-    Rsquare,
-    Resi,
-    Rank,
-    Quantile,
-    Count,
-    EMA,
-    WMA,
-    Corr,
-    Cov,
-    Delta,
-    Abs,
-    Sign,
-    Log,
-    Power,
-    Add,
-    Sub,
-    Mul,
-    Div,
-    Greater,
-    Less,
-    And,
-    Or,
-    Not,
-    Gt,
-    Ge,
-    Lt,
-    Le,
-    Eq,
-    Ne,
-    Mask,
-    IdxMax,
-    IdxMin,
-    If,
+    PRef,
+    PMax,
+    PMin,
+    PSum,
+    PMean,
+    PStd,
+    PVar,
+    PSkew,
+    PKurt,
+    PMed,
+    PMad,
+    PSlope,
+    PRsquare,
+    PResi,
+    PRank,
+    PQuantile,
+    PCount,
+    PEMA,
+    PWMA,
+    PCorr,
+    PCov,
+    PDelta,
+    PAbs,
+    PSign,
+    PLog,
+    PPower,
+    PAdd,
+    PSub,
+    PMul,
+    PDiv,
+    PGreater,
+    PLess,
+    PAnd,
+    POr,
+    PNot,
+    PGt,
+    PGe,
+    PLt,
+    PLe,
+    PEq,
+    PNe,
+    PMask,
+    PIdxMax,
+    PIdxMin,
+    PIf,
 ]
 
 
-def register_all_ops(C):
+def register_all_period_ops(C):
     """register all operator"""
     logger = get_module_logger("ops")
 
@@ -1495,6 +1426,6 @@ def register_all_ops(C):
     Operators.reset()
     Operators.register(OpsList)
 
-    if getattr(C, "custom_ops", None) is not None:
+    if getattr(C, "custom_period_ops", None) is not None:
         Operators.register(C.custom_ops)
-        logger.debug("register custom operator {}".format(C.custom_ops))
+        logger.debug("register custom period operator {}".format(C.custom_ops))
