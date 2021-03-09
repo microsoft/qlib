@@ -31,7 +31,6 @@ np.seterr(invalid="ignore")
 
 
 class PElemOperator(PExpressionOps):
-
     def __init__(self, feature):
         self.feature = feature
 
@@ -65,6 +64,7 @@ class PNpElemOperator(PElemOperator):
     def load_period_data(self, instrument, start_offset, end_offset, cur_index):
         series = self.feature.load_period_data(instrument, start_offset, end_offset, cur_index)
         return getattr(np, self.func)(series)
+
 
 class PAbs(PNpElemOperator):
     """Feature Absolute Value
@@ -179,7 +179,7 @@ class PMask(PNpElemOperator):
         return "{}({},{})".format(type(self).__name__, self.feature, self.instrument.lower())
 
     def load_period_data(self, instrument, start_offset, end_offset, cur_index):
-        
+
         return self.feature.load_period_data(self.instrument, start_offset, end_offset, cur_index)
 
 
@@ -240,6 +240,7 @@ class PPairOperator(PExpressionOps):
         else:
             right_br = 0
         return max(left_br, right_br)
+
 
 class PNpPairOperator(PPairOperator):
     """Numpy Pair-wise operator
@@ -613,7 +614,6 @@ class PIf(PExpressionOps):
         return max(left_br, right_br, c_br)
 
 
-
 #################### PRolling ####################
 # NOTE: methods like `rolling.mean` are optimized with cython,
 # and are super faster than `rolling.apply(np.mean)`
@@ -702,6 +702,7 @@ class PRef(PRolling):
         if self.N == 0:
             return np.inf
         return self.feature.get_period_offset(cur_index) + self.N
+
 
 class PMean(PRolling):
     """PRolling PMean (MA)

@@ -9,7 +9,6 @@ import abc
 import pandas as pd
 
 
-
 class Expression(abc.ABC):
     """Expression base class"""
 
@@ -341,7 +340,6 @@ class PExpression(abc.ABC):
 
         return POr(other, self)
 
-
     @abc.abstractmethod
     def load_period_data(self, instrument, start_offset, end_offset, cur_index):
         raise NotImplementedError("This function must be implemented in your newly defined feature")
@@ -359,15 +357,15 @@ class PExpression(abc.ABC):
             return H["f"][args]
         if start_index is None or end_index is None or start_index > end_index:
             raise ValueError("Invalid index range: {} {}".format(start_index, end_index))
-        
-        resample_series = pd.Series(index=pd.RangeIndex(start_index, end_index + 1), dtype='float32', name=str(self))
+
+        resample_series = pd.Series(index=pd.RangeIndex(start_index, end_index + 1), dtype="float32", name=str(self))
         for cur_index in range(start_index, end_index + 1):
             start_offset, end_offset = self.get_period_offset(cur_index)
             resample_data[cur_index] = self.load_period_data(instrument, start_offset, end_offset, cur_index).iloc[-1]
-        
+
         H["f"][args] = resample_series
         return resample_data
-    
+
     def get_longest_back_rolling(self):
         return 0
 
@@ -376,7 +374,6 @@ class PExpression(abc.ABC):
 
 
 class PFeature(PExpression):
-
     def __init__(self, name=None):
         if name:
             self._name = name.lower()
@@ -388,7 +385,7 @@ class PFeature(PExpression):
 
     def load_period_data(self, instrument, start_offset, end_offset, cur_index):
         ### Zhou Code
-        return pd.Series([1,2,3])
+        return pd.Series([1, 2, 3])
 
     def get_period_offset(self, cur_index):
         return 0
@@ -402,7 +399,8 @@ class PExpressionOps(PExpression):
     """
 
     pass
-    
+
+
 class OpsWrapper:
     """Ops Wrapper"""
 
