@@ -56,7 +56,7 @@ def read_bin(file_path, start_index, end_index):
     return series
 
 
-def read_period_interval_data(index_path, data_path, last_period, first_period, cur_index, quarterly):
+def read_period_interval_data(index_path, data_path, last_period, first_period, cur_date, quarterly):
 
     INDEX_DTYPE = "I"  # unsigned int32
     DATE_DTYPE = "I"
@@ -122,6 +122,7 @@ def read_period_interval_data(index_path, data_path, last_period, first_period, 
     for i, period in enumerate(period_list):
         value[i] = read_period_data(index_path, data_path, period, cur_date, quarterly)
     series = pd.Series(value, index=period_list, dtype=VALUE_DTYPE)
+
     return series
 
 

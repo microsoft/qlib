@@ -607,7 +607,7 @@ class PCov(PairRolling):
         super(PCov, self).__init__(feature_left, feature_right, N, "cov")
 
 
-OpsList = [
+PeriodOpsList = [
     PRef,
     PMax,
     PMin,
@@ -654,17 +654,3 @@ OpsList = [
     PIdxMin,
     PIf,
 ]
-
-
-def register_all_period_ops(C):
-    """register all operator"""
-    logger = get_module_logger("ops")
-
-    from .base import Operators
-
-    # Operators.reset()
-    Operators.register(OpsList)
-
-    if getattr(C, "custom_period_ops", None) is not None:
-        Operators.register(C.custom_ops)
-        logger.debug("register custom period operator {}".format(C.custom_ops))

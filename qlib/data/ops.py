@@ -292,7 +292,6 @@ class NpPairOperator(PairOperator):
         super(NpPairOperator, self).__init__(feature_left, feature_right)
 
     def _load_internal(self, instrument, start_index, end_index, freq):
-        print((self.feature_left, self.feature_right))
         assert any(
             [isinstance(self.feature_left, (Expression, PExpression)), self.feature_right, Expression]
         ), "at least one of two inputs is Expression instance"

@@ -7,6 +7,9 @@ from __future__ import print_function
 
 import abc
 import pandas as pd
+import numpy as np
+
+from ..log import get_module_logger
 
 
 class Expression(abc.ABC):
@@ -236,109 +239,214 @@ class PExpression(abc.ABC):
         return str(self)
 
     def __gt__(self, other):
-        from .ops_period import PGt
+        if isinstance(other, Expression):
+            from .ops import Gt
 
-        return PGt(self, other)
+            return Gt(self, other)
+        else:
+            from .ops_period import PGt
+
+            return PGt(self, other)
 
     def __ge__(self, other):
-        from .ops_period import PGe
+        if isinstance(other, Expression):
+            from .ops import Ge
 
-        return PGe(self, other)
+            return Ge(self, other)
+        else:
+            from .ops_period import PGe
+
+            return PGe(self, other)
 
     def __lt__(self, other):
-        from .ops_period import PLt
+        if isinstance(other, Expression):
+            from .ops import Lt
 
-        return PLt(self, other)
+            return Lt(self, other)
+        else:
+            from .ops_period import PLt
+
+            return PLt(self, other)
 
     def __le__(self, other):
-        from .ops_period import PLe
+        if isinstance(other, Expression):
+            from .ops import Le
 
-        return PLe(self, other)
+            return Le(self, other)
+        else:
+            from .ops_period import PLe
+
+            return PLe(self, other)
 
     def __eq__(self, other):
-        from .ops_period import PEq
+        if isinstance(other, Expression):
+            from .ops import Eq
 
-        return PEq(self, other)
+            return Eq(self, other)
+        else:
+            from .ops_period import PEq
+
+            return PEq(self, other)
 
     def __ne__(self, other):
-        from .ops_period import PNe
+        if isinstance(other, Expression):
+            from .ops import Ne
 
-        return PNe(self, other)
+            return Ne(self, other)
+        else:
+            from .ops_period import PNe
+
+            return PNe(self, other)
 
     def __add__(self, other):
-        from .ops_period import PAdd
+        if isinstance(other, Expression):
+            from .ops import Add
 
-        return PAdd(self, other)
+            return Add(self, other)
+        else:
+            from .ops_period import PAdd
+
+            return PAdd(self, other)
 
     def __radd__(self, other):
-        from .ops_period import PAdd
+        if isinstance(other, Expression):
+            from .ops import Add
 
-        return PAdd(other, self)
+            return Add(other, self)
+        else:
+            from .ops_period import PAdd
+
+            return PAdd(other, self)
 
     def __sub__(self, other):
-        from .ops_period import PSub
+        if isinstance(other, Expression):
+            from .ops import Sub
 
-        return PSub(self, other)
+            return Sub(self, other)
+        else:
+            from .ops_period import PSub
+
+            return PSub(self, other)
 
     def __rsub__(self, other):
-        from .ops_period import PSub
+        if isinstance(other, Expression):
+            from .ops import Sub
 
-        return PSub(other, self)
+            return Sub(other, self)
+        else:
+            from .ops_period import PSub
+
+            return PSub(other, self)
 
     def __mul__(self, other):
-        from .ops_period import PMul
+        if isinstance(other, Expression):
+            from .ops import Mul
 
-        return PMul(self, other)
+            return Mul(self, other)
+        else:
+            from .ops_period import PMul
+
+            return PMul(self, other)
 
     def __rmul__(self, other):
-        from .ops_period import PMul
+        if isinstance(other, Expression):
+            from .ops import Mul
 
-        return PMul(self, other)
+            return Mul(other, self)
+        else:
+            from .ops_period import PMul
+
+            return PMul(other, self)
 
     def __div__(self, other):
-        from .ops_period import PDiv
+        if isinstance(other, Expression):
+            from .ops import Div
 
-        return PDiv(self, other)
+            return Div(self, other)
+        else:
+            from .ops_period import PDiv
+
+            return PDiv(self, other)
 
     def __rdiv__(self, other):
-        from .ops_period import PDiv
+        if isinstance(other, Expression):
+            from .ops import Div
 
-        return PDiv(other, self)
+            return Div(other, self)
+        else:
+            from .ops_period import PDiv
+
+            return PDiv(other, self)
 
     def __truediv__(self, other):
-        from .ops_period import PDiv
+        if isinstance(other, Expression):
+            from .ops import Div
 
-        return PDiv(self, other)
+            return Div(self, other)
+        else:
+            from .ops_period import PDiv
+
+            return PDiv(self, other)
 
     def __rtruediv__(self, other):
-        from .ops_period import PDiv
+        if isinstance(other, Expression):
+            from .ops import Div
 
-        return PDiv(other, self)
+            return Div(other, self)
+        else:
+            from .ops_period import PDiv
+
+            return PDiv(other, self)
 
     def __pow__(self, other):
-        from .ops_period import PPower
+        if isinstance(other, Expression):
+            from .ops import Power
 
-        return PPower(self, other)
+            return Power(self, other)
+        else:
+            from .ops_period import PPower
+
+            return PPower(self, other)
 
     def __and__(self, other):
-        from .ops_period import PAnd
+        if isinstance(other, Expression):
+            from .ops import And
 
-        return PAnd(self, other)
+            return And(self, other)
+        else:
+            from .ops_period import PAnd
+
+            return PAnd(self, other)
 
     def __rand__(self, other):
-        from .ops_period import PAnd
+        if isinstance(other, Expression):
+            from .ops import And
 
-        return PAnd(other, self)
+            return And(other, self)
+        else:
+            from .ops_period import PAnd
+
+            return PAnd(other, self)
 
     def __or__(self, other):
-        from .ops_period import POr
+        if isinstance(other, Expression):
+            from .ops import Or
 
-        return POr(self, other)
+            return Or(self, other)
+        else:
+            from .ops_period import POr
+
+            return POr(self, other)
 
     def __ror__(self, other):
-        from .ops_period import POr
+        if isinstance(other, Expression):
+            from .ops import Or
 
-        return POr(other, self)
+            return Or(other, self)
+        else:
+            from .ops_period import POr
+
+            return POr(other, self)
 
     @abc.abstractmethod
     def load_period_data(self, instrument, start_offset, end_offset, cur_index):
@@ -358,11 +466,21 @@ class PExpression(abc.ABC):
         if start_index is None or end_index is None or start_index > end_index:
             raise ValueError("Invalid index range: {} {}".format(start_index, end_index))
 
-        resample_series = pd.Series(index=pd.RangeIndex(start_index, end_index + 1), dtype="float32", name=str(self))
-        for cur_index in range(start_index, end_index + 1):
-            start_offset = self.get_period_offset(cur_index)
-            resample_series[cur_index] = self.load_period_data(instrument, start_offset, 0, cur_index).iloc[-1]
+        from .data import Cal
 
+        _calendar = Cal.calendar(freq=freq)
+        resample_data = np.empty(end_index - start_index + 1, dtype="float32")
+
+        for cur_index in range(start_index, end_index + 1):
+            cur_date = _calendar[cur_index]
+            start_offset = self.get_period_offset(cur_index)
+            resample_data[cur_index - start_index] = self.load_period_data(instrument, start_offset, 0, cur_date).iloc[
+                -1
+            ]
+
+        resample_series = pd.Series(
+            resample_data, index=pd.RangeIndex(start_index, end_index + 1), dtype="float32", name=str(self)
+        )
         H["f"][args] = resample_series
         return resample_series
 
@@ -385,13 +503,13 @@ class PFeature(PExpression):
 
     def load_period_data(self, instrument, start_offset, end_offset, cur_index):
         ### Zhou Code
-        # from .data import FeatureD
+        from .data import FeatureD
 
-        # return FeatureD.period_feature(instrument, str(self), start_offset, end_offset, cur_index)
-        return pd.Series([1, 2, 3])  # fot test
+        return FeatureD.period_feature(instrument, str(self), start_offset, end_offset, cur_index)
+        # return pd.Series([1, 2, 3])  # fot test
 
     def get_period_offset(self, cur_index):
-        return 0, 0
+        return 0
 
 
 class PExpressionOps(PExpression):
@@ -431,3 +549,20 @@ class OpsWrapper:
 
 
 Operators = OpsWrapper()
+
+
+def register_all_ops(C):
+    """register all operator"""
+    logger = get_module_logger("base")
+
+    Operators.reset()
+
+    from .ops import OpsList
+    from .ops_period import PeriodOpsList
+
+    Operators.register(OpsList)
+    Operators.register(PeriodOpsList)
+
+    if getattr(C, "custom_ops", None) is not None:
+        Operators.register(C.custom_ops)
+        logger.debug("register custom period operator {}".format(C.custom_ops))

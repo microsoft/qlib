@@ -20,7 +20,7 @@ from multiprocessing import Pool
 from .cache import H
 from ..config import C
 from ..log import get_module_logger
-from ..utils import parse_field, read_bin, hash_args, normalize_cache_fields, code_to_fname
+from ..utils import parse_field, read_bin, hash_args, normalize_cache_fields, code_to_fname, read_period_interval_data
 from .base import Feature, PFeature, Operators
 from .cache import DiskDatasetCache, DiskExpressionCache
 from ..utils import Wrapper, init_instance_by_config, register_wrapper, get_module_by_module_path
@@ -653,7 +653,7 @@ class LocalFeatureProvider(FeatureProvider):
         series = read_bin(uri_data, start_index, end_index)
         return series
 
-    def period_feature(self, instrument, field, start_offset, end_offset, cur_index):
+    def period_feature(self, instrument, field, start_offset, end_offset, cur_date):
         DATA_RECORDS = [("date", "I"), ("period", "I"), ("value", "d"), ("_next", "I")]
 
         NA_VALUE = float("NAN")
@@ -663,18 +663,17 @@ class LocalFeatureProvider(FeatureProvider):
         if not field.startswith("q_") and not field.startswith("a_"):
             raise ValueError("period field must start with 'q_' or 'a_'")
         quarterly = field.startswith("q_")
-        index_path = sself._uri_period_index.format(instrument.lower(), field)
+        index_path = self._uri_period_index.format(instrument.lower(), field)
         data_path = self._uri_period_data.format(instrument.lower(), field)
-
-        data = np.fromfile(data_file, dtype=DATA_RECORDS)
+        data = np.fromfile(data_path, dtype=DATA_RECORDS)
         # find all revision periods before `cur_date`
+        cur_date = int(cur_date.year) * 10000 + int(cur_date.month) * 100 + int(cur_date.day)
         loc = np.searchsorted(data["date"], cur_date, side="left")
         if loc <= 0:
             return NA_VALUE
-        last_period = data["period"][loc - start_offset : loc - end_offset].max()  # return the latest quarter
-        first_period = data["period"][loc - start_offset : loc - end_offset].min()
-
-        series = read_period_interval_data(index_path, data_path, last_period, first_period, cur_index, quarterly)
+        last_period = data["period"][loc - start_offset - 1 : loc - end_offset].max()  # return the latest quarter
+        first_period = data["period"][loc - start_offset - 1 : loc - end_offset].min()
+        series = read_period_interval_data(index_path, data_path, last_period, first_period, cur_date, quarterly)
         return series
 
 
