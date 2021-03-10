@@ -137,13 +137,13 @@ class PNpPairOperator(PPairOperator):
 
     def load_period_data(self, instrument, start_offset, end_offset, cur_index):
         assert any(
-            [isinstance(self.feature_left, Expression), self.feature_right, Expression]
-        ), "at least one of two inputs is Expression instance"
-        if isinstance(self.feature_left, Expression):
+            [isinstance(self.feature_left, PExpression), self.feature_right, PExpression]
+        ), "at least one of two inputs is PExpression instance"
+        if isinstance(self.feature_left, PExpression):
             series_left = self.feature_left.load_period_data(instrument, start_offset, end_offset, cur_index)
         else:
             series_left = self.feature_left  # numeric value
-        if isinstance(self.feature_right, Expression):
+        if isinstance(self.feature_right, PExpression):
             series_right = self.feature_right.load_period_data(instrument, start_offset, end_offset, cur_index)
         else:
             series_right = self.feature_right
@@ -232,11 +232,11 @@ class PIf(PExpressionOps):
 
     def load_period_data(self, instrument, start_offset, end_offset, cur_index):
         series_cond = self.condition.load_period_data(instrument, start_offset, end_offset, cur_index)
-        if isinstance(self.feature_left, Expression):
+        if isinstance(self.feature_left, PExpression):
             series_left = self.feature_left.load_period_data(instrument, start_offset, end_offset, cur_index)
         else:
             series_left = self.feature_left
-        if isinstance(self.feature_right, Expression):
+        if isinstance(self.feature_right, PExpression):
             series_right = self.feature_right.load_period_data(instrument, start_offset, end_offset, cur_index)
         else:
             series_right = self.feature_right
@@ -244,17 +244,17 @@ class PIf(PExpressionOps):
         return series
 
     def get_period_offset(self, cur_index):
-        if isinstance(self.feature_left, Expression):
+        if isinstance(self.feature_left, PExpression):
             left_br = self.feature_left.get_period_offset(cur_index)
         else:
             left_br = 0
 
-        if isinstance(self.feature_right, Expression):
+        if isinstance(self.feature_right, PExpression):
             right_br = self.feature_right.get_period_offset(cur_index)
         else:
             right_br = 0
 
-        if isinstance(self.condition, Expression):
+        if isinstance(self.condition, PExpression):
             c_br = self.condition.get_period_offset(cur_index)
         else:
             c_br = 0
@@ -662,7 +662,7 @@ def register_all_period_ops(C):
 
     from .base import Operators
 
-    Operators.reset()
+    # Operators.reset()
     Operators.register(OpsList)
 
     if getattr(C, "custom_period_ops", None) is not None:

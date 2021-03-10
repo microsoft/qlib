@@ -12,7 +12,7 @@ import pandas as pd
 
 from scipy.stats import percentileofscore
 
-from .base import Expression, ExpressionOps
+from .base import Expression, PExpression, ExpressionOps
 from ..log import get_module_logger
 
 try:
@@ -245,24 +245,24 @@ class PairOperator(ExpressionOps):
         return "{}({},{})".format(type(self).__name__, self.feature_left, self.feature_right)
 
     def get_longest_back_rolling(self):
-        if isinstance(self.feature_left, Expression):
+        if isinstance(self.feature_left, (Expression, PExpression)):
             left_br = self.feature_left.get_longest_back_rolling()
         else:
             left_br = 0
 
-        if isinstance(self.feature_right, Expression):
+        if isinstance(self.feature_right, (Expression, PExpression)):
             right_br = self.feature_right.get_longest_back_rolling()
         else:
             right_br = 0
         return max(left_br, right_br)
 
     def get_extended_window_size(self):
-        if isinstance(self.feature_left, Expression):
+        if isinstance(self.feature_left, (Expression, PExpression)):
             ll, lr = self.feature_left.get_extended_window_size()
         else:
             ll, lr = 0, 0
 
-        if isinstance(self.feature_right, Expression):
+        if isinstance(self.feature_right, (Expression, PExpression)):
             rl, rr = self.feature_right.get_extended_window_size()
         else:
             rl, rr = 0, 0
@@ -292,14 +292,15 @@ class NpPairOperator(PairOperator):
         super(NpPairOperator, self).__init__(feature_left, feature_right)
 
     def _load_internal(self, instrument, start_index, end_index, freq):
+        print((self.feature_left, self.feature_right))
         assert any(
-            [isinstance(self.feature_left, Expression), self.feature_right, Expression]
+            [isinstance(self.feature_left, (Expression, PExpression)), self.feature_right, Expression]
         ), "at least one of two inputs is Expression instance"
-        if isinstance(self.feature_left, Expression):
+        if isinstance(self.feature_left, (Expression, PExpression)):
             series_left = self.feature_left.load(instrument, start_index, end_index, freq)
         else:
             series_left = self.feature_left  # numeric value
-        if isinstance(self.feature_right, Expression):
+        if isinstance(self.feature_right, (Expression, PExpression)):
             series_right = self.feature_right.load(instrument, start_index, end_index, freq)
         else:
             series_right = self.feature_right
@@ -610,11 +611,11 @@ class If(ExpressionOps):
 
     def _load_internal(self, instrument, start_index, end_index, freq):
         series_cond = self.condition.load(instrument, start_index, end_index, freq)
-        if isinstance(self.feature_left, Expression):
+        if isinstance(self.feature_left, (Expression, PExpression)):
             series_left = self.feature_left.load(instrument, start_index, end_index, freq)
         else:
             series_left = self.feature_left
-        if isinstance(self.feature_right, Expression):
+        if isinstance(self.feature_right, (Expression, PExpression)):
             series_right = self.feature_right.load(instrument, start_index, end_index, freq)
         else:
             series_right = self.feature_right
@@ -622,34 +623,34 @@ class If(ExpressionOps):
         return series
 
     def get_longest_back_rolling(self):
-        if isinstance(self.feature_left, Expression):
+        if isinstance(self.feature_left, (Expression, PExpression)):
             left_br = self.feature_left.get_longest_back_rolling()
         else:
             left_br = 0
 
-        if isinstance(self.feature_right, Expression):
+        if isinstance(self.feature_right, (Expression, PExpression)):
             right_br = self.feature_right.get_longest_back_rolling()
         else:
             right_br = 0
 
-        if isinstance(self.condition, Expression):
+        if isinstance(self.condition, (Expression, PExpression)):
             c_br = self.condition.get_longest_back_rolling()
         else:
             c_br = 0
         return max(left_br, right_br, c_br)
 
     def get_extended_window_size(self):
-        if isinstance(self.feature_left, Expression):
+        if isinstance(self.feature_left, (Expression, PExpression)):
             ll, lr = self.feature_left.get_extended_window_size()
         else:
             ll, lr = 0, 0
 
-        if isinstance(self.feature_right, Expression):
+        if isinstance(self.feature_right, (Expression, PExpression)):
             rl, rr = self.feature_right.get_extended_window_size()
         else:
             rl, rr = 0, 0
 
-        if isinstance(self.condition, Expression):
+        if isinstance(self.condition, (Expression, PExpression)):
             cl, cr = self.condition.get_extended_window_size()
         else:
             cl, cr = 0, 0
@@ -1492,7 +1493,7 @@ def register_all_ops(C):
 
     from .base import Operators
 
-    Operators.reset()
+    # Operators.reset()
     Operators.register(OpsList)
 
     if getattr(C, "custom_ops", None) is not None:
