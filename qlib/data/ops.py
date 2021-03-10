@@ -74,7 +74,6 @@ class NpElemOperator(ElemOperator):
     """
 
     def __init__(self, feature, func):
-        self.feature = feature
         self.func = func
         super(NpElemOperator, self).__init__(feature)
 
@@ -289,8 +288,6 @@ class NpPairOperator(PairOperator):
     """
 
     def __init__(self, feature_left, feature_right, func):
-        self.feature_left = feature_left
-        self.feature_right = feature_right
         self.func = func
         super(NpPairOperator, self).__init__(feature_left, feature_right)
 
