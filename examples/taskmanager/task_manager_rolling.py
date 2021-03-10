@@ -85,7 +85,7 @@ tm = TaskManager(task_pool=task_pool)
 tm.create_task(tasks) # all tasks will be saved to MongoDB
 
 from qlib.workflow.task.manage import run_task
-from qlib.workflow.task.collect import RollingCollector
+from qlib.workflow.task.collect import TaskCollector
 from qlib.model.trainer import task_train
 
 run_task(task_train, task_pool, experiment_name=exp_name) # all tasks will be trained using "task_train" method
@@ -93,7 +93,6 @@ run_task(task_train, task_pool, experiment_name=exp_name) # all tasks will be tr
 def get_task_key(task_config):
     task_key = task_config["task_key"]
     rolling_end_timestamp = task_config["dataset"]["kwargs"]["segments"]["test"][1]
-    #rolling_end_datatime = rolling_end_timestamp.to_pydatetime()
     return task_key, rolling_end_timestamp.strftime('%Y-%m-%d')
 
 def my_filter(task_config):
@@ -103,6 +102,6 @@ def my_filter(task_config):
         return True
     return False
 
-collector = RollingCollector(get_task_key, my_filter)
-pred_rolling = collector(exp_name) # name tasks by "get_task_key" and filter tasks by "my_filter"
-print(pred_rolling)
+# name tasks by "get_task_key" and filter tasks by "my_filter"
+pred_rolling = TaskCollector.collect_predictions(exp_name, get_task_key, my_filter) 
+pred_rolling

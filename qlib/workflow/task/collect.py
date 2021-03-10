@@ -1,7 +1,7 @@
 from qlib.workflow import R
 import pandas as pd
 from typing import Union
-from tqdm.auto import tqdm
+from qlib import get_module_logger
 
 
 class TaskCollector:
@@ -10,10 +10,8 @@ class TaskCollector:
     """
 
     @staticmethod
-    def collect(
-        experiment_name: str,
-        get_key_func,
-        filter_func=None,
+    def collect_predictions(
+        experiment_name: str, get_key_func, filter_func=None,
     ):
         """
 
@@ -34,8 +32,8 @@ class TaskCollector:
         recs = exp.list_recorders()
 
         recs_flt = {}
-        for rid, rec in tqdm(recs.items(), desc="Loading data"):
-            params = rec.load_object("param")
+        for rid, rec in recs.items():
+            params = rec.load_object("task.pkl")
             if rec.status == rec.STATUS_FI:
                 if filter_func is None or filter_func(params):
                     rec.params = params
@@ -57,6 +55,7 @@ class TaskCollector:
             pred = pd.concat(pred_l).sort_index()
             reduce_group[k] = pred
 
+        get_module_logger("TaskCollector").info(f"Collect {len(reduce_group)} predictions in {experiment_name}")
         return reduce_group
 
 
@@ -82,7 +81,7 @@ class RollingCollector:
 
         recs_flt = {}
         for rid, rec in tqdm(recs.items(), desc="Loading data"):
-            params = rec.load_object("param")
+            params = rec.load_object("task.pkl")
             if rec.status == rec.STATUS_FI:
                 if self.flt_func is None or self.flt_func(params):
                     rec.params = params
