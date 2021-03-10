@@ -182,7 +182,7 @@ class TabnetModel(Model):
 
         stop_steps = 0
         train_loss = 0
-        best_score = np.inf
+        best_score = -np.inf
         best_epoch = 0
         evals_result["train"] = []
         evals_result["valid"] = []
@@ -201,7 +201,7 @@ class TabnetModel(Model):
             evals_result["train"].append(train_score)
             evals_result["valid"].append(val_score)
 
-            if val_score < best_score:
+            if val_score > best_score:
                 best_score = val_score
                 stop_steps = 0
                 best_epoch = epoch_idx
