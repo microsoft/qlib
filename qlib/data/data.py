@@ -632,6 +632,14 @@ class LocalFeatureProvider(FeatureProvider):
         """Static feature file uri."""
         return os.path.join(C.get_data_path(), "features", "{}", "{}.{}.bin")
 
+    @property
+    def _uri_period_index(self):
+        return os.path.join(C.get_data_path(), "financial", "{}", "{}.index")
+
+    @property
+    def _uri_period_data(self):
+        return os.path.join(C.get_data_path(), "financial", "{}", "{}.data")
+
     def feature(self, instrument, field, start_index, end_index, freq):
         # validate
         field = str(field).lower()[1:]
@@ -643,6 +651,30 @@ class LocalFeatureProvider(FeatureProvider):
             # raise ValueError('uri_data not found: ' + uri_data)
         # load
         series = read_bin(uri_data, start_index, end_index)
+        return series
+
+    def period_feature(self, instrument, field, start_offset, end_offset, cur_index):
+        DATA_RECORDS = [("date", "I"), ("period", "I"), ("value", "d"), ("_next", "I")]
+
+        NA_VALUE = float("NAN")
+
+        field = str(field).lower()[2:]
+        instrument = code_to_fname(instrument)
+        if not field.startswith("q_") and not field.startswith("a_"):
+            raise ValueError("period field must start with 'q_' or 'a_'")
+        quarterly = field.startswith("q_")
+        index_path = sself._uri_period_index.format(instrument.lower(), field)
+        data_path = self._uri_period_data.format(instrument.lower(), field)
+
+        data = np.fromfile(data_file, dtype=DATA_RECORDS)
+        # find all revision periods before `cur_date`
+        loc = np.searchsorted(data["date"], cur_date, side="left")
+        if loc <= 0:
+            return NA_VALUE
+        last_period = data["period"][loc - start_offset : loc - end_offset].max()  # return the latest quarter
+        first_period = data["period"][loc - start_offset : loc - end_offset].min()
+
+        series = read_period_interval_data(index_path, data_path, last_period, first_period, cur_index, quarterly)
         return series
 
 

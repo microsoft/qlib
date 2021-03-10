@@ -42,21 +42,6 @@ class PElemOperator(PExpressionOps):
 
 
 class PNpElemOperator(PElemOperator):
-    """Numpy Element-wise Operator
-
-    Parameters
-    ----------
-    feature : Expression
-        feature instance
-    func : str
-        numpy feature operation method
-
-    Returns
-    ----------
-    Expression
-        feature operation output
-    """
-
     def __init__(self, feature, func):
         self.func = func
         super(PNpElemOperator, self).__init__(feature)
@@ -67,37 +52,11 @@ class PNpElemOperator(PElemOperator):
 
 
 class PAbs(PNpElemOperator):
-    """Feature Absolute Value
-
-    Parameters
-    ----------
-    feature : Expression
-        feature instance
-
-    Returns
-    ----------
-    Expression
-        a feature instance with absolute output
-    """
-
     def __init__(self, feature):
         super(PAbs, self).__init__(feature, "abs")
 
 
 class PSign(PNpElemOperator):
-    """Feature PSign
-
-    Parameters
-    ----------
-    feature : Expression
-        feature instance
-
-    Returns
-    ----------
-    Expression
-        a feature instance with sign
-    """
-
     def __init__(self, feature):
         super(PSign, self).__init__(feature, "sign")
 
@@ -112,37 +71,11 @@ class PSign(PNpElemOperator):
 
 
 class PLog(PNpElemOperator):
-    """Feature PLog
-
-    Parameters
-    ----------
-    feature : Expression
-        feature instance
-
-    Returns
-    ----------
-    Expression
-        a feature instance with log
-    """
-
     def __init__(self, feature):
         super(PLog, self).__init__(feature, "log")
 
 
 class PPower(PNpElemOperator):
-    """Feature PPower
-
-    Parameters
-    ----------
-    feature : Expression
-        feature instance
-
-    Returns
-    ----------
-    Expression
-        a feature instance with power
-    """
-
     def __init__(self, feature, exponent):
         super(PPower, self).__init__(feature, "power")
         self.exponent = exponent
@@ -156,21 +89,6 @@ class PPower(PNpElemOperator):
 
 
 class PMask(PNpElemOperator):
-    """Feature PMask
-
-    Parameters
-    ----------
-    feature : Expression
-        feature instance
-    instrument : str
-        instrument mask
-
-    Returns
-    ----------
-    Expression
-        a feature instance with masked instrument
-    """
-
     def __init__(self, feature, instrument):
         super(PMask, self).__init__(feature, "mask")
         self.instrument = instrument
@@ -184,44 +102,12 @@ class PMask(PNpElemOperator):
 
 
 class PNot(PNpElemOperator):
-    """PNot Operator
-
-    Parameters
-    ----------
-    feature_left : Expression
-        feature instance
-    feature_right : Expression
-        feature instance
-
-    Returns
-    ----------
-    Feature:
-        feature elementwise not output
-    """
-
     def __init__(self, feature):
         super(PNot, self).__init__(feature, "bitwise_not")
 
 
 #################### Pair-Wise Operator ####################
 class PPairOperator(PExpressionOps):
-    """Pair-wise operator
-
-    Parameters
-    ----------
-    feature_left : Expression
-        feature instance or numeric value
-    feature_right : Expression
-        feature instance or numeric value
-    func : str
-        operator function
-
-    Returns
-    ----------
-    Feature:
-        two features' operation output
-    """
-
     def __init__(self, feature_left, feature_right):
         self.feature_left = feature_left
         self.feature_right = feature_right
@@ -243,23 +129,6 @@ class PPairOperator(PExpressionOps):
 
 
 class PNpPairOperator(PPairOperator):
-    """Numpy Pair-wise operator
-
-    Parameters
-    ----------
-    feature_left : Expression
-        feature instance or numeric value
-    feature_right : Expression
-        feature instance or numeric value
-    func : str
-        operator function
-
-    Returns
-    ----------
-    Feature:
-        two features' operation output
-    """
-
     def __init__(self, feature_left, feature_right, func):
         self.feature_left = feature_left
         self.feature_right = feature_right
@@ -282,299 +151,77 @@ class PNpPairOperator(PPairOperator):
 
 
 class PAdd(PNpPairOperator):
-    """PAdd Operator
-
-    Parameters
-    ----------
-    feature_left : Expression
-        feature instance
-    feature_right : Expression
-        feature instance
-
-    Returns
-    ----------
-    Feature:
-        two features' sum
-    """
-
     def __init__(self, feature_left, feature_right):
         super(PAdd, self).__init__(feature_left, feature_right, "add")
 
 
 class PSub(PNpPairOperator):
-    """Subtract Operator
-
-    Parameters
-    ----------
-    feature_left : Expression
-        feature instance
-    feature_right : Expression
-        feature instance
-
-    Returns
-    ----------
-    Feature:
-        two features' subtraction
-    """
-
     def __init__(self, feature_left, feature_right):
         super(PSub, self).__init__(feature_left, feature_right, "subtract")
 
 
 class PMul(PNpPairOperator):
-    """Multiply Operator
-
-    Parameters
-    ----------
-    feature_left : Expression
-        feature instance
-    feature_right : Expression
-        feature instance
-
-    Returns
-    ----------
-    Feature:
-        two features' product
-    """
-
     def __init__(self, feature_left, feature_right):
         super(PMul, self).__init__(feature_left, feature_right, "multiply")
 
 
 class PDiv(PNpPairOperator):
-    """Division Operator
-
-    Parameters
-    ----------
-    feature_left : Expression
-        feature instance
-    feature_right : Expression
-        feature instance
-
-    Returns
-    ----------
-    Feature:
-        two features' division
-    """
-
     def __init__(self, feature_left, feature_right):
         super(PDiv, self).__init__(feature_left, feature_right, "divide")
 
 
 class PGreater(PNpPairOperator):
-    """PGreater Operator
-
-    Parameters
-    ----------
-    feature_left : Expression
-        feature instance
-    feature_right : Expression
-        feature instance
-
-    Returns
-    ----------
-    Feature:
-        greater elements taken from the input two features
-    """
-
     def __init__(self, feature_left, feature_right):
         super(PGreater, self).__init__(feature_left, feature_right, "maximum")
 
 
 class PLess(PNpPairOperator):
-    """PLess Operator
-
-    Parameters
-    ----------
-    feature_left : Expression
-        feature instance
-    feature_right : Expression
-        feature instance
-
-    Returns
-    ----------
-    Feature:
-        smaller elements taken from the input two features
-    """
-
     def __init__(self, feature_left, feature_right):
         super(PLess, self).__init__(feature_left, feature_right, "minimum")
 
 
 class PGt(PNpPairOperator):
-    """PGreater Than Operator
-
-    Parameters
-    ----------
-    feature_left : Expression
-        feature instance
-    feature_right : Expression
-        feature instance
-
-    Returns
-    ----------
-    Feature:
-        bool series indicate `left > right`
-    """
-
     def __init__(self, feature_left, feature_right):
         super(PGt, self).__init__(feature_left, feature_right, "greater")
 
 
 class PGe(PNpPairOperator):
-    """PGreater Equal Than Operator
-
-    Parameters
-    ----------
-    feature_left : Expression
-        feature instance
-    feature_right : Expression
-        feature instance
-
-    Returns
-    ----------
-    Feature:
-        bool series indicate `left >= right`
-    """
-
     def __init__(self, feature_left, feature_right):
         super(PGe, self).__init__(feature_left, feature_right, "greater_equal")
 
 
 class PLt(PNpPairOperator):
-    """PLess Than Operator
-
-    Parameters
-    ----------
-    feature_left : Expression
-        feature instance
-    feature_right : Expression
-        feature instance
-
-    Returns
-    ----------
-    Feature:
-        bool series indicate `left < right`
-    """
-
     def __init__(self, feature_left, feature_right):
         super(PLt, self).__init__(feature_left, feature_right, "less")
 
 
 class PLe(PNpPairOperator):
-    """PLess Equal Than Operator
-
-    Parameters
-    ----------
-    feature_left : Expression
-        feature instance
-    feature_right : Expression
-        feature instance
-
-    Returns
-    ----------
-    Feature:
-        bool series indicate `left <= right`
-    """
-
     def __init__(self, feature_left, feature_right):
         super(PLe, self).__init__(feature_left, feature_right, "less_equal")
 
 
 class PEq(PNpPairOperator):
-    """Equal Operator
-
-    Parameters
-    ----------
-    feature_left : Expression
-        feature instance
-    feature_right : Expression
-        feature instance
-
-    Returns
-    ----------
-    Feature:
-        bool series indicate `left == right`
-    """
-
     def __init__(self, feature_left, feature_right):
         super(PEq, self).__init__(feature_left, feature_right, "equal")
 
 
 class PNe(PNpPairOperator):
-    """PNot Equal Operator
-
-    Parameters
-    ----------
-    feature_left : Expression
-        feature instance
-    feature_right : Expression
-        feature instance
-
-    Returns
-    ----------
-    Feature:
-        bool series indicate `left != right`
-    """
-
     def __init__(self, feature_left, feature_right):
         super(PNe, self).__init__(feature_left, feature_right, "not_equal")
 
 
 class PAnd(PNpPairOperator):
-    """PAnd Operator
-
-    Parameters
-    ----------
-    feature_left : Expression
-        feature instance
-    feature_right : Expression
-        feature instance
-
-    Returns
-    ----------
-    Feature:
-        two features' row by row & output
-    """
-
     def __init__(self, feature_left, feature_right):
         super(PAnd, self).__init__(feature_left, feature_right, "bitwise_and")
 
 
 class POr(PNpPairOperator):
-    """POr Operator
-
-    Parameters
-    ----------
-    feature_left : Expression
-        feature instance
-    feature_right : Expression
-        feature instance
-
-    Returns
-    ----------
-    Feature:
-        two features' row by row | outputs
-    """
-
     def __init__(self, feature_left, feature_right):
         super(POr, self).__init__(feature_left, feature_right, "bitwise_or")
 
 
 #################### Triple-wise Operator ####################
 class PIf(PExpressionOps):
-    """PIf Operator
-
-    Parameters
-    ----------
-    condition : Expression
-        feature instance with bool values as condition
-    feature_left : Expression
-        feature instance
-    feature_right : Expression
-        feature instance
-    """
-
     def __init__(self, condition, feature_left, feature_right):
         self.condition = condition
         self.feature_left = feature_left
@@ -620,23 +267,6 @@ class PIf(PExpressionOps):
 
 
 class PRolling(PExpressionOps):
-    """PRolling Operator
-
-    Parameters
-    ----------
-    feature : Expression
-        feature instance
-    N : int
-        rolling window size
-    func : str
-        rolling method
-
-    Returns
-    ----------
-    Expression
-        rolling outputs
-    """
-
     def __init__(self, feature, N, func):
         self.feature = feature
         self.N = N
@@ -669,21 +299,6 @@ class PRolling(PExpressionOps):
 
 
 class PRef(PRolling):
-    """Feature Reference
-
-    Parameters
-    ----------
-    feature : Expression
-        feature instance
-    N : int
-        N = 0, retrieve the first data; N > 0, retrieve data of N periods ago; N < 0, future data
-
-    Returns
-    ----------
-    Expression
-        a feature instance with target reference
-    """
-
     def __init__(self, feature, N):
         super(PRef, self).__init__(feature, N, "ref")
 
@@ -705,101 +320,26 @@ class PRef(PRolling):
 
 
 class PMean(PRolling):
-    """PRolling PMean (MA)
-
-    Parameters
-    ----------
-    feature : Expression
-        feature instance
-    N : int
-        rolling window size
-
-    Returns
-    ----------
-    Expression
-        a feature instance with rolling average
-    """
-
     def __init__(self, feature, N):
         super(PMean, self).__init__(feature, N, "mean")
 
 
 class PSum(PRolling):
-    """PRolling PSum
-
-    Parameters
-    ----------
-    feature : Expression
-        feature instance
-    N : int
-        rolling window size
-
-    Returns
-    ----------
-    Expression
-        a feature instance with rolling sum
-    """
-
     def __init__(self, feature, N):
         super(PSum, self).__init__(feature, N, "sum")
 
 
 class PStd(PRolling):
-    """PRolling PStd
-
-    Parameters
-    ----------
-    feature : Expression
-        feature instance
-    N : int
-        rolling window size
-
-    Returns
-    ----------
-    Expression
-        a feature instance with rolling std
-    """
-
     def __init__(self, feature, N):
         super(PStd, self).__init__(feature, N, "std")
 
 
 class PVar(PRolling):
-    """PRolling Variance
-
-    Parameters
-    ----------
-    feature : Expression
-        feature instance
-    N : int
-        rolling window size
-
-    Returns
-    ----------
-    Expression
-        a feature instance with rolling variance
-    """
-
     def __init__(self, feature, N):
         super(PVar, self).__init__(feature, N, "var")
 
 
 class PSkew(PRolling):
-    """PRolling Skewness
-
-    Parameters
-    ----------
-    feature : Expression
-        feature instance
-    N : int
-        rolling window size
-
-    Returns
-    ----------
-    Expression
-        a feature instance with rolling skewness
-    """
-
     def __init__(self, feature, N):
         if N != 0 and N < 3:
             raise ValueError("The rolling window size of Skewness operation should >= 3")
@@ -807,21 +347,6 @@ class PSkew(PRolling):
 
 
 class PKurt(PRolling):
-    """PRolling Kurtosis
-
-    Parameters
-    ----------
-    feature : Expression
-        feature instance
-    N : int
-        rolling window size
-
-    Returns
-    ----------
-    Expression
-        a feature instance with rolling kurtosis
-    """
-
     def __init__(self, feature, N):
         if N != 0 and N < 4:
             raise ValueError("The rolling window size of Kurtosis operation should >= 5")
@@ -829,41 +354,11 @@ class PKurt(PRolling):
 
 
 class PMax(PRolling):
-    """PRolling PMax
-
-    Parameters
-    ----------
-    feature : Expression
-        feature instance
-    N : int
-        rolling window size
-
-    Returns
-    ----------
-    Expression
-        a feature instance with rolling max
-    """
-
     def __init__(self, feature, N):
         super(PMax, self).__init__(feature, N, "max")
 
 
 class PIdxMax(PRolling):
-    """PRolling PMax Index
-
-    Parameters
-    ----------
-    feature : Expression
-        feature instance
-    N : int
-        rolling window size
-
-    Returns
-    ----------
-    Expression
-        a feature instance with rolling max index
-    """
-
     def __init__(self, feature, N):
         super(PIdxMax, self).__init__(feature, N, "idxmax")
 
@@ -877,41 +372,11 @@ class PIdxMax(PRolling):
 
 
 class PMin(PRolling):
-    """PRolling PMin
-
-    Parameters
-    ----------
-    feature : Expression
-        feature instance
-    N : int
-        rolling window size
-
-    Returns
-    ----------
-    Expression
-        a feature instance with rolling min
-    """
-
     def __init__(self, feature, N):
         super(PMin, self).__init__(feature, N, "min")
 
 
 class PIdxMin(PRolling):
-    """PRolling PMin Index
-
-    Parameters
-    ----------
-    feature : Expression
-        feature instance
-    N : int
-        rolling window size
-
-    Returns
-    ----------
-    Expression
-        a feature instance with rolling min index
-    """
-
     def __init__(self, feature, N):
         super(PIdxMin, self).__init__(feature, N, "idxmin")
 
@@ -925,21 +390,6 @@ class PIdxMin(PRolling):
 
 
 class PQuantile(PRolling):
-    """PRolling PQuantile
-
-    Parameters
-    ----------
-    feature : Expression
-        feature instance
-    N : int
-        rolling window size
-
-    Returns
-    ----------
-    Expression
-        a feature instance with rolling quantile
-    """
-
     def __init__(self, feature, N, qscore):
         super(PQuantile, self).__init__(feature, N, "quantile")
         self.qscore = qscore
@@ -957,41 +407,11 @@ class PQuantile(PRolling):
 
 
 class PMed(PRolling):
-    """PRolling Median
-
-    Parameters
-    ----------
-    feature : Expression
-        feature instance
-    N : int
-        rolling window size
-
-    Returns
-    ----------
-    Expression
-        a feature instance with rolling median
-    """
-
     def __init__(self, feature, N):
         super(PMed, self).__init__(feature, N, "median")
 
 
 class PMad(PRolling):
-    """PRolling PMean Absolute Deviation
-
-    Parameters
-    ----------
-    feature : Expression
-        feature instance
-    N : int
-        rolling window size
-
-    Returns
-    ----------
-    Expression
-        a feature instance with rolling mean absolute deviation
-    """
-
     def __init__(self, feature, N):
         super(PMad, self).__init__(feature, N, "mad")
 
@@ -1011,21 +431,6 @@ class PMad(PRolling):
 
 
 class PRank(PRolling):
-    """PRolling PRank (Percentile)
-
-    Parameters
-    ----------
-    feature : Expression
-        feature instance
-    N : int
-        rolling window size
-
-    Returns
-    ----------
-    Expression
-        a feature instance with rolling rank
-    """
-
     def __init__(self, feature, N):
         super(PRank, self).__init__(feature, N, "rank")
 
@@ -1049,41 +454,11 @@ class PRank(PRolling):
 
 
 class PCount(PRolling):
-    """PRolling PCount
-
-    Parameters
-    ----------
-    feature : Expression
-        feature instance
-    N : int
-        rolling window size
-
-    Returns
-    ----------
-    Expression
-        a feature instance with rolling count of number of non-NaN elements
-    """
-
     def __init__(self, feature, N):
         super(PCount, self).__init__(feature, N, "count")
 
 
 class PDelta(PRolling):
-    """PRolling PDelta
-
-    Parameters
-    ----------
-    feature : Expression
-        feature instance
-    N : int
-        rolling window size
-
-    Returns
-    ----------
-    Expression
-        a feature instance with end minus start in rolling window
-    """
-
     def __init__(self, feature, N):
         super(PDelta, self).__init__(feature, N, "delta")
 
@@ -1099,21 +474,6 @@ class PDelta(PRolling):
 # TODO:
 # support pair-wise rolling like `PSlope(A, B, N)`
 class PSlope(PRolling):
-    """PRolling PSlope
-
-    Parameters
-    ----------
-    feature : Expression
-        feature instance
-    N : int
-        rolling window size
-
-    Returns
-    ----------
-    Expression
-        a feature instance with linear regression slope of given window
-    """
-
     def __init__(self, feature, N):
         super(PSlope, self).__init__(feature, N, "slope")
 
@@ -1127,21 +487,6 @@ class PSlope(PRolling):
 
 
 class PRsquare(PRolling):
-    """PRolling R-value Square
-
-    Parameters
-    ----------
-    feature : Expression
-        feature instance
-    N : int
-        rolling window size
-
-    Returns
-    ----------
-    Expression
-        a feature instance with linear regression r-value square of given window
-    """
-
     def __init__(self, feature, N):
         super(PRsquare, self).__init__(feature, N, "rsquare")
 
@@ -1156,21 +501,6 @@ class PRsquare(PRolling):
 
 
 class PResi(PRolling):
-    """PRolling Regression Residuals
-
-    Parameters
-    ----------
-    feature : Expression
-        feature instance
-    N : int
-        rolling window size
-
-    Returns
-    ----------
-    Expression
-        a feature instance with regression residuals of given window
-    """
-
     def __init__(self, feature, N):
         super(PResi, self).__init__(feature, N, "resi")
 
@@ -1184,21 +514,6 @@ class PResi(PRolling):
 
 
 class PWMA(PRolling):
-    """PRolling PWMA
-
-    Parameters
-    ----------
-    feature : Expression
-        feature instance
-    N : int
-        rolling window size
-
-    Returns
-    ----------
-    Expression
-        a feature instance with weighted moving average output
-    """
-
     def __init__(self, feature, N):
         super(PWMA, self).__init__(feature, N, "wma")
 
@@ -1219,21 +534,6 @@ class PWMA(PRolling):
 
 
 class PEMA(PRolling):
-    """PRolling Exponential PMean (PEMA)
-
-    Parameters
-    ----------
-    feature : Expression
-        feature instance
-    N : int, float
-        rolling window size
-
-    Returns
-    ----------
-    Expression
-        a feature instance with regression r-value square of given window
-    """
-
     def __init__(self, feature, N):
         super(PEMA, self).__init__(feature, N, "ema")
 
@@ -1257,23 +557,6 @@ class PEMA(PRolling):
 
 #################### Pair-Wise PRolling ####################
 class PairRolling(PExpressionOps):
-    """Pair PRolling Operator
-
-    Parameters
-    ----------
-    feature_left : Expression
-        feature instance
-    feature_right : Expression
-        feature instance
-    N : int
-        rolling window size
-
-    Returns
-    ----------
-    Expression
-        a feature instance with rolling output of two input features
-    """
-
     def __init__(self, feature_left, feature_right, N, func):
         self.feature_left = feature_left
         self.feature_right = feature_right
@@ -1301,36 +584,8 @@ class PairRolling(PExpressionOps):
             - 1
         )
 
-    def get_extended_window_size(self):
-        if self.N == 0:
-            get_module_logger(self.__class__.__name__).warning(
-                "The PairRolling(ATTR, 0) will not be accurately calculated"
-            )
-            return self.feature.get_extended_window_size()
-        else:
-            ll, lr = self.feature_left.get_extended_window_size()
-            rl, rr = self.feature_right.get_extended_window_size()
-            return max(ll, rl) + self.N - 1, max(lr, rr)
-
 
 class PCorr(PairRolling):
-    """PRolling Correlation
-
-    Parameters
-    ----------
-    feature_left : Expression
-        feature instance
-    feature_right : Expression
-        feature instance
-    N : int
-        rolling window size
-
-    Returns
-    ----------
-    Expression
-        a feature instance with rolling correlation of two input features
-    """
-
     def __init__(self, feature_left, feature_right, N):
         super(PCorr, self).__init__(feature_left, feature_right, N, "corr")
 
@@ -1348,23 +603,6 @@ class PCorr(PairRolling):
 
 
 class PCov(PairRolling):
-    """PRolling Covariance
-
-    Parameters
-    ----------
-    feature_left : Expression
-        feature instance
-    feature_right : Expression
-        feature instance
-    N : int
-        rolling window size
-
-    Returns
-    ----------
-    Expression
-        a feature instance with rolling max of two input features
-    """
-
     def __init__(self, feature_left, feature_right, N):
         super(PCov, self).__init__(feature_left, feature_right, N, "cov")
 

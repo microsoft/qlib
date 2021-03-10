@@ -360,8 +360,8 @@ class PExpression(abc.ABC):
 
         resample_series = pd.Series(index=pd.RangeIndex(start_index, end_index + 1), dtype="float32", name=str(self))
         for cur_index in range(start_index, end_index + 1):
-            start_offset, end_offset = self.get_period_offset(cur_index)
-            resample_data[cur_index] = self.load_period_data(instrument, start_offset, end_offset, cur_index).iloc[-1]
+            start_offset = self.get_period_offset(cur_index)
+            resample_data[cur_index] = self.load_period_data(instrument, start_offset, 0, cur_index).iloc[-1]
 
         H["f"][args] = resample_series
         return resample_data
@@ -381,14 +381,17 @@ class PFeature(PExpression):
             self._name = type(self).__name__.lower()
 
     def __str__(self):
-        return "$" + self._name
+        return "$$" + self._name
 
     def load_period_data(self, instrument, start_offset, end_offset, cur_index):
         ### Zhou Code
-        return pd.Series([1, 2, 3])
+        from .data import FeatureD
+
+        return FeatureD.period_feature(instrument, str(self), start_offset, end_offset, cur_index)
+        # return pd.Series([1, 2, 3]) # fot test
 
     def get_period_offset(self, cur_index):
-        return 0
+        return 0, 0
 
 
 class PExpressionOps(PExpression):
