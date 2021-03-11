@@ -6,7 +6,7 @@ import pandas as pd
 from qlib.utils import init_instance_by_config
 from qlib import get_module_logger
 from qlib.workflow import R
-
+from qlib.model.trainer import task_train
 
 class ModelUpdater:
     """
@@ -136,7 +136,7 @@ class ModelUpdater:
 
     def online_filter(self, record):
         tags = record.list_tags()
-        if tags[self.ONLINE_TAG] == self.ONLINE_TAG_TRUE:
+        if tags.get(self.ONLINE_TAG, self.ONLINE_TAG_FALSE) == self.ONLINE_TAG_TRUE:
             return True
         return False
 
@@ -146,6 +146,13 @@ class ModelUpdater:
         self.logger.info(f"Finish updating {cnt} online model predictions of {self.exp_name}.")
 
     def list_online_model(self):
+        """list the record of online model
+
+        Returns
+        -------
+        dict
+            {rid : record of the online model}
+        """
         recs = self.exp.list_recorders()
         online_rec = {}
         for rid, rec in recs.items():

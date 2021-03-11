@@ -363,7 +363,3 @@ def run_task(task_func, task_pool, force_release=False, *args, **kwargs):
 
     return ever_run
 
-
-if __name__ == "__main__":
-    auto_init()
-    Fire(TaskManager)
