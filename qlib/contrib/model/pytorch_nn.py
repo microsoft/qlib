@@ -19,7 +19,7 @@ from .pytorch_utils import count_parameters
 from ...model.base import Model
 from ...data.dataset import DatasetH
 from ...data.dataset.handler import DataHandlerLP
-from ...utils import unpack_archive_with_buffer, save_multiple_parts_file, create_save_path, drop_nan_by_y_index
+from ...utils import unpack_archive_with_buffer, save_multiple_parts_file, get_or_create_path, drop_nan_by_y_index
 from ...log import get_module_logger, TimeInspector
 from ...workflow import R
 
@@ -176,7 +176,7 @@ class DNNModelPytorch(Model):
             w_train = pd.DataFrame(np.ones_like(y_train.values), index=y_train.index)
             w_valid = pd.DataFrame(np.ones_like(y_valid.values), index=y_valid.index)
 
-        save_path = create_save_path(save_path)
+        save_path = get_or_create_path(save_path)
         stop_steps = 0
         train_loss = 0
         best_loss = np.inf

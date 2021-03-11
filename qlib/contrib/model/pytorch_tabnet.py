@@ -12,7 +12,7 @@ import logging
 from ...utils import (
     unpack_archive_with_buffer,
     save_multiple_parts_file,
-    create_save_path,
+    get_or_create_path,
     drop_nan_by_y_index,
 )
 from ...log import get_module_logger, TimeInspector
@@ -117,10 +117,7 @@ class TabnetModel(Model):
             raise NotImplementedError("optimizer {} is not supported!".format(optimizer))
 
     def pretrain_fn(self, dataset=DatasetH, pretrain_file="./pretrain/best.model"):
-        # make a directory if pretrian director does not exist
-        if pretrain_file.startswith("./pretrain") and not os.path.exists("pretrain"):
-            self.logger.info("make folder to store model...")
-            os.makedirs("pretrain")
+        get_or_create_path(pretrain_file)
 
         [df_train, df_valid] = dataset.prepare(
             ["pretrain", "pretrain_validation"],
@@ -181,6 +178,7 @@ class TabnetModel(Model):
         df_train.fillna(df_train.mean(), inplace=True)
         x_train, y_train = df_train["feature"], df_train["label"]
         x_valid, y_valid = df_valid["feature"], df_valid["label"]
+        save_path = get_or_create_path(save_path)
 
         stop_steps = 0
         train_loss = 0
@@ -207,12 +205,16 @@ class TabnetModel(Model):
                 best_score = val_score
                 stop_steps = 0
                 best_epoch = epoch_idx
+                best_param = copy.deepcopy(self.tabnet_model.state_dict())
             else:
                 stop_steps += 1
                 if stop_steps >= self.early_stop:
                     self.logger.info("early stop")
                     break
+
         self.logger.info("best score: %.6lf @ %d" % (best_score, best_epoch))
+        self.tabnet_model.load_state_dict(best_param)
+        torch.save(best_param, save_path)
 
     def predict(self, dataset):
         if not self.fitted:

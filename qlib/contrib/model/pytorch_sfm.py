@@ -13,7 +13,7 @@ import logging
 from ...utils import (
     unpack_archive_with_buffer,
     save_multiple_parts_file,
-    create_save_path,
+    get_or_create_path,
     drop_nan_by_y_index,
 )
 from ...log import get_module_logger, TimeInspector
@@ -380,6 +380,7 @@ class SFM(Model):
         x_train, y_train = df_train["feature"], df_train["label"]
         x_valid, y_valid = df_valid["feature"], df_valid["label"]
 
+        save_path = get_or_create_path(save_path)
         stop_steps = 0
         train_loss = 0
         best_score = -np.inf
@@ -412,7 +413,10 @@ class SFM(Model):
                 if stop_steps >= self.early_stop:
                     self.logger.info("early stop")
                     break
+
         self.logger.info("best score: %.6lf @ %d" % (best_score, best_epoch))
+        self.sfm_model.load_state_dict(best_param)
+        torch.save(best_param, save_path)
         if self.device != "cpu":
             torch.cuda.empty_cache()
 
