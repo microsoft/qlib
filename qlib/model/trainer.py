@@ -53,4 +53,4 @@ def task_train(task_config: dict, experiment_name: str) -> str:
                 record["kwargs"].update(rconf)
                 ar = init_instance_by_config(record)
                 ar.generate()
-    return record.info["id"]
+    return recorder.info["id"]

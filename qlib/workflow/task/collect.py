@@ -11,8 +11,8 @@ class TaskCollector:
 
     @staticmethod
     def collect_predictions(
-        experiment_name: str, 
-        get_key_func, 
+        experiment_name: str,
+        get_key_func,
         filter_func=None,
     ):
         """
