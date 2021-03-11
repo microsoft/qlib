@@ -108,27 +108,6 @@ def set_log_with_config(log_config: Dict[Text, Any]):
     logging_config.dictConfig(log_config)
 
 
-def set_log_basic_config(filename: Optional[Text] = None, format: Optional[Text] = None, level: Optional[int] = None):
-    """
-    Set the basic configuration for the logging system.
-    See details at https://docs.python.org/3/library/logging.html#logging.basicConfig
-
-    :param filename: str or None
-        The path to save the logs.
-    :param format: the logging format
-    :param level: int
-    :return: Logger
-        Logger object.
-    """
-    if level is None:
-        level = C.logging_level
-
-    if format is None:
-        format = C.logging_config["formatters"]["logger_format"]["format"]
-
-    logging.basicConfig(filename=filename, format=format, level=level)
-
-
 class LogFilter(logging.Filter):
     def __init__(self, param=None):
         self.param = param

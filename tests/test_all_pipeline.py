@@ -123,6 +123,8 @@ def train():
         recorder = R.get_recorder()
         # To test __repr__
         print(recorder)
+        # To test get_local_dir
+        print(recorder.get_local_dir())
         rid = recorder.id
         sr = SignalRecord(model, dataset, recorder)
         sr.generate()

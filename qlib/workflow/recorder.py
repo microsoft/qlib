@@ -240,12 +240,18 @@ class MLflowRecorder(Recorder):
     def artifact_uri(self):
         return self._artifact_uri
 
-    @property
-    def root_uri(self):
-        start_str = "file:"
+    def get_local_dir(self):
+        """
+        This function will return the directory path of this recorder.
+        """
         if self.artifact_uri is not None:
-            xpath = self.artifact_uri.strip(start_str)
-            return (Path(xpath) / "..").resolve()
+            local_file_prefix = "file:"
+            if self.artifact_uri.startswith(local_file_prefix):
+                xpath = self.artifact_uri.lstrip(local_file_prefix)
+                return (Path(xpath) / "..").resolve()
+            else:
+                raise RuntimeError("This recorder is not saved in the local file system.")
+
         else:
             raise Exception(
                 "Please make sure the recorder has been created and started properly before getting artifact uri."
