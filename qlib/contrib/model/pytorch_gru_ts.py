@@ -14,7 +14,7 @@ import logging
 from ...utils import (
     unpack_archive_with_buffer,
     save_multiple_parts_file,
-    create_save_path,
+    get_or_create_path,
     drop_nan_by_y_index,
 )
 from ...log import get_module_logger, TimeInspector
@@ -216,8 +216,7 @@ class GRU(Model):
         train_loader = DataLoader(dl_train, batch_size=self.batch_size, shuffle=True, num_workers=self.n_jobs)
         valid_loader = DataLoader(dl_valid, batch_size=self.batch_size, shuffle=False, num_workers=self.n_jobs)
 
-        if save_path == None:
-            save_path = create_save_path(save_path)
+        save_path = get_or_create_path(save_path)
 
         stop_steps = 0
         train_loss = 0

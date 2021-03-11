@@ -14,7 +14,7 @@ import logging
 from ...utils import (
     unpack_archive_with_buffer,
     save_multiple_parts_file,
-    create_save_path,
+    get_or_create_path,
     drop_nan_by_y_index,
 )
 from ...log import get_module_logger, TimeInspector
@@ -248,8 +248,7 @@ class GATs(Model):
         x_train, y_train = df_train["feature"], df_train["label"]
         x_valid, y_valid = df_valid["feature"], df_valid["label"]
 
-        if save_path == None:
-            save_path = create_save_path(save_path)
+        save_path = get_or_create_path(save_path)
         stop_steps = 0
         best_score = -np.inf
         best_epoch = 0
