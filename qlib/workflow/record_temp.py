@@ -13,7 +13,7 @@ from ..data.dataset.handler import DataHandlerLP
 from ..utils import init_instance_by_config, get_module_by_module_path
 from ..log import get_module_logger
 from ..utils import flatten_dict
-from ..contrib.eva.alpha import calc_ic, calc_long_short_return
+from ..contrib.eva.alpha import calc_ic, calc_long_short_return, calc_prec
 from ..contrib.strategy.strategy import BaseStrategy
 
 logger = get_module_logger("workflow", "INFO")
@@ -155,7 +155,87 @@ class SignalRecord(RecordTemp):
     def load(self, name="pred.pkl"):
         return super().load(name)
 
+class HFSignalRecord(SignalRecord):
+    """
+    This is the Signal Analysis Record class that generates the analysis results such as IC and IR. This class inherits the ``RecordTemp`` class.
+    """
+    artifact_path = "hg_sig_analysis"
 
+    def __init__(self, model=None, dataset=None, recorder=None, **kwargs):
+        super().__init__(recorder=recorder)
+        self.model = model
+        self.dataset = dataset
+
+    def generate(self):
+        pred = self.model.predict(self.dataset)
+                 
+        if isinstance(pred, pd.Series):
+            pred = pred.to_frame("score")
+        self.recorder.save_objects(**{"pred.pkl": pred})
+                 
+        logger.info(
+            f"Signal record 'pred.pkl' has been saved as the artifact of the Experiment {self.recorder.experiment_id}"
+        )
+        # print out results
+        pprint(f"The following are prediction results of the {type(self.model).__name__} model.")
+        pprint(pred.head(5))
+        
+        if isinstance(self.dataset, DatasetH):
+            # NOTE:
+            # Python doesn't provide the downcasting mechanism.
+            # We use the trick here to downcast the class
+            orig_cls = self.dataset.__class__
+            self.dataset.__class__ = DatasetH
+
+            params = dict(segments="test", col_set="label", data_key=DataHandlerLP.DK_R)
+            try:
+                # Assume the backend handler is DataHandlerLP
+                raw_label = self.dataset.prepare(**params)
+            except TypeError:
+                # The argument number is not right
+                del params["data_key"]
+                # The backend handler should be DataHandler
+                raw_label = self.dataset.prepare(**params)
+
+            self.recorder.save_objects(**{"label.pkl": raw_label})
+            self.dataset.__class__ = orig_cls
+                 
+        ic, ric = calc_ic(pred.iloc[:, 0], raw_label.iloc[:, 0])
+        long_pre, short_pre = calc_prec(pred.iloc[:, 0], raw_label.iloc[:, 0], is_alpha = True)
+        metrics = {
+            "IC": ic.mean(),
+            "ICIR": ic.mean() / ic.std(),
+            "Rank IC": ric.mean(),
+            "Rank ICIR": ric.mean() / ric.std(),
+            "Long precision": long_pre.mean(),
+            "Short precision": short_pre.mean()
+        }
+        objects = {"ic.pkl": ic, "ric.pkl": ric}
+        objects.update({"long_pre.pkl": long_pre, "short_pre.pkl": short_pre})
+        long_short_r, long_avg_r = calc_long_short_return(pred.iloc[:, 0], raw_label.iloc[:, 0])
+        metrics.update(
+            {
+                "Long-Short Average Return": long_short_r.mean(),
+                "Long-Short Average Sharpe": long_short_r.mean() / long_short_r.std(),
+            }
+        )
+        objects.update(
+            {
+                "long_short_r.pkl": long_short_r,
+                "long_avg_r.pkl": long_avg_r,
+            }
+        )
+        self.recorder.log_metrics(**metrics)
+        self.recorder.save_objects(**objects, artifact_path=self.get_path())
+        pprint(metrics)
+
+    def list(self):
+        paths = [self.get_path("ic.pkl"), self.get_path("ric.pkl"), self.get_path("long_pre.pkl"), self.get_path("short_pre.pkl")]
+        if self.ana_long_short:
+            paths.extend([self.get_path("long_short_r.pkl"), self.get_path("long_avg_r.pkl")])
+        return paths
+    
+    
 class SigAnaRecord(SignalRecord):
     """
     This is the Signal Analysis Record class that generates the analysis results such as IC and IR. This class inherits the ``RecordTemp`` class.
