@@ -285,11 +285,11 @@ class QlibRecorder:
         """
         return self.exp_manager.uri
 
-    def reset_default_uri(self, uri: Text):
+    def set_uri(self, uri: Optional[Text]):
         """
-        Method to reset the default uri of current experiment manager.
+        Method to reset the current uri of current experiment manager.
         """
-        self.exp_manager.reset_default_uri(uri)
+        self.exp_manager.set_uri(uri)
 
     def get_recorder(self, recorder_id=None, recorder_name=None, experiment_name=None):
         """
