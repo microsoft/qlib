@@ -413,7 +413,7 @@ class TSDataSampler:
         # 1) for better performance, use the last nan line for padding the lost date
         # 2) In case of precision problems. We use np.float64. # TODO: I'm not sure if whether np.float64 will result in
         # precision problems. It will not cause any problems in my tests at least
-        indices = np.nan_to_num(indices.astype(np.float64), nan=self.nan_idx).astype(np.int)
+        indices = np.nan_to_num(indices.astype(np.float64), nan=self.nan_idx).astype(int)
 
         data = self.data_arr[indices]
         if isinstance(idx, mtit):

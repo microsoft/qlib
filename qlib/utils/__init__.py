@@ -64,7 +64,7 @@ def np_ffill(arr: np.array):
     arr : np.array
         Input numpy 1D array
     """
-    mask = np.isnan(arr.astype(np.float))  # np.isnan only works on np.float
+    mask = np.isnan(arr.astype(float))  # np.isnan only works on np.float
     # get fill index
     idx = np.where(~mask, np.arange(mask.shape[0]), 0)
     np.maximum.accumulate(idx, out=idx)

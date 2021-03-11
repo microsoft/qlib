@@ -261,8 +261,8 @@ class GATs(Model):
         sampler_train = DailyBatchSampler(dl_train)
         sampler_valid = DailyBatchSampler(dl_valid)
 
-        train_loader = DataLoader(dl_train, sampler=sampler_train, num_workers=self.n_jobs)
-        valid_loader = DataLoader(dl_valid, sampler=sampler_valid, num_workers=self.n_jobs)
+        train_loader = DataLoader(dl_train, sampler=sampler_train, num_workers=self.n_jobs, drop_last=True)
+        valid_loader = DataLoader(dl_valid, sampler=sampler_valid, num_workers=self.n_jobs, drop_last=True)
 
         save_path = get_or_create_path(save_path)
 
