@@ -24,6 +24,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 
+from .pytorch_utils import count_parameters
 from ...model.base import Model
 from ...data.dataset import DatasetH, TSDatasetH
 from ...data.dataset.handler import DataHandlerLP
@@ -78,7 +79,7 @@ class GRU(Model):
         self.early_stop = early_stop
         self.optimizer = optimizer.lower()
         self.loss = loss
-        self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() else "cpu")
+        self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
         self.n_jobs = n_jobs
         self.use_gpu = torch.cuda.is_available()
         self.seed = seed
@@ -127,7 +128,10 @@ class GRU(Model):
             hidden_size=self.hidden_size,
             num_layers=self.num_layers,
             dropout=self.dropout,
-        ).to(self.device)
+        )
+        self.logger.info("model:\n{:}".format(self.gru_model))
+        self.logger.info("model size: {:.4f} MB".format(count_parameters(self.gru_model)))
+
         if optimizer.lower() == "adam":
             self.train_optimizer = optim.Adam(self.GRU_model.parameters(), lr=self.lr)
         elif optimizer.lower() == "gd":
@@ -201,7 +205,6 @@ class GRU(Model):
         self,
         dataset,
         evals_result=dict(),
-        verbose=True,
         save_path=None,
     ):
         dl_train = dataset.prepare("train", col_set=["feature", "label"], data_key=DataHandlerLP.DK_L)

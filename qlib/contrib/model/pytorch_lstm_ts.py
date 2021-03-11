@@ -78,7 +78,7 @@ class LSTM(Model):
         self.early_stop = early_stop
         self.optimizer = optimizer.lower()
         self.loss = loss
-        self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() else "cpu")
+        self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
         self.n_jobs = n_jobs
         self.use_gpu = torch.cuda.is_available()
         self.seed = seed
@@ -201,7 +201,6 @@ class LSTM(Model):
         self,
         dataset,
         evals_result=dict(),
-        verbose=True,
         save_path=None,
     ):
         dl_train = dataset.prepare("train", col_set=["feature", "label"], data_key=DataHandlerLP.DK_L)

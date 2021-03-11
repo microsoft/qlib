@@ -23,6 +23,7 @@ import torch.optim as optim
 import torch.nn.functional as F
 from torch.autograd import Function
 
+from .pytorch_utils import count_parameters
 from ...model.base import Model
 from ...data.dataset import DatasetH
 from ...data.dataset.handler import DataHandlerLP
@@ -49,7 +50,7 @@ class TabnetModel(Model):
         loss="mse",
         metric="",
         early_stop=20,
-        GPU="1",
+        GPU=0,
         pretrain_loss="custom",
         ps=0.3,
         lr=0.01,
@@ -75,7 +76,7 @@ class TabnetModel(Model):
         self.n_epochs = n_epochs
         self.logger = get_module_logger("TabNet")
         self.pretrain_n_epochs = pretrain_n_epochs
-        self.device = "cuda:%s" % (GPU) if torch.cuda.is_available() else "cpu"
+        self.device = "cuda:%s" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu"
         self.loss = loss
         self.metric = metric
         self.early_stop = early_stop
@@ -98,6 +99,8 @@ class TabnetModel(Model):
         self.tabnet_decoder = TabNet_Decoder(self.out_dim, self.d_feat, n_shared, n_ind, vbs, n_steps, self.device).to(
             self.device
         )
+        self.logger.info("model:\n{:}\n{:}".format(self.tabnet_model, self.tabnet_decoder))
+        self.logger.info("model size: {:.4f} MB".format(count_parameters([self.tabnet_model, self.tabnet_decoder])))
 
         if optimizer.lower() == "adam":
             self.pretrain_optimizer = optim.Adam(
@@ -159,7 +162,6 @@ class TabnetModel(Model):
         self,
         dataset: DatasetH,
         evals_result=dict(),
-        verbose=True,
         save_path=None,
     ):
         if self.pretrain:

@@ -10,6 +10,7 @@ from contextlib import contextmanager
 from typing import Optional, Text
 
 from .exp import MLflowExperiment, Experiment
+from ..config import C
 from .recorder import Recorder
 from ..log import get_module_logger
 
@@ -23,15 +24,12 @@ class ExpManager:
     """
 
     def __init__(self, uri: Text, default_exp_name: Optional[Text]):
-        self._default_uri = uri
-        self._current_uri = None
+        self._current_uri = uri
         self.default_exp_name = default_exp_name
         self.active_experiment = None  # only one experiment can active each time
 
     def __repr__(self):
-        return "{name}(default_uri={duri}, current_uri={curi})".format(
-            name=self.__class__.__name__, duri=self._default_uri, curi=self._current_uri
-        )
+        return "{name}(current_uri={curi})".format(name=self.__class__.__name__, curi=self._current_uri)
 
     def start_exp(
         self,
@@ -218,6 +216,15 @@ class ExpManager:
         raise NotImplementedError(f"Please implement the `delete_exp` method.")
 
     @property
+    def default_uri(self):
+        """
+        Get the default tracking URI from qlib.config.C
+        """
+        if "kwargs" not in C.exp_manager or "uri" not in C.exp_manager["kwargs"]:
+            raise ValueError("The default URI is not set in qlib.config.C")
+        return C.exp_manager["kwargs"]["uri"]
+
+    @property
     def uri(self):
         """
         Get the default tracking URI or current URI.
@@ -226,7 +233,7 @@ class ExpManager:
         -------
         The tracking URI string.
         """
-        return self._current_uri or self._default_uri
+        return self._current_uri or self.default_uri
 
     def set_uri(self, uri: Optional[Text] = None):
         """
@@ -239,7 +246,7 @@ class ExpManager:
         """
         if uri is None:
             logger.info("No tracking URI is provided. Use the default tracking URI.")
-            self._current_uri = self._default_uri
+            self._current_uri = self.default_uri
         else:
             # Temporarily re-set the current uri as the uri argument.
             self._current_uri = uri

@@ -105,7 +105,7 @@ _default_config = {
     "redis_port": 6379,
     "redis_task_db": 1,
     # This value can be reset via qlib.init
-    "logging_level": "INFO",
+    "logging_level": logging.INFO,
     # Global configuration of qlib log
     # logging_level can control the logging level more finely
     "logging_config": {
@@ -124,12 +124,12 @@ _default_config = {
         "handlers": {
             "console": {
                 "class": "logging.StreamHandler",
-                "level": "DEBUG",
+                "level": logging.DEBUG,
                 "formatter": "logger_format",
                 "filters": ["field_not_found"],
             }
         },
-        "loggers": {"qlib": {"level": "DEBUG", "handlers": ["console"]}},
+        "loggers": {"qlib": {"level": logging.DEBUG, "handlers": ["console"]}},
     },
     # Defatult config for experiment manager
     "exp_manager": {
@@ -185,7 +185,7 @@ MODE_CONF = {
         # The nfs should be auto-mounted by qlib on other
         # serversS(such as PAI) [auto_mount:True]
         "timeout": 100,
-        "logging_level": "INFO",
+        "logging_level": logging.INFO,
         "region": REG_CN,
         ## Custom Operator
         "custom_ops": [],

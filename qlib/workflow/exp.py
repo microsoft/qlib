@@ -23,7 +23,7 @@ class Experiment:
         self.active_recorder = None  # only one recorder can running each time
 
     def __repr__(self):
-        return "{name}(info={info})".format(name=self.__class__.__name__, info=self.info)
+        return "{name}(id={id}, info={info})".format(name=self.__class__.__name__, id=self.id, info=self.info)
 
     def __str__(self):
         return str(self.info)
@@ -174,6 +174,9 @@ class MLflowExperiment(Experiment):
         self._default_name = None
         self._default_rec_name = "mlflow_recorder"
         self._client = mlflow.tracking.MlflowClient(tracking_uri=self._uri)
+
+    def __repr__(self):
+        return "{name}(id={id}, info={info})".format(name=self.__class__.__name__, id=self.id, info=self.info)
 
     def start(self, recorder_name=None):
         logger.info(f"Experiment {self.id} starts running ...")
