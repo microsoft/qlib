@@ -50,7 +50,6 @@ class TimeAdjuster:
         if idx >= len(self.cals):
             return None
         return self.cals[idx]
-
     def max(self):
         """
         (Deprecated)
@@ -85,6 +84,9 @@ class TimeAdjuster:
         else:
             raise NotImplementedError(f"This type of input is not supported")
         return idx
+
+    def cal_interval(self, time_point_A, time_point_B):
+        return self.align_idx(time_point_A) - self.align_idx(time_point_B)
 
     def align_time(self, time_point, tp_type="start"):
         """

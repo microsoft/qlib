@@ -10,10 +10,8 @@ A task consists of 3 parts
 from bson.binary import Binary
 import pickle
 from pymongo.errors import InvalidDocument
-from fire import Fire
 from bson.objectid import ObjectId
 from contextlib import contextmanager
-from loguru import logger
 from tqdm.cli import tqdm
 import time
 import concurrent
@@ -21,7 +19,7 @@ import pymongo
 from qlib.config import C
 from .utils import get_mongodb
 from qlib import auto_init
-
+from qlib import get_module_logger
 
 class TaskManager:
     """TaskManager
@@ -62,6 +60,7 @@ class TaskManager:
         """
         self.mdb = get_mongodb()
         self.task_pool = task_pool
+        self.logger = get_module_logger("TaskManager")
 
     def list(self):
         return self.mdb.list_collection_names()
@@ -210,9 +209,9 @@ class TaskManager:
             yield task
         except Exception:
             if task is not None:
-                logger.info("Returning task before raising error")
+                self.logger.info("Returning task before raising error")
                 self.return_task(task)
-                logger.info("Task returned")
+                self.logger.info("Task returned")
             raise
 
     def task_fetcher_iter(self, query={}, task_pool=None):
@@ -352,7 +351,7 @@ def run_task(task_func, task_pool, force_release=False, *args, **kwargs):
         with tm.safe_fetch_task() as task:
             if task is None:
                 break
-            logger.info(task["def"])
+            get_module_logger("run_task").info(task["def"])
             if force_release:
                 with concurrent.futures.ProcessPoolExecutor(max_workers=1) as executor:
                     res = executor.submit(task_func, task["def"], *args, **kwargs).result()
