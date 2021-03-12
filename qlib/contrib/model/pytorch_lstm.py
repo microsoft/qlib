@@ -134,7 +134,7 @@ class LSTM(Model):
 
     @property
     def use_gpu(self):
-        self.device == torch.device("cpu")
+        self.device != torch.device("cpu")
 
     def mse(self, pred, label):
         loss = (pred - label) ** 2
@@ -291,10 +291,7 @@ class LSTM(Model):
             x_batch = torch.from_numpy(x_values[begin:end]).float().to(self.device)
 
             with torch.no_grad():
-                if self.use_gpu:
-                    pred = self.lstm_model(x_batch).detach().cpu().numpy()
-                else:
-                    pred = self.lstm_model(x_batch).detach().numpy()
+                pred = self.lstm_model(x_batch).detach().cpu().numpy()
 
             preds.append(pred)
 

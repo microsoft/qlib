@@ -118,7 +118,7 @@ class TabnetModel(Model):
 
     @property
     def use_gpu(self):
-        self.device == torch.device("cpu")
+        self.device != torch.device("cpu")
 
     def pretrain_fn(self, dataset=DatasetH, pretrain_file="./pretrain/best.model"):
         get_or_create_path(pretrain_file)
