@@ -218,6 +218,25 @@ Filter
     - `cross-sectional features filter` \: rule_expression = '$rank($close)<10'
     - `time-sequence features filter`: rule_expression = '$Ref($close, 3)>100'
 
+Here is a simple example showing how to use filter in a basic ``Qlib`` workflow configuration file:
+
+.. code-block:: yaml
+
+    filter: &filter
+        filter_type: ExpressionDFilter
+        rule_expression: "Ref($close, -2) / Ref($close, -1) > 1"
+        filter_start_time: 2010-01-01
+        filter_end_time: 2010-01-07
+        keep: False
+
+    data_handler_config: &data_handler_config
+        start_time: 2010-01-01
+        end_time: 2021-01-22
+        fit_start_time: 2010-01-01
+        fit_end_time: 2015-12-31
+        instruments: *market
+        filter_pipe: [*filter]
+
 To know more about ``Filter``, please refer to `Filter API <../reference/api.html#module-qlib.data.filter>`_.
 
 Reference

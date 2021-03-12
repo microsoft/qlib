@@ -24,7 +24,7 @@ import collections
 import numpy as np
 import pandas as pd
 from pathlib import Path
-from typing import Union, Tuple
+from typing import Union, Tuple, Text, Optional
 
 from ..config import C
 from ..log import get_module_logger, set_log_with_config
@@ -64,7 +64,7 @@ def np_ffill(arr: np.array):
     arr : np.array
         Input numpy 1D array
     """
-    mask = np.isnan(arr.astype(np.float))  # np.isnan only works on np.float
+    mask = np.isnan(arr.astype(float))  # np.isnan only works on np.float
     # get fill index
     idx = np.where(~mask, np.arange(mask.shape[0]), 0)
     np.maximum.accumulate(idx, out=idx)
@@ -276,23 +276,31 @@ def compare_dict_value(src_data: dict, dst_data: dict):
     return changes
 
 
-def create_save_path(save_path=None):
-    """Create save path
+def get_or_create_path(path: Optional[Text] = None, return_dir: bool = False):
+    """Create or get a file or directory given the path and return_dir.
 
     Parameters
     ----------
-    save_path: str
+    path: a string indicates the path or None indicates creating a temporary path.
+    return_dir: if True, create and return a directory; otherwise c&r a file.
 
     """
-    if save_path:
-        if not os.path.exists(save_path):
-            os.makedirs(save_path)
+    if path:
+        if return_dir and not os.path.exists(path):
+            os.makedirs(path)
+        elif not return_dir:  # return a file, thus we need to create its parent directory
+            xpath = os.path.abspath(os.path.join(path, ".."))
+            if not os.path.exists(xpath):
+                os.makedirs(xpath)
     else:
         temp_dir = os.path.expanduser("~/tmp")
         if not os.path.exists(temp_dir):
             os.makedirs(temp_dir)
-        _, save_path = tempfile.mkstemp(dir=temp_dir)
-    return save_path
+        if return_dir:
+            _, path = tempfile.mkdtemp(dir=temp_dir)
+        else:
+            _, path = tempfile.mkstemp(dir=temp_dir)
+    return path
 
 
 @contextlib.contextmanager
