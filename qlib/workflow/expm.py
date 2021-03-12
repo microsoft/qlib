@@ -275,6 +275,14 @@ class MLflowExpManager(ExpManager):
     Use mlflow to implement ExpManager.
     """
 
+    def __init__(self, uri: Text, default_exp_name: Optional[Text]):
+        super(MLflowExpManager, self).__init__(uri, default_exp_name)
+        self._client = None
+
+    def _set_uri(self):
+        self._client = mlflow.tracking.MlflowClient(tracking_uri=self.uri)
+        logger.info("{:}".format(self._client))
+
     @property
     def client(self):
         # Delay the creation of mlflow client in case of creating `mlruns` folder when importing qlib
