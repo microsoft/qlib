@@ -103,7 +103,7 @@ class GATs(Model):
             "\nbase_model : {}"
             "\nwith_pretrain : {}"
             "\nmodel_path : {}"
-            "\nvisible_GPU : {}"
+            "\ndevice : {}"
             "\nuse_GPU : {}"
             "\nseed : {}".format(
                 d_feat,
@@ -119,7 +119,7 @@ class GATs(Model):
                 base_model,
                 with_pretrain,
                 model_path,
-                GPU,
+                self.device,
                 self.use_gpu,
                 seed,
             )
@@ -151,7 +151,7 @@ class GATs(Model):
 
     @property
     def use_gpu(self):
-        self.device != torch.device("cpu")
+        return self.device != torch.device("cpu")
 
     def mse(self, pred, label):
         loss = (pred - label) ** 2

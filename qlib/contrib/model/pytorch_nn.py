@@ -99,8 +99,8 @@ class DNNModelPytorch(Model):
             "\nloss_type : {}"
             "\neval_steps : {}"
             "\nseed : {}"
-            "\nvisible_GPU : {}"
-            "\nuse_gpu : {}"
+            "\ndevice : {}"
+            "\nuse_GPU : {}"
             "\nweight_decay : {}".format(
                 layers,
                 lr,
@@ -114,7 +114,7 @@ class DNNModelPytorch(Model):
                 loss,
                 eval_steps,
                 seed,
-                GPU,
+                self.device,
                 self.use_gpu,
                 weight_decay,
             )
@@ -158,7 +158,7 @@ class DNNModelPytorch(Model):
 
     @property
     def use_gpu(self):
-        self.device != torch.device("cpu")
+        return self.device != torch.device("cpu")
 
     def fit(
         self,

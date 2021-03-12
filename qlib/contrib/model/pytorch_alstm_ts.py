@@ -96,7 +96,7 @@ class ALSTM(Model):
             "\nearly_stop : {}"
             "\noptimizer : {}"
             "\nloss_type : {}"
-            "\nvisible_GPU : {}"
+            "\ndevice : {}"
             "\nn_jobs : {}"
             "\nuse_GPU : {}"
             "\nseed : {}".format(
@@ -111,7 +111,7 @@ class ALSTM(Model):
                 early_stop,
                 optimizer.lower(),
                 loss,
-                GPU,
+                self.device,
                 n_jobs,
                 self.use_gpu,
                 seed,
@@ -143,7 +143,7 @@ class ALSTM(Model):
 
     @property
     def use_gpu(self):
-        self.device != torch.device("cpu")
+        return self.device != torch.device("cpu")
 
     def mse(self, pred, label):
         loss = (pred - label) ** 2

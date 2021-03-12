@@ -134,7 +134,7 @@ class LSTM(Model):
 
     @property
     def use_gpu(self):
-        self.device != torch.device("cpu")
+        return self.device != torch.device("cpu")
 
     def mse(self, pred, label):
         loss = (pred - label) ** 2

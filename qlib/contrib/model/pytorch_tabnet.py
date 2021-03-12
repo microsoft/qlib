@@ -86,8 +86,8 @@ class TabnetModel(Model):
             "TabNet:"
             "\nbatch_size : {}"
             "\nvirtual bs : {}"
-            "\nGPU : {}"
-            "\npretrain: {}".format(self.batch_size, vbs, GPU, pretrain)
+            "\ndevice : {}"
+            "\npretrain: {}".format(self.batch_size, vbs, self.device, self.pretrain)
         )
         self.fitted = False
         np.random.seed(self.seed)
@@ -118,7 +118,7 @@ class TabnetModel(Model):
 
     @property
     def use_gpu(self):
-        self.device != torch.device("cpu")
+        return self.device != torch.device("cpu")
 
     def pretrain_fn(self, dataset=DatasetH, pretrain_file="./pretrain/best.model"):
         get_or_create_path(pretrain_file)

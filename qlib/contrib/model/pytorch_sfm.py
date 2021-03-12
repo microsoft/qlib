@@ -241,7 +241,6 @@ class SFM(Model):
         self.optimizer = optimizer.lower()
         self.loss = loss
         self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
-        self.use_gpu = torch.cuda.is_available()
         self.seed = seed
 
         self.logger.info(
@@ -260,7 +259,7 @@ class SFM(Model):
             "\neval_steps : {}"
             "\noptimizer : {}"
             "\nloss_type : {}"
-            "\nvisible_GPU : {}"
+            "\ndevice : {}"
             "\nuse_GPU : {}"
             "\nseed : {}".format(
                 d_feat,
@@ -277,7 +276,7 @@ class SFM(Model):
                 eval_steps,
                 optimizer.lower(),
                 loss,
-                GPU,
+                self.device,
                 self.use_gpu,
                 seed,
             )
@@ -308,6 +307,10 @@ class SFM(Model):
 
         self.fitted = False
         self.sfm_model.to(self.device)
+
+    @property
+    def use_gpu(self):
+        return self.device != torch.device("cpu")
 
     def test_epoch(self, data_x, data_y):
 
