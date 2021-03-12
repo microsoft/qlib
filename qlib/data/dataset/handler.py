@@ -50,6 +50,9 @@ class DataHandler(Serializable):
                 SH600004    13.313329  11800983.0       13.313329        13.317701    0.183632  0.0042
                 SH600005    37.796539  12231662.0       38.258602        37.919757    0.970325  0.0289
 
+
+    Tips for improving the performance of datahandler
+    - Fetching data with `col_set=CS_RAW` will return the raw data and may avoid pandas from copying the data when calling `loc`
     """
 
     def __init__(
@@ -257,6 +260,10 @@ class DataHandler(Serializable):
 class DataHandlerLP(DataHandler):
     """
     DataHandler with **(L)earnable (P)rocessor**
+
+    Tips to improving the performance of data handler
+    - To reduce the memory cost
+        - `drop_raw=True`: this will modify the data inplace on raw data;
     """
 
     # data key

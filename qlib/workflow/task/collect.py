@@ -46,7 +46,12 @@ class RollingEnsemble:
             pred_l = []
             for rec in rec_l:
                 pred_l.append(rec.load_object("pred.pkl").iloc[:, 0])
-            pred = pd.concat(pred_l).sort_index()
+            # Make sure the pred are sorted according to the rolling start time
+            pred_l.sort(key=lambda pred: pred.index.get_level_values("datetime").min())
+            pred = pd.concat(pred_l)
+            # If there are duplicated predition, we use the latest perdiction
+            pred = pred[~pred.index.duplicated(keep="last")]
+            pred = pred.sort_index()
             reduce_group[k] = pred
 
         return reduce_group
