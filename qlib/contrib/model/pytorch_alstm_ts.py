@@ -195,12 +195,13 @@ class ALSTM(Model):
             # feature[torch.isnan(feature)] = 0
             label = data[:, -1, -1].to(self.device)
 
-            pred = self.ALSTM_model(feature.float())
-            loss = self.loss_fn(pred, label)
-            losses.append(loss.item())
+            with torch.no_grad():
+                pred = self.ALSTM_model(feature.float())
+                loss = self.loss_fn(pred, label)
+                losses.append(loss.item())
 
-            score = self.metric_fn(pred, label)
-            scores.append(score.item())
+                score = self.metric_fn(pred, label)
+                scores.append(score.item())
 
         return np.mean(losses), np.mean(scores)
 

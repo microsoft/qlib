@@ -195,12 +195,13 @@ class GRU(Model):
             # feature[torch.isnan(feature)] = 0
             label = data[:, -1, -1].to(self.device)
 
-            pred = self.GRU_model(feature.float())
-            loss = self.loss_fn(pred, label)
-            losses.append(loss.item())
+            with torch.no_grad():
+                pred = self.GRU_model(feature.float())
+                loss = self.loss_fn(pred, label)
+                losses.append(loss.item())
 
-            score = self.metric_fn(pred, label)
-            scores.append(score.item())
+                score = self.metric_fn(pred, label)
+                scores.append(score.item())
 
         return np.mean(losses), np.mean(scores)
 
@@ -280,10 +281,7 @@ class GRU(Model):
             feature = data[:, :, 0:-1].to(self.device)
 
             with torch.no_grad():
-                if self.use_gpu:
-                    pred = self.GRU_model(feature.float()).detach().cpu().numpy()
-                else:
-                    pred = self.GRU_model(feature.float()).detach().numpy()
+                pred = self.GRU_model(feature.float()).detach().cpu().numpy()
 
             preds.append(pred)
 

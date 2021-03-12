@@ -208,12 +208,13 @@ class GRU(Model):
             feature = torch.from_numpy(x_values[indices[i : i + self.batch_size]]).float().to(self.device)
             label = torch.from_numpy(y_values[indices[i : i + self.batch_size]]).float().to(self.device)
 
-            pred = self.gru_model(feature)
-            loss = self.loss_fn(pred, label)
-            losses.append(loss.item())
+            with torch.no_grad():
+                pred = self.gru_model(feature)
+                loss = self.loss_fn(pred, label)
+                losses.append(loss.item())
 
-            score = self.metric_fn(pred, label)
-            scores.append(score.item())
+                score = self.metric_fn(pred, label)
+                scores.append(score.item())
 
         return np.mean(losses), np.mean(scores)
 

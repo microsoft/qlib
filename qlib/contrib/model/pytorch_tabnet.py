@@ -219,7 +219,7 @@ class TabnetModel(Model):
         self.logger.info("best score: %.6lf @ %d" % (best_score, best_epoch))
         self.tabnet_model.load_state_dict(best_param)
         torch.save(best_param, save_path)
-        
+
         if self.use_gpu:
             torch.cuda.empty_cache()
 
@@ -272,12 +272,12 @@ class TabnetModel(Model):
             label = y_values[indices[i : i + self.batch_size]].float().to(self.device)
             priors = torch.ones(self.batch_size, self.d_feat).to(self.device)
             with torch.no_grad():
-              pred = self.tabnet_model(feature, priors)
-              loss = self.loss_fn(pred, label)
-              losses.append(loss.item())
+                pred = self.tabnet_model(feature, priors)
+                loss = self.loss_fn(pred, label)
+                losses.append(loss.item())
 
-              score = self.metric_fn(pred, label)
-              scores.append(score.item())
+                score = self.metric_fn(pred, label)
+                scores.append(score.item())
 
         return np.mean(losses), np.mean(scores)
 
@@ -361,10 +361,10 @@ class TabnetModel(Model):
             S_mask = S_mask.to(self.device)
             priors = 1 - S_mask
             with torch.no_grad():
-              (vec, sparse_loss) = self.tabnet_model(feature, priors)
-              f = self.tabnet_decoder(vec)
+                (vec, sparse_loss) = self.tabnet_model(feature, priors)
+                f = self.tabnet_decoder(vec)
 
-              loss = self.pretrain_loss_fn(label, f, S_mask)
+                loss = self.pretrain_loss_fn(label, f, S_mask)
             losses.append(loss.item())
 
         return np.mean(losses)

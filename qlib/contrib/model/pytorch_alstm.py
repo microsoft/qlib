@@ -208,12 +208,13 @@ class ALSTM(Model):
             feature = torch.from_numpy(x_values[indices[i : i + self.batch_size]]).float().to(self.device)
             label = torch.from_numpy(y_values[indices[i : i + self.batch_size]]).float().to(self.device)
 
-            pred = self.ALSTM_model(feature)
-            loss = self.loss_fn(pred, label)
-            losses.append(loss.item())
+            with torch.no_grad():
+                pred = self.ALSTM_model(feature)
+                loss = self.loss_fn(pred, label)
+                losses.append(loss.item())
 
-            score = self.metric_fn(pred, label)
-            scores.append(score.item())
+                score = self.metric_fn(pred, label)
+                scores.append(score.item())
 
         return np.mean(losses), np.mean(scores)
 
@@ -295,10 +296,7 @@ class ALSTM(Model):
             x_batch = torch.from_numpy(x_values[begin:end]).float().to(self.device)
 
             with torch.no_grad():
-                if self.use_gpu:
-                    pred = self.ALSTM_model(x_batch).detach().cpu().numpy()
-                else:
-                    pred = self.ALSTM_model(x_batch).detach().numpy()
+                pred = self.ALSTM_model(x_batch).detach().cpu().numpy()
 
             preds.append(pred)
 
