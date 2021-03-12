@@ -1,5 +1,6 @@
 from qlib.workflow import R
 import pandas as pd
+import tqdm.auto import tqdm
 from typing import Union
 from qlib import get_module_logger
 
@@ -35,7 +36,7 @@ class TaskCollector:
 
         recs_flt = {}
         for rid, rec in recs.items():
-            params = rec.load_object("task.pkl")
+            params = rec.load_object("task")
             if rec.status == rec.STATUS_FI:
                 if filter_func is None or filter_func(params):
                     rec.params = params
@@ -83,7 +84,7 @@ class RollingCollector:
 
         recs_flt = {}
         for rid, rec in tqdm(recs.items(), desc="Loading data"):
-            params = rec.load_object("task.pkl")
+            params = rec.load_object("task")
             if rec.status == rec.STATUS_FI:
                 if self.flt_func is None or self.flt_func(params):
                     rec.params = params

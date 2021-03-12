@@ -74,7 +74,7 @@ class ModelUpdater:
         rec = self.exp.get_recorder(recorder_id=rid)
         old_pred = rec.load_object("pred.pkl")
         last_end = old_pred.index.get_level_values("datetime").max()
-        task_config = rec.load_object("task.pkl")
+        task_config = rec.load_object("task")
 
         # updated to the latest trading day
         cal = D.calendar(start_time=last_end + pd.Timedelta(days=1), end_time=None)
@@ -107,7 +107,7 @@ class ModelUpdater:
             .. code-block:: python
 
                 def record_filter(record):
-                    task_config = record.load_object("task.pkl")
+                    task_config = record.load_object("task")
                     if task_config["model"]["class"]=="LGBModel":
                         return True
                     return False
