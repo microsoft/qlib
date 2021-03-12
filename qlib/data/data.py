@@ -695,7 +695,7 @@ class LocalFeatureProvider(FeatureProvider):
         value = np.empty(len(period_list), dtype=VALUE_TYPE)
         for i, period in enumerate(period_list):
             value[i] = read_period_data(index_path, data_path, period, cur_date, quarterly)
-        
+
         series = pd.Series(value, index=period_list, dtype=VALUE_TYPE)
         return series
 

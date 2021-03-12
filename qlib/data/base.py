@@ -459,9 +459,10 @@ class PExpression(abc.ABC):
         raise NotImplementedError("This function must be implemented in your newly defined feature")
 
     def check_feature_exist(self, instrument):
-        child_exist_list = [v.check_feature_exist(instrument) for k, v in self.__dict__.items() if isinstance(v, PExpression)]
+        child_exist_list = [
+            v.check_feature_exist(instrument) for k, v in self.__dict__.items() if isinstance(v, PExpression)
+        ]
         return all(child_exist_list)
-
 
     def load(self, instrument, start_index, end_index, freq):
 
@@ -486,7 +487,9 @@ class PExpression(abc.ABC):
         for cur_index in range(start_index, end_index + 1):
             cur_date = _calendar[cur_index]
             start_offset = self.get_period_offset(cur_index)
-            resample_data[cur_index - start_index] = self.load_period_data(instrument, start_offset, 0, cur_date).iloc[-1]
+            resample_data[cur_index - start_index] = self.load_period_data(instrument, start_offset, 0, cur_date).iloc[
+                -1
+            ]
 
         resample_series = pd.Series(
             resample_data, index=pd.RangeIndex(start_index, end_index + 1), dtype="float32", name=str(self)
@@ -519,7 +522,6 @@ class PFeature(PExpression):
         data_path = FeatureD.uri_period_data.format(instrument, self._name)
 
         return os.path.exists(index_path) and os.path.exists(data_path)
-
 
     def load_period_data(self, instrument, start_offset, end_offset, cur_index):
         ### Zhou Code
