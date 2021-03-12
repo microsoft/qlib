@@ -80,7 +80,6 @@ class LSTM(Model):
         self.loss = loss
         self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
         self.n_jobs = n_jobs
-        self.use_gpu = torch.cuda.is_available()
         self.seed = seed
 
         self.logger.info(
@@ -96,7 +95,7 @@ class LSTM(Model):
             "\nearly_stop : {}"
             "\noptimizer : {}"
             "\nloss_type : {}"
-            "\nvisible_GPU : {}"
+            "\ndevice : {}"
             "\nn_jobs : {}"
             "\nuse_GPU : {}"
             "\nseed : {}".format(
@@ -111,7 +110,7 @@ class LSTM(Model):
                 early_stop,
                 optimizer.lower(),
                 loss,
-                GPU,
+                self.device,
                 n_jobs,
                 self.use_gpu,
                 seed,
@@ -137,6 +136,10 @@ class LSTM(Model):
 
         self.fitted = False
         self.LSTM_model.to(self.device)
+
+    @property
+    def use_gpu(self):
+        return self.device != torch.device("cpu")
 
     def mse(self, pred, label):
         loss = (pred - label) ** 2
@@ -273,10 +276,7 @@ class LSTM(Model):
             feature = data[:, :, 0:-1].to(self.device)
 
             with torch.no_grad():
-                if self.use_gpu:
-                    pred = self.LSTM_model(feature.float()).detach().cpu().numpy()
-                else:
-                    pred = self.LSTM_model(feature.float()).detach().numpy()
+                pred = self.LSTM_model(feature.float()).detach().cpu().numpy()
 
             preds.append(pred)
 

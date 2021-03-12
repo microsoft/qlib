@@ -103,7 +103,7 @@ class GATs(Model):
             "\nbase_model : {}"
             "\nwith_pretrain : {}"
             "\nmodel_path : {}"
-            "\nvisible_GPU : {}"
+            "\ndevice : {}"
             "\nuse_GPU : {}"
             "\nseed : {}".format(
                 d_feat,
@@ -119,7 +119,7 @@ class GATs(Model):
                 base_model,
                 with_pretrain,
                 model_path,
-                GPU,
+                self.device,
                 self.use_gpu,
                 seed,
             )
@@ -148,6 +148,10 @@ class GATs(Model):
 
         self.fitted = False
         self.GAT_model.to(self.device)
+
+    @property
+    def use_gpu(self):
+        return self.device != torch.device("cpu")
 
     def mse(self, pred, label):
         loss = (pred - label) ** 2
@@ -326,10 +330,7 @@ class GATs(Model):
             x_batch = torch.from_numpy(x_values[batch]).float().to(self.device)
 
             with torch.no_grad():
-                if self.use_gpu:
-                    pred = self.GAT_model(x_batch).detach().cpu().numpy()
-                else:
-                    pred = self.GAT_model(x_batch).detach().numpy()
+                pred = self.GAT_model(x_batch).detach().cpu().numpy()
 
             preds.append(pred)
 

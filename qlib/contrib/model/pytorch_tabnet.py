@@ -55,7 +55,7 @@ class TabnetModel(Model):
         ps=0.3,
         lr=0.01,
         pretrain=True,
-        pretrain_file="./pretrain/best.model",
+        pretrain_file=None,
     ):
         """
         TabNet model for Qlib
@@ -81,13 +81,13 @@ class TabnetModel(Model):
         self.metric = metric
         self.early_stop = early_stop
         self.pretrain = pretrain
-        self.pretrain_file = pretrain_file
+        self.pretrain_file = get_or_create_path(pretrain_file)
         self.logger.info(
             "TabNet:"
             "\nbatch_size : {}"
             "\nvirtual bs : {}"
-            "\nGPU : {}"
-            "\npretrain: {}".format(self.batch_size, vbs, GPU, pretrain)
+            "\ndevice : {}"
+            "\npretrain: {}".format(self.batch_size, vbs, self.device, self.pretrain)
         )
         self.fitted = False
         np.random.seed(self.seed)
@@ -115,6 +115,10 @@ class TabnetModel(Model):
             self.train_optimizer = optim.SGD(self.tabnet_model.parameters(), lr=self.lr)
         else:
             raise NotImplementedError("optimizer {} is not supported!".format(optimizer))
+
+    @property
+    def use_gpu(self):
+        return self.device != torch.device("cpu")
 
     def pretrain_fn(self, dataset=DatasetH, pretrain_file="./pretrain/best.model"):
         get_or_create_path(pretrain_file)
@@ -182,7 +186,7 @@ class TabnetModel(Model):
 
         stop_steps = 0
         train_loss = 0
-        best_score = np.inf
+        best_score = -np.inf
         best_epoch = 0
         evals_result["train"] = []
         evals_result["valid"] = []
@@ -201,7 +205,7 @@ class TabnetModel(Model):
             evals_result["train"].append(train_score)
             evals_result["valid"].append(val_score)
 
-            if val_score < best_score:
+            if val_score > best_score:
                 best_score = val_score
                 stop_steps = 0
                 best_epoch = epoch_idx
@@ -215,6 +219,9 @@ class TabnetModel(Model):
         self.logger.info("best score: %.6lf @ %d" % (best_score, best_epoch))
         self.tabnet_model.load_state_dict(best_param)
         torch.save(best_param, save_path)
+
+        if self.use_gpu:
+            torch.cuda.empty_cache()
 
     def predict(self, dataset):
         if not self.fitted:
@@ -264,12 +271,13 @@ class TabnetModel(Model):
             feature = x_values[indices[i : i + self.batch_size]].float().to(self.device)
             label = y_values[indices[i : i + self.batch_size]].float().to(self.device)
             priors = torch.ones(self.batch_size, self.d_feat).to(self.device)
-            pred = self.tabnet_model(feature, priors)
-            loss = self.loss_fn(pred, label)
-            losses.append(loss.item())
+            with torch.no_grad():
+                pred = self.tabnet_model(feature, priors)
+                loss = self.loss_fn(pred, label)
+                losses.append(loss.item())
 
-            score = self.metric_fn(pred, label)
-            scores.append(score.item())
+                score = self.metric_fn(pred, label)
+                scores.append(score.item())
 
         return np.mean(losses), np.mean(scores)
 
@@ -352,10 +360,11 @@ class TabnetModel(Model):
             label = y_train_values.float().to(self.device)
             S_mask = S_mask.to(self.device)
             priors = 1 - S_mask
-            (vec, sparse_loss) = self.tabnet_model(feature, priors)
-            f = self.tabnet_decoder(vec)
+            with torch.no_grad():
+                (vec, sparse_loss) = self.tabnet_model(feature, priors)
+                f = self.tabnet_decoder(vec)
 
-            loss = self.pretrain_loss_fn(label, f, S_mask)
+                loss = self.pretrain_loss_fn(label, f, S_mask)
             losses.append(loss.item())
 
         return np.mean(losses)
