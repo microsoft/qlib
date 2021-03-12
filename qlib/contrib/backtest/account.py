@@ -167,3 +167,4 @@ class Account:
     def save_account(self, account_path):
         self.current.save_position(account_path / "position.xlsx", self.last_trade_date)
         self.report.save_report(account_path / "report.csv")
+
