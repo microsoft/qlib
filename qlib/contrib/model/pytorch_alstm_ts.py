@@ -81,7 +81,6 @@ class ALSTM(Model):
         self.loss = loss
         self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
         self.n_jobs = n_jobs
-        self.use_gpu = torch.cuda.is_available()
         self.seed = seed
 
         self.logger.info(
@@ -141,6 +140,10 @@ class ALSTM(Model):
 
         self.fitted = False
         self.ALSTM_model.to(self.device)
+
+    @property
+    def use_gpu(self):
+        self.device == torch.device("cpu")
 
     def mse(self, pred, label):
         loss = (pred - label) ** 2
@@ -277,10 +280,7 @@ class ALSTM(Model):
             feature = data[:, :, 0:-1].to(self.device)
 
             with torch.no_grad():
-                if self.use_gpu:
-                    pred = self.ALSTM_model(feature.float()).detach().cpu().numpy()
-                else:
-                    pred = self.ALSTM_model(feature.float()).detach().numpy()
+                pred = self.ALSTM_model(feature.float()).detach().cpu().numpy()
 
             preds.append(pred)
 

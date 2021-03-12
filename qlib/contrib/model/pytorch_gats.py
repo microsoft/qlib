@@ -149,6 +149,10 @@ class GATs(Model):
         self.fitted = False
         self.GAT_model.to(self.device)
 
+    @property
+    def use_gpu(self):
+        self.device == torch.device("cpu")
+
     def mse(self, pred, label):
         loss = (pred - label) ** 2
         return torch.mean(loss)
@@ -326,10 +330,7 @@ class GATs(Model):
             x_batch = torch.from_numpy(x_values[batch]).float().to(self.device)
 
             with torch.no_grad():
-                if self.use_gpu:
-                    pred = self.GAT_model(x_batch).detach().cpu().numpy()
-                else:
-                    pred = self.GAT_model(x_batch).detach().numpy()
+                pred = self.GAT_model(x_batch).detach().cpu().numpy()
 
             preds.append(pred)
 

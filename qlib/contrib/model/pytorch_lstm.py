@@ -77,7 +77,6 @@ class LSTM(Model):
         self.optimizer = optimizer.lower()
         self.loss = loss
         self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
-        self.use_gpu = torch.cuda.is_available()
         self.seed = seed
 
         self.logger.info(
@@ -132,6 +131,10 @@ class LSTM(Model):
 
         self.fitted = False
         self.lstm_model.to(self.device)
+
+    @property
+    def use_gpu(self):
+        self.device == torch.device("cpu")
 
     def mse(self, pred, label):
         loss = (pred - label) ** 2
