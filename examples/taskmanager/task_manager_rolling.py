@@ -16,7 +16,11 @@ dataset_config = {
     "class": "DatasetH",
     "module_path": "qlib.data.dataset",
     "kwargs": {
-        "handler": {"class": "Alpha158", "module_path": "qlib.contrib.data.handler", "kwargs": data_handler_config,},
+        "handler": {
+            "class": "Alpha158",
+            "module_path": "qlib.contrib.data.handler",
+            "kwargs": data_handler_config,
+        },
         "segments": {
             "train": ("2008-01-01", "2014-12-31"),
             "valid": ("2015-01-01", "2016-12-31"),
@@ -26,20 +30,32 @@ dataset_config = {
 }
 
 record_config = [
-    {"class": "SignalRecord", "module_path": "qlib.workflow.record_temp",},
-    {"class": "SigAnaRecord", "module_path": "qlib.workflow.record_temp",},
+    {
+        "class": "SignalRecord",
+        "module_path": "qlib.workflow.record_temp",
+    },
+    {
+        "class": "SigAnaRecord",
+        "module_path": "qlib.workflow.record_temp",
+    },
 ]
 
 # use lgb
 task_lgb_config = {
-    "model": {"class": "LGBModel", "module_path": "qlib.contrib.model.gbdt",},
+    "model": {
+        "class": "LGBModel",
+        "module_path": "qlib.contrib.model.gbdt",
+    },
     "dataset": dataset_config,
     "record": record_config,
 }
 
 # use xgboost
 task_xgboost_config = {
-    "model": {"class": "XGBModel", "module_path": "qlib.contrib.model.xgboost",},
+    "model": {
+        "class": "XGBModel",
+        "module_path": "qlib.contrib.model.xgboost",
+    },
     "dataset": dataset_config,
     "record": record_config,
 }

@@ -21,6 +21,7 @@ from .utils import get_mongodb
 from qlib import auto_init
 from qlib import get_module_logger
 
+
 class TaskManager:
     """TaskManager
     here is the what will a task looks like
@@ -361,4 +362,3 @@ def run_task(task_func, task_pool, force_release=False, *args, **kwargs):
             ever_run = True
 
     return ever_run
-

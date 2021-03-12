@@ -18,7 +18,7 @@ class TaskCollector:
 
     def list_recorders(self, rec_filter_func=None, task_filter_func=None, only_finished=True, only_have_task=False):
         """
-        Return a dict of {rid:Recorder} by recorder filter and task filter. It is not necessary to use those filter. 
+        Return a dict of {rid:Recorder} by recorder filter and task filter. It is not necessary to use those filter.
         If you don't train with "task_train", then there is no "task" which includes the task config.
         If there is a "task", then it will become rec.task which can be get simply.
 
@@ -48,7 +48,7 @@ class TaskCollector:
         if task_filter_func is not None:
             only_have_task = True
         for rid, rec in recs.items():
-            if (only_finished and rec.status == rec.STATUS_FI) or only_finished==False:
+            if (only_finished and rec.status == rec.STATUS_FI) or only_finished == False:
                 if rec_filter_func is None or rec_filter_func(rec):
                     task = None
                     try:
@@ -60,7 +60,7 @@ class TaskCollector:
                     if task_filter_func is None or task_filter_func(task):
                         rec.task = task
                         recs_flt[rid] = rec
-                        
+
         return recs_flt
 
     def collect_predictions(
@@ -83,7 +83,7 @@ class TaskCollector:
         dict
             the dict of predictions
         """
-        recs_flt = self.list_recorders(task_filter_func=task_filter_func,only_have_task=True)
+        recs_flt = self.list_recorders(task_filter_func=task_filter_func, only_have_task=True)
 
         # group
         recs_group = {}
@@ -108,18 +108,17 @@ class TaskCollector:
         self,
         task_filter_func=None,
     ):
-        recs_flt = self.list_recorders(task_filter_func=task_filter_func,only_have_task=True)
-        
+        recs_flt = self.list_recorders(task_filter_func=task_filter_func, only_have_task=True)
+
         if len(recs_flt) == 0:
             self.logger.warning("Can not collect any recorders...")
             return None, None
-        max_test = max(rec.task['dataset']['kwargs']['segments']['test'] for rec in recs_flt.values())
+        max_test = max(rec.task["dataset"]["kwargs"]["segments"]["test"] for rec in recs_flt.values())
 
         latest_record = {}
         for rid, rec in recs_flt.items():
-            if rec.task['dataset']['kwargs']['segments']['test'] == max_test:
+            if rec.task["dataset"]["kwargs"]["segments"]["test"] == max_test:
                 latest_record[rid] = rec
-        
+
         self.logger.info(f"Collect {len(latest_record)} latest records in {self.exp_name}")
         return latest_record, max_test
-        

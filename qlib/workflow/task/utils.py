@@ -50,6 +50,7 @@ class TimeAdjuster:
         if idx >= len(self.cals):
             return None
         return self.cals[idx]
+
     def max(self):
         """
         (Deprecated)

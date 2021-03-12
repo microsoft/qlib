@@ -1,4 +1,4 @@
-from typing import Union,List
+from typing import Union, List
 from qlib.workflow import R
 from tqdm.auto import tqdm
 from qlib.data import D
@@ -9,6 +9,7 @@ from qlib.workflow import R
 from qlib.model.trainer import task_train
 from qlib.workflow.recorder import Recorder
 from qlib.workflow.task.collect import TaskCollector
+
 
 class ModelUpdater(TaskCollector):
     """
@@ -31,7 +32,7 @@ class ModelUpdater(TaskCollector):
         self.exp = R.get_exp(experiment_name=experiment_name)
         self.logger = get_module_logger("ModelUpdater")
 
-    def set_online_model(self, recorder: Union[str,Recorder]):
+    def set_online_model(self, recorder: Union[str, Recorder]):
         """online model will be identified at the tags of the record
 
         Parameters
@@ -39,12 +40,12 @@ class ModelUpdater(TaskCollector):
         recorder: Union[str,Recorder]
             the id of a Recorder or the Recorder instance
         """
-        if isinstance(recorder,str): 
+        if isinstance(recorder, str):
             recorder = self.exp.get_recorder(recorder_id=recorder)
         recorder.set_tags(**{ModelUpdater.ONLINE_TAG: ModelUpdater.ONLINE_TAG_TRUE})
 
-    def cancel_online_model(self, recorder: Union[str,Recorder]):
-        if isinstance(recorder,str): 
+    def cancel_online_model(self, recorder: Union[str, Recorder]):
+        if isinstance(recorder, str):
             recorder = self.exp.get_recorder(recorder_id=recorder)
         recorder.set_tags(**{ModelUpdater.ONLINE_TAG: ModelUpdater.ONLINE_TAG_FALSE})
 
@@ -53,7 +54,7 @@ class ModelUpdater(TaskCollector):
         for rid, rec in recs.items():
             self.cancel_online_model(rec)
 
-    def reset_online_model(self, recorders: List[Union[str,Recorder]]):
+    def reset_online_model(self, recorders: List[Union[str, Recorder]]):
         """cancel all online model and reset the given model to online model
 
         Parameters
@@ -65,7 +66,7 @@ class ModelUpdater(TaskCollector):
         for rec_or_rid in recorders:
             self.set_online_model(rec_or_rid)
 
-    def update_pred(self, recorder: Union[str,Recorder]):
+    def update_pred(self, recorder: Union[str, Recorder]):
         """update predictions to the latest day in Calendar based on rid
 
         Parameters
@@ -73,17 +74,19 @@ class ModelUpdater(TaskCollector):
         recorder: Union[str,Recorder]
             the id of a Recorder or the Recorder instance
         """
-        if isinstance(recorder,str): 
+        if isinstance(recorder, str):
             recorder = self.exp.get_recorder(recorder_id=recorder)
         old_pred = recorder.load_object("pred.pkl")
         last_end = old_pred.index.get_level_values("datetime").max()
-        task_config = recorder.load_object("task") # recorder.task
+        task_config = recorder.load_object("task")  # recorder.task
 
         # updated to the latest trading day
         cal = D.calendar(start_time=last_end + pd.Timedelta(days=1), end_time=None)
 
         if len(cal) == 0:
-            self.logger.info(f"The prediction in {recorder.info['id']} of {self.exp_name} are latest. No need to update.")
+            self.logger.info(
+                f"The prediction in {recorder.info['id']} of {self.exp_name} are latest. No need to update."
+            )
             return
 
         start_time, end_time = cal[0], cal[-1]
@@ -100,7 +103,9 @@ class ModelUpdater(TaskCollector):
 
         recorder.save_objects(**{"pred.pkl": cb_pred})
 
-        self.logger.info(f"Finish updating new {new_pred.shape[0]} predictions in {recorder.info['id']} of {self.exp_name}.")
+        self.logger.info(
+            f"Finish updating new {new_pred.shape[0]} predictions in {recorder.info['id']} of {self.exp_name}."
+        )
 
     def update_all_pred(self, rec_filter_func=None):
         """update all predictions in this experiment after filter.
@@ -126,7 +131,7 @@ class ModelUpdater(TaskCollector):
             the count of updated record
 
         """
-        recs = self.list_recorders(rec_filter_func=rec_filter_func,only_have_task=True)
+        recs = self.list_recorders(rec_filter_func=rec_filter_func, only_have_task=True)
         for rid, rec in recs.items():
             self.update_pred(rec)
         return len(recs)
@@ -150,5 +155,5 @@ class ModelUpdater(TaskCollector):
         dict
             {rid : recorder of the online model}
         """
-        
+
         return self.list_recorders(rec_filter_func=self.online_filter)
