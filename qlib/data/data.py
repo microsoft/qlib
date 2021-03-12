@@ -653,7 +653,7 @@ class LocalFeatureProvider(FeatureProvider):
         series = read_bin(uri_data, start_index, end_index)
         return series
 
-    def period_feature(self, instrument, field, start_offset, end_offset, cur_date):
+    def period_feature(self, instrument, field, start_offset, end_offset, cur_date, **kwargs):
 
         DATA_RECORDS = [
             ("date", C.pit_record_type["date"]),
@@ -665,6 +665,17 @@ class LocalFeatureProvider(FeatureProvider):
 
         field = str(field).lower()[2:]
         instrument = code_to_fname(instrument)
+
+        start_index, end_index, cur_index = kwargs["info"]
+        if cur_index == start_index:
+            if not hasattr(self, "all_field"):
+                self.all_field = []
+            self.all_field.append(field)
+            if not hasattr(self, "period_index") is None:
+                self.period_index = {}
+            if field not in self.period_index:
+                self.period_index[field] = {}
+
         if not field.startswith("q_") and not field.startswith("a_"):
             raise ValueError("period field must start with 'q_' or 'a_'")
         quarterly = field.startswith("q_")
@@ -694,9 +705,18 @@ class LocalFeatureProvider(FeatureProvider):
 
         value = np.empty(len(period_list), dtype=VALUE_TYPE)
         for i, period in enumerate(period_list):
-            value[i] = read_period_data(index_path, data_path, period, cur_date, quarterly)
-
+            last_period_index = self.period_index.get(period)
+            value[i], now_period_index = read_period_data(
+                index_path, data_path, period, cur_date, quarterly, last_period_index
+            )
+            self.period_index[period] = now_period_index
         series = pd.Series(value, index=period_list, dtype=VALUE_TYPE)
+
+        if cur_index == end_index:
+            self.all_field.remove(field)
+            if len(self.all_field) == 0:
+                del self.period_index
+
         return series
 
 

@@ -46,8 +46,8 @@ class PNpElemOperator(PElemOperator):
         self.func = func
         super(PNpElemOperator, self).__init__(feature)
 
-    def load_period_data(self, instrument, start_offset, end_offset, cur_index):
-        series = self.feature.load_period_data(instrument, start_offset, end_offset, cur_index)
+    def load_period_data(self, instrument, start_offset, end_offset, cur_index, **kwargs):
+        series = self.feature.load_period_data(instrument, start_offset, end_offset, cur_index, **kwargs)
         return getattr(np, self.func)(series)
 
 
@@ -60,11 +60,11 @@ class PSign(PNpElemOperator):
     def __init__(self, feature):
         super(PSign, self).__init__(feature, "sign")
 
-    def load_period_data(self, instrument, start_offset, end_offset, cur_index):
+    def load_period_data(self, instrument, start_offset, end_offset, cur_index, **kwargs):
         """
         To avoid error raised by bool type input, we transform the data into float32.
         """
-        series = self.feature.load_period_data(instrument, start_offset, end_offset, cur_index)
+        series = self.feature.load_period_data(instrument, start_offset, end_offset, cur_index, **kwargs)
         # TODO:  More precision types should be configurable
         series = series.astype(np.float32)
         return getattr(np, self.func)(series)
@@ -83,8 +83,8 @@ class PPower(PNpElemOperator):
     def __str__(self):
         return "{}({},{})".format(type(self).__name__, self.feature, self.exponent)
 
-    def load_period_data(self, instrument, start_offset, end_offset, cur_index):
-        series = self.feature.load_period_data(instrument, start_offset, end_offset, cur_index)
+    def load_period_data(self, instrument, start_offset, end_offset, cur_index, **kwargs):
+        series = self.feature.load_period_data(instrument, start_offset, end_offset, cur_index, **kwargs)
         return getattr(np, self.func)(series, self.exponent)
 
 
@@ -96,7 +96,7 @@ class PMask(PNpElemOperator):
     def __str__(self):
         return "{}({},{})".format(type(self).__name__, self.feature, self.instrument.lower())
 
-    def load_period_data(self, instrument, start_offset, end_offset, cur_index):
+    def load_period_data(self, instrument, start_offset, end_offset, cur_index, **kwargs):
 
         return self.feature.load_period_data(self.instrument, start_offset, end_offset, cur_index)
 
@@ -135,16 +135,18 @@ class PNpPairOperator(PPairOperator):
         self.func = func
         super(PNpPairOperator, self).__init__(feature_left, feature_right)
 
-    def load_period_data(self, instrument, start_offset, end_offset, cur_index):
+    def load_period_data(self, instrument, start_offset, end_offset, cur_index, **kwargs):
         assert any(
             [isinstance(self.feature_left, PExpression), self.feature_right, PExpression]
         ), "at least one of two inputs is PExpression instance"
         if isinstance(self.feature_left, PExpression):
-            series_left = self.feature_left.load_period_data(instrument, start_offset, end_offset, cur_index)
+            series_left = self.feature_left.load_period_data(instrument, start_offset, end_offset, cur_index, **kwargs)
         else:
             series_left = self.feature_left  # numeric value
         if isinstance(self.feature_right, PExpression):
-            series_right = self.feature_right.load_period_data(instrument, start_offset, end_offset, cur_index)
+            series_right = self.feature_right.load_period_data(
+                instrument, start_offset, end_offset, cur_index, **kwargs
+            )
         else:
             series_right = self.feature_right
         return getattr(np, self.func)(series_left, series_right)
@@ -230,14 +232,16 @@ class PIf(PExpressionOps):
     def __str__(self):
         return "PIf({},{},{})".format(self.condition, self.feature_left, self.feature_right)
 
-    def load_period_data(self, instrument, start_offset, end_offset, cur_index):
-        series_cond = self.condition.load_period_data(instrument, start_offset, end_offset, cur_index)
+    def load_period_data(self, instrument, start_offset, end_offset, cur_index, **kwargs):
+        series_cond = self.condition.load_period_data(instrument, start_offset, end_offset, cur_index, **kwargs)
         if isinstance(self.feature_left, PExpression):
-            series_left = self.feature_left.load_period_data(instrument, start_offset, end_offset, cur_index)
+            series_left = self.feature_left.load_period_data(instrument, start_offset, end_offset, cur_index, **kwargs)
         else:
             series_left = self.feature_left
         if isinstance(self.feature_right, PExpression):
-            series_right = self.feature_right.load_period_data(instrument, start_offset, end_offset, cur_index)
+            series_right = self.feature_right.load_period_data(
+                instrument, start_offset, end_offset, cur_index, **kwargs
+            )
         else:
             series_right = self.feature_right
         series = pd.Series(np.where(series_cond, series_left, series_right), index=series_cond.index)
@@ -275,8 +279,8 @@ class PRolling(PExpressionOps):
     def __str__(self):
         return "{}({},{})".format(type(self).__name__, self.feature, self.N)
 
-    def load_period_data(self, instrument, start_offset, end_offset, cur_index):
-        series = self.feature.load_period_data(instrument, start_offset, end_offset, cur_index)
+    def load_period_data(self, instrument, start_offset, end_offset, cur_index, **kwargs):
+        series = self.feature.load_period_data(instrument, start_offset, end_offset, cur_index, **kwargs)
         # NOTE: remove all null check,
         # now it's user's responsibility to decide whether use features in null days
         # isnull = series.isnull() # NOTE: isnull = NaN, inf is not null
@@ -302,8 +306,8 @@ class PRef(PRolling):
     def __init__(self, feature, N):
         super(PRef, self).__init__(feature, N, "ref")
 
-    def load_period_data(self, instrument, start_offset, end_offset, cur_index):
-        series = self.feature.load_period_data(instrument, start_offset, end_offset, cur_index)
+    def load_period_data(self, instrument, start_offset, end_offset, cur_index, **kwargs):
+        series = self.feature.load_period_data(instrument, start_offset, end_offset, cur_index, **kwargs)
         # N = 0, return first day
         if series.empty:
             return series  # Pandas bug, see: https://github.com/pandas-dev/pandas/issues/21049
@@ -362,8 +366,8 @@ class PIdxMax(PRolling):
     def __init__(self, feature, N):
         super(PIdxMax, self).__init__(feature, N, "idxmax")
 
-    def load_period_data(self, instrument, start_offset, end_offset, cur_index):
-        series = self.feature.load_period_data(instrument, start_offset, end_offset, cur_index)
+    def load_period_data(self, instrument, start_offset, end_offset, cur_index, **kwargs):
+        series = self.feature.load_period_data(instrument, start_offset, end_offset, cur_index, **kwargs)
         if self.N == 0:
             series = series.expanding(min_periods=1).apply(lambda x: x.argmax() + 1, raw=True)
         else:
@@ -380,8 +384,8 @@ class PIdxMin(PRolling):
     def __init__(self, feature, N):
         super(PIdxMin, self).__init__(feature, N, "idxmin")
 
-    def load_period_data(self, instrument, start_offset, end_offset, cur_index):
-        series = self.feature.load_period_data(instrument, start_offset, end_offset, cur_index)
+    def load_period_data(self, instrument, start_offset, end_offset, cur_index, **kwargs):
+        series = self.feature.load_period_data(instrument, start_offset, end_offset, cur_index, **kwargs)
         if self.N == 0:
             series = series.expanding(min_periods=1).apply(lambda x: x.argmin() + 1, raw=True)
         else:
@@ -397,8 +401,8 @@ class PQuantile(PRolling):
     def __str__(self):
         return "{}({},{},{})".format(type(self).__name__, self.feature, self.N, self.qscore)
 
-    def load_period_data(self, instrument, start_offset, end_offset, cur_index):
-        series = self.feature.load_period_data(instrument, start_offset, end_offset, cur_index)
+    def load_period_data(self, instrument, start_offset, end_offset, cur_index, **kwargs):
+        series = self.feature.load_period_data(instrument, start_offset, end_offset, cur_index, **kwargs)
         if self.N == 0:
             series = series.expanding(min_periods=1).quantile(self.qscore)
         else:
@@ -415,8 +419,8 @@ class PMad(PRolling):
     def __init__(self, feature, N):
         super(PMad, self).__init__(feature, N, "mad")
 
-    def load_period_data(self, instrument, start_offset, end_offset, cur_index):
-        series = self.feature.load_period_data(instrument, start_offset, end_offset, cur_index)
+    def load_period_data(self, instrument, start_offset, end_offset, cur_index, **kwargs):
+        series = self.feature.load_period_data(instrument, start_offset, end_offset, cur_index, **kwargs)
         # TODO: implement in Cython
 
         def mad(x):
@@ -434,8 +438,8 @@ class PRank(PRolling):
     def __init__(self, feature, N):
         super(PRank, self).__init__(feature, N, "rank")
 
-    def load_period_data(self, instrument, start_offset, end_offset, cur_index):
-        series = self.feature.load_period_data(instrument, start_offset, end_offset, cur_index)
+    def load_period_data(self, instrument, start_offset, end_offset, cur_index, **kwargs):
+        series = self.feature.load_period_data(instrument, start_offset, end_offset, cur_index, **kwargs)
         # TODO: implement in Cython
 
         def rank(x):
@@ -462,8 +466,8 @@ class PDelta(PRolling):
     def __init__(self, feature, N):
         super(PDelta, self).__init__(feature, N, "delta")
 
-    def load_period_data(self, instrument, start_offset, end_offset, cur_index):
-        series = self.feature.load_period_data(instrument, start_offset, end_offset, cur_index)
+    def load_period_data(self, instrument, start_offset, end_offset, cur_index, **kwargs):
+        series = self.feature.load_period_data(instrument, start_offset, end_offset, cur_index, **kwargs)
         if self.N == 0:
             series = series - series.iloc[0]
         else:
@@ -477,8 +481,8 @@ class PSlope(PRolling):
     def __init__(self, feature, N):
         super(PSlope, self).__init__(feature, N, "slope")
 
-    def load_period_data(self, instrument, start_offset, end_offset, cur_index):
-        series = self.feature.load_period_data(instrument, start_offset, end_offset, cur_index)
+    def load_period_data(self, instrument, start_offset, end_offset, cur_index, **kwargs):
+        series = self.feature.load_period_data(instrument, start_offset, end_offset, cur_index, **kwargs)
         if self.N == 0:
             series = pd.Series(expanding_slope(series.values), index=series.index)
         else:
@@ -490,8 +494,8 @@ class PRsquare(PRolling):
     def __init__(self, feature, N):
         super(PRsquare, self).__init__(feature, N, "rsquare")
 
-    def load_period_data(self, instrument, start_offset, end_offset, cur_index):
-        _series = self.feature.load_period_data(instrument, start_offset, end_offset, cur_index)
+    def load_period_data(self, instrument, start_offset, end_offset, cur_index, **kwargs):
+        _series = self.feature.load_period_data(instrument, start_offset, end_offset, cur_index, **kwargs)
         if self.N == 0:
             series = pd.Series(expanding_rsquare(_series.values), index=_series.index)
         else:
@@ -504,8 +508,8 @@ class PResi(PRolling):
     def __init__(self, feature, N):
         super(PResi, self).__init__(feature, N, "resi")
 
-    def load_period_data(self, instrument, start_offset, end_offset, cur_index):
-        series = self.feature.load_period_data(instrument, start_offset, end_offset, cur_index)
+    def load_period_data(self, instrument, start_offset, end_offset, cur_index, **kwargs):
+        series = self.feature.load_period_data(instrument, start_offset, end_offset, cur_index, **kwargs)
         if self.N == 0:
             series = pd.Series(expanding_resi(series.values), index=series.index)
         else:
@@ -517,8 +521,8 @@ class PWMA(PRolling):
     def __init__(self, feature, N):
         super(PWMA, self).__init__(feature, N, "wma")
 
-    def load_period_data(self, instrument, start_offset, end_offset, cur_index):
-        series = self.feature.load_period_data(instrument, start_offset, end_offset, cur_index)
+    def load_period_data(self, instrument, start_offset, end_offset, cur_index, **kwargs):
+        series = self.feature.load_period_data(instrument, start_offset, end_offset, cur_index, **kwargs)
         # TODO: implement in Cython
 
         def weighted_mean(x):
@@ -537,8 +541,8 @@ class PEMA(PRolling):
     def __init__(self, feature, N):
         super(PEMA, self).__init__(feature, N, "ema")
 
-    def load_period_data(self, instrument, start_offset, end_offset, cur_index):
-        series = self.feature.load_period_data(instrument, start_offset, end_offset, cur_index)
+    def load_period_data(self, instrument, start_offset, end_offset, cur_index, **kwargs):
+        series = self.feature.load_period_data(instrument, start_offset, end_offset, cur_index, **kwargs)
 
         def exp_weighted_mean(x):
             a = 1 - 2 / (1 + len(x))
@@ -566,9 +570,9 @@ class PairRolling(PExpressionOps):
     def __str__(self):
         return "{}({},{},{})".format(type(self).__name__, self.feature_left, self.feature_right, self.N)
 
-    def load_period_data(self, instrument, start_offset, end_offset, cur_index):
-        series_left = self.feature_left.load_period_data(instrument, start_offset, end_offset, cur_index)
-        series_right = self.feature_right.load_period_data(instrument, start_offset, end_offset, cur_index)
+    def load_period_data(self, instrument, start_offset, end_offset, cur_index, **kwargs):
+        series_left = self.feature_left.load_period_data(instrument, start_offset, end_offset, cur_index, **kwargs)
+        series_right = self.feature_right.load_period_data(instrument, start_offset, end_offset, cur_index, **kwargs)
         if self.N == 0:
             series = getattr(series_left.expanding(min_periods=1), self.func)(series_right)
         else:
@@ -589,12 +593,12 @@ class PCorr(PairRolling):
     def __init__(self, feature_left, feature_right, N):
         super(PCorr, self).__init__(feature_left, feature_right, N, "corr")
 
-    def load_period_data(self, instrument, start_offset, end_offset, cur_index):
+    def load_period_data(self, instrument, start_offset, end_offset, cur_index, **kwargs):
         res = super(PCorr, self)._load_internal(instrument, start_index, end_index, freq)
 
         # NOTE: Load uses MemCache, so calling load_period_data again will not cause performance degradation
-        series_left = self.feature_left.load_period_data(instrument, start_offset, end_offset, cur_index)
-        series_right = self.feature_right.load_period_data(instrument, start_offset, end_offset, cur_index)
+        series_left = self.feature_left.load_period_data(instrument, start_offset, end_offset, cur_index, **kwargs)
+        series_right = self.feature_right.load_period_data(instrument, start_offset, end_offset, cur_index, **kwargs)
         res.loc[
             np.isclose(series_left.rolling(self.N, min_periods=1).std(), 0, atol=2e-05)
             | np.isclose(series_right.rolling(self.N, min_periods=1).std(), 0, atol=2e-05)

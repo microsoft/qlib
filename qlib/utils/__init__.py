@@ -56,7 +56,7 @@ def read_bin(file_path, start_index, end_index):
     return series
 
 
-def read_period_data(index_path, data_path, period, cur_date, quarterly):
+def read_period_data(index_path, data_path, period, cur_date, quarterly, last_period_index):
 
     DATA_DTYPE = "".join(
         [
@@ -73,24 +73,30 @@ def read_period_data(index_path, data_path, period, cur_date, quarterly):
     NAN_VALUE = C.pit_record_nan["value"]
     NAN_INDEX = C.pit_record_nan["index"]
 
-    with open(index_path, "rb") as fi:
-        (first_year,) = struct.unpack(PERIOD_TYPE, fi.read(struct.calcsize(PERIOD_TYPE)))
-        all_periods = np.fromfile(fi, dtype=INDEX_TYPE)
-
     # find the first index of linked revisions
-    offset = (period // 100 - first_year) * 4 + period % 100 - 1 if quarterly else period - first_year
-    _next = all_periods[offset]
+    if last_period_index is None:
+        with open(index_path, "rb") as fi:
+            (first_year,) = struct.unpack(PERIOD_TYPE, fi.read(struct.calcsize(PERIOD_TYPE)))
+            all_periods = np.fromfile(fi, dtype=INDEX_TYPE)
+        offset = (period // 100 - first_year) * 4 + period % 100 - 1 if quarterly else period - first_year
+        _next = all_periods[offset]
+    else:
+        _next = last_period_index
 
     # load data following the `_next` link
     prev_value = NAN_VALUE
+    prev_next = _next
+
     with open(data_path, "rb") as fd:
         while _next != NAN_INDEX:
             fd.seek(_next)
-            date, period, value, _next = struct.unpack(DATA_DTYPE, fd.read(struct.calcsize(DATA_DTYPE)))
+            date, period, value, new_next = struct.unpack(DATA_DTYPE, fd.read(struct.calcsize(DATA_DTYPE)))
             if date >= cur_date:  # NOTE: only use after published date
                 break
+            prev_next = _next
+            _next = new_next
             prev_value = value
-    return prev_value
+    return prev_value, prev_next
 
 
 def np_ffill(arr: np.array):
