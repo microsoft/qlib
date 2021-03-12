@@ -17,9 +17,17 @@ class TestRegiterCustomOps(TestAutoData):
         qlib.init(provider_uri=provider_uri, region=REG_US)
 
     def test_regiter_custom_ops(self):
-        # instruments = D.instruments(market='all')
+
         instruments = ["a1x4w7"]
-        fields = ["PSum($$q_taxrate*$$q_totalcurrentassets, 4)/$close", "$close*$$q_taxrate-$high*$$q_taxrate"]
+        fields = ["$$q_accountspayable / $$q_totalcurrentassets"]
+        print(D.features(instruments, fields, start_time="2020-06-01", end_time="2020-06-10", freq="day"))
+        fields = [
+            "($$q_accountspayable / $$q_totalcurrentassets) / PRef($$q_accountspayable / $$q_totalcurrentassets, 1) - 1"
+        ]
+        print(D.features(instruments, fields, start_time="2020-06-01", end_time="2020-06-10", freq="day"))
+        fields = ["PSum($$q_totalrevenue/$$q_totalcurrentassets, 4)"]
+        print(D.features(instruments, fields, start_time="2020-06-01", end_time="2020-06-10", freq="day"))
+        fields = ["$$q_totalcurrentassets/$close/10000"]
         print(D.features(instruments, fields, start_time="2020-06-01", end_time="2020-06-10", freq="day"))
 
 
