@@ -633,11 +633,11 @@ class LocalFeatureProvider(FeatureProvider):
         return os.path.join(C.get_data_path(), "features", "{}", "{}.{}.bin")
 
     @property
-    def _uri_period_index(self):
+    def uri_period_index(self):
         return os.path.join(C.get_data_path(), "financial", "{}", "{}.index")
 
     @property
-    def _uri_period_data(self):
+    def uri_period_data(self):
         return os.path.join(C.get_data_path(), "financial", "{}", "{}.data")
 
     def feature(self, instrument, field, start_index, end_index, freq):
@@ -668,8 +668,8 @@ class LocalFeatureProvider(FeatureProvider):
         if not field.startswith("q_") and not field.startswith("a_"):
             raise ValueError("period field must start with 'q_' or 'a_'")
         quarterly = field.startswith("q_")
-        index_path = self._uri_period_index.format(instrument.lower(), field)
-        data_path = self._uri_period_data.format(instrument.lower(), field)
+        index_path = self.uri_period_index.format(instrument.lower(), field)
+        data_path = self.uri_period_data.format(instrument.lower(), field)
         data = np.fromfile(data_path, dtype=DATA_RECORDS)
 
         # find all revision periods before `cur_date`

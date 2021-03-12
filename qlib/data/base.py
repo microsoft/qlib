@@ -5,10 +5,12 @@
 from __future__ import division
 from __future__ import print_function
 
+import os
 import abc
 import pandas as pd
 import numpy as np
 
+from ..utils import code_to_fname
 from ..log import get_module_logger
 
 
@@ -456,7 +458,17 @@ class PExpression(abc.ABC):
     def get_period_offset(self, cur_index):
         raise NotImplementedError("This function must be implemented in your newly defined feature")
 
+    def check_feature_exist(self, instrument):
+        child_exist_list = [v.check_feature_exist(instrument) for k, v in self.__dict__.items() if isinstance(v, PExpression)]
+        return all(child_exist_list)
+
+
     def load(self, instrument, start_index, end_index, freq):
+
+        if not self.check_feature_exist(instrument):
+            get_module_logger("base").warning(f"WARN: period data not found for {str(self)}")
+            return pd.Series(dtype="float32", name=str(self))
+
         from .cache import H
 
         # cache
@@ -474,9 +486,7 @@ class PExpression(abc.ABC):
         for cur_index in range(start_index, end_index + 1):
             cur_date = _calendar[cur_index]
             start_offset = self.get_period_offset(cur_index)
-            resample_data[cur_index - start_index] = self.load_period_data(instrument, start_offset, 0, cur_date).iloc[
-                -1
-            ]
+            resample_data[cur_index - start_index] = self.load_period_data(instrument, start_offset, 0, cur_date).iloc[-1]
 
         resample_series = pd.Series(
             resample_data, index=pd.RangeIndex(start_index, end_index + 1), dtype="float32", name=str(self)
@@ -500,6 +510,16 @@ class PFeature(PExpression):
 
     def __str__(self):
         return "$$" + self._name
+
+    def check_feature_exist(self, instrument):
+        from .data import FeatureD
+
+        instrument = code_to_fname(instrument).lower()
+        index_path = FeatureD.uri_period_index.format(instrument, self._name)
+        data_path = FeatureD.uri_period_data.format(instrument, self._name)
+
+        return os.path.exists(index_path) and os.path.exists(data_path)
+
 
     def load_period_data(self, instrument, start_offset, end_offset, cur_index):
         ### Zhou Code
