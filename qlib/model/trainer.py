@@ -6,7 +6,7 @@ from qlib.workflow import R
 from qlib.workflow.record_temp import SignalRecord
 
 
-def task_train(task_config: dict, experiment_name):
+def task_train(task_config: dict, experiment_name: str) -> str:
     """
     task based training
 
@@ -14,6 +14,13 @@ def task_train(task_config: dict, experiment_name):
     ----------
     task_config : dict
         A dict describes a task setting.
+    experiment_name: str
+        The name of experiment
+
+    Returns
+    ----------
+    rid : str
+        The id of the recorder of this task
     """
 
     # model initiaiton
@@ -27,16 +34,23 @@ def task_train(task_config: dict, experiment_name):
         model.fit(dataset)
         recorder = R.get_recorder()
         R.save_objects(**{"params.pkl": model})
+        R.save_objects(**{"task.pkl": task_config})  # keep the original format and datatype
 
         # generate records: prediction, backtest, and analysis
-        for record in task_config["record"]:
+        records = task_config.get("record", [])
+        if isinstance(records, dict):  # prevent only one dict
+            records = [records]
+        for record in records:
             if record["class"] == SignalRecord.__name__:
                 srconf = {"model": model, "dataset": dataset, "recorder": recorder}
+                record.setdefault("kwargs", {})
                 record["kwargs"].update(srconf)
                 sr = init_instance_by_config(record)
                 sr.generate()
             else:
                 rconf = {"recorder": recorder}
+                record.setdefault("kwargs", {})
                 record["kwargs"].update(rconf)
                 ar = init_instance_by_config(record)
                 ar.generate()
+    return recorder.info["id"]

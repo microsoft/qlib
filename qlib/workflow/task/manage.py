@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 """
-A task consists of 2 parts
+A task consists of 3 parts
 - tasks description: the desc will define the task
 - tasks status: the status of the task
 - tasks result information : A user can get the task with the task description and task result.
@@ -26,22 +26,22 @@ from qlib import auto_init
 class TaskManager:
     """TaskManager
     here is the what will a task looks like
-    {
-        'def': pickle serialized task definition.  using pickle will make it easier
-        'filter': json-like data. This is for filtering the tasks.
-        'status': 'waiting' | 'running' | 'done'
-        'res': pickle serialized task result,
-    }
+
+    .. code-block:: python
+
+        {
+            'def': pickle serialized task definition.  using pickle will make it easier
+            'filter': json-like data. This is for filtering the tasks.
+            'status': 'waiting' | 'running' | 'done'
+            'res': pickle serialized task result,
+        }
 
     The tasks manager assume that you will only update the tasks you fetched.
     The mongo fetch one and update will make it date updating secure.
 
-    Usage Examples from the CLI.
-    python -m blocks.tasks.__init__ task_stat --task_pool meta_task_rule
+    .. note::
 
-
-    NOTE:
-    - 假设： 存储在db里面的都是encode过的， 拿出来的都是decode过的
+        assumption: the data in MongoDB was encoded and the data out of MongoDB was decoded
     """
 
     STATUS_WAITING = "waiting"
@@ -52,6 +52,14 @@ class TaskManager:
     ENCODE_FIELDS_PREFIX = ["def", "res"]
 
     def __init__(self, task_pool=None):
+        """
+        init Task Manager, remember to make the statement of MongoDB url and database name firstly.
+
+        Parameters
+        ----------
+        task_pool: str
+            the name of Collection in MongoDB
+        """
         self.mdb = get_mongodb()
         self.task_pool = task_pool
 
@@ -85,7 +93,7 @@ class TaskManager:
         return {k: str(v) for k, v in flt.items()}
 
     def replace_task(self, task, new_task, task_pool=None):
-        # 这里的假设是从接口拿出来的都是decode过的，在接口内部的都是 encode过的
+        # assume that the data out of interface was decoded and the data in interface was encoded
         new_task = self._encode_task(new_task)
         task_pool = self._get_task_pool(task_pool)
         query = {"_id": ObjectId(task["_id"])}
@@ -104,6 +112,19 @@ class TaskManager:
             task_pool.insert_one(task)
 
     def insert_task_def(self, task_def, task_pool=None):
+        """
+        insert a task to task_pool
+
+        Parameters
+        ----------
+        task_def: dict
+        task_pool: str
+            the name of Collection in MongoDB
+
+        Returns
+        -------
+
+        """
         task_pool = self._get_task_pool(task_pool)
         task = self._encode_task(
             {
@@ -115,6 +136,23 @@ class TaskManager:
         self.insert_task(task, task_pool)
 
     def create_task(self, task_def_l, task_pool=None, dry_run=False, print_nt=False):
+        """
+        if the tasks in task_def_l is new, then insert new tasks into the task_pool
+
+        Parameters
+        ----------
+        task_def_l: list
+            a list of task
+        task_pool: str
+            the name of task_pool (collection name of MongoDB)
+        dry_run: bool
+            if insert those new tasks to task pool
+        print_nt: bool
+            if print new task
+        Returns
+        -------
+
+        """
         task_pool = self._get_task_pool(task_pool)
         new_tasks = []
         for t in task_def_l:
@@ -145,7 +183,7 @@ class TaskManager:
         task = task_pool.find_one_and_update(
             query, {"$set": {"status": self.STATUS_RUNNING}}, sort=[("priority", pymongo.DESCENDING)]
         )
-        # 这里我的 priority 必须是 高数优先级更高，因为 null会被在 ASCENDING时被排在最前面
+        # null will be at the top after sorting when using ASCENDING, so the larger the number higher, the higher the priority
         if task is None:
             return None
         task["status"] = self.STATUS_RUNNING
@@ -153,6 +191,20 @@ class TaskManager:
 
     @contextmanager
     def safe_fetch_task(self, query={}, task_pool=None):
+        """
+        fetch task from task_pool using query with contextmanager
+
+        Parameters
+        ----------
+        query: dict
+            the dict of query
+        task_pool: str
+            the name of Collection in MongoDB
+
+        Returns
+        -------
+
+        """
         task = self.fetch_task(query=query, task_pool=task_pool)
         try:
             yield task
@@ -171,12 +223,20 @@ class TaskManager:
                 yield task
 
     def query(self, query={}, decode=True, task_pool=None):
-        """query
+        """
         This function may raise exception `pymongo.errors.CursorNotFound: cursor id not found` if it takes too long to iterate the generator
 
-        :param query:
-        :param decode:
-        :param task_pool:
+        Parameters
+        ----------
+        query: dict
+            the dict of query
+        decode: bool
+        task_pool: str
+            the name of Collection in MongoDB
+
+        Returns
+        -------
+
         """
         query = query.copy()
         if "_id" in query:
@@ -200,6 +260,20 @@ class TaskManager:
         task_pool.update_one({"_id": task["_id"]}, update_dict)
 
     def remove(self, query={}, task_pool=None):
+        """
+        remove the task using query
+
+        Parameters
+        ----------
+        query: dict
+            the dict of query
+        task_pool: str
+            the name of Collection in MongoDB
+
+        Returns
+        -------
+
+        """
         query = query.copy()
         task_pool = self._get_task_pool(task_pool)
         if "_id" in query:
@@ -254,15 +328,15 @@ class TaskManager:
 
 
 def run_task(task_func, task_pool, force_release=False, *args, **kwargs):
-    """run_task.
-    While task pool is not empty, use task_func to fetch and run tasks in task_pool
+    """
+    While task pool is not empty (has WAITING tasks), use task_func to fetch and run tasks in task_pool
 
     Parameters
     ----------
     task_func : def (task_def, *args, **kwargs) -> <res which will be committed>
         the function to run the task
-    task_pool :
-        The name of the task pool
+    task_pool : str
+        the name of the task pool (Collection in MongoDB)
     force_release :
         will the program force to release the resource
     args :
