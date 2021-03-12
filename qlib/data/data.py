@@ -668,10 +668,10 @@ class LocalFeatureProvider(FeatureProvider):
 
         start_index, end_index, cur_index = kwargs["info"]
         if cur_index == start_index:
-            if not hasattr(self, "all_field"):
-                self.all_field = []
-            self.all_field.append(field)
-            if not hasattr(self, "period_index") is None:
+            if not hasattr(self, "all_fields"):
+                self.all_fields = []
+            self.all_fields.append(field)
+            if not hasattr(self, "period_index"):
                 self.period_index = {}
             if field not in self.period_index:
                 self.period_index[field] = {}
@@ -705,16 +705,17 @@ class LocalFeatureProvider(FeatureProvider):
 
         value = np.empty(len(period_list), dtype=VALUE_TYPE)
         for i, period in enumerate(period_list):
-            last_period_index = self.period_index.get(period)
+            last_period_index = self.period_index[field].get(period)
             value[i], now_period_index = read_period_data(
                 index_path, data_path, period, cur_date, quarterly, last_period_index
             )
-            self.period_index[period] = now_period_index
+            self.period_index[field].update({period: now_period_index})
         series = pd.Series(value, index=period_list, dtype=VALUE_TYPE)
 
         if cur_index == end_index:
-            self.all_field.remove(field)
-            if len(self.all_field) == 0:
+            self.all_fields.remove(field)
+            if not len(self.all_fields):
+                del self.all_fields
                 del self.period_index
 
         return series
