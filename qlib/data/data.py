@@ -20,7 +20,7 @@ from multiprocessing import Pool
 from .cache import H
 from ..config import C
 from ..log import get_module_logger
-from ..utils import parse_field, read_bin, hash_args, normalize_cache_fields, code_to_fname, read_period_interval_data
+from ..utils import parse_field, read_bin, read_period_data, hash_args, normalize_cache_fields, code_to_fname
 from .base import Feature, PFeature, Operators
 from .cache import DiskDatasetCache, DiskExpressionCache
 from ..utils import Wrapper, init_instance_by_config, register_wrapper, get_module_by_module_path
@@ -654,9 +654,14 @@ class LocalFeatureProvider(FeatureProvider):
         return series
 
     def period_feature(self, instrument, field, start_offset, end_offset, cur_date):
-        DATA_RECORDS = [("date", "I"), ("period", "I"), ("value", "d"), ("_next", "I")]
 
-        NA_VALUE = float("NAN")
+        DATA_RECORDS = [
+            ("date", C.pit_record_type["date"]),
+            ("period", C.pit_record_type["period"]),
+            ("value", C.pit_record_type["value"]),
+            ("_next", C.pit_record_type["index"]),
+        ]
+        VALUE_TYPE = C.pit_record_type["value"]
 
         field = str(field).lower()[2:]
         instrument = code_to_fname(instrument)
@@ -666,14 +671,32 @@ class LocalFeatureProvider(FeatureProvider):
         index_path = self._uri_period_index.format(instrument.lower(), field)
         data_path = self._uri_period_data.format(instrument.lower(), field)
         data = np.fromfile(data_path, dtype=DATA_RECORDS)
+
         # find all revision periods before `cur_date`
         cur_date = int(cur_date.year) * 10000 + int(cur_date.month) * 100 + int(cur_date.day)
         loc = np.searchsorted(data["date"], cur_date, side="left")
         if loc <= 0:
-            return NA_VALUE
+            return C.pit_record_nan["value"]
         last_period = data["period"][loc - start_offset - 1 : loc - end_offset].max()  # return the latest quarter
         first_period = data["period"][loc - start_offset - 1 : loc - end_offset].min()
-        series = read_period_interval_data(index_path, data_path, last_period, first_period, cur_date, quarterly)
+
+        if not quarterly:
+            assert all(1900 <= x <= 2099 for x in (first_period, last_period)), "invalid arguments"
+            period_list = list(range(first_period, last_period + 1))
+        else:
+            assert all(190000 <= x <= 209904 for x in (first_period, last_period)), "invalid arguments"
+            period_list = []
+            for year in range(first_period // 100, last_period // 100 + 1):
+                for q in range(1, 5):
+                    period = year * 100 + q
+                    if first_period <= period <= last_period:
+                        period_list.append(year * 100 + q)
+
+        value = np.empty(len(period_list), dtype=VALUE_TYPE)
+        for i, period in enumerate(period_list):
+            value[i] = read_period_data(index_path, data_path, period, cur_date, quarterly)
+        
+        series = pd.Series(value, index=period_list, dtype=VALUE_TYPE)
         return series
 
 

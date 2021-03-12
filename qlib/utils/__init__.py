@@ -56,74 +56,41 @@ def read_bin(file_path, start_index, end_index):
     return series
 
 
-def read_period_interval_data(index_path, data_path, last_period, first_period, cur_date, quarterly):
+def read_period_data(index_path, data_path, period, cur_date, quarterly):
 
-    INDEX_DTYPE = "I"  # unsigned int32
-    DATE_DTYPE = "I"
-    PERIOD_DTYPE = "I"
-    VALUE_DTYPE = "d"  # float64
+    DATA_DTYPE = "".join(
+        [
+            C.pit_record_type["date"],
+            C.pit_record_type["period"],
+            C.pit_record_type["value"],
+            C.pit_record_type["index"],
+        ]
+    )
 
-    INDEX_DTYPE_SIZE = struct.calcsize(INDEX_DTYPE)
-    DATE_DTYPE_SIZE = struct.calcsize(DATE_DTYPE)
-    PERIOD_DTYPE_SIZE = struct.calcsize(PERIOD_DTYPE)
-    VALUE_DTYPE_SIZE = struct.calcsize(VALUE_DTYPE)
+    PERIOD_TYPE = C.pit_record_type["period"]
+    INDEX_TYPE = C.pit_record_type["index"]
 
-    DATA_RECORDS = [("date", DATE_DTYPE), ("period", PERIOD_DTYPE), ("value", VALUE_DTYPE), ("_next", INDEX_DTYPE)]
+    NAN_VALUE = C.pit_record_nan["value"]
+    NAN_INDEX = C.pit_record_nan["index"]
 
-    DATA_DTYPE = "".join([v for k, v in DATA_RECORDS])
-    DATA_DTYPE_SIZE = struct.calcsize(DATA_DTYPE)
+    with open(index_path, "rb") as fi:
+        (first_year,) = struct.unpack(PERIOD_TYPE, fi.read(struct.calcsize(PERIOD_TYPE)))
+        all_periods = np.fromfile(fi, dtype=INDEX_TYPE)
 
-    NA_DATE = 0
-    NA_PERIOD = 0
-    NA_INDEX = 0xFFFFFFFF
-    NA_VALUE = float("NAN")
+    # find the first index of linked revisions
+    offset = (period // 100 - first_year) * 4 + period % 100 - 1 if quarterly else period - first_year
+    _next = all_periods[offset]
 
-    def get_period_list(first, last, quarterly):
-        if not quarterly:
-            assert all(1900 <= x <= 2099 for x in (first, last)), "invalid arguments"
-            return list(range(first, last + 1))
-        assert all(190000 <= x <= 209904 for x in (first, last)), "invalid arguments"
-        res = []
-        for year in range(first // 100, last // 100 + 1):
-            for q in range(1, 5):
-                period = year * 100 + q
-                if first <= period <= last:
-                    res.append(year * 100 + q)
-        return res
-
-    period_list = get_period_list(first_period, last_period, quarterly)
-    value = np.empty(len(period_list), dtype=VALUE_DTYPE)
-
-    def read_period_data(index_path, data_path, period, cur_date, quarterly):
-        def get_period_offset(first_year, period, quarterly):
-            if quarterly:
-                offset = (period // 100 - first_year) * 4 + period % 100 - 1
-            else:
-                offset = period - first_year
-            return offset
-
-        with open(index_path, "rb") as fi:
-            (first_year,) = struct.unpack(PERIOD_DTYPE, fi.read(PERIOD_DTYPE_SIZE))
-            all_periods = np.fromfile(fi, dtype=INDEX_DTYPE)
-        # find the first index of linked revisions
-        offset = get_period_offset(first_year, period, quarterly)
-        _next = all_periods[offset]
-        # load data following the `_next` link
-        prev_value = NA_VALUE
-        with open(data_path, "rb") as fd:
-            while _next != NA_INDEX:
-                fd.seek(_next)
-                date, period, value, _next = struct.unpack(DATA_DTYPE, fd.read(DATA_DTYPE_SIZE))
-                if date >= cur_date:  # NOTE: only use after published date
-                    break
-                prev_value = value
-        return prev_value
-
-    for i, period in enumerate(period_list):
-        value[i] = read_period_data(index_path, data_path, period, cur_date, quarterly)
-    series = pd.Series(value, index=period_list, dtype=VALUE_DTYPE)
-
-    return series
+    # load data following the `_next` link
+    prev_value = NAN_VALUE
+    with open(data_path, "rb") as fd:
+        while _next != NAN_INDEX:
+            fd.seek(_next)
+            date, period, value, _next = struct.unpack(DATA_DTYPE, fd.read(struct.calcsize(DATA_DTYPE)))
+            if date >= cur_date:  # NOTE: only use after published date
+                break
+            prev_value = value
+    return prev_value
 
 
 def np_ffill(arr: np.array):

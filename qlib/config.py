@@ -140,6 +140,18 @@ _default_config = {
             "default_exp_name": "Experiment",
         },
     },
+    "pit_record_type": {
+        "date": "I",  # uint32
+        "period": "I",  # uint32
+        "value": "d",  # float64
+        "index": "I",  # uint32
+    },
+    "pit_record_nan": {
+        "date": 0,
+        "period": 0,
+        "value": float("NAN"),
+        "index": 0xFFFFFFFF,
+    },
 }
 
 MODE_CONF = {
