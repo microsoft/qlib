@@ -423,4 +423,3 @@ class Exchange:
             raise NotImplementedError("order type {} error".format(order.type))
 
         return trade_val, trade_cost
-
