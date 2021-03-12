@@ -212,7 +212,7 @@ def get_cls_kwargs(config: Union[dict, str], module) -> (type, dict):
 
 
 def init_instance_by_config(
-    config: Union[str, dict, object], module=None, accept_types: Union[type, Tuple[type]] = tuple([]), **kwargs
+    config: Union[str, dict, object], module=None, accept_types: Union[type, Tuple[type]] = (), **kwargs
 ) -> object:
     """
     get initialized instance with config

@@ -76,18 +76,7 @@ class DatasetH(Dataset):
     - The processing is related to data split.
     """
 
-    def __init__(self, handler: Union[Dict, DataHandler], segments: Dict):
-        """
-        Parameters
-        ----------
-        handler : Union[dict, DataHandler]
-            handler will be passed into setup_data.
-        segments : dict
-            handler will be passed into setup_data.
-        """
-        super().__init__(handler, segments)
-
-    def init(self, handler_kwargs: Optional[Dict] = None, segment_kwargs: Optional[Dict] = None):
+    def init(self, handler_kwargs: dict = None, segment_kwargs: dict = None):
         """
         Initialize the DatasetH
 
