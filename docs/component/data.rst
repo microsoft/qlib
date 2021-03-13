@@ -61,7 +61,7 @@ In addition to China-Stock data, ``Qlib`` also includes a US-Stock dataset, whic
 
     python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/us_data --region us
 
-After running the above command, users can find china-stock and us-stock data in ``Qlib`` format in the ``~/.qlib/csv_data/cn_data`` directory and ``~/.qlib/csv_data/us_data`` directory respectively.
+After running the above command, users can find china-stock and us-stock data in ``Qlib`` format in the ``~/.qlib/qlib_data/cn_data`` directory and ``~/.qlib/qlib_data/us_data`` directory respectively.
 
 ``Qlib`` also provides the scripts in ``scripts/data_collector`` to help users crawl the latest data on the Internet and convert it to qlib format.
 
