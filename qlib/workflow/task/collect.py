@@ -1,6 +1,6 @@
 from qlib.workflow import R
 import pandas as pd
-import tqdm.auto import tqdm
+from tqdm.auto import tqdm
 from typing import Union
 from qlib import get_module_logger
 
