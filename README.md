@@ -46,11 +46,11 @@ For more details, please refer to our paper ["Qlib: An AI-oriented Quantitative 
 </div>
 
 
-At the module level, Qlib is a platform that consists of the above components. The components are designed as loose-coupled modules and each component could be used stand-alone.
+At the module level, Qlib is a platform that consists of the above components. The components are designed as loose-coupled modules, and each component could be used stand-alone.
 
 | Name                   | Description                                                                                                                                                                                                                                                                                                                                                             |
 | ------                 | -----                                                                                                                                                                                                                                                                                                                                                                   |
-| `Infrastructure` layer | `Infrastructure` layer provides underlying support for Quant research. `DataServer` provides a high-performance infrastructure for users to manage and retrieve raw data. `Trainer` provides a flexible interface to control the training process of models which enable algorithms controlling the training process.                                                       |
+| `Infrastructure` layer | `Infrastructure` layer provides underlying support for Quant research. `DataServer` provides a high-performance infrastructure for users to manage and retrieve raw data. `Trainer` provides a flexible interface to control the training process of models, which enable algorithms to control the training process.                                                       |
 | `Workflow` layer       | `Workflow` layer covers the whole workflow of quantitative investment. `Information Extractor` extracts data for models. `Forecast Model` focuses on producing all kinds of forecast signals (e.g. _alpha_, risk) for other modules. With these signals `Portfolio Generator` will generate the target portfolio and produce orders to be executed by `Order Executor`. |
 | `Interface` layer      | `Interface` layer tries to present a user-friendly interface for the underlying system. `Analyser` module will provide users detailed analysis reports of forecasting signals, portfolios and execution results                                                                                                                                                                 |
 
@@ -314,7 +314,7 @@ which creates a dataset (14 features/factors) from the basic OHLCV daily data of
 * `+(-)E` indicates with (out) `ExpressionCache`
 * `+(-)D` indicates with (out) `DatasetCache`
 
-Most general-purpose databases take too much time on loading data. After looking into the underlying implementation, we find that data go through too many layers of interfaces and unnecessary format transformations in general-purpose database solutions.
+Most general-purpose databases take too much time to load data. After looking into the underlying implementation, we find that data go through too many layers of interfaces and unnecessary format transformations in general-purpose database solutions.
 Such overheads greatly slow down the data loading process.
 Qlib data are stored in a compact format, which is efficient to be combined into arrays for scientific computation.
 

@@ -44,6 +44,7 @@ task:
         class: TabnetModel
         module_path: qlib.contrib.model.pytorch_tabnet
         kwargs:
+            d_feat: 158
             pretrain: True
     dataset:
         class: DatasetH
