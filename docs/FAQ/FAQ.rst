@@ -70,3 +70,31 @@ If the issue is not resolved, use ``keys *`` to find if multiple keys exist. If 
 
 
 Also, feel free to post a new issue in our GitHub repository. We always check each issue carefully and try our best to solve them.
+
+3. ModuleNotFoundError: No module named 'qlib.data._libs.rolling'
+------------------------------------------------------------------------------------------------------------------------------------
+
+.. code-block:: python
+
+    #### Do not import qlib package in the repository directory in case of importing qlib from . without compiling #####
+    Traceback (most recent call last):
+    File "<stdin>", line 1, in <module>
+    File "qlib/qlib/__init__.py", line 19, in init
+        from .data.cache import H
+    File "qlib/qlib/data/__init__.py", line 8, in <module>
+        from .data import (
+    File "qlib/qlib/data/data.py", line 20, in <module>
+        from .cache import H
+    File "qlib/qlib/data/cache.py", line 36, in <module>
+        from .ops import Operators
+    File "qlib/qlib/data/ops.py", line 19, in <module>
+        from ._libs.rolling import rolling_slope, rolling_rsquare, rolling_resi
+    ModuleNotFoundError: No module named 'qlib.data._libs.rolling'
+
+- If the error occurs when importing ``qlib`` package with ``PyCharm`` IDE, users can execute the following command in the project root folder to compile Cython files and generate executable files:
+
+    .. code-block:: bash
+
+        python setup.py build_ext --inplace
+
+- If the error occurs when importing ``qlib`` package with command ``python`` , users need to change the running directory to ensure that the script does not run in the project directory.

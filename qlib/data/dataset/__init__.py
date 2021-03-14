@@ -1,5 +1,5 @@
 from ...utils.serial import Serializable
-from typing import Union, List, Tuple
+from typing import Union, List, Tuple, Dict, Text, Optional
 from ...utils import init_instance_by_config, np_ffill
 from ...log import get_module_logger
 from .handler import DataHandler, DataHandlerLP
@@ -76,17 +76,6 @@ class DatasetH(Dataset):
     - The processing is related to data split.
     """
 
-    def __init__(self, handler: Union[dict, DataHandler], segments: dict):
-        """
-        Parameters
-        ----------
-        handler : Union[dict, DataHandler]
-            handler will be passed into setup_data.
-        segments : dict
-            handler will be passed into setup_data.
-        """
-        super().__init__(handler, segments)
-
     def init(self, handler_kwargs: dict = None, segment_kwargs: dict = None):
         """
         Initialize the DatasetH
@@ -124,7 +113,7 @@ class DatasetH(Dataset):
                 raise TypeError(f"param handler_kwargs must be type dict, not {type(segment_kwargs)}")
             self.segments = segment_kwargs.copy()
 
-    def setup_data(self, handler: Union[dict, DataHandler], segments: dict):
+    def setup_data(self, handler: Union[Dict, DataHandler], segments: Dict[Text, Tuple]):
         """
         Setup the underlying data.
 
@@ -156,6 +145,11 @@ class DatasetH(Dataset):
         self.handler = init_instance_by_config(handler, accept_types=DataHandler)
         self.segments = segments.copy()
 
+    def __repr__(self):
+        return "{name}(handler={handler}, segments={segments})".format(
+            name=self.__class__.__name__, handler=self.handler, segments=self.segments
+        )
+
     def _prepare_seg(self, slc: slice, **kwargs):
         """
         Give a slice, retrieve the according data
@@ -168,7 +162,7 @@ class DatasetH(Dataset):
 
     def prepare(
         self,
-        segments: Union[List[str], Tuple[str], str, slice],
+        segments: Union[List[Text], Tuple[Text], Text, slice],
         col_set=DataHandler.CS_ALL,
         data_key=DataHandlerLP.DK_I,
         **kwargs,
@@ -178,7 +172,7 @@ class DatasetH(Dataset):
 
         Parameters
         ----------
-        segments : Union[List[str], Tuple[str], str, slice]
+        segments : Union[List[Text], Tuple[Text], Text, slice]
             Describe the scope of the data to be prepared
             Here are some examples:
 
@@ -408,7 +402,7 @@ class TSDataSampler:
         # 1) for better performance, use the last nan line for padding the lost date
         # 2) In case of precision problems. We use np.float64. # TODO: I'm not sure if whether np.float64 will result in
         # precision problems. It will not cause any problems in my tests at least
-        indices = np.nan_to_num(indices.astype(np.float64), nan=self.nan_idx).astype(np.int)
+        indices = np.nan_to_num(indices.astype(np.float64), nan=self.nan_idx).astype(int)
 
         data = self.data_arr[indices]
         if isinstance(idx, mtit):

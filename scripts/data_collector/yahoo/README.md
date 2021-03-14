@@ -48,7 +48,7 @@ python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/qlib_cn_1d -
 import qlib
 from qlib.data import D
 
-qlib.init(provider_uri="~/.qlib/qlib_data/qlib_cn_1d", region="CN")
+qlib.init(provider_uri="~/.qlib/qlib_data/qlib_cn_1d", region="cn")
 df = D.features(D.instruments("all"), ["$close"], freq="day")
 ```
 
@@ -78,7 +78,7 @@ python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/qlib_cn_1min
 import qlib
 from qlib.data import D
 
-qlib.init(provider_uri="~/.qlib/qlib_data/qlib_cn_1min", region="CN")
+qlib.init(provider_uri="~/.qlib/qlib_data/qlib_cn_1min", region="cn")
 df = D.features(D.instruments("all"), ["$close"], freq="1min")
 
 ```
@@ -97,7 +97,7 @@ python collector.py normalize_data --source_dir ~/.qlib/stock_data/source/us_1d 
 
 # dump data
 cd qlib/scripts
-python dump_bin.py dump_all --csv_path ~/.qlib/stock_data/source/cn_1d_nor --qlib_dir ~/.qlib/stock_data/source/qlib_us_1d --freq day --exclude_fields date,adjclose,dividends,splits,symbol
+python dump_bin.py dump_all --csv_path ~/.qlib/stock_data/source/us_1d_nor --qlib_dir ~/.qlib/stock_data/source/qlib_us_1d --freq day --exclude_fields date,adjclose,dividends,splits,symbol
 ```
 
 #### 1d from qlib
@@ -113,7 +113,7 @@ python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/qlib_us_1d -
 import qlib
 from qlib.data import D
 
-qlib.init(provider_uri="~/.qlib/qlib_data/qlib_us_1d", region="US")
+qlib.init(provider_uri="~/.qlib/qlib_data/qlib_us_1d", region="us")
 df = D.features(D.instruments("all"), ["$close"], freq="day")
 
 ```

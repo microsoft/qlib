@@ -61,7 +61,7 @@ In addition to China-Stock data, ``Qlib`` also includes a US-Stock dataset, whic
 
     python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/us_data --region us
 
-After running the above command, users can find china-stock and us-stock data in ``Qlib`` format in the ``~/.qlib/csv_data/cn_data`` directory and ``~/.qlib/csv_data/us_data`` directory respectively.
+After running the above command, users can find china-stock and us-stock data in ``Qlib`` format in the ``~/.qlib/qlib_data/cn_data`` directory and ``~/.qlib/qlib_data/us_data`` directory respectively.
 
 ``Qlib`` also provides the scripts in ``scripts/data_collector`` to help users crawl the latest data on the Internet and convert it to qlib format.
 
@@ -163,7 +163,7 @@ The `trade unit` defines the unit number of stocks can be used in a trade, and t
 - If users use ``Qlib`` in china-stock mode, china-stock data is required. Users can use ``Qlib`` in china-stock mode according to the following steps:
     - Download china-stock in qlib format, please refer to section `Qlib Format Dataset <#qlib-format-dataset>`_.
     - Initialize ``Qlib`` in china-stock mode
-        Supposed that users download their Qlib format data in the directory ``~/.qlib/csv_data/cn_data``. Users only need to initialize ``Qlib`` as follows.
+        Supposed that users download their Qlib format data in the directory ``~/.qlib/qlib_data/cn_data``. Users only need to initialize ``Qlib`` as follows.
         
         .. code-block:: python
 
@@ -174,7 +174,7 @@ The `trade unit` defines the unit number of stocks can be used in a trade, and t
 - If users use ``Qlib`` in US-stock mode, US-stock data is required. ``Qlib`` also provides a script to download US-stock data. Users can use ``Qlib`` in US-stock mode according to the following steps:
     - Download us-stock in qlib format, please refer to section `Qlib Format Dataset <#qlib-format-dataset>`_.
     - Initialize ``Qlib`` in US-stock mode
-        Supposed that users prepare their Qlib format data in the directory ``~/.qlib/csv_data/us_data``. Users only need to initialize ``Qlib`` as follows.
+        Supposed that users prepare their Qlib format data in the directory ``~/.qlib/qlib_data/us_data``. Users only need to initialize ``Qlib`` as follows.
         
         .. code-block:: python
 
@@ -217,6 +217,25 @@ Filter
     - `basic features filter`: rule_expression = '$close/$open>5'
     - `cross-sectional features filter` \: rule_expression = '$rank($close)<10'
     - `time-sequence features filter`: rule_expression = '$Ref($close, 3)>100'
+
+Here is a simple example showing how to use filter in a basic ``Qlib`` workflow configuration file:
+
+.. code-block:: yaml
+
+    filter: &filter
+        filter_type: ExpressionDFilter
+        rule_expression: "Ref($close, -2) / Ref($close, -1) > 1"
+        filter_start_time: 2010-01-01
+        filter_end_time: 2010-01-07
+        keep: False
+
+    data_handler_config: &data_handler_config
+        start_time: 2010-01-01
+        end_time: 2021-01-22
+        fit_start_time: 2010-01-01
+        fit_end_time: 2015-12-31
+        instruments: *market
+        filter_pipe: [*filter]
 
 To know more about ``Filter``, please refer to `Filter API <../reference/api.html#module-qlib.data.filter>`_.
 

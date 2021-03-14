@@ -63,7 +63,7 @@ class UserManager:
         account_path = self.data_path / user_id
         strategy_file = self.data_path / user_id / "strategy_{}.pickle".format(user_id)
         model_file = self.data_path / user_id / "model_{}.pickle".format(user_id)
-        cur_user_list = [user_id for user_id in self.users]
+        cur_user_list = list(self.users)
         if user_id in cur_user_list:
             raise ValueError("User {} has been loaded".format(user_id))
         else:

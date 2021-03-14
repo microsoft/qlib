@@ -3,8 +3,7 @@
 
 
 import logging
-import logging.handlers
-import os
+from typing import Optional, Text, Dict, Any
 import re
 from logging import config as logging_config
 from time import time
@@ -13,16 +12,13 @@ from contextlib import contextmanager
 from .config import C
 
 
-def get_module_logger(module_name, level=None):
+def get_module_logger(module_name, level: Optional[int] = None):
     """
     Get a logger for a specific module.
 
     :param module_name: str
         Logic module name.
     :param level: int
-    :param sh_level: int
-        Stream handler log level.
-    :param log_format: str
     :return: Logger
         Logger object.
     """
@@ -103,7 +99,7 @@ class TimeInspector:
         cls.log_cost_time(info=f"{name} Done")
 
 
-def set_log_with_config(log_config: dict):
+def set_log_with_config(log_config: Dict[Text, Any]):
     """set log with config
 
     :param log_config:
