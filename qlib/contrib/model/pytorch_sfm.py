@@ -9,7 +9,6 @@ import numpy as np
 import pandas as pd
 import copy
 from sklearn.metrics import roc_auc_score, mean_squared_error
-import logging
 from ...utils import (
     unpack_archive_with_buffer,
     save_multiple_parts_file,

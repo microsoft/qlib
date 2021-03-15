@@ -8,7 +8,6 @@ import numpy as np
 import pandas as pd
 import copy
 from sklearn.metrics import roc_auc_score, mean_squared_error
-import logging
 from ...utils import (
     unpack_archive_with_buffer,
     save_multiple_parts_file,
@@ -397,7 +396,7 @@ class FinetuneModel(nn.Module):
     """
 
     def __init__(self, input_dim, output_dim, trained_model):
-        super(FinetuneModel, self).__init__()
+        super().__init__()
         self.model = trained_model
         self.fc = nn.Linear(input_dim, output_dim)
 
@@ -406,8 +405,9 @@ class FinetuneModel(nn.Module):
 
 
 class DecoderStep(nn.Module):
+
     def __init__(self, inp_dim, out_dim, shared, n_ind, vbs):
-        super(DecoderStep, self).__init__()
+        super().__init__()
         self.fea_tran = FeatureTransformer(inp_dim, out_dim, shared, n_ind, vbs)
         self.fc = nn.Linear(out_dim, out_dim)
 
@@ -417,13 +417,13 @@ class DecoderStep(nn.Module):
 
 
 class TabNet_Decoder(nn.Module):
+
     def __init__(self, inp_dim, out_dim, n_shared, n_ind, vbs, n_steps):
         """
         TabNet decoder that is used in pre-training
         """
+        super().__init__()
         self.out_dim = out_dim
-
-        super(TabNet_Decoder, self).__init__()
         if n_shared > 0:
             self.shared = nn.ModuleList()
             self.shared.append(nn.Linear(inp_dim, 2 * out_dim))
@@ -444,6 +444,7 @@ class TabNet_Decoder(nn.Module):
 
 
 class TabNet(nn.Module):
+
     def __init__(self, inp_dim=6, out_dim=6, n_d=64, n_a=64, n_shared=2, n_ind=2, n_steps=5, relax=1.2, vbs=1024):
         """
         TabNet AKA the original encoder
@@ -457,7 +458,7 @@ class TabNet(nn.Module):
             relax coefficient:
             virtual batch size:
         """
-        super(TabNet, self).__init__()
+        super().__init__()
 
         # set the number of shared step in feature transformer
         if n_shared > 0:
@@ -500,7 +501,7 @@ class GBN(nn.Module):
     """
 
     def __init__(self, inp, vbs=1024, momentum=0.01):
-        super(GBN, self).__init__()
+        super().__init__()
         self.bn = nn.BatchNorm1d(inp, momentum=momentum)
         self.vbs = vbs
 
@@ -522,7 +523,7 @@ class GLU(nn.Module):
     """
 
     def __init__(self, inp_dim, out_dim, fc=None, vbs=1024):
-        super(GLU, self).__init__()
+        super().__init__()
         if fc:
             self.fc = fc
         else:
@@ -558,8 +559,9 @@ class AttentionTransformer(nn.Module):
 
 
 class FeatureTransformer(nn.Module):
+
     def __init__(self, inp_dim, out_dim, shared, n_ind, vbs):
-        super(FeatureTransformer, self).__init__()
+        super().__init__()
         first = True
         self.shared = nn.ModuleList()
         if shared:

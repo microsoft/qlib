@@ -6,7 +6,6 @@ from __future__ import division
 from __future__ import print_function
 
 import os
-import logging
 import numpy as np
 import pandas as pd
 from sklearn.metrics import roc_auc_score, mean_squared_error
