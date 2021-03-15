@@ -18,13 +18,12 @@ import concurrent
 import pymongo
 from qlib.config import C
 from .utils import get_mongodb
-from qlib import auto_init
 from qlib import get_module_logger
 
 
 class TaskManager:
     """TaskManager
-    here is the what will a task looks like
+    here is what will a task looks like when it created by TaskManager
 
     .. code-block:: python
 
@@ -40,7 +39,7 @@ class TaskManager:
 
     .. note::
 
-        assumption: the data in MongoDB was encoded and the data out of MongoDB was decoded
+        Assumption: the data in MongoDB was encoded and the data out of MongoDB was decoded
     """
 
     STATUS_WAITING = "waiting"
@@ -118,6 +117,7 @@ class TaskManager:
         Parameters
         ----------
         task_def: dict
+            the task definition
         task_pool: str
             the name of Collection in MongoDB
 

@@ -18,8 +18,8 @@ class TaskCollector:
 
     def list_recorders(self, rec_filter_func=None, task_filter_func=None, only_finished=True, only_have_task=False):
         """
-        Return a dict of {rid:Recorder} by recorder filter and task filter. It is not necessary to use those filter.
-        If you don't train with "task_train", then there is no "task" which includes the task config.
+        Return a dict of {rid: Recorder} by recorder filter and task filter. It is not necessary to use those filter.
+        If you don't train with "task_train", then there is no "task"(a file in mlruns/artifacts) which includes the task config.
         If there is a "task", then it will become rec.task which can be get simply.
 
         Parameters
@@ -36,12 +36,8 @@ class TaskCollector:
         Returns
         -------
         dict
-            a dict of {rid:Recorder}
+            a dict of {rid: Recorder}
 
-        Raises
-        ------
-        OSError
-            if you use a task filter, but there is no "task" which includes the task config
         """
         recs = self.exp.list_recorders()
         recs_flt = {}
@@ -69,13 +65,14 @@ class TaskCollector:
         task_filter_func=None,
     ):
         """
+        Collect predictions using a filter and a key function.
 
         Parameters
         ----------
         experiment_name : str
-        get_key_func : function(task: dict) -> Union[Number, str, tuple]
+        get_key_func : Callable[[dict], bool] -> Union[Number, str, tuple]
             get the key of a task when collect it
-        filter_func : function(task: dict) -> bool
+        filter_func : Callable[[dict], bool] -> bool
             to judge a task will be collected or not
 
         Returns
@@ -108,6 +105,18 @@ class TaskCollector:
         self,
         task_filter_func=None,
     ):
+        """Collect latest recorders using a filter.
+
+        Parameters
+        ----------
+        task_filter_func : Callable[[dict], bool], optional
+            to judge a task will be collected or not, by default None
+
+        Returns
+        -------
+        dict, tuple
+            a dict of recorders and a tuple of test segments
+        """
         recs_flt = self.list_recorders(task_filter_func=task_filter_func, only_have_task=True)
 
         if len(recs_flt) == 0:

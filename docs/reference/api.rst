@@ -155,6 +155,35 @@ Record Template
     :members:
 
 
+Task Management
+====================
+
+
+RollingGen
+--------------------
+.. autoclass:: qlib.workflow.task.gen.RollingGen
+    :members:
+
+TaskManager
+--------------------
+.. autoclass:: qlib.workflow.task.manage.TaskManager
+    :members:
+
+TaskCollector
+--------------------
+.. autoclass:: qlib.workflow.task.collect.TaskCollector
+    :members:
+
+ModelUpdater
+--------------------
+.. autoclass:: qlib.workflow.task.update.ModelUpdater
+    :members:
+
+TimeAdjuster
+--------------------
+.. autoclass:: qlib.workflow.task.utils.TimeAdjuster
+    :members:
+
 Utils
 ====================
 

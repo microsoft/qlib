@@ -110,7 +110,7 @@ class ModelUpdater(TaskCollector):
     def update_all_pred(self, rec_filter_func=None):
         """update all predictions in this experiment after filter.
 
-            An example of filter function:
+        An example of filter function:
 
             .. code-block:: python
 

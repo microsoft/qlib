@@ -130,30 +130,32 @@ class RollingGen(TaskGen):
         task : dict
             A dict describing a task. For example.
 
-            DEFAULT_TASK = {
-                "model": {
-                    "class": "LGBModel",
-                    "module_path": "qlib.contrib.model.gbdt",
-                },
-                "dataset": {
-                    "class": "DatasetH",
-                    "module_path": "qlib.data.dataset",
-                    "kwargs": {
-                        "handler": {
-                            "class": "Alpha158",
-                            "module_path": "qlib.contrib.data.handler",
-                            "kwargs": data_handler_config,
-                        },
-                        "segments": {
-                            "train": ("2008-01-01", "2014-12-31"),
-                            "valid": ("2015-01-01", "2016-12-20"),  # Please avoid leaking the future test data into validation
-                            "test": ("2017-01-01", "2020-08-01"),
+            .. code-block:: python
+
+                DEFAULT_TASK = {
+                    "model": {
+                        "class": "LGBModel",
+                        "module_path": "qlib.contrib.model.gbdt",
+                    },
+                    "dataset": {
+                        "class": "DatasetH",
+                        "module_path": "qlib.data.dataset",
+                        "kwargs": {
+                            "handler": {
+                                "class": "Alpha158",
+                                "module_path": "qlib.contrib.data.handler",
+                                "kwargs": data_handler_config,
+                            },
+                            "segments": {
+                                "train": ("2008-01-01", "2014-12-31"),
+                                "valid": ("2015-01-01", "2016-12-20"),  # Please avoid leaking the future test data into validation
+                                "test": ("2017-01-01", "2020-08-01"),
+                            },
                         },
                     },
-                },
-                # You shoud record the data in specific sequence
-                # "record": ['SignalRecord', 'SigAnaRecord', 'PortAnaRecord'],
-            }
+                    # You shoud record the data in specific sequence
+                    # "record": ['SignalRecord', 'SigAnaRecord', 'PortAnaRecord'],
+                }
         """
         res = []
 
