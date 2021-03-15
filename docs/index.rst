@@ -50,6 +50,7 @@ Document Structure
    Building Formulaic Alphas <advanced/alpha.rst>
    Online & Offline mode <advanced/server.rst>
    Serialization <advanced/serial.rst>
+   Task Management <advanced/task_management.rst>
 
 .. toctree::
    :maxdepth: 3
