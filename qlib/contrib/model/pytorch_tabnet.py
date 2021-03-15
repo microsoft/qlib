@@ -405,7 +405,6 @@ class FinetuneModel(nn.Module):
 
 
 class DecoderStep(nn.Module):
-
     def __init__(self, inp_dim, out_dim, shared, n_ind, vbs):
         super().__init__()
         self.fea_tran = FeatureTransformer(inp_dim, out_dim, shared, n_ind, vbs)
@@ -417,7 +416,6 @@ class DecoderStep(nn.Module):
 
 
 class TabNet_Decoder(nn.Module):
-
     def __init__(self, inp_dim, out_dim, n_shared, n_ind, vbs, n_steps):
         """
         TabNet decoder that is used in pre-training
@@ -444,7 +442,6 @@ class TabNet_Decoder(nn.Module):
 
 
 class TabNet(nn.Module):
-
     def __init__(self, inp_dim=6, out_dim=6, n_d=64, n_a=64, n_shared=2, n_ind=2, n_steps=5, relax=1.2, vbs=1024):
         """
         TabNet AKA the original encoder
@@ -559,7 +556,6 @@ class AttentionTransformer(nn.Module):
 
 
 class FeatureTransformer(nn.Module):
-
     def __init__(self, inp_dim, out_dim, shared, n_ind, vbs):
         super().__init__()
         first = True
