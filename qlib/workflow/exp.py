@@ -181,7 +181,7 @@ class MLflowExperiment(Experiment):
     def start(self, recorder_name=None):
         logger.info(f"Experiment {self.id} starts running ...")
         # Get or create recorder
-        recorder = self._get_or_create_rec(recorder_name=recorder_name)
+        recorder, _ = self._get_or_create_rec(recorder_name=recorder_name)
         # Set up active recorder
         self.active_recorder = recorder
         # Start the recorder
