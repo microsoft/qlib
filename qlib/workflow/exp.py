@@ -23,7 +23,7 @@ class Experiment:
         self.active_recorder = None  # only one recorder can running each time
 
     def __repr__(self):
-        return str(self.info)
+        return "{name}(id={id}, info={info})".format(name=self.__class__.__name__, id=self.id, info=self.info)
 
     def __str__(self):
         return str(self.info)
@@ -173,11 +173,12 @@ class MLflowExperiment(Experiment):
         self._uri = uri
         self._default_name = None
         self._default_rec_name = "mlflow_recorder"
-        self.client = mlflow.tracking.MlflowClient(tracking_uri=self._uri)
+        self._client = mlflow.tracking.MlflowClient(tracking_uri=self._uri)
+
+    def __repr__(self):
+        return "{name}(id={id}, info={info})".format(name=self.__class__.__name__, id=self.id, info=self.info)
 
     def start(self, recorder_name=None):
-        # set the active experiment
-        mlflow.set_experiment(self.name)
         logger.info(f"Experiment {self.id} starts running ...")
         # set up recorder
         recorder = self.create_recorder(recorder_name)
@@ -210,7 +211,6 @@ class MLflowExperiment(Experiment):
         else:
             recorder, is_new = self._get_recorder(recorder_id=recorder_id, recorder_name=recorder_name), False
         if is_new:
-            mlflow.set_experiment(self.name)
             self.active_recorder = recorder
             # start the recorder
             self.active_recorder.start_run()
@@ -239,7 +239,7 @@ class MLflowExperiment(Experiment):
         ), "Please input at least one of recorder id or name before retrieving recorder."
         if recorder_id is not None:
             try:
-                run = self.client.get_run(recorder_id)
+                run = self._client.get_run(recorder_id)
                 recorder = MLflowRecorder(self.id, self._uri, mlflow_run=run)
                 return recorder
             except MlflowException:
@@ -260,7 +260,7 @@ class MLflowExperiment(Experiment):
         max_results = 100000 if kwargs.get("max_results") is None else kwargs.get("max_results")
         order_by = kwargs.get("order_by")
 
-        return self.client.search_runs([self.id], filter_string, run_view_type, max_results, order_by)
+        return self._client.search_runs([self.id], filter_string, run_view_type, max_results, order_by)
 
     def delete_recorder(self, recorder_id=None, recorder_name=None):
         assert (
@@ -268,10 +268,10 @@ class MLflowExperiment(Experiment):
         ), "Please input a valid recorder id or name before deleting."
         try:
             if recorder_id is not None:
-                self.client.delete_run(recorder_id)
+                self._client.delete_run(recorder_id)
             else:
                 recorder = self._get_recorder(recorder_name=recorder_name)
-                self.client.delete_run(recorder.id)
+                self._client.delete_run(recorder.id)
         except MlflowException as e:
             raise Exception(
                 f"Error: {e}. Something went wrong when deleting recorder. Please check if the name/id of the recorder is correct."
@@ -280,7 +280,7 @@ class MLflowExperiment(Experiment):
     UNLIMITED = 50000  # FIXME: Mlflow can only list 50000 records at most!!!!!!!
 
     def list_recorders(self, max_results=UNLIMITED):
-        runs = self.client.search_runs(self.id, run_view_type=ViewType.ACTIVE_ONLY, max_results=max_results)[::-1]
+        runs = self._client.search_runs(self.id, run_view_type=ViewType.ACTIVE_ONLY, max_results=max_results)[::-1]
         recorders = dict()
         for i in range(len(runs)):
             recorder = MLflowRecorder(self.id, self._uri, mlflow_run=runs[i])

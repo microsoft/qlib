@@ -184,7 +184,7 @@ class DEnsembleModel(Model):
                     / M
                 )
             loss_feat = self.get_loss(y_train.values.squeeze(), pred.values)
-            g.loc[i_f, "g_value"] = np.mean(loss_feat - loss_values) / np.std(loss_feat - loss_values)
+            g.loc[i_f, "g_value"] = np.mean(loss_feat - loss_values) / (np.std(loss_feat - loss_values) + 1e-7)
             x_train_tmp.loc[:, feat] = x_train.loc[:, feat].copy()
 
         # one column in train features is all-nan # if g['g_value'].isna().any()

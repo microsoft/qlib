@@ -2,6 +2,7 @@
 # Licensed under the MIT License.
 
 from contextlib import contextmanager
+from typing import Text, Optional
 from .expm import MLflowExpManager
 from .exp import Experiment
 from .recorder import Recorder
@@ -16,8 +17,13 @@ class QlibRecorder:
     def __init__(self, exp_manager):
         self.exp_manager = exp_manager
 
+    def __repr__(self):
+        return "{name}(manager={manager})".format(name=self.__class__.__name__, manager=self.exp_manager)
+
     @contextmanager
-    def start(self, experiment_name=None, recorder_name=None):
+    def start(
+        self, experiment_name: Optional[Text] = None, recorder_name: Optional[Text] = None, uri: Optional[Text] = None
+    ):
         """
         Method to start an experiment. This method can only be called within a Python's `with` statement. Here is the example code:
 
@@ -34,8 +40,13 @@ class QlibRecorder:
             name of the experiment one wants to start.
         recorder_name : str
             name of the recorder under the experiment one wants to start.
+        uri : str
+            The tracking uri of the experiment, where all the artifacts/metrics etc. will be stored.
+            The default uri is set in the qlib.config. Note that this uri argument will not change the one defined in the config file.
+            Therefore, the next time when users call this function in the same experiment,
+            they have to also specify this argument with the same value. Otherwise, inconsistent uri may occur.
         """
-        run = self.start_exp(experiment_name, recorder_name)
+        run = self.start_exp(experiment_name, recorder_name, uri)
         try:
             yield run
         except Exception as e:
@@ -272,7 +283,13 @@ class QlibRecorder:
         -------
         The uri of current experiment manager.
         """
-        return self.exp_manager.get_uri()
+        return self.exp_manager.uri
+
+    def set_uri(self, uri: Optional[Text]):
+        """
+        Method to reset the current uri of current experiment manager.
+        """
+        self.exp_manager.set_uri(uri)
 
     def get_recorder(self, recorder_id=None, recorder_name=None, experiment_name=None):
         """

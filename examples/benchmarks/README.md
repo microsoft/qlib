@@ -19,7 +19,6 @@ The numbers shown below demonstrate the performance of the entire `workflow` of 
 | DoubleEnsemble (Chuheng Zhang, et al.) | Alpha360 | 0.0407±0.00| 0.3053±0.00 | 0.0490±0.00 | 0.3840±0.00 | 0.0380±0.02 | 0.5000±0.21 | -0.0984±0.02 |
 | SFM (Liheng Zhang, et al.)| Alpha360 | 0.0314±0.00 | 0.2389±0.02| 0.0407±0.00 | 0.3245±0.01 | 0.0127±0.01 | 0.1440±0.07| -0.1631±0.01 |
 
-
 ## Alpha158 dataset
 | Model Name | Dataset | IC | ICIR | Rank IC | Rank ICIR | Annualized Return | Information Ratio | Max Drawdown |
 |---|---|---|---|---|---|---|---|---|

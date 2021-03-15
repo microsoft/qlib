@@ -96,7 +96,6 @@ port_analysis_config = {
 }
 
 
-# train
 def train():
     """train model
 
@@ -111,6 +110,9 @@ def train():
     # model initiaiton
     model = init_instance_by_config(task["model"])
     dataset = init_instance_by_config(task["dataset"])
+    # To test __repr__
+    print(dataset)
+    print(R)
 
     # start exp
     with R.start(experiment_name="workflow"):
@@ -119,6 +121,10 @@ def train():
 
         # prediction
         recorder = R.get_recorder()
+        # To test __repr__
+        print(recorder)
+        # To test get_local_dir
+        print(recorder.get_local_dir())
         rid = recorder.id
         sr = SignalRecord(model, dataset, recorder)
         sr.generate()
@@ -131,6 +137,27 @@ def train():
         ric = sar.load(sar.get_path("ric.pkl"))
 
     return pred_score, {"ic": ic, "ric": ric}, rid
+
+
+def fake_experiment():
+    """A fake experiment workflow to test uri
+
+    Returns
+    -------
+        pass_or_not_for_default_uri: bool
+        pass_or_not_for_current_uri: bool
+        temporary_exp_dir: str
+    """
+
+    # start exp
+    default_uri = R.get_uri()
+    current_uri = "file:./temp-test-exp-mag"
+    with R.start(experiment_name="fake_workflow_for_expm", uri=current_uri):
+        R.log_params(**flatten_dict(task))
+
+        current_uri_to_check = R.get_uri()
+    default_uri_to_check = R.get_uri()
+    return default_uri == default_uri_to_check, current_uri == current_uri_to_check, current_uri
 
 
 def backtest_analysis(pred, rid):
@@ -180,6 +207,12 @@ class TestAllFlow(TestAutoData):
             0.10,
             "backtest failed",
         )
+
+    def test_2_expmanager(self):
+        pass_default, pass_current, uri_path = fake_experiment()
+        self.assertTrue(pass_default, msg="default uri is incorrect")
+        self.assertTrue(pass_current, msg="current uri is incorrect")
+        shutil.rmtree(str(Path(uri_path.strip("file:")).resolve()))
 
 
 def suite():
