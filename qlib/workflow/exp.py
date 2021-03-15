@@ -180,10 +180,11 @@ class MLflowExperiment(Experiment):
 
     def start(self, recorder_name=None):
         logger.info(f"Experiment {self.id} starts running ...")
-        # set up recorder
-        recorder = self.create_recorder(recorder_name)
+        # Get or create recorder
+        recorder = self._get_or_create_rec(recorder_name=recorder_name)
+        # Set up active recorder
         self.active_recorder = recorder
-        # start the recorder
+        # Start the recorder
         self.active_recorder.start_run()
 
         return self.active_recorder
@@ -222,6 +223,8 @@ class MLflowExperiment(Experiment):
         automatically create a new recorder based on the given id and name.
         """
         try:
+            if recorder_id is None and recorder_name is None:
+                recorder_name = self._default_rec_name
             return self._get_recorder(recorder_id=recorder_id, recorder_name=recorder_name), False
         except ValueError:
             if recorder_name is None:
