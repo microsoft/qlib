@@ -9,15 +9,13 @@ import os
 import numpy as np
 import pandas as pd
 import copy
-from sklearn.metrics import roc_auc_score, mean_squared_error
-import logging
 from ...utils import (
     unpack_archive_with_buffer,
     save_multiple_parts_file,
     get_or_create_path,
     drop_nan_by_y_index,
 )
-from ...log import get_module_logger, TimeInspector
+from ...log import get_module_logger
 import torch
 import torch.nn as nn
 import torch.optim as optim

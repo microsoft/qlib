@@ -10,13 +10,6 @@ data_handler_config: &data_handler_config
     fit_end_time: 2014-12-31
     instruments: *market
     infer_processors:
-        - class: FilterCol
-          kwargs:
-              fields_group: feature
-              col_list: ["RESI5", "WVMA5", "RSQR5", "KLEN", "RSQR10", "CORR5", "CORD5", "CORR10", 
-                            "ROC60", "RESI10", "VSTD5", "RSQR60", "CORR60", "WVMA60", "STD5", 
-                            "RSQR20", "CORD60", "CORD10", "CORR20", "KLOW"
-                        ]
         - class: RobustZScoreNorm
           kwargs:
               fields_group: feature
@@ -30,7 +23,6 @@ data_handler_config: &data_handler_config
           kwargs:
               fields_group: label
     label: ["Ref($close, -2) / Ref($close, -1) - 1"]
-
 port_analysis_config: &port_analysis_config
     strategy:
         class: TopkDropoutStrategy
@@ -49,34 +41,25 @@ port_analysis_config: &port_analysis_config
         min_cost: 5
 task:
     model:
-        class: LSTM
-        module_path: qlib.contrib.model.pytorch_lstm_ts
+        class: TabnetModel
+        module_path: qlib.contrib.model.pytorch_tabnet
         kwargs:
-            d_feat: 20
-            hidden_size: 64
-            num_layers: 2
-            dropout: 0.0
-            n_epochs: 200
-            lr: 1e-3
-            early_stop: 10
-            batch_size: 800
-            metric: loss
-            loss: mse
-            n_jobs: 20
-            GPU: 0
+            d_feat: 360
+            pretrain: True
     dataset:
-        class: TSDatasetH
+        class: DatasetH
         module_path: qlib.data.dataset
         kwargs:
             handler:
-                class: Alpha158
+                class: Alpha360
                 module_path: qlib.contrib.data.handler
                 kwargs: *data_handler_config
             segments:
+                pretrain: [2008-01-01, 2014-12-31]
+                pretrain_validation: [2015-01-01, 2016-12-31]
                 train: [2008-01-01, 2014-12-31]
                 valid: [2015-01-01, 2016-12-31]
                 test: [2017-01-01, 2020-08-01]
-            step_len: 20
     record: 
         - class: SignalRecord
           module_path: qlib.workflow.record_temp

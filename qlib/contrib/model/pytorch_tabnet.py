@@ -7,15 +7,13 @@ import os
 import numpy as np
 import pandas as pd
 import copy
-from sklearn.metrics import roc_auc_score, mean_squared_error
-import logging
 from ...utils import (
     unpack_archive_with_buffer,
     save_multiple_parts_file,
     get_or_create_path,
     drop_nan_by_y_index,
 )
-from ...log import get_module_logger, TimeInspector
+from ...log import get_module_logger
 
 import torch
 import torch.nn as nn
@@ -93,12 +91,8 @@ class TabnetModel(Model):
         np.random.seed(self.seed)
         torch.manual_seed(self.seed)
 
-        self.tabnet_model = TabNet(
-            inp_dim=self.d_feat, out_dim=self.out_dim, vbs=vbs, relax=relax, device=self.device
-        ).to(self.device)
-        self.tabnet_decoder = TabNet_Decoder(self.out_dim, self.d_feat, n_shared, n_ind, vbs, n_steps, self.device).to(
-            self.device
-        )
+        self.tabnet_model = TabNet(inp_dim=self.d_feat, out_dim=self.out_dim, vbs=vbs, relax=relax).to(self.device)
+        self.tabnet_decoder = TabNet_Decoder(self.out_dim, self.d_feat, n_shared, n_ind, vbs, n_steps).to(self.device)
         self.logger.info("model:\n{:}\n{:}".format(self.tabnet_model, self.tabnet_decoder))
         self.logger.info("model size: {:.4f} MB".format(count_parameters([self.tabnet_model, self.tabnet_decoder])))
 
@@ -410,9 +404,9 @@ class FinetuneModel(nn.Module):
 
 
 class DecoderStep(nn.Module):
-    def __init__(self, inp_dim, out_dim, shared, n_ind, vbs, device):
+    def __init__(self, inp_dim, out_dim, shared, n_ind, vbs):
         super().__init__()
-        self.fea_tran = FeatureTransformer(inp_dim, out_dim, shared, n_ind, vbs, device)
+        self.fea_tran = FeatureTransformer(inp_dim, out_dim, shared, n_ind, vbs)
         self.fc = nn.Linear(out_dim, out_dim)
 
     def forward(self, x):
@@ -421,13 +415,12 @@ class DecoderStep(nn.Module):
 
 
 class TabNet_Decoder(nn.Module):
-    def __init__(self, inp_dim, out_dim, n_shared, n_ind, vbs, n_steps, device):
+    def __init__(self, inp_dim, out_dim, n_shared, n_ind, vbs, n_steps):
         """
         TabNet decoder that is used in pre-training
         """
-        self.out_dim = out_dim
-
         super().__init__()
+        self.out_dim = out_dim
         if n_shared > 0:
             self.shared = nn.ModuleList()
             self.shared.append(nn.Linear(inp_dim, 2 * out_dim))
@@ -438,7 +431,7 @@ class TabNet_Decoder(nn.Module):
         self.n_steps = n_steps
         self.steps = nn.ModuleList()
         for x in range(n_steps):
-            self.steps.append(DecoderStep(inp_dim, out_dim, self.shared, n_ind, vbs, device))
+            self.steps.append(DecoderStep(inp_dim, out_dim, self.shared, n_ind, vbs))
 
     def forward(self, x):
         out = torch.zeros(x.size(0), self.out_dim).to(x.device)
@@ -448,9 +441,7 @@ class TabNet_Decoder(nn.Module):
 
 
 class TabNet(nn.Module):
-    def __init__(
-        self, inp_dim=6, out_dim=6, n_d=64, n_a=64, n_shared=2, n_ind=2, n_steps=5, relax=1.2, vbs=1024, device="cpu"
-    ):
+    def __init__(self, inp_dim=6, out_dim=6, n_d=64, n_a=64, n_shared=2, n_ind=2, n_steps=5, relax=1.2, vbs=1024):
         """
         TabNet AKA the original encoder
 
@@ -474,10 +465,10 @@ class TabNet(nn.Module):
         else:
             self.shared = None
 
-        self.first_step = FeatureTransformer(inp_dim, n_d + n_a, self.shared, n_ind, vbs, device)
+        self.first_step = FeatureTransformer(inp_dim, n_d + n_a, self.shared, n_ind, vbs)
         self.steps = nn.ModuleList()
         for x in range(n_steps - 1):
-            self.steps.append(DecisionStep(inp_dim, n_d, n_a, self.shared, n_ind, relax, vbs, device))
+            self.steps.append(DecisionStep(inp_dim, n_d, n_a, self.shared, n_ind, relax, vbs))
         self.fc = nn.Linear(n_d, out_dim)
         self.bn = nn.BatchNorm1d(inp_dim, momentum=0.01)
         self.n_d = n_d
@@ -486,14 +477,14 @@ class TabNet(nn.Module):
         assert not torch.isnan(x).any()
         x = self.bn(x)
         x_a = self.first_step(x)[:, self.n_d :]
-        sparse_loss = torch.zeros(1).to(x.device)
+        sparse_loss = []
         out = torch.zeros(x.size(0), self.n_d).to(x.device)
         for step in self.steps:
             x_te, l = step(x, x_a, priors)
             out += F.relu(x_te[:, : self.n_d])  # split the feautre from feat_transformer
             x_a = x_te[:, self.n_d :]
-            sparse_loss += l
-        return self.fc(out), sparse_loss
+            sparse_loss.append(l)
+        return self.fc(out), sum(sparse_loss)
 
 
 class GBN(nn.Module):
@@ -511,9 +502,12 @@ class GBN(nn.Module):
         self.vbs = vbs
 
     def forward(self, x):
-        chunk = torch.chunk(x, x.size(0) // self.vbs, 0)
-        res = [self.bn(y) for y in chunk]
-        return torch.cat(res, 0)
+        if x.size(0) <= self.vbs:  # can not be chunked
+            return self.bn(x)
+        else:
+            chunk = torch.chunk(x, x.size(0) // self.vbs, 0)
+            res = [self.bn(y) for y in chunk]
+            return torch.cat(res, 0)
 
 
 class GLU(nn.Module):
@@ -561,7 +555,7 @@ class AttentionTransformer(nn.Module):
 
 
 class FeatureTransformer(nn.Module):
-    def __init__(self, inp_dim, out_dim, shared, n_ind, vbs, device):
+    def __init__(self, inp_dim, out_dim, shared, n_ind, vbs):
         super().__init__()
         first = True
         self.shared = nn.ModuleList()
@@ -577,7 +571,7 @@ class FeatureTransformer(nn.Module):
             self.independ.append(GLU(inp, out_dim, vbs=vbs))
         for x in range(first, n_ind):
             self.independ.append(GLU(out_dim, out_dim, vbs=vbs))
-        self.scale = torch.sqrt(torch.tensor([0.5], device=device))
+        self.scale = float(np.sqrt(0.5))
 
     def forward(self, x):
         if self.shared:
@@ -596,10 +590,10 @@ class DecisionStep(nn.Module):
     One step for the TabNet
     """
 
-    def __init__(self, inp_dim, n_d, n_a, shared, n_ind, relax, vbs, device):
+    def __init__(self, inp_dim, n_d, n_a, shared, n_ind, relax, vbs):
         super().__init__()
         self.atten_tran = AttentionTransformer(n_a, inp_dim, relax, vbs)
-        self.fea_tran = FeatureTransformer(inp_dim, n_d + n_a, shared, n_ind, vbs, device)
+        self.fea_tran = FeatureTransformer(inp_dim, n_d + n_a, shared, n_ind, vbs)
 
     def forward(self, x, a, priors):
         mask = self.atten_tran(a, priors)
