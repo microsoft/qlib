@@ -1,9 +1,7 @@
 from typing import Union, List
 from qlib.workflow import R
-from tqdm.auto import tqdm
 from qlib.data import D
 import pandas as pd
-from qlib.utils import init_instance_by_config
 from qlib import get_module_logger
 from qlib.workflow import R
 from qlib.model.trainer import task_train
@@ -11,14 +9,10 @@ from qlib.workflow.recorder import Recorder
 from qlib.workflow.task.collect import TaskCollector
 
 
-class ModelUpdater(TaskCollector):
+class ModelUpdater:
     """
-    The model updater to re-train model or update predictions
+    The model updater to update model results in new data.
     """
-
-    ONLINE_TAG = "online_model"
-    ONLINE_TAG_TRUE = "True"
-    ONLINE_TAG_FALSE = "False"
 
     def __init__(self, experiment_name: str) -> None:
         """ModelUpdater needs experiment name to find the records
@@ -29,42 +23,35 @@ class ModelUpdater(TaskCollector):
             experiment name string
         """
         self.exp_name = experiment_name
-        self.exp = R.get_exp(experiment_name=experiment_name)
         self.logger = get_module_logger("ModelUpdater")
+        self.tc = TaskCollector(experiment_name)
 
-    def set_online_model(self, recorder: Union[str, Recorder]):
-        """online model will be identified at the tags of the record
-
-        Parameters
-        ----------
-        recorder: Union[str,Recorder]
-            the id of a Recorder or the Recorder instance
-        """
-        if isinstance(recorder, str):
-            recorder = self.exp.get_recorder(recorder_id=recorder)
-        recorder.set_tags(**{ModelUpdater.ONLINE_TAG: ModelUpdater.ONLINE_TAG_TRUE})
-
-    def cancel_online_model(self, recorder: Union[str, Recorder]):
-        if isinstance(recorder, str):
-            recorder = self.exp.get_recorder(recorder_id=recorder)
-        recorder.set_tags(**{ModelUpdater.ONLINE_TAG: ModelUpdater.ONLINE_TAG_FALSE})
-
-    def cancel_all_online_model(self):
-        recs = self.exp.list_recorders()
-        for rid, rec in recs.items():
-            self.cancel_online_model(rec)
-
-    def reset_online_model(self, recorders: List[Union[str, Recorder]]):
-        """cancel all online model and reset the given model to online model
+    def _reload_dataset(self, recorder, start_time, end_time):
+        """reload dataset from pickle file
 
         Parameters
         ----------
-        recorders: List[Union[str,Recorder]]
-            the list of the id of a Recorder or the Recorder instance
+        recorder : Recorder
+            the instance of the Recorder
+        start_time : Timestamp
+            the start time you want to load
+        end_time : Timestamp
+            the end time you want to load
+
+        Returns
+        -------
+        Dataset
+            the instance of Dataset
         """
-        self.cancel_all_online_model()
-        for rec_or_rid in recorders:
-            self.set_online_model(rec_or_rid)
+        segments = {"test": (start_time, end_time)}
+
+        dataset = recorder.load_object("dataset")
+        datahandler = recorder.load_object("datahandler")
+
+        datahandler.conf_data(**{"start_time": start_time, "end_time": end_time})
+        dataset.setup_data(handler=datahandler, segments=segments)
+        datahandler.init(datahandler.IT_LS)
+        return dataset
 
     def update_pred(self, recorder: Union[str, Recorder]):
         """update predictions to the latest day in Calendar based on rid
@@ -75,10 +62,9 @@ class ModelUpdater(TaskCollector):
             the id of a Recorder or the Recorder instance
         """
         if isinstance(recorder, str):
-            recorder = self.exp.get_recorder(recorder_id=recorder)
+            recorder = self.tc.get_recorder_by_id(recorder_id=recorder)
         old_pred = recorder.load_object("pred.pkl")
         last_end = old_pred.index.get_level_values("datetime").max()
-        task_config = recorder.load_object("task")  # recorder.task
 
         # updated to the latest trading day
         cal = D.calendar(start_time=last_end + pd.Timedelta(days=1), end_time=None)
@@ -90,10 +76,8 @@ class ModelUpdater(TaskCollector):
             return
 
         start_time, end_time = cal[0], cal[-1]
-        task_config["dataset"]["kwargs"]["segments"]["test"] = (start_time, end_time)
-        task_config["dataset"]["kwargs"]["handler"]["kwargs"]["end_time"] = end_time
 
-        dataset = init_instance_by_config(task_config["dataset"])
+        dataset = self._reload_dataset(recorder, start_time, end_time)
 
         model = recorder.load_object("params.pkl")
         new_pred = model.predict(dataset)
@@ -131,29 +115,7 @@ class ModelUpdater(TaskCollector):
             the count of updated record
 
         """
-        recs = self.list_recorders(rec_filter_func=rec_filter_func, only_have_task=True)
+        recs = self.tc.list_recorders(rec_filter_func=rec_filter_func)
         for rid, rec in recs.items():
             self.update_pred(rec)
         return len(recs)
-
-    def online_filter(self, recorder):
-        tags = recorder.list_tags()
-        if tags.get(ModelUpdater.ONLINE_TAG, ModelUpdater.ONLINE_TAG_FALSE) == ModelUpdater.ONLINE_TAG_TRUE:
-            return True
-        return False
-
-    def update_online_pred(self):
-        """update all online model predictions to the latest day in Calendar."""
-        cnt = self.update_all_pred(self.online_filter)
-        self.logger.info(f"Finish updating {cnt} online model predictions of {self.exp_name}.")
-
-    def list_online_model(self):
-        """list the record of online model
-
-        Returns
-        -------
-        dict
-            {rid : recorder of the online model}
-        """
-
-        return self.list_recorders(rec_filter_func=self.online_filter)

@@ -16,48 +16,38 @@ class TaskCollector:
         self.exp = R.get_exp(experiment_name=experiment_name)
         self.logger = get_module_logger("TaskCollector")
 
-    def list_recorders(self, rec_filter_func=None, task_filter_func=None, only_finished=True, only_have_task=False):
-        """
-        Return a dict of {rid: Recorder} by recorder filter and task filter. It is not necessary to use those filter.
-        If you don't train with "task_train", then there is no "task"(a file in mlruns/artifacts) which includes the task config.
-        If there is a "task", then it will become rec.task which can be get simply.
+    def list_recorders(self, rec_filter_func=None):
+        """"""
+        recs = self.exp.list_recorders()
+        recs_flt = {}
+        for rid, rec in recs.items():
+            if rec_filter_func is None or rec_filter_func(rec):
+                recs_flt[rid] = rec
+
+        return recs_flt
+
+    def get_recorder_by_id(self, recorder_id):
+        return self.exp.get_recorder(recorder_id, create=False)
+
+    def list_recorders_by_task(self, task_filter_func):
+        """[summary]
 
         Parameters
         ----------
-        rec_filter_func : Callable[[Recorder], bool], optional
-            judge whether you need this recorder, by default None
-        task_filter_func : Callable[[dict], bool], optional
-            judge whether you need this task, by default None
-        only_finished : bool, optional
-            whether always use finished recorder, by default True
-        only_have_task : bool, optional
-            whether it is necessary to get the task config
-
-        Returns
-        -------
-        dict
-            a dict of {rid: Recorder}
-
+        task_filter_func : [type], optional
+            [description], by default None
         """
-        recs = self.exp.list_recorders()
-        recs_flt = {}
-        if task_filter_func is not None:
-            only_have_task = True
-        for rid, rec in recs.items():
-            if (only_finished and rec.status == rec.STATUS_FI) or only_finished == False:
-                if rec_filter_func is None or rec_filter_func(rec):
-                    task = None
-                    try:
-                        task = rec.load_object("task")
-                    except OSError:
-                        pass
-                    if task is None and only_have_task:
-                        continue
-                    if task_filter_func is None or task_filter_func(task):
-                        rec.task = task
-                        recs_flt[rid] = rec
 
-        return recs_flt
+        def rec_filter_func(recorder):
+            try:
+                task = recorder.load_object("task")
+            except OSError:
+                raise OSError(
+                    f"Can't find task in {recorder.info['id']}, have you trained with model.trainer.task_train?"
+                )
+            return task_filter_func(task)
+
+        return self.list_recorders(rec_filter_func)
 
     def collect_predictions(
         self,
