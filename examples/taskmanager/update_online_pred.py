@@ -55,7 +55,7 @@ task = {
 def first_train(experiment_name="online_svr"):
 
     rid = task_train(task_config=task, experiment_name=experiment_name)
-    
+
     rom = OnlineManager(experiment_name)
     rom.reset_online_model(rid)
 
