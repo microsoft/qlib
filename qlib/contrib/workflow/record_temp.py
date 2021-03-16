@@ -36,12 +36,13 @@ class SignalMseRecord(SignalRecord):
         mse = mean_squared_error(pred.values[masks], label[masks])
         metrics = {
             "MSE": mse,
+            "RMSE": np.sqrt(mse)
         }
-        objects = {"mse.pkl": mse}
+        objects = {"mse.pkl": mse, "rmse.pkl": np.sqrt(mse)}
         self.recorder.log_metrics(**metrics)
         self.recorder.save_objects(**objects, artifact_path=self.get_path())
         pprint(metrics)
 
     def list(self):
-        paths = [self.get_path("mse.pkl")]
+        paths = [self.get_path("mse.pkl"), self.get_path("rmse.pkl")]
         return paths

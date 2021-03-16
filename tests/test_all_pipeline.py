@@ -19,6 +19,7 @@ from qlib.contrib.evaluate import (
     backtest as normal_backtest,
     risk_analysis,
 )
+from qlib.contrib.workflow.record_temp import SignalMseRecord
 from qlib.utils import exists_qlib_data, init_instance_by_config, flatten_dict
 from qlib.workflow import R
 from qlib.workflow.record_temp import SignalRecord, SigAnaRecord, PortAnaRecord
@@ -164,6 +165,9 @@ def train_with_sigana():
         ic = sar.load(sar.get_path("ic.pkl"))
         ric = sar.load(sar.get_path("ric.pkl"))
         pred_score = sar.load("pred.pkl")
+
+        smr = SignalMseRecord(recorder)
+        smr.generate()
         uri_path = R.get_uri()
     return pred_score, {"ic": ic, "ric": ric}, uri_path
 
