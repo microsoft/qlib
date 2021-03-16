@@ -27,7 +27,7 @@ def task_train(task_config: dict, experiment_name: str) -> str:
     model = init_instance_by_config(task_config["model"])
     dataset = init_instance_by_config(task_config["dataset"])
     datahandler = dataset.handler
-    
+
     # start exp
     with R.start(experiment_name=experiment_name):
 

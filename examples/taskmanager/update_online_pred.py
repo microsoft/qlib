@@ -1,6 +1,6 @@
 import qlib
 from qlib.model.trainer import task_train
-from qlib.workflow.task.online import RollingOnlineManager
+from qlib.workflow.task.online import OnlineManager
 from qlib.config import REG_CN
 import fire
 from qlib.workflow import R
@@ -54,16 +54,15 @@ task = {
 
 def first_train(experiment_name="online_svr"):
 
-    rom = RollingOnlineManager(experiment_name)
-
     rid = task_train(task_config=task, experiment_name=experiment_name)
     
+    rom = OnlineManager(experiment_name)
     rom.reset_online_model(rid)
 
 
 def update_online_pred(experiment_name="online_svr"):
 
-    rom = RollingOnlineManager(experiment_name)
+    rom = OnlineManager(experiment_name)
 
     print("Here are the online models waiting for update:")
     for rid, rec in rom.list_online_model().items():

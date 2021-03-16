@@ -7,21 +7,7 @@ from qlib.workflow.task.collect import TaskCollector
 from qlib.workflow.task.update import ModelUpdater
 
 
-class OnlineManagement:
-    def __init__(self, experiment_name):
-        pass
-
-    def update_online_pred(self, recorder: Union[str, Recorder]):
-        """update the predictions of online models
-
-        Parameters
-        ----------
-        recorder : Union[str, Recorder]
-            the id or the instance of Recorder
-
-        """
-        raise NotImplementedError(f"Please implement the `update_pred` method.")
-
+class OnlineManager:
     def prepare_new_models(self, tasks: List[dict]):
         """prepare(train) new models
 
@@ -32,20 +18,6 @@ class OnlineManagement:
 
         """
         raise NotImplementedError(f"Please implement the `prepare_new_models` method.")
-
-    def reset_online_model(self, recorders: List[Union[str, Recorder]]):
-        """reset online model
-
-        Parameters
-        ----------
-        recorders : List[Union[str, Recorder]]
-            a list of the recorder id or the instance
-
-        """
-        raise NotImplementedError(f"Please implement the `reset_online_model` method.")
-
-
-class RollingOnlineManager(OnlineManagement):
 
     ONLINE_TAG = "online_model"
     ONLINE_TAG_TRUE = "True"
@@ -59,8 +31,7 @@ class RollingOnlineManager(OnlineManagement):
         experiment_name : str
             experiment name string
         """
-        super(RollingOnlineManager, self).__init__(experiment_name)
-        self.logger = get_module_logger("RollingOnlineManager")
+        self.logger = get_module_logger("OnlineManagement")
         self.exp_name = experiment_name
         self.tc = TaskCollector(experiment_name)
 
@@ -122,3 +93,16 @@ class RollingOnlineManager(OnlineManagement):
         mu = ModelUpdater(self.exp_name)
         cnt = mu.update_all_pred(self.online_filter)
         self.logger.info(f"Finish updating {cnt} online model predictions of {self.exp_name}.")
+
+
+class RollingOnlineManager(OnlineManager):
+    def prepare_new_models(self, tasks: List[dict]):
+        """prepare(train) new models
+
+        Parameters
+        ----------
+        tasks : List[dict]
+            a list of tasks
+
+        """
+        pass
