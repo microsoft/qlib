@@ -163,6 +163,7 @@ def train_with_sigana():
         sar.generate()
         ic = sar.load(sar.get_path("ic.pkl"))
         ric = sar.load(sar.get_path("ric.pkl"))
+        pred_score = sar.load("pred.pkl")
         uri_path = R.get_uri()
     return pred_score, {"ic": ic, "ric": ric}, uri_path
 
