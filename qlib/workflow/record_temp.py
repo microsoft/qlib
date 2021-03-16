@@ -171,7 +171,7 @@ class SigAnaRecord(SignalRecord):
     def generate(self, **kwargs):
         try:
             self.check(parent=True)
-        except:
+        except FileExistsError:
             super().generate()
 
         pred = self.load("pred.pkl")
@@ -240,7 +240,7 @@ class PortAnaRecord(SignalRecord):
         # check previously stored prediction results
         try:
             self.check(parent=True)  # "Make sure the parent process is completed and store the data properly."
-        except:
+        except FileExistsError:
             super().generate()
 
         # custom strategy and get backtest
