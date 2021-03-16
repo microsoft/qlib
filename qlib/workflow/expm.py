@@ -294,7 +294,7 @@ class MLflowExpManager(ExpManager):
         experiment_name: Optional[Text] = None,
         recorder_name: Optional[Text] = None,
         uri: Optional[Text] = None,
-        resume: bool,
+        resume: bool = False,
     ):
         # Set the tracking uri
         self.set_uri(uri)
