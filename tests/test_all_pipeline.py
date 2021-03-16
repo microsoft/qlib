@@ -139,6 +139,33 @@ def train():
     return pred_score, {"ic": ic, "ric": ric}, rid
 
 
+def train_with_sigana():
+    """train model followed by SigAnaRecord
+
+    Returns
+    -------
+        pred_score: pandas.DataFrame
+            predict scores
+        performance: dict
+            model performance
+    """
+    model = init_instance_by_config(task["model"])
+    dataset = init_instance_by_config(task["dataset"])
+
+    # start exp
+    with R.start(experiment_name="workflow"):
+        R.log_params(**flatten_dict(task))
+        model.fit(dataset)
+
+        # predict and calculate ic and ric
+        recorder = R.get_recorder()
+        sar = SigAnaRecord(recorder, model=model, dataset=dataset)
+        sar.generate()
+        ic = sar.load(sar.get_path("ic.pkl"))
+        ric = sar.load(sar.get_path("ric.pkl"))
+    return pred_score, {"ic": ic, "ric": ric}, rid
+
+
 def fake_experiment():
     """A fake experiment workflow to test uri
 
@@ -213,6 +240,11 @@ class TestAllFlow(TestAutoData):
         self.assertTrue(pass_default, msg="default uri is incorrect")
         self.assertTrue(pass_current, msg="current uri is incorrect")
         shutil.rmtree(str(Path(uri_path.strip("file:")).resolve()))
+
+    def test_3_train_with_sigana(self):
+        TestAllFlow.PRED_SCORE, ic_ric, TestAllFlow.RID = train_with_sigana()
+        self.assertGreaterEqual(ic_ric["ic"].all(), 0, "train failed")
+        self.assertGreaterEqual(ic_ric["ric"].all(), 0, "train failed")
 
 
 def suite():
