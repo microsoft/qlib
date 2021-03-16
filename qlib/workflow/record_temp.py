@@ -163,8 +163,8 @@ class SigAnaRecord(SignalRecord):
 
     artifact_path = "sig_analysis"
 
-    def __init__(self, recorder, ana_long_short=False, ann_scaler=252):
-        super().__init__(recorder=recorder)
+    def __init__(self, recorder, ana_long_short=False, ann_scaler=252, **kwargs):
+        super().__init__(recorder=recorder, **kwargs)
         self.ana_long_short = ana_long_short
         self.ann_scaler = ann_scaler
 
