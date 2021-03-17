@@ -1,15 +1,17 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+
 import warnings
 import numpy as np
 import pandas as pd
 import scipy.optimize as so
-
 from typing import Optional, Union, Callable, List
 
+from qlib.portfolio.optimizer import BaseOptimizer
 
-class PortfolioOptimizer:
+
+class PortfolioOptimizer(BaseOptimizer):
     """Portfolio Optimizer
 
     The following optimization algorithms are supported:
@@ -42,6 +44,7 @@ class PortfolioOptimizer:
             lamb (float): risk aversion parameter (larger `lamb` means more focus on return)
             delta (float): turnover rate limit
             alpha (float): l2 norm regularizer
+            scale_alpha (bool): if to scale alpha to match the volatility of the covariance matrix
             tol (float): tolerance for optimization termination
         """
         assert method in [self.OPT_GMV, self.OPT_MVO, self.OPT_RP, self.OPT_INV], f"method `{method}` is not supported"
@@ -57,6 +60,7 @@ class PortfolioOptimizer:
         self.alpha = alpha
 
         self.tol = tol
+        self.scale_alpha = scale_alpha
 
     def __call__(
         self,
@@ -83,18 +87,18 @@ class PortfolioOptimizer:
         if u is not None:
             assert len(u) == len(S), "`u` has mismatched shape"
             if isinstance(u, pd.Series):
-                assert all(u.index == index), "`u` has mismatched index"
+                assert u.index.equals(index), "`u` has mismatched index"
                 u = u.values
 
         # transform initial weights
         if w0 is not None:
             assert len(w0) == len(S), "`w0` has mismatched shape"
             if isinstance(w0, pd.Series):
-                assert all(w0.index == index), "`w0` has mismatched index"
+                assert w0.index.equals(index), "`w0` has mismatched index"
                 w0 = w0.values
 
         # scale alpha to match volatility
-        if u is not None:
+        if u is not None and self.scale_alpha:
             u = u / u.std()
             u *= np.mean(np.diag(S)) ** 0.5
 
@@ -173,7 +177,7 @@ class PortfolioOptimizer:
         """
         return self._solve(len(S), self._get_objective_rp(S), *self._get_constrains(w0))
 
-    def _get_objective_gmv(self, S: np.ndarray) -> np.ndarray:
+    def _get_objective_gmv(self, S: np.ndarray) -> Callable:
         """global minimum variance optimization objective
 
         Optimization objective
@@ -185,7 +189,7 @@ class PortfolioOptimizer:
 
         return func
 
-    def _get_objective_mvo(self, S: np.ndarray, u: np.ndarray = None) -> np.ndarray:
+    def _get_objective_mvo(self, S: np.ndarray, u: np.ndarray = None) -> Callable:
         """mean-variance optimization objective
 
         Optimization objective
@@ -199,7 +203,7 @@ class PortfolioOptimizer:
 
         return func
 
-    def _get_objective_rp(self, S: np.ndarray) -> np.ndarray:
+    def _get_objective_rp(self, S: np.ndarray) -> Callable:
         """risk-parity optimization objective
 
         Optimization objective
@@ -247,7 +251,11 @@ class PortfolioOptimizer:
         # add l2 regularization
         wrapped_obj = obj
         if self.alpha > 0:
-            wrapped_obj = lambda x: obj(x) + self.alpha * np.sum(np.square(x))
+
+            def opt_obj(x):
+                return obj(x) + self.alpha * np.sum(np.square(x))
+
+            wrapped_obj = opt_obj
 
         # solve
         x0 = np.ones(n) / n  # init results
