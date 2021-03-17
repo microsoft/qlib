@@ -234,7 +234,7 @@ class DumpDataBase:
         if isinstance(file_or_data, pd.DataFrame):
             if file_or_data.empty:
                 return
-            code = fname_to_code(file_or_data.iloc[0][self.symbol_field_name].lower())
+            code = fname_to_code(str(file_or_data.iloc[0][self.symbol_field_name]).lower())
             df = file_or_data
         elif isinstance(file_or_data, Path):
             code = self.get_symbol_from_file(file_or_data)
