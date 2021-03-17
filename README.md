@@ -60,7 +60,7 @@ Recent released features
 | High-frequency data(1min) | Released https://github.com/microsoft/qlib/pull/221 |
 | Tabnet Model | Released https://github.com/microsoft/qlib/pull/205 | 
 
-Features released before 2021 is not listed here.
+Features released before 2021 are not listed here.
 
 # Framework of Qlib
 
