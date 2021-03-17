@@ -350,9 +350,15 @@ Qlib data are stored in a compact format, which is efficient to be combined into
 - [微矿Qlib：业内首个AI量化投资开源平台](https://mp.weixin.qq.com/s/vsJv7lsgjEi-ALYUz4CvtQ)
 
 # Contact Us
-If you have any issues, please create issue [here](https://github.com/microsoft/qlib/issues/new/choose) or send messages in [gitter](https://gitter.im/Microsoft/qlib).
-If you want to make contributions to `Qlib`, please [create pull requests](https://github.com/microsoft/qlib/compare). 
-For other reasons, you are welcome to contact us by email([qlib@microsoft.com](mailto:qlib@microsoft.com)).
+- If you have any issues, please create issue [here](https://github.com/microsoft/qlib/issues/new/choose) or send messages in [gitter](https://gitter.im/Microsoft/qlib).
+- If you want to make contributions to `Qlib`, please [create pull requests](https://github.com/microsoft/qlib/compare). 
+- For other reasons, you are welcome to contact us by email([qlib@microsoft.com](mailto:qlib@microsoft.com)).
+  - We are recruiting new members(both FTEs and interns), your resumes are welcome!
+
+Join IM discussion groups:
+|[Gitter](https://gitter.im/Microsoft/qlib)|
+|----|
+|![image](http://fintech.msra.cn/images_v060/qrcode/gitter_qr.png)|
 
 # Contributing
 
