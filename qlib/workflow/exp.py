@@ -181,6 +181,28 @@ class Experiment:
             logger.info(f"No valid recorder found. Create a new recorder with name {recorder_name}.")
             return self.create_recorder(recorder_name), True
 
+    def _get_recorder(self, recorder_id=None, recorder_name=None):
+        """
+        Get specific recorder by name or id. If it does not exist, raise ValueError
+
+        Parameters
+        ----------
+        recorder_id :
+            The id of recorder
+        recorder_name :
+            The name of recorder
+
+        Returns
+        -------
+        Recorder:
+            The searched recorder
+
+        Raises
+        ------
+        ValueError
+        """
+        raise NotImplementedError(f"Please implement the `_get_recorder` method")
+
     def list_recorders(self):
         """
         List all the existing recorders of this experiment. Please first get the experiment instance before calling this method.

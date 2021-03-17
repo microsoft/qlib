@@ -181,14 +181,14 @@ class ExpManager:
 
     def _get_exp(self, experiment_id=None, experiment_name=None) -> Experiment:
         """
-        get specific experiment by name or id. If  it does not exist, raise ValueError
+        Get specific experiment by name or id. If it does not exist, raise ValueError.
 
         Parameters
         ----------
         experiment_id :
             The id of experiment
         experiment_name :
-            The id name experiment
+            The name of experiment
 
         Returns
         -------
