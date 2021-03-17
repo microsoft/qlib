@@ -36,6 +36,7 @@ For more details, please refer to our paper ["Qlib: An AI-oriented Quantitative 
 - [Offline Mode and Online Mode](#offline-mode-and-online-mode)
   - [Performance of Qlib Data Server](#performance-of-qlib-data-server)
 - [Related Reports](#related-reports)
+- [Contact Us](#contact-us)
 - [Contributing](#contributing)
 
 
@@ -348,6 +349,10 @@ Qlib data are stored in a compact format, which is efficient to be combined into
 - [微软也搞AI量化平台？还是开源的！](https://mp.weixin.qq.com/s/47bP5YwxfTp2uTHjUBzJQQ)
 - [微矿Qlib：业内首个AI量化投资开源平台](https://mp.weixin.qq.com/s/vsJv7lsgjEi-ALYUz4CvtQ)
 
+# Contact Us
+If you have any issues, please create issue [here](https://github.com/microsoft/qlib/issues/new/choose) or send messages in [gitter](https://gitter.im/Microsoft/qlib).
+If you want to make contributions to `Qlib`, please [create pull requests](https://github.com/microsoft/qlib/compare). 
+For other reasons, you are welcome to contact us by email([qlib@microsoft.com](mailto:qlib@microsoft.com)).
 
 # Contributing
 
