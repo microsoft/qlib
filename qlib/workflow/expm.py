@@ -25,7 +25,7 @@ class ExpManager:
 
     def __init__(self, uri: Text, default_exp_name: Optional[Text]):
         self._current_uri = uri
-        self.default_exp_name = default_exp_name
+        self._default_exp_name = default_exp_name
         self.active_experiment = None  # only one experiment can active each time
 
     def __repr__(self):
@@ -36,6 +36,7 @@ class ExpManager:
         experiment_name: Optional[Text] = None,
         recorder_name: Optional[Text] = None,
         uri: Optional[Text] = None,
+        resume: bool = False,
         **kwargs,
     ):
         """
@@ -50,6 +51,8 @@ class ExpManager:
             name of the recorder to be started.
         uri : str
             the current tracking URI.
+        resume : boolean
+            whether to resume the experiment and recorder.
 
         Returns
         -------
@@ -151,9 +154,7 @@ class ExpManager:
             if self.active_experiment is not None:
                 return self.active_experiment
             # User don't want get active code now.
-            # Don't assume underlying code could handle the case of two None
-            if experiment_id is None and experiment_name is None:
-                experiment_name = self.default_exp_name
+            experiment_name = self._default_exp_name
 
         if create:
             exp, is_new = self._get_or_create_exp(experiment_id=experiment_id, experiment_name=experiment_name)
@@ -171,25 +172,23 @@ class ExpManager:
         automatically create a new experiment based on the given id and name.
         """
         try:
-            if experiment_id is None and experiment_name is None:
-                experiment_name = self.default_exp_name
             return self._get_exp(experiment_id=experiment_id, experiment_name=experiment_name), False
         except ValueError:
             if experiment_name is None:
-                experiment_name = self.default_exp_name
+                experiment_name = self._default_exp_name
             logger.info(f"No valid experiment found. Create a new experiment with name {experiment_name}.")
             return self.create_exp(experiment_name), True
 
     def _get_exp(self, experiment_id=None, experiment_name=None) -> Experiment:
         """
-        get specific experiment by name or id. If  it does not exist, raise ValueError
+        Get specific experiment by name or id. If it does not exist, raise ValueError.
 
         Parameters
         ----------
         experiment_id :
             The id of experiment
         experiment_name :
-            The id name experiment
+            The name of experiment
 
         Returns
         -------
@@ -291,16 +290,22 @@ class MLflowExpManager(ExpManager):
         return self._client
 
     def start_exp(
-        self, experiment_name: Optional[Text] = None, recorder_name: Optional[Text] = None, uri: Optional[Text] = None
+        self,
+        experiment_name: Optional[Text] = None,
+        recorder_name: Optional[Text] = None,
+        uri: Optional[Text] = None,
+        resume: bool = False,
     ):
         # Set the tracking uri
         self.set_uri(uri)
         # Create experiment
+        if experiment_name is None:
+            experiment_name = self._default_exp_name
         experiment, _ = self._get_or_create_exp(experiment_name=experiment_name)
         # Set up active experiment
         self.active_experiment = experiment
         # Start the experiment
-        self.active_experiment.start(recorder_name)
+        self.active_experiment.start(recorder_name, resume)
 
         return self.active_experiment
 
@@ -316,7 +321,7 @@ class MLflowExpManager(ExpManager):
         # init experiment
         experiment_id = self.client.create_experiment(experiment_name)
         experiment = MLflowExperiment(experiment_id, experiment_name, self.uri)
-        experiment._default_name = self.default_exp_name
+        experiment._default_name = self._default_exp_name
 
         return experiment
 
