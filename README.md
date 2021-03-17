@@ -34,6 +34,7 @@ For more details, please refer to our paper ["Qlib: An AI-oriented Quantitative 
 - [More About Qlib](#more-about-qlib)
 - [Offline Mode and Online Mode](#offline-mode-and-online-mode)
   - [Performance of Qlib Data Server](#performance-of-qlib-data-server)
+- [**News**](#news)
 - [Related Reports](#related-reports)
 - [Contributing](#contributing)
 
@@ -318,6 +319,16 @@ Most general-purpose databases take too much time to load data. After looking in
 Such overheads greatly slow down the data loading process.
 Qlib data are stored in a compact format, which is efficient to be combined into arrays for scientific computation.
 
+# News
+New features under development(order by estimated release time).
+Your feedbacks about the features are very important.
+| Feature                        | Status      |
+| --                      | ------    |
+| Online serving and automatic model rolling | Under review: https://github.com/microsoft/qlib/pull/290 | 
+| Planning-based portfolio optimization | Under review:  https://github.com/microsoft/qlib/pull/280 | 
+| Point-in-Time database | Under review: https://github.com/microsoft/qlib/pull/343 |
+| High-frequency trading | Initial opensource version under development | 
+| Meta-Learning-based data selection | Initial opensource version under development |
 
 # Related Reports
 - [【华泰金工林晓明团队】图神经网络选股与Qlib实践——华泰人工智能系列之四十二](https://mp.weixin.qq.com/s/w5fDB6oAv9dO6vlhf1kmhA)
