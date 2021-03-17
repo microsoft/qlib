@@ -110,7 +110,7 @@ class SignalRecord(RecordTemp):
     This is the Signal Record class that generates the signal prediction. This class inherits the ``RecordTemp`` class.
     """
 
-    def __init__(self, model=None, dataset=None, recorder=None, **kwargs):
+    def __init__(self, model=None, dataset=None, recorder=None):
         super().__init__(recorder=recorder)
         self.model = model
         self.dataset = dataset
@@ -164,13 +164,15 @@ class SigAnaRecord(SignalRecord):
     artifact_path = "sig_analysis"
 
     def __init__(self, recorder, ana_long_short=False, ann_scaler=252, **kwargs):
+        super().__init__(recorder=recorder, **kwargs)
         self.ana_long_short = ana_long_short
         self.ann_scaler = ann_scaler
-        super().__init__(recorder=recorder, **kwargs)
-        # The name must be unique. Otherwise it will be overridden
 
-    def generate(self):
-        self.check(parent=True)
+    def generate(self, **kwargs):
+        try:
+            self.check(parent=True)
+        except FileExistsError:
+            super().generate()
 
         pred = self.load("pred.pkl")
         label = self.load("label.pkl")
@@ -228,7 +230,7 @@ class PortAnaRecord(SignalRecord):
         config["backtest"] : dict
             define the backtest kwargs.
         """
-        super().__init__(recorder=recorder)
+        super().__init__(recorder=recorder, **kwargs)
 
         self.strategy_config = config["strategy"]
         self.backtest_config = config["backtest"]
@@ -236,10 +238,13 @@ class PortAnaRecord(SignalRecord):
 
     def generate(self, **kwargs):
         # check previously stored prediction results
-        self.check(parent=True)  # "Make sure the parent process is completed and store the data properly."
+        try:
+            self.check(parent=True)  # "Make sure the parent process is completed and store the data properly."
+        except FileExistsError:
+            super().generate()
 
         # custom strategy and get backtest
-        pred_score = super().load()
+        pred_score = super().load("pred.pkl")
         report_dict = normal_backtest(pred_score, strategy=self.strategy, **self.backtest_config)
         report_normal = report_dict.get("report_df")
         positions_normal = report_dict.get("positions")
