@@ -151,10 +151,6 @@ class FundCollector(BaseCollector):
             raise ValueError(f"cannot support {interval}")
         return _result
 
-    def collector_data(self):
-        """collector data"""
-        super(FundCollector, self).collector_data()
-
 
 class FundollectorCN(FundCollector, ABC):
     def get_instrument_list(self):
@@ -213,12 +209,8 @@ class FundNormalize(BaseNormalize):
         return df
 
 
-class FundNormalize1d(FundNormalize, ABC):
-    DAILY_FORMAT = "%Y-%m-%d"
-
-    def normalize(self, df: pd.DataFrame) -> pd.DataFrame:
-        df = super(FundNormalize1d, self).normalize(df)
-        return df
+class FundNormalize1d(FundNormalize):
+    pass
 
 
 class FundNormalizeCN:

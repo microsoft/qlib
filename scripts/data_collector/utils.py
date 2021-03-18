@@ -98,9 +98,8 @@ def get_calendar_list(bench_code="CSI300") -> list:
     return calendar
 
 
-def return_date_list(source_dir, date_field_name: str, file_path: Path):
-    file_path = Path(file_path)
-    date_list = pd.read_csv(Path(source_dir).joinpath(file_path), sep=",", index_col=0)[date_field_name].to_list()
+def return_date_list(date_field_name: str, file_path: Path):
+    date_list = pd.read_csv(file_path, sep=",", index_col=0)[date_field_name].to_list()
     return sorted(map(lambda x: pd.Timestamp(x), date_list))
 
 
@@ -139,10 +138,13 @@ def get_calendar_list_by_ratio(
 
     logger.info(f"count how many funds trade in this day......")
     _dict_count_trade = dict()  # dict{date:count}
-    _fun = partial(return_date_list, source_dir, date_field_name)
+    _fun = partial(return_date_list, date_field_name)
+    all_oldest_list = []
     with tqdm(total=_number_all_funds) as p_bar:
         with ProcessPoolExecutor(max_workers=max_workers) as executor:
-            for date_list in executor.map(_fun, file_list[:_number_all_funds]):
+            for date_list in executor.map(_fun, file_list):
+                if date_list:
+                    all_oldest_list.append(date_list[0])
                 for date in date_list:
                     if date not in _dict_count_trade.keys():
                         _dict_count_trade[date] = 0
@@ -154,12 +156,10 @@ def get_calendar_list_by_ratio(
     logger.info(f"count how many funds have founded in this day......")
     _dict_count_founding = {date: _number_all_funds for date in _dict_count_trade.keys()}  # dict{date:count}
     with tqdm(total=_number_all_funds) as p_bar:
-        with ProcessPoolExecutor(max_workers=max_workers) as executor:
-            for date_list in executor.map(_fun, file_list[:_number_all_funds]):
-                oldest_date = sorted(date_list)[0]  # this fund haven't found before this day
-                for date in _dict_count_founding.keys():
-                    if date < oldest_date:
-                        _dict_count_founding[date] -= 1
+        for oldest_date in all_oldest_list:
+            for date in _dict_count_founding.keys():
+                if date < oldest_date:
+                    _dict_count_founding[date] -= 1
 
     calendar = [
         date
