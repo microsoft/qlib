@@ -259,7 +259,7 @@ class TSDataSampler:
         self.fillna_type = fillna_type
         assert get_level_index(data, "datetime") == 0
         self.data = lazy_sort_index(data)
-        self.data_arr = np.array(self.data)  # Get index from numpy.array will much faster than DataFrame.values! But
+        self.data_arr = np.array(self.data)  # Get index from numpy.array will much faster than DataFrame.values!
         # NOTE: append last line with full NaN for better performance in `__getitem__`
         self.data_arr = np.append(self.data_arr, np.full((1, self.data_arr.shape[1]), np.nan), axis=0)
         self.nan_idx = -1  # The last line is all NaN
@@ -267,7 +267,6 @@ class TSDataSampler:
         # the data type will be changed
         # The index of usable data is between start_idx and end_idx
         self.start_idx, self.end_idx = self.data.index.slice_locs(start=pd.Timestamp(start), end=pd.Timestamp(end))
-        # self.index_link = self.build_link(self.data)
         self.idx_df, self.idx_map = self.build_index(self.data)
         self.idx_arr = np.array(self.idx_df.values, dtype=np.float64)  # for better performance
 
