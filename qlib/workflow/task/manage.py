@@ -245,6 +245,11 @@ class TaskManager:
         for t in task_pool.find(query):
             yield self._decode_task(t)
 
+    def get_task_result(self, task, task_pool=None):
+        task_pool = self._get_task_pool(task_pool)
+        result = task_pool.find_one({"filter": task})
+        return self._decode_task(result)["res"]
+
     def commit_task_res(self, task, res, status=None, task_pool=None):
         task_pool = self._get_task_pool(task_pool)
         # A workaround to use the class attribute.

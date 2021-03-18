@@ -60,4 +60,4 @@ def task_train(task_config: dict, experiment_name: str) -> str:
                 ar = init_instance_by_config(record)
                 ar.generate()
 
-    return recorder.info["id"]
+    return recorder

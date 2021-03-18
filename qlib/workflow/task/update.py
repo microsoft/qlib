@@ -53,7 +53,7 @@ class ModelUpdater:
         datahandler.init(datahandler.IT_LS)
         return dataset
 
-    def update_pred(self, recorder: Union[str, Recorder]):
+    def update_pred(self, recorder: Recorder):
         """update predictions to the latest day in Calendar based on rid
 
         Parameters
@@ -61,8 +61,6 @@ class ModelUpdater:
         recorder: Union[str,Recorder]
             the id of a Recorder or the Recorder instance
         """
-        if isinstance(recorder, str):
-            recorder = self.tc.get_recorder_by_id(recorder_id=recorder)
         old_pred = recorder.load_object("pred.pkl")
         last_end = old_pred.index.get_level_values("datetime").max()
 

@@ -9,56 +9,40 @@ import typing
 from .utils import TimeAdjuster
 
 
-def task_generator(*args, **kwargs) -> list:
-    """
-    Accept the dict of task config and the TaskGen to generate different tasks.
-    There is no limit to the number and position of input.
-    The key of input will add to task config.
+def task_generator(tasks, generators) -> list:
+    """Use a list of TaskGen and a list of task templates to generate different tasks.
 
-    for example:
-        There are 3 task_config(a,b,c) and 2 TaskGen(A,B). A will double the task_config and B will triple.
-        task_generator(a_key=a, b_key=b, c_key=c, A, B) will finally generate 3*2*3 = 18 task_config.
+    For examples:
+
+        There are 3 task templates a,b,c and 2 TaskGen A,B. A will generates 2 tasks from a template and B will generates 3 tasks from a template.
+        task_generator([a, b, c], [A, B]) will finally generate 3*2*3 = 18 tasks.
 
     Parameters
     ----------
-    args : dict or TaskGen
-    kwargs : dict or TaskGen
+    tasks : List[dict]
+        a list of task templates
+    generators : List[TaskGen]
+        a list of TaskGen
 
     Returns
     -------
-    gen_task_list : list
-        a list of task config after generating
+    list
+        a list of tasks
     """
-    tasks_list = []
-    gen_list = []
 
-    tmp_id = 1
-    for task in args:
-        if isinstance(task, dict):
-            task["task_key"] = tmp_id
-            tmp_id += 1
-            tasks_list.append(task)
-        elif isinstance(task, TaskGen):
-            gen_list.append(task)
-        else:
-            raise NotImplementedError(f"{type(task)} is not supported in task_generator")
-
-    for key, task in kwargs.items():
-        if isinstance(task, dict):
-            task["task_key"] = key
-            tasks_list.append(task)
-        elif isinstance(task, TaskGen):
-            gen_list.append(task)
-        else:
-            raise NotImplementedError(f"{type(task)} is not supported in task_generator")
+    if isinstance(tasks, dict):
+        tasks = [tasks]
+    if isinstance(generators, TaskGen):
+        generators = [generators]
 
     # generate gen_task_list
     gen_task_list = []
-    for gen in gen_list:
+    for gen in generators:
         new_task_list = []
-        for task in tasks_list:
+        for task in tasks:
             new_task_list.extend(gen.generate(task))
         gen_task_list = new_task_list
+
     return gen_task_list
 
 
@@ -144,7 +128,13 @@ class RollingGen(TaskGen):
                             "handler": {
                                 "class": "Alpha158",
                                 "module_path": "qlib.contrib.data.handler",
-                                "kwargs": data_handler_config,
+                                "kwargs": {
+                                    "start_time": "2008-01-01",
+                                    "end_time": "2020-08-01",
+                                    "fit_start_time": "2008-01-01",
+                                    "fit_end_time": "2014-12-31",
+                                    "instruments": "csi100",
+                                },
                             },
                             "segments": {
                                 "train": ("2008-01-01", "2014-12-31"),
@@ -153,8 +143,12 @@ class RollingGen(TaskGen):
                             },
                         },
                     },
-                    # You shoud record the data in specific sequence
-                    # "record": ['SignalRecord', 'SigAnaRecord', 'PortAnaRecord'],
+                    "record": [
+                        {
+                            "class": "SignalRecord",
+                            "module_path": "qlib.workflow.record_temp",
+                        },
+                    ]
                 }
         """
         res = []
