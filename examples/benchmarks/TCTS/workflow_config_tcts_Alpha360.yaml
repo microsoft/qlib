@@ -1,0 +1,93 @@
+qlib_init:
+    provider_uri: "~/.qlib/qlib_data/cn_data"
+    region: cn
+market: &market csi300
+benchmark: &benchmark SH000300
+data_handler_config: &data_handler_config
+    start_time: 2008-01-01
+    end_time: 2020-08-01
+    fit_start_time: 2008-01-01
+    fit_end_time: 2014-12-31
+    instruments: *market
+    infer_processors:
+        - class: RobustZScoreNorm
+          kwargs:
+              fields_group: feature
+              clip_outlier: true
+        - class: Fillna
+          kwargs:
+              fields_group: feature
+    learn_processors:
+        - class: DropnaLabel
+        - class: CSRankNorm
+          kwargs:
+              fields_group: label
+    label: ["Ref($close, -2) / Ref($close, -1) - 1",
+            "Ref($close, -3) / Ref($close, -1) - 1",
+            "Ref($close, -4) / Ref($close, -1) - 1",
+            "Ref($close, -5) / Ref($close, -1) - 1",
+            "Ref($close, -6) / Ref($close, -1) - 1"]
+port_analysis_config: &port_analysis_config
+    strategy:
+        class: TopkDropoutStrategy
+        module_path: qlib.contrib.strategy.strategy
+        kwargs:
+            topk: 50
+            n_drop: 5
+    backtest:
+        verbose: False
+        limit_threshold: 0.095
+        account: 100000000
+        benchmark: *benchmark
+        deal_price: close
+        open_cost: 0.0005
+        close_cost: 0.0015
+        min_cost: 5
+task:
+    model:
+        class: TCTS
+        module_path: qlib.contrib.model.pytorch_tcts
+        kwargs:
+            d_feat: 6
+            hidden_size: 64
+            num_layers: 2
+            dropout: 0.0
+            n_epochs: 200
+            lr: 1e-3
+            early_stop: 20
+            batch_size: 800
+            metric: loss
+            loss: mse
+            GPU: 0
+            fore_optimizer: adam
+            weight_optimizer: adam
+            output_dim: 5
+            fore_lr: 5e-7
+            weight_lr: 5e-7
+            steps: 3
+            target_label: 0
+    dataset:
+        class: DatasetH
+        module_path: qlib.data.dataset
+        kwargs:
+            handler:
+                class: Alpha360
+                module_path: qlib.contrib.data.handler
+                kwargs: *data_handler_config
+            segments:
+                train: [2008-01-01, 2014-12-31]
+                valid: [2015-01-01, 2016-12-31]
+                test: [2017-01-01, 2020-08-01]
+    record: 
+        - class: SignalRecord
+          module_path: qlib.workflow.record_temp
+          kwargs: {}
+        - class: SigAnaRecord
+          module_path: qlib.workflow.record_temp
+          kwargs: 
+            ana_long_short: False
+            ann_scaler: 252
+        - class: PortAnaRecord
+          module_path: qlib.workflow.record_temp
+          kwargs: 
+            config: *port_analysis_config
