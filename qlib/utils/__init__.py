@@ -799,3 +799,123 @@ def fname_to_code(fname: str):
     if fname.startswith(prefix):
         fname = fname.lstrip(prefix)
     return fname
+
+########################## Sample ############################
+def sample_calendar_bac(calendar_raw, freq_raw, freq_sam):
+    """
+    freq_raw : "min" or "day"
+    """
+    freq_raw = "1" + freq_raw if re.match("^[0-9]", freq_raw) is None else freq_raw
+    freq_sam = "1" + freq_sam if re.match("^[0-9]", freq_sam) is None else freq_sam
+
+    if freq_sam.endswith(("minute", "min")):
+        def cal_next_sam_minute(x, sam_minutes):
+            hour = x.hour
+            minute = x.minute
+            if 9 <= hour <= 11:
+                minute_index = (11 - hour)*60 + 30 - minute + 120
+            elif 13 <= hour <= 15:
+                minute_index = (15 - hour)*60 - minute
+            else:
+                raise ValueError("calendar hour must be in [9, 11] or [13, 15]")
+            
+            minute_index = minute_index // sam_minutes * sam_minutes
+
+            if 0 <= minute_index < 120:
+                return 15 - (minute_index + 59) // 60, (120 - minute_index) % 60
+            elif 120 <= minute_index < 240:
+                return 11 - (minute_index - 120 + 29) // 60, (240 - minute_index + 30) % 60
+            else:
+                raise ValueError("calendar minute_index error")
+
+        sam_minutes = int(freq_sam[:-3]) if freq_sam.endswith("min") else int(freq_sam[:-6])
+
+        if not freq_raw.endswith(("minute", "min")):
+            raise ValueError("when sampling minute calendar, freq of raw calendar must be minute or min")
+        else:
+            raw_minutes = int(freq_raw[:-3]) if freq_raw.endswith("min") else int(freq_raw[:-6])
+            if raw_minutes > sam_minutes:
+                raise ValueError("raw freq must be higher than sample freq")
+
+        _calendar_minute = np.unique(list(map(lambda x: pd.Timestamp(x.year, x.month, x.day, *cal_next_sam_minute(x, sam_minutes), 59), calendar_raw)))
+        return _calendar_minute
+    else:
+
+        _calendar_day = np.unique(list(map(lambda x: pd.Timestamp(x.year, x.month, x.day, 23, 59, 59), calendar_raw)))
+        if freq_sam.endswith(("day", "d")):
+            sam_days = int(freq_sam[:-1]) if freq_sam.endswith("d") else int(freq_sam[:-3])
+            return _calendar_day[(len(_calendar_day) + sam_days - 1)%sam_days::sam_days]
+
+        elif freq_sam.endswith(("week", "w")):
+            sam_weeks = int(freq_sam[:-1]) if freq_sam.endswith("w") else int(freq_sam[:-4])
+            _day_in_week = np.array(list(map(lambda x: x.dayofweek, _calendar_day)))
+            _calendar_week = _calendar_day[np.ediff1d(_day_in_week[::-1], to_begin=1)[::-1] > 0]
+            return _calendar_week[(len(_calendar_week) + sam_weeks - 1)%sam_weeks::sam_weeks]
+
+        elif freq_sam.endswith(("month", "m")):
+            sam_months = int(freq_sam[:-1]) if freq_sam.endswith("m") else int(freq_sam[:-5])
+            _day_in_month = np.array(list(map(lambda x: x.day, _calendar_day)))
+            _calendar_month = _calendar_day[np.ediff1d(_day_in_month[::-1], to_begin=1)[::-1] > 0]
+            return _calendar_month[(len(_calendar_month) + sam_months - 1)%sam_months::sam_months]
+        else:
+            raise ValueError("sample freq must be xmin, xd, xw, xm")
+
+def sample_calendar(calendar_raw, freq_raw, freq_sam):
+    """
+    freq_raw : "min" or "day"
+    """
+    freq_raw = "1" + freq_raw if re.match("^[0-9]", freq_raw) is None else freq_raw
+    freq_sam = "1" + freq_sam if re.match("^[0-9]", freq_sam) is None else freq_sam
+
+    if freq_sam.endswith(("minute", "min")):
+        def cal_next_sam_minute(x, sam_minutes):
+            hour = x.hour
+            minute = x.minute
+            if 9 <= hour <= 11:
+                minute_index = (hour - 9)*60 + minute - 30
+            elif 13 <= hour <= 15:
+                minute_index = (hour - 13)*60 + minute + 120
+            else:
+                raise ValueError("calendar hour must be in [9, 11] or [13, 15]")
+            
+            minute_index = minute_index // sam_minutes * sam_minutes
+
+            if 0 <= minute_index < 120:
+                return 9 + (minute_index + 30) // 60, (minute_index + 30) % 60
+            elif 120 <= minute_index < 240:
+                return 13 + (minute_index - 120) // 60, (minute_index - 120) % 60
+            else:
+                raise ValueError("calendar minute_index error")
+        sam_minutes = int(freq_sam[:-3]) if freq_sam.endswith("min") else int(freq_sam[:-6])
+        if not freq_raw.endswith(("minute", "min")):
+            raise ValueError("when sampling minute calendar, freq of raw calendar must be minute or min")
+        else:
+            raw_minutes = int(freq_raw[:-3]) if freq_raw.endswith("min") else int(freq_raw[:-6])
+            if raw_minutes > sam_minutes:
+                raise ValueError("raw freq must be higher than sample freq")
+        _calendar_minute = np.unique(list(map(lambda x: pd.Timestamp(x.year, x.month, x.day, *cal_next_sam_minute(x, sam_minutes), 0), calendar_raw)))
+        return _calendar_minute
+    else:
+        _calendar_day = np.unique(list(map(lambda x: pd.Timestamp(x.year, x.month, x.day, 0, 0, 0), calendar_raw)))
+        if freq_sam.endswith(("day", "d")):
+            sam_days = int(freq_sam[:-1]) if freq_sam.endswith("d") else int(freq_sam[:-3])
+            return _calendar_day[::sam_days]
+
+        elif freq_sam.endswith(("week", "w")):
+            sam_weeks = int(freq_sam[:-1]) if freq_sam.endswith("w") else int(freq_sam[:-4])
+            _day_in_week = np.array(list(map(lambda x: x.dayofweek, _calendar_day)))
+            _calendar_week = _calendar_day[np.ediff1d(_day_in_week, to_begin=-1) < 0]
+            return _calendar_week[::sam_weeks]
+
+        elif freq_sam.endswith(("month", "m")):
+            sam_months = int(freq_sam[:-1]) if freq_sam.endswith("m") else int(freq_sam[:-5])
+            _day_in_month = np.array(list(map(lambda x: x.day, _calendar_day)))
+            _calendar_month = _calendar_day[np.ediff1d(_day_in_month, to_begin=-1) < 0]
+            return _calendar_month[::sam_months]
+        else:
+            raise ValueError("sample freq must be xmin, xd, xw, xm")
+            
+def sample_feature(feature_raw, freq, start_time, end_time, method="last"):
+    datetime_raw = feature_raw.index.get_level_values("datetime")
+    feature_sample = feature_raw[list(map(lambda x: start_time < x <= end_time, datetime_raw))]
+    return getattr(feature_sample.groupby(level="instrument"), method)()
