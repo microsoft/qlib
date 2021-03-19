@@ -1,5 +1,6 @@
 from qlib.workflow import R
 import pandas as pd
+from tqdm.auto import tqdm
 from typing import Union
 from typing import Callable
 

@@ -36,7 +36,7 @@ def task_train(task_config: dict, experiment_name: str) -> str:
         model.fit(dataset)
         recorder = R.get_recorder()
         R.save_objects(**{"params.pkl": model})
-        R.save_objects(**{"task": task_config})  # keep the original format and datatype
+        R.save_objects(task=task_config)  # keep the original format and datatype
 
         artifact_uri = recorder.get_artifact_uri()[7:]  # delete "file://"
         dataset.to_pickle(artifact_uri + "/dataset", exclude=["handler"])

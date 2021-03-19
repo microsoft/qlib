@@ -154,7 +154,7 @@ def init_from_yaml_conf(conf_path, **kwargs):
     init(default_conf, **config)
 
 
-def get_project_path(config_name="config.yaml") -> Path:
+def get_project_path(config_name="config.yaml", cur_path=None) -> Path:
     """
     If users are building a project follow the following pattern.
     - Qlib is a sub folder in project path
@@ -181,7 +181,8 @@ def get_project_path(config_name="config.yaml") -> Path:
     FileNotFoundError:
         If project path is not found
     """
-    cur_path = Path(__file__).absolute().resolve()
+    if cur_path is None:
+        cur_path = Path(__file__).absolute().resolve()
     while True:
         if (cur_path / config_name).exists():
             return cur_path
@@ -199,7 +200,7 @@ def auto_init(**kwargs):
     """
 
     try:
-        pp = get_project_path()
+        pp = get_project_path(cur_path=kwargs.pop("cur_path", None))
     except FileNotFoundError:
         init(**kwargs)
     else:
