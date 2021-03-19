@@ -17,7 +17,7 @@ from qlib.contrib.evaluate import (
 from qlib.utils import exists_qlib_data, init_instance_by_config, flatten_dict
 from qlib.workflow import R
 from qlib.workflow.record_temp import SignalRecord, PortAnaRecord
-
+from qlib.tests.data import GetData
 
 if __name__ == "__main__":
 
@@ -25,9 +25,6 @@ if __name__ == "__main__":
     provider_uri = "~/.qlib/qlib_data/cn_data"  # target_dir
     if not exists_qlib_data(provider_uri):
         print(f"Qlib data is not found in {provider_uri}")
-        sys.path.append(str(Path(__file__).resolve().parent.parent.joinpath("scripts")))
-        from get_data import GetData
-
         GetData().qlib_data(target_dir=provider_uri, region=REG_CN)
 
     qlib.init(provider_uri=provider_uri, region=REG_CN)

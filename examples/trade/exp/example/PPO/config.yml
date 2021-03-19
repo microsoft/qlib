@@ -1,0 +1,70 @@
+seed: 42
+task: train
+log_dir: example/PPO
+buffer_size: 80000
+io_conf:
+  test_sampler: TestSampler
+  train_sampler: Sampler
+  test_logger: DFLogger
+resources:
+  num_cpus: 24
+  num_gpus: 1
+  device: cuda
+train_paths:
+  raw_dir: ../data/backtest/
+  order_dir: ../data/order/train/
+valid_paths:
+  raw_dir: ../data/backtest/
+  order_dir: ../data/order/valid/
+test_paths:
+  raw_dir: ../data/backtest/
+  order_dir: ../data/order/test/
+env_conf:
+  name: StockEnv_Acc
+  max_step_num: 237
+  limit: 10
+  time_interval: 30
+  interval_num: 8
+  features:
+  - name: raw
+    type: range
+    loc: ../data/normed_feature/
+    size: 180
+  obs:
+    name: TeacherObs
+    config: {}
+  action:
+    name: Static_Action
+    config:
+      action_num: 5
+      action_map: [0, 0.25, 0.5, 0.75, 1]
+  reward:
+    PPO_Reward:
+      coefficient: 1
+policy_conf:
+  name: PPO
+  config:
+    discount_factor: 1.
+    max_grad_norm: 100.
+    reward_normalization: False
+    eps_clip: 0.3
+    value_clip: True
+    vf_coef: 1.
+    gae_lambda: 1.
+    vf_clip_para: 0.3
+network_conf:
+  name: PPO
+  config:
+    hidden_size: 64
+    out_shape: 5
+    fc_size: 32
+    cnn_shape: [30, 6]
+optim:
+  lr: 1e-4
+  batch_size: 1024
+  max_epoch: 30
+  step_per_epoch: 20
+  collect_per_step: 10000
+  repeat_per_collect: 5
+  early_stopping: 5
+  weight_decay: 0.
