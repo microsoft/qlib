@@ -28,11 +28,10 @@ class Teacher_Extractor(nn.Module):
 
     def forward(self, inp):
         inp = to_torch(inp, dtype=torch.float32, device=self.device)
-        inp = inp[:, 182:]
         seq_len = inp[:, -1].to(torch.long)
         batch_size = inp.shape[0]
-        raw_in = inp[:, : 6 * 240].reshape(-1, 30, 6).transpose(1, 2)
-        dnn_in = inp[:, 6 * 240 : -1].reshape(batch_size, -1, 2)
+        raw_in = inp[:, : 6 * 240].reshape(-1, 30, 6).transpose(1, 2) ## public part of state
+        dnn_in = inp[:, 6 * 240 : -1].reshape(batch_size, -1, 2) ## private part of state
         cnn_out = self.cnn(raw_in).view(batch_size, 8, -1)
         rnn_in = self.raw_fc(cnn_out)
         rnn2_in = self.dnn(dnn_in)
