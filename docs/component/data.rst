@@ -298,9 +298,10 @@ Here are some important interfaces that ``DataHandlerLP`` provides:
 .. autoclass:: qlib.data.dataset.handler.DataHandlerLP
     :members: __init__, fetch, get_cols
 
+
 If users want to load features and labels by config, users can define a new handler and call the static method `parse_config_to_fields` of ``qlib.contrib.data.handler.Alpha158``.
 
-Also, users can pass ``qlib.contrib.data.processor.ConfigSectionProcessor`` that provides some preprocess method for features defined by config into the new handler.
+Also, users can pass ``qlib.contrib.data.processor.ConfigSectionProcessor`` that provides some preprocess methods for features defined by config into the new handler.
 
 
 Processor
@@ -363,7 +364,8 @@ Qlib provides implemented data handler `Alpha158`. The following example shows h
         # fetch all the features
         print(h.fetch(col_set="feature"))
 
-..note :: In the ``Alpha158``, ``Qlib`` use the label `Ref($close, -2)/Ref($close, -1) - 1` that means the change from T+1 to T+2, rather than `Ref($close, -1)/$close - 1`, of which the reason is that when getting the T day close price of a china stock, the stock can be bought on T+1 day and sold on T+2 day.
+
+.. note:: In the ``Alpha158``, ``Qlib`` uses the label `Ref($close, -2)/Ref($close, -1) - 1` that means the change from T+1 to T+2, rather than `Ref($close, -1)/$close - 1`, of which the reason is that when getting the T day close price of a china stock, the stock can be bought on T+1 day and sold on T+2 day.
 
 API
 ---------
