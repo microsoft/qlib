@@ -298,9 +298,9 @@ Here are some important interfaces that ``DataHandlerLP`` provides:
 .. autoclass:: qlib.data.dataset.handler.DataHandlerLP
     :members: __init__, fetch, get_cols
 
-If users want to load features and labels by config, users can inherit ``qlib.data.dataset.handler.ConfigDataHandler``, ``Qlib`` also provides some preprocess method in this subclass.
+If users want to load features and labels by config, users can define a new handler and call the static method `parse_config_to_fields` of ``qlib.contrib.data.handler.Alpha158``.
 
-If users want to use qlib data, `QLibDataHandler` is recommended. Users can inherit their custom class from `QLibDataHandler`, which is also a subclass of `ConfigDataHandler`.
+Also, users can pass ``qlib.contrib.data.processor.ConfigSectionProcessor`` that provides some preprocess method for features defined by config into the new handler.
 
 
 Processor
@@ -337,7 +337,6 @@ Qlib provides implemented data handler `Alpha158`. The following example shows h
 
 .. note:: Users need to initialize ``Qlib`` with `qlib.init` first, please refer to `initialization <../start/initialization.html>`_.
 
-
 .. code-block:: Python
 
     import qlib
@@ -363,6 +362,7 @@ Qlib provides implemented data handler `Alpha158`. The following example shows h
 
         # fetch all the features
         print(h.fetch(col_set="feature"))
+
 
 API
 ---------
