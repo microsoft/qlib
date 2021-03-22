@@ -1,0 +1,65 @@
+qlib_init:
+    provider_uri: "~/.qlib/qlib_data/yahoo_cn_1min"
+    region: cn
+market: &market ['SH605222', 'SZ002796', 'SZ002246', 'SZ000713', 'SZ002820', 'SH601328', 'SZ000668', 'SH603359', 'SZ002144', 'SH600195', 'SH603685', 'SH603386', 'SZ002586', 'SZ000573', 'SZ000605', 'SZ002842', 'SH600068', 'SZ300547', 'SZ000926', 'SZ002036', 'SZ002161', 'SH600715', 'SZ300427', 'SZ002573', 'SZ300142', 'SH605116', 'SZ002951', 'SH600276', 'SZ002437', 'SH603355', 'SZ002893', 'SH600584']
+start_time: &start_time "2020-09-15 00:00:00"
+end_time: &end_time "2021-01-18 16:00:00"
+train_end_time: &train_end_time "2020-11-15 16:00:00"
+valid_start_time: &valid_start_time "2020-11-16 00:00:00"
+valid_end_time: &valid_end_time "2020-11-30 16:00:00"
+test_start_time: &test_start_time "2020-12-01 00:00:00"
+data_handler_config: &data_handler_config
+    start_time: *start_time
+    end_time: *end_time
+    fit_start_time: *start_time
+    fit_end_time: *train_end_time
+    instruments: *market
+    freq: '1min'
+    infer_processors:
+        - class: 'RobustZScoreNorm'
+          kwargs:
+              fields_group: 'feature'
+              clip_outlier: false
+        - class: "Fillna"
+          kwargs:
+              fields_group: 'feature'
+    learn_processors:
+        - class: 'DropnaLabel'
+        - class: 'CSRankNorm'
+          kwargs:
+              fields_group: 'label'
+    label: ["Ref($close, -2) / Ref($close, -1) - 1"]
+    
+task:
+    model:
+        class: "HF_LGBModel"
+        module_path: "qlib.contrib.model.highfreq_gdbt_model"
+        kwargs:
+            objective: 'binary'
+            metric: ['binary_logloss','auc']
+            verbosity: -1
+            learning_rate: 0.01
+            max_depth: 8
+            num_leaves: 150
+            lambda_l1: 1.5
+            lambda_l2: 1
+            num_threads: 20
+    dataset:
+        class: "DatasetH"
+        module_path: "qlib.data.dataset"
+        kwargs:
+            handler:
+                class: "Alpha158"
+                module_path: "qlib.contrib.data.handler"
+                kwargs: *data_handler_config
+            segments:
+                train: [*start_time, *train_end_time]
+                valid: [*train_end_time, *valid_end_time]
+                test: [*test_start_time, *end_time]
+    record: 
+        - class: "SignalRecord"
+          module_path: "qlib.workflow.record_temp"
+          kwargs: {}
+        - class: "HFSignalRecord"
+          module_path: "qlib.workflow.record_temp"
+          kwargs: {}
