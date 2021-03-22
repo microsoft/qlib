@@ -363,6 +363,7 @@ Qlib provides implemented data handler `Alpha158`. The following example shows h
         # fetch all the features
         print(h.fetch(col_set="feature"))
 
+..note :: In the ``Alpha158``, ``Qlib`` use the label `Ref($close, -2)/Ref($close, -1) - 1` that means the change from T+1 to T+2, rather than `Ref($close, -1)/$close - 1`, of which the reason is that when getting the T day close price of a china stock, the stock can be bought on T+1 day and sold on T+2 day.
 
 API
 ---------
