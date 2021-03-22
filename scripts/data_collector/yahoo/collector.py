@@ -185,7 +185,7 @@ class YahooCollector(BaseCollector):
 
 
 class YahooCollectorCN(YahooCollector, ABC):
-    def get_stock_list(self):
+    def get_instrument_list(self):
         logger.info("get HS stock symbos......")
         symbols = get_hs_stock_symbols()
         logger.info(f"get {len(symbols)} symbols.")
@@ -249,7 +249,7 @@ class YahooCollectorCN1min(YahooCollectorCN):
 
 
 class YahooCollectorUS(YahooCollector, ABC):
-    def get_stock_list(self):
+    def get_instrument_list(self):
         logger.info("get US stock symbols......")
         symbols = get_us_stock_symbols() + [
             "^GSPC",
