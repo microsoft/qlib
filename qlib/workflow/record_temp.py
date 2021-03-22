@@ -154,12 +154,13 @@ class SignalRecord(RecordTemp):
 
     def load(self, name="pred.pkl"):
         return super().load(name)
-    
-    
+
+
 class HFSignalRecord(SignalRecord):
     """
     This is the Signal Analysis Record class that generates the analysis results such as IC and IR. This class inherits the ``RecordTemp`` class.
     """
+
     artifact_path = "hg_sig_analysis"
 
     def __init__(self, recorder, **kwargs):
@@ -169,7 +170,7 @@ class HFSignalRecord(SignalRecord):
         pred = self.load("pred.pkl")
         raw_label = self.load("label.pkl")
 
-        long_pre, short_pre = calc_prec(pred.iloc[:, 0], raw_label.iloc[:, 0], is_alpha = True)
+        long_pre, short_pre = calc_prec(pred.iloc[:, 0], raw_label.iloc[:, 0], is_alpha=True)
         ic, ric = calc_ic(pred.iloc[:, 0], raw_label.iloc[:, 0])
         metrics = {
             "IC": ic.mean(),
@@ -177,7 +178,7 @@ class HFSignalRecord(SignalRecord):
             "Rank IC": ric.mean(),
             "Rank ICIR": ric.mean() / ric.std(),
             "Long precision": long_pre.mean(),
-            "Short precision": short_pre.mean()
+            "Short precision": short_pre.mean(),
         }
         objects = {"ic.pkl": ic, "ric.pkl": ric}
         objects.update({"long_pre.pkl": long_pre, "short_pre.pkl": short_pre})
@@ -199,7 +200,12 @@ class HFSignalRecord(SignalRecord):
         pprint(metrics)
 
     def list(self):
-        paths = [self.get_path("ic.pkl"), self.get_path("ric.pkl"), self.get_path("long_pre.pkl"), self.get_path("short_pre.pkl")]
+        paths = [
+            self.get_path("ic.pkl"),
+            self.get_path("ric.pkl"),
+            self.get_path("long_pre.pkl"),
+            self.get_path("short_pre.pkl"),
+        ]
         paths.extend([self.get_path("long_short_r.pkl"), self.get_path("long_avg_r.pkl")])
         return paths
 
