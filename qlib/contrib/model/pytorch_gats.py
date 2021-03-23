@@ -9,19 +9,18 @@ import os
 import numpy as np
 import pandas as pd
 import copy
-from sklearn.metrics import roc_auc_score, mean_squared_error
-import logging
 from ...utils import (
     unpack_archive_with_buffer,
     save_multiple_parts_file,
-    create_save_path,
+    get_or_create_path,
     drop_nan_by_y_index,
 )
-from ...log import get_module_logger, TimeInspector
+from ...log import get_module_logger
 import torch
 import torch.nn as nn
 import torch.optim as optim
 
+from .pytorch_utils import count_parameters
 from ...model.base import Model
 from ...data.dataset import DatasetH
 from ...data.dataset.handler import DataHandlerLP
@@ -42,8 +41,8 @@ class GATs(Model):
         the evaluate metric used in early stop
     optimizer : str
         optimizer name
-    GPU : str
-        the GPU ID(s) used for training
+    GPU : int
+        the GPU ID used for training
     """
 
     def __init__(
@@ -83,7 +82,7 @@ class GATs(Model):
         self.base_model = base_model
         self.with_pretrain = with_pretrain
         self.model_path = model_path
-        self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() else "cpu")
+        self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
         self.use_gpu = torch.cuda.is_available()
         self.seed = seed
 
@@ -102,7 +101,7 @@ class GATs(Model):
             "\nbase_model : {}"
             "\nwith_pretrain : {}"
             "\nmodel_path : {}"
-            "\nvisible_GPU : {}"
+            "\ndevice : {}"
             "\nuse_GPU : {}"
             "\nseed : {}".format(
                 d_feat,
@@ -118,7 +117,7 @@ class GATs(Model):
                 base_model,
                 with_pretrain,
                 model_path,
-                GPU,
+                self.device,
                 self.use_gpu,
                 seed,
             )
@@ -135,6 +134,9 @@ class GATs(Model):
             dropout=self.dropout,
             base_model=self.base_model,
         )
+        self.logger.info("model:\n{:}".format(self.GAT_model))
+        self.logger.info("model size: {:.4f} MB".format(count_parameters(self.GAT_model)))
+
         if optimizer.lower() == "adam":
             self.train_optimizer = optim.Adam(self.GAT_model.parameters(), lr=self.lr)
         elif optimizer.lower() == "gd":
@@ -144,6 +146,10 @@ class GATs(Model):
 
         self.fitted = False
         self.GAT_model.to(self.device)
+
+    @property
+    def use_gpu(self):
+        return self.device != torch.device("cpu")
 
     def mse(self, pred, label):
         loss = (pred - label) ** 2
@@ -232,7 +238,6 @@ class GATs(Model):
         self,
         dataset: DatasetH,
         evals_result=dict(),
-        verbose=True,
         save_path=None,
     ):
 
@@ -245,8 +250,7 @@ class GATs(Model):
         x_train, y_train = df_train["feature"], df_train["label"]
         x_valid, y_valid = df_valid["feature"], df_valid["label"]
 
-        if save_path == None:
-            save_path = create_save_path(save_path)
+        save_path = get_or_create_path(save_path)
         stop_steps = 0
         best_score = -np.inf
         best_epoch = 0
@@ -324,10 +328,7 @@ class GATs(Model):
             x_batch = torch.from_numpy(x_values[batch]).float().to(self.device)
 
             with torch.no_grad():
-                if self.use_gpu:
-                    pred = self.GAT_model(x_batch).detach().cpu().numpy()
-                else:
-                    pred = self.GAT_model(x_batch).detach().numpy()
+                pred = self.GAT_model(x_batch).detach().cpu().numpy()
 
             preds.append(pred)
 

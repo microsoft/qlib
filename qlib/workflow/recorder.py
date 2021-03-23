@@ -34,7 +34,7 @@ class Recorder:
         self.status = Recorder.STATUS_S
 
     def __repr__(self):
-        return str(self.info)
+        return "{name}(info={info})".format(name=self.__class__.__name__, info=self.info)
 
     def __str__(self):
         return str(self.info)
@@ -201,7 +201,7 @@ class MLflowRecorder(Recorder):
     def __init__(self, experiment_id, uri, name=None, mlflow_run=None):
         super(MLflowRecorder, self).__init__(experiment_id, name)
         self._uri = uri
-        self.artifact_uri = None
+        self._artifact_uri = None
         self.client = mlflow.tracking.MlflowClient(tracking_uri=self._uri)
         # construct from mlflow run
         if mlflow_run is not None:
@@ -220,14 +220,51 @@ class MLflowRecorder(Recorder):
                 else None
             )
 
+    def __repr__(self):
+        name = self.__class__.__name__
+        space_length = len(name) + 1
+        return "{name}(info={info},\n{space}uri={uri},\n{space}artifact_uri={artifact_uri},\n{space}client={client})".format(
+            name=name,
+            space=" " * space_length,
+            info=self.info,
+            uri=self.uri,
+            artifact_uri=self.artifact_uri,
+            client=self.client,
+        )
+
+    @property
+    def uri(self):
+        return self._uri
+
+    @property
+    def artifact_uri(self):
+        return self._artifact_uri
+
+    def get_local_dir(self):
+        """
+        This function will return the directory path of this recorder.
+        """
+        if self.artifact_uri is not None:
+            local_dir_path = Path(self.artifact_uri.lstrip("file:")) / ".."
+            local_dir_path = str(local_dir_path.resolve())
+            if os.path.isdir(local_dir_path):
+                return local_dir_path
+            else:
+                raise RuntimeError("This recorder is not saved in the local file system.")
+
+        else:
+            raise Exception(
+                "Please make sure the recorder has been created and started properly before getting artifact uri."
+            )
+
     def start_run(self):
         # set the tracking uri
-        mlflow.set_tracking_uri(self._uri)
+        mlflow.set_tracking_uri(self.uri)
         # start the run
         run = mlflow.start_run(self.id, self.experiment_id, self.name)
         # save the run id and artifact_uri
         self.id = run.info.run_id
-        self.artifact_uri = run.info.artifact_uri
+        self._artifact_uri = run.info.artifact_uri
         self.start_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.status = Recorder.STATUS_R
         logger.info(f"Recorder {self.id} starts running under Experiment {self.experiment_id} ...")
@@ -247,7 +284,7 @@ class MLflowRecorder(Recorder):
             self.status = status
 
     def save_objects(self, local_path=None, artifact_path=None, **kwargs):
-        assert self._uri is not None, "Please start the experiment and recorder first before using recorder directly."
+        assert self.uri is not None, "Please start the experiment and recorder first before using recorder directly."
         if local_path is not None:
             self.client.log_artifacts(self.id, local_path, artifact_path)
         else:
@@ -259,7 +296,7 @@ class MLflowRecorder(Recorder):
             shutil.rmtree(temp_dir)
 
     def load_object(self, name):
-        assert self._uri is not None, "Please start the experiment and recorder first before using recorder directly."
+        assert self.uri is not None, "Please start the experiment and recorder first before using recorder directly."
         path = self.client.download_artifacts(self.id, name)
         with Path(path).open("rb") as f:
             return pickle.load(f)
@@ -289,7 +326,7 @@ class MLflowRecorder(Recorder):
             )
 
     def list_artifacts(self, artifact_path=None):
-        assert self._uri is not None, "Please start the experiment and recorder first before using recorder directly."
+        assert self.uri is not None, "Please start the experiment and recorder first before using recorder directly."
         artifacts = self.client.list_artifacts(self.id, artifact_path)
         return [art.path for art in artifacts]
 

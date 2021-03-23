@@ -43,7 +43,8 @@ class Model(BaseModel):
 
                 # get weights
                 try:
-                    wdf_train, wdf_valid = dataset.prepare(["train", "valid"], col_set=["weight"], data_key=DataHandlerLP.DK_L)
+                    wdf_train, wdf_valid = dataset.prepare(["train", "valid"], col_set=["weight"],
+                                                           data_key=DataHandlerLP.DK_L)
                     w_train, w_valid = wdf_train["weight"], wdf_valid["weight"]
                 except KeyError as e:
                     w_train = pd.DataFrame(np.ones_like(y_train.values), index=y_train.index)

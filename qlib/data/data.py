@@ -654,9 +654,6 @@ class LocalExpressionProvider(ExpressionProvider):
     Provide expression data from local data source.
     """
 
-    def __init__(self):
-        super().__init__()
-
     def expression(self, instrument, field, start_time=None, end_time=None, freq="day"):
         expression = self.get_expression_instance(field)
         start_time = pd.Timestamp(start_time)
