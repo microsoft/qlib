@@ -251,7 +251,7 @@ class TopkDropoutStrategy(BaseStrategy, ListAdjustTimer):
 
     def generate_order_list(self, score_series, current, trade_exchange, pred_date, trade_date):
         """
-        Gnererate order list according to score_series at trade_date, will not change current.
+        Generate order list according to score_series at trade_date, will not change current.
 
         Parameters
         -----------
