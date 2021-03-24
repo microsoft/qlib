@@ -218,14 +218,15 @@ class StaticDataLoader(DataLoader):
         )
         self._data.sort_index(inplace=True)
 
+
 class DataHandlerDL(DataLoader):
-    '''DataHandlerDL
+    """DataHandlerDL
     DataHandler-based (D)ata (L)oader
     It is designed to load multiple data from data handler
     - If you just want to load data from single datahandler, you can write them in single data handler
-    '''
+    """
 
-    def __init__(self, handler_config:dict, fetch_config:dict = {}, is_group=False):
+    def __init__(self, handler_config: dict, fetch_config: dict = {}, is_group=False):
         """
         Parameters
         ----------
@@ -251,12 +252,11 @@ class DataHandlerDL(DataLoader):
         """
         if self.is_group:
             self.handlers = {
-                grp: init_instance_by_config(config, accept_types=DataHandler)
-                for grp, config in handler_config.items()
+                grp: init_instance_by_config(config, accept_types=DataHandler) for grp, config in handler_config.items()
             }
         else:
             self.handlers = init_instance_by_config(handler_config, accept_types=DataHandler)
-        
+
         self.is_group = is_group
         self.fetch_config = fetch_config
 
