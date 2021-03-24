@@ -11,8 +11,8 @@ from qlib.data.dataset.handler import DataHandlerLP
 import warnings
 
 
-class HF_LGBModel(ModelFT):
-    """LightGBM Model"""
+class HFLGBModel(ModelFT):
+    """LightGBM Model for high frequency prediction"""
 
     def __init__(self, loss="mse", **kwargs):
         if loss not in {"mse", "binary"}:

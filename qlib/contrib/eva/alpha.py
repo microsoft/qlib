@@ -8,12 +8,23 @@ import pandas as pd
 from typing import Tuple
 
 
-def calc_prec(
+def calc_long_short_prec(
     pred: pd.Series, label: pd.Series, date_col="datetime", quantile: float = 0.2, dropna=False, is_alpha=False
 ) -> Tuple[pd.Series, pd.Series]:
-    """calculate the precision
-    pred :
-        pred
+    """
+    calculate the precision for long and short operation
+
+
+    :param pred/label: index is **pd.MultiIndex**, index name is **[datetime, instruments]**; columns names is **[score]**.
+
+            .. code-block:: python
+                                                  score
+                datetime            instrument
+                2020-12-01 09:30:00 SH600068    0.553634
+                                    SH600195    0.550017
+                                    SH600276    0.540321
+                                    SH600584    0.517297
+                                    SH600715    0.544674
     label :
         label
     date_col :
@@ -25,7 +36,7 @@ def calc_prec(
         long precision and short precision in time level
     """
     if is_alpha:
-        label = label - label.mean(level=0)
+        label = label - label.mean(level=date_col)
     if int(1 / quantile) >= len(label.index.get_level_values(1).unique()):
         raise ValueError("Need more instruments to calculate precision")
 
@@ -41,13 +52,13 @@ def calc_prec(
     short = group.apply(lambda x: x.nsmallest(N(x), columns="pred").label).reset_index(level=0, drop=True)
 
     groupll = long.groupby(date_col)
-    ll_ration = groupll.apply(lambda x: x > 0)
-    ll_c = groupll.count()
+    l_dom = groupll.apply(lambda x: x > 0)
+    l_c = groupll.count()
 
     groups = short.groupby(date_col)
-    s_ration = groups.apply(lambda x: x < 0)
+    s_dom = groups.apply(lambda x: x < 0)
     s_c = groups.count()
-    return (ll_ration.groupby(date_col).sum() / ll_c), (s_ration.groupby(date_col).sum() / s_c)
+    return (l_dom.groupby(date_col).sum() / l_c), (s_dom.groupby(date_col).sum() / s_c)
 
 
 def calc_ic(pred: pd.Series, label: pd.Series, date_col="datetime", dropna=False) -> Tuple[pd.Series, pd.Series]:

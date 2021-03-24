@@ -13,7 +13,7 @@ from ..data.dataset.handler import DataHandlerLP
 from ..utils import init_instance_by_config, get_module_by_module_path
 from ..log import get_module_logger
 from ..utils import flatten_dict
-from ..contrib.eva.alpha import calc_ic, calc_long_short_return, calc_prec
+from ..contrib.eva.alpha import calc_ic, calc_long_short_return, calc_long_short_prec
 from ..contrib.strategy.strategy import BaseStrategy
 
 logger = get_module_logger("workflow", "INFO")
@@ -169,8 +169,7 @@ class HFSignalRecord(SignalRecord):
     def generate(self):
         pred = self.load("pred.pkl")
         raw_label = self.load("label.pkl")
-
-        long_pre, short_pre = calc_prec(pred.iloc[:, 0], raw_label.iloc[:, 0], is_alpha=True)
+        long_pre, short_pre = calc_long_short_prec(pred.iloc[:, 0], raw_label.iloc[:, 0], is_alpha=True)
         ic, ric = calc_ic(pred.iloc[:, 0], raw_label.iloc[:, 0])
         metrics = {
             "IC": ic.mean(),
@@ -205,8 +204,9 @@ class HFSignalRecord(SignalRecord):
             self.get_path("ric.pkl"),
             self.get_path("long_pre.pkl"),
             self.get_path("short_pre.pkl"),
+            self.get_path("long_short_r.pkl"),
+            self.get_path("long_avg_r.pkl"),
         ]
-        paths.extend([self.get_path("long_short_r.pkl"), self.get_path("long_avg_r.pkl")])
         return paths
 
 

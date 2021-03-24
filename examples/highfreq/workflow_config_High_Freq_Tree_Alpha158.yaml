@@ -32,7 +32,7 @@ data_handler_config: &data_handler_config
     
 task:
     model:
-        class: "HF_LGBModel"
+        class: "HFLGBModel"
         module_path: "qlib.contrib.model.highfreq_gdbt_model"
         kwargs:
             objective: 'binary'
