@@ -103,21 +103,21 @@ class RollingDataWorkflow(object):
                 dataset.init(
                     handler_kwargs={
                         "init_type": DataHandlerLP.IT_FIT_SEQ,
-                        "start_time": datetime(train_start_time[0] + 1, *train_start_time[1:]),
-                        "end_time": datetime(test_end_time[0] + 1, *test_end_time[1:]),
+                        "start_time": datetime(train_start_time[0] + rolling_offset, *train_start_time[1:]),
+                        "end_time": datetime(test_end_time[0] + rolling_offset, *test_end_time[1:]),
                     },
                     segment_kwargs={
                         "train": (
-                            datetime(train_start_time[0] + 1, *train_start_time[1:]),
-                            datetime(train_end_time[0], *train_end_time[1:]),
+                            datetime(train_start_time[0] + rolling_offset, *train_start_time[1:]),
+                            datetime(train_end_time[0] + rolling_offset, *train_end_time[1:]),
                         ),
                         "valid": (
-                            datetime(valid_start_time[0] + 1, *valid_start_time[1:]),
-                            datetime(valid_end_time[0], *valid_end_time[1:]),
+                            datetime(valid_start_time[0] + rolling_offset, *valid_start_time[1:]),
+                            datetime(valid_end_time[0] + rolling_offset, *valid_end_time[1:]),
                         ),
                         "test": (
-                            datetime(test_start_time[0] + 1, *test_start_time[1:]),
-                            datetime(test_end_time[0], *test_end_time[1:]),
+                            datetime(test_start_time[0] + rolling_offset, *test_start_time[1:]),
+                            datetime(test_end_time[0] + rolling_offset, *test_end_time[1:]),
                         ),
                     },
                 )
