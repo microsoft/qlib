@@ -12,17 +12,15 @@ class RollingDataHandler(DataHandlerLP):
         learn_processors=[],
         fit_start_time=None,
         fit_end_time=None,
-        data_loader_kwargs={}
+        data_loader_kwargs={},
     ):
         infer_processors = check_transform_proc(infer_processors, fit_start_time, fit_end_time)
         learn_processors = check_transform_proc(learn_processors, fit_start_time, fit_end_time)
 
         data_loader = {
             "class": "DataLoaderDH",
-            "kwargs": {
-                **data_loader_kwargs
-            },
-        } 
+            "kwargs": {**data_loader_kwargs},
+        }
 
         super().__init__(
             instruments=None,

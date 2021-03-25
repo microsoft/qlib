@@ -258,9 +258,7 @@ class DataLoaderDH(DataLoader):
             self.handlers = init_instance_by_config(handler_config, accept_types=DataHandler)
 
         self.is_group = is_group
-        self.fetch_kwargs = {
-            "col_set":DataHandler.CS_RAW
-        }
+        self.fetch_kwargs = {"col_set": DataHandler.CS_RAW}
         self.fetch_kwargs = {**self.fetch_kwargs, **fetch_kwargs}
 
     def load(self, instruments=None, start_time=None, end_time=None) -> pd.DataFrame:
