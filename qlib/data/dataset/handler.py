@@ -115,8 +115,7 @@ class DataHandler(Serializable):
         for k, v in kwargs.items():
             if k in attr_list:
                 setattr(self, k, v)
-            else:
-                raise KeyError("Such config is not supported.")
+
 
     def init(self, enable_cache: bool = False):
         """
@@ -405,11 +404,34 @@ class DataHandlerLP(DataHandler):
         if self.drop_raw:
             del self._data
 
+
+    def conf_data(self, **kwargs):
+        """
+        configuration of data.
+        # what data to be loaded from data source
+
+        This method will be used when loading pickled handler from dataset.
+        The data will be initialized with different time range.
+
+        """
+        attr_list = {"fit_start_time", "fit_end_time"}
+        for k, v in kwargs.items():
+            if k in attr_list:
+                for infer_processor in self.infer_processors:
+                    if getattr(infer_processor, k, None):
+                        setattr(infer_processor, k, v)
+
+                for learn_processor in self.learn_processors:
+                    if getattr(learn_processor, k, None):
+                        setattr(learn_processor, k, v)
+
+        super().conf_data(**kwargs)
+
     # init type
     IT_FIT_SEQ = "fit_seq"  # the input of `fit` will be the output of the previous processor
     IT_FIT_IND = "fit_ind"  # the input of `fit` will be the original df
     IT_LS = "load_state"  # The state of the object has been load by pickle
-
+    
     def init(self, init_type: str = IT_FIT_SEQ, enable_cache: bool = False):
         """
         Initialize the data of Qlib

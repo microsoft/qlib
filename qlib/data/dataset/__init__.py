@@ -98,7 +98,7 @@ class DatasetH(Dataset):
                 raise TypeError(f"param handler_kwargs must be type dict, not {type(handler_kwargs)}")
             kwargs_init = {}
             kwargs_conf_data = {}
-            conf_data_arg = {"instruments", "start_time", "end_time"}
+            conf_data_arg = {"instruments", "start_time", "end_time", "fit_start_time", "fit_end_time"}
             for k, v in handler_kwargs.items():
                 if k in conf_data_arg:
                     kwargs_conf_data.update({k: v})

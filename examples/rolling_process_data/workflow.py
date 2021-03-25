@@ -98,6 +98,7 @@ class RollingDataWorkflow(object):
         dataset = init_instance_by_config(dataset_config)
 
         for rolling_offset in range(self.rolling_cnt):
+
             print(f"===========rolling{rolling_offset} start===========")
             if rolling_offset:
                 dataset.init(
@@ -105,6 +106,8 @@ class RollingDataWorkflow(object):
                         "init_type": DataHandlerLP.IT_FIT_SEQ,
                         "start_time": datetime(train_start_time[0] + rolling_offset, *train_start_time[1:]),
                         "end_time": datetime(test_end_time[0] + rolling_offset, *test_end_time[1:]),
+                        "fit_start_time": datetime(train_start_time[0] + rolling_offset, *train_start_time[1:]),
+                        "fit_end_time": datetime(train_end_time[0] + rolling_offset, *train_end_time[1:]),
                     },
                     segment_kwargs={
                         "train": (
@@ -123,6 +126,7 @@ class RollingDataWorkflow(object):
                 )
 
             dtrain, dvalid, dtest = dataset.prepare(["train", "valid", "test"])
+            print(dtrain, dvalid, dtest)
             ## print or dump data
             print(f"===========rolling{rolling_offset} end===========")
 
