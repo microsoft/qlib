@@ -116,7 +116,6 @@ class DataHandler(Serializable):
             if k in attr_list:
                 setattr(self, k, v)
 
-
     def init(self, enable_cache: bool = False):
         """
         initialize the data.
@@ -404,7 +403,6 @@ class DataHandlerLP(DataHandler):
         if self.drop_raw:
             del self._data
 
-
     def conf_data(self, **kwargs):
         """
         configuration of data.
@@ -431,7 +429,7 @@ class DataHandlerLP(DataHandler):
     IT_FIT_SEQ = "fit_seq"  # the input of `fit` will be the output of the previous processor
     IT_FIT_IND = "fit_ind"  # the input of `fit` will be the original df
     IT_LS = "load_state"  # The state of the object has been load by pickle
-    
+
     def init(self, init_type: str = IT_FIT_SEQ, enable_cache: bool = False):
         """
         Initialize the data of Qlib
