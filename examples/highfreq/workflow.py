@@ -32,7 +32,6 @@ class HighfreqWorkflow(object):
     SPEC_CONF = {"custom_ops": [DayLast, FFillNan, BFillNan, Date, Select, IsNull, Cut], "expression_cache": None}
 
     MARKET = "all"
-    BENCHMARK = "SH000300"
 
     start_time = "2020-09-15 00:00:00"
     end_time = "2021-01-18 16:00:00"

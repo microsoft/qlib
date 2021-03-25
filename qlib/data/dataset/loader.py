@@ -219,14 +219,14 @@ class StaticDataLoader(DataLoader):
         self._data.sort_index(inplace=True)
 
 
-class DataHandlerDL(DataLoader):
-    """DataHandlerDL
-    DataHandler-based (D)ata (L)oader
+class DataLoaderDH(DataLoader):
+    """DataLoaderDH
+    DataLoader based on (D)ata (H)andler
     It is designed to load multiple data from data handler
     - If you just want to load data from single datahandler, you can write them in single data handler
     """
 
-    def __init__(self, handler_config: dict, fetch_config: dict = {}, is_group=False):
+    def __init__(self, handler_config: dict, fetch_kwargs: dict = {}, is_group=False):
         """
         Parameters
         ----------
@@ -243,8 +243,8 @@ class DataHandlerDL(DataLoader):
                 <handler_config> := <handler>
                 <handler> := DataHandler Instance | DataHandler Config
 
-        fetch_config : dict
-            fetch_config will be used to describe the different arguments of fetch method, such as squeeze, data_key, etc.
+        fetch_kwargs : dict
+            fetch_kwargs will be used to describe the different arguments of fetch method, such as col_set, squeeze, data_key, etc.
 
         is_group: bool
             is_group will be used to describe whether the key of handler_config is group
@@ -258,7 +258,10 @@ class DataHandlerDL(DataLoader):
             self.handlers = init_instance_by_config(handler_config, accept_types=DataHandler)
 
         self.is_group = is_group
-        self.fetch_config = fetch_config
+        self.fetch_kwargs = {
+            "col_set":DataHandler.CS_RAW
+        }
+        self.fetch_kwargs = {**self.fetch_kwargs, **fetch_kwargs}
 
     def load(self, instruments=None, start_time=None, end_time=None) -> pd.DataFrame:
         if instruments is not None:
@@ -267,11 +270,11 @@ class DataHandlerDL(DataLoader):
         if self.is_group:
             df = pd.concat(
                 {
-                    grp: dh.fetch(slice(start_time, end_time), col_set=DataHandler.CS_RAW, **fetch_config)
+                    grp: dh.fetch(selector=slice(start_time, end_time), level="datetime", **self.fetch_kwargs)
                     for grp, dh in self.handlers.items()
                 },
                 axis=1,
             )
         else:
-            df = self.handler.fetch(slice(start_time, end_time), col_set=DataHandler.CS_RAW, **fetch_config)
+            df = self.handler.fetch(selector=slice(start_time, end_time), level="datetime", **self.fetch_kwargs)
         return df

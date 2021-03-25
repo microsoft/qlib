@@ -16,7 +16,7 @@ from ...data import D
 from ...config import C
 from ...utils import parse_config, transform_end_date, init_instance_by_config
 from ...utils.serial import Serializable
-from .utils import get_level_index, fetch_df_by_index
+from .utils import fetch_df_by_index
 from pathlib import Path
 from .loader import DataLoader
 
