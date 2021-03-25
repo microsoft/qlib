@@ -250,7 +250,9 @@ class DataLoaderDH(DataLoader):
             is_group will be used to describe whether the key of handler_config is group
 
         """
-        if self.is_group:
+        from qlib.data.dataset.handler import DataHandler
+
+        if is_group:
             self.handlers = {
                 grp: init_instance_by_config(config, accept_types=DataHandler) for grp, config in handler_config.items()
             }
@@ -274,5 +276,5 @@ class DataLoaderDH(DataLoader):
                 axis=1,
             )
         else:
-            df = self.handler.fetch(selector=slice(start_time, end_time), level="datetime", **self.fetch_kwargs)
+            df = self.handlers.fetch(selector=slice(start_time, end_time), level="datetime", **self.fetch_kwargs)
         return df
