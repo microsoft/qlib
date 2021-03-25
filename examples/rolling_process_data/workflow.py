@@ -76,7 +76,7 @@ class RollingDataWorkflow(object):
                         "fit_start_time": datetime(*train_start_time),
                         "fit_end_time": datetime(*train_end_time),
                         "infer_processors": [
-                            {"class":"RobustZScoreNorm", "kwargs": {"fields_group": "feature"}},
+                            {"class": "RobustZScoreNorm", "kwargs": {"fields_group": "feature"}},
                         ],
                         "learn_processors": [
                             {"class": "DropnaLabel"},
