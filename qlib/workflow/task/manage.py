@@ -151,7 +151,8 @@ class TaskManager:
             if print new task
         Returns
         -------
-
+        int
+            the length of new tasks
         """
         task_pool = self._get_task_pool(task_pool)
         new_tasks = []
@@ -173,6 +174,8 @@ class TaskManager:
 
         for t in new_tasks:
             self.insert_task_def(t, task_pool)
+        
+        return len(new_tasks)
 
     def fetch_task(self, query={}, task_pool=None):
         task_pool = self._get_task_pool(task_pool)
@@ -245,10 +248,9 @@ class TaskManager:
         for t in task_pool.find(query):
             yield self._decode_task(t)
 
-    def get_task_result(self, task, task_pool=None):
+    def re_query(self, task, task_pool=None):
         task_pool = self._get_task_pool(task_pool)
-        result = task_pool.find_one({"filter": task})
-        return self._decode_task(result)["res"]
+        return task_pool.find_one({"_id":ObjectId(task["_id"])})
 
     def commit_task_res(self, task, res, status=None, task_pool=None):
         task_pool = self._get_task_pool(task_pool)

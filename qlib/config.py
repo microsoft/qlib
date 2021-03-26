@@ -134,7 +134,7 @@ _default_config = {
         },
         "loggers": {"qlib": {"level": "DEBUG", "handlers": ["console"]}},
     },
-    # Defatult config for experiment manager
+    # Default config for experiment manager
     "exp_manager": {
         "class": "MLflowExpManager",
         "module_path": "qlib.workflow.expm",
@@ -143,6 +143,11 @@ _default_config = {
             "default_exp_name": "Experiment",
         },
     },
+    # Default config for MongoDB
+    "mongo": {
+        "task_url": "mongodb://localhost:27017/",
+        "task_db_name": "default_task_db",
+    }
 }
 
 MODE_CONF = {

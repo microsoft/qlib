@@ -19,10 +19,10 @@ def task_generator(tasks, generators) -> list:
 
     Parameters
     ----------
-    tasks : List[dict]
-        a list of task templates
-    generators : List[TaskGen]
-        a list of TaskGen
+    tasks : List[dict] or dict
+        a list of task templates or a single task
+    generators : List[TaskGen] or TaskGen
+        a list of TaskGen or a single TaskGen
 
     Returns
     -------

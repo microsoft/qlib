@@ -3,6 +3,7 @@
 import bisect
 import pandas as pd
 from qlib.data import D
+from qlib.workflow import R
 from qlib.config import C
 from qlib.log import get_module_logger
 from pymongo import MongoClient
@@ -29,6 +30,25 @@ def get_mongodb():
     client = MongoClient(cfg["task_url"])
     return client.get_database(name=cfg["task_db_name"])
 
+def list_recorders(experiment, rec_filter_func=None):
+    """list all recorders which can pass the filter in a experiment.
+
+    Args:
+        experiment (str or Experiment): the name of a Experiment or a instance
+        rec_filter_func (Callable, optional): return True to retain the given recorder. Defaults to None.
+
+    Returns:
+        dict: a dict {rid: recorder} after filtering.
+    """
+    if isinstance(experiment, str):
+        experiment, _ = R.exp_manager._get_or_create_exp(experiment_name=experiment)
+    recs = experiment.list_recorders()
+    recs_flt = {}
+    for rid, rec in recs.items():
+        if rec_filter_func is None or rec_filter_func(rec):
+            recs_flt[rid] = rec
+
+    return recs_flt
 
 class TimeAdjuster:
     """

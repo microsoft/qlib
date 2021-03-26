@@ -1,9 +1,9 @@
-import qlib
-from qlib.model.trainer import task_train
-from qlib.workflow.task.online import OnlineManager
-from qlib.config import REG_CN
 import fire
-from qlib.workflow import R
+import qlib
+from qlib.config import REG_CN
+from qlib.model.trainer import task_train
+from qlib.workflow.task.online import OnlineManagerR
+from qlib.workflow.task.utils import list_recorders
 
 data_handler_config = {
     "start_time": "2008-01-01",
@@ -56,19 +56,20 @@ def first_train(experiment_name="online_svr"):
 
     rid = task_train(task_config=task, experiment_name=experiment_name)
 
-    rom = OnlineManager(experiment_name)
-    rom.reset_online_model(rid)
+    online_manager = OnlineManagerR(experiment_name)
+    online_manager.reset_online_tag(rid)
 
 
 def update_online_pred(experiment_name="online_svr"):
 
-    rom = OnlineManager(experiment_name)
+    online_manager = OnlineManagerR(experiment_name)
 
     print("Here are the online models waiting for update:")
-    for rid, rec in rom.list_online_model().items():
-        print(rid)
+    for rid, rec in list_recorders(experiment_name).items():
+        if online_manager.get_online_tag(rec) == OnlineManagerR.ONLINE_TAG:
+            print(rid)
 
-    rom.update_online_pred()
+    online_manager.update_online_pred()
 
 
 if __name__ == "__main__":

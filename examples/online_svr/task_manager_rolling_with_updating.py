@@ -1,16 +1,15 @@
-import qlib
-import fire
-import mlflow
-from qlib.config import C
-from qlib.workflow import R
 from pprint import pprint
+
+import fire
+import qlib
 from qlib.config import REG_CN
 from qlib.model.trainer import task_train
-from qlib.workflow.task.manage import run_task
-from qlib.workflow.task.manage import TaskManager
+from qlib.workflow import R
 from qlib.workflow.task.collect import RollingCollector
 from qlib.workflow.task.gen import RollingGen, task_generator
+from qlib.workflow.task.manage import TaskManager, run_task
 from qlib.workflow.task.online import RollingOnlineManager
+from qlib.workflow.task.utils import list_recorders
 
 data_handler_config = {
     "start_time": "2013-01-01",
@@ -70,12 +69,15 @@ task_xgboost_config = {
 
 
 def print_online_model():
+    print("========== print_online_model ==========")
     print("Current 'online' model:")
-    for online in rolling_online_manager.list_online_model().values():
-        print(online.info["id"])
+    for rid, rec in list_recorders(exp_name).items():
+        if rolling_online_manager.get_online_tag(rec) == rolling_online_manager.ONLINE_TAG:
+            print(rid)
     print("Current 'next online' model:")
-    for online in rolling_online_manager.list_next_online_model().values():
-        print(online.info["id"])
+    for rid, rec in list_recorders(exp_name).items():
+        if rolling_online_manager.get_online_tag(rec) == rolling_online_manager.NEXT_ONLINE_TAG:
+            print(rid)
 
 
 # This part corresponds to "Task Generating" in the document
@@ -110,119 +112,76 @@ def task_running():
 def task_collecting():
     print("========== task_collecting ==========")
 
-    def get_task_key(task_config):
+    def get_group_key_func(recorder):
+        task_config = recorder.load_object("task")
         return task_config["model"]["class"]
 
     def my_filter(recorder):
         # only choose the results of "LGBModel"
-        task_key = get_task_key(rolling_collector.get_task(recorder))
+        task_key = get_group_key_func(recorder)
         if task_key == "LGBModel":
             return True
         return False
 
     rolling_collector = RollingCollector(exp_name)
     # group tasks by "get_task_key" and filter tasks by "my_filter"
-    pred_rolling = rolling_collector.collect_rolling_predictions(get_task_key, my_filter)
+    pred_rolling = rolling_collector.collect(get_group_key_func, my_filter)
     print(pred_rolling)
 
 
 # Reset all things to the first status, be careful to save important data
-def reset(force_end=False):
+def reset():
     print("========== reset ==========")
     task_manager.remove()
-    for error in task_manager.query():
-        assert False
-    exp = R.get_exp(experiment_name=exp_name)
-    recs = exp.list_recorders()
-
-    for rid in recs:
+    exp, _ = R.exp_manager._get_or_create_exp(experiment_name=exp_name)
+    for rid in exp.list_recorders():
         exp.delete_recorder(rid)
-
-    try:
-        if force_end:
-            mlflow.end_run()
-    except Exception:
-        pass
 
 
 # Run this firstly to see the workflow in Task Management
 def first_run():
     print("========== first_run ==========")
-    reset(force_end=True)
+    reset()
 
     tasks = task_generating()
     task_storing(tasks)
     task_running()
     task_collecting()
 
-    rolling_online_manager.set_latest_model_to_next_online()
-    rolling_online_manager.reset_online_model()
-
-
-# Update the predictions of online model
-def update_predictions():
-    print("========== update_predictions ==========")
-    rolling_online_manager.update_online_pred()
-    task_collecting()
-    # if there are some next_online_model, then online them. if no, still use current online_model.
-    print_online_model()
-    rolling_online_manager.reset_online_model()
-    print_online_model()
-
-
-# Update the models using the latest date and set them to online model
-def update_model():
-    print("========== update_model ==========")
-    rolling_online_manager.prepare_new_models()
-    print_online_model()
-    rolling_online_manager.set_latest_model_to_next_online()
-    print_online_model()
+    latest_rec, _ = rolling_online_manager.list_latest_recorders()
+    rolling_online_manager.reset_online_tag(latest_rec.values())
 
 
 def after_day():
-    rolling_online_manager.prepare_signals()
-    update_model()
-    update_predictions()
-
-
-# Run whole workflow completely
-def whole_workflow():
-    print("========== whole_workflow ==========")
-    # run this at the first time
-    first_run()
-    # run this every day after trading
-    after_day()
+    print("========== after_day ==========")
+    print_online_model()
+    rolling_online_manager.after_day()
+    print_online_model()
+    task_collecting()
 
 
 if __name__ == "__main__":
     ####### to train the first version's models, use the command below
     # python task_manager_rolling_with_updating.py first_run
 
-    ####### to update the models using the latest date, use the command below
-    # python task_manager_rolling_with_updating.py update_model
-
-    ####### to update the predictions to the latest date, use the command below
-    # python task_manager_rolling_with_updating.py update_predictions
-
-    ####### to run whole workflow completely, use the command below
-    # python task_manager_rolling_with_updating.py whole_workflow
+    ####### to update the models and predictions after the trading time, use the command below
+    # python task_manager_rolling_with_updating.py after_day
 
     #################### you need to finish the configurations below #########################
 
     provider_uri = "~/.qlib/qlib_data/cn_data"  # data_dir
-    qlib.init(provider_uri=provider_uri, region=REG_CN)
-
-    C["mongo"] = {
+    mongo_conf = {
         "task_url": "mongodb://10.0.0.4:27017/",  # your MongoDB url
-        "task_db_name": "online",  # database name
+        "task_db_name": "rolling_db",  # database name
     }
+    qlib.init(provider_uri=provider_uri, region=REG_CN, mongo=mongo_conf)
 
     exp_name = "rolling_exp"  # experiment name, will be used as the experiment in MLflow
     task_pool = "rolling_task"  # task pool name, will be used as the document in MongoDB
     rolling_step = 550
 
     ##########################################################################################
-    rolling_gen = RollingGen(step=550, rtype=RollingGen.ROLL_SD)
+    rolling_gen = RollingGen(step=rolling_step, rtype=RollingGen.ROLL_SD)
     rolling_online_manager = RollingOnlineManager(
         experiment_name=exp_name, rolling_gen=rolling_gen, task_pool=task_pool
     )

@@ -77,7 +77,7 @@ Besides `provider_uri` and `region`, `qlib.init` has other parameters. The follo
         })
 - `mongo`
     Type: dict, optional parameter, the setting of `MongoDB <https://www.mongodb.com/>`_ which will be used in some features such as `Task Management <../advanced/task_management.html>`_, with high performance and clustered processing. 
-    Users need finished `installatin <https://www.mongodb.com/try/download/community>`_ firstly, and run it in a fixed URL.
+    Users need finished `installation <https://www.mongodb.com/try/download/community>`_ firstly, and run it in a fixed URL.
 
     .. code-block:: Python
 

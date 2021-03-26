@@ -6,8 +6,7 @@ from qlib import get_module_logger
 from qlib.workflow import R
 from qlib.model.trainer import task_train
 from qlib.workflow.recorder import Recorder
-from qlib.workflow.task.collect import TaskCollector
-
+from qlib.workflow.task.utils import list_recorders
 
 class ModelUpdater:
     """
@@ -23,8 +22,7 @@ class ModelUpdater:
             experiment name string
         """
         self.exp_name = experiment_name
-        self.logger = get_module_logger("ModelUpdater")
-        self.tc = TaskCollector(experiment_name)
+        self.logger = get_module_logger(self.__class__.__name__)
 
     def _reload_dataset(self, recorder, start_time, end_time):
         """reload dataset from pickle file
@@ -53,7 +51,7 @@ class ModelUpdater:
         datahandler.init(datahandler.IT_LS)
         return dataset
 
-    def update_pred(self, recorder: Recorder):
+    def update_pred(self, recorder: Recorder, frequency='day'):
         """update predictions to the latest day in Calendar based on rid
 
         Parameters
@@ -65,7 +63,10 @@ class ModelUpdater:
         last_end = old_pred.index.get_level_values("datetime").max()
 
         # updated to the latest trading day
-        cal = D.calendar(start_time=last_end + pd.Timedelta(days=1), end_time=None)
+        if frequency=='day':
+            cal = D.calendar(start_time=last_end + pd.Timedelta(days=1), end_time=None)
+        else:
+            raise NotImplementedError("Now Qlib only support update daily frequency prediction")
 
         if len(cal) == 0:
             self.logger.info(
@@ -113,7 +114,7 @@ class ModelUpdater:
             the count of updated record
 
         """
-        recs = self.tc.list_recorders(rec_filter_func=rec_filter_func)
+        recs = list_recorders(self.exp_name, rec_filter_func=rec_filter_func)
         for rid, rec in recs.items():
             self.update_pred(rec)
         return len(recs)

@@ -1,13 +1,13 @@
+from pprint import pprint
+
+import fire
 import qlib
 from qlib.config import REG_CN
-from qlib.workflow.task.gen import RollingGen, task_generator
-from qlib.workflow.task.manage import TaskManager
-from qlib.config import C
-from qlib.workflow.task.manage import run_task
-from qlib.workflow.task.collect import RollingCollector
 from qlib.model.trainer import task_train
 from qlib.workflow import R
-from pprint import pprint
+from qlib.workflow.task.collect import RollingCollector
+from qlib.workflow.task.gen import RollingGen, task_generator
+from qlib.workflow.task.manage import TaskManager, run_task
 
 data_handler_config = {
     "start_time": "2008-01-01",
@@ -66,14 +66,14 @@ task_xgboost_config = {
 }
 
 # Reset all things to the first status, be careful to save important data
-def reset():
+def reset(task_pool, exp_name):
     print("========== reset ==========")
     TaskManager(task_pool=task_pool).remove()
 
-    # exp = R.get_exp(experiment_name=exp_name)
+    exp, _ = R.exp_manager._get_or_create_exp(experiment_name=exp_name)
 
-    # for rid in R.list_recorders():
-    #     exp.delete_recorder(rid)
+    for rid in exp.list_recorders():
+        exp.delete_recorder(rid)
 
 
 # This part corresponds to "Task Generating" in the document
@@ -92,51 +92,58 @@ def task_generating():
 
 
 # This part corresponds to "Task Storing" in the document
-def task_storing(tasks):
+def task_storing(tasks, task_pool, exp_name):
     print("========== task_storing ==========")
     tm = TaskManager(task_pool=task_pool)
     tm.create_task(tasks)  # all tasks will be saved to MongoDB
 
 
 # This part corresponds to "Task Running" in the document
-def task_running():
+def task_running(task_pool, exp_name):
     print("========== task_running ==========")
     run_task(task_train, task_pool, experiment_name=exp_name)  # all tasks will be trained using "task_train" method
 
 
 # This part corresponds to "Task Collecting" in the document
-def task_collecting():
+def task_collecting(task_pool, exp_name):
     print("========== task_collecting ==========")
 
-    def get_task_key(task_config):
+    def get_group_key_func(recorder):
+        task_config = recorder.load_object("task")
         return task_config["model"]["class"]
 
     def my_filter(recorder):
         # only choose the results of "LGBModel"
-        task_key = get_task_key(rolling_collector.get_task(recorder))
+        task_key = get_group_key_func(recorder)
         if task_key == "LGBModel":
             return True
         return False
 
     rolling_collector = RollingCollector(exp_name)
     # group tasks by "get_task_key" and filter tasks by "my_filter"
-    pred_rolling = rolling_collector.collect_rolling_predictions(get_task_key, my_filter)
+    pred_rolling = rolling_collector.collect(get_group_key_func, my_filter)
     print(pred_rolling)
 
 
-if __name__ == "__main__":
-
-    provider_uri = "~/.qlib/qlib_data/cn_data"  # target_dir
+def main(
+    provider_uri="~/.qlib/qlib_data/cn_data",
+    task_url="mongodb://10.0.0.4:27017/",
+    task_db_name="rolling_db",
+    exp_name="rolling_exp",
+    task_pool="rolling_task",
+):
     mongo_conf = {
-        "task_url": "mongodb://10.0.0.4:27017/",  # maybe you need to change it to your url
-        "task_db_name": "rolling_db",
+        "task_url": task_url,
+        "task_db_name": task_db_name,
     }
-    exp_name = "rolling_exp"  # experiment name, will be used as the experiment in MLflow
-    task_pool = "rolling_task"  # task pool name, will be used as the document in MongoDB
     qlib.init(provider_uri=provider_uri, region=REG_CN, mongo=mongo_conf)
 
-    reset()
+    reset(task_pool, exp_name)
     tasks = task_generating()
-    task_storing(tasks)
-    task_running()
-    task_collecting()
+    task_storing(tasks, task_pool, exp_name)
+    task_running(task_pool, exp_name)
+    task_collecting(task_pool, exp_name)
+
+
+if __name__ == "__main__":
+    fire.Fire()
