@@ -44,6 +44,7 @@ task:
         class: TabnetModel
         module_path: qlib.contrib.model.pytorch_tabnet
         kwargs:
+            d_feat: 158
             pretrain: True
     dataset:
         class: DatasetH
@@ -55,7 +56,7 @@ task:
                 kwargs: *data_handler_config
             segments:
                 pretrain: [2008-01-01, 2014-12-31]
-                pretrain_validation: [2015-01-01, 2020-08-01]
+                pretrain_validation: [2015-01-01, 2016-12-31]
                 train: [2008-01-01, 2014-12-31]
                 valid: [2015-01-01, 2016-12-31]
                 test: [2017-01-01, 2020-08-01]

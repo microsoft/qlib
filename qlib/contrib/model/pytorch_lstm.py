@@ -9,15 +9,13 @@ import os
 import numpy as np
 import pandas as pd
 import copy
-from sklearn.metrics import roc_auc_score, mean_squared_error
-import logging
 from ...utils import (
     unpack_archive_with_buffer,
     save_multiple_parts_file,
-    create_save_path,
+    get_or_create_path,
     drop_nan_by_y_index,
 )
-from ...log import get_module_logger, TimeInspector
+from ...log import get_module_logger
 
 import torch
 import torch.nn as nn
@@ -76,8 +74,7 @@ class LSTM(Model):
         self.early_stop = early_stop
         self.optimizer = optimizer.lower()
         self.loss = loss
-        self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() else "cpu")
-        self.use_gpu = torch.cuda.is_available()
+        self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
         self.seed = seed
 
         self.logger.info(
@@ -132,6 +129,10 @@ class LSTM(Model):
 
         self.fitted = False
         self.lstm_model.to(self.device)
+
+    @property
+    def use_gpu(self):
+        return self.device != torch.device("cpu")
 
     def mse(self, pred, label):
         loss = (pred - label) ** 2
@@ -214,7 +215,6 @@ class LSTM(Model):
         self,
         dataset: DatasetH,
         evals_result=dict(),
-        verbose=True,
         save_path=None,
     ):
 
@@ -227,8 +227,7 @@ class LSTM(Model):
         x_train, y_train = df_train["feature"], df_train["label"]
         x_valid, y_valid = df_valid["feature"], df_valid["label"]
 
-        if save_path == None:
-            save_path = create_save_path(save_path)
+        save_path = get_or_create_path(save_path)
         stop_steps = 0
         train_loss = 0
         best_score = -np.inf
@@ -290,10 +289,7 @@ class LSTM(Model):
             x_batch = torch.from_numpy(x_values[begin:end]).float().to(self.device)
 
             with torch.no_grad():
-                if self.use_gpu:
-                    pred = self.lstm_model(x_batch).detach().cpu().numpy()
-                else:
-                    pred = self.lstm_model(x_batch).detach().numpy()
+                pred = self.lstm_model(x_batch).detach().cpu().numpy()
 
             preds.append(pred)
 

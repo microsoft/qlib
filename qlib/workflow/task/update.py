@@ -97,8 +97,8 @@ class ModelUpdater:
 
             .. code-block:: python
 
-                def rec_filter_func(recorder):
-                    task_config = recorder.load_object("task")
+                def record_filter(record):
+                    task_config = record.load_object("task")
                     if task_config["model"]["class"]=="LGBModel":
                         return True
                     return False

@@ -17,10 +17,11 @@ Qlib is an AI-oriented quantitative investment platform, which aims to realize t
 
 It contains the full ML pipeline of data processing, model training, back-testing; and covers the entire chain of quantitative investment: alpha seeking, risk modeling, portfolio optimization, and order execution. 
 
-With Qlib, user can easily try ideas to create better Quant investment strategies.
+With Qlib, users can easily try ideas to create better Quant investment strategies.
 
 For more details, please refer to our paper ["Qlib: An AI-oriented Quantitative Investment Platform"](https://arxiv.org/abs/2009.11189).
 
+- [**News and Plans**](#news-and-plans)
 - [Framework of Qlib](#framework-of-qlib)
 - [Quick Start](#quick-start)
   - [Installation](#installation)
@@ -35,9 +36,32 @@ For more details, please refer to our paper ["Qlib: An AI-oriented Quantitative 
 - [Offline Mode and Online Mode](#offline-mode-and-online-mode)
   - [Performance of Qlib Data Server](#performance-of-qlib-data-server)
 - [Related Reports](#related-reports)
+- [Contact Us](#contact-us)
 - [Contributing](#contributing)
 
 
+# News And Plans
+New features under development(order by estimated release time).
+Your feedbacks about the features are very important.
+| Feature                        | Status      |
+| --                      | ------    |
+| Online serving and automatic model rolling | Under review: https://github.com/microsoft/qlib/pull/290 | 
+| Planning-based portfolio optimization | Under review:  https://github.com/microsoft/qlib/pull/280 | 
+| Fund data supporting and analysis  |  Under review: https://github.com/microsoft/qlib/pull/292 |
+| Point-in-Time database | Under review: https://github.com/microsoft/qlib/pull/343 |
+| High-frequency trading | Initial opensource version under development | 
+| Meta-Learning-based data selection | Initial opensource version under development |
+
+Recent released features
+| Feature | Status |
+| --                      | ------    |
+| DoubleEnsemble Model | Released https://github.com/microsoft/qlib/pull/286 | 
+| High-frequency data processing example | Released https://github.com/microsoft/qlib/pull/257 |
+| High-frequency trading example | Part of code released https://github.com/microsoft/qlib/pull/227 | 
+| High-frequency data(1min) | Released https://github.com/microsoft/qlib/pull/221 |
+| Tabnet Model | Released https://github.com/microsoft/qlib/pull/205 | 
+
+Features released before 2021 are not listed here.
 
 # Framework of Qlib
 
@@ -46,11 +70,11 @@ For more details, please refer to our paper ["Qlib: An AI-oriented Quantitative 
 </div>
 
 
-At the module level, Qlib is a platform that consists of the above components. The components are designed as loose-coupled modules and each component could be used stand-alone.
+At the module level, Qlib is a platform that consists of the above components. The components are designed as loose-coupled modules, and each component could be used stand-alone.
 
 | Name                   | Description                                                                                                                                                                                                                                                                                                                                                             |
 | ------                 | -----                                                                                                                                                                                                                                                                                                                                                                   |
-| `Infrastructure` layer | `Infrastructure` layer provides underlying support for Quant research. `DataServer` provides high-performance infrastructure for users to manage and retrieve raw data. `Trainer` provides flexible interface to control the training process of models which enable algorithms controlling the training process.                                                       |
+| `Infrastructure` layer | `Infrastructure` layer provides underlying support for Quant research. `DataServer` provides a high-performance infrastructure for users to manage and retrieve raw data. `Trainer` provides a flexible interface to control the training process of models, which enable algorithms to control the training process.                                                       |
 | `Workflow` layer       | `Workflow` layer covers the whole workflow of quantitative investment. `Information Extractor` extracts data for models. `Forecast Model` focuses on producing all kinds of forecast signals (e.g. _alpha_, risk) for other modules. With these signals `Portfolio Generator` will generate the target portfolio and produce orders to be executed by `Order Executor`. |
 | `Interface` layer      | `Interface` layer tries to present a user-friendly interface for the underlying system. `Analyser` module will provide users detailed analysis reports of forecasting signals, portfolios and execution results                                                                                                                                                                 |
 
@@ -130,7 +154,8 @@ This dataset is created by public data collected by [crawler scripts](scripts/da
 the same repository.
 Users could create the same dataset with it. 
 
-*Please pay **ATTENTION** that the data is collected from [Yahoo Finance](https://finance.yahoo.com/lookup) and the data might not be perfect. We recommend users to prepare their own data if they have high-quality dataset. For more information, users can refer to the [related document](https://qlib.readthedocs.io/en/latest/component/data.html#converting-csv-format-into-qlib-format)*.
+*Please pay **ATTENTION** that the data is collected from [Yahoo Finance](https://finance.yahoo.com/lookup), and the data might not be perfect.
+We recommend users to prepare their own data if they have a high-quality dataset. For more information, users can refer to the [related document](https://qlib.readthedocs.io/en/latest/component/data.html#converting-csv-format-into-qlib-format)*.
 
 <!-- 
 - Run the initialization code and get stock data:
@@ -220,7 +245,7 @@ Qlib provides a tool named `qrun` to run the whole workflow automatically (inclu
       -->
 
 ## Building Customized Quant Research Workflow by Code
-The automatic workflow may not suite the research workflow of all Quant researchers. To support a flexible Quant research workflow, Qlib also provides a modularized interface to allow researchers to build their own workflow by code. [Here](examples/workflow_by_code.ipynb) is a demo for customized Quant research workflow by code.
+The automatic workflow may not suit the research workflow of all Quant researchers. To support a flexible Quant research workflow, Qlib also provides a modularized interface to allow researchers to build their own workflow by code. [Here](examples/workflow_by_code.ipynb) is a demo for customized Quant research workflow by code.
 
 
 # [Quant Model Zoo](examples/benchmarks)
@@ -237,6 +262,7 @@ Here is a list of models built on `Qlib`.
 - [SFM based on pytorch (Liheng Zhang, et al. 2017)](qlib/contrib/model/pytorch_sfm.py)
 - [TFT based on tensorflow (Bryan Lim, et al. 2019)](examples/benchmarks/TFT/tft.py)
 - [TabNet based on pytorch (Sercan O. Arik, et al. 2019)](qlib/contrib/model/pytorch_tabnet.py)
+- [DoubleEnsemble based on LightGBM (Chuheng Zhang, et al. 2020)](qlib/contrib/model/double_ensemble.py)
 
 Your PR of new Quant models is highly welcomed.
 
@@ -246,10 +272,10 @@ The performance of each model on the `Alpha158` and `Alpha360` dataset can be fo
 All the models listed above are runnable with ``Qlib``. Users can find the config files we provide and some details about the model through the [benchmarks](examples/benchmarks) folder. More information can be retrieved at the model files listed above.
 
 `Qlib` provides three different ways to run a single model, users can pick the one that fits their cases best:
-- User can use the tool `qrun` mentioned above to run a model's workflow based from a config file.
-- User can create a `workflow_by_code` python script based on the [one](examples/workflow_by_code.py) listed in the `examples` folder.
+- Users can use the tool `qrun` mentioned above to run a model's workflow based from a config file.
+- Users can create a `workflow_by_code` python script based on the [one](examples/workflow_by_code.py) listed in the `examples` folder.
 
-- User can use the script [`run_all_model.py`](examples/run_all_model.py) listed in the `examples` folder to run a model. Here is an example of the specific shell command to be used: `python run_all_model.py --models=lightgbm`, where the `--models` arguments can take any number of models listed above(the available models can be found  in [benchmarks](examples/benchmarks/)). For more use cases, please refer to the file's [docstrings](examples/run_all_model.py).
+- Users can use the script [`run_all_model.py`](examples/run_all_model.py) listed in the `examples` folder to run a model. Here is an example of the specific shell command to be used: `python run_all_model.py --models=lightgbm`, where the `--models` arguments can take any number of models listed above(the available models can be found  in [benchmarks](examples/benchmarks/)). For more use cases, please refer to the file's [docstrings](examples/run_all_model.py).
 
 ## Run multiple models
 `Qlib` also provides a script [`run_all_model.py`](examples/run_all_model.py) which can run multiple models for several iterations. (**Note**: the script only support *Linux* for now. Other OS will be supported in the future. Besides, it doesn't support parrallel running the same model for multiple times as well, and this will be fixed in the future development too.)
@@ -312,17 +338,27 @@ which creates a dataset (14 features/factors) from the basic OHLCV daily data of
 * `+(-)E` indicates with (out) `ExpressionCache`
 * `+(-)D` indicates with (out) `DatasetCache`
 
-Most general-purpose databases take too much time on loading data. After looking into the underlying implementation, we find that data go through too many layers of interfaces and unnecessary format transformations in general-purpose database solutions.
+Most general-purpose databases take too much time to load data. After looking into the underlying implementation, we find that data go through too many layers of interfaces and unnecessary format transformations in general-purpose database solutions.
 Such overheads greatly slow down the data loading process.
 Qlib data are stored in a compact format, which is efficient to be combined into arrays for scientific computation.
 
-
 # Related Reports
+- [【华泰金工林晓明团队】图神经网络选股与Qlib实践——华泰人工智能系列之四十二](https://mp.weixin.qq.com/s/w5fDB6oAv9dO6vlhf1kmhA)
 - [Guide To Qlib: Microsoft’s AI Investment Platform](https://analyticsindiamag.com/qlib/)
 - [【华泰金工林晓明团队】微软AI量化投资平台Qlib体验——华泰人工智能系列之四十](https://mp.weixin.qq.com/s/Brcd7im4NibJOJzZfMn6tQ)
 - [微软也搞AI量化平台？还是开源的！](https://mp.weixin.qq.com/s/47bP5YwxfTp2uTHjUBzJQQ)
 - [微矿Qlib：业内首个AI量化投资开源平台](https://mp.weixin.qq.com/s/vsJv7lsgjEi-ALYUz4CvtQ)
 
+# Contact Us
+- If you have any issues, please create issue [here](https://github.com/microsoft/qlib/issues/new/choose) or send messages in [gitter](https://gitter.im/Microsoft/qlib).
+- If you want to make contributions to `Qlib`, please [create pull requests](https://github.com/microsoft/qlib/compare). 
+- For other reasons, you are welcome to contact us by email([qlib@microsoft.com](mailto:qlib@microsoft.com)).
+  - We are recruiting new members(both FTEs and interns), your resumes are welcome!
+
+Join IM discussion groups:
+|[Gitter](https://gitter.im/Microsoft/qlib)|
+|----|
+|![image](http://fintech.msra.cn/images_v060/qrcode/gitter_qr.png)|
 
 # Contributing
 

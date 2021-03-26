@@ -219,7 +219,7 @@ class DumpDataBase:
         # used when creating a bin file
         date_index = self.get_datetime_index(_df, calendar_list)
         for field in self.get_dump_fields(_df.columns):
-            bin_path = features_dir.joinpath(f"{field}.{self.freq}{self.DUMP_FILE_SUFFIX}")
+            bin_path = features_dir.joinpath(f"{field.lower()}.{self.freq}{self.DUMP_FILE_SUFFIX}")
             if field not in _df.columns:
                 continue
             if bin_path.exists() and self._mode == self.UPDATE_MODE:
@@ -234,7 +234,7 @@ class DumpDataBase:
         if isinstance(file_or_data, pd.DataFrame):
             if file_or_data.empty:
                 return
-            code = fname_to_code(file_or_data.iloc[0][self.symbol_field_name].lower())
+            code = fname_to_code(str(file_or_data.iloc[0][self.symbol_field_name]).lower())
             df = file_or_data
         elif isinstance(file_or_data, Path):
             code = self.get_symbol_from_file(file_or_data)
