@@ -1,14 +1,15 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+import struct
 from pathlib import Path
 from typing import Iterator, Iterable, Type, List, Tuple, Text, Union
 
-from data.storage.storage import FeatureVT
+from .storage import FeatureVT
 
 import numpy as np
 import pandas as pd
-from qlib.data.storage import CalendarStorage, InstrumentStorage, FeatureStorage
+from . import CalendarStorage, InstrumentStorage, FeatureStorage
 
 
 CalVT = Type[pd.Timestamp]
@@ -70,9 +71,9 @@ class FileFeatureStorage(FeatureStorage):
 
             if isinstance(i, int):
                 if ref_start_index > i:
-                    raise IndexError(f"{i}")
+                    raise IndexError(f"{i}: start index is {ref_start_index}")
                 fp.seek(4 * (i - ref_start_index) + 4)
-                return i, float(fp.read(4))
+                return i, struct.unpack("f", fp.read(4))
             elif isinstance(i, slice):
                 start_index = i.start
                 end_index = i.stop - 1
@@ -83,9 +84,18 @@ class FileFeatureStorage(FeatureStorage):
                 # read n bytes
                 count = end_index - si + 1
                 data = np.frombuffer(fp.read(4 * count), dtype="<f")
-                return zip(range(si, si + len(data)), data)
+                return list(zip(range(si, si + len(data)), data))
             else:
                 raise TypeError(f"type(i) = {type(i)}")
 
     def __len__(self) -> int:
         return Path(self._uri).stat().st_size // 4 - 1
+
+    def __iter__(self):
+        with open(self._uri, "rb") as fp:
+            ref_start_index = int(np.frombuffer(fp.read(4), dtype="<f")[0])
+            fp.seek(4)
+            # read n bytes
+            data = np.frombuffer(fp.read(), dtype="<f")
+            for v in zip(range(ref_start_index, ref_start_index + len(data)), data):
+                yield v
