@@ -126,8 +126,8 @@ class GRU(Model):
             num_layers=self.num_layers,
             dropout=self.dropout,
         )
-        self.logger.info("model:\n{:}".format(self.gru_model))
-        self.logger.info("model size: {:.4f} MB".format(count_parameters(self.gru_model)))
+        self.logger.info("model:\n{:}".format(self.GRU_model))
+        self.logger.info("model size: {:.4f} MB".format(count_parameters(self.GRU_model)))
 
         if optimizer.lower() == "adam":
             self.train_optimizer = optim.Adam(self.GRU_model.parameters(), lr=self.lr)
