@@ -5,12 +5,41 @@ import re
 import pandas as pd
 from sklearn.metrics import mean_squared_error
 from pprint import pprint
+from typing import Dict, Text, Any
 import numpy as np
 
+from ...workflow.record_temp import RecordTemp
 from ...workflow.record_temp import SignalRecord
+from ...data import dataset as qlib_dataset
 from ...log import get_module_logger
 
 logger = get_module_logger("workflow", "INFO")
+
+
+class MultiSegRecord(RecordTemp):
+    """
+    This is the multiple segments signal record class that generates the signal prediction.
+    This class inherits the ``RecordTemp`` class.
+    """
+
+    def __init__(self, model, dataset, recorder=None):
+        super().__init__(recorder=recorder)
+        if not isinstance(dataset, qlib_dataset.DatasetH):
+            raise ValueError("The type of dataset is not DatasetH instead of {:}".format(type(dataset)))
+        self.model = model
+        self.dataset = dataset
+
+    def generate(self, segments: Dict[Text, Any], save: bool = False):
+        # generate prediciton
+        for key, segment in segments.items():
+            predics = self.model.predict(self.dataset, segment)
+            if isinstance(pred, pd.Series):
+                predics = predictions.to_frame("score")
+            # self.recorder.save_objects(**{"pred.pkl": pred})
+            labels = self.dataset.prepare(
+                segments=segment, col_set="label", data_key=dataset.handler.DataHandlerLP.DK_R
+            )
+            # compute ic, rank_ic
 
 
 class SignalMseRecord(SignalRecord):

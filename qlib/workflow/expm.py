@@ -159,7 +159,10 @@ class ExpManager:
         if create:
             exp, is_new = self._get_or_create_exp(experiment_id=experiment_id, experiment_name=experiment_name)
         else:
-            exp, is_new = self._get_exp(experiment_id=experiment_id, experiment_name=experiment_name), False
+            exp, is_new = (
+                self._get_exp(experiment_id=experiment_id, experiment_name=experiment_name),
+                False,
+            )
         if is_new:
             self.active_experiment = exp
             # start the recorder
@@ -172,7 +175,10 @@ class ExpManager:
         automatically create a new experiment based on the given id and name.
         """
         try:
-            return self._get_exp(experiment_id=experiment_id, experiment_name=experiment_name), False
+            return (
+                self._get_exp(experiment_id=experiment_id, experiment_name=experiment_name),
+                False,
+            )
         except ValueError:
             if experiment_name is None:
                 experiment_name = self._default_exp_name
