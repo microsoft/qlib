@@ -6,24 +6,11 @@ import shutil
 import unittest
 from pathlib import Path
 
-import numpy as np
-import pandas as pd
-
 import qlib
-from qlib.config import REG_CN, C
-from qlib.utils import drop_nan_by_y_index
-from qlib.contrib.model.gbdt import LGBModel
-from qlib.contrib.data.handler import Alpha158
-from qlib.contrib.strategy.strategy import TopkDropoutStrategy
-from qlib.contrib.evaluate import (
-    backtest as normal_backtest,
-    risk_analysis,
-)
-from qlib.contrib.workflow.record_temp import SignalMseRecord
-from qlib.utils import exists_qlib_data, init_instance_by_config, flatten_dict
+from qlib.config import C
+from qlib.utils import init_instance_by_config, flatten_dict
 from qlib.workflow import R
 from qlib.workflow.record_temp import SignalRecord, SigAnaRecord, PortAnaRecord
-from qlib.tests.data import GetData
 from qlib.tests import TestAutoData
 
 
@@ -166,8 +153,6 @@ def train_with_sigana():
         ric = sar.load(sar.get_path("ric.pkl"))
         pred_score = sar.load("pred.pkl")
 
-        smr = SignalMseRecord(recorder)
-        smr.generate()
         uri_path = R.get_uri()
     return pred_score, {"ic": ic, "ric": ric}, uri_path
 
@@ -256,8 +241,10 @@ class TestAllFlow(TestAutoData):
 
 def suite():
     _suite = unittest.TestSuite()
-    _suite.addTest(TestAllFlow("test_0_train"))
-    _suite.addTest(TestAllFlow("test_1_backtest"))
+    _suite.addTest(TestAllFlow("test_0_train_with_sigana"))
+    _suite.addTest(TestAllFlow("test_1_train"))
+    _suite.addTest(TestAllFlow("test_2_backtest"))
+    _suite.addTest(TestAllFlow("test_3_expmanager"))
     return _suite
 
 
