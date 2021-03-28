@@ -84,8 +84,8 @@ class LinearModel(Model):
             self.coef_ = coef
             self.intercept_ = 0.0
 
-    def predict(self, dataset):
+    def predict(self, dataset, segment="test"):
         if self.coef_ is None:
             raise ValueError("model is not fitted yet!")
-        x_test = dataset.prepare("test", col_set="feature", data_key=DataHandlerLP.DK_I)
+        x_test = dataset.prepare(segment, col_set="feature", data_key=DataHandlerLP.DK_I)
         return pd.Series(x_test.values @ self.coef_ + self.intercept_, index=x_test.index)

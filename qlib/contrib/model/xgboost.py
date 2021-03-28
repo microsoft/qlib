@@ -57,8 +57,8 @@ class XGBModel(Model):
         evals_result["train"] = list(evals_result["train"].values())[0]
         evals_result["valid"] = list(evals_result["valid"].values())[0]
 
-    def predict(self, dataset):
+    def predict(self, dataset, segment="test"):
         if self.model is None:
             raise ValueError("model is not fitted yet!")
-        x_test = dataset.prepare("test", col_set="feature")
+        x_test = dataset.prepare(segment, col_set="feature")
         return pd.Series(self.model.predict(xgb.DMatrix(x_test.values)), index=x_test.index)
