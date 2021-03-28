@@ -1,6 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 import abc
+from typing import Text, Union
 from ..utils.serial import Serializable
 from ..data.dataset import Dataset
 
@@ -59,13 +60,16 @@ class Model(BaseModel):
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def predict(self, dataset: Dataset) -> object:
+    def predict(self, dataset: Dataset, segment: Union[Text, slice] = "test") -> object:
         """give prediction given Dataset
 
         Parameters
         ----------
         dataset : Dataset
             dataset will generate the processed dataset from model training.
+
+        segment : Text or slice
+            dataset will use this segment to prepare data. (default=test)
 
         Returns
         -------
