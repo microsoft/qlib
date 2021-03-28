@@ -19,7 +19,7 @@ from .pytorch_utils import count_parameters
 from ...model.base import Model
 from ...data.dataset import DatasetH
 from ...data.dataset.handler import DataHandlerLP
-from ...utils import unpack_archive_with_buffer, save_multiple_parts_file, get_or_create_path, drop_nan_by_y_index
+from ...utils import unpack_archive_with_buffer, save_multiple_parts_file, get_or_create_path
 from ...log import get_module_logger
 from ...workflow import R
 
