@@ -119,7 +119,7 @@ class DataHandler(Serializable):
             self.start_time = start_time
         if end_time:
             self.end_time = end_time
-        
+
     def setup_data(self, enable_cache: bool = False):
         """
         Set Up the data.
@@ -407,7 +407,7 @@ class DataHandlerLP(DataHandler):
         if self.drop_raw:
             del self._data
 
-    def config(self, processor_kwargs:dict = None, **kwargs):
+    def config(self, processor_kwargs: dict = None, **kwargs):
         """
         configuration of data.
         # what data to be loaded from data source

@@ -177,8 +177,8 @@ class HighfreqWorkflow(object):
         dataset_backtest.setup_data(handler_kwargs={})
 
         ##=============get data=============
-        xtest, = dataset.prepare(["test"])
-        backtest_test, = dataset_backtest.prepare(["test"])
+        (xtest,) = dataset.prepare(["test"])
+        (backtest_test,) = dataset_backtest.prepare(["test"])
 
         print(xtest, backtest_test)
         return

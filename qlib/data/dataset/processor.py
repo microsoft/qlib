@@ -202,6 +202,7 @@ class MinMaxNorm(Processor):
             self.fit_end_time = fit_end_time
         super().config(**kwargs)
 
+
 class ZScoreNorm(Processor):
     """ZScore Normalization"""
 
@@ -229,7 +230,7 @@ class ZScoreNorm(Processor):
 
         df.loc(axis=1)[self.cols] = normalize(df[self.cols].values)
         return df
-    
+
     def config(self, fit_start_time=None, fit_end_time=None, **kwargs):
         if fit_start_time:
             self.fit_start_time = fit_start_time
@@ -279,6 +280,7 @@ class RobustZScoreNorm(Processor):
         if fit_end_time:
             self.fit_end_time = fit_end_time
         super().config(**kwargs)
+
 
 class CSZScoreNorm(Processor):
     """Cross Sectional ZScore Normalization"""

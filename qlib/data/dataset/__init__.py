@@ -35,7 +35,7 @@ class Dataset(Serializable):
 
     def config(self, *arg, **kwargs):
         """
-        config is designed to configure and parameters that cannot be learned from the data 
+        config is designed to configure and parameters that cannot be learned from the data
         """
         super().config(*arg, **kwargs)
 
@@ -117,7 +117,7 @@ class DatasetH(Dataset):
         self.segments = segments.copy()
         super().__init__(**kwargs)
 
-    def config(self, handler_kwargs:dict = None, segments:dict = None, **kwargs):
+    def config(self, handler_kwargs: dict = None, segments: dict = None, **kwargs):
         """
         Initialize the DatasetH
 
@@ -130,7 +130,7 @@ class DatasetH(Dataset):
 
         kwargs : dict
             Config of DatasetH, such as
-            
+
             - segments : dict
                 Config of segments which is same as 'segments' in self.__init__
 
@@ -141,8 +141,6 @@ class DatasetH(Dataset):
         if segments is not None:
             self.segments = segments.copy()
 
-        
-
     def setup_data(self, handler_kwargs: dict = None, **kwargs):
         """
         Setup the Data
@@ -151,16 +149,15 @@ class DatasetH(Dataset):
         ----------
         handler_kwargs : dict
             init arguments of DataHanlder, which could include the following arguments:
-            
+
             - init_type : Init Type of Handler
-            
+
             - enable_cache : wheter to enable cache
 
         """
         super().setup_data(**kwargs)
         if handler_kwargs is not None:
             self.handler.setup_data(**handler_kwargs)
-        
 
     def __repr__(self):
         return "{name}(handler={handler}, segments={segments})".format(
@@ -464,7 +461,6 @@ class TSDatasetH(DatasetH):
         cal = self.handler.fetch(col_set=self.handler.CS_RAW).index.get_level_values("datetime").unique()
         cal = sorted(cal)
         self.cal = cal
-        
 
     def _prepare_seg(self, slc: slice, **kwargs) -> TSDataSampler:
         # Dataset decide how to slice data(Get more data for timeseries).
