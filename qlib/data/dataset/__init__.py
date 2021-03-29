@@ -3,6 +3,7 @@ from typing import Union, List, Tuple, Dict, Text, Optional
 from ...utils import init_instance_by_config, np_ffill
 from ...log import get_module_logger
 from .handler import DataHandler, DataHandlerLP
+from copy import deepcopy
 from inspect import getfullargspec
 import pandas as pd
 import numpy as np
@@ -16,7 +17,7 @@ class Dataset(Serializable):
     Preparing data for model training and inferencing.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, **kwargs):
         """
         init is designed to finish following steps:
 
@@ -28,16 +29,16 @@ class Dataset(Serializable):
 
         The data could specify the info to caculate the essential data for preparation
         """
-        self.setup_data(*args, **kwargs)
+        self.setup_data(**kwargs)
         super().__init__()
 
-    def config(self, *arg, **kwargs):
+    def config(self, **kwargs):
         """
         config is designed to configure and parameters that cannot be learned from the data
         """
-        super().config(*arg, **kwargs)
+        super().config(**kwargs)
 
-    def setup_data(self, *args, **kwargs):
+    def setup_data(self, **kwargs):
         """
         Setup the data.
 
@@ -53,7 +54,7 @@ class Dataset(Serializable):
         """
         pass
 
-    def prepare(self, *args, **kwargs) -> object:
+    def prepare(self, **kwargs) -> object:
         """
         The type of dataset depends on the model. (It could be pd.DataFrame, pytorch.DataLoader, etc.)
         The parameters should specify the scope for the prepared data
@@ -115,7 +116,7 @@ class DatasetH(Dataset):
         self.segments = segments.copy()
         super().__init__(**kwargs)
 
-    def config(self, handler_kwargs: dict = None, segments: dict = None, **kwargs):
+    def config(self, handler_kwargs: dict = None, **kwargs):
         """
         Initialize the DatasetH
 
@@ -133,11 +134,11 @@ class DatasetH(Dataset):
                 Config of segments which is same as 'segments' in self.__init__
 
         """
-        super().config(**kwargs)
         if handler_kwargs is not None:
             self.handler.config(**handler_kwargs)
-        if segments is not None:
-            self.segments = segments.copy()
+        if "segments" in kwargs:
+            self.segments = deepcopy(kwargs.pop("segments"))
+        super().config(**kwargs)
 
     def setup_data(self, handler_kwargs: dict = None, **kwargs):
         """
@@ -449,10 +450,10 @@ class TSDatasetH(DatasetH):
         self.step_len = step_len
         super().__init__(**kwargs)
 
-    def config(self, step_len=None, **kwargs):
+    def config(self, **kwargs):
+        if "step_len" in kwargs:
+            self.step_len = kwargs.pop("step_len")
         super().config(**kwargs)
-        if step_len:
-            self.step_len = step_len
 
     def setup_data(self, **kwargs):
         super().setup_data(**kwargs)

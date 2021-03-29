@@ -73,7 +73,15 @@ class Processor(Serializable):
         return True
 
     def config(self, **kwargs):
-        super().config(kwargs.get("dump_all", None), kwargs.get("exclude", None))
+        attr_list = {"fit_start_time", "fit_end_time"}
+        for k, v in kwargs.items():
+            if k in attr_list and getattr(self, k, None) is not None:
+                setattr(self, k, v)
+
+        for attr in attr_list:
+            if attr in kwargs:
+                kwargs.pop(attr)
+        super().config(**kwargs)
 
 
 class DropnaProcessor(Processor):
@@ -195,13 +203,6 @@ class MinMaxNorm(Processor):
         df.loc(axis=1)[self.cols] = normalize(df[self.cols].values)
         return df
 
-    def config(self, fit_start_time=None, fit_end_time=None, **kwargs):
-        if fit_start_time:
-            self.fit_start_time = fit_start_time
-        if fit_end_time:
-            self.fit_end_time = fit_end_time
-        super().config(**kwargs)
-
 
 class ZScoreNorm(Processor):
     """ZScore Normalization"""
@@ -230,13 +231,6 @@ class ZScoreNorm(Processor):
 
         df.loc(axis=1)[self.cols] = normalize(df[self.cols].values)
         return df
-
-    def config(self, fit_start_time=None, fit_end_time=None, **kwargs):
-        if fit_start_time:
-            self.fit_start_time = fit_start_time
-        if fit_end_time:
-            self.fit_end_time = fit_end_time
-        super().config(**kwargs)
 
 
 class RobustZScoreNorm(Processor):
@@ -273,13 +267,6 @@ class RobustZScoreNorm(Processor):
         if self.clip_outlier:
             df.clip(-3, 3, inplace=True)
         return df
-
-    def config(self, fit_start_time=None, fit_end_time=None, **kwargs):
-        if fit_start_time:
-            self.fit_start_time = fit_start_time
-        if fit_end_time:
-            self.fit_end_time = fit_end_time
-        super().config(**kwargs)
 
 
 class CSZScoreNorm(Processor):

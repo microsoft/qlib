@@ -27,7 +27,7 @@ from qlib.tests.data import GetData
 from highfreq_ops import get_calendar_day, DayLast, FFillNan, BFillNan, Date, Select, IsNull, Cut
 
 
-class HighfreqWorkflow(object):
+class HighfreqWorkflow:
 
     SPEC_CONF = {"custom_ops": [DayLast, FFillNan, BFillNan, Date, Select, IsNull, Cut], "expression_cache": None}
 
@@ -177,8 +177,8 @@ class HighfreqWorkflow(object):
         dataset_backtest.setup_data(handler_kwargs={})
 
         ##=============get data=============
-        (xtest,) = dataset.prepare(["test"])
-        (backtest_test,) = dataset_backtest.prepare(["test"])
+        xtest = dataset.prepare("test")
+        backtest_test = dataset_backtest.prepare("test")
 
         print(xtest, backtest_test)
         return

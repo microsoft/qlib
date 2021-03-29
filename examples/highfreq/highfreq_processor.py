@@ -70,10 +70,3 @@ class HighFreqNorm(Processor):
             columns=["FEATURE_%d" % i for i in range(12 * 240)],
         ).sort_index()
         return df_new_features
-
-    def config(self, fit_start_time=None, fit_end_time=None, **kwargs):
-        if fit_start_time:
-            self.fit_start_time = fit_start_time
-        if fit_end_time:
-            self.fit_end_time = fit_end_time
-        super().config(**kwargs)

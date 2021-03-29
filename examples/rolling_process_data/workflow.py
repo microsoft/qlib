@@ -14,7 +14,7 @@ from qlib.utils import exists_qlib_data, init_instance_by_config
 from qlib.tests.data import GetData
 
 
-class RollingDataWorkflow(object):
+class RollingDataWorkflow:
 
     MARKET = "csi300"
     start_time = "2010-01-01"

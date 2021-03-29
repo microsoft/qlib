@@ -103,7 +103,7 @@ class DataHandler(Serializable):
                 self.setup_data()
         super().__init__()
 
-    def config(self, instruments=None, start_time=None, end_time=None, **kwargs):
+    def config(self, **kwargs):
         """
         configuration of data.
         # what data to be loaded from data source
@@ -112,13 +112,16 @@ class DataHandler(Serializable):
         The data will be initialized with different time range.
 
         """
+        attr_list = {"instruments", "start_time", "end_time"}
+        for k, v in kwargs.items():
+            if k in attr_list:
+                setattr(self, k, v)
+
+        for attr in attr_list:
+            if attr in kwargs:
+                kwargs.pop(attr)
+
         super().config(**kwargs)
-        if instruments:
-            self.instruments = instruments
-        if start_time:
-            self.start_time = start_time
-        if end_time:
-            self.end_time = end_time
 
     def setup_data(self, enable_cache: bool = False):
         """
