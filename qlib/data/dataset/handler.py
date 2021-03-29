@@ -6,6 +6,7 @@ import abc
 import bisect
 import logging
 import warnings
+from inspect import getfullargspec
 from typing import Union, Tuple, List, Iterator, Optional
 
 import pandas as pd
@@ -99,10 +100,10 @@ class DataHandler(Serializable):
         self.fetch_orig = fetch_orig
         if init_data:
             with TimeInspector.logt("Init data"):
-                self.init()
+                self.setup_data()
         super().__init__()
 
-    def conf_data(self, **kwargs):
+    def config(self, instruments=None, start_time=None, end_time=None, **kwargs):
         """
         configuration of data.
         # what data to be loaded from data source
@@ -111,14 +112,17 @@ class DataHandler(Serializable):
         The data will be initialized with different time range.
 
         """
-        attr_list = {"instruments", "start_time", "end_time"}
-        for k, v in kwargs.items():
-            if k in attr_list:
-                setattr(self, k, v)
-
-    def init(self, enable_cache: bool = False):
+        super().config(**kwargs)
+        if instruments:
+            self.instruments = instruments
+        if start_time:
+            self.start_time = start_time
+        if end_time:
+            self.end_time = end_time
+        
+    def setup_data(self, enable_cache: bool = False):
         """
-        initialize the data.
+        Set Up the data.
         In case of running intialization for multiple time, it will do nothing for the second time.
 
         It is responsible for maintaining following variable
@@ -403,7 +407,7 @@ class DataHandlerLP(DataHandler):
         if self.drop_raw:
             del self._data
 
-    def conf_data(self, **kwargs):
+    def config(self, processors_kwargs:dict = None, **kwargs):
         """
         configuration of data.
         # what data to be loaded from data source
@@ -412,27 +416,19 @@ class DataHandlerLP(DataHandler):
         The data will be initialized with different time range.
 
         """
-        attr_list = {"fit_start_time", "fit_end_time"}
-        for k, v in kwargs.items():
-            if k in attr_list:
-                for infer_processor in self.infer_processors:
-                    if getattr(infer_processor, k, None):
-                        setattr(infer_processor, k, v)
-
-                for learn_processor in self.learn_processors:
-                    if getattr(learn_processor, k, None):
-                        setattr(learn_processor, k, v)
-
-        super().conf_data(**kwargs)
+        super().config(**kwargs)
+        if processors_kwargs is not None:
+            for processor in self.get_all_processors():
+                processor.config(**processor_kwargs)
 
     # init type
     IT_FIT_SEQ = "fit_seq"  # the input of `fit` will be the output of the previous processor
     IT_FIT_IND = "fit_ind"  # the input of `fit` will be the original df
     IT_LS = "load_state"  # The state of the object has been load by pickle
 
-    def init(self, init_type: str = IT_FIT_SEQ, enable_cache: bool = False):
+    def setup_data(self, init_type: str = IT_FIT_SEQ, **kwargs):
         """
-        Initialize the data of Qlib
+        Set up the data of Qlib
 
         Parameters
         ----------
@@ -447,7 +443,7 @@ class DataHandlerLP(DataHandler):
                 when we call `init` next time
         """
         # init raw data
-        super().init(enable_cache=enable_cache)
+        super().setup_data(**kwargs)
 
         with TimeInspector.logt("fit & process data"):
             if init_type == DataHandlerLP.IT_FIT_IND:
