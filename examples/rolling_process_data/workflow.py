@@ -101,15 +101,16 @@ class RollingDataWorkflow(object):
 
             print(f"===========rolling{rolling_offset} start===========")
             if rolling_offset:
-                dataset.init(
+                dataset.config(
                     handler_kwargs={
-                        "init_type": DataHandlerLP.IT_FIT_SEQ,
                         "start_time": datetime(train_start_time[0] + rolling_offset, *train_start_time[1:]),
                         "end_time": datetime(test_end_time[0] + rolling_offset, *test_end_time[1:]),
-                        "fit_start_time": datetime(train_start_time[0] + rolling_offset, *train_start_time[1:]),
-                        "fit_end_time": datetime(train_end_time[0] + rolling_offset, *train_end_time[1:]),
+                        "processor_kwargs":{
+                            "fit_start_time": datetime(train_start_time[0] + rolling_offset, *train_start_time[1:]),
+                            "fit_end_time": datetime(train_end_time[0] + rolling_offset, *train_end_time[1:]),
+                        },
                     },
-                    segment_kwargs={
+                    segments={
                         "train": (
                             datetime(train_start_time[0] + rolling_offset, *train_start_time[1:]),
                             datetime(train_end_time[0] + rolling_offset, *train_end_time[1:]),
@@ -123,6 +124,9 @@ class RollingDataWorkflow(object):
                             datetime(test_end_time[0] + rolling_offset, *test_end_time[1:]),
                         ),
                     },
+                )
+                dataset.setup_data(
+                    handler_kwargs={"init_type": DataHandlerLP.IT_FIT_SEQ,}
                 )
 
             dtrain, dvalid, dtest = dataset.prepare(["train", "valid", "test"])

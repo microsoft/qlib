@@ -407,7 +407,7 @@ class DataHandlerLP(DataHandler):
         if self.drop_raw:
             del self._data
 
-    def config(self, processors_kwargs:dict = None, **kwargs):
+    def config(self, processor_kwargs:dict = None, **kwargs):
         """
         configuration of data.
         # what data to be loaded from data source
@@ -417,7 +417,7 @@ class DataHandlerLP(DataHandler):
 
         """
         super().config(**kwargs)
-        if processors_kwargs is not None:
+        if processor_kwargs is not None:
             for processor in self.get_all_processors():
                 processor.config(**processor_kwargs)
 
