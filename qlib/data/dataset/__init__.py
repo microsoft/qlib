@@ -20,9 +20,7 @@ class Dataset(Serializable):
         """
         init is designed to finish following steps:
 
-        - init instance
-
-        - config the state of the dataset(info to prepare the data)
+        - init the sub instance and the state of the dataset(info to prepare the data)
             - The name of essential state for preparing data should not start with '_' so that it could be serialized on disk when serializing.
 
         - setup data
