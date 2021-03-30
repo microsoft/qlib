@@ -416,6 +416,12 @@ class QlibRecorder:
         """
         self.get_exp().get_recorder().save_objects(local_path, artifact_path, **kwargs)
 
+    def load_object(self, name: Text):
+        """
+        Method for loading an object from artifacts in the experiment in the uri.
+        """
+        return self.get_exp().get_recorder().load_object(name)
+
     def log_params(self, **kwargs):
         """
         Method for logging parameters during an experiment. In addition to using ``R``, one can also log to a specific recorder after getting it with `get_recorder` API.

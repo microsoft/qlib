@@ -39,7 +39,13 @@ class RecordTemp:
         return "/".join(names)
 
     def __init__(self, recorder):
-        self.recorder = recorder
+        self._recorder = recorder
+
+    @property
+    def recorder(self):
+        if self._recorder is None:
+            raise ValueError("This RecordTemp did not set recorder yet.")
+        return self._recorder
 
     def generate(self, **kwargs):
         """
@@ -248,11 +254,20 @@ class PortAnaRecord(SignalRecord):
         report_dict = normal_backtest(pred_score, strategy=self.strategy, **self.backtest_config)
         report_normal = report_dict.get("report_df")
         positions_normal = report_dict.get("positions")
-        self.recorder.save_objects(**{"report_normal.pkl": report_normal}, artifact_path=PortAnaRecord.get_path())
-        self.recorder.save_objects(**{"positions_normal.pkl": positions_normal}, artifact_path=PortAnaRecord.get_path())
+        self.recorder.save_objects(
+            **{"report_normal.pkl": report_normal},
+            artifact_path=PortAnaRecord.get_path(),
+        )
+        self.recorder.save_objects(
+            **{"positions_normal.pkl": positions_normal},
+            artifact_path=PortAnaRecord.get_path(),
+        )
         order_normal = report_dict.get("order_list")
         if order_normal:
-            self.recorder.save_objects(**{"order_normal.pkl": order_normal}, artifact_path=PortAnaRecord.get_path())
+            self.recorder.save_objects(
+                **{"order_normal.pkl": order_normal},
+                artifact_path=PortAnaRecord.get_path(),
+            )
 
         # analysis
         analysis = dict()

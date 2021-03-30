@@ -159,7 +159,10 @@ class Experiment:
         if create:
             recorder, is_new = self._get_or_create_rec(recorder_id=recorder_id, recorder_name=recorder_name)
         else:
-            recorder, is_new = self._get_recorder(recorder_id=recorder_id, recorder_name=recorder_name), False
+            recorder, is_new = (
+                self._get_recorder(recorder_id=recorder_id, recorder_name=recorder_name),
+                False,
+            )
         if is_new:
             self.active_recorder = recorder
             # start the recorder
@@ -174,7 +177,10 @@ class Experiment:
         try:
             if recorder_id is None and recorder_name is None:
                 recorder_name = self._default_rec_name
-            return self._get_recorder(recorder_id=recorder_id, recorder_name=recorder_name), False
+            return (
+                self._get_recorder(recorder_id=recorder_id, recorder_name=recorder_name),
+                False,
+            )
         except ValueError:
             if recorder_name is None:
                 recorder_name = self._default_rec_name
