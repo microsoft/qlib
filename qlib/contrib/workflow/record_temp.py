@@ -50,7 +50,9 @@ class MultiSegRecord(RecordTemp):
                 save_name = "results-{:}.pkl".format(key)
                 self.recorder.save_objects(**{save_name: results})
                 logger.info(
-                    "The record '{save_name}' has been saved as the artifact of the Experiment {self.recorder.experiment_id}"
+                    "The record '{:}' has been saved as the artifact of the Experiment {:}".format(
+                        save_name, self.recorder.experiment_id
+                    )
                 )
 
 
