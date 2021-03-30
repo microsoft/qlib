@@ -202,13 +202,13 @@ class QlibRecorder:
 
                 - no id or name specified, return the active experiment.
 
-                - if id or name is specified, return the specified experiment. If no such exp found, create a new experiment with given id or name, and the experiment is set to be active.
+                - if id or name is specified, return the specified experiment. If no such exp found, create a new experiment with given id or name.
 
             - If `active experiment` not exists:
 
                 - no id or name specified, create a default experiment, and the experiment is set to be active.
 
-                - if id or name is specified, return the specified experiment. If no such exp found, create a new experiment with given name or the default experiment, and the experiment is set to be active.
+                - if id or name is specified, return the specified experiment. If no such exp found, create a new experiment with given name or the default experiment.
 
         - Else If '`create`' is False:
 
@@ -260,7 +260,7 @@ class QlibRecorder:
         -------
         An experiment instance with given id or name.
         """
-        return self.exp_manager.get_exp(experiment_id, experiment_name, create)
+        return self.exp_manager.get_exp(experiment_id, experiment_name, create, start=False)
 
     def delete_exp(self, experiment_id=None, experiment_name=None):
         """
@@ -358,7 +358,7 @@ class QlibRecorder:
         A recorder instance.
         """
         return self.get_exp(experiment_name=experiment_name, create=False).get_recorder(
-            recorder_id, recorder_name, create=False
+            recorder_id, recorder_name, create=False, start=False
         )
 
     def delete_recorder(self, recorder_id=None, recorder_name=None):
