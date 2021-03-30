@@ -102,10 +102,9 @@ class ExpManager:
         """
         raise NotImplementedError(f"Please implement the `search_records` method.")
 
-    def get_exp(self, experiment_id=None, experiment_name=None, create: bool = True):
+    def get_exp(self, experiment_id=None, experiment_name=None, create: bool = True, start: bool = False):
         """
         Retrieve an experiment. This method includes getting an active experiment, and get_or_create a specific experiment.
-        The returned experiment will be active.
 
         When user specify experiment id and name, the method will try to return the specific experiment.
         When user does not provide recorder id or name, the method will try to return the current active experiment.
@@ -117,12 +116,12 @@ class ExpManager:
             * If `active experiment` exists:
 
                 * no id or name specified, return the active experiment.
-                * if id or name is specified, return the specified experiment. If no such exp found, create a new experiment with given id or name, and the experiment is set to be active.
+                * if id or name is specified, return the specified experiment. If no such exp found, create a new experiment with given id or name. If `start` is set to be True, the experiment is set to be active.
 
             * If `active experiment` not exists:
 
                 * no id or name specified, create a default experiment.
-                * if id or name is specified, return the specified experiment. If no such exp found, create a new experiment with given id or name, and the experiment is set to be active.
+                * if id or name is specified, return the specified experiment. If no such exp found, create a new experiment with given id or name. If `start` is set to be True, the experiment is set to be active.
 
         * Else If `create` is False:
 
@@ -144,6 +143,8 @@ class ExpManager:
             name of the experiment to return.
         create : boolean
             create the experiment it if hasn't been created before.
+        start : boolean
+            start the new experiment if one is created.
 
         Returns
         -------
@@ -163,7 +164,7 @@ class ExpManager:
                 self._get_exp(experiment_id=experiment_id, experiment_name=experiment_name),
                 False,
             )
-        if is_new:
+        if is_new and start:
             self.active_experiment = exp
             # start the recorder
             self.active_experiment.start()
