@@ -30,6 +30,7 @@ def get_mongodb():
     client = MongoClient(cfg["task_url"])
     return client.get_database(name=cfg["task_db_name"])
 
+
 def list_recorders(experiment, rec_filter_func=None):
     """list all recorders which can pass the filter in a experiment.
 
@@ -49,6 +50,7 @@ def list_recorders(experiment, rec_filter_func=None):
             recs_flt[rid] = rec
 
     return recs_flt
+
 
 class TimeAdjuster:
     """
@@ -146,7 +148,7 @@ class TimeAdjuster:
         """
         if isinstance(segment, dict):
             return {k: self.align_seg(seg) for k, seg in segment.items()}
-        elif isinstance(segment, tuple):
+        elif isinstance(segment, tuple) or isinstance(segment, list):
             return self.align_time(segment[0], tp_type="start"), self.align_time(segment[1], tp_type="end")
         else:
             raise NotImplementedError(f"This type of input is not supported")

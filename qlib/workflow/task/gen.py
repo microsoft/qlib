@@ -36,14 +36,13 @@ def task_generator(tasks, generators) -> list:
         generators = [generators]
 
     # generate gen_task_list
-    gen_task_list = []
     for gen in generators:
         new_task_list = []
         for task in tasks:
             new_task_list.extend(gen.generate(task))
-        gen_task_list = new_task_list
+        tasks = new_task_list
 
-    return gen_task_list
+    return tasks
 
 
 class TaskGen(metaclass=abc.ABCMeta):
