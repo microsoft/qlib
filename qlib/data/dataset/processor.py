@@ -75,7 +75,7 @@ class Processor(Serializable):
     def config(self, **kwargs):
         attr_list = {"fit_start_time", "fit_end_time"}
         for k, v in kwargs.items():
-            if k in attr_list and getattr(self, k, None) is not None:
+            if k in attr_list and hasattr(self, k):
                 setattr(self, k, v)
 
         for attr in attr_list:

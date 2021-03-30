@@ -125,8 +125,7 @@ class DataHandler(Serializable):
 
     def setup_data(self, enable_cache: bool = False):
         """
-        Set Up the data.
-        In case of running intialization for multiple time, it will do nothing for the second time.
+        Set Up the data in case of running intialization for multiple time
 
         It is responsible for maintaining following variable
         1) self._data
@@ -431,7 +430,7 @@ class DataHandlerLP(DataHandler):
 
     def setup_data(self, init_type: str = IT_FIT_SEQ, **kwargs):
         """
-        Set up the data of Qlib
+        Set up the data in case of running intialization for multiple time
 
         Parameters
         ----------
