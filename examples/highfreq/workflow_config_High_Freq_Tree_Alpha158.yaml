@@ -1,7 +1,7 @@
 qlib_init:
-    provider_uri: "~/.qlib/qlib_data/yahoo_cn_1min"
+    provider_uri: "~/.qlib/qlib_data/cn_data_1min"
     region: cn
-market: &market ['SH605222', 'SZ002796', 'SZ002246', 'SZ000713', 'SZ002820', 'SH601328', 'SZ000668', 'SH603359', 'SZ002144', 'SH600195', 'SH603685', 'SH603386', 'SZ002586', 'SZ000573', 'SZ000605', 'SZ002842', 'SH600068', 'SZ300547', 'SZ000926', 'SZ002036', 'SZ002161', 'SH600715', 'SZ300427', 'SZ002573', 'SZ300142', 'SH605116', 'SZ002951', 'SH600276', 'SZ002437', 'SH603355', 'SZ002893', 'SH600584']
+market: &market 'csi300'
 start_time: &start_time "2020-09-15 00:00:00"
 end_time: &end_time "2021-01-18 16:00:00"
 train_end_time: &train_end_time "2020-11-15 16:00:00"
