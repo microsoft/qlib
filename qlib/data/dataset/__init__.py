@@ -3,6 +3,7 @@ from typing import Union, List, Tuple, Dict, Text, Optional
 from ...utils import init_instance_by_config, np_ffill
 from ...log import get_module_logger
 from .handler import DataHandler, DataHandlerLP
+from copy import deepcopy
 from inspect import getfullargspec
 import pandas as pd
 import numpy as np
@@ -16,22 +17,28 @@ class Dataset(Serializable):
     Preparing data for model training and inferencing.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, **kwargs):
         """
         init is designed to finish following steps:
+
+        - init the sub instance and the state of the dataset(info to prepare the data)
+            - The name of essential state for preparing data should not start with '_' so that it could be serialized on disk when serializing.
 
         - setup data
             - The data related attributes' names should start with '_' so that it will not be saved on disk when serializing.
 
-        - initialize the state of the dataset(info to prepare the data)
-            - The name of essential state for preparing data should not start with '_' so that it could be serialized on disk when serializing.
-
         The data could specify the info to caculate the essential data for preparation
         """
-        self.setup_data(*args, **kwargs)
+        self.setup_data(**kwargs)
         super().__init__()
 
-    def setup_data(self, *args, **kwargs):
+    def config(self, **kwargs):
+        """
+        config is designed to configure and parameters that cannot be learned from the data
+        """
+        super().config(**kwargs)
+
+    def setup_data(self, **kwargs):
         """
         Setup the data.
 
@@ -39,7 +46,7 @@ class Dataset(Serializable):
 
         - User have a Dataset object with learned status on disk.
 
-        - User load the Dataset object from the disk(Note the init function is skiped).
+        - User load the Dataset object from the disk.
 
         - User call `setup_data` to load new data.
 
@@ -47,7 +54,7 @@ class Dataset(Serializable):
         """
         pass
 
-    def prepare(self, *args, **kwargs) -> object:
+    def prepare(self, **kwargs) -> object:
         """
         The type of dataset depends on the model. (It could be pd.DataFrame, pytorch.DataLoader, etc.)
         The parameters should specify the scope for the prepared data
@@ -76,44 +83,7 @@ class DatasetH(Dataset):
     - The processing is related to data split.
     """
 
-    def init(self, handler_kwargs: dict = None, segment_kwargs: dict = None):
-        """
-        Initialize the DatasetH
-
-        Parameters
-        ----------
-        handler_kwargs : dict
-            Config of DataHanlder, which could include the following arguments:
-
-            - arguments of DataHandler.conf_data, such as 'instruments', 'start_time' and 'end_time'.
-
-            - arguments of DataHandler.init, such as 'enable_cache', etc.
-
-        segment_kwargs : dict
-            Config of segments which is same as 'segments' in DatasetH.setup_data
-
-        """
-        if handler_kwargs:
-            if not isinstance(handler_kwargs, dict):
-                raise TypeError(f"param handler_kwargs must be type dict, not {type(handler_kwargs)}")
-            kwargs_init = {}
-            kwargs_conf_data = {}
-            conf_data_arg = {"instruments", "start_time", "end_time"}
-            for k, v in handler_kwargs.items():
-                if k in conf_data_arg:
-                    kwargs_conf_data.update({k: v})
-                else:
-                    kwargs_init.update({k: v})
-
-            self.handler.conf_data(**kwargs_conf_data)
-            self.handler.init(**kwargs_init)
-
-        if segment_kwargs:
-            if not isinstance(segment_kwargs, dict):
-                raise TypeError(f"param handler_kwargs must be type dict, not {type(segment_kwargs)}")
-            self.segments = segment_kwargs.copy()
-
-    def setup_data(self, handler: Union[Dict, DataHandler], segments: Dict[Text, Tuple]):
+    def __init__(self, handler: Union[Dict, DataHandler], segments: Dict[Text, Tuple], **kwargs):
         """
         Setup the underlying data.
 
@@ -144,6 +114,49 @@ class DatasetH(Dataset):
         """
         self.handler = init_instance_by_config(handler, accept_types=DataHandler)
         self.segments = segments.copy()
+        super().__init__(**kwargs)
+
+    def config(self, handler_kwargs: dict = None, **kwargs):
+        """
+        Initialize the DatasetH
+
+        Parameters
+        ----------
+        handler_kwargs : dict
+            Config of DataHanlder, which could include the following arguments:
+
+            - arguments of DataHandler.conf_data, such as 'instruments', 'start_time' and 'end_time'.
+
+        kwargs : dict
+            Config of DatasetH, such as
+
+            - segments : dict
+                Config of segments which is same as 'segments' in self.__init__
+
+        """
+        if handler_kwargs is not None:
+            self.handler.config(**handler_kwargs)
+        if "segments" in kwargs:
+            self.segments = deepcopy(kwargs.pop("segments"))
+        super().config(**kwargs)
+
+    def setup_data(self, handler_kwargs: dict = None, **kwargs):
+        """
+        Setup the Data
+
+        Parameters
+        ----------
+        handler_kwargs : dict
+            init arguments of DataHanlder, which could include the following arguments:
+
+            - init_type : Init Type of Handler
+
+            - enable_cache : wheter to enable cache
+
+        """
+        super().setup_data(**kwargs)
+        if handler_kwargs is not None:
+            self.handler.setup_data(**handler_kwargs)
 
     def __repr__(self):
         return "{name}(handler={handler}, segments={segments})".format(
@@ -433,15 +446,19 @@ class TSDatasetH(DatasetH):
         - The dimension of a batch of data <batch_idx, feature, timestep>
     """
 
-    def __init__(self, step_len=30, *args, **kwargs):
+    def __init__(self, step_len=30, **kwargs):
         self.step_len = step_len
-        super().__init__(*args, **kwargs)
+        super().__init__(**kwargs)
 
-    def setup_data(self, *args, **kwargs):
-        super().setup_data(*args, **kwargs)
+    def config(self, **kwargs):
+        if "step_len" in kwargs:
+            self.step_len = kwargs.pop("step_len")
+        super().config(**kwargs)
+
+    def setup_data(self, **kwargs):
+        super().setup_data(**kwargs)
         cal = self.handler.fetch(col_set=self.handler.CS_RAW).index.get_level_values("datetime").unique()
         cal = sorted(cal)
-        # Get the datatime index for building timestamp
         self.cal = cal
 
     def _prepare_seg(self, slc: slice, **kwargs) -> TSDataSampler:
