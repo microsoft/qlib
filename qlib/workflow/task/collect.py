@@ -7,8 +7,7 @@ from qlib.workflow.task.utils import list_recorders
 
 
 class Collector:
-    """The collector to collect different results based on experiment backend and ensemble method
-    """
+    """The collector to collect different results based on experiment backend and ensemble method"""
 
     def collect(self, ensemble, get_group_key_func, *args, **kwargs):
         """To collect the results, we need to get the experiment record firstly and divided them into
@@ -23,7 +22,7 @@ class Collector:
 
 
 class RecorderCollector(Collector):
-    def __init__(self, exp_name, artifacts_path = {"pred": "pred.pkl", "IC": "sig_analysis/ic.pkl"}) -> None:
+    def __init__(self, exp_name, artifacts_path={"pred": "pred.pkl", "IC": "sig_analysis/ic.pkl"}) -> None:
         """init RecorderCollector
 
         Args:
@@ -48,14 +47,14 @@ class RecorderCollector(Collector):
         """
         if artifacts_key is None:
             artifacts_key = self.artifacts_path.keys()
-        
+
         if isinstance(artifacts_key, str):
             artifacts_key = [artifacts_key]
 
         # prepare_ensemble
         ensemble_dict = {}
         for key in artifacts_key:
-            ensemble_dict.setdefault(key,{})
+            ensemble_dict.setdefault(key, {})
         # filter records
         recs_flt = list_recorders(self.exp_name, rec_filter_func)
         for _, rec in recs_flt.items():
@@ -64,7 +63,6 @@ class RecorderCollector(Collector):
                 artifact = rec.load_object(self.artifacts_path[key])
                 ensemble_dict[key][group_key] = artifact
 
-
         if isinstance(artifacts_key, str):
             return ensemble(ensemble_dict[artifacts_key])
 
@@ -72,4 +70,3 @@ class RecorderCollector(Collector):
         for key in artifacts_key:
             collect_dict[key] = ensemble(ensemble_dict[key])
         return collect_dict
-        

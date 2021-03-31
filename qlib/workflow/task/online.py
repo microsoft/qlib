@@ -106,7 +106,9 @@ class RollingOnlineManager(OnlineManagerR):
         pass
 
     def prepare_tasks(self):
-        latest_records, max_test = self.list_latest_recorders(lambda rec: self.get_online_tag(rec) == OnlineManager.ONLINE_TAG)
+        latest_records, max_test = self.list_latest_recorders(
+            lambda rec: self.get_online_tag(rec) == OnlineManager.ONLINE_TAG
+        )
         if max_test is None:
             self.logger.warn(f"No latest_recorders.")
             return

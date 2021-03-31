@@ -7,12 +7,10 @@ from qlib.workflow.task.utils import list_recorders
 from typing import Dict
 
 
-
 class Ensemble:
-    """Merge the objects in an Ensemble.
-    """
+    """Merge the objects in an Ensemble."""
 
-    def __init__(self, merge_func = None, get_grouped_key_func = None) -> None:
+    def __init__(self, merge_func=None, get_grouped_key_func=None) -> None:
         """init Ensemble
 
         Args:
@@ -26,7 +24,7 @@ class Ensemble:
             self.get_grouped_key_func = get_grouped_key_func
 
     def merge_func(self, group_inner_dict):
-        """Given a group_inner_dict such as {Rollinga_b: object, Rollingb_c: object}, 
+        """Given a group_inner_dict such as {Rollinga_b: object, Rollingb_c: object},
         merge it to object
 
         Args:
@@ -34,10 +32,10 @@ class Ensemble:
 
         """
         raise NotImplementedError(f"Please implement the `merge_func` method.")
-    
+
     def get_grouped_key_func(self, group_key):
         """Given a group_key and return the group_outer_key, group_inner_key.
-        
+
         For example:
             (A,B,Rolling) -> (A,B):Rolling
             (A,B) -> C:(A,B)
@@ -135,10 +133,10 @@ class Ensemble:
         grouped_dict = self.group(group_dict)
         return self.reduce(grouped_dict)
 
-class RollingEnsemble(Ensemble):
-    """A specific implementation of Ensemble for Rolling.
 
-    """
+class RollingEnsemble(Ensemble):
+    """A specific implementation of Ensemble for Rolling."""
+
     def merge_func(self, group_inner_dict):
         """merge group_inner_dict by datetime.
 
@@ -155,7 +153,7 @@ class RollingEnsemble(Ensemble):
         artifact = artifact[~artifact.index.duplicated(keep="last")]
         artifact = artifact.sort_index()
         return artifact
-    
+
     def get_grouped_key_func(self, group_key):
         """The final axis of group_key must be the Rolling key.
         When `collect`, get_group_key_func can add the statement below.
@@ -174,7 +172,5 @@ class RollingEnsemble(Ensemble):
         Returns:
             tuple or str, tuple or str: group_outer_key, group_inner_key
         """
-        assert len(group_key)>=2
+        assert len(group_key) >= 2
         return group_key[:-1], group_key[-1]
-
-

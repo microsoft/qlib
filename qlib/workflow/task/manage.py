@@ -174,7 +174,7 @@ class TaskManager:
 
         for t in new_tasks:
             self.insert_task_def(t, task_pool)
-        
+
         return len(new_tasks)
 
     def fetch_task(self, query={}, task_pool=None):
@@ -250,7 +250,7 @@ class TaskManager:
 
     def re_query(self, task, task_pool=None):
         task_pool = self._get_task_pool(task_pool)
-        return task_pool.find_one({"_id":ObjectId(task["_id"])})
+        return task_pool.find_one({"_id": ObjectId(task["_id"])})
 
     def commit_task_res(self, task, res, status=None, task_pool=None):
         task_pool = self._get_task_pool(task_pool)

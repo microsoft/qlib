@@ -117,7 +117,7 @@ def task_collecting():
         task_config = recorder.load_object("task")
         model_key = task_config["model"]["class"]
         rolling_key = task_config["dataset"]["kwargs"]["segments"]["test"]
-        return model_key, model_key, rolling_key
+        return model_key, rolling_key
 
     def my_filter(recorder):
         # only choose the results of "LGBModel"
@@ -136,7 +136,7 @@ def task_collecting():
 def reset():
     print("========== reset ==========")
     task_manager.remove()
-    exp, _ = R.get_exp(experiment_name=exp_name)
+    exp = R.get_exp(experiment_name=exp_name)
     for rid in exp.list_recorders():
         exp.delete_recorder(rid)
 

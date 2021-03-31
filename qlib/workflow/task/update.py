@@ -9,6 +9,7 @@ from qlib.workflow.recorder import Recorder
 from qlib.workflow.task.utils import list_recorders
 from qlib.data.dataset.handler import DataHandlerLP
 
+
 class ModelUpdater:
     """
     The model updater to update model results in new data.
@@ -48,7 +49,7 @@ class ModelUpdater:
         dataset.setup_data(handler_kwargs={"init_type": DataHandlerLP.IT_LS}, segments=segments)
         return dataset
 
-    def update_pred(self, recorder: Recorder, frequency='day'):
+    def update_pred(self, recorder: Recorder, frequency="day"):
         """update predictions to the latest day in Calendar based on rid
 
         Parameters
@@ -60,10 +61,10 @@ class ModelUpdater:
         last_end = old_pred.index.get_level_values("datetime").max()
 
         # updated to the latest trading day
-        if frequency=='day':
+        if frequency == "day":
             cal = D.calendar(start_time=last_end + pd.Timedelta(days=1), end_time=None)
         else:
-            raise NotImplementedError("Now Qlib only support update daily frequency prediction")
+            raise NotImplementedError("Now `ModelUpdater` only support update daily frequency prediction")
 
         if len(cal) == 0:
             self.logger.info(

@@ -42,7 +42,7 @@ def list_recorders(experiment, rec_filter_func=None):
         dict: a dict {rid: recorder} after filtering.
     """
     if isinstance(experiment, str):
-        experiment, _ = R.get_exp(experiment_name=experiment)
+        experiment = R.get_exp(experiment_name=experiment)
     recs = experiment.list_recorders()
     recs_flt = {}
     for rid, rec in recs.items():
