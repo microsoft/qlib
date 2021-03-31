@@ -26,8 +26,6 @@ def task_train(task_config: dict, experiment_name: str) -> str:
     # model initiaiton
     model = init_instance_by_config(task_config["model"])
     dataset = init_instance_by_config(task_config["dataset"])
-    datahandler = dataset.handler
-    dataset.config(exclude=["handler"])
 
     # start exp
     with R.start(experiment_name=experiment_name):
@@ -39,7 +37,6 @@ def task_train(task_config: dict, experiment_name: str) -> str:
         R.save_objects(**{"params.pkl": model})
         R.save_objects(**{"task": task_config})  # keep the original format and datatype
         R.save_objects(**{"dataset": dataset})
-        R.save_objects(**{"datahandler": datahandler})
 
         # generate records: prediction, backtest, and analysis
         records = task_config.get("record", [])

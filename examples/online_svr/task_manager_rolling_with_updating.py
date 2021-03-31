@@ -5,7 +5,8 @@ import qlib
 from qlib.config import REG_CN
 from qlib.model.trainer import task_train
 from qlib.workflow import R
-from qlib.workflow.task.collect import RollingCollector
+from qlib.workflow.task.collect import RecorderCollector
+from qlib.workflow.task.ensemble import RollingEnsemble
 from qlib.workflow.task.gen import RollingGen, task_generator
 from qlib.workflow.task.manage import TaskManager, run_task
 from qlib.workflow.task.online import RollingOnlineManager
@@ -114,26 +115,28 @@ def task_collecting():
 
     def get_group_key_func(recorder):
         task_config = recorder.load_object("task")
-        return task_config["model"]["class"]
+        model_key = task_config["model"]["class"]
+        rolling_key = task_config["dataset"]["kwargs"]["segments"]["test"]
+        return model_key, model_key, rolling_key
 
     def my_filter(recorder):
         # only choose the results of "LGBModel"
-        task_key = get_group_key_func(recorder)
-        if task_key == "LGBModel":
+        model_key, rolling_key = get_group_key_func(recorder)
+        if model_key == "LGBModel":
             return True
         return False
 
-    rolling_collector = RollingCollector(exp_name)
+    collector = RecorderCollector(exp_name)
     # group tasks by "get_task_key" and filter tasks by "my_filter"
-    pred_rolling = rolling_collector.collect(get_group_key_func, my_filter)
-    print(pred_rolling)
+    artifact = collector.collect(RollingEnsemble(), get_group_key_func, rec_filter_func=my_filter)
+    print(artifact)
 
 
 # Reset all things to the first status, be careful to save important data
 def reset():
     print("========== reset ==========")
     task_manager.remove()
-    exp, _ = R.exp_manager._get_or_create_exp(experiment_name=exp_name)
+    exp, _ = R.get_exp(experiment_name=exp_name)
     for rid in exp.list_recorders():
         exp.delete_recorder(rid)
 

@@ -7,6 +7,7 @@ from qlib.workflow import R
 from qlib.model.trainer import task_train
 from qlib.workflow.recorder import Recorder
 from qlib.workflow.task.utils import list_recorders
+from qlib.data.dataset.handler import DataHandlerLP
 
 class ModelUpdater:
     """
@@ -42,13 +43,9 @@ class ModelUpdater:
             the instance of Dataset
         """
         segments = {"test": (start_time, end_time)}
-
         dataset = recorder.load_object("dataset")
-        datahandler = recorder.load_object("datahandler")
-
-        datahandler.conf_data(**{"start_time": start_time, "end_time": end_time})
-        dataset.setup_data(handler=datahandler, segments=segments)
-        datahandler.init(datahandler.IT_LS)
+        dataset.config(handler_kwargs={"start_time": start_time, "end_time": end_time})
+        dataset.setup_data(handler_kwargs={"init_type": DataHandlerLP.IT_LS}, segments=segments)
         return dataset
 
     def update_pred(self, recorder: Recorder, frequency='day'):
