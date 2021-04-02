@@ -3,7 +3,7 @@ from qlib import get_module_logger
 from qlib.workflow import R
 from qlib.model.trainer import task_train
 from qlib.workflow.recorder import MLflowRecorder, Recorder
-from qlib.workflow.task.update import ModelUpdater
+from qlib.workflow.online.update import ModelUpdater
 from qlib.workflow.task.utils import TimeAdjuster
 from qlib.workflow.task.gen import RollingGen, task_generator
 from qlib.workflow.task.manage import TaskManager
@@ -36,6 +36,16 @@ class OnlineManager(Serializable):
 
     def get_online_tag(self, *args, **kwargs):
         raise NotImplementedError(f"Please implement the `get_online_tag` method.")
+
+    def reset_online_tag(self, *args, **kwargs):
+        raise NotImplementedError(f"Please implement the `reset_online_tag` method.")
+
+    def routine(self, *args, **kwargs):
+        self.prepare_signals(*args, **kwargs)
+        self.prepare_tasks(*args, **kwargs)
+        self.prepare_new_models(*args, **kwargs)
+        self.update_online_pred(*args, **kwargs)
+        self.reset_online_tag(*args, **kwargs)
 
 
 class OnlineManagerR(OnlineManager):
@@ -86,21 +96,18 @@ class OnlineManagerR(OnlineManager):
         cnt = mu.update_all_pred(lambda rec: self.get_online_tag(rec) == OnlineManager.ONLINE_TAG)
         self.logger.info(f"Finish updating {cnt} online model predictions of {self.exp_name}.")
 
-    def after_day(self, *args, **kwargs):
-        self.prepare_signals(*args, **kwargs)
-        self.prepare_tasks(*args, **kwargs)
-        self.prepare_new_models(*args, **kwargs)
-        self.update_online_pred(*args, **kwargs)
-        self.reset_online_tag()
-
 
 class RollingOnlineManager(OnlineManagerR):
-    def __init__(self, experiment_name: str, rolling_gen: RollingGen, task_pool) -> None:
+    # FIXME: TaskManager不应该与onlinemanager强耦合
+    def __init__(
+        self, experiment_name: str, rolling_gen: RollingGen, task_manager: TaskManager, trainer=run_task
+    ) -> None:
         super().__init__(experiment_name)
         self.ta = TimeAdjuster()
         self.rg = rolling_gen
-        self.tm = TaskManager(task_pool=task_pool)
+        self.tm = task_manager
         self.logger = get_module_logger(self.__class__.__name__)
+        self.trainer = trainer
 
     def prepare_signals(self):
         pass
@@ -122,13 +129,13 @@ class RollingOnlineManager(OnlineManagerR):
                 task["dataset"]["kwargs"]["segments"]["test"] = (test_begin, calendar_latest)
                 old_tasks.append(task)
             new_tasks = task_generator(old_tasks, self.rg)
-            new_num = self.tm.create_task(new_tasks)
-            self.logger.info(f"Finished prepare {new_num} tasks.")
+            self.tm.create_task(new_tasks)
 
     def prepare_new_models(self):
         """prepare(train) new models based on online model"""
-        run_task(task_train, self.tm.task_pool, experiment_name=self.exp_name)
+        run_task(task_train, task_pool=self.tm.task_pool, experiment_name=self.exp_name)
         latest_records, _ = self.list_latest_recorders()
+        # FIXME: 现有的流程，如果没有可更新的模型，仍会调用这个，导致会先将以前的模型设置成nextonline再去更新pred，但这个时候online已经没有了，pred无法更新
         self.set_online_tag(OnlineManager.NEXT_ONLINE_TAG, latest_records.values())
         self.logger.info(f"Finished prepare {len(latest_records)} new models and set them to next_online.")
 

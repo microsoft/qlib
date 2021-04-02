@@ -6,10 +6,10 @@ from qlib.config import REG_CN
 from qlib.model.trainer import task_train
 from qlib.workflow import R
 from qlib.workflow.task.collect import RecorderCollector
-from qlib.workflow.task.ensemble import RollingEnsemble
+from qlib.model.ens.ensemble import RollingEnsemble
 from qlib.workflow.task.gen import RollingGen, task_generator
 from qlib.workflow.task.manage import TaskManager, run_task
-from qlib.workflow.task.online import RollingOnlineManager
+from qlib.workflow.online.manager import RollingOnlineManager
 from qlib.workflow.task.utils import list_recorders
 
 data_handler_config = {
@@ -155,10 +155,10 @@ def first_run():
     rolling_online_manager.reset_online_tag(latest_rec.values())
 
 
-def after_day():
+def routine():
     print("========== after_day ==========")
     print_online_model()
-    rolling_online_manager.after_day()
+    rolling_online_manager.routine()
     print_online_model()
     task_collecting()
 

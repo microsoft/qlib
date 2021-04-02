@@ -8,9 +8,11 @@ from qlib.workflow import R
 from qlib.workflow.task.gen import RollingGen, task_generator
 from qlib.workflow.task.manage import TaskManager, run_task
 from qlib.workflow.task.collect import RecorderCollector
-from qlib.workflow.task.ensemble import RollingEnsemble
+from qlib.model.ens.ensemble import RollingEnsemble, ens_workflow
 import pandas as pd
 from qlib.workflow.task.utils import list_recorders
+from qlib.model.ens.group import RollingGroup
+from qlib.model.trainer import TrainerRM
 
 data_handler_config = {
     "start_time": "2008-01-01",
@@ -94,24 +96,16 @@ def task_generating():
     return tasks
 
 
-# This part corresponds to "Task Storing" in the document
-def task_storing(tasks, task_pool, exp_name):
-    print("========== task_storing ==========")
-    tm = TaskManager(task_pool=task_pool)
-    tm.create_task(tasks)  # all tasks will be saved to MongoDB
-
-
-# This part corresponds to "Task Running" in the document
-def task_running(task_pool, exp_name):
-    print("========== task_running ==========")
-    run_task(task_train, task_pool, experiment_name=exp_name)  # all tasks will be trained using "task_train" method
+def task_training(tasks, task_pool, exp_name):
+    trainer = TrainerRM()
+    trainer.train(tasks, exp_name, task_pool)
 
 
 # This part corresponds to "Task Collecting" in the document
 def task_collecting(task_pool, exp_name):
     print("========== task_collecting ==========")
 
-    def get_group_key_func(recorder):
+    def rec_key(recorder):
         task_config = recorder.load_object("task")
         model_key = task_config["model"]["class"]
         rolling_key = task_config["dataset"]["kwargs"]["segments"]["test"]
@@ -119,14 +113,14 @@ def task_collecting(task_pool, exp_name):
 
     def my_filter(recorder):
         # only choose the results of "LGBModel"
-        model_key, rolling_key = get_group_key_func(recorder)
+        model_key, rolling_key = rec_key(recorder)
         if model_key == "LGBModel":
             return True
         return False
 
-    collector = RecorderCollector(exp_name)
-    # group tasks by "get_task_key" and filter tasks by "my_filter"
-    artifact = collector.collect(RollingEnsemble(), get_group_key_func, rec_filter_func=my_filter)
+    artifact = ens_workflow(
+        RecorderCollector(exp_name=exp_name, rec_key_func=rec_key), RollingGroup(), rec_filter_func=my_filter
+    )
     print(artifact)
 
 
@@ -143,10 +137,9 @@ def main(
     }
     qlib.init(provider_uri=provider_uri, region=REG_CN, mongo=mongo_conf)
 
-    reset(task_pool, exp_name)
-    tasks = task_generating()
-    task_storing(tasks, task_pool, exp_name)
-    task_running(task_pool, exp_name)
+    # reset(task_pool, exp_name)
+    # tasks = task_generating()
+    # task_training(tasks, task_pool, exp_name)
     task_collecting(task_pool, exp_name)
 
 

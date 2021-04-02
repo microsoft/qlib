@@ -2,7 +2,7 @@ import fire
 import qlib
 from qlib.config import REG_CN
 from qlib.model.trainer import task_train
-from qlib.workflow.task.online import OnlineManagerR
+from qlib.workflow.online.manager import OnlineManagerR
 from qlib.workflow.task.utils import list_recorders
 
 data_handler_config = {
@@ -52,7 +52,7 @@ task = {
 }
 
 
-def first_train(experiment_name="online_svr"):
+def first_train(experiment_name="online_srv"):
 
     rid = task_train(task_config=task, experiment_name=experiment_name)
 
@@ -60,7 +60,7 @@ def first_train(experiment_name="online_svr"):
     online_manager.reset_online_tag(rid)
 
 
-def update_online_pred(experiment_name="online_svr"):
+def update_online_pred(experiment_name="online_srv"):
 
     online_manager = OnlineManagerR(experiment_name)
 

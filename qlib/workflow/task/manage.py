@@ -60,7 +60,7 @@ class TaskManager:
         """
         self.mdb = get_mongodb()
         self.task_pool = task_pool
-        self.logger = get_module_logger("TaskManager")
+        self.logger = get_module_logger(self.__class__.__name__)
 
     def list(self):
         return self.mdb.list_collection_names()
@@ -105,10 +105,11 @@ class TaskManager:
     def insert_task(self, task, task_pool=None):
         task_pool = self._get_task_pool(task_pool)
         try:
-            task_pool.insert_one(task)
+            insert_result = task_pool.insert_one(task)
         except InvalidDocument:
             task["filter"] = self._dict_to_str(task["filter"])
-            task_pool.insert_one(task)
+            insert_result = task_pool.insert_one(task)
+        return insert_result
 
     def insert_task_def(self, task_def, task_pool=None):
         """
@@ -133,7 +134,8 @@ class TaskManager:
                 "status": self.STATUS_WAITING,
             }
         )
-        self.insert_task(task, task_pool)
+        insert_result = self.insert_task(task, task_pool)
+        return insert_result
 
     def create_task(self, task_def_l, task_pool=None, dry_run=False, print_nt=False):
         """
@@ -151,8 +153,8 @@ class TaskManager:
             if print new task
         Returns
         -------
-        int
-            the length of new tasks
+        list
+            a list of the _id of new tasks
         """
         task_pool = self._get_task_pool(task_pool)
         new_tasks = []
@@ -163,7 +165,7 @@ class TaskManager:
                 r = task_pool.find_one({"filter": self._dict_to_str(t)})
             if r is None:
                 new_tasks.append(t)
-        print("Total Tasks, New Tasks:", len(task_def_l), len(new_tasks))
+        self.logger.info(f"Total Tasks: {len(task_def_l)}, New Tasks: {len(new_tasks)}")
 
         if print_nt:  # print new task
             for t in new_tasks:
@@ -172,10 +174,12 @@ class TaskManager:
         if dry_run:
             return
 
+        _id_list = []
         for t in new_tasks:
-            self.insert_task_def(t, task_pool)
+            insert_result = self.insert_task_def(t, task_pool)
+            _id_list.append(insert_result.inserted_id)
 
-        return len(new_tasks)
+        return _id_list
 
     def fetch_task(self, query={}, task_pool=None):
         task_pool = self._get_task_pool(task_pool)
@@ -248,9 +252,9 @@ class TaskManager:
         for t in task_pool.find(query):
             yield self._decode_task(t)
 
-    def re_query(self, task, task_pool=None):
+    def re_query(self, _id, task_pool=None):
         task_pool = self._get_task_pool(task_pool)
-        return task_pool.find_one({"_id": ObjectId(task["_id"])})
+        return task_pool.find_one({"_id": ObjectId(_id)})
 
     def commit_task_res(self, task, res, status=None, task_pool=None):
         task_pool = self._get_task_pool(task_pool)

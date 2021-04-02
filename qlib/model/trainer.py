@@ -4,6 +4,7 @@
 from qlib.utils import init_instance_by_config, flatten_dict
 from qlib.workflow import R
 from qlib.workflow.record_temp import SignalRecord
+from qlib.workflow.task.manage import TaskManager, run_task
 
 
 def task_train(task_config: dict, experiment_name: str) -> str:
@@ -57,3 +58,70 @@ def task_train(task_config: dict, experiment_name: str) -> str:
                 ar.generate()
 
     return recorder
+
+
+class Trainer:
+    """
+    The trainer which can train a list of model
+    """
+
+    def train(self, *args, **kwargs):
+        """Given a list of model definition, finished training and return the results of them.
+
+        Returns:
+            list: a list of trained results
+        """
+        raise NotImplementedError(f"Please implement the `train` method.")
+
+
+class TrainerR(Trainer):
+    """Trainer based on (R)ecorder.
+
+    Assumption: models were defined by `task` and the results will saved to `Recorder`
+    """
+
+    def train(self, tasks: list, experiment_name: str, train_func=task_train, *args, **kwargs):
+        """Given a list of `task`s and return a list of trained Recorder. The order can be guaranteed.
+
+        Args:
+            tasks (list): a list of definition based on `task` dict
+            experiment_name (str): the experiment name
+            train_func (Callable): the train method which need at least `task` and `experiment_name`
+
+        Returns:
+            list: a list of Recorders
+        """
+        recs = []
+        for task in tasks:
+            recs.append(train_func(task, experiment_name, *args, **kwargs))
+        return recs
+
+
+class TrainerRM(TrainerR):
+    """Trainer based on (R)ecorder and Task(M)anager
+
+    Assumption: `task` will be saved to TaskManager and `task` will be fetched and trained from TaskManager
+    """
+
+    def train(self, tasks: list, experiment_name: str, task_pool: str, train_func=task_train, *args, **kwargs):
+        """Given a list of `task`s and return a list of trained Recorder. The order can be guaranteed.
+
+        This method defaults to a single process, but TaskManager offered a great way to parallel training.
+        Users can customize their train_func to realize multiple processes or even multiple machines.
+
+        Args:
+            tasks (list): a list of definition based on `task` dict
+            experiment_name (str): the experiment name
+            train_func (Callable): the train method which need at least `task` and `experiment_name`
+
+        Returns:
+            list: a list of Recorders
+        """
+        tm = TaskManager(task_pool=task_pool)
+        _id_list = tm.create_task(tasks)  # all tasks will be saved to MongoDB
+        run_task(train_func, task_pool, experiment_name=experiment_name, *args, **kwargs)
+
+        recs = []
+        for _id in _id_list:
+            recs.append(tm.re_query(_id)["res"])
+        return recs

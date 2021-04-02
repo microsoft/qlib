@@ -45,8 +45,8 @@ class ModelUpdater:
         """
         segments = {"test": (start_time, end_time)}
         dataset = recorder.load_object("dataset")
-        dataset.config(handler_kwargs={"start_time": start_time, "end_time": end_time})
-        dataset.setup_data(handler_kwargs={"init_type": DataHandlerLP.IT_LS}, segments=segments)
+        dataset.config(handler_kwargs={"start_time": start_time, "end_time": end_time}, segments=segments)
+        dataset.setup_data(handler_kwargs={"init_type": DataHandlerLP.IT_LS})
         return dataset
 
     def update_pred(self, recorder: Recorder, frequency="day"):
