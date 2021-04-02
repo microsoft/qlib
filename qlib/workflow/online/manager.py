@@ -10,6 +10,7 @@ from qlib.workflow.task.manage import TaskManager
 from qlib.workflow.task.manage import run_task
 from qlib.workflow.task.utils import list_recorders
 from qlib.utils.serial import Serializable
+from qlib.model.trainer import Trainer, TrainerR
 
 
 class OnlineManager(Serializable):
@@ -19,31 +20,57 @@ class OnlineManager(Serializable):
     NEXT_ONLINE_TAG = "next_online"  # the 'next online' model, which can be 'online' model when call reset_online_model
     OFFLINE_TAG = "offline"  # the 'offline' model, not for online serving
 
+    def __init__(self, trainer: Trainer = None) -> None:
+        self._trainer = trainer
+        self.logger = get_module_logger(self.__class__.__name__)
+
     def prepare_signals(self, *args, **kwargs):
         raise NotImplementedError(f"Please implement the `prepare_signals` method.")
 
     def prepare_tasks(self, *args, **kwargs):
+        """return the new tasks waiting for training."""
         raise NotImplementedError(f"Please implement the `prepare_tasks` method.")
 
-    def prepare_new_models(self, *args, **kwargs):
-        raise NotImplementedError(f"Please implement the `prepare_new_models` method.")
+    def prepare_new_models(self, tasks, *args, **kwargs):
+        """Use trainer to train a list of tasks and set the trained model to next_online.
+
+        Args:
+            tasks (list): a list of tasks.
+        """
+        if not (tasks is None or len(tasks) == 0):
+            if self._trainer is not None:
+                new_models = self._trainer.train(tasks, *args, **kwargs)
+                self.set_online_tag(self.NEXT_ONLINE_TAG, new_models)
+                self.logger.info(
+                    f"Finished prepare {len(new_models)} new models and set them to `{self.NEXT_ONLINE_TAG}`."
+                )
+            else:
+                self.logger.warn("No trainer to train new tasks.")
 
     def update_online_pred(self, *args, **kwargs):
         raise NotImplementedError(f"Please implement the `update_online_pred` method.")
 
     def set_online_tag(self, tag, *args, **kwargs):
+        """set `tag` to the model to sign whether online
+
+        Args:
+            tag (str): the tags in ONLINE_TAG, NEXT_ONLINE_TAG, OFFLINE_TAG
+        """
         raise NotImplementedError(f"Please implement the `set_online_tag` method.")
 
     def get_online_tag(self, *args, **kwargs):
+        """given a model and return its online tag"""
         raise NotImplementedError(f"Please implement the `get_online_tag` method.")
 
     def reset_online_tag(self, *args, **kwargs):
+        """offline all models and set the recorders to 'online'. If no parameter and no 'next online' model, then do nothing."""
         raise NotImplementedError(f"Please implement the `reset_online_tag` method.")
 
     def routine(self, *args, **kwargs):
+        """The typical update process in a routine such as day by day or month by month"""
         self.prepare_signals(*args, **kwargs)
-        self.prepare_tasks(*args, **kwargs)
-        self.prepare_new_models(*args, **kwargs)
+        tasks = self.prepare_tasks(*args, **kwargs)
+        self.prepare_new_models(tasks, *args, **kwargs)
         self.update_online_pred(*args, **kwargs)
         self.reset_online_tag(*args, **kwargs)
 
@@ -54,7 +81,8 @@ class OnlineManagerR(OnlineManager):
 
     """
 
-    def __init__(self, experiment_name: str) -> None:
+    def __init__(self, experiment_name: str, trainer: Trainer = TrainerR()) -> None:
+        super().__init__(trainer)
         self.logger = get_module_logger(self.__class__.__name__)
         self.exp_name = experiment_name
 
@@ -98,27 +126,36 @@ class OnlineManagerR(OnlineManager):
 
 
 class RollingOnlineManager(OnlineManagerR):
-    # FIXME: TaskManager不应该与onlinemanager强耦合
+    """An implementation of OnlineManager based on Rolling.
+
+    """
+
     def __init__(
-        self, experiment_name: str, rolling_gen: RollingGen, task_manager: TaskManager, trainer=run_task
+        self,
+        experiment_name: str,
+        rolling_gen: RollingGen,
+        trainer: Trainer = TrainerR(),
     ) -> None:
-        super().__init__(experiment_name)
+        super().__init__(experiment_name, trainer)
         self.ta = TimeAdjuster()
         self.rg = rolling_gen
-        self.tm = task_manager
         self.logger = get_module_logger(self.__class__.__name__)
-        self.trainer = trainer
 
     def prepare_signals(self):
         pass
 
     def prepare_tasks(self):
+        """prepare new tasks based on new date.
+
+        Returns:
+            list: a list of new tasks.
+        """
         latest_records, max_test = self.list_latest_recorders(
             lambda rec: self.get_online_tag(rec) == OnlineManager.ONLINE_TAG
         )
         if max_test is None:
-            self.logger.warn(f"No latest_recorders.")
-            return
+            self.logger.warn(f"No latest online recorders, no new tasks.")
+            return None
         calendar_latest = self.ta.last_date()
         if self.ta.cal_interval(calendar_latest, max_test[0]) > self.rg.step:
             old_tasks = []
@@ -128,18 +165,20 @@ class RollingOnlineManager(OnlineManagerR):
                 # modify the test segment to generate new tasks
                 task["dataset"]["kwargs"]["segments"]["test"] = (test_begin, calendar_latest)
                 old_tasks.append(task)
-            new_tasks = task_generator(old_tasks, self.rg)
-            self.tm.create_task(new_tasks)
-
-    def prepare_new_models(self):
-        """prepare(train) new models based on online model"""
-        run_task(task_train, task_pool=self.tm.task_pool, experiment_name=self.exp_name)
-        latest_records, _ = self.list_latest_recorders()
-        # FIXME: 现有的流程，如果没有可更新的模型，仍会调用这个，导致会先将以前的模型设置成nextonline再去更新pred，但这个时候online已经没有了，pred无法更新
-        self.set_online_tag(OnlineManager.NEXT_ONLINE_TAG, latest_records.values())
-        self.logger.info(f"Finished prepare {len(latest_records)} new models and set them to next_online.")
+            new_tasks_tmp = task_generator(old_tasks, self.rg)
+            new_tasks = [task for task in new_tasks_tmp if task not in old_tasks]
+            return new_tasks
+        return None
 
     def list_latest_recorders(self, rec_filter_func=None):
+        """find latest recorders based on test segments.
+
+        Args:
+            rec_filter_func (Callable, optional): recorder filter. Defaults to None.
+
+        Returns:
+            dict, tuple: the latest recorders and the latest date of them
+        """
         recs_flt = list_recorders(self.exp_name, rec_filter_func)
         if len(recs_flt) == 0:
             return recs_flt, None
