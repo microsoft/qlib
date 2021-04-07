@@ -8,21 +8,16 @@ from __future__ import print_function
 import os
 import numpy as np
 import pandas as pd
+from typing import Text, Union
 import copy
-from sklearn.metrics import roc_auc_score, mean_squared_error
-import logging
-from ...utils import (
-    unpack_archive_with_buffer,
-    save_multiple_parts_file,
-    create_save_path,
-    drop_nan_by_y_index,
-)
-from ...log import get_module_logger, TimeInspector
+from ...utils import get_or_create_path
+from ...log import get_module_logger
 
 import torch
 import torch.nn as nn
 import torch.optim as optim
 
+from .pytorch_utils import count_parameters
 from ...model.base import Model
 from ...data.dataset import DatasetH
 from ...data.dataset.handler import DataHandlerLP
@@ -76,8 +71,7 @@ class GRU(Model):
         self.early_stop = early_stop
         self.optimizer = optimizer.lower()
         self.loss = loss
-        self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() else "cpu")
-        self.use_gpu = torch.cuda.is_available()
+        self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
         self.seed = seed
 
         self.logger.info(
@@ -123,6 +117,9 @@ class GRU(Model):
             num_layers=self.num_layers,
             dropout=self.dropout,
         )
+        self.logger.info("model:\n{:}".format(self.gru_model))
+        self.logger.info("model size: {:.4f} MB".format(count_parameters(self.gru_model)))
+
         if optimizer.lower() == "adam":
             self.train_optimizer = optim.Adam(self.gru_model.parameters(), lr=self.lr)
         elif optimizer.lower() == "gd":
@@ -132,6 +129,10 @@ class GRU(Model):
 
         self.fitted = False
         self.gru_model.to(self.device)
+
+    @property
+    def use_gpu(self):
+        return self.device != torch.device("cpu")
 
     def mse(self, pred, label):
         loss = (pred - label) ** 2
@@ -201,12 +202,13 @@ class GRU(Model):
             feature = torch.from_numpy(x_values[indices[i : i + self.batch_size]]).float().to(self.device)
             label = torch.from_numpy(y_values[indices[i : i + self.batch_size]]).float().to(self.device)
 
-            pred = self.gru_model(feature)
-            loss = self.loss_fn(pred, label)
-            losses.append(loss.item())
+            with torch.no_grad():
+                pred = self.gru_model(feature)
+                loss = self.loss_fn(pred, label)
+                losses.append(loss.item())
 
-            score = self.metric_fn(pred, label)
-            scores.append(score.item())
+                score = self.metric_fn(pred, label)
+                scores.append(score.item())
 
         return np.mean(losses), np.mean(scores)
 
@@ -214,7 +216,6 @@ class GRU(Model):
         self,
         dataset: DatasetH,
         evals_result=dict(),
-        verbose=True,
         save_path=None,
     ):
 
@@ -227,8 +228,7 @@ class GRU(Model):
         x_train, y_train = df_train["feature"], df_train["label"]
         x_valid, y_valid = df_valid["feature"], df_valid["label"]
 
-        if save_path == None:
-            save_path = create_save_path(save_path)
+        save_path = get_or_create_path(save_path)
         stop_steps = 0
         train_loss = 0
         best_score = -np.inf
@@ -269,11 +269,11 @@ class GRU(Model):
         if self.use_gpu:
             torch.cuda.empty_cache()
 
-    def predict(self, dataset):
+    def predict(self, dataset: DatasetH, segment: Union[Text, slice] = "test"):
         if not self.fitted:
             raise ValueError("model is not fitted yet!")
 
-        x_test = dataset.prepare("test", col_set="feature")
+        x_test = dataset.prepare(segment, col_set="feature", data_key=DataHandlerLP.DK_I)
         index = x_test.index
         self.gru_model.eval()
         x_values = x_test.values
@@ -290,10 +290,7 @@ class GRU(Model):
             x_batch = torch.from_numpy(x_values[begin:end]).float().to(self.device)
 
             with torch.no_grad():
-                if self.use_gpu:
-                    pred = self.gru_model(x_batch).detach().cpu().numpy()
-                else:
-                    pred = self.gru_model(x_batch).detach().numpy()
+                pred = self.gru_model(x_batch).detach().cpu().numpy()
 
             preds.append(pred)
 

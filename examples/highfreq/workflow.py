@@ -27,12 +27,11 @@ from qlib.tests.data import GetData
 from highfreq_ops import get_calendar_day, DayLast, FFillNan, BFillNan, Date, Select, IsNull, Cut
 
 
-class HighfreqWorkflow(object):
+class HighfreqWorkflow:
 
     SPEC_CONF = {"custom_ops": [DayLast, FFillNan, BFillNan, Date, Select, IsNull, Cut], "expression_cache": None}
 
     MARKET = "all"
-    BENCHMARK = "SH000300"
 
     start_time = "2020-09-15 00:00:00"
     end_time = "2021-01-18 16:00:00"
@@ -146,35 +145,40 @@ class HighfreqWorkflow(object):
 
         self._prepare_calender_cache()
         ##=============reinit dataset=============
-        dataset.init(
+        dataset.config(
+            handler_kwargs={
+                "start_time": "2021-01-19 00:00:00",
+                "end_time": "2021-01-25 16:00:00",
+            },
+            segments={
+                "test": (
+                    "2021-01-19 00:00:00",
+                    "2021-01-25 16:00:00",
+                ),
+            },
+        )
+        dataset.setup_data(
             handler_kwargs={
                 "init_type": DataHandlerLP.IT_LS,
-                "start_time": "2021-01-19 00:00:00",
-                "end_time": "2021-01-25 16:00:00",
-            },
-            segment_kwargs={
-                "test": (
-                    "2021-01-19 00:00:00",
-                    "2021-01-25 16:00:00",
-                ),
             },
         )
-        dataset_backtest.init(
+        dataset_backtest.config(
             handler_kwargs={
                 "start_time": "2021-01-19 00:00:00",
                 "end_time": "2021-01-25 16:00:00",
             },
-            segment_kwargs={
+            segments={
                 "test": (
                     "2021-01-19 00:00:00",
                     "2021-01-25 16:00:00",
                 ),
             },
         )
+        dataset_backtest.setup_data(handler_kwargs={})
 
         ##=============get data=============
-        xtest = dataset.prepare(["test"])
-        backtest_test = dataset_backtest.prepare(["test"])
+        xtest = dataset.prepare("test")
+        backtest_test = dataset_backtest.prepare("test")
 
         print(xtest, backtest_test)
         return

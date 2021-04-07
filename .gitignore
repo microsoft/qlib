@@ -36,3 +36,5 @@ tags
 .vscode/
 
 *.swp
+
+./pretrain

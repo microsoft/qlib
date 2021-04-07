@@ -55,6 +55,7 @@ REQUIRED = [
     "tornado",
     "joblib>=0.17.0",
     "ruamel.yaml>=0.16.12",
+    "scikit-learn>=0.22",
 ]
 
 # Numpy include

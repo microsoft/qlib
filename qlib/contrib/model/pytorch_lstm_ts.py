@@ -9,15 +9,8 @@ import os
 import numpy as np
 import pandas as pd
 import copy
-from sklearn.metrics import roc_auc_score, mean_squared_error
-import logging
-from ...utils import (
-    unpack_archive_with_buffer,
-    save_multiple_parts_file,
-    create_save_path,
-    drop_nan_by_y_index,
-)
-from ...log import get_module_logger, TimeInspector
+from ...utils import get_or_create_path
+from ...log import get_module_logger
 
 import torch
 import torch.nn as nn
@@ -78,9 +71,8 @@ class LSTM(Model):
         self.early_stop = early_stop
         self.optimizer = optimizer.lower()
         self.loss = loss
-        self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() else "cpu")
+        self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
         self.n_jobs = n_jobs
-        self.use_gpu = torch.cuda.is_available()
         self.seed = seed
 
         self.logger.info(
@@ -96,7 +88,7 @@ class LSTM(Model):
             "\nearly_stop : {}"
             "\noptimizer : {}"
             "\nloss_type : {}"
-            "\nvisible_GPU : {}"
+            "\ndevice : {}"
             "\nn_jobs : {}"
             "\nuse_GPU : {}"
             "\nseed : {}".format(
@@ -111,7 +103,7 @@ class LSTM(Model):
                 early_stop,
                 optimizer.lower(),
                 loss,
-                GPU,
+                self.device,
                 n_jobs,
                 self.use_gpu,
                 seed,
@@ -137,6 +129,10 @@ class LSTM(Model):
 
         self.fitted = False
         self.LSTM_model.to(self.device)
+
+    @property
+    def use_gpu(self):
+        return self.device != torch.device("cpu")
 
     def mse(self, pred, label):
         loss = (pred - label) ** 2
@@ -201,7 +197,6 @@ class LSTM(Model):
         self,
         dataset,
         evals_result=dict(),
-        verbose=True,
         save_path=None,
     ):
         dl_train = dataset.prepare("train", col_set=["feature", "label"], data_key=DataHandlerLP.DK_L)
@@ -210,11 +205,14 @@ class LSTM(Model):
         dl_train.config(fillna_type="ffill+bfill")  # process nan brought by dataloader
         dl_valid.config(fillna_type="ffill+bfill")  # process nan brought by dataloader
 
-        train_loader = DataLoader(dl_train, batch_size=self.batch_size, shuffle=True, num_workers=self.n_jobs)
-        valid_loader = DataLoader(dl_valid, batch_size=self.batch_size, shuffle=False, num_workers=self.n_jobs)
+        train_loader = DataLoader(
+            dl_train, batch_size=self.batch_size, shuffle=True, num_workers=self.n_jobs, drop_last=True
+        )
+        valid_loader = DataLoader(
+            dl_valid, batch_size=self.batch_size, shuffle=False, num_workers=self.n_jobs, drop_last=True
+        )
 
-        if save_path == None:
-            save_path = create_save_path(save_path)
+        save_path = get_or_create_path(save_path)
 
         stop_steps = 0
         train_loss = 0
@@ -271,10 +269,7 @@ class LSTM(Model):
             feature = data[:, :, 0:-1].to(self.device)
 
             with torch.no_grad():
-                if self.use_gpu:
-                    pred = self.LSTM_model(feature.float()).detach().cpu().numpy()
-                else:
-                    pred = self.LSTM_model(feature.float()).detach().numpy()
+                pred = self.LSTM_model(feature.float()).detach().cpu().numpy()
 
             preds.append(pred)
 

@@ -7,7 +7,6 @@ import numpy as np
 import pandas as pd
 
 from ..backtest.order import Order
-from ...utils import get_pre_trading_date
 from .order_generator import OrderGenWInteract
 
 
@@ -252,7 +251,7 @@ class TopkDropoutStrategy(BaseStrategy, ListAdjustTimer):
 
     def generate_order_list(self, score_series, current, trade_exchange, pred_date, trade_date):
         """
-        Gnererate order list according to score_series at trade_date, will not change current.
+        Generate order list according to score_series at trade_date, will not change current.
 
         Parameters
         -----------
@@ -390,11 +389,11 @@ class TopkDropoutStrategy(BaseStrategy, ListAdjustTimer):
         current_stock_list = current_temp.get_stock_list()
         value = cash * self.risk_degree / len(buy) if len(buy) > 0 else 0
 
-        # open_cost should be considered in the real trading environment, while the backtest in evaluate.py does not consider it
-        # as the aim of demo is to accomplish same strategy as evaluate.py, so comment out this line
+        # open_cost should be considered in the real trading environment, while the backtest in evaluate.py does not
+        # consider it as the aim of demo is to accomplish same strategy as evaluate.py, so comment out this line
         # value = value / (1+trade_exchange.open_cost) # set open_cost limit
         for code in buy:
-            # check is stock supended
+            # check is stock suspended
             if not trade_exchange.is_stock_tradable(stock_id=code, trade_date=trade_date):
                 continue
             # buy order

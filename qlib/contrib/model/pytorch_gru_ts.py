@@ -9,21 +9,15 @@ import os
 import numpy as np
 import pandas as pd
 import copy
-from sklearn.metrics import roc_auc_score, mean_squared_error
-import logging
-from ...utils import (
-    unpack_archive_with_buffer,
-    save_multiple_parts_file,
-    create_save_path,
-    drop_nan_by_y_index,
-)
-from ...log import get_module_logger, TimeInspector
+from ...utils import get_or_create_path
+from ...log import get_module_logger
 
 import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 
+from .pytorch_utils import count_parameters
 from ...model.base import Model
 from ...data.dataset import DatasetH, TSDatasetH
 from ...data.dataset.handler import DataHandlerLP
@@ -78,9 +72,8 @@ class GRU(Model):
         self.early_stop = early_stop
         self.optimizer = optimizer.lower()
         self.loss = loss
-        self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() else "cpu")
+        self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
         self.n_jobs = n_jobs
-        self.use_gpu = torch.cuda.is_available()
         self.seed = seed
 
         self.logger.info(
@@ -96,7 +89,7 @@ class GRU(Model):
             "\nearly_stop : {}"
             "\noptimizer : {}"
             "\nloss_type : {}"
-            "\nvisible_GPU : {}"
+            "\ndevice : {}"
             "\nn_jobs : {}"
             "\nuse_GPU : {}"
             "\nseed : {}".format(
@@ -111,7 +104,7 @@ class GRU(Model):
                 early_stop,
                 optimizer.lower(),
                 loss,
-                GPU,
+                self.device,
                 n_jobs,
                 self.use_gpu,
                 seed,
@@ -127,7 +120,10 @@ class GRU(Model):
             hidden_size=self.hidden_size,
             num_layers=self.num_layers,
             dropout=self.dropout,
-        ).to(self.device)
+        )
+        self.logger.info("model:\n{:}".format(self.GRU_model))
+        self.logger.info("model size: {:.4f} MB".format(count_parameters(self.GRU_model)))
+
         if optimizer.lower() == "adam":
             self.train_optimizer = optim.Adam(self.GRU_model.parameters(), lr=self.lr)
         elif optimizer.lower() == "gd":
@@ -137,6 +133,10 @@ class GRU(Model):
 
         self.fitted = False
         self.GRU_model.to(self.device)
+
+    @property
+    def use_gpu(self):
+        return self.device != torch.device("cpu")
 
     def mse(self, pred, label):
         loss = (pred - label) ** 2
@@ -188,12 +188,13 @@ class GRU(Model):
             # feature[torch.isnan(feature)] = 0
             label = data[:, -1, -1].to(self.device)
 
-            pred = self.GRU_model(feature.float())
-            loss = self.loss_fn(pred, label)
-            losses.append(loss.item())
+            with torch.no_grad():
+                pred = self.GRU_model(feature.float())
+                loss = self.loss_fn(pred, label)
+                losses.append(loss.item())
 
-            score = self.metric_fn(pred, label)
-            scores.append(score.item())
+                score = self.metric_fn(pred, label)
+                scores.append(score.item())
 
         return np.mean(losses), np.mean(scores)
 
@@ -201,7 +202,6 @@ class GRU(Model):
         self,
         dataset,
         evals_result=dict(),
-        verbose=True,
         save_path=None,
     ):
         dl_train = dataset.prepare("train", col_set=["feature", "label"], data_key=DataHandlerLP.DK_L)
@@ -210,11 +210,14 @@ class GRU(Model):
         dl_train.config(fillna_type="ffill+bfill")  # process nan brought by dataloader
         dl_valid.config(fillna_type="ffill+bfill")  # process nan brought by dataloader
 
-        train_loader = DataLoader(dl_train, batch_size=self.batch_size, shuffle=True, num_workers=self.n_jobs)
-        valid_loader = DataLoader(dl_valid, batch_size=self.batch_size, shuffle=False, num_workers=self.n_jobs)
+        train_loader = DataLoader(
+            dl_train, batch_size=self.batch_size, shuffle=True, num_workers=self.n_jobs, drop_last=True
+        )
+        valid_loader = DataLoader(
+            dl_valid, batch_size=self.batch_size, shuffle=False, num_workers=self.n_jobs, drop_last=True
+        )
 
-        if save_path == None:
-            save_path = create_save_path(save_path)
+        save_path = get_or_create_path(save_path)
 
         stop_steps = 0
         train_loss = 0
@@ -271,10 +274,7 @@ class GRU(Model):
             feature = data[:, :, 0:-1].to(self.device)
 
             with torch.no_grad():
-                if self.use_gpu:
-                    pred = self.GRU_model(feature.float()).detach().cpu().numpy()
-                else:
-                    pred = self.GRU_model(feature.float()).detach().numpy()
+                pred = self.GRU_model(feature.float()).detach().cpu().numpy()
 
             preds.append(pred)
 

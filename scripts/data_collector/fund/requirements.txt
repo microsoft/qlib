@@ -1,0 +1,10 @@
+loguru
+fire
+requests
+numpy
+pandas
+tqdm
+lxml
+loguru
+yahooquery
+json
