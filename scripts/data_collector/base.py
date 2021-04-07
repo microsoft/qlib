@@ -326,12 +326,13 @@ class BaseRun(abc.ABC):
             freq, value from [1min, 1d], default 1d
         """
         if source_dir is None:
-            source_dir = Path(self.default_base_dir).joinpath("_source")
+            source_dir = Path(self.default_base_dir).joinpath("source")
         self.source_dir = Path(source_dir).expanduser().resolve()
         self.source_dir.mkdir(parents=True, exist_ok=True)
 
         if normalize_dir is None:
             normalize_dir = Path(self.default_base_dir).joinpath("normalize")
+        print(normalize_dir)
         self.normalize_dir = Path(normalize_dir).expanduser().resolve()
         self.normalize_dir.mkdir(parents=True, exist_ok=True)
 
