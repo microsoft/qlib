@@ -2,6 +2,7 @@
 # Licensed under the MIT License.
 
 import abc
+from typing import Union, Text
 import numpy as np
 import pandas as pd
 import copy
@@ -14,7 +15,7 @@ from ...utils.paral import datetime_groupby_apply
 EPS = 1e-12
 
 
-def get_group_columns(df: pd.DataFrame, group: str):
+def get_group_columns(df: pd.DataFrame, group: Union[Text, None]):
     """
     get a group of columns from multi-index columns DataFrame
 
