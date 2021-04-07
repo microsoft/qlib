@@ -18,6 +18,7 @@ sys.path.append(str(CUR_DIR.parent.parent))
 from data_collector.base import BaseCollector, BaseRun
 from data_collector.utils import get_calendar_list, get_hs_stock_symbols
 
+
 class PitCollector(BaseCollector):
 
     DEFAULT_START_DATETIME_QUARTER = pd.Timestamp("2000-01-01")
@@ -76,103 +77,109 @@ class PitCollector(BaseCollector):
         symbol_s = symbol.split(".")
         symbol = f"sh{symbol_s[0]}" if symbol_s[-1] == "ss" else f"sz{symbol_s[0]}"
         return symbol
-    
+
     def get_instrument_list(self):
         logger.info("get cn stock symbols......")
         symbols = get_hs_stock_symbols()
         logger.info(f"get {len(symbols)} symbols.")
         return symbols
-        
+
     def _get_data_from_baostock(self, symbol, interval, start_datetime, end_datetime):
         error_msg = f"{symbol}-{interval}-{start_datetime}-{end_datetime}"
         try:
             symbol = f"{symbol[7:]}.{symbol[:6]}"
             print(symbol)
-            rs_report = bs.query_performance_express_report(code=symbol, start_date=str(start_datetime.date()), end_date=str(end_datetime.date()))
+            rs_report = bs.query_performance_express_report(
+                code=symbol, start_date=str(start_datetime.date()), end_date=str(end_datetime.date())
+            )
             report_list = []
-            while (rs_report.error_code == '0') & rs_report.next():
+            while (rs_report.error_code == "0") & rs_report.next():
                 report_list.append(rs_report.get_row_data())
                 # 获取一条记录，将记录合并在一起
             df_report = pd.DataFrame(report_list, columns=rs_report.fields)
             if not df_report.empty:
-                df_report = df_report[['performanceExpPubDate', 'performanceExpStatDate', 'performanceExpressROEWa']]
+                df_report = df_report[["performanceExpPubDate", "performanceExpStatDate", "performanceExpressROEWa"]]
                 df_report.rename(
-                    columns = {
-                        "performanceExpPubDate": "date", 
+                    columns={
+                        "performanceExpPubDate": "date",
                         "performanceExpStatDate": "period",
-                        "performanceExpressROEWa":"value"
-                    }, 
+                        "performanceExpressROEWa": "value",
+                    },
                     inplace=True,
                 )
-                df_report['value'] = df_report['value'].astype('float32') / 100.0
-                df_report['field'] = "roeWa"
+                df_report["value"] = df_report["value"].astype("float32") / 100.0
+                df_report["field"] = "roeWa"
 
             profit_list = []
             for year in range(start_datetime.year - 1, end_datetime.year + 1):
                 for q_num in range(0, 4):
                     rs_profit = bs.query_profit_data(code=symbol, year=year, quarter=q_num + 1)
-                    while (rs_profit.error_code == '0') & rs_profit.next():
+                    while (rs_profit.error_code == "0") & rs_profit.next():
                         row_data = rs_profit.get_row_data()
-                        pub_date = pd.Timestamp(row_data[rs_profit.fields.index('pubDate')])
+                        pub_date = pd.Timestamp(row_data[rs_profit.fields.index("pubDate")])
                         if pub_date >= start_datetime and pub_date <= end_datetime:
                             profit_list.append(row_data)
-            
+
             df_profit = pd.DataFrame(profit_list, columns=rs_profit.fields)
             if not df_profit.empty:
-                df_profit = df_profit[['pubDate', 'statDate', 'roeAvg']]
+                df_profit = df_profit[["pubDate", "statDate", "roeAvg"]]
                 df_profit.rename(
-                    columns = {
-                        "pubDate": "date", 
-                        "statDate": "period",
-                        "roeAvg":"value"
-                    }, 
+                    columns={"pubDate": "date", "statDate": "period", "roeAvg": "value"},
                     inplace=True,
                 )
-                df_profit['value'] = df_profit['value'].astype('float32')
-                df_profit['field'] = "roeWa"
+                df_profit["value"] = df_profit["value"].astype("float32")
+                df_profit["field"] = "roeWa"
 
             forecast_list = []
-            rs_forecast = bs.query_forecast_report(code=symbol, start_date=str(start_datetime.date()), end_date=str(end_datetime.date()))
-            
-            while (rs_forecast.error_code == '0') & rs_forecast.next():
+            rs_forecast = bs.query_forecast_report(
+                code=symbol, start_date=str(start_datetime.date()), end_date=str(end_datetime.date())
+            )
+
+            while (rs_forecast.error_code == "0") & rs_forecast.next():
                 forecast_list.append(rs_forecast.get_row_data())
 
             df_forecast = pd.DataFrame(forecast_list, columns=rs_forecast.fields)
             if not df_forecast.empty:
-                df_forecast = df_forecast[['profitForcastExpPubDate', 'profitForcastExpStatDate', 'profitForcastChgPctUp', 'profitForcastChgPctDwn']]
+                df_forecast = df_forecast[
+                    [
+                        "profitForcastExpPubDate",
+                        "profitForcastExpStatDate",
+                        "profitForcastChgPctUp",
+                        "profitForcastChgPctDwn",
+                    ]
+                ]
                 df_forecast.rename(
-                    columns = {
-                        "profitForcastExpPubDate": "date", 
+                    columns={
+                        "profitForcastExpPubDate": "date",
                         "profitForcastExpStatDate": "period",
-                    }, 
+                    },
                     inplace=True,
                 )
-                df_forecast['value'] = (df_forecast['profitForcastChgPctUp'].astype('float32') + df_forecast['profitForcastChgPctDwn'].astype('float32')) / 200
-                df_forecast['field'] = "YOYNI"
-                df_forecast.drop(['profitForcastChgPctUp', 'profitForcastChgPctDwn'], axis=1, inplace=True)
+                df_forecast["value"] = (
+                    df_forecast["profitForcastChgPctUp"].astype("float32")
+                    + df_forecast["profitForcastChgPctDwn"].astype("float32")
+                ) / 200
+                df_forecast["field"] = "YOYNI"
+                df_forecast.drop(["profitForcastChgPctUp", "profitForcastChgPctDwn"], axis=1, inplace=True)
 
             growth_list = []
             for year in range(start_datetime.year - 1, end_datetime.year + 1):
                 for q_num in range(0, 4):
                     rs_growth = bs.query_growth_data(code=symbol, year=year, quarter=q_num + 1)
-                    while (rs_growth.error_code == '0') & rs_growth.next():
+                    while (rs_growth.error_code == "0") & rs_growth.next():
                         row_data = rs_growth.get_row_data()
-                        pub_date = pd.Timestamp(row_data[rs_growth.fields.index('pubDate')])
+                        pub_date = pd.Timestamp(row_data[rs_growth.fields.index("pubDate")])
                         if pub_date >= start_datetime and pub_date <= end_datetime:
                             growth_list.append(row_data)
-            df_growth = pd.DataFrame(growth_list, columns=rs_growth.fields)[['pubDate', 'statDate', 'YOYNI']]
+            df_growth = pd.DataFrame(growth_list, columns=rs_growth.fields)[["pubDate", "statDate", "YOYNI"]]
             if not df_growth.empty:
-                df_growth = df_growth[['pubDate', 'statDate', 'YOYNI']]
+                df_growth = df_growth[["pubDate", "statDate", "YOYNI"]]
                 df_growth.rename(
-                    columns = {
-                        "pubDate": "date", 
-                        "statDate": "period",
-                        "YOYNI":"value"
-                    }, 
+                    columns={"pubDate": "date", "statDate": "period", "YOYNI": "value"},
                     inplace=True,
                 )
-                df_growth['value'] = df_growth['value'].astype('float32')
-                df_growth['field'] = "YOYNI"
+                df_growth["value"] = df_growth["value"].astype("float32")
+                df_growth["field"] = "YOYNI"
 
             df_merge = df_report.append([df_profit, df_forecast, df_growth])
             return df_merge
@@ -192,6 +199,7 @@ class PitCollector(BaseCollector):
     @property
     def min_numbers_trading(self):
         pass
+
 
 class Run(BaseRun):
     def __init__(self, source_dir=None, max_workers=4, interval="quarterly"):
@@ -257,6 +265,7 @@ class Run(BaseRun):
 
     def normalize_class_name(self):
         pass
+
 
 if __name__ == "__main__":
     bs.login()
