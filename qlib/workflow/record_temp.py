@@ -145,6 +145,10 @@ class SignalRecord(RecordTemp):
                 del params["data_key"]
                 # The backend handler should be DataHandler
                 raw_label = self.dataset.prepare(**params)
+            except AttributeError:
+                # The data handler is initialize with `drop_raw=True`...
+                # So raw_label is not available
+                raw_label = None
 
             self.recorder.save_objects(**{"label.pkl": raw_label})
             self.dataset.__class__ = orig_cls

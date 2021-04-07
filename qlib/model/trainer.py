@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-from qlib.utils import init_instance_by_config, flatten_dict
+from qlib.utils import init_instance_by_config, flatten_dict, get_cls_kwargs
 from qlib.workflow import R
 from qlib.workflow.record_temp import SignalRecord
 
@@ -41,16 +41,11 @@ def task_train(task_config: dict, experiment_name: str) -> str:
         if isinstance(records, dict):  # prevent only one dict
             records = [records]
         for record in records:
-            if record["class"] == SignalRecord.__name__:
-                srconf = {"model": model, "dataset": dataset, "recorder": recorder}
-                record.setdefault("kwargs", {})
-                record["kwargs"].update(srconf)
-                sr = init_instance_by_config(record)
-                sr.generate()
+            cls, kwargs = get_cls_kwargs(record, default_module="qlib.workflow.record_temp")
+            if cls is SignalRecord:
+                rconf = {"model": model, "dataset": dataset, "recorder": recorder}
             else:
                 rconf = {"recorder": recorder}
-                record.setdefault("kwargs", {})
-                record["kwargs"].update(rconf)
-                ar = init_instance_by_config(record)
-                ar.generate()
+            r = cls(**kwargs, **rconf)
+            r.generate()
     return recorder.info["id"]
