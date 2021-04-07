@@ -54,10 +54,10 @@ task = {
 
 def first_train(experiment_name="online_srv"):
 
-    rid = task_train(task_config=task, experiment_name=experiment_name)
+    rec = task_train(task_config=task, experiment_name=experiment_name)
 
     online_manager = OnlineManagerR(experiment_name)
-    online_manager.reset_online_tag(rid)
+    online_manager.reset_online_tag(rec)
 
 
 def update_online_pred(experiment_name="online_srv"):
@@ -71,13 +71,17 @@ def update_online_pred(experiment_name="online_srv"):
 
     online_manager.update_online_pred()
 
+def main(provider_uri = "~/.qlib/qlib_data/cn_data", region=REG_CN, experiment_name="online_srv"):
+    provider_uri = "~/.qlib/qlib_data/cn_data"  # target_dir
+    qlib.init(provider_uri=provider_uri, region=region)
+    first_train(experiment_name)
+    update_online_pred(experiment_name)
 
 if __name__ == "__main__":
     ## to train a model and set it to online model, use the command below
     # python update_online_pred.py first_train
     ## to update online predictions once a day, use the command below
     # python update_online_pred.py update_online_pred
-
-    provider_uri = "~/.qlib/qlib_data/cn_data"  # target_dir
-    qlib.init(provider_uri=provider_uri, region=REG_CN)
+    ## to see the whole process with your own parameters, use the command below
+    # python update_online_pred.py main --experiment_name="your_exp_name"
     fire.Fire()

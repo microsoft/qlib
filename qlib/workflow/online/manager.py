@@ -20,7 +20,7 @@ class OnlineManager(Serializable):
     NEXT_ONLINE_TAG = "next_online"  # the 'next online' model, which can be 'online' model when call reset_online_model
     OFFLINE_TAG = "offline"  # the 'offline' model, not for online serving
 
-    def __init__(self, trainer: Trainer = None) -> None:
+    def __init__(self, trainer: Trainer = None):
         self._trainer = trainer
         self.logger = get_module_logger(self.__class__.__name__)
 
@@ -81,7 +81,8 @@ class OnlineManagerR(OnlineManager):
 
     """
 
-    def __init__(self, experiment_name: str, trainer: Trainer = TrainerR()) -> None:
+    def __init__(self, experiment_name: str, trainer: Trainer = None):
+        trainer = TrainerR(experiment_name)
         super().__init__(trainer)
         self.logger = get_module_logger(self.__class__.__name__)
         self.exp_name = experiment_name
@@ -105,20 +106,22 @@ class OnlineManagerR(OnlineManager):
                 the recorders you want to reset to 'online'. If don't give, set 'next online' model to 'online' model. If there isn't any 'next online' model, then maintain existing 'online' model.
         """
         if recorder is None:
-            recorder = list_recorders(
-                self.exp_name, lambda rec: self.get_online_tag(rec) == OnlineManager.NEXT_ONLINE_TAG
-            ).values()
+            recorder = list(
+                list_recorders(
+                    self.exp_name, lambda rec: self.get_online_tag(rec) == OnlineManager.NEXT_ONLINE_TAG
+                ).values()
+            )
         if isinstance(recorder, Recorder):
             recorder = [recorder]
         if len(recorder) == 0:
             self.logger.info("No 'next online' model, just use current 'online' models.")
             return
         recs = list_recorders(self.exp_name)
-        self.set_online_tag(OnlineManager.OFFLINE_TAG, recs.values())
+        self.set_online_tag(OnlineManager.OFFLINE_TAG, list(recs.values()))
         self.set_online_tag(OnlineManager.ONLINE_TAG, recorder)
         self.logger.info(f"Reset {len(recorder)} models to 'online'.")
 
-    def update_online_pred(self):
+    def update_online_pred(self, *args, **kwargs):
         """update all online model predictions to the latest day in Calendar"""
         mu = ModelUpdater(self.exp_name)
         cnt = mu.update_all_pred(lambda rec: self.get_online_tag(rec) == OnlineManager.ONLINE_TAG)
@@ -126,25 +129,24 @@ class OnlineManagerR(OnlineManager):
 
 
 class RollingOnlineManager(OnlineManagerR):
-    """An implementation of OnlineManager based on Rolling.
-
-    """
+    """An implementation of OnlineManager based on Rolling."""
 
     def __init__(
         self,
         experiment_name: str,
         rolling_gen: RollingGen,
-        trainer: Trainer = TrainerR(),
-    ) -> None:
+        trainer: Trainer = None,
+    ):
+        trainer = TrainerR(experiment_name)
         super().__init__(experiment_name, trainer)
         self.ta = TimeAdjuster()
         self.rg = rolling_gen
         self.logger = get_module_logger(self.__class__.__name__)
 
-    def prepare_signals(self):
+    def prepare_signals(self, *args, **kwargs):
         pass
 
-    def prepare_tasks(self):
+    def prepare_tasks(self, *args, **kwargs):
         """prepare new tasks based on new date.
 
         Returns:
@@ -155,7 +157,7 @@ class RollingOnlineManager(OnlineManagerR):
         )
         if max_test is None:
             self.logger.warn(f"No latest online recorders, no new tasks.")
-            return None
+            return []
         calendar_latest = self.ta.last_date()
         if self.ta.cal_interval(calendar_latest, max_test[0]) > self.rg.step:
             old_tasks = []
@@ -168,7 +170,7 @@ class RollingOnlineManager(OnlineManagerR):
             new_tasks_tmp = task_generator(old_tasks, self.rg)
             new_tasks = [task for task in new_tasks_tmp if task not in old_tasks]
             return new_tasks
-        return None
+        return []
 
     def list_latest_recorders(self, rec_filter_func=None):
         """find latest recorders based on test segments.

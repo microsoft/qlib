@@ -49,7 +49,7 @@ class TaskManager:
 
     ENCODE_FIELDS_PREFIX = ["def", "res"]
 
-    def __init__(self, task_pool=None):
+    def __init__(self, task_pool: str):
         """
         init Task Manager, remember to make the statement of MongoDB url and database name firstly.
 
@@ -59,8 +59,12 @@ class TaskManager:
             the name of Collection in MongoDB
         """
         self.mdb = get_mongodb()
-        self.task_pool = task_pool
+        self.task_pool = getattr(self.mdb, task_pool)
         self.logger = get_module_logger(self.__class__.__name__)
+
+    # @property
+    # def task_pool(self):
+    #     return self._task_pool
 
     def list(self):
         return self.mdb.list_collection_names()
@@ -79,39 +83,39 @@ class TaskManager:
                     task[k] = pickle.loads(task[k])
         return task
 
-    def _get_task_pool(self, task_pool=None):
-        if task_pool is None:
-            task_pool = self.task_pool
-        if task_pool is None:
-            raise ValueError("You must specify a task pool.")
-        if isinstance(task_pool, str):
-            return getattr(self.mdb, task_pool)
-        return task_pool
+    # def _get_task_pool(self, task_pool=None):
+    #     if task_pool is None:
+    #         task_pool = self.task_pool
+    #     if task_pool is None:
+    #         raise ValueError("You must specify a task pool.")
+    #     if isinstance(task_pool, str):
+    #         return getattr(self.mdb, task_pool)
+    #     return task_pool
 
     def _dict_to_str(self, flt):
         return {k: str(v) for k, v in flt.items()}
 
-    def replace_task(self, task, new_task, task_pool=None):
+    def replace_task(self, task, new_task):
         # assume that the data out of interface was decoded and the data in interface was encoded
         new_task = self._encode_task(new_task)
-        task_pool = self._get_task_pool(task_pool)
+        # task_pool = self._get_task_pool(task_pool)
         query = {"_id": ObjectId(task["_id"])}
         try:
-            task_pool.replace_one(query, new_task)
+            self.task_pool.replace_one(query, new_task)
         except InvalidDocument:
             task["filter"] = self._dict_to_str(task["filter"])
-            task_pool.replace_one(query, new_task)
+            self.task_pool.replace_one(query, new_task)
 
-    def insert_task(self, task, task_pool=None):
-        task_pool = self._get_task_pool(task_pool)
+    def insert_task(self, task):
+        # task_pool = self._get_task_pool(task_pool)
         try:
-            insert_result = task_pool.insert_one(task)
+            insert_result = self.task_pool.insert_one(task)
         except InvalidDocument:
             task["filter"] = self._dict_to_str(task["filter"])
-            insert_result = task_pool.insert_one(task)
+            insert_result = self.task_pool.insert_one(task)
         return insert_result
 
-    def insert_task_def(self, task_def, task_pool=None):
+    def insert_task_def(self, task_def):
         """
         insert a task to task_pool
 
@@ -126,7 +130,7 @@ class TaskManager:
         -------
 
         """
-        task_pool = self._get_task_pool(task_pool)
+        # task_pool = self._get_task_pool(task_pool)
         task = self._encode_task(
             {
                 "def": task_def,
@@ -134,10 +138,10 @@ class TaskManager:
                 "status": self.STATUS_WAITING,
             }
         )
-        insert_result = self.insert_task(task, task_pool)
+        insert_result = self.insert_task(task)
         return insert_result
 
-    def create_task(self, task_def_l, task_pool=None, dry_run=False, print_nt=False):
+    def create_task(self, task_def_l, dry_run=False, print_nt=False):
         """
         if the tasks in task_def_l is new, then insert new tasks into the task_pool
 
@@ -156,13 +160,13 @@ class TaskManager:
         list
             a list of the _id of new tasks
         """
-        task_pool = self._get_task_pool(task_pool)
+        # task_pool = self._get_task_pool(task_pool)
         new_tasks = []
         for t in task_def_l:
             try:
-                r = task_pool.find_one({"filter": t})
+                r = self.task_pool.find_one({"filter": t})
             except InvalidDocument:
-                r = task_pool.find_one({"filter": self._dict_to_str(t)})
+                r = self.task_pool.find_one({"filter": self._dict_to_str(t)})
             if r is None:
                 new_tasks.append(t)
         self.logger.info(f"Total Tasks: {len(task_def_l)}, New Tasks: {len(new_tasks)}")
@@ -176,18 +180,18 @@ class TaskManager:
 
         _id_list = []
         for t in new_tasks:
-            insert_result = self.insert_task_def(t, task_pool)
+            insert_result = self.insert_task_def(t)
             _id_list.append(insert_result.inserted_id)
 
         return _id_list
 
-    def fetch_task(self, query={}, task_pool=None):
-        task_pool = self._get_task_pool(task_pool)
+    def fetch_task(self, query={}):
+        # task_pool = self._get_task_pool(task_pool)
         query = query.copy()
         if "_id" in query:
             query["_id"] = ObjectId(query["_id"])
         query.update({"status": self.STATUS_WAITING})
-        task = task_pool.find_one_and_update(
+        task = self.task_pool.find_one_and_update(
             query, {"$set": {"status": self.STATUS_RUNNING}}, sort=[("priority", pymongo.DESCENDING)]
         )
         # null will be at the top after sorting when using ASCENDING, so the larger the number higher, the higher the priority
@@ -197,7 +201,7 @@ class TaskManager:
         return self._decode_task(task)
 
     @contextmanager
-    def safe_fetch_task(self, query={}, task_pool=None):
+    def safe_fetch_task(self, query={}):
         """
         fetch task from task_pool using query with contextmanager
 
@@ -212,7 +216,7 @@ class TaskManager:
         -------
 
         """
-        task = self.fetch_task(query=query, task_pool=task_pool)
+        task = self.fetch_task(query=query)
         try:
             yield task
         except Exception:
@@ -229,7 +233,7 @@ class TaskManager:
                     break
                 yield task
 
-    def query(self, query={}, decode=True, task_pool=None):
+    def query(self, query={}, decode=True):
         """
         This function may raise exception `pymongo.errors.CursorNotFound: cursor id not found` if it takes too long to iterate the generator
 
@@ -248,29 +252,30 @@ class TaskManager:
         query = query.copy()
         if "_id" in query:
             query["_id"] = ObjectId(query["_id"])
-        task_pool = self._get_task_pool(task_pool)
-        for t in task_pool.find(query):
+        # task_pool = self._get_task_pool(task_pool)
+        for t in self.task_pool.find(query):
             yield self._decode_task(t)
 
-    def re_query(self, _id, task_pool=None):
-        task_pool = self._get_task_pool(task_pool)
-        return task_pool.find_one({"_id": ObjectId(_id)})
+    def re_query(self, _id):
+        # task_pool = self._get_task_pool(task_pool)
+        t = self.task_pool.find_one({"_id": ObjectId(_id)})
+        return self._decode_task(t)
 
-    def commit_task_res(self, task, res, status=None, task_pool=None):
-        task_pool = self._get_task_pool(task_pool)
+    def commit_task_res(self, task, res, status=None):
+        # task_pool = self._get_task_pool(task_pool)
         # A workaround to use the class attribute.
         if status is None:
             status = TaskManager.STATUS_DONE
-        task_pool.update_one({"_id": task["_id"]}, {"$set": {"status": status, "res": Binary(pickle.dumps(res))}})
+        self.task_pool.update_one({"_id": task["_id"]}, {"$set": {"status": status, "res": Binary(pickle.dumps(res))}})
 
-    def return_task(self, task, status=None, task_pool=None):
-        task_pool = self._get_task_pool(task_pool)
+    def return_task(self, task, status=None):
+        # task_pool = self._get_task_pool(task_pool)
         if status is None:
             status = TaskManager.STATUS_WAITING
         update_dict = {"$set": {"status": status}}
-        task_pool.update_one({"_id": task["_id"]}, update_dict)
+        self.task_pool.update_one({"_id": task["_id"]}, update_dict)
 
-    def remove(self, query={}, task_pool=None):
+    def remove(self, query={}):
         """
         remove the task using query
 
@@ -286,16 +291,16 @@ class TaskManager:
 
         """
         query = query.copy()
-        task_pool = self._get_task_pool(task_pool)
+        # task_pool = self._get_task_pool(task_pool)
         if "_id" in query:
             query["_id"] = ObjectId(query["_id"])
-        task_pool.delete_many(query)
+        self.task_pool.delete_many(query)
 
-    def task_stat(self, query={}, task_pool=None):
+    def task_stat(self, query={}):
         query = query.copy()
         if "_id" in query:
             query["_id"] = ObjectId(query["_id"])
-        tasks = self.query(task_pool=task_pool, query=query, decode=False)
+        tasks = self.query(query=query, decode=False)
         status_stat = {}
         for t in tasks:
             status_stat[t["status"]] = status_stat.get(t["status"], 0) + 1
@@ -306,14 +311,14 @@ class TaskManager:
         # default query
         if "status" not in query:
             query["status"] = self.STATUS_RUNNING
-        return self.reset_status(query=query, status=self.STATUS_WAITING, task_pool=task_pool)
+        return self.reset_status(query=query, status=self.STATUS_WAITING)
 
-    def reset_status(self, query, status, task_pool=None):
+    def reset_status(self, query, status):
         query = query.copy()
-        task_pool = self._get_task_pool(task_pool)
+        # task_pool = self._get_task_pool(task_pool)
         if "_id" in query:
             query["_id"] = ObjectId(query["_id"])
-        print(task_pool.update_many(query, {"$set": {"status": status}}))
+        print(self.task_pool.update_many(query, {"$set": {"status": status}}))
 
     def _get_undone_n(self, task_stat):
         return task_stat.get(self.STATUS_WAITING, 0) + task_stat.get(self.STATUS_RUNNING, 0)
@@ -321,14 +326,14 @@ class TaskManager:
     def _get_total(self, task_stat):
         return sum(task_stat.values())
 
-    def wait(self, query={}, task_pool=None):
-        task_stat = self.task_stat(query, task_pool)
+    def wait(self, query={}):
+        task_stat = self.task_stat(query)
         total = self._get_total(task_stat)
         last_undone_n = self._get_undone_n(task_stat)
         with tqdm(total=total, initial=total - last_undone_n) as pbar:
             while True:
                 time.sleep(10)
-                undone_n = self._get_undone_n(self.task_stat(query, task_pool))
+                undone_n = self._get_undone_n(self.task_stat(query))
                 pbar.update(last_undone_n - undone_n)
                 last_undone_n = undone_n
                 if undone_n == 0:
@@ -365,7 +370,7 @@ def run_task(task_func, task_pool, force_release=False, *args, **kwargs):
                 break
             get_module_logger("run_task").info(task["def"])
             if force_release:
-                with concurrent.futures.ProcessPoolExecutor(max_workers=1) as executor:
+                with concurrent.futures.ProcessPoolExecutor(max_workers=1) as executor:  # what this means?
                     res = executor.submit(task_func, task["def"], *args, **kwargs).result()
             else:
                 res = task_func(task["def"], *args, **kwargs)

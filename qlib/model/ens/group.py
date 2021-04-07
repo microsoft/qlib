@@ -1,8 +1,9 @@
 from qlib.model.ens.ensemble import Ensemble, RollingEnsemble
 from typing import Callable, Union
+from qlib.utils.serial import Serializable
 
 
-class Group:
+class Group(Serializable):
     """Group the objects based on dict"""
 
     def __init__(self, group_func=None, ens: Ensemble = None):
@@ -17,8 +18,8 @@ class Group:
 
             ens (Ensemble, optional): If not None, do ensemble for grouped value after grouping.
         """
-        self._group = group_func
-        self._ens = ens
+        self.group = group_func
+        self.ens = ens
 
     def __call__(self, ungrouped_dict: dict, *args, **kwargs):
         """Group the ungrouped_dict into different groups.
@@ -29,16 +30,16 @@ class Group:
         Returns:
             dict: grouped_dict like {G1: object, G2: object}
         """
-        if isinstance(getattr(self, "_group", None), Callable):
-            grouped_dict = self._group(ungrouped_dict, *args, **kwargs)
-            if self._ens is not None:
+        if isinstance(getattr(self, "group", None), Callable):
+            grouped_dict = self.group(ungrouped_dict, *args, **kwargs)
+            if self.ens is not None:
                 ens_dict = {}
                 for key, value in grouped_dict.items():
-                    ens_dict[key] = self._ens(value)
+                    ens_dict[key] = self.ens(value)
                 grouped_dict = ens_dict
             return grouped_dict
         else:
-            raise NotImplementedError(f"Please specify valid merge_func.")
+            raise NotImplementedError(f"Please specify valid group_func.")
 
 
 class RollingGroup(Group):
@@ -65,4 +66,4 @@ class RollingGroup(Group):
     def __init__(self, group_func=None, ens: Ensemble = RollingEnsemble()):
         super().__init__(group_func=group_func, ens=ens)
         if group_func is None:
-            self._group = RollingGroup.rolling_group
+            self.group = RollingGroup.rolling_group

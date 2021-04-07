@@ -147,7 +147,7 @@ _default_config = {
     "mongo": {
         "task_url": "mongodb://localhost:27017/",
         "task_db_name": "default_task_db",
-    }
+    },
 }
 
 MODE_CONF = {

@@ -3,9 +3,10 @@ from typing import Callable, Union
 
 import pandas as pd
 from qlib.workflow.task.collect import Collector
+from qlib.utils.serial import Serializable
 
 
-def ens_workflow(collector: Collector, process_list, artifacts_key=None, rec_filter_func=None, *args, **kwargs):
+def ens_workflow(collector: Collector, process_list, *args, **kwargs):
     """the ensemble workflow based on collector and different dict processors.
 
     Args:
@@ -21,7 +22,7 @@ def ens_workflow(collector: Collector, process_list, artifacts_key=None, rec_fil
     Returns:
         dict: the ensemble dict
     """
-    collect_dict = collector.collect(artifacts_key=artifacts_key, rec_filter_func=rec_filter_func)
+    collect_dict = collector.collect()
     if not isinstance(process_list, list):
         process_list = [process_list]
 
@@ -37,23 +38,12 @@ def ens_workflow(collector: Collector, process_list, artifacts_key=None, rec_fil
     return ensemble
 
 
-class Ensemble:
+class Ensemble(Serializable):
     """Merge the objects in an Ensemble."""
-
-    def __init__(self, merge_func=None):
-        """init Ensemble
-
-        Args:
-            merge_func (Callable, optional): Given a dict and return the ensemble.
-
-                For example: {Rollinga_b: object, Rollingb_c: object} -> object
-
-            Defaults to None.
-        """
-        self._merge = merge_func
 
     def __call__(self, ensemble_dict: dict, *args, **kwargs):
         """Merge the ensemble_dict into an ensemble object.
+        For example: {Rollinga_b: object, Rollingb_c: object} -> object
 
         Args:
             ensemble_dict (dict): the ensemble dict waiting for merging like {name: things}
@@ -61,38 +51,29 @@ class Ensemble:
         Returns:
             object: the ensemble object
         """
-        if isinstance(getattr(self, "_merge", None), Callable):
-            return self._merge(ensemble_dict, *args, **kwargs)
-        else:
-            raise NotImplementedError(f"Please specify valid merge_func.")
+        raise NotImplementedError(f"Please implement the `__call__` method.")
 
 
 class RollingEnsemble(Ensemble):
 
     """Merge the rolling objects in an Ensemble"""
 
-    @staticmethod
-    def rolling_merge(rolling_dict: dict):
+    def __call__(self, ensemble_dict: dict, *args, **kwargs):
         """Merge a dict of rolling dataframe like `prediction` or `IC` into an ensemble.
 
         NOTE: The values of dict must be pd.Dataframe, and have the index "datetime"
 
         Args:
-            rolling_dict (dict): a dict like {"A": pd.Dataframe, "B": pd.Dataframe}.
+            ensemble_dict (dict): a dict like {"A": pd.Dataframe, "B": pd.Dataframe}.
             The key of the dict will be ignored.
 
         Returns:
             pd.Dataframe: the complete result of rolling.
         """
-        artifact_list = list(rolling_dict.values())
+        artifact_list = list(ensemble_dict.values())
         artifact_list.sort(key=lambda x: x.index.get_level_values("datetime").min())
         artifact = pd.concat(artifact_list)
         # If there are duplicated predition, use the latest perdiction
         artifact = artifact[~artifact.index.duplicated(keep="last")]
         artifact = artifact.sort_index()
         return artifact
-
-    def __init__(self, merge_func=None):
-        super().__init__(merge_func=merge_func)
-        if merge_func is None:
-            self._merge = RollingEnsemble.rolling_merge
