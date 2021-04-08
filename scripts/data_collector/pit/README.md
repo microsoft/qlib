@@ -18,6 +18,6 @@ pip install -r requirements.txt
 ```bash
 
 # download from baostock.com
-python collector.py download_data --source_dir ~/.qlib/cn_data/source/pit_quarter --start 2010-01-01 --end 2021-01-01 --interval quarterly
+python collector.py download_data --source_dir ~/.qlib/cn_data/source/pit_quarter --start 2010-01-01 --end 2020-01-01 --interval quarterly
 
 ```

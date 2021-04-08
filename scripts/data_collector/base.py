@@ -200,7 +200,6 @@ class BaseCollector(abc.ABC):
                     if _result != self.NORMAL_FLAG:
                         error_symbol.append(_symbol)
                     p_bar.update()
-        print(error_symbol)
         logger.info(f"error symbol nums: {len(error_symbol)}")
         logger.info(f"current get symbol nums: {len(instrument_list)}")
         error_symbol.extend(self.mini_symbol_map.keys())
@@ -332,7 +331,6 @@ class BaseRun(abc.ABC):
 
         if normalize_dir is None:
             normalize_dir = Path(self.default_base_dir).joinpath("normalize")
-        print(normalize_dir)
         self.normalize_dir = Path(normalize_dir).expanduser().resolve()
         self.normalize_dir.mkdir(parents=True, exist_ok=True)
 
