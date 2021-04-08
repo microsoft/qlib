@@ -28,19 +28,19 @@ class RecorderCollector(Collector):
     def __init__(
         self,
         exp_name,
-        artifacts_path={"pred": "pred.pkl", "IC": "sig_analysis/ic.pkl"},
         rec_key_func=None,
-        artifacts_key=None,
         rec_filter_func=None,
+        artifacts_path={"pred": "pred.pkl", "IC": "sig_analysis/ic.pkl"},
+        artifacts_key=None,
     ):
         """init RecorderCollector
 
         Args:
             exp_name (str): the name of Experiment
-            artifacts_path (dict, optional): The artifacts name and its path in Recorder. Defaults to {"pred": "pred.pkl", "IC": "sig_analysis/ic.pkl"}.
             rec_key_func (Callable): a function to get the key of a recorder. If None, use recorder id.
-            artifacts_key (str or List, optional): the artifacts key you want to get. If None, get all artifacts.
             rec_filter_func (Callable, optional): filter the recorder by return True or False. Defaults to None.
+            artifacts_path (dict, optional): The artifacts name and its path in Recorder. Defaults to {"pred": "pred.pkl", "IC": "sig_analysis/ic.pkl"}.
+            artifacts_key (str or List, optional): the artifacts key you want to get. If None, get all artifacts.
         """
         self.exp_name = exp_name
         self.artifacts_path = artifacts_path

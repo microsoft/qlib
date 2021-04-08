@@ -63,7 +63,7 @@ class RollingGroup(Group):
                 grouped_dict.setdefault(key[:-1], {})[key[-1]] = values
         return grouped_dict
 
-    def __init__(self, group_func=None, ens: Ensemble = RollingEnsemble()):
-        super().__init__(group_func=group_func, ens=ens)
+    def __init__(self, group_func=None):
+        super().__init__(group_func=group_func, ens=RollingEnsemble())
         if group_func is None:
             self.group = RollingGroup.rolling_group
