@@ -119,7 +119,8 @@ def task_collecting(task_pool, exp_name):
         return False
 
     artifact = ens_workflow(
-        RecorderCollector(exp_name=exp_name, rec_key_func=rec_key, rec_filter_func=my_filter), RollingGroup(), 
+        RecorderCollector(exp_name=exp_name, rec_key_func=rec_key, rec_filter_func=my_filter),
+        RollingGroup(),
     )
     print(artifact)
 

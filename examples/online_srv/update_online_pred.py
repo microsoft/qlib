@@ -71,11 +71,13 @@ def update_online_pred(experiment_name="online_srv"):
 
     online_manager.update_online_pred()
 
-def main(provider_uri = "~/.qlib/qlib_data/cn_data", region=REG_CN, experiment_name="online_srv"):
+
+def main(provider_uri="~/.qlib/qlib_data/cn_data", region=REG_CN, experiment_name="online_srv"):
     provider_uri = "~/.qlib/qlib_data/cn_data"  # target_dir
     qlib.init(provider_uri=provider_uri, region=region)
     first_train(experiment_name)
     update_online_pred(experiment_name)
+
 
 if __name__ == "__main__":
     ## to train a model and set it to online model, use the command below

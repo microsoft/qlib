@@ -62,10 +62,6 @@ class TaskManager:
         self.task_pool = getattr(self.mdb, task_pool)
         self.logger = get_module_logger(self.__class__.__name__)
 
-    # @property
-    # def task_pool(self):
-    #     return self._task_pool
-
     def list(self):
         return self.mdb.list_collection_names()
 
@@ -83,22 +79,12 @@ class TaskManager:
                     task[k] = pickle.loads(task[k])
         return task
 
-    # def _get_task_pool(self, task_pool=None):
-    #     if task_pool is None:
-    #         task_pool = self.task_pool
-    #     if task_pool is None:
-    #         raise ValueError("You must specify a task pool.")
-    #     if isinstance(task_pool, str):
-    #         return getattr(self.mdb, task_pool)
-    #     return task_pool
-
     def _dict_to_str(self, flt):
         return {k: str(v) for k, v in flt.items()}
 
     def replace_task(self, task, new_task):
         # assume that the data out of interface was decoded and the data in interface was encoded
         new_task = self._encode_task(new_task)
-        # task_pool = self._get_task_pool(task_pool)
         query = {"_id": ObjectId(task["_id"])}
         try:
             self.task_pool.replace_one(query, new_task)
@@ -107,7 +93,7 @@ class TaskManager:
             self.task_pool.replace_one(query, new_task)
 
     def insert_task(self, task):
-        # task_pool = self._get_task_pool(task_pool)
+
         try:
             insert_result = self.task_pool.insert_one(task)
         except InvalidDocument:
@@ -123,14 +109,11 @@ class TaskManager:
         ----------
         task_def: dict
             the task definition
-        task_pool: str
-            the name of Collection in MongoDB
 
         Returns
         -------
 
         """
-        # task_pool = self._get_task_pool(task_pool)
         task = self._encode_task(
             {
                 "def": task_def,
@@ -149,8 +132,6 @@ class TaskManager:
         ----------
         task_def_l: list
             a list of task
-        task_pool: str
-            the name of task_pool (collection name of MongoDB)
         dry_run: bool
             if insert those new tasks to task pool
         print_nt: bool
@@ -160,7 +141,6 @@ class TaskManager:
         list
             a list of the _id of new tasks
         """
-        # task_pool = self._get_task_pool(task_pool)
         new_tasks = []
         for t in task_def_l:
             try:
@@ -186,7 +166,6 @@ class TaskManager:
         return _id_list
 
     def fetch_task(self, query={}):
-        # task_pool = self._get_task_pool(task_pool)
         query = query.copy()
         if "_id" in query:
             query["_id"] = ObjectId(query["_id"])
@@ -209,8 +188,6 @@ class TaskManager:
         ----------
         query: dict
             the dict of query
-        task_pool: str
-            the name of Collection in MongoDB
 
         Returns
         -------
@@ -226,9 +203,9 @@ class TaskManager:
                 self.logger.info("Task returned")
             raise
 
-    def task_fetcher_iter(self, query={}, task_pool=None):
+    def task_fetcher_iter(self, query={}):
         while True:
-            with self.safe_fetch_task(query=query, task_pool=task_pool) as task:
+            with self.safe_fetch_task(query=query) as task:
                 if task is None:
                     break
                 yield task
@@ -242,8 +219,6 @@ class TaskManager:
         query: dict
             the dict of query
         decode: bool
-        task_pool: str
-            the name of Collection in MongoDB
 
         Returns
         -------
@@ -252,24 +227,20 @@ class TaskManager:
         query = query.copy()
         if "_id" in query:
             query["_id"] = ObjectId(query["_id"])
-        # task_pool = self._get_task_pool(task_pool)
         for t in self.task_pool.find(query):
             yield self._decode_task(t)
 
     def re_query(self, _id):
-        # task_pool = self._get_task_pool(task_pool)
         t = self.task_pool.find_one({"_id": ObjectId(_id)})
         return self._decode_task(t)
 
     def commit_task_res(self, task, res, status=None):
-        # task_pool = self._get_task_pool(task_pool)
         # A workaround to use the class attribute.
         if status is None:
             status = TaskManager.STATUS_DONE
         self.task_pool.update_one({"_id": task["_id"]}, {"$set": {"status": status, "res": Binary(pickle.dumps(res))}})
 
     def return_task(self, task, status=None):
-        # task_pool = self._get_task_pool(task_pool)
         if status is None:
             status = TaskManager.STATUS_WAITING
         update_dict = {"$set": {"status": status}}
@@ -283,15 +254,12 @@ class TaskManager:
         ----------
         query: dict
             the dict of query
-        task_pool: str
-            the name of Collection in MongoDB
 
         Returns
         -------
 
         """
         query = query.copy()
-        # task_pool = self._get_task_pool(task_pool)
         if "_id" in query:
             query["_id"] = ObjectId(query["_id"])
         self.task_pool.delete_many(query)
@@ -306,7 +274,7 @@ class TaskManager:
             status_stat[t["status"]] = status_stat.get(t["status"], 0) + 1
         return status_stat
 
-    def reset_waiting(self, query={}, task_pool=None):
+    def reset_waiting(self, query={}):
         query = query.copy()
         # default query
         if "status" not in query:
@@ -315,7 +283,6 @@ class TaskManager:
 
     def reset_status(self, query, status):
         query = query.copy()
-        # task_pool = self._get_task_pool(task_pool)
         if "_id" in query:
             query["_id"] = ObjectId(query["_id"])
         print(self.task_pool.update_many(query, {"$set": {"status": status}}))

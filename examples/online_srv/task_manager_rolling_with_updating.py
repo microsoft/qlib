@@ -70,9 +70,18 @@ task_xgboost_config = {
     "record": record_config,
 }
 
-class RollingOnlineExample:
 
-    def __init__(self, exp_name="rolling_exp", task_pool="rolling_task", provider_uri="~/.qlib/qlib_data/cn_data", region="cn", task_url="mongodb://10.0.0.4:27017/", task_db_name="rolling_db", rolling_step=550):
+class RollingOnlineExample:
+    def __init__(
+        self,
+        exp_name="rolling_exp",
+        task_pool="rolling_task",
+        provider_uri="~/.qlib/qlib_data/cn_data",
+        region="cn",
+        task_url="mongodb://10.0.0.4:27017/",
+        task_db_name="rolling_db",
+        rolling_step=550,
+    ):
         self.exp_name = exp_name
         self.task_pool = task_pool
         mongo_conf = {
@@ -84,9 +93,9 @@ class RollingOnlineExample:
         self.rolling_gen = RollingGen(step=rolling_step, rtype=RollingGen.ROLL_SD)
         self.trainer = TrainerRM(self.exp_name, self.task_pool)
         self.task_manager = TaskManager(self.task_pool)
-        self.rolling_online_manager = RollingOnlineManager(experiment_name=exp_name, rolling_gen=self.rolling_gen, trainer=self.trainer)
-
-        
+        self.rolling_online_manager = RollingOnlineManager(
+            experiment_name=exp_name, rolling_gen=self.rolling_gen, trainer=self.trainer
+        )
 
     def print_online_model(self):
         print("========== print_online_model ==========")
@@ -98,7 +107,6 @@ class RollingOnlineExample:
         for rid, rec in list_recorders(self.exp_name).items():
             if self.rolling_online_manager.get_online_tag(rec) == self.rolling_online_manager.NEXT_ONLINE_TAG:
                 print(rid)
-
 
     # This part corresponds to "Task Generating" in the document
     def task_generating(self):
@@ -114,10 +122,8 @@ class RollingOnlineExample:
 
         return tasks
 
-
     def task_training(self, tasks):
         self.trainer.train(tasks)
-
 
     # This part corresponds to "Task Collecting" in the document
     def task_collecting(self):
@@ -141,7 +147,6 @@ class RollingOnlineExample:
         )
         print(artifact)
 
-
     # Reset all things to the first status, be careful to save important data
     def reset(self):
         print("========== reset ==========")
@@ -149,7 +154,6 @@ class RollingOnlineExample:
         exp = R.get_exp(experiment_name=self.exp_name)
         for rid in exp.list_recorders():
             exp.delete_recorder(rid)
-
 
     # Run this firstly to see the workflow in Task Management
     def first_run(self):
@@ -162,7 +166,6 @@ class RollingOnlineExample:
 
         latest_rec, _ = self.rolling_online_manager.list_latest_recorders()
         self.rolling_online_manager.reset_online_tag(list(latest_rec.values()))
-
 
     def routine(self):
         print("========== routine ==========")
@@ -178,7 +181,7 @@ if __name__ == "__main__":
 
     ####### to update the models and predictions after the trading time, use the command below
     # python task_manager_rolling_with_updating.py after_day
-    
+
     ####### to define your own parameters, use `--`
     # python task_manager_rolling_with_updating.py first_run --exp_name='your_exp_name' --rolling_step=40
     fire.Fire(RollingOnlineExample)

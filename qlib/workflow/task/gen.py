@@ -106,7 +106,8 @@ class RollingGen(TaskGen):
 
     def generate(self, task: dict):
         """
-        Converting the task into a rolling task
+        Converting the task into a rolling task.
+        # FIXME: only modify dataset layer, user need to change datahandler firstly.
 
         Parameters
         ----------

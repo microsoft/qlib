@@ -74,6 +74,8 @@ class OnlineManager(Serializable):
         self.update_online_pred(*args, **kwargs)
         self.reset_online_tag(*args, **kwargs)
 
+    # TODO: first_train?
+
 
 class OnlineManagerR(OnlineManager):
     """

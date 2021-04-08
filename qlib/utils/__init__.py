@@ -184,7 +184,7 @@ def get_module_by_module_path(module_path: Union[str, ModuleType]):
     return module
 
 
-def get_cls_kwargs(config: Union[dict, str], default_module: Union[str, ModuleType]=None) -> (type, dict):
+def get_cls_kwargs(config: Union[dict, str], default_module: Union[str, ModuleType] = None) -> (type, dict):
     """
     extract class and kwargs from config info
 
