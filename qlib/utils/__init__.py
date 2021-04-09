@@ -6,6 +6,7 @@ from __future__ import division
 from __future__ import print_function
 
 import os
+import pickle
 import re
 import copy
 import json
@@ -26,6 +27,7 @@ import pandas as pd
 from pathlib import Path
 from typing import Union, Tuple, Any, Text, Optional
 from types import ModuleType
+from urllib.parse import urlparse
 
 from ..config import C
 from ..log import get_module_logger, set_log_with_config
@@ -235,7 +237,10 @@ def init_instance_by_config(
                 'model_path': path, # It is optional if module is given
             }
         str example.
-            "ClassName":  getattr(module, config)() will be used.
+            1) specify a pickle object
+                - path like 'file:///<path to pickle file>/obj.pkl'
+            2) specify a class name
+                - "ClassName":  getattr(module, config)() will be used.
         object example:
             instance of accept_types
     default_module : Python module
@@ -256,6 +261,13 @@ def init_instance_by_config(
     """
     if isinstance(config, accept_types):
         return config
+
+    if isinstance(config, str):
+        # path like 'file:///<path to pickle file>/obj.pkl'
+        pr = urlparse(config)
+        if pr.scheme == "file":
+            with open(os.path.join(pr.netloc, pr.path), "rb") as f:
+                return pickle.load(f)
 
     klass, cls_kwargs = get_cls_kwargs(config, default_module=default_module)
     return klass(**cls_kwargs, **kwargs)

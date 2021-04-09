@@ -7,7 +7,7 @@ import bisect
 import logging
 import warnings
 from inspect import getfullargspec
-from typing import Union, Tuple, List, Iterator, Optional
+from typing import Callable, Union, Tuple, List, Iterator, Optional
 
 import pandas as pd
 import numpy as np
@@ -166,6 +166,7 @@ class DataHandler(Serializable):
         level: Union[str, int] = "datetime",
         col_set: Union[str, List[str]] = CS_ALL,
         squeeze: bool = False,
+        proc_func: Callable = None,
     ) -> pd.DataFrame:
         """
         fetch data from underlying data source
@@ -188,6 +189,14 @@ class DataHandler(Serializable):
             - if isinstance(col_set, List[str]):
 
                 select several sets of meaningful columns, the returned data has multiple levels
+        proc_func: Callable
+            - Give a hook for processing data before fetching
+            - An example to explain the necessity of the hook:
+                - A Dataset learned some processors to process data which is related to data segmentation
+                - It will apply them every time when preparing data.
+                - The learned processor require the dataframe remains the same format when fitting and applying
+                - However the data format will change according to the parameters.
+                - So the processors should be applied to the underlayer data.
 
         squeeze : bool
             whether squeeze columns and index
@@ -196,8 +205,15 @@ class DataHandler(Serializable):
         -------
         pd.DataFrame.
         """
+        if proc_func is None:
+            df = self._data
+        else:
+            # FIXME: fetching by time first will be more friendly to `proc_func`
+            # Copy in case of `proc_func` changing the data inplace....
+            df = proc_func(fetch_df_by_index(self._data, selector, level, fetch_orig=self.fetch_orig).copy())
+
         # Fetch column  first will be more friendly to SepDataFrame
-        df = self._fetch_df_by_col(self._data, col_set)
+        df = self._fetch_df_by_col(df, col_set)
         df = fetch_df_by_index(df, selector, level, fetch_orig=self.fetch_orig)
         if squeeze:
             # squeeze columns
@@ -481,6 +497,7 @@ class DataHandlerLP(DataHandler):
         level: Union[str, int] = "datetime",
         col_set=DataHandler.CS_ALL,
         data_key: str = DK_I,
+        proc_func: Callable = None,
     ) -> pd.DataFrame:
         """
         fetch data from underlying data source
@@ -495,12 +512,18 @@ class DataHandlerLP(DataHandler):
             select a set of meaningful columns.(e.g. features, columns).
         data_key : str
             the data to fetch:  DK_*.
+        proc_func: Callable
+            please refer to the doc of DataHandler.fetch
 
         Returns
         -------
         pd.DataFrame:
         """
         df = self._get_df_by_key(data_key)
+        if proc_func is not None:
+            # FIXME: fetch by time first will be more friendly to proc_func
+            # Copy incase of `proc_func` changing the data inplace....
+            df = proc_func(fetch_df_by_index(df, selector, level, fetch_orig=self.fetch_orig).copy())
         # Fetch column  first will be more friendly to SepDataFrame
         df = self._fetch_df_by_col(df, col_set)
         return fetch_df_by_index(df, selector, level, fetch_orig=self.fetch_orig)

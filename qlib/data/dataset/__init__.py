@@ -112,7 +112,7 @@ class DatasetH(Dataset):
                         'outsample': ("2017-01-01", "2020-08-01",),
                     }
         """
-        self.handler = init_instance_by_config(handler, accept_types=DataHandler)
+        self.handler: DataHandler = init_instance_by_config(handler, accept_types=DataHandler)
         self.segments = segments.copy()
         super().__init__(**kwargs)
 
@@ -243,7 +243,7 @@ class TSDataSampler:
 
     """
 
-    def __init__(self, data: pd.DataFrame, start, end, step_len: int, fillna_type: str = "none"):
+    def __init__(self, data: pd.DataFrame, start, end, step_len: int, fillna_type: str = "none", dtype=None):
         """
         Build a dataset which looks like torch.data.utils.Dataset.
 
@@ -272,9 +272,18 @@ class TSDataSampler:
         self.fillna_type = fillna_type
         assert get_level_index(data, "datetime") == 0
         self.data = lazy_sort_index(data)
-        self.data_arr = np.array(self.data)  # Get index from numpy.array will much faster than DataFrame.values!
-        # NOTE: append last line with full NaN for better performance in `__getitem__`
-        self.data_arr = np.append(self.data_arr, np.full((1, self.data_arr.shape[1]), np.nan), axis=0)
+
+        kwargs = {"object": self.data}
+        if dtype is not None:
+            kwargs["dtype"] = dtype
+
+        self.data_arr = np.array(**kwargs)  # Get index from numpy.array will much faster than DataFrame.values!
+        # NOTE:
+        # - append last line with full NaN for better performance in `__getitem__`
+        # - Keep the same dtype will result in a better performance
+        self.data_arr = np.append(
+            self.data_arr, np.full((1, self.data_arr.shape[1]), np.nan, dtype=self.data_arr.dtype), axis=0
+        )
         self.nan_idx = -1  # The last line is all NaN
 
         # the data type will be changed
@@ -282,13 +291,16 @@ class TSDataSampler:
         self.start_idx, self.end_idx = self.data.index.slice_locs(start=pd.Timestamp(start), end=pd.Timestamp(end))
         self.idx_df, self.idx_map = self.build_index(self.data)
         self.idx_arr = np.array(self.idx_df.values, dtype=np.float64)  # for better performance
+        self.data_idx = deepcopy(self.data.index)
+
+        del self.data  # save memory
 
     def get_index(self):
         """
         Get the pandas index of the data, it will be useful in following scenarios
         - Special sampler will be used (e.g. user want to sample day by day)
         """
-        return self.data.index[self.start_idx : self.end_idx]
+        return self.data_idx[self.start_idx : self.end_idx]
 
     def config(self, **kwargs):
         # Config the attributes
@@ -461,7 +473,7 @@ class TSDatasetH(DatasetH):
         cal = sorted(cal)
         self.cal = cal
 
-    def _prepare_seg(self, slc: slice, **kwargs) -> TSDataSampler:
+    def _prepare_raw_seg(self, slc: slice, **kwargs) -> pd.DataFrame:
         # Dataset decide how to slice data(Get more data for timeseries).
         start, end = slc.start, slc.stop
         start_idx = bisect.bisect_left(self.cal, pd.Timestamp(start))
@@ -470,6 +482,14 @@ class TSDatasetH(DatasetH):
 
         # TSDatasetH will retrieve more data for complete
         data = super()._prepare_seg(slice(pad_start, end), **kwargs)
+        return data
 
-        tsds = TSDataSampler(data=data, start=start, end=end, step_len=self.step_len)
+    def _prepare_seg(self, slc: slice, **kwargs) -> TSDataSampler:
+        """
+        split the _prepare_raw_seg is to leave a hook for data preprocessing before creating processing data
+        """
+        dtype = kwargs.pop("dtype")
+        start, end = slc.start, slc.stop
+        data = self._prepare_raw_seg(slc=slc, **kwargs)
+        tsds = TSDataSampler(data=data, start=start, end=end, step_len=self.step_len, dtype=dtype)
         return tsds
