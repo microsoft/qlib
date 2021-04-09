@@ -20,7 +20,15 @@ from multiprocessing import Pool
 from .cache import H
 from ..config import C
 from ..log import get_module_logger
-from ..utils import parse_field, read_bin, read_period_data, hash_args, normalize_cache_fields, code_to_fname
+from ..utils import (
+    parse_field,
+    read_bin,
+    read_period_data,
+    get_period_list,
+    hash_args,
+    normalize_cache_fields,
+    code_to_fname,
+)
 from .base import Feature, PFeature, Operators
 from .cache import DiskDatasetCache, DiskExpressionCache
 from ..utils import Wrapper, init_instance_by_config, register_wrapper, get_module_by_module_path
@@ -661,7 +669,7 @@ class LocalFeatureProvider(FeatureProvider):
             ("value", C.pit_record_type["value"]),
             ("_next", C.pit_record_type["index"]),
         ]
-        VALUE_TYPE = C.pit_record_type["value"]
+        VALUE_DTYPE = C.pit_record_type["value"]
 
         field = str(field).lower()[2:]
         instrument = code_to_fname(instrument)
@@ -676,9 +684,9 @@ class LocalFeatureProvider(FeatureProvider):
             if field not in self.period_index:
                 self.period_index[field] = {}
 
-        if not field.startswith("q_") and not field.startswith("a_"):
-            raise ValueError("period field must start with 'q_' or 'a_'")
-        quarterly = field.startswith("q_")
+        if not field.endswith("_q") and not field.endswith("_a"):
+            raise ValueError("period field must ends with '_q' or '_q'")
+        quarterly = field.endswith("_q")
         index_path = self.uri_period_index.format(instrument.lower(), field)
         data_path = self.uri_period_data.format(instrument.lower(), field)
         data = np.fromfile(data_path, dtype=DATA_RECORDS)
@@ -691,26 +699,15 @@ class LocalFeatureProvider(FeatureProvider):
         last_period = data["period"][loc - start_offset - 1 : loc - end_offset].max()  # return the latest quarter
         first_period = data["period"][loc - start_offset - 1 : loc - end_offset].min()
 
-        if not quarterly:
-            assert all(1900 <= x <= 2099 for x in (first_period, last_period)), "invalid arguments"
-            period_list = list(range(first_period, last_period + 1))
-        else:
-            assert all(190000 <= x <= 209904 for x in (first_period, last_period)), "invalid arguments"
-            period_list = []
-            for year in range(first_period // 100, last_period // 100 + 1):
-                for q in range(1, 5):
-                    period = year * 100 + q
-                    if first_period <= period <= last_period:
-                        period_list.append(year * 100 + q)
-
-        value = np.empty(len(period_list), dtype=VALUE_TYPE)
+        period_list = get_period_list(first_period, last_period, quarterly)
+        value = np.empty(len(period_list), dtype=VALUE_DTYPE)
         for i, period in enumerate(period_list):
             last_period_index = self.period_index[field].get(period)
             value[i], now_period_index = read_period_data(
                 index_path, data_path, period, cur_date, quarterly, last_period_index
             )
             self.period_index[field].update({period: now_period_index})
-        series = pd.Series(value, index=period_list, dtype=VALUE_TYPE)
+        series = pd.Series(value, index=period_list, dtype=VALUE_DTYPE)
 
         if cur_index == end_index:
             self.all_fields.remove(field)

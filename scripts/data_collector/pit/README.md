@@ -13,11 +13,14 @@ pip install -r requirements.txt
 
 ### Download Quarterly CN Data
 
-#### 1d from East Money
-
 ```bash
 
 # download from baostock.com
-python collector.py download_data --source_dir ~/.qlib/cn_data/source/pit_quarter --start 2010-01-01 --end 2020-01-01 --interval quarterly
+python collector.py download_data --source_dir /data1/v-xiabi/qlib/pit/csv_2 --start 2000-01-01 --end 2020-01-01 --interval quarterly
 
 ```
+
+### Dump Data into PIT Format
+
+cd qlib/scripts
+python dump_pit.py dump --csv_path /data1/v-xiabi/qlib/pit/csv_2 --qlib_dir ~/.qlib/qlib_data/cn_data --interval quarterly

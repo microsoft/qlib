@@ -56,6 +56,29 @@ def read_bin(file_path, start_index, end_index):
     return series
 
 
+def get_period_list(first, last, quarterly):
+    if not quarterly:
+        assert all(1900 <= x <= 2099 for x in (first, last)), "invalid arguments"
+        return list(range(first, last + 1))
+    else:
+        assert all(190000 <= x <= 209904 for x in (first, last)), "invalid arguments"
+        res = []
+        for year in range(first // 100, last // 100 + 1):
+            for q in range(1, 5):
+                period = year * 100 + q
+                if first <= period <= last:
+                    res.append(year * 100 + q)
+        return res
+
+
+def get_period_offset(first_year, period, quarterly):
+    if quarterly:
+        offset = (period // 100 - first_year) * 4 + period % 100 - 1
+    else:
+        offset = period - first_year
+    return offset
+
+
 def read_period_data(index_path, data_path, period, cur_date, quarterly, last_period_index):
 
     DATA_DTYPE = "".join(
@@ -67,8 +90,8 @@ def read_period_data(index_path, data_path, period, cur_date, quarterly, last_pe
         ]
     )
 
-    PERIOD_TYPE = C.pit_record_type["period"]
-    INDEX_TYPE = C.pit_record_type["index"]
+    PERIOD_DTYPE = C.pit_record_type["period"]
+    INDEX_DTYPE = C.pit_record_type["index"]
 
     NAN_VALUE = C.pit_record_nan["value"]
     NAN_INDEX = C.pit_record_nan["index"]
@@ -76,9 +99,9 @@ def read_period_data(index_path, data_path, period, cur_date, quarterly, last_pe
     # find the first index of linked revisions
     if last_period_index is None:
         with open(index_path, "rb") as fi:
-            (first_year,) = struct.unpack(PERIOD_TYPE, fi.read(struct.calcsize(PERIOD_TYPE)))
-            all_periods = np.fromfile(fi, dtype=INDEX_TYPE)
-        offset = (period // 100 - first_year) * 4 + period % 100 - 1 if quarterly else period - first_year
+            (first_year,) = struct.unpack(PERIOD_DTYPE, fi.read(struct.calcsize(PERIOD_DTYPE)))
+            all_periods = np.fromfile(fi, dtype=INDEX_DTYPE)
+        offset = get_period_offset(first_year, period, quarterly)
         _next = all_periods[offset]
     else:
         _next = last_period_index

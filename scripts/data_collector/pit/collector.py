@@ -26,7 +26,7 @@ class PitCollector(BaseCollector):
     DEFAULT_END_DATETIME_QUARTER = pd.Timestamp(datetime.datetime.now() + pd.Timedelta(days=1))
     DEFAULT_END_DATETIME_ANNUAL = pd.Timestamp(datetime.datetime.now() + pd.Timedelta(days=1))
 
-    INTERVAL_quarter = "quarterly"
+    INTERVAL_quarterly = "quarterly"
     INTERVAL_annual = "annual"
 
     def __init__(
@@ -70,6 +70,7 @@ class PitCollector(BaseCollector):
             max_workers=max_workers,
             max_collector_count=max_collector_count,
             delay=delay,
+            check_data_length=check_data_length,
             limit_nums=limit_nums,
         )
 
@@ -92,19 +93,6 @@ class PitCollector(BaseCollector):
                 return float(r)
             except Exception as e:
                 return np.nan
-
-        def _process_period(r):
-            _date = pd.Timestamp(r)
-            if _date.month == 3 and _date.day == 31:
-                return "q1"
-            elif _date.month == 6 and _date.day == 30:
-                return "q2"
-            elif _date.month == 9 and _date.day == 30:
-                return "q3"
-            elif _date.month == 12 and _date.day == 31:
-                return "q4"
-            else:
-                return "unknown"
 
         try:
             symbol = f"{symbol[7:]}.{symbol[:6]}"
@@ -212,8 +200,26 @@ class PitCollector(BaseCollector):
                 df_growth["field"] = "YOYNI"
             df_merge = df_report.append([df_profit, df_forecast, df_growth])
 
-            df_merge["period"].apply(_process_period)
             return df_merge
+        except Exception as e:
+            logger.warning(f"{error_msg}:{e}")
+
+    def _process_data(self, df, symbol, interval):
+        error_msg = f"{symbol}-{interval}"
+
+        def _process_period(r):
+            _date = pd.Timestamp(r)
+            return _date.year if interval == self.INTERVAL_annual else _date.year * 100 + (_date.month - 1) // 3 + 1
+
+        try:
+            _date = df["period"].apply(
+                lambda x: (
+                    pd.to_datetime(x) + pd.DateOffset(days=(45 if interval == self.INTERVAL_quarterly else 90))
+                ).date()
+            )
+            df["date"] = df["date"].fillna(_date.astype(str))
+            df["period"] = df["period"].apply(_process_period)
+            return df
         except Exception as e:
             logger.warning(f"{error_msg}:{e}")
 
@@ -221,12 +227,15 @@ class PitCollector(BaseCollector):
         self, symbol: str, interval: str, start_datetime: pd.Timestamp, end_datetime: pd.Timestamp
     ) -> [pd.DataFrame]:
 
-        if interval == self.INTERVAL_quarter:
+        if interval == self.INTERVAL_quarterly:
             _result = self._get_data_from_baostock(symbol, interval, start_datetime, end_datetime)
-
+            if _result is None or _result.empty:
+                return _result
+            else:
+                return self._process_data(_result, symbol, interval)
         else:
             raise ValueError(f"cannot support {interval}")
-        return _result
+        return self._process_data(_result, interval)
 
     @property
     def min_numbers_trading(self):
