@@ -1,6 +1,7 @@
 from qlib.model.ens.ensemble import Ensemble, RollingEnsemble
 from typing import Callable, Union
 from qlib.utils.serial import Serializable
+from joblib import Parallel, delayed
 
 
 class Group(Serializable):
@@ -18,10 +19,23 @@ class Group(Serializable):
 
             ens (Ensemble, optional): If not None, do ensemble for grouped value after grouping.
         """
-        self.group = group_func
-        self.ens = ens
+        self._group_func = group_func
+        self._ens_func = ens
 
-    def __call__(self, ungrouped_dict: dict, *args, **kwargs):
+    def group(self, *args, **kwargs):
+        # TODO: such design is weird when `_group_func` is the only configurable part in the class
+        if isinstance(getattr(self, "_group_func", None), Callable):
+            return self._group_func(*args, **kwargs)
+        else:
+            raise NotImplementedError(f"Please specify valid `group_func`.")
+
+    def reduce(self, *args, **kwargs):
+        if isinstance(getattr(self, "_ens_func", None), Callable):
+            return self._ens_func(*args, **kwargs)
+        else:
+            raise NotImplementedError(f"Please specify valid `_ens_func`.")
+
+    def __call__(self, ungrouped_dict: dict, n_jobs=1, verbose=0, *args, **kwargs):
         """Group the ungrouped_dict into different groups.
 
         Args:
@@ -30,23 +44,24 @@ class Group(Serializable):
         Returns:
             dict: grouped_dict like {G1: object, G2: object}
         """
-        if isinstance(getattr(self, "group", None), Callable):
-            grouped_dict = self.group(ungrouped_dict, *args, **kwargs)
-            if self.ens is not None:
-                ens_dict = {}
-                for key, value in grouped_dict.items():
-                    ens_dict[key] = self.ens(value)
-                grouped_dict = ens_dict
-            return grouped_dict
-        else:
-            raise NotImplementedError(f"Please specify valid group_func.")
+
+        # FIXME: The multiprocessing will raise the following error
+        # NotImplementedError: Please specify valid `_ens_func`.
+        # The problem maybe the state of the function is lost
+        grouped_dict = self.group(ungrouped_dict, *args, **kwargs)
+
+        key_l = []
+        job_l = []
+        for key, value in grouped_dict.items():
+            key_l.append(key)
+            job_l.append(delayed(Group.reduce)(self, value))
+        return dict(zip(key_l, Parallel(n_jobs=n_jobs, verbose=verbose)(job_l)))
 
 
 class RollingGroup(Group):
     """group the rolling dict"""
 
-    @staticmethod
-    def rolling_group(rolling_dict: dict):
+    def group(self, rolling_dict: dict):
         """Given an rolling dict likes {(A,B,R): things}, return the grouped dict likes {(A,B): {R:things}}
 
         NOTE: There is a assumption which is the rolling key is at the end of key tuple, because the rolling results always need to be ensemble firstly.
@@ -63,7 +78,5 @@ class RollingGroup(Group):
                 grouped_dict.setdefault(key[:-1], {})[key[-1]] = values
         return grouped_dict
 
-    def __init__(self, group_func=None):
-        super().__init__(group_func=group_func, ens=RollingEnsemble())
-        if group_func is None:
-            self.group = RollingGroup.rolling_group
+    def __init__(self):
+        super().__init__(ens=RollingEnsemble())

@@ -18,7 +18,8 @@ import concurrent
 import pymongo
 from qlib.config import C
 from .utils import get_mongodb
-from qlib import get_module_logger
+from qlib import get_module_logger, auto_init
+import fire
 
 
 class TaskManager:
@@ -49,7 +50,7 @@ class TaskManager:
 
     ENCODE_FIELDS_PREFIX = ["def", "res"]
 
-    def __init__(self, task_pool: str):
+    def __init__(self, task_pool: str = None):
         """
         init Task Manager, remember to make the statement of MongoDB url and database name firstly.
 
@@ -59,7 +60,8 @@ class TaskManager:
             the name of Collection in MongoDB
         """
         self.mdb = get_mongodb()
-        self.task_pool = getattr(self.mdb, task_pool)
+        if task_pool is not None:
+            self.task_pool = getattr(self.mdb, task_pool)
         self.logger = get_module_logger(self.__class__.__name__)
 
     def list(self):
@@ -287,6 +289,20 @@ class TaskManager:
             query["_id"] = ObjectId(query["_id"])
         print(self.task_pool.update_many(query, {"$set": {"status": status}}))
 
+    def prioritize(self, task, priority: int):
+        """
+        set priority for task
+
+        Parameters
+        ----------
+        task : dict
+            The task query from the database
+        priority : int
+            the target priority
+        """
+        update_dict = {"$set": {"priority": priority}}
+        self.task_pool.update_one({"_id": task["_id"]}, update_dict)
+
     def _get_undone_n(self, task_stat):
         return task_stat.get(self.STATUS_WAITING, 0) + task_stat.get(self.STATUS_RUNNING, 0)
 
@@ -345,3 +361,10 @@ def run_task(task_func, task_pool, force_release=False, *args, **kwargs):
             ever_run = True
 
     return ever_run
+
+
+if __name__ == "__main__":
+    # This is for using it in cmd
+    # E.g. : `python -m qlib.workflow.task.manage list`
+    auto_init()
+    fire.Fire(TaskManager)

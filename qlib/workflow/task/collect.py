@@ -25,6 +25,8 @@ class Collector(Serializable):
 
 
 class RecorderCollector(Collector):
+    ART_KEY_RAW = "__raw"
+
     def __init__(
         self,
         exp_name,
@@ -48,9 +50,9 @@ class RecorderCollector(Collector):
             rec_key_func = lambda rec: rec.info["id"]
         if artifacts_key is None:
             artifacts_key = self.artifacts_path.keys()
-        self.rec_key = rec_key_func
+        self._rec_key_func = rec_key_func
         self.artifacts_key = artifacts_key
-        self.rec_filter = rec_filter_func
+        self._rec_filter_func = rec_filter_func
 
     def collect(self, artifacts_key=None, rec_filter_func=None):
         """Collect different artifacts based on recorder after filtering.
@@ -65,7 +67,7 @@ class RecorderCollector(Collector):
         if artifacts_key is None:
             artifacts_key = self.artifacts_key
         if rec_filter_func is None:
-            rec_filter_func = self.rec_filter
+            rec_filter_func = self._rec_filter_func
 
         if isinstance(artifacts_key, str):
             artifacts_key = [artifacts_key]
@@ -74,9 +76,12 @@ class RecorderCollector(Collector):
         # filter records
         recs_flt = list_recorders(self.exp_name, rec_filter_func)
         for _, rec in recs_flt.items():
-            rec_key = self.rec_key(rec)
+            rec_key = self._rec_key_func(rec)
             for key in artifacts_key:
-                artifact = rec.load_object(self.artifacts_path[key])
+                if self.ART_KEY_RAW == key:
+                    artifact = rec
+                else:
+                    artifact = rec.load_object(self.artifacts_path[key])
                 collect_dict.setdefault(key, {})[rec_key] = artifact
 
         return collect_dict

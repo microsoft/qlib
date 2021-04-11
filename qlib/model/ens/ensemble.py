@@ -58,7 +58,7 @@ class RollingEnsemble(Ensemble):
 
     """Merge the rolling objects in an Ensemble"""
 
-    def __call__(self, ensemble_dict: dict, *args, **kwargs):
+    def __call__(self, ensemble_dict: dict):
         """Merge a dict of rolling dataframe like `prediction` or `IC` into an ensemble.
 
         NOTE: The values of dict must be pd.Dataframe, and have the index "datetime"

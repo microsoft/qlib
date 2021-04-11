@@ -8,6 +8,7 @@ from qlib.workflow.record_temp import SignalRecord
 from qlib.workflow.task.manage import TaskManager, run_task
 from qlib.data.dataset import Dataset
 from qlib.model.base import Model
+import socket
 
 
 def task_train(task_config: dict, experiment_name: str) -> Recorder:
@@ -35,16 +36,17 @@ def task_train(task_config: dict, experiment_name: str) -> Recorder:
 
         # train model
         R.log_params(**flatten_dict(task_config))
-        model.fit(dataset)
-        recorder = R.get_recorder()
-        R.save_objects(**{"params.pkl": model})
         R.save_objects(**{"task": task_config})  # keep the original format and datatype
+        R.set_tags(hostname=socket.gethostname())
+        model.fit(dataset)
+        R.save_objects(**{"params.pkl": model})
         # This dataset is saved for online inference. So the concrete data should not be dumped
         dataset.config(dump_all=False, recursive=True)
         R.save_objects(**{"dataset": dataset})
 
         # generate records: prediction, backtest, and analysis
         records = task_config.get("record", [])
+        recorder = R.get_recorder()
         if isinstance(records, dict):  # prevent only one dict
             records = [records]
         for record in records:

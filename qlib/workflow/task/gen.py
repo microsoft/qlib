@@ -80,6 +80,12 @@ class TaskGen(metaclass=abc.ABCMeta):
         """
         pass
 
+    def __call__(self, *args, **kwargs):
+        """
+        This is just a syntactic sugar for generate
+        """
+        return self.generate(*args, **kwargs)
+
 
 class RollingGen(TaskGen):
     ROLL_EX = TimeAdjuster.SHIFT_EX  # fixed start date, expanding end date
