@@ -7,8 +7,10 @@ import pickle
 
 class Serializable:
     """
-    Serializable behaves like pickle.
-    But it only saves the state whose name **does not** start with `_`
+    Serializable will change the behaviours of pickle.
+    - It only saves the state whose name **does not** start with `_`
+    It provides a syntactic sugar for distinguish the attributes which user doesn't want.
+    - For examples, a learnable Datahandler just wants to save the parameters without data when dumping to disk
     """
 
     def __init__(self):

@@ -4,7 +4,7 @@ from qlib.workflow.task.utils import list_recorders
 from qlib.utils.serial import Serializable
 
 
-class Collector(Serializable):
+class Collector:
     """The collector to collect different results"""
 
     def collect(self, *args, **kwargs):

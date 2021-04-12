@@ -1,10 +1,9 @@
 from qlib.model.ens.ensemble import Ensemble, RollingEnsemble
 from typing import Callable, Union
-from qlib.utils.serial import Serializable
 from joblib import Parallel, delayed
 
 
-class Group(Serializable):
+class Group:
     """Group the objects based on dict"""
 
     def __init__(self, group_func=None, ens: Ensemble = None):
@@ -45,9 +44,8 @@ class Group(Serializable):
             dict: grouped_dict like {G1: object, G2: object}
         """
 
-        # FIXME: The multiprocessing will raise the following error
-        # NotImplementedError: Please specify valid `_ens_func`.
-        # The problem maybe the state of the function is lost
+        # NOTE: The multiprocessing will raise error if you use `Serializable`
+        # Because the `Serializable` will affect the behaviours of pickle
         grouped_dict = self.group(ungrouped_dict, *args, **kwargs)
 
         key_l = []
