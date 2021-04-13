@@ -8,23 +8,28 @@ from typing import Iterator, Iterable, Union, Dict, Mapping, Tuple
 import numpy as np
 import pandas as pd
 
-from . import CalendarStorage, InstrumentStorage, FeatureStorage, CalVT, InstKT, InstVT
+from qlib.data.storage import CalendarStorage, InstrumentStorage, FeatureStorage, CalVT, InstKT, InstVT
 
 
 class FileCalendarStorage(CalendarStorage):
-    def __init__(self, uri: str):
-        super(FileCalendarStorage, self).__init__(uri)
-        self._uri = Path(self._uri).expanduser().resolve()
+    def __init__(self, freq: str, future: bool, uri: str):
+        super(FileCalendarStorage, self).__init__(freq, future, uri)
+        _file_name = f"{freq}_future.txt" if future else f"{freq}.txt"
+        self.uri = Path(self.uri).expanduser().joinpath(_file_name.lower())
 
     def _read_calendar(self, skip_rows: int = 0, n_rows: int = None) -> np.ndarray:
-        if not self._uri.exists():
+        if not self.uri.exists():
             self._write_calendar(values=[])
-        with self._uri.open("rb") as fp:
+        with self.uri.open("rb") as fp:
             return np.loadtxt(fp, str, skiprows=skip_rows, max_rows=n_rows, encoding="utf-8")
 
     def _write_calendar(self, values: Iterable[CalVT], mode: str = "wb"):
-        with self._uri.open(mode=mode) as fp:
+        with self.uri.open(mode=mode) as fp:
             np.savetxt(fp, values, fmt="%s", encoding="utf-8")
+
+    @property
+    def data(self) -> Iterable[CalVT]:
+        return self._read_calendar()
 
     def extend(self, values: Iterable[CalVT]) -> None:
         self._write_calendar(values, mode="ab")
@@ -64,27 +69,27 @@ class FileCalendarStorage(CalendarStorage):
         return len(self._read_calendar())
 
     def __iter__(self):
-        with self._uri.open("r") as fp:
-            yield fp.readline()
+        return iter(self._read_calendar())
 
 
 class FileInstrumentStorage(InstrumentStorage):
+
     INSTRUMENT_SEP = "\t"
     INSTRUMENT_START_FIELD = "start_datetime"
     INSTRUMENT_END_FIELD = "end_datetime"
     SYMBOL_FIELD_NAME = "instrument"
 
-    def __init__(self, uri: str):
-        super(FileInstrumentStorage, self).__init__(uri=uri)
-        self._uri = Path(self._uri).expanduser().resolve()
+    def __init__(self, market: str, uri: str):
+        super(FileInstrumentStorage, self).__init__(market, uri)
+        self.uri = Path(self.uri).expanduser().joinpath(f"{market.lower()}.txt")
 
     def _read_instrument(self) -> Dict[InstKT, InstVT]:
-        if not self._uri.exists():
+        if not self.uri.exists():
             self._write_instrument()
 
         _instruments = dict()
         df = pd.read_csv(
-            self._uri,
+            self.uri,
             sep="\t",
             usecols=[0, 1, 2],
             names=[self.SYMBOL_FIELD_NAME, self.INSTRUMENT_START_FIELD, self.INSTRUMENT_END_FIELD],
@@ -97,7 +102,7 @@ class FileInstrumentStorage(InstrumentStorage):
 
     def _write_instrument(self, data: Dict[InstKT, InstVT] = None) -> None:
         if not data:
-            with self._uri.open("w") as _:
+            with self.uri.open("w") as _:
                 pass
             return
 
@@ -109,12 +114,16 @@ class FileInstrumentStorage(InstrumentStorage):
 
         df = pd.concat(res, sort=False)
         df.loc[:, [self.SYMBOL_FIELD_NAME, self.INSTRUMENT_START_FIELD, self.INSTRUMENT_END_FIELD]].to_csv(
-            self._uri, header=False, sep=self.INSTRUMENT_SEP, index=False
+            self.uri, header=False, sep=self.INSTRUMENT_SEP, index=False
         )
-        df.to_csv(self._uri, sep="\t", encoding="utf-8", header=False, index=False)
+        df.to_csv(self.uri, sep="\t", encoding="utf-8", header=False, index=False)
 
     def clear(self) -> None:
         self._write_instrument(data={})
+
+    @property
+    def data(self) -> Dict[InstKT, InstVT]:
+        return self._read_instrument()
 
     def __setitem__(self, k: InstKT, v: InstVT) -> None:
         inst = self._read_instrument()
@@ -143,7 +152,7 @@ class FileInstrumentStorage(InstrumentStorage):
             raise TypeError(f"update expected at most 1 arguments, got {len(args)}")
         inst = self._read_instrument()
         if args:
-            other = args[0]
+            other = args[0]  # type: dict
             if isinstance(other, Mapping):
                 for key in other:
                     inst[key] = other[key]
@@ -160,29 +169,35 @@ class FileInstrumentStorage(InstrumentStorage):
 
 
 class FileFeatureStorage(FeatureStorage):
-    def __init__(self, uri: str):
-        super(FileFeatureStorage, self).__init__(uri=uri)
-        self._uri = Path(self._uri)
+    def __init__(self, instrument: str, field: str, freq: str, uri: str):
+        super(FileFeatureStorage, self).__init__(instrument, field, freq, uri)
+        self.uri = (
+            Path(self.uri).expanduser().joinpath(instrument.lower()).joinpath(f"{field.lower()}.{freq.lower()}.bin")
+        )
 
     def clear(self):
-        with self._uri.open("wb") as _:
+        with self.uri.open("wb") as _:
             pass
 
+    @property
+    def data(self) -> pd.Series:
+        return self[:]
+
     def extend(self, series: pd.Series) -> None:
-        extend_start_index = self[0][0] + len(self) if self._uri.exists() else series.index[0]
+        extend_start_index = self[0][0] + len(self) if self.uri.exists() else series.index[0]
         series = series.reindex(pd.RangeIndex(extend_start_index, series.index[-1] + 1))
-        with self._uri.open("ab") as fp:
+        with self.uri.open("ab") as fp:
             np.array(series.values).astype("<f").tofile(fp)
 
     def rebase(self, series: pd.Series) -> None:
         origin_series = self[:]
         series = series.append(origin_series.loc[origin_series.index > series.index[-1]])
         series = series.reindex(pd.RangeIndex(series.index[0], series.index[-1]))
-        with self._uri.open("wb") as fp:
+        with self.uri.open("wb") as fp:
             np.array(series.values).astype("<f").tofile(fp)
 
     def __getitem__(self, i: Union[int, slice]) -> Union[Tuple[int, float], pd.Series]:
-        if not self._uri.exists():
+        if not self.uri.exists():
             if isinstance(i, int):
                 return None, None
             elif isinstance(i, slice):
@@ -190,14 +205,14 @@ class FileFeatureStorage(FeatureStorage):
             else:
                 raise TypeError(f"type(i) = {type(i)}")
 
-        with open(self._uri, "rb") as fp:
+        with open(self.uri, "rb") as fp:
             ref_start_index = int(np.frombuffer(fp.read(4), dtype="<f")[0])
 
             if isinstance(i, int):
                 if ref_start_index > i:
                     raise IndexError(f"{i}: start index is {ref_start_index}")
                 fp.seek(4 * (i - ref_start_index) + 4)
-                return i, struct.unpack("f", fp.read(4))
+                return i, struct.unpack("f", fp.read(4))[0]
             elif isinstance(i, slice):
                 start_index = i.start
                 end_index = i.stop - 1
@@ -213,18 +228,18 @@ class FileFeatureStorage(FeatureStorage):
                 raise TypeError(f"type(i) = {type(i)}")
 
     def __len__(self) -> int:
-        return self._uri.stat().st_size // 4 - 1 if self._uri.exists() else 0
+        return self.uri.stat().st_size // 4 - 1 if self.uri.exists() else 0
 
     def __iter__(self):
-        if not self._uri.exists():
+        if not self.uri.exists():
             return
-        with open(self._uri, "rb") as fp:
+        with open(self.uri, "rb") as fp:
             ref_start_index = int(np.frombuffer(fp.read(4), dtype="<f")[0])
             fp.seek(4)
             while True:
                 v = fp.read(4)
                 if v:
-                    yield ref_start_index, struct.unpack("f", v)
+                    yield ref_start_index, struct.unpack("f", v)[0]
                     ref_start_index += 1
                 else:
                     break

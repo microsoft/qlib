@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-from typing import Iterable, overload, Tuple, List, Text, Iterator, Union
+from typing import Iterable, overload, Tuple, List, Text, Iterator, Union, Dict
 
 import pandas as pd
 
@@ -15,8 +15,15 @@ InstKT = Text
 
 
 class CalendarStorage:
-    def __init__(self, uri: str):
-        self._uri = uri
+    def __init__(self, freq: str, future: bool, uri: str):
+        self.freq = freq
+        self.future = future
+        self.uri = uri
+
+    @property
+    def data(self) -> Iterable[CalVT]:
+        """get all data"""
+        raise NotImplementedError("Subclass of CalendarStorage must implement `data` method")
 
     def extend(self, iterable: Iterable[CalVT]) -> None:
         raise NotImplementedError("Subclass of CalendarStorage must implement `extend` method")
@@ -82,10 +89,19 @@ class CalendarStorage:
         """x.__len__() <==> len(x)"""
         raise NotImplementedError("Subclass of CalendarStorage must implement `__len__` method")
 
+    def __iter__(self):
+        raise NotImplementedError("Subclass of CalendarStorage must implement `__iter__` method")
+
 
 class InstrumentStorage:
-    def __init__(self, uri: str):
-        self._uri = uri
+    def __init__(self, market: str, uri: str):
+        self.market = market
+        self.uri = uri
+
+    @property
+    def data(self) -> Dict[InstKT, InstVT]:
+        """get all data"""
+        raise NotImplementedError("Subclass of InstrumentStorage must implement `data` method")
 
     def clear(self) -> None:
         raise NotImplementedError("Subclass of InstrumentStorage must implement `clear` method")
@@ -120,8 +136,16 @@ class InstrumentStorage:
 
 
 class FeatureStorage:
-    def __init__(self, uri: str):
-        self._uri = uri
+    def __init__(self, instrument: str, field: str, freq: str, uri: str):
+        self.instrument = instrument
+        self.field = field
+        self.freq = freq
+        self.uri = uri
+
+    @property
+    def data(self) -> pd.Series:
+        """get all data"""
+        raise NotImplementedError("Subclass of FeatureStorage must implement `data` method")
 
     def clear(self):
         """ Remove all items from FeatureStorage. """

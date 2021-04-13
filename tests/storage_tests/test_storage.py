@@ -16,15 +16,16 @@ from qlib.data.storage.file_storage import (
     FileFeatureStorage as FeatureStorage,
 )
 
-DATA_DIR = Path(__file__).parent.joinpath("test_get_data")
+_file_name = Path(__file__).name.split(".")[0]
+DATA_DIR = Path(__file__).parent.joinpath(f"{_file_name}_data")
 QLIB_DIR = DATA_DIR.joinpath("qlib")
 QLIB_DIR.mkdir(exist_ok=True, parents=True)
 
 
 # TODO: set value
-CALENDAR_URI = QLIB_DIR.joinpath("calendars").joinpath("day.txt")
-INSTRUMENT_URI = QLIB_DIR.joinpath("instruments").joinpath("csi300.txt")
-FEATURE_URI = QLIB_DIR.joinpath("features").joinpath("SH600004").joinpath("close.day.bin")
+CALENDAR_URI = QLIB_DIR.joinpath("calendars")
+INSTRUMENT_URI = QLIB_DIR.joinpath("instruments")
+FEATURE_URI = QLIB_DIR.joinpath("features")
 
 
 class TestStorage:
@@ -38,9 +39,10 @@ class TestStorage:
 
     def test_calendar_storage(self):
 
-        calendar = CalendarStorage(uri=CALENDAR_URI)
+        calendar = CalendarStorage(freq="day", future=False, uri=CALENDAR_URI)
         assert isinstance(calendar, Iterable), f"{calendar.__class__.__name__} is not Iterable"
         assert isinstance(calendar[:], Iterable), f"{calendar.__class__.__name__}.__getitem__(s: slice) is not Iterable"
+        assert isinstance(calendar.data, Iterable), f"{calendar.__class__.__name__}.data is not Iterable"
 
         print(f"calendar[1: 5]: {calendar[1:5]}")
         print(f"calendar[0]: {calendar[0]}")
@@ -80,11 +82,11 @@ class TestStorage:
 
         """
 
-        instrument = InstrumentStorage(uri=INSTRUMENT_URI)
+        instrument = InstrumentStorage(market="csi300", uri=INSTRUMENT_URI)
 
         assert isinstance(instrument, Iterable), f"{instrument.__class__.__name__} is not Iterable"
 
-        for inst, spans in instrument.items():
+        for inst, spans in instrument.data.items():
             assert isinstance(inst, str) and isinstance(
                 spans, Iterable
             ), f"{instrument.__class__.__name__} value is not Iterable"
@@ -149,11 +151,14 @@ class TestStorage:
 
         """
 
-        feature = FeatureStorage(uri=FEATURE_URI)
+        feature = FeatureStorage(instrument="SH600004", field="close", freq="day", uri=FEATURE_URI)
 
         assert isinstance(feature, Iterable), f"{feature.__class__.__name__} is not Iterable"
         with pytest.raises(IndexError):
             print(feature[0])
+        assert isinstance(
+            feature[815][1], (np.float, np.float32)
+        ), f"{feature.__class__.__name__}.__getitem__(i: int) error"
         assert len(feature[815:818]) == 3, f"{feature.__class__.__name__}.__getitem__(s: slice) error"
         print(f"feature[815: 818]: {feature[815: 818]}")
 
@@ -162,5 +167,5 @@ class TestStorage:
                 isinstance(_item, tuple) and len(_item) == 2
             ), f"{feature.__class__.__name__}.__iter__ item type error"
             assert isinstance(_item[0], int) and isinstance(
-                _item[1], (float, np.float, np.float32)
+                _item[1], (np.float, np.float32)
             ), f"{feature.__class__.__name__}.__iter__ value type error"
