@@ -57,8 +57,12 @@ class TimeAdjuster:
     find appropriate date and adjust date.
     """
 
-    def __init__(self, future=False):
-        self.cals = D.calendar(future=future)
+    def __init__(self, future=True, end_time=None):
+        self._future = future
+        self.cals = D.calendar(future=future, end_time=end_time)
+
+    def set_end_time(self, end_time=None):
+        self.cals = D.calendar(future=self._future, end_time=end_time)
 
     def get(self, idx: int):
         """

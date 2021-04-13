@@ -100,9 +100,9 @@ class RollingOnlineExample:
     def print_online_model(self):
         print("========== print_online_model ==========")
         print("Current 'online' model:")
-        for rid, rec in list_recorders(self.exp_name).items():
-            if self.rolling_online_manager.get_online_tag(rec) == self.rolling_online_manager.ONLINE_TAG:
-                print(rid)
+
+        for rec in self.rolling_online_manager.online_models():
+            print(rec.info["id"])
         print("Current 'next online' model:")
         for rid, rec in list_recorders(self.exp_name).items():
             if self.rolling_online_manager.get_online_tag(rec) == self.rolling_online_manager.NEXT_ONLINE_TAG:
@@ -161,11 +161,14 @@ class RollingOnlineExample:
         self.reset()
 
         tasks = self.task_generating()
+        pprint(tasks)
         self.task_training(tasks)
         self.task_collecting()
 
         latest_rec, _ = self.rolling_online_manager.list_latest_recorders()
         self.rolling_online_manager.reset_online_tag(list(latest_rec.values()))
+
+        self.routine()
 
     def routine(self):
         print("========== routine ==========")
