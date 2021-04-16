@@ -4,6 +4,7 @@ from qlib.workflow import R
 from qlib.model.trainer import task_train
 from qlib.workflow.recorder import MLflowRecorder, Recorder
 from qlib.workflow.online.update import PredUpdater, RecordUpdater
+from qlib.workflow.task.collect import Collector
 from qlib.workflow.task.utils import TimeAdjuster
 from qlib.workflow.task.gen import RollingGen, task_generator
 from qlib.workflow.task.manage import TaskManager
@@ -14,78 +15,127 @@ from qlib.model.trainer import Trainer, TrainerR
 from copy import deepcopy
 
 
-class OnlineManager(Serializable):
+class OnlineManager:
 
     ONLINE_KEY = "online_status"  # the online status key in recorder
     ONLINE_TAG = "online"  # the 'online' model
+    # NOTE: The meaning of this tag is that we can not assume the training models can be trained before we need its predition. Whenever finished training, it can be guaranteed that there are some online models.
     NEXT_ONLINE_TAG = "next_online"  # the 'next online' model, which can be 'online' model when call reset_online_model
     OFFLINE_TAG = "offline"  # the 'offline' model, not for online serving
 
-    def __init__(self, trainer: Trainer = None, need_log=True):
-        self._trainer = trainer
+    def __init__(self, trainer: Trainer = None, collector: Collector = None, need_log=True):
+        """
+        init OnlineManager.
+
+        Args:
+            trainer (Trainer, optional): a instance of Trainer. Defaults to None.
+            collector (Collector, optional): a instance of Collector. Defaults to None.
+            need_log (bool, optional): print log or not. Defaults to True.
+        """
+        self.trainer = trainer
         self.logger = get_module_logger(self.__class__.__name__)
         self.need_log = need_log
         self.delay_signals = {}
+        self.collector = collector
+        self.cur_time = None
 
     def prepare_signals(self, *args, **kwargs):
+        """
+        After perparing the data of last routine (a box in box-plot) which means the end of the routine, we can prepare trading signals for next routine.
+        """
         raise NotImplementedError(f"Please implement the `prepare_signals` method.")
 
     def prepare_tasks(self, *args, **kwargs):
-        """return the new tasks waiting for training."""
+        """
+        After the end of a routine, check whether we need to prepare and train some new tasks.
+        return the new tasks waiting for training.
+        """
         raise NotImplementedError(f"Please implement the `prepare_tasks` method.")
 
-    def prepare_new_models(self, tasks):
-        """Use trainer to train a list of tasks and set the trained model to next_online.
+    def prepare_new_models(self, tasks, tag=NEXT_ONLINE_TAG):
+        """
+        Use trainer to train a list of tasks and set the trained model to `tag`.
 
         Args:
             tasks (list): a list of tasks.
+            tag (str):
+                `ONLINE_TAG` for first train or additional train
+                `NEXT_ONLINE_TAG` for reset online model when calling `reset_online_tag`
+                `OFFLINE_TAG` for train but offline those models
         """
         if not (tasks is None or len(tasks) == 0):
-            if self._trainer is not None:
-                new_models = self._trainer.train(tasks)
-                self.set_online_tag(self.NEXT_ONLINE_TAG, new_models)
-                self.logger.info(
-                    f"Finished prepare {len(new_models)} new models and set them to `{self.NEXT_ONLINE_TAG}`."
-                )
+            if self.trainer is not None:
+                new_models = self.trainer.train(tasks)
+                self.set_online_tag(tag, new_models)
+                if self.need_log:
+                    self.logger.info(f"Finished prepare {len(new_models)} new models and set them to {tag}.")
             else:
                 self.logger.warn("No trainer to train new tasks.")
 
     def update_online_pred(self, *args, **kwargs):
+        """
+        After the end of a routine, update the predictions of online models to latest.
+        """
         raise NotImplementedError(f"Please implement the `update_online_pred` method.")
 
     def set_online_tag(self, tag, *args, **kwargs):
-        """set `tag` to the model to sign whether online
+        """
+        Set `tag` to the model to sign whether online.
 
         Args:
-            tag (str): the tags in ONLINE_TAG, NEXT_ONLINE_TAG, OFFLINE_TAG
+            tag (str): the tags in `ONLINE_TAG`, `NEXT_ONLINE_TAG`, `OFFLINE_TAG`
         """
         raise NotImplementedError(f"Please implement the `set_online_tag` method.")
 
     def get_online_tag(self, *args, **kwargs):
-        """given a model and return its online tag"""
+        """
+        Given a model and return its online tag.
+        """
         raise NotImplementedError(f"Please implement the `get_online_tag` method.")
 
     def reset_online_tag(self, *args, **kwargs):
-        """offline all models and set the recorders to 'online'. If no parameter and no 'next online' model, then do nothing."""
+        """
+        Offline all models and set the models to 'online'.
+        """
         raise NotImplementedError(f"Please implement the `reset_online_tag` method.")
 
     def online_models(self):
-        """return online models"""
+        """
+        Return online models.
+        """
         raise NotImplementedError(f"Please implement the `online_models` method.")
 
+    def get_collector(self):
+        """
+        Return the collector.
+
+        Returns:
+            Collector
+        """
+        return self.collector
+
     def run_delay_signals(self):
+        """
+        Prepare all signals if there are some dates waiting for prepare.
+        """
         for cur_time, params in self.delay_signals.items():
             self.cur_time = cur_time
             self.prepare_signals(*params[0], **params[1])
         self.delay_signals = {}
 
     def routine(self, cur_time=None, delay_prepare=False, *args, **kwargs):
-        """The typical update process in a routine such as day by day or month by month"""
+        """
+        The typical update process after a routine, such as day by day or month by month.
+        Prepare signals -> prepare tasks -> prepare new models -> update online prediction -> reset online models
+        """
         self.cur_time = cur_time  # None for latest date
         if not delay_prepare:
             self.prepare_signals(*args, **kwargs)
         else:
-            self.delay_signals[cur_time] = (args, kwargs)
+            if cur_time is not None:
+                self.delay_signals[cur_time] = (args, kwargs)
+            else:
+                raise ValueError("Can not delay prepare when cur_time is None")
         tasks = self.prepare_tasks(*args, **kwargs)
         self.prepare_new_models(tasks)
         self.update_online_pred()
@@ -98,9 +148,18 @@ class OnlineManagerR(OnlineManager):
 
     """
 
-    def __init__(self, experiment_name: str, trainer: Trainer = None, need_log=True):
+    def __init__(self, experiment_name: str, trainer: Trainer = None, collector: Collector = None, need_log=True):
+        """
+        init OnlineManagerR.
+
+        Args:
+            experiment_name (str): the experiment name.
+            trainer (Trainer, optional): a instance of Trainer. Defaults to None.
+            collector (Collector, optional): a instance of Collector. Defaults to None.
+            need_log (bool, optional): print log or not. Defaults to True.
+        """
         trainer = TrainerR(experiment_name)
-        super().__init__(trainer, need_log)
+        super().__init__(trainer=trainer, collector=collector, need_log=need_log)
         self.exp_name = experiment_name
 
     def set_online_tag(self, tag, recorder: Union[Recorder, List]):
@@ -148,7 +207,9 @@ class OnlineManagerR(OnlineManager):
         )
 
     def update_online_pred(self):
-        """update all online model predictions to the latest day in Calendar"""
+        """
+        Update all online model predictions to the latest day in Calendar
+        """
         online_models = self.online_models()
         for rec in online_models:
             PredUpdater(rec, to_date=self.cur_time, need_log=self.need_log).update()
@@ -160,18 +221,39 @@ class OnlineManagerR(OnlineManager):
 class RollingOnlineManager(OnlineManagerR):
     """An implementation of OnlineManager based on Rolling."""
 
-    def __init__(self, experiment_name: str, rolling_gen: RollingGen, trainer: Trainer = None, need_log=True):
+    def __init__(
+        self,
+        experiment_name: str,
+        rolling_gen: RollingGen,
+        trainer: Trainer = None,
+        collector: Collector = None,
+        need_log=True,
+    ):
+        """
+        init RollingOnlineManager.
+
+        Args:
+            experiment_name (str): the experiment name.
+            rolling_gen (RollingGen): a instance of RollingGen
+            trainer (Trainer, optional): a instance of Trainer. Defaults to None.
+            collector (Collector, optional): a instance of Collector. Defaults to None.
+            need_log (bool, optional): print log or not. Defaults to True.
+        """
         trainer = TrainerR(experiment_name)
-        super().__init__(experiment_name, trainer, need_log=need_log)
+        super().__init__(experiment_name=experiment_name, trainer=trainer, collector=collector, need_log=need_log)
         self.ta = TimeAdjuster()
         self.rg = rolling_gen
         self.logger = get_module_logger(self.__class__.__name__)
 
     def prepare_signals(self, *args, **kwargs):
+        """
+        Must use `pass` even though there is nothing to do.
+        """
         pass
 
     def prepare_tasks(self, *args, **kwargs):
-        """prepare new tasks based on new date.
+        """
+        Prepare new tasks based on new date.
 
         Returns:
             list: a list of new tasks.
@@ -184,7 +266,11 @@ class RollingOnlineManager(OnlineManagerR):
             self.logger.warn(f"No latest online recorders, no new tasks.")
             return []
         calendar_latest = self.ta.last_date() if self.cur_time is None else self.cur_time
-        if self.ta.cal_interval(calendar_latest, max_test[0]) > self.rg.step:
+        if self.need_log:
+            self.logger.info(
+                f"The interval between current time and last rolling test begin time is {self.ta.cal_interval(calendar_latest, max_test[0])}, the rolling step is {self.rg.step}"
+            )
+        if self.ta.cal_interval(calendar_latest, max_test[0]) >= self.rg.step:
             old_tasks = []
             tasks_tmp = []
             for rid, rec in latest_records.items():

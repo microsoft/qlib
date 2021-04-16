@@ -488,7 +488,7 @@ class TSDatasetH(DatasetH):
         """
         split the _prepare_raw_seg is to leave a hook for data preprocessing before creating processing data
         """
-        dtype = kwargs.pop("dtype")
+        dtype = kwargs.pop("dtype", None)
         start, end = slc.start, slc.stop
         data = self._prepare_raw_seg(slc=slc, **kwargs)
         tsds = TSDataSampler(data=data, start=start, end=end, step_len=self.step_len, dtype=dtype)

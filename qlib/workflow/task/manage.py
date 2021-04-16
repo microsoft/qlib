@@ -12,6 +12,7 @@ import pickle
 from pymongo.errors import InvalidDocument
 from bson.objectid import ObjectId
 from contextlib import contextmanager
+import qlib
 from tqdm.cli import tqdm
 import time
 import concurrent
@@ -65,6 +66,12 @@ class TaskManager:
         self.logger = get_module_logger(self.__class__.__name__)
 
     def list(self):
+        """
+        list the all collection(task_pool) of the db
+
+        Returns:
+            list
+        """
         return self.mdb.list_collection_names()
 
     def _encode_task(self, task):
@@ -256,9 +263,6 @@ class TaskManager:
         ----------
         query: dict
             the dict of query
-
-        Returns
-        -------
 
         """
         query = query.copy()

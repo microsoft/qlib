@@ -26,7 +26,6 @@ def task_train(task_config: dict, experiment_name: str) -> Recorder:
     ----------
     Recorder : The instance of the recorder
     """
-
     # model initiaiton
     model: Model = init_instance_by_config(task_config["model"])
     dataset: Dataset = init_instance_by_config(task_config["dataset"])
@@ -46,7 +45,7 @@ def task_train(task_config: dict, experiment_name: str) -> Recorder:
 
         # generate records: prediction, backtest, and analysis
         records = task_config.get("record", [])
-        recorder = R.get_recorder()
+        recorder: Recorder = R.get_recorder()
         if isinstance(records, dict):  # prevent only one dict
             records = [records]
         for record in records:

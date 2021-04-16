@@ -168,7 +168,7 @@ class RollingGen(TaskGen):
             if prev_seg is None:
                 # First rolling
                 # 1) prepare the end point
-                segments = copy.deepcopy(self.ta.align_seg(t["dataset"]["kwargs"]["segments"]))
+                segments: dict = copy.deepcopy(self.ta.align_seg(t["dataset"]["kwargs"]["segments"]))
                 test_end = self.ta.last_date() if segments[self.test_key][1] is None else segments[self.test_key][1]
                 # 2) and init test segments
                 test_start_idx = self.ta.align_idx(segments[self.test_key][0])

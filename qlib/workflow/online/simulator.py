@@ -1,12 +1,6 @@
-from typing import Callable
-import pandas as pd
-from qlib.config import C
 from qlib.data import D
 from qlib import get_module_logger
-from qlib.log import set_log_with_config
-from qlib.model.ens.ensemble import ens_workflow
 from qlib.workflow.online.manager import OnlineManager
-from qlib.workflow.task.collect import Collector
 
 
 class OnlineSimulator:
@@ -20,21 +14,24 @@ class OnlineSimulator:
         end_time,
         onlinemanager: OnlineManager,
         frequency="day",
-        time_delta="20 hours",
-        collector: Collector = None,
-        process_list: list = None,
     ):
+        """
+        init OnlineSimulator.
+
+        Args:
+            start_time (str or pd.Timestamp): the start time of simulating.
+            end_time (str or pd.Timestamp): the end time of simulating. If None, then end_time is latest.
+            onlinemanager (OnlineManager): the instance of OnlineManager
+            frequency (str, optional): the data frequency. Defaults to "day".
+        """
         self.logger = get_module_logger(self.__class__.__name__)
         self.cal = D.calendar(start_time=start_time, end_time=end_time, freq=frequency)
         self.start_time = self.cal[0]
         self.end_time = self.cal[-1]
         self.olm = onlinemanager
-        self.time_delta = time_delta
 
         if len(self.cal) == 0:
             self.logger.warn(f"There is no need to simulate bacause start_time is larger than end_time.")
-        self.collector = collector
-        self.process_list = process_list
 
     def simulate(self, *args, **kwargs):
         """
@@ -42,14 +39,13 @@ class OnlineSimulator:
         NOTE: Considering the parallel training, the signals will be perpared after all routine simulating.
 
         Returns:
-            dict: the simulated results collected by collector
+            Collector: the OnlineManager's collector
         """
         self.rec_dict = {}
         tmp_begin = self.start_time
         tmp_end = None
         prev_recorders = self.olm.online_models()
         for cur_time in self.cal:
-            cur_time = cur_time + pd.Timedelta(self.time_delta)
             self.logger.info(f"Simulating at {str(cur_time)}......")
             recorders = self.olm.routine(cur_time, True, *args, **kwargs)
             if len(recorders) == 0:
@@ -64,8 +60,7 @@ class OnlineSimulator:
         self.olm.run_delay_signals()
         self.logger.info(f"Finished preparing signals")
 
-        if self.collector is not None:
-            return ens_workflow(self.collector, self.process_list)
+        return self.olm.get_collector()
 
     def online_models(self):
         """

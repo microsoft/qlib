@@ -123,7 +123,8 @@ class RollingOnlineExample:
         return tasks
 
     def task_training(self, tasks):
-        self.trainer.train(tasks)
+        # self.trainer.train(tasks)
+        self.rolling_online_manager.prepare_new_models(tasks, tag=RollingOnlineManager.ONLINE_TAG)
 
     # This part corresponds to "Task Collecting" in the document
     def task_collecting(self):
@@ -165,10 +166,8 @@ class RollingOnlineExample:
         self.task_training(tasks)
         self.task_collecting()
 
-        latest_rec, _ = self.rolling_online_manager.list_latest_recorders()
-        self.rolling_online_manager.reset_online_tag(list(latest_rec.values()))
-
-        self.routine()
+        # latest_rec, _ = self.rolling_online_manager.list_latest_recorders()
+        # self.rolling_online_manager.reset_online_tag(list(latest_rec.values()))
 
     def routine(self):
         print("========== routine ==========")
@@ -176,6 +175,10 @@ class RollingOnlineExample:
         self.rolling_online_manager.routine()
         self.print_online_model()
         self.task_collecting()
+
+    def main(self):
+        self.first_run()
+        self.routine()
 
 
 if __name__ == "__main__":

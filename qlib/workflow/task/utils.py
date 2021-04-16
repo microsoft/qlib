@@ -15,10 +15,21 @@ def get_mongodb():
 
     get database in MongoDB, which means you need to declare the address and the name of database.
     for example:
-        C["mongo"] = {
-            "task_url" : "mongodb://localhost:27017/",
-            "task_db_name" : "rolling_db"
-        }
+
+        Using qlib.init():
+
+            mongo_conf = {
+                "task_url": task_url,  # your MongoDB url
+                "task_db_name": task_db_name,  # database name
+            }
+            qlib.init(..., mongo=mongo_conf)
+
+        After qlib.init():
+
+            C["mongo"] = {
+                "task_url" : "mongodb://localhost:27017/",
+                "task_db_name" : "rolling_db"
+            }
 
     """
     try:
@@ -113,6 +124,16 @@ class TimeAdjuster:
         return idx
 
     def cal_interval(self, time_point_A, time_point_B):
+        """
+        calculate the trading day interval
+
+        Args:
+            time_point_A : time_point_A
+            time_point_B : time_point_B (is the past of time_point_A)
+
+        Returns:
+            int: the interval between A and B
+        """
         return self.align_idx(time_point_A) - self.align_idx(time_point_B)
 
     def align_time(self, time_point, tp_type="start"):

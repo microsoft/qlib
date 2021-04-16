@@ -121,6 +121,7 @@ class PredUpdater(RecordUpdater):
         # FIXME: the problme below is not solved
         # The model dumped on GPU instances can not be loaded on CPU instance. Follow exception will raised
         # RuntimeError: Attempting to deserialize object on a CUDA device but torch.cuda.is_available() is False. If you are running on a CPU-only machine, please use torch.load with map_location=torch.device('cpu') to map your storages to the CPU.
+        # https://github.com/pytorch/pytorch/issues/16797
 
         start_time = get_date_by_shift(self.last_end, 1, freq=self.freq)
         if start_time >= self.to_date:
@@ -136,7 +137,7 @@ class PredUpdater(RecordUpdater):
         # Load model
         model = self.rmdl.get_model()
 
-        new_pred = model.predict(dataset)
+        new_pred: pd.Series = model.predict(dataset)
 
         cb_pred = pd.concat([self.old_pred, new_pred.to_frame("score")], axis=0)
         cb_pred = cb_pred.sort_index()

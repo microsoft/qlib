@@ -1,9 +1,10 @@
 from pprint import pprint
+import time
 
 import fire
 import qlib
 from qlib.config import REG_CN
-from qlib.model.trainer import task_train
+from qlib.model.trainer import TrainerR, task_train
 from qlib.workflow import R
 from qlib.workflow.task.gen import RollingGen, task_generator
 from qlib.workflow.task.manage import TaskManager, run_task
@@ -102,7 +103,7 @@ def task_training(tasks, task_pool, exp_name):
 
 
 # This part corresponds to "Task Collecting" in the document
-def task_collecting(task_pool, exp_name):
+def task_collecting(exp_name):
     print("========== task_collecting ==========")
 
     def rec_key(recorder):
@@ -141,7 +142,7 @@ def main(
     reset(task_pool, experiment_name)
     tasks = task_generating()
     task_training(tasks, task_pool, experiment_name)
-    task_collecting(task_pool, experiment_name)
+    task_collecting(experiment_name)
 
 
 if __name__ == "__main__":
