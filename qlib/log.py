@@ -11,10 +11,12 @@ from contextlib import contextmanager
 
 from .config import C
 
-class QlibLogger(Logger，meta=):
-    '''
+
+class QlibLogger:
+    """
     Customized logger for Qlib.
-    '''
+    """
+
     def __init__(self, module_name):
         self.module_name = module_name
         self.level = 0
@@ -27,10 +29,10 @@ class QlibLogger(Logger，meta=):
 
     def setLevel(self, level):
         self.level = level
-    
+
     def __getattr__(self, name):
         return self.logger.__getattribute__(name)
-    
+
 
 def get_module_logger(module_name, level: Optional[int] = None):
     """
