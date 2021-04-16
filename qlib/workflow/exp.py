@@ -1,14 +1,14 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-import mlflow
+import mlflow, logging
 from mlflow.entities import ViewType
 from mlflow.exceptions import MlflowException
 from pathlib import Path
 from .recorder import Recorder, MLflowRecorder
 from ..log import get_module_logger
 
-logger = get_module_logger("workflow", "INFO")
+logger = get_module_logger("workflow", logging.INFO)
 
 
 class Experiment:

@@ -1,7 +1,7 @@
 #  Copyright (c) Microsoft Corporation.
 #  Licensed under the MIT License.
 
-import re
+import re, logging
 import pandas as pd
 from pathlib import Path
 from pprint import pprint
@@ -16,7 +16,7 @@ from ..utils import flatten_dict
 from ..contrib.eva.alpha import calc_ic, calc_long_short_return, calc_long_short_prec
 from ..contrib.strategy.strategy import BaseStrategy
 
-logger = get_module_logger("workflow", "INFO")
+logger = get_module_logger("workflow", logging.INFO)
 
 
 class RecordTemp:

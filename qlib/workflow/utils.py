@@ -1,12 +1,12 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-import sys, traceback, signal, atexit
+import sys, traceback, signal, atexit, logging
 from . import R
 from .recorder import Recorder
 from ..log import get_module_logger
 
-logger = get_module_logger("workflow", "INFO")
+logger = get_module_logger("workflow", logging.INFO)
 
 
 # function to handle the experiment when unusual program ending occurs

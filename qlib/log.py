@@ -17,9 +17,9 @@ class MetaLogger(type):
         super().__init__(name, bases, dic)
 
     def __new__(cls, name, bases, dict):
-        wrapper_dict = type(logging.getLogger("module_name")).__dict__.copy()
+        wrapper_dict = type(logging.getLogger("MetaLogger")).__dict__.copy()
         wrapper_dict.update(dict)
-        wrapper_dict["__doc__"] = logging.getLogger("module_name").__doc__
+        wrapper_dict["__doc__"] = logging.getLogger("MetaLogger").__doc__
         return type.__new__(cls, name, bases, wrapper_dict)
 
     def __call__(cls, *args, **kwargs):
