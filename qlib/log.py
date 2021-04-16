@@ -12,7 +12,23 @@ from contextlib import contextmanager
 from .config import C
 
 
-class QlibLogger:
+class MetaLogger(type):
+    def __init__(self, name, bases, dic):
+        super().__init__(name, bases, dic)
+
+    def __new__(cls, name, bases, dict):
+        wrapper_dict = type(logging.getLogger("module_name")).__dict__.copy()
+        wrapper_dict.update(dict)
+        wrapper_dict["__doc__"] = logging.getLogger("module_name").__doc__
+        return type.__new__(cls, name, bases, wrapper_dict)
+
+    def __call__(cls, *args, **kwargs):
+        obj = cls.__new__(cls)
+        cls.__init__(cls, *args, **kwargs)
+        return obj
+
+
+class QlibLogger(metaclass=MetaLogger):
     """
     Customized logger for Qlib.
     """
