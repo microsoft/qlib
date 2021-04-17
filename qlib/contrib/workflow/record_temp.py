@@ -1,10 +1,11 @@
 #  Copyright (c) Microsoft Corporation.
 #  Licensed under the MIT License.
 
+import logging
 import pandas as pd
+import numpy as np
 from sklearn.metrics import mean_squared_error
 from typing import Dict, Text, Any
-import numpy as np
 
 from ...contrib.eva.alpha import calc_ic
 from ...workflow.record_temp import RecordTemp
@@ -12,7 +13,7 @@ from ...workflow.record_temp import SignalRecord
 from ...data import dataset as qlib_dataset
 from ...log import get_module_logger
 
-logger = get_module_logger("workflow", "INFO")
+logger = get_module_logger("workflow", logging.INFO)
 
 
 class MultiSegRecord(RecordTemp):
