@@ -50,7 +50,7 @@ class QlibLogger(metaclass=MetaLogger):
         return self.logger.__getattribute__(name)
 
 
-def get_module_logger(module_name, level: Optional[int] = None):
+def get_module_logger(module_name, level: Optional[int] = None) -> logging.Logger:
     """
     Get a logger for a specific module.
 
