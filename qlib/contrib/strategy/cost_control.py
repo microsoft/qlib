@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 
-from .strategy import StrategyWrapper, WeightStrategyBase
+from .strategy import WeightStrategyBase
 import copy
 
 
@@ -23,7 +23,7 @@ class SoftTopkStrategy(WeightStrategyBase):
         self.risk_degree = risk_degree
         self.buy_method = buy_method
 
-    def get_risk_degree(self, date):
+    def get_risk_degree(self, trade_index):
         """get_risk_degree
         Return the proportion of your total value you will used in investment.
         Dynamically risk_degree will result in Market timing
@@ -31,7 +31,7 @@ class SoftTopkStrategy(WeightStrategyBase):
         # It will use 95% amoutn of your total value by default
         return self.risk_degree
 
-    def generate_target_weight_position(self, score, current, trade_date):
+    def generate_target_weight_position(self, score, current, trade_start_time, trade_end_time):
         """Parameter:
         score : pred score for this trade date, pd.Series, index is stock_id, contain 'score' column
         current : current position, use Position() class

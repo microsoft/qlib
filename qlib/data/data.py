@@ -119,9 +119,12 @@ class CalendarProvider(abc.ABC):
             _calendar, _calendar_index = H["c"][flag]
         else:
             flag_raw = f"{freq}_future_{future}_sam_{None}"
-            _calendar = np.array(self.load_calendar(freq, future))
-            _calendar_index = {x: i for i, x in enumerate(_calendar)}  # for fast search
-            H["c"][flag_raw] = _calendar, _calendar_index
+            if flag_raw in H["c"]:
+                _calendar, _calendar_index = H["c"][flag_raw]
+            else:
+                _calendar = np.array(self.load_calendar(freq, future))
+                _calendar_index = {x: i for i, x in enumerate(_calendar)}  # for fast search
+                H["c"][flag_raw] = _calendar, _calendar_index
             if freq_sam is None:
                 return _calendar, _calendar_index
             else:
@@ -540,11 +543,6 @@ class LocalCalendarProvider(CalendarProvider):
 
     def calendar(self, start_time=None, end_time=None, freq="day", future=False, freq_sam=None):
         _calendar, _ = self._get_calendar(freq=freq, future=future)
-        if start_time == "None":
-            start_time = None
-        if end_time == "None":
-            end_time = None
-
         # strip
         if start_time:
             start_time = pd.Timestamp(start_time)
@@ -558,16 +556,8 @@ class LocalCalendarProvider(CalendarProvider):
                 return np.array([])
         else:
             end_time = _calendar[-1]
-        st, et, si, ei = self.locate_index(start_time, end_time, freq=freq, future=future)
-        _calendar = _calendar[si : ei + 1] 
-        if freq_sam is None:
-            return _calendar
-        else:
-            _calendar_sam, _ = self._get_calendar(freq=freq, freq_sam=freq_sam, future=future)
-            st, et, si, ei = self.locate_index(start_time, end_time, freq=freq, freq_sam=freq_sam, future=future)
-            if bisect.bisect(_calendar, st, 0, len(_calendar)):
-                return np.hstack()
-
+        st, et, si, ei = self.locate_index(start_time, end_time, freq=freq, freq_sam=freq_sam, future=future)
+        return _calendar[si : ei + 1] 
 
 class LocalInstrumentProvider(InstrumentProvider):
     """Local instrument data provider class

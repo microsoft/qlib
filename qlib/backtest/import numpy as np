@@ -1,0 +1,90 @@
+class HighFreqOrderNorm(Processor):
+    def __init__(self, fit_start_time, fit_end_time, feature_save_dir, price_dim=5, order_price_dim=2, volume_dim=1, order_volume_dim=8, day_length=240):
+        self.fit_start_time = fit_start_time
+        self.fit_end_time = fit_end_time
+        self.price_dim = price_dim
+        self.volume_dim = volume_dim
+        self.order_price_dim = order_price_dim
+        self.order_volume_dim = order_volume_dim
+        self.feature_save_dir = feature_save_dir
+        self.day_length = day_length
+        self.names = dict()
+        column_dim = self.price_dim + self.order_price_dim + self.volume_dim + self.order_volume_dim
+        fields = [("price", self.price_dim), ("order_price", self.order_price_dim), ("volume", self.volume_dim), ("order_volume", self.order_volume_dim)]
+        last_dim = 0
+        for field, field_dim in fields:
+            self.names[field] = list(range(last_dim, last_dim + field_dim)) + list((range(column_dim + last_dim, column_dim + last_dim + field_dim)))
+            last_dim += field_dim
+
+    @profile
+    def fit(self, df_features):
+        # fetch_df = fetch_df_by_index(df_features, slice(self.fit_start_time, self.fit_end_time), level="datetime")
+        
+
+        print("end")
+        if not os.path.exists(self.feature_save_dir):
+            os.makedirs(self.feature_save_dir)
+        for name, name_val in self.names.items():
+            print(name)
+            df_values = df_features.iloc(axis=1)[name_val].values
+            if name == "volume" or name == "order_volume":
+                df_values = np.log1p(df_values)
+            self.feature_med = np.nanmedian(df_values)
+            np.save(self.feature_save_dir + name + "_med.npy", self.feature_med)
+            df_values = df_values - self.feature_med
+            self.feature_std = np.nanmedian(np.absolute(df_values)) * 1.4826 + 1e-12
+            np.save(self.feature_save_dir + name + "_std.npy", self.feature_std)
+            df_values = df_values / self.feature_std
+            np.save(self.feature_save_dir + name + "_vmax.npy", np.nanmax(df_values))
+            np.save(self.feature_save_dir + name + "_vmin.npy", np.nanmin(df_values))
+            
+
+    def __call__(self, df_features):
+        df_features.set_index("date", append=True, drop=True, inplace=True)
+        df_values = df_features.values
+        df_values_dict = dict()
+        for name, name_val in self.names.items():
+            self.feature_med = np.load(self.feature_save_dir + name + "_med.npy")
+            self.feature_std = np.load(self.feature_save_dir + name + "_std.npy")
+            self.feature_vmax = np.load(self.feature_save_dir + name + "_vmax.npy")
+            self.feature_vmin = np.load(self.feature_save_dir + name + "_vmin.npy")
+
+            df_values = df_features.iloc(axis=1)[name_val].values
+            if name == "volume" or name == "order_volume":
+                df_values[:] = np.log1p(df_values)
+            df_values[:] -= self.feature_med
+            df_values[:] /= self.feature_std
+            slice0 = df_values > 3.0
+            slice1 = df_values > 3.5
+            slice2 = df_values < -3.0
+            slice3 = df_values < -3.5
+
+            df_values[slice0] = (
+                3.0 + (df_values[slice0] - 3.0) / (self.feature_vmax - 3) * 0.5
+            )
+            df_values[slice1] = 3.5
+            df_values[slice2] = (
+                -3.0 - (df_values[slice2] + 3.0) / (self.feature_vmin + 3) * 0.5
+            )
+            df_values[slice3] = -3.5
+            df_values_dict[name] = df_values
+
+        idx = df_features.index.droplevel("datetime").drop_duplicates()
+        idx.set_names(["instrument", "datetime"], inplace=True)
+
+        # Reshape is specifically for adapting to RL high-freq executor
+        feat = df_values[:, list(range(self.price_dim)) + list(range(self.price_dim * 2, self.price_dim * 2 + self.order_price_dim))
+            + list(range((self.price_dim + self.order_price_dim) * 2, (self.price_dim + self.order_price_dim) * 2 + self.volume_dim))
+            + list(range((self.price_dim + self.order_price_dim + self.volume_dim) * 2, (self.price_dim + self.order_price_dim + self.volume_dim) * 2 + self.order_volume_dim))
+            ].reshape(-1, (self.price_dim + self.order_price_dim + self.volume_dim + self.order_volume_dim) * self.day_length)
+        
+        feat_1 = df_values[:, list(np.arange(self.price_dim) + self.price_dim) + list(np.arange(self.price_dim * 2, self.price_dim * 2 + self.order_price_dim) + self.order_price_dim)
+        + list(np.arange((self.price_dim + self.order_price_dim) * 2, (self.price_dim + self.order_price_dim) * 2 + self.volume_dim) + self.volume_dim)
+        + list(np.arange((self.price_dim + self.order_price_dim + self.volume_dim) * 2, (self.price_dim + self.order_price_dim + self.volume_dim) * 2 + self.order_volume_dim) + self.order_volume_dim)
+        ].reshape(-1, (self.price_dim + self.order_price_dim + self.volume_dim + self.order_volume_dim) * self.day_length)
+        df_new_features = pd.DataFrame(
+            data=np.concatenate((feat, feat_1), axis=1),
+            index=idx,
+            columns=range(2 * (self.price_dim + self.order_price_dim + self.volume_dim + self.order_volume_dim) * self.day_length),
+        ).sort_index()
+        return df_new_features

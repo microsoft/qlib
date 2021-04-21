@@ -1,94 +1,18 @@
-# Copyright (c) Microsoft Corporation.
-# Licensed under the MIT License.
-
-
 import copy
+import warnings
 import numpy as np
 import pandas as pd
 
-from ..data.dataset import DatasetH
-from ..backtest.order import Order
+from ...utils import sample_feature
+from ...strategy.base import DLStrategy
+from ...backtest.order import Order
 from .order_generator import OrderGenWInteract
 
-"""
-1. BaseStrategy 的粒度一定是数据粒度的整数倍
-- 关于calendar的合并咋整
-- adjust_dates这个东西啥用
-- label和freq和strategy的bar分离，这个如何决策呢
-"""
-class BaseStrategy:
-    def __init__(self, bar, start_time, end_time):
-        self.bar = bar
-        self.start_time = start_time
-        self.end_time = end_time
-        self.current_time = start_time
-    
-    def generate_action(self, current):
-        pass
 
-
-class RuleStrategy(BaseStrategy):
-    pass
-
-class DLStrategy(BaseStrategy):
-    def __init__(self, bar, model, dataset:DatasetH, start_time=None, end_time=None):
-        super(DLStrategy, self).__init__(bar, start_time, end_time)
-        self.model = model
-        self.dataset = dataset
-        self.pred_score_all = self.model.predict(dataset)
-        self.pred_score = None
-        _pred_dates = pred.index.get_level_values(level="datetime")
-        self.start_time = _pred_dates.min() if start_time is None else start_time
-        self.end_time = _pred_dates.max() if end_time is None else end_time
-        self.pred_date = [pd.Timestamp(self.start_time), *D.calendar(start_time=_pred_dates.min(), end_time=_pred_dates.max(), freq=bar), self.end_time]
-        self.current_index = -1
-        self.pred_length = len(self.pred_date)
-
-     def _update_pred_score(self):
-        """update pred score
-        """
-        pass
-
-class AdjustTimer:
-    """AdjustTimer
-    Responsible for timing of position adjusting
-
-    This is designed as multiple inheritance mechanism due to:
-    - the is_adjust may need access to the internel state of a strategy.
-
-    - it can be reguard as a enhancement to the existing strategy.
-    """
-
-    # adjust position in each trade date
-    def is_adjust(self, trade_date):
-        """is_adjust
-        Return if the strategy can adjust positions on `trade_date`
-        Will normally be used in strategy do trading with trade frequency
-        """
-        return True
-
-
-class ListAdjustTimer(AdjustTimer):
-    def __init__(self, adjust_dates=None):
-        """__init__
-
-        :param adjust_dates: an iterable object, it will return a timelist for trading dates
-        """
-        if adjust_dates is None:
-            # None indicates that all dates is OK for adjusting
-            self.adjust_dates = None
-        else:
-            self.adjust_dates = {pd.Timestamp(dt) for dt in adjust_dates}
-
-    def is_adjust(self, trade_date):
-        if self.adjust_dates is None:
-            return True
-        return pd.Timestamp(trade_date) in self.adjust_dates
-
-class TopkDropoutStrategy(DLStrategy, ListAdjustTimer):
+class TopkDropoutStrategy(DLStrategy):
     def __init__(
         self,
-        bar,
+        step_bar,
         model,
         dataset,
         trade_exchange,
@@ -129,8 +53,7 @@ class TopkDropoutStrategy(DLStrategy, ListAdjustTimer):
             else:
                 strategy will make decision with the tradable state of the stock info and avoid buy and sell them.
         """
-        super(TopkDropoutStrategy, self).__init__(bar, model, dataset, start_time, end_time)
-        ListAdjustTimer.__init__(self, kwargs.get("adjust_dates", None))
+        super(TopkDropoutStrategy, self).__init__(step_bar, model, dataset, start_time, end_time)
         self.trade_exchange = trade_exchange
         self.topk = topk
         self.n_drop = n_drop
@@ -145,7 +68,7 @@ class TopkDropoutStrategy(DLStrategy, ListAdjustTimer):
         self.hold_thresh = hold_thresh
         self.only_tradable = only_tradable
     
-    def get_risk_degree(self, date):
+    def get_risk_degree(self, trade_index):
         """get_risk_degree
         Return the proportion of your total value you will used in investment.
         Dynamically risk_degree will result in Market timing.
@@ -153,13 +76,13 @@ class TopkDropoutStrategy(DLStrategy, ListAdjustTimer):
         # It will use 95% amoutn of your total value by default
         return self.risk_degree
 
-    def generate_action(self, current):
-
-        self.current_index += 1
-        
-        if not self.is_adjust(trade_date):
-            return []
-
+    def generate_order_list(self, trade_account, trade_start_time, trade_end_time, **kwargs):
+        super(TopkDropoutStrategy, self).generate_order_list()
+        if self.trade_index == 1:
+            pred_start_time, pred_end_time = None, trade_start_time - pd.Timedelta(seconds=1)
+        else:
+            pred_start_time, pred_end_time = self.trade_dates[self.trade_index - 2], trade_start_time - pd.Timedelta(seconds=1)
+        pred_score = sample_feature(self.pred_scores, start_time=pred_start_time, end_time=pred_end_time, method="last")
         if self.only_tradable:
             # If The strategy only consider tradable stock when make decision
             # It needs following actions to filter stocks
@@ -167,7 +90,7 @@ class TopkDropoutStrategy(DLStrategy, ListAdjustTimer):
                 cur_n = 0
                 res = []
                 for si in reversed(l) if reverse else l:
-                    if self.trade_exchange.is_stock_tradable(stock_id=si, trade_date=trade_date):
+                    if self.trade_exchange.is_stock_tradable(stock_id=si, start_time=trade_start_time, end_time=trade_end_time):
                         res.append(si)
                         cur_n += 1
                         if cur_n >= n:
@@ -178,7 +101,7 @@ class TopkDropoutStrategy(DLStrategy, ListAdjustTimer):
                 return get_first_n(l, n, reverse=True)
 
             def filter_stock(l):
-                return [si for si in l if self.trade_exchange.is_stock_tradable(stock_id=si, trade_date=trade_date)]
+                return [si for si in l if self.trade_exchange.is_stock_tradable(stock_id=si, start_time=trade_start_time, end_time=trade_end_time)]
 
         else:
             # Otherwise, the stock will make decision with out the stock tradable info
@@ -191,7 +114,7 @@ class TopkDropoutStrategy(DLStrategy, ListAdjustTimer):
             def filter_stock(l):
                 return l
 
-        current_temp = copy.deepcopy(current)
+        current_temp = copy.deepcopy(trade_account.current)
         # generate order list for this adjust date
         sell_order_list = []
         buy_order_list = []
@@ -199,15 +122,15 @@ class TopkDropoutStrategy(DLStrategy, ListAdjustTimer):
         cash = current_temp.get_cash()
         current_stock_list = current_temp.get_stock_list()
         # last position (sorted by score)
-        last = self.pred_score.reindex(current_stock_list).sort_values(ascending=False).index
+        last = pred_score.reindex(current_stock_list).sort_values(ascending=False).index
         # The new stocks today want to buy **at most**
         if self.method_buy == "top":
             today = get_first_n(
-                self.pred_score[~self.pred_score.index.isin(last)].sort_values(ascending=False).index,
+                pred_score[~pred_score.index.isin(last)].sort_values(ascending=False).index,
                 self.n_drop + self.topk - len(last),
             )
         elif self.method_buy == "random":
-            topk_candi = get_first_n(self.pred_score.sort_values(ascending=False).index, self.topk)
+            topk_candi = get_first_n(pred_score.sort_values(ascending=False).index, self.topk)
             candi = list(filter(lambda x: x not in last, topk_candi))
             n = self.n_drop + self.topk - len(last)
             try:
@@ -218,7 +141,7 @@ class TopkDropoutStrategy(DLStrategy, ListAdjustTimer):
             raise NotImplementedError(f"This type of input is not supported")
         # combine(new stocks + last stocks),  we will drop stocks from this list
         # In case of dropping higher score stock and buying lower score stock.
-        comb = self.pred_score.reindex(last.union(pd.Index(today))).sort_values(ascending=False).index
+        comb = pred_score.reindex(last.union(pd.Index(today))).sort_values(ascending=False).index
 
         # Get the stock list we really want to sell (After filtering the case that we sell high and buy low)
         if self.method_sell == "bottom":
@@ -236,10 +159,10 @@ class TopkDropoutStrategy(DLStrategy, ListAdjustTimer):
         buy = today[: len(sell) + self.topk - len(last)]
 
         # buy singal: if a stock falls into topk, it appear in the buy_sinal
-        buy_signal = self.pred_score.sort_values(ascending=False).iloc[: self.topk].index
+        buy_signal = pred_score.sort_values(ascending=False).iloc[: self.topk].index
 
         for code in current_stock_list:
-            if not self.trade_exchange.is_stock_tradable(stock_id=code, trade_date=trade_date):
+            if not self.trade_exchange.is_stock_tradable(stock_id=code, start_time=trade_start_time, end_time=trade_end_time):
                 continue
             if code in sell:
                 # check hold limit
@@ -253,9 +176,10 @@ class TopkDropoutStrategy(DLStrategy, ListAdjustTimer):
                 sell_order = Order(
                     stock_id=code,
                     amount=sell_amount,
-                    trade_date=trade_date,
+                    start_time=trade_start_time,
+                    end_time=trade_end_time,
                     direction=Order.SELL,  # 0 for sell, 1 for buy
-                    factor=self.trade_exchange.get_factor(code, trade_date),
+                    factor=self.trade_exchange.get_factor(code, trade_start_time, trade_end_time),
                 )
                 # is order executable
                 if self.trade_exchange.check_order(sell_order):
@@ -290,15 +214,79 @@ class TopkDropoutStrategy(DLStrategy, ListAdjustTimer):
             # buy order
             buy_price = self.trade_exchange.get_deal_price(stock_id=code, trade_date=trade_date)
             buy_amount = value / buy_price
-            factor = self.trade_exchange.quote[(code, trade_date)]["$factor"]
+            factor = self.trade_exchange.get_factor(stock_id=code, start_time=trade_start_time, end_time=trade_end_time)
             buy_amount = self.trade_exchange.round_amount_by_trade_unit(buy_amount, factor)
             buy_order = Order(
                 stock_id=code,
                 amount=buy_amount,
-                trade_date=trade_date,
+                start_time=trade_start_time,
+                end_time=trade_end_time,
                 direction=Order.BUY,  # 1 for buy
                 factor=factor,
             )
             buy_order_list.append(buy_order)
             self.stock_count[code] = 1
         return sell_order_list + buy_order_list
+    
+class WeightStrategyBase(DLStrategy):
+    def __init__(self, trade_exchange, order_generator_cls_or_obj=OrderGenWInteract, **kwargs):
+        super().__init__(**kwargs)
+        self.trade_exchange = trade_exchange
+        if isinstance(order_generator_cls_or_obj, type):
+            self.order_generator = order_generator_cls_or_obj()
+        else:
+            self.order_generator = order_generator_cls_or_obj
+        
+
+    def generate_target_weight_position(self, score, current, trade_start_time, trade_end_time):
+        """
+        Generate target position from score for this date and the current position.The cash is not considered in the position
+        Parameters
+        -----------
+        score : pd.Series
+            pred score for this trade date, index is stock_id, contain 'score' column.
+        current : Position()
+            current position.
+        trade_exchange : Exchange()
+        trade_date : pd.Timestamp
+            trade date.
+        """
+        raise NotImplementedError()
+
+    def generate_order_list(self, trade_account, trade_start_time, trade_end_time, **kwargs):
+        """
+        Parameters
+        -----------
+        score_series : pd.Seires
+            stock_id , score.
+        current : Position()
+            current of account.
+        trade_exchange : Exchange()
+            exchange.
+        trade_date : pd.Timestamp
+            date.
+        """
+        # generate_order_list
+        # generate_target_weight_position() and generate_order_list_from_target_weight_position() to generate order_list
+        super(WeightStrategyBase, self).generate_order_list()
+        if self.trade_index == 1:
+            pred_start_time, pred_end_time = None, trade_start_time - pd.Timedelta(seconds=1)
+        else:
+            pred_start_time, pred_end_time = self.trade_dates[self.trade_index - 2], trade_start_time - pd.Timedelta(seconds=1)
+        
+        pred_score = sample_feature(self.pred_scores, start_time=pred_start_time, end_time=pred_end_time, method="last")
+        current_temp = copy.deepcopy(trade_account.current)
+        target_weight_position = self.generate_target_weight_position(
+            score=pred_score, current=current_temp, trade_start_time=trade_start_time, trade_end_time=trade_end_time
+        )
+        order_list = self.order_generator.generate_order_list_from_target_weight_position(
+            current=current_temp,
+            trade_exchange=self.trade_exchange,
+            risk_degree=self.get_risk_degree(self.trade_index),
+            target_weight_position=target_weight_position,
+            pred_start_time=pred_start_time,
+            pred_end_time=pred_end_time,
+            trade_start_time=trade_start_time,
+            trade_end_time=trade_end_time,
+        )
+        return order_list

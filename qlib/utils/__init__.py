@@ -915,7 +915,33 @@ def sample_calendar(calendar_raw, freq_raw, freq_sam):
         else:
             raise ValueError("sample freq must be xmin, xd, xw, xm")
             
-def sample_feature(feature_raw, freq, start_time, end_time, method="last"):
-    datetime_raw = feature_raw.index.get_level_values("datetime")
-    feature_sample = feature_raw[list(map(lambda x: start_time < x <= end_time, datetime_raw))]
-    return getattr(feature_sample.groupby(level="instrument"), method)()
+def get_sample_freq_calendar(start_time, end_time, freq):
+    try:
+        _calendar = D.calendar(start_time=start_time, end_time=end_time, freq=freq)
+    except ValueError:
+        if freq.endswith(("m", "month", "w", "week", "d", "day")):
+            try:
+                _calendar = D.calendar(start_time=self.start_time, end_time=self.end_time, freq="min", freq_sam=freq)
+            except ValueError:
+                _calendar = D.calendar(start_time=self.start_time, end_time=self.end_time, freq="day", freq_sam=freq)
+        elif freq.endswith(("min", "minute")):
+            _calendar = D.calendar(start_time=self.start_time, end_time=self.end_time, freq="min", freq_sam=freq)
+        else:
+            raise ValueError(f"freq {freq} is not supported")
+    return _calendar
+
+def sample_feature(feature, instruments=None, start_time=None, end_time=None, fields=None, method=None, method_kwargs={}):
+    if instruments and type(instruments) is not list:
+        instruments = [instruments]
+    if fields and type(fields) is not list:
+        fields = [fields]
+    selector_inst = slice(None) if instruments is None else instruments
+    selector_datetime = slice(start_time, end_time)
+    if fields is not None and type(fields) is not list:
+        fields = [fields]
+    selector_fields = slice(None) if fields is None else fields
+    feature = feature.loc[(selector_inst, selector_datetime), selector_fields]
+    if method:
+        return getattr(feature.groupby(level="instrument"), method)(**method_kwargs)
+    else:
+        return feature
