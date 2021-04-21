@@ -243,7 +243,7 @@ class TSDataSampler:
 
     """
 
-    def __init__(self, data: pd.DataFrame, start, end, step_len: int, fillna_type: str = "none"):
+    def __init__(self, data: pd.DataFrame, start, end, step_len: int, fillna_type: str = "none", col_filter = None):
         """
         Build a dataset which looks like torch.data.utils.Dataset.
 
@@ -279,8 +279,12 @@ class TSDataSampler:
 
         # the data type will be changed
         # The index of usable data is between start_idx and end_idx
-        self.start_idx, self.end_idx = self.data.index.slice_locs(start=pd.Timestamp(start), end=pd.Timestamp(end))
-        self.idx_df, self.idx_map = self.build_index(self.data)
+        if col_filter is None:
+            col_filter = np.full(data.shape[0], True)
+        self.col_filter = col_filter
+
+        self.start_idx, self.end_idx = np.where(self.col_filter == True)[0][0], self.col_filter.fillna(False).sum() - 1#self.data.index.slice_locs(start=pd.Timestamp(start), end=pd.Timestamp(end))
+        self.idx_df, self.idx_map = self.build_index(self.data, self.col_filter)
         self.idx_arr = np.array(self.idx_df.values, dtype=np.float64)  # for better performance
 
     def get_index(self):
@@ -296,7 +300,7 @@ class TSDataSampler:
             setattr(self, k, v)
 
     @staticmethod
-    def build_index(data: pd.DataFrame) -> dict:
+    def build_index(data: pd.DataFrame, col_filter) -> dict:
         """
         The relation of the data
 
@@ -317,11 +321,15 @@ class TSDataSampler:
         # NOTE: the correctness of `__getitem__` depends on columns sorted here
         idx_df = lazy_sort_index(idx_df, axis=1)
 
+        idx, idx2 = 0, 0
         idx_map = {}
         for i, (_, row) in enumerate(idx_df.iterrows()):
             for j, real_idx in enumerate(row):
                 if not np.isnan(real_idx):
-                    idx_map[real_idx] = (i, j)
+                    if col_filter[idx2]: 
+                        idx_map[idx] = (i, j)
+                        idx += 1
+                    idx2 += 1
         return idx_df, idx_map
 
     def _get_indices(self, row: int, col: int) -> np.array:
@@ -460,6 +468,17 @@ class TSDatasetH(DatasetH):
         cal = self.handler.fetch(col_set=self.handler.CS_RAW).index.get_level_values("datetime").unique()
         cal = sorted(cal)
         self.cal = cal
+        
+    def _prepare_col_filter(self, slc: slice, **kwargs):
+        kwargs['col_set'] = ['filter']
+        data_filter = super()._prepare_seg(slc=slc, **kwargs)
+        if kwargs.get('data_key') == DataHandlerLP.DK_L: 
+            col_filter = data_filter['filter']['keep_train']
+        elif kwargs.get('data_key') == DataHandlerLP.DK_I:
+            col_filter = data_filter['filter']['keep_test']
+        else:
+            col_filter = None
+        return col_filter
 
     def _prepare_seg(self, slc: slice, **kwargs) -> TSDataSampler:
         # Dataset decide how to slice data(Get more data for timeseries).
@@ -471,5 +490,5 @@ class TSDatasetH(DatasetH):
         # TSDatasetH will retrieve more data for complete
         data = super()._prepare_seg(slice(pad_start, end), **kwargs)
 
-        tsds = TSDataSampler(data=data, start=start, end=end, step_len=self.step_len)
+        tsds = TSDataSampler(data=data, start=start, end=end, step_len=self.step_len, )
         return tsds
