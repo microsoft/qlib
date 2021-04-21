@@ -163,14 +163,15 @@ class Position:
         for stock_code, weight in weight_dict.items():
             self.update_stock_weight(stock_code, weight)
 
-    def save_position(self, path, last_trade_date):
+    def save_position(self, path, last_trade_time):
         path = pathlib.Path(path)
         p = copy.deepcopy(self.position)
         cash = pd.Series(dtype=np.float)
         cash["init_cash"] = self.init_cash
         cash["cash"] = p["cash"]
         cash["today_account_value"] = p["today_account_value"]
-        cash["last_trade_date"] = str(last_trade_date.date()) if last_trade_date else None
+        cash["last_trade_start_time"] = str(last_trade_time[0]) if last_trade_time else None
+        cash["last_trade_end_time"] = str(last_trade_time[1]) if last_trade_time else None
         del p["cash"]
         del p["today_account_value"]
         positions = pd.DataFrame.from_dict(p, orient="index")
@@ -201,7 +202,8 @@ class Position:
         init_cash = cash_record.loc["init_cash"].values[0]
         cash = cash_record.loc["cash"].values[0]
         today_account_value = cash_record.loc["today_account_value"].values[0]
-        last_trade_date = cash_record.loc["last_trade_date"].values[0]
+        last_trade_start_time = cash_record.loc["last_trade_start_time"].values[0]
+        last_trade_end_time = cash_record.loc["last_trade_end_time"].values[0]
 
         # assign values
         self.position = {}
@@ -210,4 +212,6 @@ class Position:
         self.position["cash"] = cash
         self.position["today_account_value"] = today_account_value
 
-        return None if pd.isna(last_trade_date) else pd.Timestamp(last_trade_date)
+        last_trade_start_time = None is pd.isna(last_trade_start_time) else pd.Timestamp(last_trade_start_time)
+        last_trade_end_time = None is pd.isna(last_trade_end_time) else pd.Timestamp(last_trade_end_time)
+        return last_trade_start_time, last_trade_end_time

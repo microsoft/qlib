@@ -32,7 +32,7 @@ class BaseStrategy:
         if not self.start_time or not self.end_time:
             raise ValueError("value of `start_time` or `end_time` is None")
         _calendar = get_sample_freq_calendar(start_time=start_time, end_time=end_time, freq=step_bar)
-        self.trade_dates = np.hstack(pd.Timestamp(self.start_time), _calendar, self.end_time)
+        self.trade_dates = np.hstack(_calendar, pd.Timestamp(self.end_time))
         self.trade_len = len(self.trade_dates)
         self.trade_index = 0
         

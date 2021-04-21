@@ -866,14 +866,15 @@ def sample_calendar(calendar_raw, freq_raw, freq_sam):
     """
     freq_raw = "1" + freq_raw if re.match("^[0-9]", freq_raw) is None else freq_raw
     freq_sam = "1" + freq_sam if re.match("^[0-9]", freq_sam) is None else freq_sam
-
+    if not len(calendar_raw):
+        return calendar_raw
     if freq_sam.endswith(("minute", "min")):
         def cal_next_sam_minute(x, sam_minutes):
             hour = x.hour
             minute = x.minute
-            if 9 <= hour <= 11:
+            if (hour == 9 and minute >= 30) or (9 < hour < 11) or (hour == 11 and minute < 30):
                 minute_index = (hour - 9)*60 + minute - 30
-            elif 13 <= hour <= 15:
+            elif 13 <= hour < 15:
                 minute_index = (hour - 13)*60 + minute + 120
             else:
                 raise ValueError("calendar hour must be in [9, 11] or [13, 15]")
@@ -894,6 +895,8 @@ def sample_calendar(calendar_raw, freq_raw, freq_sam):
             if raw_minutes > sam_minutes:
                 raise ValueError("raw freq must be higher than sample freq")
         _calendar_minute = np.unique(list(map(lambda x: pd.Timestamp(x.year, x.month, x.day, *cal_next_sam_minute(x, sam_minutes), 0), calendar_raw)))
+        if calendar_raw[0] > _calendar_minute[0]:
+            _calendar_minute[0] = calendar_raw[0]
         return _calendar_minute
     else:
         _calendar_day = np.unique(list(map(lambda x: pd.Timestamp(x.year, x.month, x.day, 0, 0, 0), calendar_raw)))
@@ -945,3 +948,4 @@ def sample_feature(feature, instruments=None, start_time=None, end_time=None, fi
         return getattr(feature.groupby(level="instrument"), method)(**method_kwargs)
     else:
         return feature
+
