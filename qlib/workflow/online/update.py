@@ -73,9 +73,7 @@ class PredUpdater(RecordUpdater):
     Update the prediction in the Recorder
     """
 
-    LATEST = "__latest"
-
-    def __init__(self, record: Recorder, to_date=LATEST, hist_ref: int = 0, freq="day", need_log=True):
+    def __init__(self, record: Recorder, to_date=None, hist_ref: int = 0, freq="day", need_log=True):
         """
         Parameters
         ----------
@@ -95,8 +93,7 @@ class PredUpdater(RecordUpdater):
         self.freq = freq
         self.rmdl = RMDLoader(rec=record)
 
-        # FIXME: why we need LATEST? can we use to_date=None instead?
-        if to_date == self.LATEST or to_date == None:
+        if to_date == None:
             to_date = D.calendar(freq=freq)[-1]
         self.to_date = pd.Timestamp(to_date)
         self.old_pred = record.load_object("pred.pkl")

@@ -90,16 +90,9 @@ class TimeAdjuster:
 
     def max(self):
         """
-        (Deprecated)
         Return the max calendar datetime
         """
         return max(self.cals)
-
-    def last_date(self) -> pd.Timestamp:
-        """
-        Return the last datetime in the calendar
-        """
-        return self.cals[-1]
 
     def align_idx(self, time_point, tp_type="start"):
         """
