@@ -186,7 +186,7 @@ def report_graph(report_df: pd.DataFrame, show_notebook: bool = True) -> [list, 
 
                 report_normal_df, _ = backtest(pred_df, strategy, **bparas)
 
-                qcr.report_graph(report_normal_df)
+                qcr.analysis_position.report_graph(report_normal_df)
 
     :param report_df: **df.index.name** must be **date**, **df.columns** must contain **return**, **turnover**, **cost**, **bench**.
 
