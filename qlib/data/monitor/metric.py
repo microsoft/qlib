@@ -118,7 +118,7 @@ class AutoCM(MetricExt):
 
 
 class CorrM(MetricExt):
-    """correlation extractor """
+    """correlation extractor"""
 
     def __init__(self, mode="pearson"):
         self.mode = mode
