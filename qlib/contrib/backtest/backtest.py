@@ -127,7 +127,7 @@ def backtest(pred, strategy, executor, trade_exchange, shift, verbose, account, 
 def update_account(trade_account, trade_info, trade_exchange, trade_date):
     """
     Update the account and strategy
-    
+
     Parameters
     ----------
     trade_account : Account()
