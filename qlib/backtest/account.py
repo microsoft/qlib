@@ -129,8 +129,7 @@ class Account:
         # judge whether the the trading is begin.
         # and don't add init account state into report, due to we don't have excess return in those days.
         self.report.update_report_record(
-            trade_start_time=trade_start_time,
-            trade_end_time=trade_end_time,
+            trade_time=trade_start_time,
             account_value=now_account_value,
             cash=self.current.position["cash"],
             return_rate=(self.earning + self.ct) / last_account_value,

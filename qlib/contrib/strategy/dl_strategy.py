@@ -64,9 +64,9 @@ class TopkDropoutStrategy(DLStrategy):
         # self.stock_count['code'] will be the days the stock has been hold
         # since last buy signal. This is designed for thresh
         self.stock_count = {}
-
         self.hold_thresh = hold_thresh
         self.only_tradable = only_tradable
+        
     
     def get_risk_degree(self, trade_index):
         """get_risk_degree
@@ -76,12 +76,10 @@ class TopkDropoutStrategy(DLStrategy):
         # It will use 95% amoutn of your total value by default
         return self.risk_degree
 
-    def generate_order_list(self, trade_account, trade_start_time, trade_end_time, **kwargs):
+    def generate_order_list(self, current, **kwargs):
         super(TopkDropoutStrategy, self).generate_order_list()
-        if self.trade_index == 1:
-            pred_start_time, pred_end_time = None, trade_start_time - pd.Timedelta(seconds=1)
-        else:
-            pred_start_time, pred_end_time = self.trade_dates[self.trade_index - 2], trade_start_time - pd.Timedelta(seconds=1)
+        trade_start_time, trade_end_time = self._get_trade_time()
+        pred_start_time, pred_end_time = self._get_last_trade_time()
         pred_score = sample_feature(self.pred_scores, start_time=pred_start_time, end_time=pred_end_time, method="last")
         if self.only_tradable:
             # If The strategy only consider tradable stock when make decision
@@ -114,7 +112,7 @@ class TopkDropoutStrategy(DLStrategy):
             def filter_stock(l):
                 return l
 
-        current_temp = copy.deepcopy(trade_account.current)
+        current_temp = copy.deepcopy(current)
         # generate order list for this adjust date
         sell_order_list = []
         buy_order_list = []
@@ -229,13 +227,14 @@ class TopkDropoutStrategy(DLStrategy):
         return sell_order_list + buy_order_list
     
 class WeightStrategyBase(DLStrategy):
-    def __init__(self, trade_exchange, order_generator_cls_or_obj=OrderGenWInteract, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, trade_exchange, order_generator_cls_or_obj=OrderGenWInteract, start_time=None, end_time=None, **kwargs):
+        super(WeightStrategyBase, self).__init__(step_bar, start_time, end_time)
         self.trade_exchange = trade_exchange
         if isinstance(order_generator_cls_or_obj, type):
             self.order_generator = order_generator_cls_or_obj()
         else:
             self.order_generator = order_generator_cls_or_obj
+        
         
 
     def generate_target_weight_position(self, score, current, trade_start_time, trade_end_time):
@@ -253,7 +252,7 @@ class WeightStrategyBase(DLStrategy):
         """
         raise NotImplementedError()
 
-    def generate_order_list(self, trade_account, trade_start_time, trade_end_time, **kwargs):
+    def generate_order_list(self, current, **kwargs):
         """
         Parameters
         -----------
@@ -269,11 +268,8 @@ class WeightStrategyBase(DLStrategy):
         # generate_order_list
         # generate_target_weight_position() and generate_order_list_from_target_weight_position() to generate order_list
         super(WeightStrategyBase, self).generate_order_list()
-        if self.trade_index == 1:
-            pred_start_time, pred_end_time = None, trade_start_time - pd.Timedelta(seconds=1)
-        else:
-            pred_start_time, pred_end_time = self.trade_dates[self.trade_index - 2], trade_start_time - pd.Timedelta(seconds=1)
-        
+        trade_start_time, trade_end_time = self._get_trade_time()
+        pred_start_time, pred_end_time = self._get_pred_time()
         pred_score = sample_feature(self.pred_scores, start_time=pred_start_time, end_time=pred_end_time, method="last")
         current_temp = copy.deepcopy(trade_account.current)
         target_weight_position = self.generate_target_weight_position(

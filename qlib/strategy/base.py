@@ -20,26 +20,49 @@ from ..data.data import D
 - label和freq和strategy的bar分离，这个如何决策呢
 """
 class BaseStrategy:
-    def __init__(self, step_bar, start_time, end_time, **kwargs):
+    def __init__(self, step_bar, start_time=None, end_time=None, **kwargs):
         self.step_bar = step_bar
         self.reset(start_time=start_time, end_time=end_time, **kwargs)
 
-    def _reset_trade_date(self, start_time=None, end_time=None):
+    def _reset_trade_calendar(self, start_time, end_time, _calendar=None):
         if start_time:
             self.start_time = start_time
         if end_time:
             self.end_time = end_time
-        if not self.start_time or not self.end_time:
-            raise ValueError("value of `start_time` or `end_time` is None")
-        _calendar = get_sample_freq_calendar(start_time=start_time, end_time=end_time, freq=step_bar)
-        self.trade_dates = np.hstack(_calendar, pd.Timestamp(self.end_time))
-        self.trade_len = len(self.trade_dates)
-        self.trade_index = 0
-        
-    def reset(self, start_time=None, end_time=None, **kwargs):
-        if start_time or end_time:
-            self._reset_trade_date(start_time=start_time, end_time=end_time)
+        if self.start_time and self.end_time:    
+            if not _calendar:
+                _calendar = get_sample_freq_calendar(start_time=start_time, end_time=end_time, freq=step_bar)    
+                self.trade_calendar = np.hstack(_calendar, pd.Timestamp(self.end_time))
+            else:
+                self.trade_calendar = _calendar
+            self.trade_len = len(self.trade_calendar)
+            self.trade_index = 0
+        else:
+            raise ValueError("failed to reset trade calendar, params `start_time` or `end_time` is None.")
 
+    def reset(self, start_time=None, end_time=None, _calendar=None):
+        if start_time or end_time :
+            self._reset_trade_calendar(start_time=start_time, end_time=end_time, calendar=calendar)
+    
+    def _get_trade_time(self):
+        if 0 < self.trade_index < self.trade_len - 1: 
+            trade_start_time = self.trade_calendar[self.trade_index - 1]
+            trade_end_time = self.trade_calendar[self.trade_index] - pd.Timestamp(second=1)
+            return trade_start_time, trade_end_time
+        elif self.trade_index == self.trade_len - 1:
+            trade_start_time = self.trade_calendar[self.trade_index - 1]
+            trade_end_time = self.trade_calendar[self.trade_index]
+            return trade_start_time, trade_end_time
+        else:
+            raise RuntimeError("trade_index out of range")
+    
+    def _get_last_trade_time(self, shift=1):
+        if self.trade_index - shift < 0:
+            return None, None
+        elif self.trade_index - shift == 0:
+            return None, self.trade_index[self.trade_index - shift]
+        else:
+            return self.trade_index[self.trade_index - shift - 1], self.trade_index[self.trade_index - shift]
     def generate_order_list(self, **kwargs):
         self.trade_index = self.trade_index + 1
 
@@ -48,7 +71,7 @@ class RuleStrategy(BaseStrategy):
     pass
 
 class DLStrategy(BaseStrategy):
-    def __init__(self, step_bar, start_time, end_time, model, dataset:DatasetH):
+    def __init__(self, step_bar, model, dataset:DatasetH, start_time=None, end_time=None):
         self.model = model
         self.dataset = dataset
         self.pred_scores = self.model.predict(dataset)
@@ -62,6 +85,5 @@ class DLStrategy(BaseStrategy):
 
 class TradingEnhancement:
     def reset(self, trade_order_list):
-        if trade_order_list:
-            self.trade_order_list = trade_order_list
+        self.trade_order_list = trade_order_list
 
