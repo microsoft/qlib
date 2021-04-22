@@ -94,7 +94,7 @@ def rank_label_graph(
                 features_df = D.features(D.instruments('csi500'), ['Ref($close, -1)/$close-1'], pred_df_dates.min(), pred_df_dates.max())
                 features_df.columns = ['label']
 
-                qcr.rank_label_graph(positions, features_df, pred_df_dates.min(), pred_df_dates.max())
+                qcr.analysis_position.rank_label_graph(positions, features_df, pred_df_dates.min(), pred_df_dates.max())
 
 
     :param position: position data; **qlib.contrib.backtest.backtest.backtest** result.
