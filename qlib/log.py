@@ -13,11 +13,10 @@ from .config import C
 
 
 class MetaLogger(type):
-
     def __new__(cls, name, bases, dict):
-        wrapper_dict = type(logging.getLogger("MetaLogger")).__dict__.copy()
+        wrapper_dict = logging.Logger.__dict__.copy()
         wrapper_dict.update(dict)
-        wrapper_dict["__doc__"] = logging.getLogger("MetaLogger").__doc__
+        wrapper_dict["__doc__"] = logging.Logger.__doc__
         return type.__new__(cls, name, bases, wrapper_dict)
 
 
