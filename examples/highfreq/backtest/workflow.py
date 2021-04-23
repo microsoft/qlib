@@ -10,10 +10,7 @@ from qlib.config import REG_CN
 from qlib.contrib.model.gbdt import LGBModel
 from qlib.contrib.data.handler import Alpha158
 from qlib.contrib.strategy.strategy import TopkDropoutStrategy
-from qlib.contrib.evaluate import (
-    backtest as normal_backtest,
-    risk_analysis,
-)
+from qlib.backtest import backtest
 from qlib.utils import exists_qlib_data, init_instance_by_config, flatten_dict
 from qlib.workflow import R
 from qlib.workflow.record_temp import SignalRecord, PortAnaRecord
@@ -124,12 +121,4 @@ if __name__ == "__main__":
     }
 
 
-        # prediction
-        recorder = R.get_recorder()
-        sr = SignalRecord(model, dataset, recorder)
-        sr.generate()
-
-        # backtest. If users want to use backtest based on their own prediction,
-        # please refer to https://qlib.readthedocs.io/en/latest/component/recorder.html#record-template.
-        par = PortAnaRecord(recorder, port_analysis_config)
-        par.generate()
+    backtest(**backtest_config, )

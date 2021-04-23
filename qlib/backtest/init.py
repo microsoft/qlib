@@ -2,10 +2,11 @@
 # Licensed under the MIT License.
 
 from .order import Order
+from .account import Account
 from .position import Position
 from .exchange import Exchange
 from .report import Report
-from .backtest import backtest as backtest_func
+from .backtest import backtest as backtest_func, get_date_range
 
 import copy
 import numpy as np
@@ -17,8 +18,22 @@ from ..config import C
 logger = get_module_logger("backtest caller")
 
 
+def init_env_instance_by_config(env):
+    if isinstance(env, dict):
+        env_config = copy.copy(env)
+        if "kwargs" in env_config:
+            env_kwargs = copy.copy(env_config["kwargs"]):
+            if "sub_env" in env_kwargs:
+                env_kwargs["sub_env"] = init_env_instance_by_config(env_kwargs["sub_env"])
+            if "sub_strategy" in env_kwargs:
+                env_kwargs["sub_strategy"] = init_instance_by_config(env_kwargs["sub_strategy"])
+            env_config["kwargs"] = env_kwargs
+        return init_instance_by_config(env_config)
+    else:
+        return env
+
+
 def get_exchange(
-    pred,
     exchange=None,
     start_time=None,
     end_time=None,
@@ -87,44 +102,31 @@ def get_exchange(
     else:
         return init_instance_by_config(exchange, accept_types=Exchange)
 
-def init_env_instance_by_config(env):
-    if isinstance(env, dict):
-        env_config = copy.copy(env)
-        if "kwargs" in env_config:
-            env_kwargs = copy.copy(env_config["kwargs"]):
-            if "sub_env" in env_kwargs:
-                env_kwargs["sub_env"] = init_env_instance_by_config(env_kwargs["sub_env"])
-            if "sub_strategy" in env_kwargs:
-                env_kwargs["sub_strategy"] = init_instance_by_config(env_kwargs["sub_strategy"])
-            env_config["kwargs"] = env_kwargs
-        return init_instance_by_config(env_config)
-    else:
-        return env
-
-def setup_exchange(root_instance, trade_exchange=None, force=False):
-    if "trade_exchange" in inspect.getfullargspec(root_instance.__class__).args:
-        if force:
-            root_instance.reset(trade_exchange=trade_exchange)
-        else:
-            if not hasattr(root_instance, "trade_exchange") or root_instance.trade_exchange is None:
-                root_instance.reset(trade_exchange=trade_exchange)
-    if hasattr(root_instance, "sub_env"):
-        setup_exchange(root_instance.sub_env, trade_exchange)
-    if hasattr(root_instance, "sub_strategy"):
-        setup_exchange(root_instance.sub_strategy, trade_exchange)
-    
-            
-def backtest(start_time, end_time, strategy, env, benchmark, account=1e9, **kwargs):
+def backtest(start_time, end_time, strategy, env, account=1e9, **kwargs):
     trade_strategy = init_instance_by_config(strategy)
     trade_env = init_env_instance_by_config(env)
+    trade_account = Account(init_cash=account)
 
     spec = inspect.getfullargspec(get_exchange)
     ex_args = {k: v for k, v in kwargs.items() if k in spec.args}
     trade_exchange = get_exchange(pred, **ex_args)
 
-    setup_exchange(trade_env, trade_exchange)
-    setup_exchange(trade_strategy, trade_exchange)
-
-    report_dict = backtest_func(start_time, end_time, trade_strategy, trade_env, benchmark, account)
-
-    return report_dict
+#    temp_env = trade_env
+#    while True:
+#        if hasattr(temp_env, "trade_exchange"):
+#            temp_env.reset(trade_exchange=trade_exchange)
+#        if hasattr(temp_env, "sub_env"):
+#            temp_env = temp_env.sub_env
+#        else:
+#            break
+        
+    trade_env.reset(start_time=start_time, end_time=end_time, trade_account=trade_account)
+    trade_state, _reset_info = self.sub_env.get_first_state()
+    trade_strategy.reset(**_reset_info)
+    
+    
+    while not trade_env.finished():
+        _order_list = self.sub_strategy.generate_order(**trade_state)
+        trade_state, trade_info = self.sub_env.execute(sub_order_list)
+        
+    return

@@ -918,20 +918,25 @@ def sample_calendar(calendar_raw, freq_raw, freq_sam):
         else:
             raise ValueError("sample freq must be xmin, xd, xw, xm")
             
-def get_sample_freq_calendar(start_time, end_time, freq):
+def get_sample_freq_calendar(start_time=None, end_time=None, freq, **kwargs):
     try:
-        _calendar = D.calendar(start_time=start_time, end_time=end_time, freq=freq)
+        _calendar = D.calendar(start_time=start_time, end_time=end_time, freq=freq, **kwargs)
+        freq, freq_sam = freq, None
     except ValueError:
+        freq_sam = freq
         if freq.endswith(("m", "month", "w", "week", "d", "day")):
             try:
-                _calendar = D.calendar(start_time=self.start_time, end_time=self.end_time, freq="min", freq_sam=freq)
+                _calendar = D.calendar(start_time=self.start_time, end_time=self.end_time, freq="min", freq_sam=freq, **kwargs)
+                freq = "min"
             except ValueError:
-                _calendar = D.calendar(start_time=self.start_time, end_time=self.end_time, freq="day", freq_sam=freq)
+                _calendar = D.calendar(start_time=self.start_time, end_time=self.end_time, freq="day", freq_sam=freq, **kwargs)
+                freq = "day"
         elif freq.endswith(("min", "minute")):
-            _calendar = D.calendar(start_time=self.start_time, end_time=self.end_time, freq="min", freq_sam=freq)
+            _calendar = D.calendar(start_time=self.start_time, end_time=self.end_time, freq="min", freq_sam=freq, **kwargs)
+            freq = "min"
         else:
             raise ValueError(f"freq {freq} is not supported")
-    return _calendar
+    return _calendar, freq, freq_sam
 
 def sample_feature(feature, instruments=None, start_time=None, end_time=None, fields=None, method=None, method_kwargs={}):
     if instruments and type(instruments) is not list:

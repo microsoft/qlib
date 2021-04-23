@@ -114,11 +114,11 @@ class CalendarProvider(abc.ABC):
         dict
             dict composed by timestamp as key and index as value for fast search.
         """
-        flag = f"{freq}_future_{future}_sam_{freq_sam}"
+        flag = f"{freq}_sam_{freq_sam}_future_{future}"
         if flag in H["c"]:
             _calendar, _calendar_index = H["c"][flag]
         else:
-            flag_raw = f"{freq}_future_{future}_sam_{None}"
+            flag_raw = f"{freq}_sam_{None}_future_{future}"
             if flag_raw in H["c"]:
                 _calendar, _calendar_index = H["c"][flag_raw]
             else:

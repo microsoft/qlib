@@ -15,11 +15,11 @@ class TopkDropoutStrategy(DLStrategy):
         step_bar,
         model,
         dataset,
-        trade_exchange,
         topk,
         n_drop,
         start_time=None,
         end_time=None,
+        trade_exchange=None,
         method_sell="bottom",
         method_buy="top",
         risk_degree=0.95,
@@ -54,7 +54,6 @@ class TopkDropoutStrategy(DLStrategy):
                 strategy will make decision with the tradable state of the stock info and avoid buy and sell them.
         """
         super(TopkDropoutStrategy, self).__init__(step_bar, model, dataset, start_time, end_time)
-        self.trade_exchange = trade_exchange
         self.topk = topk
         self.n_drop = n_drop
         self.method_sell = method_sell
@@ -68,6 +67,10 @@ class TopkDropoutStrategy(DLStrategy):
         self.only_tradable = only_tradable
         
     
+    def reset(trade_exchange=None, **kwargs):
+        super(TopkDropoutStrategy, self).reset(**kwargs)
+        self.trade_exchange = trade_exchange
+
     def get_risk_degree(self, trade_index):
         """get_risk_degree
         Return the proportion of your total value you will used in investment.
@@ -78,8 +81,8 @@ class TopkDropoutStrategy(DLStrategy):
 
     def generate_order_list(self, current, **kwargs):
         super(TopkDropoutStrategy, self).generate_order_list()
-        trade_start_time, trade_end_time = self._get_trade_time()
-        pred_start_time, pred_end_time = self._get_last_trade_time()
+        trade_start_time, trade_end_time = self._get_trade_time(self.trade_index)
+        pred_start_time, pred_end_time = self._get_calendar_time(self.trade_index, shift=1)
         pred_score = sample_feature(self.pred_scores, start_time=pred_start_time, end_time=pred_end_time, method="last")
         if self.only_tradable:
             # If The strategy only consider tradable stock when make decision
@@ -268,7 +271,7 @@ class WeightStrategyBase(DLStrategy):
         # generate_order_list
         # generate_target_weight_position() and generate_order_list_from_target_weight_position() to generate order_list
         super(WeightStrategyBase, self).generate_order_list()
-        trade_start_time, trade_end_time = self._get_trade_time()
+        trade_start_time, trade_end_time = self._get_trade_time(self.trade_index)
         pred_start_time, pred_end_time = self._get_pred_time()
         pred_score = sample_feature(self.pred_scores, start_time=pred_start_time, end_time=pred_end_time, method="last")
         current_temp = copy.deepcopy(trade_account.current)

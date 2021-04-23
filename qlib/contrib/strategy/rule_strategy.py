@@ -57,7 +57,7 @@ class SBBStrategyBase(RuleStrategy, TradingEnhancement):
     def generate_order_list(self, **kwargs):
         super(SBBStrategyBase, self).generate_order_list()
         trade_start_time, trade_end_time = self._get_trade_time()
-        pred_start_time, pred_end_time = self._get_last_trade_time()
+        pred_start_time, pred_end_time = self._get_calendar_time(self.trade_index, shift=1)
         order_list = []
         for order in self.trade_order_list:
             if self.trade_index % 2 == 1:
@@ -127,8 +127,9 @@ class SBBStrategyEMA(SBBStrategyBase):
 
     def _reset_trade_calendar(self, start_time=None, end_time=None, _calendar=None):
         super(SBBStrategyEMA, self)._reset_trade_calendar(start_time=start_time, end_time=end_time, _calendar=_calendar)
-        fields = [("EMA...", "signal")]
-        self.signal = D.features(instruments, fields, start_time=self.start_time, end_time=self.end_time, freq=self.freq)
+        fields = [("EMA($close, 10) - EMA($close, 20)", "signal")]
+        signal_start_time, _ = self._get_calendar_time(trade_index=self.trade_index, shift=1)
+        self.signal = D.features(instruments, fields, start_time=signal_start_time, end_time=self.end_time, freq=self.freq)
 
     def _pred_price_trend(self, stock_id, pred_start_time=None, pred_end_time=None):
         _sample_signal = sample_feature(self.signal, stock_id, start_time=pred_start_time, end_time=pred_end_time, fields="signal", method="last")
