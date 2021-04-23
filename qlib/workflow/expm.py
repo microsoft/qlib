@@ -4,7 +4,7 @@
 import mlflow
 from mlflow.exceptions import MlflowException
 from mlflow.entities import ViewType
-import os
+import os, logging
 from pathlib import Path
 from contextlib import contextmanager
 from typing import Optional, Text
@@ -14,7 +14,7 @@ from ..config import C
 from .recorder import Recorder
 from ..log import get_module_logger
 
-logger = get_module_logger("workflow", "INFO")
+logger = get_module_logger("workflow", logging.INFO)
 
 
 class ExpManager:

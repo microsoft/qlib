@@ -12,7 +12,37 @@ from contextlib import contextmanager
 from .config import C
 
 
-def get_module_logger(module_name, level: Optional[int] = None):
+class MetaLogger(type):
+    def __new__(cls, name, bases, dict):
+        wrapper_dict = logging.Logger.__dict__.copy()
+        wrapper_dict.update(dict)
+        wrapper_dict["__doc__"] = logging.Logger.__doc__
+        return type.__new__(cls, name, bases, wrapper_dict)
+
+
+class QlibLogger(metaclass=MetaLogger):
+    """
+    Customized logger for Qlib.
+    """
+
+    def __init__(self, module_name):
+        self.module_name = module_name
+        self.level = 0
+
+    @property
+    def logger(self):
+        logger = logging.getLogger(self.module_name)
+        logger.setLevel(self.level)
+        return logger
+
+    def setLevel(self, level):
+        self.level = level
+
+    def __getattr__(self, name):
+        return self.logger.__getattribute__(name)
+
+
+def get_module_logger(module_name, level: Optional[int] = None) -> logging.Logger:
     """
     Get a logger for a specific module.
 
@@ -27,7 +57,7 @@ def get_module_logger(module_name, level: Optional[int] = None):
 
     module_name = "qlib.{}".format(module_name)
     # Get logger.
-    module_logger = logging.getLogger(module_name)
+    module_logger = QlibLogger(module_name)
     module_logger.setLevel(level)
     return module_logger
 
