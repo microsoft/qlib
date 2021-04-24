@@ -4,18 +4,20 @@ import numpy as np
 import pandas as pd
 
 from ...utils import sample_feature
+from ...data.data import D
 from ...strategy.base import RuleStrategy, TradingEnhancement
-from ...backtest.order import Order
+from ..backtest.order import Order
 
 
 class TWAPStrategy(RuleStrategy, TradingEnhancement):
 
     def reset(self, trade_order_list=None, **kwargs):
         super(TWAPStrategy, self).reset(**kwargs)
-        TradingEnhancement.reset(trade_order_list=trade_order_list)
-        self.trade_amount = {}
-        for order in self.trade_order_list:
-            self.trade_amount[(order.stock_id, order.direction)] = order.amount // self.trade_len
+        TradingEnhancement.reset(self, trade_order_list=trade_order_list)
+        if trade_order_list:
+            self.trade_amount = {}
+            for order in self.trade_order_list:
+                self.trade_amount[(order.stock_id, order.direction)] = order.amount // self.trade_len
         
 
     def generate_order_list(self, **kwargs):
@@ -43,13 +45,15 @@ class SBBStrategyBase(RuleStrategy, TradingEnhancement):
     TREND_LONG = 2
 
     def reset(self, trade_order_list=None, **kwargs):
-        TradingEnhancement.reset(trade_order_list=trade_order_list)
-        self.trade_amount = {}
-        self.trade_delay = {} 
-        for order in self.trade_order_list:
-            self.trade_amount[(order.stock_id, order.direction)] = order.amount // self.trade_len
-            self.trade_trend[(order.stock_id, order.direction)] = TREND_MID
         super(SBBStrategyBase, self).reset(**kwargs)
+        TradingEnhancement.reset(self, trade_order_list=trade_order_list)
+        if trade_order_list:
+            self.trade_amount = {}
+            self.trade_trend = {} 
+            for order in self.trade_order_list:
+                self.trade_amount[(order.stock_id, order.direction)] = order.amount // self.trade_len
+                self.trade_trend[(order.stock_id, order.direction)] = self.TREND_MID
+        
 
     def _pred_price_trend(self, stock_id, pred_start_time=None, pred_end_time=None):
         raise NotImplementedError("pred_price_trend method is not implemented!")
@@ -64,7 +68,7 @@ class SBBStrategyBase(RuleStrategy, TradingEnhancement):
                 _pred_trend = self._pred_price_trend(order.stock_id)
             else:
                 _pred_trend = self.trade_trend[(order.stock_id, order.direction)]
-            if _pred_trend == TREND_MID:
+            if _pred_trend == self.TREND_MID:
                 _order = Order(
                     stock_id=order.stock_id,
                     amount=self.trade_amount[(order.stock_id, order.direction)],
@@ -97,7 +101,7 @@ class SBBStrategyBase(RuleStrategy, TradingEnhancement):
                             factor=order.factor,
                         )       
                         order_list.append(_order)
-            if self.trade_index % 2 == 1             
+            if self.trade_index % 2 == 1:  
                 self.trade_trend[(order.stock_id, order.direction)] = _pred_trend
 
         return order_list
@@ -110,8 +114,8 @@ class SBBStrategyEMA(SBBStrategyBase):
     def __init__(
         self, 
         step_bar, 
-        start_time, 
-        end_time, 
+        start_time=None, 
+        end_time=None, 
         instruments="csi300",
         freq="day",
         **kwargs,
@@ -121,21 +125,23 @@ class SBBStrategyEMA(SBBStrategyBase):
             warnings.warn("`instruments` is not set, will load all stocks")
             self.instruments = "all"
         if isinstance(instruments, str):
-            self.instruments = D.instruments(instruments, filter_pipe=self.filter_pipe)
+            self.instruments = D.instruments(instruments)
         self.freq = freq
         
 
-    def _reset_trade_calendar(self, start_time=None, end_time=None, _calendar=None):
-        super(SBBStrategyEMA, self)._reset_trade_calendar(start_time=start_time, end_time=end_time, _calendar=_calendar)
-        fields = [("EMA($close, 10) - EMA($close, 20)", "signal")]
-        signal_start_time, _ = self._get_calendar_time(trade_index=self.trade_index, shift=1)
-        self.signal = D.features(instruments, fields, start_time=signal_start_time, end_time=self.end_time, freq=self.freq)
+    def _reset_trade_calendar(self, start_time=None, end_time=None):
+        super(SBBStrategyEMA, self)._reset_trade_calendar(start_time=start_time, end_time=end_time)
+        if self.start_time and self.end_time:
+            fields = ["EMA($close, 10)-EMA($close, 20)"]
+            signal_start_time, _ = self._get_calendar_time(trade_index=self.trade_index, shift=1)
+            self.signal = D.features(self.instruments, fields, start_time=signal_start_time, end_time=self.end_time, freq=self.freq)
+            self.signal.columns = ["signal"]
 
     def _pred_price_trend(self, stock_id, pred_start_time=None, pred_end_time=None):
         _sample_signal = sample_feature(self.signal, stock_id, start_time=pred_start_time, end_time=pred_end_time, fields="signal", method="last")
         if _sample_signal.empty:
-            return SBBStrategy.TREND_MID
-        elif _sample_signal.iloc[0, 0] > 0:
-            return SBBStrategy.TREND_LONG
+            return self.TREND_MID
+        elif _sample_signal.iloc[0] > 0:
+            return self.TREND_LONG
         else:
-            return SBBStrategy.TREND_SHORT
+            return self.TREND_SHORT

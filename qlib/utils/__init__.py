@@ -15,6 +15,7 @@ import bisect
 import shutil
 import difflib
 import hashlib
+import warnings
 import datetime
 import requests
 import tempfile
@@ -918,37 +919,40 @@ def sample_calendar(calendar_raw, freq_raw, freq_sam):
         else:
             raise ValueError("sample freq must be xmin, xd, xw, xm")
             
-def get_sample_freq_calendar(start_time=None, end_time=None, freq, **kwargs):
+def get_sample_freq_calendar(start_time=None, end_time=None, freq="day", **kwargs):
+    from ..data.data import Cal
+
     try:
-        _calendar = D.calendar(start_time=start_time, end_time=end_time, freq=freq, **kwargs)
+        _calendar = Cal.calendar(start_time=start_time, end_time=end_time, freq=freq, **kwargs)
         freq, freq_sam = freq, None
     except ValueError:
         freq_sam = freq
         if freq.endswith(("m", "month", "w", "week", "d", "day")):
             try:
-                _calendar = D.calendar(start_time=self.start_time, end_time=self.end_time, freq="min", freq_sam=freq, **kwargs)
+                _calendar = Cal.calendar(start_time=start_time, end_time=end_time, freq="min", freq_sam=freq, **kwargs)
                 freq = "min"
             except ValueError:
-                _calendar = D.calendar(start_time=self.start_time, end_time=self.end_time, freq="day", freq_sam=freq, **kwargs)
+                _calendar = Cal.calendar(start_time=start_time, end_time=end_time, freq="day", freq_sam=freq, **kwargs)
                 freq = "day"
         elif freq.endswith(("min", "minute")):
-            _calendar = D.calendar(start_time=self.start_time, end_time=self.end_time, freq="min", freq_sam=freq, **kwargs)
+            _calendar = Cal.calendar(start_time=start_time, end_time=end_time, freq="min", freq_sam=freq, **kwargs)
             freq = "min"
         else:
             raise ValueError(f"freq {freq} is not supported")
     return _calendar, freq, freq_sam
 
 def sample_feature(feature, instruments=None, start_time=None, end_time=None, fields=None, method=None, method_kwargs={}):
-    if instruments and type(instruments) is not list:
+    if instruments and not isinstance(instruments, list):
         instruments = [instruments]
-    if fields and type(fields) is not list:
-        fields = [fields]
     selector_inst = slice(None) if instruments is None else instruments
     selector_datetime = slice(start_time, end_time)
-    if fields is not None and type(fields) is not list:
-        fields = [fields]
-    selector_fields = slice(None) if fields is None else fields
-    feature = feature.loc[(selector_inst, selector_datetime), selector_fields]
+    if isinstance(feature, pd.Series):
+        feature = feature.loc[(selector_inst, selector_datetime)]
+        if fields:
+            warnings.warn(f"sample series feature, {fields} is ignored!")
+    elif isinstance(feature, pd.DataFrame):
+        selector_fields = slice(None) if fields is None else fields
+        feature = feature.loc[(selector_inst, selector_datetime), selector_fields]
     if method:
         return getattr(feature.groupby(level="instrument"), method)(**method_kwargs)
     else:

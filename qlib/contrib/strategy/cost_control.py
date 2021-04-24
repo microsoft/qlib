@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 
-from .strategy import WeightStrategyBase
+from .dl_strategy import WeightStrategyBase
 import copy
 
 

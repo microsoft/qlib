@@ -28,13 +28,13 @@ a typical example is :{
 class Position:
     """Position"""
 
-    def __init__(self, cash=0, position_dict={}, today_account_value=0):
+    def __init__(self, cash=0, position_dict={}, now_account_value=0):
         # NOTE: The position dict must be copied!!!
         # Otherwise the initial value
         self.init_cash = cash
         self.position = position_dict.copy()
         self.position["cash"] = cash
-        self.position["today_account_value"] = today_account_value
+        self.position["now_account_value"] = now_account_value
 
     def init_stock(self, stock_id, amount, price=None):
         self.position[stock_id] = {}
@@ -82,7 +82,7 @@ class Position:
             # SELL
             self.sell_stock(order.stock_id, trade_val, cost, trade_price)
         else:
-            raise NotImplementedError("do not suppotr order direction {}".format(order.direction))
+            raise NotImplementedError("do not support order direction {}".format(order.direction))
 
     def update_stock_price(self, stock_id, price):
         self.position[stock_id]["price"] = price
@@ -109,7 +109,7 @@ class Position:
         return value
 
     def get_stock_list(self):
-        stock_list = list(set(self.position.keys()) - {"cash", "today_account_value"})
+        stock_list = list(set(self.position.keys()) - {"cash", "now_account_value"})
         return stock_list
 
     def get_stock_price(self, code):
@@ -163,16 +163,17 @@ class Position:
         for stock_code, weight in weight_dict.items():
             self.update_stock_weight(stock_code, weight)
 
-    def save_position(self, path, last_trade_date):
+    def save_position(self, path, last_trade_time):
         path = pathlib.Path(path)
         p = copy.deepcopy(self.position)
         cash = pd.Series(dtype=np.float)
         cash["init_cash"] = self.init_cash
         cash["cash"] = p["cash"]
-        cash["today_account_value"] = p["today_account_value"]
-        cash["last_trade_date"] = str(last_trade_date.date()) if last_trade_date else None
+        cash["now_account_value"] = p["now_account_value"]
+        cash["last_trade_start_time"] = str(last_trade_time[0]) if last_trade_time else None
+        cash["last_trade_end_time"] = str(last_trade_time[1]) if last_trade_time else None
         del p["cash"]
-        del p["today_account_value"]
+        del p["now_account_value"]
         positions = pd.DataFrame.from_dict(p, orient="index")
         with pd.ExcelWriter(path) as writer:
             positions.to_excel(writer, sheet_name="position")
@@ -189,10 +190,10 @@ class Position:
                 'weight': <the security weight of total position value>,
 
         sheet "cash"
-            index: ['init_cash', 'cash', 'today_account_value']
+            index: ['init_cash', 'cash', 'now_account_value']
             'init_cash': <inital cash when account was created>,
             'cash': <current cash in account>,
-            'today_account_value': <current total account value, should equal to sum(price[stock]*amount[stock])>
+            'now_account_value': <current total account value, should equal to sum(price[stock]*amount[stock])>
         """
         path = pathlib.Path(path)
         positions = pd.read_excel(open(path, "rb"), sheet_name="position", index_col=0)
@@ -200,14 +201,17 @@ class Position:
         positions = positions.to_dict(orient="index")
         init_cash = cash_record.loc["init_cash"].values[0]
         cash = cash_record.loc["cash"].values[0]
-        today_account_value = cash_record.loc["today_account_value"].values[0]
-        last_trade_date = cash_record.loc["last_trade_date"].values[0]
+        now_account_value = cash_record.loc["now_account_value"].values[0]
+        last_trade_start_time = cash_record.loc["last_trade_start_time"].values[0]
+        last_trade_end_time = cash_record.loc["last_trade_end_time"].values[0]
 
         # assign values
         self.position = {}
         self.init_cash = init_cash
         self.position = positions
         self.position["cash"] = cash
-        self.position["today_account_value"] = today_account_value
+        self.position["now_account_value"] = now_account_value
 
-        return None if pd.isna(last_trade_date) else pd.Timestamp(last_trade_date)
+        last_trade_start_time = None if pd.isna(last_trade_start_time) else pd.Timestamp(last_trade_start_time)
+        last_trade_end_time = None if pd.isna(last_trade_end_time) else pd.Timestamp(last_trade_end_time)
+        return last_trade_start_time, last_trade_end_time

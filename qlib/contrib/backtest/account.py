@@ -26,10 +26,10 @@ rtn & earning in the Account
 
 
 class Account:
-    def __init__(self, init_cash, last_trade_date=None):
-        self.init_vars(init_cash, last_trade_date)
+    def __init__(self, init_cash, last_trade_time=None):
+        self.init_vars(init_cash, last_trade_time)
 
-    def init_vars(self, init_cash, last_trade_date=None):
+    def init_vars(self, init_cash, last_trade_time=None):
         # init cash
         self.init_cash = init_cash
         self.current = Position(cash=init_cash)
@@ -40,7 +40,7 @@ class Account:
         self.val = 0
         self.report = Report()
         self.earning = 0
-        self.last_trade_date = last_trade_date
+        self.last_trade_time = last_trade_time
 
     def get_positions(self):
         return self.positions
@@ -83,9 +83,10 @@ class Account:
             self.current.update_order(order, trade_val, cost, trade_price)
             self.update_state_from_order(order, trade_val, cost, trade_price)
 
-    def update_daily_end(self, today, trader):
+    def update_bar_end(self, trade_start_time, trade_end_time, trade_exchange):
         """
-        today: pd.TimeStamp
+        start_time: pd.TimeStamp
+        end_time: pd.TimeStamp
         quote: pd.DataFrame (code, date), collumns
         when the end of trade date
         - update rtn
@@ -102,11 +103,11 @@ class Account:
         profit = 0
         for code in stock_list:
             # if suspend, no new price to be updated, profit is 0
-            if trader.check_stock_suspended(code, today):
+            if trade_exchange.check_stock_suspended(code, trade_start_time, trade_end_time):
                 continue
-            today_close = trader.get_close(code, today)
-            profit += (today_close - self.current.position[code]["price"]) * self.current.position[code]["amount"]
-            self.current.update_stock_price(stock_id=code, price=today_close)
+            bar_close = trade_exchange.get_close(code, trade_start_time, trade_end_time)
+            profit += (bar_close - self.current.position[code]["price"]) * self.current.position[code]["amount"]
+            self.current.update_stock_price(stock_id=code, price=bar_close)
         self.rtn += profit
         # update holding day count
         self.current.add_count_all()
@@ -116,54 +117,54 @@ class Account:
         # account_value - last_account_value
         # for the first trade date, account_value - init_cash
         # self.report.is_empty() to judge is_first_trade_date
-        # get last_account_value, today_account_value, today_stock_value
+        # get last_account_value, now_account_value, now_stock_value
         if self.report.is_empty():
             last_account_value = self.init_cash
         else:
             last_account_value = self.report.get_latest_account_value()
-        today_account_value = self.current.calculate_value()
-        today_stock_value = self.current.calculate_stock_value()
-        self.earning = today_account_value - last_account_value
+        now_account_value = self.current.calculate_value()
+        now_stock_value = self.current.calculate_stock_value()
+        self.earning = now_account_value - last_account_value
         # update report for today
         # judge whether the the trading is begin.
         # and don't add init account state into report, due to we don't have excess return in those days.
         self.report.update_report_record(
-            trade_date=today,
-            account_value=today_account_value,
+            trade_time=trade_start_time,
+            account_value=now_account_value,
             cash=self.current.position["cash"],
             return_rate=(self.earning + self.ct) / last_account_value,
             # here use earning to calculate return, position's view, earning consider cost, true return
             # in order to make same definition with original backtest in evaluate.py
             turnover_rate=self.to / last_account_value,
             cost_rate=self.ct / last_account_value,
-            stock_value=today_stock_value,
+            stock_value=now_stock_value,
         )
-        # set today_account_value to position
-        self.current.position["today_account_value"] = today_account_value
+        # set now_account_value to position
+        self.current.position["now_account_value"] = now_account_value
         self.current.update_weight_all()
         # update positions
         # note use deepcopy
-        self.positions[today] = copy.deepcopy(self.current)
+        self.positions[trade_start_time] = copy.deepcopy(self.current)
 
         # finish today's updation
         # reset the daily variables
         self.rtn = 0
         self.ct = 0
         self.to = 0
-        self.last_trade_date = today
+        self.last_trade_time = (trade_start_time, trade_end_time)
 
     def load_account(self, account_path):
         report = Report()
         position = Position()
-        last_trade_date = position.load_position(account_path / "position.xlsx")
+        last_trade_time = position.load_position(account_path / "position.xlsx")
         report.load_report(account_path / "report.csv")
 
         # assign values
         self.init_vars(position.init_cash)
         self.current = position
         self.report = report
-        self.last_trade_date = last_trade_date if last_trade_date else None
+        self.last_trade_time = last_trade_time
 
     def save_account(self, account_path):
-        self.current.save_position(account_path / "position.xlsx", self.last_trade_date)
+        self.current.save_position(account_path / "position.xlsx", self.last_trade_time)
         self.report.save_report(account_path / "report.csv")

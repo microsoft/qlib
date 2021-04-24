@@ -8,16 +8,19 @@ import logging
 import numpy as np
 import pandas as pd
 
-from ...data import D
-from .order import Order
+from ...data.data import D
 from ...config import C, REG_CN
+from ...utils import sample_feature
 from ...log import get_module_logger
+from .order import Order
+
 
 
 class Exchange:
     def __init__(
         self,
-        trade_dates=None,
+        start_time=None,
+        end_time=None,
         codes="all",
         deal_price=None,
         subscribe_fields=[],
@@ -30,7 +33,8 @@ class Exchange:
     ):
         """__init__
 
-        :param trade_dates:      list of pd.Timestamp
+        :param start_time:       start time for backtest
+        :param end_time:         end time for backtest
         :param codes:            list stock_id list or a string of instruments(i.e. all, csi500, sse50)
         :param deal_price:       str, 'close', 'open', 'vwap'
         :param subscribe_fields: list, subscribe fields
@@ -51,6 +55,8 @@ class Exchange:
                                                 target on this day).
                                     index: MultipleIndex(instrument, pd.Datetime)
         """
+        self.start_time = start_time
+        self.end_time = end_time
         if trade_unit is None:
             trade_unit = C.trade_unit
         if limit_threshold is None:
@@ -91,21 +97,15 @@ class Exchange:
         self.close_cost = close_cost
         self.min_cost = min_cost
         self.limit_threshold = limit_threshold
-        # TODO: the quote, trade_dates, codes are not necessray.
-        # It is just for performance consideration.
-        if trade_dates is not None and len(trade_dates):
-            start_date, end_date = trade_dates[0], trade_dates[-1]
-        else:
-            self.logger.warning("trade_dates have not been assigned, all dates will be loaded")
-            start_date, end_date = None, None
+
 
         self.extra_quote = extra_quote
-        self.set_quote(codes, start_date, end_date)
+        self.set_quote(codes, start_time, end_time)
 
-    def set_quote(self, codes, start_date, end_date):
+    def set_quote(self, codes, start_time, end_time):
         if len(codes) == 0:
             codes = D.instruments()
-        self.quote = D.features(codes, self.all_fields, start_date, end_date, disk_cache=True).dropna(subset=["$close"])
+        self.quote = D.features(codes, self.all_fields, start_time, end_time, disk_cache=True).dropna(subset=["$close"])
         self.quote.columns = self.all_fields
 
         if self.quote[self.deal_price].isna().any():
@@ -146,35 +146,37 @@ class Exchange:
             quote_df = pd.concat([quote_df, self.extra_quote], sort=False, axis=0)
 
         # update quote: pd.DataFrame to dict, for search use
-        self.quote = quote_df.to_dict("index")
+        self.quote = quote_df
 
     def _update_limit(self, buy_limit, sell_limit):
         self.quote["limit"] = ~self.quote["$change"].between(-sell_limit, buy_limit, inclusive=False)
 
-    def check_stock_limit(self, stock_id, trade_date):
+    def check_stock_limit(self, stock_id, start_time, end_time):
         """Parameter
         stock_id
         trade_date
         is limtited
         """
-        return self.quote[(stock_id, trade_date)]["limit"]
+        return sample_feature(self.quote, stock_id, start_time, end_time, fields="limit", method="any").iloc[0]
+    
 
-    def check_stock_suspended(self, stock_id, trade_date):
+    def check_stock_suspended(self, stock_id, start_time, end_time):
         # is suspended
-        return (stock_id, trade_date) not in self.quote
+        return sample_feature(self.quote, stock_id, start_time, end_time).empty
 
-    def is_stock_tradable(self, stock_id, trade_date):
+
+    def is_stock_tradable(self, stock_id, start_time, end_time):
         # check if stock can be traded
         # same as check in check_order
-        if self.check_stock_suspended(stock_id, trade_date) or self.check_stock_limit(stock_id, trade_date):
+        if self.check_stock_suspended(stock_id, start_time, end_time) or self.check_stock_limit(stock_id, start_time, end_time):
             return False
         else:
             return True
 
     def check_order(self, order):
         # check limit and suspended
-        if self.check_stock_suspended(order.stock_id, order.trade_date) or self.check_stock_limit(
-            order.stock_id, order.trade_date
+        if self.check_stock_suspended(order.stock_id, order.start_time, order.end_time) or self.check_stock_limit(
+            order.stock_id, order.start_time, order.end_time
         ):
             return False
         else:
@@ -199,7 +201,7 @@ class Exchange:
         if trade_account is not None and position is not None:
             raise ValueError("trade_account and position can only choose one")
 
-        trade_price = self.get_deal_price(order.stock_id, order.trade_date)
+        trade_price = self.get_deal_price(order.stock_id, order.start_time, order.end_time)
         trade_val, trade_cost = self._calc_trade_info_by_order(
             order, trade_account.current if trade_account else position
         )
@@ -214,24 +216,24 @@ class Exchange:
 
         return trade_val, trade_cost, trade_price
 
-    def get_quote_info(self, stock_id, trade_date):
-        return self.quote[(stock_id, trade_date)]
+    def get_quote_info(self, stock_id, start_time, end_time):
+        return sample_feature(self.quote, stock_id, start_time, end_time)
 
-    def get_close(self, stock_id, trade_date):
-        return self.quote[(stock_id, trade_date)]["$close"]
+    def get_close(self, stock_id, start_time, end_time):
+        return sample_feature(self.quote, stock_id, start_time, end_time, fields="$close", method="last").iloc[0]
 
-    def get_deal_price(self, stock_id, trade_date):
-        deal_price = self.quote[(stock_id, trade_date)][self.deal_price]
+    def get_deal_price(self, stock_id, start_time, end_time):
+        deal_price = sample_feature(self.quote, stock_id, start_time, end_time, fields=self.deal_price, method="last").iloc[0]
         if np.isclose(deal_price, 0.0) or np.isnan(deal_price):
-            self.logger.warning(f"(stock_id:{stock_id}, trade_date:{trade_date}, {self.deal_price}): {deal_price}!!!")
+            self.logger.warning(f"(stock_id:{stock_id}, trade_time:{(start_time, end_time)}, {self.deal_price}): {deal_price}!!!")
             self.logger.warning(f"setting deal_price to close price")
-            deal_price = self.get_close(stock_id, trade_date)
+            deal_price = self.get_close(stock_id, start_time, end_time)
         return deal_price
 
-    def get_factor(self, stock_id, trade_date):
-        return self.quote[(stock_id, trade_date)]["$factor"]
+    def get_factor(self, stock_id, start_time, end_time):
+        return sample_feature(self.quote, stock_id, start_time, end_time, fields="$factor", method="last").iloc[0]
 
-    def generate_amount_position_from_weight_position(self, weight_position, cash, trade_date):
+    def generate_amount_position_from_weight_position(self, weight_position, cash, start_time, end_time):
         """
         The generate the target position according to the weight and the cash.
         NOTE: All the cash will assigned to the tadable stock.
@@ -246,7 +248,7 @@ class Exchange:
         # calculate the total weight of tradable value
         tradable_weight = 0.0
         for stock_id in weight_position:
-            if self.is_stock_tradable(stock_id=stock_id, trade_date=trade_date):
+            if self.is_stock_tradable(stock_id=stock_id, start_time=start_time, end_time=end_time):
                 # weight_position must be greater than 0 and less than 1
                 if weight_position[stock_id] < 0 or weight_position[stock_id] > 1:
                     raise ValueError(
@@ -260,12 +262,12 @@ class Exchange:
 
         amount_dict = {}
         for stock_id in weight_position:
-            if weight_position[stock_id] > 0.0 and self.is_stock_tradable(stock_id=stock_id, trade_date=trade_date):
+            if weight_position[stock_id] > 0.0 and self.is_stock_tradable(stock_id=stock_id, start_time=start_time, end_time=end_time):
                 amount_dict[stock_id] = (
                     cash
                     * weight_position[stock_id]
                     / tradable_weight
-                    // self.get_deal_price(stock_id=stock_id, trade_date=trade_date)
+                    // self.get_deal_price(stock_id=stock_id, start_time=start_time, end_time=end_time)
                 )
         return amount_dict
 
@@ -292,7 +294,7 @@ class Exchange:
                 deal_amount = self.round_amount_by_trade_unit(deal_amount, factor)
                 return -deal_amount
 
-    def generate_order_for_target_amount_position(self, target_position, current_position, trade_date):
+    def generate_order_for_target_amount_position(self, target_position, current_position, start_time, end_time):
         """Parameter:
         target_position : dict { stock_id : amount }
         current_postion : dict { stock_id : amount}
@@ -315,12 +317,12 @@ class Exchange:
         for stock_id in sorted_ids:
 
             # Do not generate order for the nontradable stocks
-            if not self.is_stock_tradable(stock_id=stock_id, trade_date=trade_date):
+            if not self.is_stock_tradable(stock_id=stock_id, start_time=start_time, end_time=end_time):
                 continue
 
             target_amount = target_position.get(stock_id, 0)
             current_amount = current_position.get(stock_id, 0)
-            factor = self.quote[(stock_id, trade_date)]["$factor"]
+            factor = self.get_factor(stock_id, start_time=start_time, end_time=end_time)
 
             deal_amount = self.get_real_deal_amount(current_amount, target_amount, factor)
             if deal_amount == 0:
@@ -332,7 +334,8 @@ class Exchange:
                         stock_id=stock_id,
                         amount=deal_amount,
                         direction=Order.BUY,
-                        trade_date=trade_date,
+                        start_time=start_time,
+                        end_time=end_time,
                         factor=factor,
                     )
                 )
@@ -343,14 +346,15 @@ class Exchange:
                         stock_id=stock_id,
                         amount=abs(deal_amount),
                         direction=Order.SELL,
-                        trade_date=trade_date,
+                        start_time=start_time,
+                        end_time=end_time,
                         factor=factor,
                     )
                 )
         # return order_list : buy + sell
         return sell_order_list + buy_order_list
 
-    def calculate_amount_position_value(self, amount_dict, trade_date, only_tradable=False):
+    def calculate_amount_position_value(self, amount_dict, start_time, end_time, only_tradable=False):
         """Parameter
         position : Position()
         amount_dict : {stock_id : amount}
@@ -358,10 +362,10 @@ class Exchange:
         value = 0
         for stock_id in amount_dict:
             if (
-                self.check_stock_suspended(stock_id=stock_id, trade_date=trade_date) is False
-                and self.check_stock_limit(stock_id=stock_id, trade_date=trade_date) is False
+                self.check_stock_suspended(stock_id=stock_id, start_time=start_time, end_time=end_time) is False
+                and self.check_stock_limit(stock_id=stock_id, start_time=start_time, end_time=end_time) is False
             ):
-                value += self.get_deal_price(stock_id=stock_id, trade_date=trade_date) * amount_dict[stock_id]
+                value += self.get_deal_price(stock_id=stock_id, start_time=start_time, end_time=end_time) * amount_dict[stock_id]
         return value
 
     def round_amount_by_trade_unit(self, deal_amount, factor):
@@ -384,7 +388,7 @@ class Exchange:
         :return: trade_val, trade_cost
         """
 
-        trade_price = self.get_deal_price(order.stock_id, order.trade_date)
+        trade_price = self.get_deal_price(order.stock_id, order.start_time, order.end_time)
         if order.direction == Order.SELL:
             # sell
             if position is not None:

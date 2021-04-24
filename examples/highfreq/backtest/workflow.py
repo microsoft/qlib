@@ -7,13 +7,9 @@ from pathlib import Path
 import qlib
 import pandas as pd
 from qlib.config import REG_CN
-from qlib.contrib.model.gbdt import LGBModel
-from qlib.contrib.data.handler import Alpha158
-from qlib.contrib.strategy.strategy import TopkDropoutStrategy
-from qlib.backtest import backtest
+from qlib.contrib.strategy import TopkDropoutStrategy
+from qlib.contrib.backtest import backtest
 from qlib.utils import exists_qlib_data, init_instance_by_config, flatten_dict
-from qlib.workflow import R
-from qlib.workflow.record_temp import SignalRecord, PortAnaRecord
 from qlib.tests.data import GetData
 
 if __name__ == "__main__":
@@ -67,9 +63,9 @@ if __name__ == "__main__":
                     "kwargs": data_handler_config,
                 },
                 "segments": {
-                    "train": ("2008-01-01", "2014-12-31"),
+                    "train": ("2012-01-01", "2014-12-31"),
                     "valid": ("2015-01-01", "2016-12-31"),
-                    "test": ("2017-01-01", "2020-08-01"),
+                    "test": ("2017-01-01", "2018-01-31"),
                 },
             },
         },
@@ -79,41 +75,40 @@ if __name__ == "__main__":
     dataset = init_instance_by_config(task["dataset"])
     model.fit(dataset)
 
-    trade_start_time = "2017-01-01"
-    trade_end_time = "2020-08-01"
-    trade_exchange = get_exchange(start_time=trade_start_time, end_time=trade_end_time)
+    trade_start_time = "2017-01-31"
+    trade_end_time = "2018-01-31"
 
     backtest_config={
         "strategy": {
             "class": "TopkDropoutStrategy",
             "module_path": "qlib.contrib.strategy.dl_strategy",
             "kwargs": {
-                "step_bar": "day",
+                "step_bar": "week",
                 "model": model,
                 "dataset": dataset,
-                "trade_exchange": trade_exchange,
                 "topk": 50,
                 "n_drop": 5,
             },
         },
         "env":{
             "class": "SplitEnv",
-            "module_path": "qlib.backtest.env",
+            "module_path": "qlib.contrib.backtest.env",
             "kwargs": {
-                "step_bar": "day",
+                "step_bar": "week",
                 "sub_env": {
                     "class": "SimulatorEnv",
-                    "module_path": "qlib.backtest.env",
+                    "module_path": "qlib.contrib.backtest.env",
                     "kwargs": {
-                        "step_bar": "1min",
-                        "trade_exchange": trade_exchange,
+                        "step_bar": "day",
                     }
                 },
                 "sub_strategy": {
                     "class": "SBBStrategyEMA",
                     "module_path": "qlib.contrib.strategy.rule_strategy",
                     "kwargs": {
-                        "step_bar": "1min",
+                        "step_bar": "day",
+                        "freq": "day",
+                        "instruments": "csi300",
                     }
                 }
             }
@@ -121,4 +116,4 @@ if __name__ == "__main__":
     }
 
 
-    backtest(**backtest_config, )
+    report_dict = backtest(start_time=trade_start_time, end_time=trade_end_time, **backtest_config, account=1e8, deal_price="$close", verbose=False)

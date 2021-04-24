@@ -4,13 +4,13 @@
 
 from .dl_strategy import (
     TopkDropoutStrategy,
-    BaseStrategy,
     WeightStrategyBase,
 )
 
 from .rule_strategy import(
     TWAPStrategy,
-    SBBEMAStrategy
+    SBBStrategyBase,
+    SBBStrategyEMA,
 )
 
 from .cost_control import (

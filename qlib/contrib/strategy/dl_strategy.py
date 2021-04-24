@@ -4,12 +4,12 @@ import numpy as np
 import pandas as pd
 
 from ...utils import sample_feature
-from ...strategy.base import DLStrategy
-from ...backtest.order import Order
+from ...strategy.base import ModelStrategy
+from ..backtest.order import Order
 from .order_generator import OrderGenWInteract
 
 
-class TopkDropoutStrategy(DLStrategy):
+class TopkDropoutStrategy(ModelStrategy):
     def __init__(
         self,
         step_bar,
@@ -53,7 +53,7 @@ class TopkDropoutStrategy(DLStrategy):
             else:
                 strategy will make decision with the tradable state of the stock info and avoid buy and sell them.
         """
-        super(TopkDropoutStrategy, self).__init__(step_bar, model, dataset, start_time, end_time)
+        super(TopkDropoutStrategy, self).__init__(step_bar, model, dataset, start_time, end_time, trade_exchange=trade_exchange)
         self.topk = topk
         self.n_drop = n_drop
         self.method_sell = method_sell
@@ -67,9 +67,10 @@ class TopkDropoutStrategy(DLStrategy):
         self.only_tradable = only_tradable
         
     
-    def reset(trade_exchange=None, **kwargs):
+    def reset(self, trade_exchange=None, **kwargs):
         super(TopkDropoutStrategy, self).reset(**kwargs)
-        self.trade_exchange = trade_exchange
+        if trade_exchange:
+            self.trade_exchange = trade_exchange
 
     def get_risk_degree(self, trade_index):
         """get_risk_degree
@@ -189,7 +190,7 @@ class TopkDropoutStrategy(DLStrategy):
                     # update cash
                     cash += trade_val - trade_cost
                     # sold
-                    del self.stock_count[code]
+                    self.stock_count[code] = 0
                 else:
                     # no buy signal, but the stock is kept
                     self.stock_count[code] += 1
@@ -210,10 +211,10 @@ class TopkDropoutStrategy(DLStrategy):
         # value = value / (1+self.trade_exchange.open_cost) # set open_cost limit
         for code in buy:
             # check is stock suspended
-            if not self.trade_exchange.is_stock_tradable(stock_id=code, trade_date=trade_date):
+            if not self.trade_exchange.is_stock_tradable(stock_id=code, start_time=trade_start_time, end_time=trade_end_time):
                 continue
             # buy order
-            buy_price = self.trade_exchange.get_deal_price(stock_id=code, trade_date=trade_date)
+            buy_price = self.trade_exchange.get_deal_price(stock_id=code, start_time=trade_start_time, end_time=trade_end_time)
             buy_amount = value / buy_price
             factor = self.trade_exchange.get_factor(stock_id=code, start_time=trade_start_time, end_time=trade_end_time)
             buy_amount = self.trade_exchange.round_amount_by_trade_unit(buy_amount, factor)
@@ -229,8 +230,8 @@ class TopkDropoutStrategy(DLStrategy):
             self.stock_count[code] = 1
         return sell_order_list + buy_order_list
     
-class WeightStrategyBase(DLStrategy):
-    def __init__(self, trade_exchange, order_generator_cls_or_obj=OrderGenWInteract, start_time=None, end_time=None, **kwargs):
+class WeightStrategyBase(ModelStrategy):
+    def __init__(self, step_bar, start_time=None, end_time=None, order_generator_cls_or_obj=OrderGenWInteract, trade_exchange=None, **kwargs):
         super(WeightStrategyBase, self).__init__(step_bar, start_time, end_time)
         self.trade_exchange = trade_exchange
         if isinstance(order_generator_cls_or_obj, type):
