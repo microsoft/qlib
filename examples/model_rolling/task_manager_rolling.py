@@ -15,6 +15,11 @@ from qlib.workflow.task.utils import list_recorders
 from qlib.model.ens.group import RollingGroup
 from qlib.model.trainer import TrainerRM
 
+"""
+This example shows how a Trainer work based on TaskManager with rolling tasks.
+After training, how to collect the rolling results will be showed in task_collecting.
+"""
+
 data_handler_config = {
     "start_time": "2008-01-01",
     "end_time": "2020-08-01",
@@ -71,81 +76,83 @@ task_xgboost_config = {
     "record": record_config,
 }
 
-# Reset all things to the first status, be careful to save important data
-def reset(task_pool, exp_name):
-    print("========== reset ==========")
-    TaskManager(task_pool=task_pool).remove()
 
-    exp = R.get_exp(experiment_name=exp_name)
+class RollingTaskExample:
+    def __init__(
+        self,
+        provider_uri="~/.qlib/qlib_data/cn_data",
+        region=REG_CN,
+        task_url="mongodb://10.0.0.4:27017/",
+        task_db_name="rolling_db",
+        experiment_name="rolling_exp",
+        task_pool="rolling_task",
+        task_config=[task_xgboost_config, task_lgb_config],
+        rolling_step=550,
+        rolling_type=RollingGen.ROLL_SD,
+    ):
+        # TaskManager config
+        mongo_conf = {
+            "task_url": task_url,
+            "task_db_name": task_db_name,
+        }
+        qlib.init(provider_uri=provider_uri, region=region, mongo=mongo_conf)
+        self.experiment_name = experiment_name
+        self.task_pool = task_pool
+        self.task_config = task_config
+        self.rolling_gen = RollingGen(step=rolling_step, rtype=rolling_type)
 
-    for rid in exp.list_recorders():
-        exp.delete_recorder(rid)
+    # Reset all things to the first status, be careful to save important data
+    def reset(self):
+        print("========== reset ==========")
+        TaskManager(task_pool=self.task_pool).remove()
+        exp = R.get_exp(experiment_name=self.experiment_name)
+        for rid in exp.list_recorders():
+            exp.delete_recorder(rid)
 
+    def task_generating(self):
+        print("========== task_generating ==========")
+        tasks = task_generator(
+            tasks=self.task_config,
+            generators=self.rolling_gen,  # generate different date segments
+        )
+        pprint(tasks)
+        return tasks
 
-# This part corresponds to "Task Generating" in the document
-def task_generating():
+    def task_training(self, tasks):
+        print("========== task_training ==========")
+        trainer = TrainerRM(self.experiment_name, self.task_pool)
+        trainer.train(tasks)
 
-    print("========== task_generating ==========")
+    def task_collecting(self):
+        print("========== task_collecting ==========")
 
-    tasks = task_generator(
-        tasks=[task_xgboost_config, task_lgb_config],
-        generators=RollingGen(step=550, rtype=RollingGen.ROLL_SD),  # generate different date segment
-    )
+        def rec_key(recorder):
+            task_config = recorder.load_object("task")
+            model_key = task_config["model"]["class"]
+            rolling_key = task_config["dataset"]["kwargs"]["segments"]["test"]
+            return model_key, rolling_key
 
-    pprint(tasks)
+        def my_filter(recorder):
+            # only choose the results of "LGBModel"
+            model_key, rolling_key = rec_key(recorder)
+            if model_key == "LGBModel":
+                return True
+            return False
 
-    return tasks
+        artifact = ens_workflow(
+            RecorderCollector(exp_name=self.experiment_name, rec_key_func=rec_key, rec_filter_func=my_filter),
+            RollingGroup(),
+        )
+        print(artifact)
 
-
-def task_training(tasks, task_pool, exp_name):
-    trainer = TrainerRM(exp_name, task_pool)
-    trainer.train(tasks)
-
-
-# This part corresponds to "Task Collecting" in the document
-def task_collecting(exp_name):
-    print("========== task_collecting ==========")
-
-    def rec_key(recorder):
-        task_config = recorder.load_object("task")
-        model_key = task_config["model"]["class"]
-        rolling_key = task_config["dataset"]["kwargs"]["segments"]["test"]
-        return model_key, rolling_key
-
-    def my_filter(recorder):
-        # only choose the results of "LGBModel"
-        model_key, rolling_key = rec_key(recorder)
-        if model_key == "LGBModel":
-            return True
-        return False
-
-    artifact = ens_workflow(
-        RecorderCollector(exp_name=exp_name, rec_key_func=rec_key, rec_filter_func=my_filter),
-        RollingGroup(),
-    )
-    print(artifact)
-
-
-def main(
-    provider_uri="~/.qlib/qlib_data/cn_data",
-    task_url="mongodb://10.0.0.4:27017/",
-    task_db_name="rolling_db",
-    experiment_name="rolling_exp",
-    task_pool="rolling_task",
-):
-    mongo_conf = {
-        "task_url": task_url,
-        "task_db_name": task_db_name,
-    }
-    qlib.init(provider_uri=provider_uri, region=REG_CN, mongo=mongo_conf)
-
-    reset(task_pool, experiment_name)
-    tasks = task_generating()
-    task_training(tasks, task_pool, experiment_name)
-    task_collecting(experiment_name)
+    def main(self):
+        self.reset()
+        tasks = self.task_generating()
+        self.task_training(tasks)
+        self.task_collecting()
 
 
 if __name__ == "__main__":
     ## to see the whole process with your own parameters, use the command below
-    # python update_online_pred.py main --experiment_name="your_exp_name"
-    fire.Fire()
+    # python task_manager_rolling.py main --experiment_name="your_exp_name"
+    fire.Fire(RollingTaskExample)

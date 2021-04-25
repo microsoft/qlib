@@ -49,7 +49,7 @@ class RecorderCollector(Collector):
         if rec_key_func is None:
             rec_key_func = lambda rec: rec.info["id"]
         if artifacts_key is None:
-            artifacts_key = self.artifacts_path.keys()
+            artifacts_key = list(self.artifacts_path.keys())
         self._rec_key_func = rec_key_func
         self.artifacts_key = artifacts_key
         self._rec_filter_func = rec_filter_func

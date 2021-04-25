@@ -11,7 +11,7 @@ from qlib.workflow.task.gen import RollingGen, task_generator
 from qlib.workflow.task.manage import TaskManager
 
 """
-This examples is about the OnlineManager and OnlineSimulator based on Rolling tasks. 
+This examples is about the OnlineManager and OnlineSimulator based on rolling tasks. 
 The OnlineManager will focus on the updating of your online models.
 The OnlineSimulator will focus on the simulating real updating routine of your online models.
 """

@@ -194,6 +194,15 @@ class RollingGen(TaskGen):
 
             # update segments of this task
             t["dataset"]["kwargs"]["segments"] = copy.deepcopy(segments)
+            # if end_time < the end of test_segments, then change end_time to allow load more data
+            if (
+                self.ta.cal_interval(
+                    t["dataset"]["kwargs"]["handler"]["kwargs"]["end_time"],
+                    t["dataset"]["kwargs"]["segments"][self.test_key][1],
+                )
+                < 0
+            ):
+                t["dataset"]["kwargs"]["handler"]["kwargs"]["end_time"] = copy.deepcopy(segments[self.test_key][1])
             prev_seg = segments
             res.append(t)
         return res

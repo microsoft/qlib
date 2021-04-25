@@ -135,3 +135,12 @@ class TrainerRM(Trainer):
         for _id in _id_list:
             recs.append(tm.re_query(_id)["res"])
         return recs
+
+
+class DelayTrainer(Trainer):
+    def fake_train(self):
+        self.fake_trained = []
+
+    def train(self):
+        for rec in self.fake_trained:
+            pass

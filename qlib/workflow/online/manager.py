@@ -1,16 +1,29 @@
 from copy import deepcopy
+from operator import index
+import pandas as pd
+from qlib.model.ens.ensemble import ens_workflow
+from qlib.model.ens.group import RollingGroup
+from qlib.utils.serial import Serializable
 from typing import Dict, List, Union
 from qlib import get_module_logger
 from qlib.data.data import D
 from qlib.model.trainer import Trainer, TrainerR, task_train
+from qlib.workflow import R
 from qlib.workflow.online.update import PredUpdater
 from qlib.workflow.recorder import Recorder
-from qlib.workflow.task.collect import Collector
+from qlib.workflow.task.collect import Collector, RecorderCollector
 from qlib.workflow.task.gen import RollingGen, task_generator
 from qlib.workflow.task.utils import TimeAdjuster, list_recorders
 
+"""
+This class is a component of online serving, it can manage a series of models dynamically.
+With the change of time, the decisive models will be also changed. In this module, we called those contributing models as `online` models.
+In every routine(such as everyday or every minutes), the `online` models maybe changed and the prediction of them need to be updated.
+So this module provide a series methods to control this process. 
+"""
 
-class OnlineManager:
+
+class OnlineManager(Serializable):
 
     ONLINE_KEY = "online_status"  # the online status key in recorder
     ONLINE_TAG = "online"  # the 'online' model
@@ -18,26 +31,28 @@ class OnlineManager:
     NEXT_ONLINE_TAG = "next_online"  # the 'next online' model, which can be 'online' model when call reset_online_model
     OFFLINE_TAG = "offline"  # the 'offline' model, not for online serving
 
-    def __init__(self, trainer: Trainer = None, collector: Collector = None, need_log=True):
+    SIGNAL_EXP = "OnlineManagerSignals"  # a specific experiment to save signals of different experiment.
+
+    def __init__(self, trainer: Trainer = None, need_log=True):
         """
         init OnlineManager.
 
         Args:
             trainer (Trainer, optional): a instance of Trainer. Defaults to None.
-            collector (Collector, optional): a instance of Collector. Defaults to None.
             need_log (bool, optional): print log or not. Defaults to True.
         """
         self.trainer = trainer
         self.logger = get_module_logger(self.__class__.__name__)
         self.need_log = need_log
         self.delay_signals = {}
-        self.collector = collector
         self.cur_time = None
 
     def prepare_signals(self, *args, **kwargs):
         """
         After perparing the data of last routine (a box in box-plot) which means the end of the routine, we can prepare trading signals for next routine.
+        Must use `pass` even though there is nothing to do.
         """
+
         raise NotImplementedError(f"Please implement the `prepare_signals` method.")
 
     def prepare_tasks(self, *args, **kwargs):
@@ -47,7 +62,7 @@ class OnlineManager:
         """
         raise NotImplementedError(f"Please implement the `prepare_tasks` method.")
 
-    def prepare_new_models(self, tasks, tag=NEXT_ONLINE_TAG):
+    def prepare_new_models(self, tasks, tag=NEXT_ONLINE_TAG, check_func=None):
         """
         Use trainer to train a list of tasks and set the trained model to `tag`.
 
@@ -57,14 +72,20 @@ class OnlineManager:
                 `ONLINE_TAG` for first train or additional train
                 `NEXT_ONLINE_TAG` for reset online model when calling `reset_online_tag`
                 `OFFLINE_TAG` for train but offline those models
+            check_func: the method to judge if a model can be online.
+                The parameter is the model record and return True for online.
+                None for online every models.
+
         """
-        # TODO: 回调
-        if not (tasks is None or len(tasks) == 0):
+        if check_func is None:
+            check_func = lambda x: True
+        if len(tasks) > 0:
             if self.trainer is not None:
                 new_models = self.trainer.train(tasks)
-                self.set_online_tag(tag, new_models)
-                if self.need_log:
-                    self.logger.info(f"Finished prepare {len(new_models)} new models and set them to {tag}.")
+                if check_func(new_models):
+                    self.set_online_tag(tag, new_models)
+                    if self.need_log:
+                        self.logger.info(f"Finished preparing {len(new_models)} new models and set them to {tag}.")
             else:
                 self.logger.warn("No trainer to train new tasks.")
 
@@ -101,6 +122,12 @@ class OnlineManager:
         """
         raise NotImplementedError(f"Please implement the `online_models` method.")
 
+    def first_train(self):
+        """
+        Train a series of models firstly and set some of them into online models.
+        """
+        raise NotImplementedError(f"Please implement the `first_train` method.")
+
     def get_collector(self):
         """
         Return the collector.
@@ -108,7 +135,7 @@ class OnlineManager:
         Returns:
             Collector
         """
-        return self.collector
+        raise NotImplementedError(f"Please implement the `get_collector` method.")
 
     def run_delay_signals(self):
         """
@@ -122,9 +149,10 @@ class OnlineManager:
     def routine(self, cur_time=None, delay_prepare=False, *args, **kwargs):
         """
         The typical update process after a routine, such as day by day or month by month.
-        Prepare signals -> prepare tasks -> prepare new models -> update online prediction -> reset online models
+        update online prediction -> prepare signals -> prepare tasks -> prepare new models -> reset online models
         """
         self.cur_time = cur_time  # None for latest date
+        self.update_online_pred()
         if not delay_prepare:
             self.prepare_signals(*args, **kwargs)
         else:
@@ -134,7 +162,7 @@ class OnlineManager:
                 raise ValueError("Can not delay prepare when cur_time is None")
         tasks = self.prepare_tasks(*args, **kwargs)
         self.prepare_new_models(tasks)
-        self.update_online_pred()
+
         return self.reset_online_tag()
 
 
@@ -144,19 +172,18 @@ class OnlineManagerR(OnlineManager):
 
     """
 
-    def __init__(self, experiment_name: str, trainer: Trainer = None, collector: Collector = None, need_log=True):
+    def __init__(self, experiment_name: str, trainer: Trainer = None, need_log=True):
         """
         init OnlineManagerR.
 
         Args:
             experiment_name (str): the experiment name.
             trainer (Trainer, optional): a instance of Trainer. Defaults to None.
-            collector (Collector, optional): a instance of Collector. Defaults to None.
             need_log (bool, optional): print log or not. Defaults to True.
         """
         if trainer is None:
             trainer = TrainerR(experiment_name)
-        super().__init__(trainer=trainer, collector=collector, need_log=need_log)
+        super().__init__(trainer=trainer, need_log=need_log)
         self.exp_name = experiment_name
 
     def set_online_tag(self, tag, recorder: Union[Recorder, List]):
@@ -212,7 +239,40 @@ class OnlineManagerR(OnlineManager):
             PredUpdater(rec, to_date=self.cur_time, need_log=self.need_log).update()
 
         if self.need_log:
-            self.logger.info(f"Finish updating {len(online_models)} online model predictions of {self.exp_name}.")
+            self.logger.info(f"Finished updating {len(online_models)} online model predictions of {self.exp_name}.")
+
+    def prepare_signals(self, over_write=False):
+        """
+        Average the predictions of online models and offer a trading signals every routine.
+        The signals will be saved to `signal` file of a recorder named self.exp_name of a experiment using the name of `SIGNAL_EXP`
+
+        Args:
+            over_write (bool, optional): If True, the new signals will overwrite the file. If False, the new signals will append to the end of signals. Defaults to False.
+        """
+
+        with R.start(experiment_name=self.SIGNAL_EXP, recorder_name=self.exp_name, resume=True):
+            recorder = R.get_recorder()
+            pred = []
+
+            try:
+                old_signals = recorder.load_object("signals")
+            except OSError:
+                old_signals = None
+
+            for rec in self.online_models():
+                pred.append(rec.load_object("pred.pkl"))
+
+            signals = pd.concat(pred, axis=1).mean(axis=1).to_frame("score")
+            signals = signals.sort_index()
+            if old_signals is not None and not over_write:
+                # signals = old_signals.reindex(signals.index).combine_first(signals)
+                old_max = old_signals.index.get_level_values("datetime").max()
+                new_signals = signals.loc[old_max:]
+                signals = pd.concat([old_signals, new_signals], axis=0)
+            else:
+                new_signals = signals
+            self.logger.info(f"Finished preparing new {len(new_signals)} signals to {self.SIGNAL_EXP}/{self.exp_name}.")
+            recorder.save_objects(**{"signals": signals})
 
 
 class RollingOnlineManager(OnlineManagerR):
@@ -223,7 +283,6 @@ class RollingOnlineManager(OnlineManagerR):
         experiment_name: str,
         rolling_gen: RollingGen,
         trainer: Trainer = None,
-        collector: Collector = None,
         need_log=True,
     ):
         """
@@ -238,24 +297,64 @@ class RollingOnlineManager(OnlineManagerR):
         """
         if trainer is None:
             trainer = TrainerR(experiment_name)
-        super().__init__(experiment_name=experiment_name, trainer=trainer, collector=collector, need_log=need_log)
+        super().__init__(experiment_name=experiment_name, trainer=trainer, need_log=need_log)
         self.ta = TimeAdjuster()
         self.rg = rolling_gen
         self.logger = get_module_logger(self.__class__.__name__)
 
-    def prepare_signals(self, *args, **kwargs):
+    def get_collector(self, rec_key_func=None, rec_filter_func=None):
         """
-        Average the online models prediction and save them into a recorder
-        
+        get the instance of collector to collect results
 
-        Must use `pass` even though there is nothing to do.
+        Args:
+            rec_key_func (Callable): a function to get the key of a recorder. If None, use recorder id.
+            rec_filter_func (Callable, optional): filter the recorder by return True or False. Defaults to None.
         """
-        # 检查recorder是否存在，如果不存在就创建一个
-        # 检查recorder的上一个信号时间，如果没有那就从上线模型的共同最早时间开始出信号
-        # 从recorder的上一个信号时间开始出信号，出到self.cur_time
-        for model in self.online_models():
 
-            pass
+        def rec_key(recorder):
+            task_config = recorder.load_object("task")
+            model_key = task_config["model"]["class"]
+            rolling_key = task_config["dataset"]["kwargs"]["segments"]["test"]
+            return model_key, rolling_key
+
+        if rec_key_func is None:
+            rec_key_func = rec_key
+
+        return RecorderCollector(exp_name=self.exp_name, rec_key_func=rec_key_func, rec_filter_func=rec_filter_func)
+
+    def collect_artifact(self, rec_key_func=None, rec_filter_func=None):
+        """
+        collecting artifact based on the collector and RollingGroup.
+
+        Args:
+            rec_key_func (Callable): a function to get the key of a recorder. If None, use recorder id.
+            rec_filter_func (Callable, optional): filter the recorder by return True or False. Defaults to None.
+
+        Returns:
+            dict: the artifact dict after rolling ensemble
+        """
+        artifact = ens_workflow(
+            self.get_collector(rec_key_func=rec_key_func, rec_filter_func=rec_filter_func), RollingGroup()
+        )
+        return artifact
+
+    def first_train(self, task_configs: list):
+        """
+        Use rolling_gen to generate different tasks based on task_configs and trained them.
+
+        Args:
+            task_configs (list or dict): a list of task configs or a task config
+
+        Returns:
+            Collector: a instance of a Collector.
+        """
+        tasks = task_generator(
+            tasks=task_configs,
+            generators=self.rg,  # generate different date segment
+        )
+        self.prepare_new_models(tasks, tag=self.ONLINE_TAG)
+        self.prepare_signals(over_write=True)
+        return self.get_collector()
 
     def prepare_tasks(self, *args, **kwargs):
         """
@@ -264,7 +363,6 @@ class RollingOnlineManager(OnlineManagerR):
         Returns:
             list: a list of new tasks.
         """
-        #TODO: max_test = self.cur_time
         latest_records, max_test = self.list_latest_recorders(
             lambda rec: self.get_online_tag(rec) == OnlineManager.ONLINE_TAG
         )

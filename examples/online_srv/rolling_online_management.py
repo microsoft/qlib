@@ -1,18 +1,21 @@
-from pprint import pprint
-
+import os
+from pathlib import Path
+import pickle
 import fire
 import qlib
-from qlib.config import REG_CN
-from qlib.model.trainer import task_train
 from qlib.workflow import R
-from qlib.workflow.task.collect import RecorderCollector
-from qlib.model.ens.ensemble import RollingEnsemble, ens_workflow
-from qlib.workflow.task.gen import RollingGen, task_generator
-from qlib.workflow.task.manage import TaskManager, run_task
+from qlib.workflow.task.gen import RollingGen
+from qlib.workflow.task.manage import TaskManager
 from qlib.workflow.online.manager import RollingOnlineManager
 from qlib.workflow.task.utils import list_recorders
 from qlib.model.trainer import TrainerRM
-from qlib.model.ens.group import RollingGroup
+
+"""
+This example show how RollingOnlineManager works with rolling tasks.
+There are two parts including first train and routine.
+Firstly, the RollingOnlineManager will finish the first training and set trained models to `online` models.
+Next, the RollingOnlineManager will finish a routine process, including update online prediction -> prepare signals -> prepare tasks -> prepare new models -> reset online models
+"""
 
 data_handler_config = {
     "start_time": "2013-01-01",
@@ -89,92 +92,38 @@ class RollingOnlineExample:
             "task_db_name": task_db_name,  # database name
         }
         qlib.init(provider_uri=provider_uri, region=region, mongo=mongo_conf)
-
-        self.rolling_gen = RollingGen(step=rolling_step, rtype=RollingGen.ROLL_SD)
-        self.trainer = TrainerRM(self.exp_name, self.task_pool)
-        self.task_manager = TaskManager(self.task_pool)
         self.rolling_online_manager = RollingOnlineManager(
-            experiment_name=exp_name, rolling_gen=self.rolling_gen, trainer=self.trainer
+            experiment_name=exp_name,
+            rolling_gen=RollingGen(step=rolling_step, rtype=RollingGen.ROLL_SD),
+            trainer=TrainerRM(self.exp_name, self.task_pool),
         )
 
-    def print_online_model(self):
-        print("========== print_online_model ==========")
-        print("Current 'online' model:")
-
-        for rec in self.rolling_online_manager.online_models():
-            print(rec.info["id"])
-        print("Current 'next online' model:")
-        for rid, rec in list_recorders(self.exp_name).items():
-            if self.rolling_online_manager.get_online_tag(rec) == self.rolling_online_manager.NEXT_ONLINE_TAG:
-                print(rid)
-
-    # This part corresponds to "Task Generating" in the document
-    def task_generating(self):
-
-        print("========== task_generating ==========")
-
-        tasks = task_generator(
-            tasks=[task_xgboost_config, task_lgb_config],
-            generators=self.rolling_gen,  # generate different date segment
-        )
-
-        pprint(tasks)
-
-        return tasks
-
-    def task_training(self, tasks):
-        # self.trainer.train(tasks)
-        self.rolling_online_manager.prepare_new_models(tasks, tag=RollingOnlineManager.ONLINE_TAG)
-
-    # This part corresponds to "Task Collecting" in the document
-    def task_collecting(self):
-        print("========== task_collecting ==========")
-
-        def rec_key(recorder):
-            task_config = recorder.load_object("task")
-            model_key = task_config["model"]["class"]
-            rolling_key = task_config["dataset"]["kwargs"]["segments"]["test"]
-            return model_key, rolling_key
-
-        def my_filter(recorder):
-            # only choose the results of "LGBModel"
-            model_key, rolling_key = rec_key(recorder)
-            if model_key == "LGBModel":
-                return True
-            return False
-
-        artifact = ens_workflow(
-            RecorderCollector(exp_name=self.exp_name, rec_key_func=rec_key, rec_filter_func=my_filter), RollingGroup()
-        )
-        print(artifact)
+    _ROLLING_MANAGER_PATH = ".rolling_manager"  # the RollingOnlineManager will dump to this file, for it will be loaded when calling routine.
 
     # Reset all things to the first status, be careful to save important data
     def reset(self):
         print("========== reset ==========")
-        self.task_manager.remove()
+        TaskManager(self.task_pool).remove()
         exp = R.get_exp(experiment_name=self.exp_name)
         for rid in exp.list_recorders():
             exp.delete_recorder(rid)
 
-    # Run this firstly to see the workflow in Task Management
+        if os.path.exists(self._ROLLING_MANAGER_PATH):
+            os.remove(self._ROLLING_MANAGER_PATH)
+
     def first_run(self):
         print("========== first_run ==========")
         self.reset()
-
-        tasks = self.task_generating()
-        pprint(tasks)
-        self.task_training(tasks)
-        self.task_collecting()
-
-        # latest_rec, _ = self.rolling_online_manager.list_latest_recorders()
-        # self.rolling_online_manager.reset_online_tag(list(latest_rec.values()))
+        self.rolling_online_manager.first_train([task_xgboost_config, task_lgb_config])
+        self.rolling_online_manager.to_pickle(self._ROLLING_MANAGER_PATH)
+        print(self.rolling_online_manager.collect_artifact())
 
     def routine(self):
         print("========== routine ==========")
-        self.print_online_model()
+        with Path(self._ROLLING_MANAGER_PATH).open("rb") as f:
+            self.rolling_online_manager = pickle.load(f)
         self.rolling_online_manager.routine()
-        self.print_online_model()
-        self.task_collecting()
+        print(self.rolling_online_manager.collect_artifact())
 
     def main(self):
         self.first_run()

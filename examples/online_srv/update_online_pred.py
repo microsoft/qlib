@@ -5,6 +5,13 @@ from qlib.model.trainer import task_train
 from qlib.workflow.online.manager import OnlineManagerR
 from qlib.workflow.task.utils import list_recorders
 
+"""
+This example show how OnlineManager works when we need update prediction.
+There are two parts including first_train and update_online_pred.
+Firstly, the RollingOnlineManager will finish the first training and set the trained model to `online` model.
+Next, the RollingOnlineManager will finish updating online prediction
+"""
+
 data_handler_config = {
     "start_time": "2008-01-01",
     "end_time": "2020-08-01",
@@ -52,31 +59,25 @@ task = {
 }
 
 
-def first_train(experiment_name="online_srv"):
+class UpdatePredExample:
+    def __init__(
+        self, provider_uri="~/.qlib/qlib_data/cn_data", region=REG_CN, experiment_name="online_srv", task_config=task
+    ):
+        qlib.init(provider_uri=provider_uri, region=region)
+        self.experiment_name = experiment_name
+        self.online_manager = OnlineManagerR(self.experiment_name)
+        self.task_config = task_config
 
-    rec = task_train(task_config=task, experiment_name=experiment_name)
+    def first_train(self):
+        rec = task_train(self.task_config, experiment_name=self.experiment_name)
+        self.online_manager.reset_online_tag(rec)  # set to online model
 
-    online_manager = OnlineManagerR(experiment_name)
-    online_manager.reset_online_tag(rec)
+    def update_online_pred(self):
+        self.online_manager.update_online_pred()
 
-
-def update_online_pred(experiment_name="online_srv"):
-
-    online_manager = OnlineManagerR(experiment_name)
-
-    print("Here are the online models waiting for update:")
-    for rid, rec in list_recorders(experiment_name).items():
-        if online_manager.get_online_tag(rec) == OnlineManagerR.ONLINE_TAG:
-            print(rid)
-
-    online_manager.update_online_pred()
-
-
-def main(provider_uri="~/.qlib/qlib_data/cn_data", region=REG_CN, experiment_name="online_srv"):
-    provider_uri = "~/.qlib/qlib_data/cn_data"  # target_dir
-    qlib.init(provider_uri=provider_uri, region=region)
-    first_train(experiment_name)
-    update_online_pred(experiment_name)
+    def main(self):
+        self.first_train()
+        self.update_online_pred()
 
 
 if __name__ == "__main__":
@@ -86,4 +87,4 @@ if __name__ == "__main__":
     # python update_online_pred.py update_online_pred
     ## to see the whole process with your own parameters, use the command below
     # python update_online_pred.py main --experiment_name="your_exp_name"
-    fire.Fire()
+    fire.Fire(UpdatePredExample)
