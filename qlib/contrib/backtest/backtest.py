@@ -16,7 +16,6 @@ def backtest(start_time, end_time, trade_strategy, trade_env, benchmark, account
     trade_state = trade_env.get_init_state()
     while not trade_env.finished():
         _order_list = trade_strategy.generate_order_list(**trade_state)
-        print("_order_list", _order_list)
         trade_state, trade_info = trade_env.execute(_order_list)
     
     report_df = trade_account.report.generate_report_dataframe()

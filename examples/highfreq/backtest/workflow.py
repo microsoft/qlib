@@ -100,6 +100,7 @@ if __name__ == "__main__":
                     "module_path": "qlib.contrib.backtest.env",
                     "kwargs": {
                         "step_bar": "day",
+                        "verbose": True,
                     }
                 },
                 "sub_strategy": {
