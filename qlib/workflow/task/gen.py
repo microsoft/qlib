@@ -91,7 +91,7 @@ class RollingGen(TaskGen):
     ROLL_EX = TimeAdjuster.SHIFT_EX  # fixed start date, expanding end date
     ROLL_SD = TimeAdjuster.SHIFT_SD  # fixed segments size, slide it from start date
 
-    def __init__(self, step: int = 40, rtype: str = ROLL_EX):
+    def __init__(self, step: int = 40, rtype: str = ROLL_EX, modify_end_time=True):
         """
         Generate tasks for rolling
 
@@ -101,9 +101,12 @@ class RollingGen(TaskGen):
             step to rolling
         rtype : str
             rolling type (expanding, sliding)
+        modify_end_time: bool
+            Whether the data set configuration needs to be modified when the required scope exceeds the original data set scope
         """
         self.step = step
         self.rtype = rtype
+        self.modify_end_time = modify_end_time
         # TODO: Ask pengrong to update future date in dataset
         self.ta = TimeAdjuster(future=True)
 
@@ -113,7 +116,6 @@ class RollingGen(TaskGen):
     def generate(self, task: dict):
         """
         Converting the task into a rolling task.
-        # FIXME: only modify dataset layer, user need to change datahandler firstly.
 
         Parameters
         ----------
@@ -196,7 +198,8 @@ class RollingGen(TaskGen):
             t["dataset"]["kwargs"]["segments"] = copy.deepcopy(segments)
             # if end_time < the end of test_segments, then change end_time to allow load more data
             if (
-                self.ta.cal_interval(
+                self.modify_end_time
+                and self.ta.cal_interval(
                     t["dataset"]["kwargs"]["handler"]["kwargs"]["end_time"],
                     t["dataset"]["kwargs"]["segments"][self.test_key][1],
                 )

@@ -44,16 +44,20 @@ class OnlineManager(Serializable):
         self.trainer = trainer
         self.logger = get_module_logger(self.__class__.__name__)
         self.need_log = need_log
-        self.delay_signals = {}
         self.cur_time = None
 
-    def prepare_signals(self, *args, **kwargs):
+    def prepare_signals(self):
         """
         After perparing the data of last routine (a box in box-plot) which means the end of the routine, we can prepare trading signals for next routine.
         Must use `pass` even though there is nothing to do.
         """
-
         raise NotImplementedError(f"Please implement the `prepare_signals` method.")
+
+    def get_signals(self):
+        """
+        After preparing signals, here is the method to get them.
+        """
+        raise NotImplementedError(f"Please implement the `get_signals` method.")
 
     def prepare_tasks(self, *args, **kwargs):
         """
@@ -62,7 +66,7 @@ class OnlineManager(Serializable):
         """
         raise NotImplementedError(f"Please implement the `prepare_tasks` method.")
 
-    def prepare_new_models(self, tasks, tag=NEXT_ONLINE_TAG, check_func=None):
+    def prepare_new_models(self, tasks, tag=NEXT_ONLINE_TAG, check_func=None, *args, **kwargs):
         """
         Use trainer to train a list of tasks and set the trained model to `tag`.
 
@@ -75,13 +79,14 @@ class OnlineManager(Serializable):
             check_func: the method to judge if a model can be online.
                 The parameter is the model record and return True for online.
                 None for online every models.
+            *args, **kwargs: will be passed to end_train which means will be passed to customized train method.
 
         """
         if check_func is None:
             check_func = lambda x: True
         if len(tasks) > 0:
             if self.trainer is not None:
-                new_models = self.trainer.train(tasks)
+                new_models = self.trainer.train(tasks, *args, **kwargs)
                 if check_func(new_models):
                     self.set_online_tag(tag, new_models)
                     if self.need_log:
@@ -89,13 +94,13 @@ class OnlineManager(Serializable):
             else:
                 self.logger.warn("No trainer to train new tasks.")
 
-    def update_online_pred(self, *args, **kwargs):
+    def update_online_pred(self):
         """
         After the end of a routine, update the predictions of online models to latest.
         """
         raise NotImplementedError(f"Please implement the `update_online_pred` method.")
 
-    def set_online_tag(self, tag, *args, **kwargs):
+    def set_online_tag(self, tag, recorder):
         """
         Set `tag` to the model to sign whether online.
 
@@ -104,15 +109,21 @@ class OnlineManager(Serializable):
         """
         raise NotImplementedError(f"Please implement the `set_online_tag` method.")
 
-    def get_online_tag(self, *args, **kwargs):
+    def get_online_tag(self):
         """
         Given a model and return its online tag.
         """
         raise NotImplementedError(f"Please implement the `get_online_tag` method.")
 
-    def reset_online_tag(self, *args, **kwargs):
-        """
-        Offline all models and set the models to 'online'.
+    def reset_online_tag(self, recorders=None):
+        """offline all models and set the recorders to 'online'. If no parameter and no 'next online' model, then do nothing.
+
+        Args:
+            recorders (List, optional):
+                the recorders you want to reset to 'online'. If don't give, set 'next online' model to 'online' model. If there isn't any 'next online' model, then maintain existing 'online' model.
+
+        Returns:
+            list: new online recorder. [] if there is no update.
         """
         raise NotImplementedError(f"Please implement the `reset_online_tag` method.")
 
@@ -137,31 +148,46 @@ class OnlineManager(Serializable):
         """
         raise NotImplementedError(f"Please implement the `get_collector` method.")
 
-    def run_delay_signals(self):
+    def delay_prepare(self, rec_dict, *args, **kwargs):
         """
-        Prepare all signals if there are some dates waiting for prepare.
+        Prepare all models and signals if there are something waiting for prepare.
+        NOTE: Assumption: the predictions of online models are between `time_segment`, or this method will work in a wrong way.
+
+        Args:
+            rec_dict (str): an online models dict likes {(begin_time, end_time):[online models]}.
+            *args, **kwargs: will be passed to end_train which means will be passed to customized train method.
         """
-        for cur_time, params in self.delay_signals.items():
-            self.cur_time = cur_time
-            self.prepare_signals(*params[0], **params[1])
-        self.delay_signals = {}
+        for time_segment, recs_list in rec_dict.items():
+            self.trainer.end_train(recs_list, *args, **kwargs)
+            self.reset_online_tag(recs_list)
+            self.prepare_signals()
+            signal_max = self.get_signals().index.get_level_values("datetime").max()
+            if time_segment[1] is not None and signal_max > time_segment[1]:
+                raise ValueError(
+                    f"The max time of signals prepared by online models is {signal_max}, but those models only online in {time_segment}"
+                )
 
     def routine(self, cur_time=None, delay_prepare=False, *args, **kwargs):
         """
         The typical update process after a routine, such as day by day or month by month.
         update online prediction -> prepare signals -> prepare tasks -> prepare new models -> reset online models
+
+        NOTE: Assumption: if using simulator (delay_prepare is True), the prediction will be prepared well after every training, so there is no need to update predictions.
+
+        Args:
+            cur_time ([type], optional): [description]. Defaults to None.
+            delay_prepare (bool, optional): [description]. Defaults to False.
+            *args, **kwargs: will be passed to `prepare_tasks` and `prepare_new_models`. It can be some hyper parameter or training config.
+
+        Returns:
+            [type]: [description]
         """
         self.cur_time = cur_time  # None for latest date
-        self.update_online_pred()
         if not delay_prepare:
-            self.prepare_signals(*args, **kwargs)
-        else:
-            if cur_time is not None:
-                self.delay_signals[cur_time] = (args, kwargs)
-            else:
-                raise ValueError("Can not delay prepare when cur_time is None")
+            self.update_online_pred()
+            self.prepare_signals()
         tasks = self.prepare_tasks(*args, **kwargs)
-        self.prepare_new_models(tasks)
+        self.prepare_new_models(tasks, *args, **kwargs)
 
         return self.reset_online_tag()
 
@@ -185,8 +211,16 @@ class OnlineManagerR(OnlineManager):
             trainer = TrainerR(experiment_name)
         super().__init__(trainer=trainer, need_log=need_log)
         self.exp_name = experiment_name
+        self.signal_rec = None
 
     def set_online_tag(self, tag, recorder: Union[Recorder, List]):
+        """
+        Set `tag` to the model to sign whether online.
+
+        Args:
+            tag (str): the tags in `ONLINE_TAG`, `NEXT_ONLINE_TAG`, `OFFLINE_TAG`
+            recorder (Union[Recorder, List])
+        """
         if isinstance(recorder, Recorder):
             recorder = [recorder]
         for rec in recorder:
@@ -195,6 +229,15 @@ class OnlineManagerR(OnlineManager):
             self.logger.info(f"Set {len(recorder)} models to '{tag}'.")
 
     def get_online_tag(self, recorder: Recorder):
+        """
+        Given a model and return its online tag.
+
+        Args:
+            recorder (Recorder): a instance of recorder
+
+        Returns:
+            str: the tag
+        """
         tags = recorder.list_tags()
         return tags.get(OnlineManager.ONLINE_KEY, OnlineManager.OFFLINE_TAG)
 
@@ -202,7 +245,7 @@ class OnlineManagerR(OnlineManager):
         """offline all models and set the recorders to 'online'. If no parameter and no 'next online' model, then do nothing.
 
         Args:
-            recorders (Union[List, Dict], optional):
+            recorders (Union[Recorder, List], optional):
                 the recorders you want to reset to 'online'. If don't give, set 'next online' model to 'online' model. If there isn't any 'next online' model, then maintain existing 'online' model.
 
         Returns:
@@ -225,7 +268,30 @@ class OnlineManagerR(OnlineManager):
         self.set_online_tag(OnlineManager.ONLINE_TAG, recorder)
         return recorder
 
+    def get_signals(self):
+        """
+        get signals from the recorder(named self.exp_name) of the experiment(named self.SIGNAL_EXP)
+
+        Returns:
+            signals
+        """
+        if self.signal_rec is None:
+            with R.start(experiment_name=self.SIGNAL_EXP, recorder_name=self.exp_name, resume=True):
+                self.signal_rec = R.get_recorder()
+        signals = None
+        try:
+            signals = self.signal_rec.load_object("signals")
+        except OSError:
+            self.logger.warn("Can not find `signals`, have you called `prepare_signals` before?")
+        return signals
+
     def online_models(self):
+        """
+        Return online models.
+
+        Returns:
+            list: the list of online models
+        """
         return list(
             list_recorders(self.exp_name, lambda rec: self.get_online_tag(rec) == OnlineManager.ONLINE_TAG).values()
         )
@@ -245,34 +311,35 @@ class OnlineManagerR(OnlineManager):
         """
         Average the predictions of online models and offer a trading signals every routine.
         The signals will be saved to `signal` file of a recorder named self.exp_name of a experiment using the name of `SIGNAL_EXP`
-
+        Even if the latest signal already exists, the latest calculation result will be overwritten.
+        NOTE: Given a prediction of a certain time, all signals before this time will be prepared well.
         Args:
             over_write (bool, optional): If True, the new signals will overwrite the file. If False, the new signals will append to the end of signals. Defaults to False.
         """
+        if self.signal_rec is None:
+            with R.start(experiment_name=self.SIGNAL_EXP, recorder_name=self.exp_name, resume=True):
+                self.signal_rec = R.get_recorder()
 
-        with R.start(experiment_name=self.SIGNAL_EXP, recorder_name=self.exp_name, resume=True):
-            recorder = R.get_recorder()
-            pred = []
+        pred = []
+        try:
+            old_signals = self.signal_rec.load_object("signals")
+        except OSError:
+            old_signals = None
 
-            try:
-                old_signals = recorder.load_object("signals")
-            except OSError:
-                old_signals = None
+        for rec in self.online_models():
+            pred.append(rec.load_object("pred.pkl"))
 
-            for rec in self.online_models():
-                pred.append(rec.load_object("pred.pkl"))
-
-            signals = pd.concat(pred, axis=1).mean(axis=1).to_frame("score")
-            signals = signals.sort_index()
-            if old_signals is not None and not over_write:
-                # signals = old_signals.reindex(signals.index).combine_first(signals)
-                old_max = old_signals.index.get_level_values("datetime").max()
-                new_signals = signals.loc[old_max:]
-                signals = pd.concat([old_signals, new_signals], axis=0)
-            else:
-                new_signals = signals
+        signals = pd.concat(pred, axis=1).mean(axis=1).to_frame("score")
+        signals = signals.sort_index()
+        if old_signals is not None and not over_write:
+            old_max = old_signals.index.get_level_values("datetime").max()
+            new_signals = signals.loc[old_max:]
+            signals = pd.concat([old_signals, new_signals], axis=0)
+        else:
+            new_signals = signals
+        if self.need_log:
             self.logger.info(f"Finished preparing new {len(new_signals)} signals to {self.SIGNAL_EXP}/{self.exp_name}.")
-            recorder.save_objects(**{"signals": signals})
+        self.signal_rec.save_objects(**{"signals": signals})
 
 
 class RollingOnlineManager(OnlineManagerR):
@@ -304,7 +371,9 @@ class RollingOnlineManager(OnlineManagerR):
 
     def get_collector(self, rec_key_func=None, rec_filter_func=None):
         """
-        get the instance of collector to collect results
+        Get the instance of collector to collect results. The returned collector must can distinguish results in different models.
+        Assumption: the models can be distinguished based on model name and rolling test segments.
+        If you do not want this assumption, please implement your own method or use another rec_key_func.
 
         Args:
             rec_key_func (Callable): a function to get the key of a recorder. If None, use recorder id.
@@ -353,10 +422,9 @@ class RollingOnlineManager(OnlineManagerR):
             generators=self.rg,  # generate different date segment
         )
         self.prepare_new_models(tasks, tag=self.ONLINE_TAG)
-        self.prepare_signals(over_write=True)
         return self.get_collector()
 
-    def prepare_tasks(self, *args, **kwargs):
+    def prepare_tasks(self):
         """
         Prepare new tasks based on new date.
 

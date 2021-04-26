@@ -174,11 +174,11 @@ class TaskManager:
 
         return _id_list
 
-    def fetch_task(self, query={}):
+    def fetch_task(self, query={}, status=STATUS_WAITING):
         query = query.copy()
         if "_id" in query:
             query["_id"] = ObjectId(query["_id"])
-        query.update({"status": self.STATUS_WAITING})
+        query.update({"status": status})
         task = self.task_pool.find_one_and_update(
             query, {"$set": {"status": self.STATUS_RUNNING}}, sort=[("priority", pymongo.DESCENDING)]
         )
@@ -189,7 +189,7 @@ class TaskManager:
         return self._decode_task(task)
 
     @contextmanager
-    def safe_fetch_task(self, query={}):
+    def safe_fetch_task(self, query={}, status=STATUS_WAITING):
         """
         fetch task from task_pool using query with contextmanager
 
@@ -202,7 +202,7 @@ class TaskManager:
         -------
 
         """
-        task = self.fetch_task(query=query)
+        task = self.fetch_task(query=query, status=status)
         try:
             yield task
         except Exception:
@@ -330,7 +330,15 @@ class TaskManager:
         return f"TaskManager({self.task_pool})"
 
 
-def run_task(task_func, task_pool, force_release=False, *args, **kwargs):
+def run_task(
+    task_func,
+    task_pool,
+    force_release=False,
+    before_status=TaskManager.STATUS_WAITING,
+    after_status=TaskManager.STATUS_DONE,
+    *args,
+    **kwargs,
+):
     """
     While task pool is not empty (has WAITING tasks), use task_func to fetch and run tasks in task_pool
 
@@ -352,16 +360,24 @@ def run_task(task_func, task_pool, force_release=False, *args, **kwargs):
     ever_run = False
 
     while True:
-        with tm.safe_fetch_task() as task:
+        with tm.safe_fetch_task(status=before_status) as task:
             if task is None:
                 break
             get_module_logger("run_task").info(task["def"])
-            if force_release:
-                with concurrent.futures.ProcessPoolExecutor(max_workers=1) as executor:  # what this means?
-                    res = executor.submit(task_func, task["def"], *args, **kwargs).result()
+            # when fetching `WAITING` task, use task_def to train
+            if before_status == TaskManager.STATUS_WAITING:
+                param = task["def"]
+            # when fetching `PART_DONE` task, use task_res to train for the result has been saved
+            elif before_status == TaskManager.STATUS_PART_DONE:
+                param = task["res"]
             else:
-                res = task_func(task["def"], *args, **kwargs)
-            tm.commit_task_res(task, res)
+                raise ValueError("The fetched task must be `STATUS_WAITING` or `STATUS_PART_DONE`!")
+            if force_release:
+                with concurrent.futures.ProcessPoolExecutor(max_workers=1) as executor:
+                    res = executor.submit(task_func, param, *args, **kwargs).result()
+            else:
+                res = task_func(param, *args, **kwargs)
+            tm.commit_task_res(task, res, status=after_status)
             ever_run = True
 
     return ever_run

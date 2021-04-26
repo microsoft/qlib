@@ -111,6 +111,11 @@ class RollingOnlineExample:
         if os.path.exists(self._ROLLING_MANAGER_PATH):
             os.remove(self._ROLLING_MANAGER_PATH)
 
+        for rid in list_recorders(
+            RollingOnlineManager.SIGNAL_EXP, lambda x: True if x.info["name"] == self.exp_name else False
+        ):
+            exp.delete_recorder(rid)
+
     def first_run(self):
         print("========== first_run ==========")
         self.reset()

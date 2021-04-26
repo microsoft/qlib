@@ -12,7 +12,7 @@ class OnlineSimulator:
         self,
         start_time,
         end_time,
-        onlinemanager: OnlineManager,
+        online_manager: OnlineManager,
         frequency="day",
     ):
         """
@@ -28,15 +28,14 @@ class OnlineSimulator:
         self.cal = D.calendar(start_time=start_time, end_time=end_time, freq=frequency)
         self.start_time = self.cal[0]
         self.end_time = self.cal[-1]
-        self.olm = onlinemanager
-
+        self.olm = online_manager
         if len(self.cal) == 0:
             self.logger.warn(f"There is no need to simulate bacause start_time is larger than end_time.")
 
     def simulate(self, *args, **kwargs):
         """
         Starting from start time, this method will simulate every routine in OnlineManager.
-        NOTE: Considering the parallel training, the signals will be perpared after all routine simulating.
+        NOTE: Considering the parallel training, the models and signals can be perpared after all routine simulating.
 
         Returns:
             Collector: the OnlineManager's collector
@@ -54,12 +53,10 @@ class OnlineSimulator:
                 self.rec_dict[(tmp_begin, tmp_end)] = prev_recorders
                 tmp_begin = cur_time
                 prev_recorders = recorders
-
         self.rec_dict[(tmp_begin, self.end_time)] = prev_recorders
-        # prepare signals again incase there is no trained model when call it
-        self.olm.run_delay_signals()
+        # finished perparing models (and pred) and signals
+        self.olm.delay_prepare(self.rec_dict)
         self.logger.info(f"Finished preparing signals")
-
         return self.olm.get_collector()
 
     def online_models(self):
