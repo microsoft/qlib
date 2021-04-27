@@ -129,7 +129,7 @@ class FilterCol(Processor):
 
 
 class TanhProcess(Processor):
-    """ Use tanh to process noise data"""
+    """Use tanh to process noise data"""
 
     def __call__(self, df):
         def tanh_denoise(data):
@@ -144,7 +144,7 @@ class TanhProcess(Processor):
 
 
 class ProcessInf(Processor):
-    """Process infinity  """
+    """Process infinity"""
 
     def __call__(self, df):
         def replace_inf(data):
