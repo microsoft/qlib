@@ -13,12 +13,7 @@ def ens_workflow(collector: Collector, process_list, *args, **kwargs):
         collector (Collector): the collector to collect the result into {result_key: things}
         process_list (list or Callable): the list of processors or the instance of processor to process dict.
         The processor order is same as the list order.
-
-        For example: [Group1(..., Ensemble1()), Group2(..., Ensemble2())]
-
-        artifacts_key (list, optional): the artifacts key you want to get. If None, get all artifacts.
-        rec_filter_func (Callable, optional): filter the recorder by return True or False. Defaults to None.
-
+            For example: [Group1(..., Ensemble1()), Group2(..., Ensemble2())]
     Returns:
         dict: the ensemble dict
     """
@@ -38,7 +33,7 @@ def ens_workflow(collector: Collector, process_list, *args, **kwargs):
     return ensemble
 
 
-class Ensemble(Serializable):
+class Ensemble:
     """Merge the objects in an Ensemble."""
 
     def __call__(self, ensemble_dict: dict, *args, **kwargs):

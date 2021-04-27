@@ -389,7 +389,7 @@ class RollingOnlineManager(OnlineManagerR):
         if rec_key_func is None:
             rec_key_func = rec_key
 
-        return RecorderCollector(exp_name=self.exp_name, rec_key_func=rec_key_func, rec_filter_func=rec_filter_func)
+        return RecorderCollector(experiment=self.exp_name, rec_key_func=rec_key_func, rec_filter_func=rec_filter_func)
 
     def collect_artifact(self, rec_key_func=None, rec_filter_func=None):
         """

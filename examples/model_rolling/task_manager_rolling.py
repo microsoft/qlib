@@ -140,7 +140,7 @@ class RollingTaskExample:
             return False
 
         artifact = ens_workflow(
-            RecorderCollector(exp_name=self.experiment_name, rec_key_func=rec_key, rec_filter_func=my_filter),
+            RecorderCollector(experiment=self.experiment_name, rec_key_func=rec_key, rec_filter_func=my_filter),
             RollingGroup(),
         )
         print(artifact)
