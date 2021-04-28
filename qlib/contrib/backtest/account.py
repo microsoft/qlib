@@ -214,6 +214,7 @@ class Account:
 
         # finish today's updation
         # reset the daily variables
+        self.rtn = 0
         self.ct = 0
         self.to = 0
 

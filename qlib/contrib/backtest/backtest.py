@@ -9,7 +9,7 @@ from .account import Account
 
 def backtest(start_time, end_time, trade_strategy, trade_env, benchmark, account):
 
-    trade_account = Account(init_cash=account)
+    trade_account = Account(init_cash=account, benchmark=benchmark, start_time=start_time, end_time=end_time)
     trade_env.reset(start_time=start_time, end_time=end_time, trade_account=trade_account)
     trade_strategy.reset(start_time=start_time, end_time=end_time)
 
