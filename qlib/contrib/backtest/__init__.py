@@ -22,7 +22,7 @@ def get_exchange(
     freq="day",
     start_time=None,
     end_time=None,
-    codes = "all",
+    codes="all",
     subscribe_fields=[],
     open_cost=0.0015,
     close_cost=0.0025,
@@ -89,6 +89,7 @@ def get_exchange(
     else:
         return init_instance_by_config(exchange, accept_types=Exchange)
 
+
 def init_env_instance_by_config(env):
     if isinstance(env, dict):
         env_config = copy.copy(env)
@@ -103,6 +104,7 @@ def init_env_instance_by_config(env):
     else:
         return env
 
+
 def setup_exchange(root_instance, trade_exchange=None, force=False):
     if "trade_exchange" in inspect.getfullargspec(root_instance.__class__).args:
         if force:
@@ -114,8 +116,8 @@ def setup_exchange(root_instance, trade_exchange=None, force=False):
         setup_exchange(root_instance.sub_env, trade_exchange)
     if hasattr(root_instance, "sub_strategy"):
         setup_exchange(root_instance.sub_strategy, trade_exchange)
-    
-            
+
+
 def backtest(start_time, end_time, strategy, env, benchmark=None, account=1e9, **kwargs):
     trade_strategy = init_instance_by_config(strategy)
     trade_env = init_env_instance_by_config(env)

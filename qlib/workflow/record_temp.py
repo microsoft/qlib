@@ -254,13 +254,19 @@ class PortAnaRecord(SignalRecord):
         for report_dep, (report_normal, positions_normal) in enumerate(report_list):
             if report_dict is None:
                 if self.risk_analysis_dep == report_dep:
-                    warnings.warn(f"the report in dep {risk_analysis_dep} is None, please set the corresponding env with `generate_report==True`")
+                    warnings.warn(
+                        f"the report in dep {risk_analysis_dep} is None, please set the corresponding env with `generate_report==True`"
+                    )
                 continue
-            
-            self.recorder.save_objects(**{f"report_normal_{report_dep}.pkl": report_normal}, artifact_path=PortAnaRecord.get_path())
-            self.recorder.save_objects(**{f"positions_norma_{report_dep}l.pkl": positions_normal}, artifact_path=PortAnaRecord.get_path())
+
+            self.recorder.save_objects(
+                **{f"report_normal_{report_dep}.pkl": report_normal}, artifact_path=PortAnaRecord.get_path()
+            )
+            self.recorder.save_objects(
+                **{f"positions_norma_{report_dep}l.pkl": positions_normal}, artifact_path=PortAnaRecord.get_path()
+            )
             # analysis
-            self.risk_analysis_dep == report_dep:
+            if self.risk_analysis_dep == report_dep:
                 analysis = dict()
                 analysis["excess_return_without_cost"] = risk_analysis(report_normal["return"] - report_normal["bench"])
                 analysis["excess_return_with_cost"] = risk_analysis(
@@ -270,7 +276,9 @@ class PortAnaRecord(SignalRecord):
                 # log metrics
                 self.recorder.log_metrics(**flatten_dict(analysis_df["risk"].unstack().T.to_dict()))
                 # save results
-                self.recorder.save_objects(**{f"port_analysis.pkl_{report_dep}": analysis_df}, artifact_path=PortAnaRecord.get_path())
+                self.recorder.save_objects(
+                    **{f"port_analysis.pkl_{report_dep}": analysis_df}, artifact_path=PortAnaRecord.get_path()
+                )
                 logger.info(
                     f"Portfolio analysis record 'port_analysis_{report_dep}.pkl' has been saved as the artifact of the Experiment {self.recorder.experiment_id}"
                 )

@@ -16,7 +16,6 @@ from ...log import get_module_logger
 from .order import Order
 
 
-
 class Exchange:
     def __init__(
         self,
@@ -101,14 +100,15 @@ class Exchange:
         self.min_cost = min_cost
         self.limit_threshold = limit_threshold
 
-
         self.extra_quote = extra_quote
         self.set_quote(codes, start_time, end_time)
 
     def set_quote(self, codes, start_time, end_time):
         if len(codes) == 0:
             codes = D.instruments()
-        self.quote = D.features(codes, self.all_fields, start_time, end_time, freq=self.freq, disk_cache=True).dropna(subset=["$close"])
+        self.quote = D.features(codes, self.all_fields, start_time, end_time, freq=self.freq, disk_cache=True).dropna(
+            subset=["$close"]
+        )
         self.quote.columns = self.all_fields
 
         if self.quote[self.deal_price].isna().any():
@@ -168,7 +168,6 @@ class Exchange:
         is limtited
         """
         return sample_feature(self.quote[stock_id], start_time, end_time, fields="limit", method="all").iloc[0]
-    
 
     def check_stock_suspended(self, stock_id, start_time, end_time):
         # is suspended
@@ -180,7 +179,9 @@ class Exchange:
     def is_stock_tradable(self, stock_id, start_time, end_time):
         # check if stock can be traded
         # same as check in check_order
-        if self.check_stock_suspended(stock_id, start_time, end_time) or self.check_stock_limit(stock_id, start_time, end_time):
+        if self.check_stock_suspended(stock_id, start_time, end_time) or self.check_stock_limit(
+            stock_id, start_time, end_time
+        ):
             return False
         else:
             return True
@@ -235,9 +236,13 @@ class Exchange:
         return sample_feature(self.quote[stock_id], start_time, end_time, fields="$close", method="last").iloc[0]
 
     def get_deal_price(self, stock_id, start_time, end_time):
-        deal_price = sample_feature(self.quote[stock_id], start_time, end_time, fields=self.deal_price, method="last").iloc[0]
+        deal_price = sample_feature(
+            self.quote[stock_id], start_time, end_time, fields=self.deal_price, method="last"
+        ).iloc[0]
         if np.isclose(deal_price, 0.0) or np.isnan(deal_price):
-            self.logger.warning(f"(stock_id:{stock_id}, trade_time:{(start_time, end_time)}, {self.deal_price}): {deal_price}!!!")
+            self.logger.warning(
+                f"(stock_id:{stock_id}, trade_time:{(start_time, end_time)}, {self.deal_price}): {deal_price}!!!"
+            )
             self.logger.warning(f"setting deal_price to close price")
             deal_price = self.get_close(stock_id, start_time, end_time)
         return deal_price
@@ -274,7 +279,9 @@ class Exchange:
 
         amount_dict = {}
         for stock_id in weight_position:
-            if weight_position[stock_id] > 0.0 and self.is_stock_tradable(stock_id=stock_id, start_time=start_time, end_time=end_time):
+            if weight_position[stock_id] > 0.0 and self.is_stock_tradable(
+                stock_id=stock_id, start_time=start_time, end_time=end_time
+            ):
                 amount_dict[stock_id] = (
                     cash
                     * weight_position[stock_id]
@@ -377,7 +384,10 @@ class Exchange:
                 self.check_stock_suspended(stock_id=stock_id, start_time=start_time, end_time=end_time) is False
                 and self.check_stock_limit(stock_id=stock_id, start_time=start_time, end_time=end_time) is False
             ):
-                value += self.get_deal_price(stock_id=stock_id, start_time=start_time, end_time=end_time) * amount_dict[stock_id]
+                value += (
+                    self.get_deal_price(stock_id=stock_id, start_time=start_time, end_time=end_time)
+                    * amount_dict[stock_id]
+                )
         return value
 
     def round_amount_by_trade_unit(self, deal_amount, factor):

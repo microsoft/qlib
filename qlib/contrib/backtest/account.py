@@ -11,7 +11,6 @@ from .order import Order
 from ...utils import parse_freq, sample_feature
 
 
-
 """
 rtn & earning in the Account
     rtn:
@@ -87,7 +86,7 @@ class Account:
                 elif norm_freq == "minute":
                     _temp_result = D.features(_codes, fields, start_time, end_time, freq="minute", disk_cache=1)
                 else:
-                    raise ValueError(f"benchmark freq {freq} is not supported")  
+                    raise ValueError(f"benchmark freq {freq} is not supported")
             if len(_temp_result) == 0:
                 raise ValueError(f"The benchmark {_codes} does not exist. Please provide the right benchmark")
             return _temp_result.groupby(level="datetime")[_temp_result.columns.tolist()[0]].mean().fillna(0)
@@ -95,20 +94,20 @@ class Account:
     def _sample_benchmark(self, bench, trade_start_time, trade_end_time):
         def cal_change(x):
             return x.prod() - 1
+
         return sample_feature(bench, trade_start_time, trade_end_time, method=cal_change)
 
-    def reset(self, benchmark=None, freq=None,**kwargs):
+    def reset(self, benchmark=None, freq=None, **kwargs):
         if benchmark:
             self.benchmark = benchmark
         if freq:
             self.freq = freq
-        if self.freq and self.benchmark and (freq or benchmark)
+        if self.freq and self.benchmark and (freq or benchmark):
             self.bench = self._cal_benchmark(self.benchmark, self.start_time, self.end_time, self.freq)
 
         for k, v in kwargs:
             if hasattr(k):
                 setattr(k, v)
-    
 
     def get_positions(self):
         return self.positions
@@ -203,7 +202,7 @@ class Account:
             turnover_rate=self.to / last_account_value,
             cost_rate=self.ct / last_account_value,
             stock_value=now_stock_value,
-            bench_value=self._sample_benchmark(self.bench, trade_start_time, trade_end_time)
+            bench_value=self._sample_benchmark(self.bench, trade_start_time, trade_end_time),
         )
         # set now_account_value to position
         self.current.position["now_account_value"] = now_account_value

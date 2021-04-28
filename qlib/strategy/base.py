@@ -20,8 +20,9 @@ from ..contrib.backtest.env import BaseTradeCalendar
 - adjust_dates这个东西啥用
 - label和freq和strategy的bar分离，这个如何决策呢
 """
+
+
 class BaseStrategy(BaseTradeCalendar):
-    
     def generate_order_list(self, **kwargs):
         raise NotImplementedError("generator_order_list is not implemented!")
 
@@ -29,12 +30,13 @@ class BaseStrategy(BaseTradeCalendar):
 class RuleStrategy(BaseStrategy):
     pass
 
+
 class ModelStrategy(BaseStrategy):
-    def __init__(self, step_bar, model, dataset:DatasetH, start_time=None, end_time=None, **kwargs):
+    def __init__(self, step_bar, model, dataset: DatasetH, start_time=None, end_time=None, **kwargs):
         self.model = model
         self.dataset = dataset
         self.pred_scores = self._convert_index_format(self.model.predict(dataset))
-        #pred_score_dates = self.pred_scores.index.get_level_values(level="datetime")
+        # pred_score_dates = self.pred_scores.index.get_level_values(level="datetime")
         super(ModelStrategy, self).__init__(step_bar, start_time, end_time, **kwargs)
 
     def _convert_index_format(self, df):
@@ -43,12 +45,11 @@ class ModelStrategy(BaseStrategy):
         return df
 
     def _update_model(self):
-        """update pred score
-        """
+        """update pred score"""
         raise NotImplementedError("_update_model is not implemented!")
+
 
 class TradingEnhancement:
     def reset(self, trade_order_list=None):
         if trade_order_list:
             self.trade_order_list = trade_order_list
-

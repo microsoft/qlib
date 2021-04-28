@@ -81,10 +81,16 @@ class OrderGenWInteract(OrderGenerator):
         # calculate current_tradable_value
         current_amount_dict = current.get_stock_amount_dict()
         current_total_value = trade_exchange.calculate_amount_position_value(
-            amount_dict=current_amount_dict, trade_start_time=trade_start_time, trade_end_time=trade_end_time, only_tradable=False
+            amount_dict=current_amount_dict,
+            trade_start_time=trade_start_time,
+            trade_end_time=trade_end_time,
+            only_tradable=False,
         )
         current_tradable_value = trade_exchange.calculate_amount_position_value(
-            amount_dict=current_amount_dict, trade_start_time=trade_start_time, trade_end_time=trade_end_time, only_tradable=True
+            amount_dict=current_amount_dict,
+            trade_start_time=trade_start_time,
+            trade_end_time=trade_end_time,
+            only_tradable=True,
         )
         # add cash
         current_tradable_value += current.get_cash()
@@ -97,7 +103,9 @@ class OrderGenWInteract(OrderGenerator):
             # value. Then just sell all the stocks
             target_amount_dict = copy.deepcopy(current_amount_dict.copy())
             for stock_id in list(target_amount_dict.keys()):
-                if trade_exchange.is_stock_tradable(stock_id, trade_start_time=trade_start_time, trade_end_time=trade_end_time):
+                if trade_exchange.is_stock_tradable(
+                    stock_id, trade_start_time=trade_start_time, trade_end_time=trade_end_time
+                ):
                     del target_amount_dict[stock_id]
         else:
             # consider cost rate
@@ -108,13 +116,13 @@ class OrderGenWInteract(OrderGenerator):
             target_amount_dict = trade_exchange.generate_amount_position_from_weight_position(
                 weight_position=target_weight_position,
                 cash=current_tradable_value,
-                trade_start_time=trade_start_time, 
+                trade_start_time=trade_start_time,
                 trade_end_time=trade_end_time,
             )
         order_list = trade_exchange.generate_order_for_target_amount_position(
             target_position=target_amount_dict,
             current_position=current_amount_dict,
-            trade_start_time=trade_start_time, 
+            trade_start_time=trade_start_time,
             trade_end_time=trade_end_time,
         )
         return order_list
@@ -161,7 +169,9 @@ class OrderGenWOInteract(OrderGenerator):
         amount_dict = {}
         for stock_id in target_weight_position:
             # Current rule will ignore the stock that not hold and cannot be traded at predict date
-            if trade_exchange.is_stock_tradable(stock_id=stock_id, trade_start_time=trade_start_time, trade_end_time=trade_end_time):
+            if trade_exchange.is_stock_tradable(
+                stock_id=stock_id, trade_start_time=trade_start_time, trade_end_time=trade_end_time
+            ):
                 amount_dict[stock_id] = (
                     risk_total_value * target_weight_position[stock_id] / trade_exchange.get_close(stock_id, pred_date)
                 )

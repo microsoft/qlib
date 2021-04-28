@@ -126,7 +126,7 @@ class CalendarProvider(abc.ABC):
                 _calendar = np.array(self.load_calendar(freq, future))
                 _calendar_index = {x: i for i, x in enumerate(_calendar)}  # for fast search
                 H["c"][flag_raw] = _calendar, _calendar_index
-                
+
             if freq_sam is None:
                 return _calendar, _calendar_index
             else:
@@ -134,7 +134,6 @@ class CalendarProvider(abc.ABC):
                 _calendar_sam_index = {x: i for i, x in enumerate(_calendar_sam)}
                 H["c"][flag] = _calendar_sam, _calendar_sam_index
                 return _calendar_sam, _calendar_sam_index
-                
 
     def _uri(self, start_time, end_time, freq, future=False):
         """Get the uri of calendar generation task."""
@@ -560,7 +559,8 @@ class LocalCalendarProvider(CalendarProvider):
         else:
             end_time = _calendar[-1]
         st, et, si, ei = self.locate_index(start_time, end_time, freq=freq, freq_sam=freq_sam, future=future)
-        return _calendar[si : ei + 1] 
+        return _calendar[si : ei + 1]
+
 
 class LocalInstrumentProvider(InstrumentProvider):
     """Local instrument data provider class
@@ -767,7 +767,7 @@ class ClientCalendarProvider(CalendarProvider):
         self.conn = conn
 
     def calendar(self, start_time=None, end_time=None, freq="day", future=False):
-        
+
         self.conn.send_request(
             request_type="calendar",
             request_content={

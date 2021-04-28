@@ -28,7 +28,7 @@ if __name__ == "__main__":
     ###################################
     # train model
     ###################################
-    
+
     data_handler_config = {
         "start_time": "2008-01-01",
         "end_time": "2020-08-01",
@@ -70,7 +70,7 @@ if __name__ == "__main__":
             },
         },
     }
-        # model initialization
+    # model initialization
     model = init_instance_by_config(task["model"])
     dataset = init_instance_by_config(task["dataset"])
     model.fit(dataset)
@@ -78,7 +78,7 @@ if __name__ == "__main__":
     trade_start_time = "2017-01-31"
     trade_end_time = "2018-01-31"
 
-    backtest_config={
+    backtest_config = {
         "strategy": {
             "class": "TopkDropoutStrategy",
             "module_path": "qlib.contrib.strategy.model_strategy",
@@ -90,7 +90,7 @@ if __name__ == "__main__":
                 "n_drop": 5,
             },
         },
-        "env":{
+        "env": {
             "class": "SplitEnv",
             "module_path": "qlib.contrib.backtest.env",
             "kwargs": {
@@ -101,7 +101,7 @@ if __name__ == "__main__":
                     "kwargs": {
                         "step_bar": "day",
                         "verbose": True,
-                    }
+                    },
                 },
                 "sub_strategy": {
                     "class": "SBBStrategyEMA",
@@ -110,11 +110,11 @@ if __name__ == "__main__":
                         "step_bar": "day",
                         "freq": "day",
                         "instruments": "csi300",
-                    }
-                }
-            }
+                    },
+                },
+            },
         },
-        "backtest":{
+        "backtest": {
             "start_time": trade_start_time,
             "end_time": trade_end_time,
             "verbose": False,
@@ -125,8 +125,14 @@ if __name__ == "__main__":
             "open_cost": 0.0005,
             "close_cost": 0.0015,
             "min_cost": 5,
-        }
+        },
     }
 
-
-    report_dict = backtest(start_time=trade_start_time, end_time=trade_end_time, **backtest_config, account=1e8, deal_price="$close", verbose=False)
+    report_dict = backtest(
+        start_time=trade_start_time,
+        end_time=trade_end_time,
+        **backtest_config,
+        account=1e8,
+        deal_price="$close",
+        verbose=False,
+    )

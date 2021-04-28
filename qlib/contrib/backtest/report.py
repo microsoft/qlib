@@ -45,16 +45,7 @@ class Report:
         bench_value=None,
     ):
         # check data
-        if None in [
-            trade_time,
-            account_value,
-            cash,
-            return_rate,
-            turnover_rate,
-            cost_rate,
-            stock_value,
-            bench_value
-        ]:
+        if None in [trade_time, account_value, cash, return_rate, turnover_rate, cost_rate, stock_value, bench_value]:
             raise ValueError(
                 "None in [trade_date, account_value, cash, return_rate, turnover_rate, cost_rate, stock_value, bench_value]"
             )
@@ -108,5 +99,5 @@ class Report:
                 turnover_rate=r.loc[trade_time]["turnover"],
                 cost_rate=r.loc[trade_time]["cost"],
                 stock_value=r.loc[trade_time]["value"],
-                bench_value=r.loc[trade_time]["bench"]
+                bench_value=r.loc[trade_time]["bench"],
             )

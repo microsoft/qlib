@@ -7,12 +7,10 @@ from .model_strategy import (
     WeightStrategyBase,
 )
 
-from .rule_strategy import(
+from .rule_strategy import (
     TWAPStrategy,
     SBBStrategyBase,
     SBBStrategyEMA,
 )
 
-from .cost_control import (
-    SoftTopkStrategy
-)
+from .cost_control import SoftTopkStrategy
