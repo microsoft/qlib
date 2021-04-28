@@ -24,7 +24,12 @@ from qlib.config import REG_CN as REGION_CN
 CUR_DIR = Path(__file__).resolve().parent
 sys.path.append(str(CUR_DIR.parent.parent))
 from data_collector.base import BaseCollector, BaseNormalize, BaseRun
-from data_collector.utils import get_calendar_list, get_hs_stock_symbols, get_us_stock_symbols
+from data_collector.utils import (
+    get_calendar_list,
+    get_hs_stock_symbols,
+    get_us_stock_symbols,
+    generate_minutes_calendar_from_daily,
+)
 
 INDEX_BENCH_URL = "http://push2his.eastmoney.com/api/qt/stock/kline/get?secid=1.{index_code}&fields1=f1%2Cf2%2Cf3%2Cf4%2Cf5&fields2=f51%2Cf52%2Cf53%2Cf54%2Cf55%2Cf56%2Cf57%2Cf58&klt=101&fqt=0&beg={begin}&end={end}"
 
@@ -418,21 +423,9 @@ class YahooNormalize1min(YahooNormalize, ABC):
         return calendar_list_1d
 
     def generate_1min_from_daily(self, calendars: Iterable) -> pd.Index:
-        res = []
-        daily_format = self.DAILY_FORMAT
-        am_range = self.AM_RANGE
-        pm_range = self.PM_RANGE
-        for _day in calendars:
-            for _range in [am_range, pm_range]:
-                res.append(
-                    pd.date_range(
-                        f"{_day.strftime(daily_format)} {_range[0]}",
-                        f"{_day.strftime(daily_format)} {_range[1]}",
-                        freq="1min",
-                    )
-                )
-
-        return pd.Index(sorted(set(np.hstack(res))))
+        return generate_minutes_calendar_from_daily(
+            calendars, freq="1min", am_range=self.AM_RANGE, pm_range=self.PM_RANGE
+        )
 
     def adjusted_price(self, df: pd.DataFrame) -> pd.DataFrame:
         # TODO: using daily data factor

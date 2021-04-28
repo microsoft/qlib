@@ -522,6 +522,9 @@ class LocalCalendarProvider(CalendarProvider):
             # if future calendar not exists, return current calendar
             if not os.path.exists(fname):
                 get_module_logger("data").warning(f"{freq}_future.txt not exists, return current calendar!")
+                get_module_logger("data").warning(
+                    "You can get future calendar by referring to the following document: https://github.com/microsoft/qlib/blob/main/scripts/data_collector/contrib/README.md"
+                )
                 fname = self._uri_cal.format(freq)
         else:
             fname = self._uri_cal.format(freq)
