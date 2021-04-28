@@ -41,7 +41,7 @@ def parse_position(position: dict = None) -> pd.DataFrame:
     for _trading_date, _value in position.items():
         # pd_date type: pd.Timestamp
         _cash = _value.pop("cash")
-        for _item in ["today_account_value"]:
+        for _item in ["now_account_value"]:
             if _item in _value:
                 _value.pop(_item)
 

@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 
-from .dl_strategy import (
+from .model_strategy import (
     TopkDropoutStrategy,
     WeightStrategyBase,
 )

@@ -3,10 +3,13 @@
 
 
 import copy
+import pandas as pd
 
 from .position import Position
 from .report import Report
 from .order import Order
+from ...utils import parse_freq, sample_feature
+
 
 
 """
@@ -26,21 +29,86 @@ rtn & earning in the Account
 
 
 class Account:
-    def __init__(self, init_cash, last_trade_time=None):
-        self.init_vars(init_cash, last_trade_time)
+    def __init__(self, init_cash, benchmark=None, start_time=None, end_time=None, freq=None):
+        self.init_vars(init_cash, benchmark, start_time, end_time)
 
-    def init_vars(self, init_cash, last_trade_time=None):
+    def init_vars(self, init_cash, benchmark=None, start_time=None, end_time=None, freq=None):
+        """
+        Parameters
+        ----------
+        - benchmark: str/list/pd.Series
+            `benchmark` is pd.Series, `index` is trading date; the value T is the change from T-1 to T.
+                example:
+                    print(D.features(D.instruments('csi500'), ['$close/Ref($close, 1)-1'])['$close/Ref($close, 1)-1'].head())
+                        2017-01-04    0.011693
+                        2017-01-05    0.000721
+                        2017-01-06   -0.004322
+                        2017-01-09    0.006874
+                        2017-01-10   -0.003350
+            `benchmark` is list, will use the daily average change of the stock pool in the list as the 'bench'.
+            `benchmark` is str, will use the daily change as the 'bench'.
+        benchmark code, default is SH000905 CSI500
+
+        """
         # init cash
         self.init_cash = init_cash
+        self.benchmark = benchmark
+        self.start_time = start_time
+        self.end_time = end_time
+        self.freq = freq
         self.current = Position(cash=init_cash)
         self.positions = {}
         self.rtn = 0
         self.ct = 0
         self.to = 0
         self.val = 0
-        self.report = Report()
         self.earning = 0
-        self.last_trade_time = last_trade_time
+        self.report = Report()
+        if freq and benchmark:
+            self.bench = self._cal_benchmark(benchmark, start_time, end_time, freq)
+
+    def _cal_benchmark(self, benchmark, start_time=None, end_time=None, freq=None):
+        if isinstance(benchmark, pd.Series):
+            return benchmark
+        else:
+            if freq is None:
+                raise ValueError("benchmark freq can't be None!")
+            _codes = benchmark if isinstance(benchmark, list) else [benchmark]
+            fields = ["$close/Ref($close,1)-1"]
+            try:
+                _temp_result = D.features(_codes, fields, start_time, end_time, freq=freq, disk_cache=1)
+            except ValueError:
+                _, norm_freq = parse_freq(freq)
+                if norm_freq in ["month", "week", "day"]:
+                    try:
+                        _temp_result = D.features(_codes, fields, start_time, end_time, freq="day", disk_cache=1)
+                    except ValueError:
+                        _temp_result = D.features(_codes, fields, start_time, end_time, freq="minute", disk_cache=1)
+                elif norm_freq == "minute":
+                    _temp_result = D.features(_codes, fields, start_time, end_time, freq="minute", disk_cache=1)
+                else:
+                    raise ValueError(f"benchmark freq {freq} is not supported")  
+            if len(_temp_result) == 0:
+                raise ValueError(f"The benchmark {_codes} does not exist. Please provide the right benchmark")
+            return _temp_result.groupby(level="datetime")[_temp_result.columns.tolist()[0]].mean().fillna(0)
+
+    def _sample_benchmark(self, bench, trade_start_time, trade_end_time):
+        def cal_change(x):
+            return x.prod() - 1
+        return sample_feature(bench, trade_start_time, trade_end_time, method=cal_change)
+
+    def reset(self, benchmark=None, freq=None,**kwargs):
+        if benchmark:
+            self.benchmark = benchmark
+        if freq:
+            self.freq = freq
+        if self.freq and self.benchmark and (freq or benchmark)
+            self.bench = self._cal_benchmark(self.benchmark, self.start_time, self.end_time, self.freq)
+
+        for k, v in kwargs:
+            if hasattr(k):
+                setattr(k, v)
+    
 
     def get_positions(self):
         return self.positions
@@ -83,7 +151,7 @@ class Account:
             self.current.update_order(order, trade_val, cost, trade_price)
             self.update_state_from_order(order, trade_val, cost, trade_price)
 
-    def update_bar_end(self, trade_start_time, trade_end_time, trade_exchange):
+    def update_report(self, trade_start_time, trade_end_time, trade_exchange):
         """
         start_time: pd.TimeStamp
         end_time: pd.TimeStamp
@@ -100,20 +168,17 @@ class Account:
         """
         # update price for stock in the position and the profit from changed_price
         stock_list = self.current.get_stock_list()
-        profit = 0
         for code in stock_list:
             # if suspend, no new price to be updated, profit is 0
             if trade_exchange.check_stock_suspended(code, trade_start_time, trade_end_time):
                 continue
             bar_close = trade_exchange.get_close(code, trade_start_time, trade_end_time)
-            profit += (bar_close - self.current.position[code]["price"]) * self.current.position[code]["amount"]
             self.current.update_stock_price(stock_id=code, price=bar_close)
-        self.rtn += profit
         # update holding day count
-        self.current.add_count_all()
+        self.current.add_count_all(bar=self.freq)
         # update value
         self.val = self.current.calculate_value()
-        # update earning (2nd view of return)
+        # update earning
         # account_value - last_account_value
         # for the first trade date, account_value - init_cash
         # self.report.is_empty() to judge is_first_trade_date
@@ -138,6 +203,7 @@ class Account:
             turnover_rate=self.to / last_account_value,
             cost_rate=self.ct / last_account_value,
             stock_value=now_stock_value,
+            bench_value=self._sample_benchmark(self.bench, trade_start_time, trade_end_time)
         )
         # set now_account_value to position
         self.current.position["now_account_value"] = now_account_value
@@ -148,23 +214,20 @@ class Account:
 
         # finish today's updation
         # reset the daily variables
-        self.rtn = 0
         self.ct = 0
         self.to = 0
-        self.last_trade_time = (trade_start_time, trade_end_time)
 
     def load_account(self, account_path):
         report = Report()
         position = Position()
-        last_trade_time = position.load_position(account_path / "position.xlsx")
         report.load_report(account_path / "report.csv")
+        position.load_position(account_path / "position.xlsx")
 
         # assign values
         self.init_vars(position.init_cash)
         self.current = position
         self.report = report
-        self.last_trade_time = last_trade_time
 
     def save_account(self, account_path):
-        self.current.save_position(account_path / "position.xlsx", self.last_trade_time)
+        self.current.save_position(account_path / "position.xlsx")
         self.report.save_report(account_path / "report.csv")

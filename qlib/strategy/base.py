@@ -12,7 +12,7 @@ from ..utils import get_sample_freq_calendar
 from ..data.dataset import DatasetH
 from ..data.dataset.utils import get_level_index
 from ..contrib.backtest.order import Order
-from ..contrib.backtest.env import TradeCalendarBase
+from ..contrib.backtest.env import BaseTradeCalendar
 
 """
 1. BaseStrategy 的粒度一定是数据粒度的整数倍
@@ -20,22 +20,10 @@ from ..contrib.backtest.env import TradeCalendarBase
 - adjust_dates这个东西啥用
 - label和freq和strategy的bar分离，这个如何决策呢
 """
-class BaseStrategy(TradeCalendarBase):
-    def __init__(self, step_bar, start_time=None, end_time=None, **kwargs):
-        self.step_bar = step_bar
-        self.reset(start_time=start_time, end_time=end_time, **kwargs)
-
-    def reset(self, start_time=None, end_time=None, **kwargs):
-        if start_time or end_time :
-            self._reset_trade_calendar(start_time=start_time, end_time=end_time)
-            
-        for k, v in kwargs:
-            if hasattr(self, k):
-                setattr(self, k, v)
-    
+class BaseStrategy(BaseTradeCalendar):
     
     def generate_order_list(self, **kwargs):
-        self.trade_index = self.trade_index + 1
+        raise NotImplementedError("generator_order_list is not implemented!")
 
 
 class RuleStrategy(BaseStrategy):
@@ -50,14 +38,14 @@ class ModelStrategy(BaseStrategy):
         super(ModelStrategy, self).__init__(step_bar, start_time, end_time, **kwargs)
 
     def _convert_index_format(self, df):
-        if get_level_index(df, level="datetime") == 0:
+        if get_level_index(df, level="datetime") == 1:
             df = df.swaplevel().sort_index()
         return df
 
     def _update_model(self):
         """update pred score
         """
-        pass
+        raise NotImplementedError("_update_model is not implemented!")
 
 class TradingEnhancement:
     def reset(self, trade_order_list=None):

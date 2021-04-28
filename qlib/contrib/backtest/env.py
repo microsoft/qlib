@@ -9,12 +9,26 @@ import numpy as np
 import pandas as pd
 from ...data.data import Cal
 from ...utils import get_sample_freq_calendar
+from .position import Position
+from .report import Report
 from .order import Order
 
 
-class TradeCalendarBase:
+
+class BaseTradeCalendar:
+    def __init__(
+        self,
+        step_bar,
+        start_time=None,
+        end_time=None,
+        **kwargs
+    ):
+        self.step_bar = step_bar
+        self.reset(start_time=start_time, end_time=end_time)
 
     def _reset_trade_calendar(self, start_time, end_time):
+        if not start_time and not end_time:
+            return
         if start_time:
             self.start_time = pd.Timestamp(start_time)
         if end_time:
@@ -24,37 +38,33 @@ class TradeCalendarBase:
             self.calendar = _calendar
             _start_time, _end_time, _start_index, _end_index = Cal.locate_index(self.start_time, self.end_time, freq=freq, freq_sam=freq_sam)
             _trade_calendar = self.calendar[_start_index: _end_index + 1]
-            if _start_time != self.start_time:
-                self.trade_calendar = np.hstack((self.start_time, _trade_calendar, self.end_time))
-                self.start_index = _start_index - 1
-            else:
-                self.trade_calendar = np.hstack((_trade_calendar, self.end_time))
-                self.start_index = _start_index
+            self.start_index = _start_index
             self.end_index = _end_index
+            self.trade_len = _end_index - _start_index + 1
             self.trade_index = 0
-            self.trade_len = len(self.trade_calendar)
         else:
             raise ValueError("failed to reset trade calendar, params `start_time` or `end_time` is None.")
 
-    def _get_trade_time(self, trade_index=1, shift=0):
-        trade_index = trade_index - shift
-        if 0 < trade_index < self.trade_len - 1: 
-            trade_start_time = self.trade_calendar[trade_index - 1]
-            trade_end_time = self.trade_calendar[trade_index] - pd.Timedelta(seconds=1)
-            return trade_start_time, trade_end_time
-        elif trade_index == self.trade_len - 1:
-            trade_start_time = self.trade_calendar[trade_index - 1]
-            trade_end_time = self.trade_calendar[trade_index]
-            return trade_start_time, trade_end_time
-        else:
-            raise RuntimeError("trade_index out of range")
+    def reset(self, start_time=None, end_time=None, **kwargs):
+        if start_time or end_time:
+            self._reset_trade_calendar(start_time=start_time, end_time=end_time)
+
+        for k, v in kwargs:
+            if hasattr(self, k):
+                setattr(self, k, v)
     
-    def _get_calendar_time(self, trade_index=1, shift=1):
+    def _get_calendar_time(self, trade_index=1, shift=0):
         trade_index = trade_index - shift
         calendar_index = self.start_index + trade_index
         return self.calendar[calendar_index - 1], self.calendar[calendar_index]
 
-class BaseEnv(TradeCalendarBase):
+    def finished(self):
+        return self.trade_index >= self.trade_len
+
+    def step(self):
+        self.trade_index = self.trade_index + 1
+
+class BaseEnv(BaseTradeCalendar):
     """
     # Strategy framework document
 
@@ -67,38 +77,32 @@ class BaseEnv(TradeCalendarBase):
         start_time=None,
         end_time=None,
         trade_account=None,
+        update_report=False,
         verbose=False,
         **kwargs,
     ):
-        self.step_bar = step_bar
+        self.generate_report = update_report
         self.verbose = verbose
-        self.reset(start_time=start_time, end_time=end_time, trade_account=trade_account, **kwargs)
-
-    def _get_position(self):
-        return self.trade_account.current
+        super(BaseEnv, self).__init__(step_bar=step_bar, start_time=start_time, end_time=end_time, trade_account=trade_account, **kwargs)
     
-
-    def reset(self, start_time=None, end_time=None, trade_account=None, **kwargs):
-        if start_time or end_time:
-            self._reset_trade_calendar(start_time=start_time, end_time=end_time)
+    def reset(self, trade_account=None, **kwargs):
+        super(BaseEnv, self).reset(**kwargs)
         if trade_account:
             self.trade_account = trade_account
-        
-        for k, v in kwargs:
-            if hasattr(self, k):
-                setattr(self, k, v)
+            self.trade_account.reset(freq=self.step_bar, report=Report(), positions={})
 
     def get_init_state(self):
-        init_state = {"current": self._get_position()}
+        init_state = {"current": self.trade_account.current}
         return init_state
     
+    def execute(self, **kwargs):
+        raise NotImplementedError("execute is not implemented!")
 
-    def execute(self, order_list=None, **kwargs):
-        self.trade_index = self.trade_index + 1
+    def get_trade_account(self):
+        raise NotImplementedError("get_trade_account is not implemented!")
 
-    def finished(self):
-        return self.trade_index >= self.trade_len - 1
-
+    def get_report(self):
+        raise NotImplementedError("get_report is not implemented!")
 
 class SplitEnv(BaseEnv):
     def __init__(
@@ -109,33 +113,44 @@ class SplitEnv(BaseEnv):
         start_time=None, 
         end_time=None, 
         trade_account=None,
+        update_report=False,
         verbose=False,
         **kwargs
     ):
         self.sub_env = sub_env
         self.sub_strategy = sub_strategy
-        super(SplitEnv, self).__init__(step_bar=step_bar, start_time=start_time, end_time=end_time, trade_account=trade_account, verbose=verbose)
+        super(SplitEnv, self).__init__(step_bar=step_bar, start_time=start_time, end_time=end_time, trade_account=trade_account, update_report=update_report, verbose=verbose, **kwargs)
     
+    def reset(self, trade_account=None, **kwargs):
+        super(SplitEnv, self).reset(trade_account=trade_account, **kwargs)
+        if trade_account:
+            self.sub_env.reset(trade_account=copy.copy(trade_account))
+
     def execute(self, order_list, **kwargs):
         if self.finished():
             raise StopIteration(f"this env has completed its task, please reset it if you want to call it!")
         #if self.track:
         #    yield action
         #episode_reward = 0
-        super(SplitEnv, self).execute(**kwargs)
-        trade_start_time, trade_end_time = self._get_trade_time(trade_index=self.trade_index)
-        self.sub_env.reset(start_time=trade_start_time, end_time=trade_end_time, trade_account=self.trade_account)
+        super(SplitEnv, self).step()
+        trade_start_time, trade_end_time = self._get_calendar_time(self.trade_index)
+        self.sub_env.reset(start_time=trade_start_time, end_time=trade_end_time)
         self.sub_strategy.reset(start_time=trade_start_time, end_time=trade_end_time, trade_order_list=order_list)
         trade_state = self.sub_env.get_init_state()
         while not self.sub_env.finished():
             _order_list = self.sub_strategy.generate_order_list(**trade_state)
             trade_state, trade_info = self.sub_env.execute(order_list=_order_list)
-            #episode_reward += sub_reward
-        _obs = {"current": self._get_position()}
+        
+        if self.generate_report:
+            self.trade_account.update_report(trade_start_time=trade_start_time, trade_end_time=trade_end_time, trade_exchange=self.trade_exchange)
+        _obs = {"current": self.trade_account.current}
         _info = {}
         return _obs, _info
 
-
+    def get_report(self):
+        _report = self.trade_account.report.generate_report_dataframe() if self.generate_report else None
+        _positions = self.trade_account.get_positions() if self.generate_report else None
+        return [(_report,_positions), *sub_env.get_report()]
         
 class SimulatorEnv(BaseEnv):
 
@@ -146,10 +161,11 @@ class SimulatorEnv(BaseEnv):
         end_time=None, 
         trade_account=None, 
         trade_exchange=None,
+        update_report=False,
         verbose=False,
         **kwargs,
     ):
-        super(SimulatorEnv, self).__init__(step_bar=step_bar, start_time=start_time, end_time=end_time, trade_account=trade_account, trade_exchange=trade_exchange, verbose=verbose, **kwargs)
+        super(SimulatorEnv, self).__init__(step_bar=step_bar, start_time=start_time, end_time=end_time, trade_account=trade_account, trade_exchange=trade_exchange, update_report=update_report, verbose=verbose, **kwargs)
 
     def reset(self, trade_exchange=None, **kwargs):
         super(SimulatorEnv, self).reset(**kwargs)
@@ -162,8 +178,8 @@ class SimulatorEnv(BaseEnv):
         """
         if self.finished():
             raise StopIteration(f"this env has completed its task, please reset it if you want to call it!")
-        super(SimulatorEnv, self).execute(**kwargs)
-        trade_start_time, trade_end_time = self._get_trade_time(trade_index=self.trade_index)
+        super(SimulatorEnv, self).step()
+        trade_start_time, trade_end_time = self._get_calendar_time(self.trade_index)
         trade_info = []
         for order in order_list:
             if self.trade_exchange.check_order(order) is True:
@@ -197,7 +213,18 @@ class SimulatorEnv(BaseEnv):
                     print("[W {:%Y-%m-%d}]: {} wrong.".format(trade_start_time, order.stock_id))
                 # do nothing
                 pass
-        self.trade_account.update_bar_end(trade_start_time=trade_start_time, trade_end_time=trade_end_time, trade_exchange=self.trade_exchange)
-        _obs = {"current": self._get_position()}
+        if self.generate_report:
+            self.trade_account.update_report(trade_start_time=trade_start_time, trade_end_time=trade_end_time, trade_exchange=self.trade_exchange)
+        _obs = {"current": self.trade_account.current}
         _info = {"trade_info": trade_info}
         return _obs, _info
+
+    def get_report(self):
+        _report = self.trade_account.report.generate_report_dataframe() if self.generate_report else None
+        _positions = self.trade_account.get_positions() if self.generate_report else None
+        return [
+            {
+                "report": _report,
+                "positions": _positions
+            }
+        ]

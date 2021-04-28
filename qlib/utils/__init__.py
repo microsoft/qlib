@@ -861,15 +861,38 @@ def sample_calendar_bac(calendar_raw, freq_raw, freq_sam):
         else:
             raise ValueError("sample freq must be xmin, xd, xw, xm")
 
+def parse_freq(freq):
+    freq = freq.lower()
+    search_obj =re.search("^([0-9]*)([a-z]+)", freq)
+    if search_obj is None:
+        raise ValueError("freq format is not supported")
+    _count = int(search_obj.group(1) if search_obj.group(1) else "1")
+    _freq = search_obj.group(2)
+    _freq_format_dict = {
+        "month": "month",
+        "mon": "month",
+        "week": "week",
+        "w": "week",
+        "day": "day",
+        "d": "day",
+        "minute": "minute",
+        "min": "minute",
+    }
+    try:
+        _freq = _freq_format_dict.get(_freq)
+    except KeyError:
+        raise ValueError("freq format is not supported, the supported freq includes (x)month/m, (x)day/d, (x)minute/min")
+    return _count, _freq
+
 def sample_calendar(calendar_raw, freq_raw, freq_sam):
     """
     freq_raw : "min" or "day"
     """
-    freq_raw = "1" + freq_raw if re.match("^[0-9]", freq_raw) is None else freq_raw
-    freq_sam = "1" + freq_sam if re.match("^[0-9]", freq_sam) is None else freq_sam
+    raw_count, freq_raw = parse_freq(freq_raw)
+    sam_count, freq_sam = parse_freq(freq_sam)
     if not len(calendar_raw):
         return calendar_raw
-    if freq_sam.endswith(("minute", "min")):
+    if freq_sam == "minute":
         def cal_next_sam_minute(x, sam_minutes):
             hour = x.hour
             minute = x.minute
@@ -888,38 +911,36 @@ def sample_calendar(calendar_raw, freq_raw, freq_sam):
                 return 13 + (minute_index - 120) // 60, (minute_index - 120) % 60
             else:
                 raise ValueError("calendar minute_index error")
-        sam_minutes = int(freq_sam[:-3]) if freq_sam.endswith("min") else int(freq_sam[:-6])
-        if not freq_raw.endswith(("minute", "min")):
+
+        if req_raw != "minute":
             raise ValueError("when sampling minute calendar, freq of raw calendar must be minute or min")
         else:
-            raw_minutes = int(freq_raw[:-3]) if freq_raw.endswith("min") else int(freq_raw[:-6])
-            if raw_minutes > sam_minutes:
+            if raw_count > sam_count:
                 raise ValueError("raw freq must be higher than sample freq")
-        _calendar_minute = np.unique(list(map(lambda x: pd.Timestamp(x.year, x.month, x.day, *cal_next_sam_minute(x, sam_minutes), 0), calendar_raw)))
+        _calendar_minute = np.unique(list(map(lambda x: pd.Timestamp(x.year, x.month, x.day, *cal_next_sam_minute(x, sam_count), 0), calendar_raw)))
         if calendar_raw[0] > _calendar_minute[0]:
             _calendar_minute[0] = calendar_raw[0]
         return _calendar_minute
     else:
         _calendar_day = np.unique(list(map(lambda x: pd.Timestamp(x.year, x.month, x.day, 0, 0, 0), calendar_raw)))
-        if freq_sam.endswith(("day", "d")):
-            sam_days = int(freq_sam[:-1]) if freq_sam.endswith("d") else int(freq_sam[:-3])
-            return _calendar_day[::sam_days]
+        if freq_sam == "day":
+            return _calendar_day[::sam_count]
 
-        elif freq_sam.endswith(("week", "w")):
-            sam_weeks = int(freq_sam[:-1]) if freq_sam.endswith("w") else int(freq_sam[:-4])
+        elif freq_sam == "week":
             _day_in_week = np.array(list(map(lambda x: x.dayofweek, _calendar_day)))
             _calendar_week = _calendar_day[np.ediff1d(_day_in_week, to_begin=-1) < 0]
-            return _calendar_week[::sam_weeks]
+            return _calendar_week[::sam_count]
 
-        elif freq_sam.endswith(("month", "m")):
-            sam_months = int(freq_sam[:-1]) if freq_sam.endswith("m") else int(freq_sam[:-5])
+        elif freq_sam == "month":
             _day_in_month = np.array(list(map(lambda x: x.day, _calendar_day)))
             _calendar_month = _calendar_day[np.ediff1d(_day_in_month, to_begin=-1) < 0]
-            return _calendar_month[::sam_months]
+            return _calendar_month[::sam_count]
         else:
             raise ValueError("sample freq must be xmin, xd, xw, xm")
             
 def get_sample_freq_calendar(start_time=None, end_time=None, freq="day", **kwargs):
+    _, norm_freq = parse_freq(freq)
+
     from ..data.data import Cal
 
     try:
@@ -927,34 +948,47 @@ def get_sample_freq_calendar(start_time=None, end_time=None, freq="day", **kwarg
         freq, freq_sam = freq, None
     except ValueError:
         freq_sam = freq
-        if freq.endswith(("m", "month", "w", "week", "d", "day")):
+        if norm_freq in ["month", "week", "day"]:
             try:
-                _calendar = Cal.calendar(start_time=start_time, end_time=end_time, freq="min", freq_sam=freq, **kwargs)
-                freq = "min"
-            except ValueError:
                 _calendar = Cal.calendar(start_time=start_time, end_time=end_time, freq="day", freq_sam=freq, **kwargs)
                 freq = "day"
-        elif freq.endswith(("min", "minute")):
+            except ValueError:
+                raise
+                _calendar = Cal.calendar(start_time=start_time, end_time=end_time, freq="min", freq_sam=freq, **kwargs)
+                freq = "min"
+        elif norm_freq == "minute":
             _calendar = Cal.calendar(start_time=start_time, end_time=end_time, freq="min", freq_sam=freq, **kwargs)
             freq = "min"
         else:
             raise ValueError(f"freq {freq} is not supported")
     return _calendar, freq, freq_sam
 
-def sample_feature(feature, instruments=None, start_time=None, end_time=None, fields=None, method=None, method_kwargs={}):
-    if instruments and not isinstance(instruments, list):
-        instruments = [instruments]
-    selector_inst = slice(None) if instruments is None else instruments
+def sample_feature(feature, start_time=None, end_time=None, fields=None, method="last", method_kwargs={}):
     selector_datetime = slice(start_time, end_time)
-    if isinstance(feature, pd.Series):
-        feature = feature.loc[(selector_inst, selector_datetime)]
-        if fields:
-            warnings.warn(f"sample series feature, {fields} is ignored!")
-    elif isinstance(feature, pd.DataFrame):
-        selector_fields = slice(None) if fields is None else fields
-        feature = feature.loc[(selector_inst, selector_datetime), selector_fields]
-    if method:
-        return getattr(feature.groupby(level="instrument"), method)(**method_kwargs)
-    else:
-        return feature
+    fields = fields if fields else slice(None)
 
+    from ..data.dataset.utils import get_level_index
+    
+    datetime_level = get_level_index(feature, level="datetime") == 0
+    if isinstance(feature, pd.Series):
+        feature = feature.loc[selector_datetime] if datetime_level else feature.loc[(slice(None), selector_datetime)]
+    elif isinstance(feature, pd.DataFrame):
+        feature = feature.loc[selector_datetime, fields] if datetime_level else feature.loc[(slice(None), selector_datetime), fields]
+    if feature.empty:
+        return None
+    if isinstance(feature.index, pd.MultiIndex):
+        if callable(method):
+            method_func = method
+            return feature.groupby(level="instrument").apply(lambda x:method_func(x, **method_kwargs))
+        elif isinstance(method, str):
+            return getattr(feature.groupby(level="instrument"), method)(**method_kwargs)
+    else:
+        if callable(method):
+            method_func = method
+            return method_func(feature, **method_kwargs)
+        elif isinstance(method, str):
+            return getattr(feature, method)(**method_kwargs)
+    
+    return feature
+
+        

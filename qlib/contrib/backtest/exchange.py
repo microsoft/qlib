@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 
 from ...data.data import D
+from ...data.dataset.utils import get_level_index
 from ...config import C, REG_CN
 from ...utils import sample_feature
 from ...log import get_module_logger
@@ -19,6 +20,7 @@ from .order import Order
 class Exchange:
     def __init__(
         self,
+        freq="day",
         start_time=None,
         end_time=None,
         codes="all",
@@ -55,6 +57,7 @@ class Exchange:
                                                 target on this day).
                                     index: MultipleIndex(instrument, pd.Datetime)
         """
+        self.freq = freq
         self.start_time = start_time
         self.end_time = end_time
         if trade_unit is None:
@@ -105,7 +108,7 @@ class Exchange:
     def set_quote(self, codes, start_time, end_time):
         if len(codes) == 0:
             codes = D.instruments()
-        self.quote = D.features(codes, self.all_fields, start_time, end_time, disk_cache=True).dropna(subset=["$close"])
+        self.quote = D.features(codes, self.all_fields, start_time, end_time, freq=self.freq, disk_cache=True).dropna(subset=["$close"])
         self.quote.columns = self.all_fields
 
         if self.quote[self.deal_price].isna().any():
@@ -146,7 +149,14 @@ class Exchange:
             quote_df = pd.concat([quote_df, self.extra_quote], sort=False, axis=0)
 
         # update quote: pd.DataFrame to dict, for search use
-        self.quote = quote_df
+        if get_level_index(quote_df, level="datetime") == 1:
+            quote_df = quote_df.swaplevel().sort_index()
+
+        quote_dict = {}
+        for stock_id, stock_val in quote_df.groupby(level="instrument"):
+            quote_dict[stock_id] = stock_val
+
+        self.quote = quote_dict
 
     def _update_limit(self, buy_limit, sell_limit):
         self.quote["limit"] = ~self.quote["$change"].between(-sell_limit, buy_limit, inclusive=False)
@@ -157,13 +167,15 @@ class Exchange:
         trade_date
         is limtited
         """
-        return sample_feature(self.quote, stock_id, start_time, end_time, fields="limit", method="any").iloc[0]
+        return sample_feature(self.quote[stock_id], start_time, end_time, fields="limit", method="all").iloc[0]
     
 
     def check_stock_suspended(self, stock_id, start_time, end_time):
         # is suspended
-        return sample_feature(self.quote, stock_id, start_time, end_time).empty
-
+        if stock_id in self.quote:
+            return sample_feature(self.quote[stock_id], start_time, end_time, method=None) is None
+        else:
+            return True
 
     def is_stock_tradable(self, stock_id, start_time, end_time):
         # check if stock can be traded
@@ -217,13 +229,13 @@ class Exchange:
         return trade_val, trade_cost, trade_price
 
     def get_quote_info(self, stock_id, start_time, end_time):
-        return sample_feature(self.quote, stock_id, start_time, end_time)
+        return sample_feature(self.quote[stock_id], start_time, end_time, method="last").iloc[0]
 
     def get_close(self, stock_id, start_time, end_time):
-        return sample_feature(self.quote, stock_id, start_time, end_time, fields="$close", method="last").iloc[0]
+        return sample_feature(self.quote[stock_id], start_time, end_time, fields="$close", method="last").iloc[0]
 
     def get_deal_price(self, stock_id, start_time, end_time):
-        deal_price = sample_feature(self.quote, stock_id, start_time, end_time, fields=self.deal_price, method="last").iloc[0]
+        deal_price = sample_feature(self.quote[stock_id], start_time, end_time, fields=self.deal_price, method="last").iloc[0]
         if np.isclose(deal_price, 0.0) or np.isnan(deal_price):
             self.logger.warning(f"(stock_id:{stock_id}, trade_time:{(start_time, end_time)}, {self.deal_price}): {deal_price}!!!")
             self.logger.warning(f"setting deal_price to close price")
@@ -231,7 +243,7 @@ class Exchange:
         return deal_price
 
     def get_factor(self, stock_id, start_time, end_time):
-        return sample_feature(self.quote, stock_id, start_time, end_time, fields="$factor", method="last").iloc[0]
+        return sample_feature(self.quote[stock_id], start_time, end_time, fields="$factor", method="last").iloc[0]
 
     def generate_amount_position_from_weight_position(self, weight_position, cash, start_time, end_time):
         """

@@ -233,8 +233,8 @@ class PortAnaRecord(SignalRecord):
         super().__init__(recorder=recorder, **kwargs)
 
         self.strategy_config = config["strategy"]
+        self.env_config = config["env"]
         self.backtest_config = config["backtest"]
-        self.strategy = init_instance_by_config(self.strategy_config, accept_types=BaseStrategy)
 
     def generate(self, **kwargs):
         # check previously stored prediction results
@@ -244,36 +244,32 @@ class PortAnaRecord(SignalRecord):
             super().generate()
 
         # custom strategy and get backtest
-        pred_score = super().load("pred.pkl")
-        report_dict = normal_backtest(pred_score, strategy=self.strategy, **self.backtest_config)
-        report_normal = report_dict.get("report_df")
-        positions_normal = report_dict.get("positions")
-        self.recorder.save_objects(**{"report_normal.pkl": report_normal}, artifact_path=PortAnaRecord.get_path())
-        self.recorder.save_objects(**{"positions_normal.pkl": positions_normal}, artifact_path=PortAnaRecord.get_path())
-        order_normal = report_dict.get("order_list")
-        if order_normal:
-            self.recorder.save_objects(**{"order_normal.pkl": order_normal}, artifact_path=PortAnaRecord.get_path())
-
-        # analysis
-        analysis = dict()
-        analysis["excess_return_without_cost"] = risk_analysis(report_normal["return"] - report_normal["bench"])
-        analysis["excess_return_with_cost"] = risk_analysis(
-            report_normal["return"] - report_normal["bench"] - report_normal["cost"]
-        )
-        # save portfolio analysis results
-        analysis_df = pd.concat(analysis)  # type: pd.DataFrame
-        # log metrics
-        self.recorder.log_metrics(**flatten_dict(analysis_df["risk"].unstack().T.to_dict()))
-        # save results
-        self.recorder.save_objects(**{"port_analysis.pkl": analysis_df}, artifact_path=PortAnaRecord.get_path())
-        logger.info(
-            f"Portfolio analysis record 'port_analysis.pkl' has been saved as the artifact of the Experiment {self.recorder.experiment_id}"
-        )
-        # print out results
-        pprint("The following are analysis results of the excess return without cost.")
-        pprint(analysis["excess_return_without_cost"])
-        pprint("The following are analysis results of the excess return with cost.")
-        pprint(analysis["excess_return_with_cost"])
+        report_list = normal_backtest(env=self.env_config, strategy=self.strategy_config, **self.backtest_config)
+        for report_id, (report_normal, positions_normal) in enumerate(report_list):
+            if report_dict is None:
+                continue
+                
+            self.recorder.save_objects(**{f"report_normal_{report_id}.pkl": report_normal}, artifact_path=PortAnaRecord.get_path())
+            self.recorder.save_objects(**{f"positions_norma_{report_id}l.pkl": positions_normal}, artifact_path=PortAnaRecord.get_path())
+            # analysis
+            analysis = dict()
+            analysis["excess_return_without_cost"] = risk_analysis(report_normal["return"] - report_normal["bench"])
+            analysis["excess_return_with_cost"] = risk_analysis(
+                report_normal["return"] - report_normal["bench"] - report_normal["cost"]
+            )
+            analysis_df = pd.concat(analysis)  # type: pd.DataFrame
+            # log metrics
+            self.recorder.log_metrics(**flatten_dict(analysis_df["risk"].unstack().T.to_dict()))
+            # save results
+            self.recorder.save_objects(**{f"port_analysis.pkl_{report_id}": analysis_df}, artifact_path=PortAnaRecord.get_path())
+            logger.info(
+                f"Portfolio analysis record 'port_analysis_{report_id}.pkl' has been saved as the artifact of the Experiment {self.recorder.experiment_id}"
+            )
+            # print out results
+            pprint("The following are analysis results of the excess return without cost.")
+            pprint(analysis["excess_return_without_cost"])
+            pprint("The following are analysis results of the excess return with cost.")
+            pprint(analysis["excess_return_with_cost"])
 
     def list(self):
         return [

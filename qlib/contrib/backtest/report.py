@@ -21,6 +21,7 @@ class Report:
         self.costs = OrderedDict()  # trade cost for each trade date
         self.values = OrderedDict()  # value for each trade date
         self.cashes = OrderedDict()
+        self.benches = OrderedDict()
         self.latest_report_time = None  # pd.TimeStamp
 
     def is_empty(self):
@@ -41,6 +42,7 @@ class Report:
         turnover_rate=None,
         cost_rate=None,
         stock_value=None,
+        bench_value=None,
     ):
         # check data
         if None in [
@@ -51,9 +53,10 @@ class Report:
             turnover_rate,
             cost_rate,
             stock_value,
+            bench_value
         ]:
             raise ValueError(
-                "None in [trade_date, account_value, cash, return_rate, turnover_rate, cost_rate, stock_value]"
+                "None in [trade_date, account_value, cash, return_rate, turnover_rate, cost_rate, stock_value, bench_value]"
             )
         # update report data
         self.accounts[trade_time] = account_value
@@ -62,6 +65,7 @@ class Report:
         self.costs[trade_time] = cost_rate
         self.values[trade_time] = stock_value
         self.cashes[trade_time] = cash
+        self.benches[trade_time] = bench_value
         # update latest_report_date
         self.latest_report_time = trade_time
         # finish daily report update
@@ -74,7 +78,8 @@ class Report:
         report["cost"] = pd.Series(self.costs)
         report["value"] = pd.Series(self.values)
         report["cash"] = pd.Series(self.cashes)
-        report.index.name = "trade_time"
+        report["bench"] = pd.Series(self.benches)
+        report.index.name = "datetime"
         return report
 
     def save_report(self, path):
@@ -84,7 +89,7 @@ class Report:
     def load_report(self, path):
         """load report from a file
         should have format like
-        columns = ['account', 'return', 'turnover', 'cost', 'value', 'cash']
+        columns = ['account', 'return', 'turnover', 'cost', 'value', 'cash', 'bench']
             :param
                 path: str/ pathlib.Path()
         """
@@ -103,4 +108,5 @@ class Report:
                 turnover_rate=r.loc[trade_time]["turnover"],
                 cost_rate=r.loc[trade_time]["cost"],
                 stock_value=r.loc[trade_time]["value"],
+                bench_value=r.loc[trade_time]["bench"]
             )

@@ -81,7 +81,7 @@ if __name__ == "__main__":
     backtest_config={
         "strategy": {
             "class": "TopkDropoutStrategy",
-            "module_path": "qlib.contrib.strategy.dl_strategy",
+            "module_path": "qlib.contrib.strategy.model_strategy",
             "kwargs": {
                 "step_bar": "week",
                 "model": model,
@@ -113,6 +113,18 @@ if __name__ == "__main__":
                     }
                 }
             }
+        },
+        "backtest":{
+            "start_time": trade_start_time,
+            "end_time": trade_end_time,
+            "verbose": False,
+            "limit_threshold": 0.095,
+            "account": 100000000,
+            "benchmark": benchmark,
+            "deal_price": "close",
+            "open_cost": 0.0005,
+            "close_cost": 0.0015,
+            "min_cost": 5,
         }
     }
 

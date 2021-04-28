@@ -19,6 +19,7 @@ logger = get_module_logger("backtest caller")
 
 def get_exchange(
     exchange=None,
+    freq="day",
     start_time=None,
     end_time=None,
     codes = "all",
@@ -72,6 +73,7 @@ def get_exchange(
             deal_price = "$" + deal_price
 
         exchange = Exchange(
+            freq=freq,
             start_time=start_time,
             end_time=end_time,
             codes=codes,

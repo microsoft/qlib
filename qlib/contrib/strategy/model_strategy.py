@@ -81,10 +81,12 @@ class TopkDropoutStrategy(ModelStrategy):
         return self.risk_degree
 
     def generate_order_list(self, current, **kwargs):
-        super(TopkDropoutStrategy, self).generate_order_list()
-        trade_start_time, trade_end_time = self._get_trade_time(self.trade_index)
+        super(TopkDropoutStrategy, self).step()
+        trade_start_time, trade_end_time = self._get_calendar_time(self.trade_index)
         pred_start_time, pred_end_time = self._get_calendar_time(self.trade_index, shift=1)
         pred_score = sample_feature(self.pred_scores, start_time=pred_start_time, end_time=pred_end_time, method="last")
+        if pred_score is None:
+            return []
         if self.only_tradable:
             # If The strategy only consider tradable stock when make decision
             # It needs following actions to filter stocks
@@ -168,7 +170,7 @@ class TopkDropoutStrategy(ModelStrategy):
                 continue
             if code in sell:
                 # check hold limit
-                if self.stock_count[code] < self.thresh or current_temp.get_stock_count(code) < self.hold_thresh:
+                if self.stock_count[code] < self.thresh or current_temp.get_stock_count(code, bar=self.step_bar) < self.hold_thresh:
                     # can not sell this code
                     # no buy signal, but the stock is kept
                     self.stock_count[code] += 1
@@ -271,10 +273,12 @@ class WeightStrategyBase(ModelStrategy):
         """
         # generate_order_list
         # generate_target_weight_position() and generate_order_list_from_target_weight_position() to generate order_list
-        super(WeightStrategyBase, self).generate_order_list()
-        trade_start_time, trade_end_time = self._get_trade_time(self.trade_index)
-        pred_start_time, pred_end_time = self._get_pred_time()
+        super(WeightStrategyBase, self).step()
+        trade_start_time, trade_end_time = self._get_calendar_time(self.trade_index)
+        pred_start_time, pred_end_time = self._get_calendar_time(self.trade_index, shift=1)
         pred_score = sample_feature(self.pred_scores, start_time=pred_start_time, end_time=pred_end_time, method="last")
+        if pred_score is None:
+            return []
         current_temp = copy.deepcopy(trade_account.current)
         target_weight_position = self.generate_target_weight_position(
             score=pred_score, current=current_temp, trade_start_time=trade_start_time, trade_end_time=trade_end_time

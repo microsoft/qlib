@@ -5,6 +5,7 @@ import pandas as pd
 
 from ...utils import sample_feature
 from ...data.data import D
+from ...data.dataset.utils import get_level_index
 from ...strategy.base import RuleStrategy, TradingEnhancement
 from ..backtest.order import Order
 
@@ -21,8 +22,8 @@ class TWAPStrategy(RuleStrategy, TradingEnhancement):
         
 
     def generate_order_list(self, **kwargs):
-        super(TopkDropoutStrategy, self).generate_order_list()
-        trade_start_time, trade_end_time = self._get_trade_time()
+        super(TopkDropoutStrategy, self).step()
+        trade_start_time, trade_end_time = self._get_calendar_time(self.trade_index)
         order_list = []
         for order in self.trade_order_list:
             _order = Order(
@@ -59,8 +60,8 @@ class SBBStrategyBase(RuleStrategy, TradingEnhancement):
         raise NotImplementedError("pred_price_trend method is not implemented!")
 
     def generate_order_list(self, **kwargs):
-        super(SBBStrategyBase, self).generate_order_list()
-        trade_start_time, trade_end_time = self._get_trade_time()
+        super(SBBStrategyBase, self).step()
+        trade_start_time, trade_end_time = self._get_calendar_time(self.trade_index)
         pred_start_time, pred_end_time = self._get_calendar_time(self.trade_index, shift=1)
         order_list = []
         for order in self.trade_order_list:
@@ -127,21 +128,33 @@ class SBBStrategyEMA(SBBStrategyBase):
         if isinstance(instruments, str):
             self.instruments = D.instruments(instruments)
         self.freq = freq
-        
+
+    def _convert_index_format(self, df):
+        if get_level_index(df, level="datetime") == 1:
+            df = df.swaplevel().sort_index()
+        return df
 
     def _reset_trade_calendar(self, start_time=None, end_time=None):
         super(SBBStrategyEMA, self)._reset_trade_calendar(start_time=start_time, end_time=end_time)
         if self.start_time and self.end_time:
             fields = ["EMA($close, 10)-EMA($close, 20)"]
             signal_start_time, _ = self._get_calendar_time(trade_index=self.trade_index, shift=1)
-            self.signal = D.features(self.instruments, fields, start_time=signal_start_time, end_time=self.end_time, freq=self.freq)
-            self.signal.columns = ["signal"]
-
+            signal_df = D.features(self.instruments, fields, start_time=signal_start_time, end_time=self.end_time, freq=self.freq)
+            signal_df = self._convert_index_format(signal_df)
+            signal_df.columns = ["signal"]
+            self.signal = {}
+            for stock_id, stock_val in signal_df.groupby(level="instrument"):
+                self.signal[stock_id] = stock_val
+            
     def _pred_price_trend(self, stock_id, pred_start_time=None, pred_end_time=None):
-        _sample_signal = sample_feature(self.signal, stock_id, start_time=pred_start_time, end_time=pred_end_time, fields="signal", method="last")
-        if _sample_signal.empty:
+        if stock_id not in self.signal:
             return self.TREND_MID
-        elif _sample_signal.iloc[0] > 0:
-            return self.TREND_LONG
         else:
-            return self.TREND_SHORT
+            _sample_signal = sample_feature(self.signal[stock_id], pred_start_time, pred_end_time, fields="signal", method="last")
+            if _sample_signal is None or _sample_signal.iloc[0] == 0:
+                return self.TREND_MID
+            elif _sample_signal.iloc[0] > 0:
+                return self.TREND_LONG
+            else:
+                return self.TREND_SHORT
+            
