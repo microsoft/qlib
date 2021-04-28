@@ -505,7 +505,7 @@ class TSDatasetH(DatasetH):
         """
         split the _prepare_raw_seg is to leave a hook for data preprocessing before creating processing data
         """
-        dtype = kwargs.pop("dtype")
+        dtype = kwargs.pop("dtype", None)
         start, end = slc.start, slc.stop
         flt_col = kwargs.pop('flt_col', None)
         # TSDatasetH will retrieve more data for complete
