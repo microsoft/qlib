@@ -25,6 +25,7 @@ def begin_task_train(task_config: dict, experiment_name: str, *args, **kwargs) -
     Returns:
         Recorder
     """
+    # FIXME: recorder_id
     with R.start(experiment_name=experiment_name, recorder_name=str(time.time())):
         R.log_params(**flatten_dict(task_config))
         R.save_objects(**{"task": task_config})  # keep the original format and datatype
@@ -111,6 +112,9 @@ class Trainer:
             list: a list of models
         """
         pass
+
+    def is_delay(self):
+        return False
 
 
 class TrainerR(Trainer):
@@ -240,6 +244,9 @@ class DelayTrainerR(TrainerR):
             end_train_func(rec)
         return recs
 
+    def is_delay(self):
+        return True
+
 
 class DelayTrainerRM(TrainerRM):
     """
@@ -286,3 +293,6 @@ class DelayTrainerRM(TrainerRM):
             before_status=TaskManager.STATUS_PART_DONE,
         )
         return recs
+
+    def is_delay(self):
+        return True

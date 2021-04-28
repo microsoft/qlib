@@ -1,5 +1,6 @@
 from abc import abstractmethod
 from typing import Callable, Union
+from qlib import init
 from qlib.workflow import R
 from qlib.workflow.task.utils import list_recorders
 from qlib.utils.serial import Serializable
@@ -109,6 +110,27 @@ class Collector:
             raise TypeError(f"The instance of {type(collector)} is not a valid `Collector`!")
 
 
+class HyperCollector(Collector):
+    """
+    A collector to collect the results of other Collectors
+    """
+
+    def __init__(self, collector_dict, process_list=[]):
+        """
+        Args:
+            collector_dict (dict): the dict like {collector_key, Collector}
+            process_list (list or Callable): the list of processors or the instance of processor to process dict.
+        """
+        super().__init__(process_list=process_list)
+        self.collector_dict = collector_dict
+
+    def collect(self):
+        collect_dict = {}
+        for key, collector in self.collector_dict.items():
+            collect_dict[key] = collector()
+        return collect_dict
+
+
 class RecorderCollector(Collector):
     ART_KEY_RAW = "__raw"
 
@@ -180,3 +202,6 @@ class RecorderCollector(Collector):
                 collect_dict.setdefault(key, {})[rec_key] = artifact
 
         return collect_dict
+
+    def get_exp_name(self):
+        return self.experiment.name

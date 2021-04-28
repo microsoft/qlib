@@ -1,5 +1,14 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
+"""
+This class is a component of online serving, it can manage a series of models dynamically.
+With the change of time, the decisive models will be also changed. In this module, we called those contributing models as `online` models.
+In every routine(such as everyday or every minutes), the `online` models maybe changed and the prediction of them need to be updated.
+So this module provide a series methods to control this process. 
+"""
 from copy import deepcopy
-from operator import index
+from pprint import pprint
 import pandas as pd
 from qlib.model.ens.ensemble import ens_workflow
 from qlib.model.ens.group import RollingGroup
@@ -9,19 +18,12 @@ from qlib import get_module_logger
 from qlib.data.data import D
 from qlib.model.trainer import Trainer, TrainerR, task_train
 from qlib.workflow import R
+from qlib.workflow.online.strategy import OnlineStrategy
 from qlib.workflow.online.update import PredUpdater
 from qlib.workflow.recorder import Recorder
-from qlib.workflow.task.collect import Collector, RecorderCollector
+from qlib.workflow.task.collect import Collector, HyperCollector, RecorderCollector
 from qlib.workflow.task.gen import RollingGen, task_generator
 from qlib.workflow.task.utils import TimeAdjuster, list_recorders
-
-"""
-This class is a component of online serving, it can manage a series of models dynamically.
-With the change of time, the decisive models will be also changed. In this module, we called those contributing models as `online` models.
-In every routine(such as everyday or every minutes), the `online` models maybe changed and the prediction of them need to be updated.
-So this module provide a series methods to control this process. 
-"""
-
 
 class OnlineManager(Serializable):
 
@@ -357,9 +359,9 @@ class RollingOnlineManager(OnlineManagerR):
 
         Args:
             experiment_name (str): the experiment name.
-            rolling_gen (RollingGen): a instance of RollingGen
-            trainer (Trainer, optional): a instance of Trainer. Defaults to None.
-            collector (Collector, optional): a instance of Collector. Defaults to None.
+            rolling_gen (RollingGen): an instance of RollingGen
+            trainer (Trainer, optional): an instance of Trainer. Defaults to None.
+            collector (Collector, optional): an instance of Collector. Defaults to None.
             need_log (bool, optional): print log or not. Defaults to True.
         """
         if trainer is None:
@@ -475,3 +477,98 @@ class RollingOnlineManager(OnlineManagerR):
             if rec.load_object("task")["dataset"]["kwargs"]["segments"]["test"] == max_test:
                 latest_rec[rid] = rec
         return latest_rec, max_test
+
+
+class OnlineM(Serializable):
+    def __init__(
+        self, strategy: Union[OnlineStrategy, List[OnlineStrategy]], begin_time=None, freq="day", need_log=True
+    ):
+        self.logger = get_module_logger(self.__class__.__name__)
+        self.need_log = need_log
+        if not isinstance(strategy, list):
+            strategy = [strategy]
+        self.strategy = strategy
+        self.freq = freq
+        if begin_time is None:
+            begin_time = D.calendar(freq=self.freq).max()
+        self.cur_time = pd.Timestamp(begin_time)
+        self.history = {}
+
+    def first_train(self):
+        """
+        Train a series of models firstly and set some of them into online models.
+        """
+        for strategy in self.strategy:
+            self.logger.info(f"Strategy `{strategy.name_id}` begins first training...")
+            online_models = strategy.first_train()
+            self.history.setdefault(strategy.name_id, {})[self.cur_time] = online_models
+
+    def routine(self, cur_time=None, task_kwargs={}, model_kwargs={}):
+        """
+        The typical update process after a routine, such as day by day or month by month.
+        update online prediction -> prepare signals -> prepare tasks -> prepare new models -> reset online models
+
+        NOTE: Assumption: if using simulator (delay_prepare is True), the prediction will be prepared well after every training, so there is no need to update predictions.
+
+        Args:
+            cur_time ([type], optional): [description]. Defaults to None.
+            delay_prepare (bool, optional): [description]. Defaults to False.
+            *args, **kwargs: will be passed to `prepare_tasks` and `prepare_new_models`. It can be some hyper parameter or training config.
+
+        Returns:
+            [type]: [description]
+        """
+        if cur_time is None:
+            cur_time = D.calendar(freq=self.freq).max()
+        self.cur_time = pd.Timestamp(cur_time)  # None for latest date
+        for strategy in self.strategy:
+            self.logger.info(f"Strategy `{strategy.name_id}` begins routine...")
+            if not strategy.trainer.is_delay():
+                strategy.prepare_signals()
+            tasks = strategy.prepare_tasks(self.cur_time, **task_kwargs)
+            online_models = strategy.prepare_online_models(tasks, **model_kwargs)
+            if len(online_models) > 0:
+                self.history.setdefault(strategy.name_id, {})[self.cur_time] = online_models
+
+    def get_collector(self):
+        collector_dict = {}
+        for strategy in self.strategy:
+            collector_dict[strategy.name_id] = strategy.get_collector()
+        return HyperCollector(collector_dict)
+
+    def get_online_history(self, strategy_name_id):
+        history_dict = self.history[strategy_name_id]
+        history = []
+        for time in sorted(history_dict):
+            models = history_dict[time]
+            history.append((time, models))
+        return history
+
+    def delay_prepare(self, delay_kwargs={}):
+        """
+        Prepare all models and signals if there are something waiting for prepare.
+        NOTE: Assumption: the predictions of online models are between `time_segment`, or this method will work in a wrong way.
+
+        Args:
+            rec_dict (str): an online models dict likes {(begin_time, end_time):[online models]}.
+            *args, **kwargs: will be passed to end_train which means will be passed to customized train method.
+        """
+        for strategy in self.strategy:
+            strategy.delay_prepare(self.get_online_history(strategy.name_id), **delay_kwargs)
+
+    def simulate(self, end_time, frequency="day", task_kwargs={}, model_kwargs={}, delay_kwargs={}):
+        """
+        Starting from start time, this method will simulate every routine in OnlineManager.
+        NOTE: Considering the parallel training, the models and signals can be perpared after all routine simulating.
+
+        Returns:
+            Collector: the OnlineManager's collector
+        """
+        cal = D.calendar(start_time=self.cur_time, end_time=end_time, freq=frequency)
+        self.first_train()
+        for cur_time in cal:
+            self.logger.info(f"Simulating at {str(cur_time)}......")
+            self.routine(cur_time, task_kwargs=task_kwargs, model_kwargs=model_kwargs)
+        self.delay_prepare(delay_kwargs=delay_kwargs)
+        self.logger.info(f"Finished preparing signals")
+        return self.get_collector()

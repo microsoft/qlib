@@ -1,16 +1,14 @@
+"""
+This example show how OnlineTool works when we need update prediction.
+There are two parts including first_train and update_online_pred.
+Firstly, we will finish the training and set the trained model to `online` model.
+Next, we will finish updating online prediction.
+"""
 import fire
 import qlib
 from qlib.config import REG_CN
 from qlib.model.trainer import task_train
-from qlib.workflow.online.manager import OnlineManagerR
-from qlib.workflow.task.utils import list_recorders
-
-"""
-This example show how OnlineManager works when we need update prediction.
-There are two parts including first_train and update_online_pred.
-Firstly, the RollingOnlineManager will finish the first training and set the trained model to `online` model.
-Next, the RollingOnlineManager will finish updating online prediction
-"""
+from qlib.workflow.online.utils import OnlineToolR
 
 data_handler_config = {
     "start_time": "2008-01-01",
@@ -65,15 +63,15 @@ class UpdatePredExample:
     ):
         qlib.init(provider_uri=provider_uri, region=region)
         self.experiment_name = experiment_name
-        self.online_manager = OnlineManagerR(self.experiment_name)
+        self.online_tool = OnlineToolR(self.experiment_name)
         self.task_config = task_config
 
     def first_train(self):
         rec = task_train(self.task_config, experiment_name=self.experiment_name)
-        self.online_manager.reset_online_tag(rec)  # set to online model
+        self.online_tool.reset_online_tag(rec)  # set to online model
 
     def update_online_pred(self):
-        self.online_manager.update_online_pred()
+        self.online_tool.update_online_pred()
 
     def main(self):
         self.first_train()

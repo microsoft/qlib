@@ -1,6 +1,6 @@
 from qlib.data import D
 from qlib import get_module_logger
-from qlib.workflow.online.manager import OnlineManager
+from qlib.workflow.online.manager import OnlineM
 
 
 class OnlineSimulator:
@@ -32,7 +32,35 @@ class OnlineSimulator:
         if len(self.cal) == 0:
             self.logger.warn(f"There is no need to simulate bacause start_time is larger than end_time.")
 
-    def simulate(self, *args, **kwargs):
+    # def simulate(self, *args, **kwargs):
+    #     """
+    #     Starting from start time, this method will simulate every routine in OnlineManager.
+    #     NOTE: Considering the parallel training, the models and signals can be perpared after all routine simulating.
+
+    #     Returns:
+    #         Collector: the OnlineManager's collector
+    #     """
+    #     self.rec_dict = {}
+    #     tmp_begin = self.start_time
+    #     tmp_end = None
+    #     self.olm.first_train()
+    #     prev_recorders = self.olm.online_models()
+    #     for cur_time in self.cal:
+    #         self.logger.info(f"Simulating at {str(cur_time)}......")
+    #         recorders = self.olm.routine(cur_time, True, *args, **kwargs)
+    #         if len(recorders) == 0:
+    #             tmp_end = cur_time
+    #         else:
+    #             self.rec_dict[(tmp_begin, tmp_end)] = prev_recorders
+    #             tmp_begin = cur_time
+    #             prev_recorders = recorders
+    #     self.rec_dict[(tmp_begin, self.end_time)] = prev_recorders
+    #     # finished perparing models (and pred) and signals
+    #     self.olm.delay_prepare(self.rec_dict)
+    #     self.logger.info(f"Finished preparing signals")
+    #     return self.olm.get_collector()
+
+    def simulate(self, task_kwargs={}, model_kwargs={}):
         """
         Starting from start time, this method will simulate every routine in OnlineManager.
         NOTE: Considering the parallel training, the models and signals can be perpared after all routine simulating.
@@ -40,33 +68,10 @@ class OnlineSimulator:
         Returns:
             Collector: the OnlineManager's collector
         """
-        self.rec_dict = {}
-        tmp_begin = self.start_time
-        tmp_end = None
-        prev_recorders = self.olm.online_models()
+        self.olm.first_train()
         for cur_time in self.cal:
             self.logger.info(f"Simulating at {str(cur_time)}......")
-            recorders = self.olm.routine(cur_time, True, *args, **kwargs)
-            if len(recorders) == 0:
-                tmp_end = cur_time
-            else:
-                self.rec_dict[(tmp_begin, tmp_end)] = prev_recorders
-                tmp_begin = cur_time
-                prev_recorders = recorders
-        self.rec_dict[(tmp_begin, self.end_time)] = prev_recorders
-        # finished perparing models (and pred) and signals
-        self.olm.delay_prepare(self.rec_dict)
+            self.olm.routine(cur_time, task_kwargs={}, model_kwargs={})
+        self.olm.delay_prepare()
         self.logger.info(f"Finished preparing signals")
         return self.olm.get_collector()
-
-    def online_models(self):
-        """
-        Return a online models dict likes {(begin_time, end_time):[online models]}.
-
-        Returns:
-            dict
-        """
-        if hasattr(self, "rec_dict"):
-            return self.rec_dict
-        self.logger.warn(f"Please call `simulate` firstly when calling `online_models`")
-        return {}
