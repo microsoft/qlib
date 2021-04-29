@@ -17,6 +17,7 @@ class MetaLogger(type):
         wrapper_dict = logging.Logger.__dict__.copy()
         wrapper_dict.update(dict)
         wrapper_dict["__doc__"] = logging.Logger.__doc__
+        del wrapper_dict["__reduce__"]  # make Logger object can be pickled
         return type.__new__(cls, name, bases, wrapper_dict)
 
 
@@ -28,6 +29,15 @@ class QlibLogger(metaclass=MetaLogger):
     def __init__(self, module_name):
         self.module_name = module_name
         self.level = 0
+
+    def __getstate__(self):
+        return vars(self)
+
+    def __setstate__(self, state):
+        vars(self).update(state)
+
+    def __reduce__(self):
+        return (QlibLogger, (self.module_name,))
 
     @property
     def logger(self):
