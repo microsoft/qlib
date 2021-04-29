@@ -1,7 +1,14 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
 """
-This module is like a online backend, deciding which models are `online` models and how can change them
+OnlineTool is a module to set and unset a series of `online` models.
+The `online` models are some decisive models in some time point, which can be changed with the change of time.
+This allows us to use efficient submodels as the market style changing.
 """
+
 from typing import List, Union
+
 from qlib.log import get_module_logger
 from qlib.workflow.online.update import PredUpdater
 from qlib.workflow.recorder import Recorder
@@ -12,60 +19,66 @@ class OnlineTool:
 
     ONLINE_KEY = "online_status"  # the online status key in recorder
     ONLINE_TAG = "online"  # the 'online' model
-    # NOTE: The meaning of this tag is that we can not assume the training models can be trained before we need its predition. Whenever finished training, it can be guaranteed that there are some online models.
-    NEXT_ONLINE_TAG = "next_online"  # the 'next online' model, which can be 'online' model when call reset_online_model
     OFFLINE_TAG = "offline"  # the 'offline' model, not for online serving
 
     def __init__(self, need_log=True):
         """
-        init OnlineTool.
+        Init OnlineTool.
 
         Args:
             need_log (bool, optional): print log or not. Defaults to True.
         """
         self.logger = get_module_logger(self.__class__.__name__)
         self.need_log = need_log
-        self.cur_time = None
 
-    def set_online_tag(self, tag, recorder):
+    def set_online_tag(self, tag, recorder: Union[list, object]):
         """
         Set `tag` to the model to sign whether online.
 
         Args:
-            tag (str): the tags in `ONLINE_TAG`, `NEXT_ONLINE_TAG`, `OFFLINE_TAG`
+            tag (str): the tags in `ONLINE_TAG`, `OFFLINE_TAG`
+            recorder (Union[list,object]): the model's recorder
         """
         raise NotImplementedError(f"Please implement the `set_online_tag` method.")
 
-    def get_online_tag(self):
+    def get_online_tag(self, recorder: object) -> str:
         """
-        Given a model and return its online tag.
+        Given a model recorder and return its online tag.
+
+        Args:
+            recorder (Object): the model's recorder
+
+        Returns:
+            str: the online tag
         """
         raise NotImplementedError(f"Please implement the `get_online_tag` method.")
 
-    def reset_online_tag(self, recorders=None):
-        """offline all models and set the recorders to 'online'. If no parameter and no 'next online' model, then do nothing.
+    def reset_online_tag(self, recorder: Union[list, object]):
+        """
+        Offline all models and set the recorders to 'online'.
 
         Args:
-            recorders (List, optional):
-                the recorders you want to reset to 'online'. If don't give, set 'next online' model to 'online' model. If there isn't any 'next online' model, then maintain existing 'online' model.
+            recorder (Union[list,object]):
+                the recorder you want to reset to 'online'.
 
-        Returns:
-            list: new online recorder. [] if there is no update.
         """
         raise NotImplementedError(f"Please implement the `reset_online_tag` method.")
 
-    def online_models(self):
+    def online_models(self) -> list:
         """
-        Return `online` models.
+        Get current `online` models
+
+        Returns:
+            list: a list of `online` models.
         """
         raise NotImplementedError(f"Please implement the `online_models` method.")
 
     def update_online_pred(self, to_date=None):
         """
-        Update the predictions of online models to a date.
+        Update the predictions of `online` models to a date.
 
         Args:
-            to_date (pd.Timestamp): the pred before this date will be updated. None for latest.
+            to_date (pd.Timestamp): the pred before this date will be updated. None for update to latest.
 
         """
         raise NotImplementedError(f"Please implement the `update_online_pred` method.")
@@ -74,12 +87,11 @@ class OnlineTool:
 class OnlineToolR(OnlineTool):
     """
     The implementation of OnlineTool based on (R)ecorder.
-
     """
 
     def __init__(self, experiment_name: str, need_log=True):
         """
-        init OnlineToolR.
+        Init OnlineToolR.
 
         Args:
             experiment_name (str): the experiment name.
@@ -90,11 +102,11 @@ class OnlineToolR(OnlineTool):
 
     def set_online_tag(self, tag, recorder: Union[Recorder, List]):
         """
-        Set `tag` to the model to sign whether online.
+        Set `tag` to the model's recorder to sign whether online.
 
         Args:
             tag (str): the tags in `ONLINE_TAG`, `NEXT_ONLINE_TAG`, `OFFLINE_TAG`
-            recorder (Union[Recorder, List])
+            recorder (Union[Recorder, List]): a list of Recorder or an instance of Recorder
         """
         if isinstance(recorder, Recorder):
             recorder = [recorder]
@@ -103,50 +115,40 @@ class OnlineToolR(OnlineTool):
         if self.need_log:
             self.logger.info(f"Set {len(recorder)} models to '{tag}'.")
 
-    def get_online_tag(self, recorder: Recorder):
+    def get_online_tag(self, recorder: Recorder) -> str:
         """
-        Given a model and return its online tag.
+        Given a model recorder and return its online tag.
 
         Args:
-            recorder (Recorder): a instance of recorder
+            recorder (Recorder): an instance of recorder
 
         Returns:
-            str: the tag
+            str: the online tag
         """
         tags = recorder.list_tags()
         return tags.get(self.ONLINE_KEY, self.OFFLINE_TAG)
 
-    def reset_online_tag(self, recorder: Union[Recorder, List] = None):
-        """offline all models and set the recorders to 'online'. If no parameter and no 'next online' model, then do nothing.
+    def reset_online_tag(self, recorder: Union[Recorder, List]):
+        """
+        Offline all models and set the recorders to 'online'.
 
         Args:
-            recorders (Union[Recorder, List], optional):
-                the recorders you want to reset to 'online'. If don't give, set 'next online' model to 'online' model. If there isn't any 'next online' model, then maintain existing 'online' model.
+            recorder (Union[Recorder, List]):
+                the recorder you want to reset to 'online'.
 
-        Returns:
-            list: new online recorder. [] if there is no update.
         """
-        if recorder is None:
-            recorder = list(
-                list_recorders(self.exp_name, lambda rec: self.get_online_tag(rec) == self.NEXT_ONLINE_TAG).values()
-            )
         if isinstance(recorder, Recorder):
             recorder = [recorder]
-        if len(recorder) == 0:
-            if self.need_log:
-                self.logger.info("No 'next online' model, just use current 'online' models.")
-            return []
         recs = list_recorders(self.exp_name)
         self.set_online_tag(self.OFFLINE_TAG, list(recs.values()))
         self.set_online_tag(self.ONLINE_TAG, recorder)
-        return recorder
 
-    def online_models(self):
+    def online_models(self) -> list:
         """
-        Return online models.
+        Get current `online` models
 
         Returns:
-            list: the list of online models
+            list: a list of `online` models.
         """
         return list(list_recorders(self.exp_name, lambda rec: self.get_online_tag(rec) == self.ONLINE_TAG).values())
 
@@ -155,7 +157,7 @@ class OnlineToolR(OnlineTool):
         Update the predictions of online models to a date.
 
         Args:
-            to_date (pd.Timestamp): the pred before this date will be updated. None for latest in Calendar.
+            to_date (pd.Timestamp): the pred before this date will be updated. None for update to latest time in Calendar.
         """
         online_models = self.online_models()
         for rec in online_models:

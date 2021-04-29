@@ -1,3 +1,10 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
+"""
+Group can group a set of object based on `group_func` and change them to a dict.
+"""
+
 from qlib.model.ens.ensemble import Ensemble, RollingEnsemble
 from typing import Callable, Union
 from joblib import Parallel, delayed
@@ -21,20 +28,20 @@ class Group:
         self._group_func = group_func
         self._ens_func = ens
 
-    def group(self, *args, **kwargs):
+    def group(self, *args, **kwargs) -> dict:
         # TODO: such design is weird when `_group_func` is the only configurable part in the class
         if isinstance(getattr(self, "_group_func", None), Callable):
             return self._group_func(*args, **kwargs)
         else:
             raise NotImplementedError(f"Please specify valid `group_func`.")
 
-    def reduce(self, *args, **kwargs):
+    def reduce(self, *args, **kwargs) -> dict:
         if isinstance(getattr(self, "_ens_func", None), Callable):
             return self._ens_func(*args, **kwargs)
         else:
             raise NotImplementedError(f"Please specify valid `_ens_func`.")
 
-    def __call__(self, ungrouped_dict: dict, n_jobs=1, verbose=0, *args, **kwargs):
+    def __call__(self, ungrouped_dict: dict, n_jobs=1, verbose=0, *args, **kwargs) -> dict:
         """Group the ungrouped_dict into different groups.
 
         Args:
@@ -59,7 +66,7 @@ class Group:
 class RollingGroup(Group):
     """group the rolling dict"""
 
-    def group(self, rolling_dict: dict):
+    def group(self, rolling_dict: dict) -> dict:
         """Given an rolling dict likes {(A,B,R): things}, return the grouped dict likes {(A,B): {R:things}}
 
         NOTE: There is a assumption which is the rolling key is at the end of key tuple, because the rolling results always need to be ensemble firstly.

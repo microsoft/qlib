@@ -1,11 +1,14 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
+
 """
-This module is working with OnlineManager, responsing for a set of strategy about how the models are updated and signals are perpared.
+OnlineStrategy is a set of strategy of online serving.
+It is working with OnlineManager, responsing how the tasks are generated, the models are updated and signals are perpared.
 """
 
 from copy import deepcopy
-from typing import List, Union
+from typing import List, Tuple, Union
+
 import pandas as pd
 from qlib.data.data import D
 from qlib.log import get_module_logger
@@ -13,7 +16,8 @@ from qlib.model.ens.group import RollingGroup
 from qlib.model.trainer import Trainer, TrainerR
 from qlib.workflow import R
 from qlib.workflow.online.utils import OnlineTool, OnlineToolR
-from qlib.workflow.task.collect import HyperCollector, RecorderCollector
+from qlib.workflow.recorder import Recorder
+from qlib.workflow.task.collect import Collector, HyperCollector, RecorderCollector
 from qlib.workflow.task.gen import RollingGen, task_generator
 from qlib.workflow.task.utils import TimeAdjuster, list_recorders
 
@@ -21,7 +25,7 @@ from qlib.workflow.task.utils import TimeAdjuster, list_recorders
 class OnlineStrategy:
     def __init__(self, name_id: str, trainer: Trainer = None, need_log=True):
         """
-        init OnlineManager.
+        Init OnlineStrategy.
 
         Args:
             name_id (str): a unique name or id
@@ -33,12 +37,15 @@ class OnlineStrategy:
         self.logger = get_module_logger(self.__class__.__name__)
         self.need_log = need_log
         self.tool = OnlineTool()
-        self.history = {}
 
-    def prepare_signals(self, delay=False):
+    def prepare_signals(self, delay: bool = False):
         """
         After perparing the data of last routine (a box in box-plot) which means the end of the routine, we can prepare trading signals for next routine.
-        Must use `pass` even though there is nothing to do.
+
+        NOTE: Given a set prediction, all signals before these prediction end time will be prepared well.
+        Args:
+            delay: bool
+                If this method was called by `delay_prepare`
         """
         raise NotImplementedError(f"Please implement the `prepare_signals` method.")
 
@@ -46,12 +53,16 @@ class OnlineStrategy:
         """
         After the end of a routine, check whether we need to prepare and train some new tasks.
         return the new tasks waiting for training.
+
+        You can find last online models by OnlineTool.online_models.
         """
         raise NotImplementedError(f"Please implement the `prepare_tasks` method.")
 
     def prepare_online_models(self, tasks, check_func=None, **kwargs):
         """
         Use trainer to train a list of tasks and set the trained model to `online`.
+
+        NOTE: This method will first offline all models and online the online models prepared by this method. So you can find last online models by OnlineTool.online_models if you still need them.
 
         Args:
             tasks (list): a list of tasks.
@@ -78,32 +89,42 @@ class OnlineStrategy:
 
     def first_train(self):
         """
-        Train a series of models firstly and set some of them into online models.
+        Train a series of models firstly and set some of them as online models.
         """
         raise NotImplementedError(f"Please implement the `first_train` method.")
 
-    def get_collector(self):
+    def get_collector(self) -> Collector:
         """
-        Return the collector.
+        Get the instance of collector to collect results of online serving.
+
+        For example:
+            1) collect predictions in Recorder
+            2) collect signals in .txt file
 
         Returns:
             Collector
         """
         raise NotImplementedError(f"Please implement the `get_collector` method.")
 
-    def delay_prepare(self, history, **kwargs):
+    def delay_prepare(self, history: list, **kwargs):
         """
         Prepare all models and signals if there are something waiting for prepare.
-        NOTE: Assumption: the predictions of online models are between `time_segment`, or this method will work in a wrong way.
+        NOTE: Assumption: the predictions of online models need less than next begin_time, or this method will work in a wrong way.
 
         Args:
-            rec_dict (str): an online models dict likes {(begin_time, end_time):[online models]}.
-            *args, **kwargs: will be passed to end_train which means will be passed to customized train method.
+            history (list): an online models list likes [begin_time:[online models]].
+            **kwargs: will be passed to end_train which means will be passed to customized train method.
         """
-        for time_begin, recs_list in history:
+        for begin_time, recs_list in history:
             self.trainer.end_train(recs_list, **kwargs)
             self.tool.reset_online_tag(recs_list)
             self.prepare_signals(delay=True)
+
+    def reset(self):
+        """
+        Delete all things and set them to default status. This method is convenient to explore the strategy for online simulation.
+        """
+        pass
 
 
 class RollingAverageStrategy(OnlineStrategy):
@@ -122,7 +143,7 @@ class RollingAverageStrategy(OnlineStrategy):
         signal_exp_name="OnlineManagerSignals",
     ):
         """
-        init OnlineManagerR.
+        Init RollingAverageStrategy.
 
         Assumption: the str of name_id, the experiment name and the trainer's experiment name are same one.
 
@@ -139,11 +160,11 @@ class RollingAverageStrategy(OnlineStrategy):
         if not isinstance(task_template, list):
             task_template = [task_template]
         self.task_template = task_template
-        self.signal_rec = None
         self.signal_exp_name = signal_exp_name
-        self.ta = TimeAdjuster()
         self.rg = rolling_gen
         self.tool = OnlineToolR(self.exp_name)
+        self.ta = TimeAdjuster()
+        self.signal_rec = None  # the recorder to record signals
 
     def get_collector(self, rec_key_func=None, rec_filter_func=None):
         """
@@ -180,12 +201,12 @@ class RollingAverageStrategy(OnlineStrategy):
         )
         return HyperCollector({"artifacts": artifacts_collector, "signals": signals_collector})
 
-    def first_train(self):
+    def first_train(self) -> List[Recorder]:
         """
         Use rolling_gen to generate different tasks based on task_template and trained them.
 
         Returns:
-            Collector: a instance of a Collector.
+            List[Recorder]: a list of Recorder.
         """
         tasks = task_generator(
             tasks=self.task_template,
@@ -193,12 +214,14 @@ class RollingAverageStrategy(OnlineStrategy):
         )
         return self.prepare_online_models(tasks)
 
-    def prepare_tasks(self, cur_time):
+    def prepare_tasks(self, cur_time) -> List[dict]:
         """
         Prepare new tasks based on cur_time (None for latest).
 
+        You can find last online models by OnlineToolR.online_models.
+
         Returns:
-            list: a list of new tasks.
+            List[dict]: a list of new tasks.
         """
         latest_records, max_test = self._list_latest(self.tool.online_models())
         if max_test is None:
@@ -224,7 +247,7 @@ class RollingAverageStrategy(OnlineStrategy):
             return new_tasks
         return []
 
-    def prepare_signals(self, delay=False, over_write=False):
+    def prepare_signals(self, delay=False, over_write=False) -> pd.DataFrame:
         """
         Average the predictions of online models and offer a trading signals every routine.
         The signals will be saved to `signal` file of a recorder named self.exp_name of a experiment using the name of `SIGNAL_EXP`
@@ -233,7 +256,7 @@ class RollingAverageStrategy(OnlineStrategy):
         Args:
             over_write (bool, optional): If True, the new signals will overwrite the file. If False, the new signals will append to the end of signals. Defaults to False.
         Returns:
-            object: the signals.
+            pd.DataFrame: the signals.
         """
         if not delay:
             self.tool.update_online_pred()
@@ -250,7 +273,7 @@ class RollingAverageStrategy(OnlineStrategy):
         for rec in self.tool.online_models():
             pred.append(rec.load_object("pred.pkl"))
 
-        signals = pd.concat(pred, axis=1).mean(axis=1).to_frame("score")
+        signals: pd.DataFrame = pd.concat(pred, axis=1).mean(axis=1).to_frame("score")
         signals = signals.sort_index()
         if old_signals is not None and not over_write:
             old_max = old_signals.index.get_level_values("datetime").max()
@@ -275,14 +298,19 @@ class RollingAverageStrategy(OnlineStrategy):
         # if self.signal_rec is None:
         #     with R.start(experiment_name=self.signal_exp_name, recorder_name=self.exp_name, resume=True):
         #         self.signal_rec = R.get_recorder()
-        # signals = None
-        # try:
-        #     signals = self.signal_rec.load_object("signals")
-        # except OSError:
-        #     self.logger.warn("Can not find `signals`, have you called `prepare_signals` before?")
+        # signals = self.signal_rec.load_object("signals")
         # return signals
 
-    def _list_latest(self, rec_list):
+    def _list_latest(self, rec_list: List[Recorder]):
+        """
+        List latest recorder form rec_list
+
+        Args:
+            rec_list (List[Recorder]): a list of Recorder
+
+        Returns:
+            List[Recorder], pd.Timestamp: the latest recorders and its test end time
+        """
         if len(rec_list) == 0:
             return rec_list, None
         max_test = max(rec.load_object("task")["dataset"]["kwargs"]["segments"]["test"] for rec in rec_list)
@@ -291,3 +319,16 @@ class RollingAverageStrategy(OnlineStrategy):
             if rec.load_object("task")["dataset"]["kwargs"]["segments"]["test"] == max_test:
                 latest_rec.append(rec)
         return latest_rec, max_test
+
+    def reset(self):
+        """
+        NOTE: This method will delete all recorder in Experiment and reset the Trainer!
+        """
+        self.trainer.reset()
+        # delete models
+        exp = R.get_exp(experiment_name=self.exp_name)
+        for rid in exp.list_recorders():
+            exp.delete_recorder(rid)
+        # delete signals
+        for rid in list_recorders(self.signal_exp_name, lambda x: True if x.info["name"] == self.exp_name else False):
+            exp.delete_recorder(rid)

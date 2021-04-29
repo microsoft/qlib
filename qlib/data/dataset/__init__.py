@@ -299,7 +299,7 @@ class TSDataSampler:
 
         self.start_idx, self.end_idx = self.data_index.slice_locs(start=pd.Timestamp(start), end=pd.Timestamp(end))
         self.idx_arr = np.array(self.idx_df.values, dtype=np.float64)  # for better performance
-        
+
         del self.data  # save memory
 
     @staticmethod
@@ -507,13 +507,13 @@ class TSDatasetH(DatasetH):
         """
         dtype = kwargs.pop("dtype")
         start, end = slc.start, slc.stop
-        flt_col = kwargs.pop('flt_col', None)
+        flt_col = kwargs.pop("flt_col", None)
         # TSDatasetH will retrieve more data for complete
         data = self._prepare_raw_seg(slc, **kwargs)
 
         flt_kwargs = deepcopy(kwargs)
         if flt_col is not None:
-            flt_kwargs['col_set'] = flt_col
+            flt_kwargs["col_set"] = flt_col
             flt_data = self._prepare_raw_seg(slc, **flt_kwargs)
             assert len(flt_data.columns) == 1
         else:

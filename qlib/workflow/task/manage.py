@@ -1,31 +1,39 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
+
 """
-A task consists of 3 parts
+TaskManager can fetch unused tasks automatically and manager the lifecycle of a set of tasks with error handling.
+These features can run tasks concurrently and ensure every task will be used only once.
+Task Manager will store all tasks in `MongoDB <https://www.mongodb.com/>`_.
+Users **MUST** finished the configuration of `MongoDB <https://www.mongodb.com/>`_ when using this module.
+
+A task in TaskManager consists of 3 parts
 - tasks description: the desc will define the task
 - tasks status: the status of the task
 - tasks result information : A user can get the task with the task description and task result.
-
 """
-from bson.binary import Binary
-import pickle
-from pymongo.errors import InvalidDocument
-from bson.objectid import ObjectId
-from contextlib import contextmanager
-import qlib
-from tqdm.cli import tqdm
-import time
 import concurrent
-import pymongo
-from qlib.config import C
-from .utils import get_mongodb
-from qlib import get_module_logger, auto_init
+import pickle
+import time
+from contextlib import contextmanager
+from typing import Callable, List
+
 import fire
+import pymongo
+from bson.binary import Binary
+from bson.objectid import ObjectId
+from pymongo.errors import InvalidDocument
+from qlib import auto_init, get_module_logger
+from tqdm.cli import tqdm
+
+from .utils import get_mongodb
 
 
 class TaskManager:
-    """TaskManager
-    here is what will a task looks like when it created by TaskManager
+    """
+    TaskManager
+
+    Here is what will a task looks like when it created by TaskManager
 
     .. code-block:: python
 
@@ -42,6 +50,12 @@ class TaskManager:
     .. note::
 
         Assumption: the data in MongoDB was encoded and the data out of MongoDB was decoded
+
+    Here are four status which are:
+        STATUS_WAITING: waiting for train
+        STATUS_RUNNING: training
+        STATUS_PART_DONE: finished some step and waiting for next step.
+        STATUS_DONE: all work done
     """
 
     STATUS_WAITING = "waiting"
@@ -53,7 +67,7 @@ class TaskManager:
 
     def __init__(self, task_pool: str = None):
         """
-        init Task Manager, remember to make the statement of MongoDB url and database name firstly.
+        Init Task Manager, remember to make the statement of MongoDB url and database name firstly.
 
         Parameters
         ----------
@@ -65,7 +79,7 @@ class TaskManager:
             self.task_pool = getattr(self.mdb, task_pool)
         self.logger = get_module_logger(self.__class__.__name__)
 
-    def list(self):
+    def list(self) -> list:
         """
         list the all collection(task_pool) of the db
 
@@ -92,7 +106,9 @@ class TaskManager:
         return {k: str(v) for k, v in flt.items()}
 
     def replace_task(self, task, new_task):
-        # assume that the data out of interface was decoded and the data in interface was encoded
+        """
+        Use a new task to replace a old one
+        """
         new_task = self._encode_task(new_task)
         query = {"_id": ObjectId(task["_id"])}
         try:
@@ -121,7 +137,7 @@ class TaskManager:
 
         Returns
         -------
-
+        pymongo.results.InsertOneResult
         """
         task = self._encode_task(
             {
@@ -133,9 +149,9 @@ class TaskManager:
         insert_result = self.insert_task(task)
         return insert_result
 
-    def create_task(self, task_def_l, dry_run=False, print_nt=False):
+    def create_task(self, task_def_l, dry_run=False, print_nt=False) -> List[str]:
         """
-        if the tasks in task_def_l is new, then insert new tasks into the task_pool
+        If the tasks in task_def_l is new, then insert new tasks into the task_pool
 
         Parameters
         ----------
@@ -145,6 +161,7 @@ class TaskManager:
             if insert those new tasks to task pool
         print_nt: bool
             if print new task
+
         Returns
         -------
         list
@@ -165,7 +182,7 @@ class TaskManager:
                 print(t)
 
         if dry_run:
-            return
+            return []
 
         _id_list = []
         for t in new_tasks:
@@ -174,7 +191,17 @@ class TaskManager:
 
         return _id_list
 
-    def fetch_task(self, query={}, status=STATUS_WAITING):
+    def fetch_task(self, query={}, status=STATUS_WAITING) -> dict:
+        """
+        Use query to fetch tasks
+
+        Args:
+            query (dict, optional): query dict. Defaults to {}.
+            status (str, optional): [description]. Defaults to STATUS_WAITING.
+
+        Returns:
+            dict: a task(document in collection) after decoding
+        """
         query = query.copy()
         if "_id" in query:
             query["_id"] = ObjectId(query["_id"])
@@ -191,7 +218,7 @@ class TaskManager:
     @contextmanager
     def safe_fetch_task(self, query={}, status=STATUS_WAITING):
         """
-        fetch task from task_pool using query with contextmanager
+        Fetch task from task_pool using query with contextmanager
 
         Parameters
         ----------
@@ -200,7 +227,7 @@ class TaskManager:
 
         Returns
         -------
-
+        dict: a task(document in collection) after decoding
         """
         task = self.fetch_task(query=query, status=status)
         try:
@@ -231,7 +258,7 @@ class TaskManager:
 
         Returns
         -------
-
+        dict: a task(document in collection) after decoding
         """
         query = query.copy()
         if "_id" in query:
@@ -240,16 +267,40 @@ class TaskManager:
             yield self._decode_task(t)
 
     def re_query(self, _id):
+        """
+        Use _id to query task.
+
+        Args:
+            _id (str): _id of a document
+
+        Returns:
+            dict: a task(document in collection) after decoding
+        """
         t = self.task_pool.find_one({"_id": ObjectId(_id)})
         return self._decode_task(t)
 
-    def commit_task_res(self, task, res, status=None):
+    def commit_task_res(self, task, res, status=STATUS_DONE):
+        """
+        Commit the result to task['res'].
+
+        Args:
+            task ([type]): [description]
+            res (object): the result you want to save
+            status (str, optional): STATUS_WAITING, STATUS_RUNNING, STATUS_DONE, STATUS_PART_DONE. Defaults to STATUS_DONE.
+        """
         # A workaround to use the class attribute.
         if status is None:
             status = TaskManager.STATUS_DONE
         self.task_pool.update_one({"_id": task["_id"]}, {"$set": {"status": status, "res": Binary(pickle.dumps(res))}})
 
-    def return_task(self, task, status=None):
+    def return_task(self, task, status=STATUS_WAITING):
+        """
+        Return a task to status. Alway using in error handling.
+
+        Args:
+            task ([type]): [description]
+            status (str, optional): STATUS_WAITING, STATUS_RUNNING, STATUS_DONE, STATUS_PART_DONE. Defaults to STATUS_WAITING.
+        """
         if status is None:
             status = TaskManager.STATUS_WAITING
         update_dict = {"$set": {"status": status}}
@@ -257,7 +308,7 @@ class TaskManager:
 
     def remove(self, query={}):
         """
-        remove the task using query
+        Remove the task using query
 
         Parameters
         ----------
@@ -295,7 +346,7 @@ class TaskManager:
 
     def prioritize(self, task, priority: int):
         """
-        set priority for task
+        Set priority for task
 
         Parameters
         ----------
@@ -331,29 +382,37 @@ class TaskManager:
 
 
 def run_task(
-    task_func,
-    task_pool,
-    force_release=False,
-    before_status=TaskManager.STATUS_WAITING,
-    after_status=TaskManager.STATUS_DONE,
-    *args,
+    task_func: Callable,
+    task_pool: str,
+    force_release: bool = False,
+    before_status: str = TaskManager.STATUS_WAITING,
+    after_status: str = TaskManager.STATUS_DONE,
     **kwargs,
 ):
     """
     While task pool is not empty (has WAITING tasks), use task_func to fetch and run tasks in task_pool
 
+    After running this method, here are 4 situations (before_status -> after_status):
+        STATUS_WAITING -> STATUS_DONE: use task["def"] as `task_func` param
+        STATUS_WAITING -> STATUS_PART_DONE: use task["def"] as `task_func` param
+        STATUS_PART_DONE -> STATUS_PART_DONE: use task["res"] as `task_func` param
+        STATUS_PART_DONE -> STATUS_DONE: use task["res"] as `task_func` param
+
     Parameters
     ----------
-    task_func : def (task_def, *args, **kwargs) -> <res which will be committed>
-        the function to run the task
+    task_func : Callable
+        def (task_def, **kwargs) -> <res which will be committed>
+            the function to run the task
     task_pool : str
         the name of the task pool (Collection in MongoDB)
-    force_release :
+    force_release : bool
         will the program force to release the resource
-    args :
-        args
-    kwargs :
-        kwargs
+    before_status : str:
+        the tasks in before_status will be fetched and trained. Can be STATUS_WAITING, STATUS_PART_DONE.
+    after_status : str:
+        the tasks after trained will become after_status. Can be STATUS_WAITING, STATUS_PART_DONE.
+    kwargs
+        the params for `task_func`
     """
     tm = TaskManager(task_pool)
 
@@ -364,19 +423,19 @@ def run_task(
             if task is None:
                 break
             get_module_logger("run_task").info(task["def"])
-            # when fetching `WAITING` task, use task_def to train
+            # when fetching `WAITING` task, use task["def"] to train
             if before_status == TaskManager.STATUS_WAITING:
                 param = task["def"]
-            # when fetching `PART_DONE` task, use task_res to train for the result has been saved
+            # when fetching `PART_DONE` task, use task["res"] to train because the middle result has been saved to task["res"]
             elif before_status == TaskManager.STATUS_PART_DONE:
                 param = task["res"]
             else:
                 raise ValueError("The fetched task must be `STATUS_WAITING` or `STATUS_PART_DONE`!")
             if force_release:
                 with concurrent.futures.ProcessPoolExecutor(max_workers=1) as executor:
-                    res = executor.submit(task_func, param, *args, **kwargs).result()
+                    res = executor.submit(task_func, param, **kwargs).result()
             else:
-                res = task_func(param, *args, **kwargs)
+                res = task_func(param, **kwargs)
             tm.commit_task_res(task, res, status=after_status)
             ever_run = True
 

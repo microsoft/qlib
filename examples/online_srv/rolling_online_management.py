@@ -1,22 +1,25 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
 """
-This example show how RollingOnlineManager works with rolling tasks.
+This example show how OnlineManager works with rolling tasks.
 There are two parts including first train and routine.
-Firstly, the RollingOnlineManager will finish the first training and set trained models to `online` models.
-Next, the RollingOnlineManager will finish a routine process, including update online prediction -> prepare signals -> prepare tasks -> prepare new models -> reset online models
+Firstly, the OnlineManager will finish the first training and set trained models to `online` models.
+Next, the OnlineManager will finish a routine process, including update online prediction -> prepare signals -> prepare tasks -> prepare new models -> reset online models
 """
+
 import os
 from pathlib import Path
 import pickle
 import fire
 import qlib
 from qlib.workflow import R
-from qlib.workflow.online.strategy import OnlineStrategy, RollingAverageStrategy
+from qlib.workflow.online.strategy import RollingAverageStrategy
 from qlib.workflow.task.gen import RollingGen
 from qlib.workflow.task.manage import TaskManager
-from qlib.workflow.online.manager import OnlineM
+from qlib.workflow.online.manager import OnlineManager
 from qlib.workflow.task.utils import list_recorders
 from qlib.model.trainer import TrainerRM
-from pprint import pprint
 
 data_handler_config = {
     "start_time": "2013-01-01",
@@ -94,7 +97,7 @@ class RollingOnlineExample:
         self.rolling_step = rolling_step
         strategy = []
         for task in tasks:
-            name_id = task["model"]["class"] + "_" + str(self.rolling_step)
+            name_id = task["model"]["class"]  # NOTE: Assumption: The model class can specify only one strategy
             strategy.append(
                 RollingAverageStrategy(
                     name_id,
@@ -104,9 +107,12 @@ class RollingOnlineExample:
                 )
             )
 
-        self.rolling_online_manager = OnlineM(strategy)
+        self.rolling_online_manager = OnlineManager(strategy)
+        self.collector = self.rolling_online_manager.get_collector()
 
-    _ROLLING_MANAGER_PATH = ".rolling_manager"  # the RollingOnlineManager will dump to this file, for it will be loaded when calling routine.
+    _ROLLING_MANAGER_PATH = (
+        ".RollingOnlineExample"  # the OnlineManager will dump to this file, for it can be loaded when calling routine.
+    )
 
     # Reset all things to the first status, be careful to save important data
     def reset(self):
@@ -125,18 +131,23 @@ class RollingOnlineExample:
                 exp.delete_recorder(rid)
 
     def first_run(self):
+        print("========== reset ==========")
+        self.rolling_online_manager.reset()
         print("========== first_run ==========")
-        self.reset()
         self.rolling_online_manager.first_train()
+        print("========== dump ==========")
         self.rolling_online_manager.to_pickle(self._ROLLING_MANAGER_PATH)
-        print(self.rolling_online_manager.get_collector()())
+        print("========== collect results ==========")
+        print(self.collector())
 
     def routine(self):
-        print("========== routine ==========")
+        print("========== load ==========")
         with Path(self._ROLLING_MANAGER_PATH).open("rb") as f:
             self.rolling_online_manager = pickle.load(f)
+        print("========== routine ==========")
         self.rolling_online_manager.routine()
-        print(self.rolling_online_manager.get_collector()())
+        print("========== collect results ==========")
+        print(self.collector())
 
     def main(self):
         self.first_run()
@@ -145,11 +156,11 @@ class RollingOnlineExample:
 
 if __name__ == "__main__":
     ####### to train the first version's models, use the command below
-    # python task_manager_rolling_with_updating.py first_run
+    # python rolling_online_management.py first_run
 
     ####### to update the models and predictions after the trading time, use the command below
-    # python task_manager_rolling_with_updating.py after_day
+    # python rolling_online_management.py after_day
 
     ####### to define your own parameters, use `--`
-    # python task_manager_rolling_with_updating.py first_run --exp_name='your_exp_name' --rolling_step=40
+    # python rolling_online_management.py first_run --exp_name='your_exp_name' --rolling_step=40
     fire.Fire(RollingOnlineExample)

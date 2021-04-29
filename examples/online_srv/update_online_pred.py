@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
 """
 This example show how OnlineTool works when we need update prediction.
 There are two parts including first_train and update_online_pred.
