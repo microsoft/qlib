@@ -10,6 +10,8 @@ from qlib.config import REG_CN
 from qlib.contrib.strategy import TopkDropoutStrategy
 from qlib.contrib.backtest import backtest
 from qlib.utils import exists_qlib_data, init_instance_by_config, flatten_dict
+from qlib.workflow import R
+from qlib.workflow.record_temp import PortAnaRecord
 from qlib.tests.data import GetData
 
 if __name__ == "__main__":
@@ -78,7 +80,7 @@ if __name__ == "__main__":
     trade_start_time = "2017-01-31"
     trade_end_time = "2018-01-31"
 
-    backtest_config = {
+    port_analysis_config = {
         "strategy": {
             "class": "TopkDropoutStrategy",
             "module_path": "qlib.contrib.strategy.model_strategy",
@@ -101,6 +103,7 @@ if __name__ == "__main__":
                     "kwargs": {
                         "step_bar": "day",
                         "verbose": True,
+                        "generate_report": True,
                     },
                 },
                 "sub_strategy": {
@@ -128,11 +131,19 @@ if __name__ == "__main__":
         },
     }
 
-    report_dict = backtest(
-        start_time=trade_start_time,
-        end_time=trade_end_time,
-        **backtest_config,
-        account=1e8,
-        deal_price="$close",
-        verbose=False,
-    )
+    #report_dict = backtest(
+    #    start_time=trade_start_time,
+    #    end_time=trade_end_time,
+    #    **backtest_config,
+    #    account=1e8,
+    #    benchmark=benchmark,
+    #    deal_price="$close",
+    #    verbose=False,
+    #)
+
+    with R.start(experiment_name="highfreq_backtest"):
+        # backtest. If users want to use backtest based on their own prediction,
+        # please refer to https://qlib.readthedocs.io/en/latest/component/recorder.html#record-template.
+        recorder = R.get_recorder()
+        par = PortAnaRecord(recorder, port_analysis_config, 1)
+        par.generate()

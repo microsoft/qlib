@@ -19,8 +19,4 @@ def backtest(start_time, end_time, trade_strategy, trade_env, benchmark, account
         _order_list = trade_strategy.generate_order_list(**trade_state)
         trade_state, trade_info = trade_env.execute(_order_list)
 
-    report_df = trade_account.report.generate_report_dataframe()
-    positions = trade_account.get_positions()
-    report_dict = {"report_df": report_df, "positions": positions}
-
-    return report_dict
+    return trade_env.get_report()

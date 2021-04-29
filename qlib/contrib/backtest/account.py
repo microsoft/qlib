@@ -8,6 +8,7 @@ import pandas as pd
 from .position import Position
 from .report import Report
 from .order import Order
+from ...data import D
 from ...utils import parse_freq, sample_feature
 
 
@@ -95,7 +96,8 @@ class Account:
         def cal_change(x):
             return x.prod() - 1
 
-        return sample_feature(bench, trade_start_time, trade_end_time, method=cal_change)
+        _ret = sample_feature(bench, trade_start_time, trade_end_time, method=cal_change)
+        return 0 if _ret is None else _ret
 
     def reset(self, benchmark=None, freq=None, **kwargs):
         if benchmark:
@@ -105,9 +107,9 @@ class Account:
         if self.freq and self.benchmark and (freq or benchmark):
             self.bench = self._cal_benchmark(self.benchmark, self.start_time, self.end_time, self.freq)
 
-        for k, v in kwargs:
-            if hasattr(k):
-                setattr(k, v)
+        for k, v in kwargs.items():
+            if hasattr(self, k):
+                setattr(self, k, v)
 
     def get_positions(self):
         return self.positions
@@ -150,7 +152,7 @@ class Account:
             self.current.update_order(order, trade_val, cost, trade_price)
             self.update_state_from_order(order, trade_val, cost, trade_price)
 
-    def update_report(self, trade_start_time, trade_end_time, trade_exchange):
+    def update_bar_end(self, trade_start_time, trade_end_time, trade_exchange, update_report):
         """
         start_time: pd.TimeStamp
         end_time: pd.TimeStamp
@@ -166,6 +168,9 @@ class Account:
         :return: None
         """
         # update price for stock in the position and the profit from changed_price
+        self.current.add_count_all(bar=self.freq)
+        if update_report is None:
+            return
         stock_list = self.current.get_stock_list()
         for code in stock_list:
             # if suspend, no new price to be updated, profit is 0
@@ -174,7 +179,7 @@ class Account:
             bar_close = trade_exchange.get_close(code, trade_start_time, trade_end_time)
             self.current.update_stock_price(stock_id=code, price=bar_close)
         # update holding day count
-        self.current.add_count_all(bar=self.freq)
+        
         # update value
         self.val = self.current.calculate_value()
         # update earning
@@ -212,7 +217,7 @@ class Account:
         self.positions[trade_start_time] = copy.deepcopy(self.current)
 
         # finish today's updation
-        # reset the daily variables
+        # reset the bar variables
         self.rtn = 0
         self.ct = 0
         self.to = 0

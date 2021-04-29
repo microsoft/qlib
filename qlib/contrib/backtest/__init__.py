@@ -118,7 +118,7 @@ def setup_exchange(root_instance, trade_exchange=None, force=False):
         setup_exchange(root_instance.sub_strategy, trade_exchange)
 
 
-def backtest(start_time, end_time, strategy, env, benchmark=None, account=1e9, **kwargs):
+def backtest(start_time, end_time, strategy, env, benchmark="SH000905", account=1e9, **kwargs):
     trade_strategy = init_instance_by_config(strategy)
     trade_env = init_env_instance_by_config(env)
 

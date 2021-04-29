@@ -14,8 +14,9 @@ from ..data.dataset.handler import DataHandlerLP
 from ..utils import init_instance_by_config, get_module_by_module_path
 from ..log import get_module_logger
 from ..utils import flatten_dict
+from ..strategy.base import BaseStrategy
 from ..contrib.eva.alpha import calc_ic, calc_long_short_return
-from ..contrib.strategy.strategy import BaseStrategy
+
 
 logger = get_module_logger("workflow", "INFO")
 
@@ -212,7 +213,7 @@ class SigAnaRecord(SignalRecord):
         return paths
 
 
-class PortAnaRecord(SignalRecord):
+class PortAnaRecord(RecordTemp):
     """
     This is the Portfolio Analysis Record class that generates the analysis results such as those of backtest. This class inherits the ``RecordTemp`` class.
 
@@ -243,16 +244,10 @@ class PortAnaRecord(SignalRecord):
         self.risk_analysis_dep = risk_analysis_dep
 
     def generate(self, **kwargs):
-        # check previously stored prediction results
-        try:
-            self.check(parent=True)  # "Make sure the parent process is completed and store the data properly."
-        except FileExistsError:
-            super().generate()
-
         # custom strategy and get backtest
         report_list = normal_backtest(env=self.env_config, strategy=self.strategy_config, **self.backtest_config)
         for report_dep, (report_normal, positions_normal) in enumerate(report_list):
-            if report_dict is None:
+            if report_normal is None:
                 if self.risk_analysis_dep == report_dep:
                     warnings.warn(
                         f"the report in dep {risk_analysis_dep} is None, please set the corresponding env with `generate_report==True`"

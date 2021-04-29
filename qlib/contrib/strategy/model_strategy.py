@@ -23,7 +23,6 @@ class TopkDropoutStrategy(ModelStrategy):
         method_sell="bottom",
         method_buy="top",
         risk_degree=0.95,
-        thresh=1,
         hold_thresh=1,
         only_tradable=False,
         **kwargs,
@@ -41,11 +40,9 @@ class TopkDropoutStrategy(ModelStrategy):
             dropout method_buy, random/top.
         risk_degree : float
             position percentage of total value.
-        thresh : int
-            minimun holding days since last buy singal of the stock.
         hold_thresh : int
             minimum holding days
-            before sell stock , will check current.get_stock_count(order.stock_id) >= self.thresh.
+            before sell stock , will check current.get_stock_count(order.stock_id) >= self.hold_thresh.
         only_tradable : bool
             will the strategy only consider the tradable stock when buying and selling.
             if only_tradable:
@@ -61,10 +58,6 @@ class TopkDropoutStrategy(ModelStrategy):
         self.method_sell = method_sell
         self.method_buy = method_buy
         self.risk_degree = risk_degree
-        self.thresh = thresh
-        # self.stock_count['code'] will be the days the stock has been hold
-        # since last buy signal. This is designed for thresh
-        self.stock_count = {}
         self.hold_thresh = hold_thresh
         self.only_tradable = only_tradable
 
@@ -170,10 +163,7 @@ class TopkDropoutStrategy(ModelStrategy):
 
         # Get the stock list we really want to buy
         buy = today[: len(sell) + self.topk - len(last)]
-
-        # buy singal: if a stock falls into topk, it appear in the buy_sinal
-        buy_signal = pred_score.sort_values(ascending=False).iloc[: self.topk].index
-
+        #print("flag", len(sell), len(buy), self.topk, len(last))
         for code in current_stock_list:
             if not self.trade_exchange.is_stock_tradable(
                 stock_id=code, start_time=trade_start_time, end_time=trade_end_time
@@ -181,13 +171,7 @@ class TopkDropoutStrategy(ModelStrategy):
                 continue
             if code in sell:
                 # check hold limit
-                if (
-                    self.stock_count[code] < self.thresh
-                    or current_temp.get_stock_count(code, bar=self.step_bar) < self.hold_thresh
-                ):
-                    # can not sell this code
-                    # no buy signal, but the stock is kept
-                    self.stock_count[code] += 1
+                if current_temp.get_stock_count(code, bar=self.step_bar) < self.hold_thresh:
                     continue
                 # sell order
                 sell_amount = current_temp.get_stock_amount(code=code)
@@ -207,18 +191,6 @@ class TopkDropoutStrategy(ModelStrategy):
                     )
                     # update cash
                     cash += trade_val - trade_cost
-                    # sold
-                    self.stock_count[code] = 0
-                else:
-                    # no buy signal, but the stock is kept
-                    self.stock_count[code] += 1
-            elif code in buy_signal:
-                # NOTE: This is different from the original version
-                # get new buy signal
-                # Only the stock fall in to topk will produce buy signal
-                self.stock_count[code] = 1
-            else:
-                self.stock_count[code] += 1
         # buy new stock
         # note the current has been changed
         current_stock_list = current_temp.get_stock_list()
@@ -249,7 +221,6 @@ class TopkDropoutStrategy(ModelStrategy):
                 factor=factor,
             )
             buy_order_list.append(buy_order)
-            self.stock_count[code] = 1
         return sell_order_list + buy_order_list
 
 

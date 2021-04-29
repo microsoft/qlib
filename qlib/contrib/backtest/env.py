@@ -42,7 +42,7 @@ class BaseTradeCalendar:
         if start_time or end_time:
             self._reset_trade_calendar(start_time=start_time, end_time=end_time)
 
-        for k, v in kwargs:
+        for k, v in kwargs.items():
             if hasattr(self, k):
                 setattr(self, k, v)
 
@@ -52,7 +52,7 @@ class BaseTradeCalendar:
         return self.calendar[calendar_index - 1], self.calendar[calendar_index]
 
     def finished(self):
-        return self.trade_index >= self.trade_len
+        return self.trade_index >= self.trade_len - 1
 
     def step(self):
         self.trade_index = self.trade_index + 1
@@ -71,11 +71,11 @@ class BaseEnv(BaseTradeCalendar):
         start_time=None,
         end_time=None,
         trade_account=None,
-        update_report=False,
+        generate_report=False,
         verbose=False,
         **kwargs,
     ):
-        self.generate_report = update_report
+        self.generate_report = generate_report
         self.verbose = verbose
         super(BaseEnv, self).__init__(
             step_bar=step_bar, start_time=start_time, end_time=end_time, trade_account=trade_account, **kwargs
@@ -110,7 +110,8 @@ class SplitEnv(BaseEnv):
         start_time=None,
         end_time=None,
         trade_account=None,
-        update_report=False,
+        trade_exchange=None,
+        generate_report=False,
         verbose=False,
         **kwargs,
     ):
@@ -121,15 +122,18 @@ class SplitEnv(BaseEnv):
             start_time=start_time,
             end_time=end_time,
             trade_account=trade_account,
-            update_report=update_report,
+            trade_exchange=trade_exchange,
+            generate_report=generate_report,
             verbose=verbose,
             **kwargs,
         )
 
-    def reset(self, trade_account=None, **kwargs):
+    def reset(self, trade_account=None, trade_exchange=None, **kwargs):
         super(SplitEnv, self).reset(trade_account=trade_account, **kwargs)
         if trade_account:
             self.sub_env.reset(trade_account=copy.copy(trade_account))
+        if trade_exchange:
+            self.trade_exchange = trade_exchange
 
     def execute(self, order_list, **kwargs):
         if self.finished():
@@ -146,10 +150,9 @@ class SplitEnv(BaseEnv):
             _order_list = self.sub_strategy.generate_order_list(**trade_state)
             trade_state, trade_info = self.sub_env.execute(order_list=_order_list)
 
-        if self.generate_report:
-            self.trade_account.update_report(
-                trade_start_time=trade_start_time, trade_end_time=trade_end_time, trade_exchange=self.trade_exchange
-            )
+        self.trade_account.update_bar_end(
+            trade_start_time=trade_start_time, trade_end_time=trade_end_time, trade_exchange=self.trade_exchange, update_report=self.generate_report
+        )
         _obs = {"current": self.trade_account.current}
         _info = {}
         return _obs, _info
@@ -157,7 +160,7 @@ class SplitEnv(BaseEnv):
     def get_report(self):
         _report = self.trade_account.report.generate_report_dataframe() if self.generate_report else None
         _positions = self.trade_account.get_positions() if self.generate_report else None
-        return [(_report, _positions), *sub_env.get_report()]
+        return [(_report, _positions), *self.sub_env.get_report()]
 
 
 class SimulatorEnv(BaseEnv):
@@ -168,7 +171,7 @@ class SimulatorEnv(BaseEnv):
         end_time=None,
         trade_account=None,
         trade_exchange=None,
-        update_report=False,
+        generate_report=False,
         verbose=False,
         **kwargs,
     ):
@@ -178,7 +181,7 @@ class SimulatorEnv(BaseEnv):
             end_time=end_time,
             trade_account=trade_account,
             trade_exchange=trade_exchange,
-            update_report=update_report,
+            generate_report=generate_report,
             verbose=verbose,
             **kwargs,
         )
@@ -231,10 +234,9 @@ class SimulatorEnv(BaseEnv):
                     print("[W {:%Y-%m-%d}]: {} wrong.".format(trade_start_time, order.stock_id))
                 # do nothing
                 pass
-        if self.generate_report:
-            self.trade_account.update_report(
-                trade_start_time=trade_start_time, trade_end_time=trade_end_time, trade_exchange=self.trade_exchange
-            )
+        self.trade_account.update_bar_end(
+            trade_start_time=trade_start_time, trade_end_time=trade_end_time, trade_exchange=self.trade_exchange, update_report=self.generate_report
+        )
         _obs = {"current": self.trade_account.current}
         _info = {"trade_info": trade_info}
         return _obs, _info
@@ -242,4 +244,4 @@ class SimulatorEnv(BaseEnv):
     def get_report(self):
         _report = self.trade_account.report.generate_report_dataframe() if self.generate_report else None
         _positions = self.trade_account.get_positions() if self.generate_report else None
-        return [{"report": _report, "positions": _positions}]
+        return [(_report, _positions)]
