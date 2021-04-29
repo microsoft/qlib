@@ -1,14 +1,14 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-import mlflow
+import mlflow, logging
 import shutil, os, pickle, tempfile, codecs, pickle
 from pathlib import Path
 from datetime import datetime
 from ..utils.objm import FileManager
 from ..log import get_module_logger
 
-logger = get_module_logger("workflow", "INFO")
+logger = get_module_logger("workflow", logging.INFO)
 
 
 class Recorder:

@@ -128,7 +128,7 @@ class Position:
         return self.position["cash"]
 
     def get_stock_amount_dict(self):
-        """generate stock amount dict {stock_id : amount of stock} """
+        """generate stock amount dict {stock_id : amount of stock}"""
         d = {}
         stock_list = self.get_stock_list()
         for stock_code in stock_list:
