@@ -15,10 +15,11 @@ from .config import C
 class MetaLogger(type):
     def __new__(cls, name, bases, dict):
         wrapper_dict = logging.Logger.__dict__.copy()
-        wrapper_dict.update(dict)
-        wrapper_dict["__doc__"] = logging.Logger.__doc__
-        del wrapper_dict["__reduce__"]  # make Logger object can be pickled
-        return type.__new__(cls, name, bases, wrapper_dict)
+        for key in wrapper_dict:
+            if key not in dict and key != "__reduce__":
+                dict[key] = wrapper_dict[key]
+        dict["__doc__"] = logging.Logger.__doc__
+        return type.__new__(cls, name, bases, dict)
 
 
 class QlibLogger(metaclass=MetaLogger):
