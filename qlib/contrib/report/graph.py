@@ -18,7 +18,7 @@ from ...utils import get_module_by_module_path
 
 
 class BaseGraph:
-    """"""
+    """ """
 
     _name = None
 

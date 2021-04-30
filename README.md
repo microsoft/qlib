@@ -243,6 +243,7 @@ Qlib provides a tool named `qrun` to run the whole workflow automatically (inclu
       - Rank Label
       ![Rank Label](docs/_static/img/rank_label.png)
       -->
+   - [Explanation](https://qlib.readthedocs.io/en/latest/component/report.html) of above results
 
 ## Building Customized Quant Research Workflow by Code
 The automatic workflow may not suit the research workflow of all Quant researchers. To support a flexible Quant research workflow, Qlib also provides a modularized interface to allow researchers to build their own workflow by code. [Here](examples/workflow_by_code.ipynb) is a demo for customized Quant research workflow by code.

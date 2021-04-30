@@ -3,6 +3,7 @@
 
 import numpy as np
 import pandas as pd
+from typing import Text, Union
 from catboost import Pool, CatBoost
 from catboost.utils import get_gpu_device_count
 
@@ -62,10 +63,10 @@ class CatBoostModel(Model):
         evals_result["train"] = list(evals_result["learn"].values())[0]
         evals_result["valid"] = list(evals_result["validation"].values())[0]
 
-    def predict(self, dataset):
+    def predict(self, dataset: DatasetH, segment: Union[Text, slice] = "test"):
         if self.model is None:
             raise ValueError("model is not fitted yet!")
-        x_test = dataset.prepare("test", col_set="feature")
+        x_test = dataset.prepare(segment, col_set="feature", data_key=DataHandlerLP.DK_I)
         return pd.Series(self.model.predict(x_test.values), index=x_test.index)
 
 

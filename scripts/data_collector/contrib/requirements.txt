@@ -1,0 +1,5 @@
+baostock
+fire
+numpy
+pandas
+loguru

@@ -4,7 +4,7 @@
 import lightgbm as lgb
 import numpy as np
 import pandas as pd
-
+from typing import Text, Union
 from ...model.base import Model
 from ...data.dataset import DatasetH
 from ...data.dataset.handler import DataHandlerLP
@@ -40,6 +40,10 @@ class DEnsembleModel(Model):
         self.bins_sr = bins_sr
         self.bins_fs = bins_fs
         self.decay = decay
+        if sample_ratios is None:  # the default values for sample_ratios
+            sample_ratios = [0.8, 0.7, 0.6, 0.5, 0.4]
+        if sub_weights is None:  # the default values for sub_weights
+            sub_weights = [1.0, 0.2, 0.2, 0.2, 0.2, 0.2]
         if not len(sample_ratios) == bins_fs:
             raise ValueError("The length of sample_ratios should be equal to bins_fs.")
         self.sample_ratios = sample_ratios
@@ -228,10 +232,10 @@ class DEnsembleModel(Model):
             raise ValueError("not implemented yet")
         return loss_curve
 
-    def predict(self, dataset):
+    def predict(self, dataset: DatasetH, segment: Union[Text, slice] = "test"):
         if self.ensemble is None:
             raise ValueError("model is not fitted yet!")
-        x_test = dataset.prepare("test", col_set="feature", data_key=DataHandlerLP.DK_I)
+        x_test = dataset.prepare(segment, col_set="feature", data_key=DataHandlerLP.DK_I)
         pred = pd.Series(np.zeros(x_test.shape[0]), index=x_test.index)
         for i_sub, submodel in enumerate(self.ensemble):
             feat_sub = self.sub_features[i_sub]

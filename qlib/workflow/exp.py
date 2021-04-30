@@ -1,14 +1,14 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-import mlflow
+import mlflow, logging
 from mlflow.entities import ViewType
 from mlflow.exceptions import MlflowException
 from pathlib import Path
 from .recorder import Recorder, MLflowRecorder
 from ..log import get_module_logger
 
-logger = get_module_logger("workflow", "INFO")
+logger = get_module_logger("workflow", logging.INFO)
 
 
 class Experiment:
@@ -39,12 +39,14 @@ class Experiment:
         output["recorders"] = list(recorders.keys())
         return output
 
-    def start(self, recorder_name=None, resume=False):
+    def start(self, *, recorder_id=None, recorder_name=None, resume=False):
         """
         Start the experiment and set it to be active. This method will also start a new recorder.
 
         Parameters
         ----------
+        recorder_id : str
+            the id of the recorder to be created.
         recorder_name : str
             the name of the recorder to be created.
         resume : bool
@@ -107,24 +109,24 @@ class Experiment:
         """
         raise NotImplementedError(f"Please implement the `delete_recorder` method.")
 
-    def get_recorder(self, recorder_id=None, recorder_name=None, create: bool = True):
+    def get_recorder(self, recorder_id=None, recorder_name=None, create: bool = True, start: bool = False):
         """
         Retrieve a Recorder for user. When user specify recorder id and name, the method will try to return the
         specific recorder. When user does not provide recorder id or name, the method will try to return the current
         active recorder. The `create` argument determines whether the method will automatically create a new recorder
-        according to user's specification if the recorder hasn't been created before
+        according to user's specification if the recorder hasn't been created before.
 
         * If `create` is True:
 
             * If `active recorder` exists:
 
                 * no id or name specified, return the active recorder.
-                * if id or name is specified, return the specified recorder. If no such exp found, create a new recorder with given id or name, and the recorder shoud be active.
+                * if id or name is specified, return the specified recorder. If no such exp found, create a new recorder with given id or name. If `start` is set to be True, the recorder is set to be active.
 
             * If `active recorder` not exists:
 
                 * no id or name specified, create a new recorder.
-                * if id or name is specified, return the specified experiment. If no such exp found, create a new recorder with given id or name, and the recorder shoud be active.
+                * if id or name is specified, return the specified experiment. If no such exp found, create a new recorder with given id or name. If `start` is set to be True, the recorder is set to be active.
 
         * Else If `create` is False:
 
@@ -146,6 +148,8 @@ class Experiment:
             the name of the recorder to be deleted.
         create : boolean
             create the recorder if it hasn't been created before.
+        start : boolean
+            start the new recorder if one is created.
 
         Returns
         -------
@@ -159,8 +163,11 @@ class Experiment:
         if create:
             recorder, is_new = self._get_or_create_rec(recorder_id=recorder_id, recorder_name=recorder_name)
         else:
-            recorder, is_new = self._get_recorder(recorder_id=recorder_id, recorder_name=recorder_name), False
-        if is_new:
+            recorder, is_new = (
+                self._get_recorder(recorder_id=recorder_id, recorder_name=recorder_name),
+                False,
+            )
+        if is_new and start:
             self.active_recorder = recorder
             # start the recorder
             self.active_recorder.start_run()
@@ -174,7 +181,10 @@ class Experiment:
         try:
             if recorder_id is None and recorder_name is None:
                 recorder_name = self._default_rec_name
-            return self._get_recorder(recorder_id=recorder_id, recorder_name=recorder_name), False
+            return (
+                self._get_recorder(recorder_id=recorder_id, recorder_name=recorder_name),
+                False,
+            )
         except ValueError:
             if recorder_name is None:
                 recorder_name = self._default_rec_name
@@ -230,14 +240,14 @@ class MLflowExperiment(Experiment):
     def __repr__(self):
         return "{name}(id={id}, info={info})".format(name=self.__class__.__name__, id=self.id, info=self.info)
 
-    def start(self, recorder_name=None, resume=False):
+    def start(self, *, recorder_id=None, recorder_name=None, resume=False):
         logger.info(f"Experiment {self.id} starts running ...")
         # Get or create recorder
         if recorder_name is None:
             recorder_name = self._default_rec_name
         # resume the recorder
         if resume:
-            recorder, _ = self._get_or_create_rec(recorder_name=recorder_name)
+            recorder, _ = self._get_or_create_rec(recorder_id=recorder_id, recorder_name=recorder_name)
         # create a new recorder
         else:
             recorder = self.create_recorder(recorder_name)

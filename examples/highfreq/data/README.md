@@ -26,3 +26,10 @@ Run the example by running the following command:
 ```bash
     python workflow.py dump_and_load_dataset
 ```
+
+## Benchmarks Performance
+### Signal Test
+Here are the results of signal test for benchmark models. We will keep updating benchmark models in future.
+| Model Name | Dataset | IC | ICIR | Rank IC | Rank ICIR | Long precision| Short Precision | Long-Short Average Return | Long-Short Average Sharpe |
+|---|---|---|---|---|---|---|---|---|---|
+| LightGBM | Alpha158 | 0.3042±0.00 | 1.5372±0.00| 0.3117±0.00 | 1.6258±0.00 | 0.6720±0.00 | 0.6870±0.00 | 0.000769±0.00 | 1.0190±0.00 |

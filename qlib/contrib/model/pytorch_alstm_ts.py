@@ -8,13 +8,9 @@ from __future__ import print_function
 import os
 import numpy as np
 import pandas as pd
+from typing import Text, Union
 import copy
-from ...utils import (
-    unpack_archive_with_buffer,
-    save_multiple_parts_file,
-    get_or_create_path,
-    drop_nan_by_y_index,
-)
+from ...utils import get_or_create_path
 from ...log import get_module_logger
 
 import torch
@@ -264,11 +260,11 @@ class ALSTM(Model):
         if self.use_gpu:
             torch.cuda.empty_cache()
 
-    def predict(self, dataset):
+    def predict(self, dataset: DatasetH, segment: Union[Text, slice] = "test"):
         if not self.fitted:
             raise ValueError("model is not fitted yet!")
 
-        dl_test = dataset.prepare("test", col_set=["feature", "label"], data_key=DataHandlerLP.DK_I)
+        dl_test = dataset.prepare(segment, col_set=["feature", "label"], data_key=DataHandlerLP.DK_I)
         dl_test.config(fillna_type="ffill+bfill")
         test_loader = DataLoader(dl_test, batch_size=self.batch_size, num_workers=self.n_jobs)
         self.ALSTM_model.eval()

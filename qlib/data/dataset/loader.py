@@ -217,3 +217,64 @@ class StaticDataLoader(DataLoader):
             join=self.join,
         )
         self._data.sort_index(inplace=True)
+
+
+class DataLoaderDH(DataLoader):
+    """DataLoaderDH
+    DataLoader based on (D)ata (H)andler
+    It is designed to load multiple data from data handler
+    - If you just want to load data from single datahandler, you can write them in single data handler
+    """
+
+    def __init__(self, handler_config: dict, fetch_kwargs: dict = {}, is_group=False):
+        """
+        Parameters
+        ----------
+        handler_config : dict
+            handler_config will be used to describe the handlers
+
+            .. code-block::
+
+                <handler_config> := {
+                    "group_name1": <handler>
+                    "group_name2": <handler>
+                }
+                or
+                <handler_config> := <handler>
+                <handler> := DataHandler Instance | DataHandler Config
+
+        fetch_kwargs : dict
+            fetch_kwargs will be used to describe the different arguments of fetch method, such as col_set, squeeze, data_key, etc.
+
+        is_group: bool
+            is_group will be used to describe whether the key of handler_config is group
+
+        """
+        from qlib.data.dataset.handler import DataHandler
+
+        if is_group:
+            self.handlers = {
+                grp: init_instance_by_config(config, accept_types=DataHandler) for grp, config in handler_config.items()
+            }
+        else:
+            self.handlers = init_instance_by_config(handler_config, accept_types=DataHandler)
+
+        self.is_group = is_group
+        self.fetch_kwargs = {"col_set": DataHandler.CS_RAW}
+        self.fetch_kwargs.update(fetch_kwargs)
+
+    def load(self, instruments=None, start_time=None, end_time=None) -> pd.DataFrame:
+        if instruments is not None:
+            LOG.warning(f"instruments[{instruments}] is ignored")
+
+        if self.is_group:
+            df = pd.concat(
+                {
+                    grp: dh.fetch(selector=slice(start_time, end_time), level="datetime", **self.fetch_kwargs)
+                    for grp, dh in self.handlers.items()
+                },
+                axis=1,
+            )
+        else:
+            df = self.handlers.fetch(selector=slice(start_time, end_time), level="datetime", **self.fetch_kwargs)
+        return df

@@ -8,13 +8,9 @@ from __future__ import print_function
 import os
 import numpy as np
 import pandas as pd
+from typing import Text, Union
 import copy
-from ...utils import (
-    unpack_archive_with_buffer,
-    save_multiple_parts_file,
-    get_or_create_path,
-    drop_nan_by_y_index,
-)
+from ...utils import get_or_create_path
 from ...log import get_module_logger
 import torch
 import torch.nn as nn
@@ -83,7 +79,6 @@ class GATs(Model):
         self.with_pretrain = with_pretrain
         self.model_path = model_path
         self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
-        self.use_gpu = torch.cuda.is_available()
         self.seed = seed
 
         self.logger.info(
@@ -310,11 +305,11 @@ class GATs(Model):
         if self.use_gpu:
             torch.cuda.empty_cache()
 
-    def predict(self, dataset):
+    def predict(self, dataset: DatasetH, segment: Union[Text, slice] = "test"):
         if not self.fitted:
             raise ValueError("model is not fitted yet!")
 
-        x_test = dataset.prepare("test", col_set="feature")
+        x_test = dataset.prepare(segment, col_set="feature")
         index = x_test.index
         self.GAT_model.eval()
         x_values = x_test.values

@@ -2,6 +2,7 @@
 #  Licensed under the MIT License.
 
 import re
+import logging
 import warnings
 import pandas as pd
 from pathlib import Path
@@ -18,7 +19,7 @@ from ..strategy.base import BaseStrategy
 from ..contrib.eva.alpha import calc_ic, calc_long_short_return
 
 
-logger = get_module_logger("workflow", "INFO")
+logger = get_module_logger("workflow", logging.INFO)
 
 
 class RecordTemp:
@@ -41,7 +42,13 @@ class RecordTemp:
         return "/".join(names)
 
     def __init__(self, recorder):
-        self.recorder = recorder
+        self._recorder = recorder
+
+    @property
+    def recorder(self):
+        if self._recorder is None:
+            raise ValueError("This RecordTemp did not set recorder yet.")
+        return self._recorder
 
     def generate(self, **kwargs):
         """
@@ -156,6 +163,60 @@ class SignalRecord(RecordTemp):
 
     def load(self, name="pred.pkl"):
         return super().load(name)
+
+
+class HFSignalRecord(SignalRecord):
+    """
+    This is the Signal Analysis Record class that generates the analysis results such as IC and IR. This class inherits the ``RecordTemp`` class.
+    """
+
+    artifact_path = "hg_sig_analysis"
+
+    def __init__(self, recorder, **kwargs):
+        super().__init__(recorder=recorder)
+
+    def generate(self):
+        pred = self.load("pred.pkl")
+        raw_label = self.load("label.pkl")
+        long_pre, short_pre = calc_long_short_prec(pred.iloc[:, 0], raw_label.iloc[:, 0], is_alpha=True)
+        ic, ric = calc_ic(pred.iloc[:, 0], raw_label.iloc[:, 0])
+        metrics = {
+            "IC": ic.mean(),
+            "ICIR": ic.mean() / ic.std(),
+            "Rank IC": ric.mean(),
+            "Rank ICIR": ric.mean() / ric.std(),
+            "Long precision": long_pre.mean(),
+            "Short precision": short_pre.mean(),
+        }
+        objects = {"ic.pkl": ic, "ric.pkl": ric}
+        objects.update({"long_pre.pkl": long_pre, "short_pre.pkl": short_pre})
+        long_short_r, long_avg_r = calc_long_short_return(pred.iloc[:, 0], raw_label.iloc[:, 0])
+        metrics.update(
+            {
+                "Long-Short Average Return": long_short_r.mean(),
+                "Long-Short Average Sharpe": long_short_r.mean() / long_short_r.std(),
+            }
+        )
+        objects.update(
+            {
+                "long_short_r.pkl": long_short_r,
+                "long_avg_r.pkl": long_avg_r,
+            }
+        )
+        self.recorder.log_metrics(**metrics)
+        self.recorder.save_objects(**objects, artifact_path=self.get_path())
+        pprint(metrics)
+
+    def list(self):
+        paths = [
+            self.get_path("ic.pkl"),
+            self.get_path("ric.pkl"),
+            self.get_path("long_pre.pkl"),
+            self.get_path("short_pre.pkl"),
+            self.get_path("long_short_r.pkl"),
+            self.get_path("long_avg_r.pkl"),
+        ]
+        return paths
 
 
 class SigAnaRecord(SignalRecord):
