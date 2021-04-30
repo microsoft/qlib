@@ -18,7 +18,6 @@ class MetaLogger(type):
         for key in wrapper_dict:
             if key not in dict and key != "__reduce__":
                 dict[key] = wrapper_dict[key]
-        dict["__doc__"] = logging.Logger.__doc__
         return type.__new__(cls, name, bases, dict)
 
 
@@ -30,9 +29,6 @@ class QlibLogger(metaclass=MetaLogger):
     def __init__(self, module_name):
         self.module_name = module_name
         self.level = 0
-
-    def __reduce__(self):
-        return (QlibLogger, (self.module_name,))
 
     @property
     def logger(self):
