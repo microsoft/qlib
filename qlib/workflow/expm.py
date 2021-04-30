@@ -33,6 +33,7 @@ class ExpManager:
 
     def start_exp(
         self,
+        *,
         experiment_id: Optional[Text] = None,
         experiment_name: Optional[Text] = None,
         recorder_id: Optional[Text] = None,
@@ -304,6 +305,7 @@ class MLflowExpManager(ExpManager):
 
     def start_exp(
         self,
+        *,
         experiment_id: Optional[Text] = None,
         experiment_name: Optional[Text] = None,
         recorder_id: Optional[Text] = None,
@@ -320,7 +322,7 @@ class MLflowExpManager(ExpManager):
         # Set up active experiment
         self.active_experiment = experiment
         # Start the experiment
-        self.active_experiment.start(recorder_id, recorder_name, resume)
+        self.active_experiment.start(recorder_id=recorder_id, recorder_name=recorder_name, resume=resume)
 
         return self.active_experiment
 

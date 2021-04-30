@@ -39,7 +39,7 @@ class Experiment:
         output["recorders"] = list(recorders.keys())
         return output
 
-    def start(self, recorder_id=None, recorder_name=None, resume=False):
+    def start(self, *, recorder_id=None, recorder_name=None, resume=False):
         """
         Start the experiment and set it to be active. This method will also start a new recorder.
 
@@ -240,7 +240,7 @@ class MLflowExperiment(Experiment):
     def __repr__(self):
         return "{name}(id={id}, info={info})".format(name=self.__class__.__name__, id=self.id, info=self.info)
 
-    def start(self, recorder_id=None, recorder_name=None, resume=False):
+    def start(self, *, recorder_id=None, recorder_name=None, resume=False):
         logger.info(f"Experiment {self.id} starts running ...")
         # Get or create recorder
         if recorder_name is None:

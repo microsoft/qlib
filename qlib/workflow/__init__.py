@@ -23,6 +23,7 @@ class QlibRecorder:
     @contextmanager
     def start(
         self,
+        *,
         experiment_id: Optional[Text] = None,
         experiment_name: Optional[Text] = None,
         recorder_id: Optional[Text] = None,
@@ -63,7 +64,14 @@ class QlibRecorder:
         resume : bool
             whether to resume the specific recorder with given name under the given experiment.
         """
-        run = self.start_exp(experiment_id, experiment_name, recorder_id, recorder_name, uri, resume)
+        run = self.start_exp(
+            experiment_id=experiment_id,
+            experiment_name=experiment_name,
+            recorder_id=recorder_id,
+            recorder_name=recorder_name,
+            uri=uri,
+            resume=resume,
+        )
         try:
             yield run
         except Exception as e:
@@ -72,7 +80,7 @@ class QlibRecorder:
         self.end_exp(Recorder.STATUS_FI)
 
     def start_exp(
-        self, experiment_id=None, experiment_name=None, recorder_id=None, recorder_name=None, uri=None, resume=False
+        self, *, experiment_id=None, experiment_name=None, recorder_id=None, recorder_name=None, uri=None, resume=False
     ):
         """
         Lower level method for starting an experiment. When use this method, one should end the experiment manually
@@ -105,7 +113,14 @@ class QlibRecorder:
         -------
         An experiment instance being started.
         """
-        return self.exp_manager.start_exp(experiment_id, experiment_name, recorder_id, recorder_name, uri, resume)
+        return self.exp_manager.start_exp(
+            experiment_id=experiment_id,
+            experiment_name=experiment_name,
+            recorder_id=recorder_id,
+            recorder_name=recorder_name,
+            uri=uri,
+            resume=resume,
+        )
 
     def end_exp(self, recorder_status=Recorder.STATUS_FI):
         """
