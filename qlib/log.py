@@ -31,12 +31,6 @@ class QlibLogger(metaclass=MetaLogger):
         self.module_name = module_name
         self.level = 0
 
-    def __getstate__(self):
-        return vars(self)
-
-    def __setstate__(self, state):
-        vars(self).update(state)
-
     def __reduce__(self):
         return (QlibLogger, (self.module_name,))
 
@@ -50,6 +44,9 @@ class QlibLogger(metaclass=MetaLogger):
         self.level = level
 
     def __getattr__(self, name):
+        # During unpickling, python will call __getattr__. Use this line to avoid maximum recursion error.
+        if name in {"__setstate__"}:
+            raise AttributeError
         return self.logger.__getattribute__(name)
 
 
