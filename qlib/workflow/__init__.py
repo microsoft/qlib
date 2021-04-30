@@ -23,7 +23,10 @@ class QlibRecorder:
     @contextmanager
     def start(
         self,
+        *,
+        experiment_id: Optional[Text] = None,
         experiment_name: Optional[Text] = None,
+        recorder_id: Optional[Text] = None,
         recorder_name: Optional[Text] = None,
         uri: Optional[Text] = None,
         resume: bool = False,
@@ -45,8 +48,12 @@ class QlibRecorder:
 
         Parameters
         ----------
+        experiment_id : str
+            id of the experiment one wants to start.
         experiment_name : str
             name of the experiment one wants to start.
+        recorder_id : str
+            id of the recorder under the experiment one wants to start.
         recorder_name : str
             name of the recorder under the experiment one wants to start.
         uri : str
@@ -57,7 +64,14 @@ class QlibRecorder:
         resume : bool
             whether to resume the specific recorder with given name under the given experiment.
         """
-        run = self.start_exp(experiment_name, recorder_name, uri, resume)
+        run = self.start_exp(
+            experiment_id=experiment_id,
+            experiment_name=experiment_name,
+            recorder_id=recorder_id,
+            recorder_name=recorder_name,
+            uri=uri,
+            resume=resume,
+        )
         try:
             yield run
         except Exception as e:
@@ -65,7 +79,9 @@ class QlibRecorder:
             raise e
         self.end_exp(Recorder.STATUS_FI)
 
-    def start_exp(self, experiment_name=None, recorder_name=None, uri=None, resume=False):
+    def start_exp(
+        self, *, experiment_id=None, experiment_name=None, recorder_id=None, recorder_name=None, uri=None, resume=False
+    ):
         """
         Lower level method for starting an experiment. When use this method, one should end the experiment manually
         and the status of the recorder may not be handled properly. Here is the example code:
@@ -79,8 +95,12 @@ class QlibRecorder:
 
         Parameters
         ----------
+        experiment_id : str
+            id of the experiment one wants to start.
         experiment_name : str
             the name of the experiment to be started
+        recorder_id : str
+            id of the recorder under the experiment one wants to start.
         recorder_name : str
             name of the recorder under the experiment one wants to start.
         uri : str
@@ -93,7 +113,14 @@ class QlibRecorder:
         -------
         An experiment instance being started.
         """
-        return self.exp_manager.start_exp(experiment_name, recorder_name, uri, resume)
+        return self.exp_manager.start_exp(
+            experiment_id=experiment_id,
+            experiment_name=experiment_name,
+            recorder_id=recorder_id,
+            recorder_name=recorder_name,
+            uri=uri,
+            resume=resume,
+        )
 
     def end_exp(self, recorder_status=Recorder.STATUS_FI):
         """
