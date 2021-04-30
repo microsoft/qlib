@@ -7,8 +7,7 @@ from pathlib import Path
 import qlib
 import pandas as pd
 from qlib.config import REG_CN
-from qlib.contrib.strategy import TopkDropoutStrategy
-from qlib.contrib.backtest import backtest
+
 from qlib.utils import exists_qlib_data, init_instance_by_config, flatten_dict
 from qlib.workflow import R
 from qlib.workflow.record_temp import PortAnaRecord
@@ -130,20 +129,9 @@ if __name__ == "__main__":
             "min_cost": 5,
         },
     }
-
-    #report_dict = backtest(
-    #    start_time=trade_start_time,
-    #    end_time=trade_end_time,
-    #    **backtest_config,
-    #    account=1e8,
-    #    benchmark=benchmark,
-    #    deal_price="$close",
-    #    verbose=False,
-    #)
-
     with R.start(experiment_name="highfreq_backtest"):
         # backtest. If users want to use backtest based on their own prediction,
         # please refer to https://qlib.readthedocs.io/en/latest/component/recorder.html#record-template.
         recorder = R.get_recorder()
-        par = PortAnaRecord(recorder, port_analysis_config, 1)
+        par = PortAnaRecord(recorder, port_analysis_config, "day")
         par.generate()

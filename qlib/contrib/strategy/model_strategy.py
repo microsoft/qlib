@@ -163,7 +163,7 @@ class TopkDropoutStrategy(ModelStrategy):
 
         # Get the stock list we really want to buy
         buy = today[: len(sell) + self.topk - len(last)]
-        #print("flag", len(sell), len(buy), self.topk, len(last))
+        # print("flag", len(sell), len(buy), self.topk, len(last))
         for code in current_stock_list:
             if not self.trade_exchange.is_stock_tradable(
                 stock_id=code, start_time=trade_start_time, end_time=trade_end_time

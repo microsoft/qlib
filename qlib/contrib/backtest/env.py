@@ -6,7 +6,7 @@ import pathlib
 import numpy as np
 import pandas as pd
 from ...data.data import Cal
-from ...utils import get_sample_freq_calendar
+from ...utils import get_sample_freq_calendar, parse_freq
 from .position import Position
 from .report import Report
 from .order import Order
@@ -151,16 +151,25 @@ class SplitEnv(BaseEnv):
             trade_state, trade_info = self.sub_env.execute(order_list=_order_list)
 
         self.trade_account.update_bar_end(
-            trade_start_time=trade_start_time, trade_end_time=trade_end_time, trade_exchange=self.trade_exchange, update_report=self.generate_report
+            trade_start_time=trade_start_time,
+            trade_end_time=trade_end_time,
+            trade_exchange=self.trade_exchange,
+            update_report=self.generate_report,
         )
         _obs = {"current": self.trade_account.current}
         _info = {}
         return _obs, _info
 
     def get_report(self):
-        _report = self.trade_account.report.generate_report_dataframe() if self.generate_report else None
-        _positions = self.trade_account.get_positions() if self.generate_report else None
-        return [(_report, _positions), *self.sub_env.get_report()]
+        sub_env_report_dict = self.sub_env.get_report()
+        if self.generate_report:
+            _report = self.trade_account.report.generate_report_dataframe()
+            _positions = self.trade_account.get_positions()
+            _count, _freq = parse_freq(self.step_bar)
+            sub_env_report_dict.update({f"{_count}{_freq}": (_report, _positions)})
+            return sub_env_report_dict
+        else:
+            return sub_env_report_dict
 
 
 class SimulatorEnv(BaseEnv):
@@ -235,13 +244,20 @@ class SimulatorEnv(BaseEnv):
                 # do nothing
                 pass
         self.trade_account.update_bar_end(
-            trade_start_time=trade_start_time, trade_end_time=trade_end_time, trade_exchange=self.trade_exchange, update_report=self.generate_report
+            trade_start_time=trade_start_time,
+            trade_end_time=trade_end_time,
+            trade_exchange=self.trade_exchange,
+            update_report=self.generate_report,
         )
         _obs = {"current": self.trade_account.current}
         _info = {"trade_info": trade_info}
         return _obs, _info
 
     def get_report(self):
-        _report = self.trade_account.report.generate_report_dataframe() if self.generate_report else None
-        _positions = self.trade_account.get_positions() if self.generate_report else None
-        return [(_report, _positions)]
+        if self.generate_report:
+            _report = self.trade_account.report.generate_report_dataframe()
+            _positions = self.trade_account.get_positions()
+            _count, _freq = parse_freq(self.step_bar)
+            return {f"{_count}{_freq}": (_report, _positions)}
+        else:
+            return {}

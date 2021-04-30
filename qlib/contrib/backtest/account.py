@@ -179,7 +179,7 @@ class Account:
             bar_close = trade_exchange.get_close(code, trade_start_time, trade_end_time)
             self.current.update_stock_price(stock_id=code, price=bar_close)
         # update holding day count
-        
+
         # update value
         self.val = self.current.calculate_value()
         # update earning
