@@ -15,9 +15,10 @@ from .config import C
 class MetaLogger(type):
     def __new__(cls, name, bases, dict):
         wrapper_dict = logging.Logger.__dict__.copy()
-        wrapper_dict.update(dict)
-        wrapper_dict["__doc__"] = logging.Logger.__doc__
-        return type.__new__(cls, name, bases, wrapper_dict)
+        for key in wrapper_dict:
+            if key not in dict and key != "__reduce__":
+                dict[key] = wrapper_dict[key]
+        return type.__new__(cls, name, bases, dict)
 
 
 class QlibLogger(metaclass=MetaLogger):
@@ -39,6 +40,9 @@ class QlibLogger(metaclass=MetaLogger):
         self.level = level
 
     def __getattr__(self, name):
+        # During unpickling, python will call __getattr__. Use this line to avoid maximum recursion error.
+        if name in {"__setstate__"}:
+            raise AttributeError
         return self.logger.__getattribute__(name)
 
 
