@@ -112,7 +112,7 @@ if __name__ == "__main__":
             "min_cost": 5,
         },
     }
-        
+
     with R.start(experiment_name="highfreq_backtest"):
         R.log_params(**flatten_dict(task))
         model.fit(dataset)

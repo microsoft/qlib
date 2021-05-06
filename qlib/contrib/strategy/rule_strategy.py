@@ -19,9 +19,7 @@ class TWAPStrategy(RuleStrategy, TradingEnhancement):
         trade_exchange=None,
         **kwargs,
     ):
-        super(TWAPStrategy, self).__init__(
-            step_bar, start_time, end_time, trade_exchange=trade_exchange, **kwargs
-        )
+        super(TWAPStrategy, self).__init__(step_bar, start_time, end_time, trade_exchange=trade_exchange, **kwargs)
 
     def reset(self, trade_order_list=None, trade_exchange=None, **kwargs):
         super(TWAPStrategy, self).reset(**kwargs)
@@ -58,6 +56,7 @@ class SBBStrategyBase(RuleStrategy, TradingEnhancement):
     TREND_MID = 0
     TREND_SHORT = 1
     TREND_LONG = 2
+
     def __init__(
         self,
         step_bar,
@@ -66,9 +65,7 @@ class SBBStrategyBase(RuleStrategy, TradingEnhancement):
         trade_exchange=None,
         **kwargs,
     ):
-        super(SBBStrategyBase, self).__init__(
-            step_bar, start_time, end_time, trade_exchange=trade_exchange, **kwargs
-        )
+        super(SBBStrategyBase, self).__init__(step_bar, start_time, end_time, trade_exchange=trade_exchange, **kwargs)
 
     def reset(self, trade_order_list=None, trade_exchange=None, **kwargs):
         super(SBBStrategyBase, self).reset(**kwargs)
