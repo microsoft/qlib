@@ -244,7 +244,7 @@ class TSDataSampler:
 
     """
 
-    def __init__(self, data: pd.DataFrame, start, end, step_len: int, fillna_type: str = "none", dtype=None):
+    def __init__(self, data: pd.DataFrame, start, end, step_len: int, fillna_type: str = "none", dtype=None, flt_data=None):
         """
         Build a dataset which looks like torch.data.utils.Dataset.
 
@@ -317,7 +317,7 @@ class TSDataSampler:
         Get the pandas index of the data, it will be useful in following scenarios
         - Special sampler will be used (e.g. user want to sample day by day)
         """
-        return self.data_idx[self.start_idx : self.end_idx]
+        return self.data_index[self.start_idx : self.end_idx]
 
     def config(self, **kwargs):
         # Config the attributes
