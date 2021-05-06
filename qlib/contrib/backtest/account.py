@@ -94,7 +94,7 @@ class Account:
 
     def _sample_benchmark(self, bench, trade_start_time, trade_end_time):
         def cal_change(x):
-            return x.prod() - 1
+            return (x + 1).prod() - 1
 
         _ret = sample_feature(bench, trade_start_time, trade_end_time, method=cal_change)
         return 0 if _ret is None else _ret

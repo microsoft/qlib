@@ -51,7 +51,7 @@ class TopkDropoutStrategy(ModelStrategy):
                 strategy will make decision with the tradable state of the stock info and avoid buy and sell them.
         """
         super(TopkDropoutStrategy, self).__init__(
-            step_bar, model, dataset, start_time, end_time, trade_exchange=trade_exchange
+            step_bar, model, dataset, start_time, end_time, trade_exchange=trade_exchange, **kwargs
         )
         self.topk = topk
         self.n_drop = n_drop

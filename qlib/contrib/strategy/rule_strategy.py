@@ -11,16 +11,30 @@ from ..backtest.order import Order
 
 
 class TWAPStrategy(RuleStrategy, TradingEnhancement):
-    def reset(self, trade_order_list=None, **kwargs):
+    def __init__(
+        self,
+        step_bar,
+        start_time=None,
+        end_time=None,
+        trade_exchange=None,
+        **kwargs,
+    ):
+        super(TWAPStrategy, self).__init__(
+            step_bar, start_time, end_time, trade_exchange=trade_exchange, **kwargs
+        )
+
+    def reset(self, trade_order_list=None, trade_exchange=None, **kwargs):
         super(TWAPStrategy, self).reset(**kwargs)
         TradingEnhancement.reset(self, trade_order_list=trade_order_list)
         if trade_order_list:
             self.trade_amount = {}
             for order in self.trade_order_list:
                 self.trade_amount[(order.stock_id, order.direction)] = order.amount // self.trade_len
+        if trade_exchange:
+            self.trade_exchange = trade_exchange
 
     def generate_order_list(self, **kwargs):
-        super(TopkDropoutStrategy, self).step()
+        super(TWAPStrategy, self).step()
         trade_start_time, trade_end_time = self._get_calendar_time(self.trade_index)
         order_list = []
         for order in self.trade_order_list:
@@ -44,8 +58,19 @@ class SBBStrategyBase(RuleStrategy, TradingEnhancement):
     TREND_MID = 0
     TREND_SHORT = 1
     TREND_LONG = 2
+    def __init__(
+        self,
+        step_bar,
+        start_time=None,
+        end_time=None,
+        trade_exchange=None,
+        **kwargs,
+    ):
+        super(SBBStrategyBase, self).__init__(
+            step_bar, start_time, end_time, trade_exchange=trade_exchange, **kwargs
+        )
 
-    def reset(self, trade_order_list=None, **kwargs):
+    def reset(self, trade_order_list=None, trade_exchange=None, **kwargs):
         super(SBBStrategyBase, self).reset(**kwargs)
         TradingEnhancement.reset(self, trade_order_list=trade_order_list)
         if trade_order_list:
@@ -54,6 +79,8 @@ class SBBStrategyBase(RuleStrategy, TradingEnhancement):
             for order in self.trade_order_list:
                 self.trade_amount[(order.stock_id, order.direction)] = order.amount // self.trade_len
                 self.trade_trend[(order.stock_id, order.direction)] = self.TREND_MID
+        if trade_exchange:
+            self.trade_exchange = trade_exchange
 
     def _pred_price_trend(self, stock_id, pred_start_time=None, pred_end_time=None):
         raise NotImplementedError("pred_price_trend method is not implemented!")
@@ -127,11 +154,12 @@ class SBBStrategyEMA(SBBStrategyBase):
         step_bar,
         start_time=None,
         end_time=None,
+        trade_exchange=None,
         instruments="csi300",
         freq="day",
         **kwargs,
     ):
-        super(SBBStrategyEMA, self).__init__(step_bar, start_time, end_time, **kwargs)
+        super(SBBStrategyEMA, self).__init__(step_bar, start_time, end_time, trade_exchange=trade_exchange, **kwargs)
         if instruments is None:
             warnings.warn("`instruments` is not set, will load all stocks")
             self.instruments = "all"

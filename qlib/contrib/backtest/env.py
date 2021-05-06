@@ -49,7 +49,7 @@ class BaseTradeCalendar:
     def _get_calendar_time(self, trade_index=1, shift=0):
         trade_index = trade_index - shift
         calendar_index = self.start_index + trade_index
-        return self.calendar[calendar_index - 1], self.calendar[calendar_index]
+        return self.calendar[calendar_index - 1], self.calendar[calendar_index] - pd.Timedelta(seconds=1)
 
     def finished(self):
         return self.trade_index >= self.trade_len - 1
