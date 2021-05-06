@@ -83,7 +83,7 @@ if __name__ == "__main__":
             "class": "TopkDropoutStrategy",
             "module_path": "qlib.contrib.strategy.model_strategy",
             "kwargs": {
-                "step_bar": "day",
+                "step_bar": "week",
                 "model": model,
                 "dataset": dataset,
                 "topk": 50,
@@ -91,12 +91,28 @@ if __name__ == "__main__":
             },
         },
         "env": {
-            "class": "SimulatorEnv",
+            "class": "SplitEnv",
             "module_path": "qlib.contrib.backtest.env",
             "kwargs": {
-                "step_bar": "day",
-                "verbose": True,
-                "generate_report": True,
+                "step_bar": "week",
+                "sub_env": {
+                    "class": "SimulatorEnv",
+                    "module_path": "qlib.contrib.backtest.env",
+                    "kwargs": {
+                        "step_bar": "day",
+                        "verbose": True,
+                        "generate_report": True,
+                    },
+                },
+                "sub_strategy": {
+                    "class": "SBBStrategyEMA",
+                    "module_path": "qlib.contrib.strategy.rule_strategy",
+                    "kwargs": {
+                        "step_bar": "day",
+                        "freq": "day",
+                        "instruments": market,
+                    },
+                },
             },
         },
         "backtest": {

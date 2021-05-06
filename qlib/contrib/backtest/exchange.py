@@ -390,6 +390,12 @@ class Exchange:
                 )
         return value
 
+    def get_amount_of_trade_unit(self, factor):
+        if not self.trade_w_adj_price:
+            return self.trade_unit / factor
+        else:
+            return None
+
     def round_amount_by_trade_unit(self, deal_amount, factor):
         """Parameter
         deal_amount : float, adjusted amount

@@ -51,5 +51,5 @@ class ModelStrategy(BaseStrategy):
 
 class TradingEnhancement:
     def reset(self, trade_order_list=None):
-        if trade_order_list:
+        if trade_order_list is not None:
             self.trade_order_list = trade_order_list
