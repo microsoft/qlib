@@ -16,6 +16,9 @@ from qlib.workflow.task.utils import list_recorders
 
 
 class OnlineTool:
+    """
+    OnlineTool.
+    """
 
     ONLINE_KEY = "online_status"  # the online status key in recorder
     ONLINE_TAG = "online"  # the 'online' model

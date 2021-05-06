@@ -36,7 +36,7 @@ class DataHandler(Serializable):
     The data handler try to maintain a handler with 2 level.
     `datetime` & `instruments`.
 
-    Any order of the index level can be suported (The order will be implied in the data).
+    Any order of the index level can be supported (The order will be implied in the data).
     The order  <`datetime`, `instruments`> will be used when the dataframe index name is missed.
 
     Example of the data:
@@ -77,7 +77,7 @@ class DataHandler(Serializable):
         data_loader : Tuple[dict, str, DataLoader]
             data loader to load the data.
         init_data :
-            intialize the original data in the constructor.
+            initialize the original data in the constructor.
         fetch_orig : bool
             Return the original data instead of copy if possible.
         """
@@ -128,7 +128,7 @@ class DataHandler(Serializable):
 
     def setup_data(self, enable_cache: bool = False):
         """
-        Set Up the data in case of running intialization for multiple time
+        Set Up the data in case of running initialization for multiple time
 
         It is responsible for maintaining following variable
         1) self._data
@@ -453,7 +453,7 @@ class DataHandlerLP(DataHandler):
 
     def setup_data(self, init_type: str = IT_FIT_SEQ, **kwargs):
         """
-        Set up the data in case of running intialization for multiple time
+        Set up the data in case of running initialization for multiple time
 
         Parameters
         ----------

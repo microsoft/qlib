@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 """
-Update is a module to update artifacts such as predictions, when the stock data updating.
+Updater is a module to update artifacts such as predictions, when the stock data is updating.
 """
 
 from abc import ABCMeta, abstractmethod
@@ -89,9 +89,13 @@ class PredUpdater(RecordUpdater):
             hist_ref : int
                 Sometimes, the dataset will have historical depends.
                 Leave the problem to user to set the length of historical dependency
-                NOTE: the start_time is not included in the hist_ref
-                # TODO: automate this step in the future.
+
+                .. note::
+
+                    the start_time is not included in the hist_ref
+
         """
+        # TODO: automate this hist_ref in the future.
         super().__init__(record=record, need_log=need_log)
 
         self.to_date = to_date

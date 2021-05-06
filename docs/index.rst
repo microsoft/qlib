@@ -42,6 +42,7 @@ Document Structure
    Intraday Trading: Model&Strategy Testing <component/backtest.rst>
    Qlib Recorder: Experiment Management <component/recorder.rst>
    Analysis: Evaluation & Results Analysis <component/report.rst>
+   Online Serving: Online Management & Strategy & Tool <component/online.rst>
 
 .. toctree::
    :maxdepth: 3

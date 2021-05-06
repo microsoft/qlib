@@ -52,9 +52,13 @@ class TaskManager:
         Assumption: the data in MongoDB was encoded and the data out of MongoDB was decoded
 
     Here are four status which are:
+
         STATUS_WAITING: waiting for train
+
         STATUS_RUNNING: training
-        STATUS_PART_DONE: finished some step and waiting for next step.
+
+        STATUS_PART_DONE: finished some step and waiting for next step
+
         STATUS_DONE: all work done
     """
 
@@ -393,9 +397,13 @@ def run_task(
     While task pool is not empty (has WAITING tasks), use task_func to fetch and run tasks in task_pool
 
     After running this method, here are 4 situations (before_status -> after_status):
+
         STATUS_WAITING -> STATUS_DONE: use task["def"] as `task_func` param
+
         STATUS_WAITING -> STATUS_PART_DONE: use task["def"] as `task_func` param
+
         STATUS_PART_DONE -> STATUS_PART_DONE: use task["res"] as `task_func` param
+
         STATUS_PART_DONE -> STATUS_DONE: use task["res"] as `task_func` param
 
     Parameters

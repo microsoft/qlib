@@ -2,11 +2,14 @@
 # Licensed under the MIT License.
 
 """
-OnlineManager can manage a set of OnlineStrategy and run them dynamically.
+OnlineManager can manage a set of `Online Strategy <#Online Strategy>`_ and run them dynamically.
 
 With the change of time, the decisive models will be also changed. In this module, we call those contributing models as `online` models.
 In every routine(such as everyday or every minutes), the `online` models maybe changed and the prediction of them need to be updated.
 So this module provide a series methods to control this process. 
+
+This module also provide a method to simulate `Online Strategy <#Online Strategy>`_ in the history.
+Which means you can verify your strategy or find a better one.
 """
 
 from typing import Dict, List, Union
@@ -14,12 +17,18 @@ from typing import Dict, List, Union
 import pandas as pd
 from qlib import get_module_logger
 from qlib.data.data import D
+from qlib.model.ens.ensemble import AverageEnsemble, SingleKeyEnsemble
 from qlib.utils.serial import Serializable
 from qlib.workflow.online.strategy import OnlineStrategy
 from qlib.workflow.task.collect import HyperCollector
 
 
 class OnlineManager(Serializable):
+    """
+    OnlineManager can manage online models with `Online Strategy <#Online Strategy>`_.
+    It also provide a history recording which models are onlined at what time.
+    """
+
     def __init__(
         self,
         strategy: Union[OnlineStrategy, List[OnlineStrategy]],
@@ -29,10 +38,11 @@ class OnlineManager(Serializable):
     ):
         """
         Init OnlineManager.
+        One OnlineManager must have at least one OnlineStrategy.
 
         Args:
             strategy (Union[OnlineStrategy, List[OnlineStrategy]]): an instance of OnlineStrategy or a list of OnlineStrategy
-            begin_time (Union[str,pd.Timestamp], optional): the OnlineManager will begin at this time. Defaults to None.
+            begin_time (Union[str,pd.Timestamp], optional): the OnlineManager will begin at this time. Defaults to None for using latest date.
             freq (str, optional): data frequency. Defaults to "day".
             need_log (bool, optional): print log or not. Defaults to True.
         """
@@ -50,7 +60,7 @@ class OnlineManager(Serializable):
 
     def first_train(self):
         """
-        Run every strategy first_train method and record the online history
+        Run every strategy first_train method and record the online history.
         """
         for strategy in self.strategy:
             self.logger.info(f"Strategy `{strategy.name_id}` begins first training...")
@@ -62,7 +72,7 @@ class OnlineManager(Serializable):
         Run typical update process for every strategy and record the online history.
 
         The typical update process after a routine, such as day by day or month by month.
-        update online prediction -> prepare signals -> prepare tasks -> prepare new models -> reset online models
+        The process is: Prepare signals -> Prepare tasks -> Prepare online models.
 
         Args:
             cur_time (Union[str,pd.Timestamp], optional): run routine method in this time. Defaults to None.
@@ -84,15 +94,15 @@ class OnlineManager(Serializable):
 
     def get_collector(self) -> HyperCollector:
         """
-        Get the instance of HyperCollector to collect results from every strategy.
+        Get the instance of `Collector <../advanced/task_management.html#Task Collecting>`_ to collect results from every strategy.
 
         Returns:
-            HyperCollector: the collector can collect other collectors.
+            HyperCollector: the collector to collect other collectors (using SingleKeyEnsemble() to make results more readable).
         """
         collector_dict = {}
         for strategy in self.strategy:
             collector_dict[strategy.name_id] = strategy.get_collector()
-        return HyperCollector(collector_dict)
+        return HyperCollector(collector_dict, process_list=SingleKeyEnsemble())
 
     def get_online_history(self, strategy_name_id: str) -> list:
         """
@@ -102,7 +112,7 @@ class OnlineManager(Serializable):
             strategy_name_id (str): the name_id of strategy
 
         Returns:
-            dict: a list like [(time, [online_models])]
+            list: a list like [(begin_time, [online_models])]
         """
         history_dict = self.history[strategy_name_id]
         history = []
@@ -121,10 +131,27 @@ class OnlineManager(Serializable):
         for strategy in self.strategy:
             strategy.delay_prepare(self.get_online_history(strategy.name_id), **delay_kwargs)
 
+    def get_signals(self) -> pd.DataFrame:
+        """
+        Average all strategy signals as the online signals.
+
+        Assumption: the signals from every strategy is pd.DataFrame. Override this function to change.
+
+        Returns:
+            pd.DataFrame: signals
+        """
+        signals_dict = {}
+        for strategy in self.strategy:
+            signals_dict[strategy.name_id] = strategy.get_signals()
+        return AverageEnsemble()(signals_dict)
+
     def simulate(self, end_time, frequency="day", task_kwargs={}, model_kwargs={}, delay_kwargs={}) -> HyperCollector:
         """
-        Starting from cur time, this method will simulate every routine in OnlineManager.
-        NOTE: Considering the parallel training, the models and signals can be perpared after all routine simulating.
+        Starting from current time, this method will simulate every routine in OnlineManager until end time.
+
+        Considering the parallel training, the models and signals can be perpared after all routine simulating.
+
+        The delay training way can be ``DelayTrainer`` and the delay preparing signals way can be ``delay_prepare``.
 
         Returns:
             HyperCollector: the OnlineManager's collector
@@ -140,7 +167,9 @@ class OnlineManager(Serializable):
 
     def reset(self):
         """
-        NOTE: This method will reset all strategy! Be careful to use it.
+        This method will reset all strategy!
+
+        **Be careful to use it.**
         """
         self.cur_time = self.begin_time
         self.history = {}

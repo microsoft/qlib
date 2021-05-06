@@ -2,8 +2,7 @@
 # Licensed under the MIT License.
 
 """
-OnlineStrategy is a set of strategy of online serving.
-It is working with OnlineManager, responsing how the tasks are generated, the models are updated and signals are perpared.
+OnlineStrategy is a set of strategy for online serving.
 """
 
 from copy import deepcopy
@@ -12,6 +11,7 @@ from typing import List, Tuple, Union
 import pandas as pd
 from qlib.data.data import D
 from qlib.log import get_module_logger
+from qlib.model.ens.ensemble import AverageEnsemble, SingleKeyEnsemble
 from qlib.model.ens.group import RollingGroup
 from qlib.model.trainer import Trainer, TrainerR
 from qlib.workflow import R
@@ -23,9 +23,14 @@ from qlib.workflow.task.utils import TimeAdjuster, list_recorders
 
 
 class OnlineStrategy:
+    """
+    OnlineStrategy is working with `Online Manager <#Online Manager>`_, responsing how the tasks are generated, the models are updated and signals are perpared.
+    """
+
     def __init__(self, name_id: str, trainer: Trainer = None, need_log=True):
         """
         Init OnlineStrategy.
+        This module **MUST** use `Trainer <../reference/api.html#Trainer>`_ to finishing model training.
 
         Args:
             name_id (str): a unique name or id
@@ -43,6 +48,7 @@ class OnlineStrategy:
         After perparing the data of last routine (a box in box-plot) which means the end of the routine, we can prepare trading signals for next routine.
 
         NOTE: Given a set prediction, all signals before these prediction end time will be prepared well.
+
         Args:
             delay: bool
                 If this method was called by `delay_prepare`
@@ -52,7 +58,7 @@ class OnlineStrategy:
     def prepare_tasks(self, *args, **kwargs):
         """
         After the end of a routine, check whether we need to prepare and train some new tasks.
-        return the new tasks waiting for training.
+        Return the new tasks waiting for training.
 
         You can find last online models by OnlineTool.online_models.
         """
@@ -66,10 +72,6 @@ class OnlineStrategy:
 
         Args:
             tasks (list): a list of tasks.
-            tag (str):
-                `ONLINE_TAG` for first train or additional train
-                `NEXT_ONLINE_TAG` for reset online model when calling `reset_online_tag`
-                `OFFLINE_TAG` for train but offline those models
             check_func: the method to judge if a model can be online.
                 The parameter is the model record and return True for online.
                 None for online every models.
@@ -95,7 +97,8 @@ class OnlineStrategy:
 
     def get_collector(self) -> Collector:
         """
-        Get the instance of collector to collect results of online serving.
+        Get the instance of `Collector <../advanced/task_management.html#Task Collecting>`_ to collect results of online serving.
+
 
         For example:
             1) collect predictions in Recorder
@@ -109,7 +112,8 @@ class OnlineStrategy:
     def delay_prepare(self, history: list, **kwargs):
         """
         Prepare all models and signals if there are something waiting for prepare.
-        NOTE: Assumption: the predictions of online models need less than next begin_time, or this method will work in a wrong way.
+
+        Assumption: the predictions of online models need less than next begin_time, or this method will work in a wrong way.
 
         Args:
             history (list): an online models list likes [begin_time:[online models]].
@@ -119,6 +123,12 @@ class OnlineStrategy:
             self.trainer.end_train(recs_list, **kwargs)
             self.tool.reset_online_tag(recs_list)
             self.prepare_signals(delay=True)
+
+    def get_signals(self):
+        """
+        Get prepared signals.
+        """
+        raise NotImplementedError(f"Please implement the `get_signals` method.")
 
     def reset(self):
         """
@@ -164,17 +174,20 @@ class RollingAverageStrategy(OnlineStrategy):
         self.rg = rolling_gen
         self.tool = OnlineToolR(self.exp_name)
         self.ta = TimeAdjuster()
-        self.signal_rec = None  # the recorder to record signals
+        with R.start(experiment_name=self.signal_exp_name, recorder_name=self.exp_name, resume=True):
+            self.signal_rec = R.get_recorder()  # the recorder to record signals
+            self.signal_rec.save_objects(**{"signals": None})
 
-    def get_collector(self, rec_key_func=None, rec_filter_func=None):
+    def get_collector(self, process_list=[RollingGroup()], rec_key_func=None, rec_filter_func=None, artifacts_key=None):
         """
-        Get the instance of collector to collect results. The returned collector must can distinguish results in different models.
+        Get the instance of `Collector <../advanced/task_management.html#Task Collecting>`_ to collect results. The returned collector must can distinguish results in different models.
         Assumption: the models can be distinguished based on model name and rolling test segments.
         If you do not want this assumption, please implement your own method or use another rec_key_func.
 
         Args:
             rec_key_func (Callable): a function to get the key of a recorder. If None, use recorder id.
             rec_filter_func (Callable, optional): filter the recorder by return True or False. Defaults to None.
+            artifacts_key (List[str], optional): the artifacts key you want to get. If None, get all artifacts.
         """
 
         def rec_key(recorder):
@@ -188,18 +201,13 @@ class RollingAverageStrategy(OnlineStrategy):
 
         artifacts_collector = RecorderCollector(
             experiment=self.exp_name,
-            process_list=RollingGroup(),
+            process_list=process_list,
             rec_key_func=rec_key_func,
             rec_filter_func=rec_filter_func,
+            artifacts_key=artifacts_key,
         )
 
-        signals_collector = RecorderCollector(
-            experiment=self.signal_exp_name,
-            rec_key_func=lambda rec: rec.info["name"],
-            rec_filter_func=lambda rec: rec.info["name"] == self.exp_name,
-            artifacts_path={"signals": "signals"},
-        )
-        return HyperCollector({"artifacts": artifacts_collector, "signals": signals_collector})
+        return artifacts_collector
 
     def first_train(self) -> List[Recorder]:
         """
@@ -252,7 +260,11 @@ class RollingAverageStrategy(OnlineStrategy):
         Average the predictions of online models and offer a trading signals every routine.
         The signals will be saved to `signal` file of a recorder named self.exp_name of a experiment using the name of `SIGNAL_EXP`
         Even if the latest signal already exists, the latest calculation result will be overwritten.
-        NOTE: Given a prediction of a certain time, all signals before this time will be prepared well.
+
+        .. note::
+
+            Given a prediction of a certain time, all signals before this time will be prepared well.
+
         Args:
             over_write (bool, optional): If True, the new signals will overwrite the file. If False, the new signals will append to the end of signals. Defaults to False.
         Returns:
@@ -260,21 +272,17 @@ class RollingAverageStrategy(OnlineStrategy):
         """
         if not delay:
             self.tool.update_online_pred()
-        if self.signal_rec is None:
-            with R.start(experiment_name=self.signal_exp_name, recorder_name=self.exp_name, resume=True):
-                self.signal_rec = R.get_recorder()
 
-        pred = []
-        try:
-            old_signals = self.signal_rec.load_object("signals")
-        except OSError:
-            old_signals = None
+        # Get a collector to average online models predictions
+        online_collector = self.get_collector(
+            process_list=[AverageEnsemble()],
+            rec_filter_func=lambda x: True if self.tool.get_online_tag(x) == self.tool.ONLINE_TAG else False,
+            artifacts_key="pred",
+        )
+        online_results = online_collector()
+        signals = online_results["pred"]
 
-        for rec in self.tool.online_models():
-            pred.append(rec.load_object("pred.pkl"))
-
-        signals: pd.DataFrame = pd.concat(pred, axis=1).mean(axis=1).to_frame("score")
-        signals = signals.sort_index()
+        old_signals = self.get_signals()
         if old_signals is not None and not over_write:
             old_max = old_signals.index.get_level_values("datetime").max()
             new_signals = signals.loc[old_max:]
@@ -288,18 +296,15 @@ class RollingAverageStrategy(OnlineStrategy):
         self.signal_rec.save_objects(**{"signals": signals})
         return signals
 
-        # def get_signals(self):
-        # """
-        # get signals from the recorder(named self.exp_name) of the experiment(named self.SIGNAL_EXP)
+    def get_signals(self) -> object:
+        """
+        Get signals from the recorder(named self.exp_name) of the experiment(named self.SIGNAL_EXP)
 
-        # Returns:
-        #     signals
-        # """
-        # if self.signal_rec is None:
-        #     with R.start(experiment_name=self.signal_exp_name, recorder_name=self.exp_name, resume=True):
-        #         self.signal_rec = R.get_recorder()
-        # signals = self.signal_rec.load_object("signals")
-        # return signals
+        Returns:
+            object: signals
+        """
+        signals = self.signal_rec.load_object("signals")
+        return signals
 
     def _list_latest(self, rec_list: List[Recorder]):
         """

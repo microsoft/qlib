@@ -5,6 +5,7 @@
 Collector can collect object from everywhere and process them such as merging, grouping, averaging and so on.
 """
 
+from qlib.model.ens.ensemble import SingleKeyEnsemble
 from qlib.workflow import R
 import dill as pickle
 
@@ -81,7 +82,7 @@ class Collector:
             filepath (str): the path of file
 
         Returns:
-            bool: if successed
+            bool: if succeeded
         """
         try:
             with open(filepath, "wb") as f:
@@ -122,6 +123,8 @@ class HyperCollector(Collector):
         Args:
             collector_dict (dict): the dict like {collector_key, Collector}
             process_list (list or Callable): the list of processors or the instance of processor to process dict.
+                NOTE: process_list = [SingleKeyEnsemble()] can ignore key and use value directly if there is only one {k,v} in a dict.
+                This can make result more readable. If you want to maintain as it should be, just give a empty process list.
         """
         super().__init__(process_list=process_list)
         self.collector_dict = collector_dict

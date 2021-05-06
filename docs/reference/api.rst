@@ -154,35 +154,70 @@ Record Template
 .. automodule:: qlib.workflow.record_temp
     :members:
 
-
 Task Management
 ====================
 
 
-RollingGen
+TaskGen
 --------------------
-.. autoclass:: qlib.workflow.task.gen.RollingGen
+.. automodule:: qlib.workflow.task.gen
     :members:
 
 TaskManager
 --------------------
-.. autoclass:: qlib.workflow.task.manage.TaskManager
+.. automodule:: qlib.workflow.task.manage
     :members:
 
-TaskCollector
+Trainer
 --------------------
-.. autoclass:: qlib.workflow.task.collect.TaskCollector
+.. automodule:: qlib.model.trainer
     :members:
 
-ModelUpdater
+Collector
 --------------------
-.. autoclass:: qlib.workflow.task.update.ModelUpdater
+.. automodule:: qlib.workflow.task.collect
     :members:
 
-TimeAdjuster
+Group
 --------------------
-.. autoclass:: qlib.workflow.task.utils.TimeAdjuster
+.. automodule:: qlib.model.ens.group
     :members:
+
+Ensemble
+--------------------
+.. automodule:: qlib.model.ens.ensemble
+    :members:
+
+Utils
+--------------------
+.. automodule:: qlib.workflow.task.utils
+    :members:
+
+
+Online Serving
+====================
+
+
+Online Manager
+--------------------
+.. automodule:: qlib.workflow.online.manager
+    :members:
+
+Online Strategy
+--------------------
+.. automodule:: qlib.workflow.online.strategy
+    :members:
+
+Online Tool
+--------------------
+.. automodule:: qlib.workflow.online.utils
+    :members:
+
+RecordUpdater
+--------------------
+.. automodule:: qlib.workflow.online.update
+    :members:
+
 
 Utils
 ====================

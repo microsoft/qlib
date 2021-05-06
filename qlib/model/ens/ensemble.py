@@ -5,6 +5,7 @@
 Ensemble can merge the objects in an Ensemble. For example, if there are many submodels predictions, we may need to merge them in an ensemble predictions.
 """
 
+from typing import Union
 import pandas as pd
 
 
@@ -22,6 +23,30 @@ class Ensemble:
             object: the ensemble object
         """
         raise NotImplementedError(f"Please implement the `__call__` method.")
+
+
+class SingleKeyEnsemble(Ensemble):
+
+    """
+    Extract the object if there is only one key and value in dict. Make result more readable.
+    {Only key: Only value} -> Only value
+    If there are more than 1 key or less than 1 key, then do nothing.
+    Even you can run this recursively to make dict more readable.
+    NOTE: Default run recursively.
+    """
+
+    def __call__(self, ensemble_dict: Union[dict, object], recursion: bool = True) -> object:
+        if not isinstance(ensemble_dict, dict):
+            return ensemble_dict
+        if recursion:
+            tmp_dict = {}
+            for k, v in ensemble_dict.items():
+                tmp_dict[k] = self(v, recursion)
+            ensemble_dict = tmp_dict
+        keys = list(ensemble_dict.keys())
+        if len(keys) == 1:
+            ensemble_dict = ensemble_dict[keys[0]]
+        return ensemble_dict
 
 
 class RollingEnsemble(Ensemble):
@@ -47,3 +72,24 @@ class RollingEnsemble(Ensemble):
         artifact = artifact[~artifact.index.duplicated(keep="last")]
         artifact = artifact.sort_index()
         return artifact
+
+
+class AverageEnsemble(Ensemble):
+    def __call__(self, ensemble_dict: dict):
+        """
+        Average a dict of same shape dataframe like `prediction` or `IC` into an ensemble.
+
+        NOTE: The values of dict must be pd.DataFrame, and have the index "datetime"
+
+        Args:
+            ensemble_dict (dict): a dict like {"A": pd.DataFrame, "B": pd.DataFrame}.
+            The key of the dict will be ignored.
+
+        Returns:
+            pd.DataFrame: the complete result of averaging.
+        """
+        values = list(ensemble_dict.values())
+        results = pd.concat(values, axis=1)
+        results = results.mean(axis=1).to_frame("score")
+        results = results.sort_index()
+        return results

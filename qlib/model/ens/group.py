@@ -3,6 +3,13 @@
 
 """
 Group can group a set of object based on `group_func` and change them to a dict.
+After group, we provide a method to reduce them. 
+
+For example: 
+
+group: {(A,B,C1): object, (A,B,C2): object} -> {(A,B): {C1: object, C2: object}}
+reduce: {(A,B): {C1: object, C2: object}} -> {(A,B): object}
+
 """
 
 from qlib.model.ens.ensemble import Ensemble, RollingEnsemble

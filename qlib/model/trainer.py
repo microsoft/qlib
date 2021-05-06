@@ -3,12 +3,12 @@
 
 """
 The Trainer will train a list of tasks and return a list of model recorder.
-There are two steps in each Trainer including `train`(make model recorder) and `end_train`(modify model recorder).
+There are two steps in each Trainer including ``train``(make model recorder) and ``end_train``(modify model recorder).
 
-This is concept called "DelayTrainer", which can be used in online simulating to parallel training.
-In "DelayTrainer", the first step is only to save some necessary info to model recorder, and the second step which will be finished in the end can do some concurrent and time-consuming operations such as model fitting.
+This is concept called ``DelayTrainer``, which can be used in online simulating to parallel training.
+In ``DelayTrainer``, the first step is only to save some necessary info to model recorder, and the second step which will be finished in the end can do some concurrent and time-consuming operations such as model fitting.
 
-`Qlib` offer two kind of Trainer, TrainerR is simplest and TrainerRM is based on TaskManager to help manager tasks lifecycle automatically. 
+``Qlib`` offer two kind of Trainer, ``TrainerR`` is the simplest way and ``TrainerRM`` is based on TaskManager to help manager tasks lifecycle automatically. 
 """
 
 import socket
@@ -36,9 +36,6 @@ def begin_task_train(task_config: dict, experiment_name: str, recorder_name: str
     Returns:
         Recorder: the model recorder
     """
-    # FIXME: recorder_id
-    if recorder_name is None:
-        recorder_name = str(time.time())
     with R.start(experiment_name=experiment_name, recorder_name=recorder_name):
         R.log_params(**flatten_dict(task_config))
         R.save_objects(**{"task": task_config})  # keep the original format and datatype
@@ -58,7 +55,7 @@ def end_task_train(rec: Recorder, experiment_name: str) -> Recorder:
     Returns:
         Recorder: the model recorder
     """
-    with R.start(experiment_name=experiment_name, recorder_name=rec.info["name"], resume=True):
+    with R.start(experiment_name=experiment_name, recorder_id=rec.info["id"], resume=True):
         task_config = R.load_object("task")
         # model & dataset initiation
         model: Model = init_instance_by_config(task_config["model"])
@@ -314,7 +311,8 @@ class TrainerRM(Trainer):
 
     def reset(self):
         """
-        NOTE: this method will delete all task in this task_pool!
+        .. note::
+            this method will delete all task in this task_pool!
         """
         tm = TaskManager(task_pool=self.task_pool)
         tm.remove()

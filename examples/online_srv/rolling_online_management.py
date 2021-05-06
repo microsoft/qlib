@@ -86,7 +86,7 @@ class RollingOnlineExample:
         task_url="mongodb://10.0.0.4:27017/",
         task_db_name="rolling_db",
         rolling_step=550,
-        tasks=[task_xgboost_config, task_lgb_config],
+        tasks=[task_xgboost_config],  # , task_lgb_config],
     ):
         mongo_conf = {
             "task_url": task_url,  # your MongoDB url
@@ -148,6 +148,8 @@ class RollingOnlineExample:
         self.rolling_online_manager.routine()
         print("========== collect results ==========")
         print(self.collector())
+        print("========== signals ==========")
+        print(self.rolling_online_manager.get_signals())
 
     def main(self):
         self.first_run()

@@ -27,7 +27,7 @@ class Dataset(Serializable):
         - setup data
             - The data related attributes' names should start with '_' so that it will not be saved on disk when serializing.
 
-        The data could specify the info to caculate the essential data for preparation
+        The data could specify the info to calculate the essential data for preparation
         """
         self.setup_data(**kwargs)
         super().__init__()
@@ -92,7 +92,7 @@ class DatasetH(Dataset):
         handler : Union[dict, DataHandler]
             handler could be:
 
-            - insntance of `DataHandler`
+            - instance of `DataHandler`
 
             - config of `DataHandler`.  Please refer to `DataHandler`
 
@@ -114,7 +114,6 @@ class DatasetH(Dataset):
         """
         self.handler: DataHandler = init_instance_by_config(handler, accept_types=DataHandler)
         self.segments = segments.copy()
-        self.fetch_kwargs = {}
         super().__init__(**kwargs)
 
     def config(self, handler_kwargs: dict = None, **kwargs):
@@ -124,7 +123,7 @@ class DatasetH(Dataset):
         Parameters
         ----------
         handler_kwargs : dict
-            Config of DataHanlder, which could include the following arguments:
+            Config of DataHandler, which could include the following arguments:
 
             - arguments of DataHandler.conf_data, such as 'instruments', 'start_time' and 'end_time'.
 
@@ -148,11 +147,11 @@ class DatasetH(Dataset):
         Parameters
         ----------
         handler_kwargs : dict
-            init arguments of DataHanlder, which could include the following arguments:
+            init arguments of DataHandler, which could include the following arguments:
 
             - init_type : Init Type of Handler
 
-            - enable_cache : wheter to enable cache
+            - enable_cache : whether to enable cache
 
         """
         super().setup_data(**kwargs)
@@ -172,7 +171,7 @@ class DatasetH(Dataset):
         ----------
         slc : slice
         """
-        return self.handler.fetch(slc, **kwargs, **self.fetch_kwargs)
+        return self.handler.fetch(slc, **kwargs)
 
     def prepare(
         self,
@@ -232,7 +231,7 @@ class TSDataSampler:
     (T)ime-(S)eries DataSampler
     This is the result of TSDatasetH
 
-    It works like `torch.data.utils.Dataset`, it provides a very convient interface for constructing time-series
+    It works like `torch.data.utils.Dataset`, it provides a very convenient interface for constructing time-series
     dataset based on tabular data.
 
     If user have further requirements for processing data, user could process them based on `TSDataSampler` or create
@@ -289,28 +288,11 @@ class TSDataSampler:
 
         # the data type will be changed
         # The index of usable data is between start_idx and end_idx
+        self.start_idx, self.end_idx = self.data.index.slice_locs(start=pd.Timestamp(start), end=pd.Timestamp(end))
         self.idx_df, self.idx_map = self.build_index(self.data)
-        self.data_index = deepcopy(self.data.index)
-
-        if flt_data is not None:
-            self.flt_data = np.array(flt_data).reshape(-1)
-            self.idx_map = self.flt_idx_map(self.flt_data, self.idx_map)
-            self.data_index = self.data_index[np.where(self.flt_data == True)[0]]
-
-        self.start_idx, self.end_idx = self.data_index.slice_locs(start=pd.Timestamp(start), end=pd.Timestamp(end))
         self.idx_arr = np.array(self.idx_df.values, dtype=np.float64)  # for better performance
-
+        self.data_idx = deepcopy(self.data.index)
         del self.data  # save memory
-
-    @staticmethod
-    def flt_idx_map(flt_data, idx_map):
-        idx = 0
-        new_idx_map = {}
-        for i, exist in enumerate(flt_data):
-            if exist:
-                new_idx_map[idx] = idx_map[i]
-                idx += 1
-        return new_idx_map
 
     def get_index(self):
         """
@@ -461,7 +443,7 @@ class TSDatasetH(DatasetH):
     (T)ime-(S)eries Dataset (H)andler
 
 
-    Covnert the tabular data to Time-Series data
+    Convert the tabular data to Time-Series data
 
     Requirements analysis
 
@@ -505,19 +487,8 @@ class TSDatasetH(DatasetH):
         """
         split the _prepare_raw_seg is to leave a hook for data preprocessing before creating processing data
         """
-        dtype = kwargs.pop("dtype")
+        dtype = kwargs.pop("dtype", None)
         start, end = slc.start, slc.stop
-        flt_col = kwargs.pop("flt_col", None)
-        # TSDatasetH will retrieve more data for complete
-        data = self._prepare_raw_seg(slc, **kwargs)
-
-        flt_kwargs = deepcopy(kwargs)
-        if flt_col is not None:
-            flt_kwargs["col_set"] = flt_col
-            flt_data = self._prepare_raw_seg(slc, **flt_kwargs)
-            assert len(flt_data.columns) == 1
-        else:
-            flt_data = None
-
-        tsds = TSDataSampler(data=data, start=start, end=end, step_len=self.step_len, dtype=dtype, flt_data=flt_data)
+        data = self._prepare_raw_seg(slc=slc, **kwargs)
+        tsds = TSDataSampler(data=data, start=start, end=end, step_len=self.step_len, dtype=dtype)
         return tsds

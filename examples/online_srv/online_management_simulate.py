@@ -131,6 +131,8 @@ class OnlineSimulationExample:
         self.rolling_online_manager.simulate(end_time=self.end_time)
         print("========== collect results ==========")
         print(self.rolling_online_manager.get_collector()())
+        print("========== signals ==========")
+        print(self.rolling_online_manager.get_signals())
         print("========== online history ==========")
         print(self.rolling_online_manager.get_online_history(self.exp_name))
 
