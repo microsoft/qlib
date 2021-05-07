@@ -200,6 +200,12 @@ class DatasetH(Dataset):
             The data to fetch:  DK_*
             Default is DK_I, which indicate fetching data for **inference**.
 
+        kwargs : 
+            The parameters that kwargs may contain:
+                flt_col : str
+                    It only exists in TSDatasetH, can be used to add a column of data(True or False) to filter data.
+                    This parameter is only supported when it is an instance of TSDatasetH.
+
         Returns
         -------
         Union[List[pd.DataFrame], pd.DataFrame]:
@@ -293,7 +299,7 @@ class TSDataSampler:
         self.data_index = deepcopy(self.data.index)
 
         if flt_data is not None:
-            self.flt_data = np.array(flt_data).reshape(-1)
+            self.flt_data = np.array(flt_data.reindex(self.data_index)).reshape(-1)
             self.idx_map = self.flt_idx_map(self.flt_data, self.idx_map)
             self.data_index = self.data_index[np.where(self.flt_data == True)[0]]
 
