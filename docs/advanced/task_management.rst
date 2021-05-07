@@ -55,6 +55,7 @@ More information of ``Task Manager`` can be found in `here <../reference/api.htm
 
 Task Training
 ===============
+#FIXME: Trainer
 After generating and storing those ``task``, it's time to run the ``task`` which are in the *WAITING* status.
 ``Qlib`` provides a method called ``run_task`` to run those ``task`` in task pool, however, users can also customize how tasks are executed.
 An easy way to get the ``task_func`` is using ``qlib.model.trainer.task_train`` directly.

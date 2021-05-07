@@ -8,6 +8,7 @@ This examples is about how can simulate the OnlineManager based on rolling tasks
 import fire
 import qlib
 from qlib.model.trainer import DelayTrainerRM
+from qlib.workflow import R
 from qlib.workflow.online.manager import OnlineManager
 from qlib.workflow.online.strategy import RollingAverageStrategy
 from qlib.workflow.task.gen import RollingGen
@@ -110,23 +111,29 @@ class OnlineSimulationExample:
         }
         qlib.init(provider_uri=provider_uri, region=region, mongo=mongo_conf)
         self.rolling_gen = RollingGen(
-            step=rolling_step, rtype=RollingGen.ROLL_SD, modify_end_time=False
-        )  # The rolling tasks generator, modify_end_time is false because we just need simulate to 2018-10-31.
+            step=rolling_step, rtype=RollingGen.ROLL_SD, ds_extra_mod_func=None
+        )  # The rolling tasks generator, ds_extra_mod_func is None because we just need simulate to 2018-10-31 and needn't change handler end time.
         self.trainer = DelayTrainerRM(self.exp_name, self.task_pool)
         self.task_manager = TaskManager(self.task_pool)  # A good way to manage all your tasks
         self.rolling_online_manager = OnlineManager(
-            RollingAverageStrategy(
-                exp_name, task_template=tasks, rolling_gen=self.rolling_gen, trainer=self.trainer, need_log=False
-            ),
+            RollingAverageStrategy(exp_name, task_template=tasks, rolling_gen=self.rolling_gen, need_log=False),
+            trainer=self.trainer,
             begin_time=self.start_time,
             need_log=False,
         )
         self.tasks = tasks
 
+    # Reset all things to the first status, be careful to save important data
+    def reset(self):
+        TaskManager(self.task_pool).remove()
+        exp = R.get_exp(experiment_name=self.exp_name)
+        for rid in exp.list_recorders():
+            exp.delete_recorder(rid)
+
     # Run this to run all workflow automatically
     def main(self):
         print("========== reset ==========")
-        self.rolling_online_manager.reset()
+        self.reset()
         print("========== simulate ==========")
         self.rolling_online_manager.simulate(end_time=self.end_time)
         print("========== collect results ==========")
@@ -134,7 +141,7 @@ class OnlineSimulationExample:
         print("========== signals ==========")
         print(self.rolling_online_manager.get_signals())
         print("========== online history ==========")
-        print(self.rolling_online_manager.get_online_history(self.exp_name))
+        print(self.rolling_online_manager.history)
 
 
 if __name__ == "__main__":

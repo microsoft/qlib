@@ -5,13 +5,15 @@
 Collector can collect object from everywhere and process them such as merging, grouping, averaging and so on.
 """
 
-from qlib.model.ens.ensemble import SingleKeyEnsemble
+from typing import Callable, Dict, List
+from qlib.utils.serial import Serializable
 from qlib.workflow import R
-import dill as pickle
 
 
-class Collector:
+class Collector(Serializable):
     """The collector to collect different results"""
+
+    pickle_backend = "dill"  # use dill to dump user method
 
     def __init__(self, process_list=[]):
         """
@@ -74,65 +76,42 @@ class Collector:
         collected = self.collect()
         return self.process_collect(collected, self.process_list, *args, **kwargs)
 
-    def save(self, filepath):
-        """
-        save the collector into a file
 
-        Args:
-            filepath (str): the path of file
-
-        Returns:
-            bool: if succeeded
-        """
-        try:
-            with open(filepath, "wb") as f:
-                pickle.dump(self, f)
-        except Exception:
-            return False
-        return True
-
-    @staticmethod
-    def load(filepath):
-        """
-        load the collector from a file
-
-        Args:
-            filepath (str): the path of file
-
-        Raises:
-            TypeError: the pickled file must be `Collector`
-
-        Returns:
-            Collector: the instance of Collector
-        """
-        with open(filepath, "rb") as f:
-            collector = pickle.load(f)
-        if isinstance(collector, Collector):
-            return collector
-        else:
-            raise TypeError(f"The instance of {type(collector)} is not a valid `Collector`!")
-
-
-class HyperCollector(Collector):
+class MergeCollector(Collector):
     """
     A collector to collect the results of other Collectors
+
+    For example:
+
+        We have 2 collector, which named A and B.
+        A can collect {"prediction": pd.Series} and B can collect {"IC": {"Xgboost": pd.Series, "LSTM": pd.Series}}.
+        Then after this class's collect, we can collect {"A_prediction": pd.Series, "B_IC": {"Xgboost": pd.Series, "LSTM": pd.Series}}
+
+        ......
+
     """
 
-    def __init__(self, collector_dict, process_list=[]):
+    def __init__(self, collector_dict: Dict[str, Collector], process_list: List[Callable] = []):
         """
         Args:
-            collector_dict (dict): the dict like {collector_key, Collector}
-            process_list (list or Callable): the list of processors or the instance of processor to process dict.
-                NOTE: process_list = [SingleKeyEnsemble()] can ignore key and use value directly if there is only one {k,v} in a dict.
-                This can make result more readable. If you want to maintain as it should be, just give a empty process list.
+            collector_dict (Dict[str,Collector]): the dict like {collector_key, Collector}
+            process_list (List[Callable]): the list of processors or the instance of processor to process dict.
         """
         super().__init__(process_list=process_list)
         self.collector_dict = collector_dict
 
     def collect(self) -> dict:
+        """
+        Collect all result of collector_dict and change the outermost key to "``collector_key``_``key``" (like merge them, but rename every key)
+
+        Returns:
+            dict: the dict after collecting.
+        """
         collect_dict = {}
-        for key, collector in self.collector_dict.items():
-            collect_dict[key] = collector()
+        for collector_key, collector in self.collector_dict.items():
+            tmp_dict = collector()
+            for key, value in tmp_dict.items():
+                collect_dict[collector_key + "_" + str(key)] = value
         return collect_dict
 
 
@@ -145,7 +124,7 @@ class RecorderCollector(Collector):
         process_list=[],
         rec_key_func=None,
         rec_filter_func=None,
-        artifacts_path={"pred": "pred.pkl", "IC": "sig_analysis/ic.pkl"},
+        artifacts_path={"pred": "pred.pkl"},
         artifacts_key=None,
     ):
         """init RecorderCollector
@@ -203,7 +182,11 @@ class RecorderCollector(Collector):
                 if self.ART_KEY_RAW == key:
                     artifact = rec
                 else:
-                    artifact = rec.load_object(self.artifacts_path[key])
+                    # only collect existing artifact
+                    try:
+                        artifact = rec.load_object(self.artifacts_path[key])
+                    except Exception:
+                        continue
                 collect_dict.setdefault(key, {})[rec_key] = artifact
 
         return collect_dict

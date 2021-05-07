@@ -388,6 +388,7 @@ class TaskManager:
 def run_task(
     task_func: Callable,
     task_pool: str,
+    tasks: List[dict] = None,
     force_release: bool = False,
     before_status: str = TaskManager.STATUS_WAITING,
     after_status: str = TaskManager.STATUS_DONE,
@@ -413,6 +414,8 @@ def run_task(
             the function to run the task
     task_pool : str
         the name of the task pool (Collection in MongoDB)
+    tasks: List[dict]
+        will only train these tasks config, None for train all tasks.
     force_release : bool
         will the program force to release the resource
     before_status : str:
@@ -425,9 +428,12 @@ def run_task(
     tm = TaskManager(task_pool)
 
     ever_run = False
+    query = {}
+    if tasks is not None:
+        query = {"filter": {"$in": tasks}}
 
     while True:
-        with tm.safe_fetch_task(status=before_status) as task:
+        with tm.safe_fetch_task(status=before_status, query=query) as task:
             if task is None:
                 break
             get_module_logger("run_task").info(task["def"])

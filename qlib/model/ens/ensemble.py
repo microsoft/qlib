@@ -7,6 +7,7 @@ Ensemble can merge the objects in an Ensemble. For example, if there are many su
 
 from typing import Union
 import pandas as pd
+from qlib.utils import flatten_dict
 
 
 class Ensemble:
@@ -77,19 +78,22 @@ class RollingEnsemble(Ensemble):
 class AverageEnsemble(Ensemble):
     def __call__(self, ensemble_dict: dict):
         """
-        Average a dict of same shape dataframe like `prediction` or `IC` into an ensemble.
+        Average and standardize a dict of same shape dataframe like `prediction` or `IC` into an ensemble.
 
-        NOTE: The values of dict must be pd.DataFrame, and have the index "datetime"
+        NOTE: The values of dict must be pd.DataFrame, and have the index "datetime". If it is a nested dict, then flat it.
 
         Args:
             ensemble_dict (dict): a dict like {"A": pd.DataFrame, "B": pd.DataFrame}.
             The key of the dict will be ignored.
 
         Returns:
-            pd.DataFrame: the complete result of averaging.
+            pd.DataFrame: the complete result of averaging and standardizing.
         """
+        # need to flatten the nested dict
+        ensemble_dict = flatten_dict(ensemble_dict)
         values = list(ensemble_dict.values())
         results = pd.concat(values, axis=1)
-        results = results.mean(axis=1).to_frame("score")
+        results = results.groupby("datetime").apply(lambda df: (df - df.mean()) / df.std())
+        results = results.mean(axis=1)
         results = results.sort_index()
         return results

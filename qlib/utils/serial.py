@@ -3,6 +3,7 @@
 
 from pathlib import Path
 import pickle
+import dill
 from typing import Union
 
 
@@ -13,6 +14,8 @@ class Serializable:
     It provides a syntactic sugar for distinguish the attributes which user doesn't want.
     - For examples, a learnable Datahandler just wants to save the parameters without data when dumping to disk
     """
+
+    pickle_backend = "pickle"  # another optional value is "dill" which can pickle more things of python.
 
     def __init__(self):
         self._dump_all = False
@@ -74,4 +77,35 @@ class Serializable:
     def to_pickle(self, path: Union[Path, str], dump_all: bool = None, exclude: list = None):
         self.config(dump_all=dump_all, exclude=exclude)
         with Path(path).open("wb") as f:
-            pickle.dump(self, f)
+            if self.pickle_backend == "pickle":
+                pickle.dump(self, f)
+            elif self.pickle_backend == "dill":
+                dill.dump(self, f)
+            else:
+                raise ValueError("Unknown pickle backend, please use 'pickle' or 'dill'.")
+
+    @classmethod
+    def load(cls, filepath):
+        """
+        load the collector from a file
+
+        Args:
+            filepath (str): the path of file
+
+        Raises:
+            TypeError: the pickled file must be `Collector`
+
+        Returns:
+            Collector: the instance of Collector
+        """
+        with open(filepath, "rb") as f:
+            if cls.pickle_backend == "pickle":
+                object = pickle.load(f)
+            elif cls.pickle_backend == "dill":
+                object = dill.load(f)
+            else:
+                raise ValueError("Unknown pickle backend, please use 'pickle' or 'dill'.")
+        if isinstance(object, cls):
+            return object
+        else:
+            raise TypeError(f"The instance of {type(object)} is not a valid `{type(cls)}`!")

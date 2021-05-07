@@ -17,7 +17,7 @@ from qlib.workflow.task.utils import list_recorders
 
 class OnlineTool:
     """
-    OnlineTool.
+    OnlineTool will manage `online` models in an experiment which includes the models recorder.
     """
 
     ONLINE_KEY = "online_status"  # the online status key in recorder
@@ -92,7 +92,7 @@ class OnlineToolR(OnlineTool):
     The implementation of OnlineTool based on (R)ecorder.
     """
 
-    def __init__(self, experiment_name: str, need_log=True):
+    def __init__(self, experiment_name:str, need_log=True):
         """
         Init OnlineToolR.
 

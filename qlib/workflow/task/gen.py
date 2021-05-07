@@ -5,7 +5,7 @@ Task generator can generate many tasks based on TaskGen and some task templates.
 """
 import abc
 import copy
-import typing
+from typing import List, Union, Callable
 from .utils import TimeAdjuster
 
 
@@ -64,7 +64,7 @@ class TaskGen(metaclass=abc.ABCMeta):
     """
 
     @abc.abstractmethod
-    def generate(self, task: dict) -> typing.List[dict]:
+    def generate(self, task: dict) -> List[dict]:
         """
         generate different tasks based on a task template
 
@@ -87,11 +87,34 @@ class TaskGen(metaclass=abc.ABCMeta):
         return self.generate(*args, **kwargs)
 
 
+def handler_mod(task: dict, rg):
+    """
+    Help to modify the handler end time when using RollingGen
+
+    Args:
+        task (dict): a task template
+        rg (RollingGen): an instance of RollingGen
+    """
+    try:
+        interval = rg.ta.cal_interval(
+            task["dataset"]["kwargs"]["handler"]["kwargs"]["end_time"],
+            task["dataset"]["kwargs"]["segments"][rg.test_key][1],
+        )
+        # if end_time < the end of test_segments, then change end_time to allow load more data
+        if interval < 0:
+            task["dataset"]["kwargs"]["handler"]["kwargs"]["end_time"] = copy.deepcopy(
+                task["dataset"]["kwargs"]["segments"][rg.test_key][1]
+            )
+    except KeyError:
+        # Maybe dataset do not have handler, then do nothing.
+        pass
+
+
 class RollingGen(TaskGen):
     ROLL_EX = TimeAdjuster.SHIFT_EX  # fixed start date, expanding end date
     ROLL_SD = TimeAdjuster.SHIFT_SD  # fixed segments size, slide it from start date
 
-    def __init__(self, step: int = 40, rtype: str = ROLL_EX, modify_end_time=True):
+    def __init__(self, step: int = 40, rtype: str = ROLL_EX, ds_extra_mod_func: Union[None, Callable] = handler_mod):
         """
         Generate tasks for rolling
 
@@ -101,19 +124,19 @@ class RollingGen(TaskGen):
             step to rolling
         rtype : str
             rolling type (expanding, sliding)
-        modify_end_time: bool
-            Whether the data set configuration needs to be modified when the required scope exceeds the original data set scope
+        ds_extra_mod_func: Callable
+            A method like: handler_mod(task: dict, rg: RollingGen)
+            Do some extra action after generating a task. For example, use ``handler_mod`` to modify the end time of handler of dataset.
         """
         self.step = step
         self.rtype = rtype
-        self.modify_end_time = modify_end_time
-        # TODO: Ask pengrong to update future date in dataset
+        self.ds_extra_mod_func = ds_extra_mod_func
         self.ta = TimeAdjuster(future=True)
 
         self.test_key = "test"
         self.train_key = "train"
 
-    def generate(self, task: dict) -> typing.List[dict]:
+    def generate(self, task: dict) -> List[dict]:
         """
         Converting the task into a rolling task.
 
@@ -200,18 +223,8 @@ class RollingGen(TaskGen):
 
             # update segments of this task
             t["dataset"]["kwargs"]["segments"] = copy.deepcopy(segments)
-
-            try:
-                interval = self.ta.cal_interval(
-                    t["dataset"]["kwargs"]["handler"]["kwargs"]["end_time"],
-                    t["dataset"]["kwargs"]["segments"][self.test_key][1],
-                )
-                # if end_time < the end of test_segments, then change end_time to allow load more data
-                if self.modify_end_time and interval < 0:
-                    t["dataset"]["kwargs"]["handler"]["kwargs"]["end_time"] = copy.deepcopy(segments[self.test_key][1])
-            except KeyError:
-                # Maybe the user dataset has no handler or end_time
-                pass
             prev_seg = segments
+            if self.ds_extra_mod_func is not None:
+                self.ds_extra_mod_func(t, self)
             res.append(t)
         return res

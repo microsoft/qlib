@@ -12,7 +12,6 @@ In ``DelayTrainer``, the first step is only to save some necessary info to model
 """
 
 import socket
-import time
 from typing import Callable, List
 
 from qlib.data.dataset import Dataset
@@ -145,12 +144,6 @@ class Trainer:
         """
         return self.delay
 
-    def reset(self):
-        """
-        Reset the Trainer status.
-        """
-        pass
-
 
 class TrainerR(Trainer):
     """
@@ -160,42 +153,52 @@ class TrainerR(Trainer):
     Assumption: models were defined by `task` and the results will saved to `Recorder`
     """
 
-    def __init__(self, experiment_name: str, train_func: Callable = task_train):
+    # Those tag will help you distinguish whether the Recorder has finished traning
+    STATUS_KEY = "train_status"
+    STATUS_BEGIN = "begin_task_train"
+    STATUS_END = "end_task_train"
+
+    def __init__(self, experiment_name: str = None, train_func: Callable = task_train):
         """
         Init TrainerR.
 
         Args:
-            experiment_name (str): the name of experiment.
+            experiment_name (str, optional): the default name of experiment.
             train_func (Callable, optional): default training method. Defaults to `task_train`.
         """
         super().__init__()
         self.experiment_name = experiment_name
         self.train_func = train_func
 
-    def train(self, tasks: list, train_func: Callable = None, **kwargs) -> List[Recorder]:
+    def train(self, tasks: list, train_func: Callable = None, experiment_name: str = None, **kwargs) -> List[Recorder]:
         """
         Given a list of `task`s and return a list of trained Recorder. The order can be guaranteed.
 
         Args:
             tasks (list): a list of definition based on `task` dict
             train_func (Callable): the train method which need at least `task`s and `experiment_name`. None for default training method.
+            experiment_name (str): the experiment name, None for use default name.
             kwargs: the params for train_func.
 
         Returns:
             list: a list of Recorders
         """
+        if len(tasks) == 0:
+            return []
         if train_func is None:
             train_func = self.train_func
+        if experiment_name is None:
+            experiment_name = self.experiment_name
         recs = []
         for task in tasks:
-            rec = train_func(task, self.experiment_name, **kwargs)
-            rec.set_tags(**{"train_status": "begin_task_train"})
+            rec = train_func(task, experiment_name, **kwargs)
+            rec.set_tags(**{self.STATUS_KEY: self.STATUS_BEGIN})
             recs.append(rec)
         return recs
 
-    def end_train(self, recs: list, **kwargs) -> list:
+    def end_train(self, recs: list, **kwargs) -> List[Recorder]:
         for rec in recs:
-            rec.set_tags(**{"train_status": "end_task_train"})
+            rec.set_tags(**{self.STATUS_KEY: self.STATUS_END})
         return recs
 
 
@@ -204,12 +207,12 @@ class DelayTrainerR(TrainerR):
     A delayed implementation based on TrainerR, which means `train` method may only do some preparation and `end_train` method can do the real model fitting.
     """
 
-    def __init__(self, experiment_name, train_func=begin_task_train, end_train_func=end_task_train):
+    def __init__(self, experiment_name: str = None, train_func=begin_task_train, end_train_func=end_task_train):
         """
         Init TrainerRM.
 
         Args:
-            experiment_name (str): the name of experiment.
+            experiment_name (str): the default name of experiment.
             train_func (Callable, optional): default train method. Defaults to `begin_task_train`.
             end_train_func (Callable, optional): default end_train method. Defaults to `end_task_train`.
         """
@@ -217,7 +220,7 @@ class DelayTrainerR(TrainerR):
         self.end_train_func = end_train_func
         self.delay = True
 
-    def end_train(self, recs, end_train_func=None, **kwargs) -> List[Recorder]:
+    def end_train(self, recs, end_train_func=None, experiment_name: str = None, **kwargs) -> List[Recorder]:
         """
         Given a list of Recorder and return a list of trained Recorder.
         This class will finish real data loading and model fitting.
@@ -225,6 +228,7 @@ class DelayTrainerR(TrainerR):
         Args:
             recs (list): a list of Recorder, the tasks have been saved to them
             end_train_func (Callable, optional): the end_train method which need at least `recorder`s and `experiment_name`. Defaults to None for using self.end_train_func.
+            experiment_name (str): the experiment name, None for use default name.
             kwargs: the params for end_train_func.
 
         Returns:
@@ -232,9 +236,13 @@ class DelayTrainerR(TrainerR):
         """
         if end_train_func is None:
             end_train_func = self.end_train_func
+        if experiment_name is None:
+            experiment_name = self.experiment_name
         for rec in recs:
-            end_train_func(rec, **kwargs)
-            rec.set_tags(**{"train_status": "end_task_train"})
+            if rec.list_tags()[self.STATUS_KEY] == self.STATUS_END:
+                continue
+            end_train_func(rec, experiment_name, **kwargs)
+            rec.set_tags(**{self.STATUS_KEY: self.STATUS_END})
         return recs
 
 
@@ -246,13 +254,18 @@ class TrainerRM(Trainer):
     Assumption: `task` will be saved to TaskManager and `task` will be fetched and trained from TaskManager
     """
 
-    def __init__(self, experiment_name: str, task_pool: str, train_func=task_train):
+    # Those tag will help you distinguish whether the Recorder has finished traning
+    STATUS_KEY = "train_status"
+    STATUS_BEGIN = "begin_task_train"
+    STATUS_END = "end_task_train"
+
+    def __init__(self, experiment_name: str = None, task_pool: str = None, train_func=task_train):
         """
         Init TrainerR.
 
         Args:
-            experiment_name (str): the name of experiment.
-            task_pool (str): task pool name in TaskManager.
+            experiment_name (str): the default name of experiment.
+            task_pool (str): task pool name in TaskManager. None for use same name as experiment_name.
             train_func (Callable, optional): default training method. Defaults to `task_train`.
         """
         super().__init__()
@@ -264,6 +277,7 @@ class TrainerRM(Trainer):
         self,
         tasks: list,
         train_func: Callable = None,
+        experiment_name: str = None,
         before_status: str = TaskManager.STATUS_WAITING,
         after_status: str = TaskManager.STATUS_DONE,
         **kwargs,
@@ -277,6 +291,7 @@ class TrainerRM(Trainer):
         Args:
             tasks (list): a list of definition based on `task` dict
             train_func (Callable): the train method which need at least `task`s and `experiment_name`. None for default training method.
+            experiment_name (str): the experiment name, None for use default name.
             before_status (str): the tasks in before_status will be fetched and trained. Can be STATUS_WAITING, STATUS_PART_DONE.
             after_status (str): the tasks after trained will become after_status. Can be STATUS_WAITING, STATUS_PART_DONE.
             kwargs: the params for train_func.
@@ -284,14 +299,21 @@ class TrainerRM(Trainer):
         Returns:
             list: a list of Recorders
         """
+        if len(tasks) == 0:
+            return []
         if train_func is None:
             train_func = self.train_func
-        tm = TaskManager(task_pool=self.task_pool)
+        if experiment_name is None:
+            experiment_name = self.experiment_name
+        task_pool = self.task_pool
+        if task_pool is None:
+            task_pool = experiment_name
+        tm = TaskManager(task_pool=task_pool)
         _id_list = tm.create_task(tasks)  # all tasks will be saved to MongoDB
         run_task(
             train_func,
-            self.task_pool,
-            experiment_name=self.experiment_name,
+            task_pool,
+            experiment_name=experiment_name,
             before_status=before_status,
             after_status=after_status,
             **kwargs,
@@ -300,22 +322,14 @@ class TrainerRM(Trainer):
         recs = []
         for _id in _id_list:
             rec = tm.re_query(_id)["res"]
-            rec.set_tags(**{"train_status": "begin_task_train"})
+            rec.set_tags(**{self.STATUS_KEY: self.STATUS_BEGIN})
             recs.append(rec)
         return recs
 
     def end_train(self, recs: list, **kwargs) -> list:
         for rec in recs:
-            rec.set_tags(**{"train_status": "end_task_train"})
+            rec.set_tags(**{self.STATUS_KEY: self.STATUS_END})
         return recs
-
-    def reset(self):
-        """
-        .. note::
-            this method will delete all task in this task_pool!
-        """
-        tm = TaskManager(task_pool=self.task_pool)
-        tm.remove()
 
 
 class DelayTrainerRM(TrainerRM):
@@ -324,30 +338,57 @@ class DelayTrainerRM(TrainerRM):
 
     """
 
-    def __init__(self, experiment_name, task_pool: str, train_func=begin_task_train, end_train_func=end_task_train):
+    def __init__(
+        self,
+        experiment_name: str = None,
+        task_pool: str = None,
+        train_func=begin_task_train,
+        end_train_func=end_task_train,
+    ):
+        """
+        Init DelayTrainerRM.
+
+        Args:
+            experiment_name (str): the default name of experiment.
+            task_pool (str): task pool name in TaskManager. None for use same name as experiment_name.
+            train_func (Callable, optional): default train method. Defaults to `begin_task_train`.
+            end_train_func (Callable, optional): default end_train method. Defaults to `end_task_train`.
+        """
         super().__init__(experiment_name, task_pool, train_func)
         self.end_train_func = end_train_func
         self.delay = True
 
-    def train(self, tasks: list, train_func=None, **kwargs):
+    def train(self, tasks: list, train_func=None, experiment_name: str = None, **kwargs):
         """
         Same as `train` of TrainerRM, after_status will be STATUS_PART_DONE.
         Args:
             tasks (list): a list of definition based on `task` dict
             train_func (Callable): the train method which need at least `task`s and `experiment_name`. Defaults to None for using self.train_func.
+            experiment_name (str): the experiment name, None for use default name.
         Returns:
             list: a list of Recorders
         """
-        return super().train(tasks, train_func=train_func, after_status=TaskManager.STATUS_PART_DONE, **kwargs)
+        if len(tasks) == 0:
+            return []
+        return super().train(
+            tasks,
+            train_func=train_func,
+            experiment_name=experiment_name,
+            after_status=TaskManager.STATUS_PART_DONE,
+            **kwargs,
+        )
 
-    def end_train(self, recs, end_train_func=None, **kwargs):
+    def end_train(self, recs, end_train_func=None, experiment_name: str = None, **kwargs):
         """
         Given a list of Recorder and return a list of trained Recorder.
         This class will finish real data loading and model fitting.
 
+        NOTE: This method will train all STATUS_PART_DONE tasks in task pool, not only the ``recs``.
+
         Args:
             recs (list): a list of Recorder, the tasks have been saved to them.
             end_train_func (Callable, optional): the end_train method which need at least `recorder`s and `experiment_name`. Defaults to None for using self.end_train_func.
+            experiment_name (str): the experiment name, None for use default name.
             kwargs: the params for end_train_func.
 
         Returns:
@@ -356,13 +397,23 @@ class DelayTrainerRM(TrainerRM):
 
         if end_train_func is None:
             end_train_func = self.end_train_func
+        if experiment_name is None:
+            experiment_name = self.experiment_name
+        task_pool = self.task_pool
+        if task_pool is None:
+            task_pool = experiment_name
+        tasks = []
+        for rec in recs:
+            tasks.append(rec.load_object("task"))
+
         run_task(
             end_train_func,
-            self.task_pool,
-            experiment_name=self.experiment_name,
+            task_pool,
+            tasks=tasks,
+            experiment_name=experiment_name,
             before_status=TaskManager.STATUS_PART_DONE,
             **kwargs,
         )
         for rec in recs:
-            rec.set_tags(**{"train_status": "end_task_train"})
+            rec.set_tags(**{self.STATUS_KEY: self.STATUS_END})
         return recs

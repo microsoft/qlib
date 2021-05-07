@@ -36,20 +36,36 @@ class Group:
         self._ens_func = ens
 
     def group(self, *args, **kwargs) -> dict:
-        # TODO: such design is weird when `_group_func` is the only configurable part in the class
+        """
+        Group a set of object and change them to a dict.
+
+        For example: {(A,B,C1): object, (A,B,C2): object} -> {(A,B): {C1: object, C2: object}}
+
+        Returns:
+            dict: grouped dict
+        """
         if isinstance(getattr(self, "_group_func", None), Callable):
             return self._group_func(*args, **kwargs)
         else:
             raise NotImplementedError(f"Please specify valid `group_func`.")
 
     def reduce(self, *args, **kwargs) -> dict:
+        """
+        Reduce grouped dict in some way.
+
+        For example: {(A,B): {C1: object, C2: object}} -> {(A,B): object}
+
+        Returns:
+            dict: reduced dict
+        """
         if isinstance(getattr(self, "_ens_func", None), Callable):
             return self._ens_func(*args, **kwargs)
         else:
             raise NotImplementedError(f"Please specify valid `_ens_func`.")
 
     def __call__(self, ungrouped_dict: dict, n_jobs=1, verbose=0, *args, **kwargs) -> dict:
-        """Group the ungrouped_dict into different groups.
+        """
+        Group the ungrouped_dict into different groups.
 
         Args:
             ungrouped_dict (dict): the ungrouped dict waiting for grouping like {name: things}

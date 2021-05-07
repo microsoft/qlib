@@ -18,8 +18,6 @@ from qlib.workflow.online.strategy import RollingAverageStrategy
 from qlib.workflow.task.gen import RollingGen
 from qlib.workflow.task.manage import TaskManager
 from qlib.workflow.online.manager import OnlineManager
-from qlib.workflow.task.utils import list_recorders
-from qlib.model.trainer import TrainerRM
 
 data_handler_config = {
     "start_time": "2013-01-01",
@@ -86,7 +84,7 @@ class RollingOnlineExample:
         task_url="mongodb://10.0.0.4:27017/",
         task_db_name="rolling_db",
         rolling_step=550,
-        tasks=[task_xgboost_config],  # , task_lgb_config],
+        tasks=[task_xgboost_config, task_lgb_config],
     ):
         mongo_conf = {
             "task_url": task_url,  # your MongoDB url
@@ -103,7 +101,6 @@ class RollingOnlineExample:
                     name_id,
                     task,
                     RollingGen(step=rolling_step, rtype=RollingGen.ROLL_SD),
-                    TrainerRM(experiment_name=name_id, task_pool=name_id),
                 )
             )
 
@@ -116,9 +113,8 @@ class RollingOnlineExample:
 
     # Reset all things to the first status, be careful to save important data
     def reset(self):
-        print("========== reset ==========")
         for task in self.tasks:
-            name_id = task["model"]["class"] + "_" + str(self.rolling_step)
+            name_id = task["model"]["class"]
             TaskManager(name_id).remove()
             exp = R.get_exp(experiment_name=name_id)
             for rid in exp.list_recorders():
@@ -127,12 +123,9 @@ class RollingOnlineExample:
             if os.path.exists(self._ROLLING_MANAGER_PATH):
                 os.remove(self._ROLLING_MANAGER_PATH)
 
-            for rid in list_recorders("OnlineManagerSignals", lambda x: True if x.info["name"] == name_id else False):
-                exp.delete_recorder(rid)
-
     def first_run(self):
         print("========== reset ==========")
-        self.rolling_online_manager.reset()
+        self.reset()
         print("========== first_run ==========")
         self.rolling_online_manager.first_train()
         print("========== dump ==========")
