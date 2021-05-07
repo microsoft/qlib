@@ -151,6 +151,10 @@ class SignalRecord(RecordTemp):
                 del params["data_key"]
                 # The backend handler should be DataHandler
                 raw_label = self.dataset.prepare(**params)
+            except AttributeError:
+                # The data handler is initialize with `drop_raw=True`...
+                # So raw_label is not available
+                raw_label = None
 
             self.recorder.save_objects(**{"label.pkl": raw_label})
             self.dataset.__class__ = orig_cls
@@ -236,6 +240,9 @@ class SigAnaRecord(SignalRecord):
 
         pred = self.load("pred.pkl")
         label = self.load("label.pkl")
+        if label is None or not isinstance(label, pd.DataFrame) or label.empty:
+            logger.warn(f"Empty label.")
+            return
         ic, ric = calc_ic(pred.iloc[:, 0], label.iloc[:, 0])
         metrics = {
             "IC": ic.mean(),

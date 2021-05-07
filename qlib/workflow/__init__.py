@@ -331,7 +331,7 @@ class QlibRecorder:
         """
         self.exp_manager.set_uri(uri)
 
-    def get_recorder(self, recorder_id=None, recorder_name=None, experiment_name=None):
+    def get_recorder(self, recorder_id=None, recorder_name=None, experiment_name=None) -> Recorder:
         """
         Method for retrieving a recorder.
 

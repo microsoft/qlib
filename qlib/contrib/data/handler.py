@@ -26,6 +26,7 @@ def check_transform_proc(proc_l, fit_start_time, fit_end_time):
                         "fit_end_time": fit_end_time,
                     }
                 )
+            # FIXME: the `module_path` parameter is missed.
             new_l.append({"class": klass.__name__, "kwargs": pkwargs})
         else:
             new_l.append(p)
