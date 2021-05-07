@@ -31,9 +31,7 @@ from ..utils import (
 )
 
 from ..log import get_module_logger
-from .base import Feature
-
-from .ops import Operators
+from .base import Feature, PFeature, Operators
 
 
 class QlibCacheException(RuntimeError):

@@ -12,7 +12,7 @@ import pandas as pd
 
 from scipy.stats import percentileofscore
 
-from .base import Expression, ExpressionOps
+from .base import Expression, PExpression, ExpressionOps
 from ..log import get_module_logger
 
 try:
@@ -245,24 +245,24 @@ class PairOperator(ExpressionOps):
         return "{}({},{})".format(type(self).__name__, self.feature_left, self.feature_right)
 
     def get_longest_back_rolling(self):
-        if isinstance(self.feature_left, Expression):
+        if isinstance(self.feature_left, (Expression, PExpression)):
             left_br = self.feature_left.get_longest_back_rolling()
         else:
             left_br = 0
 
-        if isinstance(self.feature_right, Expression):
+        if isinstance(self.feature_right, (Expression, PExpression)):
             right_br = self.feature_right.get_longest_back_rolling()
         else:
             right_br = 0
         return max(left_br, right_br)
 
     def get_extended_window_size(self):
-        if isinstance(self.feature_left, Expression):
+        if isinstance(self.feature_left, (Expression, PExpression)):
             ll, lr = self.feature_left.get_extended_window_size()
         else:
             ll, lr = 0, 0
 
-        if isinstance(self.feature_right, Expression):
+        if isinstance(self.feature_right, (Expression, PExpression)):
             rl, rr = self.feature_right.get_extended_window_size()
         else:
             rl, rr = 0, 0
@@ -293,13 +293,13 @@ class NpPairOperator(PairOperator):
 
     def _load_internal(self, instrument, start_index, end_index, freq):
         assert any(
-            [isinstance(self.feature_left, Expression), self.feature_right, Expression]
+            [isinstance(self.feature_left, (Expression, PExpression)), self.feature_right, Expression]
         ), "at least one of two inputs is Expression instance"
-        if isinstance(self.feature_left, Expression):
+        if isinstance(self.feature_left, (Expression, PExpression)):
             series_left = self.feature_left.load(instrument, start_index, end_index, freq)
         else:
             series_left = self.feature_left  # numeric value
-        if isinstance(self.feature_right, Expression):
+        if isinstance(self.feature_right, (Expression, PExpression)):
             series_right = self.feature_right.load(instrument, start_index, end_index, freq)
         else:
             series_right = self.feature_right
@@ -610,11 +610,11 @@ class If(ExpressionOps):
 
     def _load_internal(self, instrument, start_index, end_index, freq):
         series_cond = self.condition.load(instrument, start_index, end_index, freq)
-        if isinstance(self.feature_left, Expression):
+        if isinstance(self.feature_left, (Expression, PExpression)):
             series_left = self.feature_left.load(instrument, start_index, end_index, freq)
         else:
             series_left = self.feature_left
-        if isinstance(self.feature_right, Expression):
+        if isinstance(self.feature_right, (Expression, PExpression)):
             series_right = self.feature_right.load(instrument, start_index, end_index, freq)
         else:
             series_right = self.feature_right
@@ -622,34 +622,34 @@ class If(ExpressionOps):
         return series
 
     def get_longest_back_rolling(self):
-        if isinstance(self.feature_left, Expression):
+        if isinstance(self.feature_left, (Expression, PExpression)):
             left_br = self.feature_left.get_longest_back_rolling()
         else:
             left_br = 0
 
-        if isinstance(self.feature_right, Expression):
+        if isinstance(self.feature_right, (Expression, PExpression)):
             right_br = self.feature_right.get_longest_back_rolling()
         else:
             right_br = 0
 
-        if isinstance(self.condition, Expression):
+        if isinstance(self.condition, (Expression, PExpression)):
             c_br = self.condition.get_longest_back_rolling()
         else:
             c_br = 0
         return max(left_br, right_br, c_br)
 
     def get_extended_window_size(self):
-        if isinstance(self.feature_left, Expression):
+        if isinstance(self.feature_left, (Expression, PExpression)):
             ll, lr = self.feature_left.get_extended_window_size()
         else:
             ll, lr = 0, 0
 
-        if isinstance(self.feature_right, Expression):
+        if isinstance(self.feature_right, (Expression, PExpression)):
             rl, rr = self.feature_right.get_extended_window_size()
         else:
             rl, rr = 0, 0
 
-        if isinstance(self.condition, Expression):
+        if isinstance(self.condition, (Expression, PExpression)):
             cl, cr = self.condition.get_extended_window_size()
         else:
             cl, cr = 0, 0
@@ -1486,40 +1486,13 @@ OpsList = [
 ]
 
 
-class OpsWrapper:
-    """Ops Wrapper"""
-
-    def __init__(self):
-        self._ops = {}
-
-    def reset(self):
-        self._ops = {}
-
-    def register(self, ops_list):
-        for operator in ops_list:
-            if not issubclass(operator, ExpressionOps):
-                raise TypeError("operator must be subclass of ExpressionOps, not {}".format(operator))
-
-            if operator.__name__ in self._ops:
-                get_module_logger(self.__class__.__name__).warning(
-                    "The custom operator [{}] will override the qlib default definition".format(operator.__name__)
-                )
-            self._ops[operator.__name__] = operator
-
-    def __getattr__(self, key):
-        if key not in self._ops:
-            raise AttributeError("The operator [{0}] is not registered".format(key))
-        return self._ops[key]
-
-
-Operators = OpsWrapper()
-
-
 def register_all_ops(C):
     """register all operator"""
     logger = get_module_logger("ops")
 
-    Operators.reset()
+    from .base import Operators
+
+    # Operators.reset()
     Operators.register(OpsList)
 
     if getattr(C, "custom_ops", None) is not None:

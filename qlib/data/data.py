@@ -19,10 +19,17 @@ from multiprocessing import Pool
 
 from .cache import H
 from ..config import C
-from .ops import Operators
 from ..log import get_module_logger
-from ..utils import parse_field, read_bin, hash_args, normalize_cache_fields, code_to_fname
-from .base import Feature
+from ..utils import (
+    parse_field,
+    read_bin,
+    read_period_data,
+    get_period_list,
+    hash_args,
+    normalize_cache_fields,
+    code_to_fname,
+)
+from .base import Feature, PFeature, Operators
 from .cache import DiskDatasetCache, DiskExpressionCache
 from ..utils import Wrapper, init_instance_by_config, register_wrapper, get_module_by_module_path
 
@@ -480,7 +487,6 @@ class DatasetProvider(abc.ABC):
         _calendar = Cal.calendar(freq=freq)
         data.index = _calendar[data.index.values.astype(int)]
         data.index.names = ["datetime"]
-
         if spans is None:
             return data
         else:
@@ -637,6 +643,14 @@ class LocalFeatureProvider(FeatureProvider):
         """Static feature file uri."""
         return os.path.join(C.get_data_path(), "features", "{}", "{}.{}.bin")
 
+    @property
+    def uri_period_index(self):
+        return os.path.join(C.get_data_path(), "financial", "{}", "{}.index")
+
+    @property
+    def uri_period_data(self):
+        return os.path.join(C.get_data_path(), "financial", "{}", "{}.data")
+
     def feature(self, instrument, field, start_index, end_index, freq):
         # validate
         field = str(field).lower()[1:]
@@ -648,6 +662,62 @@ class LocalFeatureProvider(FeatureProvider):
             # raise ValueError('uri_data not found: ' + uri_data)
         # load
         series = read_bin(uri_data, start_index, end_index)
+        return series
+
+    def period_feature(self, instrument, field, start_offset, end_offset, cur_date, **kwargs):
+
+        DATA_RECORDS = [
+            ("date", C.pit_record_type["date"]),
+            ("period", C.pit_record_type["period"]),
+            ("value", C.pit_record_type["value"]),
+            ("_next", C.pit_record_type["index"]),
+        ]
+        VALUE_DTYPE = C.pit_record_type["value"]
+
+        field = str(field).lower()[2:]
+        instrument = code_to_fname(instrument)
+
+        start_index, end_index, cur_index = kwargs["info"]
+        if cur_index == start_index:
+            if not hasattr(self, "all_fields"):
+                self.all_fields = []
+            self.all_fields.append(field)
+            if not hasattr(self, "period_index"):
+                self.period_index = {}
+            if field not in self.period_index:
+                self.period_index[field] = {}
+
+        if not field.endswith("_q") and not field.endswith("_a"):
+            raise ValueError("period field must ends with '_q' or '_q'")
+        quarterly = field.endswith("_q")
+        index_path = self.uri_period_index.format(instrument.lower(), field)
+        data_path = self.uri_period_data.format(instrument.lower(), field)
+        data = np.fromfile(data_path, dtype=DATA_RECORDS)
+
+        # find all revision periods before `cur_date`
+        cur_date = int(cur_date.year) * 10000 + int(cur_date.month) * 100 + int(cur_date.day)
+        loc = np.searchsorted(data["date"], cur_date, side="left")
+        if loc <= 0:
+            return C.pit_record_nan["value"]
+        last_period = data["period"][loc - start_offset - 1 : loc - end_offset].max()  # return the latest quarter
+        first_period = data["period"][loc - start_offset - 1 : loc - end_offset].min()
+
+        period_list = get_period_list(first_period, last_period, quarterly)
+        value = np.empty(len(period_list), dtype=VALUE_DTYPE)
+        for i, period in enumerate(period_list):
+            last_period_index = self.period_index[field].get(period)
+            value[i], now_period_index = read_period_data(
+                index_path, data_path, period, cur_date, quarterly, last_period_index
+            )
+            self.period_index[field].update({period: now_period_index})
+        series = pd.Series(value, index=period_list, dtype=VALUE_DTYPE)
+
+        if cur_index == end_index:
+            self.all_fields.remove(field)
+            if not len(self.all_fields):
+                del self.all_fields
+                del self.period_index
+
         return series
 
 

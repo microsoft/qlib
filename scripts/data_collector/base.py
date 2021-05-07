@@ -200,7 +200,6 @@ class BaseCollector(abc.ABC):
                     if _result != self.NORMAL_FLAG:
                         error_symbol.append(_symbol)
                     p_bar.update()
-        print(error_symbol)
         logger.info(f"error symbol nums: {len(error_symbol)}")
         logger.info(f"current get symbol nums: {len(instrument_list)}")
         error_symbol.extend(self.mini_symbol_map.keys())
@@ -326,7 +325,7 @@ class BaseRun(abc.ABC):
             freq, value from [1min, 1d], default 1d
         """
         if source_dir is None:
-            source_dir = Path(self.default_base_dir).joinpath("_source")
+            source_dir = Path(self.default_base_dir).joinpath("source")
         self.source_dir = Path(source_dir).expanduser().resolve()
         self.source_dir.mkdir(parents=True, exist_ok=True)
 

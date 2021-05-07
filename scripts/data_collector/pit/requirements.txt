@@ -1,0 +1,9 @@
+loguru
+fire
+tqdm
+requests
+pandas
+lxml
+loguru
+baostock
+yahooquery
