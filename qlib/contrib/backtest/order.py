@@ -7,7 +7,7 @@ class Order:
     SELL = 0
     BUY = 1
 
-    def __init__(self, stock_id, amount, trade_date, direction, factor):
+    def __init__(self, stock_id, amount, start_time, end_time, direction, factor):
         """Parameter
         direction : Order.SELL for sell; Order.BUY for buy
         stock_id : str
@@ -24,6 +24,7 @@ class Order:
         self.amount = amount
         # amount of successfully completed orders
         self.deal_amount = 0
-        self.trade_date = trade_date
+        self.start_time = start_time
+        self.end_time = end_time
         self.direction = direction
         self.factor = factor

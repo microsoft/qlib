@@ -1,7 +1,9 @@
 #  Copyright (c) Microsoft Corporation.
 #  Licensed under the MIT License.
 
-import re, logging
+import re
+import logging
+import warnings
 import pandas as pd
 from pathlib import Path
 from pprint import pprint
@@ -12,9 +14,10 @@ from ..data.dataset import DatasetH
 from ..data.dataset.handler import DataHandlerLP
 from ..utils import init_instance_by_config, get_module_by_module_path
 from ..log import get_module_logger
-from ..utils import flatten_dict
-from ..contrib.eva.alpha import calc_ic, calc_long_short_return, calc_long_short_prec
-from ..contrib.strategy.strategy import BaseStrategy
+from ..utils import flatten_dict, parse_freq
+from ..strategy.base import BaseStrategy
+from ..contrib.eva.alpha import calc_ic, calc_long_short_return
+
 
 logger = get_module_logger("workflow", logging.INFO)
 
@@ -271,7 +274,7 @@ class SigAnaRecord(SignalRecord):
         return paths
 
 
-class PortAnaRecord(SignalRecord):
+class PortAnaRecord(RecordTemp):
     """
     This is the Portfolio Analysis Record class that generates the analysis results such as those of backtest. This class inherits the ``RecordTemp`` class.
 
@@ -283,70 +286,95 @@ class PortAnaRecord(SignalRecord):
 
     artifact_path = "portfolio_analysis"
 
-    def __init__(self, recorder, config, **kwargs):
+    def __init__(self, recorder, config, risk_analysis_freq, **kwargs):
         """
         config["strategy"] : dict
             define the strategy class as well as the kwargs.
+        config["env"] : dict
+            define the env class as well as the kwargs.
         config["backtest"] : dict
             define the backtest kwargs.
+        risk_analysis_freq : int
+            risk analysis freq of report
         """
         super().__init__(recorder=recorder, **kwargs)
 
         self.strategy_config = config["strategy"]
+        self.env_config = config["env"]
         self.backtest_config = config["backtest"]
-        self.strategy = init_instance_by_config(self.strategy_config, accept_types=BaseStrategy)
+        _count, _freq = parse_freq(risk_analysis_freq)
+        self.risk_analysis_freq = f"{_count}{_freq}"
+        self.report_freq = self._get_report_freq(self.env_config)
+
+    def _get_report_freq(self, env_config):
+        ret_freq = []
+        if env_config["kwargs"].get("generate_report", False):
+            _count, _freq = parse_freq(env_config["kwargs"]["step_bar"])
+            ret_freq.append(f"{_count}{_freq}")
+        if "sub_env" in env_config["kwargs"]:
+            ret_freq.extend(self._get_report_freq(env_config["kwargs"]["sub_env"]))
+        return ret_freq
+
+    def _cal_risk_analysis_scaler(self, freq):
+        _count, _freq = parse_freq(freq)
+        _freq_scaler = {
+            "minute": 240 * 250,
+            "day": 250,
+            "week": 50,
+            "month": 12,
+        }
+        return _count * _freq_scaler[_freq]
 
     def generate(self, **kwargs):
-        # check previously stored prediction results
-        try:
-            self.check(parent=True)  # "Make sure the parent process is completed and store the data properly."
-        except FileExistsError:
-            super().generate()
-
         # custom strategy and get backtest
-        pred_score = super().load("pred.pkl")
-        report_dict = normal_backtest(pred_score, strategy=self.strategy, **self.backtest_config)
-        report_normal = report_dict.get("report_df")
-        positions_normal = report_dict.get("positions")
-        self.recorder.save_objects(
-            **{"report_normal.pkl": report_normal},
-            artifact_path=PortAnaRecord.get_path(),
-        )
-        self.recorder.save_objects(
-            **{"positions_normal.pkl": positions_normal},
-            artifact_path=PortAnaRecord.get_path(),
-        )
-        order_normal = report_dict.get("order_list")
-        if order_normal:
+        report_dict = normal_backtest(env=self.env_config, strategy=self.strategy_config, **self.backtest_config)
+        for report_freq, (report_normal, positions_normal) in report_dict.items():
             self.recorder.save_objects(
-                **{"order_normal.pkl": order_normal},
-                artifact_path=PortAnaRecord.get_path(),
+                **{f"report_normal_{report_freq}.pkl": report_normal}, artifact_path=PortAnaRecord.get_path()
+            )
+            self.recorder.save_objects(
+                **{f"positions_normal_{report_freq}.pkl": positions_normal}, artifact_path=PortAnaRecord.get_path()
             )
 
-        # analysis
-        analysis = dict()
-        analysis["excess_return_without_cost"] = risk_analysis(report_normal["return"] - report_normal["bench"])
-        analysis["excess_return_with_cost"] = risk_analysis(
-            report_normal["return"] - report_normal["bench"] - report_normal["cost"]
-        )
-        # save portfolio analysis results
-        analysis_df = pd.concat(analysis)  # type: pd.DataFrame
-        # log metrics
-        self.recorder.log_metrics(**flatten_dict(analysis_df["risk"].unstack().T.to_dict()))
-        # save results
-        self.recorder.save_objects(**{"port_analysis.pkl": analysis_df}, artifact_path=PortAnaRecord.get_path())
-        logger.info(
-            f"Portfolio analysis record 'port_analysis.pkl' has been saved as the artifact of the Experiment {self.recorder.experiment_id}"
-        )
-        # print out results
-        pprint("The following are analysis results of the excess return without cost.")
-        pprint(analysis["excess_return_without_cost"])
-        pprint("The following are analysis results of the excess return with cost.")
-        pprint(analysis["excess_return_with_cost"])
+        if self.risk_analysis_freq not in report_dict:
+            warnings.warn(
+                f"the freq {self.risk_analysis_freq} report is not found, please set the corresponding env with `generate_report==True`"
+            )
+        else:
+            report_normal, _ = report_dict.get(self.risk_analysis_freq)
+            analysis = dict()
+            risk_analysis_scaler = self._cal_risk_analysis_scaler(self.risk_analysis_freq)
+            analysis["excess_return_without_cost"] = risk_analysis(
+                report_normal["return"] - report_normal["bench"], risk_analysis_scaler
+            )
+            analysis["excess_return_with_cost"] = risk_analysis(
+                report_normal["return"] - report_normal["bench"] - report_normal["cost"], risk_analysis_scaler
+            )
+            analysis_df = pd.concat(analysis)  # type: pd.DataFrame
+            # log metrics
+            self.recorder.log_metrics(**flatten_dict(analysis_df["risk"].unstack().T.to_dict()))
+            # save results
+            self.recorder.save_objects(
+                **{f"port_analysis_{report_freq}.pkl": analysis_df}, artifact_path=PortAnaRecord.get_path()
+            )
+            logger.info(
+                f"Portfolio analysis record 'port_analysis_{report_freq}.pkl' has been saved as the artifact of the Experiment {self.recorder.experiment_id}"
+            )
+            # print out results
+            pprint("The following are analysis results of the excess return without cost.")
+            pprint(analysis["excess_return_without_cost"])
+            pprint("The following are analysis results of the excess return with cost.")
+            pprint(analysis["excess_return_with_cost"])
 
     def list(self):
-        return [
-            PortAnaRecord.get_path("report_normal.pkl"),
-            PortAnaRecord.get_path("positions_normal.pkl"),
-            PortAnaRecord.get_path("port_analysis.pkl"),
-        ]
+        list_path = []
+        for _freq in self.report_freq:
+            list_path.extend(
+                [
+                    PortAnaRecord.get_path(f"report_normal_{_freq}.pkl"),
+                    PortAnaRecord.get_path(f"positions_normal_{_freq}.pkl"),
+                ]
+            )
+            if _freq == self.risk_analysis_freq:
+                list_path.append(PortAnaRecord.get_path(f"port_analysis_{_freq}.pkl"))
+        return list_path

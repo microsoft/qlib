@@ -6,6 +6,7 @@ from __future__ import division
 from __future__ import print_function
 
 import os
+import re
 import abc
 import time
 import queue
@@ -24,7 +25,7 @@ from ..log import get_module_logger
 from ..utils import parse_field, read_bin, hash_args, normalize_cache_fields, code_to_fname
 from .base import Feature
 from .cache import DiskDatasetCache, DiskExpressionCache
-from ..utils import Wrapper, init_instance_by_config, register_wrapper, get_module_by_module_path
+from ..utils import Wrapper, init_instance_by_config, register_wrapper, get_module_by_module_path, sample_calendar
 
 
 class CalendarProvider(abc.ABC):
@@ -55,7 +56,7 @@ class CalendarProvider(abc.ABC):
         """
         raise NotImplementedError("Subclass of CalendarProvider must implement `calendar` method")
 
-    def locate_index(self, start_time, end_time, freq, future):
+    def locate_index(self, start_time, end_time, freq, freq_sam=None, future=False):
         """Locate the start time index and end time index in a calendar under certain frequency.
 
         Parameters
@@ -82,7 +83,7 @@ class CalendarProvider(abc.ABC):
         """
         start_time = pd.Timestamp(start_time)
         end_time = pd.Timestamp(end_time)
-        calendar, calendar_index = self._get_calendar(freq=freq, future=future)
+        calendar, calendar_index = self._get_calendar(freq=freq, freq_sam=freq_sam, future=future)
         if start_time not in calendar_index:
             try:
                 start_time = calendar[bisect.bisect_left(calendar, start_time)]
@@ -96,7 +97,7 @@ class CalendarProvider(abc.ABC):
         end_index = calendar_index[end_time]
         return start_time, end_time, start_index, end_index
 
-    def _get_calendar(self, freq, future):
+    def _get_calendar(self, freq, freq_sam=None, future=False):
         """Load calendar using memcache.
 
         Parameters
@@ -113,14 +114,26 @@ class CalendarProvider(abc.ABC):
         dict
             dict composed by timestamp as key and index as value for fast search.
         """
-        flag = f"{freq}_future_{future}"
+        flag = f"{freq}_sam_{freq_sam}_future_{future}"
         if flag in H["c"]:
             _calendar, _calendar_index = H["c"][flag]
+            return _calendar, _calendar_index
         else:
-            _calendar = np.array(self.load_calendar(freq, future))
-            _calendar_index = {x: i for i, x in enumerate(_calendar)}  # for fast search
-            H["c"][flag] = _calendar, _calendar_index
-        return _calendar, _calendar_index
+            flag_raw = f"{freq}_sam_{None}_future_{future}"
+            if flag_raw in H["c"]:
+                _calendar, _calendar_index = H["c"][flag_raw]
+            else:
+                _calendar = np.array(self.load_calendar(freq, future))
+                _calendar_index = {x: i for i, x in enumerate(_calendar)}  # for fast search
+                H["c"][flag_raw] = _calendar, _calendar_index
+
+            if freq_sam is None:
+                return _calendar, _calendar_index
+            else:
+                _calendar_sam = sample_calendar(_calendar, freq, freq_sam)
+                _calendar_sam_index = {x: i for i, x in enumerate(_calendar_sam)}
+                H["c"][flag] = _calendar_sam, _calendar_sam_index
+                return _calendar_sam, _calendar_sam_index
 
     def _uri(self, start_time, end_time, freq, future=False):
         """Get the uri of calendar generation task."""
@@ -533,12 +546,8 @@ class LocalCalendarProvider(CalendarProvider):
         with open(fname) as f:
             return [pd.Timestamp(x.strip()) for x in f]
 
-    def calendar(self, start_time=None, end_time=None, freq="day", future=False):
-        _calendar, _calendar_index = self._get_calendar(freq, future)
-        if start_time == "None":
-            start_time = None
-        if end_time == "None":
-            end_time = None
+    def calendar(self, start_time=None, end_time=None, freq="day", freq_sam=None, future=False):
+        _calendar, _ = self._get_calendar(freq=freq, freq_sam=freq_sam, future=future)
         # strip
         if start_time:
             start_time = pd.Timestamp(start_time)
@@ -552,7 +561,7 @@ class LocalCalendarProvider(CalendarProvider):
                 return np.array([])
         else:
             end_time = _calendar[-1]
-        _, _, si, ei = self.locate_index(start_time, end_time, freq, future)
+        st, et, si, ei = self.locate_index(start_time, end_time, freq=freq, freq_sam=freq_sam, future=future)
         return _calendar[si : ei + 1]
 
 
@@ -661,7 +670,7 @@ class LocalExpressionProvider(ExpressionProvider):
         expression = self.get_expression_instance(field)
         start_time = pd.Timestamp(start_time)
         end_time = pd.Timestamp(end_time)
-        _, _, start_index, end_index = Cal.locate_index(start_time, end_time, freq, future=False)
+        _, _, start_index, end_index = Cal.locate_index(start_time, end_time, freq=freq, future=False)
         lft_etd, rght_etd = expression.get_extended_window_size()
         series = expression.load(instrument, max(0, start_index - lft_etd), end_index + rght_etd, freq)
         # Ensure that each column type is consistent
@@ -761,6 +770,7 @@ class ClientCalendarProvider(CalendarProvider):
         self.conn = conn
 
     def calendar(self, start_time=None, end_time=None, freq="day", future=False):
+
         self.conn.send_request(
             request_type="calendar",
             request_content={

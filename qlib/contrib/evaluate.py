@@ -9,7 +9,7 @@ import pandas as pd
 import warnings
 from ..log import get_module_logger
 from .backtest import get_exchange, backtest as backtest_func
-from .backtest.backtest import get_date_range
+from ..utils import get_date_range
 
 from ..data import D
 from ..config import C
