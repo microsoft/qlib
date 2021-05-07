@@ -1,24 +1,23 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
+"""
+This example shows how a TrainerRM work based on TaskManager with rolling tasks.
+After training, how to collect the rolling results will be showed in task_collecting.
+"""
+
 from pprint import pprint
-import time
 
 import fire
 import qlib
 from qlib.config import REG_CN
-from qlib.model.trainer import TrainerR, task_train
 from qlib.workflow import R
 from qlib.workflow.task.gen import RollingGen, task_generator
-from qlib.workflow.task.manage import TaskManager, run_task
+from qlib.workflow.task.manage import TaskManager
 from qlib.workflow.task.collect import RecorderCollector
-from qlib.model.ens.ensemble import RollingEnsemble, ens_workflow
-import pandas as pd
-from qlib.workflow.task.utils import list_recorders
 from qlib.model.ens.group import RollingGroup
 from qlib.model.trainer import TrainerRM
 
-"""
-This example shows how a Trainer work based on TaskManager with rolling tasks.
-After training, how to collect the rolling results will be showed in task_collecting.
-"""
 
 data_handler_config = {
     "start_time": "2008-01-01",
@@ -139,11 +138,13 @@ class RollingTaskExample:
                 return True
             return False
 
-        artifact = ens_workflow(
-            RecorderCollector(experiment=self.experiment_name, rec_key_func=rec_key, rec_filter_func=my_filter),
-            RollingGroup(),
+        collector = RecorderCollector(
+            experiment=self.experiment_name,
+            process_list=RollingGroup(),
+            rec_key_func=rec_key,
+            rec_filter_func=my_filter,
         )
-        print(artifact)
+        print(collector())
 
     def main(self):
         self.reset()

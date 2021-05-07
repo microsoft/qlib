@@ -1,20 +1,17 @@
-import fire
-import qlib
-from qlib.model.ens.ensemble import ens_workflow
-from qlib.model.trainer import DelayTrainerR, DelayTrainerRM, TrainerRM
-from qlib.workflow import R
-from qlib.workflow.online.manager import RollingOnlineManager
-from qlib.workflow.online.simulator import OnlineSimulator
-from qlib.workflow.task.collect import RecorderCollector
-from qlib.workflow.task.gen import RollingGen, task_generator
-from qlib.workflow.task.manage import TaskManager
-from qlib.workflow.task.utils import list_recorders
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
 
 """
-This examples is about the OnlineManager and OnlineSimulator based on rolling tasks. 
-The OnlineManager will focus on the updating of your online models.
-The OnlineSimulator will focus on the simulating real updating routine of your online models.
+This examples is about how can simulate the OnlineManager based on rolling tasks. 
 """
+
+import fire
+import qlib
+from qlib.model.trainer import DelayTrainerRM
+from qlib.workflow.online.manager import OnlineManager
+from qlib.workflow.online.strategy import RollingAverageStrategy
+from qlib.workflow.task.gen import RollingGen
+from qlib.workflow.task.manage import TaskManager
 
 
 data_handler_config = {
@@ -86,10 +83,10 @@ class OnlineSimulationExample:
         rolling_step=80,
         start_time="2018-09-10",
         end_time="2018-10-31",
-        tasks=[task_xgboost_config],  # , task_lgb_config]
+        tasks=[task_xgboost_config, task_lgb_config],
     ):
         """
-        init OnlineManagerExample.
+        Init OnlineManagerExample.
 
         Args:
             provider_uri (str, optional): the provider uri. Defaults to "~/.qlib/qlib_data/cn_data".
@@ -105,6 +102,8 @@ class OnlineSimulationExample:
         """
         self.exp_name = exp_name
         self.task_pool = task_pool
+        self.start_time = start_time
+        self.end_time = end_time
         mongo_conf = {
             "task_url": task_url,
             "task_db_name": task_db_name,
@@ -115,62 +114,30 @@ class OnlineSimulationExample:
         )  # The rolling tasks generator, modify_end_time is false because we just need simulate to 2018-10-31.
         self.trainer = DelayTrainerRM(self.exp_name, self.task_pool)
         self.task_manager = TaskManager(self.task_pool)  # A good way to manage all your tasks
-        self.rolling_online_manager = RollingOnlineManager(
-            experiment_name=exp_name,
-            rolling_gen=self.rolling_gen,
-            trainer=self.trainer,
+        self.rolling_online_manager = OnlineManager(
+            RollingAverageStrategy(
+                exp_name, task_template=tasks, rolling_gen=self.rolling_gen, trainer=self.trainer, need_log=False
+            ),
+            begin_time=self.start_time,
             need_log=False,
-        )  # The OnlineManager based on Rolling
-        self.onlinesimulator = OnlineSimulator(
-            start_time=start_time,
-            end_time=end_time,
-            online_manager=self.rolling_online_manager,
         )
         self.tasks = tasks
 
-    # Reset all things to the first status, be careful to save important data
-    def reset(self):
-        print("========== reset ==========")
-        self.task_manager.remove()
-
-        exp = R.get_exp(experiment_name=self.exp_name)
-        for rid in exp.list_recorders():
-            exp.delete_recorder(rid)
-
-        for rid in list_recorders(
-            RollingOnlineManager.SIGNAL_EXP, lambda x: True if x.info["name"] == self.exp_name else False
-        ):
-            exp.delete_recorder(rid)
-
-    # Run this firstly to see the workflow in OnlineManager
-    def first_train(self):
-        print("========== first train ==========")
-        self.reset()
-        self.rolling_online_manager.first_train(self.tasks)
-
-    # Run this secondly to see the simulating in OnlineSimulator
-    def simulate(self):
-        print("========== simulate ==========")
-        self.onlinesimulator.simulate()
-        print(self.rolling_online_manager.collect_artifact())
-
-        print("========== online models ==========")
-        recs_dict = self.onlinesimulator.online_models()
-        for time, recs in recs_dict.items():
-            print(f"{str(time[0])} to {str(time[1])}:")
-            for rec in recs:
-                print(rec.info["id"])
-
-        print("========== online signals ==========")
-        print(self.rolling_online_manager.get_signals())
-
-    # Run this to run all workflow automaticly
+    # Run this to run all workflow automatically
     def main(self):
-        self.first_train()
-        self.simulate()
+        print("========== reset ==========")
+        self.rolling_online_manager.reset()
+        print("========== simulate ==========")
+        self.rolling_online_manager.simulate(end_time=self.end_time)
+        print("========== collect results ==========")
+        print(self.rolling_online_manager.get_collector()())
+        print("========== signals ==========")
+        print(self.rolling_online_manager.get_signals())
+        print("========== online history ==========")
+        print(self.rolling_online_manager.get_online_history(self.exp_name))
 
 
 if __name__ == "__main__":
-    ## to run all workflow automaticly with your own parameters, use the command below
+    ## to run all workflow automatically with your own parameters, use the command below
     # python online_management_simulate.py main --experiment_name="your_exp_name" --rolling_step=60
     fire.Fire(OnlineSimulationExample)

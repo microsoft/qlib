@@ -522,6 +522,9 @@ class LocalCalendarProvider(CalendarProvider):
             # if future calendar not exists, return current calendar
             if not os.path.exists(fname):
                 get_module_logger("data").warning(f"{freq}_future.txt not exists, return current calendar!")
+                get_module_logger("data").warning(
+                    "You can get future calendar by referring to the following document: https://github.com/microsoft/qlib/blob/main/scripts/data_collector/contrib/README.md"
+                )
                 fname = self._uri_cal.format(freq)
         else:
             fname = self._uri_cal.format(freq)
@@ -1016,7 +1019,8 @@ class ClientProvider(BaseProvider):
         self.logger = get_module_logger(self.__class__.__name__)
         if isinstance(Cal, ClientCalendarProvider):
             Cal.set_conn(self.client)
-        Inst.set_conn(self.client)
+        if isinstance(Inst, ClientInstrumentProvider):
+            Inst.set_conn(self.client)
         if hasattr(DatasetD, "provider"):
             DatasetD.provider.set_conn(self.client)
         else:

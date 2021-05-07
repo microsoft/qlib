@@ -1,8 +1,12 @@
-from abc import abstractmethod
-from typing import Callable, Union
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
+"""
+Collector can collect object from everywhere and process them such as merging, grouping, averaging and so on.
+"""
+
+from qlib.model.ens.ensemble import SingleKeyEnsemble
 from qlib.workflow import R
-from qlib.workflow.task.utils import list_recorders
-from qlib.utils.serial import Serializable
 import dill as pickle
 
 
@@ -18,7 +22,7 @@ class Collector:
             process_list = [process_list]
         self.process_list = process_list
 
-    def collect(self):
+    def collect(self) -> dict:
         """Collect the results and return a dict like {key: things}
 
         Returns:
@@ -35,7 +39,7 @@ class Collector:
         raise NotImplementedError(f"Please implement the `collect` method.")
 
     @staticmethod
-    def process_collect(collected_dict, process_list=[], *args, **kwargs):
+    def process_collect(collected_dict, process_list=[], *args, **kwargs) -> dict:
         """do a series of processing to the dict returned by collect and return a dict like {key: things}
         For example: you can group and ensemble.
 
@@ -60,7 +64,7 @@ class Collector:
             result[artifact] = value
         return result
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args, **kwargs) -> dict:
         """
         do the workflow including collect and process_collect
 
@@ -78,7 +82,7 @@ class Collector:
             filepath (str): the path of file
 
         Returns:
-            bool: if successed
+            bool: if succeeded
         """
         try:
             with open(filepath, "wb") as f:
@@ -109,6 +113,29 @@ class Collector:
             raise TypeError(f"The instance of {type(collector)} is not a valid `Collector`!")
 
 
+class HyperCollector(Collector):
+    """
+    A collector to collect the results of other Collectors
+    """
+
+    def __init__(self, collector_dict, process_list=[]):
+        """
+        Args:
+            collector_dict (dict): the dict like {collector_key, Collector}
+            process_list (list or Callable): the list of processors or the instance of processor to process dict.
+                NOTE: process_list = [SingleKeyEnsemble()] can ignore key and use value directly if there is only one {k,v} in a dict.
+                This can make result more readable. If you want to maintain as it should be, just give a empty process list.
+        """
+        super().__init__(process_list=process_list)
+        self.collector_dict = collector_dict
+
+    def collect(self) -> dict:
+        collect_dict = {}
+        for key, collector in self.collector_dict.items():
+            collect_dict[key] = collector()
+        return collect_dict
+
+
 class RecorderCollector(Collector):
     ART_KEY_RAW = "__raw"
 
@@ -131,10 +158,10 @@ class RecorderCollector(Collector):
             artifacts_path (dict, optional): The artifacts name and its path in Recorder. Defaults to {"pred": "pred.pkl", "IC": "sig_analysis/ic.pkl"}.
             artifacts_key (str or List, optional): the artifacts key you want to get. If None, get all artifacts.
         """
+        super().__init__(process_list=process_list)
         if isinstance(experiment, str):
             experiment = R.get_exp(experiment_name=experiment)
         self.experiment = experiment
-        self.process_list = process_list
         self.artifacts_path = artifacts_path
         if rec_key_func is None:
             rec_key_func = lambda rec: rec.info["id"]
@@ -144,7 +171,7 @@ class RecorderCollector(Collector):
         self.artifacts_key = artifacts_key
         self._rec_filter_func = rec_filter_func
 
-    def collect(self, artifacts_key=None, rec_filter_func=None):
+    def collect(self, artifacts_key=None, rec_filter_func=None) -> dict:
         """Collect different artifacts based on recorder after filtering.
 
         Args:
@@ -180,3 +207,12 @@ class RecorderCollector(Collector):
                 collect_dict.setdefault(key, {})[rec_key] = artifact
 
         return collect_dict
+
+    def get_exp_name(self) -> str:
+        """
+        Get experiment name
+
+        Returns:
+            str: experiment name
+        """
+        return self.experiment.name

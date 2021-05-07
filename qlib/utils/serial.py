@@ -3,11 +3,12 @@
 
 from pathlib import Path
 import pickle
+from typing import Union
 
 
 class Serializable:
     """
-    Serializable will change the behaviours of pickle.
+    Serializable will change the behaviors of pickle.
     - It only saves the state whose name **does not** start with `_`
     It provides a syntactic sugar for distinguish the attributes which user doesn't want.
     - For examples, a learnable Datahandler just wants to save the parameters without data when dumping to disk
@@ -70,7 +71,7 @@ class Serializable:
                     obj.config(**params, recursive=True)
                 del self.__dict__[self.FLAG_KEY]
 
-    def to_pickle(self, path: [Path, str], dump_all: bool = None, exclude: list = None):
+    def to_pickle(self, path: Union[Path, str], dump_all: bool = None, exclude: list = None):
         self.config(dump_all=dump_all, exclude=exclude)
         with Path(path).open("wb") as f:
             pickle.dump(self, f)

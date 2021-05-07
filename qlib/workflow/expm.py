@@ -4,7 +4,7 @@
 import mlflow
 from mlflow.exceptions import MlflowException
 from mlflow.entities import ViewType
-import os
+import os, logging
 from pathlib import Path
 from contextlib import contextmanager
 from typing import Optional, Text
@@ -14,7 +14,7 @@ from ..config import C
 from .recorder import Recorder
 from ..log import get_module_logger
 
-logger = get_module_logger("workflow", "INFO")
+logger = get_module_logger("workflow", logging.INFO)
 
 
 class ExpManager:
@@ -33,7 +33,10 @@ class ExpManager:
 
     def start_exp(
         self,
+        *,
+        experiment_id: Optional[Text] = None,
         experiment_name: Optional[Text] = None,
+        recorder_id: Optional[Text] = None,
         recorder_name: Optional[Text] = None,
         uri: Optional[Text] = None,
         resume: bool = False,
@@ -45,8 +48,12 @@ class ExpManager:
 
         Parameters
         ----------
+        experiment_id : str
+            id of the active experiment.
         experiment_name : str
             name of the active experiment.
+        recorder_id : str
+            id of the recorder to be started.
         recorder_name : str
             name of the recorder to be started.
         uri : str
@@ -298,7 +305,10 @@ class MLflowExpManager(ExpManager):
 
     def start_exp(
         self,
+        *,
+        experiment_id: Optional[Text] = None,
         experiment_name: Optional[Text] = None,
+        recorder_id: Optional[Text] = None,
         recorder_name: Optional[Text] = None,
         uri: Optional[Text] = None,
         resume: bool = False,
@@ -308,11 +318,11 @@ class MLflowExpManager(ExpManager):
         # Create experiment
         if experiment_name is None:
             experiment_name = self._default_exp_name
-        experiment, _ = self._get_or_create_exp(experiment_name=experiment_name)
+        experiment, _ = self._get_or_create_exp(experiment_id=experiment_id, experiment_name=experiment_name)
         # Set up active experiment
         self.active_experiment = experiment
         # Start the experiment
-        self.active_experiment.start(recorder_name, resume)
+        self.active_experiment.start(recorder_id=recorder_id, recorder_name=recorder_name, resume=resume)
 
         return self.active_experiment
 

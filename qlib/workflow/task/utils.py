@@ -1,5 +1,10 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
+
+"""
+Some tools for task management.
+"""
+
 import bisect
 import pandas as pd
 from qlib.data import D
@@ -7,13 +12,14 @@ from qlib.workflow import R
 from qlib.config import C
 from qlib.log import get_module_logger
 from pymongo import MongoClient
+from pymongo.database import Database
 from typing import Union
 
 
-def get_mongodb():
-    """
+def get_mongodb() -> Database:
 
-    get database in MongoDB, which means you need to declare the address and the name of database.
+    """
+    Get database in MongoDB, which means you need to declare the address and the name of database.
     for example:
 
         Using qlib.init():
@@ -31,6 +37,8 @@ def get_mongodb():
                 "task_db_name" : "rolling_db"
             }
 
+    Returns:
+        Database: the Database instance
     """
     try:
         cfg = C["mongo"]
@@ -43,7 +51,8 @@ def get_mongodb():
 
 
 def list_recorders(experiment, rec_filter_func=None):
-    """list all recorders which can pass the filter in a experiment.
+    """
+    List all recorders which can pass the filter in a experiment.
 
     Args:
         experiment (str or Experiment): the name of a Experiment or a instance
@@ -65,7 +74,7 @@ def list_recorders(experiment, rec_filter_func=None):
 
 class TimeAdjuster:
     """
-    find appropriate date and adjust date.
+    Find appropriate date and adjust date.
     """
 
     def __init__(self, future=True, end_time=None):
@@ -88,15 +97,15 @@ class TimeAdjuster:
             return None
         return self.cals[idx]
 
-    def max(self):
+    def max(self) -> pd.Timestamp:
         """
         Return the max calendar datetime
         """
         return max(self.cals)
 
-    def align_idx(self, time_point, tp_type="start"):
+    def align_idx(self, time_point, tp_type="start") -> int:
         """
-        align the index of time_point in the calendar
+        Align the index of time_point in the calendar
 
         Parameters
         ----------
@@ -116,9 +125,9 @@ class TimeAdjuster:
             raise NotImplementedError(f"This type of input is not supported")
         return idx
 
-    def cal_interval(self, time_point_A, time_point_B):
+    def cal_interval(self, time_point_A, time_point_B) -> int:
         """
-        calculate the trading day interval
+        Calculate the trading day interval (time_point_A - time_point_B)
 
         Args:
             time_point_A : time_point_A
@@ -129,20 +138,22 @@ class TimeAdjuster:
         """
         return self.align_idx(time_point_A) - self.align_idx(time_point_B)
 
-    def align_time(self, time_point, tp_type="start"):
+    def align_time(self, time_point, tp_type="start") -> pd.Timestamp:
         """
         Align time_point to trade date of calendar
 
-        Parameters
-        ----------
-        time_point
-            Time point
-        tp_type : str
-            time point type (`"start"`, `"end"`)
+        Args:
+            time_point
+                Time point
+            tp_type : str
+                time point type (`"start"`, `"end"`)
+
+        Returns:
+            pd.Timestamp
         """
         return self.cals[self.align_idx(time_point, tp_type=tp_type)]
 
-    def align_seg(self, segment: Union[dict, tuple]):
+    def align_seg(self, segment: Union[dict, tuple]) -> Union[dict, tuple]:
         """
         align the given date to trade date
 
@@ -162,7 +173,7 @@ class TimeAdjuster:
 
         Returns
         -------
-        the start and end trade date (pd.Timestamp) between the given start and end date.
+        Union[dict, tuple]: the start and end trade date (pd.Timestamp) between the given start and end date.
         """
         if isinstance(segment, dict):
             return {k: self.align_seg(seg) for k, seg in segment.items()}
@@ -171,7 +182,7 @@ class TimeAdjuster:
         else:
             raise NotImplementedError(f"This type of input is not supported")
 
-    def truncate(self, segment: tuple, test_start, days: int):
+    def truncate(self, segment: tuple, test_start, days: int) -> tuple:
         """
         truncate the segment based on the test_start date
 
@@ -183,6 +194,10 @@ class TimeAdjuster:
         days : int
             The trading days to be truncated
             the data in this segment may need 'days' data
+
+        Returns
+        ---------
+        tuple: new segment
         """
         test_idx = self.align_idx(test_start)
         if isinstance(segment, tuple):
@@ -198,7 +213,7 @@ class TimeAdjuster:
     SHIFT_SD = "sliding"
     SHIFT_EX = "expanding"
 
-    def shift(self, seg: tuple, step: int, rtype=SHIFT_SD):
+    def shift(self, seg: tuple, step: int, rtype=SHIFT_SD) -> tuple:
         """
         shift the datatime of segment
 
@@ -210,6 +225,10 @@ class TimeAdjuster:
             rolling step
         rtype : str
             rolling type ("sliding" or "expanding")
+
+        Returns
+        --------
+        tuple: new segment
 
         Raises
         ------

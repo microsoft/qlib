@@ -35,7 +35,7 @@ REQUIRED = [
     "scipy>=1.0.0",
     "requests>=2.18.0",
     "sacred>=0.7.4",
-    "python-socketio==3.1.2",
+    "python-socketio",
     "redis>=3.0.1",
     "python-redis-lock>=3.3.1",
     "schedule>=0.6.0",

@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 """
-this is a task generator
+Task generator can generate many tasks based on TaskGen and some task templates.
 """
 import abc
 import copy
@@ -113,7 +113,7 @@ class RollingGen(TaskGen):
         self.test_key = "test"
         self.train_key = "train"
 
-    def generate(self, task: dict):
+    def generate(self, task: dict) -> typing.List[dict]:
         """
         Converting the task into a rolling task.
 
@@ -158,6 +158,10 @@ class RollingGen(TaskGen):
                         },
                     ]
                 }
+
+        Returns
+        ----------
+        typing.List[dict]: a list of tasks
         """
         res = []
 
@@ -196,16 +200,18 @@ class RollingGen(TaskGen):
 
             # update segments of this task
             t["dataset"]["kwargs"]["segments"] = copy.deepcopy(segments)
-            # if end_time < the end of test_segments, then change end_time to allow load more data
-            if (
-                self.modify_end_time
-                and self.ta.cal_interval(
+
+            try:
+                interval = self.ta.cal_interval(
                     t["dataset"]["kwargs"]["handler"]["kwargs"]["end_time"],
                     t["dataset"]["kwargs"]["segments"][self.test_key][1],
                 )
-                < 0
-            ):
-                t["dataset"]["kwargs"]["handler"]["kwargs"]["end_time"] = copy.deepcopy(segments[self.test_key][1])
+                # if end_time < the end of test_segments, then change end_time to allow load more data
+                if self.modify_end_time and interval < 0:
+                    t["dataset"]["kwargs"]["handler"]["kwargs"]["end_time"] = copy.deepcopy(segments[self.test_key][1])
+            except KeyError:
+                # Maybe the user dataset has no handler or end_time
+                pass
             prev_seg = segments
             res.append(t)
         return res

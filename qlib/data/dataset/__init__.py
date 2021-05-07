@@ -27,7 +27,7 @@ class Dataset(Serializable):
         - setup data
             - The data related attributes' names should start with '_' so that it will not be saved on disk when serializing.
 
-        The data could specify the info to caculate the essential data for preparation
+        The data could specify the info to calculate the essential data for preparation
         """
         self.setup_data(**kwargs)
         super().__init__()
@@ -92,7 +92,7 @@ class DatasetH(Dataset):
         handler : Union[dict, DataHandler]
             handler could be:
 
-            - insntance of `DataHandler`
+            - instance of `DataHandler`
 
             - config of `DataHandler`.  Please refer to `DataHandler`
 
@@ -124,7 +124,7 @@ class DatasetH(Dataset):
         Parameters
         ----------
         handler_kwargs : dict
-            Config of DataHanlder, which could include the following arguments:
+            Config of DataHandler, which could include the following arguments:
 
             - arguments of DataHandler.conf_data, such as 'instruments', 'start_time' and 'end_time'.
 
@@ -148,11 +148,11 @@ class DatasetH(Dataset):
         Parameters
         ----------
         handler_kwargs : dict
-            init arguments of DataHanlder, which could include the following arguments:
+            init arguments of DataHandler, which could include the following arguments:
 
             - init_type : Init Type of Handler
 
-            - enable_cache : wheter to enable cache
+            - enable_cache : whether to enable cache
 
         """
         super().setup_data(**kwargs)
@@ -238,7 +238,7 @@ class TSDataSampler:
     (T)ime-(S)eries DataSampler
     This is the result of TSDatasetH
 
-    It works like `torch.data.utils.Dataset`, it provides a very convient interface for constructing time-series
+    It works like `torch.data.utils.Dataset`, it provides a very convenient interface for constructing time-series
     dataset based on tabular data.
 
     If user have further requirements for processing data, user could process them based on `TSDataSampler` or create
@@ -310,7 +310,7 @@ class TSDataSampler:
 
         self.start_idx, self.end_idx = self.data_index.slice_locs(start=pd.Timestamp(start), end=pd.Timestamp(end))
         self.idx_arr = np.array(self.idx_df.values, dtype=np.float64)  # for better performance
-        
+
         del self.data  # save memory
 
     @staticmethod
@@ -472,7 +472,7 @@ class TSDatasetH(DatasetH):
     (T)ime-(S)eries Dataset (H)andler
 
 
-    Covnert the tabular data to Time-Series data
+    Convert the tabular data to Time-Series data
 
     Requirements analysis
 
