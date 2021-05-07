@@ -272,6 +272,11 @@ class TSDataSampler:
                 ffill with previous sample
             ffill+bfill:
                 ffill with previous samples first and fill with later samples second
+        flt_data : pd.Series
+            a column of data(True or False) to filter data.
+            None:
+                kepp all data
+
         """
         self.start = start
         self.end = end
