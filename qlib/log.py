@@ -163,3 +163,10 @@ class LogFilter(logging.Filter):
         elif isinstance(self.param, list):
             allow = not any([self.match_msg(p, record.msg) for p in self.param])
         return allow
+
+
+def set_global_logger_level(level: int):
+    qlib_logger = logging.root.manager.loggerDict.get("qlib", None)
+    if qlib_logger is not None:
+        for _handler in qlib_logger.handlers:
+            _handler.level = level

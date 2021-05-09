@@ -49,7 +49,7 @@ Your feedbacks about the features are very important.
 | Planning-based portfolio optimization | Under review:  https://github.com/microsoft/qlib/pull/280 | 
 | Fund data supporting and analysis  |  Under review: https://github.com/microsoft/qlib/pull/292 |
 | Point-in-Time database | Under review: https://github.com/microsoft/qlib/pull/343 |
-| High-frequency trading | Initial opensource version under development | 
+| High-frequency trading | Under review: https://github.com/microsoft/qlib/pull/408 | 
 | Meta-Learning-based data selection | Initial opensource version under development |
 
 Recent released features
