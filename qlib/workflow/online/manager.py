@@ -12,11 +12,13 @@ This module also provide a method to simulate `Online Strategy <#Online Strategy
 Which means you can verify your strategy or find a better one.
 """
 
+import logging
 from typing import Callable, Dict, List, Union
 
 import pandas as pd
 from qlib import get_module_logger
 from qlib.data.data import D
+from qlib.log import set_global_logger_level
 from qlib.model.ens.ensemble import AverageEnsemble
 from qlib.model.trainer import DelayTrainerR, Trainer
 from qlib.utils import flatten_dict
@@ -37,7 +39,6 @@ class OnlineManager(Serializable):
         trainer: Trainer = None,
         begin_time: Union[str, pd.Timestamp] = None,
         freq="day",
-        need_log=True,
     ):
         """
         Init OnlineManager.
@@ -48,10 +49,8 @@ class OnlineManager(Serializable):
             begin_time (Union[str,pd.Timestamp], optional): the OnlineManager will begin at this time. Defaults to None for using latest date.
             trainer (Trainer): the trainer to train task. None for using DelayTrainerR.
             freq (str, optional): data frequency. Defaults to "day".
-            need_log (bool, optional): print log or not. Defaults to True.
         """
         self.logger = get_module_logger(self.__class__.__name__)
-        self.need_log = need_log
         if not isinstance(strategy, list):
             strategy = [strategy]
         self.strategy = strategy
@@ -60,19 +59,18 @@ class OnlineManager(Serializable):
             begin_time = D.calendar(freq=self.freq).max()
         self.begin_time = pd.Timestamp(begin_time)
         self.cur_time = self.begin_time
-        # The history of online models, which is a dict like {begin_time, {strategy, [online_models]}}
-        # begin_time means when online_models are onlined
-        self.history = {}  
+        # OnlineManager will recorder the history of online models, which is a dict like {begin_time, {strategy, [online_models]}}. begin_time means when online_models are onlined.
+        self.history = {}
         if trainer is None:
             trainer = DelayTrainerR()
         self.trainer = trainer
         self.signals = None
 
-    def first_train(self, strategies:List[OnlineStrategy]=None, model_kwargs: dict = {}):
+    def first_train(self, strategies: List[OnlineStrategy] = None, model_kwargs: dict = {}):
         """
         Get tasks from every strategy's first_tasks method and train them.
         If using DelayTrainer, it can finish training all together after every strategy's first_tasks.
-        
+
         Args:
             strategies (List[OnlineStrategy]): the strategies list (need this param when adding strategies). None for use default strategies.
             model_kwargs (dict): the params for `prepare_online_models`
@@ -119,8 +117,7 @@ class OnlineManager(Serializable):
         for strategy in self.strategy:
             if not delay:
                 strategy.tool.update_online_pred()
-            if self.need_log:
-                self.logger.info(f"Strategy `{strategy.name_id}` begins routine...")
+            self.logger.info(f"Strategy `{strategy.name_id}` begins routine...")
 
             tasks = strategy.prepare_tasks(self.cur_time, **task_kwargs)
             models = self.trainer.train(tasks)
@@ -144,19 +141,20 @@ class OnlineManager(Serializable):
             delay (bool, optional): if delay prepare models. Defaults to False.
             model_kwargs (dict, optional): the params for `prepare_online_models`.
         """
+        if not models:
+            return
         if not delay:
             models = self.trainer.end_train(models, experiment_name=strategy.name_id)
             online_models = strategy.prepare_online_models(models, **model_kwargs)
         else:
             # just set every models as online models temporarily before ``prepare_online_models``
             online_models = models
-        if len(online_models) > 0:
-            strategy.tool.reset_online_tag(online_models)
-            self.history.setdefault(self.cur_time, {})[strategy] = online_models
+        self.history.setdefault(self.cur_time, {})[strategy] = online_models
 
     def get_collector(self) -> MergeCollector:
         """
         Get the instance of `Collector <../advanced/task_management.html#Task Collecting>`_ to collect results from every strategy.
+        This collector can be a basis as the signals preparation.
 
         Returns:
             MergeCollector: the collector to merge other collectors.
@@ -205,19 +203,22 @@ class OnlineManager(Serializable):
             signals = pd.concat([old_signals, new_signals], axis=0)
         else:
             new_signals = signals
-        if self.need_log:
-            self.logger.info(f"Finished preparing new {len(new_signals)} signals.")
+        self.logger.info(f"Finished preparing new {len(new_signals)} signals.")
         self.signals = signals
         return new_signals
 
-    def get_signals(self) -> pd.Series:
+    def get_signals(self) -> Union[pd.Series, pd.DataFrame]:
         """
         Get prepared online signals.
 
         Returns:
-            pd.Series: signals
+            Union[pd.Series, pd.DataFrame]: pd.Series for only one signals every datetime.
+            pd.DataFrame for multiple signals, for example, buy and sell operation use different trading signal.
         """
         return self.signals
+
+    SIM_LOG_LEVEL = logging.INFO + 1
+    SIM_LOG_NAME = "SIMULATE_INFO"
 
     def simulate(self, end_time, frequency="day", task_kwargs={}, model_kwargs={}, signal_kwargs={}):
         """
@@ -239,8 +240,13 @@ class OnlineManager(Serializable):
         """
         cal = D.calendar(start_time=self.cur_time, end_time=end_time, freq=frequency)
         self.first_train()
+
+        simulate_level = self.SIM_LOG_LEVEL
+        set_global_logger_level(simulate_level)
+        logging.addLevelName(simulate_level, self.SIM_LOG_NAME)
+
         for cur_time in cal:
-            self.logger.info(f"Simulating at {str(cur_time)}......")
+            self.logger.log(level=simulate_level, msg=f"Simulating at {str(cur_time)}......")
             self.routine(
                 cur_time,
                 delay=self.trainer.is_delay(),
@@ -251,6 +257,8 @@ class OnlineManager(Serializable):
         # delay prepare the models and signals
         if self.trainer.is_delay():
             self.delay_prepare(model_kwargs=model_kwargs, signal_kwargs=signal_kwargs)
+
+        set_global_logger_level(logging.INFO)
         self.logger.info(f"Finished preparing signals")
         return self.get_collector()
 

@@ -5,7 +5,7 @@
 The Trainer will train a list of tasks and return a list of model recorder.
 There are two steps in each Trainer including ``train``(make model recorder) and ``end_train``(modify model recorder).
 
-This is concept called ``DelayTrainer``, which can be used in online simulating to parallel training.
+This is concept called ``DelayTrainer``, which can be used in online simulating for parallel training.
 In ``DelayTrainer``, the first step is only to save some necessary info to model recorder, and the second step which will be finished in the end can do some concurrent and time-consuming operations such as model fitting.
 
 ``Qlib`` offer two kind of Trainer, ``TrainerR`` is the simplest way and ``TrainerRM`` is based on TaskManager to help manager tasks lifecycle automatically. 
@@ -103,7 +103,8 @@ def task_train(task_config: dict, experiment_name: str) -> Recorder:
 
 class Trainer:
     """
-    The trainer which can train a list of model
+    The trainer can train a list of model.
+    There are Trainer and DelayTrainer, which can be distinguished by when it will finish real training.
     """
 
     def __init__(self):
@@ -112,6 +113,9 @@ class Trainer:
     def train(self, tasks: list, *args, **kwargs) -> list:
         """
         Given a list of model definition, begin a training and return the models.
+
+        For Trainer, it finish real training in this method.
+        For DelayTrainer, it only do some preparation in this method.
 
         Args:
             tasks: a list of tasks
@@ -125,6 +129,9 @@ class Trainer:
         """
         Given a list of models, finished something in the end of training if you need.
         The models maybe Recorder, txt file, database and so on.
+
+        For Trainer, it do some finishing touches in this method.
+        For DelayTrainer, it finish real training in this method.
 
         Args:
             models: a list of models
@@ -326,7 +333,7 @@ class TrainerRM(Trainer):
             recs.append(rec)
         return recs
 
-    def end_train(self, recs: list, **kwargs) -> list:
+    def end_train(self, recs: list, **kwargs) -> List[Recorder]:
         for rec in recs:
             rec.set_tags(**{self.STATUS_KEY: self.STATUS_END})
         return recs
@@ -358,7 +365,7 @@ class DelayTrainerRM(TrainerRM):
         self.end_train_func = end_train_func
         self.delay = True
 
-    def train(self, tasks: list, train_func=None, experiment_name: str = None, **kwargs):
+    def train(self, tasks: list, train_func=None, experiment_name: str = None, **kwargs) -> List[Recorder]:
         """
         Same as `train` of TrainerRM, after_status will be STATUS_PART_DONE.
         Args:
@@ -378,7 +385,7 @@ class DelayTrainerRM(TrainerRM):
             **kwargs,
         )
 
-    def end_train(self, recs, end_train_func=None, experiment_name: str = None, **kwargs):
+    def end_train(self, recs, end_train_func=None, experiment_name: str = None, **kwargs) -> List[Recorder]:
         """
         Given a list of Recorder and return a list of trained Recorder.
         This class will finish real data loading and model fitting.

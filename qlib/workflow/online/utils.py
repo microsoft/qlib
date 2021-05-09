@@ -24,15 +24,11 @@ class OnlineTool:
     ONLINE_TAG = "online"  # the 'online' model
     OFFLINE_TAG = "offline"  # the 'offline' model, not for online serving
 
-    def __init__(self, need_log=True):
+    def __init__(self):
         """
         Init OnlineTool.
-
-        Args:
-            need_log (bool, optional): print log or not. Defaults to True.
         """
         self.logger = get_module_logger(self.__class__.__name__)
-        self.need_log = need_log
 
     def set_online_tag(self, tag, recorder: Union[list, object]):
         """
@@ -92,15 +88,14 @@ class OnlineToolR(OnlineTool):
     The implementation of OnlineTool based on (R)ecorder.
     """
 
-    def __init__(self, experiment_name:str, need_log=True):
+    def __init__(self, experiment_name: str):
         """
         Init OnlineToolR.
 
         Args:
             experiment_name (str): the experiment name.
-            need_log (bool, optional): print log or not. Defaults to True.
         """
-        super().__init__(need_log=need_log)
+        super().__init__()
         self.exp_name = experiment_name
 
     def set_online_tag(self, tag, recorder: Union[Recorder, List]):
@@ -115,8 +110,7 @@ class OnlineToolR(OnlineTool):
             recorder = [recorder]
         for rec in recorder:
             rec.set_tags(**{self.ONLINE_KEY: tag})
-        if self.need_log:
-            self.logger.info(f"Set {len(recorder)} models to '{tag}'.")
+        self.logger.info(f"Set {len(recorder)} models to '{tag}'.")
 
     def get_online_tag(self, recorder: Recorder) -> str:
         """
@@ -164,7 +158,6 @@ class OnlineToolR(OnlineTool):
         """
         online_models = self.online_models()
         for rec in online_models:
-            PredUpdater(rec, to_date=to_date, need_log=self.need_log).update()
+            PredUpdater(rec, to_date=to_date).update()
 
-        if self.need_log:
-            self.logger.info(f"Finished updating {len(online_models)} online model predictions of {self.exp_name}.")
+        self.logger.info(f"Finished updating {len(online_models)} online model predictions of {self.exp_name}.")

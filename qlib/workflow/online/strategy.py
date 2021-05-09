@@ -22,7 +22,7 @@ class OnlineStrategy:
     OnlineStrategy is working with `Online Manager <#Online Manager>`_, responsing how the tasks are generated, the models are updated and signals are perpared.
     """
 
-    def __init__(self, name_id: str, need_log=True):
+    def __init__(self, name_id: str):
         """
         Init OnlineStrategy.
         This module **MUST** use `Trainer <../reference/api.html#Trainer>`_ to finishing model training.
@@ -30,12 +30,10 @@ class OnlineStrategy:
         Args:
             name_id (str): a unique name or id
             trainer (Trainer, optional): a instance of Trainer. Defaults to None.
-            need_log (bool, optional): print log or not. Defaults to True.
         """
         self.name_id = name_id
         self.logger = get_module_logger(self.__class__.__name__)
-        self.need_log = need_log
-        self.tool = OnlineTool(need_log)
+        self.tool = OnlineTool()
 
     def prepare_tasks(self, cur_time, **kwargs) -> List[dict]:
         """
@@ -46,20 +44,21 @@ class OnlineStrategy:
         """
         raise NotImplementedError(f"Please implement the `prepare_tasks` method.")
 
-    def prepare_online_models(self, models, cur_time=None, check_func=None, **kwargs):
+    def prepare_online_models(self, models, cur_time=None, check_func=None) -> List[object]:
         """
         A typically implementation, but maybe you will need old models by online_tool.
-        Use trainer to train a list of tasks and set the trained model to `online`.
+        Select some models as the online models from the trained models.
 
-        NOTE: This method will first offline all models and online the online models prepared by this method. So you can find last online models by OnlineTool.online_models if you still need them.
+        NOTE: This method offline all models and online the online models prepared by this method (if have). So you can find last online models by OnlineTool.online_models if you still need them.
 
         Args:
             tasks (list): a list of tasks.
             check_func: the method to judge if a model can be online.
                 The parameter is the model record and return True for online.
                 None for online every models.
-            **kwargs: will be passed to end_train which means will be passed to customized train method.
 
+        Returns:
+            List[object]: a list of selected models.
         """
         if check_func is not None:
             online_models = []
@@ -101,7 +100,6 @@ class RollingAverageStrategy(OnlineStrategy):
         name_id: str,
         task_template: Union[dict, List[dict]],
         rolling_gen: RollingGen,
-        need_log=True,
     ):
         """
         Init RollingAverageStrategy.
@@ -112,15 +110,14 @@ class RollingAverageStrategy(OnlineStrategy):
             name_id (str): a unique name or id. Will be also the name of Experiment.
             task_template (Union[dict,List[dict]]): a list of task_template or a single template, which will be used to generate many tasks using rolling_gen.
             rolling_gen (RollingGen): an instance of RollingGen
-            need_log (bool, optional): print log or not. Defaults to True.
         """
-        super().__init__(name_id=name_id, need_log=need_log)
+        super().__init__(name_id=name_id)
         self.exp_name = self.name_id
         if not isinstance(task_template, list):
             task_template = [task_template]
         self.task_template = task_template
         self.rg = rolling_gen
-        self.tool = OnlineToolR(self.exp_name, need_log)
+        self.tool = OnlineToolR(self.exp_name)
         self.ta = TimeAdjuster()
 
     def get_collector(self, process_list=[RollingGroup()], rec_key_func=None, rec_filter_func=None, artifacts_key=None):
@@ -180,10 +177,9 @@ class RollingAverageStrategy(OnlineStrategy):
             self.logger.warn(f"No latest online recorders, no new tasks.")
             return []
         calendar_latest = D.calendar(end_time=cur_time)[-1] if cur_time is None else cur_time
-        if self.need_log:
-            self.logger.info(
-                f"The interval between current time {calendar_latest} and last rolling test begin time {max_test[0]} is {self.ta.cal_interval(calendar_latest, max_test[0])}, the rolling step is {self.rg.step}"
-            )
+        self.logger.info(
+            f"The interval between current time {calendar_latest} and last rolling test begin time {max_test[0]} is {self.ta.cal_interval(calendar_latest, max_test[0])}, the rolling step is {self.rg.step}"
+        )
         if self.ta.cal_interval(calendar_latest, max_test[0]) >= self.rg.step:
             old_tasks = []
             tasks_tmp = []

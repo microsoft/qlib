@@ -200,7 +200,7 @@ class DatasetH(Dataset):
             The data to fetch:  DK_*
             Default is DK_I, which indicate fetching data for **inference**.
 
-        kwargs : 
+        kwargs :
             The parameters that kwargs may contain:
                 flt_col : str
                     It only exists in TSDatasetH, can be used to add a column of data(True or False) to filter data.
@@ -250,7 +250,9 @@ class TSDataSampler:
 
     """
 
-    def __init__(self, data: pd.DataFrame, start, end, step_len: int, fillna_type: str = "none", dtype=None, flt_data=None):
+    def __init__(
+        self, data: pd.DataFrame, start, end, step_len: int, fillna_type: str = "none", dtype=None, flt_data=None
+    ):
         """
         Build a dataset which looks like torch.data.utils.Dataset.
 
@@ -518,13 +520,13 @@ class TSDatasetH(DatasetH):
         """
         dtype = kwargs.pop("dtype", None)
         start, end = slc.start, slc.stop
-        flt_col = kwargs.pop('flt_col', None)
+        flt_col = kwargs.pop("flt_col", None)
         # TSDatasetH will retrieve more data for complete
         data = self._prepare_raw_seg(slc, **kwargs)
 
         flt_kwargs = deepcopy(kwargs)
         if flt_col is not None:
-            flt_kwargs['col_set'] = flt_col
+            flt_kwargs["col_set"] = flt_col
             flt_data = self._prepare_raw_seg(slc, **flt_kwargs)
             assert len(flt_data.columns) == 1
         else:

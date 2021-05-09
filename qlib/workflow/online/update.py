@@ -60,10 +60,9 @@ class RecordUpdater(metaclass=ABCMeta):
     Update a specific recorders
     """
 
-    def __init__(self, record: Recorder, need_log=True, *args, **kwargs):
+    def __init__(self, record: Recorder, *args, **kwargs):
         self.record = record
         self.logger = get_module_logger(self.__class__.__name__)
-        self.need_log = need_log
 
     @abstractmethod
     def update(self, *args, **kwargs):
@@ -78,7 +77,7 @@ class PredUpdater(RecordUpdater):
     Update the prediction in the Recorder
     """
 
-    def __init__(self, record: Recorder, to_date=None, hist_ref: int = 0, freq="day", need_log=True):
+    def __init__(self, record: Recorder, to_date=None, hist_ref: int = 0, freq="day"):
         """
         Init PredUpdater.
 
@@ -96,7 +95,7 @@ class PredUpdater(RecordUpdater):
 
         """
         # TODO: automate this hist_ref in the future.
-        super().__init__(record=record, need_log=need_log)
+        super().__init__(record=record)
 
         self.to_date = to_date
         self.hist_ref = hist_ref
@@ -138,8 +137,7 @@ class PredUpdater(RecordUpdater):
 
         start_time = get_date_by_shift(self.last_end, 1, freq=self.freq)
         if start_time >= self.to_date:
-            if self.need_log:
-                self.logger.info(f"The prediction in {self.record.info['id']} are latest. No need to update.")
+            self.logger.info(f"The prediction in {self.record.info['id']} are latest. No need to update.")
             return
 
         # load dataset
@@ -157,5 +155,4 @@ class PredUpdater(RecordUpdater):
 
         self.record.save_objects(**{"pred.pkl": cb_pred})
 
-        if self.need_log:
-            self.logger.info(f"Finish updating new {new_pred.shape[0]} predictions in {self.record.info['id']}.")
+        self.logger.info(f"Finish updating new {new_pred.shape[0]} predictions in {self.record.info['id']}.")
