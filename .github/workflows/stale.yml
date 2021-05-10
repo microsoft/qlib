@@ -20,5 +20,5 @@ jobs:
         days-before-stale: 90
         days-before-close: 5
         operations-per-run: 100
-        exempt-issue-labels: 'bug'
+        exempt-issue-labels: 'bug,enhancement'
         remove-stale-when-updated: true
