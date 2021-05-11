@@ -3,13 +3,14 @@
 
 
 import copy
+import warnings
 import pandas as pd
 
 from .position import Position
 from .report import Report
 from .order import Order
 from ...data import D
-from ...utils import parse_freq, sample_feature
+from ...utils.sample import parse_freq, sample_feature
 
 
 """
@@ -110,6 +111,8 @@ class Account:
         for k, v in kwargs.items():
             if hasattr(self, k):
                 setattr(self, k, v)
+            else:
+                warnings.warn(f"reser error, attribute {k} is not found!")
 
     def get_positions(self):
         return self.positions

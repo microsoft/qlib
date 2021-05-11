@@ -3,14 +3,15 @@ import warnings
 import numpy as np
 import pandas as pd
 
-from ...utils import sample_feature
+
+from ...utils.sample import sample_feature
 from ...data.data import D
-from ...data.dataset.utils import get_level_index
-from ...strategy.base import RuleStrategy, TradingEnhancement
+from ...data.dataset.utils import convert_index_format
+from ...strategy.base import RuleStrategy, OrderEnhancement
 from ..backtest.order import Order
 
 
-class TWAPStrategy(RuleStrategy, TradingEnhancement):
+class TWAPStrategy(RuleStrategy, OrderEnhancement):
     def __init__(
         self,
         step_bar,
@@ -23,7 +24,7 @@ class TWAPStrategy(RuleStrategy, TradingEnhancement):
 
     def reset(self, trade_order_list=None, trade_exchange=None, **kwargs):
         super(TWAPStrategy, self).reset(**kwargs)
-        TradingEnhancement.reset(self, trade_order_list=trade_order_list)
+        OrderEnhancement.reset(self, trade_order_list=trade_order_list)
         if trade_exchange:
             self.trade_exchange = trade_exchange
         if trade_order_list:
@@ -31,7 +32,7 @@ class TWAPStrategy(RuleStrategy, TradingEnhancement):
             for order in self.trade_order_list:
                 self.trade_amount[(order.stock_id, order.direction)] = order.amount
 
-    def generate_order_list(self, **kwargs):
+    def generate_order_list(self, execute_state):
         super(TWAPStrategy, self).step()
         trade_start_time, trade_end_time = self._get_calendar_time(self.trade_index)
         order_list = []
@@ -66,7 +67,7 @@ class TWAPStrategy(RuleStrategy, TradingEnhancement):
         return order_list
 
 
-class SBBStrategyBase(RuleStrategy, TradingEnhancement):
+class SBBStrategyBase(RuleStrategy, OrderEnhancement):
     """
     (S)elect the (B)etter one among every two adjacent trading (B)ars to sell or buy.
     """
@@ -87,7 +88,7 @@ class SBBStrategyBase(RuleStrategy, TradingEnhancement):
 
     def reset(self, trade_order_list=None, trade_exchange=None, **kwargs):
         super(SBBStrategyBase, self).reset(**kwargs)
-        TradingEnhancement.reset(self, trade_order_list=trade_order_list)
+        OrderEnhancement.reset(self, trade_order_list=trade_order_list)
         if trade_exchange:
             self.trade_exchange = trade_exchange
         if trade_order_list is not None:
@@ -100,7 +101,7 @@ class SBBStrategyBase(RuleStrategy, TradingEnhancement):
     def _pred_price_trend(self, stock_id, pred_start_time=None, pred_end_time=None):
         raise NotImplementedError("pred_price_trend method is not implemented!")
 
-    def generate_order_list(self, **kwargs):
+    def generate_order_list(self, execute_state):
         super(SBBStrategyBase, self).step()
         if not self.trade_order_list:
             return []
@@ -109,7 +110,7 @@ class SBBStrategyBase(RuleStrategy, TradingEnhancement):
         order_list = []
         for order in self.trade_order_list:
             if self.trade_index % 2 == 1:
-                _pred_trend = self._pred_price_trend(order.stock_id)
+                _pred_trend = self._pred_price_trend(order.stock_id, pred_start_time, pred_end_time)
             else:
                 _pred_trend = self.trade_trend[(order.stock_id, order.direction)]
 
@@ -127,7 +128,7 @@ class SBBStrategyBase(RuleStrategy, TradingEnhancement):
                     _order_amount = self.trade_amount[(order.stock_id, order.direction)] / (
                         self.trade_len - self.trade_index
                     )
-                if self.trade_amount[(order.stock_id, order.direction)] >= _amount_trade_unit:
+                elif self.trade_amount[(order.stock_id, order.direction)] >= _amount_trade_unit:
                     trade_unit_cnt = int(self.trade_amount[(order.stock_id, order.direction)] // _amount_trade_unit)
                     _order_amount = (
                         (trade_unit_cnt + self.trade_len - self.trade_index - 1)
@@ -146,6 +147,7 @@ class SBBStrategyBase(RuleStrategy, TradingEnhancement):
                         factor=order.factor,
                     )
                     order_list.append(_order)
+                    # print("DEBUG AMOUNT", _order_amount, self.trade_amount[(order.stock_id, order.direction)], _amount_trade_unit)
             else:
                 _order_amount = None
                 if _amount_trade_unit is None:
@@ -154,12 +156,12 @@ class SBBStrategyBase(RuleStrategy, TradingEnhancement):
                         * self.trade_amount[(order.stock_id, order.direction)]
                         / (self.trade_len - self.trade_index + 1)
                     )
-                if self.trade_amount[(order.stock_id, order.direction)] >= _amount_trade_unit:
+                elif self.trade_amount[(order.stock_id, order.direction)] >= _amount_trade_unit:
                     trade_unit_cnt = int(self.trade_amount[(order.stock_id, order.direction)] // _amount_trade_unit)
                     _order_amount = (
-                        2
-                        * (trade_unit_cnt + self.trade_len - self.trade_index)
+                        (trade_unit_cnt + self.trade_len - self.trade_index)
                         // (self.trade_len - self.trade_index + 1)
+                        * 2
                         * _amount_trade_unit
                     )
                 if _order_amount:
@@ -197,6 +199,7 @@ class SBBStrategyBase(RuleStrategy, TradingEnhancement):
                                 factor=order.factor,
                             )
                             order_list.append(_order)
+                    # print("DEBUG AMOUNT", _order_amount, self.trade_amount[(order.stock_id, order.direction)], _amount_trade_unit)
             if self.trade_index % 2 == 1:
                 self.trade_trend[(order.stock_id, order.direction)] = _pred_trend
 
@@ -226,20 +229,15 @@ class SBBStrategyEMA(SBBStrategyBase):
             self.instruments = D.instruments(instruments)
         self.freq = freq
 
-    def _convert_index_format(self, df):
-        if get_level_index(df, level="datetime") == 1:
-            df = df.swaplevel().sort_index()
-        return df
-
-    def _reset_trade_calendar(self, start_time=None, end_time=None):
-        super(SBBStrategyEMA, self)._reset_trade_calendar(start_time=start_time, end_time=end_time)
+    def reset(self, start_time=None, end_time=None, **kwargs):
+        super(SBBStrategyEMA, self).reset(start_time=start_time, end_time=end_time, **kwargs)
         if self.start_time and self.end_time:
             fields = ["EMA($close, 10)-EMA($close, 20)"]
             signal_start_time, _ = self._get_calendar_time(trade_index=self.trade_index, shift=1)
             signal_df = D.features(
                 self.instruments, fields, start_time=signal_start_time, end_time=self.end_time, freq=self.freq
             )
-            signal_df = self._convert_index_format(signal_df)
+            signal_df = convert_index_format(signal_df)
             signal_df.columns = ["signal"]
             self.signal = {}
             for stock_id, stock_val in signal_df.groupby(level="instrument"):

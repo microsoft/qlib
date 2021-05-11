@@ -14,7 +14,8 @@ from ..data.dataset import DatasetH
 from ..data.dataset.handler import DataHandlerLP
 from ..utils import init_instance_by_config, get_module_by_module_path
 from ..log import get_module_logger
-from ..utils import flatten_dict, parse_freq
+from ..utils import flatten_dict
+from ..utils.sample import parse_freq
 from ..strategy.base import BaseStrategy
 from ..contrib.eva.alpha import calc_ic, calc_long_short_return
 
@@ -315,16 +316,6 @@ class PortAnaRecord(RecordTemp):
             ret_freq.extend(self._get_report_freq(env_config["kwargs"]["sub_env"]))
         return ret_freq
 
-    def _cal_risk_analysis_scaler(self, freq):
-        _count, _freq = parse_freq(freq)
-        _freq_scaler = {
-            "minute": 240 * 250,
-            "day": 250,
-            "week": 50,
-            "month": 12,
-        }
-        return _count * _freq_scaler[_freq]
-
     def generate(self, **kwargs):
         # custom strategy and get backtest
         report_dict = normal_backtest(env=self.env_config, strategy=self.strategy_config, **self.backtest_config)
@@ -343,12 +334,11 @@ class PortAnaRecord(RecordTemp):
         else:
             report_normal, _ = report_dict.get(self.risk_analysis_freq)
             analysis = dict()
-            risk_analysis_scaler = self._cal_risk_analysis_scaler(self.risk_analysis_freq)
             analysis["excess_return_without_cost"] = risk_analysis(
-                report_normal["return"] - report_normal["bench"], risk_analysis_scaler
+                report_normal["return"] - report_normal["bench"], self.risk_analysis_freq
             )
             analysis["excess_return_with_cost"] = risk_analysis(
-                report_normal["return"] - report_normal["bench"] - report_normal["cost"], risk_analysis_scaler
+                report_normal["return"] - report_normal["bench"] - report_normal["cost"], self.risk_analysis_freq
             )
             analysis_df = pd.concat(analysis)  # type: pd.DataFrame
             # log metrics

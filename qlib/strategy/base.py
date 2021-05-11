@@ -1,55 +1,160 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-
-import copy
-import warnings
-import numpy as np
 import pandas as pd
+from typing import Tuple, List, Union, Optional, Callable
 
 
-from ..utils import get_sample_freq_calendar
+from ..model.base import BaseModel
 from ..data.dataset import DatasetH
-from ..data.dataset.utils import get_level_index
+from ..data.dataset.utils import convert_index_format
 from ..contrib.backtest.order import Order
-from ..contrib.backtest.env import BaseTradeCalendar
-
-"""
-1. BaseStrategy 的粒度一定是数据粒度的整数倍
-- 关于calendar的合并咋整
-- adjust_dates这个东西啥用
-- label和freq和strategy的bar分离，这个如何决策呢
-"""
+from ..contrib.backtest.executor import BaseTradeCalendar
+from ..rl.interpreter import ActionInterpreter, StateInterpreter
 
 
 class BaseStrategy(BaseTradeCalendar):
-    def generate_order_list(self, **kwargs):
+    """Base strategy"""
+
+    def generate_order_list(self, execute_state):
+        """Generate order list in each trading bar"""
         raise NotImplementedError("generator_order_list is not implemented!")
 
 
 class RuleStrategy(BaseStrategy):
+    """Trading strategy with rules"""
+
     pass
 
 
 class ModelStrategy(BaseStrategy):
-    def __init__(self, step_bar, model, dataset: DatasetH, start_time=None, end_time=None, **kwargs):
+    """Trading Strategy by using Model to make predictions"""
+
+    def __init__(
+        self,
+        step_bar: str,
+        model: BaseModel,
+        dataset: DatasetH,
+        start_time: Union[str, pd.Timestamp] = None,
+        end_time: Union[str, pd.Timestamp] = None,
+        **kwargs,
+    ):
+        """
+        Parameters
+        ----------
+        model : BaseModel
+            the model used in when making predictions
+        dataset : DatasetH
+            provide test data for model
+        kwargs : dict
+            arguments that will be passed into `reset` method
+        """
         self.model = model
         self.dataset = dataset
-        self.pred_scores = self._convert_index_format(self.model.predict(dataset))
+        self.pred_scores = convert_index_format(self.model.predict(dataset), level="datetime")
         # pred_score_dates = self.pred_scores.index.get_level_values(level="datetime")
         super(ModelStrategy, self).__init__(step_bar, start_time, end_time, **kwargs)
 
-    def _convert_index_format(self, df):
-        if get_level_index(df, level="datetime") == 1:
-            df = df.swaplevel().sort_index()
-        return df
-
     def _update_model(self):
-        """update pred score"""
+        """
+        Update model in each bar when using online data as the following steps:
+            - update dataset with online data, the dataset should support online update
+            - make the latest prediction scores of the new bar
+            - update the pred score into the latest prediction
+        """
         raise NotImplementedError("_update_model is not implemented!")
 
 
-class TradingEnhancement:
-    def reset(self, trade_order_list=None):
+class RLStrategy(BaseStrategy):
+    """RL-based Strategy"""
+
+    def __init__(
+        self,
+        step_bar: str,
+        policy,
+        start_time: Union[str, pd.Timestamp] = None,
+        end_time: Union[str, pd.Timestamp] = None,
+        **kwargs,
+    ):
+        """
+        Parameters
+        ----------
+        policy :
+            RL policy for generate action
+        """
+        super(RLStrategy, self).__init__(step_bar, start_time, end_time, **kwargs)
+        self.policy = policy
+
+
+class RLIntStrategy(RLStrategy):
+    """(RL)-based (Strategy) with (Int)erpreter"""
+
+    def __init__(
+        self,
+        step_bar: str,
+        policy,
+        state_interpreter: StateInterpreter,
+        action_interpreter: ActionInterpreter,
+        start_time: Union[str, pd.Timestamp] = None,
+        end_time: Union[str, pd.Timestamp] = None,
+        state_interpret_kwargs: dict = {},
+        action_interpret_kwargs: dict = {},
+        **kwargs,
+    ):
+        """
+        Parameters
+        ----------
+        state_interpreter : StateInterpreter
+            interpretor that interprets the qlib execute result into rl env state.
+        action_interpreter : ActionInterpreter
+            interpretor that interprets the rl agent action into qlib order list
+        start_time : Union[str, pd.Timestamp], optional
+            start time of trading, by default None
+        end_time : Union[str, pd.Timestamp], optional
+            end time of trading, by default None
+        state_interpret_kwargs : dict, optional
+            arguments may be used in `state_interpreter.interpret`, by default {}
+            such as the following arguments:
+                - trade exchange : Exchange
+                    Exchange that can provide market info
+        action_interpret_kwargs: dict, optional
+            arguments may be used in `action_interpreter.interpret`, by default {}
+            such as the following arguments:
+                - trade_order_list : List[Order]
+                    If the strategy is used to split order, it presents the trade order pool.
+        """
+        super(RLIntStrategy, self).__init__(step_bar, policy, start_time, end_time, **kwargs)
+
+        self.policy = policy
+        self.action_interpreter = action_interpreter
+        self.state_interpreter = state_interpreter
+        self.state_interpret_kwargs = state_interpret_kwargs
+        self.action_interpret_kwargs = action_interpret_kwargs
+
+    def generate_order_list(self, execute_state):
+        super(RLStrategy, self).step()
+        _interpret_state = self.state_interpretor.interpret(
+            execute_result=execute_state, **self.action_interpret_kwargs
+        )
+        _policy_action = self.policy.step(_interpret_state)
+        _order_list = self.action_interpreter.interpret(action=_policy_action, **self.state_interpret_kwargs)
+        return _order_list
+
+
+class OrderEnhancement:
+    """
+    Order enhancement for strategy
+        - If the strategy is used to split orders, the enhancement should be inherited
+        - If the strategy is used for portfolio management, the enhancement can be ignored
+    """
+
+    def reset(self, trade_order_list: List[Order] = None):
+        """reset trade orders for split strategy
+
+        Parameters
+        ----------
+        trade_order_list for split strategy: List[Order], optional
+            trading orders , by default None
+        """
         if trade_order_list is not None:
             self.trade_order_list = trade_order_list

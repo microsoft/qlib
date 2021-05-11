@@ -11,7 +11,7 @@ import pandas as pd
 from ...data.data import D
 from ...data.dataset.utils import get_level_index
 from ...config import C, REG_CN
-from ...utils import sample_feature
+from ...utils.sample import sample_feature
 from ...log import get_module_logger
 from .order import Order
 

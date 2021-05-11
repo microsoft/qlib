@@ -1,19 +1,34 @@
-import re
-import json
 import copy
 import warnings
-import pathlib
-import numpy as np
 import pandas as pd
+from typing import Tuple, List, Union, Optional, Callable
 from ...data.data import Cal
-from ...utils import get_sample_freq_calendar, parse_freq
-from .position import Position
+from ...strategy.base import BaseStrategy
+from ...utils import init_instance_by_config
+from ...utils.sample import get_sample_freq_calendar, parse_freq
 from .report import Report
 from .order import Order
+from .account import Account
+from .exchange import Exchange
 
 
 class BaseTradeCalendar:
-    def __init__(self, step_bar, start_time=None, end_time=None, **kwargs):
+    def __init__(
+        self, step_bar: str, start_time: Union[str, pd.Timestamp] = None, end_time: Union[str, pd.Timestamp] = None
+    ):
+        """
+        Parameters
+        ----------
+        step_bar : str
+            frequency of each trading step bar
+        start_time : Union[str, pd.Timestamp], optional
+            start time of trading, by default None
+            If `start_time` is None, it must be reset before trading.
+        end_time : Union[str, pd.Timestamp], optional
+            end time of trading, by default None
+            If `end_time` is None, it must be reset before trading.
+        """
+
         self.step_bar = step_bar
         self.reset(start_time=start_time, end_time=end_time)
 
@@ -27,10 +42,9 @@ class BaseTradeCalendar:
         if self.start_time and self.end_time:
             _calendar, freq, freq_sam = get_sample_freq_calendar(freq=self.step_bar)
             self.calendar = _calendar
-            _start_time, _end_time, _start_index, _end_index = Cal.locate_index(
+            _, _, _start_index, _end_index = Cal.locate_index(
                 self.start_time, self.end_time, freq=freq, freq_sam=freq_sam
             )
-            _trade_calendar = self.calendar[_start_index : _end_index + 1]
             self.start_index = _start_index
             self.end_index = _end_index
             self.trade_len = _end_index - _start_index + 1
@@ -45,6 +59,8 @@ class BaseTradeCalendar:
         for k, v in kwargs.items():
             if hasattr(self, k):
                 setattr(self, k, v)
+            else:
+                warnings.warn(f"reser error, attribute {k} is not found!")
 
     def _get_calendar_time(self, trade_index=1, shift=0):
         trade_index = trade_index - shift
@@ -55,34 +71,43 @@ class BaseTradeCalendar:
         return self.trade_index >= self.trade_len - 1
 
     def step(self):
+        if self.finished():
+            raise RuntimeError(f"this env has completed its task, please reset it if you want to call it!")
         self.trade_index = self.trade_index + 1
 
 
-class BaseEnv(BaseTradeCalendar):
-    """
-    # Strategy framework document
-
-    class Env(BaseEnv):
-    """
+class BaseExecutor(BaseTradeCalendar):
+    """Base executor for trading"""
 
     def __init__(
         self,
-        step_bar,
-        start_time=None,
-        end_time=None,
-        trade_account=None,
-        generate_report=False,
-        verbose=False,
+        step_bar: str,
+        start_time: Union[str, pd.Timestamp] = None,
+        end_time: Union[str, pd.Timestamp] = None,
+        trade_account: Account = None,
+        generate_report: bool = False,
+        verbose: bool = False,
         **kwargs,
     ):
-        self.generate_report = generate_report
-        self.verbose = verbose
-        super(BaseEnv, self).__init__(
+        """
+        Parameters
+        ----------
+        trade_account : Account, optional
+            trade account for trading, by default None
+            If `trade_account` is None, it must be reset before trading
+        generate_report : bool, optional
+            whether to generate report, by default False
+        verbose : bool, optional
+            whether to print log, by default False
+        """
+        super(BaseExecutor, self).__init__(
             step_bar=step_bar, start_time=start_time, end_time=end_time, trade_account=trade_account, **kwargs
         )
+        self.generate_report = generate_report
+        self.verbose = verbose
 
     def reset(self, trade_account=None, **kwargs):
-        super(BaseEnv, self).reset(**kwargs)
+        super(BaseExecutor, self).reset(**kwargs)
         if trade_account:
             self.trade_account = trade_account
             self.trade_account.reset(freq=self.step_bar, report=Report(), positions={})
@@ -101,23 +126,31 @@ class BaseEnv(BaseTradeCalendar):
         raise NotImplementedError("get_report is not implemented!")
 
 
-class SplitEnv(BaseEnv):
+class SplitExecutor(BaseExecutor):
     def __init__(
         self,
-        step_bar,
-        sub_env,
-        sub_strategy,
-        start_time=None,
-        end_time=None,
-        trade_account=None,
-        trade_exchange=None,
-        generate_report=False,
-        verbose=False,
+        step_bar: str,
+        sub_env: Union[BaseExecutor, dict],
+        sub_strategy: Union[BaseStrategy, dict],
+        start_time: Union[str, pd.Timestamp] = None,
+        end_time: Union[str, pd.Timestamp] = None,
+        trade_account: Account = None,
+        trade_exchange: Exchange = None,
+        generate_report: bool = False,
+        verbose: bool = False,
         **kwargs,
     ):
-        self.sub_env = sub_env
-        self.sub_strategy = sub_strategy
-        super(SplitEnv, self).__init__(
+        """
+        Parameters
+        ----------
+        sub_env : BaseExecutor
+            trading env in each trading bar.
+        sub_strategy : BaseStrategy
+            trading strategy in each trading bar
+        trade_exchange : Exchange
+            exchange that provides market info
+        """
+        super(SplitExecutor, self).__init__(
             step_bar=step_bar,
             start_time=start_time,
             end_time=end_time,
@@ -127,28 +160,26 @@ class SplitEnv(BaseEnv):
             verbose=verbose,
             **kwargs,
         )
+        self.sub_env = init_instance_by_config(sub_env, accept_types=BaseExecutor)
+        self.sub_strategy = init_instance_by_config(sub_strategy, accept_types=BaseStrategy)
 
     def reset(self, trade_account=None, trade_exchange=None, **kwargs):
-        super(SplitEnv, self).reset(trade_account=trade_account, **kwargs)
+
+        super(SplitExecutor, self).reset(trade_account=trade_account, **kwargs)
         if trade_account:
             self.sub_env.reset(trade_account=copy.copy(trade_account))
         if trade_exchange:
             self.trade_exchange = trade_exchange
 
-    def execute(self, order_list, **kwargs):
-        if self.finished():
-            raise StopIteration(f"this env has completed its task, please reset it if you want to call it!")
-        # if self.track:
-        #    yield action
-        # episode_reward = 0
-        super(SplitEnv, self).step()
+    def execute(self, order_list):
+        super(SplitExecutor, self).step()
         trade_start_time, trade_end_time = self._get_calendar_time(self.trade_index)
         self.sub_env.reset(start_time=trade_start_time, end_time=trade_end_time)
         self.sub_strategy.reset(start_time=trade_start_time, end_time=trade_end_time, trade_order_list=order_list)
-        trade_state = self.sub_env.get_init_state()
+        _execute_state = self.sub_env.get_init_state()
         while not self.sub_env.finished():
-            _order_list = self.sub_strategy.generate_order_list(**trade_state)
-            trade_state, trade_info = self.sub_env.execute(order_list=_order_list)
+            _order_list = self.sub_strategy.generate_order_list(_execute_state)
+            _execute_state = self.sub_env.execute(order_list=_order_list)
 
         self.trade_account.update_bar_end(
             trade_start_time=trade_start_time,
@@ -156,9 +187,8 @@ class SplitEnv(BaseEnv):
             trade_exchange=self.trade_exchange,
             update_report=self.generate_report,
         )
-        _obs = {"current": self.trade_account.current}
-        _info = {}
-        return _obs, _info
+        _execute_state = {"current": self.trade_account.current}
+        return _execute_state
 
     def get_report(self):
         sub_env_report_dict = self.sub_env.get_report()
@@ -167,12 +197,10 @@ class SplitEnv(BaseEnv):
             _positions = self.trade_account.get_positions()
             _count, _freq = parse_freq(self.step_bar)
             sub_env_report_dict.update({f"{_count}{_freq}": (_report, _positions)})
-            return sub_env_report_dict
-        else:
-            return sub_env_report_dict
+        return sub_env_report_dict
 
 
-class SimulatorEnv(BaseEnv):
+class SimulatorExecutor(BaseExecutor):
     def __init__(
         self,
         step_bar,
@@ -184,7 +212,13 @@ class SimulatorEnv(BaseEnv):
         verbose=False,
         **kwargs,
     ):
-        super(SimulatorEnv, self).__init__(
+        """
+        Parameters
+        ----------
+        trade_exchange : Exchange
+            exchange that provides market info
+        """
+        super(SimulatorExecutor, self).__init__(
             step_bar=step_bar,
             start_time=start_time,
             end_time=end_time,
@@ -196,17 +230,12 @@ class SimulatorEnv(BaseEnv):
         )
 
     def reset(self, trade_exchange=None, **kwargs):
-        super(SimulatorEnv, self).reset(**kwargs)
+        super(SimulatorExecutor, self).reset(**kwargs)
         if trade_exchange:
             self.trade_exchange = trade_exchange
 
-    def execute(self, order_list, **kwargs):
-        """
-        Return: obs, done, info
-        """
-        if self.finished():
-            raise StopIteration(f"this env has completed its task, please reset it if you want to call it!")
-        super(SimulatorEnv, self).step()
+    def execute(self, order_list):
+        super(SimulatorExecutor, self).step()
         trade_start_time, trade_end_time = self._get_calendar_time(self.trade_index)
         trade_info = []
         for order in order_list:
@@ -219,21 +248,25 @@ class SimulatorEnv(BaseEnv):
                 if self.verbose:
                     if order.direction == Order.SELL:  # sell
                         print(
-                            "[I {:%Y-%m-%d}]: sell {}, price {:.2f}, amount {}, value {:.2f}.".format(
+                            "[I {:%Y-%m-%d}]: sell {}, price {:.2f}, amount {}, deal_amount {}, factor {}, value {:.2f}.".format(
                                 trade_start_time,
                                 order.stock_id,
                                 trade_price,
+                                order.amount,
                                 order.deal_amount,
+                                order.factor,
                                 trade_val,
                             )
                         )
                     else:
                         print(
-                            "[I {:%Y-%m-%d}]: buy {}, price {:.2f}, amount {}, value {:.2f}.".format(
+                            "[I {:%Y-%m-%d}]: buy {}, price {:.2f}, amount {}, deal_amount {}, factor {}, value {:.2f}.".format(
                                 trade_start_time,
                                 order.stock_id,
                                 trade_price,
+                                order.amount,
                                 order.deal_amount,
+                                order.factor,
                                 trade_val,
                             )
                         )
@@ -249,9 +282,8 @@ class SimulatorEnv(BaseEnv):
             trade_exchange=self.trade_exchange,
             update_report=self.generate_report,
         )
-        _obs = {"current": self.trade_account.current}
-        _info = {"trade_info": trade_info}
-        return _obs, _info
+        _execute_state = {"current": self.trade_account.current, "trade_info": trade_info}
+        return _execute_state
 
     def get_report(self):
         if self.generate_report:

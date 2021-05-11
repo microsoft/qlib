@@ -10,6 +10,7 @@ import warnings
 from ..log import get_module_logger
 from .backtest import get_exchange, backtest as backtest_func
 from ..utils import get_date_range
+from ..utils.sample import parse_freq
 
 from ..data import D
 from ..config import C
@@ -19,7 +20,7 @@ from ..data.dataset.utils import get_level_index
 logger = get_module_logger("Evaluate")
 
 
-def risk_analysis(r, N=252):
+def risk_analysis(r, N: int = None, freq: str = None):
     """Risk Analysis
 
     Parameters
@@ -27,8 +28,26 @@ def risk_analysis(r, N=252):
     r : pandas.Series
         daily return series.
     N: int
-        scaler for annualizing information_ratio (day: 250, week: 50, month: 12).
+        scaler for annualizing information_ratio (day: 250, week: 50, month: 12), at least one of `N` and `freq` should exist
+    freq: str
+        analysis frequency used for calculating the scaler, at least one of `N` and `freq` should exist
     """
+
+    def cal_risk_analysis_scaler(freq):
+        _count, _freq = parse_freq(freq)
+        _freq_scaler = {
+            "minute": 240 * 250,
+            "day": 250,
+            "week": 50,
+            "month": 12,
+        }
+        return _count * _freq_scaler[_freq]
+
+    if N is None and freq is None:
+        raise ValueError("at least one of `N` and `freq` should exist")
+    if N is None:
+        N = cal_risk_analysis_scaler(freq)
+
     mean = r.mean()
     std = r.std(ddof=1)
     annualized_return = mean * N

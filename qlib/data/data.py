@@ -25,7 +25,8 @@ from ..log import get_module_logger
 from ..utils import parse_field, read_bin, hash_args, normalize_cache_fields, code_to_fname
 from .base import Feature
 from .cache import DiskDatasetCache, DiskExpressionCache
-from ..utils import Wrapper, init_instance_by_config, register_wrapper, get_module_by_module_path, sample_calendar
+from ..utils import Wrapper, init_instance_by_config, register_wrapper, get_module_by_module_path
+from ..utils.sample import sample_calendar
 
 
 class CalendarProvider(abc.ABC):
@@ -35,7 +36,7 @@ class CalendarProvider(abc.ABC):
     """
 
     @abc.abstractmethod
-    def calendar(self, start_time=None, end_time=None, freq="day", future=False):
+    def calendar(self, start_time=None, end_time=None, freq="day", freq_sam=None, future=False):
         """Get calendar of certain market in given time range.
 
         Parameters
@@ -46,6 +47,8 @@ class CalendarProvider(abc.ABC):
             end of the time range.
         freq : str
             time frequency, available: year/quarter/month/week/day.
+        freq_sam : str
+            sample frequency used for sampling lower-frequency calendar, by default None(raw calendar).
         future : bool
             whether including future trading day.
 
@@ -769,7 +772,7 @@ class ClientCalendarProvider(CalendarProvider):
     def set_conn(self, conn):
         self.conn = conn
 
-    def calendar(self, start_time=None, end_time=None, freq="day", future=False):
+    def calendar(self, start_time=None, end_time=None, freq="day", freq_sam=None, future=False):
 
         self.conn.send_request(
             request_type="calendar",
@@ -937,8 +940,8 @@ class BaseProvider:
     To keep compatible with old qlib provider.
     """
 
-    def calendar(self, start_time=None, end_time=None, freq="day", future=False):
-        return Cal.calendar(start_time, end_time, freq, future=future)
+    def calendar(self, start_time=None, end_time=None, freq="day", freq_sam=None, future=False):
+        return Cal.calendar(start_time, end_time, freq, freq_sam, future=future)
 
     def instruments(self, market="all", filter_pipe=None, start_time=None, end_time=None):
         if start_time is not None or end_time is not None:

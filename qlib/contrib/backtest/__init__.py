@@ -1,15 +1,13 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-from .order import Order
-from .position import Position
+
 from .exchange import Exchange
-from .report import Report
+from .executor import BaseExecutor
 from .backtest import backtest as backtest_func
 
-import copy
-import numpy as np
 import inspect
+from ...strategy.base import BaseStrategy
 from ...utils import init_instance_by_config
 from ...log import get_module_logger
 from ...config import C
@@ -90,21 +88,6 @@ def get_exchange(
         return init_instance_by_config(exchange, accept_types=Exchange)
 
 
-def init_env_instance_by_config(env):
-    if isinstance(env, dict):
-        env_config = copy.copy(env)
-        if "kwargs" in env_config:
-            env_kwargs = copy.copy(env_config["kwargs"])
-            if "sub_env" in env_kwargs:
-                env_kwargs["sub_env"] = init_env_instance_by_config(env_kwargs["sub_env"])
-            if "sub_strategy" in env_kwargs:
-                env_kwargs["sub_strategy"] = init_instance_by_config(env_kwargs["sub_strategy"])
-            env_config["kwargs"] = env_kwargs
-        return init_instance_by_config(env_config)
-    else:
-        return env
-
-
 def setup_exchange(root_instance, trade_exchange=None, force=False):
     if "trade_exchange" in inspect.getfullargspec(root_instance.__class__).args:
         if force:
@@ -118,13 +101,11 @@ def setup_exchange(root_instance, trade_exchange=None, force=False):
         setup_exchange(root_instance.sub_strategy, trade_exchange)
 
 
-def backtest(start_time, end_time, strategy, env, benchmark="SH000905", account=1e9, **kwargs):
-    trade_strategy = init_instance_by_config(strategy)
-    trade_env = init_env_instance_by_config(env)
+def backtest(start_time, end_time, strategy, env, benchmark="SH000905", account=1e9, exchange_kwargs={}):
+    trade_strategy = init_instance_by_config(strategy, accept_types=BaseStrategy)
+    trade_env = init_instance_by_config(env, accept_types=BaseExecutor)
 
-    spec = inspect.getfullargspec(get_exchange)
-    exchange_args = {k: v for k, v in kwargs.items() if k in spec.args}
-    trade_exchange = get_exchange(**exchange_args)
+    trade_exchange = get_exchange(**exchange_kwargs)
 
     setup_exchange(trade_env, trade_exchange)
     setup_exchange(trade_strategy, trade_exchange)

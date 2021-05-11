@@ -3,7 +3,7 @@ import warnings
 import numpy as np
 import pandas as pd
 
-from ...utils import sample_feature
+from ...utils.sample import sample_feature
 from ...strategy.base import ModelStrategy
 from ..backtest.order import Order
 from .order_generator import OrderGenWInteract
@@ -66,7 +66,7 @@ class TopkDropoutStrategy(ModelStrategy):
         if trade_exchange:
             self.trade_exchange = trade_exchange
 
-    def get_risk_degree(self, trade_index):
+    def get_risk_degree(self, trade_index=None):
         """get_risk_degree
         Return the proportion of your total value you will used in investment.
         Dynamically risk_degree will result in Market timing.
@@ -74,7 +74,7 @@ class TopkDropoutStrategy(ModelStrategy):
         # It will use 95% amoutn of your total value by default
         return self.risk_degree
 
-    def generate_order_list(self, current, **kwargs):
+    def generate_order_list(self, execute_state):
         super(TopkDropoutStrategy, self).step()
         trade_start_time, trade_end_time = self._get_calendar_time(self.trade_index)
         pred_start_time, pred_end_time = self._get_calendar_time(self.trade_index, shift=1)
@@ -120,6 +120,7 @@ class TopkDropoutStrategy(ModelStrategy):
             def filter_stock(l):
                 return l
 
+        current = execute_state.get("current")
         current_temp = copy.deepcopy(current)
         # generate order list for this adjust date
         sell_order_list = []
@@ -163,6 +164,7 @@ class TopkDropoutStrategy(ModelStrategy):
 
         # Get the stock list we really want to buy
         buy = today[: len(sell) + self.topk - len(last)]
+        print("INTRANEL BAR", len(sell), len(sell) + self.topk - len(last), len(last))
         # print("flag", len(sell), len(buy), self.topk, len(last))
         for code in current_stock_list:
             if not self.trade_exchange.is_stock_tradable(
@@ -175,13 +177,17 @@ class TopkDropoutStrategy(ModelStrategy):
                     continue
                 # sell order
                 sell_amount = current_temp.get_stock_amount(code=code)
+                factor = self.trade_exchange.get_factor(
+                    stock_id=code, start_time=trade_start_time, end_time=trade_end_time
+                )
+                # sell_amount = self.trade_exchange.round_amount_by_trade_unit(sell_amount, factor)
                 sell_order = Order(
                     stock_id=code,
                     amount=sell_amount,
                     start_time=trade_start_time,
                     end_time=trade_end_time,
                     direction=Order.SELL,  # 0 for sell, 1 for buy
-                    factor=self.trade_exchange.get_factor(code, trade_start_time, trade_end_time),
+                    factor=factor,
                 )
                 # is order executable
                 if self.trade_exchange.check_order(sell_order):
@@ -228,18 +234,35 @@ class WeightStrategyBase(ModelStrategy):
     def __init__(
         self,
         step_bar,
+        model,
+        dataset,
         start_time=None,
         end_time=None,
         order_generator_cls_or_obj=OrderGenWInteract,
         trade_exchange=None,
         **kwargs,
     ):
-        super(WeightStrategyBase, self).__init__(step_bar, start_time, end_time)
-        self.trade_exchange = trade_exchange
+        super(WeightStrategyBase, self).__init__(
+            step_bar, model, dataset, start_time, end_time, trade_exchange=trade_exchange, **kwargs
+        )
+
         if isinstance(order_generator_cls_or_obj, type):
             self.order_generator = order_generator_cls_or_obj()
         else:
             self.order_generator = order_generator_cls_or_obj
+
+    def reset(self, trade_exchange=None, **kwargs):
+        super(WeightStrategyBase, self).reset(**kwargs)
+        if trade_exchange:
+            self.trade_exchange = trade_exchange
+
+    def get_risk_degree(self, trade_index=None):
+        """get_risk_degree
+        Return the proportion of your total value you will used in investment.
+        Dynamically risk_degree will result in Market timing.
+        """
+        # It will use 95% amoutn of your total value by default
+        return 0.95
 
     def generate_target_weight_position(self, score, current, trade_start_time, trade_end_time):
         """
@@ -256,7 +279,7 @@ class WeightStrategyBase(ModelStrategy):
         """
         raise NotImplementedError()
 
-    def generate_order_list(self, current, **kwargs):
+    def generate_order_list(self, execute_state):
         """
         Parameters
         -----------
@@ -277,7 +300,8 @@ class WeightStrategyBase(ModelStrategy):
         pred_score = sample_feature(self.pred_scores, start_time=pred_start_time, end_time=pred_end_time, method="last")
         if pred_score is None:
             return []
-        current_temp = copy.deepcopy(trade_account.current)
+        current = execute_state.get("current")
+        current_temp = copy.deepcopy(current)
         target_weight_position = self.generate_target_weight_position(
             score=pred_score, current=current_temp, trade_start_time=trade_start_time, trade_end_time=trade_end_time
         )

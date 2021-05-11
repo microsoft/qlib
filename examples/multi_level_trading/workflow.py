@@ -91,13 +91,13 @@ if __name__ == "__main__":
             },
         },
         "env": {
-            "class": "SplitEnv",
-            "module_path": "qlib.contrib.backtest.env",
+            "class": "SplitExecutor",
+            "module_path": "qlib.contrib.backtest.executor",
             "kwargs": {
                 "step_bar": "week",
                 "sub_env": {
-                    "class": "SimulatorEnv",
-                    "module_path": "qlib.contrib.backtest.env",
+                    "class": "SimulatorExecutor",
+                    "module_path": "qlib.contrib.backtest.executor",
                     "kwargs": {
                         "step_bar": "day",
                         "verbose": True,
@@ -118,14 +118,17 @@ if __name__ == "__main__":
         "backtest": {
             "start_time": trade_start_time,
             "end_time": trade_end_time,
-            "verbose": False,
-            "limit_threshold": 0.095,
             "account": 100000000,
             "benchmark": benchmark,
-            "deal_price": "close",
-            "open_cost": 0.0005,
-            "close_cost": 0.0015,
-            "min_cost": 5,
+            "exchange_kwargs": {
+                "freq": "day",
+                "verbose": False,
+                "limit_threshold": 0.095,
+                "deal_price": "close",
+                "open_cost": 0.0005,
+                "close_cost": 0.0015,
+                "min_cost": 5,
+            },
         },
     }
 
