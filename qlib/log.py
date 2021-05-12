@@ -165,8 +165,16 @@ class LogFilter(logging.Filter):
         return allow
 
 
+@contextmanager
 def set_global_logger_level(level: int):
+    _handler_level_map = {}
     qlib_logger = logging.root.manager.loggerDict.get("qlib", None)
     if qlib_logger is not None:
         for _handler in qlib_logger.handlers:
+            _handler_level_map[_handler] = _handler.level
             _handler.level = level
+    try:
+        yield
+    finally:
+        for _handler, _level in _handler_level_map.items():
+            _handler.level = _level
