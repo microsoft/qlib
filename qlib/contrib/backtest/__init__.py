@@ -1,16 +1,18 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-
+from .account import Account
 from .exchange import Exchange
 from .executor import BaseExecutor
 from .backtest import backtest as backtest_func
 
-import inspect
+
 from ...strategy.base import BaseStrategy
 from ...utils import init_instance_by_config
 from ...log import get_module_logger
 from ...config import C
+from .faculty import common_faculty
+
 
 logger = get_module_logger("backtest caller")
 
@@ -28,7 +30,6 @@ def get_exchange(
     trade_unit=None,
     limit_threshold=None,
     deal_price=None,
-    shift=1,
 ):
     """get_exchange
 
@@ -88,28 +89,26 @@ def get_exchange(
         return init_instance_by_config(exchange, accept_types=Exchange)
 
 
-def setup_exchange(root_instance, trade_exchange=None, force=False):
-    if "trade_exchange" in inspect.getfullargspec(root_instance.__class__).args:
-        if force:
-            root_instance.reset(trade_exchange=trade_exchange)
-        else:
-            if not hasattr(root_instance, "trade_exchange") or root_instance.trade_exchange is None:
-                root_instance.reset(trade_exchange=trade_exchange)
-    if hasattr(root_instance, "sub_env"):
-        setup_exchange(root_instance.sub_env, trade_exchange)
-    if hasattr(root_instance, "sub_strategy"):
-        setup_exchange(root_instance.sub_strategy, trade_exchange)
+def backtest(start_time, end_time, strategy, env, benchmark="SH000300", account=1e9, exchange_kwargs={}):
 
+    trade_account = Account(
+        init_cash=account,
+        benchmark_config={
+            "benchmark": benchmark,
+            "start_time": start_time,
+            "end_time": end_time,
+        },
+    )
+    trade_exchange = get_exchange(**exchange_kwargs)
 
-def backtest(start_time, end_time, strategy, env, benchmark="SH000905", account=1e9, exchange_kwargs={}):
+    common_faculty.update(
+        trade_account=trade_account,
+        trade_exchange=trade_exchange,
+    )
+
     trade_strategy = init_instance_by_config(strategy, accept_types=BaseStrategy)
     trade_env = init_instance_by_config(env, accept_types=BaseExecutor)
 
-    trade_exchange = get_exchange(**exchange_kwargs)
-
-    setup_exchange(trade_env, trade_exchange)
-    setup_exchange(trade_strategy, trade_exchange)
-
-    report_dict = backtest_func(start_time, end_time, trade_strategy, trade_env, benchmark, account)
+    report_dict = backtest_func(start_time, end_time, trade_strategy, trade_env)
 
     return report_dict

@@ -9,6 +9,7 @@ from ...data.data import D
 from ...data.dataset.utils import convert_index_format
 from ...strategy.base import RuleStrategy, OrderEnhancement
 from ..backtest.order import Order
+from ..backtest.faculty import common_faculty
 
 
 class TWAPStrategy(RuleStrategy, OrderEnhancement):
@@ -18,16 +19,17 @@ class TWAPStrategy(RuleStrategy, OrderEnhancement):
         start_time=None,
         end_time=None,
         trade_exchange=None,
+        trade_order_list=[],
         **kwargs,
     ):
-        super(TWAPStrategy, self).__init__(step_bar, start_time, end_time, trade_exchange=trade_exchange, **kwargs)
+        super(TWAPStrategy, self).__init__(step_bar, start_time, end_time, **kwargs)
+        self.trade_exchange = common_faculty.trade_exchange if trade_exchange is None else trade_exchange
+        self.trade_order_list = trade_order_list
 
-    def reset(self, trade_order_list=None, trade_exchange=None, **kwargs):
+    def reset(self, trade_order_list: list = None, **kwargs):
         super(TWAPStrategy, self).reset(**kwargs)
         OrderEnhancement.reset(self, trade_order_list=trade_order_list)
-        if trade_exchange:
-            self.trade_exchange = trade_exchange
-        if trade_order_list:
+        if trade_order_list is not None:
             self.trade_amount = {}
             for order in self.trade_order_list:
                 self.trade_amount[(order.stock_id, order.direction)] = order.amount
@@ -82,15 +84,16 @@ class SBBStrategyBase(RuleStrategy, OrderEnhancement):
         start_time=None,
         end_time=None,
         trade_exchange=None,
+        trade_order_list=[],
         **kwargs,
     ):
-        super(SBBStrategyBase, self).__init__(step_bar, start_time, end_time, trade_exchange=trade_exchange, **kwargs)
+        super(SBBStrategyBase, self).__init__(step_bar, start_time, end_time, **kwargs)
+        self.trade_exchange = common_faculty.trade_exchange if trade_exchange is None else trade_exchange
+        self.trade_order_list = trade_order_list
 
-    def reset(self, trade_order_list=None, trade_exchange=None, **kwargs):
+    def reset(self, trade_order_list=None, **kwargs):
         super(SBBStrategyBase, self).reset(**kwargs)
         OrderEnhancement.reset(self, trade_order_list=trade_order_list)
-        if trade_exchange:
-            self.trade_exchange = trade_exchange
         if trade_order_list is not None:
             self.trade_trend = {}
             self.trade_amount = {}
@@ -217,11 +220,12 @@ class SBBStrategyEMA(SBBStrategyBase):
         start_time=None,
         end_time=None,
         trade_exchange=None,
+        trade_order_list=[],
         instruments="csi300",
         freq="day",
         **kwargs,
     ):
-        super(SBBStrategyEMA, self).__init__(step_bar, start_time, end_time, trade_exchange=trade_exchange, **kwargs)
+        super(SBBStrategyEMA, self).__init__(step_bar, start_time, end_time, trade_exchange, trade_order_list, **kwargs)
         if instruments is None:
             warnings.warn("`instruments` is not set, will load all stocks")
             self.instruments = "all"
@@ -229,9 +233,9 @@ class SBBStrategyEMA(SBBStrategyBase):
             self.instruments = D.instruments(instruments)
         self.freq = freq
 
-    def reset(self, start_time=None, end_time=None, **kwargs):
-        super(SBBStrategyEMA, self).reset(start_time=start_time, end_time=end_time, **kwargs)
-        if self.start_time and self.end_time:
+    def _reset_trade_calendar(self, start_time=None, end_time=None):
+        super(SBBStrategyEMA, self)._reset_trade_calendar(start_time=start_time, end_time=end_time)
+        if start_time and end_time:
             fields = ["EMA($close, 10)-EMA($close, 20)"]
             signal_start_time, _ = self._get_calendar_time(trade_index=self.trade_index, shift=1)
             signal_df = D.features(

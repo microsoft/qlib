@@ -7,6 +7,8 @@ from ..contrib.backtest.executor import BaseExecutor
 
 
 class BaseRLEnv:
+    """Base environment for reinforcement learning"""
+
     def reset(self, **kwargs):
         raise NotImplementedError("reset is not implemented!")
 

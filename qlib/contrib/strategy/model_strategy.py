@@ -6,6 +6,7 @@ import pandas as pd
 from ...utils.sample import sample_feature
 from ...strategy.base import ModelStrategy
 from ..backtest.order import Order
+from ..backtest.faculty import common_faculty
 from .order_generator import OrderGenWInteract
 
 
@@ -50,9 +51,8 @@ class TopkDropoutStrategy(ModelStrategy):
             else:
                 strategy will make decision with the tradable state of the stock info and avoid buy and sell them.
         """
-        super(TopkDropoutStrategy, self).__init__(
-            step_bar, model, dataset, start_time, end_time, trade_exchange=trade_exchange, **kwargs
-        )
+        super(TopkDropoutStrategy, self).__init__(step_bar, model, dataset, start_time, end_time, **kwargs)
+        self.trade_exchange = common_faculty.trade_exchange if trade_exchange is None else trade_exchange
         self.topk = topk
         self.n_drop = n_drop
         self.method_sell = method_sell
@@ -60,11 +60,6 @@ class TopkDropoutStrategy(ModelStrategy):
         self.risk_degree = risk_degree
         self.hold_thresh = hold_thresh
         self.only_tradable = only_tradable
-
-    def reset(self, trade_exchange=None, **kwargs):
-        super(TopkDropoutStrategy, self).reset(**kwargs)
-        if trade_exchange:
-            self.trade_exchange = trade_exchange
 
     def get_risk_degree(self, trade_index=None):
         """get_risk_degree
@@ -164,7 +159,7 @@ class TopkDropoutStrategy(ModelStrategy):
 
         # Get the stock list we really want to buy
         buy = today[: len(sell) + self.topk - len(last)]
-        print("INTRANEL BAR", len(sell), len(sell) + self.topk - len(last), len(last))
+        # print("INTRANEL BAR", len(sell), len(sell) + self.topk - len(last), len(last))
         # print("flag", len(sell), len(buy), self.topk, len(last))
         for code in current_stock_list:
             if not self.trade_exchange.is_stock_tradable(
@@ -242,19 +237,12 @@ class WeightStrategyBase(ModelStrategy):
         trade_exchange=None,
         **kwargs,
     ):
-        super(WeightStrategyBase, self).__init__(
-            step_bar, model, dataset, start_time, end_time, trade_exchange=trade_exchange, **kwargs
-        )
-
+        super(WeightStrategyBase, self).__init__(step_bar, model, dataset, start_time, end_time, **kwargs)
+        self.trade_exchange = common_faculty.trade_exchange if trade_exchange is None else trade_exchange
         if isinstance(order_generator_cls_or_obj, type):
             self.order_generator = order_generator_cls_or_obj()
         else:
             self.order_generator = order_generator_cls_or_obj
-
-    def reset(self, trade_exchange=None, **kwargs):
-        super(WeightStrategyBase, self).reset(**kwargs)
-        if trade_exchange:
-            self.trade_exchange = trade_exchange
 
     def get_risk_degree(self, trade_index=None):
         """get_risk_degree

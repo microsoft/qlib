@@ -30,48 +30,53 @@ rtn & earning in the Account
 
 
 class Account:
-    def __init__(self, init_cash, benchmark=None, start_time=None, end_time=None, freq=None):
-        self.init_vars(init_cash, benchmark, start_time, end_time)
+    def __init__(self, init_cash, freq: str = "day", benchmark_config: dict = {}):
+        self.init_vars(init_cash, freq, benchmark_config)
 
-    def init_vars(self, init_cash, benchmark=None, start_time=None, end_time=None, freq=None):
+    def init_vars(self, init_cash, freq: str, benchmark_config: dict):
         """
         Parameters
         ----------
-        - benchmark: str/list/pd.Series
-            `benchmark` is pd.Series, `index` is trading date; the value T is the change from T-1 to T.
-                example:
-                    print(D.features(D.instruments('csi500'), ['$close/Ref($close, 1)-1'])['$close/Ref($close, 1)-1'].head())
-                        2017-01-04    0.011693
-                        2017-01-05    0.000721
-                        2017-01-06   -0.004322
-                        2017-01-09    0.006874
-                        2017-01-10   -0.003350
-            `benchmark` is list, will use the daily average change of the stock pool in the list as the 'bench'.
-            `benchmark` is str, will use the daily change as the 'bench'.
-        benchmark code, default is SH000905 CSI500
+        freq : str
+            frequency of trading bar, used for updating hold count of trading bar
+        benchmark_config : dict
+            config of benchmark, may including the following arguments:
+            - benchmark : Union[str, list, pd.Series]
+                - If `benchmark` is pd.Series, `index` is trading date; the value T is the change from T-1 to T.
+                    example:
+                        print(D.features(D.instruments('csi500'), ['$close/Ref($close, 1)-1'])['$close/Ref($close, 1)-1'].head())
+                            2017-01-04    0.011693
+                            2017-01-05    0.000721
+                            2017-01-06   -0.004322
+                            2017-01-09    0.006874
+                            2017-01-10   -0.003350
+                - If `benchmark` is list, will use the daily average change of the stock pool in the list as the 'bench'.
+                - If `benchmark` is str, will use the daily change as the 'bench'.
+                benchmark code, default is SH000300 CSI300
+            - start_time : Union[str, pd.Timestamp], optional
+                - If `benchmark` is pd.Series, it will be ignored
+                - Else, it represent start time of benchmark, by default None
+            - end_time : Union[str, pd.Timestamp], optional
+                - If `benchmark` is pd.Series, it will be ignored
+                - Else, it represent end time of benchmark, by default None
 
         """
         # init cash
         self.init_cash = init_cash
-        self.benchmark = benchmark
-        self.start_time = start_time
-        self.end_time = end_time
         self.freq = freq
+        self.benchmark_config = benchmark_config
+        self.bench = self._cal_benchmark(benchmark_config, freq)
         self.current = Position(cash=init_cash)
-        self.positions = {}
-        self.rtn = 0
-        self.ct = 0
-        self.to = 0
-        self.val = 0
-        self.earning = 0
-        self.report = Report()
-        if freq and benchmark:
-            self.bench = self._cal_benchmark(benchmark, start_time, end_time, freq)
+        self._reset_report()
 
-    def _cal_benchmark(self, benchmark, start_time=None, end_time=None, freq=None):
+    def _cal_benchmark(self, benchmark_config, freq):
+        benchmark = benchmark_config.get("benchmark", "SH000300")
         if isinstance(benchmark, pd.Series):
             return benchmark
         else:
+            start_time = benchmark_config.get("start_time", None)
+            end_time = benchmark_config.get("end_time", None)
+
             if freq is None:
                 raise ValueError("benchmark freq can't be None!")
             _codes = benchmark if isinstance(benchmark, list) else [benchmark]
@@ -100,19 +105,25 @@ class Account:
         _ret = sample_feature(bench, trade_start_time, trade_end_time, method=cal_change)
         return 0 if _ret is None else _ret
 
-    def reset(self, benchmark=None, freq=None, **kwargs):
-        if benchmark:
-            self.benchmark = benchmark
-        if freq:
+    def _reset_freq(self, freq):
+        """reset frequency"""
+        if freq != self.freq:
             self.freq = freq
-        if self.freq and self.benchmark and (freq or benchmark):
-            self.bench = self._cal_benchmark(self.benchmark, self.start_time, self.end_time, self.freq)
+            self.bench = self._cal_benchmark(self.benchmark_config, self.freq)
 
-        for k, v in kwargs.items():
-            if hasattr(self, k):
-                setattr(self, k, v)
-            else:
-                warnings.warn(f"reser error, attribute {k} is not found!")
+    def _reset_report(self):
+        self.report = Report()
+        self.positions = {}
+        self.rtn = 0
+        self.ct = 0
+        self.to = 0
+        self.val = 0
+        self.earning = 0
+
+    def reset(self, freq=None, init_report: bool = False):
+        self._reset_freq(freq)
+        if init_report:
+            self._reset_report()
 
     def get_positions(self):
         return self.positions
@@ -155,7 +166,10 @@ class Account:
             self.current.update_order(order, trade_val, cost, trade_price)
             self.update_state_from_order(order, trade_val, cost, trade_price)
 
-    def update_bar_end(self, trade_start_time, trade_end_time, trade_exchange, update_report):
+    def update_bar_count(self):
+        self.current.add_count_all(bar=self.freq)
+
+    def update_bar_report(self, trade_start_time, trade_end_time, trade_exchange):
         """
         start_time: pd.TimeStamp
         end_time: pd.TimeStamp
@@ -171,9 +185,6 @@ class Account:
         :return: None
         """
         # update price for stock in the position and the profit from changed_price
-        self.current.add_count_all(bar=self.freq)
-        if update_report is None:
-            return
         stock_list = self.current.get_stock_list()
         for code in stock_list:
             # if suspend, no new price to be updated, profit is 0

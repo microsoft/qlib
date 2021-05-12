@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 import pandas as pd
-from typing import Tuple, List, Union, Optional, Callable
+from typing import List, Union
 
 
 from ..model.base import BaseModel
@@ -14,7 +14,7 @@ from ..rl.interpreter import ActionInterpreter, StateInterpreter
 
 
 class BaseStrategy(BaseTradeCalendar):
-    """Base strategy"""
+    """Base strategy for trading"""
 
     def generate_order_list(self, execute_state):
         """Generate order list in each trading bar"""
@@ -22,13 +22,13 @@ class BaseStrategy(BaseTradeCalendar):
 
 
 class RuleStrategy(BaseStrategy):
-    """Trading strategy with rules"""
+    """Rule-based Trading strategy"""
 
     pass
 
 
 class ModelStrategy(BaseStrategy):
-    """Trading Strategy by using Model to make predictions"""
+    """Model-based trading strategy, use model to make predictions for trading"""
 
     def __init__(
         self,
@@ -57,7 +57,7 @@ class ModelStrategy(BaseStrategy):
 
     def _update_model(self):
         """
-        Update model in each bar when using online data as the following steps:
+        When using online data, pdate model in each bar as the following steps:
             - update dataset with online data, the dataset should support online update
             - make the latest prediction scores of the new bar
             - update the pred score into the latest prediction
@@ -66,7 +66,7 @@ class ModelStrategy(BaseStrategy):
 
 
 class RLStrategy(BaseStrategy):
-    """RL-based Strategy"""
+    """RL-based strategy"""
 
     def __init__(
         self,

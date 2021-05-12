@@ -2,12 +2,27 @@
 # Licensed under the MIT License.
 
 
+from .order_generator import OrderGenWInteract
 from .model_strategy import WeightStrategyBase
 import copy
 
 
 class SoftTopkStrategy(WeightStrategyBase):
-    def __init__(self, topk, max_sold_weight=1.0, risk_degree=0.95, buy_method="first_fill"):
+    def __init__(
+        self,
+        step_bar,
+        model,
+        dataset,
+        topk,
+        start_time=None,
+        end_time=None,
+        order_generator_cls_or_obj=OrderGenWInteract,
+        trade_exchange=None,
+        max_sold_weight=1.0,
+        risk_degree=0.95,
+        buy_method="first_fill",
+        **kwargs,
+    ):
         """Parameter
         topk : int
             top-N stocks to buy
@@ -17,13 +32,15 @@ class SoftTopkStrategy(WeightStrategyBase):
                 rank_fill: assign the weight stocks that rank high first(1/topk max)
                 average_fill: assign the weight to the stocks rank high averagely.
         """
-        super().__init__()
+        super(SoftTopkStrategy, self).__init__(
+            step_bar, model, dataset, start_time, end_time, order_generator_cls_or_obj, trade_exchange
+        )
         self.topk = topk
         self.max_sold_weight = max_sold_weight
         self.risk_degree = risk_degree
         self.buy_method = buy_method
 
-    def get_risk_degree(self, trade_index):
+    def get_risk_degree(self, trade_index=None):
         """get_risk_degree
         Return the proportion of your total value you will used in investment.
         Dynamically risk_degree will result in Market timing

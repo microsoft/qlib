@@ -173,7 +173,9 @@ class OrderGenWOInteract(OrderGenerator):
                 stock_id=stock_id, trade_start_time=trade_start_time, trade_end_time=trade_end_time
             ):
                 amount_dict[stock_id] = (
-                    risk_total_value * target_weight_position[stock_id] / trade_exchange.get_close(stock_id, pred_date)
+                    risk_total_value
+                    * target_weight_position[stock_id]
+                    / trade_exchange.get_close(stock_id, trade_start_time=pred_start_time, trade_end_time=pred_end_time)
                 )
             elif stock_id in current_stock:
                 amount_dict[stock_id] = (

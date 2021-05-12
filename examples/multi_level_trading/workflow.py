@@ -122,7 +122,6 @@ if __name__ == "__main__":
             "benchmark": benchmark,
             "exchange_kwargs": {
                 "freq": "day",
-                "verbose": False,
                 "limit_threshold": 0.095,
                 "deal_price": "close",
                 "open_cost": 0.0005,
