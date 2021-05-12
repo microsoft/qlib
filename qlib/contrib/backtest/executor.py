@@ -37,8 +37,8 @@ class BaseTradeCalendar:
         """
 
         self.step_bar = step_bar
-        self.start_time = pd.Timestamp(start_time)
-        self.end_time = pd.Timestamp(end_time)
+        self.start_time = pd.Timestamp(start_time) if start_time else None
+        self.end_time = pd.Timestamp(end_time) if end_time else None
         self.reset(start_time=start_time, end_time=end_time)
 
     def _reset_trade_calendar(self, start_time, end_time):

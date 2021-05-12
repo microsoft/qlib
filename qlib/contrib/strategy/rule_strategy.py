@@ -233,9 +233,9 @@ class SBBStrategyEMA(SBBStrategyBase):
             self.instruments = D.instruments(instruments)
         self.freq = freq
 
-    def _reset_trade_calendar(self, start_time=None, end_time=None):
-        super(SBBStrategyEMA, self)._reset_trade_calendar(start_time=start_time, end_time=end_time)
-        if start_time and end_time:
+    def reset(self, start_time=None, end_time=None, **kwargs):
+        super(SBBStrategyEMA, self).reset(start_time=start_time, end_time=end_time, **kwargs)
+        if self.start_time and self.end_time and (start_time or end_time):
             fields = ["EMA($close, 10)-EMA($close, 20)"]
             signal_start_time, _ = self._get_calendar_time(trade_index=self.trade_index, shift=1)
             signal_df = D.features(
