@@ -165,14 +165,79 @@ class LogFilter(logging.Filter):
         return allow
 
 
-@contextmanager
-def set_global_logger_level(level: int):
+def set_global_logger_level(level: int, return_orig_handler_level: bool = False):
+    """set qlib.xxx logger handlers level
+
+    Parameters
+    ----------
+    level: int
+        logger level
+
+    return_orig_handler_level: bool
+        return origin handler level map
+
+    Examples
+    ---------
+
+        .. code-block:: python
+
+            import qlib
+            import logging
+            from qlib.log import get_module_logger, set_global_logger_level
+            qlib.init()
+
+            tmp_logger_01 = get_module_logger("tmp_logger_01", level=logging.INFO)
+            tmp_logger_01.info("1. tmp_logger_01 info show")
+
+            global_level = logging.WARNING + 1
+            set_global_logger_level(global_level)
+            tmp_logger_02 = get_module_logger("tmp_logger_02", level=logging.INFO)
+            tmp_logger_02.log(msg="2. tmp_logger_02 log show", level=global_level)
+
+            tmp_logger_01.info("3. tmp_logger_01 info do not show")
+
+    """
     _handler_level_map = {}
     qlib_logger = logging.root.manager.loggerDict.get("qlib", None)
     if qlib_logger is not None:
         for _handler in qlib_logger.handlers:
             _handler_level_map[_handler] = _handler.level
             _handler.level = level
+    return _handler_level_map if return_orig_handler_level else None
+
+
+@contextmanager
+def set_global_logger_level_cm(level: int):
+    """set qlib.xxx logger handlers level to use contextmanager
+
+    Parameters
+    ----------
+    level: int
+        logger level
+
+    Examples
+    ---------
+
+        .. code-block:: python
+
+            import qlib
+            import logging
+            from qlib.log import get_module_logger, set_global_logger_level_cm
+            qlib.init()
+
+            tmp_logger_01 = get_module_logger("tmp_logger_01", level=logging.INFO)
+            tmp_logger_01.info("1. tmp_logger_01 info show")
+
+            global_level = logging.WARNING + 1
+            with set_global_logger_level_cm(global_level):
+                tmp_logger_02 = get_module_logger("tmp_logger_02", level=logging.INFO)
+                tmp_logger_02.log(msg="2. tmp_logger_02 log show", level=global_level)
+                tmp_logger_01.info("3. tmp_logger_01 info do not show")
+
+            tmp_logger_01.info("4. tmp_logger_01 info show")
+
+    """
+    _handler_level_map = set_global_logger_level(level, return_orig_handler_level=True)
     try:
         yield
     finally:
