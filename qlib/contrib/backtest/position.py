@@ -1,10 +1,10 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-
-import pandas as pd
 import copy
 import pathlib
+import pandas as pd
+import numpy as np
 from .order import Order
 
 """
