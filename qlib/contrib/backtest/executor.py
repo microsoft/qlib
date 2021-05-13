@@ -127,8 +127,7 @@ class BaseExecutor(BaseTradeCalendar):
             self.track_data = track_data
 
     def get_init_state(self):
-        init_state = {"current": self.trade_account.current}
-        return init_state
+        raise NotImplementedError("get_init_state in not implemeted!")
 
     def execute(self, **kwargs):
         raise NotImplementedError("execute is not implemented!")
@@ -180,8 +179,11 @@ class SplitExecutor(BaseExecutor):
         if generate_report:
             self.trade_exchange = common_faculty.trade_exchange if trade_exchange is None else trade_exchange
         self.sub_env = init_instance_by_config(sub_env, accept_types=BaseExecutor)
-
         self.sub_strategy = init_instance_by_config(sub_strategy, accept_types=self.BaseStrategy)
+
+    def get_init_state(self):
+        init_state = {"current": self.trade_account.current}
+        return init_state
 
     def _init_sub_trading(self, order_list):
         trade_start_time, trade_end_time = self._get_calendar_time(self.trade_index)
@@ -262,6 +264,10 @@ class SimulatorExecutor(BaseExecutor):
             **kwargs,
         )
         self.trade_exchange = common_faculty.trade_exchange if trade_exchange is None else trade_exchange
+
+    def get_init_state(self):
+        init_state = {"current": self.trade_account.current, "trade_info": []}
+        return init_state
 
     def execute(self, order_list):
         super(SimulatorExecutor, self).step()

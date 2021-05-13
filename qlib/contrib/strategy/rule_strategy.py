@@ -36,6 +36,10 @@ class TWAPStrategy(RuleStrategy, OrderEnhancement):
 
     def generate_order_list(self, execute_state):
         super(TWAPStrategy, self).step()
+        trade_info = execute_state.get("trade_info")
+        for order, _, _, _ in trade_info:
+            self.trade_amount[(order.stock_id, order.direction)] -= order.deal_amount
+
         trade_start_time, trade_end_time = self._get_calendar_time(self.trade_index)
         order_list = []
         for order in self.trade_order_list:
@@ -56,7 +60,15 @@ class TWAPStrategy(RuleStrategy, OrderEnhancement):
                     // (self.trade_len - self.trade_index)
                     * _amount_trade_unit
                 )
+
+            if order.direction == order.SELL:
+                if self.trade_amount[(order.stock_id, order.direction)] > 1e-5 and (
+                    _order_amount is None or self.trade_index == self.trade_len - 1
+                ):
+                    _order_amount = self.trade_amount[(order.stock_id, order.direction)]
+
             if _order_amount:
+                _order_amount = min(_order_amount, self.trade_amount[(order.stock_id, order.direction)])
                 _order = Order(
                     stock_id=order.stock_id,
                     amount=_order_amount,
@@ -106,8 +118,11 @@ class SBBStrategyBase(RuleStrategy, OrderEnhancement):
 
     def generate_order_list(self, execute_state):
         super(SBBStrategyBase, self).step()
-        if not self.trade_order_list:
-            return []
+
+        trade_info = execute_state.get("trade_info")
+        for order, _, _, _ in trade_info:
+            self.trade_amount[(order.stock_id, order.direction)] -= order.deal_amount
+
         trade_start_time, trade_end_time = self._get_calendar_time(self.trade_index)
         pred_start_time, pred_end_time = self._get_calendar_time(self.trade_index, shift=1)
         order_list = []
@@ -139,11 +154,12 @@ class SBBStrategyBase(RuleStrategy, OrderEnhancement):
                         * _amount_trade_unit
                     )
                 if order.direction == order.SELL:
-                    if self.trade_amount[(order.stock_id, order.direction)] > 1e-5 and _order_amount is None:
+                    if self.trade_amount[(order.stock_id, order.direction)] > 1e-5 and (
+                        _order_amount is None or self.trade_index == self.trade_len - 1
+                    ):
                         _order_amount = self.trade_amount[(order.stock_id, order.direction)]
 
                 if _order_amount:
-                    self.trade_amount[(order.stock_id, order.direction)] -= _order_amount
                     _order = Order(
                         stock_id=order.stock_id,
                         amount=_order_amount,
@@ -171,12 +187,13 @@ class SBBStrategyBase(RuleStrategy, OrderEnhancement):
                         * _amount_trade_unit
                     )
                 if order.direction == order.SELL:
-                    if self.trade_amount[(order.stock_id, order.direction)] > 1e-5 and _order_amount is None:
+                    if self.trade_amount[(order.stock_id, order.direction)] >= 1e-5 and (
+                        _order_amount is None or self.trade_index == self.trade_len - 1
+                    ):
                         _order_amount = self.trade_amount[(order.stock_id, order.direction)]
 
                 if _order_amount:
                     _order_amount = min(_order_amount, self.trade_amount[(order.stock_id, order.direction)])
-                    self.trade_amount[(order.stock_id, order.direction)] -= _order_amount
                     if self.trade_index % 2 == 1:
                         if (
                             _pred_trend == self.TREND_SHORT

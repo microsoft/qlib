@@ -1,11 +1,8 @@
 #  Copyright (c) Microsoft Corporation.
 #  Licensed under the MIT License.
 
-import sys
-from pathlib import Path
 
 import qlib
-import pandas as pd
 from qlib.config import REG_CN
 
 from qlib.utils import exists_qlib_data, init_instance_by_config, flatten_dict
