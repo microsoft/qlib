@@ -153,7 +153,6 @@ class Account:
         # if stock is sold out, no stock price information in Position, then we should update account first, then update current position
         # if stock is bought, there is no stock in current position, update current, then update account
         # The cost will be substracted from the cash at last. So the trading logic can ignore the cost calculation
-        trade_amount = trade_val / trade_price
         if order.direction == Order.SELL:
             # sell stock
             self.update_state_from_order(order, trade_val, cost, trade_price)

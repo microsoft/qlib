@@ -138,6 +138,9 @@ class SBBStrategyBase(RuleStrategy, OrderEnhancement):
                         // (self.trade_len - self.trade_index)
                         * _amount_trade_unit
                     )
+                if order.direction == order.SELL:
+                    if self.trade_amount[(order.stock_id, order.direction)] > 1e-5 and _order_amount is None:
+                        _order_amount = self.trade_amount[(order.stock_id, order.direction)]
 
                 if _order_amount:
                     self.trade_amount[(order.stock_id, order.direction)] -= _order_amount
@@ -167,6 +170,10 @@ class SBBStrategyBase(RuleStrategy, OrderEnhancement):
                         * 2
                         * _amount_trade_unit
                     )
+                if order.direction == order.SELL:
+                    if self.trade_amount[(order.stock_id, order.direction)] > 1e-5 and _order_amount is None:
+                        _order_amount = self.trade_amount[(order.stock_id, order.direction)]
+
                 if _order_amount:
                     _order_amount = min(_order_amount, self.trade_amount[(order.stock_id, order.direction)])
                     self.trade_amount[(order.stock_id, order.direction)] -= _order_amount
