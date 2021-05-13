@@ -716,23 +716,33 @@ def lazy_sort_index(df: pd.DataFrame, axis=0) -> pd.DataFrame:
         return df.sort_index(axis=axis)
 
 
+FLATTEN_TUPLE = "_FLATTEN_TUPLE"
+
+
 def flatten_dict(d, parent_key="", sep="."):
-    """flatten_dict.
+    """
+    Flatten a nested dict.
+
         >>> flatten_dict({'a': 1, 'c': {'a': 2, 'b': {'x': 5, 'y' : 10}}, 'd': [1, 2, 3]})
         >>> {'a': 1, 'c.a': 2, 'c.b.x': 5, 'd': [1, 2, 3], 'c.b.y': 10}
 
-    Parameters
-    ----------
-    d :
-        d
-    parent_key :
-        parent_key
-    sep :
-        sep
+        >>> flatten_dict({'a': 1, 'c': {'a': 2, 'b': {'x': 5, 'y' : 10}}, 'd': [1, 2, 3]}, sep=FLATTEN_TUPLE)
+        >>> {'a': 1, ('c','a'): 2, ('c','b','x'): 5, 'd': [1, 2, 3], ('c','b','y'): 10}
+
+    Args:
+        d (dict): the dict waiting for flatting
+        parent_key (str, optional): the parent key, will be a prefix in new key. Defaults to "".
+        sep (str, optional): the separator for string connecting. FLATTEN_TUPLE for tuple connecting.
+
+    Returns:
+        dict: flatten dict
     """
     items = []
     for k, v in d.items():
-        new_key = parent_key + sep + str(k) if parent_key else k
+        if sep == FLATTEN_TUPLE:
+            new_key = (parent_key, k) if parent_key else k
+        else:
+            new_key = parent_key + sep + k if parent_key else k
         if isinstance(v, collections.abc.MutableMapping):
             items.extend(flatten_dict(v, new_key, sep=sep).items())
         else:

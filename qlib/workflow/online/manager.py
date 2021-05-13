@@ -35,7 +35,7 @@ class OnlineManager(Serializable):
 
     def __init__(
         self,
-        strategy: Union[OnlineStrategy, List[OnlineStrategy]],
+        strategies: Union[OnlineStrategy, List[OnlineStrategy]],
         trainer: Trainer = None,
         begin_time: Union[str, pd.Timestamp] = None,
         freq="day",
@@ -45,15 +45,15 @@ class OnlineManager(Serializable):
         One OnlineManager must have at least one OnlineStrategy.
 
         Args:
-            strategy (Union[OnlineStrategy, List[OnlineStrategy]]): an instance of OnlineStrategy or a list of OnlineStrategy
+            strategies (Union[OnlineStrategy, List[OnlineStrategy]]): an instance of OnlineStrategy or a list of OnlineStrategy
             begin_time (Union[str,pd.Timestamp], optional): the OnlineManager will begin at this time. Defaults to None for using latest date.
             trainer (Trainer): the trainer to train task. None for using DelayTrainerR.
             freq (str, optional): data frequency. Defaults to "day".
         """
         self.logger = get_module_logger(self.__class__.__name__)
-        if not isinstance(strategy, list):
-            strategy = [strategy]
-        self.strategy = strategy
+        if not isinstance(strategies, list):
+            strategies = [strategies]
+        self.strategies = strategies
         self.freq = freq
         if begin_time is None:
             begin_time = D.calendar(freq=self.freq).max()
@@ -77,7 +77,7 @@ class OnlineManager(Serializable):
         """
         models_list = []
         if strategies is None:
-            strategies = self.strategy
+            strategies = self.strategies
         for strategy in strategies:
             self.logger.info(f"Strategy `{strategy.name_id}` begins first training...")
             tasks = strategy.first_tasks()
@@ -114,20 +114,21 @@ class OnlineManager(Serializable):
             cur_time = D.calendar(freq=self.freq).max()
         self.cur_time = pd.Timestamp(cur_time)  # None for latest date
         models_list = []
-        for strategy in self.strategy:
+        for strategy in self.strategies:
+            self.logger.info(f"Strategy `{strategy.name_id}` begins routine...")
             if not delay:
                 strategy.tool.update_online_pred()
-            self.logger.info(f"Strategy `{strategy.name_id}` begins routine...")
 
             tasks = strategy.prepare_tasks(self.cur_time, **task_kwargs)
             models = self.trainer.train(tasks)
+            self.logger.info(f"Finished training {len(models)} models.")
             models_list.append(models)
+
+        for strategy, models in zip(self.strategies, models_list):
+            self.prepare_online_models(strategy, models, delay=delay, model_kwargs=model_kwargs)
 
         if not delay:
             self.prepare_signals(**signal_kwargs)
-
-        for strategy, models in zip(self.strategy, models_list):
-            self.prepare_online_models(strategy, models, delay=delay, model_kwargs=model_kwargs)
 
     def prepare_online_models(
         self, strategy: OnlineStrategy, models: list, delay: bool = False, model_kwargs: dict = {}
@@ -141,14 +142,9 @@ class OnlineManager(Serializable):
             delay (bool, optional): if delay prepare models. Defaults to False.
             model_kwargs (dict, optional): the params for `prepare_online_models`.
         """
-        if not models:
-            return
         if not delay:
             models = self.trainer.end_train(models, experiment_name=strategy.name_id)
-            online_models = strategy.prepare_online_models(models, **model_kwargs)
-        else:
-            # just set every models as online models temporarily before ``prepare_online_models``
-            online_models = models
+        online_models = strategy.prepare_online_models(models, **model_kwargs)
         self.history.setdefault(self.cur_time, {})[strategy] = online_models
 
     def get_collector(self) -> MergeCollector:
@@ -160,21 +156,21 @@ class OnlineManager(Serializable):
             MergeCollector: the collector to merge other collectors.
         """
         collector_dict = {}
-        for strategy in self.strategy:
+        for strategy in self.strategies:
             collector_dict[strategy.name_id] = strategy.get_collector()
         return MergeCollector(collector_dict, process_list=[])
 
-    def add_strategy(self, strategy: Union[OnlineStrategy, List[OnlineStrategy]]):
+    def add_strategy(self, strategies: Union[OnlineStrategy, List[OnlineStrategy]]):
         """
         Add some new strategies to online manager.
 
         Args:
             strategy (Union[OnlineStrategy, List[OnlineStrategy]]): a list of OnlineStrategy
         """
-        if not isinstance(strategy, list):
-            strategy = [strategy]
-        self.first_train(strategy)
-        self.strategy.extend(strategy)
+        if not isinstance(strategies, list):
+            strategies = [strategies]
+        self.first_train(strategies)
+        self.strategies.extend(strategies)
 
     def prepare_signals(self, prepare_func: Callable = AverageEnsemble(), over_write=False):
         """
@@ -258,7 +254,8 @@ class OnlineManager(Serializable):
         if self.trainer.is_delay():
             self.delay_prepare(model_kwargs=model_kwargs, signal_kwargs=signal_kwargs)
 
-        set_global_logger_level(logging.INFO)
+        # FIXME: get logging level firstly and restore it here
+        set_global_logger_level(logging.DEBUG)
         self.logger.info(f"Finished preparing signals")
         return self.get_collector()
 

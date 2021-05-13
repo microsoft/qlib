@@ -155,7 +155,8 @@ class TaskManager:
 
     def create_task(self, task_def_l, dry_run=False, print_nt=False) -> List[str]:
         """
-        If the tasks in task_def_l is new, then insert new tasks into the task_pool
+        If the tasks in task_def_l is new, then insert new tasks into the task_pool, and record inserted_id.
+        If a task is not new, then query its _id.
 
         Parameters
         ----------
@@ -169,9 +170,10 @@ class TaskManager:
         Returns
         -------
         list
-            a list of the _id of new tasks
+            a list of the _id of task_def_l
         """
         new_tasks = []
+        _id_list = []
         for t in task_def_l:
             try:
                 r = self.task_pool.find_one({"filter": t})
@@ -179,6 +181,14 @@ class TaskManager:
                 r = self.task_pool.find_one({"filter": self._dict_to_str(t)})
             if r is None:
                 new_tasks.append(t)
+                if not dry_run:
+                    insert_result = self.insert_task_def(t)
+                    _id_list.append(insert_result.inserted_id)
+                else:
+                    _id_list.append(None)
+            else:
+                _id_list.append(self._decode_task(r)["_id"])
+
         self.logger.info(f"Total Tasks: {len(task_def_l)}, New Tasks: {len(new_tasks)}")
 
         if print_nt:  # print new task
@@ -187,11 +197,6 @@ class TaskManager:
 
         if dry_run:
             return []
-
-        _id_list = []
-        for t in new_tasks:
-            insert_result = self.insert_task_def(t)
-            _id_list.append(insert_result.inserted_id)
 
         return _id_list
 
@@ -388,7 +393,7 @@ class TaskManager:
 def run_task(
     task_func: Callable,
     task_pool: str,
-    tasks: List[dict] = None,
+    query: dict = {},
     force_release: bool = False,
     before_status: str = TaskManager.STATUS_WAITING,
     after_status: str = TaskManager.STATUS_DONE,
@@ -414,8 +419,8 @@ def run_task(
             the function to run the task
     task_pool : str
         the name of the task pool (Collection in MongoDB)
-    tasks: List[dict]
-        will only train these tasks config, None for train all tasks.
+    query: dict
+        will use this dict to query task_pool when fetching task
     force_release : bool
         will the program force to release the resource
     before_status : str:
@@ -428,9 +433,6 @@ def run_task(
     tm = TaskManager(task_pool)
 
     ever_run = False
-    query = {}
-    if tasks is not None:
-        query = {"filter": {"$in": tasks}}
 
     while True:
         with tm.safe_fetch_task(status=before_status, query=query) as task:

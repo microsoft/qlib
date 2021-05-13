@@ -137,7 +137,9 @@ class PredUpdater(RecordUpdater):
 
         start_time = get_date_by_shift(self.last_end, 1, freq=self.freq)
         if start_time >= self.to_date:
-            self.logger.info(f"The prediction in {self.record.info['id']} are latest. No need to update.")
+            self.logger.info(
+                f"The prediction in {self.record.info['id']} are latest ({start_time}). No need to update to {self.to_date}."
+            )
             return
 
         # load dataset

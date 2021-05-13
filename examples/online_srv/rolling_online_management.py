@@ -14,7 +14,7 @@ import pickle
 import fire
 import qlib
 from qlib.workflow import R
-from qlib.workflow.online.strategy import RollingAverageStrategy
+from qlib.workflow.online.strategy import RollingStrategy
 from qlib.workflow.task.gen import RollingGen
 from qlib.workflow.task.manage import TaskManager
 from qlib.workflow.online.manager import OnlineManager
@@ -97,7 +97,7 @@ class RollingOnlineExample:
         for task in tasks:
             name_id = task["model"]["class"]  # NOTE: Assumption: The model class can specify only one strategy
             strategy.append(
-                RollingAverageStrategy(
+                RollingStrategy(
                     name_id,
                     task,
                     RollingGen(step=rolling_step, rtype=RollingGen.ROLL_SD),

@@ -172,7 +172,10 @@ class DatasetH(Dataset):
         ----------
         slc : slice
         """
-        return self.handler.fetch(slc, **kwargs, **self.fetch_kwargs)
+        if hasattr(self, "fetch_kwargs"):
+            return self.handler.fetch(slc, **kwargs, **self.fetch_kwargs)
+        else:
+            return self.handler.fetch(slc, **kwargs)
 
     def prepare(
         self,

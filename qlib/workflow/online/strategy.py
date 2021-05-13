@@ -44,28 +44,23 @@ class OnlineStrategy:
         """
         raise NotImplementedError(f"Please implement the `prepare_tasks` method.")
 
-    def prepare_online_models(self, models, cur_time=None, check_func=None) -> List[object]:
+    def prepare_online_models(self, models, cur_time=None) -> List[object]:
         """
-        A typically implementation, but maybe you will need old models by online_tool.
-        Select some models as the online models from the trained models.
+        Select some models from trained models and set them to online models.
+        This is a typically implementation to online all trained models, you can override it to implement complex method.
+        You can find last online models by OnlineTool.online_models if you still need them.
 
-        NOTE: This method offline all models and online the online models prepared by this method (if have). So you can find last online models by OnlineTool.online_models if you still need them.
+        NOTE: Reset all online models to trained model. If there is no trained models, then do nothing.
 
         Args:
-            tasks (list): a list of tasks.
-            check_func: the method to judge if a model can be online.
-                The parameter is the model record and return True for online.
-                None for online every models.
+            models (list): a list of models.
+            cur_time (pd.Dataframe): current time from OnlineManger. None for latest.
 
         Returns:
-            List[object]: a list of selected models.
+            List[object]: a list of online models.
         """
-        if check_func is not None:
-            online_models = []
-            for model in models:
-                if check_func(model, cur_time):
-                    online_models.append(model)
-            models = online_models
+        if not models:
+            return self.tool.online_models()
         self.tool.reset_online_tag(models)
         return models
 
@@ -89,10 +84,10 @@ class OnlineStrategy:
         raise NotImplementedError(f"Please implement the `get_collector` method.")
 
 
-class RollingAverageStrategy(OnlineStrategy):
+class RollingStrategy(OnlineStrategy):
 
     """
-    This example strategy always use latest rolling model as online model and prepare trading signals using the average prediction of online models
+    This example strategy always use latest rolling model as online model.
     """
 
     def __init__(
@@ -102,7 +97,7 @@ class RollingAverageStrategy(OnlineStrategy):
         rolling_gen: RollingGen,
     ):
         """
-        Init RollingAverageStrategy.
+        Init RollingStrategy.
 
         Assumption: the str of name_id, the experiment name and the trainer's experiment name are same one.
 

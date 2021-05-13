@@ -91,18 +91,21 @@ class MergeCollector(Collector):
 
     """
 
-    def __init__(self, collector_dict: Dict[str, Collector], process_list: List[Callable] = []):
+    def __init__(self, collector_dict: Dict[str, Collector], process_list: List[Callable] = [], merge_func=None):
         """
         Args:
             collector_dict (Dict[str,Collector]): the dict like {collector_key, Collector}
             process_list (List[Callable]): the list of processors or the instance of processor to process dict.
+            merge_func (Callable): a method to generate outermost key. The given params are ``collector_key`` from collector_dict and ``key`` from every collector after collecting.
+                None for use tuple to connect them, such as "ABC"+("a","b") -> ("ABC", ("a","b")).
         """
         super().__init__(process_list=process_list)
         self.collector_dict = collector_dict
+        self.merge_func = merge_func
 
     def collect(self) -> dict:
         """
-        Collect all result of collector_dict and change the outermost key to "``collector_key``_``key``" (like merge them, but rename every key)
+        Collect all result of collector_dict and change the outermost key to a recombination key.
 
         Returns:
             dict: the dict after collecting.
@@ -111,7 +114,10 @@ class MergeCollector(Collector):
         for collector_key, collector in self.collector_dict.items():
             tmp_dict = collector()
             for key, value in tmp_dict.items():
-                collect_dict[collector_key + "_" + str(key)] = value
+                if self.merge_func is not None:
+                    collect_dict[self.merge_func(collector_key, key)] = value
+                else:
+                    collect_dict[(collector_key, key)] = value
         return collect_dict
 
 
@@ -146,16 +152,18 @@ class RecorderCollector(Collector):
             rec_key_func = lambda rec: rec.info["id"]
         if artifacts_key is None:
             artifacts_key = list(self.artifacts_path.keys())
-        self._rec_key_func = rec_key_func
+        self.rec_key_func = rec_key_func
         self.artifacts_key = artifacts_key
-        self._rec_filter_func = rec_filter_func
+        self.rec_filter_func = rec_filter_func
 
-    def collect(self, artifacts_key=None, rec_filter_func=None) -> dict:
+    def collect(self, artifacts_key=None, rec_filter_func=None, only_exist=True) -> dict:
         """Collect different artifacts based on recorder after filtering.
 
         Args:
             artifacts_key (str or List, optional): the artifacts key you want to get. If None, use default.
             rec_filter_func (Callable, optional): filter the recorder by return True or False. If None, use default.
+            only_exist (bool, optional): if only collect the artifacts when a recorder really have.
+                If True, the recorder with exception when loading will not be collected. But if False, it will raise the exception.
 
         Returns:
             dict: the dict after collected like {artifact: {rec_key: object}}
@@ -163,7 +171,7 @@ class RecorderCollector(Collector):
         if artifacts_key is None:
             artifacts_key = self.artifacts_key
         if rec_filter_func is None:
-            rec_filter_func = self._rec_filter_func
+            rec_filter_func = self.rec_filter_func
 
         if isinstance(artifacts_key, str):
             artifacts_key = [artifacts_key]
@@ -177,16 +185,18 @@ class RecorderCollector(Collector):
                 recs_flt[rid] = rec
 
         for _, rec in recs_flt.items():
-            rec_key = self._rec_key_func(rec)
+            rec_key = self.rec_key_func(rec)
             for key in artifacts_key:
                 if self.ART_KEY_RAW == key:
                     artifact = rec
                 else:
-                    # only collect existing artifact
                     try:
                         artifact = rec.load_object(self.artifacts_path[key])
-                    except Exception:
-                        continue
+                    except Exception as e:
+                        if only_exist:
+                            # only collect existing artifact
+                            continue
+                        raise e
                 collect_dict.setdefault(key, {})[rec_key] = artifact
 
         return collect_dict

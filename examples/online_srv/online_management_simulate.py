@@ -7,10 +7,10 @@ This examples is about how can simulate the OnlineManager based on rolling tasks
 
 import fire
 import qlib
-from qlib.model.trainer import DelayTrainerRM
+from qlib.model.trainer import DelayTrainerR, DelayTrainerRM, TrainerR, TrainerRM
 from qlib.workflow import R
 from qlib.workflow.online.manager import OnlineManager
-from qlib.workflow.online.strategy import RollingAverageStrategy
+from qlib.workflow.online.strategy import RollingStrategy
 from qlib.workflow.task.gen import RollingGen
 from qlib.workflow.task.manage import TaskManager
 
@@ -115,7 +115,7 @@ class OnlineSimulationExample:
         )  # The rolling tasks generator, ds_extra_mod_func is None because we just need simulate to 2018-10-31 and needn't change handler end time.
         self.trainer = DelayTrainerRM(self.exp_name, self.task_pool)
         self.rolling_online_manager = OnlineManager(
-            RollingAverageStrategy(exp_name, task_template=tasks, rolling_gen=self.rolling_gen),
+            RollingStrategy(exp_name, task_template=tasks, rolling_gen=self.rolling_gen),
             trainer=self.trainer,
             begin_time=self.start_time,
         )

@@ -158,6 +158,10 @@ class OnlineToolR(OnlineTool):
         """
         online_models = self.online_models()
         for rec in online_models:
-            PredUpdater(rec, to_date=to_date).update()
+            hist_ref = 0
+            task = rec.load_object("task")
+            if task["dataset"]["class"] == "TSDatasetH":
+                hist_ref = task["dataset"]["kwargs"]["step_len"]
+            PredUpdater(rec, to_date=to_date, hist_ref=hist_ref).update()
 
         self.logger.info(f"Finished updating {len(online_models)} online model predictions of {self.exp_name}.")

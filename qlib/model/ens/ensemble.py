@@ -7,7 +7,7 @@ Ensemble can merge the objects in an Ensemble. For example, if there are many su
 
 from typing import Union
 import pandas as pd
-from qlib.utils import flatten_dict
+from qlib.utils import FLATTEN_TUPLE, flatten_dict
 
 
 class Ensemble:
@@ -90,7 +90,7 @@ class AverageEnsemble(Ensemble):
             pd.DataFrame: the complete result of averaging and standardizing.
         """
         # need to flatten the nested dict
-        ensemble_dict = flatten_dict(ensemble_dict)
+        ensemble_dict = flatten_dict(ensemble_dict, sep=FLATTEN_TUPLE)
         values = list(ensemble_dict.values())
         results = pd.concat(values, axis=1)
         results = results.groupby("datetime").apply(lambda df: (df - df.mean()) / df.std())

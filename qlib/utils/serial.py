@@ -16,9 +16,10 @@ class Serializable:
     """
 
     pickle_backend = "pickle"  # another optional value is "dill" which can pickle more things of python.
+    default_dump_all = False # if dump all things
 
     def __init__(self):
-        self._dump_all = False
+        self._dump_all = self.default_dump_all
         self._exclude = []
 
     def __getstate__(self) -> dict:
@@ -77,12 +78,7 @@ class Serializable:
     def to_pickle(self, path: Union[Path, str], dump_all: bool = None, exclude: list = None):
         self.config(dump_all=dump_all, exclude=exclude)
         with Path(path).open("wb") as f:
-            if self.pickle_backend == "pickle":
-                pickle.dump(self, f)
-            elif self.pickle_backend == "dill":
-                dill.dump(self, f)
-            else:
-                raise ValueError("Unknown pickle backend, please use 'pickle' or 'dill'.")
+            self.get_backend().dump(self, f)
 
     @classmethod
     def load(cls, filepath):
@@ -99,13 +95,24 @@ class Serializable:
             Collector: the instance of Collector
         """
         with open(filepath, "rb") as f:
-            if cls.pickle_backend == "pickle":
-                object = pickle.load(f)
-            elif cls.pickle_backend == "dill":
-                object = dill.load(f)
-            else:
-                raise ValueError("Unknown pickle backend, please use 'pickle' or 'dill'.")
+            object = cls.get_backend().load(f)
         if isinstance(object, cls):
             return object
         else:
             raise TypeError(f"The instance of {type(object)} is not a valid `{type(cls)}`!")
+
+    @classmethod
+    def get_backend(cls):
+        """
+        Return the backend of a Serializable class. The value will be "pickle" or "dill".
+
+        Returns:
+            str: The value of "pickle" or "dill"
+        """
+        if cls.pickle_backend == "pickle":
+            return pickle
+        elif cls.pickle_backend == "dill":
+            return dill
+        else:
+            raise ValueError("Unknown pickle backend, please use 'pickle' or 'dill'.")
+

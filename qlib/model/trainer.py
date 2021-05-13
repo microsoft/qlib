@@ -416,7 +416,7 @@ class DelayTrainerRM(TrainerRM):
         run_task(
             end_train_func,
             task_pool,
-            tasks=tasks,
+            query={"filter": {"$in": tasks}},  # only train these tasks
             experiment_name=experiment_name,
             before_status=TaskManager.STATUS_PART_DONE,
             **kwargs,
