@@ -20,7 +20,7 @@ def get_mongodb() -> Database:
 
     """
     Get database in MongoDB, which means you need to declare the address and the name of a database at first.
-    
+
     For example:
 
         Using qlib.init():

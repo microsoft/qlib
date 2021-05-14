@@ -98,7 +98,7 @@ class MergeCollector(Collector):
     def __init__(self, collector_dict: Dict[str, Collector], process_list: List[Callable] = [], merge_func=None):
         """
         Init MergeCollector.
- 
+
         Args:
             collector_dict (Dict[str,Collector]): the dict like {collector_key, Collector}
             process_list (List[Callable]): the list of processors or the instance of processor to process dict.

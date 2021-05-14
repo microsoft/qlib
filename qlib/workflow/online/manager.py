@@ -41,8 +41,8 @@ class OnlineManager(Serializable):
     It also provides a history recording of which models are online at what time.
     """
 
-    STATUS_SIMULATING = "simulating" # when calling `simulate`
-    STATUS_NORMAL = "normal" # the normal status
+    STATUS_SIMULATING = "simulating"  # when calling `simulate`
+    STATUS_NORMAL = "normal"  # the normal status
 
     def __init__(
         self,
@@ -210,7 +210,9 @@ class OnlineManager(Serializable):
     SIM_LOG_LEVEL = logging.INFO + 1
     SIM_LOG_NAME = "SIMULATE_INFO"
 
-    def simulate(self, end_time, frequency="day", task_kwargs={}, model_kwargs={}, signal_kwargs={}) -> Union[pd.Series, pd.DataFrame]:
+    def simulate(
+        self, end_time, frequency="day", task_kwargs={}, model_kwargs={}, signal_kwargs={}
+    ) -> Union[pd.Series, pd.DataFrame]:
         """
         Starting from the current time, this method will simulate every routine in OnlineManager until the end time.
 

@@ -113,7 +113,7 @@ class OnlineSimulationExample:
         self.rolling_gen = RollingGen(
             step=rolling_step, rtype=RollingGen.ROLL_SD, ds_extra_mod_func=None
         )  # The rolling tasks generator, ds_extra_mod_func is None because we just need to simulate to 2018-10-31 and needn't change the handler end time.
-        self.trainer = DelayTrainerRM(self.exp_name, self.task_pool) # Also can be TrainerR, TrainerRM, DelayTrainerR
+        self.trainer = DelayTrainerRM(self.exp_name, self.task_pool)  # Also can be TrainerR, TrainerRM, DelayTrainerR
         self.rolling_online_manager = OnlineManager(
             RollingStrategy(exp_name, task_template=tasks, rolling_gen=self.rolling_gen),
             trainer=self.trainer,

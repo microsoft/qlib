@@ -118,7 +118,7 @@ class RollingStrategy(OnlineStrategy):
     def get_collector(self, process_list=[RollingGroup()], rec_key_func=None, rec_filter_func=None, artifacts_key=None):
         """
         Get the instance of `Collector <../advanced/task_management.html#Task Collecting>`_ to collect results. The returned collector must distinguish results in different models.
-        
+
         Assumption: the models can be distinguished based on the model name and rolling test segments.
         If you do not want this assumption, please implement your method or use another rec_key_func.
 

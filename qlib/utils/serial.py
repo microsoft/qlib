@@ -8,7 +8,6 @@ import dill
 from typing import Union
 
 
-
 class Serializable:
     """
     Serializable will change the behaviors of pickle.

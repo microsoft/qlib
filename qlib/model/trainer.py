@@ -240,13 +240,13 @@ class DelayTrainerR(TrainerR):
         """
         Given a list of Recorder and return a list of trained Recorder.
         This class will finish real data loading and model fitting.
- 
+
         Args:
             recs (list): a list of Recorder, the tasks have been saved to them
             end_train_func (Callable, optional): the end_train method which needs at least `recorder`s and `experiment_name`. Defaults to None for using self.end_train_func.
             experiment_name (str): the experiment name, None for use default name.
             kwargs: the params for end_train_func.
- 
+
         Returns:
             List[Recorder]: a list of Recorders
         """

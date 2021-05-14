@@ -16,9 +16,9 @@ class Ensemble:
     For example: {Rollinga_b: object, Rollingb_c: object} -> object
 
     When calling this class:
-    
+
         Args:
-            ensemble_dict (dict): the ensemble dict like {name: things} waiting for merging 
+            ensemble_dict (dict): the ensemble dict like {name: things} waiting for merging
 
         Returns:
             object: the ensemble object
@@ -103,6 +103,7 @@ class AverageEnsemble(Ensemble):
         Returns:
             pd.DataFrame: the complete result of averaging and standardizing.
     """
+
     def __call__(self, ensemble_dict: dict) -> pd.DataFrame:
         # need to flatten the nested dict
         ensemble_dict = flatten_dict(ensemble_dict, sep=FLATTEN_TUPLE)
