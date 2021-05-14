@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 """
-Ensemble can merge the objects in an Ensemble. For example, if there are many submodels predictions, we may need to merge them in an ensemble predictions.
+Ensemble module can merge the objects in an Ensemble. For example, if there are many submodels predictions, we may need to merge them into an ensemble prediction.
 """
 
 from typing import Union
@@ -11,29 +11,41 @@ from qlib.utils import FLATTEN_TUPLE, flatten_dict
 
 
 class Ensemble:
-    """Merge the objects in an Ensemble."""
+    """Merge the ensemble_dict into an ensemble object.
 
-    def __call__(self, ensemble_dict: dict, *args, **kwargs):
-        """Merge the ensemble_dict into an ensemble object.
-        For example: {Rollinga_b: object, Rollingb_c: object} -> object
+    For example: {Rollinga_b: object, Rollingb_c: object} -> object
 
+    When calling this class:
+    
         Args:
-            ensemble_dict (dict): the ensemble dict waiting for merging like {name: things}
+            ensemble_dict (dict): the ensemble dict like {name: things} waiting for merging 
 
         Returns:
             object: the ensemble object
-        """
+    """
+
+    def __call__(self, ensemble_dict: dict, *args, **kwargs):
         raise NotImplementedError(f"Please implement the `__call__` method.")
 
 
 class SingleKeyEnsemble(Ensemble):
 
     """
-    Extract the object if there is only one key and value in dict. Make result more readable.
+    Extract the object if there is only one key and value in the dict. Make the result more readable.
     {Only key: Only value} -> Only value
-    If there are more than 1 key or less than 1 key, then do nothing.
+
+    If there is more than 1 key or less than 1 key, then do nothing.
     Even you can run this recursively to make dict more readable.
-    NOTE: Default run recursively.
+
+    NOTE: Default runs recursively.
+
+    When calling this class:
+
+        Args:
+            ensemble_dict (dict): the dict. The key of the dict will be ignored.
+
+        Returns:
+            dict: the readable dict.
     """
 
     def __call__(self, ensemble_dict: Union[dict, object], recursion: bool = True) -> object:
@@ -52,12 +64,11 @@ class SingleKeyEnsemble(Ensemble):
 
 class RollingEnsemble(Ensemble):
 
-    """Merge the rolling objects in an Ensemble"""
+    """Merge a dict of rolling dataframe like `prediction` or `IC` into an ensemble.
 
-    def __call__(self, ensemble_dict: dict) -> pd.DataFrame:
-        """Merge a dict of rolling dataframe like `prediction` or `IC` into an ensemble.
+    NOTE: The values of dict must be pd.DataFrame, and have the index "datetime".
 
-        NOTE: The values of dict must be pd.DataFrame, and have the index "datetime"
+    When calling this class:
 
         Args:
             ensemble_dict (dict): a dict like {"A": pd.DataFrame, "B": pd.DataFrame}.
@@ -65,7 +76,9 @@ class RollingEnsemble(Ensemble):
 
         Returns:
             pd.DataFrame: the complete result of rolling.
-        """
+    """
+
+    def __call__(self, ensemble_dict: dict) -> pd.DataFrame:
         artifact_list = list(ensemble_dict.values())
         artifact_list.sort(key=lambda x: x.index.get_level_values("datetime").min())
         artifact = pd.concat(artifact_list)
@@ -76,11 +89,12 @@ class RollingEnsemble(Ensemble):
 
 
 class AverageEnsemble(Ensemble):
-    def __call__(self, ensemble_dict: dict):
-        """
-        Average and standardize a dict of same shape dataframe like `prediction` or `IC` into an ensemble.
+    """
+    Average and standardize a dict of same shape dataframe like `prediction` or `IC` into an ensemble.
 
-        NOTE: The values of dict must be pd.DataFrame, and have the index "datetime". If it is a nested dict, then flat it.
+    NOTE: The values of dict must be pd.DataFrame, and have the index "datetime". If it is a nested dict, then flat it.
+
+    When calling this class:
 
         Args:
             ensemble_dict (dict): a dict like {"A": pd.DataFrame, "B": pd.DataFrame}.
@@ -88,7 +102,8 @@ class AverageEnsemble(Ensemble):
 
         Returns:
             pd.DataFrame: the complete result of averaging and standardizing.
-        """
+    """
+    def __call__(self, ensemble_dict: dict) -> pd.DataFrame:
         # need to flatten the nested dict
         ensemble_dict = flatten_dict(ensemble_dict, sep=FLATTEN_TUPLE)
         values = list(ensemble_dict.values())

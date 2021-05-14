@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 """
-Updater is a module to update artifacts such as predictions, when the stock data is updating.
+Updater is a module to update artifacts such as predictions when the stock data is updating.
 """
 
 from abc import ABCMeta, abstractmethod
@@ -87,7 +87,7 @@ class PredUpdater(RecordUpdater):
                 update to prediction to the `to_date`
             hist_ref : int
                 Sometimes, the dataset will have historical depends.
-                Leave the problem to user to set the length of historical dependency
+                Leave the problem to users to set the length of historical dependency
 
                 .. note::
 
@@ -112,7 +112,7 @@ class PredUpdater(RecordUpdater):
         """
         Load dataset
 
-        Seperating this function will make it easier to reuse the dataset
+        Separating this function will make it easier to reuse the dataset
 
         Returns:
             DatasetH: the instance of DatasetH
@@ -125,7 +125,7 @@ class PredUpdater(RecordUpdater):
 
     def update(self, dataset: DatasetH = None):
         """
-        Update the precition in a recorder
+        Update the prediction in a recorder.
 
         Args:
             DatasetH: the instance of DatasetH. None for reprepare.

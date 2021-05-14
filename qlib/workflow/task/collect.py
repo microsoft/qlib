@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 """
-Collector can collect object from everywhere and process them such as merging, grouping, averaging and so on.
+Collector module can collect objects from everywhere and process them such as merging, grouping, averaging and so on.
 """
 
 from typing import Callable, Dict, List
@@ -17,15 +17,18 @@ class Collector(Serializable):
 
     def __init__(self, process_list=[]):
         """
+        Init Collector.
+
         Args:
-            process_list (list, optional): process_list (list or Callable): the list of processors or the instance of processor to process dict.
+            process_list (list or Callable):  the list of processors or the instance of a processor to process dict.
         """
         if not isinstance(process_list, list):
             process_list = [process_list]
         self.process_list = process_list
 
     def collect(self) -> dict:
-        """Collect the results and return a dict like {key: things}
+        """
+        Collect the results and return a dict like {key: things}
 
         Returns:
             dict: the dict after collecting.
@@ -42,13 +45,14 @@ class Collector(Serializable):
 
     @staticmethod
     def process_collect(collected_dict, process_list=[], *args, **kwargs) -> dict:
-        """do a series of processing to the dict returned by collect and return a dict like {key: things}
-        For example: you can group and ensemble.
+        """
+        Do a series of processing to the dict returned by collect and return a dict like {key: things}
+        For example, you can group and ensemble.
 
         Args:
             collected_dict (dict): the dict return by `collect`
-            process_list (list or Callable): the list of processors or the instance of processor to process dict.
-            The processor order is same as the list order.
+            process_list (list or Callable): the list of processors or the instance of a processor to process dict.
+            The processor order is the same as the list order.
                 For example: [Group1(..., Ensemble1()), Group2(..., Ensemble2())]
 
         Returns:
@@ -68,7 +72,7 @@ class Collector(Serializable):
 
     def __call__(self, *args, **kwargs) -> dict:
         """
-        do the workflow including collect and process_collect
+        Do the workflow including ``collect`` and ``process_collect``
 
         Returns:
             dict: the dict after collecting and processing.
@@ -93,11 +97,13 @@ class MergeCollector(Collector):
 
     def __init__(self, collector_dict: Dict[str, Collector], process_list: List[Callable] = [], merge_func=None):
         """
+        Init MergeCollector.
+ 
         Args:
             collector_dict (Dict[str,Collector]): the dict like {collector_key, Collector}
             process_list (List[Callable]): the list of processors or the instance of processor to process dict.
             merge_func (Callable): a method to generate outermost key. The given params are ``collector_key`` from collector_dict and ``key`` from every collector after collecting.
-                None for use tuple to connect them, such as "ABC"+("a","b") -> ("ABC", ("a","b")).
+                None for using tuple to connect them, such as "ABC"+("a","b") -> ("ABC", ("a","b")).
         """
         super().__init__(process_list=process_list)
         self.collector_dict = collector_dict
@@ -105,7 +111,7 @@ class MergeCollector(Collector):
 
     def collect(self) -> dict:
         """
-        Collect all result of collector_dict and change the outermost key to a recombination key.
+        Collect all results of collector_dict and change the outermost key to a recombination key.
 
         Returns:
             dict: the dict after collecting.
@@ -133,11 +139,12 @@ class RecorderCollector(Collector):
         artifacts_path={"pred": "pred.pkl"},
         artifacts_key=None,
     ):
-        """init RecorderCollector
+        """
+        Init RecorderCollector.
 
         Args:
-            experiment (Experiment or str): an instance of a Experiment or the name of a Experiment
-            process_list (list or Callable): the list of processors or the instance of processor to process dict.
+            experiment (Experiment or str): an instance of an Experiment or the name of an Experiment
+            process_list (list or Callable): the list of processors or the instance of a processor to process dict.
             rec_key_func (Callable): a function to get the key of a recorder. If None, use recorder id.
             rec_filter_func (Callable, optional): filter the recorder by return True or False. Defaults to None.
             artifacts_path (dict, optional): The artifacts name and its path in Recorder. Defaults to {"pred": "pred.pkl", "IC": "sig_analysis/ic.pkl"}.
@@ -157,12 +164,13 @@ class RecorderCollector(Collector):
         self.rec_filter_func = rec_filter_func
 
     def collect(self, artifacts_key=None, rec_filter_func=None, only_exist=True) -> dict:
-        """Collect different artifacts based on recorder after filtering.
+        """
+        Collect different artifacts based on recorder after filtering.
 
         Args:
-            artifacts_key (str or List, optional): the artifacts key you want to get. If None, use default.
-            rec_filter_func (Callable, optional): filter the recorder by return True or False. If None, use default.
-            only_exist (bool, optional): if only collect the artifacts when a recorder really have.
+            artifacts_key (str or List, optional): the artifacts key you want to get. If None, use the default.
+            rec_filter_func (Callable, optional): filter the recorder by return True or False. If None, use the default.
+            only_exist (bool, optional): if only collect the artifacts when a recorder really has.
                 If True, the recorder with exception when loading will not be collected. But if False, it will raise the exception.
 
         Returns:

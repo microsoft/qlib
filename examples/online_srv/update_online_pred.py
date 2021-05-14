@@ -2,10 +2,10 @@
 # Licensed under the MIT License.
 
 """
-This example show how OnlineTool works when we need update prediction.
+This example shows how OnlineTool works when we need update prediction.
 There are two parts including first_train and update_online_pred.
-Firstly, we will finish the training and set the trained model to `online` model.
-Next, we will finish updating online prediction.
+Firstly, we will finish the training and set the trained models to the `online` models.
+Next, we will finish updating online predictions.
 """
 import fire
 import qlib

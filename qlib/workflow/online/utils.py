@@ -3,8 +3,8 @@
 
 """
 OnlineTool is a module to set and unset a series of `online` models.
-The `online` models are some decisive models in some time point, which can be changed with the change of time.
-This allows us to use efficient submodels as the market style changing.
+The `online` models are some decisive models in some time points, which can be changed with the change of time.
+This allows us to use efficient submodels as the market-style changing.
 """
 
 from typing import List, Union
@@ -17,7 +17,7 @@ from qlib.workflow.task.utils import list_recorders
 
 class OnlineTool:
     """
-    OnlineTool will manage `online` models in an experiment which includes the models recorder.
+    OnlineTool will manage `online` models in an experiment that includes the model recorders.
     """
 
     ONLINE_KEY = "online_status"  # the online status key in recorder
@@ -74,10 +74,10 @@ class OnlineTool:
 
     def update_online_pred(self, to_date=None):
         """
-        Update the predictions of `online` models to a date.
+        Update the predictions of `online` models to to_date.
 
         Args:
-            to_date (pd.Timestamp): the pred before this date will be updated. None for update to latest.
+            to_date (pd.Timestamp): the pred before this date will be updated. None for updating to the latest.
 
         """
         raise NotImplementedError(f"Please implement the `update_online_pred` method.")
@@ -151,15 +151,16 @@ class OnlineToolR(OnlineTool):
 
     def update_online_pred(self, to_date=None):
         """
-        Update the predictions of online models to a date.
+        Update the predictions of online models to to_date.
 
         Args:
-            to_date (pd.Timestamp): the pred before this date will be updated. None for update to latest time in Calendar.
+            to_date (pd.Timestamp): the pred before this date will be updated. None for updating to latest time in Calendar.
         """
         online_models = self.online_models()
         for rec in online_models:
             hist_ref = 0
             task = rec.load_object("task")
+            # Special treatment of historical dependencies
             if task["dataset"]["class"] == "TSDatasetH":
                 hist_ref = task["dataset"]["kwargs"]["step_len"]
             PredUpdater(rec, to_date=to_date, hist_ref=hist_ref).update()

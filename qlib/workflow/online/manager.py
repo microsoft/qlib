@@ -4,12 +4,20 @@
 """
 OnlineManager can manage a set of `Online Strategy <#Online Strategy>`_ and run them dynamically.
 
-With the change of time, the decisive models will be also changed. In this module, we call those contributing models as `online` models.
-In every routine(such as everyday or every minutes), the `online` models maybe changed and the prediction of them need to be updated.
-So this module provide a series methods to control this process. 
+With the change of time, the decisive models will be also changed. In this module, we call those contributing models `online` models.
+In every routine(such as every day or every minute), the `online` models may be changed and the prediction of them needs to be updated.
+So this module provides a series of methods to control this process. 
 
-This module also provide a method to simulate `Online Strategy <#Online Strategy>`_ in the history.
+This module also provides a method to simulate `Online Strategy <#Online Strategy>`_ in history.
 Which means you can verify your strategy or find a better one.
+
+There are total 3 situations for using the different trainer:
+
+1: Online: Only use Trainer.
+
+2: Simulate with temporal dependence: Only use Trainer.
+
+3: Simulate without temporal dependence: Use Trainer or DelayTrainer.
 """
 
 import logging
@@ -20,7 +28,7 @@ from qlib import get_module_logger
 from qlib.data.data import D
 from qlib.log import set_global_logger_level
 from qlib.model.ens.ensemble import AverageEnsemble
-from qlib.model.trainer import DelayTrainerR, Trainer
+from qlib.model.trainer import DelayTrainerR, Trainer, TrainerR
 from qlib.utils import flatten_dict
 from qlib.utils.serial import Serializable
 from qlib.workflow.online.strategy import OnlineStrategy
@@ -30,8 +38,11 @@ from qlib.workflow.task.collect import MergeCollector
 class OnlineManager(Serializable):
     """
     OnlineManager can manage online models with `Online Strategy <#Online Strategy>`_.
-    It also provide a history recording which models are onlined at what time.
+    It also provides a history recording of which models are online at what time.
     """
+
+    STATUS_SIMULATING = "simulating" # when calling `simulate`
+    STATUS_NORMAL = "normal" # the normal status
 
     def __init__(
         self,
@@ -46,8 +57,8 @@ class OnlineManager(Serializable):
 
         Args:
             strategies (Union[OnlineStrategy, List[OnlineStrategy]]): an instance of OnlineStrategy or a list of OnlineStrategy
-            begin_time (Union[str,pd.Timestamp], optional): the OnlineManager will begin at this time. Defaults to None for using latest date.
-            trainer (Trainer): the trainer to train task. None for using DelayTrainerR.
+            begin_time (Union[str,pd.Timestamp], optional): the OnlineManager will begin at this time. Defaults to None for using the latest date.
+            trainer (Trainer): the trainer to train task. None for using TrainerR.
             freq (str, optional): data frequency. Defaults to "day".
         """
         self.logger = get_module_logger(self.__class__.__name__)
@@ -59,12 +70,13 @@ class OnlineManager(Serializable):
             begin_time = D.calendar(freq=self.freq).max()
         self.begin_time = pd.Timestamp(begin_time)
         self.cur_time = self.begin_time
-        # OnlineManager will recorder the history of online models, which is a dict like {begin_time, {strategy, [online_models]}}. begin_time means when online_models are onlined.
+        # OnlineManager will recorder the history of online models, which is a dict like {pd.Timestamp, {strategy, [online_models]}}.
         self.history = {}
         if trainer is None:
-            trainer = DelayTrainerR()
+            trainer = TrainerR()
         self.trainer = trainer
         self.signals = None
+        self.status = self.STATUS_NORMAL
 
     def first_train(self, strategies: List[OnlineStrategy] = None, model_kwargs: dict = {}):
         """
@@ -75,37 +87,36 @@ class OnlineManager(Serializable):
             strategies (List[OnlineStrategy]): the strategies list (need this param when adding strategies). None for use default strategies.
             model_kwargs (dict): the params for `prepare_online_models`
         """
-        models_list = []
         if strategies is None:
             strategies = self.strategies
         for strategy in strategies:
+
             self.logger.info(f"Strategy `{strategy.name_id}` begins first training...")
             tasks = strategy.first_tasks()
             models = self.trainer.train(tasks, experiment_name=strategy.name_id)
-            models_list.append(models)
+            models = self.trainer.end_train(models, experiment_name=strategy.name_id)
+            self.logger.info(f"Finished training {len(models)} models.")
 
-        for strategy, models in zip(strategies, models_list):
-            self.prepare_online_models(strategy, models, model_kwargs=model_kwargs)
+            online_models = strategy.prepare_online_models(models, **model_kwargs)
+            self.history.setdefault(self.cur_time, {})[strategy] = online_models
 
     def routine(
         self,
         cur_time: Union[str, pd.Timestamp] = None,
-        delay: bool = False,
         task_kwargs: dict = {},
         model_kwargs: dict = {},
         signal_kwargs: dict = {},
     ):
         """
-        Run typical update process for every strategy and record the online history.
+        Typical update process for every strategy and record the online history.
 
         The typical update process after a routine, such as day by day or month by month.
-        The process is: Prepare signals -> Prepare tasks -> Prepare online models.
+        The process is: Update predictions -> Prepare tasks -> Prepare online models -> Prepare signals.
 
         If using DelayTrainer, it can finish training all together after every strategy's prepare_tasks.
 
         Args:
             cur_time (Union[str,pd.Timestamp], optional): run routine method in this time. Defaults to None.
-            delay (bool): if delay prepare signals and models
             task_kwargs (dict): the params for `prepare_tasks`
             model_kwargs (dict): the params for `prepare_online_models`
             signal_kwargs (dict): the params for `prepare_signals`
@@ -113,39 +124,22 @@ class OnlineManager(Serializable):
         if cur_time is None:
             cur_time = D.calendar(freq=self.freq).max()
         self.cur_time = pd.Timestamp(cur_time)  # None for latest date
-        models_list = []
+
         for strategy in self.strategies:
             self.logger.info(f"Strategy `{strategy.name_id}` begins routine...")
-            if not delay:
+            if self.status == self.STATUS_NORMAL:
                 strategy.tool.update_online_pred()
 
             tasks = strategy.prepare_tasks(self.cur_time, **task_kwargs)
             models = self.trainer.train(tasks)
+            if self.status == self.STATUS_NORMAL or not self.trainer.is_delay():
+                models = self.trainer.end_train(models, experiment_name=strategy.name_id)
             self.logger.info(f"Finished training {len(models)} models.")
-            models_list.append(models)
+            online_models = strategy.prepare_online_models(models, **model_kwargs)
+            self.history.setdefault(self.cur_time, {})[strategy] = online_models
 
-        for strategy, models in zip(self.strategies, models_list):
-            self.prepare_online_models(strategy, models, delay=delay, model_kwargs=model_kwargs)
-
-        if not delay:
+        if not self.trainer.is_delay():
             self.prepare_signals(**signal_kwargs)
-
-    def prepare_online_models(
-        self, strategy: OnlineStrategy, models: list, delay: bool = False, model_kwargs: dict = {}
-    ):
-        """
-        Prepare online model for strategy, including end_train, reset_online_tag and add history.
-
-        Args:
-            strategy (OnlineStrategy): the instance of strategy.
-            models (list): a list of models.
-            delay (bool, optional): if delay prepare models. Defaults to False.
-            model_kwargs (dict, optional): the params for `prepare_online_models`.
-        """
-        if not delay:
-            models = self.trainer.end_train(models, experiment_name=strategy.name_id)
-        online_models = strategy.prepare_online_models(models, **model_kwargs)
-        self.history.setdefault(self.cur_time, {})[strategy] = online_models
 
     def get_collector(self) -> MergeCollector:
         """
@@ -162,7 +156,7 @@ class OnlineManager(Serializable):
 
     def add_strategy(self, strategies: Union[OnlineStrategy, List[OnlineStrategy]]):
         """
-        Add some new strategies to online manager.
+        Add some new strategies to OnlineManager.
 
         Args:
             strategy (Union[OnlineStrategy, List[OnlineStrategy]]): a list of OnlineStrategy
@@ -174,9 +168,9 @@ class OnlineManager(Serializable):
 
     def prepare_signals(self, prepare_func: Callable = AverageEnsemble(), over_write=False):
         """
-        After perparing the data of last routine (a box in box-plot) which means the end of the routine, we can prepare trading signals for next routine.
+        After preparing the data of the last routine (a box in box-plot) which means the end of the routine, we can prepare trading signals for the next routine.
 
-        NOTE: Given a set prediction, all signals before these prediction end time will be prepared well.
+        NOTE: Given a set prediction, all signals before these prediction end times will be prepared well.
 
         Even if the latest signal already exists, the latest calculation result will be overwritten.
 
@@ -185,7 +179,7 @@ class OnlineManager(Serializable):
             Given a prediction of a certain time, all signals before this time will be prepared well.
 
         Args:
-            prepare_func (Callable, optional): Get signals from a dict after collecting. Defaults to AverageEnsemble(), the results after mergecollector must be {xxx:pred}.
+            prepare_func (Callable, optional): Get signals from a dict after collecting. Defaults to AverageEnsemble(), the results collected by MergeCollector must be {xxx:pred}.
             over_write (bool, optional): If True, the new signals will overwrite. If False, the new signals will append to the end of signals. Defaults to False.
 
         Returns:
@@ -209,18 +203,18 @@ class OnlineManager(Serializable):
 
         Returns:
             Union[pd.Series, pd.DataFrame]: pd.Series for only one signals every datetime.
-            pd.DataFrame for multiple signals, for example, buy and sell operation use different trading signal.
+            pd.DataFrame for multiple signals, for example, buy and sell operations use different trading signals.
         """
         return self.signals
 
     SIM_LOG_LEVEL = logging.INFO + 1
     SIM_LOG_NAME = "SIMULATE_INFO"
 
-    def simulate(self, end_time, frequency="day", task_kwargs={}, model_kwargs={}, signal_kwargs={}):
+    def simulate(self, end_time, frequency="day", task_kwargs={}, model_kwargs={}, signal_kwargs={}) -> Union[pd.Series, pd.DataFrame]:
         """
-        Starting from current time, this method will simulate every routine in OnlineManager until end time.
+        Starting from the current time, this method will simulate every routine in OnlineManager until the end time.
 
-        Considering the parallel training, the models and signals can be perpared after all routine simulating.
+        Considering the parallel training, the models and signals can be prepared after all routine simulating.
 
         The delay training way can be ``DelayTrainer`` and the delay preparing signals way can be ``delay_prepare``.
 
@@ -232,8 +226,10 @@ class OnlineManager(Serializable):
             signal_kwargs (dict): the params for `prepare_signals`
 
         Returns:
-            HyperCollector: the OnlineManager's collector
+            Union[pd.Series, pd.DataFrame]: pd.Series for only one signals every datetime.
+            pd.DataFrame for multiple signals, for example, buy and sell operations use different trading signals.
         """
+        self.status = self.STATUS_SIMULATING
         cal = D.calendar(start_time=self.cur_time, end_time=end_time, freq=frequency)
         self.first_train()
 
@@ -245,7 +241,6 @@ class OnlineManager(Serializable):
             self.logger.log(level=simulate_level, msg=f"Simulating at {str(cur_time)}......")
             self.routine(
                 cur_time,
-                delay=self.trainer.is_delay(),
                 task_kwargs=task_kwargs,
                 model_kwargs=model_kwargs,
                 signal_kwargs=signal_kwargs,
@@ -257,11 +252,12 @@ class OnlineManager(Serializable):
         # FIXME: get logging level firstly and restore it here
         set_global_logger_level(logging.DEBUG)
         self.logger.info(f"Finished preparing signals")
-        return self.get_collector()
+        self.status = self.STATUS_NORMAL
+        return self.get_signals()
 
     def delay_prepare(self, model_kwargs={}, signal_kwargs={}):
         """
-        Prepare all models and signals if there are something waiting for prepare.
+        Prepare all models and signals if something is waiting for preparation.
 
         Args:
             model_kwargs: the params for `prepare_online_models`
@@ -270,6 +266,6 @@ class OnlineManager(Serializable):
         for cur_time, strategy_models in self.history.items():
             self.cur_time = cur_time
             for strategy, models in strategy_models.items():
-                self.prepare_online_models(strategy, models, delay=False, model_kwargs=model_kwargs)
+                models = self.trainer.end_train(models, experiment_name=strategy.name_id)
             # NOTE: Assumption: the predictions of online models need less than next cur_time, or this method will work in a wrong way.
             self.prepare_signals(**signal_kwargs)

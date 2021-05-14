@@ -2,13 +2,13 @@
 # Licensed under the MIT License.
 
 """
-The Trainer will train a list of tasks and return a list of model recorder.
+The Trainer will train a list of tasks and return a list of model recorders.
 There are two steps in each Trainer including ``train``(make model recorder) and ``end_train``(modify model recorder).
 
-This is concept called ``DelayTrainer``, which can be used in online simulating for parallel training.
-In ``DelayTrainer``, the first step is only to save some necessary info to model recorder, and the second step which will be finished in the end can do some concurrent and time-consuming operations such as model fitting.
+This is a concept called ``DelayTrainer``, which can be used in online simulating for parallel training.
+In ``DelayTrainer``, the first step is only to save some necessary info to model recorders, and the second step which will be finished in the end can do some concurrent and time-consuming operations such as model fitting.
 
-``Qlib`` offer two kind of Trainer, ``TrainerR`` is the simplest way and ``TrainerRM`` is based on TaskManager to help manager tasks lifecycle automatically. 
+``Qlib`` offer two kinds of Trainer, ``TrainerR`` is the simplest way and ``TrainerRM`` is based on TaskManager to help manager tasks lifecycle automatically. 
 """
 
 import socket
@@ -25,7 +25,7 @@ from qlib.workflow.task.manage import TaskManager, run_task
 
 def begin_task_train(task_config: dict, experiment_name: str, recorder_name: str = None) -> Recorder:
     """
-    Begin a task training to start a recorder and save the task config.
+    Begin task training to start a recorder and save the task config.
 
     Args:
         task_config (dict): the config of a task
@@ -94,7 +94,7 @@ def task_train(task_config: dict, experiment_name: str) -> Recorder:
 
     Returns
     ----------
-    Recorder : The instance of the recorder
+    Recorder: The instance of the recorder
     """
     recorder = begin_task_train(task_config, experiment_name)
     recorder = end_task_train(recorder, experiment_name)
@@ -103,7 +103,7 @@ def task_train(task_config: dict, experiment_name: str) -> Recorder:
 
 class Trainer:
     """
-    The trainer can train a list of model.
+    The trainer can train a list of models.
     There are Trainer and DelayTrainer, which can be distinguished by when it will finish real training.
     """
 
@@ -112,10 +112,10 @@ class Trainer:
 
     def train(self, tasks: list, *args, **kwargs) -> list:
         """
-        Given a list of model definition, begin a training and return the models.
+        Given a list of task definitions, begin training, and return the models.
 
-        For Trainer, it finish real training in this method.
-        For DelayTrainer, it only do some preparation in this method.
+        For Trainer, it finishes real training in this method.
+        For DelayTrainer, it only does some preparation in this method.
 
         Args:
             tasks: a list of tasks
@@ -127,11 +127,11 @@ class Trainer:
 
     def end_train(self, models: list, *args, **kwargs) -> list:
         """
-        Given a list of models, finished something in the end of training if you need.
-        The models maybe Recorder, txt file, database and so on.
+        Given a list of models, finished something at the end of training if you need.
+        The models may be Recorder, txt file, database, and so on.
 
-        For Trainer, it do some finishing touches in this method.
-        For DelayTrainer, it finish real training in this method.
+        For Trainer, it does some finishing touches in this method.
+        For DelayTrainer, it finishes real training in this method.
 
         Args:
             models: a list of models
@@ -155,9 +155,9 @@ class Trainer:
 class TrainerR(Trainer):
     """
     Trainer based on (R)ecorder.
-    It will train a list of tasks and return a list of model recorder in a linear way.
+    It will train a list of tasks and return a list of model recorders in a linear way.
 
-    Assumption: models were defined by `task` and the results will saved to `Recorder`
+    Assumption: models were defined by `task` and the results will be saved to `Recorder`.
     """
 
     # Those tag will help you distinguish whether the Recorder has finished traning
@@ -182,13 +182,13 @@ class TrainerR(Trainer):
         Given a list of `task`s and return a list of trained Recorder. The order can be guaranteed.
 
         Args:
-            tasks (list): a list of definition based on `task` dict
-            train_func (Callable): the train method which need at least `task`s and `experiment_name`. None for default training method.
+            tasks (list): a list of definitions based on `task` dict
+            train_func (Callable): the training method which needs at least `tasks` and `experiment_name`. None for the default training method.
             experiment_name (str): the experiment name, None for use default name.
             kwargs: the params for train_func.
 
         Returns:
-            list: a list of Recorders
+            List[Recorder]: a list of Recorders
         """
         if len(tasks) == 0:
             return []
@@ -204,6 +204,15 @@ class TrainerR(Trainer):
         return recs
 
     def end_train(self, recs: list, **kwargs) -> List[Recorder]:
+        """
+        Set STATUS_END tag to the recorders.
+
+        Args:
+            recs (list): a list of trained recorders.
+
+        Returns:
+            List[Recorder]: the same list as the param.
+        """
         for rec in recs:
             rec.set_tags(**{self.STATUS_KEY: self.STATUS_END})
         return recs
@@ -231,15 +240,15 @@ class DelayTrainerR(TrainerR):
         """
         Given a list of Recorder and return a list of trained Recorder.
         This class will finish real data loading and model fitting.
-
+ 
         Args:
             recs (list): a list of Recorder, the tasks have been saved to them
-            end_train_func (Callable, optional): the end_train method which need at least `recorder`s and `experiment_name`. Defaults to None for using self.end_train_func.
+            end_train_func (Callable, optional): the end_train method which needs at least `recorder`s and `experiment_name`. Defaults to None for using self.end_train_func.
             experiment_name (str): the experiment name, None for use default name.
             kwargs: the params for end_train_func.
-
+ 
         Returns:
-            list: a list of Recorders
+            List[Recorder]: a list of Recorders
         """
         if end_train_func is None:
             end_train_func = self.end_train_func
@@ -256,7 +265,7 @@ class DelayTrainerR(TrainerR):
 class TrainerRM(Trainer):
     """
     Trainer based on (R)ecorder and Task(M)anager.
-    It can train a list of tasks and return a list of model recorder in a multiprocessing way.
+    It can train a list of tasks and return a list of model recorders in a multiprocessing way.
 
     Assumption: `task` will be saved to TaskManager and `task` will be fetched and trained from TaskManager
     """
@@ -296,15 +305,15 @@ class TrainerRM(Trainer):
         Users can customize their train_func to realize multiple processes or even multiple machines.
 
         Args:
-            tasks (list): a list of definition based on `task` dict
-            train_func (Callable): the train method which need at least `task`s and `experiment_name`. None for default training method.
+            tasks (list): a list of definitions based on `task` dict
+            train_func (Callable): the training method which needs at least `task`s and `experiment_name`. None for the default training method.
             experiment_name (str): the experiment name, None for use default name.
             before_status (str): the tasks in before_status will be fetched and trained. Can be STATUS_WAITING, STATUS_PART_DONE.
             after_status (str): the tasks after trained will become after_status. Can be STATUS_WAITING, STATUS_PART_DONE.
             kwargs: the params for train_func.
 
         Returns:
-            list: a list of Recorders
+            List[Recorder]: a list of Recorders
         """
         if len(tasks) == 0:
             return []
@@ -334,6 +343,15 @@ class TrainerRM(Trainer):
         return recs
 
     def end_train(self, recs: list, **kwargs) -> List[Recorder]:
+        """
+        Set STATUS_END tag to the recorders.
+
+        Args:
+            recs (list): a list of trained recorders.
+
+        Returns:
+            List[Recorder]: the same list as the param.
+        """
         for rec in recs:
             rec.set_tags(**{self.STATUS_KEY: self.STATUS_END})
         return recs
@@ -368,12 +386,14 @@ class DelayTrainerRM(TrainerRM):
     def train(self, tasks: list, train_func=None, experiment_name: str = None, **kwargs) -> List[Recorder]:
         """
         Same as `train` of TrainerRM, after_status will be STATUS_PART_DONE.
+
         Args:
             tasks (list): a list of definition based on `task` dict
             train_func (Callable): the train method which need at least `task`s and `experiment_name`. Defaults to None for using self.train_func.
             experiment_name (str): the experiment name, None for use default name.
+
         Returns:
-            list: a list of Recorders
+            List[Recorder]: a list of Recorders
         """
         if len(tasks) == 0:
             return []
@@ -390,7 +410,7 @@ class DelayTrainerRM(TrainerRM):
         Given a list of Recorder and return a list of trained Recorder.
         This class will finish real data loading and model fitting.
 
-        NOTE: This method will train all STATUS_PART_DONE tasks in task pool, not only the ``recs``.
+        NOTE: This method will train all STATUS_PART_DONE tasks in the task pool, not only the ``recs``.
 
         Args:
             recs (list): a list of Recorder, the tasks have been saved to them.
@@ -399,7 +419,7 @@ class DelayTrainerRM(TrainerRM):
             kwargs: the params for end_train_func.
 
         Returns:
-            list: a list of Recorders
+            List[Recorder]: a list of Recorders
         """
 
         if end_train_func is None:

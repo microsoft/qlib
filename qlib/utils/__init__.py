@@ -719,7 +719,7 @@ def lazy_sort_index(df: pd.DataFrame, axis=0) -> pd.DataFrame:
 FLATTEN_TUPLE = "_FLATTEN_TUPLE"
 
 
-def flatten_dict(d, parent_key="", sep="."):
+def flatten_dict(d, parent_key="", sep=".") -> dict:
     """
     Flatten a nested dict.
 

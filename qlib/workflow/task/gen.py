@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 """
-Task generator can generate many tasks based on TaskGen and some task templates.
+TaskGenerator module can generate many tasks based on TaskGen and some task templates.
 """
 import abc
 import copy
@@ -10,7 +10,8 @@ from .utils import TimeAdjuster
 
 
 def task_generator(tasks, generators) -> list:
-    """Use a list of TaskGen and a list of task templates to generate different tasks.
+    """
+    Use a list of TaskGen and a list of task templates to generate different tasks.
 
     For examples:
 
@@ -47,7 +48,7 @@ def task_generator(tasks, generators) -> list:
 
 class TaskGen(metaclass=abc.ABCMeta):
     """
-    the base class for generate different tasks
+    The base class for generating different tasks
 
     Example 1:
 
@@ -66,7 +67,7 @@ class TaskGen(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def generate(self, task: dict) -> List[dict]:
         """
-        generate different tasks based on a task template
+        Generate different tasks based on a task template
 
         Parameters
         ----------
@@ -87,7 +88,7 @@ class TaskGen(metaclass=abc.ABCMeta):
         return self.generate(*args, **kwargs)
 
 
-def handler_mod(task: dict, rg):
+def handler_mod(task: dict, rolling_gen):
     """
     Help to modify the handler end time when using RollingGen
 
@@ -96,14 +97,14 @@ def handler_mod(task: dict, rg):
         rg (RollingGen): an instance of RollingGen
     """
     try:
-        interval = rg.ta.cal_interval(
+        interval = rolling_gen.ta.cal_interval(
             task["dataset"]["kwargs"]["handler"]["kwargs"]["end_time"],
-            task["dataset"]["kwargs"]["segments"][rg.test_key][1],
+            task["dataset"]["kwargs"]["segments"][rolling_gen.test_key][1],
         )
         # if end_time < the end of test_segments, then change end_time to allow load more data
         if interval < 0:
             task["dataset"]["kwargs"]["handler"]["kwargs"]["end_time"] = copy.deepcopy(
-                task["dataset"]["kwargs"]["segments"][rg.test_key][1]
+                task["dataset"]["kwargs"]["segments"][rolling_gen.test_key][1]
             )
     except KeyError:
         # Maybe dataset do not have handler, then do nothing.
@@ -126,7 +127,7 @@ class RollingGen(TaskGen):
             rolling type (expanding, sliding)
         ds_extra_mod_func: Callable
             A method like: handler_mod(task: dict, rg: RollingGen)
-            Do some extra action after generating a task. For example, use ``handler_mod`` to modify the end time of handler of dataset.
+            Do some extra action after generating a task. For example, use ``handler_mod`` to modify the end time of the handler of a dataset.
         """
         self.step = step
         self.rtype = rtype
@@ -142,7 +143,7 @@ class RollingGen(TaskGen):
 
         Parameters
         ----------
-        task : dict
+        task: dict
             A dict describing a task. For example.
 
             .. code-block:: python
@@ -184,7 +185,7 @@ class RollingGen(TaskGen):
 
         Returns
         ----------
-        typing.List[dict]: a list of tasks
+        List[dict]: a list of tasks
         """
         res = []
 

@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 """
-This examples is about how can simulate the OnlineManager based on rolling tasks. 
+This example is about how can simulate the OnlineManager based on rolling tasks. 
 """
 
 import fire
@@ -112,8 +112,8 @@ class OnlineSimulationExample:
         qlib.init(provider_uri=provider_uri, region=region, mongo=mongo_conf)
         self.rolling_gen = RollingGen(
             step=rolling_step, rtype=RollingGen.ROLL_SD, ds_extra_mod_func=None
-        )  # The rolling tasks generator, ds_extra_mod_func is None because we just need simulate to 2018-10-31 and needn't change handler end time.
-        self.trainer = DelayTrainerRM(self.exp_name, self.task_pool)
+        )  # The rolling tasks generator, ds_extra_mod_func is None because we just need to simulate to 2018-10-31 and needn't change the handler end time.
+        self.trainer = DelayTrainerRM(self.exp_name, self.task_pool) # Also can be TrainerR, TrainerRM, DelayTrainerR
         self.rolling_online_manager = OnlineManager(
             RollingStrategy(exp_name, task_template=tasks, rolling_gen=self.rolling_gen),
             trainer=self.trainer,
@@ -138,8 +138,6 @@ class OnlineSimulationExample:
         print(self.rolling_online_manager.get_collector()())
         print("========== signals ==========")
         print(self.rolling_online_manager.get_signals())
-        print("========== online history ==========")
-        print(self.rolling_online_manager.history)
 
 
 if __name__ == "__main__":

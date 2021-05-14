@@ -19,8 +19,9 @@ from typing import Union
 def get_mongodb() -> Database:
 
     """
-    Get database in MongoDB, which means you need to declare the address and the name of database.
-    for example:
+    Get database in MongoDB, which means you need to declare the address and the name of a database at first.
+    
+    For example:
 
         Using qlib.init():
 
@@ -52,10 +53,10 @@ def get_mongodb() -> Database:
 
 def list_recorders(experiment, rec_filter_func=None):
     """
-    List all recorders which can pass the filter in a experiment.
+    List all recorders which can pass the filter in an experiment.
 
     Args:
-        experiment (str or Experiment): the name of a Experiment or a instance
+        experiment (str or Experiment): the name of an Experiment or an instance
         rec_filter_func (Callable, optional): return True to retain the given recorder. Defaults to None.
 
     Returns:
@@ -82,11 +83,17 @@ class TimeAdjuster:
         self.cals = D.calendar(future=future, end_time=end_time)
 
     def set_end_time(self, end_time=None):
+        """
+        Set end time. None for use calendar's end time.
+
+        Args:
+            end_time
+        """
         self.cals = D.calendar(future=self._future, end_time=end_time)
 
     def get(self, idx: int):
         """
-        Get datetime by index
+        Get datetime by index.
 
         Parameters
         ----------
@@ -105,7 +112,7 @@ class TimeAdjuster:
 
     def align_idx(self, time_point, tp_type="start") -> int:
         """
-        Align the index of time_point in the calendar
+        Align the index of time_point in the calendar.
 
         Parameters
         ----------
@@ -155,7 +162,7 @@ class TimeAdjuster:
 
     def align_seg(self, segment: Union[dict, tuple]) -> Union[dict, tuple]:
         """
-        align the given date to trade date
+        Align the given date to the trade date
 
         for example:
 
@@ -184,7 +191,7 @@ class TimeAdjuster:
 
     def truncate(self, segment: tuple, test_start, days: int) -> tuple:
         """
-        truncate the segment based on the test_start date
+        Truncate the segment based on the test_start date
 
         Parameters
         ----------
@@ -215,7 +222,7 @@ class TimeAdjuster:
 
     def shift(self, seg: tuple, step: int, rtype=SHIFT_SD) -> tuple:
         """
-        shift the datatime of segment
+        Shift the datatime of segment
 
         Parameters
         ----------

@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 """
-OnlineStrategy is a set of strategy for online serving.
+OnlineStrategy module is an element of online serving.
 """
 
 from copy import deepcopy
@@ -19,7 +19,7 @@ from qlib.workflow.task.utils import TimeAdjuster
 
 class OnlineStrategy:
     """
-    OnlineStrategy is working with `Online Manager <#Online Manager>`_, responsing how the tasks are generated, the models are updated and signals are perpared.
+    OnlineStrategy is working with `Online Manager <#Online Manager>`_, responding to how the tasks are generated, the models are updated and signals are prepared.
     """
 
     def __init__(self, name_id: str):
@@ -28,7 +28,7 @@ class OnlineStrategy:
         This module **MUST** use `Trainer <../reference/api.html#Trainer>`_ to finishing model training.
 
         Args:
-            name_id (str): a unique name or id
+            name_id (str): a unique name or id.
             trainer (Trainer, optional): a instance of Trainer. Defaults to None.
         """
         self.name_id = name_id
@@ -40,29 +40,29 @@ class OnlineStrategy:
         After the end of a routine, check whether we need to prepare and train some new tasks based on cur_time (None for latest)..
         Return the new tasks waiting for training.
 
-        You can find last online models by OnlineTool.online_models.
+        You can find the last online models by OnlineTool.online_models.
         """
         raise NotImplementedError(f"Please implement the `prepare_tasks` method.")
 
-    def prepare_online_models(self, models, cur_time=None) -> List[object]:
+    def prepare_online_models(self, trained_models, cur_time=None) -> List[object]:
         """
         Select some models from trained models and set them to online models.
-        This is a typically implementation to online all trained models, you can override it to implement complex method.
-        You can find last online models by OnlineTool.online_models if you still need them.
+        This is a typical implementation to online all trained models, you can override it to implement the complex method.
+        You can find the last online models by OnlineTool.online_models if you still need them.
 
-        NOTE: Reset all online models to trained model. If there is no trained models, then do nothing.
+        NOTE: Reset all online models to trained models. If there are no trained models, then do nothing.
 
         Args:
             models (list): a list of models.
-            cur_time (pd.Dataframe): current time from OnlineManger. None for latest.
+            cur_time (pd.Dataframe): current time from OnlineManger. None for the latest.
 
         Returns:
             List[object]: a list of online models.
         """
-        if not models:
+        if not trained_models:
             return self.tool.online_models()
-        self.tool.reset_online_tag(models)
-        return models
+        self.tool.reset_online_tag(trained_models)
+        return trained_models
 
     def first_tasks(self) -> List[dict]:
         """
@@ -87,7 +87,7 @@ class OnlineStrategy:
 class RollingStrategy(OnlineStrategy):
 
     """
-    This example strategy always use latest rolling model as online model.
+    This example strategy always uses the latest rolling model sas online models.
     """
 
     def __init__(
@@ -99,11 +99,11 @@ class RollingStrategy(OnlineStrategy):
         """
         Init RollingStrategy.
 
-        Assumption: the str of name_id, the experiment name and the trainer's experiment name are same one.
+        Assumption: the str of name_id, the experiment name, and the trainer's experiment name are the same.
 
         Args:
-            name_id (str): a unique name or id. Will be also the name of Experiment.
-            task_template (Union[dict,List[dict]]): a list of task_template or a single template, which will be used to generate many tasks using rolling_gen.
+            name_id (str): a unique name or id. Will be also the name of the Experiment.
+            task_template (Union[dict, List[dict]]): a list of task_template or a single template, which will be used to generate many tasks using rolling_gen.
             rolling_gen (RollingGen): an instance of RollingGen
         """
         super().__init__(name_id=name_id)
@@ -117,9 +117,10 @@ class RollingStrategy(OnlineStrategy):
 
     def get_collector(self, process_list=[RollingGroup()], rec_key_func=None, rec_filter_func=None, artifacts_key=None):
         """
-        Get the instance of `Collector <../advanced/task_management.html#Task Collecting>`_ to collect results. The returned collector must can distinguish results in different models.
-        Assumption: the models can be distinguished based on model name and rolling test segments.
-        If you do not want this assumption, please implement your own method or use another rec_key_func.
+        Get the instance of `Collector <../advanced/task_management.html#Task Collecting>`_ to collect results. The returned collector must distinguish results in different models.
+        
+        Assumption: the models can be distinguished based on the model name and rolling test segments.
+        If you do not want this assumption, please implement your method or use another rec_key_func.
 
         Args:
             rec_key_func (Callable): a function to get the key of a recorder. If None, use recorder id.
@@ -160,9 +161,9 @@ class RollingStrategy(OnlineStrategy):
 
     def prepare_tasks(self, cur_time) -> List[dict]:
         """
-        Prepare new tasks based on cur_time (None for latest).
+        Prepare new tasks based on cur_time (None for the latest).
 
-        You can find last online models by OnlineToolR.online_models.
+        You can find the last online models by OnlineToolR.online_models.
 
         Returns:
             List[dict]: a list of new tasks.
@@ -198,7 +199,7 @@ class RollingStrategy(OnlineStrategy):
             rec_list (List[Recorder]): a list of Recorder
 
         Returns:
-            List[Recorder], pd.Timestamp: the latest recorders and its test end time
+            List[Recorder], pd.Timestamp: the latest recorders and their test end time
         """
         if len(rec_list) == 0:
             return rec_list, None

@@ -2,8 +2,8 @@
 # Licensed under the MIT License.
 
 """
-This example shows how a TrainerRM work based on TaskManager with rolling tasks.
-After training, how to collect the rolling results will be showed in task_collecting.
+This example shows how a TrainerRM works based on TaskManager with rolling tasks.
+After training, how to collect the rolling results will be shown in task_collecting.
 """
 
 from pprint import pprint

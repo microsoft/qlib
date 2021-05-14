@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 """
-This example show how OnlineManager works with rolling tasks.
+This example shows how OnlineManager works with rolling tasks.
 There are two parts including first train and routine.
 Firstly, the OnlineManager will finish the first training and set trained models to `online` models.
 Next, the OnlineManager will finish a routine process, including update online prediction -> prepare signals -> prepare tasks -> prepare new models -> reset online models
@@ -154,7 +154,7 @@ if __name__ == "__main__":
     # python rolling_online_management.py first_run
 
     ####### to update the models and predictions after the trading time, use the command below
-    # python rolling_online_management.py after_day
+    # python rolling_online_management.py routine
 
     ####### to define your own parameters, use `--`
     # python rolling_online_management.py first_run --exp_name='your_exp_name' --rolling_step=40

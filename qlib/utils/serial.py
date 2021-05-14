@@ -3,8 +3,10 @@
 
 from pathlib import Path
 import pickle
+import typing
 import dill
 from typing import Union
+
 
 
 class Serializable:
@@ -16,7 +18,7 @@ class Serializable:
     """
 
     pickle_backend = "pickle"  # another optional value is "dill" which can pickle more things of python.
-    default_dump_all = False # if dump all things
+    default_dump_all = False  # if dump all things
 
     def __init__(self):
         self._dump_all = self.default_dump_all
@@ -76,6 +78,14 @@ class Serializable:
                 del self.__dict__[self.FLAG_KEY]
 
     def to_pickle(self, path: Union[Path, str], dump_all: bool = None, exclude: list = None):
+        """
+        Dump self to a pickle file.
+
+        Args:
+            path (Union[Path, str]): the path to dump
+            dump_all (bool, optional): if need to dump all things. Defaults to None.
+            exclude (list, optional): will exclude the attributes in this list when dumping. Defaults to None.
+        """
         self.config(dump_all=dump_all, exclude=exclude)
         with Path(path).open("wb") as f:
             self.get_backend().dump(self, f)
@@ -83,7 +93,7 @@ class Serializable:
     @classmethod
     def load(cls, filepath):
         """
-        load the collector from a file
+        Load the collector from a filepath.
 
         Args:
             filepath (str): the path of file
@@ -104,10 +114,10 @@ class Serializable:
     @classmethod
     def get_backend(cls):
         """
-        Return the backend of a Serializable class. The value will be "pickle" or "dill".
+        Return the real backend of a Serializable class. The pickle_backend value can be "pickle" or "dill".
 
         Returns:
-            str: The value of "pickle" or "dill"
+            module: pickle or dill module based on pickle_backend
         """
         if cls.pickle_backend == "pickle":
             return pickle
@@ -115,4 +125,3 @@ class Serializable:
             return dill
         else:
             raise ValueError("Unknown pickle backend, please use 'pickle' or 'dill'.")
-

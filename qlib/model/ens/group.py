@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 """
-Group can group a set of object based on `group_func` and change them to a dict.
+Group can group a set of objects based on `group_func` and change them to a dict.
 After group, we provide a method to reduce them. 
 
 For example: 
@@ -21,10 +21,11 @@ class Group:
     """Group the objects based on dict"""
 
     def __init__(self, group_func=None, ens: Ensemble = None):
-        """init Group.
+        """
+        Init Group.
 
         Args:
-            group_func (Callable, optional): Given a dict and return the group key and one of group elements.
+            group_func (Callable, optional): Given a dict and return the group key and one of the group elements.
 
                 For example: {(A,B,C1): object, (A,B,C2): object} -> {(A,B): {C1: object, C2: object}}
 
@@ -37,7 +38,7 @@ class Group:
 
     def group(self, *args, **kwargs) -> dict:
         """
-        Group a set of object and change them to a dict.
+        Group a set of objects and change them to a dict.
 
         For example: {(A,B,C1): object, (A,B,C2): object} -> {(A,B): {C1: object, C2: object}}
 
@@ -51,7 +52,7 @@ class Group:
 
     def reduce(self, *args, **kwargs) -> dict:
         """
-        Reduce grouped dict in some way.
+        Reduce grouped dict.
 
         For example: {(A,B): {C1: object, C2: object}} -> {(A,B): object}
 
@@ -63,7 +64,7 @@ class Group:
         else:
             raise NotImplementedError(f"Please specify valid `_ens_func`.")
 
-    def __call__(self, ungrouped_dict: dict, n_jobs=1, verbose=0, *args, **kwargs) -> dict:
+    def __call__(self, ungrouped_dict: dict, n_jobs:int=1, verbose:int=0, *args, **kwargs) -> dict:
         """
         Group the ungrouped_dict into different groups.
 
@@ -72,10 +73,12 @@ class Group:
 
         Returns:
             dict: grouped_dict like {G1: object, G2: object}
+            n_jobs: how many progress you need.
+            verbose: the print mode for Parallel.
         """
 
         # NOTE: The multiprocessing will raise error if you use `Serializable`
-        # Because the `Serializable` will affect the behaviours of pickle
+        # Because the `Serializable` will affect the behaviors of pickle
         grouped_dict = self.group(ungrouped_dict, *args, **kwargs)
 
         key_l = []
@@ -87,12 +90,12 @@ class Group:
 
 
 class RollingGroup(Group):
-    """group the rolling dict"""
+    """Group the rolling dict"""
 
     def group(self, rolling_dict: dict) -> dict:
         """Given an rolling dict likes {(A,B,R): things}, return the grouped dict likes {(A,B): {R:things}}
 
-        NOTE: There is a assumption which is the rolling key is at the end of key tuple, because the rolling results always need to be ensemble firstly.
+        NOTE: There is an assumption which is the rolling key is at the end of the key tuple, because the rolling results always need to be ensemble firstly.
 
         Args:
             rolling_dict (dict): an rolling dict. If the key is not a tuple, then do nothing.

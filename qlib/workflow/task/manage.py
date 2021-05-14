@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 """
-TaskManager can fetch unused tasks automatically and manager the lifecycle of a set of tasks with error handling.
+TaskManager can fetch unused tasks automatically and manage the lifecycle of a set of tasks with error handling.
 These features can run tasks concurrently and ensure every task will be used only once.
 Task Manager will store all tasks in `MongoDB <https://www.mongodb.com/>`_.
 Users **MUST** finished the configuration of `MongoDB <https://www.mongodb.com/>`_ when using this module.
@@ -10,7 +10,7 @@ Users **MUST** finished the configuration of `MongoDB <https://www.mongodb.com/>
 A task in TaskManager consists of 3 parts
 - tasks description: the desc will define the task
 - tasks status: the status of the task
-- tasks result information : A user can get the task with the task description and task result.
+- tasks result: A user can get the task with the task description and task result.
 """
 import concurrent
 import pickle
@@ -44,7 +44,7 @@ class TaskManager:
             'res': pickle serialized task result,
         }
 
-    The tasks manager assume that you will only update the tasks you fetched.
+    The tasks manager assumes that you will only update the tasks you fetched.
     The mongo fetch one and update will make it date updating secure.
 
     .. note::
@@ -53,7 +53,7 @@ class TaskManager:
 
     Here are four status which are:
 
-        STATUS_WAITING: waiting for train
+        STATUS_WAITING: waiting for training
 
         STATUS_RUNNING: training
 
@@ -85,7 +85,7 @@ class TaskManager:
 
     def list(self) -> list:
         """
-        list the all collection(task_pool) of the db
+        List the all collection(task_pool) of the db
 
         Returns:
             list
@@ -112,6 +112,10 @@ class TaskManager:
     def replace_task(self, task, new_task):
         """
         Use a new task to replace a old one
+
+        Args:
+            task: old task
+            new_task: new task
         """
         new_task = self._encode_task(new_task)
         query = {"_id": ObjectId(task["_id"])}
@@ -122,7 +126,15 @@ class TaskManager:
             self.task_pool.replace_one(query, new_task)
 
     def insert_task(self, task):
+        """
+        Insert a task.
 
+        Args:
+            task: the task waiting for insert
+
+        Returns:
+            pymongo.results.InsertOneResult
+        """
         try:
             insert_result = self.task_pool.insert_one(task)
         except InvalidDocument:
@@ -132,7 +144,7 @@ class TaskManager:
 
     def insert_task_def(self, task_def):
         """
-        insert a task to task_pool
+        Insert a task to task_pool
 
         Parameters
         ----------
@@ -155,8 +167,8 @@ class TaskManager:
 
     def create_task(self, task_def_l, dry_run=False, print_nt=False) -> List[str]:
         """
-        If the tasks in task_def_l is new, then insert new tasks into the task_pool, and record inserted_id.
-        If a task is not new, then query its _id.
+        If the tasks in task_def_l are new, then insert new tasks into the task_pool, and record inserted_id.
+        If a task is not new, then just query its _id.
 
         Parameters
         ----------
@@ -169,7 +181,7 @@ class TaskManager:
 
         Returns
         -------
-        list
+        List[str]
             a list of the _id of task_def_l
         """
         new_tasks = []
@@ -202,7 +214,7 @@ class TaskManager:
 
     def fetch_task(self, query={}, status=STATUS_WAITING) -> dict:
         """
-        Use query to fetch tasks
+        Use query to fetch tasks.
 
         Args:
             query (dict, optional): query dict. Defaults to {}.
@@ -257,6 +269,7 @@ class TaskManager:
 
     def query(self, query={}, decode=True):
         """
+        Query task in collection.
         This function may raise exception `pymongo.errors.CursorNotFound: cursor id not found` if it takes too long to iterate the generator
 
         Parameters
@@ -330,7 +343,16 @@ class TaskManager:
             query["_id"] = ObjectId(query["_id"])
         self.task_pool.delete_many(query)
 
-    def task_stat(self, query={}):
+    def task_stat(self, query={}) -> dict:
+        """
+        Count the tasks in every status.
+
+        Args:
+            query (dict, optional): the query dict. Defaults to {}.
+
+        Returns:
+            dict
+        """
         query = query.copy()
         if "_id" in query:
             query["_id"] = ObjectId(query["_id"])
@@ -341,6 +363,12 @@ class TaskManager:
         return status_stat
 
     def reset_waiting(self, query={}):
+        """
+        Reset all running task into waiting status. Can be used when some running task exit unexpected.
+
+        Args:
+            query (dict, optional): the query dict. Defaults to {}.
+        """
         query = query.copy()
         # default query
         if "status" not in query:
@@ -400,7 +428,7 @@ def run_task(
     **kwargs,
 ):
     """
-    While task pool is not empty (has WAITING tasks), use task_func to fetch and run tasks in task_pool
+    While the task pool is not empty (has WAITING tasks), use task_func to fetch and run tasks in task_pool
 
     After running this method, here are 4 situations (before_status -> after_status):
 
