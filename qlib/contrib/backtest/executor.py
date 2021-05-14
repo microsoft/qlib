@@ -74,11 +74,12 @@ class BaseTradeCalendar:
         return self.calendar[calendar_index - 1], self.calendar[calendar_index] - pd.Timedelta(seconds=1)
 
     def finished(self):
-        return self.trade_index >= self.trade_len - 1
+        return self.trade_index >= self.trade_len
 
     def step(self):
         if self.finished():
             raise RuntimeError(f"this env has completed its task, please reset it if you want to call it!")
+        # trade count += 1
         self.trade_index = self.trade_index + 1
 
 
@@ -165,6 +166,7 @@ class SplitExecutor(BaseExecutor):
             trading strategy in each trading bar
         trade_exchange : Exchange
             exchange that provides market info
+            - If `trade_exchange` is None, self.trade_exchange will be set with common_faculty
         """
         super(SplitExecutor, self).__init__(
             step_bar=step_bar,
