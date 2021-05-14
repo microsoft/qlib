@@ -262,12 +262,29 @@ class OnlineManager(Serializable):
         Prepare all models and signals if something is waiting for preparation.
 
         Args:
-            model_kwargs: the params for `prepare_online_models`
+            model_kwargs: the params for `end_train`
             signal_kwargs: the params for `prepare_signals`
         """
+        last_models = {}
+        signals_time = D.calendar()[0]
+        need_prepare = False
         for cur_time, strategy_models in self.history.items():
             self.cur_time = cur_time
+
             for strategy, models in strategy_models.items():
-                models = self.trainer.end_train(models, experiment_name=strategy.name_id)
-            # NOTE: Assumption: the predictions of online models need less than next cur_time, or this method will work in a wrong way.
-            self.prepare_signals(**signal_kwargs)
+                # only new online models need to prepare
+                if last_models.setdefault(strategy, set()) != set(models):
+                    models = self.trainer.end_train(models, experiment_name=strategy.name_id, **model_kwargs)
+                    strategy.tool.reset_online_tag(models)
+                    need_prepare = True
+                last_models[strategy] = set(models)
+
+            if need_prepare:
+                # NOTE: Assumption: the predictions of online models need less than next cur_time, or this method will work in a wrong way.
+                self.prepare_signals(**signal_kwargs)
+                if signals_time > cur_time:
+                    self.logger.warn(
+                        f"The signals have already parpred to {signals_time} by last preparation, but current time is only {cur_time}. This may be because the online models predict more than they should, which can cause signals to be contaminated by the offline models."
+                    )
+                need_prepare = False
+                signals_time = self.signals.index.get_level_values("datetime").max()
