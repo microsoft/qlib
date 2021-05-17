@@ -8,6 +8,11 @@ Online Serving
 
 Introduction
 =============
+
+.. image:: ../_static/img/online_serving.png
+    :align: center
+
+
 In addition to backtesting, one way to test a model is effective is to make predictions in real market conditions or even do real trading based on those predictions.
 ``Online Serving`` is a set of modules for online models using the latest data,
 which including `Online Manager <#Online Manager>`_, `Online Strategy <#Online Strategy>`_, `Online Tool <#Online Tool>`_, `Updater <#Updater>`_. 

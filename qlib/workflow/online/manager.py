@@ -11,13 +11,27 @@ So this module provides a series of methods to control this process.
 This module also provides a method to simulate `Online Strategy <#Online Strategy>`_ in history.
 Which means you can verify your strategy or find a better one.
 
-There are total 3 situations for using the different trainer:
+There are 4 total situations for using different trainers in different situations:
 
-1: Online: Only use Trainer.
 
-2: Simulate with temporal dependence: Only use Trainer.
 
-3: Simulate without temporal dependence: Use Trainer or DelayTrainer.
+=========================  ===================================================================================
+Situations                 Description
+=========================  ===================================================================================
+Online + Trainer           When you REAL want to do a routine, the Trainer will help you train the models. 
+
+Online + DelayTrainer      In normal online routine, whether Trainer or DelayTrainer will REAL train models
+                           in this routine. So it is not necessary to use DelayTrainer when do a REAL routine.
+
+Simulation + Trainer       When your models have some temporal dependence on the previous models, then you
+                           need to consider using Trainer. This means it will REAL train your models in
+                           every routine and prepare signals for every routine.
+
+Simulation + DelayTrainer  When your models don't have any temporal dependence, you can use DelayTrainer
+                           for the ability to multitasking. It means all tasks in all routines
+                           can be REAL trained at the end of simulating. The signals will be prepared well at 
+                           different time segments (based on whether or not any new model is online).
+=========================  ===================================================================================
 """
 
 import logging
@@ -207,7 +221,7 @@ class OnlineManager(Serializable):
         """
         return self.signals
 
-    SIM_LOG_LEVEL = logging.INFO + 1
+    SIM_LOG_LEVEL = logging.INFO + 1  # when simulating, reduce information
     SIM_LOG_NAME = "SIMULATE_INFO"
 
     def simulate(
