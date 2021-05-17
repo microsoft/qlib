@@ -8,6 +8,7 @@ if not exists_qlib_data(provider_uri):
     print(f"Qlib data is not found in {provider_uri}")
     sys.path.append(str(scripts_dir))
     from get_data import GetData
+
     GetData().qlib_data(target_dir=provider_uri, region="cn")
 qlib.init(provider_uri=provider_uri, region="cn")
 
@@ -19,7 +20,7 @@ data_handler_config = {
     "end_time": "2020-08-01",
     "fit_start_time": "2008-01-01",
     "fit_end_time": "2014-12-31",
-    "instruments": market
+    "instruments": market,
 }
 dataset_task = {
     "dataset": {
@@ -52,8 +53,8 @@ def objective(trial):
                 "colsample_bytree": trial.suggest_uniform("colsample_bytree", 0.5, 1),
                 "learning_rate": trial.suggest_uniform("learning_rate", 0, 1),
                 "subsample": trial.suggest_uniform("subsample", 0, 1),
-                "lambda_l1": trial.suggest_loguniform("lambda_l1", 1e-8, 1e+4),
-                "lambda_l2": trial.suggest_loguniform("lambda_l2", 1e-8, 1e+4),
+                "lambda_l1": trial.suggest_loguniform("lambda_l1", 1e-8, 1e4),
+                "lambda_l2": trial.suggest_loguniform("lambda_l2", 1e-8, 1e4),
                 "max_depth": 10,
                 "num_leaves": trial.suggest_int("num_leaves", 1, 1024),
                 "feature_fraction": trial.suggest_uniform("feature_fraction", 0.4, 1.0),
@@ -69,6 +70,7 @@ def objective(trial):
     model = init_instance_by_config(task["model"])
     model.fit(dataset, evals_result=evals_result)
     return min(evals_result["valid"])
+
 
 study = optuna.Study(study_name="LGBM_158", storage="sqlite:///db.sqlite3")
 study.optimize(objective, n_jobs=6)
