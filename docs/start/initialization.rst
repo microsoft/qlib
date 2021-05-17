@@ -75,3 +75,14 @@ Besides `provider_uri` and `region`, `qlib.init` has other parameters. The follo
                 "default_exp_name": "Experiment",
             }
         })
+- `mongo`
+    Type: dict, optional parameter, the setting of `MongoDB <https://www.mongodb.com/>`_ which will be used in some features such as `Task Management <../advanced/task_management.html>`_, with high performance and clustered processing. 
+    Users need finished `installation <https://www.mongodb.com/try/download/community>`_ firstly, and run it in a fixed URL.
+
+    .. code-block:: Python
+
+        # For example, you can initialize qlib below
+        qlib.init(provider_uri=provider_uri, region=REG_CN, mongo={
+            "task_url": "mongodb://localhost:27017/",  # your mongo url
+            "task_db_name": "rolling_db", # the database name of Task Management
+        })

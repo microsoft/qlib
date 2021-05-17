@@ -33,6 +33,9 @@ class Config:
 
         raise AttributeError(f"No such {attr} in self._config")
 
+    def get(self, key, default=None):
+        return self.__dict__["_config"].get(key, default)
+
     def __setitem__(self, key, value):
         self.__dict__["_config"][key] = value
 
@@ -131,7 +134,7 @@ _default_config = {
         },
         "loggers": {"qlib": {"level": logging.DEBUG, "handlers": ["console"]}},
     },
-    # Defatult config for experiment manager
+    # Default config for experiment manager
     "exp_manager": {
         "class": "MLflowExpManager",
         "module_path": "qlib.workflow.expm",
@@ -139,6 +142,11 @@ _default_config = {
             "uri": "file:" + str(Path(os.getcwd()).resolve() / "mlruns"),
             "default_exp_name": "Experiment",
         },
+    },
+    # Default config for MongoDB
+    "mongo": {
+        "task_url": "mongodb://localhost:27017/",
+        "task_db_name": "default_task_db",
     },
 }
 
@@ -310,7 +318,21 @@ class QlibConfig(Config):
         # clean up experiment when python program ends
         experiment_exit_handler()
 
+        # Supporting user reset qlib version (useful when user want to connect to qlib server with old version)
+        self.reset_qlib_version()
+
         self._registered = True
+
+    def reset_qlib_version(self):
+        import qlib
+
+        reset_version = self.get("qlib_reset_version", None)
+        if reset_version is not None:
+            qlib.__version__ = reset_version
+        else:
+            qlib.__version__ = getattr(qlib, "__version__bak")
+            # Due to a bug? that converting __version__ to _QlibConfig__version__bak
+            # Using  __version__bak instead of __version__
 
     @property
     def registered(self):
