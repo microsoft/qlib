@@ -88,11 +88,11 @@ class RecordTemp:
 
     def list(self):
         """
-        List the stored records.
+        List the supported artifacts.
 
         Return
         ------
-        A list of all the stored records.
+        A list of all the supported artifacts.
         """
         return []
 
