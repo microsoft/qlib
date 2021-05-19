@@ -35,7 +35,7 @@ def parse_freq(freq: str) -> Tuple[int, str]:
         raise ValueError(
             "freq format is not supported, the freq should be like (n)month/mon, (n)week/w, (n)day/d, (n)minute/min"
         )
-    _count = int(match_obj.group(1) if match_obj.group(1) else "1")
+    _count = int(match_obj.group(1)) if match_obj.group(1) is None else 1
     _freq = match_obj.group(2)
     _freq_format_dict = {
         "month": "month",
