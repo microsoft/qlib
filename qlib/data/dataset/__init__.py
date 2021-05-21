@@ -299,7 +299,7 @@ class TSDataSampler:
             # get the previous index of a line given index
         """
         # object incase of pandas converting int to flaot
-        idx_df = pd.Series(range(data.shape[0]), index=data.index, dtype=np.object)
+        idx_df = pd.Series(range(data.shape[0]), index=data.index, dtype=object)
         idx_df = lazy_sort_index(idx_df.unstack())
         # NOTE: the correctness of `__getitem__` depends on columns sorted here
         idx_df = lazy_sort_index(idx_df, axis=1)
