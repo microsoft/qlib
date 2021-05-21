@@ -230,20 +230,19 @@ class FileFeatureStorage(FileStorage, FeatureStorage):
                 raise TypeError(f"type(i) = {type(i)}")
 
         with open(self.uri, "rb") as fp:
-            ref_start_index = int(np.frombuffer(fp.read(4), dtype="<f")[0])
 
             if isinstance(i, int):
-                if ref_start_index > i:
-                    raise IndexError(f"{i}: start index is {ref_start_index}")
-                fp.seek(4 * (i - ref_start_index) + 4)
+                if self.start_index > i:
+                    raise IndexError(f"{i}: start index is {self.start_index}")
+                fp.seek(4 * (i - self.start_index) + 4)
                 return i, struct.unpack("f", fp.read(4))[0]
             elif isinstance(i, slice):
-                start_index = i.start
-                end_index = i.stop - 1
-                si = max(ref_start_index, start_index)
+                start_index = self.start_index if i.start is None else i.start
+                end_index = self.end_index if i.stop is None else i.stop - 1
+                si = max(self.start_index, start_index)
                 if si > end_index:
                     return pd.Series()
-                fp.seek(4 * (si - ref_start_index) + 4)
+                fp.seek(4 * (si - self.start_index) + 4)
                 # read n bytes
                 count = end_index - si + 1
                 data = np.frombuffer(fp.read(4 * count), dtype="<f")

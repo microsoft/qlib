@@ -53,10 +53,12 @@ class StorageMeta(type):
         _getitem_func = getattr(class_obj, "__getitem__")
 
         def _getitem(obj, item):
-            _check_func = getattr(obj, "_check")
-            if callable(_check_func):
-                _check_func()
-            return _getitem_func(obj, item)
+            getattr(obj, "_check")()
+            try:
+                res = _getitem_func(obj, item)
+            except Exception as e:
+                raise ValueError(f"{obj.raise_info}\n\tStorage exception info: {str(e)}")
+            return res
 
         setattr(class_obj, "__getitem__", _getitem)
         return class_obj
@@ -65,7 +67,16 @@ class StorageMeta(type):
 class BaseStorage(metaclass=StorageMeta):
     @property
     def storage_name(self) -> str:
-        return re.findall("[A-Z][^A-Z]*", self.__class__.__name__)[-2]
+        return re.findall("[A-Z][^A-Z]*", self.__class__.__name__)[-2].lower()
+
+    @property
+    def raise_info(self):
+        parameters_info = [
+            f"{_k}={_v}"
+            for _k, _v in self.__dict__.items()
+            if not isinstance(_v, (dict,)) or (hasattr(_v, "__len__") and len(_v) < 3)
+        ]
+        return f"{self.storage_name.lower()} not exists, storage parameters: {parameters_info}"
 
     def check_exists(self) -> bool:
         """check if storage(uri) exists, if not exists: return False"""
@@ -84,15 +95,17 @@ class BaseStorage(metaclass=StorageMeta):
         )
 
     def _check(self):
-        # check storage(uri)
         if not self.check_exists():
-            parameters_info = [f"{_k}={_v}" for _k, _v in self.__dict__.items()]
-            raise ValueError(f"{self.storage_name.lower()} not exists, storage parameters: {parameters_info}")
+            raise ValueError(self.raise_info)
 
     def __getattribute__(self, item):
         if item == "data":
             self._check()
-        return super(BaseStorage, self).__getattribute__(item)
+        try:
+            res = super(BaseStorage, self).__getattribute__(item)
+        except Exception as e:
+            raise ValueError(f"{self.raise_info}\n\tStorage exception info: {str(e)}")
+        return res
 
 
 class CalendarStorage(BaseStorage):

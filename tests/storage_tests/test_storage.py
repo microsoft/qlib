@@ -135,18 +135,12 @@ class TestStorage(TestAutoData):
 
         feature = FeatureStorage(instrument="SH600004", field="close", freq="day", uri=self.provider_uri)
 
-        with pytest.raises(IndexError):
+        with pytest.raises(ValueError):
             print(feature[0])
         assert isinstance(
             feature[815][1], (float, np.float32)
         ), f"{feature.__class__.__name__}.__getitem__(i: int) error"
         assert len(feature[815:818]) == 3, f"{feature.__class__.__name__}.__getitem__(s: slice) error"
-        print(f"feature[815: 818]: {feature[815: 818]}")
+        print(f"feature[815: 818]: \n{feature[815: 818]}")
 
-        for _item in feature:
-            assert (
-                isinstance(_item, tuple) and len(_item) == 2
-            ), f"{feature.__class__.__name__}.__iter__ item type error"
-            assert isinstance(_item[0], int) and isinstance(
-                _item[1], (float, np.float32)
-            ), f"{feature.__class__.__name__}.__iter__ value type error"
+        print(f"feature[:].tail(): \n{feature[:].tail()}")

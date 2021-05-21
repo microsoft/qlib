@@ -663,7 +663,7 @@ class LocalFeatureProvider(FeatureProvider):
             data = self.backend_obj(instrument=instrument, field=field, freq=freq)[start_index : end_index + 1]
         except Exception as e:
             get_module_logger("data").warning(
-                f"WARN: data not found for {instrument}.{field}\n\tException info: {str(e)}"
+                f"WARN: data not found for {instrument}.{field}\n\tFeature exception info: {str(e)}"
             )
             data = pd.Series(dtype=np.float32)
         return data
