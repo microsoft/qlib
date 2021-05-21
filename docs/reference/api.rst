@@ -154,6 +154,70 @@ Record Template
 .. automodule:: qlib.workflow.record_temp
     :members:
 
+Task Management
+====================
+
+
+TaskGen
+--------------------
+.. automodule:: qlib.workflow.task.gen
+    :members:
+
+TaskManager
+--------------------
+.. automodule:: qlib.workflow.task.manage
+    :members:
+
+Trainer
+--------------------
+.. automodule:: qlib.model.trainer
+    :members:
+
+Collector
+--------------------
+.. automodule:: qlib.workflow.task.collect
+    :members:
+
+Group
+--------------------
+.. automodule:: qlib.model.ens.group
+    :members:
+
+Ensemble
+--------------------
+.. automodule:: qlib.model.ens.ensemble
+    :members:
+
+Utils
+--------------------
+.. automodule:: qlib.workflow.task.utils
+    :members:
+
+
+Online Serving
+====================
+
+
+Online Manager
+--------------------
+.. automodule:: qlib.workflow.online.manager
+    :members:
+
+Online Strategy
+--------------------
+.. automodule:: qlib.workflow.online.strategy
+    :members:
+
+Online Tool
+--------------------
+.. automodule:: qlib.workflow.online.utils
+    :members:
+
+RecordUpdater
+--------------------
+.. automodule:: qlib.workflow.online.update
+    :members:
+
 
 Utils
 ====================
@@ -163,3 +227,6 @@ Serializable
 
 .. automodule:: qlib.utils.serial.Serializable
     :members:
+
+
+    

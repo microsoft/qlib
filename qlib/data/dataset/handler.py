@@ -6,7 +6,8 @@ import abc
 import bisect
 import logging
 import warnings
-from typing import Union, Tuple, List, Iterator, Optional
+from inspect import getfullargspec
+from typing import Callable, Union, Tuple, List, Iterator, Optional
 
 import pandas as pd
 import numpy as np
@@ -16,7 +17,7 @@ from ...data import D
 from ...config import C
 from ...utils import parse_config, transform_end_date, init_instance_by_config
 from ...utils.serial import Serializable
-from .utils import get_level_index, fetch_df_by_index
+from .utils import fetch_df_by_index
 from pathlib import Path
 from .loader import DataLoader
 
@@ -35,7 +36,7 @@ class DataHandler(Serializable):
     The data handler try to maintain a handler with 2 level.
     `datetime` & `instruments`.
 
-    Any order of the index level can be suported (The order will be implied in the data).
+    Any order of the index level can be supported (The order will be implied in the data).
     The order  <`datetime`, `instruments`> will be used when the dataframe index name is missed.
 
     Example of the data:
@@ -50,6 +51,9 @@ class DataHandler(Serializable):
                    SH600004    13.313329  11800983.0       13.313329        13.317701    0.183632  0.0042
                    SH600005    37.796539  12231662.0       38.258602        37.919757    0.970325  0.0289
 
+
+    Tips for improving the performance of datahandler
+    - Fetching data with `col_set=CS_RAW` will return the raw data and may avoid pandas from copying the data when calling `loc`
     """
 
     def __init__(
@@ -57,7 +61,7 @@ class DataHandler(Serializable):
         instruments=None,
         start_time=None,
         end_time=None,
-        data_loader: Tuple[dict, str, DataLoader] = None,
+        data_loader: Union[dict, str, DataLoader] = None,
         init_data=True,
         fetch_orig=True,
     ):
@@ -70,10 +74,10 @@ class DataHandler(Serializable):
             start_time of the original data.
         end_time :
             end_time of the original data.
-        data_loader : Tuple[dict, str, DataLoader]
+        data_loader : Union[dict, str, DataLoader]
             data loader to load the data.
         init_data :
-            intialize the original data in the constructor.
+            initialize the original data in the constructor.
         fetch_orig : bool
             Return the original data instead of copy if possible.
         """
@@ -99,10 +103,10 @@ class DataHandler(Serializable):
         self.fetch_orig = fetch_orig
         if init_data:
             with TimeInspector.logt("Init data"):
-                self.init()
+                self.setup_data()
         super().__init__()
 
-    def conf_data(self, **kwargs):
+    def config(self, **kwargs):
         """
         configuration of data.
         # what data to be loaded from data source
@@ -115,13 +119,16 @@ class DataHandler(Serializable):
         for k, v in kwargs.items():
             if k in attr_list:
                 setattr(self, k, v)
-            else:
-                raise KeyError("Such config is not supported.")
 
-    def init(self, enable_cache: bool = False):
+        for attr in attr_list:
+            if attr in kwargs:
+                kwargs.pop(attr)
+
+        super().config(**kwargs)
+
+    def setup_data(self, enable_cache: bool = False):
         """
-        initialize the data.
-        In case of running intialization for multiple time, it will do nothing for the second time.
+        Set Up the data in case of running initialization for multiple time
 
         It is responsible for maintaining following variable
         1) self._data
@@ -159,6 +166,7 @@ class DataHandler(Serializable):
         level: Union[str, int] = "datetime",
         col_set: Union[str, List[str]] = CS_ALL,
         squeeze: bool = False,
+        proc_func: Callable = None,
     ) -> pd.DataFrame:
         """
         fetch data from underlying data source
@@ -181,6 +189,14 @@ class DataHandler(Serializable):
             - if isinstance(col_set, List[str]):
 
                 select several sets of meaningful columns, the returned data has multiple levels
+        proc_func: Callable
+            - Give a hook for processing data before fetching
+            - An example to explain the necessity of the hook:
+                - A Dataset learned some processors to process data which is related to data segmentation
+                - It will apply them every time when preparing data.
+                - The learned processor require the dataframe remains the same format when fitting and applying
+                - However the data format will change according to the parameters.
+                - So the processors should be applied to the underlayer data.
 
         squeeze : bool
             whether squeeze columns and index
@@ -189,8 +205,15 @@ class DataHandler(Serializable):
         -------
         pd.DataFrame.
         """
+        if proc_func is None:
+            df = self._data
+        else:
+            # FIXME: fetching by time first will be more friendly to `proc_func`
+            # Copy in case of `proc_func` changing the data inplace....
+            df = proc_func(fetch_df_by_index(self._data, selector, level, fetch_orig=self.fetch_orig).copy())
+
         # Fetch column  first will be more friendly to SepDataFrame
-        df = self._fetch_df_by_col(self._data, col_set)
+        df = self._fetch_df_by_col(df, col_set)
         df = fetch_df_by_index(df, selector, level, fetch_orig=self.fetch_orig)
         if squeeze:
             # squeeze columns
@@ -257,6 +280,10 @@ class DataHandler(Serializable):
 class DataHandlerLP(DataHandler):
     """
     DataHandler with **(L)earnable (P)rocessor**
+
+    Tips to improving the performance of data handler
+    - To reduce the memory cost
+        - `drop_raw=True`: this will modify the data inplace on raw data;
     """
 
     # data key
@@ -278,7 +305,7 @@ class DataHandlerLP(DataHandler):
         instruments=None,
         start_time=None,
         end_time=None,
-        data_loader: Tuple[dict, str, DataLoader] = None,
+        data_loader: Union[dict, str, DataLoader] = None,
         infer_processors=[],
         learn_processors=[],
         process_type=PTYPE_A,
@@ -405,14 +432,28 @@ class DataHandlerLP(DataHandler):
         if self.drop_raw:
             del self._data
 
+    def config(self, processor_kwargs: dict = None, **kwargs):
+        """
+        configuration of data.
+        # what data to be loaded from data source
+
+        This method will be used when loading pickled handler from dataset.
+        The data will be initialized with different time range.
+
+        """
+        super().config(**kwargs)
+        if processor_kwargs is not None:
+            for processor in self.get_all_processors():
+                processor.config(**processor_kwargs)
+
     # init type
     IT_FIT_SEQ = "fit_seq"  # the input of `fit` will be the output of the previous processor
     IT_FIT_IND = "fit_ind"  # the input of `fit` will be the original df
     IT_LS = "load_state"  # The state of the object has been load by pickle
 
-    def init(self, init_type: str = IT_FIT_SEQ, enable_cache: bool = False):
+    def setup_data(self, init_type: str = IT_FIT_SEQ, **kwargs):
         """
-        Initialize the data of Qlib
+        Set up the data in case of running initialization for multiple time
 
         Parameters
         ----------
@@ -427,7 +468,7 @@ class DataHandlerLP(DataHandler):
                 when we call `init` next time
         """
         # init raw data
-        super().init(enable_cache=enable_cache)
+        super().setup_data(**kwargs)
 
         with TimeInspector.logt("fit & process data"):
             if init_type == DataHandlerLP.IT_FIT_IND:
@@ -456,6 +497,7 @@ class DataHandlerLP(DataHandler):
         level: Union[str, int] = "datetime",
         col_set=DataHandler.CS_ALL,
         data_key: str = DK_I,
+        proc_func: Callable = None,
     ) -> pd.DataFrame:
         """
         fetch data from underlying data source
@@ -470,12 +512,18 @@ class DataHandlerLP(DataHandler):
             select a set of meaningful columns.(e.g. features, columns).
         data_key : str
             the data to fetch:  DK_*.
+        proc_func: Callable
+            please refer to the doc of DataHandler.fetch
 
         Returns
         -------
         pd.DataFrame:
         """
         df = self._get_df_by_key(data_key)
+        if proc_func is not None:
+            # FIXME: fetch by time first will be more friendly to proc_func
+            # Copy incase of `proc_func` changing the data inplace....
+            df = proc_func(fetch_df_by_index(df, selector, level, fetch_orig=self.fetch_orig).copy())
         # Fetch column  first will be more friendly to SepDataFrame
         df = self._fetch_df_by_col(df, col_set)
         return fetch_df_by_index(df, selector, level, fetch_orig=self.fetch_orig)

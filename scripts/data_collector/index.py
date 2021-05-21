@@ -114,6 +114,8 @@ class IndexBase:
             $ python collector.py save_new_companies --index_name CSI300 --qlib_dir ~/.qlib/qlib_data/cn_data
         """
         df = self.get_new_companies()
+        if df is None or df.empty:
+            raise ValueError(f"get new companies error: {self.index_name}")
         df = df.drop_duplicates([self.SYMBOL_FIELD_NAME])
         df.loc[:, self.INSTRUMENTS_COLUMNS].to_csv(
             self.instruments_dir.joinpath(f"{self.index_name.lower()}_only_new.txt"), sep="\t", index=False, header=None
@@ -184,7 +186,10 @@ class IndexBase:
         logger.info(f"start parse {self.index_name.lower()} companies.....")
         instruments_columns = [self.SYMBOL_FIELD_NAME, self.START_DATE_FIELD, self.END_DATE_FIELD]
         changers_df = self.get_changes()
-        new_df = self.get_new_companies().copy()
+        new_df = self.get_new_companies()
+        if new_df is None or new_df.empty:
+            raise ValueError(f"get new companies error: {self.index_name}")
+        new_df = new_df.copy()
         logger.info("parse history companies by changes......")
         for _row in tqdm(changers_df.sort_values(self.DATE_FIELD_NAME, ascending=False).itertuples(index=False)):
             if _row.type == self.ADD:

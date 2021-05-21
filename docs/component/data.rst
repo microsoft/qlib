@@ -182,6 +182,11 @@ The `trade unit` defines the unit number of stocks can be used in a trade, and t
             qlib.init(provider_uri='~/.qlib/qlib_data/us_data', region=REG_US)
         
 
+.. note::
+
+    PRs for new data source are highly welcome! Users could commit the code to crawl data as a PR like `the examples here  <https://github.com/microsoft/qlib/tree/main/scripts>`_. And then we will use the code to create data cache on our server which other users could use directly.
+
+
 Data API
 ========================
 
@@ -298,9 +303,10 @@ Here are some important interfaces that ``DataHandlerLP`` provides:
 .. autoclass:: qlib.data.dataset.handler.DataHandlerLP
     :members: __init__, fetch, get_cols
 
-If users want to load features and labels by config, users can inherit ``qlib.data.dataset.handler.ConfigDataHandler``, ``Qlib`` also provides some preprocess method in this subclass.
 
-If users want to use qlib data, `QLibDataHandler` is recommended. Users can inherit their custom class from `QLibDataHandler`, which is also a subclass of `ConfigDataHandler`.
+If users want to load features and labels by config, users can define a new handler and call the static method `parse_config_to_fields` of ``qlib.contrib.data.handler.Alpha158``.
+
+Also, users can pass ``qlib.contrib.data.processor.ConfigSectionProcessor`` that provides some preprocess methods for features defined by config into the new handler.
 
 
 Processor
@@ -337,7 +343,6 @@ Qlib provides implemented data handler `Alpha158`. The following example shows h
 
 .. note:: Users need to initialize ``Qlib`` with `qlib.init` first, please refer to `initialization <../start/initialization.html>`_.
 
-
 .. code-block:: Python
 
     import qlib
@@ -364,6 +369,9 @@ Qlib provides implemented data handler `Alpha158`. The following example shows h
         # fetch all the features
         print(h.fetch(col_set="feature"))
 
+
+.. note:: In the ``Alpha158``, ``Qlib`` uses the label `Ref($close, -2)/Ref($close, -1) - 1` that means the change from T+1 to T+2, rather than `Ref($close, -1)/$close - 1`, of which the reason is that when getting the T day close price of a china stock, the stock can be bought on T+1 day and sold on T+2 day.
+
 API
 ---------
 
@@ -388,8 +396,7 @@ The ``DatasetH`` class is the `dataset` with `Data Handler`. Here is the most im
 API
 ---------
 
-To know more about ``Dataset``, please refer to `Dataset API <../reference/api.html#module-qlib.data.dataset.__init__>`_.
-
+To know more about ``Dataset``, please refer to `Dataset API <../reference/api.html#dataset>`_.
 
 
 Cache

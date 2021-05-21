@@ -1037,7 +1037,8 @@ class ClientProvider(BaseProvider):
         self.logger = get_module_logger(self.__class__.__name__)
         if isinstance(Cal, ClientCalendarProvider):
             Cal.set_conn(self.client)
-        Inst.set_conn(self.client)
+        if isinstance(Inst, ClientInstrumentProvider):
+            Inst.set_conn(self.client)
         if hasattr(DatasetD, "provider"):
             DatasetD.provider.set_conn(self.client)
         else:

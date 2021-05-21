@@ -9,12 +9,7 @@ import os
 import numpy as np
 import pandas as pd
 import copy
-from ...utils import (
-    unpack_archive_with_buffer,
-    save_multiple_parts_file,
-    get_or_create_path,
-    drop_nan_by_y_index,
-)
+from ...utils import get_or_create_path
 from ...log import get_module_logger
 
 import torch
@@ -126,8 +121,8 @@ class GRU(Model):
             num_layers=self.num_layers,
             dropout=self.dropout,
         )
-        self.logger.info("model:\n{:}".format(self.gru_model))
-        self.logger.info("model size: {:.4f} MB".format(count_parameters(self.gru_model)))
+        self.logger.info("model:\n{:}".format(self.GRU_model))
+        self.logger.info("model size: {:.4f} MB".format(count_parameters(self.GRU_model)))
 
         if optimizer.lower() == "adam":
             self.train_optimizer = optim.Adam(self.GRU_model.parameters(), lr=self.lr)

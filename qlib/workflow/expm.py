@@ -4,7 +4,7 @@
 import mlflow
 from mlflow.exceptions import MlflowException
 from mlflow.entities import ViewType
-import os
+import os, logging
 from pathlib import Path
 from contextlib import contextmanager
 from typing import Optional, Text
@@ -14,7 +14,7 @@ from ..config import C
 from .recorder import Recorder
 from ..log import get_module_logger
 
-logger = get_module_logger("workflow", "INFO")
+logger = get_module_logger("workflow", logging.INFO)
 
 
 class ExpManager:
@@ -33,7 +33,10 @@ class ExpManager:
 
     def start_exp(
         self,
+        *,
+        experiment_id: Optional[Text] = None,
         experiment_name: Optional[Text] = None,
+        recorder_id: Optional[Text] = None,
         recorder_name: Optional[Text] = None,
         uri: Optional[Text] = None,
         resume: bool = False,
@@ -45,8 +48,12 @@ class ExpManager:
 
         Parameters
         ----------
+        experiment_id : str
+            id of the active experiment.
         experiment_name : str
             name of the active experiment.
+        recorder_id : str
+            id of the recorder to be started.
         recorder_name : str
             name of the recorder to be started.
         uri : str
@@ -102,10 +109,9 @@ class ExpManager:
         """
         raise NotImplementedError(f"Please implement the `search_records` method.")
 
-    def get_exp(self, experiment_id=None, experiment_name=None, create: bool = True):
+    def get_exp(self, experiment_id=None, experiment_name=None, create: bool = True, start: bool = False):
         """
         Retrieve an experiment. This method includes getting an active experiment, and get_or_create a specific experiment.
-        The returned experiment will be active.
 
         When user specify experiment id and name, the method will try to return the specific experiment.
         When user does not provide recorder id or name, the method will try to return the current active experiment.
@@ -117,12 +123,12 @@ class ExpManager:
             * If `active experiment` exists:
 
                 * no id or name specified, return the active experiment.
-                * if id or name is specified, return the specified experiment. If no such exp found, create a new experiment with given id or name, and the experiment is set to be active.
+                * if id or name is specified, return the specified experiment. If no such exp found, create a new experiment with given id or name. If `start` is set to be True, the experiment is set to be active.
 
             * If `active experiment` not exists:
 
                 * no id or name specified, create a default experiment.
-                * if id or name is specified, return the specified experiment. If no such exp found, create a new experiment with given id or name, and the experiment is set to be active.
+                * if id or name is specified, return the specified experiment. If no such exp found, create a new experiment with given id or name. If `start` is set to be True, the experiment is set to be active.
 
         * Else If `create` is False:
 
@@ -144,6 +150,8 @@ class ExpManager:
             name of the experiment to return.
         create : boolean
             create the experiment it if hasn't been created before.
+        start : boolean
+            start the new experiment if one is created.
 
         Returns
         -------
@@ -159,8 +167,11 @@ class ExpManager:
         if create:
             exp, is_new = self._get_or_create_exp(experiment_id=experiment_id, experiment_name=experiment_name)
         else:
-            exp, is_new = self._get_exp(experiment_id=experiment_id, experiment_name=experiment_name), False
-        if is_new:
+            exp, is_new = (
+                self._get_exp(experiment_id=experiment_id, experiment_name=experiment_name),
+                False,
+            )
+        if is_new and start:
             self.active_experiment = exp
             # start the recorder
             self.active_experiment.start()
@@ -172,7 +183,10 @@ class ExpManager:
         automatically create a new experiment based on the given id and name.
         """
         try:
-            return self._get_exp(experiment_id=experiment_id, experiment_name=experiment_name), False
+            return (
+                self._get_exp(experiment_id=experiment_id, experiment_name=experiment_name),
+                False,
+            )
         except ValueError:
             if experiment_name is None:
                 experiment_name = self._default_exp_name
@@ -291,7 +305,10 @@ class MLflowExpManager(ExpManager):
 
     def start_exp(
         self,
+        *,
+        experiment_id: Optional[Text] = None,
         experiment_name: Optional[Text] = None,
+        recorder_id: Optional[Text] = None,
         recorder_name: Optional[Text] = None,
         uri: Optional[Text] = None,
         resume: bool = False,
@@ -301,11 +318,11 @@ class MLflowExpManager(ExpManager):
         # Create experiment
         if experiment_name is None:
             experiment_name = self._default_exp_name
-        experiment, _ = self._get_or_create_exp(experiment_name=experiment_name)
+        experiment, _ = self._get_or_create_exp(experiment_id=experiment_id, experiment_name=experiment_name)
         # Set up active experiment
         self.active_experiment = experiment
         # Start the experiment
-        self.active_experiment.start(recorder_name, resume)
+        self.active_experiment.start(recorder_id=recorder_id, recorder_name=recorder_name, resume=resume)
 
         return self.active_experiment
 

@@ -45,16 +45,16 @@ New features under development(order by estimated release time).
 Your feedbacks about the features are very important.
 | Feature                        | Status      |
 | --                      | ------    |
-| Online serving and automatic model rolling | Under review: https://github.com/microsoft/qlib/pull/290 | 
 | Planning-based portfolio optimization | Under review:  https://github.com/microsoft/qlib/pull/280 | 
 | Fund data supporting and analysis  |  Under review: https://github.com/microsoft/qlib/pull/292 |
 | Point-in-Time database | Under review: https://github.com/microsoft/qlib/pull/343 |
-| High-frequency trading | Initial opensource version under development | 
+| High-frequency trading | Under review: https://github.com/microsoft/qlib/pull/408 | 
 | Meta-Learning-based data selection | Initial opensource version under development |
 
 Recent released features
 | Feature | Status |
 | --                      | ------    |
+| Online serving and automatic model rolling | Released: https://github.com/microsoft/qlib/pull/290 | 
 | DoubleEnsemble Model | Released https://github.com/microsoft/qlib/pull/286 | 
 | High-frequency data processing example | Released https://github.com/microsoft/qlib/pull/257 |
 | High-frequency trading example | Part of code released https://github.com/microsoft/qlib/pull/227 | 
@@ -243,6 +243,7 @@ Qlib provides a tool named `qrun` to run the whole workflow automatically (inclu
       - Rank Label
       ![Rank Label](docs/_static/img/rank_label.png)
       -->
+   - [Explanation](https://qlib.readthedocs.io/en/latest/component/report.html) of above results
 
 ## Building Customized Quant Research Workflow by Code
 The automatic workflow may not suit the research workflow of all Quant researchers. To support a flexible Quant research workflow, Qlib also provides a modularized interface to allow researchers to build their own workflow by code. [Here](examples/workflow_by_code.ipynb) is a demo for customized Quant research workflow by code.

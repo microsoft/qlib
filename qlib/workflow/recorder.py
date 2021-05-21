@@ -1,14 +1,14 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-import mlflow
+import mlflow, logging
 import shutil, os, pickle, tempfile, codecs, pickle
 from pathlib import Path
 from datetime import datetime
 from ..utils.objm import FileManager
 from ..log import get_module_logger
 
-logger = get_module_logger("workflow", "INFO")
+logger = get_module_logger("workflow", logging.INFO)
 
 
 class Recorder:
@@ -38,6 +38,9 @@ class Recorder:
 
     def __str__(self):
         return str(self.info)
+
+    def __hash__(self) -> int:
+        return hash(self.info["id"])
 
     @property
     def info(self):
@@ -231,6 +234,14 @@ class MLflowRecorder(Recorder):
             artifact_uri=self.artifact_uri,
             client=self.client,
         )
+
+    def __hash__(self) -> int:
+        return hash(self.info["id"])
+
+    def __eq__(self, o: object) -> bool:
+        if isinstance(o, MLflowRecorder):
+            return self.info["id"] == o.info["id"]
+        return False
 
     @property
     def uri(self):

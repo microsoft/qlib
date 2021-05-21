@@ -8,6 +8,7 @@ from __future__ import print_function
 import os
 import numpy as np
 import pandas as pd
+from typing import Text, Union
 from sklearn.metrics import roc_auc_score, mean_squared_error
 
 import torch
@@ -18,7 +19,7 @@ from .pytorch_utils import count_parameters
 from ...model.base import Model
 from ...data.dataset import DatasetH
 from ...data.dataset.handler import DataHandlerLP
-from ...utils import unpack_archive_with_buffer, save_multiple_parts_file, get_or_create_path, drop_nan_by_y_index
+from ...utils import unpack_archive_with_buffer, save_multiple_parts_file, get_or_create_path
 from ...log import get_module_logger
 from ...workflow import R
 
@@ -48,8 +49,8 @@ class DNNModelPytorch(Model):
 
     def __init__(
         self,
-        input_dim,
-        output_dim,
+        input_dim=360,
+        output_dim=1,
         layers=(256,),
         lr=0.001,
         max_steps=300,
@@ -271,13 +272,12 @@ class DNNModelPytorch(Model):
         else:
             raise NotImplementedError("loss {} is not supported!".format(loss_type))
 
-    def predict(self, dataset):
+    def predict(self, dataset: DatasetH, segment: Union[Text, slice] = "test"):
         if not self.fitted:
             raise ValueError("model is not fitted yet!")
-        x_test_pd = dataset.prepare("test", col_set="feature")
+        x_test_pd = dataset.prepare(segment, col_set="feature", data_key=DataHandlerLP.DK_I)
         x_test = torch.from_numpy(x_test_pd.values).float().to(self.device)
         self.dnn_model.eval()
-
         with torch.no_grad():
             preds = self.dnn_model(x_test).detach().cpu().numpy()
         return pd.Series(np.squeeze(preds), index=x_test_pd.index)

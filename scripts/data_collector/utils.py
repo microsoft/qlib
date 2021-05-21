@@ -10,7 +10,9 @@ import random
 import requests
 import functools
 from pathlib import Path
+from typing import Iterable, Tuple
 
+import numpy as np
 import pandas as pd
 from lxml import etree
 from loguru import logger
@@ -416,6 +418,41 @@ def get_trading_date_by_shift(trading_list: list, trading_date: pd.Timestamp, sh
     except IndexError:
         res = trading_date
     return res
+
+
+def generate_minutes_calendar_from_daily(
+    calendars: Iterable,
+    freq: str = "1min",
+    am_range: Tuple[str, str] = ("09:30:00", "11:29:00"),
+    pm_range: Tuple[str, str] = ("13:00:00", "14:59:00"),
+) -> pd.Index:
+    """generate minutes calendar
+
+    Parameters
+    ----------
+    calendars: Iterable
+        daily calendar
+    freq: str
+        by default 1min
+    am_range: Tuple[str, str]
+        AM Time Range, by default China-Stock: ("09:30:00", "11:29:00")
+    pm_range: Tuple[str, str]
+        PM Time Range, by default China-Stock: ("13:00:00", "14:59:00")
+
+    """
+    daily_format: str = "%Y-%m-%d"
+    res = []
+    for _day in calendars:
+        for _range in [am_range, pm_range]:
+            res.append(
+                pd.date_range(
+                    f"{pd.Timestamp(_day).strftime(daily_format)} {_range[0]}",
+                    f"{pd.Timestamp(_day).strftime(daily_format)} {_range[1]}",
+                    freq=freq,
+                )
+            )
+
+    return pd.Index(sorted(set(np.hstack(res))))
 
 
 if __name__ == "__main__":
