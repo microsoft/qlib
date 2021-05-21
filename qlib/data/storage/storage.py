@@ -124,12 +124,12 @@ class CalendarStorage(BaseStorage):
 
     @overload
     def __setitem__(self, i: int, value: CalVT) -> None:
-        """x.__setitem__(i, o) <==> x[i] = o"""
+        """x.__setitem__(i, o) <==> (x[i] = o)"""
         ...
 
     @overload
     def __setitem__(self, s: slice, value: Iterable[CalVT]) -> None:
-        """x.__setitem__(s, o) <==> x[s] = o"""
+        """x.__setitem__(s, o) <==> (x[s] = o)"""
         ...
 
     def __setitem__(self, i, value) -> None:
@@ -187,15 +187,15 @@ class InstrumentStorage(BaseStorage):
         raise NotImplementedError("Subclass of InstrumentStorage must implement `update` method")
 
     def __setitem__(self, k: InstKT, v: InstVT) -> None:
-        """ Set self[key] to value. """
+        """Set self[key] to value."""
         raise NotImplementedError("Subclass of InstrumentStorage must implement `__setitem__` method")
 
     def __delitem__(self, k: InstKT) -> None:
-        """ Delete self[key]. """
+        """Delete self[key]."""
         raise NotImplementedError("Subclass of InstrumentStorage must implement `__delitem__` method")
 
     def __getitem__(self, k: InstKT) -> InstVT:
-        """ x.__getitem__(k) <==> x[k] """
+        """x.__getitem__(k) <==> x[k]"""
         raise NotImplementedError("Subclass of InstrumentStorage must implement `__getitem__` method")
 
 
@@ -364,7 +364,12 @@ class FeatureStorage(BaseStorage):
 
     @overload
     def __getitem__(self, s: slice) -> pd.Series:
-        """x.__getitem__(slice(start: int, stop: int, step: int)) <==> x[start:stop:step] == pd.Series(values, index=pd.RangeIndex(start, len(values))"""
+        """x.__getitem__(slice(start: int, stop: int, step: int)) <==> x[start:stop:step]
+
+        Returns
+        -------
+            pd.Series(values, index=pd.RangeIndex(start, len(values))
+        """
         ...
 
     @overload
