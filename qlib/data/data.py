@@ -8,6 +8,7 @@ from __future__ import print_function
 import os
 import re
 import abc
+import copy
 import time
 import queue
 import bisect
@@ -31,19 +32,27 @@ from ..utils import Wrapper, init_instance_by_config, register_wrapper, get_modu
 class ProviderBackendMixin:
     def get_default_backend(self):
         backend = {}
-        provider_name = re.findall("[A-Z][^A-Z]*", self.__class__.__name__)[-2]  # type: str
+        provider_name: str = re.findall("[A-Z][^A-Z]*", self.__class__.__name__)[-2]
         # set default storage class
         backend.setdefault("class", f"File{provider_name}Storage")
         # set default storage module
         backend.setdefault("module_path", "qlib.data.storage.file_storage")
-        # set default storage kwargs
-        backend_kwargs = backend.setdefault("kwargs", {})  # type: dict
-        backend_kwargs.setdefault("uri", os.path.join(C.get_data_path(), f"{provider_name.lower()}s"))
         return backend
 
-    @property
-    def backend_obj(self):
-        return init_instance_by_config(self.backend)
+    def backend_obj(self, **kwargs):
+        backend = self.backend if self.backend else self.get_default_backend()
+        backend = copy.deepcopy(backend)
+
+        # set default storage kwargs
+        backend_kwargs = backend.setdefault("kwargs", {})
+        # default uri map
+        if "uri" not in backend_kwargs:
+            # if the user has no uri configured, use: uri = uri_map[freq]
+            freq = kwargs.get("freq", "day")
+            uri_map = backend_kwargs.setdefault("uri_map", {freq: C.get_data_path()})
+            backend_kwargs["uri"] = uri_map[freq]
+        backend.setdefault("kwargs", {}).update(**kwargs)
+        return init_instance_by_config(backend)
 
 
 class CalendarProvider(abc.ABC, ProviderBackendMixin):
@@ -54,8 +63,6 @@ class CalendarProvider(abc.ABC, ProviderBackendMixin):
 
     def __init__(self, *args, **kwargs):
         self.backend = kwargs.get("backend", {})
-        if not self.backend:
-            self.backend = self.get_default_backend()
 
     @abc.abstractmethod
     def calendar(self, start_time=None, end_time=None, freq="day", future=False):
@@ -159,8 +166,6 @@ class InstrumentProvider(abc.ABC, ProviderBackendMixin):
 
     def __init__(self, *args, **kwargs):
         self.backend = kwargs.get("backend", {})
-        if not self.backend:
-            self.backend = self.get_default_backend()
 
     @staticmethod
     def instruments(market="all", filter_pipe=None):
@@ -252,8 +257,6 @@ class FeatureProvider(abc.ABC, ProviderBackendMixin):
 
     def __init__(self, *args, **kwargs):
         self.backend = kwargs.get("backend", {})
-        if not self.backend:
-            self.backend = self.get_default_backend()
 
     @abc.abstractmethod
     def feature(self, instrument, field, start_time, end_time, freq):
@@ -552,8 +555,18 @@ class LocalCalendarProvider(CalendarProvider):
         list
             list of timestamps
         """
-        self.backend.setdefault("kwargs", {}).update(freq=freq, future=future)
-        return [pd.Timestamp(x) for x in self.backend_obj.data]
+
+        backend_obj = self.backend_obj(freq=freq, future=future)
+        if future and not backend_obj.check_exists():
+            get_module_logger("data").warning(
+                f"load calendar error: freq={freq}, future={future}; return current calendar!"
+            )
+            get_module_logger("data").warning(
+                "You can get future calendar by referring to the following document: https://github.com/microsoft/qlib/blob/main/scripts/data_collector/contrib/README.md"
+            )
+            backend_obj = self.backend_obj(freq=freq, future=False)
+
+        return [pd.Timestamp(x) for x in backend_obj.data]
 
     def calendar(self, start_time=None, end_time=None, freq="day", future=False):
         _calendar, _calendar_index = self._get_calendar(freq, future)
@@ -589,17 +602,15 @@ class LocalInstrumentProvider(InstrumentProvider):
         """Instrument file uri."""
         return os.path.join(C.get_data_path(), "instruments", "{}.txt")
 
-    def _load_instruments(self, market):
-
-        self.backend.setdefault("kwargs", {}).update(market=market)
-        return self.backend_obj.data
+    def _load_instruments(self, market, freq):
+        return self.backend_obj(market=market, freq=freq).data
 
     def list_instruments(self, instruments, start_time=None, end_time=None, freq="day", as_list=False):
         market = instruments["market"]
         if market in H["i"]:
             _instruments = H["i"][market]
         else:
-            _instruments = self._load_instruments(market)
+            _instruments = self._load_instruments(market, freq=freq)
             H["i"][market] = _instruments
         # strip
         # use calendar boundary
@@ -648,9 +659,14 @@ class LocalFeatureProvider(FeatureProvider):
         # validate
         field = str(field).lower()[1:]
         instrument = code_to_fname(instrument)
-
-        self.backend.setdefault("kwargs", {}).update(instrument=instrument, field=field, freq=freq)
-        return self.backend_obj[start_index : end_index + 1]
+        try:
+            data = self.backend_obj(instrument=instrument, field=field, freq=freq)[start_index : end_index + 1]
+        except Exception as e:
+            get_module_logger("data").warning(
+                f"WARN: data not found for {instrument}.{field}\n\tException info: {str(e)}"
+            )
+            data = pd.Series(dtype=np.float32)
+        return data
 
 
 class LocalExpressionProvider(ExpressionProvider):
