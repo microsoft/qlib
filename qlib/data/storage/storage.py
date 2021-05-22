@@ -24,20 +24,43 @@ If the user is only using it in `qlib`, you can customize Storage to implement o
 class UserCalendarStorage(CalendarStorage):
 
     @property
-    def data(self):
-        pass
+    def data(self) -> Iterable[CalVT]:
+        '''get all data'''
+        raise NotImplementedError("Subclass of CalendarStorage must implement `data` method")
+
+    def check_exists(self) -> bool:
+        '''check if storage(uri) exists, if not exists: return False'''
+        raise NotImplementedError("Subclass of BaseStorage must implement `check_exists` method")
+
 
 class UserInstrumentStorage(InstrumentStorage):
 
     @property
-    def data(self):
-        pass
+    def data(self) -> Dict[InstKT, InstVT]:
+        '''get all data'''
+        raise NotImplementedError("Subclass of InstrumentStorage must implement `data` method")
+
+    def check_exists(self) -> bool:
+        '''check if storage(uri) exists, if not exists: return False'''
+        raise NotImplementedError("Subclass of BaseStorage must implement `check_exists` method")
+
 
 class UserFeatureStorage(FeatureStorage):
 
-    @check_storage
-    def __getitem__(self, i: slice) -> pd.Series:
-        pass
+    def __getitem__(self, s: slice) -> pd.Series:
+        '''x.__getitem__(slice(start: int, stop: int, step: int)) <==> x[start:stop:step]
+
+        Returns
+        -------
+            pd.Series(values, index=pd.RangeIndex(start, len(values))
+        '''
+        raise NotImplementedError(
+            "Subclass of FeatureStorage must implement `__getitem__(s: slice)` method"
+        )
+
+    def check_exists(self) -> bool:
+        '''check if storage(uri) exists, if not exists: return False'''
+        raise NotImplementedError("Subclass of BaseStorage must implement `check_exists` method")
 
 """
 
