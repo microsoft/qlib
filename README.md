@@ -54,7 +54,7 @@ For more details, please refer to our paper ["Qlib: An AI-oriented Quantitative 
 - [Contributing](#contributing)
 
 
-# News And Plans
+# Plans
 New features under development(order by estimated release time).
 Your feedbacks about the features are very important.
 | Feature                        | Status      |
