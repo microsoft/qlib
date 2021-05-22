@@ -11,12 +11,12 @@
 Recent released features
 | Feature | Status |
 | --                      | ------    |
-| Online serving and automatic model rolling | Released: https://github.com/microsoft/qlib/pull/290 | 
-| DoubleEnsemble Model | Released https://github.com/microsoft/qlib/pull/286 | 
-| High-frequency data processing example | Released https://github.com/microsoft/qlib/pull/257 |
-| High-frequency trading example | Part of code released https://github.com/microsoft/qlib/pull/227 | 
-| High-frequency data(1min) | Released https://github.com/microsoft/qlib/pull/221 |
-| Tabnet Model | Released https://github.com/microsoft/qlib/pull/205 | 
+| Online serving and automatic model rolling | :star: [Released](https://github.com/microsoft/qlib/pull/290) on May 17, 2021 | 
+| DoubleEnsemble Model | [Released](https://github.com/microsoft/qlib/pull/286) on Mar 2, 2021 | 
+| High-frequency data processing example | [Released](https://github.com/microsoft/qlib/pull/257) on Feb 5, 2021  |
+| High-frequency trading example | [Part of code released](https://github.com/microsoft/qlib/pull/227) on Jan 28, 2021  | 
+| High-frequency data(1min) | [Released](https://github.com/microsoft/qlib/pull/221) on Jan 27, 2021 |
+| Tabnet Model | [Released](https://github.com/microsoft/qlib/pull/205) on Jan 22, 2021 | 
 
 Features released before 2021 are not listed here.
 
