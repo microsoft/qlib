@@ -140,6 +140,10 @@ _default_config = {
             "default_exp_name": "Experiment",
         },
     },
+    # Shift minute for highfreq minite data, used in backtest
+    # if min_data_shift == 0, use default market time [9:30, 11:29, 1:30, 2:39]
+    # if min_data_shift != 0, use shifted market time [9:30, 11:29, 1:30, 2:39] - shift*minute
+    "min_data_shift": {0},
 }
 
 MODE_CONF = {

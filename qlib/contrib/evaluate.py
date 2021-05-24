@@ -3,6 +3,7 @@
 
 from __future__ import division
 from __future__ import print_function
+from logging import warn
 
 import numpy as np
 import pandas as pd
@@ -10,7 +11,7 @@ import warnings
 from ..log import get_module_logger
 from .backtest import get_exchange, backtest as backtest_func
 from ..utils import get_date_range
-from ..utils.sample import parse_freq
+from ..utils.resam import parse_freq
 
 from ..data import D
 from ..config import C
@@ -20,7 +21,7 @@ from ..data.dataset.utils import get_level_index
 logger = get_module_logger("Evaluate")
 
 
-def risk_analysis(r, N: int = None, freq: str = None):
+def risk_analysis(r, N: int = None, freq: str = "day"):
     """Risk Analysis
 
     Parameters
@@ -36,8 +37,8 @@ def risk_analysis(r, N: int = None, freq: str = None):
     def cal_risk_analysis_scaler(freq):
         _count, _freq = parse_freq(freq)
         _freq_scaler = {
-            "minute": 240 * 250,
-            "day": 250,
+            "minute": 240 * 252,
+            "day": 252,
             "week": 50,
             "month": 12,
         }
@@ -45,6 +46,8 @@ def risk_analysis(r, N: int = None, freq: str = None):
 
     if N is None and freq is None:
         raise ValueError("at least one of `N` and `freq` should exist")
+    if N is not None and freq is not None:
+        warnings.warn("risk_analysis freq will be ignored")
     if N is None:
         N = cal_risk_analysis_scaler(freq)
 

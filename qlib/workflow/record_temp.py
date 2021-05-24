@@ -15,7 +15,7 @@ from ..data.dataset.handler import DataHandlerLP
 from ..utils import init_instance_by_config, get_module_by_module_path
 from ..log import get_module_logger
 from ..utils import flatten_dict
-from ..utils.sample import parse_freq
+from ..utils.resam import parse_freq
 from ..strategy.base import BaseStrategy
 from ..contrib.eva.alpha import calc_ic, calc_long_short_return
 
@@ -291,8 +291,8 @@ class PortAnaRecord(RecordTemp):
         """
         config["strategy"] : dict
             define the strategy class as well as the kwargs.
-        config["env"] : dict
-            define the env class as well as the kwargs.
+        config["executor"] : dict
+            define the executor class as well as the kwargs.
         config["backtest"] : dict
             define the backtest kwargs.
         risk_analysis_freq : int
@@ -301,24 +301,26 @@ class PortAnaRecord(RecordTemp):
         super().__init__(recorder=recorder, **kwargs)
 
         self.strategy_config = config["strategy"]
-        self.env_config = config["env"]
+        self.executor_config = config["executor"]
         self.backtest_config = config["backtest"]
         _count, _freq = parse_freq(risk_analysis_freq)
         self.risk_analysis_freq = f"{_count}{_freq}"
-        self.report_freq = self._get_report_freq(self.env_config)
+        self.report_freq = self._get_report_freq(self.executor_config)
 
-    def _get_report_freq(self, env_config):
+    def _get_report_freq(self, executor_config):
         ret_freq = []
-        if env_config["kwargs"].get("generate_report", False):
-            _count, _freq = parse_freq(env_config["kwargs"]["step_bar"])
+        if executor_config["kwargs"].get("generate_report", False):
+            _count, _freq = parse_freq(executor_config["kwargs"]["step_bar"])
             ret_freq.append(f"{_count}{_freq}")
-        if "sub_env" in env_config["kwargs"]:
-            ret_freq.extend(self._get_report_freq(env_config["kwargs"]["sub_env"]))
+        if "sub_env" in executor_config["kwargs"]:
+            ret_freq.extend(self._get_report_freq(executor_config["kwargs"]["sub_env"]))
         return ret_freq
 
     def generate(self, **kwargs):
         # custom strategy and get backtest
-        report_dict = normal_backtest(env=self.env_config, strategy=self.strategy_config, **self.backtest_config)
+        report_dict = normal_backtest(
+            executor=self.executor_config, strategy=self.strategy_config, **self.backtest_config
+        )
         for report_freq, (report_normal, positions_normal) in report_dict.items():
             self.recorder.save_objects(
                 **{f"report_normal_{report_freq}.pkl": report_normal}, artifact_path=PortAnaRecord.get_path()

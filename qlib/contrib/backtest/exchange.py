@@ -11,7 +11,7 @@ import pandas as pd
 from ...data.data import D
 from ...data.dataset.utils import get_level_index
 from ...config import C, REG_CN
-from ...utils.sample import sample_feature
+from ...utils.resam import resam_ts_data
 from ...log import get_module_logger
 from .order import Order
 
@@ -34,8 +34,9 @@ class Exchange:
     ):
         """__init__
 
-        :param start_time:       start time for backtest
-        :param end_time:         end time for backtest
+        :param freq:             frequency of data
+        :param start_time:       closed start time for  backtest
+        :param end_time:         closed end time for backtest
         :param codes:            list stock_id list or a string of instruments(i.e. all, csi500, sse50)
         :param deal_price:       str, 'close', 'open', 'vwap'
         :param subscribe_fields: list, subscribe fields
@@ -91,7 +92,7 @@ class Exchange:
         # $factor is for rounding to the trading unit
         # $change is for calculating the limit of the stock
 
-        necessary_fields = {self.deal_price, "$close", "$change", "$factor"}
+        necessary_fields = {self.deal_price, "$close", "$change", "$factor", "$volume"}
         subscribe_fields = list(necessary_fields | set(subscribe_fields))
         all_fields = list(necessary_fields | set(subscribe_fields))
         self.all_fields = all_fields
@@ -167,12 +168,12 @@ class Exchange:
         trade_date
         is limtited
         """
-        return sample_feature(self.quote[stock_id], start_time, end_time, fields="limit", method="all").iloc[0]
+        return resam_ts_data(self.quote[stock_id]["limit"], start_time, end_time, method="all").iloc[0]
 
     def check_stock_suspended(self, stock_id, start_time, end_time):
         # is suspended
         if stock_id in self.quote:
-            return sample_feature(self.quote[stock_id], start_time, end_time, method=None) is None
+            return resam_ts_data(self.quote[stock_id], start_time, end_time, method=None) is None
         else:
             return True
 
@@ -230,15 +231,16 @@ class Exchange:
         return trade_val, trade_cost, trade_price
 
     def get_quote_info(self, stock_id, start_time, end_time):
-        return sample_feature(self.quote[stock_id], start_time, end_time, method="last").iloc[0]
+        return resam_ts_data(self.quote[stock_id], start_time, end_time, method="last").iloc[0]
 
     def get_close(self, stock_id, start_time, end_time):
-        return sample_feature(self.quote[stock_id], start_time, end_time, fields="$close", method="last").iloc[0]
+        return resam_ts_data(self.quote[stock_id]["$close"], start_time, end_time, method="last").iloc[0]
+
+    def get_volume(self, stock_id, start_time, end_time):
+        return resam_ts_data(self.quote[stock_id]["$volume"], start_time, end_time, method="sum").iloc[0]
 
     def get_deal_price(self, stock_id, start_time, end_time):
-        deal_price = sample_feature(
-            self.quote[stock_id], start_time, end_time, fields=self.deal_price, method="last"
-        ).iloc[0]
+        deal_price = resam_ts_data(self.quote[stock_id][self.deal_price], start_time, end_time, method="last").iloc[0]
         if np.isclose(deal_price, 0.0) or np.isnan(deal_price):
             self.logger.warning(
                 f"(stock_id:{stock_id}, trade_time:{(start_time, end_time)}, {self.deal_price}): {deal_price}!!!"
@@ -248,7 +250,7 @@ class Exchange:
         return deal_price
 
     def get_factor(self, stock_id, start_time, end_time):
-        return sample_feature(self.quote[stock_id], start_time, end_time, fields="$factor", method="last").iloc[0]
+        return resam_ts_data(self.quote[stock_id]["$factor"], start_time, end_time, method="last").iloc[0]
 
     def generate_amount_position_from_weight_position(self, weight_position, cash, start_time, end_time):
         """

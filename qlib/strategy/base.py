@@ -1,6 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+import copy
 import pandas as pd
 from typing import List, Union
 
@@ -9,16 +10,70 @@ from ..model.base import BaseModel
 from ..data.dataset import DatasetH
 from ..data.dataset.utils import convert_index_format
 from ..contrib.backtest.order import Order
-from ..contrib.backtest.executor import BaseTradeCalendar
 from ..rl.interpreter import ActionInterpreter, StateInterpreter
+from ..utils import init_instance_by_config
 
 
-class BaseStrategy(BaseTradeCalendar):
+class BaseStrategy:
     """Base strategy for trading"""
 
-    def generate_order_list(self, execute_state):
-        """Generate order list in each trading bar"""
-        raise NotImplementedError("generator_order_list is not implemented!")
+    def __init__(
+        self,
+        rely_trade_decision: object = None,
+        level_infra: dict = {},
+        common_infra: dict = {},
+    ):
+        """
+        Parameters
+        ----------
+        rely_trade_decision : object, optional
+            the high-level trade decison on which the startegy rely, and it will be traded in [start_time , end_time] , by default None
+            - If the strategy is used to split trade decison, it will be used
+            - If the strategy is used for portfolio management, it can be ignored
+        level_infra : dict, optional
+            level shared infrastructure for backtesting, including trade_calendar
+        common_infra : dict, optional
+            common infrastructure for backtesting, including trade_account, trade_exchange, .etc
+        """
+
+        self.reset(level_infra=level_infra, common_infra=common_infra, rely_trade_decision=rely_trade_decision)
+
+    def reset_level_infra(self, level_infra):
+        if not hasattr(self, "level_infra"):
+            self.level_infra = level_infra
+        else:
+            self.level_infra.update(level_infra)
+
+        if "trade_calendar" in level_infra:
+            self.trade_calendar = level_infra.get("trade_calendar")
+
+    def reset_common_infra(self, common_infra):
+        if not hasattr(self, "common_infra"):
+            self.common_infra = common_infra
+        else:
+            self.common_infra.update(common_infra)
+
+        if "trade_account" in common_infra:
+            self.trade_position = common_infra.get("trade_account").current
+
+    def reset(self, level_infra: dict = None, common_infra: dict = None, rely_trade_decision=None, **kwargs):
+        """
+        - reset `level_infra`, used to reset trade_calendar, .etc
+        - reset `common_infra`, used to reset `trade_account`, `trade_exchange`, .etc
+        - reset `rely_trade_decision`, used to make split decison
+        """
+        if level_infra is not None:
+            self.reset_level_infra(level_infra)
+
+        if common_infra is not None:
+            self.reset_common_infra(common_infra)
+
+        if rely_trade_decision is not None:
+            self.rely_trade_decision = rely_trade_decision
+
+    def generate_trade_decision(self, execute_state):
+        """Generate trade decision in each trading bar"""
+        raise NotImplementedError("generate_trade_decision is not implemented!")
 
 
 class RuleStrategy(BaseStrategy):
@@ -32,11 +87,11 @@ class ModelStrategy(BaseStrategy):
 
     def __init__(
         self,
-        step_bar: str,
         model: BaseModel,
         dataset: DatasetH,
-        start_time: Union[str, pd.Timestamp] = None,
-        end_time: Union[str, pd.Timestamp] = None,
+        rely_trade_decision: object = None,
+        level_infra: dict = {},
+        common_infra: dict = {},
         **kwargs,
     ):
         """
@@ -49,11 +104,10 @@ class ModelStrategy(BaseStrategy):
         kwargs : dict
             arguments that will be passed into `reset` method
         """
+        super(ModelStrategy, self).__init__(rely_trade_decision, level_infra, common_infra, **kwargs)
         self.model = model
         self.dataset = dataset
         self.pred_scores = convert_index_format(self.model.predict(dataset), level="datetime")
-        # pred_score_dates = self.pred_scores.index.get_level_values(level="datetime")
-        super(ModelStrategy, self).__init__(step_bar, start_time, end_time, **kwargs)
 
     def _update_model(self):
         """
@@ -70,10 +124,10 @@ class RLStrategy(BaseStrategy):
 
     def __init__(
         self,
-        step_bar: str,
         policy,
-        start_time: Union[str, pd.Timestamp] = None,
-        end_time: Union[str, pd.Timestamp] = None,
+        rely_trade_decision: object = None,
+        level_infra: dict = {},
+        common_infra: dict = {},
         **kwargs,
     ):
         """
@@ -82,7 +136,7 @@ class RLStrategy(BaseStrategy):
         policy :
             RL policy for generate action
         """
-        super(RLStrategy, self).__init__(step_bar, start_time, end_time, **kwargs)
+        super(RLStrategy, self).__init__(rely_trade_decision, level_infra, common_infra, **kwargs)
         self.policy = policy
 
 
@@ -91,14 +145,12 @@ class RLIntStrategy(RLStrategy):
 
     def __init__(
         self,
-        step_bar: str,
         policy,
         state_interpreter: StateInterpreter,
         action_interpreter: ActionInterpreter,
-        start_time: Union[str, pd.Timestamp] = None,
-        end_time: Union[str, pd.Timestamp] = None,
-        state_interpret_kwargs: dict = {},
-        action_interpret_kwargs: dict = {},
+        rely_trade_decision: object = None,
+        level_infra: dict = {},
+        common_infra: dict = {},
         **kwargs,
     ):
         """
@@ -112,49 +164,16 @@ class RLIntStrategy(RLStrategy):
             start time of trading, by default None
         end_time : Union[str, pd.Timestamp], optional
             end time of trading, by default None
-        state_interpret_kwargs : dict, optional
-            arguments may be used in `state_interpreter.interpret`, by default {}
-            such as the following arguments:
-                - trade exchange : Exchange
-                    Exchange that can provide market info
-        action_interpret_kwargs: dict, optional
-            arguments may be used in `action_interpreter.interpret`, by default {}
-            such as the following arguments:
-                - trade_order_list : List[Order]
-                    If the strategy is used to split order, it presents the trade order pool.
         """
-        super(RLIntStrategy, self).__init__(step_bar, policy, start_time, end_time, **kwargs)
+        super(RLIntStrategy, self).__init__(policy, rely_trade_decision, level_infra, common_infra, **kwargs)
 
         self.policy = policy
-        self.action_interpreter = action_interpreter
-        self.state_interpreter = state_interpreter
-        self.state_interpret_kwargs = state_interpret_kwargs
-        self.action_interpret_kwargs = action_interpret_kwargs
+        self.state_interpreter = init_instance_by_config(state_interpreter)
+        self.action_interpreter = init_instance_by_config(action_interpreter)
 
-    def generate_order_list(self, execute_state):
+    def generate_trade_decision(self, execute_state):
         super(RLStrategy, self).step()
-        _interpret_state = self.state_interpretor.interpret(
-            execute_result=execute_state, **self.action_interpret_kwargs
-        )
+        _interpret_state = self.state_interpretor.interpret(execute_result=execute_state)
         _policy_action = self.policy.step(_interpret_state)
-        _order_list = self.action_interpreter.interpret(action=_policy_action, **self.state_interpret_kwargs)
+        _order_list = self.action_interpreter.interpret(action=_policy_action)
         return _order_list
-
-
-class OrderEnhancement:
-    """
-    Order enhancement for strategy
-        - If the strategy is used to split orders, the enhancement should be inherited
-        - If the strategy is used for portfolio management, the enhancement can be ignored
-    """
-
-    def reset(self, trade_order_list: List[Order] = None):
-        """reset trade orders for split strategy
-
-        Parameters
-        ----------
-        trade_order_list for split strategy: List[Order], optional
-            trading orders , by default None
-        """
-        if trade_order_list is not None:
-            self.trade_order_list = trade_order_list

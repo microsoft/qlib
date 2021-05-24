@@ -3,29 +3,20 @@
 
 
 import qlib
+import fire
 from qlib.config import REG_CN
 
 from qlib.utils import exists_qlib_data, init_instance_by_config, flatten_dict
 from qlib.workflow import R
 from qlib.workflow.record_temp import SignalRecord, PortAnaRecord
 from qlib.tests.data import GetData
+from qlib.contrib.backtest import collect_data
 
-if __name__ == "__main__":
 
-    # use default data
-    provider_uri = "~/.qlib/qlib_data/cn_data"  # target_dir
-    if not exists_qlib_data(provider_uri):
-        print(f"Qlib data is not found in {provider_uri}")
-        GetData().qlib_data(target_dir=provider_uri, region=REG_CN)
-
-    qlib.init(provider_uri=provider_uri, region=REG_CN)
+class MultiLevelTradingWorkflow:
 
     market = "csi300"
     benchmark = "SH000300"
-
-    ###################################
-    # train model
-    ###################################
 
     data_handler_config = {
         "start_time": "2008-01-01",
@@ -68,31 +59,17 @@ if __name__ == "__main__":
             },
         },
     }
-    # model initialization
-    model = init_instance_by_config(task["model"])
-    dataset = init_instance_by_config(task["dataset"])
 
     trade_start_time = "2017-01-01"
     trade_end_time = "2020-08-01"
 
     port_analysis_config = {
-        "strategy": {
-            "class": "TopkDropoutStrategy",
-            "module_path": "qlib.contrib.strategy.model_strategy",
-            "kwargs": {
-                "step_bar": "week",
-                "model": model,
-                "dataset": dataset,
-                "topk": 50,
-                "n_drop": 5,
-            },
-        },
-        "env": {
+        "executor": {
             "class": "SplitExecutor",
             "module_path": "qlib.contrib.backtest.executor",
             "kwargs": {
                 "step_bar": "week",
-                "sub_env": {
+                "sub_executor": {
                     "class": "SimulatorExecutor",
                     "module_path": "qlib.contrib.backtest.executor",
                     "kwargs": {
@@ -105,11 +82,11 @@ if __name__ == "__main__":
                     "class": "SBBStrategyEMA",
                     "module_path": "qlib.contrib.strategy.rule_strategy",
                     "kwargs": {
-                        "step_bar": "day",
                         "freq": "day",
                         "instruments": market,
                     },
                 },
+                "track_data": True,
             },
         },
         "backtest": {
@@ -128,17 +105,69 @@ if __name__ == "__main__":
         },
     }
 
-    with R.start(experiment_name="highfreq_backtest"):
-        R.log_params(**flatten_dict(task))
-        model.fit(dataset)
-        R.save_objects(**{"params.pkl": model})
+    def _init_qlib(self):
+        """initialize qlib"""
+        # use yahoo_cn_1min data
+        provider_uri = "~/.qlib/qlib_data/cn_data"  # target_dir
+        if not exists_qlib_data(provider_uri):
+            print(f"Qlib data is not found in {provider_uri}")
+            GetData().qlib_data(target_dir=provider_uri, region=REG_CN)
+        qlib.init(provider_uri=provider_uri, region=REG_CN)
 
-        # prediction
-        recorder = R.get_recorder()
-        sr = SignalRecord(model, dataset, recorder)
-        sr.generate()
+    def _train_model(self, model, dataset):
+        with R.start(experiment_name="train"):
+            R.log_params(**flatten_dict(self.task))
+            model.fit(dataset)
+            R.save_objects(**{"params.pkl": model})
 
-        # backtest. If users want to use backtest based on their own prediction,
-        # please refer to https://qlib.readthedocs.io/en/latest/component/recorder.html#record-template.
-        par = PortAnaRecord(recorder, port_analysis_config, "day")
-        par.generate()
+            # prediction
+            recorder = R.get_recorder()
+            sr = SignalRecord(model, dataset, recorder)
+            sr.generate()
+
+    def backtest(self):
+        self._init_qlib()
+        model = init_instance_by_config(self.task["model"])
+        dataset = init_instance_by_config(self.task["dataset"])
+        self._train_model(model, dataset)
+        strategy_config = {
+            "class": "TopkDropoutStrategy",
+            "module_path": "qlib.contrib.strategy.model_strategy",
+            "kwargs": {
+                "model": model,
+                "dataset": dataset,
+                "topk": 50,
+                "n_drop": 5,
+            },
+        }
+        self.port_analysis_config["strategy"] = strategy_config
+        with R.start(experiment_name="backtest"):
+
+            recorder = R.get_recorder()
+            par = PortAnaRecord(recorder, self.port_analysis_config, "day")
+            par.generate()
+
+    def collect_data(self):
+        self._init_qlib()
+        model = init_instance_by_config(self.task["model"])
+        dataset = init_instance_by_config(self.task["dataset"])
+        self._train_model(model, dataset)
+        executor_config = self.port_analysis_config["executor"]
+        backtest_config = self.port_analysis_config["backtest"]
+        strategy_config = {
+            "class": "TopkDropoutStrategy",
+            "module_path": "qlib.contrib.strategy.model_strategy",
+            "kwargs": {
+                "model": model,
+                "dataset": dataset,
+                "topk": 50,
+                "n_drop": 5,
+            },
+        }
+        data_generator = collect_data(executor=executor_config, strategy=strategy_config, **backtest_config)
+        for trade_decision in data_generator:
+            print(trade_decision)
+
+
+if __name__ == "__main__":
+    fire.Fire(MultiLevelTradingWorkflow)

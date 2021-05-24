@@ -1,7 +1,12 @@
 import re
+import datetime
+
 import numpy as np
 import pandas as pd
 from typing import Tuple, List, Union, Optional, Callable
+
+from . import lazy_sort_index
+from ..config import C
 
 
 def parse_freq(freq: str) -> Tuple[int, str]:
@@ -50,9 +55,10 @@ def parse_freq(freq: str) -> Tuple[int, str]:
     return _count, _freq_format_dict[_freq]
 
 
-def sample_calendar(calendar_raw: np.ndarray, freq_raw: str, freq_sam: str) -> np.ndarray:
+def resam_calendar(calendar_raw: np.ndarray, freq_raw: str, freq_sam: str) -> np.ndarray:
     """
-    Sample the calendar with frequency freq_raw into the calendar with frequency freq_sam
+    Resample the calendar with frequency freq_raw into the calendar with frequency freq_sam
+    Assumption: The fix length (240) of the calendar in each day.
 
     Parameters
     ----------
@@ -72,24 +78,36 @@ def sample_calendar(calendar_raw: np.ndarray, freq_raw: str, freq_sam: str) -> n
     sam_count, freq_sam = parse_freq(freq_sam)
     if not len(calendar_raw):
         return calendar_raw
+
+    # if freq_sam is xminute, divide each trading day into several bars evenly
     if freq_sam == "minute":
 
-        def cal_next_sam_minute(x, sam_minutes):
-            hour = x.hour
-            minute = x.minute
-            if (hour == 9 and minute >= 30) or (9 < hour < 11) or (hour == 11 and minute < 30):
-                minute_index = (hour - 9) * 60 + minute - 30
-            elif 13 <= hour < 15:
-                minute_index = (hour - 13) * 60 + minute + 120
+        def cal_sam_minute(x, sam_minutes):
+            day_time = pd.Timestamp(x.date())
+            shift = C.min_data_shift
+            # shift represents the shift minute the market time
+            # - open time of stock market is [9:30 - shift*pd.Timedelta(minutes=1)]
+            # - mid close time of stock market is [11:29 - shift*pd.Timedelta(minutes=1)]
+            # - mid open time of stock market is [13:30 - shift*pd.Timedelta(minutes=1)]
+            # - close time of stock market is [14:59 - shift*pd.Timedelta(minutes=1)]
+            open_time = day_time + pd.Timedelta(hours=9, minutes=30) - shift * pd.Timedelta(minutes=1)
+            mid_close_time = day_time + pd.Timedelta(hours=11, minutes=29) - shift * pd.Timedelta(minutes=1)
+            mid_open_time = day_time + pd.Timedelta(hours=13, minutes=30) - shift * pd.Timedelta(minutes=1)
+            close_time = day_time + pd.Timedelta(hours=14, minutes=59) - shift * pd.Timedelta(minutes=1)
+
+            if open_time <= x <= mid_close_time:
+                minute_index = (x - open_time).seconds // 60
+            elif mid_open_time <= x <= close_time:
+                minute_index = (x - mid_open_time).seconds // 60 + 120
             else:
-                raise ValueError("calendar hour must be in [9, 11] or [13, 15]")
+                raise ValueError("datetime of calendar is out of range")
 
             minute_index = minute_index // sam_minutes * sam_minutes
 
             if 0 <= minute_index < 120:
-                return 9 + (minute_index + 30) // 60, (minute_index + 30) % 60
+                return open_time + minute_index * pd.Timedelta(minutes=1)
             elif 120 <= minute_index < 240:
-                return 13 + (minute_index - 120) // 60, (minute_index - 120) % 60
+                return mid_open_time + (minute_index - 120) * pd.Timedelta(minutes=1)
             else:
                 raise ValueError("calendar minute_index error")
 
@@ -98,14 +116,10 @@ def sample_calendar(calendar_raw: np.ndarray, freq_raw: str, freq_sam: str) -> n
         else:
             if raw_count > sam_count:
                 raise ValueError("raw freq must be higher than sampling freq")
-        _calendar_minute = np.unique(
-            list(
-                map(lambda x: pd.Timestamp(x.year, x.month, x.day, *cal_next_sam_minute(x, sam_count), 0), calendar_raw)
-            )
-        )
-        if calendar_raw[0] > _calendar_minute[0]:
-            _calendar_minute[0] = calendar_raw[0]
+        _calendar_minute = np.unique(list(map(lambda x: cal_sam_minute(x, sam_count), calendar_raw)))
         return _calendar_minute
+
+    # else, convert the raw calendar into day calendar, and divide the whole calendar into several bars evenly
     else:
         _calendar_day = np.unique(list(map(lambda x: pd.Timestamp(x.year, x.month, x.day, 0, 0, 0), calendar_raw)))
         if freq_sam == "day":
@@ -124,14 +138,14 @@ def sample_calendar(calendar_raw: np.ndarray, freq_raw: str, freq_sam: str) -> n
             raise ValueError("sampling freq must be xmin, xd, xw, xm")
 
 
-def get_sample_freq_calendar(
+def get_resam_calendar(
     start_time: Union[str, pd.Timestamp] = None,
     end_time: Union[str, pd.Timestamp] = None,
     freq: str = "day",
     future: bool = False,
 ) -> Tuple[np.ndarray, str, Optional[str]]:
     """
-    Get the calendar with frequency freq.
+    Get the resampled calendar with frequency freq.
 
         - If the calendar with the raw frequency freq exists, return it directly
 
@@ -186,16 +200,15 @@ def get_sample_freq_calendar(
     return _calendar, freq, freq_sam
 
 
-def sample_feature(
-    feature: Union[pd.DataFrame, pd.Series],
+def resam_ts_data(
+    ts_feature: Union[pd.DataFrame, pd.Series],
     start_time: Union[str, pd.Timestamp] = None,
     end_time: Union[str, pd.Timestamp] = None,
-    fields: Union[str, List[str]] = None,
     method: Union[str, Callable] = "last",
     method_kwargs: dict = {},
 ):
     """
-    Sample value from pandas DataFrame or Series for each stock
+    Resample value from time-series data
 
         - If `feature` has MultiIndex[instrument, datetime], apply the `method` to each instruemnt data with datetime in [start_time, end_time]
             Example:
@@ -217,7 +230,7 @@ def sample_feature(
                             2010-01-12  2788.688232  164587.937500
                             2010-01-13  2790.604004  145460.453125
 
-                print(sample_feature(feature, start_time="2010-01-04", end_time="2010-01-05", fields=["$close", "$volume"], method="last"))
+                print(resam_ts_data(feature, start_time="2010-01-04", end_time="2010-01-05", fields=["$close", "$volume"], method="last"))
                             $close      $volume
                 instrument
                 SH600000    87.433578 28117442.0
@@ -236,25 +249,23 @@ def sample_feature(
                 2010-01-07  83.788803   20813402.0
                 2010-01-08  84.730675   16044853.0
 
-                print(sample_feature(feature, start_time="2010-01-04", end_time="2010-01-05", fields=["$close", "$volume"], method="last"))
+                print(resam_ts_data(feature, start_time="2010-01-04", end_time="2010-01-05", method="last"))
 
                 $close 87.433578
                 $volume 28117442.0
 
-                print(sample_feature(feature, start_time="2010-01-04", end_time="2010-01-05", fields="$close", method="last"))
+                print(resam_ts_data(feature['$close'], start_time="2010-01-04", end_time="2010-01-05", method="last"))
 
                 87.433578
 
     Parameters
     ----------
     feature : Union[pd.DataFrame, pd.Series]
-        Raw feature to be sampled
+        Raw time-series feature to be resampled
     start_time : Union[str, pd.Timestamp], optional
         start sampling time, by default None
     end_time : Union[str, pd.Timestamp], optional
         end sampling time, by default None
-    fields : Union[str, List[str]], optional
-        column names, it's ignored when sample pd.Series data, by default None(all columns)
     method : Union[str, Callable], optional
         sample method, apply method function to each stock series data, by default "last"
         - If type(method) is str, it should be an attribute of SeriesGroupBy or DataFrameGroupby, and run feature.groupby
@@ -264,24 +275,19 @@ def sample_feature(
 
     Returns
     -------
-        The Sampled DataFrame/Series/Value
+        The Resampled DataFrame/Series/Value
     """
 
     selector_datetime = slice(start_time, end_time)
-    if fields is None:
-        fields = slice(None)
 
     from ..data.dataset.utils import get_level_index
 
+    feature = lazy_sort_index(ts_feature)
     datetime_level = get_level_index(feature, level="datetime") == 0
-    if isinstance(feature, pd.Series):
-        feature = feature.loc[selector_datetime] if datetime_level else feature.loc[(slice(None), selector_datetime)]
-    elif isinstance(feature, pd.DataFrame):
-        feature = (
-            feature.loc[selector_datetime, fields]
-            if datetime_level
-            else feature.loc[(slice(None), selector_datetime), fields]
-        )
+    if datetime_level:
+        feature = feature.loc[selector_datetime]
+    else:
+        feature = feature.loc[(slice(None), selector_datetime)]
     if feature.empty:
         return None
     if isinstance(feature.index, pd.MultiIndex):
@@ -296,5 +302,4 @@ def sample_feature(
             return method_func(feature, **method_kwargs)
         elif isinstance(method, str):
             return getattr(feature, method)(**method_kwargs)
-
     return feature

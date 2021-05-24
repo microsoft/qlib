@@ -3,16 +3,51 @@
 
 
 from collections import OrderedDict
+from logging import warning
 import pandas as pd
 import pathlib
+import warnings
+
+from pandas.core.frame import DataFrame
+
+from ...utils.resam import parse_freq, resam_ts_data
+from ...data import D
 
 
 class Report:
     # daily report of the account
     # contain those followings: returns, costs turnovers, accounts, cash, bench, value
     # update report
-    def __init__(self):
+    def __init__(self, freq: str = "day", benchmark_config: dict = {}):
+        """
+        Parameters
+        ----------
+        freq : str
+            frequency of trading bar, used for updating hold count of trading bar
+        benchmark_config : dict
+            config of benchmark, may including the following arguments:
+            - benchmark : Union[str, list, pd.Series]
+                - If `benchmark` is pd.Series, `index` is trading date; the value T is the change from T-1 to T.
+                    example:
+                        print(D.features(D.instruments('csi500'), ['$close/Ref($close, 1)-1'])['$close/Ref($close, 1)-1'].head())
+                            2017-01-04    0.011693
+                            2017-01-05    0.000721
+                            2017-01-06   -0.004322
+                            2017-01-09    0.006874
+                            2017-01-10   -0.003350
+                - If `benchmark` is list, will use the daily average change of the stock pool in the list as the 'bench'.
+                - If `benchmark` is str, will use the daily change as the 'bench'.
+                benchmark code, default is SH000300 CSI300
+            - start_time : Union[str, pd.Timestamp], optional
+                - If `benchmark` is pd.Series, it will be ignored
+                - Else, it represent start time of benchmark, by default None
+            - end_time : Union[str, pd.Timestamp], optional
+                - If `benchmark` is pd.Series, it will be ignored
+                - Else, it represent end time of benchmark, by default None
+
+        """
         self.init_vars()
+        self.init_bench(freq=freq, benchmark_config=benchmark_config)
 
     def init_vars(self):
         self.accounts = OrderedDict()  # account postion value for each trade date
@@ -23,6 +58,49 @@ class Report:
         self.cashes = OrderedDict()
         self.benches = OrderedDict()
         self.latest_report_time = None  # pd.TimeStamp
+
+    def init_bench(self, freq=None, benchmark_config=None):
+        if freq is not None:
+            self.freq = freq
+        if benchmark_config is not None:
+            self.benchmark_config = benchmark_config
+        self.bench = self._cal_benchmark(self.benchmark_config, self.freq)
+
+    def _cal_benchmark(self, benchmark_config, freq):
+        benchmark = benchmark_config.get("benchmark", "SH000300")
+        if isinstance(benchmark, pd.Series):
+            return benchmark
+        else:
+            start_time = benchmark_config.get("start_time", None)
+            end_time = benchmark_config.get("end_time", None)
+
+            if freq is None:
+                raise ValueError("benchmark freq can't be None!")
+            _codes = benchmark if isinstance(benchmark, list) else [benchmark]
+            fields = ["$close/Ref($close,1)-1"]
+            try:
+                _temp_result = D.features(_codes, fields, start_time, end_time, freq=freq, disk_cache=1)
+            except ValueError:
+                _, norm_freq = parse_freq(freq)
+                if norm_freq in ["month", "week", "day"]:
+                    try:
+                        _temp_result = D.features(_codes, fields, start_time, end_time, freq="day", disk_cache=1)
+                    except ValueError:
+                        _temp_result = D.features(_codes, fields, start_time, end_time, freq="minute", disk_cache=1)
+                elif norm_freq == "minute":
+                    _temp_result = D.features(_codes, fields, start_time, end_time, freq="minute", disk_cache=1)
+                else:
+                    raise ValueError(f"benchmark freq {freq} is not supported")
+            if len(_temp_result) == 0:
+                raise ValueError(f"The benchmark {_codes} does not exist. Please provide the right benchmark")
+            return _temp_result.groupby(level="datetime")[_temp_result.columns.tolist()[0]].mean().fillna(0)
+
+    def _sample_benchmark(self, bench, trade_start_time, trade_end_time):
+        def cal_change(x):
+            return (x + 1).prod() - 1
+
+        _ret = resam_ts_data(bench, trade_start_time, trade_end_time, method=cal_change)
+        return 0.0 if _ret is None else _ret
 
     def is_empty(self):
         return len(self.accounts) == 0
@@ -35,30 +113,39 @@ class Report:
 
     def update_report_record(
         self,
-        trade_time=None,
+        trade_start_time=None,
+        trade_end_time=None,
         account_value=None,
         cash=None,
         return_rate=None,
         turnover_rate=None,
         cost_rate=None,
         stock_value=None,
-        bench_value=None,
     ):
         # check data
-        if None in [trade_time, account_value, cash, return_rate, turnover_rate, cost_rate, stock_value, bench_value]:
+        if None in [
+            trade_start_time,
+            trade_end_time,
+            account_value,
+            cash,
+            return_rate,
+            turnover_rate,
+            cost_rate,
+            stock_value,
+        ]:
             raise ValueError(
-                "None in [trade_date, account_value, cash, return_rate, turnover_rate, cost_rate, stock_value, bench_value]"
+                "None in [trade_start_time, trade_end_time, account_value, cash, return_rate, turnover_rate, cost_rate, stock_value]"
             )
         # update report data
-        self.accounts[trade_time] = account_value
-        self.returns[trade_time] = return_rate
-        self.turnovers[trade_time] = turnover_rate
-        self.costs[trade_time] = cost_rate
-        self.values[trade_time] = stock_value
-        self.cashes[trade_time] = cash
-        self.benches[trade_time] = bench_value
+        self.accounts[trade_start_time] = account_value
+        self.returns[trade_start_time] = return_rate
+        self.turnovers[trade_start_time] = turnover_rate
+        self.costs[trade_start_time] = cost_rate
+        self.values[trade_start_time] = stock_value
+        self.cashes[trade_start_time] = cash
+        self.benches[trade_start_time] = self._sample_benchmark(self.bench, trade_start_time, trade_end_time)
         # update latest_report_date
-        self.latest_report_time = trade_time
+        self.latest_report_time = trade_start_time
         # finish daily report update
 
     def generate_report_dataframe(self):

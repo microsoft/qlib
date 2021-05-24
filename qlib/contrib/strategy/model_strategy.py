@@ -3,29 +3,26 @@ import warnings
 import numpy as np
 import pandas as pd
 
-from ...utils.sample import sample_feature
+from ...utils.resam import resam_ts_data
 from ...strategy.base import ModelStrategy
 from ..backtest.order import Order
-from ..backtest.faculty import common_faculty
 from .order_generator import OrderGenWInteract
 
 
 class TopkDropoutStrategy(ModelStrategy):
     def __init__(
         self,
-        step_bar,
         model,
         dataset,
         topk,
         n_drop,
-        start_time=None,
-        end_time=None,
-        trade_exchange=None,
         method_sell="bottom",
         method_buy="top",
         risk_degree=0.95,
         hold_thresh=1,
         only_tradable=False,
+        level_infra={},
+        common_infra={},
         **kwargs,
     ):
         """
@@ -51,8 +48,9 @@ class TopkDropoutStrategy(ModelStrategy):
             else:
                 strategy will make decision with the tradable state of the stock info and avoid buy and sell them.
         """
-        super(TopkDropoutStrategy, self).__init__(step_bar, model, dataset, start_time, end_time, **kwargs)
-        self.trade_exchange = common_faculty.trade_exchange if trade_exchange is None else trade_exchange
+        super(TopkDropoutStrategy, self).__init__(
+            model, dataset, level_infra=level_infra, common_infra=common_infra, **kwargs
+        )
         self.topk = topk
         self.n_drop = n_drop
         self.method_sell = method_sell
@@ -60,6 +58,20 @@ class TopkDropoutStrategy(ModelStrategy):
         self.risk_degree = risk_degree
         self.hold_thresh = hold_thresh
         self.only_tradable = only_tradable
+
+    def reset_common_infra(self, common_infra):
+        """
+        Parameters
+        ----------
+        common_infra : dict, optional
+            common infrastructure for backtesting, by default None
+            - It should include `trade_account`, used to get position
+            - It should include `trade_exchange`, used to provide market info
+        """
+        super(TopkDropoutStrategy, self).reset_common_infra(common_infra)
+
+        if "trade_exchange" in common_infra:
+            self.trade_exchange = common_infra.get("trade_exchange")
 
     def get_risk_degree(self, trade_index=None):
         """get_risk_degree
@@ -69,11 +81,11 @@ class TopkDropoutStrategy(ModelStrategy):
         # It will use 95% amoutn of your total value by default
         return self.risk_degree
 
-    def generate_order_list(self, execute_state):
-        super(TopkDropoutStrategy, self).step()
-        trade_start_time, trade_end_time = self._get_calendar_time(self.trade_index)
-        pred_start_time, pred_end_time = self._get_calendar_time(self.trade_index, shift=1)
-        pred_score = sample_feature(self.pred_scores, start_time=pred_start_time, end_time=pred_end_time, method="last")
+    def generate_trade_decision(self, execute_state):
+        trade_index = self.trade_calendar.get_trade_index()
+        trade_start_time, trade_end_time = self.trade_calendar.get_calendar_time(trade_index)
+        pred_start_time, pred_end_time = self.trade_calendar.get_calendar_time(trade_index, shift=1)
+        pred_score = resam_ts_data(self.pred_scores, start_time=pred_start_time, end_time=pred_end_time, method="last")
         if pred_score is None:
             return []
         if self.only_tradable:
@@ -115,8 +127,7 @@ class TopkDropoutStrategy(ModelStrategy):
             def filter_stock(l):
                 return l
 
-        current = execute_state.get("current")
-        current_temp = copy.deepcopy(current)
+        current_temp = copy.deepcopy(self.trade_position)
         # generate order list for this adjust date
         sell_order_list = []
         buy_order_list = []
@@ -168,7 +179,8 @@ class TopkDropoutStrategy(ModelStrategy):
                 continue
             if code in sell:
                 # check hold limit
-                if current_temp.get_stock_count(code, bar=self.step_bar) < self.hold_thresh:
+                step_bar = self.trade_calendar.get_step_bar()
+                if current_temp.get_stock_count(code, bar=step_bar) < self.hold_thresh:
                     continue
                 # sell order
                 sell_amount = current_temp.get_stock_amount(code=code)
@@ -228,21 +240,34 @@ class TopkDropoutStrategy(ModelStrategy):
 class WeightStrategyBase(ModelStrategy):
     def __init__(
         self,
-        step_bar,
         model,
         dataset,
-        start_time=None,
-        end_time=None,
         order_generator_cls_or_obj=OrderGenWInteract,
-        trade_exchange=None,
+        level_infra={},
+        common_infra={},
         **kwargs,
     ):
-        super(WeightStrategyBase, self).__init__(step_bar, model, dataset, start_time, end_time, **kwargs)
-        self.trade_exchange = common_faculty.trade_exchange if trade_exchange is None else trade_exchange
+        super(WeightStrategyBase, self).__init__(
+            model, dataset, level_infra=level_infra, common_infra=common_infra, **kwargs
+        )
         if isinstance(order_generator_cls_or_obj, type):
             self.order_generator = order_generator_cls_or_obj()
         else:
             self.order_generator = order_generator_cls_or_obj
+
+    def reset_common_infra(self, common_infra):
+        """
+        Parameters
+        ----------
+        common_infra : dict, optional
+            common infrastructure for backtesting, by default None
+            - It should include `trade_account`, used to get position
+            - It should include `trade_exchange`, used to provide market info
+        """
+        super(WeightStrategyBase, self).reset_common_infra(common_infra)
+
+        if "trade_exchange" in common_infra:
+            self.trade_exchange = common_infra.get("trade_exchange")
 
     def get_risk_degree(self, trade_index=None):
         """get_risk_degree
@@ -267,7 +292,7 @@ class WeightStrategyBase(ModelStrategy):
         """
         raise NotImplementedError()
 
-    def generate_order_list(self, execute_state):
+    def generate_trade_decision(self, execute_state):
         """
         Parameters
         -----------
@@ -280,23 +305,22 @@ class WeightStrategyBase(ModelStrategy):
         trade_date : pd.Timestamp
             date.
         """
-        # generate_order_list
+        # generate_trade_decision
         # generate_target_weight_position() and generate_order_list_from_target_weight_position() to generate order_list
-        super(WeightStrategyBase, self).step()
-        trade_start_time, trade_end_time = self._get_calendar_time(self.trade_index)
-        pred_start_time, pred_end_time = self._get_calendar_time(self.trade_index, shift=1)
-        pred_score = sample_feature(self.pred_scores, start_time=pred_start_time, end_time=pred_end_time, method="last")
+        trade_index = self.trade_calendar.get_trade_index()
+        trade_start_time, trade_end_time = self.trade_calendar.get_calendar_time(trade_index)
+        pred_start_time, pred_end_time = self.trade_calendar.get_calendar_time(trade_index, shift=1)
+        pred_score = resam_ts_data(self.pred_scores, start_time=pred_start_time, end_time=pred_end_time, method="last")
         if pred_score is None:
             return []
-        current = execute_state.get("current")
-        current_temp = copy.deepcopy(current)
+        current_temp = copy.deepcopy(self.trade_position)
         target_weight_position = self.generate_target_weight_position(
             score=pred_score, current=current_temp, trade_start_time=trade_start_time, trade_end_time=trade_end_time
         )
         order_list = self.order_generator.generate_order_list_from_target_weight_position(
             current=current_temp,
             trade_exchange=self.trade_exchange,
-            risk_degree=self.get_risk_degree(self.trade_index),
+            risk_degree=self.get_risk_degree(trade_index),
             target_weight_position=target_weight_position,
             pred_start_time=pred_start_time,
             pred_end_time=pred_end_time,

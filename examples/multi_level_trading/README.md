@@ -14,8 +14,11 @@ This example uses a DropoutTopkStrategy (a strategy based on the daily frequency
 
 Start backtesting by running the following command:
 ```bash
-    python workflow.py
+    python workflow.py backtest
 ```
 
-Also, reports is shown in workflow.ipynb
+Start collecting data by running the following command:
+```bash
+    python workflow.py collect_data
+```
 

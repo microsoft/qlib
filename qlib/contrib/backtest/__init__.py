@@ -5,13 +5,12 @@ from .account import Account
 from .exchange import Exchange
 from .executor import BaseExecutor
 from .backtest import backtest as backtest_func
-
+from .backtest import collect_data as data_generator
 
 from ...strategy.base import BaseStrategy
 from ...utils import init_instance_by_config
 from ...log import get_module_logger
 from ...config import C
-from .faculty import common_faculty
 
 
 logger = get_module_logger("backtest caller")
@@ -89,8 +88,9 @@ def get_exchange(
         return init_instance_by_config(exchange, accept_types=Exchange)
 
 
-def backtest(start_time, end_time, strategy, env, benchmark="SH000300", account=1e9, exchange_kwargs={}):
-
+def get_strategy_executor(
+    start_time, end_time, strategy, executor, benchmark="SH000300", account=1e9, exchange_kwargs={}
+):
     trade_account = Account(
         init_cash=account,
         benchmark_config={
@@ -101,14 +101,32 @@ def backtest(start_time, end_time, strategy, env, benchmark="SH000300", account=
     )
     trade_exchange = get_exchange(**exchange_kwargs)
 
-    common_faculty.update(
-        trade_account=trade_account,
-        trade_exchange=trade_exchange,
+    common_infra = {
+        "trade_account": trade_account,
+        "trade_exchange": trade_exchange,
+    }
+
+    trade_strategy = init_instance_by_config(strategy, accept_types=BaseStrategy, common_infra=common_infra)
+    trade_executor = init_instance_by_config(executor, accept_types=BaseExecutor, common_infra=common_infra)
+
+    return trade_strategy, trade_executor
+
+
+def backtest(start_time, end_time, strategy, executor, benchmark="SH000300", account=1e9, exchange_kwargs={}):
+
+    trade_strategy, trade_executor = get_strategy_executor(
+        start_time, end_time, strategy, executor, benchmark, account, exchange_kwargs
     )
+    report_dict = backtest_func(start_time, end_time, trade_strategy, trade_executor)
 
-    trade_strategy = init_instance_by_config(strategy, accept_types=BaseStrategy)
-    trade_env = init_instance_by_config(env, accept_types=BaseExecutor)
+    return report_dict
 
-    report_dict = backtest_func(start_time, end_time, trade_strategy, trade_env)
+
+def collect_data(start_time, end_time, strategy, executor, benchmark="SH000300", account=1e9, exchange_kwargs={}):
+
+    trade_strategy, trade_executor = get_strategy_executor(
+        start_time, end_time, strategy, executor, benchmark, account, exchange_kwargs
+    )
+    report_dict = yield from data_generator(start_time, end_time, trade_strategy, trade_executor)
 
     return report_dict

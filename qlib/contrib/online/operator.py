@@ -118,7 +118,7 @@ class Operator:
             user.strategy.update(score_series, pred_date, trade_date)
 
             # generate and save order list
-            order_list = user.strategy.generate_order_list(
+            order_list = user.strategy.generate_trade_decision(
                 score_series=score_series,
                 current=user.account.current,
                 trade_exchange=trade_exchange,
@@ -208,7 +208,7 @@ class Operator:
             self.logger.info("Update account state {} for {}".format(trade_date, user_id))
 
     def simulate(self, id, config, exchange_config, start, end, path, bench="SH000905"):
-        """Run the ( generate_order_list -> execute_order_list -> update_account) process everyday
+        """Run the ( generate_trade_decision -> execute_order_list -> update_account) process everyday
             from start date to end date.
 
         Parameters
@@ -256,7 +256,7 @@ class Operator:
             user.strategy.update(score_series, pred_date, trade_date)
 
             # 3. generate and save order list
-            order_list = user.strategy.generate_order_list(
+            order_list = user.strategy.generate_trade_decision(
                 score_series=score_series,
                 current=user.account.current,
                 trade_exchange=trade_exchange,

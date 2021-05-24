@@ -1,9 +1,11 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-from .interpreter import StateInterpreter, ActionInterpreter
+from typing import Union
 
+from .interpreter import StateInterpreter, ActionInterpreter
 from ..contrib.backtest.executor import BaseExecutor
+from ..utils import init_instance_by_config
 
 
 class BaseRLEnv:
@@ -52,35 +54,22 @@ class QlibIntRLEnv(QlibRLEnv):
     def __init__(
         self,
         executor: BaseExecutor,
-        state_interpreter: StateInterpreter,
-        action_interpreter: ActionInterpreter,
-        state_interpret_kwargs: dict = {},
-        action_interpret_kwargs: dict = {},
+        state_interpreter: Union[dict, StateInterpreter],
+        action_interpreter: Union[dict, ActionInterpreter],
     ):
         """
 
         Parameters
         ----------
-        state_interpreter : StateInterpreter
+        state_interpreter : Union[dict, StateInterpreter]
             interpretor that interprets the qlib execute result into rl env state.
-        action_interpreter : ActionInterpreter
+
+        action_interpreter : Union[dict, ActionInterpreter]
             interpretor that interprets the rl agent action into qlib order list
-        state_interpret_kwargs : dict, optional
-            arguments may be used in `state_interpreter.interpret`, by default {}
-            such as the following arguments:
-                - trade exchange : Exchange
-                    Exchange that can provide market info
-        action_interpret_kwargs: dict, optional
-            arguments may be used in `action_interpreter.interpret`, by default {}
-            such as the following arguments:
-                - trade_order_list : List[Order]
-                    If the strategy is used to split order, it presents the trade order pool.
         """
         super(QlibIntRLEnv, self).__init__(executor=executor)
-        self.state_interpreter = state_interpreter
-        self.action_interpreter = action_interpreter
-        self.state_interpret_kwargs = state_interpret_kwargs
-        self.action_interpret_kwargs = action_interpret_kwargs
+        self.state_interpreter = init_instance_by_config(state_interpreter)
+        self.action_interpreter = init_instance_by_config(action_interpreter)
 
     def step(self, action):
         """
@@ -96,11 +85,9 @@ class QlibIntRLEnv(QlibRLEnv):
 
         Returns
         -------
-        env state to rl rl policy
+        env state to rl policy
         """
-        _interpret_action = self.action_interpreter.interpret(action=action, **self.state_interpret_kwargs)
+        _interpret_action = self.action_interpreter.interpret(action=action)
         _execute_result = self.executor.execute(_interpret_action)
-        _interpret_state = self.state_interpreter.interpret(
-            execute_result=_execute_result, **self.action_interpret_kwargs
-        )
+        _interpret_state = self.state_interpreter.interpret(execute_result=_execute_result)
         return _interpret_state

@@ -26,7 +26,7 @@ from ..utils import parse_field, read_bin, hash_args, normalize_cache_fields, co
 from .base import Feature
 from .cache import DiskDatasetCache, DiskExpressionCache
 from ..utils import Wrapper, init_instance_by_config, register_wrapper, get_module_by_module_path
-from ..utils.sample import sample_calendar
+from ..utils.resam import resam_calendar
 
 
 class CalendarProvider(abc.ABC):
@@ -133,7 +133,7 @@ class CalendarProvider(abc.ABC):
             if freq_sam is None:
                 return _calendar, _calendar_index
             else:
-                _calendar_sam = sample_calendar(_calendar, freq, freq_sam)
+                _calendar_sam = resam_calendar(_calendar, freq, freq_sam)
                 _calendar_sam_index = {x: i for i, x in enumerate(_calendar_sam)}
                 H["c"][flag] = _calendar_sam, _calendar_sam_index
                 return _calendar_sam, _calendar_sam_index
