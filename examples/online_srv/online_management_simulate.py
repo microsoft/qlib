@@ -78,8 +78,8 @@ class OnlineSimulationExample:
         provider_uri="~/.qlib/qlib_data/cn_data",
         region="cn",
         exp_name="rolling_exp",
-        task_url="mongodb://10.0.0.4:27017/",
-        task_db_name="rolling_db",
+        task_url="mongodb://10.0.0.4:27017/",  # not necessary when using TrainerR or DelayTrainerR
+        task_db_name="rolling_db",  # not necessary when using TrainerR or DelayTrainerR
         task_pool="rolling_task",
         rolling_step=80,
         start_time="2018-09-10",
@@ -113,7 +113,7 @@ class OnlineSimulationExample:
         self.rolling_gen = RollingGen(
             step=rolling_step, rtype=RollingGen.ROLL_SD, ds_extra_mod_func=None
         )  # The rolling tasks generator, ds_extra_mod_func is None because we just need to simulate to 2018-10-31 and needn't change the handler end time.
-        self.trainer = DelayTrainerRM(self.exp_name, self.task_pool)  # Also can be TrainerR, TrainerRM, DelayTrainerR
+        self.trainer = TrainerRM(self.exp_name, self.task_pool)  # Also can be TrainerR, TrainerRM, DelayTrainerR
         self.rolling_online_manager = OnlineManager(
             RollingStrategy(exp_name, task_template=tasks, rolling_gen=self.rolling_gen),
             trainer=self.trainer,
@@ -138,6 +138,15 @@ class OnlineSimulationExample:
         print(self.rolling_online_manager.get_collector()())
         print("========== signals ==========")
         print(self.rolling_online_manager.get_signals())
+
+    def worker(self):
+        # train tasks by other progress or machines for multiprocessing
+        # FIXME: only can call after finishing simulation when using DelayTrainerRM, or there will be some exception.
+        print("========== worker ==========")
+        if isinstance(self.trainer, TrainerRM):
+            self.trainer.worker()
+        else:
+            print(f"{type(self.trainer)} is not supported for worker.")
 
 
 if __name__ == "__main__":

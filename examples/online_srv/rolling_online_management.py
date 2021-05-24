@@ -13,10 +13,12 @@ Finally, the OnlineManager will finish second routine and update all strategies.
 import os
 import fire
 import qlib
+from qlib.model.trainer import DelayTrainerR, DelayTrainerRM, TrainerR, TrainerRM, end_task_train, task_train
 from qlib.workflow import R
 from qlib.workflow.online.strategy import RollingStrategy
 from qlib.workflow.task.gen import RollingGen
 from qlib.workflow.online.manager import OnlineManager
+from qlib.workflow.task.manage import TaskManager, run_task
 
 data_handler_config = {
     "start_time": "2013-01-01",
@@ -80,8 +82,9 @@ class RollingOnlineExample:
         self,
         provider_uri="~/.qlib/qlib_data/cn_data",
         region="cn",
-        task_url="mongodb://10.0.0.4:27017/",
-        task_db_name="rolling_db",
+        trainer=DelayTrainerRM(),  # you can choose from TrainerR, TrainerRM, DelayTrainerR, DelayTrainerRM
+        task_url="mongodb://10.0.0.4:27017/",  # not necessary when using TrainerR or DelayTrainerR
+        task_db_name="rolling_db",  # not necessary when using TrainerR or DelayTrainerR
         rolling_step=550,
         tasks=[task_xgboost_config],
         add_tasks=[task_lgb_config],
@@ -104,17 +107,28 @@ class RollingOnlineExample:
                     RollingGen(step=rolling_step, rtype=RollingGen.ROLL_SD),
                 )
             )
-
-        self.rolling_online_manager = OnlineManager(strategies)
+        self.trainer = trainer
+        self.rolling_online_manager = OnlineManager(strategies, trainer=self.trainer)
 
     _ROLLING_MANAGER_PATH = (
         ".RollingOnlineExample"  # the OnlineManager will dump to this file, for it can be loaded when calling routine.
     )
 
+    def worker(self):
+        # train tasks by other progress or machines for multiprocessing
+        print("========== worker ==========")
+        if isinstance(self.trainer, TrainerRM):
+            for task in self.tasks + self.add_tasks:
+                name_id = task["model"]["class"]
+                self.trainer.worker(experiment_name=name_id)
+        else:
+            print(f"{type(self.trainer)} is not supported for worker.")
+
     # Reset all things to the first status, be careful to save important data
     def reset(self):
         for task in self.tasks + self.add_tasks:
             name_id = task["model"]["class"]
+            TaskManager(task_pool=name_id).remove()
             exp = R.get_exp(experiment_name=name_id)
             for rid in exp.list_recorders():
                 exp.delete_recorder(rid)

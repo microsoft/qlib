@@ -4,6 +4,7 @@
 """
 This example shows how a TrainerRM works based on TaskManager with rolling tasks.
 After training, how to collect the rolling results will be shown in task_collecting.
+Based on the ability of TaskManager, `worker` method offer a simple way for multiprocessing.
 """
 
 from pprint import pprint
@@ -13,10 +14,10 @@ import qlib
 from qlib.config import REG_CN
 from qlib.workflow import R
 from qlib.workflow.task.gen import RollingGen, task_generator
-from qlib.workflow.task.manage import TaskManager
+from qlib.workflow.task.manage import TaskManager, run_task
 from qlib.workflow.task.collect import RecorderCollector
 from qlib.model.ens.group import RollingGroup
-from qlib.model.trainer import TrainerRM
+from qlib.model.trainer import TrainerRM, task_train
 
 
 data_handler_config = {
@@ -121,6 +122,11 @@ class RollingTaskExample:
         print("========== task_training ==========")
         trainer = TrainerRM(self.experiment_name, self.task_pool)
         trainer.train(tasks)
+
+    def worker(self):
+        # train tasks by other progress or machines for multiprocessing. It is same as TrainerRM.worker.
+        print("========== worker ==========")
+        run_task(task_train, self.task_pool, experiment_name=self.experiment_name)
 
     def task_collecting(self):
         print("========== task_collecting ==========")

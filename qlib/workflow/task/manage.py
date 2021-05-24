@@ -69,7 +69,7 @@ class TaskManager:
 
     ENCODE_FIELDS_PREFIX = ["def", "res"]
 
-    def __init__(self, task_pool: str = None):
+    def __init__(self, task_pool: str):
         """
         Init Task Manager, remember to make the statement of MongoDB url and database name firstly.
 
@@ -79,8 +79,7 @@ class TaskManager:
             the name of Collection in MongoDB
         """
         self.mdb = get_mongodb()
-        if task_pool is not None:
-            self.task_pool = getattr(self.mdb, task_pool)
+        self.task_pool = getattr(self.mdb, task_pool)
         self.logger = get_module_logger(self.__class__.__name__)
 
     def list(self) -> list:
@@ -288,7 +287,7 @@ class TaskManager:
         for t in self.task_pool.find(query):
             yield self._decode_task(t)
 
-    def re_query(self, _id):
+    def re_query(self, _id) -> dict:
         """
         Use _id to query task.
 
