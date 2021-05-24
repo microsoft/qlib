@@ -39,6 +39,9 @@ class Recorder:
     def __str__(self):
         return str(self.info)
 
+    def __hash__(self) -> int:
+        return hash(self.info["id"])
+
     @property
     def info(self):
         output = dict()
@@ -231,6 +234,14 @@ class MLflowRecorder(Recorder):
             artifact_uri=self.artifact_uri,
             client=self.client,
         )
+
+    def __hash__(self) -> int:
+        return hash(self.info["id"])
+
+    def __eq__(self, o: object) -> bool:
+        if isinstance(o, MLflowRecorder):
+            return self.info["id"] == o.info["id"]
+        return False
 
     @property
     def uri(self):

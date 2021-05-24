@@ -3,6 +3,7 @@
 
 
 __version__ = "0.6.3.99"
+__version__bak = __version__  # This version is backup for QlibConfig.reset_qlib_version
 
 
 import os
@@ -10,12 +11,13 @@ import yaml
 import logging
 import platform
 import subprocess
+from pathlib import Path
+from .log import get_module_logger
 
 
 # init qlib
 def init(default_conf="client", **kwargs):
     from .config import C
-    from .log import get_module_logger
     from .data.cache import H
 
     H.clear()
@@ -48,7 +50,6 @@ def init(default_conf="client", **kwargs):
 
 
 def _mount_nfs_uri(C):
-    from .log import get_module_logger
 
     LOG = get_module_logger("mount nfs", level=logging.INFO)
 
@@ -151,3 +152,74 @@ def init_from_yaml_conf(conf_path, **kwargs):
     config.update(kwargs)
     default_conf = config.pop("default_conf", "client")
     init(default_conf, **config)
+
+
+def get_project_path(config_name="config.yaml", cur_path=None) -> Path:
+    """
+    If users are building a project follow the following pattern.
+    - Qlib is a sub folder in project path
+    - There is a file named `config.yaml` in qlib.
+
+    For example:
+        If your project file system stucuture follows such a pattern
+
+            <project_path>/
+              - config.yaml
+              - ...some folders...
+                - qlib/
+
+        This folder will return <project_path>
+
+        NOTE: link is not supported here.
+
+
+    This method is often used when
+    - user want to use a relative config path instead of hard-coding qlib config path in code
+
+    Raises
+    ------
+    FileNotFoundError:
+        If project path is not found
+    """
+    if cur_path is None:
+        cur_path = Path(__file__).absolute().resolve()
+    while True:
+        if (cur_path / config_name).exists():
+            return cur_path
+        if cur_path == cur_path.parent:
+            raise FileNotFoundError("We can't find the project path")
+        cur_path = cur_path.parent
+
+
+def auto_init(**kwargs):
+    """
+    This function will init qlib automatically with following priority
+    - Find the project configuration and init qlib
+        - The parsing process will be affected by the `conf_type` of the configuration file
+    - Init qlib with default config
+    """
+
+    try:
+        pp = get_project_path(cur_path=kwargs.pop("cur_path", None))
+    except FileNotFoundError:
+        init(**kwargs)
+    else:
+
+        conf_pp = pp / "config.yaml"
+        with conf_pp.open() as f:
+            conf = yaml.safe_load(f)
+
+        conf_type = conf.get("conf_type", "origin")
+        if conf_type == "origin":
+            # The type of config is just like original qlib config
+            init_from_yaml_conf(conf_pp, **kwargs)
+        elif conf_type == "ref":
+            # This config type will be more convenient in following scenario
+            # - There is a shared configure file and you don't want to edit it inplace.
+            # - The shared configure may be updated later and you don't want to copy it.
+            # - You have some customized config.
+            qlib_conf_path = conf["qlib_cfg"]
+            qlib_conf_update = conf.get("qlib_cfg_update")
+            init_from_yaml_conf(qlib_conf_path, **qlib_conf_update, **kwargs)
+        logger = get_module_logger("Initialization")
+        logger.info(f"Auto load project config: {conf_pp}")

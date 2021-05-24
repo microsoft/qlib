@@ -182,6 +182,11 @@ The `trade unit` defines the unit number of stocks can be used in a trade, and t
             qlib.init(provider_uri='~/.qlib/qlib_data/us_data', region=REG_US)
         
 
+.. note::
+
+    PRs for new data source are highly welcome! Users could commit the code to crawl data as a PR like `the examples here  <https://github.com/microsoft/qlib/tree/main/scripts>`_. And then we will use the code to create data cache on our server which other users could use directly.
+
+
 Data API
 ========================
 
@@ -391,8 +396,7 @@ The ``DatasetH`` class is the `dataset` with `Data Handler`. Here is the most im
 API
 ---------
 
-To know more about ``Dataset``, please refer to `Dataset API <../reference/api.html#module-qlib.data.dataset.__init__>`_.
-
+To know more about ``Dataset``, please refer to `Dataset API <../reference/api.html#dataset>`_.
 
 
 Cache

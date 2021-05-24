@@ -7,6 +7,20 @@
 [![License](https://img.shields.io/pypi/l/pyqlib)](LICENSE)
 [![Join the chat at https://gitter.im/Microsoft/qlib](https://badges.gitter.im/Microsoft/qlib.svg)](https://gitter.im/Microsoft/qlib?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
+## :newspaper: **What's NEW!** &nbsp;   :sparkling_heart: 
+Recent released features
+| Feature | Status |
+| --                      | ------    |
+| Online serving and automatic model rolling | :star: [Released](https://github.com/microsoft/qlib/pull/290) on May 17, 2021 | 
+| DoubleEnsemble Model | [Released](https://github.com/microsoft/qlib/pull/286) on Mar 2, 2021 | 
+| High-frequency data processing example | [Released](https://github.com/microsoft/qlib/pull/257) on Feb 5, 2021  |
+| High-frequency trading example | [Part of code released](https://github.com/microsoft/qlib/pull/227) on Jan 28, 2021  | 
+| High-frequency data(1min) | [Released](https://github.com/microsoft/qlib/pull/221) on Jan 27, 2021 |
+| Tabnet Model | [Released](https://github.com/microsoft/qlib/pull/205) on Jan 22, 2021 | 
+
+Features released before 2021 are not listed here.
+
+
 
 <p align="center">
   <img src="http://fintech.msra.cn/images_v060/logo/1.png" />
@@ -21,7 +35,7 @@ With Qlib, users can easily try ideas to create better Quant investment strategi
 
 For more details, please refer to our paper ["Qlib: An AI-oriented Quantitative Investment Platform"](https://arxiv.org/abs/2009.11189).
 
-- [**News and Plans**](#news-and-plans)
+- [**Plans**](#plans)
 - [Framework of Qlib](#framework-of-qlib)
 - [Quick Start](#quick-start)
   - [Installation](#installation)
@@ -40,28 +54,16 @@ For more details, please refer to our paper ["Qlib: An AI-oriented Quantitative 
 - [Contributing](#contributing)
 
 
-# News And Plans
+# Plans
 New features under development(order by estimated release time).
 Your feedbacks about the features are very important.
 | Feature                        | Status      |
 | --                      | ------    |
-| Online serving and automatic model rolling | Under review: https://github.com/microsoft/qlib/pull/290 | 
 | Planning-based portfolio optimization | Under review:  https://github.com/microsoft/qlib/pull/280 | 
 | Fund data supporting and analysis  |  Under review: https://github.com/microsoft/qlib/pull/292 |
 | Point-in-Time database | Under review: https://github.com/microsoft/qlib/pull/343 |
-| High-frequency trading | Initial opensource version under development | 
+| High-frequency trading | Under review: https://github.com/microsoft/qlib/pull/408 | 
 | Meta-Learning-based data selection | Initial opensource version under development |
-
-Recent released features
-| Feature | Status |
-| --                      | ------    |
-| DoubleEnsemble Model | Released https://github.com/microsoft/qlib/pull/286 | 
-| High-frequency data processing example | Released https://github.com/microsoft/qlib/pull/257 |
-| High-frequency trading example | Part of code released https://github.com/microsoft/qlib/pull/227 | 
-| High-frequency data(1min) | Released https://github.com/microsoft/qlib/pull/221 |
-| Tabnet Model | Released https://github.com/microsoft/qlib/pull/205 | 
-
-Features released before 2021 are not listed here.
 
 # Framework of Qlib
 
