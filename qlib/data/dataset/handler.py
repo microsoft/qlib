@@ -61,7 +61,7 @@ class DataHandler(Serializable):
         instruments=None,
         start_time=None,
         end_time=None,
-        data_loader: Tuple[dict, str, DataLoader] = None,
+        data_loader: Union[dict, str, DataLoader] = None,
         init_data=True,
         fetch_orig=True,
     ):
@@ -74,7 +74,7 @@ class DataHandler(Serializable):
             start_time of the original data.
         end_time :
             end_time of the original data.
-        data_loader : Tuple[dict, str, DataLoader]
+        data_loader : Union[dict, str, DataLoader]
             data loader to load the data.
         init_data :
             initialize the original data in the constructor.
@@ -305,7 +305,7 @@ class DataHandlerLP(DataHandler):
         instruments=None,
         start_time=None,
         end_time=None,
-        data_loader: Tuple[dict, str, DataLoader] = None,
+        data_loader: Union[dict, str, DataLoader] = None,
         infer_processors=[],
         learn_processors=[],
         process_type=PTYPE_A,

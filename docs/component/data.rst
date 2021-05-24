@@ -396,8 +396,7 @@ The ``DatasetH`` class is the `dataset` with `Data Handler`. Here is the most im
 API
 ---------
 
-To know more about ``Dataset``, please refer to `Dataset API <../reference/api.html#module-qlib.data.dataset.__init__>`_.
-
+To know more about ``Dataset``, please refer to `Dataset API <../reference/api.html#dataset>`_.
 
 
 Cache
