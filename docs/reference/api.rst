@@ -53,6 +53,34 @@ Cache
 .. autoclass:: qlib.data.cache.DiskDatasetCache
     :members:
 
+
+Storage
+-------------
+.. autoclass:: qlib.data.storage.storage.BaseStorage
+    :members:
+
+.. autoclass:: qlib.data.storage.storage.CalendarStorage
+    :members:
+
+.. autoclass:: qlib.data.storage.storage.InstrumentStorage
+    :members:
+
+.. autoclass:: qlib.data.storage.storage.FeatureStorage
+    :members:
+
+.. autoclass:: qlib.data.storage.file_storage.FileStorageMixin
+    :members:
+
+.. autoclass:: qlib.data.storage.file_storage.FileCalendarStorage
+    :members:
+
+.. autoclass:: qlib.data.storage.file_storage.FileInstrumentStorage
+    :members:
+
+.. autoclass:: qlib.data.storage.file_storage.FileFeatureStorage
+    :members:
+
+
 Dataset
 ---------------
 

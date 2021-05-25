@@ -25,24 +25,28 @@ class UserCalendarStorage(CalendarStorage):
 
     @property
     def data(self) -> Iterable[CalVT]:
-        '''get all data'''
-        raise NotImplementedError("Subclass of CalendarStorage must implement `data` method")
+        '''get all data
 
-    def check_exists(self) -> bool:
-        '''check if storage(uri) exists, if not exists: return False'''
-        raise NotImplementedError("Subclass of BaseStorage must implement `check_exists` method")
+        Raises
+        ------
+        ValueError
+            If the data(storage) does not exist, raise ValueError
+        '''
+        raise NotImplementedError("Subclass of CalendarStorage must implement `data` method")
 
 
 class UserInstrumentStorage(InstrumentStorage):
 
     @property
     def data(self) -> Dict[InstKT, InstVT]:
-        '''get all data'''
-        raise NotImplementedError("Subclass of InstrumentStorage must implement `data` method")
+        '''get all data
 
-    def check_exists(self) -> bool:
-        '''check if storage(uri) exists, if not exists: return False'''
-        raise NotImplementedError("Subclass of BaseStorage must implement `check_exists` method")
+        Raises
+        ------
+        ValueError
+            If the data(storage) does not exist, raise ValueError
+        '''
+        raise NotImplementedError("Subclass of InstrumentStorage must implement `data` method")
 
 
 class UserFeatureStorage(FeatureStorage):
@@ -53,82 +57,28 @@ class UserFeatureStorage(FeatureStorage):
         Returns
         -------
             pd.Series(values, index=pd.RangeIndex(start, len(values))
+
+        Notes
+        -------
+        if data(storage) does not exist:
+            if isinstance(i, int):
+                return (None, None)
+            if isinstance(i,  slice):
+                # return empty pd.Series
+                return pd.Series(dtype=np.float32)
         '''
         raise NotImplementedError(
             "Subclass of FeatureStorage must implement `__getitem__(s: slice)` method"
         )
 
-    def check_exists(self) -> bool:
-        '''check if storage(uri) exists, if not exists: return False'''
-        raise NotImplementedError("Subclass of BaseStorage must implement `check_exists` method")
 
 """
 
 
-class StorageMeta(type):
-    """unified management of raise when storage is not exists"""
-
-    def __new__(cls, name, bases, dict):
-        class_obj = type.__new__(cls, name, bases, dict)
-
-        # The calls to __iter__ and __getitem__ do not pass through __getattribute__.
-        # In order to throw an exception before calling __getitem__, use the metaclass
-        _getitem_func = getattr(class_obj, "__getitem__")
-
-        def _getitem(obj, item):
-            getattr(obj, "_check")()
-            try:
-                res = _getitem_func(obj, item)
-            except Exception as e:
-                raise ValueError(f"{obj.raise_info}\n\tStorage exception info: {str(e)}")
-            return res
-
-        setattr(class_obj, "__getitem__", _getitem)
-        return class_obj
-
-
-class BaseStorage(metaclass=StorageMeta):
+class BaseStorage:
     @property
     def storage_name(self) -> str:
         return re.findall("[A-Z][^A-Z]*", self.__class__.__name__)[-2].lower()
-
-    @property
-    def raise_info(self):
-        parameters_info = [
-            f"{_k}={_v}"
-            for _k, _v in self.__dict__.items()
-            if not isinstance(_v, (dict,)) or (hasattr(_v, "__len__") and len(_v) < 3)
-        ]
-        return f"{self.storage_name.lower()} not exists, storage parameters: {parameters_info}"
-
-    def check_exists(self) -> bool:
-        """check if storage(uri) exists, if not exists: return False"""
-        raise NotImplementedError("Subclass of BaseStorage must implement `check_exists` method")
-
-    def clear(self) -> None:
-        """clear storage"""
-        raise NotImplementedError("Subclass of BaseStorage must implement `clear` method")
-
-    def __len__(self) -> 0:
-        return len(self.data) if self.check_exists() else 0
-
-    def __getitem__(self, item: Union[slice, Union[int, InstKT]]):
-        raise NotImplementedError(
-            "Subclass of BaseStorage must implement `__getitem__(i: Union[int, InstKT])`/`__getitem__(s: slice)`  method"
-        )
-
-    def _check(self):
-        if not self.check_exists():
-            raise ValueError(self.raise_info)
-
-    def __getattribute__(self, item):
-        if item == "data":
-            self._check()
-        try:
-            res = super(BaseStorage, self).__getattribute__(item)
-        except Exception as e:
-            raise ValueError(f"{self.raise_info}\n\tStorage exception info: {str(e)}")
-        return res
 
 
 class CalendarStorage(BaseStorage):
@@ -136,20 +86,35 @@ class CalendarStorage(BaseStorage):
     The behavior of CalendarStorage's methods and List's methods of the same name remain consistent
     """
 
-    def __init__(self, freq: str, future: bool, uri: str, **kwargs):
+    def __init__(self, freq: str, future: bool, **kwargs):
         self.freq = freq
         self.future = future
-        self.uri = uri
+        self.kwargs = kwargs
 
     @property
     def data(self) -> Iterable[CalVT]:
-        """get all data"""
+        """get all data
+
+        Raises
+        ------
+        ValueError
+            If the data(storage) does not exist, raise ValueError
+        """
         raise NotImplementedError("Subclass of CalendarStorage must implement `data` method")
+
+    def clear(self) -> None:
+        raise NotImplementedError("Subclass of CalendarStorage must implement `clear` method")
 
     def extend(self, iterable: Iterable[CalVT]) -> None:
         raise NotImplementedError("Subclass of CalendarStorage must implement `extend` method")
 
     def index(self, value: CalVT) -> int:
+        """
+        Raises
+        ------
+        ValueError
+            If the data(storage) does not exist, raise ValueError
+        """
         raise NotImplementedError("Subclass of CalendarStorage must implement `index` method")
 
     def insert(self, index: int, value: CalVT) -> None:
@@ -184,6 +149,12 @@ class CalendarStorage(BaseStorage):
         ...
 
     def __delitem__(self, i) -> None:
+        """
+        Raises
+        ------
+        ValueError
+            If the data(storage) does not exist, raise ValueError
+        """
         raise NotImplementedError(
             "Subclass of CalendarStorage must implement `__delitem__(i: int)`/`__delitem__(s: slice)`  method"
         )
@@ -199,26 +170,60 @@ class CalendarStorage(BaseStorage):
         ...
 
     def __getitem__(self, i) -> CalVT:
+        """
+
+        Raises
+        ------
+        ValueError
+            If the data(storage) does not exist, raise ValueError
+
+        """
         raise NotImplementedError(
             "Subclass of CalendarStorage must implement `__getitem__(i: int)`/`__getitem__(s: slice)`  method"
         )
 
+    def __len__(self) -> int:
+        """
+
+        Raises
+        ------
+        ValueError
+            If the data(storage) does not exist, raise ValueError
+
+        """
+        raise NotImplementedError("Subclass of CalendarStorage must implement `__len__`  method")
+
 
 class InstrumentStorage(BaseStorage):
-    def __init__(self, market: str, uri: str, **kwargs):
+    def __init__(self, market: str, **kwargs):
         self.market = market
-        self.uri = uri
+        self.kwargs = kwargs
 
     @property
     def data(self) -> Dict[InstKT, InstVT]:
-        """get all data"""
+        """get all data
+
+        Raises
+        ------
+        ValueError
+            If the data(storage) does not exist, raise ValueError
+        """
         raise NotImplementedError("Subclass of InstrumentStorage must implement `data` method")
+
+    def clear(self) -> None:
+        raise NotImplementedError("Subclass of InstrumentStorage must implement `clear` method")
 
     def update(self, *args, **kwargs) -> None:
         """D.update([E, ]**F) -> None.  Update D from mapping/iterable E and F.
-        If E present and has a .keys() method, does:     for k in E: D[k] = E[k]
-        If E present and lacks .keys() method, does:     for (k, v) in E: D[k] = v
-        In either case, this is followed by: for k, v in F.items(): D[k] = v
+
+        Notes
+        ------
+            If E present and has a .keys() method, does:     for k in E: D[k] = E[k]
+
+            If E present and lacks .keys() method, does:     for (k, v) in E: D[k] = v
+
+            In either case, this is followed by: for k, v in F.items(): D[k] = v
+
         """
         raise NotImplementedError("Subclass of InstrumentStorage must implement `update` method")
 
@@ -227,52 +232,95 @@ class InstrumentStorage(BaseStorage):
         raise NotImplementedError("Subclass of InstrumentStorage must implement `__setitem__` method")
 
     def __delitem__(self, k: InstKT) -> None:
-        """Delete self[key]."""
+        """Delete self[key].
+
+        Raises
+        ------
+        ValueError
+            If the data(storage) does not exist, raise ValueError
+        """
         raise NotImplementedError("Subclass of InstrumentStorage must implement `__delitem__` method")
 
     def __getitem__(self, k: InstKT) -> InstVT:
         """x.__getitem__(k) <==> x[k]"""
         raise NotImplementedError("Subclass of InstrumentStorage must implement `__getitem__` method")
 
+    def __len__(self) -> int:
+        """
+
+        Raises
+        ------
+        ValueError
+            If the data(storage) does not exist, raise ValueError
+
+        """
+        raise NotImplementedError("Subclass of InstrumentStorage must implement `__len__`  method")
+
 
 class FeatureStorage(BaseStorage):
-    def __init__(self, instrument: str, field: str, freq: str, uri: str, **kwargs):
+    def __init__(self, instrument: str, field: str, freq: str, **kwargs):
         self.instrument = instrument
         self.field = field
         self.freq = freq
-        self.uri = uri
+        self.kwargs = kwargs
 
     @property
     def data(self) -> pd.Series:
-        """get all data"""
+        """get all data
+
+        Notes
+        ------
+        if data(storage) does not exist, return empty pd.Series: `return pd.Series(dtype=np.float32)`
+        """
         raise NotImplementedError("Subclass of FeatureStorage must implement `data` method")
 
     @property
     def start_index(self) -> Union[int, None]:
         """get FeatureStorage start index
-        If len(self) == 0; return None
+
+        Notes
+        -----
+        If the data(storage) does not exist, return None
         """
-        raise NotImplementedError("Subclass of FeatureStorage must implement `data` method")
+        raise NotImplementedError("Subclass of FeatureStorage must implement `start_index` method")
 
     @property
     def end_index(self) -> Union[int, None]:
-        if len(self) == 0:
-            return None
-        return None if len(self) == 0 else self.start_index + len(self) - 1
+        """get FeatureStorage end index
+
+        Notes
+        -----
+        The  right index of the data range (both sides are closed)
+
+            The next  data appending point will be  `end_index + 1`
+
+        If the data(storage) does not exist, return None
+        """
+        raise NotImplementedError("Subclass of FeatureStorage must implement `end_index` method")
+
+    def clear(self) -> None:
+        raise NotImplementedError("Subclass of FeatureStorage must implement `clear` method")
 
     def write(self, data_array: Union[List, np.ndarray, Tuple], index: int = None):
         """Write data_array to FeatureStorage starting from index.
-        If index is None, append data_array to feature.
-        If len(data_array) == 0; return
-        If (index - self.end_index) >= 1, self[end_index+1: index] will be filled with np.nan
 
+        Notes
+        ------
+            If index is None, append data_array to feature.
 
-        Examples:
+            If len(data_array) == 0; return
+
+            If (index - self.end_index) >= 1, self[end_index+1: index] will be filled with np.nan
+
+        Examples
+        ---------
+            .. code-block::
 
                 feature:
                     3   4
                     4   5
                     5   6
+
 
             >>> self.write([6, 7], index=6)
 
@@ -311,56 +359,70 @@ class FeatureStorage(BaseStorage):
     def rebase(self, start_index: int = None, end_index: int = None):
         """Rebase the start_index and end_index of the FeatureStorage.
 
-        Examples:
+        start_index and end_index are closed intervals: [start_index, end_index]
 
-                feature:
-                    3   4
-                    4   5
-                    5   6
+        Examples
+        ---------
 
-            >>> self.rebase(start_index=4)
+            .. code-block::
 
-                feature:
-                    4   5
-                    5   6
+                    feature:
+                        3   4
+                        4   5
+                        5   6
 
-            >>> self.rebase(start_index=3)
 
-                feature:
-                    3   np.nan
-                    4   5
-                    5   6
+                >>> self.rebase(start_index=4)
 
-            >>> self.write([3], index=3)
+                    feature:
+                        4   5
+                        5   6
 
-                feature:
-                    3   3
-                    4   5
-                    5   6
+                >>> self.rebase(start_index=3)
 
-            >>> self.rebase(end_index=4)
+                    feature:
+                        3   np.nan
+                        4   5
+                        5   6
 
-                feature:
-                    3   3
-                    4   5
+                >>> self.write([3], index=3)
 
-            >>> self.write([6, 7, 8], index=4)
+                    feature:
+                        3   3
+                        4   5
+                        5   6
 
-                feature:
-                    3   3
-                    4   6
-                    5   7
-                    6   8
+                >>> self.rebase(end_index=4)
 
-            >>> self.rebase(start_index=4, end_index=5)
+                    feature:
+                        3   3
+                        4   5
 
-                feature:
-                    4   6
-                    5   7
+                >>> self.write([6, 7, 8], index=4)
+
+                    feature:
+                        3   3
+                        4   6
+                        5   7
+                        6   8
+
+                >>> self.rebase(start_index=4, end_index=5)
+
+                    feature:
+                        4   6
+                        5   7
 
         """
-        if start_index is None and end_index is None:
-            logger.warning("both start_index and end_index are None, rebase is ignored")
+        storage_si = self.start_index
+        storage_ei = self.end_index
+        if storage_si is None or storage_ei is None:
+            raise ValueError("storage.start_index or storage.end_index is None, storage may not exist")
+
+        start_index = storage_si if start_index is None else start_index
+        end_index = storage_ei if end_index is None else end_index
+
+        if start_index is None or end_index is None:
+            logger.warning("both start_index and end_index are None, or storage does not exist; rebase is ignored")
             return
 
         if start_index < 0 or end_index < 0:
@@ -373,17 +435,15 @@ class FeatureStorage(BaseStorage):
             )
             return
 
-        start_index = self.start_index if start_index is None else end_index
-        end_index = self.end_index if end_index is None else end_index
-        if start_index <= self.start_index:
-            self.write([np.nan] * (self.start_index - start_index), start_index)
+        if start_index <= storage_si:
+            self.write([np.nan] * (storage_si - start_index), start_index)
         else:
             self.rewrite(self[start_index:].values, start_index)
 
         if end_index >= self.end_index:
             self.write([np.nan] * (end_index - self.end_index))
         else:
-            self.rewrite(self[: end_index + 1].values, self.start_index)
+            self.rewrite(self[: end_index + 1].values, start_index)
 
     def rewrite(self, data: Union[List, np.ndarray, Tuple], index: int):
         """overwrite all data in FeatureStorage with data
@@ -414,7 +474,28 @@ class FeatureStorage(BaseStorage):
         ...
 
     def __getitem__(self, i) -> Union[Tuple[int, float], pd.Series]:
-        """x.__getitem__(y) <==> x[y]"""
+        """x.__getitem__(y) <==> x[y]
+
+        Notes
+        -------
+        if data(storage) does not exist:
+            if isinstance(i, int):
+                return (None, None)
+            if isinstance(i,  slice):
+                # return empty pd.Series
+                return pd.Series(dtype=np.float32)
+        """
         raise NotImplementedError(
             "Subclass of FeatureStorage must implement `__getitem__(i: int)`/`__getitem__(s: slice)` method"
         )
+
+    def __len__(self) -> int:
+        """
+
+        Raises
+        ------
+        ValueError
+            If the data(storage) does not exist, raise ValueError
+
+        """
+        raise NotImplementedError("Subclass of FeatureStorage must implement `__len__`  method")

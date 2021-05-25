@@ -24,13 +24,23 @@ QLIB_DIR.mkdir(exist_ok=True, parents=True)
 class TestStorage(TestAutoData):
     def test_calendar_storage(self):
 
-        calendar = CalendarStorage(freq="day", future=False, uri=self.provider_uri)
+        calendar = CalendarStorage(freq="day", future=False, provider_uri=self.provider_uri)
         assert isinstance(calendar[:], Iterable), f"{calendar.__class__.__name__}.__getitem__(s: slice) is not Iterable"
         assert isinstance(calendar.data, Iterable), f"{calendar.__class__.__name__}.data is not Iterable"
 
         print(f"calendar[1: 5]: {calendar[1:5]}")
         print(f"calendar[0]: {calendar[0]}")
         print(f"calendar[-1]: {calendar[-1]}")
+
+        calendar = CalendarStorage(freq="1min", future=False, provider_uri="not_found")
+        with pytest.raises(ValueError):
+            print(calendar.data)
+
+        with pytest.raises(ValueError):
+            print(calendar[:])
+
+        with pytest.raises(ValueError):
+            print(calendar[0])
 
     def test_instrument_storage(self):
         """
@@ -66,7 +76,7 @@ class TestStorage(TestAutoData):
 
         """
 
-        instrument = InstrumentStorage(market="csi300", uri=self.provider_uri)
+        instrument = InstrumentStorage(market="csi300", provider_uri=self.provider_uri)
 
         for inst, spans in instrument.data.items():
             assert isinstance(inst, str) and isinstance(
@@ -78,6 +88,13 @@ class TestStorage(TestAutoData):
                 ), f"{instrument.__class__.__name__}.__getitem__(k) TypeError"
 
         print(f"instrument['SH600000']: {instrument['SH600000']}")
+
+        instrument = InstrumentStorage(market="csi300", provider_uri="not_found")
+        with pytest.raises(ValueError):
+            print(instrument.data)
+
+        with pytest.raises(ValueError):
+            print(instrument["sSH600000"])
 
     def test_feature_storage(self):
         """
@@ -133,9 +150,9 @@ class TestStorage(TestAutoData):
 
         """
 
-        feature = FeatureStorage(instrument="SH600004", field="close", freq="day", uri=self.provider_uri)
+        feature = FeatureStorage(instrument="SH600004", field="close", freq="day", provider_uri=self.provider_uri)
 
-        with pytest.raises(ValueError):
+        with pytest.raises(IndexError):
             print(feature[0])
         assert isinstance(
             feature[815][1], (float, np.float32)
@@ -144,3 +161,11 @@ class TestStorage(TestAutoData):
         print(f"feature[815: 818]: \n{feature[815: 818]}")
 
         print(f"feature[:].tail(): \n{feature[:].tail()}")
+
+        feature = FeatureStorage(instrument="SH600004", field="close", freq="day", provider_uri="not_fount")
+
+        assert feature[0] == (None, None), "FeatureStorage does not exist, feature[i] should return `(None, None)`"
+        assert feature[:].empty, "FeatureStorage does not exist, feature[:] should return `pd.Series(dtype=np.float32)`"
+        assert (
+            feature.data.empty
+        ), "FeatureStorage does not exist, feature.data should return `pd.Series(dtype=np.float32)`"

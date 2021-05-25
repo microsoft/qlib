@@ -45,12 +45,12 @@ class ProviderBackendMixin:
 
         # set default storage kwargs
         backend_kwargs = backend.setdefault("kwargs", {})
-        # default uri map
-        if "uri" not in backend_kwargs:
+        # default provider_uri map
+        if "provider_uri" not in backend_kwargs:
             # if the user has no uri configured, use: uri = uri_map[freq]
             freq = kwargs.get("freq", "day")
-            uri_map = backend_kwargs.setdefault("uri_map", {freq: C.get_data_path()})
-            backend_kwargs["uri"] = uri_map[freq]
+            provider_uri_map = backend_kwargs.setdefault("provider_uri_map", {freq: C.get_data_path()})
+            backend_kwargs["provider_uri"] = provider_uri_map[freq]
         backend.setdefault("kwargs", {}).update(**kwargs)
         return init_instance_by_config(backend)
 
@@ -556,17 +556,21 @@ class LocalCalendarProvider(CalendarProvider):
             list of timestamps
         """
 
-        backend_obj = self.backend_obj(freq=freq, future=future)
-        if future and not backend_obj.check_exists():
-            get_module_logger("data").warning(
-                f"load calendar error: freq={freq}, future={future}; return current calendar!"
-            )
-            get_module_logger("data").warning(
-                "You can get future calendar by referring to the following document: https://github.com/microsoft/qlib/blob/main/scripts/data_collector/contrib/README.md"
-            )
-            backend_obj = self.backend_obj(freq=freq, future=False)
+        try:
+            backend_obj = self.backend_obj(freq=freq, future=future).data
+        except ValueError:
+            if future:
+                get_module_logger("data").warning(
+                    f"load calendar error: freq={freq}, future={future}; return current calendar!"
+                )
+                get_module_logger("data").warning(
+                    "You can get future calendar by referring to the following document: https://github.com/microsoft/qlib/blob/main/scripts/data_collector/contrib/README.md"
+                )
+                backend_obj = self.backend_obj(freq=freq, future=False).data
+            else:
+                raise
 
-        return [pd.Timestamp(x) for x in backend_obj.data]
+        return [pd.Timestamp(x) for x in backend_obj]
 
     def calendar(self, start_time=None, end_time=None, freq="day", future=False):
         _calendar, _calendar_index = self._get_calendar(freq, future)
@@ -659,14 +663,7 @@ class LocalFeatureProvider(FeatureProvider):
         # validate
         field = str(field).lower()[1:]
         instrument = code_to_fname(instrument)
-        try:
-            data = self.backend_obj(instrument=instrument, field=field, freq=freq)[start_index : end_index + 1]
-        except Exception as e:
-            get_module_logger("data").warning(
-                f"WARN: data not found for {instrument}.{field}\n\tFeature exception info: {str(e)}"
-            )
-            data = pd.Series(dtype=np.float32)
-        return data
+        return self.backend_obj(instrument=instrument, field=field, freq=freq)[start_index : end_index + 1]
 
 
 class LocalExpressionProvider(ExpressionProvider):
