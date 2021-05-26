@@ -120,7 +120,7 @@ class DumpDataBase:
         else:
             df = file_or_df
         if df.empty or self.date_field_name not in df.columns.tolist():
-            _calendars = pd.Series()
+            _calendars = pd.Series(dtype=np.float32)
         else:
             _calendars = df[self.date_field_name]
 
