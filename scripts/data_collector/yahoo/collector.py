@@ -191,7 +191,7 @@ class YahooCollector(BaseCollector):
 
 class YahooCollectorCN(YahooCollector, ABC):
     def get_instrument_list(self):
-        logger.info("get HS stock symbos......")
+        logger.info("get HS stock symbols......")
         symbols = get_hs_stock_symbols()
         logger.info(f"get {len(symbols)} symbols.")
         return symbols
