@@ -72,13 +72,18 @@ Converting CSV Format into Qlib Format
 
 ``Qlib`` has provided the script ``scripts/dump_bin.py`` to convert **any** data in CSV format into `.bin` files (``Qlib`` format) as long as they are in the correct format.
 
-Users can download the 1 day demo china-stock data in CSV format as follows for reference to the CSV format.
+Besides downloading the prepared demo data, users could download demo data directly from the Collector as follows for reference to the CSV format.
+Here are some example:
 
-.. code-block:: bash
+for daily data:
+  .. code-block:: bash
 
     python scripts/get_data.py csv_data_cn --target_dir ~/.qlib/csv_data/cn_data
 
-For 1min demo, please refer to the script `here <https://github.com/microsoft/qlib/issues/434>`_.
+for 1min data:
+  .. code-block:: bash
+
+    python scripts/data_collector/yahoo/collector.py download_data --source_dir ~/.qlib/stock_data/source/cn_1min --region CN --start 2021-05-20 --end 2021-05-23 --delay 0.1 --interval 1min --limit_nums 10
 
 Users can also provide their own data in CSV format. However, the CSV data **must satisfies** following criterions:
 
