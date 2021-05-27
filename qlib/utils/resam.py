@@ -40,7 +40,7 @@ def parse_freq(freq: str) -> Tuple[int, str]:
         raise ValueError(
             "freq format is not supported, the freq should be like (n)month/mon, (n)week/w, (n)day/d, (n)minute/min"
         )
-    _count = int(match_obj.group(1)) if match_obj.group(1) is None else 1
+    _count = int(match_obj.group(1)) if match_obj.group(1) else 1
     _freq = match_obj.group(2)
     _freq_format_dict = {
         "month": "month",
@@ -58,7 +58,8 @@ def parse_freq(freq: str) -> Tuple[int, str]:
 def resam_calendar(calendar_raw: np.ndarray, freq_raw: str, freq_sam: str) -> np.ndarray:
     """
     Resample the calendar with frequency freq_raw into the calendar with frequency freq_sam
-    Assumption: The fix length (240) of the calendar in each day.
+    Assumption:
+        - Fix length (240) of the calendar in each day.
 
     Parameters
     ----------
@@ -83,16 +84,19 @@ def resam_calendar(calendar_raw: np.ndarray, freq_raw: str, freq_sam: str) -> np
     if freq_sam == "minute":
 
         def cal_sam_minute(x, sam_minutes):
+            """
+            Sample raw calendar into calendar with sam_minutes freq, shift represents the shift minute the market time
+                - open time of stock market is [9:30 - shift*pd.Timedelta(minutes=1)]
+                - mid close time of stock market is [11:29 - shift*pd.Timedelta(minutes=1)]
+                - mid open time of stock market is [13:00 - shift*pd.Timedelta(minutes=1)]
+                - close time of stock market is [14:59 - shift*pd.Timedelta(minutes=1)]
+            """
             day_time = pd.Timestamp(x.date())
             shift = C.min_data_shift
-            # shift represents the shift minute the market time
-            # - open time of stock market is [9:30 - shift*pd.Timedelta(minutes=1)]
-            # - mid close time of stock market is [11:29 - shift*pd.Timedelta(minutes=1)]
-            # - mid open time of stock market is [13:30 - shift*pd.Timedelta(minutes=1)]
-            # - close time of stock market is [14:59 - shift*pd.Timedelta(minutes=1)]
+
             open_time = day_time + pd.Timedelta(hours=9, minutes=30) - shift * pd.Timedelta(minutes=1)
             mid_close_time = day_time + pd.Timedelta(hours=11, minutes=29) - shift * pd.Timedelta(minutes=1)
-            mid_open_time = day_time + pd.Timedelta(hours=13, minutes=30) - shift * pd.Timedelta(minutes=1)
+            mid_open_time = day_time + pd.Timedelta(hours=13, minutes=00) - shift * pd.Timedelta(minutes=1)
             close_time = day_time + pd.Timedelta(hours=14, minutes=59) - shift * pd.Timedelta(minutes=1)
 
             if open_time <= x <= mid_close_time:
@@ -101,7 +105,6 @@ def resam_calendar(calendar_raw: np.ndarray, freq_raw: str, freq_sam: str) -> np
                 minute_index = (x - mid_open_time).seconds // 60 + 120
             else:
                 raise ValueError("datetime of calendar is out of range")
-
             minute_index = minute_index // sam_minutes * sam_minutes
 
             if 0 <= minute_index < 120:
@@ -109,7 +112,7 @@ def resam_calendar(calendar_raw: np.ndarray, freq_raw: str, freq_sam: str) -> np
             elif 120 <= minute_index < 240:
                 return mid_open_time + (minute_index - 120) * pd.Timedelta(minutes=1)
             else:
-                raise ValueError("calendar minute_index error")
+                raise ValueError("calendar minute_index error, check `min_data_shift` in qlib.config.C")
 
         if freq_raw != "minute":
             raise ValueError("when sampling minute calendar, freq of raw calendar must be minute or min")
@@ -189,11 +192,13 @@ def get_resam_calendar(
                 freq = "day"
             except ValueError:
                 _calendar = Cal.calendar(
-                    start_time=start_time, end_time=end_time, freq="min", freq_sam=freq, future=future
+                    start_time=start_time, end_time=end_time, freq="1min", freq_sam=freq, future=future
                 )
                 freq = "min"
         elif norm_freq == "minute":
-            _calendar = Cal.calendar(start_time=start_time, end_time=end_time, freq="min", freq_sam=freq, future=future)
+            _calendar = Cal.calendar(
+                start_time=start_time, end_time=end_time, freq="1min", freq_sam=freq, future=future
+            )
             freq = "min"
         else:
             raise ValueError(f"freq {freq} is not supported")

@@ -7,10 +7,10 @@ from .executor import BaseExecutor
 from .backtest import backtest as backtest_func
 from .backtest import collect_data as data_generator
 
-from ...strategy.base import BaseStrategy
-from ...utils import init_instance_by_config
-from ...log import get_module_logger
-from ...config import C
+from ..strategy.base import BaseStrategy
+from ..utils import init_instance_by_config
+from ..log import get_module_logger
+from ..config import C
 
 
 logger = get_module_logger("backtest caller")

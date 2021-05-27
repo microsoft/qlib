@@ -775,7 +775,7 @@ class ClientCalendarProvider(CalendarProvider):
     def calendar(self, start_time=None, end_time=None, freq="day", freq_sam=None, future=False):
 
         self.conn.send_request(
-            request_type="calendar",
+            request_type="trade_calendar",
             request_content={
                 "start_time": str(start_time),
                 "end_time": str(end_time),
@@ -990,7 +990,7 @@ class LocalProvider(BaseProvider):
         :param type: The type of resource for the uri
         :param **kwargs:
         """
-        if type == "calendar":
+        if type == "trade_calendar":
             return Cal._uri(**kwargs)
         elif type == "instrument":
             return Inst._uri(**kwargs)

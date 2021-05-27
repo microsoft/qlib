@@ -149,9 +149,9 @@ _default_config = {
         "task_db_name": "default_task_db",
     },
     # Shift minute for highfreq minite data, used in backtest
-    # if min_data_shift == 0, use default market time [9:30, 11:29, 1:30, 2:59]
-    # if min_data_shift != 0, use shifted market time [9:30, 11:29, 1:30, 2:59] - shift*minute
-    "min_data_shift": {0},
+    # if min_data_shift == 0, use default market time [9:30, 11:29, 1:00, 2:59]
+    # if min_data_shift != 0, use shifted market time [9:30, 11:29, 1:00, 2:59] - shift*minute
+    "min_data_shift": 0,
 }
 
 MODE_CONF = {

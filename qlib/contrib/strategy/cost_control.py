@@ -17,6 +17,7 @@ class SoftTopkStrategy(WeightStrategyBase):
         max_sold_weight=1.0,
         risk_degree=0.95,
         buy_method="first_fill",
+        trade_exchange=None,
         level_infra={},
         common_infra={},
         **kwargs,
@@ -31,14 +32,14 @@ class SoftTopkStrategy(WeightStrategyBase):
                 average_fill: assign the weight to the stocks rank high averagely.
         """
         super(SoftTopkStrategy, self).__init__(
-            model, dataset, order_generator_cls_or_obj, level_infra, common_infra, **kwargs
+            model, dataset, order_generator_cls_or_obj, trade_exchange, level_infra, common_infra, **kwargs
         )
         self.topk = topk
         self.max_sold_weight = max_sold_weight
         self.risk_degree = risk_degree
         self.buy_method = buy_method
 
-    def get_risk_degree(self, trade_index=None):
+    def get_risk_degree(self, trade_step=None):
         """get_risk_degree
         Return the proportion of your total value you will used in investment.
         Dynamically risk_degree will result in Market timing

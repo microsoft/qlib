@@ -8,11 +8,11 @@ import logging
 import numpy as np
 import pandas as pd
 
-from ...data.data import D
-from ...data.dataset.utils import get_level_index
-from ...config import C, REG_CN
-from ...utils.resam import resam_ts_data
-from ...log import get_module_logger
+from ..data.data import D
+from ..data.dataset.utils import get_level_index
+from ..config import C, REG_CN
+from ..utils.resam import resam_ts_data
+from ..log import get_module_logger
 from .order import Order
 
 
@@ -35,7 +35,7 @@ class Exchange:
         """__init__
 
         :param freq:             frequency of data
-        :param start_time:       closed start time for  backtest
+        :param start_time:       closed start time for backtest
         :param end_time:         closed end time for backtest
         :param codes:            list stock_id list or a string of instruments(i.e. all, csi500, sse50)
         :param deal_price:       str, 'close', 'open', 'vwap'

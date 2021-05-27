@@ -3,8 +3,8 @@ import warnings
 import pandas as pd
 from typing import Union
 
-from ...utils import init_instance_by_config
-from ...utils.resam import parse_freq
+from ..utils import init_instance_by_config
+from ..utils.resam import parse_freq
 
 
 from .order import Order
@@ -30,7 +30,7 @@ class BaseExecutor:
         Parameters
         ----------
         time_per_step : str
-            trade time per trading step, used for genreate trade calendar
+            trade time per trading step, used for genreate the trade calendar
         generate_report : bool, optional
             whether to generate report, by default False
         verbose : bool, optional
@@ -80,16 +80,18 @@ class BaseExecutor:
         if "start_time" in kwargs or "end_time" in kwargs:
             start_time = kwargs.get("start_time")
             end_time = kwargs.get("end_time")
-            self.calendar = TradeCalendarManager(freq=self.time_per_step, start_time=start_time, end_time=end_time)
+            self.trade_calendar = TradeCalendarManager(
+                freq=self.time_per_step, start_time=start_time, end_time=end_time
+            )
 
         if common_infra is not None:
             self.reset_common_infra(common_infra)
 
     def get_level_infra(self):
-        return {"calendar": self.calendar}
+        return {"trade_calendar": self.trade_calendar}
 
     def finished(self):
-        return self.calendar.finished()
+        return self.trade_calendar.finished()
 
     def execute(self, trade_decision):
         """execute the trade decision and return the executed result
@@ -117,8 +119,13 @@ class BaseExecutor:
         raise NotImplementedError("get_report is not implemented!")
 
 
-class SplitExecutor(BaseExecutor):
-    from ...strategy.base import BaseStrategy
+class NestedExecutor(BaseExecutor):
+    """
+    Nested Executor with inner strategy and executor
+    - At each time `execute` is called, it will call the inner strategy and executor to execute the `trade_decision` in a higher frequency env.
+    """
+
+    from ..strategy.base import BaseStrategy
 
     def __init__(
         self,
@@ -127,10 +134,10 @@ class SplitExecutor(BaseExecutor):
         inner_strategy: Union[BaseStrategy, dict],
         start_time: Union[str, pd.Timestamp] = None,
         end_time: Union[str, pd.Timestamp] = None,
-        trade_exchange: Exchange = None,
         generate_report: bool = False,
         verbose: bool = False,
         track_data: bool = False,
+        trade_exchange: Exchange = None,
         common_infra: dict = {},
         **kwargs,
     ):
@@ -153,7 +160,7 @@ class SplitExecutor(BaseExecutor):
             inner_strategy, common_infra=common_infra, accept_types=self.BaseStrategy
         )
 
-        super(SplitExecutor, self).__init__(
+        super(NestedExecutor, self).__init__(
             time_per_step=time_per_step,
             start_time=start_time,
             end_time=end_time,
@@ -173,7 +180,7 @@ class SplitExecutor(BaseExecutor):
             - reset trade_exchange
             - reset inner_strategyand inner_executor common infra
         """
-        super(SplitExecutor, self).reset_common_infra(common_infra)
+        super(NestedExecutor, self).reset_common_infra(common_infra)
 
         if self.generate_report and "trade_exchange" in common_infra:
             self.trade_exchange = common_infra.get("trade_exchange")
@@ -182,15 +189,15 @@ class SplitExecutor(BaseExecutor):
         self.inner_strategy.reset_common_infra(common_infra)
 
     def _init_sub_trading(self, trade_decision):
-        trade_index = self.calendar.get_trade_index()
-        trade_start_time, trade_end_time = self.calendar.get_calendar_time(trade_index)
+        trade_step = self.trade_calendar.get_trade_step()
+        trade_start_time, trade_end_time = self.trade_calendar.get_step_time(trade_step)
         self.inner_executor.reset(start_time=trade_start_time, end_time=trade_end_time)
         sub_level_infra = self.inner_executor.get_level_infra()
         self.inner_strategy.reset(level_infra=sub_level_infra, outer_trade_decision=trade_decision)
 
     def _update_trade_account(self):
-        trade_index = self.calendar.get_trade_index()
-        trade_start_time, trade_end_time = self.calendar.get_calendar_time(trade_index)
+        trade_step = self.trade_calendar.get_trade_step()
+        trade_start_time, trade_end_time = self.trade_calendar.get_step_time(trade_step)
         self.trade_account.update_bar_count()
         if self.generate_report:
             self.trade_account.update_bar_report(
@@ -200,7 +207,6 @@ class SplitExecutor(BaseExecutor):
             )
 
     def execute(self, trade_decision):
-        self.calendar.step()
         self._init_sub_trading(trade_decision)
         execute_result = []
         _inner_execute_result = None
@@ -210,13 +216,13 @@ class SplitExecutor(BaseExecutor):
             execute_result.extend(_inner_execute_result)
         if hasattr(self, "trade_account"):
             self._update_trade_account()
-
+        self.trade_calendar.step()
         return execute_result
 
     def collect_data(self, trade_decision):
         if self.track_data:
             yield trade_decision
-        self.calendar.step()
+        self.trade_calendar.step()
         self._init_sub_trading(trade_decision)
         execute_result = []
         _inner_execute_result = None
@@ -240,15 +246,17 @@ class SplitExecutor(BaseExecutor):
 
 
 class SimulatorExecutor(BaseExecutor):
+    """Executor that simulate the true market"""
+
     def __init__(
         self,
         time_per_step: str,
         start_time: Union[str, pd.Timestamp] = None,
         end_time: Union[str, pd.Timestamp] = None,
-        trade_exchange: Exchange = None,
         generate_report: bool = False,
         verbose: bool = False,
         track_data: bool = False,
+        trade_exchange: Exchange = None,
         common_infra: dict = {},
         **kwargs,
     ):
@@ -282,9 +290,9 @@ class SimulatorExecutor(BaseExecutor):
             self.trade_exchange = common_infra.get("trade_exchange")
 
     def execute(self, trade_decision):
-        self.calendar.step()
-        trade_index = self.calendar.get_trade_index()
-        trade_start_time, trade_end_time = self.calendar.get_calendar_time(trade_index)
+
+        trade_step = self.trade_calendar.get_trade_step()
+        trade_start_time, trade_end_time = self.trade_calendar.get_step_time(trade_step)
         execute_result = []
         for order in trade_decision:
             if self.trade_exchange.check_order(order) is True:
@@ -333,7 +341,7 @@ class SimulatorExecutor(BaseExecutor):
                 trade_end_time=trade_end_time,
                 trade_exchange=self.trade_exchange,
             )
-
+        self.trade_calendar.step()
         return execute_result
 
     def get_report(self):

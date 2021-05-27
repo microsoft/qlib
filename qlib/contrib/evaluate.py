@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 import warnings
 from ..log import get_module_logger
-from .backtest import get_exchange, backtest as backtest_func
+from ..backtest import get_exchange, backtest as backtest_func
 from ..utils import get_date_range
 from ..utils.resam import parse_freq
 
@@ -141,9 +141,7 @@ def backtest(pred, account=1e9, shift=1, benchmark="SH000905", verbose=True, **k
         whether to print log.
 
     """
-    warnings.warn(
-        "this function is deprecated, please use backtest function in qlib.contrib.backtest", DeprecationWarning
-    )
+    warnings.warn("this function is deprecated, please use backtest function in qlib.backtest", DeprecationWarning)
     report_dict = backtest_func(
         pred=pred, account=account, shift=shift, benchmark=benchmark, verbose=verbose, return_order=False, **kwargs
     )

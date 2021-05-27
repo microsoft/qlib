@@ -1,15 +1,9 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-import copy
-import pandas as pd
-from typing import List, Union
-
-
 from ..model.base import BaseModel
 from ..data.dataset import DatasetH
 from ..data.dataset.utils import convert_index_format
-from ..contrib.backtest.order import Order
 from ..rl.interpreter import ActionInterpreter, StateInterpreter
 from ..utils import init_instance_by_config
 
@@ -44,8 +38,8 @@ class BaseStrategy:
         else:
             self.level_infra.update(level_infra)
 
-        if "calendar" in level_infra:
-            self.calendar = level_infra.get("calendar")
+        if "trade_calendar" in level_infra:
+            self.trade_calendar = level_infra.get("trade_calendar")
 
     def reset_common_infra(self, common_infra):
         if not hasattr(self, "common_infra"):
@@ -81,12 +75,6 @@ class BaseStrategy:
             - When call the generate_trade_decision firstly, `execute_result` could be None
         """
         raise NotImplementedError("generate_trade_decision is not implemented!")
-
-
-class RuleStrategy(BaseStrategy):
-    """Rule-based Trading strategy"""
-
-    pass
 
 
 class ModelStrategy(BaseStrategy):

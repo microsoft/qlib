@@ -10,7 +10,7 @@ from qlib.utils import exists_qlib_data, init_instance_by_config, flatten_dict
 from qlib.workflow import R
 from qlib.workflow.record_temp import SignalRecord, PortAnaRecord
 from qlib.tests.data import GetData
-from qlib.contrib.backtest import collect_data
+from qlib.backtest import collect_data
 
 
 class MultiLevelTradingWorkflow:
@@ -61,17 +61,17 @@ class MultiLevelTradingWorkflow:
     }
 
     trade_start_time = "2017-01-01"
-    trade_end_time = "2017-02-01"
+    trade_end_time = "2020-08-01"
 
     port_analysis_config = {
         "executor": {
-            "class": "SplitExecutor",
-            "module_path": "qlib.contrib.backtest.executor",
+            "class": "NestedExecutor",
+            "module_path": "qlib.backtest.executor",
             "kwargs": {
                 "time_per_step": "week",
                 "inner_executor": {
                     "class": "SimulatorExecutor",
-                    "module_path": "qlib.contrib.backtest.executor",
+                    "module_path": "qlib.backtest.executor",
                     "kwargs": {
                         "time_per_step": "day",
                         "verbose": True,

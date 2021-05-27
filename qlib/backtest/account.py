@@ -24,6 +24,8 @@ rtn & earning in the Account
     **is consider cost**
         while earning is the difference of two position value, so it considers cost, it is the true return rate
         in the specific accomplishment for rtn, it does not consider cost, in other words, rtn - cost = earning
+
+Now rtn has been removed in the hierarchical backtest implemention.
 """
 
 

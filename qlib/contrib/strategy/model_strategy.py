@@ -5,7 +5,7 @@ import pandas as pd
 
 from ...utils.resam import resam_ts_data
 from ...strategy.base import ModelStrategy
-from ..backtest.order import Order
+from ...backtest.order import Order
 from .order_generator import OrderGenWInteract
 
 
@@ -21,6 +21,7 @@ class TopkDropoutStrategy(ModelStrategy):
         risk_degree=0.95,
         hold_thresh=1,
         only_tradable=False,
+        trade_exchange=None,
         level_infra={},
         common_infra={},
         **kwargs,
@@ -47,6 +48,9 @@ class TopkDropoutStrategy(ModelStrategy):
                 strategy will make buy sell decision without checking the tradable state of the stock.
             else:
                 strategy will make decision with the tradable state of the stock info and avoid buy and sell them.
+        trade_exchange : Exchange
+            exchange that provides market info, used to deal order and generate report
+            - If `trade_exchange` is None, self.trade_exchange will be set with common_infra
         """
         super(TopkDropoutStrategy, self).__init__(
             model, dataset, level_infra=level_infra, common_infra=common_infra, **kwargs
@@ -58,6 +62,8 @@ class TopkDropoutStrategy(ModelStrategy):
         self.risk_degree = risk_degree
         self.hold_thresh = hold_thresh
         self.only_tradable = only_tradable
+        if trade_exchange is not None:
+            self.trade_exchange = trade_exchange
 
     def reset_common_infra(self, common_infra):
         """
@@ -73,7 +79,7 @@ class TopkDropoutStrategy(ModelStrategy):
         if "trade_exchange" in common_infra:
             self.trade_exchange = common_infra.get("trade_exchange")
 
-    def get_risk_degree(self, trade_index=None):
+    def get_risk_degree(self, trade_step=None):
         """get_risk_degree
         Return the proportion of your total value you will used in investment.
         Dynamically risk_degree will result in Market timing.
@@ -82,9 +88,10 @@ class TopkDropoutStrategy(ModelStrategy):
         return self.risk_degree
 
     def generate_trade_decision(self, execute_result=None):
-        trade_index = self.calendar.get_trade_index()
-        trade_start_time, trade_end_time = self.calendar.get_calendar_time(trade_index)
-        pred_start_time, pred_end_time = self.calendar.get_calendar_time(trade_index, shift=1)
+        # get the number of trading step finished, trade_step can be [0, 1, 2, ..., trade_len - 1]
+        trade_step = self.trade_calendar.get_trade_step()
+        trade_start_time, trade_end_time = self.trade_calendar.get_step_time(trade_step)
+        pred_start_time, pred_end_time = self.trade_calendar.get_step_time(trade_step, shift=1)
         pred_score = resam_ts_data(self.pred_scores, start_time=pred_start_time, end_time=pred_end_time, method="last")
         if pred_score is None:
             return []
@@ -179,7 +186,7 @@ class TopkDropoutStrategy(ModelStrategy):
                 continue
             if code in sell:
                 # check hold limit
-                time_per_step = self.calendar.get_freq()
+                time_per_step = self.trade_calendar.get_freq()
                 if current_temp.get_stock_count(code, bar=time_per_step) < self.hold_thresh:
                     continue
                 # sell order
@@ -243,6 +250,7 @@ class WeightStrategyBase(ModelStrategy):
         model,
         dataset,
         order_generator_cls_or_obj=OrderGenWInteract,
+        trade_exchange=None,
         level_infra={},
         common_infra={},
         **kwargs,
@@ -254,6 +262,8 @@ class WeightStrategyBase(ModelStrategy):
             self.order_generator = order_generator_cls_or_obj()
         else:
             self.order_generator = order_generator_cls_or_obj
+        if trade_exchange is not None:
+            self.trade_exchange = trade_exchange
 
     def reset_common_infra(self, common_infra):
         """
@@ -269,7 +279,7 @@ class WeightStrategyBase(ModelStrategy):
         if "trade_exchange" in common_infra:
             self.trade_exchange = common_infra.get("trade_exchange")
 
-    def get_risk_degree(self, trade_index=None):
+    def get_risk_degree(self, trade_step=None):
         """get_risk_degree
         Return the proportion of your total value you will used in investment.
         Dynamically risk_degree will result in Market timing.
@@ -307,9 +317,11 @@ class WeightStrategyBase(ModelStrategy):
         """
         # generate_trade_decision
         # generate_target_weight_position() and generate_order_list_from_target_weight_position() to generate order_list
-        trade_index = self.calendar.get_trade_index()
-        trade_start_time, trade_end_time = self.calendar.get_calendar_time(trade_index)
-        pred_start_time, pred_end_time = self.calendar.get_calendar_time(trade_index, shift=1)
+
+        # get the number of trading step finished, trade_step can be [0, 1, 2, ..., trade_len - 1]
+        trade_step = self.trade_calendar.get_trade_step()
+        trade_start_time, trade_end_time = self.trade_calendar.get_step_time(trade_step)
+        pred_start_time, pred_end_time = self.trade_calendar.get_step_time(trade_step, shift=1)
         pred_score = resam_ts_data(self.pred_scores, start_time=pred_start_time, end_time=pred_end_time, method="last")
         if pred_score is None:
             return []
@@ -320,7 +332,7 @@ class WeightStrategyBase(ModelStrategy):
         order_list = self.order_generator.generate_order_list_from_target_weight_position(
             current=current_temp,
             trade_exchange=self.trade_exchange,
-            risk_degree=self.get_risk_degree(trade_index),
+            risk_degree=self.get_risk_degree(trade_step),
             target_weight_position=target_weight_position,
             pred_start_time=pred_start_time,
             pred_end_time=pred_end_time,

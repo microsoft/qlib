@@ -10,8 +10,8 @@ import warnings
 
 from pandas.core.frame import DataFrame
 
-from ...utils.resam import parse_freq, resam_ts_data
-from ...data import D
+from ..utils.resam import parse_freq, resam_ts_data
+from ..data import D
 
 
 class Report:
@@ -86,9 +86,9 @@ class Report:
                     try:
                         _temp_result = D.features(_codes, fields, start_time, end_time, freq="day", disk_cache=1)
                     except ValueError:
-                        _temp_result = D.features(_codes, fields, start_time, end_time, freq="minute", disk_cache=1)
+                        _temp_result = D.features(_codes, fields, start_time, end_time, freq="1min", disk_cache=1)
                 elif norm_freq == "minute":
-                    _temp_result = D.features(_codes, fields, start_time, end_time, freq="minute", disk_cache=1)
+                    _temp_result = D.features(_codes, fields, start_time, end_time, freq="1min", disk_cache=1)
                 else:
                     raise ValueError(f"benchmark freq {freq} is not supported")
             if len(_temp_result) == 0:

@@ -1,19 +1,8 @@
 #  Copyright (c) Microsoft Corporation.
 #  Licensed under the MIT License.
 
-import sys
-from pathlib import Path
-
 import qlib
-import pandas as pd
 from qlib.config import REG_CN
-from qlib.contrib.model.gbdt import LGBModel
-from qlib.contrib.data.handler import Alpha158
-from qlib.contrib.strategy.strategy import TopkDropoutStrategy
-from qlib.contrib.evaluate import (
-    backtest as normal_backtest,
-    risk_analysis,
-)
 from qlib.utils import exists_qlib_data, init_instance_by_config, flatten_dict
 from qlib.workflow import R
 from qlib.workflow.record_temp import SignalRecord, PortAnaRecord
