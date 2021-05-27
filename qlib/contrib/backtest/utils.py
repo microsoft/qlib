@@ -15,13 +15,13 @@ class TradeCalendarManager:
     """
 
     def __init__(
-        self, step_bar: str, start_time: Union[str, pd.Timestamp] = None, end_time: Union[str, pd.Timestamp] = None
+        self, freq: str, start_time: Union[str, pd.Timestamp] = None, end_time: Union[str, pd.Timestamp] = None
     ):
         """
         Parameters
         ----------
-        step_bar : str
-            frequency of each trading calendar
+        freq : str
+            frequency of trading calendar, also trade time per trading step
         start_time : Union[str, pd.Timestamp], optional
             closed start of the trading calendar, by default None
             If `start_time` is None, it must be reset before trading.
@@ -29,14 +29,14 @@ class TradeCalendarManager:
             closed end of the trade time range, by default None
             If `end_time` is None, it must be reset before trading.
         """
-        self.step_bar = step_bar
+        self.freq = freq
         self.start_time = pd.Timestamp(start_time) if start_time else None
         self.end_time = pd.Timestamp(start_time) if start_time else None
-        self._init_trade_calendar(step_bar=step_bar, start_time=start_time, end_time=end_time)
+        self._init_trade_calendar(freq=freq, start_time=start_time, end_time=end_time)
 
-    def _init_trade_calendar(self, step_bar, start_time, end_time):
+    def _init_trade_calendar(self, freq, start_time, end_time):
         """reset trade calendar"""
-        _calendar, freq, freq_sam = get_resam_calendar(freq=step_bar)
+        _calendar, freq, freq_sam = get_resam_calendar(freq=freq)
         self.calendar = _calendar
         _, _, _start_index, _end_index = Cal.locate_index(start_time, end_time, freq=freq, freq_sam=freq_sam)
         self.start_index = _start_index
@@ -52,8 +52,8 @@ class TradeCalendarManager:
             raise RuntimeError(f"The calendar is finished, please reset it if you want to call it!")
         self.trade_index = self.trade_index + 1
 
-    def get_step_bar(self):
-        return self.step_bar
+    def get_freq(self):
+        return self.freq
 
     def get_trade_len(self):
         return self.trade_len

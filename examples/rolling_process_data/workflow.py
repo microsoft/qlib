@@ -23,7 +23,6 @@ class RollingDataWorkflow:
 
     def _init_qlib(self):
         """initialize qlib"""
-        # use yahoo_cn_1min data
         provider_uri = "~/.qlib/qlib_data/cn_data"  # target_dir
         if not exists_qlib_data(provider_uri):
             print(f"Qlib data is not found in {provider_uri}")

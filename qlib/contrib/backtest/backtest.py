@@ -8,10 +8,10 @@ def backtest(start_time, end_time, trade_strategy, trade_executor):
     level_infra = trade_executor.get_level_infra()
     trade_strategy.reset(level_infra=level_infra)
 
-    sub_execute_state = trade_executor.get_init_state()
+    _execute_result = None
     while not trade_executor.finished():
-        sub_trade_decision = trade_strategy.generate_trade_decision(sub_execute_state)
-        sub_execute_state = trade_executor.execute(sub_trade_decision)
+        _trade_decision = trade_strategy.generate_trade_decision(_execute_result)
+        _execute_result = trade_executor.execute(_trade_decision)
 
     return trade_executor.get_report()
 
@@ -22,9 +22,9 @@ def collect_data(start_time, end_time, trade_strategy, trade_executor):
     level_infra = trade_executor.get_level_infra()
     trade_strategy.reset(level_infra=level_infra)
 
-    sub_execute_state = trade_executor.get_init_state()
+    _execute_result = None
     while not trade_executor.finished():
-        sub_trade_decision = trade_strategy.generate_trade_decision(sub_execute_state)
-        sub_execute_state = yield from trade_executor.collect_data(sub_trade_decision)
+        _trade_decision = trade_strategy.generate_trade_decision(_execute_result)
+        _execute_result = yield from trade_executor.collect_data(_trade_decision)
 
     return trade_executor.get_report()

@@ -8,7 +8,6 @@ from ...utils.resam import parse_freq
 
 
 from .order import Order
-from .account import Account
 from .exchange import Exchange
 from .utils import TradeCalendarManager
 
@@ -18,7 +17,7 @@ class BaseExecutor:
 
     def __init__(
         self,
-        step_bar: str,
+        time_per_step: str,
         start_time: Union[str, pd.Timestamp] = None,
         end_time: Union[str, pd.Timestamp] = None,
         generate_report: bool = False,
@@ -30,6 +29,8 @@ class BaseExecutor:
         """
         Parameters
         ----------
+        time_per_step : str
+            trade time per trading step, used for genreate trade calendar
         generate_report : bool, optional
             whether to generate report, by default False
         verbose : bool, optional
@@ -46,7 +47,7 @@ class BaseExecutor:
                 exchange that provides market info
 
         """
-        self.step_bar = step_bar
+        self.time_per_step = time_per_step
         self.generate_report = generate_report
         self.verbose = verbose
         self.track_data = track_data
@@ -64,7 +65,7 @@ class BaseExecutor:
 
         if "trade_account" in common_infra:
             self.trade_account = copy.copy(common_infra.get("trade_account"))
-            self.trade_account.reset(freq=self.step_bar, init_report=True)
+            self.trade_account.reset(freq=self.time_per_step, init_report=True)
 
     def reset(self, track_data: bool = None, common_infra: dict = None, **kwargs):
         """
@@ -76,19 +77,19 @@ class BaseExecutor:
         if track_data is not None:
             self.track_data = track_data
 
-        if common_infra is not None:
-            self.reset_common_infra(common_infra)
-
         if "start_time" in kwargs or "end_time" in kwargs:
             start_time = kwargs.get("start_time")
             end_time = kwargs.get("end_time")
-            self.trade_calendar = TradeCalendarManager(step_bar=self.step_bar, start_time=start_time, end_time=end_time)
+            self.calendar = TradeCalendarManager(freq=self.time_per_step, start_time=start_time, end_time=end_time)
+
+        if common_infra is not None:
+            self.reset_common_infra(common_infra)
 
     def get_level_infra(self):
-        return {"trade_calendar": self.trade_calendar}
+        return {"calendar": self.calendar}
 
     def finished(self):
-        return self.trade_calendar.finished()
+        return self.calendar.finished()
 
     def execute(self, trade_decision):
         """execute the trade decision and return the executed result
@@ -99,8 +100,8 @@ class BaseExecutor:
 
         Returns
         ----------
-        executed state : List[Tuple[Order, float, float, float]]
-            - Each element in the list represents (order, trade value, trade cost, trade price)
+        execute_result : List[object]
+            the executed result for trade decison
         """
         raise NotImplementedError("execute is not implemented!")
 
@@ -108,9 +109,6 @@ class BaseExecutor:
         if self.track_data:
             yield trade_decision
         return self.execute(trade_decision)
-
-    def get_init_state(self):
-        raise NotImplementedError("get_init_state in not implemeted!")
 
     def get_trade_account(self):
         raise NotImplementedError("get_trade_account is not implemented!")
@@ -124,9 +122,9 @@ class SplitExecutor(BaseExecutor):
 
     def __init__(
         self,
-        step_bar: str,
-        sub_executor: Union[BaseExecutor, dict],
-        sub_strategy: Union[BaseStrategy, dict],
+        time_per_step: str,
+        inner_executor: Union[BaseExecutor, dict],
+        inner_strategy: Union[BaseStrategy, dict],
         start_time: Union[str, pd.Timestamp] = None,
         end_time: Union[str, pd.Timestamp] = None,
         trade_exchange: Exchange = None,
@@ -139,22 +137,24 @@ class SplitExecutor(BaseExecutor):
         """
         Parameters
         ----------
-        sub_executor : BaseExecutor
+        inner_executor : BaseExecutor
             trading env in each trading bar.
-        sub_strategy : BaseStrategy
+        inner_strategy : BaseStrategy
             trading strategy in each trading bar
         trade_exchange : Exchange
             exchange that provides market info, used to generate report
             - If generate_report is None, trade_exchange will be ignored
             - Else If `trade_exchange` is None, self.trade_exchange will be set with common_infra
         """
-        self.sub_executor = init_instance_by_config(sub_executor, common_infra=common_infra, accept_types=BaseExecutor)
-        self.sub_strategy = init_instance_by_config(
-            sub_strategy, common_infra=common_infra, accept_types=self.BaseStrategy
+        self.inner_executor = init_instance_by_config(
+            inner_executor, common_infra=common_infra, accept_types=BaseExecutor
+        )
+        self.inner_strategy = init_instance_by_config(
+            inner_strategy, common_infra=common_infra, accept_types=self.BaseStrategy
         )
 
         super(SplitExecutor, self).__init__(
-            step_bar=step_bar,
+            time_per_step=time_per_step,
             start_time=start_time,
             end_time=end_time,
             generate_report=generate_report,
@@ -171,29 +171,26 @@ class SplitExecutor(BaseExecutor):
         """
         reset infrastructure for trading
             - reset trade_exchange
-            - reset substrategy and subexecutor common infra
+            - reset inner_strategyand inner_executor common infra
         """
         super(SplitExecutor, self).reset_common_infra(common_infra)
 
         if self.generate_report and "trade_exchange" in common_infra:
             self.trade_exchange = common_infra.get("trade_exchange")
 
-        self.sub_executor.reset_common_infra(common_infra)
-        self.sub_strategy.reset_common_infra(common_infra)
-
-    def get_init_state(self):
-        return []
+        self.inner_executor.reset_common_infra(common_infra)
+        self.inner_strategy.reset_common_infra(common_infra)
 
     def _init_sub_trading(self, trade_decision):
-        trade_index = self.trade_calendar.get_trade_index()
-        trade_start_time, trade_end_time = self.trade_calendar.get_calendar_time(trade_index)
-        self.sub_executor.reset(start_time=trade_start_time, end_time=trade_end_time)
-        sub_level_infra = self.sub_executor.get_level_infra()
-        self.sub_strategy.reset(level_infra=sub_level_infra, rely_trade_decision=trade_decision)
+        trade_index = self.calendar.get_trade_index()
+        trade_start_time, trade_end_time = self.calendar.get_calendar_time(trade_index)
+        self.inner_executor.reset(start_time=trade_start_time, end_time=trade_end_time)
+        sub_level_infra = self.inner_executor.get_level_infra()
+        self.inner_strategy.reset(level_infra=sub_level_infra, outer_trade_decision=trade_decision)
 
     def _update_trade_account(self):
-        trade_index = self.trade_calendar.get_trade_index()
-        trade_start_time, trade_end_time = self.trade_calendar.get_calendar_time(trade_index)
+        trade_index = self.calendar.get_trade_index()
+        trade_start_time, trade_end_time = self.calendar.get_calendar_time(trade_index)
         self.trade_account.update_bar_count()
         if self.generate_report:
             self.trade_account.update_bar_report(
@@ -203,41 +200,41 @@ class SplitExecutor(BaseExecutor):
             )
 
     def execute(self, trade_decision):
-        self.trade_calendar.step()
+        self.calendar.step()
         self._init_sub_trading(trade_decision)
-        execute_state = []
-        sub_execute_state = self.sub_executor.get_init_state()
-        while not self.sub_executor.finished():
-            sub_trade_decison = self.sub_strategy.generate_trade_decision(sub_execute_state)
-            sub_execute_state = self.sub_executor.execute(trade_decision=sub_trade_decison)
-            execute_state.extend(sub_execute_state)
+        execute_result = []
+        _inner_execute_result = None
+        while not self.inner_executor.finished():
+            _inner_trade_decision = self.inner_strategy.generate_trade_decision(_inner_execute_result)
+            _inner_execute_result = self.inner_executor.execute(trade_decision=_inner_trade_decision)
+            execute_result.extend(_inner_execute_result)
         if hasattr(self, "trade_account"):
             self._update_trade_account()
 
-        return execute_state
+        return execute_result
 
     def collect_data(self, trade_decision):
         if self.track_data:
             yield trade_decision
-        self.trade_calendar.step()
+        self.calendar.step()
         self._init_sub_trading(trade_decision)
-        execute_state = []
-        sub_execute_state = self.sub_executor.get_init_state()
-        while not self.sub_executor.finished():
-            sub_trade_decison = self.sub_strategy.generate_trade_decision(sub_execute_state)
-            sub_execute_state = yield from self.sub_executor.collect_data(trade_decision=sub_trade_decison)
-            execute_state.extend(sub_execute_state)
+        execute_result = []
+        _inner_execute_result = None
+        while not self.inner_executor.finished():
+            _inner_trade_decision = self.inner_strategy.generate_trade_decision(_inner_execute_result)
+            _inner_execute_result = yield from self.inner_executor.collect_data(trade_decision=_inner_trade_decision)
+            execute_result.extend(_inner_execute_result)
         if hasattr(self, "trade_account"):
             self._update_trade_account()
 
-        return execute_state
+        return execute_result
 
     def get_report(self):
-        sub_env_report_dict = self.sub_executor.get_report()
+        sub_env_report_dict = self.inner_executor.get_report()
         if self.generate_report:
             _report = self.trade_account.report.generate_report_dataframe()
             _positions = self.trade_account.get_positions()
-            _count, _freq = parse_freq(self.step_bar)
+            _count, _freq = parse_freq(self.time_per_step)
             sub_env_report_dict.update({f"{_count}{_freq}": (_report, _positions)})
         return sub_env_report_dict
 
@@ -245,7 +242,7 @@ class SplitExecutor(BaseExecutor):
 class SimulatorExecutor(BaseExecutor):
     def __init__(
         self,
-        step_bar: str,
+        time_per_step: str,
         start_time: Union[str, pd.Timestamp] = None,
         end_time: Union[str, pd.Timestamp] = None,
         trade_exchange: Exchange = None,
@@ -263,7 +260,7 @@ class SimulatorExecutor(BaseExecutor):
             - If `trade_exchange` is None, self.trade_exchange will be set with common_infra
         """
         super(SimulatorExecutor, self).__init__(
-            step_bar=step_bar,
+            time_per_step=time_per_step,
             start_time=start_time,
             end_time=end_time,
             generate_report=generate_report,
@@ -284,21 +281,18 @@ class SimulatorExecutor(BaseExecutor):
         if "trade_exchange" in common_infra:
             self.trade_exchange = common_infra.get("trade_exchange")
 
-    def get_init_state(self):
-        return []
-
     def execute(self, trade_decision):
-        self.trade_calendar.step()
-        trade_index = self.trade_calendar.get_trade_index()
-        trade_start_time, trade_end_time = self.trade_calendar.get_calendar_time(trade_index)
-        execute_state = []
+        self.calendar.step()
+        trade_index = self.calendar.get_trade_index()
+        trade_start_time, trade_end_time = self.calendar.get_calendar_time(trade_index)
+        execute_result = []
         for order in trade_decision:
             if self.trade_exchange.check_order(order) is True:
                 # execute the order
                 trade_val, trade_cost, trade_price = self.trade_exchange.deal_order(
                     order, trade_account=self.trade_account
                 )
-                execute_state.append((order, trade_val, trade_cost, trade_price))
+                execute_result.append((order, trade_val, trade_cost, trade_price))
                 if self.verbose:
                     if order.direction == Order.SELL:  # sell
                         print(
@@ -340,13 +334,13 @@ class SimulatorExecutor(BaseExecutor):
                 trade_exchange=self.trade_exchange,
             )
 
-        return execute_state
+        return execute_result
 
     def get_report(self):
         if self.generate_report:
             _report = self.trade_account.report.generate_report_dataframe()
             _positions = self.trade_account.get_positions()
-            _count, _freq = parse_freq(self.step_bar)
+            _count, _freq = parse_freq(self.time_per_step)
             return {f"{_count}{_freq}": (_report, _positions)}
         else:
             return {}

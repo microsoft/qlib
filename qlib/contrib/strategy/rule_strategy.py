@@ -24,31 +24,31 @@ class TWAPStrategy(RuleStrategy):
             if "trade_exchange" in common_infra:
                 self.trade_exchange = common_infra.get("trade_exchange")
 
-    def reset(self, rely_trade_decision: object = None, **kwargs):
+    def reset(self, outer_trade_decision: object = None, **kwargs):
         """
         Parameters
         ----------
-        rely_trade_decision : object, optional
+        outer_trade_decision : object, optional
         """
 
-        super(TWAPStrategy, self).reset(rely_trade_decision=rely_trade_decision, common_infra=common_infra, **kwargs)
-        if rely_trade_decision is not None:
+        super(TWAPStrategy, self).reset(outer_trade_decision=outer_trade_decision, common_infra=common_infra, **kwargs)
+        if outer_trade_decision is not None:
             self.trade_amount = {}
-            for order in rely_trade_decision:
+            for order in outer_trade_decision:
                 self.trade_amount[(order.stock_id, order.direction)] = order.amount
 
-    def generate_trade_decision(self, execute_state):
+    def generate_trade_decision(self, execute_result=None):
 
         # update the order amount
-        trade_info = execute_state
-        for order, _, _, _ in trade_info:
-            self.trade_amount[(order.stock_id, order.direction)] -= order.deal_amount
+        if execute_result is not None:
+            for order, _, _, _ in execute_result:
+                self.trade_amount[(order.stock_id, order.direction)] -= order.deal_amount
 
-        trade_index = self.trade_calendar.get_trade_index()
-        trade_len = self.trade_calendar.get_trade_len()
-        trade_start_time, trade_end_time = self.trade_calendar.get_calendar_time(trade_index)
+        trade_index = self.calendar.get_trade_index()
+        trade_len = self.calendar.get_trade_len()
+        trade_start_time, trade_end_time = self.calendar.get_calendar_time(trade_index)
         order_list = []
-        for order in self.rely_trade_decision:
+        for order in self.outer_trade_decision:
             if not self.trade_exchange.is_stock_tradable(
                 stock_id=order.stock_id, start_time=trade_start_time, end_time=trade_end_time
             ):
@@ -104,41 +104,41 @@ class SBBStrategyBase(RuleStrategy):
             if "trade_exchange" in common_infra:
                 self.trade_exchange = common_infra.get("trade_exchange")
 
-    def reset(self, rely_trade_decision=None, **kwargs):
+    def reset(self, outer_trade_decision=None, **kwargs):
         """
         Parameters
         ----------
-        rely_trade_decision : object, optional
+        outer_trade_decision : object, optional
         common_infra : None, optional
             common infrastructure for backtesting, by default None
             - It should include `trade_account`, used to get position
             - It should include `trade_exchange`, used to provide market info
         """
-        super(SBBStrategyBase, self).reset(rely_trade_decision=rely_trade_decision, **kwargs)
-        if rely_trade_decision is not None:
+        super(SBBStrategyBase, self).reset(outer_trade_decision=outer_trade_decision, **kwargs)
+        if outer_trade_decision is not None:
             self.trade_trend = {}
             self.trade_amount = {}
             # init the trade amount of order and  predicted trade trend
-            for order in rely_trade_decision:
+            for order in outer_trade_decision:
                 self.trade_trend[(order.stock_id, order.direction)] = self.TREND_MID
                 self.trade_amount[(order.stock_id, order.direction)] = order.amount
 
     def _pred_price_trend(self, stock_id, pred_start_time=None, pred_end_time=None):
         raise NotImplementedError("pred_price_trend method is not implemented!")
 
-    def generate_trade_decision(self, execute_state):
+    def generate_trade_decision(self, execute_result=None):
 
         # update the order amount
-        trade_info = execute_state
-        for order, _, _, _ in trade_info:
-            self.trade_amount[(order.stock_id, order.direction)] -= order.deal_amount
-        trade_index = self.trade_calendar.get_trade_index()
-        trade_len = self.trade_calendar.get_trade_len()
-        trade_start_time, trade_end_time = self.trade_calendar.get_calendar_time(trade_index)
-        pred_start_time, pred_end_time = self.trade_calendar.get_calendar_time(trade_index, shift=1)
+        if execute_result is not None:
+            for order, _, _, _ in execute_result:
+                self.trade_amount[(order.stock_id, order.direction)] -= order.deal_amount
+        trade_index = self.calendar.get_trade_index()
+        trade_len = self.calendar.get_trade_len()
+        trade_start_time, trade_end_time = self.calendar.get_calendar_time(trade_index)
+        pred_start_time, pred_end_time = self.calendar.get_calendar_time(trade_index, shift=1)
         order_list = []
-        # for each order in in self.rely_trade_decision
-        for order in self.rely_trade_decision:
+        # for each order in in self.outer_trade_decision
+        for order in self.outer_trade_decision:
             # predict the price trend
             if trade_index % 2 == 1:
                 _pred_trend = self._pred_price_trend(order.stock_id, pred_start_time, pred_end_time)
@@ -266,7 +266,7 @@ class SBBStrategyEMA(SBBStrategyBase):
 
     def __init__(
         self,
-        rely_trade_decision=[],
+        outer_trade_decision=[],
         instruments="csi300",
         freq="day",
         level_infra={},
@@ -288,13 +288,13 @@ class SBBStrategyEMA(SBBStrategyBase):
         if isinstance(instruments, str):
             self.instruments = D.instruments(instruments)
         self.freq = freq
-        super(SBBStrategyEMA, self).__init__(rely_trade_decision, level_infra, common_infra, **kwargs)
+        super(SBBStrategyEMA, self).__init__(outer_trade_decision, level_infra, common_infra, **kwargs)
 
     def _reset_signal(self):
-        trade_len = self.trade_calendar.get_trade_len()
+        trade_len = self.calendar.get_trade_len()
         fields = ["EMA($close, 10)-EMA($close, 20)"]
-        signal_start_time, _ = self.trade_calendar.get_calendar_time(trade_index=1, shift=1)
-        _, signal_end_time = self.trade_calendar.get_calendar_time(trade_index=trade_len, shift=1)
+        signal_start_time, _ = self.calendar.get_calendar_time(trade_index=1, shift=1)
+        _, signal_end_time = self.calendar.get_calendar_time(trade_index=trade_len, shift=1)
         signal_df = D.features(
             self.instruments, fields, start_time=signal_start_time, end_time=signal_end_time, freq=self.freq
         )
@@ -307,15 +307,15 @@ class SBBStrategyEMA(SBBStrategyBase):
     def reset_level_infra(self, level_infra):
         """
         reset level-shared infra
-        - After reset the trade_calendar, the signal will be changed
+        - After reset the trade calendar, the signal will be changed
         """
         if not hasattr(self, "level_infra"):
             self.level_infra = level_infra
         else:
             self.level_infra.update(level_infra)
 
-        if "trade_calendar" in level_infra:
-            self.trade_calendar = level_infra.get("trade_calendar")
+        if "calendar" in level_infra:
+            self.calendar = level_infra.get("calendar")
             self._reset_signal()
 
     def _pred_price_trend(self, stock_id, pred_start_time=None, pred_end_time=None):

@@ -6,6 +6,7 @@ from typing import Union
 from .interpreter import StateInterpreter, ActionInterpreter
 from ..contrib.backtest.executor import BaseExecutor
 from ..utils import init_instance_by_config
+from .interpreter import BaseInterpreter
 
 
 class BaseRLEnv:
@@ -68,8 +69,8 @@ class QlibIntRLEnv(QlibRLEnv):
             interpretor that interprets the rl agent action into qlib order list
         """
         super(QlibIntRLEnv, self).__init__(executor=executor)
-        self.state_interpreter = init_instance_by_config(state_interpreter)
-        self.action_interpreter = init_instance_by_config(action_interpreter)
+        self.state_interpreter = init_instance_by_config(state_interpreter, accept_types=StateInterpreter)
+        self.action_interpreter = init_instance_by_config(action_interpreter, accept_types=ActionInterpreter)
 
     def step(self, action):
         """
@@ -87,7 +88,7 @@ class QlibIntRLEnv(QlibRLEnv):
         -------
         env state to rl policy
         """
-        _interpret_action = self.action_interpreter.interpret(action=action)
-        _execute_result = self.executor.execute(_interpret_action)
+        _interpret_decision = self.action_interpreter.interpret(action=action)
+        _execute_result = self.executor.execute(trade_decision=_interpret_decision)
         _interpret_state = self.state_interpreter.interpret(execute_result=_execute_result)
         return _interpret_state

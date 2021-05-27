@@ -317,7 +317,7 @@ class PortAnaRecord(RecordTemp):
     def _get_report_freq(self, executor_config):
         ret_freq = []
         if executor_config["kwargs"].get("generate_report", False):
-            _count, _freq = parse_freq(executor_config["kwargs"]["step_bar"])
+            _count, _freq = parse_freq(executor_config["kwargs"]["time_per_step"])
             ret_freq.append(f"{_count}{_freq}")
         if "sub_env" in executor_config["kwargs"]:
             ret_freq.extend(self._get_report_freq(executor_config["kwargs"]["sub_env"]))

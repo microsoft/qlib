@@ -81,10 +81,10 @@ class TopkDropoutStrategy(ModelStrategy):
         # It will use 95% amoutn of your total value by default
         return self.risk_degree
 
-    def generate_trade_decision(self, execute_state):
-        trade_index = self.trade_calendar.get_trade_index()
-        trade_start_time, trade_end_time = self.trade_calendar.get_calendar_time(trade_index)
-        pred_start_time, pred_end_time = self.trade_calendar.get_calendar_time(trade_index, shift=1)
+    def generate_trade_decision(self, execute_result=None):
+        trade_index = self.calendar.get_trade_index()
+        trade_start_time, trade_end_time = self.calendar.get_calendar_time(trade_index)
+        pred_start_time, pred_end_time = self.calendar.get_calendar_time(trade_index, shift=1)
         pred_score = resam_ts_data(self.pred_scores, start_time=pred_start_time, end_time=pred_end_time, method="last")
         if pred_score is None:
             return []
@@ -179,8 +179,8 @@ class TopkDropoutStrategy(ModelStrategy):
                 continue
             if code in sell:
                 # check hold limit
-                step_bar = self.trade_calendar.get_step_bar()
-                if current_temp.get_stock_count(code, bar=step_bar) < self.hold_thresh:
+                time_per_step = self.calendar.get_freq()
+                if current_temp.get_stock_count(code, bar=time_per_step) < self.hold_thresh:
                     continue
                 # sell order
                 sell_amount = current_temp.get_stock_amount(code=code)
@@ -292,7 +292,7 @@ class WeightStrategyBase(ModelStrategy):
         """
         raise NotImplementedError()
 
-    def generate_trade_decision(self, execute_state):
+    def generate_trade_decision(self, execute_result=None):
         """
         Parameters
         -----------
@@ -307,9 +307,9 @@ class WeightStrategyBase(ModelStrategy):
         """
         # generate_trade_decision
         # generate_target_weight_position() and generate_order_list_from_target_weight_position() to generate order_list
-        trade_index = self.trade_calendar.get_trade_index()
-        trade_start_time, trade_end_time = self.trade_calendar.get_calendar_time(trade_index)
-        pred_start_time, pred_end_time = self.trade_calendar.get_calendar_time(trade_index, shift=1)
+        trade_index = self.calendar.get_trade_index()
+        trade_start_time, trade_end_time = self.calendar.get_calendar_time(trade_index)
+        pred_start_time, pred_end_time = self.calendar.get_calendar_time(trade_index, shift=1)
         pred_score = resam_ts_data(self.pred_scores, start_time=pred_start_time, end_time=pred_end_time, method="last")
         if pred_score is None:
             return []

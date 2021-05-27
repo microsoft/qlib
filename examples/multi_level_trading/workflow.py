@@ -61,24 +61,24 @@ class MultiLevelTradingWorkflow:
     }
 
     trade_start_time = "2017-01-01"
-    trade_end_time = "2020-08-01"
+    trade_end_time = "2017-02-01"
 
     port_analysis_config = {
         "executor": {
             "class": "SplitExecutor",
             "module_path": "qlib.contrib.backtest.executor",
             "kwargs": {
-                "step_bar": "week",
-                "sub_executor": {
+                "time_per_step": "week",
+                "inner_executor": {
                     "class": "SimulatorExecutor",
                     "module_path": "qlib.contrib.backtest.executor",
                     "kwargs": {
-                        "step_bar": "day",
+                        "time_per_step": "day",
                         "verbose": True,
                         "generate_report": True,
                     },
                 },
-                "sub_strategy": {
+                "inner_strategy": {
                     "class": "SBBStrategyEMA",
                     "module_path": "qlib.contrib.strategy.rule_strategy",
                     "kwargs": {
@@ -107,7 +107,6 @@ class MultiLevelTradingWorkflow:
 
     def _init_qlib(self):
         """initialize qlib"""
-        # use yahoo_cn_1min data
         provider_uri = "~/.qlib/qlib_data/cn_data"  # target_dir
         if not exists_qlib_data(provider_uri):
             print(f"Qlib data is not found in {provider_uri}")
