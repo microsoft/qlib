@@ -283,6 +283,9 @@ class TrainerRM(Trainer):
     STATUS_BEGIN = "begin_task_train"
     STATUS_END = "end_task_train"
 
+    # This tag is the _id in TaskManager to distinguish tasks.
+    TM_ID = "_id in TaskManager"
+
     def __init__(self, experiment_name: str = None, task_pool: str = None, train_func=task_train):
         """
         Init TrainerR.
@@ -336,31 +339,24 @@ class TrainerRM(Trainer):
             task_pool = experiment_name
         tm = TaskManager(task_pool=task_pool)
         _id_list = tm.create_task(tasks)  # all tasks will be saved to MongoDB
+        query = {"_id": {"$in": _id_list}}
         run_task(
             train_func,
             task_pool,
-            query={"filter": {"$in": tasks}},  # only train these tasks
+            query=query,  # only train these tasks
             experiment_name=experiment_name,
             before_status=before_status,
             after_status=after_status,
             **kwargs,
         )
 
-        # FIXME: reset to waiting automatically
-        for _id in _id_list:
-            is_prn = False
-            while tm.re_query(_id)["status"] == "running":
-                if not is_prn:
-                    get_module_logger("TrainerRM").warn(
-                        f"A task (_id: {_id}) is not being trained by this Trainer. Ignore this message if it is being trained by others."
-                    )
-                    is_prn = True
-                time.sleep(10)
+        tm.wait(query=query)
 
         recs = []
         for _id in _id_list:
             rec = tm.re_query(_id)["res"]
             rec.set_tags(**{self.STATUS_KEY: self.STATUS_BEGIN})
+            rec.set_tags(**{self.TM_ID: _id})
             recs.append(rec)
         return recs
 
@@ -475,31 +471,21 @@ class DelayTrainerRM(TrainerRM):
         task_pool = self.task_pool
         if task_pool is None:
             task_pool = experiment_name
-        tasks = []
+        _id_list = []
         for rec in recs:
-            tasks.append(rec.load_object("task"))
+            _id_list.append(rec.list_tags()[self.TM_ID])
 
+        query = {"_id": {"$in": _id_list}}
         run_task(
             end_train_func,
             task_pool,
-            query={"filter": {"$in": tasks}},  # only train these tasks
+            query=query,  # only train these tasks
             experiment_name=experiment_name,
             before_status=TaskManager.STATUS_PART_DONE,
             **kwargs,
         )
 
-        # FIXME: reset to waiting automatically
-        tm = TaskManager(task_pool=task_pool)
-        for query_task in tm.query({"filter": {"$in": tasks}}):
-            _id = query_task["_id"]
-            is_prn = False
-            while tm.re_query(_id)["status"] == "running":
-                if not is_prn:
-                    get_module_logger("DelayTrainerRM").warn(
-                        f"A task (_id: {_id}) is not being trained by this Trainer. Ignore this message if it is being trained by others."
-                    )
-                    is_prn = True
-                time.sleep(10)
+        TaskManager(task_pool=task_pool).wait(query=query)
 
         for rec in recs:
             rec.set_tags(**{self.STATUS_KEY: self.STATUS_END})
