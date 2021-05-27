@@ -8,9 +8,10 @@ from typing import Text, Union
 from ...model.base import ModelFT
 from ...data.dataset import DatasetH
 from ...data.dataset.handler import DataHandlerLP
+from ...model.interpret.base import LightGBMFInt
 
 
-class LGBModel(ModelFT):
+class LGBModel(ModelFT, LightGBMFInt):
     """LightGBM Model"""
 
     def __init__(self, loss="mse", **kwargs):
@@ -33,8 +34,8 @@ class LGBModel(ModelFT):
         else:
             raise ValueError("LightGBM doesn't support multi-label training")
 
-        dtrain = lgb.Dataset(x_train.values, label=y_train)
-        dvalid = lgb.Dataset(x_valid.values, label=y_valid)
+        dtrain = lgb.Dataset(x_train, label=y_train)
+        dvalid = lgb.Dataset(x_valid, label=y_valid)
         return dtrain, dvalid
 
     def fit(
