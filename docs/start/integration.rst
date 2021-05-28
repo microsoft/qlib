@@ -82,7 +82,7 @@ The Custom models need to inherit `qlib.model.base.Model <../reference/api.html#
             return pd.Series(self.model.predict(x_test.values), index=x_test.index)
 
 - Override the `finetune` method (Optional)
-    - This method is optional to the users, and when users one to use this method on their own models, they should inherit the ``ModelFT`` base class, which includes the interface of `finetune`.
+    - This method is optional to the users. When users want to use this method on their own models, they should inherit the ``ModelFT`` base class, which includes the interface of `finetune`.
     - The parameters must include the parameter `dataset`.
     - Code Example: In the following example, users will use `LightGBM` as the model and finetune it.
     .. code-block:: Python
