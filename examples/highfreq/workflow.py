@@ -85,7 +85,7 @@ class HighfreqWorkflow:
         # use yahoo_cn_1min data
         QLIB_INIT_CONFIG = {**HIGH_FREQ_CONFIG, **self.SPEC_CONF}
         provider_uri = QLIB_INIT_CONFIG.get("provider_uri")
-        GetData().qlib_data(target_dir=provider_uri, interval="1min", region=REG_CN)
+        GetData().qlib_data(target_dir=provider_uri, interval="1min", region=REG_CN, exists_skip=True)
         qlib.init(**QLIB_INIT_CONFIG)
 
     def _prepare_calender_cache(self):

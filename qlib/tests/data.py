@@ -113,7 +113,7 @@ class GetData:
         interval="1d",
         region="cn",
         delete_old=True,
-        exists_skip=True,
+        exists_skip=False,
     ):
         """download cn qlib data from remote
 
@@ -132,7 +132,7 @@ class GetData:
         delete_old: bool
             delete an existing directory, by default True
         exists_skip: bool
-            exists skip, by default True
+            exists skip, by default False
 
         Examples
         ---------
@@ -145,6 +145,10 @@ class GetData:
 
         """
         if exists_skip and exists_qlib_data(target_dir):
+            logger.warning(
+                f"Data already exists: {target_dir}, the data download will be skipped\n"
+                f"\tIf downloading is required: `exists_skip=False` or `change target_dir`"
+            )
             return
 
         qlib_version = ".".join(re.findall(r"(\d+)\.+", qlib.__version__))

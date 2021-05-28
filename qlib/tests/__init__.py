@@ -19,5 +19,6 @@ class TestAutoData(unittest.TestCase):
             interval="1d",
             target_dir=cls.provider_uri,
             delete_old=False,
+            exists_skip=True,
         )
         init(provider_uri=cls.provider_uri, region=REG_CN, **cls._setup_kwargs)
