@@ -14,7 +14,14 @@ class FeatureInt:
 
     @abstractmethod
     def get_feature_importance(self) -> pd.Series:
-        ...
+        """get feature importance
+
+        Returns
+        -------
+            The index is the feature name.
+
+            The greater the value, the higher importance.
+        """
 
 
 class LightGBMFInt(FeatureInt):

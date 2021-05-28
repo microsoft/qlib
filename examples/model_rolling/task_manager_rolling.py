@@ -17,63 +17,7 @@ from qlib.workflow.task.manage import TaskManager
 from qlib.workflow.task.collect import RecorderCollector
 from qlib.model.ens.group import RollingGroup
 from qlib.model.trainer import TrainerRM
-
-
-data_handler_config = {
-    "start_time": "2008-01-01",
-    "end_time": "2020-08-01",
-    "fit_start_time": "2008-01-01",
-    "fit_end_time": "2014-12-31",
-    "instruments": "csi100",
-}
-
-dataset_config = {
-    "class": "DatasetH",
-    "module_path": "qlib.data.dataset",
-    "kwargs": {
-        "handler": {
-            "class": "Alpha158",
-            "module_path": "qlib.contrib.data.handler",
-            "kwargs": data_handler_config,
-        },
-        "segments": {
-            "train": ("2008-01-01", "2014-12-31"),
-            "valid": ("2015-01-01", "2016-12-31"),
-            "test": ("2017-01-01", "2020-08-01"),
-        },
-    },
-}
-
-record_config = [
-    {
-        "class": "SignalRecord",
-        "module_path": "qlib.workflow.record_temp",
-    },
-    {
-        "class": "SigAnaRecord",
-        "module_path": "qlib.workflow.record_temp",
-    },
-]
-
-# use lgb
-task_lgb_config = {
-    "model": {
-        "class": "LGBModel",
-        "module_path": "qlib.contrib.model.gbdt",
-    },
-    "dataset": dataset_config,
-    "record": record_config,
-}
-
-# use xgboost
-task_xgboost_config = {
-    "model": {
-        "class": "XGBModel",
-        "module_path": "qlib.contrib.model.xgboost",
-    },
-    "dataset": dataset_config,
-    "record": record_config,
-}
+from qlib.tests.config import CSI100_RECORD_LGB_TASK_CONFIG, CSI100_RECORD_XGBOOST_TASK_CONFIG
 
 
 class RollingTaskExample:
@@ -85,11 +29,13 @@ class RollingTaskExample:
         task_db_name="rolling_db",
         experiment_name="rolling_exp",
         task_pool="rolling_task",
-        task_config=[task_xgboost_config, task_lgb_config],
+        task_config=None,
         rolling_step=550,
         rolling_type=RollingGen.ROLL_SD,
     ):
         # TaskManager config
+        if task_config is None:
+            task_config = [CSI100_RECORD_XGBOOST_TASK_CONFIG, CSI100_RECORD_LGB_TASK_CONFIG]
         mongo_conf = {
             "task_url": task_url,
             "task_db_name": task_db_name,
