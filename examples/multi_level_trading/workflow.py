@@ -173,11 +173,11 @@ class MultiLevelTradingWorkflow:
             GetData().qlib_data(target_dir=provider_uri_1min, interval="1min", region=REG_CN)
 
         # TODO: update new data
-        # provider_uri_day = "~/.qlib/qlib_data/cn_data"  # target_dir
-        # if not exists_qlib_data(provider_uri_day):
-        #    print(f"Qlib data is not found in {provider_uri_day}")
-        #    GetData().qlib_data(target_dir=provider_uri_day, region=REG_CN)
-        provider_uri_day = "/data/csdesign/qlib"
+        provider_uri_day = "~/.qlib/qlib_data/cn_data"  # target_dir
+        if not exists_qlib_data(provider_uri_day):
+            print(f"Qlib data is not found in {provider_uri_day}")
+            GetData().qlib_data(target_dir=provider_uri_day, region=REG_CN)
+
         provider_uri_map = {"1min": provider_uri_1min, "day": provider_uri_day}
         client_config = {
             "calendar_provider": {
@@ -210,7 +210,7 @@ class MultiLevelTradingWorkflow:
         executor_config = self.port_analysis_config["executor"]
         # update executor with hierarchical decison freq ["day", "1min"]
         executor_config["kwargs"]["time_per_step"] = "day"
-        executor_config["kwargs"]["inner_executor"]["kwargs"]["time_per_step"] = "1min"
+        executor_config["kwargs"]["inner_executor"]["kwargs"]["time_per_step"] = "15min"
         backtest_config = self.port_analysis_config["backtest"]
 
         # yahoo highfreq data time

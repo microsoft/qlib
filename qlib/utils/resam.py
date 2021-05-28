@@ -182,7 +182,7 @@ def get_resam_calendar(
     try:
         _calendar = Cal.calendar(start_time=start_time, end_time=end_time, freq=freq, future=future)
         freq, freq_sam = freq, None
-    except ValueError:
+    except (ValueError, KeyError):
         freq_sam = freq
         if norm_freq in ["month", "week", "day"]:
             try:
@@ -190,16 +190,16 @@ def get_resam_calendar(
                     start_time=start_time, end_time=end_time, freq="day", freq_sam=freq, future=future
                 )
                 freq = "day"
-            except ValueError:
+            except (ValueError, KeyError):
                 _calendar = Cal.calendar(
                     start_time=start_time, end_time=end_time, freq="1min", freq_sam=freq, future=future
                 )
-                freq = "min"
+                freq = "1min"
         elif norm_freq == "minute":
             _calendar = Cal.calendar(
                 start_time=start_time, end_time=end_time, freq="1min", freq_sam=freq, future=future
             )
-            freq = "min"
+            freq = "1min"
         else:
             raise ValueError(f"freq {freq} is not supported")
     return _calendar, freq, freq_sam
