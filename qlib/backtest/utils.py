@@ -41,7 +41,7 @@ class TradeCalendarManager:
         - self.trade_step : The number of trading step finished, self.trade_step can be [0, 1, 2, ..., self.trade_len - 1]
         """
         _calendar, freq, freq_sam = get_resam_calendar(freq=freq)
-        self.trade_calendar = _calendar
+        self._calendar = _calendar
         _, _, _start_index, _end_index = Cal.locate_index(start_time, end_time, freq=freq, freq_sam=freq_sam)
         self.start_index = _start_index
         self.end_index = _end_index
@@ -91,7 +91,7 @@ class TradeCalendarManager:
         """
         trade_step = trade_step - shift
         calendar_index = self.start_index + trade_step
-        return self.trade_calendar[calendar_index], self.trade_calendar[calendar_index + 1] - pd.Timedelta(seconds=1)
+        return self._calendar[calendar_index], self._calendar[calendar_index + 1] - pd.Timedelta(seconds=1)
 
     def get_all_time(self):
         """Get the start_time and end_time for trading"""

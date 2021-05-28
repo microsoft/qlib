@@ -93,6 +93,9 @@ class TopkDropoutStrategy(ModelStrategy):
         trade_start_time, trade_end_time = self.trade_calendar.get_step_time(trade_step)
         pred_start_time, pred_end_time = self.trade_calendar.get_step_time(trade_step, shift=1)
         pred_score = resam_ts_data(self.pred_scores, start_time=pred_start_time, end_time=pred_end_time, method="last")
+        print(
+            trade_step, pred_start_time, pred_end_time, trade_start_time, trade_end_time, pred_score, self.pred_scores
+        )
         if pred_score is None:
             return []
         if self.only_tradable:

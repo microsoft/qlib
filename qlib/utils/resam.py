@@ -288,11 +288,13 @@ def resam_ts_data(
     from ..data.dataset.utils import get_level_index
 
     feature = lazy_sort_index(ts_feature)
+
     datetime_level = get_level_index(feature, level="datetime") == 0
     if datetime_level:
         feature = feature.loc[selector_datetime]
     else:
         feature = feature.loc[(slice(None), selector_datetime)]
+
     if feature.empty:
         return None
     if isinstance(feature.index, pd.MultiIndex):

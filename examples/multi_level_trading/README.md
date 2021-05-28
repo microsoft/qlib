@@ -8,9 +8,12 @@ Qlib supports backtesting of various strategies, including portfolio management 
 
 And, Qlib also supports multi-level trading and backtesting. It means that users can use different strategies to trade at different frequencies.
 
-This example uses a DropoutTopkStrategy (a strategy based on the daily frequency Lightgbm model) in weekly frequency for portfolio generation. And, at the daily frequency level, this example uses SBBStrategyEMA (a rule-based strategy that uses EMA for decision-making) to split orders. 
 
-## Usage
+## Weekly Portfolio Generation and Daily Order Execution
+
+This workflow provides an example that uses a DropoutTopkStrategy (a strategy based on the daily frequency Lightgbm model) in weekly frequency for portfolio generation and uses SBBStrategyEMA (a rule-based strategy that uses EMA for decision-making) to execute orders in daily frequency. 
+
+### Usage
 
 Start backtesting by running the following command:
 ```bash
@@ -22,3 +25,13 @@ Start collecting data by running the following command:
     python workflow.py collect_data
 ```
 
+## Daily Portfolio Generation and Minutely Order Execution
+
+This workflow also provides a high-frequency example that uses a DropoutTopkStrategy for portfolio generation in daily frequency and uses SBBStrategyEMA to execute orders in minutely frequency. 
+
+### Usage
+
+Start backtesting by running the following command:
+```bash
+    python workflow.py backtest_highfreq
+```

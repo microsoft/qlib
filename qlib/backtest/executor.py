@@ -304,7 +304,7 @@ class SimulatorExecutor(BaseExecutor):
                 if self.verbose:
                     if order.direction == Order.SELL:  # sell
                         print(
-                            "[I {:%Y-%m-%d}]: sell {}, price {:.2f}, amount {}, deal_amount {}, factor {}, value {:.2f}.".format(
+                            "[I {:%Y-%m-%d %H:%M:%S}]: sell {}, price {:.2f}, amount {}, deal_amount {}, factor {}, value {:.2f}.".format(
                                 trade_start_time,
                                 order.stock_id,
                                 trade_price,
@@ -316,7 +316,7 @@ class SimulatorExecutor(BaseExecutor):
                         )
                     else:
                         print(
-                            "[I {:%Y-%m-%d}]: buy {}, price {:.2f}, amount {}, deal_amount {}, factor {}, value {:.2f}.".format(
+                            "[I {:%Y-%m-%d %H:%M:%S}]: buy {}, price {:.2f}, amount {}, deal_amount {}, factor {}, value {:.2f}.".format(
                                 trade_start_time,
                                 order.stock_id,
                                 trade_price,

@@ -1,5 +1,6 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
+from typing import Union
 
 from ..model.base import BaseModel
 from ..data.dataset import DatasetH
@@ -141,8 +142,8 @@ class RLIntStrategy(RLStrategy):
     def __init__(
         self,
         policy,
-        state_interpreter: StateInterpreter,
-        action_interpreter: ActionInterpreter,
+        state_interpreter: Union[dict, StateInterpreter],
+        action_interpreter: Union[dict, ActionInterpreter],
         outer_trade_decision: object = None,
         level_infra: dict = {},
         common_infra: dict = {},
@@ -151,9 +152,9 @@ class RLIntStrategy(RLStrategy):
         """
         Parameters
         ----------
-        state_interpreter : StateInterpreter
-            interpretor that interprets the qlib execute result into rl env state.
-        action_interpreter : ActionInterpreter
+        state_interpreter : Union[dict, StateInterpreter]
+            interpretor that interprets the qlib execute result into rl env state
+        action_interpreter : Union[dict, ActionInterpreter]
             interpretor that interprets the rl agent action into qlib order list
         start_time : Union[str, pd.Timestamp], optional
             start time of trading, by default None
@@ -163,8 +164,8 @@ class RLIntStrategy(RLStrategy):
         super(RLIntStrategy, self).__init__(policy, outer_trade_decision, level_infra, common_infra, **kwargs)
 
         self.policy = policy
-        self.state_interpreter = init_instance_by_config(state_interpreter)
-        self.action_interpreter = init_instance_by_config(action_interpreter)
+        self.state_interpreter = init_instance_by_config(state_interpreter, accept_types=StateInterpreter)
+        self.action_interpreter = init_instance_by_config(action_interpreter, accept_types=ActionInterpreter)
 
     def generate_trade_decision(self, execute_result=None):
         _interpret_state = self.state_interpretor.interpret(execute_result=execute_result)

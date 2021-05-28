@@ -53,7 +53,7 @@ class TWAPStrategy(BaseStrategy):
         outer_trade_decision : object, optional
         """
 
-        super(TWAPStrategy, self).reset(outer_trade_decision=outer_trade_decision, common_infra=common_infra, **kwargs)
+        super(TWAPStrategy, self).reset(outer_trade_decision=outer_trade_decision, **kwargs)
         if outer_trade_decision is not None:
             self.trade_amount = {}
             for order in outer_trade_decision:
@@ -73,21 +73,24 @@ class TWAPStrategy(BaseStrategy):
         trade_start_time, trade_end_time = self.trade_calendar.get_step_time(trade_step)
         order_list = []
         for order in self.outer_trade_decision:
+            # if not tradable, continue
             if not self.trade_exchange.is_stock_tradable(
                 stock_id=order.stock_id, start_time=trade_start_time, end_time=trade_end_time
             ):
                 continue
             _amount_trade_unit = self.trade_exchange.get_amount_of_trade_unit(order.factor)
             _order_amount = None
-            # consider trade unit
+            # considering trade unit
             if _amount_trade_unit is None:
-                # divide the order equally
+                # divide the order into equal parts, and trade one part
                 _order_amount = self.trade_amount[(order.stock_id, order.direction)] / (trade_len - trade_step + 1)
             # without considering trade unit
             elif self.trade_amount[(order.stock_id, order.direction)] >= _amount_trade_unit:
-                # divide the order equally
-                # floor((trade_unit_cnt + trade_len - trade_step) / (trade_len - trade_step + 1)) == ceil(trade_unit_cnt / (trade_len - trade_step + 1))
+                # divide the order into equal parts, and trade one part
+                # calculate the total count of trade units to trade
                 trade_unit_cnt = int(self.trade_amount[(order.stock_id, order.direction)] // _amount_trade_unit)
+                # calculate the amount of one part, ceil the amount
+                # floor((trade_unit_cnt + trade_len - trade_step) / (trade_len - trade_step + 1)) == ceil(trade_unit_cnt / (trade_len - trade_step + 1))
                 _order_amount = (
                     (trade_unit_cnt + trade_len - trade_step) // (trade_len - trade_step + 1) * _amount_trade_unit
                 )
@@ -144,6 +147,14 @@ class SBBStrategyBase(BaseStrategy):
             self.trade_exchange = trade_exchange
 
     def reset_common_infra(self, common_infra):
+        """
+        Parameters
+        ----------
+        common_infra : dict, optional
+            common infrastructure for backtesting, by default None
+            - It should include `trade_account`, used to get position
+            - It should include `trade_exchange`, used to provide market info
+        """
         super(SBBStrategyBase, self).reset_common_infra(common_infra)
         if common_infra is not None:
             if "trade_exchange" in common_infra:
@@ -154,10 +165,6 @@ class SBBStrategyBase(BaseStrategy):
         Parameters
         ----------
         outer_trade_decision : object, optional
-        common_infra : None, optional
-            common infrastructure for backtesting, by default None
-            - It should include `trade_account`, used to get position
-            - It should include `trade_exchange`, used to provide market info
         """
         super(SBBStrategyBase, self).reset(outer_trade_decision=outer_trade_decision, **kwargs)
         if outer_trade_decision is not None:
@@ -186,10 +193,12 @@ class SBBStrategyBase(BaseStrategy):
         order_list = []
         # for each order in in self.outer_trade_decision
         for order in self.outer_trade_decision:
-            # predict the price trend
+            # get the price trend
             if trade_step % 2 == 0:
+                # in the first of two adjacent bars, predict the price trend
                 _pred_trend = self._pred_price_trend(order.stock_id, pred_start_time, pred_end_time)
             else:
+                # in the second of two adjacent bars, use the trend predicted in the first one
                 _pred_trend = self.trade_trend[(order.stock_id, order.direction)]
             # if not tradable, continue
             if not self.trade_exchange.is_stock_tradable(
@@ -204,13 +213,14 @@ class SBBStrategyBase(BaseStrategy):
                 _order_amount = None
                 # considering trade unit
                 if _amount_trade_unit is None:
-                    # divide the order equally
+                    # divide the order into equal parts, and trade one part
                     _order_amount = self.trade_amount[(order.stock_id, order.direction)] / (trade_len - trade_step)
                 # without considering trade unit
                 elif self.trade_amount[(order.stock_id, order.direction)] >= _amount_trade_unit:
-                    # cal how many trade unit
+                    # divide the order into equal parts, and trade one part
+                    # calculate the total count of trade units to trade
                     trade_unit_cnt = int(self.trade_amount[(order.stock_id, order.direction)] // _amount_trade_unit)
-                    # divide the order equally
+                    # calculate the amount of one part, ceil the amount
                     # floor((trade_unit_cnt + trade_len - trade_step - 1) / (trade_len - trade_step)) == ceil(trade_unit_cnt / (trade_len - trade_step))
                     _order_amount = (
                         (trade_unit_cnt + trade_len - trade_step - 1) // (trade_len - trade_step) * _amount_trade_unit
@@ -262,9 +272,9 @@ class SBBStrategyBase(BaseStrategy):
                 if _order_amount:
                     _order_amount = min(_order_amount, self.trade_amount[(order.stock_id, order.direction)])
                     if trade_step % 2 == 0:
-                        # in the first of two adjacent bar
+                        # in the first one of two adjacent bars
                         # if look short on the price, sell the stock more
-                        # if look long on the price, sell the stock more
+                        # if look long on the price, buy the stock more
                         if (
                             _pred_trend == self.TREND_SHORT
                             and order.direction == order.SELL
@@ -281,7 +291,7 @@ class SBBStrategyBase(BaseStrategy):
                             )
                             order_list.append(_order)
                     else:
-                        # in the second of two adjacent bar
+                        # in the second one of two adjacent bars
                         # if look short on the price, buy the stock more
                         # if look long on the price, sell the stock more
                         if (
@@ -301,6 +311,7 @@ class SBBStrategyBase(BaseStrategy):
                             order_list.append(_order)
 
             if trade_step % 2 == 0:
+                # in the first one of two adjacent bars, store the trend for the second one to use
                 self.trade_trend[(order.stock_id, order.direction)] = _pred_trend
 
         return order_list
@@ -328,7 +339,7 @@ class SBBStrategyEMA(SBBStrategyBase):
             instruments of EMA signal, by default "csi300"
         freq : str, optional
             freq of EMA signal, by default "day"
-            Note: `freq` may be different from `steb_bar`
+            Note: `freq` may be different from `time_per_step`
         """
         if instruments is None:
             warnings.warn("`instruments` is not set, will load all stocks")
@@ -349,8 +360,10 @@ class SBBStrategyEMA(SBBStrategyBase):
         signal_df = convert_index_format(signal_df)
         signal_df.columns = ["signal"]
         self.signal = {}
-        for stock_id, stock_val in signal_df.groupby(level="instrument"):
-            self.signal[stock_id] = stock_val
+
+        if not signal_df.empty:
+            for stock_id, stock_val in signal_df.groupby(level="instrument"):
+                self.signal[stock_id] = stock_val
 
     def reset_level_infra(self, level_infra):
         """
@@ -367,16 +380,19 @@ class SBBStrategyEMA(SBBStrategyBase):
             self._reset_signal()
 
     def _pred_price_trend(self, stock_id, pred_start_time=None, pred_end_time=None):
-
+        # if no signal, return mid trend
         if stock_id not in self.signal:
             return self.TREND_MID
         else:
             _sample_signal = resam_ts_data(
                 self.signal[stock_id]["signal"], pred_start_time, pred_end_time, method="last"
             )
+            # if EMA signal == 0 or None, return mid trend
             if _sample_signal is None or _sample_signal.iloc[0] == 0:
                 return self.TREND_MID
+            # if EMA signal > 0, return long trend
             elif _sample_signal.iloc[0] > 0:
                 return self.TREND_LONG
+            # if EMA signal > 0, return short trend
             else:
                 return self.TREND_SHORT
