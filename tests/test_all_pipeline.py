@@ -12,55 +12,7 @@ from qlib.utils import init_instance_by_config, flatten_dict
 from qlib.workflow import R
 from qlib.workflow.record_temp import SignalRecord, SigAnaRecord, PortAnaRecord
 from qlib.tests import TestAutoData
-
-
-market = "csi300"
-benchmark = "SH000300"
-
-###################################
-# train model
-###################################
-data_handler_config = {
-    "start_time": "2008-01-01",
-    "end_time": "2020-08-01",
-    "fit_start_time": "2008-01-01",
-    "fit_end_time": "2014-12-31",
-    "instruments": market,
-}
-
-task = {
-    "model": {
-        "class": "LGBModel",
-        "module_path": "qlib.contrib.model.gbdt",
-        "kwargs": {
-            "loss": "mse",
-            "colsample_bytree": 0.8879,
-            "learning_rate": 0.0421,
-            "subsample": 0.8789,
-            "lambda_l1": 205.6999,
-            "lambda_l2": 580.9768,
-            "max_depth": 8,
-            "num_leaves": 210,
-            "num_threads": 20,
-        },
-    },
-    "dataset": {
-        "class": "DatasetH",
-        "module_path": "qlib.data.dataset",
-        "kwargs": {
-            "handler": {
-                "class": "Alpha158",
-                "module_path": "qlib.contrib.data.handler",
-                "kwargs": data_handler_config,
-            },
-            "segments": {
-                "train": ("2008-01-01", "2014-12-31"),
-                "valid": ("2015-01-01", "2016-12-31"),
-                "test": ("2017-01-01", "2020-08-01"),
-            },
-        },
-    },
-}
+from qlib.tests.config import CSI300_GBDT_TASK, CSI300_BENCH
 
 port_analysis_config = {
     "strategy": {
@@ -75,7 +27,7 @@ port_analysis_config = {
         "verbose": False,
         "limit_threshold": 0.095,
         "account": 100000000,
-        "benchmark": benchmark,
+        "benchmark": CSI300_BENCH,
         "deal_price": "close",
         "open_cost": 0.0005,
         "close_cost": 0.0015,
@@ -96,15 +48,15 @@ def train():
     """
 
     # model initiaiton
-    model = init_instance_by_config(task["model"])
-    dataset = init_instance_by_config(task["dataset"])
+    model = init_instance_by_config(CSI300_GBDT_TASK["model"])
+    dataset = init_instance_by_config(CSI300_GBDT_TASK["dataset"])
     # To test __repr__
     print(dataset)
     print(R)
 
     # start exp
     with R.start(experiment_name="workflow"):
-        R.log_params(**flatten_dict(task))
+        R.log_params(**flatten_dict(CSI300_GBDT_TASK))
         model.fit(dataset)
 
         # prediction
@@ -137,12 +89,12 @@ def train_with_sigana():
         performance: dict
             model performance
     """
-    model = init_instance_by_config(task["model"])
-    dataset = init_instance_by_config(task["dataset"])
+    model = init_instance_by_config(CSI300_GBDT_TASK["model"])
+    dataset = init_instance_by_config(CSI300_GBDT_TASK["dataset"])
 
     # start exp
     with R.start(experiment_name="workflow_with_sigana"):
-        R.log_params(**flatten_dict(task))
+        R.log_params(**flatten_dict(CSI300_GBDT_TASK))
         model.fit(dataset)
 
         # predict and calculate ic and ric
@@ -171,7 +123,7 @@ def fake_experiment():
     default_uri = R.get_uri()
     current_uri = "file:./temp-test-exp-mag"
     with R.start(experiment_name="fake_workflow_for_expm", uri=current_uri):
-        R.log_params(**flatten_dict(task))
+        R.log_params(**flatten_dict(CSI300_GBDT_TASK))
 
         current_uri_to_check = R.get_uri()
     default_uri_to_check = R.get_uri()
