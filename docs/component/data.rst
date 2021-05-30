@@ -152,6 +152,16 @@ After conversion, users can find their Qlib format data in the directory `~/.qli
 
     In the convention of `Qlib` data processing, `open, close, high, low, volume, money and factor` will be set to NaN if the stock is suspended. 
 
+Stock Pool (Market)
+--------------------------------
+
+``Qlib`` defines `stock pool <https://github.com/microsoft/qlib/blob/main/examples/benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml#L4>`_ as stock list and their date ranges. Predefined stock pools (e.g. csi300) may be imported as follows.
+
+.. code-block:: bash
+
+    python collector.py --index_name CSI300 --qlib_dir <user qlib data dir> --method parse_instruments
+
+
 Multiple Stock Modes
 --------------------------------
 
