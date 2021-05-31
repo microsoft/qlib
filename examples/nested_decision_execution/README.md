@@ -1,13 +1,6 @@
-# Multi-level Trading
+# Nested Decision Execution
 
-This worflow is an example for multi-level trading.
-
-## Introduction
-
-Qlib supports backtesting of various strategies, including portfolio management strategies, order split strategies, model-based strategies (such as deep learning models), rule-based strategies, and RL-based strategies.
-
-And, Qlib also supports multi-level trading and backtesting. It means that users can use different strategies to trade at different frequencies.
-
+This worflow is an example for nested decision execution in backtesting. Qlib supports nested decision execution in backtesting. It means that users can use different strategies to make trade decision in different frequencies.
 
 ## Weekly Portfolio Generation and Daily Order Execution
 

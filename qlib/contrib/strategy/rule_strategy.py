@@ -1,4 +1,5 @@
 import warnings
+from typing import List, Union
 
 from ...utils.resam import resam_ts_data
 from ...data.data import D
@@ -6,6 +7,7 @@ from ...data.dataset.utils import convert_index_format
 from ...strategy.base import BaseStrategy
 from ...backtest.order import Order
 from ...backtest.exchange import Exchange
+from ...backtest.utils import CommonInfrastructure, LevelInfrastructure
 
 
 class TWAPStrategy(BaseStrategy):
@@ -13,17 +15,20 @@ class TWAPStrategy(BaseStrategy):
 
     def __init__(
         self,
-        outer_trade_decision: object = None,
+        outer_trade_decision: List[Order] = None,
         trade_exchange: Exchange = None,
-        level_infra: dict = {},
-        common_infra: dict = {},
+        level_infra: LevelInfrastructure = None,
+        common_infra: CommonInfrastructure = None,
     ):
         """
         Parameters
         ----------
+        outer_trade_decision : List[Order]
+            the trade decison of outer strategy which this startegy relies, it should be List[Order] in TWAPStrategy
         trade_exchange : Exchange
             exchange that provides market info, used to deal order and generate report
             - If `trade_exchange` is None, self.trade_exchange will be set with common_infra
+
         """
         super(TWAPStrategy, self).__init__(
             outer_trade_decision=outer_trade_decision, level_infra=level_infra, common_infra=common_infra
@@ -36,21 +41,21 @@ class TWAPStrategy(BaseStrategy):
         """
         Parameters
         ----------
-        common_infra : dict, optional
+        common_infra : CommonInfrastructure, optional
             common infrastructure for backtesting, by default None
             - It should include `trade_account`, used to get position
             - It should include `trade_exchange`, used to provide market info
         """
         super(TWAPStrategy, self).reset_common_infra(common_infra)
-        if common_infra is not None:
-            if "trade_exchange" in common_infra:
-                self.trade_exchange = common_infra.get("trade_exchange")
 
-    def reset(self, outer_trade_decision: object = None, **kwargs):
+        if common_infra.has("trade_exchange"):
+            self.trade_exchange = common_infra.get("trade_exchange")
+
+    def reset(self, outer_trade_decision: List[Order] = None, **kwargs):
         """
         Parameters
         ----------
-        outer_trade_decision : object, optional
+        outer_trade_decision : List[Order], optional
         """
 
         super(TWAPStrategy, self).reset(outer_trade_decision=outer_trade_decision, **kwargs)
@@ -127,14 +132,16 @@ class SBBStrategyBase(BaseStrategy):
 
     def __init__(
         self,
-        outer_trade_decision: object = None,
+        outer_trade_decision: List[Order] = None,
         trade_exchange: Exchange = None,
-        level_infra: dict = {},
-        common_infra: dict = {},
+        level_infra: LevelInfrastructure = None,
+        common_infra: CommonInfrastructure = None,
     ):
         """
         Parameters
         ----------
+        outer_trade_decision : List[Order]
+            the trade decison of outer strategy which this startegy relies, it should be List[Order] in SBBStrategyBase
         trade_exchange : Exchange
             exchange that provides market info, used to deal order and generate report
             - If `trade_exchange` is None, self.trade_exchange will be set with common_infra
@@ -156,15 +163,14 @@ class SBBStrategyBase(BaseStrategy):
             - It should include `trade_exchange`, used to provide market info
         """
         super(SBBStrategyBase, self).reset_common_infra(common_infra)
-        if common_infra is not None:
-            if "trade_exchange" in common_infra:
-                self.trade_exchange = common_infra.get("trade_exchange")
+        if common_infra.has("trade_exchange"):
+            self.trade_exchange = common_infra.get("trade_exchange")
 
-    def reset(self, outer_trade_decision=None, **kwargs):
+    def reset(self, outer_trade_decision: List[Order] = None, **kwargs):
         """
         Parameters
         ----------
-        outer_trade_decision : object, optional
+        outer_trade_decision : List[Order], optional
         """
         super(SBBStrategyBase, self).reset(outer_trade_decision=outer_trade_decision, **kwargs)
         if outer_trade_decision is not None:
@@ -324,18 +330,18 @@ class SBBStrategyEMA(SBBStrategyBase):
 
     def __init__(
         self,
-        outer_trade_decision=[],
-        instruments="csi300",
-        freq="day",
+        outer_trade_decision: List[Order] = None,
+        instruments: Union[List, str] = "csi300",
+        freq: str = "day",
         trade_exchange: Exchange = None,
-        level_infra={},
-        common_infra={},
+        level_infra: LevelInfrastructure = None,
+        common_infra: CommonInfrastructure = None,
         **kwargs,
     ):
         """
         Parameters
         ----------
-        instruments : str, optional
+        instruments : Union[List, str], optional
             instruments of EMA signal, by default "csi300"
         freq : str, optional
             freq of EMA signal, by default "day"
@@ -375,7 +381,7 @@ class SBBStrategyEMA(SBBStrategyBase):
         else:
             self.level_infra.update(level_infra)
 
-        if "trade_calendar" in level_infra:
+        if level_infra.has("trade_calendar"):
             self.trade_calendar = level_infra.get("trade_calendar")
             self._reset_signal()
 

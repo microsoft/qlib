@@ -4,7 +4,6 @@
 
 import qlib
 import fire
-from qlib import backtest
 from qlib.config import REG_CN, HIGH_FREQ_CONFIG
 from qlib.data import D
 from qlib.utils import exists_qlib_data, init_instance_by_config, flatten_dict
@@ -14,7 +13,7 @@ from qlib.tests.data import GetData
 from qlib.backtest import collect_data
 
 
-class MultiLevelTradingWorkflow:
+class NestedDecisonExecutionWorkflow:
 
     market = "csi300"
     benchmark = "SH000300"
@@ -172,7 +171,7 @@ class MultiLevelTradingWorkflow:
             print(f"Qlib data is not found in {provider_uri_1min}")
             GetData().qlib_data(target_dir=provider_uri_1min, interval="1min", region=REG_CN)
 
-        # TODO: update new data
+        # TODO: update latest data
         provider_uri_day = "~/.qlib/qlib_data/cn_data"  # target_dir
         if not exists_qlib_data(provider_uri_day):
             print(f"Qlib data is not found in {provider_uri_day}")
@@ -260,4 +259,4 @@ class MultiLevelTradingWorkflow:
 
 
 if __name__ == "__main__":
-    fire.Fire(MultiLevelTradingWorkflow)
+    fire.Fire(NestedDecisonExecutionWorkflow)

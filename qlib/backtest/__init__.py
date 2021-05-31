@@ -7,6 +7,7 @@ from .executor import BaseExecutor
 from .backtest import backtest as backtest_func
 from .backtest import collect_data as data_generator
 
+from .utils import CommonInfrastructure
 from ..strategy.base import BaseStrategy
 from ..utils import init_instance_by_config
 from ..log import get_module_logger
@@ -101,10 +102,7 @@ def get_strategy_executor(
     )
     trade_exchange = get_exchange(**exchange_kwargs)
 
-    common_infra = {
-        "trade_account": trade_account,
-        "trade_exchange": trade_exchange,
-    }
+    common_infra = CommonInfrastructure(trade_account=trade_account, trade_exchange=trade_exchange)
 
     trade_strategy = init_instance_by_config(strategy, accept_types=BaseStrategy, common_infra=common_infra)
     trade_executor = init_instance_by_config(executor, accept_types=BaseExecutor, common_infra=common_infra)

@@ -2,6 +2,7 @@
 # Licensed under the MIT License.
 
 import pandas as pd
+import warnings
 from typing import Union
 
 from ..utils.resam import get_resam_calendar
@@ -96,3 +97,46 @@ class TradeCalendarManager:
     def get_all_time(self):
         """Get the start_time and end_time for trading"""
         return self.start_time, self.end_time
+
+
+class BaseInfrastructure:
+    def __init__(self, **kwargs):
+        self.reset_infra(**kwargs)
+
+    def get_support_infra(self):
+        raise NotImplementedError("`get_support_infra` is not implemented!")
+
+    def reset_infra(self, **kwargs):
+        support_infra = self.get_support_infra()
+        for k, v in kwargs.items():
+            if k in support_infra:
+                setattr(self, k, v)
+            else:
+                warnings.warn(f"{k} is ignored in `reset_infra`!")
+
+    def get(self, infra_name):
+        if hasattr(self, infra_name):
+            return getattr(self, infra_name)
+        else:
+            warnings.warn(f"infra {infra_name} is not found!")
+
+    def has(self, infra_name):
+        if infra_name in self.get_support_infra() and hasattr(self, infra_name):
+            return True
+        else:
+            return False
+
+    def update(self, other):
+        support_infra = other.get_support_infra()
+        infra_dict = {_infra: getattr(other, _infra) for _infra in support_infra if hasattr(other, _infra)}
+        self.reset_infra(**infra_dict)
+
+
+class CommonInfrastructure(BaseInfrastructure):
+    def get_support_infra(self):
+        return ["trade_account", "trade_exchange"]
+
+
+class LevelInfrastructure(BaseInfrastructure):
+    def get_support_infra(self):
+        return ["trade_calendar"]
