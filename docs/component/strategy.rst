@@ -111,8 +111,6 @@ Usage & Example
         pred_score, strategy=strategy, **BACKTEST_CONFIG
     )
 
-Also, the above example has been given in ``examples/train_backtest_analyze.ipynb``.
-
 To know more about the `prediction score` `pred_score` output by ``Forecast Model``, please refer to `Forecast Model: Model Training & Prediction <model.html>`_.
 
 To know more about ``Intraday Trading``, please refer to `Intraday Trading: Model&Strategy Testing <backtest.html>`_.
