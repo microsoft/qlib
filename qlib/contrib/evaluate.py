@@ -29,7 +29,7 @@ def risk_analysis(r, N: int = None, freq: str = "day"):
     r : pandas.Series
         daily return series.
     N: int
-        scaler for annualizing information_ratio (day: 250, week: 50, month: 12), at least one of `N` and `freq` should exist
+        scaler for annualizing information_ratio (day: 252, week: 50, month: 12), at least one of `N` and `freq` should exist
     freq: str
         analysis frequency used for calculating the scaler, at least one of `N` and `freq` should exist
     """

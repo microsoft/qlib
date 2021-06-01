@@ -14,27 +14,6 @@ from qlib.workflow.record_temp import SignalRecord, SigAnaRecord, PortAnaRecord
 from qlib.tests import TestAutoData
 from qlib.tests.config import CSI300_GBDT_TASK, CSI300_BENCH
 
-port_analysis_config = {
-    "strategy": {
-        "class": "TopkDropoutStrategy",
-        "module_path": "qlib.contrib.strategy.strategy",
-        "kwargs": {
-            "topk": 50,
-            "n_drop": 5,
-        },
-    },
-    "backtest": {
-        "verbose": False,
-        "limit_threshold": 0.095,
-        "account": 100000000,
-        "benchmark": CSI300_BENCH,
-        "deal_price": "close",
-        "open_cost": 0.0005,
-        "close_cost": 0.0015,
-        "min_cost": 5,
-    },
-}
-
 
 def train():
     """train model
@@ -58,7 +37,7 @@ def train():
     with R.start(experiment_name="workflow"):
         R.log_params(**flatten_dict(CSI300_GBDT_TASK))
         model.fit(dataset)
-
+        R.save_objects(trained_model=model)
         # prediction
         recorder = R.get_recorder()
         # To test __repr__
@@ -68,7 +47,6 @@ def train():
         rid = recorder.id
         sr = SignalRecord(model, dataset, recorder)
         sr.generate()
-        pred_score = sr.load()
 
         # calculate ic and ric
         sar = SigAnaRecord(recorder)
@@ -76,7 +54,7 @@ def train():
         ic = sar.load(sar.get_path("ic.pkl"))
         ric = sar.load(sar.get_path("ric.pkl"))
 
-    return pred_score, {"ic": ic, "ric": ric}, rid
+    return {"ic": ic, "ric": ric}, rid
 
 
 def train_with_sigana():
@@ -103,10 +81,9 @@ def train_with_sigana():
         sar.generate()
         ic = sar.load(sar.get_path("ic.pkl"))
         ric = sar.load(sar.get_path("ric.pkl"))
-        pred_score = sar.load("pred.pkl")
 
         uri_path = R.get_uri()
-    return pred_score, {"ic": ic, "ric": ric}, uri_path
+    return {"ic": ic, "ric": ric}, uri_path
 
 
 def fake_experiment():
@@ -130,13 +107,11 @@ def fake_experiment():
     return default_uri == default_uri_to_check, current_uri == current_uri_to_check, current_uri
 
 
-def backtest_analysis(pred, rid):
+def backtest_analysis(rid):
     """backtest and analysis
 
     Parameters
     ----------
-    pred : pandas.DataFrame
-        predict scores
     rid : str
         the id of the recorder to be used in this function
 
@@ -147,16 +122,54 @@ def backtest_analysis(pred, rid):
 
     """
     recorder = R.get_recorder(experiment_name="workflow", recorder_id=rid)
+
+    dataset = init_instance_by_config(CSI300_GBDT_TASK["dataset"])
+    model = recorder.load_object("trained_model")
+
+    port_analysis_config = {
+        "executor": {
+            "class": "SimulatorExecutor",
+            "module_path": "qlib.backtest.executor",
+            "kwargs": {
+                "time_per_step": "day",
+                "generate_report": True,
+            },
+        },
+        "strategy": {
+            "class": "TopkDropoutStrategy",
+            "module_path": "qlib.contrib.strategy.model_strategy",
+            "kwargs": {
+                "model": model,
+                "dataset": dataset,
+                "topk": 50,
+                "n_drop": 5,
+            },
+        },
+        "backtest": {
+            "start_time": "2017-01-01",
+            "end_time": "2020-08-01",
+            "account": 100000000,
+            "benchmark": CSI300_BENCH,
+            "exchange_kwargs": {
+                "freq": "day",
+                "limit_threshold": 0.095,
+                "deal_price": "close",
+                "open_cost": 0.0005,
+                "close_cost": 0.0015,
+                "min_cost": 5,
+            },
+        },
+    }
+
     # backtest
-    par = PortAnaRecord(recorder, port_analysis_config)
+    par = PortAnaRecord(recorder, port_analysis_config, risk_analysis_freq="day")
     par.generate()
-    analysis_df = par.load(par.get_path("port_analysis.pkl"))
+    analysis_df = par.load(par.get_path("port_analysis_1day.pkl"))
     print(analysis_df)
     return analysis_df
 
 
 class TestAllFlow(TestAutoData):
-    PRED_SCORE = None
     REPORT_NORMAL = None
     POSITIONS = None
     RID = None
@@ -166,18 +179,18 @@ class TestAllFlow(TestAutoData):
         shutil.rmtree(str(Path(C["exp_manager"]["kwargs"]["uri"].strip("file:")).resolve()))
 
     def test_0_train_with_sigana(self):
-        TestAllFlow.PRED_SCORE, ic_ric, uri_path = train_with_sigana()
+        ic_ric, uri_path = train_with_sigana()
         self.assertGreaterEqual(ic_ric["ic"].all(), 0, "train failed")
         self.assertGreaterEqual(ic_ric["ric"].all(), 0, "train failed")
         shutil.rmtree(str(Path(uri_path.strip("file:")).resolve()))
 
     def test_1_train(self):
-        TestAllFlow.PRED_SCORE, ic_ric, TestAllFlow.RID = train()
+        ic_ric, TestAllFlow.RID = train()
         self.assertGreaterEqual(ic_ric["ic"].all(), 0, "train failed")
         self.assertGreaterEqual(ic_ric["ric"].all(), 0, "train failed")
 
     def test_2_backtest(self):
-        analyze_df = backtest_analysis(TestAllFlow.PRED_SCORE, TestAllFlow.RID)
+        analyze_df = backtest_analysis(TestAllFlow.RID)
         self.assertGreaterEqual(
             analyze_df.loc(axis=0)["excess_return_with_cost", "annualized_return"].values[0],
             0.10,
