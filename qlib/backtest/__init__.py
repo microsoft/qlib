@@ -9,6 +9,7 @@ from .backtest import collect_data as data_generator
 from .order import Order
 
 from .utils import CommonInfrastructure
+from .order import Order
 from ..strategy.base import BaseStrategy
 from ..utils import init_instance_by_config
 from ..log import get_module_logger

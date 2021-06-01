@@ -1,30 +1,36 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
+import pandas as pd
+from dataclasses import dataclass, field
+from typing import ClassVar
 
 
+@dataclass
 class Order:
-
-    SELL = 0
-    BUY = 1
-
-    def __init__(self, stock_id, amount, start_time, end_time, direction, factor):
-        """Parameter
-        direction : Order.SELL for sell; Order.BUY for buy
-        stock_id : str
-        amount : float
-        trade_date : pd.Timestamp
-        factor : float
+    """
+    stock_id : str
+    amount : float
+    start_time : pd.Timestamp
+        closed start time for order trading
+    end_time : pd.Timestamp
+        closed end time for order trading
+    direction : int
+        Order.SELL for sell; Order.BUY for buy
+    factor : float
             presents the weight factor assigned in Exchange()
-        """
-        # check direction
-        if direction not in {Order.SELL, Order.BUY}:
+    """
+
+    stock_id: str
+    amount: float
+    start_time: pd.Timestamp
+    end_time: pd.Timestamp
+    direction: int
+    factor: float
+    deal_amount: float = field(init=False)
+    SELL: ClassVar[int] = 0
+    BUY: ClassVar[int] = 1
+
+    def __post_init__(self):
+        if self.direction not in {Order.SELL, Order.BUY}:
             raise NotImplementedError("direction not supported, `Order.SELL` for sell, `Order.BUY` for buy")
-        self.stock_id = stock_id
-        # amount of generated orders
-        self.amount = amount
-        # amount of successfully completed orders
         self.deal_amount = 0
-        self.start_time = start_time
-        self.end_time = end_time
-        self.direction = direction
-        self.factor = factor

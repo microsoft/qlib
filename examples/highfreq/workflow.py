@@ -1,24 +1,13 @@
 #  Copyright (c) Microsoft Corporation.
 #  Licensed under the MIT License.
 
-import sys
 import fire
-from pathlib import Path
 
 import qlib
 import pickle
-import numpy as np
-import pandas as pd
 from qlib.config import REG_CN, HIGH_FREQ_CONFIG
-from qlib.contrib.model.gbdt import LGBModel
-from qlib.contrib.data.handler import Alpha158
-from qlib.contrib.strategy.strategy import TopkDropoutStrategy
-from qlib.contrib.evaluate import (
-    backtest as normal_backtest,
-    risk_analysis,
-)
 
-from qlib.utils import init_instance_by_config, exists_qlib_data
+from qlib.utils import init_instance_by_config
 from qlib.data.dataset.handler import DataHandlerLP
 from qlib.data.ops import Operators
 from qlib.data.data import Cal
@@ -96,9 +85,7 @@ class HighfreqWorkflow:
         # use yahoo_cn_1min data
         QLIB_INIT_CONFIG = {**HIGH_FREQ_CONFIG, **self.SPEC_CONF}
         provider_uri = QLIB_INIT_CONFIG.get("provider_uri")
-        if not exists_qlib_data(provider_uri):
-            print(f"Qlib data is not found in {provider_uri}")
-            GetData().qlib_data(target_dir=provider_uri, interval="1min", region=REG_CN)
+        GetData().qlib_data(target_dir=provider_uri, interval="1min", region=REG_CN, exists_skip=True)
         qlib.init(**QLIB_INIT_CONFIG)
 
     def _prepare_calender_cache(self):

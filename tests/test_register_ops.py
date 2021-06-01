@@ -1,17 +1,12 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-import sys
 import unittest
 import numpy as np
 
-import qlib
 from qlib.data import D
 from qlib.data.ops import ElemOperator, PairOperator
-from qlib.config import REG_CN
-from qlib.utils import exists_qlib_data
 from qlib.tests import TestAutoData
-from qlib.tests.data import GetData
 
 
 class Diff(ElemOperator):
