@@ -11,10 +11,11 @@ class Order:
     stock_id : str
     amount : float
     start_time : pd.Timestamp
-        closed start time for order generation
+        closed start time for order trading
     end_time : pd.Timestamp
-        closed end time for order generation
-    direction : Order.SELL for sell; Order.BUY for buy
+        closed end time for order trading
+    direction : int
+        Order.SELL for sell; Order.BUY for buy
     factor : float
             presents the weight factor assigned in Exchange()
     """

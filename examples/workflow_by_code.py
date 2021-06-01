@@ -66,31 +66,44 @@ if __name__ == "__main__":
         },
     }
 
+    # model initialization
+    model = init_instance_by_config(task["model"])
+    dataset = init_instance_by_config(task["dataset"])
+
     port_analysis_config = {
+        "executor": {
+            "class": "SimulatorExecutor",
+            "module_path": "qlib.backtest.executor",
+            "kwargs": {
+                "time_per_step": "day",
+                "generate_report": True,
+            },
+        },
         "strategy": {
             "class": "TopkDropoutStrategy",
-            "module_path": "qlib.contrib.strategy.strategy",
+            "module_path": "qlib.contrib.strategy.model_strategy",
             "kwargs": {
+                "model": model,
+                "dataset": dataset,
                 "topk": 50,
                 "n_drop": 5,
             },
         },
         "backtest": {
-            "verbose": False,
-            "limit_threshold": 0.095,
+            "start_time": "2017-01-01",
+            "end_time": "2020-08-01",
             "account": 100000000,
             "benchmark": benchmark,
-            "deal_price": "close",
-            "open_cost": 0.0005,
-            "close_cost": 0.0015,
-            "min_cost": 5,
-            "return_order": True,
+            "exchange_kwargs": {
+                "freq": "day",
+                "limit_threshold": 0.095,
+                "deal_price": "close",
+                "open_cost": 0.0005,
+                "close_cost": 0.0015,
+                "min_cost": 5,
+            },
         },
     }
-
-    # model initialization
-    model = init_instance_by_config(task["model"])
-    dataset = init_instance_by_config(task["dataset"])
 
     # NOTE: This line is optional
     # It demonstrates that the dataset can be used standalone.
@@ -110,5 +123,5 @@ if __name__ == "__main__":
 
         # backtest. If users want to use backtest based on their own prediction,
         # please refer to https://qlib.readthedocs.io/en/latest/component/recorder.html#record-template.
-        par = PortAnaRecord(recorder, port_analysis_config)
+        par = PortAnaRecord(recorder, port_analysis_config, "day")
         par.generate()
