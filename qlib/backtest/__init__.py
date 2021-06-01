@@ -6,6 +6,7 @@ from .exchange import Exchange
 from .executor import BaseExecutor
 from .backtest import backtest as backtest_func
 from .backtest import collect_data as data_generator
+from .order import Order
 
 from .utils import CommonInfrastructure
 from ..strategy.base import BaseStrategy
