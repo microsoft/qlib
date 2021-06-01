@@ -12,10 +12,7 @@ if __name__ == "__main__":
 
     # use default data
     provider_uri = "~/.qlib/qlib_data/cn_data"  # target_dir
-    if not exists_qlib_data(provider_uri):
-        print(f"Qlib data is not found in {provider_uri}")
-        GetData().qlib_data(target_dir=provider_uri, region=REG_CN)
-
+    GetData().qlib_data(target_dir=provider_uri, region=REG_CN, exists_skip=True)
     qlib.init(provider_uri=provider_uri, region=REG_CN)
 
     market = "csi300"
@@ -112,7 +109,7 @@ if __name__ == "__main__":
 
     # start exp
     with R.start(experiment_name="workflow"):
-        R.log_params(**flatten_dict(task))
+        R.log_params(**flatten_dict(CSI300_GBDT_TASK))
         model.fit(dataset)
         R.save_objects(**{"params.pkl": model})
 

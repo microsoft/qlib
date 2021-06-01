@@ -1,17 +1,18 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+import warnings
 import numpy as np
 import pandas as pd
 import lightgbm as lgb
 
-from qlib.model.base import ModelFT
-from qlib.data.dataset import DatasetH
-from qlib.data.dataset.handler import DataHandlerLP
-import warnings
+from ...model.base import ModelFT
+from ...data.dataset import DatasetH
+from ...data.dataset.handler import DataHandlerLP
+from ...model.interpret.base import LightGBMFInt
 
 
-class HFLGBModel(ModelFT):
+class HFLGBModel(ModelFT, LightGBMFInt):
     """LightGBM Model for high frequency prediction"""
 
     def __init__(self, loss="mse", **kwargs):
@@ -97,8 +98,8 @@ class HFLGBModel(ModelFT):
         else:
             raise ValueError("LightGBM doesn't support multi-label training")
 
-        dtrain = lgb.Dataset(x_train.values, label=y_train)
-        dvalid = lgb.Dataset(x_valid.values, label=y_valid)
+        dtrain = lgb.Dataset(x_train, label=y_train)
+        dvalid = lgb.Dataset(x_valid, label=y_valid)
         return dtrain, dvalid
 
     def fit(
