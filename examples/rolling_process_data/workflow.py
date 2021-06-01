@@ -4,13 +4,11 @@
 import qlib
 import fire
 import pickle
-import pandas as pd
 
 from datetime import datetime
 from qlib.config import REG_CN
 from qlib.data.dataset.handler import DataHandlerLP
-from qlib.contrib.data.handler import Alpha158
-from qlib.utils import exists_qlib_data, init_instance_by_config
+from qlib.utils import init_instance_by_config
 from qlib.tests.data import GetData
 
 
@@ -25,9 +23,7 @@ class RollingDataWorkflow:
         """initialize qlib"""
         # use yahoo_cn_1min data
         provider_uri = "~/.qlib/qlib_data/cn_data"  # target_dir
-        if not exists_qlib_data(provider_uri):
-            print(f"Qlib data is not found in {provider_uri}")
-            GetData().qlib_data(target_dir=provider_uri, region=REG_CN)
+        GetData().qlib_data(target_dir=provider_uri, region=REG_CN, exists_skip=True)
         qlib.init(provider_uri=provider_uri, region=REG_CN)
 
     def _dump_pre_handler(self, path):

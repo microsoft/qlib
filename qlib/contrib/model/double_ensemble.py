@@ -8,10 +8,11 @@ from typing import Text, Union
 from ...model.base import Model
 from ...data.dataset import DatasetH
 from ...data.dataset.handler import DataHandlerLP
+from ...model.interpret.base import FeatureInt
 from ...log import get_module_logger
 
 
-class DEnsembleModel(Model):
+class DEnsembleModel(Model, FeatureInt):
     """Double Ensemble Model"""
 
     def __init__(
@@ -121,8 +122,8 @@ class DEnsembleModel(Model):
         else:
             raise ValueError("LightGBM doesn't support multi-label training")
 
-        dtrain = lgb.Dataset(x_train.values, label=y_train, weight=weights)
-        dvalid = lgb.Dataset(x_valid.values, label=y_valid)
+        dtrain = lgb.Dataset(x_train, label=y_train, weight=weights)
+        dvalid = lgb.Dataset(x_valid, label=y_valid)
         return dtrain, dvalid
 
     def sample_reweight(self, loss_curve, loss_values, k_th):
@@ -203,8 +204,8 @@ class DEnsembleModel(Model):
         for i_b, b in enumerate(sorted_bins):
             b_feat = features[g["bins"] == b]
             num_feat = int(np.ceil(self.sample_ratios[i_b] * len(b_feat)))
-            res_feat = res_feat + np.random.choice(b_feat, size=num_feat).tolist()
-        return pd.Index(res_feat)
+            res_feat = res_feat + np.random.choice(b_feat, size=num_feat, replace=False).tolist()
+        return pd.Index(set(res_feat))
 
     def get_loss(self, label, pred):
         if self.loss == "mse":
@@ -249,3 +250,16 @@ class DEnsembleModel(Model):
         x_data, y_data = df_data["feature"].loc[:, features], df_data["label"]
         pred_sub = pd.Series(submodel.predict(x_data.values), index=x_data.index)
         return pred_sub
+
+    def get_feature_importance(self, *args, **kwargs) -> pd.Series:
+        """get feature importance
+
+        Notes
+        -----
+            parameters reference:
+            https://lightgbm.readthedocs.io/en/latest/pythonapi/lightgbm.Booster.html?highlight=feature_importance#lightgbm.Booster.feature_importance
+        """
+        res = []
+        for _model, _weight in zip(self.ensemble, self.sub_weights):
+            res.append(pd.Series(_model.feature_importance(*args, **kwargs), index=_model.feature_name()) * _weight)
+        return pd.concat(res, axis=1, sort=False).sum(axis=1).sort_values(ascending=False)
