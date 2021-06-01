@@ -5,8 +5,8 @@ from typing import Optional
 
 import qlib
 import fire
-from qlib.config import REG_CN
-
+from qlib.config import REG_CN, HIGH_FREQ_CONFIG
+from qlib.data import D
 from qlib.utils import exists_qlib_data, init_instance_by_config, flatten_dict
 from qlib.workflow import R
 from qlib.workflow.record_temp import SignalRecord, PortAnaRecord
@@ -14,14 +14,14 @@ from qlib.tests.data import GetData
 from qlib.backtest import collect_data
 
 
-class MultiLevelTradingWorkflow:
+class NestedDecisonExecutionWorkflow:
 
     market = "csi300"
     benchmark = "SH000300"
 
     data_handler_config = {
         "start_time": "2008-01-01",
-        "end_time": "2020-08-01",
+        "end_time": "2021-01-20",
         "fit_start_time": "2008-01-01",
         "fit_end_time": "2014-12-31",
         "instruments": market,
@@ -55,14 +55,11 @@ class MultiLevelTradingWorkflow:
                 "segments": {
                     "train": ("2008-01-01", "2014-12-31"),
                     "valid": ("2015-01-01", "2016-12-31"),
-                    "test": ("2017-01-01", "2020-08-01"),
+                    "test": ("2017-01-01", "2021-01-20"),
                 },
             },
         },
     }
-
-    trade_start_time = "2017-01-01"
-    trade_end_time = "2020-08-01"
 
     port_analysis_config = {
         "executor": {
@@ -87,12 +84,13 @@ class MultiLevelTradingWorkflow:
                         "instruments": market,
                     },
                 },
+                "generate_report": True,
                 "track_data": True,
             },
         },
         "backtest": {
-            "start_time": trade_start_time,
-            "end_time": trade_end_time,
+            "start_time": "2017-01-01",
+            "end_time": "2020-08-01",
             "account": 100000000,
             "benchmark": benchmark,
             "exchange_kwargs": {
@@ -174,6 +172,98 @@ class MultiLevelTradingWorkflow:
         for trade_decision in data_generator:
             print(trade_decision)
 
+    def _init_qlib_with_backend(self):
+        provider_uri_1min = HIGH_FREQ_CONFIG.get("provider_uri")
+        if not exists_qlib_data(provider_uri_1min):
+            print(f"Qlib data is not found in {provider_uri_1min}")
+            GetData().qlib_data(target_dir=provider_uri_1min, interval="1min", region=REG_CN)
+
+        # TODO: update latest data
+        provider_uri_day = "~/.qlib/qlib_data/cn_data"  # target_dir
+        if not exists_qlib_data(provider_uri_day):
+            print(f"Qlib data is not found in {provider_uri_day}")
+            GetData().qlib_data(target_dir=provider_uri_day, region=REG_CN)
+
+        provider_uri_map = {"1min": provider_uri_1min, "day": provider_uri_day}
+        client_config = {
+            "calendar_provider": {
+                "class": "LocalCalendarProvider",
+                "module_path": "qlib.data.data",
+                "kwargs": {
+                    "backend": {
+                        "class": "FileCalendarStorage",
+                        "module_path": "qlib.data.storage.file_storage",
+                        "kwargs": {"provider_uri_map": provider_uri_map},
+                    }
+                },
+            },
+            "feature_provider": {
+                "class": "LocalFeatureProvider",
+                "module_path": "qlib.data.data",
+                "kwargs": {
+                    "backend": {
+                        "class": "FileFeatureStorage",
+                        "module_path": "qlib.data.storage.file_storage",
+                        "kwargs": {"provider_uri_map": provider_uri_map},
+                    }
+                },
+            },
+        }
+        qlib.init(provider_uri=provider_uri_day, **client_config)
+
+    def _get_highfreq_config(self, model, dataset):
+
+        executor_config = self.port_analysis_config["executor"]
+        # update executor with hierarchical decison freq ["day", "1min"]
+        executor_config["kwargs"]["time_per_step"] = "day"
+        executor_config["kwargs"]["inner_executor"]["kwargs"]["time_per_step"] = "15min"
+        backtest_config = self.port_analysis_config["backtest"]
+
+        # yahoo highfreq data time
+        backtest_config["start_time"] = "2020-09-20"
+        backtest_config["end_time"] = "2021-01-20"
+
+        # update benchmark, yahoo data don't have SH000300
+        instruments = D.instruments(market="csi300")
+        instrument_list = D.list_instruments(instruments=instruments, as_list=True)
+        backtest_config["benchmark"] = instrument_list
+
+        # update exchange config
+        backtest_config["exchange_kwargs"]["freq"] = "1min"
+
+        # set strategy
+        strategy_config = {
+            "class": "TopkDropoutStrategy",
+            "module_path": "qlib.contrib.strategy.model_strategy",
+            "kwargs": {
+                "model": model,
+                "dataset": dataset,
+                "topk": 50,
+                "n_drop": 5,
+            },
+        }
+
+        return executor_config, strategy_config, backtest_config
+
+    def backtest_highfreq(self):
+        self._init_qlib_with_backend()
+        model = init_instance_by_config(self.task["model"])
+        dataset = init_instance_by_config(self.task["dataset"])
+        self._train_model(model, dataset)
+        executor_config, strategy_config, backtest_config = self._get_highfreq_config(model, dataset)
+
+        highfreq_port_analysis_config = {
+            "executor": executor_config,
+            "strategy": strategy_config,
+            "backtest": backtest_config,
+        }
+
+        with R.start(experiment_name="backtest_highfreq"):
+
+            recorder = R.get_recorder()
+            par = PortAnaRecord(recorder, highfreq_port_analysis_config, "day")
+            par.generate()
+
 
 if __name__ == "__main__":
-    fire.Fire(MultiLevelTradingWorkflow)
+    fire.Fire(NestedDecisonExecutionWorkflow)

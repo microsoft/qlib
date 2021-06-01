@@ -22,8 +22,8 @@ class TopkDropoutStrategy(ModelStrategy):
         hold_thresh=1,
         only_tradable=False,
         trade_exchange=None,
-        level_infra={},
-        common_infra={},
+        level_infra=None,
+        common_infra=None,
         **kwargs,
     ):
         """
@@ -76,7 +76,7 @@ class TopkDropoutStrategy(ModelStrategy):
         """
         super(TopkDropoutStrategy, self).reset_common_infra(common_infra)
 
-        if "trade_exchange" in common_infra:
+        if common_infra.has("trade_exchange"):
             self.trade_exchange = common_infra.get("trade_exchange")
 
     def get_risk_degree(self, trade_step=None):
@@ -177,8 +177,6 @@ class TopkDropoutStrategy(ModelStrategy):
 
         # Get the stock list we really want to buy
         buy = today[: len(sell) + self.topk - len(last)]
-        # print("INTRANEL BAR", len(sell), len(sell) + self.topk - len(last), len(last))
-        # print("flag", len(sell), len(buy), self.topk, len(last))
         for code in current_stock_list:
             if not self.trade_exchange.is_stock_tradable(
                 stock_id=code, start_time=trade_start_time, end_time=trade_end_time
@@ -251,8 +249,8 @@ class WeightStrategyBase(ModelStrategy):
         dataset,
         order_generator_cls_or_obj=OrderGenWInteract,
         trade_exchange=None,
-        level_infra={},
-        common_infra={},
+        level_infra=None,
+        common_infra=None,
         **kwargs,
     ):
         super(WeightStrategyBase, self).__init__(
@@ -276,7 +274,7 @@ class WeightStrategyBase(ModelStrategy):
         """
         super(WeightStrategyBase, self).reset_common_infra(common_infra)
 
-        if "trade_exchange" in common_infra:
+        if common_infra.has("trade_exchange"):
             self.trade_exchange = common_infra.get("trade_exchange")
 
     def get_risk_degree(self, trade_step=None):

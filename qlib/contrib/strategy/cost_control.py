@@ -18,8 +18,8 @@ class SoftTopkStrategy(WeightStrategyBase):
         risk_degree=0.95,
         buy_method="first_fill",
         trade_exchange=None,
-        level_infra={},
-        common_infra={},
+        level_infra=None,
+        common_infra=None,
         **kwargs,
     ):
         """Parameter

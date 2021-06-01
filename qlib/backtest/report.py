@@ -80,12 +80,12 @@ class Report:
             fields = ["$close/Ref($close,1)-1"]
             try:
                 _temp_result = D.features(_codes, fields, start_time, end_time, freq=freq, disk_cache=1)
-            except ValueError:
+            except (ValueError, KeyError):
                 _, norm_freq = parse_freq(freq)
                 if norm_freq in ["month", "week", "day"]:
                     try:
                         _temp_result = D.features(_codes, fields, start_time, end_time, freq="day", disk_cache=1)
-                    except ValueError:
+                    except (ValueError, KeyError):
                         _temp_result = D.features(_codes, fields, start_time, end_time, freq="1min", disk_cache=1)
                 elif norm_freq == "minute":
                     _temp_result = D.features(_codes, fields, start_time, end_time, freq="1min", disk_cache=1)

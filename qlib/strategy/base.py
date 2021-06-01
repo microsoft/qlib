@@ -1,11 +1,13 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
+from typing import Union
 
 from ..model.base import BaseModel
 from ..data.dataset import DatasetH
 from ..data.dataset.utils import convert_index_format
 from ..rl.interpreter import ActionInterpreter, StateInterpreter
 from ..utils import init_instance_by_config
+from ..backtest.utils import CommonInfrastructure, LevelInfrastructure
 
 __all__ = ['BaseStrategy', 'ModelStrategy', 'RLStrategy', 'RLIntStrategy']
 
@@ -16,8 +18,8 @@ class BaseStrategy:
     def __init__(
         self,
         outer_trade_decision: object = None,
-        level_infra: dict = {},
-        common_infra: dict = {},
+        level_infra: LevelInfrastructure = None,
+        common_infra: CommonInfrastructure = None,
     ):
         """
         Parameters
@@ -26,9 +28,9 @@ class BaseStrategy:
             the trade decison of outer strategy which this startegy relies, and it will be traded in [start_time, end_time], by default None
             - If the strategy is used to split trade decison, it will be used
             - If the strategy is used for portfolio management, it can be ignored
-        level_infra : dict, optional
+        level_infra : LevelInfrastructure, optional
             level shared infrastructure for backtesting, including trade calendar
-        common_infra : dict, optional
+        common_infra : CommonInfrastructure, optional
             common infrastructure for backtesting, including trade_account, trade_exchange, .etc
         """
 
@@ -40,7 +42,7 @@ class BaseStrategy:
         else:
             self.level_infra.update(level_infra)
 
-        if "trade_calendar" in level_infra:
+        if level_infra.has("trade_calendar"):
             self.trade_calendar = level_infra.get("trade_calendar")
 
     def reset_common_infra(self, common_infra):
@@ -49,10 +51,16 @@ class BaseStrategy:
         else:
             self.common_infra.update(common_infra)
 
-        if "trade_account" in common_infra:
+        if common_infra.has("trade_account"):
             self.trade_position = common_infra.get("trade_account").current
 
-    def reset(self, level_infra: dict = None, common_infra: dict = None, outer_trade_decision=None, **kwargs):
+    def reset(
+        self,
+        level_infra: LevelInfrastructure = None,
+        common_infra: CommonInfrastructure = None,
+        outer_trade_decision=None,
+        **kwargs,
+    ):
         """
         - reset `level_infra`, used to reset trade calendar, .etc
         - reset `common_infra`, used to reset `trade_account`, `trade_exchange`, .etc
@@ -87,8 +95,8 @@ class ModelStrategy(BaseStrategy):
         model: BaseModel,
         dataset: DatasetH,
         outer_trade_decision: object = None,
-        level_infra: dict = {},
-        common_infra: dict = {},
+        level_infra: LevelInfrastructure = None,
+        common_infra: CommonInfrastructure = None,
         **kwargs,
     ):
         """
@@ -123,8 +131,8 @@ class RLStrategy(BaseStrategy):
         self,
         policy,
         outer_trade_decision: object = None,
-        level_infra: dict = {},
-        common_infra: dict = {},
+        level_infra: LevelInfrastructure = None,
+        common_infra: CommonInfrastructure = None,
         **kwargs,
     ):
         """
@@ -143,19 +151,19 @@ class RLIntStrategy(RLStrategy):
     def __init__(
         self,
         policy,
-        state_interpreter: StateInterpreter,
-        action_interpreter: ActionInterpreter,
+        state_interpreter: Union[dict, StateInterpreter],
+        action_interpreter: Union[dict, ActionInterpreter],
         outer_trade_decision: object = None,
-        level_infra: dict = {},
-        common_infra: dict = {},
+        level_infra: LevelInfrastructure = None,
+        common_infra: CommonInfrastructure = None,
         **kwargs,
     ):
         """
         Parameters
         ----------
-        state_interpreter : StateInterpreter
-            interpretor that interprets the qlib execute result into rl env state.
-        action_interpreter : ActionInterpreter
+        state_interpreter : Union[dict, StateInterpreter]
+            interpretor that interprets the qlib execute result into rl env state
+        action_interpreter : Union[dict, ActionInterpreter]
             interpretor that interprets the rl agent action into qlib order list
         start_time : Union[str, pd.Timestamp], optional
             start time of trading, by default None
@@ -165,8 +173,8 @@ class RLIntStrategy(RLStrategy):
         super(RLIntStrategy, self).__init__(policy, outer_trade_decision, level_infra, common_infra, **kwargs)
 
         self.policy = policy
-        self.state_interpreter = init_instance_by_config(state_interpreter)
-        self.action_interpreter = init_instance_by_config(action_interpreter)
+        self.state_interpreter = init_instance_by_config(state_interpreter, accept_types=StateInterpreter)
+        self.action_interpreter = init_instance_by_config(action_interpreter, accept_types=ActionInterpreter)
 
     def generate_trade_decision(self, execute_result=None):
         _interpret_state = self.state_interpretor.interpret(execute_result=execute_result)

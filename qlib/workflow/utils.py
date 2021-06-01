@@ -46,3 +46,4 @@ def experiment_kill_signal_handler(signum, frame):
     End an experiment when user kill the program through keyboard (CTRL+C, etc.).
     """
     R.end_exp(recorder_status=Recorder.STATUS_FA)
+    raise KeyboardInterrupt

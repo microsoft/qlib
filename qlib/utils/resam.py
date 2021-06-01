@@ -182,7 +182,7 @@ def get_resam_calendar(
     try:
         _calendar = Cal.calendar(start_time=start_time, end_time=end_time, freq=freq, future=future)
         freq, freq_sam = freq, None
-    except ValueError:
+    except (ValueError, KeyError):
         freq_sam = freq
         if norm_freq in ["month", "week", "day"]:
             try:
@@ -190,16 +190,16 @@ def get_resam_calendar(
                     start_time=start_time, end_time=end_time, freq="day", freq_sam=freq, future=future
                 )
                 freq = "day"
-            except ValueError:
+            except (ValueError, KeyError):
                 _calendar = Cal.calendar(
                     start_time=start_time, end_time=end_time, freq="1min", freq_sam=freq, future=future
                 )
-                freq = "min"
+                freq = "1min"
         elif norm_freq == "minute":
             _calendar = Cal.calendar(
                 start_time=start_time, end_time=end_time, freq="1min", freq_sam=freq, future=future
             )
-            freq = "min"
+            freq = "1min"
         else:
             raise ValueError(f"freq {freq} is not supported")
     return _calendar, freq, freq_sam
@@ -288,11 +288,13 @@ def resam_ts_data(
     from ..data.dataset.utils import get_level_index
 
     feature = lazy_sort_index(ts_feature)
+
     datetime_level = get_level_index(feature, level="datetime") == 0
     if datetime_level:
         feature = feature.loc[selector_datetime]
     else:
         feature = feature.loc[(slice(None), selector_datetime)]
+
     if feature.empty:
         return None
     if isinstance(feature.index, pd.MultiIndex):
