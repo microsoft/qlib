@@ -18,7 +18,7 @@ from qlib.workflow import R
 from qlib.workflow.online.strategy import RollingStrategy
 from qlib.workflow.task.gen import RollingGen
 from qlib.workflow.online.manager import OnlineManager
-from qlib.tests.config import CSI100_RECORD_XGBOOST_TASK_CONFIG, CSI100_RECORD_LGB_TASK_CONFIG
+from qlib.tests.config import CSI100_RECORD_XGBOOST_TASK_CONFIG_ROLLING, CSI100_RECORD_LGB_TASK_CONFIG_ROLLING
 
 
 class RollingOnlineExample:
@@ -34,9 +34,9 @@ class RollingOnlineExample:
         add_tasks=None,
     ):
         if add_tasks is None:
-            add_tasks = [CSI100_RECORD_LGB_TASK_CONFIG]
+            add_tasks = [CSI100_RECORD_LGB_TASK_CONFIG_ROLLING]
         if tasks is None:
-            tasks = [CSI100_RECORD_XGBOOST_TASK_CONFIG]
+            tasks = [CSI100_RECORD_XGBOOST_TASK_CONFIG_ROLLING]
         mongo_conf = {
             "task_url": task_url,  # your MongoDB url
             "task_db_name": task_db_name,  # database name
