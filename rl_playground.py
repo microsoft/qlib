@@ -1,10 +1,12 @@
 import pickle
-from dataclasses import dataclass
-from typing import Iterable, Any
+from dataclasses import dataclass, asdict
+from typing import Iterable, Any, Optional, Tuple, Dict
 
-import numpy as np
 import gym
+import numpy as np
+import pandas as pd
 import qlib
+from gym import spaces
 from qlib.backtest import get_exchange, Account, BaseExecutor, CommonInfrastructure, Order
 from qlib.config import REG_CN
 from qlib.data import D
@@ -17,7 +19,10 @@ from tianshou.env import DummyVectorEnv
 from tianshou.policy import BasePolicy
 
 
-def get_executor(start_time, end_time, executor, benchmark="SH000300", account=1e9, exchange_kwargs={}):
+MAX_STEPS = 10
+
+
+def get_executor(start_time, end_time, executor, benchmark="SH000300", account=1e9, exchange_kwargs={}) -> BaseExecutor:
     trade_account = Account(
         init_cash=account,
         benchmark_config={
@@ -34,6 +39,19 @@ def get_executor(start_time, end_time, executor, benchmark="SH000300", account=1
     return trade_executor
 
 
+def price_advantage(exec_price: float, baseline_price: float, direction: int) -> float:
+    if baseline_price == 0:
+        return 0.
+    if direction == 1:
+        return (1 - exec_price / baseline_price) * 10000
+    else:
+        return (exec_price / baseline_price - 1) * 10000
+
+
+def _to_int32(val): return np.array(int(val), dtype=np.int32)
+def _to_float32(val): return np.array(val, dtype=np.float32)
+
+
 class QlibOrderDataset(Dataset):
     def __init__(self, order_file):
         with open(order_file, 'rb') as f:
@@ -46,18 +64,10 @@ class QlibOrderDataset(Dataset):
         return self.orders[index]
 
 
-class DummyCallable:
-    def __call__(self, *args, **kwargs):
-        if args:
-            return args[0]
-        if kwargs:
-            for v in kwargs.values():
-                return v
-
-
 class DummyPolicy(BasePolicy):
     def forward(self, batch, state=None, **kwargs):
-        return Batch(act=0)
+        print(batch)
+        return Batch(act=np.random.randint(5))
 
     def learn(self, *args, **kwargs):
         pass
@@ -69,20 +79,22 @@ class EpisodicState:
     A simplified data structure for RL-related components to process observations and rewards
     """
     # requirements
-    start_time: int
-    end_time: int
-    num_step: int
-    time_per_step: int
+    stock_id: int
+    start_time: pd.Timestamp
+    end_time: pd.Timestamp
+    direction: int
     target: float
-    target_limit: float
-    vol_limit: Optional[float]
-    flow_dir: int
+    num_step: int
+
+    # simplified market data used to calculate backtest metrics
+    # this may contains information from future so be careful
     market_price: np.ndarray
     market_vol: np.ndarray
 
     # agent state
-    cur_time: int = -1
+    cur_time: Optional[pd.Timestamp] = None
     cur_step: int = 0
+    cur_tick: int = 0  # tick is the most fine-grained time unit (typically minute)
     done: bool = False
     position: Optional[float] = None
     exec_vol: Optional[np.ndarray] = None
@@ -100,6 +112,7 @@ class EpisodicState:
 
     def __post_init__(self):
         assert self.target >= 0
+        assert len(self.market_price) == len(self.market_vol)
         self.cur_time = self.start_time
         self.position = self.target
         self.position_history = np.full((self.num_step + 1), np.nan)
@@ -118,10 +131,10 @@ class EpisodicState:
             self.exec_avg_price = market_price[0]
         else:
             self.exec_avg_price = np.average(market_price, weights=self.exec_vol)
-        self.pa_twap = price_advantage(self.exec_avg_price, self.baseline_twap, self.flow_dir)
-        self.pa_vwap = price_advantage(self.exec_avg_price, self.baseline_vwap, self.flow_dir)
-        self.fulfill_rate = (self.target - self.position) / self.target_limit
-        if abs(self.fulfill_rate - 1.0) < EPSILON:
+        self.pa_twap = price_advantage(self.exec_avg_price, self.baseline_twap, self.direction)
+        self.pa_vwap = price_advantage(self.exec_avg_price, self.baseline_vwap, self.direction)
+        self.fulfill_rate = (self.target - self.position) / self.target
+        if abs(self.fulfill_rate - 1.0) < 1e-5:
             self.fulfill_rate = 1.0
         self.fulfill_rate *= 100
 
@@ -139,35 +152,10 @@ class EpisodicState:
         }
         return logs
 
-    def next_duration(self) -> int:
-        return min(self.time_per_step, self.end_time - self.cur_time)
-
-    def step(self, exec_vol):
-        self.last_step_duration = len(exec_vol)
-        self.position -= exec_vol.sum()
-        assert self.position > -EPSILON and (exec_vol > -EPSILON).all(), \
-            f'Execution volume is invalid: {exec_vol} (position = {self.position})'
-        self.position_history[self.cur_step + 1] = self.position
-        self.cur_time += self.last_step_duration
-        self.cur_step += 1
-        if self.cur_step == self.num_step:
-            assert self.cur_time == self.end_time
-        if self.exec_vol is None:
-            self.exec_vol = exec_vol
-        else:
-            self.exec_vol = np.concatenate((self.exec_vol, exec_vol))
-
-        self.done = self.position < EPSILON or self.cur_step == self.num_step
-        if self.done:
-            self.update_stats()
-
-        l, r = self.cur_time - self.last_step_duration - self.start_time, self.cur_time - self.start_time
-        assert 0 <= l < r
-        return StepState(self.exec_vol[l:r], self.market_vol[l:r], self.market_price[l:r], self)
-
 
 @dataclass
 class StepState:
+    # market info and execution volume for current step
     exec_vol: np.ndarray
     market_vol: np.ndarray
     market_price: np.ndarray
@@ -189,23 +177,109 @@ class StepState:
         else:
             self.exec_avg_price = np.average(self.market_price, weights=self.market_vol)
         self.pa_twap = price_advantage(self.exec_avg_price, self.episode_state.baseline_twap,
-                                       self.episode_state.flow_dir)
+                                       self.episode_state.direction)
         self.pa_vwap = price_advantage(self.exec_avg_price, self.episode_state.baseline_vwap,
-                                       self.episode_state.flow_dir)
+                                       self.episode_state.direction)
 
 
-def price_advantage(exec_price: float, baseline_price: float, flow: FlowDirection) -> float:
-    if baseline_price == 0:
+class Observation:
+    def __init__(self, time_per_step):
+        self.time_per_step = time_per_step
+
+    def __call__(self, ep_state: EpisodicState) -> Any:
+        obs = self.observe(ep_state)
+        if not self.validate(obs):
+            raise ValueError(f'Observation space does not contain obs. Space: {self.observation_space} Sample: {obs}')
+        return obs
+
+    def validate(self, obs: Any) -> bool:
+        return self.observation_space.contains(obs)
+
+    @property
+    def observation_space(self):
+        space = {
+            'direction': spaces.Discrete(2),
+            'cur_step': spaces.Box(0, MAX_STEPS - 1, shape=(), dtype=np.int32),
+            'num_step': spaces.Box(MAX_STEPS, MAX_STEPS, shape=(), dtype=np.int32),
+            'target': spaces.Box(-1e-5, np.inf, shape=()),
+            'position': spaces.Box(-1e-5, np.inf, shape=()),
+            'features': spaces.Box(-np.inf, np.inf, shape=(5, ))
+        }
+        return spaces.Dict(space)
+
+    def observe(self, ep_state: EpisodicState) -> Any:
+        return {
+            'acquiring': _to_int32(ep_state.direction),
+            'cur_step': _to_int32(min(ep_state.cur_step, ep_state.num_step - 1)),
+            'num_step': _to_int32(ep_state.num_step),
+            'target': _to_float32(ep_state.target),
+            'position': _to_float32(ep_state.position),
+            'features': D.features(
+                [ep_state.stock_id],
+                ['$open', '$close', '$high', '$low', '$volume'],
+                start_time=ep_state.start_time,
+                end_time=ep_state.end_time,
+                freq=self.time_per_step
+            )
+        }
+
+
+class Action:
+    @property
+    def action_space(self):
+        return spaces.Discrete(5)
+
+    def __call__(self, action: Any, ep_state: EpisodicState) -> Any:
+        if not self.validate(action):
+            raise ValueError(f'Action space does not contain action. Space: {self.action_space} Sample: {action}')
+        act_ = self.to_volume(action, ep_state)
+        return act_
+
+    def validate(self, action: Any) -> bool:
+        return self.action_space.contains(action)
+
+    def to_volume(self, action: Any, ep_state: EpisodicState):
+        exec_vol = ep_state.position / 5 * action
+        if ep_state.cur_step + 1 >= ep_state.num_step:
+            exec_vol = ep_state.position
+        # TODO: might need to check whether the stock is tradable or whether it satisfies trade unit?
+        return exec_vol
+
+
+class Reward:
+    weight = 1.0
+
+    def __call__(self, ep_state: EpisodicState, st_state: StepState) -> Tuple[float, Dict[str, float]]:
+        rew, info = 0., {}
+        if ep_state.done:
+            ep_rew, ep_info = self._to_tuple(self.episode_end(ep_state))
+            rew += ep_rew
+            info.update({f'ep/{k}': v for k, v in ep_info.items()})
+        st_rew, st_info = self._to_tuple(self.step_end(ep_state, st_state))
+        rew += st_rew
+        info.update({f'st/{k}': v for k, v in st_info.items()})
+        return rew * self.weight, info
+
+    @staticmethod
+    def _to_tuple(x):
+        if isinstance(x, tuple):
+            return x
+        return x, {}
+
+    def episode_end(self, ep_state: EpisodicState) -> Tuple[float, Dict[str, float]]:
         return 0.
-    if flow == FlowDirection.ACQUIRE:
-        return (1 - exec_price / baseline_price) * 10000
-    else:
-        return (exec_price / baseline_price - 1) * 10000
+
+    def step_end(self, ep_state: EpisodicState, st_state: StepState) -> Tuple[float, Dict[str, float]]:
+        assert ep_state.target > 0
+        baseline_price = st_state.pa_twap
+        pa = baseline_price * st_state.exec_vol.sum() / ep_state.target
+        penalty = -self.penalty * ((st_state.exec_vol / ep_state.target) ** 2).sum()
+        reward = pa + penalty
+        return reward, {'pa': pa, 'penalty': penalty}
 
 
 
 class SingleOrderEnv(gym.Env):
-    MAX_STEPS = 10
     def __init__(self,
                  observation: StateInterpreter,
                  action: ActionInterpreter,
@@ -228,50 +302,73 @@ class SingleOrderEnv(gym.Env):
     def observation_space(self):
         return self.observation.observation_space
 
-    def retrieve_data(self, cur_order: Order):
+    def retrieve_backtest_data(self, field: str):
         return D.features(
-            [cur_order.stock_id],
+            [self.cur_order.stock_id],
             ['$open', '$close', '$high', '$low', '$volume'],
-            start_time=cur_order.start_time.date(),
-            end_time=cur_order.end_time.date(),
+            start_time=self.cur_order.start_time,
+            end_time=self.cur_order.end_time,
             freq=self.inner_frequency
-        )
+        )[field].to_numpy()
 
     def initialize_state(self):
         self.executor.reset(start_time=self.cur_order.start_time, end_time=self.cur_order.end_time)
-        return EpisodicState()
+        return EpisodicState(
+            stock_id=self.cur_order.stock_id,
+            start_time=self.cur_order.start_time,
+            end_time=self.cur_order.end_time,
+            direction=self.cur_order.direction,
+            target=self.cur_order.amount,
+            num_step=self.executor.trade_calendar.get_trade_len(),
+            market_price=self.retrieve_backtest_data('$close'),
+            market_vol=self.retrieve_backtest_data('$volume'),
+        )
 
-    def update_state(self, action):
-        trade_decision = action
-        execute_result = self.executor.execute(trade_decision)
+    def update_state(self, exec_vol):
+        trade_step = self.trade_calendar.get_trade_step()
+        trade_start_time = self.executor.trade_calendar.get_step_time(trade_step)
+        trade_end_time = self.executor.trade_calendar.get_step_time(trade_step, shift=1)
+        trade_decision = Order(**asdict(self.cur_order),
+            start_time=trade_start_time, end_time=trade_end_time, amount=exec_vol)
+        execute_result = self.executor.execute([trade_decision])
+        cur_tick = self.ep_state.cur_tick
+
+        inner_exec_vol = np.array([order.deal_amount for order, _, __, ___ in execute_result])
+        ticks_this_step = len(inner_exec_vol)
+        state = self.ep_state
+        state.cur_step = trade_step = self.executor.trade_calendar.get_trade_step()
+        state.cur_time = self.executor.trade_calendar.get_step_time(trade_step)
+        state.cur_tick += ticks_this_step
+        state.position -= np.sum(inner_exec_vol)
+        state.position_history[trade_step] = state.position
+        state.exec_vol = inner_exec_vol if state.exec_vol is None else np.concatenate((state.exec_vol, inner_exec_vol))
+
+        state.done = self.executor.finished()
+        if state.done:
+            state.update_stats()
+
+        l, r = cur_tick, cur_tick + ticks_this_step
+        assert 0 <= l < r
+        return StepState(inner_exec_vol, state.market_vol[l:r], state.market_price[l:r], state)
 
     def reset(self):
         try:
-            cur_order = next(self.dataloader)
+            self.cur_order = next(self.dataloader)
         except StopIteration:
             self.dataloader = None
             return None
 
-        self.cur_sample = self._retrieve_data(cur_order)
         self.execute_result = []
         self.ep_state = self.initialize_state()
 
-        self.action_history = np.full(self.MAX_STEPS, np.nan)
+        self.action_history = np.full(self.ep_state.num_step, np.nan)
         return self.observation(self.cur_sample, self.ep_state)
-
-
-        # TODO: how to fetch data after feature engineering?
-
-        # TODO: can be rewritten as dataclasses.asdict(self.cur_order) is Order is written to be a dataclass
-        return self.observation
 
     def step(self, action):
         assert self.dataloader is not None
 
-        assert not self.executor.finished()
-
         exec_vol = self.action(action, self.ep_state)
-        step_state = self.ep_state.step(exec_vol)
+        step_state = self.update_state(exec_vol)
 
         reward, rew_info = self.reward(self.ep_state, step_state)
 
@@ -283,8 +380,8 @@ class SingleOrderEnv(gym.Env):
         if self.ep_state.done:
             info['logs'] = self.ep_state.logs()
             info['index'] = {
-                'ins': self.cur_sample.ins,
-                'date': self.cur_sample.date
+                'ins': self.ep_state.stock_id,
+                'date': self.ep_state.start_time,
             }
 
         return self.observation(self.cur_sample, self.ep_state), reward, self.ep_state.done, info
@@ -331,25 +428,23 @@ def _main():
         }
     )
 
-    import pdb; pdb.set_trace()
+    observation = Observation(time_per_step)
+    action = Action()
+    reward_fn = Reward()
 
-    observation = DummyCallable()
-    action = DummyCallable()
-    reward_fn = DummyCallable()
-    # TODO: this probably won't work with multiprocess
-    dataloader = iter(DataLoader(QlibOrderDataset('rl.pkl'), batch_size=None, shuffle=True))
-
-    def dummy_env(): return OrderEnv(observation, action, reward_fn, dataloader, executor)
+    def dummy_env(): return SingleOrderEnv(
+        observation, action, reward_fn,
+        DataLoader(QlibOrderDataset('rl.pkl'), batch_size=None, shuffle=True), executor)
     policy = DummyPolicy()
 
-    # env = dummy_env()
-    # obs = env.reset()
-    # print(obs.__dict__)
+    env = dummy_env()
+    obs = env.reset()
+    print(obs)
 
-    envs = DummyVectorEnv([dummy_env for _ in range(4)])
-    test_collector = Collector(policy, envs)
-    policy.eval()
-    test_collector.collect(n_episode=10)
+    # envs = DummyVectorEnv([dummy_env for _ in range(4)])
+    # test_collector = Collector(policy, envs)
+    # policy.eval()
+    # test_collector.collect(n_episode=10)
 
 
 if __name__ == '__main__':
