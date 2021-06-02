@@ -332,7 +332,7 @@ def _main():
         )
         return SingleOrderEnv(
             observation, action, reward_fn,
-            iter(DataLoader(QlibOrderDataset('rl_orders'), batch_size=None, shuffle=True)), executor)
+            iter(DataLoader(QlibOrderDataset('assets/orders'), batch_size=None, shuffle=True)), executor)
 
     policy = DummyPolicy()
 
