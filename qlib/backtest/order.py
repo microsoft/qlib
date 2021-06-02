@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 import pandas as pd
 from dataclasses import dataclass, field
-from typing import ClassVar
+from typing import ClassVar, Optional
 
 
 @dataclass
@@ -26,7 +26,7 @@ class Order:
     end_time: pd.Timestamp
     direction: int
     factor: float
-    deal_amount: float = field(init=False)
+    deal_amount: Optional[float] = None
     SELL: ClassVar[int] = 0
     BUY: ClassVar[int] = 1
 
