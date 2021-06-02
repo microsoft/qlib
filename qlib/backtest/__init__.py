@@ -7,6 +7,7 @@ from .executor import BaseExecutor
 from .backtest import backtest as backtest_func
 from .backtest import collect_data as data_generator
 from .order import Order
+from .utils import TradeCalendarManager
 
 from .utils import CommonInfrastructure
 from .order import Order
