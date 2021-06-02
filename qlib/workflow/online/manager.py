@@ -163,17 +163,20 @@ class OnlineManager(Serializable):
                 models = self.trainer.end_train(models, experiment_name=strategy.name_id)
             self.prepare_signals(**signal_kwargs)
 
-    def get_collector(self) -> MergeCollector:
+    def get_collector(self, **kwargs) -> MergeCollector:
         """
         Get the instance of `Collector <../advanced/task_management.html#Task Collecting>`_ to collect results from every strategy.
         This collector can be a basis as the signals preparation.
+        
+        Args:
+            **kwargs: the params for get_collector.
 
         Returns:
             MergeCollector: the collector to merge other collectors.
         """
         collector_dict = {}
         for strategy in self.strategies:
-            collector_dict[strategy.name_id] = strategy.get_collector()
+            collector_dict[strategy.name_id] = strategy.get_collector(**kwargs)
         return MergeCollector(collector_dict, process_list=[])
 
     def add_strategy(self, strategies: Union[OnlineStrategy, List[OnlineStrategy]]):

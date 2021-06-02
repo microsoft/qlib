@@ -19,6 +19,7 @@ from qlib.workflow.online.strategy import RollingStrategy
 from qlib.workflow.task.gen import RollingGen
 from qlib.workflow.online.manager import OnlineManager
 from qlib.tests.config import CSI100_RECORD_XGBOOST_TASK_CONFIG_ROLLING, CSI100_RECORD_LGB_TASK_CONFIG_ROLLING
+from qlib.workflow.task.manage import TaskManager
 
 
 class RollingOnlineExample:
