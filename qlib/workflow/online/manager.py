@@ -167,7 +167,7 @@ class OnlineManager(Serializable):
         """
         Get the instance of `Collector <../advanced/task_management.html#Task Collecting>`_ to collect results from every strategy.
         This collector can be a basis as the signals preparation.
-        
+
         Args:
             **kwargs: the params for get_collector.
 

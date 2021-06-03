@@ -350,7 +350,8 @@ class TrainerRM(Trainer):
             **kwargs,
         )
 
-        tm.wait(query=query)
+        if not self.is_delay():
+            tm.wait(query=query)
 
         recs = []
         for _id in _id_list:
