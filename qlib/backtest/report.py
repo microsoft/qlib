@@ -12,6 +12,7 @@ from pandas.core.frame import DataFrame
 
 from ..utils.resam import parse_freq, resam_ts_data
 from ..data import D
+from ..tests.config import CSI300_BENCH
 
 
 class Report:
@@ -67,7 +68,7 @@ class Report:
         self.bench = self._cal_benchmark(self.benchmark_config, self.freq)
 
     def _cal_benchmark(self, benchmark_config, freq):
-        benchmark = benchmark_config.get("benchmark", "SH000300")
+        benchmark = benchmark_config.get("benchmark", CSI300_BENCH)
         if isinstance(benchmark, pd.Series):
             return benchmark
         else:

@@ -73,6 +73,9 @@ class Position:
     def del_stock(self, stock_id):
         del self.position[stock_id]
 
+    def check_stock(self, stock_id):
+        return stock_id in self.position
+
     def update_order(self, order, trade_val, cost, trade_price):
         # handle order, order is a order class, defined in exchange.py
         if order.direction == Order.BUY:

@@ -118,7 +118,8 @@ class BaseExecutor:
     def get_report(self):
         raise NotImplementedError("get_report is not implemented!")
 
-    def get_all_executor(self):
+    def get_all_executors(self):
+        """Return all executors"""
         return [self]
 
 
@@ -247,8 +248,9 @@ class NestedExecutor(BaseExecutor):
             sub_env_report_dict.update({f"{_count}{_freq}": (_report, _positions)})
         return sub_env_report_dict
 
-    def get_all_executor(self):
-        return [self, *self.inner_executor.get_all_executor()]
+    def get_all_executors(self):
+        """Return all executors, including self and inner_executor.get_all_executors()"""
+        return [self, *self.inner_executor.get_all_executors()]
 
 
 class SimulatorExecutor(BaseExecutor):
