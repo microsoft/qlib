@@ -226,11 +226,7 @@ class BaseCollector(abc.ABC):
 
 
 class BaseNormalize(abc.ABC):
-    def __init__(
-        self,
-        date_field_name: str = "date",
-        symbol_field_name: str = "symbol",
-    ):
+    def __init__(self, date_field_name: str = "date", symbol_field_name: str = "symbol", **kwargs):
         """
 
         Parameters
@@ -265,6 +261,7 @@ class Normalize:
         max_workers: int = 16,
         date_field_name: str = "date",
         symbol_field_name: str = "symbol",
+        **kwargs,
     ):
         """
 
@@ -291,7 +288,9 @@ class Normalize:
 
         self._max_workers = max_workers
 
-        self._normalize_obj = normalize_class(date_field_name=date_field_name, symbol_field_name=symbol_field_name)
+        self._normalize_obj = normalize_class(
+            date_field_name=date_field_name, symbol_field_name=symbol_field_name, **kwargs
+        )
 
     def _executor(self, file_path: Path):
         file_path = Path(file_path)
@@ -404,7 +403,7 @@ class BaseRun(abc.ABC):
             limit_nums=limit_nums,
         ).collector_data()
 
-    def normalize_data(self, date_field_name: str = "date", symbol_field_name: str = "symbol"):
+    def normalize_data(self, date_field_name: str = "date", symbol_field_name: str = "symbol", **kwargs):
         """normalize data
 
         Parameters
@@ -426,5 +425,6 @@ class BaseRun(abc.ABC):
             max_workers=self.max_workers,
             date_field_name=date_field_name,
             symbol_field_name=symbol_field_name,
+            **kwargs,
         )
         yc.normalize()
