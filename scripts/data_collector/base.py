@@ -22,9 +22,9 @@ class BaseCollector(abc.ABC):
     NORMAL_FLAG = "NORMAL"
 
     DEFAULT_START_DATETIME_1D = pd.Timestamp("2000-01-01")
-    DEFAULT_START_DATETIME_1MIN = pd.Timestamp(datetime.datetime.now() - pd.Timedelta(days=5 * 6))
-    DEFAULT_END_DATETIME_1D = pd.Timestamp(datetime.datetime.now() + pd.Timedelta(days=1))
-    DEFAULT_END_DATETIME_1MIN = pd.Timestamp(datetime.datetime.now() + pd.Timedelta(days=1))
+    DEFAULT_START_DATETIME_1MIN = pd.Timestamp(datetime.datetime.now() - pd.Timedelta(days=5 * 6 - 1)).date()
+    DEFAULT_END_DATETIME_1D = pd.Timestamp(datetime.datetime.now() + pd.Timedelta(days=1)).date()
+    DEFAULT_END_DATETIME_1MIN = DEFAULT_END_DATETIME_1D
 
     INTERVAL_1min = "1min"
     INTERVAL_1d = "1d"
@@ -35,7 +35,7 @@ class BaseCollector(abc.ABC):
         start=None,
         end=None,
         interval="1d",
-        max_workers=4,
+        max_workers=1,
         max_collector_count=2,
         delay=0,
         check_data_length: bool = False,
@@ -48,7 +48,7 @@ class BaseCollector(abc.ABC):
         save_dir: str
             instrument save dir
         max_workers: int
-            workers, default 4
+            workers, default 1; Concurrent number, default is 1; when collecting data, it is recommended that max_workers be set to 1
         max_collector_count: int
             default 2
         delay: float
@@ -310,7 +310,7 @@ class Normalize:
 
 
 class BaseRun(abc.ABC):
-    def __init__(self, source_dir=None, normalize_dir=None, max_workers=4, interval="1d"):
+    def __init__(self, source_dir=None, normalize_dir=None, max_workers=1, interval="1d"):
         """
 
         Parameters
@@ -320,7 +320,7 @@ class BaseRun(abc.ABC):
         normalize_dir: str
             Directory for normalize data, default "Path(__file__).parent/normalize"
         max_workers: int
-            Concurrent number, default is 4
+            Concurrent number, default is 1; Concurrent number, default is 1; when collecting data, it is recommended that max_workers be set to 1
         interval: str
             freq, value from [1min, 1d], default 1d
         """
