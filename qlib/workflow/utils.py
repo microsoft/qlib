@@ -17,7 +17,6 @@ def experiment_exit_handler():
     Thus, if any exception or user interuption occurs beforehead, we should handle them first. Once `R` is
     ended, another call of `R.end_exp` will not take effect.
     """
-    signal.signal(signal.SIGINT, experiment_kill_signal_handler)  # handle user keyboard interupt
     sys.excepthook = experiment_exception_hook  # handle uncaught exception
     atexit.register(R.end_exp, recorder_status=Recorder.STATUS_FI)  # will not take effect if experiment ends
 
@@ -38,11 +37,4 @@ def experiment_exception_hook(type, value, tb):
     traceback.print_tb(tb)
     print(f"{type.__name__}: {value}")
 
-    R.end_exp(recorder_status=Recorder.STATUS_FA)
-
-
-def experiment_kill_signal_handler(signum, frame):
-    """
-    End an experiment when user kill the program through keyboard (CTRL+C, etc.).
-    """
     R.end_exp(recorder_status=Recorder.STATUS_FA)
