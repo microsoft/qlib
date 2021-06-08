@@ -148,7 +148,6 @@ class WeightStrategyBase(BaseStrategy, AdjustTimer):
             pred score for this trade date, index is stock_id, contain 'score' column.
         current : Position()
             current position.
-        trade_exchange : Exchange()
         trade_date : pd.Timestamp
             trade date.
         """
