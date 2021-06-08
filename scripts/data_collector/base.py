@@ -7,7 +7,7 @@ import time
 import datetime
 import importlib
 from pathlib import Path
-from typing import Type
+from typing import Type, Iterable
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 
 import pandas as pd
@@ -38,7 +38,7 @@ class BaseCollector(abc.ABC):
         max_workers=1,
         max_collector_count=2,
         delay=0,
-        check_data_length: bool = False,
+        check_data_length: int = None,
         limit_nums: int = None,
     ):
         """
@@ -59,8 +59,8 @@ class BaseCollector(abc.ABC):
             start datetime, default None
         end: str
             end datetime, default None
-        check_data_length: bool
-            check data length, by default False
+        check_data_length: int
+            check data length, if not None and greater than 0, each symbol will be considered complete if its data length is greater than or equal to this value, otherwise it will be fetched again, the maximum number of fetches being (max_collector_count). By default None.
         limit_nums: int
             using for debug, by default None
         """
@@ -72,7 +72,7 @@ class BaseCollector(abc.ABC):
         self.max_collector_count = max_collector_count
         self.mini_symbol_map = {}
         self.interval = interval
-        self.check_small_data = check_data_length
+        self.check_data_length = max(int(check_data_length) if check_data_length is not None else 0, 0)
 
         self.start_datetime = self.normalize_start_datetime(start)
         self.end_datetime = self.normalize_end_datetime(end)
@@ -99,14 +99,6 @@ class BaseCollector(abc.ABC):
             else getattr(self, f"DEFAULT_END_DATETIME_{self.interval.upper()}")
         )
 
-    @property
-    @abc.abstractmethod
-    def min_numbers_trading(self):
-        # daily, one year: 252 / 4
-        # us 1min, a week: 6.5 * 60 * 5
-        # cn 1min, a week: 4 * 60 * 5
-        raise NotImplementedError("rewrite min_numbers_trading")
-
     @abc.abstractmethod
     def get_instrument_list(self):
         raise NotImplementedError("rewrite get_instrument_list")
@@ -132,7 +124,7 @@ class BaseCollector(abc.ABC):
 
         Returns
         ---------
-            pd.DataFrame, "symbol" in pd.columns
+            pd.DataFrame, "symbol" and "date"in pd.columns
 
         """
         raise NotImplementedError("rewrite get_timezone")
@@ -151,7 +143,7 @@ class BaseCollector(abc.ABC):
         self.sleep()
         df = self.get_data(symbol, self.interval, self.start_datetime, self.end_datetime)
         _result = self.NORMAL_FLAG
-        if self.check_small_data:
+        if self.check_data_length > 0:
             _result = self.cache_small_data(symbol, df)
         if _result == self.NORMAL_FLAG:
             self.save_instrument(symbol, df)
@@ -181,8 +173,8 @@ class BaseCollector(abc.ABC):
         df.to_csv(instrument_path, index=False)
 
     def cache_small_data(self, symbol, df):
-        if len(df) <= self.min_numbers_trading:
-            logger.warning(f"the number of trading days of {symbol} is less than {self.min_numbers_trading}!")
+        if len(df) < self.check_data_length:
+            logger.warning(f"the number of trading days of {symbol} is less than {self.check_data_length}!")
             _temp = self.mini_symbol_map.setdefault(symbol, [])
             _temp.append(df.copy())
             return self.CACHE_FLAG
@@ -194,9 +186,17 @@ class BaseCollector(abc.ABC):
     def _collector(self, instrument_list):
 
         error_symbol = []
-        with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
-            with tqdm(total=len(instrument_list)) as p_bar:
-                for _symbol, _result in zip(instrument_list, executor.map(self._simple_collector, instrument_list)):
+        with tqdm(total=len(instrument_list)) as p_bar:
+            if self.max_workers is not None and self.max_workers > 1:
+                logger.info(f"concurrent collector, max_workers: {self.max_workers}")
+                with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+                    for _symbol, _result in zip(instrument_list, executor.map(self._simple_collector, instrument_list)):
+                        if _result != self.NORMAL_FLAG:
+                            error_symbol.append(_symbol)
+                        p_bar.update()
+            else:
+                for _symbol in instrument_list:
+                    _result = self._simple_collector(_symbol)
                     if _result != self.NORMAL_FLAG:
                         error_symbol.append(_symbol)
                     p_bar.update()
@@ -217,11 +217,11 @@ class BaseCollector(abc.ABC):
             instrument_list = self._collector(instrument_list)
             logger.info(f"{i+1} finish.")
         for _symbol, _df_list in self.mini_symbol_map.items():
-            self.save_instrument(
-                _symbol, pd.concat(_df_list, sort=False).drop_duplicates(["date"]).sort_values(["date"])
-            )
+            _df = pd.concat(_df_list, sort=False)
+            if not _df.empty:
+                self.save_instrument(_symbol, _df.drop_duplicates(["date"]).sort_values(["date"]))
         if self.mini_symbol_map:
-            logger.warning(f"less than {self.min_numbers_trading} instrument list: {list(self.mini_symbol_map.keys())}")
+            logger.warning(f"less than {self.check_data_length} instrument list: {list(self.mini_symbol_map.keys())}")
         logger.info(f"total {len(self.instrument_list)}, error: {len(set(instrument_list))}")
 
 
@@ -247,7 +247,7 @@ class BaseNormalize(abc.ABC):
         raise NotImplementedError("")
 
     @abc.abstractmethod
-    def _get_calendar_list(self):
+    def _get_calendar_list(self) -> Iterable[pd.Timestamp]:
         """Get benchmark calendar"""
         raise NotImplementedError("")
 
@@ -296,7 +296,7 @@ class Normalize:
         file_path = Path(file_path)
         df = pd.read_csv(file_path)
         df = self._normalize_obj.normalize(df)
-        if not df.empty:
+        if df is not None and not df.empty:
             df.to_csv(self._target_dir.joinpath(file_path.name), index=False)
 
     def normalize(self):

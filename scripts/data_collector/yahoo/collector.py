@@ -137,7 +137,7 @@ class YahooCollector(BaseCollector):
     def get_data(
         self, symbol: str, interval: str, start_datetime: pd.Timestamp, end_datetime: pd.Timestamp
     ) -> pd.DataFrame:
-        @deco_retry(retry_sleep=1)
+        @deco_retry(retry_sleep=self.delay)
         def _get_simple(start_, end_):
             self.sleep()
             _remote_interval = "1m" if interval == self.INTERVAL_1min else interval
@@ -200,10 +200,6 @@ class YahooCollectorCN(YahooCollector, ABC):
 
 
 class YahooCollectorCN1d(YahooCollectorCN):
-    @property
-    def min_numbers_trading(self):
-        return 252 / 4
-
     def download_index_data(self):
         # TODO: from MSN
         _format = "%Y%m%d"
@@ -237,10 +233,6 @@ class YahooCollectorCN1d(YahooCollectorCN):
 
 
 class YahooCollectorCN1min(YahooCollectorCN):
-    @property
-    def min_numbers_trading(self):
-        return 60 * 4 * 5
-
     def download_index_data(self):
         # TODO: 1m
         logger.warning(f"{self.__class__.__name__} {self.interval} does not support: download_index_data")
@@ -269,15 +261,11 @@ class YahooCollectorUS(YahooCollector, ABC):
 
 
 class YahooCollectorUS1d(YahooCollectorUS):
-    @property
-    def min_numbers_trading(self):
-        return 252 / 4
+    pass
 
 
 class YahooCollectorUS1min(YahooCollectorUS):
-    @property
-    def min_numbers_trading(self):
-        return 60 * 6.5 * 5
+    pass
 
 
 class YahooNormalize(BaseNormalize):
@@ -514,7 +502,17 @@ class YahooNormalize1min(YahooNormalize, ABC):
         )
 
     def get_1d_data(self, symbol: str, start: str, end: str) -> pd.DataFrame:
+        """get 1d data
+
+        Returns
+        ------
+            data_1d: pd.DataFrame
+                set(data_1d.columns) - set([self._date_field_name, self._symbol_field_name, "paused", "volume", "factor"]) == {}
+
+        """
         data_1d = YahooCollector.get_data_from_remote(self.symbol_to_yahoo(symbol), interval="1d", start=start, end=end)
+        if not (data_1d is None or data_1d.empty):
+            data_1d = self.data_1d_obj.normalize(data_1d)
         return data_1d
 
     def adjusted_price(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -526,13 +524,12 @@ class YahooNormalize1min(YahooNormalize, ABC):
         # get 1d data from yahoo
         _start = pd.Timestamp(df[self._date_field_name].min()).strftime(self.DAILY_FORMAT)
         _end = (pd.Timestamp(df[self._date_field_name].max()) + pd.Timedelta(days=1)).strftime(self.DAILY_FORMAT)
-        data_1d = self.get_1d_data(symbol, _start, _end)
+        data_1d: pd.DataFrame = self.get_1d_data(symbol, _start, _end)
         if data_1d is None or data_1d.empty:
             df["factor"] = 1
             # TODO: np.nan or 1 or 0
             df["paused"] = np.nan
         else:
-            data_1d = self.data_1d_obj.normalize(data_1d)  # type: pd.DataFrame
             # NOTE: volume is np.nan or volume <= 0, paused = 1
             # FIXME: find a more accurate data source
             data_1d["paused"] = 0
@@ -621,12 +618,12 @@ class YahooNormalize1min(YahooNormalize, ABC):
         raise NotImplementedError("rewrite symbol_to_yahoo")
 
     @abc.abstractmethod
-    def _get_1d_calendar_list(self):
+    def _get_1d_calendar_list(self) -> Iterable[pd.Timestamp]:
         raise NotImplementedError("rewrite _get_1d_calendar_list")
 
 
 class YahooNormalizeUS:
-    def _get_calendar_list(self):
+    def _get_calendar_list(self) -> Iterable[pd.Timestamp]:
         # TODO: from MSN
         return get_calendar_list("US_ALL")
 
@@ -638,7 +635,7 @@ class YahooNormalizeUS1d(YahooNormalizeUS, YahooNormalize1d):
 class YahooNormalizeUS1min(YahooNormalizeUS, YahooNormalize1min):
     CONSISTENT_1d = False
 
-    def _get_calendar_list(self):
+    def _get_calendar_list(self) -> Iterable[pd.Timestamp]:
         # TODO: support 1min
         raise ValueError("Does not support 1min")
 
@@ -650,7 +647,7 @@ class YahooNormalizeUS1min(YahooNormalizeUS, YahooNormalize1min):
 
 
 class YahooNormalizeCN:
-    def _get_calendar_list(self):
+    def _get_calendar_list(self) -> Iterable[pd.Timestamp]:
         # TODO: from MSN
         return get_calendar_list("ALL")
 
@@ -670,7 +667,7 @@ class YahooNormalizeCN1min(YahooNormalizeCN, YahooNormalize1min):
     CONSISTENT_1d = True
     CALC_PAUSED_NUM = True
 
-    def _get_calendar_list(self):
+    def _get_calendar_list(self) -> Iterable[pd.Timestamp]:
         return self.generate_1min_from_daily(self.calendar_list_1d)
 
     def symbol_to_yahoo(self, symbol):
@@ -680,8 +677,65 @@ class YahooNormalizeCN1min(YahooNormalizeCN, YahooNormalize1min):
             symbol = symbol[2:] + "." + _exchange
         return symbol
 
-    def _get_1d_calendar_list(self):
+    def _get_1d_calendar_list(self) -> Iterable[pd.Timestamp]:
         return get_calendar_list("ALL")
+
+
+class YahooNormalizeCN1minOffline(YahooNormalizeCN1min):
+    """Normalised to 1min using local 1d data
+    1d data usually from: Normalised to 1min using local 1d data
+    """
+
+    def __init__(
+        self, qlib_data_1d_dir: [str, Path], date_field_name: str = "date", symbol_field_name: str = "symbol", **kwargs
+    ):
+        """
+
+        Parameters
+        ----------
+        qlib_data_1d_dir: str, Path
+            the qlib data to be updated for yahoo, usually from: Normalised to 1min using local 1d data
+        date_field_name: str
+            date field name, default is date
+        symbol_field_name: str
+            symbol field name, default is symbol
+        """
+        super(YahooNormalizeCN1minOffline, self).__init__(date_field_name, symbol_field_name)
+        self.qlib_data_1d_dir = qlib_data_1d_dir
+        self._all_1d_data = self._get_all_1d_data()
+
+    def _get_1d_calendar_list(self) -> Iterable[pd.Timestamp]:
+        import qlib
+        from qlib.data import D
+
+        qlib.init(provider_uri=self.qlib_data_1d_dir)
+        return list(D.calendar(freq="day"))
+
+    def _get_all_1d_data(self):
+        import qlib
+        from qlib.data import D
+
+        qlib.init(provider_uri=self.qlib_data_1d_dir)
+        df = D.features(D.instruments("all"), ["$paused", "$volume", "$factor"], freq="day")
+        df.reset_index(inplace=True)
+        df.rename(columns={"datetime": self._date_field_name, "instrument": self._symbol_field_name}, inplace=True)
+        df.columns = list(map(lambda x: x[1:] if x.startswith("$") else x, df.columns))
+        return df
+
+    def get_1d_data(self, symbol: str, start: str, end: str) -> pd.DataFrame:
+        """get 1d data
+
+        Returns
+        ------
+            data_1d: pd.DataFrame
+                set(data_1d.columns) - set([self._date_field_name, self._symbol_field_name, "paused", "volume", "factor"]) == {}
+
+        """
+        return self._all_1d_data[
+            (self._all_1d_data[self._symbol_field_name] == symbol.upper())
+            & (self._all_1d_data[self._date_field_name] >= pd.Timestamp(start))
+            & (self._all_1d_data[self._date_field_name] < pd.Timestamp(end))
+        ]
 
 
 class Run(BaseRun):
@@ -722,7 +776,7 @@ class Run(BaseRun):
         delay=0,
         start=None,
         end=None,
-        check_data_length=False,
+        check_data_length=None,
         limit_nums=None,
     ):
         """download data from Internet
@@ -734,13 +788,20 @@ class Run(BaseRun):
         delay: float
             time.sleep(delay), default 0
         start: str
-            start datetime, default "2000-01-01"
+            start datetime, default "2000-01-01"; closed interval(including start)
         end: str
-            end datetime, default ``pd.Timestamp(datetime.datetime.now() + pd.Timedelta(days=1))``
-        check_data_length: bool
-            check data length, by default False
+            end datetime, default ``pd.Timestamp(datetime.datetime.now() + pd.Timedelta(days=1))``; open interval(excluding end)
+        check_data_length: int
+            check data length, if not None and greater than 0, each symbol will be considered complete if its data length is greater than or equal to this value, otherwise it will be fetched again, the maximum number of fetches being (max_collector_count). By default None.
         limit_nums: int
             using for debug, by default None
+
+        Notes
+        -----
+            check_data_length, example:
+                daily, one year: 252 // 4
+                us 1min, a week: 6.5 * 60 * 5
+                cn 1min, a week: 4 * 60 * 5
 
         Examples
         ---------
@@ -812,6 +873,85 @@ class Run(BaseRun):
             old_qlib_data_dir=old_qlib_data_dir,
         )
         yc.normalize()
+
+    def normalize_data_1min_cn_offline(
+        self, qlib_data_1d_dir, date_field_name: str = "date", symbol_field_name: str = "symbol"
+    ):
+        """Normalised to 1min using local 1d data
+
+        Parameters
+        ----------
+        qlib_data_1d_dir: str
+            the qlib data to be updated for yahoo, usually from: https://github.com/microsoft/qlib/tree/main/scripts#download-cn-data
+        date_field_name: str
+            date field name, default date
+        symbol_field_name: str
+            symbol field name, default symbol
+
+        Examples
+        ---------
+            $ python collector.py normalize_data_1min_cn_offline --qlib_data_1d_dir ~/.qlib/qlib_data/cn_1d --source_dir ~/.qlib/stock_data/source_cn_1min --normalize_dir ~/.qlib/stock_data/normalize_cn_1min --region CN --interval 1min
+        """
+        _class = getattr(self._cur_module, f"{self.normalize_class_name}Offline")
+        yc = Normalize(
+            source_dir=self.source_dir,
+            target_dir=self.normalize_dir,
+            normalize_class=_class,
+            max_workers=self.max_workers,
+            date_field_name=date_field_name,
+            symbol_field_name=symbol_field_name,
+            qlib_data_1d_dir=qlib_data_1d_dir,
+        )
+        yc.normalize()
+
+    def download_today_data(
+        self,
+        max_collector_count=2,
+        delay=0,
+        check_data_length=None,
+        limit_nums=None,
+    ):
+        """download today data from Internet
+
+        Parameters
+        ----------
+        max_collector_count: int
+            default 2
+        delay: float
+            time.sleep(delay), default 0
+        check_data_length: int
+            check data length, if not None and greater than 0, each symbol will be considered complete if its data length is greater than or equal to this value, otherwise it will be fetched again, the maximum number of fetches being (max_collector_count). By default None.
+        limit_nums: int
+            using for debug, by default None
+
+        Notes
+        -----
+            Download today's data:
+                start_time = datetime.datetime.now().date(); closed interval(including start)
+                end_time = pd.Timestamp(start_time + pd.Timedelta(days=1)).date(); open interval(excluding end)
+
+            check_data_length, example:
+                daily, one year: 252 // 4
+                us 1min, a week: 6.5 * 60 * 5
+                cn 1min, a week: 4 * 60 * 5
+
+        Examples
+        ---------
+            # get daily data
+            $ python collector.py download_today_data --source_dir ~/.qlib/stock_data/source --region CN --delay 0.1 --interval 1d
+            # get 1m data
+            $ python collector.py download_today_data --source_dir ~/.qlib/stock_data/source --region CN --delay 0.1 --interval 1m
+        """
+        start = datetime.datetime.now().date()
+        end = pd.Timestamp(start + pd.Timedelta(days=1)).date()
+        self.download_data(
+            max_collector_count,
+            delay,
+            start.strftime("%Y-%m-%d"),
+            end.strftime("%Y-%m-%d"),
+            check_data_length,
+            limit_nums,
+        )
 
 
 if __name__ == "__main__":

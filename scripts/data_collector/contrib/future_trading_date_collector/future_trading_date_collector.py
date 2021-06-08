@@ -14,7 +14,7 @@ from loguru import logger
 import baostock as bs
 
 CUR_DIR = Path(__file__).resolve().parent
-sys.path.append(str(CUR_DIR.parent.parent))
+sys.path.append(str(CUR_DIR.parent.parent.parent))
 
 
 from data_collector.utils import generate_minutes_calendar_from_daily
