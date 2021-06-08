@@ -165,6 +165,7 @@ class FundollectorCN(FundCollector, ABC):
 class FundCollectorCN1d(FundollectorCN):
     pass
 
+
 class FundNormalize(BaseNormalize):
     DAILY_FORMAT = "%Y-%m-%d"
 
