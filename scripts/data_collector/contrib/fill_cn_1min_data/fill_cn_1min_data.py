@@ -28,10 +28,9 @@ def get_date_range(data_1min_dir: Path, max_workers: int = 16, date_field_name: 
                     _dates = pd.to_datetime(_result[date_field_name])
 
                     _tmp_min = _dates.min()
-                    min_date = min_date(min_date, _tmp_min) if min_date is not None else _tmp_min
-
+                    min_date = min(min_date, _tmp_min) if min_date is not None else _tmp_min
                     _tmp_max = _dates.max()
-                    max_date = min_date(max_date, _tmp_max) if max_date is not None else _tmp_max
+                    max_date = max(max_date, _tmp_max) if max_date is not None else _tmp_max
                 p_bar.update()
     return min_date, max_date
 
@@ -81,7 +80,7 @@ def fill_1min_using_1d(
     tmp_df = pd.read_csv(list(data_1min_dir.glob("*.csv"))[0])
     columns = tmp_df.columns
     _si = tmp_df[symbol_field_name].first_valid_index()
-    is_lower = tmp_df.loc[tmp_df][symbol_field_name].islower()
+    is_lower = tmp_df.loc[_si][symbol_field_name].islower()
     for symbol in tqdm(miss_symbols):
         if is_lower:
             symbol = symbol.lower()
@@ -89,8 +88,11 @@ def fill_1min_using_1d(
         index_1min = generate_minutes_calendar_from_daily(index_1d)
         index_1min.name = date_field_name
         _df = pd.DataFrame(columns=columns, index=index_1min)
+        if date_field_name in _df.columns:
+            del _df[date_field_name]
         _df.reset_index(inplace=True)
         _df[symbol_field_name] = symbol
+        _df["paused_num"] = 0
         _df.to_csv(data_1min_dir.joinpath(f"{symbol}.csv"), index=False)
 
 

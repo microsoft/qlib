@@ -473,21 +473,6 @@ class YahooNormalize1min(YahooNormalize, ABC):
     CONSISTENT_1d = False
     CALC_PAUSED_NUM = False
 
-    def __init__(self, date_field_name: str = "date", symbol_field_name: str = "symbol", **kwargs):
-        """
-
-        Parameters
-        ----------
-        date_field_name: str
-            date field name, default is date
-        symbol_field_name: str
-            symbol field name, default is symbol
-        """
-        super(YahooNormalize1min, self).__init__(date_field_name, symbol_field_name)
-        _class_name = self.__class__.__name__.replace("min", "d")
-        _class = getattr(importlib.import_module("collector"), _class_name)  # type: Type[YahooNormalize]
-        self.data_1d_obj = _class(self._date_field_name, self._symbol_field_name)
-
     @property
     def calendar_list_1d(self):
         calendar_list_1d = getattr(self, "_calendar_list_1d", None)
@@ -512,7 +497,10 @@ class YahooNormalize1min(YahooNormalize, ABC):
         """
         data_1d = YahooCollector.get_data_from_remote(self.symbol_to_yahoo(symbol), interval="1d", start=start, end=end)
         if not (data_1d is None or data_1d.empty):
-            data_1d = self.data_1d_obj.normalize(data_1d)
+            _class_name = self.__class__.__name__.replace("min", "d")
+            _class: type(YahooNormalize) = getattr(importlib.import_module("collector"), _class_name)
+            data_1d_obj = _class(self._date_field_name, self._symbol_field_name)
+            data_1d = data_1d_obj.normalize(data_1d)
         return data_1d
 
     def adjusted_price(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -525,6 +513,7 @@ class YahooNormalize1min(YahooNormalize, ABC):
         _start = pd.Timestamp(df[self._date_field_name].min()).strftime(self.DAILY_FORMAT)
         _end = (pd.Timestamp(df[self._date_field_name].max()) + pd.Timedelta(days=1)).strftime(self.DAILY_FORMAT)
         data_1d: pd.DataFrame = self.get_1d_data(symbol, _start, _end)
+        data_1d = data_1d.copy()
         if data_1d is None or data_1d.empty:
             df["factor"] = 1
             # TODO: np.nan or 1 or 0
@@ -700,8 +689,8 @@ class YahooNormalizeCN1minOffline(YahooNormalizeCN1min):
         symbol_field_name: str
             symbol field name, default is symbol
         """
-        super(YahooNormalizeCN1minOffline, self).__init__(date_field_name, symbol_field_name)
         self.qlib_data_1d_dir = qlib_data_1d_dir
+        super(YahooNormalizeCN1minOffline, self).__init__(date_field_name, symbol_field_name)
         self._all_1d_data = self._get_all_1d_data()
 
     def _get_1d_calendar_list(self) -> Iterable[pd.Timestamp]:
