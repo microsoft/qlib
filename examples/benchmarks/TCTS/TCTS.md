@@ -4,9 +4,12 @@ We provide the code for reproducing the stock trend forecasting experiments in [
 ### Background
 Sequence learning has attracted much research attention from the machine learning community in recent years. In many applications, a sequence learning task is usually associated with multiple temporally correlated auxiliary tasks, which are different in terms of how much input information to use or which future step to predict. In stock trend forecasting, as demonstrated in Figure1, one can predict the price of a stock in different future days (e.g., tomorrow, the day after tomorrow). In this paper, we propose a framework to make use of those temporally correlated tasks to help each other. 
 
-
 <div style="align: center"> 
-<img src="task_description.png"./>
+<img src="task_description.png" />
+</div>
+
+<div style="align: center">
+<img src="http://fintech.msra.cn/images_v060/framework.png?v=0.1" />
 </div>
 
 
