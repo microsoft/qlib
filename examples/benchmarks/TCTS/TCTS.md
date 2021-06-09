@@ -1,5 +1,5 @@
 # Temporally Correlated Task Scheduling for Sequence Learning
-We provide the code for reproducing the stock trend forecasting experiments in [Temporally Correlated Task Scheduling for Sequence Learning](https://github.com/microsoft/qlib/blob/main/qlib/contrib/model/pytorch_nn.py).
+We provide the code for reproducing the stock trend forecasting experiments in [Temporally Correlated Task Scheduling for Sequence Learning](https://github.com/microsoft/qlib/blob/main/qlib/contrib/model/pytorch_tcts.py).
 
 ### Background
 Sequence learning has attracted much research attention from the machine learning community in recent years. In many applications, a sequence learning task is usually associated with multiple temporally correlated auxiliary tasks, which are different in terms of how much input information to use or which future step to predict. In stock trend forecasting, as demonstrated in Figure1, one can predict the price of a stock in different future days (e.g., tomorrow, the day after tomorrow). In this paper, we propose a framework to make use of those temporally correlated tasks to help each other. 
