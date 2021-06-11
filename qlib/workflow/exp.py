@@ -213,10 +213,14 @@ class Experiment:
         """
         raise NotImplementedError(f"Please implement the `_get_recorder` method")
 
-    def list_recorders(self):
+    def list_recorders(self, **flt_kwargs):
         """
         List all the existing recorders of this experiment. Please first get the experiment instance before calling this method.
         If user want to use the method `R.list_recorders()`, please refer to the related API document in `QlibRecorder`.
+
+        flt_kwargs : dict
+            filter recorders by conditions
+            e.g.  list_recorders(status=Recorder.STATUS_FI)
 
         Returns
         -------
@@ -320,11 +324,14 @@ class MLflowExperiment(Experiment):
 
     UNLIMITED = 50000  # FIXME: Mlflow can only list 50000 records at most!!!!!!!
 
-    def list_recorders(self, max_results=UNLIMITED):
+    def list_recorders(self, max_results=UNLIMITED, status=None):
         runs = self._client.search_runs(self.id, run_view_type=ViewType.ACTIVE_ONLY, max_results=max_results)
         recorders = dict()
         for i in range(len(runs)):
             recorder = MLflowRecorder(self.id, self._uri, mlflow_run=runs[i])
+            if status is not None:
+                if recorder.status != status:
+                    continue
             recorders[runs[i].info.run_id] = recorder
 
         return recorders
