@@ -109,7 +109,7 @@ class ExpManager:
         """
         raise NotImplementedError(f"Please implement the `search_records` method.")
 
-    def get_exp(self, experiment_id=None, experiment_name=None, create: bool = True, start: bool = False):
+    def get_exp(self, *, experiment_id=None, experiment_name=None, create: bool = True, start: bool = False):
         """
         Retrieve an experiment. This method includes getting an active experiment, and get_or_create a specific experiment.
 
@@ -190,7 +190,7 @@ class ExpManager:
         except ValueError:
             if experiment_name is None:
                 experiment_name = self._default_exp_name
-            logger.info(f"No valid experiment found. Create a new experiment with name {experiment_name}.")
+            logger.warning(f"No valid experiment found. Create a new experiment with name {experiment_name}.")
             return self.create_exp(experiment_name), True
 
     def _get_exp(self, experiment_id=None, experiment_name=None) -> Experiment:
