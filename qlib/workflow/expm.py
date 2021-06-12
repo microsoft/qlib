@@ -352,15 +352,8 @@ class MLflowExpManager(ExpManager):
         ), "Please input at least one of experiment/recorder id or name before retrieving experiment/recorder."
         if experiment_id is not None:
             try:
-                experiment_id = int(experiment_id)
-            except ValueError as e:
-                msg = "The `experiment_id` for mlflow backend must be `int`"
-                logger.error(msg)
-                # We have to raise type error here
-                # - The error looks like type error
-                # - Value Error will be catched
-                raise TypeError(msg)
-            try:
+                # NOTE: the mlflow's experiment_id must be str type...
+                # https://www.mlflow.org/docs/latest/python_api/mlflow.tracking.html#mlflow.tracking.MlflowClient.get_experiment
                 exp = self.client.get_experiment(experiment_id)
                 if exp.lifecycle_stage.upper() == "DELETED":
                     raise MlflowException("No valid experiment has been found.")

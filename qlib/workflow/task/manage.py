@@ -272,7 +272,7 @@ class TaskManager:
         task = self.fetch_task(query=query, status=status)
         try:
             yield task
-        except Exception:
+        except (Exception, KeyboardInterrupt):  # KeyboardInterrupt is not a subclass of Exception
             if task is not None:
                 self.logger.info("Returning task before raising error")
                 self.return_task(task, status=status)  # return task as the original status
