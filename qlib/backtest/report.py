@@ -7,10 +7,11 @@ from logging import warning
 import pandas as pd
 import pathlib
 import warnings
+from pandas.core import groupby
 
 from pandas.core.frame import DataFrame
 
-from ..utils.resam import parse_freq, resam_ts_data
+from ..utils.resam import parse_freq, resam_ts_data, get_higher_freq_feature
 from ..data import D
 from ..tests.config import CSI300_BENCH
 
@@ -79,19 +80,7 @@ class Report:
                 raise ValueError("benchmark freq can't be None!")
             _codes = benchmark if isinstance(benchmark, list) else [benchmark]
             fields = ["$close/Ref($close,1)-1"]
-            try:
-                _temp_result = D.features(_codes, fields, start_time, end_time, freq=freq, disk_cache=1)
-            except (ValueError, KeyError):
-                _, norm_freq = parse_freq(freq)
-                if norm_freq in ["month", "week", "day"]:
-                    try:
-                        _temp_result = D.features(_codes, fields, start_time, end_time, freq="day", disk_cache=1)
-                    except (ValueError, KeyError):
-                        _temp_result = D.features(_codes, fields, start_time, end_time, freq="1min", disk_cache=1)
-                elif norm_freq == "minute":
-                    _temp_result = D.features(_codes, fields, start_time, end_time, freq="1min", disk_cache=1)
-                else:
-                    raise ValueError(f"benchmark freq {freq} is not supported")
+            _temp_result, _ = get_higher_freq_feature(_codes, fields, start_time, end_time, freq=freq)
             if len(_temp_result) == 0:
                 raise ValueError(f"The benchmark {_codes} does not exist. Please provide the right benchmark")
             return _temp_result.groupby(level="datetime")[_temp_result.columns.tolist()[0]].mean().fillna(0)
@@ -122,11 +111,11 @@ class Report:
         turnover_rate=None,
         cost_rate=None,
         stock_value=None,
+        bench_value=None,
     ):
         # check data
         if None in [
             trade_start_time,
-            trade_end_time,
             account_value,
             cash,
             return_rate,
@@ -135,8 +124,14 @@ class Report:
             stock_value,
         ]:
             raise ValueError(
-                "None in [trade_start_time, trade_end_time, account_value, cash, return_rate, turnover_rate, cost_rate, stock_value]"
+                "None in [trade_start_time, account_value, cash, return_rate, turnover_rate, cost_rate, stock_value]"
             )
+
+        if trade_end_time is None and bench_value is None:
+            raise ValueError("Both trade_end_time and bench_value is None, benchmark is not usable.")
+        elif bench_value is None:
+            bench_value = self._sample_benchmark(self.bench, trade_start_time, trade_end_time)
+
         # update report data
         self.accounts[trade_start_time] = account_value
         self.returns[trade_start_time] = return_rate
@@ -144,7 +139,7 @@ class Report:
         self.costs[trade_start_time] = cost_rate
         self.values[trade_start_time] = stock_value
         self.cashes[trade_start_time] = cash
-        self.benches[trade_start_time] = self._sample_benchmark(self.bench, trade_start_time, trade_end_time)
+        self.benches[trade_start_time] = bench_value
         # update latest_report_date
         self.latest_report_time = trade_start_time
         # finish daily report update
@@ -178,14 +173,162 @@ class Report:
 
         index = r.index
         self.init_vars()
-        for trade_time in index:
+        for trade_start_time in index:
             self.update_report_record(
-                trade_time=trade_time,
-                account_value=r.loc[trade_time]["account"],
-                cash=r.loc[trade_time]["cash"],
-                return_rate=r.loc[trade_time]["return"],
-                turnover_rate=r.loc[trade_time]["turnover"],
-                cost_rate=r.loc[trade_time]["cost"],
-                stock_value=r.loc[trade_time]["value"],
-                bench_value=r.loc[trade_time]["bench"],
+                trade_start_time=trade_start_time,
+                account_value=r.loc[trade_start_time]["account"],
+                cash=r.loc[trade_start_time]["cash"],
+                return_rate=r.loc[trade_start_time]["return"],
+                turnover_rate=r.loc[trade_start_time]["turnover"],
+                cost_rate=r.loc[trade_start_time]["cost"],
+                stock_value=r.loc[trade_start_time]["value"],
+                bench_value=r.loc[trade_start_time]["bench"],
             )
+
+
+class Indicator:
+    def __init__(self):
+        self.indicator_his = dict()
+        self.trade_indicator = dict()
+
+    def __getitem__(self, key):
+        return self.trade_indicator[key]
+
+    def __setitem__(self, key, value):
+        self.trade_indicator[key] = value
+
+    def __contains__(self, key):
+        return key in self.trade_indicator
+
+    def clear(self):
+        self.trade_indicator = dict()
+
+    def record(self, trade_start_time):
+        self.indicator_his[trade_start_time] = pd.DataFrame(self.trade_indicator)
+
+    def update_trade_info(self, trade_info: list):
+        amount = dict()
+        deal_amount = dict()
+        trade_price = dict()
+        trade_cost = dict()
+
+        for order, _trade_val, _trade_cost, _trade_price in trade_info:
+            amount[order.stock_id] = order.amount * (order.direction * 2 - 1)
+            deal_amount[order.stock_id] = order.deal_amount * (order.direction * 2 - 1)
+            trade_price[order.stock_id] = _trade_price
+            trade_cost[order.stock_id] = _trade_cost
+
+        self["amount"] = pd.Series(amount)
+        self["deal_amount"] = pd.Series(deal_amount)
+        self["trade_price"] = pd.Series(trade_price)
+        self["trade_cost"] = pd.Series(trade_cost)
+
+    def update_FFR(self):
+        self["fulfill_rate"] = self["deal_amount"] / self["amount"]
+
+    def update_PA(self, freq, trade_start_time, trade_end_time, base_price="twap"):
+        base_price = base_price.lower()
+
+        instruments = list(self["amount"].index)
+        if base_price == "twap":
+            # too slow
+            # price_info, _ = get_higher_freq_feature(instruments, fields=["$close"], start_time=trade_start_time, end_time=trade_end_time, freq=freq)
+            # price_info = price_info.astype(float)
+
+            # self["base_price"] = price_info["$close"].groupby(level="instrument").mean()
+            self["base_price"] = self["trade_price"]
+
+        elif base_price == "vwap":
+            # too slow
+            price_info, _ = get_higher_freq_feature(
+                instruments,
+                fields=["$close", "$volume"],
+                start_time=trade_start_time,
+                end_time=trade_end_time,
+                freq=freq,
+            )
+            price_info = price_info.astype(float)
+            self["base_price"] = price_info.groupby(level="instrument").apply(
+                lambda x: (x["$close"] * x["$volume"]).sum() / x["$volume"].sum()
+            )
+            self["volume"] = price_info["$volume"].groupby(level="instrument").sum()
+        else:
+            raise ValueError(f"base_price {base_price} is not supported!")
+
+        self["pa"] = (self["trade_price"] - self["base_price"]) / self["base_price"]
+
+    def agg_report_info(self, inner_indicators):
+        amount = pd.Series()
+        deal_amount = pd.Series()
+        trade_price = pd.Series()
+        trade_cost = pd.Series()
+        for inner_indicator in inner_indicators:
+            amount = amount.add(inner_indicator["amount"], fill_value=0)
+            deal_amount = deal_amount.add(inner_indicator["deal_amount"], fill_value=0)
+            trade_price = trade_price.add(inner_indicator["trade_price"] * inner_indicator["deal_amount"], fill_value=0)
+            trade_cost = trade_cost.add(inner_indicator["trade_cost"], fill_value=0)
+
+        self["amount"] = amount
+        self["deal_amount"] = deal_amount
+        trade_price /= self["deal_amount"]
+        self["trade_price"] = trade_price
+        self["trade_cost"] = trade_cost
+
+    def agg_FFR(self):
+        self["fulfill_rate"] = self["deal_amount"] / self["amount"]
+
+    def agg_PA(self, inner_indicators, base_price="twap"):
+        base_price = base_price.lower()
+
+        if base_price == "twap":
+            base_price = pd.Series()
+            price_count = pd.Series()
+            for inner_indicator in inner_indicators:
+                base_price = base_price.add(inner_indicator["base_price"], fill_value=0)
+                price_count = price_count.add(pd.Series(1, index=inner_indicator["base_price"].index), fill_value=0)
+            base_price /= price_count
+            self["base_price"] = base_price
+
+        elif base_price == "vwap":
+            base_price = pd.Series()
+            volume = pd.Series()
+            for inner_indicator in inner_indicators:
+                base_price = base_price.add(inner_indicator["base_price"] * inner_indicator["volume"], fill_value=0)
+                volume = volume.add(inner_indicator["volume"], fill_value=0)
+            base_price /= volume
+            self["base_price"] = base_price
+            self["volume"] = volume
+        else:
+            raise ValueError(f"base_price {base_price} is not supported!")
+
+        self["pa"] = (self["trade_price"] - self["base_price"]) / self["base_price"]
+
+    def get_statistics_FFR(self, method="mean"):
+        if method == "mean":
+            return self["fulfill_rate"].mean()
+        elif method == "amount_weighted":
+            weights = self["deal_amount"].abs()
+            return (self["fulfill_rate"] * weights).sum() / weights.sum()
+        elif method == "value_weighted":
+            weights = (self["deal_amount"] * self["trade_price"]).abs()
+            return (self["fulfill_rate"] * weights).sum() / weights.sum()
+        else:
+            raise ValueError(f"method {method} is not supported!")
+
+    def get_statistics_PA(self, method="mean"):
+        pa_order = self["pa"] * (self["amount"] < 0).astype(int)
+
+        if method == "mean":
+            return pa_order.mean()
+        elif method == "amount_weighted":
+            weights = self["deal_amount"].abs()
+            return (pa_order * weights).sum() / weights.sum()
+        elif method == "value_weighted":
+            weights = (self["deal_amount"] * self["trade_price"]).abs()
+            return (pa_order * weights).sum() / weights.sum()
+        else:
+            raise ValueError(f"method {method} is not supported!")
+
+    def get_statistics_POS(self):
+        pa_order = self["pa"] * (self["amount"] < 0).astype(int)
+        return (pa_order > 1e-8).astype(int).sum() / len(pa_order)

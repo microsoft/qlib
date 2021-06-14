@@ -7,7 +7,7 @@ import warnings
 import pandas as pd
 
 from .position import Position
-from .report import Report
+from .report import Report, Indicator
 from .order import Order
 
 
@@ -42,6 +42,7 @@ class Account:
 
     def reset_report(self, freq, benchmark_config):
         self.report = Report(freq, benchmark_config)
+        self.indicator = Indicator()
         self.positions = {}
         self.rtn = 0
         self.ct = 0

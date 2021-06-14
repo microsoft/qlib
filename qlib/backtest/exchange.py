@@ -342,7 +342,10 @@ class Exchange:
                 return -deal_amount
 
     def generate_order_for_target_amount_position(self, target_position, current_position, start_time, end_time):
-        """Parameter:
+        """
+        Note: some future information is used in this function
+
+        Parameter:
         target_position : dict { stock_id : amount }
         current_postion : dict { stock_id : amount}
         trade_unit : trade_unit

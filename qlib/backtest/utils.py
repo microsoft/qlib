@@ -74,7 +74,12 @@ class TradeCalendarManager:
 
     def get_step_time(self, trade_step=0, shift=0):
         """
-        Get the time range of trading step
+        Get the left and right endpoints of the trade_step'th trading interval
+
+        About the endpoints:
+            - Qlib uses the closed interval in time-series data selection, which has the same performance as pandas.Series.loc
+            - The returned right endpoints should minus 1 seconds becasue of the closed interval representation in Qlib.
+            Note: Qlib supports up to minutely decision execution, so 1 seconds is less than any trading time interval.
 
         Parameters
         ----------
