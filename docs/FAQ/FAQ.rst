@@ -98,3 +98,30 @@ Also, feel free to post a new issue in our GitHub repository. We always check ea
         python setup.py build_ext --inplace
 
 - If the error occurs when importing ``qlib`` package with command ``python`` , users need to change the running directory to ensure that the script does not run in the project directory.
+
+4.qlib.data.cache.QlibCacheException: It sees the key(...) of the redis lock has existed in your redis db now.
+------------------------------------------------------------------------------------------------------------------------------------
+
+.. code-block:: python
+
+    An exception has been raised[QlibCacheException: It sees the key(lock:<path>:dataset-<string>-wlock) of the redis lock has existed in your redis db now.
+    You can use the following command to clear your redis keys and rerun your commands:
+    $ redis-cli
+    > select 1
+    > del "lock:<path>:dataset-<string>-wlock"
+    > quit
+    If the issue is not resolved, use "keys *" to find if multiple keys exist. If so, try using "flushall" to clear all the keys.
+    ].
+    
+- ``qlib.init`` adds the ``expression_cache`` and ``dataset_cache`` parameters: qlib.init(xxx, expression_cache=None, dataset_cache=None).
+
+Coding as follows,
+
+.. code-block:: python
+
+    qlib.init(provider_uri="xxx", region=REG_CN, expression_cache=None, dataset_cache=None)
+    instruments = ['SH600000']
+    fields = ['$close', '$volume', 'Ref($close, 1)', 'Mean($close, 3)', '$high-$low']
+    df = D.features(instruments, fields, start_time='2010-01-01', end_time='2013-01-31', freq='day').head()
+    
+For more details, please check `#235 <https://github.com/microsoft/qlib/issues/235>`_
