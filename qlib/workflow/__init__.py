@@ -525,14 +525,33 @@ class QlibRecorder:
         self.get_exp().get_recorder().set_tags(**kwargs)
 
 
+# error type for reinitialization when starting an experiment
+class RecorderInitializationError(Exception):
+    def __init__(self, message):
+        super(RecorderInitializationError, self).__init__(message)
+
+
+class RecorderWrapper(Wrapper):
+    """
+    Wrapper class for QlibRecorder, which detects whether users reinitialize qlib when already starting an experiment.
+    """
+
+    def register(self, provider):
+        if self._provider is not None:
+            raise RecorderInitializationError(
+                "Please don't reinitialize Qlib if QlibRecorder is already acivated. Otherwise, the experiment stored location will be modified."
+            )
+        self._provider = provider
+
+
 import sys
 
 if sys.version_info >= (3, 9):
     from typing import Annotated
 
-    QlibRecorderWrapper = Annotated[QlibRecorder, Wrapper]
+    QlibRecorderWrapper = Annotated[QlibRecorder, RecorderWrapper]
 else:
     QlibRecorderWrapper = QlibRecorder
 
 # global record
-R: QlibRecorderWrapper = Wrapper()
+R: QlibRecorderWrapper = RecorderWrapper()
