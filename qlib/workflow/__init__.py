@@ -7,6 +7,7 @@ from .expm import MLflowExpManager
 from .exp import Experiment
 from .recorder import Recorder
 from ..utils import Wrapper
+from ..utils.exceptions import RecorderInitializationError
 
 
 class QlibRecorder:
@@ -523,12 +524,6 @@ class QlibRecorder:
             name1=value1, name2=value2, ...
         """
         self.get_exp().get_recorder().set_tags(**kwargs)
-
-
-# error type for reinitialization when starting an experiment
-class RecorderInitializationError(Exception):
-    def __init__(self, message):
-        super(RecorderInitializationError, self).__init__(message)
 
 
 class RecorderWrapper(Wrapper):
