@@ -533,9 +533,11 @@ class RecorderWrapper(Wrapper):
 
     def register(self, provider):
         if self._provider is not None:
-            raise RecorderInitializationError(
-                "Please don't reinitialize Qlib if QlibRecorder is already acivated. Otherwise, the experiment stored location will be modified."
-            )
+            expm = getattr(self._provider, "exp_manager")
+            if expm.active_experiment is not None:
+                raise RecorderInitializationError(
+                    "Please don't reinitialize Qlib if QlibRecorder is already acivated. Otherwise, the experiment stored location will be modified."
+                )
         self._provider = provider
 
 
