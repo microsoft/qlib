@@ -6,7 +6,7 @@ OnlineManager can manage a set of `Online Strategy <#Online Strategy>`_ and run 
 
 With the change of time, the decisive models will be also changed. In this module, we call those contributing models `online` models.
 In every routine(such as every day or every minute), the `online` models may be changed and the prediction of them needs to be updated.
-So this module provides a series of methods to control this process. 
+So this module provides a series of methods to control this process.
 
 This module also provides a method to simulate `Online Strategy <#Online Strategy>`_ in history.
 Which means you can verify your strategy or find a better one.
@@ -31,7 +31,7 @@ Simulation + Trainer       When your models have some temporal dependence on the
 
 Simulation + DelayTrainer  When your models don't have any temporal dependence, you can use DelayTrainer
                            for the ability to multitasking. It means all tasks in all routines
-                           can be REAL trained at the end of simulating. The signals will be prepared well at 
+                           can be REAL trained at the end of simulating. The signals will be prepared well at
                            different time segments (based on whether or not any new model is online).
 =========================  ===================================================================================
 """
@@ -113,6 +113,8 @@ class OnlineManager(Serializable):
             models = self.trainer.train(tasks, experiment_name=strategy.name_id)
             models_list.append(models)
             self.logger.info(f"Finished training {len(models)} models.")
+            # FIXME: Traing multiple online models at `first_train` will result in getting too much online models at the
+            # start.
             online_models = strategy.prepare_online_models(models, **model_kwargs)
             self.history.setdefault(self.cur_time, {})[strategy] = online_models
 
@@ -148,8 +150,6 @@ class OnlineManager(Serializable):
         models_list = []
         for strategy in self.strategies:
             self.logger.info(f"Strategy `{strategy.name_id}` begins routine...")
-            if self.status == self.STATUS_NORMAL:
-                strategy.tool.update_online_pred()
 
             tasks = strategy.prepare_tasks(self.cur_time, **task_kwargs)
             models = self.trainer.train(tasks, experiment_name=strategy.name_id)
@@ -157,6 +157,11 @@ class OnlineManager(Serializable):
             self.logger.info(f"Finished training {len(models)} models.")
             online_models = strategy.prepare_online_models(models, **model_kwargs)
             self.history.setdefault(self.cur_time, {})[strategy] = online_models
+
+            # The online model may changes in the above processes
+            # So updating the predictions of online models should be the last step
+            if self.status == self.STATUS_NORMAL:
+                strategy.tool.update_online_pred()
 
         if not self.status == self.STATUS_SIMULATING or not self.trainer.is_delay():
             for strategy, models in zip(self.strategies, models_list):
@@ -236,7 +241,7 @@ class OnlineManager(Serializable):
     SIM_LOG_NAME = "SIMULATE_INFO"
 
     def simulate(
-        self, end_time, frequency="day", task_kwargs={}, model_kwargs={}, signal_kwargs={}
+        self, end_time=None, frequency="day", task_kwargs={}, model_kwargs={}, signal_kwargs={}
     ) -> Union[pd.Series, pd.DataFrame]:
         """
         Starting from the current time, this method will simulate every routine in OnlineManager until the end time.

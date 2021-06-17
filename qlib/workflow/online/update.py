@@ -136,7 +136,7 @@ class PredUpdater(RecordUpdater):
         # https://github.com/pytorch/pytorch/issues/16797
 
         start_time = get_date_by_shift(self.last_end, 1, freq=self.freq)
-        if start_time >= self.to_date:
+        if start_time > self.to_date:
             self.logger.info(
                 f"The prediction in {self.record.info['id']} are latest ({start_time}). No need to update to {self.to_date}."
             )

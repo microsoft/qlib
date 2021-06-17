@@ -216,9 +216,9 @@ class QlibRecorder:
         -------
         A dictionary (id -> recorder) of recorder information that being stored.
         """
-        return self.get_exp(experiment_id, experiment_name).list_recorders()
+        return self.get_exp(experiment_id=experiment_id, experiment_name=experiment_name).list_recorders()
 
-    def get_exp(self, experiment_id=None, experiment_name=None, create: bool = True) -> Experiment:
+    def get_exp(self, *, experiment_id=None, experiment_name=None, create: bool = True) -> Experiment:
         """
         Method for retrieving an experiment with given id or name. Once the `create` argument is set to
         True, if no valid experiment is found, this method will create one for you. Otherwise, it will
@@ -263,7 +263,7 @@ class QlibRecorder:
 
             # Case 2
             with R.start('test'):
-                exp = R.get_exp('test1')
+                exp = R.get_exp(experiment_name='test1')
 
             # Case 3
             exp = R.get_exp() -> a default experiment.
@@ -288,7 +288,9 @@ class QlibRecorder:
         -------
         An experiment instance with given id or name.
         """
-        return self.exp_manager.get_exp(experiment_id, experiment_name, create, start=False)
+        return self.exp_manager.get_exp(
+            experiment_id=experiment_id, experiment_name=experiment_name, create=create, start=False
+        )
 
     def delete_exp(self, experiment_id=None, experiment_name=None):
         """
@@ -332,7 +334,9 @@ class QlibRecorder:
         """
         self.exp_manager.set_uri(uri)
 
-    def get_recorder(self, recorder_id=None, recorder_name=None, experiment_name=None) -> Recorder:
+    def get_recorder(
+        self, *, recorder_id=None, recorder_name=None, experiment_id=None, experiment_name=None
+    ) -> Recorder:
         """
         Method for retrieving a recorder.
 
@@ -385,7 +389,7 @@ class QlibRecorder:
         -------
         A recorder instance.
         """
-        return self.get_exp(experiment_name=experiment_name, create=False).get_recorder(
+        return self.get_exp(experiment_name=experiment_name, experiment_id=experiment_id, create=False).get_recorder(
             recorder_id, recorder_name, create=False, start=False
         )
 
