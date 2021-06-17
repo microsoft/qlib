@@ -9,7 +9,7 @@ import datetime
 import importlib
 from abc import ABC
 from pathlib import Path
-from typing import Iterable, Type
+from typing import Iterable
 
 import fire
 import requests
@@ -18,11 +18,15 @@ import pandas as pd
 from loguru import logger
 from yahooquery import Ticker
 from dateutil.tz import tzlocal
-from qlib.utils import code_to_fname, fname_to_code
+
+from qlib.tests.data import GetData
+from qlib.utils import code_to_fname, fname_to_code, exists_qlib_data
 from qlib.config import REG_CN as REGION_CN
 
 CUR_DIR = Path(__file__).resolve().parent
 sys.path.append(str(CUR_DIR.parent.parent))
+
+from dump_bin import DumpDataUpdate
 from data_collector.base import BaseCollector, BaseNormalize, BaseRun, Normalize
 from data_collector.utils import (
     deco_retry,
@@ -153,7 +157,10 @@ class YahooCollector(BaseCollector):
 
         _result = None
         if interval == self.INTERVAL_1d:
-            _result = _get_simple(start_datetime, end_datetime)
+            try:
+                _result = _get_simple(start_datetime, end_datetime)
+            except ValueError as e:
+                pass
         elif interval == self.INTERVAL_1min:
             _res = []
             _start = self.start_datetime
@@ -184,7 +191,7 @@ class YahooCollector(BaseCollector):
 
 class YahooCollectorCN(YahooCollector, ABC):
     def get_instrument_list(self):
-        logger.info("get HS stock symbos......")
+        logger.info("get HS stock symbols......")
         symbols = get_hs_stock_symbols()
         logger.info(f"get {len(symbols)} symbols.")
         return symbols
@@ -233,9 +240,9 @@ class YahooCollectorCN1d(YahooCollectorCN):
 
 
 class YahooCollectorCN1min(YahooCollectorCN):
-    def download_index_data(self):
-        # TODO: 1m
-        logger.warning(f"{self.__class__.__name__} {self.interval} does not support: download_index_data")
+    def get_instrument_list(self):
+        symbols = super(YahooCollectorCN1min, self).get_instrument_list()
+        return symbols + ["000300.ss", "000905.ss", "00903.ss"]
 
 
 class YahooCollectorUS(YahooCollector, ABC):
@@ -450,10 +457,12 @@ class YahooNormalize1dExtend(YahooNormalize1d):
             _max_date = df.index.max()
             df = df.reindex(self._calendar_list).loc[:_max_date].reset_index()
             df = df[df[self._date_field_name] > _last_date]
+            if df.empty:
+                return pd.DataFrame()
             _si = df["close"].first_valid_index()
             if _si > df.index[0]:
                 logger.warning(
-                    f"{df.iloc[0][self._symbol_field_name]} missing data: {df.loc[:_si][self._date_field_name]}"
+                    f"{df.loc[_si][self._symbol_field_name]} missing data: {df.loc[:_si-1][self._date_field_name].to_list()}"
                 )
         # normalize
         df = self.normalize_yahoo(
@@ -661,7 +670,7 @@ class YahooNormalizeCN1min(YahooNormalizeCN, YahooNormalize1min):
 
     def symbol_to_yahoo(self, symbol):
         if "." not in symbol:
-            _exchange = symbol[:2]
+            _exchange = symbol[:2].lower()
             _exchange = "ss" if _exchange == "sh" else _exchange
             symbol = symbol[2:] + "." + _exchange
         return symbol
@@ -864,7 +873,7 @@ class Run(BaseRun):
         yc.normalize()
 
     def normalize_data_1min_cn_offline(
-        self, qlib_data_1d_dir, date_field_name: str = "date", symbol_field_name: str = "symbol"
+        self, qlib_data_1d_dir: str, date_field_name: str = "date", symbol_field_name: str = "symbol"
     ):
         """Normalised to 1min using local 1d data
 
@@ -941,6 +950,72 @@ class Run(BaseRun):
             check_data_length,
             limit_nums,
         )
+
+    def update_data_to_bin(self, qlib_data_1d_dir: str, trading_date: str = None, end_date: str = None):
+        """update yahoo data to bin
+
+        Parameters
+        ----------
+        qlib_data_1d_dir: str
+            the qlib data to be updated for yahoo, usually from: https://github.com/microsoft/qlib/tree/main/scripts#download-cn-data
+
+        trading_date: str
+            trading days to be updated, by default ``datetime.datetime.now().strftime("%Y-%m-%d")``
+        end_date: str
+            end datetime, default ``pd.Timestamp(trading_date + pd.Timedelta(days=1))``; open interval(excluding end)
+
+        Notes
+        -----
+            If the data in qlib_data_dir is incomplete, np.nan will be populated to trading_date for the previous trading day
+
+        Examples
+        -------
+            $ python collector.py update_data_to_bin --qlib_data_1d_dir <user data dir> --trading_date <start date> --end_date <end date>
+            # get 1m data
+        """
+
+        if self.interval.lower() != "1d":
+            logger.warning(f"currently supports 1d data updates: --interval 1d")
+
+        # start/end date
+        if trading_date is None:
+            trading_date = datetime.datetime.now().strftime("%Y-%m-%d")
+            logger.warning(f"trading_date is None, use the current date: {trading_date}")
+
+        if end_date is None:
+            end_date = (pd.Timestamp(trading_date) + pd.Timedelta(days=1)).strftime("%Y-%m-%d")
+
+        # download qlib 1d data
+        qlib_data_1d_dir = Path(qlib_data_1d_dir).expanduser().resolve()
+        if not exists_qlib_data(qlib_data_1d_dir):
+            GetData().qlib_data(target_dir=qlib_data_1d_dir, interval=self.interval, region=self.region)
+
+        # download data from yahoo
+        self.download_data(delay=1, start=trading_date, end=end_date, check_data_length=1)
+
+        # normalize data
+        self.normalize_data_1d_extend(str(qlib_data_1d_dir))
+
+        # dump bin
+        _dump = DumpDataUpdate(
+            csv_path=self.normalize_dir,
+            qlib_dir=qlib_data_1d_dir,
+            exclude_fields="symbol,date",
+            max_workers=self.max_workers,
+        )
+        _dump.dump()
+
+        # parse index
+        _region = self.region.lower()
+        if _region not in ["cn", "us"]:
+            logger.warning(f"Unsupported region: region={_region}, component downloads will be ignored")
+            return
+        index_list = ["CSI100", "CSI300"] if _region == "cn" else ["SP500", "NASDAQ100", "DJIA", "SP400"]
+        get_instruments = getattr(
+            importlib.import_module(f"data_collector.{_region}_index.collector"), "get_instruments"
+        )
+        for _index in index_list:
+            get_instruments(str(qlib_data_1d_dir), _index)
 
 
 if __name__ == "__main__":
