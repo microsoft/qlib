@@ -7,22 +7,17 @@ from __future__ import print_function
 import os
 import numpy as np
 import pandas as pd
+from typing import Text, Union
 import copy
-from sklearn.metrics import roc_auc_score, mean_squared_error
-import logging
-from ...utils import (
-    unpack_archive_with_buffer,
-    save_multiple_parts_file,
-    create_save_path,
-    drop_nan_by_y_index,
-)
-from ...log import get_module_logger, TimeInspector
+from ...utils import get_or_create_path
+from ...log import get_module_logger
 
 import torch
 import torch.nn as nn
 import torch.nn.init as init
 import torch.optim as optim
 
+from .pytorch_utils import count_parameters
 from ...model.base import Model
 from ...data.dataset import DatasetH
 from ...data.dataset.handler import DataHandlerLP
@@ -196,8 +191,8 @@ class SFM(Model):
         learning rate
     optimizer : str
         optimizer name
-    GPU : str
-        the GPU ID(s) used for training
+    GPU : int
+        the GPU ID used for training
     """
 
     def __init__(
@@ -216,7 +211,7 @@ class SFM(Model):
         eval_steps=5,
         loss="mse",
         optimizer="gd",
-        GPU="0",
+        GPU=0,
         seed=None,
         **kwargs
     ):
@@ -239,8 +234,7 @@ class SFM(Model):
         self.eval_steps = eval_steps
         self.optimizer = optimizer.lower()
         self.loss = loss
-        self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() else "cpu")
-        self.use_gpu = torch.cuda.is_available()
+        self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
         self.seed = seed
 
         self.logger.info(
@@ -259,7 +253,7 @@ class SFM(Model):
             "\neval_steps : {}"
             "\noptimizer : {}"
             "\nloss_type : {}"
-            "\nvisible_GPU : {}"
+            "\ndevice : {}"
             "\nuse_GPU : {}"
             "\nseed : {}".format(
                 d_feat,
@@ -276,7 +270,7 @@ class SFM(Model):
                 eval_steps,
                 optimizer.lower(),
                 loss,
-                GPU,
+                self.device,
                 self.use_gpu,
                 seed,
             )
@@ -295,6 +289,9 @@ class SFM(Model):
             dropout_U=self.dropout_U,
             device=self.device,
         )
+        self.logger.info("model:\n{:}".format(self.sfm_model))
+        self.logger.info("model size: {:.4f} MB".format(count_parameters(self.sfm_model)))
+
         if optimizer.lower() == "adam":
             self.train_optimizer = optim.Adam(self.sfm_model.parameters(), lr=self.lr)
         elif optimizer.lower() == "gd":
@@ -304,6 +301,10 @@ class SFM(Model):
 
         self.fitted = False
         self.sfm_model.to(self.device)
+
+    @property
+    def use_gpu(self):
+        return self.device != torch.device("cpu")
 
     def test_epoch(self, data_x, data_y):
 
@@ -365,7 +366,6 @@ class SFM(Model):
         self,
         dataset: DatasetH,
         evals_result=dict(),
-        verbose=True,
         save_path=None,
     ):
 
@@ -377,6 +377,7 @@ class SFM(Model):
         x_train, y_train = df_train["feature"], df_train["label"]
         x_valid, y_valid = df_valid["feature"], df_valid["label"]
 
+        save_path = get_or_create_path(save_path)
         stop_steps = 0
         train_loss = 0
         best_score = -np.inf
@@ -409,7 +410,10 @@ class SFM(Model):
                 if stop_steps >= self.early_stop:
                     self.logger.info("early stop")
                     break
+
         self.logger.info("best score: %.6lf @ %d" % (best_score, best_epoch))
+        self.sfm_model.load_state_dict(best_param)
+        torch.save(best_param, save_path)
         if self.device != "cpu":
             torch.cuda.empty_cache()
 
@@ -434,11 +438,11 @@ class SFM(Model):
 
         raise ValueError("unknown metric `%s`" % self.metric)
 
-    def predict(self, dataset):
+    def predict(self, dataset: DatasetH, segment: Union[Text, slice] = "test"):
         if not self.fitted:
             raise ValueError("model is not fitted yet!")
 
-        x_test = dataset.prepare("test", col_set="feature")
+        x_test = dataset.prepare(segment, col_set="feature", data_key=DataHandlerLP.DK_I)
         index = x_test.index
         self.sfm_model.eval()
         x_values = x_test.values
@@ -451,10 +455,7 @@ class SFM(Model):
             else:
                 end = begin + self.batch_size
 
-            x_batch = torch.from_numpy(x_values[begin:end]).float()
-
-            if self.device != "cpu":
-                x_batch = x_batch.to(self.device)
+            x_batch = torch.from_numpy(x_values[begin:end]).float().to(self.device)
 
             with torch.no_grad():
                 pred = self.sfm_model(x_batch).detach().cpu().numpy()

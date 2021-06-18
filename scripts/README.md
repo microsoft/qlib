@@ -15,10 +15,14 @@
 ### Download CN Data
 
 ```bash
+# daily data
 python get_data.py qlib_data --target_dir ~/.qlib/qlib_data/cn_data --region cn
+
+# 1min  data (Optional for running non-high-frequency strategies)
+python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/qlib_cn_1min --region cn --interval 1min
 ```
 
-### Downlaod US Data
+### Download US Data
 
 
 ```bash

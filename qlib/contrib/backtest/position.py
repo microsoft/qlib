@@ -1,10 +1,10 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-
-import pandas as pd
 import copy
 import pathlib
+import pandas as pd
+import numpy as np
 from .order import Order
 
 """
@@ -128,7 +128,7 @@ class Position:
         return self.position["cash"]
 
     def get_stock_amount_dict(self):
-        """generate stock amount dict {stock_id : amount of stock} """
+        """generate stock amount dict {stock_id : amount of stock}"""
         d = {}
         stock_list = self.get_stock_list()
         for stock_code in stock_list:
@@ -166,7 +166,7 @@ class Position:
     def save_position(self, path, last_trade_date):
         path = pathlib.Path(path)
         p = copy.deepcopy(self.position)
-        cash = pd.Series(dtype=np.float)
+        cash = pd.Series(dtype=float)
         cash["init_cash"] = self.init_cash
         cash["cash"] = p["cash"]
         cash["today_account_value"] = p["today_account_value"]

@@ -121,7 +121,7 @@ df = D.features(D.instruments("all"), ["$close"], freq="day")
 
 ### Help
 ```bash
-pythono collector.py collector_data --help
+python collector.py collector_data --help
 ```
 
 ## Parameters

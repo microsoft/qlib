@@ -4,14 +4,15 @@
 import lightgbm as lgb
 import numpy as np
 import pandas as pd
-
+from typing import Text, Union
 from ...model.base import Model
 from ...data.dataset import DatasetH
 from ...data.dataset.handler import DataHandlerLP
+from ...model.interpret.base import FeatureInt
 from ...log import get_module_logger
 
 
-class DEnsembleModel(Model):
+class DEnsembleModel(Model, FeatureInt):
     """Double Ensemble Model"""
 
     def __init__(
@@ -40,6 +41,10 @@ class DEnsembleModel(Model):
         self.bins_sr = bins_sr
         self.bins_fs = bins_fs
         self.decay = decay
+        if sample_ratios is None:  # the default values for sample_ratios
+            sample_ratios = [0.8, 0.7, 0.6, 0.5, 0.4]
+        if sub_weights is None:  # the default values for sub_weights
+            sub_weights = [1.0, 0.2, 0.2, 0.2, 0.2, 0.2]
         if not len(sample_ratios) == bins_fs:
             raise ValueError("The length of sample_ratios should be equal to bins_fs.")
         self.sample_ratios = sample_ratios
@@ -117,8 +122,8 @@ class DEnsembleModel(Model):
         else:
             raise ValueError("LightGBM doesn't support multi-label training")
 
-        dtrain = lgb.Dataset(x_train.values, label=y_train, weight=weights)
-        dvalid = lgb.Dataset(x_valid.values, label=y_valid)
+        dtrain = lgb.Dataset(x_train, label=y_train, weight=weights)
+        dvalid = lgb.Dataset(x_valid, label=y_valid)
         return dtrain, dvalid
 
     def sample_reweight(self, loss_curve, loss_values, k_th):
@@ -184,7 +189,7 @@ class DEnsembleModel(Model):
                     / M
                 )
             loss_feat = self.get_loss(y_train.values.squeeze(), pred.values)
-            g.loc[i_f, "g_value"] = np.mean(loss_feat - loss_values) / np.std(loss_feat - loss_values)
+            g.loc[i_f, "g_value"] = np.mean(loss_feat - loss_values) / (np.std(loss_feat - loss_values) + 1e-7)
             x_train_tmp.loc[:, feat] = x_train.loc[:, feat].copy()
 
         # one column in train features is all-nan # if g['g_value'].isna().any()
@@ -199,8 +204,8 @@ class DEnsembleModel(Model):
         for i_b, b in enumerate(sorted_bins):
             b_feat = features[g["bins"] == b]
             num_feat = int(np.ceil(self.sample_ratios[i_b] * len(b_feat)))
-            res_feat = res_feat + np.random.choice(b_feat, size=num_feat).tolist()
-        return pd.Index(res_feat)
+            res_feat = res_feat + np.random.choice(b_feat, size=num_feat, replace=False).tolist()
+        return pd.Index(set(res_feat))
 
     def get_loss(self, label, pred):
         if self.loss == "mse":
@@ -228,10 +233,10 @@ class DEnsembleModel(Model):
             raise ValueError("not implemented yet")
         return loss_curve
 
-    def predict(self, dataset):
+    def predict(self, dataset: DatasetH, segment: Union[Text, slice] = "test"):
         if self.ensemble is None:
             raise ValueError("model is not fitted yet!")
-        x_test = dataset.prepare("test", col_set="feature", data_key=DataHandlerLP.DK_I)
+        x_test = dataset.prepare(segment, col_set="feature", data_key=DataHandlerLP.DK_I)
         pred = pd.Series(np.zeros(x_test.shape[0]), index=x_test.index)
         for i_sub, submodel in enumerate(self.ensemble):
             feat_sub = self.sub_features[i_sub]
@@ -245,3 +250,16 @@ class DEnsembleModel(Model):
         x_data, y_data = df_data["feature"].loc[:, features], df_data["label"]
         pred_sub = pd.Series(submodel.predict(x_data.values), index=x_data.index)
         return pred_sub
+
+    def get_feature_importance(self, *args, **kwargs) -> pd.Series:
+        """get feature importance
+
+        Notes
+        -----
+            parameters reference:
+            https://lightgbm.readthedocs.io/en/latest/pythonapi/lightgbm.Booster.html?highlight=feature_importance#lightgbm.Booster.feature_importance
+        """
+        res = []
+        for _model, _weight in zip(self.ensemble, self.sub_weights):
+            res.append(pd.Series(_model.feature_importance(*args, **kwargs), index=_model.feature_name()) * _weight)
+        return pd.concat(res, axis=1, sort=False).sum(axis=1).sort_values(ascending=False)

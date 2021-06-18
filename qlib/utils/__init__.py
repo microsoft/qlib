@@ -6,7 +6,9 @@ from __future__ import division
 from __future__ import print_function
 
 import os
+import pickle
 import re
+import sys
 import copy
 import json
 import yaml
@@ -24,7 +26,9 @@ import collections
 import numpy as np
 import pandas as pd
 from pathlib import Path
-from typing import Union, Tuple
+from typing import Union, Tuple, Any, Text, Optional
+from types import ModuleType
+from urllib.parse import urlparse
 
 from ..config import C
 from ..log import get_module_logger, set_log_with_config
@@ -165,24 +169,27 @@ def parse_field(field):
     return re.sub(r"\$(\w+)", r'Feature("\1")', re.sub(r"(\w+\s*)\(", r"Operators.\1(", field))
 
 
-def get_module_by_module_path(module_path):
+def get_module_by_module_path(module_path: Union[str, ModuleType]):
     """Load module path
 
     :param module_path:
     :return:
     """
-
-    if module_path.endswith(".py"):
-        module_spec = importlib.util.spec_from_file_location("", module_path)
-        module = importlib.util.module_from_spec(module_spec)
-        module_spec.loader.exec_module(module)
+    if isinstance(module_path, ModuleType):
+        module = module_path
     else:
-        module = importlib.import_module(module_path)
-
+        if module_path.endswith(".py"):
+            module_name = re.sub("^[^a-zA-Z_]+", "", re.sub("[^0-9a-zA-Z_]", "", module_path[:-3].replace("/", "_")))
+            module_spec = importlib.util.spec_from_file_location(module_name, module_path)
+            module = importlib.util.module_from_spec(module_spec)
+            sys.modules[module_name] = module
+            module_spec.loader.exec_module(module)
+        else:
+            module = importlib.import_module(module_path)
     return module
 
 
-def get_cls_kwargs(config: Union[dict, str], module) -> (type, dict):
+def get_cls_kwargs(config: Union[dict, str], default_module: Union[str, ModuleType] = None) -> (type, dict):
     """
     extract class and kwargs from config info
 
@@ -191,8 +198,10 @@ def get_cls_kwargs(config: Union[dict, str], module) -> (type, dict):
     config : [dict, str]
         similar to config
 
-    module : Python module
+    default_module : Python module or str
         It should be a python module to load the class type
+        This function will load class from the config['module_path'] first.
+        If config['module_path'] doesn't exists, it will load the class from default_module.
 
     Returns
     -------
@@ -200,10 +209,14 @@ def get_cls_kwargs(config: Union[dict, str], module) -> (type, dict):
         the class object and it's arguments.
     """
     if isinstance(config, dict):
+        module = get_module_by_module_path(config.get("module_path", default_module))
+
         # raise AttributeError
         klass = getattr(module, config["class"])
         kwargs = config.get("kwargs", {})
     elif isinstance(config, str):
+        module = get_module_by_module_path(default_module)
+
         klass = getattr(module, config)
         kwargs = {}
     else:
@@ -212,8 +225,8 @@ def get_cls_kwargs(config: Union[dict, str], module) -> (type, dict):
 
 
 def init_instance_by_config(
-    config: Union[str, dict, object], module=None, accept_types: Union[type, Tuple[type]] = tuple([]), **kwargs
-) -> object:
+    config: Union[str, dict, object], default_module=None, accept_types: Union[type, Tuple[type]] = (), **kwargs
+) -> Any:
     """
     get initialized instance with config
 
@@ -227,12 +240,18 @@ def init_instance_by_config(
                 'model_path': path, # It is optional if module is given
             }
         str example.
-            "ClassName":  getattr(module, config)() will be used.
+            1) specify a pickle object
+                - path like 'file:///<path to pickle file>/obj.pkl'
+            2) specify a class name
+                - "ClassName":  getattr(module, config)() will be used.
         object example:
             instance of accept_types
-    module : Python module
+    default_module : Python module
         Optional. It should be a python module.
         NOTE: the "module_path" will be override by `module` arguments
+
+        This function will load class from the config['module_path'] first.
+        If config['module_path'] doesn't exists, it will load the class from default_module.
 
     accept_types: Union[type, Tuple[type]]
         Optional. If the config is a instance of specific type, return the config directly.
@@ -246,10 +265,14 @@ def init_instance_by_config(
     if isinstance(config, accept_types):
         return config
 
-    if module is None:
-        module = get_module_by_module_path(config["module_path"])
+    if isinstance(config, str):
+        # path like 'file:///<path to pickle file>/obj.pkl'
+        pr = urlparse(config)
+        if pr.scheme == "file":
+            with open(os.path.join(pr.netloc, pr.path), "rb") as f:
+                return pickle.load(f)
 
-    klass, cls_kwargs = get_cls_kwargs(config, module)
+    klass, cls_kwargs = get_cls_kwargs(config, default_module=default_module)
     return klass(**cls_kwargs, **kwargs)
 
 
@@ -276,23 +299,31 @@ def compare_dict_value(src_data: dict, dst_data: dict):
     return changes
 
 
-def create_save_path(save_path=None):
-    """Create save path
+def get_or_create_path(path: Optional[Text] = None, return_dir: bool = False):
+    """Create or get a file or directory given the path and return_dir.
 
     Parameters
     ----------
-    save_path: str
+    path: a string indicates the path or None indicates creating a temporary path.
+    return_dir: if True, create and return a directory; otherwise c&r a file.
 
     """
-    if save_path:
-        if not os.path.exists(save_path):
-            os.makedirs(save_path)
+    if path:
+        if return_dir and not os.path.exists(path):
+            os.makedirs(path)
+        elif not return_dir:  # return a file, thus we need to create its parent directory
+            xpath = os.path.abspath(os.path.join(path, ".."))
+            if not os.path.exists(xpath):
+                os.makedirs(xpath)
     else:
         temp_dir = os.path.expanduser("~/tmp")
         if not os.path.exists(temp_dir):
             os.makedirs(temp_dir)
-        _, save_path = tempfile.mkstemp(dir=temp_dir)
-    return save_path
+        if return_dir:
+            _, path = tempfile.mkdtemp(dir=temp_dir)
+        else:
+            _, path = tempfile.mkstemp(dir=temp_dir)
+    return path
 
 
 @contextlib.contextmanager
@@ -494,7 +525,7 @@ def get_date_range(trading_date, left_shift=0, right_shift=0, future=False):
     return calendar
 
 
-def get_date_by_shift(trading_date, shift, future=False, clip_shift=True):
+def get_date_by_shift(trading_date, shift, future=False, clip_shift=True, freq="day"):
     """get trading date with shift bias wil cur_date
         e.g. : shift == 1,  return next trading date
                shift == -1, return previous trading date
@@ -507,7 +538,7 @@ def get_date_by_shift(trading_date, shift, future=False, clip_shift=True):
     """
     from qlib.data import D
 
-    cal = D.calendar(future=future)
+    cal = D.calendar(future=future, freq=freq)
     if pd.to_datetime(trading_date) not in list(cal):
         raise ValueError("{} is not trading day!".format(str(trading_date)))
     _index = bisect.bisect_left(cal, trading_date)
@@ -611,6 +642,28 @@ def split_pred(pred, number=None, split_date=None):
     return pred_left, pred_right
 
 
+def time_to_slc_point(t: Union[None, str, pd.Timestamp]) -> Union[None, pd.Timestamp]:
+    """
+    Time slicing in Qlib or Pandas is a frequently-used action.
+    However, user often input all kinds of data format to represent time.
+    This function will help user to convert these inputs into a uniform format which is friendly to time slicing.
+
+    Parameters
+    ----------
+    t : Union[None, str, pd.Timestamp]
+        original time
+
+    Returns
+    -------
+    Union[None, pd.Timestamp]:
+    """
+    if t is None:
+        # None represents unbounded in Qlib or Pandas(e.g. df.loc[slice(None, "20210303")]).
+        return t
+    else:
+        return pd.Timestamp(t)
+
+
 def can_use_cache():
     res = True
     r = get_redis_connection()
@@ -637,7 +690,10 @@ def exists_qlib_data(qlib_dir):
             return False
     # check calendar bin
     for _calendar in calendars_dir.iterdir():
-        if not list(features_dir.rglob(f"*.{_calendar.name.split('.')[0]}.bin")):
+
+        if ("_future" not in _calendar.name) and (
+            not list(features_dir.rglob(f"*.{_calendar.name.split('.')[0]}.bin"))
+        ):
             return False
 
     # check instruments
@@ -688,23 +744,33 @@ def lazy_sort_index(df: pd.DataFrame, axis=0) -> pd.DataFrame:
         return df.sort_index(axis=axis)
 
 
-def flatten_dict(d, parent_key="", sep="."):
-    """flatten_dict.
+FLATTEN_TUPLE = "_FLATTEN_TUPLE"
+
+
+def flatten_dict(d, parent_key="", sep=".") -> dict:
+    """
+    Flatten a nested dict.
+
         >>> flatten_dict({'a': 1, 'c': {'a': 2, 'b': {'x': 5, 'y' : 10}}, 'd': [1, 2, 3]})
         >>> {'a': 1, 'c.a': 2, 'c.b.x': 5, 'd': [1, 2, 3], 'c.b.y': 10}
 
-    Parameters
-    ----------
-    d :
-        d
-    parent_key :
-        parent_key
-    sep :
-        sep
+        >>> flatten_dict({'a': 1, 'c': {'a': 2, 'b': {'x': 5, 'y' : 10}}, 'd': [1, 2, 3]}, sep=FLATTEN_TUPLE)
+        >>> {'a': 1, ('c','a'): 2, ('c','b','x'): 5, 'd': [1, 2, 3], ('c','b','y'): 10}
+
+    Args:
+        d (dict): the dict waiting for flatting
+        parent_key (str, optional): the parent key, will be a prefix in new key. Defaults to "".
+        sep (str, optional): the separator for string connecting. FLATTEN_TUPLE for tuple connecting.
+
+    Returns:
+        dict: flatten dict
     """
     items = []
     for k, v in d.items():
-        new_key = parent_key + sep + k if parent_key else k
+        if sep == FLATTEN_TUPLE:
+            new_key = (parent_key, k) if parent_key else k
+        else:
+            new_key = parent_key + sep + k if parent_key else k
         if isinstance(v, collections.abc.MutableMapping):
             items.extend(flatten_dict(v, new_key, sep=sep).items())
         else:

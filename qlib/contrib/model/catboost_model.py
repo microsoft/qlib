@@ -3,15 +3,17 @@
 
 import numpy as np
 import pandas as pd
+from typing import Text, Union
 from catboost import Pool, CatBoost
 from catboost.utils import get_gpu_device_count
 
 from ...model.base import Model
 from ...data.dataset import DatasetH
 from ...data.dataset.handler import DataHandlerLP
+from ...model.interpret.base import FeatureInt
 
 
-class CatBoostModel(Model):
+class CatBoostModel(Model, FeatureInt):
     """CatBoost Model"""
 
     def __init__(self, loss="RMSE", **kwargs):
@@ -62,11 +64,23 @@ class CatBoostModel(Model):
         evals_result["train"] = list(evals_result["learn"].values())[0]
         evals_result["valid"] = list(evals_result["validation"].values())[0]
 
-    def predict(self, dataset):
+    def predict(self, dataset: DatasetH, segment: Union[Text, slice] = "test"):
         if self.model is None:
             raise ValueError("model is not fitted yet!")
-        x_test = dataset.prepare("test", col_set="feature")
+        x_test = dataset.prepare(segment, col_set="feature", data_key=DataHandlerLP.DK_I)
         return pd.Series(self.model.predict(x_test.values), index=x_test.index)
+
+    def get_feature_importance(self, *args, **kwargs) -> pd.Series:
+        """get feature importance
+
+        Notes
+        -----
+            parameters references:
+            https://catboost.ai/docs/concepts/python-reference_catboost_get_feature_importance.html#python-reference_catboost_get_feature_importance
+        """
+        return pd.Series(
+            data=self.model.get_feature_importance(*args, **kwargs), index=self.model.feature_names_
+        ).sort_values(ascending=False)
 
 
 if __name__ == "__main__":

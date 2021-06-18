@@ -61,7 +61,7 @@ In addition to China-Stock data, ``Qlib`` also includes a US-Stock dataset, whic
 
     python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/us_data --region us
 
-After running the above command, users can find china-stock and us-stock data in ``Qlib`` format in the ``~/.qlib/csv_data/cn_data`` directory and ``~/.qlib/csv_data/us_data`` directory respectively.
+After running the above command, users can find china-stock and us-stock data in ``Qlib`` format in the ``~/.qlib/qlib_data/cn_data`` directory and ``~/.qlib/qlib_data/us_data`` directory respectively.
 
 ``Qlib`` also provides the scripts in ``scripts/data_collector`` to help users crawl the latest data on the Internet and convert it to qlib format.
 
@@ -72,11 +72,18 @@ Converting CSV Format into Qlib Format
 
 ``Qlib`` has provided the script ``scripts/dump_bin.py`` to convert **any** data in CSV format into `.bin` files (``Qlib`` format) as long as they are in the correct format.
 
-Users can download the demo china-stock data in CSV format as follows for reference to the CSV format.
+Besides downloading the prepared demo data, users could download demo data directly from the Collector as follows for reference to the CSV format.
+Here are some example:
 
-.. code-block:: bash
+for daily data:
+  .. code-block:: bash
 
     python scripts/get_data.py csv_data_cn --target_dir ~/.qlib/csv_data/cn_data
+
+for 1min data:
+  .. code-block:: bash
+
+    python scripts/data_collector/yahoo/collector.py download_data --source_dir ~/.qlib/stock_data/source/cn_1min --region CN --start 2021-05-20 --end 2021-05-23 --delay 0.1 --interval 1min --limit_nums 10
 
 Users can also provide their own data in CSV format. However, the CSV data **must satisfies** following criterions:
 
@@ -145,6 +152,16 @@ After conversion, users can find their Qlib format data in the directory `~/.qli
 
     In the convention of `Qlib` data processing, `open, close, high, low, volume, money and factor` will be set to NaN if the stock is suspended. 
 
+Stock Pool (Market)
+--------------------------------
+
+``Qlib`` defines `stock pool <https://github.com/microsoft/qlib/blob/main/examples/benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml#L4>`_ as stock list and their date ranges. Predefined stock pools (e.g. csi300) may be imported as follows.
+
+.. code-block:: bash
+
+    python collector.py --index_name CSI300 --qlib_dir <user qlib data dir> --method parse_instruments
+
+
 Multiple Stock Modes
 --------------------------------
 
@@ -163,7 +180,7 @@ The `trade unit` defines the unit number of stocks can be used in a trade, and t
 - If users use ``Qlib`` in china-stock mode, china-stock data is required. Users can use ``Qlib`` in china-stock mode according to the following steps:
     - Download china-stock in qlib format, please refer to section `Qlib Format Dataset <#qlib-format-dataset>`_.
     - Initialize ``Qlib`` in china-stock mode
-        Supposed that users download their Qlib format data in the directory ``~/.qlib/csv_data/cn_data``. Users only need to initialize ``Qlib`` as follows.
+        Supposed that users download their Qlib format data in the directory ``~/.qlib/qlib_data/cn_data``. Users only need to initialize ``Qlib`` as follows.
         
         .. code-block:: python
 
@@ -174,13 +191,18 @@ The `trade unit` defines the unit number of stocks can be used in a trade, and t
 - If users use ``Qlib`` in US-stock mode, US-stock data is required. ``Qlib`` also provides a script to download US-stock data. Users can use ``Qlib`` in US-stock mode according to the following steps:
     - Download us-stock in qlib format, please refer to section `Qlib Format Dataset <#qlib-format-dataset>`_.
     - Initialize ``Qlib`` in US-stock mode
-        Supposed that users prepare their Qlib format data in the directory ``~/.qlib/csv_data/us_data``. Users only need to initialize ``Qlib`` as follows.
+        Supposed that users prepare their Qlib format data in the directory ``~/.qlib/qlib_data/us_data``. Users only need to initialize ``Qlib`` as follows.
         
         .. code-block:: python
 
             from qlib.config import REG_US
             qlib.init(provider_uri='~/.qlib/qlib_data/us_data', region=REG_US)
         
+
+.. note::
+
+    PRs for new data source are highly welcome! Users could commit the code to crawl data as a PR like `the examples here  <https://github.com/microsoft/qlib/tree/main/scripts>`_. And then we will use the code to create data cache on our server which other users could use directly.
+
 
 Data API
 ========================
@@ -298,9 +320,10 @@ Here are some important interfaces that ``DataHandlerLP`` provides:
 .. autoclass:: qlib.data.dataset.handler.DataHandlerLP
     :members: __init__, fetch, get_cols
 
-If users want to load features and labels by config, users can inherit ``qlib.data.dataset.handler.ConfigDataHandler``, ``Qlib`` also provides some preprocess method in this subclass.
 
-If users want to use qlib data, `QLibDataHandler` is recommended. Users can inherit their custom class from `QLibDataHandler`, which is also a subclass of `ConfigDataHandler`.
+If users want to load features and labels by config, users can define a new handler and call the static method `parse_config_to_fields` of ``qlib.contrib.data.handler.Alpha158``.
+
+Also, users can pass ``qlib.contrib.data.processor.ConfigSectionProcessor`` that provides some preprocess methods for features defined by config into the new handler.
 
 
 Processor
@@ -337,7 +360,6 @@ Qlib provides implemented data handler `Alpha158`. The following example shows h
 
 .. note:: Users need to initialize ``Qlib`` with `qlib.init` first, please refer to `initialization <../start/initialization.html>`_.
 
-
 .. code-block:: Python
 
     import qlib
@@ -364,6 +386,9 @@ Qlib provides implemented data handler `Alpha158`. The following example shows h
         # fetch all the features
         print(h.fetch(col_set="feature"))
 
+
+.. note:: In the ``Alpha158``, ``Qlib`` uses the label `Ref($close, -2)/Ref($close, -1) - 1` that means the change from T+1 to T+2, rather than `Ref($close, -1)/$close - 1`, of which the reason is that when getting the T day close price of a china stock, the stock can be bought on T+1 day and sold on T+2 day.
+
 API
 ---------
 
@@ -388,8 +413,7 @@ The ``DatasetH`` class is the `dataset` with `Data Handler`. Here is the most im
 API
 ---------
 
-To know more about ``Dataset``, please refer to `Dataset API <../reference/api.html#module-qlib.data.dataset.__init__>`_.
-
+To know more about ``Dataset``, please refer to `Dataset API <../reference/api.html#dataset>`_.
 
 
 Cache

@@ -1,6 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 import abc
+from typing import Text, Union
 from ..utils.serial import Serializable
 from ..data.dataset import Dataset
 
@@ -10,11 +11,11 @@ class BaseModel(Serializable, metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def predict(self, *args, **kwargs) -> object:
-        """ Make predictions after modeling things """
+        """Make predictions after modeling things"""
         pass
 
     def __call__(self, *args, **kwargs) -> object:
-        """ leverage Python syntactic sugar to make the models' behaviors like functions """
+        """leverage Python syntactic sugar to make the models' behaviors like functions"""
         return self.predict(*args, **kwargs)
 
 
@@ -43,7 +44,8 @@ class Model(BaseModel):
 
                 # get weights
                 try:
-                    wdf_train, wdf_valid = dataset.prepare(["train", "valid"], col_set=["weight"], data_key=DataHandlerLP.DK_L)
+                    wdf_train, wdf_valid = dataset.prepare(["train", "valid"], col_set=["weight"],
+                                                           data_key=DataHandlerLP.DK_L)
                     w_train, w_valid = wdf_train["weight"], wdf_valid["weight"]
                 except KeyError as e:
                     w_train = pd.DataFrame(np.ones_like(y_train.values), index=y_train.index)
@@ -58,13 +60,16 @@ class Model(BaseModel):
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def predict(self, dataset: Dataset) -> object:
+    def predict(self, dataset: Dataset, segment: Union[Text, slice] = "test") -> object:
         """give prediction given Dataset
 
         Parameters
         ----------
         dataset : Dataset
             dataset will generate the processed dataset from model training.
+
+        segment : Text or slice
+            dataset will use this segment to prepare data. (default=test)
 
         Returns
         -------
@@ -92,7 +97,7 @@ class ModelFT(Model):
 
             # Finetune model based on previous trained model
             with R.start(experiment_name="finetune model"):
-                recorder = R.get_recorder(rid, experiment_name="init models")
+                recorder = R.get_recorder(recorder_id=rid, experiment_name="init models")
                 model = recorder.load_object("init_model")
                 model.finetune(dataset, num_boost_round=10)
 

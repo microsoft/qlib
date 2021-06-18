@@ -214,7 +214,7 @@ def cumulative_return_graph(
                 features_df = D.features(D.instruments('csi500'), ['Ref($close, -1)/$close - 1'], pred_df_dates.min(), pred_df_dates.max())
                 features_df.columns = ['label']
 
-                qcr.cumulative_return_graph(positions, report_normal_df, features_df)
+                qcr.analysis_position.cumulative_return_graph(positions, report_normal_df, features_df)
 
 
         Graph desc:

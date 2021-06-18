@@ -1045,9 +1045,6 @@ class SimpleDatasetCache(DatasetCache):
 class DatasetURICache(DatasetCache):
     """Prepared cache mechanism for server."""
 
-    def __init__(self, provider):
-        super(DatasetURICache, self).__init__(provider)
-
     def _uri(self, instruments, fields, start_time, end_time, freq, disk_cache=1, **kwargs):
         return hash_args(*self.normalize_uri_args(instruments, fields, freq), disk_cache)
 

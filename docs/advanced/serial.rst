@@ -14,6 +14,9 @@ Serializable Class
 
 ``Qlib`` provides a base class ``qlib.utils.serial.Serializable``, whose state can be dumped into or loaded from disk in `pickle` format. 
 When users dump the state of a ``Serializable`` instance, the attributes of the instance whose name **does not** start with `_` will be saved on the disk.
+However, users can use ``config`` method or override ``default_dump_all`` attribute to prevent this feature.
+
+Users can also override ``pickle_backend`` attribute to choose a pickle backend. The supported value is "pickle" (default and common) and "dill" (dump more things such as function, more information in `here <https://pypi.org/project/dill/>`_).
 
 Example
 ==========================
