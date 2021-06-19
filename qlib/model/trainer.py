@@ -45,6 +45,35 @@ def begin_task_train(task_config: dict, experiment_name: str, recorder_name: str
     return recorder
 
 
+def fill_placeholder(kwargs, model, dataset):
+    """
+        Detect placeholder(<MODEL> and <DATASET>) in dict and fill them.
+
+        Args:
+            kwargs (Dict): the parameter dict will be filled
+            model (Model): fill <MODEL>
+            dataset (Dataset): fill <DATASET>
+
+        Returns:
+            Dict: the parameter dict
+    """
+    top = 0
+    tail = 1
+    dict_quene = [kwargs]
+    while(top < tail):
+        now_dict = dict_quene[top]
+        top += 1
+        for key in now_dict.keys():
+            if(isinstance(now_dict[key], dict)):
+                dict_quene.append(now_dict[key])
+                tail += 1
+            elif(now_dict[key] == "<MODEL>"):
+                now_dict[key] = model
+            elif(now_dict[key] == "<DATASET>"):
+                now_dict[key] = dataset 
+    return kwargs
+
+
 def end_task_train(rec: Recorder, experiment_name: str) -> Recorder:
     """
     Finish task training with real model fitting and saving.
@@ -73,13 +102,9 @@ def end_task_train(rec: Recorder, experiment_name: str) -> Recorder:
             records = [records]
         for record in records:
             cls, kwargs = get_cls_kwargs(record, default_module="qlib.workflow.record_temp")
-            if cls is SignalRecord:
-                rconf = {"model": model, "dataset": dataset, "recorder": rec}
-            else:
-                rconf = {"recorder": rec}
-            r = cls(**kwargs, **rconf)
+            kwargs = fill_placeholder(kwargs, model, dataset)
+            r = cls(**kwargs, **{"record", record})
             r.generate()
-
     return rec
 
 
