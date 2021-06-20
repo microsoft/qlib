@@ -507,7 +507,9 @@ class TSDatasetH(DatasetH):
         - The dimension of a batch of data <batch_idx, feature, timestep>
     """
 
-    def __init__(self, step_len=30, **kwargs):
+    DEFAULT_STEP_LEN = 30
+
+    def __init__(self, step_len=DEFAULT_STEP_LEN, **kwargs):
         self.step_len = step_len
         super().__init__(**kwargs)
 
