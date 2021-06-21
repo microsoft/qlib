@@ -17,7 +17,6 @@ class NestedDecisonExecutionWorkflow:
 
     market = "csi300"
     benchmark = "SH000300"
-
     data_handler_config = {
         "start_time": "2008-01-01",
         "end_time": "2021-05-28",
@@ -67,28 +66,19 @@ class NestedDecisonExecutionWorkflow:
             "kwargs": {
                 "time_per_step": "week",
                 "inner_executor": {
-                    "class": "NestedExecutor",
+                    "class": "SimulatorExecutor",
                     "module_path": "qlib.backtest.executor",
                     "kwargs": {
                         "time_per_step": "day",
-                        "inner_executor": {
-                            "class": "SimulatorExecutor",
-                            "module_path": "qlib.backtest.executor",
-                            "kwargs": {
-                                "time_per_step": "15min",
-                                "generate_report": True,
-                                "verbose": True,
-                            },
+                        "generate_report": True,
+                        "verbose": True,
+                        "indicator_config": {
+                            "show_indicator": True,
                         },
-                        "inner_strategy": {
-                            "class": "TWAPStrategy",
-                            "module_path": "qlib.contrib.strategy.rule_strategy",
-                        },
-                        "show_indicator": True,
                     },
                 },
                 "inner_strategy": {
-                    "class": "VAStrategy",
+                    "class": "SBBStrategyEMA",
                     "module_path": "qlib.contrib.strategy.rule_strategy",
                     "kwargs": {
                         "freq": "day",
@@ -96,7 +86,10 @@ class NestedDecisonExecutionWorkflow:
                     },
                 },
                 "track_data": True,
-                "show_indicator": True,
+                "generate_report": True,
+                "indicator_config": {
+                    "show_indicator": True,
+                },
             },
         },
         "backtest": {
@@ -105,7 +98,7 @@ class NestedDecisonExecutionWorkflow:
             "account": 100000000,
             "benchmark": benchmark,
             "exchange_kwargs": {
-                "freq": "1min",
+                "freq": "day",
                 "limit_threshold": 0.095,
                 "deal_price": "close",
                 "open_cost": 0.0005,
@@ -124,7 +117,7 @@ class NestedDecisonExecutionWorkflow:
         GetData().qlib_data(
             target_dir=provider_uri_1min, interval="1min", region=REG_CN, version="v2", exists_skip=True
         )
-
+        provider_uri_day = "/data/csdesign/qlib"
         provider_uri_map = {"1min": provider_uri_1min, "day": provider_uri_day}
         client_config = {
             "calendar_provider": {
@@ -179,11 +172,24 @@ class NestedDecisonExecutionWorkflow:
             },
         }
         self.port_analysis_config["strategy"] = strategy_config
+        self.port_analysis_config["backtest"]["benchmark"] = D.list_instruments(
+            instruments=D.instruments(market=self.market), as_list=True
+        )
         with R.start(experiment_name="backtest"):
 
             recorder = R.get_recorder()
-            par = PortAnaRecord(recorder, self.port_analysis_config, "15minute")
+            par = PortAnaRecord(
+                recorder,
+                self.port_analysis_config,
+                risk_analysis_freq=["week", "day"],
+                indicator_analysis_freq=["week", "day"],
+                indicator_analysis_method="value_weighted",
+            )
             par.generate()
+
+        # report_normal_df = recorder.load_object("portfolio_analysis/report_normal_1day.pkl")
+        # from qlib.contrib.report import analysis_position
+        # analysis_position.report_graph(report_normal_df)
 
     def collect_data(self):
         self._init_qlib()
@@ -192,6 +198,7 @@ class NestedDecisonExecutionWorkflow:
         self._train_model(model, dataset)
         executor_config = self.port_analysis_config["executor"]
         backtest_config = self.port_analysis_config["backtest"]
+        backtest_config["benchmark"] = D.list_instruments(instruments=D.instruments(market=self.market), as_list=True)
         strategy_config = {
             "class": "TopkDropoutStrategy",
             "module_path": "qlib.contrib.strategy.model_strategy",

@@ -116,9 +116,9 @@ def backtest(start_time, end_time, strategy, executor, benchmark="SH000300", acc
     trade_strategy, trade_executor = get_strategy_executor(
         start_time, end_time, strategy, executor, benchmark, account, exchange_kwargs
     )
-    report_dict = backtest_loop(start_time, end_time, trade_strategy, trade_executor)
+    report_dict, indicator_dict = backtest_loop(start_time, end_time, trade_strategy, trade_executor)
 
-    return report_dict
+    return report_dict, indicator_dict
 
 
 def collect_data(start_time, end_time, strategy, executor, benchmark="SH000300", account=1e9, exchange_kwargs={}):
@@ -126,6 +126,4 @@ def collect_data(start_time, end_time, strategy, executor, benchmark="SH000300",
     trade_strategy, trade_executor = get_strategy_executor(
         start_time, end_time, strategy, executor, benchmark, account, exchange_kwargs
     )
-    report_dict = yield from collect_data_loop(start_time, end_time, trade_strategy, trade_executor)
-
-    return report_dict
+    yield from collect_data_loop(start_time, end_time, trade_strategy, trade_executor)
