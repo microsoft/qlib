@@ -2,7 +2,6 @@
 #  Licensed under the MIT License.
 
 import re
-import os
 import time
 import bisect
 import pickle
@@ -10,7 +9,7 @@ import random
 import requests
 import functools
 from pathlib import Path
-from typing import Iterable, Tuple
+from typing import Iterable, Tuple, List
 
 import numpy as np
 import pandas as pd
@@ -47,7 +46,7 @@ _CALENDAR_MAP = {}
 MINIMUM_SYMBOLS_NUM = 3900
 
 
-def get_calendar_list(bench_code="CSI300") -> list:
+def get_calendar_list(bench_code="CSI300") -> List[pd.Timestamp]:
     """get SH/SZ history calendar list
 
     Parameters

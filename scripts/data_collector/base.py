@@ -238,7 +238,7 @@ class BaseNormalize(abc.ABC):
         """
         self._date_field_name = date_field_name
         self._symbol_field_name = symbol_field_name
-
+        self.kwargs = kwargs
         self._calendar_list = self._get_calendar_list()
 
     @abc.abstractmethod
@@ -285,7 +285,9 @@ class Normalize:
         self._source_dir = Path(source_dir).expanduser()
         self._target_dir = Path(target_dir).expanduser()
         self._target_dir.mkdir(parents=True, exist_ok=True)
-
+        self._date_field_name = date_field_name
+        self._symbol_field_name = symbol_field_name
+        self._end_date = kwargs.get("end_date", None)
         self._max_workers = max_workers
 
         self._normalize_obj = normalize_class(
@@ -297,6 +299,9 @@ class Normalize:
         df = pd.read_csv(file_path)
         df = self._normalize_obj.normalize(df)
         if df is not None and not df.empty:
+            if self._end_date is not None:
+                _mask = pd.to_datetime(df[self._date_field_name]) <= pd.Timestamp(self._end_date)
+                df = df[_mask]
             df.to_csv(self._target_dir.joinpath(file_path.name), index=False)
 
     def normalize(self):

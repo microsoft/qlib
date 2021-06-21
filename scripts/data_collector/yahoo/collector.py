@@ -379,14 +379,13 @@ class YahooNormalize1d(YahooNormalize, ABC):
         df = df.set_index(self._date_field_name)
         _close = self._get_first_close(df)
         for _col in df.columns:
-            if _col == self._symbol_field_name:
+            # NOTE: retain original adjclose, required for incremental updates
+            if _col in [self._symbol_field_name, "adjclose", "change"]:
                 continue
             if _col == "volume":
                 df[_col] = df[_col] * _close
-            elif _col != "change":
-                df[_col] = df[_col] / _close
             else:
-                pass
+                df[_col] = df[_col] / _close
         return df.reset_index()
 
 
@@ -812,7 +811,7 @@ class Run(BaseRun):
             max_collector_count, delay, start, end, self.interval, check_data_length, limit_nums
         )
 
-    def normalize_data(self, date_field_name: str = "date", symbol_field_name: str = "symbol"):
+    def normalize_data(self, date_field_name: str = "date", symbol_field_name: str = "symbol", end_date: str = None):
         """normalize data
 
         Parameters
@@ -821,12 +820,14 @@ class Run(BaseRun):
             date field name, default date
         symbol_field_name: str
             symbol field name, default symbol
+        end_date: str
+            if not None, normalize the last date saved (including end_date); if None, it will ignore this parameter; by default None
 
         Examples
         ---------
             $ python collector.py normalize_data --source_dir ~/.qlib/stock_data/source --normalize_dir ~/.qlib/stock_data/normalize --region cn --interval 1d
         """
-        super(Run, self).normalize_data(date_field_name, symbol_field_name)
+        super(Run, self).normalize_data(date_field_name, symbol_field_name, end_date=end_date)
 
     def normalize_data_1d_extend(
         self, old_qlib_data_dir, date_field_name: str = "date", symbol_field_name: str = "symbol"
