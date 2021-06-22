@@ -189,6 +189,12 @@ class OnlineToolR(OnlineTool):
             cls, kwargs = get_cls_kwargs(task["dataset"], default_module="qlib.data.dataset")
             if issubclass(cls, TSDatasetH):
                 hist_ref = kwargs.get("step_len", TSDatasetH.DEFAULT_STEP_LEN)
-            PredUpdater(rec, to_date=to_date, hist_ref=hist_ref).update()
+            try:
+                updater = PredUpdater(rec, to_date=to_date, hist_ref=hist_ref)
+            except OSError:
+                # skip the recorder without pred
+                self.logger.warn(f"Can't find `pred.pkl`, skip it.")
+                continue
+            updater.update()
 
         self.logger.info(f"Finished updating {len(online_models)} online model predictions of {exp_name}.")
