@@ -45,21 +45,25 @@ def begin_task_train(task_config: dict, experiment_name: str, recorder_name: str
     return recorder
 
 
-def fill_placeholder(kwargs, model, dataset):
+def fill_placeholder(config: dict, config_extend: dict):
     """
-        Detect placeholder(<MODEL> and <DATASET>) in dict and fill them.
+    Detect placeholder in config and fill them with config_extend.
 
-        Args:
-            kwargs (Dict): the parameter dict will be filled
-            model (Model): fill <MODEL>
-            dataset (Dataset): fill <DATASET>
+    Parameters
+    ----------
+    config : dict
+        the parameter dict will be filled
+    config_extend : dict
+        the value of all placeholders
 
-        Returns:
-            Dict: the parameter dict
-    """
+    Returns
+    -------
+    dict
+        the parameter dict
+    """    
     top = 0
     tail = 1
-    dict_quene = [kwargs]
+    dict_quene = [config]
     while(top < tail):
         now_dict = dict_quene[top]
         top += 1
@@ -67,11 +71,9 @@ def fill_placeholder(kwargs, model, dataset):
             if(isinstance(now_dict[key], dict)):
                 dict_quene.append(now_dict[key])
                 tail += 1
-            elif(now_dict[key] == "<MODEL>"):
-                now_dict[key] = model
-            elif(now_dict[key] == "<DATASET>"):
-                now_dict[key] = dataset 
-    return kwargs
+            elif(now_dict[key] in config_extend.keys()):
+                now_dict[key] = config_extend[now_dict[key]]
+    return config
 
 
 def end_task_train(rec: Recorder, experiment_name: str) -> Recorder:
@@ -90,6 +92,7 @@ def end_task_train(rec: Recorder, experiment_name: str) -> Recorder:
         # model & dataset initiation
         model: Model = init_instance_by_config(task_config["model"])
         dataset: Dataset = init_instance_by_config(task_config["dataset"])
+        placehorder_value = {"<MODEL>": model, "<DATASET>": dataset}
         # model training
         model.fit(dataset)
         R.save_objects(**{"params.pkl": model})
@@ -102,7 +105,7 @@ def end_task_train(rec: Recorder, experiment_name: str) -> Recorder:
             records = [records]
         for record in records:
             cls, kwargs = get_cls_kwargs(record, default_module="qlib.workflow.record_temp")
-            kwargs = fill_placeholder(kwargs, model, dataset)
+            kwargs = fill_placeholder(kwargs, placehorder_value)
             kwargs["recorder"] = rec
             r = cls(**kwargs)
             r.generate()
