@@ -103,7 +103,8 @@ def end_task_train(rec: Recorder, experiment_name: str) -> Recorder:
         for record in records:
             cls, kwargs = get_cls_kwargs(record, default_module="qlib.workflow.record_temp")
             kwargs = fill_placeholder(kwargs, model, dataset)
-            r = cls(**kwargs, **{"record", record})
+            kwargs["recorder"] = rec
+            r = cls(**kwargs)
             r.generate()
     return rec
 
