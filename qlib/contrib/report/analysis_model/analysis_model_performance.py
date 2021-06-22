@@ -84,30 +84,29 @@ def _plot_qq(data: pd.Series = None, dist=stats.norm) -> go.Figure:
     qqplot_data = _plt_fig.gca().lines
     fig = go.Figure()
 
-    fig.add_trace({
-        'type': 'scatter',
-        'x': qqplot_data[0].get_xdata(),
-        # 'x': [0, 1],
-        'y': qqplot_data[0].get_ydata(),
-        # 'y': [1, 2],
-        'mode': 'markers',
-        'marker': {
-            'color': '#19d3f3'
+    fig.add_trace(
+        {
+            "type": "scatter",
+            "x": qqplot_data[0].get_xdata(),
+            # 'x': [0, 1],
+            "y": qqplot_data[0].get_ydata(),
+            # 'y': [1, 2],
+            "mode": "markers",
+            "marker": {"color": "#19d3f3"},
         }
-    })
+    )
 
-    fig.add_trace({
-        'type': 'scatter',
-        'x': qqplot_data[1].get_xdata(),
-        # 'x': [0, 1],
-        'y': qqplot_data[1].get_ydata(),
-        # 'y': [1, 2],
-        'mode': 'lines',
-        'line': {
-            'color': '#636efa'
+    fig.add_trace(
+        {
+            "type": "scatter",
+            "x": qqplot_data[1].get_xdata(),
+            # 'x': [0, 1],
+            "y": qqplot_data[1].get_ydata(),
+            # 'y': [1, 2],
+            "mode": "lines",
+            "line": {"color": "#636efa"},
         }
-
-    })
+    )
     del qqplot_data
     return fig
 
