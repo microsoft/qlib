@@ -4,13 +4,11 @@
 from .account import Account
 from .exchange import Exchange
 from .executor import BaseExecutor
-from .backtest import backtest as backtest_func
-from .backtest import collect_data as data_generator
-from .order import Order
-from .utils import TradeCalendarManager
+from .backtest import backtest_loop
+from .backtest import collect_data_loop
 
-from .utils import CommonInfrastructure
 from .order import Order
+from .utils import CommonInfrastructure
 from ..strategy.base import BaseStrategy
 from ..utils import init_instance_by_config
 from ..log import get_module_logger
@@ -118,9 +116,9 @@ def backtest(start_time, end_time, strategy, executor, benchmark="SH000300", acc
     trade_strategy, trade_executor = get_strategy_executor(
         start_time, end_time, strategy, executor, benchmark, account, exchange_kwargs
     )
-    report_dict = backtest_func(start_time, end_time, trade_strategy, trade_executor)
+    report_dict, indicator_dict = backtest_loop(start_time, end_time, trade_strategy, trade_executor)
 
-    return report_dict
+    return report_dict, indicator_dict
 
 
 def collect_data(start_time, end_time, strategy, executor, benchmark="SH000300", account=1e9, exchange_kwargs={}):
@@ -128,6 +126,4 @@ def collect_data(start_time, end_time, strategy, executor, benchmark="SH000300",
     trade_strategy, trade_executor = get_strategy_executor(
         start_time, end_time, strategy, executor, benchmark, account, exchange_kwargs
     )
-    report_dict = yield from data_generator(start_time, end_time, trade_strategy, trade_executor)
-
-    return report_dict
+    yield from collect_data_loop(start_time, end_time, trade_strategy, trade_executor)

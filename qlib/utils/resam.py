@@ -8,6 +8,11 @@ from typing import Tuple, List, Union, Optional, Callable
 from . import lazy_sort_index
 from ..config import C
 
+NORM_FREQ_MONTH = "month"
+NORM_FREQ_WEEK = "week"
+NORM_FREQ_DAY = "day"
+NORM_FREQ_MINUTE = "minute"
+
 
 def parse_freq(freq: str) -> Tuple[int, str]:
     """
@@ -43,14 +48,14 @@ def parse_freq(freq: str) -> Tuple[int, str]:
     _count = int(match_obj.group(1)) if match_obj.group(1) else 1
     _freq = match_obj.group(2)
     _freq_format_dict = {
-        "month": "month",
-        "mon": "month",
-        "week": "week",
-        "w": "week",
-        "day": "day",
-        "d": "day",
-        "minute": "minute",
-        "min": "minute",
+        "month": NORM_FREQ_MONTH,
+        "mon": NORM_FREQ_MONTH,
+        "week": NORM_FREQ_WEEK,
+        "w": NORM_FREQ_WEEK,
+        "day": NORM_FREQ_DAY,
+        "d": NORM_FREQ_DAY,
+        "minute": NORM_FREQ_MINUTE,
+        "min": NORM_FREQ_MINUTE,
     }
     return _count, _freq_format_dict[_freq]
 
@@ -81,7 +86,7 @@ def resam_calendar(calendar_raw: np.ndarray, freq_raw: str, freq_sam: str) -> np
         return calendar_raw
 
     # if freq_sam is xminute, divide each trading day into several bars evenly
-    if freq_sam == "minute":
+    if freq_sam == NORM_FREQ_MINUTE:
 
         def cal_sam_minute(x, sam_minutes):
             """
@@ -114,7 +119,7 @@ def resam_calendar(calendar_raw: np.ndarray, freq_raw: str, freq_sam: str) -> np
             else:
                 raise ValueError("calendar minute_index error, check `min_data_shift` in qlib.config.C")
 
-        if freq_raw != "minute":
+        if freq_raw != NORM_FREQ_MINUTE:
             raise ValueError("when sampling minute calendar, freq of raw calendar must be minute or min")
         else:
             if raw_count > sam_count:
@@ -125,15 +130,15 @@ def resam_calendar(calendar_raw: np.ndarray, freq_raw: str, freq_sam: str) -> np
     # else, convert the raw calendar into day calendar, and divide the whole calendar into several bars evenly
     else:
         _calendar_day = np.unique(list(map(lambda x: pd.Timestamp(x.year, x.month, x.day, 0, 0, 0), calendar_raw)))
-        if freq_sam == "day":
+        if freq_sam == NORM_FREQ_DAY:
             return _calendar_day[::sam_count]
 
-        elif freq_sam == "week":
+        elif freq_sam == NORM_FREQ_WEEK:
             _day_in_week = np.array(list(map(lambda x: x.dayofweek, _calendar_day)))
             _calendar_week = _calendar_day[np.ediff1d(_day_in_week, to_begin=-1) < 0]
             return _calendar_week[::sam_count]
 
-        elif freq_sam == "month":
+        elif freq_sam == NORM_FREQ_MONTH:
             _day_in_month = np.array(list(map(lambda x: x.day, _calendar_day)))
             _calendar_month = _calendar_day[np.ediff1d(_day_in_month, to_begin=-1) < 0]
             return _calendar_month[::sam_count]
@@ -184,7 +189,7 @@ def get_resam_calendar(
         freq, freq_sam = freq, None
     except (ValueError, KeyError):
         freq_sam = freq
-        if norm_freq in ["month", "week", "day"]:
+        if norm_freq in [NORM_FREQ_MONTH, NORM_FREQ_WEEK, NORM_FREQ_DAY]:
             try:
                 _calendar = Cal.calendar(
                     start_time=start_time, end_time=end_time, freq="day", freq_sam=freq, future=future
@@ -195,7 +200,7 @@ def get_resam_calendar(
                     start_time=start_time, end_time=end_time, freq="1min", freq_sam=freq, future=future
                 )
                 freq = "1min"
-        elif norm_freq == "minute":
+        elif norm_freq == NORM_FREQ_MINUTE:
             _calendar = Cal.calendar(
                 start_time=start_time, end_time=end_time, freq="1min", freq_sam=freq, future=future
             )
@@ -203,6 +208,57 @@ def get_resam_calendar(
         else:
             raise ValueError(f"freq {freq} is not supported")
     return _calendar, freq, freq_sam
+
+
+def get_higher_freq_feature(instruments, fields, start_time=None, end_time=None, freq="day", disk_cache=1):
+    """[summary]
+
+    Parameters
+    ----------
+    instruments : [type]
+        [description]
+    fields : [type]
+        [description]
+    start_time : [type], optional
+        [description], by default None
+    end_time : [type], optional
+        [description], by default None
+    freq : str, optional
+        [description], by default "day"
+    disk_cache : int, optional
+        [description], by default 1
+
+    Returns
+    -------
+    [type]
+        [description]
+
+    Raises
+    ------
+    ValueError
+        [description]
+    """
+
+    from ..data.data import D
+
+    try:
+        _result = D.features(instruments, fields, start_time, end_time, freq=freq, disk_cache=disk_cache)
+        _freq = freq
+    except (ValueError, KeyError):
+        _, norm_freq = parse_freq(freq)
+        if norm_freq in [NORM_FREQ_MONTH, NORM_FREQ_WEEK, NORM_FREQ_DAY]:
+            try:
+                _result = D.features(instruments, fields, start_time, end_time, freq="day", disk_cache=disk_cache)
+                _freq = "day"
+            except (ValueError, KeyError):
+                _result = D.features(instruments, fields, start_time, end_time, freq="1min", disk_cache=disk_cache)
+                _freq = "1min"
+        elif norm_freq == NORM_FREQ_MINUTE:
+            _result = D.features(instruments, fields, start_time, end_time, freq="1min", disk_cache=disk_cache)
+            _freq = "1min"
+        else:
+            raise ValueError(f"freq {freq} is not supported")
+    return _result, _freq
 
 
 def resam_ts_data(
@@ -273,8 +329,9 @@ def resam_ts_data(
         end sampling time, by default None
     method : Union[str, Callable], optional
         sample method, apply method function to each stock series data, by default "last"
-        - If type(method) is str, it should be an attribute of SeriesGroupBy or DataFrameGroupby, and run feature.groupby
-        - If `feature` has MultiIndex[instrument, datetime], method must be a member of pandas.groupby when it's type is str.or callable function.
+        - If type(method) is str or callable function, it should be an attribute of SeriesGroupBy or DataFrameGroupby, and applies groupy.method for the sliced time-series data
+        - If method is None, do nothing for the sliced time-series data.
+        - Only when the index `feature` is MultiIndex[instrument, datetime], the method is valid.
     method_kwargs : dict, optional
         arguments of method, by default {}
 

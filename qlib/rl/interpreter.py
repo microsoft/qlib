@@ -5,14 +5,14 @@
 class BaseInterpreter:
     """Base Interpreter"""
 
-    def interpret(**kwargs):
+    def interpret(self, **kwargs):
         raise NotImplementedError("interpret is not implemented!")
 
 
 class ActionInterpreter(BaseInterpreter):
     """Action Interpreter that interpret rl agent action into qlib orders"""
 
-    def interpret(action, **kwargs):
+    def interpret(self, action, **kwargs):
         """interpret method
 
         Parameters
@@ -32,7 +32,7 @@ class ActionInterpreter(BaseInterpreter):
 class StateInterpreter(BaseInterpreter):
     """State Interpreter that interpret execution result of qlib executor into rl env state"""
 
-    def interpret(execute_result, **kwargs):
+    def interpret(self, execute_result, **kwargs):
         """interpret method
 
         Parameters

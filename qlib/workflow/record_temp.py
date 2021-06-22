@@ -7,7 +7,7 @@ import warnings
 import pandas as pd
 from pathlib import Path
 from pprint import pprint
-from ..contrib.evaluate import risk_analysis
+from ..contrib.evaluate import indicator_analysis, risk_analysis, indicator_analysis
 
 from ..data.dataset import DatasetH
 from ..data.dataset.handler import DataHandlerLP
@@ -17,7 +17,7 @@ from ..log import get_module_logger
 from ..utils import flatten_dict
 from ..utils.resam import parse_freq
 from ..strategy.base import BaseStrategy
-from ..contrib.eva.alpha import calc_ic, calc_long_short_return
+from ..contrib.eva.alpha import calc_ic, calc_long_short_return, calc_long_short_prec
 
 
 logger = get_module_logger("workflow", logging.INFO)
@@ -294,7 +294,9 @@ class PortAnaRecord(RecordTemp):
 
     artifact_path = "portfolio_analysis"
 
-    def __init__(self, recorder, config, risk_analysis_freq, **kwargs):
+    def __init__(
+        self, recorder, config, risk_analysis_freq, indicator_analysis_freq, indicator_analysis_method=None, **kwargs
+    ):
         """
         config["strategy"] : dict
             define the strategy class as well as the kwargs.
@@ -302,17 +304,31 @@ class PortAnaRecord(RecordTemp):
             define the executor class as well as the kwargs.
         config["backtest"] : dict
             define the backtest kwargs.
-        risk_analysis_freq : int
+        risk_analysis_freq : str|List[str]
             risk analysis freq of report
+        indicator_analysis_freq : str|List[str]
+            indicator analysis freq of report
+        indicator_analysis_method : str, optional, default by None
+            the candidated values include 'mean', 'amount_weighted', 'value_weighted'
         """
         super().__init__(recorder=recorder, **kwargs)
 
         self.strategy_config = config["strategy"]
         self.executor_config = config["executor"]
         self.backtest_config = config["backtest"]
-        _count, _freq = parse_freq(risk_analysis_freq)
-        self.risk_analysis_freq = f"{_count}{_freq}"
-        self.report_freq = self._get_report_freq(self.executor_config)
+        if isinstance(risk_analysis_freq, str):
+            risk_analysis_freq = [risk_analysis_freq]
+        if isinstance(indicator_analysis_freq, str):
+            indicator_analysis_freq = [indicator_analysis_freq]
+
+        self.risk_analysis_freq = [
+            "{0}{1}".format(*parse_freq(_analysis_freq)) for _analysis_freq in risk_analysis_freq
+        ]
+        self.indicator_analysis_freq = [
+            "{0}{1}".format(*parse_freq(_analysis_freq)) for _analysis_freq in indicator_analysis_freq
+        ]
+        self.indicator_analysis_method = indicator_analysis_method
+        self.all_freq = self._get_report_freq(self.executor_config)
 
     def _get_report_freq(self, executor_config):
         ret_freq = []
@@ -325,55 +341,86 @@ class PortAnaRecord(RecordTemp):
 
     def generate(self, **kwargs):
         # custom strategy and get backtest
-        report_dict = normal_backtest(
+        report_dict, indicator_dict = normal_backtest(
             executor=self.executor_config, strategy=self.strategy_config, **self.backtest_config
         )
-        for report_freq, (report_normal, positions_normal) in report_dict.items():
+        for _freq, (report_normal, positions_normal) in report_dict.items():
             self.recorder.save_objects(
-                **{f"report_normal_{report_freq}.pkl": report_normal}, artifact_path=PortAnaRecord.get_path()
+                **{f"report_normal_{_freq}.pkl": report_normal}, artifact_path=PortAnaRecord.get_path()
             )
             self.recorder.save_objects(
-                **{f"positions_normal_{report_freq}.pkl": positions_normal}, artifact_path=PortAnaRecord.get_path()
+                **{f"positions_normal_{_freq}.pkl": positions_normal}, artifact_path=PortAnaRecord.get_path()
             )
 
-        if self.risk_analysis_freq not in report_dict:
-            warnings.warn(
-                f"the freq {self.risk_analysis_freq} report is not found, please set the corresponding env with `generate_report==True`"
+        for _freq, indicators_normal in indicator_dict.items():
+            self.recorder.save_objects(
+                **{f"indicators_normal_{_freq}.pkl": indicators_normal}, artifact_path=PortAnaRecord.get_path()
             )
-        else:
-            report_normal, _ = report_dict.get(self.risk_analysis_freq)
-            analysis = dict()
-            analysis["excess_return_without_cost"] = risk_analysis(
-                report_normal["return"] - report_normal["bench"], freq=self.risk_analysis_freq
-            )
-            analysis["excess_return_with_cost"] = risk_analysis(
-                report_normal["return"] - report_normal["bench"] - report_normal["cost"], freq=self.risk_analysis_freq
-            )
-            analysis_df = pd.concat(analysis)  # type: pd.DataFrame
+
+        for _analysis_freq in self.risk_analysis_freq:
+            if _analysis_freq not in report_dict:
+                warnings.warn(
+                    f"the freq {_analysis_freq} report is not found, please set the corresponding env with `generate_report=True`"
+                )
+            else:
+                report_normal, _ = report_dict.get(_analysis_freq)
+                analysis = dict()
+                analysis["excess_return_without_cost"] = risk_analysis(
+                    report_normal["return"] - report_normal["bench"], freq=_analysis_freq
+                )
+                analysis["excess_return_with_cost"] = risk_analysis(
+                    report_normal["return"] - report_normal["bench"] - report_normal["cost"], freq=_analysis_freq
+                )
+
+                analysis_df = pd.concat(analysis)  # type: pd.DataFrame
+                # log metrics
+                analysis_dict = flatten_dict(analysis_df["risk"].unstack().T.to_dict())
+                self.recorder.log_metrics(**{f"{_analysis_freq}.{k}": v for k, v in analysis_dict.items()})
+                # save results
+                self.recorder.save_objects(
+                    **{f"port_analysis_{_analysis_freq}.pkl": analysis_df}, artifact_path=PortAnaRecord.get_path()
+                )
+                logger.info(
+                    f"Portfolio analysis record 'port_analysis_{_analysis_freq}.pkl' has been saved as the artifact of the Experiment {self.recorder.experiment_id}"
+                )
+                # print out results
+                pprint(f"The following are analysis results of benchmark return({_analysis_freq}).")
+                pprint(risk_analysis(report_normal["bench"], freq=_analysis_freq))
+                pprint(f"The following are analysis results of the excess return without cost({_analysis_freq}).")
+                pprint(analysis["excess_return_without_cost"])
+                pprint(f"The following are analysis results of the excess return with cost({_analysis_freq}).")
+                pprint(analysis["excess_return_with_cost"])
+
+        for _analysis_freq in self.indicator_analysis_freq:
+            indicators_normal = indicator_dict.get(_analysis_freq)
+            if self.indicator_analysis_method is None:
+                analysis_df = indicator_analysis(indicators_normal)
+            else:
+                analysis_df = indicator_analysis(indicators_normal, method=self.indicator_analysis_method)
+
             # log metrics
-            self.recorder.log_metrics(**flatten_dict(analysis_df["risk"].unstack().T.to_dict()))
+            analysis_dict = analysis_df["value"].to_dict()
+            self.recorder.log_metrics(**{f"{_analysis_freq}.{k}": v for k, v in analysis_dict.items()})
             # save results
             self.recorder.save_objects(
-                **{f"port_analysis_{report_freq}.pkl": analysis_df}, artifact_path=PortAnaRecord.get_path()
+                **{f"indicator_analysis_{_analysis_freq}.pkl": analysis_df}, artifact_path=PortAnaRecord.get_path()
             )
-            logger.info(
-                f"Portfolio analysis record 'port_analysis_{report_freq}.pkl' has been saved as the artifact of the Experiment {self.recorder.experiment_id}"
-            )
-            # print out results
-            pprint("The following are analysis results of the excess return without cost.")
-            pprint(analysis["excess_return_without_cost"])
-            pprint("The following are analysis results of the excess return with cost.")
-            pprint(analysis["excess_return_with_cost"])
+            pprint(f"The following are analysis results of indicators({_analysis_freq}).")
+            pprint(analysis_df)
 
     def list(self):
         list_path = []
-        for _freq in self.report_freq:
+        for _freq in self.all_freq:
             list_path.extend(
                 [
                     PortAnaRecord.get_path(f"report_normal_{_freq}.pkl"),
                     PortAnaRecord.get_path(f"positions_normal_{_freq}.pkl"),
                 ]
             )
-            if _freq == self.risk_analysis_freq:
-                list_path.append(PortAnaRecord.get_path(f"port_analysis_{_freq}.pkl"))
+
+        for _analysis_freq in self.risk_analysis_freq:
+            if _analysis_freq in self.all_freq:
+                list_path.append(PortAnaRecord.get_path(f"port_analysis_{_analysis_freq}.pkl"))
+            else:
+                warnings.warn(f"{_analysis_freq} is not found")
         return list_path

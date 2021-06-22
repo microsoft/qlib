@@ -65,7 +65,6 @@ class CalendarProvider(abc.ABC, ProviderBackendMixin):
     def __init__(self, *args, **kwargs):
         self.backend = kwargs.get("backend", {})
 
-    @abc.abstractmethod
     def calendar(self, start_time=None, end_time=None, freq="day", freq_sam=None, future=False):
         """Get calendar of certain market in given time range.
 
@@ -87,7 +86,22 @@ class CalendarProvider(abc.ABC, ProviderBackendMixin):
         list
             calendar list
         """
-        raise NotImplementedError("Subclass of CalendarProvider must implement `calendar` method")
+        _calendar, _ = self._get_calendar(freq=freq, freq_sam=freq_sam, future=future)
+        # strip
+        if start_time:
+            start_time = pd.Timestamp(start_time)
+            if start_time > _calendar[-1]:
+                return np.array([])
+        else:
+            start_time = _calendar[0]
+        if end_time:
+            end_time = pd.Timestamp(end_time)
+            if end_time < _calendar[0]:
+                return np.array([])
+        else:
+            end_time = _calendar[-1]
+        st, et, si, ei = self.locate_index(start_time, end_time, freq=freq, freq_sam=freq_sam, future=future)
+        return _calendar[si : ei + 1]
 
     def locate_index(self, start_time, end_time, freq, freq_sam=None, future=False):
         """Locate the start time index and end time index in a calendar under certain frequency.
@@ -171,6 +185,21 @@ class CalendarProvider(abc.ABC, ProviderBackendMixin):
     def _uri(self, start_time, end_time, freq, future=False):
         """Get the uri of calendar generation task."""
         return hash_args(start_time, end_time, freq, future)
+
+    def load_calendar(self, freq, future):
+        """Load original calendar timestamp from file.
+
+        Parameters
+        ----------
+        freq : str
+            frequency of read calendar file.
+
+        Returns
+        ----------
+        list
+            list of timestamps
+        """
+        raise NotImplementedError("Subclass of CalendarProvider must implement `load_calendar` method")
 
 
 class InstrumentProvider(abc.ABC, ProviderBackendMixin):
@@ -457,7 +486,8 @@ class DatasetProvider(abc.ABC):
         normalize_column_names = normalize_cache_fields(column_names)
         data = dict()
         # One process for one task, so that the memory will be freed quicker.
-        workers = min(C.kernels, len(instruments_d))
+        workers = max(min(C.kernels, len(instruments_d)), 1)
+
         if C.maxtasksperchild is None:
             p = Pool(processes=workers)
         else:
@@ -504,7 +534,9 @@ class DatasetProvider(abc.ABC):
             data = pd.concat(new_data, names=["instrument"], sort=False)
             data = DiskDatasetCache.cache_to_origin_data(data, column_names)
         else:
-            data = pd.DataFrame(columns=column_names)
+            data = pd.DataFrame(
+                index=pd.MultiIndex.from_arrays([[], []], names=("instrument", "datetime")), columns=column_names
+            )
 
         return data
 
@@ -558,19 +590,6 @@ class LocalCalendarProvider(CalendarProvider):
         return os.path.join(C.get_data_path(), "calendars", "{}.txt")
 
     def load_calendar(self, freq, future):
-        """Load original calendar timestamp from file.
-
-        Parameters
-        ----------
-        freq : str
-            frequency of read calendar file.
-
-        Returns
-        ----------
-        list
-            list of timestamps
-        """
-
         try:
             backend_obj = self.backend_obj(freq=freq, future=future).data
         except ValueError:
@@ -586,24 +605,6 @@ class LocalCalendarProvider(CalendarProvider):
                 raise
 
         return [pd.Timestamp(x) for x in backend_obj]
-
-    def calendar(self, start_time=None, end_time=None, freq="day", freq_sam=None, future=False):
-        _calendar, _ = self._get_calendar(freq=freq, freq_sam=freq_sam, future=future)
-        # strip
-        if start_time:
-            start_time = pd.Timestamp(start_time)
-            if start_time > _calendar[-1]:
-                return np.array([])
-        else:
-            start_time = _calendar[0]
-        if end_time:
-            end_time = pd.Timestamp(end_time)
-            if end_time < _calendar[0]:
-                return np.array([])
-        else:
-            end_time = _calendar[-1]
-        st, et, si, ei = self.locate_index(start_time, end_time, freq=freq, freq_sam=freq_sam, future=future)
-        return _calendar[si : ei + 1]
 
 
 class LocalInstrumentProvider(InstrumentProvider):
@@ -719,7 +720,9 @@ class LocalDatasetProvider(DatasetProvider):
         column_names = self.get_column_names(fields)
         cal = Cal.calendar(start_time, end_time, freq)
         if len(cal) == 0:
-            return pd.DataFrame(columns=column_names)
+            return pd.DataFrame(
+                index=pd.MultiIndex.from_arrays([[], []], names=("instrument", "datetime")), columns=column_names
+            )
         start_time = cal[0]
         end_time = cal[-1]
 
@@ -741,7 +744,7 @@ class LocalDatasetProvider(DatasetProvider):
             return
         start_time = cal[0]
         end_time = cal[-1]
-        workers = min(C.kernels, len(instruments_d))
+        workers = max(min(C.kernels, len(instruments_d)), 1)
         if C.maxtasksperchild is None:
             p = Pool(processes=workers)
         else:
@@ -789,7 +792,7 @@ class ClientCalendarProvider(CalendarProvider):
     def calendar(self, start_time=None, end_time=None, freq="day", freq_sam=None, future=False):
 
         self.conn.send_request(
-            request_type="trade_calendar",
+            request_type="calendar",
             request_content={
                 "start_time": str(start_time),
                 "end_time": str(end_time),
@@ -902,7 +905,10 @@ class ClientDatasetProvider(DatasetProvider):
                 column_names = self.get_column_names(fields)
                 cal = Cal.calendar(start_time, end_time, freq)
                 if len(cal) == 0:
-                    return pd.DataFrame(columns=column_names)
+                    return pd.DataFrame(
+                        index=pd.MultiIndex.from_arrays([[], []], names=("instrument", "datetime")),
+                        columns=column_names,
+                    )
                 start_time = cal[0]
                 end_time = cal[-1]
 
@@ -1004,7 +1010,7 @@ class LocalProvider(BaseProvider):
         :param type: The type of resource for the uri
         :param **kwargs:
         """
-        if type == "trade_calendar":
+        if type == "calendar":
             return Cal._uri(**kwargs)
         elif type == "instrument":
             return Inst._uri(**kwargs)

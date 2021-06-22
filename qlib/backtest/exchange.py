@@ -48,14 +48,17 @@ class Exchange:
         :param trade_unit:       trade unit, 100 for China A market
         :param min_cost:         min cost, default 5
         :param extra_quote:     pandas, dataframe consists of
-                                    columns: like ['$vwap', '$close', '$factor', 'limit'].
+                                    columns: like ['$vwap', '$close', '$volume', '$factor', 'limit_sell', 'limit_buy'].
                                             The limit indicates that the etf is tradable on a specific day.
                                             Necessary fields:
                                                 $close is for calculating the total value at end of each day.
                                             Optional fields:
+                                                $volume is only necessary when we limit the trade amount or caculate PA(vwap) indicator
                                                 $vwap is only necessary when we use the $vwap price as the deal price
                                                 $factor is for rounding to the trading unit
-                                                limit will be set to False by default(False indicates we can buy this
+                                                limit_sell will be set to False by default(False indicates we can sell this
+                                                target on this day).
+                                                limit_buy will be set to False by default(False indicates we can buy this
                                                 target on this day).
                                     index: MultipleIndex(instrument, pd.Datetime)
         """
@@ -342,7 +345,10 @@ class Exchange:
                 return -deal_amount
 
     def generate_order_for_target_amount_position(self, target_position, current_position, start_time, end_time):
-        """Parameter:
+        """
+        Note: some future information is used in this function
+
+        Parameter:
         target_position : dict { stock_id : amount }
         current_postion : dict { stock_id : amount}
         trade_unit : trade_unit

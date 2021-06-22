@@ -177,7 +177,7 @@ class RLIntStrategy(RLStrategy):
         self.action_interpreter = init_instance_by_config(action_interpreter, accept_types=ActionInterpreter)
 
     def generate_trade_decision(self, execute_result=None):
-        _interpret_state = self.state_interpretor.interpret(execute_result=execute_result)
+        _interpret_state = self.state_interpreter.interpret(execute_result=execute_result)
         _action = self.policy.step(_interpret_state)
         _trade_decision = self.action_interpreter.interpret(action=_action)
         return _trade_decision

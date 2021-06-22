@@ -1,6 +1,6 @@
 # Nested Decision Execution
 
-This worflow is an example for nested decision execution in backtesting. Qlib supports nested decision execution in backtesting. It means that users can use different strategies to make trade decision in different frequencies.
+This workflow is an example for nested decision execution in backtesting. Qlib supports nested decision execution in backtesting. It means that users can use different strategies to make trade decision in different frequencies.
 
 ## Weekly Portfolio Generation and Daily Order Execution
 

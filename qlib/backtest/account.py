@@ -7,9 +7,9 @@ import warnings
 import pandas as pd
 
 from .position import Position
-from .report import Report
+from .report import Report, Indicator
 from .order import Order
-
+from .exchange import Exchange
 
 """
 rtn & earning in the Account
@@ -25,8 +25,40 @@ rtn & earning in the Account
         while earning is the difference of two position value, so it considers cost, it is the true return rate
         in the specific accomplishment for rtn, it does not consider cost, in other words, rtn - cost = earning
 
-Now rtn has been removed in the hierarchical backtest implemention.
 """
+
+
+class AccumulatedInfo:
+    """accumulated trading info, including accumulated return\cost\turnover"""
+
+    def __init__(self):
+        self.reset()
+
+    def reset(self):
+        self.rtn = 0  # accumulated return, do not consider cost
+        self.cost = 0  # accumulated cost
+        self.to = 0  # accumulated turnover
+
+    def add_return_value(self, value):
+        self.rtn += value
+
+    def add_cost(self, value):
+        self.cost += value
+
+    def add_turnover(self, value):
+        self.to += value
+
+    @property
+    def get_return(self):
+        return self.rtn
+
+    @property
+    def get_cost(self):
+        return self.cost
+
+    @property
+    def get_turnover(self):
+        return self.to
 
 
 class Account:
@@ -38,16 +70,13 @@ class Account:
         # init cash
         self.init_cash = init_cash
         self.current = Position(cash=init_cash)
+        self.accum_info = AccumulatedInfo()
         self.reset(freq=freq, benchmark_config=benchmark_config, init_report=True)
 
     def reset_report(self, freq, benchmark_config):
         self.report = Report(freq, benchmark_config)
+        self.indicator = Indicator()
         self.positions = {}
-        self.rtn = 0
-        self.ct = 0
-        self.to = 0
-        self.val = 0
-        self.earning = 0
 
     def reset(self, freq=None, benchmark_config=None, init_report=False):
         """reset freq and report of account
@@ -77,21 +106,22 @@ class Account:
 
     def _update_state_from_order(self, order, trade_val, cost, trade_price):
         # update turnover
-        self.to += trade_val
+        self.accum_info.add_turnover(trade_val)
         # update cost
-        self.ct += cost
-        # update return
-        # update self.rtn from order
+        self.accum_info.add_cost(cost)
+
+        # update return from order
         trade_amount = trade_val / trade_price
         if order.direction == Order.SELL:  # 0 for sell
             # when sell stock, get profit from price change
             profit = trade_val - self.current.get_stock_price(order.stock_id) * trade_amount
-            self.rtn += profit  # note here do not consider cost
+            self.accum_info.add_return_value(profit)  # note here do not consider cost
+
         elif order.direction == Order.BUY:  # 1 for buy
             # when buy stock, we get return for the rtn computing method
-            # profit in buy order is to make self.rtn is consistent with self.earning at the end of date
+            # profit in buy order is to make rtn is consistent with earning at the end of bar
             profit = self.current.get_stock_price(order.stock_id) * trade_amount - trade_val
-            self.rtn += profit
+            self.accum_info.add_return_value(profit)  # note here do not consider cost
 
     def update_order(self, order, trade_val, cost, trade_price):
         # if stock is sold out, no stock price information in Position, then we should update account first, then update current position
@@ -110,23 +140,12 @@ class Account:
             self._update_state_from_order(order, trade_val, cost, trade_price)
 
     def update_bar_count(self):
+        """at the end of the trading bar, update holding bar, count of stock"""
+        # update holding day count
         self.current.add_count_all(bar=self.freq)
 
-    def update_bar_report(self, trade_start_time, trade_end_time, trade_exchange):
-        """
-        trade_start_time: pd.TimeStamp
-        trade_end_time: pd.TimeStamp
-        quote: pd.DataFrame (code, date), collumns
-        when the end of trade date
-        - update rtn
-        - update price for each asset
-        - update value for this account
-        - update earning (2nd view of return )
-        - update holding day, count of stock
-        - update position hitory
-        - update report
-        :return: None
-        """
+    def update_current(self, trade_start_time, trade_end_time, trade_exchange):
+        """update current to make rtn consistent with earning at the end of bar"""
         # update price for stock in the position and the profit from changed_price
         stock_list = self.current.get_stock_list()
         for code in stock_list:
@@ -135,22 +154,28 @@ class Account:
                 continue
             bar_close = trade_exchange.get_close(code, trade_start_time, trade_end_time)
             self.current.update_stock_price(stock_id=code, price=bar_close)
-        # update holding day count
 
-        # update value
-        self.val = self.current.calculate_value()
-        # update earning
+    def update_report(self, trade_start_time, trade_end_time):
+        """update position history, report"""
+        # calculate earning
         # account_value - last_account_value
         # for the first trade date, account_value - init_cash
         # self.report.is_empty() to judge is_first_trade_date
-        # get last_account_value, now_account_value, now_stock_value
+        # get last_account_value, last_total_cost, last_total_turnover
         if self.report.is_empty():
             last_account_value = self.init_cash
+            last_total_cost = 0
+            last_total_turnover = 0
         else:
             last_account_value = self.report.get_latest_account_value()
+            last_total_cost = self.report.get_latest_total_cost()
+            last_total_turnover = self.report.get_latest_total_turnover()
+        # get now_account_value, now_stock_value, now_earning, now_cost, now_turnover
         now_account_value = self.current.calculate_value()
         now_stock_value = self.current.calculate_stock_value()
-        self.earning = now_account_value - last_account_value
+        now_earning = now_account_value - last_account_value
+        now_cost = self.accum_info.get_cost - last_total_cost
+        now_turnover = self.accum_info.get_turnover - last_total_turnover
         # update report for today
         # judge whether the the trading is begin.
         # and don't add init account state into report, due to we don't have excess return in those days.
@@ -159,11 +184,13 @@ class Account:
             trade_end_time=trade_end_time,
             account_value=now_account_value,
             cash=self.current.position["cash"],
-            return_rate=(self.earning + self.ct) / last_account_value,
+            return_rate=(now_earning + now_cost) / last_account_value,
             # here use earning to calculate return, position's view, earning consider cost, true return
             # in order to make same definition with original backtest in evaluate.py
-            turnover_rate=self.to / last_account_value,
-            cost_rate=self.ct / last_account_value,
+            total_turnover=self.accum_info.get_turnover,
+            turnover_rate=now_turnover / last_account_value,
+            total_cost=self.accum_info.get_cost,
+            cost_rate=now_cost / last_account_value,
             stock_value=now_stock_value,
         )
         # set now_account_value to position
@@ -173,8 +200,60 @@ class Account:
         # note use deepcopy
         self.positions[trade_start_time] = copy.deepcopy(self.current)
 
-        # finish today's updation
-        # reset the bar variables
-        self.rtn = 0
-        self.ct = 0
-        self.to = 0
+    def update_bar_end(
+        self,
+        trade_start_time: pd.Timestamp,
+        trade_end_time: pd.Timestamp,
+        trade_exchange: Exchange,
+        atomic: bool,
+        generate_report: bool = False,
+        trade_info: list = None,
+        inner_order_indicators: Indicator = None,
+        indicator_config: dict = {},
+    ):
+        """update account at each trading bar step
+
+        Parameters
+        ----------
+        trade_start_time : pd.Timestamp
+            closed start time of step
+        trade_end_time : pd.Timestamp
+            closed end time of step
+        trade_exchange : Exchange
+            trading exchange, used to update current
+        atomic : bool
+            whether the trading executor is atomic, which means there is no higher-frequency trading executor inside it
+            - if atomic is True, calculate the indicators with trade_info
+            - else, aggregate indicators with inner indicators
+        generate_report : bool, optional
+            whether to generate report, by default False
+        trade_info : List[(Order, float, float, float)], optional
+            trading information, by default None
+            - necessary if atomic is True
+            - list of tuple(order, trade_val, trade_cost, trade_price)
+        inner_order_indicators : Indicator, optional
+            indicators of inner executor, by default None
+            - necessary if atomic is False
+            - used to aggregate outer indicators
+        indicator_config : dict, optional
+            config of calculating indicators, by default {}
+        """
+        if atomic is True and trade_info is None:
+            raise ValueError("trade_info is necessary in atomic executor")
+        elif atomic is False and inner_order_indicators is None:
+            raise ValueError("inner_order_indicators is necessary in unatomic executor")
+
+        self.update_bar_count()
+        self.update_current(trade_start_time, trade_end_time, trade_exchange)
+        if generate_report:
+            self.update_report(trade_start_time, trade_end_time)
+
+        self.indicator.clear()
+
+        if atomic:
+            self.indicator.update_order_indicators(trade_start_time, trade_end_time, trade_info, trade_exchange)
+        else:
+            self.indicator.agg_order_indicators(inner_order_indicators, indicator_config)
+
+        self.indicator.cal_trade_indicators(trade_start_time, self.freq, indicator_config)
+        self.indicator.record(trade_start_time)
