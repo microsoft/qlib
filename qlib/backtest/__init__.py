@@ -7,15 +7,9 @@ from .exchange import Exchange
 from .executor import BaseExecutor
 from .backtest import backtest_loop
 from .backtest import collect_data_loop
-<<<<<<< HEAD
 
 from .order import Order
 from .utils import CommonInfrastructure, TradeCalendarManager
-=======
-from .utils import CommonInfrastructure
-from .order import Order
-
->>>>>>> ab97e8248443789ce1e0f90a9b5596e5fee60566
 from ..strategy.base import BaseStrategy
 from ..utils import init_instance_by_config
 from ..log import get_module_logger
