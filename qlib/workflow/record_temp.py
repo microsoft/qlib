@@ -7,6 +7,7 @@ import warnings
 import pandas as pd
 from pathlib import Path
 from pprint import pprint
+from typing import Union, List
 from ..contrib.evaluate import indicator_analysis, risk_analysis, indicator_analysis
 
 from ..data.dataset import DatasetH
@@ -295,7 +296,13 @@ class PortAnaRecord(RecordTemp):
     artifact_path = "portfolio_analysis"
 
     def __init__(
-        self, recorder, config, risk_analysis_freq, indicator_analysis_freq, indicator_analysis_method=None, **kwargs
+        self,
+        recorder,
+        config,
+        risk_analysis_freq: Union[List, str] = [],
+        indicator_analysis_freq: Union[List, str] = [],
+        indicator_analysis_method=None,
+        **kwargs,
     ):
         """
         config["strategy"] : dict

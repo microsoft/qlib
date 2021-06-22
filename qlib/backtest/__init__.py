@@ -1,14 +1,15 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
+import copy
 
 from .account import Account
 from .exchange import Exchange
 from .executor import BaseExecutor
 from .backtest import backtest_loop
 from .backtest import collect_data_loop
-
 from .utils import CommonInfrastructure
 from .order import Order
+
 from ..strategy.base import BaseStrategy
 from ..utils import init_instance_by_config
 from ..log import get_module_logger
@@ -101,10 +102,15 @@ def get_strategy_executor(
             "end_time": end_time,
         },
     )
+
+    exchange_kwargs = copy.copy(exchange_kwargs)
+    if "start_time" not in exchange_kwargs:
+        exchange_kwargs["start_time"] = start_time
+    if "end_time" not in exchange_kwargs:
+        exchange_kwargs["end_time"] = end_time
     trade_exchange = get_exchange(**exchange_kwargs)
 
     common_infra = CommonInfrastructure(trade_account=trade_account, trade_exchange=trade_exchange)
-
     trade_strategy = init_instance_by_config(strategy, accept_types=BaseStrategy, common_infra=common_infra)
     trade_executor = init_instance_by_config(executor, accept_types=BaseExecutor, common_infra=common_infra)
 
