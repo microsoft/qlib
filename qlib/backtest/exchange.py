@@ -174,8 +174,8 @@ class Exchange:
         self.quote = quote_dict
 
     def _update_limit(self, buy_limit, sell_limit):
-        self.quote["limit_buy"] = ~self.quote["$change"].lt(buy_limit)
-        self.quote["limit_sell"] = ~self.quote["$change"].gt(-sell_limit)
+        self.quote["limit_buy"] = self.quote["$change"].ge(buy_limit)
+        self.quote["limit_sell"] = self.quote["$change"].le(-sell_limit)
 
     def check_stock_limit(self, stock_id, start_time, end_time, direction=None):
         """
