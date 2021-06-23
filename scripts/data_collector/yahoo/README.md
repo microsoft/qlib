@@ -140,22 +140,24 @@ pip install -r requirements.txt
         ```
         * * * * 1-5 python <script path> update_data_to_bin --qlib_data_1d_dir <user data dir>
         ```
-        * **script path**: *qlib/scripts/data_collector/yahoo/collector.py*
+        * **script path**: *scripts/data_collector/yahoo/collector.py*
 
   * Manual update of data
       ```
-      python qlib/scripts/data_collector/yahoo/collector.py update_data_to_bin --qlib_data_1d_dir <user data dir> --trading_date <start date> --end_date <end date>
+      python scripts/data_collector/yahoo/collector.py update_data_to_bin --qlib_data_1d_dir <user data dir> --trading_date <start date> --end_date <end date>
       ```
-      * *trading_date*: start of trading day
-      * *end_date*: end of trading day(not included)
+      * `trading_date`: start of trading day
+      * `end_date`: end of trading day(not included)
+      * `check_data_length`: check the number of rows per *symbol*, by default `None`
+        > if `len(symbol_df) < check_data_length`, it will be re-fetched, with the number of re-fetches coming from the `max_collector_count` parameter
 
-  * qlib/scripts/data_collector/yahoo/collector.py update_data_to_bin parameters:
-      * *source_dir*: The directory where the raw data collected from the Internet is saved, default "Path(__file__).parent/source"
-      * *normalize_dir*: Directory for normalize data, default "Path(__file__).parent/normalize"
-      * *qlib_data_1d_dir*: the qlib data to be updated for yahoo, usually from: [download qlib data](https://github.com/microsoft/qlib/tree/main/scripts#download-cn-data)
-      * *trading_date*: trading days to be updated, by default ``datetime.datetime.now().strftime("%Y-%m-%d")``
-      * *end_date*: end datetime, default ``pd.Timestamp(trading_date + pd.Timedelta(days=1))``; open interval(excluding end)
-      * *region*: region, value from ["CN", "US"], default "CN"
+  * `scripts/data_collector/yahoo/collector.py update_data_to_bin` parameters:
+      * `source_dir`: The directory where the raw data collected from the Internet is saved, default "Path(__file__).parent/source"
+      * `normalize_dir`: Directory for normalize data, default "Path(__file__).parent/normalize"
+      * `qlib_data_1d_dir`: the qlib data to be updated for yahoo, usually from: [download qlib data](https://github.com/microsoft/qlib/tree/main/scripts#download-cn-data)
+      * `trading_date`: trading days to be updated, by default ``datetime.datetime.now().strftime("%Y-%m-%d")``
+      * `end_date`: end datetime, default ``pd.Timestamp(trading_date + pd.Timedelta(days=1))``; open interval(excluding end)
+      * `region`: region, value from ["CN", "US"], default "CN"
 
 
 ## Using qlib data

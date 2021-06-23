@@ -13,6 +13,7 @@ from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 import pandas as pd
 from tqdm import tqdm
 from loguru import logger
+from joblib import Parallel, delayed
 from qlib.utils import code_to_fname
 
 
@@ -186,20 +187,12 @@ class BaseCollector(abc.ABC):
     def _collector(self, instrument_list):
 
         error_symbol = []
-        with tqdm(total=len(instrument_list)) as p_bar:
-            if self.max_workers is not None and self.max_workers > 1:
-                logger.info(f"concurrent collector, max_workers: {self.max_workers}")
-                with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
-                    for _symbol, _result in zip(instrument_list, executor.map(self._simple_collector, instrument_list)):
-                        if _result != self.NORMAL_FLAG:
-                            error_symbol.append(_symbol)
-                        p_bar.update()
-            else:
-                for _symbol in instrument_list:
-                    _result = self._simple_collector(_symbol)
-                    if _result != self.NORMAL_FLAG:
-                        error_symbol.append(_symbol)
-                    p_bar.update()
+        res = Parallel(n_jobs=self.max_workers)(
+            delayed(self._simple_collector)(_inst) for _inst in tqdm(instrument_list)
+        )
+        for _symbol, _result in zip(instrument_list, res):
+            if _result != self.NORMAL_FLAG:
+                error_symbol.append(_symbol)
         print(error_symbol)
         logger.info(f"error symbol nums: {len(error_symbol)}")
         logger.info(f"current get symbol nums: {len(instrument_list)}")
@@ -365,7 +358,7 @@ class BaseRun(abc.ABC):
         start=None,
         end=None,
         interval="1d",
-        check_data_length=False,
+        check_data_length: int = None,
         limit_nums=None,
     ):
         """download data from Internet
@@ -382,8 +375,8 @@ class BaseRun(abc.ABC):
             start datetime, default "2000-01-01"
         end: str
             end datetime, default ``pd.Timestamp(datetime.datetime.now() + pd.Timedelta(days=1))``
-        check_data_length: bool
-            check data length, by default False
+        check_data_length: int
+            check data length, if not None and greater than 0, each symbol will be considered complete if its data length is greater than or equal to this value, otherwise it will be fetched again, the maximum number of fetches being (max_collector_count). By default None.
         limit_nums: int
             using for debug, by default None
 

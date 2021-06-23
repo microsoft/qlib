@@ -254,7 +254,7 @@ class Run(BaseRun):
         start=None,
         end=None,
         interval="1d",
-        check_data_length=None,
+        check_data_length: int = None,
         limit_nums=None,
     ):
         """download data from Internet

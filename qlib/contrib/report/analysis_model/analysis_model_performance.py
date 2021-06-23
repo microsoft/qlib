@@ -79,6 +79,9 @@ def _plot_qq(data: pd.Series = None, dist=stats.norm) -> go.Figure:
     :param dist:
     :return:
     """
+    # NOTE: plotly.tools.mpl_to_plotly not actively maintained, resulting in errors in the new version of matplotlib,
+    # ref: https://github.com/plotly/plotly.py/issues/2913#issuecomment-730071567
+    # removing plotly.tools.mpl_to_plotly for greater compatibility with matplotlib versions
     _plt_fig = sm.qqplot(data.dropna(), dist=dist, fit=True, line="45")
     plt.close(_plt_fig)
     qqplot_data = _plt_fig.gca().lines
@@ -88,9 +91,7 @@ def _plot_qq(data: pd.Series = None, dist=stats.norm) -> go.Figure:
         {
             "type": "scatter",
             "x": qqplot_data[0].get_xdata(),
-            # 'x': [0, 1],
             "y": qqplot_data[0].get_ydata(),
-            # 'y': [1, 2],
             "mode": "markers",
             "marker": {"color": "#19d3f3"},
         }
@@ -100,9 +101,7 @@ def _plot_qq(data: pd.Series = None, dist=stats.norm) -> go.Figure:
         {
             "type": "scatter",
             "x": qqplot_data[1].get_xdata(),
-            # 'x': [0, 1],
             "y": qqplot_data[1].get_ydata(),
-            # 'y': [1, 2],
             "mode": "lines",
             "line": {"color": "#636efa"},
         }

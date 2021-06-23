@@ -171,11 +171,11 @@ We recommend users to prepare their own data if they have a high-quality dataset
         ```
         * * * * 1-5 python <script path> update_data_to_bin --qlib_data_1d_dir <user data dir>
         ```
-        * **script path**: *qlib/scripts/data_collector/yahoo/collector.py*
+        * **script path**: *scripts/data_collector/yahoo/collector.py*
 
   * Manual update of data
       ```
-      python qlib/scripts/data_collector/yahoo/collector.py update_data_to_bin --qlib_data_1d_dir <user data dir> --trading_date <start date> --end_date <end date>
+      python scripts/data_collector/yahoo/collector.py update_data_to_bin --qlib_data_1d_dir <user data dir> --trading_date <start date> --end_date <end date>
       ```
       * *trading_date*: start of trading day
       * *end_date*: end of trading day(not included)

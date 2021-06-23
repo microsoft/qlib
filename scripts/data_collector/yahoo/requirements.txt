@@ -7,3 +7,4 @@ tqdm
 lxml
 loguru
 yahooquery
+joblib
