@@ -242,7 +242,10 @@ class YahooCollectorCN1d(YahooCollectorCN):
 class YahooCollectorCN1min(YahooCollectorCN):
     def get_instrument_list(self):
         symbols = super(YahooCollectorCN1min, self).get_instrument_list()
-        return symbols + ["000300.ss", "000905.ss", "00903.ss"]
+        return symbols + ["000300.ss", "000905.ss", "000903.ss"]
+
+    def download_index_data(self):
+        pass
 
 
 class YahooCollectorUS(YahooCollector, ABC):
@@ -461,7 +464,7 @@ class YahooNormalize1dExtend(YahooNormalize1d):
             _si = df["close"].first_valid_index()
             if _si > df.index[0]:
                 logger.warning(
-                    f"{df.loc[_si][self._symbol_field_name]} missing data: {df.loc[:_si-1][self._date_field_name].to_list()}"
+                    f"{df.loc[_si][self._symbol_field_name]} missing data: {df.loc[:_si - 1][self._date_field_name].to_list()}"
                 )
         # normalize
         df = self.normalize_yahoo(
@@ -524,7 +527,7 @@ class YahooNormalize1min(YahooNormalize, ABC):
         data_1d: pd.DataFrame = self.get_1d_data(symbol, _start, _end)
         data_1d = data_1d.copy()
         if data_1d is None or data_1d.empty:
-            df["factor"] = 1 / df.loc[df["close"].first_valid_index()]
+            df["factor"] = 1 / df.loc[df["close"].first_valid_index()]["close"]
             # TODO: np.nan or 1 or 0
             df["paused"] = np.nan
         else:
@@ -770,7 +773,7 @@ class Run(BaseRun):
     def download_data(
         self,
         max_collector_count=2,
-        delay=0,
+        delay=0.5,
         start=None,
         end=None,
         check_data_length=None,
@@ -783,7 +786,7 @@ class Run(BaseRun):
         max_collector_count: int
             default 2
         delay: float
-            time.sleep(delay), default 0
+            time.sleep(delay), default 0.5
         start: str
             start datetime, default "2000-01-01"; closed interval(including start)
         end: str
@@ -844,9 +847,8 @@ class Run(BaseRun):
         """
         if self.interval.lower() == "1min":
             if qlib_data_1d_dir is None or not Path(qlib_data_1d_dir).expanduser().exists():
-                # TODO: add reference url
                 raise ValueError(
-                    "If normalize 1min, the qlib_data_1d_dir parameter must be set: --qlib_data_1d_dir <user qlib 1d data >, Reference: "
+                    "If normalize 1min, the qlib_data_1d_dir parameter must be set: --qlib_data_1d_dir <user qlib 1d data >, Reference: https://github.com/zhupr/qlib/tree/support_extend_data/scripts/data_collector/yahoo#automatic-update-of-daily-frequency-datafrom-yahoo-finance"
                 )
         super(Run, self).normalize_data(
             date_field_name, symbol_field_name, end_date=end_date, qlib_data_1d_dir=qlib_data_1d_dir

@@ -162,7 +162,7 @@ We recommend users to prepare their own data if they have a high-quality dataset
 ### Automatic update of daily frequency data(from yahoo finance)
   > It is recommended that users update the data manually once (--trading_date 2021-05-25) and then set it to update automatically.
 
-  > For more information refer to: [yahoo collector](https://github.com/microsoft/qlib/tree/main/scripts/data_collector/yahoo#Automatic-update-of-daily-frequency-data)
+  > For more information refer to: [yahoo collector](https://github.com/microsoft/qlib/tree/main/scripts/data_collector/yahoo#automatic-update-of-daily-frequency-datafrom-yahoo-finance)
 
   * Automatic update of data to the "qlib" directory each trading day(Linux)
       * use *crontab*: `crontab -e`
