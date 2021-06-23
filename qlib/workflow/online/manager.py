@@ -6,7 +6,7 @@ OnlineManager can manage a set of `Online Strategy <#Online Strategy>`_ and run 
 
 With the change of time, the decisive models will be also changed. In this module, we call those contributing models `online` models.
 In every routine(such as every day or every minute), the `online` models may be changed and the prediction of them needs to be updated.
-So this module provides a series of methods to control this process. 
+So this module provides a series of methods to control this process.
 
 This module also provides a method to simulate `Online Strategy <#Online Strategy>`_ in history.
 Which means you can verify your strategy or find a better one.
@@ -18,10 +18,12 @@ There are 4 total situations for using different trainers in different situation
 =========================  ===================================================================================
 Situations                 Description
 =========================  ===================================================================================
-Online + Trainer           When you REAL want to do a routine, the Trainer will help you train the models. 
+Online + Trainer           When you want to do a REAL routine, the Trainer will help you train the models. It
+                           will train models task by task and strategy by strategy.
 
-Online + DelayTrainer      In normal online routine, whether Trainer or DelayTrainer will REAL train models
-                           in this routine. So it is not necessary to use DelayTrainer when do a REAL routine.
+Online + DelayTrainer      When your models don't have any temporal dependence, the DelayTrainer will train
+                           nothing until all tasks have been prepared. It makes user can train all tasks in
+                           the end of `routine` or `first_train`.
 
 Simulation + Trainer       When your models have some temporal dependence on the previous models, then you
                            need to consider using Trainer. This means it will REAL train your models in
@@ -29,7 +31,7 @@ Simulation + Trainer       When your models have some temporal dependence on the
 
 Simulation + DelayTrainer  When your models don't have any temporal dependence, you can use DelayTrainer
                            for the ability to multitasking. It means all tasks in all routines
-                           can be REAL trained at the end of simulating. The signals will be prepared well at 
+                           can be REAL trained at the end of simulating. The signals will be prepared well at
                            different time segments (based on whether or not any new model is online).
 =========================  ===================================================================================
 """
@@ -103,16 +105,22 @@ class OnlineManager(Serializable):
         """
         if strategies is None:
             strategies = self.strategies
-        for strategy in strategies:
 
+        models_list = []
+        for strategy in strategies:
             self.logger.info(f"Strategy `{strategy.name_id}` begins first training...")
             tasks = strategy.first_tasks()
             models = self.trainer.train(tasks, experiment_name=strategy.name_id)
-            models = self.trainer.end_train(models, experiment_name=strategy.name_id)
+            models_list.append(models)
             self.logger.info(f"Finished training {len(models)} models.")
-
+            # FIXME: Traing multiple online models at `first_train` will result in getting too much online models at the
+            # start.
             online_models = strategy.prepare_online_models(models, **model_kwargs)
             self.history.setdefault(self.cur_time, {})[strategy] = online_models
+
+        if not self.status == self.STATUS_SIMULATING or not self.trainer.is_delay():
+            for strategy, models in zip(strategies, models_list):
+                models = self.trainer.end_train(models, experiment_name=strategy.name_id)
 
     def routine(
         self,
@@ -139,33 +147,41 @@ class OnlineManager(Serializable):
             cur_time = D.calendar(freq=self.freq).max()
         self.cur_time = pd.Timestamp(cur_time)  # None for latest date
 
+        models_list = []
         for strategy in self.strategies:
             self.logger.info(f"Strategy `{strategy.name_id}` begins routine...")
-            if self.status == self.STATUS_NORMAL:
-                strategy.tool.update_online_pred()
 
             tasks = strategy.prepare_tasks(self.cur_time, **task_kwargs)
-            models = self.trainer.train(tasks)
-            if self.status == self.STATUS_NORMAL or not self.trainer.is_delay():
-                models = self.trainer.end_train(models, experiment_name=strategy.name_id)
+            models = self.trainer.train(tasks, experiment_name=strategy.name_id)
+            models_list.append(models)
             self.logger.info(f"Finished training {len(models)} models.")
             online_models = strategy.prepare_online_models(models, **model_kwargs)
             self.history.setdefault(self.cur_time, {})[strategy] = online_models
 
-        if not self.trainer.is_delay():
+            # The online model may changes in the above processes
+            # So updating the predictions of online models should be the last step
+            if self.status == self.STATUS_NORMAL:
+                strategy.tool.update_online_pred()
+
+        if not self.status == self.STATUS_SIMULATING or not self.trainer.is_delay():
+            for strategy, models in zip(self.strategies, models_list):
+                models = self.trainer.end_train(models, experiment_name=strategy.name_id)
             self.prepare_signals(**signal_kwargs)
 
-    def get_collector(self) -> MergeCollector:
+    def get_collector(self, **kwargs) -> MergeCollector:
         """
         Get the instance of `Collector <../advanced/task_management.html#Task Collecting>`_ to collect results from every strategy.
         This collector can be a basis as the signals preparation.
+
+        Args:
+            **kwargs: the params for get_collector.
 
         Returns:
             MergeCollector: the collector to merge other collectors.
         """
         collector_dict = {}
         for strategy in self.strategies:
-            collector_dict[strategy.name_id] = strategy.get_collector()
+            collector_dict[strategy.name_id] = strategy.get_collector(**kwargs)
         return MergeCollector(collector_dict, process_list=[])
 
     def add_strategy(self, strategies: Union[OnlineStrategy, List[OnlineStrategy]]):
@@ -225,7 +241,7 @@ class OnlineManager(Serializable):
     SIM_LOG_NAME = "SIMULATE_INFO"
 
     def simulate(
-        self, end_time, frequency="day", task_kwargs={}, model_kwargs={}, signal_kwargs={}
+        self, end_time=None, frequency="day", task_kwargs={}, model_kwargs={}, signal_kwargs={}
     ) -> Union[pd.Series, pd.DataFrame]:
         """
         Starting from the current time, this method will simulate every routine in OnlineManager until the end time.
@@ -297,6 +313,7 @@ class OnlineManager(Serializable):
                 # NOTE: Assumption: the predictions of online models need less than next cur_time, or this method will work in a wrong way.
                 self.prepare_signals(**signal_kwargs)
                 if signals_time > cur_time:
+                    # FIXME: if use DelayTrainer and worker (and worker is faster than main progress), there are some possibilities of showing this warning.
                     self.logger.warn(
                         f"The signals have already parpred to {signals_time} by last preparation, but current time is only {cur_time}. This may be because the online models predict more than they should, which can cause signals to be contaminated by the offline models."
                     )

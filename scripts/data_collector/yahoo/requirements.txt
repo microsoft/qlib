@@ -5,6 +5,5 @@ numpy
 pandas
 tqdm
 lxml
-loguru
 yahooquery
 joblib

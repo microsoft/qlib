@@ -69,28 +69,29 @@ class TaskManager:
 
     ENCODE_FIELDS_PREFIX = ["def", "res"]
 
-    def __init__(self, task_pool: str = None):
+    def __init__(self, task_pool: str):
         """
         Init Task Manager, remember to make the statement of MongoDB url and database name firstly.
+        A TaskManager instance serves a specific task pool.
+        The static method of this module serves the whole MongoDB.
 
         Parameters
         ----------
         task_pool: str
             the name of Collection in MongoDB
         """
-        self.mdb = get_mongodb()
-        if task_pool is not None:
-            self.task_pool = getattr(self.mdb, task_pool)
+        self.task_pool = getattr(get_mongodb(), task_pool)
         self.logger = get_module_logger(self.__class__.__name__)
 
-    def list(self) -> list:
+    @staticmethod
+    def list() -> list:
         """
-        List the all collection(task_pool) of the db
+        List the all collection(task_pool) of the db.
 
         Returns:
             list
         """
-        return self.mdb.list_collection_names()
+        return get_mongodb().list_collection_names()
 
     def _encode_task(self, task):
         for prefix in self.ENCODE_FIELDS_PREFIX:
@@ -108,6 +109,25 @@ class TaskManager:
 
     def _dict_to_str(self, flt):
         return {k: str(v) for k, v in flt.items()}
+
+    def _decode_query(self, query):
+        """
+        If the query includes any `_id`, then it needs `ObjectId` to decode.
+        For example, when using TrainerRM, it needs query `{"_id": {"$in": _id_list}}`. Then we need to `ObjectId` every `_id` in `_id_list`.
+
+        Args:
+            query (dict): query dict. Defaults to {}.
+
+        Returns:
+            dict: the query after decoding.
+        """
+        if "_id" in query:
+            if isinstance(query["_id"], dict):
+                for key in query["_id"]:
+                    query["_id"][key] = [ObjectId(i) for i in query["_id"][key]]
+            else:
+                query["_id"] = ObjectId(query["_id"])
+        return query
 
     def replace_task(self, task, new_task):
         """
@@ -224,8 +244,7 @@ class TaskManager:
             dict: a task(document in collection) after decoding
         """
         query = query.copy()
-        if "_id" in query:
-            query["_id"] = ObjectId(query["_id"])
+        query = self._decode_query(query)
         query.update({"status": status})
         task = self.task_pool.find_one_and_update(
             query, {"$set": {"status": self.STATUS_RUNNING}}, sort=[("priority", pymongo.DESCENDING)]
@@ -253,10 +272,10 @@ class TaskManager:
         task = self.fetch_task(query=query, status=status)
         try:
             yield task
-        except Exception:
+        except (Exception, KeyboardInterrupt):  # KeyboardInterrupt is not a subclass of Exception
             if task is not None:
                 self.logger.info("Returning task before raising error")
-                self.return_task(task)
+                self.return_task(task, status=status)  # return task as the original status
                 self.logger.info("Task returned")
             raise
 
@@ -283,12 +302,11 @@ class TaskManager:
         dict: a task(document in collection) after decoding
         """
         query = query.copy()
-        if "_id" in query:
-            query["_id"] = ObjectId(query["_id"])
+        query = self._decode_query(query)
         for t in self.task_pool.find(query):
             yield self._decode_task(t)
 
-    def re_query(self, _id):
+    def re_query(self, _id) -> dict:
         """
         Use _id to query task.
 
@@ -339,8 +357,7 @@ class TaskManager:
 
         """
         query = query.copy()
-        if "_id" in query:
-            query["_id"] = ObjectId(query["_id"])
+        query = self._decode_query(query)
         self.task_pool.delete_many(query)
 
     def task_stat(self, query={}) -> dict:
@@ -354,8 +371,7 @@ class TaskManager:
             dict
         """
         query = query.copy()
-        if "_id" in query:
-            query["_id"] = ObjectId(query["_id"])
+        query = self._decode_query(query)
         tasks = self.query(query=query, decode=False)
         status_stat = {}
         for t in tasks:
@@ -377,8 +393,7 @@ class TaskManager:
 
     def reset_status(self, query, status):
         query = query.copy()
-        if "_id" in query:
-            query["_id"] = ObjectId(query["_id"])
+        query = self._decode_query(query)
         print(self.task_pool.update_many(query, {"$set": {"status": status}}))
 
     def prioritize(self, task, priority: int):
@@ -396,15 +411,29 @@ class TaskManager:
         self.task_pool.update_one({"_id": task["_id"]}, update_dict)
 
     def _get_undone_n(self, task_stat):
-        return task_stat.get(self.STATUS_WAITING, 0) + task_stat.get(self.STATUS_RUNNING, 0)
+        return (
+            task_stat.get(self.STATUS_WAITING, 0)
+            + task_stat.get(self.STATUS_RUNNING, 0)
+            + task_stat.get(self.STATUS_PART_DONE, 0)
+        )
 
     def _get_total(self, task_stat):
         return sum(task_stat.values())
 
     def wait(self, query={}):
+        """
+        When multiprocessing, the main progress may fetch nothing from TaskManager because there are still some running tasks.
+        So main progress should wait until all tasks are trained well by other progress or machines.
+
+        Args:
+            query (dict, optional): the query dict. Defaults to {}.
+        """
         task_stat = self.task_stat(query)
         total = self._get_total(task_stat)
         last_undone_n = self._get_undone_n(task_stat)
+        if last_undone_n == 0:
+            return
+        self.logger.warning(f"Waiting for {last_undone_n} undone tasks. Please make sure they are running.")
         with tqdm(total=total, initial=total - last_undone_n) as pbar:
             while True:
                 time.sleep(10)
