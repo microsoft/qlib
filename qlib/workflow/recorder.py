@@ -5,6 +5,9 @@ import mlflow, logging
 import shutil, os, pickle, tempfile, codecs, pickle
 from pathlib import Path
 from datetime import datetime
+
+from mlflow.exceptions import MlflowException
+from qlib.utils.exceptions import QlibException
 from ..utils.objm import FileManager
 from ..log import get_module_logger
 
@@ -308,9 +311,12 @@ class MLflowRecorder(Recorder):
 
     def load_object(self, name):
         assert self.uri is not None, "Please start the experiment and recorder first before using recorder directly."
-        path = self.client.download_artifacts(self.id, name)
-        with Path(path).open("rb") as f:
-            return pickle.load(f)
+        try:
+            path = self.client.download_artifacts(self.id, name)
+            with Path(path).open("rb") as f:
+                return pickle.load(f)
+        except OSError as e:
+            raise QlibException(message=str(e))
 
     def log_params(self, **kwargs):
         for name, data in kwargs.items():

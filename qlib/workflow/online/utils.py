@@ -12,6 +12,7 @@ from qlib.data.dataset import TSDatasetH
 
 from qlib.log import get_module_logger
 from qlib.utils import get_cls_kwargs
+from qlib.utils.exceptions import QlibException
 from qlib.workflow.online.update import PredUpdater
 from qlib.workflow.recorder import Recorder
 from qlib.workflow.task.utils import list_recorders
@@ -191,9 +192,9 @@ class OnlineToolR(OnlineTool):
                 hist_ref = kwargs.get("step_len", TSDatasetH.DEFAULT_STEP_LEN)
             try:
                 updater = PredUpdater(rec, to_date=to_date, hist_ref=hist_ref)
-            except OSError:
+            except QlibException as e:
                 # skip the recorder without pred
-                self.logger.warn(f"Can't find `pred.pkl`, skip it.")
+                self.logger.warn(f"An exception `{str(e)}` happened when load `pred.pkl`, skip it.")
                 continue
             updater.update()
 
