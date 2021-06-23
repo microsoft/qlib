@@ -61,6 +61,13 @@ def fill_placeholder(config: dict, config_extend: dict):
     dict
         the parameter dict
     """    
+    # check the format of config_extend
+    import re
+    for placeholder in config_extend.keys():
+        assert re.match(r"<[^<>]+>", placeholder)
+    re.match()
+
+    # bfs
     top = 0
     tail = 1
     dict_quene = [config]
@@ -92,20 +99,21 @@ def end_task_train(rec: Recorder, experiment_name: str) -> Recorder:
         # model & dataset initiation
         model: Model = init_instance_by_config(task_config["model"])
         dataset: Dataset = init_instance_by_config(task_config["dataset"])
-        placehorder_value = {"<MODEL>": model, "<DATASET>": dataset}
         # model training
         model.fit(dataset)
         R.save_objects(**{"params.pkl": model})
         # this dataset is saved for online inference. So the concrete data should not be dumped
         dataset.config(dump_all=False, recursive=True)
         R.save_objects(**{"dataset": dataset})
+        # fill placehorder
+        placehorder_value = {"<MODEL>": model, "<DATASET>": dataset}
+        task_config = fill_placeholder(task_config, placehorder_value)
         # generate records: prediction, backtest, and analysis
         records = task_config.get("record", [])
         if isinstance(records, dict):  # prevent only one dict
             records = [records]
         for record in records:
             cls, kwargs = get_cls_kwargs(record, default_module="qlib.workflow.record_temp")
-            kwargs = fill_placeholder(kwargs, placehorder_value)
             kwargs["recorder"] = rec
             r = cls(**kwargs)
             r.generate()
