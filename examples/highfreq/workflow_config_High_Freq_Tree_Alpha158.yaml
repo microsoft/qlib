@@ -59,7 +59,9 @@ task:
     record: 
         - class: "SignalRecord"
           module_path: "qlib.workflow.record_temp"
-          kwargs: {}
+          kwargs: 
+            model: <MODEL>
+            dataset: <DATASET>
         - class: "HFSignalRecord"
           module_path: "qlib.workflow.record_temp"
           kwargs: {}
