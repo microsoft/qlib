@@ -68,7 +68,7 @@ Your feedbacks about the features are very important.
 # Framework of Qlib
 
 <div style="align: center">
-<img src="http://fintech.msra.cn/images_v060/framework.png?v=0.1" />
+<img src="http://fintech.msra.cn/images_v060/framework.png?v=0.2" />
 </div>
 
 
