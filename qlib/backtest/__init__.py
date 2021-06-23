@@ -1,14 +1,15 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
+import copy
 
 from .account import Account
 from .exchange import Exchange
 from .executor import BaseExecutor
 from .backtest import backtest_loop
 from .backtest import collect_data_loop
-
 from .utils import CommonInfrastructure
 from .order import Order
+
 from ..strategy.base import BaseStrategy
 from ..utils import init_instance_by_config
 from ..log import get_module_logger
@@ -101,10 +102,15 @@ def get_strategy_executor(
             "end_time": end_time,
         },
     )
+
+    exchange_kwargs = copy.copy(exchange_kwargs)
+    if "start_time" not in exchange_kwargs:
+        exchange_kwargs["start_time"] = start_time
+    if "end_time" not in exchange_kwargs:
+        exchange_kwargs["end_time"] = end_time
     trade_exchange = get_exchange(**exchange_kwargs)
 
     common_infra = CommonInfrastructure(trade_account=trade_account, trade_exchange=trade_exchange)
-
     trade_strategy = init_instance_by_config(strategy, accept_types=BaseStrategy, common_infra=common_infra)
     trade_executor = init_instance_by_config(executor, accept_types=BaseExecutor, common_infra=common_infra)
 
@@ -116,9 +122,9 @@ def backtest(start_time, end_time, strategy, executor, benchmark="SH000300", acc
     trade_strategy, trade_executor = get_strategy_executor(
         start_time, end_time, strategy, executor, benchmark, account, exchange_kwargs
     )
-    report_dict = backtest_loop(start_time, end_time, trade_strategy, trade_executor)
+    report_dict, indicator_dict = backtest_loop(start_time, end_time, trade_strategy, trade_executor)
 
-    return report_dict
+    return report_dict, indicator_dict
 
 
 def collect_data(start_time, end_time, strategy, executor, benchmark="SH000300", account=1e9, exchange_kwargs={}):
@@ -126,6 +132,4 @@ def collect_data(start_time, end_time, strategy, executor, benchmark="SH000300",
     trade_strategy, trade_executor = get_strategy_executor(
         start_time, end_time, strategy, executor, benchmark, account, exchange_kwargs
     )
-    report_dict = yield from collect_data_loop(start_time, end_time, trade_strategy, trade_executor)
-
-    return report_dict
+    yield from collect_data_loop(start_time, end_time, trade_strategy, trade_executor)
