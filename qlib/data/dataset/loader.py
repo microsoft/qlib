@@ -207,7 +207,12 @@ class StaticDataLoader(DataLoader):
             df = self._data.loc(axis=0)[:, instruments]
         if start_time is None and end_time is None:
             return df  # NOTE: avoid copy by loc
-        return df.loc[pd.Timestamp(start_time) : pd.Timestamp(end_time)]
+        # pd.Timestamp(None) == NaT, use NaT as index can not fetch correct thing, so do not change None.
+        if start_time is not None:
+            start_time = pd.Timestamp(start_time)
+        if end_time is not None:
+            end_time = pd.Timestamp(end_time)
+        return df.loc[start_time:end_time]
 
     def _maybe_load_raw_data(self):
         if self._data is not None:
