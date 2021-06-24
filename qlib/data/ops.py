@@ -10,6 +10,7 @@ import abc
 import numpy as np
 import pandas as pd
 
+from typing import Union, List, Type
 from scipy.stats import percentileofscore
 
 from .base import Expression, ExpressionOps
@@ -1496,7 +1497,20 @@ class OpsWrapper:
     def reset(self):
         self._ops = {}
 
-    def register(self, ops_list):
+    def register(self, ops_list: List[Union[Type[ExpressionOps], dict]]):
+        """register operator
+
+        Parameters
+        ----------
+        ops_list : List[Union[Type[ExpressionOps], dict]]
+            - if type(ops_list) is List[Type[ExpressionOps]], each element of ops_list represents the operator class, which should be the subclass of `ExpressionOps`.
+            - if type(ops_list) is List[dict], each element of ops_list represents the config of operator, which has the following format:
+                {
+                    "class": class_name,
+                    "module_path": path,
+                }
+                Note: `class` should be the class name of operator, `module_path` should be a python module or path of file.
+        """
         for _operator in ops_list:
             if isinstance(_operator, dict):
                 _ops_class, _ = get_cls_kwargs(_operator)
