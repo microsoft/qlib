@@ -9,7 +9,7 @@ from ...data.dataset.utils import convert_index_format
 from ...strategy.base import BaseStrategy
 from ...backtest.order import Order
 from ...backtest.exchange import Exchange
-from ...backtest.utils import CommonInfrastructure, LevelInfrastructure
+from ...backtest.utils import CommonInfrastructure, LevelInfrastructure, TradeDecison
 
 
 class TWAPStrategy(BaseStrategy):
@@ -17,7 +17,7 @@ class TWAPStrategy(BaseStrategy):
 
     def __init__(
         self,
-        outer_trade_decision: List[Order] = None,
+        outer_trade_decision: TradeDecison = None,
         trade_exchange: Exchange = None,
         level_infra: LevelInfrastructure = None,
         common_infra: CommonInfrastructure = None,
@@ -25,8 +25,8 @@ class TWAPStrategy(BaseStrategy):
         """
         Parameters
         ----------
-        outer_trade_decision : List[Order]
-            the trade decison of outer strategy which this startegy relies, it should be List[Order] in TWAPStrategy
+        outer_trade_decision : TradeDecison
+            the trade decison of outer strategy which this startegy relies
         trade_exchange : Exchange
             exchange that provides market info, used to deal order and generate report
             - If `trade_exchange` is None, self.trade_exchange will be set with common_infra
@@ -57,33 +57,37 @@ class TWAPStrategy(BaseStrategy):
         if common_infra.has("trade_exchange"):
             self.trade_exchange = common_infra.get("trade_exchange")
 
-    def reset(self, outer_trade_decision: List[Order] = None, **kwargs):
+    def reset(self, outer_trade_decision: TradeDecison = None, **kwargs):
         """
         Parameters
         ----------
-        outer_trade_decision : List[Order], optional
+        outer_trade_decision : TradeDecison, optional
         """
 
         super(TWAPStrategy, self).reset(outer_trade_decision=outer_trade_decision, **kwargs)
         if outer_trade_decision is not None:
             self.trade_amount = {}
-            for order in outer_trade_decision:
-                self.trade_amount[(order.stock_id, order.direction)] = order.amount
+            outer_order_generator = outer_trade_decision.generator()
+            for order in outer_order_generator:
+                self.trade_amount[order.stock_id] = order.amount
 
     def generate_trade_decision(self, execute_result=None):
-
-        # update the order amount
-        if execute_result is not None:
-            for order, _, _, _ in execute_result:
-                self.trade_amount[(order.stock_id, order.direction)] -= order.deal_amount
-
         # get the number of trading step finished, trade_step can be [0, 1, 2, ..., trade_len - 1]
         trade_step = self.trade_calendar.get_trade_step()
         # get the total count of trading step
         trade_len = self.trade_calendar.get_trade_len()
+        # update outer trade decision
+        self.outer_trade_decision.update(trade_step, trade_len)
+
+        # update the order amount
+        if execute_result is not None:
+            for order, _, _, _ in execute_result:
+                self.trade_amount[order.stock_id] -= order.deal_amount
+
         trade_start_time, trade_end_time = self.trade_calendar.get_step_time(trade_step)
         order_list = []
-        for order in self.outer_trade_decision:
+        outer_order_generator = self.outer_trade_decision.generator(only_enable=True)
+        for order in outer_order_generator:
             # if not tradable, continue
             if not self.trade_exchange.is_stock_tradable(
                 stock_id=order.stock_id, start_time=trade_start_time, end_time=trade_end_time
@@ -94,12 +98,12 @@ class TWAPStrategy(BaseStrategy):
             # considering trade unit
             if _amount_trade_unit is None:
                 # divide the order into equal parts, and trade one part
-                _order_amount = self.trade_amount[(order.stock_id, order.direction)] / (trade_len - trade_step)
+                _order_amount = self.trade_amount[order.stock_id] / (trade_len - trade_step)
             # without considering trade unit
             else:
                 # divide the order into equal parts, and trade one part
                 # calculate the total count of trade units to trade
-                trade_unit_cnt = int(self.trade_amount[(order.stock_id, order.direction)] // _amount_trade_unit)
+                trade_unit_cnt = int(self.trade_amount[order.stock_id] // _amount_trade_unit)
                 # calculate the amount of one part, ceil the amount
                 # floor((trade_unit_cnt + trade_len - trade_step) / (trade_len - trade_step + 1)) == ceil(trade_unit_cnt / (trade_len - trade_step + 1))
                 _order_amount = (
@@ -108,12 +112,10 @@ class TWAPStrategy(BaseStrategy):
 
             if order.direction == order.SELL:
                 # sell all amount at last
-                if self.trade_amount[(order.stock_id, order.direction)] > 1e-5 and (
-                    _order_amount < 1e-5 or trade_step == trade_len - 1
-                ):
-                    _order_amount = self.trade_amount[(order.stock_id, order.direction)]
+                if self.trade_amount[order.stock_id] > 1e-5 and (_order_amount < 1e-5 or trade_step == trade_len - 1):
+                    _order_amount = self.trade_amount[order.stock_id]
 
-            _order_amount = min(_order_amount, self.trade_amount[(order.stock_id, order.direction)])
+            _order_amount = min(_order_amount, self.trade_amount[order.stock_id])
 
             if _order_amount > 1e-5:
 
@@ -126,7 +128,7 @@ class TWAPStrategy(BaseStrategy):
                     factor=order.factor,
                 )
                 order_list.append(_order)
-        return order_list
+        return TradeDecison(order_list=order_list, ori_strategy=self)
 
 
 class SBBStrategyBase(BaseStrategy):
@@ -140,7 +142,7 @@ class SBBStrategyBase(BaseStrategy):
 
     def __init__(
         self,
-        outer_trade_decision: List[Order] = None,
+        outer_trade_decision: TradeDecison = None,
         trade_exchange: Exchange = None,
         level_infra: LevelInfrastructure = None,
         common_infra: CommonInfrastructure = None,
@@ -148,8 +150,8 @@ class SBBStrategyBase(BaseStrategy):
         """
         Parameters
         ----------
-        outer_trade_decision : List[Order]
-            the trade decison of outer strategy which this startegy relies, it should be List[Order] in SBBStrategyBase
+        outer_trade_decision : TradeDecison
+            the trade decison of outer strategy which this startegy relies
         trade_exchange : Exchange
             exchange that provides market info, used to deal order and generate report
             - If `trade_exchange` is None, self.trade_exchange will be set with common_infra
@@ -178,52 +180,57 @@ class SBBStrategyBase(BaseStrategy):
         if common_infra.has("trade_exchange"):
             self.trade_exchange = common_infra.get("trade_exchange")
 
-    def reset(self, outer_trade_decision: List[Order] = None, **kwargs):
+    def reset(self, outer_trade_decision: TradeDecison = None, **kwargs):
         """
         Parameters
         ----------
-        outer_trade_decision : List[Order], optional
+        outer_trade_decision : TradeDecison, optional
         """
         super(SBBStrategyBase, self).reset(outer_trade_decision=outer_trade_decision, **kwargs)
         if outer_trade_decision is not None:
             self.trade_trend = {}
             self.trade_amount = {}
             # init the trade amount of order and  predicted trade trend
-            for order in outer_trade_decision:
-                self.trade_trend[(order.stock_id, order.direction)] = self.TREND_MID
-                self.trade_amount[(order.stock_id, order.direction)] = order.amount
+            outer_order_generator = outer_trade_decision.generator()
+            for order in outer_order_generator:
+                self.trade_trend[order.stock_id] = self.TREND_MID
+                self.trade_amount[order.stock_id] = order.amount
 
     def _pred_price_trend(self, stock_id, pred_start_time=None, pred_end_time=None):
         raise NotImplementedError("pred_price_trend method is not implemented!")
 
     def generate_trade_decision(self, execute_result=None):
-
-        # update the order amount
-        if execute_result is not None:
-            for order, _, _, _ in execute_result:
-                self.trade_amount[(order.stock_id, order.direction)] -= order.deal_amount
         # get the number of trading step finished, trade_step can be [0, 1, 2, ..., trade_len - 1]
         trade_step = self.trade_calendar.get_trade_step()
         # get the total count of trading step
         trade_len = self.trade_calendar.get_trade_len()
+        # update outer trade decision
+        self.outer_trade_decision.update(trade_step, trade_len)
+
+        # update the order amount
+        if execute_result is not None:
+            for order, _, _, _ in execute_result:
+                self.trade_amount[order.stock_id] -= order.deal_amount
+
         trade_start_time, trade_end_time = self.trade_calendar.get_step_time(trade_step)
         pred_start_time, pred_end_time = self.trade_calendar.get_step_time(trade_step, shift=1)
         order_list = []
         # for each order in in self.outer_trade_decision
-        for order in self.outer_trade_decision:
+        outer_order_generator = self.outer_trade_decision.generator(only_enable=True)
+        for order in outer_order_generator:
             # get the price trend
             if trade_step % 2 == 0:
                 # in the first of two adjacent bars, predict the price trend
                 _pred_trend = self._pred_price_trend(order.stock_id, pred_start_time, pred_end_time)
             else:
                 # in the second of two adjacent bars, use the trend predicted in the first one
-                _pred_trend = self.trade_trend[(order.stock_id, order.direction)]
+                _pred_trend = self.trade_trend[order.stock_id]
             # if not tradable, continue
             if not self.trade_exchange.is_stock_tradable(
                 stock_id=order.stock_id, start_time=trade_start_time, end_time=trade_end_time
             ):
                 if trade_step % 2 == 0:
-                    self.trade_trend[(order.stock_id, order.direction)] = _pred_trend
+                    self.trade_trend[order.stock_id] = _pred_trend
                 continue
             # get amount of one trade unit
             _amount_trade_unit = self.trade_exchange.get_amount_of_trade_unit(order.factor)
@@ -232,12 +239,12 @@ class SBBStrategyBase(BaseStrategy):
                 # considering trade unit
                 if _amount_trade_unit is None:
                     # divide the order into equal parts, and trade one part
-                    _order_amount = self.trade_amount[(order.stock_id, order.direction)] / (trade_len - trade_step)
+                    _order_amount = self.trade_amount[order.stock_id] / (trade_len - trade_step)
                 # without considering trade unit
                 else:
                     # divide the order into equal parts, and trade one part
                     # calculate the total count of trade units to trade
-                    trade_unit_cnt = int(self.trade_amount[(order.stock_id, order.direction)] // _amount_trade_unit)
+                    trade_unit_cnt = int(self.trade_amount[order.stock_id] // _amount_trade_unit)
                     # calculate the amount of one part, ceil the amount
                     # floor((trade_unit_cnt + trade_len - trade_step - 1) / (trade_len - trade_step)) == ceil(trade_unit_cnt / (trade_len - trade_step))
                     _order_amount = (
@@ -245,12 +252,12 @@ class SBBStrategyBase(BaseStrategy):
                     )
                 if order.direction == order.SELL:
                     # sell all amount at last
-                    if self.trade_amount[(order.stock_id, order.direction)] > 1e-5 and (
+                    if self.trade_amount[order.stock_id] > 1e-5 and (
                         _order_amount < 1e-5 or trade_step == trade_len - 1
                     ):
-                        _order_amount = self.trade_amount[(order.stock_id, order.direction)]
+                        _order_amount = self.trade_amount[order.stock_id]
 
-                _order_amount = min(_order_amount, self.trade_amount[(order.stock_id, order.direction)])
+                _order_amount = min(_order_amount, self.trade_amount[order.stock_id])
 
                 if _order_amount > 1e-5:
                     _order = Order(
@@ -268,13 +275,11 @@ class SBBStrategyBase(BaseStrategy):
                 # considering trade unit
                 if _amount_trade_unit is None:
                     # N trade day left, divide the order into N + 1 parts, and trade 2 parts
-                    _order_amount = (
-                        2 * self.trade_amount[(order.stock_id, order.direction)] / (trade_len - trade_step + 1)
-                    )
+                    _order_amount = 2 * self.trade_amount[order.stock_id] / (trade_len - trade_step + 1)
                 # without considering trade unit
                 else:
                     # cal how many trade unit
-                    trade_unit_cnt = int(self.trade_amount[(order.stock_id, order.direction)] // _amount_trade_unit)
+                    trade_unit_cnt = int(self.trade_amount[order.stock_id] // _amount_trade_unit)
                     # N trade day left, divide the order into N + 1 parts, and trade 2 parts
                     _order_amount = (
                         (trade_unit_cnt + trade_len - trade_step)
@@ -284,12 +289,12 @@ class SBBStrategyBase(BaseStrategy):
                     )
                 if order.direction == order.SELL:
                     # sell all amount at last
-                    if self.trade_amount[(order.stock_id, order.direction)] > 1e-5 and (
+                    if self.trade_amount[order.stock_id] > 1e-5 and (
                         _order_amount < 1e-5 or trade_step == trade_len - 1
                     ):
-                        _order_amount = self.trade_amount[(order.stock_id, order.direction)]
+                        _order_amount = self.trade_amount[order.stock_id]
 
-                _order_amount = min(_order_amount, self.trade_amount[(order.stock_id, order.direction)])
+                _order_amount = min(_order_amount, self.trade_amount[order.stock_id])
 
                 if _order_amount > 1e-5:
                     if trade_step % 2 == 0:
@@ -333,9 +338,9 @@ class SBBStrategyBase(BaseStrategy):
 
             if trade_step % 2 == 0:
                 # in the first one of two adjacent bars, store the trend for the second one to use
-                self.trade_trend[(order.stock_id, order.direction)] = _pred_trend
+                self.trade_trend[order.stock_id] = _pred_trend
 
-        return order_list
+        return TradeDecison(order_list=order_list, ori_strategy=self)
 
 
 class SBBStrategyEMA(SBBStrategyBase):
@@ -345,7 +350,7 @@ class SBBStrategyEMA(SBBStrategyBase):
 
     def __init__(
         self,
-        outer_trade_decision: List[Order] = None,
+        outer_trade_decision: TradeDecison = None,
         instruments: Union[List, str] = "csi300",
         freq: str = "day",
         trade_exchange: Exchange = None,
@@ -425,7 +430,7 @@ class ACStrategy(BaseStrategy):
         lamb: float = 1e-6,
         eta: float = 2.5e-6,
         window_size: int = 20,
-        outer_trade_decision: List[Order] = None,
+        outer_trade_decision: TradeDecison = None,
         instruments: Union[List, str] = "csi300",
         freq: str = "day",
         trade_exchange: Exchange = None,
@@ -502,34 +507,38 @@ class ACStrategy(BaseStrategy):
             self.trade_calendar = level_infra.get("trade_calendar")
             self._reset_signal()
 
-    def reset(self, outer_trade_decision: List[Order] = None, **kwargs):
+    def reset(self, outer_trade_decision: TradeDecison = None, **kwargs):
         """
         Parameters
         ----------
-        outer_trade_decision : List[Order], optional
+        outer_trade_decision : TradeDecison, optional
         """
         super(ACStrategy, self).reset(outer_trade_decision=outer_trade_decision, **kwargs)
         if outer_trade_decision is not None:
             self.trade_amount = {}
             # init the trade amount of order and  predicted trade trend
-            for order in outer_trade_decision:
-                self.trade_amount[(order.stock_id, order.direction)] = order.amount
+            outer_order_generator = outer_trade_decision.generator()
+            for order in outer_order_generator:
+                self.trade_amount[order.stock_id] = order.amount
 
     def generate_trade_decision(self, execute_result=None):
-
-        # update the order amount
-        if execute_result is not None:
-            for order, _, _, _ in execute_result:
-                self.trade_amount[(order.stock_id, order.direction)] -= order.deal_amount
-
         # get the number of trading step finished, trade_step can be [0, 1, 2, ..., trade_len - 1]
         trade_step = self.trade_calendar.get_trade_step()
         # get the total count of trading step
         trade_len = self.trade_calendar.get_trade_len()
+        # update outer trade decision
+        self.outer_trade_decision.update(trade_step, trade_len)
+
+        # update the order amount
+        if execute_result is not None:
+            for order, _, _, _ in execute_result:
+                self.trade_amount[order.stock_id] -= order.deal_amount
+
         trade_start_time, trade_end_time = self.trade_calendar.get_step_time(trade_step)
         pred_start_time, pred_end_time = self.trade_calendar.get_step_time(trade_step, shift=1)
         order_list = []
-        for order in self.outer_trade_decision:
+        outer_order_generator = self.outer_trade_decision.generator(only_enable=True)
+        for order in outer_order_generator:
             # if not tradable, continue
             if not self.trade_exchange.is_stock_tradable(
                 stock_id=order.stock_id, start_time=trade_start_time, end_time=trade_end_time
@@ -549,11 +558,11 @@ class ACStrategy(BaseStrategy):
                 _amount_trade_unit = self.trade_exchange.get_amount_of_trade_unit(order.factor)
                 if _amount_trade_unit is None:
                     # divide the order into equal parts, and trade one part
-                    _order_amount = self.trade_amount[(order.stock_id, order.direction)] / (trade_len - trade_step)
+                    _order_amount = self.trade_amount[order.stock_id] / (trade_len - trade_step)
                 else:
                     # divide the order into equal parts, and trade one part
                     # calculate the total count of trade units to trade
-                    trade_unit_cnt = int(self.trade_amount[(order.stock_id, order.direction)] // _amount_trade_unit)
+                    trade_unit_cnt = int(self.trade_amount[order.stock_id] // _amount_trade_unit)
                     # calculate the amount of one part, ceil the amount
                     # floor((trade_unit_cnt + trade_len - trade_step - 1) / (trade_len - trade_step)) == ceil(trade_unit_cnt / (trade_len - trade_step))
                     _order_amount = (
@@ -571,12 +580,10 @@ class ACStrategy(BaseStrategy):
 
             if order.direction == order.SELL:
                 # sell all amount at last
-                if self.trade_amount[(order.stock_id, order.direction)] > 1e-5 and (
-                    _order_amount < 1e-5 or trade_step == trade_len - 1
-                ):
-                    _order_amount = self.trade_amount[(order.stock_id, order.direction)]
+                if self.trade_amount[order.stock_id] > 1e-5 and (_order_amount < 1e-5 or trade_step == trade_len - 1):
+                    _order_amount = self.trade_amount[order.stock_id]
 
-            _order_amount = min(_order_amount, self.trade_amount[(order.stock_id, order.direction)])
+            _order_amount = min(_order_amount, self.trade_amount[order.stock_id])
 
             if _order_amount > 1e-5:
 
@@ -589,4 +596,4 @@ class ACStrategy(BaseStrategy):
                     factor=order.factor,
                 )
                 order_list.append(_order)
-        return order_list
+        return TradeDecison(order_list=order_list, ori_strategy=self)

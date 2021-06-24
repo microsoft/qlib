@@ -7,7 +7,7 @@ from ..data.dataset import DatasetH
 from ..data.dataset.utils import convert_index_format
 from ..rl.interpreter import ActionInterpreter, StateInterpreter
 from ..utils import init_instance_by_config
-from ..backtest.utils import CommonInfrastructure, LevelInfrastructure
+from ..backtest.utils import CommonInfrastructure, LevelInfrastructure, TradeDecison
 
 
 class BaseStrategy:
@@ -15,14 +15,14 @@ class BaseStrategy:
 
     def __init__(
         self,
-        outer_trade_decision: object = None,
+        outer_trade_decision: TradeDecison = None,
         level_infra: LevelInfrastructure = None,
         common_infra: CommonInfrastructure = None,
     ):
         """
         Parameters
         ----------
-        outer_trade_decision : object, optional
+        outer_trade_decision : TradeDecison, optional
             the trade decison of outer strategy which this startegy relies, and it will be traded in [start_time, end_time], by default None
             - If the strategy is used to split trade decison, it will be used
             - If the strategy is used for portfolio management, it can be ignored
@@ -84,6 +84,17 @@ class BaseStrategy:
         """
         raise NotImplementedError("generate_trade_decision is not implemented!")
 
+    def update_trade_decision(self, trade_decison: TradeDecison, trade_step, trade_len):
+        """update trade decision in each step of inner execution, this method enable all order
+
+        Parameters
+        ----------
+        trade_decison : TradeDecison
+            the trade decison that will be updated
+        """
+        if trade_step == 0:
+            trade_decison.enable(all_enable=True)
+
 
 class ModelStrategy(BaseStrategy):
     """Model-based trading strategy, use model to make predictions for trading"""
@@ -92,7 +103,7 @@ class ModelStrategy(BaseStrategy):
         self,
         model: BaseModel,
         dataset: DatasetH,
-        outer_trade_decision: object = None,
+        outer_trade_decision: TradeDecison = None,
         level_infra: LevelInfrastructure = None,
         common_infra: CommonInfrastructure = None,
         **kwargs,
@@ -128,7 +139,7 @@ class RLStrategy(BaseStrategy):
     def __init__(
         self,
         policy,
-        outer_trade_decision: object = None,
+        outer_trade_decision: TradeDecison = None,
         level_infra: LevelInfrastructure = None,
         common_infra: CommonInfrastructure = None,
         **kwargs,
@@ -151,7 +162,7 @@ class RLIntStrategy(RLStrategy):
         policy,
         state_interpreter: Union[dict, StateInterpreter],
         action_interpreter: Union[dict, ActionInterpreter],
-        outer_trade_decision: object = None,
+        outer_trade_decision: TradeDecison = None,
         level_infra: LevelInfrastructure = None,
         common_infra: CommonInfrastructure = None,
         **kwargs,

@@ -5,7 +5,7 @@ from typing import Union
 
 from .order import Order
 from .exchange import Exchange
-from .utils import TradeCalendarManager, CommonInfrastructure, LevelInfrastructure
+from .utils import TradeCalendarManager, CommonInfrastructure, LevelInfrastructure, TradeDecison
 
 from ..utils import init_instance_by_config
 from ..utils.resam import parse_freq
@@ -135,7 +135,7 @@ class BaseExecutor:
 
         Parameters
         ----------
-        trade_decision : object
+        trade_decision : TradeDecison
 
         Returns
         ----------
@@ -149,7 +149,7 @@ class BaseExecutor:
 
         Parameters
         ----------
-        trade_decision : object
+        trade_decision : TradeDecison
 
         Returns
         ----------
@@ -352,7 +352,8 @@ class SimulatorExecutor(BaseExecutor):
         trade_step = self.trade_calendar.get_trade_step()
         trade_start_time, trade_end_time = self.trade_calendar.get_step_time(trade_step)
         execute_result = []
-        for order in trade_decision:
+        order_generator = trade_decision.generator()
+        for order in order_generator:
             if self.trade_exchange.check_order(order) is True:
                 # execute the order
                 trade_val, trade_cost, trade_price = self.trade_exchange.deal_order(
