@@ -414,12 +414,12 @@ class SBBStrategyEMA(SBBStrategyBase):
             # if EMA signal > 0, return long trend
             elif _sample_signal.iloc[0] > 0:
                 return self.TREND_LONG
-            # if EMA signal > 0, return short trend
+            # if EMA signal < 0, return short trend
             else:
                 return self.TREND_SHORT
 
 
-class VAStrategy(BaseStrategy):
+class ACStrategy(BaseStrategy):
     def __init__(
         self,
         lamb: float = 1e-6,
@@ -451,7 +451,7 @@ class VAStrategy(BaseStrategy):
         if isinstance(instruments, str):
             self.instruments = D.instruments(instruments)
         self.freq = freq
-        super(VAStrategy, self).__init__(outer_trade_decision, level_infra, common_infra, **kwargs)
+        super(ACStrategy, self).__init__(outer_trade_decision, level_infra, common_infra, **kwargs)
 
         if trade_exchange is not None:
             self.trade_exchange = trade_exchange
@@ -483,7 +483,7 @@ class VAStrategy(BaseStrategy):
             - It should include `trade_account`, used to get position
             - It should include `trade_exchange`, used to provide market info
         """
-        super(VAStrategy, self).reset_common_infra(common_infra)
+        super(ACStrategy, self).reset_common_infra(common_infra)
 
         if common_infra.has("trade_exchange"):
             self.trade_exchange = common_infra.get("trade_exchange")
@@ -508,7 +508,7 @@ class VAStrategy(BaseStrategy):
         ----------
         outer_trade_decision : List[Order], optional
         """
-        super(VAStrategy, self).reset(outer_trade_decision=outer_trade_decision, **kwargs)
+        super(ACStrategy, self).reset(outer_trade_decision=outer_trade_decision, **kwargs)
         if outer_trade_decision is not None:
             self.trade_amount = {}
             # init the trade amount of order and  predicted trade trend

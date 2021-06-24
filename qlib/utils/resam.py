@@ -210,33 +210,12 @@ def get_resam_calendar(
     return _calendar, freq, freq_sam
 
 
-def get_higher_freq_feature(instruments, fields, start_time=None, end_time=None, freq="day", disk_cache=1):
-    """[summary]
-
-    Parameters
-    ----------
-    instruments : [type]
-        [description]
-    fields : [type]
-        [description]
-    start_time : [type], optional
-        [description], by default None
-    end_time : [type], optional
-        [description], by default None
-    freq : str, optional
-        [description], by default "day"
-    disk_cache : int, optional
-        [description], by default 1
-
+def get_higher_eq_freq_feature(instruments, fields, start_time=None, end_time=None, freq="day", disk_cache=1):
+    """get the feature with higher or equal frequency than `freq`.
     Returns
     -------
-    [type]
-        [description]
-
-    Raises
-    ------
-    ValueError
-        [description]
+    pd.DataFrame
+        the feature with higher or equal frequency
     """
 
     from ..data.data import D
@@ -331,13 +310,12 @@ def resam_ts_data(
         sample method, apply method function to each stock series data, by default "last"
         - If type(method) is str or callable function, it should be an attribute of SeriesGroupBy or DataFrameGroupby, and applies groupy.method for the sliced time-series data
         - If method is None, do nothing for the sliced time-series data.
-        - Only when the index `feature` is MultiIndex[instrument, datetime], the method is valid.
     method_kwargs : dict, optional
         arguments of method, by default {}
 
     Returns
     -------
-        The Resampled DataFrame/Series/Value
+        The resampled DataFrame/Series/value, return None when the resampled data is empty.
     """
 
     selector_datetime = slice(start_time, end_time)

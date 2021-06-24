@@ -11,7 +11,7 @@ from pandas.core import groupby
 
 from pandas.core.frame import DataFrame
 
-from ..utils.resam import parse_freq, resam_ts_data, get_higher_freq_feature
+from ..utils.resam import parse_freq, resam_ts_data, get_higher_eq_freq_feature
 from ..data import D
 from ..tests.config import CSI300_BENCH
 
@@ -82,7 +82,7 @@ class Report:
                 raise ValueError("benchmark freq can't be None!")
             _codes = benchmark if isinstance(benchmark, list) else [benchmark]
             fields = ["$close/Ref($close,1)-1"]
-            _temp_result, _ = get_higher_freq_feature(_codes, fields, start_time, end_time, freq=freq)
+            _temp_result, _ = get_higher_eq_freq_feature(_codes, fields, start_time, end_time, freq=freq)
             if len(_temp_result) == 0:
                 raise ValueError(f"The benchmark {_codes} does not exist. Please provide the right benchmark")
             return _temp_result.groupby(level="datetime")[_temp_result.columns.tolist()[0]].mean().fillna(0)
@@ -308,6 +308,7 @@ class Indicator:
             raise ValueError(f"base_price {base_price} is not supported!")
 
         self.order_indicator["pa"] = self.order_indicator["trade_price"] / self.order_indicator["base_price"] - 1
+        # print("trade_price", self.order_indicator["trade_price"], "base_price", self.order_indicator["base_price"], "pa", self.order_indicator["pa"]* (2 * (self.order_indicator["amount"] < 0).astype(int) - 1))
 
     def _cal_trade_fulfill_rate(self, method="mean"):
         if method == "mean":
@@ -322,8 +323,7 @@ class Indicator:
             raise ValueError(f"method {method} is not supported!")
 
     def _cal_trade_price_advantage(self, method="mean"):
-
-        pa_order = self.order_indicator["pa"] * (self.order_indicator["amount"] < 0).astype(int)
+        pa_order = self.order_indicator["pa"] * (2 * (self.order_indicator["amount"] < 0).astype(int) - 1)
         if method == "mean":
             return pa_order.mean()
         elif method == "amount_weighted":
@@ -336,14 +336,17 @@ class Indicator:
             raise ValueError(f"method {method} is not supported!")
 
     def _cal_trade_positive_rate(self):
-        pa_order = self.order_indicator["pa"] * (self.order_indicator["amount"] < 0).astype(int)
-        return (pa_order > 0).astype(int).sum() / len(pa_order)
+        pa_order = self.order_indicator["pa"] * (2 * (self.order_indicator["amount"] < 0).astype(int) - 1)
+        return (pa_order > 0).astype(int).sum() / pa_order.count()
 
     def _cal_trade_amount(self):
         return self.order_indicator["deal_amount"].abs().sum()
 
     def _cal_trade_value(self):
         return self.order_indicator["trade_value"].abs().sum()
+
+    def _cal_trade_order_count(self):
+        return self.order_indicator["amount"].count()
 
     def update_order_indicators(self, trade_start_time, trade_end_time, trade_info, trade_exchange):
         self._update_order_trade_info(trade_info=trade_info)
@@ -365,11 +368,13 @@ class Indicator:
         positive_rate = self._cal_trade_positive_rate()
         trade_amount = self._cal_trade_amount()
         trade_value = self._cal_trade_value()
+        order_count = self._cal_trade_order_count()
         self.trade_indicator["ffr"] = fulfill_rate
         self.trade_indicator["pa"] = price_advantage
         self.trade_indicator["pos"] = positive_rate
         self.trade_indicator["amount"] = trade_amount
         self.trade_indicator["value"] = trade_value
+        self.trade_indicator["count"] = order_count
         if show_indicator:
             print(
                 "[Indicator({}) {:%Y-%m-%d %H:%M:%S}]: FFR: {}, PA: {}, POS: {}".format(

@@ -166,6 +166,7 @@ class BaseExecutor:
         return self.execute(trade_decision)
 
     def get_report(self):
+        """get the history report and postions instance"""
         if self.generate_report:
             _report = self.trade_account.report.generate_report_dataframe()
             _positions = self.trade_account.get_positions()
@@ -173,12 +174,13 @@ class BaseExecutor:
         else:
             raise ValueError("generate_report should be True if you want to generate report")
 
-    def get_all_executors(self):
-        """Return all executors"""
-        return [self]
-
     def get_trade_indicator(self):
+        """get the trade indicator instance, which has pa/pos/ffr info."""
         return self.trade_account.indicator
+
+    def get_all_executors(self):
+        """get all executors"""
+        return [self]
 
 
 class NestedExecutor(BaseExecutor):
@@ -295,7 +297,7 @@ class NestedExecutor(BaseExecutor):
         return execute_result
 
     def get_all_executors(self):
-        """Return all executors, including self and inner_executor.get_all_executors()"""
+        """get all executors, including self and inner_executor.get_all_executors()"""
         return [self, *self.inner_executor.get_all_executors()]
 
 

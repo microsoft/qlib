@@ -299,8 +299,8 @@ class PortAnaRecord(RecordTemp):
         self,
         recorder,
         config,
-        risk_analysis_freq: Union[List, str] = [],
-        indicator_analysis_freq: Union[List, str] = [],
+        risk_analysis_freq: Union[List, str] = None,
+        indicator_analysis_freq: Union[List, str] = None,
         indicator_analysis_method=None,
         **kwargs,
     ):
@@ -321,8 +321,23 @@ class PortAnaRecord(RecordTemp):
         super().__init__(recorder=recorder, **kwargs)
 
         self.strategy_config = config["strategy"]
-        self.executor_config = config["executor"]
+        _default_executor_config = {
+            "class": "SimulatorExecutor",
+            "module_path": "qlib.backtest.executor",
+            "kwargs": {
+                "time_per_step": "day",
+                "generate_report": True,
+            },
+        }
+        self.executor_config = config.get("executor", _default_executor_config)
         self.backtest_config = config["backtest"]
+
+        self.all_freq = self._get_report_freq(self.executor_config)
+        if risk_analysis_freq is None:
+            risk_analysis_freq = [self.all_freq[0]]
+        if indicator_analysis_freq is None:
+            indicator_analysis_freq = [self.all_freq[0]]
+
         if isinstance(risk_analysis_freq, str):
             risk_analysis_freq = [risk_analysis_freq]
         if isinstance(indicator_analysis_freq, str):
@@ -335,7 +350,6 @@ class PortAnaRecord(RecordTemp):
             "{0}{1}".format(*parse_freq(_analysis_freq)) for _analysis_freq in indicator_analysis_freq
         ]
         self.indicator_analysis_method = indicator_analysis_method
-        self.all_freq = self._get_report_freq(self.executor_config)
 
     def _get_report_freq(self, executor_config):
         ret_freq = []
@@ -399,21 +413,26 @@ class PortAnaRecord(RecordTemp):
                 pprint(analysis["excess_return_with_cost"])
 
         for _analysis_freq in self.indicator_analysis_freq:
-            indicators_normal = indicator_dict.get(_analysis_freq)
-            if self.indicator_analysis_method is None:
-                analysis_df = indicator_analysis(indicators_normal)
+            if _analysis_freq not in indicator_dict:
+                warnings.warn(f"the freq {_analysis_freq} indicator is not found")
             else:
-                analysis_df = indicator_analysis(indicators_normal, method=self.indicator_analysis_method)
-
-            # log metrics
-            analysis_dict = analysis_df["value"].to_dict()
-            self.recorder.log_metrics(**{f"{_analysis_freq}.{k}": v for k, v in analysis_dict.items()})
-            # save results
-            self.recorder.save_objects(
-                **{f"indicator_analysis_{_analysis_freq}.pkl": analysis_df}, artifact_path=PortAnaRecord.get_path()
-            )
-            pprint(f"The following are analysis results of indicators({_analysis_freq}).")
-            pprint(analysis_df)
+                indicators_normal = indicator_dict.get(_analysis_freq)
+                if self.indicator_analysis_method is None:
+                    analysis_df = indicator_analysis(indicators_normal)
+                else:
+                    analysis_df = indicator_analysis(indicators_normal, method=self.indicator_analysis_method)
+                # log metrics
+                analysis_dict = analysis_df["value"].to_dict()
+                self.recorder.log_metrics(**{f"{_analysis_freq}.{k}": v for k, v in analysis_dict.items()})
+                # save results
+                self.recorder.save_objects(
+                    **{f"indicator_analysis_{_analysis_freq}.pkl": analysis_df}, artifact_path=PortAnaRecord.get_path()
+                )
+                logger.info(
+                    f"Indicator analysis record 'indicator_analysis_{_analysis_freq}.pkl' has been saved as the artifact of the Experiment {self.recorder.experiment_id}"
+                )
+                pprint(f"The following are analysis results of indicators({_analysis_freq}).")
+                pprint(analysis_df)
 
     def list(self):
         list_path = []
@@ -424,10 +443,16 @@ class PortAnaRecord(RecordTemp):
                     PortAnaRecord.get_path(f"positions_normal_{_freq}.pkl"),
                 ]
             )
-
         for _analysis_freq in self.risk_analysis_freq:
             if _analysis_freq in self.all_freq:
                 list_path.append(PortAnaRecord.get_path(f"port_analysis_{_analysis_freq}.pkl"))
             else:
-                warnings.warn(f"{_analysis_freq} is not found")
+                warnings.warn(f"risk_analysis freq {_analysis_freq} is not found")
+
+        for _analysis_freq in self.indicator_analysis_freq:
+            if _analysis_freq in self.all_freq:
+                list_path.append(PortAnaRecord.get_path(f"indicator_analysis_{_analysis_freq}.pkl"))
+            else:
+                warnings.warn(f"indicator_analysis freq {_analysis_freq} is not found")
+
         return list_path

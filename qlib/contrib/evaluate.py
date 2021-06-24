@@ -84,29 +84,33 @@ def indicator_analysis(df, method="mean"):
 
         index: Index(datetime)
     method : str, optional
-        statistics method, by default "mean"
+        statistics method of pa/ffr, by default "mean"
         - if method is 'mean', count the mean statistical value of each trade indicator
         - if method is 'amount_weighted', count the amount weighted mean statistical value of each trade indicator
         - if method is 'value_weighted', count the value weighted mean statistical value of each trade indicator
+        Note: statistics method of pos is always "mean"
 
     Returns
     -------
     pd.DataFrame
-        statistical value of each trade indicator
+        statistical value of each trade indicators
     """
-    indicators_df = df[["pa", "pos", "ffr"]]
-
-    if method == "mean":
-        res = indicators_df.mean()
-    elif method == "amount_weighted":
-        weights = df["amount"].abs()
-        res = indicators_df.mul(weights, axis=0).sum() / weights.sum()
-    elif method == "value_weighted":
-        weights = df["value"].abs()
-        res = indicators_df.mul(weights, axis=0).sum() / weights.sum()
-    else:
+    weights_dict = {
+        "mean": df["count"],
+        "amount_weighted": df["amount"].abs(),
+        "value_weighted": df["value"].abs(),
+    }
+    if method not in weights_dict:
         raise ValueError(f"indicator_analysis method {method} is not supported!")
 
+    # statistic pa/ffr indicator
+    indicators_df = df[["ffr", "pa"]]
+    weights = weights_dict.get(method)
+    res = indicators_df.mul(weights, axis=0).sum() / weights.sum()
+
+    # statistic pos
+    weights = weights_dict.get("mean")
+    res.loc["pos"] = df["pos"].mul(weights).sum() / weights.sum()
     res = res.to_frame("value")
     return res
 
