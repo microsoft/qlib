@@ -13,6 +13,7 @@ In ``DelayTrainer``, the first step is only to save some necessary info to model
 
 import socket
 import time
+import re
 from typing import Callable, List
 
 from qlib.data.dataset import Dataset
@@ -62,24 +63,26 @@ def fill_placeholder(config: dict, config_extend: dict):
         the parameter dict
     """    
     # check the format of config_extend
-    import re
     for placeholder in config_extend.keys():
         assert re.match(r"<[^<>]+>", placeholder)
-    re.match()
 
     # bfs
     top = 0
     tail = 1
-    dict_quene = [config]
+    item_quene = [config]
     while(top < tail):
-        now_dict = dict_quene[top]
+        now_item = item_quene[top]
         top += 1
-        for key in now_dict.keys():
-            if(isinstance(now_dict[key], dict)):
-                dict_quene.append(now_dict[key])
+        if(isinstance(now_item, list)):
+            item_keys = range(len(now_item))
+        elif(isinstance(now_item, dict)):
+            item_keys = now_item.keys()
+        for key in item_keys:
+            if(isinstance(now_item[key], list) or isinstance(now_item[key], dict)):
+                item_quene.append(now_item[key])
                 tail += 1
-            elif(now_dict[key] in config_extend.keys()):
-                now_dict[key] = config_extend[now_dict[key]]
+            elif(now_item[key] in config_extend.keys()):
+                now_item[key] = config_extend[now_item[key]]
     return config
 
 
