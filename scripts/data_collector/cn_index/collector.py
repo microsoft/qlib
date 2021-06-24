@@ -19,12 +19,31 @@ CUR_DIR = Path(__file__).resolve().parent
 sys.path.append(str(CUR_DIR.parent.parent))
 
 from data_collector.index import IndexBase
-from data_collector.utils import get_calendar_list, get_trading_date_by_shift
+from data_collector.utils import get_calendar_list, get_trading_date_by_shift, deco_retry
 
 
 NEW_COMPANIES_URL = "http://www.csindex.com.cn/uploads/file/autofile/cons/{index_code}cons.xls"
 
-INDEX_CHANGES_URL = "http://www.csindex.com.cn/zh-CN/search/total?key=%E5%85%B3%E4%BA%8E%E8%B0%83%E6%95%B4%E6%B2%AA%E6%B7%B1300%E5%92%8C%E4%B8%AD%E8%AF%81%E9%A6%99%E6%B8%AF100%E7%AD%89%E6%8C%87%E6%95%B0%E6%A0%B7%E6%9C%AC%E8%82%A1%E7%9A%84%E5%85%AC%E5%91%8A"
+
+# INDEX_CHANGES_URL = "http://www.csindex.com.cn/zh-CN/search/total?key=%E5%85%B3%E4%BA%8E%E8%B0%83%E6%95%B4%E6%B2%AA%E6%B7%B1300%E5%92%8C%E4%B8%AD%E8%AF%81%E9%A6%99%E6%B8%AF100%E7%AD%89%E6%8C%87%E6%95%B0%E6%A0%B7%E6%9C%AC%E8%82%A1%E7%9A%84%E5%85%AC%E5%91%8A"
+# 2020-11-27 Announcement title change
+INDEX_CHANGES_URL = "http://www.csindex.com.cn/zh-CN/search/total?key=%E5%85%B3%E4%BA%8E%E8%B0%83%E6%95%B4%E6%B2%AA%E6%B7%B1300%E5%92%8C%E4%B8%AD%E8%AF%81%E9%A6%99%E6%B8%AF100%E7%AD%89"
+
+REQ_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.101 Safari/537.36 Edg/91.0.864.48"
+}
+
+
+@deco_retry
+def retry_request(url: str, method: str = "get", exclude_status: List = None):
+    if exclude_status is None:
+        exclude_status = []
+    method_func = getattr(requests, method)
+    _resp = method_func(url, headers=REQ_HEADERS)
+    _status = _resp.status_code
+    if _status not in exclude_status and _status != 200:
+        raise ValueError(f"response status: {_status}, url={url}")
+    return _resp
 
 
 class CSIIndex(IndexBase):
@@ -134,9 +153,8 @@ class CSIIndex(IndexBase):
                 date: pd.Timestamp
                 type: str, value from ["add", "remove"]
         """
-        resp = requests.get(url)
+        resp = retry_request(url)
         _text = resp.text
-
         date_list = re.findall(r"(\d{4}).*?年.*?(\d+).*?月.*?(\d+).*?日", _text)
         if len(date_list) >= 2:
             add_date = pd.Timestamp("-".join(date_list[0]))
@@ -147,7 +165,7 @@ class CSIIndex(IndexBase):
         logger.info(f"get {add_date} changes")
         try:
             excel_url = re.findall('.*href="(.*?xls.*?)".*', _text)[0]
-            content = requests.get(f"http://www.csindex.com.cn{excel_url}").content
+            content = retry_request(f"http://www.csindex.com.cn{excel_url}", exclude_status=[404]).content
             _io = BytesIO(content)
             df_map = pd.read_excel(_io, sheet_name=None)
             with self.cache_dir.joinpath(
@@ -201,7 +219,7 @@ class CSIIndex(IndexBase):
         -------
             [url1, url2]
         """
-        resp = requests.get(self.changes_url)
+        resp = retry_request(self.changes_url)
         html = etree.HTML(resp.text)
         return html.xpath("//*[@id='itemContainer']//li/a/@href")
 
@@ -221,7 +239,7 @@ class CSIIndex(IndexBase):
                 end_date: pd.Timestamp
         """
         logger.info("get new companies......")
-        context = requests.get(self.new_companies_url).content
+        context = retry_request(self.new_companies_url).content
         with self.cache_dir.joinpath(
             f"{self.index_name.lower()}_new_companies.{self.new_companies_url.split('.')[-1]}"
         ).open("wb") as fp:
@@ -292,7 +310,7 @@ def get_instruments(
         $ python collector.py --index_name CSI300 --qlib_dir ~/.qlib/qlib_data/cn_data --method save_new_companies
 
     """
-    _cur_module = importlib.import_module("collector")
+    _cur_module = importlib.import_module("data_collector.cn_index.collector")
     obj = getattr(_cur_module, f"{index_name.upper()}")(
         qlib_dir=qlib_dir, index_name=index_name, request_retry=request_retry, retry_sleep=retry_sleep
     )

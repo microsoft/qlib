@@ -3,18 +3,13 @@
 
 import abc
 import sys
-import copy
-import time
 import datetime
-import importlib
 import json
 from abc import ABC
 from pathlib import Path
-from typing import Iterable, Type
 
 import fire
 import requests
-import numpy as np
 import pandas as pd
 from loguru import logger
 from dateutil.tz import tzlocal
@@ -38,7 +33,7 @@ class FundCollector(BaseCollector):
         max_workers=4,
         max_collector_count=2,
         delay=0,
-        check_data_length: bool = False,
+        check_data_length: int = None,
         limit_nums: int = None,
     ):
         """
@@ -59,8 +54,8 @@ class FundCollector(BaseCollector):
             start datetime, default None
         end: str
             end datetime, default None
-        check_data_length: bool
-            check data length, by default False
+        check_data_length: int
+            check data length, if not None and greater than 0, each symbol will be considered complete if its data length is greater than or equal to this value, otherwise it will be fetched again, the maximum number of fetches being (max_collector_count). By default None.
         limit_nums: int
             using for debug, by default None
         """
@@ -168,9 +163,7 @@ class FundollectorCN(FundCollector, ABC):
 
 
 class FundCollectorCN1d(FundollectorCN):
-    @property
-    def min_numbers_trading(self):
-        return 252 / 4
+    pass
 
 
 class FundNormalize(BaseNormalize):
@@ -261,7 +254,7 @@ class Run(BaseRun):
         start=None,
         end=None,
         interval="1d",
-        check_data_length=False,
+        check_data_length: int = None,
         limit_nums=None,
     ):
         """download data from Internet
@@ -278,8 +271,8 @@ class Run(BaseRun):
             start datetime, default "2000-01-01"
         end: str
             end datetime, default ``pd.Timestamp(datetime.datetime.now() + pd.Timedelta(days=1))``
-        check_data_length: bool # if this param useful?
-            check data length, by default False
+        check_data_length: int # if this param useful?
+            check data length, if not None and greater than 0, each symbol will be considered complete if its data length is greater than or equal to this value, otherwise it will be fetched again, the maximum number of fetches being (max_collector_count). By default None.
         limit_nums: int
             using for debug, by default None
 
