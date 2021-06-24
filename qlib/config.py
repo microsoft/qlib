@@ -195,7 +195,10 @@ MODE_CONF = {
         "timeout": 100,
         "logging_level": logging.INFO,
         "region": REG_CN,
-        ## Custom Operator
+        # custom operator
+        # each element of custom_ops should be Type[ExpressionOps] or dict
+        # if element of custom_ops is Type[ExpressionOps], it represents the custom operator class
+        # if element of custom_ops is dict, it represents the config of custom operator and should include `class` and `module_path` keys.
         "custom_ops": [],
     },
 }
