@@ -96,7 +96,7 @@ pip install -r requirements.txt
             if interval==1min, qlib_data_1d_dir cannot be None, normalize 1min needs to use 1d data;
         
                 qlib_data_1d can be obtained like this:
-                    $ python scripts/get_data.py qlilb_data --target_dir <qlib_data_1d_dir> --interval 1d
+                    $ python scripts/get_data.py qlib_data --target_dir <qlib_data_1d_dir> --interval 1d
                     $ python scripts/data_collector/yahoo/collector.py update_data_to_bin --qlib_data_1d_dir <qlib_data_1d_dir> --trading_date 2021-06-01
                 or:
                     download 1d data from YahooFinance
