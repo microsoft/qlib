@@ -1,0 +1,63 @@
+qlib_init:
+  provider_uri: "~/.qlib/qlib_data/cn_data"
+  region: cn
+
+data_loader_config: &data_loader_config
+  class: StaticDataLoader
+  module_path: qlib.data.dataset.loader
+  kwargs:
+    config:
+      feature: data/feature.pkl
+      label: data/label.pkl
+
+model_config: &model_config
+  input_size: 16
+  hidden_size: 256
+  num_layers: 2
+  num_heads: 2
+  use_attn: True
+  dropout: 0.1
+
+num_states: &num_states 1
+
+tra_config: &tra_config
+  num_states: *num_states
+  hidden_size: 16
+  tau: 1.0
+  src_info: LR_TPE
+
+task:
+  model:
+    class: TRAModel
+    module_path: src/model.py
+    kwargs:
+      lr: 0.0002
+      n_epochs: 500
+      max_steps_per_epoch: 100
+      early_stop: 20
+      seed: 1000
+      logdir: output/test/alstm
+      model_type: LSTM
+      model_config: *model_config
+      tra_config: *tra_config
+      lamb: 1.0
+      rho: 0.99
+      freeze_model: False
+      model_init_state: 
+  dataset:
+    class: MTSDatasetH
+    module_path: src/dataset.py
+    kwargs:
+      handler:
+        class: DataHandler
+        module_path: qlib.data.dataset.handler
+        kwargs:
+          data_loader: *data_loader_config
+      segments:
+        train: [2007-10-30, 2016-05-27]
+        valid: [2016-09-26, 2018-05-29]
+        test: [2018-09-21, 2020-06-30]
+      seq_len: 60
+      horizon: 21
+      num_states: *num_states
+      batch_size: 1024
