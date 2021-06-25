@@ -17,9 +17,15 @@ from ..tests.config import CSI300_BENCH
 
 
 class Report:
-    # daily report of the account
-    # contain those followings: returns, costs turnovers, accounts, cash, bench, value
-    # update report
+    '''
+    Motivation:
+        Report is for supporting portfolio related metrics.
+
+    Implementation:
+        daily report of the account
+        contain those followings: returns, costs turnovers, accounts, cash, bench, value
+        update report
+    '''
     def __init__(self, freq: str = "day", benchmark_config: dict = {}):
         """
         Parameters

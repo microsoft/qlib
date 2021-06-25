@@ -1,4 +1,5 @@
 import copy
+from qlib.backtest.position import Position
 import warnings
 import numpy as np
 import pandas as pd
@@ -328,6 +329,8 @@ class WeightStrategyBase(ModelStrategy):
         if pred_score is None:
             return []
         current_temp = copy.deepcopy(self.trade_position)
+        assert(isinstance(current_temp, Position))  # Avoid InfPosition
+
         target_weight_position = self.generate_target_weight_position(
             score=pred_score, current=current_temp, trade_start_time=trade_start_time, trade_end_time=trade_end_time
         )

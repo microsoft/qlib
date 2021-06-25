@@ -7,7 +7,7 @@ from ..data.dataset import DatasetH
 from ..data.dataset.utils import convert_index_format
 from ..rl.interpreter import ActionInterpreter, StateInterpreter
 from ..utils import init_instance_by_config
-from ..backtest.utils import BaseTradeDecision, CommonInfrastructure, LevelInfrastructure, TradeDecison
+from ..backtest.utils import BaseTradeDecision, CommonInfrastructure, LevelInfrastructure, TradeCalendarManager, TradeDecison
 
 
 class BaseStrategy:
@@ -84,19 +84,23 @@ class BaseStrategy:
         """
         raise NotImplementedError("generate_trade_decision is not implemented!")
 
-    def update_trade_decision(self, trade_decison: BaseTradeDecision, trade_step: int, trade_len: int) -> BaseTradeDecision:
-        """update trade decision in each step of inner execution, this method enable all order
+    def update_trade_decision(self, trade_decison: BaseTradeDecision, trade_calendar: TradeCalendarManager) -> Union[BaseTradeDecision, None]:
+        """
+        update trade decision in each step of inner execution, this method enable all order
 
         Parameters
         ----------
         trade_decison : TradeDecison
             the trade decison that will be updated
+        trade_calendar : TradeCalendarManager
+            The calendar of the **inner strategy**!!!!!
+
         Returns
         -------
             BaseTradeDecision:
         """
-        if trade_step == 0:
-            trade_decison.enable(all_enable=True)
+        # default to return None, which indicates that the trade decision is not changed
+        return None
 
     def alter_outer_trade_decision(self, outer_trade_decision: BaseTradeDecision):
         """
@@ -108,6 +112,9 @@ class BaseStrategy:
         outer_trade_decision : BaseTradeDecision
             the decision updated by the outer strategy
         """
+
+        # default to reset the decision directly
+        # NOTE: normally, user should do something to the strategy due to the change of outer decision
         self.outer_trade_decision = outer_trade_decision
 
 

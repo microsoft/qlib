@@ -3,10 +3,11 @@
 
 
 import copy
+from qlib.utils import init_instance_by_config
 import warnings
 import pandas as pd
 
-from .position import Position
+from .position import BasePosition, InfPosition, Position
 from .report import Report, Indicator
 from .order import Order
 from .exchange import Exchange
@@ -62,21 +63,31 @@ class AccumulatedInfo:
 
 
 class Account:
-    def __init__(self, init_cash, freq: str = "day", benchmark_config: dict = {}):
+    def __init__(self, init_cash: float=1e9, freq: str = "day", benchmark_config: dict = {}, pos_type:str = "Position"):
+        self.pos_type = pos_type
         self.init_vars(init_cash, freq, benchmark_config)
 
     def init_vars(self, init_cash, freq: str, benchmark_config: dict):
 
         # init cash
         self.init_cash = init_cash
-        self.current = Position(cash=init_cash)
+        self.current: BasePosition = init_instance_by_config({
+            'class': self.pos_type,
+            'kwargs': {
+                "cash": init_cash
+            },
+            'model_path': "qlib.backtest.position",
+        })
         self.accum_info = AccumulatedInfo()
         self.reset(freq=freq, benchmark_config=benchmark_config, init_report=True)
 
     def reset_report(self, freq, benchmark_config):
+        # portfolio related metrics
         self.report = Report(freq, benchmark_config)
-        self.indicator = Indicator()
         self.positions = {}
+
+        # trading related matric(e.g. high-frequency trading)
+        self.indicator = Indicator()
 
     def reset(self, freq=None, benchmark_config=None, init_report=False):
         """reset freq and report of account
@@ -102,7 +113,7 @@ class Account:
         return self.positions
 
     def get_cash(self):
-        return self.current.position["cash"]
+        return self.current.get_cash()
 
     def _update_state_from_order(self, order, trade_val, cost, trade_price):
         # update turnover
@@ -124,6 +135,11 @@ class Account:
             self.accum_info.add_return_value(profit)  # note here do not consider cost
 
     def update_order(self, order, trade_val, cost, trade_price):
+        if self.current.skip_update():
+            # TODO: supporting polymorphism for account
+            # updating order for infinite position is meaningless
+            return
+
         # if stock is sold out, no stock price information in Position, then we should update account first, then update current position
         # if stock is bought, there is no stock in current position, update current, then update account
         # The cost will be substracted from the cash at last. So the trading logic can ignore the cost calculation
@@ -142,7 +158,8 @@ class Account:
     def update_bar_count(self):
         """at the end of the trading bar, update holding bar, count of stock"""
         # update holding day count
-        self.current.add_count_all(bar=self.freq)
+        if not self.current.skip_update():
+            self.current.add_count_all(bar=self.freq)
 
     def update_current(self, trade_start_time, trade_end_time, trade_exchange):
         """update current to make rtn consistent with earning at the end of bar"""
@@ -243,11 +260,14 @@ class Account:
         elif atomic is False and inner_order_indicators is None:
             raise ValueError("inner_order_indicators is necessary in unatomic executor")
 
-        self.update_bar_count()
-        self.update_current(trade_start_time, trade_end_time, trade_exchange)
         if generate_report:
+            # report is portfolio related analysis
+            # TODO:  `update_bar_count` and  `update_current` should placed in Position and be merged.
+            self.update_bar_count()
+            self.update_current(trade_start_time, trade_end_time, trade_exchange)
             self.update_report(trade_start_time, trade_end_time)
 
+        # indicator is trading (e.g. high-frequency order execution) related analysis
         self.indicator.clear()
 
         if atomic:
