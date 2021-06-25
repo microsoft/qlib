@@ -1,10 +1,12 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-from re import L
+from qlib.strategy.base import BaseStrategy
+from qlib.backtest.exchange import Exchange
+from qlib.backtest.account import Account
 import pandas as pd
 import warnings
-from typing import Union, List, Set
+from typing import Tuple, Union, List, Set
 
 from ..utils.resam import get_resam_calendar
 from ..data.data import Cal
@@ -138,6 +140,7 @@ class BaseInfrastructure:
         self.reset_infra(**infra_dict)
 
 
+
 class CommonInfrastructure(BaseInfrastructure):
     def get_support_infra(self):
         return ["trade_account", "trade_exchange"]
@@ -148,8 +151,63 @@ class LevelInfrastructure(BaseInfrastructure):
         return ["trade_calendar"]
 
 
-class TradeDecison:
-    """trade decison that made by strategy"""
+class BaseTradeDecision:
+    # TODO: put it into order.py; and replace it with decision.py
+    def __init__(self, strategy: BaseStrategy):
+        self.strategy = strategy
+
+    def get_decision(self) -> List[object]:
+        """
+        get the concrete decision of the order
+        This will be called by the inner strategy
+
+        Returns
+        -------
+        List[object]:
+            The decision result. Typically it is some orders
+            Example:
+                []:
+                    Decision not available
+                concrete_decision:
+                    available
+        """
+        raise NotImplementedError(f"This type of input is not supported")
+
+    NOT_AVAIL = 0
+    NO_UPDATE = 1
+    NEW_UPDATE = 2
+    def update(self, trade_step: int, trade_len: int) -> "BaseTradeDecison":
+        """
+        Be called at the **start** of each step
+
+        Returns
+        -------
+        None:
+            No update, use previous decision(or unavailable)
+        BaseTradeDecison:
+            New update, use new decision
+        """
+        return self.strategy.update_trade_decision(self, trade_step, trade_len)
+
+    def get_range_limit(self) -> Tuple[int, int]:
+        """
+        return the expected step range for limiting the dealing time of the order
+
+        Returns
+        -------
+        Tuple[int, int]:
+
+
+        Raises
+        ------
+        NotImplementedError:
+            If the decision can't provide a unified start and end
+        """
+        raise NotImplementedError(f"This type of input is not supported")
+
+
+class TradeDecison(BaseTradeDecision):
+    """trade decision that made by strategy"""
 
     def __init__(self, order_list, ori_strategy, init_enable=False):
         """

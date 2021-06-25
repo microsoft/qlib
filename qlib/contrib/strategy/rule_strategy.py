@@ -1,7 +1,7 @@
 import warnings
 import numpy as np
 import pandas as pd
-from typing import List, Union
+from typing import List, Tuple, Union
 
 from ...utils.resam import resam_ts_data
 from ...data.data import D
@@ -597,3 +597,41 @@ class ACStrategy(BaseStrategy):
                 )
                 order_list.append(_order)
         return TradeDecison(order_list=order_list, ori_strategy=self)
+
+
+class RandomOrderStrategy(BaseStrategy):
+
+    def __init__(self,
+                 time_range: Tuple = ("9:30", "15:00"),  # left closed and right closed.
+                 sample_ratio: float = 1.,
+                 volume_ratio: float = 0.01,
+                 market: str = "all",
+                 *args,
+                 **kwargs):
+        """
+        Parameters
+        ----------
+        time_range : Tuple
+            the intra day time range of the orders
+            the left and right is closed.
+        sample_ratio : float
+            the ratio of all orders are sampled
+        volume_ratio : float
+            the volume of the total day
+            raito of the total volume of a specific day
+        market : str
+            stock pool for sampling
+        """
+
+        super().__init__(*args, **kwargs)
+        self.time_range = time_range
+        self.sample_ratio = sample_ratio
+        self.volume_ratio = volume_ratio
+        self.market = market
+        exch: Exchange = self.common_infra.get("exchange")
+        self.volume = D.features(D.instruments("market"), ["Mean($volume, 10)"], start_time=exch.start_time, end_time=exch.end_time)
+
+    def generate_trade_decision(self, execute_result=None):
+
+
+        return super().generate_trade_decision(execute_result=execute_result)

@@ -5,7 +5,7 @@ from typing import Union
 
 from .order import Order
 from .exchange import Exchange
-from .utils import TradeCalendarManager, CommonInfrastructure, LevelInfrastructure, TradeDecison
+from .utils import BaseTradeDecision, TradeCalendarManager, CommonInfrastructure, LevelInfrastructure, TradeDecison
 
 from ..utils import init_instance_by_config
 from ..utils.resam import parse_freq
@@ -265,7 +265,7 @@ class NestedExecutor(BaseExecutor):
             pass
         return return_value.get("execute_result")
 
-    def collect_data(self, trade_decision, return_value=None):
+    def collect_data(self, trade_decision: BaseTradeDecision, return_value=None):
         if self.track_data:
             yield trade_decision
         self._init_sub_trading(trade_decision)
@@ -273,6 +273,14 @@ class NestedExecutor(BaseExecutor):
         inner_order_indicators = []
         _inner_execute_result = None
         while not self.inner_executor.finished():
+            # outter strategy have chance to update decision each iterator
+            updated_trade_decision = trade_decision.update(self.inner_executor.trade_calendar)
+            if updated_trade_decision is not None:
+                trade_decision = updated_trade_decision
+                # NEW UPDATE
+                # create a hook for inner strategy to update outter decision
+                self.inner_strategy.alter_decision(trade_decision)
+
             _inner_trade_decision = self.inner_strategy.generate_trade_decision(_inner_execute_result)
             _inner_execute_result = yield from self.inner_executor.collect_data(trade_decision=_inner_trade_decision)
             execute_result.extend(_inner_execute_result)
