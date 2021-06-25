@@ -16,7 +16,7 @@ from ..backtest import backtest as normal_backtest
 from ..utils import init_instance_by_config, get_module_by_module_path
 from ..log import get_module_logger
 from ..utils import flatten_dict
-from ..utils.resam import parse_freq
+from ..utils.time import Freq
 from ..strategy.base import BaseStrategy
 from ..contrib.eva.alpha import calc_ic, calc_long_short_return, calc_long_short_prec
 
@@ -344,17 +344,17 @@ class PortAnaRecord(RecordTemp):
             indicator_analysis_freq = [indicator_analysis_freq]
 
         self.risk_analysis_freq = [
-            "{0}{1}".format(*parse_freq(_analysis_freq)) for _analysis_freq in risk_analysis_freq
+            "{0}{1}".format(*Freq.parse(_analysis_freq)) for _analysis_freq in risk_analysis_freq
         ]
         self.indicator_analysis_freq = [
-            "{0}{1}".format(*parse_freq(_analysis_freq)) for _analysis_freq in indicator_analysis_freq
+            "{0}{1}".format(*Freq.parse(_analysis_freq)) for _analysis_freq in indicator_analysis_freq
         ]
         self.indicator_analysis_method = indicator_analysis_method
 
     def _get_report_freq(self, executor_config):
         ret_freq = []
         if executor_config["kwargs"].get("generate_report", False):
-            _count, _freq = parse_freq(executor_config["kwargs"]["time_per_step"])
+            _count, _freq = Freq.parse(executor_config["kwargs"]["time_per_step"])
             ret_freq.append(f"{_count}{_freq}")
         if "sub_env" in executor_config["kwargs"]:
             ret_freq.extend(self._get_report_freq(executor_config["kwargs"]["sub_env"]))

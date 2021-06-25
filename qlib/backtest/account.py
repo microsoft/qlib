@@ -76,7 +76,7 @@ class Account:
             'kwargs': {
                 "cash": init_cash
             },
-            'model_path': "qlib.backtest.position",
+            'module_path': "qlib.backtest.position",
         })
         self.accum_info = AccumulatedInfo()
         self.reset(freq=freq, benchmark_config=benchmark_config, init_report=True)
@@ -164,13 +164,14 @@ class Account:
     def update_current(self, trade_start_time, trade_end_time, trade_exchange):
         """update current to make rtn consistent with earning at the end of bar"""
         # update price for stock in the position and the profit from changed_price
-        stock_list = self.current.get_stock_list()
-        for code in stock_list:
-            # if suspend, no new price to be updated, profit is 0
-            if trade_exchange.check_stock_suspended(code, trade_start_time, trade_end_time):
-                continue
-            bar_close = trade_exchange.get_close(code, trade_start_time, trade_end_time)
-            self.current.update_stock_price(stock_id=code, price=bar_close)
+        if not self.current.skip_update():
+            stock_list = self.current.get_stock_list()
+            for code in stock_list:
+                # if suspend, no new price to be updated, profit is 0
+                if trade_exchange.check_stock_suspended(code, trade_start_time, trade_end_time):
+                    continue
+                bar_close = trade_exchange.get_close(code, trade_start_time, trade_end_time)
+                self.current.update_stock_price(stock_id=code, price=bar_close)
 
     def update_report(self, trade_start_time, trade_end_time):
         """update position history, report"""

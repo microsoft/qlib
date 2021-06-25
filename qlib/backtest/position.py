@@ -30,6 +30,23 @@ class BasePosition:
         """
         return False
 
+    def check_stock(self, stock_id: str) -> bool:
+        """
+        check if is the stock in the position
+
+        Parameters
+        ----------
+        stock_id : str
+            the id of the stock
+
+        Returns
+        -------
+        bool:
+            if is the stock in the position
+        """
+        raise NotImplementedError(f"Please implement the `check_stock` method")
+
+
     def update_order(self, order: Order, trade_val: float, cost: float, trade_price: float):
         """
         Parameters
@@ -391,6 +408,10 @@ class InfPosition(BasePosition):
     """
     def skip_update(self) -> bool:
         """ Updating state is meaningless for InfPosition """
+        return True
+
+    def check_stock(self, stock_id: str) -> bool:
+        # InfPosition always have any stocks
         return True
 
     def update_order(self, order: Order, trade_val: float, cost: float, trade_price: float):
