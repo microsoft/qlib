@@ -4,30 +4,182 @@
 
 import copy
 import pathlib
+from typing import Dict, List
 import pandas as pd
 import numpy as np
 from .order import Order
 
-"""
-Position module
-"""
 
-"""
-current state of position
-a typical example is :{
-  <instrument_id>: {
-    'count': <how many days the security has been hold>,
-    'amount': <the amount of the security>,
-    'price': <the close price of security in the last trading day>,
-    'weight': <the security weight of total position value>,
-  },
-}
+class BasePosition:
+    """
+    The Position want to maintain the position like a dictionary
+    Please refer to the `Position` class for the position
+    """
+    def __init__(self, cash=0., *args, **kwargs) -> None:
+        pass
 
-"""
+    def skip_update(self) -> bool:
+        """
+        Should we skip updating operation for this position
+        For example, updating is meaningless for InfPosition
+
+        Returns
+        -------
+        bool:
+            should we skip the updating operator
+        """
+        return False
+
+    def update_order(self, order: Order, trade_val: float, cost: float, trade_price: float):
+        """
+        Parameters
+        ----------
+        order : Order
+            the order to update the position
+        trade_val : float
+            the trade value(money) of dealing results
+        cost : float
+            the trade cost of the dealing results
+        trade_price : float
+            the trade price of the dealing results
+        """
+        raise NotImplementedError(f"Please implement the `update_order` method")
+
+    def update_stock_price(self, stock_id, price: float):
+        """
+        Updating the latest price of the order
+        The useful when clearing balance at each bar end
+
+        Parameters
+        ----------
+        stock_id :
+            the id of the stock
+        price : float
+            the price to be updated
+        """
+        raise NotImplementedError(f"Please implement the `update stock price` method")
+
+    def calculate_stock_value(self) -> float:
+        """
+        calculate the value of the all assets except cash in the position
+
+        Returns
+        -------
+        float:
+            the value(money) of all the stock
+        """
+        raise NotImplementedError(f"Please implement the `calculate_stock_value` method")
+    def get_stock_list(self) -> List:
+        """
+        Get the list of stocks in the position.
+        """
+        raise NotImplementedError(f"Please implement the `get_stock_list` method")
+
+    def get_stock_price(self, code) -> float:
+        """
+        get the latest price of the stock
+
+        Parameters
+        ----------
+        code :
+            the code of the stock
+        """
+        raise NotImplementedError(f"Please implement the `get_stock_price` method")
+
+    def get_stock_amount(self, code) -> float:
+        """
+        get the amount of the stock
+
+        Parameters
+        ----------
+        code :
+            the code of the stock
+
+        Returns
+        -------
+        float:
+            the amount of the stock
+        """
+        raise NotImplementedError(f"Please implement the `get_stock_amount` method")
+
+    def get_cash(self) -> float:
+        """
+
+        Returns
+        -------
+        float:
+            the cash in position
+        """
+        raise NotImplementedError(f"Please implement the `get_cash` method")
+
+    def get_stock_amount_dict(self) -> Dict:
+        """
+        generate stock amount dict {stock_id : amount of stock}
+
+        Returns
+        -------
+        Dict:
+            {stock_id : amount of stock}
+        """
+        raise NotImplementedError(f"Please implement the `get_stock_amount_dict` method")
+
+    def get_stock_weight_dict(self, only_stock: bool=False) -> Dict:
+        """
+        generate stock weight dict {stock_id : value weight of stock in the position}
+        it is meaningful in the beginning or the end of each trade date
+
+        Parameters
+        ----------
+        only_stock : bool
+            If only_stock=True, the weight of each stock in total stock will be returned
+            If only_stock=False, the weight of each stock in total assets(stock + cash) will be returned
+
+        Returns
+        -------
+        Dict:
+            {stock_id : value weight of stock in the position}
+        """
+        raise NotImplementedError(f"Please implement the `get_stock_weight_dict` method")
+
+    def add_count_all(self, bar):
+        """
+        Will be called at the end of each bar on each level
+
+        Parameters
+        ----------
+        bar :
+            The level to be updated
+        """
+        raise NotImplementedError(f"Please implement the `add_count_all` method")
+
+    def update_weight_all(self):
+        """
+        Updating the position weight;
+
+        # TODO: this function is a little weird. The weight data in the position is in a wrong state after dealing order
+        # and before updating weight.
+
+        Parameters
+        ----------
+        bar :
+            The level to be updated
+        """
+        raise NotImplementedError(f"Please implement the `add_count_all` method")
 
 
-class Position:
-    """Position"""
+class Position(BasePosition):
+    """Position
+
+    current state of position
+    a typical example is :{
+      <instrument_id>: {
+        'count': <how many days the security has been hold>,
+        'amount': <the amount of the security>,
+        'price': <the close price of security in the last trading day>,
+        'weight': <the security weight of total position value>,
+      },
+    }
+    """
 
     def __init__(self, cash=0, position_dict={}, now_account_value=0):
         # NOTE: The position dict must be copied!!!
@@ -37,23 +189,35 @@ class Position:
         self.position["cash"] = cash
         self.position["now_account_value"] = now_account_value
 
-    def init_stock(self, stock_id, amount, price=None):
+    def _init_stock(self, stock_id, amount, price=None):
+        """
+        initialization the stock in current position
+
+        Parameters
+        ----------
+        stock_id :
+            the id of the stock
+        amount : float
+            the amount of the stock
+        price :
+             the price when buying the init stock
+        """
         self.position[stock_id] = {}
         self.position[stock_id]["amount"] = amount
         self.position[stock_id]["price"] = price
         self.position[stock_id]["weight"] = 0  # update the weight in the end of the trade date
 
-    def buy_stock(self, stock_id, trade_val, cost, trade_price):
+    def _buy_stock(self, stock_id, trade_val, cost, trade_price):
         trade_amount = trade_val / trade_price
         if stock_id not in self.position:
-            self.init_stock(stock_id=stock_id, amount=trade_amount, price=trade_price)
+            self._init_stock(stock_id=stock_id, amount=trade_amount, price=trade_price)
         else:
             # exist, add amount
             self.position[stock_id]["amount"] += trade_amount
 
         self.position["cash"] -= trade_val + cost
 
-    def sell_stock(self, stock_id, trade_val, cost, trade_price):
+    def _sell_stock(self, stock_id, trade_val, cost, trade_price):
         trade_amount = trade_val / trade_price
         if stock_id not in self.position:
             raise KeyError("{} not in current position".format(stock_id))
@@ -66,11 +230,11 @@ class Position:
                     "only have {} {}, require {}".format(self.position[stock_id]["amount"], stock_id, trade_amount)
                 )
             elif abs(self.position[stock_id]["amount"]) <= 1e-5:
-                self.del_stock(stock_id)
+                self._del_stock(stock_id)
 
         self.position["cash"] += trade_val - cost
 
-    def del_stock(self, stock_id):
+    def _del_stock(self, stock_id):
         del self.position[stock_id]
 
     def check_stock(self, stock_id):
@@ -80,10 +244,10 @@ class Position:
         # handle order, order is a order class, defined in exchange.py
         if order.direction == Order.BUY:
             # BUY
-            self.buy_stock(order.stock_id, trade_val, cost, trade_price)
+            self._buy_stock(order.stock_id, trade_val, cost, trade_price)
         elif order.direction == Order.SELL:
             # SELL
-            self.sell_stock(order.stock_id, trade_val, cost, trade_price)
+            self._sell_stock(order.stock_id, trade_val, cost, trade_price)
         else:
             raise NotImplementedError("do not support order direction {}".format(order.direction))
 
@@ -122,6 +286,7 @@ class Position:
         return self.position[code]["amount"]
 
     def get_stock_count(self, code, bar):
+        """the days the account has been hold, it may be used in some special strategies"""
         if f"count_{bar}" in self.position[code]:
             return self.position[code][f"count_{bar}"]
         else:
@@ -215,3 +380,55 @@ class Position:
         self.position = positions
         self.position["cash"] = cash
         self.position["now_account_value"] = now_account_value
+
+
+
+class InfPosition(BasePosition):
+    """
+    Position with infinite cash and amount.
+
+    This is useful for generating random orders.
+    """
+    def skip_update(self) -> bool:
+        """ Updating state is meaningless for InfPosition """
+        return True
+
+    def update_order(self, order: Order, trade_val: float, cost: float, trade_price: float):
+        pass
+
+    def update_stock_price(self, stock_id, price: float):
+        pass
+
+    def calculate_stock_value(self) -> float:
+        """
+        Returns
+        -------
+        float:
+            infinity stock value
+        """
+        return np.inf
+
+    def get_stock_list(self) -> List:
+        raise NotImplementedError(f"InfPosition doesn't support stock list position")
+
+    def get_stock_price(self, code) -> float:
+        """the price of the inf position is meaningless"""
+        return np.nan
+
+    def get_stock_amount(self, code) -> float:
+        return np.inf
+
+    def get_cash(self) -> float:
+        return np.inf
+
+    def get_stock_amount_dict(self) -> Dict:
+        raise NotImplementedError(f"InfPosition doesn't support get_stock_amount_dict")
+
+    def get_stock_weight_dict(self, only_stock: bool) -> Dict:
+        raise NotImplementedError(f"InfPosition doesn't support get_stock_weight_dict")
+
+    def add_count_all(self, bar):
+        raise NotImplementedError(f"InfPosition doesn't support get_stock_weight_dict")
+
+    def update_weight_all(self):
+        raise NotImplementedError(f"InfPosition doesn't support update_weight_all")

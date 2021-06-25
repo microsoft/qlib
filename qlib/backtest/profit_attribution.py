@@ -1,6 +1,8 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
-
+"""
+This module is not well maintained.
+"""
 
 import numpy as np
 import pandas as pd

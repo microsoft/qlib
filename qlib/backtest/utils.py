@@ -1,6 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+from qlib.backtest.order import Order
 from qlib.strategy.base import BaseStrategy
 from qlib.backtest.exchange import Exchange
 from qlib.backtest.account import Account
@@ -158,7 +159,7 @@ class BaseTradeDecision:
 
     def get_decision(self) -> List[object]:
         """
-        get the concrete decision of the order
+        get the **concrete decision**  (e.g. concrete decision)
         This will be called by the inner strategy
 
         Returns
@@ -173,12 +174,14 @@ class BaseTradeDecision:
         """
         raise NotImplementedError(f"This type of input is not supported")
 
-    NOT_AVAIL = 0
-    NO_UPDATE = 1
-    NEW_UPDATE = 2
-    def update(self, trade_step: int, trade_len: int) -> "BaseTradeDecison":
+    def update(self, trade_calendar: TradeCalendarManager) -> "BaseTradeDecison":
         """
         Be called at the **start** of each step
+
+        Parameters
+        ----------
+        trade_calendar : TradeCalendarManager
+            The calendar of the **inner strategy**!!!!!
 
         Returns
         -------
@@ -187,23 +190,28 @@ class BaseTradeDecision:
         BaseTradeDecison:
             New update, use new decision
         """
-        return self.strategy.update_trade_decision(self, trade_step, trade_len)
+        return self.strategy.update_trade_decision(self, trade_calendar)
 
     def get_range_limit(self) -> Tuple[int, int]:
         """
-        return the expected step range for limiting the dealing time of the order
+        return the expected step range for limiting the decision execution time
 
         Returns
         -------
         Tuple[int, int]:
-
 
         Raises
         ------
         NotImplementedError:
             If the decision can't provide a unified start and end
         """
-        raise NotImplementedError(f"This type of input is not supported")
+        raise NotImplementedError(f"Please implement the `func` method")
+
+
+class TradeDecisonWO(BaseTradeDecision):
+    def __init__(self, order_list: List[Order], strategy: BaseStrategy):
+        super().__init__(strategy)
+        self.order_list = order_list
 
 
 class TradeDecison(BaseTradeDecision):
@@ -316,6 +324,13 @@ class TradeDecison(BaseTradeDecision):
         elif not only_enable:
             return list(self.disable_dict.values())
 
-    def update(self, trade_step, trade_len):
-        """make the original strategy update the enabled status of orders."""
-        self.ori_strategy.update_trade_decision(self, trade_step, trade_len)
+    def update(self, trade_calendar: TradeCalendarManager):
+        """
+        make the original strategy update the enabled status of orders.
+
+        Parameters
+        ----------
+        trade_calendar : TradeCalendarManager
+            the trade calendar for sub strategy
+        """
+        self.ori_strategy.update_trade_decision(self, trade_calendar)

@@ -282,7 +282,10 @@ class NestedExecutor(BaseExecutor):
                 self.inner_strategy.alter_decision(trade_decision)
 
             _inner_trade_decision = self.inner_strategy.generate_trade_decision(_inner_execute_result)
+
+            # NOTE: Trade Calendar will step forward in the follow line
             _inner_execute_result = yield from self.inner_executor.collect_data(trade_decision=_inner_trade_decision)
+
             execute_result.extend(_inner_execute_result)
             inner_order_indicators.append(self.inner_executor.get_trade_indicator().get_order_indicator)
 

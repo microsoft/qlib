@@ -76,8 +76,6 @@ class TWAPStrategy(BaseStrategy):
         trade_step = self.trade_calendar.get_trade_step()
         # get the total count of trading step
         trade_len = self.trade_calendar.get_trade_len()
-        # update outer trade decision
-        self.outer_trade_decision.update(trade_step, trade_len)
 
         # update the order amount
         if execute_result is not None:
@@ -204,8 +202,6 @@ class SBBStrategyBase(BaseStrategy):
         trade_step = self.trade_calendar.get_trade_step()
         # get the total count of trading step
         trade_len = self.trade_calendar.get_trade_len()
-        # update outer trade decision
-        self.outer_trade_decision.update(trade_step, trade_len)
 
         # update the order amount
         if execute_result is not None:
@@ -527,7 +523,7 @@ class ACStrategy(BaseStrategy):
         # get the total count of trading step
         trade_len = self.trade_calendar.get_trade_len()
         # update outer trade decision
-        self.outer_trade_decision.update(trade_step, trade_len)
+        self.outer_trade_decision.update(self.trade_calendar)
 
         # update the order amount
         if execute_result is not None:
@@ -602,7 +598,7 @@ class ACStrategy(BaseStrategy):
 class RandomOrderStrategy(BaseStrategy):
 
     def __init__(self,
-                 time_range: Tuple = ("9:30", "15:00"),  # left closed and right closed.
+                 time_range: Tuple = ("9:30", "15:00"),  # The range is closed on both left and right.
                  sample_ratio: float = 1.,
                  volume_ratio: float = 0.01,
                  market: str = "all",
@@ -614,6 +610,7 @@ class RandomOrderStrategy(BaseStrategy):
         time_range : Tuple
             the intra day time range of the orders
             the left and right is closed.
+            # TODO: this is a time_range level limitation. We'll implement a more detailed limitation later.
         sample_ratio : float
             the ratio of all orders are sampled
         volume_ratio : float
@@ -632,6 +629,4 @@ class RandomOrderStrategy(BaseStrategy):
         self.volume = D.features(D.instruments("market"), ["Mean($volume, 10)"], start_time=exch.start_time, end_time=exch.end_time)
 
     def generate_trade_decision(self, execute_result=None):
-
-
         return super().generate_trade_decision(execute_result=execute_result)
