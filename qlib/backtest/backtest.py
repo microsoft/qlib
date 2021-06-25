@@ -1,9 +1,12 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
+from qlib.backtest.utils import TradeDecison
+from qlib.strategy.base import BaseStrategy
+from qlib.backtest.executor import BaseExecutor
 from ..utils.resam import parse_freq
 
 
-def backtest_loop(start_time, end_time, trade_strategy, trade_executor):
+def backtest_loop(start_time, end_time, trade_strategy: BaseStrategy, trade_executor: BaseExecutor):
     """backtest funciton for the interaction of the outermost strategy and executor in the nested decison execution
 
     Returns
@@ -17,7 +20,7 @@ def backtest_loop(start_time, end_time, trade_strategy, trade_executor):
     return return_value.get("report"), return_value.get("indicator")
 
 
-def collect_data_loop(start_time, end_time, trade_strategy, trade_executor, return_value: dict = None):
+def collect_data_loop(start_time, end_time, trade_strategy: BaseStrategy, trade_executor: BaseExecutor, return_value: dict = None):
     """Generator for collecting the trade decision data for rl training
 
     Parameters
@@ -44,7 +47,7 @@ def collect_data_loop(start_time, end_time, trade_strategy, trade_executor, retu
 
     _execute_result = None
     while not trade_executor.finished():
-        _trade_decision = trade_strategy.generate_trade_decision(_execute_result)
+        _trade_decision: TradeDecison = trade_strategy.generate_trade_decision(_execute_result)
         _execute_result = yield from trade_executor.collect_data(_trade_decision)
 
     if return_value is not None:

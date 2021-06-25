@@ -1,13 +1,13 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
-from typing import Union
+from typing import List, Union
 
 from ..model.base import BaseModel
 from ..data.dataset import DatasetH
 from ..data.dataset.utils import convert_index_format
 from ..rl.interpreter import ActionInterpreter, StateInterpreter
 from ..utils import init_instance_by_config
-from ..backtest.utils import CommonInfrastructure, LevelInfrastructure, TradeDecison
+from ..backtest.utils import BaseTradeDecision, CommonInfrastructure, LevelInfrastructure, TradeDecison
 
 
 class BaseStrategy:
@@ -43,9 +43,9 @@ class BaseStrategy:
         if level_infra.has("trade_calendar"):
             self.trade_calendar = level_infra.get("trade_calendar")
 
-    def reset_common_infra(self, common_infra):
+    def reset_common_infra(self, common_infra: CommonInfrastructure):
         if not hasattr(self, "common_infra"):
-            self.common_infra = common_infra
+            self.common_infra: CommonInfrastructure = common_infra
         else:
             self.common_infra.update(common_infra)
 
@@ -84,16 +84,31 @@ class BaseStrategy:
         """
         raise NotImplementedError("generate_trade_decision is not implemented!")
 
-    def update_trade_decision(self, trade_decison: TradeDecison, trade_step, trade_len):
+    def update_trade_decision(self, trade_decison: BaseTradeDecision, trade_step: int, trade_len: int) -> BaseTradeDecision:
         """update trade decision in each step of inner execution, this method enable all order
 
         Parameters
         ----------
         trade_decison : TradeDecison
             the trade decison that will be updated
+        Returns
+        -------
+            BaseTradeDecision:
         """
         if trade_step == 0:
             trade_decison.enable(all_enable=True)
+
+    def alter_outer_trade_decision(self, outer_trade_decision: BaseTradeDecision):
+        """
+        A method for updating the outer_trade_decision.
+        The outer strategy may change its decision during updating.
+
+        Parameters
+        ----------
+        outer_trade_decision : BaseTradeDecision
+            the decision updated by the outer strategy
+        """
+        self.outer_trade_decision = outer_trade_decision
 
 
 class ModelStrategy(BaseStrategy):
