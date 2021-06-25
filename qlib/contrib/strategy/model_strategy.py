@@ -6,8 +6,7 @@ import pandas as pd
 
 from ...utils.resam import resam_ts_data
 from ...strategy.base import ModelStrategy
-from ...backtest.order import Order
-from ...backtest.utils import TradeDecison
+from ...backtest.order import Order, BaseTradeDecision
 
 from .order_generator import OrderGenWInteract
 
@@ -247,7 +246,7 @@ class TopkDropoutStrategy(ModelStrategy):
                 factor=factor,
             )
             buy_order_list.append(buy_order)
-        return TradeDecison(order_list=sell_order_list + buy_order_list, ori_strategy=self)
+        return TradeDecision(order_list=sell_order_list + buy_order_list, ori_strategy=self)
 
 
 class WeightStrategyBase(ModelStrategy):
@@ -344,4 +343,4 @@ class WeightStrategyBase(ModelStrategy):
             trade_start_time=trade_start_time,
             trade_end_time=trade_end_time,
         )
-        return TradeDecison(order_list=order_list, ori_strategy=self)
+        return TradeDecision(order_list=order_list, ori_strategy=self)

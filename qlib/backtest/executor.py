@@ -3,12 +3,12 @@ import warnings
 import pandas as pd
 from typing import Union
 
-from .order import Order
+from .order import Order, BaseTradeDecision
 from .exchange import Exchange
-from .utils import BaseTradeDecision, TradeCalendarManager, CommonInfrastructure, LevelInfrastructure, TradeDecison
+from .utils import TradeCalendarManager, CommonInfrastructure, LevelInfrastructure
 
 from ..utils import init_instance_by_config
-from ..utils.resam import parse_freq
+from ..utils.time import Freq
 from ..strategy.base import BaseStrategy
 
 
@@ -135,7 +135,7 @@ class BaseExecutor:
 
         Parameters
         ----------
-        trade_decision : TradeDecison
+        trade_decision : BaseTradeDecision
 
         Returns
         ----------
@@ -149,7 +149,7 @@ class BaseExecutor:
 
         Parameters
         ----------
-        trade_decision : TradeDecison
+        trade_decision : BaseTradeDecision
 
         Returns
         ----------
@@ -261,7 +261,7 @@ class NestedExecutor(BaseExecutor):
 
     def execute(self, trade_decision):
         return_value = {}
-        for _decison in self.collect_data(trade_decision, return_value):
+        for _decision in self.collect_data(trade_decision, return_value):
             pass
         return return_value.get("execute_result")
 
@@ -358,13 +358,12 @@ class SimulatorExecutor(BaseExecutor):
         if common_infra.has("trade_exchange"):
             self.trade_exchange = common_infra.get("trade_exchange")
 
-    def execute(self, trade_decision):
+    def execute(self, trade_decision: BaseTradeDecision):
 
         trade_step = self.trade_calendar.get_trade_step()
         trade_start_time, trade_end_time = self.trade_calendar.get_step_time(trade_step)
         execute_result = []
-        order_generator = trade_decision.generator()
-        for order in order_generator:
+        for order in trade_decision.get_decision():
             if self.trade_exchange.check_order(order) is True:
                 # execute the order
                 trade_val, trade_cost, trade_price = self.trade_exchange.deal_order(

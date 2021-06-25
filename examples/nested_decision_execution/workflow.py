@@ -13,7 +13,7 @@ from qlib.tests.data import GetData
 from qlib.backtest import collect_data
 
 
-class NestedDecisonExecutionWorkflow:
+class NestedDecisionExecutionWorkflow:
 
     market = "csi300"
     benchmark = "SH000300"
@@ -229,4 +229,4 @@ class NestedDecisonExecutionWorkflow:
 
 
 if __name__ == "__main__":
-    fire.Fire(NestedDecisonExecutionWorkflow)
+    fire.Fire(NestedDecisionExecutionWorkflow)

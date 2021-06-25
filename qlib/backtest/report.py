@@ -11,7 +11,8 @@ from pandas.core import groupby
 
 from pandas.core.frame import DataFrame
 
-from ..utils.resam import parse_freq, resam_ts_data, get_higher_eq_freq_feature
+from ..utils.time import Freq
+from ..utils.resam import resam_ts_data, get_higher_eq_freq_feature
 from ..data import D
 from ..tests.config import CSI300_BENCH
 
@@ -78,6 +79,9 @@ class Report:
 
     def _cal_benchmark(self, benchmark_config, freq):
         benchmark = benchmark_config.get("benchmark", CSI300_BENCH)
+        if benchmark is None:
+            return None
+
         if isinstance(benchmark, pd.Series):
             return benchmark
         else:
@@ -94,6 +98,9 @@ class Report:
             return _temp_result.groupby(level="datetime")[_temp_result.columns.tolist()[0]].mean().fillna(0)
 
     def _sample_benchmark(self, bench, trade_start_time, trade_end_time):
+        if self.bench is None:
+            return None
+
         def cal_change(x):
             return (x + 1).prod()
 
