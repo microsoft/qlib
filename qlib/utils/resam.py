@@ -328,7 +328,7 @@ def resam_ts_data(
     if datetime_level:
         feature = feature.loc[selector_datetime]
     else:
-        feature = feature.loc[(slice(None), selector_datetime)]
+        feature = feature.loc(axis=0)[(slice(None), selector_datetime)]
 
     if feature.empty:
         return None
