@@ -4,16 +4,25 @@
 Time related utils are compiled in this script
 """
 import bisect
-from datetime import time
+from datetime import datetime, time
 from typing import List, Tuple
 import re
 from numpy import append
 import pandas as pd
+from qlib.config import C
+import functools
 
 
-def get_min_cal() -> List[time]:
+@functools.lru_cache(maxsize=240)
+def get_min_cal(shift: int=0) -> List[time]:
     """
     get the minute level calendar in day period
+
+    Parameters
+    ----------
+    shift : int
+        the shift direction would be like pandas shift.
+        series.shift(1) will replace the value at `i`-th with the one at `i-1`-th
 
     Returns
     -------
@@ -21,7 +30,8 @@ def get_min_cal() -> List[time]:
 
     """
     cal = []
-    for ts in list(pd.date_range("9:30", "11:29", freq="1min")) + list(pd.date_range("13:00", "14:59", freq="1min")):
+    for ts in list(pd.date_range("9:30", "11:29", freq="1min") - pd.Timedelta(minutes=shift)) +\
+                list(pd.date_range("13:00", "14:59", freq="1min") - pd.Timedelta(minutes=shift)):
         cal.append(ts.time())
     return cal
 
@@ -110,6 +120,36 @@ def get_day_min_idx_range(start: str, end: str, freq: str) -> Tuple[int, int]:
     right_idx = bisect.bisect_right(in_day_cal, end) - 1
     return left_idx, right_idx
 
+
+def cal_sam_minute(x: pd.Timestamp, sam_minutes: int) -> pd.Timestamp:
+    """
+    align the minute-level data to a down sampled calendar
+
+    e.g. align 10:38 to 10:35 in 5 minute-level(10:30 in 10 minute-level)
+
+    Parameters
+    ----------
+    x : pd.Timestamp
+        datetime to be aligned
+    sam_minutes : int
+        align to `sam_minutes` minute-level calendar
+
+    Returns
+    -------
+    pd.Timestamp:
+        the datetime after aligned
+    """
+    cal = get_min_cal(C.min_data_shift)[::sam_minutes]
+    idx = bisect.bisect_right(cal, x.time()) - 1
+    date, new_time =  x.date(), cal[idx]
+    return pd.Timestamp(
+        datetime(date.year,
+                 month=date.month,
+                 day=date.day,
+                 hour=new_time.hour,
+                 minute=new_time.minute,
+                 second=new_time.second,
+                 microsecond=new_time.microsecond))
 
 if __name__ == "__main__":
     print(get_day_min_idx_range("8:30", "14:59", "10min"))
