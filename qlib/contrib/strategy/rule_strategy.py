@@ -635,6 +635,7 @@ class RandomOrderStrategy(BaseStrategy):
         self.volume_ratio = volume_ratio
         self.market = market
         exch: Exchange = self.common_infra.get("trade_exchange")
+        # TODO: this can't be online
         self.volume = D.features(D.instruments(market), ["Mean(Ref($volume, 1), 10)"], start_time=exch.start_time, end_time=exch.end_time)
         self.volume_df = self.volume.iloc[:, 0].unstack()
 
@@ -644,13 +645,14 @@ class RandomOrderStrategy(BaseStrategy):
 
         order_list = []
         for direction in Order.SELL, Order.BUY:
-            for stock_id, volume in self.volume_df[step_time_start].dropna().sample(frac=self.sample_ratio).items():
-                order_list.append(
-                    self.common_infra.get("trade_exchange").create_order(
-                        code=stock_id,
-                        amount=volume * self.volume_ratio,
-                        start_time=step_time_start,
-                        end_time=step_time_end,
-                        direction=direction,  # 1 for buy
-                    ))
+            if step_time_start in self.volume_df:
+                for stock_id, volume in self.volume_df[step_time_start].dropna().sample(frac=self.sample_ratio).items():
+                    order_list.append(
+                        self.common_infra.get("trade_exchange").create_order(
+                            code=stock_id,
+                            amount=volume * self.volume_ratio,
+                            start_time=step_time_start,
+                            end_time=step_time_end,
+                            direction=direction,  # 1 for buy
+                        ))
         return TradeDecisionWO(order_list, self)
