@@ -12,7 +12,7 @@ from qlib.data.dataset import TSDatasetH
 
 from qlib.log import get_module_logger
 from qlib.utils import get_cls_kwargs
-from qlib.utils.exceptions import QlibException
+from qlib.utils.exceptions import LoadObjectError
 from qlib.workflow.online.update import PredUpdater
 from qlib.workflow.recorder import Recorder
 from qlib.workflow.task.utils import list_recorders
@@ -138,12 +138,7 @@ class OnlineToolR(OnlineTool):
             exp_name (str): the experiment name. If None, then use default_exp_name.
 
         """
-        if exp_name is None:
-            if self.default_exp_name is None:
-                raise ValueError(
-                    "Both default_exp_name and exp_name are None. OnlineToolR needs a specific experiment."
-                )
-            exp_name = self.default_exp_name
+        exp_name = self._get_exp_name(exp_name)
         if isinstance(recorder, Recorder):
             recorder = [recorder]
         recs = list_recorders(exp_name)
@@ -160,12 +155,7 @@ class OnlineToolR(OnlineTool):
         Returns:
             list: a list of `online` models.
         """
-        if exp_name is None:
-            if self.default_exp_name is None:
-                raise ValueError(
-                    "Both default_exp_name and exp_name are None. OnlineToolR needs a specific experiment."
-                )
-            exp_name = self.default_exp_name
+        exp_name = self._get_exp_name(exp_name)
         return list(list_recorders(exp_name, lambda rec: self.get_online_tag(rec) == self.ONLINE_TAG).values())
 
     def update_online_pred(self, to_date=None, exp_name: str = None):
@@ -176,12 +166,7 @@ class OnlineToolR(OnlineTool):
             to_date (pd.Timestamp): the pred before this date will be updated. None for updating to latest time in Calendar.
             exp_name (str): the experiment name. If None, then use default_exp_name.
         """
-        if exp_name is None:
-            if self.default_exp_name is None:
-                raise ValueError(
-                    "Both default_exp_name and exp_name are None. OnlineToolR needs a specific experiment."
-                )
-            exp_name = self.default_exp_name
+        exp_name = self._get_exp_name(exp_name)
         online_models = self.online_models(exp_name=exp_name)
         for rec in online_models:
             hist_ref = 0
@@ -192,10 +177,19 @@ class OnlineToolR(OnlineTool):
                 hist_ref = kwargs.get("step_len", TSDatasetH.DEFAULT_STEP_LEN)
             try:
                 updater = PredUpdater(rec, to_date=to_date, hist_ref=hist_ref)
-            except QlibException as e:
+            except LoadObjectError as e:
                 # skip the recorder without pred
                 self.logger.warn(f"An exception `{str(e)}` happened when load `pred.pkl`, skip it.")
                 continue
             updater.update()
 
         self.logger.info(f"Finished updating {len(online_models)} online model predictions of {exp_name}.")
+
+    def _get_exp_name(self, exp_name):
+        if exp_name is None:
+            if self.default_exp_name is None:
+                raise ValueError(
+                    "Both default_exp_name and exp_name are None. OnlineToolR needs a specific experiment."
+                )
+            exp_name = self.default_exp_name
+        return exp_name
