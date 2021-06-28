@@ -63,7 +63,9 @@ class AccumulatedInfo:
 
 
 class Account:
-    def __init__(self, init_cash: float=1e9, freq: str = "day", benchmark_config: dict = {}, pos_type:str = "Position"):
+    def __init__(
+        self, init_cash: float = 1e9, freq: str = "day", benchmark_config: dict = {}, pos_type: str = "Position"
+    ):
         self.pos_type = pos_type
         self.init_vars(init_cash, freq, benchmark_config)
 
@@ -71,13 +73,13 @@ class Account:
 
         # init cash
         self.init_cash = init_cash
-        self.current: BasePosition = init_instance_by_config({
-            'class': self.pos_type,
-            'kwargs': {
-                "cash": init_cash
-            },
-            'module_path': "qlib.backtest.position",
-        })
+        self.current: BasePosition = init_instance_by_config(
+            {
+                "class": self.pos_type,
+                "kwargs": {"cash": init_cash},
+                "module_path": "qlib.backtest.position",
+            }
+        )
         self.accum_info = AccumulatedInfo()
         self.reset(freq=freq, benchmark_config=benchmark_config, init_report=True)
 

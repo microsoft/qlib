@@ -92,7 +92,9 @@ def get_exchange(
         return init_instance_by_config(exchange, accept_types=Exchange)
 
 
-def create_account_instance(start_time, end_time, benchmark: str, account: float, pos_type: str="Position") -> Account:
+def create_account_instance(
+    start_time, end_time, benchmark: str, account: float, pos_type: str = "Position"
+) -> Account:
     """
     # TODO: is very strange pass benchmark_config in the account(maybe for report)
     # There should be a post-step to process the report.
@@ -119,26 +121,25 @@ def create_account_instance(start_time, end_time, benchmark: str, account: float
             "start_time": start_time,
             "end_time": end_time,
         },
-        "pos_type": pos_type
+        "pos_type": pos_type,
     }
     return Account(**kwargs)
 
 
-def get_strategy_executor(start_time,
-                          end_time,
-                          strategy: BaseStrategy,
-                          executor: BaseExecutor,
-                          benchmark: str = "SH000300",
-                          account: Union[float, str] = 1e9,
-                          exchange_kwargs: dict = {},
-                          pos_type: str = "Position",
-                          ):
+def get_strategy_executor(
+    start_time,
+    end_time,
+    strategy: BaseStrategy,
+    executor: BaseExecutor,
+    benchmark: str = "SH000300",
+    account: Union[float, str] = 1e9,
+    exchange_kwargs: dict = {},
+    pos_type: str = "Position",
+):
 
-    trade_account = create_account_instance(start_time=start_time,
-                                            end_time=end_time,
-                                            benchmark=benchmark,
-                                            account=account,
-                                            pos_type=pos_type)
+    trade_account = create_account_instance(
+        start_time=start_time, end_time=end_time, benchmark=benchmark, account=account, pos_type=pos_type
+    )
 
     exchange_kwargs = copy.copy(exchange_kwargs)
     if "start_time" not in exchange_kwargs:
@@ -154,14 +155,16 @@ def get_strategy_executor(start_time,
     return trade_strategy, trade_executor
 
 
-def backtest(start_time,
-             end_time,
-             strategy,
-             executor,
-             benchmark="SH000300",
-             account=1e9,
-             exchange_kwargs={},
-             pos_type: str = "Position"):
+def backtest(
+    start_time,
+    end_time,
+    strategy,
+    executor,
+    benchmark="SH000300",
+    account=1e9,
+    exchange_kwargs={},
+    pos_type: str = "Position",
+):
 
     trade_strategy, trade_executor = get_strategy_executor(
         start_time,
@@ -178,14 +181,16 @@ def backtest(start_time,
     return report_dict, indicator_dict
 
 
-def collect_data(start_time,
-                 end_time,
-                 strategy,
-                 executor,
-                 benchmark="SH000300",
-                 account=1e9,
-                 exchange_kwargs={},
-                 pos_type: str = "Position"):
+def collect_data(
+    start_time,
+    end_time,
+    strategy,
+    executor,
+    benchmark="SH000300",
+    account=1e9,
+    exchange_kwargs={},
+    pos_type: str = "Position",
+):
 
     trade_strategy, trade_executor = get_strategy_executor(
         start_time,

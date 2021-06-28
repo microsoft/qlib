@@ -102,7 +102,7 @@ class TWAPStrategy(BaseStrategy):
         trade_step = self.trade_calendar.get_trade_step()
         # get the total count of trading step
         start_idx, end_idx = get_start_end_idx(self, self.outer_trade_decision)
-        trade_len = end_idx - start_idx  + 1
+        trade_len = end_idx - start_idx + 1
 
         if trade_step < start_idx:
             # It is not time to start trading
@@ -137,12 +137,16 @@ class TWAPStrategy(BaseStrategy):
                 # calculate the amount of one part, ceil the amount
                 # floor((trade_unit_cnt + trade_len - rel_trade_step) / (trade_len - rel_trade_step + 1)) == ceil(trade_unit_cnt / (trade_len - rel_trade_step + 1))
                 _order_amount = (
-                    (trade_unit_cnt + trade_len - rel_trade_step - 1) // (trade_len - rel_trade_step) * _amount_trade_unit
+                    (trade_unit_cnt + trade_len - rel_trade_step - 1)
+                    // (trade_len - rel_trade_step)
+                    * _amount_trade_unit
                 )
 
             if order.direction == order.SELL:
                 # sell all amount at last
-                if self.trade_amount[order.stock_id] > 1e-5 and (_order_amount < 1e-5 or rel_trade_step == trade_len - 1):
+                if self.trade_amount[order.stock_id] > 1e-5 and (
+                    _order_amount < 1e-5 or rel_trade_step == trade_len - 1
+                ):
                     _order_amount = self.trade_amount[order.stock_id]
 
             _order_amount = min(_order_amount, self.trade_amount[order.stock_id])
@@ -173,6 +177,7 @@ class SBBStrategyBase(BaseStrategy):
     # TODO:
     # 1. Supporting leverage the get_range_limit result from the decision
     # 2. Supporting alter_outer_trade_decision
+    # 3. Supporting checking the availability of trade decision
 
     def __init__(
         self,
@@ -225,8 +230,7 @@ class SBBStrategyBase(BaseStrategy):
             self.trade_trend = {}
             self.trade_amount = {}
             # init the trade amount of order and  predicted trade trend
-            outer_order_generator = outer_trade_decision.generator()
-            for order in outer_order_generator:
+            for order in outer_trade_decision.get_decision():
                 self.trade_trend[order.stock_id] = self.TREND_MID
                 self.trade_amount[order.stock_id] = order.amount
 
@@ -248,8 +252,7 @@ class SBBStrategyBase(BaseStrategy):
         pred_start_time, pred_end_time = self.trade_calendar.get_step_time(trade_step, shift=1)
         order_list = []
         # for each order in in self.outer_trade_decision
-        outer_order_generator = self.outer_trade_decision.generator(only_enable=True)
-        for order in outer_order_generator:
+        for order in self.outer_trade_decision.get_decision():
             # get the price trend
             if trade_step % 2 == 0:
                 # in the first of two adjacent bars, predict the price trend
@@ -379,9 +382,11 @@ class SBBStrategyEMA(SBBStrategyBase):
     """
     (S)elect the (B)etter one among every two adjacent trading (B)ars to sell or buy with (EMA) signal.
     """
+
     # TODO:
     # 1. Supporting leverage the get_range_limit result from the decision
     # 2. Supporting alter_outer_trade_decision
+    # 3. Supporting checking the availability of trade decision
 
     def __init__(
         self,
@@ -463,6 +468,7 @@ class ACStrategy(BaseStrategy):
     # TODO:
     # 1. Supporting leverage the get_range_limit result from the decision
     # 2. Supporting alter_outer_trade_decision
+    # 3. Supporting checking the availability of trade decision
     def __init__(
         self,
         lamb: float = 1e-6,
@@ -555,8 +561,7 @@ class ACStrategy(BaseStrategy):
         if outer_trade_decision is not None:
             self.trade_amount = {}
             # init the trade amount of order and  predicted trade trend
-            outer_order_generator = outer_trade_decision.generator()
-            for order in outer_order_generator:
+            for order in outer_trade_decision.get_decision():
                 self.trade_amount[order.stock_id] = order.amount
 
     def generate_trade_decision(self, execute_result=None):
@@ -564,8 +569,6 @@ class ACStrategy(BaseStrategy):
         trade_step = self.trade_calendar.get_trade_step()
         # get the total count of trading step
         trade_len = self.trade_calendar.get_trade_len()
-        # update outer trade decision
-        self.outer_trade_decision.update(self.trade_calendar)
 
         # update the order amount
         if execute_result is not None:
@@ -575,8 +578,7 @@ class ACStrategy(BaseStrategy):
         trade_start_time, trade_end_time = self.trade_calendar.get_step_time(trade_step)
         pred_start_time, pred_end_time = self.trade_calendar.get_step_time(trade_step, shift=1)
         order_list = []
-        outer_order_generator = self.outer_trade_decision.generator(only_enable=True)
-        for order in outer_order_generator:
+        for order in self.outer_trade_decision.get_decision():
             # if not tradable, continue
             if not self.trade_exchange.is_stock_tradable(
                 stock_id=order.stock_id, start_time=trade_start_time, end_time=trade_end_time
@@ -638,14 +640,16 @@ class ACStrategy(BaseStrategy):
 
 
 class RandomOrderStrategy(BaseStrategy):
-
-    def __init__(self,
-                 index_range: Tuple[int, int],  # The range is closed on both left and right.
-                 sample_ratio: float = 1.,
-                 volume_ratio: float = 0.01,
-                 market: str = "all",
-                 *args,
-                 **kwargs):
+    def __init__(
+        self,
+        index_range: Tuple[int, int],  # The range is closed on both left and right.
+        sample_ratio: float = 1.0,
+        volume_ratio: float = 0.01,
+        market: str = "all",
+        direction: int = Order.BUY,
+        *args,
+        **kwargs,
+    ):
         """
         Parameters
         ----------
@@ -667,9 +671,12 @@ class RandomOrderStrategy(BaseStrategy):
         self.sample_ratio = sample_ratio
         self.volume_ratio = volume_ratio
         self.market = market
+        self.direction = direction
         exch: Exchange = self.common_infra.get("trade_exchange")
         # TODO: this can't be online
-        self.volume = D.features(D.instruments(market), ["Mean(Ref($volume, 1), 10)"], start_time=exch.start_time, end_time=exch.end_time)
+        self.volume = D.features(
+            D.instruments(market), ["Mean(Ref($volume, 1), 10)"], start_time=exch.start_time, end_time=exch.end_time
+        )
         self.volume_df = self.volume.iloc[:, 0].unstack()
 
     def generate_trade_decision(self, execute_result=None):
@@ -677,15 +684,15 @@ class RandomOrderStrategy(BaseStrategy):
         step_time_start, step_time_end = self.trade_calendar.get_step_time(trade_step)
 
         order_list = []
-        for direction in Order.SELL, Order.BUY:
-            if step_time_start in self.volume_df:
-                for stock_id, volume in self.volume_df[step_time_start].dropna().sample(frac=self.sample_ratio).items():
-                    order_list.append(
-                        self.common_infra.get("trade_exchange").create_order(
-                            code=stock_id,
-                            amount=volume * self.volume_ratio,
-                            start_time=step_time_start,
-                            end_time=step_time_end,
-                            direction=direction,  # 1 for buy
-                        ))
+        if step_time_start in self.volume_df:
+            for stock_id, volume in self.volume_df[step_time_start].dropna().sample(frac=self.sample_ratio).items():
+                order_list.append(
+                    self.common_infra.get("trade_exchange").create_order(
+                        code=stock_id,
+                        amount=volume * self.volume_ratio,
+                        start_time=step_time_start,
+                        end_time=step_time_end,
+                        direction=self.direction,
+                    )
+                )
         return TradeDecisionWO(order_list, self, self.index_range)

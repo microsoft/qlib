@@ -15,7 +15,8 @@ class BasePosition:
     The Position want to maintain the position like a dictionary
     Please refer to the `Position` class for the position
     """
-    def __init__(self, cash=0., *args, **kwargs) -> None:
+
+    def __init__(self, cash=0.0, *args, **kwargs) -> None:
         pass
 
     def skip_update(self) -> bool:
@@ -45,7 +46,6 @@ class BasePosition:
             if is the stock in the position
         """
         raise NotImplementedError(f"Please implement the `check_stock` method")
-
 
     def update_order(self, order: Order, trade_val: float, cost: float, trade_price: float):
         """
@@ -86,6 +86,7 @@ class BasePosition:
             the value(money) of all the stock
         """
         raise NotImplementedError(f"Please implement the `calculate_stock_value` method")
+
     def get_stock_list(self) -> List:
         """
         Get the list of stocks in the position.
@@ -140,7 +141,7 @@ class BasePosition:
         """
         raise NotImplementedError(f"Please implement the `get_stock_amount_dict` method")
 
-    def get_stock_weight_dict(self, only_stock: bool=False) -> Dict:
+    def get_stock_weight_dict(self, only_stock: bool = False) -> Dict:
         """
         generate stock weight dict {stock_id : value weight of stock in the position}
         it is meaningful in the beginning or the end of each trade date
@@ -399,13 +400,13 @@ class Position(BasePosition):
         self.position["now_account_value"] = now_account_value
 
 
-
 class InfPosition(BasePosition):
     """
     Position with infinite cash and amount.
 
     This is useful for generating random orders.
     """
+
     def skip_update(self) -> bool:
         """ Updating state is meaningless for InfPosition """
         return True

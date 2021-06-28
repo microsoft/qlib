@@ -85,7 +85,9 @@ class BaseStrategy:
         """
         raise NotImplementedError("generate_trade_decision is not implemented!")
 
-    def update_trade_decision(self, trade_decision: BaseTradeDecision, trade_calendar: TradeCalendarManager) -> Union[BaseTradeDecision, None]:
+    def update_trade_decision(
+        self, trade_decision: BaseTradeDecision, trade_calendar: TradeCalendarManager
+    ) -> Union[BaseTradeDecision, None]:
         """
         update trade decision in each step of inner execution, this method enable all order
 

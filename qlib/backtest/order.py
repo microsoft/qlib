@@ -2,8 +2,10 @@
 # Licensed under the MIT License.
 # TODO: rename it with decision.py
 from __future__ import annotations
+
 # try to fix circular imports when enabling type hints
 from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
     from qlib.strategy.base import BaseStrategy
 from qlib.backtest.utils import TradeCalendarManager
@@ -59,6 +61,7 @@ class BaseTradeDecision:
         1. The outer strategy's decision is available at the start of the interval
         2. Same as `case 1.3`
     """
+
     def __init__(self, strategy: BaseStrategy):
         """
         Parameters
@@ -125,7 +128,8 @@ class TradeDecisionWO(BaseTradeDecision):
     Trade Decision (W)ith (O)rder.
     Besides, the time_range is also included.
     """
-    def __init__(self, order_list: List[Order], strategy: BaseStrategy,  idx_range: Tuple=None):
+
+    def __init__(self, order_list: List[Order], strategy: BaseStrategy, idx_range: Tuple = None):
         super().__init__(strategy)
         self.order_list = order_list
         self.idx_range = idx_range
@@ -198,8 +202,7 @@ class TradeDecisionWithOrderPool:
 
 class BaseDecisionUpdater:
     def update_decision(self, decision, trade_calendar) -> BaseTradeDecision:
-        """[summary]
-
+        """
         Parameters
         ----------
         decision : BaseTradeDecision
