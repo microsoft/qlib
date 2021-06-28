@@ -22,11 +22,11 @@ data_handler_config: &data_handler_config
         - class: CSRankNorm
           kwargs:
               fields_group: label
-    label: ["Ref($close, -2) / Ref($close, -1) - 1",
-            "Ref($close, -3) / Ref($close, -1) - 1",
-            "Ref($close, -4) / Ref($close, -1) - 1",
-            "Ref($close, -5) / Ref($close, -1) - 1",
-            "Ref($close, -6) / Ref($close, -1) - 1"]
+    label: ["Ref($close, -1) / $close - 1",
+            "Ref($close, -2) / Ref($close, -1) - 1",
+            "Ref($close, -3) / Ref($close, -2) - 1",
+            "Ref($close, -4) / Ref($close, -3) - 1",
+            "Ref($close, -5) / Ref($close, -4) - 1"]
 port_analysis_config: &port_analysis_config
     strategy:
         class: TopkDropoutStrategy
@@ -65,7 +65,7 @@ task:
             fore_lr: 5e-7
             weight_lr: 5e-7
             steps: 3
-            target_label: 0
+            target_label: 1
     dataset:
         class: DatasetH
         module_path: qlib.data.dataset
