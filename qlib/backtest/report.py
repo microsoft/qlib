@@ -395,11 +395,9 @@ class Indicator:
                 )
             )
 
-    @property
     def get_order_indicator(self):
         return self.order_indicator
 
-    @property
     def get_trade_indicator(self):
         return self.trade_indicator
 

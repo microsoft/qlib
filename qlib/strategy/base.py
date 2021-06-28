@@ -113,10 +113,9 @@ class BaseStrategy:
         outer_trade_decision : BaseTradeDecision
             the decision updated by the outer strategy
         """
-
         # default to reset the decision directly
         # NOTE: normally, user should do something to the strategy due to the change of outer decision
-        self.outer_trade_decision = outer_trade_decision
+        raise NotImplementedError(f"Please implement the `alter_outer_trade_decision` method")
 
 
 class ModelStrategy(BaseStrategy):

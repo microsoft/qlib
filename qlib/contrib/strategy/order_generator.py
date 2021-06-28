@@ -6,7 +6,7 @@ This order generator is for strategies based on WeightStrategyBase
 """
 from ...backtest.position import Position
 from ...backtest.exchange import Exchange
-from ...backtest.order import BaseTradeDecision
+from ...backtest.order import BaseTradeDecision, TradeDecisionWO
 
 import pandas as pd
 import copy
@@ -127,7 +127,7 @@ class OrderGenWInteract(OrderGenerator):
             trade_start_time=trade_start_time,
             trade_end_time=trade_end_time,
         )
-        return TradeDecision(order_list=order_list, ori_strategy=self)
+        return TradeDecisionWO(order_list, self)
 
 
 class OrderGenWOInteract(OrderGenerator):
@@ -191,4 +191,4 @@ class OrderGenWOInteract(OrderGenerator):
             trade_start_time=trade_start_time,
             trade_end_time=trade_end_time,
         )
-        return TradeDecision(order_list=order_list, ori_strategy=self)
+        return TradeDecisionWO(order_list, self)

@@ -12,6 +12,29 @@ from ...backtest.exchange import Exchange
 from ...backtest.utils import CommonInfrastructure, LevelInfrastructure
 
 
+def get_start_end_idx(strategy: BaseStrategy, outer_trade_decision: BaseTradeDecision) -> Union[int, int]:
+    """
+    A helper function for getting the decision-level index range limitation for inner strategy
+    - NOTE: this function is not applicable to order-level
+
+    Parameters
+    ----------
+    strategy : BaseStrategy
+        the inner strawtegy
+    outer_trade_decision : BaseTradeDecision
+        the trade decision made by outer strategy
+
+    Returns
+    -------
+    Union[int, int]:
+        start index and end index
+    """
+    try:
+        return outer_trade_decision.get_range_limit()
+    except NotImplementedError:
+        return 0, strategy.trade_calendar.get_trade_len() - 1
+
+
 class TWAPStrategy(BaseStrategy):
     """TWAP Strategy for trading"""
 
@@ -78,7 +101,7 @@ class TWAPStrategy(BaseStrategy):
         # get the number of trading step finished, trade_step can be [0, 1, 2, ..., trade_len - 1]
         trade_step = self.trade_calendar.get_trade_step()
         # get the total count of trading step
-        start_idx, end_idx = self.outer_trade_decision.get_range_limit()
+        start_idx, end_idx = get_start_end_idx(self, self.outer_trade_decision)
         trade_len = end_idx - start_idx  + 1
 
         if trade_step < start_idx:
@@ -146,6 +169,10 @@ class SBBStrategyBase(BaseStrategy):
     TREND_MID = 0
     TREND_SHORT = 1
     TREND_LONG = 2
+
+    # TODO:
+    # 1. Supporting leverage the get_range_limit result from the decision
+    # 2. Supporting alter_outer_trade_decision
 
     def __init__(
         self,
@@ -345,13 +372,16 @@ class SBBStrategyBase(BaseStrategy):
                 # in the first one of two adjacent bars, store the trend for the second one to use
                 self.trade_trend[order.stock_id] = _pred_trend
 
-        return TradeDecision(order_list=order_list, ori_strategy=self)
+        return TradeDecisionWO(order_list, self)
 
 
 class SBBStrategyEMA(SBBStrategyBase):
     """
     (S)elect the (B)etter one among every two adjacent trading (B)ars to sell or buy with (EMA) signal.
     """
+    # TODO:
+    # 1. Supporting leverage the get_range_limit result from the decision
+    # 2. Supporting alter_outer_trade_decision
 
     def __init__(
         self,
@@ -430,6 +460,9 @@ class SBBStrategyEMA(SBBStrategyBase):
 
 
 class ACStrategy(BaseStrategy):
+    # TODO:
+    # 1. Supporting leverage the get_range_limit result from the decision
+    # 2. Supporting alter_outer_trade_decision
     def __init__(
         self,
         lamb: float = 1e-6,
@@ -601,7 +634,7 @@ class ACStrategy(BaseStrategy):
                     factor=order.factor,
                 )
                 order_list.append(_order)
-        return TradeDecision(order_list=order_list, ori_strategy=self)
+        return TradeDecisionWO(order_list, self)
 
 
 class RandomOrderStrategy(BaseStrategy):
@@ -655,4 +688,4 @@ class RandomOrderStrategy(BaseStrategy):
                             end_time=step_time_end,
                             direction=direction,  # 1 for buy
                         ))
-        return TradeDecisionWO(order_list, self)
+        return TradeDecisionWO(order_list, self, self.index_range)

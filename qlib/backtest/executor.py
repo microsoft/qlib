@@ -3,6 +3,8 @@ import warnings
 import pandas as pd
 from typing import Union
 
+from qlib.backtest.report import Indicator
+
 from .order import Order, BaseTradeDecision
 from .exchange import Exchange
 from .utils import TradeCalendarManager, CommonInfrastructure, LevelInfrastructure
@@ -174,7 +176,7 @@ class BaseExecutor:
         else:
             raise ValueError("generate_report should be True if you want to generate report")
 
-    def get_trade_indicator(self):
+    def get_trade_indicator(self) -> Indicator:
         """get the trade indicator instance, which has pa/pos/ffr info."""
         return self.trade_account.indicator
 
@@ -279,7 +281,7 @@ class NestedExecutor(BaseExecutor):
                 trade_decision = updated_trade_decision
                 # NEW UPDATE
                 # create a hook for inner strategy to update outter decision
-                self.inner_strategy.alter_decision(trade_decision)
+                self.inner_strategy.alter_outer_trade_decision(trade_decision)
 
             _inner_trade_decision = self.inner_strategy.generate_trade_decision(_inner_execute_result)
 
@@ -287,7 +289,7 @@ class NestedExecutor(BaseExecutor):
             _inner_execute_result = yield from self.inner_executor.collect_data(trade_decision=_inner_trade_decision)
 
             execute_result.extend(_inner_execute_result)
-            inner_order_indicators.append(self.inner_executor.get_trade_indicator().get_order_indicator)
+            inner_order_indicators.append(self.inner_executor.get_trade_indicator().get_order_indicator())
 
         if hasattr(self, "trade_account"):
             trade_step = self.trade_calendar.get_trade_step()

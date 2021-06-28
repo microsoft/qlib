@@ -56,7 +56,7 @@ class BaseTradeDecision:
         2. After a period of time, the decision are updated and become available
         3. The inner strategy try to get the decision and start to execute the decision according to `get_range_limit`
         Case 2:
-        1. The strategy is available at the start of the interval
+        1. The outer strategy's decision is available at the start of the interval
         2. Same as `case 1.3`
     """
     def __init__(self, strategy: BaseStrategy):
@@ -133,14 +133,19 @@ class TradeDecisionWO(BaseTradeDecision):
     def get_range_limit(self) -> Tuple[int, int]:
         if self.idx_range is None:
             # Default to get full index
-            return 0, self.strategy.trade_calendar.get_trade_len() - 1
+            raise NotImplementedError(f"The decision didn't provide an index range")
         return self.idx_range
 
     def get_decision(self) -> List[object]:
         return self.order_list
 
+    def __repr__(self) -> str:
+        return f"strategy: {self.strategy}; idx_range: {self.idx_range}; order_list[{len(self.order_list)}]"
+
 
 # TODO: the orders below need to be discussed ------------------------------------
+# - The classes below are designed for Case 1
+# - However, Case 1 can't take `order_pool` as the an argument as the constructor function
 class TradeDecisionWithOrderPool:
     """trade decision that made by strategy"""
 

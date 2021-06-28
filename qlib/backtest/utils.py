@@ -103,6 +103,9 @@ class TradeCalendarManager:
         """Get the start_time and end_time for trading"""
         return self.start_time, self.end_time
 
+    def __repr__(self) -> str:
+        return f"{self.start_time}[{self.start_index}]~{self.end_time}[{self.end_index}]: [{self.trade_step}/{self.trade_len}]"
+
 
 class BaseInfrastructure:
     def __init__(self, **kwargs):
