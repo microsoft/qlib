@@ -3,12 +3,14 @@ import warnings
 import pandas as pd
 from typing import Union
 
-from .order import Order
+from qlib.backtest.report import Indicator
+
+from .order import Order, BaseTradeDecision
 from .exchange import Exchange
-from .utils import TradeCalendarManager, CommonInfrastructure, LevelInfrastructure, TradeDecison
+from .utils import TradeCalendarManager, CommonInfrastructure, LevelInfrastructure
 
 from ..utils import init_instance_by_config
-from ..utils.resam import parse_freq
+from ..utils.time import Freq
 from ..strategy.base import BaseStrategy
 
 
@@ -135,7 +137,7 @@ class BaseExecutor:
 
         Parameters
         ----------
-        trade_decision : TradeDecison
+        trade_decision : BaseTradeDecision
 
         Returns
         ----------
@@ -149,7 +151,7 @@ class BaseExecutor:
 
         Parameters
         ----------
-        trade_decision : TradeDecison
+        trade_decision : BaseTradeDecision
 
         Returns
         ----------
@@ -174,7 +176,7 @@ class BaseExecutor:
         else:
             raise ValueError("generate_report should be True if you want to generate report")
 
-    def get_trade_indicator(self):
+    def get_trade_indicator(self) -> Indicator:
         """get the trade indicator instance, which has pa/pos/ffr info."""
         return self.trade_account.indicator
 
@@ -261,11 +263,11 @@ class NestedExecutor(BaseExecutor):
 
     def execute(self, trade_decision):
         return_value = {}
-        for _decison in self.collect_data(trade_decision, return_value):
+        for _decision in self.collect_data(trade_decision, return_value):
             pass
         return return_value.get("execute_result")
 
-    def collect_data(self, trade_decision, return_value=None):
+    def collect_data(self, trade_decision: BaseTradeDecision, return_value=None):
         if self.track_data:
             yield trade_decision
         self._init_sub_trading(trade_decision)
@@ -273,10 +275,21 @@ class NestedExecutor(BaseExecutor):
         inner_order_indicators = []
         _inner_execute_result = None
         while not self.inner_executor.finished():
+            # outter strategy have chance to update decision each iterator
+            updated_trade_decision = trade_decision.update(self.inner_executor.trade_calendar)
+            if updated_trade_decision is not None:
+                trade_decision = updated_trade_decision
+                # NEW UPDATE
+                # create a hook for inner strategy to update outter decision
+                self.inner_strategy.alter_outer_trade_decision(trade_decision)
+
             _inner_trade_decision = self.inner_strategy.generate_trade_decision(_inner_execute_result)
+
+            # NOTE: Trade Calendar will step forward in the follow line
             _inner_execute_result = yield from self.inner_executor.collect_data(trade_decision=_inner_trade_decision)
+
             execute_result.extend(_inner_execute_result)
-            inner_order_indicators.append(self.inner_executor.get_trade_indicator().get_order_indicator)
+            inner_order_indicators.append(self.inner_executor.get_trade_indicator().get_order_indicator())
 
         if hasattr(self, "trade_account"):
             trade_step = self.trade_calendar.get_trade_step()
@@ -347,13 +360,12 @@ class SimulatorExecutor(BaseExecutor):
         if common_infra.has("trade_exchange"):
             self.trade_exchange = common_infra.get("trade_exchange")
 
-    def execute(self, trade_decision):
+    def execute(self, trade_decision: BaseTradeDecision):
 
         trade_step = self.trade_calendar.get_trade_step()
         trade_start_time, trade_end_time = self.trade_calendar.get_step_time(trade_step)
         execute_result = []
-        order_generator = trade_decision.generator()
-        for order in order_generator:
+        for order in trade_decision.get_decision():
             if self.trade_exchange.check_order(order) is True:
                 # execute the order
                 trade_val, trade_cost, trade_price = self.trade_exchange.deal_order(

@@ -4,6 +4,7 @@
 
 import random
 import logging
+from typing import Union
 
 import numpy as np
 import pandas as pd
@@ -259,6 +260,16 @@ class Exchange:
 
         return trade_val, trade_cost, trade_price
 
+    def create_order(self, code, amount, start_time, end_time, direction) -> Order:
+        return Order(
+            stock_id=code,
+            amount=amount,
+            start_time=start_time,
+            end_time=end_time,
+            direction=direction,
+            factor=self.get_factor(code, start_time, end_time),
+        )
+
     def get_quote_info(self, stock_id, start_time, end_time):
         return resam_ts_data(self.quote[stock_id], start_time, end_time, method="last").iloc[0]
 
@@ -278,8 +289,20 @@ class Exchange:
             deal_price = self.get_close(stock_id, start_time, end_time)
         return deal_price
 
-    def get_factor(self, stock_id, start_time, end_time):
-        return resam_ts_data(self.quote[stock_id]["$factor"], start_time, end_time, method="last").iloc[0]
+    def get_factor(self, stock_id, start_time, end_time) -> Union[float, None]:
+        """
+        Returns
+        -------
+        Union[float, None]:
+            `None`: if the stock is suspended `None` may be returned
+            `float`: return factor if the factor exists
+        """
+        if stock_id not in self.quote:
+            return None
+        res = resam_ts_data(self.quote[stock_id]["$factor"], start_time, end_time, method="last")
+        if res is not None:
+            res = res.iloc[0]
+        return res
 
     def generate_amount_position_from_weight_position(self, weight_position, cash, start_time, end_time):
         """

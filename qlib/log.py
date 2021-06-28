@@ -68,7 +68,7 @@ def get_module_logger(module_name, level: Optional[int] = None) -> logging.Logge
 
 class TimeInspector:
 
-    timer_logger = get_module_logger("timer", level=logging.WARNING)
+    timer_logger = get_module_logger("timer", level=logging.INFO)
 
     time_marks = []
 

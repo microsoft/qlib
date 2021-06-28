@@ -1,5 +1,8 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
+"""
+This strategy is not well maintained
+"""
 
 
 from .order_generator import OrderGenWInteract

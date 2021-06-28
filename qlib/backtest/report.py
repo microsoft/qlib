@@ -11,15 +11,23 @@ from pandas.core import groupby
 
 from pandas.core.frame import DataFrame
 
-from ..utils.resam import parse_freq, resam_ts_data, get_higher_eq_freq_feature
+from ..utils.time import Freq
+from ..utils.resam import resam_ts_data, get_higher_eq_freq_feature
 from ..data import D
 from ..tests.config import CSI300_BENCH
 
 
 class Report:
-    # daily report of the account
-    # contain those followings: returns, costs turnovers, accounts, cash, bench, value
-    # update report
+    """
+    Motivation:
+        Report is for supporting portfolio related metrics.
+
+    Implementation:
+        daily report of the account
+        contain those followings: returns, costs turnovers, accounts, cash, bench, value
+        update report
+    """
+
     def __init__(self, freq: str = "day", benchmark_config: dict = {}):
         """
         Parameters
@@ -72,6 +80,9 @@ class Report:
 
     def _cal_benchmark(self, benchmark_config, freq):
         benchmark = benchmark_config.get("benchmark", CSI300_BENCH)
+        if benchmark is None:
+            return None
+
         if isinstance(benchmark, pd.Series):
             return benchmark
         else:
@@ -88,6 +99,9 @@ class Report:
             return _temp_result.groupby(level="datetime")[_temp_result.columns.tolist()[0]].mean().fillna(0)
 
     def _sample_benchmark(self, bench, trade_start_time, trade_end_time):
+        if self.bench is None:
+            return None
+
         def cal_change(x):
             return (x + 1).prod()
 
@@ -382,11 +396,9 @@ class Indicator:
                 )
             )
 
-    @property
     def get_order_indicator(self):
         return self.order_indicator
 
-    @property
     def get_trade_indicator(self):
         return self.trade_indicator
 
