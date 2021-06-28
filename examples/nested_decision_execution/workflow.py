@@ -64,22 +64,41 @@ class NestedDecisonExecutionWorkflow:
             "class": "NestedExecutor",
             "module_path": "qlib.backtest.executor",
             "kwargs": {
-                "time_per_step": "week",
+                "time_per_step": "day",
                 "inner_executor": {
-                    "class": "SimulatorExecutor",
+                    "class": "NestedExecutor",
                     "module_path": "qlib.backtest.executor",
                     "kwargs": {
-                        "time_per_step": "day",
+                        "time_per_step": "30min",
+                        "inner_executor": {
+                            "class": "SimulatorExecutor",
+                            "module_path": "qlib.backtest.executor",
+                            "kwargs": {
+                                "time_per_step": "5min",
+                                "generate_report": True,
+                                "verbose": True,
+                                "indicator_config": {
+                                    "show_indicator": True,
+                                },
+                            },
+                        },
+                        "inner_strategy": {
+                            "class": "TWAPStrategy",
+                            "module_path": "qlib.contrib.strategy.rule_strategy",
+                        },
                         "generate_report": True,
-                        "verbose": True,
                         "indicator_config": {
                             "show_indicator": True,
                         },
                     },
                 },
                 "inner_strategy": {
-                    "class": "TWAPStrategy",
+                    "class": "SBBStrategyEMA",
                     "module_path": "qlib.contrib.strategy.rule_strategy",
+                    "kwargs": {
+                        "instruments": market,
+                        "freq": "1min",
+                    },
                 },
                 "track_data": True,
                 "generate_report": True,
@@ -92,9 +111,8 @@ class NestedDecisonExecutionWorkflow:
             "start_time": "2020-01-01",
             "end_time": "2020-12-31",
             "account": 100000000,
-            "benchmark": benchmark,
             "exchange_kwargs": {
-                "freq": "day",
+                "freq": "1min",
                 "limit_threshold": 0.095,
                 "deal_price": "close",
                 "open_cost": 0.0005,
@@ -106,14 +124,14 @@ class NestedDecisonExecutionWorkflow:
 
     def _init_qlib(self):
         """initialize qlib"""
-        provider_uri_day = "/data1/v-xiabi/qlib/qlib_data/cn_data"  # target_dir
+        # provider_uri_day = "/data/stock_data/huaxia/qlib"
+        # provider_uri_1min = "/data2/stock_data/huaxia_1min_qlib"
+        provider_uri_day = "~/.qlib/qlib_data/cn_data"  # target_dir
         GetData().qlib_data(target_dir=provider_uri_day, region=REG_CN, version="v2", exists_skip=True)
-        # provider_uri_1min = HIGH_FREQ_CONFIG.get("provider_uri")
-        provider_uri_1min = "/data1/v-xiabi/qlib/qlib_data/cn_data_highfreq"
+        provider_uri_1min = HIGH_FREQ_CONFIG.get("provider_uri")
         GetData().qlib_data(
             target_dir=provider_uri_1min, interval="1min", region=REG_CN, version="v2", exists_skip=True
         )
-        provider_uri_day = "/data/csdesign/qlib"
         provider_uri_map = {"1min": provider_uri_1min, "day": provider_uri_day}
         client_config = {
             "calendar_provider": {
@@ -139,7 +157,7 @@ class NestedDecisonExecutionWorkflow:
                 },
             },
         }
-        qlib.init(provider_uri=provider_uri_day, **client_config)
+        qlib.init(provider_uri=provider_uri_day, **client_config, redis_port=-1)
 
     def _train_model(self, model, dataset):
         with R.start(experiment_name="train"):
@@ -177,8 +195,8 @@ class NestedDecisonExecutionWorkflow:
             par = PortAnaRecord(
                 recorder,
                 self.port_analysis_config,
-                risk_analysis_freq=["week", "day"],
-                indicator_analysis_freq=["week", "day"],
+                risk_analysis_freq=["day", "30min", "5min"],
+                indicator_analysis_freq=["day", "30min", "5min"],
                 indicator_analysis_method="value_weighted",
             )
             par.generate()

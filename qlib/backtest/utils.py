@@ -1,9 +1,10 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+from re import L
 import pandas as pd
 import warnings
-from typing import Union
+from typing import Union, List, Set
 
 from ..utils.resam import get_resam_calendar
 from ..data.data import Cal
@@ -145,3 +146,118 @@ class CommonInfrastructure(BaseInfrastructure):
 class LevelInfrastructure(BaseInfrastructure):
     def get_support_infra(self):
         return ["trade_calendar"]
+
+
+class TradeDecison:
+    """trade decison that made by strategy"""
+
+    def __init__(self, order_list, ori_strategy, init_enable=False):
+        """
+        Parameters
+        ----------
+        order_list : list
+            the order list
+        ori_strategy : BaseStrategy
+            the original strategy that make the decison
+        init_enable : bool, optional
+            wether to enable order initially, default by False
+        """
+        self.order_list = order_list
+        self.ori_strategy = ori_strategy
+        if init_enable:
+            self.enable_dict = {_order.stock_id: _order for _order in self.order_list}
+            self.disable_dict = dict()
+        else:
+            self.enable_dict = dict()
+            self.disable_dict = {_order.stock_id: _order for _order in self.order_list}
+
+    def enable(self, enable_set: Union[List[str], Set[str]] = None, all_enable=False):
+        """enable order set
+        Parameters
+        ----------
+        enable_set : Union[List[str], Set[str]], optional
+            the order set that will be enabled, by default None
+            - if all_enable is True, enable_set will be ignored
+            - else, enable the order whose stock_id in enable_set
+        all_enable : bool, optional
+            wether to enable all order, by default False
+        """
+        if all_enable is True:
+            self.enable_dict.update(self.disable_dict)
+            self.disable_dict.clear()
+            if enable_set is not None:
+                warnings.warn(f"`enable_set` is ignored because `all_enable` is set True")
+        else:
+            enable_set = set(enable_set)
+            for _stock_id in enable_set:
+                enable_order = self.disable_dict.get(_stock_id)
+                if enable_order is None:
+                    raise ValueError(f"_stock_id {_stock_id} is not found in disable set")
+                self.enable_order.update({_stock_id: enable_order})
+                self.disable_dict.pop(_stock_id)
+
+    def disable(self, disable_set: Union[List[str], Set[str]] = None, all_disable=False):
+        """disable order set
+        Parameters
+        ----------
+        disable_set : Union[List[str], Set[str]], optional
+            the order set that will be disabled, by default None
+            - if all_disable is True, disable_set will be ignored
+            - else, disable the order whose stock_id in disable_set
+        all_disable : bool, optional
+            wether to disable all order, by default False
+        """
+        if all_disable is True:
+            self.disable_dict.update(self.enable_dict)
+            self.enable_dict.clear()
+            if disable_set is not None:
+                warnings.warn(f"`disable_set` is ignored because `all_disable` is set True")
+        else:
+            disable_set = set(disable_set)
+            for _stock_id in disable_set:
+                disable_order = self.enable_dict.get(_stock_id)
+                if disable_order is None:
+                    raise ValueError(f"_stock_id {_stock_id} is not found in enable set")
+                self.disable_dict.update({_stock_id: disable_order})
+                self.enable_dict.pop(_stock_id)
+
+    def generator(self, only_enable=False, only_disable=False):
+        """get order generator used for iteration
+        Parameters
+        ----------
+        only_enable : bool, optional
+            wether to ignore disabled order, by default False
+        only_disable : bool, optional
+            wether to ignore enabled order, by default False
+        """
+        if not only_disable and not only_enable:
+            yield from self.order_list
+        elif not only_disable:
+            yield from self.enable_dict.values()
+        elif not only_enable:
+            yield from self.disable_dict.values()
+
+    def get_order_list(self, only_enable=False, only_disable=False):
+        """get the order list
+
+        Parameters
+        ----------
+        only_enable : bool, optional
+            wether to ignore disabled order, by default False
+        only_disable : bool, optional
+            wether to ignore enabled order, by default False
+        Returns
+        -------
+        List[Order]
+            the order list
+        """
+        if not only_disable and not only_enable:
+            return self.order_list
+        elif not only_disable:
+            return list(self.enable_dict.values())
+        elif not only_enable:
+            return list(self.disable_dict.values())
+
+    def update(self, trade_step, trade_len):
+        """make the original strategy update the enabled status of orders."""
+        self.ori_strategy.update_trade_decision(self, trade_step, trade_len)

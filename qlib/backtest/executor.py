@@ -5,7 +5,7 @@ from typing import Union
 
 from .order import Order
 from .exchange import Exchange
-from .utils import TradeCalendarManager, CommonInfrastructure, LevelInfrastructure
+from .utils import TradeCalendarManager, CommonInfrastructure, LevelInfrastructure, TradeDecison
 
 from ..utils import init_instance_by_config
 from ..utils.resam import parse_freq
@@ -135,7 +135,7 @@ class BaseExecutor:
 
         Parameters
         ----------
-        trade_decision : object
+        trade_decision : TradeDecison
 
         Returns
         ----------
@@ -149,7 +149,7 @@ class BaseExecutor:
 
         Parameters
         ----------
-        trade_decision : object
+        trade_decision : TradeDecison
 
         Returns
         ----------
@@ -166,6 +166,7 @@ class BaseExecutor:
         return self.execute(trade_decision)
 
     def get_report(self):
+        """get the history report and postions instance"""
         if self.generate_report:
             _report = self.trade_account.report.generate_report_dataframe()
             _positions = self.trade_account.get_positions()
@@ -173,12 +174,13 @@ class BaseExecutor:
         else:
             raise ValueError("generate_report should be True if you want to generate report")
 
-    def get_all_executors(self):
-        """Return all executors"""
-        return [self]
-
     def get_trade_indicator(self):
+        """get the trade indicator instance, which has pa/pos/ffr info."""
         return self.trade_account.indicator
+
+    def get_all_executors(self):
+        """get all executors"""
+        return [self]
 
 
 class NestedExecutor(BaseExecutor):
@@ -295,7 +297,7 @@ class NestedExecutor(BaseExecutor):
         return execute_result
 
     def get_all_executors(self):
-        """Return all executors, including self and inner_executor.get_all_executors()"""
+        """get all executors, including self and inner_executor.get_all_executors()"""
         return [self, *self.inner_executor.get_all_executors()]
 
 
@@ -350,7 +352,8 @@ class SimulatorExecutor(BaseExecutor):
         trade_step = self.trade_calendar.get_trade_step()
         trade_start_time, trade_end_time = self.trade_calendar.get_step_time(trade_step)
         execute_result = []
-        for order in trade_decision:
+        order_generator = trade_decision.generator()
+        for order in order_generator:
             if self.trade_exchange.check_order(order) is True:
                 # execute the order
                 trade_val, trade_cost, trade_price = self.trade_exchange.deal_order(
