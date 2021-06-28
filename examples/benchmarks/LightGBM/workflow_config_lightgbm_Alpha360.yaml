@@ -30,23 +30,6 @@ port_analysis_config: &port_analysis_config
         end_time: 2020-08-01
         account: 100000000
         benchmark: *benchmark
-    executor: 
-        class: NestedExecutor
-        module_path: qlib.backtest.executor
-        kwargs: 
-            time_per_step: week
-            inner_executor: 
-                class: SimulatorExecutor
-                module_path: qlib.backtest.executor
-                kwargs: 
-                    time_per_step: day
-                    generate_report: True
-                    verbose: True
-            inner_strategy: 
-                class: TWAPStrategy
-                module_path: qlib.contrib.strategy.rule_strategy
-            track_data: True
-            generate_report: True
 task:
     model:
         class: LGBModel
@@ -90,4 +73,3 @@ task:
           module_path: qlib.workflow.record_temp
           kwargs: 
             config: *port_analysis_config
-            risk_analysis_freq: day
