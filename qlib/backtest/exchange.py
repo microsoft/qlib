@@ -164,10 +164,6 @@ class Exchange:
             assert set(self.extra_quote.columns) == set(quote_df.columns) - {"$change"}
             quote_df = pd.concat([quote_df, self.extra_quote], sort=False, axis=0)
 
-        # update quote: pd.DataFrame to dict, for search use
-        if get_level_index(quote_df, level="datetime") == 1:
-            quote_df = quote_df.swaplevel().sort_index()
-
         quote_dict = {}
         for stock_id, stock_val in quote_df.groupby(level="instrument"):
             quote_dict[stock_id] = stock_val

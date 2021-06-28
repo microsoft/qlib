@@ -1,5 +1,8 @@
-from typing import Union
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
 import pandas as pd
+from typing import Union, List
 
 
 def get_level_index(df: pd.DataFrame, level=Union[str, int]) -> int:
@@ -70,6 +73,17 @@ def fetch_df_by_index(
         return df.loc[
             pd.IndexSlice[idx_slc],
         ]
+
+
+def fetch_df_by_col(df: pd.DataFrame, col_set: Union[str, List[str]]) -> pd.DataFrame:
+    from .handler import DataHandler
+
+    if not isinstance(df.columns, pd.MultiIndex) or col_set == DataHandler.CS_RAW:
+        return df
+    elif col_set == DataHandler.CS_ALL:
+        return df.droplevel(axis=1, level=0)
+    else:
+        return df.loc(axis=1)[col_set]
 
 
 def convert_index_format(df: Union[pd.DataFrame, pd.Series], level: str = "datetime") -> Union[pd.DataFrame, pd.Series]:

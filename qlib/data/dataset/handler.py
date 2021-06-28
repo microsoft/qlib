@@ -17,7 +17,7 @@ from ...data import D
 from ...config import C
 from ...utils import parse_config, transform_end_date, init_instance_by_config
 from ...utils.serial import Serializable
-from .utils import fetch_df_by_index
+from .utils import fetch_df_by_index, fetch_df_by_col
 from pathlib import Path
 from .loader import DataLoader
 
@@ -152,14 +152,6 @@ class DataHandler(Serializable):
     CS_ALL = "__all"  # return all columns with single-level index column
     CS_RAW = "__raw"  # return raw data with multi-level index column
 
-    def _fetch_df_by_col(self, df: pd.DataFrame, col_set: str) -> pd.DataFrame:
-        if not isinstance(df.columns, pd.MultiIndex) or col_set == self.CS_RAW:
-            return df
-        elif col_set == self.CS_ALL:
-            return df.droplevel(axis=1, level=0)
-        else:
-            return df.loc(axis=1)[col_set]
-
     def fetch(
         self,
         selector: Union[pd.Timestamp, slice, str] = slice(None, None),
@@ -213,7 +205,7 @@ class DataHandler(Serializable):
             df = proc_func(fetch_df_by_index(self._data, selector, level, fetch_orig=self.fetch_orig).copy())
 
         # Fetch column  first will be more friendly to SepDataFrame
-        df = self._fetch_df_by_col(df, col_set)
+        df = fetch_df_by_col(df, col_set)
         df = fetch_df_by_index(df, selector, level, fetch_orig=self.fetch_orig)
         if squeeze:
             # squeeze columns
@@ -238,7 +230,7 @@ class DataHandler(Serializable):
             list of column names
         """
         df = self._data.head()
-        df = self._fetch_df_by_col(df, col_set)
+        df = fetch_df_by_col(df, col_set)
         return df.columns.to_list()
 
     def get_range_selector(self, cur_date: Union[pd.Timestamp, str], periods: int) -> slice:
@@ -525,7 +517,7 @@ class DataHandlerLP(DataHandler):
             # Copy incase of `proc_func` changing the data inplace....
             df = proc_func(fetch_df_by_index(df, selector, level, fetch_orig=self.fetch_orig).copy())
         # Fetch column  first will be more friendly to SepDataFrame
-        df = self._fetch_df_by_col(df, col_set)
+        df = fetch_df_by_col(df, col_set)
         return fetch_df_by_index(df, selector, level, fetch_orig=self.fetch_orig)
 
     def get_cols(self, col_set=DataHandler.CS_ALL, data_key: str = DK_I) -> list:
@@ -545,5 +537,5 @@ class DataHandlerLP(DataHandler):
             list of column names
         """
         df = self._get_df_by_key(data_key).head()
-        df = self._fetch_df_by_col(df, col_set)
+        df = fetch_df_by_col(df, col_set)
         return df.columns.to_list()

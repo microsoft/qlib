@@ -310,3 +310,12 @@ class CSZFillna(Processor):
         cols = get_group_columns(df, self.fields_group)
         df[cols] = df[cols].groupby("datetime").apply(lambda x: x.fillna(x.mean()))
         return df
+
+
+class HashingStock(Processor):
+    """Process the df into hasing stock storage"""
+
+    def __call__(self, df: pd.DataFrame):
+        from .storage import HasingStockStorage
+
+        return HasingStockStorage.from_df(df)
