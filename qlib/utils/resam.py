@@ -7,52 +7,7 @@ from typing import Tuple, List, Union, Optional, Callable
 
 from . import lazy_sort_index
 from ..config import C
-
-
-def parse_freq(freq: str) -> Tuple[int, str]:
-    """
-    Parse freq into a unified format
-
-    Parameters
-    ----------
-    freq : str
-        Raw freq, supported freq should match the re '^([0-9]*)(month|mon|week|w|day|d|minute|min)$'
-
-    Returns
-    -------
-    freq: Tuple[int, str]
-        Unified freq, including freq count and unified freq unit. The freq unit should be '[month|week|day|minute]'.
-            Example:
-
-            .. code-block::
-
-                print(parse_freq("day"))
-                (1, "day" )
-                print(parse_freq("2mon"))
-                (2, "month")
-                print(parse_freq("10w"))
-                (10, "week")
-
-    """
-    freq = freq.lower()
-    match_obj = re.match("^([0-9]*)(month|mon|week|w|day|d|minute|min)$", freq)
-    if match_obj is None:
-        raise ValueError(
-            "freq format is not supported, the freq should be like (n)month/mon, (n)week/w, (n)day/d, (n)minute/min"
-        )
-    _count = int(match_obj.group(1)) if match_obj.group(1) else 1
-    _freq = match_obj.group(2)
-    _freq_format_dict = {
-        "month": "month",
-        "mon": "month",
-        "week": "week",
-        "w": "week",
-        "day": "day",
-        "d": "day",
-        "minute": "minute",
-        "min": "minute",
-    }
-    return _count, _freq_format_dict[_freq]
+from .time import Freq, cal_sam_minute
 
 
 def resam_calendar(calendar_raw: np.ndarray, freq_raw: str, freq_sam: str) -> np.ndarray:
@@ -75,46 +30,14 @@ def resam_calendar(calendar_raw: np.ndarray, freq_raw: str, freq_sam: str) -> np
     np.ndarray
         The calendar with frequency freq_sam
     """
-    raw_count, freq_raw = parse_freq(freq_raw)
-    sam_count, freq_sam = parse_freq(freq_sam)
+    raw_count, freq_raw = Freq.parse(freq_raw)
+    sam_count, freq_sam = Freq.parse(freq_sam)
     if not len(calendar_raw):
         return calendar_raw
 
     # if freq_sam is xminute, divide each trading day into several bars evenly
-    if freq_sam == "minute":
-
-        def cal_sam_minute(x, sam_minutes):
-            """
-            Sample raw calendar into calendar with sam_minutes freq, shift represents the shift minute the market time
-                - open time of stock market is [9:30 - shift*pd.Timedelta(minutes=1)]
-                - mid close time of stock market is [11:29 - shift*pd.Timedelta(minutes=1)]
-                - mid open time of stock market is [13:00 - shift*pd.Timedelta(minutes=1)]
-                - close time of stock market is [14:59 - shift*pd.Timedelta(minutes=1)]
-            """
-            day_time = pd.Timestamp(x.date())
-            shift = C.min_data_shift
-
-            open_time = day_time + pd.Timedelta(hours=9, minutes=30) - shift * pd.Timedelta(minutes=1)
-            mid_close_time = day_time + pd.Timedelta(hours=11, minutes=29) - shift * pd.Timedelta(minutes=1)
-            mid_open_time = day_time + pd.Timedelta(hours=13, minutes=00) - shift * pd.Timedelta(minutes=1)
-            close_time = day_time + pd.Timedelta(hours=14, minutes=59) - shift * pd.Timedelta(minutes=1)
-
-            if open_time <= x <= mid_close_time:
-                minute_index = (x - open_time).seconds // 60
-            elif mid_open_time <= x <= close_time:
-                minute_index = (x - mid_open_time).seconds // 60 + 120
-            else:
-                raise ValueError("datetime of calendar is out of range")
-            minute_index = minute_index // sam_minutes * sam_minutes
-
-            if 0 <= minute_index < 120:
-                return open_time + minute_index * pd.Timedelta(minutes=1)
-            elif 120 <= minute_index < 240:
-                return mid_open_time + (minute_index - 120) * pd.Timedelta(minutes=1)
-            else:
-                raise ValueError("calendar minute_index error, check `min_data_shift` in qlib.config.C")
-
-        if freq_raw != "minute":
+    if freq_sam == Freq.NORM_FREQ_MINUTE:
+        if freq_raw != Freq.NORM_FREQ_MINUTE:
             raise ValueError("when sampling minute calendar, freq of raw calendar must be minute or min")
         else:
             if raw_count > sam_count:
@@ -125,15 +48,15 @@ def resam_calendar(calendar_raw: np.ndarray, freq_raw: str, freq_sam: str) -> np
     # else, convert the raw calendar into day calendar, and divide the whole calendar into several bars evenly
     else:
         _calendar_day = np.unique(list(map(lambda x: pd.Timestamp(x.year, x.month, x.day, 0, 0, 0), calendar_raw)))
-        if freq_sam == "day":
+        if freq_sam == Freq.NORM_FREQ_DAY:
             return _calendar_day[::sam_count]
 
-        elif freq_sam == "week":
+        elif freq_sam == Freq.NORM_FREQ_WEEK:
             _day_in_week = np.array(list(map(lambda x: x.dayofweek, _calendar_day)))
             _calendar_week = _calendar_day[np.ediff1d(_day_in_week, to_begin=-1) < 0]
             return _calendar_week[::sam_count]
 
-        elif freq_sam == "month":
+        elif freq_sam == Freq.NORM_FREQ_MONTH:
             _day_in_month = np.array(list(map(lambda x: x.day, _calendar_day)))
             _calendar_month = _calendar_day[np.ediff1d(_day_in_month, to_begin=-1) < 0]
             return _calendar_month[::sam_count]
@@ -175,7 +98,7 @@ def get_resam_calendar(
 
     """
 
-    _, norm_freq = parse_freq(freq)
+    _, norm_freq = Freq.parse(freq)
 
     from ..data.data import Cal
 
@@ -184,7 +107,7 @@ def get_resam_calendar(
         freq, freq_sam = freq, None
     except (ValueError, KeyError):
         freq_sam = freq
-        if norm_freq in ["month", "week", "day"]:
+        if norm_freq in [Freq.NORM_FREQ_MONTH, Freq.NORM_FREQ_WEEK, Freq.NORM_FREQ_DAY]:
             try:
                 _calendar = Cal.calendar(
                     start_time=start_time, end_time=end_time, freq="day", freq_sam=freq, future=future
@@ -195,7 +118,7 @@ def get_resam_calendar(
                     start_time=start_time, end_time=end_time, freq="1min", freq_sam=freq, future=future
                 )
                 freq = "1min"
-        elif norm_freq == "minute":
+        elif norm_freq == Freq.NORM_FREQ_MINUTE:
             _calendar = Cal.calendar(
                 start_time=start_time, end_time=end_time, freq="1min", freq_sam=freq, future=future
             )
@@ -203,6 +126,36 @@ def get_resam_calendar(
         else:
             raise ValueError(f"freq {freq} is not supported")
     return _calendar, freq, freq_sam
+
+
+def get_higher_eq_freq_feature(instruments, fields, start_time=None, end_time=None, freq="day", disk_cache=1):
+    """get the feature with higher or equal frequency than `freq`.
+    Returns
+    -------
+    pd.DataFrame
+        the feature with higher or equal frequency
+    """
+
+    from ..data.data import D
+
+    try:
+        _result = D.features(instruments, fields, start_time, end_time, freq=freq, disk_cache=disk_cache)
+        _freq = freq
+    except (ValueError, KeyError):
+        _, norm_freq = Freq.parse(freq)
+        if norm_freq in [Freq.NORM_FREQ_MONTH, Freq.NORM_FREQ_WEEK, Freq.NORM_FREQ_DAY]:
+            try:
+                _result = D.features(instruments, fields, start_time, end_time, freq="day", disk_cache=disk_cache)
+                _freq = "day"
+            except (ValueError, KeyError):
+                _result = D.features(instruments, fields, start_time, end_time, freq="1min", disk_cache=disk_cache)
+                _freq = "1min"
+        elif norm_freq == Freq.NORM_FREQ_MINUTE:
+            _result = D.features(instruments, fields, start_time, end_time, freq="1min", disk_cache=disk_cache)
+            _freq = "1min"
+        else:
+            raise ValueError(f"freq {freq} is not supported")
+    return _result, _freq
 
 
 def resam_ts_data(
@@ -273,14 +226,14 @@ def resam_ts_data(
         end sampling time, by default None
     method : Union[str, Callable], optional
         sample method, apply method function to each stock series data, by default "last"
-        - If type(method) is str, it should be an attribute of SeriesGroupBy or DataFrameGroupby, and run feature.groupby
-        - If `feature` has MultiIndex[instrument, datetime], method must be a member of pandas.groupby when it's type is str.or callable function.
+        - If type(method) is str or callable function, it should be an attribute of SeriesGroupBy or DataFrameGroupby, and applies groupy.method for the sliced time-series data
+        - If method is None, do nothing for the sliced time-series data.
     method_kwargs : dict, optional
         arguments of method, by default {}
 
     Returns
     -------
-        The Resampled DataFrame/Series/Value
+        The resampled DataFrame/Series/value, return None when the resampled data is empty.
     """
 
     selector_datetime = slice(start_time, end_time)
@@ -293,7 +246,7 @@ def resam_ts_data(
     if datetime_level:
         feature = feature.loc[selector_datetime]
     else:
-        feature = feature.loc[(slice(None), selector_datetime)]
+        feature = feature.loc(axis=0)[(slice(None), selector_datetime)]
 
     if feature.empty:
         return None

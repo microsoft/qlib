@@ -4,6 +4,7 @@
 
 import random
 import logging
+from typing import Union
 
 import numpy as np
 import pandas as pd
@@ -48,14 +49,17 @@ class Exchange:
         :param trade_unit:       trade unit, 100 for China A market
         :param min_cost:         min cost, default 5
         :param extra_quote:     pandas, dataframe consists of
-                                    columns: like ['$vwap', '$close', '$factor', 'limit'].
+                                    columns: like ['$vwap', '$close', '$volume', '$factor', 'limit_sell', 'limit_buy'].
                                             The limit indicates that the etf is tradable on a specific day.
                                             Necessary fields:
                                                 $close is for calculating the total value at end of each day.
                                             Optional fields:
+                                                $volume is only necessary when we limit the trade amount or caculate PA(vwap) indicator
                                                 $vwap is only necessary when we use the $vwap price as the deal price
                                                 $factor is for rounding to the trading unit
-                                                limit will be set to False by default(False indicates we can buy this
+                                                limit_sell will be set to False by default(False indicates we can sell this
+                                                target on this day).
+                                                limit_buy will be set to False by default(False indicates we can buy this
                                                 target on this day).
                                     index: MultipleIndex(instrument, pd.Datetime)
         """
@@ -171,8 +175,8 @@ class Exchange:
         self.quote = quote_dict
 
     def _update_limit(self, buy_limit, sell_limit):
-        self.quote["limit_buy"] = ~self.quote["$change"].lt(buy_limit)
-        self.quote["limit_sell"] = ~self.quote["$change"].gt(-sell_limit)
+        self.quote["limit_buy"] = self.quote["$change"].ge(buy_limit)
+        self.quote["limit_sell"] = self.quote["$change"].le(-sell_limit)
 
     def check_stock_limit(self, stock_id, start_time, end_time, direction=None):
         """
@@ -256,6 +260,16 @@ class Exchange:
 
         return trade_val, trade_cost, trade_price
 
+    def create_order(self, code, amount, start_time, end_time, direction) -> Order:
+        return Order(
+            stock_id=code,
+            amount=amount,
+            start_time=start_time,
+            end_time=end_time,
+            direction=direction,
+            factor=self.get_factor(code, start_time, end_time),
+        )
+
     def get_quote_info(self, stock_id, start_time, end_time):
         return resam_ts_data(self.quote[stock_id], start_time, end_time, method="last").iloc[0]
 
@@ -275,8 +289,20 @@ class Exchange:
             deal_price = self.get_close(stock_id, start_time, end_time)
         return deal_price
 
-    def get_factor(self, stock_id, start_time, end_time):
-        return resam_ts_data(self.quote[stock_id]["$factor"], start_time, end_time, method="last").iloc[0]
+    def get_factor(self, stock_id, start_time, end_time) -> Union[float, None]:
+        """
+        Returns
+        -------
+        Union[float, None]:
+            `None`: if the stock is suspended `None` may be returned
+            `float`: return factor if the factor exists
+        """
+        if stock_id not in self.quote:
+            return None
+        res = resam_ts_data(self.quote[stock_id]["$factor"], start_time, end_time, method="last")
+        if res is not None:
+            res = res.iloc[0]
+        return res
 
     def generate_amount_position_from_weight_position(self, weight_position, cash, start_time, end_time):
         """
@@ -342,7 +368,10 @@ class Exchange:
                 return -deal_amount
 
     def generate_order_for_target_amount_position(self, target_position, current_position, start_time, end_time):
-        """Parameter:
+        """
+        Note: some future information is used in this function
+
+        Parameter:
         target_position : dict { stock_id : amount }
         current_postion : dict { stock_id : amount}
         trade_unit : trade_unit

@@ -11,7 +11,7 @@ import warnings
 from ..log import get_module_logger
 from ..backtest import get_exchange, backtest as backtest_func
 from ..utils import get_date_range
-from ..utils.resam import parse_freq
+from ..utils.resam import Freq
 
 from ..data import D
 from ..config import C
@@ -35,14 +35,14 @@ def risk_analysis(r, N: int = None, freq: str = "day"):
     """
 
     def cal_risk_analysis_scaler(freq):
-        _count, _freq = parse_freq(freq)
+        _count, _freq = Freq.parse(freq)
         _freq_scaler = {
-            "minute": 240 * 252,
-            "day": 252,
-            "week": 50,
-            "month": 12,
+            Freq.NORM_FREQ_MINUTE: 240 * 252,
+            Freq.NORM_FREQ_DAY: 252,
+            Freq.NORM_FREQ_WEEK: 50,
+            Freq.NORM_FREQ_MONTH: 12,
         }
-        return _count * _freq_scaler[_freq]
+        return _freq_scaler[_freq] / _count
 
     if N is None and freq is None:
         raise ValueError("at least one of `N` and `freq` should exist")
@@ -63,7 +63,55 @@ def risk_analysis(r, N: int = None, freq: str = "day"):
         "information_ratio": information_ratio,
         "max_drawdown": max_drawdown,
     }
-    res = pd.Series(data, index=data.keys()).to_frame("risk")
+    res = pd.Series(data).to_frame("risk")
+    return res
+
+
+def indicator_analysis(df, method="mean"):
+    """analyze statistical time-series indicators of trading
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        columns: like ['pa', 'pos', 'ffr', 'amount', 'value'].
+            Necessary fields:
+                - 'pa' is the price advantage in trade indicators
+                - 'pos' is the positive rate in trade indicators
+                - 'ffr' is the fulfill rate in trade indicators
+            Optional fields:
+                - 'amount' is the total deal amount, only necessary when method is 'amount_weighted'
+                - 'value' is the total trade value, only necessary when method is 'value_weighted'
+
+        index: Index(datetime)
+    method : str, optional
+        statistics method of pa/ffr, by default "mean"
+        - if method is 'mean', count the mean statistical value of each trade indicator
+        - if method is 'amount_weighted', count the amount weighted mean statistical value of each trade indicator
+        - if method is 'value_weighted', count the value weighted mean statistical value of each trade indicator
+        Note: statistics method of pos is always "mean"
+
+    Returns
+    -------
+    pd.DataFrame
+        statistical value of each trade indicators
+    """
+    weights_dict = {
+        "mean": df["count"],
+        "amount_weighted": df["amount"].abs(),
+        "value_weighted": df["value"].abs(),
+    }
+    if method not in weights_dict:
+        raise ValueError(f"indicator_analysis method {method} is not supported!")
+
+    # statistic pa/ffr indicator
+    indicators_df = df[["ffr", "pa"]]
+    weights = weights_dict.get(method)
+    res = indicators_df.mul(weights, axis=0).sum() / weights.sum()
+
+    # statistic pos
+    weights = weights_dict.get("mean")
+    res.loc["pos"] = df["pos"].mul(weights).sum() / weights.sum()
+    res = res.to_frame("value")
     return res
 
 
