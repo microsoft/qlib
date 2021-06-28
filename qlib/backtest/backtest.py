@@ -10,6 +10,8 @@ from tqdm.auto import tqdm
 def backtest_loop(start_time, end_time, trade_strategy: BaseStrategy, trade_executor: BaseExecutor):
     """backtest funciton for the interaction of the outermost strategy and executor in the nested decision execution
 
+    please refer to the docs of `collect_data_loop`
+
     Returns
     -------
     report: Report
@@ -28,8 +30,11 @@ def collect_data_loop(start_time, end_time, trade_strategy: BaseStrategy, trade_
     ----------
     start_time : pd.Timestamp|str
         closed start time for backtest
+        **NOTE**: This will be applied to the outmost executor's calendar.
     end_time : pd.Timestamp|str
         closed end time for backtest
+        **NOTE**: This will be applied to the outmost executor's calendar.
+        E.g. Executor[day](Executor[1min]),   setting `end_time == 20XX0301` will include all the minutes on 20XX0301
     trade_strategy : BaseStrategy
         the outermost portfolio strategy
     trade_executor : BaseExecutor

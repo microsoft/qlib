@@ -6,12 +6,15 @@ import pandas as pd
 
 from ...utils.resam import resam_ts_data
 from ...strategy.base import ModelStrategy
-from ...backtest.order import Order, BaseTradeDecision
+from ...backtest.order import Order, BaseTradeDecision, TradeDecisionWO
 
 from .order_generator import OrderGenWInteract
 
 
 class TopkDropoutStrategy(ModelStrategy):
+    # TODO:
+    # 1. Supporting leverage the get_range_limit result from the decision
+    # 2. Supporting alter_outer_trade_decision
     def __init__(
         self,
         model,
@@ -246,10 +249,13 @@ class TopkDropoutStrategy(ModelStrategy):
                 factor=factor,
             )
             buy_order_list.append(buy_order)
-        return TradeDecision(order_list=sell_order_list + buy_order_list, ori_strategy=self)
+        return TradeDecisionWO(sell_order_list + buy_order_list, self)
 
 
 class WeightStrategyBase(ModelStrategy):
+    # TODO:
+    # 1. Supporting leverage the get_range_limit result from the decision
+    # 2. Supporting alter_outer_trade_decision
     def __init__(
         self,
         model,
@@ -343,4 +349,4 @@ class WeightStrategyBase(ModelStrategy):
             trade_start_time=trade_start_time,
             trade_end_time=trade_end_time,
         )
-        return TradeDecision(order_list=order_list, ori_strategy=self)
+        return TradeDecisionWO(order_list, self)
