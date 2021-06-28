@@ -23,7 +23,9 @@ def backtest_loop(start_time, end_time, trade_strategy: BaseStrategy, trade_exec
     return return_value.get("report"), return_value.get("indicator")
 
 
-def collect_data_loop(start_time, end_time, trade_strategy: BaseStrategy, trade_executor: BaseExecutor, return_value: dict = None):
+def collect_data_loop(
+    start_time, end_time, trade_strategy: BaseStrategy, trade_executor: BaseExecutor, return_value: dict = None
+):
     """Generator for collecting the trade decision data for rl training
 
     Parameters
@@ -68,7 +70,7 @@ def collect_data_loop(start_time, end_time, trade_strategy: BaseStrategy, trade_
         }
         all_indicators = {}
         for _executor in all_executors:
-            key = "{}{}".format( *Freq.parse(_executor.time_per_step))
+            key = "{}{}".format(*Freq.parse(_executor.time_per_step))
             all_indicators[key] = _executor.get_trade_indicator().generate_trade_indicators_dataframe()
             all_indicators[key + "_obj"] = _executor.get_trade_indicator()
         return_value.update({"report": all_reports, "indicator": all_indicators})

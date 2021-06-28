@@ -15,6 +15,7 @@ class TopkDropoutStrategy(ModelStrategy):
     # TODO:
     # 1. Supporting leverage the get_range_limit result from the decision
     # 2. Supporting alter_outer_trade_decision
+    # 3. Supporting checking the availability of trade decision
     def __init__(
         self,
         model,
@@ -104,7 +105,7 @@ class TopkDropoutStrategy(ModelStrategy):
         pred_start_time, pred_end_time = self.trade_calendar.get_step_time(trade_step, shift=1)
         pred_score = resam_ts_data(self.pred_scores, start_time=pred_start_time, end_time=pred_end_time, method="last")
         if pred_score is None:
-            return []
+            return TradeDecisionWO([], self)
         if self.only_tradable:
             # If The strategy only consider tradable stock when make decision
             # It needs following actions to filter stocks
@@ -256,6 +257,7 @@ class WeightStrategyBase(ModelStrategy):
     # TODO:
     # 1. Supporting leverage the get_range_limit result from the decision
     # 2. Supporting alter_outer_trade_decision
+    # 3. Supporting checking the availability of trade decision
     def __init__(
         self,
         model,
@@ -332,9 +334,9 @@ class WeightStrategyBase(ModelStrategy):
         pred_start_time, pred_end_time = self.trade_calendar.get_step_time(trade_step, shift=1)
         pred_score = resam_ts_data(self.pred_scores, start_time=pred_start_time, end_time=pred_end_time, method="last")
         if pred_score is None:
-            return []
+            return TradeDecisionWO([], self)
         current_temp = copy.deepcopy(self.trade_position)
-        assert(isinstance(current_temp, Position))  # Avoid InfPosition
+        assert isinstance(current_temp, Position)  # Avoid InfPosition
 
         target_weight_position = self.generate_target_weight_position(
             score=pred_score, current=current_temp, trade_start_time=trade_start_time, trade_end_time=trade_end_time

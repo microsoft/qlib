@@ -213,7 +213,7 @@ class InstrumentProvider(abc.ABC, ProviderBackendMixin):
         self.backend = kwargs.get("backend", {})
 
     @staticmethod
-    def instruments(market: Union[List, str]="all", filter_pipe: Union[List, None]=None):
+    def instruments(market: Union[List, str] = "all", filter_pipe: Union[List, None] = None):
         """Get the general config dictionary for a base market adding several dynamic filters.
 
         Parameters

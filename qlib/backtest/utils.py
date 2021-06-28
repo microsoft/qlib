@@ -140,7 +140,6 @@ class BaseInfrastructure:
         self.reset_infra(**infra_dict)
 
 
-
 class CommonInfrastructure(BaseInfrastructure):
     def get_support_infra(self):
         return ["trade_account", "trade_exchange"]
