@@ -309,6 +309,18 @@ class MLflowRecorder(Recorder):
             shutil.rmtree(temp_dir)
 
     def load_object(self, name):
+        """
+        Load object such as prediction file or model checkpoint in mlflow.
+
+        Args:
+            name (str): the object name
+
+        Raises:
+            LoadObjectError: if raise some exceptions when load the object
+
+        Returns:
+            object: the saved object in mlflow.
+        """
         assert self.uri is not None, "Please start the experiment and recorder first before using recorder directly."
 
         try:
