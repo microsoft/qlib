@@ -62,6 +62,7 @@ class TCTS(Model):
         GPU=0,
         seed=None,
         target_label=0,
+        lowest_valid_performance = 0.993,
         **kwargs
     ):
         # Set logger.
@@ -85,6 +86,7 @@ class TCTS(Model):
         self.weight_lr = weight_lr
         self.steps = steps
         self.target_label = target_label
+        self.lowest_valid_performance = lowest_valid_performance
 
         self.logger.info(
             "TCTS parameters setting:"
@@ -255,14 +257,12 @@ class TCTS(Model):
 
         return np.mean(losses)
 
-    def fit(
+    def fit(        
         self,
         dataset: DatasetH,
-        evals_result=dict(),
         verbose=True,
         save_path=None,
     ):
-
         df_train, df_valid, df_test = dataset.prepare(
             ["train", "valid", "test"],
             col_set=["feature", "label"],
@@ -275,6 +275,21 @@ class TCTS(Model):
 
         if save_path == None:
             save_path = get_or_create_path(save_path)
+        best_loss = np.inf
+        while best_loss > self.lowest_valid_performance:
+            if best_loss < np.inf:
+                print("Failed! Start retraining.")
+            best_loss = self.training(x_train, y_train, x_valid, y_valid, x_test, y_test, \
+                                        verbose=verbose, save_path=save_path)
+
+    def training(
+        self,
+        x_train, y_train,
+        x_valid, y_valid,
+        x_test, y_test,
+        verbose=True,
+        save_path=None,
+    ):
 
         best_loss = np.inf
         best_epoch = 0
@@ -291,7 +306,8 @@ class TCTS(Model):
             val_loss = self.test_epoch(x_valid, y_valid)
             test_loss = self.test_epoch(x_test, y_test)
 
-            print("valid %.6f, test %.6f" % (val_loss, test_loss))
+            if verbose:
+                print("valid %.6f, test %.6f" % (val_loss, test_loss))
 
             if val_loss < best_loss:
                 best_loss = val_loss
@@ -315,6 +331,8 @@ class TCTS(Model):
 
         if self.use_gpu:
             torch.cuda.empty_cache()
+
+        return best_loss
 
     def predict(self, dataset):
         if not self.fitted:
