@@ -206,13 +206,14 @@ class DataHandler(Serializable):
                 # FIXME: fetching by time first will be more friendly to `proc_func`
                 # Copy in case of `proc_func` changing the data inplace....
                 data_df = proc_func(fetch_df_by_index(data_df, selector, level, fetch_orig=self.fetch_orig).copy())
-
-            # Fetch column  first will be more friendly to SepDataFrame
-            data_df = fetch_df_by_col(data_df, col_set)
-            data_df = fetch_df_by_index(data_df, selector, level, fetch_orig=self.fetch_orig)
+                data_df = fetch_df_by_col(data_df, col_set)
+            else:
+                # Fetch column  first will be more friendly to SepDataFrame
+                data_df = fetch_df_by_col(data_df, col_set)
+                data_df = fetch_df_by_index(data_df, selector, level, fetch_orig=self.fetch_orig)
         elif isinstance(data_storage, HasingStockStorage):
             if proc_func is not None:
-                warnings.warn(f"proc_func is not supported by the HasingStockStorage")
+                raise ValueError("proc_func is not supported by the HasingStockStorage")
             data_df = data_storage.fetch(selector=selector, level=level, col_set=col_set, fetch_orig=self.fetch_orig)
         else:
             raise TypeError(f"data_storage should be pd.DataFrame|HasingStockStorage, not {type(data_storage)}")
@@ -530,13 +531,15 @@ class DataHandlerLP(DataHandler):
                 # FIXME: fetch by time first will be more friendly to proc_func
                 # Copy incase of `proc_func` changing the data inplace....
                 data_df = proc_func(fetch_df_by_index(data_df, selector, level, fetch_orig=self.fetch_orig).copy())
-            # Fetch column  first will be more friendly to SepDataFrame
-            data_df = fetch_df_by_col(data_df, col_set)
-            data_df = fetch_df_by_index(data_df, selector, level, fetch_orig=self.fetch_orig)
+                data_df = fetch_df_by_col(data_df, col_set)
+            else:
+                # Fetch column  first will be more friendly to SepDataFrame
+                data_df = fetch_df_by_col(data_df, col_set)
+                data_df = fetch_df_by_index(data_df, selector, level, fetch_orig=self.fetch_orig)
 
         elif isinstance(data_storage, HasingStockStorage):
             if proc_func is not None:
-                warnings.warn(f"proc_func is not supported by the HasingStockStorage")
+                raise ValueError("proc_func is not supported by the HasingStockStorage")
             data_df = data_storage.fetch(selector=selector, level=level, col_set=col_set, fetch_orig=self.fetch_orig)
         else:
             raise TypeError(f"data_storage should be pd.DataFrame|HasingStockStorage, not {type(data_storage)}")
