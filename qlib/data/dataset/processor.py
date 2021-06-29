@@ -312,8 +312,8 @@ class CSZFillna(Processor):
         return df
 
 
-class HashingStock(Processor):
-    """Process the df into hasing stock storage"""
+class HashStockFormat(Processor):
+    """Process the storage of from df into hasing stock format"""
 
     def __call__(self, df: pd.DataFrame):
         from .storage import HasingStockStorage

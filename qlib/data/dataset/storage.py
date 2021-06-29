@@ -71,7 +71,7 @@ class HasingStockStorage(BaseHandlerStorage):
 
         if not isinstance(stock_selector, (list, str)) and stock_selector != slice(None):
             raise TypeError(f"stock selector must be type str|list, or slice(None), rather than {stock_selector}")
-        print(stock_selector)
+
         if stock_selector == slice(None):
             return self.hash_df
 
