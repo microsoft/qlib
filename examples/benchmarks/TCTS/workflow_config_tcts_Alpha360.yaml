@@ -49,14 +49,14 @@ task:
             d_feat: 6
             hidden_size: 64
             num_layers: 2
-            dropout: 0.3
+            dropout: 0.0
             n_epochs: 200
             lr: 1e-3
             early_stop: 20
             batch_size: 800
             metric: loss
             loss: mse
-            GPU: 3
+            GPU: 0
             fore_optimizer: adam
             weight_optimizer: adam
             output_dim: 3
