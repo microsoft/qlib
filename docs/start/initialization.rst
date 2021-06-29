@@ -12,12 +12,20 @@ Initialization
 
 Please follow the steps below to initialize ``Qlib``.
 
+If you use "pip install pyqlib" in the installation, you need github clone from https://github.com/microsoft/qlib to you local disk, then you will get all the source code. Feel free to use it, change it, or even send your PR to us.
+
 Download and prepare the Data: execute the following command to download stock data. Please pay `attention` that the data is collected from `Yahoo Finance <https://finance.yahoo.com/lookup>`_ and the data might not be perfect. We recommend users to prepare their own data if they have high-quality datasets. Please refer to `Data <../component/data.html#converting-csv-format-into-qlib-format>`_ for more information about customized dataset.
     
     .. code-block:: bash
     
         python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/cn_data --region cn
-        
+
+if you are using Windows OS, first create a direction such as "md E:/Qlib/qlib_data", then using below command to get data (assume you clone qlib source code under e:/github/qlib):
+
+    .. code-block:: bash
+    
+        python e:/github/qlib/scripts/get_data.py qlib_data --target_dir e:/Qlib/qlib_data/cn_data --region cn
+
 Please refer to `Data Preparation <../component/data.html#data-preparation>`_ for more information about `get_data.py`,
 
 
