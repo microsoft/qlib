@@ -8,7 +8,7 @@
 Users can follow the ``workflow_by_code_tft.py`` to run the benchmark. 
 
 ### Notes
-1. Please be **aware** that this script can only support `Python 3.5 - 3.8`.
+1. Please be **aware** that this script can only support `Python 3.6 - 3.7`.
 2. If the CUDA version on your machine is not 10.0, please remember to run the following commands `conda install anaconda cudatoolkit=10.0` and `conda install cudnn` on your machine.
 3. The model must run in GPU, or an error will be raised.
 4. New datasets should be registered in ``data_formatters``, for detail please visit the source.
