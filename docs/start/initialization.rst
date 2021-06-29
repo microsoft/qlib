@@ -20,7 +20,7 @@ Download and prepare the Data: execute the following command to download stock d
     
         python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/cn_data --region cn
 
-if you are using Windows OS, first create a direction such as "md E:/Qlib/qlib_data", then using below command to get data (assume you clone qlib source code under e:/github/qlib):
+if you are using Windows OS, first create a directory such as "md E:/Qlib/qlib_data", then using below command to get data (assume you clone qlib source code under e:/github/qlib):
 
     .. code-block:: bash
     
