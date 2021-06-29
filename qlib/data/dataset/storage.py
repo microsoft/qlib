@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 
 from .handler import DataHandler
-from typing import Tuple, Union, List
+from typing import Tuple, Union, List, Callable
 
 from .utils import get_level_index, fetch_df_by_index, fetch_df_by_col
 
@@ -13,8 +13,29 @@ class BaseHandlerStorage:
         selector: Union[pd.Timestamp, slice, str, list] = slice(None, None),
         level: Union[str, int] = "datetime",
         col_set: Union[str, List[str]] = DataHandler.CS_ALL,
+        fetch_orig: bool = True,
         **kwargs,
     ) -> pd.DataFrame:
+        """fetch data from the data storage
+
+        Parameters
+        ----------
+        selector : Union[pd.Timestamp, slice, str]
+            describe how to select data by index
+        level : Union[str, int]
+            which index level to select the data
+        col_set : Union[str, List[str]]
+            - if isinstance(col_set, str):
+                select a set of meaningful columns.(e.g. features, columns)
+                if col_set == DataHandler.CS_RAW:
+                    the raw dataset will be returned.
+            - if isinstance(col_set, List[str]):
+                select several sets of meaningful columns, the returned data has multiple level
+        fetch_orig : bool
+            Return the original data instead of copy if possible.
+
+        """
+
         raise NotImplementedError("fetch is method not implemented!")
 
     @staticmethod
@@ -68,11 +89,12 @@ class HasingStockStorage(BaseHandlerStorage):
         selector: Union[pd.Timestamp, slice, str] = slice(None, None),
         level: Union[str, int] = "datetime",
         col_set: Union[str, List[str]] = DataHandler.CS_ALL,
+        fetch_orig: bool = True,
     ) -> pd.DataFrame:
         fetch_stock_df_list = list(self._fetch_hash_df_by_stock(selector=selector, level=level).values())
         for _index, stock_df in enumerate(fetch_stock_df_list):
             fetch_col_df = fetch_df_by_col(df=stock_df, col_set=col_set)
-            fetch_index_df = fetch_df_by_index(df=fetch_col_df, selector=selector, level=level)
+            fetch_index_df = fetch_df_by_index(df=fetch_col_df, selector=selector, level=level, fetch_orig=fetch_orig)
             fetch_stock_df_list[_index] = fetch_index_df
         if len(fetch_stock_df_list) == 0:
             index_names = ("instrument", "datetime") if self.stock_level == 0 else ("datetime", "instrument")
@@ -82,4 +104,4 @@ class HasingStockStorage(BaseHandlerStorage):
         elif len(fetch_stock_df_list) == 1:
             return fetch_stock_df_list[0]
         else:
-            return pd.concat(fetch_stock_df_list, axis=0, sort=False)
+            return pd.concat(fetch_stock_df_list, sort=False, copy=~fetch_orig)

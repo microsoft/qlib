@@ -175,7 +175,7 @@ class DataHandler(Serializable):
 
                 select a set of meaningful columns.(e.g. features, columns)
 
-                if cal_set == CS_RAW:
+                if col_set == CS_RAW:
                     the raw dataset will be returned.
 
             - if isinstance(col_set, List[str]):
@@ -197,23 +197,33 @@ class DataHandler(Serializable):
         -------
         pd.DataFrame.
         """
-        if proc_func is None:
-            df = self._data
-        else:
-            # FIXME: fetching by time first will be more friendly to `proc_func`
-            # Copy in case of `proc_func` changing the data inplace....
-            df = proc_func(fetch_df_by_index(self._data, selector, level, fetch_orig=self.fetch_orig).copy())
+        from .storage import HasingStockStorage
 
-        # Fetch column  first will be more friendly to SepDataFrame
-        df = fetch_df_by_col(df, col_set)
-        df = fetch_df_by_index(df, selector, level, fetch_orig=self.fetch_orig)
+        data_storage = self._data
+        if isinstance(data_storage, pd.DataFrame):
+            data_df = data_storage
+            if proc_func is not None:
+                # FIXME: fetching by time first will be more friendly to `proc_func`
+                # Copy in case of `proc_func` changing the data inplace....
+                data_df = proc_func(fetch_df_by_index(data_df, selector, level, fetch_orig=self.fetch_orig).copy())
+
+            # Fetch column  first will be more friendly to SepDataFrame
+            data_df = fetch_df_by_col(data_df, col_set)
+            data_df = fetch_df_by_index(data_df, selector, level, fetch_orig=self.fetch_orig)
+        elif isinstance(data_storage, HasingStockStorage):
+            if proc_func is not None:
+                warnings.warn(f"proc_func is not supported by the HasingStockStorage")
+            data_df = data_storage.fetch(selector=selector, level=level, col_set=col_set, fetch_orig=self.fetch_orig)
+        else:
+            raise TypeError(f"data_storage should be pd.DataFrame|HasingStockStorage, not {type(data_storage)}")
+
         if squeeze:
             # squeeze columns
-            df = df.squeeze()
+            data_df = data_df.squeeze()
             # squeeze index
             if isinstance(selector, (str, pd.Timestamp)):
-                df = df.reset_index(level=level, drop=True)
-        return df
+                data_df = data_df.reset_index(level=level, drop=True)
+        return data_df
 
     def get_cols(self, col_set=CS_ALL) -> list:
         """
@@ -511,14 +521,27 @@ class DataHandlerLP(DataHandler):
         -------
         pd.DataFrame:
         """
-        df = self._get_df_by_key(data_key)
-        if proc_func is not None:
-            # FIXME: fetch by time first will be more friendly to proc_func
-            # Copy incase of `proc_func` changing the data inplace....
-            df = proc_func(fetch_df_by_index(df, selector, level, fetch_orig=self.fetch_orig).copy())
-        # Fetch column  first will be more friendly to SepDataFrame
-        df = fetch_df_by_col(df, col_set)
-        return fetch_df_by_index(df, selector, level, fetch_orig=self.fetch_orig)
+        from .storage import HasingStockStorage
+
+        data_storage = self._get_df_by_key(data_key)
+        if isinstance(data_storage, pd.DataFrame):
+            data_df = data_storage
+            if proc_func is not None:
+                # FIXME: fetch by time first will be more friendly to proc_func
+                # Copy incase of `proc_func` changing the data inplace....
+                data_df = proc_func(fetch_df_by_index(data_df, selector, level, fetch_orig=self.fetch_orig).copy())
+            # Fetch column  first will be more friendly to SepDataFrame
+            data_df = fetch_df_by_col(data_df, col_set)
+            data_df = fetch_df_by_index(data_df, selector, level, fetch_orig=self.fetch_orig)
+
+        elif isinstance(data_storage, HasingStockStorage):
+            if proc_func is not None:
+                warnings.warn(f"proc_func is not supported by the HasingStockStorage")
+            data_df = data_storage.fetch(selector=selector, level=level, col_set=col_set, fetch_orig=self.fetch_orig)
+        else:
+            raise TypeError(f"data_storage should be pd.DataFrame|HasingStockStorage, not {type(data_storage)}")
+
+        return data_df
 
     def get_cols(self, col_set=DataHandler.CS_ALL, data_key: str = DK_I) -> list:
         """
