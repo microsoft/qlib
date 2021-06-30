@@ -408,7 +408,7 @@ class InfPosition(BasePosition):
     """
 
     def skip_update(self) -> bool:
-        """ Updating state is meaningless for InfPosition """
+        """Updating state is meaningless for InfPosition"""
         return True
 
     def check_stock(self, stock_id: str) -> bool:

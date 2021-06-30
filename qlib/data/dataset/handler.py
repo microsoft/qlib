@@ -17,7 +17,7 @@ from ...data import D
 from ...config import C
 from ...utils import parse_config, transform_end_date, init_instance_by_config
 from ...utils.serial import Serializable
-from .utils import fetch_df_by_index
+from .utils import fetch_df_by_index, fetch_df_by_col
 from pathlib import Path
 from .loader import DataLoader
 
@@ -152,14 +152,6 @@ class DataHandler(Serializable):
     CS_ALL = "__all"  # return all columns with single-level index column
     CS_RAW = "__raw"  # return raw data with multi-level index column
 
-    def _fetch_df_by_col(self, df: pd.DataFrame, col_set: str) -> pd.DataFrame:
-        if not isinstance(df.columns, pd.MultiIndex) or col_set == self.CS_RAW:
-            return df
-        elif col_set == self.CS_ALL:
-            return df.droplevel(axis=1, level=0)
-        else:
-            return df.loc(axis=1)[col_set]
-
     def fetch(
         self,
         selector: Union[pd.Timestamp, slice, str] = slice(None, None),
@@ -183,7 +175,7 @@ class DataHandler(Serializable):
 
                 select a set of meaningful columns.(e.g. features, columns)
 
-                if cal_set == CS_RAW:
+                if col_set == CS_RAW:
                     the raw dataset will be returned.
 
             - if isinstance(col_set, List[str]):
@@ -205,23 +197,34 @@ class DataHandler(Serializable):
         -------
         pd.DataFrame.
         """
-        if proc_func is None:
-            df = self._data
-        else:
-            # FIXME: fetching by time first will be more friendly to `proc_func`
-            # Copy in case of `proc_func` changing the data inplace....
-            df = proc_func(fetch_df_by_index(self._data, selector, level, fetch_orig=self.fetch_orig).copy())
+        from .storage import HasingStockStorage
 
-        # Fetch column  first will be more friendly to SepDataFrame
-        df = self._fetch_df_by_col(df, col_set)
-        df = fetch_df_by_index(df, selector, level, fetch_orig=self.fetch_orig)
+        data_storage = self._data
+        if isinstance(data_storage, pd.DataFrame):
+            data_df = data_storage
+            if proc_func is not None:
+                # FIXME: fetching by time first will be more friendly to `proc_func`
+                # Copy in case of `proc_func` changing the data inplace....
+                data_df = proc_func(fetch_df_by_index(data_df, selector, level, fetch_orig=self.fetch_orig).copy())
+                data_df = fetch_df_by_col(data_df, col_set)
+            else:
+                # Fetch column  first will be more friendly to SepDataFrame
+                data_df = fetch_df_by_col(data_df, col_set)
+                data_df = fetch_df_by_index(data_df, selector, level, fetch_orig=self.fetch_orig)
+        elif isinstance(data_storage, HasingStockStorage):
+            if proc_func is not None:
+                raise ValueError("proc_func is not supported by the HasingStockStorage")
+            data_df = data_storage.fetch(selector=selector, level=level, col_set=col_set, fetch_orig=self.fetch_orig)
+        else:
+            raise TypeError(f"data_storage should be pd.DataFrame|HasingStockStorage, not {type(data_storage)}")
+
         if squeeze:
             # squeeze columns
-            df = df.squeeze()
+            data_df = data_df.squeeze()
             # squeeze index
             if isinstance(selector, (str, pd.Timestamp)):
-                df = df.reset_index(level=level, drop=True)
-        return df
+                data_df = data_df.reset_index(level=level, drop=True)
+        return data_df
 
     def get_cols(self, col_set=CS_ALL) -> list:
         """
@@ -238,7 +241,7 @@ class DataHandler(Serializable):
             list of column names
         """
         df = self._data.head()
-        df = self._fetch_df_by_col(df, col_set)
+        df = fetch_df_by_col(df, col_set)
         return df.columns.to_list()
 
     def get_range_selector(self, cur_date: Union[pd.Timestamp, str], periods: int) -> slice:
@@ -519,14 +522,29 @@ class DataHandlerLP(DataHandler):
         -------
         pd.DataFrame:
         """
-        df = self._get_df_by_key(data_key)
-        if proc_func is not None:
-            # FIXME: fetch by time first will be more friendly to proc_func
-            # Copy incase of `proc_func` changing the data inplace....
-            df = proc_func(fetch_df_by_index(df, selector, level, fetch_orig=self.fetch_orig).copy())
-        # Fetch column  first will be more friendly to SepDataFrame
-        df = self._fetch_df_by_col(df, col_set)
-        return fetch_df_by_index(df, selector, level, fetch_orig=self.fetch_orig)
+        from .storage import HasingStockStorage
+
+        data_storage = self._get_df_by_key(data_key)
+        if isinstance(data_storage, pd.DataFrame):
+            data_df = data_storage
+            if proc_func is not None:
+                # FIXME: fetch by time first will be more friendly to proc_func
+                # Copy incase of `proc_func` changing the data inplace....
+                data_df = proc_func(fetch_df_by_index(data_df, selector, level, fetch_orig=self.fetch_orig).copy())
+                data_df = fetch_df_by_col(data_df, col_set)
+            else:
+                # Fetch column  first will be more friendly to SepDataFrame
+                data_df = fetch_df_by_col(data_df, col_set)
+                data_df = fetch_df_by_index(data_df, selector, level, fetch_orig=self.fetch_orig)
+
+        elif isinstance(data_storage, HasingStockStorage):
+            if proc_func is not None:
+                raise ValueError("proc_func is not supported by the HasingStockStorage")
+            data_df = data_storage.fetch(selector=selector, level=level, col_set=col_set, fetch_orig=self.fetch_orig)
+        else:
+            raise TypeError(f"data_storage should be pd.DataFrame|HasingStockStorage, not {type(data_storage)}")
+
+        return data_df
 
     def get_cols(self, col_set=DataHandler.CS_ALL, data_key: str = DK_I) -> list:
         """
@@ -545,5 +563,5 @@ class DataHandlerLP(DataHandler):
             list of column names
         """
         df = self._get_df_by_key(data_key).head()
-        df = self._fetch_df_by_col(df, col_set)
+        df = fetch_df_by_col(df, col_set)
         return df.columns.to_list()

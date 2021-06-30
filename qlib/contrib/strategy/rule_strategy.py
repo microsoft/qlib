@@ -5,7 +5,6 @@ from typing import List, Tuple, Union
 
 from ...utils.resam import resam_ts_data
 from ...data.data import D
-from ...data.dataset.utils import convert_index_format
 from ...strategy.base import BaseStrategy
 from ...backtest.order import BaseTradeDecision, Order, TradeDecisionWO
 from ...backtest.exchange import Exchange
@@ -423,7 +422,6 @@ class SBBStrategyEMA(SBBStrategyBase):
         signal_df = D.features(
             self.instruments, fields, start_time=signal_start_time, end_time=signal_end_time, freq=self.freq
         )
-        signal_df = convert_index_format(signal_df)
         signal_df.columns = ["signal"]
         self.signal = {}
 
@@ -515,7 +513,6 @@ class ACStrategy(BaseStrategy):
         signal_df = D.features(
             self.instruments, fields, start_time=signal_start_time, end_time=signal_end_time, freq=self.freq
         )
-        signal_df = convert_index_format(signal_df)
         signal_df.columns = ["volatility"]
         self.signal = {}
 
