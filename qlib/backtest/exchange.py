@@ -14,7 +14,7 @@ from ..data.dataset.utils import get_level_index
 from ..config import C, REG_CN
 from ..utils.resam import resam_ts_data
 from ..log import get_module_logger
-from .order import Order
+from .order import Order, OrderDir, OrderHelper
 
 
 class Exchange:
@@ -526,3 +526,9 @@ class Exchange:
             raise NotImplementedError("order type {} error".format(order.type))
 
         return trade_val, trade_cost
+
+    def get_order_helper(self) -> OrderHelper:
+        if not hasattr(self, "_order_helper"):
+            # cache to avoid recreate the same instance
+            self._order_helper = OrderHelper(self)
+        return self._order_helper

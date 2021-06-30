@@ -92,6 +92,9 @@ def convert_index_format(df: Union[pd.DataFrame, pd.Series], level: str = "datet
         - If `level` is the first level of df.MultiIndex, do nothing
         - If `level` is the second level of df.MultiIndex, swap the level of index.
 
+    NOTE:
+        the number of levels of df.MultiIndex should be 2
+
     Parameters
     ----------
     df : Union[pd.DataFrame, pd.Series]

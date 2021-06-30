@@ -1,14 +1,19 @@
+from pathlib import Path
 import warnings
 import numpy as np
 import pandas as pd
-from typing import List, Tuple, Union
+from typing import IO, List, Tuple, Union
+from qlib.data.dataset.utils import convert_index_format
+
+from qlib.utils import lazy_sort_index
 
 from ...utils.resam import resam_ts_data
 from ...data.data import D
 from ...strategy.base import BaseStrategy
 from ...backtest.order import BaseTradeDecision, Order, TradeDecisionWO
-from ...backtest.exchange import Exchange
+from ...backtest.exchange import Exchange, OrderHelper
 from ...backtest.utils import CommonInfrastructure, LevelInfrastructure
+from qlib.utils.file import get_io_object
 
 
 def get_start_end_idx(strategy: BaseStrategy, outer_trade_decision: BaseTradeDecision) -> Union[int, int]:
@@ -653,6 +658,9 @@ class RandomOrderStrategy(BaseStrategy):
         index_range : Tuple
             the intra day time index range of the orders
             the left and right is closed.
+
+            If you want to get the index_range in intra-day
+            - `qlib/utils/time.py:def get_day_min_idx_range` can help you create the index range easier
             # TODO: this is a index_range level limitation. We'll implement a more detailed limitation later.
         sample_ratio : float
             the ratio of all orders are sampled
@@ -684,7 +692,9 @@ class RandomOrderStrategy(BaseStrategy):
         if step_time_start in self.volume_df:
             for stock_id, volume in self.volume_df[step_time_start].dropna().sample(frac=self.sample_ratio).items():
                 order_list.append(
-                    self.common_infra.get("trade_exchange").create_order(
+                    self.common_infra.get("trade_exchange")
+                    .get_order_helper()
+                    .create(
                         code=stock_id,
                         amount=volume * self.volume_ratio,
                         start_time=step_time_start,
@@ -693,3 +703,53 @@ class RandomOrderStrategy(BaseStrategy):
                     )
                 )
         return TradeDecisionWO(order_list, self, self.index_range)
+
+
+class FileOrderStrategy(BaseStrategy):
+    """
+    Motivtaion:
+    - This class provides an interface for user to read orders from csv files.
+    - It is supposed to be used in
+    """
+
+    def __init__(self, file: Union[IO, str, Path], index_range: Tuple[int, int] = None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        with get_io_object(file) as f:
+            self.order_df = pd.read_csv(f, dtype={"datetime": np.str})
+
+        self.order_df["datetime"] = self.order_df["datetime"].apply(pd.Timestamp)
+        self.order_df = self.order_df.set_index(["datetime", "instrument"])
+
+        # make sure the datetime is the first level for fast indexing
+        self.order_df = lazy_sort_index(convert_index_format(self.order_df, level="datetime"))
+        self.index_range = index_range
+
+    def generate_trade_decision(self, execute_result=None) -> TradeDecisionWO:
+        """
+        Parameters
+        ----------
+        execute_result :
+            execute_result will be ignored in FileOrderStrategy
+        """
+        oh: OrderHelper = self.common_infra.get("trade_exchange").get_order_helper()
+        tc = self.trade_calendar
+        step = tc.get_trade_step()
+        start, end = tc.get_step_time(step)
+        # CONVERSION: the bar is indexed by the time
+        try:
+            df = self.order_df.loc(axis=0)[start]
+        except KeyError:
+            return TradeDecisionWO([], self)
+        else:
+            order_list = []
+            for idx, row in df.iterrows():
+                order_list.append(
+                    oh.create(
+                        code=idx,
+                        amount=row["amount"],
+                        direction=Order.parse_dir(row["direction"]),
+                        start_time=start,
+                        end_time=end,
+                    )
+                )
+            return TradeDecisionWO(order_list, self, self.index_range)
