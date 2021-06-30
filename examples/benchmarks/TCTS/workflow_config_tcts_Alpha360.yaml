@@ -56,14 +56,15 @@ task:
             batch_size: 800
             metric: loss
             loss: mse
-            GPU: 0
+            GPU: 2
             fore_optimizer: adam
             weight_optimizer: adam
             output_dim: 3
-            fore_lr: 5e-5
-            weight_lr: 5e-5
+            fore_lr: 5e-4
+            weight_lr: 5e-4
             steps: 3
             target_label: 1
+            lowest_valid_performance: 0.993
     dataset:
         class: DatasetH
         module_path: qlib.data.dataset
