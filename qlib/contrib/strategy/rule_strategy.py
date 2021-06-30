@@ -707,12 +707,33 @@ class RandomOrderStrategy(BaseStrategy):
 
 class FileOrderStrategy(BaseStrategy):
     """
-    Motivtaion:
+    Motivation:
     - This class provides an interface for user to read orders from csv files.
-    - It is supposed to be used in
     """
 
     def __init__(self, file: Union[IO, str, Path], index_range: Tuple[int, int] = None, *args, **kwargs):
+        """
+
+        Parameters
+        ----------
+        file : Union[IO, str, Path]
+            this parameters will specify the info of expected orders
+            Here is an example of the content
+
+                datetime,instrument,amount,direction
+                20200102,  SH600519,  1000,     sell
+                20200103,  SH600519,  1000,      buy
+                20200106,  SH600519,  1000,     sell
+
+        index_range : Tuple[int, int]
+            the intra day time index range of the orders
+            the left and right is closed.
+
+            If you want to get the index_range in intra-day
+            - `qlib/utils/time.py:def get_day_min_idx_range` can help you create the index range easier
+            # TODO: this is a index_range level limitation. We'll implement a more detailed limitation later.
+
+        """
         super().__init__(*args, **kwargs)
         with get_io_object(file) as f:
             self.order_df = pd.read_csv(f, dtype={"datetime": np.str})
