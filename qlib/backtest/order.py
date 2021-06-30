@@ -2,17 +2,25 @@
 # Licensed under the MIT License.
 # TODO: rename it with decision.py
 from __future__ import annotations
+from enum import IntEnum
 
 # try to fix circular imports when enabling type hints
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from qlib.strategy.base import BaseStrategy
+    from qlib.backtest.exchange import Exchange
 from qlib.backtest.utils import TradeCalendarManager
 import warnings
 import pandas as pd
 from dataclasses import dataclass, field
 from typing import ClassVar, Optional, Union, List, Set, Tuple
+
+
+class OrderDir(IntEnum):
+    # Order  direction
+    SELL = 0
+    BUY = 1
 
 
 @dataclass
@@ -32,18 +40,97 @@ class Order:
 
     stock_id: str
     amount: float
+
+    # The interval of the order which belongs to (NOTE: this is not the expected order dealing range time)
     start_time: pd.Timestamp
     end_time: pd.Timestamp
+
     direction: int
     factor: float
-    deal_amount: Optional[float] = None
-    SELL: ClassVar[int] = 0
-    BUY: ClassVar[int] = 1
+    deal_amount: float = field(init=False)
+
+    # FIXME:
+    # for compatible now.
+    # Plese remove them in the future
+    SELL: ClassVar[OrderDir] = OrderDir.SELL
+    BUY: ClassVar[OrderDir] = OrderDir.BUY
+
 
     def __post_init__(self):
         if self.direction not in {Order.SELL, Order.BUY}:
             raise NotImplementedError("direction not supported, `Order.SELL` for sell, `Order.BUY` for buy")
         self.deal_amount = 0
+
+    @staticmethod
+    def parse_dir(direction: Union[str, int, OrderDir]) -> OrderDir:
+        if isinstance(direction, OrderDir):
+            return direction
+        elif isinstance(direction, int):
+            return OrderDir(direction)
+        elif isinstance(direction, str):
+            dl = direction.lower()
+            if dl.strip() == "sell":
+                return OrderDir.SELL
+            elif dl.strip() == "buy":
+                return OrderDir.BUY
+            else:
+                raise NotImplementedError(f"This type of input is not supported")
+        else:
+            raise NotImplementedError(f"This type of input is not supported")
+
+
+class OrderHelper:
+    """
+    Motivation
+    - Make generating order easier
+        - User may have no knowledge about the adjust-factor information about the system.
+        - It involves to much interaction with the exchange when generating orders.
+    """
+
+    def __init__(self, exchange: Exchange):
+        self.exchange = exchange
+
+    def create(
+        self,
+        code: str,
+        amount: float,
+        direction: OrderDir,
+        start_time: Union[str, pd.Timestamp],
+        end_time: Union[str, pd.Timestamp],
+    ) -> Order:
+        """
+        help to create a order
+
+        # TODO: create order for unadjusted amount order
+
+        Parameters
+        ----------
+        code : str
+            the id of the instrument
+        amount : float
+            **adjusted trading amount**
+        direction : OrderDir
+            trading  direction
+        start_time : Union[str, pd.Timestamp]
+            The interval of the order which belongs to
+        end_time : Union[str, pd.Timestamp]
+            The interval of the order which belongs to
+
+        Returns
+        -------
+        Order:
+            The created order
+        """
+        start_time = pd.Timestamp(start_time)
+        end_time = pd.Timestamp(end_time)
+        return Order(
+            stock_id=code,
+            amount=amount,
+            start_time=start_time,
+            end_time=end_time,
+            direction=direction,
+            factor=self.exchange.get_factor(code, start_time, end_time),
+        )
 
 
 class BaseTradeDecision:

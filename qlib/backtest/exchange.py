@@ -14,7 +14,7 @@ from ..data.dataset.utils import get_level_index
 from ..config import C, REG_CN
 from ..utils.resam import resam_ts_data
 from ..log import get_module_logger
-from .order import Order
+from .order import Order, OrderDir, OrderHelper
 
 
 class Exchange:
@@ -163,10 +163,6 @@ class Exchange:
 
             assert set(self.extra_quote.columns) == set(quote_df.columns) - {"$change"}
             quote_df = pd.concat([quote_df, self.extra_quote], sort=False, axis=0)
-
-        # update quote: pd.DataFrame to dict, for search use
-        if get_level_index(quote_df, level="datetime") == 1:
-            quote_df = quote_df.swaplevel().sort_index()
 
         quote_dict = {}
         for stock_id, stock_val in quote_df.groupby(level="instrument"):
@@ -530,3 +526,9 @@ class Exchange:
             raise NotImplementedError("order type {} error".format(order.type))
 
         return trade_val, trade_cost
+
+    def get_order_helper(self) -> OrderHelper:
+        if not hasattr(self, "_order_helper"):
+            # cache to avoid recreate the same instance
+            self._order_helper = OrderHelper(self)
+        return self._order_helper
