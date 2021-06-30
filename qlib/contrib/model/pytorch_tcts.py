@@ -9,6 +9,7 @@ import os
 import numpy as np
 import pandas as pd
 import copy
+import random
 from sklearn.metrics import roc_auc_score, mean_squared_error
 import logging
 from ...utils import (
@@ -60,7 +61,7 @@ class TCTS(Model):
         weight_lr=5e-7,
         steps=3,
         GPU=0,
-        seed=None,
+        seed=0,
         target_label=0,
         lowest_valid_performance = 0.993,
         **kwargs
@@ -87,6 +88,8 @@ class TCTS(Model):
         self.steps = steps
         self.target_label = target_label
         self.lowest_valid_performance = lowest_valid_performance
+        self._fore_optimizer = fore_optimizer
+        self._weight_optimizer = weight_optimizer
 
         self.logger.info(
             "TCTS parameters setting:"
@@ -115,39 +118,7 @@ class TCTS(Model):
             )
         )
 
-        if self.seed is not None:
-            np.random.seed(self.seed)
-            torch.manual_seed(self.seed)
 
-        self.fore_model = GRUModel(
-            d_feat=self.d_feat,
-            hidden_size=self.hidden_size,
-            num_layers=self.num_layers,
-            dropout=self.dropout,
-        )
-        self.weight_model = MLPModel(
-            d_feat=360 + 2 * self.output_dim + 1,
-            hidden_size=self.hidden_size,
-            num_layers=self.num_layers,
-            dropout=self.dropout,
-            output_dim=self.output_dim,
-        )
-        if fore_optimizer.lower() == "adam":
-            self.fore_optimizer = optim.Adam(self.fore_model.parameters(), lr=self.fore_lr)
-        elif fore_optimizer.lower() == "gd":
-            self.fore_optimizer = optim.SGD(self.fore_model.parameters(), lr=self.fore_lr)
-        else:
-            raise NotImplementedError("optimizer {} is not supported!".format(fore_optimizer))
-        if weight_optimizer.lower() == "adam":
-            self.weight_optimizer = optim.Adam(self.weight_model.parameters(), lr=self.weight_lr)
-        elif weight_optimizer.lower() == "gd":
-            self.weight_optimizer = optim.SGD(self.weight_model.parameters(), lr=self.weight_lr)
-        else:
-            raise NotImplementedError("optimizer {} is not supported!".format(weight_optimizer))
-
-        self.fitted = False
-        self.fore_model.to(self.device)
-        self.weight_model.to(self.device)
 
     def loss_fn(self, pred, label, weight):
 
@@ -279,9 +250,15 @@ class TCTS(Model):
         while best_loss > self.lowest_valid_performance:
             if best_loss < np.inf:
                 print("Failed! Start retraining.")
+                self.seed = random.randint(0, 1000) # reset random seed
+
+            if self.seed is not None:
+                np.random.seed(self.seed)
+                torch.manual_seed(self.seed)
+
             best_loss = self.training(x_train, y_train, x_valid, y_valid, x_test, y_test, \
                                         verbose=verbose, save_path=save_path)
-
+            
     def training(
         self,
         x_train, y_train,
@@ -290,6 +267,36 @@ class TCTS(Model):
         verbose=True,
         save_path=None,
     ):
+
+        self.fore_model = GRUModel(
+            d_feat=self.d_feat,
+            hidden_size=self.hidden_size,
+            num_layers=self.num_layers,
+            dropout=self.dropout,
+        )
+        self.weight_model = MLPModel(
+            d_feat=360 + 2 * self.output_dim + 1,
+            hidden_size=self.hidden_size,
+            num_layers=self.num_layers,
+            dropout=self.dropout,
+            output_dim=self.output_dim,
+        )
+        if self._fore_optimizer.lower() == "adam":
+            self.fore_optimizer = optim.Adam(self.fore_model.parameters(), lr=self.fore_lr)
+        elif self._fore_optimizer.lower() == "gd":
+            self.fore_optimizer = optim.SGD(self.fore_model.parameters(), lr=self.fore_lr)
+        else:
+            raise NotImplementedError("optimizer {} is not supported!".format(self._fore_optimizer))
+        if self._weight_optimizer.lower() == "adam":
+            self.weight_optimizer = optim.Adam(self.weight_model.parameters(), lr=self.weight_lr)
+        elif self._weight_optimizer.lower() == "gd":
+            self.weight_optimizer = optim.SGD(self.weight_model.parameters(), lr=self.weight_lr)
+        else:
+            raise NotImplementedError("optimizer {} is not supported!".format(self._weight_optimizer))
+
+        self.fitted = False
+        self.fore_model.to(self.device)
+        self.weight_model.to(self.device)
 
         best_loss = np.inf
         best_epoch = 0

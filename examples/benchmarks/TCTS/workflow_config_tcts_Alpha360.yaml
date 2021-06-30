@@ -56,7 +56,7 @@ task:
             batch_size: 800
             metric: loss
             loss: mse
-            GPU: 2
+            GPU: 0
             fore_optimizer: adam
             weight_optimizer: adam
             output_dim: 3
