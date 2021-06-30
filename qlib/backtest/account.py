@@ -263,11 +263,11 @@ class Account:
         elif atomic is False and inner_order_indicators is None:
             raise ValueError("inner_order_indicators is necessary in unatomic executor")
 
+        # TODO:  `update_bar_count` and  `update_current` should placed in Position and be merged.
+        self.update_bar_count()
+        self.update_current(trade_start_time, trade_end_time, trade_exchange)
         if generate_report:
             # report is portfolio related analysis
-            # TODO:  `update_bar_count` and  `update_current` should placed in Position and be merged.
-            self.update_bar_count()
-            self.update_current(trade_start_time, trade_end_time, trade_exchange)
             self.update_report(trade_start_time, trade_end_time)
 
         # indicator is trading (e.g. high-frequency order execution) related analysis
