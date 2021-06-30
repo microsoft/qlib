@@ -92,16 +92,16 @@ class Serializable:
     @classmethod
     def load(cls, filepath):
         """
-        Load the collector from a filepath.
+        Load the serializable class from a filepath.
 
         Args:
             filepath (str): the path of file
 
         Raises:
-            TypeError: the pickled file must be `Collector`
+            TypeError: the pickled file must be `type(cls)`
 
         Returns:
-            Collector: the instance of Collector
+            `type(cls)`: the instance of `type(cls)`
         """
         with open(filepath, "rb") as f:
             object = cls.get_backend().load(f)

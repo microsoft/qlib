@@ -6,3 +6,4 @@ pandas
 tqdm
 lxml
 yahooquery
+joblib

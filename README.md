@@ -68,7 +68,7 @@ Your feedbacks about the features are very important.
 # Framework of Qlib
 
 <div style="align: center">
-<img src="http://fintech.msra.cn/images_v060/framework.png?v=0.1" />
+<img src="http://fintech.msra.cn/images_v060/framework.png?v=0.2" />
 </div>
 
 
@@ -158,6 +158,28 @@ Users could create the same dataset with it.
 
 *Please pay **ATTENTION** that the data is collected from [Yahoo Finance](https://finance.yahoo.com/lookup), and the data might not be perfect.
 We recommend users to prepare their own data if they have a high-quality dataset. For more information, users can refer to the [related document](https://qlib.readthedocs.io/en/latest/component/data.html#converting-csv-format-into-qlib-format)*.
+
+### Automatic update of daily frequency data(from yahoo finance)
+  > It is recommended that users update the data manually once (--trading_date 2021-05-25) and then set it to update automatically.
+
+  > For more information refer to: [yahoo collector](https://github.com/microsoft/qlib/tree/main/scripts/data_collector/yahoo#automatic-update-of-daily-frequency-datafrom-yahoo-finance)
+
+  * Automatic update of data to the "qlib" directory each trading day(Linux)
+      * use *crontab*: `crontab -e`
+      * set up timed tasks:
+
+        ```
+        * * * * 1-5 python <script path> update_data_to_bin --qlib_data_1d_dir <user data dir>
+        ```
+        * **script path**: *scripts/data_collector/yahoo/collector.py*
+
+  * Manual update of data
+      ```
+      python scripts/data_collector/yahoo/collector.py update_data_to_bin --qlib_data_1d_dir <user data dir> --trading_date <start date> --end_date <end date>
+      ```
+      * *trading_date*: start of trading day
+      * *end_date*: end of trading day(not included)
+
 
 <!-- 
 - Run the initialization code and get stock data:
