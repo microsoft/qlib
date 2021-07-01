@@ -35,7 +35,7 @@ WIKI_INDEX_NAME_MAP = {
 class WIKIIndex(IndexBase):
     # NOTE: The US stock code contains "PRN", and the directory cannot be created on Windows system, use the "_" prefix
     # https://superuser.com/questions/613313/why-cant-we-make-con-prn-null-folder-in-windows
-    INST_PREFIX = "_"
+    INST_PREFIX = ""
 
     def __init__(self, index_name: str, qlib_dir: [str, Path] = None, request_retry: int = 5, retry_sleep: int = 3):
         super(WIKIIndex, self).__init__(
@@ -123,7 +123,7 @@ class NASDAQ100Index(WIKIIndex):
     MAX_WORKERS = 16
 
     def filter_df(self, df: pd.DataFrame) -> pd.DataFrame:
-        if not (set(df.columns) - {"Company", "Ticker"}):
+        if len(df) >= 100 and "Ticker" in df.columns:
             return df.loc[:, ["Ticker"]].copy()
 
     @property
@@ -271,7 +271,7 @@ def get_instruments(
         $ python collector.py --index_name SP500 --qlib_dir ~/.qlib/qlib_data/cn_data --method save_new_companies
 
     """
-    _cur_module = importlib.import_module("collector")
+    _cur_module = importlib.import_module("data_collector.us_index.collector")
     obj = getattr(_cur_module, f"{index_name.upper()}Index")(
         qlib_dir=qlib_dir, index_name=index_name, request_retry=request_retry, retry_sleep=retry_sleep
     )

@@ -2,96 +2,60 @@
 # Licensed under the MIT License.
 
 
-__version__ = "0.6.1.dev"
+__version__ = "0.6.3.99"
+__version__bak = __version__  # This version is backup for QlibConfig.reset_qlib_version
 
 
 import os
-import re
-import sys
-import copy
 import yaml
 import logging
 import platform
 import subprocess
 from pathlib import Path
+from .log import get_module_logger
 
-from .utils import can_use_cache, init_instance_by_config, get_module_by_module_path
-from .workflow.utils import experiment_exit_handler
 
 # init qlib
 def init(default_conf="client", **kwargs):
-    from .config import C, REG_CN, REG_US, QlibConfig
-    from .data.data import register_all_wrappers
-    from .log import get_module_logger, set_log_with_config
+    from .config import C
     from .data.cache import H
-    from .workflow import R, QlibRecorder
-
-    C.reset()
-    H.clear()
-
-    _logging_config = C.logging_config
-    if "logging_config" in kwargs:
-        _logging_config = kwargs["logging_config"]
-
-    # set global config
-    if _logging_config:
-        set_log_with_config(_logging_config)
 
     # FIXME: this logger ignored the level in config
-    LOG = get_module_logger("Initialization", level=logging.INFO)
-    LOG.info(f"default_conf: {default_conf}.")
+    logger = get_module_logger("Initialization", level=logging.INFO)
 
-    C.set_mode(default_conf)
-    C.set_region(kwargs.get("region", C["region"] if "region" in C else REG_CN))
+    skip_if_reg = kwargs.pop("skip_if_reg", False)
+    if skip_if_reg and C.registered:
+        # if we reinitialize Qlib during running an experiment `R.start`.
+        # it will result in loss of the recorder
+        logger.warning("Skip initialization because `skip_if_reg is True`")
+        return
 
-    for k, v in kwargs.items():
-        C[k] = v
-        if k not in C:
-            LOG.warning("Unrecognized config %s" % k)
-
-    C.resolve_path()
-
-    if not (C["expression_cache"] is None and C["dataset_cache"] is None):
-        # check redis
-        if not can_use_cache():
-            LOG.warning(
-                f"redis connection failed(host={C['redis_host']} port={C['redis_port']}), cache will not be used!"
-            )
-            C["expression_cache"] = None
-            C["dataset_cache"] = None
+    H.clear()
+    C.set(default_conf, **kwargs)
 
     # check path if server/local
-    if C.get_uri_type() == QlibConfig.LOCAL_URI:
+    if C.get_uri_type() == C.LOCAL_URI:
         if not os.path.exists(C["provider_uri"]):
             if C["auto_mount"]:
-                LOG.error(
+                logger.error(
                     f"Invalid provider uri: {C['provider_uri']}, please check if a valid provider uri has been set. This path does not exist."
                 )
             else:
-                LOG.warning(f"auto_path is False, please make sure {C['mount_path']} is mounted")
-    elif C.get_uri_type() == QlibConfig.NFS_URI:
+                logger.warning(f"auto_path is False, please make sure {C['mount_path']} is mounted")
+    elif C.get_uri_type() == C.NFS_URI:
         _mount_nfs_uri(C)
     else:
         raise NotImplementedError(f"This type of URI is not supported")
 
-    LOG.info("qlib successfully initialized based on %s settings." % default_conf)
-    register_all_wrappers()
-
-    LOG.info(f"data_path={C.get_data_path()}")
+    C.register()
 
     if "flask_server" in C:
-        LOG.info(f"flask_server={C['flask_server']}, flask_port={C['flask_port']}")
-
-    # set up QlibRecorder
-    exp_manager = init_instance_by_config(C["exp_manager"])
-    qr = QlibRecorder(exp_manager)
-    R.register(qr)
-    # clean up experiment when python program ends
-    experiment_exit_handler()
+        logger.info(f"flask_server={C['flask_server']}, flask_port={C['flask_port']}")
+    logger.info("qlib successfully initialized based on %s settings." % default_conf)
+    logger.info(f"data_path={C.get_data_path()}")
 
 
 def _mount_nfs_uri(C):
-    from .log import get_module_logger
 
     LOG = get_module_logger("mount nfs", level=logging.INFO)
 
@@ -190,7 +154,79 @@ def init_from_yaml_conf(conf_path, **kwargs):
     """
 
     with open(conf_path) as f:
-        config = yaml.load(f, Loader=yaml.FullLoader)
+        config = yaml.safe_load(f)
     config.update(kwargs)
     default_conf = config.pop("default_conf", "client")
     init(default_conf, **config)
+
+
+def get_project_path(config_name="config.yaml", cur_path=None) -> Path:
+    """
+    If users are building a project follow the following pattern.
+    - Qlib is a sub folder in project path
+    - There is a file named `config.yaml` in qlib.
+
+    For example:
+        If your project file system stucuture follows such a pattern
+
+            <project_path>/
+              - config.yaml
+              - ...some folders...
+                - qlib/
+
+        This folder will return <project_path>
+
+        NOTE: link is not supported here.
+
+
+    This method is often used when
+    - user want to use a relative config path instead of hard-coding qlib config path in code
+
+    Raises
+    ------
+    FileNotFoundError:
+        If project path is not found
+    """
+    if cur_path is None:
+        cur_path = Path(__file__).absolute().resolve()
+    while True:
+        if (cur_path / config_name).exists():
+            return cur_path
+        if cur_path == cur_path.parent:
+            raise FileNotFoundError("We can't find the project path")
+        cur_path = cur_path.parent
+
+
+def auto_init(**kwargs):
+    """
+    This function will init qlib automatically with following priority
+    - Find the project configuration and init qlib
+        - The parsing process will be affected by the `conf_type` of the configuration file
+    - Init qlib with default config
+    - Skip initialization if already initialized
+    """
+    kwargs["skip_if_reg"] = kwargs.get("skip_if_reg", True)
+
+    try:
+        pp = get_project_path(cur_path=kwargs.pop("cur_path", None))
+    except FileNotFoundError:
+        init(**kwargs)
+    else:
+        conf_pp = pp / "config.yaml"
+        with conf_pp.open() as f:
+            conf = yaml.safe_load(f)
+
+        conf_type = conf.get("conf_type", "origin")
+        if conf_type == "origin":
+            # The type of config is just like original qlib config
+            init_from_yaml_conf(conf_pp, **kwargs)
+        elif conf_type == "ref":
+            # This config type will be more convenient in following scenario
+            # - There is a shared configure file and you don't want to edit it inplace.
+            # - The shared configure may be updated later and you don't want to copy it.
+            # - You have some customized config.
+            qlib_conf_path = conf["qlib_cfg"]
+            qlib_conf_update = conf.get("qlib_cfg_update")
+            init_from_yaml_conf(qlib_conf_path, **qlib_conf_update, **kwargs)
+        logger = get_module_logger("Initialization")
+        logger.info(f"Auto load project config: {conf_pp}")

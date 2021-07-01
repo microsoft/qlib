@@ -6,7 +6,9 @@ from __future__ import division
 from __future__ import print_function
 
 import os
+import re
 import abc
+import copy
 import time
 import queue
 import bisect
@@ -15,24 +17,52 @@ import importlib
 import traceback
 import numpy as np
 import pandas as pd
-from pathlib import Path
 from multiprocessing import Pool
 
 from .cache import H
 from ..config import C
-from .ops import *
+from .ops import Operators
 from ..log import get_module_logger
-from ..utils import parse_field, read_bin, hash_args, normalize_cache_fields
+from ..utils import parse_field, read_bin, hash_args, normalize_cache_fields, code_to_fname
 from .base import Feature
 from .cache import DiskDatasetCache, DiskExpressionCache
 from ..utils import Wrapper, init_instance_by_config, register_wrapper, get_module_by_module_path
 
 
-class CalendarProvider(abc.ABC):
+class ProviderBackendMixin:
+    def get_default_backend(self):
+        backend = {}
+        provider_name: str = re.findall("[A-Z][^A-Z]*", self.__class__.__name__)[-2]
+        # set default storage class
+        backend.setdefault("class", f"File{provider_name}Storage")
+        # set default storage module
+        backend.setdefault("module_path", "qlib.data.storage.file_storage")
+        return backend
+
+    def backend_obj(self, **kwargs):
+        backend = self.backend if self.backend else self.get_default_backend()
+        backend = copy.deepcopy(backend)
+
+        # set default storage kwargs
+        backend_kwargs = backend.setdefault("kwargs", {})
+        # default provider_uri map
+        if "provider_uri" not in backend_kwargs:
+            # if the user has no uri configured, use: uri = uri_map[freq]
+            freq = kwargs.get("freq", "day")
+            provider_uri_map = backend_kwargs.setdefault("provider_uri_map", {freq: C.get_data_path()})
+            backend_kwargs["provider_uri"] = provider_uri_map[freq]
+        backend.setdefault("kwargs", {}).update(**kwargs)
+        return init_instance_by_config(backend)
+
+
+class CalendarProvider(abc.ABC, ProviderBackendMixin):
     """Calendar provider base class
 
     Provide calendar data.
     """
+
+    def __init__(self, *args, **kwargs):
+        self.backend = kwargs.get("backend", {})
 
     @abc.abstractmethod
     def calendar(self, start_time=None, end_time=None, freq="day", future=False):
@@ -118,7 +148,7 @@ class CalendarProvider(abc.ABC):
         if flag in H["c"]:
             _calendar, _calendar_index = H["c"][flag]
         else:
-            _calendar = np.array(self._load_calendar(freq, future))
+            _calendar = np.array(self.load_calendar(freq, future))
             _calendar_index = {x: i for i, x in enumerate(_calendar)}  # for fast search
             H["c"][flag] = _calendar, _calendar_index
         return _calendar, _calendar_index
@@ -128,11 +158,14 @@ class CalendarProvider(abc.ABC):
         return hash_args(start_time, end_time, freq, future)
 
 
-class InstrumentProvider(abc.ABC):
+class InstrumentProvider(abc.ABC, ProviderBackendMixin):
     """Instrument provider base class
 
     Provide instrument data.
     """
+
+    def __init__(self, *args, **kwargs):
+        self.backend = kwargs.get("backend", {})
 
     @staticmethod
     def instruments(market="all", filter_pipe=None):
@@ -215,26 +248,15 @@ class InstrumentProvider(abc.ABC):
             return cls.LIST
         raise ValueError(f"Unknown instrument type {inst}")
 
-    def convert_instruments(self, instrument):
-        _instruments_map = getattr(self, "_instruments_map", None)
-        if _instruments_map is None:
-            _df_list = []
-            # FIXME: each process will read these files
-            for _path in Path(C.get_data_path()).joinpath("instruments").glob("*.txt"):
-                _df = pd.read_csv(_path, sep="\t", names=["inst", "start_datetime", "end_datetime", "save_inst"])
-                _df_list.append(_df.iloc[:, [0, -1]])
-            df = pd.concat(_df_list, sort=False).sort_values("save_inst")
-            df = df.drop_duplicates(subset=["save_inst"], keep="first").fillna(axis=1, method="ffill")
-            _instruments_map = df.set_index("inst").iloc[:, 0].to_dict()
-            setattr(self, "_instruments_map", _instruments_map)
-        return _instruments_map.get(instrument, instrument)
 
-
-class FeatureProvider(abc.ABC):
+class FeatureProvider(abc.ABC, ProviderBackendMixin):
     """Feature provider class
 
     Provide feature data.
     """
+
+    def __init__(self, *args, **kwargs):
+        self.backend = kwargs.get("backend", {})
 
     @abc.abstractmethod
     def feature(self, instrument, field, start_time, end_time, freq):
@@ -481,11 +503,10 @@ class DatasetProvider(abc.ABC):
 
         """
         # FIXME: Windows OS or MacOS using spawn: https://docs.python.org/3.8/library/multiprocessing.html?highlight=spawn#contexts-and-start-methods
-        global C
-        C = g_config
         # NOTE: This place is compatible with windows, windows multi-process is spawn
-        if getattr(ExpressionD, "_provider", None) is None:
-            register_all_wrappers()
+        if not C.registered:
+            C.set_conf_from_C(g_config)
+            C.register()
 
         obj = dict()
         for field in column_names:
@@ -494,13 +515,13 @@ class DatasetProvider(abc.ABC):
 
         data = pd.DataFrame(obj)
         _calendar = Cal.calendar(freq=freq)
-        data.index = _calendar[data.index.values.astype(np.int)]
+        data.index = _calendar[data.index.values.astype(int)]
         data.index.names = ["datetime"]
 
         if spans is None:
             return data
         else:
-            mask = np.zeros(len(data), dtype=np.bool)
+            mask = np.zeros(len(data), dtype=bool)
             for begin, end in spans:
                 mask |= (data.index >= begin) & (data.index <= end)
             return data[mask]
@@ -513,6 +534,7 @@ class LocalCalendarProvider(CalendarProvider):
     """
 
     def __init__(self, **kwargs):
+        super(LocalCalendarProvider, self).__init__(**kwargs)
         self.remote = kwargs.get("remote", False)
 
     @property
@@ -520,7 +542,7 @@ class LocalCalendarProvider(CalendarProvider):
         """Calendar file uri."""
         return os.path.join(C.get_data_path(), "calendars", "{}.txt")
 
-    def _load_calendar(self, freq, future):
+    def load_calendar(self, freq, future):
         """Load original calendar timestamp from file.
 
         Parameters
@@ -533,18 +555,22 @@ class LocalCalendarProvider(CalendarProvider):
         list
             list of timestamps
         """
-        if future:
-            fname = self._uri_cal.format(freq + "_future")
-            # if future calendar not exists, return current calendar
-            if not os.path.exists(fname):
-                get_module_logger("data").warning(f"{freq}_future.txt not exists, return current calendar!")
-                fname = self._uri_cal.format(freq)
-        else:
-            fname = self._uri_cal.format(freq)
-        if not os.path.exists(fname):
-            raise ValueError("calendar not exists for freq " + freq)
-        with open(fname) as f:
-            return [pd.Timestamp(x.strip()) for x in f]
+
+        try:
+            backend_obj = self.backend_obj(freq=freq, future=future).data
+        except ValueError:
+            if future:
+                get_module_logger("data").warning(
+                    f"load calendar error: freq={freq}, future={future}; return current calendar!"
+                )
+                get_module_logger("data").warning(
+                    "You can get future calendar by referring to the following document: https://github.com/microsoft/qlib/blob/main/scripts/data_collector/contrib/README.md"
+                )
+                backend_obj = self.backend_obj(freq=freq, future=False).data
+            else:
+                raise
+
+        return [pd.Timestamp(x) for x in backend_obj]
 
     def calendar(self, start_time=None, end_time=None, freq="day", future=False):
         _calendar, _calendar_index = self._get_calendar(freq, future)
@@ -575,32 +601,20 @@ class LocalInstrumentProvider(InstrumentProvider):
     Provide instrument data from local data source.
     """
 
-    def __init__(self):
-        pass
-
     @property
     def _uri_inst(self):
         """Instrument file uri."""
         return os.path.join(C.get_data_path(), "instruments", "{}.txt")
 
-    def _load_instruments(self, market):
-        fname = self._uri_inst.format(market)
-        if not os.path.exists(fname):
-            raise ValueError("instruments not exists for market " + market)
-        _instruments = dict()
-        df = pd.read_csv(fname, sep="\t", names=["inst", "start_datetime", "end_datetime", "save_inst"])
-        df["start_datetime"] = pd.to_datetime(df["start_datetime"])
-        df["end_datetime"] = pd.to_datetime(df["end_datetime"])
-        for row in df.itertuples(index=False):
-            _instruments.setdefault(row[0], []).append((row[1], row[2]))
-        return _instruments
+    def _load_instruments(self, market, freq):
+        return self.backend_obj(market=market, freq=freq).data
 
     def list_instruments(self, instruments, start_time=None, end_time=None, freq="day", as_list=False):
         market = instruments["market"]
         if market in H["i"]:
             _instruments = H["i"][market]
         else:
-            _instruments = self._load_instruments(market)
+            _instruments = self._load_instruments(market, freq=freq)
             H["i"][market] = _instruments
         # strip
         # use calendar boundary
@@ -611,7 +625,7 @@ class LocalInstrumentProvider(InstrumentProvider):
             inst: list(
                 filter(
                     lambda x: x[0] <= x[1],
-                    [(max(start_time, x[0]), min(end_time, x[1])) for x in spans],
+                    [(max(start_time, pd.Timestamp(x[0])), min(end_time, pd.Timestamp(x[1]))) for x in spans],
                 )
             )
             for inst, spans in _instruments.items()
@@ -637,6 +651,7 @@ class LocalFeatureProvider(FeatureProvider):
     """
 
     def __init__(self, **kwargs):
+        super(LocalFeatureProvider, self).__init__(**kwargs)
         self.remote = kwargs.get("remote", False)
 
     @property
@@ -647,15 +662,8 @@ class LocalFeatureProvider(FeatureProvider):
     def feature(self, instrument, field, start_index, end_index, freq):
         # validate
         field = str(field).lower()[1:]
-        instrument = Inst.convert_instruments(instrument)
-        uri_data = self._uri_data.format(instrument.lower(), field, freq)
-        if not os.path.exists(uri_data):
-            get_module_logger("data").warning("WARN: data not found for %s.%s" % (instrument, field))
-            return pd.Series(dtype=np.float32)
-            # raise ValueError('uri_data not found: ' + uri_data)
-        # load
-        series = read_bin(uri_data, start_index, end_index)
-        return series
+        instrument = code_to_fname(instrument)
+        return self.backend_obj(instrument=instrument, field=field, freq=freq)[start_index : end_index + 1]
 
 
 class LocalExpressionProvider(ExpressionProvider):
@@ -663,9 +671,6 @@ class LocalExpressionProvider(ExpressionProvider):
 
     Provide expression data from local data source.
     """
-
-    def __init__(self):
-        super().__init__()
 
     def expression(self, instrument, field, start_time=None, end_time=None, freq="day"):
         expression = self.get_expression_instance(field)
@@ -681,6 +686,8 @@ class LocalExpressionProvider(ExpressionProvider):
         try:
             series = series.astype(np.float32)
         except ValueError:
+            pass
+        except TypeError:
             pass
         if not series.empty:
             series = series.loc[start_index:end_index]
@@ -969,8 +976,7 @@ class BaseProvider:
         is a provider class.
         """
         disk_cache = C.default_disk_cache if disk_cache is None else disk_cache
-        if C.disable_disk_cache:
-            disk_cache = False
+        fields = list(fields)  # In case of tuple.
         try:
             return DatasetD.dataset(instruments, fields, start_time, end_time, freq, disk_cache)
         except TypeError:
@@ -1028,22 +1034,42 @@ class ClientProvider(BaseProvider):
         self.logger = get_module_logger(self.__class__.__name__)
         if isinstance(Cal, ClientCalendarProvider):
             Cal.set_conn(self.client)
-        Inst.set_conn(self.client)
+        if isinstance(Inst, ClientInstrumentProvider):
+            Inst.set_conn(self.client)
         if hasattr(DatasetD, "provider"):
             DatasetD.provider.set_conn(self.client)
         else:
             DatasetD.set_conn(self.client)
 
 
-Cal = Wrapper()
-Inst = Wrapper()
-FeatureD = Wrapper()
-ExpressionD = Wrapper()
-DatasetD = Wrapper()
-D = Wrapper()
+import sys
+
+if sys.version_info >= (3, 9):
+    from typing import Annotated
+
+    CalendarProviderWrapper = Annotated[CalendarProvider, Wrapper]
+    InstrumentProviderWrapper = Annotated[InstrumentProvider, Wrapper]
+    FeatureProviderWrapper = Annotated[FeatureProvider, Wrapper]
+    ExpressionProviderWrapper = Annotated[ExpressionProvider, Wrapper]
+    DatasetProviderWrapper = Annotated[DatasetProvider, Wrapper]
+    BaseProviderWrapper = Annotated[BaseProvider, Wrapper]
+else:
+    CalendarProviderWrapper = CalendarProvider
+    InstrumentProviderWrapper = InstrumentProvider
+    FeatureProviderWrapper = FeatureProvider
+    ExpressionProviderWrapper = ExpressionProvider
+    DatasetProviderWrapper = DatasetProvider
+    BaseProviderWrapper = BaseProvider
+
+Cal: CalendarProviderWrapper = Wrapper()
+Inst: InstrumentProviderWrapper = Wrapper()
+FeatureD: FeatureProviderWrapper = Wrapper()
+ExpressionD: ExpressionProviderWrapper = Wrapper()
+DatasetD: DatasetProviderWrapper = Wrapper()
+D: BaseProviderWrapper = Wrapper()
 
 
-def register_all_wrappers():
+def register_all_wrappers(C):
     """register_all_wrappers"""
     logger = get_module_logger("data")
     module = get_module_by_module_path("qlib.data")
@@ -1054,7 +1080,8 @@ def register_all_wrappers():
     register_wrapper(Cal, _calendar_provider, "qlib.data")
     logger.debug(f"registering Cal {C.calendar_provider}-{C.calendar_cache}")
 
-    register_wrapper(Inst, C.instrument_provider, "qlib.data")
+    _instrument_provider = init_instance_by_config(C.instrument_provider, module)
+    register_wrapper(Inst, _instrument_provider, "qlib.data")
     logger.debug(f"registering Inst {C.instrument_provider}")
 
     if getattr(C, "feature_provider", None) is not None:

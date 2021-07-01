@@ -5,13 +5,11 @@ import os
 import sys
 import fire
 import time
-import venv
 import glob
 import shutil
 import signal
 import inspect
 import tempfile
-import traceback
 import functools
 import statistics
 import subprocess
@@ -23,8 +21,7 @@ from pprint import pprint
 import qlib
 from qlib.config import REG_CN
 from qlib.workflow import R
-from qlib.workflow.cli import workflow
-from qlib.utils import exists_qlib_data
+from qlib.tests.data import GetData
 
 
 # init qlib
@@ -39,12 +36,8 @@ exp_manager = {
         "default_exp_name": "Experiment",
     },
 }
-if not exists_qlib_data(provider_uri):
-    print(f"Qlib data is not found in {provider_uri}")
-    sys.path.append(str(Path(__file__).resolve().parent.parent.joinpath("scripts")))
-    from get_data import GetData
 
-    GetData().qlib_data(target_dir=provider_uri, region=REG_CN)
+GetData().qlib_data(target_dir=provider_uri, region=REG_CN, exists_skip=True)
 qlib.init(provider_uri=provider_uri, region=REG_CN, exp_manager=exp_manager)
 
 # decorator to check the arguments

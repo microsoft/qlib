@@ -14,7 +14,7 @@ class TunerConfigManager:
         self.config_path = config_path
 
         with open(config_path) as fp:
-            config = yaml.load(fp)
+            config = yaml.safe_load(fp)
         self.config = copy.deepcopy(config)
 
         self.pipeline_ex_config = PipelineExperimentConfig(config.get("experiment", dict()), self)

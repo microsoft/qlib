@@ -9,21 +9,15 @@ import os
 import numpy as np
 import pandas as pd
 import copy
-from sklearn.metrics import roc_auc_score, mean_squared_error
-import logging
-from ...utils import (
-    unpack_archive_with_buffer,
-    save_multiple_parts_file,
-    create_save_path,
-    drop_nan_by_y_index,
-)
-from ...log import get_module_logger, TimeInspector
+from ...utils import get_or_create_path
+from ...log import get_module_logger
 import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 from torch.utils.data import Sampler
 
+from .pytorch_utils import count_parameters
 from ...model.base import Model
 from ...data.dataset import DatasetH
 from ...data.dataset.handler import DataHandlerLP
@@ -62,8 +56,8 @@ class GATs(Model):
         the evaluate metric used in early stop
     optimizer : str
         optimizer name
-    GPU : str
-        the GPU ID(s) used for training
+    GPU : int
+        the GPU ID used for training
     """
 
     def __init__(
@@ -104,9 +98,8 @@ class GATs(Model):
         self.base_model = base_model
         self.with_pretrain = with_pretrain
         self.model_path = model_path
-        self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() else "cpu")
+        self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
         self.n_jobs = n_jobs
-        self.use_gpu = torch.cuda.is_available()
         self.seed = seed
 
         self.logger.info(
@@ -157,6 +150,9 @@ class GATs(Model):
             dropout=self.dropout,
             base_model=self.base_model,
         )
+        self.logger.info("model:\n{:}".format(self.GAT_model))
+        self.logger.info("model size: {:.4f} MB".format(count_parameters(self.GAT_model)))
+
         if optimizer.lower() == "adam":
             self.train_optimizer = optim.Adam(self.GAT_model.parameters(), lr=self.lr)
         elif optimizer.lower() == "gd":
@@ -164,8 +160,12 @@ class GATs(Model):
         else:
             raise NotImplementedError("optimizer {} is not supported!".format(optimizer))
 
-        self._fitted = False
+        self.fitted = False
         self.GAT_model.to(self.device)
+
+    @property
+    def use_gpu(self):
+        return self.device != torch.device("cpu")
 
     def mse(self, pred, label):
         loss = (pred - label) ** 2
@@ -245,12 +245,11 @@ class GATs(Model):
         self,
         dataset,
         evals_result=dict(),
-        verbose=True,
         save_path=None,
     ):
 
-        dl_train = dataset.prepare("train", data_key=DataHandlerLP.DK_L)
-        dl_valid = dataset.prepare("valid", data_key=DataHandlerLP.DK_L)
+        dl_train = dataset.prepare("train", col_set=["feature", "label"], data_key=DataHandlerLP.DK_L)
+        dl_valid = dataset.prepare("valid", col_set=["feature", "label"], data_key=DataHandlerLP.DK_L)
 
         dl_train.config(fillna_type="ffill+bfill")  # process nan brought by dataloader
         dl_valid.config(fillna_type="ffill+bfill")  # process nan brought by dataloader
@@ -258,11 +257,10 @@ class GATs(Model):
         sampler_train = DailyBatchSampler(dl_train)
         sampler_valid = DailyBatchSampler(dl_valid)
 
-        train_loader = DataLoader(dl_train, sampler=sampler_train, num_workers=self.n_jobs)
-        valid_loader = DataLoader(dl_valid, sampler=sampler_valid, num_workers=self.n_jobs)
+        train_loader = DataLoader(dl_train, sampler=sampler_train, num_workers=self.n_jobs, drop_last=True)
+        valid_loader = DataLoader(dl_valid, sampler=sampler_valid, num_workers=self.n_jobs, drop_last=True)
 
-        if save_path == None:
-            save_path = create_save_path(save_path)
+        save_path = get_or_create_path(save_path)
 
         stop_steps = 0
         train_loss = 0
@@ -297,7 +295,7 @@ class GATs(Model):
 
         # train
         self.logger.info("training...")
-        self._fitted = True
+        self.fitted = True
 
         for step in range(self.n_epochs):
             self.logger.info("Epoch%d:", step)
@@ -329,10 +327,10 @@ class GATs(Model):
             torch.cuda.empty_cache()
 
     def predict(self, dataset):
-        if not self._fitted:
+        if not self.fitted:
             raise ValueError("model is not fitted yet!")
 
-        dl_test = dataset.prepare("test", data_key=DataHandlerLP.DK_I)
+        dl_test = dataset.prepare("test", col_set=["feature", "label"], data_key=DataHandlerLP.DK_I)
         dl_test.config(fillna_type="ffill+bfill")
         sampler_test = DailyBatchSampler(dl_test)
         test_loader = DataLoader(dl_test, sampler=sampler_test, num_workers=self.n_jobs)
@@ -345,10 +343,7 @@ class GATs(Model):
             feature = data[:, :, 0:-1].to(self.device)
 
             with torch.no_grad():
-                if self.use_gpu:
-                    pred = self.GAT_model(feature.float()).detach().cpu().numpy()
-                else:
-                    pred = self.GAT_model(feature.float()).detach().numpy()
+                pred = self.GAT_model(feature.float()).detach().cpu().numpy()
 
             preds.append(pred)
 

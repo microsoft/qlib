@@ -4,13 +4,14 @@
 import numpy as np
 import pandas as pd
 import lightgbm as lgb
-
+from typing import Text, Union
 from ...model.base import ModelFT
 from ...data.dataset import DatasetH
 from ...data.dataset.handler import DataHandlerLP
+from ...model.interpret.base import LightGBMFInt
 
 
-class LGBModel(ModelFT):
+class LGBModel(ModelFT, LightGBMFInt):
     """LightGBM Model"""
 
     def __init__(self, loss="mse", **kwargs):
@@ -33,8 +34,8 @@ class LGBModel(ModelFT):
         else:
             raise ValueError("LightGBM doesn't support multi-label training")
 
-        dtrain = lgb.Dataset(x_train.values, label=y_train)
-        dvalid = lgb.Dataset(x_valid.values, label=y_valid)
+        dtrain = lgb.Dataset(x_train, label=y_train)
+        dvalid = lgb.Dataset(x_valid, label=y_valid)
         return dtrain, dvalid
 
     def fit(
@@ -61,10 +62,10 @@ class LGBModel(ModelFT):
         evals_result["train"] = list(evals_result["train"].values())[0]
         evals_result["valid"] = list(evals_result["valid"].values())[0]
 
-    def predict(self, dataset):
+    def predict(self, dataset: DatasetH, segment: Union[Text, slice] = "test"):
         if self.model is None:
             raise ValueError("model is not fitted yet!")
-        x_test = dataset.prepare("test", col_set="feature", data_key=DataHandlerLP.DK_I)
+        x_test = dataset.prepare(segment, col_set="feature", data_key=DataHandlerLP.DK_I)
         return pd.Series(self.model.predict(x_test.values), index=x_test.index)
 
     def finetune(self, dataset: DatasetH, num_boost_round=10, verbose_eval=20):

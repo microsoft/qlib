@@ -2,6 +2,7 @@
 # Licensed under the MIT License.
 
 import abc
+from typing import Union, Text
 import numpy as np
 import pandas as pd
 import copy
@@ -14,7 +15,7 @@ from ...utils.paral import datetime_groupby_apply
 EPS = 1e-12
 
 
-def get_group_columns(df: pd.DataFrame, group: str):
+def get_group_columns(df: pd.DataFrame, group: Union[Text, None]):
     """
     get a group of columns from multi-index columns DataFrame
 
@@ -72,6 +73,17 @@ class Processor(Serializable):
         """
         return True
 
+    def config(self, **kwargs):
+        attr_list = {"fit_start_time", "fit_end_time"}
+        for k, v in kwargs.items():
+            if k in attr_list and hasattr(self, k):
+                setattr(self, k, v)
+
+        for attr in attr_list:
+            if attr in kwargs:
+                kwargs.pop(attr)
+        super().config(**kwargs)
+
 
 class DropnaProcessor(Processor):
     def __init__(self, fields_group=None):
@@ -118,7 +130,7 @@ class FilterCol(Processor):
 
 
 class TanhProcess(Processor):
-    """ Use tanh to process noise data"""
+    """Use tanh to process noise data"""
 
     def __call__(self, df):
         def tanh_denoise(data):
@@ -133,7 +145,7 @@ class TanhProcess(Processor):
 
 
 class ProcessInf(Processor):
-    """Process infinity  """
+    """Process infinity"""
 
     def __call__(self, df):
         def replace_inf(data):

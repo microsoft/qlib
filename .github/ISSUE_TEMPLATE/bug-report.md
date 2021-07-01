@@ -28,7 +28,8 @@ Steps to reproduce the behavior:
 
 ## Environment
 
-**Note**: One could run `python scripts/collect_info.py` under the `qlib` directory to get the following information.
+**Note**: User could run `cd scripts && python collect_info.py all` under project directory to get system information
+and paste them here directly.
 
  - Qlib version:
  - Python version:

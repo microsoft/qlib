@@ -4,13 +4,14 @@
 import numpy as np
 import pandas as pd
 import xgboost as xgb
-
+from typing import Text, Union
 from ...model.base import Model
 from ...data.dataset import DatasetH
 from ...data.dataset.handler import DataHandlerLP
+from ...model.interpret.base import FeatureInt
 
 
-class XGBModel(Model):
+class XGBModel(Model, FeatureInt):
     """XGBModel Model"""
 
     def __init__(self, **kwargs):
@@ -42,8 +43,8 @@ class XGBModel(Model):
         else:
             raise ValueError("XGBoost doesn't support multi-label training")
 
-        dtrain = xgb.DMatrix(x_train.values, label=y_train_1d)
-        dvalid = xgb.DMatrix(x_valid.values, label=y_valid_1d)
+        dtrain = xgb.DMatrix(x_train, label=y_train_1d)
+        dvalid = xgb.DMatrix(x_valid, label=y_valid_1d)
         self.model = xgb.train(
             self._params,
             dtrain=dtrain,
@@ -57,8 +58,18 @@ class XGBModel(Model):
         evals_result["train"] = list(evals_result["train"].values())[0]
         evals_result["valid"] = list(evals_result["valid"].values())[0]
 
-    def predict(self, dataset):
+    def predict(self, dataset: DatasetH, segment: Union[Text, slice] = "test"):
         if self.model is None:
             raise ValueError("model is not fitted yet!")
-        x_test = dataset.prepare("test", col_set="feature")
-        return pd.Series(self.model.predict(xgb.DMatrix(x_test.values)), index=x_test.index)
+        x_test = dataset.prepare(segment, col_set="feature", data_key=DataHandlerLP.DK_I)
+        return pd.Series(self.model.predict(xgb.DMatrix(x_test)), index=x_test.index)
+
+    def get_feature_importance(self, *args, **kwargs) -> pd.Series:
+        """get feature importance
+
+        Notes
+        -------
+            parameters reference:
+                https://xgboost.readthedocs.io/en/latest/python/python_api.html#xgboost.Booster.get_score
+        """
+        return pd.Series(self.model.get_score(*args, **kwargs)).sort_values(ascending=False)

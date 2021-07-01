@@ -157,7 +157,7 @@ class Expression(abc.ABC):
 
     @abc.abstractmethod
     def _load_internal(self, instrument, start_index, end_index, freq):
-        pass
+        raise NotImplementedError("This function must be implemented in your newly defined feature")
 
     @abc.abstractmethod
     def get_longest_back_rolling(self):

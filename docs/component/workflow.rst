@@ -90,18 +90,24 @@ Below is a typical config file of ``qrun``.
                     test: [2017-01-01, 2020-08-01]
         record: 
             - class: SignalRecord
-            module_path: qlib.workflow.record_temp
-            kwargs: {}
+                module_path: qlib.workflow.record_temp
+                kwargs: {}
             - class: PortAnaRecord
-            module_path: qlib.workflow.record_temp
-            kwargs: 
-                config: *port_analysis_config
+                module_path: qlib.workflow.record_temp
+                kwargs: 
+                    config: *port_analysis_config
 
 After saving the config into `configuration.yaml`, users could start the workflow and test their ideas with a single command below.
 
 .. code-block:: bash
 
     qrun configuration.yaml
+
+If users want to use ``qrun`` under debug mode, please use the following command:
+
+.. code-block:: bash
+
+    python -m pdb qlib/workflow/cli.py examples/benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml
 
 .. note:: 
 

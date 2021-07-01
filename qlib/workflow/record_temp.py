@@ -1,23 +1,22 @@
 #  Copyright (c) Microsoft Corporation.
 #  Licensed under the MIT License.
 
-import re
+import re, logging
 import pandas as pd
 from pathlib import Path
 from pprint import pprint
-from ..contrib.evaluate import (
-    backtest as normal_backtest,
-    risk_analysis,
-)
+from ..contrib.evaluate import risk_analysis
+from ..contrib.backtest import backtest as normal_backtest
+
 from ..data.dataset import DatasetH
 from ..data.dataset.handler import DataHandlerLP
 from ..utils import init_instance_by_config, get_module_by_module_path
 from ..log import get_module_logger
 from ..utils import flatten_dict
-from ..contrib.eva.alpha import calc_ic, calc_long_short_return
+from ..contrib.eva.alpha import calc_ic, calc_long_short_return, calc_long_short_prec
 from ..contrib.strategy.strategy import BaseStrategy
 
-logger = get_module_logger("workflow", "INFO")
+logger = get_module_logger("workflow", logging.INFO)
 
 
 class RecordTemp:
@@ -40,7 +39,13 @@ class RecordTemp:
         return "/".join(names)
 
     def __init__(self, recorder):
-        self.recorder = recorder
+        self._recorder = recorder
+
+    @property
+    def recorder(self):
+        if self._recorder is None:
+            raise ValueError("This RecordTemp did not set recorder yet.")
+        return self._recorder
 
     def generate(self, **kwargs):
         """
@@ -111,7 +116,7 @@ class SignalRecord(RecordTemp):
     This is the Signal Record class that generates the signal prediction. This class inherits the ``RecordTemp`` class.
     """
 
-    def __init__(self, model=None, dataset=None, recorder=None, **kwargs):
+    def __init__(self, model=None, dataset=None, recorder=None):
         super().__init__(recorder=recorder)
         self.model = model
         self.dataset = dataset
@@ -146,6 +151,10 @@ class SignalRecord(RecordTemp):
                 del params["data_key"]
                 # The backend handler should be DataHandler
                 raw_label = self.dataset.prepare(**params)
+            except AttributeError:
+                # The data handler is initialize with `drop_raw=True`...
+                # So raw_label is not available
+                raw_label = None
 
             self.recorder.save_objects(**{"label.pkl": raw_label})
             self.dataset.__class__ = orig_cls
@@ -157,6 +166,60 @@ class SignalRecord(RecordTemp):
         return super().load(name)
 
 
+class HFSignalRecord(SignalRecord):
+    """
+    This is the Signal Analysis Record class that generates the analysis results such as IC and IR. This class inherits the ``RecordTemp`` class.
+    """
+
+    artifact_path = "hg_sig_analysis"
+
+    def __init__(self, recorder, **kwargs):
+        super().__init__(recorder=recorder)
+
+    def generate(self):
+        pred = self.load("pred.pkl")
+        raw_label = self.load("label.pkl")
+        long_pre, short_pre = calc_long_short_prec(pred.iloc[:, 0], raw_label.iloc[:, 0], is_alpha=True)
+        ic, ric = calc_ic(pred.iloc[:, 0], raw_label.iloc[:, 0])
+        metrics = {
+            "IC": ic.mean(),
+            "ICIR": ic.mean() / ic.std(),
+            "Rank IC": ric.mean(),
+            "Rank ICIR": ric.mean() / ric.std(),
+            "Long precision": long_pre.mean(),
+            "Short precision": short_pre.mean(),
+        }
+        objects = {"ic.pkl": ic, "ric.pkl": ric}
+        objects.update({"long_pre.pkl": long_pre, "short_pre.pkl": short_pre})
+        long_short_r, long_avg_r = calc_long_short_return(pred.iloc[:, 0], raw_label.iloc[:, 0])
+        metrics.update(
+            {
+                "Long-Short Average Return": long_short_r.mean(),
+                "Long-Short Average Sharpe": long_short_r.mean() / long_short_r.std(),
+            }
+        )
+        objects.update(
+            {
+                "long_short_r.pkl": long_short_r,
+                "long_avg_r.pkl": long_avg_r,
+            }
+        )
+        self.recorder.log_metrics(**metrics)
+        self.recorder.save_objects(**objects, artifact_path=self.get_path())
+        pprint(metrics)
+
+    def list(self):
+        paths = [
+            self.get_path("ic.pkl"),
+            self.get_path("ric.pkl"),
+            self.get_path("long_pre.pkl"),
+            self.get_path("short_pre.pkl"),
+            self.get_path("long_short_r.pkl"),
+            self.get_path("long_avg_r.pkl"),
+        ]
+        return paths
+
+
 class SigAnaRecord(SignalRecord):
     """
     This is the Signal Analysis Record class that generates the analysis results such as IC and IR. This class inherits the ``RecordTemp`` class.
@@ -165,16 +228,21 @@ class SigAnaRecord(SignalRecord):
     artifact_path = "sig_analysis"
 
     def __init__(self, recorder, ana_long_short=False, ann_scaler=252, **kwargs):
+        super().__init__(recorder=recorder, **kwargs)
         self.ana_long_short = ana_long_short
         self.ann_scaler = ann_scaler
-        super().__init__(recorder=recorder, **kwargs)
-        # The name must be unique. Otherwise it will be overridden
 
-    def generate(self):
-        self.check(parent=True)
+    def generate(self, **kwargs):
+        try:
+            self.check(parent=True)
+        except FileExistsError:
+            super().generate()
 
         pred = self.load("pred.pkl")
         label = self.load("label.pkl")
+        if label is None or not isinstance(label, pd.DataFrame) or label.empty:
+            logger.warn(f"Empty label.")
+            return
         ic, ric = calc_ic(pred.iloc[:, 0], label.iloc[:, 0])
         metrics = {
             "IC": ic.mean(),
@@ -229,7 +297,7 @@ class PortAnaRecord(SignalRecord):
         config["backtest"] : dict
             define the backtest kwargs.
         """
-        super().__init__(recorder=recorder)
+        super().__init__(recorder=recorder, **kwargs)
 
         self.strategy_config = config["strategy"]
         self.backtest_config = config["backtest"]
@@ -237,13 +305,30 @@ class PortAnaRecord(SignalRecord):
 
     def generate(self, **kwargs):
         # check previously stored prediction results
-        self.check(parent=True)  # "Make sure the parent process is completed and store the data properly."
+        try:
+            self.check(parent=True)  # "Make sure the parent process is completed and store the data properly."
+        except FileExistsError:
+            super().generate()
 
         # custom strategy and get backtest
-        pred_score = super().load()
-        report_normal, positions_normal = normal_backtest(pred_score, strategy=self.strategy, **self.backtest_config)
-        self.recorder.save_objects(**{"report_normal.pkl": report_normal}, artifact_path=PortAnaRecord.get_path())
-        self.recorder.save_objects(**{"positions_normal.pkl": positions_normal}, artifact_path=PortAnaRecord.get_path())
+        pred_score = super().load("pred.pkl")
+        report_dict = normal_backtest(pred_score, strategy=self.strategy, **self.backtest_config)
+        report_normal = report_dict.get("report_df")
+        positions_normal = report_dict.get("positions")
+        self.recorder.save_objects(
+            **{"report_normal.pkl": report_normal},
+            artifact_path=PortAnaRecord.get_path(),
+        )
+        self.recorder.save_objects(
+            **{"positions_normal.pkl": positions_normal},
+            artifact_path=PortAnaRecord.get_path(),
+        )
+        order_normal = report_dict.get("order_list")
+        if order_normal:
+            self.recorder.save_objects(
+                **{"order_normal.pkl": order_normal},
+                artifact_path=PortAnaRecord.get_path(),
+            )
 
         # analysis
         analysis = dict()

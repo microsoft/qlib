@@ -61,7 +61,7 @@ def get_position_value(evaluate_date, position):
     # load close price for position
     # position should also consider cash
     instruments = list(position.keys())
-    instruments = list(set(instruments) - set(["cash"]))  # filter 'cash'
+    instruments = list(set(instruments) - {"cash"})  # filter 'cash'
     fields = ["$close"]
     close_data_df = D.features(
         instruments,
@@ -80,7 +80,7 @@ def get_position_list_value(positions):
     instruments = set()
     for day, position in positions.items():
         instruments.update(position.keys())
-    instruments = list(set(instruments) - set(["cash"]))  # filter 'cash'
+    instruments = list(set(instruments) - {"cash"})  # filter 'cash'
     instruments.sort()
     day_list = list(positions.keys())
     day_list.sort()

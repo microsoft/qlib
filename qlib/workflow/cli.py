@@ -16,7 +16,7 @@ def get_path_list(path):
     if isinstance(path, str):
         return [path]
     else:
-        return [p for p in path]
+        return list(path)
 
 
 def sys_config(config, config_path):
@@ -44,7 +44,7 @@ def sys_config(config, config_path):
 # worflow handler function
 def workflow(config_path, experiment_name="workflow", uri_folder="mlruns"):
     with open(config_path) as fp:
-        config = yaml.load(fp, Loader=yaml.Loader)
+        config = yaml.safe_load(fp)
 
     # config the `sys` section
     sys_config(config, config_path)
