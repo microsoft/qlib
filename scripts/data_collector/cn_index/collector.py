@@ -29,15 +29,14 @@ INDEX_CHANGES_URL = "http://www.csindex.com.cn/zh-CN/search/total?key=%E5%85%B3%
 
 
 class CSIIndex(IndexBase):
-
     @property
     def calendar_list(self) -> List[pd.Timestamp]:
         """get history trading date
 
-		Returns
-		-------
-			calendar list
-		"""
+        Returns
+        -------
+                calendar list
+        """
         return get_calendar_list(bench_code=self.index_name.upper())
 
     @property
@@ -52,20 +51,20 @@ class CSIIndex(IndexBase):
     @abc.abstractmethod
     def bench_start_date(self) -> pd.Timestamp:
         """
-		Returns
-		-------
-			index start date
-		"""
+        Returns
+        -------
+                index start date
+        """
         raise NotImplementedError("rewrite bench_start_date")
 
     @property
     @abc.abstractmethod
     def index_code(self) -> str:
         """
-		Returns
-		-------
-			index code
-		"""
+        Returns
+        -------
+                index code
+        """
         raise NotImplementedError("rewrite index_code")
 
     @property
@@ -73,26 +72,26 @@ class CSIIndex(IndexBase):
     def html_table_index(self) -> int:
         """Which table of changes in html
 
-		CSI300: 0
-		CSI100: 1
-		:return:
-		"""
+        CSI300: 0
+        CSI100: 1
+        :return:
+        """
         raise NotImplementedError()
 
     def get_changes(self) -> pd.DataFrame:
         """get companies changes
 
-		Returns
-		-------
-			pd.DataFrame:
-				symbol      date        type
-				SH600000  2019-11-11    add
-				SH600000  2020-11-10    remove
-			dtypes:
-				symbol: str
-				date: pd.Timestamp
-				type: str, value from ["add", "remove"]
-		"""
+        Returns
+        -------
+                pd.DataFrame:
+                        symbol      date        type
+                        SH600000  2019-11-11    add
+                        SH600000  2020-11-10    remove
+                dtypes:
+                        symbol: str
+                        date: pd.Timestamp
+                        type: str, value from ["add", "remove"]
+        """
         logger.info("get companies changes......")
         res = []
         for _url in self._get_change_notices_url():
@@ -105,37 +104,37 @@ class CSIIndex(IndexBase):
     def normalize_symbol(symbol: str) -> str:
         """
 
-		Parameters
-		----------
-		symbol: str
-			symbol
+        Parameters
+        ----------
+        symbol: str
+                symbol
 
-		Returns
-		-------
-			symbol
-		"""
+        Returns
+        -------
+                symbol
+        """
         symbol = f"{int(symbol):06}"
         return f"SH{symbol}" if symbol.startswith("60") else f"SZ{symbol}"
 
     def _read_change_from_url(self, url: str) -> pd.DataFrame:
         """read change from url
 
-		Parameters
-		----------
-		url : str
-			change url
+        Parameters
+        ----------
+        url : str
+                change url
 
-		Returns
-		-------
-			pd.DataFrame:
-				symbol      date        type
-				SH600000  2019-11-11    add
-				SH600000  2020-11-10    remove
-			dtypes:
-				symbol: str
-				date: pd.Timestamp
-				type: str, value from ["add", "remove"]
-		"""
+        Returns
+        -------
+                pd.DataFrame:
+                        symbol      date        type
+                        SH600000  2019-11-11    add
+                        SH600000  2020-11-10    remove
+                dtypes:
+                        symbol: str
+                        date: pd.Timestamp
+                        type: str, value from ["add", "remove"]
+        """
         resp = requests.get(url)
         _text = resp.text
 
@@ -154,9 +153,7 @@ class CSIIndex(IndexBase):
             df_map = pd.read_excel(_io, sheet_name=None)
             with self.cache_dir.joinpath(
                 f"{self.index_name.lower()}_changes_{add_date.strftime('%Y%m%d')}.{excel_url.split('.')[-1]}"
-            ).open(
-                "wb"
-            ) as fp:
+            ).open("wb") as fp:
                 fp.write(content)
             tmp = []
             for _s_name, _type, _date in [("调入", self.ADD, add_date), ("调出", self.REMOVE, remove_date)]:
@@ -181,7 +178,8 @@ class CSIIndex(IndexBase):
 
                 tmp = []
                 for _s, _type, _date in [
-                    (_df.iloc[2:, 0], self.REMOVE, remove_date), (_df.iloc[2:, 2], self.ADD, add_date)
+                    (_df.iloc[2:, 0], self.REMOVE, remove_date),
+                    (_df.iloc[2:, 2], self.ADD, add_date),
                 ]:
                     _tmp_df = pd.DataFrame()
                     _tmp_df[self.SYMBOL_FIELD_NAME] = _s.map(self.normalize_symbol)
@@ -203,10 +201,10 @@ class CSIIndex(IndexBase):
     def _get_change_notices_url(self) -> List[str]:
         """get change notices url
 
-		Returns
-		-------
-			[url1, url2]
-		"""
+        Returns
+        -------
+                [url1, url2]
+        """
         resp = requests.get(self.changes_url)
         html = etree.HTML(resp.text)
         return html.xpath("//*[@id='itemContainer']//li/a/@href")
@@ -214,25 +212,23 @@ class CSIIndex(IndexBase):
     def get_new_companies(self) -> pd.DataFrame:
         """
 
-		Returns
-		-------
-			pd.DataFrame:
+        Returns
+        -------
+                pd.DataFrame:
 
-				symbol     start_date    end_date
-				SH600000   2000-01-01    2099-12-31
+                        symbol     start_date    end_date
+                        SH600000   2000-01-01    2099-12-31
 
-			dtypes:
-				symbol: str
-				start_date: pd.Timestamp
-				end_date: pd.Timestamp
-		"""
+                dtypes:
+                        symbol: str
+                        start_date: pd.Timestamp
+                        end_date: pd.Timestamp
+        """
         logger.info("get new companies......")
         context = requests.get(self.new_companies_url).content
         with self.cache_dir.joinpath(
             f"{self.index_name.lower()}_new_companies.{self.new_companies_url.split('.')[-1]}"
-        ).open(
-            "wb"
-        ) as fp:
+        ).open("wb") as fp:
             fp.write(context)
         _io = BytesIO(context)
         df = pd.read_excel(_io)
@@ -246,7 +242,6 @@ class CSIIndex(IndexBase):
 
 
 class CSI300(CSIIndex):
-
     @property
     def index_code(self):
         return "000300"
@@ -261,7 +256,6 @@ class CSI300(CSIIndex):
 
 
 class CSI100(CSIIndex):
-
     @property
     def index_code(self):
         return "000903"
@@ -276,7 +270,6 @@ class CSI100(CSIIndex):
 
 
 class CSI500(CSIIndex):
-
     @property
     def index_code(self):
         return "000905"
@@ -293,14 +286,13 @@ class CSI500(CSIIndex):
         return self.get_changes_with_history_companies(self.get_history_companies())
 
     def get_history_companies(self):
-        """
-		Data source：http://baostock.com/baostock/index.php/%E4%B8%AD%E8%AF%81500%E6%88%90%E5%88%86%E8%82%A1
-			Avoid a large number of parallel data acquisition,
-			such as 1000 times of concurrent data acquisition, because IP will be blocked
-		Returns
-		-------
+        """Data source：http://baostock.com/baostock/index.php/%E4%B8%AD%E8%AF%81500%E6%88%90%E5%88%86%E8%82%A1
+                Avoid a large number of parallel data acquisition,
+                such as 1000 times of concurrent data acquisition, because IP will be blocked
+        Returns
+        -------
 
-		"""
+        """
         lg = bs.login()
         today = pd.datetime.now()
         date_range = pd.DataFrame(pd.date_range(start="2007-01-15", end=today, freq="7D"))[0].dt.date
@@ -323,28 +315,28 @@ def get_instruments(
 ):
     """
 
-	Parameters
-	----------
-	qlib_dir: str
-		qlib data dir, default "Path(__file__).parent/qlib_data"
-	index_name: str
-		index name, value from ["csi100", "csi300"]
-	method: str
-		method, value from ["parse_instruments", "save_new_companies"]
-	request_retry: int
-		request retry, by default 5
-	retry_sleep: int
-		request sleep, by default 3
+    Parameters
+    ----------
+    qlib_dir: str
+            qlib data dir, default "Path(__file__).parent/qlib_data"
+    index_name: str
+            index name, value from ["csi100", "csi300"]
+    method: str
+            method, value from ["parse_instruments", "save_new_companies"]
+    request_retry: int
+            request retry, by default 5
+    retry_sleep: int
+            request sleep, by default 3
 
-	Examples
-	-------
-		# parse instruments
-		$ python collector.py --index_name CSI300 --qlib_dir ~/.qlib/qlib_data/cn_data --method parse_instruments
+    Examples
+    -------
+            # parse instruments
+            $ python collector.py --index_name CSI300 --qlib_dir ~/.qlib/qlib_data/cn_data --method parse_instruments
 
-		# parse new companies
-		$ python collector.py --index_name CSI300 --qlib_dir ~/.qlib/qlib_data/cn_data --method save_new_companies
+            # parse new companies
+            $ python collector.py --index_name CSI300 --qlib_dir ~/.qlib/qlib_data/cn_data --method save_new_companies
 
-	"""
+    """
     _cur_module = importlib.import_module("collector")
     obj = getattr(_cur_module, f"{index_name.upper()}")(
         qlib_dir=qlib_dir, index_name=index_name, request_retry=request_retry, retry_sleep=retry_sleep
