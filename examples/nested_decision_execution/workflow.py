@@ -124,14 +124,14 @@ class NestedDecisionExecutionWorkflow:
 
     def _init_qlib(self):
         """initialize qlib"""
-        # provider_uri_day = "/data/stock_data/huaxia/qlib"
-        # provider_uri_1min = "/data2/stock_data/huaxia_1min_qlib"
-        provider_uri_day = "~/.qlib/qlib_data/cn_data"  # target_dir
-        GetData().qlib_data(target_dir=provider_uri_day, region=REG_CN, version="v2", exists_skip=True)
-        provider_uri_1min = HIGH_FREQ_CONFIG.get("provider_uri")
-        GetData().qlib_data(
-            target_dir=provider_uri_1min, interval="1min", region=REG_CN, version="v2", exists_skip=True
-        )
+        provider_uri_day = "/data/stock_data/huaxia/qlib"
+        provider_uri_1min = "/data2/stock_data/huaxia_1min_qlib"
+        # provider_uri_day = "~/.qlib/qlib_data/cn_data"  # target_dir
+        # GetData().qlib_data(target_dir=provider_uri_day, region=REG_CN, version="v2", exists_skip=True)
+        # provider_uri_1min = HIGH_FREQ_CONFIG.get("provider_uri")
+        # GetData().qlib_data(
+        #    target_dir=provider_uri_1min, interval="1min", region=REG_CN, version="v2", exists_skip=True
+        # )
         provider_uri_map = {"1min": provider_uri_1min, "day": provider_uri_day}
         client_config = {
             "calendar_provider": {

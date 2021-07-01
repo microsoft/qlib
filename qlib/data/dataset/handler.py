@@ -197,7 +197,7 @@ class DataHandler(Serializable):
         -------
         pd.DataFrame.
         """
-        from .storage import HasingStockStorage
+        from .storage import BaseHandlerStorage
 
         data_storage = self._data
         if isinstance(data_storage, pd.DataFrame):
@@ -211,10 +211,17 @@ class DataHandler(Serializable):
                 # Fetch column  first will be more friendly to SepDataFrame
                 data_df = fetch_df_by_col(data_df, col_set)
                 data_df = fetch_df_by_index(data_df, selector, level, fetch_orig=self.fetch_orig)
-        elif isinstance(data_storage, HasingStockStorage):
-            if proc_func is not None:
-                raise ValueError("proc_func is not supported by the HasingStockStorage")
-            data_df = data_storage.fetch(selector=selector, level=level, col_set=col_set, fetch_orig=self.fetch_orig)
+        elif isinstance(data_storage, BaseHandlerStorage):
+            if not data_storage.is_proc_func_supported():
+                if proc_func is not None:
+                    raise ValueError(f"proc_func is not supported by the storage {type(data_storage)}")
+                data_df = data_storage.fetch(
+                    selector=selector, level=level, col_set=col_set, fetch_orig=self.fetch_orig
+                )
+            else:
+                data_df = data_storage.fetch(
+                    selector=selector, level=level, col_set=col_set, fetch_orig=self.fetch_orig, proc_func=proc_func
+                )
         else:
             raise TypeError(f"data_storage should be pd.DataFrame|HasingStockStorage, not {type(data_storage)}")
 
@@ -522,7 +529,7 @@ class DataHandlerLP(DataHandler):
         -------
         pd.DataFrame:
         """
-        from .storage import HasingStockStorage
+        from .storage import BaseHandlerStorage
 
         data_storage = self._get_df_by_key(data_key)
         if isinstance(data_storage, pd.DataFrame):
@@ -537,10 +544,17 @@ class DataHandlerLP(DataHandler):
                 data_df = fetch_df_by_col(data_df, col_set)
                 data_df = fetch_df_by_index(data_df, selector, level, fetch_orig=self.fetch_orig)
 
-        elif isinstance(data_storage, HasingStockStorage):
-            if proc_func is not None:
-                raise ValueError("proc_func is not supported by the HasingStockStorage")
-            data_df = data_storage.fetch(selector=selector, level=level, col_set=col_set, fetch_orig=self.fetch_orig)
+        elif isinstance(data_storage, BaseHandlerStorage):
+            if not data_storage.is_proc_func_supported():
+                if proc_func is not None:
+                    raise ValueError(f"proc_func is not supported by the storage {type(data_storage)}")
+                data_df = data_storage.fetch(
+                    selector=selector, level=level, col_set=col_set, fetch_orig=self.fetch_orig
+                )
+            else:
+                data_df = data_storage.fetch(
+                    selector=selector, level=level, col_set=col_set, fetch_orig=self.fetch_orig, proc_func=proc_func
+                )
         else:
             raise TypeError(f"data_storage should be pd.DataFrame|HasingStockStorage, not {type(data_storage)}")
 

@@ -270,6 +270,7 @@ def get_valid_value(series, last=True):
     Parameters
     ----------
     series : pd.Seires
+        series should not be empty
     last : bool, optional
         wether to get the last valid value, by default True
         - if last is True, get the last valid value
@@ -280,11 +281,7 @@ def get_valid_value(series, last=True):
     Nan | float
         the first/last valid value
     """
-    x = series.dropna()
-    if x.empty:
-        return np.nan
-    else:
-        return x.iloc[-1] if last else x.iloc[0]
+    return series.fillna(method="ffill").iloc[-1] if last else series.fillna(method="bfill").iloc[0]
 
 
 def ts_data_last(ts_feature):

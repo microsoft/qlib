@@ -14,6 +14,7 @@ class BaseHandlerStorage:
         level: Union[str, int] = "datetime",
         col_set: Union[str, List[str]] = DataHandler.CS_ALL,
         fetch_orig: bool = True,
+        proc_func: Callable = None,
         **kwargs,
     ) -> pd.DataFrame:
         """fetch data from the data storage
@@ -24,6 +25,7 @@ class BaseHandlerStorage:
             describe how to select data by index
         level : Union[str, int]
             which index level to select the data
+            - if level is None, apply selector to df directly
         col_set : Union[str, List[str]]
             - if isinstance(col_set, str):
                 select a set of meaningful columns.(e.g. features, columns)
@@ -33,7 +35,8 @@ class BaseHandlerStorage:
                 select several sets of meaningful columns, the returned data has multiple level
         fetch_orig : bool
             Return the original data instead of copy if possible.
-
+        proc_func: Callable
+            please refer to the doc of DataHandler.fetch
         """
 
         raise NotImplementedError("fetch is method not implemented!")
@@ -41,6 +44,9 @@ class BaseHandlerStorage:
     @staticmethod
     def from_df(df: pd.DataFrame):
         raise NotImplementedError("from_df method is not implemented!")
+
+    def is_proc_func_supported(self):
+        raise NotImplementedError("is_proc_func_supported method is not implemented!")
 
 
 class HasingStockStorage(BaseHandlerStorage):
@@ -105,3 +111,6 @@ class HasingStockStorage(BaseHandlerStorage):
             return fetch_stock_df_list[0]
         else:
             return pd.concat(fetch_stock_df_list, sort=False, copy=~fetch_orig)
+
+    def is_proc_func_supported(self):
+        return False
