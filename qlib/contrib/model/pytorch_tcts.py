@@ -63,7 +63,7 @@ class TCTS(Model):
         GPU=0,
         seed=0,
         target_label=0,
-        lowest_valid_performance = 0.993,
+        lowest_valid_performance=0.993,
         **kwargs
     ):
         # Set logger.
@@ -117,8 +117,6 @@ class TCTS(Model):
                 seed,
             )
         )
-
-
 
     def loss_fn(self, pred, label, weight):
 
@@ -228,7 +226,7 @@ class TCTS(Model):
 
         return np.mean(losses)
 
-    def fit(        
+    def fit(
         self,
         dataset: DatasetH,
         verbose=True,
@@ -250,20 +248,24 @@ class TCTS(Model):
         while best_loss > self.lowest_valid_performance:
             if best_loss < np.inf:
                 print("Failed! Start retraining.")
-                self.seed = random.randint(0, 1000) # reset random seed
+                self.seed = random.randint(0, 1000)  # reset random seed
 
             if self.seed is not None:
                 np.random.seed(self.seed)
                 torch.manual_seed(self.seed)
 
-            best_loss = self.training(x_train, y_train, x_valid, y_valid, x_test, y_test, \
-                                        verbose=verbose, save_path=save_path)
-            
+            best_loss = self.training(
+                x_train, y_train, x_valid, y_valid, x_test, y_test, verbose=verbose, save_path=save_path
+            )
+
     def training(
         self,
-        x_train, y_train,
-        x_valid, y_valid,
-        x_test, y_test,
+        x_train,
+        y_train,
+        x_valid,
+        y_valid,
+        x_test,
+        y_test,
         verbose=True,
         save_path=None,
     ):
