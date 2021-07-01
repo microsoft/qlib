@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 from typing import List, Tuple, Union
 
-from ...utils.resam import resam_ts_data
+from ...utils.resam import resam_ts_data, ts_data_last
 from ...data.data import D
 from ...strategy.base import BaseStrategy
 from ...backtest.order import BaseTradeDecision, Order, TradeDecisionWO
@@ -427,7 +427,7 @@ class SBBStrategyEMA(SBBStrategyBase):
 
         if not signal_df.empty:
             for stock_id, stock_val in signal_df.groupby(level="instrument"):
-                self.signal[stock_id] = stock_val
+                self.signal[stock_id] = stock_val["signal"].droplevel(level="instrument")
 
     def reset_level_infra(self, level_infra):
         """
@@ -449,13 +449,16 @@ class SBBStrategyEMA(SBBStrategyBase):
             return self.TREND_MID
         else:
             _sample_signal = resam_ts_data(
-                self.signal[stock_id]["signal"], pred_start_time, pred_end_time, method="last"
+                self.signal[stock_id],
+                pred_start_time,
+                pred_end_time,
+                method=ts_data_last,
             )
             # if EMA signal == 0 or None, return mid trend
-            if _sample_signal is None or _sample_signal.iloc[0] == 0:
+            if _sample_signal is None or np.isnan(_sample_signal) or _sample_signal == 0:
                 return self.TREND_MID
             # if EMA signal > 0, return long trend
-            elif _sample_signal.iloc[0] > 0:
+            elif _sample_signal > 0:
                 return self.TREND_LONG
             # if EMA signal < 0, return short trend
             else:
@@ -518,7 +521,7 @@ class ACStrategy(BaseStrategy):
 
         if not signal_df.empty:
             for stock_id, stock_val in signal_df.groupby(level="instrument"):
-                self.signal[stock_id] = stock_val
+                self.signal[stock_id] = stock_val["volatility"].droplevel(level="instrument")
 
     def reset_common_infra(self, common_infra):
         """
@@ -585,12 +588,12 @@ class ACStrategy(BaseStrategy):
             # considering trade unit
 
             sig_sam = (
-                resam_ts_data(self.signal[order.stock_id]["volatility"], pred_start_time, pred_end_time, method="last")
+                resam_ts_data(self.signal[order.stock_id], pred_start_time, pred_end_time, method=ts_data_last)
                 if order.stock_id in self.signal
                 else None
             )
 
-            if sig_sam is None or sig_sam.iloc[0] is None:
+            if sig_sam is None or np.isnan(sig_sam):
                 # no signal, TWAP
                 _amount_trade_unit = self.trade_exchange.get_amount_of_trade_unit(order.factor)
                 if _amount_trade_unit is None:
@@ -607,7 +610,7 @@ class ACStrategy(BaseStrategy):
                     )
             else:
                 # VA strategy
-                kappa_tild = self.lamb / self.eta * sig_sam.iloc[0] * sig_sam.iloc[0]
+                kappa_tild = self.lamb / self.eta * sig_sam * sig_sam
                 kappa = np.arccosh(kappa_tild / 2 + 1)
                 amount_ratio = (
                     np.sinh(kappa * (trade_len - trade_step)) - np.sinh(kappa * (trade_len - trade_step - 1))

@@ -12,7 +12,7 @@ import pandas as pd
 from ..data.data import D
 from ..data.dataset.utils import get_level_index
 from ..config import C, REG_CN
-from ..utils.resam import resam_ts_data
+from ..utils.resam import resam_ts_data, ts_data_last
 from ..log import get_module_logger
 from .order import Order
 
@@ -166,7 +166,7 @@ class Exchange:
 
         quote_dict = {}
         for stock_id, stock_val in quote_df.groupby(level="instrument"):
-            quote_dict[stock_id] = stock_val
+            quote_dict[stock_id] = stock_val.droplevel(level="instrument")
 
         self.quote = quote_dict
 
@@ -186,13 +186,13 @@ class Exchange:
 
         """
         if direction is None:
-            buy_limit = resam_ts_data(self.quote[stock_id]["limit_buy"], start_time, end_time, method="all").iloc[0]
-            sell_limit = resam_ts_data(self.quote[stock_id]["limit_sell"], start_time, end_time, method="all").iloc[0]
+            buy_limit = resam_ts_data(self.quote[stock_id]["limit_buy"], start_time, end_time, method="all")
+            sell_limit = resam_ts_data(self.quote[stock_id]["limit_sell"], start_time, end_time, method="all")
             return buy_limit or sell_limit
         elif direction == Order.BUY:
-            return resam_ts_data(self.quote[stock_id]["limit_buy"], start_time, end_time, method="all").iloc[0]
+            return resam_ts_data(self.quote[stock_id]["limit_buy"], start_time, end_time, method="all")
         elif direction == Order.SELL:
-            return resam_ts_data(self.quote[stock_id]["limit_sell"], start_time, end_time, method="all").iloc[0]
+            return resam_ts_data(self.quote[stock_id]["limit_sell"], start_time, end_time, method="all")
         else:
             raise ValueError(f"direction {direction} is not supported!")
 
@@ -267,16 +267,16 @@ class Exchange:
         )
 
     def get_quote_info(self, stock_id, start_time, end_time):
-        return resam_ts_data(self.quote[stock_id], start_time, end_time, method="last").iloc[0]
+        return resam_ts_data(self.quote[stock_id], start_time, end_time, method=ts_data_last)
 
     def get_close(self, stock_id, start_time, end_time):
-        return resam_ts_data(self.quote[stock_id]["$close"], start_time, end_time, method="last").iloc[0]
+        return resam_ts_data(self.quote[stock_id]["$close"], start_time, end_time, method=ts_data_last)
 
     def get_volume(self, stock_id, start_time, end_time):
-        return resam_ts_data(self.quote[stock_id]["$volume"], start_time, end_time, method="sum").iloc[0]
+        return resam_ts_data(self.quote[stock_id]["$volume"], start_time, end_time, method="sum")
 
     def get_deal_price(self, stock_id, start_time, end_time):
-        deal_price = resam_ts_data(self.quote[stock_id][self.deal_price], start_time, end_time, method="last").iloc[0]
+        deal_price = resam_ts_data(self.quote[stock_id][self.deal_price], start_time, end_time, method=ts_data_last)
         if np.isclose(deal_price, 0.0) or np.isnan(deal_price):
             self.logger.warning(
                 f"(stock_id:{stock_id}, trade_time:{(start_time, end_time)}, {self.deal_price}): {deal_price}!!!"
@@ -295,10 +295,7 @@ class Exchange:
         """
         if stock_id not in self.quote:
             return None
-        res = resam_ts_data(self.quote[stock_id]["$factor"], start_time, end_time, method="last")
-        if res is not None:
-            res = res.iloc[0]
-        return res
+        return resam_ts_data(self.quote[stock_id]["$factor"], start_time, end_time, method=ts_data_last)
 
     def generate_amount_position_from_weight_position(self, weight_position, cash, start_time, end_time):
         """
