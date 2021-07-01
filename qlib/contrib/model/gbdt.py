@@ -9,6 +9,7 @@ from ...model.base import ModelFT
 from ...data.dataset import DatasetH
 from ...data.dataset.handler import DataHandlerLP
 from ...model.interpret.base import LightGBMFInt
+from ...data.dataset.weight import Reweighter
 
 
 class LGBModel(ModelFT, LightGBMFInt):
@@ -21,7 +22,7 @@ class LGBModel(ModelFT, LightGBMFInt):
         self.params.update(kwargs)
         self.model = None
 
-    def _prepare_data(self, dataset: DatasetH):
+    def _prepare_data(self, dataset: DatasetH, reweighter=None):
         df_train, df_valid = dataset.prepare(
             ["train", "valid"], col_set=["feature", "label"], data_key=DataHandlerLP.DK_L
         )
@@ -34,8 +35,17 @@ class LGBModel(ModelFT, LightGBMFInt):
         else:
             raise ValueError("LightGBM doesn't support multi-label training")
 
-        dtrain = lgb.Dataset(x_train, label=y_train)
-        dvalid = lgb.Dataset(x_valid, label=y_valid)
+        if reweighter is None:
+            w_train = None
+            w_valid = None
+        elif isinstance(reweighter, Reweighter):
+            w_train = reweighter.reweight(df_train)
+            w_valid = reweighter.reweight(df_valid)
+        else:
+            raise ValueError("Unsupported reweighter type.")
+
+        dtrain = lgb.Dataset(x_train.values, label=y_train, weight=w_train)
+        dvalid = lgb.Dataset(x_valid.values, label=y_valid, weight=w_valid)
         return dtrain, dvalid
 
     def fit(
@@ -45,9 +55,10 @@ class LGBModel(ModelFT, LightGBMFInt):
         early_stopping_rounds=50,
         verbose_eval=20,
         evals_result=dict(),
+        reweighter=None,
         **kwargs
     ):
-        dtrain, dvalid = self._prepare_data(dataset)
+        dtrain, dvalid = self._prepare_data(dataset, reweighter)
         self.model = lgb.train(
             self.params,
             dtrain,
@@ -68,7 +79,7 @@ class LGBModel(ModelFT, LightGBMFInt):
         x_test = dataset.prepare(segment, col_set="feature", data_key=DataHandlerLP.DK_I)
         return pd.Series(self.model.predict(x_test.values), index=x_test.index)
 
-    def finetune(self, dataset: DatasetH, num_boost_round=10, verbose_eval=20):
+    def finetune(self, dataset: DatasetH, num_boost_round=10, verbose_eval=20, reweighter=None):
         """
         finetune model
 
@@ -82,7 +93,7 @@ class LGBModel(ModelFT, LightGBMFInt):
             verbose level
         """
         # Based on existing model and finetune by train more rounds
-        dtrain, _ = self._prepare_data(dataset)
+        dtrain, _ = self._prepare_data(dataset, reweighter)
         self.model = lgb.train(
             self.params,
             dtrain,

@@ -1,0 +1,125 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
+import pandas as pd
+import numpy as np
+import torch
+from torch import nn
+
+
+def fill_diagnal(sim_mat):
+    sim_mat = sim_mat.copy()
+    # Remove the future information
+    sim_mat_past = sim_mat.where(sim_mat.index.values.reshape(-1, 1) > sim_mat.columns.values)
+    sim_mat.values[sim_mat.index.values.reshape(-1, 1) == sim_mat.columns.values] = sim_mat_past.max(axis=1)
+    sim_mat.iloc[0, 0] = 0.0
+    return sim_mat
+
+
+def get_sim_mat_idx(i_sim_mat, outsample_period):
+    for idx in range(len(i_sim_mat.index)):
+        if i_sim_mat.index[idx][0] == outsample_period[0]:
+            return idx
+    raise AssertionError("Not Found!")
+
+
+def convert_data_to_tensor(data, device="cpu"):
+    if isinstance(data, torch.Tensor):
+        if device == "cpu":
+            return data.cpu()
+        else:
+            return data.to(device)
+    if isinstance(data, pd.DataFrame):
+        return convert_data_to_tensor(torch.from_numpy(data.values.squeeze()).float(), device)
+    elif isinstance(data, np.ndarray):
+        return convert_data_to_tensor(torch.from_numpy(data).float(), device)
+    elif isinstance(data, (tuple, list)):
+        return [convert_data_to_tensor(i, device) for i in data]
+    elif isinstance(data, dict):
+        return {k: convert_data_to_tensor(v, device) for k, v in data.items()}
+    else:
+        print("type:", type(data))
+        raise ValueError("Unsupported data type.")
+
+
+class ICLoss(nn.Module):
+    def forward(self, pred, y, idx):
+        """forward.
+
+        :param pred:
+        :param y:
+        :param idx: 这里假设 idx的level是(date, inst); 这里假设其一定排好序了
+        """
+        prev = None
+        diff_point = []
+        for i, (date, inst) in enumerate(idx):
+            if date != prev:
+                diff_point.append(i)
+            prev = date
+        diff_point.append(None)
+
+        ic_all = 0.0
+        for start_i, end_i in zip(diff_point, diff_point[1:]):
+            pred_focus = pred[start_i:end_i]  # TODO: just for fake
+            y_focus = y[start_i:end_i]
+            ic_day = torch.dot(
+                (pred_focus - pred_focus.mean()) / np.sqrt(pred_focus.shape[0]) / pred_focus.std(),
+                (y_focus - y_focus.mean()) / np.sqrt(y_focus.shape[0]) / y_focus.std(),
+            )
+            ic_all += ic_day
+        ic_mean = ic_all / (len(diff_point) - 1)
+        return -ic_mean  # ic loss
+
+
+def preds_to_weight_with_clamp(preds, clip_weight=None, clip_method="tanh"):
+    """
+    Clip the weights.
+
+    Parameters
+    ----------
+    clip_weight: float
+        The clip threshold.
+    clip_method: str
+        The clip method. Current available: "clamp", "tanh", and "sigmoid".
+    """
+    if clip_weight is not None:
+        if clip_method == "clamp":
+            weights = torch.exp(preds)
+            weights = weights.clamp(1.0 / clip_weight, clip_weight)
+        elif clip_method == "tanh":
+            weights = torch.exp(torch.tanh(preds) * np.log(clip_weight))
+        elif clip_method == "sigmoid":
+            # 这里的intuitively感觉是它保证和为1
+            if clip_weight == 0.0:
+                weights = torch.ones_like(preds)
+            else:
+                sm = nn.Sigmoid()
+                weights = sm(preds) * clip_weight  # TODO: The clip_weight is useless here.
+                weights = weights / torch.sum(weights) * weights.numel()
+        else:
+            raise ValueError("Unknown clip_method")
+    else:
+        weights = torch.exp(preds)
+    return weights
+
+
+class SingleMetaBase(nn.Module):
+    def __init__(self, hist_n, clip_weight=None, clip_method="clamp"):
+        # method 可以选 tanh 或者 clamp
+        super().__init__()
+        self.clip_weight = clip_weight
+        if clip_method in ["tanh", "clamp"]:
+            if self.clip_weight is not None and self.clip_weight < 1.0:
+                self.clip_weight = 1 / self.clip_weight
+        self.clip_method = clip_method
+
+    def is_enabled(self):
+        if self.clip_weight is None:
+            return True
+        if self.clip_method == "sigmoid":
+            if self.clip_weight > 0.0:
+                return True
+        else:
+            if self.clip_weight > 1.0:
+                return True
+        return False

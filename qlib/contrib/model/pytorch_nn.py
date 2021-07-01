@@ -19,6 +19,7 @@ from .pytorch_utils import count_parameters
 from ...model.base import Model
 from ...data.dataset import DatasetH
 from ...data.dataset.handler import DataHandlerLP
+from ...data.dataset.weight import Reweighter
 from ...utils import unpack_archive_with_buffer, save_multiple_parts_file, get_or_create_path
 from ...log import get_module_logger
 from ...workflow import R
@@ -166,18 +167,22 @@ class DNNModelPytorch(Model):
         evals_result=dict(),
         verbose=True,
         save_path=None,
+        reweighter=None,
     ):
         df_train, df_valid = dataset.prepare(
             ["train", "valid"], col_set=["feature", "label"], data_key=DataHandlerLP.DK_L
         )
         x_train, y_train = df_train["feature"], df_train["label"]
         x_valid, y_valid = df_valid["feature"], df_valid["label"]
-        try:
-            wdf_train, wdf_valid = dataset.prepare(["train", "valid"], col_set=["weight"], data_key=DataHandlerLP.DK_L)
-            w_train, w_valid = wdf_train["weight"], wdf_valid["weight"]
-        except KeyError as e:
+
+        if reweighter is None:
             w_train = pd.DataFrame(np.ones_like(y_train.values), index=y_train.index)
             w_valid = pd.DataFrame(np.ones_like(y_valid.values), index=y_valid.index)
+        elif isinstance(reweighter, Reweighter):
+            w_train = pd.DataFrame(reweighter.reweight(df_train))
+            w_valid = pd.DataFrame(reweighter.reweight(df_valid))
+        else:
+            raise ValueError("Unsupported reweighter type.")
 
         save_path = get_or_create_path(save_path)
         stop_steps = 0
