@@ -12,6 +12,7 @@ if TYPE_CHECKING:
     from qlib.backtest.exchange import Exchange
 from qlib.backtest.utils import TradeCalendarManager
 import warnings
+import numpy as np
 import pandas as pd
 from dataclasses import dataclass, field
 from typing import ClassVar, Optional, Union, List, Set, Tuple
@@ -47,7 +48,7 @@ class Order:
 
     direction: int
     factor: float
-    deal_amount: float = field(init=False)
+    deal_amount: Optional[float] = None
 
     # FIXME:
     # for compatible now.
@@ -62,11 +63,11 @@ class Order:
         self.deal_amount = 0
 
     @staticmethod
-    def parse_dir(direction: Union[str, int, OrderDir]) -> OrderDir:
+    def parse_dir(direction: Union[str, int, np.integer, OrderDir]) -> OrderDir:
         if isinstance(direction, OrderDir):
             return direction
-        elif isinstance(direction, int):
-            return OrderDir(direction)
+        elif isinstance(direction, (int, float, np.integer, np.floating)):
+            return OrderDir(int(direction))
         elif isinstance(direction, str):
             dl = direction.lower()
             if dl.strip() == "sell":
