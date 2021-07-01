@@ -2,7 +2,6 @@ from qlib.data.dataset.handler import DataHandler, DataHandlerLP
 from qlib.contrib.data.handler import check_transform_proc
 
 
-
 class HighFreqHandler(DataHandlerLP):
     def __init__(
         self,
