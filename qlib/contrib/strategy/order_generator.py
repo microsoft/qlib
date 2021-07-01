@@ -102,14 +102,10 @@ class OrderGenWInteract(OrderGenerator):
             # strategy 1 : generate amount_position by weight_position
             # Use API in Exchange()
             target_amount_dict = trade_exchange.generate_amount_position_from_weight_position(
-                weight_position=target_weight_position,
-                cash=current_tradable_value,
-                trade_date=trade_date,
+                weight_position=target_weight_position, cash=current_tradable_value, trade_date=trade_date,
             )
         order_list = trade_exchange.generate_order_for_target_amount_position(
-            target_position=target_amount_dict,
-            current_position=current_amount_dict,
-            trade_date=trade_date,
+            target_position=target_amount_dict, current_position=current_amount_dict, trade_date=trade_date,
         )
         return order_list
 
@@ -164,8 +160,6 @@ class OrderGenWOInteract(OrderGenerator):
             else:
                 continue
         order_list = trade_exchange.generate_order_for_target_amount_position(
-            target_position=amount_dict,
-            current_position=current.get_stock_amount_dict(),
-            trade_date=trade_date,
+            target_position=amount_dict, current_position=current.get_stock_amount_dict(), trade_date=trade_date,
         )
         return order_list

@@ -272,10 +272,7 @@ class OnlineManager(Serializable):
         for cur_time in cal:
             self.logger.log(level=simulate_level, msg=f"Simulating at {str(cur_time)}......")
             self.routine(
-                cur_time,
-                task_kwargs=task_kwargs,
-                model_kwargs=model_kwargs,
-                signal_kwargs=signal_kwargs,
+                cur_time, task_kwargs=task_kwargs, model_kwargs=model_kwargs, signal_kwargs=signal_kwargs,
             )
         # delay prepare the models and signals
         if self.trainer.is_delay():

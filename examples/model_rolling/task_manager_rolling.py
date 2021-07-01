@@ -57,10 +57,7 @@ class RollingTaskExample:
 
     def task_generating(self):
         print("========== task_generating ==========")
-        tasks = task_generator(
-            tasks=self.task_config,
-            generators=self.rolling_gen,  # generate different date segments
-        )
+        tasks = task_generator(tasks=self.task_config, generators=self.rolling_gen,)  # generate different date segments
         pprint(tasks)
         return tasks
 

@@ -117,10 +117,7 @@ class ALSTM(Model):
             torch.manual_seed(self.seed)
 
         self.ALSTM_model = ALSTMModel(
-            d_feat=self.d_feat,
-            hidden_size=self.hidden_size,
-            num_layers=self.num_layers,
-            dropout=self.dropout,
+            d_feat=self.d_feat, hidden_size=self.hidden_size, num_layers=self.num_layers, dropout=self.dropout,
         )
         self.logger.info("model:\n{:}".format(self.ALSTM_model))
         self.logger.info("model size: {:.4f} MB".format(count_parameters(self.ALSTM_model)))
@@ -200,10 +197,7 @@ class ALSTM(Model):
         return np.mean(losses), np.mean(scores)
 
     def fit(
-        self,
-        dataset,
-        evals_result=dict(),
-        save_path=None,
+        self, dataset, evals_result=dict(), save_path=None,
     ):
         dl_train = dataset.prepare("train", col_set=["feature", "label"], data_key=DataHandlerLP.DK_L)
         dl_valid = dataset.prepare("valid", col_set=["feature", "label"], data_key=DataHandlerLP.DK_L)
@@ -310,14 +304,12 @@ class ALSTMModel(nn.Module):
         self.fc_out = nn.Linear(in_features=self.hid_size * 2, out_features=1)
         self.att_net = nn.Sequential()
         self.att_net.add_module(
-            "att_fc_in",
-            nn.Linear(in_features=self.hid_size, out_features=int(self.hid_size / 2)),
+            "att_fc_in", nn.Linear(in_features=self.hid_size, out_features=int(self.hid_size / 2)),
         )
         self.att_net.add_module("att_dropout", torch.nn.Dropout(self.dropout))
         self.att_net.add_module("att_act", nn.Tanh())
         self.att_net.add_module(
-            "att_fc_out",
-            nn.Linear(in_features=int(self.hid_size / 2), out_features=1, bias=False),
+            "att_fc_out", nn.Linear(in_features=int(self.hid_size / 2), out_features=1, bias=False),
         )
         self.att_net.add_module("att_softmax", nn.Softmax(dim=1))
 

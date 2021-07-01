@@ -112,10 +112,7 @@ class GRU(Model):
             torch.manual_seed(self.seed)
 
         self.gru_model = GRUModel(
-            d_feat=self.d_feat,
-            hidden_size=self.hidden_size,
-            num_layers=self.num_layers,
-            dropout=self.dropout,
+            d_feat=self.d_feat, hidden_size=self.hidden_size, num_layers=self.num_layers, dropout=self.dropout,
         )
         self.logger.info("model:\n{:}".format(self.gru_model))
         self.logger.info("model size: {:.4f} MB".format(count_parameters(self.gru_model)))
@@ -213,16 +210,11 @@ class GRU(Model):
         return np.mean(losses), np.mean(scores)
 
     def fit(
-        self,
-        dataset: DatasetH,
-        evals_result=dict(),
-        save_path=None,
+        self, dataset: DatasetH, evals_result=dict(), save_path=None,
     ):
 
         df_train, df_valid, df_test = dataset.prepare(
-            ["train", "valid", "test"],
-            col_set=["feature", "label"],
-            data_key=DataHandlerLP.DK_L,
+            ["train", "valid", "test"], col_set=["feature", "label"], data_key=DataHandlerLP.DK_L,
         )
 
         x_train, y_train = df_train["feature"], df_train["label"]
@@ -302,11 +294,7 @@ class GRUModel(nn.Module):
         super().__init__()
 
         self.rnn = nn.GRU(
-            input_size=d_feat,
-            hidden_size=hidden_size,
-            num_layers=num_layers,
-            batch_first=True,
-            dropout=dropout,
+            input_size=d_feat, hidden_size=hidden_size, num_layers=num_layers, batch_first=True, dropout=dropout,
         )
         self.fc_out = nn.Linear(hidden_size, 1)
 

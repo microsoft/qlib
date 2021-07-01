@@ -32,14 +32,8 @@ GBDT_MODEL = {
 
 
 RECORD_CONFIG = [
-    {
-        "class": "SignalRecord",
-        "module_path": "qlib.workflow.record_temp",
-    },
-    {
-        "class": "SigAnaRecord",
-        "module_path": "qlib.workflow.record_temp",
-    },
+    {"class": "SignalRecord", "module_path": "qlib.workflow.record_temp",},
+    {"class": "SigAnaRecord", "module_path": "qlib.workflow.record_temp",},
 ]
 
 
@@ -75,11 +69,7 @@ def get_dataset_config(
                 "module_path": "qlib.contrib.data.handler",
                 "kwargs": get_data_handler_config(**handler_kwargs),
             },
-            "segments": {
-                "train": train,
-                "valid": valid,
-                "test": test,
-            },
+            "segments": {"train": train, "valid": valid, "test": test,},
         },
     }
 
@@ -93,10 +83,7 @@ def get_gbdt_task(dataset_kwargs={}, handler_kwargs={"instruments": CSI300_MARKE
 
 def get_record_lgb_config(dataset_kwargs={}, handler_kwargs={"instruments": CSI300_MARKET}):
     return {
-        "model": {
-            "class": "LGBModel",
-            "module_path": "qlib.contrib.model.gbdt",
-        },
+        "model": {"class": "LGBModel", "module_path": "qlib.contrib.model.gbdt",},
         "dataset": get_dataset_config(**dataset_kwargs, handler_kwargs=handler_kwargs),
         "record": RECORD_CONFIG,
     }
@@ -104,10 +91,7 @@ def get_record_lgb_config(dataset_kwargs={}, handler_kwargs={"instruments": CSI3
 
 def get_record_xgboost_config(dataset_kwargs={}, handler_kwargs={"instruments": CSI300_MARKET}):
     return {
-        "model": {
-            "class": "XGBModel",
-            "module_path": "qlib.contrib.model.xgboost",
-        },
+        "model": {"class": "XGBModel", "module_path": "qlib.contrib.model.xgboost",},
         "dataset": get_dataset_config(**dataset_kwargs, handler_kwargs=handler_kwargs),
         "record": RECORD_CONFIG,
     }

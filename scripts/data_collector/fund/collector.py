@@ -133,12 +133,7 @@ class FundCollector(BaseCollector):
         def _get_simple(start_, end_):
             self.sleep()
             _remote_interval = interval
-            return self.get_data_from_remote(
-                symbol,
-                interval=_remote_interval,
-                start=start_,
-                end=end_,
-            )
+            return self.get_data_from_remote(symbol, interval=_remote_interval, start=start_, end=end_,)
 
         if interval == self.INTERVAL_1d:
             _result = _get_simple(start_datetime, end_datetime)
@@ -171,10 +166,7 @@ class FundNormalize(BaseNormalize):
 
     @staticmethod
     def normalize_fund(
-        df: pd.DataFrame,
-        calendar_list: list = None,
-        date_field_name: str = "date",
-        symbol_field_name: str = "symbol",
+        df: pd.DataFrame, calendar_list: list = None, date_field_name: str = "date", symbol_field_name: str = "symbol",
     ):
         if df.empty:
             return df

@@ -199,10 +199,7 @@ class HFSignalRecord(SignalRecord):
             }
         )
         objects.update(
-            {
-                "long_short_r.pkl": long_short_r,
-                "long_avg_r.pkl": long_avg_r,
-            }
+            {"long_short_r.pkl": long_short_r, "long_avg_r.pkl": long_avg_r,}
         )
         self.recorder.log_metrics(**metrics)
         self.recorder.save_objects(**objects, artifact_path=self.get_path())
@@ -263,10 +260,7 @@ class SigAnaRecord(SignalRecord):
                 }
             )
             objects.update(
-                {
-                    "long_short_r.pkl": long_short_r,
-                    "long_avg_r.pkl": long_avg_r,
-                }
+                {"long_short_r.pkl": long_short_r, "long_avg_r.pkl": long_avg_r,}
             )
         self.recorder.log_metrics(**metrics)
         self.recorder.save_objects(**objects, artifact_path=self.get_path())
@@ -317,18 +311,15 @@ class PortAnaRecord(SignalRecord):
         report_normal = report_dict.get("report_df")
         positions_normal = report_dict.get("positions")
         self.recorder.save_objects(
-            **{"report_normal.pkl": report_normal},
-            artifact_path=PortAnaRecord.get_path(),
+            **{"report_normal.pkl": report_normal}, artifact_path=PortAnaRecord.get_path(),
         )
         self.recorder.save_objects(
-            **{"positions_normal.pkl": positions_normal},
-            artifact_path=PortAnaRecord.get_path(),
+            **{"positions_normal.pkl": positions_normal}, artifact_path=PortAnaRecord.get_path(),
         )
         order_normal = report_dict.get("order_list")
         if order_normal:
             self.recorder.save_objects(
-                **{"order_normal.pkl": order_normal},
-                artifact_path=PortAnaRecord.get_path(),
+                **{"order_normal.pkl": order_normal}, artifact_path=PortAnaRecord.get_path(),
             )
 
         # analysis

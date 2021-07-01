@@ -389,9 +389,7 @@ class TrainerRM(Trainer):
         return recs
 
     def worker(
-        self,
-        train_func: Callable = None,
-        experiment_name: str = None,
+        self, train_func: Callable = None, experiment_name: str = None,
     ):
         """
         The multiprocessing method for `train`. It can share a same task_pool with `train` and can run in other progress or other machines.

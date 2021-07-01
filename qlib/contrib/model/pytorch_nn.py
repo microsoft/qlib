@@ -161,11 +161,7 @@ class DNNModelPytorch(Model):
         return self.device != torch.device("cpu")
 
     def fit(
-        self,
-        dataset: DatasetH,
-        evals_result=dict(),
-        verbose=True,
-        save_path=None,
+        self, dataset: DatasetH, evals_result=dict(), verbose=True, save_path=None,
     ):
         df_train, df_valid = dataset.prepare(
             ["train", "valid"], col_set=["feature", "label"], data_key=DataHandlerLP.DK_L

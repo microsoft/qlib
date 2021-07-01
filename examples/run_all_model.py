@@ -31,10 +31,7 @@ exp_path = str(Path(os.getcwd()).resolve() / exp_folder_name)
 exp_manager = {
     "class": "MLflowExpManager",
     "module_path": "qlib.workflow.expm",
-    "kwargs": {
-        "uri": "file:" + exp_path,
-        "default_exp_name": "Experiment",
-    },
+    "kwargs": {"uri": "file:" + exp_path, "default_exp_name": "Experiment",},
 }
 
 GetData().qlib_data(target_dir=provider_uri, region=REG_CN, exists_skip=True)

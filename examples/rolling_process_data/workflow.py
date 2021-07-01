@@ -71,16 +71,12 @@ class RollingDataWorkflow:
                         "end_time": datetime(*test_end_time),
                         "fit_start_time": datetime(*train_start_time),
                         "fit_end_time": datetime(*train_end_time),
-                        "infer_processors": [
-                            {"class": "RobustZScoreNorm", "kwargs": {"fields_group": "feature"}},
-                        ],
+                        "infer_processors": [{"class": "RobustZScoreNorm", "kwargs": {"fields_group": "feature"}},],
                         "learn_processors": [
                             {"class": "DropnaLabel"},
                             {"class": "CSZScoreNorm", "kwargs": {"fields_group": "label"}},
                         ],
-                        "data_loader_kwargs": {
-                            "handler_config": pre_handler,
-                        },
+                        "data_loader_kwargs": {"handler_config": pre_handler,},
                     },
                 },
                 "segments": {
@@ -122,9 +118,7 @@ class RollingDataWorkflow:
                     },
                 )
                 dataset.setup_data(
-                    handler_kwargs={
-                        "init_type": DataHandlerLP.IT_FIT_SEQ,
-                    }
+                    handler_kwargs={"init_type": DataHandlerLP.IT_FIT_SEQ,}
                 )
 
             dtrain, dvalid, dtest = dataset.prepare(["train", "valid", "test"])

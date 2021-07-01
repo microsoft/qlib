@@ -176,11 +176,7 @@ class TaskManager:
         pymongo.results.InsertOneResult
         """
         task = self._encode_task(
-            {
-                "def": task_def,
-                "filter": task_def,  # FIXME: catch the raised error
-                "status": self.STATUS_WAITING,
-            }
+            {"def": task_def, "filter": task_def, "status": self.STATUS_WAITING,}  # FIXME: catch the raised error
         )
         insert_result = self.insert_task(task)
         return insert_result

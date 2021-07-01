@@ -10,8 +10,5 @@ TopkAmountStrategySpace = {
 }
 
 QLibDataLabelSpace = {
-    "labels": hp.choice(
-        "labels",
-        [["Ref($vwap, -2)/Ref($vwap, -1) - 1"], ["Ref($close, -5)/$close - 1"]],
-    )
+    "labels": hp.choice("labels", [["Ref($vwap, -2)/Ref($vwap, -1) - 1"], ["Ref($close, -5)/$close - 1"]],)
 }

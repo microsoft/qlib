@@ -13,11 +13,7 @@ from ..analysis_position.parse_position import get_position_data
 
 
 def _get_cum_return_data_with_position(
-    position: dict,
-    report_normal: pd.DataFrame,
-    label_data: pd.DataFrame,
-    start_date=None,
-    end_date=None,
+    position: dict, report_normal: pd.DataFrame, label_data: pd.DataFrame, start_date=None, end_date=None,
 ):
     """
 
@@ -29,11 +25,7 @@ def _get_cum_return_data_with_position(
     :return:
     """
     _cumulative_return_df = get_position_data(
-        position=position,
-        report_normal=report_normal,
-        label_data=label_data,
-        start_date=start_date,
-        end_date=end_date,
+        position=position, report_normal=report_normal, label_data=label_data, start_date=start_date, end_date=end_date,
     ).copy()
 
     _cumulative_return_df["label"] = _cumulative_return_df["label"] - _cumulative_return_df["bench"]
@@ -87,11 +79,7 @@ def _get_cum_return_data_with_position(
 
 
 def _get_figure_with_position(
-    position: dict,
-    report_normal: pd.DataFrame,
-    label_data: pd.DataFrame,
-    start_date=None,
-    end_date=None,
+    position: dict, report_normal: pd.DataFrame, label_data: pd.DataFrame, start_date=None, end_date=None,
 ) -> Iterable[go.Figure]:
     """Get average analysis figures
 
@@ -111,18 +99,12 @@ def _get_figure_with_position(
     # Create figures
     for _t_name in ["buy", "sell", "buy_minus_sell", "hold"]:
         sub_graph_data = [
-            (
-                "cum_{}".format(_t_name),
-                dict(row=1, col=1, graph_kwargs={"mode": "lines+markers", "xaxis": "x3"}),
-            ),
+            ("cum_{}".format(_t_name), dict(row=1, col=1, graph_kwargs={"mode": "lines+markers", "xaxis": "x3"}),),
             (
                 "{}_weight".format(_t_name.replace("minus", "plus") if "minus" in _t_name else _t_name),
                 dict(row=2, col=1),
             ),
-            (
-                "{}_value".format(_t_name),
-                dict(row=1, col=2, kind="HistogramGraph", graph_kwargs={}),
-            ),
+            ("{}_value".format(_t_name), dict(row=1, col=2, kind="HistogramGraph", graph_kwargs={}),),
         ]
 
         _default_xaxis = dict(showline=False, zeroline=True, tickangle=45)
@@ -161,13 +143,7 @@ def _get_figure_with_position(
             [{"rowspan": 1}, None],
         ]
         subplots_kwargs = dict(
-            vertical_spacing=0.01,
-            rows=2,
-            cols=2,
-            row_width=[1, 2],
-            column_width=[3, 1],
-            print_grid=False,
-            specs=specs,
+            vertical_spacing=0.01, rows=2, cols=2, row_width=[1, 2], column_width=[3, 1], print_grid=False, specs=specs,
         )
         yield SubplotsGraph(
             cum_return_df,

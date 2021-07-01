@@ -63,7 +63,7 @@ class TCTS(Model):
         GPU=0,
         seed=0,
         target_label=0,
-        lowest_valid_performance = 0.993,
+        lowest_valid_performance=0.993,
         **kwargs
     ):
         # Set logger.
@@ -117,8 +117,6 @@ class TCTS(Model):
                 seed,
             )
         )
-
-
 
     def loss_fn(self, pred, label, weight):
 
@@ -228,16 +226,11 @@ class TCTS(Model):
 
         return np.mean(losses)
 
-    def fit(        
-        self,
-        dataset: DatasetH,
-        verbose=True,
-        save_path=None,
+    def fit(
+        self, dataset: DatasetH, verbose=True, save_path=None,
     ):
         df_train, df_valid, df_test = dataset.prepare(
-            ["train", "valid", "test"],
-            col_set=["feature", "label"],
-            data_key=DataHandlerLP.DK_L,
+            ["train", "valid", "test"], col_set=["feature", "label"], data_key=DataHandlerLP.DK_L,
         )
 
         x_train, y_train = df_train["feature"], df_train["label"]
@@ -250,29 +243,22 @@ class TCTS(Model):
         while best_loss > self.lowest_valid_performance:
             if best_loss < np.inf:
                 print("Failed! Start retraining.")
-                self.seed = random.randint(0, 1000) # reset random seed
+                self.seed = random.randint(0, 1000)  # reset random seed
 
             if self.seed is not None:
                 np.random.seed(self.seed)
                 torch.manual_seed(self.seed)
 
-            best_loss = self.training(x_train, y_train, x_valid, y_valid, x_test, y_test, \
-                                        verbose=verbose, save_path=save_path)
-            
+            best_loss = self.training(
+                x_train, y_train, x_valid, y_valid, x_test, y_test, verbose=verbose, save_path=save_path
+            )
+
     def training(
-        self,
-        x_train, y_train,
-        x_valid, y_valid,
-        x_test, y_test,
-        verbose=True,
-        save_path=None,
+        self, x_train, y_train, x_valid, y_valid, x_test, y_test, verbose=True, save_path=None,
     ):
 
         self.fore_model = GRUModel(
-            d_feat=self.d_feat,
-            hidden_size=self.hidden_size,
-            num_layers=self.num_layers,
-            dropout=self.dropout,
+            d_feat=self.d_feat, hidden_size=self.hidden_size, num_layers=self.num_layers, dropout=self.dropout,
         )
         self.weight_model = MLPModel(
             d_feat=360 + 2 * self.output_dim + 1,
@@ -400,11 +386,7 @@ class GRUModel(nn.Module):
         super().__init__()
 
         self.rnn = nn.GRU(
-            input_size=d_feat,
-            hidden_size=hidden_size,
-            num_layers=num_layers,
-            batch_first=True,
-            dropout=dropout,
+            input_size=d_feat, hidden_size=hidden_size, num_layers=num_layers, batch_first=True, dropout=dropout,
         )
         self.fc_out = nn.Linear(hidden_size, 1)
 

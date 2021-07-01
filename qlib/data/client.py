@@ -26,8 +26,7 @@ class Client:
         self.logger = get_module_logger(self.__class__.__name__)
         # bind connect/disconnect callbacks
         self.sio.on(
-            "connect",
-            lambda: self.logger.debug("Connect to server {}".format(self.sio.connection_url)),
+            "connect", lambda: self.logger.debug("Connect to server {}".format(self.sio.connection_url)),
         )
         self.sio.on("disconnect", lambda: self.logger.debug("Disconnect from server!"))
 

@@ -114,9 +114,7 @@ class TabnetModel(Model):
         get_or_create_path(pretrain_file)
 
         [df_train, df_valid] = dataset.prepare(
-            ["pretrain", "pretrain_validation"],
-            col_set=["feature", "label"],
-            data_key=DataHandlerLP.DK_L,
+            ["pretrain", "pretrain_validation"], col_set=["feature", "label"], data_key=DataHandlerLP.DK_L,
         )
 
         df_train.fillna(df_train.mean(), inplace=True)
@@ -150,10 +148,7 @@ class TabnetModel(Model):
                     break
 
     def fit(
-        self,
-        dataset: DatasetH,
-        evals_result=dict(),
-        save_path=None,
+        self, dataset: DatasetH, evals_result=dict(), save_path=None,
     ):
         if self.pretrain:
             # there is a  pretrained model, load the model
@@ -165,9 +160,7 @@ class TabnetModel(Model):
         # adding one more linear layer to fit the final output dimension
         self.tabnet_model = FinetuneModel(self.out_dim, self.final_out_dim, self.tabnet_model).to(self.device)
         df_train, df_valid = dataset.prepare(
-            ["train", "valid"],
-            col_set=["feature", "label"],
-            data_key=DataHandlerLP.DK_L,
+            ["train", "valid"], col_set=["feature", "label"], data_key=DataHandlerLP.DK_L,
         )
         df_train.fillna(df_train.mean(), inplace=True)
         x_train, y_train = df_train["feature"], df_train["label"]

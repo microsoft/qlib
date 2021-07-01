@@ -72,16 +72,10 @@ with open(os.path.join(here, "README.md"), encoding="utf-8") as f:
 # Cython Extensions
 extensions = [
     Extension(
-        "qlib.data._libs.rolling",
-        ["qlib/data/_libs/rolling.pyx"],
-        language="c++",
-        include_dirs=[NUMPY_INCLUDE],
+        "qlib.data._libs.rolling", ["qlib/data/_libs/rolling.pyx"], language="c++", include_dirs=[NUMPY_INCLUDE],
     ),
     Extension(
-        "qlib.data._libs.expanding",
-        ["qlib/data/_libs/expanding.pyx"],
-        language="c++",
-        include_dirs=[NUMPY_INCLUDE],
+        "qlib.data._libs.expanding", ["qlib/data/_libs/expanding.pyx"], language="c++", include_dirs=[NUMPY_INCLUDE],
     ),
 ]
 
@@ -100,9 +94,7 @@ setup(
     # py_modules=['qlib'],
     entry_points={
         # 'console_scripts': ['mycli=mymodule:cli'],
-        "console_scripts": [
-            "qrun=qlib.workflow.cli:run",
-        ],
+        "console_scripts": ["qrun=qlib.workflow.cli:run",],
     },
     ext_modules=extensions,
     install_requires=REQUIRED,

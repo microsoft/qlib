@@ -170,8 +170,7 @@ class TRAModel(Model):
             data_set.assign_data(index, L)  # save loss to memory
 
             X = np.c_[
-                pred.cpu().numpy(),
-                label.cpu().numpy(),
+                pred.cpu().numpy(), label.cpu().numpy(),
             ]
             columns = ["score", "label"]
             if prob is not None:
@@ -365,11 +364,7 @@ class LSTM(nn.Module):
         self.input_drop = nn.Dropout(input_drop)
 
         self.rnn = nn.LSTM(
-            input_size=input_size,
-            hidden_size=hidden_size,
-            num_layers=num_layers,
-            batch_first=True,
-            dropout=dropout,
+            input_size=input_size, hidden_size=hidden_size, num_layers=num_layers, batch_first=True, dropout=dropout,
         )
 
         if self.use_attn:
@@ -503,12 +498,7 @@ class TRA(nn.Module):
         self.src_info = src_info
 
         if num_states > 1:
-            self.router = nn.LSTM(
-                input_size=num_states,
-                hidden_size=hidden_size,
-                num_layers=1,
-                batch_first=True,
-            )
+            self.router = nn.LSTM(input_size=num_states, hidden_size=hidden_size, num_layers=1, batch_first=True,)
             self.fc = nn.Linear(hidden_size + input_size, num_states)
 
         self.predictors = nn.Linear(input_size, num_states)

@@ -97,10 +97,7 @@ class RollingStrategy(OnlineStrategy):
     """
 
     def __init__(
-        self,
-        name_id: str,
-        task_template: Union[dict, List[dict]],
-        rolling_gen: RollingGen,
+        self, name_id: str, task_template: Union[dict, List[dict]], rolling_gen: RollingGen,
     ):
         """
         Init RollingStrategy.
@@ -160,10 +157,7 @@ class RollingStrategy(OnlineStrategy):
         Returns:
             List[dict]: a list of tasks
         """
-        return task_generator(
-            tasks=self.task_template,
-            generators=self.rg,  # generate different date segment
-        )
+        return task_generator(tasks=self.task_template, generators=self.rg,)  # generate different date segment
 
     def prepare_tasks(self, cur_time) -> List[dict]:
         """

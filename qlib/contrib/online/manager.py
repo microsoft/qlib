@@ -84,12 +84,10 @@ class UserManager:
             raise ValueError("Cannot find user {}".format(user_id))
         self.users[user_id].account.save_account(self.data_path / user_id)
         save_instance(
-            self.users[user_id].strategy,
-            self.data_path / user_id / "strategy_{}.pickle".format(user_id),
+            self.users[user_id].strategy, self.data_path / user_id / "strategy_{}.pickle".format(user_id),
         )
         save_instance(
-            self.users[user_id].model,
-            self.data_path / user_id / "model_{}.pickle".format(user_id),
+            self.users[user_id].model, self.data_path / user_id / "model_{}.pickle".format(user_id),
         )
 
     def add_user(self, user_id, config_file, add_date):

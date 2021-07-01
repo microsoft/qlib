@@ -146,12 +146,7 @@ class YahooCollector(BaseCollector):
         def _get_simple(start_, end_):
             self.sleep()
             _remote_interval = "1m" if interval == self.INTERVAL_1min else interval
-            resp = self.get_data_from_remote(
-                symbol,
-                interval=_remote_interval,
-                start=start_,
-                end=end_,
-            )
+            resp = self.get_data_from_remote(symbol, interval=_remote_interval, start=start_, end=end_,)
             if resp is None or resp.empty:
                 raise ValueError(f"get data error: {symbol}--{start_}--{end_}")
             return resp
@@ -775,13 +770,7 @@ class Run(BaseRun):
         return CUR_DIR
 
     def download_data(
-        self,
-        max_collector_count=2,
-        delay=0.5,
-        start=None,
-        end=None,
-        check_data_length=None,
-        limit_nums=None,
+        self, max_collector_count=2, delay=0.5, start=None, end=None, check_data_length=None, limit_nums=None,
     ):
         """download data from Internet
 
@@ -903,11 +892,7 @@ class Run(BaseRun):
         yc.normalize()
 
     def download_today_data(
-        self,
-        max_collector_count=2,
-        delay=0.5,
-        check_data_length=None,
-        limit_nums=None,
+        self, max_collector_count=2, delay=0.5, check_data_length=None, limit_nums=None,
     ):
         """download today data from Internet
 

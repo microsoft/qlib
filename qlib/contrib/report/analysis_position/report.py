@@ -123,9 +123,7 @@ def _report_figure(df: pd.DataFrame) -> [list, tuple]:
                 "y1": 1,
                 "fillcolor": "#d3d3d3",
                 "opacity": 0.3,
-                "line": {
-                    "width": 0,
-                },
+                "line": {"width": 0,},
             },
             {
                 "type": "rect",
@@ -137,20 +135,13 @@ def _report_figure(df: pd.DataFrame) -> [list, tuple]:
                 "y1": 0.55,
                 "fillcolor": "#d3d3d3",
                 "opacity": 0.3,
-                "line": {
-                    "width": 0,
-                },
+                "line": {"width": 0,},
             },
         ],
     )
 
     _subplot_kwargs = dict(
-        shared_xaxes=True,
-        vertical_spacing=0.01,
-        rows=7,
-        cols=1,
-        row_width=[1, 1, 1, 3, 1, 1, 3],
-        print_grid=False,
+        shared_xaxes=True, vertical_spacing=0.01, rows=7, cols=1, row_width=[1, 1, 1, 3, 1, 1, 3], print_grid=False,
     )
     figure = SubplotsGraph(
         df=report_df,

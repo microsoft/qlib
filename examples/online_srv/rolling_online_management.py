@@ -49,13 +49,7 @@ class RollingOnlineExample:
         strategies = []
         for task in tasks:
             name_id = task["model"]["class"]  # NOTE: Assumption: The model class can specify only one strategy
-            strategies.append(
-                RollingStrategy(
-                    name_id,
-                    task,
-                    RollingGen(step=rolling_step, rtype=RollingGen.ROLL_SD),
-                )
-            )
+            strategies.append(RollingStrategy(name_id, task, RollingGen(step=rolling_step, rtype=RollingGen.ROLL_SD),))
         self.trainer = trainer
         self.rolling_online_manager = OnlineManager(strategies, trainer=self.trainer)
 
@@ -115,11 +109,7 @@ class RollingOnlineExample:
         for task in self.add_tasks:
             name_id = task["model"]["class"]  # NOTE: Assumption: The model class can specify only one strategy
             strategies.append(
-                RollingStrategy(
-                    name_id,
-                    task,
-                    RollingGen(step=self.rolling_step, rtype=RollingGen.ROLL_SD),
-                )
+                RollingStrategy(name_id, task, RollingGen(step=self.rolling_step, rtype=RollingGen.ROLL_SD),)
             )
         self.rolling_online_manager.add_strategy(strategies=strategies)
         print("========== dump ==========")
