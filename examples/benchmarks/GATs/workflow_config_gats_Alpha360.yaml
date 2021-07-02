@@ -54,7 +54,7 @@ task:
             metric: loss
             loss: mse
             base_model: LSTM
-            model_path: "examples/benchmarks/LSTM/model_lstm_csi300.pkl"
+            model_path: "benchmarks/LSTM/model_lstm_csi300.pkl"
             GPU: 0
     dataset:
         class: DatasetH
