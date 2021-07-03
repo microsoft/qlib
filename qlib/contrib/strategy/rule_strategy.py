@@ -718,7 +718,10 @@ class FileOrderStrategy(BaseStrategy):
         ----------
         file : Union[IO, str, Path]
             this parameters will specify the info of expected orders
+
             Here is an example of the content
+
+            1) Amount (**adjusted**) based strategy
 
                 datetime,instrument,amount,direction
                 20200102,  SH600519,  1000,     sell

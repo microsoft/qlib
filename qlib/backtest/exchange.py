@@ -242,6 +242,7 @@ class Exchange:
             raise ValueError("trade_account and position can only choose one")
 
         trade_price = self.get_deal_price(order.stock_id, order.start_time, order.end_time)
+        # NOTE: order will be changed in this function
         trade_val, trade_cost = self._calc_trade_info_by_order(
             order, trade_account.current if trade_account else position
         )
@@ -255,16 +256,6 @@ class Exchange:
                 position.update_order(order=order, trade_val=trade_val, cost=trade_cost, trade_price=trade_price)
 
         return trade_val, trade_cost, trade_price
-
-    def create_order(self, code, amount, start_time, end_time, direction) -> Order:
-        return Order(
-            stock_id=code,
-            amount=amount,
-            start_time=start_time,
-            end_time=end_time,
-            direction=direction,
-            factor=self.get_factor(code, start_time, end_time),
-        )
 
     def get_quote_info(self, stock_id, start_time, end_time):
         return resam_ts_data(self.quote[stock_id], start_time, end_time, method="last").iloc[0]
@@ -470,6 +461,8 @@ class Exchange:
     def _calc_trade_info_by_order(self, order, position):
         """
         Calculation of trade info
+
+        **NOTE**: Order will be changed in this function
 
         :param order:
         :param position: Position
