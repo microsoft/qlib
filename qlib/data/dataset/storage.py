@@ -37,8 +37,12 @@ class BaseHandlerStorage:
             Return the original data instead of copy if possible.
         proc_func: Callable
             please refer to the doc of DataHandler.fetch
-        """
 
+        Returns
+        -------
+        pd.DataFrame
+            the dataframe fetched
+        """
         raise NotImplementedError("fetch is method not implemented!")
 
     @staticmethod
@@ -46,6 +50,7 @@ class BaseHandlerStorage:
         raise NotImplementedError("from_df method is not implemented!")
 
     def is_proc_func_supported(self):
+        """whether the arg `proc_func` in `fetch` method is supported."""
         raise NotImplementedError("is_proc_func_supported method is not implemented!")
 
 
@@ -113,4 +118,5 @@ class HasingStockStorage(BaseHandlerStorage):
             return pd.concat(fetch_stock_df_list, sort=False, copy=~fetch_orig)
 
     def is_proc_func_supported(self):
+        """the arg `proc_func` in `fetch` method is not supported in HasingStockStorage"""
         return False

@@ -3,6 +3,8 @@ import datetime
 
 import numpy as np
 import pandas as pd
+
+from functools import partial
 from typing import Tuple, List, Union, Optional, Callable
 
 from . import lazy_sort_index
@@ -284,21 +286,15 @@ def get_valid_value(series, last=True):
     return series.fillna(method="ffill").iloc[-1] if last else series.fillna(method="bfill").iloc[0]
 
 
-def ts_data_last(ts_feature):
-    """get the last not nan value of pd.Series|DataFrame with single level index"""
+def _ts_data_valid(ts_feature, last=False):
+    """get the first/last not nan value of pd.Series|DataFrame with single level index"""
     if isinstance(ts_feature, pd.DataFrame):
-        return ts_feature.apply(lambda column: get_valid_value(column, last=True))
+        return ts_feature.apply(lambda column: get_valid_value(column, last=last))
     elif isinstance(ts_feature, pd.Series):
-        return get_valid_value(ts_feature, last=True)
+        return get_valid_value(ts_feature, last=last)
     else:
         raise TypeError(f"ts_feature should be pd.DataFrame/Series, not {type(ts_feature)}")
 
 
-def ts_data_first(ts_feature):
-    """get the first not nan value of pd.Series|DataFrame with single level index"""
-    if isinstance(ts_feature, pd.DataFrame):
-        return ts_feature.apply(lambda column: get_valid_value(column, last=False))
-    elif isinstance(ts_feature, pd.Series):
-        return get_valid_value(ts_feature, last=False)
-    else:
-        raise TypeError(f"ts_feature should be pd.DataFrame/Series, not {type(ts_feature)}")
+ts_data_last = partial(_ts_data_valid, last=False)
+ts_data_first = partial(_ts_data_valid, last=True)
