@@ -54,7 +54,6 @@ task:
             metric: loss
             loss: mse
             base_model: LSTM
-            with_pretrain: True
             model_path: "benchmarks/LSTM/model_lstm_csi300.pkl"
             GPU: 0
     dataset:

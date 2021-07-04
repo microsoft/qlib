@@ -17,6 +17,7 @@ Recent released features
 | High-frequency trading example | [Part of code released](https://github.com/microsoft/qlib/pull/227) on Jan 28, 2021  | 
 | High-frequency data(1min) | [Released](https://github.com/microsoft/qlib/pull/221) on Jan 27, 2021 |
 | Tabnet Model | [Released](https://github.com/microsoft/qlib/pull/205) on Jan 22, 2021 | 
+| TCTS Model | [Released](https://github.com/microsoft/qlib/pull/491) on July 1, 2021 |
 
 Features released before 2021 are not listed here.
 
@@ -288,6 +289,7 @@ Here is a list of models built on `Qlib`.
 - [TFT based on tensorflow (Bryan Lim, et al. 2019)](examples/benchmarks/TFT/tft.py)
 - [TabNet based on pytorch (Sercan O. Arik, et al. 2019)](qlib/contrib/model/pytorch_tabnet.py)
 - [DoubleEnsemble based on LightGBM (Chuheng Zhang, et al. 2020)](qlib/contrib/model/double_ensemble.py)
+- [TCTS based on pytorch (Xueqing Wu, et al. 2021)](qlib/contrib/model/pytorch_tcts.py)
 
 Your PR of new Quant models is highly welcomed.
 
