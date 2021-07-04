@@ -9,7 +9,7 @@ import pandas as pd
 
 from .position import BasePosition, InfPosition, Position
 from .report import Report, Indicator
-from .order import Order
+from .order import BaseTradeDecision, Order
 from .exchange import Exchange
 
 """
@@ -226,6 +226,7 @@ class Account:
         trade_end_time: pd.Timestamp,
         trade_exchange: Exchange,
         atomic: bool,
+        outer_trade_decision: BaseTradeDecision,
         generate_report: bool = False,
         trade_info: list = None,
         inner_order_indicators: Indicator = None,
@@ -276,7 +277,9 @@ class Account:
         if atomic:
             self.indicator.update_order_indicators(trade_start_time, trade_end_time, trade_info, trade_exchange)
         else:
-            self.indicator.agg_order_indicators(inner_order_indicators, indicator_config)
+            self.indicator.agg_order_indicators(
+                inner_order_indicators, indicator_config=indicator_config, outer_trade_decision=outer_trade_decision
+            )
 
         self.indicator.cal_trade_indicators(trade_start_time, self.freq, indicator_config)
         self.indicator.record(trade_start_time)

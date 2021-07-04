@@ -40,7 +40,7 @@ class Order:
     """
 
     stock_id: str
-    amount: float
+    amount: float  # `amount` is a non-negative value
 
     # The interval of the order which belongs to (NOTE: this is not the expected order dealing range time)
     start_time: pd.Timestamp
@@ -48,7 +48,7 @@ class Order:
 
     direction: int
     factor: float
-    deal_amount: Optional[float] = None
+    deal_amount: Optional[float] = None  # `deal_amount` is a non-negative value
 
     # FIXME:
     # for compatible now.
@@ -61,6 +61,33 @@ class Order:
         if self.direction not in {Order.SELL, Order.BUY}:
             raise NotImplementedError("direction not supported, `Order.SELL` for sell, `Order.BUY` for buy")
         self.deal_amount = 0
+
+    @property
+    def amount_delta(self) -> float:
+        """
+        return the delta of amount.
+        - Positive value indicates buying `amount` of share
+        - Negative value indicates selling `amount` of share
+        """
+        return self.amount * self.sign
+
+    @property
+    def deal_amount_delta(self) -> float:
+        """
+        return the delta of deal_amount.
+        - Positive value indicates buying `deal_amount` of share
+        - Negative value indicates selling `deal_amount` of share
+        """
+        return self.deal_amount * self.sign
+
+    @property
+    def sign(self) -> float:
+        """
+        return the sign of trading
+        - `+1` indicates buying
+        - `-1` value indicates selling
+        """
+        return self.direction * 2 - 1
 
     @staticmethod
     def parse_dir(direction: Union[str, int, np.integer, OrderDir]) -> OrderDir:
