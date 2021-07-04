@@ -4,6 +4,8 @@
 
 from collections import OrderedDict
 from logging import warning
+from typing import List
+from qlib.backtest.order import BaseTradeDecision, Order
 import pandas as pd
 import pathlib
 import warnings
@@ -241,13 +243,13 @@ class Indicator:
         trade_cost = dict()
 
         for order, _trade_val, _trade_cost, _trade_price in trade_info:
-            amount[order.stock_id] = order.amount * (order.direction * 2 - 1)
-            deal_amount[order.stock_id] = order.deal_amount * (order.direction * 2 - 1)
+            amount[order.stock_id] = order.amount_delta
+            deal_amount[order.stock_id] = order.deal_amount_delta
             trade_price[order.stock_id] = _trade_price
-            trade_value[order.stock_id] = _trade_val * (order.direction * 2 - 1)
+            trade_value[order.stock_id] = _trade_val * order.sign
             trade_cost[order.stock_id] = _trade_cost
 
-        self.order_indicator["amount"] = pd.Series(amount)
+        self.order_indicator["amount"] = self.order_indicator["inner_amount"] = pd.Series(amount)
         self.order_indicator["deal_amount"] = pd.Series(deal_amount)
         self.order_indicator["trade_price"] = pd.Series(trade_price)
         self.order_indicator["trade_value"] = pd.Series(trade_value)
@@ -271,13 +273,13 @@ class Indicator:
         ) / self.order_indicator["base_price"]
 
     def _agg_order_trade_info(self, inner_order_indicators):
-        amount = pd.Series()
+        inner_amount = pd.Series()
         deal_amount = pd.Series()
         trade_price = pd.Series()
         trade_value = pd.Series()
         trade_cost = pd.Series()
         for _order_indicator in inner_order_indicators:
-            amount = amount.add(_order_indicator["amount"], fill_value=0)
+            inner_amount = inner_amount.add(_order_indicator["inner_amount"], fill_value=0)
             deal_amount = deal_amount.add(_order_indicator["deal_amount"], fill_value=0)
             trade_price = trade_price.add(
                 _order_indicator["trade_price"] * _order_indicator["deal_amount"], fill_value=0
@@ -285,12 +287,20 @@ class Indicator:
             trade_value = trade_value.add(_order_indicator["trade_value"], fill_value=0)
             trade_cost = trade_cost.add(_order_indicator["trade_cost"], fill_value=0)
 
-        self.order_indicator["amount"] = amount
+        self.order_indicator["inner_amount"] = inner_amount
         self.order_indicator["deal_amount"] = deal_amount
         trade_price /= self.order_indicator["deal_amount"]
         self.order_indicator["trade_price"] = trade_price
         self.order_indicator["trade_value"] = trade_value
         self.order_indicator["trade_cost"] = trade_cost
+
+    def _update_trade_amount(self, outer_trade_decision: BaseTradeDecision):
+        # NOTE: these indicator is designed for order execution, so the
+        decision: List[Order] = outer_trade_decision.get_decision()
+        if decision is None:
+            self.order_indicator["amount"] = pd.Series()
+        else:
+            self.order_indicator["amount"] = pd.Series({order.stock_id: order.amount_delta for order in decision})
 
     def _agg_order_fulfill_rate(self):
         self.order_indicator["ffr"] = self.order_indicator["deal_amount"] / self.order_indicator["amount"]
@@ -367,8 +377,11 @@ class Indicator:
         self._update_order_fulfill_rate()
         self._update_order_price_advantage(trade_exchange, trade_start_time, trade_end_time)
 
-    def agg_order_indicators(self, inner_order_indicators, indicator_config={}):
+    def agg_order_indicators(
+        self, inner_order_indicators, outer_trade_decision: BaseTradeDecision, indicator_config={}
+    ):
         self._agg_order_trade_info(inner_order_indicators)
+        self._update_trade_amount(outer_trade_decision)
         self._agg_order_fulfill_rate()
         pa_config = indicator_config.get("pa_config", {})
         self._agg_order_price_advantage(inner_order_indicators, base_price=pa_config.get("base_price", "twap"))
