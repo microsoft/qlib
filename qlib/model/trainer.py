@@ -49,6 +49,7 @@ def begin_task_train(task_config: dict, experiment_name: str, recorder_name: str
 def fill_placeholder(config: dict, config_extend: dict):
     """
     Detect placeholder in config and fill them with config_extend.
+    The item of dict must be single item(int, str, etc), dict and list. Tuples are not supported.
 
     Parameters
     ----------
@@ -116,9 +117,7 @@ def end_task_train(rec: Recorder, experiment_name: str) -> Recorder:
         if isinstance(records, dict):  # prevent only one dict
             records = [records]
         for record in records:
-            cls, kwargs = get_cls_kwargs(record, default_module="qlib.workflow.record_temp")
-            kwargs["recorder"] = rec
-            r = cls(**kwargs)
+            r = init_instance_by_config(record, recorder = rec)
             r.generate()
     return rec
 
