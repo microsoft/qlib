@@ -142,7 +142,7 @@ The meaning of each field is as follows:
 
 - `region`
     - If `region` == "us", ``Qlib`` will be initialized in US-stock mode. 
-    - If `region` == "cn", ``Qlib`` will be initialized in china-stock mode.
+    - If `region` == "cn", ``Qlib`` will be initialized in China-stock mode.
 
     .. note:: 
         
