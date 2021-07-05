@@ -3,6 +3,8 @@ import datetime
 
 import numpy as np
 import pandas as pd
+
+from functools import partial
 from typing import Tuple, List, Union, Optional, Callable
 
 from . import lazy_sort_index
@@ -263,3 +265,36 @@ def resam_ts_data(
         elif isinstance(method, str):
             return getattr(feature, method)(**method_kwargs)
     return feature
+
+
+def get_valid_value(series, last=True):
+    """get the first/last not nan value of pd.Series with single level index
+    Parameters
+    ----------
+    series : pd.Seires
+        series should not be empty
+    last : bool, optional
+        wether to get the last valid value, by default True
+        - if last is True, get the last valid value
+        - else, get the first valid value
+
+    Returns
+    -------
+    Nan | float
+        the first/last valid value
+    """
+    return series.fillna(method="ffill").iloc[-1] if last else series.fillna(method="bfill").iloc[0]
+
+
+def _ts_data_valid(ts_feature, last=False):
+    """get the first/last not nan value of pd.Series|DataFrame with single level index"""
+    if isinstance(ts_feature, pd.DataFrame):
+        return ts_feature.apply(lambda column: get_valid_value(column, last=last))
+    elif isinstance(ts_feature, pd.Series):
+        return get_valid_value(ts_feature, last=last)
+    else:
+        raise TypeError(f"ts_feature should be pd.DataFrame/Series, not {type(ts_feature)}")
+
+
+ts_data_last = partial(_ts_data_valid, last=False)
+ts_data_first = partial(_ts_data_valid, last=True)

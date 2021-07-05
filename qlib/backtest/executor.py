@@ -1,7 +1,7 @@
 import copy
 import warnings
 import pandas as pd
-from typing import Union
+from typing import List, Union
 
 from qlib.backtest.report import Indicator
 
@@ -318,6 +318,15 @@ class NestedExecutor(BaseExecutor):
 class SimulatorExecutor(BaseExecutor):
     """Executor that simulate the true market"""
 
+    # available trade_types
+    TT_SERIAL = "serial"
+    ## The orders will be executed serially in a sequence
+    # In each trading step, it is possible that users sell instruments first and use the money to buy new instruments
+    TT_PARAL = "parallel"
+    ## The orders will be executed parallelly
+    # In each trading step, if users try to sell instruments first and buy new instruments with money, failure will
+    # occur
+
     def __init__(
         self,
         time_per_step: str,
@@ -329,6 +338,7 @@ class SimulatorExecutor(BaseExecutor):
         track_data: bool = False,
         trade_exchange: Exchange = None,
         common_infra: CommonInfrastructure = None,
+        trade_type: str = TT_PARAL,
         **kwargs,
     ):
         """
@@ -337,6 +347,8 @@ class SimulatorExecutor(BaseExecutor):
         trade_exchange : Exchange
             exchange that provides market info, used to deal order and generate report
             - If `trade_exchange` is None, self.trade_exchange will be set with common_infra
+        trade_type: str
+            please refer to the doc of `TT_SERIAL` & `TT_PARAL`
         """
         super(SimulatorExecutor, self).__init__(
             time_per_step=time_per_step,
@@ -352,6 +364,8 @@ class SimulatorExecutor(BaseExecutor):
         if trade_exchange is not None:
             self.trade_exchange = trade_exchange
 
+        self.trade_type = trade_type
+
     def reset_common_infra(self, common_infra):
         """
         reset infrastructure for trading
@@ -361,14 +375,45 @@ class SimulatorExecutor(BaseExecutor):
         if common_infra.has("trade_exchange"):
             self.trade_exchange = common_infra.get("trade_exchange")
 
+    def _get_order_iterator(self, trade_decision: BaseTradeDecision) -> List[Order]:
+        """
+
+        Parameters
+        ----------
+        trade_decision : BaseTradeDecision
+            the trade decision given by the strategy
+
+        Returns
+        -------
+        List[Order]:
+            get a list orders according to `self.trade_type`
+        """
+        orders = trade_decision.get_decision()
+
+        if self.trade_type == self.TT_SERIAL:
+            # Orders will be traded in a parallel way
+            order_it = orders
+        elif self.trade_type == self.TT_PARAL:
+            # NOTE: !!!!!!!
+            # Assumption: there will not be orders in different trading direction in a single step of a strategy !!!!
+            # The parallel trading failure will be caused only by the confliction of money
+            # Therefore, make the buying go first will make sure the confliction happen.
+            # It equals to parallel trading after sorting the order by direction
+            order_it = sorted(orders, key=lambda order: -order.direction)
+        else:
+            raise NotImplementedError(f"This type of input is not supported")
+        return order_it
+
     def execute(self, trade_decision: BaseTradeDecision):
 
         trade_step = self.trade_calendar.get_trade_step()
         trade_start_time, trade_end_time = self.trade_calendar.get_step_time(trade_step)
         execute_result = []
-        for order in trade_decision.get_decision():
+
+        for order in self._get_order_iterator(trade_decision):
             if self.trade_exchange.check_order(order) is True:
-                # execute the order
+                # execute the order.
+                # NOTE: The trade_account will be changed in this function
                 trade_val, trade_cost, trade_price = self.trade_exchange.deal_order(
                     order, trade_account=self.trade_account
                 )
@@ -405,6 +450,7 @@ class SimulatorExecutor(BaseExecutor):
                 # do nothing
                 pass
 
+        # Account will not be changed in this function
         self.trade_account.update_bar_end(
             trade_start_time,
             trade_end_time,

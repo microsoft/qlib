@@ -93,7 +93,7 @@ class Report:
 
             if freq is None:
                 raise ValueError("benchmark freq can't be None!")
-            _codes = benchmark if isinstance(benchmark, list) else [benchmark]
+            _codes = benchmark if isinstance(benchmark, (list, dict)) else [benchmark]
             fields = ["$close/Ref($close,1)-1"]
             _temp_result, _ = get_higher_eq_freq_feature(_codes, fields, start_time, end_time, freq=freq)
             if len(_temp_result) == 0:
