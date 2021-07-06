@@ -108,8 +108,8 @@ class TWAPStrategy(BaseStrategy):
         start_idx, end_idx = get_start_end_idx(self, self.outer_trade_decision)
         trade_len = end_idx - start_idx + 1
 
-        if trade_step < start_idx:
-            # It is not time to start trading
+        if trade_step < start_idx or trade_step > end_idx:
+            # It is not time to start trading or trading has ended.
             return TradeDecisionWO(order_list=[], strategy=self)
 
         rel_trade_step = trade_step - start_idx  # trade_step relative to start_idx
