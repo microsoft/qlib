@@ -191,6 +191,7 @@ class NestedExecutor(BaseExecutor):
         generate_report: bool = False,
         verbose: bool = False,
         track_data: bool = False,
+        skip_empty_decision: bool = True,
         trade_exchange: Exchange = None,
         common_infra: CommonInfrastructure = None,
         **kwargs,
@@ -206,6 +207,11 @@ class NestedExecutor(BaseExecutor):
             exchange that provides market info, used to generate report
             - If generate_report is None, trade_exchange will be ignored
             - Else If `trade_exchange` is None, self.trade_exchange will be set with common_infra
+        skip_empty_decision: bool
+            Will the executor skip the inner loop when the decision is empty.
+            It should be False in following cases
+            - The decisions may be updated by steps
+            - The inner executor may not follow the decisions from the outer strategy
         """
         self.inner_executor = init_instance_by_config(
             inner_executor, common_infra=common_infra, accept_types=BaseExecutor
@@ -213,6 +219,8 @@ class NestedExecutor(BaseExecutor):
         self.inner_strategy = init_instance_by_config(
             inner_strategy, common_infra=common_infra, accept_types=BaseStrategy
         )
+
+        self._skip_empty_decision = skip_empty_decision
 
         super(NestedExecutor, self).__init__(
             time_per_step=time_per_step,
@@ -259,26 +267,32 @@ class NestedExecutor(BaseExecutor):
     def collect_data(self, trade_decision: BaseTradeDecision, return_value=None):
         if self.track_data:
             yield trade_decision
-        self._init_sub_trading(trade_decision)
         execute_result = []
         inner_order_indicators = []
-        _inner_execute_result = None
-        while not self.inner_executor.finished():
-            # outter strategy have chance to update decision each iterator
-            updated_trade_decision = trade_decision.update(self.inner_executor.trade_calendar)
-            if updated_trade_decision is not None:
-                trade_decision = updated_trade_decision
-                # NEW UPDATE
-                # create a hook for inner strategy to update outter decision
-                self.inner_strategy.alter_outer_trade_decision(trade_decision)
 
-            _inner_trade_decision = self.inner_strategy.generate_trade_decision(_inner_execute_result)
+        if not (trade_decision.empty() and self._skip_empty_decision):
+            _inner_execute_result = None
+            self._init_sub_trading(trade_decision)
+            while not self.inner_executor.finished():
+                # outter strategy have chance to update decision each iterator
+                updated_trade_decision = trade_decision.update(self.inner_executor.trade_calendar)
+                if updated_trade_decision is not None:
+                    trade_decision = updated_trade_decision
+                    # NEW UPDATE
+                    # create a hook for inner strategy to update outter decision
+                    self.inner_strategy.alter_outer_trade_decision(trade_decision)
 
-            # NOTE: Trade Calendar will step forward in the follow line
-            _inner_execute_result = yield from self.inner_executor.collect_data(trade_decision=_inner_trade_decision)
+                _inner_trade_decision = self.inner_strategy.generate_trade_decision(_inner_execute_result)
 
-            execute_result.extend(_inner_execute_result)
-            inner_order_indicators.append(self.inner_executor.trade_account.get_trade_indicator().get_order_indicator())
+                # NOTE: Trade Calendar will step forward in the follow line
+                _inner_execute_result = yield from self.inner_executor.collect_data(
+                    trade_decision=_inner_trade_decision
+                )
+
+                execute_result.extend(_inner_execute_result)
+                inner_order_indicators.append(
+                    self.inner_executor.trade_account.get_trade_indicator().get_order_indicator()
+                )
 
         trade_step = self.trade_calendar.get_trade_step()
         trade_start_time, trade_end_time = self.trade_calendar.get_step_time(trade_step)
