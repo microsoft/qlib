@@ -69,13 +69,13 @@ def collect_data_loop(
         all_executors = trade_executor.get_all_executors()
 
         all_reports = {
-            "{}{}".format(*Freq.parse(_executor.time_per_step)): _executor.get_report()
+            "{}{}".format(*Freq.parse(_executor.time_per_step)): _executor.trade_account.get_report()
             for _executor in all_executors
-            if _executor.generate_report
+            if _executor.trade_account.is_port_metr_enabled()
         }
         all_indicators = {}
         for _executor in all_executors:
             key = "{}{}".format(*Freq.parse(_executor.time_per_step))
-            all_indicators[key] = _executor.get_trade_indicator().generate_trade_indicators_dataframe()
-            all_indicators[key + "_obj"] = _executor.get_trade_indicator()
+            all_indicators[key] = _executor.trade_account.get_trade_indicator().generate_trade_indicators_dataframe()
+            all_indicators[key + "_obj"] = _executor.trade_account.get_trade_indicator()
         return_value.update({"report": all_reports, "indicator": all_indicators})
