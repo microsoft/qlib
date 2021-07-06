@@ -6,7 +6,7 @@ import pandas as pd
 
 from ...utils.resam import resam_ts_data
 from ...strategy.base import ModelStrategy
-from ...backtest.order import Order, BaseTradeDecision, TradeDecisionWO
+from ...backtest.order import Order, BaseTradeDecision, OrderDir, TradeDecisionWO
 
 from .order_generator import OrderGenWInteract
 
@@ -236,7 +236,7 @@ class TopkDropoutStrategy(ModelStrategy):
                 continue
             # buy order
             buy_price = self.trade_exchange.get_deal_price(
-                stock_id=code, start_time=trade_start_time, end_time=trade_end_time
+                stock_id=code, start_time=trade_start_time, end_time=trade_end_time, direction=OrderDir.BUY
             )
             buy_amount = value / buy_price
             factor = self.trade_exchange.get_factor(stock_id=code, start_time=trade_start_time, end_time=trade_end_time)

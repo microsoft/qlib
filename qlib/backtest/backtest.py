@@ -1,7 +1,12 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
+
+from __future__ import annotations
 from qlib.backtest.order import BaseTradeDecision
-from qlib.strategy.base import BaseStrategy
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from qlib.strategy.base import BaseStrategy
 from qlib.backtest.executor import BaseExecutor
 from ..utils.time import Freq
 from tqdm.auto import tqdm

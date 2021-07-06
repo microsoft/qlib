@@ -1,16 +1,19 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
+from __future__ import annotations
 import copy
-from typing import Union
+from typing import List, Tuple, Union, TYPE_CHECKING
 
 from .account import Account
+
+if TYPE_CHECKING:
+    from ..strategy.base import BaseStrategy
 from .exchange import Exchange
 from .executor import BaseExecutor
 from .backtest import backtest_loop
 from .backtest import collect_data_loop
 from .order import Order
 from .utils import CommonInfrastructure, TradeCalendarManager
-from ..strategy.base import BaseStrategy
 from ..utils import init_instance_by_config
 from ..log import get_module_logger
 from ..config import C
@@ -31,7 +34,7 @@ def get_exchange(
     min_cost=5.0,
     trade_unit=None,
     limit_threshold=None,
-    deal_price=None,
+    deal_price: Union[str, Tuple[str], List[str]] = None,
 ):
     """get_exchange
 
@@ -50,8 +53,15 @@ def get_exchange(
         min transaction cost.
     trade_unit : int
         100 for China A.
-    deal_price: str
-        dealing price type: 'close', 'open', 'vwap'.
+    deal_price: Union[str, Tuple[str], List[str]]
+                The `deal_price` supports following two types of input
+                - <deal_price> : str
+                - (<buy_price>, <sell_price>): Tuple[str] or List[str]
+
+                <deal_price>, <buy_price> or <sell_price> := <price>
+                <price> := str
+                - for example '$close', '$open', '$vwap' ("close" is OK. `Exchange` will help to prepend
+                  "$" to the expression)
     limit_threshold : float
         limit move 0.1 (10%) for example, long and short with same limit.
 
@@ -65,13 +75,8 @@ def get_exchange(
         trade_unit = C.trade_unit
     if limit_threshold is None:
         limit_threshold = C.limit_threshold
-    if deal_price is None:
-        deal_price = C.deal_price
     if exchange is None:
         logger.info("Create new exchange")
-        # handle exception for deal_price
-        if deal_price[0] != "$":
-            deal_price = "$" + deal_price
 
         exchange = Exchange(
             freq=freq,
@@ -135,6 +140,11 @@ def get_strategy_executor(
     exchange_kwargs: dict = {},
     pos_type: str = "Position",
 ):
+
+    # NOTE:
+    # - for avoiding recursive import
+    # - typing annotations is not reliable
+    from ..strategy.base import BaseStrategy
 
     trade_account = create_account_instance(
         start_time=start_time, end_time=end_time, benchmark=benchmark, account=account, pos_type=pos_type
