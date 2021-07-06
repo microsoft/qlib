@@ -103,8 +103,10 @@ class BaseExecutor:
             self.common_infra.update(common_infra)
 
         if common_infra.has("trade_account"):
+            # NOTE: there is a trick in the code.
+            # copy is used instead of deepcopy. So positions are shared
             self.trade_account = copy.copy(common_infra.get("trade_account"))
-            self.trade_account.reset(freq=self.time_per_step, init_report=True)
+            self.trade_account.reset(freq=self.time_per_step, init_report=True, port_metr_enabled=self.generate_report)
 
     def reset(self, track_data: bool = None, common_infra: CommonInfrastructure = None, **kwargs):
         """
@@ -166,19 +168,6 @@ class BaseExecutor:
         if self.track_data:
             yield trade_decision
         return self.execute(trade_decision)
-
-    def get_report(self):
-        """get the history report and postions instance"""
-        if self.generate_report:
-            _report = self.trade_account.report.generate_report_dataframe()
-            _positions = self.trade_account.get_positions()
-            return _report, _positions
-        else:
-            raise ValueError("generate_report should be True if you want to generate report")
-
-    def get_trade_indicator(self) -> Indicator:
-        """get the trade indicator instance, which has pa/pos/ffr info."""
-        return self.trade_account.indicator
 
     def get_all_executors(self):
         """get all executors"""
@@ -289,21 +278,19 @@ class NestedExecutor(BaseExecutor):
             _inner_execute_result = yield from self.inner_executor.collect_data(trade_decision=_inner_trade_decision)
 
             execute_result.extend(_inner_execute_result)
-            inner_order_indicators.append(self.inner_executor.get_trade_indicator().get_order_indicator())
+            inner_order_indicators.append(self.inner_executor.trade_account.get_trade_indicator().get_order_indicator())
 
-        if hasattr(self, "trade_account"):
-            trade_step = self.trade_calendar.get_trade_step()
-            trade_start_time, trade_end_time = self.trade_calendar.get_step_time(trade_step)
-            self.trade_account.update_bar_end(
-                trade_start_time,
-                trade_end_time,
-                self.trade_exchange,
-                atomic=False,
-                outer_trade_decision=trade_decision,
-                generate_report=self.generate_report,
-                inner_order_indicators=inner_order_indicators,
-                indicator_config=self.indicator_config,
-            )
+        trade_step = self.trade_calendar.get_trade_step()
+        trade_start_time, trade_end_time = self.trade_calendar.get_step_time(trade_step)
+        self.trade_account.update_bar_end(
+            trade_start_time,
+            trade_end_time,
+            self.trade_exchange,
+            atomic=False,
+            outer_trade_decision=trade_decision,
+            inner_order_indicators=inner_order_indicators,
+            indicator_config=self.indicator_config,
+        )
 
         self.trade_calendar.step()
         if return_value is not None:
@@ -457,7 +444,6 @@ class SimulatorExecutor(BaseExecutor):
             self.trade_exchange,
             atomic=True,
             outer_trade_decision=trade_decision,
-            generate_report=self.generate_report,
             trade_info=execute_result,
             indicator_config=self.indicator_config,
         )

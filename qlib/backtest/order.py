@@ -56,7 +56,6 @@ class Order:
     SELL: ClassVar[OrderDir] = OrderDir.SELL
     BUY: ClassVar[OrderDir] = OrderDir.BUY
 
-
     def __post_init__(self):
         if self.direction not in {Order.SELL, Order.BUY}:
             raise NotImplementedError("direction not supported, `Order.SELL` for sell, `Order.BUY` for buy")

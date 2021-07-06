@@ -64,10 +64,22 @@ class AccumulatedInfo:
 
 class Account:
     def __init__(
-        self, init_cash: float = 1e9, freq: str = "day", benchmark_config: dict = {}, pos_type: str = "Position"
+        self,
+        init_cash: float = 1e9,
+        freq: str = "day",
+        benchmark_config: dict = {},
+        pos_type: str = "Position",
+        port_metr_enabled: bool = True,
     ):
-        self.pos_type = pos_type
+        self._pos_type = pos_type
+        self._port_metr_enabled = port_metr_enabled
         self.init_vars(init_cash, freq, benchmark_config)
+
+    def is_port_metr_enabled(self):
+        """
+        Is portfolio-based metrics enabled.
+        """
+        return self._port_metr_enabled and not self.current.skip_update()
 
     def init_vars(self, init_cash, freq: str, benchmark_config: dict):
 
@@ -75,23 +87,26 @@ class Account:
         self.init_cash = init_cash
         self.current: BasePosition = init_instance_by_config(
             {
-                "class": self.pos_type,
+                "class": self._pos_type,
                 "kwargs": {"cash": init_cash},
                 "module_path": "qlib.backtest.position",
             }
         )
         self.accum_info = AccumulatedInfo()
+        self.report = None
+        self.positions = {}
         self.reset(freq=freq, benchmark_config=benchmark_config, init_report=True)
 
     def reset_report(self, freq, benchmark_config):
         # portfolio related metrics
-        self.report = Report(freq, benchmark_config)
-        self.positions = {}
+        if self.is_port_metr_enabled():
+            self.report = Report(freq, benchmark_config)
+            self.positions = {}
 
         # trading related matric(e.g. high-frequency trading)
         self.indicator = Indicator()
 
-    def reset(self, freq=None, benchmark_config=None, init_report=False):
+    def reset(self, freq=None, benchmark_config=None, init_report=False, port_metr_enabled: bool = None):
         """reset freq and report of account
 
         Parameters
@@ -107,6 +122,9 @@ class Account:
             self.freq = freq
         if benchmark_config is not None:
             self.benchmark_config = benchmark_config
+
+        if port_metr_enabled is not None:
+            self._port_metr_enabled = port_metr_enabled
 
         if freq is not None or benchmark_config is not None or init_report:
             self.reset_report(self.freq, self.benchmark_config)
@@ -137,7 +155,7 @@ class Account:
             self.accum_info.add_return_value(profit)  # note here do not consider cost
 
     def update_order(self, order, trade_val, cost, trade_price):
-        if self.current.skip_update():
+        if not self.is_port_metr_enabled():
             # TODO: supporting polymorphism for account
             # updating order for infinite position is meaningless
             return
@@ -160,12 +178,14 @@ class Account:
     def update_bar_count(self):
         """at the end of the trading bar, update holding bar, count of stock"""
         # update holding day count
+        # NOTE: updating bar_count does not only serve portfolio metrics, it also serve the strategy
         if not self.current.skip_update():
             self.current.add_count_all(bar=self.freq)
 
     def update_current(self, trade_start_time, trade_end_time, trade_exchange):
         """update current to make rtn consistent with earning at the end of bar"""
         # update price for stock in the position and the profit from changed_price
+        # NOTE: updating position does not only serve portfolio metrics, it also serve the strategy
         if not self.current.skip_update():
             stock_list = self.current.get_stock_list()
             for code in stock_list:
@@ -227,7 +247,6 @@ class Account:
         trade_exchange: Exchange,
         atomic: bool,
         outer_trade_decision: BaseTradeDecision,
-        generate_report: bool = False,
         trade_info: list = None,
         inner_order_indicators: Indicator = None,
         indicator_config: dict = {},
@@ -246,8 +265,6 @@ class Account:
             whether the trading executor is atomic, which means there is no higher-frequency trading executor inside it
             - if atomic is True, calculate the indicators with trade_info
             - else, aggregate indicators with inner indicators
-        generate_report : bool, optional
-            whether to generate report, by default False
         trade_info : List[(Order, float, float, float)], optional
             trading information, by default None
             - necessary if atomic is True
@@ -267,7 +284,7 @@ class Account:
         # TODO:  `update_bar_count` and  `update_current` should placed in Position and be merged.
         self.update_bar_count()
         self.update_current(trade_start_time, trade_end_time, trade_exchange)
-        if generate_report:
+        if self.is_port_metr_enabled():
             # report is portfolio related analysis
             self.update_report(trade_start_time, trade_end_time)
 
@@ -283,3 +300,16 @@ class Account:
 
         self.indicator.cal_trade_indicators(trade_start_time, self.freq, indicator_config)
         self.indicator.record(trade_start_time)
+
+    def get_report(self):
+        """get the history report and postions instance"""
+        if self.is_port_metr_enabled():
+            _report = self.report.generate_report_dataframe()
+            _positions = self.get_positions()
+            return _report, _positions
+        else:
+            raise ValueError("generate_report should be True if you want to generate report")
+
+    def get_trade_indicator(self) -> Indicator:
+        """get the trade indicator instance, which has pa/pos/ffr info."""
+        return self.indicator
