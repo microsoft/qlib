@@ -196,7 +196,7 @@ class BaseTradeDecision:
             Example:
                 []:
                     Decision not available
-                concrete_decision:
+                [concrete_decision]:
                     available
         """
         raise NotImplementedError(f"This type of input is not supported")
@@ -234,6 +234,9 @@ class BaseTradeDecision:
             If the decision can't provide a unified start and end
         """
         raise NotImplementedError(f"Please implement the `func` method")
+
+    def empty(self) -> bool:
+        return len(self.get_decision()) == 0
 
 
 class TradeDecisionWO(BaseTradeDecision):
