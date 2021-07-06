@@ -714,12 +714,12 @@ class FileOrderStrategy(BaseStrategy):
     - This class provides an interface for user to read orders from csv files.
     """
 
-    def __init__(self, file: Union[IO, str, Path], index_range: Tuple[int, int] = None, *args, **kwargs):
+    def __init__(self, file: Union[IO, str, Path, pd.DataFrame], index_range: Tuple[int, int] = None, *args, **kwargs):
         """
 
         Parameters
         ----------
-        file : Union[IO, str, Path]
+        file : Union[IO, str, Path, pd.DataFrame]
             this parameters will specify the info of expected orders
 
             Here is an example of the content
@@ -741,8 +741,11 @@ class FileOrderStrategy(BaseStrategy):
 
         """
         super().__init__(*args, **kwargs)
-        with get_io_object(file) as f:
-            self.order_df = pd.read_csv(f, dtype={"datetime": np.str})
+        if isinstance(file, pd.DataFrame):
+            self.order_df = file
+        else:
+            with get_io_object(file) as f:
+                self.order_df = pd.read_csv(f, dtype={"datetime": np.str})
 
         self.order_df["datetime"] = self.order_df["datetime"].apply(pd.Timestamp)
         self.order_df = self.order_df.set_index(["datetime", "instrument"])
