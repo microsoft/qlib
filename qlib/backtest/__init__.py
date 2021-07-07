@@ -32,9 +32,9 @@ def get_exchange(
     open_cost=0.0015,
     close_cost=0.0025,
     min_cost=5.0,
-    trade_unit=None,
     limit_threshold=None,
     deal_price: Union[str, Tuple[str], List[str]] = None,
+    **kwargs,
 ):
     """get_exchange
 
@@ -52,7 +52,7 @@ def get_exchange(
     min_cost : float
         min transaction cost.
     trade_unit : int
-        100 for China A.
+        Included in kwargs.  Please refer to the docs of `__init__` of `Exchange`
     deal_price: Union[str, Tuple[str], List[str]]
                 The `deal_price` supports following two types of input
                 - <deal_price> : str
@@ -71,8 +71,6 @@ def get_exchange(
     an initialized Exchange object
     """
 
-    if trade_unit is None:
-        trade_unit = C.trade_unit
     if limit_threshold is None:
         limit_threshold = C.limit_threshold
     if exchange is None:
@@ -88,8 +86,8 @@ def get_exchange(
             limit_threshold=limit_threshold,
             open_cost=open_cost,
             close_cost=close_cost,
-            trade_unit=trade_unit,
             min_cost=min_cost,
+            **kwargs,
         )
         return exchange
     else:

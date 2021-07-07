@@ -6,6 +6,8 @@ TaskGenerator module can generate many tasks based on TaskGen and some task temp
 import abc
 import copy
 from typing import List, Union, Callable
+
+from qlib.utils import transform_end_date
 from .utils import TimeAdjuster
 
 
@@ -199,7 +201,7 @@ class RollingGen(TaskGen):
                 # First rolling
                 # 1) prepare the end point
                 segments: dict = copy.deepcopy(self.ta.align_seg(t["dataset"]["kwargs"]["segments"]))
-                test_end = self.ta.max() if segments[self.test_key][1] is None else segments[self.test_key][1]
+                test_end = transform_end_date(segments[self.test_key][1])
                 # 2) and init test segments
                 test_start_idx = self.ta.align_idx(segments[self.test_key][0])
                 segments[self.test_key] = (self.ta.get(test_start_idx), self.ta.get(test_start_idx + self.step - 1))

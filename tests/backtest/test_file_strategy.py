@@ -62,6 +62,7 @@ class FileStrTest(TestAutoData):
                 "close_cost": 0.0015,
                 "min_cost": 5,
                 "codes": codes,
+                "trade_unit": None,
             },
             # "pos_type": "InfPosition"  # Position with infinitive position
         }

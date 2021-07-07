@@ -271,7 +271,7 @@ def get_instruments(
         $ python collector.py --index_name SP500 --qlib_dir ~/.qlib/qlib_data/cn_data --method save_new_companies
 
     """
-    _cur_module = importlib.import_module("collector")
+    _cur_module = importlib.import_module("data_collector.us_index.collector")
     obj = getattr(_cur_module, f"{index_name.upper()}Index")(
         qlib_dir=qlib_dir, index_name=index_name, request_retry=request_retry, retry_sleep=retry_sleep
     )

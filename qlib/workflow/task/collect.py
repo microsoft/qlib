@@ -6,6 +6,7 @@ Collector module can collect objects from everywhere and process them such as me
 """
 
 from typing import Callable, Dict, List
+from qlib.log import get_module_logger
 from qlib.utils.serial import Serializable
 from qlib.workflow import R
 
@@ -192,6 +193,7 @@ class RecorderCollector(Collector):
             if rec_filter_func is None or rec_filter_func(rec):
                 recs_flt[rid] = rec
 
+        logger = get_module_logger("RecorderCollector")
         for _, rec in recs_flt.items():
             rec_key = self.rec_key_func(rec)
             for key in artifacts_key:
@@ -205,7 +207,13 @@ class RecorderCollector(Collector):
                             # only collect existing artifact
                             continue
                         raise e
-                collect_dict.setdefault(key, {})[rec_key] = artifact
+                # give user some warning if the values are overridden
+                cdd = collect_dict.setdefault(key, {})
+                if rec_key in cdd:
+                    logger.warning(
+                        f"key '{rec_key}' is duplicated. Previous value will be overrides. Please check you `rec_key_func`"
+                    )
+                cdd[rec_key] = artifact
 
         return collect_dict
 

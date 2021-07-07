@@ -297,7 +297,7 @@ class DNNModelPytorch(Model):
             _model_path = os.path.join(model_dir, _model_name)
             # Load model
             self.dnn_model.load_state_dict(torch.load(_model_path))
-        self._fitted = True
+        self.fitted = True
 
 
 class AverageMeter:
