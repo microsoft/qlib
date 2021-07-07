@@ -62,7 +62,7 @@ def fill_placeholder(config: dict, config_extend: dict):
     -------
     dict
         the parameter dict
-    """    
+    """
     # check the format of config_extend
     for placeholder in config_extend.keys():
         assert re.match(r"<[^<>]+>", placeholder)
@@ -71,18 +71,18 @@ def fill_placeholder(config: dict, config_extend: dict):
     top = 0
     tail = 1
     item_quene = [config]
-    while(top < tail):
+    while top < tail:
         now_item = item_quene[top]
         top += 1
-        if(isinstance(now_item, list)):
+        if isinstance(now_item, list):
             item_keys = range(len(now_item))
-        elif(isinstance(now_item, dict)):
+        elif isinstance(now_item, dict):
             item_keys = now_item.keys()
         for key in item_keys:
-            if(isinstance(now_item[key], list) or isinstance(now_item[key], dict)):
+            if isinstance(now_item[key], list) or isinstance(now_item[key], dict):
                 item_quene.append(now_item[key])
                 tail += 1
-            elif(now_item[key] in config_extend.keys()):
+            elif now_item[key] in config_extend.keys():
                 now_item[key] = config_extend[now_item[key]]
     return config
 
@@ -117,7 +117,7 @@ def end_task_train(rec: Recorder, experiment_name: str) -> Recorder:
         if isinstance(records, dict):  # prevent only one dict
             records = [records]
         for record in records:
-            r = init_instance_by_config(record, recorder = rec)
+            r = init_instance_by_config(record, recorder=rec)
             r.generate()
     return rec
 

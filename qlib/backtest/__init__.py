@@ -88,7 +88,7 @@ def get_exchange(
             open_cost=open_cost,
             close_cost=close_cost,
             min_cost=min_cost,
-            **kwargs
+            **kwargs,
         )
         return exchange
     else:
