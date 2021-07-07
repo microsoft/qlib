@@ -30,9 +30,9 @@ class Exchange:
         volume_threshold=None,
         open_cost=0.0015,
         close_cost=0.0025,
-        trade_unit=None,
         min_cost=5,
         extra_quote=None,
+        **kwargs,
     ):
         """__init__
 
@@ -56,7 +56,11 @@ class Exchange:
         :param volume_threshold:  float, 0.1 for example, default None
         :param open_cost:        cost rate for open, default 0.0015
         :param close_cost:       cost rate for close, default 0.0025
-        :param trade_unit:       trade unit, 100 for China A market
+        :param trade_unit:       trade unit, 100 for China A market.
+                                 None for disable trade unit.
+                                 **NOTE**: `trade_unit` is included in the `kwargs`. It is necessary because we must
+                                 distinguish `not set` and `disable trade_unit`
+
         :param min_cost:         min cost, default 5
         :param extra_quote:     pandas, dataframe consists of
                                     columns: like ['$vwap', '$close', '$volume', '$factor', 'limit_sell', 'limit_buy'].
@@ -77,8 +81,10 @@ class Exchange:
         self.start_time = start_time
         self.end_time = end_time
 
-        if trade_unit is None:
-            trade_unit = C.trade_unit
+        self.trade_unit = kwargs.pop("trade_unit", C.trade_unit)
+        if len(kwargs) > 0:
+            raise ValueError(f"Get Unexpected arguments {kwargs}")
+
         if limit_threshold is None:
             limit_threshold = C.limit_threshold
         if deal_price is None:
@@ -86,7 +92,6 @@ class Exchange:
 
         self.logger = get_module_logger("online operator", level=logging.INFO)
 
-        self.trade_unit = trade_unit
         # TODO: the quote, trade_dates, codes are not necessray.
         # It is just for performance consideration.
         if limit_threshold is None:
