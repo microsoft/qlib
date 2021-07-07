@@ -20,11 +20,17 @@ def init(default_conf="client", **kwargs):
     from .config import C
     from .data.cache import H
 
-    H.clear()
-
     # FIXME: this logger ignored the level in config
     logger = get_module_logger("Initialization", level=logging.INFO)
 
+    skip_if_reg = kwargs.pop("skip_if_reg", False)
+    if skip_if_reg and C.registered:
+        # if we reinitialize Qlib during running an experiment `R.start`.
+        # it will result in loss of the recorder
+        logger.warning("Skip initialization because `skip_if_reg is True`")
+        return
+
+    H.clear()
     C.set(default_conf, **kwargs)
 
     # check path if server/local
@@ -197,14 +203,15 @@ def auto_init(**kwargs):
     - Find the project configuration and init qlib
         - The parsing process will be affected by the `conf_type` of the configuration file
     - Init qlib with default config
+    - Skip initialization if already initialized
     """
+    kwargs["skip_if_reg"] = kwargs.get("skip_if_reg", True)
 
     try:
         pp = get_project_path(cur_path=kwargs.pop("cur_path", None))
     except FileNotFoundError:
         init(**kwargs)
     else:
-
         conf_pp = pp / "config.yaml"
         with conf_pp.open() as f:
             conf = yaml.safe_load(f)

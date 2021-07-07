@@ -67,6 +67,34 @@ After running the above command, users can find china-stock and us-stock data in
 
 When ``Qlib`` is initialized with this dataset, users could build and evaluate their own models with it.  Please refer to `Initialization <../start/initialization.html>`_ for more details.
 
+Automatic update of daily frequency data
+----------------------------------------
+
+  **It is recommended that users update the data manually once (\-\-trading_date 2021-05-25) and then set it to update automatically.**
+
+  For more information refer to: `yahoo collector <https://github.com/microsoft/qlib/tree/main/scripts/data_collector/yahoo#Automatic-update-of-daily-frequency-data>`_
+
+  - Automatic update of data to the "qlib" directory each trading day(Linux)
+      - use *crontab*: `crontab -e`
+      - set up timed tasks:
+
+        .. code-block:: bash
+
+            * * * * 1-5 python <script path> update_data_to_bin --qlib_data_1d_dir <user data dir>
+
+        - **script path**: *scripts/data_collector/yahoo/collector.py*
+
+  - Manual update of data
+
+      .. code-block:: bash
+
+        python scripts/data_collector/yahoo/collector.py update_data_to_bin --qlib_data_1d_dir <user data dir> --trading_date <start date> --end_date <end date>
+
+      - *trading_date*: start of trading day
+      - *end_date*: end of trading day(not included)
+
+
+
 Converting CSV Format into Qlib Format
 -------------------------------------------
 

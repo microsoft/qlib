@@ -643,6 +643,28 @@ def split_pred(pred, number=None, split_date=None):
     return pred_left, pred_right
 
 
+def time_to_slc_point(t: Union[None, str, pd.Timestamp]) -> Union[None, pd.Timestamp]:
+    """
+    Time slicing in Qlib or Pandas is a frequently-used action.
+    However, user often input all kinds of data format to represent time.
+    This function will help user to convert these inputs into a uniform format which is friendly to time slicing.
+
+    Parameters
+    ----------
+    t : Union[None, str, pd.Timestamp]
+        original time
+
+    Returns
+    -------
+    Union[None, pd.Timestamp]:
+    """
+    if t is None:
+        # None represents unbounded in Qlib or Pandas(e.g. df.loc[slice(None, "20210303")]).
+        return t
+    else:
+        return pd.Timestamp(t)
+
+
 def can_use_cache():
     res = True
     r = get_redis_connection()

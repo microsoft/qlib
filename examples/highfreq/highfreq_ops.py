@@ -26,7 +26,7 @@ def get_calendar_day(freq="day", future=False):
     if flag in H["c"]:
         _calendar = H["c"][flag]
     else:
-        _calendar = np.array(list(map(lambda x: x.date(), Cal.load_calendar(freq, future))))
+        _calendar = np.array(list(map(lambda x: pd.Timestamp(x.date()), Cal.load_calendar(freq, future))))
         H["c"][flag] = _calendar
     return _calendar
 

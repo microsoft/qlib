@@ -90,12 +90,12 @@ Below is a typical config file of ``qrun``.
                     test: [2017-01-01, 2020-08-01]
         record: 
             - class: SignalRecord
-                module_path: qlib.workflow.record_temp
-                kwargs: {}
+              module_path: qlib.workflow.record_temp
+              kwargs: {}
             - class: PortAnaRecord
-                module_path: qlib.workflow.record_temp
-                kwargs: 
-                    config: *port_analysis_config
+              module_path: qlib.workflow.record_temp
+              kwargs: 
+                  config: *port_analysis_config
 
 After saving the config into `configuration.yaml`, users could start the workflow and test their ideas with a single command below.
 
@@ -142,7 +142,7 @@ The meaning of each field is as follows:
 
 - `region`
     - If `region` == "us", ``Qlib`` will be initialized in US-stock mode. 
-    - If `region` == "cn", ``Qlib`` will be initialized in china-stock mode.
+    - If `region` == "cn", ``Qlib`` will be initialized in China-stock mode.
 
     .. note:: 
         

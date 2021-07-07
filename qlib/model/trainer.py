@@ -8,7 +8,7 @@ There are two steps in each Trainer including ``train``(make model recorder) and
 This is a concept called ``DelayTrainer``, which can be used in online simulating for parallel training.
 In ``DelayTrainer``, the first step is only to save some necessary info to model recorders, and the second step which will be finished in the end can do some concurrent and time-consuming operations such as model fitting.
 
-``Qlib`` offer two kinds of Trainer, ``TrainerR`` is the simplest way and ``TrainerRM`` is based on TaskManager to help manager tasks lifecycle automatically. 
+``Qlib`` offer two kinds of Trainer, ``TrainerR`` is the simplest way and ``TrainerRM`` is based on TaskManager to help manager tasks lifecycle automatically.
 """
 
 import socket
@@ -192,6 +192,9 @@ class Trainer:
         """
         return self.delay
 
+    def __call__(self, *args, **kwargs) -> list:
+        return self.end_train(self.train(*args, **kwargs))
+
 
 class TrainerR(Trainer):
     """
@@ -325,7 +328,9 @@ class TrainerRM(Trainer):
     # This tag is the _id in TaskManager to distinguish tasks.
     TM_ID = "_id in TaskManager"
 
-    def __init__(self, experiment_name: str = None, task_pool: str = None, train_func=task_train):
+    def __init__(
+        self, experiment_name: str = None, task_pool: str = None, train_func=task_train, skip_run_task: bool = False
+    ):
         """
         Init TrainerR.
 
@@ -333,11 +338,16 @@ class TrainerRM(Trainer):
             experiment_name (str): the default name of experiment.
             task_pool (str): task pool name in TaskManager. None for use same name as experiment_name.
             train_func (Callable, optional): default training method. Defaults to `task_train`.
+            skip_run_task (bool):
+                If skip_run_task == True:
+                Only run_task in the worker. Otherwise skip run_task.
         """
+
         super().__init__()
         self.experiment_name = experiment_name
         self.task_pool = task_pool
         self.train_func = train_func
+        self.skip_run_task = skip_run_task
 
     def train(
         self,
@@ -379,15 +389,16 @@ class TrainerRM(Trainer):
         tm = TaskManager(task_pool=task_pool)
         _id_list = tm.create_task(tasks)  # all tasks will be saved to MongoDB
         query = {"_id": {"$in": _id_list}}
-        run_task(
-            train_func,
-            task_pool,
-            query=query,  # only train these tasks
-            experiment_name=experiment_name,
-            before_status=before_status,
-            after_status=after_status,
-            **kwargs,
-        )
+        if not self.skip_run_task:
+            run_task(
+                train_func,
+                task_pool,
+                query=query,  # only train these tasks
+                experiment_name=experiment_name,
+                before_status=before_status,
+                after_status=after_status,
+                **kwargs,
+            )
 
         if not self.is_delay():
             tm.wait(query=query)
@@ -450,6 +461,7 @@ class DelayTrainerRM(TrainerRM):
         task_pool: str = None,
         train_func=begin_task_train,
         end_train_func=end_task_train,
+        skip_run_task: bool = False,
     ):
         """
         Init DelayTrainerRM.
@@ -459,10 +471,15 @@ class DelayTrainerRM(TrainerRM):
             task_pool (str): task pool name in TaskManager. None for use same name as experiment_name.
             train_func (Callable, optional): default train method. Defaults to `begin_task_train`.
             end_train_func (Callable, optional): default end_train method. Defaults to `end_task_train`.
+            skip_run_task (bool):
+                If skip_run_task == True:
+                Only run_task in the worker. Otherwise skip run_task.
+                E.g. Starting trainer on a CPU VM and then waiting tasks to be finished on GPU VMs.
         """
         super().__init__(experiment_name, task_pool, train_func)
         self.end_train_func = end_train_func
         self.delay = True
+        self.skip_run_task = skip_run_task
 
     def train(self, tasks: list, train_func=None, experiment_name: str = None, **kwargs) -> List[Recorder]:
         """
@@ -516,14 +533,15 @@ class DelayTrainerRM(TrainerRM):
             _id_list.append(rec.list_tags()[self.TM_ID])
 
         query = {"_id": {"$in": _id_list}}
-        run_task(
-            end_train_func,
-            task_pool,
-            query=query,  # only train these tasks
-            experiment_name=experiment_name,
-            before_status=TaskManager.STATUS_PART_DONE,
-            **kwargs,
-        )
+        if not self.skip_run_task:
+            run_task(
+                end_train_func,
+                task_pool,
+                query=query,  # only train these tasks
+                experiment_name=experiment_name,
+                before_status=TaskManager.STATUS_PART_DONE,
+                **kwargs,
+            )
 
         TaskManager(task_pool=task_pool).wait(query=query)
 

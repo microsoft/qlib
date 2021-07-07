@@ -1,7 +1,5 @@
 from qlib.data.dataset.handler import DataHandler, DataHandlerLP
-from qlib.data.dataset.processor import Processor
-from qlib.utils import get_cls_kwargs
-from qlib.log import TimeInspector
+from qlib.contrib.data.handler import check_transform_proc
 
 
 class HighFreqHandler(DataHandlerLP):
@@ -16,20 +14,9 @@ class HighFreqHandler(DataHandlerLP):
         fit_end_time=None,
         drop_raw=True,
     ):
-        def check_transform_proc(proc_l):
-            new_l = []
-            for p in proc_l:
-                p["kwargs"].update(
-                    {
-                        "fit_start_time": fit_start_time,
-                        "fit_end_time": fit_end_time,
-                    }
-                )
-                new_l.append(p)
-            return new_l
 
-        infer_processors = check_transform_proc(infer_processors)
-        learn_processors = check_transform_proc(learn_processors)
+        infer_processors = check_transform_proc(infer_processors, fit_start_time, fit_end_time)
+        learn_processors = check_transform_proc(learn_processors, fit_start_time, fit_end_time)
 
         data_loader = {
             "class": "QlibDataLoader",

@@ -97,7 +97,7 @@ class ModelFT(Model):
 
             # Finetune model based on previous trained model
             with R.start(experiment_name="finetune model"):
-                recorder = R.get_recorder(rid, experiment_name="init models")
+                recorder = R.get_recorder(recorder_id=rid, experiment_name="init models")
                 model = recorder.load_object("init_model")
                 model.finetune(dataset, num_boost_round=10)
 
