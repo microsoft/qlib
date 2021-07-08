@@ -93,7 +93,10 @@ class Order:
         if isinstance(direction, OrderDir):
             return direction
         elif isinstance(direction, (int, float, np.integer, np.floating)):
-            return OrderDir(int(direction))
+            if direction > 0:
+                return Order.BUY
+            else:
+                return Order.SELL
         elif isinstance(direction, str):
             dl = direction.lower()
             if dl.strip() == "sell":
