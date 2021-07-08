@@ -14,29 +14,7 @@ from ...backtest.order import BaseTradeDecision, Order, TradeDecisionWO
 from ...backtest.exchange import Exchange, OrderHelper
 from ...backtest.utils import CommonInfrastructure, LevelInfrastructure
 from qlib.utils.file import get_io_object
-
-
-def get_start_end_idx(strategy: BaseStrategy, outer_trade_decision: BaseTradeDecision) -> Union[int, int]:
-    """
-    A helper function for getting the decision-level index range limitation for inner strategy
-    - NOTE: this function is not applicable to order-level
-
-    Parameters
-    ----------
-    strategy : BaseStrategy
-        the inner strawtegy
-    outer_trade_decision : BaseTradeDecision
-        the trade decision made by outer strategy
-
-    Returns
-    -------
-    Union[int, int]:
-        start index and end index
-    """
-    try:
-        return outer_trade_decision.get_range_limit()
-    except NotImplementedError:
-        return 0, strategy.trade_calendar.get_trade_len() - 1
+from qlib.backtest.utils import get_start_end_idx
 
 
 class TWAPStrategy(BaseStrategy):
@@ -105,7 +83,7 @@ class TWAPStrategy(BaseStrategy):
         # get the number of trading step finished, trade_step can be [0, 1, 2, ..., trade_len - 1]
         trade_step = self.trade_calendar.get_trade_step()
         # get the total count of trading step
-        start_idx, end_idx = get_start_end_idx(self, self.outer_trade_decision)
+        start_idx, end_idx = get_start_end_idx(self.trade_calendar, self.outer_trade_decision)
         trade_len = end_idx - start_idx + 1
 
         if trade_step < start_idx or trade_step > end_idx:

@@ -1,9 +1,14 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
+from __future__ import annotations
+from typing import Union, TYPE_CHECKING, Tuple, Union, List, Set
+
+if TYPE_CHECKING:
+    from qlib.backtest.order import BaseTradeDecision
+    from qlib.strategy.base import BaseStrategy
 
 import pandas as pd
 import warnings
-from typing import Tuple, Union, List, Set
 
 from ..utils.resam import get_resam_calendar
 from ..data.data import Cal
@@ -30,17 +35,20 @@ class TradeCalendarManager:
             closed end of the trade time range, by default None
             If `end_time` is None, it must be reset before trading.
         """
-        self.freq = freq
-        self.start_time = pd.Timestamp(start_time) if start_time else None
-        self.end_time = pd.Timestamp(end_time) if end_time else None
-        self._init_trade_calendar(freq=freq, start_time=start_time, end_time=end_time)
+        self.reset(freq=freq, start_time=start_time, end_time=end_time)
 
-    def _init_trade_calendar(self, freq, start_time, end_time):
+    def reset(self, freq, start_time, end_time):
         """
+        Please refer to the docs of `__init__`
+
         Reset the trade calendar
         - self.trade_len : The total count for trading step
         - self.trade_step : The number of trading step finished, self.trade_step can be [0, 1, 2, ..., self.trade_len - 1]
         """
+        self.freq = freq
+        self.start_time = pd.Timestamp(start_time) if start_time else None
+        self.end_time = pd.Timestamp(end_time) if end_time else None
+
         _calendar, freq, freq_sam = get_resam_calendar(freq=freq)
         self._calendar = _calendar
         _, _, _start_index, _end_index = Cal.locate_index(start_time, end_time, freq=freq, freq_sam=freq_sam)
@@ -67,6 +75,7 @@ class TradeCalendarManager:
         return self.freq
 
     def get_trade_len(self):
+        """get the total step length"""
         return self.trade_len
 
     def get_trade_step(self):
@@ -98,6 +107,12 @@ class TradeCalendarManager:
         trade_step = trade_step - shift
         calendar_index = self.start_index + trade_step
         return self._calendar[calendar_index], self._calendar[calendar_index + 1] - pd.Timedelta(seconds=1)
+
+    def get_cur_step_time(self):
+        """
+        get current step time
+        """
+        return self.get_step_time(self.get_trade_step())
 
     def get_all_time(self):
         """Get the start_time and end_time for trading"""
@@ -146,5 +161,40 @@ class CommonInfrastructure(BaseInfrastructure):
 
 
 class LevelInfrastructure(BaseInfrastructure):
+    """level instrastructure is created by executor, and then shared to strategies on the same level"""
+
     def get_support_infra(self):
-        return ["trade_calendar"]
+        return ["trade_calendar", "sub_level_infra"]
+
+    def reset_cal(self, freq, start_time, end_time):
+        """reset trade calendar manager"""
+        if self.has("trade_calendar"):
+            self.get("trade_calendar").reset(freq, start_time=start_time, end_time=end_time)
+        else:
+            self.reset_infra(trade_calendar=TradeCalendarManager(freq, start_time=start_time, end_time=end_time))
+
+    def set_sub_level_infra(self, sub_level_infra: LevelInfrastructure):
+        """this will make the calendar access easier when acrossing multi-levels"""
+        self.reset_infra(sub_level_infra=sub_level_infra)
+
+
+def get_start_end_idx(trade_calendar: TradeCalendarManager, outer_trade_decision: BaseTradeDecision) -> Union[int, int]:
+    """
+    A helper function for getting the decision-level index range limitation for inner strategy
+    - NOTE: this function is not applicable to order-level
+
+    Parameters
+    ----------
+    trade_calendar : TradeCalendarManager
+    outer_trade_decision : BaseTradeDecision
+        the trade decision made by outer strategy
+
+    Returns
+    -------
+    Union[int, int]:
+        start index and end index
+    """
+    try:
+        return outer_trade_decision.get_range_limit()
+    except NotImplementedError:
+        return 0, trade_calendar.get_trade_len() - 1

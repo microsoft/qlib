@@ -4,21 +4,23 @@
 
 from collections import OrderedDict
 from logging import warning
-from qlib.backtest.exchange import Exchange
-from typing import Dict, List
-from qlib.backtest.order import BaseTradeDecision, Order, OrderDir
-import pandas as pd
-import numpy as np
 import pathlib
+from typing import Dict, List, Tuple
 import warnings
-from pandas.core import groupby
 
+import numpy as np
+import pandas as pd
+from pandas.core import groupby
 from pandas.core.frame import DataFrame
 
-from ..utils.time import Freq
-from ..utils.resam import resam_ts_data, get_higher_eq_freq_feature
+from qlib.backtest.exchange import Exchange
+from qlib.backtest.order import BaseTradeDecision, Order, OrderDir
+from qlib.backtest.utils import TradeCalendarManager
+
 from ..data import D
 from ..tests.config import CSI300_BENCH
+from ..utils.resam import get_higher_eq_freq_feature, resam_ts_data
+from ..utils.time import Freq
 
 
 class Report:
@@ -251,14 +253,21 @@ class Indicator:
     """
 
     def __init__(self):
+        # order indicator is metrics for a single order for a specific step
         self.order_indicator_his = OrderedDict()
-        self.order_indicator = OrderedDict()
-        self.trade_indicator_his = OrderedDict()
-        self.trade_indicator = OrderedDict()
+        self.order_indicator: Dict[str, pd.Series] = OrderedDict()
 
-    def clear(self):
+        # trade indicator is metrics for all orders for a specific step
+        self.trade_indicator_his = OrderedDict()
+        self.trade_indicator: Dict[str, float] = OrderedDict()
+
+        self._trade_calendar = None
+
+    # def reset(self, trade_calendar: TradeCalendarManager):
+    def reset(self):
         self.order_indicator = OrderedDict()
         self.trade_indicator = OrderedDict()
+        # self._trade_calendar = trade_calendar
 
     def record(self, trade_start_time):
         self.order_indicator_his[trade_start_time] = self.order_indicator
@@ -294,8 +303,13 @@ class Indicator:
     def _update_order_price_advantage(self):
         # NOTE:
         # trade_price and baseline price will be same on the lowest-level
-        # So Pa should be 0
+        # So Pa should be 0 or do nothing
         self.order_indicator["pa"] = 0
+
+    def update_order_indicators(self, trade_info: list):
+        self._update_order_trade_info(trade_info=trade_info)
+        self._update_order_fulfill_rate()
+        self._update_order_price_advantage()
 
     def _agg_order_trade_info(self, inner_order_indicators: List[Dict[str, pd.Series]]):
         inner_amount = pd.Series()
@@ -312,7 +326,7 @@ class Indicator:
             )
             trade_value = trade_value.add(_order_indicator["trade_value"], fill_value=0)
             trade_cost = trade_cost.add(_order_indicator["trade_cost"], fill_value=0)
-            trade_dir = trade_dir.add(_order_indicator["trade_dir"])
+            trade_dir = trade_dir.add(_order_indicator["trade_dir"], fill_value=0)
 
         trade_dir = trade_dir.apply(Order.parse_dir)
 
@@ -335,24 +349,77 @@ class Indicator:
     def _agg_order_fulfill_rate(self):
         self.order_indicator["ffr"] = self.order_indicator["deal_amount"] / self.order_indicator["amount"]
 
-    def _agg_order_price_advantage(
+    def _get_base_vol_pri(
         self,
-        inner_order_indicators: List[Dict[str, pd.Series]],
+        inst: str,
         trade_start_time: pd.Timestamp,
         trade_end_time: pd.Timestamp,
+        direction: OrderDir,
+        decision: BaseTradeDecision,
+        trade_exchange: Exchange,
+        pa_config: dict = {},
+    ):
+        """Get the base volume and price information"""
+
+        agg = pa_config.get("agg", "twap").lower()
+        price = pa_config.get("price", "deal_price").lower()
+
+        if price == "deal_price":
+            price_s = trade_exchange.get_deal_price(
+                inst, trade_start_time, trade_end_time, direction=direction, method=None
+            )
+        else:
+            raise NotImplementedError(f"This type of input is not supported")
+
+        # NOTE: there are some zeros in the trading price. These cases are known meaningless
+        # for aligning the previous logic, remove it.
+        # price_s = price_s.mask(np.isclose(price_s, 0))
+
+        if agg == "vwap":
+            volume_s = trade_exchange.get_volume(inst, trade_start_time, trade_end_time, method=None)
+        elif agg == "twap":
+            volume_s = pd.Series(1, index=price_s.index)
+        else:
+            raise NotImplementedError(f"This type of input is not supported")
+
+        # no sub executor on the lowest level
+        # So range_limit an total step will all be None
+        total_step = decision.total_step
+        if total_step is None:
+            total_step = 1
+        range_limit = decision.get_range_limit(default_value=(0, total_step - 1))
+
+        assert volume_s.shape[0] % total_step == 0, "The price series can't  be divided by step length"
+        factor = volume_s.shape[0] // total_step
+
+        slc = slice(range_limit[0] * factor, (range_limit[1] + 1) * factor)
+
+        volume_s = volume_s.iloc[slc]
+        price_s = price_s.iloc[slc]
+
+        base_volume = volume_s.sum().item()
+        base_price = ((price_s * volume_s).sum() / base_volume).item()
+
+        return base_price, base_volume
+
+    def _agg_base_price(
+        self,
+        inner_order_indicators: List[Dict[str, pd.Series]],
+        decision_list: List[Tuple[BaseTradeDecision, pd.Timestamp, pd.Timestamp]],
         trade_exchange: Exchange,
         pa_config: dict = {},
     ):
         """
+        # NOTE:!!!!
+        # Strong assumption!!!!!!
+        # the correctness of the base_price relies on that the **same** exchange is used
 
         Parameters
         ----------
         inner_order_indicators : List[Dict[str, pd.Series]]
             the indicators of account of inner executor
-        trade_start_time : pd.Timestamp
-            the start_time of the trade period, for slicing
-        trade_end_time : pd.Timestamp
-            the end_time of the trade period, for slicing (so it may include more time at the end)
+        decision_list: List[Tuple[BaseTradeDecision, pd.Timestamp, pd.Timestamp]],
+            a list of decisions according to inner_order_indicators
         trade_exchange : Exchange
             for retrieving trading price
         pa_config : dict
@@ -362,32 +429,61 @@ class Indicator:
                 "price": "$close",  # TODO: this is not supported now!!!!!
                                     # default to use deal price of the exchange
             }
+
         """
 
-        agg = pa_config.get("agg", "twap").lower()
-        price = pa_config.get("price", "deal_price").lower()
+        # TODO: I think there are potentials to be optimized
+        trade_dir = self.order_indicator["trade_dir"]
+        if len(trade_dir) > 0:
+            bp_all, bv_all = [], []
+            # <step, inst, (base_volume | base_price)>
+            for oi, (dec, start, end) in zip(inner_order_indicators, decision_list):
+                bp_s = oi.get("base_price", pd.Series()).reindex(trade_dir.index)
+                bv_s = oi.get("base_volume", pd.Series()).reindex(trade_dir.index)
+                bp_new, bv_new = {}, {}
+                for pr, v, (inst, direction) in zip(bp_s.values, bv_s.values, trade_dir.items()):
+                    if np.isnan(pr):
+                        bp_new[inst], bv_new[inst] = self._get_base_vol_pri(
+                            inst,
+                            start,
+                            end,
+                            decision=dec,
+                            direction=direction,
+                            trade_exchange=trade_exchange,
+                            pa_config=pa_config,
+                        )
+                    else:
+                        bp_new[inst], bv_new[inst] = pr, v
 
-        base_price = {}
-        for inst, dir in self.order_indicator["trade_dir"].items():
+                bp_new, bv_new = pd.Series(bp_new), pd.Series(bv_new)
+                bp_all.append(bp_new)
+                bv_all.append(bv_new)
+            bp_all = pd.concat(bp_all, axis=1)
+            bv_all = pd.concat(bv_all, axis=1)
 
-            if price == "deal_price":
-                price_s = trade_exchange.get_deal_price(inst, trade_start_time, trade_end_time, dir, method=None)
-            else:
-                raise NotImplementedError(f"This type of input is not supported")
+            self.order_indicator["base_volume"] = bv_all.sum(axis=1)
+            self.order_indicator["base_price"] = (bp_all * bv_all).sum(axis=1) / self.order_indicator["base_volume"]
 
-            # there are some zeros in the trading price. These cases are known meaningless
-            price_s = price_s.mask(np.isclose(price_s, 0))
+    def _agg_order_price_advantage(self):
+        if not self.order_indicator["trade_price"].empty:
+            self.order_indicator["pa"] = self.order_indicator["trade_price"] / self.order_indicator["base_price"] - 1
+        else:
+            self.order_indicator["pa"] = pd.Series()
 
-            if agg == "vwap":
-                volume_s = trade_exchange.get_volume(inst, trade_start_time, trade_end_time, method=None)
-                base_price[inst] = ((price_s * volume_s).sum() / volume_s.sum()).item()
-            elif agg == "twap":
-                base_price[inst] = price_s.mean().item()
-
-        base_price = pd.Series(base_price)
-
-        # update PA
-        self.order_indicator["pa"] = self.order_indicator["trade_price"] / base_price - 1
+    def agg_order_indicators(
+        self,
+        inner_order_indicators: List[Dict[str, pd.Series]],
+        decision_list: List[Tuple[BaseTradeDecision, pd.Timestamp, pd.Timestamp]],
+        outer_trade_decision: BaseTradeDecision,
+        trade_exchange: Exchange,
+        indicator_config={},
+    ):
+        self._agg_order_trade_info(inner_order_indicators)
+        self._update_trade_amount(outer_trade_decision)
+        self._agg_order_fulfill_rate()
+        pa_config = indicator_config.get("pa_config", {})
+        self._agg_base_price(inner_order_indicators, decision_list, trade_exchange, pa_config=pa_config)
+        self._agg_order_price_advantage()
 
     def _cal_trade_fulfill_rate(self, method="mean"):
         if method == "mean":
@@ -402,7 +498,7 @@ class Indicator:
             raise ValueError(f"method {method} is not supported!")
 
     def _cal_trade_price_advantage(self, method="mean"):
-        pa_order = self.order_indicator["pa"] * (2 * (self.order_indicator["amount"] < 0).astype(int) - 1)
+        pa_order = self.order_indicator["pa"] * (1 - self.order_indicator["trade_dir"] * 2)
         if method == "mean":
             return pa_order.mean()
         elif method == "amount_weighted":
@@ -426,28 +522,6 @@ class Indicator:
 
     def _cal_trade_order_count(self):
         return self.order_indicator["amount"].count()
-
-    def update_order_indicators(self, trade_info: list):
-        self._update_order_trade_info(trade_info=trade_info)
-        self._update_order_fulfill_rate()
-        self._update_order_price_advantage()
-
-    def agg_order_indicators(
-        self,
-        trade_start_time,
-        trade_end_time,
-        inner_order_indicators: List[Dict[str, pd.Series]],
-        outer_trade_decision: BaseTradeDecision,
-        trade_exchange: Exchange,
-        indicator_config={},
-    ):
-        self._agg_order_trade_info(inner_order_indicators)
-        self._update_trade_amount(outer_trade_decision)
-        self._agg_order_fulfill_rate()
-        pa_config = indicator_config.get("pa_config", {})
-        self._agg_order_price_advantage(
-            inner_order_indicators, trade_start_time, trade_end_time, trade_exchange, pa_config=pa_config
-        )
 
     def cal_trade_indicators(self, trade_start_time, freq, indicator_config={}):
         show_indicator = indicator_config.get("show_indicator", False)

@@ -3,7 +3,7 @@
 
 
 import copy
-from typing import Dict, List
+from typing import Dict, List, Tuple
 from qlib.utils import init_instance_by_config
 import warnings
 import pandas as pd
@@ -250,6 +250,7 @@ class Account:
         outer_trade_decision: BaseTradeDecision,
         trade_info: list = None,
         inner_order_indicators: List[Dict[str, pd.Series]] = None,
+        decision_list: List[Tuple[BaseTradeDecision, pd.Timestamp, pd.Timestamp]] = None,
         indicator_config: dict = {},
     ):
         """update account at each trading bar step
@@ -274,6 +275,9 @@ class Account:
             indicators of inner executor, by default None
             - necessary if atomic is False
             - used to aggregate outer indicators
+        decision_list: List[Tuple[BaseTradeDecision, pd.Timestamp, pd.Timestamp]] = None,
+            The decision list of the inner level: List[Tuple[<decision>, <start_time>, <end_time>]]
+            The inner level
         indicator_config : dict, optional
             config of calculating indicators, by default {}
         """
@@ -289,22 +293,27 @@ class Account:
             # report is portfolio related analysis
             self.update_report(trade_start_time, trade_end_time)
 
-        # indicator is trading (e.g. high-frequency order execution) related analysis
-        self.indicator.clear()
+        # TODO: will skip empty decisions make it faster?  `outer_trade_decision.empty():`
 
+        # indicator is trading (e.g. high-frequency order execution) related analysis
+        self.indicator.reset()
+
+        # aggregate the information for each order
         if atomic:
             self.indicator.update_order_indicators(trade_info)
         else:
             self.indicator.agg_order_indicators(
-                trade_start_time,
-                trade_end_time,
                 inner_order_indicators,
+                decision_list=decision_list,
                 outer_trade_decision=outer_trade_decision,
                 trade_exchange=trade_exchange,
                 indicator_config=indicator_config,
             )
 
+        # aggregate all the order metrics a single step
         self.indicator.cal_trade_indicators(trade_start_time, self.freq, indicator_config)
+
+        # record the metrics
         self.indicator.record(trade_start_time)
 
     def get_report(self):
