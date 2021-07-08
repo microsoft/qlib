@@ -10,7 +10,7 @@ from ...utils import lazy_sort_index
 
 
 class Reweighter:
-    def __init__(*args, **kwargs):
+    def __init__(self, *args, **kwargs):
         """
         To initialize the Reweighter, users should provide specific methods to let reweighter do the reweighting (such as sample-wise, rule-based).
         """

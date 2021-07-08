@@ -32,14 +32,19 @@ class MetaTaskModel(MetaModel):
     """
 
     @abc.abstractmethod
-    def prepare_tasks(self, tasks: List[dict]):
+    def prepare_tasks(self, tasks: List[dict]) -> List[dict]:
         """
         The meta-model modifies the tasks. The function will return the modified task list.
 
         Parameters
         ----------
         tasks: List[dict]
-            A List of task definitions for the meta-model to modify.
+            A list of task definitions for the meta-model to modify.
+
+        Returns
+        -------
+        List[dict]:
+            A list of modified task definitions.
         """
         pass
 

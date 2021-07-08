@@ -1,8 +1,5 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-import warnings
-
-
 from .task import MetaTask
 from .dataset import MetaDataset, MetaDatasetH

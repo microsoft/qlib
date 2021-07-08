@@ -48,7 +48,7 @@ class ICLoss(nn.Module):
 
         :param pred:
         :param y:
-        :param idx: 这里假设 idx的level是(date, inst); 这里假设其一定排好序了
+        :param idx: Assume the level of the idx is (date, inst), and it is sorted
         """
         prev = None
         diff_point = []
@@ -89,7 +89,7 @@ def preds_to_weight_with_clamp(preds, clip_weight=None, clip_method="tanh"):
         elif clip_method == "tanh":
             weights = torch.exp(torch.tanh(preds) * np.log(clip_weight))
         elif clip_method == "sigmoid":
-            # 这里的intuitively感觉是它保证和为1
+            # intuitively assume its sum is 1
             if clip_weight == 0.0:
                 weights = torch.ones_like(preds)
             else:
@@ -105,7 +105,7 @@ def preds_to_weight_with_clamp(preds, clip_weight=None, clip_method="tanh"):
 
 class SingleMetaBase(nn.Module):
     def __init__(self, hist_n, clip_weight=None, clip_method="clamp"):
-        # method 可以选 tanh 或者 clamp
+        # method can be tanh or clamp
         super().__init__()
         self.clip_weight = clip_weight
         if clip_method in ["tanh", "clamp"]:
