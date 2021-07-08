@@ -13,7 +13,7 @@ from .executor import BaseExecutor
 from .backtest import backtest_loop
 from .backtest import collect_data_loop
 from .order import Order
-from .utils import CommonInfrastructure, TradeCalendarManager
+from .utils import CommonInfrastructure, LevelInfrastructure, TradeCalendarManager
 from ..utils import init_instance_by_config
 from ..log import get_module_logger
 from ..config import C

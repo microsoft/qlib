@@ -55,14 +55,13 @@ def collect_data_loop(
         trade decision
     """
     trade_executor.reset(start_time=start_time, end_time=end_time)
-    level_infra = trade_executor.get_level_infra()
-    trade_strategy.reset(level_infra=level_infra)
+    trade_strategy.reset(level_infra=trade_executor.get_level_infra())
 
     with tqdm(total=trade_executor.trade_calendar.get_trade_len(), desc="backtest loop") as bar:
         _execute_result = None
         while not trade_executor.finished():
             _trade_decision: BaseTradeDecision = trade_strategy.generate_trade_decision(_execute_result)
-            _execute_result = yield from trade_executor.collect_data(_trade_decision)
+            _execute_result = yield from trade_executor.collect_data(_trade_decision, level=0)
             bar.update(1)
 
     if return_value is not None:

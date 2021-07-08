@@ -1,5 +1,6 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
+from qlib.backtest.position import BasePosition
 from typing import List, Union
 
 from ..model.base import BaseModel
@@ -37,23 +38,25 @@ class BaseStrategy:
 
         self.reset(level_infra=level_infra, common_infra=common_infra, outer_trade_decision=outer_trade_decision)
 
+    @property
+    def trade_calendar(self) -> TradeCalendarManager:
+        return self.level_infra.get("trade_calendar")
+
+    @property
+    def trade_position(self) -> BasePosition:
+        return self.common_infra.get("trade_account").current
+
     def reset_level_infra(self, level_infra: LevelInfrastructure):
         if not hasattr(self, "level_infra"):
             self.level_infra = level_infra
         else:
             self.level_infra.update(level_infra)
 
-        if level_infra.has("trade_calendar"):
-            self.trade_calendar: TradeCalendarManager = level_infra.get("trade_calendar")
-
     def reset_common_infra(self, common_infra: CommonInfrastructure):
         if not hasattr(self, "common_infra"):
             self.common_infra: CommonInfrastructure = common_infra
         else:
             self.common_infra.update(common_infra)
-
-        if common_infra.has("trade_account"):
-            self.trade_position = common_infra.get("trade_account").current
 
     def reset(
         self,

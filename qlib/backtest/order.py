@@ -3,6 +3,7 @@
 # TODO: rename it with decision.py
 from __future__ import annotations
 from enum import IntEnum
+from qlib.log import get_module_logger
 
 # try to fix circular imports when enabling type hints
 from typing import TYPE_CHECKING
@@ -179,7 +180,7 @@ class BaseTradeDecision:
         2. Same as `case 1.3`
     """
 
-    def __init__(self, strategy: BaseStrategy):
+    def __init__(self, strategy: BaseStrategy, idx_range: Tuple[int, int] = None):
         """
         Parameters
         ----------
@@ -187,6 +188,8 @@ class BaseTradeDecision:
             The strategy who make the decision
         """
         self.strategy = strategy
+        self.total_step = None  # upper strategy has no knowledge about the sub executor before `_init_sub_trading`
+        self.idx_range = idx_range
 
     def get_decision(self) -> List[object]:
         """
@@ -207,7 +210,11 @@ class BaseTradeDecision:
 
     def update(self, trade_calendar: TradeCalendarManager) -> Union["BaseTradeDecision", None]:
         """
-        Be called at the **start** of each step
+        Be called at the **start** of each step.
+
+        This function is designn for following purpose
+        1) Leave a hook for the strategy who make `self` decision to update the decision itself
+        2) Update some information from the inner executor calendar
 
         Parameters
         ----------
@@ -221,12 +228,26 @@ class BaseTradeDecision:
         BaseTradeDecision:
             New update, use new decision
         """
+        # purpose 1)
+        self.total_step = trade_calendar.get_trade_len()
+        if self.idx_range is not None:
+            logger = get_module_logger("decision")
+            start_idx, end_idx = self.idx_range
+            if start_idx < 0 or end_idx >= self.total_step:
+                logger.warning(f"{self.idx_range} go beyound the total_step({self.total_step}), it will be clipped")
+                self.idx_range = max(0, start_idx), min(self.total_step - 1, end_idx)
+
+        # purpose 2)
         return self.strategy.update_trade_decision(self, trade_calendar)
 
-    def get_range_limit(self) -> Tuple[int, int]:
+    def get_range_limit(self, **kwargs) -> Tuple[int, int]:
         """
         return the expected step range for limiting the decision execution time
         Both left and right are **closed**
+
+        **kwargs:
+            {"default_value": <default_value>}
+            # using dict is for distinguish no value provided or None provided
 
         Returns
         -------
@@ -235,12 +256,32 @@ class BaseTradeDecision:
         Raises
         ------
         NotImplementedError:
-            If the decision can't provide a unified start and end
+            If the following criteria meet
+            1) the decision can't provide a unified start and end
+            2) default_value is None
         """
-        raise NotImplementedError(f"Please implement the `func` method")
+        if self.idx_range is None:
+            if "default_value" in kwargs:
+                return kwargs["default_value"]
+            else:
+                # Default to get full index
+                raise NotImplementedError(f"The decision didn't provide an index range")
+        return self.idx_range
 
     def empty(self) -> bool:
-        return len(self.get_decision()) == 0
+        for obj in self.get_decision():
+            if isinstance(obj, Order):
+                # Zero amount order will be treated as empty
+                if not np.isclose(obj.amount, 0.0):
+                    return False
+            else:
+                return True
+        return True
+
+
+class EmptyTradeDecision(BaseTradeDecision):
+    def empty(self) -> bool:
+        return True
 
 
 class TradeDecisionWO(BaseTradeDecision):
@@ -249,16 +290,9 @@ class TradeDecisionWO(BaseTradeDecision):
     Besides, the time_range is also included.
     """
 
-    def __init__(self, order_list: List[Order], strategy: BaseStrategy, idx_range: Tuple = None):
-        super().__init__(strategy)
+    def __init__(self, order_list: List[Order], strategy: BaseStrategy, idx_range: Tuple[int, int] = None):
+        super().__init__(strategy, idx_range=idx_range)
         self.order_list = order_list
-        self.idx_range = idx_range
-
-    def get_range_limit(self) -> Tuple[int, int]:
-        if self.idx_range is None:
-            # Default to get full index
-            raise NotImplementedError(f"The decision didn't provide an index range")
-        return self.idx_range
 
     def get_decision(self) -> List[object]:
         return self.order_list
