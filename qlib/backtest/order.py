@@ -13,6 +13,7 @@ if TYPE_CHECKING:
 from qlib.backtest.utils import TradeCalendarManager
 import warnings
 import pandas as pd
+import numpy as np
 from dataclasses import dataclass, field
 from typing import ClassVar, Union, List, Set, Tuple
 
@@ -88,11 +89,14 @@ class Order:
         return self.direction * 2 - 1
 
     @staticmethod
-    def parse_dir(direction: Union[str, int, OrderDir]) -> OrderDir:
+    def parse_dir(direction: Union[str, int, float, np.integer, np.floating, OrderDir]) -> OrderDir:
         if isinstance(direction, OrderDir):
             return direction
-        elif isinstance(direction, int):
-            return OrderDir(direction)
+        elif isinstance(direction, (int, float, np.integer, np.floating)):
+            if direction > 0:
+                return Order.BUY
+            else:
+                return Order.SELL
         elif isinstance(direction, str):
             dl = direction.lower()
             if dl.strip() == "sell":

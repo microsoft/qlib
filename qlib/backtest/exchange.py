@@ -281,27 +281,27 @@ class Exchange:
 
         return trade_val, trade_cost, trade_price
 
-    def get_quote_info(self, stock_id, start_time, end_time):
-        return resam_ts_data(self.quote[stock_id], start_time, end_time, method=ts_data_last)
+    def get_quote_info(self, stock_id, start_time, end_time, method=ts_data_last):
+        return resam_ts_data(self.quote[stock_id], start_time, end_time, method=method)
 
-    def get_close(self, stock_id, start_time, end_time):
-        return resam_ts_data(self.quote[stock_id]["$close"], start_time, end_time, method=ts_data_last)
+    def get_close(self, stock_id, start_time, end_time, method=ts_data_last):
+        return resam_ts_data(self.quote[stock_id]["$close"], start_time, end_time, method=method)
 
-    def get_volume(self, stock_id, start_time, end_time):
-        return resam_ts_data(self.quote[stock_id]["$volume"], start_time, end_time, method="sum")
+    def get_volume(self, stock_id, start_time, end_time, method="sum"):
+        return resam_ts_data(self.quote[stock_id]["$volume"], start_time, end_time, method=method)
 
-    def get_deal_price(self, stock_id, start_time, end_time, direction: OrderDir):
+    def get_deal_price(self, stock_id, start_time, end_time, direction: OrderDir, method=ts_data_last):
         if direction == OrderDir.SELL:
             pstr = self.sell_price
         elif direction == OrderDir.BUY:
             pstr = self.buy_price
         else:
             raise NotImplementedError(f"This type of input is not supported")
-        deal_price = resam_ts_data(self.quote[stock_id][pstr], start_time, end_time, method=ts_data_last)
-        if np.isclose(deal_price, 0.0) or np.isnan(deal_price):
+        deal_price = resam_ts_data(self.quote[stock_id][pstr], start_time, end_time, method=method)
+        if method is not None and (np.isclose(deal_price, 0.0) or np.isnan(deal_price)):
             self.logger.warning(f"(stock_id:{stock_id}, trade_time:{(start_time, end_time)}, {pstr}): {deal_price}!!!")
             self.logger.warning(f"setting deal_price to close price")
-            deal_price = self.get_close(stock_id, start_time, end_time)
+            deal_price = self.get_close(stock_id, start_time, end_time, method)
         return deal_price
 
     def get_factor(self, stock_id, start_time, end_time) -> Union[float, None]:

@@ -3,6 +3,7 @@
 
 
 import copy
+from typing import Dict, List
 from qlib.utils import init_instance_by_config
 import warnings
 import pandas as pd
@@ -248,7 +249,7 @@ class Account:
         atomic: bool,
         outer_trade_decision: BaseTradeDecision,
         trade_info: list = None,
-        inner_order_indicators: Indicator = None,
+        inner_order_indicators: List[Dict[str, pd.Series]] = None,
         indicator_config: dict = {},
     ):
         """update account at each trading bar step
@@ -292,10 +293,15 @@ class Account:
         self.indicator.clear()
 
         if atomic:
-            self.indicator.update_order_indicators(trade_start_time, trade_end_time, trade_info, trade_exchange)
+            self.indicator.update_order_indicators(trade_info)
         else:
             self.indicator.agg_order_indicators(
-                inner_order_indicators, indicator_config=indicator_config, outer_trade_decision=outer_trade_decision
+                trade_start_time,
+                trade_end_time,
+                inner_order_indicators,
+                outer_trade_decision=outer_trade_decision,
+                trade_exchange=trade_exchange,
+                indicator_config=indicator_config,
             )
 
         self.indicator.cal_trade_indicators(trade_start_time, self.freq, indicator_config)
