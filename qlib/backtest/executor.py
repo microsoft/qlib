@@ -348,13 +348,6 @@ class NestedExecutor(BaseExecutor):
             self.inner_strategy.alter_outer_trade_decision(trade_decision)
         return trade_decision
 
-    # def _get_inner_trade_decision(self, outer_trade_decision: BaseTradeDecision, inner_execute_result):
-    #     # In some cases, the inner strategy can be skipped, but the inner executor should keep running
-    #     if outer_trade_decision.empty() and self._skip_empty_decision:
-    #         return EmptyTradeDecision(self.inner_strategy)
-    #     return self.inner_strategy.generate_trade_decision(inner_execute_result)
-    # _inner_trade_decision = self._get_inner_trade_decision(trade_decision, _inner_execute_result)
-
     def _collect_data(self, trade_decision: BaseTradeDecision, level: int = 0):
         execute_result = []
         inner_order_indicators = []

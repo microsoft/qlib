@@ -15,6 +15,7 @@ from qlib.backtest.utils import TradeCalendarManager
 import warnings
 import numpy as np
 import pandas as pd
+import numpy as np
 from dataclasses import dataclass, field
 from typing import ClassVar, Optional, Union, List, Set, Tuple
 

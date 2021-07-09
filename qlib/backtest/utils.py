@@ -164,6 +164,12 @@ class LevelInfrastructure(BaseInfrastructure):
     """level instrastructure is created by executor, and then shared to strategies on the same level"""
 
     def get_support_infra(self):
+        """
+        Descriptions about the infrastructure
+
+        sub_level_infra:
+        - **NOTE**: this will only work after _init_sub_trading !!!
+        """
         return ["trade_calendar", "sub_level_infra"]
 
     def reset_cal(self, freq, start_time, end_time):
