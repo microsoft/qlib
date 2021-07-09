@@ -466,7 +466,10 @@ class Indicator:
 
     def _agg_order_price_advantage(self):
         if not self.order_indicator["trade_price"].empty:
-            self.order_indicator["pa"] = self.order_indicator["trade_price"] / self.order_indicator["base_price"] - 1
+            sign = 1 - self.order_indicator["trade_dir"] * 2
+            self.order_indicator["pa"] = sign * (
+                self.order_indicator["trade_price"] / self.order_indicator["base_price"] - 1
+            )
         else:
             self.order_indicator["pa"] = pd.Series()
 
@@ -498,7 +501,11 @@ class Indicator:
             raise ValueError(f"method {method} is not supported!")
 
     def _cal_trade_price_advantage(self, method="mean"):
-        pa_order = self.order_indicator["pa"] * (1 - self.order_indicator["trade_dir"] * 2)
+        pa_order = self.order_indicator["pa"]
+        if isinstance(pa_order, (int, float)):
+            # pa from atomic executor
+            return pa_order
+
         if method == "mean":
             return pa_order.mean()
         elif method == "amount_weighted":
@@ -511,7 +518,10 @@ class Indicator:
             raise ValueError(f"method {method} is not supported!")
 
     def _cal_trade_positive_rate(self):
-        pa_order = self.order_indicator["pa"] * (2 * (self.order_indicator["amount"] < 0).astype(int) - 1)
+        pa_order = self.order_indicator["pa"]
+        if isinstance(pa_order, (int, float)):
+            # pa from atomic executor
+            return pa_order
         return (pa_order > 0).astype(int).sum() / pa_order.count()
 
     def _cal_trade_amount(self):
