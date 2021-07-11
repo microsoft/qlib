@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 
-__version__ = "0.6.3.99"
+__version__ = "0.7.0"
 __version__bak = __version__  # This version is backup for QlibConfig.reset_qlib_version
 
 
