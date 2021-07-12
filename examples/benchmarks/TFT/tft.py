@@ -305,9 +305,9 @@ class TFTModel(ModelFT):
             the target path to be dumped
         """
         # save tensorflow model
-        path = Path(path)
-        path.mkdir(parents=True)
-        self.model.save(path)
+        # path = Path(path)
+        # path.mkdir(parents=True)
+        # self.model.save(path)
 
         # save qlib model wrapper
         self.model = None
