@@ -215,7 +215,7 @@ class BaseExecutor:
         execute_result : List[object]
             the executed result for trade decision.
             ** NOTE!!!! **:
-            1) This is necessary,  The return value of geenrator will be used in NestedExecutor
+            1) This is necessary,  The return value of generator will be used in NestedExecutor
             2) Please note the executed results are not merged.
 
         Yields
