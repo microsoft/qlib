@@ -372,7 +372,7 @@ class Indicator:
             raise NotImplementedError(f"This type of input is not supported")
 
         # if there is no stock data during the time period
-        if(price_s is None):
+        if price_s is None:
             return None, None
 
         # NOTE: there are some zeros in the trading price. These cases are known meaningless
@@ -456,7 +456,7 @@ class Indicator:
                             trade_exchange=trade_exchange,
                             pa_config=pa_config,
                         )
-                        if((bp_tmp is not None) and (bv_tmp is not None)):
+                        if (bp_tmp is not None) and (bv_tmp is not None):
                             bp_new[inst], bv_new[inst] = bp_tmp, bv_tmp
                     else:
                         bp_new[inst], bv_new[inst] = pr, v

@@ -4,7 +4,7 @@
 Time related utils are compiled in this script
 """
 import bisect
-from datetime import datetime, time
+from datetime import datetime, time, date
 from typing import List, Tuple
 import re
 from numpy import append
@@ -122,6 +122,20 @@ def get_day_min_idx_range(start: str, end: str, freq: str) -> Tuple[int, int]:
     return left_idx, right_idx
 
 
+def concat_date_time(date_obj: date, time_obj: time) -> pd.Timestamp:
+    return pd.Timestamp(
+        datetime(
+            date_obj.year,
+            month=date_obj.month,
+            day=date_obj.day,
+            hour=time_obj.hour,
+            minute=time_obj.minute,
+            second=time_obj.second,
+            microsecond=time_obj.microsecond,
+        )
+    )
+
+
 def cal_sam_minute(x: pd.Timestamp, sam_minutes: int) -> pd.Timestamp:
     """
     align the minute-level data to a down sampled calendar
@@ -143,17 +157,7 @@ def cal_sam_minute(x: pd.Timestamp, sam_minutes: int) -> pd.Timestamp:
     cal = get_min_cal(C.min_data_shift)[::sam_minutes]
     idx = bisect.bisect_right(cal, x.time()) - 1
     date, new_time = x.date(), cal[idx]
-    return pd.Timestamp(
-        datetime(
-            date.year,
-            month=date.month,
-            day=date.day,
-            hour=new_time.hour,
-            minute=new_time.minute,
-            second=new_time.second,
-            microsecond=new_time.microsecond,
-        )
-    )
+    return concat_date_time(date, new_time)
 
 
 if __name__ == "__main__":
