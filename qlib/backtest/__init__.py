@@ -117,13 +117,13 @@ def create_account_instance(
         For `Position`:
             Using Account with a Position
     """
-    if(type(account) in (int, float)):
+    if isinstance(account, (int, float)):
         pos_kwargs = {"init_cash": account}
-    elif(type(account) is Position):
+    elif isinstance(account, Position):
         pos_kwargs = {
             "init_cash": account.position["cash"],
             "position_dict": account.position,
-            }
+        }
     else:
         raise ValueError("account must be in (int, float, Position)")
 
@@ -146,7 +146,7 @@ def get_strategy_executor(
     strategy: BaseStrategy,
     executor: BaseExecutor,
     benchmark: str = "SH000300",
-    account: Union[float, str] = 1e9,
+    account: Union[float, int, Position] = 1e9,
     exchange_kwargs: dict = {},
     pos_type: str = "Position",
 ):
@@ -184,7 +184,41 @@ def backtest(
     exchange_kwargs={},
     pos_type: str = "Position",
 ):
+    """initialize the strategy and executor, then backtest funciton for the interaction of the outermost strategy and executor in the nested decision execution
 
+    Parameters
+    ----------
+    start_time : pd.Timestamp|str
+        closed start time for backtest
+        **NOTE**: This will be applied to the outmost executor's calendar.
+    end_time : pd.Timestamp|str
+        closed end time for backtest
+        **NOTE**: This will be applied to the outmost executor's calendar.
+        E.g. Executor[day](Executor[1min]),   setting `end_time == 20XX0301` will include all the minutes on 20XX0301
+    strategy : Union[str, dict, BaseStrategy]
+        for initializing outermost portfolio strategy. Please refer to the docs of init_instance_by_config for more information.
+    executor : Union[str, dict, BaseExecutor]
+        for initializing the outermost executor.
+    benchmark: str
+        the benchmark for reporting.
+    account : Union[float, int, Position]
+        information for describing how to creating the account
+        For `float` or `int`:
+            Using Account with only initial cash
+        For `Position`:
+            Using Account with a Position
+    exchange_kwargs : dict
+        the kwargs for initializing Exchange
+    pos_type : str
+        the type of Position.
+
+    Returns
+    -------
+    report_dict: Report
+        it records the trading report information
+    indicator_dict: Indicator
+        it computes the trading indicator
+    """
     trade_strategy, trade_executor = get_strategy_executor(
         start_time,
         end_time,
@@ -210,7 +244,15 @@ def collect_data(
     exchange_kwargs={},
     pos_type: str = "Position",
 ):
+    """initialize the strategy and executor, then collect the trade decision data for rl training
 
+    please refer to the docs of the backtest for the explanation of the parameters
+    
+    Yields
+    -------
+    object
+        trade decision
+    """
     trade_strategy, trade_executor = get_strategy_executor(
         start_time,
         end_time,

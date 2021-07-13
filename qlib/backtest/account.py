@@ -93,7 +93,7 @@ class Account:
                 "kwargs": {
                     "cash": init_cash,
                     "position_dict": position_dict,
-                    },
+                },
                 "module_path": "qlib.backtest.position",
             }
         )
