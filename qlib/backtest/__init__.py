@@ -8,6 +8,7 @@ from .account import Account
 
 if TYPE_CHECKING:
     from ..strategy.base import BaseStrategy
+from .position import Position
 from .exchange import Exchange
 from .executor import BaseExecutor
 from .backtest import backtest_loop
@@ -95,7 +96,7 @@ def get_exchange(
 
 
 def create_account_instance(
-    start_time, end_time, benchmark: str, account: float, pos_type: str = "Position"
+    start_time, end_time, benchmark: str, account: Union[float, int, Position], pos_type: str = "Position"
 ) -> Account:
     """
     # TODO: is very strange pass benchmark_config in the account(maybe for report)
@@ -109,13 +110,23 @@ def create_account_instance(
         end time of the benchmark
     benchmark : str
         the benchmark for reporting
-    account : Union[float, str]
+    account : Union[float, int, Position]
         information for describing how to creating the account
-        For `float`
-            Using Account with a normal position
-        For `str`:
-            Using account with a specific Position
+        For `float` or `int`:
+            Using Account with only initial cash
+        For `Position`:
+            Using Account with a Position
     """
+    if(type(account) in (int, float)):
+        pos_kwargs = {"init_cash": account}
+    elif(type(account) is Position):
+        pos_kwargs = {
+            "init_cash": account.position["cash"],
+            "position_dict": account.position,
+            }
+    else:
+        raise ValueError("account must be in (int, float, Position)")
+
     kwargs = {
         "init_cash": account,
         "benchmark_config": {
@@ -125,6 +136,7 @@ def create_account_instance(
         },
         "pos_type": pos_type,
     }
+    kwargs.update(pos_kwargs)
     return Account(**kwargs)
 
 
