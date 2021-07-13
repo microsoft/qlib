@@ -199,13 +199,13 @@ class Position(BasePosition):
     }
     """
 
-    def __init__(self, cash=0, position_dict={}, now_account_value=0):
+    def __init__(self, cash=0, position_dict={}):
         # NOTE: The position dict must be copied!!!
         # Otherwise the initial value
         self.init_cash = cash
         self.position = position_dict.copy()
         self.position["cash"] = cash
-        self.position["now_account_value"] = now_account_value
+        self.position["now_account_value"] = self.calculate_value()
 
     def _init_stock(self, stock_id, amount, price=None):
         """
