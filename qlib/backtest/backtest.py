@@ -21,6 +21,8 @@ def backtest_loop(start_time, end_time, trade_strategy: BaseStrategy, trade_exec
     -------
     report: Report
         it records the trading report information
+    indicator: Indicator
+        it computes the trading indicator
     """
     return_value = {}
     for _decision in collect_data_loop(start_time, end_time, trade_strategy, trade_executor, return_value):
