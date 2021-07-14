@@ -24,32 +24,6 @@ from ...data.dataset import DatasetH, TSDatasetH
 from ...data.dataset.handler import DataHandlerLP
 from torch.nn.modules.container import ModuleList
 
-import pdb
-
-# qrun benchmarks/Transformer/workflow_config_localformer_Alpha158.yaml
-#  0.992366, @13,
-'''
-{'IC': 0.037426503365732174,
- 'ICIR': 0.28977883455541603,
- 'Rank IC': 0.04659889541774283,
- 'Rank ICIR': 0.373569340092482}
-
-'The following are analysis results of the excess return without cost.'
-                       risk
-mean               0.000381
-std                0.004109
-annualized_return  0.096066
-information_ratio  1.472729
-max_drawdown      -0.094917
-'The following are analysis results of the excess return with cost.'
-                       risk
-mean               0.000213
-std                0.004111
-annualized_return  0.053630
-information_ratio  0.821711
-max_drawdown      -0.113694
-'''
-
 
 class LocalformerModel(Model):
     def __init__(
@@ -88,11 +62,8 @@ class LocalformerModel(Model):
         self.device = torch.device("cuda:%d" % GPU if torch.cuda.is_available() and GPU >= 0 else "cpu")
         self.seed = seed
         self.logger = get_module_logger("TransformerModel")
-        print('do we have gpu?{}'.format(torch.cuda.is_available()))
         self.logger.info(
-            "Improved Transformer:"
-            "\nbatch_size : {}"
-            "\ndevice : {}".format(self.batch_size, self.device)
+            "Improved Transformer:" "\nbatch_size : {}" "\ndevice : {}".format(self.batch_size, self.device)
         )
 
         if self.seed is not None:
@@ -161,7 +132,6 @@ class LocalformerModel(Model):
         for data in data_loader:
 
             feature = data[:, :, 0:-1].to(self.device)
-            # feature[torch.isnan(feature)] = 0
             label = data[:, -1, -1].to(self.device)
 
             with torch.no_grad():
@@ -266,11 +236,11 @@ class PositionalEncoding(nn.Module):
         pe[:, 0::2] = torch.sin(position * div_term)
         pe[:, 1::2] = torch.cos(position * div_term)
         pe = pe.unsqueeze(0).transpose(0, 1)
-        self.register_buffer('pe', pe)
+        self.register_buffer("pe", pe)
 
     def forward(self, x):
         # [T, N, F]
-        return x + self.pe[:x.size(0), :]
+        return x + self.pe[: x.size(0), :]
 
 
 def _get_clones(module, N):
@@ -278,7 +248,7 @@ def _get_clones(module, N):
 
 
 class LocalformerEncoder(nn.Module):
-    __constants__ = ['norm']
+    __constants__ = ["norm"]
 
     def __init__(self, encoder_layer, num_layers, d_model):
         super(LocalformerEncoder, self).__init__()
@@ -295,7 +265,7 @@ class LocalformerEncoder(nn.Module):
             out = output.transpose(1, 0).transpose(2, 1)
             out = self.conv[i](out).transpose(2, 1).transpose(1, 0)
 
-            output = mod(output+out, src_mask=mask)
+            output = mod(output + out, src_mask=mask)
 
         return output + out
 
@@ -319,9 +289,7 @@ class Transformer(nn.Module):
         self.d_feat = d_feat
 
     def forward(self, src):
-        # pdb.set_trace()
         # src [N, T, F], [512, 60, 6]
-
         src = self.feature_layer(src)  # [512, 60, 8]
 
         # src [N, T, F] --> [T, N, F], [60, 512, 8]
@@ -338,4 +306,3 @@ class Transformer(nn.Module):
         output = self.decoder_layer(output.transpose(1, 0)[:, -1, :])  # [512, 1]
 
         return output.squeeze()
-
