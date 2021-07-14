@@ -23,32 +23,6 @@ from ...model.base import Model
 from ...data.dataset import DatasetH, TSDatasetH
 from ...data.dataset.handler import DataHandlerLP
 
-import pdb
-
-# qrun benchmarks/Transformer/workflow_config_transformer_Alpha158.yaml
-#  0.993681, @11,
-'''
-  'IC': 0.03186587768611013,
-  'ICIR': 0.2556910881045764,
-  'Rank IC': 0.04735251936658551,
-  'Rank ICIR': 0.388378955424602
-
-'The following are analysis results of the excess return without cost.'
-                       risk
-mean               0.000309
-std                0.004209
-annualized_return  0.077839
-information_ratio  1.164993
-max_drawdown      -0.106215
-'The following are analysis results of the excess return with cost.'
-                       risk
-mean               0.000126
-std                0.004209
-annualized_return  0.031707
-information_ratio  0.474567
-max_drawdown      -0.131948
-'''
-
 
 class TransformerModel(Model):
     def __init__(
@@ -87,12 +61,7 @@ class TransformerModel(Model):
         self.device = torch.device("cuda:%d" % GPU if torch.cuda.is_available() and GPU >= 0 else "cpu")
         self.seed = seed
         self.logger = get_module_logger("TransformerModel")
-        print('do we have gpu?{}'.format(torch.cuda.is_available()))
-        self.logger.info(
-            "Naive Transformer:"
-            "\nbatch_size : {}"
-            "\ndevice : {}".format(self.batch_size, self.device)
-        )
+        self.logger.info("Naive Transformer:" "\nbatch_size : {}" "\ndevice : {}".format(self.batch_size, self.device))
 
         if self.seed is not None:
             np.random.seed(self.seed)
@@ -160,7 +129,6 @@ class TransformerModel(Model):
         for data in data_loader:
 
             feature = data[:, :, 0:-1].to(self.device)
-            # feature[torch.isnan(feature)] = 0
             label = data[:, -1, -1].to(self.device)
 
             with torch.no_grad():
@@ -265,23 +233,16 @@ class PositionalEncoding(nn.Module):
         pe[:, 0::2] = torch.sin(position * div_term)
         pe[:, 1::2] = torch.cos(position * div_term)
         pe = pe.unsqueeze(0).transpose(0, 1)
-        self.register_buffer('pe', pe)
+        self.register_buffer("pe", pe)
 
     def forward(self, x):
         # [T, N, F]
-        return x + self.pe[:x.size(0), :]
+        return x + self.pe[: x.size(0), :]
 
 
 class Transformer(nn.Module):
     def __init__(self, d_feat=6, d_model=8, nhead=4, num_layers=2, dropout=0.5, device=None):
         super(Transformer, self).__init__()
-        self.rnn = nn.GRU(
-            input_size=d_feat,
-            hidden_size=d_model,
-            num_layers=num_layers,
-            batch_first=True,
-            dropout=dropout,
-        )
         self.feature_layer = nn.Linear(d_feat, d_model)
         self.pos_encoder = PositionalEncoding(d_model)
         self.encoder_layer = nn.TransformerEncoderLayer(d_model=d_model, nhead=nhead, dropout=dropout)
@@ -291,10 +252,7 @@ class Transformer(nn.Module):
         self.d_feat = d_feat
 
     def forward(self, src):
-        # pdb.set_trace()
         # src [N, T, F], [512, 60, 6]
-
-        # out, _ = self.rnn(src)
         src = self.feature_layer(src)  # [512, 60, 8]
 
         # src [N, T, F] --> [T, N, F], [60, 512, 8]
@@ -309,4 +267,3 @@ class Transformer(nn.Module):
         output = self.decoder_layer(output.transpose(1, 0)[:, -1, :])  # [512, 1]
 
         return output.squeeze()
-
