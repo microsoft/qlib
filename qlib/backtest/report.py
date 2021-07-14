@@ -371,6 +371,10 @@ class Indicator:
         else:
             raise NotImplementedError(f"This type of input is not supported")
 
+        # if there is no stock data during the time period
+        if price_s is None:
+            return None, None
+
         # NOTE: there are some zeros in the trading price. These cases are known meaningless
         # for aligning the previous logic, remove it.
         # price_s = price_s.mask(np.isclose(price_s, 0))
@@ -443,7 +447,7 @@ class Indicator:
                 bp_new, bv_new = {}, {}
                 for pr, v, (inst, direction) in zip(bp_s.values, bv_s.values, trade_dir.items()):
                     if np.isnan(pr):
-                        bp_new[inst], bv_new[inst] = self._get_base_vol_pri(
+                        bp_tmp, bv_tmp = self._get_base_vol_pri(
                             inst,
                             start,
                             end,
@@ -452,6 +456,8 @@ class Indicator:
                             trade_exchange=trade_exchange,
                             pa_config=pa_config,
                         )
+                        if (bp_tmp is not None) and (bv_tmp is not None):
+                            bp_new[inst], bv_new[inst] = bp_tmp, bv_tmp
                     else:
                         bp_new[inst], bv_new[inst] = pr, v
 

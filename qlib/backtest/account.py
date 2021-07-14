@@ -67,6 +67,7 @@ class Account:
     def __init__(
         self,
         init_cash: float = 1e9,
+        position_dict: dict = {},
         freq: str = "day",
         benchmark_config: dict = {},
         pos_type: str = "Position",
@@ -74,7 +75,7 @@ class Account:
     ):
         self._pos_type = pos_type
         self._port_metr_enabled = port_metr_enabled
-        self.init_vars(init_cash, freq, benchmark_config)
+        self.init_vars(init_cash, position_dict, freq, benchmark_config)
 
     def is_port_metr_enabled(self):
         """
@@ -82,14 +83,17 @@ class Account:
         """
         return self._port_metr_enabled and not self.current.skip_update()
 
-    def init_vars(self, init_cash, freq: str, benchmark_config: dict):
+    def init_vars(self, init_cash, position_dict, freq: str, benchmark_config: dict):
 
         # init cash
         self.init_cash = init_cash
         self.current: BasePosition = init_instance_by_config(
             {
                 "class": self._pos_type,
-                "kwargs": {"cash": init_cash},
+                "kwargs": {
+                    "cash": init_cash,
+                    "position_dict": position_dict,
+                },
                 "module_path": "qlib.backtest.position",
             }
         )

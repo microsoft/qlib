@@ -1,6 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 from __future__ import annotations
+import bisect
 from typing import Union, TYPE_CHECKING, Tuple, Union, List, Set
 
 if TYPE_CHECKING:
@@ -118,6 +119,33 @@ class TradeCalendarManager:
         """Get the start_time and end_time for trading"""
         return self.start_time, self.end_time
 
+    # helper functions
+    def get_range_idx(self, start_time: pd.Timestamp, end_time: pd.Timestamp) -> Tuple[int, int]:
+        """
+        get the range index which involve start_time~end_time  (both sides are closed)
+
+        Parameters
+        ----------
+        start_time : pd.Timestamp
+        end_time : pd.Timestamp
+
+        Returns
+        -------
+        Tuple[int, int]:
+            the index of the range.  **the left and right are closed**
+        """
+        left, right = (
+            bisect.bisect_right(self._calendar, start_time) - 1,
+            bisect.bisect_right(self._calendar, end_time) - 1,
+        )
+        left -= self.start_index
+        right -= self.start_index
+
+        def clip(idx):
+            return min(max(0, idx), self.trade_len - 1)
+
+        return clip(left), clip(right)
+
     def __repr__(self) -> str:
         return f"{self.start_time}[{self.start_index}]~{self.end_time}[{self.end_index}]: [{self.trade_step}/{self.trade_len}]"
 
@@ -201,6 +229,6 @@ def get_start_end_idx(trade_calendar: TradeCalendarManager, outer_trade_decision
         start index and end index
     """
     try:
-        return outer_trade_decision.get_range_limit()
+        return outer_trade_decision.get_range_limit(inner_calendar=trade_calendar)
     except NotImplementedError:
         return 0, trade_calendar.get_trade_len() - 1

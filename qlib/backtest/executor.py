@@ -215,7 +215,7 @@ class BaseExecutor:
         execute_result : List[object]
             the executed result for trade decision.
             ** NOTE!!!! **:
-            1) This is necessary,  The return value of geenrator will be used in NestedExecutor
+            1) This is necessary,  The return value of generator will be used in NestedExecutor
             2) Please note the executed results are not merged.
 
         Yields
@@ -368,11 +368,17 @@ class NestedExecutor(BaseExecutor):
                 break
 
             sub_cal: TradeCalendarManager = self.inner_executor.trade_calendar
+
+            # NOTE: make sure get_start_end_idx is after `self._update_trade_decision`
             start_idx, end_idx = get_start_end_idx(sub_cal, trade_decision)
             if not self._align_range_limit or start_idx <= sub_cal.get_trade_step() <= end_idx:
                 # if force align the range limit, skip the steps outside the decision range limit
 
-                _inner_trade_decision = self.inner_strategy.generate_trade_decision(_inner_execute_result)
+                _inner_trade_decision: BaseTradeDecision = self.inner_strategy.generate_trade_decision(
+                    _inner_execute_result
+                )
+                trade_decision.mod_inner_decision(_inner_trade_decision)  # propagate part of decision information
+
                 # NOTE sub_cal.get_cur_step_time() must be called before collect_data in case of step shifting
                 decision_list.append((_inner_trade_decision, *sub_cal.get_cur_step_time()))
 
