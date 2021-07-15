@@ -294,7 +294,7 @@ class BaseTradeDecision:
         self.total_step = None  # upper strategy has no knowledge about the sub executor before `_init_sub_trading`
         if isinstance(trade_range, Tuple):
             # for Tuple[int, int]
-            trade_range = IdxTradeRange(**trade_range)
+            trade_range = IdxTradeRange(*trade_range)
         self.trade_range: TradeRange = trade_range
 
     def get_decision(self) -> List[object]:
