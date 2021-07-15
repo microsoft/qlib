@@ -166,7 +166,60 @@ class OrderHelper:
         )
 
 
-class IndexRangeByTime:
+class TradeRange:
+    def __call__(self, trade_calendar: TradeCalendarManager) -> Tuple[int, int]:
+        """
+        This method will be call with following way
+
+        The outer strategy give a decision with with `TradeRange`
+        The decision will be checked by the inner decision.
+        inner decision will pass its trade_calendar as parameter when getting the trading range
+        - The framework's step is integer-index based.
+
+        Parameters
+        ----------
+        trade_calendar : TradeCalendarManager
+            the trade_calendar is from inner strategy
+
+        Returns
+        -------
+        Tuple[int, int]:
+            the start index and end index which are tradable
+
+        Raises
+        ------
+        NotImplementedError:
+            Exceptions are raised when no range limitation
+        """
+        raise NotImplementedError(f"Please implement the `__call__` method")
+
+    def clip_time_range(self, start_time: pd.Timestamp, end_time: pd.Timestamp) -> Tuple[pd.Timestamp, pd.Timestamp]:
+        """
+        Parameters
+        ----------
+        start_time : pd.Timestamp
+        end_time : pd.Timestamp
+            Both sides (start_time, end_time) are closed
+
+        Returns
+        -------
+        Tuple[pd.Timestamp, pd.Timestamp]:
+            The tradable time range.
+            - It is intersection of [start_time, end_time] and the rule of TradeRange itself
+        """
+        raise NotImplementedError(f"Please implement the `clip_time_range` method")
+
+
+class IdxTradeRange(TradeRange):
+    def __init__(self, start_idx: int, end_idx: int):
+        self._start_idx = start_idx
+        self._end_idx = end_idx
+
+    def __call__(self, trade_calendar: TradeCalendarManager = None) -> Tuple[int, int]:
+        return self._start_idx, self._end_idx
+
+
+class TradeRangeByTime(TradeRange):
     """This is a helper function for make decisions"""
 
     def __init__(self, start_time: str, end_time: str):
@@ -186,13 +239,23 @@ class IndexRangeByTime:
         """
         self.start_time = pd.Timestamp(start_time).time()
         self.end_time = pd.Timestamp(end_time).time()
+        assert self.start_time < self.end_time
 
-    def __call__(self, trade_calendar: TradeCalendarManager) -> Tuple[int, int]:
+    def __call__(self, trade_calendar: TradeCalendarManager = None) -> Tuple[int, int]:
+        if trade_calendar is None:
+            raise NotImplementedError("trade_calendar is necessary for getting TradeRangeByTime.")
         start = trade_calendar.start_time
         val_start, val_end = concat_date_time(start.date(), self.start_time), concat_date_time(
             start.date(), self.end_time
         )
         return trade_calendar.get_range_idx(val_start, val_end)
+
+    def clip_time_range(self, start_time: pd.Timestamp, end_time: pd.Timestamp) -> Tuple[pd.Timestamp, pd.Timestamp]:
+        start_date = start_time.date()
+        val_start, val_end = concat_date_time(start_date, self.start_time), concat_date_time(start_date, self.end_time)
+        # NOTE: `end_date` should not be used. Because the `end_date` is for slicing. It may be in the next day
+        # Assumption: start_time and end_time is for intraday trading. So it is OK for only using start_date
+        return max(val_start, start_time), min(val_end, end_time)
 
 
 class BaseTradeDecision:
@@ -211,54 +274,29 @@ class BaseTradeDecision:
         2. Same as `case 1.3`
     """
 
-    def __init__(self, strategy: BaseStrategy, idx_range: Union[Tuple[int, int], Callable] = None):
+    def __init__(self, strategy: BaseStrategy, trade_range: Union[Tuple[int, int], TradeRange] = None):
         """
         Parameters
         ----------
         strategy : BaseStrategy
             The strategy who make the decision
-        idx_range: Union[Tuple[int, int], Callable] (optional)
+        trade_range: Union[Tuple[int, int], Callable] (optional)
             The index range for underlying strategy.
 
-            Here are two examples of idx_range for each type
+            Here are two examples of trade_range for each type
 
             1) Tuple[int, int]
-            start_index and end_index of the underlying factor(both sides are closed)
+            start_index and end_index of the underlying strategy(both sides are closed)
 
-
-            2) Callable
-
-            .. code-block:: python
-                def idx_range(time_per_step: str) -> Tuple[int, int]:
-                    # time_per_step is the strategy's time_per_step (not inner strategy. It's the `self` strategy in
-                    # `self._idx_range` )
-                    # e.g.
-                    # For example, strategy A with 30min each step and strategy B with 1min each step
-                    # strategy A's will use "30min" when calling `idx_range`.
+            2) TradeRange
 
         """
         self.strategy = strategy
         self.total_step = None  # upper strategy has no knowledge about the sub executor before `_init_sub_trading`
-        self._idx_range = idx_range
-
-    @staticmethod
-    def _calc_idx_range(
-        idx_range: Union[Tuple[int, int], Callable], inner_calendar: TradeCalendarManager = None
-    ) -> Tuple[int, int]:
-        """calculate index range for `idx_range` in different cases"""
-        if idx_range is None:
-            # not set, return nothing
-            return None, None
-        elif isinstance(idx_range, tuple):
-            return idx_range
-        elif isinstance(idx_range, Callable):
-            if inner_calendar is None:
-                # time_per_step is a required parameter for `def idx_range`
-                return None, None
-            else:
-                return idx_range(inner_calendar)
-        else:
-            raise NotImplementedError(f"This type of input is not supported")
+        if isinstance(trade_range, Tuple):
+            # for Tuple[int, int]
+            trade_range = IdxTradeRange(**trade_range)
+        self.trade_range: TradeRange = trade_range
 
     def get_decision(self) -> List[object]:
         """
@@ -303,12 +341,18 @@ class BaseTradeDecision:
         # purpose 2)
         return self.strategy.update_trade_decision(self, trade_calendar)
 
+    def _get_range_limit(self, **kwargs) -> Tuple[int, int]:
+        if self.trade_range is not None:
+            return self.trade_range(trade_calendar=kwargs.get("inner_calendar"))
+        else:
+            raise NotImplementedError("The decision didn't provide an index range")
+
     def get_range_limit(self, **kwargs) -> Tuple[int, int]:
         """
         return the expected step range for limiting the decision execution time
         Both left and right are **closed**
 
-        if no available _idx_range, `default_value` will be returned
+        if no available trade_range, `default_value` will be returned
 
         It is only used in `NestedExecutor`
         - The outmost strategy will not follow any range limit (but it may give range_limit)
@@ -328,7 +372,7 @@ class BaseTradeDecision:
                 "default_value": <default_value>, # using dict is for distinguish no value provided or None provided
                 "inner_calendar": <trade calendar of inner strategy>
                 # because the range limit  will control the step range of inner strategy, inner calendar will be a
-                # important parameter when _idx_range is callable
+                # important parameter when trade_range is callable
             }
 
         Returns
@@ -342,29 +386,25 @@ class BaseTradeDecision:
             1) the decision can't provide a unified start and end
             2) default_value is not provided
         """
-
-        # get index
-        _start_idx, _end_idx = self._calc_idx_range(self._idx_range, inner_calendar=kwargs.get("inner_calendar"))
-        if _start_idx is None or _end_idx is None:
-            # handle case without decision
-            # TODO:  time range in the order should be checked.
-
-            # _start_idx and _end_idx should be used instead of _idx_range
-            # because it is possible that no limitation when _idx_range is callable and return None
+        try:
+            _start_idx, _end_idx = self._get_range_limit(**kwargs)
+        except NotImplementedError:
             if "default_value" in kwargs:
                 return kwargs["default_value"]
             else:
                 # Default to get full index
                 raise NotImplementedError(f"The decision didn't provide an index range")
-        else:
-            # clip index
-            if getattr(self, "total_step", None) is not None:
-                # if `self.update` is called.
-                # Then the _start_idx, _end_idx should be clipped
-                if _start_idx < 0 or _end_idx >= self.total_step:
-                    logger = get_module_logger("decision")
-                    logger.warning(f"{self._idx_range} go beyoud the total_step({self.total_step}), it will be clipped")
-                    _start_idx, _end_idx = max(0, _start_idx), min(self.total_step - 1, _end_idx)
+
+        # clip index
+        if getattr(self, "total_step", None) is not None:
+            # if `self.update` is called.
+            # Then the _start_idx, _end_idx should be clipped
+            if _start_idx < 0 or _end_idx >= self.total_step:
+                logger = get_module_logger("decision")
+                logger.warning(
+                    f"[{_start_idx},{_end_idx}] go beyoud the total_step({self.total_step}), it will be clipped"
+                )
+                _start_idx, _end_idx = max(0, _start_idx), min(self.total_step - 1, _end_idx)
         return _start_idx, _end_idx
 
     def empty(self) -> bool:
@@ -394,9 +434,9 @@ class BaseTradeDecision:
         inner_trade_decision : BaseTradeDecision
         """
         # base class provide a default behaviour to modify inner_trade_decision
-        # callable _idx_range should be propagated when inner _idx_range is not set
-        if isinstance(self._idx_range, Callable) and inner_trade_decision._idx_range is None:
-            inner_trade_decision._idx_range = self._idx_range
+        # trade_range should be propagated when inner trade_range is not set
+        if inner_trade_decision.trade_range is None:
+            inner_trade_decision.trade_range = self.trade_range
 
 
 class EmptyTradeDecision(BaseTradeDecision):
@@ -410,106 +450,12 @@ class TradeDecisionWO(BaseTradeDecision):
     Besides, the time_range is also included.
     """
 
-    def __init__(self, order_list: List[Order], strategy: BaseStrategy, idx_range: Tuple[int, int] = None):
-        super().__init__(strategy, idx_range=idx_range)
+    def __init__(self, order_list: List[Order], strategy: BaseStrategy, trade_range: Tuple[int, int] = None):
+        super().__init__(strategy, trade_range=trade_range)
         self.order_list = order_list
 
     def get_decision(self) -> List[object]:
         return self.order_list
 
     def __repr__(self) -> str:
-        return f"strategy: {self.strategy}; idx_range: {self._idx_range}; order_list[{len(self.order_list)}]"
-
-
-# TODO: the orders below need to be discussed ------------------------------------
-# - The classes below are designed for Case 1
-# - However, Case 1 can't take `order_pool` as the an argument as the constructor function
-class TradeDecisionWithOrderPool:
-    """trade decision that made by strategy"""
-
-    def __init__(self, strategy, order_pool):
-        """
-        Parameters
-        ----------
-        strategy : BaseStrategy
-            the original strategy that make the decision
-        order_pool : list, optional
-            the candinate order pool for generate trade decision
-        """
-        super(TradeDecisionWithOrderPool, self).__init__(strategy)
-        self.order_pool = order_pool
-        self.order_list = []
-
-    def pop_order_pool(self, pop_len):
-        if pop_len > len(self.order_pool):
-            warnings.warn(
-                f"pop len {pop_len} is too much length than order pool, cut it as pool length {len(self.order_pool)}"
-            )
-            pop_len = len(self.order_pool)
-        res = self.order_pool[:pop_len]
-        del self.order_pool[:pop_len]
-        return res
-
-    def push_order_list(self, order_list):
-        self.order_list.extend(order_list)
-
-    def get_decision(self):
-        """get the order list
-
-        Parameters
-        ----------
-        only_enable : bool, optional
-            wether to ignore disabled order, by default False
-        only_disable : bool, optional
-            wether to ignore enabled order, by default False
-        Returns
-        -------
-        List[Order]
-            the order list
-        """
-        return self.order_list
-
-    def update(self, trade_calendar):
-        """make the original strategy update the enabled status of orders."""
-        self.ori_strategy.update_trade_decision(self, trade_calendar)
-
-
-class BaseDecisionUpdater:
-    def update_decision(self, decision, trade_calendar) -> BaseTradeDecision:
-        """
-        Parameters
-        ----------
-        decision : BaseTradeDecision
-            the trade decision to be updated
-        trade_calendar : BaseTradeCalendar
-            the trade calendar of inner execution
-
-        Returns
-        -------
-        BaseTradeDecision
-            the updated decision
-        """
-        raise NotImplementedError(f"This method is not implemented")
-
-
-class DecisionUpdaterWithOrderPool:
-    def __init__(self, plan_config=None):
-        """
-        Parameters
-        ----------
-        plan_config : Dict[Tuple(int, float)], optional
-            the plan config, by default None
-        """
-        if plan_config is None:
-            self.plan_config = [(0, 1)]
-        else:
-            self.plan_config = plan_config
-
-    def update_decision(self, decision, trade_calendar) -> BaseTradeDecision:
-        # get the number of trading step finished, trade_step can be [0, 1, 2, ..., trade_len - 1]
-        trade_step = self.trade_calendar.get_trade_step()
-        for _index, _ratio in self.plan_config:
-            if trade_step == _index:
-                pop_len = len(decision.order_pool) * _ratio
-                pop_order_list = decision.pop_order_pool(pop_len)
-                decision.push_order_list(pop_order_list)
+        return f"strategy: {self.strategy}; trade_range: {self.trade_range}; order_list[{len(self.order_list)}]"

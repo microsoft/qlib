@@ -247,7 +247,7 @@ def collect_data(
     """initialize the strategy and executor, then collect the trade decision data for rl training
 
     please refer to the docs of the backtest for the explanation of the parameters
-    
+
     Yields
     -------
     object
