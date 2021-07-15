@@ -364,6 +364,11 @@ class Indicator:
         agg = pa_config.get("agg", "twap").lower()
         price = pa_config.get("price", "deal_price").lower()
 
+        # NOTE:  IndexTradeRange is not supported!!!!! Because inner index is not available
+        trade_start_time, trade_end_time = decision.trade_range.clip_time_range(
+            start_time=trade_start_time, end_time=trade_end_time
+        )
+
         if price == "deal_price":
             price_s = trade_exchange.get_deal_price(
                 inst, trade_start_time, trade_end_time, direction=direction, method=None
@@ -385,21 +390,6 @@ class Indicator:
             volume_s = pd.Series(1, index=price_s.index)
         else:
             raise NotImplementedError(f"This type of input is not supported")
-
-        # no sub executor on the lowest level
-        # So range_limit an total step will all be None
-        total_step = decision.total_step
-        if total_step is None:
-            total_step = 1
-        range_limit = decision.get_range_limit(default_value=(0, total_step - 1))
-
-        assert volume_s.shape[0] % total_step == 0, "The price series can't  be divided by step length"
-        factor = volume_s.shape[0] // total_step
-
-        slc = slice(range_limit[0] * factor, (range_limit[1] + 1) * factor)
-
-        volume_s = volume_s.iloc[slc]
-        price_s = price_s.iloc[slc]
 
         base_volume = volume_s.sum().item()
         base_price = ((price_s * volume_s).sum() / base_volume).item()

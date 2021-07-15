@@ -10,7 +10,7 @@ from qlib.utils import lazy_sort_index
 from ...utils.resam import resam_ts_data, ts_data_last
 from ...data.data import D
 from ...strategy.base import BaseStrategy
-from ...backtest.order import BaseTradeDecision, Order, TradeDecisionWO
+from ...backtest.order import BaseTradeDecision, Order, TradeDecisionWO, TradeRange
 from ...backtest.exchange import Exchange, OrderHelper
 from ...backtest.utils import CommonInfrastructure, LevelInfrastructure
 from qlib.utils.file import get_io_object
@@ -625,7 +625,7 @@ class ACStrategy(BaseStrategy):
 class RandomOrderStrategy(BaseStrategy):
     def __init__(
         self,
-        index_range: Tuple[int, int],  # The range is closed on both left and right.
+        trade_range: Union[Tuple[int, int], TradeRange],  # The range is closed on both left and right.
         sample_ratio: float = 1.0,
         volume_ratio: float = 0.01,
         market: str = "all",
@@ -636,13 +636,8 @@ class RandomOrderStrategy(BaseStrategy):
         """
         Parameters
         ----------
-        index_range : Tuple
-            the intra day time index range of the orders
-            the left and right is closed.
-
-            If you want to get the index_range in intra-day
-            - `qlib/utils/time.py:def get_day_min_idx_range` can help you create the index range easier
-            # TODO: this is a index_range level limitation. We'll implement a more detailed limitation later.
+        trade_range : Tuple
+            please refer to the `trade_range` parameter of BaseStrategy
         sample_ratio : float
             the ratio of all orders are sampled
         volume_ratio : float
@@ -653,7 +648,6 @@ class RandomOrderStrategy(BaseStrategy):
         """
 
         super().__init__(*args, **kwargs)
-        self.index_range = index_range
         self.sample_ratio = sample_ratio
         self.volume_ratio = volume_ratio
         self.market = market
@@ -664,6 +658,7 @@ class RandomOrderStrategy(BaseStrategy):
             D.instruments(market), ["Mean(Ref($volume, 1), 10)"], start_time=exch.start_time, end_time=exch.end_time
         )
         self.volume_df = self.volume.iloc[:, 0].unstack()
+        self.trade_range = trade_range
 
     def generate_trade_decision(self, execute_result=None):
         trade_step = self.trade_calendar.get_trade_step()
@@ -683,7 +678,7 @@ class RandomOrderStrategy(BaseStrategy):
                         direction=self.direction,
                     )
                 )
-        return TradeDecisionWO(order_list, self, self.index_range)
+        return TradeDecisionWO(order_list, self, self.trade_range)
 
 
 class FileOrderStrategy(BaseStrategy):
@@ -692,7 +687,7 @@ class FileOrderStrategy(BaseStrategy):
     - This class provides an interface for user to read orders from csv files.
     """
 
-    def __init__(self, file: Union[IO, str, Path], index_range: Tuple[int, int] = None, *args, **kwargs):
+    def __init__(self, file: Union[IO, str, Path], trade_range: Union[Tuple[int, int], TradeRange]= None, *args, **kwargs):
         """
 
         Parameters
@@ -709,13 +704,13 @@ class FileOrderStrategy(BaseStrategy):
                 20200103,  SH600519,  1000,      buy
                 20200106,  SH600519,  1000,     sell
 
-        index_range : Tuple[int, int]
+        trade_range : Tuple[int, int]
             the intra day time index range of the orders
             the left and right is closed.
 
-            If you want to get the index_range in intra-day
+            If you want to get the trade_range in intra-day
             - `qlib/utils/time.py:def get_day_min_idx_range` can help you create the index range easier
-            # TODO: this is a index_range level limitation. We'll implement a more detailed limitation later.
+            # TODO: this is a trade_range level limitation. We'll implement a more detailed limitation later.
 
         """
         super().__init__(*args, **kwargs)
@@ -727,7 +722,7 @@ class FileOrderStrategy(BaseStrategy):
 
         # make sure the datetime is the first level for fast indexing
         self.order_df = lazy_sort_index(convert_index_format(self.order_df, level="datetime"))
-        self.index_range = index_range
+        self.trade_range = trade_range
 
     def generate_trade_decision(self, execute_result=None) -> TradeDecisionWO:
         """
@@ -757,4 +752,4 @@ class FileOrderStrategy(BaseStrategy):
                         end_time=end,
                     )
                 )
-            return TradeDecisionWO(order_list, self, self.index_range)
+            return TradeDecisionWO(order_list, self, self.trade_range)

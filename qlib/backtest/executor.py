@@ -296,7 +296,7 @@ class NestedExecutor(BaseExecutor):
             - The decisions may be updated by steps
             - The inner executor may not follow the decisions from the outer strategy
         align_range_limit: bool
-            force to align the index_range decision
+            force to align the trade_range decision
             It is only for nested executor, because range_limit is given by outer strategy
         """
         self.inner_executor: BaseExecutor = init_instance_by_config(
