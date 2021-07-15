@@ -520,7 +520,7 @@ class Indicator:
             return pa_order
         return (pa_order > 0).astype(int).sum() / pa_order.count()
 
-    def _cal_trade_amount(self):
+    def _cal_deal_amount(self):
         return self.order_indicator["deal_amount"].abs().sum()
 
     def _cal_trade_value(self):
@@ -536,13 +536,13 @@ class Indicator:
         fulfill_rate = self._cal_trade_fulfill_rate(method=ffr_config.get("weight_method", "mean"))
         price_advantage = self._cal_trade_price_advantage(method=pa_config.get("weight_method", "mean"))
         positive_rate = self._cal_trade_positive_rate()
-        trade_amount = self._cal_trade_amount()
+        deal_amount = self._cal_deal_amount()
         trade_value = self._cal_trade_value()
         order_count = self._cal_trade_order_count()
         self.trade_indicator["ffr"] = fulfill_rate
         self.trade_indicator["pa"] = price_advantage
         self.trade_indicator["pos"] = positive_rate
-        self.trade_indicator["amount"] = trade_amount
+        self.trade_indicator["deal_amount"] = deal_amount
         self.trade_indicator["value"] = trade_value
         self.trade_indicator["count"] = order_count
         if show_indicator:
