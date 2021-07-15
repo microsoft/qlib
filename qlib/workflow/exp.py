@@ -325,7 +325,7 @@ class MLflowExperiment(Experiment):
 
     UNLIMITED = 50000  # FIXME: Mlflow can only list 50000 records at most!!!!!!!
 
-    def list_recorders(self, max_results: int = UNLIMITED, status: Union[str, None] = None, filter_string: str=""):
+    def list_recorders(self, max_results: int = UNLIMITED, status: Union[str, None] = None, filter_string: str = ""):
         """
         Parameters
         ----------
@@ -337,7 +337,9 @@ class MLflowExperiment(Experiment):
         filter_string : str
             mlflow supported filter string like 'params."my_param"="a" and tags."my_tag"="b"', use this will help to reduce too much run number.
         """
-        runs = self._client.search_runs(self.id, run_view_type=ViewType.ACTIVE_ONLY, max_results=max_results, filter_string=filter_string)
+        runs = self._client.search_runs(
+            self.id, run_view_type=ViewType.ACTIVE_ONLY, max_results=max_results, filter_string=filter_string
+        )
         recorders = dict()
         for i in range(len(runs)):
             recorder = MLflowRecorder(self.id, self._uri, mlflow_run=runs[i])
