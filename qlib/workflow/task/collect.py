@@ -139,7 +139,7 @@ class RecorderCollector(Collector):
         rec_filter_func=None,
         artifacts_path={"pred": "pred.pkl"},
         artifacts_key=None,
-        filter_string: str = ""
+        filter_string: str = "",
     ):
         """
         Init RecorderCollector.
