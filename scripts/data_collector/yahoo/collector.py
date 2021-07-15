@@ -325,9 +325,22 @@ class YahooNormalize(BaseNormalize):
         # NOTE: The data obtained by Yahoo finance sometimes has exceptions
         # WARNING: If it is normal for a `symbol(exchange)` to differ by a factor of *89* to *111* for consecutive trading days,
         # WARNING: the logic in the following line needs to be modified
-        _mask = (change_series >= 89) & (change_series <= 111)
-        _tmp_cols = ["high", "close", "low", "open", "adjclose"]
-        df.loc[_mask, _tmp_cols] = df.loc[_mask, _tmp_cols] / 100
+        _count = 0
+        while True:
+            # NOTE: may appear unusual for many days in a row
+            change_series = YahooNormalize.calc_change(df, last_close)
+            _mask = (change_series >= 89) & (change_series <= 111)
+            if not _mask.any():
+                break
+            _tmp_cols = ["high", "close", "low", "open", "adjclose"]
+            df.loc[_mask, _tmp_cols] = df.loc[_mask, _tmp_cols] / 100
+            _count += 1
+            if _count >= 10:
+                _symbol = df.loc[df[symbol_field_name].first_valid_index()]["symbol"]
+                logger.warning(
+                    f"{_symbol} `change` is abnormal for {_count} consecutive days, please check the specific data file carefully"
+                )
+
         df["change"] = YahooNormalize.calc_change(df, last_close)
 
         columns += ["change"]
