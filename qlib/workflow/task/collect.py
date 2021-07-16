@@ -151,7 +151,7 @@ class RecorderCollector(Collector):
             rec_filter_func (Callable, optional): filter the recorder by return True or False. Defaults to None.
             artifacts_path (dict, optional): The artifacts name and its path in Recorder. Defaults to {"pred": "pred.pkl", "IC": "sig_analysis/ic.pkl"}.
             artifacts_key (str or List, optional): the artifacts key you want to get. If None, get all artifacts.
-            filter_string (str): filter string that used to apply in recorder quering (only support mlflow for now).
+            list_kwargs (str): arguments for list_recorders function.
         """
         super().__init__(process_list=process_list)
         if isinstance(experiment, str):
