@@ -50,7 +50,7 @@ port_analysis_config: &port_analysis_config
 task:
     model:
         class: LocalformerModel
-        module_path: qlib.contrib.model.pytorch_localformer
+        module_path: qlib.contrib.model.pytorch_localformer_ts
         kwargs:
             seed: 0
             n_jobs: 20
