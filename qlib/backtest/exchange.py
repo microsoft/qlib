@@ -615,7 +615,7 @@ class BaseQuote:
         start_time: Union[pd.Timestamp, str],
         end_time: Union[pd.Timestamp, str],
         fields: Union[str, list] = None,
-        method: Union[str, Callable] = None,
+        method: Union[str, "Callable"] = None,
     ):
         """get the specific fields of stock data during start time and end_time,
            and apply method to the data.
