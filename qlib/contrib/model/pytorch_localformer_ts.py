@@ -8,7 +8,6 @@ from __future__ import print_function
 import os
 import numpy as np
 import pandas as pd
-from typing import Text, Union
 import copy
 import math
 from ...utils import get_or_create_path
@@ -24,7 +23,6 @@ from ...model.base import Model
 from ...data.dataset import DatasetH, TSDatasetH
 from ...data.dataset.handler import DataHandlerLP
 from torch.nn.modules.container import ModuleList
-# qrun examples/benchmarks/Localformer/workflow_config_localformer_Alpha360.yaml ”
 
 
 class LocalformerModel(Model):
@@ -32,7 +30,7 @@ class LocalformerModel(Model):
         self,
         d_feat: int = 20,
         d_model: int = 64,
-        batch_size: int = 2048,
+        batch_size: int = 8192,
         nhead: int = 2,
         num_layers: int = 2,
         dropout: float = 0,
@@ -44,7 +42,7 @@ class LocalformerModel(Model):
         optimizer="adam",
         reg=1e-3,
         n_jobs=10,
-        GPU=0,
+        GPU=2,
         seed=None,
         **kwargs
     ):
@@ -64,7 +62,9 @@ class LocalformerModel(Model):
         self.device = torch.device("cuda:%d" % GPU if torch.cuda.is_available() and GPU >= 0 else "cpu")
         self.seed = seed
         self.logger = get_module_logger("TransformerModel")
-        self.logger.info("Naive Transformer:" "\nbatch_size : {}" "\ndevice : {}".format(self.batch_size, self.device))
+        self.logger.info(
+            "Improved Transformer:" "\nbatch_size : {}" "\ndevice : {}".format(self.batch_size, self.device)
+        )
 
         if self.seed is not None:
             np.random.seed(self.seed)
@@ -106,25 +106,15 @@ class LocalformerModel(Model):
 
         raise ValueError("unknown metric `%s`" % self.metric)
 
-    def train_epoch(self, x_train, y_train):
-
-        x_train_values = x_train.values
-        y_train_values = np.squeeze(y_train.values)
+    def train_epoch(self, data_loader):
 
         self.model.train()
 
-        indices = np.arange(len(x_train_values))
-        np.random.shuffle(indices)
+        for data in data_loader:
+            feature = data[:, :, 0:-1].to(self.device)
+            label = data[:, -1, -1].to(self.device)
 
-        for i in range(len(indices))[:: self.batch_size]:
-
-            if len(indices) - i < self.batch_size:
-                break
-
-            feature = torch.from_numpy(x_train_values[indices[i : i + self.batch_size]]).float().to(self.device)
-            label = torch.from_numpy(y_train_values[indices[i : i + self.batch_size]]).float().to(self.device)
-
-            pred = self.model(feature)
+            pred = self.model(feature.float())  # .float()
             loss = self.loss_fn(pred, label)
 
             self.train_optimizer.zero_grad()
@@ -132,29 +122,20 @@ class LocalformerModel(Model):
             torch.nn.utils.clip_grad_value_(self.model.parameters(), 3.0)
             self.train_optimizer.step()
 
-    def test_epoch(self, data_x, data_y):
-
-        # prepare training data
-        x_values = data_x.values
-        y_values = np.squeeze(data_y.values)
+    def test_epoch(self, data_loader):
 
         self.model.eval()
 
         scores = []
         losses = []
 
-        indices = np.arange(len(x_values))
+        for data in data_loader:
 
-        for i in range(len(indices))[:: self.batch_size]:
-
-            if len(indices) - i < self.batch_size:
-                break
-
-            feature = torch.from_numpy(x_values[indices[i: i + self.batch_size]]).float().to(self.device)
-            label = torch.from_numpy(y_values[indices[i: i + self.batch_size]]).float().to(self.device)
+            feature = data[:, :, 0:-1].to(self.device)
+            label = data[:, -1, -1].to(self.device)
 
             with torch.no_grad():
-                pred = self.model(feature)
+                pred = self.model(feature.float())  # .float()
                 loss = self.loss_fn(pred, label)
                 losses.append(loss.item())
 
@@ -170,16 +151,23 @@ class LocalformerModel(Model):
         save_path=None,
     ):
 
-        df_train, df_valid, df_test = dataset.prepare(
-            ["train", "valid", "test"],
-            col_set=["feature", "label"],
-            data_key=DataHandlerLP.DK_L,
+        dl_train = dataset.prepare("train", col_set=["feature", "label"], data_key=DataHandlerLP.DK_L)
+        dl_valid = dataset.prepare("valid", col_set=["feature", "label"], data_key=DataHandlerLP.DK_L)
+        import pdb
+        pdb.set_trace()
+
+        dl_train.config(fillna_type="ffill+bfill")  # process nan brought by dataloader
+        dl_valid.config(fillna_type="ffill+bfill")  # process nan brought by dataloader
+
+        train_loader = DataLoader(
+            dl_train, batch_size=self.batch_size, shuffle=True, num_workers=self.n_jobs, drop_last=True
+        )
+        valid_loader = DataLoader(
+            dl_valid, batch_size=self.batch_size, shuffle=False, num_workers=self.n_jobs, drop_last=True
         )
 
-        x_train, y_train = df_train["feature"], df_train["label"]
-        x_valid, y_valid = df_valid["feature"], df_valid["label"]
-
         save_path = get_or_create_path(save_path)
+
         stop_steps = 0
         train_loss = 0
         best_score = -np.inf
@@ -194,10 +182,10 @@ class LocalformerModel(Model):
         for step in range(self.n_epochs):
             self.logger.info("Epoch%d:", step)
             self.logger.info("training...")
-            self.train_epoch(x_train, y_train)
+            self.train_epoch(train_loader)
             self.logger.info("evaluating...")
-            train_loss, train_score = self.test_epoch(x_train, y_train)
-            val_loss, val_score = self.test_epoch(x_valid, y_valid)
+            train_loss, train_score = self.test_epoch(train_loader)
+            val_loss, val_score = self.test_epoch(valid_loader)
             self.logger.info("train %.6f, valid %.6f" % (train_score, val_score))
             evals_result["train"].append(train_score)
             evals_result["valid"].append(val_score)
@@ -220,32 +208,25 @@ class LocalformerModel(Model):
         if self.use_gpu:
             torch.cuda.empty_cache()
 
-    def predict(self, dataset: DatasetH, segment: Union[Text, slice] = "test"):
+    def predict(self, dataset):
         if not self.fitted:
             raise ValueError("model is not fitted yet!")
 
-        x_test = dataset.prepare(segment, col_set="feature", data_key=DataHandlerLP.DK_I)
-        index = x_test.index
+        dl_test = dataset.prepare("test", col_set=["feature", "label"], data_key=DataHandlerLP.DK_I)
+        dl_test.config(fillna_type="ffill+bfill")
+        test_loader = DataLoader(dl_test, batch_size=self.batch_size, num_workers=self.n_jobs)
         self.model.eval()
-        x_values = x_test.values
-        sample_num = x_values.shape[0]
         preds = []
 
-        for begin in range(sample_num)[:: self.batch_size]:
-
-            if sample_num - begin < self.batch_size:
-                end = sample_num
-            else:
-                end = begin + self.batch_size
-
-            x_batch = torch.from_numpy(x_values[begin:end]).float().to(self.device)
+        for data in test_loader:
+            feature = data[:, :, 0:-1].to(self.device)
 
             with torch.no_grad():
-                pred = self.model(x_batch).detach().cpu().numpy()
+                pred = self.model(feature.float()).detach().cpu().numpy()
 
             preds.append(pred)
 
-        return pd.Series(np.concatenate(preds), index=index)
+        return pd.Series(np.concatenate(preds), index=dl_test.get_index())
 
 
 class PositionalEncoding(nn.Module):
@@ -310,9 +291,8 @@ class Transformer(nn.Module):
         self.d_feat = d_feat
 
     def forward(self, src):
-        # src [N, F*T] --> [N, T, F]
-        src = src.reshape(len(src), self.d_feat, -1).permute(0, 2, 1)
-        src = self.feature_layer(src)
+        # src [N, T, F], [512, 60, 6]
+        src = self.feature_layer(src)  # [512, 60, 8]
 
         # src [N, T, F] --> [T, N, F], [60, 512, 8]
         src = src.transpose(1, 0)  # not batch first
