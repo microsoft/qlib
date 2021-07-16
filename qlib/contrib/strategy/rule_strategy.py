@@ -313,7 +313,9 @@ class SBBStrategyEMA(SBBStrategyBase):
         if isinstance(instruments, str):
             self.instruments = D.instruments(instruments)
         self.freq = freq
-        super(SBBStrategyEMA, self).__init__(outer_trade_decision, level_infra, common_infra, trade_exchange=trade_exchange,  **kwargs)
+        super(SBBStrategyEMA, self).__init__(
+            outer_trade_decision, level_infra, common_infra, trade_exchange=trade_exchange, **kwargs
+        )
 
     def _reset_signal(self):
         trade_len = self.trade_calendar.get_trade_len()
@@ -396,11 +398,9 @@ class ACStrategy(BaseStrategy):
         if isinstance(instruments, str):
             self.instruments = D.instruments(instruments)
         self.freq = freq
-        super(ACStrategy, self).__init__(outer_trade_decision,
-                                         level_infra,
-                                         common_infra,
-                                         trade_exchange=trade_exchange,
-                                         **kwargs)
+        super(ACStrategy, self).__init__(
+            outer_trade_decision, level_infra, common_infra, trade_exchange=trade_exchange, **kwargs
+        )
 
     def _reset_signal(self):
         trade_len = self.trade_calendar.get_trade_len()
@@ -561,11 +561,14 @@ class RandomOrderStrategy(BaseStrategy):
         if step_time_start in self.volume_df:
             for stock_id, volume in self.volume_df[step_time_start].dropna().sample(frac=self.sample_ratio).items():
                 order_list.append(
-                    self.common_infra.get("trade_exchange").get_order_helper().create(
+                    self.common_infra.get("trade_exchange")
+                    .get_order_helper()
+                    .create(
                         code=stock_id,
                         amount=volume * self.volume_ratio,
                         direction=self.direction,
-                    ))
+                    )
+                )
         return TradeDecisionWO(order_list, self, self.trade_range)
 
 
@@ -575,7 +578,9 @@ class FileOrderStrategy(BaseStrategy):
     - This class provides an interface for user to read orders from csv files.
     """
 
-    def __init__(self, file: Union[IO, str, Path], trade_range: Union[Tuple[int, int], TradeRange]= None, *args, **kwargs):
+    def __init__(
+        self, file: Union[IO, str, Path], trade_range: Union[Tuple[int, int], TradeRange] = None, *args, **kwargs
+    ):
         """
 
         Parameters

@@ -91,10 +91,9 @@ class BaseStrategy:
         1. Users want to initialize his strategy by overriding `reset`, but they don't want to affect the `_reset` called
         when initialization
         """
-        self._reset(level_infra=level_infra,
-                    common_infra=common_infra,
-                    outer_trade_decision=outer_trade_decision,
-                    **kwargs)
+        self._reset(
+            level_infra=level_infra, common_infra=common_infra, outer_trade_decision=outer_trade_decision, **kwargs
+        )
 
     def _reset(
         self,
@@ -113,7 +112,6 @@ class BaseStrategy:
 
         if outer_trade_decision is not None:
             self.outer_trade_decision = outer_trade_decision
-
 
     def generate_trade_decision(self, execute_result=None):
         """Generate trade decision in each trading bar

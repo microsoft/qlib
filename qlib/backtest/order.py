@@ -128,8 +128,8 @@ class OrderHelper:
         code: str,
         amount: float,
         direction: OrderDir,
-        start_time: Union[str, pd.Timestamp]=None,
-        end_time: Union[str, pd.Timestamp]=None,
+        start_time: Union[str, pd.Timestamp] = None,
+        end_time: Union[str, pd.Timestamp] = None,
     ) -> Order:
         """
         help to create a order
@@ -410,7 +410,7 @@ class BaseTradeDecision:
                 _start_idx, _end_idx = max(0, _start_idx), min(self.total_step - 1, _end_idx)
         return _start_idx, _end_idx
 
-    def get_data_cal_range_limit(self, rtype: str="full",  raise_error: bool = False) -> Tuple[int, int]:
+    def get_data_cal_range_limit(self, rtype: str = "full", raise_error: bool = False) -> Tuple[int, int]:
         """
         get the range limit based on data calendar
 

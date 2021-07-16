@@ -100,7 +100,7 @@ class TradeCalendarManager:
         Parameters
         ----------
         trade_step : int, optional
-            the number of trading step finished, by default None to indicate
+            the number of trading step finished, by default None to indicate current step
         shift : int, optional
             shift bars , by default 0
 
@@ -239,8 +239,9 @@ class LevelInfrastructure(BaseInfrastructure):
         if self.has("trade_calendar"):
             self.get("trade_calendar").reset(freq, start_time=start_time, end_time=end_time)
         else:
-            self.reset_infra(trade_calendar=TradeCalendarManager(freq, start_time=start_time, end_time=end_time,
-                level_infra=self))
+            self.reset_infra(
+                trade_calendar=TradeCalendarManager(freq, start_time=start_time, end_time=end_time, level_infra=self)
+            )
 
     def set_sub_level_infra(self, sub_level_infra: LevelInfrastructure):
         """this will make the calendar access easier when acrossing multi-levels"""
