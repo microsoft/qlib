@@ -160,5 +160,32 @@ def cal_sam_minute(x: pd.Timestamp, sam_minutes: int) -> pd.Timestamp:
     return concat_date_time(date, new_time)
 
 
+def epsilon_change(datetime: pd.Timestamp, direction: str = "backward") -> pd.Timestamp:
+    """
+    change the time by infinitely small quantity.
+
+
+    Parameters
+    ----------
+    datetime : pd.Timestamp
+        the original time
+    direction : str
+        the direction the time are going to
+        - "backward" for going to history
+        - "forward" for going to the future
+
+    Returns
+    -------
+    pd.Timestamp:
+        the shifted time
+    """
+    if direction == "backward":
+        return datetime - pd.Timedelta(seconds=1)
+    elif direction == "forward":
+        return datetime + pd.Timedelta(seconds=1)
+    else:
+        raise ValueError("Wrong input")
+
+
 if __name__ == "__main__":
     print(get_day_min_idx_range("8:30", "14:59", "10min"))
