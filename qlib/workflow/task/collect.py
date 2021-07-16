@@ -139,7 +139,7 @@ class RecorderCollector(Collector):
         rec_filter_func=None,
         artifacts_path={"pred": "pred.pkl"},
         artifacts_key=None,
-        filter_string: str = "",
+        list_kwargs={},
     ):
         """
         Init RecorderCollector.
@@ -165,7 +165,7 @@ class RecorderCollector(Collector):
         self.rec_key_func = rec_key_func
         self.artifacts_key = artifacts_key
         self.rec_filter_func = rec_filter_func
-        self.filter_string = filter_string
+        self.list_kwargs = list_kwargs
 
     def collect(self, artifacts_key=None, rec_filter_func=None, only_exist=True) -> dict:
         """
@@ -190,7 +190,7 @@ class RecorderCollector(Collector):
 
         collect_dict = {}
         # filter records
-        recs = self.experiment.list_recorders(filter_string=self.filter_string)
+        recs = self.experiment.list_recorders(**self.list_kwargs)
         recs_flt = {}
         for rid, rec in recs.items():
             if rec_filter_func is None or rec_filter_func(rec):
