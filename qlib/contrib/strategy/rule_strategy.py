@@ -687,7 +687,9 @@ class FileOrderStrategy(BaseStrategy):
     - This class provides an interface for user to read orders from csv files.
     """
 
-    def __init__(self, file: Union[IO, str, Path], trade_range: Union[Tuple[int, int], TradeRange]= None, *args, **kwargs):
+    def __init__(
+        self, file: Union[IO, str, Path], trade_range: Union[Tuple[int, int], TradeRange] = None, *args, **kwargs
+    ):
         """
 
         Parameters
