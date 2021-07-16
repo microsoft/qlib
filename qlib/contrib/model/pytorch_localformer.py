@@ -42,7 +42,7 @@ class LocalformerModel(Model):
         optimizer="adam",
         reg=1e-3,
         n_jobs=10,
-        GPU=2,
+        GPU=0,
         seed=None,
         **kwargs
     ):
