@@ -532,15 +532,24 @@ class BaseQuote:
         self.logger = get_module_logger("online operator", level=logging.INFO)
 
     def _update_limit(self, limit_threshold):
+        """add limitation information to data based on limit_threshold
+        """
         raise NotImplementedError(f"Please implement the `_update_limit` method")
 
     def get_trade_w_adj_price(self):
+        """return whether use the trade price with adjusted weight
+        """
         raise NotImplementedError(f"Please implement the `get_trade_w_adj_price` method")
 
     def get_all_stock(self):
+        """return all stock codes
+        """
         raise NotImplementedError(f"Please implement the `get_all_stock` method")
 
-    def get_data(self, stock_id, start_time, end_time, fields, method):
+    def get_data(self, stock_id, start_time, end_time, fields=None, method=None):
+        """get the specific fields of stock data during start time and end_time,
+           and apply method to the data, please refer to resam_ts_data
+        """
         raise NotImplementedError(f"Please implement the `get_data` method")
 
     LT_TP_EXP = "(exp)"  # Tuple[str, str]
@@ -549,6 +558,8 @@ class BaseQuote:
 
     @staticmethod
     def _get_limit_type(limit_threshold):
+        """get limit type
+        """
         if isinstance(limit_threshold, Tuple):
             return BaseQuote.LT_TP_EXP
         elif isinstance(limit_threshold, float):
@@ -560,6 +571,8 @@ class BaseQuote:
 
 
 class PandasQuote(BaseQuote):
+    """
+    """
     
     def __init__(
         self, 
@@ -567,12 +580,52 @@ class PandasQuote(BaseQuote):
         end_time, 
         freq, 
         codes, 
-        all_fields, 
-        limit_threshold, 
-        buy_price, 
-        sell_price, 
-        extra_quote
+        all_fields: List[str], 
+        limit_threshold: Union[Tuple[str, str], float, None], 
+        buy_price: str, 
+        sell_price: str, 
+        extra_quote: pd.DataFrame,
     ):
+        """init stock data based on pandas
+
+        Parameters
+        ----------
+        start_time : pd.Timestamp|str
+            closed start time for backtest
+        end_time : pd.Timestamp|str
+            closed end time for backtest
+        freq : str
+            frequency of data
+        codes : [type]
+            all stock code
+        all_fields : List[str]
+            all subscribe fields in qlib
+        limit_threshold : Union[Tuple[str, str], float, None]
+            1) `None`: no limitation
+            2) float, 0.1 for example, default None
+            3) Tuple[str, str]: (<the expression for buying stock limitation>,
+                                <the expression for sell stock limitation>)
+                                `False` value indicates the stock is tradable
+                                `True` value indicates the stock is limited and not tradable
+        buy_price : str
+            the data field for buying stock
+        sell_price : str
+            the data field for selling stock
+        extra_quote : pd.DataFrame
+            columns: like ['$vwap', '$close', '$volume', '$factor', 'limit_sell', 'limit_buy'].
+                    The limit indicates that the etf is tradable on a specific day.
+                    Necessary fields:
+                        $close is for calculating the total value at end of each day.
+                    Optional fields:
+                        $volume is only necessary when we limit the trade amount or caculate PA(vwap) indicator
+                        $vwap is only necessary when we use the $vwap price as the deal price
+                        $factor is for rounding to the trading unit
+                        limit_sell will be set to False by default(False indicates we can sell this
+                        target on this day).
+                        limit_buy will be set to False by default(False indicates we can buy this
+                        target on this day).
+            index: MultipleIndex(instrument, pd.Datetime)
+        """
 
         super().__init__()
 
