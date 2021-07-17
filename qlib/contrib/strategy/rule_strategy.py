@@ -20,48 +20,6 @@ from qlib.backtest.utils import get_start_end_idx
 class TWAPStrategy(BaseStrategy):
     """TWAP Strategy for trading"""
 
-    def __init__(
-        self,
-        outer_trade_decision: BaseTradeDecision = None,
-        trade_exchange: Exchange = None,
-        level_infra: LevelInfrastructure = None,
-        common_infra: CommonInfrastructure = None,
-    ):
-        """
-        Parameters
-        ----------
-        outer_trade_decision : BaseTradeDecision
-            the trade decision of outer strategy which this startegy relies
-        trade_exchange : Exchange
-            exchange that provides market info, used to deal order and generate report
-            - If `trade_exchange` is None, self.trade_exchange will be set with common_infra
-            - It allowes different trade_exchanges is used in different executions.
-            - For example:
-                - In daily execution, both daily exchange and minutely are usable, but the daily exchange is recommended because it run faster.
-                - In minutely execution, the daily exchange is not usable, only the minutely exchange is recommended.
-
-        """
-        super(TWAPStrategy, self).__init__(
-            outer_trade_decision=outer_trade_decision, level_infra=level_infra, common_infra=common_infra
-        )
-
-        if trade_exchange is not None:
-            self.trade_exchange = trade_exchange
-
-    def reset_common_infra(self, common_infra):
-        """
-        Parameters
-        ----------
-        common_infra : CommonInfrastructure, optional
-            common infrastructure for backtesting, by default None
-            - It should include `trade_account`, used to get position
-            - It should include `trade_exchange`, used to provide market info
-        """
-        super(TWAPStrategy, self).reset_common_infra(common_infra)
-
-        if common_infra.has("trade_exchange"):
-            self.trade_exchange = common_infra.get("trade_exchange")
-
     def reset(self, outer_trade_decision: BaseTradeDecision = None, **kwargs):
         """
         Parameters
@@ -160,46 +118,6 @@ class SBBStrategyBase(BaseStrategy):
     # 1. Supporting leverage the get_range_limit result from the decision
     # 2. Supporting alter_outer_trade_decision
     # 3. Supporting checking the availability of trade decision
-
-    def __init__(
-        self,
-        outer_trade_decision: BaseTradeDecision = None,
-        trade_exchange: Exchange = None,
-        level_infra: LevelInfrastructure = None,
-        common_infra: CommonInfrastructure = None,
-    ):
-        """
-        Parameters
-        ----------
-        outer_trade_decision : BaseTradeDecision
-            the trade decision of outer strategy which this startegy relies
-        trade_exchange : Exchange
-            exchange that provides market info, used to deal order and generate report
-            - If `trade_exchange` is None, self.trade_exchange will be set with common_infra
-            - It allowes different trade_exchanges is used in different executions.
-            - For example:
-                - In daily execution, both daily exchange and minutely are usable, but the daily exchange is recommended because it run faster.
-                - In minutely execution, the daily exchange is not usable, only the minutely exchange is recommended.
-        """
-        super(SBBStrategyBase, self).__init__(
-            outer_trade_decision=outer_trade_decision, level_infra=level_infra, common_infra=common_infra
-        )
-
-        if trade_exchange is not None:
-            self.trade_exchange = trade_exchange
-
-    def reset_common_infra(self, common_infra):
-        """
-        Parameters
-        ----------
-        common_infra : dict, optional
-            common infrastructure for backtesting, by default None
-            - It should include `trade_account`, used to get position
-            - It should include `trade_exchange`, used to provide market info
-        """
-        super(SBBStrategyBase, self).reset_common_infra(common_infra)
-        if common_infra.has("trade_exchange"):
-            self.trade_exchange = common_infra.get("trade_exchange")
 
     def reset(self, outer_trade_decision: BaseTradeDecision = None, **kwargs):
         """
@@ -395,7 +313,9 @@ class SBBStrategyEMA(SBBStrategyBase):
         if isinstance(instruments, str):
             self.instruments = D.instruments(instruments)
         self.freq = freq
-        super(SBBStrategyEMA, self).__init__(outer_trade_decision, trade_exchange, level_infra, common_infra, **kwargs)
+        super(SBBStrategyEMA, self).__init__(
+            outer_trade_decision, level_infra, common_infra, trade_exchange=trade_exchange, **kwargs
+        )
 
     def _reset_signal(self):
         trade_len = self.trade_calendar.get_trade_len()
@@ -417,14 +337,8 @@ class SBBStrategyEMA(SBBStrategyBase):
         reset level-shared infra
         - After reset the trade calendar, the signal will be changed
         """
-        if not hasattr(self, "level_infra"):
-            self.level_infra = level_infra
-        else:
-            self.level_infra.update(level_infra)
-
-        if level_infra.has("trade_calendar"):
-            self.trade_calendar = level_infra.get("trade_calendar")
-            self._reset_signal()
+        super().reset_level_infra(level_infra)
+        self._reset_signal()
 
     def _pred_price_trend(self, stock_id, pred_start_time=None, pred_end_time=None):
         # if no signal, return mid trend
@@ -484,10 +398,9 @@ class ACStrategy(BaseStrategy):
         if isinstance(instruments, str):
             self.instruments = D.instruments(instruments)
         self.freq = freq
-        super(ACStrategy, self).__init__(outer_trade_decision, level_infra, common_infra, **kwargs)
-
-        if trade_exchange is not None:
-            self.trade_exchange = trade_exchange
+        super(ACStrategy, self).__init__(
+            outer_trade_decision, level_infra, common_infra, trade_exchange=trade_exchange, **kwargs
+        )
 
     def _reset_signal(self):
         trade_len = self.trade_calendar.get_trade_len()
@@ -506,33 +419,13 @@ class ACStrategy(BaseStrategy):
             for stock_id, stock_val in signal_df.groupby(level="instrument"):
                 self.signal[stock_id] = stock_val["volatility"].droplevel(level="instrument")
 
-    def reset_common_infra(self, common_infra):
-        """
-        Parameters
-        ----------
-        common_infra : CommonInfrastructure, optional
-            common infrastructure for backtesting, by default None
-            - It should include `trade_account`, used to get position
-            - It should include `trade_exchange`, used to provide market info
-        """
-        super(ACStrategy, self).reset_common_infra(common_infra)
-
-        if common_infra.has("trade_exchange"):
-            self.trade_exchange = common_infra.get("trade_exchange")
-
     def reset_level_infra(self, level_infra):
         """
         reset level-shared infra
         - After reset the trade calendar, the signal will be changed
         """
-        if not hasattr(self, "level_infra"):
-            self.level_infra = level_infra
-        else:
-            self.level_infra.update(level_infra)
-
-        if level_infra.has("trade_calendar"):
-            self.trade_calendar = level_infra.get("trade_calendar")
-            self._reset_signal()
+        super().reset_level_infra(level_infra)
+        self._reset_signal()
 
     def reset(self, outer_trade_decision: BaseTradeDecision = None, **kwargs):
         """
@@ -673,8 +566,6 @@ class RandomOrderStrategy(BaseStrategy):
                     .create(
                         code=stock_id,
                         amount=volume * self.volume_ratio,
-                        start_time=step_time_start,
-                        end_time=step_time_end,
                         direction=self.direction,
                     )
                 )
@@ -687,8 +578,10 @@ class FileOrderStrategy(BaseStrategy):
     - This class provides an interface for user to read orders from csv files.
     """
 
-    def __init__(self, file: Union[IO, str, Path, pd.DataFrame],
-                 trade_range: Union[Tuple[int, int], TradeRange]= None, *args, **kwargs):
+    def __init__(
+        self, file: Union[IO, str, Path, pd.DataFrame],
+        trade_range: Union[Tuple[int, int], TradeRange] = None, *args, **kwargs
+    ):
         """
 
         Parameters
@@ -736,9 +629,7 @@ class FileOrderStrategy(BaseStrategy):
             execute_result will be ignored in FileOrderStrategy
         """
         oh: OrderHelper = self.common_infra.get("trade_exchange").get_order_helper()
-        tc = self.trade_calendar
-        step = tc.get_trade_step()
-        start, end = tc.get_step_time(step)
+        start, _ = self.trade_calendar.get_step_time()
         # CONVERSION: the bar is indexed by the time
         try:
             df = self.order_df.loc(axis=0)[start]
@@ -752,8 +643,6 @@ class FileOrderStrategy(BaseStrategy):
                         code=idx,
                         amount=row["amount"],
                         direction=Order.parse_dir(row["direction"]),
-                        start_time=start,
-                        end_time=end,
                     )
                 )
             return TradeDecisionWO(order_list, self, self.trade_range)

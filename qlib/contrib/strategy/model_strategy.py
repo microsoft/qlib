@@ -64,7 +64,7 @@ class TopkDropoutStrategy(ModelStrategy):
 
         """
         super(TopkDropoutStrategy, self).__init__(
-            model, dataset, level_infra=level_infra, common_infra=common_infra, **kwargs
+            model, dataset, level_infra=level_infra, common_infra=common_infra, trade_exchange=trade_exchange, **kwargs
         )
         self.topk = topk
         self.n_drop = n_drop
@@ -73,22 +73,6 @@ class TopkDropoutStrategy(ModelStrategy):
         self.risk_degree = risk_degree
         self.hold_thresh = hold_thresh
         self.only_tradable = only_tradable
-        if trade_exchange is not None:
-            self.trade_exchange = trade_exchange
-
-    def reset_common_infra(self, common_infra):
-        """
-        Parameters
-        ----------
-        common_infra : dict, optional
-            common infrastructure for backtesting, by default None
-            - It should include `trade_account`, used to get position
-            - It should include `trade_exchange`, used to provide market info
-        """
-        super(TopkDropoutStrategy, self).reset_common_infra(common_infra)
-
-        if common_infra.has("trade_exchange"):
-            self.trade_exchange = common_infra.get("trade_exchange")
 
     def get_risk_degree(self, trade_step=None):
         """get_risk_degree
@@ -278,28 +262,12 @@ class WeightStrategyBase(ModelStrategy):
                 - In minutely execution, the daily exchange is not usable, only the minutely exchange is recommended.
         """
         super(WeightStrategyBase, self).__init__(
-            model, dataset, level_infra=level_infra, common_infra=common_infra, **kwargs
+            model, dataset, level_infra=level_infra, common_infra=common_infra, trade_exchange=trade_exchange, **kwargs
         )
         if isinstance(order_generator_cls_or_obj, type):
             self.order_generator = order_generator_cls_or_obj()
         else:
             self.order_generator = order_generator_cls_or_obj
-        if trade_exchange is not None:
-            self.trade_exchange = trade_exchange
-
-    def reset_common_infra(self, common_infra):
-        """
-        Parameters
-        ----------
-        common_infra : dict, optional
-            common infrastructure for backtesting, by default None
-            - It should include `trade_account`, used to get position
-            - It should include `trade_exchange`, used to provide market info
-        """
-        super(WeightStrategyBase, self).reset_common_infra(common_infra)
-
-        if common_infra.has("trade_exchange"):
-            self.trade_exchange = common_infra.get("trade_exchange")
 
     def get_risk_degree(self, trade_step=None):
         """get_risk_degree

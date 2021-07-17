@@ -1,5 +1,6 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
+from qlib.backtest.exchange import Exchange
 from qlib.backtest.position import BasePosition
 from typing import List, Union
 
@@ -22,6 +23,7 @@ class BaseStrategy:
         outer_trade_decision: BaseTradeDecision = None,
         level_infra: LevelInfrastructure = None,
         common_infra: CommonInfrastructure = None,
+        trade_exchange: Exchange = None,
     ):
         """
         Parameters
@@ -34,9 +36,18 @@ class BaseStrategy:
             level shared infrastructure for backtesting, including trade calendar
         common_infra : CommonInfrastructure, optional
             common infrastructure for backtesting, including trade_account, trade_exchange, .etc
+
+        trade_exchange : Exchange
+            exchange that provides market info, used to deal order and generate report
+            - If `trade_exchange` is None, self.trade_exchange will be set with common_infra
+            - It allowes different trade_exchanges is used in different executions.
+            - For example:
+                - In daily execution, both daily exchange and minutely are usable, but the daily exchange is recommended because it run faster.
+                - In minutely execution, the daily exchange is not usable, only the minutely exchange is recommended.
         """
 
-        self.reset(level_infra=level_infra, common_infra=common_infra, outer_trade_decision=outer_trade_decision)
+        self._reset(level_infra=level_infra, common_infra=common_infra, outer_trade_decision=outer_trade_decision)
+        self._trade_exchange = trade_exchange
 
     @property
     def trade_calendar(self) -> TradeCalendarManager:
@@ -45,6 +56,11 @@ class BaseStrategy:
     @property
     def trade_position(self) -> BasePosition:
         return self.common_infra.get("trade_account").current
+
+    @property
+    def trade_exchange(self) -> Exchange:
+        """get trade exchange in a prioritized order"""
+        return getattr(self, "_trade_exchange", None) or self.common_infra.get("trade_exchange")
 
     def reset_level_infra(self, level_infra: LevelInfrastructure):
         if not hasattr(self, "level_infra"):
@@ -69,6 +85,24 @@ class BaseStrategy:
         - reset `level_infra`, used to reset trade calendar, .etc
         - reset `common_infra`, used to reset `trade_account`, `trade_exchange`, .etc
         - reset `outer_trade_decision`, used to make split decision
+
+        **NOTE**:
+        split this function into `reset` and `_reset` will make following cases more convenient
+        1. Users want to initialize his strategy by overriding `reset`, but they don't want to affect the `_reset` called
+        when initialization
+        """
+        self._reset(
+            level_infra=level_infra, common_infra=common_infra, outer_trade_decision=outer_trade_decision, **kwargs
+        )
+
+    def _reset(
+        self,
+        level_infra: LevelInfrastructure = None,
+        common_infra: CommonInfrastructure = None,
+        outer_trade_decision=None,
+    ):
+        """
+        Please refer to the docs of `reset`
         """
         if level_infra is not None:
             self.reset_level_infra(level_infra)

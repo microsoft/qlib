@@ -2,6 +2,7 @@
 # Licensed under the MIT License.
 from __future__ import annotations
 import bisect
+from qlib.utils.time import epsilon_change
 from typing import Union, TYPE_CHECKING, Tuple, Union, List, Set
 
 if TYPE_CHECKING:
@@ -22,7 +23,11 @@ class TradeCalendarManager:
     """
 
     def __init__(
-        self, freq: str, start_time: Union[str, pd.Timestamp] = None, end_time: Union[str, pd.Timestamp] = None
+        self,
+        freq: str,
+        start_time: Union[str, pd.Timestamp] = None,
+        end_time: Union[str, pd.Timestamp] = None,
+        level_infra: "LevelInfrastructure" = None,
     ):
         """
         Parameters
@@ -36,6 +41,7 @@ class TradeCalendarManager:
             closed end of the trade time range, by default None
             If `end_time` is None, it must be reset before trading.
         """
+        self.level_infra = level_infra
         self.reset(freq=freq, start_time=start_time, end_time=end_time)
 
     def reset(self, freq, start_time, end_time):
@@ -82,19 +88,19 @@ class TradeCalendarManager:
     def get_trade_step(self):
         return self.trade_step
 
-    def get_step_time(self, trade_step=0, shift=0):
+    def get_step_time(self, trade_step=None, shift=0):
         """
         Get the left and right endpoints of the trade_step'th trading interval
 
         About the endpoints:
             - Qlib uses the closed interval in time-series data selection, which has the same performance as pandas.Series.loc
-            - The returned right endpoints should minus 1 seconds becasue of the closed interval representation in Qlib.
-            Note: Qlib supports up to minutely decision execution, so 1 seconds is less than any trading time interval.
+            # - The returned right endpoints should minus 1 seconds becasue of the closed interval representation in Qlib.
+            # Note: Qlib supports up to minutely decision execution, so 1 seconds is less than any trading time interval.
 
         Parameters
         ----------
         trade_step : int, optional
-            the number of trading step finished, by default 0
+            the number of trading step finished, by default None to indicate current step
         shift : int, optional
             shift bars , by default 0
 
@@ -105,15 +111,43 @@ class TradeCalendarManager:
             - If shift > 0, return the trading time range of the earlier shift bars
             - If shift < 0, return the trading time range of the later shift bar
         """
+        if trade_step is None:
+            trade_step = self.get_trade_step()
         trade_step = trade_step - shift
         calendar_index = self.start_index + trade_step
-        return self._calendar[calendar_index], self._calendar[calendar_index + 1] - pd.Timedelta(seconds=1)
+        return self._calendar[calendar_index], epsilon_change(self._calendar[calendar_index + 1])
 
-    def get_cur_step_time(self):
+    def get_data_cal_range(self, rtype: str = "full") -> Tuple[int, int]:
         """
-        get current step time
+        get the calendar range
+        The following assumptions are made
+        1) The frequency of the exchange in common_infra is the same as the data calendar
+        2) Users want the **data index** mod by **day** (i.e. 240 min)
+
+        Parameters
+        ----------
+        rtype: str
+            - "full": return the full limitation of the deicsion in the day
+            - "step": return the limitation of current step
+
+        Returns
+        -------
+        Tuple[int, int]:
         """
-        return self.get_step_time(self.get_trade_step())
+        # potential performance issue
+        day_start = pd.Timestamp(self.start_time.date())
+        day_end = epsilon_change(day_start + pd.Timedelta(days=1))
+        freq = self.level_infra.get("common_infra").get("trade_exchange").freq
+        _, _, day_start_idx, _ = Cal.locate_index(day_start, day_end, freq=freq)
+
+        if rtype == "full":
+            _, _, start_idx, end_index = Cal.locate_index(self.start_time, self.end_time, freq=freq)
+        elif rtype == "step":
+            _, _, start_idx, end_index = Cal.locate_index(*self.get_step_time(), freq=freq)
+        else:
+            raise ValueError(f"This type of input {rtype} is not supported")
+
+        return start_idx - day_start_idx, end_index - day_start_idx
 
     def get_all_time(self):
         """Get the start_time and end_time for trading"""
@@ -198,14 +232,16 @@ class LevelInfrastructure(BaseInfrastructure):
         sub_level_infra:
         - **NOTE**: this will only work after _init_sub_trading !!!
         """
-        return ["trade_calendar", "sub_level_infra"]
+        return ["trade_calendar", "sub_level_infra", "common_infra"]
 
     def reset_cal(self, freq, start_time, end_time):
         """reset trade calendar manager"""
         if self.has("trade_calendar"):
             self.get("trade_calendar").reset(freq, start_time=start_time, end_time=end_time)
         else:
-            self.reset_infra(trade_calendar=TradeCalendarManager(freq, start_time=start_time, end_time=end_time))
+            self.reset_infra(
+                trade_calendar=TradeCalendarManager(freq, start_time=start_time, end_time=end_time, level_infra=self)
+            )
 
     def set_sub_level_infra(self, sub_level_infra: LevelInfrastructure):
         """this will make the calendar access easier when acrossing multi-levels"""

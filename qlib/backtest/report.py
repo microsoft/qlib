@@ -359,7 +359,10 @@ class Indicator:
         trade_exchange: Exchange,
         pa_config: dict = {},
     ):
-        """Get the base volume and price information"""
+        """
+        Get the base volume and price information
+        All the base price values are rooted from this function
+        """
 
         agg = pa_config.get("agg", "twap").lower()
         price = pa_config.get("price", "deal_price").lower()
@@ -382,10 +385,12 @@ class Indicator:
 
         # NOTE: there are some zeros in the trading price. These cases are known meaningless
         # for aligning the previous logic, remove it.
-        # price_s = price_s.mask(np.isclose(price_s, 0))
+        price_s = price_s[~(price_s < 1e-08)]  # remove zero and negative values.
+        # NOTE ~(price_s < 1e-08) is different from price_s >= 1e-8
 
         if agg == "vwap":
             volume_s = trade_exchange.get_volume(inst, trade_start_time, trade_end_time, method=None)
+            volume_s = volume_s.reindex(price_s.index)
         elif agg == "twap":
             volume_s = pd.Series(1, index=price_s.index)
         else:
@@ -520,7 +525,7 @@ class Indicator:
             return pa_order
         return (pa_order > 0).astype(int).sum() / pa_order.count()
 
-    def _cal_trade_amount(self):
+    def _cal_deal_amount(self):
         return self.order_indicator["deal_amount"].abs().sum()
 
     def _cal_trade_value(self):
@@ -536,13 +541,13 @@ class Indicator:
         fulfill_rate = self._cal_trade_fulfill_rate(method=ffr_config.get("weight_method", "mean"))
         price_advantage = self._cal_trade_price_advantage(method=pa_config.get("weight_method", "mean"))
         positive_rate = self._cal_trade_positive_rate()
-        trade_amount = self._cal_trade_amount()
+        deal_amount = self._cal_deal_amount()
         trade_value = self._cal_trade_value()
         order_count = self._cal_trade_order_count()
         self.trade_indicator["ffr"] = fulfill_rate
         self.trade_indicator["pa"] = price_advantage
         self.trade_indicator["pos"] = positive_rate
-        self.trade_indicator["amount"] = trade_amount
+        self.trade_indicator["deal_amount"] = deal_amount
         self.trade_indicator["value"] = trade_value
         self.trade_indicator["count"] = order_count
         if show_indicator:
