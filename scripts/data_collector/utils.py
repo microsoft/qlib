@@ -32,6 +32,7 @@ CALENDAR_BENCH_URL_MAP = {
     "ALL": CALENDAR_URL_BASE.format(market=1, bench_code="000905"),
     # NOTE: Use the time series of ^GSPC(SP500) as the sequence of all stocks
     "US_ALL": "^GSPC",
+    "IN_ALL": "^NSEI",
 }
 
 
@@ -68,7 +69,7 @@ def get_calendar_list(bench_code="CSI300") -> List[pd.Timestamp]:
 
     calendar = _CALENDAR_MAP.get(bench_code, None)
     if calendar is None:
-        if bench_code.startswith("US_"):
+        if bench_code.startswith("US_") or bench_code.startswith("IN_"):
             df = Ticker(CALENDAR_BENCH_URL_MAP[bench_code]).history(interval="1d", period="max")
             calendar = df.index.get_level_values(level="date").map(pd.Timestamp).unique().tolist()
         else:
