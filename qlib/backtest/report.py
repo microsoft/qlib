@@ -359,7 +359,10 @@ class Indicator:
         trade_exchange: Exchange,
         pa_config: dict = {},
     ):
-        """Get the base volume and price information"""
+        """
+        Get the base volume and price information
+        All the base price values are rooted from this function
+        """
 
         agg = pa_config.get("agg", "twap").lower()
         price = pa_config.get("price", "deal_price").lower()
@@ -382,10 +385,12 @@ class Indicator:
 
         # NOTE: there are some zeros in the trading price. These cases are known meaningless
         # for aligning the previous logic, remove it.
-        # price_s = price_s.mask(np.isclose(price_s, 0))
+        price_s = price_s[~(price_s < 1e-08)]  # remove zero and negative values.
+        # NOTE ~(price_s < 1e-08) is different from price_s >= 1e-8
 
         if agg == "vwap":
             volume_s = trade_exchange.get_volume(inst, trade_start_time, trade_end_time, method=None)
+            volume_s = volume_s.reindex(price_s.index)
         elif agg == "twap":
             volume_s = pd.Series(1, index=price_s.index)
         else:
