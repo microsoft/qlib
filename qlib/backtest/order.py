@@ -514,9 +514,9 @@ class TradeDecisionWO(BaseTradeDecision):
         self.order_list = order_list
         start, end = strategy.trade_calendar.get_step_time()
         for o in order_list:
-            if o.start_time:
+            if o.start_time is None:
                 o.start_time = start
-            if o.end_time:
+            if o.end_time is None:
                 o.end_time = end
 
     def get_decision(self) -> List[object]:

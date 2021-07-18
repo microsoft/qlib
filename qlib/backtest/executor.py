@@ -1,5 +1,6 @@
 from abc import abstractclassmethod, abstractmethod
 import copy
+from qlib.log import get_module_logger
 from types import GeneratorType
 from qlib.backtest.account import Account
 import warnings
@@ -104,6 +105,8 @@ class BaseExecutor:
         self.level_infra = LevelInfrastructure()
         self.level_infra.reset_infra(common_infra=common_infra)
         self.reset(start_time=start_time, end_time=end_time, common_infra=common_infra)
+        if common_infra is None:
+            get_module_logger("BaseExecutor").warning(f"`common_infra` is not set for {self}")
 
     def reset_common_infra(self, common_infra):
         """
