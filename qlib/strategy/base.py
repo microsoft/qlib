@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 from qlib.backtest.exchange import Exchange
 from qlib.backtest.position import BasePosition
-from typing import List, Union
+from typing import List, Tuple, Union
 
 from ..model.base import BaseModel
 from ..data.dataset import DatasetH
@@ -157,6 +157,36 @@ class BaseStrategy:
         # default to reset the decision directly
         # NOTE: normally, user should do something to the strategy due to the change of outer decision
         raise NotImplementedError(f"Please implement the `alter_outer_trade_decision` method")
+
+    # helper methods: not necessary but for convenience
+    def get_data_cal_avail_range(self, rtype: str = "full") -> Tuple[int, int]:
+        """
+        return data calendar's available decision range for `self` strategy
+        the range consider following factors
+        - data calendar in the charge of `self` strategy
+        - trading range limitation from the decision of outer strategy
+
+
+        related methods
+        - TradeCalendarManager.get_data_cal_range
+        - BaseTradeDecision.get_data_cal_range_limit
+
+        Parameters
+        ----------
+        rtype: str
+            - "full": return the available data index range of the strategy from `start_time` to `end_time`
+            - "step": return the available data index range of the strategy of current step
+
+        Returns
+        -------
+        Tuple[int, int]:
+            the available range both sides are closed
+        """
+        cal_range = self.trade_calendar.get_data_cal_range(rtype=rtype)
+        if self.outer_trade_decision is None:
+            raise ValueError(f"There is not limitation for strategy {self}")
+        range_limit = self.outer_trade_decision.get_data_cal_range_limit(rtype=rtype)
+        return max(cal_range[0], range_limit[0]), min(cal_range[1], range_limit[1])
 
 
 class ModelStrategy(BaseStrategy):

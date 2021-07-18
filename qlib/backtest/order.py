@@ -524,4 +524,4 @@ class TradeDecisionWO(BaseTradeDecision):
         return self.order_list
 
     def __repr__(self) -> str:
-        return f"strategy: {self.strategy}; trade_range: {self.trade_range}; order_list[{len(self.order_list)}]"
+        return f"class: {self.__class__.__name__}; strategy: {self.strategy}; trade_range: {self.trade_range}; order_list[{len(self.order_list)}]"
