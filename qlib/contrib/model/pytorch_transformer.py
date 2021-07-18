@@ -23,6 +23,7 @@ from .pytorch_utils import count_parameters
 from ...model.base import Model
 from ...data.dataset import DatasetH, TSDatasetH
 from ...data.dataset.handler import DataHandlerLP
+
 # qrun examples/benchmarks/Transformer/workflow_config_transformer_Alpha360.yaml ”
 
 
@@ -149,8 +150,8 @@ class TransformerModel(Model):
             if len(indices) - i < self.batch_size:
                 break
 
-            feature = torch.from_numpy(x_values[indices[i: i + self.batch_size]]).float().to(self.device)
-            label = torch.from_numpy(y_values[indices[i: i + self.batch_size]]).float().to(self.device)
+            feature = torch.from_numpy(x_values[indices[i : i + self.batch_size]]).float().to(self.device)
+            label = torch.from_numpy(y_values[indices[i : i + self.batch_size]]).float().to(self.device)
 
             with torch.no_grad():
                 pred = self.model(feature)
