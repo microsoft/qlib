@@ -24,6 +24,7 @@ from ...model.base import Model
 from ...data.dataset import DatasetH, TSDatasetH
 from ...data.dataset.handler import DataHandlerLP
 from torch.nn.modules.container import ModuleList
+
 # qrun examples/benchmarks/Localformer/workflow_config_localformer_Alpha360.yaml ”
 
 
@@ -150,8 +151,8 @@ class LocalformerModel(Model):
             if len(indices) - i < self.batch_size:
                 break
 
-            feature = torch.from_numpy(x_values[indices[i: i + self.batch_size]]).float().to(self.device)
-            label = torch.from_numpy(y_values[indices[i: i + self.batch_size]]).float().to(self.device)
+            feature = torch.from_numpy(x_values[indices[i : i + self.batch_size]]).float().to(self.device)
+            label = torch.from_numpy(y_values[indices[i : i + self.batch_size]]).float().to(self.device)
 
             with torch.no_grad():
                 pred = self.model(feature)
