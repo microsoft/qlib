@@ -42,7 +42,7 @@ class LocalformerModel(Model):
         optimizer="adam",
         reg=1e-3,
         n_jobs=10,
-        GPU=2,
+        GPU=0,
         seed=None,
         **kwargs
     ):
@@ -153,9 +153,6 @@ class LocalformerModel(Model):
 
         dl_train = dataset.prepare("train", col_set=["feature", "label"], data_key=DataHandlerLP.DK_L)
         dl_valid = dataset.prepare("valid", col_set=["feature", "label"], data_key=DataHandlerLP.DK_L)
-        import pdb
-
-        pdb.set_trace()
 
         dl_train.config(fillna_type="ffill+bfill")  # process nan brought by dataloader
         dl_valid.config(fillna_type="ffill+bfill")  # process nan brought by dataloader
