@@ -73,20 +73,20 @@ def indicator_analysis(df, method="mean"):
     Parameters
     ----------
     df : pandas.DataFrame
-        columns: like ['pa', 'pos', 'ffr', 'amount', 'value'].
+        columns: like ['pa', 'pos', 'ffr', 'deal_amount', 'value'].
             Necessary fields:
                 - 'pa' is the price advantage in trade indicators
                 - 'pos' is the positive rate in trade indicators
                 - 'ffr' is the fulfill rate in trade indicators
             Optional fields:
-                - 'amount' is the total deal amount, only necessary when method is 'amount_weighted'
+                - 'deal_amount' is the total deal deal_amount, only necessary when method is 'amount_weighted'
                 - 'value' is the total trade value, only necessary when method is 'value_weighted'
 
         index: Index(datetime)
     method : str, optional
         statistics method of pa/ffr, by default "mean"
         - if method is 'mean', count the mean statistical value of each trade indicator
-        - if method is 'amount_weighted', count the amount weighted mean statistical value of each trade indicator
+        - if method is 'amount_weighted', count the deal_amount weighted mean statistical value of each trade indicator
         - if method is 'value_weighted', count the value weighted mean statistical value of each trade indicator
         Note: statistics method of pos is always "mean"
 
@@ -97,7 +97,7 @@ def indicator_analysis(df, method="mean"):
     """
     weights_dict = {
         "mean": df["count"],
-        "amount_weighted": df["amount"].abs(),
+        "amount_weighted": df["deal_amount"].abs(),
         "value_weighted": df["value"].abs(),
     }
     if method not in weights_dict:

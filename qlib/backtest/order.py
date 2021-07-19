@@ -43,16 +43,24 @@ class Order:
             presents the weight factor assigned in Exchange()
     """
 
+    # 1) time invariant values
+    # - they are set by users and is time-invariant.
     stock_id: str
-    amount: float  # `amount` is a non-negative value
+    amount: float  # `amount` is a non-negative and adjusted value
+    direction: int
 
+    # 2) time variant values:
+    # - Users may want to set these values when using lower level APIs
+    # - If users don't, TradeDecisionWO will help users to set them
     # The interval of the order which belongs to (NOTE: this is not the expected order dealing range time)
     start_time: pd.Timestamp
     end_time: pd.Timestamp
 
-    direction: int
-    factor: float
+    # 3) results
+    # - users should not care about these values
+    # - they are set by the backtest system after finishing the results.
     deal_amount: Optional[float] = None  # `deal_amount` is a non-negative value
+    factor: Optional[float] = None
 
     # FIXME:
     # for compatible now.
@@ -145,9 +153,9 @@ class OrderHelper:
             **adjusted trading amount**
         direction : OrderDir
             trading  direction
-        start_time : Union[str, pd.Timestamp]
+        start_time : Union[str, pd.Timestamp] (optional)
             The interval of the order which belongs to
-        end_time : Union[str, pd.Timestamp]
+        end_time : Union[str, pd.Timestamp] (optional)
             The interval of the order which belongs to
 
         Returns
@@ -159,13 +167,13 @@ class OrderHelper:
             start_time = pd.Timestamp(start_time)
         if end_time is not None:
             end_time = pd.Timestamp(end_time)
+        # NOTE: factor is a value belongs to the results section. User don't have to care about it when creating orders
         return Order(
             stock_id=code,
             amount=amount,
             start_time=start_time,
             end_time=end_time,
             direction=direction,
-            factor=self.exchange.get_factor(code, start_time, end_time),
         )
 
 

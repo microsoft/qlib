@@ -2,6 +2,7 @@
 # Licensed under the MIT License.
 
 
+from qlib.backtest.position import Position
 import random
 import logging
 from typing import List, Tuple, Union
@@ -281,6 +282,8 @@ class Exchange:
         """
         Deal order when the actual transaction
 
+        the results section in `Order` will be changed.
+
         :param order:  Deal the order.
         :param trade_account: Trade account to be updated after dealing the order.
         :param position: position to be updated after dealing the order.
@@ -343,6 +346,7 @@ class Exchange:
             `None`: if the stock is suspended `None` may be returned
             `float`: return factor if the factor exists
         """
+        assert (start_time is not None and end_time is not None, "the time range must be given")
         if stock_id not in self.quote:
             return None
         return resam_ts_data(self.quote[stock_id]["$factor"], start_time, end_time, method=ts_data_last)
@@ -505,20 +509,56 @@ class Exchange:
                 )
         return value
 
-    def get_amount_of_trade_unit(self, factor):
+    def _get_factor_or_raise_erorr(self, factor: float = None, stock_id: str = None, start_time=None, end_time=None):
+        """Please refer to the docs of get_amount_of_trade_unit"""
+        if factor is None:
+            if stock_id is not None and start_time is not None  and end_time is not None :
+                factor = self.get_factor(stock_id=stock_id, start_time=start_time, end_time=end_time)
+            else:
+                raise ValueError(f"`factor` and (`stock_id`, `start_time`, `end_time`) can't both be None")
+        return factor
+
+    def get_amount_of_trade_unit(self, factor: float = None, stock_id: str = None, start_time=None, end_time=None):
+        """
+        get the trade unit of amount based on **factor**
+
+        the factor can be given directly or calculated in given time range and stock id.
+        `factor` has higher priority than `stock_id`, `start_time` and `end_time`
+
+        Parameters
+        ----------
+        factor : float
+            the adjusted factor
+        stock_id : str
+            the id of the stock
+        start_time :
+            the start time of trading range
+        end_time :
+            the end time of trading range
+        """
         if not self.trade_w_adj_price and self.trade_unit is not None:
+            factor = self._get_factor_or_raise_erorr(factor=factor,
+                                                     stock_id=stock_id,
+                                                     start_time=start_time,
+                                                     end_time=end_time)
             return self.trade_unit / factor
         else:
             return None
 
-    def round_amount_by_trade_unit(self, deal_amount, factor):
+    def round_amount_by_trade_unit(self, deal_amount, factor: float = None, stock_id: str = None, start_time=None, end_time=None):
         """Parameter
+        Please refer to the docs of get_amount_of_trade_unit
+
         deal_amount : float, adjusted amount
         factor : float, adjusted factor
         return : float, real amount
         """
         if not self.trade_w_adj_price and self.trade_unit is not None:
             # the minimal amount is 1. Add 0.1 for solving precision problem.
+            factor = self._get_factor_or_raise_erorr(factor=factor,
+                                                     stock_id=stock_id,
+                                                     start_time=start_time,
+                                                     end_time=end_time)
             return (deal_amount * factor + 0.1) // self.trade_unit * self.trade_unit / factor
         return deal_amount
 
@@ -529,7 +569,7 @@ class Exchange:
         else:
             return deal_amount
 
-    def _calc_trade_info_by_order(self, order, position):
+    def _calc_trade_info_by_order(self, order, position: Position):
         """
         Calculation of trade info
 
@@ -541,6 +581,7 @@ class Exchange:
         """
 
         trade_price = self.get_deal_price(order.stock_id, order.start_time, order.end_time, direction=order.direction)
+        order.factor = self.get_factor(order.stock_id, order.start_time, order.end_time)
         if order.direction == Order.SELL:
             # sell
             if position is not None:
