@@ -194,7 +194,6 @@ class TopkDropoutStrategy(ModelStrategy):
                     start_time=trade_start_time,
                     end_time=trade_end_time,
                     direction=Order.SELL,  # 0 for sell, 1 for buy
-                    factor=factor,
                 )
                 # is order executable
                 if self.trade_exchange.check_order(sell_order):
@@ -231,7 +230,6 @@ class TopkDropoutStrategy(ModelStrategy):
                 start_time=trade_start_time,
                 end_time=trade_end_time,
                 direction=Order.BUY,  # 1 for buy
-                factor=factor,
             )
             buy_order_list.append(buy_order)
         return TradeDecisionWO(sell_order_list + buy_order_list, self)
