@@ -63,9 +63,9 @@ class TWAPStrategy(BaseStrategy):
                 stock_id=order.stock_id, start_time=trade_start_time, end_time=trade_end_time
             ):
                 continue
-            _amount_trade_unit = self.trade_exchange.get_amount_of_trade_unit(stock_id=order.stock_id,
-                                                                              start_time=order.start_time,
-                                                                              end_time=order.end_time)
+            _amount_trade_unit = self.trade_exchange.get_amount_of_trade_unit(
+                stock_id=order.stock_id, start_time=order.start_time, end_time=order.end_time
+            )
             _order_amount = None
             # considering trade unit
             if _amount_trade_unit is None:
@@ -169,9 +169,9 @@ class SBBStrategyBase(BaseStrategy):
                     self.trade_trend[order.stock_id] = _pred_trend
                 continue
             # get amount of one trade unit
-            _amount_trade_unit = self.trade_exchange.get_amount_of_trade_unit(stock_id=order.stock_id,
-                                                                              start_time=order.start_time,
-                                                                              end_time=order.end_time)
+            _amount_trade_unit = self.trade_exchange.get_amount_of_trade_unit(
+                stock_id=order.stock_id, start_time=order.start_time, end_time=order.end_time
+            )
             if _pred_trend == self.TREND_MID:
                 _order_amount = None
                 # considering trade unit
@@ -471,9 +471,9 @@ class ACStrategy(BaseStrategy):
 
             if sig_sam is None or np.isnan(sig_sam):
                 # no signal, TWAP
-                _amount_trade_unit = self.trade_exchange.get_amount_of_trade_unit(stock_id=order.stock_id,
-                                                                                  start_time=order.start_time,
-                                                                                  end_time=order.end_time)
+                _amount_trade_unit = self.trade_exchange.get_amount_of_trade_unit(
+                    stock_id=order.stock_id, start_time=order.start_time, end_time=order.end_time
+                )
                 if _amount_trade_unit is None:
                     # divide the order into equal parts, and trade one part
                     _order_amount = self.trade_amount[order.stock_id] / (trade_len - trade_step)
@@ -494,10 +494,9 @@ class ACStrategy(BaseStrategy):
                     np.sinh(kappa * (trade_len - trade_step)) - np.sinh(kappa * (trade_len - trade_step - 1))
                 ) / np.sinh(kappa * trade_len)
                 _order_amount = order.amount * amount_ratio
-                _order_amount = self.trade_exchange.round_amount_by_trade_unit(_order_amount,
-                                                                               stock_id=order.stock_id,
-                                                                               start_time=order.start_time,
-                                                                               end_time=order.end_time)
+                _order_amount = self.trade_exchange.round_amount_by_trade_unit(
+                    _order_amount, stock_id=order.stock_id, start_time=order.start_time, end_time=order.end_time
+                )
 
             if order.direction == order.SELL:
                 # sell all amount at last

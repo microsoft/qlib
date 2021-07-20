@@ -495,30 +495,22 @@ class SimulatorExecutor(BaseExecutor):
                 execute_result.append((order, trade_val, trade_cost, trade_price))
                 if self.verbose:
                     if order.direction == Order.SELL:  # sell
-                        print(
-                            "[I {:%Y-%m-%d %H:%M:%S}]: sell {}, price {:.2f}, amount {}, deal_amount {}, factor {}, value {:.2f}.".format(
-                                trade_start_time,
-                                order.stock_id,
-                                trade_price,
-                                order.amount,
-                                order.deal_amount,
-                                order.factor,
-                                trade_val,
-                            )
-                        )
+                        action = "sell"
                     else:
-                        print(
-                            "[I {:%Y-%m-%d %H:%M:%S}]: buy {}, price {:.2f}, amount {}, deal_amount {}, factor {}, value {:.2f}.".format(
-                                trade_start_time,
-                                order.stock_id,
-                                trade_price,
-                                order.amount,
-                                order.deal_amount,
-                                order.factor,
-                                trade_val,
-                            )
+                        action = "buy"
+                    print(
+                        "[I {:%Y-%m-%d %H:%M:%S}]: {} {}, price {:.2f}, amount {}, deal_amount {}, factor {}, value {:.2f}, cach {:.2f}.".format(
+                            trade_start_time,
+                            action,
+                            order.stock_id,
+                            trade_price,
+                            order.amount,
+                            order.deal_amount,
+                            order.factor,
+                            trade_val,
+                            self.trade_account.get_cash(),
                         )
-
+                    )
             else:
                 if self.verbose:
                     print("[W {:%Y-%m-%d %H:%M:%S}]: {} wrong.".format(trade_start_time, order.stock_id))

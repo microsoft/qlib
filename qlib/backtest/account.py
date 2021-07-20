@@ -160,7 +160,7 @@ class Account:
             self.accum_info.add_return_value(profit)  # note here do not consider cost
 
     def update_order(self, order, trade_val, cost, trade_price):
-        if not self.is_port_metr_enabled():
+        if self.current.skip_update():
             # TODO: supporting polymorphism for account
             # updating order for infinite position is meaningless
             return
