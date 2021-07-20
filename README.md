@@ -292,7 +292,7 @@ Here is a list of models built on `Qlib`.
 - [DoubleEnsemble based on LightGBM (Chuheng Zhang, et al. ICDM 2020)](qlib/contrib/model/double_ensemble.py)
 - [TCTS based on pytorch (Xueqing Wu, et al. ICML 2021)](qlib/contrib/model/pytorch_tcts.py)
 - [Transformer based on pytorch (Ashish Vaswani, et al. NeurIPS 2017)](qlib/contrib/model/pytorch_transformer.py)
-- [TCTS based on pytorch (Juyong Jiang, et al.)](qlib/contrib/model/pytorch_localformer.py)
+- [Localformer based on pytorch (Juyong Jiang, et al.)](qlib/contrib/model/pytorch_localformer.py)
 
 Your PR of new Quant models is highly welcomed.
 
