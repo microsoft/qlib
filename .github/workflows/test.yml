@@ -47,11 +47,13 @@ jobs:
         fi
       shell: bash
     
-    - name: Install Lightgbm for MacOS
+    - name: Install Lightgbm and Upgrade openssl for MacOS
       if: runner.os == 'macOS'
       run: |
         /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Microsoft/qlib/main/.github/brew_install.sh)"
         HOMEBREW_NO_AUTO_UPDATE=1 brew install lightgbm
+        brew upgrade openssl
+        sudo $CONDA/bin/python -m pip install -U pyopenssl idna
 
     - name: Test data downloads
       run: |
