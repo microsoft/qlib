@@ -308,14 +308,6 @@ class Indicator:
             return deal_amount / amount
         self.order_indicator.transfer(func, "ffr")
 
-    """
-    def _update_order_price_advantage(self):
-        # NOTE:
-        # trade_price and baseline price will be same on the lowest-level
-        # So Pa should be 0 or do nothing
-        self.order_indicator.assign("pa", 0)
-    """
-
     def update_order_indicators(self, trade_info: list):
         self._update_order_trade_info(trade_info=trade_info)
         self._update_order_fulfill_rate()
@@ -475,7 +467,7 @@ class Indicator:
         trade_exchange: Exchange,
         indicator_config={},
     ):
-        self._agg_order_trade_info(inner_order_indicators)  # TODO
+        self._agg_order_trade_info(inner_order_indicators)
         self._update_trade_amount(outer_trade_decision)
         self._update_order_fulfill_rate()
         pa_config = indicator_config.get("pa_config", {})
@@ -564,27 +556,97 @@ class Indicator:
 
 
 class BaseOrderIndicator:
+    """The data structure of order indicator.
+    """
 
     def __init__(self):
         pass
 
     def assign(self, col: str, metric: Union[dict, pd.Series]):
+        """assign one metric.
+
+        Parameters
+        ----------
+        col : str
+            the metric name of one metric.
+        metric : Union[dict, pd.Series]
+            the metric data.
+        """
+
         pass
 
-    def transfer(self, func: "Callable", new_col = None):
+    def transfer(self, func: "Callable", new_col: str = None):
+        """compute new metric with existing.
+
+        Parameters
+        ----------
+        func : Callable
+            the func of computing new metric.
+            the kwargs of func will be replaced with metric data by name in this function.
+            e.g.
+                def func(pa):
+                    return (pa > 0).astype(int).sum() / pa.count()
+        new_col : str, optional
+            New metric will be assigned in the data if new_col is not None, by default None.
+
+        Return 
+        ----------
+        SingleMetric
+            new metric.
+        """
+
         pass
     
     def get_metric_series(self, metric: str):
+        """return the single metric with pd.Series format
+
+        Parameters
+        ----------
+        metric : str
+            the metric name.
+
+        Return
+        ----------
+        pd.Series
+            the single metric. 
+            If there is no metric name in the data, return pd.Series().
+        """
+
         pass
 
     @classmethod
-    def agg_all_indicators(indicators, metrics: Union[str, List[str]], fill_value = None):
+    def agg_all_indicators(indicators: list, metrics: Union[str, List[str]], fill_value: float = None):
+        """sum indicators with the same metrics.
+
+        Parameters
+        ----------
+        indicators : List[BaseOrderIndicator]
+            the list of all inner indicators.
+        metrics : Union[str, List[str]]
+            all metrics needs ot be sumed.
+        fill_value : float, optional
+            fill np.NaN with value. By default None.
+
+        Return
+        ----------
+        Dict[str: SingleMetric]
+            a dict of metric name and data.
+        """
+
         pass
 
 
 class PandasOrderIndicator(BaseOrderIndicator):
+    """The data structure is OrderedDict(str: SingleMetric).
+       Each SingleMetric based on pd.Series is one metric.
+       Str is the name of metric.
+    """
 
     class SingleMetric:
+        """The data structure of the single metric. 
+           The following methods are used for computing metrics in one indicator.
+        """
+
         def __init__(self, metric: Union[dict, pd.Series]):
             if isinstance(metric, dict):
                 self.metric = pd.Series(metric)
@@ -687,12 +749,6 @@ class PandasOrderIndicator(BaseOrderIndicator):
         def empty(self):
             return self.metric.empty
 
-        """
-        @property
-        def index(self):
-            return self.metric.index
-        """
-
         def add(self, other, fill_value: None):
             return PandasOrderIndicator.SingleMetric(self.metric.add(other.metric, fill_value = fill_value))
 
@@ -705,7 +761,7 @@ class PandasOrderIndicator(BaseOrderIndicator):
     def assign(self, col: str, metric: Union[dict, pd.Series]):
         self.data[col] = self.SingleMetric(metric)
 
-    def transfer(self, func: "Callable", new_col = None):
+    def transfer(self, func: "Callable", new_col: str = None):
         func_sig = inspect.signature(func).parameters.keys()
         func_kwargs = {sig: self.data[sig] for sig in func_sig}
         tmp_metric = func(**func_kwargs)
@@ -721,14 +777,12 @@ class PandasOrderIndicator(BaseOrderIndicator):
 
     @staticmethod
     def agg_all_indicators(indicators: list, metrics: Union[str, List[str]], fill_value = None):
-        """add all order indicators with same metric"""
-
         metric_dict = {}
         if isinstance(metrics, str):
             metrics = [metrics]
         for metric in metrics:
             tmp_metric = PandasOrderIndicator.SingleMetric({})
             for indicator in indicators:
-                tmp_metric.add(indicator.data[metric], fill_value)
+                tmp_metric = tmp_metric.add(indicator.data[metric], fill_value)
             metric_dict[metric] = tmp_metric.metric
         return metric_dict
