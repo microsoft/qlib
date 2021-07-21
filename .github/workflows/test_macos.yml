@@ -1,3 +1,4 @@
+# There are some issues (in the downloading data phase) on MacOS when running with other tests. So we split it into an individual config.
 name: Test MacOS
 
 on:
