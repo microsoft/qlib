@@ -302,6 +302,10 @@ class YahooCollectorIN1d(YahooCollectorIN):
     pass
 
 
+class YahooCollectorIN1min(YahooCollectorIN):
+    pass
+
+
 class YahooNormalize(BaseNormalize):
     COLUMNS = ["open", "close", "high", "low", "volume"]
     DAILY_FORMAT = "%Y-%m-%d"
@@ -740,6 +744,20 @@ class YahooNormalizeIN:
 
 class YahooNormalizeIN1d(YahooNormalizeIN, YahooNormalize1d):
     pass
+
+
+class YahooNormalizeIN1min(YahooNormalizeIN, YahooNormalize1minOffline):
+    CALC_PAUSED_NUM = False
+
+    def _get_calendar_list(self) -> Iterable[pd.Timestamp]:
+        # TODO: support 1min
+        raise ValueError("Does not support 1min")
+
+    def _get_1d_calendar_list(self):
+        return get_calendar_list("IN_ALL")
+
+    def symbol_to_yahoo(self, symbol):
+        return fname_to_code(symbol)
 
 
 class YahooNormalizeCN:
