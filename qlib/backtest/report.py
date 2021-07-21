@@ -5,8 +5,9 @@
 from collections import OrderedDict
 from logging import warning
 import pathlib
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Union
 import warnings
+import inspect
 
 import numpy as np
 import pandas as pd
@@ -62,6 +63,7 @@ class Report:
                 - Else, it represent end time of benchmark, by default None
 
         """
+
         self.init_vars()
         self.init_bench(freq=freq, benchmark_config=benchmark_config)
 
@@ -255,7 +257,7 @@ class Indicator:
     def __init__(self):
         # order indicator is metrics for a single order for a specific step
         self.order_indicator_his = OrderedDict()
-        self.order_indicator: Dict[str, pd.Series] = OrderedDict()
+        self.order_indicator = PandasOrderIndicator()
 
         # trade indicator is metrics for all orders for a specific step
         self.trade_indicator_his = OrderedDict()
@@ -265,12 +267,12 @@ class Indicator:
 
     # def reset(self, trade_calendar: TradeCalendarManager):
     def reset(self):
-        self.order_indicator = OrderedDict()
+        self.order_indicator = PandasOrderIndicator()
         self.trade_indicator = OrderedDict()
         # self._trade_calendar = trade_calendar
 
     def record(self, trade_start_time):
-        self.order_indicator_his[trade_start_time] = self.order_indicator
+        self.order_indicator_his[trade_start_time] = self.order_indicator.data
         self.trade_indicator_his[trade_start_time] = self.trade_indicator
 
     def _update_order_trade_info(self, trade_info: list):
@@ -280,6 +282,7 @@ class Indicator:
         trade_value = dict()
         trade_cost = dict()
         trade_dir = dict()
+        pa = dict()
 
         for order, _trade_val, _trade_cost, _trade_price in trade_info:
             amount[order.stock_id] = order.amount_delta
@@ -288,66 +291,58 @@ class Indicator:
             trade_value[order.stock_id] = _trade_val * order.sign
             trade_cost[order.stock_id] = _trade_cost
             trade_dir[order.stock_id] = order.direction
+            pa[order.stock_id] = 0
 
-        self.order_indicator["amount"] = self.order_indicator["inner_amount"] = pd.Series(amount)
-        self.order_indicator["deal_amount"] = pd.Series(deal_amount)
+        self.order_indicator.assign("amount", amount)
+        self.order_indicator.assign("inner_amount", amount)
+        self.order_indicator.assign("deal_amount", deal_amount)
         # NOTE: trade_price and baseline price will be same on the lowest-level
-        self.order_indicator["trade_price"] = pd.Series(trade_price)
-        self.order_indicator["trade_value"] = pd.Series(trade_value)
-        self.order_indicator["trade_cost"] = pd.Series(trade_cost)
-        self.order_indicator["trade_dir"] = pd.Series(trade_dir)
+        self.order_indicator.assign("trade_price", trade_price)
+        self.order_indicator.assign("trade_value", trade_value)
+        self.order_indicator.assign("trade_cost", trade_cost)
+        self.order_indicator.assign("trade_dir", trade_dir)
+        self.order_indicator.assign("pa", pa)
 
     def _update_order_fulfill_rate(self):
-        self.order_indicator["ffr"] = self.order_indicator["deal_amount"] / self.order_indicator["amount"]
+        def func(deal_amount, amount):
+            return deal_amount / amount
+        self.order_indicator.transfer(func, "ffr")
 
+    """
     def _update_order_price_advantage(self):
         # NOTE:
         # trade_price and baseline price will be same on the lowest-level
         # So Pa should be 0 or do nothing
-        self.order_indicator["pa"] = 0
+        self.order_indicator.assign("pa", 0)
+    """
 
     def update_order_indicators(self, trade_info: list):
         self._update_order_trade_info(trade_info=trade_info)
         self._update_order_fulfill_rate()
-        self._update_order_price_advantage()
+        # self._update_order_price_advantage()
 
     def _agg_order_trade_info(self, inner_order_indicators: List[Dict[str, pd.Series]]):
-        inner_amount = pd.Series()
-        deal_amount = pd.Series()
-        trade_price = pd.Series()
-        trade_value = pd.Series()
-        trade_cost = pd.Series()
-        trade_dir = pd.Series()
-        for _order_indicator in inner_order_indicators:
-            inner_amount = inner_amount.add(_order_indicator["inner_amount"], fill_value=0)
-            deal_amount = deal_amount.add(_order_indicator["deal_amount"], fill_value=0)
-            trade_price = trade_price.add(
-                _order_indicator["trade_price"] * _order_indicator["deal_amount"], fill_value=0
-            )
-            trade_value = trade_value.add(_order_indicator["trade_value"], fill_value=0)
-            trade_cost = trade_cost.add(_order_indicator["trade_cost"], fill_value=0)
-            trade_dir = trade_dir.add(_order_indicator["trade_dir"], fill_value=0)
+        all_metric = ["inner_amount", "deal_amount", "trade_price", 
+            "trade_value", "trade_cost", "trade_dir"]
+        metric_dict = PandasOrderIndicator.agg_all_indicators(inner_order_indicators, all_metric, fill_value=0)
+        for metric in metric_dict:
+            self.order_indicator.assign(metric, metric_dict[metric])
 
-        trade_dir = trade_dir.apply(Order.parse_dir)
+        def func(trade_price, deal_amount):
+            return trade_price / deal_amount
+        self.order_indicator.transfer(func, "trade_price")
 
-        self.order_indicator["inner_amount"] = inner_amount
-        self.order_indicator["deal_amount"] = deal_amount
-        trade_price /= self.order_indicator["deal_amount"]
-        self.order_indicator["trade_price"] = trade_price
-        self.order_indicator["trade_value"] = trade_value
-        self.order_indicator["trade_cost"] = trade_cost
-        self.order_indicator["trade_dir"] = trade_dir
+        def func_apply(trade_dir):
+            return trade_dir.apply(Order.parse_dir)
+        self.order_indicator.transfer(func_apply, "trade_dir")
 
     def _update_trade_amount(self, outer_trade_decision: BaseTradeDecision):
         # NOTE: these indicator is designed for order execution, so the
         decision: List[Order] = outer_trade_decision.get_decision()
         if decision is None:
-            self.order_indicator["amount"] = pd.Series()
+            self.order_indicator.assign("amount", {})
         else:
-            self.order_indicator["amount"] = pd.Series({order.stock_id: order.amount_delta for order in decision})
-
-    def _agg_order_fulfill_rate(self):
-        self.order_indicator["ffr"] = self.order_indicator["deal_amount"] / self.order_indicator["amount"]
+            self.order_indicator.assign("amount", {order.stock_id: order.amount_delta for order in decision})
 
     def _get_base_vol_pri(
         self,
@@ -423,17 +418,16 @@ class Indicator:
                 "price": "$close",  # TODO: this is not supported now!!!!!
                                     # default to use deal price of the exchange
             }
-
         """
 
         # TODO: I think there are potentials to be optimized
-        trade_dir = self.order_indicator["trade_dir"]
+        trade_dir = self.order_indicator.get_metric_series("trade_dir")
         if len(trade_dir) > 0:
             bp_all, bv_all = [], []
             # <step, inst, (base_volume | base_price)>
             for oi, (dec, start, end) in zip(inner_order_indicators, decision_list):
-                bp_s = oi.get("base_price", pd.Series()).reindex(trade_dir.index)
-                bv_s = oi.get("base_volume", pd.Series()).reindex(trade_dir.index)
+                bp_s = oi.get_metric_series("base_price").reindex(trade_dir.index)
+                bv_s = oi.get_metric_series("base_volume").reindex(trade_dir.index)
                 bp_new, bv_new = {}, {}
                 for pr, v, (inst, direction) in zip(bp_s.values, bv_s.values, trade_dir.items()):
                     if np.isnan(pr):
@@ -457,17 +451,21 @@ class Indicator:
             bp_all = pd.concat(bp_all, axis=1)
             bv_all = pd.concat(bv_all, axis=1)
 
-            self.order_indicator["base_volume"] = bv_all.sum(axis=1)
-            self.order_indicator["base_price"] = (bp_all * bv_all).sum(axis=1) / self.order_indicator["base_volume"]
+            base_volume = bv_all.sum(axis=1)
+            self.order_indicator.assign("base_volume", base_volume)
+            self.order_indicator.assign("base_price", (bp_all * bv_all).sum(axis=1) / base_volume)
 
     def _agg_order_price_advantage(self):
-        if not self.order_indicator["trade_price"].empty:
-            sign = 1 - self.order_indicator["trade_dir"] * 2
-            self.order_indicator["pa"] = sign * (
-                self.order_indicator["trade_price"] / self.order_indicator["base_price"] - 1
-            )
+        def if_empty_func(trade_price):
+            return trade_price.empty
+        if_empty = self.order_indicator.transfer(if_empty_func)
+        if not if_empty:
+            def func(trade_dir, trade_price, base_price):
+                sign = 1 - trade_dir * 2
+                return sign * (trade_price / base_price - 1)
+            self.order_indicator.transfer(func, "pa")
         else:
-            self.order_indicator["pa"] = pd.Series()
+            self.order_indicator.assign("pa", {})
 
     def agg_order_indicators(
         self,
@@ -477,57 +475,60 @@ class Indicator:
         trade_exchange: Exchange,
         indicator_config={},
     ):
-        self._agg_order_trade_info(inner_order_indicators)
+        self._agg_order_trade_info(inner_order_indicators)  # TODO
         self._update_trade_amount(outer_trade_decision)
-        self._agg_order_fulfill_rate()
+        self._update_order_fulfill_rate()
         pa_config = indicator_config.get("pa_config", {})
-        self._agg_base_price(inner_order_indicators, decision_list, trade_exchange, pa_config=pa_config)
+        self._agg_base_price(inner_order_indicators, decision_list, trade_exchange, pa_config=pa_config)    # TODO
         self._agg_order_price_advantage()
 
     def _cal_trade_fulfill_rate(self, method="mean"):
         if method == "mean":
-            return self.order_indicator["ffr"].mean()
+            def func(ffr):
+                return ffr.mean()
         elif method == "amount_weighted":
-            weights = self.order_indicator["deal_amount"].abs()
-            return (self.order_indicator["ffr"] * weights).sum() / weights.sum()
+            def func(ffr, deal_amount):
+                return (ffr * deal_amount.abs()).sum() / (deal_amount.abs().sum())
         elif method == "value_weighted":
-            weights = self.order_indicator["trade_value"].abs()
-            return (self.order_indicator["ffr"] * weights).sum() / weights.sum()
+            def func(ffr, trade_value):
+                return (ffr * trade_value.abs()).sum() / (trade_value.abs().sum())
         else:
             raise ValueError(f"method {method} is not supported!")
+        return self.order_indicator.transfer(func)
 
     def _cal_trade_price_advantage(self, method="mean"):
-        pa_order = self.order_indicator["pa"]
-        if isinstance(pa_order, (int, float)):
-            # pa from atomic executor
-            return pa_order
-
         if method == "mean":
-            return pa_order.mean()
+            def func(pa):
+                return pa.mean()
         elif method == "amount_weighted":
-            weights = self.order_indicator["deal_amount"].abs()
-            return (pa_order * weights).sum() / weights.sum()
+            def func(pa, deal_amount):
+                return (pa * deal_amount.abs()).sum() / (deal_amount.abs().sum())
         elif method == "value_weighted":
-            weights = self.order_indicator["trade_value"].abs()
-            return (pa_order * weights).sum() / weights.sum()
+            def func(pa, trade_value):
+                return (pa * trade_value.abs()).sum() / (trade_value.abs().sum())
         else:
             raise ValueError(f"method {method} is not supported!")
+        return self.order_indicator.transfer(func)
 
     def _cal_trade_positive_rate(self):
-        pa_order = self.order_indicator["pa"]
-        if isinstance(pa_order, (int, float)):
-            # pa from atomic executor
-            return pa_order
-        return (pa_order > 0).astype(int).sum() / pa_order.count()
+        def func(pa):
+            return (pa > 0).astype(int).sum() / pa.count()
+        return self.order_indicator.transfer(func)
 
     def _cal_deal_amount(self):
-        return self.order_indicator["deal_amount"].abs().sum()
+        def func(deal_amount):
+            return deal_amount.abs().sum()
+        return self.order_indicator.transfer(func)
 
     def _cal_trade_value(self):
-        return self.order_indicator["trade_value"].abs().sum()
+        def func(trade_value):
+            return trade_value.abs().sum()
+        return self.order_indicator.transfer(func)
 
     def _cal_trade_order_count(self):
-        return self.order_indicator["amount"].count()
+        def func(amount):
+            return amount.count()
+        return self.order_indicator.transfer(func)
 
     def cal_trade_indicators(self, trade_start_time, freq, indicator_config={}):
         show_indicator = indicator_config.get("show_indicator", False)
@@ -560,3 +561,174 @@ class Indicator:
 
     def generate_trade_indicators_dataframe(self):
         return pd.DataFrame.from_dict(self.trade_indicator_his, orient="index")
+
+
+class BaseOrderIndicator:
+
+    def __init__(self):
+        pass
+
+    def assign(self, col: str, metric: Union[dict, pd.Series]):
+        pass
+
+    def transfer(self, func: "Callable", new_col = None):
+        pass
+    
+    def get_metric_series(self, metric: str):
+        pass
+
+    @classmethod
+    def agg_all_indicators(indicators, metrics: Union[str, List[str]], fill_value = None):
+        pass
+
+
+class PandasOrderIndicator(BaseOrderIndicator):
+
+    class SingleMetric:
+        def __init__(self, metric: Union[dict, pd.Series]):
+            if isinstance(metric, dict):
+                self.metric = pd.Series(metric)
+            elif isinstance(metric, pd.Series):
+                self.metric = metric
+            else:
+                raise ValueError(f"metric must be dict or pd.Series")
+
+        def __add__(self, other):
+            if isinstance(other, (int, float)):
+                return PandasOrderIndicator.SingleMetric(self.metric + other)
+            elif isinstance(other, PandasOrderIndicator.SingleMetric):
+                return PandasOrderIndicator.SingleMetric(self.metric + other.metric)
+            else:
+                return NotImplemented
+
+        def __radd__(self, other):
+            if isinstance(other, (int, float)):
+                return PandasOrderIndicator.SingleMetric(other + self.metric)
+            elif isinstance(other, PandasOrderIndicator.SingleMetric):
+                return PandasOrderIndicator.SingleMetric(other.metric + self.metric)
+            else:
+                return NotImplemented
+
+        def __sub__(self, other):
+            if isinstance(other, (int, float)):
+                return PandasOrderIndicator.SingleMetric(self.metric - other)
+            elif isinstance(other, PandasOrderIndicator.SingleMetric):
+                return PandasOrderIndicator.SingleMetric(self.metric - other.metric)
+            else:
+                return NotImplemented
+
+        def __rsub__(self, other):
+            if isinstance(other, (int, float)):
+                return PandasOrderIndicator.SingleMetric(other - self.metric)
+            elif isinstance(other, PandasOrderIndicator.SingleMetric):
+                return PandasOrderIndicator.SingleMetric(other.metric - self.metric)
+            else:
+                return NotImplemented
+
+        def __mul__(self, other):
+            if isinstance(other, (int, float)):
+                return PandasOrderIndicator.SingleMetric(self.metric * other)
+            elif isinstance(other, PandasOrderIndicator.SingleMetric):
+                return PandasOrderIndicator.SingleMetric(self.metric * other.metric)
+            else:
+                return NotImplemented
+
+        def __truediv__(self, other):
+            if isinstance(other, (int, float)):
+                return PandasOrderIndicator.SingleMetric(self.metric / other)
+            elif isinstance(other, PandasOrderIndicator.SingleMetric):
+                return PandasOrderIndicator.SingleMetric(self.metric / other.metric)
+            else:
+                return NotImplemented
+
+        def __eq__(self, other):
+            if isinstance(other, (int, float)):
+                return PandasOrderIndicator.SingleMetric(self.metric == other)
+            elif isinstance(other, PandasOrderIndicator.SingleMetric):
+                return PandasOrderIndicator.SingleMetric(self.metric == other.metric)
+            else:
+                return NotImplemented
+
+        def __gt__(self, other):
+            if isinstance(other, (int, float)):
+                return PandasOrderIndicator.SingleMetric(self.metric < other)
+            elif isinstance(other, PandasOrderIndicator.SingleMetric):
+                return PandasOrderIndicator.SingleMetric(self.metric < other.metric)
+            else:
+                return NotImplemented
+
+        def __lt__(self, other):
+            if isinstance(other, (int, float)):
+                return PandasOrderIndicator.SingleMetric(self.metric > other)
+            elif isinstance(other, PandasOrderIndicator.SingleMetric):
+                return PandasOrderIndicator.SingleMetric(self.metric > other.metric)
+            else:
+                return NotImplemented
+        
+        def __len__(self):
+            return len(self.metric)
+
+        def sum(self):
+            return self.metric.sum()
+
+        def mean(self):
+            return self.metric.mean()
+
+        def count(self):
+            return self.metric.count()
+
+        def abs(self):
+            return PandasOrderIndicator.SingleMetric(self.metric.abs())
+
+        def astype(self, type):
+            return PandasOrderIndicator.SingleMetric(self.metric.astype(type))
+
+        @property
+        def empty(self):
+            return self.metric.empty
+
+        """
+        @property
+        def index(self):
+            return self.metric.index
+        """
+
+        def add(self, other, fill_value: None):
+            return PandasOrderIndicator.SingleMetric(self.metric.add(other.metric, fill_value = fill_value))
+
+        def apply(self, map_dict: dict):
+            return PandasOrderIndicator.SingleMetric(self.metric.apply(map_dict))
+
+    def __init__(self):
+        self.data: Dict[str, self.SingleMetric] = OrderedDict()
+
+    def assign(self, col: str, metric: Union[dict, pd.Series]):
+        self.data[col] = self.SingleMetric(metric)
+
+    def transfer(self, func: "Callable", new_col = None):
+        func_sig = inspect.signature(func).parameters.keys()
+        func_kwargs = {sig: self.data[sig] for sig in func_sig}
+        tmp_metric = func(**func_kwargs)
+        if(new_col is not None):
+            self.data[new_col] = tmp_metric
+        return tmp_metric
+
+    def get_metric_series(self, metric: str):
+        if(metric in self.data):
+            return self.data[metric].metric
+        else:
+            return pd.Series()
+
+    @staticmethod
+    def agg_all_indicators(indicators: list, metrics: Union[str, List[str]], fill_value = None):
+        """add all order indicators with same metric"""
+
+        metric_dict = {}
+        if isinstance(metrics, str):
+            metrics = [metrics]
+        for metric in metrics:
+            tmp_metric = PandasOrderIndicator.SingleMetric({})
+            for indicator in indicators:
+                tmp_metric.add(indicator.data[metric], fill_value)
+            metric_dict[metric] = tmp_metric.metric
+        return metric_dict
