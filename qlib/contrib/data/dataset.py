@@ -122,7 +122,7 @@ class MTSDatasetH(DatasetH):
         shuffle=True,
         drop_last=False,
         input_size=None,
-        **kwargs
+        **kwargs,
     ):
 
         assert num_states == 0 or horizon > 0, "please specify `horizon` to avoid data leakage"
