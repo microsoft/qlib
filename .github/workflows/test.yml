@@ -12,7 +12,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [windows-latest, ubuntu-16.04, ubuntu-18.04, ubuntu-20.04, macos-latest]
+        os: [windows-latest, ubuntu-16.04, ubuntu-18.04, ubuntu-20.04]
         python-version: [3.6, 3.7, 3.8, 3.9]
 
     steps:
@@ -46,14 +46,6 @@ jobs:
           sudo $CONDA/bin/python -m pip install pyqlib --ignore-installed ruamel.yaml numpy
         fi
       shell: bash
-    
-    - name: Install Lightgbm and Upgrade openssl for MacOS
-      if: runner.os == 'macOS'
-      run: |
-        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Microsoft/qlib/main/.github/brew_install.sh)"
-        HOMEBREW_NO_AUTO_UPDATE=1 brew install lightgbm
-        brew upgrade openssl
-        sudo $CONDA/bin/python -m pip install -U pyopenssl idna
 
     - name: Test data downloads
       run: |
