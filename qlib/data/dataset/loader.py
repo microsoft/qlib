@@ -199,6 +199,10 @@ class StaticDataLoader(DataLoader):
         self.join = join
         self._data = None
 
+    def __getstate__(self) -> dict:
+        # avoid pickling `self._data`
+        return {k: v for k, v in self.__dict__.items() if not k.startswith("_")}
+
     def load(self, instruments=None, start_time=None, end_time=None) -> pd.DataFrame:
         self._maybe_load_raw_data()
         if instruments is None:
