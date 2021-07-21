@@ -735,7 +735,6 @@ class YahooNormalizeUS1min(YahooNormalizeUS, YahooNormalize1minOffline):
 
 class YahooNormalizeIN:
     def _get_calendar_list(self) -> Iterable[pd.Timestamp]:
-        # TODO: from MSN
         return get_calendar_list("IN_ALL")
 
 
