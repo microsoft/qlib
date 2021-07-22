@@ -4,7 +4,7 @@
 
 import random
 import logging
-from typing import List, Tuple, Union
+from typing import List, Tuple, Union, Callable, Iterable
 
 import numpy as np
 import pandas as pd
@@ -15,6 +15,7 @@ from ..config import C, REG_CN
 from ..utils.resam import resam_ts_data, ts_data_last
 from ..log import get_module_logger
 from .order import Order, OrderDir, OrderHelper
+from .high_performane_ds import PandasQuote
 
 
 class Exchange:
@@ -32,6 +33,7 @@ class Exchange:
         close_cost=0.0025,
         min_cost=5,
         extra_quote=None,
+        quote_cls=PandasQuote,
         **kwargs,
     ):
         """__init__
@@ -143,7 +145,8 @@ class Exchange:
         self.get_quote_from_qlib()
 
         # init quote by quote_df
-        self.quote = PandasQuote(self.quote_df)
+        self.quote_cls = quote_cls
+        self.quote = self.quote_cls(self.quote_df)
 
     def get_quote_from_qlib(self):
         # get stock data from qlib
@@ -593,102 +596,3 @@ class Exchange:
             # cache to avoid recreate the same instance
             self._order_helper = OrderHelper(self)
         return self._order_helper
-
-
-class BaseQuote:
-    def __init__(self, quote_df: pd.DataFrame):
-        self.logger = get_module_logger("online operator", level=logging.INFO)
-
-    def get_all_stock(self):
-        """return all stock codes
-
-        Return
-        ------
-        Union[list, Dict.keys(), set, tuple]
-            all stock codes
-        """
-        raise NotImplementedError(f"Please implement the `get_all_stock` method")
-
-    def get_data(
-        self,
-        stock_id: Union[str, list],
-        start_time: Union[pd.Timestamp, str],
-        end_time: Union[pd.Timestamp, str],
-        fields: Union[str, list] = None,
-        method: Union[str, "Callable"] = None,
-    ):
-        """get the specific fields of stock data during start time and end_time,
-           and apply method to the data.
-
-           Example:
-            .. code-block::
-                                        $close      $volume
-                instrument  datetime
-                SH600000    2010-01-04  86.778313   16162960.0
-                            2010-01-05  87.433578   28117442.0
-                            2010-01-06  85.713585   23632884.0
-                            2010-01-07  83.788803   20813402.0
-                            2010-01-08  84.730675   16044853.0
-
-                SH600655    2010-01-04  2699.567383  158193.328125
-                            2010-01-08  2612.359619   77501.406250
-                            2010-01-11  2712.982422  160852.390625
-                            2010-01-12  2788.688232  164587.937500
-                            2010-01-13  2790.604004  145460.453125
-
-                print(get_data(stock_id=["SH600000", "SH600655"], start_time="2010-01-04", end_time="2010-01-05", fields=["$close", "$volume"], method="last"))
-
-                            $close      $volume
-                instrument
-                SH600000    87.433578 28117442.0
-                SH600655    2699.567383  158193.328125
-
-                print(get_data(stock_id="SH600000", start_time="2010-01-04", end_time="2010-01-05", fields=["$close", "$volume"], method="last"))
-
-                $close 87.433578
-                $volume 28117442.0
-
-                print(get_data(stock_id="SH600000", start_time="2010-01-04", end_time="2010-01-05", fields="$close", method="last"))
-
-                87.433578
-
-        Parameters
-        ----------
-        stock_id: Union[str, list]
-        start_time : Union[pd.Timestamp, str]
-            closed start time for backtest
-        end_time : Union[pd.Timestamp, str]
-            closed end time for backtest
-        fields : Union[str, List]
-            the columns of data to fetch
-        method : Union[str, Callable]
-            the method apply to data.
-            e.g ["None", "last", "all", "sum", "mean", "any", qlib/utils/resam.py/ts_data_last]
-
-        Return
-        ----------
-        Union[None, float, pd.Series, pd.DataFrame]
-            The resampled DataFrame/Series/value, return None when the resampled data is empty.
-        """
-
-        raise NotImplementedError(f"Please implement the `get_data` method")
-
-
-class PandasQuote(BaseQuote):
-    def __init__(self, quote_df: pd.DataFrame):
-        super().__init__(quote_df=quote_df)
-        quote_dict = {}
-        for stock_id, stock_val in quote_df.groupby(level="instrument"):
-            quote_dict[stock_id] = stock_val.droplevel(level="instrument")
-        self.data = quote_dict
-
-    def get_all_stock(self):
-        return self.data.keys()
-
-    def get_data(self, stock_id, start_time, end_time, fields=None, method=None):
-        if fields is None:
-            return resam_ts_data(self.data[stock_id], start_time, end_time, method=method)
-        elif isinstance(fields, (str, list)):
-            return resam_ts_data(self.data[stock_id][fields], start_time, end_time, method=method)
-        else:
-            raise ValueError(f"fields must be None, str or list")
