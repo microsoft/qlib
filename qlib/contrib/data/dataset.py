@@ -225,8 +225,6 @@ class MTSDatasetH(DatasetH):
             raise ValueError("cannot assign data as `num_states==0`")
         if isinstance(vals, torch.Tensor):
             vals = vals.detach().cpu().numpy()
-        # if isinstance(index, pd.Series):
-        #     index = index.index  # daily batch use Series to store index
         self._memory[index] = vals
 
     def clear_memory(self):
@@ -234,7 +232,6 @@ class MTSDatasetH(DatasetH):
             raise ValueError("cannot clear memory as `num_states==0`")
         self._memory[:] = 0
 
-    # TODO: better train/eval mode design
     def train(self):
         """enable traning mode"""
         self.batch_size, self.n_samples, self.drop_last, self.shuffle = self.params
