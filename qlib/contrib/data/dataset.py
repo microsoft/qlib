@@ -319,7 +319,7 @@ class MTSDatasetH(DatasetH):
                         data.append(_maybe_padding(self._data[slc], self.seq_len, self._zeros))
 
                     if self.memory_mode == "sample":
-                        state.append(_maybe_padding(self._memory[slc][: -self.horizon], self.seq_len, self._zeros))
+                        state.append(_maybe_padding(self._memory[slc], self.seq_len, self._zeros)[: -self.horizon])
 
                     label.append(self._label[slc.stop - 1])
                     index.append(slc.stop - 1)
