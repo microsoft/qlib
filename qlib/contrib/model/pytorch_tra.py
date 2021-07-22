@@ -526,7 +526,7 @@ class RNN(nn.Module):
         if self.use_attn:
             laten = self.W(rnn_out).tanh()
             scores = self.u(laten).softmax(dim=1)
-            att_out = (rnn_out * scores).sum(dim=1).squeeze()
+            att_out = (rnn_out * scores).sum(dim=1)
             last_out = torch.cat([last_out, att_out], dim=1)
 
         return last_out
@@ -648,7 +648,7 @@ class TRA(nn.Module):
         preds = self.predictors(hidden)
 
         if self.num_states == 1:  # no need for router when having only one prediction
-            return preds.squeeze(-1), preds, None
+            return preds, None, None
 
         if "TPE" in self.src_info:
             out = self.router(hist_loss)[0][:, -1]  # TPE
