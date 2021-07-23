@@ -159,8 +159,7 @@ class BaseSingleMetric:
         raise NotImplementedError(f"Please implement the `mean` method")
 
     def count(self) -> int:
-        """Return the count of the single metric, NaN is not included. 
-        """
+        """Return the count of the single metric, NaN is not included."""
 
         raise NotImplementedError(f"Please implement the `count` method")
 
