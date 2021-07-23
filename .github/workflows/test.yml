@@ -56,16 +56,16 @@ jobs:
         fi
       shell: bash
 
-    - name: Test workflow by config (install from pip)
-      run: |
-        if [ "$RUNNER_OS" == "Windows" ]; then
-          $CONDA\\python.exe qlib\\workflow\\cli.py examples\\benchmarks\\LightGBM\\workflow_config_lightgbm_Alpha158.yaml 
-          $CONDA\\python.exe -m pip uninstall -y pyqlib
-        else
-          $CONDA/bin/python qlib/workflow/cli.py examples/benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml 
-          sudo $CONDA/bin/python -m pip uninstall -y pyqlib
-        fi
-      shell: bash
+    # - name: Test workflow by config (install from pip)
+    #   run: |
+    #     if [ "$RUNNER_OS" == "Windows" ]; then
+    #       $CONDA\\python.exe qlib\\workflow\\cli.py examples\\benchmarks\\LightGBM\\workflow_config_lightgbm_Alpha158.yaml 
+    #       $CONDA\\python.exe -m pip uninstall -y pyqlib
+    #     else
+    #       $CONDA/bin/python qlib/workflow/cli.py examples/benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml 
+    #       sudo $CONDA/bin/python -m pip uninstall -y pyqlib
+    #     fi
+    #   shell: bash
       
     # Test Qlib installed from source
     - name: Install Qlib from source

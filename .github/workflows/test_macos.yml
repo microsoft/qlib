@@ -44,10 +44,10 @@ jobs:
       run: |
         $CONDA/bin/python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/cn_data --interval 1d --region cn
 
-    - name: Test workflow by config (install from pip)
-      run: |
-        $CONDA/bin/python qlib/workflow/cli.py examples/benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml
-        sudo $CONDA/bin/python -m pip uninstall -y pyqlib
+    # - name: Test workflow by config (install from pip)
+      # run: |
+        # $CONDA/bin/python qlib/workflow/cli.py examples/benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml
+        # sudo $CONDA/bin/python -m pip uninstall -y pyqlib
 
     # Test Qlib installed from source
     - name: Install Qlib from source
