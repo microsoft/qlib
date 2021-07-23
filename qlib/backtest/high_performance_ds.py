@@ -25,6 +25,7 @@ class BaseQuote:
         Iterable
             all stock codes
         """
+
         raise NotImplementedError(f"Please implement the `get_all_stock` method")
 
     def get_data(
@@ -119,76 +120,80 @@ class BaseSingleMetric:
     """
 
     def __init__(self, metric: Union[dict, pd.Series]):
-        pass
+        raise NotImplementedError(f"Please implement the `__init__` method")
 
     def __add__(self, other: Union["BaseSingleMetric", int, float]) -> "BaseSingleMetric":
-        pass
+        raise NotImplementedError(f"Please implement the `__add__` method")
 
     def __radd__(self, other: Union["BaseSingleMetric", int, float]) -> "BaseSingleMetric":
         return self + other
 
     def __sub__(self, other: Union["BaseSingleMetric", int, float]) -> "BaseSingleMetric":
-        pass
+        raise NotImplementedError(f"Please implement the `__sub__` method")
 
     def __rsub__(self, other: Union["BaseSingleMetric", int, float]) -> "BaseSingleMetric":
-        pass
+        raise NotImplementedError(f"Please implement the `__rsub__` method")
 
     def __mul__(self, other: Union["BaseSingleMetric", int, float]) -> "BaseSingleMetric":
-        pass
+        raise NotImplementedError(f"Please implement the `__mul__` method")
 
     def __truediv__(self, other: Union["BaseSingleMetric", int, float]) -> "BaseSingleMetric":
-        pass
+        raise NotImplementedError(f"Please implement the `__truediv__` method")
 
     def __eq__(self, other: Union["BaseSingleMetric", int, float]) -> "BaseSingleMetric":
-        pass
+        raise NotImplementedError(f"Please implement the `__eq__` method")
 
     def __gt__(self, other: Union["BaseSingleMetric", int, float]) -> "BaseSingleMetric":
-        pass
+        raise NotImplementedError(f"Please implement the `__gt__` method")
 
     def __lt__(self, other: Union["BaseSingleMetric", int, float]) -> "BaseSingleMetric":
-        pass
+        raise NotImplementedError(f"Please implement the `__lt__` method")
 
     def __len__(self) -> int:
-        pass
+        raise NotImplementedError(f"Please implement the `__len__` method")
 
     def sum(self) -> float:
-        pass
+        raise NotImplementedError(f"Please implement the `sum` method")
 
     def mean(self) -> float:
-        pass
+        raise NotImplementedError(f"Please implement the `mean` method")
 
     def count(self) -> int:
-        pass
+        """Return the count of the single metric, NaN is not included. 
+        """
+
+        raise NotImplementedError(f"Please implement the `count` method")
 
     def abs(self) -> "BaseSingleMetric":
-        pass
+        raise NotImplementedError(f"Please implement the `abs` method")
 
     def astype(self, type: type) -> "BaseSingleMetric":
-        pass
+        raise NotImplementedError(f"Please implement the `astype` method")
 
     @property
     def empty(self) -> bool:
         """If metric is empyt, return True."""
-        pass
+        raise NotImplementedError(f"Please implement the `empty` method")
 
     def add(self, other: "BaseSingleMetric", fill_value: float = None) -> "BaseSingleMetric":
         """Replace np.NaN with fill_value in two metrics and add them."""
-        pass
+        raise NotImplementedError(f"Please implement the `add` method")
 
-    def apply(self, map_dict: dict) -> "BaseSingleMetric":
+    def map(self, map_dict: dict) -> "BaseSingleMetric":
         """Replace the value of metric according to map_dict."""
-        pass
+        raise NotImplementedError(f"Please implement the `map` method")
 
 
 class BaseOrderIndicator:
     """
     The data structure of order indicator.
     !!!NOTE: There are two ways to organize the data structure. Please choose a better way.
-        1. one way is use BaseSingleMetric to represent each metric. For example, the data
-        structure of PandasOrderIndicator is Dict[str: PandasSingleMetric]. It uses
+        1. One way is using BaseSingleMetric to represent each metric. For example, the data
+        structure of PandasOrderIndicator is Dict[str, PandasSingleMetric]. It uses
         PandasSingleMetric based on pd.Series to represent each metric.
-        2. the another way doesn't BaseSingleMetric to represent each metric. The data
-        structure of PandasOrderIndicator is a whole matrix.
+        2. The another way doesn't use BaseSingleMetric to represent each metric. The data
+        structure of PandasOrderIndicator is a whole matrix. It means you are not neccesary
+        to inherit the BaseSingleMetric.
     """
 
     def assign(self, col: str, metric: Union[dict, pd.Series]):
@@ -367,7 +372,7 @@ class PandasSingleMetric:
     def add(self, other, fill_value=None):
         return PandasSingleMetric(self.metric.add(other.metric, fill_value=fill_value))
 
-    def apply(self, map_dict: dict):
+    def map(self, map_dict: dict):
         return PandasSingleMetric(self.metric.apply(map_dict))
 
 

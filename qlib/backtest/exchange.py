@@ -15,7 +15,7 @@ from ..config import C, REG_CN
 from ..utils.resam import resam_ts_data, ts_data_last
 from ..log import get_module_logger
 from .order import Order, OrderDir, OrderHelper
-from .high_performane_ds import PandasQuote
+from .high_performance_ds import PandasQuote
 
 
 class Exchange:

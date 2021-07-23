@@ -6,8 +6,6 @@ from collections import OrderedDict
 from logging import warning
 import pathlib
 from typing import Dict, List, Tuple, Union, Callable
-import warnings
-import inspect
 
 import numpy as np
 import pandas as pd
@@ -18,7 +16,7 @@ from qlib.backtest.exchange import Exchange
 from qlib.backtest.order import BaseTradeDecision, Order, OrderDir
 from qlib.backtest.utils import TradeCalendarManager
 
-from .high_performane_ds import PandasOrderIndicator
+from .high_performance_ds import PandasOrderIndicator
 from ..data import D
 from ..tests.config import CSI300_BENCH
 from ..utils.resam import get_higher_eq_freq_feature, resam_ts_data
@@ -329,7 +327,7 @@ class Indicator:
         self.order_indicator.transfer(func, "trade_price")
 
         def func_apply(trade_dir):
-            return trade_dir.apply(Order.parse_dir)
+            return trade_dir.map(Order.parse_dir)
 
         self.order_indicator.transfer(func_apply, "trade_dir")
 
