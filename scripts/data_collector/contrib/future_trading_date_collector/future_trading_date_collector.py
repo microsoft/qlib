@@ -78,6 +78,7 @@ def future_calendar_collector(qlib_dir: [str, Path], freq: str = "day"):
             data_list.append(_row_data[0])
     data_list = sorted(data_list)
     date_list = generate_qlib_calendar(data_list, freq=freq)
+    date_list = sorted(set(daily_calendar.loc[:, 0].values.tolist() + date_list))
     write_calendar_to_qlib(qlib_dir, date_list, freq=freq)
     bs.logout()
     logger.info(f"get trading dates success: {start_year}-01-01 to {end_year}-12-31")

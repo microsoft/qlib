@@ -33,6 +33,9 @@ class HighFreqNorm(Processor):
             self.feature_vmin[name] = np.nanmin(part_values)
 
     def __call__(self, df_features):
+        df_features["date"] = pd.to_datetime(
+            df_features.index.get_level_values(level="datetime").to_series().dt.date.values
+        )
         df_features.set_index("date", append=True, drop=True, inplace=True)
         df_values = df_features.values
         names = {
