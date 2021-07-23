@@ -1,5 +1,6 @@
 from abc import abstractclassmethod, abstractmethod
 import copy
+from qlib.log import get_module_logger
 from types import GeneratorType
 from qlib.backtest.account import Account
 import warnings
@@ -102,7 +103,10 @@ class BaseExecutor:
         self.track_data = track_data
         self._trade_exchange = trade_exchange
         self.level_infra = LevelInfrastructure()
+        self.level_infra.reset_infra(common_infra=common_infra)
         self.reset(start_time=start_time, end_time=end_time, common_infra=common_infra)
+        if common_infra is None:
+            get_module_logger("BaseExecutor").warning(f"`common_infra` is not set for {self}")
 
     def reset_common_infra(self, common_infra):
         """
@@ -239,7 +243,7 @@ class BaseExecutor:
             # Some concrete executor don't have inner decisions
             res, kwargs = obj
 
-        trade_start_time, trade_end_time = self.trade_calendar.get_cur_step_time()
+        trade_start_time, trade_end_time = self.trade_calendar.get_step_time()
         # Account will not be changed in this function
         self.trade_account.update_bar_end(
             trade_start_time,
@@ -332,7 +336,7 @@ class NestedExecutor(BaseExecutor):
         self.inner_strategy.reset_common_infra(common_infra)
 
     def _init_sub_trading(self, trade_decision):
-        trade_start_time, trade_end_time = self.trade_calendar.get_cur_step_time()
+        trade_start_time, trade_end_time = self.trade_calendar.get_step_time()
         self.inner_executor.reset(start_time=trade_start_time, end_time=trade_end_time)
         sub_level_infra = self.inner_executor.get_level_infra()
         self.level_infra.set_sub_level_infra(sub_level_infra)
@@ -379,8 +383,8 @@ class NestedExecutor(BaseExecutor):
                 )
                 trade_decision.mod_inner_decision(_inner_trade_decision)  # propagate part of decision information
 
-                # NOTE sub_cal.get_cur_step_time() must be called before collect_data in case of step shifting
-                decision_list.append((_inner_trade_decision, *sub_cal.get_cur_step_time()))
+                # NOTE sub_cal.get_step_time() must be called before collect_data in case of step shifting
+                decision_list.append((_inner_trade_decision, *sub_cal.get_step_time()))
 
                 # NOTE: Trade Calendar will step forward in the follow line
                 _inner_execute_result = yield from self.inner_executor.collect_data(
@@ -478,7 +482,7 @@ class SimulatorExecutor(BaseExecutor):
 
     def _collect_data(self, trade_decision: BaseTradeDecision, level: int = 0):
 
-        trade_start_time, _ = self.trade_calendar.get_cur_step_time()
+        trade_start_time, _ = self.trade_calendar.get_step_time()
         execute_result = []
 
         for order in self._get_order_iterator(trade_decision):
@@ -491,30 +495,22 @@ class SimulatorExecutor(BaseExecutor):
                 execute_result.append((order, trade_val, trade_cost, trade_price))
                 if self.verbose:
                     if order.direction == Order.SELL:  # sell
-                        print(
-                            "[I {:%Y-%m-%d %H:%M:%S}]: sell {}, price {:.2f}, amount {}, deal_amount {}, factor {}, value {:.2f}.".format(
-                                trade_start_time,
-                                order.stock_id,
-                                trade_price,
-                                order.amount,
-                                order.deal_amount,
-                                order.factor,
-                                trade_val,
-                            )
-                        )
+                        action = "sell"
                     else:
-                        print(
-                            "[I {:%Y-%m-%d %H:%M:%S}]: buy {}, price {:.2f}, amount {}, deal_amount {}, factor {}, value {:.2f}.".format(
-                                trade_start_time,
-                                order.stock_id,
-                                trade_price,
-                                order.amount,
-                                order.deal_amount,
-                                order.factor,
-                                trade_val,
-                            )
+                        action = "buy"
+                    print(
+                        "[I {:%Y-%m-%d %H:%M:%S}]: {} {}, price {:.2f}, amount {}, deal_amount {}, factor {}, value {:.2f}, cach {:.2f}.".format(
+                            trade_start_time,
+                            action,
+                            order.stock_id,
+                            trade_price,
+                            order.amount,
+                            order.deal_amount,
+                            order.factor,
+                            trade_val,
+                            self.trade_account.get_cash(),
                         )
-
+                    )
             else:
                 if self.verbose:
                     print("[W {:%Y-%m-%d %H:%M:%S}]: {} wrong.".format(trade_start_time, order.stock_id))
