@@ -3,7 +3,8 @@
 # TODO: rename it with decision.py
 from __future__ import annotations
 from enum import IntEnum
-from qlib.utils.time import concat_date_time
+from qlib.data.data import Cal
+from qlib.utils.time import concat_date_time, epsilon_change
 from qlib.log import get_module_logger
 
 # try to fix circular imports when enabling type hints
@@ -41,16 +42,24 @@ class Order:
             presents the weight factor assigned in Exchange()
     """
 
+    # 1) time invariant values
+    # - they are set by users and is time-invariant.
     stock_id: str
-    amount: float  # `amount` is a non-negative value
+    amount: float  # `amount` is a non-negative and adjusted value
+    direction: int
 
+    # 2) time variant values:
+    # - Users may want to set these values when using lower level APIs
+    # - If users don't, TradeDecisionWO will help users to set them
     # The interval of the order which belongs to (NOTE: this is not the expected order dealing range time)
     start_time: pd.Timestamp
     end_time: pd.Timestamp
 
-    direction: int
-    factor: float
+    # 3) results
+    # - users should not care about these values
+    # - they are set by the backtest system after finishing the results.
     deal_amount: float = field(init=False)  # `deal_amount` is a non-negative value
+    factor: float = field(init=False)
 
     # FIXME:
     # for compatible now.
@@ -127,8 +136,8 @@ class OrderHelper:
         code: str,
         amount: float,
         direction: OrderDir,
-        start_time: Union[str, pd.Timestamp],
-        end_time: Union[str, pd.Timestamp],
+        start_time: Union[str, pd.Timestamp] = None,
+        end_time: Union[str, pd.Timestamp] = None,
     ) -> Order:
         """
         help to create a order
@@ -143,9 +152,9 @@ class OrderHelper:
             **adjusted trading amount**
         direction : OrderDir
             trading  direction
-        start_time : Union[str, pd.Timestamp]
+        start_time : Union[str, pd.Timestamp] (optional)
             The interval of the order which belongs to
-        end_time : Union[str, pd.Timestamp]
+        end_time : Union[str, pd.Timestamp] (optional)
             The interval of the order which belongs to
 
         Returns
@@ -153,15 +162,17 @@ class OrderHelper:
         Order:
             The created order
         """
-        start_time = pd.Timestamp(start_time)
-        end_time = pd.Timestamp(end_time)
+        if start_time is not None:
+            start_time = pd.Timestamp(start_time)
+        if end_time is not None:
+            end_time = pd.Timestamp(end_time)
+        # NOTE: factor is a value belongs to the results section. User don't have to care about it when creating orders
         return Order(
             stock_id=code,
             amount=amount,
             start_time=start_time,
             end_time=end_time,
             direction=direction,
-            factor=self.exchange.get_factor(code, start_time, end_time),
         )
 
 
@@ -291,6 +302,7 @@ class BaseTradeDecision:
 
         """
         self.strategy = strategy
+        self.start_time, self.end_time = strategy.trade_calendar.get_step_time()
         self.total_step = None  # upper strategy has no knowledge about the sub executor before `_init_sub_trading`
         if isinstance(trade_range, Tuple):
             # for Tuple[int, int]
@@ -406,6 +418,62 @@ class BaseTradeDecision:
                 _start_idx, _end_idx = max(0, _start_idx), min(self.total_step - 1, _end_idx)
         return _start_idx, _end_idx
 
+    def get_data_cal_range_limit(self, rtype: str = "full", raise_error: bool = False) -> Tuple[int, int]:
+        """
+        get the range limit based on data calendar
+
+        NOTE: it is **total** range limit instead of a single step
+
+        The following assumptions are made
+        1) The frequency of the exchange in common_infra is the same as the data calendar
+        2) Users want the index mod by **day** (i.e. 240 min)
+
+        Parameters
+        ----------
+        rtype: str
+            - "full": return the full limitation of the deicsion in the day
+            - "step": return the limitation of current step
+
+        raise_error: bool
+            True: raise error if no trade_range is set
+            False: return full trade calendar.
+
+            It is useful in following cases
+            - users want to follow the order specific trading time range when decision level trade range is not
+              available. Raising NotImplementedError to indicates that range limit is not available
+
+        Returns
+        -------
+        Tuple[int, int]:
+            the range limit in data calendar
+
+        Raises
+        ------
+        NotImplementedError:
+            If the following criteria meet
+            1) the decision can't provide a unified start and end
+            2) raise_error is True
+        """
+        # potential performance issue
+        day_start = pd.Timestamp(self.start_time.date())
+        day_end = epsilon_change(day_start + pd.Timedelta(days=1))
+        freq = self.strategy.trade_exchange.freq
+        _, _, day_start_idx, day_end_idx = Cal.locate_index(day_start, day_end, freq=freq)
+        if self.trade_range is None:
+            if raise_error:
+                raise NotImplementedError(f"There is no trade_range in this case")
+            else:
+                return 0, day_end_idx - day_start_idx
+        else:
+            if rtype == "full":
+                val_start, val_end = self.trade_range.clip_time_range(day_start, day_end)
+            elif rtype == "step":
+                val_start, val_end = self.trade_range.clip_time_range(self.start_time, self.end_time)
+            else:
+                raise ValueError(f"This type of input {rtype} is not supported")
+            _, _, start_idx, end_index = Cal.locate_index(val_start, val_end, freq=freq)
+            return start_idx - day_start_idx, end_index - day_start_idx
+
     def empty(self) -> bool:
         for obj in self.get_decision():
             if isinstance(obj, Order):
@@ -452,9 +520,15 @@ class TradeDecisionWO(BaseTradeDecision):
     def __init__(self, order_list: List[Order], strategy: BaseStrategy, trade_range: Tuple[int, int] = None):
         super().__init__(strategy, trade_range=trade_range)
         self.order_list = order_list
+        start, end = strategy.trade_calendar.get_step_time()
+        for o in order_list:
+            if o.start_time is None:
+                o.start_time = start
+            if o.end_time is None:
+                o.end_time = end
 
     def get_decision(self) -> List[object]:
         return self.order_list
 
     def __repr__(self) -> str:
-        return f"strategy: {self.strategy}; trade_range: {self.trade_range}; order_list[{len(self.order_list)}]"
+        return f"class: {self.__class__.__name__}; strategy: {self.strategy}; trade_range: {self.trade_range}; order_list[{len(self.order_list)}]"
