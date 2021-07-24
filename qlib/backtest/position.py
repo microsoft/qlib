@@ -301,7 +301,7 @@ class Position(BasePosition):
         return self.position[code]["price"]
 
     def get_stock_amount(self, code):
-        return self.position[code]["amount"]
+        return self.position[code]["amount"] if code in self.position else 0
 
     def get_stock_count(self, code, bar):
         """the days the account has been hold, it may be used in some special strategies"""

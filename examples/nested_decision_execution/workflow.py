@@ -157,7 +157,7 @@ class NestedDecisionExecutionWorkflow:
                 },
             },
         }
-        qlib.init(provider_uri=provider_uri_day, **client_config, redis_port=-1)
+        qlib.init(provider_uri=provider_uri_day, **client_config, dataset_cache=None, expression_cache=None)
 
     def _train_model(self, model, dataset):
         with R.start(experiment_name="train"):
@@ -186,9 +186,8 @@ class NestedDecisionExecutionWorkflow:
             },
         }
         self.port_analysis_config["strategy"] = strategy_config
-        self.port_analysis_config["backtest"]["benchmark"] = D.list_instruments(
-            instruments=D.instruments(market=self.market), as_list=True
-        )
+        self.port_analysis_config["backtest"]["benchmark"] = D.instruments(market=self.market)
+        
         with R.start(experiment_name="backtest"):
 
             recorder = R.get_recorder()
@@ -212,7 +211,7 @@ class NestedDecisionExecutionWorkflow:
         self._train_model(model, dataset)
         executor_config = self.port_analysis_config["executor"]
         backtest_config = self.port_analysis_config["backtest"]
-        backtest_config["benchmark"] = D.list_instruments(instruments=D.instruments(market=self.market), as_list=True)
+        backtest_config["benchmark"] = D.instruments(market=self.market)
         strategy_config = {
             "class": "TopkDropoutStrategy",
             "module_path": "qlib.contrib.strategy.model_strategy",

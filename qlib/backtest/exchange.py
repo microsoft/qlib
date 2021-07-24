@@ -305,9 +305,9 @@ class Exchange:
             order, trade_account.current if trade_account else position
         )
         # update account
-        if order.deal_amount > 1e-5:
-            # If the order can only be deal 0 aomount. Nothing to be updated
-            # Otherwise, it will result some stock with 0 amount in the position
+        if trade_val > 1e-5:
+            # If the order can only be deal 0 value. Nothing to be updated
+            # Otherwise, it will result some stock with 0 value in the position
             if trade_account:
                 trade_account.update_order(order=order, trade_val=trade_val, cost=trade_cost, trade_price=trade_price)
             elif position:
@@ -321,8 +321,10 @@ class Exchange:
     def get_close(self, stock_id, start_time, end_time, method=ts_data_last):
         return self.quote.get_data(stock_id, start_time, end_time, fields="$close", method=method)
 
-    def get_volume(self, stock_id, start_time, end_time, method="sum"):
-        return self.quote.get_data(stock_id, start_time, end_time, fields="$volume", method=method)
+    def get_volume(self, stock_id, start_time, end_time):
+        """get the total deal volume of stock with `stock_id` between the time interval [start_time, end_time)
+        """
+        return self.quote.get_data(stock_id, start_time, end_time, fields="$volume", method="sum")
 
     def get_deal_price(self, stock_id, start_time, end_time, direction: OrderDir, method=ts_data_last):
         if direction == OrderDir.SELL:
@@ -498,8 +500,10 @@ class Exchange:
         value = 0
         for stock_id in amount_dict:
             if (
-                self.check_stock_suspended(stock_id=stock_id, start_time=start_time, end_time=end_time) is False
+                only_tradable is True
+                and self.check_stock_suspended(stock_id=stock_id, start_time=start_time, end_time=end_time) is False
                 and self.check_stock_limit(stock_id=stock_id, start_time=start_time, end_time=end_time) is False
+                or only_tradable is False
             ):
                 value += (
                     self.get_deal_price(
@@ -562,8 +566,10 @@ class Exchange:
             return (deal_amount * factor + 0.1) // self.trade_unit * self.trade_unit / factor
         return deal_amount
 
-    def _get_amount_by_volume(self, stock_id, trade_start_time, trade_end_time, deal_amount):
+    def _get_tradable_amount(self, stock_id, trade_start_time, trade_end_time, deal_amount):
         if self.volume_threshold is not None:
+            # `get_volume` method return the deal volume of stock with `stock_id`
+            # if `volume_threshold` is set, the max tradable amount shoule less than deal_volume * volume_threshold
             tradable_amount = self.get_volume(stock_id, trade_start_time, trade_end_time) * self.volume_threshold
             return max(min(tradable_amount, deal_amount), 0)
         else:
@@ -585,9 +591,7 @@ class Exchange:
         if order.direction == Order.SELL:
             # sell
             if position is not None:
-                current_amount = (
-                    position.get_stock_amount(order.stock_id) if position.check_stock(order.stock_id) else 0
-                )
+                current_amount = position.get_stock_amount(order.stock_id)
                 if np.isclose(order.amount, current_amount):
                     # when selling last stock. The amount don't need rounding
                     order.deal_amount = order.amount
@@ -600,7 +604,7 @@ class Exchange:
                 #  We choose to sell all
                 order.deal_amount = order.amount
 
-            order.deal_amount = self._get_amount_by_volume(
+            order.deal_amount = self._get_tradable_amount(
                 order.stock_id, order.start_time, order.end_time, order.deal_amount
             )
             trade_val = order.deal_amount * trade_price
@@ -622,7 +626,7 @@ class Exchange:
                 # Unknown amount of money. Just round the amount
                 order.deal_amount = self.round_amount_by_trade_unit(order.amount, order.factor)
 
-            order.deal_amount = self._get_amount_by_volume(
+            order.deal_amount = self._get_tradable_amount(
                 order.stock_id, order.start_time, order.end_time, order.deal_amount
             )
             trade_val = order.deal_amount * trade_price
