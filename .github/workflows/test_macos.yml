@@ -30,19 +30,19 @@ jobs:
         $CONDA/bin/python -m black qlib -l 120 --check --diff
 
     # Test Qlib installed with pip
-    - name: Install Qlib with pip
-      run: |
-          sudo $CONDA/bin/python -m pip install numpy==1.19.5
-          sudo $CONDA/bin/python -m pip install pyqlib --ignore-installed ruamel.yaml numpy
+    # - name: Install Qlib with pip
+    #   run: |
+    #       sudo $CONDA/bin/python -m pip install numpy==1.19.5
+    #       sudo $CONDA/bin/python -m pip install pyqlib --ignore-installed ruamel.yaml numpy
 
     - name: Install Lightgbm for MacOS
       run: |
         /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Microsoft/qlib/main/.github/brew_install.sh)"
         HOMEBREW_NO_AUTO_UPDATE=1 brew install lightgbm
 
-    - name: Test data downloads
-      run: |
-        $CONDA/bin/python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/cn_data --interval 1d --region cn
+    # - name: Test data downloads
+    #   run: |
+    #     $CONDA/bin/python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/cn_data --interval 1d --region cn
 
     # - name: Test workflow by config (install from pip)
       # run: |
@@ -56,6 +56,10 @@ jobs:
         sudo $CONDA/bin/python -m pip install numpy jupyter jupyter_contrib_nbextensions
         sudo $CONDA/bin/python -m pip install -U scipy scikit-learn # installing without this line will cause errors on GitHub Actions, while instsalling locally won't
         sudo $CONDA/bin/python setup.py install
+
+    - name: Test data downloads
+      run: |
+        $CONDA/bin/python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/cn_data --interval 1d --region cn
 
     - name: Install test dependencies
       run: |
