@@ -187,7 +187,7 @@ class NestedDecisionExecutionWorkflow:
         }
         self.port_analysis_config["strategy"] = strategy_config
         self.port_analysis_config["backtest"]["benchmark"] = D.instruments(market=self.market)
-        
+
         with R.start(experiment_name="backtest"):
 
             recorder = R.get_recorder()

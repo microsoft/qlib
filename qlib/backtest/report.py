@@ -105,7 +105,7 @@ class Report:
                 raise ValueError(f"The benchmark {_codes} does not exist. Please provide the right benchmark")
             return _temp_result.groupby(level="datetime")[_temp_result.columns.tolist()[0]].mean().fillna(0)
 
-    def _sample_benchmark(self, bench, trade_start_time, trade_end_time):
+    def _resam_benchmark(self, bench, trade_start_time, trade_end_time):
         if self.bench is None:
             return None
 
@@ -163,7 +163,7 @@ class Report:
         if trade_end_time is None and bench_value is None:
             raise ValueError("Both trade_end_time and bench_value is None, benchmark is not usable.")
         elif bench_value is None:
-            bench_value = self._sample_benchmark(self.bench, trade_start_time, trade_end_time)
+            bench_value = self._resam_benchmark(self.bench, trade_start_time, trade_end_time)
 
         # update report data
         self.accounts[trade_start_time] = account_value
