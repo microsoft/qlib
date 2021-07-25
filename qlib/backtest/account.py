@@ -73,6 +73,18 @@ class Account:
         pos_type: str = "Position",
         port_metr_enabled: bool = True,
     ):
+        """the trade account of backtest.
+
+        Parameters
+        ----------
+        init_cash : float, optional
+            initial cash, by default 1e9
+        position_dict : Dict[stock_id, {"amount": int, "price"(optional): float}], optional
+            initial stocks with amount and price,
+            if there is no price key in the dict of stocks, it will be filled by latest close price from qlib.
+            by default {}.
+        """
+
         self._pos_type = pos_type
         self._port_metr_enabled = port_metr_enabled
         self.init_vars(init_cash, position_dict, freq, benchmark_config)
@@ -93,6 +105,8 @@ class Account:
                 "kwargs": {
                     "cash": init_cash,
                     "position_dict": position_dict,
+                    "start_time": benchmark_config["start_time"],
+                    "freq": freq,
                 },
                 "module_path": "qlib.backtest.position",
             }
