@@ -10,7 +10,7 @@ import pandas as pd
 
 from .position import BasePosition, InfPosition, Position
 from .report import Report, Indicator
-from .order import BaseTradeDecision, Order
+from .decision import BaseTradeDecision, Order
 from .exchange import Exchange
 
 """
@@ -177,7 +177,7 @@ class Account:
             self._update_state_from_order(order, trade_val, cost, trade_price)
 
     def update_current_position(self, trade_start_time, trade_end_time, trade_exchange):
-        """update current to make rtn consistent with earning at the end of bar, update holding bar count of stock"""
+        """update current to make rtn consistent with earning at the end of bar, and update holding bar count of stock"""
         # update price for stock in the position and the profit from changed_price
         # NOTE: updating position does not only serve portfolio metrics, it also serve the strategy
         if not self.current_position.skip_update():
@@ -193,7 +193,7 @@ class Account:
             self.current_position.add_count_all(bar=self.freq)
 
     def update_report(self, trade_start_time, trade_end_time):
-        """update position history, report"""
+        """update report"""
         # calculate earning
         # account_value - last_account_value
         # for the first trade date, account_value - init_cash
@@ -230,12 +230,51 @@ class Account:
             cost_rate=now_cost / last_account_value,
             stock_value=now_stock_value,
         )
+
+    def update_hist_positions(self, trade_start_time):
+        """update history position"""
+        now_account_value = self.current_position.calculate_value()
         # set now_account_value to position
         self.current_position.position["now_account_value"] = now_account_value
         self.current_position.update_weight_all()
         # update hist_positions
         # note use deepcopy
         self.hist_positions[trade_start_time] = copy.deepcopy(self.current_position)
+
+    def update_indicator(
+        self,
+        trade_start_time: pd.Timestamp,
+        trade_exchange: Exchange,
+        atomic: bool,
+        outer_trade_decision: BaseTradeDecision,
+        trade_info: list = None,
+        inner_order_indicators: List[Dict[str, pd.Series]] = None,
+        decision_list: List[Tuple[BaseTradeDecision, pd.Timestamp, pd.Timestamp]] = None,
+        indicator_config: dict = {},
+    ):
+        """update trade indicators and order indicators in each bar end"""
+        # TODO: will skip empty decisions make it faster?  `outer_trade_decision.empty():`
+
+        # indicator is trading (e.g. high-frequency order execution) related analysis
+        self.indicator.reset()
+
+        # aggregate the information for each order
+        if atomic:
+            self.indicator.update_order_indicators(trade_info)
+        else:
+            self.indicator.agg_order_indicators(
+                inner_order_indicators,
+                decision_list=decision_list,
+                outer_trade_decision=outer_trade_decision,
+                trade_exchange=trade_exchange,
+                indicator_config=indicator_config,
+            )
+
+        # aggregate all the order metrics a single step
+        self.indicator.cal_trade_indicators(trade_start_time, self.freq, indicator_config)
+
+        # record the metrics
+        self.indicator.record(trade_start_time)
 
     def update_bar_end(
         self,
@@ -282,33 +321,25 @@ class Account:
         elif atomic is False and inner_order_indicators is None:
             raise ValueError("inner_order_indicators is necessary in unatomic executor")
 
+        # update current position and hold bar count in each bar end
         self.update_current_position(trade_start_time, trade_end_time, trade_exchange)
+
         if self.is_port_metr_enabled():
             # report is portfolio related analysis
             self.update_report(trade_start_time, trade_end_time)
+            self.update_hist_positions(trade_start_time)
 
-        # TODO: will skip empty decisions make it faster?  `outer_trade_decision.empty():`
-
-        # indicator is trading (e.g. high-frequency order execution) related analysis
-        self.indicator.reset()
-
-        # aggregate the information for each order
-        if atomic:
-            self.indicator.update_order_indicators(trade_info)
-        else:
-            self.indicator.agg_order_indicators(
-                inner_order_indicators,
-                decision_list=decision_list,
-                outer_trade_decision=outer_trade_decision,
-                trade_exchange=trade_exchange,
-                indicator_config=indicator_config,
-            )
-
-        # aggregate all the order metrics a single step
-        self.indicator.cal_trade_indicators(trade_start_time, self.freq, indicator_config)
-
-        # record the metrics
-        self.indicator.record(trade_start_time)
+        # update indicator in each bar end
+        self.update_indicator(
+            trade_start_time=trade_start_time,
+            trade_exchange=trade_exchange,
+            atomic=atomic,
+            outer_trade_decision=outer_trade_decision,
+            trade_info=trade_info,
+            inner_order_indicators=inner_order_indicators,
+            decision_list=decision_list,
+            indicator_config=indicator_config,
+        )
 
     def get_report(self):
         """get the history report and postions instance"""

@@ -99,7 +99,7 @@ class HasingStockStorage(BaseHandlerStorage):
         Returns
         -------
         Dict
-            - the dict whose key is stock_id, value is the stock's data
+            The dict whose key is stock_id, value is the stock's data
         """
 
         stock_selector = slice(None)

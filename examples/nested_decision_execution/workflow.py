@@ -19,7 +19,7 @@ class NestedDecisionExecutionWorkflow:
     benchmark = "SH000300"
     data_handler_config = {
         "start_time": "2008-01-01",
-        "end_time": "2020-12-31",
+        "end_time": "2021-05-31",
         "fit_start_time": "2008-01-01",
         "fit_end_time": "2014-12-31",
         "instruments": market,
@@ -53,7 +53,7 @@ class NestedDecisionExecutionWorkflow:
                 "segments": {
                     "train": ("2007-01-01", "2014-12-31"),
                     "valid": ("2015-01-01", "2016-12-31"),
-                    "test": ("2020-01-01", "2020-12-31"),
+                    "test": ("2020-01-01", "2021-05-31"),
                 },
             },
         },
@@ -108,8 +108,8 @@ class NestedDecisionExecutionWorkflow:
             },
         },
         "backtest": {
-            "start_time": "2020-01-01",
-            "end_time": "2020-12-31",
+            "start_time": "2020-09-20",
+            "end_time": "2021-05-20",
             "account": 100000000,
             "exchange_kwargs": {
                 "freq": "1min",

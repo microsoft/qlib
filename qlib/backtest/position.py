@@ -7,7 +7,7 @@ import pathlib
 from typing import Dict, List
 import pandas as pd
 import numpy as np
-from .order import Order
+from .decision import Order
 
 
 class BasePosition:
@@ -450,7 +450,7 @@ class InfPosition(BasePosition):
         raise NotImplementedError(f"InfPosition doesn't support get_stock_weight_dict")
 
     def add_count_all(self, bar):
-        raise NotImplementedError(f"InfPosition doesn't support get_stock_weight_dict")
+        raise NotImplementedError(f"InfPosition doesn't support add_count_all")
 
     def update_weight_all(self):
         raise NotImplementedError(f"InfPosition doesn't support update_weight_all")

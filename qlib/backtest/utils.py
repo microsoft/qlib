@@ -6,7 +6,7 @@ from qlib.utils.time import epsilon_change
 from typing import Union, TYPE_CHECKING, Tuple, Union, List, Set
 
 if TYPE_CHECKING:
-    from qlib.backtest.order import BaseTradeDecision
+    from qlib.backtest.decision import BaseTradeDecision
     from qlib.strategy.base import BaseStrategy
 
 import pandas as pd

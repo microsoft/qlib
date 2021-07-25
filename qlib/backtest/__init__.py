@@ -14,7 +14,7 @@ from .executor import BaseExecutor
 from .backtest import backtest_loop
 from .backtest import collect_data_loop
 from .utils import CommonInfrastructure
-from .order import Order
+from .decision import Order
 from ..utils import init_instance_by_config
 from ..log import get_module_logger
 from ..config import C
@@ -214,9 +214,9 @@ def backtest(
 
     Returns
     -------
-    report_dict: Report
+    report_dict: Dict[Report]
         it records the trading report information
-    indicator_dict: Indicator
+    indicator_dict: Dict[Indicator]
         it computes the trading indicator
     """
     trade_strategy, trade_executor = get_strategy_executor(

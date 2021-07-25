@@ -15,7 +15,7 @@ from ..data.dataset.utils import get_level_index
 from ..config import C, REG_CN
 from ..utils.resam import resam_ts_data, ts_data_last
 from ..log import get_module_logger
-from .order import Order, OrderDir, OrderHelper
+from .decision import Order, OrderDir, OrderHelper
 from .high_performance_ds import PandasQuote
 
 
@@ -293,7 +293,7 @@ class Exchange:
         # TODO: check the order unit limit in the exchange!!!!
         # The order limit is related to the adj factor and the cur_amount.
         # factor = self.quote[(order.stock_id, order.trade_date)]['$factor']
-        # cur_amount = trade_account.current.get_stock_amount(order.stock_id)
+        # cur_amount = trade_account.current_position.get_stock_amount(order.stock_id)
         if self.check_order(order) is False:
             raise AttributeError("need to check order first")
         if trade_account is not None and position is not None:
@@ -302,7 +302,7 @@ class Exchange:
         trade_price = self.get_deal_price(order.stock_id, order.start_time, order.end_time, order.direction)
         # NOTE: order will be changed in this function
         trade_val, trade_cost = self._calc_trade_info_by_order(
-            order, trade_account.current if trade_account else position
+            order, trade_account.current_position if trade_account else position
         )
         # update account
         if trade_val > 1e-5:
