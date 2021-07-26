@@ -1,8 +1,12 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
+from __future__ import annotations
+from typing import TYPE_CHECKING
 
+if TYPE_CHECKING:
+    from .account import Account
 
-from qlib.backtest.position import Position
+from qlib.backtest.position import BasePosition, Position
 import random
 import logging
 from typing import List, Tuple, Union, Callable, Iterable
@@ -278,7 +282,7 @@ class Exchange:
         else:
             return True
 
-    def deal_order(self, order, trade_account=None, position=None):
+    def deal_order(self, order, trade_account: Account = None, position: BasePosition = None):
         """
         Deal order when the actual transaction
 
@@ -289,13 +293,12 @@ class Exchange:
         :param position: position to be updated after dealing the order.
         :return: trade_val, trade_cost, trade_price
         """
-        # need to check order first
-        # TODO: check the order unit limit in the exchange!!!!
-        # The order limit is related to the adj factor and the cur_amount.
-        # factor = self.quote[(order.stock_id, order.trade_date)]['$factor']
-        # cur_amount = trade_account.current.get_stock_amount(order.stock_id)
+        # check order first.
         if self.check_order(order) is False:
-            raise AttributeError("need to check order first")
+            order.deal_amount = 0.0
+            # using np.nan instead of None to make it more convenient to should the value in format string
+            return 0.0, 0.0, np.nan
+
         if trade_account is not None and position is not None:
             raise ValueError("trade_account and position can only choose one")
 
@@ -304,14 +307,18 @@ class Exchange:
         trade_val, trade_cost = self._calc_trade_info_by_order(
             order, trade_account.current if trade_account else position
         )
-        # update account
         if order.deal_amount > 1e-5:
-            # If the order can only be deal 0 aomount. Nothing to be updated
-            # Otherwise, it will result some stock with 0 amount in the position
+            # If the order can only be deal 0 amount. Nothing to be updated
+            # Otherwise, it will result in
+            # 1) some stock with 0 amount in the position
+            # 2) `trade_unit` of trade_cost will be lost in user account
             if trade_account:
                 trade_account.update_order(order=order, trade_val=trade_val, cost=trade_cost, trade_price=trade_price)
             elif position:
                 position.update_order(order=order, trade_val=trade_val, cost=trade_cost, trade_price=trade_price)
+        else:
+            # if dealing is not successful, the trade_cost should be zero
+            trade_cost = 0
 
         return trade_val, trade_cost, trade_price
 
@@ -346,7 +353,7 @@ class Exchange:
             `None`: if the stock is suspended `None` may be returned
             `float`: return factor if the factor exists
         """
-        assert (start_time is not None and end_time is not None, "the time range must be given")
+        assert start_time is not None and end_time is not None, "the time range must be given"
         if stock_id not in self.quote.get_all_stock():
             return None
         return self.quote.get_data(stock_id, start_time, end_time, fields="$factor", method=ts_data_last)
@@ -509,7 +516,7 @@ class Exchange:
                 )
         return value
 
-    def _get_factor_or_raise_erorr(self, factor: float = None, stock_id: str = None, start_time=None, end_time=None):
+    def _get_factor_or_raise_error(self, factor: float = None, stock_id: str = None, start_time=None, end_time=None):
         """Please refer to the docs of get_amount_of_trade_unit"""
         if factor is None:
             if stock_id is not None and start_time is not None and end_time is not None:
@@ -537,7 +544,7 @@ class Exchange:
             the end time of trading range
         """
         if not self.trade_w_adj_price and self.trade_unit is not None:
-            factor = self._get_factor_or_raise_erorr(
+            factor = self._get_factor_or_raise_error(
                 factor=factor, stock_id=stock_id, start_time=start_time, end_time=end_time
             )
             return self.trade_unit / factor
@@ -556,7 +563,7 @@ class Exchange:
         """
         if not self.trade_w_adj_price and self.trade_unit is not None:
             # the minimal amount is 1. Add 0.1 for solving precision problem.
-            factor = self._get_factor_or_raise_erorr(
+            factor = self._get_factor_or_raise_error(
                 factor=factor, stock_id=stock_id, start_time=start_time, end_time=end_time
             )
             return (deal_amount * factor + 0.1) // self.trade_unit * self.trade_unit / factor
@@ -626,7 +633,7 @@ class Exchange:
                 order.stock_id, order.start_time, order.end_time, order.deal_amount
             )
             trade_val = order.deal_amount * trade_price
-            trade_cost = trade_val * self.open_cost
+            trade_cost = max(trade_val * self.open_cost, self.min_cost)
         else:
             raise NotImplementedError("order type {} error".format(order.type))
 

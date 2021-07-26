@@ -20,8 +20,8 @@ class BasePosition:
     Please refer to the `Position` class for the position
     """
 
-    def __init__(self, cash=0.0, *args, **kwargs) -> None:
-        pass
+    def __init__(self, cash=0.0, *args, **kwargs):
+        self._settle_type = self.ST_NO
 
     def skip_update(self) -> bool:
         """
@@ -124,13 +124,16 @@ class BasePosition:
         """
         raise NotImplementedError(f"Please implement the `get_stock_amount` method")
 
-    def get_cash(self) -> float:
+    def get_cash(self, include_settle: bool = False) -> float:
         """
 
         Returns
         -------
         float:
-            the cash in position
+            the available(tradable) cash in position
+        include_settle:
+            will the unsettled(delayed) cash included
+            Default: not include those unavailable cash
         """
         raise NotImplementedError(f"Please implement the `get_cash` method")
 
@@ -188,6 +191,37 @@ class BasePosition:
         """
         raise NotImplementedError(f"Please implement the `add_count_all` method")
 
+    ST_CASH = "cash"
+    ST_NO = None
+
+    def settle_start(self, settle_type: str):
+        """
+        settlement start
+        It will act like start and commit a transaction
+
+        Parameters
+        ----------
+        settle_type : str
+            Should we make delay the settlement in each execution (each execution will make the executor a step forward)
+            - "cash": make the cash settlement delayed.
+                - The cash you get can't be used in current step (e.g. you can't sell a stock to get cash to buy another
+                        stock)
+            - None: not settlement mechanism
+            - TODO: other assets will be supported in the future.
+        """
+        raise NotImplementedError(f"Please implement the `settle_conf` method")
+
+    def settle_commit(self):
+        """
+        settlement commit
+
+        Parameters
+        ----------
+        settle_type : str
+            please refer to the documents of Executor
+        """
+        raise NotImplementedError(f"Please implement the `settle_commit` method")
+
 
 class Position(BasePosition):
     """Position
@@ -203,7 +237,7 @@ class Position(BasePosition):
     }
     """
 
-    def __init__(self, start_time, freq, cash: float = 0, position_dict: Dict[str, Dict[str, float]] = {}):
+    def __init__(self, cash: float = 0, position_dict: Dict[str, Dict[str, float]] = {}):
         """Init position by cash and position_dict.
 
         Parameters
@@ -217,11 +251,12 @@ class Position(BasePosition):
             if there is no price key in the dict of stocks, it will be filled by _fill_stock_value.
             by default {}.
         """
+        super().__init__()
 
         # NOTE: The position dict must be copied!!!
         # Otherwise the initial value
         self.init_cash = cash
-        self.position = self._fill_stock_value(position_dict.copy(), start_time, freq)
+        self.position = position_dict.copy()
         self.position["cash"] = cash
         self.position["now_account_value"] = self.calculate_value()
 
@@ -312,7 +347,13 @@ class Position(BasePosition):
             elif abs(self.position[stock_id]["amount"]) <= 1e-5:
                 self._del_stock(stock_id)
 
-        self.position["cash"] += trade_val - cost
+        new_cash = trade_val - cost
+        if self._settle_type == self.ST_CASH:
+            self.position["cash_delay"] += new_cash
+        elif self._settle_type == self.ST_NO:
+            self.position["cash"] += new_cash
+        else:
+            raise NotImplementedError(f"This type of input is not supported")
 
     def _del_stock(self, stock_id):
         del self.position[stock_id]
@@ -340,9 +381,6 @@ class Position(BasePosition):
     def update_stock_weight(self, stock_id, weight):
         self.position[stock_id]["weight"] = weight
 
-    def update_cash(self, cash):
-        self.position["cash"] = cash
-
     def calculate_stock_value(self):
         stock_list = self.get_stock_list()
         value = 0
@@ -352,11 +390,11 @@ class Position(BasePosition):
 
     def calculate_value(self):
         value = self.calculate_stock_value()
-        value += self.position["cash"]
+        value += self.position["cash"] + self.position.get("cash_delay", 0.0)
         return value
 
     def get_stock_list(self):
-        stock_list = list(set(self.position.keys()) - {"cash", "now_account_value"})
+        stock_list = list(set(self.position.keys()) - {"cash", "now_account_value", "cash_delay"})
         return stock_list
 
     def get_stock_price(self, code):
@@ -375,8 +413,11 @@ class Position(BasePosition):
     def get_stock_weight(self, code):
         return self.position[code]["weight"]
 
-    def get_cash(self):
-        return self.position["cash"]
+    def get_cash(self, include_settle=False):
+        cash = self.position["cash"]
+        if include_settle:
+            cash += self.position.get("cash_delay", 0.0)
+        return cash
 
     def get_stock_amount_dict(self):
         """generate stock amount dict {stock_id : amount of stock}"""
@@ -388,7 +429,7 @@ class Position(BasePosition):
 
     def get_stock_weight_dict(self, only_stock=False):
         """get_stock_weight_dict
-        generate stock weight fict {stock_id : value weight of stock in the position}
+        generate stock weight dict {stock_id : value weight of stock in the position}
         it is meaningful in the beginning or the end of each trade date
 
         :param only_stock: If only_stock=True, the weight of each stock in total stock will be returned
@@ -417,49 +458,20 @@ class Position(BasePosition):
         for stock_code, weight in weight_dict.items():
             self.update_stock_weight(stock_code, weight)
 
-    def save_position(self, path):
-        path = pathlib.Path(path)
-        p = copy.deepcopy(self.position)
-        cash = pd.Series(dtype=float)
-        cash["init_cash"] = self.init_cash
-        cash["cash"] = p["cash"]
-        cash["now_account_value"] = p["now_account_value"]
-        del p["cash"]
-        del p["now_account_value"]
-        positions = pd.DataFrame.from_dict(p, orient="index")
-        with pd.ExcelWriter(path) as writer:
-            positions.to_excel(writer, sheet_name="position")
-            cash.to_excel(writer, sheet_name="info")
+    def settle_start(self, settle_type):
+        assert self._settle_type == self.ST_NO, "Currently, settlement can't be nested!!!!!"
+        self._settle_type = settle_type
+        if settle_type == self.ST_CASH:
+            self.position["cash_delay"] = 0.0
 
-    def load_position(self, path):
-        """load position information from a file
-        should have format below
-        sheet "position"
-            columns: ['stock', f'count_{bar}', 'amount', 'price', 'weight']
-                f'count_{bar}': <how many bars the security has been hold>,
-                'amount': <the amount of the security>,
-                'price': <the close price of security in the last trading day>,
-                'weight': <the security weight of total position value>,
-
-        sheet "cash"
-            index: ['init_cash', 'cash', 'now_account_value']
-            'init_cash': <inital cash when account was created>,
-            'cash': <current cash in account>,
-            'now_account_value': <current total account value, should equal to sum(price[stock]*amount[stock])>
-        """
-        path = pathlib.Path(path)
-        positions = pd.read_excel(open(path, "rb"), sheet_name="position", index_col=0)
-        cash_record = pd.read_excel(open(path, "rb"), sheet_name="info", index_col=0)
-        positions = positions.to_dict(orient="index")
-        init_cash = cash_record.loc["init_cash"].values[0]
-        cash = cash_record.loc["cash"].values[0]
-        now_account_value = cash_record.loc["now_account_value"].values[0]
-        # assign values
-        self.position = {}
-        self.init_cash = init_cash
-        self.position = positions
-        self.position["cash"] = cash
-        self.position["now_account_value"] = now_account_value
+    def settle_commit(self):
+        if self._settle_type != self.ST_NO:
+            if self._settle_type == self.ST_CASH:
+                self.position["cash"] += self.position["cash_delay"]
+                del self.position["cash_delay"]
+            else:
+                raise NotImplementedError(f"This type of input is not supported")
+            self._settle_type = self.ST_NO
 
 
 class InfPosition(BasePosition):
@@ -502,7 +514,7 @@ class InfPosition(BasePosition):
     def get_stock_amount(self, code) -> float:
         return np.inf
 
-    def get_cash(self) -> float:
+    def get_cash(self, include_settle=False) -> float:
         return np.inf
 
     def get_stock_amount_dict(self) -> Dict:
@@ -516,3 +528,9 @@ class InfPosition(BasePosition):
 
     def update_weight_all(self):
         raise NotImplementedError(f"InfPosition doesn't support update_weight_all")
+
+    def settle_start(self, settle_type: str):
+        pass
+
+    def settle_commit(self):
+        pass

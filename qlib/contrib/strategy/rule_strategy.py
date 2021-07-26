@@ -18,7 +18,12 @@ from qlib.backtest.utils import get_start_end_idx
 
 
 class TWAPStrategy(BaseStrategy):
-    """TWAP Strategy for trading"""
+    """TWAP Strategy for trading
+
+    NOTE:
+        - This TWAP strategy will celling round when trading. This will make the TWAP trading strategy produce the order
+          ealier when the total trade unit of amount is less than the trading step
+    """
 
     def reset(self, outer_trade_decision: BaseTradeDecision = None, **kwargs):
         """
@@ -583,7 +588,11 @@ class FileOrderStrategy(BaseStrategy):
     """
 
     def __init__(
-        self, file: Union[IO, str, Path], trade_range: Union[Tuple[int, int], TradeRange] = None, *args, **kwargs
+        self,
+        file: Union[IO, str, Path, pd.DataFrame],
+        trade_range: Union[Tuple[int, int], TradeRange] = None,
+        *args,
+        **kwargs,
     ):
         """
 
@@ -611,8 +620,11 @@ class FileOrderStrategy(BaseStrategy):
 
         """
         super().__init__(*args, **kwargs)
-        with get_io_object(file) as f:
-            self.order_df = pd.read_csv(f, dtype={"datetime": np.str})
+        if isinstance(file, pd.DataFrame):
+            self.order_df = file
+        else:
+            with get_io_object(file) as f:
+                self.order_df = pd.read_csv(f, dtype={"datetime": np.str})
 
         self.order_df["datetime"] = self.order_df["datetime"].apply(pd.Timestamp)
         self.order_df = self.order_df.set_index(["datetime", "instrument"])

@@ -1,5 +1,6 @@
 from abc import abstractclassmethod, abstractmethod
 import copy
+from qlib.backtest.position import BasePosition
 from qlib.log import get_module_logger
 from types import GeneratorType
 from qlib.backtest.account import Account
@@ -32,6 +33,7 @@ class BaseExecutor:
         track_data: bool = False,
         trade_exchange: Exchange = None,
         common_infra: CommonInfrastructure = None,
+        settle_type=BasePosition.ST_NO,
         **kwargs,
     ):
         """
@@ -95,6 +97,8 @@ class BaseExecutor:
             - trade_exchange : Exchange, optional
                 exchange that provides market info
 
+        settle_type : str
+            Please refer to the docs of BasePosition.settle_start
         """
         self.time_per_step = time_per_step
         self.indicator_config = indicator_config
@@ -104,6 +108,7 @@ class BaseExecutor:
         self._trade_exchange = trade_exchange
         self.level_infra = LevelInfrastructure()
         self.level_infra.reset_infra(common_infra=common_infra)
+        self._settle_type = settle_type
         self.reset(start_time=start_time, end_time=end_time, common_infra=common_infra)
         if common_infra is None:
             get_module_logger("BaseExecutor").warning(f"`common_infra` is not set for {self}")
@@ -235,6 +240,9 @@ class BaseExecutor:
         if atomic and trade_decision.get_range_limit(default_value=None) is not None:
             raise ValueError("atomic executor doesn't support specify `range_limit`")
 
+        if self._settle_type != BasePosition.ST_NO:
+            self.trade_account.current.settle_start(self._settle_type)
+
         obj = self._collect_data(trade_decision=trade_decision, level=level)
 
         if isinstance(obj, GeneratorType):
@@ -256,6 +264,10 @@ class BaseExecutor:
         )
 
         self.trade_calendar.step()
+
+        if self._settle_type != BasePosition.ST_NO:
+            self.trade_account.current.settle_commit()
+
         if return_value is not None:
             return_value.update({"execute_result": res})
         return res
@@ -366,7 +378,7 @@ class NestedExecutor(BaseExecutor):
             trade_decision = self._update_trade_decision(trade_decision)
 
             if trade_decision.empty() and self._skip_empty_decision:
-                # give one chance for outer stategy to update the strategy
+                # give one chance for outer strategy to update the strategy
                 # - For updating some information in the sub executor(the strategy have no knowledge of the inner
                 # executor when generating the decision)
                 break
@@ -408,6 +420,9 @@ class NestedExecutor(BaseExecutor):
 
 class SimulatorExecutor(BaseExecutor):
     """Executor that simulate the true market"""
+
+    # TODO: TT_SERIAL & TT_PARAL will be replaced by feature fix_pos now.
+    # Please remove them in the future.
 
     # available trade_types
     TT_SERIAL = "serial"
@@ -486,34 +501,22 @@ class SimulatorExecutor(BaseExecutor):
         execute_result = []
 
         for order in self._get_order_iterator(trade_decision):
-            if self.trade_exchange.check_order(order) is True:
-                # execute the order.
-                # NOTE: The trade_account will be changed in this function
-                trade_val, trade_cost, trade_price = self.trade_exchange.deal_order(
-                    order, trade_account=self.trade_account
-                )
-                execute_result.append((order, trade_val, trade_cost, trade_price))
-                if self.verbose:
-                    if order.direction == Order.SELL:  # sell
-                        action = "sell"
-                    else:
-                        action = "buy"
-                    print(
-                        "[I {:%Y-%m-%d %H:%M:%S}]: {} {}, price {:.2f}, amount {}, deal_amount {}, factor {}, value {:.2f}, cach {:.2f}.".format(
-                            trade_start_time,
-                            action,
-                            order.stock_id,
-                            trade_price,
-                            order.amount,
-                            order.deal_amount,
-                            order.factor,
-                            trade_val,
-                            self.trade_account.get_cash(),
-                        )
+            # execute the order.
+            # NOTE: The trade_account will be changed in this function
+            trade_val, trade_cost, trade_price = self.trade_exchange.deal_order(order, trade_account=self.trade_account)
+            execute_result.append((order, trade_val, trade_cost, trade_price))
+            if self.verbose:
+                print(
+                    "[I {:%Y-%m-%d %H:%M:%S}]: {} {}, price {:.2f}, amount {}, deal_amount {}, factor {}, value {:.2f}, cash {:.2f}.".format(
+                        trade_start_time,
+                        "sell" if order.direction == Order.SELL else "buy",
+                        order.stock_id,
+                        trade_price,
+                        order.amount,
+                        order.deal_amount,
+                        order.factor,
+                        trade_val,
+                        self.trade_account.get_cash(),
                     )
-            else:
-                if self.verbose:
-                    print("[W {:%Y-%m-%d %H:%M:%S}]: {} wrong.".format(trade_start_time, order.stock_id))
-                # do nothing
-                pass
+                )
         return execute_result, {"trade_info": execute_result}

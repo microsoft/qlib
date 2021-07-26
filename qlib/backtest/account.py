@@ -1,9 +1,8 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
-
-
+from __future__ import annotations
 import copy
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, TYPE_CHECKING
 from qlib.utils import init_instance_by_config
 import warnings
 import pandas as pd
@@ -11,7 +10,9 @@ import pandas as pd
 from .position import BasePosition, InfPosition, Position
 from .report import Report, Indicator
 from .order import BaseTradeDecision, Order
-from .exchange import Exchange
+
+if TYPE_CHECKING:
+    from .exchange import Exchange
 
 """
 rtn & earning in the Account
@@ -105,8 +106,6 @@ class Account:
                 "kwargs": {
                     "cash": init_cash,
                     "position_dict": position_dict,
-                    "start_time": benchmark_config["start_time"],
-                    "freq": freq,
                 },
                 "module_path": "qlib.backtest.position",
             }
@@ -122,7 +121,7 @@ class Account:
             self.report = Report(freq, benchmark_config)
             self.positions = {}
 
-        # trading related matric(e.g. high-frequency trading)
+        # trading related metrics(e.g. high-frequency trading)
         self.indicator = Indicator()
 
     def reset(self, freq=None, benchmark_config=None, init_report=False, port_metr_enabled: bool = None):
@@ -302,7 +301,7 @@ class Account:
         if atomic is True and trade_info is None:
             raise ValueError("trade_info is necessary in atomic executor")
         elif atomic is False and inner_order_indicators is None:
-            raise ValueError("inner_order_indicators is necessary in unatomic executor")
+            raise ValueError("inner_order_indicators is necessary in un-atomic executor")
 
         # TODO:  `update_bar_count` and  `update_current` should placed in Position and be merged.
         self.update_bar_count()
