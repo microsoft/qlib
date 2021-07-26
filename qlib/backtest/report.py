@@ -21,6 +21,7 @@ from ..data import D
 from ..tests.config import CSI300_BENCH
 from ..utils.resam import get_higher_eq_freq_feature, resam_ts_data
 from ..utils.time import Freq
+from .order import IdxTradeRange
 
 
 class Report:
@@ -357,9 +358,11 @@ class Indicator:
         agg = pa_config.get("agg", "twap").lower()
         price = pa_config.get("price", "deal_price").lower()
 
-        # NOTE:  IndexTradeRange is not supported!!!!! Because inner index is not available
-        trade_start_time, trade_end_time = decision.trade_range.clip_time_range(
-            start_time=trade_start_time, end_time=trade_end_time
+        if(decision.trade_range is not None):
+            if(isinstance(decision.trade_range, IdxTradeRange)):
+                raise TypeError(f"IdxTradeRange is not supported")
+            trade_start_time, trade_end_time = decision.trade_range.clip_time_range(
+                start_time=trade_start_time, end_time=trade_end_time
         )
 
         if price == "deal_price":
