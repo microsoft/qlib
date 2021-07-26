@@ -358,12 +358,12 @@ class Indicator:
         agg = pa_config.get("agg", "twap").lower()
         price = pa_config.get("price", "deal_price").lower()
 
-        if(decision.trade_range is not None):
-            if(isinstance(decision.trade_range, IdxTradeRange)):
+        if decision.trade_range is not None:
+            if isinstance(decision.trade_range, IdxTradeRange):
                 raise TypeError(f"IdxTradeRange is not supported")
             trade_start_time, trade_end_time = decision.trade_range.clip_time_range(
                 start_time=trade_start_time, end_time=trade_end_time
-        )
+            )
 
         if price == "deal_price":
             price_s = trade_exchange.get_deal_price(
