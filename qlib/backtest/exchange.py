@@ -512,7 +512,7 @@ class Exchange:
     def _get_factor_or_raise_erorr(self, factor: float = None, stock_id: str = None, start_time=None, end_time=None):
         """Please refer to the docs of get_amount_of_trade_unit"""
         if factor is None:
-            if stock_id is not None and start_time is not None  and end_time is not None :
+            if stock_id is not None and start_time is not None and end_time is not None:
                 factor = self.get_factor(stock_id=stock_id, start_time=start_time, end_time=end_time)
             else:
                 raise ValueError(f"`factor` and (`stock_id`, `start_time`, `end_time`) can't both be None")
@@ -537,15 +537,16 @@ class Exchange:
             the end time of trading range
         """
         if not self.trade_w_adj_price and self.trade_unit is not None:
-            factor = self._get_factor_or_raise_erorr(factor=factor,
-                                                     stock_id=stock_id,
-                                                     start_time=start_time,
-                                                     end_time=end_time)
+            factor = self._get_factor_or_raise_erorr(
+                factor=factor, stock_id=stock_id, start_time=start_time, end_time=end_time
+            )
             return self.trade_unit / factor
         else:
             return None
 
-    def round_amount_by_trade_unit(self, deal_amount, factor: float = None, stock_id: str = None, start_time=None, end_time=None):
+    def round_amount_by_trade_unit(
+        self, deal_amount, factor: float = None, stock_id: str = None, start_time=None, end_time=None
+    ):
         """Parameter
         Please refer to the docs of get_amount_of_trade_unit
 
@@ -555,10 +556,9 @@ class Exchange:
         """
         if not self.trade_w_adj_price and self.trade_unit is not None:
             # the minimal amount is 1. Add 0.1 for solving precision problem.
-            factor = self._get_factor_or_raise_erorr(factor=factor,
-                                                     stock_id=stock_id,
-                                                     start_time=start_time,
-                                                     end_time=end_time)
+            factor = self._get_factor_or_raise_erorr(
+                factor=factor, stock_id=stock_id, start_time=start_time, end_time=end_time
+            )
             return (deal_amount * factor + 0.1) // self.trade_unit * self.trade_unit / factor
         return deal_amount
 

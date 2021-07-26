@@ -8,9 +8,9 @@ from .account import Account
 
 if TYPE_CHECKING:
     from ..strategy.base import BaseStrategy
+    from .executor import BaseExecutor
 from .position import Position
 from .exchange import Exchange
-from .executor import BaseExecutor
 from .backtest import backtest_loop
 from .backtest import collect_data_loop
 from .order import Order
@@ -155,6 +155,7 @@ def get_strategy_executor(
     # - for avoiding recursive import
     # - typing annotations is not reliable
     from ..strategy.base import BaseStrategy
+    from .executor import BaseExecutor
 
     trade_account = create_account_instance(
         start_time=start_time, end_time=end_time, benchmark=benchmark, account=account, pos_type=pos_type
