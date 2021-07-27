@@ -308,8 +308,9 @@ class Indicator:
 
     def _update_order_fulfill_rate(self):
         def func(deal_amount, amount):
+            # deal_amount is np.NaN when there is no inner decision. So full fill rate is 0.
             tmp_deal_amount = deal_amount.replace({np.NaN: 0})
-            return deal_amount / tmp_deal_amount
+            return tmp_deal_amount / amount
 
         self.order_indicator.transfer(func, "ffr")
 
@@ -318,12 +319,21 @@ class Indicator:
         self._update_order_fulfill_rate()
 
     def _agg_order_trade_info(self, inner_order_indicators: List[Dict[str, pd.Series]]):
+        # calculate total trade amount with each inner order indicator.
+        def trade_amount_func(deal_amount, trade_price):
+            return deal_amount * trade_price
+
+        for indicator in inner_order_indicators:
+            indicator.transfer(trade_amount_func, "trade_price")
+
+        # sum inner order indicators with same metric.
         all_metric = ["inner_amount", "deal_amount", "trade_price", "trade_value", "trade_cost", "trade_dir"]
         metric_dict = self.order_indicator_cls.sum_all_indicators(inner_order_indicators, all_metric, fill_value=0)
         for metric in metric_dict:
             self.order_indicator.assign(metric, metric_dict[metric])
 
         def func(trade_price, deal_amount):
+            # trade_price is np.NaN instead of inf when deal_amount is zero.
             tmp_deal_amount = deal_amount.replace({0: np.NaN})
             return trade_price / tmp_deal_amount
 

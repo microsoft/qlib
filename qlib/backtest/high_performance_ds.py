@@ -82,7 +82,7 @@ class BaseQuote:
             the columns of data to fetch
         method : Union[str, Callable]
             the method apply to data.
-            e.g ["None", "last", "all", "sum", "mean", "any", qlib/utils/resam.py/ts_data_last]
+            e.g [None, "last", "all", "sum", "mean", "any", qlib/utils/resam.py/ts_data_last]
 
         Return
         ----------
@@ -177,19 +177,19 @@ class BaseSingleMetric:
 
     def add(self, other: "BaseSingleMetric", fill_value: float = None) -> "BaseSingleMetric":
         """Replace np.NaN with fill_value in two metrics and add them."""
-        
+
         raise NotImplementedError(f"Please implement the `add` method")
 
     def replace(self, replace_dict: dict) -> "BaseSingleMetric":
         """Replace the value of metric according to replace_dict."""
-        
+
         raise NotImplementedError(f"Please implement the `replace` method")
 
     def apply(self, func: dict) -> "BaseSingleMetric":
         """Replace the value of metric with func(metric).
-           Currently, the func is only qlib/backtest/order/Order.parse_dir.
+        Currently, the func is only qlib/backtest/order/Order.parse_dir.
         """
-        
+
         raise NotImplementedError(f"Please implement the 'apply' method")
 
 
@@ -426,11 +426,6 @@ class PandasOrderIndicator(BaseOrderIndicator):
         for metric in metrics:
             tmp_metric = PandasSingleMetric({})
             for indicator in indicators:
-                if(metric == "trade_price"):
-                    tmp_metric = tmp_metric.add(
-                        indicator.data["trade_price"] * indicator.data["deal_amount"], fill_value
-                    )
-                else:
-                    tmp_metric = tmp_metric.add(indicator.data[metric], fill_value)
+                tmp_metric = tmp_metric.add(indicator.data[metric], fill_value)
             metric_dict[metric] = tmp_metric.metric
         return metric_dict
