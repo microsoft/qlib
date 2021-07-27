@@ -15,10 +15,11 @@ if TYPE_CHECKING:
     from qlib.backtest.exchange import Exchange
 from qlib.backtest.utils import TradeCalendarManager
 import warnings
+import numpy as np
 import pandas as pd
 import numpy as np
 from dataclasses import dataclass, field
-from typing import ClassVar, Union, List, Set, Tuple
+from typing import ClassVar, Optional, Union, List, Set, Tuple
 
 
 class OrderDir(IntEnum):
@@ -62,8 +63,8 @@ class Order:
     # - not tradable: the deal_amount == 0 , factor is None
     #    - the stock is suspended and the entire order fails. No cost for this order
     # - dealed or partially dealed: deal_amount >= 0 and factor is not None
-    deal_amount: float = field(init=False)  # `deal_amount` is a non-negative value
-    factor: float = field(init=False)
+    deal_amount: Optional[float] = None  # `deal_amount` is a non-negative value
+    factor: Optional[float] = None
 
     # TODO:
     # a status field to indicate the dealing result of the order
@@ -108,7 +109,7 @@ class Order:
         return self.direction * 2 - 1
 
     @staticmethod
-    def parse_dir(direction: Union[str, int, float, np.integer, np.floating, OrderDir]) -> OrderDir:
+    def parse_dir(direction: Union[str, int, np.integer, OrderDir]) -> OrderDir:
         if isinstance(direction, OrderDir):
             return direction
         elif isinstance(direction, (int, float, np.integer, np.floating)):

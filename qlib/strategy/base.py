@@ -1,7 +1,11 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
-from qlib.backtest.exchange import Exchange
-from qlib.backtest.position import BasePosition
+from __future__ import annotations
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from qlib.backtest.exchange import Exchange
+    from qlib.backtest.position import BasePosition
 from typing import List, Tuple, Union
 
 from ..model.base import BaseModel

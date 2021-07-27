@@ -88,17 +88,7 @@ class Account:
 
         self._pos_type = pos_type
         self._port_metr_enabled = port_metr_enabled
-        self.init_vars(init_cash, position_dict, freq, benchmark_config)
 
-    def is_port_metr_enabled(self):
-        """
-        Is portfolio-based metrics enabled.
-        """
-        return self._port_metr_enabled and not self.current.skip_update()
-
-    def init_vars(self, init_cash, position_dict, freq: str, benchmark_config: dict):
-
-        # init cash
         self.init_cash = init_cash
         self.current: BasePosition = init_instance_by_config(
             {
@@ -113,7 +103,18 @@ class Account:
         self.accum_info = AccumulatedInfo()
         self.report = None
         self.positions = {}
+
+        # in of reset ignore None values
+        self.benchmark_config = benchmark_config
+        self.freq = freq
+
         self.reset(freq=freq, benchmark_config=benchmark_config, init_report=True)
+
+    def is_port_metr_enabled(self):
+        """
+        Is portfolio-based metrics enabled.
+        """
+        return self._port_metr_enabled and not self.current.skip_update()
 
     def reset_report(self, freq, benchmark_config):
         # portfolio related metrics

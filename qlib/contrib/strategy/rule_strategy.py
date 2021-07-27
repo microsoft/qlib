@@ -598,7 +598,7 @@ class FileOrderStrategy(BaseStrategy):
 
         Parameters
         ----------
-        file : Union[IO, str, Path]
+        file : Union[IO, str, Path, pd.DataFrame]
             this parameters will specify the info of expected orders
 
             Here is an example of the content

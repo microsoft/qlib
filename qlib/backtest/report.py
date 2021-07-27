@@ -82,11 +82,12 @@ class Report:
     def init_bench(self, freq=None, benchmark_config=None):
         if freq is not None:
             self.freq = freq
-        if benchmark_config is not None:
-            self.benchmark_config = benchmark_config
+        self.benchmark_config = benchmark_config
         self.bench = self._cal_benchmark(self.benchmark_config, self.freq)
 
     def _cal_benchmark(self, benchmark_config, freq):
+        if benchmark_config is None:
+            return None
         benchmark = benchmark_config.get("benchmark", CSI300_BENCH)
         if benchmark is None:
             return None
