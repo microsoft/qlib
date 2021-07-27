@@ -185,7 +185,7 @@ def backtest(
     exchange_kwargs={},
     pos_type: str = "Position",
 ):
-    """initialize the strategy and executor, then backtest funciton for the interaction of the outermost strategy and executor in the nested decision execution
+    """initialize the strategy and executor, then backtest function for the interaction of the outermost strategy and executor in the nested decision execution
 
     Parameters
     ----------

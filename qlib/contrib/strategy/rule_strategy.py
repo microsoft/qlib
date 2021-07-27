@@ -18,7 +18,12 @@ from qlib.backtest.utils import get_start_end_idx
 
 
 class TWAPStrategy(BaseStrategy):
-    """TWAP Strategy for trading"""
+    """TWAP Strategy for trading
+
+    NOTE:
+        - This TWAP strategy will celling round when trading. This will make the TWAP trading strategy produce the order
+          ealier when the total trade unit of amount is less than the trading step
+    """
 
     def reset(self, outer_trade_decision: BaseTradeDecision = None, **kwargs):
         """
@@ -58,11 +63,11 @@ class TWAPStrategy(BaseStrategy):
         trade_start_time, trade_end_time = self.trade_calendar.get_step_time(trade_step)
         order_list = []
         for order in self.outer_trade_decision.get_decision():
-            # if not tradable, continue
-            if not self.trade_exchange.is_stock_tradable(
-                stock_id=order.stock_id, start_time=trade_start_time, end_time=trade_end_time
-            ):
-                continue
+            # Don't peek the future information
+            # if not self.trade_exchange.is_stock_tradable(
+            #     stock_id=order.stock_id, start_time=trade_start_time, end_time=trade_end_time
+            # ):
+            #     continue
             _amount_trade_unit = self.trade_exchange.get_amount_of_trade_unit(
                 stock_id=order.stock_id, start_time=order.start_time, end_time=order.end_time
             )

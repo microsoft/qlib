@@ -1,9 +1,8 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
-
-
+from __future__ import annotations
 import copy
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, TYPE_CHECKING
 from qlib.utils import init_instance_by_config
 import warnings
 import pandas as pd
@@ -11,7 +10,9 @@ import pandas as pd
 from .position import BasePosition, InfPosition, Position
 from .report import Report, Indicator
 from .order import BaseTradeDecision, Order
-from .exchange import Exchange
+
+if TYPE_CHECKING:
+    from .exchange import Exchange
 
 """
 rtn & earning in the Account
@@ -73,6 +74,18 @@ class Account:
         pos_type: str = "Position",
         port_metr_enabled: bool = True,
     ):
+        """the trade account of backtest.
+
+        Parameters
+        ----------
+        init_cash : float, optional
+            initial cash, by default 1e9
+        position_dict : Dict[stock_id, {"amount": int, "price"(optional): float}], optional
+            initial stocks with amount and price,
+            if there is no price key in the dict of stocks, it will be filled by latest close price from qlib.
+            by default {}.
+        """
+
         self._pos_type = pos_type
         self._port_metr_enabled = port_metr_enabled
 
@@ -109,7 +122,7 @@ class Account:
             self.report = Report(freq, benchmark_config)
             self.positions = {}
 
-        # trading related matric(e.g. high-frequency trading)
+        # trading related metrics(e.g. high-frequency trading)
         self.indicator = Indicator()
 
     def reset(self, freq=None, benchmark_config=None, init_report=False, port_metr_enabled: bool = None):
@@ -161,7 +174,7 @@ class Account:
             self.accum_info.add_return_value(profit)  # note here do not consider cost
 
     def update_order(self, order, trade_val, cost, trade_price):
-        if not self.is_port_metr_enabled():
+        if self.current.skip_update():
             # TODO: supporting polymorphism for account
             # updating order for infinite position is meaningless
             return
@@ -289,7 +302,7 @@ class Account:
         if atomic is True and trade_info is None:
             raise ValueError("trade_info is necessary in atomic executor")
         elif atomic is False and inner_order_indicators is None:
-            raise ValueError("inner_order_indicators is necessary in unatomic executor")
+            raise ValueError("inner_order_indicators is necessary in un-atomic executor")
 
         # TODO:  `update_bar_count` and  `update_current` should placed in Position and be merged.
         self.update_bar_count()

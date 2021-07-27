@@ -284,6 +284,16 @@ class YahooNormalize(BaseNormalize):
     DAILY_FORMAT = "%Y-%m-%d"
 
     @staticmethod
+    def calc_change(df: pd.DataFrame, last_close: float) -> pd.Series:
+        df = df.copy()
+        _tmp_series = df["close"].fillna(method="ffill")
+        _tmp_shift_series = _tmp_series.shift(1)
+        if last_close is not None:
+            _tmp_shift_series.iloc[0] = float(last_close)
+        change_series = _tmp_series / _tmp_shift_series - 1
+        return change_series
+
+    @staticmethod
     def normalize_yahoo(
         df: pd.DataFrame,
         calendar_list: list = None,
@@ -310,11 +320,29 @@ class YahooNormalize(BaseNormalize):
             )
         df.sort_index(inplace=True)
         df.loc[(df["volume"] <= 0) | np.isnan(df["volume"]), set(df.columns) - {symbol_field_name}] = np.nan
-        _tmp_series = df["close"].fillna(method="ffill")
-        _tmp_shift_series = _tmp_series.shift(1)
-        if last_close is not None:
-            _tmp_shift_series.iloc[0] = float(last_close)
-        df["change"] = _tmp_series / _tmp_shift_series - 1
+
+        change_series = YahooNormalize.calc_change(df, last_close)
+        # NOTE: The data obtained by Yahoo finance sometimes has exceptions
+        # WARNING: If it is normal for a `symbol(exchange)` to differ by a factor of *89* to *111* for consecutive trading days,
+        # WARNING: the logic in the following line needs to be modified
+        _count = 0
+        while True:
+            # NOTE: may appear unusual for many days in a row
+            change_series = YahooNormalize.calc_change(df, last_close)
+            _mask = (change_series >= 89) & (change_series <= 111)
+            if not _mask.any():
+                break
+            _tmp_cols = ["high", "close", "low", "open", "adjclose"]
+            df.loc[_mask, _tmp_cols] = df.loc[_mask, _tmp_cols] / 100
+            _count += 1
+            if _count >= 10:
+                _symbol = df.loc[df[symbol_field_name].first_valid_index()]["symbol"]
+                logger.warning(
+                    f"{_symbol} `change` is abnormal for {_count} consecutive days, please check the specific data file carefully"
+                )
+
+        df["change"] = YahooNormalize.calc_change(df, last_close)
+
         columns += ["change"]
         df.loc[(df["volume"] <= 0) | np.isnan(df["volume"]), columns] = np.nan
 
@@ -852,7 +880,7 @@ class Run(BaseRun):
         if self.interval.lower() == "1min":
             if qlib_data_1d_dir is None or not Path(qlib_data_1d_dir).expanduser().exists():
                 raise ValueError(
-                    "If normalize 1min, the qlib_data_1d_dir parameter must be set: --qlib_data_1d_dir <user qlib 1d data >, Reference: https://github.com/zhupr/qlib/tree/support_extend_data/scripts/data_collector/yahoo#automatic-update-of-daily-frequency-datafrom-yahoo-finance"
+                    "If normalize 1min, the qlib_data_1d_dir parameter must be set: --qlib_data_1d_dir <user qlib 1d data >, Reference: https://github.com/microsoft/qlib/tree/main/scripts/data_collector/yahoo#automatic-update-of-daily-frequency-datafrom-yahoo-finance"
                 )
         super(Run, self).normalize_data(
             date_field_name, symbol_field_name, end_date=end_date, qlib_data_1d_dir=qlib_data_1d_dir

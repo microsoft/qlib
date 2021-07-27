@@ -59,12 +59,19 @@ class Order:
     # 3) results
     # - users should not care about these values
     # - they are set by the backtest system after finishing the results.
+    # What the value should be about in all kinds of cases
+    # - not tradable: the deal_amount == 0 , factor is None
+    #    - the stock is suspended and the entire order fails. No cost for this order
+    # - dealed or partially dealed: deal_amount >= 0 and factor is not None
     deal_amount: Optional[float] = None  # `deal_amount` is a non-negative value
     factor: Optional[float] = None
 
+    # TODO:
+    # a status field to indicate the dealing result of the order
+
     # FIXME:
     # for compatible now.
-    # Plese remove them in the future
+    # Please remove them in the future
     SELL: ClassVar[OrderDir] = OrderDir.SELL
     BUY: ClassVar[OrderDir] = OrderDir.BUY
 
@@ -72,6 +79,7 @@ class Order:
         if self.direction not in {Order.SELL, Order.BUY}:
             raise NotImplementedError("direction not supported, `Order.SELL` for sell, `Order.BUY` for buy")
         self.deal_amount = 0
+        self.factor = None
 
     @property
     def amount_delta(self) -> float:
