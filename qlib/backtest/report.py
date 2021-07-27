@@ -308,7 +308,8 @@ class Indicator:
 
     def _update_order_fulfill_rate(self):
         def func(deal_amount, amount):
-            return deal_amount / amount
+            tmp_deal_amount = deal_amount.replace({np.NaN: 0})
+            return deal_amount / tmp_deal_amount
 
         self.order_indicator.transfer(func, "ffr")
 
@@ -323,12 +324,13 @@ class Indicator:
             self.order_indicator.assign(metric, metric_dict[metric])
 
         def func(trade_price, deal_amount):
-            return trade_price / deal_amount
+            tmp_deal_amount = deal_amount.replace({0: np.NaN})
+            return trade_price / tmp_deal_amount
 
         self.order_indicator.transfer(func, "trade_price")
 
         def func_apply(trade_dir):
-            return trade_dir.map(Order.parse_dir)
+            return trade_dir.apply(Order.parse_dir)
 
         self.order_indicator.transfer(func_apply, "trade_dir")
 

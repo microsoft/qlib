@@ -172,15 +172,25 @@ class BaseSingleMetric:
     @property
     def empty(self) -> bool:
         """If metric is empyt, return True."""
+
         raise NotImplementedError(f"Please implement the `empty` method")
 
     def add(self, other: "BaseSingleMetric", fill_value: float = None) -> "BaseSingleMetric":
         """Replace np.NaN with fill_value in two metrics and add them."""
+        
         raise NotImplementedError(f"Please implement the `add` method")
 
-    def map(self, map_dict: dict) -> "BaseSingleMetric":
-        """Replace the value of metric according to map_dict."""
-        raise NotImplementedError(f"Please implement the `map` method")
+    def replace(self, replace_dict: dict) -> "BaseSingleMetric":
+        """Replace the value of metric according to replace_dict."""
+        
+        raise NotImplementedError(f"Please implement the `replace` method")
+
+    def apply(self, func: dict) -> "BaseSingleMetric":
+        """Replace the value of metric with func(metric).
+           Currently, the func is only qlib/backtest/order/Order.parse_dir.
+        """
+        
+        raise NotImplementedError(f"Please implement the 'apply' method")
 
 
 class BaseOrderIndicator:
@@ -371,8 +381,11 @@ class PandasSingleMetric:
     def add(self, other, fill_value=None):
         return PandasSingleMetric(self.metric.add(other.metric, fill_value=fill_value))
 
-    def map(self, map_dict: dict):
-        return PandasSingleMetric(self.metric.apply(map_dict))
+    def replace(self, replace_dict: dict):
+        return PandasSingleMetric(self.metric.replace(replace_dict))
+
+    def apply(self, func: Callable):
+        return PandasSingleMetric(self.metric.apply(func))
 
 
 class PandasOrderIndicator(BaseOrderIndicator):
@@ -413,6 +426,11 @@ class PandasOrderIndicator(BaseOrderIndicator):
         for metric in metrics:
             tmp_metric = PandasSingleMetric({})
             for indicator in indicators:
-                tmp_metric = tmp_metric.add(indicator.data[metric], fill_value)
+                if(metric == "trade_price"):
+                    tmp_metric = tmp_metric.add(
+                        indicator.data["trade_price"] * indicator.data["deal_amount"], fill_value
+                    )
+                else:
+                    tmp_metric = tmp_metric.add(indicator.data[metric], fill_value)
             metric_dict[metric] = tmp_metric.metric
         return metric_dict
