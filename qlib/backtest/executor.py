@@ -405,7 +405,7 @@ class NestedExecutor(BaseExecutor):
                 execute_result.extend(_inner_execute_result)
 
                 inner_order_indicators.append(
-                    self.inner_executor.trade_account.get_trade_indicator().get_order_indicator()
+                    self.inner_executor.trade_account.get_trade_indicator().get_order_indicator(raw=True)
                 )
             else:
                 # do nothing and just step forward

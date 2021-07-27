@@ -274,8 +274,8 @@ class Indicator:
         # self._trade_calendar = trade_calendar
 
     def record(self, trade_start_time):
-        self.order_indicator_his[trade_start_time] = self.order_indicator.data
-        self.trade_indicator_his[trade_start_time] = self.trade_indicator
+        self.order_indicator_his[trade_start_time] = self.get_order_indicator()
+        self.trade_indicator_his[trade_start_time] = self.get_trade_indicator()
 
     def _update_order_trade_info(self, trade_info: list):
         amount = dict()
@@ -587,8 +587,10 @@ class Indicator:
                 )
             )
 
-    def get_order_indicator(self):
-        return self.order_indicator
+    def get_order_indicator(self, raw: bool = False):
+        if raw:
+            return self.order_indicator
+        return self.order_indicator.to_series()
 
     def get_trade_indicator(self):
         return self.trade_indicator

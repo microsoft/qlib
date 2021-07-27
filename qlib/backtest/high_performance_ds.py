@@ -3,7 +3,7 @@
 
 
 import logging
-from typing import List, Tuple, Union, Callable, Iterable, Dict
+from typing import List, Text, Tuple, Union, Callable, Iterable, Dict
 from collections import OrderedDict
 
 import inspect
@@ -280,6 +280,21 @@ class BaseOrderIndicator:
 
         pass
 
+    def to_series(self) -> Dict[Text, pd.Series]:
+        """return the metrics as pandas series
+
+        for example: { "ffr":
+                SH600068    NaN
+                SH600079    1.0
+                SH600266    NaN
+                           ...
+                SZ300692    NaN
+                SZ300719    NaN,
+                ...
+         }
+        """
+        raise NotImplementedError(f"Please implement the `to_series` method")
+
 
 class PandasSingleMetric:
     """Each SingleMetric is based on pd.Series."""
@@ -429,3 +444,6 @@ class PandasOrderIndicator(BaseOrderIndicator):
                 tmp_metric = tmp_metric.add(indicator.data[metric], fill_value)
             metric_dict[metric] = tmp_metric.metric
         return metric_dict
+
+    def to_series(self):
+        return {k: v.metric for k, v in self.data.items()}
