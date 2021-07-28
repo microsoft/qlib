@@ -33,12 +33,13 @@ tra_config: &tra_config
   num_states: *num_states
   hidden_size: 16
   tau: 1.0
-  src_info: TPE
+  src_info: LR_TPE
 
 model_config: &model_config
   input_size: 158
   hidden_size: 256
   num_layers: 2
+  rnn_arch: LSTM
   use_attn: True
   dropout: 0.2
 
@@ -66,6 +67,7 @@ task:
     kwargs:
       tra_config: *tra_config
       model_config: *model_config
+      model_type: RNN
       lr: 1e-3
       n_epochs: 100
       max_steps_per_epoch: 100
@@ -79,7 +81,7 @@ task:
       memory_mode: *memory_mode
       eval_train: False
       eval_test: True
-      pretrain: False
+      pretrain: True
       init_state:
       freeze_model: False
       freeze_predictors: False
