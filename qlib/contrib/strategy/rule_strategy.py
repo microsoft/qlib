@@ -34,11 +34,16 @@ class TWAPStrategy(BaseStrategy):
 
         super(TWAPStrategy, self).reset(outer_trade_decision=outer_trade_decision, **kwargs)
         if outer_trade_decision is not None:
-            self.trade_amount = {}
+            self.trade_amount_remain = {}
             for order in outer_trade_decision.get_decision():
-                self.trade_amount[order.stock_id] = order.amount
+                self.trade_amount_remain[order.stock_id] = order.amount
 
     def generate_trade_decision(self, execute_result=None):
+        # NOTE:  corner cases!!!
+        # - If using upperbound round, please don't sell the amount which should in next step
+        #   - the coordinate of the amount between steps is hard to be dealed between steps in the same level. It
+        #     is easier to be dealed in upper steps
+
         # strategy is not available. Give an empty decision
         if len(self.outer_trade_decision.get_decision()) == 0:
             return TradeDecisionWO(order_list=[], strategy=self)
@@ -53,16 +58,28 @@ class TWAPStrategy(BaseStrategy):
             # It is not time to start trading or trading has ended.
             return TradeDecisionWO(order_list=[], strategy=self)
 
-        rel_trade_step = trade_step - start_idx  # trade_step relative to start_idx
+        rel_trade_step = trade_step - start_idx  # trade_step relative to start_idx (number of steps has already passed)
 
         # update the order amount
         if execute_result is not None:
             for order, _, _, _ in execute_result:
-                self.trade_amount[order.stock_id] -= order.deal_amount
+                self.trade_amount_remain[order.stock_id] -= order.deal_amount
 
         trade_start_time, trade_end_time = self.trade_calendar.get_step_time(trade_step)
         order_list = []
         for order in self.outer_trade_decision.get_decision():
+            # the expected trade amount after current step
+            amount_expect = order.amount / trade_len * (rel_trade_step + 1)
+
+            # remain amount
+            amount_remain = self.trade_amount_remain[order.stock_id]
+
+            # the amount has already been finished now.
+            amount_finished = order.amount - amount_remain
+
+            # the expected amount of current step
+            amount_delta = amount_expect - amount_finished
+
             # Don't peek the future information
             # if not self.trade_exchange.is_stock_tradable(
             #     stock_id=order.stock_id, start_time=trade_start_time, end_time=trade_end_time
@@ -71,38 +88,26 @@ class TWAPStrategy(BaseStrategy):
             _amount_trade_unit = self.trade_exchange.get_amount_of_trade_unit(
                 stock_id=order.stock_id, start_time=order.start_time, end_time=order.end_time
             )
-            _order_amount = None
-            # considering trade unit
+
+            # round the amount_delta by trade_unit and clip by remain
+            # NOTE: this could be more than expected.
             if _amount_trade_unit is None:
                 # divide the order into equal parts, and trade one part
-                _order_amount = self.trade_amount[order.stock_id] / (trade_len - rel_trade_step)
-            # without considering trade unit
+                amount_delta_target = amount_delta
             else:
-                # divide the order into equal parts, and trade one part
-                # calculate the total count of trade units to trade
-                trade_unit_cnt = int(self.trade_amount[order.stock_id] // _amount_trade_unit)
-                # calculate the amount of one part, ceil the amount
-                # floor((trade_unit_cnt + trade_len - rel_trade_step) / (trade_len - rel_trade_step + 1)) == ceil(trade_unit_cnt / (trade_len - rel_trade_step + 1))
-                _order_amount = (
-                    (trade_unit_cnt + trade_len - rel_trade_step - 1)
-                    // (trade_len - rel_trade_step)
-                    * _amount_trade_unit
+                amount_delta_target = min(
+                    np.round(amount_delta / _amount_trade_unit) * _amount_trade_unit, amount_remain
                 )
 
-            if order.direction == order.SELL:
-                # sell all amount at last
-                if self.trade_amount[order.stock_id] > 1e-5 and (
-                    _order_amount < 1e-5 or rel_trade_step == trade_len - 1
-                ):
-                    _order_amount = self.trade_amount[order.stock_id]
+            # handle last step to make sure all positions have gone
+            # necessity: the last step can't be rounded to the a unit (e.g. reminder < 0.5 unit)
+            if rel_trade_step == trade_len - 1:
+                amount_delta_target = amount_remain
 
-            _order_amount = min(_order_amount, self.trade_amount[order.stock_id])
-
-            if _order_amount > 1e-5:
-
+            if amount_delta_target > 1e-5:
                 _order = Order(
                     stock_id=order.stock_id,
-                    amount=_order_amount,
+                    amount=amount_delta_target,
                     start_time=trade_start_time,
                     end_time=trade_end_time,
                     direction=order.direction,  # 1 for buy
