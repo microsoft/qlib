@@ -73,7 +73,7 @@ task:
       max_steps_per_epoch: 100
       early_stop: 10
       smooth_steps: 5
-      logdir: output/Alpha360/router
+      logdir:
       seed: 0
       lamb: 1.0
       rho: 1.0
