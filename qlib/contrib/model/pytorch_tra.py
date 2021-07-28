@@ -392,7 +392,7 @@ class TRAModel(Model):
             self.logger.info("reset TRA")
             self.tra.reset_parameters()  # reset both router and predictors
 
-            self.optimizer = optim.Adam(self.tra.parameters(), lr=self.lr)  # optimize TRA only
+            self.optimizer = optim.Adam(list(self.model.parameters()) + list(self.tra.parameters()), lr=self.lr)
 
         self.logger.info("training...")
         best_score, _ = self._fit(train_set, valid_set, test_set, evals_result, start_epoch=epoch, is_pretrain=False)

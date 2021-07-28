@@ -73,6 +73,7 @@ task:
     kwargs:
       tra_config: *tra_config
       model_config: *model_config
+      model_type: RNN
       lr: 1e-3
       n_epochs: 100
       max_steps_per_epoch: 100
@@ -86,7 +87,7 @@ task:
       memory_mode: *memory_mode
       eval_train: False
       eval_test: True
-      pretrain: False
+      pretrain: True
       init_state:
       freeze_model: False
       freeze_predictors: False
