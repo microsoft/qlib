@@ -80,7 +80,7 @@ task:
       early_stop: 10
       smooth_steps: 5
       seed: 0
-      logdir: output/Alpha158/router
+      logdir:
       lamb: 1.0
       rho: 1.0
       transport_method: router

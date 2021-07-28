@@ -25,6 +25,7 @@ The numbers shown below demonstrate the performance of the entire `workflow` of 
 | TCTS (Xueqing Wu, et al.)| Alpha360 | 0.0485±0.00 | 0.3689±0.04| 0.0586±0.00 | 0.4669±0.02 | 0.0816±0.02 | 1.1572±0.30| -0.0689±0.02 |
 | Transformer (Ashish Vaswani, et al.)| Alpha360 | 0.0141±0.00 | 0.0917±0.02| 0.0331±0.00 | 0.2357±0.03 | -0.0259±0.03 | -0.3323±0.43| -0.1763±0.07 |
 | Localformer (Juyong Jiang, et al.)| Alpha360 | 0.0408±0.00 | 0.2988±0.03| 0.0538±0.00 | 0.4105±0.02 | 0.0275±0.03 | 0.3464±0.37| -0.1182±0.03 |
+| TRA (Hengxu Lin, et al.)| Alpha360 | 0.0500±0.00 |  0.3966±0.04 |  0.0594±0.00 |  0.4856±0.03 | 0.1000±0.02 |  1.3425±0.31 |  -0.0845±0.02 |
 
 ## Alpha158 dataset
 | Model Name | Dataset | IC | ICIR | Rank IC | Rank ICIR | Annualized Return | Information Ratio | Max Drawdown |
@@ -43,6 +44,8 @@ The numbers shown below demonstrate the performance of the entire `workflow` of 
 | TabNet (Sercan O. Arik, et al.)| Alpha158 | 0.0383±0.00 | 0.3414±0.00| 0.0388±0.00 | 0.3460±0.00 | 0.0226±0.00 | 0.2652±0.00| -0.1072±0.00 |
 | Transformer (Ashish Vaswani, et al.)| Alpha158 | 0.0274±0.00 | 0.2166±0.04| 0.0409±0.00 | 0.3342±0.04 | 0.0204±0.03 | 0.2888±0.40| -0.1216±0.04 |
 | Localformer (Juyong Jiang, et al.)| Alpha158 | 0.0355±0.00 | 0.2747±0.04| 0.0466±0.00 | 0.3762±0.03 | 0.0506±0.02 | 0.7447±0.34| -0.0875±0.02 |
+| TRA (Hengxu Lin, et al.)| Alpha158 (with selected 20 features) | 0.0440±0.00 | 0.3592±0.03 | 0.0500±0.00 | 0.4256±0.02 | 0.0747±0.03 | 1.1281±0.49 | -0.0813±0.03 |
+| TRA (Hengxu Lin, et al.)| Alpha158 | 0.0474±0.00 | 0.3653±0.03 | 0.0573±0.00 | 0.4494±0.02 | 0.0770±0.02 | 1.1342±0.38 | -0.0852±0.03 |
 
 - The selected 20 features are based on the feature importance of a lightgbm-based model.
 - The base model of DoubleEnsemble is LGBM.
