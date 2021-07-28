@@ -1028,13 +1028,21 @@ class ClientProvider(BaseProvider):
     """
 
     def __init__(self):
+        def is_instance_of_provider(instance: object, cls: type):
+            if isinstance(instance, Wrapper):
+                p = getattr(instance, "_provider", None)
+
+                return False if p is None else isinstance(p, cls)
+
+            return isinstance(instance, cls)
+
         from .client import Client
 
         self.client = Client(C.flask_server, C.flask_port)
         self.logger = get_module_logger(self.__class__.__name__)
-        if isinstance(Cal, ClientCalendarProvider):
+        if is_instance_of_provider(Cal, ClientCalendarProvider):
             Cal.set_conn(self.client)
-        if isinstance(Inst, ClientInstrumentProvider):
+        if is_instance_of_provider(Inst, ClientInstrumentProvider):
             Inst.set_conn(self.client)
         if hasattr(DatasetD, "provider"):
             DatasetD.provider.set_conn(self.client)

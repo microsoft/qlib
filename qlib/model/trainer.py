@@ -12,7 +12,6 @@ In ``DelayTrainer``, the first step is only to save some necessary info to model
 """
 
 import socket
-import time
 from typing import Callable, List
 
 from qlib.data.dataset import Dataset

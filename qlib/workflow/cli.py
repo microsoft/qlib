@@ -53,7 +53,8 @@ def workflow(config_path, experiment_name="workflow", uri_folder="mlruns"):
     exp_manager["kwargs"]["uri"] = "file:" + str(Path(os.getcwd()).resolve() / uri_folder)
     qlib.init(**config.get("qlib_init"), exp_manager=exp_manager)
 
-    task_train(config.get("task"), experiment_name=experiment_name)
+    recorder = task_train(config.get("task"), experiment_name=experiment_name)
+    recorder.save_objects(config=config)
 
 
 # function to run worklflow by config

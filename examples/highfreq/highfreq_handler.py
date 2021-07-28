@@ -99,8 +99,6 @@ class HighFreqHandler(DataHandlerLP):
         ]
         names += ["$volume_1"]
 
-        fields += ["Cut({0}, 240, None)".format(template_paused.format("Date($close)"))]
-        names += ["date"]
         return fields, names
 
 
