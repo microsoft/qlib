@@ -68,6 +68,15 @@ class TWAPStrategy(BaseStrategy):
         trade_start_time, trade_end_time = self.trade_calendar.get_step_time(trade_step)
         order_list = []
         for order in self.outer_trade_decision.get_decision():
+            # Don't peek the future information, so we use check_stock_suspended instead of is_stock_tradable
+            # necessity of this
+            # - if stock is suspended, the quote values of stocks is NaN. The following code will raise error when
+            # encountering NaN factor
+            if self.trade_exchange.check_stock_suspended(
+                stock_id=order.stock_id, start_time=trade_start_time, end_time=trade_end_time
+            ):
+                continue
+
             # the expected trade amount after current step
             amount_expect = order.amount / trade_len * (rel_trade_step + 1)
 
@@ -80,11 +89,6 @@ class TWAPStrategy(BaseStrategy):
             # the expected amount of current step
             amount_delta = amount_expect - amount_finished
 
-            # Don't peek the future information
-            # if not self.trade_exchange.is_stock_tradable(
-            #     stock_id=order.stock_id, start_time=trade_start_time, end_time=trade_end_time
-            # ):
-            #     continue
             _amount_trade_unit = self.trade_exchange.get_amount_of_trade_unit(
                 stock_id=order.stock_id, start_time=order.start_time, end_time=order.end_time
             )
