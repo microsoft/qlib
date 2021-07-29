@@ -570,9 +570,11 @@ def get_pre_trading_date(trading_date, future=False):
 
 
 def transform_end_date(end_date=None, freq="day"):
-    """get previous trading date
+    """handle the end date with various format
+
     If end_date is -1, None, or end_date is greater than the maximum trading day, the last trading date is returned.
     Otherwise, returns the end_date
+
     ----------
     end_date: str
         end trading date

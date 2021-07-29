@@ -105,6 +105,8 @@ class PredUpdater(RecordUpdater):
         if to_date == None:
             to_date = D.calendar(freq=freq)[-1]
         self.to_date = pd.Timestamp(to_date)
+        # FIXME: it will raise error when running routine with delay trainer
+        # should we use another predicition updater for delay trainer?
         self.old_pred = record.load_object("pred.pkl")
         self.last_end = self.old_pred.index.get_level_values("datetime").max()
 
