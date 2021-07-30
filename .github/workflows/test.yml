@@ -39,9 +39,9 @@ jobs:
     - name: Install Qlib with pip
       run: |
         if [ "$RUNNER_OS" == "Windows" ]; then
-          $CONDA\\python.exe -m pip install pyqlib --ignore-installed ruamel.yaml numpy --user
+          $CONDA\\python.exe -m pip install pyqlib --ignore-installed ruamel.yaml --user
         else
-          sudo $CONDA/bin/python -m pip install pyqlib --ignore-installed ruamel.yaml numpy
+          sudo $CONDA/bin/python -m pip install pyqlib --ignore-installed ruamel.yaml
         fi
       shell: bash
 
