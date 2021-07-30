@@ -32,7 +32,7 @@ jobs:
     # Test Qlib installed with pip
     - name: Install Qlib with pip
       run: |
-          sudo $CONDA/bin/python -m pip install pyqlib --ignore-installed ruamel.yaml numpy
+          sudo $CONDA/bin/python -m pip install pyqlib --ignore-installed ruamel.yaml
 
     - name: Install Lightgbm for MacOS
       run: |
