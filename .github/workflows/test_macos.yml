@@ -33,6 +33,7 @@ jobs:
     - name: Install Qlib with pip
       run: |
           sudo $CONDA/bin/python -m pip install pyqlib --ignore-installed ruamel.yaml
+          sudo $CONDA/bin/python -c "import qlib; print(qlib.__path__); print(qlib.__version__)"
 
     - name: Install Lightgbm for MacOS
       run: |
@@ -55,6 +56,7 @@ jobs:
         sudo $CONDA/bin/python -m pip install numpy jupyter jupyter_contrib_nbextensions
         sudo $CONDA/bin/python -m pip install -U scipy scikit-learn # installing without this line will cause errors on GitHub Actions, while instsalling locally won't
         sudo $CONDA/bin/python setup.py install
+        sudo $CONDA/bin/python -c "import qlib; print(qlib.__path__); print(qlib.__version__)"
 
     - name: Install test dependencies
       run: |
