@@ -29,8 +29,8 @@ class DailyBatchSampler(Sampler):
     def __init__(self, data_source):
 
         self.data_source = data_source
-        self.data = self.data_source.data.loc[self.data_source.get_index()]
-        self.daily_count = self.data.groupby(level=0).size().values  # calculate number of samples in each batch
+        # calculate number of samples in each batch
+        self.daily_count = pd.Series(index=self.data_source.get_index()).groupby("datetime").size().values
         self.daily_index = np.roll(np.cumsum(self.daily_count), 1)  # calculate begin index of each batch
         self.daily_index[0] = 0
 
@@ -72,7 +72,6 @@ class GATs(Model):
         early_stop=20,
         loss="mse",
         base_model="GRU",
-        with_pretrain=True,
         model_path=None,
         optimizer="adam",
         GPU="0",
@@ -96,7 +95,6 @@ class GATs(Model):
         self.optimizer = optimizer.lower()
         self.loss = loss
         self.base_model = base_model
-        self.with_pretrain = with_pretrain
         self.model_path = model_path
         self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
         self.n_jobs = n_jobs
@@ -115,7 +113,6 @@ class GATs(Model):
             "\noptimizer : {}"
             "\nloss_type : {}"
             "\nbase_model : {}"
-            "\nwith_pretrain : {}"
             "\nmodel_path : {}"
             "\nvisible_GPU : {}"
             "\nuse_GPU : {}"
@@ -131,7 +128,6 @@ class GATs(Model):
                 optimizer.lower(),
                 loss,
                 base_model,
-                with_pretrain,
                 model_path,
                 GPU,
                 self.use_gpu,
@@ -270,28 +266,22 @@ class GATs(Model):
         evals_result["valid"] = []
 
         # load pretrained base_model
-        if self.with_pretrain:
-            if self.model_path == None:
-                raise ValueError("the path of the pretrained model should be given first!")
-            self.logger.info("Loading pretrained model...")
-            if self.base_model == "LSTM":
-                pretrained_model = LSTMModel(
-                    d_feat=self.d_feat, hidden_size=self.hidden_size, num_layers=self.num_layers
-                )
-                pretrained_model.load_state_dict(torch.load(self.model_path))
-            elif self.base_model == "GRU":
-                pretrained_model = GRUModel(
-                    d_feat=self.d_feat, hidden_size=self.hidden_size, num_layers=self.num_layers
-                )
-                pretrained_model.load_state_dict(torch.load(self.model_path))
-            else:
-                raise ValueError("unknown base model name `%s`" % self.base_model)
+        if self.base_model == "LSTM":
+            pretrained_model = LSTMModel(d_feat=self.d_feat, hidden_size=self.hidden_size, num_layers=self.num_layers)
+        elif self.base_model == "GRU":
+            pretrained_model = GRUModel(d_feat=self.d_feat, hidden_size=self.hidden_size, num_layers=self.num_layers)
+        else:
+            raise ValueError("unknown base model name `%s`" % self.base_model)
 
-            model_dict = self.GAT_model.state_dict()
-            pretrained_dict = {k: v for k, v in pretrained_model.state_dict().items() if k in model_dict}
-            model_dict.update(pretrained_dict)
-            self.GAT_model.load_state_dict(model_dict)
-            self.logger.info("Loading pretrained model Done...")
+        if self.model_path is not None:
+            self.logger.info("Loading pretrained model...")
+            pretrained_model.load_state_dict(torch.load(self.model_path))
+
+        model_dict = self.GAT_model.state_dict()
+        pretrained_dict = {k: v for k, v in pretrained_model.state_dict().items() if k in model_dict}
+        model_dict.update(pretrained_dict)
+        self.GAT_model.load_state_dict(model_dict)
+        self.logger.info("Loading pretrained model Done...")
 
         # train
         self.logger.info("training...")

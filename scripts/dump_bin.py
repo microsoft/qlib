@@ -244,6 +244,10 @@ class DumpDataBase:
         if df is None or df.empty:
             logger.warning(f"{code} data is None or empty")
             return
+
+        # try to remove dup rows or it will cause exception when reindex.
+        df = df.drop_duplicates(self.date_field_name)
+
         # features save dir
         features_dir = self._features_dir.joinpath(code_to_fname(code).lower())
         features_dir.mkdir(parents=True, exist_ok=True)

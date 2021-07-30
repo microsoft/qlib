@@ -18,6 +18,7 @@ from ...config import C
 from ...utils import parse_config, transform_end_date, init_instance_by_config
 from ...utils.serial import Serializable
 from .utils import fetch_df_by_index
+from ...utils import lazy_sort_index
 from pathlib import Path
 from .loader import DataLoader
 
@@ -146,7 +147,8 @@ class DataHandler(Serializable):
         # Setup data.
         # _data may be with multiple column index level. The outer level indicates the feature set name
         with TimeInspector.logt("Loading data"):
-            self._data = self.data_loader.load(self.instruments, self.start_time, self.end_time)
+            # make sure the fetch method is based on a index-sorted pd.DataFrame
+            self._data = lazy_sort_index(self.data_loader.load(self.instruments, self.start_time, self.end_time))
         # TODO: cache
 
     CS_ALL = "__all"  # return all columns with single-level index column

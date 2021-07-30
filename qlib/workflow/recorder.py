@@ -5,6 +5,8 @@ import mlflow, logging
 import shutil, os, pickle, tempfile, codecs, pickle
 from pathlib import Path
 from datetime import datetime
+
+from qlib.utils.exceptions import LoadObjectError
 from ..utils.objm import FileManager
 from ..log import get_module_logger
 
@@ -297,7 +299,11 @@ class MLflowRecorder(Recorder):
     def save_objects(self, local_path=None, artifact_path=None, **kwargs):
         assert self.uri is not None, "Please start the experiment and recorder first before using recorder directly."
         if local_path is not None:
-            self.client.log_artifacts(self.id, local_path, artifact_path)
+            path = Path(local_path)
+            if path.is_dir():
+                self.client.log_artifacts(self.id, local_path, artifact_path)
+            else:
+                self.client.log_artifact(self.id, local_path, artifact_path)
         else:
             temp_dir = Path(tempfile.mkdtemp()).resolve()
             for name, data in kwargs.items():
@@ -307,10 +313,26 @@ class MLflowRecorder(Recorder):
             shutil.rmtree(temp_dir)
 
     def load_object(self, name):
+        """
+        Load object such as prediction file or model checkpoint in mlflow.
+
+        Args:
+            name (str): the object name
+
+        Raises:
+            LoadObjectError: if raise some exceptions when load the object
+
+        Returns:
+            object: the saved object in mlflow.
+        """
         assert self.uri is not None, "Please start the experiment and recorder first before using recorder directly."
-        path = self.client.download_artifacts(self.id, name)
-        with Path(path).open("rb") as f:
-            return pickle.load(f)
+
+        try:
+            path = self.client.download_artifacts(self.id, name)
+            with Path(path).open("rb") as f:
+                return pickle.load(f)
+        except Exception as e:
+            raise LoadObjectError(message=str(e))
 
     def log_params(self, **kwargs):
         for name, data in kwargs.items():

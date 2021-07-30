@@ -105,6 +105,8 @@ class PredUpdater(RecordUpdater):
         if to_date == None:
             to_date = D.calendar(freq=freq)[-1]
         self.to_date = pd.Timestamp(to_date)
+        # FIXME: it will raise error when running routine with delay trainer
+        # should we use another predicition updater for delay trainer?
         self.old_pred = record.load_object("pred.pkl")
         self.last_end = self.old_pred.index.get_level_values("datetime").max()
 
@@ -135,10 +137,9 @@ class PredUpdater(RecordUpdater):
         # RuntimeError: Attempting to deserialize object on a CUDA device but torch.cuda.is_available() is False. If you are running on a CPU-only machine, please use torch.load with map_location=torch.device('cpu') to map your storages to the CPU.
         # https://github.com/pytorch/pytorch/issues/16797
 
-        start_time = get_date_by_shift(self.last_end, 1, freq=self.freq)
-        if start_time > self.to_date:
+        if self.last_end >= self.to_date:
             self.logger.info(
-                f"The prediction in {self.record.info['id']} are latest ({start_time}). No need to update to {self.to_date}."
+                f"The prediction in {self.record.info['id']} are latest ({self.last_end}). No need to update to {self.to_date}."
             )
             return
 
