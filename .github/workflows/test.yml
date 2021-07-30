@@ -40,8 +40,10 @@ jobs:
       run: |
         if [ "$RUNNER_OS" == "Windows" ]; then
           $CONDA\\python.exe -m pip install pyqlib --ignore-installed ruamel.yaml --user
+          $CONDA\\python.exe -c "import qlib; print(qlib.__path__); print(qlib.__version__)"
         else
           sudo $CONDA/bin/python -m pip install pyqlib --ignore-installed ruamel.yaml
+          sudo $CONDA/bin/python  -c "import qlib; print(qlib.__path__); print(qlib.__version__)"
         fi
       shell: bash
 
@@ -73,11 +75,13 @@ jobs:
           $CONDA\\python.exe -m pip install numpy jupyter jupyter_contrib_nbextensions
           $CONDA\\python.exe -m pip install -U scipy scikit-learn # installing without this line will cause errors on GitHub Actions, while instsalling locally won't
           $CONDA\\python.exe setup.py install
+          $CONDA\\python.exe -c "import qlib; print(qlib.__path__); print(qlib.__version__)"
         else
           sudo $CONDA/bin/python -m pip install --upgrade cython
           sudo $CONDA/bin/python -m pip install numpy jupyter jupyter_contrib_nbextensions
           sudo $CONDA/bin/python -m pip install -U scipy scikit-learn # installing without this line will cause errors on GitHub Actions, while instsalling locally won't
           sudo $CONDA/bin/python setup.py install
+          sudo $CONDA/bin/python -c "import qlib; print(qlib.__path__); print(qlib.__version__)"
         fi
       shell: bash
 
