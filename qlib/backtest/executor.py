@@ -7,6 +7,7 @@ from qlib.backtest.account import Account
 import warnings
 import pandas as pd
 from typing import List, Tuple, Union
+from collections import defaultdict
 
 from qlib.backtest.report import Indicator
 
@@ -466,6 +467,10 @@ class SimulatorExecutor(BaseExecutor):
 
         self.trade_type = trade_type
 
+        # record deal order num in one day
+        self.deal_order_num = {"buy": defaultdict(int), "sell": defaultdict(int)}
+        self.deal_day = None
+
     def _get_order_iterator(self, trade_decision: BaseTradeDecision) -> List[Order]:
         """
 
@@ -495,6 +500,22 @@ class SimulatorExecutor(BaseExecutor):
             raise NotImplementedError(f"This type of input is not supported")
         return order_it
 
+    def _update_order_num(self, order):
+        """update date and dealed order num in the day."""
+
+        now_deal_day = order.start_time.floor(freq="D")
+        if self.deal_day is None:
+            self.deal_day = now_deal_day
+        if now_deal_day > self.deal_day:
+            self.deal_order_num = {"buy": defaultdict(int), "sell": defaultdict(int)}
+            self.deal_day = now_deal_day
+        if order.direction == Order.BUY:
+            self.deal_order_num["buy"][order.stock_id] += order.deal_amount
+        elif order.direction == Order.SELL:
+            self.deal_order_num["sell"][order.stock_id] += order.deal_amount
+        else:
+            raise NotImplementedError(f"order type {order.type} error")
+
     def _collect_data(self, trade_decision: BaseTradeDecision, level: int = 0):
 
         trade_start_time, _ = self.trade_calendar.get_step_time()
@@ -503,8 +524,13 @@ class SimulatorExecutor(BaseExecutor):
         for order in self._get_order_iterator(trade_decision):
             # execute the order.
             # NOTE: The trade_account will be changed in this function
-            trade_val, trade_cost, trade_price = self.trade_exchange.deal_order(order, trade_account=self.trade_account)
+            trade_val, trade_cost, trade_price = self.trade_exchange.deal_order(
+                order,
+                trade_account=self.trade_account,
+                deal_order_num=self.deal_order_num,
+            )
             execute_result.append((order, trade_val, trade_cost, trade_price))
+            self._update_order_num(order)
             if self.verbose:
                 print(
                     "[I {:%Y-%m-%d %H:%M:%S}]: {} {}, price {:.2f}, amount {}, deal_amount {}, factor {}, value {:.2f}, cash {:.2f}.".format(
