@@ -5,30 +5,7 @@ from qlib.data.ops import ElemOperator, PairOperator
 from qlib.config import C
 from qlib.data.cache import H
 from qlib.data.data import Cal
-
-
-def get_calendar_day(freq="day", future=False):
-    """Load High-Freq Calendar Date Using Memcache.
-
-    Parameters
-    ----------
-    freq : str
-        frequency of read calendar file.
-    future : bool
-        whether including future trading day.
-
-    Returns
-    -------
-    _calendar:
-        array of date.
-    """
-    flag = f"{freq}_future_{future}_day"
-    if flag in H["c"]:
-        _calendar = H["c"][flag]
-    else:
-        _calendar = np.array(list(map(lambda x: pd.Timestamp(x.date()), Cal.load_calendar(freq, future))))
-        H["c"][flag] = _calendar
-    return _calendar
+from qlib.contrib.ops.high_freq import get_calendar_day
 
 
 class DayLast(ElemOperator):

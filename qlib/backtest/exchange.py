@@ -1,6 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 from __future__ import annotations
+from collections import defaultdict
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -68,30 +69,37 @@ class Exchange:
                                                      <the expression for sell stock limitation>)
                                                     `False` value indicates the stock is tradable
                                                     `True` value indicates the stock is limited and not tradable
-        
-        :param volume_threshold:  Union[
+
+        :param volume_threshold: Union[
                                     Dict[
-                                        "all": Union(str, List[str], Tuple[str]), 
-                                        "buy": Union(str, List[str], Tuple[str]),
-                                        "sell": Union(str, List[str], Tuple[str]),
+                                        "all": ("cum" or "current", limit_str),
+                                        "buy": ("cum" or "current", limit_str),
+                                        "sell":("cum" or "current", limit_str),
                                     ],
-                                    Union(str, List[str], Tuple[str],
-                                  ]
-                                1) str means one volume limit. In another words, each volume limit is a string. 
-                                There are two kinds of string to represent limit.
-                                    - the first kind of string is qlib data expression but it must starts with "$".
-                                        such as "$askV1", "$bidV1 * 0.8"
-                                    - the second kind of string is composed of special fields. Currently we only 
-                                    supports #market and #dealed. #market is market volume so far that day. 
-                                    !!!Note that if you use the #market field, you must register the DayCumsum operator 
-                                    in qlib.contrib.ops.high_freq when initial the qlib. #dealed is dealed order num so far that day.
-                                        such as "0.8 * #market - #dealed", "0.6 * #market"
-                                2) "all" means the volume limits are both of buying and selling. 
+                                    ("cum" or "current", limit_str),
+                                 ]
+                                1) ("cum" or "current", limit_str) denotes a single volume limit.
+                                    - limit_str is qlib data expression which is allowed to define your own Operator.
+                                    Please refer to qlib/contrib/ops/high_freq.py, here are any custom operator for high frequency,
+                                    such as DayCumsum. !!!NOTE: if you want you use the custom operator, you need to
+                                    register it in qlib_init.
+                                    - "cum" means that this is a cumulative value over time, such as cumulative market volume.
+                                    So when it is used as a volume limit, it is necessary to subtract the dealed amount.
+                                    - "current" means that this is a real-time value and will not accumulate over time,
+                                    so it can be directly used as a capacity limit.
+                                    e.g. ("cum", "0.2 * DayCumsum($volume, '9:45', '14:45')"), ("current", "$bidV1")
+
+                                2) "all" means the volume limits are both buying and selling.
                                 "buy" means the volume limits of buying. "sell" means the volume limits of selling.
                                 Different volume limits will be aggregated with min(). If volume_threshold is only
-                                Union(str, List[str], Tuple[str]) instead of a dict, the volume limits are for
-                                both by deault.
-                                3) e.g. {"all": ("#market * 0.2 - #dealed"), "buy": ("$askV1"), "sell": ("$bidV1")}
+                                ("cum" or "current", limit_str) instead of a dict, the volume limits are for
+                                both by deault. In other words, it is same as {"all": ("cum" or "current", limit_str)}.
+
+                                3) e.g. "volume_threshold": {
+                                            "all": ("cum", "0.2 * DayCumsum($volume, '9:45', '14:45')"),
+                                            "buy": ("current", "$askV1"),
+                                            "sell": ("current", "$bidV1"),
+                                        }
 
         :param open_cost:        cost rate for open, default 0.0015
         :param close_cost:       cost rate for close, default 0.0025
@@ -277,9 +285,9 @@ class Exchange:
         -------
         fields: set
             the fields need to get from qlib.
-        buy_vol_limit: List[str]
+        buy_vol_limit: List[Tuple[str]]
             all volume limits of buying.
-        sell_vol_limit: List[str]
+        sell_vol_limit: List[Tuple[str]]
             all volume limits of selling.
 
         Raises
@@ -293,27 +301,19 @@ class Exchange:
         fields = set()
         buy_vol_limit = []
         sell_vol_limit = []
-        if isinstance(volume_threshold, (str, tuple, list)):
+        if isinstance(volume_threshold, tuple):
             volume_threshold = {"all": volume_threshold}
 
+        assert type(volume_threshold) == dict
         for key in volume_threshold:
-            vol_limits = volume_threshold[key]
-            if isinstance(vol_limits, str):
-                vol_limits = [vol_limits]
-            for vol_lt in vol_limits:
-                # the str is qlib data expression when the first character is "$".
-                if vol_lt[0] == "$":
-                    fields.add(vol_lt)
-                # the str is composed of special_fields
-                elif "#market" in vol_lt:
-                    fields.add("DayCumsum($volume)")
-                else:
-                    raise ValueError(f"volume limit string must be qlib expression or special_fields")
+            vol_limit = volume_threshold[key]
+            assert type(vol_limit) == tuple
+            fields.add(vol_limit[1])
 
-                if key in ("buy", "all"):
-                    buy_vol_limit.append(vol_lt)
-                if key in ("sell", "all"):
-                    sell_vol_limit.append(vol_lt)
+            if key in ("buy", "all"):
+                buy_vol_limit.append(vol_limit)
+            if key in ("sell", "all"):
+                sell_vol_limit.append(vol_limit)
 
         return buy_vol_limit, sell_vol_limit, fields
 
@@ -366,7 +366,11 @@ class Exchange:
             return True
 
     def deal_order(
-        self, order, trade_account: Account = None, position: BasePosition = None, deal_order_num: dict = None
+        self,
+        order,
+        trade_account: Account = None,
+        position: BasePosition = None,
+        dealed_order_amount: defaultdict = defaultdict(float),
     ):
         """
         Deal order when the actual transaction
@@ -376,7 +380,7 @@ class Exchange:
         :param order:  Deal the order.
         :param trade_account: Trade account to be updated after dealing the order.
         :param position: position to be updated after dealing the order.
-        :param deal_order_num: the dealed order num dict with the format of {"buy":{stock_id: int}, "sell":{stock_id: int}}
+        :param dealed_order_amount: the dealed order amount dict with the format of {stock_id: float}
         :return: trade_val, trade_cost, trade_price
         """
         # check order first.
@@ -391,7 +395,7 @@ class Exchange:
         trade_price = self.get_deal_price(order.stock_id, order.start_time, order.end_time, order.direction)
         # NOTE: order will be changed in this function
         trade_val, trade_cost = self._calc_trade_info_by_order(
-            order, trade_account.current if trade_account else position, deal_order_num
+            order, trade_account.current if trade_account else position, dealed_order_amount
         )
         if order.deal_amount > 1e-5:
             # If the order can only be deal 0 amount. Nothing to be updated
@@ -655,64 +659,59 @@ class Exchange:
             return (deal_amount * factor + 0.1) // self.trade_unit * self.trade_unit / factor
         return deal_amount
 
-    def _get_amount_by_volume(self, order: Order, deal_order_num: dict) -> int:
-        """parse the capacity limit string and return the actual number of orders that can be executed.
+    def _get_amount_by_volume(self, order: Order, dealed_order_amount: dict) -> int:
+        """parse the capacity limit string and return the actual amount of orders that can be executed.
 
         Parameters
         ----------
         order : Order
             the order to be executed.
-        deal_order_num : dict
-            the dealed order num dict with the format of {"buy":{stock_id: int}, "sell":{stock_id: int}}
+        dealed_order_amount : dict
+            :param dealed_order_amount: the dealed order amount dict with the format of {stock_id: float}
 
         Returns
         -------
         int
-           the actual number of orders that can be executed, due to the volume limit.
-        """  
+           the actual amount of orders that can be executed, due to the volume limit.
+        """
         if order.direction == Order.BUY:
             vol_limit = self.buy_vol_limit
-            deal_order_num = deal_order_num["buy"]
         elif order.direction == Order.SELL:
             vol_limit = self.sell_vol_limit
-            deal_order_num = deal_order_num["sell"]
 
         if vol_limit is None:
             return order.deal_amount
 
         vol_limit_num = []
         for limit in vol_limit:
-            assert isinstance(limit, str)
-            if limit[0] == "$":
+            assert isinstance(limit, tuple)
+            if limit[0] == "current":
                 vol_limit_num.append(
-                    str(
-                        self.quote.get_data(
-                            order.stock_id,
-                            order.start_time,
-                            order.end_time,
-                            fields=limit,
-                            method=ts_data_last,
-                        )
-                    )
-                )
-            else:
-                if "#market in limit":
-                    market_limit = self.quote.get_data(
+                    self.quote.get_data(
                         order.stock_id,
                         order.start_time,
                         order.end_time,
-                        fields="DayCumsum($volume)",
+                        fields=limit[1],
                         method=ts_data_last,
                     )
-                    limit_tmp = limit.replace("#market", f"{market_limit}")
-                if "#dealed in limit":
-                    limit_tmp = limit_tmp.replace("#dealed", f"{deal_order_num[order.stock_id]}")
-                vol_limit_num.append(limit_tmp)
-
-        vol_limit_num = min([eval(i) for i in vol_limit_num])
+                )
+            elif limit[0] == "cum":
+                vol_limit_num.append(
+                    self.quote.get_data(
+                        order.stock_id,
+                        order.start_time,
+                        order.end_time,
+                        fields=limit[1],
+                        method=ts_data_last,
+                    )
+                    - dealed_order_amount[order.stock_id]
+                )
+            else:
+                raise ValueError(f"{limit[0]} is not supported")
+        vol_limit_num = min(vol_limit_num)
         return max(min(vol_limit_num, order.deal_amount), 0)
 
-    def _calc_trade_info_by_order(self, order, position: Position, deal_order_num):
+    def _calc_trade_info_by_order(self, order, position: Position, dealed_order_amount):
         """
         Calculation of trade info
 
@@ -720,7 +719,7 @@ class Exchange:
 
         :param order:
         :param position: Position
-        :param deal_order_num: the dealed order num dict with the format of {"buy":{stock_id: int}, "sell":{stock_id: int}}
+        :param dealed_order_amount: the dealed order amount dict with the format of {stock_id: float}
         :return: trade_val, trade_cost
         """
 
@@ -744,7 +743,7 @@ class Exchange:
                 #  We choose to sell all
                 order.deal_amount = order.amount
 
-            order.deal_amount = self._get_amount_by_volume(order, deal_order_num)
+            order.deal_amount = self._get_amount_by_volume(order, dealed_order_amount)
             trade_val = order.deal_amount * trade_price
             trade_cost = max(trade_val * self.close_cost, self.min_cost)
         elif order.direction == Order.BUY:
@@ -764,7 +763,7 @@ class Exchange:
                 # Unknown amount of money. Just round the amount
                 order.deal_amount = self.round_amount_by_trade_unit(order.amount, order.factor)
 
-            order.deal_amount = self._get_amount_by_volume(order, deal_order_num)
+            order.deal_amount = self._get_amount_by_volume(order, dealed_order_amount)
             trade_val = order.deal_amount * trade_price
             trade_cost = max(trade_val * self.open_cost, self.min_cost)
         else:

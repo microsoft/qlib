@@ -114,6 +114,10 @@ class BaseExecutor:
         if common_infra is None:
             get_module_logger("BaseExecutor").warning(f"`common_infra` is not set for {self}")
 
+        # record deal order amount in one day
+        self.dealed_order_amount = defaultdict(float)
+        self.deal_day = None
+
     def reset_common_infra(self, common_infra):
         """
         reset infrastructure for trading
@@ -467,10 +471,6 @@ class SimulatorExecutor(BaseExecutor):
 
         self.trade_type = trade_type
 
-        # record deal order num in one day
-        self.deal_order_num = {"buy": defaultdict(int), "sell": defaultdict(int)}
-        self.deal_day = None
-
     def _get_order_iterator(self, trade_decision: BaseTradeDecision) -> List[Order]:
         """
 
@@ -500,21 +500,14 @@ class SimulatorExecutor(BaseExecutor):
             raise NotImplementedError(f"This type of input is not supported")
         return order_it
 
-    def _update_order_num(self, order):
-        """update date and dealed order num in the day."""
+    def _update_dealed_order_amount(self, order):
+        """update date and dealed order amount in the day."""
 
-        now_deal_day = order.start_time.floor(freq="D")
-        if self.deal_day is None:
+        now_deal_day = self.trade_calendar.get_step_time()[0].floor(freq="D")
+        if self.deal_day is None or now_deal_day > self.deal_day:
+            self.dealed_order_amount = defaultdict(float)
             self.deal_day = now_deal_day
-        if now_deal_day > self.deal_day:
-            self.deal_order_num = {"buy": defaultdict(int), "sell": defaultdict(int)}
-            self.deal_day = now_deal_day
-        if order.direction == Order.BUY:
-            self.deal_order_num["buy"][order.stock_id] += order.deal_amount
-        elif order.direction == Order.SELL:
-            self.deal_order_num["sell"][order.stock_id] += order.deal_amount
-        else:
-            raise NotImplementedError(f"order type {order.type} error")
+        self.dealed_order_amount[order.stock_id] += order.deal_amount
 
     def _collect_data(self, trade_decision: BaseTradeDecision, level: int = 0):
 
@@ -527,10 +520,10 @@ class SimulatorExecutor(BaseExecutor):
             trade_val, trade_cost, trade_price = self.trade_exchange.deal_order(
                 order,
                 trade_account=self.trade_account,
-                deal_order_num=self.deal_order_num,
+                dealed_order_amount=self.dealed_order_amount,
             )
             execute_result.append((order, trade_val, trade_cost, trade_price))
-            self._update_order_num(order)
+            self._update_dealed_order_amount(order)
             if self.verbose:
                 print(
                     "[I {:%Y-%m-%d %H:%M:%S}]: {} {}, price {:.2f}, amount {}, deal_amount {}, factor {}, value {:.2f}, cash {:.2f}.".format(
