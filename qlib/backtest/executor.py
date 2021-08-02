@@ -115,7 +115,7 @@ class BaseExecutor:
             get_module_logger("BaseExecutor").warning(f"`common_infra` is not set for {self}")
 
         # record deal order amount in one day
-        self.dealed_order_amount = defaultdict(float)
+        self.dealt_order_amount = defaultdict(float)
         self.deal_day = None
 
     def reset_common_infra(self, common_infra):
@@ -500,14 +500,14 @@ class SimulatorExecutor(BaseExecutor):
             raise NotImplementedError(f"This type of input is not supported")
         return order_it
 
-    def _update_dealed_order_amount(self, order):
-        """update date and dealed order amount in the day."""
+    def _update_dealt_order_amount(self, order):
+        """update date and dealt order amount in the day."""
 
         now_deal_day = self.trade_calendar.get_step_time()[0].floor(freq="D")
         if self.deal_day is None or now_deal_day > self.deal_day:
-            self.dealed_order_amount = defaultdict(float)
+            self.dealt_order_amount = defaultdict(float)
             self.deal_day = now_deal_day
-        self.dealed_order_amount[order.stock_id] += order.deal_amount
+        self.dealt_order_amount[order.stock_id] += order.deal_amount
 
     def _collect_data(self, trade_decision: BaseTradeDecision, level: int = 0):
 
@@ -520,10 +520,10 @@ class SimulatorExecutor(BaseExecutor):
             trade_val, trade_cost, trade_price = self.trade_exchange.deal_order(
                 order,
                 trade_account=self.trade_account,
-                dealed_order_amount=self.dealed_order_amount,
+                dealt_order_amount=self.dealt_order_amount,
             )
             execute_result.append((order, trade_val, trade_cost, trade_price))
-            self._update_dealed_order_amount(order)
+            self._update_dealt_order_amount(order)
             if self.verbose:
                 print(
                     "[I {:%Y-%m-%d %H:%M:%S}]: {} {}, price {:.2f}, amount {}, deal_amount {}, factor {}, value {:.2f}, cash {:.2f}.".format(

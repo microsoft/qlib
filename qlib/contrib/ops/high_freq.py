@@ -10,6 +10,7 @@ from qlib.data import D
 from qlib.data.cache import H
 from qlib.data.data import Cal
 from qlib.data.ops import ElemOperator
+from qlib.utils.time import time_to_day_index
 
 
 def get_calendar_day(freq="1min", future=False):
@@ -71,18 +72,11 @@ class DayCumsum(ElemOperator):
         self.noon_open = datetime.strptime("13:00", "%H:%M")
         self.noon_close = datetime.strptime("15:00", "%H:%M")
 
-        self.start_id = self.time_to_index(self.start)
-        self.end_id = self.time_to_index(self.end)
-
-    def time_to_index(self, t):
-        if t >= self.morning_open and t < self.morning_close:
-            return int((t - self.morning_open).total_seconds() / 60)
-        elif t >= self.noon_open and t < self.noon_close:
-            return int((t - self.noon_open).total_seconds() / 60) + 120
-        else:
-            raise ValueError(f"{t} is not the opening time of the stock market")
+        self.start_id = time_to_day_index(self.start)
+        self.end_id = time_to_day_index(self.end)
 
     def period_cusum(self, df):
+        df = df.copy()
         assert len(df) == 240
         df.iloc[0 : self.start_id] = 0
         df = df.cumsum()

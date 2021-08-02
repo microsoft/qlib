@@ -11,6 +11,7 @@ from numpy import append
 import pandas as pd
 from qlib.config import C
 import functools
+from typing import Union
 
 
 @functools.lru_cache(maxsize=240)
@@ -94,6 +95,29 @@ class Freq:
             "min": Freq.NORM_FREQ_MINUTE,
         }
         return _count, _freq_format_dict[_freq]
+
+
+cn_time = [datetime.strptime("9:30", "%H:%M"), datetime.strptime("11:30", "%H:%M"), 
+            datetime.strptime("13:00", "%H:%M"), datetime.strptime("15:00", "%H:%M")]
+us_time = [datetime.strptime("9:30", "%H:%M"), datetime.strptime("16:00", "%H:%M")]
+def time_to_day_index(time_obj: Union[str, datetime], region: str="cn"):
+    if isinstance(time_obj, str):
+        time_obj = datetime.strptime(time_obj, "%H:%M")
+
+    if region == "cn":
+        if time_obj >= cn_time[0] and time_obj < cn_time[1]:
+            return int((time_obj - cn_time[0]).total_seconds() / 60)
+        elif time_obj >= cn_time[2] and time_obj < cn_time[3]:
+            return int((time_obj - cn_time[2]).total_seconds() / 60) + 120
+        else:
+            raise ValueError(f"{time_obj} is not the opening time of the {region} stock market")
+    elif region == "us":
+        if time_obj >= us_time[0] and time_obj < us_time[1]:
+            return int((time_obj - us_time[0]).total_seconds() / 60)
+        else:
+            raise ValueError(f"{time_obj} is not the opening time of the {region} stock market")
+    else:
+        raise ValueError(f"{region} is not supported")
 
 
 def get_day_min_idx_range(start: str, end: str, freq: str) -> Tuple[int, int]:
