@@ -97,10 +97,16 @@ class Freq:
         return _count, _freq_format_dict[_freq]
 
 
-cn_time = [datetime.strptime("9:30", "%H:%M"), datetime.strptime("11:30", "%H:%M"), 
-            datetime.strptime("13:00", "%H:%M"), datetime.strptime("15:00", "%H:%M")]
+cn_time = [
+    datetime.strptime("9:30", "%H:%M"),
+    datetime.strptime("11:30", "%H:%M"),
+    datetime.strptime("13:00", "%H:%M"),
+    datetime.strptime("15:00", "%H:%M"),
+]
 us_time = [datetime.strptime("9:30", "%H:%M"), datetime.strptime("16:00", "%H:%M")]
-def time_to_day_index(time_obj: Union[str, datetime], region: str="cn"):
+
+
+def time_to_day_index(time_obj: Union[str, datetime], region: str = "cn"):
     if isinstance(time_obj, str):
         time_obj = datetime.strptime(time_obj, "%H:%M")
 

@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from qlib.strategy.base import BaseStrategy
-from qlib.backtest.executor import BaseExecutor
+    from qlib.backtest.executor import BaseExecutor
 from ..utils.time import Freq
 from tqdm.auto import tqdm
 

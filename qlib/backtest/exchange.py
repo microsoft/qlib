@@ -137,9 +137,10 @@ class Exchange:
         if deal_price is None:
             deal_price = C.deal_price
 
-        self.logger = get_module_logger("online operator", level=logging.INFO)
+        # we have some verbose information here. So logging is enable
+        self.logger = get_module_logger("online operator")
 
-        # TODO: the quote, trade_dates, codes are not necessray.
+        # TODO: the quote, trade_dates, codes are not necessary.
         # It is just for performance consideration.
         self.limit_type = self._get_limit_type(limit_threshold)
         if limit_threshold is None:
@@ -387,6 +388,7 @@ class Exchange:
         if self.check_order(order) is False:
             order.deal_amount = 0.0
             # using np.nan instead of None to make it more convenient to should the value in format string
+            self.logger.debug(f"Order failed due to trading limitation: {order}")
             return 0.0, 0.0, np.nan
 
         if trade_account is not None and position is not None:
@@ -659,8 +661,12 @@ class Exchange:
             return (deal_amount * factor + 0.1) // self.trade_unit * self.trade_unit / factor
         return deal_amount
 
-    def _get_amount_by_volume(self, order: Order, dealt_order_amount: dict) -> int:
+    def _clip_amount_by_volume(self, order: Order, dealt_order_amount: dict) -> int:
         """parse the capacity limit string and return the actual amount of orders that can be executed.
+
+        NOTE:
+            this function will change the order.deal_amount **inplace**
+            - This will make the order info more accurate
 
         Parameters
         ----------
@@ -668,11 +674,6 @@ class Exchange:
             the order to be executed.
         dealt_order_amount : dict
             :param dealt_order_amount: the dealt order amount dict with the format of {stock_id: float}
-
-        Returns
-        -------
-        int
-           the actual amount of orders that can be executed, due to the volume limit.
         """
         if order.direction == Order.BUY:
             vol_limit = self.buy_vol_limit
@@ -685,21 +686,33 @@ class Exchange:
         vol_limit_num = []
         for limit in vol_limit:
             assert isinstance(limit, tuple)
-            limit_value = self.quote.get_data(
-                        order.stock_id,
-                        order.start_time,
-                        order.end_time,
-                        fields=limit[1],
-                        method=ts_data_last,
-                    )
             if limit[0] == "current":
+                limit_value = self.quote.get_data(
+                    order.stock_id,
+                    order.start_time,
+                    order.end_time,
+                    fields=limit[1],
+                    method="sum",
+                )
                 vol_limit_num.append(limit_value)
             elif limit[0] == "cum":
+                limit_value = self.quote.get_data(
+                    order.stock_id,
+                    order.start_time,
+                    order.end_time,
+                    fields=limit[1],
+                    method=ts_data_last,
+                )
                 vol_limit_num.append(limit_value - dealt_order_amount[order.stock_id])
             else:
                 raise ValueError(f"{limit[0]} is not supported")
-        vol_limit_num = min(vol_limit_num)
-        return max(min(vol_limit_num, order.deal_amount), 0)
+        vol_limit_min = min(vol_limit_num)
+        orig_deal_amount = order.deal_amount
+        order.deal_amount = max(min(vol_limit_min, orig_deal_amount), 0)
+        if vol_limit_min < orig_deal_amount:
+            self.logger.debug(
+                f"Order clipped due to volume limitation: {order}, {[(vol, rule) for vol, rule in zip(vol_limit_num, vol_limit)]}"
+            )
 
     def _calc_trade_info_by_order(self, order, position: Position, dealt_order_amount):
         """
@@ -733,7 +746,7 @@ class Exchange:
                 #  We choose to sell all
                 order.deal_amount = order.amount
 
-            order.deal_amount = self._get_amount_by_volume(order, dealt_order_amount)
+            self._clip_amount_by_volume(order, dealt_order_amount)
             trade_val = order.deal_amount * trade_price
             trade_cost = max(trade_val * self.close_cost, self.min_cost)
         elif order.direction == Order.BUY:
@@ -746,6 +759,7 @@ class Exchange:
                     order.deal_amount = self.round_amount_by_trade_unit(
                         cash / (1 + self.open_cost) / trade_price, order.factor
                     )
+                    self.logger.debug(f"Order clipped due to cash limitation: {order}")
                 else:
                     # THe money is enough
                     order.deal_amount = self.round_amount_by_trade_unit(order.amount, order.factor)
@@ -753,7 +767,7 @@ class Exchange:
                 # Unknown amount of money. Just round the amount
                 order.deal_amount = self.round_amount_by_trade_unit(order.amount, order.factor)
 
-            order.deal_amount = self._get_amount_by_volume(order, dealt_order_amount)
+            self._clip_amount_by_volume(order, dealt_order_amount)
             trade_val = order.deal_amount * trade_price
             trade_cost = max(trade_val * self.open_cost, self.min_cost)
         else:
