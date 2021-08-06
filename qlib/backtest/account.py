@@ -100,7 +100,6 @@ class Account:
                 "module_path": "qlib.backtest.position",
             }
         )
-        self.accum_info = AccumulatedInfo()
         self.report = None
         self.positions = {}
 
@@ -119,8 +118,11 @@ class Account:
     def reset_report(self, freq, benchmark_config):
         # portfolio related metrics
         if self.is_port_metr_enabled():
+            self.accum_info = AccumulatedInfo()
             self.report = Report(freq, benchmark_config)
             self.positions = {}
+            # fill stock value
+            self.current.fill_stock_value(self.benchmark_config["start_time"], self.freq)
 
         # trading related metrics(e.g. high-frequency trading)
         self.indicator = Indicator()
@@ -309,6 +311,7 @@ class Account:
         self.update_current(trade_start_time, trade_end_time, trade_exchange)
         if self.is_port_metr_enabled():
             # report is portfolio related analysis
+            print(trade_start_time, trade_end_time)
             self.update_report(trade_start_time, trade_end_time)
 
         # TODO: will skip empty decisions make it faster?  `outer_trade_decision.empty():`

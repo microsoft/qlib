@@ -97,13 +97,13 @@ class Freq:
         return _count, _freq_format_dict[_freq]
 
 
-cn_time = [
+CN_TIME = [
     datetime.strptime("9:30", "%H:%M"),
     datetime.strptime("11:30", "%H:%M"),
     datetime.strptime("13:00", "%H:%M"),
     datetime.strptime("15:00", "%H:%M"),
 ]
-us_time = [datetime.strptime("9:30", "%H:%M"), datetime.strptime("16:00", "%H:%M")]
+US_TIME = [datetime.strptime("9:30", "%H:%M"), datetime.strptime("16:00", "%H:%M")]
 
 
 def time_to_day_index(time_obj: Union[str, datetime], region: str = "cn"):
@@ -111,15 +111,15 @@ def time_to_day_index(time_obj: Union[str, datetime], region: str = "cn"):
         time_obj = datetime.strptime(time_obj, "%H:%M")
 
     if region == "cn":
-        if time_obj >= cn_time[0] and time_obj < cn_time[1]:
-            return int((time_obj - cn_time[0]).total_seconds() / 60)
-        elif time_obj >= cn_time[2] and time_obj < cn_time[3]:
-            return int((time_obj - cn_time[2]).total_seconds() / 60) + 120
+        if time_obj >= CN_TIME[0] and time_obj < CN_TIME[1]:
+            return int((time_obj - CN_TIME[0]).total_seconds() / 60)
+        elif time_obj >= CN_TIME[2] and time_obj < CN_TIME[3]:
+            return int((time_obj - CN_TIME[2]).total_seconds() / 60) + 120
         else:
             raise ValueError(f"{time_obj} is not the opening time of the {region} stock market")
     elif region == "us":
-        if time_obj >= us_time[0] and time_obj < us_time[1]:
-            return int((time_obj - us_time[0]).total_seconds() / 60)
+        if time_obj >= US_TIME[0] and time_obj < US_TIME[1]:
+            return int((time_obj - US_TIME[0]).total_seconds() / 60)
         else:
             raise ValueError(f"{time_obj} is not the opening time of the {region} stock market")
     else:

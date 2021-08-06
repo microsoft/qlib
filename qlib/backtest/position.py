@@ -256,37 +256,33 @@ class Position(BasePosition):
         # NOTE: The position dict must be copied!!!
         # Otherwise the initial value
         self.init_cash = cash
-        self.position = position_dict.copy()
+        self.init_stock_info = position_dict.copy()
+        self.position = self.init_stock_info.copy()
         self.position["cash"] = cash
-        self.position["now_account_value"] = self.calculate_value()
 
-    def _fill_stock_value(
-        self, position_dict: dict, start_time: Union[str, pd.Timestamp], freq: str, last_days: int = 30
-    ):
+        # If the stock price information is missing, the account value will not be calculated temporarily
+        try:
+            self.position["now_account_value"] = self.calculate_value()
+        except KeyError:
+            pass
+
+    def fill_stock_value(self, start_time: Union[str, pd.Timestamp], freq: str, last_days: int = 30):
         """fill the stock value by the close price of latest last_days from qlib.
 
         Parameters
         ----------
-        position_dict : Dict[stock_id, {"amount": int, "price": float}]
-            initial holding stocks.
         start_time :
             the start time of backtest.
         last_days : int, optional
             the days to get the latest close price, by default 30.
-
-        Return
-        ----------
-        Dict[stock_id, {"amount": int, "price": float}]
-            initial holding stocks with filled price.
         """
-
         stock_list = []
-        for stock in position_dict:
-            if ("price" not in position_dict[stock]) or (position_dict[stock]["price"] is None):
+        for stock in self.init_stock_info:
+            if ("price" not in self.position[stock]) or (self.position[stock]["price"] is None):
                 stock_list.append(stock)
 
         if len(stock_list) == 0:
-            return position_dict
+            return
 
         start_time = pd.Timestamp(start_time)
         # note that start time is 2020-01-01 00:00:00 if raw start time is "2020-01-01"
@@ -298,11 +294,13 @@ class Position(BasePosition):
         price_dict = price_df.groupby(["instrument"]).tail(1).reset_index(level=1, drop=True)["$close"].to_dict()
 
         if len(price_dict) < len(stock_list):
-            raise ValueError(f"there is no close price in qlib")
+            lack_stock = set(stock_list) - set(price_dict)
+            raise ValueError(f"{lack_stock} doesn't have close price in qlib in the latest {last_days} days")
 
         for stock in stock_list:
-            position_dict[stock]["price"] = price_dict[stock]
-        return position_dict
+            self.init_stock_info[stock]["price"] = price_dict[stock]
+        self.position.update(self.init_stock_info)
+        self.position["now_account_value"] = self.calculate_value()
 
     def _init_stock(self, stock_id, amount, price=None):
         """

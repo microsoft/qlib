@@ -96,7 +96,7 @@ def get_exchange(
 
 
 def create_account_instance(
-    start_time, end_time, benchmark: str, account: Union[float, int, Position], pos_type: str = "Position"
+    start_time, end_time, benchmark: str, account: Union[float, int, dict], pos_type: str = "Position"
 ) -> Account:
     """
     # TODO: is very strange pass benchmark_config in the account(maybe for report)
@@ -110,19 +110,23 @@ def create_account_instance(
         end time of the benchmark
     benchmark : str
         the benchmark for reporting
-    account : Union[float, int, Position]
+    account : Union[float, int, {"cash": float, "stock1": {"amount": int, "price"(optional): float}, "stock2": {"amount": int}}]
         information for describing how to creating the account
         For `float` or `int`:
             Using Account with only initial cash
-        For `Position`:
-            Using Account with a Position
+        For `dict`:
+            key "cash" means initial cash.
+            key "stock1" means the first stock information with amount and price(optional).
+            ...
     """
     if isinstance(account, (int, float)):
         pos_kwargs = {"init_cash": account}
-    elif isinstance(account, Position):
+    elif isinstance(account, dict):
+        init_cash = account["cash"]
+        del account["cash"]
         pos_kwargs = {
-            "init_cash": account.position["cash"],
-            "position_dict": account.position,
+            "init_cash": init_cash,
+            "position_dict": account,
         }
     else:
         raise ValueError("account must be in (int, float, Position)")

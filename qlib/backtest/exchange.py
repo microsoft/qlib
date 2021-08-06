@@ -394,9 +394,8 @@ class Exchange:
         if trade_account is not None and position is not None:
             raise ValueError("trade_account and position can only choose one")
 
-        trade_price = self.get_deal_price(order.stock_id, order.start_time, order.end_time, order.direction)
         # NOTE: order will be changed in this function
-        trade_val, trade_cost = self._calc_trade_info_by_order(
+        trade_price, trade_val, trade_cost = self._calc_trade_info_by_order(
             order, trade_account.current if trade_account else position, dealt_order_amount
         )
         if order.deal_amount > 1e-5:
@@ -714,6 +713,63 @@ class Exchange:
                 f"Order clipped due to volume limitation: {order}, {[(vol, rule) for vol, rule in zip(vol_limit_num, vol_limit)]}"
             )
 
+    def _cal_trade_amount_by_cash_limit(self, now_trade_amount, trade_price, order, position):
+        """return the real order amount after cash limit.
+
+        Parameters
+        ----------
+        now_trade_amount : float
+        trade_price : float
+        order : Order
+        position : Position
+
+        Return
+        ----------
+        float
+            the real order amount after cash limit.
+        """
+        cash = position.get_cash()
+        trade_val = now_trade_amount * trade_price
+        if order.direction == Order.SELL:
+            if cash < trade_val * self.close_cost:
+                # The money is not enough
+                self.logger.debug(f"Order clipped due to cash limitation: {order}")
+                return self.round_amount_by_trade_unit(cash / self.close_cost, order.factor)
+        elif order.direction == Order.BUY:
+            if cash < trade_val * (1 + self.open_cost):
+                # The money is not enough
+                self.logger.debug(f"Order clipped due to cash limitation: {order}")
+                return self.round_amount_by_trade_unit(cash / (1 + self.open_cost) / trade_price, order.factor)
+
+        # The money is enough
+        return self.round_amount_by_trade_unit(now_trade_amount, order.factor)
+
+    def _cal_trade_amount_by_stock_limit(self, now_trade_amount, order, position):
+        """return the real order amount after stock amount limit.
+
+        Parameters
+        ----------
+        now_trade_amount : float
+        order : Order
+        position : Position
+
+        Return
+        ----------
+        float
+            the real order amount after stock amount limit.
+        """
+        if order.direction == Order.SELL:
+            current_amount = position.get_stock_amount(order.stock_id) if position.check_stock(order.stock_id) else 0
+            if np.isclose(now_trade_amount, current_amount):
+                # when selling last stock. The amount don't need rounding
+                return now_trade_amount
+            elif now_trade_amount > current_amount:
+                return self.round_amount_by_trade_unit(current_amount, order.factor)
+            else:
+                return self.round_amount_by_trade_unit(now_trade_amount, order.factor)
+        elif order.direction == Order.BUY:
+            return self.round_amount_by_trade_unit(now_trade_amount, order.factor)
+
     def _calc_trade_info_by_order(self, order, position: Position, dealt_order_amount):
         """
         Calculation of trade info
@@ -731,16 +787,10 @@ class Exchange:
         if order.direction == Order.SELL:
             # sell
             if position is not None:
-                current_amount = (
-                    position.get_stock_amount(order.stock_id) if position.check_stock(order.stock_id) else 0
-                )
-                if np.isclose(order.amount, current_amount):
-                    # when selling last stock. The amount don't need rounding
-                    order.deal_amount = order.amount
-                elif order.amount > current_amount:
-                    order.deal_amount = self.round_amount_by_trade_unit(current_amount, order.factor)
-                else:
-                    order.deal_amount = self.round_amount_by_trade_unit(order.amount, order.factor)
+                now_trade_amount = order.amount
+                now_trade_amount = self._cal_trade_amount_by_stock_limit(now_trade_amount, order, position)
+                now_trade_amount = self._cal_trade_amount_by_cash_limit(now_trade_amount, trade_price, order, position)
+                order.deal_amount = now_trade_amount
             else:
                 # TODO: We don't know current position.
                 #  We choose to sell all
@@ -752,17 +802,9 @@ class Exchange:
         elif order.direction == Order.BUY:
             # buy
             if position is not None:
-                cash = position.get_cash()
-                trade_val = order.amount * trade_price
-                if cash < trade_val * (1 + self.open_cost):
-                    # The money is not enough
-                    order.deal_amount = self.round_amount_by_trade_unit(
-                        cash / (1 + self.open_cost) / trade_price, order.factor
-                    )
-                    self.logger.debug(f"Order clipped due to cash limitation: {order}")
-                else:
-                    # THe money is enough
-                    order.deal_amount = self.round_amount_by_trade_unit(order.amount, order.factor)
+                now_trade_amount = order.amount
+                now_trade_amount = self._cal_trade_amount_by_cash_limit(now_trade_amount, trade_price, order, position)
+                order.deal_amount = now_trade_amount
             else:
                 # Unknown amount of money. Just round the amount
                 order.deal_amount = self.round_amount_by_trade_unit(order.amount, order.factor)
@@ -773,7 +815,7 @@ class Exchange:
         else:
             raise NotImplementedError("order type {} error".format(order.type))
 
-        return trade_val, trade_cost
+        return trade_price, trade_val, trade_cost
 
     def get_order_helper(self) -> OrderHelper:
         if not hasattr(self, "_order_helper"):
