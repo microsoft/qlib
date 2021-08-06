@@ -45,7 +45,7 @@ For more details, please refer to our paper ["Qlib: An AI-oriented Quantitative 
   - [Data Preparation](#data-preparation)
   - [Auto Quant Research Workflow](#auto-quant-research-workflow)
   - [Building Customized Quant Research Workflow by Code](#building-customized-quant-research-workflow-by-code)
-- [**Quant Model(Paper) Zoo**](#quant-model(paper)-zoo)
+- [**Quant Model(Paper) Zoo**](#quant-modelpaper-zoo)
   - [Run a single model](#run-a-single-model)
   - [Run multiple models](#run-multiple-models)
 - [**Quant Dataset Zoo**](#quant-dataset-zoo)
