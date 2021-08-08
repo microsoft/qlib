@@ -92,3 +92,14 @@ class LGBModel(ModelFT, LightGBMFInt):
             valid_names=["train"],
             verbose_eval=verbose_eval,
         )
+
+    def get_feature_importance(self, *args, **kwargs) -> pd.Series:
+        """get feature importance
+        Notes
+        -----
+            parameters reference:
+            https://lightgbm.readthedocs.io/en/latest/pythonapi/lightgbm.Booster.html?highlight=feature_importance#lightgbm.Booster.feature_importance
+        """
+        return pd.Series(
+            data=self.model.feature_importance(*args, **kwargs), index=self.model.feature_name()
+        ).sort_values(ascending=False)
