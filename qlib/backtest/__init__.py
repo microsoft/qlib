@@ -104,19 +104,28 @@ def create_account_instance(
 
     Parameters
     ----------
-    start_time :
+    start_time
         start time of the benchmark
-    end_time :
+    end_time
         end time of the benchmark
     benchmark : str
         the benchmark for reporting
-    account : Union[float, int, {"cash": float, "stock1": {"amount": int, "price"(optional): float}, "stock2": {"amount": int}}]
+    account :   Union[
+                    float,
+                    {
+                        "cash": float,
+                        "stock1": Union[
+                                        int,    # it is equal to {"amount": int}
+                                        {"amount": int, "price"(optional): float},
+                                  ]
+                    },
+                ]
         information for describing how to creating the account
-        For `float` or `int`:
+        For `float`:
             Using Account with only initial cash
         For `dict`:
             key "cash" means initial cash.
-            key "stock1" means the first stock information with amount and price(optional).
+            key "stock1" means the information of first stock with amount and price(optional).
             ...
     """
     if isinstance(account, (int, float)):

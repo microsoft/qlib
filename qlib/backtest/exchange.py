@@ -713,12 +713,11 @@ class Exchange:
                 f"Order clipped due to volume limitation: {order}, {[(vol, rule) for vol, rule in zip(vol_limit_num, vol_limit)]}"
             )
 
-    def _cal_trade_amount_by_cash_limit(self, now_trade_amount, trade_price, order, position):
+    def _get_max_amount_by_cash_limit(self, trade_price, order, position):
         """return the real order amount after cash limit.
 
         Parameters
         ----------
-        now_trade_amount : float
         trade_price : float
         order : Order
         position : Position
@@ -729,27 +728,24 @@ class Exchange:
             the real order amount after cash limit.
         """
         cash = position.get_cash()
-        trade_val = now_trade_amount * trade_price
-        if order.direction == Order.SELL:
-            if cash < trade_val * self.close_cost:
-                # The money is not enough
-                self.logger.debug(f"Order clipped due to cash limitation: {order}")
-                return self.round_amount_by_trade_unit(cash / self.close_cost, order.factor)
-        elif order.direction == Order.BUY:
-            if cash < trade_val * (1 + self.open_cost):
-                # The money is not enough
-                self.logger.debug(f"Order clipped due to cash limitation: {order}")
-                return self.round_amount_by_trade_unit(cash / (1 + self.open_cost) / trade_price, order.factor)
+        max_trade_amount = 0
+        if cash >= self.min_cost:
+            if order.direction == Order.SELL:
+                max_trade_amount = cash / self.close_cost / trade_price
+            elif order.direction == Order.BUY:
+                critical_amount = self.min_cost / (self.open_cost * trade_price)
+                critical_price = critical_amount * trade_price + self.min_cost
+                if cash >= critical_price:
+                    max_trade_amount = cash / (1 + self.open_cost) / trade_price
+                else:
+                    max_trade_amount = (cash - self.min_cost) / trade_price
+        return max_trade_amount
 
-        # The money is enough
-        return self.round_amount_by_trade_unit(now_trade_amount, order.factor)
-
-    def _cal_trade_amount_by_stock_limit(self, now_trade_amount, order, position):
+    def _get_max_amount_by_stock_limit(self, order, position):
         """return the real order amount after stock amount limit.
 
         Parameters
         ----------
-        now_trade_amount : float
         order : Order
         position : Position
 
@@ -760,15 +756,9 @@ class Exchange:
         """
         if order.direction == Order.SELL:
             current_amount = position.get_stock_amount(order.stock_id) if position.check_stock(order.stock_id) else 0
-            if np.isclose(now_trade_amount, current_amount):
-                # when selling last stock. The amount don't need rounding
-                return now_trade_amount
-            elif now_trade_amount > current_amount:
-                return self.round_amount_by_trade_unit(current_amount, order.factor)
-            else:
-                return self.round_amount_by_trade_unit(now_trade_amount, order.factor)
+            return current_amount
         elif order.direction == Order.BUY:
-            return self.round_amount_by_trade_unit(now_trade_amount, order.factor)
+            return np.inf
 
     def _calc_trade_info_by_order(self, order, position: Position, dealt_order_amount):
         """
@@ -779,18 +769,33 @@ class Exchange:
         :param order:
         :param position: Position
         :param dealt_order_amount: the dealt order amount dict with the format of {stock_id: float}
-        :return: trade_val, trade_cost
+        :return: trade_price, trade_val, trade_cost
         """
 
         trade_price = self.get_deal_price(order.stock_id, order.start_time, order.end_time, direction=order.direction)
         order.factor = self.get_factor(order.stock_id, order.start_time, order.end_time)
+        # get all limits amount
+        # cash limit
+        cash_max_amount = self._get_max_amount_by_cash_limit(trade_price, order, position)
+        # held stock limit
+        stock_max_amount = self._get_max_amount_by_stock_limit(order, position)
+
         if order.direction == Order.SELL:
             # sell
             if position is not None:
-                now_trade_amount = order.amount
-                now_trade_amount = self._cal_trade_amount_by_stock_limit(now_trade_amount, order, position)
-                now_trade_amount = self._cal_trade_amount_by_cash_limit(now_trade_amount, trade_price, order, position)
-                order.deal_amount = now_trade_amount
+                if np.isclose(order.amount, stock_max_amount):
+                    # when selling last stock. The amount don't need rounding
+                    if stock_max_amount <= cash_max_amount:
+                        order.deal_amount = stock_max_amount
+                    else:
+                        order.deal_amount = self.round_amount_by_trade_unit(cash_max_amount, order.factor)
+                else:
+                    now_trade_amount = min(order.amount, stock_max_amount)
+                    if now_trade_amount > cash_max_amount:
+                        self.logger.debug(f"Order clipped due to cash limitation: {order}")
+                    order.deal_amount = self.round_amount_by_trade_unit(
+                        min(now_trade_amount, cash_max_amount), order.factor
+                    )
             else:
                 # TODO: We don't know current position.
                 #  We choose to sell all
@@ -802,9 +807,9 @@ class Exchange:
         elif order.direction == Order.BUY:
             # buy
             if position is not None:
-                now_trade_amount = order.amount
-                now_trade_amount = self._cal_trade_amount_by_cash_limit(now_trade_amount, trade_price, order, position)
-                order.deal_amount = now_trade_amount
+                if order.amount > cash_max_amount:
+                    self.logger.debug(f"Order clipped due to cash limitation: {order}")
+                order.deal_amount = self.round_amount_by_trade_unit(min(order.amount, cash_max_amount), order.factor)
             else:
                 # Unknown amount of money. Just round the amount
                 order.deal_amount = self.round_amount_by_trade_unit(order.amount, order.factor)

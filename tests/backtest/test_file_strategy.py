@@ -27,6 +27,8 @@ class FileStrTest(TestAutoData):
             ["20200102", self.TEST_INST, "1000", "sell"],
             ["20200103", self.TEST_INST, "1000", "buy"],
             ["20200106", self.TEST_INST, "1000", "sell"],
+            ["20200106", self.TEST_INST, "1000", "buy"],
+            ["20200106", self.TEST_INST, "949.7773413058803", "sell"],
         ]
         return pd.DataFrame(orders, columns=headers).set_index(["datetime", "instrument"])
 
@@ -62,7 +64,7 @@ class FileStrTest(TestAutoData):
                 "close_cost": 0.0015,
                 "min_cost": 5,
                 "codes": codes,
-                "trade_unit": None,
+                "trade_unit": 100,
             },
             # "pos_type": "InfPosition"  # Position with infinitive position
         }

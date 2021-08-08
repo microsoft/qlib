@@ -246,7 +246,13 @@ class Position(BasePosition):
             the start time of backtest. It's for filling the initial value of stocks.
         cash : float, optional
             initial cash in account, by default 0
-        position_dict : Dict[stock_id, {"amount": int, "price"(optional): float}], optional
+        position_dict : Dict[
+                            stock_id,
+                            Union[
+                                int,  # it is equal to {"amount": int}
+                                {"amount": int, "price"(optional): float},
+                            ]
+                        ]
             initial stocks with parameters amount and price,
             if there is no price key in the dict of stocks, it will be filled by _fill_stock_value.
             by default {}.
@@ -256,8 +262,10 @@ class Position(BasePosition):
         # NOTE: The position dict must be copied!!!
         # Otherwise the initial value
         self.init_cash = cash
-        self.init_stock_info = position_dict.copy()
-        self.position = self.init_stock_info.copy()
+        self.position = position_dict.copy()
+        for stock in self.position:
+            if isinstance(self.position[stock], int):
+                self.position[stock] = {"amount": self.position[stock]}
         self.position["cash"] = cash
 
         # If the stock price information is missing, the account value will not be calculated temporarily
@@ -277,7 +285,9 @@ class Position(BasePosition):
             the days to get the latest close price, by default 30.
         """
         stock_list = []
-        for stock in self.init_stock_info:
+        for stock in self.position:
+            if not isinstance(self.position[stock], dict):
+                continue
             if ("price" not in self.position[stock]) or (self.position[stock]["price"] is None):
                 stock_list.append(stock)
 
@@ -298,8 +308,7 @@ class Position(BasePosition):
             raise ValueError(f"{lack_stock} doesn't have close price in qlib in the latest {last_days} days")
 
         for stock in stock_list:
-            self.init_stock_info[stock]["price"] = price_dict[stock]
-        self.position.update(self.init_stock_info)
+            self.position[stock]["price"] = price_dict[stock]
         self.position["now_account_value"] = self.calculate_value()
 
     def _init_stock(self, stock_id, amount, price=None):

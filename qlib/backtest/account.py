@@ -80,9 +80,15 @@ class Account:
         ----------
         init_cash : float, optional
             initial cash, by default 1e9
-        position_dict : Dict[stock_id, {"amount": int, "price"(optional): float}], optional
-            initial stocks with amount and price,
-            if there is no price key in the dict of stocks, it will be filled by latest close price from qlib.
+        position_dict : Dict[
+                            stock_id,
+                            Union[
+                                int,  # it is equal to {"amount": int}
+                                {"amount": int, "price"(optional): float},
+                            ]
+                        ]
+            initial stocks with parameters amount and price,
+            if there is no price key in the dict of stocks, it will be filled by _fill_stock_value.
             by default {}.
         """
 
@@ -122,6 +128,8 @@ class Account:
             self.report = Report(freq, benchmark_config)
             self.positions = {}
             # fill stock value
+            # The frequency of account may not align with the trading frequency.
+            # This may result in obscure bugs when data quality is low.
             self.current.fill_stock_value(self.benchmark_config["start_time"], self.freq)
 
         # trading related metrics(e.g. high-frequency trading)
@@ -186,7 +194,8 @@ class Account:
         # The cost will be substracted from the cash at last. So the trading logic can ignore the cost calculation
         if order.direction == Order.SELL:
             # sell stock
-            self._update_state_from_order(order, trade_val, cost, trade_price)
+            if getattr(self, "accum_info") is not None:
+                self._update_state_from_order(order, trade_val, cost, trade_price)
             # update current position
             # for may sell all of stock_id
             self.current.update_order(order, trade_val, cost, trade_price)
@@ -194,7 +203,8 @@ class Account:
             # buy stock
             # deal order, then update state
             self.current.update_order(order, trade_val, cost, trade_price)
-            self._update_state_from_order(order, trade_val, cost, trade_price)
+            if getattr(self, "accum_info") is not None:
+                self._update_state_from_order(order, trade_val, cost, trade_price)
 
     def update_bar_count(self):
         """at the end of the trading bar, update holding bar, count of stock"""
@@ -311,7 +321,6 @@ class Account:
         self.update_current(trade_start_time, trade_end_time, trade_exchange)
         if self.is_port_metr_enabled():
             # report is portfolio related analysis
-            print(trade_start_time, trade_end_time)
             self.update_report(trade_start_time, trade_end_time)
 
         # TODO: will skip empty decisions make it faster?  `outer_trade_decision.empty():`
