@@ -162,8 +162,7 @@ class RollingGen(TaskGen):
         List[dict]:
             the following tasks of `task`(`task` itself is excluded)
         """
-        t = copy.deepcopy(task)
-        prev_seg = t["dataset"]["kwargs"]["segments"]
+        prev_seg = task["dataset"]["kwargs"]["segments"]
         while True:
             segments = {}
             try:
@@ -184,6 +183,7 @@ class RollingGen(TaskGen):
                 break
 
             prev_seg = segments
+            t = copy.deepcopy(task)  # deepcopy is necessary to avoid modify task inplace
             self._update_task_segs(t, segments)
             yield t
 
