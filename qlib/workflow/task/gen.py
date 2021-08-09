@@ -6,7 +6,7 @@ TaskGenerator module can generate many tasks based on TaskGen and some task temp
 import abc
 import copy
 import pandas as pd
-from typing import List, Union, Callable
+from typing import Dict, List, Union, Callable
 
 from qlib.utils import transform_end_date
 from .utils import TimeAdjuster
@@ -112,13 +112,24 @@ def handler_mod(task: dict, rolling_gen):
     except KeyError:
         # Maybe dataset do not have handler, then do nothing.
         pass
+    except TypeError:
+        # if handler a dumped file like file:///<file>/
+        pass
 
 
 class RollingGen(TaskGen):
     ROLL_EX = TimeAdjuster.SHIFT_EX  # fixed start date, expanding end date
     ROLL_SD = TimeAdjuster.SHIFT_SD  # fixed segments size, slide it from start date
 
-    def __init__(self, step: int = 40, rtype: str = ROLL_EX, ds_extra_mod_func: Union[None, Callable] = handler_mod):
+    def __init__(
+        self,
+        step: int = 40,
+        rtype: str = ROLL_EX,
+        ds_extra_mod_func: Union[None, Callable] = handler_mod,
+        test_key="test",
+        train_key="train",
+        trunc_days: int = None,
+    ):
         """
         Generate tasks for rolling
 
@@ -131,14 +142,17 @@ class RollingGen(TaskGen):
         ds_extra_mod_func: Callable
             A method like: handler_mod(task: dict, rg: RollingGen)
             Do some extra action after generating a task. For example, use ``handler_mod`` to modify the end time of the handler of a dataset.
+        trunc_days: int
+            trunc some data to avoid future information leakage
         """
         self.step = step
         self.rtype = rtype
         self.ds_extra_mod_func = ds_extra_mod_func
         self.ta = TimeAdjuster(future=True)
 
-        self.test_key = "test"
-        self.train_key = "train"
+        self.test_key = test_key
+        self.train_key = train_key
+        self.trunc_days = trunc_days
 
     def _update_task_segs(self, task, segs):
         # update segments of this task
@@ -162,8 +176,7 @@ class RollingGen(TaskGen):
         List[dict]:
             the following tasks of `task`(`task` itself is excluded)
         """
-        t = copy.deepcopy(task)
-        prev_seg = t["dataset"]["kwargs"]["segments"]
+        prev_seg = task["dataset"]["kwargs"]["segments"]
         while True:
             segments = {}
             try:
@@ -184,6 +197,7 @@ class RollingGen(TaskGen):
                 break
 
             prev_seg = segments
+            t = copy.deepcopy(task)  # deepcopy is necessary to avoid replace task inplace
             self._update_task_segs(t, segments)
             yield t
 
@@ -250,6 +264,8 @@ class RollingGen(TaskGen):
         # 2) and init test segments
         test_start_idx = self.ta.align_idx(segments[self.test_key][0])
         segments[self.test_key] = (self.ta.get(test_start_idx), self.ta.get(test_start_idx + self.step - 1))
+        if self.trunc_days is not None:
+            self.trunc_segments(self.ta, segments, self.trunc_days, self.test_key)
 
         # update segments of this task
         self._update_task_segs(t, segments)
@@ -259,3 +275,18 @@ class RollingGen(TaskGen):
         # Update the following rolling
         res.extend(self.gen_following_tasks(t, test_end))
         return res
+
+    # helper function
+    @staticmethod
+    def trunc_segments(ta: TimeAdjuster, segments: Dict[str, pd.Timestamp], days, test_key="test"):
+        """
+        To avoid the leakage of future information, the segments should be truncated according to the test start_time
+
+        NOTE:
+            This function will change segments inplace
+        """
+        # adjust segment
+        test_start = min(segments[test_key])
+        for k in list(segments.keys()):
+            if k != test_key:
+                segments[k] = ta.truncate(segments[k], test_start, days)

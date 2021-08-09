@@ -22,6 +22,7 @@ class Experiment:
         self.id = id
         self.name = name
         self.active_recorder = None  # only one recorder can running each time
+        self._default_rec_name = "abstract_recorder"
 
     def __repr__(self):
         return "{name}(id={id}, info={info})".format(name=self.__class__.__name__, id=self.id, info=self.info)
@@ -150,7 +151,7 @@ class Experiment:
         create : boolean
             create the recorder if it hasn't been created before.
         start : boolean
-            start the new recorder if one is created.
+            start the new recorder if one is **created**.
 
         Returns
         -------

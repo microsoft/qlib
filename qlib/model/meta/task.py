@@ -3,40 +3,40 @@
 
 import abc
 from typing import Union, List, Tuple
-from ...data.dataset import DatasetH, TSDatasetH
+
+from qlib.data.dataset import Dataset
 from ...utils import init_instance_by_config
 
 
-class MetaTask(metaclass=abc.ABCMeta):
+class MetaTask:
     """
     A single meta-task, a meta-dataset contains a list of them.
+    It is designed for Mea
     """
 
-    def __init__(self, dataset_dict: dict, *args, **kwargs):
+    def __init__(self, task: dict, meta_info: object):
         """
+        the `__init__` func is responsible for
+        - store the task
+        - store the origin input data for
+        - process the input data for meta data
 
         Parameters
         ----------
-        dataset_dict: dict
-            The dataset definition for this meta-task instance.
-        """
-        self.dataset_dict = dataset_dict
-        self.dataset = init_instance_by_config(self.dataset_dict)
+        task : dict
+            the task to be enhanced by meta model
 
-    def get_dataset(self) -> Union[DatasetH, TSDatasetH]:
+        meta_info : object
+            the input for meta model
         """
-        Get the dataset instance defined in the meta-task.
+        self.task = task
+        self.meta_info = meta_info  # the original meta input information, it will be processed later
 
-        Returns
-        -------
-        Union[DatasetH, TSDatasetH]:
-            The instance of the dataset definition.
-        """
-        return self.dataset
+    def get_dataset(self) -> Dataset:
+        return init_instance_by_config(self.task["dataset"], accept_types=Dataset)
 
-    @abc.abstractmethod
-    def prepare_task_data(self):
+    def get_meta_input(elf) -> object:
         """
-        Prepare the data for training the meta-model.
+        Return the **processed** meta_info
         """
-        pass
+        return self.meta_info

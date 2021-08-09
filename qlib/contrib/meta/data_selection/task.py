@@ -7,7 +7,8 @@ import numpy as np
 from ....model.meta.task import MetaTask
 from ....data.dataset.handler import DataHandlerLP
 
-from .utils import fill_diagnal, convert_data_to_tensor
+from qlib.contrib.torch import data_to_tensor
+from .utils import fill_diagnal
 
 
 class MetaTaskDS(MetaTask):
@@ -32,7 +33,7 @@ class MetaTaskDS(MetaTask):
         self.sample_time_belong[self.sample_time_belong.sum(axis=1) != 1, -1] = 1.0
         self.test_idx = self.y_test.index
         self.train_idx = self.y.index
-        self.X, self.y, self.time_perf, self.sample_time_belong, self.X_test, self.y_test = convert_data_to_tensor(
+        self.X, self.y, self.time_perf, self.sample_time_belong, self.X_test, self.y_test = data_to_tensor(
             [self.X, self.y, self.time_perf, self.sample_time_belong, self.X_test, self.y_test]
         )
 

@@ -446,13 +446,13 @@ class QlibRecorder:
         artifact_path : str
             the relative path for the artifact to be stored in the URI.
         """
-        self.get_exp().get_recorder().save_objects(local_path, artifact_path, **kwargs)
+        self.get_exp().get_recorder(start=True).save_objects(local_path, artifact_path, **kwargs)
 
     def load_object(self, name: Text):
         """
         Method for loading an object from artifacts in the experiment in the uri.
         """
-        return self.get_exp().get_recorder().load_object(name)
+        return self.get_exp().get_recorder(start=True).load_object(name)
 
     def log_params(self, **kwargs):
         """
@@ -477,7 +477,7 @@ class QlibRecorder:
         keyword argument:
             name1=value1, name2=value2, ...
         """
-        self.get_exp().get_recorder().log_params(**kwargs)
+        self.get_exp().get_recorder(start=True).log_params(**kwargs)
 
     def log_metrics(self, step=None, **kwargs):
         """
@@ -502,7 +502,7 @@ class QlibRecorder:
         keyword argument:
             name1=value1, name2=value2, ...
         """
-        self.get_exp().get_recorder().log_metrics(step, **kwargs)
+        self.get_exp().get_recorder(start=True).log_metrics(step, **kwargs)
 
     def set_tags(self, **kwargs):
         """
@@ -527,7 +527,7 @@ class QlibRecorder:
         keyword argument:
             name1=value1, name2=value2, ...
         """
-        self.get_exp().get_recorder().set_tags(**kwargs)
+        self.get_exp().get_recorder(start=True).set_tags(**kwargs)
 
 
 class RecorderWrapper(Wrapper):

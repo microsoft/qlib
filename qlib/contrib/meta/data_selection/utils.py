@@ -5,6 +5,7 @@ import pandas as pd
 import numpy as np
 import torch
 from torch import nn
+from qlib.contrib.torch import data_to_tensor
 
 
 def fill_diagnal(sim_mat):
@@ -21,25 +22,6 @@ def get_sim_mat_idx(i_sim_mat, outsample_period):
         if i_sim_mat.index[idx][0] == outsample_period[0]:
             return idx
     raise AssertionError("Not Found!")
-
-
-def convert_data_to_tensor(data, device="cpu"):
-    if isinstance(data, torch.Tensor):
-        if device == "cpu":
-            return data.cpu()
-        else:
-            return data.to(device)
-    if isinstance(data, pd.DataFrame):
-        return convert_data_to_tensor(torch.from_numpy(data.values.squeeze()).float(), device)
-    elif isinstance(data, np.ndarray):
-        return convert_data_to_tensor(torch.from_numpy(data).float(), device)
-    elif isinstance(data, (tuple, list)):
-        return [convert_data_to_tensor(i, device) for i in data]
-    elif isinstance(data, dict):
-        return {k: convert_data_to_tensor(v, device) for k, v in data.items()}
-    else:
-        print("type:", type(data))
-        raise ValueError("Unsupported data type.")
 
 
 class ICLoss(nn.Module):

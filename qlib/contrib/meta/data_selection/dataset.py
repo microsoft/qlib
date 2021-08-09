@@ -204,17 +204,6 @@ class MetaDatasetHDS(MetaDatasetH):
                 meta_tasks.append(self.meta_tasks[index])
         return meta_tasks
 
-    def prepare_tasks(self, segments: Union[List[Text], Tuple[Text], Text], *args, **kwargs) -> List[tuple]:
-        """
-        Prepare the meta-tasks.
-        """
-        if isinstance(segments, (list, tuple)):
-            return [self._prepare_seg(seg) for seg in segments]
-        elif isinstance(segments, str):
-            return self._prepare_seg(segments)
-        else:
-            raise NotImplementedError(f"This type of input is not supported")
-
     def get_test_period_from_meta_tasks(self):
         return [task["kwargs"]["segments"]["test"] for task in self.meta_tasks_l]
 

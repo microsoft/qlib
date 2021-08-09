@@ -47,6 +47,14 @@ class TaskManager:
     The tasks manager assumes that you will only update the tasks you fetched.
     The mongo fetch one and update will make it date updating secure.
 
+    This class can be used as a tool from commandline. Here are serveral examples
+
+    .. code-block:: shell
+
+        python -m qlib.workflow.task.manage -t <pool_name> wait
+        python -m qlib.workflow.task.manage -t <pool_name> task_stat
+
+
     .. note::
 
         Assumption: the data in MongoDB was encoded and the data out of MongoDB was decoded

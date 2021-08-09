@@ -16,9 +16,9 @@ from ....model.meta.dataset import MetaDataset
 from ....model.meta.model import MetaModel, MetaTaskModel
 from ....workflow import R
 
-from .utils import fill_diagnal, convert_data_to_tensor, ICLoss
+from .utils import fill_diagnal, ICLoss
 from .dataset import MetaDatasetHDS
-from .net import PredNet
+from qlib.contrib.meta.data_selection.net import PredNet
 
 
 class MetaModelDS(MetaTaskModel):
@@ -28,14 +28,16 @@ class MetaModelDS(MetaTaskModel):
 
     def __init__(
         self,
-        hist_n=30,
+        step,
+        hist_step_n,
         clip_method="tanh",
         clip_weight=2.0,
         criterion="ic_loss",
         lr=0.0001,
         max_epoch=150,
     ):
-        self.hist_n = hist_n
+        self.step = step
+        self.hist_step_n = hist_step_n
         self.clip_method = clip_method
         self.clip_weight = clip_weight
         self.criterion = criterion
@@ -52,22 +54,25 @@ class MetaModelDS(MetaTaskModel):
         meta_dataset : MetaDatasetHDS
             The meta-model takes the meta-dataset for its training process.
         """
-        recorder = R.get_recorder()
-        if not self.fitted:
-            for k in set(["lr", "hist_n", "clip_method", "clip_weight", "criterion", "max_epoch"]):
-                recorder.log_params(**{k: getattr(self, k)})
 
-        # Training begins
-        meta_tasks = meta_dataset.prepare_tasks(["train", "test"])
-        num2phase = {0: "train", 1: "test"}
-        phase2num = dict(zip(num2phase.values(), num2phase.keys()))
+        if not self.fitted:
+            for k in set(["lr", "step", "hist_step_n", "clip_method", "clip_weight", "criterion", "max_epoch"]):
+                R.log_params(**{k: getattr(self, k)})
+
+        # FIXME: get test tasks for just checking the performance
+        phases = ["train", "test"]
+        meta_tasks_l = meta_dataset.prepare_tasks(phases)
+
+        self.tn = PredNet(
+            step=self.step, hist_step_n=self.hist_step_n, clip_weight=self.clip_weight, clip_method=self.clip_method
+        )
+
         train_step = 0
-        self.tn = PredNet(hist_n=self.hist_n, clip_weight=self.clip_weight, clip_method=self.clip_method)
         opt = optim.Adam(self.tn.parameters(), lr=self.lr)
         loss_l = {}
         for epoch in tqdm(range(self.max_epoch), desc="epoch"):
-            for phase, task_list in enumerate(meta_tasks):
-                if phase == phase2num["train"]:  # phase 0 for training, 1 for inference
+            for phase, task_list in zip(phases, meta_tasks_l):
+                if phase == "train":  # phase 0 for training, 1 for inference
                     self.tn.train()
                     torch.set_grad_enabled(True)
                 else:
@@ -75,43 +80,38 @@ class MetaModelDS(MetaTaskModel):
                     torch.set_grad_enabled(False)
                 running_loss = 0.0
                 pred_y_all = []
-                for task in tqdm(task_list, desc=f"{num2phase[phase]} Task", leave=False):
-                    (
-                        X,
-                        y,
-                        time_perf,
-                        time_belong,
-                        X_test,
-                        y_test,
-                        test_idx,
-                        train_idx,
-                        test_period,
-                    ) = task.prepare_task_data()
-                    pred, weights = self.tn(X, y, time_perf, time_belong, X_test)
+                for task in tqdm(task_list, desc=f"{phase} Task", leave=False):
+                    meta_input = task.get_meta_input()
+                    pred, weights = self.tn(
+                        meta_input["X"],
+                        meta_input["y"],
+                        meta_input["time_perf"],
+                        meta_input["time_belong"],
+                        meta_input["X_test"],
+                    )
                     if self.criterion == "mse":
                         criterion = nn.MSELoss()
-                        loss = criterion(pred, y_test)
+                        loss = criterion(pred, meta_input["y_test"])
                     elif self.criterion == "ic_loss":
                         criterion = ICLoss()
-                        loss = criterion(pred, y_test, test_idx)
+                        loss = criterion(pred, meta_input["y_test"], meta_input["test_idx"])
 
-                    if phase == phase2num["train"]:
+                    if phase == "train":
                         opt.zero_grad()
                         norm_loss = nn.MSELoss()
                         loss.backward()
                         opt.step()
                         train_step += 1
-                    elif phase == phase2num["test"]:
-                        pass  # pass, leave the work for the inference function
-                    #                             self.reweighters[test_period] = SampleReweighter(
-                    #                                 pd.Series(weights.detach().cpu().numpy(), index=train_idx)
-                    #                             )
+                    elif phase == "test":
+                        pass
 
                     pred_y_all.append(
                         pd.DataFrame(
                             {
-                                "pred": pd.Series(pred.detach().cpu().numpy(), index=test_idx),
-                                "label": pd.Series(y_test.detach().cpu().numpy(), index=test_idx),
+                                "pred": pd.Series(pred.detach().cpu().numpy(), index=meta_input["test_idx"]),
+                                "label": pd.Series(
+                                    meta_input["y_test"].detach().cpu().numpy(), index=meta_input["test_idx"]
+                                ),
                             }
                         )
                     )
@@ -126,9 +126,9 @@ class MetaModelDS(MetaTaskModel):
                     .mean()
                 )
 
-                recorder.log_metrics(**{f"loss/{num2phase[phase]}": running_loss, "step": epoch})
-                recorder.log_metrics(**{f"ic/{num2phase[phase]}": ic, "step": epoch})
-            recorder.save_objects(**{"model.pkl": self.tn})
+                R.log_metrics(**{f"loss/{phase}": running_loss, "step": epoch})
+                R.log_metrics(**{f"ic/{phase}": ic, "step": epoch})
+            R.save_objects(**{"model.pkl": self.tn})
         self.fitted = True
 
     def _inference_single_task(self, meta_id: tuple, meta_dataset: MetaDatasetHDS):

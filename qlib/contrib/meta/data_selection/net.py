@@ -10,10 +10,10 @@ from .utils import preds_to_weight_with_clamp, SingleMetaBase
 
 
 class TimeWeightMeta(SingleMetaBase):
-    def __init__(self, hist_n, clip_weight=None, clip_method="clamp"):
+    def __init__(self, hist_step_n, clip_weight=None, clip_method="clamp"):
         # method 可以选 tanh 或者 clamp
-        super().__init__(hist_n, clip_weight, clip_method)
-        self.linear = nn.Linear(hist_n, 1)
+        super().__init__(hist_step_n, clip_weight, clip_method)
+        self.linear = nn.Linear(hist_step_n, 1)
         self.k = nn.Parameter(torch.Tensor([8.0]))
 
     def forward(self, time_perf, time_belong, return_preds=False):
@@ -34,10 +34,11 @@ class TimeWeightMeta(SingleMetaBase):
 
 
 class PredNet(nn.Module):
-    def __init__(self, hist_n, clip_weight=None, clip_method="tanh"):
+    def __init__(self, step, hist_step_n, clip_weight=None, clip_method="tanh"):
         super().__init__()
-        self.twm = TimeWeightMeta(hist_n=hist_n, clip_weight=clip_weight, clip_method=clip_method)
-        self.init_paramters(hist_n)
+        self.step = step
+        self.twm = TimeWeightMeta(hist_step_n=hist_step_n, clip_weight=clip_weight, clip_method=clip_method)
+        self.init_paramters(hist_step_n)
 
     def get_sample_weights(self, X, time_perf, time_belong, ignore_weight=False):
         weights = torch.from_numpy(np.ones(X.shape[0])).float().to(X.device)
@@ -48,11 +49,13 @@ class PredNet(nn.Module):
         return weights
 
     def forward(self, X, y, time_perf, time_belong, X_test, ignore_weight=False):
+        time_perf = time_perf.reshape(self.step, time_perf.shape[0] // self.step, *time_perf.shape[1:])
+        time_perf = torch.mean(time_perf, dim=0, keepdim=False)
         weights = self.get_sample_weights(X, time_perf, time_belong, ignore_weight=ignore_weight)
         X_w = X.T * weights.view(1, -1)
         theta = torch.inverse(X_w @ X) @ X_w @ y
         return X_test @ theta, weights
 
-    def init_paramters(self, hist_n):
-        self.twm.linear.weight.data = 1.0 / hist_n + self.twm.linear.weight.data * 0.01
+    def init_paramters(self, hist_step_n):
+        self.twm.linear.weight.data = 1.0 / hist_step_n + self.twm.linear.weight.data * 0.01
         self.twm.linear.bias.data.fill_(0.0)

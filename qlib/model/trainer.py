@@ -17,7 +17,7 @@ from typing import Callable, List
 from qlib.data.dataset import Dataset
 from qlib.log import get_module_logger
 from qlib.model.base import Model
-from qlib.utils import flatten_dict, get_cls_kwargs, init_instance_by_config
+from qlib.utils import flatten_dict, get_cls_kwargs, init_instance_by_config, auto_filter_kwargs
 from qlib.workflow import R
 from qlib.workflow.record_temp import SignalRecord
 from qlib.workflow.recorder import Recorder
@@ -63,7 +63,7 @@ def end_task_train(rec: Recorder, experiment_name: str) -> Recorder:
         dataset: Dataset = init_instance_by_config(task_config["dataset"])
         reweighter: Reweighter = task_config.get("reweighter", None)
         # model training
-        model.fit(dataset, reweighter=reweighter)
+        auto_filter_kwargs(model.fit)(dataset, reweighter=reweighter)
         R.save_objects(**{"params.pkl": model})
         # this dataset is saved for online inference. So the concrete data should not be dumped
         dataset.config(dump_all=False, recursive=True)
