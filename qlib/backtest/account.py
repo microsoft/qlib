@@ -130,7 +130,8 @@ class Account:
             # fill stock value
             # The frequency of account may not align with the trading frequency.
             # This may result in obscure bugs when data quality is low.
-            self.current.fill_stock_value(self.benchmark_config["start_time"], self.freq)
+            if isinstance(self.benchmark_config, dict) and self.benchmark_config.get("start_time") is not None:
+                self.current.fill_stock_value(self.benchmark_config["start_time"], self.freq)
 
         # trading related metrics(e.g. high-frequency trading)
         self.indicator = Indicator()
