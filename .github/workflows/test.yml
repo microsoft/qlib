@@ -29,11 +29,11 @@ jobs:
       run: |
         if [ "$RUNNER_OS" == "Windows" ]; then
           $CONDA\\python.exe -m pip install numpy==1.19.5
-          echo $CONDA\\python.exe -V
+          $CONDA\\python.exe -V
           $CONDA\\python.exe -m pip install pyqlib --ignore-installed ruamel.yaml numpy --user
         else
           sudo $CONDA/bin/python -m pip install numpy==1.19.5
-          echo $CONDA\\python.exe -V
+          $CONDA\\python.exe -V
           sudo $CONDA/bin/python -m pip install pyqlib --ignore-installed ruamel.yaml numpy
         fi
       shell: bash
