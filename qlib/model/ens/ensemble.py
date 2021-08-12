@@ -89,19 +89,24 @@ class RollingEnsemble(Ensemble):
 
 
 class AverageEnsemble(Ensemble):
-    """
+  """
     Average and standardize a dict of same shape dataframe like `prediction` or `IC` into an ensemble.
-
     NOTE: The values of dict must be pd.DataFrame, and have the index "datetime". If it is a nested dict, then flat it.
-
+    
+    In your code file, you should add two lines of code：
+        from qlib.model.ens.ensemble import AverageEnsemble
+        your_score_df['ensemble_name'] = AverageEnsemble()(your_score_df)
     When calling this class:
-
-        Args:
-            ensemble_dict (dict): a dict like {"A": pd.DataFrame, "B": pd.DataFrame}.
-            The key of the dict will be ignored.
-
-        Returns:
-            pd.DataFrame: the complete result of averaging and standardizing.
+    
+   Parameters
+   ----------
+    first : ensemble_dict (dict): a dict like {"A": pd.DataFrame, "B": pd.DataFrame}.
+    The key of the dict will be ignored.
+            
+   Returns
+   ----------
+    pd.DataFrame
+        the complete result of averaging and standardizing.
     """
 
     def __call__(self, ensemble_dict: dict) -> pd.DataFrame:
