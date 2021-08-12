@@ -21,7 +21,7 @@ from ..config import C, REG_CN
 from ..utils.resam import resam_ts_data, ts_data_last
 from ..log import get_module_logger
 from .order import Order, OrderDir, OrderHelper
-from .high_performance_ds import PandasQuote, NumpyQuote
+from .high_performance_ds import PandasQuote
 
 
 class Exchange:
@@ -407,9 +407,6 @@ class Exchange:
                 trade_account.update_order(order=order, trade_val=trade_val, cost=trade_cost, trade_price=trade_price)
             elif position:
                 position.update_order(order=order, trade_val=trade_val, cost=trade_cost, trade_price=trade_price)
-        else:
-            # if dealing is not successful, the trade_cost should be zero
-            trade_cost = 0
 
         return trade_val, trade_cost, trade_price
 
@@ -728,8 +725,7 @@ class Exchange:
         """
         max_trade_amount = 0
         if cash >= self.min_cost:
-            critical_amount = self.min_cost / (self.open_cost * trade_price)
-            critical_price = critical_amount * trade_price + self.min_cost
+            critical_price = self.min_cost / self.open_cost + self.min_cost
             if cash >= critical_price:
                 max_trade_amount = cash / (1 + self.open_cost) / trade_price
             else:
