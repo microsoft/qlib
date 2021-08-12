@@ -191,8 +191,8 @@ class TCTS(Model):
             weight_feature = torch.cat((feature, dis.transpose(0, 1), label, pred.view(-1, 1)), 1)
             weight = self.weight_model(weight_feature)
             loc = torch.argmax(weight, 1)
-            valid_loss = torch.mean((pred - label[:, 0]) ** 2)
-            loss = torch.mean(-valid_loss * torch.log(weight[np.arange(weight.shape[0]), loc]))
+            valid_loss = torch.mean((pred - label[:, abs(self.target_label)]) ** 2)
+            loss = torch.mean(valid_loss * torch.log(weight[np.arange(weight.shape[0]), loc]))
 
             self.weight_optimizer.zero_grad()
             loss.backward()
