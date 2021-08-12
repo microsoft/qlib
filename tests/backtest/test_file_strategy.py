@@ -54,7 +54,7 @@ class FileStrTest(TestAutoData):
         backtest_config = {
             "start_time": start_time,
             "end_time": end_time,
-            "account": 100000000,
+            "account": 30000,
             "benchmark": None,  # benchmark is not required here for trading
             "exchange_kwargs": {
                 "freq": freq,
@@ -64,7 +64,7 @@ class FileStrTest(TestAutoData):
                 "close_cost": 0.0015,
                 "min_cost": 5,
                 "codes": codes,
-                "trade_unit": 100,
+                "trade_unit": None,
             },
             # "pos_type": "InfPosition"  # Position with infinitive position
         }
