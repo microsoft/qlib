@@ -165,24 +165,25 @@ class Account:
     def get_cash(self):
         return self.current.get_cash()
 
-    def _update_state_from_order(self, order, trade_val, cost, trade_price):
-        # update turnover
-        self.accum_info.add_turnover(trade_val)
-        # update cost
-        self.accum_info.add_cost(cost)
+    def _update_accum_info_from_order(self, order, trade_val, cost, trade_price):
+        if self.is_port_metr_enabled():
+            # update turnover
+            self.accum_info.add_turnover(trade_val)
+            # update cost
+            self.accum_info.add_cost(cost)
 
-        # update return from order
-        trade_amount = trade_val / trade_price
-        if order.direction == Order.SELL:  # 0 for sell
-            # when sell stock, get profit from price change
-            profit = trade_val - self.current.get_stock_price(order.stock_id) * trade_amount
-            self.accum_info.add_return_value(profit)  # note here do not consider cost
+            # update return from order
+            trade_amount = trade_val / trade_price
+            if order.direction == Order.SELL:  # 0 for sell
+                # when sell stock, get profit from price change
+                profit = trade_val - self.current.get_stock_price(order.stock_id) * trade_amount
+                self.accum_info.add_return_value(profit)  # note here do not consider cost
 
-        elif order.direction == Order.BUY:  # 1 for buy
-            # when buy stock, we get return for the rtn computing method
-            # profit in buy order is to make rtn is consistent with earning at the end of bar
-            profit = self.current.get_stock_price(order.stock_id) * trade_amount - trade_val
-            self.accum_info.add_return_value(profit)  # note here do not consider cost
+            elif order.direction == Order.BUY:  # 1 for buy
+                # when buy stock, we get return for the rtn computing method
+                # profit in buy order is to make rtn is consistent with earning at the end of bar
+                profit = self.current.get_stock_price(order.stock_id) * trade_amount - trade_val
+                self.accum_info.add_return_value(profit)  # note here do not consider cost
 
     def update_order(self, order, trade_val, cost, trade_price):
         if self.current.skip_update():
@@ -195,8 +196,7 @@ class Account:
         # The cost will be substracted from the cash at last. So the trading logic can ignore the cost calculation
         if order.direction == Order.SELL:
             # sell stock
-            if getattr(self, "accum_info") is not None:
-                self._update_state_from_order(order, trade_val, cost, trade_price)
+            self._update_accum_info_from_order(order, trade_val, cost, trade_price)
             # update current position
             # for may sell all of stock_id
             self.current.update_order(order, trade_val, cost, trade_price)
@@ -204,8 +204,7 @@ class Account:
             # buy stock
             # deal order, then update state
             self.current.update_order(order, trade_val, cost, trade_price)
-            if getattr(self, "accum_info") is not None:
-                self._update_state_from_order(order, trade_val, cost, trade_price)
+            self._update_accum_info_from_order(order, trade_val, cost, trade_price)
 
     def update_bar_count(self):
         """at the end of the trading bar, update holding bar, count of stock"""

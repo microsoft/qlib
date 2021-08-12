@@ -407,9 +407,6 @@ class Exchange:
                 trade_account.update_order(order=order, trade_val=trade_val, cost=trade_cost, trade_price=trade_price)
             elif position:
                 position.update_order(order=order, trade_val=trade_val, cost=trade_cost, trade_price=trade_price)
-        else:
-            # if dealing is not successful, the trade_cost should be zero
-            trade_cost = 0
 
         return trade_val, trade_cost, trade_price
 
@@ -713,52 +710,30 @@ class Exchange:
                 f"Order clipped due to volume limitation: {order}, {[(vol, rule) for vol, rule in zip(vol_limit_num, vol_limit)]}"
             )
 
-    def _get_max_amount_by_cash_limit(self, trade_price, order, position):
-        """return the real order amount after cash limit.
+    def _get_buy_amount_by_cash_limit(self, trade_price, cash):
+        """return the real order amount after cash limit for buying.
 
         Parameters
         ----------
         trade_price : float
-        order : Order
-        position : Position
+        position : cash
 
         Return
         ----------
         float
-            the real order amount after cash limit.
+            the real order amount after cash limit for buying.
         """
-        cash = position.get_cash()
         max_trade_amount = 0
         if cash >= self.min_cost:
-            if order.direction == Order.SELL:
-                max_trade_amount = cash / self.close_cost / trade_price
-            elif order.direction == Order.BUY:
-                critical_amount = self.min_cost / (self.open_cost * trade_price)
-                critical_price = critical_amount * trade_price + self.min_cost
-                if cash >= critical_price:
-                    max_trade_amount = cash / (1 + self.open_cost) / trade_price
-                else:
-                    max_trade_amount = (cash - self.min_cost) / trade_price
+            # critical_amount means the stock transaction amount when the service fee is equal to min_cost.
+            critical_amount = self.min_cost / self.open_cost + self.min_cost
+            if cash >= critical_amount:
+                # the service fee is equal to open_cost * trade_amount
+                max_trade_amount = cash / (1 + self.open_cost) / trade_price
+            else:
+                # the service fee is equal to min_cost
+                max_trade_amount = (cash - self.min_cost) / trade_price
         return max_trade_amount
-
-    def _get_max_amount_by_stock_limit(self, order, position):
-        """return the real order amount after stock amount limit.
-
-        Parameters
-        ----------
-        order : Order
-        position : Position
-
-        Return
-        ----------
-        float
-            the real order amount after stock amount limit.
-        """
-        if order.direction == Order.SELL:
-            current_amount = position.get_stock_amount(order.stock_id) if position.check_stock(order.stock_id) else 0
-            return current_amount
-        elif order.direction == Order.BUY:
-            return np.inf
 
     def _calc_trade_info_by_order(self, order, position: Position, dealt_order_amount):
         """
@@ -771,55 +746,60 @@ class Exchange:
         :param dealt_order_amount: the dealt order amount dict with the format of {stock_id: float}
         :return: trade_price, trade_val, trade_cost
         """
-
         trade_price = self.get_deal_price(order.stock_id, order.start_time, order.end_time, direction=order.direction)
         order.factor = self.get_factor(order.stock_id, order.start_time, order.end_time)
-        # get all limits amount
-        # cash limit
-        cash_max_amount = self._get_max_amount_by_cash_limit(trade_price, order, position)
-        # held stock limit
-        stock_max_amount = self._get_max_amount_by_stock_limit(order, position)
-
         if order.direction == Order.SELL:
+            cost_ratio = self.close_cost
             # sell
             if position is not None:
-                if np.isclose(order.amount, stock_max_amount):
+                current_amount = (
+                    position.get_stock_amount(order.stock_id) if position.check_stock(order.stock_id) else 0
+                )
+                if np.isclose(order.amount, current_amount):
                     # when selling last stock. The amount don't need rounding
-                    if stock_max_amount <= cash_max_amount:
-                        order.deal_amount = stock_max_amount
-                    else:
-                        order.deal_amount = self.round_amount_by_trade_unit(cash_max_amount, order.factor)
+                    order.deal_amount = order.amount
                 else:
-                    now_trade_amount = min(order.amount, stock_max_amount)
-                    if now_trade_amount > cash_max_amount:
-                        self.logger.debug(f"Order clipped due to cash limitation: {order}")
-                    order.deal_amount = self.round_amount_by_trade_unit(
-                        min(now_trade_amount, cash_max_amount), order.factor
-                    )
+                    order.deal_amount = self.round_amount_by_trade_unit(min(current_amount, order.amount), order.factor)
+
+                # in case of negative value of cash
+                if position.get_cash() + order.deal_amount * trade_price < max(
+                    order.deal_amount * trade_price * cost_ratio,
+                    self.min_cost,
+                ):
+                    order.deal_amount = 0
+                    self.logger.debug(f"Order clipped due to cash limitation: {order}")
             else:
                 # TODO: We don't know current position.
                 #  We choose to sell all
                 order.deal_amount = order.amount
 
-            self._clip_amount_by_volume(order, dealt_order_amount)
-            trade_val = order.deal_amount * trade_price
-            trade_cost = max(trade_val * self.close_cost, self.min_cost)
         elif order.direction == Order.BUY:
+            cost_ratio = self.open_cost
             # buy
             if position is not None:
-                if order.amount > cash_max_amount:
+                cash = position.get_cash()
+                trade_val = order.amount * trade_price
+                if cash < trade_val + max(trade_val * cost_ratio, self.min_cost):
+                    # The money is not enough
+                    max_buy_amount = self._get_buy_amount_by_cash_limit(trade_price, cash)
+                    order.deal_amount = self.round_amount_by_trade_unit(max_buy_amount, order.factor)
                     self.logger.debug(f"Order clipped due to cash limitation: {order}")
-                order.deal_amount = self.round_amount_by_trade_unit(min(order.amount, cash_max_amount), order.factor)
+                else:
+                    # The money is enough
+                    order.deal_amount = self.round_amount_by_trade_unit(order.amount, order.factor)
             else:
                 # Unknown amount of money. Just round the amount
                 order.deal_amount = self.round_amount_by_trade_unit(order.amount, order.factor)
 
-            self._clip_amount_by_volume(order, dealt_order_amount)
-            trade_val = order.deal_amount * trade_price
-            trade_cost = max(trade_val * self.open_cost, self.min_cost)
         else:
             raise NotImplementedError("order type {} error".format(order.type))
 
+        self._clip_amount_by_volume(order, dealt_order_amount)
+        trade_val = order.deal_amount * trade_price
+        trade_cost = max(trade_val * cost_ratio, self.min_cost)
+        if trade_val <= 1e-5:
+            # if dealing is not successful, the trade_cost should be zero.
+            trade_cost = 0
         return trade_price, trade_val, trade_cost
 
     def get_order_helper(self) -> OrderHelper:
