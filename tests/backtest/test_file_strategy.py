@@ -28,7 +28,9 @@ class FileStrTest(TestAutoData):
             ["20200103", self.TEST_INST, "1000", "buy"],
             ["20200106", self.TEST_INST, "1000", "sell"],
             ["20200106", self.TEST_INST, "1000", "buy"],
-            ["20200106", self.TEST_INST, "949.7773413058803", "sell"],
+            ["20200106", self.TEST_INST, "1", "sell"],
+            ["20200106", self.TEST_INST, "100", "sell"],
+            ["20200106", self.TEST_INST, "1000", "sell"],
         ]
         return pd.DataFrame(orders, columns=headers).set_index(["datetime", "instrument"])
 
@@ -62,7 +64,7 @@ class FileStrTest(TestAutoData):
                 "deal_price": "close",
                 "open_cost": 0.0005,
                 "close_cost": 0.0015,
-                "min_cost": 5,
+                "min_cost": 500,
                 "codes": codes,
                 "trade_unit": None,
             },
