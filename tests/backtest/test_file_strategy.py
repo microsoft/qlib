@@ -16,6 +16,8 @@ class FileStrTest(TestAutoData):
 
     EXAMPLE_FILE = DIRNAME / "order_example.csv"
 
+    DEAL_NUM_FOR_1000 = 123.47105436976445
+
     def _gen_orders(self) -> pd.DataFrame:
         headers = [
             "datetime",
@@ -24,13 +26,18 @@ class FileStrTest(TestAutoData):
             "direction",
         ]
         orders = [
-            ["20200102", self.TEST_INST, "1000", "sell"],
+            # test cash limit for buying
             ["20200103", self.TEST_INST, "1000", "buy"],
+            # test min_cost for buying
+            ["20200103", self.TEST_INST, "1", "buy"],
+            # test held stock limit for selling
             ["20200106", self.TEST_INST, "1000", "sell"],
-            ["20200106", self.TEST_INST, "1000", "buy"],
-            ["20200106", self.TEST_INST, "1", "sell"],
-            ["20200106", self.TEST_INST, "100", "sell"],
-            ["20200106", self.TEST_INST, "1000", "sell"],
+            # test cash limit for buying
+            ["20200107", self.TEST_INST, "1000", "buy"],
+            # test min_cost for selling
+            ["20200108", self.TEST_INST, "1", "sell"],
+            # test selling all stocks
+            ["20200110", self.TEST_INST, str(self.DEAL_NUM_FOR_1000), "sell"],
         ]
         return pd.DataFrame(orders, columns=headers).set_index(["datetime", "instrument"])
 
@@ -66,7 +73,7 @@ class FileStrTest(TestAutoData):
                 "close_cost": 0.0015,
                 "min_cost": 500,
                 "codes": codes,
-                "trade_unit": None,
+                "trade_unit": 2,
             },
             # "pos_type": "InfPosition"  # Position with infinitive position
         }
@@ -82,7 +89,16 @@ class FileStrTest(TestAutoData):
                 },
             },
         }
-        backtest(executor=executor_config, strategy=strategy_config, **backtest_config)
+        report_dict, indicator_dict = backtest(executor=executor_config, strategy=strategy_config, **backtest_config)
+
+        # ffr valid
+        ffr_dict = indicator_dict["1day"]["ffr"].to_dict()
+        ffr_dict = {str(date).split()[0]: ffr_dict[date] for date in ffr_dict}
+        assert ffr_dict["2020-01-03"] == 0
+        assert ffr_dict["2020-01-06"] == self.DEAL_NUM_FOR_1000 / 1000
+        assert ffr_dict["2020-01-07"] == self.DEAL_NUM_FOR_1000 / 1000
+        assert ffr_dict["2020-01-08"] == 0
+        assert ffr_dict["2020-01-10"] == 1
 
         self.EXAMPLE_FILE.unlink()
 

@@ -725,10 +725,13 @@ class Exchange:
         """
         max_trade_amount = 0
         if cash >= self.min_cost:
-            critical_price = self.min_cost / self.open_cost + self.min_cost
-            if cash >= critical_price:
+            # critical_amount means the stock transaction amount when the service fee is equal to min_cost.
+            critical_amount = self.min_cost / self.open_cost + self.min_cost
+            if cash >= critical_amount:
+                # the service fee is equal to open_cost * trade_amount
                 max_trade_amount = cash / (1 + self.open_cost) / trade_price
             else:
+                # the service fee is equal to min_cost
                 max_trade_amount = (cash - self.min_cost) / trade_price
         return max_trade_amount
 
@@ -757,10 +760,10 @@ class Exchange:
                     order.deal_amount = order.amount
                 else:
                     order.deal_amount = self.round_amount_by_trade_unit(min(current_amount, order.amount), order.factor)
-                
+
                 # in case of negative value of cash
                 if position.get_cash() + order.deal_amount * trade_price < max(
-                    order.deal_amount * trade_price * cost_ratio, 
+                    order.deal_amount * trade_price * cost_ratio,
                     self.min_cost,
                 ):
                     order.deal_amount = 0
