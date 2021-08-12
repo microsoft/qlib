@@ -102,6 +102,11 @@ class AverageEnsemble(Ensemble):
 
         Returns:
             pd.DataFrame: the complete result of averaging and standardizing.
+            
+    In your code file, you should add two lines of code：
+    
+        from qlib.model.ens.ensemble import AverageEnsemble
+        your_score_df['ensemble_name'] = AverageEnsemble()(your_score_df)
     """
 
     def __call__(self, ensemble_dict: dict) -> pd.DataFrame:
