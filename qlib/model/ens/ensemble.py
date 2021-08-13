@@ -105,6 +105,20 @@ class AverageEnsemble(Ensemble):
     """
 
     def __call__(self, ensemble_dict: dict) -> pd.DataFrame:
+        """using sample:
+        from qlib.model.ens.ensemble import AverageEnsemble
+        pred_res['new_key_name'] = AverageEnsemble()(predict_dict)
+
+        Parameters
+        ----------
+        ensemble_dict : dict
+            Dictionary you want to ensemble
+
+        Returns
+        -------
+        pd.DataFrame
+            The dictionary including ensenbling result
+        """
         # need to flatten the nested dict
         ensemble_dict = flatten_dict(ensemble_dict, sep=FLATTEN_TUPLE)
         values = list(ensemble_dict.values())
