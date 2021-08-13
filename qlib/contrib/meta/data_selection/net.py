@@ -16,7 +16,11 @@ class TimeWeightMeta(SingleMetaBase):
         self.linear = nn.Linear(hist_step_n, 1)
         self.k = nn.Parameter(torch.Tensor([8.0]))
 
-    def forward(self, time_perf, time_belong, return_preds=False):
+    def forward(self, time_perf, time_belong=None, return_preds=False):
+        hist_step_n = self.linear.in_features
+        time_perf = time_perf.reshape(time_perf.shape[0] // hist_step_n, hist_step_n, *time_perf.shape[1:])
+        time_perf = torch.mean(time_perf, dim=0, keepdim=False)
+
         # time_perf的格式和其他的有一些不一样
         # 需要自己拆出train和test
         preds = []
@@ -26,11 +30,16 @@ class TimeWeightMeta(SingleMetaBase):
         preds = preds - torch.mean(preds)  # 这里注意一下不要引入未来信息
         preds = preds * self.k
         if return_preds:
-            return time_belong @ preds
+            if time_belong is None:
+                return preds
+            else:
+                return time_belong @ preds
         else:
             weights = preds_to_weight_with_clamp(preds, self.clip_weight, self.clip_method)
-            sample_weights = time_belong @ weights
-            return sample_weights
+            if time_belong is None:
+                return weights
+            else:
+                return time_belong @ weights
 
 
 class PredNet(nn.Module):
@@ -49,8 +58,6 @@ class PredNet(nn.Module):
         return weights
 
     def forward(self, X, y, time_perf, time_belong, X_test, ignore_weight=False):
-        time_perf = time_perf.reshape(self.step, time_perf.shape[0] // self.step, *time_perf.shape[1:])
-        time_perf = torch.mean(time_perf, dim=0, keepdim=False)
         weights = self.get_sample_weights(X, time_perf, time_belong, ignore_weight=ignore_weight)
         X_w = X.T * weights.view(1, -1)
         theta = torch.inverse(X_w @ X) @ X_w @ y

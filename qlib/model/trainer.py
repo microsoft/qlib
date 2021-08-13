@@ -84,7 +84,7 @@ def end_task_train(rec: Recorder, experiment_name: str) -> Recorder:
     return rec
 
 
-def task_train(task_config: dict, experiment_name: str) -> Recorder:
+def task_train(task_config: dict, experiment_name: str, recorder_name: str = None) -> Recorder:
     """
     Task based training, will be divided into two steps.
 
@@ -94,12 +94,14 @@ def task_train(task_config: dict, experiment_name: str) -> Recorder:
         The config of a task.
     experiment_name: str
         The name of experiment
+    recorder_name: str
+        The name of recorder
 
     Returns
     ----------
     Recorder: The instance of the recorder
     """
-    recorder = begin_task_train(task_config, experiment_name)
+    recorder = begin_task_train(task_config, experiment_name, recorder_name=recorder_name)
     recorder = end_task_train(recorder, experiment_name)
     return recorder
 

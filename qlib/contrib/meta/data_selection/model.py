@@ -3,6 +3,7 @@
 
 import pandas as pd
 import numpy as np
+from qlib.model.meta.task import MetaTask
 import torch
 from torch import nn
 from torch import optim
@@ -19,6 +20,19 @@ from ....workflow import R
 from .utils import fill_diagnal, ICLoss
 from .dataset import MetaDatasetHDS
 from qlib.contrib.meta.data_selection.net import PredNet
+from qlib.data.dataset.weight import Reweighter
+
+
+class TimeReweighter(Reweighter):
+
+    def __init__(self, time_weight: pd.Series):
+        self.time_weight = time_weight
+
+    def reweight(self, data: Union[pd.DataFrame, pd.Series]):
+        w_s = pd.Series(1., index=data.index)
+        for k, w in self.time_weight.items():
+            w_s.loc[slice(*k)] = w
+        return w_s
 
 
 class MetaModelDS(MetaTaskModel):
@@ -131,6 +145,7 @@ class MetaModelDS(MetaTaskModel):
             R.save_objects(**{"model.pkl": self.tn})
         self.fitted = True
 
+    # TODO: refactor
     def _inference_single_task(self, meta_id: tuple, meta_dataset: MetaDatasetHDS):
         meta_task = meta_dataset.get_meta_task_by_test_period(meta_id)
         if meta_task is not None:
@@ -153,6 +168,7 @@ class MetaModelDS(MetaTaskModel):
         else:
             raise ValueError("The current task is not supported!")
 
+    # TODO: refactor
     def inference(self, meta_ids: Union[List[tuple], tuple], meta_dataset: MetaDatasetHDS):
         """
         Inference a single task with meta-dataset. The meta-model must be fitted.
@@ -176,6 +192,7 @@ class MetaModelDS(MetaTaskModel):
         else:
             raise NotImplementedError("This type of task definition is not supported!")
 
+    # TODO: refactor
     def prepare_tasks(self, task: Union[List[dict], dict], reweighters: dict):
         """
 
@@ -210,3 +227,12 @@ class MetaModelDS(MetaTaskModel):
             return [self.prepare_tasks(i, reweighters) for i in task]
         else:
             raise NotImplementedError("This type of task definition is not supported!")
+
+    def prepare_task(self, task: MetaTask) -> dict:
+        meta_ipt = task.get_meta_input()
+        weights = self.tn.twm(meta_ipt["time_perf"])
+
+        weight_s = pd.Series(weights.detach().cpu().numpy(), index=task.meta_info.columns)
+        task = copy.copy(task.task)  # NOTE: this is a shallow copy.
+        task["reweighter"] = TimeReweighter(weight_s)
+        return task

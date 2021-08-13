@@ -3,6 +3,8 @@
 
 import abc
 from typing import Union, List, Tuple
+
+from qlib.model.meta.task import MetaTask
 from .dataset import MetaDataset
 
 
@@ -30,23 +32,39 @@ class MetaTaskModel(MetaModel):
     """
     This type of meta-model deals with base task definitions. The meta-model creates tasks for training new base forecasting models after it is trained. `prepare_tasks` directly modifies the task definitions.
     """
-
     @abc.abstractmethod
-    def prepare_tasks(self, tasks: List[dict]) -> List[dict]:
+    def prepare_task(self, task: MetaTask) -> dict:
         """
-        The meta-model modifies the tasks. The function will return the modified task list.
+        Input a meta task and output a task with qlib format
 
         Parameters
         ----------
-        tasks: List[dict]
-            A list of task definitions for the meta-model to modify.
+        task : MetaTask
+            meta task to inference
 
         Returns
         -------
-        List[dict]:
-            A list of modified task definitions.
+        dict:
+            A task with Qlib format
         """
-        pass
+
+    # NOTE: factor;   Please justify the necessity of this method
+    # @abc.abstractmethod
+    # def prepare_tasks(self, tasks: List[dict]) -> List[dict]:
+    #     """
+    #     The meta-model modifies the tasks. The function will return the modified task list.
+    #
+    #     Parameters
+    #     ----------
+    #     tasks: List[dict]
+    #         A list of task definitions for the meta-model to modify.
+    #
+    #     Returns
+    #     -------
+    #     List[dict]:
+    #         A list of modified task definitions.
+    #     """
+    #     pass
 
 
 class MetaGuideModel(MetaModel):

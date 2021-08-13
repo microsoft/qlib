@@ -16,6 +16,23 @@ class Reweighter:
         """
         raise NotImplementedError()
 
+    def reweight(self, data: object) -> object:
+        """
+        Get weights for data
+
+        Parameters
+        ----------
+        data : object
+            The input data.
+            The first dimension is the index of samples
+
+        Returns
+        -------
+        object:
+            the weights info for the data
+        """
+        raise NotImplementedError(f"This type of input is not supported")
+
 
 class WeightSampler:
     """
