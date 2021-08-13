@@ -27,9 +27,11 @@ jobs:
         cd ..
         if [ "$RUNNER_OS" == "Windows" ]; then
           $CONDA\\python.exe -m pip install black
+          $CONDA\\python.exe -V
           $CONDA\\python.exe -m black qlib -l 120 --check --diff
         else
           sudo $CONDA/bin/python -m pip install black
+          sudo $CONDA/bin/python -V
           $CONDA/bin/python -m black qlib -l 120 --check --diff
         fi
       shell: bash
@@ -39,10 +41,12 @@ jobs:
       run: |
         if [ "$RUNNER_OS" == "Windows" ]; then
           $CONDA\\python.exe -m pip install numpy==1.19.5
+          $CONDA\\python.exe -c "import sys; print(sys.version)"
           $CONDA\\python.exe -m pip install pyqlib --ignore-installed ruamel.yaml numpy --user
         else
           sudo $CONDA/bin/python -m pip install numpy==1.19.5
           $CONDA\\python.exe -V
+          sudo $CONDA/bin/python -c "import sys; print(sys.version)"
           sudo $CONDA/bin/python -m pip install pyqlib --ignore-installed ruamel.yaml numpy
         fi
       shell: bash
