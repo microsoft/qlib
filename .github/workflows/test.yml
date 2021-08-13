@@ -22,17 +22,17 @@ jobs:
           pip install flake8 pytest
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
-#    - name: Lint with Black
-#      run: |
-#        cd ..
-#        if [ "$RUNNER_OS" == "Windows" ]; then
-#          $CONDA\\python.exe -m pip install black
-#          $CONDA\\python.exe -m black qlib -l 120 --check --diff
-#        else
-#          sudo $CONDA/bin/python -m pip install black
-#          $CONDA/bin/python -m black qlib -l 120 --check --diff
-#        fi
-#      shell: bash
+    - name: Lint with Black
+      run: |
+        cd ..
+        if [ "$RUNNER_OS" == "Windows" ]; then
+          $CONDA\\python.exe -m pip install black
+          $CONDA\\python.exe -m black qlib -l 120 --check --diff
+        else
+          sudo $CONDA/bin/python -m pip install black
+          $CONDA/bin/python -m black qlib -l 120 --check --diff
+        fi
+      shell: bash
 
     # Test Qlib installed with pip
     - name: Install Qlib with pip
