@@ -9,11 +9,11 @@ from .account import Account
 if TYPE_CHECKING:
     from ..strategy.base import BaseStrategy
     from .executor import BaseExecutor
+    from .order import BaseTradeDecision
 from .position import Position
 from .exchange import Exchange
 from .backtest import backtest_loop
 from .backtest import collect_data_loop
-from .order import Order
 from .utils import CommonInfrastructure, LevelInfrastructure, TradeCalendarManager
 from ..utils import init_instance_by_config
 from ..log import get_module_logger
@@ -228,10 +228,13 @@ def backtest(
 
     Returns
     -------
-    report_dict: Report
+    report: Report
         it records the trading report information
-    indicator_dict: Indicator
+        It is organized in a dict format
+    indicator: Indicator
         it computes the trading indicator
+        It is organized in a dict format
+
     """
     trade_strategy, trade_executor = get_strategy_executor(
         start_time,
@@ -243,9 +246,9 @@ def backtest(
         exchange_kwargs,
         pos_type=pos_type,
     )
-    report_dict, indicator_dict = backtest_loop(start_time, end_time, trade_strategy, trade_executor)
+    report, indicator = backtest_loop(start_time, end_time, trade_strategy, trade_executor)
 
-    return report_dict, indicator_dict
+    return report, indicator
 
 
 def collect_data(
@@ -257,6 +260,7 @@ def collect_data(
     account=1e9,
     exchange_kwargs={},
     pos_type: str = "Position",
+    return_value: dict = None,
 ):
     """initialize the strategy and executor, then collect the trade decision data for rl training
 
@@ -277,4 +281,41 @@ def collect_data(
         exchange_kwargs,
         pos_type=pos_type,
     )
-    yield from collect_data_loop(start_time, end_time, trade_strategy, trade_executor)
+    yield from collect_data_loop(start_time, end_time, trade_strategy, trade_executor, return_value=return_value)
+
+
+def format_decisions(
+    decisions: List[BaseTradeDecision],
+) -> Tuple[str, List[Tuple[BaseTradeDecision, Union[Tuple, None]]]]:
+    """
+    format the decisions collected by `qlib.backtest.collect_data`
+    The decisions will be organized into a tree-like structure.
+
+    Parameters
+    ----------
+    decisions : List[BaseTradeDecision]
+        decisions collected by `qlib.backtest.collect_data`
+
+    Returns
+    -------
+    Tuple[str, List[Tuple[BaseTradeDecision, Union[Tuple, None]]]]:
+
+        reformat the list of decisions into a more user-friendly format
+        <decisions> :=  Tuple[<freq>, List[Tuple[<decision>, <sub decisions>]]]
+        - <sub decisions> := `<decisions> in lower level` | None
+        - <freq> := "day" | "30min" | "1min" | ...
+        - <decision> := <instance of BaseTradeDecision>
+    """
+    if len(decisions) == 0:
+        return None
+
+    cur_freq = decisions[0].strategy.trade_calendar.get_freq()
+
+    res = (cur_freq, [])
+    last_dec_idx = 0
+    for i, dec in enumerate(decisions[1:], 1):
+        if dec.strategy.trade_calendar.get_freq() == cur_freq:
+            res[1].append((decisions[last_dec_idx], format_decisions(decisions[last_dec_idx + 1 : i])))
+            last_dec_idx = i
+    res[1].append((decisions[last_dec_idx], format_decisions(decisions[last_dec_idx + 1 :])))
+    return res

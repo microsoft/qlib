@@ -171,7 +171,7 @@ class BaseSingleMetric:
 
     @property
     def empty(self) -> bool:
-        """If metric is empyt, return True."""
+        """If metric is empty, return True."""
 
         raise NotImplementedError(f"Please implement the `empty` method")
 
@@ -357,17 +357,17 @@ class PandasSingleMetric:
 
     def __gt__(self, other):
         if isinstance(other, (int, float)):
-            return PandasSingleMetric(self.metric < other)
+            return PandasSingleMetric(self.metric > other)
         elif isinstance(other, PandasSingleMetric):
-            return PandasSingleMetric(self.metric < other.metric)
+            return PandasSingleMetric(self.metric > other.metric)
         else:
             return NotImplemented
 
     def __lt__(self, other):
         if isinstance(other, (int, float)):
-            return PandasSingleMetric(self.metric > other)
+            return PandasSingleMetric(self.metric < other)
         elif isinstance(other, PandasSingleMetric):
-            return PandasSingleMetric(self.metric > other.metric)
+            return PandasSingleMetric(self.metric < other.metric)
         else:
             return NotImplemented
 
