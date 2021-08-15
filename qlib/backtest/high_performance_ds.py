@@ -3,13 +3,16 @@
 
 
 import logging
+from qlib.data.base import Feature
 from typing import List, Text, Tuple, Union, Callable, Iterable, Dict
 from collections import OrderedDict
 
 import inspect
+import bisect
 import pandas as pd
+import numpy as np
 
-from ..utils.resam import resam_ts_data
+from ..utils.resam import resam_ts_data, ts_data_last
 from ..log import get_module_logger
 
 
@@ -111,6 +114,136 @@ class PandasQuote(BaseQuote):
             return resam_ts_data(self.data[stock_id][fields], start_time, end_time, method=method)
         else:
             raise ValueError(f"fields must be None, str or list")
+
+    def _if_single_data(self, start_time, end_time):
+        if end_time - start_time < np.timedelta64(1, 'm'):
+            return True
+        if start_time.hour == 11 and start_time.minute == 29 and start_time.second == 0:
+            return True 
+        if start_time.hour == 14 and start_time.minute == 59 and start_time.second == 0:
+            return True 
+        return False
+
+
+class NumpyQuote(BaseQuote):
+    def __init__(self, quote_df: pd.DataFrame):
+        """NumpyQuote
+
+        Parameters
+        ----------
+        quote_df : pd.DataFrame
+            the init dataframe from qlib.
+
+        Variables
+        self.data: Dict[stock_id, np.array]
+            each stock has one two-dimensional np.array to represent data.
+        self.columns: Dict[str, int]
+            map column name to column id in self.data.
+        self.dates: Dict[stock_id, Dict[pd.Timestap, int]]
+            map timestap to row id in self.data.
+        self.dates_list: Dict[stock_id, List[pd.Timestap]]
+            the dates of each stock for searching.
+        """
+        super().__init__(quote_df=quote_df)
+        # init data
+        columns = quote_df.columns.values
+        self.columns = dict(zip(columns, range(len(columns))))
+        self.data, self.dates, self.dates_list = self._to_numpy(quote_df)
+
+        # lru
+        self.muti_lru = {}
+
+    def _to_numpy(self, quote_df):
+        """convert dataframe to numpy.
+        """
+        quote_dict = {}
+        date_dict = {}
+        date_list = {}
+        for stock_id, stock_val in quote_df.groupby(level="instrument"):
+            quote_dict[stock_id] = stock_val.values
+            date_dict[stock_id] = stock_val.index.get_level_values("datetime")
+            date_list[stock_id] = list(date_dict[stock_id])
+        for stock_id in date_dict:
+            date_dict[stock_id] = dict(zip(date_dict[stock_id], range(len(date_dict[stock_id]))))
+        return quote_dict, date_dict, date_list
+    
+    def get_all_stock(self):
+        return self.data.keys()
+
+    def get_data(self, stock_id, start_time, end_time, fields=None, method=None):
+        # check stock id
+        if stock_id not in self.get_all_stock():
+            return None
+
+        # get single data
+        if self._if_single_data(start_time, end_time):
+            if start_time not in self.dates[stock_id]:
+                return None
+            if fields is None:
+                # it used for check if data is None
+                return self.data[stock_id][self.dates[stock_id][start_time]]
+            else:
+                return self.data[stock_id][self.dates[stock_id][start_time]][self.columns[fields]]
+        # get muti row data
+        else:
+            # check lru
+            if (start_time, end_time, fields, method) in self.muti_lru:
+                return self.muti_lru[(start_time, end_time, fields, method)]
+            
+            start_id = bisect.bisect_left(self.dates_list[stock_id], start_time)
+            end_id = bisect.bisect_right(self.dates_list[stock_id], end_time)
+            if start_id == end_id:
+                return None
+            # it used for check if data is None
+            if fields is None:
+                return self.data[stock_id][start_id: end_id]
+            agg_stock_data = self._agg_data(self.data[stock_id][start_id: end_id, self.columns[fields]], method)
+            
+            # result lru
+            self.muti_lru[(start_time, end_time, fields, method)] = agg_stock_data
+            return agg_stock_data
+
+    def _agg_data(self, data, method):
+        """Agg data by specific method.
+        """
+        if method == "sum":
+            return data.sum()
+        if method == "mean":
+            return data.mean()
+        if method == "last":
+            return data[-1]
+        if method == "all":
+            return data.all()
+        if method == "any":
+            return data.any() 
+        if method == ts_data_last:
+            valid_data = data[data != np.NaN]
+            if len(valid_data) == 0:
+                return None 
+            else:
+                return valid_data[0]
+
+    def _if_single_data(self, start_time, end_time):
+        """Is there only one piece of data to obtaine.
+
+        Parameters
+        ----------
+        start_time : Union[pd.Timestamp, str]
+            closed start time for data.
+        end_time : Union[pd.Timestamp, str]
+            closed end time for data.
+        Returns
+        -------
+        bool
+            True means one piece of data to obtaine.
+        """
+        if end_time - start_time < np.timedelta64(1, 'm'):
+            return True
+        if start_time.hour == 11 and start_time.minute == 29 and start_time.second == 0:
+            return True 
+        if start_time.hour == 14 and start_time.minute == 59 and start_time.second == 0:
+            return True 
+        return False
 
 
 class BaseSingleMetric:
