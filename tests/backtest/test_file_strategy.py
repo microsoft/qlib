@@ -29,13 +29,13 @@ class FileStrTest(TestAutoData):
             # test cash limit for buying
             ["20200103", self.TEST_INST, "1000", "buy"],
             # test min_cost for buying
-            ["20200103", self.TEST_INST, "1", "buy"],
+            ["20200106", self.TEST_INST, "1", "buy"],
             # test held stock limit for selling
-            ["20200106", self.TEST_INST, "1000", "sell"],
+            ["20200107", self.TEST_INST, "1000", "sell"],
             # test cash limit for buying
-            ["20200107", self.TEST_INST, "1000", "buy"],
+            ["20200108", self.TEST_INST, "1000", "buy"],
             # test min_cost for selling
-            ["20200108", self.TEST_INST, "1", "sell"],
+            ["20200109", self.TEST_INST, "1", "sell"],
             # test selling all stocks
             ["20200110", self.TEST_INST, str(self.DEAL_NUM_FOR_1000), "sell"],
         ]
@@ -94,10 +94,11 @@ class FileStrTest(TestAutoData):
         # ffr valid
         ffr_dict = indicator_dict["1day"]["ffr"].to_dict()
         ffr_dict = {str(date).split()[0]: ffr_dict[date] for date in ffr_dict}
-        assert ffr_dict["2020-01-03"] == 0
-        assert ffr_dict["2020-01-06"] == self.DEAL_NUM_FOR_1000 / 1000
+        assert ffr_dict["2020-01-03"] == self.DEAL_NUM_FOR_1000 / 1000
+        assert ffr_dict["2020-01-06"] == 0
         assert ffr_dict["2020-01-07"] == self.DEAL_NUM_FOR_1000 / 1000
-        assert ffr_dict["2020-01-08"] == 0
+        assert ffr_dict["2020-01-08"] == self.DEAL_NUM_FOR_1000 / 1000
+        assert ffr_dict["2020-01-09"] == 0
         assert ffr_dict["2020-01-10"] == 1
 
         self.EXAMPLE_FILE.unlink()
