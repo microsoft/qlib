@@ -116,12 +116,12 @@ class PandasQuote(BaseQuote):
             raise ValueError(f"fields must be None, str or list")
 
     def _if_single_data(self, start_time, end_time):
-        if end_time - start_time < np.timedelta64(1, 'm'):
+        if end_time - start_time < np.timedelta64(1, "m"):
             return True
         if start_time.hour == 11 and start_time.minute == 29 and start_time.second == 0:
-            return True 
+            return True
         if start_time.hour == 14 and start_time.minute == 59 and start_time.second == 0:
-            return True 
+            return True
         return False
 
 
@@ -152,10 +152,10 @@ class NumpyQuote(BaseQuote):
 
         # lru
         self.muti_lru = {}
+        self.max_lru_len = 256
 
     def _to_numpy(self, quote_df):
-        """convert dataframe to numpy.
-        """
+        """convert dataframe to numpy."""
         quote_dict = {}
         date_dict = {}
         date_list = {}
@@ -166,7 +166,7 @@ class NumpyQuote(BaseQuote):
         for stock_id in date_dict:
             date_dict[stock_id] = dict(zip(date_dict[stock_id], range(len(date_dict[stock_id]))))
         return quote_dict, date_dict, date_list
-    
+
     def get_all_stock(self):
         return self.data.keys()
 
@@ -187,25 +187,26 @@ class NumpyQuote(BaseQuote):
         # get muti row data
         else:
             # check lru
-            if (start_time, end_time, fields, method) in self.muti_lru:
-                return self.muti_lru[(start_time, end_time, fields, method)]
-            
+            if (stock_id, start_time, end_time, fields, method) in self.muti_lru:
+                return self.muti_lru[(stock_id, start_time, end_time, fields, method)]
+
             start_id = bisect.bisect_left(self.dates_list[stock_id], start_time)
             end_id = bisect.bisect_right(self.dates_list[stock_id], end_time)
             if start_id == end_id:
                 return None
             # it used for check if data is None
             if fields is None:
-                return self.data[stock_id][start_id: end_id]
-            agg_stock_data = self._agg_data(self.data[stock_id][start_id: end_id, self.columns[fields]], method)
-            
+                return self.data[stock_id][start_id:end_id]
+            agg_stock_data = self._agg_data(self.data[stock_id][start_id:end_id, self.columns[fields]], method)
+
             # result lru
-            self.muti_lru[(start_time, end_time, fields, method)] = agg_stock_data
+            if len(self.muti_lru) >= self.max_lru_len:
+                self.muti_lru = self.muti_lru[64:]
+            self.muti_lru[(stock_id, start_time, end_time, fields, method)] = agg_stock_data
             return agg_stock_data
 
     def _agg_data(self, data, method):
-        """Agg data by specific method.
-        """
+        """Agg data by specific method."""
         if method == "sum":
             return data.sum()
         if method == "mean":
@@ -215,11 +216,11 @@ class NumpyQuote(BaseQuote):
         if method == "all":
             return data.all()
         if method == "any":
-            return data.any() 
+            return data.any()
         if method == ts_data_last:
             valid_data = data[data != np.NaN]
             if len(valid_data) == 0:
-                return None 
+                return None
             else:
                 return valid_data[0]
 
@@ -237,12 +238,12 @@ class NumpyQuote(BaseQuote):
         bool
             True means one piece of data to obtaine.
         """
-        if end_time - start_time < np.timedelta64(1, 'm'):
+        if end_time - start_time < np.timedelta64(1, "m"):
             return True
         if start_time.hour == 11 and start_time.minute == 29 and start_time.second == 0:
-            return True 
+            return True
         if start_time.hour == 14 and start_time.minute == 59 and start_time.second == 0:
-            return True 
+            return True
         return False
 
 

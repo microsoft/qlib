@@ -390,8 +390,8 @@ class Indicator:
             return None, None
 
         if isinstance(price_s, (int, float)):
-             price_s = pd.Series(price_s, index=[trade_start_time])
-             
+            price_s = pd.Series(price_s, index=[trade_start_time])
+
         # NOTE: there are some zeros in the trading price. These cases are known meaningless
         # for aligning the previous logic, remove it.
         price_s = price_s[~(price_s < 1e-08)]  # remove zero and negative values.
