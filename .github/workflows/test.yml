@@ -21,10 +21,10 @@ jobs:
       run: |
           cd ..
           if [ "$RUNNER_OS" == "Windows" ]; then
-            python.exe -m pip install black
+            python.exe -m pip install -U black
             python.exe -m black qlib -l 120 --check --diff
           else
-            sudo python -m pip install black
+            sudo python -m pip install -U black
             python -m black qlib -l 120 --check --diff
           fi
       shell: bash
