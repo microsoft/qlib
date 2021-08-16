@@ -1,52 +1,36 @@
 name: Test
 
-on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+on: [push]
 
 jobs:
   build:
 
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     strategy:
       matrix:
-        os: [windows-latest, ubuntu-16.04, ubuntu-18.04, ubuntu-20.04]
         python-version: [3.6, 3.7, 3.8, 3.9]
 
     steps:
     - uses: actions/checkout@v2
-
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:
-        python-version: ${{ matrix.python-version }}
+          python-version: ${{ matrix.python-version }}
 
-#    - name: Lint with Black
-#      run: |
-#        cd ..
-#        if [ "$RUNNER_OS" == "Windows" ]; then
-#          $CONDA\\python.exe -m pip install black
-#          $CONDA\\python.exe -m black qlib -l 120 --check --diff
-#          sudo $CONDA\\python.exe -m apt-get remove --auto-remove python3.9.5
-#        else
-#          sudo $CONDA/bin/python -m pip install black
-#          $CONDA/bin/python -m black qlib -l 120 --check --diff
-#          $CONDA/bin/python -m apt-get remove --auto-remove python3.9.5
-#        fi
-#      shell: bash
 
-    # Test Qlib installed with pip
+
+
+
     - name: Install Qlib with pip
       run: |
         if [ "$RUNNER_OS" == "Windows" ]; then
-          $CONDA\\python.exe -c "import sys; print(sys.version)"
           $CONDA\\python.exe -m pip install numpy==1.19.5
+          $CONDA\\python.exe -c "import sys; print(sys.version)"
           $CONDA\\python.exe -m pip install pyqlib --ignore-installed ruamel.yaml numpy --user
         else
           sudo $CONDA/bin/python -m pip install numpy==1.19.5
-          $CONDA\\python.exe -c "import sys; print(sys.version)"
+          sudo $CONDA/bin/python -V
+          sudo $CONDA/bin/python -c "import sys; print(sys.version)"
           sudo $CONDA/bin/python -m pip install pyqlib --ignore-installed ruamel.yaml numpy
         fi
       shell: bash
@@ -116,5 +100,3 @@ jobs:
 #          $CONDA/bin/python qlib/workflow/cli.py examples/benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml
 #        fi
 #      shell: bash
-#
-#
