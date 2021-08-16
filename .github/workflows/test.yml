@@ -12,11 +12,8 @@ jobs:
       - name: Set up Python 3.6
         uses: actions/setup-python@v2
         with:
-          # Semantic version range syntax or exact version of a Python version
-          python-version: '3.x'
-          # Optional - x64 or x86 architecture, defaults to x64
+          python-version: '3.6'
           architecture: 'x64'
-      # You can test your matrix by printing the current Python version
       - name: Display Python version
         run: python -c "import sys; print(sys.version)"
 
