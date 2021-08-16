@@ -23,19 +23,19 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
-    - name: Lint with Black
-      run: |
-        cd ..
-        if [ "$RUNNER_OS" == "Windows" ]; then
-          $CONDA\\python.exe -m pip install black
-          $CONDA\\python.exe -m black qlib -l 120 --check --diff
-          sudo $CONDA\\python.exe -m apt-get remove --auto-remove python3.9.5
-        else
-          sudo $CONDA/bin/python -m pip install black
-          $CONDA/bin/python -m black qlib -l 120 --check --diff
-          $CONDA/bin/python -m apt-get remove --auto-remove python3.9.5
-        fi
-      shell: bash
+#    - name: Lint with Black
+#      run: |
+#        cd ..
+#        if [ "$RUNNER_OS" == "Windows" ]; then
+#          $CONDA\\python.exe -m pip install black
+#          $CONDA\\python.exe -m black qlib -l 120 --check --diff
+#          sudo $CONDA\\python.exe -m apt-get remove --auto-remove python3.9.5
+#        else
+#          sudo $CONDA/bin/python -m pip install black
+#          $CONDA/bin/python -m black qlib -l 120 --check --diff
+#          $CONDA/bin/python -m apt-get remove --auto-remove python3.9.5
+#        fi
+#      shell: bash
 
     # Test Qlib installed with pip
     - name: Install Qlib with pip
