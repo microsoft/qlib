@@ -97,6 +97,7 @@ jobs:
         fi
       shell: bash
 
+
     - name: Test workflow by config (install from source)
       run: |
         if [ "$RUNNER_OS" == "Windows" ]; then
