@@ -27,9 +27,13 @@ jobs:
       run: |
         cd ..
         if [ "$RUNNER_OS" == "Windows" ]; then
+          $CONDA\\python.exe -V
+          python.exe -V
           $CONDA\\python.exe -m pip install black
           $CONDA\\python.exe -m black qlib -l 120 --check --diff
         else
+          sudo $CONDA/bin/python -V
+          python -V
           sudo $CONDA/bin/python -m pip install black
           $CONDA/bin/python -m black qlib -l 120 --check --diff
         fi
@@ -38,6 +42,7 @@ jobs:
     # Test Qlib installed with pip
     - name: Install Qlib with pip
       run: |
+        
         if [ "$RUNNER_OS" == "Windows" ]; then
           $CONDA\\python.exe -m pip install pyqlib 
           $CONDA\\python.exe -m pip install pyqlib --ignore-installed ruamel.yaml --user
