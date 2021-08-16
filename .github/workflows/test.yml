@@ -26,8 +26,8 @@ jobs:
           else
             sudo python -m pip install black
             python -m black qlib -l 120 --check --diff
-          
-        shell: bash
+          fi
+      shell: bash
 
     - name: Install Qlib with pip
       run: |
@@ -96,7 +96,6 @@ jobs:
           python -m pytest . --durations=0
         fi
       shell: bash
-
 
     - name: Test workflow by config (install from source)
       run: |
