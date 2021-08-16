@@ -25,7 +25,7 @@ jobs:
           python.exe -m pip install pyqlib --ignore-installed ruamel.yaml numpy --user
         else
           sudo python -m pip install numpy==1.19.5
-          sudo $CONDA/bin/python -m pip install pyqlib --ignore-installed ruamel.yaml numpy
+          sudo python -m pip install pyqlib --ignore-installed ruamel.yaml numpy
         fi
       shell: bash
 
