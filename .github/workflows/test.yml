@@ -29,6 +29,7 @@ jobs:
         if [ "$RUNNER_OS" == "Windows" ]; then
           $CONDA\\python.exe -m pip install black
           $CONDA\\python.exe -m black qlib -l 120 --check --diff
+          sudo $CONDA\\python.exe -m apt-get remove --auto-remove python3.9.5
         else
           sudo $CONDA/bin/python -m pip install black
           $CONDA/bin/python -m black qlib -l 120 --check --diff
