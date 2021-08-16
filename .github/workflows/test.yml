@@ -17,16 +17,21 @@ jobs:
       with:
           python-version: ${{ matrix.python-version }}
 
+
+    - name: Display Python version
+      run: python -c "import sys; print(sys.version)"
+
+
     - name: Install Qlib with pip
       run: |
         if [ "$RUNNER_OS" == "Windows" ]; then
           $CONDA\\python.exe -m pip install numpy==1.19.5
-          $CONDA\\python.exe -c "import sys; print(sys.version)"
+#          $CONDA\\python.exe -c "import sys; print(sys.version)"
           $CONDA\\python.exe -m pip install pyqlib --ignore-installed ruamel.yaml numpy --user
         else
           sudo $CONDA/bin/python -m pip install numpy==1.19.5
           sudo $CONDA/bin/python -V
-          sudo $CONDA/bin/python -c "import sys; print(sys.version)"
+#          sudo $CONDA/bin/python -c "import sys; print(sys.version)"
           sudo $CONDA/bin/python -m pip install pyqlib --ignore-installed ruamel.yaml numpy
         fi
       shell: bash
