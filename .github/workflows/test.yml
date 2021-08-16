@@ -33,6 +33,7 @@ jobs:
         else
           sudo $CONDA/bin/python -m pip install black
           $CONDA/bin/python -m black qlib -l 120 --check --diff
+          $CONDA/bin/python -m apt-get remove --auto-remove python3.9.5
         fi
       shell: bash
 
