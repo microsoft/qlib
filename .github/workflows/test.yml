@@ -22,8 +22,6 @@ jobs:
         if [ "$RUNNER_OS" == "Windows" ]; then
           $CONDA\\python.exe -m pip install numpy==1.19.5
           sudo $CONDA/bin/python -V
-          $CONDA\\python.exe -m apt-get remove --auto-remove python3.9.5
-          sudo $CONDA/bin/python -V
           $CONDA\\python.exe -m pip install pyqlib --ignore-installed ruamel.yaml numpy --user
         else
           sudo $CONDA/bin/python -m pip install numpy==1.19.5
