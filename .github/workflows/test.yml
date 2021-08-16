@@ -26,7 +26,7 @@ jobs:
           else
             sudo python -m pip install black
             python -m black qlib -l 120 --check --diff
-          fi
+          
         shell: bash
 
     - name: Install Qlib with pip
