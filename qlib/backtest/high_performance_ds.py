@@ -397,9 +397,7 @@ class BaseOrderIndicator:
         pass
 
     @staticmethod
-    def sum_all_indicators(
-        cls, indicators: list, metrics: Union[str, List[str]], fill_value: float = None
-    ):
+    def sum_all_indicators(cls, indicators: list, metrics: Union[str, List[str]], fill_value: float = None):
         """sum indicators with the same metrics.
         and assign to the cls(BaseOrderIndicator).
 
@@ -569,9 +567,7 @@ class PandasOrderIndicator(BaseOrderIndicator):
             return pd.Series()
 
     @staticmethod
-    def sum_all_indicators(
-        cls, indicators: list, metrics: Union[str, List[str]], fill_value=None
-    ):
+    def sum_all_indicators(cls, indicators: list, metrics: Union[str, List[str]], fill_value=None):
         if isinstance(metrics, str):
             metrics = [metrics]
         for metric in metrics:
@@ -656,10 +652,10 @@ class NumpySingleMetric(BaseSingleMetric):
         return len(self.metric)
 
     def sum(self):
-        return self.metric.sum()
+        return np.nansum(self.metric)
 
     def mean(self):
-        return self.metric.mean()
+        return np.nanmean(self.metric)
 
     def count(self):
         return len(self.metric[~np.isnan(self.metric)])
@@ -722,7 +718,7 @@ class NumpyOrderIndicator(BaseOrderIndicator):
             self.data = np.zeros((len(NumpyOrderIndicator.ROW), len(metric)))
             self.column = list(metric.keys())
             self.column_map = dict(zip(self.column, range(len(self.column))))
-        
+
         metric_column = list(metric.keys())
         if self.column != metric_column:
             assert len(set(self.column) - set(metric_column)) == 0
@@ -805,7 +801,7 @@ class NumpyOrderIndicator(BaseOrderIndicator):
         else:
             raise ValueError(f"fill value can not be None in NumpyOrderIndicator")
 
-        # add metric and assign to cls 
+        # add metric and assign to cls
         metric_sum = sum(indicator_metrics)
         if cls.data is not None:
             raise ValueError(f"this function must assign to an empty order indicator")
@@ -815,4 +811,3 @@ class NumpyOrderIndicator(BaseOrderIndicator):
         for i in range(len(metrics)):
             cls.row_tag[NumpyOrderIndicator.ROW_MAP[metrics[i]]] = 1
             cls.data[NumpyOrderIndicator.ROW_MAP[metrics[i]]] = metric_sum[i]
-
