@@ -16,7 +16,7 @@ from qlib.backtest.exchange import Exchange
 from qlib.backtest.order import BaseTradeDecision, Order, OrderDir
 from qlib.backtest.utils import TradeCalendarManager
 
-from .high_performance_ds import PandasOrderIndicator
+from .high_performance_ds import PandasOrderIndicator, NumpyOrderIndicator
 from ..data import D
 from ..tests.config import CSI300_BENCH
 from ..utils.resam import get_higher_eq_freq_feature, resam_ts_data
@@ -236,6 +236,7 @@ class Indicator:
     | indicator    | desc.                                                        |
     |--------------+--------------------------------------------------------------|
     | amount       | the *target* amount given by the outer strategy              |
+    | deal_amount  | the real deal amount                                         |
     | inner_amount | the total *target* amount of inner strategy                  |
     | trade_price  | the average deal price                                       |
     | trade_value  | the total trade value                                        |
@@ -255,7 +256,7 @@ class Indicator:
 
     """
 
-    def __init__(self, order_indicator_cls=PandasOrderIndicator):
+    def __init__(self, order_indicator_cls=NumpyOrderIndicator):
         self.order_indicator_cls = order_indicator_cls
 
         # order indicator is metrics for a single order for a specific step
@@ -329,9 +330,7 @@ class Indicator:
 
         # sum inner order indicators with same metric.
         all_metric = ["inner_amount", "deal_amount", "trade_price", "trade_value", "trade_cost", "trade_dir"]
-        metric_dict = self.order_indicator_cls.sum_all_indicators(inner_order_indicators, all_metric, fill_value=0)
-        for metric in metric_dict:
-            self.order_indicator.assign(metric, metric_dict[metric])
+        self.order_indicator_cls.sum_all_indicators(self.order_indicator, inner_order_indicators, all_metric, fill_value=0)
 
         def func(trade_price, deal_amount):
             # trade_price is np.NaN instead of inf when deal_amount is zero.
