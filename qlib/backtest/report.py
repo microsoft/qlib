@@ -330,7 +330,9 @@ class Indicator:
 
         # sum inner order indicators with same metric.
         all_metric = ["inner_amount", "deal_amount", "trade_price", "trade_value", "trade_cost", "trade_dir"]
-        self.order_indicator_cls.sum_all_indicators(self.order_indicator, inner_order_indicators, all_metric, fill_value=0)
+        self.order_indicator_cls.sum_all_indicators(
+            self.order_indicator, inner_order_indicators, all_metric, fill_value=0
+        )
 
         def func(trade_price, deal_amount):
             # trade_price is np.NaN instead of inf when deal_amount is zero.
