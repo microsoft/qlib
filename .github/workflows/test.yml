@@ -17,17 +17,17 @@ jobs:
       with:
           python-version: ${{ matrix.python-version }}
 
-#    - name: Lint with Black
-#      run: |
-#          cd ..
-#          if [ "$RUNNER_OS" == "Windows" ]; then
-#            python.exe -m pip install black
-#            python.exe -m black qlib -l 120 --check --diff
-#          else
-#            sudo python -m pip install black
-#            python -m black qlib -l 120 --check --diff
-#          fi
-#      shell: bash
+    - name: Lint with Black
+      run: |
+          cd ..
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            python.exe -m pip install black
+            python.exe -m black qlib -l 120 --check --diff
+          else
+            sudo python -m pip install black
+            python -m black qlib -l 120 --check --diff
+          fi
+      shell: bash
 
     - name: Install Qlib with pip
       run: |
