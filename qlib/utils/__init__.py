@@ -740,7 +740,8 @@ def lazy_sort_index(df: pd.DataFrame, axis=0) -> pd.DataFrame:
         sorted dataframe
     """
     idx = df.index if axis == 0 else df.columns
-    if idx.is_monotonic_increasing:
+    if idx.is_monotonic_increasing and not \
+        (isinstance(idx, pd.MultiIndex) and idx.is_lexsorted()):
         return df
     else:
         return df.sort_index(axis=axis)
