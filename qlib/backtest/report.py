@@ -391,7 +391,7 @@ class Indicator:
             return None, None
 
         if isinstance(price_s, (int, float)):
-            price_s = IndexData([price_s], [inst], [trade_start_time])
+            price_s = IndexData([price_s], [trade_start_time])
 
         # NOTE: there are some zeros in the trading price. These cases are known meaningless
         # for aligning the previous logic, remove it.
@@ -402,16 +402,15 @@ class Indicator:
         if agg == "vwap":
             volume_s = trade_exchange.get_volume(inst, trade_start_time, trade_end_time, method=None)
             if isinstance(volume_s, (int, float)):
-                volume_s = IndexData([volume_s], [inst], [trade_start_time])
+                volume_s = IndexData([volume_s], [trade_start_time])
             volume_s = volume_s.reindex(price_s.col)
         elif agg == "twap":
-            volume_s = IndexData([1 for i in range(price_s.col)], [inst], price_s.col)
+            volume_s = IndexData([1 for i in range(len(price_s.col))], price_s.col)
         else:
             raise NotImplementedError(f"This type of input is not supported")
 
         base_volume = volume_s.sum()
         base_price = (price_s * volume_s).sum() / base_volume
-
         return base_price, base_volume
 
     def _agg_base_price(
@@ -451,6 +450,7 @@ class Indicator:
             for oi, (dec, start, end) in zip(inner_order_indicators, decision_list):
                 bp_s = oi.get_index_data("base_price").reindex(trade_dir.col)
                 bv_s = oi.get_index_data("base_volume").reindex(trade_dir.col)
+
                 bp_new, bv_new = {}, {}
                 for pr, v, (inst, direction) in zip(bp_s.data, bv_s.data, zip(trade_dir.col, trade_dir.data)):
                     if np.isnan(pr):
@@ -468,16 +468,16 @@ class Indicator:
                     else:
                         bp_new[inst], bv_new[inst] = pr, v
 
-                bp_new = IndexData(list(bp_new.values()), ["base_price"], list(bp_new.keys()))
-                bv_new = IndexData(list(bv_new.values()), ["base_volume"], list(bv_new.keys()))
+                bp_new = IndexData(list(bp_new.values()), list(bp_new.keys()))
+                bv_new = IndexData(list(bv_new.values()), list(bv_new.keys()))
                 bp_all.append(bp_new)
                 bv_all.append(bv_new)
             bp_all = IndexData.concat_by_col(bp_all)
             bv_all = IndexData.concat_by_col(bv_all)
 
-            base_volume = bv_all.sum(axis = 0)
+            base_volume = bv_all.sum(axis=0)
             self.order_indicator.assign("base_volume", base_volume.to_dict())
-            self.order_indicator.assign("base_price", ((bp_all * bv_all).sum(axis = 0) / base_volume).to_dict())
+            self.order_indicator.assign("base_price", ((bp_all * bv_all).sum(axis=0) / base_volume).to_dict())
 
     def _agg_order_price_advantage(self):
         def if_empty_func(trade_price):
