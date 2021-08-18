@@ -104,6 +104,7 @@ class PandasQuote(BaseQuote):
         for stock_id, stock_val in quote_df.groupby(level="instrument"):
             quote_dict[stock_id] = stock_val.droplevel(level="instrument")
         self.data = quote_dict
+        self.freq = np.timedelta64(1, "m")
 
     def get_all_stock(self):
         return self.data.keys()
@@ -117,7 +118,7 @@ class PandasQuote(BaseQuote):
             raise ValueError(f"fields must be None, str or list")
 
     def _if_single_data(self, start_time, end_time):
-        if end_time - start_time < np.timedelta64(1, "m"):
+        if end_time - start_time < self.freq:
             return True
         if start_time.hour == 11 and start_time.minute == 29 and start_time.second == 0:
             return True
