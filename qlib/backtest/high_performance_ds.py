@@ -200,7 +200,12 @@ class NumpyQuote(BaseQuote):
             # it used for check if data is None
             if fields is None:
                 return self.data[stock_id][start_id:end_id]
-            agg_stock_data = self._agg_data(self.data[stock_id][start_id:end_id, self.columns[fields]], method)
+            elif method is None:
+                stock_data = self.data[stock_id][start_id:end_id, self.columns[fields]]
+                stock_dates = self.dates_list[stock_id][start_id:end_id].to_list()
+                return IndexData(stock_data, [stock_id], stock_dates)
+            else:
+                agg_stock_data = self._agg_data(self.data[stock_id][start_id:end_id, self.columns[fields]], method)
 
             # result lru
             if len(self.muti_lru) >= self.max_lru_len:
@@ -705,20 +710,18 @@ class NumpyOrderIndicator(BaseOrderIndicator):
         self.row_tag = [0 for tag in range(len(NumpyOrderIndicator.ROW))]
         self.data = None
 
-    def assign(self, col: str, metric: Union[dict, np.ndarray, pd.Series]):
+    def assign(self, col: str, metric: dict):
         if col not in NumpyOrderIndicator.ROW:
             raise ValueError(f"{col} metric is not supoorted")
-        if not isinstance(metric, (dict, np.ndarray, pd.Series)):
-            raise ValueError(f"metric must be dict, pd.Series or np.ndarray")
-        if isinstance(metric, (pd.Series, np.ndarray)) and self.data is None:
-            raise ValueError(f"data can not be None when metric is np.ndarray or pd.Series")
+        if not isinstance(metric, dict):
+            raise ValueError(f"metric must be dict")
 
         # if data is None, init numpy ndarray
         if self.data is None:
             self.data = np.zeros((len(NumpyOrderIndicator.ROW), len(metric)))
             self.column = list(metric.keys())
             self.column_map = dict(zip(self.column, range(len(self.column))))
-
+        
         metric_column = list(metric.keys())
         if self.column != metric_column:
             assert len(set(self.column) - set(metric_column)) == 0
@@ -730,12 +733,7 @@ class NumpyOrderIndicator(BaseOrderIndicator):
 
         # assign data
         self.row_tag[NumpyOrderIndicator.ROW_MAP[col]] = 1
-        if isinstance(metric, dict):
-            self.data[NumpyOrderIndicator.ROW_MAP[col]] = list(metric.values())
-        elif isinstance(metric, np.ndarray):
-            self.data[NumpyOrderIndicator.ROW_MAP[col]] = metric
-        elif isinstance(metric, pd.Series):
-            self.data[NumpyOrderIndicator.ROW_MAP[col]] = metric.values
+        self.data[NumpyOrderIndicator.ROW_MAP[col]] = list(metric.values())
 
     def transfer(self, func: Callable, new_col: str = None) -> Union[None, NumpySingleMetric]:
         func_sig = inspect.signature(func).parameters.keys()
@@ -752,6 +750,12 @@ class NumpyOrderIndicator(BaseOrderIndicator):
             self.data[NumpyOrderIndicator.ROW_MAP[new_col]] = tmp_metric.metric
         else:
             return tmp_metric
+
+    def get_index_data(self, metric):
+        if self._if_valid_metric(metric):
+            return IndexData(self.data[NumpyOrderIndicator.ROW_MAP[metric]], [metric], self.column)
+        else:
+            return IndexData([], [], [])
 
     def get_metric_series(self, metric: str) -> Union[pd.Series]:
         if self._if_valid_metric(metric):
@@ -788,6 +792,7 @@ class NumpyOrderIndicator(BaseOrderIndicator):
             stocks = stocks | set(indicator.column)
             indicator_metrics.append(indicator.data[metrics_id, :].copy())
         stocks = list(stocks)
+        stocks.sort()
         stocks_map = dict(zip(stocks, range(len(stocks))))
 
         # fill value
@@ -811,3 +816,110 @@ class NumpyOrderIndicator(BaseOrderIndicator):
         for i in range(len(metrics)):
             cls.row_tag[NumpyOrderIndicator.ROW_MAP[metrics[i]]] = 1
             cls.data[NumpyOrderIndicator.ROW_MAP[metrics[i]]] = metric_sum[i]
+
+
+class IndexData:
+    def __init__(self, data, row, column):
+        if isinstance(data, list):
+            self.data = np.array([data])
+        elif isinstance(data, np.ndarray):
+            if data.ndim == 1:
+                self.data = data[np.newaxis, :]
+            elif data.ndim == 2:
+                self.data = data
+            else:
+                raise ValueError(f"the dimension of data must <= 2")
+        else:
+            raise ValueError(f"data must be list or np.ndarray")
+        self.data = data 
+
+        assert isinstance(row, list)
+        self.row = row 
+        self.row_map = dict(zip(self.row, range(len(self.row))))
+        assert isinstance(column, list)
+        self.col = column
+        self.col_map = dict(zip(self.col, range(len(self.col))))
+
+    def reindex(self, new_column):
+        tmp_data = self.data.copy()
+        for row_id, row in enumerate(self.row):
+            for col_id, col in new_column:
+                if col in self.col:
+                    tmp_data[row_id, col_id] = self.data[row_id, self.row_map[col]]
+                else:
+                    tmp_data[row_id, col_id] = np.NaN
+        return IndexData(tmp_data, self.row, list(new_column))
+
+    def to_dict(self):
+        assert len(self.row) == 1
+        if self.data.size == 0:
+            return {col: np.NaN for col in self.col}
+        else:
+            return dict(zip(self.col, self.data[0, :].tolist()))
+
+    @staticmethod
+    def concat_by_col(index_data_list):
+        # get all col and row
+        all_col = set()
+        all_row = []
+        for index_data in index_data_list:
+            all_col = all_col | set(index_data.col)
+            all_row.append(index_data.row[0])
+        all_col = list(all_col)
+        all_col.sort()
+        all_col_map = dict(zip(all_col, range(len(all_col))))
+
+        # concat all
+        tmp_data = np.full((len(index_data_list), len(all_col)), np.NaN)
+        for data_id, index_data in enumerate(index_data_list):
+            now_data_map = [all_col_map[col] for col in index_data.col]
+            tmp_data[data_id, now_data_map] = index_data.data
+        return IndexData(tmp_data, all_row, all_col)
+
+    def sum(self, axis = None):
+        if axis is None:
+            return np.nansum(self.data)
+        if axis == 0:
+            tmp_data = np.nansum(self.data, axis=0)
+            return IndexData(tmp_data, [self.row[0]], self.col)
+        else:
+            raise NotImplementedError(f"axis must be 0 or None")
+
+    def keep_positive(self, limit = 1e-08):
+        assert len(self.row) == 1
+        new_col = []
+        new_data = []
+        for col_id, col in enumerate(self.col):
+            if self.data[0: col_id] < 1e-08:
+                continue
+            else:
+                new_col.append(col)
+                new_data.append(self.data[0: col_id])
+        return IndexData(new_data, self.row, new_col)
+
+    def __mul__(self, other):
+        if isinstance(other, IndexData):
+            assert len(self.row) == len(other.row)
+            assert self.col == other.col
+            return IndexData(self.data * other.data, ["mul"], self.col)
+        else:
+            return NotImplemented
+
+    def __truediv__(self, other):
+        if isinstance(other, IndexData):
+            assert len(self.row) == len(other.row)
+            assert self.col == other.col
+            return IndexData(self.data / other.data, ["div"], self.col)
+        else:
+            return NotImplemented
+
+    def __len__(self):
+        return len(self.col)
+
+    
+        
+
+    
+
+    
+        
