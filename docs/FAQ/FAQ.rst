@@ -98,3 +98,15 @@ Also, feel free to post a new issue in our GitHub repository. We always check ea
         python setup.py build_ext --inplace
 
 - If the error occurs when importing ``qlib`` package with command ``python`` , users need to change the running directory to ensure that the script does not run in the project directory.
+
+4. ValueError:instruments not exists for /.qlib/qlib_data/cn_data/instruments/csi300.txt
+------------------------------------------------------------------------------------------------------------------------------------  
+ 
+If you meet this error when running the example, you can delete the data and download it again with:
+   
+.. code-block:: bash
+
+      $ python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/cn_data --region cn
+      
+.. note::
+   You may need to install catboost and xgboost before running the example.
