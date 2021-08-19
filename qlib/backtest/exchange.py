@@ -21,7 +21,7 @@ from ..config import C, REG_CN
 from ..utils.resam import resam_ts_data, ts_data_last
 from ..log import get_module_logger
 from .order import Order, OrderDir, OrderHelper
-from .high_performance_ds import PandasQuote, NumpyQuote
+from .high_performance_ds import PandasQuote, CN1Min_NumpyQuote
 
 
 class Exchange:
@@ -39,7 +39,7 @@ class Exchange:
         close_cost=0.0025,
         min_cost=5,
         extra_quote=None,
-        quote_cls=NumpyQuote,
+        quote_cls=CN1Min_NumpyQuote,
         **kwargs,
     ):
         """__init__

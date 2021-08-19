@@ -390,22 +390,24 @@ class Indicator:
         if price_s is None:
             return None, None
 
+        if isinstance(price_s, pd.Series):
+            price_s = IndexData(price_s.values, list(price_s.index))
         if isinstance(price_s, (int, float)):
             price_s = IndexData([price_s], [trade_start_time])
 
         # NOTE: there are some zeros in the trading price. These cases are known meaningless
         # for aligning the previous logic, remove it.
         # remove zero and negative values.
-        price_s = price_s.keep_positive(1e-08)
+        price_s = price_s[~(price_s < 1e-08)]
         # NOTE ~(price_s < 1e-08) is different from price_s >= 1e-8
 
         if agg == "vwap":
             volume_s = trade_exchange.get_volume(inst, trade_start_time, trade_end_time, method=None)
             if isinstance(volume_s, (int, float)):
                 volume_s = IndexData([volume_s], [trade_start_time])
-            volume_s = volume_s.reindex(price_s.col)
+            volume_s = volume_s.reindex(price_s.index)
         elif agg == "twap":
-            volume_s = IndexData([1 for i in range(len(price_s.col))], price_s.col)
+            volume_s = IndexData.ones(price_s.index)
         else:
             raise NotImplementedError(f"This type of input is not supported")
 
@@ -448,11 +450,11 @@ class Indicator:
             bp_all, bv_all = [], []
             # <step, inst, (base_volume | base_price)>
             for oi, (dec, start, end) in zip(inner_order_indicators, decision_list):
-                bp_s = oi.get_index_data("base_price").reindex(trade_dir.col)
-                bv_s = oi.get_index_data("base_volume").reindex(trade_dir.col)
+                bp_s = oi.get_index_data("base_price").reindex(trade_dir.index)
+                bv_s = oi.get_index_data("base_volume").reindex(trade_dir.index)
 
                 bp_new, bv_new = {}, {}
-                for pr, v, (inst, direction) in zip(bp_s.data, bv_s.data, zip(trade_dir.col, trade_dir.data)):
+                for pr, v, (inst, direction) in zip(bp_s.data, bv_s.data, zip(trade_dir.index, trade_dir.data)):
                     if np.isnan(pr):
                         bp_tmp, bv_tmp = self._get_base_vol_pri(
                             inst,
@@ -472,8 +474,8 @@ class Indicator:
                 bv_new = IndexData(list(bv_new.values()), list(bv_new.keys()))
                 bp_all.append(bp_new)
                 bv_all.append(bv_new)
-            bp_all = IndexData.concat_by_col(bp_all)
-            bv_all = IndexData.concat_by_col(bv_all)
+            bp_all = IndexData.concat_by_index(bp_all)
+            bv_all = IndexData.concat_by_index(bv_all)
 
             base_volume = bv_all.sum(axis=0)
             self.order_indicator.assign("base_volume", base_volume.to_dict())

@@ -5,13 +5,13 @@ Time related utils are compiled in this script
 """
 import bisect
 from datetime import datetime, time, date
-from typing import List, Tuple
-import re
-from numpy import append
-import pandas as pd
-from qlib.config import C
+from typing import List, Tuple, Union
 import functools
-from typing import Union
+import re
+
+import pandas as pd
+
+from qlib.config import C
 
 
 @functools.lru_cache(maxsize=240)
@@ -36,6 +36,30 @@ def get_min_cal(shift: int = 0) -> List[time]:
     ):
         cal.append(ts.time())
     return cal
+
+
+def _if_single_data(start_time, end_time, freq):
+    """Is there only one piece of data to obtain.
+
+    Parameters
+    ----------
+    start_time : Union[pd.Timestamp, str]
+        closed start time for data.
+    end_time : Union[pd.Timestamp, str]
+        closed end time for data.
+    Returns
+    -------
+    bool
+        True means one piece of data to obtaine.
+    """
+
+    if end_time - start_time < freq:
+        return True
+    if start_time.hour == 11 and start_time.minute == 29 and start_time.second == 0:
+        return True
+    if start_time.hour == 14 and start_time.minute == 59 and start_time.second == 0:
+        return True
+    return False
 
 
 class Freq:
