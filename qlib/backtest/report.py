@@ -392,8 +392,10 @@ class Indicator:
 
         if isinstance(price_s, pd.Series):
             price_s = IndexData(price_s.values, list(price_s.index))
-        if isinstance(price_s, (int, float)):
+        elif isinstance(price_s, (int, float, np.floating)):
             price_s = IndexData([price_s], [trade_start_time])
+        else:
+            raise NotImplementedError(f"This type of input is not supported")
 
         # NOTE: there are some zeros in the trading price. These cases are known meaningless
         # for aligning the previous logic, remove it.
