@@ -10,6 +10,7 @@ if TYPE_CHECKING:
     from ..strategy.base import BaseStrategy
     from .executor import BaseExecutor
     from .order import BaseTradeDecision
+from .order import Order
 from .position import Position
 from .exchange import Exchange
 from .backtest import backtest_loop
@@ -18,6 +19,7 @@ from .utils import CommonInfrastructure, LevelInfrastructure, TradeCalendarManag
 from ..utils import init_instance_by_config
 from ..log import get_module_logger
 from ..config import C
+# make import more user-friendly by enable `from qlib.backtest import STH`
 
 
 logger = get_module_logger("backtest caller")
