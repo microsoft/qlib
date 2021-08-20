@@ -14,7 +14,7 @@ from ..config import C
 from .recorder import Recorder
 from ..log import get_module_logger
 
-logger = get_module_logger("workflow", logging.INFO)
+logger = get_module_logger("workflow")
 
 
 class ExpManager:
@@ -258,7 +258,7 @@ class ExpManager:
 
         """
         if uri is None:
-            logger.info("No tracking URI is provided. Use the default tracking URI.")
+            logger.debug("No tracking URI is provided. Use the default tracking URI.")
             self._current_uri = self.default_uri
         else:
             # Temporarily re-set the current uri as the uri argument.
@@ -269,6 +269,7 @@ class ExpManager:
     def _set_uri(self):
         """
         Customized features for subclasses' set_uri function.
+        This method is designed for the underlying experiment backend storage.
         """
         raise NotImplementedError(f"Please implement the `_set_uri` method.")
 

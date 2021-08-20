@@ -594,7 +594,7 @@ def lazy_sort_index(df: pd.DataFrame, axis=0) -> pd.DataFrame:
         sorted dataframe
     """
     idx = df.index if axis == 0 else df.columns
-    if idx.is_monotonic_increasing:
+    if idx.is_monotonic_increasing and (not isinstance(idx, pd.MultiIndex) or not idx.is_lexsorted()):
         return df
     else:
         return df.sort_index(axis=axis)
@@ -657,7 +657,7 @@ def auto_filter_kwargs(func: Callable) -> Callable:
         for k, v in kwargs.items():
             # if `func` don't accept variable keyword arguments like `**kwargs` and have not according named arguments
             if spec.varkw is None and k not in spec.args:
-                log.warn(f"The parameter `{k}` with value `{v}` is ignored.")
+                log.warning(f"The parameter `{k}` with value `{v}` is ignored.")
             else:
                 new_kwargs[k] = v
         return func(*args, **new_kwargs)

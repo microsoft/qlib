@@ -129,6 +129,7 @@ class RollingGen(TaskGen):
         test_key="test",
         train_key="train",
         trunc_days: int = None,
+        task_copy_func: Callable = copy.deepcopy
     ):
         """
         Generate tasks for rolling
@@ -144,6 +145,8 @@ class RollingGen(TaskGen):
             Do some extra action after generating a task. For example, use ``handler_mod`` to modify the end time of the handler of a dataset.
         trunc_days: int
             trunc some data to avoid future information leakage
+        task_copy_func: Callable
+            the function to copy entire task. This is very useful when user want to share something between tasks
         """
         self.step = step
         self.rtype = rtype
@@ -153,6 +156,7 @@ class RollingGen(TaskGen):
         self.test_key = test_key
         self.train_key = train_key
         self.trunc_days = trunc_days
+        self.task_copy_func = task_copy_func
 
     def _update_task_segs(self, task, segs):
         # update segments of this task
@@ -197,7 +201,7 @@ class RollingGen(TaskGen):
                 break
 
             prev_seg = segments
-            t = copy.deepcopy(task)  # deepcopy is necessary to avoid replace task inplace
+            t = self.task_copy_func(task)  # deepcopy is necessary to avoid replace task inplace
             self._update_task_segs(t, segments)
             yield t
 
@@ -253,7 +257,7 @@ class RollingGen(TaskGen):
         """
         res = []
 
-        t = copy.deepcopy(task)
+        t = self.task_copy_func(task)
 
         # calculate segments
 

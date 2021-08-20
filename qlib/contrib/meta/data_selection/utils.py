@@ -25,7 +25,7 @@ def get_sim_mat_idx(i_sim_mat, outsample_period):
 
 
 class ICLoss(nn.Module):
-    def forward(self, pred, y, idx):
+    def forward(self, pred, y, idx, skip_size=50):
         """forward.
 
         :param pred:
@@ -41,15 +41,20 @@ class ICLoss(nn.Module):
         diff_point.append(None)
 
         ic_all = 0.0
+        skip_n = 0
         for start_i, end_i in zip(diff_point, diff_point[1:]):
             pred_focus = pred[start_i:end_i]  # TODO: just for fake
+            if pred_focus.shape[0] < skip_size:
+                # skip some days which have very small amount of stock.
+                skip_n += 1
+                continue
             y_focus = y[start_i:end_i]
             ic_day = torch.dot(
                 (pred_focus - pred_focus.mean()) / np.sqrt(pred_focus.shape[0]) / pred_focus.std(),
                 (y_focus - y_focus.mean()) / np.sqrt(y_focus.shape[0]) / y_focus.std(),
             )
             ic_all += ic_day
-        ic_mean = ic_all / (len(diff_point) - 1)
+        ic_mean = ic_all / (len(diff_point) - 1 - skip_n)
         return -ic_mean  # ic loss
 
 

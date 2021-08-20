@@ -3,7 +3,7 @@
 
 from contextlib import contextmanager
 from typing import Text, Optional
-from .expm import MLflowExpManager
+from .expm import ExpManager
 from .exp import Experiment
 from .recorder import Recorder
 from ..utils import Wrapper
@@ -15,7 +15,7 @@ class QlibRecorder:
     A global system that helps to manage the experiments.
     """
 
-    def __init__(self, exp_manager):
+    def __init__(self, exp_manager: ExpManager):
         self.exp_manager = exp_manager
 
     def __repr__(self):
@@ -333,6 +333,23 @@ class QlibRecorder:
         Method to reset the current uri of current experiment manager.
         """
         self.exp_manager.set_uri(uri)
+
+    @contextmanager
+    def uri_context(self, uri: Text):
+        """
+        Temporarily set the exp_manager's uri to uri
+
+        Parameters
+        ----------
+        uri : Text
+            the temporal uri
+        """
+        prev_uri = self.exp_manager._current_uri
+        self.exp_manager.set_uri(uri)
+        try:
+            yield
+        finally:
+            self.exp_manager._current_uri = prev_uri
 
     def get_recorder(
         self, *, recorder_id=None, recorder_name=None, experiment_id=None, experiment_name=None

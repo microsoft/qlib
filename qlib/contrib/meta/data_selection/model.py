@@ -59,6 +59,66 @@ class MetaModelDS(MetaTaskModel):
         self.max_epoch = max_epoch
         self.fitted = False
 
+    def run_epoch(self, phase, task_list, epoch, opt, loss_l, ignore_weight=False):
+        if phase == "train":  # phase 0 for training, 1 for inference
+            self.tn.train()
+            torch.set_grad_enabled(True)
+        else:
+            self.tn.eval()
+            torch.set_grad_enabled(False)
+        running_loss = 0.0
+        pred_y_all = []
+        for task in tqdm(task_list, desc=f"{phase} Task", leave=False):
+            meta_input = task.get_meta_input()
+            pred, weights = self.tn(
+                meta_input["X"],
+                meta_input["y"],
+                meta_input["time_perf"],
+                meta_input["time_belong"],
+                meta_input["X_test"],
+                ignore_weight=ignore_weight
+            ) # 这里可能因为如下原因导致pred为None;
+            if self.criterion == "mse":
+                criterion = nn.MSELoss()
+                loss = criterion(pred, meta_input["y_test"])
+            elif self.criterion == "ic_loss":
+                criterion = ICLoss()
+                loss = criterion(pred, meta_input["y_test"], meta_input["test_idx"], skip_size=50)
+
+            if np.isnan(loss.detach().item()): __import__('ipdb').set_trace()
+
+            if phase == "train":
+                opt.zero_grad()
+                norm_loss = nn.MSELoss()
+                loss.backward()
+                opt.step()
+            elif phase == "test":
+                pass
+
+            pred_y_all.append(
+                pd.DataFrame(
+                    {
+                        "pred": pd.Series(pred.detach().cpu().numpy(), index=meta_input["test_idx"]),
+                        "label": pd.Series(
+                            meta_input["y_test"].detach().cpu().numpy(), index=meta_input["test_idx"]
+                        ),
+                    }
+                )
+            )
+            running_loss += loss.detach().item()
+        running_loss = running_loss / len(task_list)
+        loss_l.setdefault(phase, []).append(running_loss)
+
+        pred_y_all = pd.concat(pred_y_all)
+        ic = (
+            pred_y_all.groupby("datetime")
+            .apply(lambda df: df["pred"].corr(df["label"], method="spearman"))
+            .mean()
+        )
+
+        R.log_metrics(**{f"loss/{phase}": running_loss, "step": epoch})
+        R.log_metrics(**{f"ic/{phase}": ic, "step": epoch})
+
     def fit(self, meta_dataset: MetaDatasetHDS):
         """
         The meta-learning-based data selection interacts directly with meta-dataset due to the close-form proxy measurement.
@@ -81,67 +141,18 @@ class MetaModelDS(MetaTaskModel):
             step=self.step, hist_step_n=self.hist_step_n, clip_weight=self.clip_weight, clip_method=self.clip_method
         )
 
-        train_step = 0
         opt = optim.Adam(self.tn.parameters(), lr=self.lr)
+
+        # run weight with no weight
+        for phase, task_list in zip(phases, meta_tasks_l):
+            self.run_epoch(f"{phase}_noweight", task_list, 0, opt, {}, ignore_weight=True)
+            self.run_epoch(f"{phase}_init", task_list, 0, opt, {})
+
+        # run training
         loss_l = {}
         for epoch in tqdm(range(self.max_epoch), desc="epoch"):
             for phase, task_list in zip(phases, meta_tasks_l):
-                if phase == "train":  # phase 0 for training, 1 for inference
-                    self.tn.train()
-                    torch.set_grad_enabled(True)
-                else:
-                    self.tn.eval()
-                    torch.set_grad_enabled(False)
-                running_loss = 0.0
-                pred_y_all = []
-                for task in tqdm(task_list, desc=f"{phase} Task", leave=False):
-                    meta_input = task.get_meta_input()
-                    pred, weights = self.tn(
-                        meta_input["X"],
-                        meta_input["y"],
-                        meta_input["time_perf"],
-                        meta_input["time_belong"],
-                        meta_input["X_test"],
-                    )
-                    if self.criterion == "mse":
-                        criterion = nn.MSELoss()
-                        loss = criterion(pred, meta_input["y_test"])
-                    elif self.criterion == "ic_loss":
-                        criterion = ICLoss()
-                        loss = criterion(pred, meta_input["y_test"], meta_input["test_idx"])
-
-                    if phase == "train":
-                        opt.zero_grad()
-                        norm_loss = nn.MSELoss()
-                        loss.backward()
-                        opt.step()
-                        train_step += 1
-                    elif phase == "test":
-                        pass
-
-                    pred_y_all.append(
-                        pd.DataFrame(
-                            {
-                                "pred": pd.Series(pred.detach().cpu().numpy(), index=meta_input["test_idx"]),
-                                "label": pd.Series(
-                                    meta_input["y_test"].detach().cpu().numpy(), index=meta_input["test_idx"]
-                                ),
-                            }
-                        )
-                    )
-                    running_loss += loss.detach().item()
-                running_loss = running_loss / len(task_list)
-                loss_l.setdefault(phase, []).append(running_loss)
-
-                pred_y_all = pd.concat(pred_y_all)
-                ic = (
-                    pred_y_all.groupby("datetime")
-                    .apply(lambda df: df["pred"].corr(df["label"], method="spearman"))
-                    .mean()
-                )
-
-                R.log_metrics(**{f"loss/{phase}": running_loss, "step": epoch})
-                R.log_metrics(**{f"ic/{phase}": ic, "step": epoch})
+                self.run_epoch(phase, task_list, epoch, opt, loss_l)
             R.save_objects(**{"model.pkl": self.tn})
         self.fitted = True
 

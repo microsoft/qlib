@@ -25,6 +25,38 @@ from qlib.workflow.task.manage import TaskManager, run_task
 from qlib.data.dataset.weight import Reweighter
 
 
+def _log_task_info(task_config: dict):
+    R.log_params(**flatten_dict(task_config))
+    R.save_objects(**{"task": task_config})  # keep the original format and datatype
+    R.set_tags(**{"hostname": socket.gethostname()})
+
+
+def _exe_task(task_config: dict):
+    rec = R.get_recorder()
+    # model & dataset initiation
+    model: Model = init_instance_by_config(task_config["model"])
+    dataset: Dataset = init_instance_by_config(task_config["dataset"])
+    reweighter: Reweighter = task_config.get("reweighter", None)
+    # model training
+    auto_filter_kwargs(model.fit)(dataset, reweighter=reweighter)
+    R.save_objects(**{"params.pkl": model})
+    # this dataset is saved for online inference. So the concrete data should not be dumped
+    dataset.config(dump_all=False, recursive=True)
+    R.save_objects(**{"dataset": dataset})
+    # generate records: prediction, backtest, and analysis
+    records = task_config.get("record", [])
+    if isinstance(records, dict):  # prevent only one dict
+        records = [records]
+    for record in records:
+        cls, kwargs = get_cls_kwargs(record, default_module="qlib.workflow.record_temp")
+        if cls is SignalRecord:
+            rconf = {"model": model, "dataset": dataset, "recorder": rec}
+        else:
+            rconf = {"recorder": rec}
+        r = cls(**kwargs, **rconf)
+        r.generate()
+
+
 def begin_task_train(task_config: dict, experiment_name: str, recorder_name: str = None) -> Recorder:
     """
     Begin task training to start a recorder and save the task config.
@@ -38,11 +70,8 @@ def begin_task_train(task_config: dict, experiment_name: str, recorder_name: str
         Recorder: the model recorder
     """
     with R.start(experiment_name=experiment_name, recorder_name=recorder_name):
-        R.log_params(**flatten_dict(task_config))
-        R.save_objects(**{"task": task_config})  # keep the original format and datatype
-        R.set_tags(**{"hostname": socket.gethostname()})
-        recorder: Recorder = R.get_recorder()
-    return recorder
+        _log_task_info(task_config)
+        return R.get_recorder()
 
 
 def end_task_train(rec: Recorder, experiment_name: str) -> Recorder:
@@ -58,29 +87,7 @@ def end_task_train(rec: Recorder, experiment_name: str) -> Recorder:
     """
     with R.start(experiment_name=experiment_name, recorder_id=rec.info["id"], resume=True):
         task_config = R.load_object("task")
-        # model & dataset initiation
-        model: Model = init_instance_by_config(task_config["model"])
-        dataset: Dataset = init_instance_by_config(task_config["dataset"])
-        reweighter: Reweighter = task_config.get("reweighter", None)
-        # model training
-        auto_filter_kwargs(model.fit)(dataset, reweighter=reweighter)
-        R.save_objects(**{"params.pkl": model})
-        # this dataset is saved for online inference. So the concrete data should not be dumped
-        dataset.config(dump_all=False, recursive=True)
-        R.save_objects(**{"dataset": dataset})
-        # generate records: prediction, backtest, and analysis
-        records = task_config.get("record", [])
-        if isinstance(records, dict):  # prevent only one dict
-            records = [records]
-        for record in records:
-            cls, kwargs = get_cls_kwargs(record, default_module="qlib.workflow.record_temp")
-            if cls is SignalRecord:
-                rconf = {"model": model, "dataset": dataset, "recorder": rec}
-            else:
-                rconf = {"recorder": rec}
-            r = cls(**kwargs, **rconf)
-            r.generate()
-
+        _exe_task(task_config)
     return rec
 
 
@@ -101,9 +108,10 @@ def task_train(task_config: dict, experiment_name: str, recorder_name: str = Non
     ----------
     Recorder: The instance of the recorder
     """
-    recorder = begin_task_train(task_config, experiment_name, recorder_name=recorder_name)
-    recorder = end_task_train(recorder, experiment_name)
-    return recorder
+    with R.start(experiment_name=experiment_name, recorder_name=recorder_name):
+        _log_task_info(task_config)
+        _exe_task(task_config)
+        return R.get_recorder()
 
 
 class Trainer:
