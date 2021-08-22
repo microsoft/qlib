@@ -32,6 +32,7 @@ class MetaTaskModel(MetaModel):
     """
     This type of meta-model deals with base task definitions. The meta-model creates tasks for training new base forecasting models after it is trained. `prepare_tasks` directly modifies the task definitions.
     """
+
     @abc.abstractmethod
     def prepare_task(self, task: MetaTask) -> dict:
         """

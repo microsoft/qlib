@@ -129,7 +129,7 @@ class RollingGen(TaskGen):
         test_key="test",
         train_key="train",
         trunc_days: int = None,
-        task_copy_func: Callable = copy.deepcopy
+        task_copy_func: Callable = copy.deepcopy,
     ):
         """
         Generate tasks for rolling

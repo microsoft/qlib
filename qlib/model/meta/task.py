@@ -19,6 +19,7 @@ class MetaTask:
                                                 but not necessary in test tasks. (# PROC_MODE_TEST #)
         - When the meta model can be transferred into other dataset, maybe only meta_info is necessary  (# PROC_MODE_TRANSFER #)
     """
+
     PROC_MODE_FULL = "full"
     PROC_MODE_TEST = "test"
     PROC_MODE_TRANSFER = "transfer"

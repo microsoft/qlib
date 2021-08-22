@@ -54,6 +54,8 @@ class ICLoss(nn.Module):
                 (y_focus - y_focus.mean()) / np.sqrt(y_focus.shape[0]) / y_focus.std(),
             )
             ic_all += ic_day
+        if len(diff_point) - 1 - skip_n <= 0:
+            raise ValueError("No enough data for calculating iC")
         ic_mean = ic_all / (len(diff_point) - 1 - skip_n)
         return -ic_mean  # ic loss
 

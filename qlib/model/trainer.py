@@ -14,6 +14,7 @@ In ``DelayTrainer``, the first step is only to save some necessary info to model
 import socket
 from typing import Callable, List
 
+from tqdm.auto import tqdm
 from qlib.data.dataset import Dataset
 from qlib.log import get_module_logger
 from qlib.model.base import Model
@@ -167,6 +168,30 @@ class Trainer:
     def __call__(self, *args, **kwargs) -> list:
         return self.end_train(self.train(*args, **kwargs))
 
+    def has_worker(self) -> bool:
+        """
+        Some trainer has backend worker to support parallel training
+        This method can tell if the worker is enabled.
+
+        Returns
+        -------
+        bool:
+            if the worker is enabled
+
+        """
+        return False
+
+    def worker(self):
+        """
+        start the worker
+
+        Raises
+        ------
+        NotImplementedError:
+            If the worker is not supported
+        """
+        raise NotImplementedError(f"Please implement the `worker` method")
+
 
 class TrainerR(Trainer):
     """
@@ -215,7 +240,7 @@ class TrainerR(Trainer):
         if experiment_name is None:
             experiment_name = self.experiment_name
         recs = []
-        for task in tasks:
+        for task in tqdm(tasks):
             rec = train_func(task, experiment_name, **kwargs)
             rec.set_tags(**{self.STATUS_KEY: self.STATUS_BEGIN})
             recs.append(rec)
@@ -420,6 +445,9 @@ class TrainerRM(Trainer):
             task_pool = experiment_name
         run_task(train_func, task_pool=task_pool, experiment_name=experiment_name)
 
+    def has_worker(self) -> bool:
+        return True
+
 
 class DelayTrainerRM(TrainerRM):
     """
@@ -542,3 +570,6 @@ class DelayTrainerRM(TrainerRM):
             experiment_name=experiment_name,
             before_status=TaskManager.STATUS_PART_DONE,
         )
+
+    def has_worker(self) -> bool:
+        return True

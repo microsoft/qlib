@@ -18,8 +18,9 @@ class TimeWeightMeta(SingleMetaBase):
 
     def forward(self, time_perf, time_belong=None, return_preds=False):
         hist_step_n = self.linear.in_features
-        time_perf = time_perf.reshape(time_perf.shape[0] // hist_step_n, hist_step_n, *time_perf.shape[1:])
-        time_perf = torch.mean(time_perf, dim=0, keepdim=False)
+        # NOTE: the reshape order is very important
+        time_perf = time_perf.reshape(hist_step_n, time_perf.shape[0] // hist_step_n, *time_perf.shape[1:])
+        time_perf = torch.mean(time_perf, dim=1, keepdim=False)
 
         # time_perf的格式和其他的有一些不一样
         # 需要自己拆出train和test
@@ -58,6 +59,7 @@ class PredNet(nn.Module):
         return weights
 
     def forward(self, X, y, time_perf, time_belong, X_test, ignore_weight=False):
+        """ Please refer to the docs of MetaTaskDS for the description of the variables"""
         weights = self.get_sample_weights(X, time_perf, time_belong, ignore_weight=ignore_weight)
         X_w = X.T * weights.view(1, -1)
         theta = torch.inverse(X_w @ X) @ X_w @ y

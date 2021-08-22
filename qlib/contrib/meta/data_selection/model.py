@@ -1,6 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+from libs.qlib.qlib.log import get_module_logger
 import pandas as pd
 import numpy as np
 from qlib.model.meta.task import MetaTask
@@ -24,12 +25,11 @@ from qlib.data.dataset.weight import Reweighter
 
 
 class TimeReweighter(Reweighter):
-
     def __init__(self, time_weight: pd.Series):
         self.time_weight = time_weight
 
     def reweight(self, data: Union[pd.DataFrame, pd.Series]):
-        w_s = pd.Series(1., index=data.index)
+        w_s = pd.Series(1.0, index=data.index)
         for k, w in self.time_weight.items():
             w_s.loc[slice(*k)] = w
         return w_s
@@ -76,16 +76,21 @@ class MetaModelDS(MetaTaskModel):
                 meta_input["time_perf"],
                 meta_input["time_belong"],
                 meta_input["X_test"],
-                ignore_weight=ignore_weight
-            ) # 这里可能因为如下原因导致pred为None;
+                ignore_weight=ignore_weight,
+            )
             if self.criterion == "mse":
                 criterion = nn.MSELoss()
                 loss = criterion(pred, meta_input["y_test"])
             elif self.criterion == "ic_loss":
                 criterion = ICLoss()
-                loss = criterion(pred, meta_input["y_test"], meta_input["test_idx"], skip_size=50)
+                try:
+                    loss = criterion(pred, meta_input["y_test"], meta_input["test_idx"], skip_size=50)
+                except ValueError as e:
+                    get_module_logger("MetaModelDS").warning(f"Exception `{e}` when calculating IC loss")
+                    continue
 
-            if np.isnan(loss.detach().item()): __import__('ipdb').set_trace()
+            if np.isnan(loss.detach().item()):
+                __import__("ipdb").set_trace()
 
             if phase == "train":
                 opt.zero_grad()
@@ -99,9 +104,7 @@ class MetaModelDS(MetaTaskModel):
                 pd.DataFrame(
                     {
                         "pred": pd.Series(pred.detach().cpu().numpy(), index=meta_input["test_idx"]),
-                        "label": pd.Series(
-                            meta_input["y_test"].detach().cpu().numpy(), index=meta_input["test_idx"]
-                        ),
+                        "label": pd.Series(meta_input["y_test"].detach().cpu().numpy(), index=meta_input["test_idx"]),
                     }
                 )
             )
@@ -110,11 +113,7 @@ class MetaModelDS(MetaTaskModel):
         loss_l.setdefault(phase, []).append(running_loss)
 
         pred_y_all = pd.concat(pred_y_all)
-        ic = (
-            pred_y_all.groupby("datetime")
-            .apply(lambda df: df["pred"].corr(df["label"], method="spearman"))
-            .mean()
-        )
+        ic = pred_y_all.groupby("datetime").apply(lambda df: df["pred"].corr(df["label"], method="spearman")).mean()
 
         R.log_metrics(**{f"loss/{phase}": running_loss, "step": epoch})
         R.log_metrics(**{f"ic/{phase}": ic, "step": epoch})
