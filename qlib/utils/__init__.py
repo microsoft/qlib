@@ -794,7 +794,7 @@ class Wrapper:
         return "{name}(provider={provider})".format(name=self.__class__.__name__, provider=self._provider)
 
     def __getattr__(self, key):
-        if self._provider is None:
+        if self.__dict__.get("_provider", None) is None:
             raise AttributeError("Please run qlib.init() first using qlib")
         return getattr(self._provider, key)
 
