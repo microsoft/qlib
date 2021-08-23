@@ -46,7 +46,7 @@ jobs:
         fi
       shell: bash
 
-    - name: Test data downloads#
+    - name: Test data downloads
       run: |
         if [ "$RUNNER_OS" == "Windows" ]; then
           python.exe scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/cn_data --interval 1d --region cn
