@@ -740,7 +740,8 @@ def lazy_sort_index(df: pd.DataFrame, axis=0) -> pd.DataFrame:
         sorted dataframe
     """
     idx = df.index if axis == 0 else df.columns
-    if idx.is_monotonic_increasing:
+    # NOTE: MultiIndex.is_lexsorted() is a deprecated method in Pandas 1.3.0 and is suggested to be replaced by MultiIndex.is_monotonic_increasing (see discussion here: https://github.com/pandas-dev/pandas/issues/32259). However, in case older versions of Pandas is implemented, MultiIndex.is_lexsorted() is necessary to prevent certain fatal errors.
+    if idx.is_monotonic_increasing and not (isinstance(idx, pd.MultiIndex) and not idx.is_lexsorted()):
         return df
     else:
         return df.sort_index(axis=axis)
