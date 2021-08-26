@@ -189,9 +189,11 @@ def get_module_by_module_path(module_path: Union[str, ModuleType]):
     return module
 
 
-def get_cls_kwargs(config: Union[dict, str], default_module: Union[str, ModuleType] = None) -> (type, dict):
+def get_cls_kwargs(
+    config: Union[dict, str], default_module: Union[str, ModuleType] = None, obj_type: str = "class"
+) -> (type, dict):
     """
-    extract class and kwargs from config info
+    extract class/func and kwargs from config info
 
     Parameters
     ----------
@@ -203,25 +205,27 @@ def get_cls_kwargs(config: Union[dict, str], default_module: Union[str, ModuleTy
         This function will load class from the config['module_path'] first.
         If config['module_path'] doesn't exists, it will load the class from default_module.
 
+    obj_type: str
+        "class" or "func"
     Returns
     -------
     (type, dict):
-        the class object and it's arguments.
+        the class/func object and it's arguments.
     """
     if isinstance(config, dict):
         module = get_module_by_module_path(config.get("module_path", default_module))
 
         # raise AttributeError
-        klass = getattr(module, config["class"])
+        _obj = getattr(module, config[obj_type])
         kwargs = config.get("kwargs", {})
     elif isinstance(config, str):
         module = get_module_by_module_path(default_module)
 
-        klass = getattr(module, config)
+        _obj = getattr(module, config)
         kwargs = {}
     else:
         raise NotImplementedError(f"This type of input is not supported")
-    return klass, kwargs
+    return _obj, kwargs
 
 
 def init_instance_by_config(
