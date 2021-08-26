@@ -48,8 +48,19 @@ class ProviderBackendMixin:
         # default provider_uri map
         if "provider_uri" not in backend_kwargs:
             # if the user has no uri configured, use: uri = uri_map[freq]
+            # NOTE: uri priority
+            #   1. backend_obj.kwargs["provider_uri"]
+            #   2. backend_obj.kwargs["backend_freq_config"]
+            #   3. C.backend_freq_config, or qlib.init(backend_freq_config={})
+            #   4. C.provider_uri, or qlib.init(provider_uri="")
+            provider_uri_map = backend_kwargs.setdefault("backend_freq_config", {})
             freq = kwargs.get("freq", "day")
-            provider_uri_map = backend_kwargs.setdefault("provider_uri_map", {freq: C.get_data_path()})
+            if C.backend_freq_config is not None:
+                if freq not in provider_uri_map:
+                    provider_uri_map[freq] = C.backend_freq_config.get(freq, C.get_data_path())
+            else:
+                if freq not in provider_uri_map:
+                    provider_uri_map[freq] = C.get_data_path()
             backend_kwargs["provider_uri"] = provider_uri_map[freq]
         backend.setdefault("kwargs", {}).update(**kwargs)
         return init_instance_by_config(backend)
