@@ -7,12 +7,12 @@ import warnings
 import numpy as np
 import pandas as pd
 
-from typing import Tuple, Union
+from typing import Tuple, Union, List, Type
 
 from qlib.data import D
 from qlib.data import filter as filter_module
 from qlib.data.filter import BaseDFilter
-from qlib.utils import load_dataset, init_instance_by_config, time_to_slc_point
+from qlib.utils import load_dataset, init_instance_by_config, time_to_slc_point, get_cls_kwargs
 from qlib.log import get_module_logger
 
 
@@ -62,11 +62,11 @@ class DLWParser(DataLoader):
     Extracting this class so that QlibDataLoader and other dataloaders(such as QdbDataLoader) can share the fields.
     """
 
-    def __init__(self, config: Tuple[list, tuple, dict]):
+    def __init__(self, config: Union[list, tuple, dict]):
         """
         Parameters
         ----------
-        config : Tuple[list, tuple, dict]
+        config : Union[list, tuple, dict]
             Config will be used to describe the fields and column names
 
             .. code-block::
@@ -88,7 +88,7 @@ class DLWParser(DataLoader):
         else:
             self.fields = self._parse_fields_info(config)
 
-    def _parse_fields_info(self, fields_info: Tuple[list, tuple]) -> Tuple[list, list]:
+    def _parse_fields_info(self, fields_info: Union[list, tuple]) -> Tuple[list, list]:
         if len(fields_info) == 0:
             raise ValueError("The size of fields must be greater than 0")
 
@@ -104,7 +104,15 @@ class DLWParser(DataLoader):
         return exprs, names
 
     @abc.abstractmethod
-    def load_group_df(self, instruments, exprs: list, names: list, start_time=None, end_time=None) -> pd.DataFrame:
+    def load_group_df(
+        self,
+        instruments,
+        exprs: list,
+        names: list,
+        start_time: Union[str, pd.Timestamp] = None,
+        end_time: Union[str, pd.Timestamp] = None,
+        gp_name: str = None,
+    ) -> pd.DataFrame:
         """
         load the dataframe for specific group
 
@@ -128,7 +136,7 @@ class DLWParser(DataLoader):
         if self.is_group:
             df = pd.concat(
                 {
-                    grp: self.load_group_df(instruments, exprs, names, start_time, end_time)
+                    grp: self.load_group_df(instruments, exprs, names, start_time, end_time, grp)
                     for grp, (exprs, names) in self.fields.items()
                 },
                 axis=1,
@@ -142,7 +150,15 @@ class DLWParser(DataLoader):
 class QlibDataLoader(DLWParser):
     """Same as QlibDataLoader. The fields can be define by config"""
 
-    def __init__(self, config: Tuple[list, tuple, dict], filter_pipe=None, swap_level=True, freq="day"):
+    def __init__(
+        self,
+        config: Tuple[list, tuple, dict],
+        filter_pipe: List = None,
+        swap_level: bool = True,
+        freq: Union[str, dict] = "day",
+        sample_benchmark: str = None,
+        sample_config: dict = None,
+    ):
         """
         Parameters
         ----------
@@ -163,9 +179,53 @@ class QlibDataLoader(DLWParser):
         self.filter_pipe = filter_pipe
         self.swap_level = swap_level
         self.freq = freq
+
+        # sample
+        self.sample_config = sample_config
+        self.sample_benchmark = sample_benchmark
+        self.can_sample = False
         super().__init__(config)
 
-    def load_group_df(self, instruments, exprs: list, names: list, start_time=None, end_time=None) -> pd.DataFrame:
+        if self.is_group:
+            # check sample config
+            if isinstance(freq, dict):
+                for _gp in config.keys():
+                    if _gp not in freq:
+                        raise ValueError(f"freq(={freq}) missing group(={_gp})")
+                if len(set(freq.values())) == 1:
+                    self.freq = list(freq.values())[0]
+                else:
+                    assert self.sample_config, f"freq(={self.freq}), sample_config cannot be None/empty"
+                    assert isinstance(self.sample_config, dict), f"sample_config(={self.sample_config}) must be dict"
+                    assert (
+                        self.sample_benchmark and self.sample_benchmark in self.fields
+                    ), f"sample_benchmark not to specification"
+                    self.can_sample = True
+
+    def _get_sample_method(self, gp_name: str) -> Union[str, Type]:
+        _method = self.sample_config.get(gp_name, None)
+        if _method is None:
+            return _method
+        if isinstance(_method, str):
+            # pandas.DataFrame.resample
+            if not _method.startswith("resample"):
+                raise ValueError(f"sample method error, only pandas.DataFrame.resample is supported")
+        elif isinstance(_method, dict):
+            # module_path && func name
+            _method, _ = get_cls_kwargs(_method, obj_type="func")
+        else:
+            raise TypeError(f"sample_method only supports [str, dict], currently it is {_method}")
+        return _method
+
+    def load_group_df(
+        self,
+        instruments,
+        exprs: list,
+        names: list,
+        start_time: Union[str, pd.Timestamp] = None,
+        end_time: Union[str, pd.Timestamp] = None,
+        gp_name: str = None,
+    ) -> pd.DataFrame:
         if instruments is None:
             warnings.warn("`instruments` is not set, will load all stocks")
             instruments = "all"
@@ -174,10 +234,37 @@ class QlibDataLoader(DLWParser):
         elif self.filter_pipe is not None:
             warnings.warn("`filter_pipe` is not None, but it will not be used with `instruments` as list")
 
-        df = D.features(instruments, exprs, start_time, end_time, self.freq)
+        freq = self.freq[gp_name] if self.can_sample else self.freq
+        df = D.features(instruments, exprs, start_time, end_time, freq)
         df.columns = names
+
+        if self.can_sample and self.sample_benchmark != gp_name:
+            sample_method = self._get_sample_method(gp_name)
+            if sample_method is None:
+                warnings.warn(f"{gp_name} sample_method is None")
+            if isinstance(sample_method, str):
+                df = eval(f"df.groupby(level='instrument').{sample_method}")
+            else:
+                df = df.groupby(level="instrument").apply(sample_method)
         if self.swap_level:
             df = df.swaplevel().sort_index()  # NOTE: if swaplevel, return <datetime, instrument>
+        return df
+
+    def load(self, instruments=None, start_time=None, end_time=None) -> pd.DataFrame:
+        if self.is_group:
+            group = {
+                grp: self.load_group_df(instruments, exprs, names, start_time, end_time, grp)
+                for grp, (exprs, names) in self.fields.items()
+            }
+            for grp, _df in group.items():
+                if grp == self.sample_benchmark:
+                    continue
+                else:
+                    group[grp] = _df.reindex(group[self.sample_benchmark].index)
+            df = pd.concat(group, axis=1)
+        else:
+            exprs, names = self.fields
+            df = self.load_group_df(instruments, exprs, names, start_time, end_time)
         return df
 
 
