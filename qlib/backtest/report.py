@@ -16,7 +16,8 @@ from qlib.backtest.exchange import Exchange
 from qlib.backtest.order import BaseTradeDecision, Order, OrderDir
 from qlib.backtest.utils import TradeCalendarManager
 
-from .high_performance_ds import PandasOrderIndicator, NumpyOrderIndicator, IndexData
+from .high_performance_ds import PandasOrderIndicator, NumpyOrderIndicator
+from ..utils.index_data import IndexData, SingleData 
 from ..data import D
 from ..tests.config import CSI300_BENCH
 from ..utils.resam import get_higher_eq_freq_feature, resam_ts_data
@@ -391,9 +392,11 @@ class Indicator:
             return None, None
 
         if isinstance(price_s, pd.Series):
-            price_s = IndexData(price_s.values, list(price_s.index))
+            price_s = IndexData.Series(price_s)
         elif isinstance(price_s, (int, float, np.floating)):
-            price_s = IndexData([price_s], [trade_start_time])
+            price_s = IndexData.Series(price_s, [trade_start_time])
+        elif isinstance(price_s, SingleData):
+            pass
         else:
             raise NotImplementedError(f"This type of input is not supported")
 
@@ -405,11 +408,11 @@ class Indicator:
 
         if agg == "vwap":
             volume_s = trade_exchange.get_volume(inst, trade_start_time, trade_end_time, method=None)
-            if isinstance(volume_s, (int, float)):
-                volume_s = IndexData([volume_s], [trade_start_time])
+            if isinstance(volume_s, (int, float, np.floating)):
+                volume_s = IndexData.Series(volume_s, [trade_start_time])
             volume_s = volume_s.reindex(price_s.index)
         elif agg == "twap":
-            volume_s = IndexData.ones(price_s.index)
+            volume_s = IndexData.Series(1, price_s.index)
         else:
             raise NotImplementedError(f"This type of input is not supported")
 
@@ -472,16 +475,16 @@ class Indicator:
                     else:
                         bp_new[inst], bv_new[inst] = pr, v
 
-                bp_new = IndexData(list(bp_new.values()), list(bp_new.keys()))
-                bv_new = IndexData(list(bv_new.values()), list(bv_new.keys()))
+                bp_new = IndexData.Series(bp_new)
+                bv_new = IndexData.Series(bv_new)
                 bp_all.append(bp_new)
                 bv_all.append(bv_new)
-            bp_all = IndexData.concat_by_index(bp_all)
-            bv_all = IndexData.concat_by_index(bv_all)
+            bp_all = IndexData.concat(bp_all, axis = 1)
+            bv_all = IndexData.concat(bv_all, axis = 1)
 
-            base_volume = bv_all.sum(axis=0)
+            base_volume = bv_all.sum(axis = 1)
             self.order_indicator.assign("base_volume", base_volume.to_dict())
-            self.order_indicator.assign("base_price", ((bp_all * bv_all).sum(axis=0) / base_volume).to_dict())
+            self.order_indicator.assign("base_price", ((bp_all * bv_all).sum(axis=1) / base_volume).to_dict())
 
     def _agg_order_price_advantage(self):
         def if_empty_func(trade_price):
