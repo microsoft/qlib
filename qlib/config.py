@@ -83,6 +83,24 @@ _default_config = {
     "provider": "LocalProvider",
     # config it in qlib.init()
     "provider_uri": "",
+    # backend_freq_config is dict: {"day": "1d dataset uri", "1min": "1min dataset uri"}
+    # If `backend_freq_config` is not None && is not empty && "freq" in `backend_freq_config.keys()`
+    #   use `backend_freq_config` as backend-uri
+    # else:
+    #   use `provider_uri` as backend-uri
+    # Examples:
+    #   qlib.init(provider_uri="qlib_data/1d", backend_freq_config={"1min": "qlib_data/1min"})
+    #   # using provider_uri
+    #   D.features(D.instruments("all"), ["$close"], freq="day")
+    #   # using backend_freq_config["1min"]
+    #   D.features(D.instruments("all"), ["$close"], freq="1min")
+    #   ########################
+    #   qlib.init(provider_uri="qlib_data/1d", backend_freq_config={"1min": "qlib_data/1min", "day": "qlib_data/day"})
+    #   # using backend_freq_config["day"]
+    #   D.features(D.instruments("all"), ["$close"], freq="day")
+    #   # raise ValueError
+    #   D.features(D.instruments("all"), ["$close"], freq="week")
+    "backend_freq_config": None,
     # cache
     "expression_cache": None,
     "dataset_cache": None,
