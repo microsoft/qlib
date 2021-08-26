@@ -158,6 +158,7 @@ class CN1min_NumpyQuote(BaseQuote):
     def get_all_stock(self):
         return self.data.keys()
 
+    @lru_cache(maxsize=512)
     def get_data(self, stock_id, start_time, end_time, fields=None, method=None):
         if fields is None and method is not None:
             raise ValueError(f"method must be None when fields is None")
