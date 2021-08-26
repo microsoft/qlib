@@ -2,16 +2,20 @@
 # Licensed under the MIT License.
 
 
+from typing import Union, Callable
+import bisect
+
 import numpy as np
 import pandas as pd
-from typing import Union, Callable
 
 
 class IndexData:
-    """This is a simplified version of pandas which is faster based on numpy.
-    """
+    """This is a simplified version of pandas which is faster based on numpy."""
+
     @staticmethod
-    def Series(data: Union[dict, pd.Series, int, float, np.floating, list, np.ndarray] = [], index: Union[list, pd.Index] = []):
+    def Series(
+        data: Union[dict, pd.Series, int, float, np.floating, list, np.ndarray] = [], index: Union[list, pd.Index] = []
+    ):
         if isinstance(data, dict):
             return SingleData(list(data.values()), list(data.keys()))
         elif isinstance(data, pd.Series):
@@ -20,16 +24,20 @@ class IndexData:
             return SingleData(data, index)
 
     @staticmethod
-    def DataFrame(data: Union[pd.DataFrame, list, np.ndarray] = [[]], index: Union[list, pd.Index] = [], columns: Union[list, pd.Index] = []):
+    def DataFrame(
+        data: Union[pd.DataFrame, list, np.ndarray] = [[]],
+        index: Union[list, pd.Index] = [],
+        columns: Union[list, pd.Index] = [],
+    ):
         if isinstance(data, pd.DataFrame):
             return MultiData(data.values, data.index, data.columns)
-        else: 
+        else:
             return MultiData(data, index, columns)
 
     @staticmethod
-    def concat(data_list, axis = 0):
+    def concat(data_list, axis=0):
         """concat all SingleData by index.
-        just for 1-dim data.
+        TODO: now just for SingleData.
 
         Parameters
         ----------
@@ -57,15 +65,15 @@ class IndexData:
             for data_id, index_data in enumerate(data_list):
                 assert isinstance(index_data, SingleData)
                 now_data_map = [all_index_map[index] for index in index_data.index]
-                tmp_data[now_data_map, data_id] = index_data.data    
+                tmp_data[now_data_map, data_id] = index_data.data
             return MultiData(tmp_data, all_index)
         else:
             raise ValueError(f"axis must be 0 or 1")
 
 
 class BaseData:
-    """Base data structure of SingleData and MultiData.
-    """
+    """Base data structure of SingleData and MultiData."""
+
     def __init__(self):
         self.index_columns = self._get_index_columns()
 
@@ -78,8 +86,7 @@ class BaseData:
         return index_columns
 
     def _align_index(self, other):
-        """Align index before performing the four arithmetic operations.
-        """
+        """Align index before performing the four arithmetic operations."""
         raise NotImplementedError(f"please implement _align_index func")
 
     def __add__(self, other):
@@ -158,14 +165,12 @@ class BaseData:
         return self.__class__(~self.data, *self.index_columns)
 
     def abs(self):
-        """get the abs of data except np.NaN.
-        """
+        """get the abs of data except np.NaN."""
         tmp_data = np.absolute(self.data)
         return self.__class__(tmp_data, *self.index_columns)
 
     def astype(self, type):
-        """change the type of data.
-        """
+        """change the type of data."""
         tmp_data = self.data.astype(type)
         return self.__class__(tmp_data, *self.index_columns)
 
@@ -178,8 +183,7 @@ class BaseData:
         return self.__class__(tmp_data, *self.index_columns)
 
     def apply(self, func: Callable):
-        """apply a function to data.
-        """
+        """apply a function to data."""
         tmp_data = func(self.data)
         return self.__class__(tmp_data, *self.index_columns)
 
@@ -224,6 +228,10 @@ class BaseData:
     def empty(self):
         return len(self.data) == 0
 
+    @property
+    def values(self):
+        return self.data
+
 
 class SingleData(BaseData):
     def __init__(self, data: Union[int, float, np.floating, list, np.ndarray] = [], index: Union[list, pd.Index] = []):
@@ -239,7 +247,7 @@ class SingleData(BaseData):
         """
         # data
         if isinstance(data, (int, float, np.floating)):
-            self.data = np.full(len(index), fill_value=data)
+            self.data = np.full(len(index), fill_value=data, dtype=np.float64)
         elif isinstance(data, list):
             self.data = np.array(data)
         elif isinstance(data, np.ndarray):
@@ -249,12 +257,12 @@ class SingleData(BaseData):
         # data in SingleData must be one dim
         assert self.data.ndim == 1
         # replace int with float
-        if self.data.dtype == np.int:
+        if self.data.dtype == np.signedinteger:
             self.data = self.data.astype(np.float64)
         # replace None with np.NaN, because pd.Series does it.
         if None in self.data:
             self.data[self.data == None] = np.NaN
-        
+
         # index
         if isinstance(index, list):
             if index == [] and len(self.data) > 0:
@@ -265,18 +273,20 @@ class SingleData(BaseData):
         else:
             raise ValueError(f"index must be list or pd.Index")
         assert len(self.data) == len(self.index)
-        # if data is not empty, 
+        # if data is not empty,
         self.index_map = dict(zip(self.index, range(len(self.index))))
 
         super(SingleData, self).__init__()
 
     def _align_index(self, other):
         if self.index == other.index:
-            return self, other 
+            return self, other
         elif set(self.index) == set(other.index):
             return self, other.reindex(self.index)
         else:
-            raise ValueError(f"The indexes of self and other do not meet the requirements of the four arithmetic operations")
+            raise ValueError(
+                f"The indexes of self and other do not meet the requirements of the four arithmetic operations"
+            )
 
     def reindex(self, index, fill_value=np.NaN):
         """reindex data and fill the missing value with np.NaN.
@@ -291,7 +301,7 @@ class SingleData(BaseData):
         SingleData
             reindex data
         """
-        tmp_data = np.full(len(index), fill_value, np.float64)
+        tmp_data = np.full(len(index), fill_value, dtype=np.float64)
         for index_id, index_item in enumerate(index):
             if index_item in self.index:
                 tmp_data[index_id] = self.data[self.index_map[index_item]]
@@ -299,8 +309,8 @@ class SingleData(BaseData):
 
     def add(self, other, fill_value=0):
         common_index = list(set(self.index) | set(other.index))
-        tmp_data1 = self.reindex(common_index,fill_value)
-        tmp_data2 = other.reindex(common_index,fill_value)
+        tmp_data1 = self.reindex(common_index, fill_value)
+        tmp_data2 = other.reindex(common_index, fill_value)
         return tmp_data1 + tmp_data2
 
     def to_dict(self):
@@ -324,7 +334,7 @@ class SingleData(BaseData):
         return MultiData(self.data[:, np.newaxis], self.index)
 
     def to_pd_series(self):
-        return pd.Series(self.data, index = self.index)
+        return pd.Series(self.data, index=self.index)
 
     def __getitem__(self, index: Union["SingleData", int, str]):
         if isinstance(index, int):
@@ -340,7 +350,12 @@ class SingleData(BaseData):
 
 
 class MultiData(BaseData):
-    def __init__(self, data: Union[list, np.ndarray] = [[]], index: Union[list, pd.Index] = [], columns: Union[list, pd.Index] = []):
+    def __init__(
+        self,
+        data: Union[list, np.ndarray] = [[]],
+        index: Union[list, pd.Index] = [],
+        columns: Union[list, pd.Index] = [],
+    ):
         """A data structure of index and numpy data.
         It's used to replace pd.DataFrame due to high-speed.
 
@@ -363,12 +378,12 @@ class MultiData(BaseData):
         # data in SingleData must be two dim
         assert self.data.ndim == 2
         # replace int with float
-        if self.data.dtype == np.int:
+        if self.data.dtype == np.signedinteger:
             self.data = self.data.astype(np.float64)
         # replace None with np.NaN, because pd.DataFrame does it.
         if None in self.data:
             self.data[self.data == None] = np.NaN
-        
+
         # index
         if isinstance(index, list):
             if index == [] and self.data.shape[0] > 0:
@@ -379,7 +394,7 @@ class MultiData(BaseData):
         else:
             raise ValueError(f"index must be list or pd.Index")
         assert self.data.shape[0] == len(self.index)
-        # if data is not empty, 
+        # if data is not empty,
         self.index_map = dict(zip(self.index, range(len(self.index))))
 
         # columns
@@ -392,19 +407,29 @@ class MultiData(BaseData):
         else:
             raise ValueError(f"columns must be list or pd.Index")
         assert self.data.shape[1] == len(self.columns)
-        # if data is not empty, 
-        self.columns_map = dict(zip(self.columns, range(len(self.columns))))     
+        # if data is not empty,
+        self.columns_map = dict(zip(self.columns, range(len(self.columns))))
 
         super(MultiData, self).__init__()
 
     def _align_index(self, other):
         if self.index_columns == other.index_columns:
-            return self, other 
+            return self, other
         else:
-            raise ValueError(f"The indexes of self and other do not meet the requirements of the four arithmetic operations")
+            raise ValueError(
+                f"The indexes of self and other do not meet the requirements of the four arithmetic operations"
+            )
 
     def __getitem__(self, col) -> SingleData:
         if col not in self.columns:
             return SingleData()
         else:
             return SingleData(self.data[:, self.columns_map[col]], self.index)
+
+    def loc(self, start, end, col=None):
+        start_id = bisect.bisect_left(self.index, start)
+        end_id = bisect.bisect_right(self.index, end)
+        if col is None:
+            return MultiData(self.data[start_id:end_id], self.index[start_id:end_id], self.columns)
+        else:
+            return SingleData(self.data[start_id:end_id, self.columns_map[col]], self.index[start_id:end_id])

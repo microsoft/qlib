@@ -3,25 +3,19 @@
 
 
 from collections import OrderedDict
-from logging import warning
 import pathlib
-from typing import Dict, List, Tuple, Union, Callable
+from typing import Dict, List, Tuple
 
 import numpy as np
 import pandas as pd
-from pandas.core import groupby
-from pandas.core.frame import DataFrame
 
 from qlib.backtest.exchange import Exchange
 from qlib.backtest.order import BaseTradeDecision, Order, OrderDir
-from qlib.backtest.utils import TradeCalendarManager
 
 from .high_performance_ds import PandasOrderIndicator, NumpyOrderIndicator
-from ..utils.index_data import IndexData, SingleData 
-from ..data import D
+from ..utils.index_data import IndexData, SingleData
 from ..tests.config import CSI300_BENCH
 from ..utils.resam import get_higher_eq_freq_feature, resam_ts_data
-from ..utils.time import Freq
 from .order import IdxTradeRange
 
 
@@ -391,9 +385,7 @@ class Indicator:
         if price_s is None:
             return None, None
 
-        if isinstance(price_s, pd.Series):
-            price_s = IndexData.Series(price_s)
-        elif isinstance(price_s, (int, float, np.floating)):
+        if isinstance(price_s, (int, float, np.signedinteger, np.floating)):
             price_s = IndexData.Series(price_s, [trade_start_time])
         elif isinstance(price_s, SingleData):
             pass
@@ -479,10 +471,10 @@ class Indicator:
                 bv_new = IndexData.Series(bv_new)
                 bp_all.append(bp_new)
                 bv_all.append(bv_new)
-            bp_all = IndexData.concat(bp_all, axis = 1)
-            bv_all = IndexData.concat(bv_all, axis = 1)
+            bp_all = IndexData.concat(bp_all, axis=1)
+            bv_all = IndexData.concat(bv_all, axis=1)
 
-            base_volume = bv_all.sum(axis = 1)
+            base_volume = bv_all.sum(axis=1)
             self.order_indicator.assign("base_volume", base_volume.to_dict())
             self.order_indicator.assign("base_price", ((bp_all * bv_all).sum(axis=1) / base_volume).to_dict())
 
