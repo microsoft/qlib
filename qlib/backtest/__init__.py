@@ -19,6 +19,7 @@ from .utils import CommonInfrastructure, LevelInfrastructure, TradeCalendarManag
 from ..utils import init_instance_by_config
 from ..log import get_module_logger
 from ..config import C
+
 # make import more user-friendly by enable `from qlib.backtest import STH`
 
 
