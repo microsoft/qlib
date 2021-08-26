@@ -39,7 +39,7 @@ class Exchange:
         close_cost=0.0025,
         min_cost=5,
         extra_quote=None,
-        quote_cls=CN1Min_NumpyQuote,
+        quote_cls=PandasQuote,
         **kwargs,
     ):
         """__init__

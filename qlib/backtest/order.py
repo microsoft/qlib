@@ -109,7 +109,7 @@ class Order:
         return self.direction * 2 - 1
 
     @staticmethod
-    def parse_dir(direction: Union[str, int, np.integer, OrderDir]) -> OrderDir:
+    def parse_dir(direction: Union[str, int, np.integer, OrderDir, np.ndarray]) -> OrderDir:
         if isinstance(direction, OrderDir):
             return direction
         elif isinstance(direction, (int, float, np.integer, np.floating)):
@@ -125,6 +125,11 @@ class Order:
                 return OrderDir.BUY
             else:
                 raise NotImplementedError(f"This type of input is not supported")
+        elif isinstance(direction, np.ndarray):
+            direction_array = direction.copy()
+            direction_array[direction_array > 0] = Order.BUY
+            direction_array[direction_array <= 0] = Order.SELL
+            return direction_array
         else:
             raise NotImplementedError(f"This type of input is not supported")
 
