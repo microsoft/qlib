@@ -18,7 +18,7 @@ from ..config import C, REG_CN
 from ..utils.resam import resam_ts_data, ts_data_last
 from ..log import get_module_logger
 from .order import Order, OrderDir, OrderHelper
-from .high_performance_ds import PandasQuote, CN1min_NumpyQuote
+from .high_performance_ds import PandasQuote, CN1minNumpyQuote
 
 
 class Exchange:
@@ -36,7 +36,7 @@ class Exchange:
         close_cost=0.0025,
         min_cost=5,
         extra_quote=None,
-        quote_cls=CN1min_NumpyQuote,
+        quote_cls=CN1minNumpyQuote,
         **kwargs,
     ):
         """__init__
@@ -327,20 +327,20 @@ class Exchange:
 
         """
         if direction is None:
-            buy_limit = self.quote.get_data(stock_id, start_time, end_time, fields="limit_buy", method="all")
-            sell_limit = self.quote.get_data(stock_id, start_time, end_time, fields="limit_sell", method="all")
+            buy_limit = self.quote.get_data(stock_id, start_time, end_time, field="limit_buy", method="all")
+            sell_limit = self.quote.get_data(stock_id, start_time, end_time, field="limit_sell", method="all")
             return buy_limit or sell_limit
         elif direction == Order.BUY:
-            return self.quote.get_data(stock_id, start_time, end_time, fields="limit_buy", method="all")
+            return self.quote.get_data(stock_id, start_time, end_time, field="limit_buy", method="all")
         elif direction == Order.SELL:
-            return self.quote.get_data(stock_id, start_time, end_time, fields="limit_sell", method="all")
+            return self.quote.get_data(stock_id, start_time, end_time, field="limit_sell", method="all")
         else:
             raise ValueError(f"direction {direction} is not supported!")
 
     def check_stock_suspended(self, stock_id, start_time, end_time):
         # is suspended
         if stock_id in self.quote.get_all_stock():
-            return self.quote.get_data(stock_id, start_time, end_time) is None
+            return self.quote.get_data(stock_id, start_time, end_time, "$close") is None
         else:
             return True
 
@@ -411,10 +411,10 @@ class Exchange:
         return self.quote.get_data(stock_id, start_time, end_time, method=method)
 
     def get_close(self, stock_id, start_time, end_time, method=ts_data_last):
-        return self.quote.get_data(stock_id, start_time, end_time, fields="$close", method=method)
+        return self.quote.get_data(stock_id, start_time, end_time, field="$close", method=method)
 
     def get_volume(self, stock_id, start_time, end_time, method="sum"):
-        return self.quote.get_data(stock_id, start_time, end_time, fields="$volume", method=method)
+        return self.quote.get_data(stock_id, start_time, end_time, field="$volume", method=method)
 
     def get_deal_price(self, stock_id, start_time, end_time, direction: OrderDir, method=ts_data_last):
         if direction == OrderDir.SELL:
@@ -423,7 +423,7 @@ class Exchange:
             pstr = self.buy_price
         else:
             raise NotImplementedError(f"This type of input is not supported")
-        deal_price = self.quote.get_data(stock_id, start_time, end_time, fields=pstr, method=method)
+        deal_price = self.quote.get_data(stock_id, start_time, end_time, field=pstr, method=method)
         if method is not None and (np.isclose(deal_price, 0.0) or np.isnan(deal_price)):
             self.logger.warning(f"(stock_id:{stock_id}, trade_time:{(start_time, end_time)}, {pstr}): {deal_price}!!!")
             self.logger.warning(f"setting deal_price to close price")
@@ -441,7 +441,7 @@ class Exchange:
         assert start_time is not None and end_time is not None, "the time range must be given"
         if stock_id not in self.quote.get_all_stock():
             return None
-        return self.quote.get_data(stock_id, start_time, end_time, fields="$factor", method=ts_data_last)
+        return self.quote.get_data(stock_id, start_time, end_time, field="$factor", method=ts_data_last)
 
     def generate_amount_position_from_weight_position(
         self, weight_position, cash, start_time, end_time, direction=OrderDir.BUY
@@ -684,7 +684,7 @@ class Exchange:
                     order.stock_id,
                     order.start_time,
                     order.end_time,
-                    fields=limit[1],
+                    field=limit[1],
                     method="sum",
                 )
                 vol_limit_num.append(limit_value)
@@ -693,7 +693,7 @@ class Exchange:
                     order.stock_id,
                     order.start_time,
                     order.end_time,
-                    fields=limit[1],
+                    field=limit[1],
                     method=ts_data_last,
                 )
                 vol_limit_num.append(limit_value - dealt_order_amount[order.stock_id])

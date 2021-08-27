@@ -35,7 +35,7 @@ class IndexData:
             return MultiData(data, index, columns)
 
     @staticmethod
-    def concat(data_list, axis=0):
+    def concat(data_list: Union["SingleData"], axis=0) -> "MultiData":
         """concat all SingleData by index.
         TODO: now just for SingleData.
 
@@ -50,7 +50,7 @@ class IndexData:
             the MultiData with ndim == 2
         """
         if axis == 0:
-            raise NotImplementedError(f"please implement this fuc when axis == 0")
+            raise NotImplementedError(f"please implement this func when axis == 0")
         elif axis == 1:
             # get all index and row
             all_index = set()
@@ -90,7 +90,7 @@ class BaseData:
         raise NotImplementedError(f"please implement _align_index func")
 
     def __add__(self, other):
-        if isinstance(other, (int, float, np.floating)):
+        if isinstance(other, (int, float, np.number)):
             return self.__class__(self.data + other, *self.index_columns)
         elif isinstance(other, self.__class__):
             tmp_data1, tmp_data2 = self._align_index(other)
@@ -99,7 +99,7 @@ class BaseData:
             return NotImplemented
 
     def __sub__(self, other):
-        if isinstance(other, (int, float, np.floating)):
+        if isinstance(other, (int, float, np.number)):
             return self.__class__(self.data - other, *self.index_columns)
         elif isinstance(other, self.__class__):
             tmp_data1, tmp_data2 = self._align_index(other)
@@ -108,7 +108,7 @@ class BaseData:
             return NotImplemented
 
     def __rsub__(self, other):
-        if isinstance(other, (int, float, np.floating)):
+        if isinstance(other, (int, float, np.number)):
             return self.__class__(other - self.data, *self.index_columns)
         elif isinstance(other, self.__class__):
             tmp_data1, tmp_data2 = self._align_index(other)
@@ -117,7 +117,7 @@ class BaseData:
             return NotImplemented
 
     def __mul__(self, other):
-        if isinstance(other, (int, float, np.floating)):
+        if isinstance(other, (int, float, np.number)):
             return self.__class__(self.data * other, *self.index_columns)
         elif isinstance(other, self.__class__):
             tmp_data1, tmp_data2 = self._align_index(other)
@@ -126,7 +126,7 @@ class BaseData:
             return NotImplemented
 
     def __truediv__(self, other):
-        if isinstance(other, (int, float, np.floating)):
+        if isinstance(other, (int, float, np.number)):
             return self.__class__(self.data / other, *self.index_columns)
         elif isinstance(other, self.__class__):
             tmp_data1, tmp_data2 = self._align_index(other)
@@ -135,7 +135,7 @@ class BaseData:
             return NotImplemented
 
     def __eq__(self, other):
-        if isinstance(other, (int, float, np.floating)):
+        if isinstance(other, (int, float, np.number)):
             return self.__class__(self.data == other, *self.index_columns)
         elif isinstance(other, self.__class__):
             tmp_data1, tmp_data2 = self._align_index(other)
@@ -144,7 +144,7 @@ class BaseData:
             return NotImplemented
 
     def __gt__(self, other):
-        if isinstance(other, (int, float, np.floating)):
+        if isinstance(other, (int, float, np.number)):
             return self.__class__(self.data > other, *self.index_columns)
         elif isinstance(other, self.__class__):
             tmp_data1, tmp_data2 = self._align_index(other)
@@ -153,7 +153,7 @@ class BaseData:
             return NotImplemented
 
     def __lt__(self, other):
-        if isinstance(other, (int, float, np.floating)):
+        if isinstance(other, (int, float, np.number)):
             return self.__class__(self.data < other, *self.index_columns)
         elif isinstance(other, self.__class__):
             tmp_data1, tmp_data2 = self._align_index(other)
@@ -169,9 +169,9 @@ class BaseData:
         tmp_data = np.absolute(self.data)
         return self.__class__(tmp_data, *self.index_columns)
 
-    def astype(self, type):
+    def astype(self, dtype):
         """change the type of data."""
-        tmp_data = self.data.astype(type)
+        tmp_data = self.data.astype(dtype)
         return self.__class__(tmp_data, *self.index_columns)
 
     def replace(self, to_replace: dict):
@@ -234,7 +234,7 @@ class BaseData:
 
 
 class SingleData(BaseData):
-    def __init__(self, data: Union[int, float, np.floating, list, np.ndarray] = [], index: Union[list, pd.Index] = []):
+    def __init__(self, data: Union[int, float, np.number, list] = [], index: Union[list, pd.Index] = []):
         """A data structure of index and numpy data.
         It's used to replace pd.Series due to high-speed.
 
@@ -301,6 +301,8 @@ class SingleData(BaseData):
         SingleData
             reindex data
         """
+        if self.index == index:
+            return self
         tmp_data = np.full(len(index), fill_value, dtype=np.float64)
         for index_id, index_item in enumerate(index):
             if index_item in self.index:
@@ -323,17 +325,7 @@ class SingleData(BaseData):
         """
         return dict(zip(self.index, self.data.tolist()))
 
-    def to_frame(self):
-        """convert SingleData to MultiData.
-
-        Returns
-        -------
-        MultiData
-            data with the MultiData format.
-        """
-        return MultiData(self.data[:, np.newaxis], self.index)
-
-    def to_pd_series(self):
+    def to_series(self):
         return pd.Series(self.data, index=self.index)
 
     def __getitem__(self, index: Union["SingleData", int, str]):
