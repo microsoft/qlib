@@ -38,8 +38,8 @@ def get_min_cal(shift: int = 0) -> List[time]:
     return cal
 
 
-def if_single_data(start_time, end_time, freq):
-    """Is there only one piece of data to obtain.
+def is_single_value(start_time, end_time, freq):
+    """Is there only one piece of data for cn stock market.
 
     Parameters
     ----------

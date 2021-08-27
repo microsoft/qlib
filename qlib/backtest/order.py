@@ -109,7 +109,7 @@ class Order:
         return self.direction * 2 - 1
 
     @staticmethod
-    def parse_dir(direction: Union[str, int, np.integer, OrderDir, np.ndarray]) -> OrderDir:
+    def parse_dir(direction: Union[str, int, np.integer, OrderDir, np.ndarray]) -> Union[OrderDir, np.ndarray]:
         if isinstance(direction, OrderDir):
             return direction
         elif isinstance(direction, (int, float, np.integer, np.floating)):

@@ -2,21 +2,19 @@
 # Licensed under the MIT License.
 
 
-from builtins import ValueError, isinstance
 from functools import lru_cache
 import logging
 from typing import List, Text, Union, Callable, Iterable, Dict
 from collections import OrderedDict
 
 import inspect
-import bisect
 import pandas as pd
 import numpy as np
 
-from ..utils.index_data import IndexData
+from ..utils.index_data import IndexData, SingleData
 from ..utils.resam import resam_ts_data, ts_data_last
 from ..log import get_module_logger
-from ..utils.time import if_single_data
+from ..utils.time import is_single_value
 
 
 class BaseQuote:
@@ -39,10 +37,10 @@ class BaseQuote:
         stock_id: str,
         start_time: Union[pd.Timestamp, str],
         end_time: Union[pd.Timestamp, str],
-        fields: Union[str, None] = None,
+        field: Union[str],
         method: Union[str, Callable, None] = None,
-    ) -> Union[None, Union[int, float, bool], "IndexData"]:
-        """get the specific fields of stock data during start time and end_time,
+    ) -> Union[None, int, float, bool, "IndexData"]:
+        """get the specific field of stock data during start time and end_time,
            and apply method to the data.
 
            Example:
@@ -63,22 +61,13 @@ class BaseQuote:
 
                 this function is used for three case:
 
-                1. Both fields and method are not None. It returns int/float/bool.
-                    print(get_data(stock_id="SH600000", start_time="2010-01-04", end_time="2010-01-06", fields="$close", method="last"))
+                1. method is not None. It returns int/float/bool.
+                    print(get_data(stock_id="SH600000", start_time="2010-01-04", end_time="2010-01-06", field="$close", method="last"))
 
                     85.713585
 
-                2. Both fields and method are None. It returns np.ndarray.
-                    print(get_data(stock_id="SH600000", start_time="2010-01-04", end_time="2010-01-06", fields=None, method=None))
-
-                    [
-                        [86.778313, 16162960.0],
-                        [87.433578, 28117442.0],
-                        [85.713585, 23632884.0],
-                    ]
-
-                3. fields is not None, and method is None. It returns IndexData.
-                    print(get_data(stock_id="SH600000", start_time="2010-01-04", end_time="2010-01-06", fields="$close", method=None))
+                2. method is None. It returns IndexData.
+                    print(get_data(stock_id="SH600000", start_time="2010-01-04", end_time="2010-01-06", field="$close", method=None))
 
                     IndexData([86.778313, 87.433578, 85.713585], [2010-01-04, 2010-01-05, 2010-01-06])
 
@@ -89,7 +78,7 @@ class BaseQuote:
             closed start time for backtest
         end_time : Union[pd.Timestamp, str]
             closed end time for backtest
-        fields : Union[str, None]
+        field : str
             the columns of data to fetch
         method : Union[str, Callable, None]
             the method apply to data.
@@ -97,7 +86,8 @@ class BaseQuote:
 
         Return
         ----------
-        Union[None, Union[int, float, bool], IndexData]
+        Union[None, int, float, bool, IndexData]
+            None means there is no stock data from data source.
             please refer to Example as following.
         """
 
@@ -115,32 +105,21 @@ class PandasQuote(BaseQuote):
     def get_all_stock(self):
         return self.data.keys()
 
-    def get_data(self, stock_id, start_time, end_time, fields=None, method=None):
-        if fields is None and method is not None:
-            raise ValueError(f"method must be None when fields is None")
-
-        if fields is None:
-            stock_data = resam_ts_data(self.data[stock_id], start_time, end_time, method=method)
-        elif isinstance(fields, str):
-            stock_data = resam_ts_data(self.data[stock_id][fields], start_time, end_time, method=method)
-        else:
-            raise ValueError(f"fields must be None, str")
-
+    def get_data(self, stock_id, start_time, end_time, field, method=None):
+        stock_data = resam_ts_data(self.data[stock_id][field], start_time, end_time, method=method)
         if stock_data is None:
             return None
-        elif isinstance(stock_data, (bool, np.bool_, int, float, np.signedinteger, np.floating)):
+        elif isinstance(stock_data, (bool, np.bool_, int, float, np.number)):
             return stock_data
         elif isinstance(stock_data, pd.Series):
             return IndexData.Series(stock_data)
-        elif isinstance(stock_data, pd.DataFrame):
-            return stock_data.values
         else:
             raise ValueError(f"stock data from resam_ts_data must be a number, pd.Series or pd.DataFrame")
 
 
-class CN1min_NumpyQuote(BaseQuote):
+class CN1minNumpyQuote(BaseQuote):
     def __init__(self, quote_df: pd.DataFrame):
-        """CN1min_NumpyQuote
+        """CN1minNumpyQuote
 
         Parameters
         ----------
@@ -153,48 +132,37 @@ class CN1min_NumpyQuote(BaseQuote):
         for stock_id, stock_val in quote_df.groupby(level="instrument"):
             quote_dict[stock_id] = IndexData.DataFrame(stock_val.droplevel(level="instrument"))
         self.data = quote_dict
-        self.freq = np.timedelta64(1, "m")
+        self.freq = pd.Timedelta(minutes=1)
 
     def get_all_stock(self):
         return self.data.keys()
 
     @lru_cache(maxsize=512)
-    def get_data(self, stock_id, start_time, end_time, fields=None, method=None):
-        if fields is None and method is not None:
-            raise ValueError(f"method must be None when fields is None")
-
+    def get_data(self, stock_id, start_time, end_time, field, method=None):
         # check stock id
         if stock_id not in self.get_all_stock():
             return None
 
         # single data
         # If it don't consider the classification of single data, it will consume a lot of time.
-        if if_single_data(start_time, end_time, self.freq):
+        if is_single_value(start_time, end_time, self.freq):
             now_index_map = self.data[stock_id].index_map
             now_columns_map = self.data[stock_id].columns_map
             if start_time not in now_index_map:
                 return None
-            if fields is None:
-                return self.data[stock_id].values[now_index_map[start_time]]
             else:
-                return self.data[stock_id].values[now_index_map[start_time], now_columns_map[fields]]
+                return self.data[stock_id].values[now_index_map[start_time], now_columns_map[field]]
 
         # multi data
         else:
-            if fields is None and method is None:
-                stock_data = self.data[stock_id].loc(start_time, end_time)
-                if stock_data.empty:
-                    return None
-                else:
-                    return stock_data.values
-            elif fields is not None and method is None:
-                stock_data = self.data[stock_id].loc(start_time, end_time, fields)
+            if method is None:
+                stock_data = self.data[stock_id].loc(start_time, end_time, field)
                 if stock_data.empty:
                     return None
                 else:
                     return stock_data
-            elif fields is not None and method is not None:
-                stock_data = self.data[stock_id].loc(start_time, end_time, fields)
+            else:
+                stock_data = self.data[stock_id].loc(start_time, end_time, field)
                 if stock_data.empty:
                     return None
                 elif len(stock_data) == 1:
@@ -231,6 +199,20 @@ class BaseSingleMetric:
     """
 
     def __init__(self, metric: Union[dict, pd.Series]):
+        """Single data structure for each metric.
+
+        Parameters
+        ----------
+        metric : Union[dict, pd.Series]
+            keys/index is stock_id, value is the metric value.
+            for example:
+                SH600068    NaN
+                SH600079    1.0
+                SH600266    NaN
+                           ...
+                SZ300692    NaN
+                SZ300719    NaN,
+        """
         raise NotImplementedError(f"Please implement the `__init__` method")
 
     def __add__(self, other: Union["BaseSingleMetric", int, float]) -> "BaseSingleMetric":
@@ -277,7 +259,7 @@ class BaseSingleMetric:
     def abs(self) -> "BaseSingleMetric":
         raise NotImplementedError(f"Please implement the `abs` method")
 
-    def astype(self, type: type) -> "BaseSingleMetric":
+    def astype(self, dtype: type) -> "BaseSingleMetric":
         raise NotImplementedError(f"Please implement the `astype` method")
 
     @property
@@ -316,7 +298,8 @@ class BaseOrderIndicator:
         to inherit the BaseSingleMetric.
     """
 
-    def __init__(self):
+    def __init__(self, data):
+        self.data = data
         self.logger = get_module_logger("online operator")
 
     def assign(self, col: str, metric: Union[dict, pd.Series]):
@@ -358,8 +341,13 @@ class BaseOrderIndicator:
         BaseSingleMetric
             new metric.
         """
-
-        raise NotImplementedError(f"Please implement the 'transfer' method")
+        func_sig = inspect.signature(func).parameters.keys()
+        func_kwargs = {sig: self.data[sig] for sig in func_sig}
+        tmp_metric = func(**func_kwargs)
+        if new_col is not None:
+            self.data[new_col] = tmp_metric
+        else:
+            return tmp_metric
 
     def get_metric_series(self, metric: str) -> pd.Series:
         """return the single metric with pd.Series format.
@@ -378,8 +366,8 @@ class BaseOrderIndicator:
 
         raise NotImplementedError(f"Please implement the 'get_metric_series' method")
 
-    def get_index_data(self, metric) -> IndexData.Series:
-        """get one metric with the format of IndexData.Series
+    def get_index_data(self, metric) -> SingleData:
+        """get one metric with the format of SingleData
 
         Parameters
         ----------
@@ -389,7 +377,7 @@ class BaseOrderIndicator:
         Return
         ------
         IndexData.Series
-            one metric with the format of IndexData.Series
+            one metric with the format of SingleData
         """
 
         raise NotImplementedError(f"Please implement the 'get_index_data' method")
@@ -431,6 +419,9 @@ class BaseOrderIndicator:
 
 
 class SingleMetric(BaseSingleMetric):
+    def __init__(self, metric):
+        self.metric = metric
+
     def __add__(self, other):
         if isinstance(other, (int, float)):
             return self.__class__(self.metric + other)
@@ -502,7 +493,7 @@ class SingleMetric(BaseSingleMetric):
 class PandasSingleMetric(SingleMetric):
     """Each SingleMetric is based on pd.Series."""
 
-    def __init__(self, metric: Union[dict, pd.Series]):
+    def __init__(self, metric: Union[dict, pd.Series] = {}):
         if isinstance(metric, dict):
             self.metric = pd.Series(metric)
         elif isinstance(metric, pd.Series):
@@ -522,12 +513,16 @@ class PandasSingleMetric(SingleMetric):
     def abs(self):
         return self.__class__(self.metric.abs())
 
-    def astype(self, type):
-        return self.__class__(self.metric.astype(type))
+    def astype(self, dtype):
+        return self.__class__(self.metric.astype(dtype))
 
     @property
     def empty(self):
         return self.metric.empty
+
+    @property
+    def index(self):
+        return list(self.metric.index)
 
     def add(self, other, fill_value=None):
         return self.__class__(self.metric.add(other.metric, fill_value=fill_value))
@@ -537,6 +532,9 @@ class PandasSingleMetric(SingleMetric):
 
     def apply(self, func: Callable):
         return self.__class__(self.metric.apply(func))
+
+    def reindex(self, index, fill_value):
+        return self.__class__(self.metric.reindex(index, fill_value=fill_value))
 
 
 class PandasOrderIndicator(BaseOrderIndicator):
@@ -551,15 +549,6 @@ class PandasOrderIndicator(BaseOrderIndicator):
 
     def assign(self, col: str, metric: Union[dict, pd.Series]):
         self.data[col] = PandasSingleMetric(metric)
-
-    def transfer(self, func: Callable, new_col: str = None) -> Union[None, PandasSingleMetric]:
-        func_sig = inspect.signature(func).parameters.keys()
-        func_kwargs = {sig: self.data[sig] for sig in func_sig}
-        tmp_metric = func(**func_kwargs)
-        if new_col is not None:
-            self.data[new_col] = tmp_metric
-        else:
-            return tmp_metric
 
     def get_index_data(self, metric):
         if metric in self.data:
@@ -577,7 +566,7 @@ class PandasOrderIndicator(BaseOrderIndicator):
         return {k: v.metric for k, v in self.data.items()}
 
     @staticmethod
-    def sum_all_indicators(order_indicator, indicators: list, metrics: Union[str, List[str]], fill_value=None):
+    def sum_all_indicators(order_indicator, indicators: list, metrics: Union[str, List[str]], fill_value=0):
         if isinstance(metrics, str):
             metrics = [metrics]
         for metric in metrics:
@@ -589,25 +578,16 @@ class PandasOrderIndicator(BaseOrderIndicator):
 
 class NumpyOrderIndicator(BaseOrderIndicator):
     """
-    The data structure is OrderedDict(str: IndexData.Series).
+    The data structure is OrderedDict(str: SingleData).
     Each IndexData.Series is one metric.
     Str is the name of metric.
     """
 
     def __init__(self):
-        self.data: Dict[str, IndexData.Series] = OrderedDict()
+        self.data: Dict[str, SingleData] = OrderedDict()
 
     def assign(self, col: str, metric: dict):
         self.data[col] = IndexData.Series(metric)
-
-    def transfer(self, func: Callable, new_col: str = None) -> Union[None, IndexData.Series]:
-        func_sig = inspect.signature(func).parameters.keys()
-        func_kwargs = {sig: self.data[sig] for sig in func_sig}
-        tmp_metric = func(**func_kwargs)
-        if new_col is not None:
-            self.data[new_col] = tmp_metric
-        else:
-            return tmp_metric
 
     def get_index_data(self, metric):
         if metric in self.data:
@@ -616,7 +596,7 @@ class NumpyOrderIndicator(BaseOrderIndicator):
             return IndexData.Series()
 
     def get_metric_series(self, metric: str) -> Union[pd.Series]:
-        return self.data[metric].to_pd_series()
+        return self.data[metric].to_series()
 
     def to_series(self) -> Dict[str, pd.Series]:
         tmp_metric_dict = {}

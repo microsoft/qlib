@@ -4,15 +4,14 @@
 
 from collections import OrderedDict
 import pathlib
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Union
 
 import numpy as np
 import pandas as pd
 
 from qlib.backtest.exchange import Exchange
 from qlib.backtest.order import BaseTradeDecision, Order, OrderDir
-
-from .high_performance_ds import PandasOrderIndicator, NumpyOrderIndicator
+from .high_performance_ds import PandasOrderIndicator, NumpyOrderIndicator, SingleMetric
 from ..utils.index_data import IndexData, SingleData
 from ..tests.config import CSI300_BENCH
 from ..utils.resam import get_higher_eq_freq_feature, resam_ts_data
@@ -305,8 +304,9 @@ class Indicator:
 
     def _update_order_fulfill_rate(self):
         def func(deal_amount, amount):
-            # deal_amount is np.NaN when there is no inner decision. So full fill rate is 0.
-            tmp_deal_amount = deal_amount.replace({np.NaN: 0})
+            # deal_amount is np.NaN or None when there is no inner decision. So full fill rate is 0.
+            tmp_deal_amount = deal_amount.reindex(amount.index, 0)
+            tmp_deal_amount = tmp_deal_amount.replace({np.NaN: 0})
             return tmp_deal_amount / amount
 
         self.order_indicator.transfer(func, "ffr")
@@ -385,7 +385,7 @@ class Indicator:
         if price_s is None:
             return None, None
 
-        if isinstance(price_s, (int, float, np.signedinteger, np.floating)):
+        if isinstance(price_s, (int, float, np.number)):
             price_s = IndexData.Series(price_s, [trade_start_time])
         elif isinstance(price_s, SingleData):
             pass
@@ -400,7 +400,7 @@ class Indicator:
 
         if agg == "vwap":
             volume_s = trade_exchange.get_volume(inst, trade_start_time, trade_end_time, method=None)
-            if isinstance(volume_s, (int, float, np.floating)):
+            if isinstance(volume_s, (int, float, np.number)):
                 volume_s = IndexData.Series(volume_s, [trade_start_time])
             volume_s = volume_s.reindex(price_s.index)
         elif agg == "twap":
@@ -414,7 +414,7 @@ class Indicator:
 
     def _agg_base_price(
         self,
-        inner_order_indicators: List[Dict[str, pd.Series]],
+        inner_order_indicators: List[Dict[str, Union[SingleMetric, SingleData]]],
         decision_list: List[Tuple[BaseTradeDecision, pd.Timestamp, pd.Timestamp]],
         trade_exchange: Exchange,
         pa_config: dict = {},
