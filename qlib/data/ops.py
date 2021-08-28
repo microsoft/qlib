@@ -15,7 +15,7 @@ from scipy.stats import percentileofscore
 
 from .base import Expression, ExpressionOps
 from ..log import get_module_logger
-from ..utils import get_cls_kwargs
+from ..utils import get_callable_kwargs
 
 try:
     from ._libs.rolling import rolling_slope, rolling_rsquare, rolling_resi
@@ -1513,7 +1513,7 @@ class OpsWrapper:
         """
         for _operator in ops_list:
             if isinstance(_operator, dict):
-                _ops_class, _ = get_cls_kwargs(_operator)
+                _ops_class, _ = get_callable_kwargs(_operator)
             else:
                 _ops_class = _operator
 

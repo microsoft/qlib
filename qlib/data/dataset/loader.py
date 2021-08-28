@@ -12,7 +12,7 @@ from typing import Tuple, Union, List, Type
 from qlib.data import D
 from qlib.data import filter as filter_module
 from qlib.data.filter import BaseDFilter
-from qlib.utils import load_dataset, init_instance_by_config, time_to_slc_point, get_cls_kwargs
+from qlib.utils import load_dataset, init_instance_by_config, time_to_slc_point, get_callable_kwargs
 from qlib.log import get_module_logger
 
 
@@ -212,7 +212,7 @@ class QlibDataLoader(DLWParser):
                 raise ValueError(f"sample method error, only pandas.DataFrame.resample is supported")
         elif isinstance(_method, dict):
             # module_path && func name
-            _method, _ = get_cls_kwargs(_method, obj_type="func")
+            _method, _ = get_callable_kwargs(_method)
         else:
             raise TypeError(f"sample_method only supports [str, dict], currently it is {_method}")
         return _method
