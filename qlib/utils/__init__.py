@@ -189,9 +189,7 @@ def get_module_by_module_path(module_path: Union[str, ModuleType]):
     return module
 
 
-def get_cls_kwargs(
-    config: Union[dict, str], default_module: Union[str, ModuleType] = None, obj_type: str = "class"
-) -> (type, dict):
+def get_callable_kwargs(config: Union[dict, str], default_module: Union[str, ModuleType] = None) -> (type, dict):
     """
     extract class/func and kwargs from config info
 
@@ -205,8 +203,6 @@ def get_cls_kwargs(
         This function will load class from the config['module_path'] first.
         If config['module_path'] doesn't exists, it will load the class from default_module.
 
-    obj_type: str
-        "class" or "func"
     Returns
     -------
     (type, dict):
@@ -216,16 +212,16 @@ def get_cls_kwargs(
         module = get_module_by_module_path(config.get("module_path", default_module))
 
         # raise AttributeError
-        _obj = getattr(module, config[obj_type])
+        _callable = getattr(module, config["class" if "class" in config else "func"])
         kwargs = config.get("kwargs", {})
     elif isinstance(config, str):
         module = get_module_by_module_path(default_module)
 
-        _obj = getattr(module, config)
+        _callable = getattr(module, config)
         kwargs = {}
     else:
         raise NotImplementedError(f"This type of input is not supported")
-    return _obj, kwargs
+    return _callable, kwargs
 
 
 def init_instance_by_config(
@@ -276,7 +272,7 @@ def init_instance_by_config(
             with open(os.path.join(pr.netloc, pr.path), "rb") as f:
                 return pickle.load(f)
 
-    klass, cls_kwargs = get_cls_kwargs(config, default_module=default_module)
+    klass, cls_kwargs = get_callable_kwargs(config, default_module=default_module)
     return klass(**cls_kwargs, **kwargs)
 
 

@@ -17,7 +17,7 @@ from typing import Callable, List
 from qlib.data.dataset import Dataset
 from qlib.log import get_module_logger
 from qlib.model.base import Model
-from qlib.utils import flatten_dict, get_cls_kwargs, init_instance_by_config
+from qlib.utils import flatten_dict, get_callable_kwargs, init_instance_by_config
 from qlib.workflow import R
 from qlib.workflow.record_temp import SignalRecord
 from qlib.workflow.recorder import Recorder
@@ -71,7 +71,7 @@ def end_task_train(rec: Recorder, experiment_name: str) -> Recorder:
         if isinstance(records, dict):  # prevent only one dict
             records = [records]
         for record in records:
-            cls, kwargs = get_cls_kwargs(record, default_module="qlib.workflow.record_temp")
+            cls, kwargs = get_callable_kwargs(record, default_module="qlib.workflow.record_temp")
             if cls is SignalRecord:
                 rconf = {"model": model, "dataset": dataset, "recorder": rec}
             else:
