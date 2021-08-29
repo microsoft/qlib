@@ -548,7 +548,7 @@ class DatasetProvider(abc.ABC):
             for _processor in inst_processors if isinstance(inst_processors, (list, tuple, set)) else [inst_processors]:
                 _processor = init_instance_by_config(_processor, accept_types=InstProcessor)
                 data = _processor(data)
-            return data
+        return data
 
 
 class LocalCalendarProvider(CalendarProvider):
