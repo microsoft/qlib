@@ -17,6 +17,7 @@ import copy
 import logging
 import multiprocessing
 from pathlib import Path
+from typing import Union
 
 
 class Config:
@@ -82,25 +83,16 @@ _default_config = {
     "dataset_provider": "LocalDatasetProvider",
     "provider": "LocalProvider",
     # config it in qlib.init()
+    # "provider_uri" str or dict:
+    #   # str
+    #   "~/.qlib/stock_data/cn_data"
+    #   # dict
+    #   {"day": "~/.qlib/stock_data/cn_data", "1min": "~/.qlib/stock_data/cn_data_1min"}
+    # NOTE: provider_uri priority：
+    #   1. backend_config: backend_obj["kwargs"]["provider_uri"]
+    #   2. backend_config: backend_obj["kwargs"]["provider_uri_map"]
+    #   3. qlib.init: provider_uri
     "provider_uri": "",
-    # backend_freq_config is dict: {"day": "1d dataset uri", "1min": "1min dataset uri"}
-    # If `backend_freq_config` is not None && is not empty && "freq" in `backend_freq_config.keys()`
-    #   use `backend_freq_config` as backend-uri
-    # else:
-    #   use `provider_uri` as backend-uri
-    # Examples:
-    #   qlib.init(provider_uri="qlib_data/1d", backend_freq_config={"1min": "qlib_data/1min"})
-    #   # using provider_uri
-    #   D.features(D.instruments("all"), ["$close"], freq="day")
-    #   # using backend_freq_config["1min"]
-    #   D.features(D.instruments("all"), ["$close"], freq="1min")
-    #   ########################
-    #   qlib.init(provider_uri="qlib_data/1d", backend_freq_config={"1min": "qlib_data/1min", "day": "qlib_data/day"})
-    #   # using backend_freq_config["day"]
-    #   D.features(D.instruments("all"), ["$close"], freq="day")
-    #   # raise ValueError
-    #   D.features(D.instruments("all"), ["$close"], freq="week")
-    "backend_freq_config": None,
     # cache
     "expression_cache": None,
     "dataset_cache": None,
@@ -262,28 +254,55 @@ class QlibConfig(Config):
 
     def resolve_path(self):
         # resolve path
-        if self["mount_path"] is not None:
-            self["mount_path"] = str(Path(self["mount_path"]).expanduser().resolve())
+        _mount_path = self["mount_path"]
+        _provider_uri = self["provider_uri"]
+        if isinstance(_provider_uri, dict):
+            if _mount_path is not None:
+                # check provider_uri and mount_path
+                assert isinstance(_mount_path, dict), f"type(provider_uri) != type(mount_path); {_mount_path}"
+                _miss_freq = set(_provider_uri.keys()) - set(_mount_path.keys())
+                assert len(_miss_freq) == 0, f"mount_path is missing freq: {_miss_freq}"
+                self["mount_path"] = {_freq: str(Path(_path).expanduser().resolve()) for _freq, _path in _mount_path}
+            for _freq, _uri in _provider_uri.items():
+                if self.get_uri_type(_uri) == QlibConfig.LOCAL_URI:
+                    self["provider_uri"][_freq] = str(Path(_uri).expanduser().resolve())
+        elif isinstance(_provider_uri, str):
+            if _mount_path is not None:
+                self["mount_path"] = str(Path(_mount_path).expanduser().resolve())
 
-        if self.get_uri_type() == QlibConfig.LOCAL_URI:
-            self["provider_uri"] = str(Path(self["provider_uri"]).expanduser().resolve())
+            if self.get_uri_type(_provider_uri) == QlibConfig.LOCAL_URI:
+                self["provider_uri"] = str(Path(_provider_uri).expanduser().resolve())
+        else:
+            raise TypeError(
+                f"The types supported by provider_uri are [str, dict], " f"not {type(_provider_uri)}: {_provider_uri}"
+            )
 
-    def get_uri_type(self):
-        is_win = re.match("^[a-zA-Z]:.*", self["provider_uri"]) is not None  # such as 'C:\\data', 'D:'
-        is_nfs_or_win = (
-            re.match("^[^/]+:.+", self["provider_uri"]) is not None
-        )  # such as 'host:/data/'   (User may define short hostname by themselves or use localhost)
+    @staticmethod
+    def get_uri_type(uri: Union[str, Path]):
+        uri = uri if isinstance(uri, str) else str(uri.expanduser().resolve())
+        is_win = re.match("^[a-zA-Z]:.*", uri) is not None  # such as 'C:\\data', 'D:'
+        # such as 'host:/data/'   (User may define short hostname by themselves or use localhost)
+        is_nfs_or_win = re.match("^[^/]+:.+", uri) is not None
 
         if is_nfs_or_win and not is_win:
             return QlibConfig.NFS_URI
         else:
             return QlibConfig.LOCAL_URI
 
-    def get_data_path(self):
-        if self.get_uri_type() == QlibConfig.LOCAL_URI:
-            return self["provider_uri"]
-        elif self.get_uri_type() == QlibConfig.NFS_URI:
-            return self["mount_path"]
+    def get_data_path(self, freq: str = None) -> Path:
+        if freq is None and not isinstance(self["provider_uri"], str):
+            raise ValueError(f"type(provider_uri) == dict, freq cannot be None; provider_uri: {self['provider_uri']}")
+        _provider_uri = self["provider_uri"] if isinstance(self["provider_uri"], str) else self["provider_uri"][freq]
+        _mount_path = (
+            self["mount_path"]
+            if self["mount_path"] is None or isinstance(self["mount_path"], str)
+            else self["mount_path"][freq]
+        )
+
+        if self.get_uri_type(_provider_uri) == QlibConfig.LOCAL_URI:
+            return Path(_provider_uri)
+        elif self.get_uri_type(_provider_uri) == QlibConfig.NFS_URI:
+            return Path(_mount_path)
         else:
             raise NotImplementedError(f"This type of uri is not supported")
 
@@ -318,7 +337,8 @@ class QlibConfig(Config):
             # check redis
             if not can_use_cache():
                 logger.warning(
-                    f"redis connection failed(host={self['redis_host']} port={self['redis_port']}), cache will not be used!"
+                    f"redis connection failed(host={self['redis_host']} port={self['redis_port']}), "
+                    f"cache will not be used!"
                 )
                 self["expression_cache"] = None
                 self["dataset_cache"] = None
