@@ -20,7 +20,7 @@ data_handler_config: &data_handler_config
     sample_config:
         feature:
             - class: ResampleProcessor
-              moudle_path: features_sample.py
+              module_path: features_sample.py
               kwargs:
                   freq: 1d
                   hour: 13

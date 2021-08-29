@@ -217,9 +217,8 @@ class QlibDataLoader(DLWParser):
             warnings.warn("`filter_pipe` is not None, but it will not be used with `instruments` as list")
 
         freq = self.freq[gp_name] if self.can_sample else self.freq
-        df = D.features(
-            instruments, exprs, start_time, end_time, freq=freq, inst_processors=self.sample_config.get(freq, None)
-        )
+        inst_processor = self.sample_config.get(gp_name, None) if self.can_sample else None
+        df = D.features(instruments, exprs, start_time, end_time, freq=freq, inst_processors=inst_processor)
         df.columns = names
         if self.swap_level:
             df = df.swaplevel().sort_index()  # NOTE: if swaplevel, return <datetime, instrument>
