@@ -5,16 +5,11 @@
 from __future__ import division
 from __future__ import print_function
 
-import os
 import re
 import abc
 import copy
-import time
 import queue
 import bisect
-import logging
-import importlib
-import traceback
 import numpy as np
 import pandas as pd
 from multiprocessing import Pool
@@ -23,7 +18,7 @@ from .cache import H
 from ..config import C
 from .ops import Operators
 from ..log import get_module_logger
-from ..utils import parse_field, read_bin, hash_args, normalize_cache_fields, code_to_fname
+from ..utils import parse_field, hash_args, normalize_cache_fields, code_to_fname
 from .base import Feature
 from .cache import DiskDatasetCache, DiskExpressionCache
 from ..utils import Wrapper, init_instance_by_config, register_wrapper, get_module_by_module_path
@@ -48,19 +43,14 @@ class ProviderBackendMixin:
         # default provider_uri map
         if "provider_uri" not in backend_kwargs:
             # if the user has no uri configured, use: uri = uri_map[freq]
-            # NOTE: uri priority
-            #   1. backend_obj.kwargs["provider_uri"]
-            #   2. backend_obj.kwargs["backend_freq_config"]
-            #   3. C.backend_freq_config, or qlib.init(backend_freq_config={})
-            #   4. C.provider_uri, or qlib.init(provider_uri="")
-            provider_uri_map = backend_kwargs.setdefault("backend_freq_config", {})
+            # NOTE: provider_uri priority：
+            #   1. backend_config: backend_obj["kwargs"]["provider_uri"]
+            #   2. backend_config: backend_obj["kwargs"]["provider_uri_map"]
+            #   3. qlib.init: provider_uri
+            provider_uri_map = backend_kwargs.setdefault("provider_uri_map", {})
             freq = kwargs.get("freq", "day")
-            if C.backend_freq_config is not None:
-                if freq not in provider_uri_map:
-                    provider_uri_map[freq] = C.backend_freq_config.get(freq, C.get_data_path())
-            else:
-                if freq not in provider_uri_map:
-                    provider_uri_map[freq] = C.get_data_path()
+            if freq not in provider_uri_map:
+                provider_uri_map[freq] = C.get_data_path(freq)
             backend_kwargs["provider_uri"] = provider_uri_map[freq]
         backend.setdefault("kwargs", {}).update(**kwargs)
         return init_instance_by_config(backend)
@@ -548,11 +538,6 @@ class LocalCalendarProvider(CalendarProvider):
         super(LocalCalendarProvider, self).__init__(**kwargs)
         self.remote = kwargs.get("remote", False)
 
-    @property
-    def _uri_cal(self):
-        """Calendar file uri."""
-        return os.path.join(C.get_data_path(), "calendars", "{}.txt")
-
     def load_calendar(self, freq, future):
         """Load original calendar timestamp from file.
 
@@ -612,11 +597,6 @@ class LocalInstrumentProvider(InstrumentProvider):
     Provide instrument data from local data source.
     """
 
-    @property
-    def _uri_inst(self):
-        """Instrument file uri."""
-        return os.path.join(C.get_data_path(), "instruments", "{}.txt")
-
     def _load_instruments(self, market, freq):
         return self.backend_obj(market=market, freq=freq).data
 
@@ -664,11 +644,6 @@ class LocalFeatureProvider(FeatureProvider):
     def __init__(self, **kwargs):
         super(LocalFeatureProvider, self).__init__(**kwargs)
         self.remote = kwargs.get("remote", False)
-
-    @property
-    def _uri_data(self):
-        """Static feature file uri."""
-        return os.path.join(C.get_data_path(), "features", "{}", "{}.{}.bin")
 
     def feature(self, instrument, field, start_index, end_index, freq):
         # validate
@@ -937,7 +912,7 @@ class ClientDatasetProvider(DatasetProvider):
             get_module_logger("data").debug("get result")
             try:
                 # pre-mound nfs, used for demo
-                mnt_feature_uri = os.path.join(C.get_data_path(), C.dataset_cache_dir_name, feature_uri)
+                mnt_feature_uri = C.get_data_path(freq).joinpath(C.dataset_cache_dir_name, feature_uri)
                 df = DiskDatasetCache.read_data_from_cache(mnt_feature_uri, start_time, end_time, fields)
                 get_module_logger("data").debug("finish slicing data")
                 if return_uri:
