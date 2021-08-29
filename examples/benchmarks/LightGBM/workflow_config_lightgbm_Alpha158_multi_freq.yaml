@@ -1,6 +1,5 @@
 qlib_init:
-    provider_uri: "~/.qlib/qlib_data/cn_data"
-    backend_freq_config:
+    provider_uri:
         day: "~/.qlib/qlib_data/cn_data"
         1min: "~/.qlib/qlib_data/cn_data_1min"
     region: cn
@@ -19,13 +18,14 @@ data_handler_config: &data_handler_config
     # with label as reference
     sample_benchmark: label
     sample_config:
-        # using pandas.DataFrame.resample
-        feature: resample("1d", level="datetime").last()
-        # or
-        # using custom function, df.groupby(level="instrument").apply(<user func>)
-#        feature:
-#            module_path: features_sample.py
-#            func: resample_feature
+        feature:
+            - class: ResampleProcessor
+              moudle_path: features_sample.py
+              kwargs:
+                  freq: 1d
+                  hour: 13
+                  minute: 1
+
 port_analysis_config: &port_analysis_config
     strategy:
         class: TopkDropoutStrategy

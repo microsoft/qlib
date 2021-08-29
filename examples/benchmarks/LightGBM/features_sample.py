@@ -1,9 +1,16 @@
 import datetime
 import pandas as pd
 
+from qlib.data.inst_processor import InstProcessor
 
-def resample_feature(df: pd.DataFrame) -> pd.DataFrame:
-    df = df.droplevel(level="instrument")
-    df = df.loc[df.index.time == datetime.time(13, 1)]
-    df.index = df.index.normalize()
-    return df
+
+class ResampleProcessor(InstProcessor):
+    def __init__(self, freq: str, hour: int, minute: int):
+        self.freq = freq
+        self.hour = hour
+        self.minute = minute
+
+    def __call__(self, df: pd.DataFrame, *args, **kwargs):
+        df = df.loc[df.index.time == datetime.time(self.hour, self.minute)]
+        df.index = df.index.normalize()
+        return df
