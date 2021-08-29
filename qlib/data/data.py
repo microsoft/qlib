@@ -13,15 +13,26 @@ import bisect
 import numpy as np
 import pandas as pd
 from multiprocessing import Pool
+from typing import Iterable, Union
 
 from .cache import H
 from ..config import C
-from .ops import Operators
-from ..log import get_module_logger
-from ..utils import parse_field, hash_args, normalize_cache_fields, code_to_fname
 from .base import Feature
+from .ops import Operators
+from .inst_processor import InstProcessor
+
+from ..log import get_module_logger
 from .cache import DiskDatasetCache, DiskExpressionCache
-from ..utils import Wrapper, init_instance_by_config, register_wrapper, get_module_by_module_path
+from ..utils import (
+    Wrapper,
+    init_instance_by_config,
+    register_wrapper,
+    get_module_by_module_path,
+    parse_field,
+    hash_args,
+    normalize_cache_fields,
+    code_to_fname,
+)
 
 
 class ProviderBackendMixin:
@@ -342,7 +353,7 @@ class DatasetProvider(abc.ABC):
     """
 
     @abc.abstractmethod
-    def dataset(self, instruments, fields, start_time=None, end_time=None, freq="day"):
+    def dataset(self, instruments, fields, start_time=None, end_time=None, freq="day", inst_processors=None):
         """Get dataset data.
 
         Parameters
@@ -357,6 +368,8 @@ class DatasetProvider(abc.ABC):
             end of the time range.
         freq : str
             time frequency.
+        inst_processors:  Iterable[Union[dict, InstProcessor]]
+            the operations performed on each instrument
 
         Returns
         ----------
@@ -373,6 +386,7 @@ class DatasetProvider(abc.ABC):
         end_time=None,
         freq="day",
         disk_cache=1,
+        inst_processors=None,
         **kwargs,
     ):
         """Get task uri, used when generating rabbitmq task in qlib_server
@@ -393,7 +407,8 @@ class DatasetProvider(abc.ABC):
             whether to skip(0)/use(1)/replace(2) disk_cache.
 
         """
-        return DiskDatasetCache._uri(instruments, fields, start_time, end_time, freq, disk_cache)
+        # TODO: qlib-server support inst_processors
+        return DiskDatasetCache._uri(instruments, fields, start_time, end_time, freq, disk_cache, inst_processors)
 
     @staticmethod
     def get_instruments_d(instruments, freq):
@@ -434,7 +449,7 @@ class DatasetProvider(abc.ABC):
         return [ExpressionD.get_expression_instance(f) for f in fields]
 
     @staticmethod
-    def dataset_processor(instruments_d, column_names, start_time, end_time, freq):
+    def dataset_processor(instruments_d, column_names, start_time, end_time, freq, inst_processors=None):
         """
         Load and process the data, return the data set.
         - default using multi-kernel method.
@@ -460,6 +475,7 @@ class DatasetProvider(abc.ABC):
                         normalize_column_names,
                         spans,
                         C,
+                        inst_processors,
                     ),
                 )
         else:
@@ -474,6 +490,7 @@ class DatasetProvider(abc.ABC):
                         normalize_column_names,
                         None,
                         C,
+                        inst_processors,
                     ),
                 )
 
@@ -495,7 +512,9 @@ class DatasetProvider(abc.ABC):
         return data
 
     @staticmethod
-    def expression_calculator(inst, start_time, end_time, freq, column_names, spans=None, g_config=None):
+    def expression_calculator(
+        inst, start_time, end_time, freq, column_names, spans=None, g_config=None, inst_processors=None
+    ):
         """
         Calculate the expressions for one instrument, return a df result.
         If the expression has been calculated before, load from cache.
@@ -519,13 +538,17 @@ class DatasetProvider(abc.ABC):
         data.index = _calendar[data.index.values.astype(int)]
         data.index.names = ["datetime"]
 
-        if spans is None:
-            return data
-        else:
+        if spans is not None:
             mask = np.zeros(len(data), dtype=bool)
             for begin, end in spans:
                 mask |= (data.index >= begin) & (data.index <= end)
-            return data[mask]
+            data = data[mask]
+
+        if inst_processors is not None:
+            for _processor in inst_processors if isinstance(inst_processors, (list, tuple, set)) else [inst_processors]:
+                _processor = init_instance_by_config(_processor, accept_types=InstProcessor)
+                data = _processor(data)
+            return data
 
 
 class LocalCalendarProvider(CalendarProvider):
@@ -689,7 +712,15 @@ class LocalDatasetProvider(DatasetProvider):
     def __init__(self):
         pass
 
-    def dataset(self, instruments, fields, start_time=None, end_time=None, freq="day"):
+    def dataset(
+        self,
+        instruments,
+        fields,
+        start_time=None,
+        end_time=None,
+        freq="day",
+        inst_processors=None,
+    ):
         instruments_d = self.get_instruments_d(instruments, freq)
         column_names = self.get_column_names(fields)
         cal = Cal.calendar(start_time, end_time, freq)
@@ -698,7 +729,9 @@ class LocalDatasetProvider(DatasetProvider):
         start_time = cal[0]
         end_time = cal[-1]
 
-        data = self.dataset_processor(instruments_d, column_names, start_time, end_time, freq)
+        data = self.dataset_processor(
+            instruments_d, column_names, start_time, end_time, freq, inst_processors=inst_processors
+        )
 
         return data
 
@@ -841,6 +874,7 @@ class ClientDatasetProvider(DatasetProvider):
         freq="day",
         disk_cache=0,
         return_uri=False,
+        inst_processors=None,
     ):
         if Inst.get_inst_type(instruments) == Inst.DICT:
             get_module_logger("data").warning(
@@ -893,6 +927,13 @@ class ClientDatasetProvider(DatasetProvider):
             - using single-process implementation.
 
             """
+            # TODO: support inst_processors, need to change the code of qlib-server at the same time
+            # FIXME: The cache after resample, when read again and intercepted with end_time, results in incomplete data date
+            if not inst_processors:
+                raise ValueError(
+                    f"{self.__class__.__name__} does not support inst_processor. "
+                    f"Please use `D.features(disk_cache=0)` or `qlib.init(dataset_cache=None)`"
+                )
             self.conn.send_request(
                 request_type="feature",
                 request_content={
@@ -950,6 +991,7 @@ class BaseProvider:
         end_time=None,
         freq="day",
         disk_cache=None,
+        inst_processors=None,
     ):
         """
         Parameters:
@@ -964,9 +1006,11 @@ class BaseProvider:
         disk_cache = C.default_disk_cache if disk_cache is None else disk_cache
         fields = list(fields)  # In case of tuple.
         try:
-            return DatasetD.dataset(instruments, fields, start_time, end_time, freq, disk_cache)
+            return DatasetD.dataset(
+                instruments, fields, start_time, end_time, freq, disk_cache, inst_processors=inst_processors
+            )
         except TypeError:
-            return DatasetD.dataset(instruments, fields, start_time, end_time, freq)
+            return DatasetD.dataset(instruments, fields, start_time, end_time, freq, inst_processors=inst_processors)
 
 
 class LocalProvider(BaseProvider):

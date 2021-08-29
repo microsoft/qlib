@@ -181,7 +181,7 @@ class QlibDataLoader(DLWParser):
         self.freq = freq
 
         # sample
-        self.sample_config = sample_config
+        self.sample_config = sample_config if sample_config is not None else {}
         self.sample_benchmark = sample_benchmark
         self.can_sample = False
         super().__init__(config)
@@ -192,30 +192,12 @@ class QlibDataLoader(DLWParser):
                 for _gp in config.keys():
                     if _gp not in freq:
                         raise ValueError(f"freq(={freq}) missing group(={_gp})")
-                if len(set(freq.values())) == 1:
-                    self.freq = list(freq.values())[0]
-                else:
-                    assert self.sample_config, f"freq(={self.freq}), sample_config cannot be None/empty"
-                    assert isinstance(self.sample_config, dict), f"sample_config(={self.sample_config}) must be dict"
-                    assert (
-                        self.sample_benchmark and self.sample_benchmark in self.fields
-                    ), f"sample_benchmark not to specification"
-                    self.can_sample = True
-
-    def _get_sample_method(self, gp_name: str) -> Union[str, Type]:
-        _method = self.sample_config.get(gp_name, None)
-        if _method is None:
-            return _method
-        if isinstance(_method, str):
-            # pandas.DataFrame.resample
-            if not _method.startswith("resample"):
-                raise ValueError(f"sample method error, only pandas.DataFrame.resample is supported")
-        elif isinstance(_method, dict):
-            # module_path && func name
-            _method, _ = get_callable_kwargs(_method)
-        else:
-            raise TypeError(f"sample_method only supports [str, dict], currently it is {_method}")
-        return _method
+                assert sample_config, f"freq(={self.freq}), sample_config(={sample_config}) cannot be None/empty"
+                assert isinstance(sample_config, dict), f"sample_config(={sample_config}) must be dict"
+                assert (
+                    self.sample_benchmark and self.sample_benchmark in self.fields
+                ), f"sample_benchmark not to specification"
+                self.can_sample = True
 
     def load_group_df(
         self,
@@ -235,17 +217,10 @@ class QlibDataLoader(DLWParser):
             warnings.warn("`filter_pipe` is not None, but it will not be used with `instruments` as list")
 
         freq = self.freq[gp_name] if self.can_sample else self.freq
-        df = D.features(instruments, exprs, start_time, end_time, freq)
+        df = D.features(
+            instruments, exprs, start_time, end_time, freq=freq, inst_processors=self.sample_config.get(freq, None)
+        )
         df.columns = names
-
-        if self.can_sample and self.sample_benchmark != gp_name:
-            sample_method = self._get_sample_method(gp_name)
-            if sample_method is None:
-                warnings.warn(f"{gp_name} sample_method is None")
-            if isinstance(sample_method, str):
-                df = eval(f"df.groupby(level='instrument').{sample_method}")
-            else:
-                df = df.groupby(level="instrument").apply(sample_method)
         if self.swap_level:
             df = df.swaplevel().sort_index()  # NOTE: if swaplevel, return <datetime, instrument>
         return df
@@ -256,11 +231,13 @@ class QlibDataLoader(DLWParser):
                 grp: self.load_group_df(instruments, exprs, names, start_time, end_time, grp)
                 for grp, (exprs, names) in self.fields.items()
             }
-            for grp, _df in group.items():
-                if grp == self.sample_benchmark:
-                    continue
-                else:
-                    group[grp] = _df.reindex(group[self.sample_benchmark].index)
+            if self.can_sample:
+                # reindex: alignment to index of sample_benchmark
+                for grp, _df in group.items():
+                    if grp == self.sample_benchmark:
+                        continue
+                    else:
+                        group[grp] = _df.reindex(group[self.sample_benchmark].index)
             df = pd.concat(group, axis=1)
         else:
             exprs, names = self.fields
