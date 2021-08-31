@@ -18,7 +18,7 @@ from ..config import C, REG_CN
 from ..utils.resam import resam_ts_data, ts_data_last
 from ..log import get_module_logger
 from .order import Order, OrderDir, OrderHelper
-from .high_performance_ds import PandasQuote, CN1minNumpyQuote
+from .high_performance_ds import BaseQuote, PandasQuote, CN1minNumpyQuote
 
 
 class Exchange:
@@ -185,7 +185,7 @@ class Exchange:
 
         # init quote by quote_df
         self.quote_cls = quote_cls
-        self.quote = self.quote_cls(self.quote_df)
+        self.quote: BaseQuote = self.quote_cls(self.quote_df)
 
     def get_quote_from_qlib(self):
         # get stock data from qlib
@@ -424,7 +424,7 @@ class Exchange:
         else:
             raise NotImplementedError(f"This type of input is not supported")
         deal_price = self.quote.get_data(stock_id, start_time, end_time, field=pstr, method=method)
-        if method is not None and (np.isclose(deal_price, 0.0) or np.isnan(deal_price)):
+        if method is not None and (deal_price is None or np.isclose(deal_price, 0.0) or np.isnan(deal_price)):
             self.logger.warning(f"(stock_id:{stock_id}, trade_time:{(start_time, end_time)}, {pstr}): {deal_price}!!!")
             self.logger.warning(f"setting deal_price to close price")
             deal_price = self.get_close(stock_id, start_time, end_time, method)
