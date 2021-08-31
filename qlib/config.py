@@ -255,9 +255,12 @@ class QlibConfig(Config):
             self["provider_uri"] = str(Path(self["provider_uri"]).expanduser().resolve())
 
     def get_uri_type(self):
-        is_win = re.match("^[a-zA-Z]:.*", self["provider_uri"]) is not None  # such as 'C:\\data', 'D:'
+        path = self["provider_uri"]
+        if isinstance(path, Path):
+            path = str(path)
+        is_win = re.match("^[a-zA-Z]:.*", path) is not None  # such as 'C:\\data', 'D:'
         is_nfs_or_win = (
-            re.match("^[^/]+:.+", self["provider_uri"]) is not None
+            re.match("^[^/]+:.+", path) is not None
         )  # such as 'host:/data/'   (User may define short hostname by themselves or use localhost)
 
         if is_nfs_or_win and not is_win:
