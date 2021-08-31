@@ -40,7 +40,7 @@ class BaseQuote:
         end_time: Union[pd.Timestamp, str],
         field: Union[str],
         method: Union[str, Callable, None] = None,
-    ) -> Union[None, int, float, bool, "IndexData"]:
+    ) -> Union[None, int, float, bool, IndexData]:
         """get the specific field of stock data during start time and end_time,
            and apply method to the data.
 
@@ -154,7 +154,7 @@ class CN1minNumpyQuote(BaseQuote):
             # this is a very special case.
             # skip aggregating function to speed-up the query calculation
             try:
-                self.data[stock_id].loc[start_time, field]
+                return self.data[stock_id].loc[start_time, field]
             except KeyError:
                 return None
         else:
@@ -598,7 +598,7 @@ class NumpyOrderIndicator(BaseOrderIndicator):
         if isinstance(metrics, str):
             metrics = [metrics]
         for metric in metrics:
-            tmp_metric = IndexData.SingleData()
+            tmp_metric = idd.SingleData()
             for indicator in indicators:
                 tmp_metric = tmp_metric.add(indicator.data[metric], fill_value)
             order_indicator.data[metric] = tmp_metric

@@ -18,7 +18,7 @@ from ..config import C, REG_CN
 from ..utils.resam import resam_ts_data, ts_data_last
 from ..log import get_module_logger
 from .order import Order, OrderDir, OrderHelper
-from .high_performance_ds import PandasQuote, CN1minNumpyQuote
+from .high_performance_ds import BaseQuote, PandasQuote, CN1minNumpyQuote
 
 
 class Exchange:
@@ -185,7 +185,7 @@ class Exchange:
 
         # init quote by quote_df
         self.quote_cls = quote_cls
-        self.quote = self.quote_cls(self.quote_df)
+        self.quote: BaseQuote = self.quote_cls(self.quote_df)
 
     def get_quote_from_qlib(self):
         # get stock data from qlib

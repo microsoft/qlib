@@ -9,6 +9,7 @@ Motivation of index_data
 `index_data` try to behave like pandas (some API will be different because we try to be simpler and more intuitive) but don't compromize the performance. It provides the basic numpy data and simple indexing feature. If users call APIs which may compromize the performance, index_data will raise Errors.
 """
 
+from functools import partial
 from typing import Tuple, Union, Callable, List
 import bisect
 
@@ -64,6 +65,7 @@ class Index:
     - duplicated index value is not well supported (only the first appearance will be considered)
     - The order of the index is not considered!!!! So the slicing will not behave like pandas when indexings are ordered
     """
+
     def __init__(self, idx_list: Union[List, pd.Index, "Index", int]):
         self.idx_list: np.ndarray = None  # using array type for index list will make things easier
         if isinstance(idx_list, Index):
@@ -83,15 +85,56 @@ class Index:
     def __getitem__(self, i: int):
         return self.idx_list[i]
 
+    def _convert_type(self, item):
+        """
+
+        After user creates indices with Type A, user may query data with other types with the same info.
+            This method try to make type conversion and make query sane rather than raising KeyError strictly
+
+        Parameters
+        ----------
+        item :
+            The item to query index
+        """
+
+        if self.idx_list.dtype.type is np.datetime64:
+            if isinstance(item, pd.Timestamp):
+                # This happens often when creating index based on pandas.DatetimeIndex and query with pd.Timestamp
+                return item.to_numpy()
+        return item
+
     def index(self, item) -> int:
         """
         Given the index value, get the integer index
 
+        Parameters
+        ----------
+        item :
+            The item to query
+
+        Returns
+        -------
+        int:
+            The index of the item
+
+        Raises
+        ------
+        KeyError:
+            If the query item does not exist
         """
-        return self.index_map[item]
+        try:
+            return self.index_map[self._convert_type(item)]
+        except IndexError:
+            raise KeyError(f"{item} can't be found in {self}")
+
+    def __or__(self, other: "Index"):
+        idx = Index(idx_list=list(set(self.idx_list) | set(other.idx_list)))
+        return idx
 
     def __eq__(self, other: "Index"):
         # NOTE:  np.nan is not supported in the index
+        if self.idx_list.shape != other.idx_list.shape:
+            return False
         return (self.idx_list == other.idx_list).all()
 
     def __len__(self):
@@ -115,7 +158,6 @@ class Index:
         return idx, sorted_idx
 
 
-
 class LocIndexer:
     """
     `Indexer` will behave like the `LocIndexer` in Pandas
@@ -124,6 +166,7 @@ class LocIndexer:
     So this class is designed in a read-only way to shared data for queries.
     Modifications will results in new Index.
     """
+
     def __init__(self, index_data: "IndexData", indices: List[Index], int_loc: bool = False):
         self._indices: List[Index] = indices
         self._bind_id = index_data  # bind index data
@@ -132,7 +175,7 @@ class LocIndexer:
 
     @staticmethod
     def proc_idx_l(indices: List[Union[List, pd.Index, Index]], data_shape: Tuple = None) -> List[Index]:
-        """ process the indices from user and output a list of `Index` """
+        """process the indices from user and output a list of `Index`"""
         res = []
         for i, idx in enumerate(indices):
             res.append(Index(data_shape[i] if len(idx) == 0 else idx))
@@ -178,7 +221,7 @@ class LocIndexer:
         # 1) convert slices to int loc
         if not isinstance(indexing, tuple):
             # NOTE: tuple is not supported for indexing
-            indexing = (indexing, )
+            indexing = (indexing,)
 
         # TODO: create a subclass for single value query
         assert len(indexing) <= len(self._indices)
@@ -199,29 +242,64 @@ class LocIndexer:
                     else:
                         _indexing = index.index(_indexing)
             else:
+                # Default to select all when user input is not given
                 _indexing = slice(None)
             int_indexing.append(_indexing)
 
         # 2) select data and index
         new_data = self._bind_id.data[tuple(int_indexing)]
+        # return directly if it is scalar
+        if new_data.ndim == 0:
+            return new_data
+        # otherwise we go on to the index part
         new_indices = [idx[indexing] for idx, indexing in zip(self._indices, int_indexing)]
 
         # 3) squash dimensions
-        new_indices = [idx for idx in new_indices if isinstance(idx, np.ndarray) and idx.ndim > 0] # squash the zero dim indexing
+        new_indices = [
+            idx for idx in new_indices if isinstance(idx, np.ndarray) and idx.ndim > 0
+        ]  # squash the zero dim indexing
 
-        if new_data.ndim == 0:
-            return new_data
+        if new_data.ndim == 1:
+            cls = SingleData
+        elif new_data.ndim == 2:
+            cls = MultiData
         else:
-            if new_data.ndim == 1:
-                cls = SingleData
-            elif new_data.ndim == 2:
-                cls = MultiData
-            else:
-                raise ValueError("Not supported")
-            return cls(new_data, *new_indices)
+            raise ValueError("Not supported")
+        return cls(new_data, *new_indices)
 
 
-class IndexData:
+class BinaryOps:
+    def __init__(self, method_name):
+        self.method_name = method_name
+
+    def __get__(self, obj, *args):
+        # bind object
+        self.obj = obj
+        return self
+
+    def __call__(self, other):
+        self_data_method = getattr(self.obj.data, self.method_name)
+
+        if isinstance(other, (int, float, np.number)):
+            return self.obj.__class__(self_data_method(other))
+        elif isinstance(other, self.obj.__class__):
+            # TODO: bad interface
+            tmp_data1, tmp_data2 = self.obj._align_indices(other)
+            return self.obj.__class__(self_data_method(tmp_data2.data), *self.obj.indices)
+        else:
+            return NotImplemented
+
+
+def index_data_ops_creator(*args, **kwargs):
+    """
+    meta class for auto generating operations for index data.
+    """
+    for method_name in ["__add__", "__sub__", "__rsub__", "__mul__", "__truediv__", "__eq__", "__gt__", "__lt__"]:
+        args[2][method_name] = BinaryOps(method_name=method_name)
+    return type(*args)
+
+
+class IndexData(metaclass=index_data_ops_creator):
     """
     Base data structure of SingleData and MultiData.
 
@@ -238,6 +316,7 @@ class IndexData:
     """
 
     loc_idx_cls = LocIndexer
+
     def __init__(self, data: np.ndarray, *indices: Union[List, pd.Index, Index]):
 
         self.data = data
@@ -298,28 +377,6 @@ class IndexData:
         assert inplace, "Only support sorting inplace now"
         self.indices[axis], sorted_idx = self.indices[axis].sort()
         self.data = np.take(self.data, sorted_idx, axis=axis)
-
-    # calculation related methods
-    def __getattribute__(self, attr_name: str):
-        # 1) use a unified operation for the basic operation
-
-        def _basic_binary_ops(other):
-            self_data_method = getattr(self.data, attr_name)
-
-            if isinstance(other, (int, float, np.number)):
-                return self.__class__(self_data_method(other))
-            elif isinstance(other, self.__class__):
-                # TODO: bad interface
-                tmp_data1, tmp_data2 = self._align_indices(other)
-                return self.__class__(self_data_method(tmp_data2.data), *self.indices)
-            else:
-                return NotImplemented
-
-        if attr_name in {"__add__", "__sub__", "__rsub__", "__mul__", "__truediv__", "__eq__", "__gt__", "__lt__"}:
-            return _basic_binary_ops
-
-        # 2) otherwise, follow the default behavior
-        return super().__getattribute__(attr_name)
 
     # The code below could be simpler like methods in __getattribute__
     def __invert__(self):
@@ -393,7 +450,9 @@ class IndexData:
 
 
 class SingleData(IndexData):
-    def __init__(self, data: Union[int, float, np.number, list, dict, pd.Series] = [], index: Union[List, pd.Index, Index] = []):
+    def __init__(
+        self, data: Union[int, float, np.number, list, dict, pd.Series] = [], index: Union[List, pd.Index, Index] = []
+    ):
         """A data structure of index and numpy data.
         It's used to replace pd.Series due to high-speed.
 
@@ -408,7 +467,10 @@ class SingleData(IndexData):
         # for special data type
         if isinstance(data, dict):
             assert len(index) == 0
-            index, data = zip(*data.items())
+            if len(data) > 0:
+                index, data = zip(*data.items())
+            else:
+                index, data = [], []
         elif isinstance(data, pd.Series):
             assert len(index) == 0
             index, data = data.index, data.values
@@ -422,9 +484,10 @@ class SingleData(IndexData):
             return self, other.reindex(self.index)
         else:
             raise ValueError(
-                f"The indexes of self and other do not meet the requirements of the four arithmetic operations")
+                f"The indexes of self and other do not meet the requirements of the four arithmetic operations"
+            )
 
-    def reindex(self, index, fill_value=np.NaN):
+    def reindex(self, index: Index, fill_value=np.NaN):
         """reindex data and fill the missing value with np.NaN.
 
         Parameters
@@ -442,13 +505,17 @@ class SingleData(IndexData):
             return self
         tmp_data = np.full(len(index), fill_value, dtype=np.float64)
         for index_id, index_item in enumerate(index):
-            if index_item in self.index:
-                tmp_data[index_id] = self.data[self.index_map[index_item]]
+            try:
+                tmp_data[index_id] = self.loc[index_item]
+            except KeyError:
+                pass
         return SingleData(tmp_data, index)
 
-    def add(self, other, fill_value=0):
+    def add(self, other: "SingleData", fill_value=0):
         # TODO: add and __add__ are a little confusing.
-        common_index = list(set(self.index) | set(other.index))
+        # This could be a more general
+        common_index = self.index | other.index
+        common_index, _ = common_index.sort()
         tmp_data1 = self.reindex(common_index, fill_value)
         tmp_data2 = other.reindex(common_index, fill_value)
         return tmp_data1 + tmp_data2
@@ -471,10 +538,12 @@ class SingleData(IndexData):
 
 
 class MultiData(IndexData):
-    def __init__(self,
-                 data: Union[int, float, np.number, list] = [],
-                 index: Union[List, pd.Index, Index] = [],
-                 columns: Union[List, pd.Index, Index] = []):
+    def __init__(
+        self,
+        data: Union[int, float, np.number, list] = [],
+        index: Union[List, pd.Index, Index] = [],
+        columns: Union[List, pd.Index, Index] = [],
+    ):
         """A data structure of index and numpy data.
         It's used to replace pd.DataFrame due to high-speed.
 
@@ -493,11 +562,12 @@ class MultiData(IndexData):
         assert self.ndim == 2
 
     def _align_indices(self, other):
-        if self.index_columns == other.index_columns:
+        if self.indices == other.indices:
             return self, other
         else:
             raise ValueError(
-                f"The indexes of self and other do not meet the requirements of the four arithmetic operations")
+                f"The indexes of self and other do not meet the requirements of the four arithmetic operations"
+            )
 
     def __repr__(self) -> str:
         return str(pd.DataFrame(self.data, index=self.index, columns=self.columns))

@@ -76,11 +76,23 @@ class IndexDataTest(unittest.TestCase):
 
         self.assertTrue(np.isnan(sd.loc["bar", "g"]))
 
-
         # support slicing
         print(sd.loc[~sd.loc[:, "g"].isna().data.astype(np.bool)])
 
+        print(self.assertTrue(idd.SingleData().index == idd.SingleData().index))
 
+        # empty dict
+        print(idd.SingleData({}))
+        print(idd.SingleData(pd.Series()))
+
+        sd = idd.SingleData()
+        with self.assertRaises(KeyError):
+            sd.loc["foo"]
+
+    def test_ops(self):
+        sd1 = idd.SingleData([1, 2, 3, 4], index=["foo", "bar", "f", "g"])
+        sd2 = idd.SingleData([1, 2, 3, 4], index=["foo", "bar", "f", "g"])
+        print(sd1 + sd2)
 
 
 if __name__ == "__main__":
