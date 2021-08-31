@@ -296,5 +296,5 @@ def _ts_data_valid(ts_feature, last=False):
         raise TypeError(f"ts_feature should be pd.DataFrame/Series, not {type(ts_feature)}")
 
 
-ts_data_last = partial(_ts_data_valid, last=False)
-ts_data_first = partial(_ts_data_valid, last=True)
+ts_data_last = partial(_ts_data_valid, last=True)
+ts_data_first = partial(_ts_data_valid, last=False)

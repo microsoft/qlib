@@ -15,6 +15,7 @@ from ..utils.index_data import IndexData, SingleData
 from ..utils.resam import resam_ts_data, ts_data_last
 from ..log import get_module_logger
 from ..utils.time import is_single_value
+import qlib.utils.index_data as idd
 
 
 class BaseQuote:
@@ -61,7 +62,9 @@ class BaseQuote:
 
                 this function is used for three case:
 
-                1. method is not None. It returns int/float/bool.
+                1. method is not None. It returns int/float/bool/None.
+                    - It will return None in one case, the method return None
+
                     print(get_data(stock_id="SH600000", start_time="2010-01-04", end_time="2010-01-06", field="$close", method="last"))
 
                     85.713585
@@ -87,8 +90,9 @@ class BaseQuote:
         Return
         ----------
         Union[None, int, float, bool, IndexData]
-            None means there is no stock data from data source.
-            please refer to Example as following.
+            it will return None in following cases
+            - There is no stock data which meet the query criterion from data source.
+            - The `method` returns None
         """
 
         raise NotImplementedError(f"Please implement the `get_data` method")
@@ -112,7 +116,7 @@ class PandasQuote(BaseQuote):
         elif isinstance(stock_data, (bool, np.bool_, int, float, np.number)):
             return stock_data
         elif isinstance(stock_data, pd.Series):
-            return IndexData.Series(stock_data)
+            return idd.SingleData(stock_data)
         else:
             raise ValueError(f"stock data from resam_ts_data must be a number, pd.Series or pd.DataFrame")
 
@@ -130,7 +134,8 @@ class CN1minNumpyQuote(BaseQuote):
         super().__init__(quote_df=quote_df)
         quote_dict = {}
         for stock_id, stock_val in quote_df.groupby(level="instrument"):
-            quote_dict[stock_id] = IndexData.DataFrame(stock_val.droplevel(level="instrument"))
+            quote_dict[stock_id] = idd.MultiData(stock_val.droplevel(level="instrument"))
+            quote_dict[stock_id].sort_index()  # To support more flexible slicing, we must sort data first
         self.data = quote_dict
         self.freq = pd.Timedelta(minutes=1)
 
@@ -145,32 +150,22 @@ class CN1minNumpyQuote(BaseQuote):
 
         # single data
         # If it don't consider the classification of single data, it will consume a lot of time.
-        if is_single_value(start_time, end_time, self.freq):
-            now_index_map = self.data[stock_id].index_map
-            now_columns_map = self.data[stock_id].columns_map
-            if start_time not in now_index_map:
+        if is_single_value(start_time, end_time, self.freq) and method is not None:
+            # this is a very special case.
+            # skip aggregating function to speed-up the query calculation
+            try:
+                self.data[stock_id].loc[start_time, field]
+            except KeyError:
                 return None
-            else:
-                return self.data[stock_id].values[now_index_map[start_time], now_columns_map[field]]
-
-        # multi data
         else:
-            if method is None:
-                stock_data = self.data[stock_id].loc(start_time, end_time, field)
-                if stock_data.empty:
-                    return None
-                else:
-                    return stock_data
-            else:
-                stock_data = self.data[stock_id].loc(start_time, end_time, field)
-                if stock_data.empty:
-                    return None
-                elif len(stock_data) == 1:
-                    return stock_data[0]
-                else:
-                    return self._agg_data(stock_data.values, method)
+            data = self.data[stock_id].loc[start_time:end_time, field]
+            if data.empty:
+                return None
+            if method is not None:
+                data = self._agg_data(data, method)
+            return data
 
-    def _agg_data(self, data, method):
+    def _agg_data(self, data: IndexData, method):
         """Agg data by specific method."""
         if method == "sum":
             return np.nansum(data)
@@ -183,11 +178,11 @@ class CN1minNumpyQuote(BaseQuote):
         elif method == "any":
             return data.any()
         elif method == ts_data_last:
-            valid_data = data[data != np.NaN]
+            valid_data = data.loc[~data.isna().data.astype(bool)]
             if len(valid_data) == 0:
                 return None
             else:
-                return valid_data[0]
+                return valid_data.iloc[-1]
         else:
             raise ValueError(f"{method} is not supported")
 
@@ -259,9 +254,6 @@ class BaseSingleMetric:
     def abs(self) -> "BaseSingleMetric":
         raise NotImplementedError(f"Please implement the `abs` method")
 
-    def astype(self, dtype: type) -> "BaseSingleMetric":
-        raise NotImplementedError(f"Please implement the `astype` method")
-
     @property
     def empty(self) -> bool:
         """If metric is empty, return True."""
@@ -332,7 +324,7 @@ class BaseOrderIndicator:
             the kwargs of func will be replaced with metric data by name in this function.
             e.g.
                 def func(pa):
-                    return (pa > 0).astype(int).sum() / pa.count()
+                    return (pa > 0).sum() / pa.count()
         new_col : str, optional
             New metric will be assigned in the data if new_col is not None, by default None.
 
@@ -513,9 +505,6 @@ class PandasSingleMetric(SingleMetric):
     def abs(self):
         return self.__class__(self.metric.abs())
 
-    def astype(self, dtype):
-        return self.__class__(self.metric.astype(dtype))
-
     @property
     def empty(self):
         return self.metric.empty
@@ -552,9 +541,9 @@ class PandasOrderIndicator(BaseOrderIndicator):
 
     def get_index_data(self, metric):
         if metric in self.data:
-            return IndexData.Series(self.data[metric].metric)
+            return idd.SingleData(self.data[metric].metric)
         else:
-            return IndexData.Series()
+            return idd.SingleData()
 
     def get_metric_series(self, metric: str) -> Union[pd.Series]:
         if metric in self.data:
@@ -579,7 +568,7 @@ class PandasOrderIndicator(BaseOrderIndicator):
 class NumpyOrderIndicator(BaseOrderIndicator):
     """
     The data structure is OrderedDict(str: SingleData).
-    Each IndexData.Series is one metric.
+    Each idd.SingleData is one metric.
     Str is the name of metric.
     """
 
@@ -587,13 +576,13 @@ class NumpyOrderIndicator(BaseOrderIndicator):
         self.data: Dict[str, SingleData] = OrderedDict()
 
     def assign(self, col: str, metric: dict):
-        self.data[col] = IndexData.Series(metric)
+        self.data[col] = idd.SingleData(metric)
 
     def get_index_data(self, metric):
         if metric in self.data:
             return self.data[metric]
         else:
-            return IndexData.Series()
+            return idd.SingleData()
 
     def get_metric_series(self, metric: str) -> Union[pd.Series]:
         return self.data[metric].to_series()
@@ -609,7 +598,7 @@ class NumpyOrderIndicator(BaseOrderIndicator):
         if isinstance(metrics, str):
             metrics = [metrics]
         for metric in metrics:
-            tmp_metric = IndexData.Series()
+            tmp_metric = IndexData.SingleData()
             for indicator in indicators:
                 tmp_metric = tmp_metric.add(indicator.data[metric], fill_value)
             order_indicator.data[metric] = tmp_metric
