@@ -89,6 +89,12 @@ class IndexDataTest(unittest.TestCase):
         with self.assertRaises(KeyError):
             sd.loc["foo"]
 
+        # replace
+        sd = idd.SingleData([1, 2, 3, 4], index=["foo", "bar", "f", "g"])
+        sd = sd.replace(dict(zip(range(1, 5), range(2, 6))))
+        print(sd)
+        self.assertTrue(sd.iloc[0] == 2)
+
     def test_ops(self):
         sd1 = idd.SingleData([1, 2, 3, 4], index=["foo", "bar", "f", "g"])
         sd2 = idd.SingleData([1, 2, 3, 4], index=["foo", "bar", "f", "g"])
