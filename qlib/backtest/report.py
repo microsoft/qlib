@@ -395,8 +395,9 @@ class Indicator:
         # NOTE: there are some zeros in the trading price. These cases are known meaningless
         # for aligning the previous logic, remove it.
         # remove zero and negative values.
-        price_s = price_s[~(price_s < 1e-08)]
+        price_s = price_s.loc[(price_s > 1e-08).data.astype(np.bool)]
         # NOTE ~(price_s < 1e-08) is different from price_s >= 1e-8
+        #   ~(np.NaN < 1e-8) -> ~(False)  -> True
 
         if agg == "vwap":
             volume_s = trade_exchange.get_volume(inst, trade_start_time, trade_end_time, method=None)
