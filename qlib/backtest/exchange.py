@@ -424,7 +424,7 @@ class Exchange:
         else:
             raise NotImplementedError(f"This type of input is not supported")
         deal_price = self.quote.get_data(stock_id, start_time, end_time, field=pstr, method=method)
-        if method is not None and (np.isclose(deal_price, 0.0) or np.isnan(deal_price)):
+        if method is not None and (deal_price is None or np.isclose(deal_price, 0.0) or np.isnan(deal_price)):
             self.logger.warning(f"(stock_id:{stock_id}, trade_time:{(start_time, end_time)}, {pstr}): {deal_price}!!!")
             self.logger.warning(f"setting deal_price to close price")
             deal_price = self.get_close(stock_id, start_time, end_time, method)

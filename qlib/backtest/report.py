@@ -12,10 +12,10 @@ import pandas as pd
 from qlib.backtest.exchange import Exchange
 from qlib.backtest.order import BaseTradeDecision, Order, OrderDir
 from .high_performance_ds import PandasOrderIndicator, NumpyOrderIndicator, SingleMetric
-from ..utils.index_data import IndexData, SingleData
 from ..tests.config import CSI300_BENCH
 from ..utils.resam import get_higher_eq_freq_feature, resam_ts_data
 from .order import IdxTradeRange
+import qlib.utils.index_data as idd
 
 
 class Report:
@@ -386,8 +386,8 @@ class Indicator:
             return None, None
 
         if isinstance(price_s, (int, float, np.number)):
-            price_s = IndexData.Series(price_s, [trade_start_time])
-        elif isinstance(price_s, SingleData):
+            price_s = idd.SingleData(price_s, [trade_start_time])
+        elif isinstance(price_s, idd.SingleData):
             pass
         else:
             raise NotImplementedError(f"This type of input is not supported")
@@ -401,10 +401,10 @@ class Indicator:
         if agg == "vwap":
             volume_s = trade_exchange.get_volume(inst, trade_start_time, trade_end_time, method=None)
             if isinstance(volume_s, (int, float, np.number)):
-                volume_s = IndexData.Series(volume_s, [trade_start_time])
+                volume_s = idd.SingleData(volume_s, [trade_start_time])
             volume_s = volume_s.reindex(price_s.index)
         elif agg == "twap":
-            volume_s = IndexData.Series(1, price_s.index)
+            volume_s = idd.SingleData(1, price_s.index)
         else:
             raise NotImplementedError(f"This type of input is not supported")
 
@@ -414,7 +414,7 @@ class Indicator:
 
     def _agg_base_price(
         self,
-        inner_order_indicators: List[Dict[str, Union[SingleMetric, SingleData]]],
+        inner_order_indicators: List[Dict[str, Union[SingleMetric, idd.SingleData]]],
         decision_list: List[Tuple[BaseTradeDecision, pd.Timestamp, pd.Timestamp]],
         trade_exchange: Exchange,
         pa_config: dict = {},
@@ -467,12 +467,12 @@ class Indicator:
                     else:
                         bp_new[inst], bv_new[inst] = pr, v
 
-                bp_new = IndexData.Series(bp_new)
-                bv_new = IndexData.Series(bv_new)
+                bp_new = idd.SingleData(bp_new)
+                bv_new = idd.SingleData(bv_new)
                 bp_all.append(bp_new)
                 bv_all.append(bv_new)
-            bp_all = IndexData.concat(bp_all, axis=1)
-            bv_all = IndexData.concat(bv_all, axis=1)
+            bp_all = idd.concat(bp_all, axis=1)
+            bv_all = idd.concat(bv_all, axis=1)
 
             base_volume = bv_all.sum(axis=1)
             self.order_indicator.assign("base_volume", base_volume.to_dict())
@@ -550,7 +550,7 @@ class Indicator:
 
     def _cal_trade_positive_rate(self):
         def func(pa):
-            return (pa > 0).astype(int).sum() / pa.count()
+            return (pa > 0).sum() / pa.count()
 
         return self.order_indicator.transfer(func)
 
