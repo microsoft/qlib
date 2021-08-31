@@ -167,11 +167,14 @@ class CN1minNumpyQuote(BaseQuote):
 
     def _agg_data(self, data: IndexData, method):
         """Agg data by specific method."""
+        # FIXME: why not call the method of data directly?
         if method == "sum":
             return np.nansum(data)
         elif method == "mean":
             return np.nanmean(data)
         elif method == "last":
+            # FIXME: I've never seen that this method was called.
+            # Please merge it with "ts_data_last"
             return data[-1]
         elif method == "all":
             return data.all()
