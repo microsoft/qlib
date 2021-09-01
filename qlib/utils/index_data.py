@@ -529,7 +529,8 @@ class SingleData(IndexData):
         tmp_data = np.full(len(index), fill_value, dtype=np.float64)
         for index_id, index_item in enumerate(index):
             try:
-                tmp_data[index_id] = self.loc[index_item]
+                item_data = self.loc[index_item]
+                tmp_data[index_id] = item_data if item_data != np.NaN else fill_value
             except KeyError:
                 pass
         return SingleData(tmp_data, index)
@@ -541,7 +542,7 @@ class SingleData(IndexData):
         common_index, _ = common_index.sort()
         tmp_data1 = self.reindex(common_index, fill_value)
         tmp_data2 = other.reindex(common_index, fill_value)
-        return tmp_data1.fillna(fill_value) + tmp_data2.fillna(fill_value)
+        return tmp_data1 + tmp_data2
 
     def to_dict(self):
         """convert SingleData to dict.
