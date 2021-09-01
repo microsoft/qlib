@@ -150,7 +150,7 @@ class CN1minNumpyQuote(BaseQuote):
 
         # single data
         # If it don't consider the classification of single data, it will consume a lot of time.
-        if is_single_value(start_time, end_time, self.freq) and method is not None:
+        if is_single_value(start_time, end_time, self.freq):
             # this is a very special case.
             # skip aggregating function to speed-up the query calculation
             try:
