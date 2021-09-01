@@ -335,7 +335,8 @@ class IndexData(metaclass=index_data_ops_creator):
         data_shape = tuple(data_shape)
 
         # broadcast the data to expected shape
-        self.data = np.broadcast_to(self.data, data_shape)
+        if self.data.shape != data_shape:
+            self.data = np.broadcast_to(self.data, data_shape)
 
         self.data = self.data.astype(np.float64)
         # Please notice following cases when converting the type
@@ -492,6 +493,8 @@ class SingleData(IndexData):
         elif isinstance(data, pd.Series):
             assert len(index) == 0
             index, data = data.index, data.values
+        elif isinstance(data, (int, float, np.number)):
+            data = [data]
         super().__init__(data, index)
         assert self.ndim == 1
 
