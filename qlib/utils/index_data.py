@@ -280,7 +280,7 @@ class BinaryOps:
         self_data_method = getattr(self.obj.data, self.method_name)
 
         if isinstance(other, (int, float, np.number)):
-            return self.obj.__class__(self_data_method(other))
+            return self.obj.__class__(self_data_method(other), *self.obj.indices)
         elif isinstance(other, self.obj.__class__):
             other_aligned = self.obj._align_indices(other)
             return self.obj.__class__(self_data_method(other_aligned.data), *self.obj.indices)
@@ -450,6 +450,12 @@ class IndexData(metaclass=index_data_ops_creator):
     def isna(self):
         return self.__class__(np.isnan(self.data), *self.indices)
 
+    def fillna(self, value=0.0, inplace: bool = False):
+        if inplace:
+            self.data = np.nan_to_num(self.data, nan=value)
+        else:
+            return self.__class__(np.nan_to_num(self.data, nan=value), *self.indices)
+
     def count(self):
         return len(self.data[~np.isnan(self.data)])
 
@@ -507,6 +513,8 @@ class SingleData(IndexData):
         ----------
         new_index : list
             new index
+        fill_value:
+            what value to fill if index is missing
 
         Returns
         -------
@@ -531,7 +539,7 @@ class SingleData(IndexData):
         common_index, _ = common_index.sort()
         tmp_data1 = self.reindex(common_index, fill_value)
         tmp_data2 = other.reindex(common_index, fill_value)
-        return tmp_data1 + tmp_data2
+        return tmp_data1.fillna(fill_value) + tmp_data2.fillna(fill_value)
 
     def to_dict(self):
         """convert SingleData to dict.

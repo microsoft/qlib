@@ -528,6 +528,9 @@ class PandasSingleMetric(SingleMetric):
     def reindex(self, index, fill_value):
         return self.__class__(self.metric.reindex(index, fill_value=fill_value))
 
+    def __repr__(self):
+        return repr(self.metric)
+
 
 class PandasOrderIndicator(BaseOrderIndicator):
     """
@@ -567,6 +570,9 @@ class PandasOrderIndicator(BaseOrderIndicator):
                 tmp_metric = tmp_metric.add(indicator.data[metric], fill_value)
             order_indicator.assign(metric, tmp_metric.metric)
 
+    def __repr__(self):
+        return repr(self.data)
+
 
 class NumpyOrderIndicator(BaseOrderIndicator):
     """
@@ -605,3 +611,6 @@ class NumpyOrderIndicator(BaseOrderIndicator):
             for indicator in indicators:
                 tmp_metric = tmp_metric.add(indicator.data[metric], fill_value)
             order_indicator.data[metric] = tmp_metric
+
+    def __repr__(self):
+        return repr(self.data)
