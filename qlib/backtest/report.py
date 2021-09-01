@@ -11,7 +11,7 @@ import pandas as pd
 
 from qlib.backtest.exchange import Exchange
 from qlib.backtest.order import BaseTradeDecision, Order, OrderDir
-from .high_performance_ds import PandasOrderIndicator, NumpyOrderIndicator, SingleMetric
+from .high_performance_ds import BaseOrderIndicator, PandasOrderIndicator, NumpyOrderIndicator, SingleMetric
 from ..tests.config import CSI300_BENCH
 from ..utils.resam import get_higher_eq_freq_feature, resam_ts_data
 from .order import IdxTradeRange
@@ -255,7 +255,7 @@ class Indicator:
 
         # order indicator is metrics for a single order for a specific step
         self.order_indicator_his = OrderedDict()
-        self.order_indicator = self.order_indicator_cls()
+        self.order_indicator: BaseOrderIndicator = self.order_indicator_cls()
 
         # trade indicator is metrics for all orders for a specific step
         self.trade_indicator_his = OrderedDict()
@@ -265,7 +265,7 @@ class Indicator:
 
     # def reset(self, trade_calendar: TradeCalendarManager):
     def reset(self):
-        self.order_indicator = self.order_indicator_cls()
+        self.order_indicator: BaseOrderIndicator = self.order_indicator_cls()
         self.trade_indicator = OrderedDict()
         # self._trade_calendar = trade_calendar
 

@@ -99,6 +99,19 @@ class IndexDataTest(unittest.TestCase):
         sd1 = idd.SingleData([1, 2, 3, 4], index=["foo", "bar", "f", "g"])
         sd2 = idd.SingleData([1, 2, 3, 4], index=["foo", "bar", "f", "g"])
         print(sd1 + sd2)
+        new_sd = sd2 * 2
+        self.assertTrue(new_sd.index == sd2.index)
+
+        sd1 = idd.SingleData([1, 2, None, 4], index=["foo", "bar", "f", "g"])
+        sd2 = idd.SingleData([1, 2, 3, None], index=["foo", "bar", "f", "g"])
+        self.assertTrue(np.isnan((sd1 + sd2).iloc[3]))
+        self.assertTrue(sd1.add(sd2).sum() == 13)
+
+    def test_todo(self):
+        pass
+        # here are some examples which do not affect the current system, but it is weird not to support it
+        # sd2 = idd.SingleData([1, 2, 3, 4], index=["foo", "bar", "f", "g"])
+        # 2 * sd2
 
 
 if __name__ == "__main__":
