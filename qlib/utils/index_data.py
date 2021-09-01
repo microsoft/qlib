@@ -22,7 +22,7 @@ def concat(data_list: Union["SingleData"], axis=0) -> "MultiData":
 
     Parameters
     ----------
-    index_data_list : List[SingleData]
+    data_list : List[SingleData]
         the list of all SingleData to concat.
 
     Returns
@@ -50,6 +50,36 @@ def concat(data_list: Union["SingleData"], axis=0) -> "MultiData":
         return MultiData(tmp_data, all_index)
     else:
         raise ValueError(f"axis must be 0 or 1")
+
+
+def sum_by_index(data_list: Union["SingleData"], new_index: list, fill_value=0) -> "SingleData":
+    """concat all SingleData by new index.
+
+    Parameters
+    ----------
+    data_list : List[SingleData]
+        the list of all SingleData to sum.
+    new_index : list
+        the new_index of new SingleData.
+    fill_value : float
+        fill the missing values ​​or replace np.NaN.
+
+    Returns
+    -------
+    SingleData
+        the SingleData with new_index and values after sum.
+    """
+    data_list = [data.to_dict() for data in data_list]
+    data_sum = {}
+    for id in new_index:
+        item_sum = 0
+        for data in data_list:
+            if id in data and data[id] != np.NaN:
+                item_sum += data[id]
+            else:
+                item_sum += fill_value
+        data_sum[id] = item_sum
+    return SingleData(data_sum)
 
 
 class Index:
@@ -154,6 +184,10 @@ class Index:
         idx = Index(self.idx_list[sorted_idx])
         idx._is_sorted = True
         return idx, sorted_idx
+
+    def tolist(self):
+        """return the index with the format of list."""
+        return self.idx_list.tolist()
 
 
 class LocIndexer:
@@ -529,8 +563,7 @@ class SingleData(IndexData):
         tmp_data = np.full(len(index), fill_value, dtype=np.float64)
         for index_id, index_item in enumerate(index):
             try:
-                item_data = self.loc[index_item]
-                tmp_data[index_id] = item_data if item_data != np.NaN else fill_value
+                tmp_data[index_id] = self.loc[index_item]
             except KeyError:
                 pass
         return SingleData(tmp_data, index)
@@ -542,7 +575,7 @@ class SingleData(IndexData):
         common_index, _ = common_index.sort()
         tmp_data1 = self.reindex(common_index, fill_value)
         tmp_data2 = other.reindex(common_index, fill_value)
-        return tmp_data1 + tmp_data2
+        return tmp_data1.fillna(fill_value) + tmp_data2.fillna(fill_value)
 
     def to_dict(self):
         """convert SingleData to dict.

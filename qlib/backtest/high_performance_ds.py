@@ -604,13 +604,21 @@ class NumpyOrderIndicator(BaseOrderIndicator):
 
     @staticmethod
     def sum_all_indicators(order_indicator, indicators: list, metrics: Union[str, List[str]], fill_value=0):
+        # get all index(stock_id)
+        stocks = set()
+        for indicator in indicators:
+            # set(np.ndarray.tolist()) is faster than set(np.ndarray)
+            stocks = stocks | set(indicator.data[metrics[0]].index.tolist())
+        stocks = list(stocks)
+        stocks.sort()
+
+        # add metric by index
         if isinstance(metrics, str):
             metrics = [metrics]
         for metric in metrics:
-            tmp_metric = idd.SingleData()
-            for indicator in indicators:
-                tmp_metric = tmp_metric.add(indicator.data[metric], fill_value)
-            order_indicator.data[metric] = tmp_metric
+            order_indicator.data[metric] = idd.sum_by_index(
+                [indicator.data[metric] for indicator in indicators], stocks, fill_value
+            )
 
     def __repr__(self):
         return repr(self.data)
