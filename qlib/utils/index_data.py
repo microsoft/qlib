@@ -74,7 +74,7 @@ def sum_by_index(data_list: Union["SingleData"], new_index: list, fill_value=0) 
     for id in new_index:
         item_sum = 0
         for data in data_list:
-            if id in data and data[id] != np.NaN:
+            if id in data and not np.isnan(data[id]):
                 item_sum += data[id]
             else:
                 item_sum += fill_value

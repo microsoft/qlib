@@ -492,7 +492,7 @@ class BaseTradeDecision:
         for obj in self.get_decision():
             if isinstance(obj, Order):
                 # Zero amount order will be treated as empty
-                if not np.isclose(obj.amount, 0.0):
+                if obj.amount > 1e-6:
                     return False
             else:
                 return True

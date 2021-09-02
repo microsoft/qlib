@@ -107,6 +107,8 @@ class IndexDataTest(unittest.TestCase):
         self.assertTrue(np.isnan((sd1 + sd2).iloc[3]))
         self.assertTrue(sd1.add(sd2).sum() == 13)
 
+        self.assertTrue(idd.sum_by_index([sd1, sd2], sd1.index, fill_value=0.0).sum() == 13)
+
     def test_todo(self):
         pass
         # here are some examples which do not affect the current system, but it is weird not to support it
