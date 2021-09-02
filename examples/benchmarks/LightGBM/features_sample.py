@@ -4,9 +4,8 @@ import pandas as pd
 from qlib.data.inst_processor import InstProcessor
 
 
-class ResampleProcessor(InstProcessor):
-    def __init__(self, freq: str, hour: int, minute: int):
-        self.freq = freq
+class Resample1minProcessor(InstProcessor):
+    def __init__(self, hour: int, minute: int):
         self.hour = hour
         self.minute = minute
 

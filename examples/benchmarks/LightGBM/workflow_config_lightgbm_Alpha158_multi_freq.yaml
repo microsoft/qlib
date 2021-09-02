@@ -3,6 +3,8 @@ qlib_init:
         day: "~/.qlib/qlib_data/cn_data"
         1min: "~/.qlib/qlib_data/cn_data_1min"
     region: cn
+    dataset_cache: null
+    maxtasksperchild: 1
 market: &market csi300
 benchmark: &benchmark SH000300
 data_handler_config: &data_handler_config
@@ -16,10 +18,9 @@ data_handler_config: &data_handler_config
         label: day
         feature: 1min
     # with label as reference
-    sample_benchmark: label
-    sample_config:
+    inst_processor:
         feature:
-            - class: ResampleProcessor
+            - class: Resample1minProcessor
               module_path: features_sample.py
               kwargs:
                   freq: 1d

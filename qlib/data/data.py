@@ -61,7 +61,7 @@ class ProviderBackendMixin:
             provider_uri_map = backend_kwargs.setdefault("provider_uri_map", {})
             freq = kwargs.get("freq", "day")
             if freq not in provider_uri_map:
-                provider_uri_map[freq] = C.get_data_path(freq)
+                provider_uri_map[freq] = C.dpm.get_data_path(freq)
             backend_kwargs["provider_uri"] = provider_uri_map[freq]
         backend.setdefault("kwargs", {}).update(**kwargs)
         return init_instance_by_config(backend)
@@ -353,7 +353,7 @@ class DatasetProvider(abc.ABC):
     """
 
     @abc.abstractmethod
-    def dataset(self, instruments, fields, start_time=None, end_time=None, freq="day", inst_processors=None):
+    def dataset(self, instruments, fields, start_time=None, end_time=None, freq="day", inst_processors=[]):
         """Get dataset data.
 
         Parameters
@@ -386,7 +386,7 @@ class DatasetProvider(abc.ABC):
         end_time=None,
         freq="day",
         disk_cache=1,
-        inst_processors=None,
+        inst_processors=[],
         **kwargs,
     ):
         """Get task uri, used when generating rabbitmq task in qlib_server
@@ -449,7 +449,7 @@ class DatasetProvider(abc.ABC):
         return [ExpressionD.get_expression_instance(f) for f in fields]
 
     @staticmethod
-    def dataset_processor(instruments_d, column_names, start_time, end_time, freq, inst_processors=None):
+    def dataset_processor(instruments_d, column_names, start_time, end_time, freq, inst_processors=[]):
         """
         Load and process the data, return the data set.
         - default using multi-kernel method.
@@ -513,7 +513,7 @@ class DatasetProvider(abc.ABC):
 
     @staticmethod
     def expression_calculator(
-        inst, start_time, end_time, freq, column_names, spans=None, g_config=None, inst_processors=None
+        inst, start_time, end_time, freq, column_names, spans=None, g_config=None, inst_processors=[]
     ):
         """
         Calculate the expressions for one instrument, return a df result.
@@ -544,10 +544,10 @@ class DatasetProvider(abc.ABC):
                 mask |= (data.index >= begin) & (data.index <= end)
             data = data[mask]
 
-        if inst_processors is not None:
-            for _processor in inst_processors if isinstance(inst_processors, (list, tuple, set)) else [inst_processors]:
-                _processor = init_instance_by_config(_processor, accept_types=InstProcessor)
-                data = _processor(data)
+        for _processor in inst_processors:
+            if _processor:
+                _processor_obj = init_instance_by_config(_processor, accept_types=InstProcessor)
+                data = _processor_obj(data)
         return data
 
 
@@ -719,7 +719,7 @@ class LocalDatasetProvider(DatasetProvider):
         start_time=None,
         end_time=None,
         freq="day",
-        inst_processors=None,
+        inst_processors=[],
     ):
         instruments_d = self.get_instruments_d(instruments, freq)
         column_names = self.get_column_names(fields)
@@ -874,7 +874,7 @@ class ClientDatasetProvider(DatasetProvider):
         freq="day",
         disk_cache=0,
         return_uri=False,
-        inst_processors=None,
+        inst_processors=[],
     ):
         if Inst.get_inst_type(instruments) == Inst.DICT:
             get_module_logger("data").warning(
@@ -914,7 +914,7 @@ class ClientDatasetProvider(DatasetProvider):
                 start_time = cal[0]
                 end_time = cal[-1]
 
-                data = self.dataset_processor(instruments_d, column_names, start_time, end_time, freq)
+                data = self.dataset_processor(instruments_d, column_names, start_time, end_time, freq, inst_processors)
                 if return_uri:
                     return data, feature_uri
                 else:
@@ -953,7 +953,7 @@ class ClientDatasetProvider(DatasetProvider):
             get_module_logger("data").debug("get result")
             try:
                 # pre-mound nfs, used for demo
-                mnt_feature_uri = C.get_data_path(freq).joinpath(C.dataset_cache_dir_name, feature_uri)
+                mnt_feature_uri = C.dpm.get_data_path(freq).joinpath(C.dataset_cache_dir_name, feature_uri)
                 df = DiskDatasetCache.read_data_from_cache(mnt_feature_uri, start_time, end_time, fields)
                 get_module_logger("data").debug("finish slicing data")
                 if return_uri:
@@ -991,7 +991,7 @@ class BaseProvider:
         end_time=None,
         freq="day",
         disk_cache=None,
-        inst_processors=None,
+        inst_processors=[],
     ):
         """
         Parameters:

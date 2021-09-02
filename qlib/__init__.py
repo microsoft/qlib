@@ -33,41 +33,30 @@ def init(default_conf="client", **kwargs):
     H.clear()
     C.set(default_conf, **kwargs)
 
-    provider_uri_map = C.provider_uri if isinstance(C.provider_uri, dict) else {None: C.provider_uri}
-    if C.mount_path is not None:
-        # mount nfs
-        for _freq, provider_uri in provider_uri_map.items():
-            mount_path = C.mount_path if _freq is None else C["mount_path"][_freq]
-            # check path if server/local
-            uri_type = C.get_uri_type(provider_uri)
-            if uri_type == C.LOCAL_URI:
-                if not Path(provider_uri).exists():
-                    if C["auto_mount"]:
-                        logger.error(
-                            f"Invalid provider uri: {provider_uri}, please check if a valid provider uri has been set. This path does not exist."
-                        )
-                    else:
-                        logger.warning(f"auto_path is False, please make sure {mount_path} is mounted")
-            elif uri_type == C.NFS_URI:
-                mount_path = _mount_nfs_uri(provider_uri, mount_path, C["auto_mount"])
-                if _freq is None:
-                    C["mount_path"] = mount_path
+    # mount nfs
+    for _freq, provider_uri in C.provider_uri.items():
+        mount_path = C["mount_path"][_freq]
+        # check path if server/local
+        uri_type = C.dpm.get_uri_type(provider_uri)
+        if uri_type == C.LOCAL_URI:
+            if not Path(provider_uri).exists():
+                if C["auto_mount"]:
+                    logger.error(
+                        f"Invalid provider uri: {provider_uri}, please check if a valid provider uri has been set. This path does not exist."
+                    )
                 else:
-                    C["mount_path"][_freq] = mount_path
-            else:
-                raise NotImplementedError(f"This type of URI is not supported")
+                    logger.warning(f"auto_path is False, please make sure {mount_path} is mounted")
+        elif uri_type == C.NFS_URI:
+            _mount_nfs_uri(provider_uri, mount_path, C["auto_mount"])
+        else:
+            raise NotImplementedError(f"This type of URI is not supported")
 
     C.register()
 
     if "flask_server" in C:
         logger.info(f"flask_server={C['flask_server']}, flask_port={C['flask_port']}")
     logger.info("qlib successfully initialized based on %s settings." % default_conf)
-    data_path = (
-        C.get_data_path()
-        if isinstance(C["provider_uri"], str)
-        else {_freq: C.get_data_path(_freq) for _freq in C["provider_uri"].keys()}
-    )
-    logger.info(f"data_path={data_path}")
+    logger.info(f"data_path={C.dpm.provider_uri}")
 
 
 def _mount_nfs_uri(provider_uri, mount_path, auto_mount: bool = False):
@@ -102,8 +91,6 @@ def _mount_nfs_uri(provider_uri, mount_path, auto_mount: bool = False):
             else:
                 raise OSError(f"unknown error: {result}")
 
-            # config mount path
-            mount_path += ":\\"
         else:
             # system: linux/Unix/Mac
             # check mount
@@ -156,7 +143,6 @@ def _mount_nfs_uri(provider_uri, mount_path, auto_mount: bool = False):
                     LOG.info("Mount finished")
             else:
                 LOG.warning(f"{_remote_uri} on {_mount_path} is already mounted")
-        return mount_path
 
 
 def init_from_yaml_conf(conf_path, **kwargs):
