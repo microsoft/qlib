@@ -5,7 +5,7 @@ from qlib.data.inst_processor import InstProcessor
 
 
 class Resample1minProcessor(InstProcessor):
-    def __init__(self, hour: int, minute: int):
+    def __init__(self, hour: int, minute: int, **kwargs):
         self.hour = hour
         self.minute = minute
 
