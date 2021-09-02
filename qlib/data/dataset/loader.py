@@ -156,8 +156,7 @@ class QlibDataLoader(DLWParser):
         filter_pipe: List = None,
         swap_level: bool = True,
         freq: Union[str, dict] = "day",
-        sample_benchmark: str = None,
-        sample_config: dict = None,
+        inst_processor: dict = None,
     ):
         """
         Parameters
@@ -168,6 +167,11 @@ class QlibDataLoader(DLWParser):
             Filter pipe for the instruments
         swap_level :
             Whether to swap level of MultiIndex
+        freq:  dict or str
+            If type(config) == dict and type(freq) == str, load config data using freq.
+            If type(config) == dict and type(freq) == dict, load config[<group_name>] data using freq[<group_name>]
+        inst_processor: dict
+            If inst_processor is not None and type(config) == dict; load config[<group_name>] data using inst_processor[<group_name>]
         """
         if filter_pipe is not None:
             assert isinstance(filter_pipe, list), "The type of `filter_pipe` must be list."
@@ -181,9 +185,9 @@ class QlibDataLoader(DLWParser):
         self.freq = freq
 
         # sample
-        self.sample_config = sample_config if sample_config is not None else {}
-        self.sample_benchmark = sample_benchmark
-        self.can_sample = False
+        self.inst_processor = inst_processor if inst_processor is not None else {}
+        assert isinstance(self.inst_processor, dict), f"inst_processor(={self.inst_processor}) must be dict"
+
         super().__init__(config)
 
         if self.is_group:
@@ -192,12 +196,9 @@ class QlibDataLoader(DLWParser):
                 for _gp in config.keys():
                     if _gp not in freq:
                         raise ValueError(f"freq(={freq}) missing group(={_gp})")
-                assert sample_config, f"freq(={self.freq}), sample_config(={sample_config}) cannot be None/empty"
-                assert isinstance(sample_config, dict), f"sample_config(={sample_config}) must be dict"
                 assert (
-                    self.sample_benchmark and self.sample_benchmark in self.fields
-                ), f"sample_benchmark not to specification"
-                self.can_sample = True
+                    self.inst_processor
+                ), f"freq(={self.freq}), inst_processor(={self.inst_processor}) cannot be None/empty"
 
     def load_group_df(
         self,
@@ -216,31 +217,13 @@ class QlibDataLoader(DLWParser):
         elif self.filter_pipe is not None:
             warnings.warn("`filter_pipe` is not None, but it will not be used with `instruments` as list")
 
-        freq = self.freq[gp_name] if self.can_sample else self.freq
-        inst_processor = self.sample_config.get(gp_name, None) if self.can_sample else None
-        df = D.features(instruments, exprs, start_time, end_time, freq=freq, inst_processors=inst_processor)
+        freq = self.freq[gp_name] if isinstance(self.freq, dict) else self.freq
+        df = D.features(
+            instruments, exprs, start_time, end_time, freq=freq, inst_processors=self.inst_processor.get(gp_name, [])
+        )
         df.columns = names
         if self.swap_level:
             df = df.swaplevel().sort_index()  # NOTE: if swaplevel, return <datetime, instrument>
-        return df
-
-    def load(self, instruments=None, start_time=None, end_time=None) -> pd.DataFrame:
-        if self.is_group:
-            group = {
-                grp: self.load_group_df(instruments, exprs, names, start_time, end_time, grp)
-                for grp, (exprs, names) in self.fields.items()
-            }
-            if self.can_sample:
-                # reindex: alignment to index of sample_benchmark
-                for grp, _df in group.items():
-                    if grp == self.sample_benchmark:
-                        continue
-                    else:
-                        group[grp] = _df.reindex(group[self.sample_benchmark].index)
-            df = pd.concat(group, axis=1)
-        else:
-            exprs, names = self.fields
-            df = self.load_group_df(instruments, exprs, names, start_time, end_time)
         return df
 
 

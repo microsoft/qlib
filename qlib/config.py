@@ -15,6 +15,7 @@ import os
 import re
 import copy
 import logging
+import platform
 import multiprocessing
 from pathlib import Path
 from typing import Union
@@ -238,10 +239,42 @@ class QlibConfig(Config):
     # URI_TYPE
     LOCAL_URI = "local"
     NFS_URI = "nfs"
+    DEFAULT_FREQ = "__DEFAULT_FREQ"
 
     def __init__(self, default_conf):
         super().__init__(default_conf)
         self._registered = False
+
+    class DataPathManager:
+        def __init__(self, provider_uri: Union[str, Path, dict], mount_path: Union[str, Path, dict]):
+            self.provider_uri = provider_uri
+            self.mount_path = mount_path
+
+        @staticmethod
+        def get_uri_type(uri: Union[str, Path]):
+            uri = uri if isinstance(uri, str) else str(uri.expanduser().resolve())
+            is_win = re.match("^[a-zA-Z]:.*", uri) is not None  # such as 'C:\\data', 'D:'
+            # such as 'host:/data/'   (User may define short hostname by themselves or use localhost)
+            is_nfs_or_win = re.match("^[^/]+:.+", uri) is not None
+
+            if is_nfs_or_win and not is_win:
+                return QlibConfig.NFS_URI
+            else:
+                return QlibConfig.LOCAL_URI
+
+        def get_data_path(self, freq: str = None) -> Path:
+            if freq is None or freq not in self.provider_uri:
+                freq = QlibConfig.DEFAULT_FREQ
+            _provider_uri = self.provider_uri[freq]
+            if self.get_uri_type(_provider_uri) == QlibConfig.LOCAL_URI:
+                return Path(_provider_uri)
+            elif self.get_uri_type(_provider_uri) == QlibConfig.NFS_URI:
+                if "win" in platform.system().lower():
+                    # windows, mount_path is the drive
+                    return Path(f"{self.mount_path[freq]}:\\")
+                return Path(self.mount_path[freq])
+            else:
+                raise NotImplementedError(f"This type of uri is not supported")
 
     def set_mode(self, mode):
         # raise KeyError
@@ -252,59 +285,39 @@ class QlibConfig(Config):
         # raise KeyError
         self.update(_default_region_config[region])
 
+    @property
+    def dpm(self):
+        return self.DataPathManager(self["provider_uri"], self["mount_path"])
+
     def resolve_path(self):
         # resolve path
         _mount_path = self["mount_path"]
         _provider_uri = self["provider_uri"]
-        if isinstance(_provider_uri, dict):
-            if _mount_path is not None:
-                # check provider_uri and mount_path
-                assert isinstance(_mount_path, dict), f"type(provider_uri) != type(mount_path); {_mount_path}"
-                _miss_freq = set(_provider_uri.keys()) - set(_mount_path.keys())
-                assert len(_miss_freq) == 0, f"mount_path is missing freq: {_miss_freq}"
-                self["mount_path"] = {_freq: str(Path(_path).expanduser().resolve()) for _freq, _path in _mount_path}
-            for _freq, _uri in _provider_uri.items():
-                if self.get_uri_type(_uri) == QlibConfig.LOCAL_URI:
-                    self["provider_uri"][_freq] = str(Path(_uri).expanduser().resolve())
-        elif isinstance(_provider_uri, str):
-            if _mount_path is not None:
-                self["mount_path"] = str(Path(_mount_path).expanduser().resolve())
+        if _provider_uri is None:
+            raise ValueError("provider_uri cannot be None")
+        if not isinstance(_provider_uri, dict):
+            _provider_uri = {self.DEFAULT_FREQ: _provider_uri}
+        if not isinstance(_mount_path, dict):
+            _mount_path = {_freq: _mount_path for _freq in _provider_uri.keys()}
 
-            if self.get_uri_type(_provider_uri) == QlibConfig.LOCAL_URI:
-                self["provider_uri"] = str(Path(_provider_uri).expanduser().resolve())
-        else:
-            raise TypeError(
-                f"The types supported by provider_uri are [str, dict], " f"not {type(_provider_uri)}: {_provider_uri}"
+        # check provider_uri and mount_path
+        _miss_freq = set(_provider_uri.keys()) - set(_mount_path.keys())
+        assert len(_miss_freq) == 0, f"mount_path is missing freq: {_miss_freq}"
+
+        # resolve
+        for _freq, _uri in _provider_uri.items():
+            # provider_uri
+            if self.DataPathManager.get_uri_type(_uri) == QlibConfig.LOCAL_URI:
+                _provider_uri[_freq] = str(Path(_uri).expanduser().resolve())
+            # mount_path
+            _mount_path[_freq] = (
+                _mount_path[_freq]
+                if _mount_path[_freq] is None
+                else str(Path(_mount_path[_freq]).expanduser().resolve())
             )
 
-    @staticmethod
-    def get_uri_type(uri: Union[str, Path]):
-        uri = uri if isinstance(uri, str) else str(uri.expanduser().resolve())
-        is_win = re.match("^[a-zA-Z]:.*", uri) is not None  # such as 'C:\\data', 'D:'
-        # such as 'host:/data/'   (User may define short hostname by themselves or use localhost)
-        is_nfs_or_win = re.match("^[^/]+:.+", uri) is not None
-
-        if is_nfs_or_win and not is_win:
-            return QlibConfig.NFS_URI
-        else:
-            return QlibConfig.LOCAL_URI
-
-    def get_data_path(self, freq: str = None) -> Path:
-        if freq is None and not isinstance(self["provider_uri"], str):
-            raise ValueError(f"type(provider_uri) == dict, freq cannot be None; provider_uri: {self['provider_uri']}")
-        _provider_uri = self["provider_uri"] if isinstance(self["provider_uri"], str) else self["provider_uri"][freq]
-        _mount_path = (
-            self["mount_path"]
-            if self["mount_path"] is None or isinstance(self["mount_path"], str)
-            else self["mount_path"][freq]
-        )
-
-        if self.get_uri_type(_provider_uri) == QlibConfig.LOCAL_URI:
-            return Path(_provider_uri)
-        elif self.get_uri_type(_provider_uri) == QlibConfig.NFS_URI:
-            return Path(_mount_path)
-        else:
-            raise NotImplementedError(f"This type of uri is not supported")
+        self["provider_uri"] = _provider_uri
+        self["mount_path"] = _mount_path
 
     def set(self, default_conf="client", **kwargs):
         from .utils import set_log_with_config, get_module_logger, can_use_cache

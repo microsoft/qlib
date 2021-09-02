@@ -1,4 +1,5 @@
 import abc
+import json
 import pandas as pd
 
 
@@ -18,13 +19,5 @@ class InstProcessor:
         """
         pass
 
-
-class ResampleProcessor(InstProcessor):
-    """resample data"""
-
-    def __init__(self, freq: str, func: str, *args, **kwargs):
-        self.freq = freq
-        self.func = func
-
-    def __call__(self, df: pd.DataFrame, *args, **kwargs):
-        return getattr(df.resample(self.freq, level="datetime"), self.func)().dropna(how="all")
+    def __str__(self):
+        return f"{self.__class__.__name__}:{json.dumps(self.__dict__, sort_keys=True, default=str)}"
