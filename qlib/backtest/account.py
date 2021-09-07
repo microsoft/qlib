@@ -118,7 +118,7 @@ class Account:
         """
         Is portfolio-based metrics enabled.
         """
-        return self._port_metr_enabled and not self.current.skip_update()
+        return self._port_metr_enabled and not self.current_position.skip_update()
 
     def reset_report(self, freq, benchmark_config):
         # portfolio related metrics
@@ -185,7 +185,7 @@ class Account:
         # The cost will be substracted from the cash at last. So the trading logic can ignore the cost calculation
         if order.direction == Order.SELL:
             # sell stock
-            self._update_accum_info_from_order(order, trade_val, cost, trade_price)
+            self._update_state_from_order(order, trade_val, cost, trade_price)
             # update current position
             # for may sell all of stock_id
             self.current_position.update_order(order, trade_val, cost, trade_price)

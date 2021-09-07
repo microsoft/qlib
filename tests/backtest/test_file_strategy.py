@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 import unittest
-from qlib.backtest import backtest, order
+from qlib.backtest import backtest, decision
 from qlib.tests import TestAutoData
 import pandas as pd
 from pathlib import Path

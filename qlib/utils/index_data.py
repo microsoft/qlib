@@ -493,6 +493,12 @@ class IndexData(metaclass=index_data_ops_creator):
     def count(self):
         return len(self.data[~np.isnan(self.data)])
 
+    def all(self):
+        if None in self.data:
+            return self.data[self.data is not None].all()
+        else:
+            return self.data.all()
+
     @property
     def empty(self):
         return len(self.data) == 0

@@ -178,8 +178,6 @@ class CN1minNumpyQuote(BaseQuote):
             return data[-1]
         elif method == "all":
             return data.all()
-        elif method == "any":
-            return data.any()
         elif method == ts_data_last:
             valid_data = data.loc[~data.isna().data.astype(bool)]
             if len(valid_data) == 0:

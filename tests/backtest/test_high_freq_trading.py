@@ -1,7 +1,7 @@
 from typing import List, Tuple, Union
 from qlib.backtest.position import Position
 from qlib.backtest import collect_data, format_decisions
-from qlib.backtest.order import BaseTradeDecision, TradeRangeByTime
+from qlib.backtest.decision import BaseTradeDecision, TradeRangeByTime
 import qlib
 from qlib.tests import TestAutoData
 import unittest
