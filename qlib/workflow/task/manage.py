@@ -518,7 +518,7 @@ def run_task(
             if task is None:
                 break
             get_module_logger("run_task").info(task["def"])
-            # when fetching `WAITING` task, use task["def"] to train.
+            # when fetching `WAITING` task, use task["def"] to train
             if before_status == TaskManager.STATUS_WAITING:
                 param = task["def"]
             # when fetching `PART_DONE` task, use task["res"] to train because the middle result has been saved to task["res"]
