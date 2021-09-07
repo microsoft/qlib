@@ -88,7 +88,7 @@ class TaskManager:
         task_pool: str
             the name of Collection in MongoDB
         """
-        self.task_pool:pymongo.collection.Collection = getattr(get_mongodb(), task_pool)
+        self.task_pool: pymongo.collection.Collection = getattr(get_mongodb(), task_pool)
         self.logger = get_module_logger(self.__class__.__name__)
 
     @staticmethod
