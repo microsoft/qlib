@@ -120,7 +120,7 @@ class TaskManager:
         Returns
         -------
         dict
-            Implement serialization
+            return serialization's result by pickle
         """
         for prefix in self.ENCODE_FIELDS_PREFIX:
             for k in list(task.keys()):
