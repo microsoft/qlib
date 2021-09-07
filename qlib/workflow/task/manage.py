@@ -88,8 +88,7 @@ class TaskManager:
         task_pool: str
             the name of Collection in MongoDB
         """
-        #self.task_pool is mongodb's connection
-        self.task_pool = getattr(get_mongodb(), task_pool)
+        self.task_pool:pymongo.collection.Collection = getattr(get_mongodb(), task_pool)
         self.logger = get_module_logger(self.__class__.__name__)
 
     @staticmethod
@@ -110,6 +109,19 @@ class TaskManager:
         return task
 
     def _decode_task(self, task):
+        """
+        _decode_task is Serialization tool
+
+        Parameters
+        ----------
+        task : dict
+            task information
+
+        Returns
+        -------
+        bson.objectid.ObjectId
+            Convert dict to bson
+        """
         for prefix in self.ENCODE_FIELDS_PREFIX:
             for k in list(task.keys()):
                 if k.startswith(prefix):
@@ -216,7 +228,6 @@ class TaskManager:
         new_tasks = []
         _id_list = []
         for t in task_def_l:
-            #self.task_pool: XXX = getattr(...)
             try:
                 r = self.task_pool.find_one({"filter": t})
             except InvalidDocument:
@@ -230,7 +241,6 @@ class TaskManager:
                 else:
                     _id_list.append(None)
             else:
-                #_decode_task is Serialization tool
                 _id_list.append(self._decode_task(r)["_id"])
 
         self.logger.info(f"Total Tasks: {len(task_def_l)}, New Tasks: {len(new_tasks)}")
@@ -473,11 +483,11 @@ def run_task(
 
     After running this method, here are 4 situations (before_status -> after_status):
 
-        STATUS_WAITING -> STATUS_DONE: use task["def"] as `task_func` param
+        STATUS_WAITING -> STATUS_DONE: use task["def"] as `task_func` param，it means that the task has not been started
 
         STATUS_WAITING -> STATUS_PART_DONE: use task["def"] as `task_func` param
 
-        STATUS_PART_DONE -> STATUS_PART_DONE: use task["res"] as `task_func` param
+        STATUS_PART_DONE -> STATUS_PART_DONE: use task["res"] as `task_func` param，it means that the task has been started but not completed
 
         STATUS_PART_DONE -> STATUS_DONE: use task["res"] as `task_func` param
 
@@ -508,7 +518,7 @@ def run_task(
             if task is None:
                 break
             get_module_logger("run_task").info(task["def"])
-            # when fetching `WAITING` task, use task["def"] to train. "def" means that the task has not been defined
+            # when fetching `WAITING` task, use task["def"] to train.
             if before_status == TaskManager.STATUS_WAITING:
                 param = task["def"]
             # when fetching `PART_DONE` task, use task["res"] to train because the middle result has been saved to task["res"]
