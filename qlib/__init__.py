@@ -56,7 +56,8 @@ def init(default_conf="client", **kwargs):
     if "flask_server" in C:
         logger.info(f"flask_server={C['flask_server']}, flask_port={C['flask_port']}")
     logger.info("qlib successfully initialized based on %s settings." % default_conf)
-    logger.info(f"data_path={C.dpm.provider_uri}")
+    data_path = {_freq: C.dpm.get_data_path(_freq) for _freq in C.dpm.provider_uri.keys()}
+    logger.info(f"data_path={data_path}")
 
 
 def _mount_nfs_uri(provider_uri, mount_path, auto_mount: bool = False):
@@ -81,7 +82,7 @@ def _mount_nfs_uri(provider_uri, mount_path, auto_mount: bool = False):
             exec_result = os.popen("mount -o anon %s %s" % (provider_uri, mount_path + ":"))
             result = exec_result.read()
             if "85" in result:
-                LOG.warning("already mounted or window mount path already exists")
+                LOG.warning(f"{provider_uri} on Windows:{mount_path} is already mounted")
             elif "53" in result:
                 raise OSError("not find network path")
             elif "error" in result or "错误" in result:

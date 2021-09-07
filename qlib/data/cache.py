@@ -757,7 +757,7 @@ class DiskDatasetCache(DatasetCache):
             LocalDatasetProvider.multi_cache_walker(instruments, fields, start_time, end_time, freq)
             return ""
         # FIXME: The cache after resample, when read again and intercepted with end_time, results in incomplete data date
-        if not inst_processors:
+        if inst_processors:
             raise ValueError(
                 f"{self.__class__.__name__} does not support inst_processor. "
                 f"Please use `D.features(disk_cache=0)` or `qlib.init(dataset_cache=None)`"
@@ -1139,7 +1139,7 @@ class DatasetURICache(DatasetCache):
                 inst_processors=inst_processors,
             )
         # FIXME: The cache after resample, when read again and intercepted with end_time, results in incomplete data date
-        if not inst_processors:
+        if inst_processors:
             raise ValueError(
                 f"{self.__class__.__name__} does not support inst_processor. "
                 f"Please use `D.features(disk_cache=0)` or `qlib.init(dataset_cache=None)`"

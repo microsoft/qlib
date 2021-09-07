@@ -929,7 +929,7 @@ class ClientDatasetProvider(DatasetProvider):
             """
             # TODO: support inst_processors, need to change the code of qlib-server at the same time
             # FIXME: The cache after resample, when read again and intercepted with end_time, results in incomplete data date
-            if not inst_processors:
+            if inst_processors:
                 raise ValueError(
                     f"{self.__class__.__name__} does not support inst_processor. "
                     f"Please use `D.features(disk_cache=0)` or `qlib.init(dataset_cache=None)`"
