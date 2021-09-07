@@ -120,7 +120,7 @@ class Operator:
             # generate and save order list
             order_list = user.strategy.generate_trade_decision(
                 score_series=score_series,
-                current=user.account.current,
+                current=user.account.current_position,
                 trade_exchange=trade_exchange,
                 trade_date=trade_date,
             )
@@ -258,7 +258,7 @@ class Operator:
             # 3. generate and save order list
             order_list = user.strategy.generate_trade_decision(
                 score_series=score_series,
-                current=user.account.current,
+                current=user.account.current_position,
                 trade_exchange=trade_exchange,
                 trade_date=trade_date,
             )

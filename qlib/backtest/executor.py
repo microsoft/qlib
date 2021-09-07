@@ -11,7 +11,7 @@ from collections import defaultdict
 
 from qlib.backtest.report import Indicator
 
-from .order import EmptyTradeDecision, Order, BaseTradeDecision
+from .decision import EmptyTradeDecision, Order, BaseTradeDecision
 from .exchange import Exchange
 from .utils import TradeCalendarManager, CommonInfrastructure, LevelInfrastructure, get_start_end_idx
 
@@ -132,7 +132,7 @@ class BaseExecutor:
             # NOTE: there is a trick in the code.
             # copy is used instead of deepcopy. So positions are shared
             self.trade_account: Account = copy.copy(common_infra.get("trade_account"))
-            self.trade_account.reset(freq=self.time_per_step, init_report=True, port_metr_enabled=self.generate_report)
+            self.trade_account.reset(freq=self.time_per_step, port_metr_enabled=self.generate_report)
 
     @property
     def trade_exchange(self) -> Exchange:

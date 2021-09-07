@@ -4,16 +4,12 @@ from __future__ import annotations
 import copy
 from typing import Dict, List, Tuple, TYPE_CHECKING
 from qlib.utils import init_instance_by_config
-import warnings
 import pandas as pd
 
 from .position import BasePosition, InfPosition, Position
 from .report import Report, Indicator
-from .order import BaseTradeDecision, Order
-
-if TYPE_CHECKING:
-    from .exchange import Exchange
-
+from .decision import BaseTradeDecision, Order
+from .exchange import Exchange
 """
 rtn & earning in the Account
     rtn:
@@ -94,9 +90,17 @@ class Account:
 
         self._pos_type = pos_type
         self._port_metr_enabled = port_metr_enabled
+        self.init_vars(init_cash, position_dict, freq, benchmark_config)
 
+    def is_port_metr_enabled(self):
+        """
+        Is portfolio-based metrics enabled.
+        """
+        return self._port_metr_enabled and not self.current_position.skip_update()
+
+    def init_vars(self, init_cash, position_dict, freq: str, benchmark_config: dict):
         self.init_cash = init_cash
-        self.current: BasePosition = init_instance_by_config(
+        self.current_position: BasePosition = init_instance_by_config(
             {
                 "class": self._pos_type,
                 "kwargs": {
@@ -107,13 +111,8 @@ class Account:
             }
         )
         self.report = None
-        self.positions = {}
-
-        # in of reset ignore None values
-        self.benchmark_config = benchmark_config
-        self.freq = freq
-
-        self.reset(freq=freq, benchmark_config=benchmark_config, init_report=True)
+        self.hist_positions = {}
+        self.reset(freq=freq, benchmark_config=benchmark_config)
 
     def is_port_metr_enabled(self):
         """
@@ -126,17 +125,12 @@ class Account:
         if self.is_port_metr_enabled():
             self.accum_info = AccumulatedInfo()
             self.report = Report(freq, benchmark_config)
-            self.positions = {}
-            # fill stock value
-            # The frequency of account may not align with the trading frequency.
-            # This may result in obscure bugs when data quality is low.
-            if isinstance(self.benchmark_config, dict) and self.benchmark_config.get("start_time") is not None:
-                self.current.fill_stock_value(self.benchmark_config["start_time"], self.freq)
+            self.hist_positions = {}
 
         # trading related metrics(e.g. high-frequency trading)
         self.indicator = Indicator()
 
-    def reset(self, freq=None, benchmark_config=None, init_report=False, port_metr_enabled: bool = None):
+    def reset(self, freq=None, benchmark_config=None, port_metr_enabled: bool = None):
         """reset freq and report of account
 
         Parameters
@@ -145,48 +139,43 @@ class Account:
             frequency of account & report, by default None
         benchmark_config : {}, optional
             benchmark config of report, by default None
-        init_report : bool, optional
-            whether to initialize the report, by default False
         """
         if freq is not None:
             self.freq = freq
         if benchmark_config is not None:
             self.benchmark_config = benchmark_config
-
         if port_metr_enabled is not None:
             self._port_metr_enabled = port_metr_enabled
 
-        if freq is not None or benchmark_config is not None or init_report:
-            self.reset_report(self.freq, self.benchmark_config)
+        self.reset_report(self.freq, self.benchmark_config)
 
-    def get_positions(self):
-        return self.positions
+    def get_hist_positions(self):
+        return self.hist_positions
 
     def get_cash(self):
-        return self.current.get_cash()
+        return self.current_position.get_cash()
 
-    def _update_accum_info_from_order(self, order, trade_val, cost, trade_price):
-        if self.is_port_metr_enabled():
-            # update turnover
-            self.accum_info.add_turnover(trade_val)
-            # update cost
-            self.accum_info.add_cost(cost)
+    def _update_state_from_order(self, order, trade_val, cost, trade_price):
+        # update turnover
+        self.accum_info.add_turnover(trade_val)
+        # update cost
+        self.accum_info.add_cost(cost)
 
-            # update return from order
-            trade_amount = trade_val / trade_price
-            if order.direction == Order.SELL:  # 0 for sell
-                # when sell stock, get profit from price change
-                profit = trade_val - self.current.get_stock_price(order.stock_id) * trade_amount
-                self.accum_info.add_return_value(profit)  # note here do not consider cost
+        # update return from order
+        trade_amount = trade_val / trade_price
+        if order.direction == Order.SELL:  # 0 for sell
+            # when sell stock, get profit from price change
+            profit = trade_val - self.current_position.get_stock_price(order.stock_id) * trade_amount
+            self.accum_info.add_return_value(profit)  # note here do not consider cost
 
-            elif order.direction == Order.BUY:  # 1 for buy
-                # when buy stock, we get return for the rtn computing method
-                # profit in buy order is to make rtn is consistent with earning at the end of bar
-                profit = self.current.get_stock_price(order.stock_id) * trade_amount - trade_val
-                self.accum_info.add_return_value(profit)  # note here do not consider cost
+        elif order.direction == Order.BUY:  # 1 for buy
+            # when buy stock, we get return for the rtn computing method
+            # profit in buy order is to make rtn is consistent with earning at the end of bar
+            profit = self.current_position.get_stock_price(order.stock_id) * trade_amount - trade_val
+            self.accum_info.add_return_value(profit)  # note here do not consider cost
 
     def update_order(self, order, trade_val, cost, trade_price):
-        if self.current.skip_update():
+        if self.current_position.skip_update():
             # TODO: supporting polymorphism for account
             # updating order for infinite position is meaningless
             return
@@ -199,35 +188,31 @@ class Account:
             self._update_accum_info_from_order(order, trade_val, cost, trade_price)
             # update current position
             # for may sell all of stock_id
-            self.current.update_order(order, trade_val, cost, trade_price)
+            self.current_position.update_order(order, trade_val, cost, trade_price)
         else:
             # buy stock
             # deal order, then update state
-            self.current.update_order(order, trade_val, cost, trade_price)
-            self._update_accum_info_from_order(order, trade_val, cost, trade_price)
+            self.current_position.update_order(order, trade_val, cost, trade_price)
+            self._update_state_from_order(order, trade_val, cost, trade_price)
 
-    def update_bar_count(self):
-        """at the end of the trading bar, update holding bar, count of stock"""
-        # update holding day count
-        # NOTE: updating bar_count does not only serve portfolio metrics, it also serve the strategy
-        if not self.current.skip_update():
-            self.current.add_count_all(bar=self.freq)
-
-    def update_current(self, trade_start_time, trade_end_time, trade_exchange):
-        """update current to make rtn consistent with earning at the end of bar"""
+    def update_current_position(self, trade_start_time, trade_end_time, trade_exchange):
+        """update current to make rtn consistent with earning at the end of bar, and update holding bar count of stock"""
         # update price for stock in the position and the profit from changed_price
         # NOTE: updating position does not only serve portfolio metrics, it also serve the strategy
-        if not self.current.skip_update():
-            stock_list = self.current.get_stock_list()
+        if not self.current_position.skip_update():
+            stock_list = self.current_position.get_stock_list()
             for code in stock_list:
                 # if suspend, no new price to be updated, profit is 0
                 if trade_exchange.check_stock_suspended(code, trade_start_time, trade_end_time):
                     continue
                 bar_close = trade_exchange.get_close(code, trade_start_time, trade_end_time)
-                self.current.update_stock_price(stock_id=code, price=bar_close)
+                self.current_position.update_stock_price(stock_id=code, price=bar_close)
+            # update holding day count
+            # NOTE: updating bar_count does not only serve portfolio metrics, it also serve the strategy
+            self.current_position.add_count_all(bar=self.freq)
 
     def update_report(self, trade_start_time, trade_end_time):
-        """update position history, report"""
+        """update report"""
         # calculate earning
         # account_value - last_account_value
         # for the first trade date, account_value - init_cash
@@ -242,8 +227,8 @@ class Account:
             last_total_cost = self.report.get_latest_total_cost()
             last_total_turnover = self.report.get_latest_total_turnover()
         # get now_account_value, now_stock_value, now_earning, now_cost, now_turnover
-        now_account_value = self.current.calculate_value()
-        now_stock_value = self.current.calculate_stock_value()
+        now_account_value = self.current_position.calculate_value()
+        now_stock_value = self.current_position.calculate_stock_value()
         now_earning = now_account_value - last_account_value
         now_cost = self.accum_info.get_cost - last_total_cost
         now_turnover = self.accum_info.get_turnover - last_total_turnover
@@ -254,7 +239,7 @@ class Account:
             trade_start_time=trade_start_time,
             trade_end_time=trade_end_time,
             account_value=now_account_value,
-            cash=self.current.position["cash"],
+            cash=self.current_position.position["cash"],
             return_rate=(now_earning + now_cost) / last_account_value,
             # here use earning to calculate return, position's view, earning consider cost, true return
             # in order to make same definition with original backtest in evaluate.py
@@ -264,12 +249,51 @@ class Account:
             cost_rate=now_cost / last_account_value,
             stock_value=now_stock_value,
         )
+
+    def update_hist_positions(self, trade_start_time):
+        """update history position"""
+        now_account_value = self.current_position.calculate_value()
         # set now_account_value to position
-        self.current.position["now_account_value"] = now_account_value
-        self.current.update_weight_all()
-        # update positions
+        self.current_position.position["now_account_value"] = now_account_value
+        self.current_position.update_weight_all()
+        # update hist_positions
         # note use deepcopy
-        self.positions[trade_start_time] = copy.deepcopy(self.current)
+        self.hist_positions[trade_start_time] = copy.deepcopy(self.current_position)
+
+    def update_indicator(
+        self,
+        trade_start_time: pd.Timestamp,
+        trade_exchange: Exchange,
+        atomic: bool,
+        outer_trade_decision: BaseTradeDecision,
+        trade_info: list = None,
+        inner_order_indicators: List[Dict[str, pd.Series]] = None,
+        decision_list: List[Tuple[BaseTradeDecision, pd.Timestamp, pd.Timestamp]] = None,
+        indicator_config: dict = {},
+    ):
+        """update trade indicators and order indicators in each bar end"""
+        # TODO: will skip empty decisions make it faster?  `outer_trade_decision.empty():`
+
+        # indicator is trading (e.g. high-frequency order execution) related analysis
+        self.indicator.reset()
+
+        # aggregate the information for each order
+        if atomic:
+            self.indicator.update_order_indicators(trade_info)
+        else:
+            self.indicator.agg_order_indicators(
+                inner_order_indicators,
+                decision_list=decision_list,
+                outer_trade_decision=outer_trade_decision,
+                trade_exchange=trade_exchange,
+                indicator_config=indicator_config,
+            )
+
+        # aggregate all the order metrics a single step
+        self.indicator.cal_trade_indicators(trade_start_time, self.freq, indicator_config)
+
+        # record the metrics
+        self.indicator.record(trade_start_time)
 
     def update_bar_end(
         self,
@@ -316,41 +340,31 @@ class Account:
         elif atomic is False and inner_order_indicators is None:
             raise ValueError("inner_order_indicators is necessary in un-atomic executor")
 
-        # TODO:  `update_bar_count` and  `update_current` should placed in Position and be merged.
-        self.update_bar_count()
-        self.update_current(trade_start_time, trade_end_time, trade_exchange)
+        # update current position and hold bar count in each bar end
+        self.update_current_position(trade_start_time, trade_end_time, trade_exchange)
+
         if self.is_port_metr_enabled():
             # report is portfolio related analysis
             self.update_report(trade_start_time, trade_end_time)
+            self.update_hist_positions(trade_start_time)
 
-        # TODO: will skip empty decisions make it faster?  `outer_trade_decision.empty():`
-
-        # indicator is trading (e.g. high-frequency order execution) related analysis
-        self.indicator.reset()
-
-        # aggregate the information for each order
-        if atomic:
-            self.indicator.update_order_indicators(trade_info)
-        else:
-            self.indicator.agg_order_indicators(
-                inner_order_indicators,
-                decision_list=decision_list,
-                outer_trade_decision=outer_trade_decision,
-                trade_exchange=trade_exchange,
-                indicator_config=indicator_config,
-            )
-
-        # aggregate all the order metrics a single step
-        self.indicator.cal_trade_indicators(trade_start_time, self.freq, indicator_config)
-
-        # record the metrics
-        self.indicator.record(trade_start_time)
+        # update indicator in each bar end
+        self.update_indicator(
+            trade_start_time=trade_start_time,
+            trade_exchange=trade_exchange,
+            atomic=atomic,
+            outer_trade_decision=outer_trade_decision,
+            trade_info=trade_info,
+            inner_order_indicators=inner_order_indicators,
+            decision_list=decision_list,
+            indicator_config=indicator_config,
+        )
 
     def get_report(self):
         """get the history report and postions instance"""
         if self.is_port_metr_enabled():
             _report = self.report.generate_report_dataframe()
-            _positions = self.get_positions()
+            _positions = self.get_hist_positions()
             return _report, _positions
         else:
             raise ValueError("generate_report should be True if you want to generate report")

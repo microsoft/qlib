@@ -1,6 +1,6 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
-# TODO: rename it with decision.py
+
 from __future__ import annotations
 from enum import IntEnum
 from qlib.data.data import Cal

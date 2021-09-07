@@ -6,7 +6,7 @@ import pandas as pd
 
 from ...utils.resam import resam_ts_data
 from ...strategy.base import ModelStrategy
-from ...backtest.order import Order, BaseTradeDecision, OrderDir, TradeDecisionWO
+from ...backtest.decision import Order, BaseTradeDecision, OrderDir, TradeDecisionWO
 
 from .order_generator import OrderGenWInteract
 

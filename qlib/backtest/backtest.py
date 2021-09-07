@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 from __future__ import annotations
-from qlib.backtest.order import BaseTradeDecision
+from qlib.backtest.decision import BaseTradeDecision
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:

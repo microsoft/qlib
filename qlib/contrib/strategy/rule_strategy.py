@@ -10,7 +10,7 @@ from qlib.utils import lazy_sort_index
 from ...utils.resam import resam_ts_data, ts_data_last
 from ...data.data import D
 from ...strategy.base import BaseStrategy
-from ...backtest.order import BaseTradeDecision, Order, TradeDecisionWO, TradeRange
+from ...backtest.decision import BaseTradeDecision, Order, TradeDecisionWO, TradeRange
 from ...backtest.exchange import Exchange, OrderHelper
 from ...backtest.utils import CommonInfrastructure, LevelInfrastructure
 from qlib.utils.file import get_io_object
