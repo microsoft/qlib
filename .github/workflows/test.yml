@@ -26,9 +26,13 @@ jobs:
     - name: Lint with Black
       run: |
         if [ "$RUNNER_OS" == "Windows" ]; then
+          python.exe -m pip install pip --upgrade
+          python.exe -m pip install wheel --upgrade
           python.exe -m pip install black
           python.exe -m black qlib -l 120 --check --diff
         else
+          python -m pip install pip --upgrade
+          python -m pip install wheel --upgrade
           python -m pip install black
           python -m black qlib -l 120 --check --diff
         fi
