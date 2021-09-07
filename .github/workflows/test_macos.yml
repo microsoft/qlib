@@ -26,6 +26,8 @@ jobs:
     - name: Lint with Black
       run: |
         cd ..
+        python -m pip install pip --upgrade
+        python -m pip install wheel --upgrade
         python -m pip install black
         python -m black qlib -l 120 --check --diff
     # Test Qlib installed with pip
