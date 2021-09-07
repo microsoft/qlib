@@ -20,15 +20,15 @@ from ..utils.resam import get_higher_eq_freq_feature, resam_ts_data
 import qlib.utils.index_data as idd
 
 
-class Report:
+class PortfolioMetrics:
     """
     Motivation:
-        Report is for supporting portfolio related metrics.
+        PortfolioMetrics is for supporting portfolio related metrics.
 
     Implementation:
-        daily report of the account
+        daily rortfolio metrics of the account
         contain those followings: returns, costs turnovers, accounts, cash, bench, value
-        update report
+        update portfolio metrics
     """
 
     def __init__(self, freq: str = "day", benchmark_config: dict = {}):
@@ -73,7 +73,7 @@ class Report:
         self.values = OrderedDict()  # value for each trade time
         self.cashes = OrderedDict()
         self.benches = OrderedDict()
-        self.latest_report_time = None  # pd.TimeStamp
+        self.latest_pm_time = None  # pd.TimeStamp
 
     def init_bench(self, freq=None, benchmark_config=None):
         if freq is not None:
@@ -103,7 +103,7 @@ class Report:
                 raise ValueError(f"The benchmark {_codes} does not exist. Please provide the right benchmark")
             return _temp_result.groupby(level="datetime")[_temp_result.columns.tolist()[0]].mean().fillna(0)
 
-    def _resam_benchmark(self, bench, trade_start_time, trade_end_time):
+    def _sample_benchmark(self, bench, trade_start_time, trade_end_time):
         if self.bench is None:
             return None
 
@@ -117,18 +117,18 @@ class Report:
         return len(self.accounts) == 0
 
     def get_latest_date(self):
-        return self.latest_report_time
+        return self.latest_pm_time
 
     def get_latest_account_value(self):
-        return self.accounts[self.latest_report_time]
+        return self.accounts[self.latest_pm_time]
 
     def get_latest_total_cost(self):
-        return self.total_costs[self.latest_report_time]
+        return self.total_costs[self.latest_pm_time]
 
     def get_latest_total_turnover(self):
-        return self.total_turnovers[self.latest_report_time]
+        return self.total_turnovers[self.latest_pm_time]
 
-    def update_report_record(
+    def update_portfolio_metrics_record(
         self,
         trade_start_time=None,
         trade_end_time=None,
@@ -161,9 +161,9 @@ class Report:
         if trade_end_time is None and bench_value is None:
             raise ValueError("Both trade_end_time and bench_value is None, benchmark is not usable.")
         elif bench_value is None:
-            bench_value = self._resam_benchmark(self.bench, trade_start_time, trade_end_time)
+            bench_value = self._sample_benchmark(self.bench, trade_start_time, trade_end_time)
 
-        # update report data
+        # update pm data
         self.accounts[trade_start_time] = account_value
         self.returns[trade_start_time] = return_rate
         self.total_turnovers[trade_start_time] = total_turnover
@@ -173,30 +173,30 @@ class Report:
         self.values[trade_start_time] = stock_value
         self.cashes[trade_start_time] = cash
         self.benches[trade_start_time] = bench_value
-        # update latest_report_date
-        self.latest_report_time = trade_start_time
-        # finish report update in each step
+        # update pm
+        self.latest_pm_time = trade_start_time
+        # finish pm update in each step
 
-    def generate_report_dataframe(self):
-        report = pd.DataFrame()
-        report["account"] = pd.Series(self.accounts)
-        report["return"] = pd.Series(self.returns)
-        report["total_turnover"] = pd.Series(self.total_turnovers)
-        report["turnover"] = pd.Series(self.turnovers)
-        report["total_cost"] = pd.Series(self.total_costs)
-        report["cost"] = pd.Series(self.costs)
-        report["value"] = pd.Series(self.values)
-        report["cash"] = pd.Series(self.cashes)
-        report["bench"] = pd.Series(self.benches)
-        report.index.name = "datetime"
-        return report
+    def generate_portfolio_metrics_dataframe(self):
+        pm = pd.DataFrame()
+        pm["account"] = pd.Series(self.accounts)
+        pm["return"] = pd.Series(self.returns)
+        pm["total_turnover"] = pd.Series(self.total_turnovers)
+        pm["turnover"] = pd.Series(self.turnovers)
+        pm["total_cost"] = pd.Series(self.total_costs)
+        pm["cost"] = pd.Series(self.costs)
+        pm["value"] = pd.Series(self.values)
+        pm["cash"] = pd.Series(self.cashes)
+        pm["bench"] = pd.Series(self.benches)
+        pm.index.name = "datetime"
+        return pm
 
-    def save_report(self, path):
-        r = self.generate_report_dataframe()
+    def save_portfolio_metrics(self, path):
+        r = self.generate_portfolio_metrics_dataframe()
         r.to_csv(path)
 
-    def load_report(self, path):
-        """load report from a file
+    def load_portfolio_metrics(self, path):
+        """load pm from a file
         should have format like
         columns = ['account', 'return', 'total_turnover', 'turnover', 'cost', 'total_cost', 'value', 'cash', 'bench']
             :param
@@ -209,7 +209,7 @@ class Report:
         index = r.index
         self.init_vars()
         for trade_start_time in index:
-            self.update_report_record(
+            self.update_portfolio_metrics_record(
                 trade_start_time=trade_start_time,
                 account_value=r.loc[trade_start_time]["account"],
                 cash=r.loc[trade_start_time]["cash"],

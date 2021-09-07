@@ -29,7 +29,7 @@ class BaseExecutor:
         start_time: Union[str, pd.Timestamp] = None,
         end_time: Union[str, pd.Timestamp] = None,
         indicator_config: dict = {},
-        generate_report: bool = False,
+        generate_portfolio_metrics: bool = False,
         verbose: bool = False,
         track_data: bool = False,
         trade_exchange: Exchange = None,
@@ -77,8 +77,8 @@ class BaseExecutor:
                         'weight_method': 'value_weighted',
                     }
                 }
-        generate_report : bool, optional
-            whether to generate report, by default False
+        generate_portfolio_metrics : bool, optional
+            whether to generate portfolio_metrics, by default False
         verbose : bool, optional
             whether to print trading info, by default False
         track_data : bool, optional
@@ -87,8 +87,8 @@ class BaseExecutor:
             - Else,  `trade_decision` will not be generated
 
         trade_exchange : Exchange
-            exchange that provides market info, used to generate report
-            - If generate_report is None, trade_exchange will be ignored
+            exchange that provides market info, used to generate portfolio_metrics
+            - If generate_portfolio_metrics is None, trade_exchange will be ignored
             - Else If `trade_exchange` is None, self.trade_exchange will be set with common_infra
 
         common_infra : CommonInfrastructure, optional:
@@ -103,7 +103,7 @@ class BaseExecutor:
         """
         self.time_per_step = time_per_step
         self.indicator_config = indicator_config
-        self.generate_report = generate_report
+        self.generate_portfolio_metrics = generate_portfolio_metrics
         self.verbose = verbose
         self.track_data = track_data
         self._trade_exchange = trade_exchange
@@ -132,7 +132,7 @@ class BaseExecutor:
             # NOTE: there is a trick in the code.
             # copy is used instead of deepcopy. So positions are shared
             self.trade_account: Account = copy.copy(common_infra.get("trade_account"))
-            self.trade_account.reset(freq=self.time_per_step, port_metr_enabled=self.generate_report)
+            self.trade_account.reset(freq=self.time_per_step, port_metr_enabled=self.generate_portfolio_metrics)
 
     @property
     def trade_exchange(self) -> Exchange:
@@ -296,7 +296,7 @@ class NestedExecutor(BaseExecutor):
         start_time: Union[str, pd.Timestamp] = None,
         end_time: Union[str, pd.Timestamp] = None,
         indicator_config: dict = {},
-        generate_report: bool = False,
+        generate_portfolio_metrics: bool = False,
         verbose: bool = False,
         track_data: bool = False,
         skip_empty_decision: bool = True,
@@ -335,7 +335,7 @@ class NestedExecutor(BaseExecutor):
             start_time=start_time,
             end_time=end_time,
             indicator_config=indicator_config,
-            generate_report=generate_report,
+            generate_portfolio_metrics=generate_portfolio_metrics,
             verbose=verbose,
             track_data=track_data,
             common_infra=common_infra,
@@ -444,7 +444,7 @@ class SimulatorExecutor(BaseExecutor):
         start_time: Union[str, pd.Timestamp] = None,
         end_time: Union[str, pd.Timestamp] = None,
         indicator_config: dict = {},
-        generate_report: bool = False,
+        generate_portfolio_metrics: bool = False,
         verbose: bool = False,
         track_data: bool = False,
         common_infra: CommonInfrastructure = None,
@@ -462,7 +462,7 @@ class SimulatorExecutor(BaseExecutor):
             start_time=start_time,
             end_time=end_time,
             indicator_config=indicator_config,
-            generate_report=generate_report,
+            generate_portfolio_metrics=generate_portfolio_metrics,
             verbose=verbose,
             track_data=track_data,
             common_infra=common_infra,

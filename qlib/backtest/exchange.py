@@ -15,7 +15,6 @@ import pandas as pd
 
 from ..data.data import D
 from ..config import C, REG_CN
-from ..utils.resam import resam_ts_data, ts_data_last
 from ..log import get_module_logger
 from .decision import Order, OrderDir, OrderHelper
 from .high_performance_ds import BaseQuote, PandasQuote, CN1minNumpyQuote
@@ -391,17 +390,17 @@ class Exchange:
 
         return trade_val, trade_cost, trade_price
 
-    def get_quote_info(self, stock_id, start_time, end_time, method=ts_data_last):
+    def get_quote_info(self, stock_id, start_time, end_time, method="ts_data_last"):
         return self.quote.get_data(stock_id, start_time, end_time, method=method)
 
-    def get_close(self, stock_id, start_time, end_time, method=ts_data_last):
+    def get_close(self, stock_id, start_time, end_time, method="ts_data_last"):
         return self.quote.get_data(stock_id, start_time, end_time, field="$close", method=method)
 
     def get_volume(self, stock_id, start_time, end_time):
         """get the total deal volume of stock with `stock_id` between the time interval [start_time, end_time)"""
         return self.quote.get_data(stock_id, start_time, end_time, field="$volume", method="sum")
 
-    def get_deal_price(self, stock_id, start_time, end_time, direction: OrderDir, method=ts_data_last):
+    def get_deal_price(self, stock_id, start_time, end_time, direction: OrderDir, method="ts_data_last"):
         if direction == OrderDir.SELL:
             pstr = self.sell_price
         elif direction == OrderDir.BUY:
@@ -426,7 +425,7 @@ class Exchange:
         assert start_time is not None and end_time is not None, "the time range must be given"
         if stock_id not in self.quote.get_all_stock():
             return None
-        return self.quote.get_data(stock_id, start_time, end_time, field="$factor", method=ts_data_last)
+        return self.quote.get_data(stock_id, start_time, end_time, field="$factor", method="ts_data_last")
 
     def generate_amount_position_from_weight_position(
         self, weight_position, cash, start_time, end_time, direction=OrderDir.BUY
@@ -673,7 +672,7 @@ class Exchange:
                     order.start_time,
                     order.end_time,
                     field=limit[1],
-                    method=ts_data_last,
+                    method="ts_data_last",
                 )
                 vol_limit_num.append(limit_value - dealt_order_amount[order.stock_id])
             else:
@@ -721,7 +720,7 @@ class Exchange:
         trade_price = self.get_deal_price(order.stock_id, order.start_time, order.end_time, direction=order.direction)
         order.factor = self.get_factor(order.stock_id, order.start_time, order.end_time)
         self._clip_amount_by_volume(order, dealt_order_amount)
-        
+
         if order.direction == Order.SELL:
             cost_ratio = self.close_cost
             # sell

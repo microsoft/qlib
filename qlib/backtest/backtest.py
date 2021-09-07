@@ -19,15 +19,15 @@ def backtest_loop(start_time, end_time, trade_strategy: BaseStrategy, trade_exec
 
     Returns
     -------
-    report: Report
-        it records the trading report information
+    portfolio_metrics: PortfolioMetrics
+        it records the trading portfolio_metrics information
     indicator: Indicator
         it computes the trading indicator
     """
     return_value = {}
     for _decision in collect_data_loop(start_time, end_time, trade_strategy, trade_executor, return_value):
         pass
-    return return_value.get("report"), return_value.get("indicator")
+    return return_value.get("portfolio_metrics"), return_value.get("indicator")
 
 
 def collect_data_loop(
@@ -69,8 +69,8 @@ def collect_data_loop(
     if return_value is not None:
         all_executors = trade_executor.get_all_executors()
 
-        all_reports = {
-            "{}{}".format(*Freq.parse(_executor.time_per_step)): _executor.trade_account.get_report()
+        all_portfolio_metrics = {
+            "{}{}".format(*Freq.parse(_executor.time_per_step)): _executor.trade_account.get_portfolio_metrics()
             for _executor in all_executors
             if _executor.trade_account.is_port_metr_enabled()
         }
@@ -79,4 +79,4 @@ def collect_data_loop(
             key = "{}{}".format(*Freq.parse(_executor.time_per_step))
             all_indicators[key] = _executor.trade_account.get_trade_indicator().generate_trade_indicators_dataframe()
             all_indicators[key + "_obj"] = _executor.trade_account.get_trade_indicator()
-        return_value.update({"report": all_reports, "indicator": all_indicators})
+        return_value.update({"portfolio_metrics": all_portfolio_metrics, "indicator": all_indicators})

@@ -39,7 +39,7 @@ class BaseQuote:
         start_time: Union[pd.Timestamp, str],
         end_time: Union[pd.Timestamp, str],
         field: Union[str],
-        method: Union[str, Callable, None] = None,
+        method: Union[str, None] = None,
     ) -> Union[None, int, float, bool, IndexData]:
         """get the specific field of stock data during start time and end_time,
            and apply method to the data.
@@ -83,9 +83,9 @@ class BaseQuote:
             closed end time for backtest
         field : str
             the columns of data to fetch
-        method : Union[str, Callable, None]
+        method : Union[str, None]
             the method apply to data.
-            e.g [None, "last", "all", "sum", "mean", qlib/utils/resam.py/ts_data_last]
+            e.g [None, "last", "all", "sum", "mean", "ts_data_last"]
 
         Return
         ----------
@@ -110,6 +110,8 @@ class PandasQuote(BaseQuote):
         return self.data.keys()
 
     def get_data(self, stock_id, start_time, end_time, field, method=None):
+        if method == "ts_data_last":
+            method = ts_data_last
         stock_data = resam_ts_data(self.data[stock_id][field], start_time, end_time, method=method)
         if stock_data is None:
             return None
@@ -178,7 +180,7 @@ class CN1minNumpyQuote(BaseQuote):
             return data[-1]
         elif method == "all":
             return data.all()
-        elif method == ts_data_last:
+        elif method == "ts_data_last":
             valid_data = data.loc[~data.isna().data.astype(bool)]
             if len(valid_data) == 0:
                 return None

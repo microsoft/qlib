@@ -7,7 +7,7 @@ from qlib.utils import init_instance_by_config
 import pandas as pd
 
 from .position import BasePosition, InfPosition, Position
-from .report import Report, Indicator
+from .report import PortfolioMetrics, Indicator
 from .decision import BaseTradeDecision, Order
 from .exchange import Exchange
 """
@@ -110,7 +110,7 @@ class Account:
                 "module_path": "qlib.backtest.position",
             }
         )
-        self.report = None
+        self.portfolio_metrics = None
         self.hist_positions = {}
         self.reset(freq=freq, benchmark_config=benchmark_config)
 
@@ -124,7 +124,7 @@ class Account:
         # portfolio related metrics
         if self.is_port_metr_enabled():
             self.accum_info = AccumulatedInfo()
-            self.report = Report(freq, benchmark_config)
+            self.portfolio_metrics = PortfolioMetrics(freq, benchmark_config)
             self.hist_positions = {}
 
         # trading related metrics(e.g. high-frequency trading)
@@ -211,31 +211,31 @@ class Account:
             # NOTE: updating bar_count does not only serve portfolio metrics, it also serve the strategy
             self.current_position.add_count_all(bar=self.freq)
 
-    def update_report(self, trade_start_time, trade_end_time):
-        """update report"""
+    def update_portfolio_metrics(self, trade_start_time, trade_end_time):
+        """update portfolio_metrics"""
         # calculate earning
         # account_value - last_account_value
         # for the first trade date, account_value - init_cash
-        # self.report.is_empty() to judge is_first_trade_date
+        # self.portfolio_metrics.is_empty() to judge is_first_trade_date
         # get last_account_value, last_total_cost, last_total_turnover
-        if self.report.is_empty():
+        if self.portfolio_metrics.is_empty():
             last_account_value = self.init_cash
             last_total_cost = 0
             last_total_turnover = 0
         else:
-            last_account_value = self.report.get_latest_account_value()
-            last_total_cost = self.report.get_latest_total_cost()
-            last_total_turnover = self.report.get_latest_total_turnover()
+            last_account_value = self.portfolio_metrics.get_latest_account_value()
+            last_total_cost = self.portfolio_metrics.get_latest_total_cost()
+            last_total_turnover = self.portfolio_metrics.get_latest_total_turnover()
         # get now_account_value, now_stock_value, now_earning, now_cost, now_turnover
         now_account_value = self.current_position.calculate_value()
         now_stock_value = self.current_position.calculate_stock_value()
         now_earning = now_account_value - last_account_value
         now_cost = self.accum_info.get_cost - last_total_cost
         now_turnover = self.accum_info.get_turnover - last_total_turnover
-        # update report for today
+        # update portfolio_metrics for today
         # judge whether the the trading is begin.
-        # and don't add init account state into report, due to we don't have excess return in those days.
-        self.report.update_report_record(
+        # and don't add init account state into portfolio_metrics, due to we don't have excess return in those days.
+        self.portfolio_metrics.update_portfolio_metrics_record(
             trade_start_time=trade_start_time,
             trade_end_time=trade_end_time,
             account_value=now_account_value,
@@ -344,8 +344,8 @@ class Account:
         self.update_current_position(trade_start_time, trade_end_time, trade_exchange)
 
         if self.is_port_metr_enabled():
-            # report is portfolio related analysis
-            self.update_report(trade_start_time, trade_end_time)
+            # portfolio_metrics is portfolio related analysis
+            self.update_portfolio_metrics(trade_start_time, trade_end_time)
             self.update_hist_positions(trade_start_time)
 
         # update indicator in each bar end
@@ -360,14 +360,14 @@ class Account:
             indicator_config=indicator_config,
         )
 
-    def get_report(self):
-        """get the history report and postions instance"""
+    def get_portfolio_metrics(self):
+        """get the history portfolio_metrics and postions instance"""
         if self.is_port_metr_enabled():
-            _report = self.report.generate_report_dataframe()
+            _portfolio_metricst = self.portfolio_metrics.generate_portfolio_metrics_dataframe()
             _positions = self.get_hist_positions()
-            return _report, _positions
+            return _portfolio_metrics, _positions
         else:
-            raise ValueError("generate_report should be True if you want to generate report")
+            raise ValueError("generate_portfolio_metrics should be True if you want to generate portfolio_metrics")
 
     def get_trade_indicator(self) -> Indicator:
         """get the trade indicator instance, which has pa/pos/ffr info."""

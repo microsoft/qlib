@@ -231,8 +231,8 @@ def backtest(
 
     Returns
     -------
-    report_dict: Dict[Report]
-        it records the trading report information
+    portfolio_metrics_dict: Dict[PortfolioMetrics]
+        it records the trading portfolio_metrics information
     indicator_dict: Dict[Indicator]
         it computes the trading indicator
         It is organized in a dict format
@@ -248,9 +248,9 @@ def backtest(
         exchange_kwargs,
         pos_type=pos_type,
     )
-    report, indicator = backtest_loop(start_time, end_time, trade_strategy, trade_executor)
+    portfolio_metrics, indicator = backtest_loop(start_time, end_time, trade_strategy, trade_executor)
 
-    return report, indicator
+    return portfolio_metrics, indicator
 
 
 def collect_data(
