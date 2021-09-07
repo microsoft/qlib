@@ -119,8 +119,8 @@ class TaskManager:
 
         Returns
         -------
-        bson.objectid.ObjectId
-            Convert dict to bson
+        dict
+            Implement serialization
         """
         for prefix in self.ENCODE_FIELDS_PREFIX:
             for k in list(task.keys()):
