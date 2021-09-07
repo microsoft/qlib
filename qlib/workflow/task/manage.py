@@ -483,11 +483,11 @@ def run_task(
 
     After running this method, here are 4 situations (before_status -> after_status):
 
-        STATUS_WAITING -> STATUS_DONE: use task["def"] as `task_func` param，it means that the task has not been started
+        STATUS_WAITING -> STATUS_DONE: use task["def"] as `task_func` param, it means that the task has not been started
 
         STATUS_WAITING -> STATUS_PART_DONE: use task["def"] as `task_func` param
 
-        STATUS_PART_DONE -> STATUS_PART_DONE: use task["res"] as `task_func` param，it means that the task has been started but not completed
+        STATUS_PART_DONE -> STATUS_PART_DONE: use task["res"] as `task_func` param, it means that the task has been started but not completed
 
         STATUS_PART_DONE -> STATUS_DONE: use task["res"] as `task_func` param
 
