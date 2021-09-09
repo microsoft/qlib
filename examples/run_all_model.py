@@ -134,7 +134,10 @@ def get_all_folders(models, exclude) -> dict:
 def get_all_files(folder_path, dataset) -> (str, str):
     yaml_path = str(Path(f"{folder_path}") / f"*{dataset}*.yaml")
     req_path = str(Path(f"{folder_path}") / f"*.txt")
-    return glob.glob(yaml_path)[0], glob.glob(req_path)[0]
+    if len(yaml_path) == 0:
+        return None, None
+    else:
+        return glob.glob(yaml_path)[0], glob.glob(req_path)[0]
 
 
 # function to retrieve all the results
@@ -250,12 +253,15 @@ def run(
     errors = dict()
     # run all the model for iterations
     for fn in folders:
-        # create env by anaconda
-        env_path, python_path, conda_activate = create_env()
         # get all files
         sys.stderr.write("Retrieving files...\n")
         yaml_path, req_path = get_all_files(folders[fn], dataset)
+        if yaml_path is None:
+            sys.stderr.write(f"There is no {dataset}.yaml file in {folders[fn]}")
+            continue
         sys.stderr.write("\n")
+        # create env by anaconda
+        env_path, python_path, conda_activate = create_env()
         # install requirements.txt
         sys.stderr.write("Installing requirements.txt...\n")
         execute(f"{python_path} -m pip install -r {req_path}", wait_when_err=wait_when_err)
