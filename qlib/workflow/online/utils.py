@@ -11,7 +11,7 @@ from typing import List, Union
 from qlib.data.dataset import TSDatasetH
 
 from qlib.log import get_module_logger
-from qlib.utils import get_cls_kwargs
+from qlib.utils import get_callable_kwargs
 from qlib.utils.exceptions import LoadObjectError
 from qlib.workflow.online.update import PredUpdater
 from qlib.workflow.recorder import Recorder
@@ -172,7 +172,7 @@ class OnlineToolR(OnlineTool):
             hist_ref = 0
             task = rec.load_object("task")
             # Special treatment of historical dependencies
-            cls, kwargs = get_cls_kwargs(task["dataset"], default_module="qlib.data.dataset")
+            cls, kwargs = get_callable_kwargs(task["dataset"], default_module="qlib.data.dataset")
             if issubclass(cls, TSDatasetH):
                 hist_ref = kwargs.get("step_len", TSDatasetH.DEFAULT_STEP_LEN)
             try:

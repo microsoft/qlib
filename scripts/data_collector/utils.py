@@ -32,6 +32,7 @@ CALENDAR_BENCH_URL_MAP = {
     "ALL": CALENDAR_URL_BASE.format(market=1, bench_code="000905"),
     # NOTE: Use the time series of ^GSPC(SP500) as the sequence of all stocks
     "US_ALL": "^GSPC",
+    "IN_ALL": "^NSEI",
 }
 
 
@@ -39,6 +40,7 @@ _BENCH_CALENDAR_LIST = None
 _ALL_CALENDAR_LIST = None
 _HS_SYMBOLS = None
 _US_SYMBOLS = None
+_IN_SYMBOLS = None
 _EN_FUND_SYMBOLS = None
 _CALENDAR_MAP = {}
 
@@ -67,7 +69,7 @@ def get_calendar_list(bench_code="CSI300") -> List[pd.Timestamp]:
 
     calendar = _CALENDAR_MAP.get(bench_code, None)
     if calendar is None:
-        if bench_code.startswith("US_"):
+        if bench_code.startswith("US_") or bench_code.startswith("IN_"):
             df = Ticker(CALENDAR_BENCH_URL_MAP[bench_code]).history(interval="1d", period="max")
             calendar = df.index.get_level_values(level="date").map(pd.Timestamp).unique().tolist()
         else:
@@ -296,6 +298,47 @@ def get_us_stock_symbols(qlib_data_path: [str, Path] = None) -> list:
         _US_SYMBOLS = sorted(set(map(_format, filter(lambda x: len(x) < 8 and not x.endswith("WS"), _all_symbols))))
 
     return _US_SYMBOLS
+
+
+def get_in_stock_symbols(qlib_data_path: [str, Path] = None) -> list:
+    """get IN stock symbols
+
+    Returns
+    -------
+        stock symbols
+    """
+    global _IN_SYMBOLS
+
+    @deco_retry
+    def _get_nifty():
+        url = f"https://www1.nseindia.com/content/equities/EQUITY_L.csv"
+        df = pd.read_csv(url)
+        df = df.rename(columns={"SYMBOL": "Symbol"})
+        df["Symbol"] = df["Symbol"] + ".NS"
+        _symbols = df["Symbol"].dropna()
+        _symbols = _symbols.unique().tolist()
+        return _symbols
+
+    if _IN_SYMBOLS is None:
+        _all_symbols = _get_nifty()
+        if qlib_data_path is not None:
+            for _index in ["nifty"]:
+                ins_df = pd.read_csv(
+                    Path(qlib_data_path).joinpath(f"instruments/{_index}.txt"),
+                    sep="\t",
+                    names=["symbol", "start_date", "end_date"],
+                )
+                _all_symbols += ins_df["symbol"].unique().tolist()
+
+        def _format(s_):
+            s_ = s_.replace(".", "-")
+            s_ = s_.strip("$")
+            s_ = s_.strip("*")
+            return s_
+
+        _IN_SYMBOLS = sorted(set(_all_symbols))
+
+    return _IN_SYMBOLS
 
 
 def get_en_fund_symbols(qlib_data_path: [str, Path] = None) -> list:

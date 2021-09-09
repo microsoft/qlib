@@ -10,6 +10,7 @@ from typing import List, Tuple, Union
 from qlib.data.data import D
 from qlib.log import get_module_logger
 from qlib.model.ens.group import RollingGroup
+from qlib.utils import transform_end_date
 from qlib.workflow.online.utils import OnlineTool, OnlineToolR
 from qlib.workflow.recorder import Recorder
 from qlib.workflow.task.collect import Collector, RecorderCollector
@@ -118,6 +119,7 @@ class RollingStrategy(OnlineStrategy):
             task_template = [task_template]
         self.task_template = task_template
         self.rg = rolling_gen
+        assert issubclass(self.rg.__class__, RollingGen), "The rolling strategy relies on the feature if RollingGen"
         self.tool = OnlineToolR(self.exp_name)
         self.ta = TimeAdjuster()
 
@@ -174,28 +176,20 @@ class RollingStrategy(OnlineStrategy):
         Returns:
             List[dict]: a list of new tasks.
         """
+        # TODO: filter recorders by latest test segments is not a necessary
         latest_records, max_test = self._list_latest(self.tool.online_models())
         if max_test is None:
             self.logger.warn(f"No latest online recorders, no new tasks.")
             return []
-        calendar_latest = D.calendar(end_time=cur_time)[-1] if cur_time is None else cur_time
+        calendar_latest = transform_end_date(cur_time)
         self.logger.info(
             f"The interval between current time {calendar_latest} and last rolling test begin time {max_test[0]} is {self.ta.cal_interval(calendar_latest, max_test[0])}, the rolling step is {self.rg.step}"
         )
-        if self.ta.cal_interval(calendar_latest, max_test[0]) >= self.rg.step:
-            old_tasks = []
-            tasks_tmp = []
-            for rec in latest_records:
-                task = rec.load_object("task")
-                old_tasks.append(deepcopy(task))
-                test_begin = task["dataset"]["kwargs"]["segments"]["test"][0]
-                # modify the test segment to generate new tasks
-                task["dataset"]["kwargs"]["segments"]["test"] = (test_begin, calendar_latest)
-                tasks_tmp.append(task)
-            new_tasks_tmp = task_generator(tasks_tmp, self.rg)
-            new_tasks = [task for task in new_tasks_tmp if task not in old_tasks]
-            return new_tasks
-        return []
+        res = []
+        for rec in latest_records:
+            task = rec.load_object("task")
+            res.extend(self.rg.gen_following_tasks(task, calendar_latest))
+        return res
 
     def _list_latest(self, rec_list: List[Recorder]):
         """

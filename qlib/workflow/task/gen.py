@@ -5,6 +5,7 @@ TaskGenerator module can generate many tasks based on TaskGen and some task temp
 """
 import abc
 import copy
+import pandas as pd
 from typing import List, Union, Callable
 
 from qlib.utils import transform_end_date
@@ -139,6 +140,53 @@ class RollingGen(TaskGen):
         self.test_key = "test"
         self.train_key = "train"
 
+    def _update_task_segs(self, task, segs):
+        # update segments of this task
+        task["dataset"]["kwargs"]["segments"] = copy.deepcopy(segs)
+        if self.ds_extra_mod_func is not None:
+            self.ds_extra_mod_func(task, self)
+
+    def gen_following_tasks(self, task: dict, test_end: pd.Timestamp) -> List[dict]:
+        """
+        generating following rolling tasks for `task` until test_end
+
+        Parameters
+        ----------
+        task : dict
+            Qlib task format
+        test_end : pd.Timestamp
+            the latest rolling task includes `test_end`
+
+        Returns
+        -------
+        List[dict]:
+            the following tasks of `task`(`task` itself is excluded)
+        """
+        prev_seg = task["dataset"]["kwargs"]["segments"]
+        while True:
+            segments = {}
+            try:
+                for k, seg in prev_seg.items():
+                    # decide how to shift
+                    # expanding only for train data, the segments size of test data and valid data won't change
+                    if k == self.train_key and self.rtype == self.ROLL_EX:
+                        rtype = self.ta.SHIFT_EX
+                    else:
+                        rtype = self.ta.SHIFT_SD
+                    # shift the segments data
+                    segments[k] = self.ta.shift(seg, step=self.step, rtype=rtype)
+                if segments[self.test_key][0] > test_end:
+                    break
+            except KeyError:
+                # We reach the end of tasks
+                # No more rolling
+                break
+
+            prev_seg = segments
+            t = copy.deepcopy(task)  # deepcopy is necessary to avoid modify task inplace
+            self._update_task_segs(t, segments)
+            yield t
+
     def generate(self, task: dict) -> List[dict]:
         """
         Converting the task into a rolling task.
@@ -191,43 +239,23 @@ class RollingGen(TaskGen):
         """
         res = []
 
-        prev_seg = None
-        test_end = None
-        while True:
-            t = copy.deepcopy(task)
+        t = copy.deepcopy(task)
 
-            # calculate segments
-            if prev_seg is None:
-                # First rolling
-                # 1) prepare the end point
-                segments: dict = copy.deepcopy(self.ta.align_seg(t["dataset"]["kwargs"]["segments"]))
-                test_end = transform_end_date(segments[self.test_key][1])
-                # 2) and init test segments
-                test_start_idx = self.ta.align_idx(segments[self.test_key][0])
-                segments[self.test_key] = (self.ta.get(test_start_idx), self.ta.get(test_start_idx + self.step - 1))
-            else:
-                segments = {}
-                try:
-                    for k, seg in prev_seg.items():
-                        # decide how to shift
-                        # expanding only for train data, the segments size of test data and valid data won't change
-                        if k == self.train_key and self.rtype == self.ROLL_EX:
-                            rtype = self.ta.SHIFT_EX
-                        else:
-                            rtype = self.ta.SHIFT_SD
-                        # shift the segments data
-                        segments[k] = self.ta.shift(seg, step=self.step, rtype=rtype)
-                    if segments[self.test_key][0] > test_end:
-                        break
-                except KeyError:
-                    # We reach the end of tasks
-                    # No more rolling
-                    break
+        # calculate segments
 
-            # update segments of this task
-            t["dataset"]["kwargs"]["segments"] = copy.deepcopy(segments)
-            prev_seg = segments
-            if self.ds_extra_mod_func is not None:
-                self.ds_extra_mod_func(t, self)
-            res.append(t)
+        # First rolling
+        # 1) prepare the end point
+        segments: dict = copy.deepcopy(self.ta.align_seg(t["dataset"]["kwargs"]["segments"]))
+        test_end = transform_end_date(segments[self.test_key][1])
+        # 2) and init test segments
+        test_start_idx = self.ta.align_idx(segments[self.test_key][0])
+        segments[self.test_key] = (self.ta.get(test_start_idx), self.ta.get(test_start_idx + self.step - 1))
+
+        # update segments of this task
+        self._update_task_segs(t, segments)
+
+        res.append(t)
+
+        # Update the following rolling
+        res.extend(self.gen_following_tasks(t, test_end))
         return res

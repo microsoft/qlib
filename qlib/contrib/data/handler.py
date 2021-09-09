@@ -3,7 +3,7 @@
 
 from ...data.dataset.handler import DataHandlerLP
 from ...data.dataset.processor import Processor
-from ...utils import get_cls_kwargs
+from ...utils import get_callable_kwargs
 from ...data.dataset import processor as processor_module
 from ...log import TimeInspector
 from inspect import getfullargspec
@@ -14,7 +14,7 @@ def check_transform_proc(proc_l, fit_start_time, fit_end_time):
     new_l = []
     for p in proc_l:
         if not isinstance(p, Processor):
-            klass, pkwargs = get_cls_kwargs(p, processor_module)
+            klass, pkwargs = get_callable_kwargs(p, processor_module)
             args = getfullargspec(klass).args
             if "fit_start_time" in args and "fit_end_time" in args:
                 assert (
@@ -58,6 +58,7 @@ class Alpha360(DataHandlerLP):
         fit_start_time=None,
         fit_end_time=None,
         filter_pipe=None,
+        inst_processor=None,
         **kwargs,
     ):
         infer_processors = check_transform_proc(infer_processors, fit_start_time, fit_end_time)
@@ -72,6 +73,7 @@ class Alpha360(DataHandlerLP):
                 },
                 "filter_pipe": filter_pipe,
                 "freq": freq,
+                "inst_processor": inst_processor,
             },
         }
 
@@ -144,6 +146,7 @@ class Alpha158(DataHandlerLP):
         fit_end_time=None,
         process_type=DataHandlerLP.PTYPE_A,
         filter_pipe=None,
+        inst_processor=None,
         **kwargs,
     ):
         infer_processors = check_transform_proc(infer_processors, fit_start_time, fit_end_time)
@@ -158,6 +161,7 @@ class Alpha158(DataHandlerLP):
                 },
                 "filter_pipe": filter_pipe,
                 "freq": freq,
+                "inst_processor": inst_processor,
             },
         }
         super().__init__(

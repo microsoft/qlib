@@ -6,7 +6,7 @@ Code Standard
 
 Docstring
 =================================
-Please use the Numpy Style.
+Please use the `Numpydoc Style <https://stackoverflow.com/a/24385103>`_.
 
 Continuous Integration
 =================================

@@ -10,6 +10,7 @@ from .position import BasePosition, InfPosition, Position
 from .report import PortfolioMetrics, Indicator
 from .decision import BaseTradeDecision, Order
 from .exchange import Exchange
+
 """
 rtn & earning in the Account
     rtn:
