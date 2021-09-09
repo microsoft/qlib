@@ -110,7 +110,8 @@ class TaskManager:
 
     def _decode_task(self, task):
         """
-        _decode_task is Serialization tool
+        _decode_task is Serialization tool.
+        Mongodb needs JSON, so it needs to convert Python objects into JSON objects through pickle
 
         Parameters
         ----------
@@ -120,7 +121,7 @@ class TaskManager:
         Returns
         -------
         dict
-            return serialization's result by pickle
+            JSON required by mongodb
         """
         for prefix in self.ENCODE_FIELDS_PREFIX:
             for k in list(task.keys()):
