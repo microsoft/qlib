@@ -670,7 +670,7 @@ class LocalFeatureProvider(FeatureProvider):
 
     def feature(self, instrument, field, start_index, end_index, freq):
         # validate
-        field = str(field).lower()[1:]
+        field = str(field)[1:]
         instrument = code_to_fname(instrument)
         return self.backend_obj(instrument=instrument, field=field, freq=freq)[start_index : end_index + 1]
 
