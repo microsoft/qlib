@@ -134,10 +134,12 @@ def get_all_folders(models, exclude) -> dict:
 def get_all_files(folder_path, dataset) -> (str, str):
     yaml_path = str(Path(f"{folder_path}") / f"*{dataset}*.yaml")
     req_path = str(Path(f"{folder_path}") / f"*.txt")
-    if len(yaml_path) == 0:
+    yaml_file = glob.glob(yaml_path)
+    req_file = glob.glob(req_path)
+    if len(yaml_file) == 0:
         return None, None
     else:
-        return glob.glob(yaml_path)[0], glob.glob(req_path)[0]
+        return yaml_file[0], req_file[0]
 
 
 # function to retrieve all the results
