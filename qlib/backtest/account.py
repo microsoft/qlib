@@ -364,7 +364,7 @@ class Account:
     def get_portfolio_metrics(self):
         """get the history portfolio_metrics and postions instance"""
         if self.is_port_metr_enabled():
-            _portfolio_metricst = self.portfolio_metrics.generate_portfolio_metrics_dataframe()
+            _portfolio_metrics = self.portfolio_metrics.generate_portfolio_metrics_dataframe()
             _positions = self.get_hist_positions()
             return _portfolio_metrics, _positions
         else:
