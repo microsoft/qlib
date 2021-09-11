@@ -6,24 +6,24 @@ market: &market csi300
 benchmark: &benchmark SH000300
 
 data_handler_config: &data_handler_config
-    start_time: 2008-01-01
-    end_time: 2020-08-01
-    fit_start_time: 2008-01-01
-    fit_end_time: 2014-12-31
-    instruments: *market
-    infer_processors:
-      - class: RobustZScoreNorm
-        kwargs:
-          fields_group: feature
-          clip_outlier: true
-      - class: Fillna
-        kwargs:
-          fields_group: feature
-    learn_processors:
-        - class: CSRankNorm
-          kwargs:
-              fields_group: label
-    label: ["Ref($close, -2) / Ref($close, -1) - 1"]
+  start_time: 2008-01-01
+  end_time: 2020-08-01
+  fit_start_time: 2008-01-01
+  fit_end_time: 2014-12-31
+  instruments: *market
+  infer_processors:
+    - class: RobustZScoreNorm
+      kwargs:
+        fields_group: feature
+        clip_outlier: true
+    - class: Fillna
+      kwargs:
+        fields_group: feature
+  learn_processors:
+    - class: CSRankNorm
+      kwargs:
+        fields_group: label
+  label: ["Ref($close, -2) / Ref($close, -1) - 1"]
 
 num_states: &num_states 3
 
@@ -31,7 +31,10 @@ memory_mode: &memory_mode sample
 
 tra_config: &tra_config
   num_states: *num_states
-  hidden_size: 16
+  rnn_arch: LSTM
+  hidden_size: 32
+  num_layers: 1
+  dropout: 0.0
   tau: 1.0
   src_info: LR_TPE
 
@@ -44,21 +47,21 @@ model_config: &model_config
   dropout: 0.2
 
 port_analysis_config: &port_analysis_config
-    strategy:
-        class: TopkDropoutStrategy
-        module_path: qlib.contrib.strategy.strategy
-        kwargs:
-            topk: 50
-            n_drop: 5
-    backtest:
-        verbose: False
-        limit_threshold: 0.095
-        account: 100000000
-        benchmark: *benchmark
-        deal_price: close
-        open_cost: 0.0005
-        close_cost: 0.0015
-        min_cost: 5
+  strategy:
+    class: TopkDropoutStrategy
+    module_path: qlib.contrib.strategy.strategy
+    kwargs:
+      topk: 50
+      n_drop: 5
+  backtest:
+    verbose: False
+    limit_threshold: 0.095
+    account: 100000000
+    benchmark: *benchmark
+    deal_price: close
+    open_cost: 0.0005
+    close_cost: 0.0015
+    min_cost: 5
 
 task:
   model:
@@ -70,13 +73,13 @@ task:
       model_type: RNN
       lr: 1e-3
       n_epochs: 100
-      max_steps_per_epoch: 100
-      early_stop: 10
-      smooth_steps: 5
+      max_steps_per_epoch:
+      early_stop: 20
+      logdir: output/Alpha158_full
       seed: 0
-      logdir:
       lamb: 1.0
-      rho: 1.0
+      rho: 0.99
+      alpha: 0.5
       transport_method: router
       memory_mode: *memory_mode
       eval_train: False
