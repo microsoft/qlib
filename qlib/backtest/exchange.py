@@ -174,7 +174,7 @@ class Exchange:
 
         # init quote by quote_df
         self.quote_cls = quote_cls
-        self.quote: BaseQuote = self.quote_cls(self.quote_df)
+        self.quote: BaseQuote = self.quote_cls(self.quote_df, freq)
 
     def get_quote_from_qlib(self):
         # get stock data from qlib

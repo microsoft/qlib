@@ -4,6 +4,7 @@
 
 from functools import lru_cache
 import logging
+from multiprocessing import Value
 from typing import List, Text, Union, Callable, Iterable, Dict
 from collections import OrderedDict
 
@@ -19,7 +20,7 @@ import qlib.utils.index_data as idd
 
 
 class BaseQuote:
-    def __init__(self, quote_df: pd.DataFrame):
+    def __init__(self, quote_df: pd.DataFrame, freq):
         self.logger = get_module_logger("online operator", level=logging.INFO)
 
     def get_all_stock(self) -> Iterable:
@@ -99,8 +100,8 @@ class BaseQuote:
 
 
 class PandasQuote(BaseQuote):
-    def __init__(self, quote_df: pd.DataFrame):
-        super().__init__(quote_df=quote_df)
+    def __init__(self, quote_df: pd.DataFrame, freq):
+        super().__init__(quote_df=quote_df, freq=freq)
         quote_dict = {}
         for stock_id, stock_val in quote_df.groupby(level="instrument"):
             quote_dict[stock_id] = stock_val.droplevel(level="instrument")
@@ -124,7 +125,7 @@ class PandasQuote(BaseQuote):
 
 
 class CN1minNumpyQuote(BaseQuote):
-    def __init__(self, quote_df: pd.DataFrame):
+    def __init__(self, quote_df: pd.DataFrame, freq):
         """CN1minNumpyQuote
 
         Parameters
@@ -133,13 +134,20 @@ class CN1minNumpyQuote(BaseQuote):
             the init dataframe from qlib.
         self.data : Dict(stock_id, IndexData.DataFrame)
         """
-        super().__init__(quote_df=quote_df)
+        super().__init__(quote_df=quote_df, freq=freq)
         quote_dict = {}
         for stock_id, stock_val in quote_df.groupby(level="instrument"):
             quote_dict[stock_id] = idd.MultiData(stock_val.droplevel(level="instrument"))
             quote_dict[stock_id].sort_index()  # To support more flexible slicing, we must sort data first
         self.data = quote_dict
-        self.freq = pd.Timedelta(minutes=1)
+        if "minute" in freq:
+            self.freq = pd.Timedelta(minutes=1)
+        elif "day" in freq:
+            self.freq = pd.Timedelta(days=1)
+        elif "hour" in freq:
+            self.freq = pd.Timedelta(hours=1)
+        else:
+            raise ValueError(f"{freq} is not supported in CN1minNumpyQuote")
 
     def get_all_stock(self):
         return self.data.keys()
