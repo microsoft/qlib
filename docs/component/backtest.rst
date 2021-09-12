@@ -30,7 +30,7 @@ The simple example of the default strategy is as follows.
 
     from qlib.contrib.evaluate import backtest
     # pred_score is the prediction score
-    report, positions = backtest(pred_score, topk=50, n_drop=0.5, verbose=False, limit_threshold=0.0095)
+    report, positions = backtest(pred_score, topk=50, n_drop=0.5, limit_threshold=0.0095)
 
 To know more about backtesting with a specific ``Strategy``, please refer to `Portfolio Strategy <strategy.html>`_.
 

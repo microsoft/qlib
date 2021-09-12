@@ -54,7 +54,6 @@ Below is a typical config file of ``qrun``.
                 topk: 50
                 n_drop: 5
         backtest:
-            verbose: False
             limit_threshold: 0.095
             account: 100000000
             benchmark: *benchmark
@@ -242,7 +241,6 @@ The following script is the configuration of `backtest` and the `strategy` used 
                 topk: 50
                 n_drop: 5
         backtest:
-            verbose: False
             limit_threshold: 0.095
             account: 100000000
             benchmark: *benchmark
