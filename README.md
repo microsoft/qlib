@@ -11,6 +11,7 @@
 Recent released features
 | Feature | Status |
 | --                      | ------    |
+|Temporal Routing Adaptor (TRA) | [Released](https://github.com/microsoft/qlib/pull/531) on July 30, 2021 |
 | Transformer & Localformer | [Released](https://github.com/microsoft/qlib/pull/508) on July 22, 2021 |
 | Release Qlib v0.7.0 | [Released](https://github.com/microsoft/qlib/releases/tag/v0.7.0) on July 12, 2021 |
 | TCTS Model | [Released](https://github.com/microsoft/qlib/pull/491) on July 1, 2021 |
