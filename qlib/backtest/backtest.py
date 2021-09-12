@@ -68,7 +68,6 @@ def collect_data_loop(
 
     if return_value is not None:
         all_executors = trade_executor.get_all_executors()
-
         all_portfolio_metrics = {
             "{}{}".format(*Freq.parse(_executor.time_per_step)): _executor.trade_account.get_portfolio_metrics()
             for _executor in all_executors

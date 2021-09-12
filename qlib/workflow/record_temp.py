@@ -1,6 +1,7 @@
 #  Copyright (c) Microsoft Corporation.
 #  Licensed under the MIT License.
 
+from qlib.backtest import executor
 import re
 import logging
 import warnings
@@ -327,7 +328,7 @@ class PortAnaRecord(RecordTemp):
             "module_path": "qlib.backtest.executor",
             "kwargs": {
                 "time_per_step": "day",
-                "generate_report": True,
+                "generate_portfolio_metrics": True,
             },
         }
         self.executor_config = config.get("executor", _default_executor_config)
@@ -354,7 +355,7 @@ class PortAnaRecord(RecordTemp):
 
     def _get_report_freq(self, executor_config):
         ret_freq = []
-        if executor_config["kwargs"].get("generate_report", False):
+        if executor_config["kwargs"].get("generate_portfolio_metrics", False):
             _count, _freq = Freq.parse(executor_config["kwargs"]["time_per_step"])
             ret_freq.append(f"{_count}{_freq}")
         if "sub_env" in executor_config["kwargs"]:
@@ -363,10 +364,10 @@ class PortAnaRecord(RecordTemp):
 
     def generate(self, **kwargs):
         # custom strategy and get backtest
-        report_dict, indicator_dict = normal_backtest(
+        portfolio_metric_dict, indicator_dict = normal_backtest(
             executor=self.executor_config, strategy=self.strategy_config, **self.backtest_config
         )
-        for _freq, (report_normal, positions_normal) in report_dict.items():
+        for _freq, (report_normal, positions_normal) in portfolio_metric_dict.items():
             self.recorder.save_objects(
                 **{f"report_normal_{_freq}.pkl": report_normal}, artifact_path=PortAnaRecord.get_path()
             )
@@ -380,12 +381,12 @@ class PortAnaRecord(RecordTemp):
             )
 
         for _analysis_freq in self.risk_analysis_freq:
-            if _analysis_freq not in report_dict:
+            if _analysis_freq not in portfolio_metric_dict:
                 warnings.warn(
-                    f"the freq {_analysis_freq} report is not found, please set the corresponding env with `generate_report=True`"
+                    f"the freq {_analysis_freq} report is not found, please set the corresponding env with `generate_portfolio_metrics=True`"
                 )
             else:
-                report_normal, _ = report_dict.get(_analysis_freq)
+                report_normal, _ = portfolio_metric_dict.get(_analysis_freq)
                 analysis = dict()
                 analysis["excess_return_without_cost"] = risk_analysis(
                     report_normal["return"] - report_normal["bench"], freq=_analysis_freq

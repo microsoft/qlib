@@ -249,7 +249,6 @@ def backtest(
         pos_type=pos_type,
     )
     portfolio_metrics, indicator = backtest_loop(start_time, end_time, trade_strategy, trade_executor)
-
     return portfolio_metrics, indicator
 
 

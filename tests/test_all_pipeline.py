@@ -132,7 +132,7 @@ def backtest_analysis(pred, rid, uri_path: str = None):
             "module_path": "qlib.backtest.executor",
             "kwargs": {
                 "time_per_step": "day",
-                "generate_report": True,
+                "generate_portfolio_metrics": True,
             },
         },
         "strategy": {

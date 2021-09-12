@@ -75,7 +75,7 @@ class NestedDecisionExecutionWorkflow:
                             "module_path": "qlib.backtest.executor",
                             "kwargs": {
                                 "time_per_step": "5min",
-                                "generate_report": True,
+                                "generate_portfolio_metrics": True,
                                 "verbose": True,
                                 "indicator_config": {
                                     "show_indicator": True,
@@ -86,7 +86,7 @@ class NestedDecisionExecutionWorkflow:
                             "class": "TWAPStrategy",
                             "module_path": "qlib.contrib.strategy.rule_strategy",
                         },
-                        "generate_report": True,
+                        "generate_portfolio_metrics": True,
                         "indicator_config": {
                             "show_indicator": True,
                         },
@@ -101,7 +101,7 @@ class NestedDecisionExecutionWorkflow:
                     },
                 },
                 "track_data": True,
-                "generate_report": True,
+                "generate_portfolio_metrics": True,
                 "indicator_config": {
                     "show_indicator": True,
                 },

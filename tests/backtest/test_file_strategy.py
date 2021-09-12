@@ -82,7 +82,7 @@ class FileStrTest(TestAutoData):
             "module_path": "qlib.backtest.executor",
             "kwargs": {
                 "time_per_step": freq,
-                "generate_report": False,
+                "generate_portfolio_metrics": False,
                 "verbose": True,
                 "indicator_config": {
                     "show_indicator": False,
