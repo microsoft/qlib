@@ -10,10 +10,7 @@ import abc
 import copy
 import queue
 import bisect
-import logging
-import importlib
-import traceback
-from typing import List, Union
+from typing import List
 import numpy as np
 import pandas as pd
 from multiprocessing import Pool
@@ -26,7 +23,8 @@ from .ops import Operators
 from .inst_processor import InstProcessor
 
 from ..log import get_module_logger
-from .cache import DiskDatasetCache, DiskExpressionCache
+from .cache import DiskDatasetCache
+from ..utils.time import Freq
 from ..utils.resam import resam_calendar
 from ..utils import (
     Wrapper,
@@ -66,7 +64,14 @@ class ProviderBackendMixin:
             provider_uri_map = backend_kwargs.setdefault("provider_uri_map", {})
             freq = kwargs.get("freq", "day")
             if freq not in provider_uri_map:
-                provider_uri_map[freq] = C.dpm.get_data_path(freq)
+                try:
+                    _uri = C.dpm.get_data_path(freq)
+                except KeyError:
+                    # provider_uri is dict and freq not in list(provider_uri.keys())
+                    # use the nearest freq greater than 0
+                    min_freq = Freq.get_recent_freq(freq, C.dpm.provider_uri.keys())
+                    _uri = C.dpm.get_data_path(freq) if min_freq is None else C.dpm.get_data_path(min_freq)
+                provider_uri_map[freq] = _uri
             backend_kwargs["provider_uri"] = provider_uri_map[freq]
         backend.setdefault("kwargs", {}).update(**kwargs)
         return init_instance_by_config(backend)
@@ -81,7 +86,8 @@ class CalendarProvider(abc.ABC, ProviderBackendMixin):
     def __init__(self, *args, **kwargs):
         self.backend = kwargs.get("backend", {})
 
-    def calendar(self, start_time=None, end_time=None, freq="day", freq_sam=None, future=False):
+    @abc.abstractmethod
+    def calendar(self, start_time=None, end_time=None, freq="day", future=False):
         """Get calendar of certain market in given time range.
 
         Parameters
@@ -92,8 +98,6 @@ class CalendarProvider(abc.ABC, ProviderBackendMixin):
             end of the time range.
         freq : str
             time frequency, available: year/quarter/month/week/day.
-        freq_sam : str
-            sample frequency used for sampling lower-frequency calendar, by default None(raw calendar).
         future : bool
             whether including future trading day.
 
@@ -102,24 +106,9 @@ class CalendarProvider(abc.ABC, ProviderBackendMixin):
         list
             calendar list
         """
-        _calendar, _ = self._get_calendar(freq=freq, freq_sam=freq_sam, future=future)
-        # strip
-        if start_time:
-            start_time = pd.Timestamp(start_time)
-            if start_time > _calendar[-1]:
-                return np.array([])
-        else:
-            start_time = _calendar[0]
-        if end_time:
-            end_time = pd.Timestamp(end_time)
-            if end_time < _calendar[0]:
-                return np.array([])
-        else:
-            end_time = _calendar[-1]
-        st, et, si, ei = self.locate_index(start_time, end_time, freq=freq, freq_sam=freq_sam, future=future)
-        return _calendar[si : ei + 1]
+        raise NotImplementedError("Subclass of CalendarProvider must implement `calendar` method")
 
-    def locate_index(self, start_time, end_time, freq, freq_sam=None, future=False):
+    def locate_index(self, start_time, end_time, freq, future=False):
         """Locate the start time index and end time index in a calendar under certain frequency.
 
         Parameters
@@ -146,7 +135,7 @@ class CalendarProvider(abc.ABC, ProviderBackendMixin):
         """
         start_time = pd.Timestamp(start_time)
         end_time = pd.Timestamp(end_time)
-        calendar, calendar_index = self._get_calendar(freq=freq, freq_sam=freq_sam, future=future)
+        calendar, calendar_index = self._get_calendar(freq=freq, future=future)
         if start_time not in calendar_index:
             try:
                 start_time = calendar[bisect.bisect_left(calendar, start_time)]
@@ -160,7 +149,7 @@ class CalendarProvider(abc.ABC, ProviderBackendMixin):
         end_index = calendar_index[end_time]
         return start_time, end_time, start_index, end_index
 
-    def _get_calendar(self, freq, freq_sam=None, future=False):
+    def _get_calendar(self, freq, future):
         """Load calendar using memcache.
 
         Parameters
@@ -177,45 +166,18 @@ class CalendarProvider(abc.ABC, ProviderBackendMixin):
         dict
             dict composed by timestamp as key and index as value for fast search.
         """
-        flag = f"{freq}_sam_{freq_sam}_future_{future}"
+        flag = f"{freq}_future_{future}"
         if flag in H["c"]:
             _calendar, _calendar_index = H["c"][flag]
-            return _calendar, _calendar_index
         else:
-            flag_raw = f"{freq}_sam_{None}_future_{future}"
-            if flag_raw in H["c"]:
-                _calendar, _calendar_index = H["c"][flag_raw]
-            else:
-                _calendar = np.array(self.load_calendar(freq, future))
-                _calendar_index = {x: i for i, x in enumerate(_calendar)}  # for fast search
-                H["c"][flag_raw] = _calendar, _calendar_index
-
-            if freq_sam is None:
-                return _calendar, _calendar_index
-            else:
-                _calendar_sam = resam_calendar(_calendar, freq, freq_sam)
-                _calendar_sam_index = {x: i for i, x in enumerate(_calendar_sam)}
-                H["c"][flag] = _calendar_sam, _calendar_sam_index
-                return _calendar_sam, _calendar_sam_index
+            _calendar = np.array(self.load_calendar(freq, future))
+            _calendar_index = {x: i for i, x in enumerate(_calendar)}  # for fast search
+            H["c"][flag] = _calendar, _calendar_index
+        return _calendar, _calendar_index
 
     def _uri(self, start_time, end_time, freq, future=False):
         """Get the uri of calendar generation task."""
         return hash_args(start_time, end_time, freq, future)
-
-    def load_calendar(self, freq, future):
-        """Load original calendar timestamp from file.
-
-        Parameters
-        ----------
-        freq : str
-            frequency of read calendar file.
-
-        Returns
-        ----------
-        list
-            list of timestamps
-        """
-        raise NotImplementedError("Subclass of CalendarProvider must implement `load_calendar` method")
 
 
 class InstrumentProvider(abc.ABC, ProviderBackendMixin):
@@ -243,7 +205,7 @@ class InstrumentProvider(abc.ABC, ProviderBackendMixin):
 
         Returns
         ----------
-        dict: if insinstance(market, str)
+        dict: if isinstance(market, str)
             dict of stockpool config.
             {`market`=>base market name, `filter_pipe`=>list of filters}
 
@@ -262,7 +224,7 @@ class InstrumentProvider(abc.ABC, ProviderBackendMixin):
                 'filter_start_time': None,
                 'filter_end_time': None}]}
 
-        list: if insinstance(market, list)
+        list: if isinstance(market, list)
             just return the original list directly.
             NOTE: this will make the instruments compatible with more cases. The user code will be simpler.
         """
@@ -622,6 +584,19 @@ class LocalCalendarProvider(CalendarProvider):
         self.remote = kwargs.get("remote", False)
 
     def load_calendar(self, freq, future):
+        """Load original calendar timestamp from file.
+
+        Parameters
+        ----------
+        freq : str
+            frequency of read calendar file.
+        future: bool
+        Returns
+        ----------
+        list
+            list of timestamps
+        """
+
         try:
             backend_obj = self.backend_obj(freq=freq, future=future).data
         except ValueError:
@@ -637,6 +612,28 @@ class LocalCalendarProvider(CalendarProvider):
                 raise
 
         return [pd.Timestamp(x) for x in backend_obj]
+
+    def calendar(self, start_time=None, end_time=None, freq="day", future=False):
+        _calendar, _calendar_index = self._get_calendar(freq, future)
+        if start_time == "None":
+            start_time = None
+        if end_time == "None":
+            end_time = None
+        # strip
+        if start_time:
+            start_time = pd.Timestamp(start_time)
+            if start_time > _calendar[-1]:
+                return np.array([])
+        else:
+            start_time = _calendar[0]
+        if end_time:
+            end_time = pd.Timestamp(end_time)
+            if end_time < _calendar[0]:
+                return np.array([])
+        else:
+            end_time = _calendar[-1]
+        _, _, si, ei = self.locate_index(start_time, end_time, freq, future)
+        return _calendar[si : ei + 1]
 
 
 class LocalInstrumentProvider(InstrumentProvider):
@@ -821,8 +818,7 @@ class ClientCalendarProvider(CalendarProvider):
     def set_conn(self, conn):
         self.conn = conn
 
-    def calendar(self, start_time=None, end_time=None, freq="day", freq_sam=None, future=False):
-
+    def calendar(self, start_time=None, end_time=None, freq="day", future=False):
         self.conn.send_request(
             request_type="calendar",
             request_content={
@@ -1000,8 +996,8 @@ class BaseProvider:
     To keep compatible with old qlib provider.
     """
 
-    def calendar(self, start_time=None, end_time=None, freq="day", freq_sam=None, future=False):
-        return Cal.calendar(start_time, end_time, freq, freq_sam, future=future)
+    def calendar(self, start_time=None, end_time=None, freq="day", future=False):
+        return Cal.calendar(start_time, end_time, freq, future=future)
 
     def instruments(self, market="all", filter_pipe=None, start_time=None, end_time=None):
         if start_time is not None or end_time is not None:
@@ -1084,7 +1080,7 @@ class ClientProvider(BaseProvider):
         - Instruments (with filters):  Respond a list/dict of instruments
         - Features : Respond a cache uri
     The general workflow is described as follows:
-    When the user use client provider to propose a request, the client provider will connect the server and send the request. The client will start to wait for the response. The response will be made instantly indicating whether the cache is available. The waiting procedure will terminate only when the client get the reponse saying `feature_available` is true.
+    When the user use client provider to propose a request, the client provider will connect the server and send the request. The client will start to wait for the response. The response will be made instantly indicating whether the cache is available. The waiting procedure will terminate only when the client get the response saying `feature_available` is true.
     `BUG` : Everytime we make request for certain data we need to connect to the server, wait for the response and disconnect from it. We can't make a sequence of requests within one connection. You can refer to https://python-socketio.readthedocs.io/en/latest/client.html for documentation of python-socketIO client.
     """
 
@@ -1164,13 +1160,13 @@ def register_all_wrappers(C):
         if getattr(C, "expression_cache", None) is not None:
             _eprovider = init_instance_by_config(C.expression_cache, module, provider=_eprovider)
         register_wrapper(ExpressionD, _eprovider, "qlib.data")
-        logger.debug(f"registering ExpressioneD {C.expression_provider}-{C.expression_cache}")
+        logger.debug(f"registering ExpressionD {C.expression_provider}-{C.expression_cache}")
 
     _dprovider = init_instance_by_config(C.dataset_provider, module)
     if getattr(C, "dataset_cache", None) is not None:
         _dprovider = init_instance_by_config(C.dataset_cache, module, provider=_dprovider)
     register_wrapper(DatasetD, _dprovider, "qlib.data")
-    logger.debug(f"registering DataseteD {C.dataset_provider}-{C.dataset_cache}")
+    logger.debug(f"registering DatasetD {C.dataset_provider}-{C.dataset_cache}")
 
     register_wrapper(D, C.provider, "qlib.data")
     logger.debug(f"registering D {C.provider}")
