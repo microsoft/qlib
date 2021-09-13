@@ -72,7 +72,7 @@ class RollingTaskExample:
     def worker(self):
         # train tasks by other progress or machines for multiprocessing. It is same as TrainerRM.worker.
         print("========== worker ==========")
-        run_task(task_train, self.task_pool, experiment_name=self.experiment_name)
+        run_task(self.task_training, self.task_pool, experiment_name=self.experiment_name)
 
     def task_collecting(self):
         print("========== task_collecting ==========")
