@@ -30,7 +30,8 @@ from .base import Feature
 from .cache import DiskDatasetCache, DiskExpressionCache
 from ..utils import Wrapper, init_instance_by_config, register_wrapper, get_module_by_module_path
 from ..utils.resam import resam_calendar
-from updateparallel import UpdateParallel
+from ..utils.paral import ParallelExt
+
 
 class ProviderBackendMixin:
     def get_default_backend(self):
@@ -480,8 +481,6 @@ class DatasetProvider(abc.ABC):
         # One process for one task, so that the memory will be freed quicker.
         workers = max(min(C.kernels, len(instruments_d)), 1)
 
-        # TODO: Please take care of the `C.maxtasksperchild` in the future
-
         # create iterator
         if isinstance(instruments_d, dict):
             it = instruments_d.items()
@@ -498,7 +497,12 @@ class DatasetProvider(abc.ABC):
                 )
             )
 
-        data = dict(zip(inst_l, UpdateParallel(n_jobs=workers,backend=C.joblib_backend,maxtasksperchild=C.maxtasksperchild)(task_l)))
+        data = dict(
+            zip(
+                inst_l,
+                ParallelExt(n_jobs=workers, backend=C.joblib_backend, maxtasksperchild=C.maxtasksperchild)(task_l),
+            )
+        )
 
         new_data = dict()
         for inst in sorted(data.keys()):
@@ -721,8 +725,8 @@ class LocalDatasetProvider(DatasetProvider):
         start_time = cal[0]
         end_time = cal[-1]
         workers = max(min(C.kernels, len(instruments_d)), 1)
-        # TODO: Please take care of the `C.maxtasksperchild` in the future
-        UpdateParallel(n_jobs=workers,backend=C.joblib_backend,maxtasksperchild=C.maxtasksperchild)(
+
+        ParallelExt(n_jobs=workers, backend=C.joblib_backend, maxtasksperchild=C.maxtasksperchild)(
             delayed(LocalDatasetProvider.cache_walker)(inst, start_time, end_time, freq, column_names)
             for inst in instruments_d
         )

@@ -37,3 +37,17 @@ def datetime_groupby_apply(df, apply_func, axis=0, level="datetime", resample_ru
         return pd.concat(dfs, axis=axis).sort_index()
     else:
         return _naive_group_apply(df)
+
+
+class ParallelExt(Parallel):
+    def __init__(self,*args,**kwargs):
+        maxtasksperchild = kwargs.pop("maxtasksperchild",None)
+        super(ParallelExt, self).__init__(*args,**kwargs)
+        if isinstance(self._backend, MultiprocessingBackend):
+            self._backend_args["maxtasksperchild"] = maxtasksperchild
+
+
+
+
+
+
