@@ -499,7 +499,7 @@ class DatasetProvider(abc.ABC):
                 )
             )
 
-        data = dict(zip(inst_l, UpdateParallel(n_jobs=2, backend="multiprocessing",maxtasksperchild = 1)(task_l)))
+        data = dict(zip(inst_l, UpdateParallel(n_jobs=workers)(task_l)))
 
         new_data = dict()
         for inst in sorted(data.keys()):
@@ -723,7 +723,7 @@ class LocalDatasetProvider(DatasetProvider):
         end_time = cal[-1]
         workers = max(min(C.kernels, len(instruments_d)), 1)
         # TODO: Please take care of the `C.maxtasksperchild` in the future
-        UpdateParallel(n_jobs=workers, backend="multiprocessing",maxtasksperchild=1)(
+        UpdateParallel(n_jobs=workers)(
             delayed(LocalDatasetProvider.cache_walker)(inst, start_time, end_time, freq, column_names)
             for inst in instruments_d
         )
