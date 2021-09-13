@@ -349,7 +349,7 @@ class QlibRecorder:
         try:
             yield
         finally:
-            self.exp_manager._current_uri = prev_uri
+            self.exp_manager.set_uri(prev_uri)
 
     def get_recorder(
         self, *, recorder_id=None, recorder_name=None, experiment_id=None, experiment_name=None
