@@ -31,5 +31,5 @@ class UpdateParallel(Parallel):
                                              require=None,
                                              maxtasksperchild=None,
                                              **kwargs)
-        self._backend_args["maxtasksperchild"] = ["maxtasksperchild"]
+        self._backend_args["maxtasksperchild"] = maxtasksperchild
 
