@@ -470,7 +470,7 @@ class DataHandlerLP(DataHandler):
         if not self._is_proc_readonly(self.learn_processors):  # avoid modifying the original  data
             _learn_df = _learn_df.copy()
         # 2) process
-        _learn_df = self._run_proc_l(self.learn_processors, with_fit=True, check_for_infer=False)
+        _learn_df = self._run_proc_l(self.learn_processors, with_fit=with_fit, check_for_infer=False)
 
         self._learn = _learn_df
 
