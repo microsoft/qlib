@@ -206,13 +206,6 @@ class Account:
             self.current.update_order(order, trade_val, cost, trade_price)
             self._update_accum_info_from_order(order, trade_val, cost, trade_price)
 
-    def update_bar_count(self):
-        """at the end of the trading bar, update holding bar, count of stock"""
-        # update holding day count
-        # NOTE: updating bar_count does not only serve portfolio metrics, it also serve the strategy
-        if not self.current.skip_update():
-            self.current.add_count_all(bar=self.freq)
-
     def update_current(self, trade_start_time, trade_end_time, trade_exchange):
         """update current to make rtn consistent with earning at the end of bar"""
         # update price for stock in the position and the profit from changed_price
@@ -225,6 +218,10 @@ class Account:
                     continue
                 bar_close = trade_exchange.get_close(code, trade_start_time, trade_end_time)
                 self.current.update_stock_price(stock_id=code, price=bar_close)
+
+            # update holding day count
+            # NOTE: updating bar_count does not only serve portfolio metrics, it also serve the strategy
+            self.current.add_count_all(bar=self.freq)
 
     def update_report(self, trade_start_time, trade_end_time):
         """update position history, report"""
@@ -316,8 +313,6 @@ class Account:
         elif atomic is False and inner_order_indicators is None:
             raise ValueError("inner_order_indicators is necessary in un-atomic executor")
 
-        # TODO:  `update_bar_count` and  `update_current` should placed in Position and be merged.
-        self.update_bar_count()
         self.update_current(trade_start_time, trade_end_time, trade_exchange)
         if self.is_port_metr_enabled():
             # report is portfolio related analysis

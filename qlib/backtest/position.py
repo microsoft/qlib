@@ -151,7 +151,8 @@ class BasePosition:
     def get_stock_weight_dict(self, only_stock: bool = False) -> Dict:
         """
         generate stock weight dict {stock_id : value weight of stock in the position}
-        it is meaningful in the beginning or the end of each trade date
+        it is meaningful in the beginning or the end of each trade step
+        - During execution of each trading step, the weight may be not consistant with the portfolio value
 
         Parameters
         ----------
