@@ -52,6 +52,12 @@ class OnlineStrategy:
 
         NOTE: Reset all online models to trained models. If there are no trained models, then do nothing.
 
+        **NOTE**:
+            Current implementation is very naive. Here is a more complex situation which is more closer to the
+            practical scenarios.
+            1. Train new models at the day before `test_start` (at time stamp `T`)
+            2. Switch models at the `test_start` (at time timestamp `T + 1` typically)
+
         Args:
             models (list): a list of models.
             cur_time (pd.Dataframe): current time from OnlineManger. None for the latest.

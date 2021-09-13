@@ -11,6 +11,8 @@ import abc
 import copy
 import queue
 import bisect
+from typing import List, Union
+
 import numpy as np
 import pandas as pd
 
@@ -211,19 +213,22 @@ class InstrumentProvider(abc.ABC, ProviderBackendMixin):
         self.backend = kwargs.get("backend", {})
 
     @staticmethod
-    def instruments(market="all", filter_pipe=None):
+    def instruments(market: Union[List, str] = "all", filter_pipe: Union[List, None] = None):
         """Get the general config dictionary for a base market adding several dynamic filters.
 
         Parameters
         ----------
-        market : str
-            market/industry/index shortname, e.g. all/sse/szse/sse50/csi300/csi500.
+        market : Union[List, str]
+            str:
+                market/industry/index shortname, e.g. all/sse/szse/sse50/csi300/csi500.
+            list:
+                ["ID1", "ID2"]. A list of stocks
         filter_pipe : list
             the list of dynamic filters.
 
         Returns
         ----------
-        dict
+        dict: if insinstance(market, str)
             dict of stockpool config.
             {`market`=>base market name, `filter_pipe`=>list of filters}
 
@@ -241,7 +246,13 @@ class InstrumentProvider(abc.ABC, ProviderBackendMixin):
                 'name_rule_re': 'SH[0-9]{4}55',
                 'filter_start_time': None,
                 'filter_end_time': None}]}
+
+        list: if insinstance(market, list)
+            just return the original list directly.
+            NOTE: this will make the instruments compatible with more cases. The user code will be simpler.
         """
+        if isinstance(market, list):
+            return market
         if filter_pipe is None:
             filter_pipe = []
         config = {"market": market, "filter_pipe": []}
@@ -986,13 +997,21 @@ class ClientProvider(BaseProvider):
     """
 
     def __init__(self):
+        def is_instance_of_provider(instance: object, cls: type):
+            if isinstance(instance, Wrapper):
+                p = getattr(instance, "_provider", None)
+
+                return False if p is None else isinstance(p, cls)
+
+            return isinstance(instance, cls)
+
         from .client import Client
 
         self.client = Client(C.flask_server, C.flask_port)
         self.logger = get_module_logger(self.__class__.__name__)
-        if isinstance(Cal, ClientCalendarProvider):
+        if is_instance_of_provider(Cal, ClientCalendarProvider):
             Cal.set_conn(self.client)
-        if isinstance(Inst, ClientInstrumentProvider):
+        if is_instance_of_provider(Inst, ClientInstrumentProvider):
             Inst.set_conn(self.client)
         if hasattr(DatasetD, "provider"):
             DatasetD.provider.set_conn(self.client)

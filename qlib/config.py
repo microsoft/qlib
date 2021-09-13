@@ -201,7 +201,10 @@ MODE_CONF = {
         "timeout": 100,
         "logging_level": logging.INFO,
         "region": REG_CN,
-        ## Custom Operator
+        # custom operator
+        # each element of custom_ops should be Type[ExpressionOps] or dict
+        # if element of custom_ops is Type[ExpressionOps], it represents the custom operator class
+        # if element of custom_ops is dict, it represents the config of custom operator and should include `class` and `module_path` keys.
         "custom_ops": [],
     },
 }
@@ -254,9 +257,12 @@ class QlibConfig(Config):
             self["provider_uri"] = str(Path(self["provider_uri"]).expanduser().resolve())
 
     def get_uri_type(self):
-        is_win = re.match("^[a-zA-Z]:.*", self["provider_uri"]) is not None  # such as 'C:\\data', 'D:'
+        path = self["provider_uri"]
+        if isinstance(path, Path):
+            path = str(path)
+        is_win = re.match("^[a-zA-Z]:.*", path) is not None  # such as 'C:\\data', 'D:'
         is_nfs_or_win = (
-            re.match("^[^/]+:.+", self["provider_uri"]) is not None
+            re.match("^[^/]+:.+", path) is not None
         )  # such as 'host:/data/'   (User may define short hostname by themselves or use localhost)
 
         if is_nfs_or_win and not is_win:
@@ -272,7 +278,24 @@ class QlibConfig(Config):
         else:
             raise NotImplementedError(f"This type of uri is not supported")
 
-    def set(self, default_conf="client", **kwargs):
+    def set(self, default_conf: str = "client", **kwargs):
+        """
+        configure qlib based on the input parameters
+
+        The configure will act like a dictionary.
+
+        Normally, it literally replace the value according to the keys.
+        However, sometimes it is hard for users to set the config when the configure is nested and complicated
+
+        So this API provides some special parameters for users to set the keys in a more convenient way.
+        - region:  REG_CN, REG_US
+            - several region-related config will be changed
+
+        Parameters
+        ----------
+        default_conf : str
+            the default config template chosen by user: "server", "client"
+        """
         from .utils import set_log_with_config, get_module_logger, can_use_cache
 
         self.reset()

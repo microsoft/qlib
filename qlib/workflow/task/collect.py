@@ -6,6 +6,7 @@ Collector module can collect objects from everywhere and process them such as me
 """
 
 from typing import Callable, Dict, List
+from qlib.log import get_module_logger
 from qlib.utils.serial import Serializable
 from qlib.workflow import R
 
@@ -138,6 +139,7 @@ class RecorderCollector(Collector):
         rec_filter_func=None,
         artifacts_path={"pred": "pred.pkl"},
         artifacts_key=None,
+        list_kwargs={},
     ):
         """
         Init RecorderCollector.
@@ -149,6 +151,7 @@ class RecorderCollector(Collector):
             rec_filter_func (Callable, optional): filter the recorder by return True or False. Defaults to None.
             artifacts_path (dict, optional): The artifacts name and its path in Recorder. Defaults to {"pred": "pred.pkl", "IC": "sig_analysis/ic.pkl"}.
             artifacts_key (str or List, optional): the artifacts key you want to get. If None, get all artifacts.
+            list_kwargs (str): arguments for list_recorders function.
         """
         super().__init__(process_list=process_list)
         if isinstance(experiment, str):
@@ -162,6 +165,7 @@ class RecorderCollector(Collector):
         self.rec_key_func = rec_key_func
         self.artifacts_key = artifacts_key
         self.rec_filter_func = rec_filter_func
+        self.list_kwargs = list_kwargs
 
     def collect(self, artifacts_key=None, rec_filter_func=None, only_exist=True) -> dict:
         """
@@ -186,12 +190,13 @@ class RecorderCollector(Collector):
 
         collect_dict = {}
         # filter records
-        recs = self.experiment.list_recorders()
+        recs = self.experiment.list_recorders(**self.list_kwargs)
         recs_flt = {}
         for rid, rec in recs.items():
             if rec_filter_func is None or rec_filter_func(rec):
                 recs_flt[rid] = rec
 
+        logger = get_module_logger("RecorderCollector")
         for _, rec in recs_flt.items():
             rec_key = self.rec_key_func(rec)
             for key in artifacts_key:
@@ -205,7 +210,13 @@ class RecorderCollector(Collector):
                             # only collect existing artifact
                             continue
                         raise e
-                collect_dict.setdefault(key, {})[rec_key] = artifact
+                # give user some warning if the values are overridden
+                cdd = collect_dict.setdefault(key, {})
+                if rec_key in cdd:
+                    logger.warning(
+                        f"key '{rec_key}' is duplicated. Previous value will be overrides. Please check you `rec_key_func`"
+                    )
+                cdd[rec_key] = artifact
 
         return collect_dict
 

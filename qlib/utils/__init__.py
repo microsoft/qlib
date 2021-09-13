@@ -210,10 +210,13 @@ def get_cls_kwargs(config: Union[dict, str], default_module: Union[str, ModuleTy
         the class object and it's arguments.
     """
     if isinstance(config, dict):
-        module = get_module_by_module_path(config.get("module_path", default_module))
+        if isinstance(config["class"], str):
+            module = get_module_by_module_path(config.get("module_path", default_module))
 
-        # raise AttributeError
-        klass = getattr(module, config["class"])
+            # raise AttributeError
+            klass = getattr(module, config["class"])
+        else:
+            klass = config["class"]  # the class type itself is passed in
         kwargs = config.get("kwargs", {})
     elif isinstance(config, str):
         module = get_module_by_module_path(default_module)
@@ -235,10 +238,16 @@ def init_instance_by_config(
     ----------
     config : Union[str, dict, object]
         dict example.
+            case 1)
             {
                 'class': 'ClassName',
                 'kwargs': dict, #  It is optional. {} will be used if not given
                 'model_path': path, # It is optional if module is given
+            }
+            case 2)
+            {
+                'class': <The class it self>,
+                'kwargs': dict, #  It is optional. {} will be used if not given
             }
         str example.
             1) specify a pickle object
@@ -641,6 +650,28 @@ def split_pred(pred, number=None, split_date=None):
     pred_left = pred_temp.loc(axis=0)[:, date_left_start:date_left_end]
     pred_right = pred_temp.loc(axis=0)[:, date_right_begin:]
     return pred_left, pred_right
+
+
+def time_to_slc_point(t: Union[None, str, pd.Timestamp]) -> Union[None, pd.Timestamp]:
+    """
+    Time slicing in Qlib or Pandas is a frequently-used action.
+    However, user often input all kinds of data format to represent time.
+    This function will help user to convert these inputs into a uniform format which is friendly to time slicing.
+
+    Parameters
+    ----------
+    t : Union[None, str, pd.Timestamp]
+        original time
+
+    Returns
+    -------
+    Union[None, pd.Timestamp]:
+    """
+    if t is None:
+        # None represents unbounded in Qlib or Pandas(e.g. df.loc[slice(None, "20210303")]).
+        return t
+    else:
+        return pd.Timestamp(t)
 
 
 def can_use_cache():

@@ -28,16 +28,18 @@ class QlibLogger(metaclass=MetaLogger):
 
     def __init__(self, module_name):
         self.module_name = module_name
-        self.level = 0
+        # this feature name conflicts with the attribute with Logger
+        # rename it to avoid some corner cases that result in comparing `str` and `int`
+        self.__level = 0
 
     @property
     def logger(self):
         logger = logging.getLogger(self.module_name)
-        logger.setLevel(self.level)
+        logger.setLevel(self.__level)
         return logger
 
     def setLevel(self, level):
-        self.level = level
+        self.__level = level
 
     def __getattr__(self, name):
         # During unpickling, python will call __getattr__. Use this line to avoid maximum recursion error.
@@ -68,7 +70,7 @@ def get_module_logger(module_name, level: Optional[int] = None) -> logging.Logge
 
 class TimeInspector:
 
-    timer_logger = get_module_logger("timer", level=logging.WARNING)
+    timer_logger = get_module_logger("timer", level=logging.INFO)
 
     time_marks = []
 

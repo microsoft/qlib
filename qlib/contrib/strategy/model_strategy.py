@@ -1,15 +1,21 @@
 import copy
+from qlib.backtest.position import Position
 import warnings
 import numpy as np
 import pandas as pd
 
 from ...utils.resam import resam_ts_data
 from ...strategy.base import ModelStrategy
-from ...backtest.order import Order
+from ...backtest.order import Order, BaseTradeDecision, OrderDir, TradeDecisionWO
+
 from .order_generator import OrderGenWInteract
 
 
 class TopkDropoutStrategy(ModelStrategy):
+    # TODO:
+    # 1. Supporting leverage the get_range_limit result from the decision
+    # 2. Supporting alter_outer_trade_decision
+    # 3. Supporting checking the availability of trade decision
     def __init__(
         self,
         model,
@@ -58,7 +64,7 @@ class TopkDropoutStrategy(ModelStrategy):
 
         """
         super(TopkDropoutStrategy, self).__init__(
-            model, dataset, level_infra=level_infra, common_infra=common_infra, **kwargs
+            model, dataset, level_infra=level_infra, common_infra=common_infra, trade_exchange=trade_exchange, **kwargs
         )
         self.topk = topk
         self.n_drop = n_drop
@@ -67,22 +73,6 @@ class TopkDropoutStrategy(ModelStrategy):
         self.risk_degree = risk_degree
         self.hold_thresh = hold_thresh
         self.only_tradable = only_tradable
-        if trade_exchange is not None:
-            self.trade_exchange = trade_exchange
-
-    def reset_common_infra(self, common_infra):
-        """
-        Parameters
-        ----------
-        common_infra : dict, optional
-            common infrastructure for backtesting, by default None
-            - It should include `trade_account`, used to get position
-            - It should include `trade_exchange`, used to provide market info
-        """
-        super(TopkDropoutStrategy, self).reset_common_infra(common_infra)
-
-        if common_infra.has("trade_exchange"):
-            self.trade_exchange = common_infra.get("trade_exchange")
 
     def get_risk_degree(self, trade_step=None):
         """get_risk_degree
@@ -99,7 +89,7 @@ class TopkDropoutStrategy(ModelStrategy):
         pred_start_time, pred_end_time = self.trade_calendar.get_step_time(trade_step, shift=1)
         pred_score = resam_ts_data(self.pred_scores, start_time=pred_start_time, end_time=pred_end_time, method="last")
         if pred_score is None:
-            return []
+            return TradeDecisionWO([], self)
         if self.only_tradable:
             # If The strategy only consider tradable stock when make decision
             # It needs following actions to filter stocks
@@ -204,7 +194,6 @@ class TopkDropoutStrategy(ModelStrategy):
                     start_time=trade_start_time,
                     end_time=trade_end_time,
                     direction=Order.SELL,  # 0 for sell, 1 for buy
-                    factor=factor,
                 )
                 # is order executable
                 if self.trade_exchange.check_order(sell_order):
@@ -230,7 +219,7 @@ class TopkDropoutStrategy(ModelStrategy):
                 continue
             # buy order
             buy_price = self.trade_exchange.get_deal_price(
-                stock_id=code, start_time=trade_start_time, end_time=trade_end_time
+                stock_id=code, start_time=trade_start_time, end_time=trade_end_time, direction=OrderDir.BUY
             )
             buy_amount = value / buy_price
             factor = self.trade_exchange.get_factor(stock_id=code, start_time=trade_start_time, end_time=trade_end_time)
@@ -241,13 +230,16 @@ class TopkDropoutStrategy(ModelStrategy):
                 start_time=trade_start_time,
                 end_time=trade_end_time,
                 direction=Order.BUY,  # 1 for buy
-                factor=factor,
             )
             buy_order_list.append(buy_order)
-        return sell_order_list + buy_order_list
+        return TradeDecisionWO(sell_order_list + buy_order_list, self)
 
 
 class WeightStrategyBase(ModelStrategy):
+    # TODO:
+    # 1. Supporting leverage the get_range_limit result from the decision
+    # 2. Supporting alter_outer_trade_decision
+    # 3. Supporting checking the availability of trade decision
     def __init__(
         self,
         model,
@@ -268,28 +260,12 @@ class WeightStrategyBase(ModelStrategy):
                 - In minutely execution, the daily exchange is not usable, only the minutely exchange is recommended.
         """
         super(WeightStrategyBase, self).__init__(
-            model, dataset, level_infra=level_infra, common_infra=common_infra, **kwargs
+            model, dataset, level_infra=level_infra, common_infra=common_infra, trade_exchange=trade_exchange, **kwargs
         )
         if isinstance(order_generator_cls_or_obj, type):
             self.order_generator = order_generator_cls_or_obj()
         else:
             self.order_generator = order_generator_cls_or_obj
-        if trade_exchange is not None:
-            self.trade_exchange = trade_exchange
-
-    def reset_common_infra(self, common_infra):
-        """
-        Parameters
-        ----------
-        common_infra : dict, optional
-            common infrastructure for backtesting, by default None
-            - It should include `trade_account`, used to get position
-            - It should include `trade_exchange`, used to provide market info
-        """
-        super(WeightStrategyBase, self).reset_common_infra(common_infra)
-
-        if common_infra.has("trade_exchange"):
-            self.trade_exchange = common_infra.get("trade_exchange")
 
     def get_risk_degree(self, trade_step=None):
         """get_risk_degree
@@ -324,8 +300,10 @@ class WeightStrategyBase(ModelStrategy):
         pred_start_time, pred_end_time = self.trade_calendar.get_step_time(trade_step, shift=1)
         pred_score = resam_ts_data(self.pred_scores, start_time=pred_start_time, end_time=pred_end_time, method="last")
         if pred_score is None:
-            return []
+            return TradeDecisionWO([], self)
         current_temp = copy.deepcopy(self.trade_position)
+        assert isinstance(current_temp, Position)  # Avoid InfPosition
+
         target_weight_position = self.generate_target_weight_position(
             score=pred_score, current=current_temp, trade_start_time=trade_start_time, trade_end_time=trade_end_time
         )
@@ -339,4 +317,4 @@ class WeightStrategyBase(ModelStrategy):
             trade_start_time=trade_start_time,
             trade_end_time=trade_end_time,
         )
-        return order_list
+        return TradeDecisionWO(order_list, self)

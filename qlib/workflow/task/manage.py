@@ -272,10 +272,10 @@ class TaskManager:
         task = self.fetch_task(query=query, status=status)
         try:
             yield task
-        except Exception:
+        except (Exception, KeyboardInterrupt):  # KeyboardInterrupt is not a subclass of Exception
             if task is not None:
                 self.logger.info("Returning task before raising error")
-                self.return_task(task)
+                self.return_task(task, status=status)  # return task as the original status
                 self.logger.info("Task returned")
             raise
 
@@ -411,7 +411,11 @@ class TaskManager:
         self.task_pool.update_one({"_id": task["_id"]}, update_dict)
 
     def _get_undone_n(self, task_stat):
-        return task_stat.get(self.STATUS_WAITING, 0) + task_stat.get(self.STATUS_RUNNING, 0)
+        return (
+            task_stat.get(self.STATUS_WAITING, 0)
+            + task_stat.get(self.STATUS_RUNNING, 0)
+            + task_stat.get(self.STATUS_PART_DONE, 0)
+        )
 
     def _get_total(self, task_stat):
         return sum(task_stat.values())
@@ -429,7 +433,7 @@ class TaskManager:
         last_undone_n = self._get_undone_n(task_stat)
         if last_undone_n == 0:
             return
-        self.logger.warn(f"Waiting for {last_undone_n} undone tasks. Please make sure they are running.")
+        self.logger.warning(f"Waiting for {last_undone_n} undone tasks. Please make sure they are running.")
         with tqdm(total=total, initial=total - last_undone_n) as pbar:
             while True:
                 time.sleep(10)

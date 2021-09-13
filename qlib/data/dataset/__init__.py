@@ -1,6 +1,6 @@
 from ...utils.serial import Serializable
 from typing import Union, List, Tuple, Dict, Text, Optional
-from ...utils import init_instance_by_config, np_ffill
+from ...utils import init_instance_by_config, np_ffill, time_to_slc_point
 from ...log import get_module_logger
 from .handler import DataHandler, DataHandlerLP
 from copy import deepcopy
@@ -243,6 +243,8 @@ class TSDataSampler:
 
     It works like `torch.data.utils.Dataset`, it provides a very convenient interface for constructing time-series
     dataset based on tabular data.
+    - On time step dimension, the smaller index indicates the historical data and the larger index indicates the future
+      data.
 
     If user have further requirements for processing data, user could process them based on `TSDataSampler` or create
     more powerful subclasses.
@@ -309,11 +311,19 @@ class TSDataSampler:
         self.data_index = deepcopy(self.data.index)
 
         if flt_data is not None:
-            self.flt_data = np.array(flt_data.reindex(self.data_index)).reshape(-1)
+            if isinstance(flt_data, pd.DataFrame):
+                assert len(flt_data.columns) == 1
+                flt_data = flt_data.iloc[:, 0]
+            # NOTE: bool(np.nan) is True !!!!!!!!
+            # make sure reindex comes first. Otherwise extra NaN may appear.
+            flt_data = flt_data.reindex(self.data_index).fillna(False).astype(np.bool)
+            self.flt_data = flt_data.values
             self.idx_map = self.flt_idx_map(self.flt_data, self.idx_map)
             self.data_index = self.data_index[np.where(self.flt_data == True)[0]]
 
-        self.start_idx, self.end_idx = self.data_index.slice_locs(start=pd.Timestamp(start), end=pd.Timestamp(end))
+        self.start_idx, self.end_idx = self.data_index.slice_locs(
+            start=time_to_slc_point(start), end=time_to_slc_point(end)
+        )
         self.idx_arr = np.array(self.idx_df.values, dtype=np.float64)  # for better performance
 
         del self.data  # save memory
@@ -341,7 +351,7 @@ class TSDataSampler:
             setattr(self, k, v)
 
     @staticmethod
-    def build_index(data: pd.DataFrame) -> dict:
+    def build_index(data: pd.DataFrame) -> Tuple[pd.DataFrame, dict]:
         """
         The relation of the data
 
@@ -352,9 +362,15 @@ class TSDataSampler:
 
         Returns
         -------
-        dict:
-            {<index>: <prev_index or None>}
-            # get the previous index of a line given index
+        Tuple[pd.DataFrame, dict]:
+            1) the first element:  reshape the original index into a <datetime(row), instrument(column)> 2D dataframe
+                instrument SH600000 SH600004 SH600006 SH600007 SH600008 SH600009  ...
+                datetime
+                2021-01-11        0        1        2        3        4        5  ...
+                2021-01-12     4146     4147     4148     4149     4150     4151  ...
+                2021-01-13     8293     8294     8295     8296     8297     8298  ...
+                2021-01-14    12441    12442    12443    12444    12445    12446  ...
+            2) the second element:  {<original index>: <row, col>}
         """
         # object incase of pandas converting int to flaot
         idx_df = pd.Series(range(data.shape[0]), index=data.index, dtype=object)
@@ -491,7 +507,9 @@ class TSDatasetH(DatasetH):
         - The dimension of a batch of data <batch_idx, feature, timestep>
     """
 
-    def __init__(self, step_len=30, **kwargs):
+    DEFAULT_STEP_LEN = 30
+
+    def __init__(self, step_len=DEFAULT_STEP_LEN, **kwargs):
         self.step_len = step_len
         super().__init__(**kwargs)
 

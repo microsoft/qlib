@@ -8,11 +8,12 @@ There are two steps in each Trainer including ``train``(make model recorder) and
 This is a concept called ``DelayTrainer``, which can be used in online simulating for parallel training.
 In ``DelayTrainer``, the first step is only to save some necessary info to model recorders, and the second step which will be finished in the end can do some concurrent and time-consuming operations such as model fitting.
 
-``Qlib`` offer two kinds of Trainer, ``TrainerR`` is the simplest way and ``TrainerRM`` is based on TaskManager to help manager tasks lifecycle automatically. 
+``Qlib`` offer two kinds of Trainer, ``TrainerR`` is the simplest way and ``TrainerRM`` is based on TaskManager to help manager tasks lifecycle automatically.
 """
 
 import socket
 import time
+import re
 from typing import Callable, List
 
 from qlib.data.dataset import Dataset
@@ -45,6 +46,47 @@ def begin_task_train(task_config: dict, experiment_name: str, recorder_name: str
     return recorder
 
 
+def fill_placeholder(config: dict, config_extend: dict):
+    """
+    Detect placeholder in config and fill them with config_extend.
+    The item of dict must be single item(int, str, etc), dict and list. Tuples are not supported.
+
+    Parameters
+    ----------
+    config : dict
+        the parameter dict will be filled
+    config_extend : dict
+        the value of all placeholders
+
+    Returns
+    -------
+    dict
+        the parameter dict
+    """
+    # check the format of config_extend
+    for placeholder in config_extend.keys():
+        assert re.match(r"<[^<>]+>", placeholder)
+
+    # bfs
+    top = 0
+    tail = 1
+    item_quene = [config]
+    while top < tail:
+        now_item = item_quene[top]
+        top += 1
+        if isinstance(now_item, list):
+            item_keys = range(len(now_item))
+        elif isinstance(now_item, dict):
+            item_keys = now_item.keys()
+        for key in item_keys:
+            if isinstance(now_item[key], list) or isinstance(now_item[key], dict):
+                item_quene.append(now_item[key])
+                tail += 1
+            elif now_item[key] in config_extend.keys():
+                now_item[key] = config_extend[now_item[key]]
+    return config
+
+
 def end_task_train(rec: Recorder, experiment_name: str) -> Recorder:
     """
     Finish task training with real model fitting and saving.
@@ -67,19 +109,16 @@ def end_task_train(rec: Recorder, experiment_name: str) -> Recorder:
         # this dataset is saved for online inference. So the concrete data should not be dumped
         dataset.config(dump_all=False, recursive=True)
         R.save_objects(**{"dataset": dataset})
+        # fill placehorder
+        placehorder_value = {"<MODEL>": model, "<DATASET>": dataset}
+        task_config = fill_placeholder(task_config, placehorder_value)
         # generate records: prediction, backtest, and analysis
         records = task_config.get("record", [])
         if isinstance(records, dict):  # prevent only one dict
             records = [records]
         for record in records:
-            cls, kwargs = get_cls_kwargs(record, default_module="qlib.workflow.record_temp")
-            if cls is SignalRecord:
-                rconf = {"model": model, "dataset": dataset, "recorder": rec}
-            else:
-                rconf = {"recorder": rec}
-            r = cls(**kwargs, **rconf)
+            r = init_instance_by_config(record, recorder=rec)
             r.generate()
-
     return rec
 
 
@@ -152,6 +191,9 @@ class Trainer:
             bool: if DelayTrainer
         """
         return self.delay
+
+    def __call__(self, *args, **kwargs) -> list:
+        return self.end_train(self.train(*args, **kwargs))
 
 
 class TrainerR(Trainer):
@@ -286,7 +328,9 @@ class TrainerRM(Trainer):
     # This tag is the _id in TaskManager to distinguish tasks.
     TM_ID = "_id in TaskManager"
 
-    def __init__(self, experiment_name: str = None, task_pool: str = None, train_func=task_train):
+    def __init__(
+        self, experiment_name: str = None, task_pool: str = None, train_func=task_train, skip_run_task: bool = False
+    ):
         """
         Init TrainerR.
 
@@ -294,11 +338,16 @@ class TrainerRM(Trainer):
             experiment_name (str): the default name of experiment.
             task_pool (str): task pool name in TaskManager. None for use same name as experiment_name.
             train_func (Callable, optional): default training method. Defaults to `task_train`.
+            skip_run_task (bool):
+                If skip_run_task == True:
+                Only run_task in the worker. Otherwise skip run_task.
         """
+
         super().__init__()
         self.experiment_name = experiment_name
         self.task_pool = task_pool
         self.train_func = train_func
+        self.skip_run_task = skip_run_task
 
     def train(
         self,
@@ -340,15 +389,16 @@ class TrainerRM(Trainer):
         tm = TaskManager(task_pool=task_pool)
         _id_list = tm.create_task(tasks)  # all tasks will be saved to MongoDB
         query = {"_id": {"$in": _id_list}}
-        run_task(
-            train_func,
-            task_pool,
-            query=query,  # only train these tasks
-            experiment_name=experiment_name,
-            before_status=before_status,
-            after_status=after_status,
-            **kwargs,
-        )
+        if not self.skip_run_task:
+            run_task(
+                train_func,
+                task_pool,
+                query=query,  # only train these tasks
+                experiment_name=experiment_name,
+                before_status=before_status,
+                after_status=after_status,
+                **kwargs,
+            )
 
         if not self.is_delay():
             tm.wait(query=query)
@@ -411,6 +461,7 @@ class DelayTrainerRM(TrainerRM):
         task_pool: str = None,
         train_func=begin_task_train,
         end_train_func=end_task_train,
+        skip_run_task: bool = False,
     ):
         """
         Init DelayTrainerRM.
@@ -420,10 +471,15 @@ class DelayTrainerRM(TrainerRM):
             task_pool (str): task pool name in TaskManager. None for use same name as experiment_name.
             train_func (Callable, optional): default train method. Defaults to `begin_task_train`.
             end_train_func (Callable, optional): default end_train method. Defaults to `end_task_train`.
+            skip_run_task (bool):
+                If skip_run_task == True:
+                Only run_task in the worker. Otherwise skip run_task.
+                E.g. Starting trainer on a CPU VM and then waiting tasks to be finished on GPU VMs.
         """
         super().__init__(experiment_name, task_pool, train_func)
         self.end_train_func = end_train_func
         self.delay = True
+        self.skip_run_task = skip_run_task
 
     def train(self, tasks: list, train_func=None, experiment_name: str = None, **kwargs) -> List[Recorder]:
         """
@@ -477,14 +533,15 @@ class DelayTrainerRM(TrainerRM):
             _id_list.append(rec.list_tags()[self.TM_ID])
 
         query = {"_id": {"$in": _id_list}}
-        run_task(
-            end_train_func,
-            task_pool,
-            query=query,  # only train these tasks
-            experiment_name=experiment_name,
-            before_status=TaskManager.STATUS_PART_DONE,
-            **kwargs,
-        )
+        if not self.skip_run_task:
+            run_task(
+                end_train_func,
+                task_pool,
+                query=query,  # only train these tasks
+                experiment_name=experiment_name,
+                before_status=TaskManager.STATUS_PART_DONE,
+                **kwargs,
+            )
 
         TaskManager(task_pool=task_pool).wait(query=query)
 

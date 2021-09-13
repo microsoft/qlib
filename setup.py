@@ -11,7 +11,7 @@ NAME = "pyqlib"
 DESCRIPTION = "A Quantitative-research Platform"
 REQUIRES_PYTHON = ">=3.5.0"
 
-VERSION = "0.6.3.99"
+VERSION = "0.7.0.99"
 
 # Detect Cython
 try:
@@ -45,7 +45,7 @@ REQUIRED = [
     "statsmodels",
     "xlrd>=1.0.0",
     "plotly==4.12.0",
-    "matplotlib==3.1.3",
+    "matplotlib==3.3",
     "tables>=3.6.1",
     "pyyaml>=5.3.1",
     "mlflow>=1.12.1",
