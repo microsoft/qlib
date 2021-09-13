@@ -19,7 +19,6 @@ class UpdateParallel(Parallel):
         **kwargs
     ):
         super(UpdateParallel, self).__init__(n_jobs=n_jobs,
-                                             backend=,
                                              backend=None,
                                              verbose=0,
                                              timeout=None,
