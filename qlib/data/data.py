@@ -30,6 +30,7 @@ from .base import Feature
 from .cache import DiskDatasetCache, DiskExpressionCache
 from ..utils import Wrapper, init_instance_by_config, register_wrapper, get_module_by_module_path
 from ..utils.resam import resam_calendar
+from updateparallel import UpdateParallel
 
 
 class ProviderBackendMixin:
@@ -498,7 +499,7 @@ class DatasetProvider(abc.ABC):
                 )
             )
 
-        data = dict(zip(inst_l, Parallel(n_jobs=workers)(task_l)))
+        data = dict(zip(inst_l, UpdateParallel(n_jobs=2, backend="multiprocessing",maxtasksperchild = 1)(task_l)))
 
         new_data = dict()
         for inst in sorted(data.keys()):
@@ -722,7 +723,7 @@ class LocalDatasetProvider(DatasetProvider):
         end_time = cal[-1]
         workers = max(min(C.kernels, len(instruments_d)), 1)
         # TODO: Please take care of the `C.maxtasksperchild` in the future
-        Parallel(n_jobs=workers)(
+        UpdateParallel(n_jobs=workers, backend="multiprocessing",maxtasksperchild=1)(
             delayed(LocalDatasetProvider.cache_walker)(inst, start_time, end_time, freq, column_names)
             for inst in instruments_d
         )
