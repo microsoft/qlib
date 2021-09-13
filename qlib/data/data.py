@@ -32,7 +32,6 @@ from ..utils import Wrapper, init_instance_by_config, register_wrapper, get_modu
 from ..utils.resam import resam_calendar
 from updateparallel import UpdateParallel
 
-
 class ProviderBackendMixin:
     def get_default_backend(self):
         backend = {}
@@ -499,7 +498,7 @@ class DatasetProvider(abc.ABC):
                 )
             )
 
-        data = dict(zip(inst_l, UpdateParallel(n_jobs=workers)(task_l)))
+        data = dict(zip(inst_l, UpdateParallel(n_jobs=workers,backend=C.joblib_backend,maxtasksperchild=C.maxtasksperchild)(task_l)))
 
         new_data = dict()
         for inst in sorted(data.keys()):
@@ -723,7 +722,7 @@ class LocalDatasetProvider(DatasetProvider):
         end_time = cal[-1]
         workers = max(min(C.kernels, len(instruments_d)), 1)
         # TODO: Please take care of the `C.maxtasksperchild` in the future
-        UpdateParallel(n_jobs=workers)(
+        UpdateParallel(n_jobs=workers,backend=C.joblib_backend,maxtasksperchild=C.maxtasksperchild)(
             delayed(LocalDatasetProvider.cache_walker)(inst, start_time, end_time, freq, column_names)
             for inst in instruments_d
         )
