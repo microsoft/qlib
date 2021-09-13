@@ -17,7 +17,7 @@ from qlib.workflow.task.gen import RollingGen, task_generator
 from qlib.workflow.task.manage import TaskManager, run_task
 from qlib.workflow.task.collect import RecorderCollector
 from qlib.model.ens.group import RollingGroup
-from qlib.model.trainer import TrainerRM
+from qlib.model.trainer import TrainerRM, task_train
 from qlib.tests.config import CSI100_RECORD_LGB_TASK_CONFIG, CSI100_RECORD_XGBOOST_TASK_CONFIG
 
 
@@ -72,7 +72,7 @@ class RollingTaskExample:
     def worker(self):
         # train tasks by other progress or machines for multiprocessing. It is same as TrainerRM.worker.
         print("========== worker ==========")
-        run_task(self.task_training, self.task_pool, experiment_name=self.experiment_name)
+        run_task(task_train, self.task_pool, experiment_name=self.experiment_name)
 
     def task_collecting(self):
         print("========== task_collecting ==========")
