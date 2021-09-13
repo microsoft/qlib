@@ -25,92 +25,41 @@ jobs:
 
     - name: Lint with Black
       run: |
-        if [ "$RUNNER_OS" == "Windows" ]; then
-          python.exe -m pip install pip --upgrade
-          python.exe -m pip install wheel --upgrade
-          python.exe -m pip install black
-          python.exe -m black qlib -l 120 --check --diff
-        else
-          python -m pip install pip --upgrade
-          python -m pip install wheel --upgrade
-          python -m pip install black
-          python -m black qlib -l 120 --check --diff
-        fi
-      shell: bash
+        pip install --upgrade pip
+        pip install black wheel
+        black qlib -l 120 --check --diff
 
     - name: Install Qlib with pip
       run: |
-        if [ "$RUNNER_OS" == "Windows" ]; then
-          python.exe -m pip install numpy==1.19.5
-          python.exe -m pip install pyqlib --ignore-installed ruamel.yaml numpy --user
-        else
-          python -m pip install numpy==1.19.5
-          python -m pip install pyqlib --ignore-installed ruamel.yaml numpy
-        fi
-      shell: bash
+        pip install numpy==1.19.5 ruamel.yaml
+        pip install pyqlib --ignore-installed 
 
     - name: Test data downloads
       run: |
-        if [ "$RUNNER_OS" == "Windows" ]; then
-          python.exe scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/cn_data --interval 1d --region cn
-        else
-          python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/cn_data --interval 1d --region cn
-        fi
-      shell: bash
+        python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/cn_data --interval 1d --region cn
 
     - name: Test workflow by config (install from pip)
       run: |
-        if [ "$RUNNER_OS" == "Windows" ]; then
-          python.exe qlib\\workflow\\cli.py examples\\benchmarks\\LightGBM\\workflow_config_lightgbm_Alpha158.yaml
-          python.exe -m pip uninstall -y pyqlib
-        else
-          python qlib/workflow/cli.py examples/benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml
-          python -m pip uninstall -y pyqlib
-        fi
-      shell: bash
+        python qlib/workflow/cli.py examples/benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml
+        python -m pip uninstall -y pyqlib
 
      # Test Qlib installed from source
     - name: Install Qlib from source
       run: |
-        if [ "$RUNNER_OS" == "Windows" ]; then
-          python.exe -m pip install --upgrade cython
-          python.exe -m pip install numpy jupyter jupyter_contrib_nbextensions
-          python.exe -m pip install -U scipy scikit-learn # installing without this line will cause errors on GitHub Actions, while instsalling locally won't
-          python.exe setup.py install
-        else
-          python -m pip install --upgrade cython
-          python -m pip install numpy jupyter jupyter_contrib_nbextensions
-          python -m pip install -U scipy scikit-learn # installing without this line will cause errors on GitHub Actions, while instsalling locally won't
-          python setup.py install
-        fi
-      shell: bash
+        pip install --upgrade cython jupyter jupyter_contrib_nbextensions numpy scipy scikit-learn # installing without this line will cause errors on GitHub Actions, while instsalling locally won't
+        pip install -e .
 
     - name: Install test dependencies
       run: |
-        if [ "$RUNNER_OS" == "Windows" ]; then
-          python.exe -m pip install --upgrade pip
-          python.exe -m pip install black pytest
-        else
-          python -m pip install --upgrade pip
-          python -m pip install black pytest
-        fi
-      shell: bash
+        pip install --upgrade pip
+        pip install black pytest
 
     - name: Unit tests with Pytest
       run: |
         cd tests
-        if [ "$RUNNER_OS" == "Windows" ]; then
-          python.exe -m pytest . --durations=0
-        else
-          python -m pytest . --durations=0
-        fi
-      shell: bash
+        python -m pytest . --durations=10
 
     - name: Test workflow by config (install from source)
       run: |
-        if [ "$RUNNER_OS" == "Windows" ]; then
-          python.exe qlib\\workflow\\cli.py examples\\benchmarks\\LightGBM\\workflow_config_lightgbm_Alpha158.yaml
-        else
-          python qlib/workflow/cli.py examples/benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml
-        fi
-      shell: bash
+        python qlib/workflow/cli.py examples/benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml
+      
