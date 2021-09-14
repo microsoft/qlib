@@ -122,8 +122,8 @@ class Freq:
         return _count, _freq_format_dict[_freq]
 
     @staticmethod
-    def calc_freq_interval(left_frq: str, right_freq: str):
-        """Calculate freq interval; return minutes
+    def get_min_delta(left_frq: str, right_freq: str):
+        """Calculate freq delta
 
         Parameters
         ----------
@@ -163,13 +163,13 @@ class Freq:
         _freq_minutes = []
         min_freq = None
         for _freq in freq_list:
-            _minutes = Freq.calc_freq_interval(base_freq, _freq)
-            if _minutes < 0:
+            _min_delta = Freq.get_min_delta(base_freq, _freq)
+            if _min_delta < 0:
                 continue
             if min_freq is None:
-                min_freq = (_minutes, _freq)
+                min_freq = (_min_delta, _freq)
                 continue
-            min_freq = min_freq if min_freq[0] <= _minutes else (_minutes, _freq)
+            min_freq = min_freq if min_freq[0] <= _min_delta else (_min_delta, _freq)
         return min_freq[1] if min_freq else None
 
 

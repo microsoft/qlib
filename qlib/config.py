@@ -266,7 +266,7 @@ class QlibConfig(Config):
             else:
                 return QlibConfig.LOCAL_URI
 
-        def get_data_path(self, freq: str = None) -> Path:
+        def get_data_uri(self, freq: str = None) -> Path:
             if freq is None or freq not in self.provider_uri:
                 freq = QlibConfig.DEFAULT_FREQ
             _provider_uri = self.provider_uri[freq]
@@ -335,14 +335,6 @@ class QlibConfig(Config):
             return QlibConfig.NFS_URI
         else:
             return QlibConfig.LOCAL_URI
-
-    def get_data_path(self):
-        if self.get_uri_type() == QlibConfig.LOCAL_URI:
-            return self["provider_uri"]
-        elif self.get_uri_type() == QlibConfig.NFS_URI:
-            return self["mount_path"]
-        else:
-            raise NotImplementedError(f"This type of uri is not supported")
 
     def set(self, default_conf: str = "client", **kwargs):
         """

@@ -59,6 +59,10 @@ class FileCalendarStorage(FileStorageMixin, CalendarStorage):
 
     @property
     def data(self) -> List[CalVT]:
+        # NOTE: uri
+        #   1. If `uri` does not exist
+        #       - Get the `min_uri` of the closest `freq` under the same "directory" as the `uri`
+        #       - Read data from `min_uri` and resample to `freq`
         try:
             self.check()
             _calendar = self._read_calendar()

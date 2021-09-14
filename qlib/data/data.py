@@ -64,13 +64,21 @@ class ProviderBackendMixin:
             provider_uri_map = backend_kwargs.setdefault("provider_uri_map", {})
             freq = kwargs.get("freq", "day")
             if freq not in provider_uri_map:
+                # NOTE: uri
+                #   1. If `freq` in C.dpm.provider_uri.keys(), uri = C.dpm.provider_uri[freq]
+                #   2. If `freq` not in C.dpm.provider_uri.keys()
+                #       - Get the `min_freq` closest to `freq` from C.dpm.provider_uri.keys(), uri = C.dpm.provider_uri[min_freq]
+                # NOTE: In Storage, only CalendarStorage is supported
+                #   1. If `uri` does not exist
+                #       - Get the `min_uri` of the closest `freq` under the same "directory" as the `uri`
+                #       - Read data from `min_uri` and resample to `freq`
                 try:
-                    _uri = C.dpm.get_data_path(freq)
+                    _uri = C.dpm.get_data_uri(freq)
                 except KeyError:
                     # provider_uri is dict and freq not in list(provider_uri.keys())
                     # use the nearest freq greater than 0
                     min_freq = Freq.get_recent_freq(freq, C.dpm.provider_uri.keys())
-                    _uri = C.dpm.get_data_path(freq) if min_freq is None else C.dpm.get_data_path(min_freq)
+                    _uri = C.dpm.get_data_uri(freq) if min_freq is None else C.dpm.get_data_uri(min_freq)
                 provider_uri_map[freq] = _uri
             backend_kwargs["provider_uri"] = provider_uri_map[freq]
         backend.setdefault("kwargs", {}).update(**kwargs)
@@ -86,7 +94,6 @@ class CalendarProvider(abc.ABC, ProviderBackendMixin):
     def __init__(self, *args, **kwargs):
         self.backend = kwargs.get("backend", {})
 
-    @abc.abstractmethod
     def calendar(self, start_time=None, end_time=None, freq="day", future=False):
         """Get calendar of certain market in given time range.
 
@@ -106,7 +113,26 @@ class CalendarProvider(abc.ABC, ProviderBackendMixin):
         list
             calendar list
         """
-        raise NotImplementedError("Subclass of CalendarProvider must implement `calendar` method")
+        _calendar, _calendar_index = self._get_calendar(freq, future)
+        if start_time == "None":
+            start_time = None
+        if end_time == "None":
+            end_time = None
+        # strip
+        if start_time:
+            start_time = pd.Timestamp(start_time)
+            if start_time > _calendar[-1]:
+                return np.array([])
+        else:
+            start_time = _calendar[0]
+        if end_time:
+            end_time = pd.Timestamp(end_time)
+            if end_time < _calendar[0]:
+                return np.array([])
+        else:
+            end_time = _calendar[-1]
+        _, _, si, ei = self.locate_index(start_time, end_time, freq, future)
+        return _calendar[si : ei + 1]
 
     def locate_index(self, start_time, end_time, freq, future=False):
         """Locate the start time index and end time index in a calendar under certain frequency.
@@ -178,6 +204,22 @@ class CalendarProvider(abc.ABC, ProviderBackendMixin):
     def _uri(self, start_time, end_time, freq, future=False):
         """Get the uri of calendar generation task."""
         return hash_args(start_time, end_time, freq, future)
+
+    def load_calendar(self, freq, future):
+        """Load original calendar timestamp from file.
+
+        Parameters
+        ----------
+        freq : str
+            frequency of read calendar file.
+        future: bool
+
+        Returns
+        ----------
+        list
+            list of timestamps
+        """
+        raise NotImplementedError("Subclass of CalendarProvider must implement `load_calendar` method")
 
 
 class InstrumentProvider(abc.ABC, ProviderBackendMixin):
@@ -613,28 +655,6 @@ class LocalCalendarProvider(CalendarProvider):
 
         return [pd.Timestamp(x) for x in backend_obj]
 
-    def calendar(self, start_time=None, end_time=None, freq="day", future=False):
-        _calendar, _calendar_index = self._get_calendar(freq, future)
-        if start_time == "None":
-            start_time = None
-        if end_time == "None":
-            end_time = None
-        # strip
-        if start_time:
-            start_time = pd.Timestamp(start_time)
-            if start_time > _calendar[-1]:
-                return np.array([])
-        else:
-            start_time = _calendar[0]
-        if end_time:
-            end_time = pd.Timestamp(end_time)
-            if end_time < _calendar[0]:
-                return np.array([])
-        else:
-            end_time = _calendar[-1]
-        _, _, si, ei = self.locate_index(start_time, end_time, freq, future)
-        return _calendar[si : ei + 1]
-
 
 class LocalInstrumentProvider(InstrumentProvider):
     """Local instrument data provider class
@@ -980,7 +1000,7 @@ class ClientDatasetProvider(DatasetProvider):
             get_module_logger("data").debug("get result")
             try:
                 # pre-mound nfs, used for demo
-                mnt_feature_uri = C.dpm.get_data_path(freq).joinpath(C.dataset_cache_dir_name, feature_uri)
+                mnt_feature_uri = C.dpm.get_data_uri(freq).joinpath(C.dataset_cache_dir_name, feature_uri)
                 df = DiskDatasetCache.read_data_from_cache(mnt_feature_uri, start_time, end_time, fields)
                 get_module_logger("data").debug("finish slicing data")
                 if return_uri:
