@@ -6,6 +6,7 @@ import sys
 import fire
 import time
 import glob
+import yaml
 import shutil
 import signal
 import inspect
@@ -88,7 +89,7 @@ def create_env():
     sys.stderr.write("\n")
     # get anaconda activate path
     conda_activate = Path(os.environ["CONDA_PREFIX"]) / "bin" / "activate"  # TODO: FIX ME!
-    return env_path, python_path, conda_activate
+    return temp_dir, env_path, python_path, conda_activate
 
 
 # function to execute the cmd
@@ -190,6 +191,22 @@ def gen_and_save_md_table(metrics, dataset):
     return table
 
 
+# read yaml, remove seed kwargs of model, and then save file in the temp_dir
+def gen_yaml_file_without_seed_kwargs(yaml_path, temp_dir):
+    file_name = yaml_path.split("/")[-1]
+    temp_path = os.path.join(temp_dir, file_name)
+    with open(yaml_path, "r") as fp:
+        config = yaml.load(fp)
+    try:
+        del config["task"]["model"]["kwargs"]["seed"]
+        print(config["task"]["model"])
+    except:
+        pass
+    with open(temp_path, "w") as fp:
+        yaml.dump(config, fp)
+    return temp_path
+
+
 # function to run the all the models
 @only_allow_defined_args
 def run(
@@ -263,11 +280,13 @@ def run(
             continue
         sys.stderr.write("\n")
         # create env by anaconda
-        env_path, python_path, conda_activate = create_env()
+        temp_dir, env_path, python_path, conda_activate = create_env()
         # install requirements.txt
         sys.stderr.write("Installing requirements.txt...\n")
         execute(f"{python_path} -m pip install -r {req_path}", wait_when_err=wait_when_err)
         sys.stderr.write("\n")
+        # read yaml, remove seed kwargs of model, and then save file in the temp_dir
+        # yaml_path = gen_yaml_file_without_seed_kwargs(yaml_path, temp_dir)
         # setup gpu for tft
         if fn == "TFT":
             execute(
