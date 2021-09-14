@@ -16,7 +16,7 @@ rtn & earning in the Account
     rtn:
         from order's view
         1.change if any order is executed, sell order or buy order
-        2.change at the end of today,   (today_clse - stock_price) * amount
+        2.change at the end of today,   (today_close - stock_price) * amount
     earning
         from value of current position
         earning will be updated at the end of trade date
@@ -29,7 +29,7 @@ rtn & earning in the Account
 
 
 class AccumulatedInfo:
-    """accumulated trading info, including accumulated return\cost\turnover"""
+    """accumulated trading info, including accumulated return/cost/turnover"""
 
     def __init__(self):
         self.reset()
