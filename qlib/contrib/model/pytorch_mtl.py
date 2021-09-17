@@ -29,8 +29,8 @@ from ...data.dataset import DatasetH
 from ...data.dataset.handler import DataHandlerLP
 
 
-class TCTS(Model):
-    """TCTS Model
+class MTL(Model):
+    """MTL Model
 
     Parameters
     ----------
@@ -55,21 +55,18 @@ class TCTS(Model):
         early_stop=20,
         loss="mse",
         fore_optimizer="adam",
-        weight_optimizer="adam",
+        lr=5e-4,
         output_dim=5,
-        fore_lr=5e-7,
-        weight_lr=5e-7,
-        steps=3,
         GPU=0,
         seed=0,
         target_label=0,
-        mode='soft',
+        mode='hard',
         lowest_valid_performance=0.993,
         **kwargs
     ):
         # Set logger.
-        self.logger = get_module_logger("TCTS")
-        self.logger.info("TCTS pytorch version...")
+        self.logger = get_module_logger("MTL")
+        self.logger.info("MTL pytorch version...")
 
         # set hyper-parameters.
         self.d_feat = d_feat
@@ -84,17 +81,14 @@ class TCTS(Model):
         self.use_gpu = torch.cuda.is_available()
         self.seed = seed
         self.output_dim = output_dim
-        self.fore_lr = fore_lr
-        self.weight_lr = weight_lr
-        self.steps = steps
         self.target_label = target_label
         self.mode = mode
         self.lowest_valid_performance = lowest_valid_performance
         self._fore_optimizer = fore_optimizer
-        self._weight_optimizer = weight_optimizer
+        self.lr = lr
 
         self.logger.info(
-            "TCTS parameters setting:"
+            "MTL parameters setting:"
             "\nd_feat : {}"
             "\nhidden_size : {}"
             "\nnum_layers : {}"
@@ -103,6 +97,7 @@ class TCTS(Model):
             "\nbatch_size : {}"
             "\nearly_stop : {}"
             "\ntarget_label : {}"
+            "\nlr : {}"
             "\nmode : {}"
             "\nloss_type : {}"
             "\nvisible_GPU : {}"
@@ -116,6 +111,7 @@ class TCTS(Model):
                 batch_size,
                 early_stop,
                 target_label,
+                lr, 
                 mode,
                 loss,
                 GPU,
@@ -124,21 +120,21 @@ class TCTS(Model):
             )
         )
 
-    def loss_fn(self, pred, label, weight):
+    def loss_fn(self, pred, label):
 
         if self.mode == 'hard':
-            loc = torch.argmax(weight, 1)
-            loss = (pred - label[np.arange(weight.shape[0]), loc]) ** 2
+            loc = np.random.randint(0, label.shape[1], label.shape[0])
+            loss = (pred - label[np.arange(label.shape[0]), loc]) ** 2
             return torch.mean(loss)
 
         elif self.mode == 'soft':
             loss = (pred - label.transpose(0,1)) ** 2
-            return torch.mean(loss*weight.transpose(0,1))
+            return torch.mean(loss)
 
         else:
             raise NotImplementedError("mode {} is not supported!".format(self.mode))
 
-    def train_epoch(self, x_train, y_train, x_valid, y_valid):
+    def train_epoch(self, x_train, y_train):
 
         x_train_values = x_train.values
         y_train_values = np.squeeze(y_train.values)
@@ -146,76 +142,23 @@ class TCTS(Model):
         indices = np.arange(len(x_train_values))
         np.random.shuffle(indices)
 
-        task_embedding = torch.zeros([self.batch_size, self.output_dim])
-        task_embedding[:, self.target_label] = 1
-        task_embedding = task_embedding.to(self.device)
-
-        init_fore_model = copy.deepcopy(self.fore_model)
-        for p in init_fore_model.parameters():
-            p.init_fore_model = False
-
         self.fore_model.train()
-        self.weight_model.train()
 
-        for p in self.weight_model.parameters():
-            p.requires_grad = False
-        for p in self.fore_model.parameters():
-            p.requires_grad = True
-
-        for i in range(self.steps):
-            for i in range(len(indices))[:: self.batch_size]:
-
-                if len(indices) - i < self.batch_size:
-                    break
-
-                feature = torch.from_numpy(x_train_values[indices[i : i + self.batch_size]]).float().to(self.device)
-                label = torch.from_numpy(y_train_values[indices[i : i + self.batch_size]]).float().to(self.device)
-
-                init_pred = init_fore_model(feature)
-                pred = self.fore_model(feature)
-
-                dis = init_pred - label.transpose(0, 1)
-                weight_feature = torch.cat((feature, dis.transpose(0, 1), label, init_pred.view(-1, 1), task_embedding), 1)
-                weight = self.weight_model(weight_feature)
-
-                loss = self.loss_fn(pred, label, weight)  
-
-                self.fore_optimizer.zero_grad()
-                loss.backward()
-                torch.nn.utils.clip_grad_value_(self.fore_model.parameters(), 3.0)
-                self.fore_optimizer.step()
-
-        x_valid_values = x_valid.values
-        y_valid_values = np.squeeze(y_valid.values)
-
-        indices = np.arange(len(x_valid_values))
-        np.random.shuffle(indices)
-        for p in self.weight_model.parameters():
-            p.requires_grad = True
-        for p in self.fore_model.parameters():
-            p.requires_grad = False
-
-        # fix forecasting model and valid weight model
         for i in range(len(indices))[:: self.batch_size]:
 
             if len(indices) - i < self.batch_size:
                 break
 
-            feature = torch.from_numpy(x_valid_values[indices[i : i + self.batch_size]]).float().to(self.device)
-            label = torch.from_numpy(y_valid_values[indices[i : i + self.batch_size]]).float().to(self.device)
+            feature = torch.from_numpy(x_train_values[indices[i : i + self.batch_size]]).float().to(self.device)
+            label = torch.from_numpy(y_train_values[indices[i : i + self.batch_size]]).float().to(self.device)
+            pred = self.fore_model(feature)
+            loss = self.loss_fn(pred, label)  
 
-            pred = self.fore_model(feature) 
-            dis = pred - label.transpose(0, 1)
-            weight_feature = torch.cat((feature, dis.transpose(0, 1), label, pred.view(-1, 1), task_embedding), 1)
-            weight = self.weight_model(weight_feature)
-            loc = torch.argmax(weight, 1)
-            valid_loss = torch.mean((pred - label[:, abs(self.target_label)]) ** 2)
-            loss = torch.mean(valid_loss * torch.log(weight[np.arange(weight.shape[0]), loc]))
-
-            self.weight_optimizer.zero_grad()
+            self.fore_optimizer.zero_grad()
             loss.backward()
-            torch.nn.utils.clip_grad_value_(self.weight_model.parameters(), 3.0)
-            self.weight_optimizer.step()
+            torch.nn.utils.clip_grad_value_(self.fore_model.parameters(), 3.0)
+            self.fore_optimizer.step()
+
 
     def test_epoch(self, data_x, data_y):
 
@@ -293,29 +236,16 @@ class TCTS(Model):
             num_layers=self.num_layers,
             dropout=self.dropout,
         )
-        self.weight_model = MLPModel(
-            d_feat=360 + 3 * self.output_dim + 1,
-            hidden_size=self.hidden_size,
-            num_layers=self.num_layers,
-            dropout=self.dropout,
-            output_dim=self.output_dim,
-        )
+
         if self._fore_optimizer.lower() == "adam":
-            self.fore_optimizer = optim.Adam(self.fore_model.parameters(), lr=self.fore_lr)
+            self.fore_optimizer = optim.Adam(self.fore_model.parameters(), lr=self.lr)
         elif self._fore_optimizer.lower() == "gd":
-            self.fore_optimizer = optim.SGD(self.fore_model.parameters(), lr=self.fore_lr)
+            self.fore_optimizer = optim.SGD(self.fore_model.parameters(), lr=self.lr)
         else:
             raise NotImplementedError("optimizer {} is not supported!".format(self._fore_optimizer))
-        if self._weight_optimizer.lower() == "adam":
-            self.weight_optimizer = optim.Adam(self.weight_model.parameters(), lr=self.weight_lr)
-        elif self._weight_optimizer.lower() == "gd":
-            self.weight_optimizer = optim.SGD(self.weight_model.parameters(), lr=self.weight_lr)
-        else:
-            raise NotImplementedError("optimizer {} is not supported!".format(self._weight_optimizer))
 
         self.fitted = False
         self.fore_model.to(self.device)
-        self.weight_model.to(self.device)
 
         best_loss = np.inf
         best_epoch = 0
@@ -325,7 +255,7 @@ class TCTS(Model):
             print("Epoch:", epoch)
 
             print("training...")
-            self.train_epoch(x_train, y_train, x_valid, y_valid)
+            self.train_epoch(x_train, y_train)
             print("evaluating...")
             val_loss = self.test_epoch(x_valid, y_valid)
             test_loss = self.test_epoch(x_test, y_test)
@@ -338,7 +268,6 @@ class TCTS(Model):
                 stop_round = 0
                 best_epoch = epoch
                 torch.save(copy.deepcopy(self.fore_model.state_dict()), save_path + "_fore_model.bin")
-                torch.save(copy.deepcopy(self.weight_model.state_dict()), save_path + "_weight_model.bin")
 
             else:
                 stop_round += 1
@@ -349,8 +278,6 @@ class TCTS(Model):
         print("best loss:", best_loss, "@", best_epoch)
         best_param = torch.load(save_path + "_fore_model.bin")
         self.fore_model.load_state_dict(best_param)
-        best_param = torch.load(save_path + "_weight_model.bin")
-        self.weight_model.load_state_dict(best_param)
         self.fitted = True
 
         if self.use_gpu:
@@ -387,29 +314,6 @@ class TCTS(Model):
             preds.append(pred)
 
         return pd.Series(np.concatenate(preds), index=index)
-
-
-class MLPModel(nn.Module):
-    def __init__(self, d_feat, hidden_size=256, num_layers=3, dropout=0.0, output_dim=1):
-        super().__init__()
-
-        self.mlp = nn.Sequential()
-        self.softmax = nn.Softmax(dim=1)
-
-        for i in range(num_layers):
-            if i > 0:
-                self.mlp.add_module("drop_%d" % i, nn.Dropout(dropout))
-            self.mlp.add_module("fc_%d" % i, nn.Linear(d_feat if i == 0 else hidden_size, hidden_size))
-            self.mlp.add_module("relu_%d" % i, nn.ReLU())
-
-        self.mlp.add_module("fc_out", nn.Linear(hidden_size, output_dim))
-
-    def forward(self, x):
-        # feature
-        # [N, F]
-        out = self.mlp(x).squeeze()
-        out = self.softmax(out)
-        return out
 
 
 class GRUModel(nn.Module):
