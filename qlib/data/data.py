@@ -961,8 +961,7 @@ class BaseProvider:
         is a provider class.
         """
         disk_cache = C.default_disk_cache if disk_cache is None else disk_cache
-        if C.disable_disk_cache:
-            disk_cache = False
+        fields = list(fields)  # In case of tuple.
         try:
             return DatasetD.dataset(instruments, fields, start_time, end_time, freq, disk_cache)
         except TypeError:
