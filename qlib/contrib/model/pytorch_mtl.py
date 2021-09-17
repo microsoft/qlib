@@ -60,7 +60,7 @@ class MTL(Model):
         GPU=0,
         seed=0,
         target_label=0,
-        mode='hard',
+        mode="hard",
         lowest_valid_performance=0.993,
         **kwargs
     ):
@@ -111,7 +111,7 @@ class MTL(Model):
                 batch_size,
                 early_stop,
                 target_label,
-                lr, 
+                lr,
                 mode,
                 loss,
                 GPU,
@@ -122,13 +122,13 @@ class MTL(Model):
 
     def loss_fn(self, pred, label):
 
-        if self.mode == 'hard':
+        if self.mode == "hard":
             loc = np.random.randint(0, label.shape[1], label.shape[0])
             loss = (pred - label[np.arange(label.shape[0]), loc]) ** 2
             return torch.mean(loss)
 
-        elif self.mode == 'soft':
-            loss = (pred - label.transpose(0,1)) ** 2
+        elif self.mode == "soft":
+            loss = (pred - label.transpose(0, 1)) ** 2
             return torch.mean(loss)
 
         else:
@@ -152,13 +152,12 @@ class MTL(Model):
             feature = torch.from_numpy(x_train_values[indices[i : i + self.batch_size]]).float().to(self.device)
             label = torch.from_numpy(y_train_values[indices[i : i + self.batch_size]]).float().to(self.device)
             pred = self.fore_model(feature)
-            loss = self.loss_fn(pred, label)  
+            loss = self.loss_fn(pred, label)
 
             self.fore_optimizer.zero_grad()
             loss.backward()
             torch.nn.utils.clip_grad_value_(self.fore_model.parameters(), 3.0)
             self.fore_optimizer.step()
-
 
     def test_epoch(self, data_x, data_y):
 

@@ -63,7 +63,7 @@ class TCTS(Model):
         GPU=0,
         seed=0,
         target_label=0,
-        mode='soft',
+        mode="soft",
         lowest_valid_performance=0.993,
         **kwargs
     ):
@@ -126,14 +126,14 @@ class TCTS(Model):
 
     def loss_fn(self, pred, label, weight):
 
-        if self.mode == 'hard':
+        if self.mode == "hard":
             loc = torch.argmax(weight, 1)
             loss = (pred - label[np.arange(weight.shape[0]), loc]) ** 2
             return torch.mean(loss)
 
-        elif self.mode == 'soft':
-            loss = (pred - label.transpose(0,1)) ** 2
-            return torch.mean(loss*weight.transpose(0,1))
+        elif self.mode == "soft":
+            loss = (pred - label.transpose(0, 1)) ** 2
+            return torch.mean(loss * weight.transpose(0, 1))
 
         else:
             raise NotImplementedError("mode {} is not supported!".format(self.mode))
@@ -175,10 +175,12 @@ class TCTS(Model):
                 pred = self.fore_model(feature)
 
                 dis = init_pred - label.transpose(0, 1)
-                weight_feature = torch.cat((feature, dis.transpose(0, 1), label, init_pred.view(-1, 1), task_embedding), 1)
+                weight_feature = torch.cat(
+                    (feature, dis.transpose(0, 1), label, init_pred.view(-1, 1), task_embedding), 1
+                )
                 weight = self.weight_model(weight_feature)
 
-                loss = self.loss_fn(pred, label, weight)  
+                loss = self.loss_fn(pred, label, weight)
 
                 self.fore_optimizer.zero_grad()
                 loss.backward()
@@ -204,7 +206,7 @@ class TCTS(Model):
             feature = torch.from_numpy(x_valid_values[indices[i : i + self.batch_size]]).float().to(self.device)
             label = torch.from_numpy(y_valid_values[indices[i : i + self.batch_size]]).float().to(self.device)
 
-            pred = self.fore_model(feature) 
+            pred = self.fore_model(feature)
             dis = pred - label.transpose(0, 1)
             weight_feature = torch.cat((feature, dis.transpose(0, 1), label, pred.view(-1, 1), task_embedding), 1)
             weight = self.weight_model(weight_feature)
