@@ -71,24 +71,22 @@ class RuleObs(BaseObs):
                 if time == -1:
                     predictions += [0.0] * size
                 else:
-                    predictions += df.iloc[size * time : size * (time + 1)].reshape(-1).tolist()
+                    predictions += df[size * time : size * (time + 1)].reshape(-1).tolist()
             elif feature["type"] == "daily":
                 predictions += df.reshape(-1)[:size].tolist()
             elif feature["type"] == "range":
-                # if feature.startswith('oracle'):
-                #     predictions += df.iloc[:, (time + 1) : size + (time + 1)].reshape(-1).tolist()
                 if time == -1:
                     predictions += [0.0] * size
                 else:
-                    predictions += df.iloc[time : size + time].reshape(-1).tolist()
+                    predictions += df[time : size + time].reshape(-1).tolist()
             elif feature["type"] == "interval":
-                if len(df.iloc[interval * size : (interval + 1) * size].reshape(-1)) == size:
-                    predictions += df.iloc[interval * size : (interval + 1) * size].reshape(-1).tolist()
+                if len(df[interval * size : (interval + 1) * size].reshape(-1)) == size:
+                    predictions += df[interval * size : (interval + 1) * size].reshape(-1).tolist()
                 else:
                     predictions += [0.0] * size
             elif feature["type"] == "step":
-                if len(df.iloc[size * (time + 1) : size * (time + 2)].reshape(-1)) == size:
-                    predictions += df.iloc[size * (time + 1) : size * (time + 2)].reshape(-1).tolist()
+                if len(df[size * (time + 1) : size * (time + 2)].reshape(-1)) == size:
+                    predictions += df[size * (time + 1) : size * (time + 2)].reshape(-1).tolist()
                 else:
                     predictions += [0.0] * size
 

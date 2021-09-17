@@ -89,8 +89,8 @@ and finally start our OPD method.
 python main.py --config=example/OPD/config.yml
 ```
 
-### Citation
-You are more than welcome to cite our paper:
+## Citation
+You are more than welcome to citetmu our paper:
 ```
 @inproceedings{fang2021universal,
   title={Universal Trading for Order Execution with Oracle Policy Distillation},

@@ -26,9 +26,8 @@ def w_order(f, start, end):
     df = pd.read_pickle(in_dir + f)
     #df['date'] = df.index.get_level_values(1).map(lambda x: x.date())
     #df = df.set_index('date', append=True, drop=True)
-#     old_order = pd.read_pickle('../v-zeh/full-07-20/order/ratio_test/' + f)
+
     order = generate_order(df, start, end)
-#     order = order[order.index.isin(old_order.index)]
     order_train = order[order.index.get_level_values(0) < '2020-12-01']
     order_test = order[order.index.get_level_values(0) >= '2020-12-01']
     order_valid = order_test[order_test.index.get_level_values(0) < '2021-01-01']
@@ -52,7 +51,8 @@ def w_order(f, start, end):
         all_path = os.path.join(data_path, "order/all/")
         if not os.path.exists(all_path):
             os.makedirs(all_path)
-        order_test.to_pickle(all_path + f[:-9] + '.target')
+
+        order.to_pickle(all_path + f[:-9] + '.target')
     return 0
 
 res = Parallel(n_jobs=64)(delayed(w_order)(f, 0, 239) for f in os.listdir(in_dir))
