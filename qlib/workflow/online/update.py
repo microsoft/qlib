@@ -102,9 +102,17 @@ class PredUpdater(RecordUpdater):
         self.freq = freq
         self.rmdl = RMDLoader(rec=record)
 
+        latest_date = D.calendar(freq=freq)[-1]
         if to_date == None:
-            to_date = D.calendar(freq=freq)[-1]
-        self.to_date = pd.Timestamp(to_date)
+            to_date = latest_date
+        to_date = pd.Timestamp(to_date)
+
+        if to_date >= latest_date:
+            self.logger.warning(
+                f"The given `to_date`({to_date}) is later than `latest_date`({latest_date}). So `to_date` is clipped to `latest_date`."
+            )
+            to_date = latest_date
+        self.to_date = to_date
         # FIXME: it will raise error when running routine with delay trainer
         # should we use another predicition updater for delay trainer?
         self.old_pred = record.load_object("pred.pkl")
