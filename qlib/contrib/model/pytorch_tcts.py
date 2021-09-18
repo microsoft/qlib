@@ -125,46 +125,63 @@ class TCTS(Model):
         return torch.mean(loss)
 
     def train_epoch(self, x_train, y_train, x_valid, y_valid):
-
+        # 单个训练步的流程
+        # 打乱样本
         x_train_values = x_train.values
         y_train_values = np.squeeze(y_train.values)
-
+        
         indices = np.arange(len(x_train_values))
         np.random.shuffle(indices)
-
+        
+        # 记录原始模型
         init_fore_model = copy.deepcopy(self.fore_model)
         for p in init_fore_model.parameters():
             p.init_fore_model = False
 
-        self.fore_model.train()
-        self.weight_model.train()
-
+        self.fore_model.train() # 启用 Batch Normalization 和 Dropout
+        self.weight_model.train() # 启用 Batch Normalization 和 Dropout
+        
+        # requires_grad=True 的作用是让 backward 可以追踪这个参数并且计算它的梯度。
+        # 固定w（任务选择模型的参数）更新theta（序列预测模型的参数）
         for p in self.weight_model.parameters():
             p.requires_grad = False
         for p in self.fore_model.parameters():
             p.requires_grad = True
 
-        for i in range(self.steps):
-            for i in range(len(indices))[:: self.batch_size]:
+        # ?:为什么需要多轮？ 和下面的训练有什么区别
+        for i in range(self.steps):# 每个训练步执行多少轮训练 # TODO:steps
+            for i in range(len(indices))[:: self.batch_size]:# 每一轮训练分为多少batch，用于内层更新 
 
                 if len(indices) - i < self.batch_size:
                     break
-
+                
+                # 序列预测模型的feature
                 feature = torch.from_numpy(x_train_values[indices[i : i + self.batch_size]]).float().to(self.device)
                 label = torch.from_numpy(y_train_values[indices[i : i + self.batch_size]]).float().to(self.device)
-
+                
+                # 分别使用原始模型和新的模型对训练数据进行预测 
                 init_pred = init_fore_model(feature)
                 pred = self.fore_model(feature)
-
+                
+                # 原始模型的预测偏差（？：为什么是init_pred) # TODO: init_pred
                 dis = init_pred - label.transpose(0, 1)
+                
+                # 任务选择模型的feature[x,dis,label,init_pred]
                 weight_feature = torch.cat((feature, dis.transpose(0, 1), label, init_pred.view(-1, 1)), 1)
-                weight = self.weight_model(weight_feature)
+                weight = self.weight_model(weight_feature) # 预测w
 
+                # 通过[pred, label, weight]计算loss
                 loss = self.loss_fn(pred, label, weight)  # hard
 
                 self.fore_optimizer.zero_grad()
-                loss.backward()
+                # 根据pytorch中backward（）函数的计算，当网络参量进行反馈时，梯度是累积计算而不是被替换，
+                # 但在处理每一个batch时并不需要与其他batch的梯度混合起来累积计算，
+                # 因此需要对每个batch调用一遍zero_grad（）将参数梯度置0.
+                loss.backward() # 反向传播更新
+                # 最简单粗暴的方法，设定阈值，当梯度小于/大于阈值时，更新的梯度为阈值
                 torch.nn.utils.clip_grad_value_(self.fore_model.parameters(), 3.0)
+                # 单次优化，所有的optimizer都实现了step()方法，这个方法会更新所有的参数
+                # 这是大多数optimizer所支持的简化版本。一旦梯度被如backward()之类的函数计算好后，我们就可以调用这个函数。
                 self.fore_optimizer.step()
 
         x_valid_values = x_valid.values
@@ -172,6 +189,8 @@ class TCTS(Model):
 
         indices = np.arange(len(x_valid_values))
         np.random.shuffle(indices)
+        
+        # 更新w（任务选择模型的参数）固定theta（序列预测模型的参数）
         for p in self.weight_model.parameters():
             p.requires_grad = True
         for p in self.fore_model.parameters():
@@ -187,10 +206,12 @@ class TCTS(Model):
             label = torch.from_numpy(y_valid_values[indices[i : i + self.batch_size]]).float().to(self.device)
 
             pred = self.fore_model(feature)
-            dis = pred - label.transpose(0, 1)
+            # ?：为什么是pred  
+            # TODO:pred
+            dis = pred - label.transpose(0, 1) 
             weight_feature = torch.cat((feature, dis.transpose(0, 1), label, pred.view(-1, 1)), 1)
             weight = self.weight_model(weight_feature)
-            loc = torch.argmax(weight, 1)
+            loc = torch.argmax(weight, 1) # TODO: loc取出最大值
             valid_loss = torch.mean((pred - label[:, 0]) ** 2)
             loss = torch.mean(-valid_loss * torch.log(weight[np.arange(weight.shape[0]), loc]))
 
@@ -269,13 +290,15 @@ class TCTS(Model):
         verbose=True,
         save_path=None,
     ):
-
+        # 序列预测模型：GRU
         self.fore_model = GRUModel(
             d_feat=self.d_feat,
             hidden_size=self.hidden_size,
             num_layers=self.num_layers,
             dropout=self.dropout,
         )
+        
+        # 任务选择模型：MLP
         self.weight_model = MLPModel(
             d_feat=360 + 2 * self.output_dim + 1,
             hidden_size=self.hidden_size,
@@ -283,6 +306,8 @@ class TCTS(Model):
             dropout=self.dropout,
             output_dim=self.output_dim,
         )
+        
+        # 根据设置，定义各个模型的优化器方法
         if self._fore_optimizer.lower() == "adam":
             self.fore_optimizer = optim.Adam(self.fore_model.parameters(), lr=self.fore_lr)
         elif self._fore_optimizer.lower() == "gd":
@@ -300,24 +325,31 @@ class TCTS(Model):
         self.fore_model.to(self.device)
         self.weight_model.to(self.device)
 
+        # 初始化训练记录与超参记录
         best_loss = np.inf
         best_epoch = 0
         stop_round = 0
         fore_best_param = copy.deepcopy(self.fore_optimizer.state_dict())
         weight_best_param = copy.deepcopy(self.weight_optimizer.state_dict())
 
+        # 训练过程
         for epoch in range(self.n_epochs):
             print("Epoch:", epoch)
 
             print("training...")
+            
+            # epoch训练函数，定义一个训练步所需的操作
             self.train_epoch(x_train, y_train, x_valid, y_valid)
             print("evaluating...")
+            
+            # 计算测试集的loss
             val_loss = self.test_epoch(x_valid, y_valid)
             test_loss = self.test_epoch(x_test, y_test)
 
             if verbose:
                 print("valid %.6f, test %.6f" % (val_loss, test_loss))
 
+            # 更新参数
             if val_loss < best_loss:
                 best_loss = val_loss
                 stop_round = 0
@@ -349,7 +381,7 @@ class TCTS(Model):
 
         x_test = dataset.prepare("test", col_set="feature")
         index = x_test.index
-        self.fore_model.eval()
+        self.fore_model.eval() # BN Dropout
         x_values = x_test.values
         sample_num = x_values.shape[0]
         preds = []
