@@ -211,13 +211,23 @@ class InstrumentProvider(abc.ABC, ProviderBackendMixin):
                 'filter_start_time': None,
                 'filter_end_time': None}]}
         """
+        from .filter import SeriesDFilter
+
         if filter_pipe is None:
             filter_pipe = []
         config = {"market": market, "filter_pipe": []}
         # the order of the filters will affect the result, so we need to keep
         # the order
         for filter_t in filter_pipe:
-            config["filter_pipe"].append(filter_t.to_config())
+            if isinstance(filter_t, dict):
+                _config = filter_t
+            elif isinstance(filter_t, SeriesDFilter):
+                _config = filter_t.to_config()
+            else:
+                raise TypeError(
+                    f"Unsupported filter types: {type(filter_t)}! Filter only supports dict or isinstance(filter, SeriesDFilter)"
+                )
+            config["filter_pipe"].append(_config)
         return config
 
     @abc.abstractmethod
