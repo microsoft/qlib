@@ -10,3 +10,8 @@ class QlibException(Exception):
 # Error type for reinitialization when starting an experiment
 class RecorderInitializationError(QlibException):
     pass
+
+
+# Error type for Recorder when can not load object
+class LoadObjectError(QlibException):
+    pass

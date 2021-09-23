@@ -227,10 +227,11 @@ class SigAnaRecord(SignalRecord):
 
     artifact_path = "sig_analysis"
 
-    def __init__(self, recorder, ana_long_short=False, ann_scaler=252, **kwargs):
+    def __init__(self, recorder, ana_long_short=False, ann_scaler=252, label_col=0, **kwargs):
         super().__init__(recorder=recorder, **kwargs)
         self.ana_long_short = ana_long_short
         self.ann_scaler = ann_scaler
+        self.label_col = label_col
 
     def generate(self, **kwargs):
         try:
@@ -243,7 +244,7 @@ class SigAnaRecord(SignalRecord):
         if label is None or not isinstance(label, pd.DataFrame) or label.empty:
             logger.warn(f"Empty label.")
             return
-        ic, ric = calc_ic(pred.iloc[:, 0], label.iloc[:, 0])
+        ic, ric = calc_ic(pred.iloc[:, 0], label.iloc[:, self.label_col])
         metrics = {
             "IC": ic.mean(),
             "ICIR": ic.mean() / ic.std(),
@@ -252,7 +253,7 @@ class SigAnaRecord(SignalRecord):
         }
         objects = {"ic.pkl": ic, "ric.pkl": ric}
         if self.ana_long_short:
-            long_short_r, long_avg_r = calc_long_short_return(pred.iloc[:, 0], label.iloc[:, 0])
+            long_short_r, long_avg_r = calc_long_short_return(pred.iloc[:, 0], label.iloc[:, self.label_col])
             metrics.update(
                 {
                     "Long-Short Ann Return": long_short_r.mean() * self.ann_scaler,

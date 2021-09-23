@@ -1,10 +1,14 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-import sys, traceback, signal, atexit, logging
+import atexit
+import logging
+import sys
+import traceback
+
+from ..log import get_module_logger
 from . import R
 from .recorder import Recorder
-from ..log import get_module_logger
 
 logger = get_module_logger("workflow", logging.INFO)
 

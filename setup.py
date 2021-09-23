@@ -11,7 +11,7 @@ NAME = "pyqlib"
 DESCRIPTION = "A Quantitative-research Platform"
 REQUIRES_PYTHON = ">=3.5.0"
 
-VERSION = "0.6.3.99"
+VERSION = "0.7.1"
 
 # Detect Cython
 try:
@@ -121,5 +121,6 @@ setup(
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
     ],
 )

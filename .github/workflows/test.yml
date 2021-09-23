@@ -1,4 +1,4 @@
-name: Test 
+name: Test
 
 on:
   push:
@@ -12,8 +12,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [windows-latest, ubuntu-16.04, ubuntu-18.04, ubuntu-20.04, macos-latest]
-        python-version: [3.6, 3.7, 3.8, 3.9]
+        os: [windows-latest, ubuntu-16.04, ubuntu-18.04, ubuntu-20.04]
+        python-version: [3.6, 3.7, 3.8]
 
     steps:
     - uses: actions/checkout@v2
@@ -25,96 +25,41 @@ jobs:
 
     - name: Lint with Black
       run: |
-        cd ..
-        if [ "$RUNNER_OS" == "Windows" ]; then
-          $CONDA\\python.exe -m pip install black
-          $CONDA\\python.exe -m black qlib -l 120 --check --diff
-        else
-          sudo $CONDA/bin/python -m pip install black
-          $CONDA/bin/python -m black qlib -l 120 --check --diff
-        fi
-      shell: bash
+        pip install --upgrade pip
+        pip install black wheel
+        black qlib -l 120 --check --diff
 
-    # Test Qlib installed with pip
     - name: Install Qlib with pip
       run: |
-        if [ "$RUNNER_OS" == "Windows" ]; then
-          $CONDA\\python.exe -m pip install numpy==1.19.5
-          $CONDA\\python.exe -m pip install pyqlib --ignore-installed ruamel.yaml numpy --user
-        else
-          sudo $CONDA/bin/python -m pip install numpy==1.19.5
-          sudo $CONDA/bin/python -m pip install pyqlib --ignore-installed ruamel.yaml numpy
-        fi
-      shell: bash
-    
-    - name: Install Lightgbm for MacOS
-      if: runner.os == 'macOS'
-      run: |
-        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Microsoft/qlib/main/.github/brew_install.sh)"
-        HOMEBREW_NO_AUTO_UPDATE=1 brew install lightgbm
+        pip install numpy==1.19.5 ruamel.yaml
+        pip install pyqlib --ignore-installed 
 
     - name: Test data downloads
       run: |
-        if [ "$RUNNER_OS" == "Windows" ]; then
-          $CONDA\\python.exe scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/cn_data --interval 1d --region cn
-        else
-          $CONDA/bin/python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/cn_data --interval 1d --region cn
-        fi
-      shell: bash
+        python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/cn_data --interval 1d --region cn
 
     - name: Test workflow by config (install from pip)
       run: |
-        if [ "$RUNNER_OS" == "Windows" ]; then
-          $CONDA\\python.exe qlib\\workflow\\cli.py examples\\benchmarks\\LightGBM\\workflow_config_lightgbm_Alpha158.yaml 
-          $CONDA\\python.exe -m pip uninstall -y pyqlib
-        else
-          $CONDA/bin/python qlib/workflow/cli.py examples/benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml 
-          sudo $CONDA/bin/python -m pip uninstall -y pyqlib
-        fi
-      shell: bash
-      
-    # Test Qlib installed from source
+        python qlib/workflow/cli.py examples/benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml
+        python -m pip uninstall -y pyqlib
+
+     # Test Qlib installed from source
     - name: Install Qlib from source
       run: |
-        if [ "$RUNNER_OS" == "Windows" ]; then
-          $CONDA\\python.exe -m pip install --upgrade cython
-          $CONDA\\python.exe -m pip install numpy jupyter jupyter_contrib_nbextensions
-          $CONDA\\python.exe -m pip install -U scipy scikit-learn # installing without this line will cause errors on GitHub Actions, while instsalling locally won't
-          $CONDA\\python.exe setup.py install
-        else
-          sudo $CONDA/bin/python -m pip install --upgrade cython
-          sudo $CONDA/bin/python -m pip install numpy jupyter jupyter_contrib_nbextensions
-          sudo $CONDA/bin/python -m pip install -U scipy scikit-learn # installing without this line will cause errors on GitHub Actions, while instsalling locally won't
-          sudo $CONDA/bin/python setup.py install
-        fi
-      shell: bash
+        pip install --upgrade cython jupyter jupyter_contrib_nbextensions numpy scipy scikit-learn # installing without this line will cause errors on GitHub Actions, while instsalling locally won't
+        pip install -e .
 
     - name: Install test dependencies
       run: |
-        if [ "$RUNNER_OS" == "Windows" ]; then
-          $CONDA\\python.exe -m pip install --upgrade pip
-          $CONDA\\python.exe -m pip install black pytest
-        else
-          sudo $CONDA/bin/python -m pip install --upgrade pip
-          sudo $CONDA/bin/python -m pip install black pytest
-        fi
-      shell: bash 
+        pip install --upgrade pip
+        pip install black pytest
 
     - name: Unit tests with Pytest
       run: |
         cd tests
-        if [ "$RUNNER_OS" == "Windows" ]; then
-          $CONDA\\python.exe -m pytest . --durations=0
-        else
-          $CONDA/bin/python -m pytest . --durations=0
-        fi
-      shell: bash
+        python -m pytest . --durations=10
 
     - name: Test workflow by config (install from source)
       run: |
-        if [ "$RUNNER_OS" == "Windows" ]; then
-          $CONDA\\python.exe qlib\\workflow\\cli.py examples\\benchmarks\\LightGBM\\workflow_config_lightgbm_Alpha158.yaml 
-        else
-          $CONDA/bin/python qlib/workflow/cli.py examples/benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml 
-        fi
-      shell: bash
+        python qlib/workflow/cli.py examples/benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml
+      

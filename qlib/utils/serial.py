@@ -1,10 +1,9 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-from pathlib import Path
 import pickle
-import typing
 import dill
+from pathlib import Path
 from typing import Union
 
 
@@ -18,6 +17,7 @@ class Serializable:
 
     pickle_backend = "pickle"  # another optional value is "dill" which can pickle more things of python.
     default_dump_all = False  # if dump all things
+    FLAG_KEY = "_qlib_serial_flag"
 
     def __init__(self):
         self._dump_all = self.default_dump_all
@@ -44,8 +44,6 @@ class Serializable:
         What attribute will not be dumped
         """
         return getattr(self, "_exclude", [])
-
-    FLAG_KEY = "_qlib_serial_flag"
 
     def config(self, dump_all: bool = None, exclude: list = None, recursive=False):
         """
@@ -92,16 +90,16 @@ class Serializable:
     @classmethod
     def load(cls, filepath):
         """
-        Load the collector from a filepath.
+        Load the serializable class from a filepath.
 
         Args:
             filepath (str): the path of file
 
         Raises:
-            TypeError: the pickled file must be `Collector`
+            TypeError: the pickled file must be `type(cls)`
 
         Returns:
-            Collector: the instance of Collector
+            `type(cls)`: the instance of `type(cls)`
         """
         with open(filepath, "rb") as f:
             object = cls.get_backend().load(f)

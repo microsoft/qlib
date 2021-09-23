@@ -36,7 +36,7 @@ port_analysis_config = {
 }
 
 
-def train():
+def train(uri_path: str = None):
     """train model
 
     Returns
@@ -55,7 +55,7 @@ def train():
     print(R)
 
     # start exp
-    with R.start(experiment_name="workflow"):
+    with R.start(experiment_name="workflow", uri=uri_path):
         R.log_params(**flatten_dict(CSI300_GBDT_TASK))
         model.fit(dataset)
 
@@ -79,7 +79,7 @@ def train():
     return pred_score, {"ic": ic, "ric": ric}, rid
 
 
-def train_with_sigana():
+def train_with_sigana(uri_path: str = None):
     """train model followed by SigAnaRecord
 
     Returns
@@ -91,9 +91,8 @@ def train_with_sigana():
     """
     model = init_instance_by_config(CSI300_GBDT_TASK["model"])
     dataset = init_instance_by_config(CSI300_GBDT_TASK["dataset"])
-
     # start exp
-    with R.start(experiment_name="workflow_with_sigana"):
+    with R.start(experiment_name="workflow_with_sigana", uri=uri_path):
         R.log_params(**flatten_dict(CSI300_GBDT_TASK))
         model.fit(dataset)
 
@@ -130,7 +129,7 @@ def fake_experiment():
     return default_uri == default_uri_to_check, current_uri == current_uri_to_check, current_uri
 
 
-def backtest_analysis(pred, rid):
+def backtest_analysis(pred, rid, uri_path: str = None):
     """backtest and analysis
 
     Parameters
@@ -139,6 +138,8 @@ def backtest_analysis(pred, rid):
         predict scores
     rid : str
         the id of the recorder to be used in this function
+    uri_path: str
+        mlflow uri path
 
     Returns
     -------
@@ -146,7 +147,8 @@ def backtest_analysis(pred, rid):
         the analysis result
 
     """
-    recorder = R.get_recorder(experiment_name="workflow", recorder_id=rid)
+    with R.start(experiment_name="workflow", recorder_id=rid, uri=uri_path):
+        recorder = R.get_recorder(experiment_name="workflow", recorder_id=rid)
     # backtest
     par = PortAnaRecord(recorder, port_analysis_config)
     par.generate()
@@ -160,24 +162,24 @@ class TestAllFlow(TestAutoData):
     REPORT_NORMAL = None
     POSITIONS = None
     RID = None
+    URI_PATH = "file:" + str(Path(__file__).parent.joinpath("test_all_flow_mlruns").resolve())
 
     @classmethod
     def tearDownClass(cls) -> None:
-        shutil.rmtree(str(Path(C["exp_manager"]["kwargs"]["uri"].strip("file:")).resolve()))
+        shutil.rmtree(cls.URI_PATH.lstrip("file:"))
 
     def test_0_train_with_sigana(self):
-        TestAllFlow.PRED_SCORE, ic_ric, uri_path = train_with_sigana()
+        TestAllFlow.PRED_SCORE, ic_ric, uri_path = train_with_sigana(self.URI_PATH)
         self.assertGreaterEqual(ic_ric["ic"].all(), 0, "train failed")
         self.assertGreaterEqual(ic_ric["ric"].all(), 0, "train failed")
-        shutil.rmtree(str(Path(uri_path.strip("file:")).resolve()))
 
     def test_1_train(self):
-        TestAllFlow.PRED_SCORE, ic_ric, TestAllFlow.RID = train()
+        TestAllFlow.PRED_SCORE, ic_ric, TestAllFlow.RID = train(self.URI_PATH)
         self.assertGreaterEqual(ic_ric["ic"].all(), 0, "train failed")
         self.assertGreaterEqual(ic_ric["ric"].all(), 0, "train failed")
 
     def test_2_backtest(self):
-        analyze_df = backtest_analysis(TestAllFlow.PRED_SCORE, TestAllFlow.RID)
+        analyze_df = backtest_analysis(TestAllFlow.PRED_SCORE, TestAllFlow.RID, self.URI_PATH)
         self.assertGreaterEqual(
             analyze_df.loc(axis=0)["excess_return_with_cost", "annualized_return"].values[0],
             0.10,
