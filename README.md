@@ -11,6 +11,7 @@
 Recent released features
 | Feature | Status |
 | --                      | ------    |
+|Temporal Routing Adaptor (TRA) | [Released](https://github.com/microsoft/qlib/pull/531) on July 30, 2021 |
 | Transformer & Localformer | [Released](https://github.com/microsoft/qlib/pull/508) on July 22, 2021 |
 | Release Qlib v0.7.0 | [Released](https://github.com/microsoft/qlib/releases/tag/v0.7.0) on July 12, 2021 |
 | TCTS Model | [Released](https://github.com/microsoft/qlib/pull/491) on July 1, 2021 |
@@ -45,7 +46,7 @@ For more details, please refer to our paper ["Qlib: An AI-oriented Quantitative 
   - [Data Preparation](#data-preparation)
   - [Auto Quant Research Workflow](#auto-quant-research-workflow)
   - [Building Customized Quant Research Workflow by Code](#building-customized-quant-research-workflow-by-code)
-- [**Quant Model(Paper) Zoo**](#quant-modelpaper-zoo)
+- [**Quant Model(Paper) Zoo**](#quant-model-paper-zoo)
   - [Run a single model](#run-a-single-model)
   - [Run multiple models](#run-multiple-models)
 - [**Quant Dataset Zoo**](#quant-dataset-zoo)
@@ -295,6 +296,7 @@ Here is a list of models built on `Qlib`.
 - [TCTS based on pytorch (Xueqing Wu, et al. ICML 2021)](qlib/contrib/model/pytorch_tcts.py)
 - [Transformer based on pytorch (Ashish Vaswani, et al. NeurIPS 2017)](qlib/contrib/model/pytorch_transformer.py)
 - [Localformer based on pytorch (Juyong Jiang, et al.)](qlib/contrib/model/pytorch_localformer.py)
+- [TRA based on pytorch (Hengxu, Dong, et al. KDD 2021)](qlib/contrib/model/pytorch_tra.py)
 
 Your PR of new Quant models is highly welcomed.
 
@@ -310,7 +312,7 @@ All the models listed above are runnable with ``Qlib``. Users can find the confi
 - Users can use the script [`run_all_model.py`](examples/run_all_model.py) listed in the `examples` folder to run a model. Here is an example of the specific shell command to be used: `python run_all_model.py --models=lightgbm`, where the `--models` arguments can take any number of models listed above(the available models can be found  in [benchmarks](examples/benchmarks/)). For more use cases, please refer to the file's [docstrings](examples/run_all_model.py).
 
 ## Run multiple models
-`Qlib` also provides a script [`run_all_model.py`](examples/run_all_model.py) which can run multiple models for several iterations. (**Note**: the script only support *Linux* for now. Other OS will be supported in the future. Besides, it doesn't support parrallel running the same model for multiple times as well, and this will be fixed in the future development too.)
+`Qlib` also provides a script [`run_all_model.py`](examples/run_all_model.py) which can run multiple models for several iterations. (**Note**: the script only support *Linux* for now. Other OS will be supported in the future. Besides, it doesn't support parallel running the same model for multiple times as well, and this will be fixed in the future development too.)
 
 The script will create a unique virtual environment for each model, and delete the environments after training. Thus, only experiment results such as `IC` and `backtest` results will be generated and stored.
 

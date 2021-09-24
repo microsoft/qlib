@@ -75,6 +75,12 @@ REG_US = "us"
 
 NUM_USABLE_CPU = max(multiprocessing.cpu_count() - 2, 1)
 
+DISK_DATASET_CACHE = "DiskDatasetCache"
+SIMPLE_DATASET_CACHE = "SimpleDatasetCache"
+DISK_EXPRESSION_CACHE = "DiskExpressionCache"
+
+DEPENDENCY_REDIS_CACHE = (DISK_DATASET_CACHE, DISK_EXPRESSION_CACHE)
+
 _default_config = {
     # data provider config
     "calendar_provider": "LocalCalendarProvider",
@@ -178,8 +184,9 @@ MODE_CONF = {
         "redis_task_db": 1,
         "kernels": NUM_USABLE_CPU,
         # cache
-        "expression_cache": "DiskExpressionCache",
-        "dataset_cache": "DiskDatasetCache",
+        "expression_cache": DISK_EXPRESSION_CACHE,
+        "dataset_cache": DISK_DATASET_CACHE,
+        "local_cache_path": Path("~/.cache/qlib_simple_cache").expanduser().resolve(),
         "mount_path": None,
     },
     "client": {
@@ -194,8 +201,10 @@ MODE_CONF = {
         "provider_uri": "~/.qlib/qlib_data/cn_data",
         # cache
         # Using parameter 'remote' to announce the client is using server_cache, and the writing access will be disabled.
-        "expression_cache": "DiskExpressionCache",
-        "dataset_cache": "DiskDatasetCache",
+        "expression_cache": DISK_EXPRESSION_CACHE,
+        "dataset_cache": DISK_DATASET_CACHE,
+        # SimpleDatasetCache directory
+        "local_cache_path": Path("~/.cache/qlib_simple_cache").expanduser().resolve(),
         "calendar_cache": None,
         # client config
         "kernels": NUM_USABLE_CPU,
@@ -285,6 +294,10 @@ class QlibConfig(Config):
         # raise KeyError
         self.update(_default_region_config[region])
 
+    @staticmethod
+    def is_depend_redis(cache_name: str):
+        return cache_name in DEPENDENCY_REDIS_CACHE
+
     @property
     def dpm(self):
         return self.DataPathManager(self["provider_uri"], self["mount_path"])
@@ -349,12 +362,20 @@ class QlibConfig(Config):
         if not (self["expression_cache"] is None and self["dataset_cache"] is None):
             # check redis
             if not can_use_cache():
-                logger.warning(
-                    f"redis connection failed(host={self['redis_host']} port={self['redis_port']}), "
-                    f"cache will not be used!"
-                )
-                self["expression_cache"] = None
-                self["dataset_cache"] = None
+                log_str = ""
+                # check expression cache
+                if self.is_depend_redis(self["expression_cache"]):
+                    log_str += self["expression_cache"]
+                    self["expression_cache"] = None
+                # check dataset cache
+                if self.is_depend_redis(self["dataset_cache"]):
+                    log_str += f" and {self['dataset_cache']}" if log_str else self["dataset_cache"]
+                    self["dataset_cache"] = None
+                if log_str:
+                    logger.warning(
+                        f"redis connection failed(host={self['redis_host']} port={self['redis_port']}), "
+                        f"{log_str} will not be used!"
+                    )
 
     def register(self):
         from .utils import init_instance_by_config
