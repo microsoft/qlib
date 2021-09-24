@@ -93,12 +93,6 @@ class Account:
         self._port_metr_enabled = port_metr_enabled
         self.init_vars(init_cash, position_dict, freq, benchmark_config)
 
-    def is_port_metr_enabled(self):
-        """
-        Is portfolio-based metrics enabled.
-        """
-        return self._port_metr_enabled and not self.current_position.skip_update()
-
     def init_vars(self, init_cash, position_dict, freq: str, benchmark_config: dict):
         self.init_cash = init_cash
         self.current_position: BasePosition = init_instance_by_config(
@@ -127,6 +121,12 @@ class Account:
             self.accum_info = AccumulatedInfo()
             self.portfolio_metrics = PortfolioMetrics(freq, benchmark_config)
             self.hist_positions = {}
+
+            # fill stock value
+            # The frequency of account may not align with the trading frequency.
+            # This may result in obscure bugs when data quality is low.
+            if isinstance(self.benchmark_config, dict) and self.benchmark_config.get("start_time") is not None:
+                self.current_position.fill_stock_value(self.benchmark_config["start_time"], self.freq)
 
         # trading related metrics(e.g. high-frequency trading)
         self.indicator = Indicator()
@@ -157,23 +157,24 @@ class Account:
         return self.current_position.get_cash()
 
     def _update_state_from_order(self, order, trade_val, cost, trade_price):
-        # update turnover
-        self.accum_info.add_turnover(trade_val)
-        # update cost
-        self.accum_info.add_cost(cost)
+        if self.is_port_metr_enabled():
+            # update turnover
+            self.accum_info.add_turnover(trade_val)
+            # update cost
+            self.accum_info.add_cost(cost)
 
-        # update return from order
-        trade_amount = trade_val / trade_price
-        if order.direction == Order.SELL:  # 0 for sell
-            # when sell stock, get profit from price change
-            profit = trade_val - self.current_position.get_stock_price(order.stock_id) * trade_amount
-            self.accum_info.add_return_value(profit)  # note here do not consider cost
+            # update return from order
+            trade_amount = trade_val / trade_price
+            if order.direction == Order.SELL:  # 0 for sell
+                # when sell stock, get profit from price change
+                profit = trade_val - self.current_position.get_stock_price(order.stock_id) * trade_amount
+                self.accum_info.add_return_value(profit)  # note here do not consider cost
 
-        elif order.direction == Order.BUY:  # 1 for buy
-            # when buy stock, we get return for the rtn computing method
-            # profit in buy order is to make rtn is consistent with earning at the end of bar
-            profit = self.current_position.get_stock_price(order.stock_id) * trade_amount - trade_val
-            self.accum_info.add_return_value(profit)  # note here do not consider cost
+            elif order.direction == Order.BUY:  # 1 for buy
+                # when buy stock, we get return for the rtn computing method
+                # profit in buy order is to make rtn is consistent with earning at the end of bar
+                profit = self.current_position.get_stock_price(order.stock_id) * trade_amount - trade_val
+                self.accum_info.add_return_value(profit)  # note here do not consider cost
 
     def update_order(self, order, trade_val, cost, trade_price):
         if self.current_position.skip_update():

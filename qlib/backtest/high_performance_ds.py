@@ -4,7 +4,6 @@
 
 from functools import lru_cache
 import logging
-from multiprocessing import Value
 from typing import List, Text, Union, Callable, Iterable, Dict
 from collections import OrderedDict
 
@@ -124,9 +123,9 @@ class PandasQuote(BaseQuote):
             raise ValueError(f"stock data from resam_ts_data must be a number, pd.Series or pd.DataFrame")
 
 
-class CN1minNumpyQuote(BaseQuote):
-    def __init__(self, quote_df: pd.DataFrame, freq):
-        """CN1minNumpyQuote
+class NumpyQuote(BaseQuote):
+    def __init__(self, quote_df: pd.DataFrame, freq, region="cn"):
+        """NumpyQuote
 
         Parameters
         ----------
@@ -147,7 +146,8 @@ class CN1minNumpyQuote(BaseQuote):
         elif "hour" in freq:
             self.freq = pd.Timedelta(hours=1)
         else:
-            raise ValueError(f"{freq} is not supported in CN1minNumpyQuote")
+            raise ValueError(f"{freq} is not supported in NumpyQuote")
+        self.region = region
 
     def get_all_stock(self):
         return self.data.keys()
@@ -160,7 +160,7 @@ class CN1minNumpyQuote(BaseQuote):
 
         # single data
         # If it don't consider the classification of single data, it will consume a lot of time.
-        if is_single_value(start_time, end_time, self.freq):
+        if is_single_value(start_time, end_time, self.freq, self.region):
             # this is a very special case.
             # skip aggregating function to speed-up the query calculation
             try:

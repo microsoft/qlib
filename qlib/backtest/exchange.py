@@ -17,7 +17,7 @@ from ..data.data import D
 from ..config import C, REG_CN
 from ..log import get_module_logger
 from .decision import Order, OrderDir, OrderHelper
-from .high_performance_ds import BaseQuote, PandasQuote, CN1minNumpyQuote
+from .high_performance_ds import BaseQuote, PandasQuote, NumpyQuote
 
 
 class Exchange:
@@ -35,7 +35,7 @@ class Exchange:
         close_cost=0.0025,
         min_cost=5,
         extra_quote=None,
-        quote_cls=CN1minNumpyQuote,
+        quote_cls=NumpyQuote,
         **kwargs,
     ):
         """__init__

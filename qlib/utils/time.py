@@ -38,8 +38,8 @@ def get_min_cal(shift: int = 0) -> List[time]:
     return cal
 
 
-def is_single_value(start_time, end_time, freq):
-    """Is there only one piece of data for cn stock market.
+def is_single_value(start_time, end_time, freq, region="cn"):
+    """Is there only one piece of data for stock market.
 
     Parameters
     ----------
@@ -53,14 +53,16 @@ def is_single_value(start_time, end_time, freq):
     bool
         True means one piece of data to obtain.
     """
-
-    if end_time - start_time < freq:
-        return True
-    if start_time.hour == 11 and start_time.minute == 29 and start_time.second == 0:
-        return True
-    if start_time.hour == 14 and start_time.minute == 59 and start_time.second == 0:
-        return True
-    return False
+    if region == "cn":
+        if end_time - start_time < freq:
+            return True
+        if start_time.hour == 11 and start_time.minute == 29 and start_time.second == 0:
+            return True
+        if start_time.hour == 14 and start_time.minute == 59 and start_time.second == 0:
+            return True
+        return False
+    else:
+        raise NotImplemented(f"please implement the is_single_value func for {region}")
 
 
 class Freq:
