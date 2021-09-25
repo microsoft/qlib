@@ -199,7 +199,6 @@ def gen_yaml_file_without_seed_kwargs(yaml_path, temp_dir):
         config = yaml.load(fp)
     try:
         del config["task"]["model"]["kwargs"]["seed"]
-        print(config["task"]["model"])
     except:
         pass
     with open(temp_path, "w") as fp:

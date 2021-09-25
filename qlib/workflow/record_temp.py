@@ -88,7 +88,7 @@ class RecordTemp:
         obj = self.recorder.load_object(name)
         return obj
 
-    def list(self):
+    def list():
         """
         List the supported artifacts.
 
@@ -98,7 +98,7 @@ class RecordTemp:
         """
         return []
 
-    def check(self, parent=False):
+    def check(self, cls=self):
         """
         Check if the records is properly generated and saved.
 
@@ -107,11 +107,7 @@ class RecordTemp:
         FileExistsError: whether the records are stored properly.
         """
         artifacts = set(self.recorder.list_artifacts())
-        if parent:
-            # Downcasting have to be done here instead of using `super`
-            flist = self.__class__.__base__.list(self)  # pylint: disable=E1101
-        else:
-            flist = self.list()
+        flist = cls.list()
         for item in flist:
             if item not in artifacts:
                 raise FileExistsError(item)
@@ -165,7 +161,8 @@ class SignalRecord(RecordTemp):
             self.recorder.save_objects(**{"label.pkl": raw_label})
             self.dataset.__class__ = orig_cls
 
-    def list(self):
+    @staticmethod
+    def list():
         return ["pred.pkl", "label.pkl"]
 
     def load(self, name="pred.pkl"):
@@ -226,24 +223,22 @@ class HFSignalRecord(SignalRecord):
         return paths
 
 
-class SigAnaRecord(SignalRecord):
+class SigAnaRecord(RecordTemp):
     """
     This is the Signal Analysis Record class that generates the analysis results such as IC and IR. This class inherits the ``RecordTemp`` class.
     """
 
     artifact_path = "sig_analysis"
+    pre_class = SignalRecord
 
-    def __init__(self, recorder, ana_long_short=False, ann_scaler=252, label_col=0, **kwargs):
-        super().__init__(recorder=recorder, **kwargs)
+    def __init__(self, recorder, ana_long_short=False, ann_scaler=252, label_col=0):
+        super().__init__(recorder=recorder)
         self.ana_long_short = ana_long_short
         self.ann_scaler = ann_scaler
         self.label_col = label_col
 
     def generate(self, **kwargs):
-        try:
-            self.check(parent=True)
-        except FileExistsError:
-            super().generate()
+        self.check(self.pre_class)
 
         pred = self.load("pred.pkl")
         label = self.load("label.pkl")
