@@ -564,7 +564,7 @@ class FeatureTransformer(nn.Module):
             self.shared = None
         self.independ = nn.ModuleList()
         if first:
-            self.independ.append(GLU(inp, out_dim, vbs=vbs))
+            self.independ.append(GLU(inp_dim, out_dim, vbs=vbs))
         for x in range(first, n_ind):
             self.independ.append(GLU(out_dim, out_dim, vbs=vbs))
         self.scale = float(np.sqrt(0.5))

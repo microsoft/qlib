@@ -1,18 +1,14 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-import os
 import abc
 import warnings
-import numpy as np
 import pandas as pd
 
-from typing import Tuple, Union, List, Type
+from typing import Tuple, Union, List
 
 from qlib.data import D
-from qlib.data import filter as filter_module
-from qlib.data.filter import BaseDFilter
-from qlib.utils import load_dataset, init_instance_by_config, time_to_slc_point, get_callable_kwargs
+from qlib.utils import load_dataset, init_instance_by_config, time_to_slc_point
 from qlib.log import get_module_logger
 
 
@@ -173,13 +169,6 @@ class QlibDataLoader(DLWParser):
         inst_processor: dict
             If inst_processor is not None and type(config) == dict; load config[<group_name>] data using inst_processor[<group_name>]
         """
-        if filter_pipe is not None:
-            assert isinstance(filter_pipe, list), "The type of `filter_pipe` must be list."
-            filter_pipe = [
-                init_instance_by_config(fp, None if "module_path" in fp else filter_module, accept_types=BaseDFilter)
-                for fp in filter_pipe
-            ]
-
         self.filter_pipe = filter_pipe
         self.swap_level = swap_level
         self.freq = freq

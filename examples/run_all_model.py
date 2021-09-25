@@ -285,7 +285,7 @@ def run(
         execute(f"{python_path} -m pip install -r {req_path}", wait_when_err=wait_when_err)
         sys.stderr.write("\n")
         # read yaml, remove seed kwargs of model, and then save file in the temp_dir
-        # yaml_path = gen_yaml_file_without_seed_kwargs(yaml_path, temp_dir)
+        yaml_path = gen_yaml_file_without_seed_kwargs(yaml_path, temp_dir)
         # setup gpu for tft
         if fn == "TFT":
             execute(

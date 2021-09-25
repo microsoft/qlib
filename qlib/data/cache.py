@@ -1068,8 +1068,13 @@ class SimpleDatasetCache(DatasetCache):
         super(SimpleDatasetCache, self).__init__(provider)
         try:
             self.local_cache_path: Path = Path(C["local_cache_path"]).expanduser().resolve()
-        except KeyError as e:
+        except (KeyError, TypeError) as e:
             self.logger.error("Assign a local_cache_path in config if you want to use this cache mechanism")
+            raise
+        self.logger.info(
+            f"DatasetCache directory: {self.local_cache_path}, "
+            f"modify the cache directory via the local_cache_path in the config"
+        )
 
     def _uri(self, instruments, fields, start_time, end_time, freq, disk_cache=1, inst_processors=[], **kwargs):
         instruments, fields, freq = self.normalize_uri_args(instruments, fields, freq)
