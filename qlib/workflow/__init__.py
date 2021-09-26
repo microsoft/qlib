@@ -331,6 +331,10 @@ class QlibRecorder:
     def set_uri(self, uri: Optional[Text]):
         """
         Method to reset the current uri of current experiment manager.
+
+        NOTE:
+        - When the uri is refer to a file path, please using the absolute path instead of strings like "~/mlruns/"
+          The backend don't support strings like this.
         """
         self.exp_manager.set_uri(uri)
 
@@ -338,6 +342,9 @@ class QlibRecorder:
     def uri_context(self, uri: Text):
         """
         Temporarily set the exp_manager's uri to uri
+
+        NOTE:
+        - Please refer to the NOTE in the `set_uri`
 
         Parameters
         ----------
@@ -349,7 +356,7 @@ class QlibRecorder:
         try:
             yield
         finally:
-            self.exp_manager._current_uri = prev_uri
+            self.exp_manager.set_uri(prev_uri)
 
     def get_recorder(
         self, *, recorder_id=None, recorder_name=None, experiment_id=None, experiment_name=None
