@@ -1,10 +1,9 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-from pathlib import Path
 import pickle
-import typing
 import dill
+from pathlib import Path
 from typing import Union
 
 
@@ -29,6 +28,7 @@ class Serializable:
     config_attr = ["_include", "_exclude"]
     exclude_attr = []  # exclude_attr have lower priorities than `self._exclude`
     include_attr = []  # include_attr have lower priorities then `self._include`
+    FLAG_KEY = "_qlib_serial_flag"
 
     def __init__(self):
         self._dump_all = self.default_dump_all
@@ -76,8 +76,6 @@ class Serializable:
         if res is None:
             return []
         return res
-
-    FLAG_KEY = "_qlib_serial_flag"
 
     def config(self, recursive=False, **kwargs):
         """
