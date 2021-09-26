@@ -50,10 +50,10 @@ if __name__ == "__main__":
         # this will save the time to reload and process data from disk(in `DataHandlerLP`)
         # It still takes a lot of time in the backtest phase
         for i in range(repeat):
-            task_train(new_task["task"], experiment_name=exp_name)
+            task_train(new_task, experiment_name=exp_name)
 
     # 4) User can change other parts exclude processed data in memory(handler)
     new_task = deepcopy(task_config["task"])
     new_task["dataset"]["kwargs"]["segments"]["train"] = ("20100101", "20131231")
     with TimeInspector.logt("The time with reusing processed data in memory:"):
-        task_train(new_task["task"], experiment_name=exp_name)
+        task_train(new_task, experiment_name=exp_name)
