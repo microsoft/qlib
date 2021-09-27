@@ -148,16 +148,25 @@ class TestStorage(TestAutoData):
                 ===> [(31, 1), ..., (59, 4)]
 
         """
-
-        feature = FeatureStorage(instrument="SH600004", field="close", freq="day", provider_uri=self.provider_uri)
+        feature = FeatureStorage(instrument="SZ300677", field="close", freq="day", provider_uri=self.provider_uri)
 
         with self.assertRaises(IndexError):
             print(feature[0])
         assert isinstance(
-            feature[815][1], (float, np.float32)
+            feature[3049][1], (float, np.float32)
         ), f"{feature.__class__.__name__}.__getitem__(i: int) error"
-        assert len(feature[815:818]) == 3, f"{feature.__class__.__name__}.__getitem__(s: slice) error"
-        print(f"feature[815: 818]: \n{feature[815: 818]}")
+        assert len(feature[3049:3052]) == 3, f"{feature.__class__.__name__}.__getitem__(s: slice) error"
+        print(f"feature[3049: 3052]: \n{feature[3049: 3052]}")
+
+#         feature = FeatureStorage(instrument="SH600004", field="close", freq="day", provider_uri=self.provider_uri)
+
+#         with self.assertRaises(IndexError):
+#             print(feature[0])
+#         assert isinstance(
+#             feature[815][1], (float, np.float32)
+#         ), f"{feature.__class__.__name__}.__getitem__(i: int) error"
+#         assert len(feature[815:818]) == 3, f"{feature.__class__.__name__}.__getitem__(s: slice) error"
+#         print(f"feature[815: 818]: \n{feature[815: 818]}")
 
         print(f"feature[:].tail(): \n{feature[:].tail()}")
 
