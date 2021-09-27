@@ -23,9 +23,6 @@ Recent released features
 
 Features released before 2021 are not listed here.
 
-If you want to modify the qlib document, you can follow the following figure.
-https://github.com/demon143/qlib/blob/main/docs/_static/img/change%20doc.gif
-
 <p align="center">
   <img src="http://fintech.msra.cn/images_v060/logo/1.png" />
 </p>
