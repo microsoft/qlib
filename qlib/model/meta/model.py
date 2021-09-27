@@ -10,7 +10,11 @@ from .dataset import MetaDataset
 
 class MetaModel(metaclass=abc.ABCMeta):
     """
-    The meta-model controls the training process.
+    The meta-model guiding the model learning.
+
+    The word `Guiding` can be categorized into two types based on the stage of model learning
+    - The definition of learning tasks:  Please refer to docs of `MetaTaskModel`
+    - Controlling the learning process of models: Please refer to the docs of `MetaGuideModel`
     """
 
     @abc.abstractmethod
@@ -21,9 +25,14 @@ class MetaModel(metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
-    def inference(self, *args, **kwargs):
+    def inference(self, *args, **kwargs) -> object:
         """
         The inference process of the meta-model.
+
+        Returns
+        -------
+        object:
+            Some information to guide the model learning
         """
         pass
 
@@ -37,6 +46,9 @@ class MetaTaskModel(MetaModel):
     def prepare_task(self, task: MetaTask) -> dict:
         """
         Input a meta task and output a task with qlib format
+
+        When modifying the model tasks, the meta model will leverage `self.inference` to get some necessary
+        information.
 
         Parameters
         ----------

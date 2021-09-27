@@ -497,13 +497,17 @@ class DelayTrainerRM(TrainerRM):
             tasks = [tasks]
         if len(tasks) == 0:
             return []
-        return super().train(
+        _skip_run_task = self.skip_run_task
+        self.skip_run_task = False  # The task preparation can't be skipped
+        res = super().train(
             tasks,
             train_func=train_func,
             experiment_name=experiment_name,
             after_status=TaskManager.STATUS_PART_DONE,
             **kwargs,
         )
+        self.skip_run_task = _skip_run_task
+        return res
 
     def end_train(self, recs, end_train_func=None, experiment_name: str = None, **kwargs) -> List[Recorder]:
         """

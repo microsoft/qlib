@@ -56,6 +56,7 @@ class WeightSampler:
 class SampleReweighter(Reweighter):
     """
     The sample-wise reweighter. It aims to reweight by the given weight of each sample.
+    The samples are indexed in a pandas way
     """
 
     def __init__(self, sample_weights: pd.Series, *args, **kwargs):
@@ -82,7 +83,7 @@ class SampleReweighter(Reweighter):
         weight.update(self.weights)
         return weight
 
-    def _sample_reweight_TSDataSampler(self, sampler: TSDataSampler, *args, **kwargs):
+    def _sample_reweight_TSDataSampler(self, sampler: TSDataSampler, *args, **kwargs) -> WeightSampler:
         """
         This function processes the prepared data with TSDataSampler type.
 
