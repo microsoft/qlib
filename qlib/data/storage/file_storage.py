@@ -12,6 +12,7 @@ from qlib.utils.time import Freq
 from qlib.utils.resam import resam_calendar
 from qlib.log import get_module_logger
 from qlib.data.storage import CalendarStorage, InstrumentStorage, FeatureStorage, CalVT, InstKT, InstVT
+from qlib.data.cache import H
 
 logger = get_module_logger("file_storage")
 
@@ -72,7 +73,12 @@ class FileCalendarStorage(FileStorageMixin, CalendarStorage):
             if _freq is None:
                 raise ValueError(f"can't find a freq from {freq_list} that can resample to {self.freq}!")
             self.file_name = f"{_freq}_future.txt" if self.future else f"{_freq}.txt".lower()
-            _calendar = self._read_calendar()
+            # The cache is useful for the following cases
+            # - multiple frequencies are sampled from the same calendar
+            cache_key = self.uri
+            if cache_key not in H["c"]:
+                H["c"][cache_key] = self._read_calendar()
+            _calendar = H["c"][cache_key]
             _calendar = resam_calendar(np.array(list(map(pd.Timestamp, _calendar))), _freq, self.freq)
 
         return _calendar

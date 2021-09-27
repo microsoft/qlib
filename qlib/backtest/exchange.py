@@ -719,19 +719,20 @@ class Exchange:
         """
         trade_price = self.get_deal_price(order.stock_id, order.start_time, order.end_time, direction=order.direction)
         order.factor = self.get_factor(order.stock_id, order.start_time, order.end_time)
+        order.deal_amount = order.amount  # set to full amount and clip it step by step
         self._clip_amount_by_volume(order, dealt_order_amount)
 
         if order.direction == Order.SELL:
             cost_ratio = self.close_cost
             # sell
+            # if we don't know current position, we choose to sell all
+            # Otherwise, we clip the amount based on current position
             if position is not None:
                 current_amount = (
                     position.get_stock_amount(order.stock_id) if position.check_stock(order.stock_id) else 0
                 )
-                if np.isclose(order.amount, current_amount):
-                    # when selling last stock. The amount don't need rounding
-                    order.deal_amount = order.amount
-                else:
+                if not np.isclose(order.amount, current_amount):
+                    # when not selling last stock. rounding is necessary
                     order.deal_amount = self.round_amount_by_trade_unit(min(current_amount, order.amount), order.factor)
 
                 # in case of negative value of cash
@@ -741,10 +742,6 @@ class Exchange:
                 ):
                     order.deal_amount = 0
                     self.logger.debug(f"Order clipped due to cash limitation: {order}")
-            else:
-                # TODO: We don't know current position.
-                #  We choose to sell all
-                order.deal_amount = order.amount
 
         elif order.direction == Order.BUY:
             cost_ratio = self.open_cost
@@ -755,14 +752,16 @@ class Exchange:
                 if cash < trade_val + max(trade_val * cost_ratio, self.min_cost):
                     # The money is not enough
                     max_buy_amount = self._get_buy_amount_by_cash_limit(trade_price, cash)
-                    order.deal_amount = self.round_amount_by_trade_unit(max_buy_amount, order.factor)
+                    order.deal_amount = self.round_amount_by_trade_unit(
+                        min(max_buy_amount, order.deal_amount), order.factor
+                    )
                     self.logger.debug(f"Order clipped due to cash limitation: {order}")
                 else:
                     # The money is enough
-                    order.deal_amount = self.round_amount_by_trade_unit(order.amount, order.factor)
+                    order.deal_amount = self.round_amount_by_trade_unit(order.deal_amount, order.factor)
             else:
                 # Unknown amount of money. Just round the amount
-                order.deal_amount = self.round_amount_by_trade_unit(order.amount, order.factor)
+                order.deal_amount = self.round_amount_by_trade_unit(order.deal_amount, order.factor)
 
         else:
             raise NotImplementedError("order type {} error".format(order.type))
