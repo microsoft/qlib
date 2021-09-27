@@ -121,6 +121,30 @@ class SignalRecord(RecordTemp):
         self.model = model
         self.dataset = dataset
 
+    @staticmethod
+    def generate_label(dataset):
+        # NOTE:
+        # Python doesn't provide the downcasting mechanism.
+        # We use the trick here to downcast the class
+        orig_cls = dataset.__class__
+        dataset.__class__ = DatasetH
+
+        params = dict(segments="test", col_set="label", data_key=DataHandlerLP.DK_R)
+        try:
+            # Assume the backend handler is DataHandlerLP
+            raw_label = dataset.prepare(**params)
+        except TypeError:
+            # The argument number is not right
+            del params["data_key"]
+            # The backend handler should be DataHandler
+            raw_label = dataset.prepare(**params)
+        except AttributeError:
+            # The data handler is initialize with `drop_raw=True`...
+            # So raw_label is not available
+            raw_label = None
+        dataset.__class__ = orig_cls
+        return raw_label
+
     def generate(self, **kwargs):
         # generate prediciton
         pred = self.model.predict(self.dataset)
@@ -136,28 +160,8 @@ class SignalRecord(RecordTemp):
         pprint(pred.head(5))
 
         if isinstance(self.dataset, DatasetH):
-            # NOTE:
-            # Python doesn't provide the downcasting mechanism.
-            # We use the trick here to downcast the class
-            orig_cls = self.dataset.__class__
-            self.dataset.__class__ = DatasetH
-
-            params = dict(segments="test", col_set="label", data_key=DataHandlerLP.DK_R)
-            try:
-                # Assume the backend handler is DataHandlerLP
-                raw_label = self.dataset.prepare(**params)
-            except TypeError:
-                # The argument number is not right
-                del params["data_key"]
-                # The backend handler should be DataHandler
-                raw_label = self.dataset.prepare(**params)
-            except AttributeError:
-                # The data handler is initialize with `drop_raw=True`...
-                # So raw_label is not available
-                raw_label = None
-
+            raw_label = self.generate_label(self.dataset)
             self.recorder.save_objects(**{"label.pkl": raw_label})
-            self.dataset.__class__ = orig_cls
 
     def list(self):
         return ["pred.pkl", "label.pkl"]
