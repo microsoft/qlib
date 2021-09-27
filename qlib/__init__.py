@@ -1,17 +1,15 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
+from pathlib import Path
 
-
-__version__ = "0.7.1"
+_version_path = Path(__file__).absolute().parent / "VERSION.txt"  # This file is copyed from setup.py
+__version__ = _version_path.read_text(encoding="utf-8").strip()
 __version__bak = __version__  # This version is backup for QlibConfig.reset_qlib_version
-
-
 import os
 import yaml
 import logging
 import platform
 import subprocess
-from pathlib import Path
 from .log import get_module_logger
 
 
