@@ -394,7 +394,10 @@ This project welcomes contributions and suggestions.
 [code standards](docs/developer/code_standard.rst) when you submit a pull request.**
 
 If you want to modify the qlib document, you can follow the following figure.
-https://github.com/demon143/qlib/blob/main/docs/_static/img/change%20doc.gif
+<p align="center">
+  <img src="https://github.com/demon143/qlib/blob/main/docs/_static/img/change%20doc.gif" />
+</p>
+
 
 Most contributions require you to agree to a
 Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us
