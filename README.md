@@ -393,7 +393,7 @@ This project welcomes contributions and suggestions.
 **Here are some 
 [code standards](docs/developer/code_standard.rst) when you submit a pull request.**
 
-If you want to modify the qlib document, you can follow the following figure.
+If you want to contribute to Qlib's document, you can follow the steps in the figure below.
 <p align="center">
   <img src="https://github.com/demon143/qlib/blob/main/docs/_static/img/change%20doc.gif" />
 </p>
