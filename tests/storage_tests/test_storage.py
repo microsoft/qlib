@@ -148,6 +148,7 @@ class TestStorage(TestAutoData):
                 ===> [(31, 1), ..., (59, 4)]
 
         """
+        
         feature = FeatureStorage(instrument="SZ300677", field="close", freq="day", provider_uri=self.provider_uri)
 
         with self.assertRaises(IndexError):
@@ -157,8 +158,6 @@ class TestStorage(TestAutoData):
         ), f"{feature.__class__.__name__}.__getitem__(i: int) error"
         assert len(feature[3049:3052]) == 3, f"{feature.__class__.__name__}.__getitem__(s: slice) error"
         print(f"feature[3049: 3052]: \n{feature[3049: 3052]}")
-
-
 
         print(f"feature[:].tail(): \n{feature[:].tail()}")
 
