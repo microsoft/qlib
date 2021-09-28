@@ -229,6 +229,9 @@ def get_callable_kwargs(config: Union[dict, str], default_module: Union[str, Mod
     return _callable, kwargs
 
 
+get_cls_kwargs = get_callable_kwargs  # NOTE: this is for compatibility for the previous version
+
+
 def init_instance_by_config(
     config: Union[str, dict, object], default_module=None, accept_types: Union[type, Tuple[type]] = (), **kwargs
 ) -> Any:

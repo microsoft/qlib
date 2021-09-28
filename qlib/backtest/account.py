@@ -91,6 +91,7 @@ class Account:
 
         self._pos_type = pos_type
         self._port_metr_enabled = port_metr_enabled
+        self.benchmark_config = None  # avoid no attribute error
         self.init_vars(init_cash, position_dict, freq, benchmark_config)
 
     def init_vars(self, init_cash, position_dict, freq: str, benchmark_config: dict):

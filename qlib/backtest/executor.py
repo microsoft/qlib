@@ -246,7 +246,7 @@ class BaseExecutor:
             raise ValueError("atomic executor doesn't support specify `range_limit`")
 
         if self._settle_type != BasePosition.ST_NO:
-            self.trade_account.current.settle_start(self._settle_type)
+            self.trade_account.current_position.settle_start(self._settle_type)
 
         obj = self._collect_data(trade_decision=trade_decision, level=level)
 
@@ -271,7 +271,7 @@ class BaseExecutor:
         self.trade_calendar.step()
 
         if self._settle_type != BasePosition.ST_NO:
-            self.trade_account.current.settle_commit()
+            self.trade_account.current_position.settle_commit()
 
         if return_value is not None:
             return_value.update({"execute_result": res})
