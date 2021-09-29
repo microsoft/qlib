@@ -44,15 +44,19 @@ class TestStorage(TestAutoData):
     def test_instrument_storage(self):
         """
         The meaning of instrument, such as CSI500:
+
             CSI500 composition changes:
+
                 date            add         remove
                 2005-01-01      SH600000
                 2005-01-01      SH600001
                 2005-01-01      SH600002
                 2005-02-01      SH600003    SH600000
                 2005-02-15      SH600000    SH600002
+
             Calendar:
                 pd.date_range(start="2020-01-01", stop="2020-03-01", freq="1D")
+
             Instrument:
                 symbol      start_time      end_time
                 SH600000    2005-01-01      2005-01-31 (2005-02-01 Last trading day)
@@ -60,6 +64,7 @@ class TestStorage(TestAutoData):
                 SH600001    2005-01-01      2005-03-01
                 SH600002    2005-01-01      2005-02-14 (2005-02-15 Last trading day)
                 SH600003    2005-02-01      2005-03-01
+
             InstrumentStorage:
                 {
                     "SH600000": [(2005-01-01, 2005-01-31), (2005-02-15, 2005-03-01)],
@@ -67,6 +72,7 @@ class TestStorage(TestAutoData):
                     "SH600002": [(2005-01-01, 2005-02-14)],
                     "SH600003": [(2005-02-01, 2005-03-01)],
                 }
+
         """
 
         instrument = InstrumentStorage(market="csi300", provider_uri=self.provider_uri)
@@ -93,6 +99,7 @@ class TestStorage(TestAutoData):
         """
         Calendar:
             pd.date_range(start="2005-01-01", stop="2005-03-01", freq="1D")
+
         Instrument:
             {
                 "SH600000": [(2005-01-01, 2005-01-31), (2005-02-15, 2005-03-01)],
@@ -100,6 +107,7 @@ class TestStorage(TestAutoData):
                 "SH600002": [(2005-01-01, 2005-02-14)],
                 "SH600003": [(2005-02-01, 2005-03-01)],
             }
+
         Feature:
             Stock data(close):
                             2005-01-01  ...   2005-02-01   ...   2005-02-14  2005-02-15  ...  2005-03-01
@@ -107,27 +115,38 @@ class TestStorage(TestAutoData):
                 SH600001     1          ...      4         ...      5           6               7
                 SH600002     1          ...      5         ...      6           nan             nan
                 SH600003     nan        ...      1         ...      2           3               4
+
             FeatureStorage(SH600000, close):
+
                 [
                     (calendar.index("2005-01-01"), 1),
                     ...,
                     (calendar.index("2005-03-01"), 6)
                 ]
+
                 ====> [(0, 1), ..., (59, 6)]
+
+
             FeatureStorage(SH600002, close):
+
                 [
                     (calendar.index("2005-01-01"), 1),
                     ...,
                     (calendar.index("2005-02-14"), 6)
                 ]
+
                 ===> [(0, 1), ..., (44, 6)]
+
             FeatureStorage(SH600003, close):
+
                 [
                     (calendar.index("2005-02-01"), 1),
                     ...,
                     (calendar.index("2005-03-01"), 4)
                 ]
+
                 ===> [(31, 1), ..., (59, 4)]
+
         """
 
         feature = FeatureStorage(instrument="SZ300677", field="close", freq="day", provider_uri=self.provider_uri)
