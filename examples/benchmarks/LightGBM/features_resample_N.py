@@ -1,3 +1,6 @@
+#  Copyright (c) Microsoft Corporation.
+#  Licensed under the MIT License.
+
 import pandas as pd
 
 from qlib.data.inst_processor import InstProcessor

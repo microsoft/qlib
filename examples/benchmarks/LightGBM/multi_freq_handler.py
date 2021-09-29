@@ -1,3 +1,6 @@
+#  Copyright (c) Microsoft Corporation.
+#  Licensed under the MIT License.
+
 import warnings
 from pathlib import Path
 from typing import Union
