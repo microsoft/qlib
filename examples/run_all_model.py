@@ -147,9 +147,9 @@ def get_all_results(folders) -> dict:
             if recorders[recorder_id].status == "FINISHED":
                 recorder = R.get_recorder(recorder_id=recorder_id, experiment_name=fn)
                 metrics = recorder.list_metrics()
-                result["annualized_return_with_cost"].append(metrics["excess_return_with_cost.annualized_return"])
-                result["information_ratio_with_cost"].append(metrics["excess_return_with_cost.information_ratio"])
-                result["max_drawdown_with_cost"].append(metrics["excess_return_with_cost.max_drawdown"])
+                result["annualized_return_with_cost"].append(metrics["1day.excess_return_with_cost.annualized_return"])
+                result["information_ratio_with_cost"].append(metrics["1day.excess_return_with_cost.information_ratio"])
+                result["max_drawdown_with_cost"].append(metrics["1day.excess_return_with_cost.max_drawdown"])
                 result["ic"].append(metrics["IC"])
                 result["icir"].append(metrics["ICIR"])
                 result["rank_ic"].append(metrics["Rank IC"])
@@ -254,6 +254,19 @@ def run(
         python run_all_model.py --models=[mlp,tft,sfm] --exclude=True
 
     """
+    # init qlib
+    GetData().qlib_data(exists_skip=True)
+    qlib.init(
+        exp_manager={
+            "class": "MLflowExpManager",
+            "module_path": "qlib.workflow.expm",
+            "kwargs": {
+                "uri": "file:" + str(Path(os.getcwd()).resolve() / exp_folder_name),
+                "default_exp_name": "Experiment",
+            },
+        }
+    )
+
     # get all folders
     folders = get_all_folders(models, exclude)
     # init error messages:
@@ -276,8 +289,13 @@ def run(
             content = f.read()
         if "torch" in content:
             # automatically install pytorch according to nvidia's version
-            execute(f"{python_path} -m pip install light-the-torch", wait_when_err=wait_when_err)  # for automatically installing torch according to the nvidia driver
-            execute(f"{env_path / 'bin' / 'ltt'} install --install-cmd '{python_path} -m pip install {{packages}}' -- -r {req_path}", wait_when_err=wait_when_err)
+            execute(
+                f"{python_path} -m pip install light-the-torch", wait_when_err=wait_when_err
+            )  # for automatically installing torch according to the nvidia driver
+            execute(
+                f"{env_path / 'bin' / 'ltt'} install --install-cmd '{python_path} -m pip install {{packages}}' -- -r {req_path}",
+                wait_when_err=wait_when_err,
+            )
         else:
             execute(f"{python_path} -m pip install -r {req_path}", wait_when_err=wait_when_err)
         sys.stderr.write("\n")
@@ -343,6 +361,4 @@ def run(
 
 
 if __name__ == "__main__":
-    GetData().qlib_data(exists_skip=True)
-    qlib.init()
     fire.Fire(run)  # run all the model
