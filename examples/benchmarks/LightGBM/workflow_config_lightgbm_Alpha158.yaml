@@ -1,7 +1,7 @@
 qlib_init:
     provider_uri: "~/.qlib/qlib_data/cn_data"
     region: cn
-market: &market csi200
+market: &market csi100
 benchmark: &benchmark SH000300
 data_handler_config: &data_handler_config
     start_time: 2008-01-01
