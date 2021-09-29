@@ -1,7 +1,6 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-
 from functools import lru_cache
 import logging
 from typing import List, Text, Union, Callable, Iterable, Dict
@@ -14,7 +13,7 @@ import numpy as np
 from ..utils.index_data import IndexData, SingleData
 from ..utils.resam import resam_ts_data, ts_data_last
 from ..log import get_module_logger
-from ..utils.time import is_single_value
+from ..utils.time import is_single_value, Freq
 import qlib.utils.index_data as idd
 
 
@@ -139,12 +138,10 @@ class NumpyQuote(BaseQuote):
             quote_dict[stock_id] = idd.MultiData(stock_val.droplevel(level="instrument"))
             quote_dict[stock_id].sort_index()  # To support more flexible slicing, we must sort data first
         self.data = quote_dict
-        if "minute" in freq:
-            self.freq = pd.Timedelta(minutes=1)
-        elif "day" in freq:
-            self.freq = pd.Timedelta(days=1)
-        elif "hour" in freq:
-            self.freq = pd.Timedelta(hours=1)
+
+        n, unit = Freq.parse(freq)
+        if unit in Freq.SUPPORT_CAL_LIST:
+            self.freq = Freq.get_timedelta(1, unit)
         else:
             raise ValueError(f"{freq} is not supported in NumpyQuote")
         self.region = region

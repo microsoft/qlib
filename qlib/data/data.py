@@ -193,13 +193,11 @@ class CalendarProvider(abc.ABC, ProviderBackendMixin):
             dict composed by timestamp as key and index as value for fast search.
         """
         flag = f"{freq}_future_{future}"
-        if flag in H["c"]:
-            _calendar, _calendar_index = H["c"][flag]
-        else:
+        if flag not in H["c"]:
             _calendar = np.array(self.load_calendar(freq, future))
             _calendar_index = {x: i for i, x in enumerate(_calendar)}  # for fast search
             H["c"][flag] = _calendar, _calendar_index
-        return _calendar, _calendar_index
+        return H["c"][flag]
 
     def _uri(self, start_time, end_time, freq, future=False):
         """Get the uri of calendar generation task."""
@@ -274,7 +272,7 @@ class InstrumentProvider(abc.ABC, ProviderBackendMixin):
             return market
 
         from .filter import SeriesDFilter
-        
+
         if filter_pipe is None:
             filter_pipe = []
         config = {"market": market, "filter_pipe": []}
@@ -649,7 +647,6 @@ class LocalCalendarProvider(CalendarProvider):
         list
             list of timestamps
         """
-
         try:
             backend_obj = self.backend_obj(freq=freq, future=future).data
         except ValueError:

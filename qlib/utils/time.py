@@ -62,7 +62,7 @@ def is_single_value(start_time, end_time, freq, region="cn"):
             return True
         return False
     else:
-        raise NotImplemented(f"please implement the is_single_value func for {region}")
+        raise NotImplementedError(f"please implement the is_single_value func for {region}")
 
 
 class Freq:
@@ -70,7 +70,7 @@ class Freq:
     NORM_FREQ_WEEK = "week"
     NORM_FREQ_DAY = "day"
     NORM_FREQ_MINUTE = "minute"
-    SUPPORT_CAL_LIST = [NORM_FREQ_MINUTE]
+    SUPPORT_CAL_LIST = [NORM_FREQ_MINUTE, NORM_FREQ_DAY]  # FIXME: this list should from data
 
     MIN_CAL = get_min_cal()
 
@@ -122,6 +122,23 @@ class Freq:
             "min": Freq.NORM_FREQ_MINUTE,
         }
         return _count, _freq_format_dict[_freq]
+
+    @staticmethod
+    def get_timedelta(n: int, freq: str) -> pd.Timedelta:
+        """
+        get pd.Timedeta object
+
+        Parameters
+        ----------
+        n : int
+        freq : str
+            Typically, they are the return value of Freq.parse
+
+        Returns
+        -------
+        pd.Timedelta:
+        """
+        return pd.Timedelta(f"{n}{freq}")
 
     @staticmethod
     def get_min_delta(left_frq: str, right_freq: str):
