@@ -24,22 +24,6 @@ from qlib.config import REG_CN
 from qlib.workflow import R
 from qlib.tests.data import GetData
 
-# init qlib
-provider_uri = "~/.qlib/qlib_data/cn_data"
-exp_folder_name = "run_all_model_records"
-exp_path = str(Path(os.getcwd()).resolve() / exp_folder_name)
-exp_manager = {
-    "class": "MLflowExpManager",
-    "module_path": "qlib.workflow.expm",
-    "kwargs": {
-        "uri": "file:" + exp_path,
-        "default_exp_name": "Experiment",
-    },
-}
-
-GetData().qlib_data(target_dir=provider_uri, region=REG_CN, exists_skip=True)
-qlib.init(provider_uri=provider_uri, region=REG_CN, exp_manager=exp_manager)
-
 
 # decorator to check the arguments
 def only_allow_defined_args(function_to_decorate):
@@ -93,7 +77,7 @@ def create_env():
 
 
 # function to execute the cmd
-def execute(cmd, wait_when_err=False):
+def execute(cmd, wait_when_err=False, raise_err=True):
     print("Running CMD:", cmd)
     with subprocess.Popen(cmd, stdout=subprocess.PIPE, bufsize=1, universal_newlines=True, shell=True) as p:
         for line in p.stdout:
@@ -106,6 +90,8 @@ def execute(cmd, wait_when_err=False):
     if p.returncode != 0:
         if wait_when_err:
             input("Press Enter to Continue")
+        if raise_err:
+            raise RuntimeError(f"Error when executing command: {cmd}")
         return p.stderr
     else:
         return None
@@ -214,12 +200,13 @@ def run(
     dataset="Alpha360",
     exclude=False,
     qlib_uri: str = "git+https://github.com/microsoft/qlib#egg=pyqlib",
+    exp_folder_name: str = "run_all_model_records",
     wait_before_rm_env: bool = False,
     wait_when_err: bool = False,
 ):
     """
     Please be aware that this function can only work under Linux. MacOS and Windows will be supported in the future.
-    Any PR to enhance this method is highly welcomed. Besides, this script doesn't support parrallel running the same model
+    Any PR to enhance this method is highly welcomed. Besides, this script doesn't support parallel running the same model
     for multiple times, and this will be fixed in the future development.
 
     Parameters:
@@ -235,6 +222,8 @@ def run(
     qlib_uri : str
         the uri to install qlib with pip
         it could be url on the we or local path
+    exp_folder_name: str
+        the name of the experiment folder
     wait_before_rm_env : bool
         wait before remove environment.
     wait_when_err : bool
@@ -280,11 +269,19 @@ def run(
         sys.stderr.write("\n")
         # create env by anaconda
         temp_dir, env_path, python_path, conda_activate = create_env()
+
         # install requirements.txt
         sys.stderr.write("Installing requirements.txt...\n")
-        execute(f"{python_path} -m pip install light-the-torch", wait_when_err=wait_when_err)  # for automatically installing torch according to the nvidia driver
-        execute(f"{env_path / 'bin' / 'ltt'} install --install-cmd '{python_path} -m pip install {{packages}}' `cat {req_path}`", wait_when_err=wait_when_err)
+        with open(req_path) as f:
+            content = f.read()
+        if "torch" in content:
+            # automatically install pytorch according to nvidia's version
+            execute(f"{python_path} -m pip install light-the-torch", wait_when_err=wait_when_err)  # for automatically installing torch according to the nvidia driver
+            execute(f"{env_path / 'bin' / 'ltt'} install --install-cmd '{python_path} -m pip install {{packages}}' -- -r {req_path}", wait_when_err=wait_when_err)
+        else:
+            execute(f"{python_path} -m pip install -r {req_path}", wait_when_err=wait_when_err)
         sys.stderr.write("\n")
+
         # read yaml, remove seed kwargs of model, and then save file in the temp_dir
         yaml_path = gen_yaml_file_without_seed_kwargs(yaml_path, temp_dir)
         # setup gpu for tft
@@ -336,14 +333,16 @@ def run(
     sys.stderr.write(f"Generating markdown table...\n")
     gen_and_save_md_table(results, dataset)
     sys.stderr.write("\n")
-    # print erros
+    # print errors
     sys.stderr.write(f"Here are some of the errors of the models...\n")
     pprint(errors)
     sys.stderr.write("\n")
     # move results folder
-    shutil.move(exp_path, exp_path + f"_{dataset}_{datetime.now().strftime('%Y-%m-%d_%H:%M:%S')}")
+    shutil.move(exp_folder_name, exp_folder_name + f"_{dataset}_{datetime.now().strftime('%Y-%m-%d_%H:%M:%S')}")
     shutil.move("table.md", f"table_{dataset}_{datetime.now().strftime('%Y-%m-%d_%H:%M:%S')}.md")
 
 
 if __name__ == "__main__":
+    GetData().qlib_data(exists_skip=True)
+    qlib.init()
     fire.Fire(run)  # run all the model
