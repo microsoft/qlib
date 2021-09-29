@@ -8,6 +8,33 @@ from qlib.data.ops import ElemOperator
 
 
 class Avg(ElemOperator):
+    """On the 1min data, calculate the mean value of the specified range within the day
+
+    Parameters
+    ----------
+    feature : Expression
+        feature instance
+    start_index: int
+        start index, [0, 239)
+    end_index: int
+        end index, [1, 240]
+    func: str
+        value from ["nanmean", "mean"], same as "np.nanmean" or "np.mean", by default "nanmean"
+    Notes
+    ------
+        start_index < end_index
+    Examples
+    ------
+        close = [0, 1, 2, 3, 4, 5]
+        Avg($close, 0, 2) == [np.nan, 0.5, np.nan, np.nan, np.nan, np.nan]
+        Avg($close, 2, 4) == [np.nan, np.nan, np.nan, 2.5, np.nan, np.nan]
+
+    Returns
+    ----------
+    Expression
+        The data for each trading day is: data[end_index-1] = data[start_index: end_index]).mean()
+    """
+
     MINUTES = 240
 
     def __init__(self, feature, start_index, end_index, func="nanmean"):

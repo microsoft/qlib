@@ -58,7 +58,7 @@ class MultiFreqLoader(QlibDataLoader):
             )
             df.columns = names
         else:
-            raise ValueError(f"not support")
+            raise ValueError(f"Unsupported gp_name: {gp_name}")
 
         if self.swap_level:
             df = df.swaplevel().sort_index()  # NOTE: if swaplevel, return <datetime, instrument>
