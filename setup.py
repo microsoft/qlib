@@ -11,7 +11,14 @@ NAME = "pyqlib"
 DESCRIPTION = "A Quantitative-research Platform"
 REQUIRES_PYTHON = ">=3.5.0"
 
-VERSION = "0.7.1"
+from pathlib import Path
+from shutil import copyfile
+
+CURRENT_DIR = Path(__file__).absolute().parent
+_version_src = CURRENT_DIR / "VERSION.txt"
+_version_dst = CURRENT_DIR / "qlib" / "VERSION.txt"
+copyfile(_version_src, _version_dst)
+VERSION = _version_dst.read_text(encoding="utf-8").strip()
 
 # Detect Cython
 try:
@@ -58,6 +65,7 @@ REQUIRED = [
     "pymongo==3.7.2",  # For task management
     "scikit-learn>=0.22",
     "dill",
+    "filelock",
 ]
 
 # Numpy include
