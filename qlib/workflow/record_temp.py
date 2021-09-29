@@ -98,7 +98,7 @@ class RecordTemp:
         """
         return []
 
-    def check(self, cls=None):
+    def check(self, cls="self"):
         """
         Check if the records is properly generated and saved.
 
@@ -106,9 +106,9 @@ class RecordTemp:
         ------
         FileExistsError: whether the records are stored properly.
         """
-        if cls is None:
-            cls = self
         artifacts = set(self.recorder.list_artifacts())
+        if cls == "self":
+            cls = self
         flist = cls.list()
         for item in flist:
             if item not in artifacts:

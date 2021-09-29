@@ -261,7 +261,7 @@ def run(
         # Case 5 - run specific models for one time
         python run_all_model.py --models=[mlp,lightgbm]
 
-        # Case 6 - run other models except those are given as aruments for one time
+        # Case 6 - run other models except those are given as arguments for one time
         python run_all_model.py --models=[mlp,tft,sfm] --exclude=True
 
     """
@@ -282,7 +282,8 @@ def run(
         temp_dir, env_path, python_path, conda_activate = create_env()
         # install requirements.txt
         sys.stderr.write("Installing requirements.txt...\n")
-        execute(f"{python_path} -m pip install -r {req_path}", wait_when_err=wait_when_err)
+        execute(f"{python_path} -m pip install light-the-torch", wait_when_err=wait_when_err)  # for automatically installing torch according to the nvidia driver
+        execute(f"{env_path / 'bin' / 'ltt'} install --install-cmd '{python_path} -m pip install {{packages}}' `cat {req_path}`", wait_when_err=wait_when_err)
         sys.stderr.write("\n")
         # read yaml, remove seed kwargs of model, and then save file in the temp_dir
         yaml_path = gen_yaml_file_without_seed_kwargs(yaml_path, temp_dir)
