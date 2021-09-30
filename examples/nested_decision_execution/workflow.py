@@ -131,7 +131,7 @@ class NestedDecisionExecutionWorkflow:
             target_dir=provider_uri_1min, interval="1min", region=REG_CN, version="v2", exists_skip=True
         )
         provider_uri_map = {"1min": provider_uri_1min, "day": provider_uri_day}
-        qlib.init(provider_uri=provider_uri_map , dataset_cache=None, expression_cache=None)
+        qlib.init(provider_uri=provider_uri_map, dataset_cache=None, expression_cache=None)
 
     def _train_model(self, model, dataset):
         with R.start(experiment_name="train"):
