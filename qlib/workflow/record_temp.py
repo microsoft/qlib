@@ -88,7 +88,7 @@ class RecordTemp:
         obj = self.recorder.load_object(name)
         return obj
 
-    def list():
+    def list(self):
         """
         List the supported artifacts.
 
