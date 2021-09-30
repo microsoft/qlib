@@ -314,6 +314,8 @@ class TaskManager:
         Query task in collection.
         This function may raise exception `pymongo.errors.CursorNotFound: cursor id not found` if it takes too long to iterate the generator
 
+        python -m qlib.workflow.task.manage -t <your task pool> query '{"_id": "615498be837d0053acbc5d58"}'
+
         Parameters
         ----------
         query: dict
