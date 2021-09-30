@@ -183,17 +183,21 @@ def gen_and_save_md_table(metrics, dataset):
 
 # read yaml, remove seed kwargs of model, and then save file in the temp_dir
 def gen_yaml_file_without_seed_kwargs(yaml_path, temp_dir):
-    file_name = yaml_path.split("/")[-1]
-    temp_path = os.path.join(temp_dir, file_name)
     with open(yaml_path, "r") as fp:
         config = yaml.load(fp)
     try:
         del config["task"]["model"]["kwargs"]["seed"]
-    except:
-        pass
-    with open(temp_path, "w") as fp:
-        yaml.dump(config, fp)
-    return temp_path
+    except KeyError:
+        # If the key does not exists, use original yaml
+        # NOTE: it is very important if the model most run in original path(when sys.rel_path is used)
+        return yaml_path
+    else:
+        # otherwise, generating a new yaml without random seed
+        file_name = yaml_path.split("/")[-1]
+        temp_path = os.path.join(temp_dir, file_name)
+        with open(temp_path, "w") as fp:
+            yaml.dump(config, fp)
+        return temp_path
 
 
 # function to run the all the models
