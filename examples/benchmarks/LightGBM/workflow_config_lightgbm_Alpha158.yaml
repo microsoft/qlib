@@ -1,13 +1,13 @@
 qlib_init:
     provider_uri: "~/.qlib/qlib_data/cn_data"
     region: cn
-market: &market csi100
-benchmark: &benchmark SH000903
+market: &market csi300
+benchmark: &benchmark SH000300
 data_handler_config: &data_handler_config
-    start_time: 2017-01-01
-    end_time: 2019-12-31
-    fit_start_time: 2017-01-01
-    fit_end_time: 2017-12-31
+    start_time: 2008-01-01
+    end_time: 2020-08-01
+    fit_start_time: 2008-01-01
+    fit_end_time: 2014-12-31
     instruments: *market
 port_analysis_config: &port_analysis_config
     strategy:
@@ -48,9 +48,9 @@ task:
                 module_path: qlib.contrib.data.handler
                 kwargs: *data_handler_config
             segments:
-                train: [2017-01-01, 2017-12-31]
-                valid: [2018-01-01, 2018-12-31]
-                test: [2019-01-01, 2019-12-31]
+                train: [2008-01-01, 2014-12-31]
+                valid: [2015-01-01, 2016-12-31]
+                test: [2017-01-01, 2020-08-01]
     record: 
         - class: SignalRecord
           module_path: qlib.workflow.record_temp
