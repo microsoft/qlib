@@ -24,8 +24,6 @@ Recent released features
 
 Features released before 2021 are not listed here.
 
-
-
 <p align="center">
   <img src="http://fintech.msra.cn/images_v060/logo/1.png" />
 </p>
@@ -397,6 +395,11 @@ Join IM discussion groups:
 This project welcomes contributions and suggestions.  
 **Here are some 
 [code standards](docs/developer/code_standard.rst) when you submit a pull request.**
+
+If you want to contribute to Qlib's document, you can follow the steps in the figure below.
+<p align="center">
+  <img src="https://github.com/demon143/qlib/blob/main/docs/_static/img/change%20doc.gif" />
+</p>
 
 
 Most contributions require you to agree to a
