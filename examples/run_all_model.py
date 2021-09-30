@@ -352,13 +352,14 @@ def run(
     # getting all results
     sys.stderr.write(f"Retrieving results...\n")
     results = get_all_results(folders)
-    # calculating the mean and std
-    sys.stderr.write(f"Calculating the mean and std of results...\n")
-    results = cal_mean_std(results)
-    # generating md table
-    sys.stderr.write(f"Generating markdown table...\n")
-    gen_and_save_md_table(results, dataset)
-    sys.stderr.write("\n")
+    if len(results) > 0:
+        # calculating the mean and std
+        sys.stderr.write(f"Calculating the mean and std of results...\n")
+        results = cal_mean_std(results)
+        # generating md table
+        sys.stderr.write(f"Generating markdown table...\n")
+        gen_and_save_md_table(results, dataset)
+        sys.stderr.write("\n")
     # print errors
     sys.stderr.write(f"Here are some of the errors of the models...\n")
     pprint(errors)
