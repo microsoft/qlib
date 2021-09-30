@@ -311,4 +311,4 @@ class TFTModel(ModelFT):
 
         # save qlib model wrapper
         self.model = None
-        super().to_pickle(self, path / "qlib_model")
+        super(TFTModel, self).to_pickle(path / "qlib_model")
