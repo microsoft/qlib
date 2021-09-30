@@ -241,6 +241,7 @@ Online Tool
 .. automodule:: qlib.workflow.online.utils
     :members:
 
+
 RecordUpdater
 --------------------
 .. automodule:: qlib.workflow.online.update

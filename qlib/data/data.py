@@ -10,15 +10,11 @@ import abc
 import copy
 import queue
 import bisect
-from typing import List
 import numpy as np
 import pandas as pd
 from multiprocessing import Pool
 from typing import Iterable, Union
 from typing import List, Union
-
-import numpy as np
-import pandas as pd
 
 # For supporting multiprocessing in outter code, joblib is used
 from joblib import delayed
@@ -30,9 +26,9 @@ from .ops import Operators
 from .inst_processor import InstProcessor
 
 from ..log import get_module_logger
-from .cache import DiskDatasetCache
 from ..utils.time import Freq
 from ..utils.resam import resam_calendar
+from .cache import DiskDatasetCache, DiskExpressionCache
 from ..utils import (
     Wrapper,
     init_instance_by_config,
@@ -278,7 +274,6 @@ class InstrumentProvider(abc.ABC, ProviderBackendMixin):
         """
         if isinstance(market, list):
             return market
-
         from .filter import SeriesDFilter
 
         if filter_pipe is None:
