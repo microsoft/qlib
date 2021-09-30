@@ -304,6 +304,7 @@ class TFTModel(ModelFT):
         path : Union[Path, str]
             the target path to be dumped
         """
+        # FIXME: implementing saving tensorflow models
         # save tensorflow model
         # path = Path(path)
         # path.mkdir(parents=True)
@@ -311,4 +312,4 @@ class TFTModel(ModelFT):
 
         # save qlib model wrapper
         self.model = None
-        super(TFTModel, self).to_pickle(path / "qlib_model")
+        super(TFTModel, self).to_pickle(path)
