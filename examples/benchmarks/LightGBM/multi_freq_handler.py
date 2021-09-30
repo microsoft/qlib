@@ -11,6 +11,7 @@ class Avg15minLoader(QlibDataLoader):
     def load(self, instruments=None, start_time=None, end_time=None) -> pd.DataFrame:
         df = super(Avg15minLoader, self).load(instruments, start_time, end_time)
         if self.is_group:
+            # feature_day(day freq) and feature_15min(1min freq, Average every 15 minutes) renamed feature
             df.columns = df.columns.map(lambda x: ("feature", x[1]) if x[0].startswith("feature") else x)
         return df
 
@@ -47,15 +48,56 @@ class Avg15minHandler(DataHandlerLP):
         )
 
     def loader_config(self):
+
+        # Results for dataset: df: pd.DataFrame
+        #   len(df.columns) == 6 + 6 * 16, len(df.index.get_level_values(level="datetime").unique()) == T
+        #   df.columns: close0, close1, ..., close16, open0, ..., open16, ..., vwap16
+        #       freq == day:
+        #           close0, open0, low0, high0, volume0, vwap0
+        #       freq == 1min:
+        #           close1, ..., close16, ..., vwap1, ..., vwap16
+        #   df.index.name == ["datetime", "instrument"]: pd.MultiIndex
+        # Example:
+        #                          feature                        ...                  label
+        #                           close0      open0       low0  ... vwap1 vwap16    LABEL0
+        # datetime   instrument                                   ...
+        # 2020-10-09 SH600000    11.794546  11.819587  11.769505  ...   NaN    NaN -0.005214
+        # 2020-10-15 SH600000    12.044961  11.944795  11.932274  ...   NaN    NaN -0.007202
+        # ...                          ...        ...        ...  ...   ...    ...       ...
+        # 2021-05-28 SZ300676     6.369684   6.495406   6.306568  ...   NaN    NaN -0.001321
+        # 2021-05-31 SZ300676     6.601626   6.465643   6.465130  ...   NaN    NaN -0.023428
+
+        # features day: len(columns) == 6
         fields = ["$close", "$open", "$low", "$high", "$volume", "$vwap"]
+        # names: close0, open0, ..., vwap0
         names = list(map(lambda x: x.strip("$") + "0", fields))
 
         config = {"feature_day": (fields, names)}
-        # features day
-        # features 15min
+
+        # features 15min: len(columns) == 6 * 16
+        #   time:   09:00 --> 09:14,            ..., 14:45 --> 14:59
+        #   fields: Ref(Mean($close, 15), 225), ..., Mean($close, 15)
+        #   name:   close1,                     ..., close16
+
+        # Expression description: take close as an example
+        #   Mean($close, 15) ==> df["$close"].rolling(15, min_periods=1).mean()
+        #   Ref(Mean($close, 15), 15) ==> df["$close"].rolling(15, min_periods=1).mean().shift(15)
+
+        #   NOTE: The last data of each trading day, which is the average of the i-th 15 minutes
+
+        # Average:
+        #   Average of the i-th 15-minute period of each trading day: 1 <= i <= 250 // 16
+        #       Avg(15minutes): Ref(Mean($close, 15), 240 - i * 15)
+        #
+        #   Average of the first 15 minutes of each trading day; i = 1
+        #       Avg(09:00 --> 09:14), df.index.loc["09:14"]: Ref(Mean($close, 15), 240- 1 * 15) ==> Ref(Mean($close, 15), 225)
+        #   Average of the last 15 minutes of each trading day; i = 16
+        #       Avg(14:45 --> 14:59), df.index.loc["14:59"]: Ref(Mean($close, 15), 240 - 16 * 15) ==> Ref(Mean($close, 15), 0) ==> Mean($close, 15)
+
+        # 15min resample to day
+        #   df.resample("1d").last()
         tmp_fields = []
         tmp_names = []
-        # Ref(Mean($close, 15), 0), Ref(Mean($close, 15), 14)
         for i, _f in enumerate(fields):
             _fields = [f"Ref(Mean({_f}, 15), {j * 15})" for j in range(1, 240 // 15)]
             _names = [f"{names[i][:-1]}{int(names[i][-1])+j}" for j in range(240 // 15 - 1, 0, -1)]
