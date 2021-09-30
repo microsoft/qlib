@@ -67,8 +67,8 @@ class Avg15minHandler(DataHandlerLP):
         # 2021-05-28 SZ300676     6.369684   6.495406   6.306568  ...   NaN    NaN -0.001321
         # 2021-05-31 SZ300676     6.601626   6.465643   6.465130  ...   NaN    NaN -0.023428
 
-        # features day: len(columns) == 6
-        # $close is the closing price of the current trading day：
+        # features day: len(columns) == 6, freq = day
+        # $close is the closing price of the current trading day:
         #   if the user needs to get the `close` before the last T days, use Ref($close, T-1), for example:
         #                                    $close  Ref($close, 1)  Ref($close, 2)  Ref($close, 3)  Ref($close, 4)
         #         instrument datetime
@@ -77,16 +77,31 @@ class Avg15minHandler(DataHandlerLP):
         #                    2021-06-03  242.229889      242.205917      244.271530
         #                    2021-06-04  245.421524      242.229889      242.205917      244.271530
         #                    2021-06-07  247.547089      245.421524      242.229889      242.205917      244.271530
+
+        # WARNING: Ref($close, N), if N == 0, Ref($close, N) ==> $close
+
         fields = ["$close", "$open", "$low", "$high", "$volume", "$vwap"]
         # names: close0, open0, ..., vwap0
         names = list(map(lambda x: x.strip("$") + "0", fields))
 
         config = {"feature_day": (fields, names)}
 
-        # features 15min: len(columns) == 6 * 16
+        # features 15min: len(columns) == 6 * 16, freq = 1min
+        #   $close is the closing price of the current trading day:
+        #       if the user gets 'close' for the i-th 15min of the last T days, use `Ref(Mean($close, 15), (T-1) * 240 + i * 15)`, for example:
+        #                                    Ref(Mean($close, 15), 225)  Ref(Mean($close, 15), 465)  Ref(Mean($close, 15), 705)
+        #             instrument datetime
+        #             SH600519   2021-05-31                  241.769897                  243.077942                  244.712997
+        #                        2021-06-01                  244.271530                  241.769897                  243.077942
+        #                        2021-06-02                  242.205917                  244.271530                  241.769897
+
+        # WARNING: Ref(Mean($close, 15), N), if N == 0, Ref(Mean($close, 15), N) ==> Mean($close, 15)
+
+        # Results of the current script:
         #   time:   09:00 --> 09:14,            ..., 14:45 --> 14:59
         #   fields: Ref(Mean($close, 15), 225), ..., Mean($close, 15)
         #   name:   close1,                     ..., close16
+        #
 
         # Expression description: take close as an example
         #   Mean($close, 15) ==> df["$close"].rolling(15, min_periods=1).mean()
