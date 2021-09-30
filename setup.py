@@ -51,7 +51,7 @@ REQUIRED = [
     "fire>=0.3.1",
     "statsmodels",
     "xlrd>=1.0.0",
-    "plotly==4.12.0",
+    "plotly>=4.12.0",
     "matplotlib>=3.3",
     "tables>=3.6.1",
     "pyyaml>=5.3.1",
