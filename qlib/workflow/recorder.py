@@ -1,6 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+from qlib.utils.serial import Serializable
 import mlflow, logging
 import shutil, os, pickle, tempfile, codecs, pickle
 from pathlib import Path
@@ -307,8 +308,8 @@ class MLflowRecorder(Recorder):
         else:
             temp_dir = Path(tempfile.mkdtemp()).resolve()
             for name, data in kwargs.items():
-                with (temp_dir / name).open("wb") as f:
-                    pickle.dump(data, f)
+                path = temp_dir / name
+                Serializable.general_dump(data, path)
                 self.client.log_artifact(self.id, temp_dir / name, artifact_path)
             shutil.rmtree(temp_dir)
 

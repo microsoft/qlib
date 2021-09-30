@@ -27,7 +27,6 @@ from ...contrib.model.pytorch_gru import GRUModel
 
 class DailyBatchSampler(Sampler):
     def __init__(self, data_source):
-
         self.data_source = data_source
         # calculate number of samples in each batch
         self.daily_count = pd.Series(index=self.data_source.get_index()).groupby("datetime").size().values

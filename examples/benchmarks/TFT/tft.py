@@ -1,6 +1,8 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+from pathlib import Path
+from typing import Union
 import numpy as np
 import pandas as pd
 import tensorflow.compat.v1 as tf
@@ -243,7 +245,7 @@ class TFTModel(ModelFT):
             #    extract_numerical_data(targets), extract_numerical_data(p90_forecast),
             #    0.9)
             tf.keras.backend.set_session(default_keras_session)
-        print("Training completed.".format(dte.datetime.now()))
+        print("Training completed at {}.".format(dte.datetime.now()))
         # ===========================Training Process===========================
 
     def predict(self, dataset):
@@ -289,3 +291,24 @@ class TFTModel(ModelFT):
             dataset for finetuning
         """
         pass
+
+    def to_pickle(self, path: Union[Path, str]):
+        """
+        Tensorflow model can't be dumped directly.
+        So the data should be save seperatedly
+
+        **TODO**: Please implement the function to load the files
+
+        Parameters
+        ----------
+        path : Union[Path, str]
+            the target path to be dumped
+        """
+        # save tensorflow model
+        # path = Path(path)
+        # path.mkdir(parents=True)
+        # self.model.save(path)
+
+        # save qlib model wrapper
+        self.model = None
+        super(TFTModel, self).to_pickle(path / "qlib_model")
