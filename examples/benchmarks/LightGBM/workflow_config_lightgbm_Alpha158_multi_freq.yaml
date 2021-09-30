@@ -5,9 +5,6 @@ qlib_init:
     region: cn
     dataset_cache: null
     maxtasksperchild: null
-    custom_ops:
-        - class: Avg
-          module_path: average_ops.py
 market: &market csi300
 benchmark: &benchmark SH000300
 data_handler_config: &data_handler_config
@@ -19,10 +16,11 @@ data_handler_config: &data_handler_config
     instruments: *market
     freq:
         label: day
-        feature: 1min
+        feature_15min: 1min
+        feature_day: day
     # with label as reference
     inst_processor:
-        feature:
+        feature_15min:
             - class: ResampleNProcessor
               module_path: features_resample_N.py
               kwargs:
