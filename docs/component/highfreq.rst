@@ -91,7 +91,7 @@ please refer to "../../qlib/backtest".
                 "module_path": "qlib.backtest.executor",
                 "kwargs": {
                     "time_per_step": freq,
-                    "generate_report": False,
+                    "generate_portfolio_metrics": True,
                     "verbose": False,
                     # "verbose": True,
                     "indicator_config": {
@@ -104,7 +104,7 @@ please refer to "../../qlib/backtest".
                 "module_path": "qlib.contrib.strategy.rule_strategy",
             },
             "track_data": True,
-            "generate_report": False,
+            "generate_portfolio_metrics": True,
             "indicator_config": {
                 "show_indicator": True,
             },

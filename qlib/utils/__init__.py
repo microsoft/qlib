@@ -46,7 +46,6 @@ def get_redis_connection():
 #################### Data ####################
 def read_bin(file_path: Union[str, Path], start_index, end_index):
     file_path = Path(file_path.expanduser().resolve())
-    print(file_path)
     with file_path.open("rb") as f:
         # read start_index
         ref_start_index = int(np.frombuffer(f.read(4), dtype="<f")[0])
