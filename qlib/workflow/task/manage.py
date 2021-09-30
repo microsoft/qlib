@@ -47,8 +47,9 @@ class TaskManager:
     The tasks manager assumes that you will only update the tasks you fetched.
     The mongo fetch one and update will make it date updating secure.
 
-    This class can be used as a tool from commandline. Here are serveral examples. "Wait" means main progress wait until all tasks are 
-    trained well by other progress or machines. "Task_stat" means to count the number of processes in various states in the task pool.
+    This class can be used as a tool from commandline. Here are serveral examples.
+    "Wait" means main progress wait until all tasks are trained well by other progress or machines. 
+    "Task_stat" means to count the number of processes in various states in the task pool.
 
     .. code-block:: shell
 
