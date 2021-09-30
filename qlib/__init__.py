@@ -54,14 +54,15 @@ def init(default_conf="client", **kwargs):
     if "flask_server" in C:
         logger.info(f"flask_server={C['flask_server']}, flask_port={C['flask_port']}")
     logger.info("qlib successfully initialized based on %s settings." % default_conf)
-    data_path = {_freq: C.dpm.get_data_path(_freq) for _freq in C.dpm.provider_uri.keys()}
+    data_path = {_freq: C.dpm.get_data_uri(_freq) for _freq in C.dpm.provider_uri.keys()}
     logger.info(f"data_path={data_path}")
 
 
 def _mount_nfs_uri(provider_uri, mount_path, auto_mount: bool = False):
 
     LOG = get_module_logger("mount nfs", level=logging.INFO)
-
+    if mount_path is None:
+        raise ValueError(f"Invalid mount path: {mount_path}!")
     # FIXME: the C["provider_uri"] is modified in this function
     # If it is not modified, we can pass only  provider_uri or mount_path instead of C
     mount_command = "sudo mount.nfs %s %s" % (provider_uri, mount_path)

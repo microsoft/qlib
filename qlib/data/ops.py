@@ -1405,7 +1405,7 @@ class Corr(PairRolling):
         super(Corr, self).__init__(feature_left, feature_right, N, "corr")
 
     def _load_internal(self, instrument, start_index, end_index, freq):
-        res = super(Corr, self)._load_internal(instrument, start_index, end_index, freq)
+        res: pd.Series = super(Corr, self)._load_internal(instrument, start_index, end_index, freq)
 
         # NOTE: Load uses MemCache, so calling load again will not cause performance degradation
         series_left = self.feature_left.load(instrument, start_index, end_index, freq)

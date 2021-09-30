@@ -15,7 +15,7 @@ With ``Qlib``, users can easily try their ideas to create better Quant investmen
 Framework
 ===================
    
-.. image:: ../_static/img/framework.png
+.. image:: ../_static/img/framework.svg
     :align: center
 
 

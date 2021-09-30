@@ -14,6 +14,10 @@ import numpy as np
 import pandas as pd
 from multiprocessing import Pool
 from typing import Iterable, Union
+from typing import List, Union
+
+# For supporting multiprocessing in outter code, joblib is used
+from joblib import delayed
 
 from .cache import H
 from ..config import C
@@ -22,6 +26,8 @@ from .ops import Operators
 from .inst_processor import InstProcessor
 
 from ..log import get_module_logger
+from ..utils.time import Freq
+from ..utils.resam import resam_calendar
 from .cache import DiskDatasetCache, DiskExpressionCache
 from ..utils import (
     Wrapper,
@@ -33,6 +39,7 @@ from ..utils import (
     normalize_cache_fields,
     code_to_fname,
 )
+from ..utils.paral import ParallelExt
 
 
 class ProviderBackendMixin:
@@ -61,7 +68,22 @@ class ProviderBackendMixin:
             provider_uri_map = backend_kwargs.setdefault("provider_uri_map", {})
             freq = kwargs.get("freq", "day")
             if freq not in provider_uri_map:
-                provider_uri_map[freq] = C.dpm.get_data_path(freq)
+                # NOTE: uri
+                #   1. If `freq` in C.dpm.provider_uri.keys(), uri = C.dpm.provider_uri[freq]
+                #   2. If `freq` not in C.dpm.provider_uri.keys()
+                #       - Get the `min_freq` closest to `freq` from C.dpm.provider_uri.keys(), uri = C.dpm.provider_uri[min_freq]
+                # NOTE: In Storage, only CalendarStorage is supported
+                #   1. If `uri` does not exist
+                #       - Get the `min_uri` of the closest `freq` under the same "directory" as the `uri`
+                #       - Read data from `min_uri` and resample to `freq`
+                try:
+                    _uri = C.dpm.get_data_uri(freq)
+                except KeyError:
+                    # provider_uri is dict and freq not in list(provider_uri.keys())
+                    # use the nearest freq greater than 0
+                    min_freq = Freq.get_recent_freq(freq, C.dpm.provider_uri.keys())
+                    _uri = C.dpm.get_data_uri(freq) if min_freq is None else C.dpm.get_data_uri(min_freq)
+                provider_uri_map[freq] = _uri
             backend_kwargs["provider_uri"] = provider_uri_map[freq]
         backend.setdefault("kwargs", {}).update(**kwargs)
         return init_instance_by_config(backend)
@@ -76,7 +98,6 @@ class CalendarProvider(abc.ABC, ProviderBackendMixin):
     def __init__(self, *args, **kwargs):
         self.backend = kwargs.get("backend", {})
 
-    @abc.abstractmethod
     def calendar(self, start_time=None, end_time=None, freq="day", future=False):
         """Get calendar of certain market in given time range.
 
@@ -96,9 +117,28 @@ class CalendarProvider(abc.ABC, ProviderBackendMixin):
         list
             calendar list
         """
-        raise NotImplementedError("Subclass of CalendarProvider must implement `calendar` method")
+        _calendar, _calendar_index = self._get_calendar(freq, future)
+        if start_time == "None":
+            start_time = None
+        if end_time == "None":
+            end_time = None
+        # strip
+        if start_time:
+            start_time = pd.Timestamp(start_time)
+            if start_time > _calendar[-1]:
+                return np.array([])
+        else:
+            start_time = _calendar[0]
+        if end_time:
+            end_time = pd.Timestamp(end_time)
+            if end_time < _calendar[0]:
+                return np.array([])
+        else:
+            end_time = _calendar[-1]
+        _, _, si, ei = self.locate_index(start_time, end_time, freq, future)
+        return _calendar[si : ei + 1]
 
-    def locate_index(self, start_time, end_time, freq, future):
+    def locate_index(self, start_time, end_time, freq, future=False):
         """Locate the start time index and end time index in a calendar under certain frequency.
 
         Parameters
@@ -157,17 +197,31 @@ class CalendarProvider(abc.ABC, ProviderBackendMixin):
             dict composed by timestamp as key and index as value for fast search.
         """
         flag = f"{freq}_future_{future}"
-        if flag in H["c"]:
-            _calendar, _calendar_index = H["c"][flag]
-        else:
+        if flag not in H["c"]:
             _calendar = np.array(self.load_calendar(freq, future))
             _calendar_index = {x: i for i, x in enumerate(_calendar)}  # for fast search
             H["c"][flag] = _calendar, _calendar_index
-        return _calendar, _calendar_index
+        return H["c"][flag]
 
     def _uri(self, start_time, end_time, freq, future=False):
         """Get the uri of calendar generation task."""
         return hash_args(start_time, end_time, freq, future)
+
+    def load_calendar(self, freq, future):
+        """Load original calendar timestamp from file.
+
+        Parameters
+        ----------
+        freq : str
+            frequency of read calendar file.
+        future: bool
+
+        Returns
+        ----------
+        list
+            list of timestamps
+        """
+        raise NotImplementedError("Subclass of CalendarProvider must implement `load_calendar` method")
 
 
 class InstrumentProvider(abc.ABC, ProviderBackendMixin):
@@ -180,19 +234,22 @@ class InstrumentProvider(abc.ABC, ProviderBackendMixin):
         self.backend = kwargs.get("backend", {})
 
     @staticmethod
-    def instruments(market="all", filter_pipe=None):
+    def instruments(market: Union[List, str] = "all", filter_pipe: Union[List, None] = None):
         """Get the general config dictionary for a base market adding several dynamic filters.
 
         Parameters
         ----------
-        market : str
-            market/industry/index shortname, e.g. all/sse/szse/sse50/csi300/csi500.
+        market : Union[List, str]
+            str:
+                market/industry/index shortname, e.g. all/sse/szse/sse50/csi300/csi500.
+            list:
+                ["ID1", "ID2"]. A list of stocks
         filter_pipe : list
             the list of dynamic filters.
 
         Returns
         ----------
-        dict
+        dict: if isinstance(market, str)
             dict of stockpool config.
             {`market`=>base market name, `filter_pipe`=>list of filters}
 
@@ -210,7 +267,13 @@ class InstrumentProvider(abc.ABC, ProviderBackendMixin):
                 'name_rule_re': 'SH[0-9]{4}55',
                 'filter_start_time': None,
                 'filter_end_time': None}]}
+
+        list: if isinstance(market, list)
+            just return the original list directly.
+            NOTE: this will make the instruments compatible with more cases. The user code will be simpler.
         """
+        if isinstance(market, list):
+            return market
         from .filter import SeriesDFilter
 
         if filter_pipe is None:
@@ -466,58 +529,45 @@ class DatasetProvider(abc.ABC):
 
         """
         normalize_column_names = normalize_cache_fields(column_names)
-        data = dict()
         # One process for one task, so that the memory will be freed quicker.
-        workers = min(C.kernels, len(instruments_d))
-        if C.maxtasksperchild is None:
-            p = Pool(processes=workers)
-        else:
-            p = Pool(processes=workers, maxtasksperchild=C.maxtasksperchild)
-        if isinstance(instruments_d, dict):
-            for inst, spans in instruments_d.items():
-                data[inst] = p.apply_async(
-                    DatasetProvider.expression_calculator,
-                    args=(
-                        inst,
-                        start_time,
-                        end_time,
-                        freq,
-                        normalize_column_names,
-                        spans,
-                        C,
-                        inst_processors,
-                    ),
-                )
-        else:
-            for inst in instruments_d:
-                data[inst] = p.apply_async(
-                    DatasetProvider.expression_calculator,
-                    args=(
-                        inst,
-                        start_time,
-                        end_time,
-                        freq,
-                        normalize_column_names,
-                        None,
-                        C,
-                        inst_processors,
-                    ),
-                )
+        workers = max(min(C.kernels, len(instruments_d)), 1)
 
-        p.close()
-        p.join()
+        # create iterator
+        if isinstance(instruments_d, dict):
+            it = instruments_d.items()
+        else:
+            it = zip(instruments_d, [None] * len(instruments_d))
+
+        inst_l = []
+        task_l = []
+        for inst, spans in it:
+            inst_l.append(inst)
+            task_l.append(
+                delayed(DatasetProvider.expression_calculator)(
+                    inst, start_time, end_time, freq, normalize_column_names, spans, C, inst_processors
+                )
+            )
+
+        data = dict(
+            zip(
+                inst_l,
+                ParallelExt(n_jobs=workers, backend=C.joblib_backend, maxtasksperchild=C.maxtasksperchild)(task_l),
+            )
+        )
 
         new_data = dict()
         for inst in sorted(data.keys()):
-            if len(data[inst].get()) > 0:
+            if len(data[inst]) > 0:
                 # NOTE: Python version >= 3.6; in versions after python3.6, dict will always guarantee the insertion order
-                new_data[inst] = data[inst].get()
+                new_data[inst] = data[inst]
 
         if len(new_data) > 0:
             data = pd.concat(new_data, names=["instrument"], sort=False)
             data = DiskDatasetCache.cache_to_origin_data(data, column_names)
         else:
-            data = pd.DataFrame(columns=column_names)
+            data = pd.DataFrame(
+                index=pd.MultiIndex.from_arrays([[], []], names=("instrument", "datetime")), columns=column_names
+            )
 
         return data
 
@@ -578,13 +628,12 @@ class LocalCalendarProvider(CalendarProvider):
         ----------
         freq : str
             frequency of read calendar file.
-
+        future: bool
         Returns
         ----------
         list
             list of timestamps
         """
-
         try:
             backend_obj = self.backend_obj(freq=freq, future=future).data
         except ValueError:
@@ -600,28 +649,6 @@ class LocalCalendarProvider(CalendarProvider):
                 raise
 
         return [pd.Timestamp(x) for x in backend_obj]
-
-    def calendar(self, start_time=None, end_time=None, freq="day", future=False):
-        _calendar, _calendar_index = self._get_calendar(freq, future)
-        if start_time == "None":
-            start_time = None
-        if end_time == "None":
-            end_time = None
-        # strip
-        if start_time:
-            start_time = pd.Timestamp(start_time)
-            if start_time > _calendar[-1]:
-                return np.array([])
-        else:
-            start_time = _calendar[0]
-        if end_time:
-            end_time = pd.Timestamp(end_time)
-            if end_time < _calendar[0]:
-                return np.array([])
-        else:
-            end_time = _calendar[-1]
-        _, _, si, ei = self.locate_index(start_time, end_time, freq, future)
-        return _calendar[si : ei + 1]
 
 
 class LocalInstrumentProvider(InstrumentProvider):
@@ -695,7 +722,7 @@ class LocalExpressionProvider(ExpressionProvider):
         expression = self.get_expression_instance(field)
         start_time = pd.Timestamp(start_time)
         end_time = pd.Timestamp(end_time)
-        _, _, start_index, end_index = Cal.locate_index(start_time, end_time, freq, future=False)
+        _, _, start_index, end_index = Cal.locate_index(start_time, end_time, freq=freq, future=False)
         lft_etd, rght_etd = expression.get_extended_window_size()
         series = expression.load(instrument, max(0, start_index - lft_etd), end_index + rght_etd, freq)
         # Ensure that each column type is consistent
@@ -735,7 +762,9 @@ class LocalDatasetProvider(DatasetProvider):
         column_names = self.get_column_names(fields)
         cal = Cal.calendar(start_time, end_time, freq)
         if len(cal) == 0:
-            return pd.DataFrame(columns=column_names)
+            return pd.DataFrame(
+                index=pd.MultiIndex.from_arrays([[], []], names=("instrument", "datetime")), columns=column_names
+            )
         start_time = cal[0]
         end_time = cal[-1]
 
@@ -759,26 +788,12 @@ class LocalDatasetProvider(DatasetProvider):
             return
         start_time = cal[0]
         end_time = cal[-1]
-        workers = min(C.kernels, len(instruments_d))
-        if C.maxtasksperchild is None:
-            p = Pool(processes=workers)
-        else:
-            p = Pool(processes=workers, maxtasksperchild=C.maxtasksperchild)
+        workers = max(min(C.kernels, len(instruments_d)), 1)
 
-        for inst in instruments_d:
-            p.apply_async(
-                LocalDatasetProvider.cache_walker,
-                args=(
-                    inst,
-                    start_time,
-                    end_time,
-                    freq,
-                    column_names,
-                ),
-            )
-
-        p.close()
-        p.join()
+        ParallelExt(n_jobs=workers, backend=C.joblib_backend, maxtasksperchild=C.maxtasksperchild)(
+            delayed(LocalDatasetProvider.cache_walker)(inst, start_time, end_time, freq, column_names)
+            for inst in instruments_d
+        )
 
     @staticmethod
     def cache_walker(inst, start_time, end_time, freq, column_names):
@@ -807,12 +822,7 @@ class ClientCalendarProvider(CalendarProvider):
     def calendar(self, start_time=None, end_time=None, freq="day", future=False):
         self.conn.send_request(
             request_type="calendar",
-            request_content={
-                "start_time": str(start_time),
-                "end_time": str(end_time),
-                "freq": freq,
-                "future": future,
-            },
+            request_content={"start_time": str(start_time), "end_time": str(end_time), "freq": freq, "future": future},
             msg_queue=self.queue,
             msg_proc_func=lambda response_content: [pd.Timestamp(c) for c in response_content],
         )
@@ -920,7 +930,10 @@ class ClientDatasetProvider(DatasetProvider):
                 column_names = self.get_column_names(fields)
                 cal = Cal.calendar(start_time, end_time, freq)
                 if len(cal) == 0:
-                    return pd.DataFrame(columns=column_names)
+                    return pd.DataFrame(
+                        index=pd.MultiIndex.from_arrays([[], []], names=("instrument", "datetime")),
+                        columns=column_names,
+                    )
                 start_time = cal[0]
                 end_time = cal[-1]
 
@@ -963,7 +976,7 @@ class ClientDatasetProvider(DatasetProvider):
             get_module_logger("data").debug("get result")
             try:
                 # pre-mound nfs, used for demo
-                mnt_feature_uri = C.dpm.get_data_path(freq).joinpath(C.dataset_cache_dir_name, feature_uri)
+                mnt_feature_uri = C.dpm.get_data_uri(freq).joinpath(C.dataset_cache_dir_name, feature_uri)
                 df = DiskDatasetCache.read_data_from_cache(mnt_feature_uri, start_time, end_time, fields)
                 get_module_logger("data").debug("finish slicing data")
                 if return_uri:
@@ -1063,7 +1076,7 @@ class ClientProvider(BaseProvider):
         - Instruments (with filters):  Respond a list/dict of instruments
         - Features : Respond a cache uri
     The general workflow is described as follows:
-    When the user use client provider to propose a request, the client provider will connect the server and send the request. The client will start to wait for the response. The response will be made instantly indicating whether the cache is available. The waiting procedure will terminate only when the client get the reponse saying `feature_available` is true.
+    When the user use client provider to propose a request, the client provider will connect the server and send the request. The client will start to wait for the response. The response will be made instantly indicating whether the cache is available. The waiting procedure will terminate only when the client get the response saying `feature_available` is true.
     `BUG` : Everytime we make request for certain data we need to connect to the server, wait for the response and disconnect from it. We can't make a sequence of requests within one connection. You can refer to https://python-socketio.readthedocs.io/en/latest/client.html for documentation of python-socketIO client.
     """
 
@@ -1143,13 +1156,13 @@ def register_all_wrappers(C):
         if getattr(C, "expression_cache", None) is not None:
             _eprovider = init_instance_by_config(C.expression_cache, module, provider=_eprovider)
         register_wrapper(ExpressionD, _eprovider, "qlib.data")
-        logger.debug(f"registering ExpressioneD {C.expression_provider}-{C.expression_cache}")
+        logger.debug(f"registering ExpressionD {C.expression_provider}-{C.expression_cache}")
 
     _dprovider = init_instance_by_config(C.dataset_provider, module)
     if getattr(C, "dataset_cache", None) is not None:
         _dprovider = init_instance_by_config(C.dataset_cache, module, provider=_dprovider)
     register_wrapper(DatasetD, _dprovider, "qlib.data")
-    logger.debug(f"registering DataseteD {C.dataset_provider}-{C.dataset_cache}")
+    logger.debug(f"registering DatasetD {C.dataset_provider}-{C.dataset_cache}")
 
     register_wrapper(D, C.provider, "qlib.data")
     logger.debug(f"registering D {C.provider}")

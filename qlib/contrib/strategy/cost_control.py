@@ -1,13 +1,30 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
+"""
+This strategy is not well maintained
+"""
 
 
-from .strategy import StrategyWrapper, WeightStrategyBase
+from .order_generator import OrderGenWInteract
+from .model_strategy import WeightStrategyBase
 import copy
 
 
 class SoftTopkStrategy(WeightStrategyBase):
-    def __init__(self, topk, max_sold_weight=1.0, risk_degree=0.95, buy_method="first_fill"):
+    def __init__(
+        self,
+        model,
+        dataset,
+        topk,
+        order_generator_cls_or_obj=OrderGenWInteract,
+        max_sold_weight=1.0,
+        risk_degree=0.95,
+        buy_method="first_fill",
+        trade_exchange=None,
+        level_infra=None,
+        common_infra=None,
+        **kwargs,
+    ):
         """Parameter
         topk : int
             top-N stocks to buy
@@ -17,13 +34,15 @@ class SoftTopkStrategy(WeightStrategyBase):
                 rank_fill: assign the weight stocks that rank high first(1/topk max)
                 average_fill: assign the weight to the stocks rank high averagely.
         """
-        super().__init__()
+        super(SoftTopkStrategy, self).__init__(
+            model, dataset, order_generator_cls_or_obj, trade_exchange, level_infra, common_infra, **kwargs
+        )
         self.topk = topk
         self.max_sold_weight = max_sold_weight
         self.risk_degree = risk_degree
         self.buy_method = buy_method
 
-    def get_risk_degree(self, date):
+    def get_risk_degree(self, trade_step=None):
         """get_risk_degree
         Return the proportion of your total value you will used in investment.
         Dynamically risk_degree will result in Market timing
@@ -31,7 +50,7 @@ class SoftTopkStrategy(WeightStrategyBase):
         # It will use 95% amoutn of your total value by default
         return self.risk_degree
 
-    def generate_target_weight_position(self, score, current, trade_date):
+    def generate_target_weight_position(self, score, current, trade_start_time, trade_end_time):
         """Parameter:
         score : pred score for this trade date, pd.Series, index is stock_id, contain 'score' column
         current : current position, use Position() class

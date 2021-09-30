@@ -14,7 +14,7 @@ from qlib.utils import exists_qlib_data
 
 
 class GetData:
-    DATASET_VERSION = "v1"
+    DATASET_VERSION = "v2"
     REMOTE_URL = "http://fintech.msra.cn/stock_data/downloads"
     QLIB_DATA_NAME = "{dataset_name}_{region}_{interval}_{qlib_version}.zip"
 

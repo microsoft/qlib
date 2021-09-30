@@ -109,6 +109,8 @@ _default_config = {
     "kernels": NUM_USABLE_CPU,
     # How many tasks belong to one process. Recommend 1 for high-frequency data and None for daily data.
     "maxtasksperchild": None,
+    # If joblib_backend is None, use loky
+    "joblib_backend": "multiprocessing",
     "default_disk_cache": 1,  # 0:skip/1:use
     "mem_cache_size_limit": 500,
     # memory cache expire second, only in used 'DatasetURICache' and 'client D.calendar'
@@ -165,6 +167,10 @@ _default_config = {
         "task_url": "mongodb://localhost:27017/",
         "task_db_name": "default_task_db",
     },
+    # Shift minute for highfreq minite data, used in backtest
+    # if min_data_shift == 0, use default market time [9:30, 11:29, 1:00, 2:59]
+    # if min_data_shift != 0, use shifted market time [9:30, 11:29, 1:00, 2:59] - shift*minute
+    "min_data_shift": 0,
 }
 
 MODE_CONF = {
@@ -271,7 +277,7 @@ class QlibConfig(Config):
             else:
                 return QlibConfig.LOCAL_URI
 
-        def get_data_path(self, freq: str = None) -> Path:
+        def get_data_uri(self, freq: str = None) -> Path:
             if freq is None or freq not in self.provider_uri:
                 freq = QlibConfig.DEFAULT_FREQ
             _provider_uri = self.provider_uri[freq]
@@ -328,11 +334,41 @@ class QlibConfig(Config):
                 if _mount_path[_freq] is None
                 else str(Path(_mount_path[_freq]).expanduser().resolve())
             )
-
         self["provider_uri"] = _provider_uri
         self["mount_path"] = _mount_path
 
-    def set(self, default_conf="client", **kwargs):
+    def get_uri_type(self):
+        path = self["provider_uri"]
+        if isinstance(path, Path):
+            path = str(path)
+        is_win = re.match("^[a-zA-Z]:.*", path) is not None  # such as 'C:\\data', 'D:'
+        is_nfs_or_win = (
+            re.match("^[^/]+:.+", path) is not None
+        )  # such as 'host:/data/'   (User may define short hostname by themselves or use localhost)
+
+        if is_nfs_or_win and not is_win:
+            return QlibConfig.NFS_URI
+        else:
+            return QlibConfig.LOCAL_URI
+
+    def set(self, default_conf: str = "client", **kwargs):
+        """
+        configure qlib based on the input parameters
+
+        The configure will act like a dictionary.
+
+        Normally, it literally replace the value according to the keys.
+        However, sometimes it is hard for users to set the config when the configure is nested and complicated
+
+        So this API provides some special parameters for users to set the keys in a more convenient way.
+        - region:  REG_CN, REG_US
+            - several region-related config will be changed
+
+        Parameters
+        ----------
+        default_conf : str
+            the default config template chosen by user: "server", "client"
+        """
         from .utils import set_log_with_config, get_module_logger, can_use_cache
 
         self.reset()

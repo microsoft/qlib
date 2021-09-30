@@ -49,6 +49,15 @@ jobs:
         pip install --upgrade cython jupyter jupyter_contrib_nbextensions numpy scipy scikit-learn # installing without this line will cause errors on GitHub Actions, while instsalling locally won't
         pip install -e .
 
+    - name: Test data downloads
+      run: |
+        if [ "$RUNNER_OS" == "Windows" ]; then
+          $CONDA\\python.exe scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/cn_data --interval 1d --region cn
+        else
+          $CONDA/bin/python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/cn_data --interval 1d --region cn
+        fi
+      shell: bash
+
     - name: Install test dependencies
       run: |
         pip install --upgrade pip

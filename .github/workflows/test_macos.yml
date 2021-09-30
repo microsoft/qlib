@@ -31,6 +31,7 @@ jobs:
         python -m pip install black
         python -m black qlib -l 120 --check --diff
     # Test Qlib installed with pip
+
     - name: Install Qlib with pip
       run: |
           python -m pip install numpy==1.19.5

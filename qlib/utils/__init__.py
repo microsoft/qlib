@@ -17,6 +17,7 @@ import bisect
 import shutil
 import difflib
 import hashlib
+import warnings
 import datetime
 import requests
 import tempfile
@@ -210,10 +211,12 @@ def get_callable_kwargs(config: Union[dict, str], default_module: Union[str, Mod
         the class/func object and it's arguments.
     """
     if isinstance(config, dict):
-        module = get_module_by_module_path(config.get("module_path", default_module))
-
-        # raise AttributeError
-        _callable = getattr(module, config["class" if "class" in config else "func"])
+        if isinstance(config["class"], str):
+            module = get_module_by_module_path(config.get("module_path", default_module))
+            # raise AttributeError
+            _callable = getattr(module, config["class" if "class" in config else "func"])
+        else:
+            _callable = config["class"]  # the class type itself is passed in
         kwargs = config.get("kwargs", {})
     elif isinstance(config, str):
         module = get_module_by_module_path(default_module)
@@ -223,6 +226,9 @@ def get_callable_kwargs(config: Union[dict, str], default_module: Union[str, Mod
     else:
         raise NotImplementedError(f"This type of input is not supported")
     return _callable, kwargs
+
+
+get_cls_kwargs = get_callable_kwargs  # NOTE: this is for compatibility for the previous version
 
 
 def init_instance_by_config(
@@ -235,10 +241,16 @@ def init_instance_by_config(
     ----------
     config : Union[str, dict, object]
         dict example.
+            case 1)
             {
                 'class': 'ClassName',
                 'kwargs': dict, #  It is optional. {} will be used if not given
                 'model_path': path, # It is optional if module is given
+            }
+            case 2)
+            {
+                'class': <The class it self>,
+                'kwargs': dict, #  It is optional. {} will be used if not given
             }
         str example.
             1) specify a pickle object

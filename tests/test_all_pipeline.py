@@ -14,27 +14,6 @@ from qlib.workflow.record_temp import SignalRecord, SigAnaRecord, PortAnaRecord
 from qlib.tests import TestAutoData
 from qlib.tests.config import CSI300_GBDT_TASK, CSI300_BENCH
 
-port_analysis_config = {
-    "strategy": {
-        "class": "TopkDropoutStrategy",
-        "module_path": "qlib.contrib.strategy.strategy",
-        "kwargs": {
-            "topk": 50,
-            "n_drop": 5,
-        },
-    },
-    "backtest": {
-        "verbose": False,
-        "limit_threshold": 0.095,
-        "account": 100000000,
-        "benchmark": CSI300_BENCH,
-        "deal_price": "close",
-        "open_cost": 0.0005,
-        "close_cost": 0.0015,
-        "min_cost": 5,
-    },
-}
-
 
 def train(uri_path: str = None):
     """train model
@@ -58,7 +37,7 @@ def train(uri_path: str = None):
     with R.start(experiment_name="workflow", uri=uri_path):
         R.log_params(**flatten_dict(CSI300_GBDT_TASK))
         model.fit(dataset)
-
+        R.save_objects(trained_model=model)
         # prediction
         recorder = R.get_recorder()
         # To test __repr__
@@ -68,7 +47,6 @@ def train(uri_path: str = None):
         rid = recorder.id
         sr = SignalRecord(model, dataset, recorder)
         sr.generate()
-        pred_score = sr.load()
 
         # calculate ic and ric
         sar = SigAnaRecord(recorder)
@@ -76,7 +54,7 @@ def train(uri_path: str = None):
         ic = sar.load(sar.get_path("ic.pkl"))
         ric = sar.load(sar.get_path("ric.pkl"))
 
-    return pred_score, {"ic": ic, "ric": ric}, rid
+    return {"ic": ic, "ric": ric}, rid
 
 
 def train_with_sigana(uri_path: str = None):
@@ -102,10 +80,9 @@ def train_with_sigana(uri_path: str = None):
         sar.generate()
         ic = sar.load(sar.get_path("ic.pkl"))
         ric = sar.load(sar.get_path("ric.pkl"))
-        pred_score = sar.load("pred.pkl")
 
         uri_path = R.get_uri()
-    return pred_score, {"ic": ic, "ric": ric}, uri_path
+    return {"ic": ic, "ric": ric}, uri_path
 
 
 def fake_experiment():
@@ -134,8 +111,6 @@ def backtest_analysis(pred, rid, uri_path: str = None):
 
     Parameters
     ----------
-    pred : pandas.DataFrame
-        predict scores
     rid : str
         the id of the recorder to be used in this function
     uri_path: str
@@ -147,18 +122,53 @@ def backtest_analysis(pred, rid, uri_path: str = None):
         the analysis result
 
     """
-    with R.start(experiment_name="workflow", recorder_id=rid, uri=uri_path):
-        recorder = R.get_recorder(experiment_name="workflow", recorder_id=rid)
+    recorder = R.get_recorder(experiment_name="workflow", recorder_id=rid)
+    dataset = init_instance_by_config(CSI300_GBDT_TASK["dataset"])
+    model = recorder.load_object("trained_model")
+
+    port_analysis_config = {
+        "executor": {
+            "class": "SimulatorExecutor",
+            "module_path": "qlib.backtest.executor",
+            "kwargs": {
+                "time_per_step": "day",
+                "generate_portfolio_metrics": True,
+            },
+        },
+        "strategy": {
+            "class": "TopkDropoutStrategy",
+            "module_path": "qlib.contrib.strategy.model_strategy",
+            "kwargs": {
+                "model": model,
+                "dataset": dataset,
+                "topk": 50,
+                "n_drop": 5,
+            },
+        },
+        "backtest": {
+            "start_time": "2017-01-01",
+            "end_time": "2020-08-01",
+            "account": 100000000,
+            "benchmark": CSI300_BENCH,
+            "exchange_kwargs": {
+                "freq": "day",
+                "limit_threshold": 0.095,
+                "deal_price": "close",
+                "open_cost": 0.0005,
+                "close_cost": 0.0015,
+                "min_cost": 5,
+            },
+        },
+    }
     # backtest
-    par = PortAnaRecord(recorder, port_analysis_config)
+    par = PortAnaRecord(recorder, port_analysis_config, risk_analysis_freq="day")
     par.generate()
-    analysis_df = par.load(par.get_path("port_analysis.pkl"))
+    analysis_df = par.load(par.get_path("port_analysis_1day.pkl"))
     print(analysis_df)
     return analysis_df
 
 
 class TestAllFlow(TestAutoData):
-    PRED_SCORE = None
     REPORT_NORMAL = None
     POSITIONS = None
     RID = None

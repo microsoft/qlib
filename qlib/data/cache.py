@@ -319,7 +319,7 @@ class BaseProviderCache:
 
     @staticmethod
     def get_cache_dir(dir_name: str, freq: str = None) -> Path:
-        cache_dir = Path(C.dpm.get_data_path(freq)).joinpath(dir_name)
+        cache_dir = Path(C.dpm.get_data_uri(freq)).joinpath(dir_name)
         cache_dir.mkdir(parents=True, exist_ok=True)
         return cache_dir
 
@@ -544,7 +544,7 @@ class DiskExpressionCache(ExpressionCache):
                 series = self.provider.expression(instrument, field, _calendar[0], _calendar[-1], freq)
                 if not series.empty:
                     # This expresion is empty, we don't generate any cache for it.
-                    with CacheUtils.writer_lock(self.r, f"{str(C.dpm.get_data_path(freq))}:expression-{_cache_uri}"):
+                    with CacheUtils.writer_lock(self.r, f"{str(C.dpm.get_data_uri(freq))}:expression-{_cache_uri}"):
                         self.gen_expression_cache(
                             expression_data=series,
                             cache_path=cache_path,
@@ -589,7 +589,7 @@ class DiskExpressionCache(ExpressionCache):
             self.clear_cache(cp_cache_uri)
             return 2
 
-        with CacheUtils.writer_lock(self.r, f"{str(C.dpm.get_data_path())}:expression-{cache_uri}"):
+        with CacheUtils.writer_lock(self.r, f"{str(C.dpm.get_data_uri())}:expression-{cache_uri}"):
             with meta_path.open("rb") as f:
                 d = pickle.load(f)
             instrument = d["info"]["instrument"]
@@ -724,7 +724,7 @@ class DiskDatasetCache(DatasetCache):
         if self.check_cache_exists(cache_path):
             if disk_cache == 1:
                 # use cache
-                with CacheUtils.reader_lock(self.r, f"{str(C.dpm.get_data_path(freq))}:dataset-{_cache_uri}"):
+                with CacheUtils.reader_lock(self.r, f"{str(C.dpm.get_data_uri(freq))}:dataset-{_cache_uri}"):
                     CacheUtils.visit(cache_path)
                     features = self.read_data_from_cache(cache_path, start_time, end_time, fields)
             elif disk_cache == 2:
@@ -734,7 +734,7 @@ class DiskDatasetCache(DatasetCache):
 
         if gen_flag:
             # cache unavailable, generate the cache
-            with CacheUtils.writer_lock(self.r, f"{str(C.dpm.get_data_path(freq))}:dataset-{_cache_uri}"):
+            with CacheUtils.writer_lock(self.r, f"{str(C.dpm.get_data_uri(freq))}:dataset-{_cache_uri}"):
                 features = self.gen_dataset_cache(
                     cache_path=cache_path,
                     instruments=instruments,
@@ -775,12 +775,12 @@ class DiskDatasetCache(DatasetCache):
 
         if self.check_cache_exists(cache_path):
             self.logger.debug(f"The cache dataset has already existed {cache_path}. Return the uri directly")
-            with CacheUtils.reader_lock(self.r, f"{str(C.dpm.get_data_path(freq))}:dataset-{_cache_uri}"):
+            with CacheUtils.reader_lock(self.r, f"{str(C.dpm.get_data_uri(freq))}:dataset-{_cache_uri}"):
                 CacheUtils.visit(cache_path)
             return _cache_uri
         else:
             # cache unavailable, generate the cache
-            with CacheUtils.writer_lock(self.r, f"{str(C.dpm.get_data_path(freq))}:dataset-{_cache_uri}"):
+            with CacheUtils.writer_lock(self.r, f"{str(C.dpm.get_data_uri(freq))}:dataset-{_cache_uri}"):
                 self.gen_dataset_cache(
                     cache_path=cache_path,
                     instruments=instruments,
@@ -958,7 +958,7 @@ class DiskDatasetCache(DatasetCache):
             return 2
 
         im = DiskDatasetCache.IndexManager(cp_cache_uri)
-        with CacheUtils.writer_lock(self.r, f"{str(C.dpm.get_data_path())}:dataset-{cache_uri}"):
+        with CacheUtils.writer_lock(self.r, f"{str(C.dpm.get_data_uri())}:dataset-{cache_uri}"):
             with meta_path.open("rb") as f:
                 d = pickle.load(f)
             instruments = d["info"]["instruments"]
@@ -1154,7 +1154,7 @@ class DatasetURICache(DatasetCache):
             instruments, fields, None, None, freq, disk_cache=disk_cache, inst_processors=inst_processors
         )
         value, expire = MemCacheExpire.get_cache(H["f"], feature_uri)
-        mnt_feature_uri = C.dpm.get_data_path(freq).joinpath(C.dataset_cache_dir_name).joinpath(feature_uri)
+        mnt_feature_uri = C.dpm.get_data_uri(freq).joinpath(C.dataset_cache_dir_name).joinpath(feature_uri)
         if value is None or expire or not mnt_feature_uri.exists():
             df, uri = self.provider.dataset(
                 instruments,
