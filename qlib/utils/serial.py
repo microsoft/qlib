@@ -122,3 +122,22 @@ class Serializable:
             return dill
         else:
             raise ValueError("Unknown pickle backend, please use 'pickle' or 'dill'.")
+
+    @staticmethod
+    def general_dump(obj, path: Union[Path, str]):
+        """
+        A general dumping method for object
+
+        Parameters
+        ----------
+        obj : object
+            the object to be dumped
+        path : Union[Path, str]
+            the target path the data will be dumped
+        """
+        path = Path(path)
+        if isinstance(obj, Serializable):
+            obj.to_pickle(path)
+        else:
+            with path.open("wb") as f:
+                pickle.dump(obj, f)
