@@ -240,6 +240,8 @@ Online Tool
 --------------------
 .. automodule:: qlib.workflow.online.utils
     :members:
+.. automodule:: qlib.tests.rolling_tests.test_update_pred.TestRolling
+    :members:
 
 RecordUpdater
 --------------------
