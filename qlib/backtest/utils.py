@@ -1,18 +1,17 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
+
 from __future__ import annotations
 import bisect
 from qlib.utils.time import epsilon_change
-from typing import Union, TYPE_CHECKING, Tuple, Union, List, Set
+from typing import TYPE_CHECKING, Tuple, Union
 
 if TYPE_CHECKING:
-    from qlib.backtest.order import BaseTradeDecision
-    from qlib.strategy.base import BaseStrategy
+    from qlib.backtest.decision import BaseTradeDecision
 
 import pandas as pd
 import warnings
 
-from ..utils.resam import get_resam_calendar
 from ..data.data import Cal
 
 
@@ -56,9 +55,9 @@ class TradeCalendarManager:
         self.start_time = pd.Timestamp(start_time) if start_time else None
         self.end_time = pd.Timestamp(end_time) if end_time else None
 
-        _calendar, freq, freq_sam = get_resam_calendar(freq=freq)
+        _calendar = Cal.calendar(freq=freq)
         self._calendar = _calendar
-        _, _, _start_index, _end_index = Cal.locate_index(start_time, end_time, freq=freq, freq_sam=freq_sam)
+        _, _, _start_index, _end_index = Cal.locate_index(start_time, end_time, freq=freq)
         self.start_index = _start_index
         self.end_index = _end_index
         self.trade_len = _end_index - _start_index + 1

@@ -19,7 +19,7 @@ class NestedDecisionExecutionWorkflow:
     benchmark = "SH000300"
     data_handler_config = {
         "start_time": "2008-01-01",
-        "end_time": "2020-12-31",
+        "end_time": "2021-05-31",
         "fit_start_time": "2008-01-01",
         "fit_end_time": "2014-12-31",
         "instruments": market,
@@ -53,7 +53,7 @@ class NestedDecisionExecutionWorkflow:
                 "segments": {
                     "train": ("2007-01-01", "2014-12-31"),
                     "valid": ("2015-01-01", "2016-12-31"),
-                    "test": ("2020-01-01", "2020-12-31"),
+                    "test": ("2020-01-01", "2021-05-31"),
                 },
             },
         },
@@ -75,7 +75,7 @@ class NestedDecisionExecutionWorkflow:
                             "module_path": "qlib.backtest.executor",
                             "kwargs": {
                                 "time_per_step": "5min",
-                                "generate_report": True,
+                                "generate_portfolio_metrics": True,
                                 "verbose": True,
                                 "indicator_config": {
                                     "show_indicator": True,
@@ -86,7 +86,7 @@ class NestedDecisionExecutionWorkflow:
                             "class": "TWAPStrategy",
                             "module_path": "qlib.contrib.strategy.rule_strategy",
                         },
-                        "generate_report": True,
+                        "generate_portfolio_metrics": True,
                         "indicator_config": {
                             "show_indicator": True,
                         },
@@ -101,15 +101,15 @@ class NestedDecisionExecutionWorkflow:
                     },
                 },
                 "track_data": True,
-                "generate_report": True,
+                "generate_portfolio_metrics": True,
                 "indicator_config": {
                     "show_indicator": True,
                 },
             },
         },
         "backtest": {
-            "start_time": "2020-01-01",
-            "end_time": "2020-12-31",
+            "start_time": "2020-09-20",
+            "end_time": "2021-05-20",
             "account": 100000000,
             "exchange_kwargs": {
                 "freq": "1min",
@@ -124,8 +124,6 @@ class NestedDecisionExecutionWorkflow:
 
     def _init_qlib(self):
         """initialize qlib"""
-        # provider_uri_day = "/data/stock_data/huaxia/qlib"
-        # provider_uri_1min = "/data2/stock_data/huaxia_1min_qlib"
         provider_uri_day = "~/.qlib/qlib_data/cn_data"  # target_dir
         GetData().qlib_data(target_dir=provider_uri_day, region=REG_CN, version="v2", exists_skip=True)
         provider_uri_1min = HIGH_FREQ_CONFIG.get("provider_uri")
@@ -133,31 +131,7 @@ class NestedDecisionExecutionWorkflow:
             target_dir=provider_uri_1min, interval="1min", region=REG_CN, version="v2", exists_skip=True
         )
         provider_uri_map = {"1min": provider_uri_1min, "day": provider_uri_day}
-        client_config = {
-            "calendar_provider": {
-                "class": "LocalCalendarProvider",
-                "module_path": "qlib.data.data",
-                "kwargs": {
-                    "backend": {
-                        "class": "FileCalendarStorage",
-                        "module_path": "qlib.data.storage.file_storage",
-                        "kwargs": {"provider_uri_map": provider_uri_map},
-                    }
-                },
-            },
-            "feature_provider": {
-                "class": "LocalFeatureProvider",
-                "module_path": "qlib.data.data",
-                "kwargs": {
-                    "backend": {
-                        "class": "FileFeatureStorage",
-                        "module_path": "qlib.data.storage.file_storage",
-                        "kwargs": {"provider_uri_map": provider_uri_map},
-                    }
-                },
-            },
-        }
-        qlib.init(provider_uri=provider_uri_day, **client_config, redis_port=-1)
+        qlib.init(provider_uri=provider_uri_map, dataset_cache=None, expression_cache=None)
 
     def _train_model(self, model, dataset):
         with R.start(experiment_name="train"):
@@ -186,9 +160,8 @@ class NestedDecisionExecutionWorkflow:
             },
         }
         self.port_analysis_config["strategy"] = strategy_config
-        self.port_analysis_config["backtest"]["benchmark"] = D.list_instruments(
-            instruments=D.instruments(market=self.market), as_list=True
-        )
+        self.port_analysis_config["backtest"]["benchmark"] = self.benchmark
+
         with R.start(experiment_name="backtest"):
 
             recorder = R.get_recorder()
@@ -201,6 +174,7 @@ class NestedDecisionExecutionWorkflow:
             )
             par.generate()
 
+        # user could use following methods to analysis the position
         # report_normal_df = recorder.load_object("portfolio_analysis/report_normal_1day.pkl")
         # from qlib.contrib.report import analysis_position
         # analysis_position.report_graph(report_normal_df)
@@ -212,7 +186,7 @@ class NestedDecisionExecutionWorkflow:
         self._train_model(model, dataset)
         executor_config = self.port_analysis_config["executor"]
         backtest_config = self.port_analysis_config["backtest"]
-        backtest_config["benchmark"] = D.list_instruments(instruments=D.instruments(market=self.market), as_list=True)
+        backtest_config["benchmark"] = self.benchmark
         strategy_config = {
             "class": "TopkDropoutStrategy",
             "module_path": "qlib.contrib.strategy.model_strategy",

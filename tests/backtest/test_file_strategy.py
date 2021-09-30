@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 import unittest
-from qlib.backtest import backtest, order
+from qlib.backtest import backtest, decision
 from qlib.tests import TestAutoData
 import pandas as pd
 from pathlib import Path
@@ -82,7 +82,7 @@ class FileStrTest(TestAutoData):
             "module_path": "qlib.backtest.executor",
             "kwargs": {
                 "time_per_step": freq,
-                "generate_report": False,
+                "generate_portfolio_metrics": False,
                 "verbose": True,
                 "indicator_config": {
                     "show_indicator": False,

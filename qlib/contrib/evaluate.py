@@ -36,9 +36,10 @@ def risk_analysis(r, N: int = None, freq: str = "day"):
 
     def cal_risk_analysis_scaler(freq):
         _count, _freq = Freq.parse(freq)
+        # len(D.calendar(start_time='2010-01-01', end_time='2019-12-31', freq='day')) = 2384
         _freq_scaler = {
-            Freq.NORM_FREQ_MINUTE: 240 * 252,
-            Freq.NORM_FREQ_DAY: 252,
+            Freq.NORM_FREQ_MINUTE: 240 * 238,
+            Freq.NORM_FREQ_DAY: 238,
             Freq.NORM_FREQ_WEEK: 50,
             Freq.NORM_FREQ_MONTH: 12,
         }

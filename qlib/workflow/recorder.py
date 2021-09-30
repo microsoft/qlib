@@ -1,6 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+from qlib.utils.serial import Serializable
 import mlflow, logging
 import shutil, os, pickle, tempfile, codecs, pickle
 from pathlib import Path
@@ -299,12 +300,16 @@ class MLflowRecorder(Recorder):
     def save_objects(self, local_path=None, artifact_path=None, **kwargs):
         assert self.uri is not None, "Please start the experiment and recorder first before using recorder directly."
         if local_path is not None:
-            self.client.log_artifacts(self.id, local_path, artifact_path)
+            path = Path(local_path)
+            if path.is_dir():
+                self.client.log_artifacts(self.id, local_path, artifact_path)
+            else:
+                self.client.log_artifact(self.id, local_path, artifact_path)
         else:
             temp_dir = Path(tempfile.mkdtemp()).resolve()
             for name, data in kwargs.items():
-                with (temp_dir / name).open("wb") as f:
-                    pickle.dump(data, f)
+                path = temp_dir / name
+                Serializable.general_dump(data, path)
                 self.client.log_artifact(self.id, temp_dir / name, artifact_path)
             shutil.rmtree(temp_dir)
 

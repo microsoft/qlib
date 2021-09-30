@@ -10,7 +10,7 @@ import pandas as pd
 from datetime import timedelta
 import numpy as np
 
-from .order import Order
+from .decision import Order
 from ..data.data import D
 
 
@@ -151,7 +151,8 @@ class BasePosition:
     def get_stock_weight_dict(self, only_stock: bool = False) -> Dict:
         """
         generate stock weight dict {stock_id : value weight of stock in the position}
-        it is meaningful in the beginning or the end of each trade date
+        it is meaningful in the beginning or the end of each trade step
+        - During execution of each trading step, the weight may be not consistant with the portfolio value
 
         Parameters
         ----------
@@ -408,7 +409,7 @@ class Position(BasePosition):
         return self.position[code]["price"]
 
     def get_stock_amount(self, code):
-        return self.position[code]["amount"]
+        return self.position[code]["amount"] if code in self.position else 0
 
     def get_stock_count(self, code, bar):
         """the days the account has been hold, it may be used in some special strategies"""
@@ -531,7 +532,7 @@ class InfPosition(BasePosition):
         raise NotImplementedError(f"InfPosition doesn't support get_stock_weight_dict")
 
     def add_count_all(self, bar):
-        raise NotImplementedError(f"InfPosition doesn't support get_stock_weight_dict")
+        raise NotImplementedError(f"InfPosition doesn't support add_count_all")
 
     def update_weight_all(self):
         raise NotImplementedError(f"InfPosition doesn't support update_weight_all")

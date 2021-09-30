@@ -93,7 +93,6 @@ We write a simple configuration example as following,
                   fend_time: 2018-12-11
     backtest:
         normal_backtest_args:
-            verbose: False
             limit_threshold: 0.095
             account: 500000
             benchmark: SH000905
@@ -306,7 +305,6 @@ About the data and backtest
                   fend_time: 2018-12-11
     backtest:
         normal_backtest_args:
-            verbose: False
             limit_threshold: 0.095
             account: 500000
             benchmark: SH000905

@@ -1,10 +1,9 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-from pathlib import Path
 import pickle
-import typing
 import dill
+from pathlib import Path
 from typing import Union
 
 
@@ -18,6 +17,7 @@ class Serializable:
 
     pickle_backend = "pickle"  # another optional value is "dill" which can pickle more things of python.
     default_dump_all = False  # if dump all things
+    FLAG_KEY = "_qlib_serial_flag"
 
     def __init__(self):
         self._dump_all = self.default_dump_all
@@ -44,8 +44,6 @@ class Serializable:
         What attribute will not be dumped
         """
         return getattr(self, "_exclude", [])
-
-    FLAG_KEY = "_qlib_serial_flag"
 
     def config(self, dump_all: bool = None, exclude: list = None, recursive=False):
         """
@@ -124,3 +122,22 @@ class Serializable:
             return dill
         else:
             raise ValueError("Unknown pickle backend, please use 'pickle' or 'dill'.")
+
+    @staticmethod
+    def general_dump(obj, path: Union[Path, str]):
+        """
+        A general dumping method for object
+
+        Parameters
+        ----------
+        obj : object
+            the object to be dumped
+        path : Union[Path, str]
+            the target path the data will be dumped
+        """
+        path = Path(path)
+        if isinstance(obj, Serializable):
+            obj.to_pickle(path)
+        else:
+            with path.open("wb") as f:
+                pickle.dump(obj, f)

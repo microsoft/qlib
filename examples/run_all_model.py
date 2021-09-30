@@ -6,6 +6,7 @@ import sys
 import fire
 import time
 import glob
+import yaml
 import shutil
 import signal
 import inspect
@@ -22,22 +23,6 @@ import qlib
 from qlib.config import REG_CN
 from qlib.workflow import R
 from qlib.tests.data import GetData
-
-# init qlib
-provider_uri = "~/.qlib/qlib_data/cn_data"
-exp_folder_name = "run_all_model_records"
-exp_path = str(Path(os.getcwd()).resolve() / exp_folder_name)
-exp_manager = {
-    "class": "MLflowExpManager",
-    "module_path": "qlib.workflow.expm",
-    "kwargs": {
-        "uri": "file:" + exp_path,
-        "default_exp_name": "Experiment",
-    },
-}
-
-GetData().qlib_data(target_dir=provider_uri, region=REG_CN, exists_skip=True)
-qlib.init(provider_uri=provider_uri, region=REG_CN, exp_manager=exp_manager)
 
 
 # decorator to check the arguments
@@ -88,11 +73,11 @@ def create_env():
     sys.stderr.write("\n")
     # get anaconda activate path
     conda_activate = Path(os.environ["CONDA_PREFIX"]) / "bin" / "activate"  # TODO: FIX ME!
-    return env_path, python_path, conda_activate
+    return temp_dir, env_path, python_path, conda_activate
 
 
 # function to execute the cmd
-def execute(cmd, wait_when_err=False):
+def execute(cmd, wait_when_err=False, raise_err=True):
     print("Running CMD:", cmd)
     with subprocess.Popen(cmd, stdout=subprocess.PIPE, bufsize=1, universal_newlines=True, shell=True) as p:
         for line in p.stdout:
@@ -105,6 +90,8 @@ def execute(cmd, wait_when_err=False):
     if p.returncode != 0:
         if wait_when_err:
             input("Press Enter to Continue")
+        if raise_err:
+            raise RuntimeError(f"Error when executing command: {cmd}")
         return p.stderr
     else:
         return None
@@ -134,14 +121,23 @@ def get_all_folders(models, exclude) -> dict:
 def get_all_files(folder_path, dataset) -> (str, str):
     yaml_path = str(Path(f"{folder_path}") / f"*{dataset}*.yaml")
     req_path = str(Path(f"{folder_path}") / f"*.txt")
-    return glob.glob(yaml_path)[0], glob.glob(req_path)[0]
+    yaml_file = glob.glob(yaml_path)
+    req_file = glob.glob(req_path)
+    if len(yaml_file) == 0:
+        return None, None
+    else:
+        return yaml_file[0], req_file[0]
 
 
 # function to retrieve all the results
 def get_all_results(folders) -> dict:
     results = dict()
     for fn in folders:
-        exp = R.get_exp(experiment_name=fn, create=False)
+        try:
+            exp = R.get_exp(experiment_name=fn, create=False)
+        except ValueError:
+            # No experiment results
+            continue
         recorders = exp.list_recorders()
         result = dict()
         result["annualized_return_with_cost"] = list()
@@ -155,9 +151,9 @@ def get_all_results(folders) -> dict:
             if recorders[recorder_id].status == "FINISHED":
                 recorder = R.get_recorder(recorder_id=recorder_id, experiment_name=fn)
                 metrics = recorder.list_metrics()
-                result["annualized_return_with_cost"].append(metrics["excess_return_with_cost.annualized_return"])
-                result["information_ratio_with_cost"].append(metrics["excess_return_with_cost.information_ratio"])
-                result["max_drawdown_with_cost"].append(metrics["excess_return_with_cost.max_drawdown"])
+                result["annualized_return_with_cost"].append(metrics["1day.excess_return_with_cost.annualized_return"])
+                result["information_ratio_with_cost"].append(metrics["1day.excess_return_with_cost.information_ratio"])
+                result["max_drawdown_with_cost"].append(metrics["1day.excess_return_with_cost.max_drawdown"])
                 result["ic"].append(metrics["IC"])
                 result["icir"].append(metrics["ICIR"])
                 result["rank_ic"].append(metrics["Rank IC"])
@@ -185,6 +181,25 @@ def gen_and_save_md_table(metrics, dataset):
     return table
 
 
+# read yaml, remove seed kwargs of model, and then save file in the temp_dir
+def gen_yaml_file_without_seed_kwargs(yaml_path, temp_dir):
+    with open(yaml_path, "r") as fp:
+        config = yaml.load(fp)
+    try:
+        del config["task"]["model"]["kwargs"]["seed"]
+    except KeyError:
+        # If the key does not exists, use original yaml
+        # NOTE: it is very important if the model most run in original path(when sys.rel_path is used)
+        return yaml_path
+    else:
+        # otherwise, generating a new yaml without random seed
+        file_name = yaml_path.split("/")[-1]
+        temp_path = os.path.join(temp_dir, file_name)
+        with open(temp_path, "w") as fp:
+            yaml.dump(config, fp)
+        return temp_path
+
+
 # function to run the all the models
 @only_allow_defined_args
 def run(
@@ -193,12 +208,13 @@ def run(
     dataset="Alpha360",
     exclude=False,
     qlib_uri: str = "git+https://github.com/microsoft/qlib#egg=pyqlib",
+    exp_folder_name: str = "run_all_model_records",
     wait_before_rm_env: bool = False,
     wait_when_err: bool = False,
 ):
     """
     Please be aware that this function can only work under Linux. MacOS and Windows will be supported in the future.
-    Any PR to enhance this method is highly welcomed. Besides, this script doesn't support parrallel running the same model
+    Any PR to enhance this method is highly welcomed. Besides, this script doesn't support parallel running the same model
     for multiple times, and this will be fixed in the future development.
 
     Parameters:
@@ -214,6 +230,8 @@ def run(
     qlib_uri : str
         the uri to install qlib with pip
         it could be url on the we or local path
+    exp_folder_name: str
+        the name of the experiment folder
     wait_before_rm_env : bool
         wait before remove environment.
     wait_when_err : bool
@@ -240,26 +258,58 @@ def run(
         # Case 5 - run specific models for one time
         python run_all_model.py --models=[mlp,lightgbm]
 
-        # Case 6 - run other models except those are given as aruments for one time
+        # Case 6 - run other models except those are given as arguments for one time
         python run_all_model.py --models=[mlp,tft,sfm] --exclude=True
 
     """
+    # init qlib
+    GetData().qlib_data(exists_skip=True)
+    qlib.init(
+        exp_manager={
+            "class": "MLflowExpManager",
+            "module_path": "qlib.workflow.expm",
+            "kwargs": {
+                "uri": "file:" + str(Path(os.getcwd()).resolve() / exp_folder_name),
+                "default_exp_name": "Experiment",
+            },
+        }
+    )
+
     # get all folders
     folders = get_all_folders(models, exclude)
     # init error messages:
     errors = dict()
     # run all the model for iterations
     for fn in folders:
-        # create env by anaconda
-        env_path, python_path, conda_activate = create_env()
         # get all files
         sys.stderr.write("Retrieving files...\n")
         yaml_path, req_path = get_all_files(folders[fn], dataset)
+        if yaml_path is None:
+            sys.stderr.write(f"There is no {dataset}.yaml file in {folders[fn]}")
+            continue
         sys.stderr.write("\n")
+        # create env by anaconda
+        temp_dir, env_path, python_path, conda_activate = create_env()
+
         # install requirements.txt
         sys.stderr.write("Installing requirements.txt...\n")
-        execute(f"{python_path} -m pip install -r {req_path}", wait_when_err=wait_when_err)
+        with open(req_path) as f:
+            content = f.read()
+        if "torch" in content:
+            # automatically install pytorch according to nvidia's version
+            execute(
+                f"{python_path} -m pip install light-the-torch", wait_when_err=wait_when_err
+            )  # for automatically installing torch according to the nvidia driver
+            execute(
+                f"{env_path / 'bin' / 'ltt'} install --install-cmd '{python_path} -m pip install {{packages}}' -- -r {req_path}",
+                wait_when_err=wait_when_err,
+            )
+        else:
+            execute(f"{python_path} -m pip install -r {req_path}", wait_when_err=wait_when_err)
         sys.stderr.write("\n")
+
+        # read yaml, remove seed kwargs of model, and then save file in the temp_dir
+        yaml_path = gen_yaml_file_without_seed_kwargs(yaml_path, temp_dir)
         # setup gpu for tft
         if fn == "TFT":
             execute(
@@ -302,19 +352,20 @@ def run(
     # getting all results
     sys.stderr.write(f"Retrieving results...\n")
     results = get_all_results(folders)
-    # calculating the mean and std
-    sys.stderr.write(f"Calculating the mean and std of results...\n")
-    results = cal_mean_std(results)
-    # generating md table
-    sys.stderr.write(f"Generating markdown table...\n")
-    gen_and_save_md_table(results, dataset)
-    sys.stderr.write("\n")
-    # print erros
+    if len(results) > 0:
+        # calculating the mean and std
+        sys.stderr.write(f"Calculating the mean and std of results...\n")
+        results = cal_mean_std(results)
+        # generating md table
+        sys.stderr.write(f"Generating markdown table...\n")
+        gen_and_save_md_table(results, dataset)
+        sys.stderr.write("\n")
+    # print errors
     sys.stderr.write(f"Here are some of the errors of the models...\n")
     pprint(errors)
     sys.stderr.write("\n")
     # move results folder
-    shutil.move(exp_path, exp_path + f"_{dataset}_{datetime.now().strftime('%Y-%m-%d_%H:%M:%S')}")
+    shutil.move(exp_folder_name, exp_folder_name + f"_{dataset}_{datetime.now().strftime('%Y-%m-%d_%H:%M:%S')}")
     shutil.move("table.md", f"table_{dataset}_{datetime.now().strftime('%Y-%m-%d_%H:%M:%S')}.md")
 
 

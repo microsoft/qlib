@@ -26,7 +26,7 @@ if __name__ == "__main__":
             "module_path": "qlib.backtest.executor",
             "kwargs": {
                 "time_per_step": "day",
-                "generate_report": True,
+                "generate_portfolio_metrics": True,
             },
         },
         "strategy": {

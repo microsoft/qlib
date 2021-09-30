@@ -93,7 +93,6 @@ Usage & Example
         "n_drop": 5,
     }
     BACKTEST_CONFIG = {
-        "verbose": False,
         "limit_threshold": 0.095,
         "account": 100000000,
         "benchmark": BENCHMARK,

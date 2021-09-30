@@ -44,8 +44,9 @@ def get_redis_connection():
 
 
 #################### Data ####################
-def read_bin(file_path, start_index, end_index):
-    with open(file_path, "rb") as f:
+def read_bin(file_path: Union[str, Path], start_index, end_index):
+    file_path = Path(file_path.expanduser().resolve())
+    with file_path.open("rb") as f:
         # read start_index
         ref_start_index = int(np.frombuffer(f.read(4), dtype="<f")[0])
         si = max(ref_start_index, start_index)
@@ -190,9 +191,9 @@ def get_module_by_module_path(module_path: Union[str, ModuleType]):
     return module
 
 
-def get_cls_kwargs(config: Union[dict, str], default_module: Union[str, ModuleType] = None) -> (type, dict):
+def get_callable_kwargs(config: Union[dict, str], default_module: Union[str, ModuleType] = None) -> (type, dict):
     """
-    extract class and kwargs from config info
+    extract class/func and kwargs from config info
 
     Parameters
     ----------
@@ -207,25 +208,27 @@ def get_cls_kwargs(config: Union[dict, str], default_module: Union[str, ModuleTy
     Returns
     -------
     (type, dict):
-        the class object and it's arguments.
+        the class/func object and it's arguments.
     """
     if isinstance(config, dict):
         if isinstance(config["class"], str):
             module = get_module_by_module_path(config.get("module_path", default_module))
-
             # raise AttributeError
-            klass = getattr(module, config["class"])
+            _callable = getattr(module, config["class" if "class" in config else "func"])
         else:
-            klass = config["class"]  # the class type itself is passed in
+            _callable = config["class"]  # the class type itself is passed in
         kwargs = config.get("kwargs", {})
     elif isinstance(config, str):
         module = get_module_by_module_path(default_module)
 
-        klass = getattr(module, config)
+        _callable = getattr(module, config)
         kwargs = {}
     else:
         raise NotImplementedError(f"This type of input is not supported")
-    return klass, kwargs
+    return _callable, kwargs
+
+
+get_cls_kwargs = get_callable_kwargs  # NOTE: this is for compatibility for the previous version
 
 
 def init_instance_by_config(
@@ -282,7 +285,7 @@ def init_instance_by_config(
             with open(os.path.join(pr.netloc, pr.path), "rb") as f:
                 return pickle.load(f)
 
-    klass, cls_kwargs = get_cls_kwargs(config, default_module=default_module)
+    klass, cls_kwargs = get_callable_kwargs(config, default_module=default_module)
     return klass(**cls_kwargs, **kwargs)
 
 
@@ -580,9 +583,11 @@ def get_pre_trading_date(trading_date, future=False):
 
 
 def transform_end_date(end_date=None, freq="day"):
-    """get previous trading date
+    """handle the end date with various format
+
     If end_date is -1, None, or end_date is greater than the maximum trading day, the last trading date is returned.
     Otherwise, returns the end_date
+
     ----------
     end_date: str
         end trading date
@@ -748,7 +753,8 @@ def lazy_sort_index(df: pd.DataFrame, axis=0) -> pd.DataFrame:
         sorted dataframe
     """
     idx = df.index if axis == 0 else df.columns
-    if idx.is_monotonic_increasing:
+    # NOTE: MultiIndex.is_lexsorted() is a deprecated method in Pandas 1.3.0 and is suggested to be replaced by MultiIndex.is_monotonic_increasing (see discussion here: https://github.com/pandas-dev/pandas/issues/32259). However, in case older versions of Pandas is implemented, MultiIndex.is_lexsorted() is necessary to prevent certain fatal errors.
+    if idx.is_monotonic_increasing and not (isinstance(idx, pd.MultiIndex) and not idx.is_lexsorted()):
         return df
     else:
         return df.sort_index(axis=axis)
@@ -802,7 +808,7 @@ class Wrapper:
         return "{name}(provider={provider})".format(name=self.__class__.__name__, provider=self._provider)
 
     def __getattr__(self, key):
-        if self._provider is None:
+        if self.__dict__.get("_provider", None) is None:
             raise AttributeError("Please run qlib.init() first using qlib")
         return getattr(self._provider, key)
 

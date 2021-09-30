@@ -90,8 +90,6 @@ task:
         - class: SigAnaRecord
           module_path: qlib.workflow.record_temp
           kwargs: 
-            model: <MODEL>
-            dataset: <DATASET>
             ana_long_short: False
             ann_scaler: 252
             label_col: 1

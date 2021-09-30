@@ -38,13 +38,13 @@ class QlibRecorder:
         .. code-block:: Python
 
             # start new experiment and recorder
-            with R.start('test', 'recorder_1'):
+            with R.start(experiment_name='test', recorder_name='recorder_1'):
                 model.fit(dataset)
                 R.log...
                 ... # further operations
 
             # resume previous experiment and recorder
-            with R.start('test', 'recorder_1', resume=True): # if users want to resume recorder, they have to specify the exact same name for experiment and recorder.
+            with R.start(experiment_name='test', recorder_name='recorder_1', resume=True): # if users want to resume recorder, they have to specify the exact same name for experiment and recorder.
                 ... # further operations
 
         Parameters

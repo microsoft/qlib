@@ -38,8 +38,8 @@ def get_min_cal(shift: int = 0) -> List[time]:
     return cal
 
 
-def is_single_value(start_time, end_time, freq):
-    """Is there only one piece of data for cn stock market.
+def is_single_value(start_time, end_time, freq, region="cn"):
+    """Is there only one piece of data for stock market.
 
     Parameters
     ----------
@@ -47,19 +47,22 @@ def is_single_value(start_time, end_time, freq):
         closed start time for data.
     end_time : Union[pd.Timestamp, str]
         closed end time for data.
+    freq :
     Returns
     -------
     bool
-        True means one piece of data to obtaine.
+        True means one piece of data to obtain.
     """
-
-    if end_time - start_time < freq:
-        return True
-    if start_time.hour == 11 and start_time.minute == 29 and start_time.second == 0:
-        return True
-    if start_time.hour == 14 and start_time.minute == 59 and start_time.second == 0:
-        return True
-    return False
+    if region == "cn":
+        if end_time - start_time < freq:
+            return True
+        if start_time.hour == 11 and start_time.minute == 29 and start_time.second == 0:
+            return True
+        if start_time.hour == 14 and start_time.minute == 59 and start_time.second == 0:
+            return True
+        return False
+    else:
+        raise NotImplementedError(f"please implement the is_single_value func for {region}")
 
 
 class Freq:
@@ -67,7 +70,7 @@ class Freq:
     NORM_FREQ_WEEK = "week"
     NORM_FREQ_DAY = "day"
     NORM_FREQ_MINUTE = "minute"
-    SUPPORT_CAL_LIST = [NORM_FREQ_MINUTE]
+    SUPPORT_CAL_LIST = [NORM_FREQ_MINUTE, NORM_FREQ_DAY]  # FIXME: this list should from data
 
     MIN_CAL = get_min_cal()
 
@@ -120,6 +123,74 @@ class Freq:
         }
         return _count, _freq_format_dict[_freq]
 
+    @staticmethod
+    def get_timedelta(n: int, freq: str) -> pd.Timedelta:
+        """
+        get pd.Timedeta object
+
+        Parameters
+        ----------
+        n : int
+        freq : str
+            Typically, they are the return value of Freq.parse
+
+        Returns
+        -------
+        pd.Timedelta:
+        """
+        return pd.Timedelta(f"{n}{freq}")
+
+    @staticmethod
+    def get_min_delta(left_frq: str, right_freq: str):
+        """Calculate freq delta
+
+        Parameters
+        ----------
+        left_frq: str
+        right_freq: str
+
+        Returns
+        -------
+
+        """
+        minutes_map = {
+            Freq.NORM_FREQ_MINUTE: 1,
+            Freq.NORM_FREQ_DAY: 60 * 24,
+            Freq.NORM_FREQ_WEEK: 7 * 60 * 24,
+            Freq.NORM_FREQ_MONTH: 30 * 7 * 60 * 24,
+        }
+        left_freq = Freq.parse(left_frq)
+        left_minutes = left_freq[0] * minutes_map[left_freq[1]]
+        right_freq = Freq.parse(right_freq)
+        right_minutes = right_freq[0] * minutes_map[right_freq[1]]
+        return left_minutes - right_minutes
+
+    @staticmethod
+    def get_recent_freq(base_freq: str, freq_list: List[str]) -> str:
+        """Get the closest freq to base_freq from freq_list
+
+        Parameters
+        ----------
+        base_freq
+        freq_list
+
+        Returns
+        -------
+
+        """
+        # use the nearest freq greater than 0
+        _freq_minutes = []
+        min_freq = None
+        for _freq in freq_list:
+            _min_delta = Freq.get_min_delta(base_freq, _freq)
+            if _min_delta < 0:
+                continue
+            if min_freq is None:
+                min_freq = (_min_delta, _freq)
+                continue
+            min_freq = min_freq if min_freq[0] <= _min_delta else (_min_delta, _freq)
+        return min_freq[1] if min_freq else None
+
 
 CN_TIME = [
     datetime.strptime("9:30", "%H:%M"),
@@ -135,14 +206,14 @@ def time_to_day_index(time_obj: Union[str, datetime], region: str = "cn"):
         time_obj = datetime.strptime(time_obj, "%H:%M")
 
     if region == "cn":
-        if time_obj >= CN_TIME[0] and time_obj < CN_TIME[1]:
+        if CN_TIME[0] <= time_obj < CN_TIME[1]:
             return int((time_obj - CN_TIME[0]).total_seconds() / 60)
-        elif time_obj >= CN_TIME[2] and time_obj < CN_TIME[3]:
+        elif CN_TIME[2] <= time_obj < CN_TIME[3]:
             return int((time_obj - CN_TIME[2]).total_seconds() / 60) + 120
         else:
             raise ValueError(f"{time_obj} is not the opening time of the {region} stock market")
     elif region == "us":
-        if time_obj >= US_TIME[0] and time_obj < US_TIME[1]:
+        if US_TIME[0] <= time_obj < US_TIME[1]:
             return int((time_obj - US_TIME[0]).total_seconds() / 60)
         else:
             raise ValueError(f"{time_obj} is not the opening time of the {region} stock market")
@@ -210,18 +281,18 @@ def cal_sam_minute(x: pd.Timestamp, sam_minutes: int) -> pd.Timestamp:
     """
     cal = get_min_cal(C.min_data_shift)[::sam_minutes]
     idx = bisect.bisect_right(cal, x.time()) - 1
-    date, new_time = x.date(), cal[idx]
-    return concat_date_time(date, new_time)
+    _date, new_time = x.date(), cal[idx]
+    return concat_date_time(_date, new_time)
 
 
-def epsilon_change(datetime: pd.Timestamp, direction: str = "backward") -> pd.Timestamp:
+def epsilon_change(date_time: pd.Timestamp, direction: str = "backward") -> pd.Timestamp:
     """
     change the time by infinitely small quantity.
 
 
     Parameters
     ----------
-    datetime : pd.Timestamp
+    date_time : pd.Timestamp
         the original time
     direction : str
         the direction the time are going to
@@ -234,9 +305,9 @@ def epsilon_change(datetime: pd.Timestamp, direction: str = "backward") -> pd.Ti
         the shifted time
     """
     if direction == "backward":
-        return datetime - pd.Timedelta(seconds=1)
+        return date_time - pd.Timedelta(seconds=1)
     elif direction == "forward":
-        return datetime + pd.Timedelta(seconds=1)
+        return date_time + pd.Timedelta(seconds=1)
     else:
         raise ValueError("Wrong input")
 

@@ -9,13 +9,13 @@ from .account import Account
 if TYPE_CHECKING:
     from ..strategy.base import BaseStrategy
     from .executor import BaseExecutor
-    from .order import BaseTradeDecision
-from .order import Order
+    from .decision import BaseTradeDecision
 from .position import Position
 from .exchange import Exchange
 from .backtest import backtest_loop
 from .backtest import collect_data_loop
-from .utils import CommonInfrastructure, LevelInfrastructure, TradeCalendarManager
+from .utils import CommonInfrastructure
+from .decision import Order
 from ..utils import init_instance_by_config
 from ..log import get_module_logger
 from ..config import C
@@ -231,10 +231,9 @@ def backtest(
 
     Returns
     -------
-    report: Report
-        it records the trading report information
-        It is organized in a dict format
-    indicator: Indicator
+    portfolio_metrics_dict: Dict[PortfolioMetrics]
+        it records the trading portfolio_metrics information
+    indicator_dict: Dict[Indicator]
         it computes the trading indicator
         It is organized in a dict format
 
@@ -249,9 +248,8 @@ def backtest(
         exchange_kwargs,
         pos_type=pos_type,
     )
-    report, indicator = backtest_loop(start_time, end_time, trade_strategy, trade_executor)
-
-    return report, indicator
+    portfolio_metrics, indicator = backtest_loop(start_time, end_time, trade_strategy, trade_executor)
+    return portfolio_metrics, indicator
 
 
 def collect_data(

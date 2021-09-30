@@ -14,7 +14,7 @@ from ..data.dataset.utils import convert_index_format
 from ..rl.interpreter import ActionInterpreter, StateInterpreter
 from ..utils import init_instance_by_config
 from ..backtest.utils import CommonInfrastructure, LevelInfrastructure, TradeCalendarManager
-from ..backtest.order import BaseTradeDecision
+from ..backtest.decision import BaseTradeDecision
 
 __all__ = ["BaseStrategy", "ModelStrategy", "RLStrategy", "RLIntStrategy"]
 
@@ -59,7 +59,7 @@ class BaseStrategy:
 
     @property
     def trade_position(self) -> BasePosition:
-        return self.common_infra.get("trade_account").current
+        return self.common_infra.get("trade_account").current_position
 
     @property
     def trade_exchange(self) -> Exchange:

@@ -1,7 +1,7 @@
 from typing import List, Tuple, Union
 from qlib.backtest.position import Position
 from qlib.backtest import collect_data, format_decisions
-from qlib.backtest.order import BaseTradeDecision, TradeRangeByTime
+from qlib.backtest.decision import BaseTradeDecision, TradeRangeByTime
 import qlib
 from qlib.tests import TestAutoData
 import unittest
@@ -87,7 +87,7 @@ class TestHFBacktest(TestAutoData):
                             "module_path": "qlib.backtest.executor",
                             "kwargs": {
                                 "time_per_step": freq_l2,
-                                "generate_report": False,
+                                "generate_portfolio_metrics": False,
                                 "verbose": True,
                                 "indicator_config": {
                                     "show_indicator": False,
@@ -99,7 +99,7 @@ class TestHFBacktest(TestAutoData):
                             "class": "TWAPStrategy",
                             "module_path": "qlib.contrib.strategy.rule_strategy",
                         },
-                        "generate_report": False,
+                        "generate_portfolio_metrics": False,
                         "indicator_config": {
                             "show_indicator": True,
                         },
@@ -110,7 +110,7 @@ class TestHFBacktest(TestAutoData):
                     "class": "TWAPStrategy",
                     "module_path": "qlib.contrib.strategy.rule_strategy",
                 },
-                "generate_report": False,
+                "generate_portfolio_metrics": False,
                 "indicator_config": {
                     "show_indicator": True,
                 },

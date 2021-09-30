@@ -1,7 +1,6 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-
 from functools import lru_cache
 import logging
 from typing import List, Text, Union, Callable, Iterable, Dict
@@ -14,12 +13,12 @@ import numpy as np
 from ..utils.index_data import IndexData, SingleData
 from ..utils.resam import resam_ts_data, ts_data_last
 from ..log import get_module_logger
-from ..utils.time import is_single_value
+from ..utils.time import is_single_value, Freq
 import qlib.utils.index_data as idd
 
 
 class BaseQuote:
-    def __init__(self, quote_df: pd.DataFrame):
+    def __init__(self, quote_df: pd.DataFrame, freq):
         self.logger = get_module_logger("online operator", level=logging.INFO)
 
     def get_all_stock(self) -> Iterable:
@@ -39,7 +38,7 @@ class BaseQuote:
         start_time: Union[pd.Timestamp, str],
         end_time: Union[pd.Timestamp, str],
         field: Union[str],
-        method: Union[str, Callable, None] = None,
+        method: Union[str, None] = None,
     ) -> Union[None, int, float, bool, IndexData]:
         """get the specific field of stock data during start time and end_time,
            and apply method to the data.
@@ -83,9 +82,9 @@ class BaseQuote:
             closed end time for backtest
         field : str
             the columns of data to fetch
-        method : Union[str, Callable, None]
+        method : Union[str, None]
             the method apply to data.
-            e.g [None, "last", "all", "sum", "mean", qlib/utils/resam.py/ts_data_last]
+            e.g [None, "last", "all", "sum", "mean", "ts_data_last"]
 
         Return
         ----------
@@ -99,8 +98,8 @@ class BaseQuote:
 
 
 class PandasQuote(BaseQuote):
-    def __init__(self, quote_df: pd.DataFrame):
-        super().__init__(quote_df=quote_df)
+    def __init__(self, quote_df: pd.DataFrame, freq):
+        super().__init__(quote_df=quote_df, freq=freq)
         quote_dict = {}
         for stock_id, stock_val in quote_df.groupby(level="instrument"):
             quote_dict[stock_id] = stock_val.droplevel(level="instrument")
@@ -110,6 +109,8 @@ class PandasQuote(BaseQuote):
         return self.data.keys()
 
     def get_data(self, stock_id, start_time, end_time, field, method=None):
+        if method == "ts_data_last":
+            method = ts_data_last
         stock_data = resam_ts_data(self.data[stock_id][field], start_time, end_time, method=method)
         if stock_data is None:
             return None
@@ -121,9 +122,9 @@ class PandasQuote(BaseQuote):
             raise ValueError(f"stock data from resam_ts_data must be a number, pd.Series or pd.DataFrame")
 
 
-class CN1minNumpyQuote(BaseQuote):
-    def __init__(self, quote_df: pd.DataFrame):
-        """CN1minNumpyQuote
+class NumpyQuote(BaseQuote):
+    def __init__(self, quote_df: pd.DataFrame, freq, region="cn"):
+        """NumpyQuote
 
         Parameters
         ----------
@@ -131,13 +132,19 @@ class CN1minNumpyQuote(BaseQuote):
             the init dataframe from qlib.
         self.data : Dict(stock_id, IndexData.DataFrame)
         """
-        super().__init__(quote_df=quote_df)
+        super().__init__(quote_df=quote_df, freq=freq)
         quote_dict = {}
         for stock_id, stock_val in quote_df.groupby(level="instrument"):
             quote_dict[stock_id] = idd.MultiData(stock_val.droplevel(level="instrument"))
             quote_dict[stock_id].sort_index()  # To support more flexible slicing, we must sort data first
         self.data = quote_dict
-        self.freq = pd.Timedelta(minutes=1)
+
+        n, unit = Freq.parse(freq)
+        if unit in Freq.SUPPORT_CAL_LIST:
+            self.freq = Freq.get_timedelta(1, unit)
+        else:
+            raise ValueError(f"{freq} is not supported in NumpyQuote")
+        self.region = region
 
     def get_all_stock(self):
         return self.data.keys()
@@ -150,7 +157,7 @@ class CN1minNumpyQuote(BaseQuote):
 
         # single data
         # If it don't consider the classification of single data, it will consume a lot of time.
-        if is_single_value(start_time, end_time, self.freq):
+        if is_single_value(start_time, end_time, self.freq, self.region):
             # this is a very special case.
             # skip aggregating function to speed-up the query calculation
             try:
@@ -178,9 +185,7 @@ class CN1minNumpyQuote(BaseQuote):
             return data[-1]
         elif method == "all":
             return data.all()
-        elif method == "any":
-            return data.any()
-        elif method == ts_data_last:
+        elif method == "ts_data_last":
             valid_data = data.loc[~data.isna().data.astype(bool)]
             if len(valid_data) == 0:
                 return None

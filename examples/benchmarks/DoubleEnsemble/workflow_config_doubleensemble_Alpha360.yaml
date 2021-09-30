@@ -97,8 +97,6 @@ task:
           kwargs:
             ana_long_short: False
             ann_scaler: 252
-            model: <MODEL>
-            dataset: <DATASET>
         - class: PortAnaRecord
           module_path: qlib.workflow.record_temp
           kwargs: 

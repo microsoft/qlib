@@ -15,10 +15,9 @@ import pandas as pd
 
 from ..data.data import D
 from ..config import C, REG_CN
-from ..utils.resam import resam_ts_data, ts_data_last
 from ..log import get_module_logger
-from .order import Order, OrderDir, OrderHelper
-from .high_performance_ds import BaseQuote, PandasQuote, CN1minNumpyQuote
+from .decision import Order, OrderDir, OrderHelper
+from .high_performance_ds import BaseQuote, PandasQuote, NumpyQuote
 
 
 class Exchange:
@@ -36,29 +35,24 @@ class Exchange:
         close_cost=0.0025,
         min_cost=5,
         extra_quote=None,
-        quote_cls=CN1minNumpyQuote,
+        quote_cls=NumpyQuote,
         **kwargs,
     ):
         """__init__
-
         :param freq:             frequency of data
         :param start_time:       closed start time for backtest
         :param end_time:         closed end time for backtest
         :param codes:            list stock_id list or a string of instruments(i.e. all, csi500, sse50)
-
         :param deal_price:      Union[str, Tuple[str, str], List[str]]
                                 The `deal_price` supports following two types of input
                                 - <deal_price> : str
                                 - (<buy_price>, <sell_price>): Tuple[str] or List[str]
-
                                 <deal_price>, <buy_price> or <sell_price> := <price>
                                 <price> := str
                                 - for example '$close', '$open', '$vwap' ("close" is OK. `Exchange` will help to prepend
                                   "$" to the expression)
-
         :param subscribe_fields: list, subscribe fields. This expressions will be added to the query and `self.quote`.
                                  It is useful when users want more fields to be queried
-
         :param limit_threshold: Union[Tuple[str, str], float, None]
                                 1) `None`: no limitation
                                 2) float, 0.1 for example, default None
@@ -66,7 +60,6 @@ class Exchange:
                                                      <the expression for sell stock limitation>)
                                                     `False` value indicates the stock is tradable
                                                     `True` value indicates the stock is limited and not tradable
-
         :param volume_threshold: Union[
                                     Dict[
                                         "all": ("cum" or "current", limit_str),
@@ -85,26 +78,22 @@ class Exchange:
                                     - "current" means that this is a real-time value and will not accumulate over time,
                                     so it can be directly used as a capacity limit.
                                     e.g. ("cum", "0.2 * DayCumsum($volume, '9:45', '14:45')"), ("current", "$bidV1")
-
                                 2) "all" means the volume limits are both buying and selling.
                                 "buy" means the volume limits of buying. "sell" means the volume limits of selling.
                                 Different volume limits will be aggregated with min(). If volume_threshold is only
                                 ("cum" or "current", limit_str) instead of a dict, the volume limits are for
                                 both by deault. In other words, it is same as {"all": ("cum" or "current", limit_str)}.
-
                                 3) e.g. "volume_threshold": {
                                             "all": ("cum", "0.2 * DayCumsum($volume, '9:45', '14:45')"),
                                             "buy": ("current", "$askV1"),
                                             "sell": ("current", "$bidV1"),
                                         }
-
         :param open_cost:        cost rate for open, default 0.0015
         :param close_cost:       cost rate for close, default 0.0025
         :param trade_unit:       trade unit, 100 for China A market.
                                  None for disable trade unit.
                                  **NOTE**: `trade_unit` is included in the `kwargs`. It is necessary because we must
                                  distinguish `not set` and `disable trade_unit`
-
         :param min_cost:         min cost, default 5
         :param extra_quote:     pandas, dataframe consists of
                                     columns: like ['$vwap', '$close', '$volume', '$factor', 'limit_sell', 'limit_buy'].
@@ -185,7 +174,7 @@ class Exchange:
 
         # init quote by quote_df
         self.quote_cls = quote_cls
-        self.quote: BaseQuote = self.quote_cls(self.quote_df)
+        self.quote: BaseQuote = self.quote_cls(self.quote_df, freq)
 
     def get_quote_from_qlib(self):
         # get stock data from qlib
@@ -273,12 +262,10 @@ class Exchange:
         preproccess the volume limit.
         get the fields need to get from qlib.
         get the volume limit list of buying and selling which is composed of all limits.
-
         Parameters
         ----------
         volume_threshold :
             please refer to the doc of exchange.
-
         Returns
         -------
         fields: set
@@ -287,7 +274,6 @@ class Exchange:
             all volume limits of buying.
         sell_vol_limit: List[Tuple[str]]
             all volume limits of selling.
-
         Raises
         ------
         ValueError
@@ -324,7 +310,6 @@ class Exchange:
             - if direction is None, check if tradable for buying and selling.
             - if direction == Order.BUY, check the if tradable for buying
             - if direction == Order.SELL, check the sell limit for selling.
-
         """
         if direction is None:
             buy_limit = self.quote.get_data(stock_id, start_time, end_time, field="limit_buy", method="all")
@@ -372,9 +357,7 @@ class Exchange:
     ):
         """
         Deal order when the actual transaction
-
         the results section in `Order` will be changed.
-
         :param order:  Deal the order.
         :param trade_account: Trade account to be updated after dealing the order.
         :param position: position to be updated after dealing the order.
@@ -393,12 +376,12 @@ class Exchange:
 
         # NOTE: order will be changed in this function
         trade_price, trade_val, trade_cost = self._calc_trade_info_by_order(
-            order, trade_account.current if trade_account else position, dealt_order_amount
+            order, trade_account.current_position if trade_account else position, dealt_order_amount
         )
-        if order.deal_amount > 1e-5:
-            # If the order can only be deal 0 amount. Nothing to be updated
+        if trade_val > 1e-5:
+            # If the order can only be deal 0 value. Nothing to be updated
             # Otherwise, it will result in
-            # 1) some stock with 0 amount in the position
+            # 1) some stock with 0 value in the position
             # 2) `trade_unit` of trade_cost will be lost in user account
             if trade_account:
                 trade_account.update_order(order=order, trade_val=trade_val, cost=trade_cost, trade_price=trade_price)
@@ -407,16 +390,17 @@ class Exchange:
 
         return trade_val, trade_cost, trade_price
 
-    def get_quote_info(self, stock_id, start_time, end_time, method=ts_data_last):
+    def get_quote_info(self, stock_id, start_time, end_time, method="ts_data_last"):
         return self.quote.get_data(stock_id, start_time, end_time, method=method)
 
-    def get_close(self, stock_id, start_time, end_time, method=ts_data_last):
+    def get_close(self, stock_id, start_time, end_time, method="ts_data_last"):
         return self.quote.get_data(stock_id, start_time, end_time, field="$close", method=method)
 
-    def get_volume(self, stock_id, start_time, end_time, method="sum"):
-        return self.quote.get_data(stock_id, start_time, end_time, field="$volume", method=method)
+    def get_volume(self, stock_id, start_time, end_time):
+        """get the total deal volume of stock with `stock_id` between the time interval [start_time, end_time)"""
+        return self.quote.get_data(stock_id, start_time, end_time, field="$volume", method="sum")
 
-    def get_deal_price(self, stock_id, start_time, end_time, direction: OrderDir, method=ts_data_last):
+    def get_deal_price(self, stock_id, start_time, end_time, direction: OrderDir, method="ts_data_last"):
         if direction == OrderDir.SELL:
             pstr = self.sell_price
         elif direction == OrderDir.BUY:
@@ -441,7 +425,7 @@ class Exchange:
         assert start_time is not None and end_time is not None, "the time range must be given"
         if stock_id not in self.quote.get_all_stock():
             return None
-        return self.quote.get_data(stock_id, start_time, end_time, field="$factor", method=ts_data_last)
+        return self.quote.get_data(stock_id, start_time, end_time, field="$factor", method="ts_data_last")
 
     def generate_amount_position_from_weight_position(
         self, weight_position, cash, start_time, end_time, direction=OrderDir.BUY
@@ -449,7 +433,6 @@ class Exchange:
         """
         The generate the target position according to the weight and the cash.
         NOTE: All the cash will assigned to the tadable stock.
-
         Parameter:
         weight_position : dict {stock_id : weight}; allocate cash by weight_position
             among then, weight must be in this range: 0 < weight < 1
@@ -493,7 +476,6 @@ class Exchange:
     def get_real_deal_amount(self, current_amount, target_amount, factor):
         """
         Calculate the real adjust deal amount when considering the trading unit
-
         :param current_amount:
         :param target_amount:
         :param factor:
@@ -516,7 +498,6 @@ class Exchange:
     def generate_order_for_target_amount_position(self, target_position, current_position, start_time, end_time):
         """
         Note: some future information is used in this function
-
         Parameter:
         target_position : dict { stock_id : amount }
         current_postion : dict { stock_id : amount}
@@ -590,8 +571,10 @@ class Exchange:
         value = 0
         for stock_id in amount_dict:
             if (
-                self.check_stock_suspended(stock_id=stock_id, start_time=start_time, end_time=end_time) is False
+                only_tradable is True
+                and self.check_stock_suspended(stock_id=stock_id, start_time=start_time, end_time=end_time) is False
                 and self.check_stock_limit(stock_id=stock_id, start_time=start_time, end_time=end_time) is False
+                or only_tradable is False
             ):
                 value += (
                     self.get_deal_price(
@@ -613,10 +596,8 @@ class Exchange:
     def get_amount_of_trade_unit(self, factor: float = None, stock_id: str = None, start_time=None, end_time=None):
         """
         get the trade unit of amount based on **factor**
-
         the factor can be given directly or calculated in given time range and stock id.
         `factor` has higher priority than `stock_id`, `start_time` and `end_time`
-
         Parameters
         ----------
         factor : float
@@ -641,7 +622,6 @@ class Exchange:
     ):
         """Parameter
         Please refer to the docs of get_amount_of_trade_unit
-
         deal_amount : float, adjusted amount
         factor : float, adjusted factor
         return : float, real amount
@@ -656,11 +636,9 @@ class Exchange:
 
     def _clip_amount_by_volume(self, order: Order, dealt_order_amount: dict) -> int:
         """parse the capacity limit string and return the actual amount of orders that can be executed.
-
         NOTE:
             this function will change the order.deal_amount **inplace**
             - This will make the order info more accurate
-
         Parameters
         ----------
         order : Order
@@ -694,7 +672,7 @@ class Exchange:
                     order.start_time,
                     order.end_time,
                     field=limit[1],
-                    method=ts_data_last,
+                    method="ts_data_last",
                 )
                 vol_limit_num.append(limit_value - dealt_order_amount[order.stock_id])
             else:
@@ -709,12 +687,10 @@ class Exchange:
 
     def _get_buy_amount_by_cash_limit(self, trade_price, cash):
         """return the real order amount after cash limit for buying.
-
         Parameters
         ----------
         trade_price : float
         position : cash
-
         Return
         ----------
         float
@@ -735,9 +711,7 @@ class Exchange:
     def _calc_trade_info_by_order(self, order, position: Position, dealt_order_amount):
         """
         Calculation of trade info
-
         **NOTE**: Order will be changed in this function
-
         :param order:
         :param position: Position
         :param dealt_order_amount: the dealt order amount dict with the format of {stock_id: float}
@@ -745,18 +719,27 @@ class Exchange:
         """
         trade_price = self.get_deal_price(order.stock_id, order.start_time, order.end_time, direction=order.direction)
         order.factor = self.get_factor(order.stock_id, order.start_time, order.end_time)
+        order.deal_amount = order.amount  # set to full amount and clip it step by step
+        # Clipping amount first
+        # - It simulates that the order is rejected directly by the exchange due to large order
+        # Another choice is placing it after rounding the order
+        # - It simulates that the large order is submitted, but partial is dealt regardless of rounding by trading unit.
+        self._clip_amount_by_volume(order, dealt_order_amount)
+
         if order.direction == Order.SELL:
             cost_ratio = self.close_cost
             # sell
+            # if we don't know current position, we choose to sell all
+            # Otherwise, we clip the amount based on current position
             if position is not None:
                 current_amount = (
                     position.get_stock_amount(order.stock_id) if position.check_stock(order.stock_id) else 0
                 )
-                if np.isclose(order.amount, current_amount):
-                    # when selling last stock. The amount don't need rounding
-                    order.deal_amount = order.amount
-                else:
-                    order.deal_amount = self.round_amount_by_trade_unit(min(current_amount, order.amount), order.factor)
+                if not np.isclose(order.deal_amount, current_amount):
+                    # when not selling last stock. rounding is necessary
+                    order.deal_amount = self.round_amount_by_trade_unit(
+                        min(current_amount, order.deal_amount), order.factor
+                    )
 
                 # in case of negative value of cash
                 if position.get_cash() + order.deal_amount * trade_price < max(
@@ -765,33 +748,30 @@ class Exchange:
                 ):
                     order.deal_amount = 0
                     self.logger.debug(f"Order clipped due to cash limitation: {order}")
-            else:
-                # TODO: We don't know current position.
-                #  We choose to sell all
-                order.deal_amount = order.amount
 
         elif order.direction == Order.BUY:
             cost_ratio = self.open_cost
             # buy
             if position is not None:
                 cash = position.get_cash()
-                trade_val = order.amount * trade_price
+                trade_val = order.deal_amount * trade_price
                 if cash < trade_val + max(trade_val * cost_ratio, self.min_cost):
                     # The money is not enough
                     max_buy_amount = self._get_buy_amount_by_cash_limit(trade_price, cash)
-                    order.deal_amount = self.round_amount_by_trade_unit(max_buy_amount, order.factor)
+                    order.deal_amount = self.round_amount_by_trade_unit(
+                        min(max_buy_amount, order.deal_amount), order.factor
+                    )
                     self.logger.debug(f"Order clipped due to cash limitation: {order}")
                 else:
                     # The money is enough
-                    order.deal_amount = self.round_amount_by_trade_unit(order.amount, order.factor)
+                    order.deal_amount = self.round_amount_by_trade_unit(order.deal_amount, order.factor)
             else:
                 # Unknown amount of money. Just round the amount
-                order.deal_amount = self.round_amount_by_trade_unit(order.amount, order.factor)
+                order.deal_amount = self.round_amount_by_trade_unit(order.deal_amount, order.factor)
 
         else:
             raise NotImplementedError("order type {} error".format(order.type))
 
-        self._clip_amount_by_volume(order, dealt_order_amount)
         trade_val = order.deal_amount * trade_price
         trade_cost = max(trade_val * cost_ratio, self.min_cost)
         if trade_val <= 1e-5:

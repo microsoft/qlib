@@ -11,7 +11,14 @@ NAME = "pyqlib"
 DESCRIPTION = "A Quantitative-research Platform"
 REQUIRES_PYTHON = ">=3.5.0"
 
-VERSION = "0.7.0.99"
+from pathlib import Path
+from shutil import copyfile
+
+CURRENT_DIR = Path(__file__).absolute().parent
+_version_src = CURRENT_DIR / "VERSION.txt"
+_version_dst = CURRENT_DIR / "qlib" / "VERSION.txt"
+copyfile(_version_src, _version_dst)
+VERSION = _version_dst.read_text(encoding="utf-8").strip()
 
 # Detect Cython
 try:
@@ -39,13 +46,13 @@ REQUIRED = [
     "redis>=3.0.1",
     "python-redis-lock>=3.3.1",
     "schedule>=0.6.0",
-    "cvxpy==1.0.21",
+    "cvxpy>=1.0.21",
     "hyperopt==0.1.1",
     "fire>=0.3.1",
     "statsmodels",
     "xlrd>=1.0.0",
-    "plotly==4.12.0",
-    "matplotlib==3.3",
+    "plotly>=4.12.0",
+    "matplotlib>=3.3",
     "tables>=3.6.1",
     "pyyaml>=5.3.1",
     "mlflow>=1.12.1",
@@ -59,6 +66,7 @@ REQUIRED = [
     "scikit-learn>=0.22",
     "dill",
     "dataclasses;python_version<'3.7'",
+    "filelock",
 ]
 
 # Numpy include
@@ -122,5 +130,6 @@ setup(
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
     ],
 )

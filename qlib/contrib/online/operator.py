@@ -120,7 +120,7 @@ class Operator:
             # generate and save order list
             order_list = user.strategy.generate_trade_decision(
                 score_series=score_series,
-                current=user.account.current,
+                current=user.account.current_position,
                 trade_exchange=trade_exchange,
                 trade_date=trade_date,
             )
@@ -202,8 +202,8 @@ class Operator:
             score_series = load_score_series((pathlib.Path(path) / user_id), trade_date)
             update_account(user.account, trade_info, trade_exchange, trade_date)
 
-            report = user.account.report.generate_report_dataframe()
-            self.logger.info(report)
+            portfolio_metrics = user.account.portfolio_metrics.generate_portfolio_metrics_dataframe()
+            self.logger.info(portfolio_metrics)
             um.save_user_data(user_id)
             self.logger.info("Update account state {} for {}".format(trade_date, user_id))
 
@@ -258,7 +258,7 @@ class Operator:
             # 3. generate and save order list
             order_list = user.strategy.generate_trade_decision(
                 score_series=score_series,
-                current=user.account.current,
+                current=user.account.current_position,
                 trade_exchange=trade_exchange,
                 trade_date=trade_date,
             )
@@ -273,8 +273,8 @@ class Operator:
             # 5. update account state
             trade_info = executor.load_trade_info_from_executed_file(user_path=user_path, trade_date=trade_date)
             update_account(user.account, trade_info, trade_exchange, trade_date)
-        report = user.account.report.generate_report_dataframe()
-        self.logger.info(report)
+        portfolio_metrics = user.account.portfolio_metrics.generate_portfolio_metrics_dataframe()
+        self.logger.info(portfolio_metrics)
         um.save_user_data(id)
         self.show(id, path, bench)
 
@@ -295,12 +295,12 @@ class Operator:
         if id not in um.users:
             raise ValueError("Cannot find user ".format(id))
         bench = D.features([bench], ["$change"]).loc[bench, "$change"]
-        report = um.users[id].account.report.generate_report_dataframe()
-        report["bench"] = bench
+        portfolio_metrics = um.users[id].account.portfolio_metrics.generate_portfolio_metrics_dataframe()
+        portfolio_metrics["bench"] = bench
         analysis_result = {}
-        r = (report["return"] - report["bench"]).dropna()
+        r = (portfolio_metrics["return"] - portfolio_metrics["bench"]).dropna()
         analysis_result["excess_return_without_cost"] = risk_analysis(r)
-        r = (report["return"] - report["bench"] - report["cost"]).dropna()
+        r = (portfolio_metrics["return"] - portfolio_metrics["bench"] - portfolio_metrics["cost"]).dropna()
         analysis_result["excess_return_with_cost"] = risk_analysis(r)
         print("Result:")
         print("excess_return_without_cost:")

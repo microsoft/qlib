@@ -8,6 +8,11 @@ from .utils import get_level_index, fetch_df_by_index, fetch_df_by_col
 
 
 class BaseHandlerStorage:
+    """Base data storage for datahandler
+    - pd.DataFrame is the default data storage format in Qlib datahandler
+    - If users want to use custom data storage, they should define subclass inherited BaseHandlerStorage, and implement the following method
+    """
+
     def fetch(
         self,
         selector: Union[pd.Timestamp, slice, str, list] = slice(None, None),
@@ -55,6 +60,19 @@ class BaseHandlerStorage:
 
 
 class HasingStockStorage(BaseHandlerStorage):
+    """Hasing data storage for datahanlder
+    - The default data storage pandas.DataFrame is too slow when randomly accessing one stock's data
+    - HasingStockStorage hashes the multiple stocks' data(pandas.DataFrame) by the key `stock_id`.
+    - HasingStockStorage hases the pandas.DataFrame into a dict, whose key is the stock_id(str) and value this stock data(panda.DataFrame), it has the following format:
+        {
+            stock1_id: stock1_data,
+            stock2_id: stock2_data,
+            ...
+            stockn_id: stockn_data,
+        }
+    - By the `fetch` method, users can access any stock data with much lower time cost than default data storage
+    """
+
     def __init__(self, df):
         self.hash_df = dict()
         self.stock_level = get_level_index(df, "instrument")
@@ -67,6 +85,23 @@ class HasingStockStorage(BaseHandlerStorage):
         return HasingStockStorage(df)
 
     def _fetch_hash_df_by_stock(self, selector, level):
+        """fetch the data with stock selector
+
+        Parameters
+        ----------
+        selector : Union[pd.Timestamp, slice, str]
+            describe how to select data by index
+        level : Union[str, int]
+            which index level to select the data
+            - if level is None, apply selector to df directly
+            - the `_fetch_hash_df_by_stock` will parse the stock selector in arg `selector`
+
+        Returns
+        -------
+        Dict
+            The dict whose key is stock_id, value is the stock's data
+        """
+
         stock_selector = slice(None)
 
         if level is None:

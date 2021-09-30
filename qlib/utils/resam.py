@@ -1,14 +1,10 @@
-import re
-import datetime
-
 import numpy as np
 import pandas as pd
 
 from functools import partial
-from typing import Tuple, List, Union, Optional, Callable
+from typing import Union, Callable
 
 from . import lazy_sort_index
-from ..config import C
 from .time import Freq, cal_sam_minute
 
 
@@ -64,70 +60,6 @@ def resam_calendar(calendar_raw: np.ndarray, freq_raw: str, freq_sam: str) -> np
             return _calendar_month[::sam_count]
         else:
             raise ValueError("sampling freq must be xmin, xd, xw, xm")
-
-
-def get_resam_calendar(
-    start_time: Union[str, pd.Timestamp] = None,
-    end_time: Union[str, pd.Timestamp] = None,
-    freq: str = "day",
-    future: bool = False,
-) -> Tuple[np.ndarray, str, Optional[str]]:
-    """
-    Get the resampled calendar with frequency freq.
-
-        - If the calendar with the raw frequency freq exists, return it directly
-
-        - Else, sample from a higher frequency calendar automatically
-
-    Parameters
-    ----------
-    start_time : Union[str, pd.Timestamp], optional
-        start time of calendar, by default None
-    end_time : Union[str, pd.Timestamp], optional
-        end time of calendar, by default None
-    freq : str, optional
-        freq of calendar, by default "day"
-    future : bool, optional
-        whether including future trading day.
-
-    Returns
-    -------
-    Tuple[np.ndarray, str, Optional[str]]
-
-        - the first value is the calendar
-        - the second value is the raw freq of calendar
-        - the third value is the sampling freq of calendar, it's None if the raw frequency freq exists.
-
-    """
-
-    _, norm_freq = Freq.parse(freq)
-
-    from ..data.data import Cal
-
-    try:
-        _calendar = Cal.calendar(start_time=start_time, end_time=end_time, freq=freq, future=future)
-        freq, freq_sam = freq, None
-    except (ValueError, KeyError):
-        freq_sam = freq
-        if norm_freq in [Freq.NORM_FREQ_MONTH, Freq.NORM_FREQ_WEEK, Freq.NORM_FREQ_DAY]:
-            try:
-                _calendar = Cal.calendar(
-                    start_time=start_time, end_time=end_time, freq="day", freq_sam=freq, future=future
-                )
-                freq = "day"
-            except (ValueError, KeyError):
-                _calendar = Cal.calendar(
-                    start_time=start_time, end_time=end_time, freq="1min", freq_sam=freq, future=future
-                )
-                freq = "1min"
-        elif norm_freq == Freq.NORM_FREQ_MINUTE:
-            _calendar = Cal.calendar(
-                start_time=start_time, end_time=end_time, freq="1min", freq_sam=freq, future=future
-            )
-            freq = "1min"
-        else:
-            raise ValueError(f"freq {freq} is not supported")
-    return _calendar, freq, freq_sam
 
 
 def get_higher_eq_freq_feature(instruments, fields, start_time=None, end_time=None, freq="day", disk_cache=1):
@@ -220,7 +152,7 @@ def resam_ts_data(
 
     Parameters
     ----------
-    feature : Union[pd.DataFrame, pd.Series]
+    ts_feature : Union[pd.DataFrame, pd.Series]
         Raw time-series feature to be resampled
     start_time : Union[str, pd.Timestamp], optional
         start sampling time, by default None

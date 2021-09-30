@@ -12,10 +12,10 @@ from qlib.tests import TestAutoData
 from qlib.tests.config import CSI300_GBDT_TASK
 
 
-def train_multiseg():
+def train_multiseg(uri_path: str = None):
     model = init_instance_by_config(CSI300_GBDT_TASK["model"])
     dataset = init_instance_by_config(CSI300_GBDT_TASK["dataset"])
-    with R.start(experiment_name="workflow"):
+    with R.start(experiment_name="workflow", uri=uri_path):
         R.log_params(**flatten_dict(CSI300_GBDT_TASK))
         model.fit(dataset)
         recorder = R.get_recorder()
@@ -25,10 +25,10 @@ def train_multiseg():
     return uri
 
 
-def train_mse():
+def train_mse(uri_path: str = None):
     model = init_instance_by_config(CSI300_GBDT_TASK["model"])
     dataset = init_instance_by_config(CSI300_GBDT_TASK["dataset"])
-    with R.start(experiment_name="workflow"):
+    with R.start(experiment_name="workflow", uri=uri_path):
         R.log_params(**flatten_dict(CSI300_GBDT_TASK))
         model.fit(dataset)
         recorder = R.get_recorder()
@@ -39,13 +39,17 @@ def train_mse():
 
 
 class TestAllFlow(TestAutoData):
+    URI_PATH = "file:" + str(Path(__file__).parent.joinpath("test_contrib_mlruns").resolve())
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        shutil.rmtree(cls.URI_PATH.lstrip("file:"))
+
     def test_0_multiseg(self):
-        uri_path = train_multiseg()
-        shutil.rmtree(str(Path(uri_path.strip("file:")).resolve()))
+        uri_path = train_multiseg(self.URI_PATH)
 
     def test_1_mse(self):
-        uri_path = train_mse()
-        shutil.rmtree(str(Path(uri_path.strip("file:")).resolve()))
+        uri_path = train_mse(self.URI_PATH)
 
 
 def suite():

@@ -15,8 +15,10 @@ import os
 import re
 import copy
 import logging
+import platform
 import multiprocessing
 from pathlib import Path
+from typing import Union
 
 
 class Config:
@@ -73,6 +75,12 @@ REG_US = "us"
 
 NUM_USABLE_CPU = max(multiprocessing.cpu_count() - 2, 1)
 
+DISK_DATASET_CACHE = "DiskDatasetCache"
+SIMPLE_DATASET_CACHE = "SimpleDatasetCache"
+DISK_EXPRESSION_CACHE = "DiskExpressionCache"
+
+DEPENDENCY_REDIS_CACHE = (DISK_DATASET_CACHE, DISK_EXPRESSION_CACHE)
+
 _default_config = {
     # data provider config
     "calendar_provider": "LocalCalendarProvider",
@@ -82,6 +90,15 @@ _default_config = {
     "dataset_provider": "LocalDatasetProvider",
     "provider": "LocalProvider",
     # config it in qlib.init()
+    # "provider_uri" str or dict:
+    #   # str
+    #   "~/.qlib/stock_data/cn_data"
+    #   # dict
+    #   {"day": "~/.qlib/stock_data/cn_data", "1min": "~/.qlib/stock_data/cn_data_1min"}
+    # NOTE: provider_uri priority：
+    #   1. backend_config: backend_obj["kwargs"]["provider_uri"]
+    #   2. backend_config: backend_obj["kwargs"]["provider_uri_map"]
+    #   3. qlib.init: provider_uri
     "provider_uri": "",
     # cache
     "expression_cache": None,
@@ -173,8 +190,9 @@ MODE_CONF = {
         "redis_task_db": 1,
         "kernels": NUM_USABLE_CPU,
         # cache
-        "expression_cache": "DiskExpressionCache",
-        "dataset_cache": "DiskDatasetCache",
+        "expression_cache": DISK_EXPRESSION_CACHE,
+        "dataset_cache": DISK_DATASET_CACHE,
+        "local_cache_path": Path("~/.cache/qlib_simple_cache").expanduser().resolve(),
         "mount_path": None,
     },
     "client": {
@@ -189,8 +207,10 @@ MODE_CONF = {
         "provider_uri": "~/.qlib/qlib_data/cn_data",
         # cache
         # Using parameter 'remote' to announce the client is using server_cache, and the writing access will be disabled.
-        "expression_cache": "DiskExpressionCache",
-        "dataset_cache": "DiskDatasetCache",
+        "expression_cache": DISK_EXPRESSION_CACHE,
+        "dataset_cache": DISK_DATASET_CACHE,
+        # SimpleDatasetCache directory
+        "local_cache_path": Path("~/.cache/qlib_simple_cache").expanduser().resolve(),
         "calendar_cache": None,
         # client config
         "kernels": NUM_USABLE_CPU,
@@ -234,10 +254,42 @@ class QlibConfig(Config):
     # URI_TYPE
     LOCAL_URI = "local"
     NFS_URI = "nfs"
+    DEFAULT_FREQ = "__DEFAULT_FREQ"
 
     def __init__(self, default_conf):
         super().__init__(default_conf)
         self._registered = False
+
+    class DataPathManager:
+        def __init__(self, provider_uri: Union[str, Path, dict], mount_path: Union[str, Path, dict]):
+            self.provider_uri = provider_uri
+            self.mount_path = mount_path
+
+        @staticmethod
+        def get_uri_type(uri: Union[str, Path]):
+            uri = uri if isinstance(uri, str) else str(uri.expanduser().resolve())
+            is_win = re.match("^[a-zA-Z]:.*", uri) is not None  # such as 'C:\\data', 'D:'
+            # such as 'host:/data/'   (User may define short hostname by themselves or use localhost)
+            is_nfs_or_win = re.match("^[^/]+:.+", uri) is not None
+
+            if is_nfs_or_win and not is_win:
+                return QlibConfig.NFS_URI
+            else:
+                return QlibConfig.LOCAL_URI
+
+        def get_data_uri(self, freq: str = None) -> Path:
+            if freq is None or freq not in self.provider_uri:
+                freq = QlibConfig.DEFAULT_FREQ
+            _provider_uri = self.provider_uri[freq]
+            if self.get_uri_type(_provider_uri) == QlibConfig.LOCAL_URI:
+                return Path(_provider_uri)
+            elif self.get_uri_type(_provider_uri) == QlibConfig.NFS_URI:
+                if "win" in platform.system().lower():
+                    # windows, mount_path is the drive
+                    return Path(f"{self.mount_path[freq]}:\\")
+                return Path(self.mount_path[freq])
+            else:
+                raise NotImplementedError(f"This type of uri is not supported")
 
     def set_mode(self, mode):
         # raise KeyError
@@ -248,13 +300,42 @@ class QlibConfig(Config):
         # raise KeyError
         self.update(_default_region_config[region])
 
+    @staticmethod
+    def is_depend_redis(cache_name: str):
+        return cache_name in DEPENDENCY_REDIS_CACHE
+
+    @property
+    def dpm(self):
+        return self.DataPathManager(self["provider_uri"], self["mount_path"])
+
     def resolve_path(self):
         # resolve path
-        if self["mount_path"] is not None:
-            self["mount_path"] = str(Path(self["mount_path"]).expanduser().resolve())
+        _mount_path = self["mount_path"]
+        _provider_uri = self["provider_uri"]
+        if _provider_uri is None:
+            raise ValueError("provider_uri cannot be None")
+        if not isinstance(_provider_uri, dict):
+            _provider_uri = {self.DEFAULT_FREQ: _provider_uri}
+        if not isinstance(_mount_path, dict):
+            _mount_path = {_freq: _mount_path for _freq in _provider_uri.keys()}
 
-        if self.get_uri_type() == QlibConfig.LOCAL_URI:
-            self["provider_uri"] = str(Path(self["provider_uri"]).expanduser().resolve())
+        # check provider_uri and mount_path
+        _miss_freq = set(_provider_uri.keys()) - set(_mount_path.keys())
+        assert len(_miss_freq) == 0, f"mount_path is missing freq: {_miss_freq}"
+
+        # resolve
+        for _freq, _uri in _provider_uri.items():
+            # provider_uri
+            if self.DataPathManager.get_uri_type(_uri) == QlibConfig.LOCAL_URI:
+                _provider_uri[_freq] = str(Path(_uri).expanduser().resolve())
+            # mount_path
+            _mount_path[_freq] = (
+                _mount_path[_freq]
+                if _mount_path[_freq] is None
+                else str(Path(_mount_path[_freq]).expanduser().resolve())
+            )
+        self["provider_uri"] = _provider_uri
+        self["mount_path"] = _mount_path
 
     def get_uri_type(self):
         path = self["provider_uri"]
@@ -269,14 +350,6 @@ class QlibConfig(Config):
             return QlibConfig.NFS_URI
         else:
             return QlibConfig.LOCAL_URI
-
-    def get_data_path(self):
-        if self.get_uri_type() == QlibConfig.LOCAL_URI:
-            return self["provider_uri"]
-        elif self.get_uri_type() == QlibConfig.NFS_URI:
-            return self["mount_path"]
-        else:
-            raise NotImplementedError(f"This type of uri is not supported")
 
     def set(self, default_conf: str = "client", **kwargs):
         """
@@ -325,11 +398,20 @@ class QlibConfig(Config):
         if not (self["expression_cache"] is None and self["dataset_cache"] is None):
             # check redis
             if not can_use_cache():
-                logger.warning(
-                    f"redis connection failed(host={self['redis_host']} port={self['redis_port']}), cache will not be used!"
-                )
-                self["expression_cache"] = None
-                self["dataset_cache"] = None
+                log_str = ""
+                # check expression cache
+                if self.is_depend_redis(self["expression_cache"]):
+                    log_str += self["expression_cache"]
+                    self["expression_cache"] = None
+                # check dataset cache
+                if self.is_depend_redis(self["dataset_cache"]):
+                    log_str += f" and {self['dataset_cache']}" if log_str else self["dataset_cache"]
+                    self["dataset_cache"] = None
+                if log_str:
+                    logger.warning(
+                        f"redis connection failed(host={self['redis_host']} port={self['redis_port']}), "
+                        f"{log_str} will not be used!"
+                    )
 
     def register(self):
         from .utils import init_instance_by_config

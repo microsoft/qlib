@@ -1,6 +1,7 @@
 #  Copyright (c) Microsoft Corporation.
 #  Licensed under the MIT License.
 
+from qlib.backtest import executor
 import re
 import logging
 import warnings
@@ -97,7 +98,7 @@ class RecordTemp:
         """
         return []
 
-    def check(self, parent=False):
+    def check(self, cls="self"):
         """
         Check if the records is properly generated and saved.
 
@@ -106,11 +107,9 @@ class RecordTemp:
         FileExistsError: whether the records are stored properly.
         """
         artifacts = set(self.recorder.list_artifacts())
-        if parent:
-            # Downcasting have to be done here instead of using `super`
-            flist = self.__class__.__base__.list(self)  # pylint: disable=E1101
-        else:
-            flist = self.list()
+        if cls == "self":
+            cls = self
+        flist = cls.list()
         for item in flist:
             if item not in artifacts:
                 raise FileExistsError(item)
@@ -164,7 +163,8 @@ class SignalRecord(RecordTemp):
             self.recorder.save_objects(**{"label.pkl": raw_label})
             self.dataset.__class__ = orig_cls
 
-    def list(self):
+    @staticmethod
+    def list():
         return ["pred.pkl", "label.pkl"]
 
     def load(self, name="pred.pkl"):
@@ -225,24 +225,22 @@ class HFSignalRecord(SignalRecord):
         return paths
 
 
-class SigAnaRecord(SignalRecord):
+class SigAnaRecord(RecordTemp):
     """
     This is the Signal Analysis Record class that generates the analysis results such as IC and IR. This class inherits the ``RecordTemp`` class.
     """
 
     artifact_path = "sig_analysis"
+    pre_class = SignalRecord
 
-    def __init__(self, recorder, ana_long_short=False, ann_scaler=252, label_col=0, **kwargs):
-        super().__init__(recorder=recorder, **kwargs)
+    def __init__(self, recorder, ana_long_short=False, ann_scaler=252, label_col=0):
+        super().__init__(recorder=recorder)
         self.ana_long_short = ana_long_short
         self.ann_scaler = ann_scaler
         self.label_col = label_col
 
     def generate(self, **kwargs):
-        try:
-            self.check(parent=True)
-        except FileExistsError:
-            super().generate()
+        self.check(self.pre_class)
 
         pred = self.load("pred.pkl")
         label = self.load("label.pkl")
@@ -327,7 +325,7 @@ class PortAnaRecord(RecordTemp):
             "module_path": "qlib.backtest.executor",
             "kwargs": {
                 "time_per_step": "day",
-                "generate_report": True,
+                "generate_portfolio_metrics": True,
             },
         }
         self.executor_config = config.get("executor", _default_executor_config)
@@ -354,7 +352,7 @@ class PortAnaRecord(RecordTemp):
 
     def _get_report_freq(self, executor_config):
         ret_freq = []
-        if executor_config["kwargs"].get("generate_report", False):
+        if executor_config["kwargs"].get("generate_portfolio_metrics", False):
             _count, _freq = Freq.parse(executor_config["kwargs"]["time_per_step"])
             ret_freq.append(f"{_count}{_freq}")
         if "sub_env" in executor_config["kwargs"]:
@@ -363,10 +361,10 @@ class PortAnaRecord(RecordTemp):
 
     def generate(self, **kwargs):
         # custom strategy and get backtest
-        report_dict, indicator_dict = normal_backtest(
+        portfolio_metric_dict, indicator_dict = normal_backtest(
             executor=self.executor_config, strategy=self.strategy_config, **self.backtest_config
         )
-        for _freq, (report_normal, positions_normal) in report_dict.items():
+        for _freq, (report_normal, positions_normal) in portfolio_metric_dict.items():
             self.recorder.save_objects(
                 **{f"report_normal_{_freq}.pkl": report_normal}, artifact_path=PortAnaRecord.get_path()
             )
@@ -380,12 +378,12 @@ class PortAnaRecord(RecordTemp):
             )
 
         for _analysis_freq in self.risk_analysis_freq:
-            if _analysis_freq not in report_dict:
+            if _analysis_freq not in portfolio_metric_dict:
                 warnings.warn(
-                    f"the freq {_analysis_freq} report is not found, please set the corresponding env with `generate_report=True`"
+                    f"the freq {_analysis_freq} report is not found, please set the corresponding env with `generate_portfolio_metrics=True`"
                 )
             else:
-                report_normal, _ = report_dict.get(_analysis_freq)
+                report_normal, _ = portfolio_metric_dict.get(_analysis_freq)
                 analysis = dict()
                 analysis["excess_return_without_cost"] = risk_analysis(
                     report_normal["return"] - report_normal["bench"], freq=_analysis_freq
