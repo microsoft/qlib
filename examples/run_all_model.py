@@ -133,7 +133,11 @@ def get_all_files(folder_path, dataset) -> (str, str):
 def get_all_results(folders) -> dict:
     results = dict()
     for fn in folders:
-        exp = R.get_exp(experiment_name=fn, create=False)
+        try:
+            exp = R.get_exp(experiment_name=fn, create=False)
+        except ValueError:
+            # No experiment results
+            continue
         recorders = exp.list_recorders()
         result = dict()
         result["annualized_return_with_cost"] = list()
