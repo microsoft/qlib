@@ -68,6 +68,15 @@ class Avg15minHandler(DataHandlerLP):
         # 2021-05-31 SZ300676     6.601626   6.465643   6.465130  ...   NaN    NaN -0.023428
 
         # features day: len(columns) == 6
+        # $close is the closing price of the current trading day：
+        #   if the user needs to get the `close` before the last T days, use Ref($close, T-1), for example:
+        #                                    $close  Ref($close, 1)  Ref($close, 2)  Ref($close, 3)  Ref($close, 4)
+        #         instrument datetime
+        #         SH600519   2021-06-01  244.271530
+        #                    2021-06-02  242.205917      244.271530
+        #                    2021-06-03  242.229889      242.205917      244.271530
+        #                    2021-06-04  245.421524      242.229889      242.205917      244.271530
+        #                    2021-06-07  247.547089      245.421524      242.229889      242.205917      244.271530
         fields = ["$close", "$open", "$low", "$high", "$volume", "$vwap"]
         # names: close0, open0, ..., vwap0
         names = list(map(lambda x: x.strip("$") + "0", fields))
