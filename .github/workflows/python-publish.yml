@@ -13,7 +13,8 @@ jobs:
     strategy:
       matrix:
         os: [windows-latest, macos-latest]
-        python-version: [3.6, 3.7, 3.8]
+        # not supporting 3.6 due to annotations is not supported https://stackoverflow.com/a/52890129
+        python-version: [3.7, 3.8]
 
     steps:
     - uses: actions/checkout@v2
@@ -44,7 +45,8 @@ jobs:
     - name: Build wheel on Linux
       uses: RalfG/python-wheels-manylinux-build@v0.3.1-manylinux2010_x86_64
       with:
-        python-versions: 'cp36-cp36m cp37-cp37m cp38-cp38'
+        # not supporting 3.6 due to annotations is not supported https://stackoverflow.com/a/52890129
+        python-versions: 'cp37-cp37m cp38-cp38'
         build-requirements: 'numpy cython'
     - name: Set up Python
       uses: actions/setup-python@v2
