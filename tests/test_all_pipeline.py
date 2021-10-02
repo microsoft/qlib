@@ -47,6 +47,7 @@ def train(uri_path: str = None):
         rid = recorder.id
         sr = SignalRecord(model, dataset, recorder)
         sr.generate()
+        pred_score = sr.load(sr.get_path("pred.pkl"))
 
         # calculate ic and ric
         sar = SigAnaRecord(recorder)
@@ -54,7 +55,7 @@ def train(uri_path: str = None):
         ic = sar.load(sar.get_path("ic.pkl"))
         ric = sar.load(sar.get_path("ric.pkl"))
 
-    return {"ic": ic, "ric": ric}, rid
+    return pred_score, {"ic": ic, "ric": ric}, rid
 
 
 def train_with_sigana(uri_path: str = None):
@@ -73,16 +74,20 @@ def train_with_sigana(uri_path: str = None):
     with R.start(experiment_name="workflow_with_sigana", uri=uri_path):
         R.log_params(**flatten_dict(CSI300_GBDT_TASK))
         model.fit(dataset)
+        recorder = R.get_recorder()
+
+        sr = SignalRecord(model, dataset, recorder)
+        sr.generate()
+        pred_score = sr.load(sr.get_path("pred.pkl"))
 
         # predict and calculate ic and ric
-        recorder = R.get_recorder()
-        sar = SigAnaRecord(recorder, model=model, dataset=dataset)
+        sar = SigAnaRecord(recorder)
         sar.generate()
         ic = sar.load(sar.get_path("ic.pkl"))
         ric = sar.load(sar.get_path("ric.pkl"))
 
         uri_path = R.get_uri()
-    return {"ic": ic, "ric": ric}, uri_path
+    return pred_score, {"ic": ic, "ric": ric}, uri_path
 
 
 def fake_experiment():
@@ -122,7 +127,9 @@ def backtest_analysis(pred, rid, uri_path: str = None):
         the analysis result
 
     """
-    recorder = R.get_recorder(experiment_name="workflow", recorder_id=rid)
+    with R.uri_context(uri=uri_path):
+        recorder = R.get_recorder(experiment_name="workflow", recorder_id=rid)
+
     dataset = init_instance_by_config(CSI300_GBDT_TASK["dataset"])
     model = recorder.load_object("trained_model")
 

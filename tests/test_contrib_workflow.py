@@ -1,6 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+from qlib.workflow.record_temp import SignalRecord
 import shutil
 import unittest
 from pathlib import Path
@@ -32,7 +33,8 @@ def train_mse(uri_path: str = None):
         R.log_params(**flatten_dict(CSI300_GBDT_TASK))
         model.fit(dataset)
         recorder = R.get_recorder()
-        sr = SignalMseRecord(recorder, model=model, dataset=dataset)
+        SignalRecord(recorder=recorder, model=model, dataset=dataset).generate()
+        sr = SignalMseRecord(recorder)
         sr.generate()
         uri = R.get_uri()
     return uri
