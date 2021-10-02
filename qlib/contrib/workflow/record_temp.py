@@ -57,22 +57,20 @@ class MultiSegRecord(RecordTemp):
                 )
 
 
-class SignalMseRecord(SignalRecord):
+class SignalMseRecord(RecordTemp):
     """
     This is the Signal MSE Record class that computes the mean squared error (MSE).
     This class inherits the ``SignalMseRecord`` class.
     """
 
     artifact_path = "sig_analysis"
+    depend_cls = SignalRecord
 
     def __init__(self, recorder, **kwargs):
         super().__init__(recorder=recorder, **kwargs)
 
-    def generate(self, **kwargs):
-        try:
-            self.check(parent=True)
-        except FileExistsError:
-            super().generate()
+    def generate(self):
+        self.check()
 
         pred = self.load("pred.pkl")
         label = self.load("label.pkl")

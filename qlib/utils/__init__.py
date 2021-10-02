@@ -289,6 +289,25 @@ def init_instance_by_config(
     return klass(**cls_kwargs, **kwargs)
 
 
+@contextlib.contextmanager
+def class_casting(obj: object, cls: type):
+    """
+    Python doesn't provide the downcasting mechanism.
+    We use the trick here to downcast the class
+
+    Parameters
+    ----------
+    obj : object
+        the object to be cast
+    cls : type
+        the target class type
+    """
+    orig_cls = obj.__class__
+    obj.__class__ = cls
+    yield
+    obj.__class__ = orig_cls
+
+
 def compare_dict_value(src_data: dict, dst_data: dict):
     """Compare dict value
 

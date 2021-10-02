@@ -15,8 +15,6 @@ from qlib.workflow.online.update import LabelUpdater
 
 
 class TestRolling(TestAutoData):
-    _setup_kwargs = dict(expression_cache=None, dataset_cache=None)
-
     def test_update_pred(self):
         """
         This test is for testing if it will raise error if the `to_date` is out of the boundary.
@@ -26,6 +24,7 @@ class TestRolling(TestAutoData):
         task["record"] = {
             "class": "SignalRecord",
             "module_path": "qlib.workflow.record_temp",
+            "kwargs": {"dataset": "<DATASET>", "model": "<MODEL>"},
         }
 
         exp_name = "online_srv_test"
@@ -65,6 +64,7 @@ class TestRolling(TestAutoData):
         task["record"] = {
             "class": "SignalRecord",
             "module_path": "qlib.workflow.record_temp",
+            "kwargs": {"dataset": "<DATASET>", "model": "<MODEL>"},
         }
 
         exp_name = "online_srv_test"
