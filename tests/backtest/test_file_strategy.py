@@ -6,19 +6,20 @@ from qlib.backtest import backtest, decision
 from qlib.tests import TestAutoData
 import pandas as pd
 from pathlib import Path
+from qlib.data import D
+import numpy as np
 
 DIRNAME = Path(__file__).absolute().resolve().parent
 
 
 class FileStrTest(TestAutoData):
-
+    # Assumption to ensure the correctness of the test
+    # - No price adjustment in these several trading days.
     TEST_INST = "SH600519"
 
     EXAMPLE_FILE = DIRNAME / "order_example.csv"
 
-    DEAL_NUM_FOR_1000 = 123.47105436976445
-
-    def _gen_orders(self) -> pd.DataFrame:
+    def _gen_orders(self, dealt_num_for_1000) -> pd.DataFrame:
         headers = [
             "datetime",
             "instrument",
@@ -37,18 +38,29 @@ class FileStrTest(TestAutoData):
             # test min_cost for selling
             ["20200109", self.TEST_INST, "1", "sell"],
             # test selling all stocks
-            ["20200110", self.TEST_INST, str(self.DEAL_NUM_FOR_1000), "sell"],
+            ["20200110", self.TEST_INST, str(dealt_num_for_1000), "sell"],
         ]
         return pd.DataFrame(orders, columns=headers).set_index(["datetime", "instrument"])
 
     def test_file_str(self):
+        # 0) basic settings
+        account_money = 150000
 
-        orders = self._gen_orders()
+        # 1) get information
+        df = D.features([self.TEST_INST], ["$close", "$factor"], start_time="20200103", end_time="20200103")
+        price = df["$close"].item()
+        factor = df["$factor"].item()
+        price_unit = price / factor * 100
+        dealt_num_for_1000 = (account_money // price_unit) * (100 / factor)
+
+        # 2) generate orders
+        orders = self._gen_orders(dealt_num_for_1000)
         print(orders)
         orders.to_csv(self.EXAMPLE_FILE)
 
         orders = pd.read_csv(self.EXAMPLE_FILE, index_col=["datetime", "instrument"])
 
+        # 3) run the strategy
         strategy_config = {
             "class": "FileOrderStrategy",
             "module_path": "qlib.contrib.strategy.rule_strategy",
@@ -63,7 +75,7 @@ class FileStrTest(TestAutoData):
         backtest_config = {
             "start_time": start_time,
             "end_time": end_time,
-            "account": 30000,
+            "account": account_money,
             "benchmark": None,  # benchmark is not required here for trading
             "exchange_kwargs": {
                 "freq": freq,
@@ -73,7 +85,7 @@ class FileStrTest(TestAutoData):
                 "close_cost": 0.0015,
                 "min_cost": 500,
                 "codes": codes,
-                "trade_unit": 2,
+                "trade_unit": 100,
             },
             # "pos_type": "InfPosition"  # Position with infinitive position
         }
@@ -94,12 +106,12 @@ class FileStrTest(TestAutoData):
         # ffr valid
         ffr_dict = indicator_dict["1day"]["ffr"].to_dict()
         ffr_dict = {str(date).split()[0]: ffr_dict[date] for date in ffr_dict}
-        assert ffr_dict["2020-01-03"] == self.DEAL_NUM_FOR_1000 / 1000
-        assert ffr_dict["2020-01-06"] == 0
-        assert ffr_dict["2020-01-07"] == self.DEAL_NUM_FOR_1000 / 1000
-        assert ffr_dict["2020-01-08"] == self.DEAL_NUM_FOR_1000 / 1000
-        assert ffr_dict["2020-01-09"] == 0
-        assert ffr_dict["2020-01-10"] == 1
+        assert np.isclose(ffr_dict["2020-01-03"], dealt_num_for_1000 / 1000)
+        assert np.isclose(ffr_dict["2020-01-06"], 0)
+        assert np.isclose(ffr_dict["2020-01-07"], dealt_num_for_1000 / 1000)
+        assert np.isclose(ffr_dict["2020-01-08"], dealt_num_for_1000 / 1000)
+        assert np.isclose(ffr_dict["2020-01-09"], 0)
+        assert np.isclose(ffr_dict["2020-01-10"], 1)
 
         self.EXAMPLE_FILE.unlink()
 

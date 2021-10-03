@@ -102,7 +102,7 @@ class RecordTemp:
     def check(self, include_self: bool = False):
         """
         Check if the records is properly generated and saved.
-        It is useful in fololwing examples
+        It is useful in following examples
         - checking if the depended files complete before genrating new things.
         - checking if the final files is completed
 

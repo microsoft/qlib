@@ -345,15 +345,19 @@ class Position(BasePosition):
         if stock_id not in self.position:
             raise KeyError("{} not in current position".format(stock_id))
         else:
-            # decrease the amount of stock
-            self.position[stock_id]["amount"] -= trade_amount
-            # check if to delete
-            if self.position[stock_id]["amount"] < -1e-5:
-                raise ValueError(
-                    "only have {} {}, require {}".format(self.position[stock_id]["amount"], stock_id, trade_amount)
-                )
-            elif abs(self.position[stock_id]["amount"]) <= 1e-5:
+            if np.isclose(self.position[stock_id]["amount"], trade_amount):
+                # Selling all the stocks
+                # we use np.isclose instead of abs(<the final amount>) <= 1e-5  because `np.isclose` consider both ralative amount and absolute amount
+                # Using  abs(<the final amount>) <= 1e-5 will result in error when the amount is large
                 self._del_stock(stock_id)
+            else:
+                # decrease the amount of stock
+                self.position[stock_id]["amount"] -= trade_amount
+                # check if to delete
+                if self.position[stock_id]["amount"] < -1e-5:
+                    raise ValueError(
+                        "only have {} {}, require {}".format(self.position[stock_id]["amount"], stock_id, trade_amount)
+                    )
 
         new_cash = trade_val - cost
         if self._settle_type == self.ST_CASH:
