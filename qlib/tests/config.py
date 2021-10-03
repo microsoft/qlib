@@ -35,6 +35,10 @@ RECORD_CONFIG = [
     {
         "class": "SignalRecord",
         "module_path": "qlib.workflow.record_temp",
+        "kwargs": {
+            "dataset": "<DATASET>",
+            "model": "<MODEL>",
+        },
     },
     {
         "class": "SigAnaRecord",

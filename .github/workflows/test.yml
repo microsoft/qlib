@@ -13,7 +13,8 @@ jobs:
     strategy:
       matrix:
         os: [windows-latest, ubuntu-18.04, ubuntu-20.04]
-        python-version: [3.6, 3.7, 3.8]
+        # not supporting 3.6 due to annotations is not supported https://stackoverflow.com/a/52890129
+        python-version: [3.7, 3.8]
 
     steps:
     - uses: actions/checkout@v2
@@ -48,15 +49,6 @@ jobs:
       run: |
         pip install --upgrade cython jupyter jupyter_contrib_nbextensions numpy scipy scikit-learn # installing without this line will cause errors on GitHub Actions, while instsalling locally won't
         pip install -e .
-
-    - name: Test data downloads
-      run: |
-        if [ "$RUNNER_OS" == "Windows" ]; then
-          $CONDA\\python.exe scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/cn_data --interval 1d --region cn
-        else
-          $CONDA/bin/python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/cn_data --interval 1d --region cn
-        fi
-      shell: bash
 
     - name: Install test dependencies
       run: |

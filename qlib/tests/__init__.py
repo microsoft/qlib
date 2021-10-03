@@ -44,36 +44,10 @@ class TestAutoData(unittest.TestCase):
             )
 
         provider_uri_map = {"1min": cls.provider_uri_1min, "day": provider_uri_day}
-
-        client_config = {
-            "calendar_provider": {
-                "class": "LocalCalendarProvider",
-                "module_path": "qlib.data.data",
-                "kwargs": {
-                    "backend": {
-                        "class": "FileCalendarStorage",
-                        "module_path": "qlib.data.storage.file_storage",
-                        "kwargs": {"provider_uri_map": provider_uri_map},
-                    }
-                },
-            },
-            "feature_provider": {
-                "class": "LocalFeatureProvider",
-                "module_path": "qlib.data.data",
-                "kwargs": {
-                    "backend": {
-                        "class": "FileFeatureStorage",
-                        "module_path": "qlib.data.storage.file_storage",
-                        "kwargs": {"provider_uri_map": provider_uri_map},
-                    }
-                },
-            },
-        }
         init(
-            provider_uri=cls.provider_uri,
+            provider_uri=provider_uri_map,
             region=REG_CN,
             expression_cache=None,
             dataset_cache=None,
-            **client_config,
             **cls._setup_kwargs,
         )
