@@ -10,9 +10,10 @@ on:
 jobs:
   build:
 
-    runs-on: macos-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
+        os: [macos-11, macos-latest]
         python-version: [3.6, 3.7, 3.8]
 
     steps:
