@@ -33,27 +33,30 @@ def w_order(f, start, end):
     order_valid = order_test[order_test.index.get_level_values(0) < '2021-01-01']
     order_test = order_test[order_test.index.get_level_values(0) >= '2021-01-01']
     if len(order_train) > 0:
-        train_path = os.path.join(data_path, "order/train/")
-        if not os.path.exists(train_path):
-            os.makedirs(train_path)
         order_train.to_pickle(train_path + f[:-9] + '.target')
     if len(order_valid) > 0:
-        valid_path = os.path.join(data_path, "order/valid/")
-        if not os.path.exists(valid_path):
-            os.makedirs(valid_path)
         order_valid.to_pickle(valid_path + f[:-9] + '.target')
     if len(order_test) > 0:
-        test_path = os.path.join(data_path, "order/test/")
-        if not os.path.exists(test_path):
-            os.makedirs(test_path)
         order_test.to_pickle(test_path + f[:-9] + '.target')
     if len(order) > 0:
-        all_path = os.path.join(data_path, "order/all/")
-        if not os.path.exists(all_path):
-            os.makedirs(all_path)
-
         order.to_pickle(all_path + f[:-9] + '.target')
     return 0
+
+train_path = os.path.join(data_path, "order/train/")
+if not os.path.exists(train_path):
+    os.makedirs(train_path)
+
+valid_path = os.path.join(data_path, "order/valid/")
+if not os.path.exists(valid_path):
+    os.makedirs(valid_path)
+
+test_path = os.path.join(data_path, "order/test/")
+if not os.path.exists(test_path):
+    os.makedirs(test_path)
+
+all_path = os.path.join(data_path, "order/all/")
+if not os.path.exists(all_path):
+    os.makedirs(all_path)
 
 res = Parallel(n_jobs=64)(delayed(w_order)(f, 0, 239) for f in os.listdir(in_dir))
 print(sum(res))
