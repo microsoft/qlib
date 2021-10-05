@@ -74,7 +74,7 @@ class TRAModel(Model):
         lamb=0.0,
         rho=0.99,
         alpha=1.0,
-        seed=0,
+        seed=None,
         logdir=None,
         eval_train=False,
         eval_test=False,
