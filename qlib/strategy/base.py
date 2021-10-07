@@ -7,6 +7,7 @@ if TYPE_CHECKING:
     from qlib.backtest.exchange import Exchange
     from qlib.backtest.position import BasePosition
 from typing import List, Tuple, Union
+import pandas as pd
 
 from ..model.base import BaseModel
 from ..data.dataset import DatasetH
@@ -219,6 +220,8 @@ class ModelStrategy(BaseStrategy):
         self.model = model
         self.dataset = dataset
         self.pred_scores = convert_index_format(self.model.predict(dataset), level="datetime")
+        if isinstance(self.pred_scores, pd.DataFrame):
+            self.pred_scores = self.pred_scores.iloc[:, 0]
 
     def _update_model(self):
         """
