@@ -61,7 +61,7 @@ class TCTS(Model):
         weight_lr=5e-7,
         steps=3,
         GPU=0,
-        seed=0,
+        seed=None,
         target_label=0,
         lowest_valid_performance=0.993,
         **kwargs

@@ -311,5 +311,11 @@ class TFTModel(ModelFT):
         # self.model.save(path)
 
         # save qlib model wrapper
-        self.model = None
+        drop_attrs = ["model", "tf_graph", "sess", "data_formatter"]
+        orig_attr = {}
+        for attr in drop_attrs:
+            orig_attr[attr] = getattr(self, attr)
+            setattr(self, attr, None)
         super(TFTModel, self).to_pickle(path)
+        for attr in drop_attrs:
+            setattr(self, attr, orig_attr[attr])

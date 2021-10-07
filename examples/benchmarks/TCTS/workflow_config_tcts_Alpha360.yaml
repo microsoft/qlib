@@ -69,6 +69,7 @@ task:
             steps: 3
             target_label: 1
             lowest_valid_performance: 0.993
+            seed: 0
     dataset:
         class: DatasetH
         module_path: qlib.data.dataset

@@ -50,6 +50,7 @@ task:
         kwargs:
             d_feat: 158
             pretrain: True
+            seed: 993
     dataset:
         class: DatasetH
         module_path: qlib.data.dataset
