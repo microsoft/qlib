@@ -48,8 +48,10 @@ class TaskManager:
     The mongo fetch one and update will make it date updating secure.
 
     This class can be used as a tool from commandline. Here are serveral examples.
-    "Wait" means main progress wait until all tasks are trained well by other progress or machines. 
-    "Task_stat" means to count the number of processes in various states in the task pool.
+    
+    You can view the help of manage module in the following command format:
+    python -m qlib.workflow.task.manage -h # show manual of manage module CLI
+    python -m qlib.workflow.task.manage wait -h # show manual of the wait command of manage
 
     .. code-block:: shell
 
