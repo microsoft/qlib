@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 from contextlib import contextmanager
-from typing import Text, Optional
+from typing import Any, Dict, Text, Optional
 from .expm import ExpManager
 from .exp import Experiment
 from .recorder import Recorder
@@ -380,11 +380,11 @@ class QlibRecorder:
         .. code-block:: Python
 
             # Case 1
-            with R.start('test'):
+            with R.start(experiment_name='test'):
                 recorder = R.get_recorder()
 
             # Case 2
-            with R.start('test'):
+            with R.start(experiment_name='test'):
                 recorder = R.get_recorder(recorder_id='2e7a4efd66574fa49039e00ffaefa99d')
 
             # Case 3
@@ -433,7 +433,7 @@ class QlibRecorder:
         """
         self.get_exp().delete_recorder(recorder_id, recorder_name)
 
-    def save_objects(self, local_path=None, artifact_path=None, **kwargs):
+    def save_objects(self, local_path=None, artifact_path=None, **kwargs: Dict[Text, Any]):
         """
         Method for saving objects as artifacts in the experiment to the uri. It supports either saving
         from a local file/directory, or directly saving objects. User can use valid python's keywords arguments
@@ -451,13 +451,20 @@ class QlibRecorder:
         .. code-block:: Python
 
             # Case 1
-            with R.start('test'):
+            with R.start(experiment_name='test'):
                 pred = model.predict(dataset)
                 R.save_objects(**{"pred.pkl": pred}, artifact_path='prediction')
+                rid = R.get_recorder().id
+            ...
+            R.get_recorder(recorder_id=rid).load_object("prediction/pred.pkl")  #  after saving objects, you can load the previous object with this api
 
             # Case 2
-            with R.start('test'):
-                R.save_objects(local_path='results/pred.pkl')
+            with R.start(experiment_name='test'):
+                R.save_objects(local_path='results/pred.pkl', artifact_path="prediction")
+                rid = R.get_recorder().id
+            ...
+            R.get_recorder(recorder_id=rid).load_object("prediction/pred.pkl")  #  after saving objects, you can load the previous object with this api
+
 
         Parameters
         ----------
@@ -465,7 +472,14 @@ class QlibRecorder:
             if provided, them save the file or directory to the artifact URI.
         artifact_path : str
             the relative path for the artifact to be stored in the URI.
+        **kwargs: Dict[Text, Any]
+            the object to be saved.
+            For example, `{"pred.pkl": pred}`
         """
+        if local_path is not None and len(kwargs) > 0:
+            raise ValueError(
+                "You can choose only one of `local_path`(save the files in a path) or `kwargs`(pass in the objects directly)"
+            )
         self.get_exp().get_recorder().save_objects(local_path, artifact_path, **kwargs)
 
     def load_object(self, name: Text):
