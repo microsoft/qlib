@@ -439,6 +439,12 @@ class QlibRecorder:
         from a local file/directory, or directly saving objects. User can use valid python's keywords arguments
         to specify the object to be saved as well as its name (name: value).
 
+        In summary, this API is designs for saving **objects** to **the experiments management backend path**,
+        1. Qlib provide two methods to specify **objects**
+        - Passing in the object directly by passing with `**kwargs` (e.g. R.save_objects(trained_model=model))
+        - Passing in the local path to the object, i.e. `local_path` parameter.
+        2. `artifact_path` represents the  **the experiments management backend path**
+
         - If `active recorder` exists: it will save the objects through the active recorder.
         - If `active recorder` not exists: the system will create a default experiment, and a new recorder and save objects under it.
 
