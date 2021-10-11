@@ -65,6 +65,8 @@ class Recorder:
         Save objects such as prediction file or model checkpoints to the artifact URI. User
         can save object through keywords arguments (name:value).
 
+        Please refer to the docs of qlib.workflow:R.save_objects
+
         Parameters
         ----------
         local_path : str
