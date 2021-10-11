@@ -260,7 +260,6 @@ class TCTS(Model):
         x_valid, y_valid = df_valid["feature"], df_valid["label"]
         x_test, y_test = df_test["feature"], df_test["label"]
 
-
         if save_path == None:
             save_path = get_or_create_path(save_path)
         best_loss = np.inf
