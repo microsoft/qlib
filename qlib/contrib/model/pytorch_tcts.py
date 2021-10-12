@@ -61,8 +61,9 @@ class TCTS(Model):
         weight_lr=5e-7,
         steps=3,
         GPU=0,
-        seed=None,
         target_label=0,
+        mode="soft",
+        seed=None,
         lowest_valid_performance=0.993,
         **kwargs
     ):
@@ -87,6 +88,7 @@ class TCTS(Model):
         self.weight_lr = weight_lr
         self.steps = steps
         self.target_label = target_label
+        self.mode = mode
         self.lowest_valid_performance = lowest_valid_performance
         self._fore_optimizer = fore_optimizer
         self._weight_optimizer = weight_optimizer
@@ -100,6 +102,8 @@ class TCTS(Model):
             "\nn_epochs : {}"
             "\nbatch_size : {}"
             "\nearly_stop : {}"
+            "\ntarget_label : {}"
+            "\nmode : {}"
             "\nloss_type : {}"
             "\nvisible_GPU : {}"
             "\nuse_GPU : {}"
@@ -111,6 +115,8 @@ class TCTS(Model):
                 n_epochs,
                 batch_size,
                 early_stop,
+                target_label,
+                mode,
                 loss,
                 GPU,
                 self.use_gpu,
@@ -120,9 +126,17 @@ class TCTS(Model):
 
     def loss_fn(self, pred, label, weight):
 
-        loc = torch.argmax(weight, 1)
-        loss = (pred - label[np.arange(weight.shape[0]), loc]) ** 2
-        return torch.mean(loss)
+        if self.mode == "hard":
+            loc = torch.argmax(weight, 1)
+            loss = (pred - label[np.arange(weight.shape[0]), loc]) ** 2
+            return torch.mean(loss)
+
+        elif self.mode == "soft":
+            loss = (pred - label.transpose(0, 1)) ** 2
+            return torch.mean(loss * weight.transpose(0, 1))
+
+        else:
+            raise NotImplementedError("mode {} is not supported!".format(self.mode))
 
     def train_epoch(self, x_train, y_train, x_valid, y_valid):
 
@@ -131,6 +145,10 @@ class TCTS(Model):
 
         indices = np.arange(len(x_train_values))
         np.random.shuffle(indices)
+
+        task_embedding = torch.zeros([self.batch_size, self.output_dim])
+        task_embedding[:, self.target_label] = 1
+        task_embedding = task_embedding.to(self.device)
 
         init_fore_model = copy.deepcopy(self.fore_model)
         for p in init_fore_model.parameters():
@@ -155,12 +173,13 @@ class TCTS(Model):
 
                 init_pred = init_fore_model(feature)
                 pred = self.fore_model(feature)
-
                 dis = init_pred - label.transpose(0, 1)
-                weight_feature = torch.cat((feature, dis.transpose(0, 1), label, init_pred.view(-1, 1)), 1)
+                weight_feature = torch.cat(
+                    (feature, dis.transpose(0, 1), label, init_pred.view(-1, 1), task_embedding), 1
+                )
                 weight = self.weight_model(weight_feature)
 
-                loss = self.loss_fn(pred, label, weight)  # hard
+                loss = self.loss_fn(pred, label, weight)
 
                 self.fore_optimizer.zero_grad()
                 loss.backward()
@@ -188,11 +207,11 @@ class TCTS(Model):
 
             pred = self.fore_model(feature)
             dis = pred - label.transpose(0, 1)
-            weight_feature = torch.cat((feature, dis.transpose(0, 1), label, pred.view(-1, 1)), 1)
+            weight_feature = torch.cat((feature, dis.transpose(0, 1), label, pred.view(-1, 1), task_embedding), 1)
             weight = self.weight_model(weight_feature)
             loc = torch.argmax(weight, 1)
-            valid_loss = torch.mean((pred - label[:, 0]) ** 2)
-            loss = torch.mean(-valid_loss * torch.log(weight[np.arange(weight.shape[0]), loc]))
+            valid_loss = torch.mean((pred - label[:, abs(self.target_label)]) ** 2)
+            loss = torch.mean(valid_loss * torch.log(weight[np.arange(weight.shape[0]), loc]))
 
             self.weight_optimizer.zero_grad()
             loss.backward()
@@ -207,7 +226,6 @@ class TCTS(Model):
 
         self.fore_model.eval()
 
-        scores = []
         losses = []
 
         indices = np.arange(len(x_values))
@@ -277,7 +295,7 @@ class TCTS(Model):
             dropout=self.dropout,
         )
         self.weight_model = MLPModel(
-            d_feat=360 + 2 * self.output_dim + 1,
+            d_feat=360 + 3 * self.output_dim + 1,
             hidden_size=self.hidden_size,
             num_layers=self.num_layers,
             dropout=self.dropout,
@@ -303,8 +321,6 @@ class TCTS(Model):
         best_loss = np.inf
         best_epoch = 0
         stop_round = 0
-        fore_best_param = copy.deepcopy(self.fore_optimizer.state_dict())
-        weight_best_param = copy.deepcopy(self.weight_optimizer.state_dict())
 
         for epoch in range(self.n_epochs):
             print("Epoch:", epoch)
