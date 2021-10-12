@@ -27,7 +27,7 @@ import collections
 import numpy as np
 import pandas as pd
 from pathlib import Path
-from typing import Union, Tuple, Any, Text, Optional
+from typing import Dict, Union, Tuple, Any, Text, Optional
 from types import ModuleType
 from urllib.parse import urlparse
 
@@ -232,7 +232,11 @@ get_cls_kwargs = get_callable_kwargs  # NOTE: this is for compatibility for the 
 
 
 def init_instance_by_config(
-    config: Union[str, dict, object], default_module=None, accept_types: Union[type, Tuple[type]] = (), **kwargs
+    config: Union[str, dict, object],
+    default_module=None,
+    accept_types: Union[type, Tuple[type]] = (),
+    try_kwargs: Dict = {},
+    **kwargs,
 ) -> Any:
     """
     get initialized instance with config
@@ -270,6 +274,10 @@ def init_instance_by_config(
         Optional. If the config is a instance of specific type, return the config directly.
         This will be passed into the second parameter of isinstance.
 
+    try_kwargs: Dict
+        Try to pass in kwargs in `try_kwargs` when initialized the instance
+        If error occurred, it will fail back to initialization without try_kwargs.
+
     Returns
     -------
     object:
@@ -286,7 +294,14 @@ def init_instance_by_config(
                 return pickle.load(f)
 
     klass, cls_kwargs = get_callable_kwargs(config, default_module=default_module)
-    return klass(**cls_kwargs, **kwargs)
+
+    try:
+        return klass(**cls_kwargs, **try_kwargs, **kwargs)
+    except (TypeError,):
+        # TypeError for handling errors like
+        # 1: `XXX() got multiple values for keyword argument 'YYY'`
+        # 2: `XXX() got an unexpected keyword argument 'YYY'
+        return klass(**cls_kwargs, **kwargs)
 
 
 @contextlib.contextmanager
