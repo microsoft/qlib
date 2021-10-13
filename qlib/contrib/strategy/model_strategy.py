@@ -96,6 +96,8 @@ class TopkDropoutStrategy(ModelStrategy):
             def get_first_n(l, n, reverse=False):
                 cur_n = 0
                 res = []
+                if n == 0:
+                    return res
                 for si in reversed(l) if reverse else l:
                     if self.trade_exchange.is_stock_tradable(
                         stock_id=si, start_time=trade_start_time, end_time=trade_end_time
@@ -169,9 +171,7 @@ class TopkDropoutStrategy(ModelStrategy):
                 sell = candi
         else:
             raise NotImplementedError(f"This type of input is not supported")
-
-        # Get the stock list we really want to buy
-        buy = today[: len(sell) + self.topk - len(last)]
+                
         for code in current_stock_list:
             if not self.trade_exchange.is_stock_tradable(
                 stock_id=code, start_time=trade_start_time, end_time=trade_end_time
@@ -203,6 +203,11 @@ class TopkDropoutStrategy(ModelStrategy):
                     )
                     # update cash
                     cash += trade_val - trade_cost
+        
+        # Get the stock list we really want to buy
+        sell_size = len(sell_order_list)
+        buy = today[: self.topk - len(last) + sell_size]
+        
         # buy new stock
         # note the current has been changed
         current_stock_list = current_temp.get_stock_list()
