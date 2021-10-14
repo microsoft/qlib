@@ -25,6 +25,8 @@ class LGBModel(ModelFT, LightGBMFInt):
         df_train, df_valid = dataset.prepare(
             ["train", "valid"], col_set=["feature", "label"], data_key=DataHandlerLP.DK_L
         )
+        if df_train.empty or df_valid.empty:
+            raise ValueError("Empty data from dataset, please check your dataset config.")
         x_train, y_train = df_train["feature"], df_train["label"]
         x_valid, y_valid = df_valid["feature"], df_valid["label"]
 
@@ -83,6 +85,8 @@ class LGBModel(ModelFT, LightGBMFInt):
         """
         # Based on existing model and finetune by train more rounds
         dtrain, _ = self._prepare_data(dataset)
+        if dtrain.empty:
+            raise ValueError("Empty data from dataset, please check your dataset config.")
         self.model = lgb.train(
             self.params,
             dtrain,

@@ -224,6 +224,8 @@ class ALSTM(Model):
             col_set=["feature", "label"],
             data_key=DataHandlerLP.DK_L,
         )
+        if df_train.empty or df_valid.empty:
+            raise ValueError("Empty data from dataset, please check your dataset config.")
 
         x_train, y_train = df_train["feature"], df_train["label"]
         x_valid, y_valid = df_valid["feature"], df_valid["label"]
