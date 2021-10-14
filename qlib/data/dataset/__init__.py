@@ -385,6 +385,10 @@ class TSDataSampler:
                     idx_map[real_idx] = (i, j)
         return idx_df, idx_map
 
+    @property
+    def empty(self):
+        return self.__len__() == 0
+
     def _get_indices(self, row: int, col: int) -> np.array:
         """
         get series indices of self.data_arr from the row, col indices of self.idx_df

@@ -85,7 +85,7 @@ class LGBModel(ModelFT, LightGBMFInt):
         """
         # Based on existing model and finetune by train more rounds
         dtrain, _ = self._prepare_data(dataset)
-        if df_train.empty:
+        if dtrain.empty:
             raise ValueError("Empty data from dataset, please check your dataset config.")
         self.model = lgb.train(
             self.params,
