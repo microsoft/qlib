@@ -80,6 +80,9 @@ class OrderGenWInteract(OrderGenerator):
 
         :rtype: list
         """
+        if target_weight_position is None:
+            return []
+
         # calculate current_tradable_value
         current_amount_dict = current.get_stock_amount_dict()
 
@@ -164,6 +167,9 @@ class OrderGenWOInteract(OrderGenerator):
 
         :rtype: list of generated orders
         """
+        if target_weight_position is None:
+            return []
+
         risk_total_value = risk_degree * current.calculate_value()
 
         current_stock = current.get_stock_list()
