@@ -127,7 +127,7 @@ class OrderGenWInteract(OrderGenerator):
             start_time=trade_start_time,
             end_time=trade_end_time,
         )
-        return TradeDecisionWO(order_list, self)
+        return order_list
 
 
 class OrderGenWOInteract(OrderGenerator):
@@ -163,7 +163,7 @@ class OrderGenWOInteract(OrderGenerator):
         :param trade_date:
         :type trade_date: pd.Timestamp
 
-        :rtype: list
+        :rtype: list of generated orders
         """
         risk_total_value = risk_degree * current.calculate_value()
 
@@ -191,4 +191,4 @@ class OrderGenWOInteract(OrderGenerator):
             start_time=trade_start_time,
             end_time=trade_end_time,
         )
-        return TradeDecisionWO(order_list, self)
+        return order_list
