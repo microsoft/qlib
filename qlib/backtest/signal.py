@@ -62,8 +62,6 @@ class SignalWCache(Signal):
 
 
 class ModelSignal(SignalWCache):
-    ...
-
     def __init__(self, model: BaseModel, dataset: Dataset):
         self.model = model
         self.dataset = dataset
