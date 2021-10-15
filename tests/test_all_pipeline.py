@@ -146,8 +146,7 @@ def backtest_analysis(pred, rid, uri_path: str = None):
             "class": "TopkDropoutStrategy",
             "module_path": "qlib.contrib.strategy.signal_strategy",
             "kwargs": {
-                "model": model,
-                "dataset": dataset,
+                "signal": (model, dataset),
                 "topk": 50,
                 "n_drop": 5,
             },

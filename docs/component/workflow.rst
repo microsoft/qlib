@@ -53,6 +53,9 @@ Below is a typical config file of ``qrun``.
             kwargs:
                 topk: 50
                 n_drop: 5
+                signal:
+                    - <MODEL> 
+                    - <DATASET>
         backtest:
             limit_threshold: 0.095
             account: 100000000
@@ -240,6 +243,9 @@ The following script is the configuration of `backtest` and the `strategy` used 
             kwargs:
                 topk: 50
                 n_drop: 5
+                signal:
+                    - <MODEL> 
+                    - <DATASET>
         backtest:
             limit_threshold: 0.095
             account: 100000000

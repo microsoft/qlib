@@ -1,6 +1,8 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
 import copy
-from qlib.backtest.signal import ModelSignal, Signal, SignalWCache
-from typing import Union
+from qlib.backtest.signal import Signal, create_signal_from
+from typing import Dict, List, Text, Tuple, Union
 from qlib.data.dataset import Dataset
 from qlib.model.base import BaseModel
 from qlib.backtest.position import Position
@@ -25,9 +27,7 @@ class TopkDropoutStrategy(BaseStrategy):
         *,
         topk,
         n_drop,
-        model: BaseModel = None,
-        dataset: Dataset = None,
-        signal: Union[pd.DataFrame, pd.Series] = None,
+        signal: Union[Signal, Tuple[BaseModel, Dataset], List, Dict, Text, pd.Series, pd.DataFrame],
         method_sell="bottom",
         method_buy="top",
         risk_degree=0.95,
@@ -45,6 +45,9 @@ class TopkDropoutStrategy(BaseStrategy):
             the number of stocks in the portfolio.
         n_drop : int
             number of stocks to be replaced in each trading date.
+        signal :
+            the information to describe a signal. Please refer to the docs of `qlib.backtest.signal.create_signal_from`
+            the decision of the strategy will base on the given signal
         method_sell : str
             dropout method_sell, random/bottom.
         method_buy : str
@@ -79,8 +82,7 @@ class TopkDropoutStrategy(BaseStrategy):
         self.risk_degree = risk_degree
         self.hold_thresh = hold_thresh
         self.only_tradable = only_tradable
-        assert signal is not None or dataset is not None and model is not None
-        self.signal: Signal = ModelSignal(model=model, dataset=dataset) if signal is None else SignalWCache(signal)
+        self.signal: Signal = create_signal_from(signal)
 
     def get_risk_degree(self, trade_step=None):
         """get_risk_degree
@@ -251,9 +253,7 @@ class WeightStrategyBase(BaseStrategy):
     def __init__(
         self,
         *,
-        model: BaseModel = None,
-        dataset: Dataset = None,
-        signal: Union[pd.DataFrame, pd.Series] = None,
+        signal: Union[Signal, Tuple[BaseModel, Dataset], List, Dict, Text, pd.Series, pd.DataFrame],
         order_generator_cls_or_obj=OrderGenWInteract,
         trade_exchange=None,
         level_infra=None,
@@ -261,6 +261,9 @@ class WeightStrategyBase(BaseStrategy):
         **kwargs,
     ):
         """
+        signal :
+            the information to describe a signal. Please refer to the docs of `qlib.backtest.signal.create_signal_from`
+            the decision of the strategy will base on the given signal
         trade_exchange : Exchange
             exchange that provides market info, used to deal order and generate report
             - If `trade_exchange` is None, self.trade_exchange will be set with common_infra
@@ -276,8 +279,8 @@ class WeightStrategyBase(BaseStrategy):
             self.order_generator = order_generator_cls_or_obj()
         else:
             self.order_generator = order_generator_cls_or_obj
-        assert signal is not None or dataset is not None and model is not None
-        self.signal: Signal = ModelSignal(model=model, dataset=dataset) if signal is None else SignalWCache(signal)
+
+        self.signal: Signal = create_signal_from(signal)
 
     def get_risk_degree(self, trade_step=None):
         """get_risk_degree

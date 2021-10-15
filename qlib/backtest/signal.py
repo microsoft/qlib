@@ -1,6 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
-from typing import Union
+from qlib.utils import init_instance_by_config
+from typing import Dict, List, Text, Tuple, Union
 from ..model.base import BaseModel
 from ..data.dataset import Dataset
 from ..data.dataset.utils import convert_index_format
@@ -14,7 +15,7 @@ class Signal(metaclass=abc.ABCMeta):
     Some trading strategy make decisions based on other prediction signals
     The signals may comes from different sources(e.g. prepared data, online prediction from model and dataset)
 
-    This
+    This interface is tries to provide unified interface for those different sources
     """
 
     @abc.abstractmethod
@@ -79,3 +80,23 @@ class ModelSignal(SignalWCache):
         """
         # TODO: this method is not included in the framework and could be refactor later
         raise NotImplementedError("_update_model is not implemented!")
+
+
+def create_signal_from(
+    obj: Union[Signal, Tuple[BaseModel, Dataset], List, Dict, Text, pd.Series, pd.DataFrame]
+) -> Signal:
+    """
+    create signal from diverse information
+    This method will choose the right method to create a signal based on `obj`
+    Please refer to the code below.
+    """
+    if isinstance(obj, Signal):
+        return obj
+    elif isinstance(obj, (tuple, list)):
+        return ModelSignal(*obj)
+    elif isinstance(obj, (dict, str)):
+        return init_instance_by_config(obj)
+    elif isinstance(obj, (pd.DataFrame, pd.Series)):
+        return SignalWCache(signal=obj)
+    else:
+        raise NotImplementedError(f"This type of signal is not supported")

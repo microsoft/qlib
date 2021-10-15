@@ -33,8 +33,7 @@ if __name__ == "__main__":
             "class": "TopkDropoutStrategy",
             "module_path": "qlib.contrib.strategy.signal_strategy",
             "kwargs": {
-                "model": model,
-                "dataset": dataset,
+                "signal": (model, dataset),
                 "topk": 50,
                 "n_drop": 5,
             },
