@@ -124,8 +124,8 @@ class OrderGenWInteract(OrderGenerator):
         order_list = trade_exchange.generate_order_for_target_amount_position(
             target_position=target_amount_dict,
             current_position=current_amount_dict,
-            trade_start_time=trade_start_time,
-            trade_end_time=trade_end_time,
+            start_time=trade_start_time,
+            end_time=trade_end_time,
         )
         return TradeDecisionWO(order_list, self)
 
@@ -188,7 +188,7 @@ class OrderGenWOInteract(OrderGenerator):
         order_list = trade_exchange.generate_order_for_target_amount_position(
             target_position=amount_dict,
             current_position=current.get_stock_amount_dict(),
-            trade_start_time=trade_start_time,
-            trade_end_time=trade_end_time,
+            start_time=trade_start_time,
+            end_time=trade_end_time,
         )
         return TradeDecisionWO(order_list, self)
