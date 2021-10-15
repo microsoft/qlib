@@ -13,7 +13,7 @@ import pandas as pd
 from typing import Union, List, Type
 from scipy.stats import percentileofscore
 
-from .base import Expression, ExpressionOps
+from .base import Expression, ExpressionOps, Feature
 from ..log import get_module_logger
 from ..utils import get_callable_kwargs
 
@@ -1485,6 +1485,7 @@ OpsList = [
     IdxMax,
     IdxMin,
     If,
+    Feature,
 ]
 
 
@@ -1517,7 +1518,7 @@ class OpsWrapper:
             else:
                 _ops_class = _operator
 
-            if not issubclass(_ops_class, ExpressionOps):
+            if not issubclass(_ops_class, Expression):
                 raise TypeError("operator must be subclass of ExpressionOps, not {}".format(_ops_class))
 
             if _ops_class.__name__ in self._ops:

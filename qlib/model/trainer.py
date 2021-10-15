@@ -70,9 +70,9 @@ def fill_placeholder(config: dict, config_extend: dict):
     # bfs
     top = 0
     tail = 1
-    item_quene = [config]
+    item_queue = [config]
     while top < tail:
-        now_item = item_quene[top]
+        now_item = item_queue[top]
         top += 1
         if isinstance(now_item, list):
             item_keys = range(len(now_item))
@@ -80,9 +80,9 @@ def fill_placeholder(config: dict, config_extend: dict):
             item_keys = now_item.keys()
         for key in item_keys:
             if isinstance(now_item[key], list) or isinstance(now_item[key], dict):
-                item_quene.append(now_item[key])
+                item_queue.append(now_item[key])
                 tail += 1
-            elif now_item[key] in config_extend.keys():
+            elif isinstance(now_item[key], str) and now_item[key] in config_extend.keys():
                 now_item[key] = config_extend[now_item[key]]
     return config
 
@@ -114,10 +114,19 @@ def end_task_train(rec: Recorder, experiment_name: str) -> Recorder:
         task_config = fill_placeholder(task_config, placehorder_value)
         # generate records: prediction, backtest, and analysis
         records = task_config.get("record", [])
-        if isinstance(records, dict):  # prevent only one dict
+        if isinstance(records, dict):  # uniform the data format to list
             records = [records]
+
         for record in records:
-            r = init_instance_by_config(record, recorder=rec)
+            # Some recorder require the parameter `model` and `dataset`.
+            # try to automatically pass in them to the initialization function
+            # to make defining the tasking easier
+            r = init_instance_by_config(
+                record,
+                recorder=rec,
+                default_module="qlib.workflow.record_temp",
+                try_kwargs={"model": model, "dataset": dataset},
+            )
             r.generate()
     return rec
 
