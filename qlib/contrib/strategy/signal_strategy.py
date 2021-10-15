@@ -27,7 +27,7 @@ class TopkDropoutStrategy(BaseStrategy):
         *,
         topk,
         n_drop,
-        signal: Union[Signal, Tuple[BaseModel, Dataset], List, Dict, Text, pd.Series, pd.DataFrame],
+        signal: Union[Signal, Tuple[BaseModel, Dataset], List, Dict, Text, pd.Series, pd.DataFrame] = None,
         method_sell="bottom",
         method_buy="top",
         risk_degree=0.95,
@@ -36,6 +36,8 @@ class TopkDropoutStrategy(BaseStrategy):
         trade_exchange=None,
         level_infra=None,
         common_infra=None,
+        model=None,
+        dataset=None,
         **kwargs,
     ):
         """
@@ -82,6 +84,12 @@ class TopkDropoutStrategy(BaseStrategy):
         self.risk_degree = risk_degree
         self.hold_thresh = hold_thresh
         self.only_tradable = only_tradable
+
+        # This is trying to be compatible with previous version of qlib task config
+        if model is not None and dataset is not None:
+            warnings.warn("`model` `dataset` is deprecated; use `signal`.", DeprecationWarning)
+            signal = model, dataset
+
         self.signal: Signal = create_signal_from(signal)
 
     def get_risk_degree(self, trade_step=None):
