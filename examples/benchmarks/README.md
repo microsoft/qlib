@@ -8,6 +8,10 @@ The numbers shown below demonstrate the performance of the entire `workflow` of 
 >
 > In the new version of qlib, the default dataset is **v2**. Since the data is collected from the YahooFinance API (which is not very stable), the results of *v2* and *v1* may differ -->
 
+> NOTE:
+> The backtest start from 0.8.0 is quite different from previous version. Please check out the changelog for the difference.
+
+
 ## Alpha158 dataset
 
 | Model Name                               | Dataset                             | IC          | ICIR        | Rank IC     | Rank ICIR   | Annualized Return | Information Ratio | Max Drawdown |
