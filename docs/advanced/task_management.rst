@@ -78,6 +78,8 @@ If you do not want to use ``Task Manager`` to manage tasks, then use TrainerR to
 
 Task Collecting
 ===============
+Before collecting model training results, you need to use the ``qlib.init`` to specify the path of mlruns.
+
 To collect the results of ``task`` after training, ``Qlib`` provides `Collector <../reference/api.html#Collector>`_, `Group <../reference/api.html#Group>`_ and `Ensemble <../reference/api.html#Ensemble>`_ to collect the results in a readable, expandable and loosely-coupled way.
 
 `Collector <../reference/api.html#Collector>`_ can collect objects from everywhere and process them such as merging, grouping, averaging and so on. It has 2 step action including ``collect`` (collect anything in a dict) and ``process_collect`` (process collected dict).
@@ -86,7 +88,8 @@ To collect the results of ``task`` after training, ``Qlib`` provides `Collector 
 For example: {(A,B,C1): object, (A,B,C2): object} ---``group``---> {(A,B): {C1: object, C2: object}} ---``reduce``---> {(A,B): object}
 
 `Ensemble <../reference/api.html#Ensemble>`_ can merge the objects in an ensemble. 
-For example: {C1: object, C2: object} ---``Ensemble``---> object
+For example: {C1: object, C2: object} ---``Ensemble``---> object.
+Common ensembles include AverageEnsemble and RollingEnsemble. Average ensemble is used to ensemble the results of different models in the same time period. Rollingensemble is used to ensemble the results of different models in the same time period.
 
 So the hierarchy is ``Collector``'s second step corresponds to ``Group``. And ``Group``'s second step correspond to ``Ensemble``.
 
