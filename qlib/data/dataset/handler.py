@@ -82,8 +82,6 @@ class DataHandler(Serializable):
         fetch_orig : bool
             Return the original data instead of copy if possible.
         """
-        # Set logger
-        self.logger = get_module_logger("DataHandler")
 
         # Setup data loader
         assert data_loader is not None  # to make start_time end_time could have None default value
@@ -302,6 +300,7 @@ class DataHandlerLP(DataHandler):
     DK_R = "raw"
     DK_I = "infer"
     DK_L = "learn"
+    ATTR_MAP = {DK_R: "_data", DK_I: "_infer", DK_L: "_learn"}
 
     # process type
     PTYPE_I = "independent"
@@ -543,7 +542,7 @@ class DataHandlerLP(DataHandler):
             raise AttributeError(
                 "DataHandlerLP has not attribute _data, please set drop_raw = False if you want to use raw data"
             )
-        df = getattr(self, {self.DK_R: "_data", self.DK_I: "_infer", self.DK_L: "_learn"}[data_key])
+        df = getattr(self, self.ATTR_MAP[data_key])
         return df
 
     def fetch(
@@ -624,3 +623,27 @@ class DataHandlerLP(DataHandler):
         df = self._get_df_by_key(data_key).head()
         df = fetch_df_by_col(df, col_set)
         return df.columns.to_list()
+
+    @classmethod
+    def cast(cls, handler: "DataHandlerLP") -> "DataHandlerLP":
+        """
+        Motivation
+        - A user create a datahandler in his customized package. Then he want to share the processed handler to other users without introduce the package dependency and complicated data processing logic.
+        - This class make it possible by casting the class to DataHandlerLP and only keep the processed data
+
+        Parameters
+        ----------
+        handler : DataHandlerLP
+            A subclass of DataHandlerLP
+
+        Returns
+        -------
+        DataHandlerLP:
+            the converted processed data
+        """
+        new_hd: DataHandlerLP = object.__new__(DataHandlerLP)
+        new_hd.from_cast = True  # add a mark for the casted instance
+
+        for key in list(DataHandlerLP.ATTR_MAP.values()) + ["instruments", "start_time", "end_time", "fetch_orig"]:
+            setattr(new_hd, key, getattr(handler, key, None))
+        return new_hd
