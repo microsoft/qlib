@@ -782,6 +782,7 @@ class Exchange:
         else:
             raise NotImplementedError("order type {} error".format(order.type))
 
+        trade_val = order.deal_amount * trade_price
         trade_cost = max(trade_val * cost_ratio, self.min_cost)
         if trade_val <= 1e-5:
             # if dealing is not successful, the trade_cost should be zero.
