@@ -34,6 +34,7 @@ class Exchange:
         open_cost=0.0015,
         close_cost=0.0025,
         min_cost=5,
+        impact_cost=0.0,
         extra_quote=None,
         quote_cls=NumpyQuote,
         **kwargs,
@@ -95,6 +96,7 @@ class Exchange:
                                  **NOTE**: `trade_unit` is included in the `kwargs`. It is necessary because we must
                                  distinguish `not set` and `disable trade_unit`
         :param min_cost:         min cost, default 5
+        :param impact_cost:     market impact cost rate (a.k.a. slippage)
         :param extra_quote:     pandas, dataframe consists of
                                     columns: like ['$vwap', '$close', '$volume', '$factor', 'limit_sell', 'limit_buy'].
                                             The limit indicates that the etf is tradable on a specific day.
@@ -164,9 +166,12 @@ class Exchange:
         all_fields = list(all_fields | set(subscribe_fields))
 
         self.all_fields = all_fields
+
         self.open_cost = open_cost
         self.close_cost = close_cost
         self.min_cost = min_cost
+        self.impact_cost = impact_cost
+
         self.limit_threshold: Union[Tuple[str, str], float, None] = limit_threshold
         self.volume_threshold = volume_threshold
         self.extra_quote = extra_quote
@@ -718,6 +723,7 @@ class Exchange:
         :return: trade_price, trade_val, trade_cost
         """
         trade_price = self.get_deal_price(order.stock_id, order.start_time, order.end_time, direction=order.direction)
+        total_trade_val = self.get_volume(order.stock_id, order.start_time, order.end_time) * trade_price
         order.factor = self.get_factor(order.stock_id, order.start_time, order.end_time)
         order.deal_amount = order.amount  # set to full amount and clip it step by step
         # Clipping amount first
@@ -773,6 +779,7 @@ class Exchange:
             raise NotImplementedError("order type {} error".format(order.type))
 
         trade_val = order.deal_amount * trade_price
+        cost_ratio += self.impact_cost * (trade_val / total_trade_val) ** 2
         trade_cost = max(trade_val * cost_ratio, self.min_cost)
         if trade_val <= 1e-5:
             # if dealing is not successful, the trade_cost should be zero.
