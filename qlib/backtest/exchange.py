@@ -96,7 +96,7 @@ class Exchange:
                                  **NOTE**: `trade_unit` is included in the `kwargs`. It is necessary because we must
                                  distinguish `not set` and `disable trade_unit`
         :param min_cost:         min cost, default 5
-        :param impact_cost:     market impact cost rate (a.k.a. slippage)
+        :param impact_cost:     market impact cost rate (a.k.a. slippage). A recommended value is 0.1.
         :param extra_quote:     pandas, dataframe consists of
                                     columns: like ['$vwap', '$close', '$volume', '$factor', 'limit_sell', 'limit_buy'].
                                             The limit indicates that the etf is tradable on a specific day.
