@@ -732,8 +732,12 @@ class Exchange:
         # - It simulates that the large order is submitted, but partial is dealt regardless of rounding by trading unit.
         self._clip_amount_by_volume(order, dealt_order_amount)
 
+        # TODO: the adjusted cost ratio can be overestimated as deal_amount will be clipped in the next steps
+        trade_val = order.deal_amount * trade_price
+        adj_cost_ratio = self.impact_cost * (trade_val / total_trade_val) ** 2
+
         if order.direction == Order.SELL:
-            cost_ratio = self.close_cost
+            cost_ratio = self.close_cost + adj_cost_ratio
             # sell
             # if we don't know current position, we choose to sell all
             # Otherwise, we clip the amount based on current position
@@ -756,7 +760,7 @@ class Exchange:
                     self.logger.debug(f"Order clipped due to cash limitation: {order}")
 
         elif order.direction == Order.BUY:
-            cost_ratio = self.open_cost
+            cost_ratio = self.open_cost + adj_cost_ratio
             # buy
             if position is not None:
                 cash = position.get_cash()
@@ -778,8 +782,6 @@ class Exchange:
         else:
             raise NotImplementedError("order type {} error".format(order.type))
 
-        trade_val = order.deal_amount * trade_price
-        cost_ratio += self.impact_cost * (trade_val / total_trade_val) ** 2
         trade_cost = max(trade_val * cost_ratio, self.min_cost)
         if trade_val <= 1e-5:
             # if dealing is not successful, the trade_cost should be zero.
