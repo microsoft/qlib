@@ -644,6 +644,12 @@ class DataHandlerLP(DataHandler):
         new_hd: DataHandlerLP = object.__new__(DataHandlerLP)
         new_hd.from_cast = True  # add a mark for the casted instance
 
-        for key in list(DataHandlerLP.ATTR_MAP.values()) + ["instruments", "start_time", "end_time", "fetch_orig"]:
+        for key in list(DataHandlerLP.ATTR_MAP.values()) + [
+            "instruments",
+            "start_time",
+            "end_time",
+            "fetch_orig",
+            "drop_raw",
+        ]:
             setattr(new_hd, key, getattr(handler, key, None))
         return new_hd

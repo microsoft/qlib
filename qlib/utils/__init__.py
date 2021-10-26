@@ -199,6 +199,7 @@ def get_callable_kwargs(config: Union[dict, str], default_module: Union[str, Mod
     ----------
     config : [dict, str]
         similar to config
+        please refer to the doc of init_instance_by_config
 
     default_module : Python module or str
         It should be a python module to load the class type
@@ -219,9 +220,12 @@ def get_callable_kwargs(config: Union[dict, str], default_module: Union[str, Mod
             _callable = config["class"]  # the class type itself is passed in
         kwargs = config.get("kwargs", {})
     elif isinstance(config, str):
-        module = get_module_by_module_path(default_module)
+        # a.b.c.ClassName
+        *m_path, cls = config.split(".")
+        m_path = ".".join(m_path)
+        module = get_module_by_module_path(default_module if m_path == "" else m_path)
 
-        _callable = getattr(module, config)
+        _callable = getattr(module, cls)
         kwargs = {}
     else:
         raise NotImplementedError(f"This type of input is not supported")
@@ -260,7 +264,9 @@ def init_instance_by_config(
             1) specify a pickle object
                 - path like 'file:///<path to pickle file>/obj.pkl'
             2) specify a class name
-                - "ClassName":  getattr(module, config)() will be used.
+                - "ClassName":  getattr(module, "ClassName")() will be used.
+            3) specify module path with class name
+                - "a.b.c.ClassName" getattr(<a.b.c.module>, "ClassName")() will be used.
         object example:
             instance of accept_types
     default_module : Python module
