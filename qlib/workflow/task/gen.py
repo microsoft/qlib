@@ -112,6 +112,9 @@ def handler_mod(task: dict, rolling_gen):
     except KeyError:
         # Maybe dataset do not have handler, then do nothing.
         pass
+    except TypeError:
+        # May be the handler is a string. `"handler.pkl"["kwargs"]` will raise TypeError
+        pass
 
 
 class RollingGen(TaskGen):
@@ -258,4 +261,57 @@ class RollingGen(TaskGen):
 
         # Update the following rolling
         res.extend(self.gen_following_tasks(t, test_end))
+        return res
+
+
+class MultiHorizonGenBase(TaskGen):
+    def __init__(self, horizon: List[int] = [5], label_leak_n=2):
+        """
+        This task generator tries to genrate tasks for different horizons based on an existing task
+
+        Parameters
+        ----------
+        horizon : List[int]
+            the possible horizons of the tasks
+        label_leak_n : int
+            How many future days it will take to get complete label after the day making prediction
+            For example:
+            - User make prediction on day `T`(after getting the close price on `T`)
+            - The label is the return of buying stock on `T + 1` and selling it on `T + 2`
+            - the `label_leak_n` will be 2 (e.g. two days of information is leaked to leverage this sample)
+        """
+        self.horizon = list(horizon)
+        self.label_leak_n = label_leak_n
+        self.ta = TimeAdjuster()
+        self.test_key = "test"
+
+    @abc.abstractmethod
+    def set_horizon(self, task: dict, hr: int):
+        """
+        This method is designed to change the task **in place**
+
+        Parameters
+        ----------
+        task : dict
+            Qlib's task
+        hr : int
+            the horizon of task
+        """
+
+    def generate(self, task: dict):
+        res = []
+        for hr in self.horizon:
+
+            # Add horizon
+            t = copy.deepcopy(task)
+            self.set_horizon(t, hr)
+
+            # adjust segment
+            segments = self.ta.align_seg(t["dataset"]["kwargs"]["segments"])
+            test_start = min(t for t in segments[self.test_key] if t is not None)
+            for k in list(segments.keys()):
+                if k != self.test_key:
+                    segments[k] = self.ta.truncate(segments[k], test_start, hr + self.label_leak_n)
+            t["dataset"]["kwargs"]["segments"] = segments
+            res.append(t)
         return res
