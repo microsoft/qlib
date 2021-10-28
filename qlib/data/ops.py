@@ -311,7 +311,7 @@ class NpPairOperator(PairOperator):
         if check_length:
             warning_info = (
                 f"Loading {instrument}: {str(self)}; np.{self.func}(series_left, series_right), "
-                f"series_left and series_right are different lengths({len(series_left)}, {len(series_right)}), "
+                f"The length of series_left and series_right is different: ({len(series_left)}, {len(series_right)}), "
                 f"series_left is {str(self.feature_left)}, series_right is {str(self.feature_left)}. Please check the data"
             )
         else:
