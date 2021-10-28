@@ -57,7 +57,9 @@ class LGBModel(ModelFT, LightGBMFInt):
             num_boost_round=num_boost_round,
             valid_sets=[dtrain, dvalid],
             valid_names=["train", "valid"],
-            early_stopping_rounds=(self.early_stopping_rounds if early_stopping_rounds is None else early_stopping_rounds),
+            early_stopping_rounds=(
+                self.early_stopping_rounds if early_stopping_rounds is None else early_stopping_rounds
+            ),
             verbose_eval=verbose_eval,
             evals_result=evals_result,
             **kwargs
