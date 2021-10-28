@@ -724,7 +724,14 @@ class LocalExpressionProvider(ExpressionProvider):
         end_time = pd.Timestamp(end_time)
         _, _, start_index, end_index = Cal.locate_index(start_time, end_time, freq=freq, future=False)
         lft_etd, rght_etd = expression.get_extended_window_size()
-        series = expression.load(instrument, max(0, start_index - lft_etd), end_index + rght_etd, freq)
+        try:
+            series = expression.load(instrument, max(0, start_index - lft_etd), end_index + rght_etd, freq)
+        except Exception:
+            get_module_logger("data").error(
+                f"Loading expression error: "
+                f"instrument={instrument}, field=({field}), start_time={start_time}, end_time={end_time}, freq={freq}"
+            )
+            raise
         # Ensure that each column type is consistent
         # FIXME:
         # 1) The stock data is currently float. If there is other types of data, this part needs to be re-implemented.

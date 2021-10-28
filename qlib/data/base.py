@@ -8,6 +8,8 @@ from __future__ import print_function
 import abc
 import pandas as pd
 
+from ..log import get_module_logger
+
 
 class Expression(abc.ABC):
     """Expression base class"""
@@ -150,7 +152,14 @@ class Expression(abc.ABC):
             return H["f"][args]
         if start_index is None or end_index is None or start_index > end_index:
             raise ValueError("Invalid index range: {} {}".format(start_index, end_index))
-        series = self._load_internal(instrument, start_index, end_index, freq)
+        try:
+            series = self._load_internal(instrument, start_index, end_index, freq)
+        except Exception:
+            get_module_logger("data").error(
+                f"Loading data error: instrument={instrument}, expression={str(self)}, "
+                f"start_index={start_index}, end_index={end_index}, freq={freq}"
+            )
+            raise
         series.name = str(self)
         H["f"][args] = series
         return series
