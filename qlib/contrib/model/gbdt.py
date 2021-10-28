@@ -14,11 +14,12 @@ from ...model.interpret.base import LightGBMFInt
 class LGBModel(ModelFT, LightGBMFInt):
     """LightGBM Model"""
 
-    def __init__(self, loss="mse", **kwargs):
+    def __init__(self, loss="mse", early_stopping_rounds=50, **kwargs):
         if loss not in {"mse", "binary"}:
             raise NotImplementedError
         self.params = {"objective": loss, "verbosity": -1}
         self.params.update(kwargs)
+        self.early_stopping_rounds = early_stopping_rounds
         self.model = None
 
     def _prepare_data(self, dataset: DatasetH):
@@ -44,7 +45,7 @@ class LGBModel(ModelFT, LightGBMFInt):
         self,
         dataset: DatasetH,
         num_boost_round=1000,
-        early_stopping_rounds=50,
+        early_stopping_rounds=None,
         verbose_eval=20,
         evals_result=dict(),
         **kwargs
@@ -56,7 +57,9 @@ class LGBModel(ModelFT, LightGBMFInt):
             num_boost_round=num_boost_round,
             valid_sets=[dtrain, dvalid],
             valid_names=["train", "valid"],
-            early_stopping_rounds=early_stopping_rounds,
+            early_stopping_rounds=(
+                self.early_stopping_rounds if early_stopping_rounds is None else early_stopping_rounds
+            ),
             verbose_eval=verbose_eval,
             evals_result=evals_result,
             **kwargs
