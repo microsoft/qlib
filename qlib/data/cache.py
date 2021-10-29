@@ -927,7 +927,7 @@ class DiskDatasetCache(DatasetCache):
         meta = {
             "info": {
                 "instruments": instruments,
-                "fields": cache_columns,
+                "fields": list(cache_features.columns),
                 "freq": freq,
                 "last_update": str(_calendar[-1]),  # The last_update to store the cache
                 "inst_processors": inst_processors,  # The last_update to store the cache
@@ -965,7 +965,7 @@ class DiskDatasetCache(DatasetCache):
             fields = d["info"]["fields"]
             freq = d["info"]["freq"]
             last_update_time = d["info"]["last_update"]
-            inst_processors = d["info"]["inst_processors"]
+            inst_processors = d["info"].get("inst_processors", [])
             index_data = im.get_index()
 
             self.logger.debug("Updating dataset: {}".format(d))
