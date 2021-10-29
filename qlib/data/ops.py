@@ -305,7 +305,29 @@ class NpPairOperator(PairOperator):
             series_right = self.feature_right.load(instrument, start_index, end_index, freq)
         else:
             series_right = self.feature_right
-        return getattr(np, self.func)(series_left, series_right)
+        check_length = isinstance(series_left, (np.ndarray, pd.Series)) and isinstance(
+            series_right, (np.ndarray, pd.Series)
+        )
+        if check_length:
+            warning_info = (
+                f"Loading {instrument}: {str(self)}; np.{self.func}(series_left, series_right), "
+                f"The length of series_left and series_right is different: ({len(series_left)}, {len(series_right)}), "
+                f"series_left is {str(self.feature_left)}, series_right is {str(self.feature_left)}. Please check the data"
+            )
+        else:
+            warning_info = (
+                f"Loading {instrument}: {str(self)}; np.{self.func}(series_left, series_right), "
+                f"series_left is {str(self.feature_left)}, series_right is {str(self.feature_left)}. Please check the data"
+            )
+        try:
+            res = getattr(np, self.func)(series_left, series_right)
+        except ValueError as e:
+            get_module_logger("ops").error(warning_info)
+            raise ValueError(f"{str(e)}. \n\t{warning_info}")
+        else:
+            if check_length and len(series_left) != len(series_right):
+                get_module_logger("ops").warning(warning_info)
+        return res
 
 
 class Add(NpPairOperator):
