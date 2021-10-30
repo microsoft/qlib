@@ -1,4 +1,9 @@
 # Benchmarks Performance
+This page lists a batch of methods designed for alpha seeking. Each method tries to give scores/predictions for all stocks each day(e.g. forecasting the future excess return of stocks). The scores/predictions of the models will be used as the mined alpha. Investing in stocks with higher scores is expected to yield more profit.  
+
+The alpha is evaluated in two ways.
+1. The correlation between the alpha and future return.
+1. Constructing portfolio based on the alpha and evaluating the final total return.
 
 Here are the results of each benchmark model running on Qlib's `Alpha360` and `Alpha158` dataset with China's A shared-stock & CSI300 data respectively. The values of each metric are the mean and std calculated based on 20 runs with different random seeds.
 
