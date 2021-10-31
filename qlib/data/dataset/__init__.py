@@ -546,7 +546,7 @@ class TSDatasetH(DatasetH):
         dtype = kwargs.pop("dtype", None)
         start, end = slc.start, slc.stop
         flt_col = kwargs.pop("flt_col", None)
-        # TSDatasetH will retrieve more data for complete
+        # TSDatasetH will retrieve more data for complete time-series
         data = self._prepare_raw_seg(slc, **kwargs)
 
         flt_kwargs = deepcopy(kwargs)
