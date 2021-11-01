@@ -249,6 +249,7 @@ def auto_init(**kwargs):
     except FileNotFoundError:
         init(**kwargs)
     else:
+        logger = get_module_logger("Initialization")
         conf_pp = pp / "config.yaml"
         with conf_pp.open() as f:
             conf = yaml.safe_load(f)
@@ -263,7 +264,13 @@ def auto_init(**kwargs):
             # - The shared configure may be updated later and you don't want to copy it.
             # - You have some customized config.
             qlib_conf_path = conf.get("qlib_cfg", None)
+
+            # merge the arguments
             qlib_conf_update = conf.get("qlib_cfg_update", {})
-            init_from_yaml_conf(qlib_conf_path, **qlib_conf_update, **kwargs)
-        logger = get_module_logger("Initialization")
+            for k, v in kwargs.items():
+                if k in qlib_conf_update:
+                    logger.warning(f"`qlib_conf_update` from conf_pp is override by `kwargs` on key '{k}'")
+            qlib_conf_update.update(kwargs)
+
+            init_from_yaml_conf(qlib_conf_path, **qlib_conf_update)
         logger.info(f"Auto load project config: {conf_pp}")
