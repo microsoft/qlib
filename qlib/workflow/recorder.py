@@ -1,6 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+import os
 from qlib.utils.serial import Serializable
 import mlflow, logging
 import shutil, os, pickle, tempfile, codecs, pickle
@@ -333,7 +334,9 @@ class MLflowRecorder(Recorder):
         try:
             path = self.client.download_artifacts(self.id, name)
             with Path(path).open("rb") as f:
-                return pickle.load(f)
+                data = pickle.load(f)
+            os.remove(path)
+            return data
         except Exception as e:
             raise LoadObjectError(message=str(e))
 
