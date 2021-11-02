@@ -73,7 +73,7 @@ class GATs(Model):
         base_model="GRU",
         model_path=None,
         optimizer="adam",
-        GPU="0",
+        GPU=0,
         n_jobs=10,
         seed=None,
         **kwargs
