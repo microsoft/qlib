@@ -308,6 +308,7 @@ class MLflowRecorder(Recorder):
             self.status = status
         with TimeInspector.logt("waiting `async_log`"):
             self.async_log.wait()
+        self.async_log = None
 
     def save_objects(self, local_path=None, artifact_path=None, **kwargs):
         assert self.uri is not None, "Please start the experiment and recorder first before using recorder directly."
