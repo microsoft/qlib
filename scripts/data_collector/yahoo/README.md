@@ -37,7 +37,7 @@ pip install -r requirements.txt
       - user can append data to `v2`: [automatic update of daily frequency data](#automatic-update-of-daily-frequency-datafrom-yahoo-finance)
       - **the [benchmarks](https://github.com/microsoft/qlib/tree/main/examples/benchmarks) for qlib use `v1`**, *due to the unstable access to historical data by YahooFinance, there are some differences between `v2` and `v1`*
     - `interval`: `1d` or `1min`, by default `1d`
-    - `region`: `cn` or `us`, by default `cn`
+    - `region`: `cn` or `us` or `in`, by default `cn`
     - `delete_old`: delete existing data from `target_dir`(*features, calendars, instruments, dataset_cache, features_cache*), value from [`True`, `False`], by default `True`
     - `exists_skip`: traget_dir data already exists, skip `get_data`, value from [`True`, `False`], by default `False`
   - examples:
@@ -50,6 +50,10 @@ pip install -r requirements.txt
     python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/qlib_us_1d --region us --interval 1d
     # us 1min
     python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/qlib_us_1min --region us --interval 1min
+    # in 1d
+    python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/qlib_in_1d --region in --interval 1d
+    # in 1min
+    python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/qlib_in_1min --region in --interval 1min
     ```
 
 ### Collector *YahooFinance* data to qlib
@@ -60,7 +64,7 @@ pip install -r requirements.txt
           - `source_dir`: save the directory
           - `interval`: `1d` or `1min`, by default `1d`
             > **due to the limitation of the *YahooFinance API*, only the last month's data is available in `1min`**
-          - `region`: `CN` or `US`, by default `CN`
+          - `region`: `CN` or `US` or `IN`, by default `CN`
           - `delay`: `time.sleep(delay)`, by default *0.5*
           - `start`: start datetime, by default *"2000-01-01"*; *closed interval(including start)*
           - `end`: end datetime, by default `pd.Timestamp(datetime.datetime.now() + pd.Timedelta(days=1))`; *open interval(excluding end)*
@@ -78,6 +82,10 @@ pip install -r requirements.txt
           python collector.py download_data --source_dir ~/.qlib/stock_data/source/us_1d --start 2020-01-01 --end 2020-12-31 --delay 1 --interval 1d --region US
           # us 1min data
           python collector.py download_data --source_dir ~/.qlib/stock_data/source/us_1min --delay 1 --interval 1min --region US
+          # in 1d data
+          python collector.py download_data --source_dir ~/.qlib/stock_data/source/in_1d --start 2020-01-01 --end 2020-12-31 --delay 1 --interval 1d --region IN
+          # in 1min data
+          python collector.py download_data --source_dir ~/.qlib/stock_data/source/in_1min --delay 1 --interval 1min --region IN
           ```
   2. normalize data: `python scripts/data_collector/yahoo/collector.py normalize_data`
      
@@ -87,7 +95,7 @@ pip install -r requirements.txt
           - `max_workers`: number of concurrent, by default *1*
           - `interval`: `1d` or `1min`, by default `1d`
             > if **`interval == 1min`**, `qlib_data_1d_dir` cannot be `None`
-          - `region`: `CN` or `US`, by default `CN`
+          - `region`: `CN` or `US` or `IN`, by default `CN`
           - `date_field_name`: column *name* identifying time in csv files, by default `date`
           - `symbol_field_name`: column *name* identifying symbol in csv files, by default `symbol`
           - `end_date`: if not `None`, normalize the last date saved (*including end_date*); if `None`, it will ignore this parameter; by default `None`

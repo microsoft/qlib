@@ -5,7 +5,6 @@
 from pathlib import Path
 from collections.abc import Iterable
 
-import pytest
 import numpy as np
 from qlib.tests import TestAutoData
 
@@ -33,13 +32,13 @@ class TestStorage(TestAutoData):
         print(f"calendar[-1]: {calendar[-1]}")
 
         calendar = CalendarStorage(freq="1min", future=False, provider_uri="not_found")
-        with pytest.raises(ValueError):
+        with self.assertRaises(ValueError):
             print(calendar.data)
 
-        with pytest.raises(ValueError):
+        with self.assertRaises(ValueError):
             print(calendar[:])
 
-        with pytest.raises(ValueError):
+        with self.assertRaises(ValueError):
             print(calendar[0])
 
     def test_instrument_storage(self):
@@ -90,10 +89,10 @@ class TestStorage(TestAutoData):
         print(f"instrument['SH600000']: {instrument['SH600000']}")
 
         instrument = InstrumentStorage(market="csi300", provider_uri="not_found")
-        with pytest.raises(ValueError):
+        with self.assertRaises(ValueError):
             print(instrument.data)
 
-        with pytest.raises(ValueError):
+        with self.assertRaises(ValueError):
             print(instrument["sSH600000"])
 
     def test_feature_storage(self):
@@ -150,15 +149,15 @@ class TestStorage(TestAutoData):
 
         """
 
-        feature = FeatureStorage(instrument="SH600004", field="close", freq="day", provider_uri=self.provider_uri)
+        feature = FeatureStorage(instrument="SZ300677", field="close", freq="day", provider_uri=self.provider_uri)
 
-        with pytest.raises(IndexError):
+        with self.assertRaises(IndexError):
             print(feature[0])
         assert isinstance(
-            feature[815][1], (float, np.float32)
+            feature[3049][1], (float, np.float32)
         ), f"{feature.__class__.__name__}.__getitem__(i: int) error"
-        assert len(feature[815:818]) == 3, f"{feature.__class__.__name__}.__getitem__(s: slice) error"
-        print(f"feature[815: 818]: \n{feature[815: 818]}")
+        assert len(feature[3049:3052]) == 3, f"{feature.__class__.__name__}.__getitem__(s: slice) error"
+        print(f"feature[3049: 3052]: \n{feature[3049: 3052]}")
 
         print(f"feature[:].tail(): \n{feature[:].tail()}")
 

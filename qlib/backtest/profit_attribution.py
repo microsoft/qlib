@@ -1,12 +1,14 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
-
+"""
+This module is not well maintained.
+"""
 
 import numpy as np
 import pandas as pd
 from .position import Position
-from ...data import D
-from ...config import C
+from ..data import D
+from ..config import C
 import datetime
 from pathlib import Path
 
@@ -16,6 +18,7 @@ def get_benchmark_weight(
     start_date=None,
     end_date=None,
     path=None,
+    freq="day",
 ):
     """get_benchmark_weight
 
@@ -25,6 +28,7 @@ def get_benchmark_weight(
     :param start_date:
     :param end_date:
     :param path:
+    :param freq:
 
     :return: The weight distribution of the the benchmark described by a pandas dataframe
              Every row corresponds to a trading day.
@@ -33,7 +37,7 @@ def get_benchmark_weight(
 
     """
     if not path:
-        path = Path(C.get_data_path()).expanduser() / "raw" / "AIndexMembers" / "weights.csv"
+        path = Path(C.dpm.get_data_uri(freq)).expanduser() / "raw" / "AIndexMembers" / "weights.csv"
     # TODO: the storage of weights should be implemented in a more elegent way
     # TODO: The benchmark is not consistant with the filename in instruments.
     bench_weight_df = pd.read_csv(path, usecols=["code", "date", "index", "weight"])
@@ -222,6 +226,7 @@ def brinson_pa(
     group_method="category",
     group_n=None,
     deal_price="vwap",
+    freq="day",
 ):
     """brinson profit attribution
 
@@ -243,7 +248,7 @@ def brinson_pa(
 
     start_date, end_date = min(dates), max(dates)
 
-    bench_stock_weight = get_benchmark_weight(bench, start_date, end_date)
+    bench_stock_weight = get_benchmark_weight(bench, start_date, end_date, freq)
 
     # The attributes for allocation will not
     if not group_field.startswith("$"):
@@ -259,13 +264,14 @@ def brinson_pa(
         start_time=shift_start_date,
         end_time=end_date,
         as_list=True,
+        freq=freq,
     )
     stock_df = D.features(
         instruments,
         [group_field, deal_price],
         start_time=shift_start_date,
         end_time=end_date,
-        freq="day",
+        freq=freq,
     )
     stock_df.columns = [group_field, "deal_price"]
 

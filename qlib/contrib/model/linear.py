@@ -51,6 +51,8 @@ class LinearModel(Model):
 
     def fit(self, dataset: DatasetH):
         df_train = dataset.prepare("train", col_set=["feature", "label"], data_key=DataHandlerLP.DK_L)
+        if df_train.empty:
+            raise ValueError("Empty data from dataset, please check your dataset config.")
         X, y = df_train["feature"].values, np.squeeze(df_train["label"].values)
 
         if self.estimator in [self.OLS, self.RIDGE, self.LASSO]:

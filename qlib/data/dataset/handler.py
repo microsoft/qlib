@@ -17,7 +17,7 @@ from ...data import D
 from ...config import C
 from ...utils import parse_config, transform_end_date, init_instance_by_config
 from ...utils.serial import Serializable
-from .utils import fetch_df_by_index
+from .utils import fetch_df_by_index, fetch_df_by_col
 from ...utils import lazy_sort_index
 from pathlib import Path
 from .loader import DataLoader
@@ -154,14 +154,6 @@ class DataHandler(Serializable):
     CS_ALL = "__all"  # return all columns with single-level index column
     CS_RAW = "__raw"  # return raw data with multi-level index column
 
-    def _fetch_df_by_col(self, df: pd.DataFrame, col_set: str) -> pd.DataFrame:
-        if not isinstance(df.columns, pd.MultiIndex) or col_set == self.CS_RAW:
-            return df
-        elif col_set == self.CS_ALL:
-            return df.droplevel(axis=1, level=0)
-        else:
-            return df.loc(axis=1)[col_set]
-
     def fetch(
         self,
         selector: Union[pd.Timestamp, slice, str] = slice(None, None),
@@ -185,7 +177,7 @@ class DataHandler(Serializable):
 
                 select a set of meaningful columns.(e.g. features, columns)
 
-                if cal_set == CS_RAW:
+                if col_set == CS_RAW:
                     the raw dataset will be returned.
 
             - if isinstance(col_set, List[str]):
@@ -207,23 +199,41 @@ class DataHandler(Serializable):
         -------
         pd.DataFrame.
         """
-        if proc_func is None:
-            df = self._data
-        else:
-            # FIXME: fetching by time first will be more friendly to `proc_func`
-            # Copy in case of `proc_func` changing the data inplace....
-            df = proc_func(fetch_df_by_index(self._data, selector, level, fetch_orig=self.fetch_orig).copy())
+        from .storage import BaseHandlerStorage
 
-        # Fetch column  first will be more friendly to SepDataFrame
-        df = self._fetch_df_by_col(df, col_set)
-        df = fetch_df_by_index(df, selector, level, fetch_orig=self.fetch_orig)
+        data_storage = self._data
+        if isinstance(data_storage, pd.DataFrame):
+            data_df = data_storage
+            if proc_func is not None:
+                # FIXME: fetching by time first will be more friendly to `proc_func`
+                # Copy in case of `proc_func` changing the data inplace....
+                data_df = proc_func(fetch_df_by_index(data_df, selector, level, fetch_orig=self.fetch_orig).copy())
+                data_df = fetch_df_by_col(data_df, col_set)
+            else:
+                # Fetch column  first will be more friendly to SepDataFrame
+                data_df = fetch_df_by_col(data_df, col_set)
+                data_df = fetch_df_by_index(data_df, selector, level, fetch_orig=self.fetch_orig)
+        elif isinstance(data_storage, BaseHandlerStorage):
+            if not data_storage.is_proc_func_supported():
+                if proc_func is not None:
+                    raise ValueError(f"proc_func is not supported by the storage {type(data_storage)}")
+                data_df = data_storage.fetch(
+                    selector=selector, level=level, col_set=col_set, fetch_orig=self.fetch_orig
+                )
+            else:
+                data_df = data_storage.fetch(
+                    selector=selector, level=level, col_set=col_set, fetch_orig=self.fetch_orig, proc_func=proc_func
+                )
+        else:
+            raise TypeError(f"data_storage should be pd.DataFrame|HasingStockStorage, not {type(data_storage)}")
+
         if squeeze:
             # squeeze columns
-            df = df.squeeze()
+            data_df = data_df.squeeze()
             # squeeze index
             if isinstance(selector, (str, pd.Timestamp)):
-                df = df.reset_index(level=level, drop=True)
-        return df
+                data_df = data_df.reset_index(level=level, drop=True)
+        return data_df
 
     def get_cols(self, col_set=CS_ALL) -> list:
         """
@@ -240,7 +250,7 @@ class DataHandler(Serializable):
             list of column names
         """
         df = self._data.head()
-        df = self._fetch_df_by_col(df, col_set)
+        df = fetch_df_by_col(df, col_set)
         return df.columns.to_list()
 
     def get_range_selector(self, cur_date: Union[pd.Timestamp, str], periods: int) -> slice:
@@ -295,11 +305,14 @@ class DataHandlerLP(DataHandler):
 
     # process type
     PTYPE_I = "independent"
-    # - self._infer will be processed by infer_processors
-    # - self._learn will be processed by learn_processors
+    # - self._infer will be processed by shared_processors + infer_processors
+    # - self._learn will be processed by shared_processors + learn_processors
+
+    # NOTE:
     PTYPE_A = "append"
-    # - self._infer will be processed by infer_processors
-    # - self._learn will be processed by infer_processors + learn_processors
+
+    # - self._infer will be processed by shared_processors + infer_processors
+    # - self._learn will be processed by shared_processors + infer_processors + learn_processors
     #   - (e.g. self._infer processed by learn_processors )
 
     def __init__(
@@ -308,8 +321,9 @@ class DataHandlerLP(DataHandler):
         start_time=None,
         end_time=None,
         data_loader: Union[dict, str, DataLoader] = None,
-        infer_processors=[],
-        learn_processors=[],
+        infer_processors: List = [],
+        learn_processors: List = [],
+        shared_processors: List = [],
         process_type=PTYPE_A,
         drop_raw=False,
         **kwargs,
@@ -360,7 +374,8 @@ class DataHandlerLP(DataHandler):
         # Setup preprocessor
         self.infer_processors = []  # for lint
         self.learn_processors = []  # for lint
-        for pname in "infer_processors", "learn_processors":
+        self.shared_processors = []  # for lint
+        for pname in "infer_processors", "learn_processors", "shared_processors":
             for proc in locals()[pname]:
                 getattr(self, pname).append(
                     init_instance_by_config(
@@ -375,9 +390,12 @@ class DataHandlerLP(DataHandler):
         super().__init__(instruments, start_time, end_time, data_loader, **kwargs)
 
     def get_all_processors(self):
-        return self.infer_processors + self.learn_processors
+        return self.shared_processors + self.infer_processors + self.learn_processors
 
     def fit(self):
+        """
+        fit data without processing the data
+        """
         for proc in self.get_all_processors():
             with TimeInspector.logt(f"{proc.__class__.__name__}"):
                 proc.fit(self._data)
@@ -390,30 +408,68 @@ class DataHandlerLP(DataHandler):
         """
         self.process_data(with_fit=True)
 
+    @staticmethod
+    def _run_proc_l(
+        df: pd.DataFrame, proc_l: List[processor_module.Processor], with_fit: bool, check_for_infer: bool
+    ) -> pd.DataFrame:
+        for proc in proc_l:
+            if check_for_infer and not proc.is_for_infer():
+                raise TypeError("Only processors usable for inference can be used in `infer_processors` ")
+            with TimeInspector.logt(f"{proc.__class__.__name__}"):
+                if with_fit:
+                    proc.fit(df)
+                df = proc(df)
+        return df
+
+    @staticmethod
+    def _is_proc_readonly(proc_l: List[processor_module.Processor]):
+        """
+        NOTE: it will return True if `len(proc_l) == 0`
+        """
+        for p in proc_l:
+            if not p.readonly():
+                return False
+        return True
+
     def process_data(self, with_fit: bool = False):
         """
         process_data data. Fun `processor.fit` if necessary
+
+        Notation: (data)  [processor]
+
+        # data processing flow of self.process_type == DataHandlerLP.PTYPE_I
+        (self._data)-[shared_processors]-(_shared_df)-[learn_processors]-(_learn_df)
+                                               \
+                                                -[infer_processors]-(_infer_df)
+
+        # data processing flow of self.process_type == DataHandlerLP.PTYPE_A
+        (self._data)-[shared_processors]-(_shared_df)-[infer_processors]-(_infer_df)-[learn_processors]-(_learn_df)
 
         Parameters
         ----------
         with_fit : bool
             The input of the `fit` will be the output of the previous processor
         """
-        # data for inference
-        _infer_df = self._data
-        if len(self.infer_processors) > 0 and not self.drop_raw:  # avoid modifying the original  data
-            _infer_df = _infer_df.copy()
+        # shared data processors
+        # 1) assign
+        _shared_df = self._data
+        if not self._is_proc_readonly(self.shared_processors):  # avoid modifying the original data
+            _shared_df = _shared_df.copy()
+        # 2) process
+        _shared_df = self._run_proc_l(_shared_df, self.shared_processors, with_fit=with_fit, check_for_infer=True)
 
-        for proc in self.infer_processors:
-            if not proc.is_for_infer():
-                raise TypeError("Only processors usable for inference can be used in `infer_processors` ")
-            with TimeInspector.logt(f"{proc.__class__.__name__}"):
-                if with_fit:
-                    proc.fit(_infer_df)
-                _infer_df = proc(_infer_df)
+        # data for inference
+        # 1) assign
+        _infer_df = _shared_df
+        if not self._is_proc_readonly(self.infer_processors):  # avoid modifying the original data
+            _infer_df = _infer_df.copy()
+        # 2) process
+        _infer_df = self._run_proc_l(_infer_df, self.infer_processors, with_fit=with_fit, check_for_infer=True)
+
         self._infer = _infer_df
 
         # data for learning
+        # 1) assign
         if self.process_type == DataHandlerLP.PTYPE_I:
             _learn_df = self._data
         elif self.process_type == DataHandlerLP.PTYPE_A:
@@ -421,14 +477,11 @@ class DataHandlerLP(DataHandler):
             _learn_df = _infer_df
         else:
             raise NotImplementedError(f"This type of input is not supported")
-
-        if len(self.learn_processors) > 0:  # avoid modifying the original  data
+        if not self._is_proc_readonly(self.learn_processors):  # avoid modifying the original  data
             _learn_df = _learn_df.copy()
-        for proc in self.learn_processors:
-            with TimeInspector.logt(f"{proc.__class__.__name__}"):
-                if with_fit:
-                    proc.fit(_learn_df)
-                _learn_df = proc(_learn_df)
+        # 2) process
+        _learn_df = self._run_proc_l(_learn_df, self.learn_processors, with_fit=with_fit, check_for_infer=False)
+
         self._learn = _learn_df
 
         if self.drop_raw:
@@ -521,14 +574,36 @@ class DataHandlerLP(DataHandler):
         -------
         pd.DataFrame:
         """
-        df = self._get_df_by_key(data_key)
-        if proc_func is not None:
-            # FIXME: fetch by time first will be more friendly to proc_func
-            # Copy incase of `proc_func` changing the data inplace....
-            df = proc_func(fetch_df_by_index(df, selector, level, fetch_orig=self.fetch_orig).copy())
-        # Fetch column  first will be more friendly to SepDataFrame
-        df = self._fetch_df_by_col(df, col_set)
-        return fetch_df_by_index(df, selector, level, fetch_orig=self.fetch_orig)
+        from .storage import BaseHandlerStorage
+
+        data_storage = self._get_df_by_key(data_key)
+        if isinstance(data_storage, pd.DataFrame):
+            data_df = data_storage
+            if proc_func is not None:
+                # FIXME: fetch by time first will be more friendly to proc_func
+                # Copy incase of `proc_func` changing the data inplace....
+                data_df = proc_func(fetch_df_by_index(data_df, selector, level, fetch_orig=self.fetch_orig).copy())
+                data_df = fetch_df_by_col(data_df, col_set)
+            else:
+                # Fetch column  first will be more friendly to SepDataFrame
+                data_df = fetch_df_by_col(data_df, col_set)
+                data_df = fetch_df_by_index(data_df, selector, level, fetch_orig=self.fetch_orig)
+
+        elif isinstance(data_storage, BaseHandlerStorage):
+            if not data_storage.is_proc_func_supported():
+                if proc_func is not None:
+                    raise ValueError(f"proc_func is not supported by the storage {type(data_storage)}")
+                data_df = data_storage.fetch(
+                    selector=selector, level=level, col_set=col_set, fetch_orig=self.fetch_orig
+                )
+            else:
+                data_df = data_storage.fetch(
+                    selector=selector, level=level, col_set=col_set, fetch_orig=self.fetch_orig, proc_func=proc_func
+                )
+        else:
+            raise TypeError(f"data_storage should be pd.DataFrame|HasingStockStorage, not {type(data_storage)}")
+
+        return data_df
 
     def get_cols(self, col_set=DataHandler.CS_ALL, data_key: str = DK_I) -> list:
         """
@@ -547,5 +622,5 @@ class DataHandlerLP(DataHandler):
             list of column names
         """
         df = self._get_df_by_key(data_key).head()
-        df = self._fetch_df_by_col(df, col_set)
+        df = fetch_df_by_col(df, col_set)
         return df.columns.to_list()

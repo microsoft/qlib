@@ -123,7 +123,6 @@ Here is a simple exampke of what is done in ``PortAnaRecord``, which users can r
         "n_drop": 5,
     }
     BACKTEST_CONFIG = {
-        "verbose": False,
         "limit_threshold": 0.095,
         "account": 100000000,
         "benchmark": BENCHMARK,
