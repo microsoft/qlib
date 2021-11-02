@@ -320,6 +320,7 @@ class TSDataSampler:
             self.flt_data = flt_data.values
             self.idx_map = self.flt_idx_map(self.flt_data, self.idx_map)
             self.data_index = self.data_index[np.where(self.flt_data == True)[0]]
+        self.idx_map = self.idx_map2arr(self.idx_map)
 
         self.start_idx, self.end_idx = self.data_index.slice_locs(
             start=time_to_slc_point(start), end=time_to_slc_point(end)
@@ -327,6 +328,25 @@ class TSDataSampler:
         self.idx_arr = np.array(self.idx_df.values, dtype=np.float64)  # for better performance
 
         del self.data  # save memory
+
+    @staticmethod
+    def idx_map2arr(idx_map):
+        # pytorch data sampler will have better memory control without large dict or list
+        # - https://github.com/pytorch/pytorch/issues/13243
+        # - https://github.com/airctic/icevision/issues/613
+        # So we convert the dict into int array.
+        # The arr_map is expected to behave the same as idx_map
+
+        dtype = np.int32
+        # set a index out of bound to indicate the none existing
+        no_existing_idx = (np.iinfo(dtype).max, np.iinfo(dtype).max)
+
+        max_idx = max(idx_map.keys())
+        arr_map = []
+        for i in range(max_idx + 1):
+            arr_map.append(idx_map.get(i, no_existing_idx))
+        arr_map = np.array(arr_map, dtype=dtype)
+        return arr_map
 
     @staticmethod
     def flt_idx_map(flt_data, idx_map):
