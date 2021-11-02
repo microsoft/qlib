@@ -294,6 +294,7 @@ Here is a list of models built on `Qlib`.
 - [Transformer based on pytorch (Ashish Vaswani, et al. NeurIPS 2017)](qlib/contrib/model/pytorch_transformer.py)
 - [Localformer based on pytorch (Juyong Jiang, et al.)](qlib/contrib/model/pytorch_localformer.py)
 - [TRA based on pytorch (Hengxu, Dong, et al. KDD 2021)](qlib/contrib/model/pytorch_tra.py)
+- [TCN based on pytorch (Shaojie Bai, et al. 2018)](qlib/contrib/model/pytorch_tcn.py)
 
 Your PR of new Quant models is highly welcomed.
 
