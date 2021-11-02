@@ -9,8 +9,9 @@ from pathlib import Path
 from datetime import datetime
 
 from qlib.utils.exceptions import LoadObjectError
+from qlib.utils.paral import AsyncCaller
 from ..utils.objm import FileManager
-from ..log import get_module_logger
+from ..log import TimeInspector, get_module_logger
 from mlflow.store.artifact.azure_blob_artifact_repo import AzureBlobArtifactRepository
 
 logger = get_module_logger("workflow", logging.INFO)
@@ -229,6 +230,7 @@ class MLflowRecorder(Recorder):
                 if mlflow_run.info.end_time is not None
                 else None
             )
+        self.async_log = None
 
     def __repr__(self):
         name = self.__class__.__name__
@@ -287,6 +289,10 @@ class MLflowRecorder(Recorder):
         self.status = Recorder.STATUS_R
         logger.info(f"Recorder {self.id} starts running under Experiment {self.experiment_id} ...")
 
+        # NOTE: making logging async.
+        # - This may cause delay when uploading results
+        # - The logging time may not be accurate
+        self.async_log = AsyncCaller()
         return run
 
     def end_run(self, status: str = Recorder.STATUS_S):
@@ -300,6 +306,8 @@ class MLflowRecorder(Recorder):
         self.end_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         if self.status != Recorder.STATUS_S:
             self.status = status
+        with TimeInspector.logt("waiting `async_log`"):
+            self.async_log.wait()
 
     def save_objects(self, local_path=None, artifact_path=None, **kwargs):
         assert self.uri is not None, "Please start the experiment and recorder first before using recorder directly."
@@ -345,14 +353,17 @@ class MLflowRecorder(Recorder):
         except Exception as e:
             raise LoadObjectError(message=str(e))
 
+    @AsyncCaller.async_dec(ac_attr="async_log")
     def log_params(self, **kwargs):
         for name, data in kwargs.items():
             self.client.log_param(self.id, name, data)
 
+    @AsyncCaller.async_dec(ac_attr="async_log")
     def log_metrics(self, step=None, **kwargs):
         for name, data in kwargs.items():
             self.client.log_metric(self.id, name, data, step=step)
 
+    @AsyncCaller.async_dec(ac_attr="async_log")
     def set_tags(self, **kwargs):
         for name, data in kwargs.items():
             self.client.set_tag(self.id, name, data)

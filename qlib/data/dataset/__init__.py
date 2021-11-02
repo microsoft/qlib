@@ -524,20 +524,18 @@ class TSDatasetH(DatasetH):
 
     def setup_data(self, **kwargs):
         super().setup_data(**kwargs)
+        # make sure the calendar is updated to latest when loading data from new config
         cal = self.handler.fetch(col_set=self.handler.CS_RAW).index.get_level_values("datetime").unique()
-        cal = sorted(cal)
-        self.cal = cal
+        self.cal = sorted(cal)
 
-    def _prepare_raw_seg(self, slc: slice, **kwargs) -> pd.DataFrame:
+    @staticmethod
+    def _extend_slice(slc: slice, cal: list, step_len: int) -> slice:
         # Dataset decide how to slice data(Get more data for timeseries).
         start, end = slc.start, slc.stop
-        start_idx = bisect.bisect_left(self.cal, pd.Timestamp(start))
-        pad_start_idx = max(0, start_idx - self.step_len)
-        pad_start = self.cal[pad_start_idx]
-
-        # TSDatasetH will retrieve more data for complete
-        data = super()._prepare_seg(slice(pad_start, end), **kwargs)
-        return data
+        start_idx = bisect.bisect_left(cal, pd.Timestamp(start))
+        pad_start_idx = max(0, start_idx - step_len)
+        pad_start = cal[pad_start_idx]
+        return slice(pad_start, end)
 
     def _prepare_seg(self, slc: slice, **kwargs) -> TSDataSampler:
         """
@@ -547,12 +545,14 @@ class TSDatasetH(DatasetH):
         start, end = slc.start, slc.stop
         flt_col = kwargs.pop("flt_col", None)
         # TSDatasetH will retrieve more data for complete time-series
-        data = self._prepare_raw_seg(slc, **kwargs)
+
+        ext_slice = self._extend_slice(slc, self.cal, self.step_len)
+        data = super()._prepare_seg(ext_slice, **kwargs)
 
         flt_kwargs = deepcopy(kwargs)
         if flt_col is not None:
             flt_kwargs["col_set"] = flt_col
-            flt_data = self._prepare_raw_seg(slc, **flt_kwargs)
+            flt_data = self._prepare_seg(ext_slice, **flt_kwargs)
             assert len(flt_data.columns) == 1
         else:
             flt_data = None
