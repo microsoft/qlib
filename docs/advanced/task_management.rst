@@ -14,7 +14,7 @@ To automatically generate and execute different tasks, ``Task Management`` provi
 With this module, users can run their ``task`` automatically at different periods, in different losses, or even by different models.The processes of task generation, model training and combine and collect data are shown in the following figure.
 
 <div style="align: center">
-<img src="https://github.com/demon143/qlib/blob/main/docs/_static/img/Task-Gen-Recorder-CollectorV3.drawio.drawio%20(1).svg" />
+<img src="https://github.com/microsoft/qlib/blob/main/docs/_static/img/Task-Gen-Recorder-CollectorV3.drawio.drawio%20.svg" />
 </div>
 
 This whole process can be used in `Online Serving <../component/online.html>`_.
