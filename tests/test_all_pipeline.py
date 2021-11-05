@@ -47,13 +47,13 @@ def train(uri_path: str = None):
         rid = recorder.id
         sr = SignalRecord(model, dataset, recorder)
         sr.generate()
-        pred_score = sr.load(sr.get_path("pred.pkl"))
+        pred_score = sr.load("pred.pkl")
 
         # calculate ic and ric
         sar = SigAnaRecord(recorder)
         sar.generate()
-        ic = sar.load(sar.get_path("ic.pkl"))
-        ric = sar.load(sar.get_path("ric.pkl"))
+        ic = sar.load("ic.pkl")
+        ric = sar.load("ric.pkl")
 
     return pred_score, {"ic": ic, "ric": ric}, rid
 
@@ -78,13 +78,13 @@ def train_with_sigana(uri_path: str = None):
 
         sr = SignalRecord(model, dataset, recorder)
         sr.generate()
-        pred_score = sr.load(sr.get_path("pred.pkl"))
+        pred_score = sr.load("pred.pkl")
 
         # predict and calculate ic and ric
         sar = SigAnaRecord(recorder)
         sar.generate()
-        ic = sar.load(sar.get_path("ic.pkl"))
-        ric = sar.load(sar.get_path("ric.pkl"))
+        ic = sar.load("ic.pkl")
+        ric = sar.load("ric.pkl")
 
         uri_path = R.get_uri()
     return pred_score, {"ic": ic, "ric": ric}, uri_path
@@ -169,7 +169,7 @@ def backtest_analysis(pred, rid, uri_path: str = None):
     # backtest
     par = PortAnaRecord(recorder, port_analysis_config, risk_analysis_freq="day")
     par.generate()
-    analysis_df = par.load(par.get_path("port_analysis_1day.pkl"))
+    analysis_df = par.load("port_analysis_1day.pkl")
     print(analysis_df)
     return analysis_df
 
