@@ -90,7 +90,7 @@ For example: {(A,B,C1): object, (A,B,C2): object} ---``group``---> {(A,B): {C1: 
 `Ensemble <../reference/api.html#Ensemble>`_ can merge the objects in an ensemble. 
 For example: {C1: object, C2: object} ---``Ensemble``---> object.
 You can set the ensembles you want in the ``Collector``'s process_list.
-Common ensembles include AverageEnsemble and RollingEnsemble. Average ensemble is used to ensemble the results of different models in the same time period. Rollingensemble is used to ensemble the results of different models in the same time period.
+Common ensembles include ``AverageEnsemble`` and ``RollingEnsemble``. Average ensemble is used to ensemble the results of different models in the same time period. Rollingensemble is used to ensemble the results of different models in the same time period.
 
 So the hierarchy is ``Collector``'s second step corresponds to ``Group``. And ``Group``'s second step correspond to ``Ensemble``.
 
