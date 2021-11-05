@@ -283,7 +283,7 @@ Here is a list of models built on `Qlib`.
 - [GBDT based on LightGBM (Guolin Ke, et al. NIPS 2017)](examples/benchmarks/LightGBM/)
 - [GBDT based on Catboost (Liudmila Prokhorenkova, et al. NIPS 2018)](examples/benchmarks/CatBoost/)
 - [MLP based on pytorch](examples/benchmarks/MLP/)
-- [LSTM based on pytorch (Sepp Hochreiter, et al. Neural omputation 1997)](examples/benchmarks/LSTM/)
+- [LSTM based on pytorch (Sepp Hochreiter, et al. Neural computation 1997)](examples/benchmarks/LSTM/)
 - [GRU based on pytorch (Kyunghyun Cho, et al. 2014)](examples/benchmarks/GRU/)
 - [ALSTM based on pytorch (Yao Qin, et al. IJCAI 2017)](examples/benchmarks/ALSTM)
 - [GATs based on pytorch (Petar Velickovic, et al. 2017)](examples/benchmarks/GATs/)
