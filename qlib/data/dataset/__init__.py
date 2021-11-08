@@ -320,6 +320,7 @@ class TSDataSampler:
             self.flt_data = flt_data.values
             self.idx_map = self.flt_idx_map(self.flt_data, self.idx_map)
             self.data_index = self.data_index[np.where(self.flt_data == True)[0]]
+        self.idx_map = self.idx_map2arr(self.idx_map)
 
         self.start_idx, self.end_idx = self.data_index.slice_locs(
             start=time_to_slc_point(start), end=time_to_slc_point(end)
@@ -327,6 +328,25 @@ class TSDataSampler:
         self.idx_arr = np.array(self.idx_df.values, dtype=np.float64)  # for better performance
 
         del self.data  # save memory
+
+    @staticmethod
+    def idx_map2arr(idx_map):
+        # pytorch data sampler will have better memory control without large dict or list
+        # - https://github.com/pytorch/pytorch/issues/13243
+        # - https://github.com/airctic/icevision/issues/613
+        # So we convert the dict into int array.
+        # The arr_map is expected to behave the same as idx_map
+
+        dtype = np.int32
+        # set a index out of bound to indicate the none existing
+        no_existing_idx = (np.iinfo(dtype).max, np.iinfo(dtype).max)
+
+        max_idx = max(idx_map.keys())
+        arr_map = []
+        for i in range(max_idx + 1):
+            arr_map.append(idx_map.get(i, no_existing_idx))
+        arr_map = np.array(arr_map, dtype=dtype)
+        return arr_map
 
     @staticmethod
     def flt_idx_map(flt_data, idx_map):
@@ -524,20 +544,18 @@ class TSDatasetH(DatasetH):
 
     def setup_data(self, **kwargs):
         super().setup_data(**kwargs)
+        # make sure the calendar is updated to latest when loading data from new config
         cal = self.handler.fetch(col_set=self.handler.CS_RAW).index.get_level_values("datetime").unique()
-        cal = sorted(cal)
-        self.cal = cal
+        self.cal = sorted(cal)
 
-    def _prepare_raw_seg(self, slc: slice, **kwargs) -> pd.DataFrame:
+    @staticmethod
+    def _extend_slice(slc: slice, cal: list, step_len: int) -> slice:
         # Dataset decide how to slice data(Get more data for timeseries).
         start, end = slc.start, slc.stop
-        start_idx = bisect.bisect_left(self.cal, pd.Timestamp(start))
-        pad_start_idx = max(0, start_idx - self.step_len)
-        pad_start = self.cal[pad_start_idx]
-
-        # TSDatasetH will retrieve more data for complete
-        data = super()._prepare_seg(slice(pad_start, end), **kwargs)
-        return data
+        start_idx = bisect.bisect_left(cal, pd.Timestamp(start))
+        pad_start_idx = max(0, start_idx - step_len)
+        pad_start = cal[pad_start_idx]
+        return slice(pad_start, end)
 
     def _prepare_seg(self, slc: slice, **kwargs) -> TSDataSampler:
         """
@@ -546,13 +564,15 @@ class TSDatasetH(DatasetH):
         dtype = kwargs.pop("dtype", None)
         start, end = slc.start, slc.stop
         flt_col = kwargs.pop("flt_col", None)
-        # TSDatasetH will retrieve more data for complete
-        data = self._prepare_raw_seg(slc, **kwargs)
+        # TSDatasetH will retrieve more data for complete time-series
+
+        ext_slice = self._extend_slice(slc, self.cal, self.step_len)
+        data = super()._prepare_seg(ext_slice, **kwargs)
 
         flt_kwargs = deepcopy(kwargs)
         if flt_col is not None:
             flt_kwargs["col_set"] = flt_col
-            flt_data = self._prepare_raw_seg(slc, **flt_kwargs)
+            flt_data = self._prepare_seg(ext_slice, **flt_kwargs)
             assert len(flt_data.columns) == 1
         else:
             flt_data = None

@@ -6,7 +6,7 @@ This strategy is not well maintained
 
 
 from .order_generator import OrderGenWInteract
-from .model_strategy import WeightStrategyBase
+from .signal_strategy import WeightStrategyBase
 import copy
 
 

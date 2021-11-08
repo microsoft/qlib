@@ -151,10 +151,9 @@ class NestedDecisionExecutionWorkflow:
         self._train_model(model, dataset)
         strategy_config = {
             "class": "TopkDropoutStrategy",
-            "module_path": "qlib.contrib.strategy.model_strategy",
+            "module_path": "qlib.contrib.strategy.signal_strategy",
             "kwargs": {
-                "model": model,
-                "dataset": dataset,
+                "signal": (model, dataset),
                 "topk": 50,
                 "n_drop": 5,
             },
@@ -189,10 +188,9 @@ class NestedDecisionExecutionWorkflow:
         backtest_config["benchmark"] = self.benchmark
         strategy_config = {
             "class": "TopkDropoutStrategy",
-            "module_path": "qlib.contrib.strategy.model_strategy",
+            "module_path": "qlib.contrib.strategy.signal_strategy",
             "kwargs": {
-                "model": model,
-                "dataset": dataset,
+                "signal": (model, dataset),
                 "topk": 50,
                 "n_drop": 5,
             },

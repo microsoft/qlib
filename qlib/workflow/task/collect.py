@@ -5,6 +5,7 @@
 Collector module can collect objects from everywhere and process them such as merging, grouping, averaging and so on.
 """
 
+from libs.qlib.qlib.log import TimeInspector
 from typing import Callable, Dict, List
 from qlib.log import get_module_logger
 from qlib.utils.serial import Serializable
@@ -190,7 +191,9 @@ class RecorderCollector(Collector):
 
         collect_dict = {}
         # filter records
-        recs = self.experiment.list_recorders(**self.list_kwargs)
+
+        with TimeInspector.logt("Time to `list_recorders` in RecorderCollector"):
+            recs = self.experiment.list_recorders(**self.list_kwargs)
         recs_flt = {}
         for rid, rec in recs.items():
             if rec_filter_func is None or rec_filter_func(rec):

@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 
-from .model_strategy import (
+from .signal_strategy import (
     TopkDropoutStrategy,
     WeightStrategyBase,
 )
