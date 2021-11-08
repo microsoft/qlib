@@ -5,7 +5,7 @@
 Collector module can collect objects from everywhere and process them such as merging, grouping, averaging and so on.
 """
 
-from libs.qlib.qlib.log import TimeInspector
+from qlib.log import TimeInspector
 from typing import Callable, Dict, List
 from qlib.log import get_module_logger
 from qlib.utils.serial import Serializable
