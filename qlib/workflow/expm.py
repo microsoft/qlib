@@ -1,7 +1,9 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+from urllib.parse import urlparse
 import mlflow
+from filelock import FileLock
 from mlflow.exceptions import MlflowException
 from mlflow.entities import ViewType
 import os, logging
@@ -191,6 +193,13 @@ class ExpManager:
             if experiment_name is None:
                 experiment_name = self._default_exp_name
             logger.warning(f"No valid experiment found. Create a new experiment with name {experiment_name}.")
+
+            # NOTE: mlflow doesn't consider the lock for recording multiple runs
+            # So we supported it in the interface wrapper
+            pr = urlparse(self.uri)
+            if pr.scheme == "file":
+                with FileLock(os.path.join(pr.netloc, pr.path, "filelock")) as f:
+                    return self.create_exp(experiment_name), True
             return self.create_exp(experiment_name), True
 
     def _get_exp(self, experiment_id=None, experiment_name=None) -> Experiment:
