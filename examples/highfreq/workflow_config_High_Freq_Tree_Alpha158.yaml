@@ -59,7 +59,7 @@ task:
     record: 
         - class: "SignalRecord"
           module_path: "qlib.workflow.record_temp"
-          kwargs: 
+          kwargs: {}
         - class: "HFSignalRecord"
           module_path: "qlib.workflow.record_temp"
           kwargs: {}
