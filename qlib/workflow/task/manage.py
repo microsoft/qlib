@@ -27,6 +27,7 @@ from qlib import auto_init, get_module_logger
 from tqdm.cli import tqdm
 
 from .utils import get_mongodb
+from ...config import C
 
 
 class TaskManager:
@@ -108,7 +109,7 @@ class TaskManager:
         for prefix in self.ENCODE_FIELDS_PREFIX:
             for k in list(task.keys()):
                 if k.startswith(prefix):
-                    task[k] = Binary(pickle.dumps(task[k]))
+                    task[k] = Binary(pickle.dumps(task[k], protocol=C.dump_protocol_version))
         return task
 
     def _decode_task(self, task):
@@ -359,7 +360,10 @@ class TaskManager:
         # A workaround to use the class attribute.
         if status is None:
             status = TaskManager.STATUS_DONE
-        self.task_pool.update_one({"_id": task["_id"]}, {"$set": {"status": status, "res": Binary(pickle.dumps(res))}})
+        self.task_pool.update_one(
+            {"_id": task["_id"]},
+            {"$set": {"status": status, "res": Binary(pickle.dumps(res, protocol=C.dump_protocol_version))}},
+        )
 
     def return_task(self, task, status=STATUS_WAITING):
         """

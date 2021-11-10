@@ -726,10 +726,11 @@ class LocalExpressionProvider(ExpressionProvider):
         lft_etd, rght_etd = expression.get_extended_window_size()
         try:
             series = expression.load(instrument, max(0, start_index - lft_etd), end_index + rght_etd, freq)
-        except Exception:
+        except Exception as e:
             get_module_logger("data").error(
                 f"Loading expression error: "
-                f"instrument={instrument}, field=({field}), start_time={start_time}, end_time={end_time}, freq={freq}"
+                f"instrument={instrument}, field=({field}), start_time={start_time}, end_time={end_time}, freq={freq}. "
+                f"error info: {str(e)}"
             )
             raise
         # Ensure that each column type is consistent

@@ -154,10 +154,11 @@ class Expression(abc.ABC):
             raise ValueError("Invalid index range: {} {}".format(start_index, end_index))
         try:
             series = self._load_internal(instrument, start_index, end_index, freq)
-        except Exception:
+        except Exception as e:
             get_module_logger("data").error(
                 f"Loading data error: instrument={instrument}, expression={str(self)}, "
-                f"start_index={start_index}, end_index={end_index}, freq={freq}"
+                f"start_index={start_index}, end_index={end_index}, freq={freq}. "
+                f"error info: {str(e)}"
             )
             raise
         series.name = str(self)
