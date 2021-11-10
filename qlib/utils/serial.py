@@ -86,6 +86,7 @@ class Serializable:
         """
         self.config(dump_all=dump_all, exclude=exclude)
         with Path(path).open("wb") as f:
+            # pickle interface like backend; such as dill
             self.get_backend().dump(self, f, protocol=C.dump_protocol_version)
 
     @classmethod
@@ -117,6 +118,7 @@ class Serializable:
         Returns:
             module: pickle or dill module based on pickle_backend
         """
+        # NOTE: pickle interface like backend; such as dill
         if cls.pickle_backend == "pickle":
             return pickle
         elif cls.pickle_backend == "dill":

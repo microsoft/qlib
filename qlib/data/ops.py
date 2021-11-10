@@ -312,12 +312,12 @@ class NpPairOperator(PairOperator):
             warning_info = (
                 f"Loading {instrument}: {str(self)}; np.{self.func}(series_left, series_right), "
                 f"The length of series_left and series_right is different: ({len(series_left)}, {len(series_right)}), "
-                f"series_left is {str(self.feature_left)}, series_right is {str(self.feature_left)}. Please check the data"
+                f"series_left is {str(self.feature_left)}, series_right is {str(self.feature_right)}. Please check the data"
             )
         else:
             warning_info = (
                 f"Loading {instrument}: {str(self)}; np.{self.func}(series_left, series_right), "
-                f"series_left is {str(self.feature_left)}, series_right is {str(self.feature_left)}. Please check the data"
+                f"series_left is {str(self.feature_left)}, series_right is {str(self.feature_right)}. Please check the data"
             )
         try:
             res = getattr(np, self.func)(series_left, series_right)
