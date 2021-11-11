@@ -8,7 +8,7 @@ import warnings
 import pandas as pd
 from pathlib import Path
 from pprint import pprint
-from typing import Union, List
+from typing import Union, List, Optional
 from collections import defaultdict
 
 from qlib.utils.exceptions import LoadObjectError
@@ -270,7 +270,13 @@ class SigAnaRecord(RecordTemp):
         self.label_col = label_col
         self.skip_existing = skip_existing
 
-    def generate(self, **kwargs):
+    def generate(self, label: Optional[pd.DataFrame] = None, **kwargs):
+        """
+        Parameters
+        ----------
+        label : Optional[pd.DataFrame]
+            Label should be a dataframe.
+        """
         if self.skip_existing:
             try:
                 self.check(include_self=True, parents=False)
@@ -283,7 +289,8 @@ class SigAnaRecord(RecordTemp):
         self.check()
 
         pred = self.load("pred.pkl")
-        label = self.load("label.pkl")
+        if label is None:
+            label = self.load("label.pkl")
         if label is None or not isinstance(label, pd.DataFrame) or label.empty:
             logger.warn(f"Empty label.")
             return
