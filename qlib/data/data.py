@@ -38,6 +38,7 @@ from ..utils import (
     hash_args,
     normalize_cache_fields,
     code_to_fname,
+    set_log_with_config,
 )
 from ..utils.paral import ParallelExt
 
@@ -586,6 +587,8 @@ class DatasetProvider(abc.ABC):
         # NOTE: This place is compatible with windows, windows multi-process is spawn
         if not C.registered:
             C.set_conf_from_C(g_config)
+            if C.logging_config:
+                set_log_with_config(C.logging_config)
             C.register()
 
         obj = dict()
