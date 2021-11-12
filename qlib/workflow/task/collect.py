@@ -10,6 +10,7 @@ from typing import Callable, Dict, List
 from qlib.log import get_module_logger
 from qlib.utils.serial import Serializable
 from qlib.workflow import R
+from qlib.workflow.exp import Experiment
 
 
 class Collector(Serializable):
@@ -146,7 +147,9 @@ class RecorderCollector(Collector):
         Init RecorderCollector.
 
         Args:
-            experiment (Experiment or str): an instance of an Experiment or the name of an Experiment
+            experiment:
+                (Experiment or str): an instance of an Experiment or the name of an Experiment
+                (Callable): an callable function, which returns a list of experiments
             process_list (list or Callable): the list of processors or the instance of a processor to process dict.
             rec_key_func (Callable): a function to get the key of a recorder. If None, use recorder id.
             rec_filter_func (Callable, optional): filter the recorder by return True or False. Defaults to None.
@@ -157,6 +160,7 @@ class RecorderCollector(Collector):
         super().__init__(process_list=process_list)
         if isinstance(experiment, str):
             experiment = R.get_exp(experiment_name=experiment)
+        assert isinstance(experiment, (Experiment, Callable))
         self.experiment = experiment
         self.artifacts_path = artifacts_path
         if rec_key_func is None:
@@ -192,15 +196,16 @@ class RecorderCollector(Collector):
         collect_dict = {}
         # filter records
 
-        with TimeInspector.logt("Time to `list_recorders` in RecorderCollector"):
-            recs = self.experiment.list_recorders(**self.list_kwargs)
-        recs_flt = {}
-        for rid, rec in recs.items():
-            if rec_filter_func is None or rec_filter_func(rec):
-                recs_flt[rid] = rec
+        if isinstance(self.experiment, Experiment):
+            with TimeInspector.logt("Time to `list_recorders` in RecorderCollector"):
+                recs = list(self.experiment.list_recorders(**self.list_kwargs).values())
+        elif isinstance(self.experiment, Callable):
+            recs = self.experiment()
+
+        recs = [rec for rec in recs if rec_filter_func is None or rec_filter_func(rec)]
 
         logger = get_module_logger("RecorderCollector")
-        for _, rec in recs_flt.items():
+        for rec in recs:
             rec_key = self.rec_key_func(rec)
             for key in artifacts_key:
                 if self.ART_KEY_RAW == key:
