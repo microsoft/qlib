@@ -176,6 +176,8 @@ _default_config = {
     # if min_data_shift == 0, use default market time [9:30, 11:29, 1:00, 2:59]
     # if min_data_shift != 0, use shifted market time [9:30, 11:29, 1:00, 2:59] - shift*minute
     "min_data_shift": 0,
+    # whether to display the ops warning log, default False
+    "ops_warning_log": False,
 }
 
 MODE_CONF = {

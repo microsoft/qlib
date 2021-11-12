@@ -40,13 +40,13 @@ if __name__ == "__main__":
     # 3) create new task with handler cache
     new_task_config = deepcopy(task_config)
     new_task_config["task"]["dataset"]["kwargs"]["handler"] = f"file://{hd_path}"
-    new_task_config
+    new_task_config["sys"] = {"path": [str(config_path.parent.resolve())]}
     new_task_path = DIRNAME / "new_task.yaml"
     print("The location of the new task", new_task_path)
 
     # save new task
     with new_task_path.open("w") as f:
-        yaml.safe_dump(new_task_config, f)
+        yaml.safe_dump(new_task_config, f, indent=4, sort_keys=False)
 
     # 4) train model with new task
     with TimeInspector.logt("The time for task with handler cache:"):
