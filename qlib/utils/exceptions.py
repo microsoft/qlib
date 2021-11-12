@@ -18,3 +18,9 @@ class LoadObjectError(QlibException):
     """Error type for Recorder when can not load object"""
 
     pass
+
+
+class ExpAlreadyExistError(Exception):
+    """Experiment already exists"""
+
+    pass
