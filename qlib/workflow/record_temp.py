@@ -283,10 +283,14 @@ class SigAnaRecord(RecordTemp):
             except FileNotFoundError:
                 pass  # continue to generating metrics
             else:
-                logger.info("The results has previously generated, generation skipped.")
+                logger.info("The results has previously generated, Generation skipped.")
                 return
 
-        self.check()
+        try:
+            self.check()
+        except FileNotFoundError:
+            logger.warning("The dependent data does not exists. Generation skipped.")
+            return
 
         pred = self.load("pred.pkl")
         if label is None:
