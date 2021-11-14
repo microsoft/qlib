@@ -38,7 +38,7 @@ class TRAModel(Model):
         model_init_state=None,
         lamb=0.0,
         rho=0.99,
-        seed=0,
+        seed=None,
         logdir=None,
         eval_train=True,
         eval_test=False,

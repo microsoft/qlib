@@ -159,6 +159,21 @@ Version 0.5.0
     - Add baselines
     - public data crawler
 
-Version greater than Version 0.5.0
+
+Version 0.8.0
+--------------------
+- The backtest is greatly refactored.
+    - Nested decision execution framework is supported
+    - There are lots of changes for daily trading, it is hard to list all of them. But a few important changes could be noticed
+        - The trading limitation is more accurate;
+            - In `previous version <https://github.com/microsoft/qlib/blob/v0.7.2/qlib/contrib/backtest/exchange.py#L160>`_, longing and shorting actions share the same action.
+            - In `current verison <https://github.com/microsoft/qlib/blob/7c31012b507a3823117bddcc693fc64899460b2a/qlib/backtest/exchange.py#L304>`_, the trading limitation is different between loging and shorting action.
+        - The constant is different when calculating annualized metrics.
+            - `Current version <https://github.com/microsoft/qlib/blob/7c31012b507a3823117bddcc693fc64899460b2a/qlib/contrib/evaluate.py#L42>`_ uses more accurate constant than `previous version <https://github.com/microsoft/qlib/blob/v0.7.2/qlib/contrib/evaluate.py#L22>`_
+        - `A new version <https://github.com/microsoft/qlib/blob/7c31012b507a3823117bddcc693fc64899460b2a/qlib/tests/data.py#L17>`_ of data is released. Due to the unstability of Yahoo data source, the data may be different after downloading data again.
+        - Users could chec kout the backtesting results between  `Current version <https://github.com/microsoft/qlib/tree/7c31012b507a3823117bddcc693fc64899460b2a/examples/benchmarks>`_ and `previous version <https://github.com/microsoft/qlib/tree/v0.7.2/examples/benchmarks>`_
+
+
+Other Versions
 ----------------------------------
 Please refer to `Github release Notes <https://github.com/microsoft/qlib/releases>`_

@@ -1,12 +1,14 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
-
+"""
+This module is not well maintained.
+"""
 
 import numpy as np
 import pandas as pd
 from .position import Position
-from ...data import D
-from ...config import C
+from ..data import D
+from ..config import C
 import datetime
 from pathlib import Path
 
@@ -35,7 +37,7 @@ def get_benchmark_weight(
 
     """
     if not path:
-        path = Path(C.dpm.get_data_path(freq)).expanduser() / "raw" / "AIndexMembers" / "weights.csv"
+        path = Path(C.dpm.get_data_uri(freq)).expanduser() / "raw" / "AIndexMembers" / "weights.csv"
     # TODO: the storage of weights should be implemented in a more elegent way
     # TODO: The benchmark is not consistant with the filename in instruments.
     bench_weight_df = pd.read_csv(path, usecols=["code", "date", "index", "weight"])

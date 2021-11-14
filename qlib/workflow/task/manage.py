@@ -27,6 +27,7 @@ from qlib import auto_init, get_module_logger
 from tqdm.cli import tqdm
 
 from .utils import get_mongodb
+from ...config import C
 
 
 class TaskManager:
@@ -47,7 +48,10 @@ class TaskManager:
     The tasks manager assumes that you will only update the tasks you fetched.
     The mongo fetch one and update will make it date updating secure.
 
-    This class can be used as a tool from commandline. Here are serveral examples
+    This class can be used as a tool from commandline. Here are serveral examples.
+    You can view the help of manage module with the following commands:
+    python -m qlib.workflow.task.manage -h # show manual of manage module CLI
+    python -m qlib.workflow.task.manage wait -h # show manual of the wait command of manage
 
     .. code-block:: shell
 
@@ -105,7 +109,7 @@ class TaskManager:
         for prefix in self.ENCODE_FIELDS_PREFIX:
             for k in list(task.keys()):
                 if k.startswith(prefix):
-                    task[k] = Binary(pickle.dumps(task[k]))
+                    task[k] = Binary(pickle.dumps(task[k], protocol=C.dump_protocol_version))
         return task
 
     def _decode_task(self, task):
@@ -314,6 +318,8 @@ class TaskManager:
         Query task in collection.
         This function may raise exception `pymongo.errors.CursorNotFound: cursor id not found` if it takes too long to iterate the generator
 
+        python -m qlib.workflow.task.manage -t <your task pool> query '{"_id": "615498be837d0053acbc5d58"}'
+
         Parameters
         ----------
         query: dict
@@ -354,7 +360,10 @@ class TaskManager:
         # A workaround to use the class attribute.
         if status is None:
             status = TaskManager.STATUS_DONE
-        self.task_pool.update_one({"_id": task["_id"]}, {"$set": {"status": status, "res": Binary(pickle.dumps(res))}})
+        self.task_pool.update_one(
+            {"_id": task["_id"]},
+            {"$set": {"status": status, "res": Binary(pickle.dumps(res, protocol=C.dump_protocol_version))}},
+        )
 
     def return_task(self, task, status=STATUS_WAITING):
         """
