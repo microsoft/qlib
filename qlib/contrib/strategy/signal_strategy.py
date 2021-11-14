@@ -1,27 +1,33 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
 import copy
+from qlib.backtest.signal import Signal, create_signal_from
+from typing import Dict, List, Text, Tuple, Union
+from qlib.data.dataset import Dataset
+from qlib.model.base import BaseModel
 from qlib.backtest.position import Position
 import warnings
 import numpy as np
 import pandas as pd
 
 from ...utils.resam import resam_ts_data
-from ...strategy.base import ModelStrategy
+from ...strategy.base import BaseStrategy
 from ...backtest.decision import Order, BaseTradeDecision, OrderDir, TradeDecisionWO
 
 from .order_generator import OrderGenWInteract
 
 
-class TopkDropoutStrategy(ModelStrategy):
+class TopkDropoutStrategy(BaseStrategy):
     # TODO:
     # 1. Supporting leverage the get_range_limit result from the decision
     # 2. Supporting alter_outer_trade_decision
     # 3. Supporting checking the availability of trade decision
     def __init__(
         self,
-        model,
-        dataset,
+        *,
         topk,
         n_drop,
+        signal: Union[Signal, Tuple[BaseModel, Dataset], List, Dict, Text, pd.Series, pd.DataFrame] = None,
         method_sell="bottom",
         method_buy="top",
         risk_degree=0.95,
@@ -30,6 +36,8 @@ class TopkDropoutStrategy(ModelStrategy):
         trade_exchange=None,
         level_infra=None,
         common_infra=None,
+        model=None,
+        dataset=None,
         **kwargs,
     ):
         """
@@ -39,6 +47,9 @@ class TopkDropoutStrategy(ModelStrategy):
             the number of stocks in the portfolio.
         n_drop : int
             number of stocks to be replaced in each trading date.
+        signal :
+            the information to describe a signal. Please refer to the docs of `qlib.backtest.signal.create_signal_from`
+            the decision of the strategy will base on the given signal
         method_sell : str
             dropout method_sell, random/bottom.
         method_buy : str
@@ -64,7 +75,7 @@ class TopkDropoutStrategy(ModelStrategy):
 
         """
         super(TopkDropoutStrategy, self).__init__(
-            model, dataset, level_infra=level_infra, common_infra=common_infra, trade_exchange=trade_exchange, **kwargs
+            level_infra=level_infra, common_infra=common_infra, trade_exchange=trade_exchange, **kwargs
         )
         self.topk = topk
         self.n_drop = n_drop
@@ -73,6 +84,13 @@ class TopkDropoutStrategy(ModelStrategy):
         self.risk_degree = risk_degree
         self.hold_thresh = hold_thresh
         self.only_tradable = only_tradable
+
+        # This is trying to be compatible with previous version of qlib task config
+        if model is not None and dataset is not None:
+            warnings.warn("`model` `dataset` is deprecated; use `signal`.", DeprecationWarning)
+            signal = model, dataset
+
+        self.signal: Signal = create_signal_from(signal)
 
     def get_risk_degree(self, trade_step=None):
         """get_risk_degree
@@ -87,7 +105,7 @@ class TopkDropoutStrategy(ModelStrategy):
         trade_step = self.trade_calendar.get_trade_step()
         trade_start_time, trade_end_time = self.trade_calendar.get_step_time(trade_step)
         pred_start_time, pred_end_time = self.trade_calendar.get_step_time(trade_step, shift=1)
-        pred_score = resam_ts_data(self.pred_scores, start_time=pred_start_time, end_time=pred_end_time, method="last")
+        pred_score = self.signal.get_signal(start_time=pred_start_time, end_time=pred_end_time)
         if pred_score is None:
             return TradeDecisionWO([], self)
         if self.only_tradable:
@@ -235,15 +253,15 @@ class TopkDropoutStrategy(ModelStrategy):
         return TradeDecisionWO(sell_order_list + buy_order_list, self)
 
 
-class WeightStrategyBase(ModelStrategy):
+class WeightStrategyBase(BaseStrategy):
     # TODO:
     # 1. Supporting leverage the get_range_limit result from the decision
     # 2. Supporting alter_outer_trade_decision
     # 3. Supporting checking the availability of trade decision
     def __init__(
         self,
-        model,
-        dataset,
+        *,
+        signal: Union[Signal, Tuple[BaseModel, Dataset], List, Dict, Text, pd.Series, pd.DataFrame],
         order_generator_cls_or_obj=OrderGenWInteract,
         trade_exchange=None,
         level_infra=None,
@@ -251,6 +269,9 @@ class WeightStrategyBase(ModelStrategy):
         **kwargs,
     ):
         """
+        signal :
+            the information to describe a signal. Please refer to the docs of `qlib.backtest.signal.create_signal_from`
+            the decision of the strategy will base on the given signal
         trade_exchange : Exchange
             exchange that provides market info, used to deal order and generate report
             - If `trade_exchange` is None, self.trade_exchange will be set with common_infra
@@ -260,12 +281,14 @@ class WeightStrategyBase(ModelStrategy):
                 - In minutely execution, the daily exchange is not usable, only the minutely exchange is recommended.
         """
         super(WeightStrategyBase, self).__init__(
-            model, dataset, level_infra=level_infra, common_infra=common_infra, trade_exchange=trade_exchange, **kwargs
+            level_infra=level_infra, common_infra=common_infra, trade_exchange=trade_exchange, **kwargs
         )
         if isinstance(order_generator_cls_or_obj, type):
             self.order_generator = order_generator_cls_or_obj()
         else:
             self.order_generator = order_generator_cls_or_obj
+
+        self.signal: Signal = create_signal_from(signal)
 
     def get_risk_degree(self, trade_step=None):
         """get_risk_degree
@@ -298,7 +321,7 @@ class WeightStrategyBase(ModelStrategy):
         trade_step = self.trade_calendar.get_trade_step()
         trade_start_time, trade_end_time = self.trade_calendar.get_step_time(trade_step)
         pred_start_time, pred_end_time = self.trade_calendar.get_step_time(trade_step, shift=1)
-        pred_score = resam_ts_data(self.pred_scores, start_time=pred_start_time, end_time=pred_end_time, method="last")
+        pred_score = self.signal.get_signal(start_time=pred_start_time, end_time=pred_end_time)
         if pred_score is None:
             return TradeDecisionWO([], self)
         current_temp = copy.deepcopy(self.trade_position)

@@ -49,7 +49,7 @@ class MultiSegRecord(RecordTemp):
 
             if save:
                 save_name = "results-{:}.pkl".format(key)
-                self.recorder.save_objects(**{save_name: results})
+                self.save(**{save_name: results})
                 logger.info(
                     "The record '{:}' has been saved as the artifact of the Experiment {:}".format(
                         save_name, self.recorder.experiment_id
@@ -79,9 +79,8 @@ class SignalMseRecord(RecordTemp):
         metrics = {"MSE": mse, "RMSE": np.sqrt(mse)}
         objects = {"mse.pkl": mse, "rmse.pkl": np.sqrt(mse)}
         self.recorder.log_metrics(**metrics)
-        self.recorder.save_objects(**objects, artifact_path=self.get_path())
+        self.save(**objects)
         logger.info("The evaluation results in SignalMseRecord is {:}".format(metrics))
 
     def list(self):
-        paths = [self.get_path("mse.pkl"), self.get_path("rmse.pkl")]
-        return paths
+        return ["mse.pkl", "rmse.pkl"]

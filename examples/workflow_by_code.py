@@ -31,10 +31,9 @@ if __name__ == "__main__":
         },
         "strategy": {
             "class": "TopkDropoutStrategy",
-            "module_path": "qlib.contrib.strategy.model_strategy",
+            "module_path": "qlib.contrib.strategy.signal_strategy",
             "kwargs": {
-                "model": model,
-                "dataset": dataset,
+                "signal": (model, dataset),
                 "topk": 50,
                 "n_drop": 5,
             },

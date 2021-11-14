@@ -17,7 +17,7 @@ from ..utils import init_instance_by_config
 from ..backtest.utils import CommonInfrastructure, LevelInfrastructure, TradeCalendarManager
 from ..backtest.decision import BaseTradeDecision
 
-__all__ = ["BaseStrategy", "ModelStrategy", "RLStrategy", "RLIntStrategy"]
+__all__ = ["BaseStrategy", "RLStrategy", "RLIntStrategy"]
 
 
 class BaseStrategy:
@@ -192,45 +192,6 @@ class BaseStrategy:
             raise ValueError(f"There is not limitation for strategy {self}")
         range_limit = self.outer_trade_decision.get_data_cal_range_limit(rtype=rtype)
         return max(cal_range[0], range_limit[0]), min(cal_range[1], range_limit[1])
-
-
-class ModelStrategy(BaseStrategy):
-    """Model-based trading strategy, use model to make predictions for trading"""
-
-    def __init__(
-        self,
-        model: BaseModel,
-        dataset: DatasetH,
-        outer_trade_decision: BaseTradeDecision = None,
-        level_infra: LevelInfrastructure = None,
-        common_infra: CommonInfrastructure = None,
-        **kwargs,
-    ):
-        """
-        Parameters
-        ----------
-        model : BaseModel
-            the model used in when making predictions
-        dataset : DatasetH
-            provide test data for model
-        kwargs : dict
-            arguments that will be passed into `reset` method
-        """
-        super(ModelStrategy, self).__init__(outer_trade_decision, level_infra, common_infra, **kwargs)
-        self.model = model
-        self.dataset = dataset
-        self.pred_scores = convert_index_format(self.model.predict(dataset), level="datetime")
-        if isinstance(self.pred_scores, pd.DataFrame):
-            self.pred_scores = self.pred_scores.iloc[:, 0]
-
-    def _update_model(self):
-        """
-        When using online data, pdate model in each bar as the following steps:
-            - update dataset with online data, the dataset should support online update
-            - make the latest prediction scores of the new bar
-            - update the pred score into the latest prediction
-        """
-        raise NotImplementedError("_update_model is not implemented!")
 
 
 class RLStrategy(BaseStrategy):

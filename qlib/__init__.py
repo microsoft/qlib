@@ -6,6 +6,7 @@ _version_path = Path(__file__).absolute().parent / "VERSION.txt"  # This file is
 __version__ = _version_path.read_text(encoding="utf-8").strip()
 __version__bak = __version__  # This version is backup for QlibConfig.reset_qlib_version
 import os
+from typing import Union
 import yaml
 import logging
 import platform
@@ -151,14 +152,17 @@ def init_from_yaml_conf(conf_path, **kwargs):
     :param conf_path: A path to the qlib config in yml format
     """
 
-    with open(conf_path) as f:
-        config = yaml.safe_load(f)
+    if conf_path is None:
+        config = {}
+    else:
+        with open(conf_path) as f:
+            config = yaml.safe_load(f)
     config.update(kwargs)
     default_conf = config.pop("default_conf", "client")
     init(default_conf, **config)
 
 
-def get_project_path(config_name="config.yaml", cur_path=None) -> Path:
+def get_project_path(config_name="config.yaml", cur_path: Union[Path, str, None] = None) -> Path:
     """
     If users are building a project follow the following pattern.
     - Qlib is a sub folder in project path
@@ -187,6 +191,7 @@ def get_project_path(config_name="config.yaml", cur_path=None) -> Path:
     """
     if cur_path is None:
         cur_path = Path(__file__).absolute().resolve()
+    cur_path = Path(cur_path)
     while True:
         if (cur_path / config_name).exists():
             return cur_path
@@ -202,6 +207,40 @@ def auto_init(**kwargs):
         - The parsing process will be affected by the `conf_type` of the configuration file
     - Init qlib with default config
     - Skip initialization if already initialized
+
+    :**kwargs: it may contain following parameters
+                cur_path: the start path to find the project path
+
+    Here are two examples of the configuration
+
+    Example 1)
+    If you want create a new project-specific config based on a shared configure, you can use  `conf_type: ref`
+
+    .. code-block:: yaml
+
+        conf_type: ref
+        qlib_cfg: '<shared_yaml_config_path>'    # this could be null reference no config from other files
+        # following configs in `qlib_cfg_update` is project=specific
+        qlib_cfg_update:
+            exp_manager:
+                class: "MLflowExpManager"
+                module_path: "qlib.workflow.expm"
+                kwargs:
+                    uri: "file://<your mlflow experiment path>"
+                    default_exp_name: "Experiment"
+
+    Example 2)
+    If you wan to create simple a stand alone config, you can use following config(a.k.a `conf_type: origin`)
+
+    .. code-block:: python
+
+        exp_manager:
+            class: "MLflowExpManager"
+            module_path: "qlib.workflow.expm"
+            kwargs:
+                uri: "file://<your mlflow experiment path>"
+                default_exp_name: "Experiment"
+
     """
     kwargs["skip_if_reg"] = kwargs.get("skip_if_reg", True)
 
@@ -210,6 +249,7 @@ def auto_init(**kwargs):
     except FileNotFoundError:
         init(**kwargs)
     else:
+        logger = get_module_logger("Initialization")
         conf_pp = pp / "config.yaml"
         with conf_pp.open() as f:
             conf = yaml.safe_load(f)
@@ -223,8 +263,14 @@ def auto_init(**kwargs):
             # - There is a shared configure file and you don't want to edit it inplace.
             # - The shared configure may be updated later and you don't want to copy it.
             # - You have some customized config.
-            qlib_conf_path = conf["qlib_cfg"]
-            qlib_conf_update = conf.get("qlib_cfg_update")
-            init_from_yaml_conf(qlib_conf_path, **qlib_conf_update, **kwargs)
-        logger = get_module_logger("Initialization")
+            qlib_conf_path = conf.get("qlib_cfg", None)
+
+            # merge the arguments
+            qlib_conf_update = conf.get("qlib_cfg_update", {})
+            for k, v in kwargs.items():
+                if k in qlib_conf_update:
+                    logger.warning(f"`qlib_conf_update` from conf_pp is override by `kwargs` on key '{k}'")
+            qlib_conf_update.update(kwargs)
+
+            init_from_yaml_conf(qlib_conf_path, **qlib_conf_update)
         logger.info(f"Auto load project config: {conf_pp}")

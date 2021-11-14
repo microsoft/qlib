@@ -106,7 +106,7 @@ class FileManager(ObjManager):
 
     def save_obj(self, obj, name):
         with (self.path / name).open("wb") as f:
-            pickle.dump(obj, f)
+            pickle.dump(obj, f, protocol=C.dump_protocol_version)
 
     def save_objs(self, obj_name_l):
         for obj, name in obj_name_l:

@@ -73,6 +73,9 @@ class Config:
 REG_CN = "cn"
 REG_US = "us"
 
+# pickle.dump protocol version: https://docs.python.org/3/library/pickle.html#data-stream-format
+PROTOCOL_VERSION = 4
+
 NUM_USABLE_CPU = max(multiprocessing.cpu_count() - 2, 1)
 
 DISK_DATASET_CACHE = "DiskDatasetCache"
@@ -107,6 +110,8 @@ _default_config = {
     # for simple dataset cache
     "local_cache_path": None,
     "kernels": NUM_USABLE_CPU,
+    # pickle.dump protocol version
+    "dump_protocol_version": PROTOCOL_VERSION,
     # How many tasks belong to one process. Recommend 1 for high-frequency data and None for daily data.
     "maxtasksperchild": None,
     # If joblib_backend is None, use loky
@@ -171,6 +176,8 @@ _default_config = {
     # if min_data_shift == 0, use default market time [9:30, 11:29, 1:00, 2:59]
     # if min_data_shift != 0, use shifted market time [9:30, 11:29, 1:00, 2:59] - shift*minute
     "min_data_shift": 0,
+    # whether to display the ops warning log, default False
+    "ops_warning_log": False,
 }
 
 MODE_CONF = {

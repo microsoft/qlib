@@ -70,7 +70,7 @@ class TradeCalendarManager:
         - If self.trade_step >= self.self.trade_len, it means the trading is finished
         - If self.trade_step < self.self.trade_len, it means the number of trading step finished is self.trade_step
         """
-        return self.trade_step >= self.trade_len
+        return self.trade_step >= self.trade_len - 1
 
     def step(self):
         if self.finished():

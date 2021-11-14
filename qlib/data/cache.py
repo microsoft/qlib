@@ -230,7 +230,7 @@ class CacheUtils:
                     d["meta"]["visits"] = d["meta"]["visits"] + 1
                 except KeyError:
                     raise KeyError("Unknown meta keyword")
-                pickle.dump(d, f)
+                pickle.dump(d, f, protocol=C.dump_protocol_version)
         except Exception as e:
             get_module_logger("CacheUtils").warning(f"visit {cache_path} cache error: {e}")
 
@@ -573,7 +573,7 @@ class DiskExpressionCache(ExpressionCache):
         meta_path = cache_path.with_suffix(".meta")
 
         with meta_path.open("wb") as f:
-            pickle.dump(meta, f)
+            pickle.dump(meta, f, protocol=C.dump_protocol_version)
         meta_path.chmod(stat.S_IRWXU | stat.S_IRGRP | stat.S_IROTH)
         df = expression_data.to_frame()
 
@@ -638,7 +638,7 @@ class DiskExpressionCache(ExpressionCache):
                 # update meta file
                 d["info"]["last_update"] = str(new_calendar[-1])
                 with meta_path.open("wb") as f:
-                    pickle.dump(d, f)
+                    pickle.dump(d, f, protocol=C.dump_protocol_version)
         return 0
 
 
@@ -927,7 +927,7 @@ class DiskDatasetCache(DatasetCache):
         meta = {
             "info": {
                 "instruments": instruments,
-                "fields": cache_columns,
+                "fields": list(cache_features.columns),
                 "freq": freq,
                 "last_update": str(_calendar[-1]),  # The last_update to store the cache
                 "inst_processors": inst_processors,  # The last_update to store the cache
@@ -935,7 +935,7 @@ class DiskDatasetCache(DatasetCache):
             "meta": {"last_visit": time.time(), "visits": 1},
         }
         with cache_path.with_suffix(".meta").open("wb") as f:
-            pickle.dump(meta, f)
+            pickle.dump(meta, f, protocol=C.dump_protocol_version)
         cache_path.with_suffix(".meta").chmod(stat.S_IRWXU | stat.S_IRGRP | stat.S_IROTH)
         # write index file
         im = DiskDatasetCache.IndexManager(cache_path)
@@ -965,7 +965,7 @@ class DiskDatasetCache(DatasetCache):
             fields = d["info"]["fields"]
             freq = d["info"]["freq"]
             last_update_time = d["info"]["last_update"]
-            inst_processors = d["info"]["inst_processors"]
+            inst_processors = d["info"].get("inst_processors", [])
             index_data = im.get_index()
 
             self.logger.debug("Updating dataset: {}".format(d))
@@ -1057,7 +1057,7 @@ class DiskDatasetCache(DatasetCache):
                 # update meta file
                 d["info"]["last_update"] = str(new_calendar[-1])
                 with meta_path.open("wb") as f:
-                    pickle.dump(d, f)
+                    pickle.dump(d, f, protocol=C.dump_protocol_version)
                 return 0
 
 

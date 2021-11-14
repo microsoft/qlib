@@ -27,7 +27,7 @@ import collections
 import numpy as np
 import pandas as pd
 from pathlib import Path
-from typing import Union, Tuple, Any, Text, Optional
+from typing import Dict, Union, Tuple, Any, Text, Optional
 from types import ModuleType
 from urllib.parse import urlparse
 
@@ -199,6 +199,7 @@ def get_callable_kwargs(config: Union[dict, str], default_module: Union[str, Mod
     ----------
     config : [dict, str]
         similar to config
+        please refer to the doc of init_instance_by_config
 
     default_module : Python module or str
         It should be a python module to load the class type
@@ -219,9 +220,12 @@ def get_callable_kwargs(config: Union[dict, str], default_module: Union[str, Mod
             _callable = config["class"]  # the class type itself is passed in
         kwargs = config.get("kwargs", {})
     elif isinstance(config, str):
-        module = get_module_by_module_path(default_module)
+        # a.b.c.ClassName
+        *m_path, cls = config.split(".")
+        m_path = ".".join(m_path)
+        module = get_module_by_module_path(default_module if m_path == "" else m_path)
 
-        _callable = getattr(module, config)
+        _callable = getattr(module, cls)
         kwargs = {}
     else:
         raise NotImplementedError(f"This type of input is not supported")
@@ -232,7 +236,11 @@ get_cls_kwargs = get_callable_kwargs  # NOTE: this is for compatibility for the 
 
 
 def init_instance_by_config(
-    config: Union[str, dict, object], default_module=None, accept_types: Union[type, Tuple[type]] = (), **kwargs
+    config: Union[str, dict, object],
+    default_module=None,
+    accept_types: Union[type, Tuple[type]] = (),
+    try_kwargs: Dict = {},
+    **kwargs,
 ) -> Any:
     """
     get initialized instance with config
@@ -256,7 +264,9 @@ def init_instance_by_config(
             1) specify a pickle object
                 - path like 'file:///<path to pickle file>/obj.pkl'
             2) specify a class name
-                - "ClassName":  getattr(module, config)() will be used.
+                - "ClassName":  getattr(module, "ClassName")() will be used.
+            3) specify module path with class name
+                - "a.b.c.ClassName" getattr(<a.b.c.module>, "ClassName")() will be used.
         object example:
             instance of accept_types
     default_module : Python module
@@ -269,6 +279,10 @@ def init_instance_by_config(
     accept_types: Union[type, Tuple[type]]
         Optional. If the config is a instance of specific type, return the config directly.
         This will be passed into the second parameter of isinstance.
+
+    try_kwargs: Dict
+        Try to pass in kwargs in `try_kwargs` when initialized the instance
+        If error occurred, it will fail back to initialization without try_kwargs.
 
     Returns
     -------
@@ -286,7 +300,14 @@ def init_instance_by_config(
                 return pickle.load(f)
 
     klass, cls_kwargs = get_callable_kwargs(config, default_module=default_module)
-    return klass(**cls_kwargs, **kwargs)
+
+    try:
+        return klass(**cls_kwargs, **try_kwargs, **kwargs)
+    except (TypeError,):
+        # TypeError for handling errors like
+        # 1: `XXX() got multiple values for keyword argument 'YYY'`
+        # 2: `XXX() got an unexpected keyword argument 'YYY'
+        return klass(**cls_kwargs, **kwargs)
 
 
 @contextlib.contextmanager

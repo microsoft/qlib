@@ -14,17 +14,20 @@ from ...model.interpret.base import LightGBMFInt
 class LGBModel(ModelFT, LightGBMFInt):
     """LightGBM Model"""
 
-    def __init__(self, loss="mse", **kwargs):
+    def __init__(self, loss="mse", early_stopping_rounds=50, **kwargs):
         if loss not in {"mse", "binary"}:
             raise NotImplementedError
         self.params = {"objective": loss, "verbosity": -1}
         self.params.update(kwargs)
+        self.early_stopping_rounds = early_stopping_rounds
         self.model = None
 
     def _prepare_data(self, dataset: DatasetH):
         df_train, df_valid = dataset.prepare(
             ["train", "valid"], col_set=["feature", "label"], data_key=DataHandlerLP.DK_L
         )
+        if df_train.empty or df_valid.empty:
+            raise ValueError("Empty data from dataset, please check your dataset config.")
         x_train, y_train = df_train["feature"], df_train["label"]
         x_valid, y_valid = df_valid["feature"], df_valid["label"]
 
@@ -42,7 +45,7 @@ class LGBModel(ModelFT, LightGBMFInt):
         self,
         dataset: DatasetH,
         num_boost_round=1000,
-        early_stopping_rounds=50,
+        early_stopping_rounds=None,
         verbose_eval=20,
         evals_result=dict(),
         **kwargs
@@ -54,7 +57,9 @@ class LGBModel(ModelFT, LightGBMFInt):
             num_boost_round=num_boost_round,
             valid_sets=[dtrain, dvalid],
             valid_names=["train", "valid"],
-            early_stopping_rounds=early_stopping_rounds,
+            early_stopping_rounds=(
+                self.early_stopping_rounds if early_stopping_rounds is None else early_stopping_rounds
+            ),
             verbose_eval=verbose_eval,
             evals_result=evals_result,
             **kwargs
@@ -83,6 +88,8 @@ class LGBModel(ModelFT, LightGBMFInt):
         """
         # Based on existing model and finetune by train more rounds
         dtrain, _ = self._prepare_data(dataset)
+        if dtrain.empty:
+            raise ValueError("Empty data from dataset, please check your dataset config.")
         self.model = lgb.train(
             self.params,
             dtrain,

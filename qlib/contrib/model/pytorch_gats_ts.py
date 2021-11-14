@@ -73,7 +73,7 @@ class GATs(Model):
         base_model="GRU",
         model_path=None,
         optimizer="adam",
-        GPU="0",
+        GPU=0,
         n_jobs=10,
         seed=None,
         **kwargs
@@ -245,6 +245,8 @@ class GATs(Model):
 
         dl_train = dataset.prepare("train", col_set=["feature", "label"], data_key=DataHandlerLP.DK_L)
         dl_valid = dataset.prepare("valid", col_set=["feature", "label"], data_key=DataHandlerLP.DK_L)
+        if dl_train.empty or dl_valid.empty:
+            raise ValueError("Empty data from dataset, please check your dataset config.")
 
         dl_train.config(fillna_type="ffill+bfill")  # process nan brought by dataloader
         dl_valid.config(fillna_type="ffill+bfill")  # process nan brought by dataloader
