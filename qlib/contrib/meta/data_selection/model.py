@@ -22,6 +22,8 @@ from .utils import fill_diagnal, ICLoss
 from .dataset import MetaDatasetHDS
 from qlib.contrib.meta.data_selection.net import PredNet
 from qlib.data.dataset.weight import Reweighter
+from qlib.log import get_module_logger
+logger = get_module_logger("data selection")
 
 
 class TimeReweighter(Reweighter):
@@ -32,6 +34,7 @@ class TimeReweighter(Reweighter):
         w_s = pd.Series(1.0, index=data.index)
         for k, w in self.time_weight.items():
             w_s.loc[slice(*k)] = w
+        logger.info(f"Reweighting result: {w_s}")
         return w_s
 
 
