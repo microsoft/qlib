@@ -86,7 +86,7 @@ _default_config = {
     # How many tasks belong to one process. Recommend 1 for high-frequency data and None for daily data.
     "maxtasksperchild": None,
     "default_disk_cache": 1,  # 0:skip/1:use
-    "disable_disk_cache": False,  # disable disk cache; if High-frequency data generally disable_disk_cache=True
+    "disable_disk_cache": True,  # disable disk cache; if High-frequency data generally disable_disk_cache=True
     "mem_cache_size_limit": 500,
     # memory cache expire second, only in used 'DatasetURICache' and 'client D.calendar'
     # default 1 hour
@@ -174,6 +174,31 @@ MODE_CONF = {
         # Using parameter 'remote' to announce the client is using server_cache, and the writing access will be disabled.
         "expression_cache": "DiskExpressionCache",
         "dataset_cache": "DiskDatasetCache",
+        "calendar_cache": None,
+        # client config
+        "kernels": NUM_USABLE_CPU,
+        "mount_path": None,
+        "auto_mount": False,  # The nfs is already mounted on our server[auto_mount: False].
+        # The nfs should be auto-mounted by qlib on other
+        # serversS(such as PAI) [auto_mount:True]
+        "timeout": 100,
+        "logging_level": "INFO",
+        "region": REG_CN,
+    },
+    "arctic_client": {
+        # data provider config
+        "calendar_provider": "LocalCalendarProvider",
+        "instrument_provider": "LocalInstrumentProvider",
+        "feature_provider": "LocalFeatureProvider",
+        "expression_provider": "LocalExpressionProvider",
+        "dataset_provider": "LocalDatasetProvider",
+        "provider": "LocalProvider",
+        # config it in user's own code
+        "provider_uri": "~/.qlib/qlib_data/cn_data",
+        # cache
+        # Using parameter 'remote' to announce the client is using server_cache, and the writing access will be disabled.
+        "expression_cache": None,
+        "dataset_cache": None,
         "calendar_cache": None,
         # client config
         "kernels": NUM_USABLE_CPU,

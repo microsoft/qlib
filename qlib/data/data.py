@@ -695,20 +695,37 @@ class LocalDatasetProvider(DatasetProvider):
 
     def __init__(self):
         pass
-
+        
     def dataset(self, instruments, fields, start_time=None, end_time=None, freq="day"):
+        print("@@@@debug 1 luocy/dataset_begin")
         instruments_d = self.get_instruments_d(instruments, freq)
         column_names = self.get_column_names(fields)
-        cal = Cal.calendar(start_time, end_time, freq)
-        if len(cal) == 0:
-            return pd.DataFrame(columns=column_names)
-        start_time = cal[0]
-        end_time = cal[-1]
-
-        data = self.dataset_processor(instruments_d, column_names, start_time, end_time, freq)
-
-        return data
-
+        
+        arctic_column_names = [column for column in column_names if "@" in column]
+        normal_column_names = [column for column in column_names if not "@" in column]
+        
+        print("@@@@debug 2 arctic_column_names, normal_column_names")
+        print(len(arctic_column_names), len(normal_column_names))
+        if len(normal_column_names) > 0:
+            cal = Cal.calendar(start_time, end_time, freq)
+            if len(cal) == 0:
+                return pd.DataFrame(columns=normal_column_names, dtype=object)
+            start_time = cal[0]
+            end_time = cal[-1]
+            normal_data = self.dataset_processor(instruments_d, normal_column_names, start_time, end_time, freq)
+        
+        if len(arctic_column_names) > 0:
+            if freq == 'day':
+                freq = 'D'
+            arctic_data = self.dataset_processor(instruments_d, arctic_column_names, start_time, end_time, freq)    
+        
+        if len(normal_column_names) > 0 and len(arctic_column_names) > 0:
+            return pd.merge(normal_data, arctic_data)
+        elif len(normal_column_names) > 0:
+            return normal_data
+        else:
+            return arctic_data
+        
     @staticmethod
     def multi_cache_walker(instruments, fields, start_time=None, end_time=None, freq="day"):
         """
