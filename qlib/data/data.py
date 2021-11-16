@@ -674,20 +674,24 @@ class LocalExpressionProvider(ExpressionProvider):
         expression = self.get_expression_instance(field)
         start_time = pd.Timestamp(start_time)
         end_time = pd.Timestamp(end_time)
-        _, _, start_index, end_index = Cal.locate_index(start_time, end_time, freq, future=False)
-        lft_etd, rght_etd = expression.get_extended_window_size()
-        series = expression.load(instrument, max(0, start_index - lft_etd), end_index + rght_etd, freq)
+        if "@" in field:
+            pass
+            print(start_time, end_time)
+        else:
+            _, _, start_index, end_index = Cal.locate_index(start_time, end_time, freq, future=False)
+            lft_etd, rght_etd = expression.get_extended_window_size()
+            series = expression.load(instrument, max(0, start_index - lft_etd), end_index + rght_etd, freq)
         # Ensure that each column type is consistent
         # FIXME:
         # 1) The stock data is currently float. If there is other types of data, this part needs to be re-implemented.
         # 2) The the precision should be configurable
-        try:
-            series = series.astype(np.float32)
-        except ValueError:
-            pass
-        if not series.empty:
-            series = series.loc[start_index:end_index]
-        return series
+            try:
+                series = series.astype(np.float32)
+            except ValueError:
+                pass
+            if not series.empty:
+                series = series.loc[start_index:end_index]
+            return series
 
 
 class LocalDatasetProvider(DatasetProvider):
