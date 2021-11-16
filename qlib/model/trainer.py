@@ -73,11 +73,9 @@ def _exe_task(task_config: dict):
     # model & dataset initiation
     model: Model = init_instance_by_config(task_config["model"])
     dataset: Dataset = init_instance_by_config(task_config["dataset"])
-    # FIXME: resume reweighter after merging data selection
-    # reweighter: Reweighter = task_config.get("reweighter", None)
+    reweighter: Reweighter = task_config.get("reweighter", None)
     # model training
-    # auto_filter_kwargs(model.fit)(dataset, reweighter=reweighter)
-    model.fit(dataset)
+    auto_filter_kwargs(model.fit)(dataset, reweighter=reweighter)
     R.save_objects(**{"params.pkl": model})
     # this dataset is saved for online inference. So the concrete data should not be dumped
     dataset.config(dump_all=False, recursive=True)
