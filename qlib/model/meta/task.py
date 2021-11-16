@@ -17,7 +17,7 @@ class MetaTask:
     - the processed input may be different between training and testing
         - When training, the X, y, X_test, y_test in training tasks are necessary (# PROC_MODE_FULL #)
                                                 but not necessary in test tasks. (# PROC_MODE_TEST #)
-        - When the meta model can be transferred into other dataset, maybe only meta_info is necessary  (# PROC_MODE_TRANSFER #)
+        - When the meta model can be transferred into other dataset, only meta_info is necessary  (# PROC_MODE_TRANSFER #)
     """
 
     PROC_MODE_FULL = "full"
