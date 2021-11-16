@@ -169,6 +169,8 @@ class TabnetModel(Model):
             col_set=["feature", "label"],
             data_key=DataHandlerLP.DK_L,
         )
+        if df_train.empty or df_valid.empty:
+            raise ValueError("Empty data from dataset, please check your dataset config.")
         df_train.fillna(df_train.mean(), inplace=True)
         x_train, y_train = df_train["feature"], df_train["label"]
         x_valid, y_valid = df_valid["feature"], df_valid["label"]
@@ -564,7 +566,7 @@ class FeatureTransformer(nn.Module):
             self.shared = None
         self.independ = nn.ModuleList()
         if first:
-            self.independ.append(GLU(inp, out_dim, vbs=vbs))
+            self.independ.append(GLU(inp_dim, out_dim, vbs=vbs))
         for x in range(first, n_ind):
             self.independ.append(GLU(out_dim, out_dim, vbs=vbs))
         self.scale = float(np.sqrt(0.5))

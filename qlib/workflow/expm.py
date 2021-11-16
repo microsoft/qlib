@@ -1,8 +1,10 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+from urllib.parse import urlparse
 import mlflow
-from mlflow.exceptions import MlflowException
+from filelock import FileLock
+from mlflow.exceptions import MlflowException, RESOURCE_ALREADY_EXISTS, ErrorCode
 from mlflow.entities import ViewType
 import os, logging
 from pathlib import Path
@@ -13,6 +15,7 @@ from .exp import MLflowExperiment, Experiment
 from ..config import C
 from .recorder import Recorder
 from ..log import get_module_logger
+from ..utils.exceptions import ExpAlreadyExistError
 
 logger = get_module_logger("workflow", logging.INFO)
 
@@ -92,6 +95,10 @@ class ExpManager:
         Returns
         -------
         An experiment object.
+
+        Raise
+        -----
+        ExpAlreadyExistError
         """
         raise NotImplementedError(f"Please implement the `create_exp` method.")
 
@@ -191,7 +198,21 @@ class ExpManager:
             if experiment_name is None:
                 experiment_name = self._default_exp_name
             logger.warning(f"No valid experiment found. Create a new experiment with name {experiment_name}.")
-            return self.create_exp(experiment_name), True
+
+            # NOTE: mlflow doesn't consider the lock for recording multiple runs
+            # So we supported it in the interface wrapper
+            pr = urlparse(self.uri)
+            if pr.scheme == "file":
+                with FileLock(os.path.join(pr.netloc, pr.path, "filelock")) as f:
+                    return self.create_exp(experiment_name), True
+            # NOTE: for other schemes like http, we double check to avoid create exp conflicts
+            try:
+                return self.create_exp(experiment_name), True
+            except ExpAlreadyExistError:
+                return (
+                    self._get_exp(experiment_id=experiment_id, experiment_name=experiment_name),
+                    False,
+                )
 
     def _get_exp(self, experiment_id=None, experiment_name=None) -> Experiment:
         """
@@ -336,10 +357,15 @@ class MLflowExpManager(ExpManager):
     def create_exp(self, experiment_name: Optional[Text] = None):
         assert experiment_name is not None
         # init experiment
-        experiment_id = self.client.create_experiment(experiment_name)
+        try:
+            experiment_id = self.client.create_experiment(experiment_name)
+        except MlflowException as e:
+            if e.error_code == ErrorCode.Name(RESOURCE_ALREADY_EXISTS):
+                raise ExpAlreadyExistError()
+            raise e
+
         experiment = MLflowExperiment(experiment_id, experiment_name, self.uri)
         experiment._default_name = self._default_exp_name
-
         return experiment
 
     def _get_exp(self, experiment_id=None, experiment_name=None):

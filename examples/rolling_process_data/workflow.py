@@ -21,7 +21,6 @@ class RollingDataWorkflow:
 
     def _init_qlib(self):
         """initialize qlib"""
-        # use yahoo_cn_1min data
         provider_uri = "~/.qlib/qlib_data/cn_data"  # target_dir
         GetData().qlib_data(target_dir=provider_uri, region=REG_CN, exists_skip=True)
         qlib.init(provider_uri=provider_uri, region=REG_CN)

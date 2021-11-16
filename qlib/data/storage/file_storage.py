@@ -8,8 +8,11 @@ from typing import Iterable, Union, Dict, Mapping, Tuple, List
 import numpy as np
 import pandas as pd
 
+from qlib.utils.time import Freq
+from qlib.utils.resam import resam_calendar
 from qlib.log import get_module_logger
 from qlib.data.storage import CalendarStorage, InstrumentStorage, FeatureStorage, CalVT, InstKT, InstVT
+from qlib.data.cache import H
 
 logger = get_module_logger("file_storage")
 
@@ -39,6 +42,7 @@ class FileStorageMixin:
 class FileCalendarStorage(FileStorageMixin, CalendarStorage):
     def __init__(self, freq: str, future: bool, **kwargs):
         super(FileCalendarStorage, self).__init__(freq, future, **kwargs)
+        self.future = future
         self.file_name = f"{freq}_future.txt" if future else f"{freq}.txt".lower()
 
     def _read_calendar(self, skip_rows: int = 0, n_rows: int = None) -> List[CalVT]:
@@ -56,8 +60,31 @@ class FileCalendarStorage(FileStorageMixin, CalendarStorage):
 
     @property
     def data(self) -> List[CalVT]:
-        self.check()
-        return self._read_calendar()
+        # NOTE: uri
+        #   1. If `uri` does not exist
+        #       - Get the `min_uri` of the closest `freq` under the same "directory" as the `uri`
+        #       - Read data from `min_uri` and resample to `freq`
+        try:
+            self.check()
+            _calendar = self._read_calendar()
+        except ValueError:
+            freq_list = self._get_storage_freq()
+            _freq = Freq.get_recent_freq(self.freq, freq_list)
+            if _freq is None:
+                raise ValueError(f"can't find a freq from {freq_list} that can resample to {self.freq}!")
+            self.file_name = f"{_freq}_future.txt" if self.future else f"{_freq}.txt".lower()
+            # The cache is useful for the following cases
+            # - multiple frequencies are sampled from the same calendar
+            cache_key = self.uri
+            if cache_key not in H["c"]:
+                H["c"][cache_key] = self._read_calendar()
+            _calendar = H["c"][cache_key]
+            _calendar = resam_calendar(np.array(list(map(pd.Timestamp, _calendar))), _freq, self.freq)
+
+        return _calendar
+
+    def _get_storage_freq(self) -> List[str]:
+        return sorted(set(map(lambda x: x.stem.split("_")[0], self.uri.parent.glob("*.txt"))))
 
     def extend(self, values: Iterable[CalVT]) -> None:
         self._write_calendar(values, mode="ab")

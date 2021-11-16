@@ -49,7 +49,7 @@ class MultiSegRecord(RecordTemp):
 
             if save:
                 save_name = "results-{:}.pkl".format(key)
-                self.recorder.save_objects(**{save_name: results})
+                self.save(**{save_name: results})
                 logger.info(
                     "The record '{:}' has been saved as the artifact of the Experiment {:}".format(
                         save_name, self.recorder.experiment_id
@@ -57,22 +57,20 @@ class MultiSegRecord(RecordTemp):
                 )
 
 
-class SignalMseRecord(SignalRecord):
+class SignalMseRecord(RecordTemp):
     """
     This is the Signal MSE Record class that computes the mean squared error (MSE).
     This class inherits the ``SignalMseRecord`` class.
     """
 
     artifact_path = "sig_analysis"
+    depend_cls = SignalRecord
 
     def __init__(self, recorder, **kwargs):
         super().__init__(recorder=recorder, **kwargs)
 
-    def generate(self, **kwargs):
-        try:
-            self.check(parent=True)
-        except FileExistsError:
-            super().generate()
+    def generate(self):
+        self.check()
 
         pred = self.load("pred.pkl")
         label = self.load("label.pkl")
@@ -81,9 +79,8 @@ class SignalMseRecord(SignalRecord):
         metrics = {"MSE": mse, "RMSE": np.sqrt(mse)}
         objects = {"mse.pkl": mse, "rmse.pkl": np.sqrt(mse)}
         self.recorder.log_metrics(**metrics)
-        self.recorder.save_objects(**objects, artifact_path=self.get_path())
+        self.save(**objects)
         logger.info("The evaluation results in SignalMseRecord is {:}".format(metrics))
 
     def list(self):
-        paths = [self.get_path("mse.pkl"), self.get_path("rmse.pkl")]
-        return paths
+        return ["mse.pkl", "rmse.pkl"]

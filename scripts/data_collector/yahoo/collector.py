@@ -34,6 +34,7 @@ from data_collector.utils import (
     get_calendar_list,
     get_hs_stock_symbols,
     get_us_stock_symbols,
+    get_in_stock_symbols,
     generate_minutes_calendar_from_daily,
 )
 
@@ -276,6 +277,32 @@ class YahooCollectorUS1d(YahooCollectorUS):
 
 
 class YahooCollectorUS1min(YahooCollectorUS):
+    pass
+
+
+class YahooCollectorIN(YahooCollector, ABC):
+    def get_instrument_list(self):
+        logger.info("get INDIA stock symbols......")
+        symbols = get_in_stock_symbols()
+        logger.info(f"get {len(symbols)} symbols.")
+        return symbols
+
+    def download_index_data(self):
+        pass
+
+    def normalize_symbol(self, symbol):
+        return code_to_fname(symbol).upper()
+
+    @property
+    def _timezone(self):
+        return "Asia/Kolkata"
+
+
+class YahooCollectorIN1d(YahooCollectorIN):
+    pass
+
+
+class YahooCollectorIN1min(YahooCollectorIN):
     pass
 
 
@@ -733,6 +760,29 @@ class YahooNormalizeUS1min(YahooNormalizeUS, YahooNormalize1minOffline):
 
     def _get_1d_calendar_list(self):
         return get_calendar_list("US_ALL")
+
+    def symbol_to_yahoo(self, symbol):
+        return fname_to_code(symbol)
+
+
+class YahooNormalizeIN:
+    def _get_calendar_list(self) -> Iterable[pd.Timestamp]:
+        return get_calendar_list("IN_ALL")
+
+
+class YahooNormalizeIN1d(YahooNormalizeIN, YahooNormalize1d):
+    pass
+
+
+class YahooNormalizeIN1min(YahooNormalizeIN, YahooNormalize1minOffline):
+    CALC_PAUSED_NUM = False
+
+    def _get_calendar_list(self) -> Iterable[pd.Timestamp]:
+        # TODO: support 1min
+        raise ValueError("Does not support 1min")
+
+    def _get_1d_calendar_list(self):
+        return get_calendar_list("IN_ALL")
 
     def symbol_to_yahoo(self, symbol):
         return fname_to_code(symbol)

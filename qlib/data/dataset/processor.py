@@ -73,6 +73,14 @@ class Processor(Serializable):
         """
         return True
 
+    def readonly(self) -> bool:
+        """
+        Does the processor treat the input data readonly (i.e. does not write the input data) when processsing
+
+        Knowning the readonly information is helpful to the Handler to avoid uncessary copy
+        """
+        return False
+
     def config(self, **kwargs):
         attr_list = {"fit_start_time", "fit_end_time"}
         for k, v in kwargs.items():
@@ -91,6 +99,9 @@ class DropnaProcessor(Processor):
 
     def __call__(self, df):
         return df.dropna(subset=get_group_columns(df, self.fields_group))
+
+    def readonly(self):
+        return True
 
 
 class DropnaLabel(DropnaProcessor):
@@ -113,6 +124,9 @@ class DropCol(Processor):
             mask = df.columns.isin(self.col_list)
         return df.loc[:, ~mask]
 
+    def readonly(self):
+        return True
+
 
 class FilterCol(Processor):
     def __init__(self, fields_group="feature", col_list=[]):
@@ -127,6 +141,9 @@ class FilterCol(Processor):
         self.col_list = np.union1d(diff_cols, self.col_list)
         mask = df.columns.get_level_values(-1).isin(self.col_list)
         return df.loc[:, mask]
+
+    def readonly(self):
+        return True
 
 
 class TanhProcess(Processor):
@@ -310,3 +327,12 @@ class CSZFillna(Processor):
         cols = get_group_columns(df, self.fields_group)
         df[cols] = df[cols].groupby("datetime").apply(lambda x: x.fillna(x.mean()))
         return df
+
+
+class HashStockFormat(Processor):
+    """Process the storage of from df into hasing stock format"""
+
+    def __call__(self, df: pd.DataFrame):
+        from .storage import HasingStockStorage
+
+        return HasingStockStorage.from_df(df)

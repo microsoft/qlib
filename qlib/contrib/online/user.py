@@ -59,16 +59,16 @@ class User:
                     bench that to be compared, 'SH000905' for csi500
         """
         bench = D.features([benchmark], ["$change"], disk_cache=True).loc[benchmark, "$change"]
-        report = self.account.report.generate_report_dataframe()
-        report["bench"] = bench
+        portfolio_metrics = self.account.portfolio_metrics.generate_portfolio_metrics_dataframe()
+        portfolio_metrics["bench"] = bench
         analysis_result = {"pred": {}, "excess_return_without_cost": {}, "excess_return_with_cost": {}}
-        r = (report["return"] - report["bench"]).dropna()
+        r = (portfolio_metrics["return"] - portfolio_metrics["bench"]).dropna()
         analysis_result["excess_return_without_cost"][0] = risk_analysis(r)
-        r = (report["return"] - report["bench"] - report["cost"]).dropna()
+        r = (portfolio_metrics["return"] - portfolio_metrics["bench"] - portfolio_metrics["cost"]).dropna()
         analysis_result["excess_return_with_cost"][0] = risk_analysis(r)
         self.logger.info("Result of porfolio:")
         self.logger.info("excess_return_without_cost:")
         self.logger.info(analysis_result["excess_return_without_cost"][0])
         self.logger.info("excess_return_with_cost:")
         self.logger.info(analysis_result["excess_return_with_cost"][0])
-        return report
+        return portfolio_metrics

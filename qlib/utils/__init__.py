@@ -17,6 +17,7 @@ import bisect
 import shutil
 import difflib
 import hashlib
+import warnings
 import datetime
 import requests
 import tempfile
@@ -26,7 +27,7 @@ import collections
 import numpy as np
 import pandas as pd
 from pathlib import Path
-from typing import Union, Tuple, Any, Text, Optional
+from typing import Dict, Union, Tuple, Any, Text, Optional
 from types import ModuleType
 from urllib.parse import urlparse
 
@@ -43,8 +44,9 @@ def get_redis_connection():
 
 
 #################### Data ####################
-def read_bin(file_path, start_index, end_index):
-    with open(file_path, "rb") as f:
+def read_bin(file_path: Union[str, Path], start_index, end_index):
+    file_path = Path(file_path.expanduser().resolve())
+    with file_path.open("rb") as f:
         # read start_index
         ref_start_index = int(np.frombuffer(f.read(4), dtype="<f")[0])
         si = max(ref_start_index, start_index)
@@ -189,14 +191,15 @@ def get_module_by_module_path(module_path: Union[str, ModuleType]):
     return module
 
 
-def get_cls_kwargs(config: Union[dict, str], default_module: Union[str, ModuleType] = None) -> (type, dict):
+def get_callable_kwargs(config: Union[dict, str], default_module: Union[str, ModuleType] = None) -> (type, dict):
     """
-    extract class and kwargs from config info
+    extract class/func and kwargs from config info
 
     Parameters
     ----------
     config : [dict, str]
         similar to config
+        please refer to the doc of init_instance_by_config
 
     default_module : Python module or str
         It should be a python module to load the class type
@@ -206,26 +209,38 @@ def get_cls_kwargs(config: Union[dict, str], default_module: Union[str, ModuleTy
     Returns
     -------
     (type, dict):
-        the class object and it's arguments.
+        the class/func object and it's arguments.
     """
     if isinstance(config, dict):
-        module = get_module_by_module_path(config.get("module_path", default_module))
-
-        # raise AttributeError
-        klass = getattr(module, config["class"])
+        if isinstance(config["class"], str):
+            module = get_module_by_module_path(config.get("module_path", default_module))
+            # raise AttributeError
+            _callable = getattr(module, config["class" if "class" in config else "func"])
+        else:
+            _callable = config["class"]  # the class type itself is passed in
         kwargs = config.get("kwargs", {})
     elif isinstance(config, str):
-        module = get_module_by_module_path(default_module)
+        # a.b.c.ClassName
+        *m_path, cls = config.split(".")
+        m_path = ".".join(m_path)
+        module = get_module_by_module_path(default_module if m_path == "" else m_path)
 
-        klass = getattr(module, config)
+        _callable = getattr(module, cls)
         kwargs = {}
     else:
         raise NotImplementedError(f"This type of input is not supported")
-    return klass, kwargs
+    return _callable, kwargs
+
+
+get_cls_kwargs = get_callable_kwargs  # NOTE: this is for compatibility for the previous version
 
 
 def init_instance_by_config(
-    config: Union[str, dict, object], default_module=None, accept_types: Union[type, Tuple[type]] = (), **kwargs
+    config: Union[str, dict, object],
+    default_module=None,
+    accept_types: Union[type, Tuple[type]] = (),
+    try_kwargs: Dict = {},
+    **kwargs,
 ) -> Any:
     """
     get initialized instance with config
@@ -234,16 +249,24 @@ def init_instance_by_config(
     ----------
     config : Union[str, dict, object]
         dict example.
+            case 1)
             {
                 'class': 'ClassName',
                 'kwargs': dict, #  It is optional. {} will be used if not given
                 'model_path': path, # It is optional if module is given
             }
+            case 2)
+            {
+                'class': <The class it self>,
+                'kwargs': dict, #  It is optional. {} will be used if not given
+            }
         str example.
             1) specify a pickle object
                 - path like 'file:///<path to pickle file>/obj.pkl'
             2) specify a class name
-                - "ClassName":  getattr(module, config)() will be used.
+                - "ClassName":  getattr(module, "ClassName")() will be used.
+            3) specify module path with class name
+                - "a.b.c.ClassName" getattr(<a.b.c.module>, "ClassName")() will be used.
         object example:
             instance of accept_types
     default_module : Python module
@@ -256,6 +279,10 @@ def init_instance_by_config(
     accept_types: Union[type, Tuple[type]]
         Optional. If the config is a instance of specific type, return the config directly.
         This will be passed into the second parameter of isinstance.
+
+    try_kwargs: Dict
+        Try to pass in kwargs in `try_kwargs` when initialized the instance
+        If error occurred, it will fail back to initialization without try_kwargs.
 
     Returns
     -------
@@ -272,8 +299,34 @@ def init_instance_by_config(
             with open(os.path.join(pr.netloc, pr.path), "rb") as f:
                 return pickle.load(f)
 
-    klass, cls_kwargs = get_cls_kwargs(config, default_module=default_module)
-    return klass(**cls_kwargs, **kwargs)
+    klass, cls_kwargs = get_callable_kwargs(config, default_module=default_module)
+
+    try:
+        return klass(**cls_kwargs, **try_kwargs, **kwargs)
+    except (TypeError,):
+        # TypeError for handling errors like
+        # 1: `XXX() got multiple values for keyword argument 'YYY'`
+        # 2: `XXX() got an unexpected keyword argument 'YYY'
+        return klass(**cls_kwargs, **kwargs)
+
+
+@contextlib.contextmanager
+def class_casting(obj: object, cls: type):
+    """
+    Python doesn't provide the downcasting mechanism.
+    We use the trick here to downcast the class
+
+    Parameters
+    ----------
+    obj : object
+        the object to be cast
+    cls : type
+        the target class type
+    """
+    orig_cls = obj.__class__
+    obj.__class__ = cls
+    yield
+    obj.__class__ = orig_cls
 
 
 def compare_dict_value(src_data: dict, dst_data: dict):
@@ -740,7 +793,8 @@ def lazy_sort_index(df: pd.DataFrame, axis=0) -> pd.DataFrame:
         sorted dataframe
     """
     idx = df.index if axis == 0 else df.columns
-    if idx.is_monotonic_increasing:
+    # NOTE: MultiIndex.is_lexsorted() is a deprecated method in Pandas 1.3.0 and is suggested to be replaced by MultiIndex.is_monotonic_increasing (see discussion here: https://github.com/pandas-dev/pandas/issues/32259). However, in case older versions of Pandas is implemented, MultiIndex.is_lexsorted() is necessary to prevent certain fatal errors.
+    if idx.is_monotonic_increasing and not (isinstance(idx, pd.MultiIndex) and not idx.is_lexsorted()):
         return df
     else:
         return df.sort_index(axis=axis)
@@ -794,7 +848,7 @@ class Wrapper:
         return "{name}(provider={provider})".format(name=self.__class__.__name__, provider=self._provider)
 
     def __getattr__(self, key):
-        if self._provider is None:
+        if self.__dict__.get("_provider", None) is None:
             raise AttributeError("Please run qlib.init() first using qlib")
         return getattr(self._provider, key)
 

@@ -41,7 +41,7 @@ def sys_config(config, config_path):
         sys.path.append(str(Path(config_path).parent.resolve().absolute() / p))
 
 
-# worflow handler function
+# workflow handler function
 def workflow(config_path, experiment_name="workflow", uri_folder="mlruns"):
     with open(config_path) as fp:
         config = yaml.safe_load(fp)
@@ -57,7 +57,7 @@ def workflow(config_path, experiment_name="workflow", uri_folder="mlruns"):
     recorder.save_objects(config=config)
 
 
-# function to run worklflow by config
+# function to run workflow by config
 def run():
     fire.Fire(workflow)
 

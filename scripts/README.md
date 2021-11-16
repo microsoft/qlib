@@ -1,7 +1,7 @@
 
 - [Download Qlib Data](#Download-Qlib-Data)
   - [Download CN Data](#Download-CN-Data)
-  - [Downlaod US Data](#Downlaod-US-Data)
+  - [Download US Data](#Download-US-Data)
   - [Download CN Simple Data](#Download-CN-Simple-Data)
   - [Help](#Help)
 - [Using in Qlib](#Using-in-Qlib)
