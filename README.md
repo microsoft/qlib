@@ -11,6 +11,7 @@
 Recent released features
 | Feature | Status |
 | --                      | ------    |
+| ADARNN  model | [Released](https://github.com/microsoft/qlib/pull/689) on Nov 14, 2021 |
 | TCN  model | [Released](https://github.com/microsoft/qlib/pull/668) on Nov 4, 2021 |
 |Temporal Routing Adaptor (TRA) | [Released](https://github.com/microsoft/qlib/pull/531) on July 30, 2021 |
 | Transformer & Localformer | [Released](https://github.com/microsoft/qlib/pull/508) on July 22, 2021 |
@@ -296,6 +297,7 @@ Here is a list of models built on `Qlib`.
 - [Localformer based on pytorch (Juyong Jiang, et al.)](examples/benchmarks/Localformer/)
 - [TRA based on pytorch (Hengxu, Dong, et al. KDD 2021)](examples/benchmarks/TRA/)
 - [TCN based on pytorch (Shaojie Bai, et al. 2018)](examples/benchmarks/TCN/)
+- [ADARNN based on pytorch (YunTao Du, et al. 2021)](examples/benchmarks/ADARNN/)
 
 Your PR of new Quant models is highly welcomed.
 
