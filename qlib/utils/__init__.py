@@ -146,7 +146,10 @@ def parse_field(field):
     # - $open+$close -> Feature("open")+Feature("close")
     if not isinstance(field, str):
         field = str(field)
-    return re.sub(r"\$(\w+)", r'Feature("\1")', field)
+    if "@" in field:
+        return re.sub(r"\@(\w+)", r'TFeature("\1")', field)
+    else:
+        return re.sub(r"\$(\w+)", r'Feature("\1")', field)
 
 
 def get_module_by_module_path(module_path):

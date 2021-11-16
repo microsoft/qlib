@@ -490,6 +490,9 @@ class DatasetProvider(abc.ABC):
         obj = dict()
         for field in column_names:
             #  The client does not have expression provider, the data will be loaded from cache using static method.
+            if "@" in field: # for the data from arctic
+                C.set_mode("arctic_client")
+                register_all_wrappers()
             obj[field] = ExpressionD.expression(inst, field, start_time, end_time, freq)
 
         data = pd.DataFrame(obj)
@@ -715,6 +718,7 @@ class LocalDatasetProvider(DatasetProvider):
             normal_data = self.dataset_processor(instruments_d, normal_column_names, start_time, end_time, freq)
         
         if len(arctic_column_names) > 0:
+            # to-do: change
             if freq == 'day':
                 freq = 'D'
             arctic_data = self.dataset_processor(instruments_d, arctic_column_names, start_time, end_time, freq)    
