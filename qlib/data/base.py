@@ -504,7 +504,7 @@ class TFeature(TExpression):
 
     def load_tick_data(self, instrument, start_index, end_index, freq):
         from .data import FeatureD
-        print("@@@debug 4", instrument, start_index, end_index)
+        print("@@@debug 4", instrument, start_index, end_index, self._name)
         return FeatureD.tick_feature(instrument, self._name, start_index, end_index, freq)
 
 

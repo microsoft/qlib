@@ -16,7 +16,7 @@ import traceback
 import numpy as np
 import pandas as pd
 from pathlib import Path
-from multiprocessing import Pool
+from multiprocessing import Pool, Value
 from arctic import Arctic
 
 from .cache import H
@@ -665,14 +665,19 @@ class LocalFeatureProvider(FeatureProvider):
     
     def tick_feature(self, instrument, field, start_index, end_index, freq):
         #TODO read data api from arctic
+        
         print("@@@@debug luocy2: in the tick feature")
         arctic = Arctic(C["arctic_uri"])
-        df = arctic['TICKS'].read(instrument, columns=[field], chunk_range=pd.DatetimeIndex([start_index,
+        arctic_dataset_name = str.upper(field.split(".")[0])
+        field_name = field.split(".")[1]
+        if arctic_dataset_name not in arctic.list_libraries():
+            raise ValueError("lib {} not in arctic".format(arctic_dataset_name))
+        df = arctic[arctic_dataset_name].read(instrument, columns=[field_name], chunk_range=pd.DatetimeIndex([start_index,
                                                                           end_index]))
         # resample
         # series = pd.Series(df[field].values, index=df.index).resample(freq).last()
         try:
-            series = pd.Series(df[field].values, index=df.index)
+            series = pd.Series(df[field_name].values, index=df.index)
         except Exception:
             print("instrument {} in tick_feature is Empty. Maybe the instrument data not save in arctic".format(instrument))
             series = pd.Series(index=df.index, dtype=object)
