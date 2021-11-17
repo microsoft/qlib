@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-from libs.qlib.qlib.log import get_module_logger
+from qlib.log import get_module_logger
 import pandas as pd
 import numpy as np
 from qlib.model.meta.task import MetaTask
