@@ -28,7 +28,7 @@ import collections
 import numpy as np
 import pandas as pd
 from pathlib import Path
-from typing import Dict, Union, Tuple, Any, Text, Optional,  Callable
+from typing import Dict, Union, Tuple, Any, Text, Optional, Callable
 from types import ModuleType
 from urllib.parse import urlparse
 from .file import get_or_create_path, save_multiple_parts_file, unpack_archive_with_buffer, get_tmp_file_with_buffer
