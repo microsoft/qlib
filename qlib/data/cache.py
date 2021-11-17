@@ -613,7 +613,7 @@ class DiskDatasetCache(DatasetCache):
         if disk_cache == 0:
             # In this case, data_set cache is configured but will not be used.
             return self.provider.dataset(instruments, fields, start_time, end_time, freq)
-
+        
         _cache_uri = self._uri(
             instruments=instruments, fields=fields, start_time=None, end_time=None, freq=freq, disk_cache=disk_cache
         )

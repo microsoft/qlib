@@ -7,6 +7,7 @@ from __future__ import print_function
 
 import os
 import abc
+from re import T
 import time
 import queue
 import bisect
@@ -666,10 +667,13 @@ class LocalFeatureProvider(FeatureProvider):
     def tick_feature(self, instrument, field, start_index, end_index, freq):
         #TODO read data api from arctic
         
-        print("@@@@debug luocy2: in the tick feature")
+        print("@@@@debug luocy2: in the tick feature, {},{}".format(start_index, end_index))
         arctic = Arctic(C["arctic_uri"])
-        arctic_dataset_name = str.upper(field.split(".")[0])
-        field_name = field.split(".")[1]
+        try:
+            arctic_dataset_name = str.upper(field.split(".")[0])
+            field_name = field.split(".")[1]
+        except Exception:
+            raise ValueError("the format of field:{} is wrong, it should be lib.columns, like Day.close".format(field))
         if arctic_dataset_name not in arctic.list_libraries():
             raise ValueError("lib {} not in arctic".format(arctic_dataset_name))
         df = arctic[arctic_dataset_name].read(instrument, columns=[field_name], chunk_range=pd.DatetimeIndex([start_index,
@@ -714,7 +718,7 @@ class LocalExpressionProvider(ExpressionProvider):
         if "@" in field:
             print(start_time, end_time)
             series = expression.load(instrument, start_time, end_time, freq)
-            print("@@@@@ debug: expression.load finish, series: {}".format({series.shape}))
+            print("@@@@@ debug: expression.load finish, series: {}".format(series))
             return series
         else:
             _, _, start_index, end_index = Cal.locate_index(start_time, end_time, freq, future=False)
@@ -747,7 +751,7 @@ class LocalDatasetProvider(DatasetProvider):
         print("@@@@debug 1 luocy/dataset_begin")
         instruments_d = self.get_instruments_d(instruments, freq)
         column_names = self.get_column_names(fields)
-        
+        print(start_time)
         arctic_column_names = [column for column in column_names if "@" in column]
         normal_column_names = [column for column in column_names if not "@" in column]
         
@@ -765,15 +769,12 @@ class LocalDatasetProvider(DatasetProvider):
             # to-do: change
             if freq == 'day':
                 freq = 'D'
+            print("in the root, {}, {}".format(start_time, end_time))
             arctic_data = self.dataset_processor(instruments_d, arctic_column_names, start_time, end_time, freq, "arctic")    
         
        
         if len(normal_column_names) > 0 and len(arctic_column_names) > 0:
-            try:
-                # if not resample, then it will fail
-                data = pd.merge(normal_data, arctic_data, on="datetime")
-            except Exception as e:
-                data =  [normal_data, arctic_data]
+            data =  {"normal_data":normal_data, "arctic_data": arctic_data}
             return data
         elif len(normal_column_names) > 0:
             return normal_data
@@ -920,6 +921,7 @@ class ClientDatasetProvider(DatasetProvider):
         disk_cache=0,
         return_uri=False,
     ):
+        print("disk_cache {}".format(disk_cache))
         if Inst.get_inst_type(instruments) == Inst.DICT:
             get_module_logger("data").warning(
                 "Getting features from a dict of instruments is not recommended because the features will not be "
@@ -1005,6 +1007,11 @@ class BaseProvider:
 
     To keep compatible with old qlib provider.
     """
+    def is_any_from_arctic(self, fields):
+        for field in fields:
+            if "@" in field:
+                return True
+        return False
 
     def calendar(self, start_time=None, end_time=None, freq="day", future=False):
         return Cal.calendar(start_time, end_time, freq, future=future)
@@ -1042,6 +1049,14 @@ class BaseProvider:
         disk_cache = C.default_disk_cache if disk_cache is None else disk_cache
         if C.disable_disk_cache:
             disk_cache = False
+        
+        ## if there have some data from arctic, use LocalDatasetD.dataset(instruments, fields, start_time, end_time, freq)
+        if self.is_any_from_arctic(fields=fields): 
+            ## if there have some data from arctic, use LocalDatasetD.dataset(instruments, fields, start_time, end_time, freq)
+            ## to avoid some difficult bugs in cache.py, which related to the calendar
+            return LocalDatasetProvider().dataset(instruments, fields, start_time, end_time, freq)
+        
+        ## do not have data from arctic, could use the old version
         try:
             return DatasetD.dataset(instruments, fields, start_time, end_time, freq, disk_cache)
         except TypeError:
