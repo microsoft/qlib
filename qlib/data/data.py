@@ -17,13 +17,15 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 from multiprocessing import Pool
+from arctic import Arctic
 
 from .cache import H
 from ..config import C
 from .ops import *
+from .op_arctic import *
 from ..log import get_module_logger
 from ..utils import parse_field, read_bin, hash_args, normalize_cache_fields
-from .base import Feature
+from .base import Feature, TFeature
 from .cache import DiskDatasetCache, DiskExpressionCache
 from ..utils import Wrapper, init_instance_by_config, register_wrapper, get_module_by_module_path
 
@@ -411,11 +413,11 @@ class DatasetProvider(abc.ABC):
         return [ExpressionD.get_expression_instance(f) for f in fields]
 
     @staticmethod
-    def dataset_processor(instruments_d, column_names, start_time, end_time, freq):
+    def dataset_processor(instruments_d, column_names, start_time, end_time, freq, type="qlib"):
         """
         Load and process the data, return the data set.
         - default using multi-kernel method.
-
+        the source of the data will be the same, either from arctic or from bin
         """
         normalize_column_names = normalize_cache_fields(column_names)
         data = dict()
@@ -456,18 +458,20 @@ class DatasetProvider(abc.ABC):
 
         p.close()
         p.join()
-
+        
         new_data = dict()
         for inst in sorted(data.keys()):
             if len(data[inst].get()) > 0:
                 # NOTE: Python version >= 3.6; in versions after python3.6, dict will always guarantee the insertion order
                 new_data[inst] = data[inst].get()
-
+        
+        
         if len(new_data) > 0:
             data = pd.concat(new_data, names=["instrument"], sort=False)
-            data = DiskDatasetCache.cache_to_origin_data(data, column_names)
+            if type == "qlib":
+                data = DiskDatasetCache.cache_to_origin_data(data, column_names)
         else:
-            data = pd.DataFrame(columns=column_names)
+            data = pd.DataFrame(columns=column_names, dtype=object)
 
         return data
 
@@ -486,26 +490,38 @@ class DatasetProvider(abc.ABC):
         # NOTE: This place is compatible with windows, windows multi-process is spawn
         if getattr(ExpressionD, "_provider", None) is None:
             register_all_wrappers()
-
         obj = dict()
+        arctic_obj = dict()
         for field in column_names:
             #  The client does not have expression provider, the data will be loaded from cache using static method.
             if "@" in field: # for the data from arctic
                 C.set_mode("arctic_client")
                 register_all_wrappers()
-            obj[field] = ExpressionD.expression(inst, field, start_time, end_time, freq)
+                print("type of expression provider in arctic:",type(ExpressionD._provider))
+                arctic_obj[field] = ExpressionD.expression(inst, field, start_time, end_time, freq)
+            else:
+                print("@@@@ debug go to client start time:{}, end_time:{}".format(start_time, end_time))
+                print("type of expression provider in normal:",type(ExpressionD._provider))
+                obj[field] = ExpressionD.expression(inst, field, start_time, end_time, freq)
+        
+        # print("@@@@@ debug obj {}".format(obj))
+        if len(arctic_obj) > 0:
+            arctic_data = pd.DataFrame(arctic_obj)
+            arctic_data.index.names = ["datetime"]
+            print("@@@@@debug arctic data in expression calculator: arctic_data num: {}".format(len(arctic_data)))            
+            return arctic_data
+        else:    
+            data = pd.DataFrame(obj)
+            _calendar = Cal.calendar(freq=freq)
+            data.index = _calendar[data.index.values.astype(np.int)]
+            data.index.names = ["datetime"]
 
-        data = pd.DataFrame(obj)
-        _calendar = Cal.calendar(freq=freq)
-        data.index = _calendar[data.index.values.astype(np.int)]
-        data.index.names = ["datetime"]
-
-        if spans is None:
-            return data
-        else:
-            mask = np.zeros(len(data), dtype=np.bool)
-            for begin, end in spans:
-                mask |= (data.index >= begin) & (data.index <= end)
+            if spans is None:
+                return data
+            else:
+                mask = np.zeros(len(data), dtype=np.bool)
+                for begin, end in spans:
+                    mask |= (data.index >= begin) & (data.index <= end)
             return data[mask]
 
 
@@ -646,7 +662,22 @@ class LocalFeatureProvider(FeatureProvider):
     def _uri_data(self):
         """Static feature file uri."""
         return os.path.join(C.get_data_path(), "features", "{}", "{}.{}.bin")
-
+    
+    def tick_feature(self, instrument, field, start_index, end_index, freq):
+        #TODO read data api from arctic
+        print("@@@@debug luocy2: in the tick feature")
+        arctic = Arctic(C["arctic_uri"])
+        df = arctic['TICKS'].read(instrument, columns=[field], chunk_range=pd.DatetimeIndex([start_index,
+                                                                          end_index]))
+        # resample
+        # series = pd.Series(df[field].values, index=df.index).resample(freq).last()
+        try:
+            series = pd.Series(df[field].values, index=df.index)
+        except Exception:
+            print("instrument {} in tick_feature is Empty. Maybe the instrument data not save in arctic".format(instrument))
+            series = pd.Series(index=df.index, dtype=object)
+        return series
+            
     def feature(self, instrument, field, start_index, end_index, freq):
         # validate
         field = str(field).lower()[1:]
@@ -672,15 +703,19 @@ class LocalExpressionProvider(ExpressionProvider):
 
     def expression(self, instrument, field, start_time=None, end_time=None, freq="day"):
         expression = self.get_expression_instance(field)
+        print("@@@@@@debug 3 luocy type:{}".format(type(expression)))
         start_time = pd.Timestamp(start_time)
         end_time = pd.Timestamp(end_time)
         if "@" in field:
-            pass
             print(start_time, end_time)
+            series = expression.load(instrument, start_time, end_time, freq)
+            print("@@@@@ debug: expression.load finish, series: {}".format({series.shape}))
+            return series
         else:
             _, _, start_index, end_index = Cal.locate_index(start_time, end_time, freq, future=False)
             lft_etd, rght_etd = expression.get_extended_window_size()
             series = expression.load(instrument, max(0, start_index - lft_etd), end_index + rght_etd, freq)
+            
         # Ensure that each column type is consistent
         # FIXME:
         # 1) The stock data is currently float. If there is other types of data, this part needs to be re-implemented.
@@ -720,15 +755,21 @@ class LocalDatasetProvider(DatasetProvider):
             start_time = cal[0]
             end_time = cal[-1]
             normal_data = self.dataset_processor(instruments_d, normal_column_names, start_time, end_time, freq)
-        
+            
         if len(arctic_column_names) > 0:
             # to-do: change
             if freq == 'day':
                 freq = 'D'
-            arctic_data = self.dataset_processor(instruments_d, arctic_column_names, start_time, end_time, freq)    
+            arctic_data = self.dataset_processor(instruments_d, arctic_column_names, start_time, end_time, freq, "arctic")    
         
+       
         if len(normal_column_names) > 0 and len(arctic_column_names) > 0:
-            return pd.merge(normal_data, arctic_data)
+            try:
+                # if not resample, then it will fail
+                data = pd.merge(normal_data, arctic_data, on="datetime")
+            except Exception as e:
+                data =  [normal_data, arctic_data]
+            return data
         elif len(normal_column_names) > 0:
             return normal_data
         else:

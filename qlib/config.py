@@ -76,6 +76,7 @@ _default_config = {
     "provider": "LocalProvider",
     # config it in qlib.init()
     "provider_uri": "",
+    "arctic_uri": "",
     # cache
     "expression_cache": None,
     "dataset_cache": None,
