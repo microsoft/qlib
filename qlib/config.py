@@ -54,6 +54,8 @@ class Config:
         return str(self.__dict__["_config"])
 
     def reset(self):
+        import traceback
+        print("reset time!!!!")
         self.__dict__["_config"] = copy.deepcopy(self._default_config)
 
     def update(self, *args, **kwargs):
@@ -65,7 +67,7 @@ REG_CN = "cn"
 REG_US = "us"
 
 NUM_USABLE_CPU = max(multiprocessing.cpu_count() - 2, 1)
-
+NUM_USABLE_CPU_FOR_ARCTIC = min(NUM_USABLE_CPU, 10)
 _default_config = {
     # data provider config
     "calendar_provider": "LocalCalendarProvider",
@@ -77,6 +79,8 @@ _default_config = {
     # config it in qlib.init()
     "provider_uri": "",
     "arctic_uri": "",
+    "arctic_time_interval": 1,
+    "arctic_retry_time": 5,
     # cache
     "expression_cache": None,
     "dataset_cache": None,
@@ -84,6 +88,7 @@ _default_config = {
     # for simple dataset cache
     "local_cache_path": None,
     "kernels": NUM_USABLE_CPU,
+    "arctic_kernels": NUM_USABLE_CPU_FOR_ARCTIC,
     # How many tasks belong to one process. Recommend 1 for high-frequency data and None for daily data.
     "maxtasksperchild": None,
     "default_disk_cache": 1,  # 0:skip/1:use
@@ -272,3 +277,5 @@ class QlibConfig(Config):
 
 # global config
 C = QlibConfig(_default_config)
+# for arctic connection
+Arctic_Connection_List = []

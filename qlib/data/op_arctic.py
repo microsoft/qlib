@@ -56,8 +56,8 @@ class Rolling(TExpressionOps):
     def __str__(self):
         return "{}({},{})".format(type(self).__name__, self.feature, self.N)
 
-    def load_tick_data(self, instrument, start_index, end_index, freq):
-        series = self.feature.load(instrument, start_index, end_index, freq)
+    def load_tick_data(self, instrument, start_index, end_index, freq, task_index):
+        series = self.feature.load(instrument, start_index, end_index, freq, task_index)
         # NOTE: remove all null check,
         # now it's user's responsibility to decide whether use features in null days
         # isnull = series.isnull() # NOTE: isnull = NaN, inf is not null

@@ -5,6 +5,7 @@
 __version__ = "0.6.0.dev"
 
 
+import multiprocessing
 import os
 import re
 import sys
@@ -15,17 +16,18 @@ import platform
 import subprocess
 from pathlib import Path
 
+from arctic import Arctic
 from .utils import can_use_cache, init_instance_by_config, get_module_by_module_path
 from .workflow.utils import experiment_exit_handler
 
 # init qlib
 def init(default_conf="client", **kwargs):
-    from .config import C, REG_CN, REG_US, QlibConfig
+    from .config import C, REG_CN, REG_US, QlibConfig, Arctic_Connection_List
     from .data.data import register_all_wrappers
     from .log import get_module_logger, set_log_with_config
     from .data.cache import H
     from .workflow import R, QlibRecorder
-
+    
     C.reset()
     H.clear()
 
@@ -50,7 +52,9 @@ def init(default_conf="client", **kwargs):
             LOG.warning("Unrecognized config %s" % k)
 
     C.resolve_path()
-
+    if len(Arctic_Connection_List) == 0:
+        Arctic_Connection_List.append(Arctic(C.arctic_uri))
+    
     if not (C["expression_cache"] is None and C["dataset_cache"] is None):
         # check redis
         if not can_use_cache():

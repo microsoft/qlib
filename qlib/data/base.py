@@ -446,16 +446,16 @@ class TExpression(abc.ABC):
             return TOr(other, self)
 
     @abc.abstractmethod
-    def load_tick_data(instrument, start_index, end_index, freq):
+    def load_tick_data(instrument, start_index, end_index, freq, task_index):
         raise NotImplementedError("This function must be implemented in your newly defined feature")
 
     def check_feature_exist(self, instrument):
         pass
 
-    def load(self, instrument, start_index, end_index, freq):
+    def load(self, instrument, start_index, end_index, freq, task_index=0):
         if start_index is None or end_index is None or start_index > end_index:
             raise ValueError("Invalid index range: {} {}".format(start_index, end_index))
-        series = self.load_tick_data(instrument, start_index, end_index, freq)
+        series = self.load_tick_data(instrument, start_index, end_index, freq, task_index)
         series.name = str(self)
         print("@@@@@debug finish load, shape is:{}, self is {}".format(series.shape, self))
         return series
@@ -502,10 +502,10 @@ class TFeature(TExpression):
         from .data import FeatureD
         pass
 
-    def load_tick_data(self, instrument, start_index, end_index, freq):
+    def load_tick_data(self, instrument, start_index, end_index, freq, task_index):
         from .data import FeatureD
         print("@@@debug 4", instrument, start_index, end_index, self._name)
-        return FeatureD.tick_feature(instrument, self._name, start_index, end_index, freq)
+        return FeatureD.tick_feature(instrument, self._name, start_index, end_index, freq, task_index)
 
 
     def get_longest_back_rolling(self):
