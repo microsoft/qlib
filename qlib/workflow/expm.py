@@ -279,8 +279,9 @@ class ExpManager:
 
         """
         if uri is None:
-            logger.debug("No tracking URI is provided. Use the default tracking URI.")
-            self._current_uri = self.default_uri
+            if self._current_uri is None:
+                logger.debug("No tracking URI is provided. Use the default tracking URI.")
+                self._current_uri = self.default_uri
         else:
             # Temporarily re-set the current uri as the uri argument.
             self._current_uri = uri
@@ -352,8 +353,6 @@ class MLflowExpManager(ExpManager):
         if self.active_experiment is not None:
             self.active_experiment.end(recorder_status)
             self.active_experiment = None
-        # When an experiment end, we will release the current uri.
-        self._current_uri = None
 
     def create_exp(self, experiment_name: Optional[Text] = None):
         assert experiment_name is not None
