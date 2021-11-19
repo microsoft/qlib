@@ -507,7 +507,6 @@ class TFeature(TExpression):
         print("@@@debug 4", instrument, start_index, end_index, self._name)
         return FeatureD.tick_feature(instrument, self._name, start_index, end_index, freq, task_index)
 
-
     def get_longest_back_rolling(self):
         return 0
 

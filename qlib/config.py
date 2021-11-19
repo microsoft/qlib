@@ -68,6 +68,8 @@ REG_US = "us"
 
 NUM_USABLE_CPU = max(multiprocessing.cpu_count() - 2, 1)
 NUM_USABLE_CPU_FOR_ARCTIC = min(NUM_USABLE_CPU, 10)
+ARCTIC_TIME_INTERVAL = 1
+ARCTIC_RETRY_TIME = 5
 _default_config = {
     # data provider config
     "calendar_provider": "LocalCalendarProvider",
@@ -79,8 +81,8 @@ _default_config = {
     # config it in qlib.init()
     "provider_uri": "",
     "arctic_uri": "",
-    "arctic_time_interval": 1,
-    "arctic_retry_time": 5,
+    "arctic_time_interval": ARCTIC_TIME_INTERVAL,
+    "arctic_retry_time": ARCTIC_RETRY_TIME,
     # cache
     "expression_cache": None,
     "dataset_cache": None,
