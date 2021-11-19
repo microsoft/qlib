@@ -96,6 +96,27 @@ class CSIIndex(IndexBase):
         """
         raise NotImplementedError()
 
+    def format_datetime(self, inst_df: pd.DataFrame) -> pd.DataFrame:
+        """formatting the datetime in an instrument
+
+        Parameters
+        ----------
+        inst_df: pd.DataFrame
+            inst_df.columns = [self.SYMBOL_FIELD_NAME, self.START_DATE_FIELD, self.END_DATE_FIELD]
+
+        Returns
+        -------
+
+        """
+        if self.freq != "day":
+            inst_df[self.START_DATE_FIELD] = inst_df[self.START_DATE_FIELD].apply(
+                lambda x: (pd.Timestamp(x) + pd.Timedelta(hours=9, minutes=30)).strftime("%Y-%m-%d %H:%M:%S")
+            )
+            inst_df[self.END_DATE_FIELD] = inst_df[self.END_DATE_FIELD].apply(
+                lambda x: (pd.Timestamp(x) + pd.Timedelta(hours=15, minutes=0)).strftime("%Y-%m-%d %H:%M:%S")
+            )
+        return inst_df
+
     def get_changes(self) -> pd.DataFrame:
         """get companies changes
 
@@ -284,7 +305,12 @@ class CSI100(CSIIndex):
 
 
 def get_instruments(
-    qlib_dir: str, index_name: str, method: str = "parse_instruments", request_retry: int = 5, retry_sleep: int = 3
+    qlib_dir: str,
+    index_name: str,
+    method: str = "parse_instruments",
+    freq: str = "day",
+    request_retry: int = 5,
+    retry_sleep: int = 3,
 ):
     """
 
@@ -296,6 +322,8 @@ def get_instruments(
         index name, value from ["csi100", "csi300"]
     method: str
         method, value from ["parse_instruments", "save_new_companies"]
+    freq: str
+        freq, value from ["day", "1min"]
     request_retry: int
         request retry, by default 5
     retry_sleep: int
@@ -312,7 +340,7 @@ def get_instruments(
     """
     _cur_module = importlib.import_module("data_collector.cn_index.collector")
     obj = getattr(_cur_module, f"{index_name.upper()}")(
-        qlib_dir=qlib_dir, index_name=index_name, request_retry=request_retry, retry_sleep=retry_sleep
+        qlib_dir=qlib_dir, index_name=index_name, freq=freq, request_retry=request_retry, retry_sleep=retry_sleep
     )
     getattr(obj, method)()
 
