@@ -200,6 +200,15 @@ class DSBasedUpdater(RecordUpdater, metaclass=ABCMeta):
         ...
 
 
+def _replace_range(data, new_data):
+    dates = new_data.index.get_level_values("datetime")
+    data = data.sort_index()
+    data = data.drop(data.loc[dates.min() : dates.max()].index)
+    cb_data = pd.concat([data, new_data], axis=0)
+    cb_data = cb_data[~cb_data.index.duplicated(keep="last")].sort_index()
+    return cb_data
+
+
 class PredUpdater(DSBasedUpdater):
     """
     Update the prediction in the Recorder
@@ -209,11 +218,7 @@ class PredUpdater(DSBasedUpdater):
         # Load model
         model = self.rmdl.get_model()
         new_pred: pd.Series = model.predict(dataset)
-
-        data = self.old_data.sort_index()
-        dates = new_pred.index.get_level_values("datetime")
-        data.loc[dates.min() : dates.max()] = new_pred.to_frame("score")
-        data = data.sort_index()
+        data = _replace_range(self.old_data, new_pred.to_frame("score"))
         self.logger.info(f"Finish updating new {new_pred.shape[0]} predictions in {self.record.info['id']}.")
         return data
 
@@ -231,6 +236,5 @@ class LabelUpdater(DSBasedUpdater):
 
     def get_update_data(self, dataset: Dataset) -> pd.DataFrame:
         new_label = SignalRecord.generate_label(dataset)
-        cb_data = pd.concat([self.old_data, new_label], axis=0)
-        cb_data = cb_data[~cb_data.index.duplicated(keep="last")].sort_index()
+        cb_data = _replace_range(self.old_data.sort_index(), new_label)
         return cb_data
