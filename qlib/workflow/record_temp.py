@@ -1,27 +1,21 @@
 #  Copyright (c) Microsoft Corporation.
 #  Licensed under the MIT License.
 
-from qlib.backtest import executor
-import re
 import logging
 import warnings
 import pandas as pd
-from pathlib import Path
 from pprint import pprint
 from typing import Union, List, Optional
-from collections import defaultdict
 
 from qlib.utils.exceptions import LoadObjectError
-from ..contrib.evaluate import indicator_analysis, risk_analysis, indicator_analysis
+from ..contrib.evaluate import risk_analysis, indicator_analysis
 
 from ..data.dataset import DatasetH
 from ..data.dataset.handler import DataHandlerLP
 from ..backtest import backtest as normal_backtest
-from ..utils import init_instance_by_config, get_module_by_module_path
 from ..log import get_module_logger
 from ..utils import flatten_dict, class_casting
 from ..utils.time import Freq
-from ..strategy.base import BaseStrategy
 from ..contrib.eva.alpha import calc_ic, calc_long_short_return, calc_long_short_prec
 
 
@@ -215,6 +209,7 @@ class HFSignalRecord(SignalRecord):
     """
 
     artifact_path = "hg_sig_analysis"
+    depend_cls = SignalRecord
 
     def __init__(self, recorder, **kwargs):
         super().__init__(recorder=recorder)
