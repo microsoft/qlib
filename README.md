@@ -298,6 +298,7 @@ Here is a list of models built on `Qlib`.
 - [TRA based on pytorch (Hengxu, Dong, et al. KDD 2021)](examples/benchmarks/TRA/)
 - [TCN based on pytorch (Shaojie Bai, et al. 2018)](examples/benchmarks/TCN/)
 - [ADARNN based on pytorch (YunTao Du, et al. 2021)](examples/benchmarks/ADARNN/)
+- [ADD based on pytorch (Hongshun Tang, et al.2020)](examples/benchmarks/ADD/)
 
 Your PR of new Quant models is highly welcomed.
 
