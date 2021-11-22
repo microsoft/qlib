@@ -69,7 +69,7 @@ if __name__ == "__main__":
         recorder = R.get_recorder()
         sr = SignalRecord(model, dataset, recorder)
         sr.generate()
-        
+
         # Signal Analysis
         sar = SigAnaRecord(recorder)
         sar.generate()
