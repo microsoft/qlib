@@ -21,11 +21,7 @@ class TestRolling(TestAutoData):
         """
         task = copy.deepcopy(CSI300_GBDT_TASK)
 
-        task["record"] = {
-            "class": "SignalRecord",
-            "module_path": "qlib.workflow.record_temp",
-            "kwargs": {"dataset": "<DATASET>", "model": "<MODEL>"},
-        }
+        task["record"] = ["qlib.workflow.record_temp.SignalRecord"]
 
         exp_name = "online_srv_test"
 
@@ -56,6 +52,27 @@ class TestRolling(TestAutoData):
         online_tool.reset_online_tag(rec)  # set to online model
 
         online_tool.update_online_pred(to_date=latest_date + pd.Timedelta(days=10))
+
+        good_pred = rec.load_object("pred.pkl")
+
+        mod_range = slice(latest_date - pd.Timedelta(days=20), latest_date - pd.Timedelta(days=10))
+        mod_range2 = slice(latest_date - pd.Timedelta(days=9), latest_date - pd.Timedelta(days=2))
+        mod_pred = good_pred.copy()
+
+        mod_pred.loc[mod_range] = -1
+        mod_pred.loc[mod_range2] = -2
+
+        rec.save_objects(**{"pred.pkl": mod_pred})
+        online_tool.update_online_pred(
+            to_date=latest_date - pd.Timedelta(days=10), from_date=latest_date - pd.Timedelta(days=20)
+        )
+
+        updated_pred = rec.load_object("pred.pkl")
+
+        # this range is not fixed
+        self.assertTrue((updated_pred.loc[mod_range] == good_pred.loc[mod_range]).all().item())
+        # this range is fixed now
+        self.assertTrue((updated_pred.loc[mod_range2] == -2).all().item())
 
     def test_update_label(self):
 
