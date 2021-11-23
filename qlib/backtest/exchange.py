@@ -34,6 +34,7 @@ class Exchange:
         open_cost=0.0015,
         close_cost=0.0025,
         min_cost=5,
+        impact_cost=0.0,
         extra_quote=None,
         quote_cls=NumpyQuote,
         **kwargs,
@@ -95,6 +96,7 @@ class Exchange:
                                  **NOTE**: `trade_unit` is included in the `kwargs`. It is necessary because we must
                                  distinguish `not set` and `disable trade_unit`
         :param min_cost:         min cost, default 5
+        :param impact_cost:     market impact cost rate (a.k.a. slippage). A recommended value is 0.1.
         :param extra_quote:     pandas, dataframe consists of
                                     columns: like ['$vwap', '$close', '$volume', '$factor', 'limit_sell', 'limit_buy'].
                                             The limit indicates that the etf is tradable on a specific day.
@@ -164,9 +166,12 @@ class Exchange:
         all_fields = list(all_fields | set(subscribe_fields))
 
         self.all_fields = all_fields
+
         self.open_cost = open_cost
         self.close_cost = close_cost
         self.min_cost = min_cost
+        self.impact_cost = impact_cost
+
         self.limit_threshold: Union[Tuple[str, str], float, None] = limit_threshold
         self.volume_threshold = volume_threshold
         self.extra_quote = extra_quote
@@ -685,12 +690,14 @@ class Exchange:
                 f"Order clipped due to volume limitation: {order}, {[(vol, rule) for vol, rule in zip(vol_limit_num, vol_limit)]}"
             )
 
-    def _get_buy_amount_by_cash_limit(self, trade_price, cash):
+    def _get_buy_amount_by_cash_limit(self, trade_price, cash, cost_ratio):
         """return the real order amount after cash limit for buying.
         Parameters
         ----------
         trade_price : float
         position : cash
+        cost_ratio : float
+
         Return
         ----------
         float
@@ -699,10 +706,10 @@ class Exchange:
         max_trade_amount = 0
         if cash >= self.min_cost:
             # critical_price means the stock transaction price when the service fee is equal to min_cost.
-            critical_price = self.min_cost / self.open_cost + self.min_cost
+            critical_price = self.min_cost / cost_ratio + self.min_cost
             if cash >= critical_price:
-                # the service fee is equal to open_cost * trade_amount
-                max_trade_amount = cash / (1 + self.open_cost) / trade_price
+                # the service fee is equal to cost_ratio * trade_amount
+                max_trade_amount = cash / (1 + cost_ratio) / trade_price
             else:
                 # the service fee is equal to min_cost
                 max_trade_amount = (cash - self.min_cost) / trade_price
@@ -718,6 +725,7 @@ class Exchange:
         :return: trade_price, trade_val, trade_cost
         """
         trade_price = self.get_deal_price(order.stock_id, order.start_time, order.end_time, direction=order.direction)
+        total_trade_val = self.get_volume(order.stock_id, order.start_time, order.end_time) * trade_price
         order.factor = self.get_factor(order.stock_id, order.start_time, order.end_time)
         order.deal_amount = order.amount  # set to full amount and clip it step by step
         # Clipping amount first
@@ -726,8 +734,12 @@ class Exchange:
         # - It simulates that the large order is submitted, but partial is dealt regardless of rounding by trading unit.
         self._clip_amount_by_volume(order, dealt_order_amount)
 
+        # TODO: the adjusted cost ratio can be overestimated as deal_amount will be clipped in the next steps
+        trade_val = order.deal_amount * trade_price
+        adj_cost_ratio = self.impact_cost * (trade_val / total_trade_val) ** 2
+
         if order.direction == Order.SELL:
-            cost_ratio = self.close_cost
+            cost_ratio = self.close_cost + adj_cost_ratio
             # sell
             # if we don't know current position, we choose to sell all
             # Otherwise, we clip the amount based on current position
@@ -750,14 +762,18 @@ class Exchange:
                     self.logger.debug(f"Order clipped due to cash limitation: {order}")
 
         elif order.direction == Order.BUY:
-            cost_ratio = self.open_cost
+            cost_ratio = self.open_cost + adj_cost_ratio
             # buy
             if position is not None:
                 cash = position.get_cash()
                 trade_val = order.deal_amount * trade_price
-                if cash < trade_val + max(trade_val * cost_ratio, self.min_cost):
+                if cash < max(trade_val * cost_ratio, self.min_cost):
+                    # cash cannot cover cost
+                    order.deal_amount = 0
+                    self.logger.debug(f"Order clipped due to cost higher than cash: {order}")
+                elif cash < trade_val + max(trade_val * cost_ratio, self.min_cost):
                     # The money is not enough
-                    max_buy_amount = self._get_buy_amount_by_cash_limit(trade_price, cash)
+                    max_buy_amount = self._get_buy_amount_by_cash_limit(trade_price, cash, cost_ratio)
                     order.deal_amount = self.round_amount_by_trade_unit(
                         min(max_buy_amount, order.deal_amount), order.factor
                     )

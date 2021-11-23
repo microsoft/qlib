@@ -37,9 +37,16 @@ class WIKIIndex(IndexBase):
     # https://superuser.com/questions/613313/why-cant-we-make-con-prn-null-folder-in-windows
     INST_PREFIX = ""
 
-    def __init__(self, index_name: str, qlib_dir: [str, Path] = None, request_retry: int = 5, retry_sleep: int = 3):
+    def __init__(
+        self,
+        index_name: str,
+        qlib_dir: [str, Path] = None,
+        freq: str = "day",
+        request_retry: int = 5,
+        retry_sleep: int = 3,
+    ):
         super(WIKIIndex, self).__init__(
-            index_name=index_name, qlib_dir=qlib_dir, request_retry=request_retry, retry_sleep=retry_sleep
+            index_name=index_name, qlib_dir=qlib_dir, freq=freq, request_retry=request_retry, retry_sleep=retry_sleep
         )
 
         self._target_url = f"{WIKI_URL}/{WIKI_INDEX_NAME_MAP[self.index_name.upper()]}"
@@ -70,6 +77,24 @@ class WIKIIndex(IndexBase):
                 type: str, value from ["add", "remove"]
         """
         raise NotImplementedError("rewrite get_changes")
+
+    def format_datetime(self, inst_df: pd.DataFrame) -> pd.DataFrame:
+        """formatting the datetime in an instrument
+
+        Parameters
+        ----------
+        inst_df: pd.DataFrame
+            inst_df.columns = [self.SYMBOL_FIELD_NAME, self.START_DATE_FIELD, self.END_DATE_FIELD]
+
+        Returns
+        -------
+
+        """
+        if self.freq != "day":
+            inst_df[self.END_DATE_FIELD] = inst_df[self.END_DATE_FIELD].apply(
+                lambda x: (pd.Timestamp(x) + pd.Timedelta(hours=23, minutes=59)).strftime("%Y-%m-%d %H:%M:%S")
+            )
+        return inst_df
 
     @property
     def calendar_list(self) -> List[pd.Timestamp]:
@@ -245,7 +270,12 @@ class SP400Index(WIKIIndex):
 
 
 def get_instruments(
-    qlib_dir: str, index_name: str, method: str = "parse_instruments", request_retry: int = 5, retry_sleep: int = 3
+    qlib_dir: str,
+    index_name: str,
+    method: str = "parse_instruments",
+    freq: str = "day",
+    request_retry: int = 5,
+    retry_sleep: int = 3,
 ):
     """
 
@@ -257,6 +287,8 @@ def get_instruments(
         index name, value from ["SP500", "NASDAQ100", "DJIA", "SP400"]
     method: str
         method, value from ["parse_instruments", "save_new_companies"]
+    freq: str
+        freq, value from ["day", "1min"]
     request_retry: int
         request retry, by default 5
     retry_sleep: int
@@ -265,15 +297,15 @@ def get_instruments(
     Examples
     -------
         # parse instruments
-        $ python collector.py --index_name SP500 --qlib_dir ~/.qlib/qlib_data/cn_data --method parse_instruments
+        $ python collector.py --index_name SP500 --qlib_dir ~/.qlib/qlib_data/us_data --method parse_instruments
 
         # parse new companies
-        $ python collector.py --index_name SP500 --qlib_dir ~/.qlib/qlib_data/cn_data --method save_new_companies
+        $ python collector.py --index_name SP500 --qlib_dir ~/.qlib/qlib_data/us_data --method save_new_companies
 
     """
     _cur_module = importlib.import_module("data_collector.us_index.collector")
     obj = getattr(_cur_module, f"{index_name.upper()}Index")(
-        qlib_dir=qlib_dir, index_name=index_name, request_retry=request_retry, retry_sleep=retry_sleep
+        qlib_dir=qlib_dir, index_name=index_name, freq=freq, request_retry=request_retry, retry_sleep=retry_sleep
     )
     getattr(obj, method)()
 

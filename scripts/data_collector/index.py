@@ -26,7 +26,14 @@ class IndexBase:
     ADD = "add"
     INST_PREFIX = ""
 
-    def __init__(self, index_name: str, qlib_dir: [str, Path] = None, request_retry: int = 5, retry_sleep: int = 3):
+    def __init__(
+        self,
+        index_name: str,
+        qlib_dir: [str, Path] = None,
+        freq: str = "day",
+        request_retry: int = 5,
+        retry_sleep: int = 3,
+    ):
         """
 
         Parameters
@@ -35,6 +42,8 @@ class IndexBase:
             index name
         qlib_dir: str
             qlib directory, by default Path(__file__).resolve().parent.joinpath("qlib_data")
+        freq: str
+            freq, value from ["day", "1min"]
         request_retry: int
             request retry, by default 5
         retry_sleep: int
@@ -49,6 +58,7 @@ class IndexBase:
         self.cache_dir.mkdir(exist_ok=True, parents=True)
         self._request_retry = request_retry
         self._retry_sleep = retry_sleep
+        self.freq = freq
 
     @property
     @abc.abstractmethod
@@ -105,6 +115,21 @@ class IndexBase:
                 type: str, value from ["add", "remove"]
         """
         raise NotImplementedError("rewrite get_changes")
+
+    @abc.abstractmethod
+    def format_datetime(self, inst_df: pd.DataFrame) -> pd.DataFrame:
+        """formatting the datetime in an instrument
+
+        Parameters
+        ----------
+        inst_df: pd.DataFrame
+            inst_df.columns = [self.SYMBOL_FIELD_NAME, self.START_DATE_FIELD, self.END_DATE_FIELD]
+
+        Returns
+        -------
+
+        """
+        raise NotImplementedError("rewrite format_datetime")
 
     def save_new_companies(self):
         """save new companies
@@ -206,6 +231,7 @@ class IndexBase:
         _inst_prefix = self.INST_PREFIX.strip()
         if _inst_prefix:
             inst_df["save_inst"] = inst_df[self.SYMBOL_FIELD_NAME].apply(lambda x: f"{_inst_prefix}{x}")
+        inst_df = self.format_datetime(inst_df)
         inst_df.to_csv(
             self.instruments_dir.joinpath(f"{self.index_name.lower()}.txt"), sep="\t", index=False, header=None
         )

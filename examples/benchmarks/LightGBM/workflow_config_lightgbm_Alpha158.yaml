@@ -14,7 +14,7 @@ port_analysis_config: &port_analysis_config
         class: TopkDropoutStrategy
         module_path: qlib.contrib.strategy
         kwargs:
-            model: <MODEL>
+            model: <MODEL> 
             dataset: <DATASET>
             topk: 50
             n_drop: 5

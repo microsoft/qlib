@@ -90,14 +90,24 @@ class DSBasedUpdater(RecordUpdater, metaclass=ABCMeta):
                    SZ300676   -0.001321
     """
 
-    def __init__(self, record: Recorder, to_date=None, hist_ref: int = 0, freq="day", fname="pred.pkl"):
+    def __init__(self, record: Recorder, to_date=None, from_date=None, hist_ref: int = 0, freq="day", fname="pred.pkl"):
         """
         Init PredUpdater.
+
+        Expected behavior in following cases:
+        - if `to_date` is greater than the max date in the calendar, the data will be updated to the latest date
+        - if there are data before `from_date` or after `to_date`, only the data between `from_date` and `to_date` are affected.
 
         Args:
             record : Recorder
             to_date :
                 update to prediction to the `to_date`
+                if to_date is None:
+                    data will updated to the latest date.
+            from_date :
+                the update will start from `from_date`
+                if from_date is None:
+                    the updating will occur on the next tick after the latest data in historical data
             hist_ref : int
                 Sometimes, the dataset will have historical depends.
                 Leave the problem to users to set the length of historical dependency
@@ -127,13 +137,16 @@ class DSBasedUpdater(RecordUpdater, metaclass=ABCMeta):
             )
             to_date = latest_date
         self.to_date = to_date
+
         # FIXME: it will raise error when running routine with delay trainer
         # should we use another prediction updater for delay trainer?
         self.old_data: pd.DataFrame = record.load_object(fname)
-
-        # dropna is for being compatible to some data with future information(e.g. label)
-        # The recent label data should be updated together
-        self.last_end = self.old_data.dropna().index.get_level_values("datetime").max()
+        if from_date is None:
+            # dropna is for being compatible to some data with future information(e.g. label)
+            # The recent label data should be updated together
+            self.last_end = self.old_data.dropna().index.get_level_values("datetime").max()
+        else:
+            self.last_end = get_date_by_shift(from_date, -1, align="left")
 
     def prepare_data(self) -> DatasetH:
         """
@@ -187,6 +200,15 @@ class DSBasedUpdater(RecordUpdater, metaclass=ABCMeta):
         ...
 
 
+def _replace_range(data, new_data):
+    dates = new_data.index.get_level_values("datetime")
+    data = data.sort_index()
+    data = data.drop(data.loc[dates.min() : dates.max()].index)
+    cb_data = pd.concat([data, new_data], axis=0)
+    cb_data = cb_data[~cb_data.index.duplicated(keep="last")].sort_index()
+    return cb_data
+
+
 class PredUpdater(DSBasedUpdater):
     """
     Update the prediction in the Recorder
@@ -196,11 +218,9 @@ class PredUpdater(DSBasedUpdater):
         # Load model
         model = self.rmdl.get_model()
         new_pred: pd.Series = model.predict(dataset)
-
-        cb_pred = pd.concat([self.old_data, new_pred.to_frame("score")], axis=0)
-        cb_pred = cb_pred.sort_index()
+        data = _replace_range(self.old_data, new_pred.to_frame("score"))
         self.logger.info(f"Finish updating new {new_pred.shape[0]} predictions in {self.record.info['id']}.")
-        return cb_pred
+        return data
 
 
 class LabelUpdater(DSBasedUpdater):
@@ -216,6 +236,5 @@ class LabelUpdater(DSBasedUpdater):
 
     def get_update_data(self, dataset: Dataset) -> pd.DataFrame:
         new_label = SignalRecord.generate_label(dataset)
-        cb_data = pd.concat([self.old_data, new_label], axis=0)
-        cb_data = cb_data[~cb_data.index.duplicated(keep="last")].sort_index()
+        cb_data = _replace_range(self.old_data.sort_index(), new_label)
         return cb_data

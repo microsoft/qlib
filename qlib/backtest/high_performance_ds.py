@@ -160,6 +160,11 @@ class NumpyQuote(BaseQuote):
         if is_single_value(start_time, end_time, self.freq, self.region):
             # this is a very special case.
             # skip aggregating function to speed-up the query calculation
+
+            # FIXME:
+            # it will go to the else logic when it comes to the
+            # 1) the day before holiday when daily trading
+            # 2) the last minute of the day when intraday trading
             try:
                 return self.data[stock_id].loc[start_time, field]
             except KeyError:

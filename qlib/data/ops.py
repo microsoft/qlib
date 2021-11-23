@@ -14,6 +14,8 @@ from typing import Union, List, Type
 from scipy.stats import percentileofscore
 
 from .base import Expression, ExpressionOps, Feature
+
+from ..config import C
 from ..log import get_module_logger
 from ..utils import get_callable_kwargs
 
@@ -312,12 +314,12 @@ class NpPairOperator(PairOperator):
             warning_info = (
                 f"Loading {instrument}: {str(self)}; np.{self.func}(series_left, series_right), "
                 f"The length of series_left and series_right is different: ({len(series_left)}, {len(series_right)}), "
-                f"series_left is {str(self.feature_left)}, series_right is {str(self.feature_left)}. Please check the data"
+                f"series_left is {str(self.feature_left)}, series_right is {str(self.feature_right)}. Please check the data"
             )
         else:
             warning_info = (
                 f"Loading {instrument}: {str(self)}; np.{self.func}(series_left, series_right), "
-                f"series_left is {str(self.feature_left)}, series_right is {str(self.feature_left)}. Please check the data"
+                f"series_left is {str(self.feature_left)}, series_right is {str(self.feature_right)}. Please check the data"
             )
         try:
             res = getattr(np, self.func)(series_left, series_right)
@@ -325,7 +327,7 @@ class NpPairOperator(PairOperator):
             get_module_logger("ops").error(warning_info)
             raise ValueError(f"{str(e)}. \n\t{warning_info}")
         else:
-            if check_length and len(series_left) != len(series_right):
+            if check_length and len(series_left) != len(series_right) and C.ops_warning_log:
                 get_module_logger("ops").warning(warning_info)
         return res
 

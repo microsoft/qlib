@@ -152,8 +152,11 @@ def init_from_yaml_conf(conf_path, **kwargs):
     :param conf_path: A path to the qlib config in yml format
     """
 
-    with open(conf_path) as f:
-        config = yaml.safe_load(f)
+    if conf_path is None:
+        config = {}
+    else:
+        with open(conf_path) as f:
+            config = yaml.safe_load(f)
     config.update(kwargs)
     default_conf = config.pop("default_conf", "client")
     init(default_conf, **config)
@@ -216,7 +219,7 @@ def auto_init(**kwargs):
     .. code-block:: yaml
 
         conf_type: ref
-        qlib_cfg: '<shared_yaml_config_path>'
+        qlib_cfg: '<shared_yaml_config_path>'    # this could be null reference no config from other files
         # following configs in `qlib_cfg_update` is project=specific
         qlib_cfg_update:
             exp_manager:
@@ -246,6 +249,7 @@ def auto_init(**kwargs):
     except FileNotFoundError:
         init(**kwargs)
     else:
+        logger = get_module_logger("Initialization")
         conf_pp = pp / "config.yaml"
         with conf_pp.open() as f:
             conf = yaml.safe_load(f)
@@ -259,8 +263,14 @@ def auto_init(**kwargs):
             # - There is a shared configure file and you don't want to edit it inplace.
             # - The shared configure may be updated later and you don't want to copy it.
             # - You have some customized config.
-            qlib_conf_path = conf["qlib_cfg"]
-            qlib_conf_update = conf.get("qlib_cfg_update")
-            init_from_yaml_conf(qlib_conf_path, **qlib_conf_update, **kwargs)
-        logger = get_module_logger("Initialization")
+            qlib_conf_path = conf.get("qlib_cfg", None)
+
+            # merge the arguments
+            qlib_conf_update = conf.get("qlib_cfg_update", {})
+            for k, v in kwargs.items():
+                if k in qlib_conf_update:
+                    logger.warning(f"`qlib_conf_update` from conf_pp is override by `kwargs` on key '{k}'")
+            qlib_conf_update.update(kwargs)
+
+            init_from_yaml_conf(qlib_conf_path, **qlib_conf_update)
         logger.info(f"Auto load project config: {conf_pp}")

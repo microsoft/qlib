@@ -1,6 +1,5 @@
 import numpy as np
 import pandas as pd
-
 import qlib.utils.index_data as idd
 
 import unittest
@@ -114,6 +113,19 @@ class IndexDataTest(unittest.TestCase):
         # here are some examples which do not affect the current system, but it is weird not to support it
         # sd2 = idd.SingleData([1, 2, 3, 4], index=["foo", "bar", "f", "g"])
         # 2 * sd2
+
+    def test_squeeze(self):
+        sd1 = idd.SingleData([1, 2, 3, 4], index=["foo", "bar", "f", "g"])
+        # automatically squeezing
+        self.assertTrue(not isinstance(np.nansum(sd1), idd.IndexData))
+        self.assertTrue(not isinstance(np.sum(sd1), idd.IndexData))
+        self.assertTrue(not isinstance(sd1.sum(), idd.IndexData))
+        self.assertEqual(np.nansum(sd1), 10)
+        self.assertEqual(np.sum(sd1), 10)
+        self.assertEqual(sd1.sum(), 10)
+        self.assertEqual(np.nanmean(sd1), 2.5)
+        self.assertEqual(np.mean(sd1), 2.5)
+        self.assertEqual(sd1.mean(), 2.5)
 
 
 if __name__ == "__main__":

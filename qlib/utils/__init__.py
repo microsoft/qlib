@@ -199,6 +199,7 @@ def get_callable_kwargs(config: Union[dict, str], default_module: Union[str, Mod
     ----------
     config : [dict, str]
         similar to config
+        please refer to the doc of init_instance_by_config
 
     default_module : Python module or str
         It should be a python module to load the class type
@@ -219,9 +220,12 @@ def get_callable_kwargs(config: Union[dict, str], default_module: Union[str, Mod
             _callable = config["class"]  # the class type itself is passed in
         kwargs = config.get("kwargs", {})
     elif isinstance(config, str):
-        module = get_module_by_module_path(default_module)
+        # a.b.c.ClassName
+        *m_path, cls = config.split(".")
+        m_path = ".".join(m_path)
+        module = get_module_by_module_path(default_module if m_path == "" else m_path)
 
-        _callable = getattr(module, config)
+        _callable = getattr(module, cls)
         kwargs = {}
     else:
         raise NotImplementedError(f"This type of input is not supported")
@@ -260,7 +264,9 @@ def init_instance_by_config(
             1) specify a pickle object
                 - path like 'file:///<path to pickle file>/obj.pkl'
             2) specify a class name
-                - "ClassName":  getattr(module, config)() will be used.
+                - "ClassName":  getattr(module, "ClassName")() will be used.
+            3) specify module path with class name
+                - "a.b.c.ClassName" getattr(<a.b.c.module>, "ClassName")() will be used.
         object example:
             instance of accept_types
     default_module : Python module
@@ -572,7 +578,7 @@ def get_date_range(trading_date, left_shift=0, right_shift=0, future=False):
     return calendar
 
 
-def get_date_by_shift(trading_date, shift, future=False, clip_shift=True, freq="day"):
+def get_date_by_shift(trading_date, shift, future=False, clip_shift=True, freq="day", align: Optional[str] = None):
     """get trading date with shift bias wil cur_date
         e.g. : shift == 1,  return next trading date
                shift == -1, return previous trading date
@@ -581,14 +587,25 @@ def get_date_by_shift(trading_date, shift, future=False, clip_shift=True, freq="
         current date
     shift : int
     clip_shift: bool
+    align : Optional[str]
+        When align is None, this function will raise ValueError if `trading_date` is not a trading date
+        when align is "left"/"right", it will try to align to left/right nearest trading date before shifting when `trading_date` is not a trading date
 
     """
     from qlib.data import D
 
     cal = D.calendar(future=future, freq=freq)
-    if pd.to_datetime(trading_date) not in list(cal):
-        raise ValueError("{} is not trading day!".format(str(trading_date)))
-    _index = bisect.bisect_left(cal, trading_date)
+    trading_date = pd.to_datetime(trading_date)
+    if align is None:
+        if trading_date not in list(cal):
+            raise ValueError("{} is not trading day!".format(str(trading_date)))
+        _index = bisect.bisect_left(cal, trading_date)
+    elif align == "left":
+        _index = bisect.bisect_right(cal, trading_date) - 1
+    elif align == "right":
+        _index = bisect.bisect_left(cal, trading_date)
+    else:
+        raise ValueError(f"align with value `{align}` is not supported")
     shift_index = _index + shift
     if shift_index < 0 or shift_index >= len(cal):
         if clip_shift:
