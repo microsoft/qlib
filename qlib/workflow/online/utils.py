@@ -158,7 +158,7 @@ class OnlineToolR(OnlineTool):
         exp_name = self._get_exp_name(exp_name)
         return list(list_recorders(exp_name, lambda rec: self.get_online_tag(rec) == self.ONLINE_TAG).values())
 
-    def update_online_pred(self, to_date=None, exp_name: str = None):
+    def update_online_pred(self, to_date=None, from_date=None, exp_name: str = None):
         """
         Update the predictions of online models to to_date.
 
@@ -176,7 +176,7 @@ class OnlineToolR(OnlineTool):
             if issubclass(cls, TSDatasetH):
                 hist_ref = kwargs.get("step_len", TSDatasetH.DEFAULT_STEP_LEN)
             try:
-                updater = PredUpdater(rec, to_date=to_date, hist_ref=hist_ref)
+                updater = PredUpdater(rec, to_date=to_date, from_date=from_date, hist_ref=hist_ref)
             except LoadObjectError as e:
                 # skip the recorder without pred
                 self.logger.warn(f"An exception `{str(e)}` happened when load `pred.pkl`, skip it.")

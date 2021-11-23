@@ -94,6 +94,7 @@ class TaskManager:
         """
         self.task_pool: pymongo.collection.Collection = getattr(get_mongodb(), task_pool)
         self.logger = get_module_logger(self.__class__.__name__)
+        self.logger.info(f"task_pool:{task_pool}")
 
     @staticmethod
     def list() -> list:

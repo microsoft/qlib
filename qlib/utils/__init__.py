@@ -578,7 +578,7 @@ def get_date_range(trading_date, left_shift=0, right_shift=0, future=False):
     return calendar
 
 
-def get_date_by_shift(trading_date, shift, future=False, clip_shift=True, freq="day"):
+def get_date_by_shift(trading_date, shift, future=False, clip_shift=True, freq="day", align: Optional[str] = None):
     """get trading date with shift bias wil cur_date
         e.g. : shift == 1,  return next trading date
                shift == -1, return previous trading date
@@ -587,14 +587,25 @@ def get_date_by_shift(trading_date, shift, future=False, clip_shift=True, freq="
         current date
     shift : int
     clip_shift: bool
+    align : Optional[str]
+        When align is None, this function will raise ValueError if `trading_date` is not a trading date
+        when align is "left"/"right", it will try to align to left/right nearest trading date before shifting when `trading_date` is not a trading date
 
     """
     from qlib.data import D
 
     cal = D.calendar(future=future, freq=freq)
-    if pd.to_datetime(trading_date) not in list(cal):
-        raise ValueError("{} is not trading day!".format(str(trading_date)))
-    _index = bisect.bisect_left(cal, trading_date)
+    trading_date = pd.to_datetime(trading_date)
+    if align is None:
+        if trading_date not in list(cal):
+            raise ValueError("{} is not trading day!".format(str(trading_date)))
+        _index = bisect.bisect_left(cal, trading_date)
+    elif align == "left":
+        _index = bisect.bisect_right(cal, trading_date) - 1
+    elif align == "right":
+        _index = bisect.bisect_left(cal, trading_date)
+    else:
+        raise ValueError(f"align with value `{align}` is not supported")
     shift_index = _index + shift
     if shift_index < 0 or shift_index >= len(cal):
         if clip_shift:
