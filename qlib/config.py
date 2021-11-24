@@ -273,6 +273,20 @@ class QlibConfig(Config):
             self.mount_path = mount_path
 
         @staticmethod
+        def format_provider_uri(provider_uri: Union[str, dict, Path]) -> dict:
+            if provider_uri is None:
+                raise ValueError("provider_uri cannot be None")
+            if isinstance(provider_uri, (str, dict, Path)):
+                if not isinstance(provider_uri, dict):
+                    provider_uri = {QlibConfig.DEFAULT_FREQ: provider_uri}
+            else:
+                raise TypeError(f"provider_uri does not support {type(provider_uri)}")
+            for freq, _uri in provider_uri.items():
+                if QlibConfig.DataPathManager.get_uri_type(_uri) == QlibConfig.LOCAL_URI:
+                    provider_uri[freq] = str(Path(_uri).expanduser().resolve())
+            return provider_uri
+
+        @staticmethod
         def get_uri_type(uri: Union[str, Path]):
             uri = uri if isinstance(uri, str) else str(uri.expanduser().resolve())
             is_win = re.match("^[a-zA-Z]:.*", uri) is not None  # such as 'C:\\data', 'D:'
@@ -318,11 +332,7 @@ class QlibConfig(Config):
     def resolve_path(self):
         # resolve path
         _mount_path = self["mount_path"]
-        _provider_uri = self["provider_uri"]
-        if _provider_uri is None:
-            raise ValueError("provider_uri cannot be None")
-        if not isinstance(_provider_uri, dict):
-            _provider_uri = {self.DEFAULT_FREQ: _provider_uri}
+        _provider_uri = self.DataPathManager.format_provider_uri(self["provider_uri"])
         if not isinstance(_mount_path, dict):
             _mount_path = {_freq: _mount_path for _freq in _provider_uri.keys()}
 
@@ -331,10 +341,7 @@ class QlibConfig(Config):
         assert len(_miss_freq) == 0, f"mount_path is missing freq: {_miss_freq}"
 
         # resolve
-        for _freq, _uri in _provider_uri.items():
-            # provider_uri
-            if self.DataPathManager.get_uri_type(_uri) == QlibConfig.LOCAL_URI:
-                _provider_uri[_freq] = str(Path(_uri).expanduser().resolve())
+        for _freq in _provider_uri.keys():
             # mount_path
             _mount_path[_freq] = (
                 _mount_path[_freq]
@@ -343,20 +350,6 @@ class QlibConfig(Config):
             )
         self["provider_uri"] = _provider_uri
         self["mount_path"] = _mount_path
-
-    def get_uri_type(self):
-        path = self["provider_uri"]
-        if isinstance(path, Path):
-            path = str(path)
-        is_win = re.match("^[a-zA-Z]:.*", path) is not None  # such as 'C:\\data', 'D:'
-        is_nfs_or_win = (
-            re.match("^[^/]+:.+", path) is not None
-        )  # such as 'host:/data/'   (User may define short hostname by themselves or use localhost)
-
-        if is_nfs_or_win and not is_win:
-            return QlibConfig.NFS_URI
-        else:
-            return QlibConfig.LOCAL_URI
 
     def set(self, default_conf: str = "client", **kwargs):
         """
