@@ -54,6 +54,9 @@ port_analysis_config: &port_analysis_config
     class: TopkDropoutStrategy
     module_path: qlib.contrib.strategy.strategy
     kwargs:
+      signal:
+        - <MODEL>
+        - <DATASET>
       topk: 50
       n_drop: 5
   backtest:
@@ -67,7 +70,7 @@ port_analysis_config: &port_analysis_config
     min_cost: 5
 task:
   model:
-    class: GATs
+    class: HGATs
     module_path: qlib.contrib.model.pytorch_hgats_ts
     kwargs:
       d_feat: 20

@@ -61,8 +61,8 @@ class DailyBatchSampler(Sampler):
         return len(self.data_source)
 
 
-class GATs(Model):
-    """GATs Model
+class HGATs(Model):
+    """HGATs Model
 
     Parameters
     ----------
@@ -159,38 +159,32 @@ class GATs(Model):
             np.random.seed(self.seed)
             torch.manual_seed(self.seed)
 
-        self.GAT_model = GATModel(
+        self.HGAT_model = HGATModel(
             d_feat=self.d_feat,
             hidden_size=self.hidden_size,
             num_layers=self.num_layers,
             dropout=self.dropout,
             base_model=self.base_model,
         )
-        self.logger.info("model:\n{:}".format(self.GAT_model))
+        self.logger.info("model:\n{:}".format(self.HGAT_model))
         self.logger.info(
-            "model size: {:.4f} MB".format(count_parameters(self.GAT_model))
+            "model size: {:.4f} MB".format(count_parameters(self.HGAT_model))
         )
 
         if optimizer.lower() == "adam":
-            self.train_optimizer = optim.Adam(self.GAT_model.parameters(), lr=self.lr)
+            self.train_optimizer = optim.Adam(self.HGAT_model.parameters(), lr=self.lr)
         elif optimizer.lower() == "gd":
-            self.train_optimizer = optim.SGD(self.GAT_model.parameters(), lr=self.lr)
+            self.train_optimizer = optim.SGD(self.HGAT_model.parameters(), lr=self.lr)
         else:
             raise NotImplementedError(
                 "optimizer {} is not supported!".format(optimizer)
             )
 
         self.fitted = False
-        self.GAT_model.to(self.device)
+        self.HGAT_model.to(self.device)
 
-        self.bigG = pd.read_pickle("benchmarks/HGATs/hypergraph/CSI300.pkl")
-        self.num_ind = 29
-        # self.num_ind = (
-        #     pd.get_dummies(self.bigG.values.squeeze()).values.astype("float64").shape[1]
-        # )
-
-        # self.bigG = pd.read_pickle("benchmarks/GATs/Ind/bigG_trivial.pkl")
-        # `bigG_trivial` corresponds to the trivial situation where all stocks belong to differnet industries
+        self.bigG = pd.read_hdf('benchmarks/HGATs/hypergraph/CSI300.h5', 'df')  # stock-industry hypergraph
+        self.num_ind = 29  # number of industries
 
     @property
     def use_gpu(self):
@@ -231,7 +225,7 @@ class GATs(Model):
 
     def train_epoch(self, data_loader, tsds, big_G):
 
-        self.GAT_model.train()
+        self.HGAT_model.train()
 
         for data, i in data_loader:
 
@@ -246,17 +240,17 @@ class GATs(Model):
                 )
             ]  # [~#stocks, #industries]
 
-            pred = self.GAT_model(feature.float(), GH)
+            pred = self.HGAT_model(feature.float(), GH)
             loss = self.loss_fn(pred, label)
 
             self.train_optimizer.zero_grad()
             loss.backward()
-            torch.nn.utils.clip_grad_value_(self.GAT_model.parameters(), 3.0)
+            torch.nn.utils.clip_grad_value_(self.HGAT_model.parameters(), 3.0)
             self.train_optimizer.step()
 
     def test_epoch(self, data_loader, tsds, big_G):
 
-        self.GAT_model.eval()
+        self.HGAT_model.eval()
 
         scores = []
         losses = []
@@ -274,7 +268,7 @@ class GATs(Model):
                 )
             ]  # [~#stocks, #industries]
 
-            pred = self.GAT_model(feature.float(), GH)
+            pred = self.HGAT_model(feature.float(), GH)
             loss = self.loss_fn(pred, label)
             losses.append(loss.item())
 
@@ -346,12 +340,12 @@ class GATs(Model):
             self.logger.info("Loading pretrained model...")
             pretrained_model.load_state_dict(torch.load(self.model_path))
 
-        model_dict = self.GAT_model.state_dict()
+        model_dict = self.HGAT_model.state_dict()
         pretrained_dict = {
             k: v for k, v in pretrained_model.state_dict().items() if k in model_dict
         }
         model_dict.update(pretrained_dict)
-        self.GAT_model.load_state_dict(model_dict)
+        self.HGAT_model.load_state_dict(model_dict)
         self.logger.info("Loading pretrained model Done...")
 
         # train
@@ -373,7 +367,7 @@ class GATs(Model):
                 best_score = val_score
                 stop_steps = 0
                 best_epoch = step
-                best_param = copy.deepcopy(self.GAT_model.state_dict())
+                best_param = copy.deepcopy(self.HGAT_model.state_dict())
             else:
                 stop_steps += 1
                 if stop_steps >= self.early_stop:
@@ -381,7 +375,7 @@ class GATs(Model):
                     break
 
         self.logger.info("best score: %.6lf @ %d" % (best_score, best_epoch))
-        self.GAT_model.load_state_dict(best_param)
+        self.HGAT_model.load_state_dict(best_param)
         torch.save(best_param, save_path)
 
         if self.use_gpu:
@@ -399,7 +393,7 @@ class GATs(Model):
         test_loader = DataLoader(
             IdxSampler(dl_test), sampler=sampler_test, num_workers=self.n_jobs
         )
-        self.GAT_model.eval()
+        self.HGAT_model.eval()
         preds = []
 
         for data, i in test_loader:
@@ -416,7 +410,8 @@ class GATs(Model):
 
             if GH.shape[0] != 300:  # new securities added to the the CSI
 
-                break  # comment this out if you want to use interpolation for unknown industry information for the new securities
+                # break  # comment this out if you want to use interpolation for unknown industry information for the new securities
+                # TODO: new industry : 'unknown'
 
                 newbatch = (
                     dl_test.get_index()[i.tolist()].to_frame()["instrument"].values
@@ -434,7 +429,7 @@ class GATs(Model):
                 ]  # [~#stocks, #industries]
 
             with torch.no_grad():
-                pred = self.GAT_model(feature.float(), GH).detach().cpu().numpy()
+                pred = self.HGAT_model(feature.float(), GH).detach().cpu().numpy()
 
             preds.append(pred)
 
@@ -444,7 +439,7 @@ class GATs(Model):
         )
 
 
-class GATModel(nn.Module):
+class HGATModel(nn.Module):
     def __init__(
         self,
         d_feat=6,
@@ -506,6 +501,7 @@ class GATModel(nn.Module):
 
     def forward(self, x, GH):
 
+        # TODO : device 放到外面qlib那层
         out, _ = self.rnn(x)
         hidden = out[:, -1, :]  # [~#stocks, #features]
         att_weight = self.cal_attention(

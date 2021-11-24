@@ -10,7 +10,9 @@ try:
     from .gbdt import LGBModel
 except ModuleNotFoundError:
     DEnsembleModel, LGBModel = None, None
-    print("Please install necessary libs for DEnsembleModel and LGBModel, such as lightgbm.")
+    print(
+        "Please install necessary libs for DEnsembleModel and LGBModel, such as lightgbm."
+    )
 try:
     from .xgboost import XGBModel
 except ModuleNotFoundError:
@@ -32,10 +34,28 @@ try:
     from .pytorch_sfm import SFM_Model
     from .pytorch_tcn import TCN
     from .pytorch_add import ADD
+    from .pytorch_hgats_ts import HGATs
 
-    pytorch_classes = (ALSTM, GATs, GRU, LSTM, DNNModelPytorch, TabnetModel, SFM_Model, TCN, ADD)
+    pytorch_classes = (
+        ALSTM,
+        GATs,
+        GRU,
+        LSTM,
+        DNNModelPytorch,
+        TabnetModel,
+        SFM_Model,
+        TCN,
+        ADD,
+        HGATs,
+    )
 except ModuleNotFoundError:
     pytorch_classes = ()
     print("Please install necessary libs for PyTorch models.")
 
-all_model_classes = (CatBoostModel, DEnsembleModel, LGBModel, XGBModel, LinearModel) + pytorch_classes
+all_model_classes = (
+    CatBoostModel,
+    DEnsembleModel,
+    LGBModel,
+    XGBModel,
+    LinearModel,
+) + pytorch_classes
