@@ -183,9 +183,9 @@ class HGATs(Model):
         self.fitted = False
         self.HGAT_model.to(self.device)
 
-        self.bigG = pd.read_hdf(
-            "benchmarks/HGATs/hypergraph/CSI300.h5", "df",
-        )  # stock-industry hypergraph
+        self.bigG = pd.read_hdf("benchmarks/HGATs/hypergraph/CSI300.h5", "df")
+        self.bigG = self.bigG.swaplevel().sort_index()  # (date, stock, industry)
+
         self.num_ind = 29 + 1  # number of industries plus an 'unknown' one
 
     @property
@@ -213,18 +213,6 @@ class HGATs(Model):
 
         raise ValueError("unknown metric `%s`" % self.metric)
 
-    def get_daily_inter(self, df, shuffle=False):
-        # organize the train data into daily batches
-        daily_count = df.groupby(level=0).size().values
-        daily_index = np.roll(np.cumsum(daily_count), 1)
-        daily_index[0] = 0
-        if shuffle:
-            # shuffle data
-            daily_shuffle = list(zip(daily_index, daily_count))
-            np.random.shuffle(daily_shuffle)
-            daily_index, daily_count = zip(*daily_shuffle)
-        return daily_index, daily_count
-
     def train_epoch(self, data_loader, tsds, big_G):
 
         self.HGAT_model.train()
@@ -235,18 +223,29 @@ class HGATs(Model):
             feature = data[:, :, 0:-1].to(self.device)
             label = data[:, -1, -1].to(self.device)
 
-            GH = (
-                pd.get_dummies(big_G.values.squeeze())
-                .assign(unknown=np.zeros(big_G.shape[0]))
-                .values.astype("float64")
-            )
-            GH = GH[
-                big_G.index.isin(
-                    tsds.get_index()[i.tolist()].to_frame()["instrument"].values
-                )
-            ]  # [~#stocks, #industries]
+            date = tsds.get_index()[i.tolist()].to_frame()["datetime"][0]
+            stockbatch = tsds.get_index()[i.tolist()].to_frame()["instrument"].values
 
-            pred = self.HGAT_model(feature.float(), torch.Tensor(GH).to(self.device))
+            G = big_G.loc[date]  # (stock, industry)
+            G = G[G.index.isin(stockbatch)]
+            unknown_stocks = stockbatch[~np.isin(stockbatch, G.index.values)]
+            # assign 'nan industry' labels to the unknown stocks
+            for newstock in unknown_stocks:
+                G.loc[newstock] = np.nan
+
+            GH = pd.DataFrame(
+                0.0,
+                index=np.arange(len(G)),
+                columns=np.append(np.arange(1, self.num_ind), np.nan),
+            )
+
+            GH.update(
+                pd.get_dummies(G.values.squeeze()).astype("float64")
+            )  # [~#stocks, #industries]
+
+            pred = self.HGAT_model(
+                feature.float(), torch.Tensor(GH.values).to(self.device)
+            )
             loss = self.loss_fn(pred, label)
 
             self.train_optimizer.zero_grad()
@@ -267,18 +266,29 @@ class HGATs(Model):
             feature = data[:, :, 0:-1].to(self.device)
             label = data[:, -1, -1].to(self.device)
 
-            GH = (
-                pd.get_dummies(big_G.values.squeeze())
-                .assign(unknown=np.zeros(big_G.shape[0]))
-                .values.astype("float64")
-            )
-            GH = GH[
-                big_G.index.isin(
-                    tsds.get_index()[i.tolist()].to_frame()["instrument"].values
-                )
-            ]  # [~#stocks, #industries]
+            date = tsds.get_index()[i.tolist()].to_frame()["datetime"][0]
+            stockbatch = tsds.get_index()[i.tolist()].to_frame()["instrument"].values
 
-            pred = self.HGAT_model(feature.float(), torch.Tensor(GH).to(self.device))
+            G = big_G.loc[date]  # (stock, industry)
+            G = G[G.index.isin(stockbatch)]
+            unknown_stocks = stockbatch[~np.isin(stockbatch, G.index.values)]
+            # assign 'nan industry' labels to the unknown stocks
+            for newstock in unknown_stocks:
+                G.loc[newstock] = np.nan
+
+            GH = pd.DataFrame(
+                0.0,
+                index=np.arange(len(G)),
+                columns=np.append(np.arange(1, self.num_ind), np.nan),
+            )
+
+            GH.update(
+                pd.get_dummies(G.values.squeeze()).astype("float64")
+            )  # [~#stocks, #industries]
+
+            pred = self.HGAT_model(
+                feature.float(), torch.Tensor(GH.values).to(self.device)
+            )
             loss = self.loss_fn(pred, label)
             losses.append(loss.item())
 
@@ -411,39 +421,31 @@ class HGATs(Model):
             data = data.squeeze()
             feature = data[:, :, 0:-1].to(self.device)
 
-            GH = (
-                pd.get_dummies(self.bigG.values.squeeze())
-                .assign(unknown=np.zeros(self.bigG.shape[0]))
-                .values.astype("float64")
+            date = dl_test.get_index()[i.tolist()].to_frame()["datetime"][0]
+            stockbatch = dl_test.get_index()[i.tolist()].to_frame()["instrument"].values
+
+            G = self.bigG.loc[date]  # (stock, industry)
+            G = G[G.index.isin(stockbatch)]
+            unknown_stocks = stockbatch[~np.isin(stockbatch, G.index.values)]
+            # assign 'nan industry' labels to the unknown stocks
+            for newstock in unknown_stocks:
+                G.loc[newstock] = np.nan
+
+            GH = pd.DataFrame(
+                0.0,
+                index=np.arange(len(G)),
+                columns=np.append(np.arange(1, self.num_ind), np.nan),
             )
-            GH = GH[
-                self.bigG.index.isin(
-                    dl_test.get_index()[i.tolist()].to_frame()["instrument"].values
-                )
-            ]  # [~#stocks, #industries]
 
-            if GH.shape[0] != 300:  # new stocks added to the the CSI
-
-                newbatch = (
-                    dl_test.get_index()[i.tolist()].to_frame()["instrument"].values
-                )
-                newstocks = newbatch[~np.isin(newbatch, self.bigG.index.values)]
-                curr_inds = self.bigG.iloc[:, 0].values
-                for newstock in newstocks:
-                    self.bigG.loc[
-                        newstock
-                    ] = "unknown"  # assign 'unknown industry' labels to the new stocks
-
-                GH = pd.get_dummies(self.bigG.values.squeeze()).values.astype("float64")
-                GH = GH[
-                    self.bigG.index.isin(
-                        dl_test.get_index()[i.tolist()].to_frame()["instrument"].values
-                    )
-                ]  # [~#stocks, #industries]
+            GH.update(
+                pd.get_dummies(G.values.squeeze()).astype("float64")
+            )  # [~#stocks, #industries]
 
             with torch.no_grad():
                 pred = (
-                    self.HGAT_model(feature.float(), torch.Tensor(GH).to(self.device))
+                    self.HGAT_model(
+                        feature.float(), torch.Tensor(GH.values).to(self.device)
+                    )
                     .detach()
                     .cpu()
                     .numpy()
@@ -491,9 +493,8 @@ class HGATModel(nn.Module):
         self.hidden_size = hidden_size
         self.num_ind = num_ind
         self.d_feat = d_feat
-        self.transformationi = nn.Linear(self.hidden_size, self.hidden_size)
-        self.transformationj = nn.Linear(self.num_ind, self.num_ind)
-        self.a = nn.Parameter(torch.randn(self.hidden_size + self.num_ind, 1))
+        self.transformation = nn.Linear(self.hidden_size, self.hidden_size)
+        self.a = nn.Parameter(torch.randn(self.hidden_size * 2, 1))
         self.a.requires_grad = True
         self.fc = nn.Linear(self.hidden_size, self.hidden_size)
         self.fc_out = nn.Linear(hidden_size, 1)
@@ -501,32 +502,36 @@ class HGATModel(nn.Module):
         self.softmax = nn.Softmax(dim=1)
 
     def cal_attention(self, x, y):
-        x = self.transformationi(x)  # x <- hidden
-        y = self.transformationj(y)  # y <- GH
+        x = self.transformation(x)  # x <- hidden
+        y = self.transformation(y)  # y <- hidden_agg
 
         sample_num = x.shape[0]  # num of stocks
-        dim1 = x.shape[1]  # num of temporal features
-        dim2 = y.shape[1]  # num of industries
-        e_x = x.expand(dim2, sample_num, dim1)
-        e_y = y.expand(dim2, sample_num, dim2)
-        attention_in = torch.cat((e_x, e_y), 2).view(-1, dim1 + dim2)  # P i || P j
+        edge_num = y.shape[0]  # num of industries
+        dim = x.shape[1]  # num of temporal features
+        e_x = x.expand(edge_num, sample_num, dim)
+        e_y = y.expand(sample_num, edge_num, dim)
+        e_y = torch.transpose(e_y, 0, 1)
+        attention_in = torch.cat((e_x, e_y), 2).view(-1, dim * 2)  # P i || P j
         self.a_t = torch.t(self.a)
-        attention_out = self.a_t.mm(torch.t(attention_in)).view(dim2, sample_num)
+        attention_out = self.a_t.mm(torch.t(attention_in)).view(sample_num, edge_num)
         attention_out = self.leaky_relu(attention_out)
         att_weight = self.softmax(attention_out)
-        return torch.t(att_weight)
+        return att_weight
 
     def forward(self, x, GH):
 
         out, _ = self.rnn(x)
         hidden = out[:, -1, :]  # [~#stocks, #features]
-        att_weight = self.cal_attention(hidden, GH)  # [~#stocks, #industries]
+
+        hidden_agg = torch.t(GH).mm(hidden)  # [~#industries, #features]
+
+        att_weight = self.cal_attention(hidden, hidden_agg)  # [~#stocks, #industries]
 
         De = pinv(torch.diag(GH.sum(axis=0)))
         Dv = pinv(torch.diag(GH.sum(axis=1) ** 1 / 2))
-        G = (Dv).mm(att_weight).mm(De).mm(att_weight.T).mm(Dv)
+        H = (Dv).mm(att_weight).mm(De).mm(att_weight.T).mm(Dv)
 
-        hidden = G.mm(hidden) + hidden
+        hidden = H.mm(hidden) + hidden
         hidden = self.fc(hidden)
         hidden = self.leaky_relu(hidden)
         return self.fc_out(hidden).squeeze()
@@ -535,5 +540,5 @@ class HGATModel(nn.Module):
 """
 Be aware:
 - The stock-industry hypergraph is different from day to day due to missing data, changes to the CSI components, and changes to the industry labels of certain stocks.
-- During the prediction period, we encounter new SCI components with unknown industry information -- this is dealt with by assigning them with 'unknown industry' labels.
+- When we encounter stocks with unknown industry information, we them with 'nan industry' labels.
 """
