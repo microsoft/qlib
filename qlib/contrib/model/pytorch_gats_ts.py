@@ -183,18 +183,6 @@ class GATs(Model):
 
         raise ValueError("unknown metric `%s`" % self.metric)
 
-    def get_daily_inter(self, df, shuffle=False):
-        # organize the train data into daily batches
-        daily_count = df.groupby(level=0).size().values
-        daily_index = np.roll(np.cumsum(daily_count), 1)
-        daily_index[0] = 0
-        if shuffle:
-            # shuffle data
-            daily_shuffle = list(zip(daily_index, daily_count))
-            np.random.shuffle(daily_shuffle)
-            daily_index, daily_count = zip(*daily_shuffle)
-        return daily_index, daily_count
-
     def train_epoch(self, data_loader):
 
         self.GAT_model.train()
