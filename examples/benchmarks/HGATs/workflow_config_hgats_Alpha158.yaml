@@ -77,7 +77,7 @@ task:
       hidden_size: 64
       num_layers: 2
       dropout: 0.7
-      n_epochs: 200
+      n_epochs: 1  # TODO: make it 200
       lr: 1.0e-4
       early_stop: 10
       metric: loss
