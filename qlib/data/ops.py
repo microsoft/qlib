@@ -689,6 +689,9 @@ class If(ExpressionOps):
 
 class Rolling(ExpressionOps):
     """Rolling Operator
+    The meaning of rolling and expanding is the same in pandas.
+    When the window is set to 0, the behaviour of the operator should follow `expanding`
+    Otherwise, it follows `rolling`
 
     Parameters
     ----------
@@ -1196,13 +1199,12 @@ class Slope(Rolling):
     """Rolling Slope
     This operator calculate the slope between `idx` and `feature`.
     (e.g. [<feature_t1>, <feature_t2>, <feature_t3>] and [1, 2, 3])
-    
+
     Usage Example:
     - "Slope($close, %d)/$close"
-    
+
     # TODO:
     # Some users may want pair-wise rolling like `Slope(A, B, N)`
-    
 
     Parameters
     ----------
