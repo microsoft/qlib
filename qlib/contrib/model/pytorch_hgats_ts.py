@@ -98,8 +98,8 @@ class HGATs(Model):
         **kwargs
     ):
         # Set logger.
-        self.logger = get_module_logger("GATs")
-        self.logger.info("GATs pytorch version...")
+        self.logger = get_module_logger("HGATs")
+        self.logger.info("HGATs pytorch version...")
 
         # set hyper-parameters.
         self.d_feat = d_feat
@@ -121,7 +121,7 @@ class HGATs(Model):
         self.seed = seed
 
         self.logger.info(
-            "GATs parameters setting:"
+            "HGATs parameters setting:"
             "\nd_feat : {}"
             "\nhidden_size : {}"
             "\nnum_layers : {}"

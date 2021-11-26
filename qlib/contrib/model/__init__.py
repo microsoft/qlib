@@ -34,7 +34,7 @@ try:
     from .pytorch_sfm import SFM_Model
     from .pytorch_tcn import TCN
     from .pytorch_add import ADD
-    from .pytorch_hgats_ts import HGATs
+    from .pytorch_hgats import HGATs
 
     pytorch_classes = (
         ALSTM,

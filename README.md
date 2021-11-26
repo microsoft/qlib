@@ -11,6 +11,7 @@
 Recent released features
 | Feature | Status |
 | --                      | ------    |
+| HGATs model | [Released](https://github.com/microsoft/qlib/pull/711) on Nov 26, 2021 |
 | ADD model | [Released](https://github.com/microsoft/qlib/pull/704) on Nov 22, 2021 |
 | ADARNN  model | [Released](https://github.com/microsoft/qlib/pull/689) on Nov 14, 2021 |
 | TCN  model | [Released](https://github.com/microsoft/qlib/pull/668) on Nov 4, 2021 |
@@ -300,6 +301,7 @@ Here is a list of models built on `Qlib`.
 - [TCN based on pytorch (Shaojie Bai, et al. 2018)](examples/benchmarks/TCN/)
 - [ADARNN based on pytorch (YunTao Du, et al. 2021)](examples/benchmarks/ADARNN/)
 - [ADD based on pytorch (Hongshun Tang, et al.2020)](examples/benchmarks/ADD/)
+- [HGATs based on pytorch (Song Bai, et al. 2020)](examples/benchmarks/HGATs/)
 
 Your PR of new Quant models is highly welcomed.
 
