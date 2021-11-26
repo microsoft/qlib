@@ -241,7 +241,7 @@ class HGATs(Model):
 
             GH.update(
                 pd.get_dummies(G.values.squeeze()).astype("float64")
-            )  # [~#stocks, #industries]
+            )  # [#stocks, #industries]
 
             pred = self.HGAT_model(
                 feature.float(), torch.Tensor(GH.values).to(self.device)
@@ -284,7 +284,7 @@ class HGATs(Model):
 
             GH.update(
                 pd.get_dummies(G.values.squeeze()).astype("float64")
-            )  # [~#stocks, #industries]
+            )  # [#stocks, #industries]
 
             pred = self.HGAT_model(
                 feature.float(), torch.Tensor(GH.values).to(self.device)
@@ -439,7 +439,7 @@ class HGATs(Model):
 
             GH.update(
                 pd.get_dummies(G.values.squeeze()).astype("float64")
-            )  # [~#stocks, #industries]
+            )  # [#stocks, #industries]
 
             with torch.no_grad():
                 pred = (
@@ -513,19 +513,22 @@ class HGATModel(nn.Module):
         e_y = torch.transpose(e_y, 0, 1)
         attention_in = torch.cat((e_x, e_y), 2).view(-1, dim * 2)  # P i || P j
         self.a_t = torch.t(self.a)
-        attention_out = self.a_t.mm(torch.t(attention_in)).view(sample_num, edge_num)
+        attention_out = (
+            self.a_t.mm(torch.t(attention_in)).view(edge_num, sample_num).t()
+        )
         attention_out = self.leaky_relu(attention_out)
         att_weight = self.softmax(attention_out)
+
         return att_weight
 
     def forward(self, x, GH):
 
         out, _ = self.rnn(x)
-        hidden = out[:, -1, :]  # [~#stocks, #features]
+        hidden = out[:, -1, :]  # [#stocks, #features]
 
-        hidden_agg = torch.t(GH).mm(hidden)  # [~#industries, #features]
+        hidden_agg = torch.t(GH).mm(hidden)  # [#industries, #features]
 
-        att_weight = self.cal_attention(hidden, hidden_agg)  # [~#stocks, #industries]
+        att_weight = self.cal_attention(hidden, hidden_agg)  # [#stocks, #industries]
 
         De = pinv(torch.diag(GH.sum(axis=0)))
         Dv = pinv(torch.diag(GH.sum(axis=1) ** 1 / 2))

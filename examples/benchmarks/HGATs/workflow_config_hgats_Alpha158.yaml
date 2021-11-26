@@ -77,9 +77,9 @@ task:
       hidden_size: 64
       num_layers: 2
       dropout: 0.7
-      n_epochs: 1  # TODO: make it 200
-      lr: 1.0e-4
-      early_stop: 10
+      n_epochs: 200
+      lr: 5.0e-5
+      early_stop: 5
       metric: loss
       loss: mse
       base_model: LSTM
