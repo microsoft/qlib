@@ -324,11 +324,11 @@ class NpPairOperator(PairOperator):
         try:
             res = getattr(np, self.func)(series_left, series_right)
         except ValueError as e:
-            get_module_logger("ops").error(warning_info)
+            get_module_logger("ops").debug(warning_info)
             raise ValueError(f"{str(e)}. \n\t{warning_info}")
         else:
-            if check_length and len(series_left) != len(series_right) and C.ops_warning_log:
-                get_module_logger("ops").warning(warning_info)
+            if check_length and len(series_left) != len(series_right):
+                get_module_logger("ops").debug(warning_info)
         return res
 
 

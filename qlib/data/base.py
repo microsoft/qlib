@@ -155,7 +155,7 @@ class Expression(abc.ABC):
         try:
             series = self._load_internal(instrument, start_index, end_index, freq)
         except Exception as e:
-            get_module_logger("data").error(
+            get_module_logger("data").debug(
                 f"Loading data error: instrument={instrument}, expression={str(self)}, "
                 f"start_index={start_index}, end_index={end_index}, freq={freq}. "
                 f"error info: {str(e)}"

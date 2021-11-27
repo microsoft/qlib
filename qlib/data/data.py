@@ -709,7 +709,7 @@ class LocalExpressionProvider(ExpressionProvider):
         try:
             series = expression.load(instrument, max(0, start_index - lft_etd), end_index + rght_etd, freq)
         except Exception as e:
-            get_module_logger("data").error(
+            get_module_logger("data").debug(
                 f"Loading expression error: "
                 f"instrument={instrument}, field=({field}), start_time={start_time}, end_time={end_time}, freq={freq}. "
                 f"error info: {str(e)}"
