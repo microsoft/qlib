@@ -201,6 +201,7 @@ class TestAllFlow(TestAutoData):
             0.10,
             "backtest failed",
         )
+        self.assertTrue(not analyze_df.isna().any().any(), "backtest failed")
 
     def test_3_expmanager(self):
         pass_default, pass_current, uri_path = fake_experiment()

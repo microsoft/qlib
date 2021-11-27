@@ -736,7 +736,11 @@ class Exchange:
 
         # TODO: the adjusted cost ratio can be overestimated as deal_amount will be clipped in the next steps
         trade_val = order.deal_amount * trade_price
-        adj_cost_ratio = self.impact_cost * (trade_val / total_trade_val) ** 2
+        assert trade_val > 1e-5, f"trade_val <= 1e-5, order info: {order}"
+        if not total_trade_val or np.isnan(total_trade_val):
+            adj_cost_ratio = self.impact_cost
+        else:
+            adj_cost_ratio = self.impact_cost * (trade_val / total_trade_val) ** 2
 
         if order.direction == Order.SELL:
             cost_ratio = self.close_cost + adj_cost_ratio
