@@ -34,7 +34,7 @@ class FileStorageMixin:
 
     @property
     def provider_uri(self) -> dict:
-        return self.kwargs["provider_uri"]
+        return C.DataPathManager.format_provider_uri(self.kwargs["provider_uri"])
 
     @property
     def support_freq(self) -> List[str]:
