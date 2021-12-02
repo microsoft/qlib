@@ -102,7 +102,6 @@ Usage & Example
         qlib.init(provider_uri=<qlib data dir>)
 
         CSI300_BENCH = "SH000300"
-        FREQ = "day"
         STRATEGY_CONFIG = {
             "topk": 50,
             "n_drop": 5,
@@ -112,12 +111,9 @@ Usage & Example
 
 
         strategy_obj = TopkDropoutStrategy(**STRATEGY_CONFIG)
-        portfolio_metric_dict, indicator_dict = backtest_daily(
-            start_time="2017-01-01", end_time="2020-08-01", strategy=strategy_obj, executor=executor_obj
+        report_normal, positions_normal = backtest_daily(
+            start_time="2017-01-01", end_time="2020-08-01", strategy=strategy_obj
         )
-        analysis_freq = "{0}{1}".format(*Freq.parse(FREQ))
-
-        report_normal, positions_normal = portfolio_metric_dict.get(analysis_freq)
         analysis = dict()
         analysis["excess_return_without_cost"] = risk_analysis(
             report_normal["return"] - report_normal["bench"], freq=analysis_freq
@@ -127,15 +123,7 @@ Usage & Example
         )
 
         analysis_df = pd.concat(analysis)  # type: pd.DataFrame
-        # log metrics
-        analysis_dict = flatten_dict(analysis_df["risk"].unstack().T.to_dict())
-        # print out results
-        pprint(f"The following are analysis results of benchmark return({analysis_freq}).")
-        pprint(risk_analysis(report_normal["bench"], freq=analysis_freq))
-        pprint(f"The following are analysis results of the excess return without cost({analysis_freq}).")
-        pprint(analysis["excess_return_without_cost"])
-        pprint(f"The following are analysis results of the excess return with cost({analysis_freq}).")
-        pprint(analysis["excess_return_with_cost"])
+        pprint(analysis_df)
 
 
 

@@ -244,8 +244,8 @@ HIGH_FREQ_CONFIG = {
 _default_region_config = {
     REG_CN: {
         "trade_unit": 100,
-        "limit_threshold": 0.099,
-        "deal_price": "vwap",
+        "limit_threshold": 0.095,
+        "deal_price": "close",
     },
     REG_US: {
         "trade_unit": 1,

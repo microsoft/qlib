@@ -3,7 +3,6 @@
 
 from __future__ import division
 from __future__ import print_function
-from logging import warn
 
 import numpy as np
 import pandas as pd
@@ -144,6 +143,37 @@ def backtest_daily(
         E.g. Executor[day](Executor[1min]),   setting `end_time == 20XX0301` will include all the minutes on 20XX0301
     strategy : Union[str, dict, BaseStrategy]
         for initializing outermost portfolio strategy. Please refer to the docs of init_instance_by_config for more information.
+
+        E.g.
+
+        .. code-block:: python
+            # dict
+            strategy = {
+                "class": "TopkDropoutStrategy",
+                "module_path": "qlib.contrib.strategy.signal_strategy",
+                "kwargs": {
+                    "signal": (model, dataset),
+                    "topk": 50,
+                    "n_drop": 5,
+                },
+            }
+            # BaseStrategy
+            pred_score = pd.read_pickle("score.pkl")["score"]
+            STRATEGY_CONFIG = {
+                "topk": 50,
+                "n_drop": 5,
+                "signal": pred_score,
+            }
+            strategy = TopkDropoutStrategy(**STRATEGY_CONFIG)
+            # str example.
+            # 1) specify a pickle object
+            #     - path like 'file:///<path to pickle file>/obj.pkl'
+            # 2) specify a class name
+            #     - "ClassName":  getattr(module, "ClassName")() will be used.
+            # 3) specify module path with class name
+            #     - "a.b.c.ClassName" getattr(<a.b.c.module>, "ClassName")() will be used.
+
+
     executor : Union[str, dict, BaseExecutor]
         for initializing the outermost executor.
     benchmark: str
@@ -156,16 +186,28 @@ def backtest_daily(
             Using Account with a Position
     exchange_kwargs : dict
         the kwargs for initializing Exchange
+        E.g.
+
+        .. code-block:: python
+
+            exchange_kwargs = {
+                "freq": freq,
+                "limit_threshold": None, # limit_threshold is None, using C.limit_threshold
+                "deal_price": None, # deal_price is None, using C.deal_price
+                "open_cost": 0.0005,
+                "close_cost": 0.0015,
+                "min_cost": 5,
+            }
+
     pos_type : str
         the type of Position.
 
     Returns
     -------
-    portfolio_metrics_dict: Dict[PortfolioMetrics]
-        it records the trading portfolio_metrics information
-    indicator_dict: Dict[Indicator]
-        it computes the trading indicator
-        It is organized in a dict format
+    report_normal: pd.DataFrame
+        backtest report
+    positions_normal: pd.DataFrame
+        backtest positions
 
     """
     freq = "day"
@@ -177,8 +219,8 @@ def backtest_daily(
         executor = _executor.SimulatorExecutor(**executor_config)
     _exchange_kwargs = {
         "freq": freq,
-        "limit_threshold": 0.095,
-        "deal_price": "close",
+        "limit_threshold": None,
+        "deal_price": None,
         "open_cost": 0.0005,
         "close_cost": 0.0015,
         "min_cost": 5,
@@ -196,7 +238,11 @@ def backtest_daily(
         exchange_kwargs=_exchange_kwargs,
         pos_type=pos_type,
     )
-    return portfolio_metric_dict, indicator_dict
+    analysis_freq = "{0}{1}".format(*Freq.parse(freq))
+
+    report_normal, positions_normal = portfolio_metric_dict.get(analysis_freq)
+
+    return report_normal, positions_normal
 
 
 def long_short_backtest(
@@ -334,12 +380,7 @@ def t_run():
         "n_drop": 5,
         "signal": pred,
     }
-    portfolio_metric_dict, indicator_dict = backtest_daily(
-        start_time="2017-01-01", end_time="2020-08-01", strategy=strategy_config
-    )
-    freq = "day"
-    analysis_freq = "{0}{1}".format(*Freq.parse(freq))
-    report_df, positions = portfolio_metric_dict.get(analysis_freq)
+    report_df, positions = backtest_daily(start_time="2017-01-01", end_time="2020-08-01", strategy=strategy_config)
     print(report_df.head())
     print(positions.keys())
     print(positions[list(positions.keys())[0]])
