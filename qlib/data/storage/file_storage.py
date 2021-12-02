@@ -18,23 +18,14 @@ logger = get_module_logger("file_storage")
 
 
 class FileStorageMixin:
-    @property
-    def uri(self) -> Path:
-        _provider_uri = self.kwargs.get("provider_uri", None)
-        if _provider_uri is None:
-            raise ValueError(
-                f"The `provider_uri` parameter is not found in {self.__class__.__name__}, "
-                f'please specify `provider_uri` in the "provider\'s backend"'
-            )
-        return Path(_provider_uri).expanduser().joinpath(f"{self.storage_name}s", self.file_name)
+    """FileStorageMixin, applicable to FileXXXStorage
+    Subclasses need to have provider_uri, freq, storage_name, file_name attributes
+
+    """
 
     @property
     def dpm(self):
         return C.DataPathManager(self.provider_uri, None)
-
-    @property
-    def provider_uri(self) -> dict:
-        return C.DataPathManager.format_provider_uri(self.kwargs["provider_uri"])
 
     @property
     def support_freq(self) -> List[str]:
@@ -70,9 +61,10 @@ class FileStorageMixin:
 
 
 class FileCalendarStorage(FileStorageMixin, CalendarStorage):
-    def __init__(self, freq: str, future: bool, **kwargs):
+    def __init__(self, freq: str, future: bool, provider_uri: dict, **kwargs):
         super(FileCalendarStorage, self).__init__(freq, future, **kwargs)
         self.future = future
+        self.provider_uri = C.DataPathManager.format_provider_uri(provider_uri)
         self.resample_freq = None
 
     @property
@@ -171,8 +163,9 @@ class FileInstrumentStorage(FileStorageMixin, InstrumentStorage):
     INSTRUMENT_END_FIELD = "end_datetime"
     SYMBOL_FIELD_NAME = "instrument"
 
-    def __init__(self, market: str, freq: str, **kwargs):
+    def __init__(self, market: str, freq: str, provider_uri: dict, **kwargs):
         super(FileInstrumentStorage, self).__init__(market, freq, **kwargs)
+        self.provider_uri = C.DataPathManager.format_provider_uri(provider_uri)
         self.file_name = f"{market.lower()}.txt"
 
     def _read_instrument(self) -> Dict[InstKT, InstVT]:
@@ -259,8 +252,9 @@ class FileInstrumentStorage(FileStorageMixin, InstrumentStorage):
 
 
 class FileFeatureStorage(FileStorageMixin, FeatureStorage):
-    def __init__(self, instrument: str, field: str, freq: str, **kwargs):
+    def __init__(self, instrument: str, field: str, freq: str, provider_uri: dict, **kwargs):
         super(FileFeatureStorage, self).__init__(instrument, field, freq, **kwargs)
+        self.provider_uri = C.DataPathManager.format_provider_uri(provider_uri)
         self.file_name = f"{instrument.lower()}/{field.lower()}.{freq.lower()}.bin"
 
     def clear(self):

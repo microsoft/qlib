@@ -231,7 +231,7 @@ class Exchange:
                 self.extra_quote["limit_buy"] = False
                 self.logger.warning("No limit_buy set for extra_quote. All stock will be able to be bought.")
             assert set(self.extra_quote.columns) == set(self.quote_df.columns) - {"$change"}
-            self.quote_df = pd.concat([self.quote_df, extra_quote], sort=False, axis=0)
+            self.quote_df = pd.concat([self.quote_df, self.extra_quote], sort=False, axis=0)
 
     LT_TP_EXP = "(exp)"  # Tuple[str, str]
     LT_FLT = "float"  # float
@@ -736,8 +736,8 @@ class Exchange:
 
         # TODO: the adjusted cost ratio can be overestimated as deal_amount will be clipped in the next steps
         trade_val = order.deal_amount * trade_price
-        assert trade_val > 1e-5, f"trade_val <= 1e-5, order info: {order}"
         if not total_trade_val or np.isnan(total_trade_val):
+            # TODO: assert trade_val == 0, f"trade_val != 0, total_trade_val: {total_trade_val}; order info: {order}"
             adj_cost_ratio = self.impact_cost
         else:
             adj_cost_ratio = self.impact_cost * (trade_val / total_trade_val) ** 2
