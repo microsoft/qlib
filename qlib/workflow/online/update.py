@@ -146,7 +146,7 @@ class DSBasedUpdater(RecordUpdater, metaclass=ABCMeta):
             # The recent label data should be updated together
             self.last_end = self.old_data.dropna().index.get_level_values("datetime").max()
         else:
-            self.last_end = get_date_by_shift(from_date, -1, align="left")
+            self.last_end = get_date_by_shift(from_date, -1, align="right")
 
     def prepare_data(self) -> DatasetH:
         """
