@@ -223,6 +223,12 @@ class BasePosition:
         """
         raise NotImplementedError(f"Please implement the `settle_commit` method")
 
+    def __str__(self):
+        return self.__dict__.__str__()
+
+    def __repr__(self):
+        return self.__dict__.__repr__()
+
 
 class Position(BasePosition):
     """Position

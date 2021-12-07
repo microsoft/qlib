@@ -29,7 +29,10 @@ rtn & earning in the Account
 
 
 class AccumulatedInfo:
-    """accumulated trading info, including accumulated return/cost/turnover"""
+    """
+    accumulated trading info, including accumulated return/cost/turnover
+    AccumulatedInfo should be shared accross different levels
+    """
 
     def __init__(self):
         self.reset()
@@ -62,6 +65,11 @@ class AccumulatedInfo:
 
 
 class Account:
+    """
+    The correctness of the metrics of Account in nested execution depends on the shallow copy of `trade_account` in qlib/backtest/executor.py:NestedExecutor
+    Different level of executor has different Account object when calculating metrics. But the position object is shared cross all the Account object.
+    """
+
     def __init__(
         self,
         init_cash: float = 1e9,
@@ -95,6 +103,8 @@ class Account:
         self.init_vars(init_cash, position_dict, freq, benchmark_config)
 
     def init_vars(self, init_cash, position_dict, freq: str, benchmark_config: dict):
+        # 1) the following variables are shared by multiple layers
+        # - you will see a shallow copy instead of deepcopy in the NestedExecutor;
         self.init_cash = init_cash
         self.current_position: BasePosition = init_instance_by_config(
             {
@@ -106,6 +116,9 @@ class Account:
                 "module_path": "qlib.backtest.position",
             }
         )
+        self.accum_info = AccumulatedInfo()
+
+        # 2) following variables are not shared between layers
         self.portfolio_metrics = None
         self.hist_positions = {}
         self.reset(freq=freq, benchmark_config=benchmark_config)
@@ -119,7 +132,8 @@ class Account:
     def reset_report(self, freq, benchmark_config):
         # portfolio related metrics
         if self.is_port_metr_enabled():
-            self.accum_info = AccumulatedInfo()
+            # NOTE:
+            # `accum_info` and `current_position` are shared here
             self.portfolio_metrics = PortfolioMetrics(freq, benchmark_config)
             self.hist_positions = {}
 
