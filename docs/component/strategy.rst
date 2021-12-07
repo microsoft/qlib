@@ -12,7 +12,9 @@ Introduction
 
 Because the components in ``Qlib`` are designed in a loosely-coupled way, ``Portfolio Strategy`` can be used as an independent module also.
 
-``Qlib`` provides several implemented portfolio strategies. Also, ``Qlib`` supports custom strategy, users can customize strategies according to their own needs.
+``Qlib`` provides several implemented portfolio strategies. Also, ``Qlib`` supports custom strategy, users can customize strategies according to their own requirements.
+
+After users specifying the models(forecasting signals) and strategies, running backtest will help users to check the performance of a custom model(forecasting signals)/strategy.
 
 Base Class & Interface
 ======================
@@ -82,9 +84,39 @@ TopkDropoutStrategy
 
 Usage & Example
 ====================
-``Portfolio Strategy`` can be specified in the ``Intraday Trading(Backtest)``, the example is as follows.
 
-- daily
+First, user can create a model to get trading signals(the variable name is ``pred_score`` in following cases).
+
+Prediction Score
+-----------------
+
+The `prediction score` is a pandas DataFrame. Its index is <datetime(pd.Timestamp), instrument(str)> and it must
+contains a `score` column.
+
+A prediction sample is shown as follows.
+
+.. code-block:: python
+
+      datetime instrument     score
+    2019-01-04   SH600000 -0.505488
+    2019-01-04   SZ002531 -0.320391
+    2019-01-04   SZ000999  0.583808
+    2019-01-04   SZ300569  0.819628
+    2019-01-04   SZ001696 -0.137140
+                 ...            ...
+    2019-04-30   SZ000996 -1.027618
+    2019-04-30   SH603127  0.225677
+    2019-04-30   SH603126  0.462443
+    2019-04-30   SH603133 -0.302460
+    2019-04-30   SZ300760 -0.126383
+
+``Forecast Model`` module can make predictions, please refer to `Forecast Model: Model Training & Prediction <model.html>`_.
+
+
+Running backtest
+-----------------
+
+- In most cases, users could backtest their portfolio management strategy  with ``backtest_daily``.
 
     .. code-block:: python
 
@@ -127,7 +159,7 @@ Usage & Example
 
 
 
-- nested decision execution
+- If users would like to control their strategies in a more detailed(e.g. users have a more advanced version of executor), user could follow this example.
 
     .. code-block:: python
 
@@ -204,10 +236,51 @@ Usage & Example
         pprint(analysis["excess_return_with_cost"])
 
 
-To know more about the `prediction score` `pred_score` output by ``Forecast Model``, please refer to `Forecast Model: Model Training & Prediction <model.html>`_.
+Result
+------------------
 
-To know more about ``Intraday Trading``, please refer to `Intraday Trading: Model&Strategy Testing <backtest.html>`_.
+The backtest results are in the following form:
+
+.. code-block:: python
+
+                                                      risk
+    excess_return_without_cost mean               0.000605
+                               std                0.005481
+                               annualized_return  0.152373
+                               information_ratio  1.751319
+                               max_drawdown      -0.059055
+    excess_return_with_cost    mean               0.000410
+                               std                0.005478
+                               annualized_return  0.103265
+                               information_ratio  1.187411
+                               max_drawdown      -0.075024
+
+
+- `excess_return_without_cost`
+    - `mean`
+        Mean value of the `CAR` (cumulative abnormal return) without cost
+    - `std`
+        The `Standard Deviation` of `CAR` (cumulative abnormal return) without cost.
+    - `annualized_return`
+        The `Annualized Rate` of `CAR` (cumulative abnormal return) without cost.
+    - `information_ratio`
+        The `Information Ratio` without cost. please refer to `Information Ratio – IR <https://www.investopedia.com/terms/i/informationratio.asp>`_.
+    - `max_drawdown`
+        The `Maximum Drawdown` of `CAR` (cumulative abnormal return) without cost, please refer to `Maximum Drawdown (MDD) <https://www.investopedia.com/terms/m/maximum-drawdown-mdd.asp>`_.
+
+- `excess_return_with_cost`
+    - `mean`
+        Mean value of the `CAR` (cumulative abnormal return) series with cost
+    - `std`
+        The `Standard Deviation` of `CAR` (cumulative abnormal return) series with cost.
+    - `annualized_return`
+        The `Annualized Rate` of `CAR` (cumulative abnormal return) with cost.
+    - `information_ratio`
+        The `Information Ratio` with cost. please refer to `Information Ratio – IR <https://www.investopedia.com/terms/i/informationratio.asp>`_.
+    - `max_drawdown`
+        The `Maximum Drawdown` of `CAR` (cumulative abnormal return) with cost, please refer to `Maximum Drawdown (MDD) <https://www.investopedia.com/terms/m/maximum-drawdown-mdd.asp>`_.
+
 
 Reference
 ===================
-To know more about ``Portfolio Strategy``, please refer to `Strategy API <../reference/api.html#module-qlib.contrib.strategy.strategy>`_.
+To know more about the `prediction score` `pred_score` output by ``Forecast Model``, please refer to `Forecast Model: Model Training & Prediction <model.html>`_.

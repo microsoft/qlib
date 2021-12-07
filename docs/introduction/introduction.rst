@@ -34,9 +34,14 @@ Name                      Description
 
 `Workflow` layer          `Workflow` layer covers the whole workflow of quantitative investment.
                           `Information Extractor` extracts data for models. `Forecast Model` focuses
-                          on producing all kinds of forecast signals (e.g. _alpha_, risk) for other
-                          modules. With these signals `Portfolio Generator` will generate the target
-                          portfolio and produce orders to be executed by `Order Executor`.
+                          on producing all kinds of forecast signals (e.g. *alpha*, risk) for other
+                          modules.  With these signals `Decision Generator` will generate the target 
+                          trading decisions(i.e. portfolio, orders)  to be executed by `Execution Env`
+                          (i.e. the trading market).  There may be multiple levels of `Trading Agent`
+                          and `Execution Env` (e.g. an *order executor trading agent and intraday
+                          order execution environment* could behave like an interday trading
+                          environment and nested in  *daily portfolio management trading agent and
+                          interday trading environment*  ) 
 
 `Interface` layer         `Interface` layer tries to present a user-friendly interface for the underlying
                           system. `Analyser` module will provide users detailed analysis reports of
