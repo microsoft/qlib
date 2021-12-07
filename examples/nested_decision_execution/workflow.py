@@ -110,14 +110,6 @@ from qlib.backtest import collect_data
 
 
 class NestedDecisionExecutionWorkflow:
-    # TODO: add test for nested workflow.
-    # 1) comparing same backtest
-    # - Basic test idea: the shared accumulated value are equal in multiple levels
-    #   - Aligning the profit calculation between multiple levels and single levels.
-    # 2) comparing different backtest
-    # - Basic test idea:
-    #   - the daily backtest will be similar as multi-level(the data quality makes this gap samller)
-
     market = "csi300"
     benchmark = "SH000300"
     data_handler_config = {
@@ -265,7 +257,6 @@ class NestedDecisionExecutionWorkflow:
         self.port_analysis_config["backtest"]["benchmark"] = self.benchmark
 
         with R.start(experiment_name="backtest"):
-
             recorder = R.get_recorder()
             par = PortAnaRecord(
                 recorder,
@@ -301,6 +292,14 @@ class NestedDecisionExecutionWorkflow:
             print(trade_decision)
 
     # the code below are for checking, users don't have to care about it
+    # The tests can be categorized into 2 types
+    # 1) comparing same backtest
+    # - Basic test idea: the shared accumulated value are equal in multiple levels
+    #   - Aligning the profit calculation between multiple levels and single levels.
+    # 2) comparing different backtest
+    # - Basic test idea:
+    #   - the daily backtest will be similar as multi-level(the data quality makes this gap samller)
+
     def check_diff_freq(self):
         self._init_qlib()
         exp = R.get_exp(experiment_name="backtest")
