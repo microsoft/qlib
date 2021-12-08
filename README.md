@@ -11,6 +11,7 @@
 Recent released features
 | Feature | Status |
 | --                      | ------    |
+| Release Qlib v0.8.0 | [Released](https://github.com/microsoft/qlib/releases/tag/v0.8.0) on Dec 8, 2021 |
 | ADD model | [Released](https://github.com/microsoft/qlib/pull/704) on Nov 22, 2021 |
 | ADARNN  model | [Released](https://github.com/microsoft/qlib/pull/689) on Nov 14, 2021 |
 | TCN  model | [Released](https://github.com/microsoft/qlib/pull/668) on Nov 4, 2021 |
