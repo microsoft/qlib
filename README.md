@@ -15,6 +15,7 @@ Recent released features
 | ADD model | [Released](https://github.com/microsoft/qlib/pull/704) on Nov 22, 2021 |
 | ADARNN  model | [Released](https://github.com/microsoft/qlib/pull/689) on Nov 14, 2021 |
 | TCN  model | [Released](https://github.com/microsoft/qlib/pull/668) on Nov 4, 2021 |
+| Nested Decision Framework | [Released](https://github.com/microsoft/qlib/pull/438) on Oct 1, 2021. [Example](https://github.com/microsoft/qlib/blob/main/examples/nested_decision_execution/workflow.py) and [Doc](https://qlib.readthedocs.io/en/latest/component/highfreq.html) |
 |Temporal Routing Adaptor (TRA) | [Released](https://github.com/microsoft/qlib/pull/531) on July 30, 2021 |
 | Transformer & Localformer | [Released](https://github.com/microsoft/qlib/pull/508) on July 22, 2021 |
 | Release Qlib v0.7.0 | [Released](https://github.com/microsoft/qlib/releases/tag/v0.7.0) on July 12, 2021 |
@@ -68,7 +69,6 @@ Your feedbacks about the features are very important.
 | Planning-based portfolio optimization | Under review:  https://github.com/microsoft/qlib/pull/280 | 
 | Fund data supporting and analysis  |  Under review: https://github.com/microsoft/qlib/pull/292 |
 | Point-in-Time database | Under review: https://github.com/microsoft/qlib/pull/343 |
-| High-frequency trading | Under review: https://github.com/microsoft/qlib/pull/408 | 
 | Meta-Learning-based data selection | Initial opensource version under development |
 
 # Framework of Qlib
