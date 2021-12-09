@@ -25,12 +25,12 @@ def init(default_conf="client", **kwargs):
     from .config import C, REG_CN, REG_US, QlibConfig, Arctic_Connection_List
     from .data.data import register_all_wrappers
     from .log import get_module_logger, set_log_with_config
-    from .data.cache import H
+    from .data.cache import H, HZ
     from .workflow import R, QlibRecorder
     
     C.reset()
     H.clear()
-
+    HZ.clear()
     _logging_config = C.logging_config
     if "logging_config" in kwargs:
         _logging_config = kwargs["logging_config"]

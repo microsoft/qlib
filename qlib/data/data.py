@@ -293,7 +293,7 @@ class ExpressionProvider(abc.ABC):
         return expression
 
     @abc.abstractmethod
-    def expression(self, instrument, field, start_time=None, end_time=None, freq="day"):
+    def expression(self, instrument, field, start_time=None, end_time=None, freq="day", type="qlib"):
         """Get Expression data.
 
         Parameters
@@ -428,7 +428,7 @@ class DatasetProvider(abc.ABC):
         workers = min(C.kernels, len(instruments_d))
         if type == "arctic":
             workers = min(C.arctic_kernels, workers)
-        print("workers", workers)
+        # print("workers", workers)
         if C.maxtasksperchild is None:
             p = Pool(processes=workers)
         else:
@@ -448,6 +448,7 @@ class DatasetProvider(abc.ABC):
                         spans,
                         C,
                         task_index,
+                        type
                     ),
                 )
                 task_index += 1;
@@ -464,6 +465,7 @@ class DatasetProvider(abc.ABC):
                         None,
                         C,
                         task_index,
+                        type
                     ),
                 )
                 task_index += 1;
@@ -477,7 +479,6 @@ class DatasetProvider(abc.ABC):
                 # NOTE: Python version >= 3.6; in versions after python3.6, dict will always guarantee the insertion order
                 new_data[inst] = data[inst].get()
         
-        
         if len(new_data) > 0:
             data = pd.concat(new_data, names=["instrument"], sort=False)
             if type == "qlib":
@@ -488,7 +489,7 @@ class DatasetProvider(abc.ABC):
         return data
 
     @staticmethod
-    def expression_calculator(inst, start_time, end_time, freq, column_names, spans=None, g_config=None, task_index=0):
+    def expression_calculator(inst, start_time, end_time, freq, column_names, spans=None, g_config=None, task_index=0, type="qlib"):
         """
         Calculate the expressions for one instrument, return a df result.
         If the expression has been calculated before, load from cache.
@@ -505,22 +506,17 @@ class DatasetProvider(abc.ABC):
         obj = dict()
         arctic_obj = dict()
         for field in column_names:
-            #  The client does not have expression provider, the data will be loaded from cache using static method.
-            if "@" in field: # for the data from arctic
+            if type == "arctic":
                 C.set_mode("arctic_client")
                 register_all_wrappers()
-                print("type of expression provider in arctic:",type(ExpressionD._provider))
-                arctic_obj[field] = ExpressionD.expression(inst, field, start_time, end_time, freq, task_index)
+                series = ExpressionD.expression(inst, field, start_time, end_time, freq, task_index, type)
+                arctic_obj[series.name] = series
             else:
-                print("@@@@ debug go to client start time:{}, end_time:{}".format(start_time, end_time))
-                print("type of expression provider in normal:",type(ExpressionD._provider))
                 obj[field] = ExpressionD.expression(inst, field, start_time, end_time, freq)
         
-        # print("@@@@@ debug obj {}".format(obj))
         if len(arctic_obj) > 0:
             arctic_data = pd.DataFrame(arctic_obj)
             arctic_data.index.names = ["datetime"]
-            print("@@@@@debug arctic data in expression calculator: arctic_data num: {}".format(len(arctic_data)))            
             return arctic_data
         else:    
             data = pd.DataFrame(obj)
@@ -676,11 +672,11 @@ class LocalFeatureProvider(FeatureProvider):
         return os.path.join(C.get_data_path(), "features", "{}", "{}.{}.bin")
     
     def tick_feature(self, instrument, field, start_index, end_index, freq, task_index, retry_time=0):
-        print("@@@@debug luocy2: in the tick feature, {},{}".format(start_index, end_index))
+        #print("@@@@debug luocy2: in the tick feature, {},{}".format(start_index, end_index))
         task_index = 0
         try:
             arctic = Arctic_Connection_List[0]
-            print("arctic example: {}, task_index:{}".format(arctic, task_index))
+            #print("arctic example: {}, task_index:{}".format(arctic, task_index))
         except Exception:
             arctic = Arctic(C.arctic_uri)
         
@@ -714,7 +710,7 @@ class LocalFeatureProvider(FeatureProvider):
         except Exception:
             print("instrument {} in tick_feature is Empty. Maybe the instrument data not save in arctic".format(instrument))
             series = pd.Series(index=df.index, dtype=object)
-        
+        #print(series)
         return series
             
     def feature(self, instrument, field, start_index, end_index, freq):
@@ -740,15 +736,13 @@ class LocalExpressionProvider(ExpressionProvider):
     def __init__(self):
         super().__init__()
 
-    def expression(self, instrument, field, start_time=None, end_time=None, freq="day", task_index=0):
+    def expression(self, instrument, field, start_time=None, end_time=None, freq="day", task_index=0, type="qlib"):
         expression = self.get_expression_instance(field)
-        print("@@@@@@debug 3 luocy type:{}".format(type(expression)))
         start_time = pd.Timestamp(start_time)
         end_time = pd.Timestamp(end_time)
-        if "@" in field:
-            print(start_time, end_time)
+        if type == "arctic":
             series = expression.load(instrument, start_time, end_time, freq, task_index)
-            print("@@@@@ debug: expression.load finish, series: {}".format(series))
+            print("finish load: stk_name:{}, field:{}, task_index:{}".format(instrument, series.name, task_index))
             return series
         else:
             _, _, start_index, end_index = Cal.locate_index(start_time, end_time, freq, future=False)
@@ -778,15 +772,13 @@ class LocalDatasetProvider(DatasetProvider):
         pass
         
     def dataset(self, instruments, fields, start_time=None, end_time=None, freq="day"):
-        print("@@@@debug 1 luocy/dataset_begin")
+        
         instruments_d = self.get_instruments_d(instruments, freq)
         column_names = self.get_column_names(fields)
-        print(start_time)
+        
         arctic_column_names = [column for column in column_names if "@" in column]
         normal_column_names = [column for column in column_names if not "@" in column]
         
-        print("@@@@debug 2 arctic_column_names, normal_column_names")
-        print(len(arctic_column_names), len(normal_column_names))
         if len(normal_column_names) > 0:
             cal = Cal.calendar(start_time, end_time, freq)
             if len(cal) == 0:
@@ -797,10 +789,6 @@ class LocalDatasetProvider(DatasetProvider):
             return normal_data    
         
         if len(arctic_column_names) > 0:
-            # to-do: change
-            if freq == 'day':
-                freq = 'D'
-            print("in the root, {}, {}".format(start_time, end_time))
             arctic_data = self.dataset_processor(instruments_d, arctic_column_names, start_time, end_time, freq, "arctic")    
             return arctic_data
         
@@ -944,7 +932,7 @@ class ClientDatasetProvider(DatasetProvider):
         disk_cache=0,
         return_uri=False,
     ):
-        print("disk_cache {}".format(disk_cache))
+        #print("disk_cache {}".format(disk_cache))
         if Inst.get_inst_type(instruments) == Inst.DICT:
             get_module_logger("data").warning(
                 "Getting features from a dict of instruments is not recommended because the features will not be "
@@ -1070,8 +1058,8 @@ class BaseProvider:
         is a provider class.
         """
         
-        # todo: divide the data into two part accordingg to the source
-        # Temply do NOT merge them, return a list (if have two)
+        # todo: divide the data into two part according to the source
+        # do NOT merge them, return a list (if have two)
         disk_cache = C.default_disk_cache if disk_cache is None else disk_cache
         if C.disable_disk_cache:
             disk_cache = False
@@ -1086,6 +1074,7 @@ class BaseProvider:
                 data['normal'] = DatasetD.dataset(instruments, normal_fields, start_time, end_time, freq, disk_cache)
             except TypeError:
                 data['normal'] = DatasetD.dataset(instruments, normal_fields, start_time, end_time, freq)
+        
         if len(arctic_fields) > 0:
                 data['arctic'] = LocalDatasetProvider().dataset(instruments, arctic_fields, start_time, end_time, freq)
         

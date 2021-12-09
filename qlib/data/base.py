@@ -241,7 +241,7 @@ class TExpression(abc.ABC):
 
             return Gt(self, other)
         else:
-            from .ops_arctic import TGt
+            from .op_arctic import TGt
 
             return TGt(self, other)
 
@@ -251,7 +251,7 @@ class TExpression(abc.ABC):
 
             return Ge(self, other)
         else:
-            from .ops_arctic import TGe
+            from .op_arctic import TGe
 
             return TGe(self, other)
 
@@ -261,7 +261,7 @@ class TExpression(abc.ABC):
 
             return Lt(self, other)
         else:
-            from .ops_arctic import TLt
+            from .op_arctic import TLt
 
             return TLt(self, other)
 
@@ -271,7 +271,7 @@ class TExpression(abc.ABC):
 
             return Le(self, other)
         else:
-            from .ops_arctic import TLe
+            from .op_arctic import TLe
 
             return TLe(self, other)
 
@@ -281,7 +281,7 @@ class TExpression(abc.ABC):
 
             return Eq(self, other)
         else:
-            from .ops_arctic import TEq
+            from .op_arctic import TEq
 
             return TEq(self, other)
 
@@ -291,7 +291,7 @@ class TExpression(abc.ABC):
 
             return Ne(self, other)
         else:
-            from .ops_arctic import TNe
+            from .op_arctic import TNe
 
             return TNe(self, other)
 
@@ -301,7 +301,7 @@ class TExpression(abc.ABC):
 
             return Add(self, other)
         else:
-            from .ops_arctic import TAdd
+            from .op_arctic import TAdd
 
             return TAdd(self, other)
 
@@ -311,7 +311,7 @@ class TExpression(abc.ABC):
 
             return Add(other, self)
         else:
-            from .ops_arctic import TAdd
+            from .op_arctic import TAdd
 
             return TAdd(other, self)
 
@@ -321,7 +321,7 @@ class TExpression(abc.ABC):
 
             return Sub(self, other)
         else:
-            from .ops_arctic import TSub
+            from .op_arctic import TSub
 
             return TSub(self, other)
 
@@ -331,7 +331,7 @@ class TExpression(abc.ABC):
 
             return Sub(other, self)
         else:
-            from .ops_arctic import TSub
+            from .op_arctic import TSub
 
             return TSub(other, self)
 
@@ -341,7 +341,7 @@ class TExpression(abc.ABC):
 
             return Mul(self, other)
         else:
-            from .ops_arctic import TMul
+            from .op_arctic import TMul
 
             return TMul(self, other)
 
@@ -351,7 +351,7 @@ class TExpression(abc.ABC):
 
             return Mul(other, self)
         else:
-            from .ops_arctic import TMul
+            from .op_arctic import TMul
 
             return TMul(other, self)
 
@@ -361,7 +361,7 @@ class TExpression(abc.ABC):
 
             return Div(self, other)
         else:
-            from .ops_arctic import TDiv
+            from .op_arctic import TDiv
 
             return TDiv(self, other)
 
@@ -371,7 +371,7 @@ class TExpression(abc.ABC):
 
             return Div(other, self)
         else:
-            from .ops_arctic import TDiv
+            from .op_arctic import TDiv
 
             return TDiv(other, self)
 
@@ -381,7 +381,7 @@ class TExpression(abc.ABC):
 
             return Div(self, other)
         else:
-            from .ops_arctic import TDiv
+            from .op_arctic import TDiv
 
             return TDiv(self, other)
 
@@ -391,7 +391,7 @@ class TExpression(abc.ABC):
 
             return Div(other, self)
         else:
-            from .ops_arctic import TDiv
+            from .op_arctic import TDiv
 
             return TDiv(other, self)
 
@@ -401,7 +401,7 @@ class TExpression(abc.ABC):
 
             return Power(self, other)
         else:
-            from .ops_arctic import TPower
+            from .op_arctic import TPower
 
             return TPower(self, other)
 
@@ -411,7 +411,7 @@ class TExpression(abc.ABC):
 
             return And(self, other)
         else:
-            from .ops_arctic import TAnd
+            from .op_arctic import TAnd
 
             return TAnd(self, other)
 
@@ -421,7 +421,7 @@ class TExpression(abc.ABC):
 
             return And(other, self)
         else:
-            from .ops_arctic import TAnd
+            from .op_arctic import TAnd
 
             return TAnd(other, self)
 
@@ -431,7 +431,7 @@ class TExpression(abc.ABC):
 
             return Or(self, other)
         else:
-            from .ops_arctic import TOr
+            from .op_arctic import TOr
 
             return TOr(self, other)
 
@@ -441,7 +441,7 @@ class TExpression(abc.ABC):
 
             return Or(other, self)
         else:
-            from .ops_arctic import TOr
+            from .op_arctic import TOr
 
             return TOr(other, self)
 
@@ -453,11 +453,26 @@ class TExpression(abc.ABC):
         pass
 
     def load(self, instrument, start_index, end_index, freq, task_index=0):
+        from .cache import HZ
+        from ..config import C
+        args = "arctic", str(self), instrument, start_index, end_index, freq
+        if args in HZ["f"]:
+            return HZ["f"][args]
+        
         if start_index is None or end_index is None or start_index > end_index:
             raise ValueError("Invalid index range: {} {}".format(start_index, end_index))
+        
         series = self.load_tick_data(instrument, start_index, end_index, freq, task_index)
-        series.name = str(self)
-        print("@@@@@debug finish load, shape is:{}, self is {}".format(series.shape, self))
+        
+        if len(series) > 0 and len(C.market_transaction_time_list) > 0:
+            series = pd.concat([series.between_time(time_tuple[0], time_tuple[1]) for time_tuple in C.market_transaction_time_list])      
+            series.sort_index(inplace=True)
+        
+        from .op_arctic import TRename
+        if not isinstance(self, TRename):
+            series.name = str(self)
+
+        HZ["f"][args] = series
         return series
 
     @abc.abstractmethod
@@ -504,7 +519,7 @@ class TFeature(TExpression):
 
     def load_tick_data(self, instrument, start_index, end_index, freq, task_index):
         from .data import FeatureD
-        print("@@@debug 4", instrument, start_index, end_index, self._name)
+        #print("@@@debug 4", instrument, start_index, end_index, self._name)
         return FeatureD.tick_feature(instrument, self._name, start_index, end_index, freq, task_index)
 
     def get_longest_back_rolling(self):

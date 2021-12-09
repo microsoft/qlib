@@ -22,6 +22,8 @@ except ImportError as err:
     raise
 
 __all__ = (
+    "TRename",
+    "TRolling",
     "TID",
     "TMax",
     "TResample",
@@ -44,7 +46,29 @@ __all__ = (
     "TLog",
     "TPower",
     "TMask",
-    "TNot"
+    "TNot",
+    "TRef",
+    "TMean",
+    "TStd",
+    "TSum",
+    "TVar",
+    "TSkew",
+    "TKurt",
+    "TRsquare",
+    "TResi",
+    "TWMA",
+    "TEMA",
+    "TSlope",
+    "TDelta",
+    "TCount",
+    "TRank",
+    "TMad",
+    "TMed",
+    "TQuantile",
+    "TIdxMin",
+    "TIdxMax",
+    "TMin",
+
 )
 
 #################### Resample ####################
@@ -238,30 +262,40 @@ class TResample(TExpressionOps):
         return "{}({},{})".format(type(self).__name__, self.feature, self.freq)
     
     def load_tick_data(self, instrument, start_index, end_index, freq, task_index):
+        #print("in load tick data:")
         series = self.feature.load(instrument, start_index, end_index, freq)
-        return getattr(series.resample(self.freq), self.func)().dropna(axis=0, how='any')            
-    
+        #print("in load tick data:", len(series))
+        if series.shape[0] == 0:
+            return series
+        else:
+            if self.func == "sum":
+                return getattr(series.resample(self.freq), self.func)(min_count=1).dropna(axis=0, how='any')  
+            elif self.func == 'ffill':
+                series = series[~series.index.duplicated(keep='first')]
+                return getattr(series.resample(self.freq), self.func)().dropna(axis=0, how='any')
+            else:
+                return getattr(series.resample(self.freq), self.func)().dropna(axis=0, how='any')            
+        
     def get_longest_back_rolling(self):
         return 0
 
     def get_extended_window_size(self):
         return 0, 0
-    
 
-
-#################### Resample ####################
-class TResample(TExpressionOps):
-    def __init__(self, feature, freq, func) -> None:
+class TRename(TExpressionOps):
+    def __init__(self, feature, new_name):
         self.feature = feature
-        self.freq = freq
-        self.func = func
-        
+        #print("__init__, new_name: {}".format(new_name))
+        self.new_name = new_name
+
     def __str__(self):
-        return "{}({},{})".format(type(self).__name__, self.feature, self.freq)
-    
+        return "{}({},{})".format(type(self).__name__, self.feature, self.new_name)
+
     def load_tick_data(self, instrument, start_index, end_index, freq, task_index):
-        series = self.feature.load(instrument, start_index, end_index, freq, task_index)
-        return getattr(series.resample(self.freq), self.func)().dropna(axis=0, how='any')            
+        series = self.feature.load(instrument, start_index, end_index, freq, task_index)        
+        series.name = self.new_name
+        #print(series.name)
+        return series
     
     def get_longest_back_rolling(self):
         return 0
@@ -303,19 +337,21 @@ class TRolling(TExpressionOps):
         # NOTE: remove all null check,
         # now it's user's responsibility to decide whether use features in null days
         # isnull = series.isnull() # NOTE: isnull = NaN, inf is not null
-        print("@@@@@debug, finish load, now will calculate")
-        
+        #print("@@@@@debug, finish load, now will calculate")
+        #print(series)
         ## resample at here
-        
-        if self.N == 0:
-            series = getattr(series.expanding(min_periods=1), self.func)()
-        elif 0 < self.N < 1:
-            series = series.ewm(alpha=self.N, min_periods=1).mean()
-        else:
-            series = getattr(series.rolling(self.N, min_periods=1), self.func)()
+        if isinstance(self.N, int):
+            if self.N == 0:
+                series = getattr(series.expanding(min_periods=1), self.func)()
+            elif 0 < self.N < 1:
+                series = series.ewm(alpha=self.N, min_periods=1).mean()
+            else:
+                series = getattr(series.rolling(self.N, min_periods=1), self.func)()
             # series.iloc[:self.N-1] = np.nan
         # series[isnull] = np.nan
-        print("@@@debug finish caculate: {}".format(series.shape))
+        else:
+            series = getattr(series.rolling(self.N, min_periods=1), self.func)()
+        #print("@@@debug finish caculate: {}".format(series.shape))
         return series
 
     def get_longest_back_rolling(self):
@@ -344,6 +380,583 @@ class TRolling(TExpressionOps):
 class TMax(TRolling):
     def __init__(self, feature, N):
         super(TMax, self).__init__(feature, N, "max")
+
+class TRef(TRolling):
+    """Feature Reference
+
+    Parameters
+    ----------
+    feature : Expression
+        feature instance
+    N : int
+        N = 0, retrieve the first data; N > 0, retrieve data of N periods ago; N < 0, future data
+
+    Returns
+    ----------
+    Expression
+        a feature instance with target reference
+    """
+
+    def __init__(self, feature, N):
+        super(TRef, self).__init__(feature, N, "ref")
+
+    def load_tick_data(self, instrument, start_index, end_index, freq, task_index):
+        series = self.feature.load(instrument, start_index, end_index, freq)
+        # N = 0, return first day
+        if series.empty:
+            return series  # Pandas bug, see: https://github.com/pandas-dev/pandas/issues/21049
+        elif self.N == 0:
+            series = pd.Series(series.iloc[0], index=series.index)
+        else:
+            series = series.shift(self.N)  # copy
+        return series
+
+    def get_longest_back_rolling(self):
+        if self.N == 0:
+            return np.inf
+        return self.feature.get_longest_back_rolling() + self.N
+
+    def get_extended_window_size(self):
+        if self.N == 0:
+            get_module_logger(self.__class__.__name__).warning("The Ref(ATTR, 0) will not be accurately calculated")
+            return self.feature.get_extended_window_size()
+        else:
+            lft_etd, rght_etd = self.feature.get_extended_window_size()
+            lft_etd = max(lft_etd + self.N, lft_etd)
+            rght_etd = max(rght_etd - self.N, rght_etd)
+            return lft_etd, rght_etd
+
+
+class TMean(TRolling):
+    """Rolling Mean (MA)
+
+    Parameters
+    ----------
+    feature : Expression
+        feature instance
+    N : int
+        rolling window size
+
+    Returns
+    ----------
+    Expression
+        a feature instance with rolling average
+    """
+
+    def __init__(self, feature, N):
+        super(TMean, self).__init__(feature, N, "mean")
+
+
+class TSum(TRolling):
+    """Rolling Sum
+
+    Parameters
+    ----------
+    feature : Expression
+        feature instance
+    N : int
+        rolling window size
+
+    Returns
+    ----------
+    Expression
+        a feature instance with rolling sum
+    """
+
+    def __init__(self, feature, N):
+        super(TSum, self).__init__(feature, N, "sum")
+
+
+class TStd(TRolling):
+    """Rolling Std
+
+    Parameters
+    ----------
+    feature : Expression
+        feature instance
+    N : int
+        rolling window size
+
+    Returns
+    ----------
+    Expression
+        a feature instance with rolling std
+    """
+
+    def __init__(self, feature, N):
+        super(TStd, self).__init__(feature, N, "std")
+
+
+class TVar(TRolling):
+    """Rolling Variance
+
+    Parameters
+    ----------
+    feature : Expression
+        feature instance
+    N : int
+        rolling window size
+
+    Returns
+    ----------
+    Expression
+        a feature instance with rolling variance
+    """
+
+    def __init__(self, feature, N):
+        super(TVar, self).__init__(feature, N, "var")
+
+
+class TSkew(TRolling):
+    """Rolling Skewness
+
+    Parameters
+    ----------
+    feature : Expression
+        feature instance
+    N : int
+        rolling window size
+
+    Returns
+    ----------
+    Expression
+        a feature instance with rolling skewness
+    """
+
+    def __init__(self, feature, N):
+        if N != 0 and N < 3:
+            raise ValueError("The rolling window size of Skewness operation should >= 3")
+        super(TSkew, self).__init__(feature, N, "skew")
+
+
+class TKurt(TRolling):
+    """Rolling Kurtosis
+
+    Parameters
+    ----------
+    feature : Expression
+        feature instance
+    N : int
+        rolling window size
+
+    Returns
+    ----------
+    Expression
+        a feature instance with rolling kurtosis
+    """
+
+    def __init__(self, feature, N):
+        if N != 0 and N < 4:
+            raise ValueError("The rolling window size of Kurtosis operation should >= 5")
+        super(TKurt, self).__init__(feature, N, "kurt")
+
+
+class TIdxMax(TRolling):
+    """Rolling Max Index
+
+    Parameters
+    ----------
+    feature : Expression
+        feature instance
+    N : int
+        rolling window size
+
+    Returns
+    ----------
+    Expression
+        a feature instance with rolling max index
+    """
+
+    def __init__(self, feature, N):
+        super(TIdxMax, self).__init__(feature, N, "idxmax")
+
+    def load_tick_data(self, instrument, start_index, end_index, freq, task_index):
+        series = self.feature.load(instrument, start_index, end_index, freq)
+        if self.N == 0:
+            series = series.expanding(min_periods=1).apply(lambda x: x.argmax() + 1, raw=True)
+        else:
+            series = series.rolling(self.N, min_periods=1).apply(lambda x: x.argmax() + 1, raw=True)
+        return series
+
+
+class TMin(TRolling):
+    """Rolling Min
+
+    Parameters
+    ----------
+    feature : Expression
+        feature instance
+    N : int
+        rolling window size
+
+    Returns
+    ----------
+    Expression
+        a feature instance with rolling min
+    """
+
+    def __init__(self, feature, N):
+        super(TMin, self).__init__(feature, N, "min")
+
+
+class TIdxMin(TRolling):
+    """Rolling Min Index
+
+    Parameters
+    ----------
+    feature : Expression
+        feature instance
+    N : int
+        rolling window size
+
+    Returns
+    ----------
+    Expression
+        a feature instance with rolling min index
+    """
+
+    def __init__(self, feature, N):
+        super(TIdxMin, self).__init__(feature, N, "idxmin")
+
+    def load_tick_data(self, instrument, start_index, end_index, freq, task_index):
+        series = self.feature.load(instrument, start_index, end_index, freq)
+        if self.N == 0:
+            series = series.expanding(min_periods=1).apply(lambda x: x.argmin() + 1, raw=True)
+        else:
+            series = series.rolling(self.N, min_periods=1).apply(lambda x: x.argmin() + 1, raw=True)
+        return series
+
+
+class TQuantile(TRolling):
+    """Rolling Quantile
+
+    Parameters
+    ----------
+    feature : Expression
+        feature instance
+    N : int
+        rolling window size
+
+    Returns
+    ----------
+    Expression
+        a feature instance with rolling quantile
+    """
+
+    def __init__(self, feature, N, qscore):
+        super(TQuantile, self).__init__(feature, N, "quantile")
+        self.qscore = qscore
+
+    def __str__(self):
+        return "{}({},{},{})".format(type(self).__name__, self.feature, self.N, self.qscore)
+
+    def load_tick_data(self, instrument, start_index, end_index, freq, task_index):
+        series = self.feature.load(instrument, start_index, end_index, freq)
+        if self.N == 0:
+            series = series.expanding(min_periods=1).quantile(self.qscore)
+        else:
+            series = series.rolling(self.N, min_periods=1).quantile(self.qscore)
+        return series
+
+
+class TMed(TRolling):
+    """Rolling Median
+
+    Parameters
+    ----------
+    feature : Expression
+        feature instance
+    N : int
+        rolling window size
+
+    Returns
+    ----------
+    Expression
+        a feature instance with rolling median
+    """
+
+    def __init__(self, feature, N):
+        super(TMed, self).__init__(feature, N, "median")
+
+
+class TMad(TRolling):
+    """Rolling Mean Absolute Deviation
+
+    Parameters
+    ----------
+    feature : Expression
+        feature instance
+    N : int
+        rolling window size
+
+    Returns
+    ----------
+    Expression
+        a feature instance with rolling mean absolute deviation
+    """
+
+    def __init__(self, feature, N):
+        super(TMad, self).__init__(feature, N, "mad")
+
+    def load_tick_data(self, instrument, start_index, end_index, freq, task_index):
+        series = self.feature.load(instrument, start_index, end_index, freq)
+        # TODO: implement in Cython
+
+        def mad(x):
+            x1 = x[~np.isnan(x)]
+            return np.mean(np.abs(x1 - x1.mean()))
+
+        if self.N == 0:
+            series = series.expanding(min_periods=1).apply(mad, raw=True)
+        else:
+            series = series.rolling(self.N, min_periods=1).apply(mad, raw=True)
+        return series
+
+
+class TRank(TRolling):
+    """Rolling Rank (Percentile)
+
+    Parameters
+    ----------
+    feature : Expression
+        feature instance
+    N : int
+        rolling window size
+
+    Returns
+    ----------
+    Expression
+        a feature instance with rolling rank
+    """
+
+    def __init__(self, feature, N):
+        super(TRank, self).__init__(feature, N, "rank")
+
+    def load_tick_data(self, instrument, start_index, end_index, freq, task_index):
+        series = self.feature.load(instrument, start_index, end_index, freq)
+        # TODO: implement in Cython
+
+        def rank(x):
+            if np.isnan(x[-1]):
+                return np.nan
+            x1 = x[~np.isnan(x)]
+            if x1.shape[0] == 0:
+                return np.nan
+            return percentileofscore(x1, x1[-1]) / len(x1)
+
+        if self.N == 0:
+            series = series.expanding(min_periods=1).apply(rank, raw=True)
+        else:
+            series = series.rolling(self.N, min_periods=1).apply(rank, raw=True)
+        return series
+
+
+class TCount(TRolling):
+    """Rolling Count
+
+    Parameters
+    ----------
+    feature : Expression
+        feature instance
+    N : int
+        rolling window size
+
+    Returns
+    ----------
+    Expression
+        a feature instance with rolling count of number of non-NaN elements
+    """
+
+    def __init__(self, feature, N):
+        super(TCount, self).__init__(feature, N, "count")
+
+
+class TDelta(TRolling):
+    """Rolling Delta
+
+    Parameters
+    ----------
+    feature : Expression
+        feature instance
+    N : int
+        rolling window size
+
+    Returns
+    ----------
+    Expression
+        a feature instance with end minus start in rolling window
+    """
+
+    def __init__(self, feature, N):
+        super(TDelta, self).__init__(feature, N, "delta")
+
+    def load_tick_data(self, instrument, start_index, end_index, freq, task_index):
+        series = self.feature.load(instrument, start_index, end_index, freq)
+        if self.N == 0:
+            series = series - series.iloc[0]
+        else:
+            series = series - series.shift(self.N)
+        return series
+
+
+# TODO:
+# support pair-wise rolling like `Slope(A, B, N)`
+class TSlope(TRolling):
+    """Rolling Slope
+
+    Parameters
+    ----------
+    feature : Expression
+        feature instance
+    N : int
+        rolling window size
+
+    Returns
+    ----------
+    Expression
+        a feature instance with regression slope of given window
+    """
+
+    def __init__(self, feature, N):
+        super(TSlope, self).__init__(feature, N, "slope")
+
+    def load_tick_data(self, instrument, start_index, end_index, freq, task_index):
+        series = self.feature.load(instrument, start_index, end_index, freq)
+        if self.N == 0:
+            series = pd.Series(expanding_slope(series.values), index=series.index)
+        else:
+            series = pd.Series(rolling_slope(series.values, self.N), index=series.index)
+        return series
+
+
+class TRsquare(TRolling):
+    """Rolling R-value Square
+
+    Parameters
+    ----------
+    feature : Expression
+        feature instance
+    N : int
+        rolling window size
+
+    Returns
+    ----------
+    Expression
+        a feature instance with regression r-value square of given window
+    """
+
+    def __init__(self, feature, N):
+        super(TRsquare, self).__init__(feature, N, "rsquare")
+
+    def load_tick_data(self, instrument, start_index, end_index, freq, task_index):
+        _series = self.feature.load(instrument, start_index, end_index, freq)
+        if self.N == 0:
+            series = pd.Series(expanding_rsquare(_series.values), index=_series.index)
+        else:
+            series = pd.Series(rolling_rsquare(_series.values, self.N), index=_series.index)
+            series.loc[np.isclose(_series.rolling(self.N, min_periods=1).std(), 0, atol=2e-05)] = np.nan
+        return series
+
+
+class TResi(TRolling):
+    """Rolling Regression Residuals
+
+    Parameters
+    ----------
+    feature : Expression
+        feature instance
+    N : int
+        rolling window size
+
+    Returns
+    ----------
+    Expression
+        a feature instance with regression residuals of given window
+    """
+
+    def __init__(self, feature, N):
+        super(TResi, self).__init__(feature, N, "resi")
+
+    def load_tick_data(self, instrument, start_index, end_index, freq, task_index):
+        series = self.feature.load(instrument, start_index, end_index, freq)
+        if self.N == 0:
+            series = pd.Series(expanding_resi(series.values), index=series.index)
+        else:
+            series = pd.Series(rolling_resi(series.values, self.N), index=series.index)
+        return series
+
+
+class TWMA(TRolling):
+    """Rolling WMA
+
+    Parameters
+    ----------
+    feature : Expression
+        feature instance
+    N : int
+        rolling window size
+
+    Returns
+    ----------
+    Expression
+        a feature instance with weighted moving average output
+    """
+
+    def __init__(self, feature, N):
+        super(TWMA, self).__init__(feature, N, "wma")
+
+    def load_tick_data(self, instrument, start_index, end_index, freq, task_index):
+        series = self.feature.load(instrument, start_index, end_index, freq)
+        # TODO: implement in Cython
+
+        def weighted_mean(x):
+            w = np.arange(len(x))
+            w = w / w.sum()
+            return np.nanmean(w * x)
+
+        if self.N == 0:
+            series = series.expanding(min_periods=1).apply(weighted_mean, raw=True)
+        else:
+            series = series.rolling(self.N, min_periods=1).apply(weighted_mean, raw=True)
+        return series
+
+
+class TEMA(TRolling):
+    """Rolling Exponential Mean (EMA)
+
+    Parameters
+    ----------
+    feature : Expression
+        feature instance
+    N : int, float
+        rolling window size
+
+    Returns
+    ----------
+    Expression
+        a feature instance with regression r-value square of given window
+    """
+
+    def __init__(self, feature, N):
+        super(TEMA, self).__init__(feature, N, "ema")
+
+    def load_tick_data(self, instrument, start_index, end_index, freq, task_index):
+        series = self.feature.load(instrument, start_index, end_index, freq)
+
+        def exp_weighted_mean(x):
+            a = 1 - 2 / (1 + len(x))
+            w = a ** np.arange(len(x))[::-1]
+            w /= w.sum()
+            return np.nansum(w * x)
+
+        if self.N == 0:
+            series = series.expanding(min_periods=1).apply(exp_weighted_mean, raw=True)
+        elif 0 < self.N < 1:
+            series = series.ewm(alpha=self.N, min_periods=1).mean()
+        else:
+            series = series.ewm(span=self.N, min_periods=1).mean()
+        return series
+
 
 
 #################### Pair-Wise Operator ####################
@@ -609,7 +1222,7 @@ class TLe(TPairOperator):
     """
 
     def __init__(self, feature_left, feature_right):
-        super(Le, self).__init__(feature_left, feature_right, "less_equal")
+        super(TLe, self).__init__(feature_left, feature_right, "less_equal")
 
 
 class TEq(TPairOperator):
@@ -673,6 +1286,7 @@ class TAnd(TPairOperator):
 
 
 class TOr(TPairOperator):
+    
     """Or Operator
 
     Parameters

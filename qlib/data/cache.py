@@ -67,7 +67,6 @@ class MemCacheUnit(OrderedDict):
             while get_cur_size(self) > self.size_limit:
                 self.popitem(last=False)
 
-
 class MemCache(object):
     """Memory cache."""
 
@@ -1037,7 +1036,6 @@ class MemoryCalendarCache(CalendarCache):
             get_module_logger("data").debug("get calendar from local cache")
 
         return result
-
 
 # MemCache sizeof
 HZ = MemCache(C.mem_cache_space_limit, limit_type="sizeof")

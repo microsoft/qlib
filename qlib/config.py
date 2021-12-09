@@ -54,8 +54,6 @@ class Config:
         return str(self.__dict__["_config"])
 
     def reset(self):
-        import traceback
-        print("reset time!!!!")
         self.__dict__["_config"] = copy.deepcopy(self._default_config)
 
     def update(self, *args, **kwargs):
@@ -67,7 +65,7 @@ REG_CN = "cn"
 REG_US = "us"
 
 NUM_USABLE_CPU = max(multiprocessing.cpu_count() - 2, 1)
-NUM_USABLE_CPU_FOR_ARCTIC = min(NUM_USABLE_CPU, 10)
+NUM_USABLE_CPU_FOR_ARCTIC = min(NUM_USABLE_CPU, 30)
 ARCTIC_TIME_INTERVAL = 1
 ARCTIC_RETRY_TIME = 5
 _default_config = {
@@ -87,6 +85,8 @@ _default_config = {
     "expression_cache": None,
     "dataset_cache": None,
     "calendar_cache": None,
+    # for market transaction time
+    "market_transaction_time_list": [("09:15", "11:30"), ("13:00", "15:00")],
     # for simple dataset cache
     "local_cache_path": None,
     "kernels": NUM_USABLE_CPU,
@@ -100,7 +100,7 @@ _default_config = {
     # default 1 hour
     "mem_cache_expire": 60 * 60,
     # memory cache space limit, default 5GB, only in used client
-    "mem_cache_space_limit": 1024 * 1024 * 1024 * 5,
+    "mem_cache_space_limit": 1024 * 1024 * 1024,
     # cache dir name
     "dataset_cache_dir_name": "dataset_cache",
     "features_cache_dir_name": "features_cache",
