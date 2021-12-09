@@ -46,7 +46,7 @@ def get_mongodb() -> Database:
     except KeyError:
         get_module_logger("task").error("Please configure `C['mongo']` before using TaskManager")
         raise
-
+    get_module_logger("task").info(f"mongo config:{cfg}")
     client = MongoClient(cfg["task_url"])
     return client.get_database(name=cfg["task_db_name"])
 

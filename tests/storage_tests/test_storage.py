@@ -75,7 +75,7 @@ class TestStorage(TestAutoData):
 
         """
 
-        instrument = InstrumentStorage(market="csi300", provider_uri=self.provider_uri)
+        instrument = InstrumentStorage(market="csi300", provider_uri=self.provider_uri, freq="day")
 
         for inst, spans in instrument.data.items():
             assert isinstance(inst, str) and isinstance(
@@ -88,7 +88,7 @@ class TestStorage(TestAutoData):
 
         print(f"instrument['SH600000']: {instrument['SH600000']}")
 
-        instrument = InstrumentStorage(market="csi300", provider_uri="not_found")
+        instrument = InstrumentStorage(market="csi300", provider_uri="not_found", freq="day")
         with self.assertRaises(ValueError):
             print(instrument.data)
 
@@ -163,8 +163,9 @@ class TestStorage(TestAutoData):
 
         feature = FeatureStorage(instrument="SH600004", field="close", freq="day", provider_uri="not_fount")
 
-        assert feature[0] == (None, None), "FeatureStorage does not exist, feature[i] should return `(None, None)`"
-        assert feature[:].empty, "FeatureStorage does not exist, feature[:] should return `pd.Series(dtype=np.float32)`"
-        assert (
-            feature.data.empty
-        ), "FeatureStorage does not exist, feature.data should return `pd.Series(dtype=np.float32)`"
+        with self.assertRaises(ValueError):
+            print(feature[0])
+        with self.assertRaises(ValueError):
+            print(feature[:].empty)
+        with self.assertRaises(ValueError):
+            print(feature.data.empty)

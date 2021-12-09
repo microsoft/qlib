@@ -130,7 +130,7 @@ class BaseExecutor:
 
         if common_infra.has("trade_account"):
             # NOTE: there is a trick in the code.
-            # copy is used instead of deepcopy. So positions are shared
+            # shallow copy is used instead of deepcopy. So positions are shared
             self.trade_account: Account = copy.copy(common_infra.get("trade_account"))
             self.trade_account.reset(freq=self.time_per_step, port_metr_enabled=self.generate_portfolio_metrics)
 

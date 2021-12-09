@@ -50,11 +50,12 @@ def get_exchange(
     subscribe_fields: list
         subscribe fields.
     open_cost : float
-        open transaction cost.
+        open transaction cost. It is a ratio. The cost is proportional to your order's deal amount.
     close_cost : float
-        close transaction cost.
+        close transaction cost. It is a ratio. The cost is proportional to your order's deal amount.
     min_cost : float
-        min transaction cost.
+        min transaction cost.  It is an absolute amount of cost instead of a ratio of your order's deal amount.
+        e.g. You must pay at least 5 yuan of commission regardless of your order's deal amount.
     trade_unit : int
         Included in kwargs.  Please refer to the docs of `__init__` of `Exchange`
     deal_price: Union[str, Tuple[str], List[str]]
@@ -185,8 +186,10 @@ def get_strategy_executor(
     trade_exchange = get_exchange(**exchange_kwargs)
 
     common_infra = CommonInfrastructure(trade_account=trade_account, trade_exchange=trade_exchange)
-    trade_strategy = init_instance_by_config(strategy, accept_types=BaseStrategy, common_infra=common_infra)
-    trade_executor = init_instance_by_config(executor, accept_types=BaseExecutor, common_infra=common_infra)
+    trade_strategy = init_instance_by_config(strategy, accept_types=BaseStrategy)
+    trade_strategy.reset_common_infra(common_infra)
+    trade_executor = init_instance_by_config(executor, accept_types=BaseExecutor)
+    trade_executor.reset_common_infra(common_infra)
 
     return trade_strategy, trade_executor
 

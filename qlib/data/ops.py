@@ -324,11 +324,11 @@ class NpPairOperator(PairOperator):
         try:
             res = getattr(np, self.func)(series_left, series_right)
         except ValueError as e:
-            get_module_logger("ops").error(warning_info)
+            get_module_logger("ops").debug(warning_info)
             raise ValueError(f"{str(e)}. \n\t{warning_info}")
         else:
-            if check_length and len(series_left) != len(series_right) and C.ops_warning_log:
-                get_module_logger("ops").warning(warning_info)
+            if check_length and len(series_left) != len(series_right):
+                get_module_logger("ops").debug(warning_info)
         return res
 
 
@@ -689,6 +689,9 @@ class If(ExpressionOps):
 
 class Rolling(ExpressionOps):
     """Rolling Operator
+    The meaning of rolling and expanding is the same in pandas.
+    When the window is set to 0, the behaviour of the operator should follow `expanding`
+    Otherwise, it follows `rolling`
 
     Parameters
     ----------
@@ -1194,6 +1197,14 @@ class Delta(Rolling):
 # support pair-wise rolling like `Slope(A, B, N)`
 class Slope(Rolling):
     """Rolling Slope
+    This operator calculate the slope between `idx` and `feature`.
+    (e.g. [<feature_t1>, <feature_t2>, <feature_t3>] and [1, 2, 3])
+
+    Usage Example:
+    - "Slope($close, %d)/$close"
+
+    # TODO:
+    # Some users may want pair-wise rolling like `Slope(A, B, N)`
 
     Parameters
     ----------

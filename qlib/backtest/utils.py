@@ -70,7 +70,7 @@ class TradeCalendarManager:
         - If self.trade_step >= self.self.trade_len, it means the trading is finished
         - If self.trade_step < self.self.trade_len, it means the number of trading step finished is self.trade_step
         """
-        return self.trade_step >= self.trade_len - 1
+        return self.trade_step >= self.trade_len
 
     def step(self):
         if self.finished():
@@ -222,7 +222,7 @@ class CommonInfrastructure(BaseInfrastructure):
 
 
 class LevelInfrastructure(BaseInfrastructure):
-    """level instrastructure is created by executor, and then shared to strategies on the same level"""
+    """level infrastructure is created by executor, and then shared to strategies on the same level"""
 
     def get_support_infra(self):
         """

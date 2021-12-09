@@ -58,34 +58,13 @@ class ProviderBackendMixin:
         backend = copy.deepcopy(backend)
 
         # set default storage kwargs
+        # NOTE: provider_uri priority：
+        #   1. backend_config: backend_obj["kwargs"]["provider_uri"]
+        #   2. qlib.init: provider_uri
         backend_kwargs = backend.setdefault("kwargs", {})
-        # default provider_uri map
-        if "provider_uri" not in backend_kwargs:
-            # if the user has no uri configured, use: uri = uri_map[freq]
-            # NOTE: provider_uri priority：
-            #   1. backend_config: backend_obj["kwargs"]["provider_uri"]
-            #   2. backend_config: backend_obj["kwargs"]["provider_uri_map"]
-            #   3. qlib.init: provider_uri
-            provider_uri_map = backend_kwargs.setdefault("provider_uri_map", {})
-            freq = kwargs.get("freq", "day")
-            if freq not in provider_uri_map:
-                # NOTE: uri
-                #   1. If `freq` in C.dpm.provider_uri.keys(), uri = C.dpm.provider_uri[freq]
-                #   2. If `freq` not in C.dpm.provider_uri.keys()
-                #       - Get the `min_freq` closest to `freq` from C.dpm.provider_uri.keys(), uri = C.dpm.provider_uri[min_freq]
-                # NOTE: In Storage, only CalendarStorage is supported
-                #   1. If `uri` does not exist
-                #       - Get the `min_uri` of the closest `freq` under the same "directory" as the `uri`
-                #       - Read data from `min_uri` and resample to `freq`
-                try:
-                    _uri = C.dpm.get_data_uri(freq)
-                except KeyError:
-                    # provider_uri is dict and freq not in list(provider_uri.keys())
-                    # use the nearest freq greater than 0
-                    min_freq = Freq.get_recent_freq(freq, C.dpm.provider_uri.keys())
-                    _uri = C.dpm.get_data_uri(freq) if min_freq is None else C.dpm.get_data_uri(min_freq)
-                provider_uri_map[freq] = _uri
-            backend_kwargs["provider_uri"] = provider_uri_map[freq]
+        provider_uri = backend_kwargs.get("provider_uri", None)
+        provider_uri = C.dpm.provider_uri if provider_uri is None else C.dpm.format_provider_uri(provider_uri)
+        backend_kwargs["provider_uri"] = provider_uri
         backend.setdefault("kwargs", {}).update(**kwargs)
         return init_instance_by_config(backend)
 
@@ -730,7 +709,7 @@ class LocalExpressionProvider(ExpressionProvider):
         try:
             series = expression.load(instrument, max(0, start_index - lft_etd), end_index + rght_etd, freq)
         except Exception as e:
-            get_module_logger("data").error(
+            get_module_logger("data").debug(
                 f"Loading expression error: "
                 f"instrument={instrument}, field=({field}), start_time={start_time}, end_time={end_time}, freq={freq}. "
                 f"error info: {str(e)}"
