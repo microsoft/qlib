@@ -30,6 +30,41 @@ GBDT_MODEL = {
     },
 }
 
+SA_RC = {
+    "class": "SigAnaRecord",
+    "module_path": "qlib.workflow.record_temp",
+}
+
+PORT_CONFIG = {
+    'class': 'PortAnaRecord',
+    'module_path': 'qlib.workflow.record_temp',
+    'kwargs': {
+        'config': {
+            'strategy': {
+                'class': 'TopkDropoutStrategy',
+                'module_path': 'qlib.contrib.strategy',
+                'kwargs': {
+                    'signal': ['<MODEL>', '<DATASET>'],
+                    'topk': 50,
+                    'n_drop': 5
+                }
+            },
+            'backtest': {
+                'start_time': "2017-01-01",
+                'end_time': "2020-08-01",
+                'account': 100000000,
+                'benchmark': 'SH000300',
+                'exchange_kwargs': {
+                    'limit_threshold': 0.095,
+                    'deal_price': 'close',
+                    'open_cost': 0.0005,
+                    'close_cost': 0.0015,
+                    'min_cost': 5
+                }
+            }
+        }
+    }
+}
 
 RECORD_CONFIG = [
     {
@@ -40,10 +75,7 @@ RECORD_CONFIG = [
             "model": "<MODEL>",
         },
     },
-    {
-        "class": "SigAnaRecord",
-        "module_path": "qlib.workflow.record_temp",
-    },
+    SA_RC
 ]
 
 

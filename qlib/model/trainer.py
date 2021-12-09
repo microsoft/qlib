@@ -46,41 +46,6 @@ def _exe_task(task_config: dict):
     # this dataset is saved for online inference. So the concrete data should not be dumped
     dataset.config(dump_all=False, recursive=True)
     R.save_objects(**{"dataset": dataset})
-    # generate records: prediction, backtest, and analysis
-    records = task_config.get("record", [])
-    if isinstance(records, dict):  # prevent only one dict
-        records = [records]
-    for record in records:
-        cls, kwargs = get_callable_kwargs(record, default_module="qlib.workflow.record_temp")
-        if cls is SignalRecord:
-            rconf = {"model": model, "dataset": dataset, "recorder": rec}
-        else:
-            rconf = {"recorder": rec}
-        r = cls(**kwargs, **rconf)
-        r.generate()
-
-
-# from qlib.data.dataset.weight import Reweighter
-
-
-def _log_task_info(task_config: dict):
-    R.log_params(**flatten_dict(task_config))
-    R.save_objects(**{"task": task_config})  # keep the original format and datatype
-    R.set_tags(**{"hostname": socket.gethostname()})
-
-
-def _exe_task(task_config: dict):
-    rec = R.get_recorder()
-    # model & dataset initiation
-    model: Model = init_instance_by_config(task_config["model"])
-    dataset: Dataset = init_instance_by_config(task_config["dataset"])
-    reweighter: Reweighter = task_config.get("reweighter", None)
-    # model training
-    auto_filter_kwargs(model.fit)(dataset, reweighter=reweighter)
-    R.save_objects(**{"params.pkl": model})
-    # this dataset is saved for online inference. So the concrete data should not be dumped
-    dataset.config(dump_all=False, recursive=True)
-    R.save_objects(**{"dataset": dataset})
     # fill placehorder
     placehorder_value = {"<MODEL>": model, "<DATASET>": dataset}
     task_config = fill_placeholder(task_config, placehorder_value)
@@ -324,7 +289,7 @@ class TrainerR(Trainer):
         if experiment_name is None:
             experiment_name = self.experiment_name
         recs = []
-        for task in tqdm(tasks):
+        for task in tqdm(tasks, desc="train tasks"):
             rec = train_func(task, experiment_name, **kwargs)
             rec.set_tags(**{self.STATUS_KEY: self.STATUS_BEGIN})
             recs.append(rec)

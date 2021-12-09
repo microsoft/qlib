@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 import copy
 
-from qlib.utils.data import robust_zscore
+from qlib.utils.data import robust_zscore, zscore
 
 from ...log import TimeInspector
 from .utils import fetch_df_by_index
@@ -295,7 +295,7 @@ class CSZScoreNorm(Processor):
     def __init__(self, fields_group=None, method="zscore"):
         self.fields_group = fields_group
         if method == "zscore":
-            self.zscore_func = lambda x: (x - x.mean()).div(x.std())
+            self.zscore_func = zscore
         elif method == "robust":
             self.zscore_func = robust_zscore
         else:

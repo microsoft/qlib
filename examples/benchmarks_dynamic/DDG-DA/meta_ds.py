@@ -1,5 +1,3 @@
-# Copyright (c) Microsoft Corporation.
-# Licensed under the MIT License.
 from copy import deepcopy
 from qlib.data.dataset.utils import init_task_handler
 from qlib.utils.data import deepcopy_basic_type
