@@ -46,6 +46,7 @@ class Tuner:
             space=self.space,
             algo=tpe.suggest,
             max_evals=self.max_evals,
+            show_progressbar=False,
         )
         self.logger.info("Local best params: {} ".format(self.best_params))
         TimeInspector.log_cost_time(
