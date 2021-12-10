@@ -16,7 +16,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 from torch.utils.data import Sampler
-from torch.linalg import pinv
+from torch import pinverse as pinv
 
 from .pytorch_utils import count_parameters
 from ...model.base import Model
@@ -41,15 +41,8 @@ class DailyBatchSampler(Sampler):
     def __init__(self, data_source):
         self.data_source = data_source
         # calculate number of samples in each batch
-        self.daily_count = (
-            pd.Series(index=self.data_source.get_index())
-            .groupby("datetime")
-            .size()
-            .values
-        )
-        self.daily_index = np.roll(
-            np.cumsum(self.daily_count), 1
-        )  # calculate begin index of each batch
+        self.daily_count = pd.Series(index=self.data_source.get_index()).groupby("datetime").size().values
+        self.daily_index = np.roll(np.cumsum(self.daily_count), 1)  # calculate begin index of each batch
         self.daily_index[0] = 0
 
     def __iter__(self):
@@ -114,9 +107,7 @@ class HGATs(Model):
         self.loss = loss
         self.base_model = base_model
         self.model_path = model_path
-        self.device = torch.device(
-            "cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu"
-        )
+        self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
         self.n_jobs = n_jobs
         self.seed = seed
 
@@ -167,18 +158,14 @@ class HGATs(Model):
             base_model=self.base_model,
         )
         self.logger.info("model:\n{:}".format(self.HGAT_model))
-        self.logger.info(
-            "model size: {:.4f} MB".format(count_parameters(self.HGAT_model))
-        )
+        self.logger.info("model size: {:.4f} MB".format(count_parameters(self.HGAT_model)))
 
         if optimizer.lower() == "adam":
             self.train_optimizer = optim.Adam(self.HGAT_model.parameters(), lr=self.lr)
         elif optimizer.lower() == "gd":
             self.train_optimizer = optim.SGD(self.HGAT_model.parameters(), lr=self.lr)
         else:
-            raise NotImplementedError(
-                "optimizer {} is not supported!".format(optimizer)
-            )
+            raise NotImplementedError("optimizer {} is not supported!".format(optimizer))
 
         self.fitted = False
         self.HGAT_model.to(self.device)
@@ -239,13 +226,9 @@ class HGATs(Model):
                 columns=np.append(np.arange(1, self.num_ind), np.nan),
             )
 
-            GH.update(
-                pd.get_dummies(G.values.squeeze()).astype("float64")
-            )  # [#stocks, #industries]
+            GH.update(pd.get_dummies(G.values.squeeze()).astype("float64"))  # [#stocks, #industries]
 
-            pred = self.HGAT_model(
-                feature.float(), torch.Tensor(GH.values).to(self.device)
-            )
+            pred = self.HGAT_model(feature.float(), torch.Tensor(GH.values).to(self.device))
             loss = self.loss_fn(pred, label)
 
             self.train_optimizer.zero_grad()
@@ -282,13 +265,9 @@ class HGATs(Model):
                 columns=np.append(np.arange(1, self.num_ind), np.nan),
             )
 
-            GH.update(
-                pd.get_dummies(G.values.squeeze()).astype("float64")
-            )  # [#stocks, #industries]
+            GH.update(pd.get_dummies(G.values.squeeze()).astype("float64"))  # [#stocks, #industries]
 
-            pred = self.HGAT_model(
-                feature.float(), torch.Tensor(GH.values).to(self.device)
-            )
+            pred = self.HGAT_model(feature.float(), torch.Tensor(GH.values).to(self.device))
             loss = self.loss_fn(pred, label)
             losses.append(loss.item())
 
@@ -298,19 +277,16 @@ class HGATs(Model):
         return np.mean(losses), np.mean(scores)
 
     def fit(
-        self, dataset, evals_result=dict(), save_path=None,
+        self,
+        dataset,
+        evals_result=dict(),
+        save_path=None,
     ):
 
-        dl_train = dataset.prepare(
-            "train", col_set=["feature", "label"], data_key=DataHandlerLP.DK_L
-        )
-        dl_valid = dataset.prepare(
-            "valid", col_set=["feature", "label"], data_key=DataHandlerLP.DK_L
-        )
+        dl_train = dataset.prepare("train", col_set=["feature", "label"], data_key=DataHandlerLP.DK_L)
+        dl_valid = dataset.prepare("valid", col_set=["feature", "label"], data_key=DataHandlerLP.DK_L)
         if dl_train.empty or dl_valid.empty:
-            raise ValueError(
-                "Empty data from dataset, please check your dataset config."
-            )
+            raise ValueError("Empty data from dataset, please check your dataset config.")
 
         dl_train.config(fillna_type="ffill+bfill")  # process nan brought by dataloader
         dl_valid.config(fillna_type="ffill+bfill")  # process nan brought by dataloader
@@ -361,9 +337,7 @@ class HGATs(Model):
             pretrained_model.load_state_dict(torch.load(self.model_path))
 
         model_dict = self.HGAT_model.state_dict()
-        pretrained_dict = {
-            k: v for k, v in pretrained_model.state_dict().items() if k in model_dict
-        }
+        pretrained_dict = {k: v for k, v in pretrained_model.state_dict().items() if k in model_dict}
         model_dict.update(pretrained_dict)
         self.HGAT_model.load_state_dict(model_dict)
         self.logger.info("Loading pretrained model Done...")
@@ -405,14 +379,10 @@ class HGATs(Model):
         if not self.fitted:
             raise ValueError("model is not fitted yet!")
 
-        dl_test = dataset.prepare(
-            "test", col_set=["feature", "label"], data_key=DataHandlerLP.DK_I
-        )
+        dl_test = dataset.prepare("test", col_set=["feature", "label"], data_key=DataHandlerLP.DK_I)
         dl_test.config(fillna_type="ffill+bfill")
         sampler_test = DailyBatchSampler(dl_test)
-        test_loader = DataLoader(
-            IdxSampler(dl_test), sampler=sampler_test, num_workers=self.n_jobs
-        )
+        test_loader = DataLoader(IdxSampler(dl_test), sampler=sampler_test, num_workers=self.n_jobs)
         self.HGAT_model.eval()
         preds = []
 
@@ -437,19 +407,10 @@ class HGATs(Model):
                 columns=np.append(np.arange(1, self.num_ind), np.nan),
             )
 
-            GH.update(
-                pd.get_dummies(G.values.squeeze()).astype("float64")
-            )  # [#stocks, #industries]
+            GH.update(pd.get_dummies(G.values.squeeze()).astype("float64"))  # [#stocks, #industries]
 
             with torch.no_grad():
-                pred = (
-                    self.HGAT_model(
-                        feature.float(), torch.Tensor(GH.values).to(self.device)
-                    )
-                    .detach()
-                    .cpu()
-                    .numpy()
-                )
+                pred = self.HGAT_model(feature.float(), torch.Tensor(GH.values).to(self.device)).detach().cpu().numpy()
 
             preds.append(pred)
 
@@ -513,9 +474,7 @@ class HGATModel(nn.Module):
         e_y = torch.transpose(e_y, 0, 1)
         attention_in = torch.cat((e_x, e_y), 2).view(-1, dim * 2)  # P i || P j
         self.a_t = torch.t(self.a)
-        attention_out = (
-            self.a_t.mm(torch.t(attention_in)).view(edge_num, sample_num).t()
-        )
+        attention_out = self.a_t.mm(torch.t(attention_in)).view(edge_num, sample_num).t()
         attention_out = self.leaky_relu(attention_out)
         att_weight = self.softmax(attention_out)
 

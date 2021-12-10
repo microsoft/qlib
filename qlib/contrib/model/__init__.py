@@ -10,9 +10,7 @@ try:
     from .gbdt import LGBModel
 except ModuleNotFoundError:
     DEnsembleModel, LGBModel = None, None
-    print(
-        "Please install necessary libs for DEnsembleModel and LGBModel, such as lightgbm."
-    )
+    print("Please install necessary libs for DEnsembleModel and LGBModel, such as lightgbm.")
 try:
     from .xgboost import XGBModel
 except ModuleNotFoundError:
