@@ -11,7 +11,8 @@
 Recent released features
 | Feature | Status |
 | --                      | ------    |
-| HGATs model | [Released](https://github.com/microsoft/qlib/pull/711) on Nov 26, 2021 |
+| Release Qlib v0.8.0 | [Released](https://github.com/microsoft/qlib/releases/tag/v0.8.0) on Dec 8, 2021 |
+| HGATs model | [Released](https://github.com/microsoft/qlib/pull/711) on Dec 10, 2021 |
 | ADD model | [Released](https://github.com/microsoft/qlib/pull/704) on Nov 22, 2021 |
 | ADARNN  model | [Released](https://github.com/microsoft/qlib/pull/689) on Nov 14, 2021 |
 | TCN  model | [Released](https://github.com/microsoft/qlib/pull/668) on Nov 4, 2021 |
@@ -41,17 +42,20 @@ With Qlib, users can easily try ideas to create better Quant investment strategi
 
 For more details, please refer to our paper ["Qlib: An AI-oriented Quantitative Investment Platform"](https://arxiv.org/abs/2009.11189).
 
-- [**Plans**](#plans)
+- [Plans](#plans)
 - [Framework of Qlib](#framework-of-qlib)
 - [Quick Start](#quick-start)
   - [Installation](#installation)
+    - [Install with pip](#install-with-pip)
+    - [Install from source](#install-from-source)
   - [Data Preparation](#data-preparation)
+    - [Automatic update of daily frequency data (from yahoo finance)](#automatic-update-of-daily-frequency-data-from-yahoo-finance)
   - [Auto Quant Research Workflow](#auto-quant-research-workflow)
   - [Building Customized Quant Research Workflow by Code](#building-customized-quant-research-workflow-by-code)
-- [**Quant Model(Paper) Zoo**](#quant-model-paper-zoo)
+- [Quant Model (Paper) Zoo](#quant-model-paper-zoo)
   - [Run a single model](#run-a-single-model)
   - [Run multiple models](#run-multiple-models)
-- [**Quant Dataset Zoo**](#quant-dataset-zoo)
+- [Quant Dataset Zoo](#quant-dataset-zoo)
 - [More About Qlib](#more-about-qlib)
 - [Offline Mode and Online Mode](#offline-mode-and-online-mode)
   - [Performance of Qlib Data Server](#performance-of-qlib-data-server)
