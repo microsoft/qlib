@@ -192,6 +192,24 @@ def get_module_by_module_path(module_path: Union[str, ModuleType]):
     return module
 
 
+def split_module_path(module_path: str) -> Tuple[str, str]:
+    """
+
+    Parameters
+    ----------
+    module_path : str
+        e.g. "a.b.c.ClassName"
+
+    Returns
+    -------
+    Tuple[str, str]
+        e.g. ("a.b.c", "ClassName")
+    """
+    *m_path, cls = module_path.split(".")
+    m_path = ".".join(m_path)
+    return m_path, cls
+
+
 def get_callable_kwargs(config: Union[dict, str], default_module: Union[str, ModuleType] = None) -> (type, dict):
     """
     extract class/func and kwargs from config info
@@ -213,17 +231,24 @@ def get_callable_kwargs(config: Union[dict, str], default_module: Union[str, Mod
         the class/func object and it's arguments.
     """
     if isinstance(config, dict):
-        if isinstance(config["class"], str):
-            module = get_module_by_module_path(config.get("module_path", default_module))
-            # raise AttributeError
-            _callable = getattr(module, config["class" if "class" in config else "func"])
+        key = "class" if "class" in config else "func"
+        if isinstance(config[key], str):
+            # 1) get module and class
+            # - case 1): "a.b.c.ClassName"
+            # - case 2): {"class": "ClassName", "module_path": "a.b.c"}
+            m_path, cls = split_module_path(config[key])
+            if m_path == "":
+                m_path = config.get("module_path", default_module)
+            module = get_module_by_module_path(m_path)
+
+            # 2) get callable
+            _callable = getattr(module, cls)  # may raise AttributeError
         else:
-            _callable = config["class"]  # the class type itself is passed in
+            _callable = config[key]  # the class type itself is passed in
         kwargs = config.get("kwargs", {})
     elif isinstance(config, str):
         # a.b.c.ClassName
-        *m_path, cls = config.split(".")
-        m_path = ".".join(m_path)
+        m_path, cls = split_module_path(config)
         module = get_module_by_module_path(default_module if m_path == "" else m_path)
 
         _callable = getattr(module, cls)
@@ -697,6 +722,47 @@ def flatten_dict(d, parent_key="", sep=".") -> dict:
         else:
             items.append((new_key, v))
     return dict(items)
+
+
+def fill_placeholder(config: dict, config_extend: dict):
+    """
+    Detect placeholder in config and fill them with config_extend.
+    The item of dict must be single item(int, str, etc), dict and list. Tuples are not supported.
+
+    Parameters
+    ----------
+    config : dict
+        the parameter dict will be filled
+    config_extend : dict
+        the value of all placeholders
+
+    Returns
+    -------
+    dict
+        the parameter dict
+    """
+    # check the format of config_extend
+    for placeholder in config_extend.keys():
+        assert re.match(r"<[^<>]+>", placeholder)
+
+    # bfs
+    top = 0
+    tail = 1
+    item_queue = [config]
+    while top < tail:
+        now_item = item_queue[top]
+        top += 1
+        if isinstance(now_item, list):
+            item_keys = range(len(now_item))
+        elif isinstance(now_item, dict):
+            item_keys = now_item.keys()
+        for key in item_keys:
+            if isinstance(now_item[key], list) or isinstance(now_item[key], dict):
+                item_queue.append(now_item[key])
+                tail += 1
+            elif isinstance(now_item[key], str) and now_item[key] in config_extend.keys():
+                now_item[key] = config_extend[now_item[key]]
+    return config
 
 
 def auto_filter_kwargs(func: Callable) -> Callable:

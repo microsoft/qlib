@@ -2,4 +2,4 @@
 # Licensed under the MIT License.
 
 from .task import MetaTask
-from .dataset import MetaDataset, MetaDatasetH
+from .dataset import MetaTaskDataset

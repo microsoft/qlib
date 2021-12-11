@@ -5,6 +5,7 @@ import pandas as pd
 from typing import Union, List
 from qlib.utils import init_instance_by_config
 from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
     from qlib.data.dataset import DataHandler
 
@@ -131,6 +132,8 @@ def init_task_handler(task: dict) -> Union[DataHandler, None]:
     Union[DataHandler, None]:
         returns
     """
+    # avoid recursive import
+    from .handler import DataHandler
 
     h_conf = task["dataset"]["kwargs"].get("handler")
     if h_conf is not None:

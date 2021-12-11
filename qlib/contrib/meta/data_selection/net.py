@@ -59,7 +59,7 @@ class PredNet(nn.Module):
         return weights
 
     def forward(self, X, y, time_perf, time_belong, X_test, ignore_weight=False):
-        """ Please refer to the docs of MetaTaskDS for the description of the variables"""
+        """Please refer to the docs of MetaTaskDS for the description of the variables"""
         weights = self.get_sample_weights(X, time_perf, time_belong, ignore_weight=ignore_weight)
         X_w = X.T * weights.view(1, -1)
         theta = torch.inverse(X_w @ X) @ X_w @ y

@@ -14,12 +14,12 @@ import copy
 from typing import Union, List, Tuple, Dict
 
 from ....data.dataset.weight import SampleReweighter, Reweighter
-from ....model.meta.dataset import MetaDataset
+from ....model.meta.dataset import MetaTaskDataset
 from ....model.meta.model import MetaModel, MetaTaskModel
 from ....workflow import R
 
 from .utils import fill_diagnal, ICLoss
-from .dataset import MetaDatasetHDS
+from .dataset import MetaDatasetDS
 from qlib.contrib.meta.data_selection.net import PredNet
 from qlib.data.dataset.weight import Reweighter
 from qlib.log import get_module_logger
@@ -122,13 +122,13 @@ class MetaModelDS(MetaTaskModel):
         R.log_metrics(**{f"loss/{phase}": running_loss, "step": epoch})
         R.log_metrics(**{f"ic/{phase}": ic, "step": epoch})
 
-    def fit(self, meta_dataset: MetaDatasetHDS):
+    def fit(self, meta_dataset: MetaDatasetDS):
         """
         The meta-learning-based data selection interacts directly with meta-dataset due to the close-form proxy measurement.
 
         Parameters
         ----------
-        meta_dataset : MetaDatasetHDS
+        meta_dataset : MetaDatasetDS
             The meta-model takes the meta-dataset for its training process.
         """
 
@@ -159,90 +159,7 @@ class MetaModelDS(MetaTaskModel):
             R.save_objects(**{"model.pkl": self.tn})
         self.fitted = True
 
-    # TODO: refactor
-    def _inference_single_task(self, meta_id: tuple, meta_dataset: MetaDatasetHDS):
-        meta_task = meta_dataset.get_meta_task_by_test_period(meta_id)
-        if meta_task is not None:
-            self.tn.eval()
-            torch.set_grad_enabled(False)
-            (
-                X,
-                y,
-                time_perf,
-                time_belong,
-                X_test,
-                y_test,
-                test_idx,
-                train_idx,
-                test_period,
-            ) = meta_task.prepare_task_data()
-            weights = self.tn.get_sample_weights(X, time_perf, time_belong)
-            reweighter = SampleReweighter(pd.Series(weights.detach().cpu().numpy(), index=train_idx))
-            return reweighter
-        else:
-            raise ValueError("The current task is not supported!")
-
-    # TODO: refactor
-    def inference(self, meta_ids: Union[List[tuple], tuple], meta_dataset: MetaDatasetHDS):
-        """
-        Inference a single task with meta-dataset. The meta-model must be fitted.
-
-        Parameters
-        ----------
-        tasks: Union[List[dict], dict]
-            A list of definitions.
-        meta_dataset: MetaDatasetHDS
-        """
-        if not self.fitted:
-            raise ValueError("The meta-model is not fitted yet!")
-        if isinstance(meta_ids, tuple):
-            return {meta_ids: self._inference_single_task(meta_ids, meta_dataset)}
-
-        elif isinstance(meta_ids, list):
-            reweighters = {}
-            for meta_id in meta_ids:
-                reweighters[meta_id] = self._inference_single_task(meta_id, meta_dataset)
-            return reweighters
-        else:
-            raise NotImplementedError("This type of task definition is not supported!")
-
-    # TODO: refactor
-    def prepare_tasks(self, task: Union[List[dict], dict], reweighters: dict):
-        """
-
-        Parameters
-        ----------
-        tasks: Union[List[dict], dict]
-            A list of definitions.
-        """
-        if not self.fitted:
-            raise ValueError("The meta-model is not fitted yet!")
-        if isinstance(task, dict):
-            task_c = copy.deepcopy(task)
-            test_period = task_c["dataset"]["kwargs"]["segments"]["test"]
-            if test_period in reweighters:
-                task_c["reweighter"] = reweighters[test_period]
-            else:
-                nearest_key = None
-                for key in reweighters:
-                    if key[0] <= test_period[0]:
-                        if nearest_key is None or nearest_key[0] < key[0]:
-                            nearest_key = key
-                if nearest_key is not None:
-                    task_c["reweighter"] = reweighters[nearest_key]
-                else:
-                    print(
-                        "Warning: The task with test period:",
-                        test_period,
-                        " does not have the corresponding reweighter!",
-                    )
-            return task_c
-        elif isinstance(task, list):
-            return [self.prepare_tasks(i, reweighters) for i in task]
-        else:
-            raise NotImplementedError("This type of task definition is not supported!")
-
-    def prepare_task(self, task: MetaTask) -> dict:
+    def _prepare_task(self, task: MetaTask) -> dict:
         meta_ipt = task.get_meta_input()
         weights = self.tn.twm(meta_ipt["time_perf"])
 
@@ -250,3 +167,9 @@ class MetaModelDS(MetaTaskModel):
         task = copy.copy(task.task)  # NOTE: this is a shallow copy.
         task["reweighter"] = TimeReweighter(weight_s)
         return task
+
+    def inference(self, meta_dataset: MetaTaskDataset) -> List[dict]:
+        res = []
+        for mt in meta_dataset.prepare_tasks("test"):
+            res.append(self._prepare_task(mt))
+        return res

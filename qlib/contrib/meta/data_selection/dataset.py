@@ -13,7 +13,7 @@ from qlib.utils import auto_filter_kwargs, get_date_by_shift, init_instance_by_c
 from qlib.workflow import R
 from qlib.workflow.task.gen import RollingGen, task_generator
 from joblib import Parallel, delayed
-from qlib.model.meta.dataset import MetaDataset
+from qlib.model.meta.dataset import MetaTaskDataset
 from qlib.model.trainer import task_train, TrainerR
 from qlib.data.dataset import DatasetH
 from tqdm.auto import tqdm
@@ -64,7 +64,7 @@ class InternalData:
         # We want to split the training time period into small segments.
         perf_task_tpl["dataset"]["kwargs"]["segments"] = {
             "train": (DatasetH.get_min_time(seg), DatasetH.get_max_time(seg)),
-            "test": (None, None)
+            "test": (None, None),
         }
 
         # NOTE:
@@ -74,7 +74,7 @@ class InternalData:
         gen_task = task_generator(perf_task_tpl, [rg])
 
         recorders = R.list_recorders(experiment_name=self.exp_name)
-        if len(gen_task)  == len(recorders):
+        if len(gen_task) == len(recorders):
             get_module_logger("Internal Data").info("the data has been initialized")
         else:
             # train new models
@@ -102,7 +102,7 @@ class InternalData:
         del self.dh  # handler is not useful now
 
     def _calc_perf(self, pred, label):
-        df = pd.DataFrame({'pred': pred, 'label': label})
+        df = pd.DataFrame({"pred": pred, "label": label})
         df = df.groupby("datetime").corr(method="spearman")
         corr = df.loc(axis=0)[:, "pred"]["label"].droplevel(axis=0, level=-1)
         return corr
@@ -116,7 +116,8 @@ class InternalData:
 
 
 class MetaTaskDS(MetaTask):
-    """ Meta Task for Data Selection """
+    """Meta Task for Data Selection"""
+
     def __init__(self, task: dict, meta_info: pd.DataFrame, mode: str = MetaTask.PROC_MODE_FULL, fill_method="max"):
         """
         The description of the processed data
@@ -151,12 +152,12 @@ class MetaTaskDS(MetaTask):
             d_test = d_test.dropna(axis=0)
             # print(d_test.groupby("datetime").size())
             if prev_size == 0 or d_test.shape[0] / prev_size <= 0.1:
-                __import__('ipdb').set_trace()
+                __import__("ipdb").set_trace()
                 raise ValueError(f"Most of samples are dropped. Skip this task: {task}")
 
             if globals().get("YX_CONFIRM_XXX") is None:
                 if d_test.groupby("datetime").size().shape[0] < 5:
-                    __import__('ipdb').set_trace()
+                    __import__("ipdb").set_trace()
                 # globals()["YX_CONFIRM_XXX"] = True
 
             sample_time_belong = np.zeros((d_train.shape[0], time_perf.shape[1]))
@@ -169,44 +170,51 @@ class MetaTaskDS(MetaTask):
             # Assumptions: the latest data has similar performance like the last month
             sample_time_belong[sample_time_belong.sum(axis=1) != 1, -1] = 1.0
 
-            self.processed_meta_input.update(dict(
-                X=d_train["feature"],
-                y=d_train["label"].iloc[:, 0],
-                X_test=d_test["feature"],
-                y_test=d_test["label"].iloc[:, 0],
-                time_belong=sample_time_belong,
-                test_idx=d_test["label"].index,
-            ))
+            self.processed_meta_input.update(
+                dict(
+                    X=d_train["feature"],
+                    y=d_train["label"].iloc[:, 0],
+                    X_test=d_test["feature"],
+                    y_test=d_test["label"].iloc[:, 0],
+                    time_belong=sample_time_belong,
+                    test_idx=d_test["label"].index,
+                )
+            )
         # TODO: set device: I think this is not necessary to converting data format.
         self.processed_meta_input = data_to_tensor(self.processed_meta_input)
 
     def _get_processed_meta_info(self):
         # __import__('ipdb').set_trace()
-        meta_info_norm = self.meta_info.sub(self.meta_info.mean(axis=1), axis=0)  #.fillna(0.)
+        meta_info_norm = self.meta_info.sub(self.meta_info.mean(axis=1), axis=0)  # .fillna(0.)
         if self.fill_method == "max":
-            meta_info_norm = meta_info_norm.T.fillna(meta_info_norm.max(axis=1)).T  # fill it with row max to align with previous implementation
+            meta_info_norm = meta_info_norm.T.fillna(
+                meta_info_norm.max(axis=1)
+            ).T  # fill it with row max to align with previous implementation
         elif self.fill_method == "zero":
             pass
         else:
             raise NotImplementedError(f"This type of input is not supported")
-        meta_info_norm = meta_info_norm.fillna(0.)  # always fill zero in case of NaN
+        meta_info_norm = meta_info_norm.fillna(0.0)  # always fill zero in case of NaN
         return meta_info_norm
 
     def get_meta_input(self):
         return self.processed_meta_input
 
 
-class MetaDatasetDS(MetaDataset):
-    def __init__(self,
-                 *,
-                 task_tpl: Union[dict, list],
-                 step: int,
-                 trunc_days: int = None,
-                 exp_name: Union[str, InternalData],
-                 segments: Union[Dict[Text, Tuple], float],
-                 hist_step_n: int = 10,
-                 task_mode: str = MetaTask.PROC_MODE_FULL,
-                 fill_method: str = "max"):
+class MetaDatasetDS(MetaTaskDataset):
+    def __init__(
+        self,
+        *,
+        task_tpl: Union[dict, list],
+        step: int,
+        trunc_days: int = None,
+        rolling_ext_days: int = 0,
+        exp_name: Union[str, InternalData],
+        segments: Union[Dict[Text, Tuple], float],
+        hist_step_n: int = 10,
+        task_mode: str = MetaTask.PROC_MODE_FULL,
+        fill_method: str = "max",
+    ):
         """
         A dataset for meta model.
 
@@ -221,6 +229,9 @@ class MetaDatasetDS(MetaDataset):
             the rolling step
         trunc_days: int
             days to be truncated based on the test start
+        rolling_ext_days: int
+            sometimes users want to train meta models for a longer test period but with smaller rolling steps for more task samples.
+            the total length of test periods will be `step + rolling_ext_days`
 
         exp_name : Union[str, InternalData]
             Decide what meta_info are used for prediction.
@@ -248,9 +259,17 @@ class MetaDatasetDS(MetaDataset):
         self.step = step
 
         if isinstance(task_tpl, dict):
-            rg = RollingGen(step=step, trunc_days=trunc_days, task_copy_func=deepcopy_basic_type)  # NOTE: trunc_days is very important !!!!
+            rg = RollingGen(
+                step=step, trunc_days=trunc_days, task_copy_func=deepcopy_basic_type
+            )  # NOTE: trunc_days is very important !!!!
             task_iter = rg(task_tpl)
-            if task_mode  == MetaTask.PROC_MODE_FULL:
+            if rolling_ext_days > 0:
+                self.ta = TimeAdjuster(future=True)
+                for t in task_iter:
+                    t["dataset"]["kwargs"]["segments"]["test"] = self.ta.shift(
+                        t["dataset"]["kwargs"]["segments"]["test"], step=rolling_ext_days, rtype=RollingGen.ROLL_EX
+                    )
+            if task_mode == MetaTask.PROC_MODE_FULL:
                 # Only pre initializing the task when full task is req
                 # initializing handler and share it.
                 init_task_handler(task_tpl)
@@ -261,15 +280,18 @@ class MetaDatasetDS(MetaDataset):
         self.task_list = []
         self.meta_task_l = []
         logger = get_module_logger("MetaDatasetDS")
+        logger.info(f"Example task for training meta model: {task_iter[0]}")
         for t in tqdm(task_iter, desc="creating meta tasks"):
             try:
-                self.meta_task_l.append(MetaTaskDS(t, meta_info=self._prepare_meta_ipt(t), mode=task_mode, fill_method=fill_method))
+                self.meta_task_l.append(
+                    MetaTaskDS(t, meta_info=self._prepare_meta_ipt(t), mode=task_mode, fill_method=fill_method)
+                )
                 self.task_list.append(t)
             except ValueError as e:
                 logger.warning(f"ValueError: {e}")
         if globals().get("YX_CONFIRM_XXX") is None:
-            if len(self.meta_task_l) <=  0:
-                __import__('ipdb').set_trace()
+            if len(self.meta_task_l) <= 0:
+                __import__("ipdb").set_trace()
             # globals()["YX_CONFIRM_XXX"] = True
 
     def _prepare_meta_ipt(self, task):
@@ -287,6 +309,7 @@ class MetaDatasetDS(MetaDataset):
             start, end = s.name
             end = get_date_by_shift(trading_date=end, shift=self.trunc_days - 1, future=True)
             return s.mask((s.index >= start) & (s.index <= end))
+
         ic_df_avail = ic_df_avail.apply(mask_future)  # apply to each col
 
         # 2) filter the info with too long periods

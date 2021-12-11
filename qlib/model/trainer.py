@@ -20,7 +20,7 @@ from tqdm.auto import tqdm
 from qlib.data.dataset import Dataset
 from qlib.log import get_module_logger
 from qlib.model.base import Model
-from qlib.utils import flatten_dict, get_callable_kwargs, init_instance_by_config, auto_filter_kwargs
+from qlib.utils import flatten_dict, get_callable_kwargs, init_instance_by_config, auto_filter_kwargs, fill_placeholder
 from qlib.workflow import R
 from qlib.workflow.record_temp import SignalRecord
 from qlib.workflow.recorder import Recorder
@@ -81,47 +81,6 @@ def begin_task_train(task_config: dict, experiment_name: str, recorder_name: str
     with R.start(experiment_name=experiment_name, recorder_name=recorder_name):
         _log_task_info(task_config)
         return R.get_recorder()
-
-
-def fill_placeholder(config: dict, config_extend: dict):
-    """
-    Detect placeholder in config and fill them with config_extend.
-    The item of dict must be single item(int, str, etc), dict and list. Tuples are not supported.
-
-    Parameters
-    ----------
-    config : dict
-        the parameter dict will be filled
-    config_extend : dict
-        the value of all placeholders
-
-    Returns
-    -------
-    dict
-        the parameter dict
-    """
-    # check the format of config_extend
-    for placeholder in config_extend.keys():
-        assert re.match(r"<[^<>]+>", placeholder)
-
-    # bfs
-    top = 0
-    tail = 1
-    item_queue = [config]
-    while top < tail:
-        now_item = item_queue[top]
-        top += 1
-        if isinstance(now_item, list):
-            item_keys = range(len(now_item))
-        elif isinstance(now_item, dict):
-            item_keys = now_item.keys()
-        for key in item_keys:
-            if isinstance(now_item[key], list) or isinstance(now_item[key], dict):
-                item_queue.append(now_item[key])
-                tail += 1
-            elif isinstance(now_item[key], str) and now_item[key] in config_extend.keys():
-                now_item[key] = config_extend[now_item[key]]
-    return config
 
 
 def end_task_train(rec: Recorder, experiment_name: str) -> Recorder:

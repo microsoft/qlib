@@ -13,16 +13,21 @@ from qlib.workflow import R
 DIRNAME = Path(__file__).absolute().resolve().parent
 from qlib.workflow.task.gen import task_generator, RollingGen
 from qlib.workflow.task.collect import RecorderCollector
+from qlib.workflow.record_temp import PortAnaRecord, SigAnaRecord
 
 
 class RollingBenchmark:
     """
+    **NOTE**
     before running the example, please clean your previous results with following command
     - `rm -r mlruns`
 
     """
-    def __init__(self) -> None:
+
+    def __init__(self, rolling_exp="rolling_models") -> None:
         self.step = 20
+        self.horizon = 1
+        self.rolling_exp = rolling_exp
 
     def basic_task(self):
         """For fast training rolling"""
@@ -45,31 +50,46 @@ class RollingBenchmark:
 
     def create_rolling_tasks(self):
         task = self.basic_task()
-        task_l = task_generator(task, RollingGen(
-            step=self.step, trunc_days=2))  # the last two days should be truncated to avoid information leakage
+        task_l = task_generator(
+            task, RollingGen(step=self.step, trunc_days=self.horizon + 1)
+        )  # the last two days should be truncated to avoid information leakage
         return task_l
 
-    def run_rolling_tasks(self):
-        task_l = self.create_rolling_tasks()
-        trainer = TrainerR(experiment_name="rolling_models")
+    def train_rolling_tasks(self, task_l=None):
+        if task_l is None:
+            task_l = self.create_rolling_tasks()
+        trainer = TrainerR(experiment_name=self.rolling_exp)
         trainer(task_l)
 
+    COMB_EXP = "rolling"
+
     def ens_rolling(self):
-        comb_key = "rolling"
-        rc = RecorderCollector(experiment="rolling_models",
-                               artifacts_key=["pred", "label"],
-                               process_list=[RollingEnsemble()],
-                               # rec_key_func=lambda rec: (comb_key, rec.info["id"]),
-                               artifacts_path={
-                                   "pred": "pred.pkl",
-                                   "label": "label.pkl"
-                               })
+        rc = RecorderCollector(
+            experiment=self.rolling_exp,
+            artifacts_key=["pred", "label"],
+            process_list=[RollingEnsemble()],
+            # rec_key_func=lambda rec: (self.COMB_EXP, rec.info["id"]),
+            artifacts_path={"pred": "pred.pkl", "label": "label.pkl"},
+        )
         res = rc()
-        with R.start(experiment_name=comb_key):
+        with R.start(experiment_name=self.COMB_EXP):
+            R.log_params(exp_name=self.rolling_exp)
             R.save_objects(**{"pred.pkl": res["pred"], "label.pkl": res["label"]})
 
     def update_rolling_rec(self):
-        pass
+        """
+        Evaluate the combined rolling results
+        """
+        for rid, rec in R.list_recorders(experiment_name=self.COMB_EXP).items():
+            for rt_cls in SigAnaRecord, PortAnaRecord:
+                rt = rt_cls(recorder=rec, skip_existing=True)
+                rt.generate()
+        print(f"Your evaluation results can be found in the experiment named `{self.COMB_EXP}`.")
+
+    def run_all(self):
+        self.train_rolling_tasks()
+        self.ens_rolling()
+        self.update_rolling_rec()
 
 
 if __name__ == "__main__":

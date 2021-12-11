@@ -23,7 +23,7 @@ Meta Dataset
 
 `Meta Dataset` controls the meta-information generating process. It is on the duty of providing data for training the `Meta Model`. Users should use `prepare_tasks` to retrieve a list of `Meta Task` instances.
 
-.. autoclass:: qlib.model.meta.dataset.MetaDataset
+.. autoclass:: qlib.model.meta.dataset.MetaTaskDataset
     :members:
 
 Meta Model

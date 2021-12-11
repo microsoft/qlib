@@ -2,10 +2,11 @@
 # Licensed under the MIT License.
 
 import abc
+from qlib.contrib.meta.data_selection.dataset import MetaDatasetDS
 from typing import Union, List, Tuple
 
 from qlib.model.meta.task import MetaTask
-from .dataset import MetaDataset
+from .dataset import MetaTaskDataset
 
 
 class MetaModel(metaclass=abc.ABCMeta):
@@ -42,42 +43,26 @@ class MetaTaskModel(MetaModel):
     This type of meta-model deals with base task definitions. The meta-model creates tasks for training new base forecasting models after it is trained. `prepare_tasks` directly modifies the task definitions.
     """
 
-    @abc.abstractmethod
-    def prepare_task(self, task: MetaTask) -> dict:
+    def fit(self, meta_dataset: MetaTaskDataset):
         """
-        Input a meta task and output a task with qlib format
+        The MetaTaskModel is expected to get prepared MetaTask from meta_dataset.
+        And then it will learn knowledge from the meta tasks
+        """
+        raise NotImplementedError(f"Please implement the `fit` method")
 
-        When modifying the model tasks, the meta model will leverage `self.inference` to get some necessary
-        information.
-
-        Parameters
-        ----------
-        task : MetaTask
-            meta task to inference
+    def inference(self, meta_dataset: MetaTaskDataset) -> List[dict]:
+        """
+        MetaTaskModel will make inference on the meta_dataset
+        The MetaTaskModel is expected to get prepared MetaTask from meta_dataset.
+        Then it will create modified task with Qlib format which can be executed by Qlib trainer.
 
         Returns
         -------
-        dict:
-            A task with Qlib format
-        """
+        List[dict]:
+            A list of modified task definitions.
 
-    # NOTE: factor;   Please justify the necessity of this method
-    # @abc.abstractmethod
-    # def prepare_tasks(self, tasks: List[dict]) -> List[dict]:
-    #     """
-    #     The meta-model modifies the tasks. The function will return the modified task list.
-    #
-    #     Parameters
-    #     ----------
-    #     tasks: List[dict]
-    #         A list of task definitions for the meta-model to modify.
-    #
-    #     Returns
-    #     -------
-    #     List[dict]:
-    #         A list of modified task definitions.
-    #     """
-    #     pass
+        """
+        raise NotImplementedError(f"Please implement the `inference` method")
 
 
 class MetaGuideModel(MetaModel):

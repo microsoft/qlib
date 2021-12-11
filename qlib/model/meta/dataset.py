@@ -2,19 +2,20 @@
 # Licensed under the MIT License.
 
 import abc
+from qlib.model.meta.task import MetaTask
 from typing import Dict, Union, List, Tuple, Text
 from ...workflow.task.gen import RollingGen, task_generator
 from ...data.dataset.handler import DataHandler
 from ...utils.serial import Serializable
 
 
-class MetaDataset(Serializable, metaclass=abc.ABCMeta):
+class MetaTaskDataset(Serializable, metaclass=abc.ABCMeta):
     """
     A dataset fetching the data in a meta-level.
 
     A Meta Dataset is responsible for
-    - input a specific task and prepare input data (based a given task) for meta model
-    - prepare underlayer data:
+    - input tasks(e.g. Qlib tasks) and prepare meta tasks
+        - meta task contains more information than normal tasks (e.g. input data for meta model)
 
     The learnt pattern could transfer to other meta dataset. The following cases should be supported
     - A meta-model trained on meta-dataset A and then applied to meta-dataset B
@@ -27,13 +28,13 @@ class MetaDataset(Serializable, metaclass=abc.ABCMeta):
 
         The segments indicates the way to divide the data
 
-        The duty of the `__init__` function of MetaDataset
+        The duty of the `__init__` function of MetaTaskDataset
         - initialize the tasks
         """
         super().__init__(*args, **kwargs)
         self.segments = segments
 
-    def prepare_tasks(self, segments: Union[List[Text], Text], *args, **kwargs) -> List:
+    def prepare_tasks(self, segments: Union[List[Text], Text], *args, **kwargs) -> List[MetaTask]:
         """
         Prepare the data in each meta-task and ready for training.
 
@@ -73,20 +74,3 @@ class MetaDataset(Serializable, metaclass=abc.ABCMeta):
             the name of the segment
         """
         pass
-
-
-class MetaDatasetH(MetaDataset):
-    """
-    MetaDataset with specified DataHandler.
-    """
-
-    def __init__(self, data_handler: DataHandler, *args, **kwargs):
-        """
-
-        Parameters
-        ----------
-        data_handler: DataHandler
-            The shared DataHandler among meta-tasks.
-        """
-        super().__init__(*args, **kwargs)
-        self.data_handler = data_handler

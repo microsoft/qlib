@@ -1,6 +1,5 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-from .task import MetaTaskDS
-from .dataset import MetaDatasetHDS
+from .dataset import MetaDatasetDS, MetaTaskDS
 from .model import MetaModelDS
