@@ -401,9 +401,9 @@ class Exchange:
     def get_close(self, stock_id, start_time, end_time, method="ts_data_last"):
         return self.quote.get_data(stock_id, start_time, end_time, field="$close", method=method)
 
-    def get_volume(self, stock_id, start_time, end_time):
+    def get_volume(self, stock_id, start_time, end_time, method="sum"):
         """get the total deal volume of stock with `stock_id` between the time interval [start_time, end_time)"""
-        return self.quote.get_data(stock_id, start_time, end_time, field="$volume", method="sum")
+        return self.quote.get_data(stock_id, start_time, end_time, field="$volume", method=method)
 
     def get_deal_price(self, stock_id, start_time, end_time, direction: OrderDir, method="ts_data_last"):
         if direction == OrderDir.SELL:
