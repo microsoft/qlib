@@ -392,11 +392,19 @@ def get_cg_crypto_symbols(qlib_data_path: [str, Path] = None) -> list:
     def _get_coingecko():
         try:
             cg = CoinGeckoAPI()
+<<<<<<< HEAD
             resp = pd.DataFrame(cg.get_coins_markets(vs_currency="usd"))
         except:
             raise ValueError("request error")
         try:
             _symbols = resp["id"].to_list()
+=======
+            resp = pd.DataFrame(cg.get_coins_markets(vs_currency = 'usd'))
+        except:
+            raise ValueError("request error")
+        try:
+            _symbols = resp['id'].to_list()
+>>>>>>> 3b2a2eb4ba274e1f81208651d7be9921a16dc8fa
         except Exception as e:
             logger.warning(f"request error: {e}")
             raise
