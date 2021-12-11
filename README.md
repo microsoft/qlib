@@ -166,9 +166,11 @@ Users could create the same dataset with it.
 We recommend users to prepare their own data if they have a high-quality dataset. For more information, users can refer to the [related document](https://qlib.readthedocs.io/en/latest/component/data.html#converting-csv-format-into-qlib-format)*.
 
 ### Automatic update of daily frequency data (from yahoo finance)
+  > This step is *Optional* if users only want to try their models and strategies on history data.
+  > 
   > It is recommended that users update the data manually once (--trading_date 2021-05-25) and then set it to update automatically.
-
-  > For more information refer to: [yahoo collector](https://github.com/microsoft/qlib/tree/main/scripts/data_collector/yahoo#automatic-update-of-daily-frequency-datafrom-yahoo-finance)
+  >
+  > For more information, please refer to: [yahoo collector](https://github.com/microsoft/qlib/tree/main/scripts/data_collector/yahoo#automatic-update-of-daily-frequency-datafrom-yahoo-finance)
 
   * Automatic update of data to the "qlib" directory each trading day(Linux)
       * use *crontab*: `crontab -e`
