@@ -13,7 +13,7 @@ import collections
 import copy
 from typing import Union, List, Tuple, Dict
 
-from ....data.dataset.weight import SampleReweighter, Reweighter
+from ....data.dataset.weight import Reweighter
 from ....model.meta.dataset import MetaTaskDataset
 from ....model.meta.model import MetaModel, MetaTaskModel
 from ....workflow import R
@@ -32,6 +32,7 @@ class TimeReweighter(Reweighter):
         self.time_weight = time_weight
 
     def reweight(self, data: Union[pd.DataFrame, pd.Series]):
+        # TODO: handling TSDataSampler
         w_s = pd.Series(1.0, index=data.index)
         for k, w in self.time_weight.items():
             w_s.loc[slice(*k)] = w
