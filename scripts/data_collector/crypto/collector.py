@@ -205,7 +205,7 @@ class CryptoNormalizeCN1d(CryptoNormalizeCN, CryptoNormalize1d):
 
 
 class Run(BaseRun):
-    def __init__(self, source_dir=None, normalize_dir=None, max_workers=1, interval="1d", region=REGION_CN):
+    def __init__(self, source_dir=None, normalize_dir=None, max_workers=1, interval="1d"):
         """
 
         Parameters

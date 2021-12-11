@@ -17,11 +17,11 @@ pip install -r requirements.txt
 
 ```bash
 
-# download from eastmoney.com
-python collector.py download_data --source_dir ~/.qlib/crypto_data/source/cn_1d --region CN --start 2015-01-01 --end 2021-11-30 --delay 1 --interval 1d
+# download from https://api.coingecko.com/api/v3/
+python collector.py download_data --source_dir ~/.qlib/crypto_data/source/cn_1d --start 2015-01-01 --end 2021-11-30 --delay 1 --interval 1d
 
 # normalize
-python collector.py normalize_data --source_dir ~/.qlib/crypto_data/source/cn_1d --normalize_dir ~/.qlib/crypto_data/source/cn_1d_nor --region CN --interval 1d --date_field_name date
+python collector.py normalize_data --source_dir ~/.qlib/crypto_data/source/cn_1d --normalize_dir ~/.qlib/crypto_data/source/cn_1d_nor --interval 1d --date_field_name date
 
 # dump data
 cd qlib/scripts
@@ -48,5 +48,4 @@ python collector.py collector_data --help
 ## Parameters
 
 - interval: 1d
-- region: CN
 - delay: 1
