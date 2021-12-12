@@ -2,8 +2,7 @@
 # Licensed under the MIT License.
 from pathlib import Path
 
-_version_path = Path(__file__).absolute().parent / "VERSION.txt"  # This file is copyed from setup.py
-__version__ = _version_path.read_text(encoding="utf-8").strip()
+__version__ = "0.8.0.99"
 __version__bak = __version__  # This version is backup for QlibConfig.reset_qlib_version
 import os
 from typing import Union
