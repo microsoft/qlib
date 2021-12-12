@@ -160,7 +160,7 @@ Load and prepare data by running the following code:
 
 This dataset is created by public data collected by [crawler scripts](scripts/data_collector/), which have been released in
 the same repository.
-Users could create the same dataset with it. 
+Users could create the same dataset with it. [Description of dataset](https://github.com/microsoft/qlib/tree/main/scripts/data_collector#description-of-dataset)
 
 *Please pay **ATTENTION** that the data is collected from [Yahoo Finance](https://finance.yahoo.com/lookup), and the data might not be perfect.
 We recommend users to prepare their own data if they have a high-quality dataset. For more information, users can refer to the [related document](https://qlib.readthedocs.io/en/latest/component/data.html#converting-csv-format-into-qlib-format)*.
