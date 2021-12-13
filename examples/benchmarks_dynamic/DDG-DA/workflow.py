@@ -232,10 +232,17 @@ class DDGDA:
         rb.update_rolling_rec()
 
     def run_all(self):
+        # 1) file: handler_proxy.pkl
         self.dump_data_for_proxy_model()
+        # 2)
+        # file: internal_data_s20.pkl
+        # mlflow: data_sim_s20, models for calculating meta_ipt
         self.dump_meta_ipt()
+        # 3) meta model will be stored in `DDG-DA`
         self.train_meta_model()
+        # 4) new_tasks are saved in "tasks_s20.pkl" (reweighter is added)
         self.meta_inference()
+        # 5) load the saved tasks and train model
         self.train_and_eval_tasks()
 
 

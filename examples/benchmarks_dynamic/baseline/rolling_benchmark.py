@@ -87,7 +87,10 @@ class RollingBenchmark:
         print(f"Your evaluation results can be found in the experiment named `{self.COMB_EXP}`.")
 
     def run_all(self):
+        # the results will be  save in mlruns.
+        # 1) each rolling task is saved in rolling_models
         self.train_rolling_tasks()
+        # 2) combined rolling tasks and evaluation results are saved in rolling
         self.ens_rolling()
         self.update_rolling_rec()
 
