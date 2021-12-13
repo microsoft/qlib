@@ -16,7 +16,7 @@ from arctic import Arctic
 # init qlib
 def init(default_conf="client", **kwargs):
     from .config import C, Arctic_Connection_List
-    from .data.cache import H
+    from .data.cache import H, HZ
 
     # FIXME: this logger ignored the level in config
     logger = get_module_logger("Initialization", level=logging.INFO)
@@ -32,6 +32,7 @@ def init(default_conf="client", **kwargs):
         Arctic_Connection_List.append(Arctic(C.arctic_uri))
         
     H.clear()
+    HZ.clear()
     C.set(default_conf, **kwargs)
 
     # mount nfs
