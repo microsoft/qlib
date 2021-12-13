@@ -1,6 +1,8 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+from pathlib import Path
+from typing import Union
 import numpy as np
 import pandas as pd
 import tensorflow.compat.v1 as tf
@@ -19,14 +21,60 @@ from qlib.data.dataset.handler import DataHandlerLP
 
 
 # To register new datasets, please add them here.
-ALLOW_DATASET = ["Alpha158"]
+ALLOW_DATASET = ["Alpha158", "Alpha360"]
+# To register new datasets, please add their configurations here.
 DATASET_SETTING = {
     "Alpha158": {
-        "feature_col": ["RESI5", "WVMA5", "RSQR5", "KLEN", "RSQR10", "CORR5", "CORD5", "CORR10", "ROC60", "RESI10"],
-        "label_col": ["LABEL0"],
+        "feature_col": [
+            "RESI5",
+            "WVMA5",
+            "RSQR5",
+            "KLEN",
+            "RSQR10",
+            "CORR5",
+            "CORD5",
+            "CORR10",
+            "ROC60",
+            "RESI10",
+            "VSTD5",
+            "RSQR60",
+            "CORR60",
+            "WVMA60",
+            "STD5",
+            "RSQR20",
+            "CORD60",
+            "CORD10",
+            "CORR20",
+            "KLOW",
+        ],
+        "label_col": "LABEL0",
+    },
+    "Alpha360": {
+        "feature_col": [
+            "HIGH0",
+            "LOW0",
+            "OPEN0",
+            "CLOSE1",
+            "HIGH1",
+            "VOLUME1",
+            "LOW1",
+            "VOLUME3",
+            "OPEN1",
+            "VOLUME4",
+            "CLOSE2",
+            "CLOSE4",
+            "VOLUME5",
+            "LOW2",
+            "CLOSE3",
+            "VOLUME2",
+            "HIGH2",
+            "LOW4",
+            "VOLUME8",
+            "VOLUME11",
+        ],
+        "label_col": "LABEL0",
     },
 }
-# To register new datasets, please add their configurations here.
 
 
 def get_shifted_label(data_df, shifts=5, col_shift="LABEL0"):
@@ -54,7 +102,7 @@ def process_qlib_data(df, dataset, fillna=False):
     """
     # Several features selected manually
     feature_col = DATASET_SETTING[dataset]["feature_col"]
-    label_col = DATASET_SETTING[dataset]["label_col"]
+    label_col = [DATASET_SETTING[dataset]["label_col"]]
     temp_df = df.loc[:, feature_col + label_col]
     if fillna:
         temp_df = fill_test_na(temp_df)
@@ -106,6 +154,8 @@ class TFTModel(ModelFT):
 
     def __init__(self, **kwargs):
         self.model = None
+        self.params = {"DATASET": "Alpha158", "label_shift": 5}
+        self.params.update(kwargs)
 
     def _prepare_data(self, dataset: DatasetH):
         df_train, df_valid = dataset.prepare(
@@ -113,16 +163,10 @@ class TFTModel(ModelFT):
         )
         return transform_df(df_train), transform_df(df_valid)
 
-    def fit(
-        self,
-        dataset: DatasetH,
-        DATASET="Alpha158",
-        MODEL_FOLDER="qlib_alpha158_model",
-        LABEL_COL="LABEL0",
-        LABEL_SHIFT=5,
-        USE_GPU_ID=0,
-        **kwargs
-    ):
+    def fit(self, dataset: DatasetH, MODEL_FOLDER="qlib_tft_model", USE_GPU_ID=0, **kwargs):
+        DATASET = self.params["DATASET"]
+        LABEL_SHIFT = self.params["label_shift"]
+        LABEL_COL = DATASET_SETTING[DATASET]["label_col"]
 
         if DATASET not in ALLOW_DATASET:
             raise AssertionError("The dataset is not supported, please make a new formatter to fit this dataset")
@@ -201,7 +245,7 @@ class TFTModel(ModelFT):
             #    extract_numerical_data(targets), extract_numerical_data(p90_forecast),
             #    0.9)
             tf.keras.backend.set_session(default_keras_session)
-        print("Training completed.".format(dte.datetime.now()))
+        print("Training completed at {}.".format(dte.datetime.now()))
         # ===========================Training Process===========================
 
     def predict(self, dataset):
@@ -247,3 +291,31 @@ class TFTModel(ModelFT):
             dataset for finetuning
         """
         pass
+
+    def to_pickle(self, path: Union[Path, str]):
+        """
+        Tensorflow model can't be dumped directly.
+        So the data should be save seperatedly
+
+        **TODO**: Please implement the function to load the files
+
+        Parameters
+        ----------
+        path : Union[Path, str]
+            the target path to be dumped
+        """
+        # FIXME: implementing saving tensorflow models
+        # save tensorflow model
+        # path = Path(path)
+        # path.mkdir(parents=True)
+        # self.model.save(path)
+
+        # save qlib model wrapper
+        drop_attrs = ["model", "tf_graph", "sess", "data_formatter"]
+        orig_attr = {}
+        for attr in drop_attrs:
+            orig_attr[attr] = getattr(self, attr)
+            setattr(self, attr, None)
+        super(TFTModel, self).to_pickle(path)
+        for attr in drop_attrs:
+            setattr(self, attr, orig_attr[attr])

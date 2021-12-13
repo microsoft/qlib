@@ -6,7 +6,9 @@ from __future__ import division
 from __future__ import print_function
 
 import os
+import pickle
 import re
+import sys
 import copy
 import json
 import yaml
@@ -15,6 +17,7 @@ import bisect
 import shutil
 import difflib
 import hashlib
+import warnings
 import datetime
 import requests
 import tempfile
@@ -24,10 +27,12 @@ import collections
 import numpy as np
 import pandas as pd
 from pathlib import Path
-from typing import Union, Tuple
+from typing import Dict, Union, Tuple, Any, Text, Optional
+from types import ModuleType
+from urllib.parse import urlparse
 
 from ..config import C
-from ..log import get_module_logger
+from ..log import get_module_logger, set_log_with_config
 
 log = get_module_logger("utils")
 
@@ -39,8 +44,9 @@ def get_redis_connection():
 
 
 #################### Data ####################
-def read_bin(file_path, start_index, end_index):
-    with open(file_path, "rb") as f:
+def read_bin(file_path: Union[str, Path], start_index, end_index):
+    file_path = Path(file_path.expanduser().resolve())
+    with file_path.open("rb") as f:
         # read start_index
         ref_start_index = int(np.frombuffer(f.read(4), dtype="<f")[0])
         si = max(ref_start_index, start_index)
@@ -53,6 +59,22 @@ def read_bin(file_path, start_index, end_index):
         data = np.frombuffer(f.read(4 * count), dtype="<f")
         series = pd.Series(data, index=pd.RangeIndex(si, si + len(data)))
     return series
+
+
+def np_ffill(arr: np.array):
+    """
+    forward fill a 1D numpy array
+
+    Parameters
+    ----------
+    arr : np.array
+        Input numpy 1D array
+    """
+    mask = np.isnan(arr.astype(float))  # np.isnan only works on np.float
+    # get fill index
+    idx = np.where(~mask, np.arange(mask.shape[0]), 0)
+    np.maximum.accumulate(idx, out=idx)
+    return arr[idx]
 
 
 #################### Search ####################
@@ -112,10 +134,10 @@ def parse_config(config):
     # Check whether config is file
     if os.path.exists(config):
         with open(config, "r") as f:
-            return yaml.load(f)
+            return yaml.safe_load(f)
     # Check whether the str can be parsed
     try:
-        return yaml.load(config)
+        return yaml.safe_load(config)
     except BaseException:
         raise ValueError("cannot parse config!")
 
@@ -149,58 +171,80 @@ def parse_field(field):
     if "@" in field:
         return re.sub(r"\@([\w.]+)", r'TFeature("\1")', field)
     else:
-        return re.sub(r"\$(\w+)", r'Feature("\1")', field)
+        return re.sub(r"\$(\w+)", r'Feature("\1")', re.sub(r"(\w+\s*)\(", r"Operators.\1(", field))
 
 
-def get_module_by_module_path(module_path):
+def get_module_by_module_path(module_path: Union[str, ModuleType]):
     """Load module path
 
     :param module_path:
     :return:
     """
-
-    if module_path.endswith(".py"):
-        module_spec = importlib.util.spec_from_file_location("", module_path)
-        module = importlib.util.module_from_spec(module_spec)
-        module_spec.loader.exec_module(module)
+    if isinstance(module_path, ModuleType):
+        module = module_path
     else:
-        module = importlib.import_module(module_path)
-
+        if module_path.endswith(".py"):
+            module_name = re.sub("^[^a-zA-Z_]+", "", re.sub("[^0-9a-zA-Z_]", "", module_path[:-3].replace("/", "_")))
+            module_spec = importlib.util.spec_from_file_location(module_name, module_path)
+            module = importlib.util.module_from_spec(module_spec)
+            sys.modules[module_name] = module
+            module_spec.loader.exec_module(module)
+        else:
+            module = importlib.import_module(module_path)
     return module
 
 
-def get_cls_kwargs(config: Union[dict, str], module) -> (type, dict):
+def get_callable_kwargs(config: Union[dict, str], default_module: Union[str, ModuleType] = None) -> (type, dict):
     """
-    extract class and kwargs from config info
+    extract class/func and kwargs from config info
 
     Parameters
     ----------
     config : [dict, str]
         similar to config
+        please refer to the doc of init_instance_by_config
 
-    module : Python module
+    default_module : Python module or str
         It should be a python module to load the class type
+        This function will load class from the config['module_path'] first.
+        If config['module_path'] doesn't exists, it will load the class from default_module.
 
     Returns
     -------
     (type, dict):
-        the class object and it's arguments.
+        the class/func object and it's arguments.
     """
     if isinstance(config, dict):
-        # raise AttributeError
-        klass = getattr(module, config["class"])
+        if isinstance(config["class"], str):
+            module = get_module_by_module_path(config.get("module_path", default_module))
+            # raise AttributeError
+            _callable = getattr(module, config["class" if "class" in config else "func"])
+        else:
+            _callable = config["class"]  # the class type itself is passed in
         kwargs = config.get("kwargs", {})
     elif isinstance(config, str):
-        klass = getattr(module, config)
+        # a.b.c.ClassName
+        *m_path, cls = config.split(".")
+        m_path = ".".join(m_path)
+        module = get_module_by_module_path(default_module if m_path == "" else m_path)
+
+        _callable = getattr(module, cls)
         kwargs = {}
     else:
         raise NotImplementedError(f"This type of input is not supported")
-    return klass, kwargs
+    return _callable, kwargs
+
+
+get_cls_kwargs = get_callable_kwargs  # NOTE: this is for compatibility for the previous version
 
 
 def init_instance_by_config(
-    config: Union[str, dict, object], module=None, accept_types: Union[type, Tuple[type]] = tuple([]), **kwargs
-) -> object:
+    config: Union[str, dict, object],
+    default_module=None,
+    accept_types: Union[type, Tuple[type]] = (),
+    try_kwargs: Dict = {},
+    **kwargs,
+) -> Any:
     """
     get initialized instance with config
 
@@ -208,22 +252,40 @@ def init_instance_by_config(
     ----------
     config : Union[str, dict, object]
         dict example.
+            case 1)
             {
                 'class': 'ClassName',
                 'kwargs': dict, #  It is optional. {} will be used if not given
                 'model_path': path, # It is optional if module is given
             }
+            case 2)
+            {
+                'class': <The class it self>,
+                'kwargs': dict, #  It is optional. {} will be used if not given
+            }
         str example.
-            "ClassName":  getattr(module, config)() will be used.
+            1) specify a pickle object
+                - path like 'file:///<path to pickle file>/obj.pkl'
+            2) specify a class name
+                - "ClassName":  getattr(module, "ClassName")() will be used.
+            3) specify module path with class name
+                - "a.b.c.ClassName" getattr(<a.b.c.module>, "ClassName")() will be used.
         object example:
             instance of accept_types
-    module : Python module
+    default_module : Python module
         Optional. It should be a python module.
         NOTE: the "module_path" will be override by `module` arguments
+
+        This function will load class from the config['module_path'] first.
+        If config['module_path'] doesn't exists, it will load the class from default_module.
 
     accept_types: Union[type, Tuple[type]]
         Optional. If the config is a instance of specific type, return the config directly.
         This will be passed into the second parameter of isinstance.
+
+    try_kwargs: Dict
+        Try to pass in kwargs in `try_kwargs` when initialized the instance
+        If error occurred, it will fail back to initialization without try_kwargs.
 
     Returns
     -------
@@ -233,11 +295,41 @@ def init_instance_by_config(
     if isinstance(config, accept_types):
         return config
 
-    if module is None:
-        module = get_module_by_module_path(config["module_path"])
+    if isinstance(config, str):
+        # path like 'file:///<path to pickle file>/obj.pkl'
+        pr = urlparse(config)
+        if pr.scheme == "file":
+            with open(os.path.join(pr.netloc, pr.path), "rb") as f:
+                return pickle.load(f)
 
-    klass, cls_kwargs = get_cls_kwargs(config, module)
-    return klass(**cls_kwargs, **kwargs)
+    klass, cls_kwargs = get_callable_kwargs(config, default_module=default_module)
+
+    try:
+        return klass(**cls_kwargs, **try_kwargs, **kwargs)
+    except (TypeError,):
+        # TypeError for handling errors like
+        # 1: `XXX() got multiple values for keyword argument 'YYY'`
+        # 2: `XXX() got an unexpected keyword argument 'YYY'
+        return klass(**cls_kwargs, **kwargs)
+
+
+@contextlib.contextmanager
+def class_casting(obj: object, cls: type):
+    """
+    Python doesn't provide the downcasting mechanism.
+    We use the trick here to downcast the class
+
+    Parameters
+    ----------
+    obj : object
+        the object to be cast
+    cls : type
+        the target class type
+    """
+    orig_cls = obj.__class__
+    obj.__class__ = cls
+    yield
+    obj.__class__ = orig_cls
 
 
 def compare_dict_value(src_data: dict, dst_data: dict):
@@ -263,21 +355,31 @@ def compare_dict_value(src_data: dict, dst_data: dict):
     return changes
 
 
-def create_save_path(save_path=None):
-    """Create save path
+def get_or_create_path(path: Optional[Text] = None, return_dir: bool = False):
+    """Create or get a file or directory given the path and return_dir.
 
-    :param save_path:
-    :return:
+    Parameters
+    ----------
+    path: a string indicates the path or None indicates creating a temporary path.
+    return_dir: if True, create and return a directory; otherwise c&r a file.
+
     """
-    if save_path:
-        if not os.path.exists(save_path):
-            os.makedirs(save_path)
+    if path:
+        if return_dir and not os.path.exists(path):
+            os.makedirs(path)
+        elif not return_dir:  # return a file, thus we need to create its parent directory
+            xpath = os.path.abspath(os.path.join(path, ".."))
+            if not os.path.exists(xpath):
+                os.makedirs(xpath)
     else:
         temp_dir = os.path.expanduser("~/tmp")
         if not os.path.exists(temp_dir):
             os.makedirs(temp_dir)
-        _, save_path = tempfile.mkstemp(dir=temp_dir)
-    return save_path
+        if return_dir:
+            _, path = tempfile.mkdtemp(dir=temp_dir)
+        else:
+            _, path = tempfile.mkstemp(dir=temp_dir)
+    return path
 
 
 @contextlib.contextmanager
@@ -458,30 +560,28 @@ def is_tradable_date(cur_date):
     return str(cur_date.date()) == str(D.calendar(start_time=cur_date, future=True)[0].date())
 
 
-def get_date_range(trading_date, shift, future=False):
+def get_date_range(trading_date, left_shift=0, right_shift=0, future=False):
     """get trading date range by shift
 
-    :param trading_date:
-    :param shift: int
-    :param future: bool
-    :return:
+    Parameters
+    ----------
+    trading_date: pd.Timestamp
+    left_shift: int
+    right_shift: int
+    future: bool
+
     """
+
     from ..data import D
 
-    calendar = D.calendar(future=future)
-    if pd.to_datetime(trading_date) not in list(calendar):
-        raise ValueError("{} is not trading day!".format(str(trading_date)))
-    day_index = bisect.bisect_left(calendar, trading_date)
-    if 0 <= (day_index + shift) < len(calendar):
-        if shift > 0:
-            return calendar[day_index + 1 : day_index + 1 + shift]
-        else:
-            return calendar[day_index + shift : day_index]
-    else:
-        return calendar
+    start = get_date_by_shift(trading_date, left_shift, future=future)
+    end = get_date_by_shift(trading_date, right_shift, future=future)
+
+    calendar = D.calendar(start, end, future=future)
+    return calendar
 
 
-def get_date_by_shift(trading_date, shift, future=False):
+def get_date_by_shift(trading_date, shift, future=False, clip_shift=True, freq="day", align: Optional[str] = None):
     """get trading date with shift bias wil cur_date
         e.g. : shift == 1,  return next trading date
                shift == -1, return previous trading date
@@ -489,8 +589,33 @@ def get_date_by_shift(trading_date, shift, future=False):
     trading_date : pandas.Timestamp
         current date
     shift : int
+    clip_shift: bool
+    align : Optional[str]
+        When align is None, this function will raise ValueError if `trading_date` is not a trading date
+        when align is "left"/"right", it will try to align to left/right nearest trading date before shifting when `trading_date` is not a trading date
+
     """
-    return get_date_range(trading_date, shift, future)[0 if shift < 0 else -1] if shift != 0 else trading_date
+    from qlib.data import D
+
+    cal = D.calendar(future=future, freq=freq)
+    trading_date = pd.to_datetime(trading_date)
+    if align is None:
+        if trading_date not in list(cal):
+            raise ValueError("{} is not trading day!".format(str(trading_date)))
+        _index = bisect.bisect_left(cal, trading_date)
+    elif align == "left":
+        _index = bisect.bisect_right(cal, trading_date) - 1
+    elif align == "right":
+        _index = bisect.bisect_left(cal, trading_date)
+    else:
+        raise ValueError(f"align with value `{align}` is not supported")
+    shift_index = _index + shift
+    if shift_index < 0 or shift_index >= len(cal):
+        if clip_shift:
+            shift_index = np.clip(shift_index, 0, len(cal) - 1)
+        else:
+            raise IndexError(f"The shift_index({shift_index}) of the trading day ({trading_date}) is out of range")
+    return cal[shift_index]
 
 
 def get_next_trading_date(trading_date, future=False):
@@ -512,9 +637,11 @@ def get_pre_trading_date(trading_date, future=False):
 
 
 def transform_end_date(end_date=None, freq="day"):
-    """get previous trading date
+    """handle the end date with various format
+
     If end_date is -1, None, or end_date is greater than the maximum trading day, the last trading date is returned.
     Otherwise, returns the end_date
+
     ----------
     end_date: str
         end trading date
@@ -584,6 +711,28 @@ def split_pred(pred, number=None, split_date=None):
     return pred_left, pred_right
 
 
+def time_to_slc_point(t: Union[None, str, pd.Timestamp]) -> Union[None, pd.Timestamp]:
+    """
+    Time slicing in Qlib or Pandas is a frequently-used action.
+    However, user often input all kinds of data format to represent time.
+    This function will help user to convert these inputs into a uniform format which is friendly to time slicing.
+
+    Parameters
+    ----------
+    t : Union[None, str, pd.Timestamp]
+        original time
+
+    Returns
+    -------
+    Union[None, pd.Timestamp]:
+    """
+    if t is None:
+        # None represents unbounded in Qlib or Pandas(e.g. df.loc[slice(None, "20210303")]).
+        return t
+    else:
+        return pd.Timestamp(t)
+
+
 def can_use_cache():
     res = True
     r = get_redis_connection()
@@ -610,24 +759,40 @@ def exists_qlib_data(qlib_dir):
             return False
     # check calendar bin
     for _calendar in calendars_dir.iterdir():
-        if not list(features_dir.rglob(f"*.{_calendar.name.split('.')[0]}.bin")):
+
+        if ("_future" not in _calendar.name) and (
+            not list(features_dir.rglob(f"*.{_calendar.name.split('.')[0]}.bin"))
+        ):
             return False
 
     # check instruments
     code_names = set(map(lambda x: x.name.lower(), features_dir.iterdir()))
     _instrument = instruments_dir.joinpath("all.txt")
-    df = pd.read_csv(_instrument, sep="\t", names=["inst", "start_datetime", "end_datetime", "save_inst"])
-    df = df.iloc[:, [0, -1]].fillna(axis=1, method="ffill")
-    miss_code = set(df.iloc[:, -1].apply(str.lower)) - set(code_names)
+    miss_code = set(pd.read_csv(_instrument, sep="\t", header=None).loc[:, 0].apply(str.lower)) - set(code_names)
     if miss_code and any(map(lambda x: "sht" not in x, miss_code)):
         return False
 
     return True
 
 
-def lexsort_index(df: pd.DataFrame) -> pd.DataFrame:
+def check_qlib_data(qlib_config):
+    inst_dir = Path(qlib_config["provider_uri"]).joinpath("instruments")
+    for _p in inst_dir.glob("*.txt"):
+        try:
+            assert len(pd.read_csv(_p, sep="\t", nrows=0, header=None).columns) == 3, (
+                f"\nThe {str(_p.resolve())} of qlib data is not equal to 3 columns:"
+                f"\n\tIf you are using the data provided by qlib: "
+                f"https://qlib.readthedocs.io/en/latest/component/data.html#qlib-format-dataset"
+                f"\n\tIf you are using your own data, please dump the data again: "
+                f"https://qlib.readthedocs.io/en/latest/component/data.html#converting-csv-format-into-qlib-format"
+            )
+        except AssertionError:
+            raise
+
+
+def lazy_sort_index(df: pd.DataFrame, axis=0) -> pd.DataFrame:
     """
-    make the df index lexsorted
+    make the df index sorted
 
     df.sort_index() will take a lot of time even when `df.is_lexsorted() == True`
     This function could avoid such case
@@ -641,29 +806,41 @@ def lexsort_index(df: pd.DataFrame) -> pd.DataFrame:
     pd.DataFrame:
         sorted dataframe
     """
-    if df.index.is_lexsorted():
+    idx = df.index if axis == 0 else df.columns
+    # NOTE: MultiIndex.is_lexsorted() is a deprecated method in Pandas 1.3.0 and is suggested to be replaced by MultiIndex.is_monotonic_increasing (see discussion here: https://github.com/pandas-dev/pandas/issues/32259). However, in case older versions of Pandas is implemented, MultiIndex.is_lexsorted() is necessary to prevent certain fatal errors.
+    if idx.is_monotonic_increasing and not (isinstance(idx, pd.MultiIndex) and not idx.is_lexsorted()):
         return df
     else:
-        return df.sort_index()
+        return df.sort_index(axis=axis)
 
 
-def flatten_dict(d, parent_key="", sep="."):
-    """flatten_dict.
+FLATTEN_TUPLE = "_FLATTEN_TUPLE"
+
+
+def flatten_dict(d, parent_key="", sep=".") -> dict:
+    """
+    Flatten a nested dict.
+
         >>> flatten_dict({'a': 1, 'c': {'a': 2, 'b': {'x': 5, 'y' : 10}}, 'd': [1, 2, 3]})
         >>> {'a': 1, 'c.a': 2, 'c.b.x': 5, 'd': [1, 2, 3], 'c.b.y': 10}
 
-    Parameters
-    ----------
-    d :
-        d
-    parent_key :
-        parent_key
-    sep :
-        sep
+        >>> flatten_dict({'a': 1, 'c': {'a': 2, 'b': {'x': 5, 'y' : 10}}, 'd': [1, 2, 3]}, sep=FLATTEN_TUPLE)
+        >>> {'a': 1, ('c','a'): 2, ('c','b','x'): 5, 'd': [1, 2, 3], ('c','b','y'): 10}
+
+    Args:
+        d (dict): the dict waiting for flatting
+        parent_key (str, optional): the parent key, will be a prefix in new key. Defaults to "".
+        sep (str, optional): the separator for string connecting. FLATTEN_TUPLE for tuple connecting.
+
+    Returns:
+        dict: flatten dict
     """
     items = []
     for k, v in d.items():
-        new_key = parent_key + sep + k if parent_key else k
+        if sep == FLATTEN_TUPLE:
+            new_key = (parent_key, k) if parent_key else k
+        else:
+            new_key = parent_key + sep + k if parent_key else k
         if isinstance(v, collections.abc.MutableMapping):
             items.extend(flatten_dict(v, new_key, sep=sep).items())
         else:
@@ -672,7 +849,7 @@ def flatten_dict(d, parent_key="", sep="."):
 
 
 #################### Wrapper #####################
-class Wrapper(object):
+class Wrapper:
     """Wrapper class for anything that needs to set up during qlib.init"""
 
     def __init__(self):
@@ -681,8 +858,11 @@ class Wrapper(object):
     def register(self, provider):
         self._provider = provider
 
+    def __repr__(self):
+        return "{name}(provider={provider})".format(name=self.__class__.__name__, provider=self._provider)
+
     def __getattr__(self, key):
-        if self._provider is None:
+        if self.__dict__.get("_provider", None) is None:
             raise AttributeError("Please run qlib.init() first using qlib")
         return getattr(self._provider, key)
 
@@ -714,3 +894,36 @@ def load_dataset(path_or_obj):
     elif extension == ".csv":
         return pd.read_csv(path_or_obj, parse_dates=True, index_col=[0, 1])
     raise ValueError(f"unsupported file type `{extension}`")
+
+
+def code_to_fname(code: str):
+    """stock code to file name
+
+    Parameters
+    ----------
+    code: str
+    """
+    # NOTE: In windows, the following name is I/O device, and the file with the corresponding name cannot be created
+    # reference: https://superuser.com/questions/86999/why-cant-i-name-a-folder-or-file-con-in-windows
+    replace_names = ["CON", "PRN", "AUX", "NUL"]
+    replace_names += [f"COM{i}" for i in range(10)]
+    replace_names += [f"LPT{i}" for i in range(10)]
+
+    prefix = "_qlib_"
+    if str(code).upper() in replace_names:
+        code = prefix + str(code)
+
+    return code
+
+
+def fname_to_code(fname: str):
+    """file name to stock code
+
+    Parameters
+    ----------
+    fname: str
+    """
+    prefix = "_qlib_"
+    if fname.startswith(prefix):
+        fname = fname.lstrip(prefix)
+    return fname

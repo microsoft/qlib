@@ -11,7 +11,7 @@ from ...log import get_module_logger, TimeInspector
 from ...utils import get_module_by_module_path
 
 
-class Pipeline(object):
+class Pipeline:
 
     GLOBAL_BEST_PARAMS_NAME = "global_best_params.json"
 

@@ -48,6 +48,7 @@ Besides `provider_uri` and `region`, `qlib.init` has other parameters. The follo
         - ``qlib.config.REG_CN``: China stock market.
 
         Different modes will result in different trading limitations and costs.
+        The region is just `shortcuts for defining a batch of configurations <https://github.com/microsoft/qlib/blob/main/qlib/config.py#L239>`_. Users can set the key configurations manually if the existing region setting can't meet their requirements.
 - `redis_host`
     Type: str, optional parameter(default: "127.0.0.1"), host of `redis`
         The lock and cache mechanism relies on redis.
@@ -63,6 +64,7 @@ Besides `provider_uri` and `region`, `qlib.init` has other parameters. The follo
         If Qlib fails to connect redis via `redis_host` and `redis_port`, cache mechanism will not be used! Please refer to `Cache <../component/data.html#cache>`_ for details.
 - `exp_manager`
     Type: dict, optional parameter, the setting of `experiment manager` to be used in qlib. Users can specify an experiment manager class, as well as the tracking URI for all the experiments. However, please be aware that we only support input of a dictionary in the following style for `exp_manager`. For more information about `exp_manager`, users can refer to `Recorder: Experiment Management <../component/recorder.html>`_.
+    
     .. code-block:: Python
 
         # For example, if you want to set your tracking_uri to a <specific folder>, you can initialize qlib below
@@ -73,4 +75,16 @@ Besides `provider_uri` and `region`, `qlib.init` has other parameters. The follo
                 "uri": "python_execution_path/mlruns",
                 "default_exp_name": "Experiment",
             }
+        })
+- `mongo`
+    Type: dict, optional parameter, the setting of `MongoDB <https://www.mongodb.com/>`_ which will be used in some features such as `Task Management <../advanced/task_management.html>`_, with high performance and clustered processing. 
+    Users need to follow the steps in  `installation <https://www.mongodb.com/try/download/community>`_  to install MongoDB firstly and then access it via a URI.
+    Users can access mongodb with credential by setting "task_url"  to a string like `"mongodb://%s:%s@%s" % (user, pwd, host + ":" + port)`.
+
+    .. code-block:: Python
+
+        # For example, you can initialize qlib below
+        qlib.init(provider_uri=provider_uri, region=REG_CN, mongo={
+            "task_url": "mongodb://localhost:27017/",  # your mongo url
+            "task_db_name": "rolling_db", # the database name of Task Management
         })

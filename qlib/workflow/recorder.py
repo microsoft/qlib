@@ -1,14 +1,20 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-import mlflow
-import shutil, os, pickle, tempfile, codecs
+import os
+from qlib.utils.serial import Serializable
+import mlflow, logging
+import shutil, os, pickle, tempfile, codecs, pickle
 from pathlib import Path
 from datetime import datetime
-from ..utils.objm import FileManager
-from ..log import get_module_logger
 
-logger = get_module_logger("workflow", "INFO")
+from qlib.utils.exceptions import LoadObjectError
+from qlib.utils.paral import AsyncCaller
+from ..utils.objm import FileManager
+from ..log import TimeInspector, get_module_logger
+from mlflow.store.artifact.azure_blob_artifact_repo import AzureBlobArtifactRepository
+
+logger = get_module_logger("workflow", logging.INFO)
 
 
 class Recorder:
@@ -34,10 +40,13 @@ class Recorder:
         self.status = Recorder.STATUS_S
 
     def __repr__(self):
-        return str(self.info)
+        return "{name}(info={info})".format(name=self.__class__.__name__, info=self.info)
 
     def __str__(self):
         return str(self.info)
+
+    def __hash__(self) -> int:
+        return hash(self.info["id"])
 
     @property
     def info(self):
@@ -58,6 +67,8 @@ class Recorder:
         """
         Save objects such as prediction file or model checkpoints to the artifact URI. User
         can save object through keywords arguments (name:value).
+
+        Please refer to the docs of qlib.workflow:R.save_objects
 
         Parameters
         ----------
@@ -201,10 +212,7 @@ class MLflowRecorder(Recorder):
     def __init__(self, experiment_id, uri, name=None, mlflow_run=None):
         super(MLflowRecorder, self).__init__(experiment_id, name)
         self._uri = uri
-        self.artifact_uri = None
-        # set up file manager for saving objects
-        self.temp_dir = tempfile.mkdtemp()
-        self.fm = FileManager(Path(self.temp_dir).absolute())
+        self._artifact_uri = None
         self.client = mlflow.tracking.MlflowClient(tracking_uri=self._uri)
         # construct from mlflow run
         if mlflow_run is not None:
@@ -222,19 +230,69 @@ class MLflowRecorder(Recorder):
                 if mlflow_run.info.end_time is not None
                 else None
             )
+        self.async_log = None
+
+    def __repr__(self):
+        name = self.__class__.__name__
+        space_length = len(name) + 1
+        return "{name}(info={info},\n{space}uri={uri},\n{space}artifact_uri={artifact_uri},\n{space}client={client})".format(
+            name=name,
+            space=" " * space_length,
+            info=self.info,
+            uri=self.uri,
+            artifact_uri=self.artifact_uri,
+            client=self.client,
+        )
+
+    def __hash__(self) -> int:
+        return hash(self.info["id"])
+
+    def __eq__(self, o: object) -> bool:
+        if isinstance(o, MLflowRecorder):
+            return self.info["id"] == o.info["id"]
+        return False
+
+    @property
+    def uri(self):
+        return self._uri
+
+    @property
+    def artifact_uri(self):
+        return self._artifact_uri
+
+    def get_local_dir(self):
+        """
+        This function will return the directory path of this recorder.
+        """
+        if self.artifact_uri is not None:
+            local_dir_path = Path(self.artifact_uri.lstrip("file:")) / ".."
+            local_dir_path = str(local_dir_path.resolve())
+            if os.path.isdir(local_dir_path):
+                return local_dir_path
+            else:
+                raise RuntimeError("This recorder is not saved in the local file system.")
+
+        else:
+            raise Exception(
+                "Please make sure the recorder has been created and started properly before getting artifact uri."
+            )
 
     def start_run(self):
         # set the tracking uri
-        mlflow.set_tracking_uri(self._uri)
+        mlflow.set_tracking_uri(self.uri)
         # start the run
         run = mlflow.start_run(self.id, self.experiment_id, self.name)
         # save the run id and artifact_uri
         self.id = run.info.run_id
-        self.artifact_uri = run.info.artifact_uri
+        self._artifact_uri = run.info.artifact_uri
         self.start_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.status = Recorder.STATUS_R
         logger.info(f"Recorder {self.id} starts running under Experiment {self.experiment_id} ...")
 
+        # NOTE: making logging async.
+        # - This may cause delay when uploading results
+        # - The logging time may not be accurate
+        self.async_log = AsyncCaller()
         return run
 
     def end_run(self, status: str = Recorder.STATUS_S):
@@ -248,31 +306,65 @@ class MLflowRecorder(Recorder):
         self.end_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         if self.status != Recorder.STATUS_S:
             self.status = status
-        shutil.rmtree(self.temp_dir)
+        with TimeInspector.logt("waiting `async_log`"):
+            self.async_log.wait()
+        self.async_log = None
 
     def save_objects(self, local_path=None, artifact_path=None, **kwargs):
-        assert self._uri is not None, "Please start the experiment and recorder first before using recorder directly."
+        assert self.uri is not None, "Please start the experiment and recorder first before using recorder directly."
         if local_path is not None:
-            self.client.log_artifacts(self.id, local_path, artifact_path)
+            path = Path(local_path)
+            if path.is_dir():
+                self.client.log_artifacts(self.id, local_path, artifact_path)
+            else:
+                self.client.log_artifact(self.id, local_path, artifact_path)
         else:
+            temp_dir = Path(tempfile.mkdtemp()).resolve()
             for name, data in kwargs.items():
-                self.fm.save_obj(data, name)
-                self.client.log_artifact(self.id, self.fm.path / name, artifact_path)
+                path = temp_dir / name
+                Serializable.general_dump(data, path)
+                self.client.log_artifact(self.id, temp_dir / name, artifact_path)
+            shutil.rmtree(temp_dir)
 
     def load_object(self, name):
-        assert self._uri is not None, "Please start the experiment and recorder first before using recorder directly."
-        path = self.client.download_artifacts(self.id, name)
-        with Path(path).open("rb") as f:
-            return pickle.load(f)
+        """
+        Load object such as prediction file or model checkpoint in mlflow.
 
+        Args:
+            name (str): the object name
+
+        Raises:
+            LoadObjectError: if raise some exceptions when load the object
+
+        Returns:
+            object: the saved object in mlflow.
+        """
+        assert self.uri is not None, "Please start the experiment and recorder first before using recorder directly."
+
+        try:
+            path = self.client.download_artifacts(self.id, name)
+            with Path(path).open("rb") as f:
+                data = pickle.load(f)
+            ar = self.client._tracking_client._get_artifact_repo(self.id)
+            if isinstance(ar, AzureBlobArtifactRepository):
+                # for saving disk space
+                # For safety, only remove redundant file for specific ArtifactRepository
+                shutil.rmtree(Path(path).absolute().parent)
+            return data
+        except Exception as e:
+            raise LoadObjectError(message=str(e))
+
+    @AsyncCaller.async_dec(ac_attr="async_log")
     def log_params(self, **kwargs):
         for name, data in kwargs.items():
             self.client.log_param(self.id, name, data)
 
+    @AsyncCaller.async_dec(ac_attr="async_log")
     def log_metrics(self, step=None, **kwargs):
         for name, data in kwargs.items():
             self.client.log_metric(self.id, name, data, step=step)
 
+    @AsyncCaller.async_dec(ac_attr="async_log")
     def set_tags(self, **kwargs):
         for name, data in kwargs.items():
             self.client.set_tag(self.id, name, data)
@@ -290,7 +382,7 @@ class MLflowRecorder(Recorder):
             )
 
     def list_artifacts(self, artifact_path=None):
-        assert self._uri is not None, "Please start the experiment and recorder first before using recorder directly."
+        assert self.uri is not None, "Please start the experiment and recorder first before using recorder directly."
         artifacts = self.client.list_artifacts(self.id, artifact_path)
         return [art.path for art in artifacts]
 

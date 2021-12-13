@@ -2,6 +2,7 @@
 __pycache__/
 
 *.pyc
+*.pyd
 *.so
 *.ipynb
 .ipynb_checkpoints
@@ -19,6 +20,7 @@ dist/
 .nvimrc
 .vscode
 
+qlib/VERSION.txt
 qlib/data/_libs/expanding.cpp
 qlib/data/_libs/rolling.cpp
 examples/estimator/estimator_example/
@@ -33,3 +35,7 @@ tags
 
 .pytest_cache/
 .vscode/
+
+*.swp
+
+./pretrain

@@ -1,4 +1,4 @@
-name: Test 
+name: Test
 
 on:
   push:
@@ -12,8 +12,9 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [windows-latest, ubuntu-16.04, ubuntu-18.04, macos-latest]
-        python-version: [3.6, 3.7, 3.8]
+        os: [windows-latest, ubuntu-18.04, ubuntu-20.04]
+        # not supporting 3.6 due to annotations is not supported https://stackoverflow.com/a/52890129
+        python-version: [3.7, 3.8]
 
     steps:
     - uses: actions/checkout@v2
@@ -23,38 +24,43 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
-    - name: Install dependencies
-      run: |
-        pip install --upgrade cython
-        pip install numpy jupyter jupyter_contrib_nbextensions
-        pip install -U scipy scikit-learn # installing without this line will cause errors on GitHub Actions, while instsalling locally won't
-        python setup.py install
-
-    - name: Install Lightgbm for MacOS
-      if: runner.os == 'macOS'
-      run: |
-        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Microsoft/qlib/main/.github/brew_install.sh)"
-        HOMEBREW_NO_AUTO_UPDATE=1 brew install lightgbm
-
-    - name: Install test dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install black pytest
-
     - name: Lint with Black
       run: |
-        cd ..
-        python -m black qlib -l 120 --check --diff
+        pip install --upgrade pip
+        pip install black wheel
+        black qlib -l 120 --check --diff
 
-    - name: Unit tests with Pytest
+    - name: Install Qlib with pip
       run: |
-        cd tests
-        pytest . --durations=0
+        pip install numpy==1.19.5 ruamel.yaml
+        pip install pyqlib --ignore-installed 
 
     - name: Test data downloads
       run: |
         python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/cn_data --interval 1d --region cn
 
-    - name: Test workflow by config
+    - name: Test workflow by config (install from pip)
       run: |
-        qrun examples/benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml 
+        python qlib/workflow/cli.py examples/benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml
+        python -m pip uninstall -y pyqlib
+
+     # Test Qlib installed from source
+    - name: Install Qlib from source
+      run: |
+        pip install --upgrade cython jupyter jupyter_contrib_nbextensions numpy scipy scikit-learn # installing without this line will cause errors on GitHub Actions, while instsalling locally won't
+        pip install -e .
+
+    - name: Install test dependencies
+      run: |
+        pip install --upgrade pip
+        pip install black pytest
+
+    - name: Unit tests with Pytest
+      run: |
+        cd tests
+        python -m pytest . --durations=10
+
+    - name: Test workflow by config (install from source)
+      run: |
+        python qlib/workflow/cli.py examples/benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml
+      

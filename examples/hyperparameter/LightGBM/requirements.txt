@@ -1,0 +1,5 @@
+pandas==1.1.2
+numpy==1.17.4
+lightgbm==3.1.0
+optuna==2.7.0
+optuna-dashboard==0.4.1

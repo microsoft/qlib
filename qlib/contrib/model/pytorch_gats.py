@@ -8,20 +8,15 @@ from __future__ import print_function
 import os
 import numpy as np
 import pandas as pd
+from typing import Text, Union
 import copy
-from sklearn.metrics import roc_auc_score, mean_squared_error
-import logging
-from ...utils import (
-    unpack_archive_with_buffer,
-    save_multiple_parts_file,
-    create_save_path,
-    drop_nan_by_y_index,
-)
-from ...log import get_module_logger, TimeInspector
+from ...utils import get_or_create_path
+from ...log import get_module_logger
 import torch
 import torch.nn as nn
 import torch.optim as optim
 
+from .pytorch_utils import count_parameters
 from ...model.base import Model
 from ...data.dataset import DatasetH
 from ...data.dataset.handler import DataHandlerLP
@@ -42,8 +37,8 @@ class GATs(Model):
         the evaluate metric used in early stop
     optimizer : str
         optimizer name
-    GPU : str
-        the GPU ID(s) used for training
+    GPU : int
+        the GPU ID used for training
     """
 
     def __init__(
@@ -58,10 +53,9 @@ class GATs(Model):
         early_stop=20,
         loss="mse",
         base_model="GRU",
-        with_pretrain=True,
         model_path=None,
         optimizer="adam",
-        GPU="0",
+        GPU=0,
         seed=None,
         **kwargs
     ):
@@ -81,10 +75,8 @@ class GATs(Model):
         self.optimizer = optimizer.lower()
         self.loss = loss
         self.base_model = base_model
-        self.with_pretrain = with_pretrain
         self.model_path = model_path
-        self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() else "cpu")
-        self.use_gpu = torch.cuda.is_available()
+        self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
         self.seed = seed
 
         self.logger.info(
@@ -100,9 +92,8 @@ class GATs(Model):
             "\noptimizer : {}"
             "\nloss_type : {}"
             "\nbase_model : {}"
-            "\nwith_pretrain : {}"
             "\nmodel_path : {}"
-            "\nvisible_GPU : {}"
+            "\ndevice : {}"
             "\nuse_GPU : {}"
             "\nseed : {}".format(
                 d_feat,
@@ -116,9 +107,8 @@ class GATs(Model):
                 optimizer.lower(),
                 loss,
                 base_model,
-                with_pretrain,
                 model_path,
-                GPU,
+                self.device,
                 self.use_gpu,
                 seed,
             )
@@ -135,6 +125,9 @@ class GATs(Model):
             dropout=self.dropout,
             base_model=self.base_model,
         )
+        self.logger.info("model:\n{:}".format(self.GAT_model))
+        self.logger.info("model size: {:.4f} MB".format(count_parameters(self.GAT_model)))
+
         if optimizer.lower() == "adam":
             self.train_optimizer = optim.Adam(self.GAT_model.parameters(), lr=self.lr)
         elif optimizer.lower() == "gd":
@@ -142,8 +135,12 @@ class GATs(Model):
         else:
             raise NotImplementedError("optimizer {} is not supported!".format(optimizer))
 
-        self._fitted = False
+        self.fitted = False
         self.GAT_model.to(self.device)
+
+    @property
+    def use_gpu(self):
+        return self.device != torch.device("cpu")
 
     def mse(self, pred, label):
         loss = (pred - label) ** 2
@@ -232,7 +229,6 @@ class GATs(Model):
         self,
         dataset: DatasetH,
         evals_result=dict(),
-        verbose=True,
         save_path=None,
     ):
 
@@ -241,12 +237,13 @@ class GATs(Model):
             col_set=["feature", "label"],
             data_key=DataHandlerLP.DK_L,
         )
+        if df_train.empty or df_valid.empty:
+            raise ValueError("Empty data from dataset, please check your dataset config.")
 
         x_train, y_train = df_train["feature"], df_train["label"]
         x_valid, y_valid = df_valid["feature"], df_valid["label"]
 
-        if save_path == None:
-            save_path = create_save_path(save_path)
+        save_path = get_or_create_path(save_path)
         stop_steps = 0
         best_score = -np.inf
         best_epoch = 0
@@ -254,28 +251,26 @@ class GATs(Model):
         evals_result["valid"] = []
 
         # load pretrained base_model
-        if self.with_pretrain:
-            if self.model_path == None:
-                raise ValueError("the path of the pretrained model should be given first!")
-            self.logger.info("Loading pretrained model...")
-            if self.base_model == "LSTM":
-                pretrained_model = LSTMModel()
-                pretrained_model.load_state_dict(torch.load(self.model_path))
-            elif self.base_model == "GRU":
-                pretrained_model = GRUModel()
-                pretrained_model.load_state_dict(torch.load(self.model_path))
-            else:
-                raise ValueError("unknown base model name `%s`" % self.base_model)
+        if self.base_model == "LSTM":
+            pretrained_model = LSTMModel()
+        elif self.base_model == "GRU":
+            pretrained_model = GRUModel()
+        else:
+            raise ValueError("unknown base model name `%s`" % self.base_model)
 
-            model_dict = self.GAT_model.state_dict()
-            pretrained_dict = {k: v for k, v in pretrained_model.state_dict().items() if k in model_dict}
-            model_dict.update(pretrained_dict)
-            self.GAT_model.load_state_dict(model_dict)
-            self.logger.info("Loading pretrained model Done...")
+        if self.model_path is not None:
+            self.logger.info("Loading pretrained model...")
+            pretrained_model.load_state_dict(torch.load(self.model_path))
+
+        model_dict = self.GAT_model.state_dict()
+        pretrained_dict = {k: v for k, v in pretrained_model.state_dict().items() if k in model_dict}
+        model_dict.update(pretrained_dict)
+        self.GAT_model.load_state_dict(model_dict)
+        self.logger.info("Loading pretrained model Done...")
 
         # train
         self.logger.info("training...")
-        self._fitted = True
+        self.fitted = True
 
         for step in range(self.n_epochs):
             self.logger.info("Epoch%d:", step)
@@ -306,11 +301,11 @@ class GATs(Model):
         if self.use_gpu:
             torch.cuda.empty_cache()
 
-    def predict(self, dataset):
-        if not self._fitted:
+    def predict(self, dataset: DatasetH, segment: Union[Text, slice] = "test"):
+        if not self.fitted:
             raise ValueError("model is not fitted yet!")
 
-        x_test = dataset.prepare("test", col_set="feature")
+        x_test = dataset.prepare(segment, col_set="feature")
         index = x_test.index
         self.GAT_model.eval()
         x_values = x_test.values
@@ -324,10 +319,7 @@ class GATs(Model):
             x_batch = torch.from_numpy(x_values[batch]).float().to(self.device)
 
             with torch.no_grad():
-                if self.use_gpu:
-                    pred = self.GAT_model(x_batch).detach().cpu().numpy()
-                else:
-                    pred = self.GAT_model(x_batch).detach().numpy()
+                pred = self.GAT_model(x_batch).detach().cpu().numpy()
 
             preds.append(pred)
 

@@ -19,7 +19,7 @@ from hyperopt import fmin, tpe
 from hyperopt import STATUS_OK, STATUS_FAIL
 
 
-class Tuner(object):
+class Tuner:
     def __init__(self, tuner_config, optim_config):
 
         self.logger = get_module_logger("Tuner", sh_level=logging.INFO)
@@ -46,6 +46,7 @@ class Tuner(object):
             space=self.space,
             algo=tpe.suggest,
             max_evals=self.max_evals,
+            show_progressbar=False,
         )
         self.logger.info("Local best params: {} ".format(self.best_params))
         TimeInspector.log_cost_time(

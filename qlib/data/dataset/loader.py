@@ -1,16 +1,15 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-import os
 import abc
 import warnings
-import numpy as np
 import pandas as pd
 
-from typing import Tuple, Union
+from typing import Tuple, Union, List
 
 from qlib.data import D
-from qlib.utils import load_dataset
+from qlib.utils import load_dataset, init_instance_by_config, time_to_slc_point
+from qlib.log import get_module_logger
 
 
 class DataLoader(abc.ABC):
@@ -59,11 +58,11 @@ class DLWParser(DataLoader):
     Extracting this class so that QlibDataLoader and other dataloaders(such as QdbDataLoader) can share the fields.
     """
 
-    def __init__(self, config: Tuple[list, tuple, dict]):
+    def __init__(self, config: Union[list, tuple, dict]):
         """
         Parameters
         ----------
-        config : Tuple[list, tuple, dict]
+        config : Union[list, tuple, dict]
             Config will be used to describe the fields and column names
 
             .. code-block::
@@ -76,6 +75,7 @@ class DLWParser(DataLoader):
                 <config> := <fields_info>
 
                 <fields_info> := ["expr", ...] | (["expr", ...], ["col_name", ...])
+                # NOTE: list or tuple will be treated as the things when parsing
         """
         self.is_group = isinstance(config, dict)
 
@@ -84,17 +84,31 @@ class DLWParser(DataLoader):
         else:
             self.fields = self._parse_fields_info(config)
 
-    def _parse_fields_info(self, fields_info: Tuple[list, tuple]) -> Tuple[list, list]:
-        if isinstance(fields_info, list):
+    def _parse_fields_info(self, fields_info: Union[list, tuple]) -> Tuple[list, list]:
+        if len(fields_info) == 0:
+            raise ValueError("The size of fields must be greater than 0")
+
+        if not isinstance(fields_info, (list, tuple)):
+            raise TypeError("Unsupported type")
+
+        if isinstance(fields_info[0], str):
             exprs = names = fields_info
-        elif isinstance(fields_info, tuple):
+        elif isinstance(fields_info[0], (list, tuple)):
             exprs, names = fields_info
         else:
             raise NotImplementedError(f"This type of input is not supported")
         return exprs, names
 
     @abc.abstractmethod
-    def load_group_df(self, instruments, exprs: list, names: list, start_time=None, end_time=None) -> pd.DataFrame:
+    def load_group_df(
+        self,
+        instruments,
+        exprs: list,
+        names: list,
+        start_time: Union[str, pd.Timestamp] = None,
+        end_time: Union[str, pd.Timestamp] = None,
+        gp_name: str = None,
+    ) -> pd.DataFrame:
         """
         load the dataframe for specific group
 
@@ -118,7 +132,7 @@ class DLWParser(DataLoader):
         if self.is_group:
             df = pd.concat(
                 {
-                    grp: self.load_group_df(instruments, exprs, names, start_time, end_time)
+                    grp: self.load_group_df(instruments, exprs, names, start_time, end_time, grp)
                     for grp, (exprs, names) in self.fields.items()
                 },
                 axis=1,
@@ -132,7 +146,14 @@ class DLWParser(DataLoader):
 class QlibDataLoader(DLWParser):
     """Same as QlibDataLoader. The fields can be define by config"""
 
-    def __init__(self, config: Tuple[list, tuple, dict], filter_pipe=None):
+    def __init__(
+        self,
+        config: Tuple[list, tuple, dict],
+        filter_pipe: List = None,
+        swap_level: bool = True,
+        freq: Union[str, dict] = "day",
+        inst_processor: dict = None,
+    ):
         """
         Parameters
         ----------
@@ -140,11 +161,43 @@ class QlibDataLoader(DLWParser):
             Please refer to the doc of DLWParser
         filter_pipe :
             Filter pipe for the instruments
+        swap_level :
+            Whether to swap level of MultiIndex
+        freq:  dict or str
+            If type(config) == dict and type(freq) == str, load config data using freq.
+            If type(config) == dict and type(freq) == dict, load config[<group_name>] data using freq[<group_name>]
+        inst_processor: dict
+            If inst_processor is not None and type(config) == dict; load config[<group_name>] data using inst_processor[<group_name>]
         """
         self.filter_pipe = filter_pipe
+        self.swap_level = swap_level
+        self.freq = freq
+
+        # sample
+        self.inst_processor = inst_processor if inst_processor is not None else {}
+        assert isinstance(self.inst_processor, dict), f"inst_processor(={self.inst_processor}) must be dict"
+
         super().__init__(config)
 
-    def load_group_df(self, instruments, exprs: list, names: list, start_time=None, end_time=None) -> pd.DataFrame:
+        if self.is_group:
+            # check sample config
+            if isinstance(freq, dict):
+                for _gp in config.keys():
+                    if _gp not in freq:
+                        raise ValueError(f"freq(={freq}) missing group(={_gp})")
+                assert (
+                    self.inst_processor
+                ), f"freq(={self.freq}), inst_processor(={self.inst_processor}) cannot be None/empty"
+
+    def load_group_df(
+        self,
+        instruments,
+        exprs: list,
+        names: list,
+        start_time: Union[str, pd.Timestamp] = None,
+        end_time: Union[str, pd.Timestamp] = None,
+        gp_name: str = None,
+    ) -> pd.DataFrame:
         if instruments is None:
             warnings.warn("`instruments` is not set, will load all stocks")
             instruments = "all"
@@ -153,9 +206,13 @@ class QlibDataLoader(DLWParser):
         elif self.filter_pipe is not None:
             warnings.warn("`filter_pipe` is not None, but it will not be used with `instruments` as list")
 
-        df = D.features(instruments, exprs, start_time, end_time)
+        freq = self.freq[gp_name] if isinstance(self.freq, dict) else self.freq
+        df = D.features(
+            instruments, exprs, start_time, end_time, freq=freq, inst_processors=self.inst_processor.get(gp_name, [])
+        )
         df.columns = names
-        df = df.swaplevel().sort_index()  # NOTE: always return <datetime, instrument>
+        if self.swap_level:
+            df = df.swaplevel().sort_index()  # NOTE: if swaplevel, return <datetime, instrument>
         return df
 
 
@@ -177,6 +234,10 @@ class StaticDataLoader(DataLoader):
         self.join = join
         self._data = None
 
+    def __getstate__(self) -> dict:
+        # avoid pickling `self._data`
+        return {k: v for k, v in self.__dict__.items() if not k.startswith("_")}
+
     def load(self, instruments=None, start_time=None, end_time=None) -> pd.DataFrame:
         self._maybe_load_raw_data()
         if instruments is None:
@@ -185,7 +246,10 @@ class StaticDataLoader(DataLoader):
             df = self._data.loc(axis=0)[:, instruments]
         if start_time is None and end_time is None:
             return df  # NOTE: avoid copy by loc
-        return df.loc[pd.Timestamp(start_time) : pd.Timestamp(end_time)]
+        # pd.Timestamp(None) == NaT, use NaT as index can not fetch correct thing, so do not change None.
+        start_time = time_to_slc_point(start_time)
+        end_time = time_to_slc_point(end_time)
+        return df.loc[start_time:end_time]
 
     def _maybe_load_raw_data(self):
         if self._data is not None:
@@ -196,3 +260,68 @@ class StaticDataLoader(DataLoader):
             join=self.join,
         )
         self._data.sort_index(inplace=True)
+
+
+class DataLoaderDH(DataLoader):
+    """DataLoaderDH
+    DataLoader based on (D)ata (H)andler
+    It is designed to load multiple data from data handler
+    - If you just want to load data from single datahandler, you can write them in single data handler
+
+    TODO: What make this module not that easy to use.
+    - For online scenario
+        - The underlayer data handler should be configured. But data loader doesn't provide such interface & hook.
+    """
+
+    def __init__(self, handler_config: dict, fetch_kwargs: dict = {}, is_group=False):
+        """
+        Parameters
+        ----------
+        handler_config : dict
+            handler_config will be used to describe the handlers
+
+            .. code-block::
+
+                <handler_config> := {
+                    "group_name1": <handler>
+                    "group_name2": <handler>
+                }
+                or
+                <handler_config> := <handler>
+                <handler> := DataHandler Instance | DataHandler Config
+
+        fetch_kwargs : dict
+            fetch_kwargs will be used to describe the different arguments of fetch method, such as col_set, squeeze, data_key, etc.
+
+        is_group: bool
+            is_group will be used to describe whether the key of handler_config is group
+
+        """
+        from qlib.data.dataset.handler import DataHandler
+
+        if is_group:
+            self.handlers = {
+                grp: init_instance_by_config(config, accept_types=DataHandler) for grp, config in handler_config.items()
+            }
+        else:
+            self.handlers = init_instance_by_config(handler_config, accept_types=DataHandler)
+
+        self.is_group = is_group
+        self.fetch_kwargs = {"col_set": DataHandler.CS_RAW}
+        self.fetch_kwargs.update(fetch_kwargs)
+
+    def load(self, instruments=None, start_time=None, end_time=None) -> pd.DataFrame:
+        if instruments is not None:
+            get_module_logger(self.__class__.__name__).warning(f"instruments[{instruments}] is ignored")
+
+        if self.is_group:
+            df = pd.concat(
+                {
+                    grp: dh.fetch(selector=slice(start_time, end_time), level="datetime", **self.fetch_kwargs)
+                    for grp, dh in self.handlers.items()
+                },
+                axis=1,
+            )
+        else:
+            df = self.handlers.fetch(selector=slice(start_time, end_time), level="datetime", **self.fetch_kwargs)
+        return df

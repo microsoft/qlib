@@ -3,7 +3,6 @@
 
 import math
 import importlib
-from pathlib import Path
 from typing import Iterable
 
 import pandas as pd
@@ -14,11 +13,9 @@ import plotly.graph_objs as go
 from plotly.subplots import make_subplots
 from plotly.figure_factory import create_distplot
 
-from ...utils import get_module_by_module_path
 
-
-class BaseGraph(object):
-    """"""
+class BaseGraph:
+    """ """
 
     _name = None
 
@@ -138,7 +135,7 @@ class BaseGraph(object):
         :return:
         """
         _figure = go.Figure(data=self.data, layout=self._get_layout())
-        # NOTE: using default 3.x theme
+        # NOTE: Use the default theme from plotly version 3.x, template=None
         _figure["layout"].update(template=None)
         return _figure
 
@@ -161,7 +158,7 @@ class DistplotGraph(BaseGraph):
         """
         _t_df = self._df.dropna()
         _data_list = [_t_df[_col] for _col in self._name_dict]
-        _label_list = [_name for _name in self._name_dict.values()]
+        _label_list = list(self._name_dict.values())
         _fig = create_distplot(_data_list, _label_list, show_rug=False, **self._graph_kwargs)
 
         return _fig["data"]
@@ -204,7 +201,7 @@ class HistogramGraph(BaseGraph):
         return _data
 
 
-class SubplotsGraph(object):
+class SubplotsGraph:
     """Create subplots same as df.plot(subplots=True)
 
     Simple package for `plotly.tools.subplots`
@@ -378,8 +375,9 @@ class SubplotsGraph(object):
             for k, v in self._sub_graph_layout.items():
                 self._figure["layout"][k].update(v)
 
-        # NOTE: using default 3.x theme
-        self._figure["layout"].update(self._layout, template=None)
+        # NOTE: Use the default theme from plotly version 3.x: template=None
+        self._figure["layout"].update(template=None)
+        self._figure["layout"].update(self._layout)
 
     @property
     def figure(self):

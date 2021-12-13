@@ -3,7 +3,7 @@
 
 from ...data.dataset.handler import DataHandlerLP
 from ...data.dataset.processor import Processor
-from ...utils import get_cls_kwargs
+from ...utils import get_callable_kwargs
 from ...data.dataset import processor as processor_module
 from ...log import TimeInspector
 from inspect import getfullargspec
@@ -14,7 +14,7 @@ def check_transform_proc(proc_l, fit_start_time, fit_end_time):
     new_l = []
     for p in proc_l:
         if not isinstance(p, Processor):
-            klass, pkwargs = get_cls_kwargs(p, processor_module)
+            klass, pkwargs = get_callable_kwargs(p, processor_module)
             args = getfullargspec(klass).args
             if "fit_start_time" in args and "fit_end_time" in args:
                 assert (
@@ -26,7 +26,10 @@ def check_transform_proc(proc_l, fit_start_time, fit_end_time):
                         "fit_end_time": fit_end_time,
                     }
                 )
-            new_l.append({"class": klass.__name__, "kwargs": pkwargs})
+            proc_config = {"class": klass.__name__, "kwargs": pkwargs}
+            if isinstance(p, dict) and "module_path" in p:
+                proc_config["module_path"] = p["module_path"]
+            new_l.append(proc_config)
         else:
             new_l.append(p)
     return new_l
@@ -49,10 +52,13 @@ class Alpha360(DataHandlerLP):
         instruments="csi500",
         start_time=None,
         end_time=None,
+        freq="day",
         infer_processors=_DEFAULT_INFER_PROCESSORS,
         learn_processors=_DEFAULT_LEARN_PROCESSORS,
         fit_start_time=None,
         fit_end_time=None,
+        filter_pipe=None,
+        inst_processor=None,
         **kwargs,
     ):
         infer_processors = check_transform_proc(infer_processors, fit_start_time, fit_end_time)
@@ -65,13 +71,16 @@ class Alpha360(DataHandlerLP):
                     "feature": self.get_feature_config(),
                     "label": kwargs.get("label", self.get_label_config()),
                 },
+                "filter_pipe": filter_pipe,
+                "freq": freq,
+                "inst_processor": inst_processor,
             },
         }
 
         super().__init__(
-            instruments,
-            start_time,
-            end_time,
+            instruments=instruments,
+            start_time=start_time,
+            end_time=end_time,
             data_loader=data_loader,
             learn_processors=learn_processors,
             infer_processors=infer_processors,
@@ -130,11 +139,14 @@ class Alpha158(DataHandlerLP):
         instruments="csi500",
         start_time=None,
         end_time=None,
+        freq="day",
         infer_processors=[],
         learn_processors=_DEFAULT_LEARN_PROCESSORS,
         fit_start_time=None,
         fit_end_time=None,
         process_type=DataHandlerLP.PTYPE_A,
+        filter_pipe=None,
+        inst_processor=None,
         **kwargs,
     ):
         infer_processors = check_transform_proc(infer_processors, fit_start_time, fit_end_time)
@@ -143,13 +155,19 @@ class Alpha158(DataHandlerLP):
         data_loader = {
             "class": "QlibDataLoader",
             "kwargs": {
-                "config": {"feature": self.get_feature_config(), "label": kwargs.get("label", self.get_label_config())},
+                "config": {
+                    "feature": self.get_feature_config(),
+                    "label": kwargs.get("label", self.get_label_config()),
+                },
+                "filter_pipe": filter_pipe,
+                "freq": freq,
+                "inst_processor": inst_processor,
             },
         }
         super().__init__(
-            instruments,
-            start_time,
-            end_time,
+            instruments=instruments,
+            start_time=start_time,
+            end_time=end_time,
             data_loader=data_loader,
             infer_processors=infer_processors,
             learn_processors=learn_processors,

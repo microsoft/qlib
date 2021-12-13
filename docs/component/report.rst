@@ -101,7 +101,7 @@ Graphical Result
     - Axis Y: 
         - `ic`
             The `Pearson correlation coefficient` series between `label` and `prediction score`.
-            In the above example, the `label` is formulated as `Ref($close, -1)/$close - 1`. Please refer to `Data Featrue <data.html#feature>`_ for more details.
+            In the above example, the `label` is formulated as `Ref($close, -1)/$close - 1`. Please refer to `Data Feature <data.html#feature>`_ for more details.
                 
         - `rank_ic`
             The `Spearman's rank correlation coefficient` series between `label` and `prediction score`.

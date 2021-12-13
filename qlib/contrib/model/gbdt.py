@@ -4,26 +4,30 @@
 import numpy as np
 import pandas as pd
 import lightgbm as lgb
-
+from typing import Text, Union
 from ...model.base import ModelFT
 from ...data.dataset import DatasetH
 from ...data.dataset.handler import DataHandlerLP
+from ...model.interpret.base import LightGBMFInt
 
 
-class LGBModel(ModelFT):
+class LGBModel(ModelFT, LightGBMFInt):
     """LightGBM Model"""
 
-    def __init__(self, loss="mse", **kwargs):
+    def __init__(self, loss="mse", early_stopping_rounds=50, **kwargs):
         if loss not in {"mse", "binary"}:
             raise NotImplementedError
         self.params = {"objective": loss, "verbosity": -1}
         self.params.update(kwargs)
+        self.early_stopping_rounds = early_stopping_rounds
         self.model = None
 
     def _prepare_data(self, dataset: DatasetH):
         df_train, df_valid = dataset.prepare(
             ["train", "valid"], col_set=["feature", "label"], data_key=DataHandlerLP.DK_L
         )
+        if df_train.empty or df_valid.empty:
+            raise ValueError("Empty data from dataset, please check your dataset config.")
         x_train, y_train = df_train["feature"], df_train["label"]
         x_valid, y_valid = df_valid["feature"], df_valid["label"]
 
@@ -33,15 +37,15 @@ class LGBModel(ModelFT):
         else:
             raise ValueError("LightGBM doesn't support multi-label training")
 
-        dtrain = lgb.Dataset(x_train.values, label=y_train)
-        dvalid = lgb.Dataset(x_valid.values, label=y_valid)
+        dtrain = lgb.Dataset(x_train, label=y_train)
+        dvalid = lgb.Dataset(x_valid, label=y_valid)
         return dtrain, dvalid
 
     def fit(
         self,
         dataset: DatasetH,
         num_boost_round=1000,
-        early_stopping_rounds=50,
+        early_stopping_rounds=None,
         verbose_eval=20,
         evals_result=dict(),
         **kwargs
@@ -53,7 +57,9 @@ class LGBModel(ModelFT):
             num_boost_round=num_boost_round,
             valid_sets=[dtrain, dvalid],
             valid_names=["train", "valid"],
-            early_stopping_rounds=early_stopping_rounds,
+            early_stopping_rounds=(
+                self.early_stopping_rounds if early_stopping_rounds is None else early_stopping_rounds
+            ),
             verbose_eval=verbose_eval,
             evals_result=evals_result,
             **kwargs
@@ -61,10 +67,10 @@ class LGBModel(ModelFT):
         evals_result["train"] = list(evals_result["train"].values())[0]
         evals_result["valid"] = list(evals_result["valid"].values())[0]
 
-    def predict(self, dataset):
+    def predict(self, dataset: DatasetH, segment: Union[Text, slice] = "test"):
         if self.model is None:
             raise ValueError("model is not fitted yet!")
-        x_test = dataset.prepare("test", col_set="feature", data_key=DataHandlerLP.DK_I)
+        x_test = dataset.prepare(segment, col_set="feature", data_key=DataHandlerLP.DK_I)
         return pd.Series(self.model.predict(x_test.values), index=x_test.index)
 
     def finetune(self, dataset: DatasetH, num_boost_round=10, verbose_eval=20):
@@ -82,6 +88,8 @@ class LGBModel(ModelFT):
         """
         # Based on existing model and finetune by train more rounds
         dtrain, _ = self._prepare_data(dataset)
+        if dtrain.empty:
+            raise ValueError("Empty data from dataset, please check your dataset config.")
         self.model = lgb.train(
             self.params,
             dtrain,

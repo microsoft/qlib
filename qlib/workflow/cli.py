@@ -16,7 +16,7 @@ def get_path_list(path):
     if isinstance(path, str):
         return [path]
     else:
-        return [p for p in path]
+        return list(path)
 
 
 def sys_config(config, config_path):
@@ -41,10 +41,10 @@ def sys_config(config, config_path):
         sys.path.append(str(Path(config_path).parent.resolve().absolute() / p))
 
 
-# worflow handler function
+# workflow handler function
 def workflow(config_path, experiment_name="workflow", uri_folder="mlruns"):
     with open(config_path) as fp:
-        config = yaml.load(fp, Loader=yaml.Loader)
+        config = yaml.safe_load(fp)
 
     # config the `sys` section
     sys_config(config, config_path)
@@ -53,10 +53,11 @@ def workflow(config_path, experiment_name="workflow", uri_folder="mlruns"):
     exp_manager["kwargs"]["uri"] = "file:" + str(Path(os.getcwd()).resolve() / uri_folder)
     qlib.init(**config.get("qlib_init"), exp_manager=exp_manager)
 
-    task_train(config.get("task"), experiment_name=experiment_name)
+    recorder = task_train(config.get("task"), experiment_name=experiment_name)
+    recorder.save_objects(config=config)
 
 
-# function to run worklflow by config
+# function to run workflow by config
 def run():
     fire.Fire(workflow)
 

@@ -6,10 +6,10 @@ import pickle
 import yaml
 import pandas as pd
 from ...data import D
+from ...config import C
 from ...log import get_module_logger
-from ...utils import get_module_by_module_path, init_instance_by_config
 from ...utils import get_next_trading_date
-from ..backtest.exchange import Exchange
+from ...backtest.exchange import Exchange
 
 log = get_module_logger("utils")
 
@@ -42,7 +42,7 @@ def save_instance(instance, file_path):
     """
     file_path = pathlib.Path(file_path)
     with file_path.open("wb") as fr:
-        pickle.dump(instance, fr)
+        pickle.dump(instance, fr, C.dump_protocol_version)
 
 
 def create_user_folder(path):
@@ -88,7 +88,7 @@ def prepare(um, today, user_id, exchange_config=None):
     dates.append(get_next_trading_date(dates[-1], future=True))
     if exchange_config:
         with pathlib.Path(exchange_config).open("r") as fp:
-            exchange_paras = yaml.load(fp)
+            exchange_paras = yaml.safe_load(fp)
     else:
         exchange_paras = {}
     trade_exchange = Exchange(trade_dates=dates, **exchange_paras)

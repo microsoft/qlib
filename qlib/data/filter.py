@@ -355,6 +355,7 @@ class ExpressionDFilter(SeriesDFilter):
         all_filter_series = _features[rule_expression_field_name]
         return all_filter_series
 
+    @staticmethod
     def from_config(config):
         return ExpressionDFilter(
             rule_expression=config["rule_expression"],

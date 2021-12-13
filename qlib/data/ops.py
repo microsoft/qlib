@@ -6,68 +6,28 @@ from __future__ import division
 from __future__ import print_function
 
 import sys
+import abc
 import numpy as np
 import pandas as pd
 
+from typing import Union, List, Type
 from scipy.stats import percentileofscore
 
-from .base import Expression, ExpressionOps
+from .base import Expression, ExpressionOps, Feature
+
+from ..config import C
 from ..log import get_module_logger
+from ..utils import get_callable_kwargs
 
 try:
     from ._libs.rolling import rolling_slope, rolling_rsquare, rolling_resi
     from ._libs.expanding import expanding_slope, expanding_rsquare, expanding_resi
-except ImportError as err:
-    print("Do not import qlib package in the repository directory!")
+except ImportError:
+    print(
+        "#### Do not import qlib package in the repository directory in case of importing qlib from . without compiling #####"
+    )
     raise
 
-__all__ = (
-    "Ref",
-    "Max",
-    "Min",
-    "Sum",
-    "Mean",
-    "Std",
-    "Var",
-    "Skew",
-    "Kurt",
-    "Med",
-    "Mad",
-    "Slope",
-    "Rsquare",
-    "Resi",
-    "Rank",
-    "Quantile",
-    "Count",
-    "EMA",
-    "WMA",
-    "Corr",
-    "Cov",
-    "Delta",
-    "Abs",
-    "Sign",
-    "Log",
-    "Power",
-    "Add",
-    "Sub",
-    "Mul",
-    "Div",
-    "Greater",
-    "Less",
-    "And",
-    "Or",
-    "Not",
-    "Gt",
-    "Ge",
-    "Lt",
-    "Le",
-    "Eq",
-    "Ne",
-    "Mask",
-    "IdxMax",
-    "IdxMin",
-    "If",
-)
 
 np.seterr(invalid="ignore")
 
@@ -81,8 +41,6 @@ class ElemOperator(ExpressionOps):
     ----------
     feature : Expression
         feature instance
-    func : str
-        feature operation method
 
     Returns
     ----------
@@ -90,16 +48,11 @@ class ElemOperator(ExpressionOps):
         feature operation output
     """
 
-    def __init__(self, feature, func):
+    def __init__(self, feature):
         self.feature = feature
-        self.func = func
 
     def __str__(self):
         return "{}({})".format(type(self).__name__, self.feature)
-
-    def _load_internal(self, instrument, start_index, end_index, freq):
-        series = self.feature.load(instrument, start_index, end_index, freq)
-        return getattr(np, self.func)(series)
 
     def get_longest_back_rolling(self):
         return self.feature.get_longest_back_rolling()
@@ -108,7 +61,32 @@ class ElemOperator(ExpressionOps):
         return self.feature.get_extended_window_size()
 
 
-class Abs(ElemOperator):
+class NpElemOperator(ElemOperator):
+    """Numpy Element-wise Operator
+
+    Parameters
+    ----------
+    feature : Expression
+        feature instance
+    func : str
+        numpy feature operation method
+
+    Returns
+    ----------
+    Expression
+        feature operation output
+    """
+
+    def __init__(self, feature, func):
+        self.func = func
+        super(NpElemOperator, self).__init__(feature)
+
+    def _load_internal(self, instrument, start_index, end_index, freq):
+        series = self.feature.load(instrument, start_index, end_index, freq)
+        return getattr(np, self.func)(series)
+
+
+class Abs(NpElemOperator):
     """Feature Absolute Value
 
     Parameters
@@ -126,7 +104,7 @@ class Abs(ElemOperator):
         super(Abs, self).__init__(feature, "abs")
 
 
-class Sign(ElemOperator):
+class Sign(NpElemOperator):
     """Feature Sign
 
     Parameters
@@ -143,8 +121,17 @@ class Sign(ElemOperator):
     def __init__(self, feature):
         super(Sign, self).__init__(feature, "sign")
 
+    def _load_internal(self, instrument, start_index, end_index, freq):
+        """
+        To avoid error raised by bool type input, we transform the data into float32.
+        """
+        series = self.feature.load(instrument, start_index, end_index, freq)
+        # TODO:  More precision types should be configurable
+        series = series.astype(np.float32)
+        return getattr(np, self.func)(series)
 
-class Log(ElemOperator):
+
+class Log(NpElemOperator):
     """Feature Log
 
     Parameters
@@ -162,7 +149,7 @@ class Log(ElemOperator):
         super(Log, self).__init__(feature, "log")
 
 
-class Power(ElemOperator):
+class Power(NpElemOperator):
     """Feature Power
 
     Parameters
@@ -188,7 +175,7 @@ class Power(ElemOperator):
         return getattr(np, self.func)(series, self.exponent)
 
 
-class Mask(ElemOperator):
+class Mask(NpElemOperator):
     """Feature Mask
 
     Parameters
@@ -215,7 +202,7 @@ class Mask(ElemOperator):
         return self.feature.load(self.instrument, start_index, end_index, freq)
 
 
-class Not(ElemOperator):
+class Not(NpElemOperator):
     """Not Operator
 
     Parameters
@@ -254,27 +241,12 @@ class PairOperator(ExpressionOps):
         two features' operation output
     """
 
-    def __init__(self, feature_left, feature_right, func):
+    def __init__(self, feature_left, feature_right):
         self.feature_left = feature_left
         self.feature_right = feature_right
-        self.func = func
 
     def __str__(self):
         return "{}({},{})".format(type(self).__name__, self.feature_left, self.feature_right)
-
-    def _load_internal(self, instrument, start_index, end_index, freq):
-        assert any(
-            [isinstance(self.feature_left, Expression), self.feature_right, Expression]
-        ), "at least one of two inputs is Expression instance"
-        if isinstance(self.feature_left, Expression):
-            series_left = self.feature_left.load(instrument, start_index, end_index, freq)
-        else:
-            series_left = self.feature_left  # numeric value
-        if isinstance(self.feature_right, Expression):
-            series_right = self.feature_right.load(instrument, start_index, end_index, freq)
-        else:
-            series_right = self.feature_right
-        return getattr(np, self.func)(series_left, series_right)
 
     def get_longest_back_rolling(self):
         if isinstance(self.feature_left, Expression):
@@ -301,7 +273,66 @@ class PairOperator(ExpressionOps):
         return max(ll, rl), max(lr, rr)
 
 
-class Add(PairOperator):
+class NpPairOperator(PairOperator):
+    """Numpy Pair-wise operator
+
+    Parameters
+    ----------
+    feature_left : Expression
+        feature instance or numeric value
+    feature_right : Expression
+        feature instance or numeric value
+    func : str
+        operator function
+
+    Returns
+    ----------
+    Feature:
+        two features' operation output
+    """
+
+    def __init__(self, feature_left, feature_right, func):
+        self.func = func
+        super(NpPairOperator, self).__init__(feature_left, feature_right)
+
+    def _load_internal(self, instrument, start_index, end_index, freq):
+        assert any(
+            [isinstance(self.feature_left, Expression), self.feature_right, Expression]
+        ), "at least one of two inputs is Expression instance"
+        if isinstance(self.feature_left, Expression):
+            series_left = self.feature_left.load(instrument, start_index, end_index, freq)
+        else:
+            series_left = self.feature_left  # numeric value
+        if isinstance(self.feature_right, Expression):
+            series_right = self.feature_right.load(instrument, start_index, end_index, freq)
+        else:
+            series_right = self.feature_right
+        check_length = isinstance(series_left, (np.ndarray, pd.Series)) and isinstance(
+            series_right, (np.ndarray, pd.Series)
+        )
+        if check_length:
+            warning_info = (
+                f"Loading {instrument}: {str(self)}; np.{self.func}(series_left, series_right), "
+                f"The length of series_left and series_right is different: ({len(series_left)}, {len(series_right)}), "
+                f"series_left is {str(self.feature_left)}, series_right is {str(self.feature_right)}. Please check the data"
+            )
+        else:
+            warning_info = (
+                f"Loading {instrument}: {str(self)}; np.{self.func}(series_left, series_right), "
+                f"series_left is {str(self.feature_left)}, series_right is {str(self.feature_right)}. Please check the data"
+            )
+        try:
+            res = getattr(np, self.func)(series_left, series_right)
+        except ValueError as e:
+            get_module_logger("ops").debug(warning_info)
+            raise ValueError(f"{str(e)}. \n\t{warning_info}")
+        else:
+            if check_length and len(series_left) != len(series_right):
+                get_module_logger("ops").debug(warning_info)
+        return res
+
+
+class Add(NpPairOperator):
     """Add Operator
 
     Parameters
@@ -321,7 +352,7 @@ class Add(PairOperator):
         super(Add, self).__init__(feature_left, feature_right, "add")
 
 
-class Sub(PairOperator):
+class Sub(NpPairOperator):
     """Subtract Operator
 
     Parameters
@@ -341,7 +372,7 @@ class Sub(PairOperator):
         super(Sub, self).__init__(feature_left, feature_right, "subtract")
 
 
-class Mul(PairOperator):
+class Mul(NpPairOperator):
     """Multiply Operator
 
     Parameters
@@ -361,7 +392,7 @@ class Mul(PairOperator):
         super(Mul, self).__init__(feature_left, feature_right, "multiply")
 
 
-class Div(PairOperator):
+class Div(NpPairOperator):
     """Division Operator
 
     Parameters
@@ -381,7 +412,7 @@ class Div(PairOperator):
         super(Div, self).__init__(feature_left, feature_right, "divide")
 
 
-class Greater(PairOperator):
+class Greater(NpPairOperator):
     """Greater Operator
 
     Parameters
@@ -401,7 +432,7 @@ class Greater(PairOperator):
         super(Greater, self).__init__(feature_left, feature_right, "maximum")
 
 
-class Less(PairOperator):
+class Less(NpPairOperator):
     """Less Operator
 
     Parameters
@@ -421,7 +452,7 @@ class Less(PairOperator):
         super(Less, self).__init__(feature_left, feature_right, "minimum")
 
 
-class Gt(PairOperator):
+class Gt(NpPairOperator):
     """Greater Than Operator
 
     Parameters
@@ -441,7 +472,7 @@ class Gt(PairOperator):
         super(Gt, self).__init__(feature_left, feature_right, "greater")
 
 
-class Ge(PairOperator):
+class Ge(NpPairOperator):
     """Greater Equal Than Operator
 
     Parameters
@@ -461,7 +492,7 @@ class Ge(PairOperator):
         super(Ge, self).__init__(feature_left, feature_right, "greater_equal")
 
 
-class Lt(PairOperator):
+class Lt(NpPairOperator):
     """Less Than Operator
 
     Parameters
@@ -481,7 +512,7 @@ class Lt(PairOperator):
         super(Lt, self).__init__(feature_left, feature_right, "less")
 
 
-class Le(PairOperator):
+class Le(NpPairOperator):
     """Less Equal Than Operator
 
     Parameters
@@ -501,7 +532,7 @@ class Le(PairOperator):
         super(Le, self).__init__(feature_left, feature_right, "less_equal")
 
 
-class Eq(PairOperator):
+class Eq(NpPairOperator):
     """Equal Operator
 
     Parameters
@@ -521,7 +552,7 @@ class Eq(PairOperator):
         super(Eq, self).__init__(feature_left, feature_right, "equal")
 
 
-class Ne(PairOperator):
+class Ne(NpPairOperator):
     """Not Equal Operator
 
     Parameters
@@ -541,7 +572,7 @@ class Ne(PairOperator):
         super(Ne, self).__init__(feature_left, feature_right, "not_equal")
 
 
-class And(PairOperator):
+class And(NpPairOperator):
     """And Operator
 
     Parameters
@@ -561,7 +592,7 @@ class And(PairOperator):
         super(And, self).__init__(feature_left, feature_right, "bitwise_and")
 
 
-class Or(PairOperator):
+class Or(NpPairOperator):
     """Or Operator
 
     Parameters
@@ -658,6 +689,9 @@ class If(ExpressionOps):
 
 class Rolling(ExpressionOps):
     """Rolling Operator
+    The meaning of rolling and expanding is the same in pandas.
+    When the window is set to 0, the behaviour of the operator should follow `expanding`
+    Otherwise, it follows `rolling`
 
     Parameters
     ----------
@@ -1163,6 +1197,14 @@ class Delta(Rolling):
 # support pair-wise rolling like `Slope(A, B, N)`
 class Slope(Rolling):
     """Rolling Slope
+    This operator calculate the slope between `idx` and `feature`.
+    (e.g. [<feature_t1>, <feature_t2>, <feature_t3>] and [1, 2, 3])
+
+    Usage Example:
+    - "Slope($close, %d)/$close"
+
+    # TODO:
+    # Some users may want pair-wise rolling like `Slope(A, B, N)`
 
     Parameters
     ----------
@@ -1174,7 +1216,7 @@ class Slope(Rolling):
     Returns
     ----------
     Expression
-        a feature instance with regression slope of given window
+        a feature instance with linear regression slope of given window
     """
 
     def __init__(self, feature, N):
@@ -1202,7 +1244,7 @@ class Rsquare(Rolling):
     Returns
     ----------
     Expression
-        a feature instance with regression r-value square of given window
+        a feature instance with linear regression r-value square of given window
     """
 
     def __init__(self, feature, N):
@@ -1398,7 +1440,7 @@ class Corr(PairRolling):
         super(Corr, self).__init__(feature_left, feature_right, N, "corr")
 
     def _load_internal(self, instrument, start_index, end_index, freq):
-        res = super(Corr, self)._load_internal(instrument, start_index, end_index, freq)
+        res: pd.Series = super(Corr, self)._load_internal(instrument, start_index, end_index, freq)
 
         # NOTE: Load uses MemCache, so calling load again will not cause performance degradation
         series_left = self.feature_left.load(instrument, start_index, end_index, freq)
@@ -1430,3 +1472,112 @@ class Cov(PairRolling):
 
     def __init__(self, feature_left, feature_right, N):
         super(Cov, self).__init__(feature_left, feature_right, N, "cov")
+
+
+OpsList = [
+    Ref,
+    Max,
+    Min,
+    Sum,
+    Mean,
+    Std,
+    Var,
+    Skew,
+    Kurt,
+    Med,
+    Mad,
+    Slope,
+    Rsquare,
+    Resi,
+    Rank,
+    Quantile,
+    Count,
+    EMA,
+    WMA,
+    Corr,
+    Cov,
+    Delta,
+    Abs,
+    Sign,
+    Log,
+    Power,
+    Add,
+    Sub,
+    Mul,
+    Div,
+    Greater,
+    Less,
+    And,
+    Or,
+    Not,
+    Gt,
+    Ge,
+    Lt,
+    Le,
+    Eq,
+    Ne,
+    Mask,
+    IdxMax,
+    IdxMin,
+    If,
+    Feature,
+]
+
+
+class OpsWrapper:
+    """Ops Wrapper"""
+
+    def __init__(self):
+        self._ops = {}
+
+    def reset(self):
+        self._ops = {}
+
+    def register(self, ops_list: List[Union[Type[ExpressionOps], dict]]):
+        """register operator
+
+        Parameters
+        ----------
+        ops_list : List[Union[Type[ExpressionOps], dict]]
+            - if type(ops_list) is List[Type[ExpressionOps]], each element of ops_list represents the operator class, which should be the subclass of `ExpressionOps`.
+            - if type(ops_list) is List[dict], each element of ops_list represents the config of operator, which has the following format:
+                {
+                    "class": class_name,
+                    "module_path": path,
+                }
+                Note: `class` should be the class name of operator, `module_path` should be a python module or path of file.
+        """
+        for _operator in ops_list:
+            if isinstance(_operator, dict):
+                _ops_class, _ = get_callable_kwargs(_operator)
+            else:
+                _ops_class = _operator
+
+            if not issubclass(_ops_class, Expression):
+                raise TypeError("operator must be subclass of ExpressionOps, not {}".format(_ops_class))
+
+            if _ops_class.__name__ in self._ops:
+                get_module_logger(self.__class__.__name__).warning(
+                    "The custom operator [{}] will override the qlib default definition".format(_ops_class.__name__)
+                )
+            self._ops[_ops_class.__name__] = _ops_class
+
+    def __getattr__(self, key):
+        if key not in self._ops:
+            raise AttributeError("The operator [{0}] is not registered".format(key))
+        return self._ops[key]
+
+
+Operators = OpsWrapper()
+
+
+def register_all_ops(C):
+    """register all operator"""
+    logger = get_module_logger("ops")
+
+    Operators.reset()
+    Operators.register(OpsList)
+
+    if getattr(C, "custom_ops", None) is not None:
+        Operators.register(C.custom_ops)
+        logger.debug("register custom operator {}".format(C.custom_ops))

@@ -1,0 +1,75 @@
+# There are some issues (in the downloading data phase) on MacOS when running with other tests. So we split it into an individual config.
+name: Test MacOS
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-11, macos-latest]
+        # not supporting 3.6 due to annotations is not supported https://stackoverflow.com/a/52890129
+        python-version: [3.7, 3.8]
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Lint with Black
+      run: |
+        cd ..
+        python -m pip install pip --upgrade
+        python -m pip install wheel --upgrade
+        python -m pip install black
+        python -m black qlib -l 120 --check --diff
+    # Test Qlib installed with pip
+
+    - name: Install Qlib with pip
+      run: |
+          python -m pip install numpy==1.19.5
+          python -m pip install pyqlib --ignore-installed ruamel.yaml numpy
+    - name: Install Lightgbm for MacOS
+      run: |
+        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Microsoft/qlib/main/.github/brew_install.sh)"
+        HOMEBREW_NO_AUTO_UPDATE=1 brew install lightgbm
+        # FIX MacOS error: Segmentation fault
+        # reference: https://github.com/microsoft/LightGBM/issues/4229
+        wget https://raw.githubusercontent.com/Homebrew/homebrew-core/fb8323f2b170bd4ae97e1bac9bf3e2983af3fdb0/Formula/libomp.rb
+        brew unlink libomp
+        brew install libomp.rb
+    - name: Test data downloads
+      run: |
+        python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/cn_data --interval 1d --region cn
+    - name: Test workflow by config (install from pip)
+      run: |
+        python qlib/workflow/cli.py examples/benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml
+        python -m pip uninstall -y pyqlib
+    # Test Qlib installed from source
+    - name: Install Qlib from source
+      run: |
+        python -m pip install --upgrade cython
+        python -m pip install numpy jupyter jupyter_contrib_nbextensions
+        python -m pip install -U scipy scikit-learn # installing without this line will cause errors on GitHub Actions, while instsalling locally won't
+        python setup.py install
+    - name: Install test dependencies
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install -U pyopenssl idna
+        python -m pip install black pytest
+    - name: Unit tests with Pytest
+      run: |
+        cd tests
+        python -m pytest . --durations=0
+    - name: Test workflow by config (install from source)
+      run: |
+          python qlib/workflow/cli.py examples/benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml

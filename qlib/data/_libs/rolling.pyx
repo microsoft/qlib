@@ -8,7 +8,7 @@ from libc.math cimport sqrt, isnan, NAN
 from libcpp.deque cimport deque
 
 
-cdef class Rolling(object):
+cdef class Rolling:
     """1-D array rolling"""
     cdef int window
     cdef deque[double] barv

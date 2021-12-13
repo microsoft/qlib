@@ -8,6 +8,8 @@ from __future__ import print_function
 import abc
 import pandas as pd
 
+from ..log import get_module_logger
+
 
 class Expression(abc.ABC):
     """Expression base class"""
@@ -150,14 +152,22 @@ class Expression(abc.ABC):
             return H["f"][args]
         if start_index is None or end_index is None or start_index > end_index:
             raise ValueError("Invalid index range: {} {}".format(start_index, end_index))
-        series = self._load_internal(instrument, start_index, end_index, freq)
+        try:
+            series = self._load_internal(instrument, start_index, end_index, freq)
+        except Exception as e:
+            get_module_logger("data").debug(
+                f"Loading data error: instrument={instrument}, expression={str(self)}, "
+                f"start_index={start_index}, end_index={end_index}, freq={freq}. "
+                f"error info: {str(e)}"
+            )
+            raise
         series.name = str(self)
         H["f"][args] = series
         return series
 
     @abc.abstractmethod
     def _load_internal(self, instrument, start_index, end_index, freq):
-        pass
+        raise NotImplementedError("This function must be implemented in your newly defined feature")
 
     @abc.abstractmethod
     def get_longest_back_rolling(self):
@@ -196,9 +206,9 @@ class Feature(Expression):
 
     def __init__(self, name=None):
         if name:
-            self._name = name.lower()
+            self._name = name
         else:
-            self._name = type(self).__name__.lower()
+            self._name = type(self).__name__
 
     def __str__(self):
         return "$" + self._name

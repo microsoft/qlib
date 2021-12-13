@@ -6,7 +6,7 @@ import copy
 import os
 
 
-class TunerConfigManager(object):
+class TunerConfigManager:
     def __init__(self, config_path):
 
         if not config_path:
@@ -14,7 +14,7 @@ class TunerConfigManager(object):
         self.config_path = config_path
 
         with open(config_path) as fp:
-            config = yaml.load(fp)
+            config = yaml.safe_load(fp)
         self.config = copy.deepcopy(config)
 
         self.pipeline_ex_config = PipelineExperimentConfig(config.get("experiment", dict()), self)
@@ -27,7 +27,7 @@ class TunerConfigManager(object):
         self.qlib_client_config = config.get("qlib_client", dict())
 
 
-class PipelineExperimentConfig(object):
+class PipelineExperimentConfig:
     def __init__(self, config, TUNER_CONFIG_MANAGER):
         """
         :param config:  The config dict for tuner experiment
@@ -53,7 +53,7 @@ class PipelineExperimentConfig(object):
             yaml.dump(TUNER_CONFIG_MANAGER.config, fp)
 
 
-class OptimizationConfig(object):
+class OptimizationConfig:
     def __init__(self, config, TUNER_CONFIG_MANAGER):
 
         self.report_type = config.get("report_type", "pred_long")
