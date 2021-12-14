@@ -41,8 +41,15 @@ class DailyBatchSampler(Sampler):
     def __init__(self, data_source):
         self.data_source = data_source
         # calculate number of samples in each batch
-        self.daily_count = pd.Series(index=self.data_source.get_index()).groupby("datetime").size().values
-        self.daily_index = np.roll(np.cumsum(self.daily_count), 1)  # calculate begin index of each batch
+        self.daily_count = (
+            pd.Series(index=self.data_source.get_index())
+            .groupby("datetime")
+            .size()
+            .values
+        )
+        self.daily_index = np.roll(
+            np.cumsum(self.daily_count), 1
+        )  # calculate begin index of each batch
         self.daily_index[0] = 0
 
     def __iter__(self):
@@ -107,7 +114,9 @@ class HGATs(Model):
         self.loss = loss
         self.base_model = base_model
         self.model_path = model_path
-        self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
+        self.device = torch.device(
+            "cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu"
+        )
         self.n_jobs = n_jobs
         self.seed = seed
 
@@ -158,14 +167,18 @@ class HGATs(Model):
             base_model=self.base_model,
         )
         self.logger.info("model:\n{:}".format(self.HGAT_model))
-        self.logger.info("model size: {:.4f} MB".format(count_parameters(self.HGAT_model)))
+        self.logger.info(
+            "model size: {:.4f} MB".format(count_parameters(self.HGAT_model))
+        )
 
         if optimizer.lower() == "adam":
             self.train_optimizer = optim.Adam(self.HGAT_model.parameters(), lr=self.lr)
         elif optimizer.lower() == "gd":
             self.train_optimizer = optim.SGD(self.HGAT_model.parameters(), lr=self.lr)
         else:
-            raise NotImplementedError("optimizer {} is not supported!".format(optimizer))
+            raise NotImplementedError(
+                "optimizer {} is not supported!".format(optimizer)
+            )
 
         self.fitted = False
         self.HGAT_model.to(self.device)
@@ -214,21 +227,28 @@ class HGATs(Model):
             stockbatch = tsds.get_index()[i.tolist()].to_frame()["instrument"].values
 
             G = big_G.loc[date]  # (stock, industry)
+
             G = G[G.index.isin(stockbatch)]
-            unknown_stocks = stockbatch[~np.isin(stockbatch, G.index.values)]
-            # assign 'nan industry' labels to the unknown stocks
+            unknown_stocks = np.append(
+                stockbatch[~np.isin(stockbatch, G.index.values)],
+                G.index.values[pd.isna(G.values).squeeze()],
+            )  # assign '-1 industry' labels to the unknown stocks
             for newstock in unknown_stocks:
-                G.loc[newstock] = np.nan
+                G.loc[newstock] = -1
 
             GH = pd.DataFrame(
                 0.0,
                 index=np.arange(len(G)),
-                columns=np.append(np.arange(1, self.num_ind), np.nan),
+                columns=np.append(np.arange(1, self.num_ind), -1),
             )
 
-            GH.update(pd.get_dummies(G.values.squeeze()).astype("float64"))  # [#stocks, #industries]
+            GH.update(
+                pd.get_dummies(G.values.squeeze()).astype("float64")
+            )  # [#stocks, #industries]
 
-            pred = self.HGAT_model(feature.float(), torch.Tensor(GH.values).to(self.device))
+            pred = self.HGAT_model(
+                feature.float(), torch.Tensor(GH.values).to(self.device)
+            )
             loss = self.loss_fn(pred, label)
 
             self.train_optimizer.zero_grad()
@@ -254,20 +274,26 @@ class HGATs(Model):
 
             G = big_G.loc[date]  # (stock, industry)
             G = G[G.index.isin(stockbatch)]
-            unknown_stocks = stockbatch[~np.isin(stockbatch, G.index.values)]
-            # assign 'nan industry' labels to the unknown stocks
+            unknown_stocks = np.append(
+                stockbatch[~np.isin(stockbatch, G.index.values)],
+                G.index.values[pd.isna(G.values).squeeze()],
+            )  # assign '-1 industry' labels to the unknown stocks
             for newstock in unknown_stocks:
-                G.loc[newstock] = np.nan
+                G.loc[newstock] = -1
 
             GH = pd.DataFrame(
                 0.0,
                 index=np.arange(len(G)),
-                columns=np.append(np.arange(1, self.num_ind), np.nan),
+                columns=np.append(np.arange(1, self.num_ind), -1),
             )
 
-            GH.update(pd.get_dummies(G.values.squeeze()).astype("float64"))  # [#stocks, #industries]
+            GH.update(
+                pd.get_dummies(G.values.squeeze()).astype("float64")
+            )  # [#stocks, #industries]
 
-            pred = self.HGAT_model(feature.float(), torch.Tensor(GH.values).to(self.device))
+            pred = self.HGAT_model(
+                feature.float(), torch.Tensor(GH.values).to(self.device)
+            )
             loss = self.loss_fn(pred, label)
             losses.append(loss.item())
 
@@ -283,10 +309,16 @@ class HGATs(Model):
         save_path=None,
     ):
 
-        dl_train = dataset.prepare("train", col_set=["feature", "label"], data_key=DataHandlerLP.DK_L)
-        dl_valid = dataset.prepare("valid", col_set=["feature", "label"], data_key=DataHandlerLP.DK_L)
+        dl_train = dataset.prepare(
+            "train", col_set=["feature", "label"], data_key=DataHandlerLP.DK_L
+        )
+        dl_valid = dataset.prepare(
+            "valid", col_set=["feature", "label"], data_key=DataHandlerLP.DK_L
+        )
         if dl_train.empty or dl_valid.empty:
-            raise ValueError("Empty data from dataset, please check your dataset config.")
+            raise ValueError(
+                "Empty data from dataset, please check your dataset config."
+            )
 
         dl_train.config(fillna_type="ffill+bfill")  # process nan brought by dataloader
         dl_valid.config(fillna_type="ffill+bfill")  # process nan brought by dataloader
@@ -334,10 +366,14 @@ class HGATs(Model):
 
         if self.model_path is not None:
             self.logger.info("Loading pretrained model...")
-            pretrained_model.load_state_dict(torch.load(self.model_path))
+            pretrained_model.load_state_dict(
+                torch.load(self.model_path, map_location=torch.device("cpu"))
+            )
 
         model_dict = self.HGAT_model.state_dict()
-        pretrained_dict = {k: v for k, v in pretrained_model.state_dict().items() if k in model_dict}
+        pretrained_dict = {
+            k: v for k, v in pretrained_model.state_dict().items() if k in model_dict
+        }
         model_dict.update(pretrained_dict)
         self.HGAT_model.load_state_dict(model_dict)
         self.logger.info("Loading pretrained model Done...")
@@ -379,10 +415,14 @@ class HGATs(Model):
         if not self.fitted:
             raise ValueError("model is not fitted yet!")
 
-        dl_test = dataset.prepare("test", col_set=["feature", "label"], data_key=DataHandlerLP.DK_I)
+        dl_test = dataset.prepare(
+            "test", col_set=["feature", "label"], data_key=DataHandlerLP.DK_I
+        )
         dl_test.config(fillna_type="ffill+bfill")
         sampler_test = DailyBatchSampler(dl_test)
-        test_loader = DataLoader(IdxSampler(dl_test), sampler=sampler_test, num_workers=self.n_jobs)
+        test_loader = DataLoader(
+            IdxSampler(dl_test), sampler=sampler_test, num_workers=self.n_jobs
+        )
         self.HGAT_model.eval()
         preds = []
 
@@ -396,21 +436,33 @@ class HGATs(Model):
 
             G = self.bigG.loc[date]  # (stock, industry)
             G = G[G.index.isin(stockbatch)]
-            unknown_stocks = stockbatch[~np.isin(stockbatch, G.index.values)]
-            # assign 'nan industry' labels to the unknown stocks
+            unknown_stocks = np.append(
+                stockbatch[~np.isin(stockbatch, G.index.values)],
+                G.index.values[pd.isna(G.values).squeeze()],
+            )
+            # assign '-1 industry' labels to the unknown stocks
             for newstock in unknown_stocks:
-                G.loc[newstock] = np.nan
+                G.loc[newstock] = -1
 
             GH = pd.DataFrame(
                 0.0,
                 index=np.arange(len(G)),
-                columns=np.append(np.arange(1, self.num_ind), np.nan),
+                columns=np.append(np.arange(1, self.num_ind), -1),
             )
 
-            GH.update(pd.get_dummies(G.values.squeeze()).astype("float64"))  # [#stocks, #industries]
+            GH.update(
+                pd.get_dummies(G.values.squeeze()).astype("float64")
+            )  # [#stocks, #industries]
 
             with torch.no_grad():
-                pred = self.HGAT_model(feature.float(), torch.Tensor(GH.values).to(self.device)).detach().cpu().numpy()
+                pred = (
+                    self.HGAT_model(
+                        feature.float(), torch.Tensor(GH.values).to(self.device)
+                    )
+                    .detach()
+                    .cpu()
+                    .numpy()
+                )
 
             preds.append(pred)
 
@@ -474,7 +526,9 @@ class HGATModel(nn.Module):
         e_y = torch.transpose(e_y, 0, 1)
         attention_in = torch.cat((e_x, e_y), 2).view(-1, dim * 2)  # P i || P j
         self.a_t = torch.t(self.a)
-        attention_out = self.a_t.mm(torch.t(attention_in)).view(edge_num, sample_num).t()
+        attention_out = (
+            self.a_t.mm(torch.t(attention_in)).view(edge_num, sample_num).t()
+        )
         attention_out = self.leaky_relu(attention_out)
         att_weight = self.softmax(attention_out)
 
@@ -502,5 +556,5 @@ class HGATModel(nn.Module):
 """
 Be aware:
 - The stock-industry hypergraph is different from day to day due to missing data, changes to the CSI components, and changes to the industry labels of certain stocks.
-- When we encounter stocks with unknown industry information, we them with 'nan industry' labels.
+- When we encounter stocks with unknown industry information, we them with '-1 industry' labels.
 """
