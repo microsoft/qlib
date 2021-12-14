@@ -1051,12 +1051,6 @@ class BaseProvider:
 
     To keep compatible with old qlib provider.
     """
-    def is_any_from_arctic(self, fields):
-        for field in fields:
-            if "@" in field:
-                return True
-        return False
-
     def calendar(self, start_time=None, end_time=None, freq="day", future=False):
         return Cal.calendar(start_time, end_time, freq, future=future)
 
