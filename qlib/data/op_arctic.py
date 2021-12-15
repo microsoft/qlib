@@ -8,7 +8,7 @@ from __future__ import print_function
 import sys
 import numpy as np
 import pandas as pd
-
+from typing import Union, List, Type
 from scipy.stats import percentileofscore
 
 from .base import Expression, ExpressionOps, TExpression, TExpressionOps
@@ -20,56 +20,6 @@ try:
 except ImportError as err:
     print("Do not import qlib package in the repository directory!")
     raise
-
-__all__ = (
-    "TRename",
-    "TRolling",
-    "TID",
-    "TMax",
-    "TResample",
-    "TAdd",
-    "TSub",
-    "TMul",
-    "TDiv",
-    "TGreater",
-    "TLess",
-    "TAnd",
-    "TOr",
-    "TGt",
-    "TGe",
-    "TLt",
-    "TLe",
-    "TEq",
-    "TNe",
-    "TAbs",
-    "TSign",
-    "TLog",
-    "TPower",
-    "TMask",
-    "TNot",
-    "TRef",
-    "TMean",
-    "TStd",
-    "TSum",
-    "TVar",
-    "TSkew",
-    "TKurt",
-    "TRsquare",
-    "TResi",
-    "TWMA",
-    "TEMA",
-    "TSlope",
-    "TDelta",
-    "TCount",
-    "TRank",
-    "TMad",
-    "TMed",
-    "TQuantile",
-    "TIdxMin",
-    "TIdxMax",
-    "TMin",
-
-)
 
 #################### Resample ####################
 class TID(TExpressionOps):
@@ -1304,3 +1254,110 @@ class TOr(TPairOperator):
 
     def __init__(self, feature_left, feature_right):
         super(TOr, self).__init__(feature_left, feature_right, "bitwise_or")
+    
+TOpsList = [
+    TRename,
+    TRolling,
+    TID,
+    TMax,
+    TResample,
+    TAdd,
+    TSub,
+    TMul,
+    TDiv,
+    TGreater,
+    TLess,
+    TAnd,
+    TOr,
+    TGt,
+    TGe,
+    TLt,
+    TLe,
+    TEq,
+    TNe,
+    TAbs,
+    TSign,
+    TLog,
+    TPower,
+    TMask,
+    TNot,
+    TRef,
+    TMean,
+    TStd,
+    TSum,
+    TVar,
+    TSkew,
+    TKurt,
+    TRsquare,
+    TResi,
+    TWMA,
+    TEMA,
+    TSlope,
+    TDelta,
+    TCount,
+    TRank,
+    TMad,
+    TMed,
+    TQuantile,
+    TIdxMin,
+    TIdxMax,
+    TMin,
+]
+
+class TOpsWrapper:
+    """Ops Wrapper for TOperators"""
+
+    def __init__(self):
+        self._ops = {}
+
+    def reset(self):
+        self._ops = {}
+
+    def register(self, ops_list: List[Union[Type[TExpressionOps], dict]]):
+        """register operator
+
+        Parameters
+        ----------
+        ops_list : List[Union[Type[TExpressionOps], dict]]
+            - if type(ops_list) is List[Type[TExpressionOps]], each element of ops_list represents the operator class, which should be the subclass of `TExpressionOps`.
+            - if type(ops_list) is List[dict], each element of ops_list represents the config of operator, which has the following format:
+                {
+                    "class": class_name,
+                    "module_path": path,
+                }
+                Note: `class` should be the class name of operator, `module_path` should be a python module or path of file.
+        """
+        for _operator in ops_list:
+            if isinstance(_operator, dict):
+                _ops_class, _ = get_callable_kwargs(_operator)
+            else:
+                _ops_class = _operator
+
+            if not issubclass(_ops_class, TExpression):
+                raise TypeError("operator must be subclass of TExpressionOps, not {}".format(_ops_class))
+
+            if _ops_class.__name__ in self._ops:
+                get_module_logger(self.__class__.__name__).warning(
+                    "The custom operator [{}] will override the qlib default definition".format(_ops_class.__name__)
+                )
+            self._ops[_ops_class.__name__] = _ops_class
+
+    def __getattr__(self, key):
+        if key not in self._ops:
+            raise AttributeError("The operator [{0}] is not registered".format(key))
+        return self._ops[key]
+
+
+TOperators = TOpsWrapper()
+
+
+def register_all_Tops(C):
+    """register all operator"""
+    logger = get_module_logger("Tops")
+
+    TOperators.reset()
+    TOperators.register(TOpsList)
+
+    if getattr(C, "custom_Tops", None) is not None:
+        TOperators.register(C.custom_Tops)
+        logger.debug("register custom Toperator {}".format(C.custom_Tops))

@@ -169,7 +169,7 @@ def parse_field(field):
     if not isinstance(field, str):
         field = str(field)
     if "@" in field:
-        return re.sub(r"\@([\w.]+)", r'TFeature("\1")', field)
+        return re.sub(r"\@([\w.]+)", r'TFeature("\1")', re.sub(r"(\w+\s*)\(", r"TOperators.\1(", field))
     else:
         return re.sub(r"\$(\w+)", r'Feature("\1")', re.sub(r"(\w+\s*)\(", r"Operators.\1(", field))
 

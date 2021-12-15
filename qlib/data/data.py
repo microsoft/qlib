@@ -24,7 +24,7 @@ from .cache import H
 from ..config import C
 from .base import Feature, TFeature
 from .ops import Operators
-from .op_arctic import *
+from .op_arctic import TOperators
 from .inst_processor import InstProcessor
 
 from ..log import get_module_logger
@@ -525,13 +525,15 @@ class DatasetProvider(abc.ABC):
 
         inst_l = []
         task_l = []
+        task_index = 0
         for inst, spans in it:
             inst_l.append(inst)
             task_l.append(
                 delayed(DatasetProvider.expression_calculator)(
-                    inst, start_time, end_time, freq, normalize_column_names, spans, C, type, 0, inst_processors
+                    inst, start_time, end_time, freq, normalize_column_names, spans, C, type, task_index, inst_processors
                 )
             )
+            task_index += 1
 
         data = dict(
             zip(
@@ -710,11 +712,8 @@ class LocalFeatureProvider(FeatureProvider):
         return os.path.join(C.get_data_path(), "features", "{}", "{}.{}.bin")
     
     def tick_feature(self, instrument, field, start_index, end_index, freq, task_index, retry_time=0):
-        #print("@@@@debug luocy2: in the tick feature, {},{}".format(start_index, end_index))
-        task_index = 0
         try:
             arctic = Arctic_Connection_List[0]
-            #print("arctic example: {}, task_index:{}".format(arctic, task_index))
         except Exception:
             arctic = Arctic(C.arctic_uri)
         
