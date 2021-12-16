@@ -55,9 +55,9 @@ class TradeCalendarManager:
         self.start_time = pd.Timestamp(start_time) if start_time else None
         self.end_time = pd.Timestamp(end_time) if end_time else None
 
-        _calendar = Cal.calendar(freq=freq)
+        _calendar = Cal.calendar(freq=freq, future=True)
         self._calendar = _calendar
-        _, _, _start_index, _end_index = Cal.locate_index(start_time, end_time, freq=freq)
+        _, _, _start_index, _end_index = Cal.locate_index(start_time, end_time, freq=freq, future=True)
         self.start_index = _start_index
         self.end_index = _end_index
         self.trade_len = _end_index - _start_index + 1
