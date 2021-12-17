@@ -30,7 +30,7 @@ jobs:
         pip install black wheel
         black qlib -l 120 --check --diff
 
-    - name: Lint with Black
+    - name: pylint
       run: |
         pip install pylint
         pylint qlib -l 120 --check --diff
