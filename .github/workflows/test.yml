@@ -32,8 +32,9 @@ jobs:
 
     - name: pylint
       run: |
+        pwd
         pip install pylint
-        pylint qlib -l 120 --check --diff
+        pylint qlib
 
     
     
