@@ -33,7 +33,7 @@ jobs:
     - name: pylint
       run: |
         pip install pylint
-        pylint qlib --persistent=n --comment=n
+        pylint qlib
     
     - name: Install Qlib with pip
       run: |
