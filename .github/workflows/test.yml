@@ -32,11 +32,8 @@ jobs:
 
     - name: pylint
       run: |
-        pwd
         pip install pylint
-        pylint /home/runner/work/qlib/qlib
-
-    
+        pylint qlib
     
     - name: Install Qlib with pip
       run: |
