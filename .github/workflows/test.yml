@@ -34,7 +34,7 @@ jobs:
       run: |
         pwd
         pip install pylint
-        pylint qlib
+        pylint /home/runner/work/qlib/qlib
 
     
     
