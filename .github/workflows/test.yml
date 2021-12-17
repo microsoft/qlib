@@ -30,6 +30,13 @@ jobs:
         pip install black wheel
         black qlib -l 120 --check --diff
 
+    - name: Lint with Black
+      run: |
+        pip install pylint
+        pylint qlib -l 120 --check --diff
+
+    
+    
     - name: Install Qlib with pip
       run: |
         pip install numpy==1.19.5 ruamel.yaml
