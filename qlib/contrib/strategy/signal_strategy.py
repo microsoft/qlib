@@ -1,20 +1,26 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
+import os
 import copy
-from qlib.backtest.signal import Signal, create_signal_from
-from typing import Dict, List, Text, Tuple, Union
-from qlib.data.dataset import Dataset
-from qlib.model.base import BaseModel
-from qlib.backtest.position import Position
 import warnings
+import cvxpy as cp
 import numpy as np
 import pandas as pd
 
-from ...utils.resam import resam_ts_data
-from ...strategy.base import BaseStrategy
-from ...backtest.decision import Order, BaseTradeDecision, OrderDir, TradeDecisionWO
+from typing import Dict, List, Text, Tuple, Union
 
-from .order_generator import OrderGenWInteract
+from qlib.data import D
+from qlib.data.dataset import Dataset
+from qlib.model.base import BaseModel
+from qlib.strategy.base import BaseStrategy
+from qlib.backtest.position import Position
+from qlib.backtest.signal import Signal, create_signal_from
+from qlib.backtest.decision import Order, BaseTradeDecision, OrderDir, TradeDecisionWO
+from qlib.log import get_module_logger
+from qlib.utils import get_pre_trading_date, load_dataset
+from qlib.utils.resam import resam_ts_data
+from qlib.contrib.strategy.order_generator import OrderGenWInteract, OrderGenWOInteract
+from qlib.contrib.strategy.optimizer import EnhancedIndexingOptimizer
 
 
 class TopkDropoutStrategy(BaseStrategy):
@@ -262,10 +268,11 @@ class WeightStrategyBase(BaseStrategy):
         self,
         *,
         signal: Union[Signal, Tuple[BaseModel, Dataset], List, Dict, Text, pd.Series, pd.DataFrame],
-        order_generator_cls_or_obj=OrderGenWInteract,
+        order_generator_cls_or_obj=OrderGenWOInteract,
         trade_exchange=None,
         level_infra=None,
         common_infra=None,
+        risk_degree=0.95,
         **kwargs,
     ):
         """
@@ -288,6 +295,8 @@ class WeightStrategyBase(BaseStrategy):
         else:
             self.order_generator = order_generator_cls_or_obj
 
+        self.risk_degree = risk_degree
+
         self.signal: Signal = create_signal_from(signal)
 
     def get_risk_degree(self, trade_step=None):
@@ -296,7 +305,7 @@ class WeightStrategyBase(BaseStrategy):
         Dynamically risk_degree will result in Market timing.
         """
         # It will use 95% amoutn of your total value by default
-        return 0.95
+        return self.risk_degree
 
     def generate_target_weight_position(self, score, current, trade_start_time, trade_end_time):
         """
@@ -341,3 +350,148 @@ class WeightStrategyBase(BaseStrategy):
             trade_end_time=trade_end_time,
         )
         return TradeDecisionWO(order_list, self)
+
+
+class EnhancedIndexingStrategy(WeightStrategyBase):
+
+    """Enhanced Indexing Strategy
+
+    Enhanced indexing combines the arts of active management and passive management,
+    with the aim of outperforming a benchmark index (e.g., S&P 500) in terms of
+    portfolio return while controlling the risk exposure (a.k.a. tracking error).
+
+    Users need to prepare their risk model data like below:
+
+    ├── /path/to/riskmodel
+    ├──── 20210101
+    ├────── factor_exp.{csv|pkl|h5}
+    ├────── factor_cov.{csv|pkl|h5}
+    ├────── specific_risk.{csv|pkl|h5}
+    ├────── blacklist.{csv|pkl|h5}  # optional
+
+    The risk model data can be obtained from risk data provider. You can also use
+    `qlib.model.riskmodel.structured.StructuredCovEstimator` to prepare these data.
+
+    Args:
+        riskmodel_path (str): risk model path
+        name_mapping (dict): alternative file names
+    """
+
+    FACTOR_EXP_NAME = "factor_exp.pkl"
+    FACTOR_COV_NAME = "factor_cov.pkl"
+    SPECIFIC_RISK_NAME = "specific_risk.pkl"
+    BLACKLIST_NAME = "blacklist.pkl"
+
+    def __init__(
+        self,
+        *,
+        signal,
+        riskmodel_root,
+        market="csi500",
+        turn_limit=None,
+        name_mapping={},
+        optimizer_kwargs={},
+        verbose=False,
+        **kwargs,
+    ):
+        super().__init__(signal=signal, **kwargs)
+
+        self.logger = get_module_logger("EnhancedIndexingStrategy")
+
+        self.riskmodel_root = riskmodel_root
+        self.market = market
+        self.turn_limit = turn_limit
+
+        self.factor_exp_path = name_mapping.get("factor_exp", self.FACTOR_EXP_NAME)
+        self.factor_cov_path = name_mapping.get("factor_cov", self.FACTOR_COV_NAME)
+        self.specific_risk_path = name_mapping.get("specific_risk", self.SPECIFIC_RISK_NAME)
+        self.blacklist_path = name_mapping.get("blacklist", self.BLACKLIST_NAME)
+
+        self.optimizer = EnhancedIndexingOptimizer(**optimizer_kwargs)
+
+        self.verbose = verbose
+
+        self._riskdata_cache = {}
+
+    def get_risk_data(self, date):
+
+        if date in self._riskdata_cache:
+            return self._riskdata_cache[date]
+
+        root = self.riskmodel_root + "/" + date.strftime("%Y%m%d")
+        factor_exp = load_dataset(root + "/" + self.factor_exp_path, index_col=[0])
+        factor_cov = load_dataset(root + "/" + self.factor_cov_path, index_col=[0])
+        specific_risk = load_dataset(root + "/" + self.specific_risk_path, index_col=[0])
+
+        if not factor_exp.index.equals(specific_risk.index):
+            # NOTE: for stocks missing specific_risk, we always assume it have the highest volatility
+            specific_risk = specific_risk.reindex(factor_exp.index, fill_value=specific_risk.max())
+
+        universe = factor_exp.index.tolist()
+
+        blacklist = []
+        if os.path.exists(root + "/" + self.blacklist_path):
+            blacklist = load_dataset(root + "/" + self.blacklist_path).index.tolist()
+
+        self._riskdata_cache[date] = factor_exp.values, factor_cov.values, specific_risk.values, universe, blacklist
+
+        return self._riskdata_cache[date]
+
+    def generate_target_weight_position(self, score, current, trade_start_time, trade_end_time):
+
+        trade_date = trade_start_time
+        pre_date = get_pre_trading_date(trade_date, future=True)  # previous trade date
+
+        # load risk data
+        factor_exp, factor_cov, specific_risk, universe, blacklist = self.get_risk_data(pre_date)
+
+        # transform score
+        # NOTE: for stocks missing score, we always assume they have the lowest score
+        score = score.reindex(universe).fillna(score.min()).values
+
+        # get current weight
+        # NOTE: if a stock is not in universe, its current weight will be zero
+        cur_weight = current.get_stock_weight_dict(only_stock=False)
+        cur_weight = np.array([cur_weight.get(stock, 0) for stock in universe])
+        assert all(cur_weight >= 0), "current weight has negative values"
+        cur_weight = cur_weight / self.get_risk_degree(trade_date)  # sum of weight should be risk_degree
+        if cur_weight.sum() > 1 and self.verbose:
+            self.logger.warning(f"previous total holdings excess risk degree (current: {cur_weight.sum()})")
+
+        # load bench weight
+        bench_weight = D.features(
+            D.instruments("all"), [f"${self.market}_weight"], start_time=pre_date, end_time=pre_date
+        ).squeeze()
+        bench_weight.index = bench_weight.index.droplevel(level="datetime")
+        bench_weight = bench_weight.reindex(universe).fillna(0).values
+
+        # whether stock tradable
+        # NOTE: currently we use last day volume to check whether tradable
+        tradable = D.features(D.instruments("all"), ["$volume"], start_time=pre_date, end_time=pre_date).squeeze()
+        tradable.index = tradable.index.droplevel(level="datetime")
+        tradable = tradable.reindex(universe).gt(0).values
+        mask_force_hold = ~tradable
+
+        # mask force sell
+        mask_force_sell = np.array([stock in blacklist for stock in universe], dtype=bool)
+
+        # optimize
+        weight = self.optimizer(
+            r=score,
+            F=factor_exp,
+            cov_b=factor_cov,
+            var_u=specific_risk ** 2,
+            w0=cur_weight,
+            wb=bench_weight,
+            mfh=mask_force_hold,
+            mfs=mask_force_sell,
+        )
+
+        target_weight_position = {stock: weight for stock, weight in zip(universe, weight) if weight > 0}
+
+        if self.verbose:
+            self.logger.info("trade date: {:%Y-%m-%d}".format(trade_date))
+            self.logger.info("number of holding stocks: {}".format(len(target_weight_position)))
+            self.logger.info("total holding weight: {:.6f}".format(weight.sum()))
+
+        return target_weight_position
