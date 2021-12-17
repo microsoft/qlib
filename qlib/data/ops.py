@@ -13,7 +13,9 @@ import pandas as pd
 from typing import Union, List, Type
 from scipy.stats import percentileofscore
 
-from .base import Expression, ExpressionOps
+from .base import Expression, ExpressionOps, Feature
+
+from ..config import C
 from ..log import get_module_logger
 from ..utils import get_callable_kwargs
 
@@ -305,7 +307,29 @@ class NpPairOperator(PairOperator):
             series_right = self.feature_right.load(instrument, start_index, end_index, freq)
         else:
             series_right = self.feature_right
-        return getattr(np, self.func)(series_left, series_right)
+        check_length = isinstance(series_left, (np.ndarray, pd.Series)) and isinstance(
+            series_right, (np.ndarray, pd.Series)
+        )
+        if check_length:
+            warning_info = (
+                f"Loading {instrument}: {str(self)}; np.{self.func}(series_left, series_right), "
+                f"The length of series_left and series_right is different: ({len(series_left)}, {len(series_right)}), "
+                f"series_left is {str(self.feature_left)}, series_right is {str(self.feature_right)}. Please check the data"
+            )
+        else:
+            warning_info = (
+                f"Loading {instrument}: {str(self)}; np.{self.func}(series_left, series_right), "
+                f"series_left is {str(self.feature_left)}, series_right is {str(self.feature_right)}. Please check the data"
+            )
+        try:
+            res = getattr(np, self.func)(series_left, series_right)
+        except ValueError as e:
+            get_module_logger("ops").debug(warning_info)
+            raise ValueError(f"{str(e)}. \n\t{warning_info}")
+        else:
+            if check_length and len(series_left) != len(series_right):
+                get_module_logger("ops").debug(warning_info)
+        return res
 
 
 class Add(NpPairOperator):
@@ -665,6 +689,9 @@ class If(ExpressionOps):
 
 class Rolling(ExpressionOps):
     """Rolling Operator
+    The meaning of rolling and expanding is the same in pandas.
+    When the window is set to 0, the behaviour of the operator should follow `expanding`
+    Otherwise, it follows `rolling`
 
     Parameters
     ----------
@@ -1170,6 +1197,14 @@ class Delta(Rolling):
 # support pair-wise rolling like `Slope(A, B, N)`
 class Slope(Rolling):
     """Rolling Slope
+    This operator calculate the slope between `idx` and `feature`.
+    (e.g. [<feature_t1>, <feature_t2>, <feature_t3>] and [1, 2, 3])
+
+    Usage Example:
+    - "Slope($close, %d)/$close"
+
+    # TODO:
+    # Some users may want pair-wise rolling like `Slope(A, B, N)`
 
     Parameters
     ----------
@@ -1405,7 +1440,7 @@ class Corr(PairRolling):
         super(Corr, self).__init__(feature_left, feature_right, N, "corr")
 
     def _load_internal(self, instrument, start_index, end_index, freq):
-        res = super(Corr, self)._load_internal(instrument, start_index, end_index, freq)
+        res: pd.Series = super(Corr, self)._load_internal(instrument, start_index, end_index, freq)
 
         # NOTE: Load uses MemCache, so calling load again will not cause performance degradation
         series_left = self.feature_left.load(instrument, start_index, end_index, freq)
@@ -1485,6 +1520,7 @@ OpsList = [
     IdxMax,
     IdxMin,
     If,
+    Feature,
 ]
 
 
@@ -1517,7 +1553,7 @@ class OpsWrapper:
             else:
                 _ops_class = _operator
 
-            if not issubclass(_ops_class, ExpressionOps):
+            if not issubclass(_ops_class, Expression):
                 raise TypeError("operator must be subclass of ExpressionOps, not {}".format(_ops_class))
 
             if _ops_class.__name__ in self._ops:

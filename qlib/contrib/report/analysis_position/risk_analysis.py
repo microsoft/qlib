@@ -170,32 +170,64 @@ def risk_analysis_graph(
 
             .. code-block:: python
 
-                from qlib.contrib.evaluate import risk_analysis, backtest, long_short_backtest
+                import qlib
+                import pandas as pd
+                from qlib.utils.time import Freq
+                from qlib.utils import flatten_dict
+                from qlib.backtest import backtest, executor
+                from qlib.contrib.evaluate import risk_analysis
                 from qlib.contrib.strategy import TopkDropoutStrategy
-                from qlib.contrib.report import analysis_position
 
-                # backtest parameters
-                bparas = {}
-                bparas['limit_threshold'] = 0.095
-                bparas['account'] = 1000000000
+                # init qlib
+                qlib.init(provider_uri=<qlib data dir>)
 
-                sparas = {}
-                sparas['topk'] = 50
-                sparas['n_drop'] = 230
-                strategy = TopkDropoutStrategy(**sparas)
+                CSI300_BENCH = "SH000300"
+                FREQ = "day"
+                STRATEGY_CONFIG = {
+                    "topk": 50,
+                    "n_drop": 5,
+                    # pred_score, pd.Series
+                    "signal": pred_score,
+                }
 
-                report_normal_df, positions = backtest(pred_df, strategy, **bparas)
-                # long_short_map = long_short_backtest(pred_df)
-                # report_long_short_df = pd.DataFrame(long_short_map)
+                EXECUTOR_CONFIG = {
+                    "time_per_step": "day",
+                    "generate_portfolio_metrics": True,
+                }
 
+                backtest_config = {
+                    "start_time": "2017-01-01",
+                    "end_time": "2020-08-01",
+                    "account": 100000000,
+                    "benchmark": CSI300_BENCH,
+                    "exchange_kwargs": {
+                        "freq": FREQ,
+                        "limit_threshold": 0.095,
+                        "deal_price": "close",
+                        "open_cost": 0.0005,
+                        "close_cost": 0.0015,
+                        "min_cost": 5,
+                    },
+                }
+
+                # strategy object
+                strategy_obj = TopkDropoutStrategy(**STRATEGY_CONFIG)
+                # executor object
+                executor_obj = executor.SimulatorExecutor(**EXECUTOR_CONFIG)
+                # backtest
+                portfolio_metric_dict, indicator_dict = backtest(executor=executor_obj, strategy=strategy_obj, **backtest_config)
+                analysis_freq = "{0}{1}".format(*Freq.parse(FREQ))
+                # backtest info
+                report_normal_df, positions_normal = portfolio_metric_dict.get(analysis_freq)
                 analysis = dict()
-                # analysis['pred_long'] = risk_analysis(report_long_short_df['long'])
-                # analysis['pred_short'] = risk_analysis(report_long_short_df['short'])
-                # analysis['pred_long_short'] = risk_analysis(report_long_short_df['long_short'])
-                analysis['excess_return_without_cost'] = risk_analysis(report_normal_df['return'] - report_normal_df['bench'])
-                analysis['excess_return_with_cost'] = risk_analysis(report_normal_df['return'] - report_normal_df['bench'] - report_normal_df['cost'])
-                analysis_df = pd.concat(analysis)
+                analysis["excess_return_without_cost"] = risk_analysis(
+                    report_normal_df["return"] - report_normal_df["bench"], freq=analysis_freq
+                )
+                analysis["excess_return_with_cost"] = risk_analysis(
+                    report_normal_df["return"] - report_normal_df["bench"] - report_normal_df["cost"], freq=analysis_freq
+                )
 
+                analysis_df = pd.concat(analysis)  # type: pd.DataFrame
                 analysis_position.risk_analysis_graph(analysis_df, report_normal_df)
 
 

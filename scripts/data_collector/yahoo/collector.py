@@ -601,11 +601,19 @@ class YahooNormalize1min(YahooNormalize, ABC):
             #   - Close price adjusted for splits. Adjusted close price adjusted for both dividends and splits.
             #   - data_1d.adjclose: Adjusted close price adjusted for both dividends and splits.
             #   - data_1d.close: `data_1d.adjclose / (close for the first trading day that is not np.nan)`
-            df["date_tmp"] = df[self._date_field_name].apply(lambda x: pd.Timestamp(x).date())
-            df.set_index("date_tmp", inplace=True)
-            df.loc[:, "factor"] = data_1d["close"] / df["close"]
-            df.loc[:, "paused"] = data_1d["paused"]
-            df.reset_index("date_tmp", drop=True, inplace=True)
+            def _calc_factor(df_1d: pd.DataFrame):
+                try:
+                    _date = pd.Timestamp(pd.Timestamp(df_1d[self._date_field_name].iloc[0]).date())
+                    df_1d["factor"] = (
+                        data_1d.loc[_date]["close"] / df_1d.loc[df_1d["close"].last_valid_index()]["close"]
+                    )
+                    df_1d["paused"] = data_1d.loc[_date]["paused"]
+                except Exception:
+                    df_1d["factor"] = np.nan
+                    df_1d["paused"] = np.nan
+                return df_1d
+
+            df = df.groupby([df[self._date_field_name].dt.date]).apply(_calc_factor)
 
             if self.CONSISTENT_1d:
                 # the date sequence is consistent with 1d

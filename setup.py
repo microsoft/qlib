@@ -6,6 +6,21 @@ import numpy
 
 from setuptools import find_packages, setup, Extension
 
+
+def read(rel_path: str) -> str:
+    here = os.path.abspath(os.path.dirname(__file__))
+    with open(os.path.join(here, rel_path)) as fp:
+        return fp.read()
+
+
+def get_version(rel_path: str) -> str:
+    for line in read(rel_path).splitlines():
+        if line.startswith("__version__"):
+            delim = '"' if '"' in line else "'"
+            return line.split(delim)[1]
+    raise RuntimeError("Unable to find version string.")
+
+
 # Package meta-data.
 NAME = "pyqlib"
 DESCRIPTION = "A Quantitative-research Platform"
@@ -14,11 +29,7 @@ REQUIRES_PYTHON = ">=3.5.0"
 from pathlib import Path
 from shutil import copyfile
 
-CURRENT_DIR = Path(__file__).absolute().parent
-_version_src = CURRENT_DIR / "VERSION.txt"
-_version_dst = CURRENT_DIR / "qlib" / "VERSION.txt"
-copyfile(_version_src, _version_dst)
-VERSION = _version_dst.read_text(encoding="utf-8").strip()
+VERSION = get_version("qlib/__init__.py")
 
 # Detect Cython
 try:
@@ -47,12 +58,12 @@ REQUIRED = [
     "python-redis-lock>=3.3.1",
     "schedule>=0.6.0",
     "cvxpy>=1.0.21",
-    "hyperopt==0.1.1",
+    "hyperopt==0.1.2",
     "fire>=0.3.1",
     "statsmodels",
     "xlrd>=1.0.0",
-    "plotly==4.12.0",
-    "matplotlib==3.3",
+    "plotly>=4.12.0",
+    "matplotlib>=3.3",
     "tables>=3.6.1",
     "pyyaml>=5.3.1",
     "mlflow>=1.12.1",
@@ -65,6 +76,7 @@ REQUIRED = [
     "pymongo==3.7.2",  # For task management
     "scikit-learn>=0.22",
     "dill",
+    "dataclasses;python_version<'3.7'",
     "filelock",
 ]
 
@@ -126,7 +138,6 @@ setup(
         "Development Status :: 3 - Alpha",
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",

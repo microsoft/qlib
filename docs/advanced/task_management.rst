@@ -11,7 +11,10 @@ Introduction
 
 The `Workflow <../component/introduction.html>`_ part introduces how to run research workflow in a loosely-coupled way. But it can only execute one ``task`` when you use ``qrun``.
 To automatically generate and execute different tasks, ``Task Management`` provides a whole process including `Task Generating`_, `Task Storing`_, `Task Training`_ and `Task Collecting`_. 
-With this module, users can run their ``task`` automatically at different periods, in different losses, or even by different models.
+With this module, users can run their ``task`` automatically at different periods, in different losses, or even by different models.The processes of task generation, model training and combine and collect data are shown in the following figure.
+
+.. image:: ../_static/img/Task-Gen-Recorder-Collector.svg
+    :align: center
 
 This whole process can be used in `Online Serving <../component/online.html>`_.
 
@@ -74,6 +77,8 @@ If you do not want to use ``Task Manager`` to manage tasks, then use TrainerR to
 
 Task Collecting
 ===============
+Before collecting model training results, you need to use the ``qlib.init`` to specify the path of mlruns.
+
 To collect the results of ``task`` after training, ``Qlib`` provides `Collector <../reference/api.html#Collector>`_, `Group <../reference/api.html#Group>`_ and `Ensemble <../reference/api.html#Ensemble>`_ to collect the results in a readable, expandable and loosely-coupled way.
 
 `Collector <../reference/api.html#Collector>`_ can collect objects from everywhere and process them such as merging, grouping, averaging and so on. It has 2 step action including ``collect`` (collect anything in a dict) and ``process_collect`` (process collected dict).
@@ -82,7 +87,9 @@ To collect the results of ``task`` after training, ``Qlib`` provides `Collector 
 For example: {(A,B,C1): object, (A,B,C2): object} ---``group``---> {(A,B): {C1: object, C2: object}} ---``reduce``---> {(A,B): object}
 
 `Ensemble <../reference/api.html#Ensemble>`_ can merge the objects in an ensemble. 
-For example: {C1: object, C2: object} ---``Ensemble``---> object
+For example: {C1: object, C2: object} ---``Ensemble``---> object.
+You can set the ensembles you want in the ``Collector``'s process_list.
+Common ensembles include ``AverageEnsemble`` and ``RollingEnsemble``. Average ensemble is used to ensemble the results of different models in the same time period. Rollingensemble is used to ensemble the results of different models in the same time period
 
 So the hierarchy is ``Collector``'s second step corresponds to ``Group``. And ``Group``'s second step correspond to ``Ensemble``.
 

@@ -3,7 +3,6 @@
 
 import math
 import importlib
-from pathlib import Path
 from typing import Iterable
 
 import pandas as pd
@@ -13,8 +12,6 @@ import plotly.graph_objs as go
 
 from plotly.subplots import make_subplots
 from plotly.figure_factory import create_distplot
-
-from ...utils import get_module_by_module_path
 
 
 class BaseGraph:
@@ -138,7 +135,7 @@ class BaseGraph:
         :return:
         """
         _figure = go.Figure(data=self.data, layout=self._get_layout())
-        # NOTE: using default 3.x theme
+        # NOTE: Use the default theme from plotly version 3.x, template=None
         _figure["layout"].update(template=None)
         return _figure
 
@@ -378,8 +375,9 @@ class SubplotsGraph:
             for k, v in self._sub_graph_layout.items():
                 self._figure["layout"][k].update(v)
 
-        # NOTE: using default 3.x theme
-        self._figure["layout"].update(self._layout, template=None)
+        # NOTE: Use the default theme from plotly version 3.x: template=None
+        self._figure["layout"].update(template=None)
+        self._figure["layout"].update(self._layout)
 
     @property
     def figure(self):

@@ -97,7 +97,7 @@ def rank_label_graph(
                 qcr.analysis_position.rank_label_graph(positions, features_df, pred_df_dates.min(), pred_df_dates.max())
 
 
-    :param position: position data; **qlib.contrib.backtest.backtest.backtest** result.
+    :param position: position data; **qlib.backtest.backtest** result.
     :param label_data: **D.features** result; index is **pd.MultiIndex**, index name is **[instrument, datetime]**; columns names is **[label]**.
     **The label T is the change from T to T+1**, it is recommended to use ``close``, example: `D.features(D.instruments('csi500'), ['Ref($close, -1)/$close-1'])`.
 

@@ -195,8 +195,9 @@ class CalendarStorage(BaseStorage):
 
 
 class InstrumentStorage(BaseStorage):
-    def __init__(self, market: str, **kwargs):
+    def __init__(self, market: str, freq: str, **kwargs):
         self.market = market
+        self.freq = freq
         self.kwargs = kwargs
 
     @property

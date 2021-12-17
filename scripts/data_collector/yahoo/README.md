@@ -27,7 +27,8 @@ pip install -r requirements.txt
 ## Collector Data
 
 ### Get Qlib data(`bin file`)
-  > `qlib-data` from *YahooFinance*, is the data that has been dumped and can be used directly in `qlib`
+  > `qlib-data` from *YahooFinance*, is the data that has been dumped and can be used directly in `qlib`.
+  > This ready-made qlib-data is not updated regularly. If users want the latest data, please follow [these steps](#collector-yahoofinance-data-to-qlib) download the latest data. 
 
   - get data: `python scripts/get_data.py qlib_data`
   - parameters:
@@ -57,7 +58,8 @@ pip install -r requirements.txt
     ```
 
 ### Collector *YahooFinance* data to qlib
-> collector *YahooFinance* data and *dump* into `qlib` format
+> collector *YahooFinance* data and *dump* into `qlib` format.
+> If the above ready-made data can't meet users' requirements,  users can follow this section to crawl the latest data and convert it to qlib-data.
   1. download data to csv: `python scripts/data_collector/yahoo/collector.py download_data`
 
      - parameters:

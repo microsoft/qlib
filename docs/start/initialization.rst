@@ -48,6 +48,7 @@ Besides `provider_uri` and `region`, `qlib.init` has other parameters. The follo
         - ``qlib.config.REG_CN``: China stock market.
 
         Different modes will result in different trading limitations and costs.
+        The region is just `shortcuts for defining a batch of configurations <https://github.com/microsoft/qlib/blob/main/qlib/config.py#L239>`_. Users can set the key configurations manually if the existing region setting can't meet their requirements.
 - `redis_host`
     Type: str, optional parameter(default: "127.0.0.1"), host of `redis`
         The lock and cache mechanism relies on redis.

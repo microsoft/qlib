@@ -30,8 +30,10 @@ try:
     from .pytorch_nn import DNNModelPytorch
     from .pytorch_tabnet import TabnetModel
     from .pytorch_sfm import SFM_Model
+    from .pytorch_tcn import TCN
+    from .pytorch_add import ADD
 
-    pytorch_classes = (ALSTM, GATs, GRU, LSTM, DNNModelPytorch, TabnetModel, SFM_Model)
+    pytorch_classes = (ALSTM, GATs, GRU, LSTM, DNNModelPytorch, TabnetModel, SFM_Model, TCN, ADD)
 except ModuleNotFoundError:
     pytorch_classes = ()
     print("Please install necessary libs for PyTorch models.")

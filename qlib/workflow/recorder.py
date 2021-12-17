@@ -1,14 +1,18 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+import os
+from qlib.utils.serial import Serializable
 import mlflow, logging
 import shutil, os, pickle, tempfile, codecs, pickle
 from pathlib import Path
 from datetime import datetime
 
 from qlib.utils.exceptions import LoadObjectError
+from qlib.utils.paral import AsyncCaller
 from ..utils.objm import FileManager
-from ..log import get_module_logger
+from ..log import TimeInspector, get_module_logger
+from mlflow.store.artifact.azure_blob_artifact_repo import AzureBlobArtifactRepository
 
 logger = get_module_logger("workflow", logging.INFO)
 
@@ -63,6 +67,8 @@ class Recorder:
         """
         Save objects such as prediction file or model checkpoints to the artifact URI. User
         can save object through keywords arguments (name:value).
+
+        Please refer to the docs of qlib.workflow:R.save_objects
 
         Parameters
         ----------
@@ -224,6 +230,7 @@ class MLflowRecorder(Recorder):
                 if mlflow_run.info.end_time is not None
                 else None
             )
+        self.async_log = None
 
     def __repr__(self):
         name = self.__class__.__name__
@@ -282,6 +289,10 @@ class MLflowRecorder(Recorder):
         self.status = Recorder.STATUS_R
         logger.info(f"Recorder {self.id} starts running under Experiment {self.experiment_id} ...")
 
+        # NOTE: making logging async.
+        # - This may cause delay when uploading results
+        # - The logging time may not be accurate
+        self.async_log = AsyncCaller()
         return run
 
     def end_run(self, status: str = Recorder.STATUS_S):
@@ -295,6 +306,9 @@ class MLflowRecorder(Recorder):
         self.end_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         if self.status != Recorder.STATUS_S:
             self.status = status
+        with TimeInspector.logt("waiting `async_log`"):
+            self.async_log.wait()
+        self.async_log = None
 
     def save_objects(self, local_path=None, artifact_path=None, **kwargs):
         assert self.uri is not None, "Please start the experiment and recorder first before using recorder directly."
@@ -307,8 +321,8 @@ class MLflowRecorder(Recorder):
         else:
             temp_dir = Path(tempfile.mkdtemp()).resolve()
             for name, data in kwargs.items():
-                with (temp_dir / name).open("wb") as f:
-                    pickle.dump(data, f)
+                path = temp_dir / name
+                Serializable.general_dump(data, path)
                 self.client.log_artifact(self.id, temp_dir / name, artifact_path)
             shutil.rmtree(temp_dir)
 
@@ -330,18 +344,27 @@ class MLflowRecorder(Recorder):
         try:
             path = self.client.download_artifacts(self.id, name)
             with Path(path).open("rb") as f:
-                return pickle.load(f)
+                data = pickle.load(f)
+            ar = self.client._tracking_client._get_artifact_repo(self.id)
+            if isinstance(ar, AzureBlobArtifactRepository):
+                # for saving disk space
+                # For safety, only remove redundant file for specific ArtifactRepository
+                shutil.rmtree(Path(path).absolute().parent)
+            return data
         except Exception as e:
             raise LoadObjectError(message=str(e))
 
+    @AsyncCaller.async_dec(ac_attr="async_log")
     def log_params(self, **kwargs):
         for name, data in kwargs.items():
             self.client.log_param(self.id, name, data)
 
+    @AsyncCaller.async_dec(ac_attr="async_log")
     def log_metrics(self, step=None, **kwargs):
         for name, data in kwargs.items():
             self.client.log_metric(self.id, name, data, step=step)
 
+    @AsyncCaller.async_dec(ac_attr="async_log")
     def set_tags(self, **kwargs):
         for name, data in kwargs.items():
             self.client.set_tag(self.id, name, data)

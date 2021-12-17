@@ -5,6 +5,7 @@ import pickle
 import dill
 from pathlib import Path
 from typing import Union
+from ..config import C
 
 
 class Serializable:
@@ -85,7 +86,8 @@ class Serializable:
         """
         self.config(dump_all=dump_all, exclude=exclude)
         with Path(path).open("wb") as f:
-            self.get_backend().dump(self, f)
+            # pickle interface like backend; such as dill
+            self.get_backend().dump(self, f, protocol=C.dump_protocol_version)
 
     @classmethod
     def load(cls, filepath):
@@ -116,9 +118,29 @@ class Serializable:
         Returns:
             module: pickle or dill module based on pickle_backend
         """
+        # NOTE: pickle interface like backend; such as dill
         if cls.pickle_backend == "pickle":
             return pickle
         elif cls.pickle_backend == "dill":
             return dill
         else:
             raise ValueError("Unknown pickle backend, please use 'pickle' or 'dill'.")
+
+    @staticmethod
+    def general_dump(obj, path: Union[Path, str]):
+        """
+        A general dumping method for object
+
+        Parameters
+        ----------
+        obj : object
+            the object to be dumped
+        path : Union[Path, str]
+            the target path the data will be dumped
+        """
+        path = Path(path)
+        if isinstance(obj, Serializable):
+            obj.to_pickle(path)
+        else:
+            with path.open("wb") as f:
+                pickle.dump(obj, f, protocol=C.dump_protocol_version)

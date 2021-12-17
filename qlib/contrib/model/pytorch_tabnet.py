@@ -169,6 +169,8 @@ class TabnetModel(Model):
             col_set=["feature", "label"],
             data_key=DataHandlerLP.DK_L,
         )
+        if df_train.empty or df_valid.empty:
+            raise ValueError("Empty data from dataset, please check your dataset config.")
         df_train.fillna(df_train.mean(), inplace=True)
         x_train, y_train = df_train["feature"], df_train["label"]
         x_valid, y_valid = df_valid["feature"], df_valid["label"]

@@ -73,6 +73,9 @@ class Config:
 REG_CN = "cn"
 REG_US = "us"
 
+# pickle.dump protocol version: https://docs.python.org/3/library/pickle.html#data-stream-format
+PROTOCOL_VERSION = 4
+
 NUM_USABLE_CPU = max(multiprocessing.cpu_count() - 2, 1)
 
 DISK_DATASET_CACHE = "DiskDatasetCache"
@@ -107,8 +110,12 @@ _default_config = {
     # for simple dataset cache
     "local_cache_path": None,
     "kernels": NUM_USABLE_CPU,
+    # pickle.dump protocol version
+    "dump_protocol_version": PROTOCOL_VERSION,
     # How many tasks belong to one process. Recommend 1 for high-frequency data and None for daily data.
     "maxtasksperchild": None,
+    # If joblib_backend is None, use loky
+    "joblib_backend": "multiprocessing",
     "default_disk_cache": 1,  # 0:skip/1:use
     "mem_cache_size_limit": 500,
     # memory cache expire second, only in used 'DatasetURICache' and 'client D.calendar'
@@ -165,6 +172,10 @@ _default_config = {
         "task_url": "mongodb://localhost:27017/",
         "task_db_name": "default_task_db",
     },
+    # Shift minute for highfreq minite data, used in backtest
+    # if min_data_shift == 0, use default market time [9:30, 11:29, 1:00, 2:59]
+    # if min_data_shift != 0, use shifted market time [9:30, 11:29, 1:00, 2:59] - shift*minute
+    "min_data_shift": 0,
 }
 
 MODE_CONF = {
@@ -233,8 +244,8 @@ HIGH_FREQ_CONFIG = {
 _default_region_config = {
     REG_CN: {
         "trade_unit": 100,
-        "limit_threshold": 0.099,
-        "deal_price": "vwap",
+        "limit_threshold": 0.095,
+        "deal_price": "close",
     },
     REG_US: {
         "trade_unit": 1,
@@ -260,6 +271,20 @@ class QlibConfig(Config):
             self.mount_path = mount_path
 
         @staticmethod
+        def format_provider_uri(provider_uri: Union[str, dict, Path]) -> dict:
+            if provider_uri is None:
+                raise ValueError("provider_uri cannot be None")
+            if isinstance(provider_uri, (str, dict, Path)):
+                if not isinstance(provider_uri, dict):
+                    provider_uri = {QlibConfig.DEFAULT_FREQ: provider_uri}
+            else:
+                raise TypeError(f"provider_uri does not support {type(provider_uri)}")
+            for freq, _uri in provider_uri.items():
+                if QlibConfig.DataPathManager.get_uri_type(_uri) == QlibConfig.LOCAL_URI:
+                    provider_uri[freq] = str(Path(_uri).expanduser().resolve())
+            return provider_uri
+
+        @staticmethod
         def get_uri_type(uri: Union[str, Path]):
             uri = uri if isinstance(uri, str) else str(uri.expanduser().resolve())
             is_win = re.match("^[a-zA-Z]:.*", uri) is not None  # such as 'C:\\data', 'D:'
@@ -271,7 +296,7 @@ class QlibConfig(Config):
             else:
                 return QlibConfig.LOCAL_URI
 
-        def get_data_path(self, freq: str = None) -> Path:
+        def get_data_uri(self, freq: str = None) -> Path:
             if freq is None or freq not in self.provider_uri:
                 freq = QlibConfig.DEFAULT_FREQ
             _provider_uri = self.provider_uri[freq]
@@ -305,11 +330,7 @@ class QlibConfig(Config):
     def resolve_path(self):
         # resolve path
         _mount_path = self["mount_path"]
-        _provider_uri = self["provider_uri"]
-        if _provider_uri is None:
-            raise ValueError("provider_uri cannot be None")
-        if not isinstance(_provider_uri, dict):
-            _provider_uri = {self.DEFAULT_FREQ: _provider_uri}
+        _provider_uri = self.DataPathManager.format_provider_uri(self["provider_uri"])
         if not isinstance(_mount_path, dict):
             _mount_path = {_freq: _mount_path for _freq in _provider_uri.keys()}
 
@@ -318,21 +339,34 @@ class QlibConfig(Config):
         assert len(_miss_freq) == 0, f"mount_path is missing freq: {_miss_freq}"
 
         # resolve
-        for _freq, _uri in _provider_uri.items():
-            # provider_uri
-            if self.DataPathManager.get_uri_type(_uri) == QlibConfig.LOCAL_URI:
-                _provider_uri[_freq] = str(Path(_uri).expanduser().resolve())
+        for _freq in _provider_uri.keys():
             # mount_path
             _mount_path[_freq] = (
                 _mount_path[_freq]
                 if _mount_path[_freq] is None
                 else str(Path(_mount_path[_freq]).expanduser().resolve())
             )
-
         self["provider_uri"] = _provider_uri
         self["mount_path"] = _mount_path
 
-    def set(self, default_conf="client", **kwargs):
+    def set(self, default_conf: str = "client", **kwargs):
+        """
+        configure qlib based on the input parameters
+
+        The configure will act like a dictionary.
+
+        Normally, it literally replace the value according to the keys.
+        However, sometimes it is hard for users to set the config when the configure is nested and complicated
+
+        So this API provides some special parameters for users to set the keys in a more convenient way.
+        - region:  REG_CN, REG_US
+            - several region-related config will be changed
+
+        Parameters
+        ----------
+        default_conf : str
+            the default config template chosen by user: "server", "client"
+        """
         from .utils import set_log_with_config, get_module_logger, can_use_cache
 
         self.reset()

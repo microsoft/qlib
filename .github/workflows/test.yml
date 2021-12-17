@@ -12,8 +12,9 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [windows-latest, ubuntu-16.04, ubuntu-18.04, ubuntu-20.04]
-        python-version: [3.6, 3.7, 3.8]
+        os: [windows-latest, ubuntu-18.04, ubuntu-20.04]
+        # not supporting 3.6 due to annotations is not supported https://stackoverflow.com/a/52890129
+        python-version: [3.7, 3.8]
 
     steps:
     - uses: actions/checkout@v2

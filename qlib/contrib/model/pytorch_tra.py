@@ -74,7 +74,7 @@ class TRAModel(Model):
         lamb=0.0,
         rho=0.99,
         alpha=1.0,
-        seed=0,
+        seed=None,
         logdir=None,
         eval_train=False,
         eval_test=False,
@@ -99,8 +99,9 @@ class TRAModel(Model):
         if transport_method == "router" and not eval_train:
             self.logger.warning("`eval_train` will be ignored when using TRA.router")
 
-        np.random.seed(seed)
-        torch.manual_seed(seed)
+        if seed is not None:
+            np.random.seed(seed)
+            torch.manual_seed(seed)
 
         self.model_config = model_config
         self.tra_config = tra_config

@@ -8,6 +8,9 @@ from typing import Iterable, Union, Dict, Mapping, Tuple, List
 import numpy as np
 import pandas as pd
 
+from qlib.utils.time import Freq
+from qlib.utils.resam import resam_calendar
+from qlib.config import C
 from qlib.log import get_module_logger
 from qlib.data.storage import CalendarStorage, InstrumentStorage, FeatureStorage, CalVT, InstKT, InstVT
 
@@ -15,15 +18,36 @@ logger = get_module_logger("file_storage")
 
 
 class FileStorageMixin:
+    """FileStorageMixin, applicable to FileXXXStorage
+    Subclasses need to have provider_uri, freq, storage_name, file_name attributes
+
+    """
+
+    @property
+    def dpm(self):
+        return C.DataPathManager(self.provider_uri, None)
+
+    @property
+    def support_freq(self) -> List[str]:
+        _v = "_support_freq"
+        if hasattr(self, _v):
+            return getattr(self, _v)
+        if len(self.provider_uri) == 1 and C.DEFAULT_FREQ in self.provider_uri:
+            freq = filter(
+                lambda _freq: not _freq.endswith("_future"),
+                map(lambda x: x.stem, self.dpm.get_data_uri(C.DEFAULT_FREQ).joinpath("calendars").glob("*.txt")),
+            )
+        else:
+            freq = self.provider_uri.keys()
+        freq = list(freq)
+        setattr(self, _v, freq)
+        return freq
+
     @property
     def uri(self) -> Path:
-        _provider_uri = self.kwargs.get("provider_uri", None)
-        if _provider_uri is None:
-            raise ValueError(
-                f"The `provider_uri` parameter is not found in {self.__class__.__name__}, "
-                f'please specify `provider_uri` in the "provider\'s backend"'
-            )
-        return Path(_provider_uri).expanduser().joinpath(f"{self.storage_name}s", self.file_name)
+        if self.freq not in self.support_freq:
+            raise ValueError(f"{self.storage_name}: {self.provider_uri} does not contain data for {self.freq}")
+        return self.dpm.get_data_uri(self.freq).joinpath(f"{self.storage_name}s", self.file_name)
 
     def check(self):
         """check self.uri
@@ -37,9 +61,19 @@ class FileStorageMixin:
 
 
 class FileCalendarStorage(FileStorageMixin, CalendarStorage):
-    def __init__(self, freq: str, future: bool, **kwargs):
+    def __init__(self, freq: str, future: bool, provider_uri: dict, **kwargs):
         super(FileCalendarStorage, self).__init__(freq, future, **kwargs)
-        self.file_name = f"{freq}_future.txt" if future else f"{freq}.txt".lower()
+        self.future = future
+        self.provider_uri = C.DataPathManager.format_provider_uri(provider_uri)
+        self.resample_freq = None
+
+    @property
+    def file_name(self) -> str:
+        return f"{self.use_freq}_future.txt" if self.future else f"{self.use_freq}.txt".lower()
+
+    @property
+    def use_freq(self) -> str:
+        return self.freq if self.resample_freq is None else self.resample_freq
 
     def _read_calendar(self, skip_rows: int = 0, n_rows: int = None) -> List[CalVT]:
         if not self.uri.exists():
@@ -55,9 +89,30 @@ class FileCalendarStorage(FileStorageMixin, CalendarStorage):
             np.savetxt(fp, values, fmt="%s", encoding="utf-8")
 
     @property
+    def uri(self) -> Path:
+        freq = self.freq
+        if freq not in self.support_freq:
+            # NOTE: uri
+            #   1. If `uri` does not exist
+            #       - Get the `min_uri` of the closest `freq` under the same "directory" as the `uri`
+            #       - Read data from `min_uri` and resample to `freq`
+
+            freq = Freq.get_recent_freq(freq, self.support_freq)
+            if freq is None:
+                raise ValueError(f"can't find a freq from {self.support_freq} that can resample to {self.freq}!")
+            self.resample_freq = freq
+        return self.dpm.get_data_uri(self.use_freq).joinpath(f"{self.storage_name}s", self.file_name)
+
+    @property
     def data(self) -> List[CalVT]:
         self.check()
-        return self._read_calendar()
+        _calendar = self._read_calendar()
+        if self.resample_freq is not None:
+            _calendar = resam_calendar(np.array(list(map(pd.Timestamp, _calendar))), self.resample_freq, self.freq)
+        return _calendar
+
+    def _get_storage_freq(self) -> List[str]:
+        return sorted(set(map(lambda x: x.stem.split("_")[0], self.uri.parent.glob("*.txt"))))
 
     def extend(self, values: Iterable[CalVT]) -> None:
         self._write_calendar(values, mode="ab")
@@ -108,8 +163,9 @@ class FileInstrumentStorage(FileStorageMixin, InstrumentStorage):
     INSTRUMENT_END_FIELD = "end_datetime"
     SYMBOL_FIELD_NAME = "instrument"
 
-    def __init__(self, market: str, **kwargs):
-        super(FileInstrumentStorage, self).__init__(market, **kwargs)
+    def __init__(self, market: str, freq: str, provider_uri: dict, **kwargs):
+        super(FileInstrumentStorage, self).__init__(market, freq, **kwargs)
+        self.provider_uri = C.DataPathManager.format_provider_uri(provider_uri)
         self.file_name = f"{market.lower()}.txt"
 
     def _read_instrument(self) -> Dict[InstKT, InstVT]:
@@ -196,8 +252,9 @@ class FileInstrumentStorage(FileStorageMixin, InstrumentStorage):
 
 
 class FileFeatureStorage(FileStorageMixin, FeatureStorage):
-    def __init__(self, instrument: str, field: str, freq: str, **kwargs):
+    def __init__(self, instrument: str, field: str, freq: str, provider_uri: dict, **kwargs):
         super(FileFeatureStorage, self).__init__(instrument, field, freq, **kwargs)
+        self.provider_uri = C.DataPathManager.format_provider_uri(provider_uri)
         self.file_name = f"{instrument.lower()}/{field.lower()}.{freq.lower()}.bin"
 
     def clear(self):
