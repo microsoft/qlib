@@ -38,7 +38,7 @@ class EnhancedIndexingOptimizer(BaseOptimizer):
         max_w  d @ r - lamb * (v @ cov_b @ v + var_u @ d**2)
         s.t.   w >= 0
                sum(w) == 1
-               sum(|w|) <= delta
+               sum(|w - w0|) <= delta
                d >= -b_dev
                d <= b_dev
                v >= -f_dev
@@ -48,7 +48,7 @@ class EnhancedIndexingOptimizer(BaseOptimizer):
     def __init__(
         self,
         lamb: float = 1,
-        delta: Optional[float] = 0.4,
+        delta: Optional[float] = 0.2,
         b_dev: Optional[float] = 0.01,
         f_dev: Optional[Union[List[float], np.ndarray]] = None,
         scale_return: bool = True,

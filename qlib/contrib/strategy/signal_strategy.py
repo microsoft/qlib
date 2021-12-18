@@ -419,6 +419,9 @@ class EnhancedIndexingStrategy(WeightStrategyBase):
             return self._riskdata_cache[date]
 
         root = self.riskmodel_root + "/" + date.strftime("%Y%m%d")
+        if not os.path.exists(root):
+            return None
+
         factor_exp = load_dataset(root + "/" + self.factor_exp_path, index_col=[0])
         factor_cov = load_dataset(root + "/" + self.factor_cov_path, index_col=[0])
         specific_risk = load_dataset(root + "/" + self.specific_risk_path, index_col=[0])
@@ -443,7 +446,11 @@ class EnhancedIndexingStrategy(WeightStrategyBase):
         pre_date = get_pre_trading_date(trade_date, future=True)  # previous trade date
 
         # load risk data
-        factor_exp, factor_cov, specific_risk, universe, blacklist = self.get_risk_data(pre_date)
+        outs = self.get_risk_data(pre_date)
+        if outs is None:
+            self.logger.warning(f"no risk data for {pre_date:%Y-%m-%d}, skip optimization")
+            return None
+        factor_exp, factor_cov, specific_risk, universe, blacklist = outs
 
         # transform score
         # NOTE: for stocks missing score, we always assume they have the lowest score
