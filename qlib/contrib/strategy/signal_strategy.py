@@ -23,54 +23,27 @@ from qlib.contrib.strategy.order_generator import OrderGenWInteract, OrderGenWOI
 from qlib.contrib.strategy.optimizer import EnhancedIndexingOptimizer
 
 
-class TopkDropoutStrategy(BaseStrategy):
-    # TODO:
-    # 1. Supporting leverage the get_range_limit result from the decision
-    # 2. Supporting alter_outer_trade_decision
-    # 3. Supporting checking the availability of trade decision
+class BaseSignalStrategy(BaseStrategy):
     def __init__(
         self,
         *,
-        topk,
-        n_drop,
         signal: Union[Signal, Tuple[BaseModel, Dataset], List, Dict, Text, pd.Series, pd.DataFrame] = None,
-        method_sell="bottom",
-        method_buy="top",
-        risk_degree=0.95,
-        hold_thresh=1,
-        only_tradable=False,
+        model=None,
+        dataset=None,
+        risk_degree: float = 0.95,
         trade_exchange=None,
         level_infra=None,
         common_infra=None,
-        model=None,
-        dataset=None,
         **kwargs,
     ):
         """
         Parameters
         -----------
-        topk : int
-            the number of stocks in the portfolio.
-        n_drop : int
-            number of stocks to be replaced in each trading date.
         signal :
             the information to describe a signal. Please refer to the docs of `qlib.backtest.signal.create_signal_from`
             the decision of the strategy will base on the given signal
-        method_sell : str
-            dropout method_sell, random/bottom.
-        method_buy : str
-            dropout method_buy, random/top.
         risk_degree : float
             position percentage of total value.
-        hold_thresh : int
-            minimum holding days
-            before sell stock , will check current.get_stock_count(order.stock_id) >= self.hold_thresh.
-        only_tradable : bool
-            will the strategy only consider the tradable stock when buying and selling.
-            if only_tradable:
-                strategy will make buy sell decision without checking the tradable state of the stock.
-            else:
-                strategy will make decision with the tradable state of the stock info and avoid buy and sell them.
         trade_exchange : Exchange
             exchange that provides market info, used to deal order and generate report
             - If `trade_exchange` is None, self.trade_exchange will be set with common_infra
@@ -80,16 +53,9 @@ class TopkDropoutStrategy(BaseStrategy):
                 - In minutely execution, the daily exchange is not usable, only the minutely exchange is recommended.
 
         """
-        super(TopkDropoutStrategy, self).__init__(
-            level_infra=level_infra, common_infra=common_infra, trade_exchange=trade_exchange, **kwargs
-        )
-        self.topk = topk
-        self.n_drop = n_drop
-        self.method_sell = method_sell
-        self.method_buy = method_buy
+        super().__init__(level_infra=level_infra, common_infra=common_infra, trade_exchange=trade_exchange, **kwargs)
+
         self.risk_degree = risk_degree
-        self.hold_thresh = hold_thresh
-        self.only_tradable = only_tradable
 
         # This is trying to be compatible with previous version of qlib task config
         if model is not None and dataset is not None:
@@ -105,6 +71,52 @@ class TopkDropoutStrategy(BaseStrategy):
         """
         # It will use 95% amoutn of your total value by default
         return self.risk_degree
+
+
+class TopkDropoutStrategy(BaseSignalStrategy):
+    # TODO:
+    # 1. Supporting leverage the get_range_limit result from the decision
+    # 2. Supporting alter_outer_trade_decision
+    # 3. Supporting checking the availability of trade decision
+    def __init__(
+        self,
+        *,
+        topk,
+        n_drop,
+        method_sell="bottom",
+        method_buy="top",
+        hold_thresh=1,
+        only_tradable=False,
+        **kwargs,
+    ):
+        """
+        Parameters
+        -----------
+        topk : int
+            the number of stocks in the portfolio.
+        n_drop : int
+            number of stocks to be replaced in each trading date.
+        method_sell : str
+            dropout method_sell, random/bottom.
+        method_buy : str
+            dropout method_buy, random/top.
+        hold_thresh : int
+            minimum holding days
+            before sell stock , will check current.get_stock_count(order.stock_id) >= self.hold_thresh.
+        only_tradable : bool
+            will the strategy only consider the tradable stock when buying and selling.
+            if only_tradable:
+                strategy will make buy sell decision without checking the tradable state of the stock.
+            else:
+                strategy will make decision with the tradable state of the stock info and avoid buy and sell them.
+        """
+        super().__init__(**kwargs)
+        self.topk = topk
+        self.n_drop = n_drop
+        self.method_sell = method_sell
+        self.method_buy = method_buy
+        self.hold_thresh = hold_thresh
+        self.only_tradable = only_tradable
 
     def generate_trade_decision(self, execute_result=None):
         # get the number of trading step finished, trade_step can be [0, 1, 2, ..., trade_len - 1]
@@ -259,7 +271,7 @@ class TopkDropoutStrategy(BaseStrategy):
         return TradeDecisionWO(sell_order_list + buy_order_list, self)
 
 
-class WeightStrategyBase(BaseStrategy):
+class WeightStrategyBase(BaseSignalStrategy):
     # TODO:
     # 1. Supporting leverage the get_range_limit result from the decision
     # 2. Supporting alter_outer_trade_decision
@@ -267,12 +279,7 @@ class WeightStrategyBase(BaseStrategy):
     def __init__(
         self,
         *,
-        signal: Union[Signal, Tuple[BaseModel, Dataset], List, Dict, Text, pd.Series, pd.DataFrame],
         order_generator_cls_or_obj=OrderGenWOInteract,
-        trade_exchange=None,
-        level_infra=None,
-        common_infra=None,
-        risk_degree=0.95,
         **kwargs,
     ):
         """
@@ -287,25 +294,12 @@ class WeightStrategyBase(BaseStrategy):
                 - In daily execution, both daily exchange and minutely are usable, but the daily exchange is recommended because it run faster.
                 - In minutely execution, the daily exchange is not usable, only the minutely exchange is recommended.
         """
-        super(WeightStrategyBase, self).__init__(
-            level_infra=level_infra, common_infra=common_infra, trade_exchange=trade_exchange, **kwargs
-        )
+        super().__init__(**kwargs)
+
         if isinstance(order_generator_cls_or_obj, type):
             self.order_generator = order_generator_cls_or_obj()
         else:
             self.order_generator = order_generator_cls_or_obj
-
-        self.risk_degree = risk_degree
-
-        self.signal: Signal = create_signal_from(signal)
-
-    def get_risk_degree(self, trade_step=None):
-        """get_risk_degree
-        Return the proportion of your total value you will used in investment.
-        Dynamically risk_degree will result in Market timing.
-        """
-        # It will use 95% amoutn of your total value by default
-        return self.risk_degree
 
     def generate_target_weight_position(self, score, current, trade_start_time, trade_end_time):
         """
@@ -385,7 +379,6 @@ class EnhancedIndexingStrategy(WeightStrategyBase):
     def __init__(
         self,
         *,
-        signal,
         riskmodel_root,
         market="csi500",
         turn_limit=None,
@@ -394,7 +387,7 @@ class EnhancedIndexingStrategy(WeightStrategyBase):
         verbose=False,
         **kwargs,
     ):
-        super().__init__(signal=signal, **kwargs)
+        super().__init__(**kwargs)
 
         self.logger = get_module_logger("EnhancedIndexingStrategy")
 
