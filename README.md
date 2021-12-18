@@ -403,9 +403,11 @@ Join IM discussion groups:
 
 This project welcomes contributions and suggestions.  
 **Here are some 
-[code standards](docs/developer/code_standard.rst) when you submit a pull request.**
+[code standards](docs/developer/code_standard.rst) for submiting a pull request.**
 
-If you want to contribute to Qlib's document, you can follow the steps in the figure below.
+Making contributions is not a hard thing. Solving an issue(maybe just answering a question raised in [issues list](https://github.com/microsoft/qlib/issues) or [gitter](https://gitter.im/Microsoft/qlib)), fixing/issuing a bug, improving the documents and even fixing a typo are important contributions to Qlib.
+
+For example, if you want to contribute to Qlib's document/code, you can follow the steps in the figure below.
 <p align="center">
   <img src="https://github.com/demon143/qlib/blob/main/docs/_static/img/change%20doc.gif" />
 </p>
