@@ -62,7 +62,7 @@ class EnhancedIndexingOptimizer(BaseOptimizer):
             b_dev (float): benchmark deviation limit
             f_dev (list): factor deviation limit
             scale_return (bool): whether scale return to match estimated volatility
-            epsilon (float): minumum weight
+            epsilon (float): minimum weight
             solver_kwargs (dict): kwargs for cvxpy solver
         """
 
