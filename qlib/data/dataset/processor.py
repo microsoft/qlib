@@ -306,7 +306,7 @@ class CSRankNorm(Processor):
     Cross Sectional Rank Normalization.
     "Cross Sectional" is often used to describe data operations.
     The operations across different stocks are often called Cross Sectional Operation.
-    
+
     For example, CSRankNorm is an operation that grouping the data by each day and rank `across` all the stocks in each day.
     """
 
