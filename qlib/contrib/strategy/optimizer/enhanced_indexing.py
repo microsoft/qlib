@@ -177,7 +177,7 @@ class EnhancedIndexingOptimizer(BaseOptimizer):
 
         # trial 2: remove turnover constraint
         if not success and len(t_cons):
-            logger.info("try removing turnvoer constraint as last optimization failed")
+            logger.info("try removing turnover constraint as the last optimization failed")
             try:
                 w.value = wb
                 prob = cp.Problem(obj, cons)
