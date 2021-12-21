@@ -33,7 +33,7 @@ jobs:
     - name: pylint
       run: |
         pip install pylint
-        pylint qlib
+        python3 -m pytest qlib --cov=pylint.message
     
     - name: Install Qlib with pip
       run: |
