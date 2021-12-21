@@ -33,7 +33,7 @@ jobs:
     - name: pylint
       run: |
         pip install pylint
-        pylint --disable=W qlib 
+        pylint --disable=C,R,W qlib 
     
     - name: Install Qlib with pip
       run: |
