@@ -8,7 +8,7 @@ Portfolio Strategy: Portfolio Management
 Introduction
 ===================
 
-``Portfolio Strategy`` is designed to adopt different portfolio strategies, which means that users can adopt different algorithms to generate investment portfolios based on the prediction scores of the ``Forecast Model``. Users can use the ``Portfolio Strategy`` in an automatic workflow by ``Workflow`` module, please refer to `Workflow: Workflow Management <workflow.html>`_.  
+``Portfolio Strategy`` is designed to adopt different portfolio strategies, which means that users can adopt different algorithms to generate investment portfolios based on the prediction scores of the ``Forecast Model``. Users can use the ``Portfolio Strategy`` in an automatic workflow by ``Workflow`` module, please refer to `Workflow: Workflow Management <workflow.html>`_.
 
 Because the components in ``Qlib`` are designed in a loosely-coupled way, ``Portfolio Strategy`` can be used as an independent module also.
 
@@ -28,14 +28,14 @@ Qlib provides a base class ``qlib.contrib.strategy.BaseStrategy``. All strategy 
     Return the proportion of your total value you will use in investment. Dynamically risk_degree will result in Market timing.
 
 - `generate_order_list`
-    Return the order list. 
+    Return the order list.
 
 Users can inherit `BaseStrategy` to customize their strategy class.
 
 WeightStrategyBase
 --------------------
 
-Qlib also provides a class ``qlib.contrib.strategy.WeightStrategyBase`` that is a subclass of `BaseStrategy`. 
+Qlib also provides a class ``qlib.contrib.strategy.WeightStrategyBase`` that is a subclass of `BaseStrategy`.
 
 `WeightStrategyBase` only focuses on the target positions, and automatically generates an order list based on positions. It provides the `generate_target_weight_position` interface.
 
@@ -71,16 +71,26 @@ TopkDropoutStrategy
 
         - `Topk`: The number of stocks held
         - `Drop`: The number of stocks sold on each trading day
-        
+
         Currently, the number of held stocks is `Topk`.
         On each trading day, the `Drop` number of held stocks with the worst `prediction score` will be sold, and the same number of unheld stocks with the best `prediction score` will be bought.
-        
+
         .. image:: ../_static/img/topk_drop.png
             :alt: Topk-Drop
 
         ``TopkDrop`` algorithm sells `Drop` stocks every trading day, which guarantees a fixed turnover rate.
-        
+
 - Generate the order list from the target amount
+
+EnhancedIndexingStrategy
+------------------------
+`EnhancedIndexingStrategy` Enhanced indexing combines the arts of active management and passive management,
+with the aim of outperforming a benchmark index (e.g., S&P 500) in terms of portfolio return while controlling
+the risk exposure (a.k.a. tracking error).
+
+For more information, please refer to `qlib.contrib.strategy.signal_strategy.EnhancedIndexingStrategy`
+and `qlib.contrib.strategy.optimizer.enhanced_indexing.EnhancedIndexingOptimizer`.
+
 
 Usage & Example
 ====================
