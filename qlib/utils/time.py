@@ -5,7 +5,7 @@ Time related utils are compiled in this script
 """
 import bisect
 from datetime import datetime, time, date
-from typing import List, Tuple, Union
+from typing import List, Optional, Tuple, Union
 import functools
 import re
 
@@ -69,13 +69,29 @@ class Freq:
     NORM_FREQ_MONTH = "month"
     NORM_FREQ_WEEK = "week"
     NORM_FREQ_DAY = "day"
-    NORM_FREQ_MINUTE = "minute"
+    NORM_FREQ_MINUTE = "min"  # using min instead of minute for align with Qlib's data filename
     SUPPORT_CAL_LIST = [NORM_FREQ_MINUTE, NORM_FREQ_DAY]  # FIXME: this list should from data
 
     MIN_CAL = get_min_cal()
 
-    def __init__(self, freq: str) -> None:
-        self.count, self.base = self.parse(freq)
+    def __init__(self, freq: Union[str, "Freq"]) -> None:
+        if isinstance(freq, str):
+            self.count, self.base = self.parse(freq)
+        elif isinstance(freq, Freq):
+            self.count, self.base = freq.count, freq.base
+        else:
+            raise NotImplementedError(f"This type of input is not supported")
+
+    def __eq__(self, freq):
+        freq = Freq(freq)
+        return freq.count == self.count and freq.base == self.base
+
+    def __str__(self):
+        # trying to align to the filename of Qlib: day, 30min, 5min, 1min...
+        return f"{self.count if self.count != 1 or self.base != 'day' else ''}{self.base}"
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}({str(self)})"
 
     @staticmethod
     def parse(freq: str) -> Tuple[int, str]:
@@ -159,14 +175,14 @@ class Freq:
             Freq.NORM_FREQ_WEEK: 7 * 60 * 24,
             Freq.NORM_FREQ_MONTH: 30 * 7 * 60 * 24,
         }
-        left_freq = Freq.parse(left_frq)
-        left_minutes = left_freq[0] * minutes_map[left_freq[1]]
-        right_freq = Freq.parse(right_freq)
-        right_minutes = right_freq[0] * minutes_map[right_freq[1]]
+        left_freq = Freq(left_frq)
+        left_minutes = left_freq.count * minutes_map[left_freq.base]
+        right_freq = Freq(right_freq)
+        right_minutes = right_freq.count * minutes_map[right_freq.base]
         return left_minutes - right_minutes
 
     @staticmethod
-    def get_recent_freq(base_freq: str, freq_list: List[str]) -> str:
+    def get_recent_freq(base_freq: Union[str, "Freq"], freq_list: List[Union[str, "Freq"]]) -> Optional["Freq"]:
         """Get the closest freq to base_freq from freq_list
 
         Parameters
@@ -176,17 +192,22 @@ class Freq:
 
         Returns
         -------
-
+        if the recent frequency is found
+            Freq
+        else:
+            None
         """
+        base_freq = Freq(base_freq)
         # use the nearest freq greater than 0
         _freq_minutes = []
         min_freq = None
         for _freq in freq_list:
+            freq = Freq(_freq)
             _min_delta = Freq.get_min_delta(base_freq, _freq)
             if _min_delta < 0:
                 continue
             if min_freq is None:
-                min_freq = (_min_delta, _freq)
+                min_freq = (_min_delta, str(_freq))
                 continue
             min_freq = min_freq if min_freq[0] <= _min_delta else (_min_delta, _freq)
         return min_freq[1] if min_freq else None
