@@ -395,9 +395,25 @@ class NestedExecutor(BaseExecutor):
             if not self._align_range_limit or start_idx <= sub_cal.get_trade_step() <= end_idx:
                 # if force align the range limit, skip the steps outside the decision range limit
 
-                _inner_trade_decision: BaseTradeDecision = self.inner_strategy.generate_trade_decision(
-                    _inner_execute_result
-                )
+                res = self.inner_strategy.generate_trade_decision(_inner_execute_result)
+
+                # NOTE: !!!!!
+                # the two lines below is for a special case in RL
+                # To solve the confliction below
+                # - Normally, user will create a strategy and embed it into Qlib's executor and simulator interaction loop
+                #   For a _nested qlib example_, (Qlib Strategy) <=> (Qlib Executor[(inner Qlib Strategy) <=> (inner Qlib Executor)])
+                # - However, RL-based framework has it's own script to run the loop
+                #   For an _RL learning example_, (RL Policy) <=> (RL Env[(inner Qlib Executor)])
+                # To make it possible to run  _nested qlib example_ and _RL learning example_ together, the solution below is proposed
+                # - The entry script follow the example of  _RL learning example_ to be compatible with all kinds of RL Framework
+                # - Each step of (RL Env) will make (inner Qlib Executor) one step forward
+                #     - (inner Qlib Strategy) is a proxy strategy, it will give the program control right to (RL Env) by `yield from` and wait for the action from the policy
+                # So the two lines below is the implementation of yielding control rights
+                if isinstance(res, GeneratorType):
+                    res = yield from res
+
+                _inner_trade_decision: BaseTradeDecision = res
+
                 trade_decision.mod_inner_decision(_inner_trade_decision)  # propagate part of decision information
 
                 # NOTE sub_cal.get_step_time() must be called before collect_data in case of step shifting
@@ -407,6 +423,7 @@ class NestedExecutor(BaseExecutor):
                 _inner_execute_result = yield from self.inner_executor.collect_data(
                     trade_decision=_inner_trade_decision, level=level + 1
                 )
+                self.post_inner_exe_step(_inner_execute_result)
                 execute_result.extend(_inner_execute_result)
 
                 inner_order_indicators.append(
@@ -417,6 +434,17 @@ class NestedExecutor(BaseExecutor):
                 sub_cal.step()
 
         return execute_result, {"inner_order_indicators": inner_order_indicators, "decision_list": decision_list}
+
+    def post_inner_exe_step(self, inner_exe_res):
+        """
+        A hook for doing sth after each step of inner strategy
+
+        Parameters
+        ----------
+        inner_exe_res :
+            the execution result of inner task
+        """
+        pass
 
     def get_all_executors(self):
         """get all executors, including self and inner_executor.get_all_executors()"""
