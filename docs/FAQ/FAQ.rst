@@ -144,6 +144,56 @@ Also, feel free to post a new issue in our GitHub repository. We always check ea
       TypeError: send() got an unexpected keyword argument 'binary'
 
 
+6.UnicodeEncodeError: 'ascii' codec can't encode character '\xb7' in position 20: ordinal not in range(128)
+download data costs a lot of time
+.. code-block:: python
+      File "scripts/data_collector/yahoo/collector.py", line 1124, in <module>
+        fire.Fire(Run)
+      File "D:\ProgramData\Miniconda3\lib\site-packages\fire\core.py", line 141, in Fire
+        component_trace = _Fire(component, args, parsed_flag_args, context, name)
+      File "D:\ProgramData\Miniconda3\lib\site-packages\fire\core.py", line 466, in _Fire
+        component, remaining_args = _CallAndUpdateTrace(
+      File "D:\ProgramData\Miniconda3\lib\site-packages\fire\core.py", line 681, in _CallAndUpdateTrace
+        component = fn(*varargs, **kwargs)
+      File "scripts/data_collector/yahoo/collector.py", line 1091, in update_data_to_bin
+        self.download_data(delay=delay, start=trading_date, end=end_date, check_data_length=check_data_length)
+      File "scripts/data_collector/yahoo/collector.py", line 903, in download_data
+        super(Run, self).download_data(
+      File "D:\qlib_backtest\qlib\scripts\data_collector\base.py", line 392, in download_data
+        _class(
+      File "D:\qlib_backtest\qlib\scripts\data_collector\yahoo\collector.py", line 185, in collector_data
+        super(YahooCollector, self).collector_data()
+      File "D:\qlib_backtest\qlib\scripts\data_collector\base.py", line 210, in collector_data
+        instrument_list = self._collector(instrument_list)
+      File "D:\qlib_backtest\qlib\scripts\data_collector\base.py", line 190, in _collector
+        res = Parallel(n_jobs=self.max_workers)(
+      File "D:\ProgramData\Miniconda3\lib\site-packages\joblib\parallel.py", line 968, in __call__
+        n_jobs = self._initialize_backend()
+      File "D:\ProgramData\Miniconda3\lib\site-packages\joblib\parallel.py", line 735, in _initialize_backend
+        n_jobs = self._backend.configure(n_jobs=self.n_jobs, parallel=self,
+      File "D:\ProgramData\Miniconda3\lib\site-packages\joblib\_parallel_backends.py", line 494, in configure
+        self._workers = get_memmapping_executor(
+      File "D:\ProgramData\Miniconda3\lib\site-packages\joblib\executor.py", line 20, in get_memmapping_executor
+        return MemmappingExecutor.get_memmapping_executor(n_jobs, **kwargs)
+      File "D:\ProgramData\Miniconda3\lib\site-packages\joblib\executor.py", line 42, in get_memmapping_executor
+        manager = TemporaryResourcesManager(temp_folder)
+      File "D:\ProgramData\Miniconda3\lib\site-packages\joblib\_memmapping_reducer.py", line 531, in __init__
+        self.set_current_context(context_id)
+      File "D:\ProgramData\Miniconda3\lib\site-packages\joblib\_memmapping_reducer.py", line 535, in set_current_context
+        self.register_new_context(context_id)
+      File "D:\ProgramData\Miniconda3\lib\site-packages\joblib\_memmapping_reducer.py", line 560, in register_new_context
+        self.register_folder_finalizer(new_folder_path, context_id)
+      File "D:\ProgramData\Miniconda3\lib\site-packages\joblib\_memmapping_reducer.py", line 590, in register_folder_finalizer
+        resource_tracker.register(pool_subfolder, "folder")
+      File "D:\ProgramData\Miniconda3\lib\site-packages\joblib\externals\loky\backend\resource_tracker.py", line 191, in register
+        self._send('REGISTER', name, rtype)
+      File "D:\ProgramData\Miniconda3\lib\site-packages\joblib\externals\loky\backend\resource_tracker.py", line 204, in _send
+        msg = '{0}:{1}:{2}\n'.format(cmd, name, rtype).encode('ascii')
+      UnicodeEncodeError: 'ascii' codec can't encode character '\xb7' in position 20: ordinal not in range(128)
+
+------------------------------------------------------------------------------------------------------------------------------------
+
+
 - The ``python-engineio`` version needs to be compatible with the ``python-socketio`` version, reference: https://github.com/miguelgrinberg/python-socketio#version-compatibility
 
     .. code-block:: bash
