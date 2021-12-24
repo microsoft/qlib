@@ -193,9 +193,10 @@ Also, feel free to post a new issue in our GitHub repository. We always check ea
         msg = '{0}:{1}:{2}\n'.format(cmd, name, rtype).encode('ascii')
       UnicodeEncodeError: 'ascii' codec can't encode character '\xb7' in position 20: ordinal not in range(128)
 
--add "delay" or "max_workers":
+add "delay" or "max_workers":
 If the number of concurrency is more or the delay is less, it is possible that the acquired data is incomplete, set these two parameters according to the specific situation--delay 0.1 --max_workers 10
--Whether there is Chinese in the surrogate path, or output name at , look at the value of D:\ProgramData\Miniconda3\lib\site-packages\joblib\externals\loky\backend\resource_tracker.py, line 204name
+
+Whether there is Chinese in the surrogate path, or output name at , look at the value of D:\ProgramData\Miniconda3\lib\site-packages\joblib\externals\loky\backend\resource_tracker.py, line 204name
 
 - The ``python-engineio`` version needs to be compatible with the ``python-socketio`` version, reference: https://github.com/miguelgrinberg/python-socketio#version-compatibility
 
