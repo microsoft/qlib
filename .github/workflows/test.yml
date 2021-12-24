@@ -24,48 +24,49 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
-    - name: Lint with Black
-      run: |
-        pip install --upgrade pip
-        pip install black wheel
-        black qlib -l 120 --check --diff
+#     - name: Lint with Black
+#       run: |
+#         pip install --upgrade pip
+#         pip install black wheel
+#         black qlib -l 120 --check --diff
 
     - name: pylint
       run: |
+        pip show pylint
         pip install pylint
         pylint --disable=C,R,W,F qlib 
     
-    - name: Install Qlib with pip
-      run: |
-        pip install numpy==1.19.5 ruamel.yaml
-        pip install pyqlib --ignore-installed 
+#     - name: Install Qlib with pip
+#       run: |
+#         pip install numpy==1.19.5 ruamel.yaml
+#         pip install pyqlib --ignore-installed 
 
-    - name: Test data downloads
-      run: |
-        python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/cn_data --interval 1d --region cn
+#     - name: Test data downloads
+#       run: |
+#         python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/cn_data --interval 1d --region cn
 
-    - name: Test workflow by config (install from pip)
-      run: |
-        python qlib/workflow/cli.py examples/benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml
-        python -m pip uninstall -y pyqlib
+#     - name: Test workflow by config (install from pip)
+#       run: |
+#         python qlib/workflow/cli.py examples/benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml
+#         python -m pip uninstall -y pyqlib
 
-     # Test Qlib installed from source
-    - name: Install Qlib from source
-      run: |
-        pip install --upgrade cython jupyter jupyter_contrib_nbextensions numpy scipy scikit-learn # installing without this line will cause errors on GitHub Actions, while instsalling locally won't
-        pip install -e .
+#      # Test Qlib installed from source
+#     - name: Install Qlib from source
+#       run: |
+#         pip install --upgrade cython jupyter jupyter_contrib_nbextensions numpy scipy scikit-learn # installing without this line will cause errors on GitHub Actions, while instsalling locally won't
+#         pip install -e .
 
-    - name: Install test dependencies
-      run: |
-        pip install --upgrade pip
-        pip install black pytest
+#     - name: Install test dependencies
+#       run: |
+#         pip install --upgrade pip
+#         pip install black pytest
 
-    - name: Unit tests with Pytest
-      run: |
-        cd tests
-        python -m pytest . --durations=10
+#     - name: Unit tests with Pytest
+#       run: |
+#         cd tests
+#         python -m pytest . --durations=10
 
-    - name: Test workflow by config (install from source)
-      run: |
-        python qlib/workflow/cli.py examples/benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml
+#     - name: Test workflow by config (install from source)
+#       run: |
+#         python qlib/workflow/cli.py examples/benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml
       
