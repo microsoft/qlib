@@ -32,7 +32,6 @@ jobs:
 
     - name: pylint
       run: |
-        pip show pylint
         pip install pylint
         pylint --disable=C,R,W,F qlib 
     
