@@ -197,6 +197,8 @@ class Fillna(Processor):
 
 class MinMaxNorm(Processor):
     def __init__(self, fit_start_time, fit_end_time, fields_group=None):
+        # NOTE: correctly set the `fit_start_time` and `fit_end_time` is very important !!!
+        # `fit_end_time` **must not** include any information from the test data!!!
         self.fit_start_time = fit_start_time
         self.fit_end_time = fit_end_time
         self.fields_group = fields_group
@@ -226,6 +228,8 @@ class ZScoreNorm(Processor):
     """ZScore Normalization"""
 
     def __init__(self, fit_start_time, fit_end_time, fields_group=None):
+        # NOTE: correctly set the `fit_start_time` and `fit_end_time` is very important !!!
+        # `fit_end_time` **must not** include any information from the test data!!!
         self.fit_start_time = fit_start_time
         self.fit_end_time = fit_end_time
         self.fields_group = fields_group
@@ -263,6 +267,8 @@ class RobustZScoreNorm(Processor):
     """
 
     def __init__(self, fit_start_time, fit_end_time, fields_group=None, clip_outlier=True):
+        # NOTE: correctly set the `fit_start_time` and `fit_end_time` is very important !!!
+        # `fit_end_time` **must not** include any information from the test data!!!
         self.fit_start_time = fit_start_time
         self.fit_end_time = fit_end_time
         self.fields_group = fields_group
