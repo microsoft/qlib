@@ -144,8 +144,10 @@ Also, feel free to post a new issue in our GitHub repository. We always check ea
       TypeError: send() got an unexpected keyword argument 'binary'
 
 
-6.UnicodeEncodeError: 'ascii' codec can't encode character '\xb7' in position 20: ordinal not in range(128)
+6. UnicodeEncodeError: 'ascii' codec can't encode character '\xb7' in position 20: ordinal not in range(128)
 download data costs a lot of time
+------------------------------------------------------------------------------------------------------------------------------------
+
 .. code-block:: python
       File "scripts/data_collector/yahoo/collector.py", line 1124, in <module>
         fire.Fire(Run)
