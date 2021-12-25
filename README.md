@@ -400,6 +400,13 @@ Join IM discussion groups:
 |![image](http://fintech.msra.cn/images_v070/qrcode/gitter_qr.png)|
 
 # Contributing
+We appreciate all contributions and thank all the contributors!
+<a href="https://github.com/microsoft/qlib/graphs/contributors"><img src="https://contrib.rocks/image?repo=microsoft/qlib" /></a>
+
+Before we release an Qlib  as an open-source project on Github in Sep 2020, Qlib is an internal project in our group.
+Before we released Qlib as an open-source project on Github in Sep 2020, Qlib is an internal project in our group. Unfortunately, the internal commit history is not kept. A lot of members in our group have also contributed a lot to Qlib, which includes Ruihua Wang, Yinda Zhang, Haisu Yu, Shuyu Wang, Bochen Pang, and [Dong Zhou](https://github.com/evanzd/evanzd). Especially thanks to [Dong Zhou](https://github.com/evanzd/evanzd) due to his initial version of Qlib.
+
+## Guidance
 
 This project welcomes contributions and suggestions.  
 **Here are some 
@@ -413,6 +420,7 @@ For example, if you want to contribute to Qlib's document/code, you can follow t
 </p>
 
 
+## Licence
 Most contributions require you to agree to a
 Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us
 the right to use your contribution. For details, visit https://cla.opensource.microsoft.com.
