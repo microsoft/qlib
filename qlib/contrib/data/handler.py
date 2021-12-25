@@ -90,7 +90,13 @@ class Alpha360(DataHandlerLP):
         return (["Ref($close, -2)/Ref($close, -1) - 1"], ["LABEL0"])
 
     def get_feature_config(self):
-
+        # NOTE:
+        # Alpha360 tries to provide a dataset with original price data
+        # the original price data includes the prices and volume in the last 60 days.
+        # To make it easier to learn models from this dataset, all the prices and volume
+        # are normalized by the latest price and volume data ( dividing by $close, $volume)
+        # So the latest normalized $close will be 1 (with name CLOSE0), the latest normalized $volume will be 1 (with name VOLUME0)
+        # If further normalization are executed (e.g. centralization),  CLOSE0 and VOLUME0 will be 0.
         fields = []
         names = []
 
