@@ -47,6 +47,7 @@ class GetData:
 
         url = self.merge_remote_url(file_name, dataset_version)
         resp = requests.get(url, stream=True)
+        resp.raise_for_status()
         if resp.status_code != 200:
             raise requests.exceptions.HTTPError()
 
@@ -108,7 +109,7 @@ class GetData:
     def qlib_data(
         self,
         name="qlib_data",
-        target_dir="~/.qlib/qlib_data/qlib_cn_1d",
+        target_dir="~/.qlib/qlib_data/cn_1d",
         version=None,
         interval="1d",
         region="cn",
@@ -137,10 +138,10 @@ class GetData:
         Examples
         ---------
         # get 1d data
-        python get_data.py qlib_data --name qlib_data --target_dir ~/.qlib/qlib_data/qlib_cn_1d --interval 1d --region cn
+        python get_data.py qlib_data --name qlib_data --target_dir ~/.qlib/qlib_data/cn_1d --interval 1d --region cn
 
         # get 1min data
-        python get_data.py qlib_data --name qlib_data --target_dir ~/.qlib/qlib_data/qlib_cn_1min --interval 1min --region cn
+        python get_data.py qlib_data --name qlib_data --target_dir ~/.qlib/qlib_data/cn_1min --interval 1min --region cn
         -------
 
         """
@@ -163,7 +164,7 @@ class GetData:
             file_name = _get_file_name("latest")
         self._download_data(file_name.lower(), target_dir, delete_old, dataset_version=version)
 
-    def csv_data_cn(self, target_dir="~/.qlib/csv_data/qlib_cn_1d"):
+    def csv_data_cn(self, target_dir="~/.qlib/csv_data/cn_1d"):
         """download cn csv data from remote
 
         Parameters
@@ -173,7 +174,7 @@ class GetData:
 
         Examples
         ---------
-        python get_data.py csv_data_cn --target_dir ~/.qlib/csv_data/qlib_cn_1d
+        python get_data.py csv_data_cn --target_dir ~/.qlib/csv_data/cn_1d
         -------
 
         """

@@ -297,10 +297,10 @@ def get_instruments(
     Examples
     -------
         # parse instruments
-        $ python collector.py --index_name SP500 --qlib_dir ~/.qlib/qlib_data/qlib_us_1d --method parse_instruments
+        $ python collector.py --index_name SP500 --qlib_dir ~/.qlib/qlib_data/us_1d --method parse_instruments
 
         # parse new companies
-        $ python collector.py --index_name SP500 --qlib_dir ~/.qlib/qlib_data/qlib_us_1d --method save_new_companies
+        $ python collector.py --index_name SP500 --qlib_dir ~/.qlib/qlib_data/us_1d --method save_new_companies
 
     """
     _cur_module = importlib.import_module("data_collector.us_index.collector")

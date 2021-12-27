@@ -1,7 +1,7 @@
 qlib_init:
     provider_uri:
-        day: "~/.qlib/qlib_data/qlib_cn_1d"
-        1min: "~/.qlib/qlib_data/qlib_cn_1min"
+        day: "~/.qlib/qlib_data/cn_1d"
+        1min: "~/.qlib/qlib_data/cn_1min"
     region: cn
     dataset_cache: null
     maxtasksperchild: 1

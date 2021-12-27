@@ -219,7 +219,7 @@ class NestedDecisionExecutionWorkflow:
 
     def _init_qlib(self):
         """initialize qlib"""
-        provider_uri_day = "~/.qlib/qlib_data/qlib_cn_1d"  # target_dir
+        provider_uri_day = "~/.qlib/qlib_data/cn_1d"  # target_dir
         GetData().qlib_data(target_dir=provider_uri_day, region=REG_CN, version="v2", exists_skip=True)
         provider_uri_1min = HIGH_FREQ_CONFIG.get("provider_uri")
         GetData().qlib_data(
