@@ -32,7 +32,7 @@ pip install -r requirements.txt
 
   - get data: `python scripts/get_data.py qlib_data`
   - parameters:
-    - `target_dir`: save dir, by default *~/.qlib/qlib_data/cn_data*
+    - `target_dir`: save dir, by default *~/.qlib/qlib_data/qlib_cn_1d*
     - `version`: dataset version, value from [`v1`, `v2`], by default `v1`
       - `v2` end date is *2021-06*, `v1` end date is *2020-09*
       - user can append data to `v2`: [automatic update of daily frequency data](#automatic-update-of-daily-frequency-datafrom-yahoo-finance)

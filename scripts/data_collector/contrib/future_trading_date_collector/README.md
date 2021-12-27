@@ -12,7 +12,7 @@ pip install -r requirements.txt
 
 ```bash
 # parse instruments, using in qlib/instruments.
-python future_trading_date_collector.py --qlib_dir ~/.qlib/qlib_data/cn_data --freq day
+python future_trading_date_collector.py --qlib_dir ~/.qlib/qlib_data/qlib_cn_1d --freq day
 ```
 
 ## Parameters

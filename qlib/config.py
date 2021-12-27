@@ -100,9 +100,9 @@ _default_config = {
     # config it in qlib.init()
     # "provider_uri" str or dict:
     #   # str
-    #   "~/.qlib/stock_data/cn_data"
+    #   "~/.qlib/stock_data/qlib_cn_1d"
     #   # dict
-    #   {"day": "~/.qlib/stock_data/cn_data", "1min": "~/.qlib/stock_data/cn_data_1min"}
+    #   {"day": "~/.qlib/stock_data/qlib_cn_1d", "1min": "~/.qlib/stock_data/qlib_cn_1min"}
     # NOTE: provider_uri priority：
     #   1. backend_config: backend_obj["kwargs"]["provider_uri"]
     #   2. backend_config: backend_obj["kwargs"]["provider_uri_map"]
@@ -214,7 +214,7 @@ MODE_CONF = {
         "dataset_provider": "LocalDatasetProvider",
         "provider": "LocalProvider",
         # config it in user's own code
-        "provider_uri": "~/.qlib/qlib_data/cn_data",
+        "provider_uri": "~/.qlib/qlib_data/qlib_cn_1d",
         # cache
         # Using parameter 'remote' to announce the client is using server_cache, and the writing access will be disabled.
         "expression_cache": DISK_EXPRESSION_CACHE,
@@ -240,7 +240,7 @@ MODE_CONF = {
 }
 
 HIGH_FREQ_CONFIG = {
-    "provider_uri": "~/.qlib/qlib_data/cn_data_1min",
+    "provider_uri": "~/.qlib/qlib_data/qlib_cn_1min",
     "dataset_cache": None,
     "expression_cache": "DiskExpressionCache",
     "region": REG_CN,

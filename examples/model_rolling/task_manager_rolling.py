@@ -24,7 +24,7 @@ from qlib.tests.config import CSI100_RECORD_LGB_TASK_CONFIG, CSI100_RECORD_XGBOO
 class RollingTaskExample:
     def __init__(
         self,
-        provider_uri="~/.qlib/qlib_data/cn_data",
+        provider_uri="~/.qlib/qlib_data/qlib_cn_1d",
         region=REG_CN,
         task_url="mongodb://10.0.0.4:27017/",
         task_db_name="rolling_db",

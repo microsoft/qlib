@@ -10,10 +10,10 @@ pip install -r requirements.txt
 
 ```bash
 # parse instruments, using in qlib/instruments.
-python collector.py --index_name CSI300 --qlib_dir ~/.qlib/qlib_data/cn_data --method parse_instruments
+python collector.py --index_name CSI300 --qlib_dir ~/.qlib/qlib_data/qlib_cn_1d --method parse_instruments
 
 # parse new companies
-python collector.py --index_name CSI300 --qlib_dir ~/.qlib/qlib_data/cn_data --method save_new_companies
+python collector.py --index_name CSI300 --qlib_dir ~/.qlib/qlib_data/qlib_cn_1d --method save_new_companies
 
 # index_name support: CSI300, CSI100
 # help

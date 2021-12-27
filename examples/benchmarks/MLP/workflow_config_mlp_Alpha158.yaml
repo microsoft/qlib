@@ -1,5 +1,5 @@
 qlib_init:
-    provider_uri: "~/.qlib/qlib_data/cn_data"
+    provider_uri: "~/.qlib/qlib_data/qlib_cn_1d"
     region: cn
 market: &market csi300
 benchmark: &benchmark SH000300

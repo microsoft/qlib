@@ -25,7 +25,7 @@ task["record"] = {
 
 class UpdatePredExample:
     def __init__(
-        self, provider_uri="~/.qlib/qlib_data/cn_data", region=REG_CN, experiment_name="online_srv", task_config=task
+        self, provider_uri="~/.qlib/qlib_data/qlib_cn_1d", region=REG_CN, experiment_name="online_srv", task_config=task
     ):
         qlib.init(provider_uri=provider_uri, region=region)
         self.experiment_name = experiment_name

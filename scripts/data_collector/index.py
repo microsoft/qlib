@@ -136,7 +136,7 @@ class IndexBase:
 
         Examples
         -------
-            $ python collector.py save_new_companies --index_name CSI300 --qlib_dir ~/.qlib/qlib_data/cn_data
+            $ python collector.py save_new_companies --index_name CSI300 --qlib_dir ~/.qlib/qlib_data/qlib_cn_1d
         """
         df = self.get_new_companies()
         if df is None or df.empty:
@@ -206,7 +206,7 @@ class IndexBase:
 
         Examples
         -------
-            $ python collector.py parse_instruments --index_name CSI300 --qlib_dir ~/.qlib/qlib_data/cn_data
+            $ python collector.py parse_instruments --index_name CSI300 --qlib_dir ~/.qlib/qlib_data/qlib_cn_1d
         """
         logger.info(f"start parse {self.index_name.lower()} companies.....")
         instruments_columns = [self.SYMBOL_FIELD_NAME, self.START_DATE_FIELD, self.END_DATE_FIELD]
