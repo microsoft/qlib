@@ -15,7 +15,7 @@ class StructuredCovEstimator(RiskModel):
     This estimator assumes observations can be predicted by multiple factors
         X = B @ F.T + U
     where `X` contains observations (row) of multiple variables (column),
-    `F` contains factor exposures (column) for all observations (row),
+    `F` contains factor exposures (column) for all variables (row),
     `B` is the regression coefficients matrix for all observations (row) on
     all factors (columns), and `U` is the residual matrix with shape like `X`.
 
