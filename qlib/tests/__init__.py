@@ -7,9 +7,9 @@ from ..config import REG_CN
 class TestAutoData(unittest.TestCase):
 
     _setup_kwargs = {}
-    provider_uri = "~/.qlib/qlib_data/cn_1d_simple"  # target_dir
-    provider_uri_1day = "~/.qlib/qlib_data/cn_1d"  # target_dir
-    provider_uri_1min = "~/.qlib/qlib_data/cn_1min"
+    provider_uri = "~/.qlib/qlib_data/cn_data_simple"  # target_dir
+    provider_uri_1day = "~/.qlib/qlib_data/cn_data"  # target_dir
+    provider_uri_1min = "~/.qlib/qlib_data/cn_data_1min"
 
     @classmethod
     def setUpClass(cls, enable_1d_type="simple", enable_1min=False) -> None:

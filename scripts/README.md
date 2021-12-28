@@ -16,23 +16,23 @@
 
 ```bash
 # daily data
-python get_data.py qlib_data --target_dir ~/.qlib/qlib_data/cn_1d --region cn
+python get_data.py qlib_data --target_dir ~/.qlib/qlib_data/cn_data --region cn
 
 # 1min  data (Optional for running non-high-frequency strategies)
-python get_data.py qlib_data --target_dir ~/.qlib/qlib_data/cn_1min --region cn --interval 1min
+python get_data.py qlib_data --target_dir ~/.qlib/qlib_data/cn_data_1min --region cn --interval 1min
 ```
 
 ### Download US Data
 
 
 ```bash
-python get_data.py qlib_data --target_dir ~/.qlib/qlib_data/us_1d --region us
+python get_data.py qlib_data --target_dir ~/.qlib/qlib_data/us_data --region us
 ```
 
 ### Download CN Simple Data
 
 ```bash
-python get_data.py qlib_data --name qlib_data_simple --target_dir ~/.qlib/qlib_data/cn_1d --region cn
+python get_data.py qlib_data --name qlib_data_simple --target_dir ~/.qlib/qlib_data/cn_data --region cn
 ```
 
 ### Help
@@ -52,7 +52,7 @@ python get_data.py qlib_data --help
 ```python
 import qlib
 from qlib.config import REG_US
-provider_uri = "~/.qlib/qlib_data/us_1d"  # target_dir
+provider_uri = "~/.qlib/qlib_data/us_data"  # target_dir
 qlib.init(provider_uri=provider_uri, region=REG_US)
 ```
 
@@ -63,6 +63,6 @@ qlib.init(provider_uri=provider_uri, region=REG_US)
 ```python
 import qlib
 from qlib.config import REG_CN
-provider_uri = "~/.qlib/qlib_data/cn_1d"  # target_dir
+provider_uri = "~/.qlib/qlib_data/cn_data"  # target_dir
 qlib.init(provider_uri=provider_uri, region=REG_CN)
 ```

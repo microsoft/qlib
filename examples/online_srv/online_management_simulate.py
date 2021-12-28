@@ -20,7 +20,7 @@ from qlib.tests.config import CSI100_RECORD_LGB_TASK_CONFIG_ONLINE, CSI100_RECOR
 class OnlineSimulationExample:
     def __init__(
         self,
-        provider_uri="~/.qlib/qlib_data/cn_1d",
+        provider_uri="~/.qlib/qlib_data/cn_data",
         region="cn",
         exp_name="rolling_exp",
         task_url="mongodb://10.0.0.4:27017/",  # not necessary when using TrainerR or DelayTrainerR
@@ -35,7 +35,7 @@ class OnlineSimulationExample:
         Init OnlineManagerExample.
 
         Args:
-            provider_uri (str, optional): the provider uri. Defaults to "~/.qlib/qlib_data/cn_1d".
+            provider_uri (str, optional): the provider uri. Defaults to "~/.qlib/qlib_data/cn_data".
             region (str, optional): the stock region. Defaults to "cn".
             exp_name (str, optional): the experiment name. Defaults to "rolling_exp".
             task_url (str, optional): your MongoDB url. Defaults to "mongodb://10.0.0.4:27017/".
