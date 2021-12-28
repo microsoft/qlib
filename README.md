@@ -11,6 +11,7 @@
 Recent released features
 | Feature | Status |
 | --                      | ------    |
+| Planning-based portfolio optimization | [Released](https://github.com/microsoft/qlib/pull/754) on Dec 28, 2021 | 
 | Release Qlib v0.8.0 | [Released](https://github.com/microsoft/qlib/releases/tag/v0.8.0) on Dec 8, 2021 |
 | ADD model | [Released](https://github.com/microsoft/qlib/pull/704) on Nov 22, 2021 |
 | ADARNN  model | [Released](https://github.com/microsoft/qlib/pull/689) on Nov 14, 2021 |
@@ -66,10 +67,9 @@ New features under development(order by estimated release time).
 Your feedbacks about the features are very important.
 | Feature                        | Status      |
 | --                      | ------    |
-| Planning-based portfolio optimization | Under review:  https://github.com/microsoft/qlib/pull/280 | 
-| Fund data supporting and analysis  |  Under review: https://github.com/microsoft/qlib/pull/292 |
 | Point-in-Time database | Under review: https://github.com/microsoft/qlib/pull/343 |
-| Meta-Learning-based data selection | Initial opensource version under development |
+| Orderbook database | Under review: https://github.com/microsoft/qlib/pull/744 |
+| Meta-Learning-based data selection | Under review: https://github.com/microsoft/qlib/pull/743 |
 
 # Framework of Qlib
 
