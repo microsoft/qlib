@@ -257,7 +257,7 @@ class DNNModelPytorch(Model):
                 self.scheduler.step(cur_loss_val)
 
         # restore the optimal parameters after training
-        self.dnn_model.load_state_dict(torch.load(save_path))
+        self.dnn_model.load_state_dict(torch.load(save_path, map_location=self.device))
         if self.use_gpu:
             torch.cuda.empty_cache()
 
@@ -296,7 +296,7 @@ class DNNModelPytorch(Model):
             ]
             _model_path = os.path.join(model_dir, _model_name)
             # Load model
-            self.dnn_model.load_state_dict(torch.load(_model_path))
+            self.dnn_model.load_state_dict(torch.load(_model_path, map_location=self.device))
         self.fitted = True
 
 
