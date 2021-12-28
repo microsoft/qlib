@@ -44,17 +44,17 @@ pip install -r requirements.txt
   - examples:
     ```bash
     # cn 1d
-    python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/qlib_cn_1d --region cn
+    python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/cn_data --region cn
     # cn 1min
-    python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/qlib_cn_1min --region cn --interval 1min
+    python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/cn_data_1min --region cn --interval 1min
     # us 1d
-    python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/qlib_us_1d --region us --interval 1d
+    python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/us_data --region us --interval 1d
     # us 1min
-    python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/qlib_us_1min --region us --interval 1min
+    python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/us_data_1min --region us --interval 1min
     # in 1d
-    python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/qlib_in_1d --region in --interval 1d
+    python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/in_data --region in --interval 1d
     # in 1min
-    python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/qlib_in_1min --region in --interval 1min
+    python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/in_data_1min --region in --interval 1min
     ```
 
 ### Collector *YahooFinance* data to qlib
@@ -77,17 +77,17 @@ pip install -r requirements.txt
      - examples:
           ```bash
           # cn 1d data
-          python collector.py download_data --source_dir ~/.qlib/stock_data/source/cn_1d --start 2020-01-01 --end 2020-12-31 --delay 1 --interval 1d --region CN
+          python collector.py download_data --source_dir ~/.qlib/stock_data/source/cn_data --start 2020-01-01 --end 2020-12-31 --delay 1 --interval 1d --region CN
           # cn 1min data
-          python collector.py download_data --source_dir ~/.qlib/stock_data/source/cn_1min --delay 1 --interval 1min --region CN
+          python collector.py download_data --source_dir ~/.qlib/stock_data/source/cn_data_1min --delay 1 --interval 1min --region CN
           # us 1d data
-          python collector.py download_data --source_dir ~/.qlib/stock_data/source/us_1d --start 2020-01-01 --end 2020-12-31 --delay 1 --interval 1d --region US
+          python collector.py download_data --source_dir ~/.qlib/stock_data/source/us_data --start 2020-01-01 --end 2020-12-31 --delay 1 --interval 1d --region US
           # us 1min data
-          python collector.py download_data --source_dir ~/.qlib/stock_data/source/us_1min --delay 1 --interval 1min --region US
+          python collector.py download_data --source_dir ~/.qlib/stock_data/source/us_data_1min --delay 1 --interval 1min --region US
           # in 1d data
-          python collector.py download_data --source_dir ~/.qlib/stock_data/source/in_1d --start 2020-01-01 --end 2020-12-31 --delay 1 --interval 1d --region IN
+          python collector.py download_data --source_dir ~/.qlib/stock_data/source/in_data --start 2020-01-01 --end 2020-12-31 --delay 1 --interval 1d --region IN
           # in 1min data
-          python collector.py download_data --source_dir ~/.qlib/stock_data/source/in_1min --delay 1 --interval 1min --region IN
+          python collector.py download_data --source_dir ~/.qlib/stock_data/source/in_data_1min --delay 1 --interval 1min --region IN
           ```
   2. normalize data: `python scripts/data_collector/yahoo/collector.py normalize_data`
      
@@ -115,9 +115,9 @@ pip install -r requirements.txt
       - examples:
         ```bash
         # normalize 1d cn
-        python collector.py normalize_data --source_dir ~/.qlib/stock_data/source/cn_1d --normalize_dir ~/.qlib/stock_data/source/cn_1d_nor --region CN --interval 1d
+        python collector.py normalize_data --source_dir ~/.qlib/stock_data/source/cn_data --normalize_dir ~/.qlib/stock_data/source/cn_1d_nor --region CN --interval 1d
         # normalize 1min cn
-        python collector.py normalize_data --qlib_data_1d_dir ~/.qlib/qlib_data/qlib_cn_1d --source_dir ~/.qlib/stock_data/source/cn_1min --normalize_dir ~/.qlib/stock_data/source/cn_1min_nor --region CN --interval 1min
+        python collector.py normalize_data --qlib_data_1d_dir ~/.qlib/qlib_data/cn_data --source_dir ~/.qlib/stock_data/source/cn_data_1min --normalize_dir ~/.qlib/stock_data/source/cn_1min_nor --region CN --interval 1min
         ```
   3. dump data: `python scripts/dump_bin.py dump_all`
     
@@ -135,9 +135,9 @@ pip install -r requirements.txt
      - examples:
        ```bash
        # dump 1d cn
-       python dump_bin.py dump_all --csv_path ~/.qlib/stock_data/source/cn_1d_nor --qlib_dir ~/.qlib/qlib_data/qlib_cn_1d --freq day --exclude_fields date,symbol
+       python dump_bin.py dump_all --csv_path ~/.qlib/stock_data/source/cn_1d_nor --qlib_dir ~/.qlib/qlib_data/cn_data --freq day --exclude_fields date,symbol
        # dump 1min cn
-       python dump_bin.py dump_all --csv_path ~/.qlib/stock_data/source/cn_1min_nor --qlib_dir ~/.qlib/qlib_data/qlib_cn_1min --freq 1min --exclude_fields date,symbol
+       python dump_bin.py dump_all --csv_path ~/.qlib/stock_data/source/cn_1min_nor --qlib_dir ~/.qlib/qlib_data/cn_data_1min --freq 1min --exclude_fields date,symbol
        ```
 
 ### Automatic update of daily frequency data(from yahoo finance)
@@ -178,12 +178,12 @@ pip install -r requirements.txt
 
   # 1d data cn
   # freq=day, freq default day
-  qlib.init(provider_uri="~/.qlib/qlib_data/qlib_cn_1d", region="cn")
+  qlib.init(provider_uri="~/.qlib/qlib_data/cn_data", region="cn")
   df = D.features(D.instruments("all"), ["$close"], freq="day")
 
   # 1min data cn
   # freq=1min
-  qlib.init(provider_uri="~/.qlib/qlib_data/qlib_cn_1min", region="cn")
+  qlib.init(provider_uri="~/.qlib/qlib_data/cn_data_1min", region="cn")
   inst = D.list_instruments(D.instruments("all"), freq="1min", as_list=True)
   # get 100 symbols
   df = D.features(inst[:100], ["$close"], freq="1min")
@@ -191,11 +191,11 @@ pip install -r requirements.txt
   # df = D.features(D.instruments("all"), ["$close"], freq="1min")
 
   # 1d data us
-  qlib.init(provider_uri="~/.qlib/qlib_data/qlib_us_1d", region="us")
+  qlib.init(provider_uri="~/.qlib/qlib_data/us_data", region="us")
   df = D.features(D.instruments("all"), ["$close"], freq="day")
 
   # 1min data us
-  qlib.init(provider_uri="~/.qlib/qlib_data/qlib_us_1min", region="cn")
+  qlib.init(provider_uri="~/.qlib/qlib_data/us_data_1min", region="cn")
   inst = D.list_instruments(D.instruments("all"), freq="1min", as_list=True)
   # get 100 symbols
   df = D.features(inst[:100], ["$close"], freq="1min")

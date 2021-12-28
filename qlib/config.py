@@ -240,7 +240,7 @@ MODE_CONF = {
 }
 
 HIGH_FREQ_CONFIG = {
-    "provider_uri": "~/.qlib/qlib_data/yahoo_cn_1min",
+    "provider_uri": "~/.qlib/qlib_data/cn_data_1min",
     "dataset_cache": None,
     "expression_cache": "DiskExpressionCache",
     "region": REG_CN,
