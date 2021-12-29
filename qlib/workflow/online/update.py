@@ -26,7 +26,9 @@ class RMDLoader:
     def __init__(self, rec: Recorder):
         self.rec = rec
 
-    def get_dataset(self, start_time, end_time, segments=None) -> DatasetH:
+    def get_dataset(
+        self, start_time, end_time, segments=None, unprepared_dataset: Optional[DatasetH] = None
+    ) -> DatasetH:
         """
         Load, config and setup dataset.
 
@@ -40,6 +42,8 @@ class RMDLoader:
             segments : dict
                 the segments config for dataset
                 Due to the time series dataset (TSDatasetH), the test segments maybe different from start_time and end_time
+            unprepared_dataset: Optional[DatasetH]
+                if user don't want to load dataset from recorder, please specify user's dataset
 
         Returns:
             DatasetH: the instance of DatasetH
@@ -47,7 +51,10 @@ class RMDLoader:
         """
         if segments is None:
             segments = {"test": (start_time, end_time)}
-        dataset: DatasetH = self.rec.load_object("dataset")
+        if unprepared_dataset is None:
+            dataset: DatasetH = self.rec.load_object("dataset")
+        else:
+            dataset = unprepared_dataset
         dataset.config(handler_kwargs={"start_time": start_time, "end_time": end_time}, segments=segments)
         dataset.setup_data(handler_kwargs={"init_type": DataHandlerLP.IT_LS})
         return dataset
@@ -99,6 +106,7 @@ class DSBasedUpdater(RecordUpdater, metaclass=ABCMeta):
         hist_ref: Optional[int] = None,
         freq="day",
         fname="pred.pkl",
+        loader_cls: type = RMDLoader,
     ):
         """
         Init PredUpdater.
@@ -126,6 +134,9 @@ class DSBasedUpdater(RecordUpdater, metaclass=ABCMeta):
 
                     the start_time is not included in the hist_ref
 
+            loader_cls : type
+                the class to load the model and dataset
+
         """
         # TODO: automate this hist_ref in the future.
         super().__init__(record=record)
@@ -134,7 +145,7 @@ class DSBasedUpdater(RecordUpdater, metaclass=ABCMeta):
         self.hist_ref = hist_ref
         self.freq = freq
         self.fname = fname
-        self.rmdl = RMDLoader(rec=record)
+        self.rmdl = loader_cls(rec=record)
 
         latest_date = D.calendar(freq=freq)[-1]
         if to_date == None:
@@ -158,9 +169,11 @@ class DSBasedUpdater(RecordUpdater, metaclass=ABCMeta):
         else:
             self.last_end = get_date_by_shift(from_date, -1, align="right")
 
-    def prepare_data(self) -> DatasetH:
+    def prepare_data(self, unprepared_dataset: Optional[DatasetH] = None) -> DatasetH:
         """
         Load dataset
+        - if unprepared_dataset is specified, then prepare the dataset directly
+        - Otherwise,
 
         Separating this function will make it easier to reuse the dataset
 
@@ -169,7 +182,7 @@ class DSBasedUpdater(RecordUpdater, metaclass=ABCMeta):
         """
         # automatically getting the historical dependency if not specified
         if self.hist_ref is None:
-            dataset: DatasetH = self.record.load_object("dataset")
+            dataset: DatasetH = self.record.load_object("dataset") if unprepared_dataset is None else unprepared_dataset
             # Special treatment of historical dependencies
             if isinstance(dataset, TSDatasetH):
                 hist_ref = dataset.step_len
@@ -181,15 +194,25 @@ class DSBasedUpdater(RecordUpdater, metaclass=ABCMeta):
         start_time_buffer = get_date_by_shift(self.last_end, -hist_ref + 1, clip_shift=False, freq=self.freq)
         start_time = get_date_by_shift(self.last_end, 1, freq=self.freq)
         seg = {"test": (start_time, self.to_date)}
-        dataset = self.rmdl.get_dataset(start_time=start_time_buffer, end_time=self.to_date, segments=seg)
-        return dataset
+        return self.rmdl.get_dataset(
+            start_time=start_time_buffer, end_time=self.to_date, segments=seg, unprepared_dataset=unprepared_dataset
+        )
 
-    def update(self, dataset: DatasetH = None):
+    def update(self, dataset: DatasetH = None, write: bool = True, ret_new: bool = False) -> Optional[object]:
         """
-        Update the data in a recorder.
+        Parameters
+        ----------
+        dataset : DatasetH
+            DatasetH: the instance of DatasetH. None for prepare it again.
+        write : bool
+            will the the write action be executed
+        ret_new : bool
+            will the updated data be returned
 
-        Args:
-            DatasetH: the instance of DatasetH. None for reprepare.
+        Returns
+        -------
+        Optional[object]
+            the updated dataset
         """
         # FIXME: the problem below is not solved
         # The model dumped on GPU instances can not be loaded on CPU instance. Follow exception will raised
@@ -207,7 +230,12 @@ class DSBasedUpdater(RecordUpdater, metaclass=ABCMeta):
             # For reusing the dataset
             dataset = self.prepare_data()
 
-        self.record.save_objects(**{self.fname: self.get_update_data(dataset)})
+        updated_data = self.get_update_data(dataset)
+
+        if write:
+            self.record.save_objects(**{self.fname: updated_data})
+        if ret_new:
+            return updated_data
 
     @abstractmethod
     def get_update_data(self, dataset: Dataset) -> pd.DataFrame:
