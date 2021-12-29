@@ -5,11 +5,12 @@ Updater is a module to update artifacts such as predictions when the stock data 
 """
 
 from abc import ABCMeta, abstractmethod
+from typing import Optional
 
 import pandas as pd
 from qlib import get_module_logger
 from qlib.data import D
-from qlib.data.dataset import Dataset, DatasetH
+from qlib.data.dataset import Dataset, DatasetH, TSDatasetH
 from qlib.data.dataset.handler import DataHandlerLP
 from qlib.model import Model
 from qlib.utils import get_date_by_shift
@@ -90,7 +91,15 @@ class DSBasedUpdater(RecordUpdater, metaclass=ABCMeta):
                    SZ300676   -0.001321
     """
 
-    def __init__(self, record: Recorder, to_date=None, from_date=None, hist_ref: int = 0, freq="day", fname="pred.pkl"):
+    def __init__(
+        self,
+        record: Recorder,
+        to_date=None,
+        from_date=None,
+        hist_ref: Optional[int] = None,
+        freq="day",
+        fname="pred.pkl",
+    ):
         """
         Init PredUpdater.
 
@@ -111,6 +120,7 @@ class DSBasedUpdater(RecordUpdater, metaclass=ABCMeta):
             hist_ref : int
                 Sometimes, the dataset will have historical depends.
                 Leave the problem to users to set the length of historical dependency
+                If user doesn't specify this parameter, Updater will try to load dataset to automatically determine the hist_ref
 
                 .. note::
 
@@ -157,7 +167,18 @@ class DSBasedUpdater(RecordUpdater, metaclass=ABCMeta):
         Returns:
             DatasetH: the instance of DatasetH
         """
-        start_time_buffer = get_date_by_shift(self.last_end, -self.hist_ref + 1, clip_shift=False, freq=self.freq)
+        # automatically getting the historical dependency if not specified
+        if self.hist_ref is None:
+            dataset: DatasetH = self.record.load_object("dataset")
+            # Special treatment of historical dependencies
+            if isinstance(dataset, TSDatasetH):
+                hist_ref = dataset.step_len
+            else:
+                hist_ref = 0
+        else:
+            hist_ref = self.hist_ref
+
+        start_time_buffer = get_date_by_shift(self.last_end, -hist_ref + 1, clip_shift=False, freq=self.freq)
         start_time = get_date_by_shift(self.last_end, 1, freq=self.freq)
         seg = {"test": (start_time, self.to_date)}
         dataset = self.rmdl.get_dataset(start_time=start_time_buffer, end_time=self.to_date, segments=seg)
