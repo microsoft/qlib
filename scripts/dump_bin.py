@@ -214,6 +214,9 @@ class DumpDataBase:
         if df.empty:
             logger.warning(f"{features_dir.name} data is None or empty")
             return
+        if not calendar_list:
+            logger.warning("calendar_list is empty")
+            return
         # align index
         _df = self.data_merge_calendar(df, calendar_list)
         # used when creating a bin file
@@ -231,6 +234,9 @@ class DumpDataBase:
                 np.hstack([date_index, _df[field]]).astype("<f").tofile(str(bin_path.resolve()))
 
     def _dump_bin(self, file_or_data: [Path, pd.DataFrame], calendar_list: List[pd.Timestamp]):
+        if not calendar_list:
+            logger.warning("calendar_list is empty")
+            return
         if isinstance(file_or_data, pd.DataFrame):
             if file_or_data.empty:
                 return
@@ -459,14 +465,15 @@ class DumpDataUpdate(DumpDataBase):
                 if _code in self._update_instruments:
                     # exists stock, will append data
                     _update_calendars = (
-                        _df[_df[self.date_field_name] > self._update_instruments[_code][self.INSTRUMENTS_START_FIELD]][
+                        _df[_df[self.date_field_name] > self._update_instruments[_code][self.INSTRUMENTS_END_FIELD]][
                             self.date_field_name
                         ]
                         .sort_values()
                         .to_list()
                     )
-                    self._update_instruments[_code][self.INSTRUMENTS_END_FIELD] = self._format_datetime(_end)
-                    futures[executor.submit(self._dump_bin, _df, _update_calendars)] = _code
+                    if _update_calendars:
+                        self._update_instruments[_code][self.INSTRUMENTS_END_FIELD] = self._format_datetime(_end)
+                        futures[executor.submit(self._dump_bin, _df, _update_calendars)] = _code
                 else:
                     # new stock
                     _dt_range = self._update_instruments.setdefault(_code, dict())
