@@ -248,7 +248,7 @@ class ModelRunner:
             determines the dataset to be used for each model.
         qlib_uri : str
             the uri to install qlib with pip
-            it could be url on the we or local path
+            it could be url on the we or local path (NOTE: the local path must be a absolute path)
         exp_folder_name: str
             the name of the experiment folder
         wait_before_rm_env : bool

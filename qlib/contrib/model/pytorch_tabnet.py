@@ -160,7 +160,7 @@ class TabnetModel(Model):
             self.logger.info("Pretrain...")
             self.pretrain_fn(dataset, self.pretrain_file)
             self.logger.info("Load Pretrain model")
-            self.tabnet_model.load_state_dict(torch.load(self.pretrain_file))
+            self.tabnet_model.load_state_dict(torch.load(self.pretrain_file, map_location=self.device))
 
         # adding one more linear layer to fit the final output dimension
         self.tabnet_model = FinetuneModel(self.out_dim, self.final_out_dim, self.tabnet_model).to(self.device)

@@ -10,6 +10,7 @@ Two modes are supported
 - server
 
 """
+from __future__ import annotations
 
 import os
 import re
@@ -18,7 +19,11 @@ import logging
 import platform
 import multiprocessing
 from pathlib import Path
-from typing import Union
+from typing import Optional, Union
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from qlib.utils.time import Freq
 
 
 class Config:
@@ -235,7 +240,7 @@ MODE_CONF = {
 }
 
 HIGH_FREQ_CONFIG = {
-    "provider_uri": "~/.qlib/qlib_data/yahoo_cn_1min",
+    "provider_uri": "~/.qlib/qlib_data/cn_data_1min",
     "dataset_cache": None,
     "expression_cache": "DiskExpressionCache",
     "region": REG_CN,
@@ -296,7 +301,9 @@ class QlibConfig(Config):
             else:
                 return QlibConfig.LOCAL_URI
 
-        def get_data_uri(self, freq: str = None) -> Path:
+        def get_data_uri(self, freq: Optional[Union[str, Freq]] = None) -> Path:
+            if freq is not None:
+                freq = str(freq)  # converting Freq to string
             if freq is None or freq not in self.provider_uri:
                 freq = QlibConfig.DEFAULT_FREQ
             _provider_uri = self.provider_uri[freq]

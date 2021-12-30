@@ -47,6 +47,7 @@ class GetData:
 
         url = self.merge_remote_url(file_name, dataset_version)
         resp = requests.get(url, stream=True)
+        resp.raise_for_status()
         if resp.status_code != 200:
             raise requests.exceptions.HTTPError()
 

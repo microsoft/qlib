@@ -877,7 +877,7 @@ def register_wrapper(wrapper, cls_or_obj, module_path=None):
     wrapper.register(obj)
 
 
-def load_dataset(path_or_obj):
+def load_dataset(path_or_obj, index_col=[0, 1]):
     """load dataset from multiple file formats"""
     if isinstance(path_or_obj, pd.DataFrame):
         return path_or_obj
@@ -889,7 +889,7 @@ def load_dataset(path_or_obj):
     elif extension == ".pkl":
         return pd.read_pickle(path_or_obj)
     elif extension == ".csv":
-        return pd.read_csv(path_or_obj, parse_dates=True, index_col=[0, 1])
+        return pd.read_csv(path_or_obj, parse_dates=True, index_col=index_col)
     raise ValueError(f"unsupported file type `{extension}`")
 
 

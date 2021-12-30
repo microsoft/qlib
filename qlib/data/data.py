@@ -27,7 +27,6 @@ from .inst_processor import InstProcessor
 
 from ..log import get_module_logger
 from ..utils.time import Freq
-from ..utils.resam import resam_calendar
 from .cache import DiskDatasetCache, DiskExpressionCache
 from ..utils import (
     Wrapper,

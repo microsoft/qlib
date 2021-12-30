@@ -350,9 +350,9 @@ class TCTS(Model):
                     break
 
         print("best loss:", best_loss, "@", best_epoch)
-        best_param = torch.load(save_path + "_fore_model.bin")
+        best_param = torch.load(save_path + "_fore_model.bin", map_location=self.device)
         self.fore_model.load_state_dict(best_param)
-        best_param = torch.load(save_path + "_weight_model.bin")
+        best_param = torch.load(save_path + "_weight_model.bin", map_location=self.device)
         self.weight_model.load_state_dict(best_param)
         self.fitted = True
 
