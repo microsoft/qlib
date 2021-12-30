@@ -8,6 +8,9 @@
 pip install -r requirements.txt
 ```
 
+## Usage of the dataset
+> *Crypto dateset only support Data retrieval function but not support backtest function due to the lack of OHLC data.*
+
 ## Collector Data
 
 
@@ -18,14 +21,14 @@ pip install -r requirements.txt
 ```bash
 
 # download from https://api.coingecko.com/api/v3/
-python collector.py download_data --source_dir ~/.qlib/crypto_data/source/cn_1d --start 2015-01-01 --end 2021-11-30 --delay 1 --interval 1d
+python collector.py download_data --source_dir ~/.qlib/crypto_data/source/1d --start 2015-01-01 --end 2021-11-30 --delay 1 --interval 1d
 
 # normalize
-python collector.py normalize_data --source_dir ~/.qlib/crypto_data/source/cn_1d --normalize_dir ~/.qlib/crypto_data/source/cn_1d_nor --interval 1d --date_field_name date
+python collector.py normalize_data --source_dir ~/.qlib/crypto_data/source/1d --normalize_dir ~/.qlib/crypto_data/source/1d_nor --interval 1d --date_field_name date
 
 # dump data
 cd qlib/scripts
-python dump_bin.py dump_all --csv_path ~/.qlib/crypto_data/source/cn_1d_nor --qlib_dir ~/.qlib/qlib_data/crypto_data --freq day --date_field_name date --include_fields prices,total_volumes,market_caps
+python dump_bin.py dump_all --csv_path ~/.qlib/crypto_data/source/1d_nor --qlib_dir ~/.qlib/qlib_data/crypto_data --freq day --date_field_name date --include_fields prices,total_volumes,market_caps
 
 ```
 

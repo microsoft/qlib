@@ -9,7 +9,6 @@ import requests
 import pandas as pd
 from loguru import logger
 from dateutil.tz import tzlocal
-from qlib.config import REG_CN as REGION_CN
 
 CUR_DIR = Path(__file__).resolve().parent
 sys.path.append(str(CUR_DIR.parent.parent))
@@ -137,7 +136,7 @@ class CryptoCollector(BaseCollector):
         return _result
 
 
-class CryptoCollectorCN(CryptoCollector, ABC):
+class CryptoCollector1d(CryptoCollector, ABC):
     def get_instrument_list(self):
         logger.info("get coingecko crypto symbols......")
         symbols = get_cg_crypto_symbols()
@@ -150,10 +149,6 @@ class CryptoCollectorCN(CryptoCollector, ABC):
     @property
     def _timezone(self):
         return "Asia/Shanghai"
-
-
-class CryptoCollectorCN1d(CryptoCollectorCN):
-    pass
 
 
 class CryptoNormalize(BaseNormalize):
@@ -192,16 +187,8 @@ class CryptoNormalize(BaseNormalize):
 
 
 class CryptoNormalize1d(CryptoNormalize):
-    pass
-
-
-class CryptoNormalizeCN:
     def _get_calendar_list(self):
         return None
-
-
-class CryptoNormalizeCN1d(CryptoNormalizeCN, CryptoNormalize1d):
-    pass
 
 
 class Run(BaseRun):
@@ -215,22 +202,19 @@ class Run(BaseRun):
         normalize_dir: str
             Directory for normalize data, default "Path(__file__).parent/normalize"
         max_workers: int
-            Concurrent number, default is 4
+            Concurrent number, default is 1
         interval: str
             freq, value from [1min, 1d], default 1d
-        region: str
-            region, value from ["CN"], default "CN"
         """
         super().__init__(source_dir, normalize_dir, max_workers, interval)
-        self.region = region
 
     @property
     def collector_class_name(self):
-        return f"CryptoCollector{self.region.upper()}{self.interval}"
+        return f"CryptoCollector{self.interval}"
 
     @property
     def normalize_class_name(self):
-        return f"CryptoNormalize{self.region.upper()}{self.interval}"
+        return f"CryptoNormalize{self.interval}"
 
     @property
     def default_base_dir(self) -> [Path, str]:
@@ -268,7 +252,7 @@ class Run(BaseRun):
         Examples
         ---------
             # get daily data
-            $ python collector.py download_data --source_dir ~/.qlid/crypto_data/source/cn_1d --region CN --start 2015-01-01 --end 2021-12-01 --delay 1 --interval 1d
+            $ python collector.py download_data --source_dir ~/.qlib/crypto_data/source/1d --start 2015-01-01 --end 2021-11-30 --delay 1 --interval 1d
         """
 
         super(Run, self).download_data(max_collector_count, delay, start, end, interval, check_data_length, limit_nums)
@@ -285,7 +269,7 @@ class Run(BaseRun):
 
         Examples
         ---------
-            $ python collector.py normalize_data --source_dir ~/.qlib/crypto_data/source/cn_1d --normalize_dir ~/.qlib/crypto_data/source/cn_1d_nor --region CN --interval 1d --date_field_name date
+            $ python collector.py normalize_data --source_dir ~/.qlib/crypto_data/source/1d --normalize_dir ~/.qlib/crypto_data/source/1d_nor --interval 1d --date_field_name date
         """
         super(Run, self).normalize_data(date_field_name, symbol_field_name)
 
