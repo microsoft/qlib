@@ -16,7 +16,7 @@ from multiprocessing import Pool
 from typing import Iterable, Union
 from typing import List, Union
 
-# For supporting multiprocessing in outter code, joblib is used
+# For supporting multiprocessing in outer code, joblib is used
 from joblib import delayed
 
 from .cache import H

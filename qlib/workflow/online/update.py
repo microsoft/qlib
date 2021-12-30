@@ -75,7 +75,7 @@ class RecordUpdater(metaclass=ABCMeta):
 class DSBasedUpdater(RecordUpdater, metaclass=ABCMeta):
     """
     Dataset-Based Updater
-    - Provding updating feature for Updating data based on Qlib Dataset
+    - Providing updating feature for Updating data based on Qlib Dataset
 
     Assumption
     - Based on Qlib dataset

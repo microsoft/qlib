@@ -400,7 +400,7 @@ class BaseOrderIndicator:
         indicators : List[BaseOrderIndicator]
             the list of all inner indicators.
         metrics : Union[str, List[str]]
-            all metrics needs ot be sumed.
+            all metrics needs to be sumed.
         fill_value : float, optional
             fill np.NaN with value. By default None.
         """

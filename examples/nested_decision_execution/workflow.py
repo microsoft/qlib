@@ -298,7 +298,7 @@ class NestedDecisionExecutionWorkflow:
     #   - Aligning the profit calculation between multiple levels and single levels.
     # 2) comparing different backtest
     # - Basic test idea:
-    #   - the daily backtest will be similar as multi-level(the data quality makes this gap samller)
+    #   - the daily backtest will be similar as multi-level(the data quality makes this gap smaller)
 
     def check_diff_freq(self):
         self._init_qlib()

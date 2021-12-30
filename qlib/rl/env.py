@@ -64,10 +64,10 @@ class QlibIntRLEnv(QlibRLEnv):
         Parameters
         ----------
         state_interpreter : Union[dict, StateInterpreter]
-            interpretor that interprets the qlib execute result into rl env state.
+            interpreter that interprets the qlib execute result into rl env state.
 
         action_interpreter : Union[dict, ActionInterpreter]
-            interpretor that interprets the rl agent action into qlib order list
+            interpreter that interprets the rl agent action into qlib order list
         """
         super(QlibIntRLEnv, self).__init__(executor=executor)
         self.state_interpreter = init_instance_by_config(state_interpreter, accept_types=StateInterpreter)

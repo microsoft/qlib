@@ -203,10 +203,10 @@ def get_valid_value(series, last=True):
     """get the first/last not nan value of pd.Series with single level index
     Parameters
     ----------
-    series : pd.Seires
+    series : pd.Series
         series should not be empty
     last : bool, optional
-        wether to get the last valid value, by default True
+        whether to get the last valid value, by default True
         - if last is True, get the last valid value
         - else, get the first valid value
 
