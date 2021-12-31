@@ -118,7 +118,7 @@ class BaseExecutor:
         self.dealt_order_amount = defaultdict(float)
         self.deal_day = None
 
-    def reset_common_infra(self, common_infra):
+    def reset_common_infra(self, common_infra, copy_trade_account=False):
         """
         reset infrastructure for trading
             - reset trade_account
@@ -129,9 +129,14 @@ class BaseExecutor:
             self.common_infra.update(common_infra)
 
         if common_infra.has("trade_account"):
-            # NOTE: there is a trick in the code.
-            # shallow copy is used instead of deepcopy. So positions are shared
-            self.trade_account: Account = copy.copy(common_infra.get("trade_account"))
+            if copy_trade_account:
+                # NOTE: there is a trick in the code.
+                # shallow copy is used instead of deepcopy.
+                # 1. So positions are shared
+                # 2. Others are not shared, so each level has it own metrics (portfolio and trading metrics)
+                self.trade_account: Account = copy.copy(common_infra.get("trade_account"))
+            else:
+                self.trade_account = common_infra.get("trade_account")
             self.trade_account.reset(freq=self.time_per_step, port_metr_enabled=self.generate_portfolio_metrics)
 
     @property
@@ -342,14 +347,18 @@ class NestedExecutor(BaseExecutor):
             **kwargs,
         )
 
-    def reset_common_infra(self, common_infra):
+    def reset_common_infra(self, common_infra, copy_trade_account=False):
         """
         reset infrastructure for trading
             - reset inner_strategyand inner_executor common infra
         """
-        super(NestedExecutor, self).reset_common_infra(common_infra)
+        # NOTE: please refer to the docs of BaseExecutor.reset_common_infra for the meaning of `copy_trade_account`
 
-        self.inner_executor.reset_common_infra(common_infra)
+        # The first level follow the `copy_trade_account` from the upper level
+        super(NestedExecutor, self).reset_common_infra(common_infra, copy_trade_account=copy_trade_account)
+
+        # The lower level have to copy the trade_account
+        self.inner_executor.reset_common_infra(common_infra, copy_trade_account=True)
         self.inner_strategy.reset_common_infra(common_infra)
 
     def _init_sub_trading(self, trade_decision):
