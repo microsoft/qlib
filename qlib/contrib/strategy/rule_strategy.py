@@ -24,7 +24,7 @@ class TWAPStrategy(BaseStrategy):
 
     NOTE:
         - This TWAP strategy will celling round when trading. This will make the TWAP trading strategy produce the order
-          ealier when the total trade unit of amount is less than the trading step
+          earlier when the total trade unit of amount is less than the trading step
     """
 
     def reset(self, outer_trade_decision: BaseTradeDecision = None, **kwargs):
@@ -43,8 +43,8 @@ class TWAPStrategy(BaseStrategy):
     def generate_trade_decision(self, execute_result=None):
         # NOTE:  corner cases!!!
         # - If using upperbound round, please don't sell the amount which should in next step
-        #   - the coordinate of the amount between steps is hard to be dealed between steps in the same level. It
-        #     is easier to be dealed in upper steps
+        #   - the coordinate of the amount between steps is hard to be dealt between steps in the same level. It
+        #     is easier to be dealt in upper steps
 
         # strategy is not available. Give an empty decision
         if len(self.outer_trade_decision.get_decision()) == 0:

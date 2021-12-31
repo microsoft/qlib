@@ -254,9 +254,9 @@ class DistributedHyperparamOptManager(HyperparamOptManager):
           param_ranges: Discrete hyperparameter range for random search.
           fixed_params: Fixed model parameters per experiment.
           root_model_folder: Folder to store optimisation artifacts.
-          worker_number: Worker index definining which set of hyperparameters to
+          worker_number: Worker index defining which set of hyperparameters to
             test.
-          search_iterations: Maximum numer of random search iterations.
+          search_iterations: Maximum number of random search iterations.
           num_iterations_per_worker: How many iterations are handled per worker.
           clear_serialised_params: Whether to regenerate hyperparameter
             combinations.
@@ -330,7 +330,7 @@ class DistributedHyperparamOptManager(HyperparamOptManager):
         if os.path.exists(self.serialised_ranges_folder):
             df = pd.read_csv(self.serialised_ranges_path, index_col=0)
         else:
-            print("Unable to load - regenerating serach ranges instead")
+            print("Unable to load - regenerating search ranges instead")
             df = self.update_serialised_hyperparam_df()
 
         return df

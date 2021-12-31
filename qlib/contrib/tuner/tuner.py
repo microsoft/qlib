@@ -90,7 +90,7 @@ class QLibTuner(Tuner):
 
     def objective(self, params):
 
-        # 1. Setup an config for a spcific estimator process
+        # 1. Setup an config for a specific estimator process
         estimator_path = self.setup_estimator_config(params)
         self.logger.info("Searching params: {} ".format(params))
 

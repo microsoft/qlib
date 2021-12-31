@@ -579,7 +579,7 @@ def get_date_range(trading_date, left_shift=0, right_shift=0, future=False):
 
 
 def get_date_by_shift(trading_date, shift, future=False, clip_shift=True, freq="day", align: Optional[str] = None):
-    """get trading date with shift bias wil cur_date
+    """get trading date with shift bias will cur_date
         e.g. : shift == 1,  return next trading date
                shift == -1, return previous trading date
     ----------

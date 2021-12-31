@@ -75,7 +75,7 @@ class Processor(Serializable):
 
     def readonly(self) -> bool:
         """
-        Does the processor treat the input data readonly (i.e. does not write the input data) when processsing
+        Does the processor treat the input data readonly (i.e. does not write the input data) when processing
 
         Knowning the readonly information is helpful to the Handler to avoid uncessary copy
         """

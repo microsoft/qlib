@@ -88,7 +88,7 @@ class Experiment:
     def search_records(self, **kwargs):
         """
         Get a pandas DataFrame of records that fit the search criteria of the experiment.
-        Inputs are the search critera user want to apply.
+        Inputs are the search criteria user want to apply.
 
         Returns
         -------

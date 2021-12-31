@@ -241,7 +241,7 @@ def auto_init(**kwargs):
                     default_exp_name: "Experiment"
 
     Example 2)
-    If you wan to create simple a stand alone config, you can use following config(a.k.a `conf_type: origin`)
+    If you want to create simple a stand alone config, you can use following config(a.k.a `conf_type: origin`)
 
     .. code-block:: python
 

@@ -6,7 +6,7 @@ Motivation of index_data
     Some users just want a simple numpy dataframe with indices and don't want such a complicated tools.
     Such users are the target of `index_data`
 
-`index_data` try to behave like pandas (some API will be different because we try to be simpler and more intuitive) but don't compromize the performance. It provides the basic numpy data and simple indexing feature. If users call APIs which may compromize the performance, index_data will raise Errors.
+`index_data` try to behave like pandas (some API will be different because we try to be simpler and more intuitive) but don't compromise the performance. It provides the basic numpy data and simple indexing feature. If users call APIs which may compromise the performance, index_data will raise Errors.
 """
 
 from typing import Dict, Tuple, Union, Callable, List

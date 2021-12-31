@@ -103,7 +103,7 @@ class Exchange:
                                             Necessary fields:
                                                 $close is for calculating the total value at end of each day.
                                             Optional fields:
-                                                $volume is only necessary when we limit the trade amount or caculate PA(vwap) indicator
+                                                $volume is only necessary when we limit the trade amount or calculate PA(vwap) indicator
                                                 $vwap is only necessary when we use the $vwap price as the deal price
                                                 $factor is for rounding to the trading unit
                                                 limit_sell will be set to False by default(False indicates we can sell this
@@ -505,7 +505,7 @@ class Exchange:
         Note: some future information is used in this function
         Parameter:
         target_position : dict { stock_id : amount }
-        current_postion : dict { stock_id : amount}
+        current_position : dict { stock_id : amount}
         trade_unit : trade_unit
         down sample : for amount 321 and trade_unit 100, deal_amount is 300
         deal order on trade_date

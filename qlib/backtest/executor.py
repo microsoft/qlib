@@ -41,7 +41,7 @@ class BaseExecutor:
         Parameters
         ----------
         time_per_step : str
-            trade time per trading step, used for genreate the trade calendar
+            trade time per trading step, used for generate the trade calendar
         show_indicator: bool, optional
             whether to show indicators, :
             - 'pa', the price advantage
@@ -369,12 +369,12 @@ class NestedExecutor(BaseExecutor):
         self.inner_strategy.reset(level_infra=sub_level_infra, outer_trade_decision=trade_decision)
 
     def _update_trade_decision(self, trade_decision: BaseTradeDecision) -> BaseTradeDecision:
-        # outter strategy have chance to update decision each iterator
+        # outer strategy have chance to update decision each iterator
         updated_trade_decision = trade_decision.update(self.inner_executor.trade_calendar)
         if updated_trade_decision is not None:
             trade_decision = updated_trade_decision
             # NEW UPDATE
-            # create a hook for inner strategy to update outter decision
+            # create a hook for inner strategy to update outer decision
             self.inner_strategy.alter_outer_trade_decision(trade_decision)
         return trade_decision
 

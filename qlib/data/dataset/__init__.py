@@ -392,7 +392,7 @@ class TSDataSampler:
                 2021-01-14    12441    12442    12443    12444    12445    12446  ...
             2) the second element:  {<original index>: <row, col>}
         """
-        # object incase of pandas converting int to flaot
+        # object incase of pandas converting int to float
         idx_df = pd.Series(range(data.shape[0]), index=data.index, dtype=object)
         idx_df = lazy_sort_index(idx_df.unstack())
         # NOTE: the correctness of `__getitem__` depends on columns sorted here

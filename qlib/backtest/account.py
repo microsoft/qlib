@@ -31,7 +31,7 @@ rtn & earning in the Account
 class AccumulatedInfo:
     """
     accumulated trading info, including accumulated return/cost/turnover
-    AccumulatedInfo should be shared accross different levels
+    AccumulatedInfo should be shared across different levels
     """
 
     def __init__(self):
@@ -199,7 +199,7 @@ class Account:
 
         # if stock is sold out, no stock price information in Position, then we should update account first, then update current position
         # if stock is bought, there is no stock in current position, update current, then update account
-        # The cost will be substracted from the cash at last. So the trading logic can ignore the cost calculation
+        # The cost will be subtracted from the cash at last. So the trading logic can ignore the cost calculation
         if order.direction == Order.SELL:
             # sell stock
             self._update_state_from_order(order, trade_val, cost, trade_price)
@@ -378,7 +378,7 @@ class Account:
         )
 
     def get_portfolio_metrics(self):
-        """get the history portfolio_metrics and postions instance"""
+        """get the history portfolio_metrics and positions instance"""
         if self.is_port_metr_enabled():
             _portfolio_metrics = self.portfolio_metrics.generate_portfolio_metrics_dataframe()
             _positions = self.get_hist_positions()
