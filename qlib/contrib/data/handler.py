@@ -126,9 +126,9 @@ class Alpha360(DataHandlerLP):
         fields += ["$vwap/$close"]
         names += ["VWAP0"]
         for i in range(59, 0, -1):
-            fields += ["Ref($volume, %d)/$volume" % (i)]
+            fields += ["Ref($volume, %d)/($volume+1e-12)" % (i)]
             names += ["VOLUME%d" % (i)]
-        fields += ["$volume/$volume"]
+        fields += ["$volume/($volume+1e-12)"]
         names += ["VOLUME0"]
 
         return fields, names
@@ -249,7 +249,7 @@ class Alpha158(DataHandlerLP):
                 names += [field.upper() + str(d) for d in windows]
         if "volume" in config:
             windows = config["volume"].get("windows", range(5))
-            fields += ["Ref($volume, %d)/$volume" % d if d != 0 else "$volume/$volume" for d in windows]
+            fields += ["Ref($volume, %d)/($volume+1e-12)" % d if d != 0 else "$volume/($volume+1e-12)" for d in windows]
             names += ["VOLUME" + str(d) for d in windows]
         if "rolling" in config:
             windows = config["rolling"].get("windows", [5, 10, 20, 30, 60])
