@@ -132,7 +132,7 @@ class Alpha360(DataHandlerLP):
         for i in range(59, 0, -1):
             fields += ["Ref($volume, %d)/($volume+1e-12)" % (i)]
             names += ["VOLUME%d" % (i)]
-        fields += ["$volume+1/($volume+1e-12)"]
+        fields += ["$volume/($volume+1e-12)"]
         names += ["VOLUME0"]
 
         return fields, names
