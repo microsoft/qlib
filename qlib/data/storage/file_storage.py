@@ -26,7 +26,7 @@ class FileStorageMixin:
 
     @property
     def dpm(self):
-        return C.DataPathManager(self.provider_uri, None)
+        return C.DataPathManager(self.provider_uri, C.mount_path)
 
     @property
     def support_freq(self) -> List[str]:
