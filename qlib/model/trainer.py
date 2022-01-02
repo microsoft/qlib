@@ -20,7 +20,7 @@ from tqdm.auto import tqdm
 from qlib.data.dataset import Dataset
 from qlib.log import get_module_logger
 from qlib.model.base import Model
-from qlib.utils import flatten_dict, get_callable_kwargs, init_instance_by_config, auto_filter_kwargs
+from qlib.utils import flatten_dict, get_callable_kwargs, init_instance_by_config
 from qlib.workflow import R
 from qlib.workflow.record_temp import SignalRecord
 from qlib.workflow.recorder import Recorder
