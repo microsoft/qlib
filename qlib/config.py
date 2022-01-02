@@ -312,7 +312,8 @@ class QlibConfig(Config):
             elif self.get_uri_type(_provider_uri) == QlibConfig.NFS_URI:
                 if "win" in platform.system().lower():
                     # windows, mount_path is the drive
-                    return Path(f"{self.mount_path[freq]}:\\")
+                    _path = str(self.mount_path[freq])
+                    return Path(f"{_path}:\\") if ":" not in _path else Path(_path)
                 return Path(self.mount_path[freq])
             else:
                 raise NotImplementedError(f"This type of uri is not supported")
@@ -349,9 +350,7 @@ class QlibConfig(Config):
         for _freq in _provider_uri.keys():
             # mount_path
             _mount_path[_freq] = (
-                _mount_path[_freq]
-                if _mount_path[_freq] is None
-                else str(Path(_mount_path[_freq]).expanduser().resolve())
+                _mount_path[_freq] if _mount_path[_freq] is None else str(Path(_mount_path[_freq]).expanduser())
             )
         self["provider_uri"] = _provider_uri
         self["mount_path"] = _mount_path
