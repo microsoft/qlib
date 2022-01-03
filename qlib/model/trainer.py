@@ -26,6 +26,7 @@ from qlib.workflow.record_temp import SignalRecord
 from qlib.workflow.recorder import Recorder
 from qlib.workflow.task.manage import TaskManager, run_task
 
+
 # from qlib.data.dataset.weight import Reweighter
 
 

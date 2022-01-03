@@ -326,12 +326,14 @@ class MLflowRecorder(Recorder):
                 self.client.log_artifact(self.id, temp_dir / name, artifact_path)
             shutil.rmtree(temp_dir)
 
-    def load_object(self, name):
+    def load_object(self, name, unpickler=pickle.Unpickler):
         """
         Load object such as prediction file or model checkpoint in mlflow.
 
         Args:
             name (str): the object name
+
+            unpickler: Supporting using custom unpickler
 
         Raises:
             LoadObjectError: if raise some exceptions when load the object
@@ -344,7 +346,7 @@ class MLflowRecorder(Recorder):
         try:
             path = self.client.download_artifacts(self.id, name)
             with Path(path).open("rb") as f:
-                data = pickle.load(f)
+                data = unpickler(f).load()
             ar = self.client._tracking_client._get_artifact_repo(self.id)
             if isinstance(ar, AzureBlobArtifactRepository):
                 # for saving disk space
