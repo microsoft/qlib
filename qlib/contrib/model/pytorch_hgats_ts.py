@@ -366,9 +366,7 @@ class HGATs(Model):
 
         if self.model_path is not None:
             self.logger.info("Loading pretrained model...")
-            pretrained_model.load_state_dict(
-                torch.load(self.model_path, map_location=torch.device("cpu"))
-            )
+            pretrained_model.load_state_dict(torch.load(self.model_path))
 
         model_dict = self.HGAT_model.state_dict()
         pretrained_dict = {
