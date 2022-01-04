@@ -13,12 +13,12 @@ from .config import C
 
 
 class MetaLogger(type):
-    def __new__(cls, name, bases, dict):
+    def __new__(mcs, name, bases, dict_):
         wrapper_dict = logging.Logger.__dict__.copy()
         for key in wrapper_dict:
-            if key not in dict and key != "__reduce__":
-                dict[key] = wrapper_dict[key]
-        return type.__new__(cls, name, bases, dict)
+            if key not in dict_ and key != "__reduce__":
+                dict_[key] = wrapper_dict[key]
+        return type.__new__(mcs, name, bases, dict_)
 
 
 class QlibLogger(metaclass=MetaLogger):
@@ -48,7 +48,7 @@ class QlibLogger(metaclass=MetaLogger):
         return self.logger.__getattribute__(name)
 
 
-def get_module_logger(module_name, level: Optional[int] = None) -> logging.Logger:
+def get_module_logger(module_name, level: Optional[int] = None) -> QlibLogger:
     """
     Get a logger for a specific module.
 
@@ -146,6 +146,7 @@ def set_log_with_config(log_config: Dict[Text, Any]):
 
 class LogFilter(logging.Filter):
     def __init__(self, param=None):
+        super().__init__()
         self.param = param
 
     @staticmethod
