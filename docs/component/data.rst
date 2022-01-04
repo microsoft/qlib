@@ -21,6 +21,12 @@ The introduction of ``Data Layer`` includes the following parts.
 - Cache
 - Data and Cache File Structure
 
+Here is a typical example of Qlib data workflow
+
+- Users download data and converting data into Qlib format(with filename suffix `.bin`).  In this step, typically only some basic data are stored on disk(such as OHLCV). 
+- Creating some basic features based on Qlib's expression Engine(e.g. "Ref($close, 60) / $close", the return of last 60 trading days). Supported operators in the expression engine can be found `here <https://github.com/microsoft/qlib/blob/main/qlib/data/ops.py>`_. This step is typically implemented in Qlib's `Data Loader <https://qlib.readthedocs.io/en/latest/component/data.html#data-loader>`_ which is a component of `Data Handler <https://qlib.readthedocs.io/en/latest/component/data.html#data-handler>`_ .
+- If users require more complicated data processing (e.g. data normalization),  `Data Handler <https://qlib.readthedocs.io/en/latest/component/data.html#data-handler>`_ support user-customized processors to process data(some predefined processors can be found `here <https://github.com/microsoft/qlib/blob/main/qlib/data/dataset/processor.py>`_).  The processors are different from operators in expression engine. It is designed for some complicated data processing methods which is hard to supported in operators in expression engine.
+- At last, `Dataset <https://qlib.readthedocs.io/en/latest/component/data.html#dataset>`_ is responsible to prepare model-specific dataset from the processed data of Data Handler
 
 Data Preparation
 ============================
