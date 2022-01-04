@@ -22,7 +22,7 @@ Base Class & Interface
 BaseStrategy
 ------------------
 
-Qlib provides a base class ``qlib.contrib.strategy.BaseStrategy``. All strategy classes need to inherit the base class and implement its interface.
+Qlib provides a base class ``qlib.strategy.base.BaseStrategy``. All strategy classes need to inherit the base class and implement its interface.
 
 - `get_risk_degree`
     Return the proportion of your total value you will use in investment. Dynamically risk_degree will result in Market timing.
