@@ -418,6 +418,14 @@ For example, if you want to contribute to Qlib's document/code, you can follow t
   <img src="https://github.com/demon143/qlib/blob/main/docs/_static/img/change%20doc.gif" />
 </p>
 
+If you don't know how to start to contribute, you can refer to the following examples.
+| Type | Examples |
+| -- | -- |
+| Solving issues | [Answer a question](https://github.com/microsoft/qlib/issues/749);  [issuing](https://github.com/microsoft/qlib/issues/765) or [fixing](https://github.com/microsoft/qlib/pull/792) a bug |
+| Docs | [Improve docs quality](https://github.com/microsoft/qlib/pull/797/files) ;  [Fix a typo](https://github.com/microsoft/qlib/pull/774) | 
+| Feature |  Implement a [requested feature](https://github.com/microsoft/qlib/projects) like [this](https://github.com/microsoft/qlib/pull/754); [Refactor interfaces](https://github.com/microsoft/qlib/pull/539/files) |
+| Dataset | [Add a dataset](https://github.com/microsoft/qlib/pull/733) | 
+| Models |  [Implement a new model](https://github.com/microsoft/qlib/pull/689) | 
 
 ## Licence
 Most contributions require you to agree to a
