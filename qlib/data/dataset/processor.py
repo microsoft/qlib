@@ -75,7 +75,7 @@ class Processor(Serializable):
 
     def readonly(self) -> bool:
         """
-        Does the processor treat the input data readonly (i.e. does not write the input data) when processsing
+        Does the processor treat the input data readonly (i.e. does not write the input data) when processing
 
         Knowning the readonly information is helpful to the Handler to avoid uncessary copy
         """
@@ -197,6 +197,8 @@ class Fillna(Processor):
 
 class MinMaxNorm(Processor):
     def __init__(self, fit_start_time, fit_end_time, fields_group=None):
+        # NOTE: correctly set the `fit_start_time` and `fit_end_time` is very important !!!
+        # `fit_end_time` **must not** include any information from the test data!!!
         self.fit_start_time = fit_start_time
         self.fit_end_time = fit_end_time
         self.fields_group = fields_group
@@ -226,6 +228,8 @@ class ZScoreNorm(Processor):
     """ZScore Normalization"""
 
     def __init__(self, fit_start_time, fit_end_time, fields_group=None):
+        # NOTE: correctly set the `fit_start_time` and `fit_end_time` is very important !!!
+        # `fit_end_time` **must not** include any information from the test data!!!
         self.fit_start_time = fit_start_time
         self.fit_end_time = fit_end_time
         self.fields_group = fields_group
@@ -263,6 +267,8 @@ class RobustZScoreNorm(Processor):
     """
 
     def __init__(self, fit_start_time, fit_end_time, fields_group=None, clip_outlier=True):
+        # NOTE: correctly set the `fit_start_time` and `fit_end_time` is very important !!!
+        # `fit_end_time` **must not** include any information from the test data!!!
         self.fit_start_time = fit_start_time
         self.fit_end_time = fit_end_time
         self.fields_group = fields_group
@@ -302,7 +308,13 @@ class CSZScoreNorm(Processor):
 
 
 class CSRankNorm(Processor):
-    """Cross Sectional Rank Normalization"""
+    """
+    Cross Sectional Rank Normalization.
+    "Cross Sectional" is often used to describe data operations.
+    The operations across different stocks are often called Cross Sectional Operation.
+
+    For example, CSRankNorm is an operation that grouping the data by each day and rank `across` all the stocks in each day.
+    """
 
     def __init__(self, fields_group=None):
         self.fields_group = fields_group

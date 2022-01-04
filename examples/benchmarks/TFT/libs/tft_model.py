@@ -342,7 +342,7 @@ class TFTDataCache:
 
     @classmethod
     def contains(cls, key):
-        """Retuns boolean indicating whether key is present in cache."""
+        """Returns boolean indicating whether key is present in cache."""
 
         return key in cls._data_cache
 
@@ -1120,10 +1120,10 @@ class TemporalFusionTransformer:
         Args:
           df: Input dataframe
           return_targets: Whether to also return outputs aligned with predictions to
-            faciliate evaluation
+            facilitate evaluation
 
         Returns:
-          Input dataframe or tuple of (input dataframe, algined output dataframe).
+          Input dataframe or tuple of (input dataframe, aligned output dataframe).
         """
 
         data = self._batch_data(df)

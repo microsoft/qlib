@@ -58,7 +58,7 @@ class Client:
         msg_proc_func : func
             the function to process the message when receiving response, should have arg `*args`.
         msg_queue: Queue
-            The queue to pass the messsage after callback.
+            The queue to pass the message after callback.
         """
         head_info = {"version": qlib.__version__}
 

@@ -1,15 +1,20 @@
-# High-Frequency Dataset
+# Introduction
+This folder contains 2 examples
+- A high-frequency dataset example
+- An example of predicting the price trend in high-frequency data
+
+## High-Frequency Dataset
 
 This dataset is an example for RL high frequency trading.
 
-## Get High-Frequency Data
+### Get High-Frequency Data
 
 Get high-frequency data by running the following command:
 ```bash
     python workflow.py get_data
 ```
 
-## Dump & Reload & Reinitialize the Dataset
+### Dump & Reload & Reinitialize the Dataset
 
 
 The High-Frequency Dataset is implemented as `qlib.data.dataset.DatasetH` in the `workflow.py`. `DatatsetH` is the subclass of [`qlib.utils.serial.Serializable`](https://qlib.readthedocs.io/en/latest/advanced/serial.html), whose state can be dumped in or loaded from disk in `pickle` format.
@@ -27,9 +32,9 @@ Run the example by running the following command:
     python workflow.py dump_and_load_dataset
 ```
 
-## Benchmarks Performance
-### Signal Test
-Here are the results of signal test for benchmark models. We will keep updating benchmark models in future.
+## Benchmarks Performance (predicting the price trend in high-frequency data)
+
+Here are the results of models for predicting the price trend in high-frequency data. We will keep updating benchmark models in future.
 
 | Model Name | Dataset | IC | ICIR | Rank IC | Rank ICIR | Long precision| Short Precision | Long-Short Average Return | Long-Short Average Sharpe |
 |---|---|---|---|---|---|---|---|---|---|

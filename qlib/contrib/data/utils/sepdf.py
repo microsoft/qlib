@@ -18,8 +18,8 @@ class SepDataFrame:
     """
     (Sep)erate DataFrame
     We usually concat multiple dataframe to be processed together(Such as feature, label, weight, filter).
-    However, they are usally be used seperately at last.
-    This will result in extra cost for concating and spliting data(reshaping and copying data in the memory is very expensive)
+    However, they are usually be used separately at last.
+    This will result in extra cost for concatenating and splitting data(reshaping and copying data in the memory is very expensive)
 
     SepDataFrame tries to act like a DataFrame whose column with multiindex
     """

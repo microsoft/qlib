@@ -31,7 +31,7 @@ Let's see an example,
 
 First make sure you have the latest version of `qlib` installed.
 
-Then, you need to privide a configuration to setup the experiment.
+Then, you need to provide a configuration to setup the experiment.
 We write a simple configuration example as following,
 
 .. code-block:: YAML
@@ -217,13 +217,13 @@ The tuner pipeline contains different tuners, and the `tuner` program will proce
 Each part represents a tuner, and its modules which are to be tuned. Space in each part is the hyper-parameters' space of a certain module, you need to create your searching space and modify it in `/qlib/contrib/tuner/space.py`. We use `hyperopt` package to help us to construct the space, you can see the detail of how to use it in https://github.com/hyperopt/hyperopt/wiki/FMin .
 
 - model
-    You need to provide the `class` and the `space` of the model. If the model is user's own implementation, you need to privide the `module_path`. 
+    You need to provide the `class` and the `space` of the model. If the model is user's own implementation, you need to provide the `module_path`.
 
 - trainer
-    You need to proveide the `class` of the trainer. If the trainer is user's own implementation, you need to privide the `module_path`. 
+    You need to provide the `class` of the trainer. If the trainer is user's own implementation, you need to provide the `module_path`.
 
 - strategy
-    You need to provide the `class` and the `space` of the strategy. If the strategy is user's own implementation, you need to privide the `module_path`. 
+    You need to provide the `class` and the `space` of the strategy. If the strategy is user's own implementation, you need to provide the `module_path`.
 
 - data_label
     The label of the data, you can search which kinds of labels will lead to a better result. This part is optional, and you only need to provide `space`.
@@ -273,7 +273,7 @@ You need to use the same dataset to evaluate your different `estimator` experime
 About the data and backtest
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-`data` and `backtest` are all same in the whole `tuner` experiment. Different `estimator` experiments must use the same data and backtest method. So, these two parts of config are same with that in `estimator` configuration. You can see the precise defination of these parts in `estimator` introduction. We only provide an example here.
+`data` and `backtest` are all same in the whole `tuner` experiment. Different `estimator` experiments must use the same data and backtest method. So, these two parts of config are same with that in `estimator` configuration. You can see the precise definition of these parts in `estimator` introduction. We only provide an example here.
 
 .. code-block:: YAML
 

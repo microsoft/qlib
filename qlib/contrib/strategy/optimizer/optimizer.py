@@ -8,7 +8,7 @@ import pandas as pd
 import scipy.optimize as so
 from typing import Optional, Union, Callable, List
 
-from qlib.portfolio.optimizer import BaseOptimizer
+from .base import BaseOptimizer
 
 
 class PortfolioOptimizer(BaseOptimizer):
@@ -35,7 +35,7 @@ class PortfolioOptimizer(BaseOptimizer):
         lamb: float = 0,
         delta: float = 0,
         alpha: float = 0.0,
-        scale_alpha: bool = True,
+        scale_return: bool = True,
         tol: float = 1e-8,
     ):
         """
@@ -44,7 +44,7 @@ class PortfolioOptimizer(BaseOptimizer):
             lamb (float): risk aversion parameter (larger `lamb` means more focus on return)
             delta (float): turnover rate limit
             alpha (float): l2 norm regularizer
-            scale_alpha (bool): if to scale alpha to match the volatility of the covariance matrix
+            scale_return (bool): if to scale alpha to match the volatility of the covariance matrix
             tol (float): tolerance for optimization termination
         """
         assert method in [self.OPT_GMV, self.OPT_MVO, self.OPT_RP, self.OPT_INV], f"method `{method}` is not supported"
@@ -60,18 +60,18 @@ class PortfolioOptimizer(BaseOptimizer):
         self.alpha = alpha
 
         self.tol = tol
-        self.scale_alpha = scale_alpha
+        self.scale_return = scale_return
 
     def __call__(
         self,
         S: Union[np.ndarray, pd.DataFrame],
-        u: Optional[Union[np.ndarray, pd.Series]] = None,
+        r: Optional[Union[np.ndarray, pd.Series]] = None,
         w0: Optional[Union[np.ndarray, pd.Series]] = None,
     ) -> Union[np.ndarray, pd.Series]:
         """
         Args:
             S (np.ndarray or pd.DataFrame): covariance matrix
-            u (np.ndarray or pd.Series): expected returns (a.k.a., alpha)
+            r (np.ndarray or pd.Series): expected return
             w0 (np.ndarray or pd.Series): initial weights (for turnover control)
 
         Returns:
@@ -83,12 +83,12 @@ class PortfolioOptimizer(BaseOptimizer):
             index = S.index
             S = S.values
 
-        # transform alpha
-        if u is not None:
-            assert len(u) == len(S), "`u` has mismatched shape"
-            if isinstance(u, pd.Series):
-                assert u.index.equals(index), "`u` has mismatched index"
-                u = u.values
+        # transform return
+        if r is not None:
+            assert len(r) == len(S), "`r` has mismatched shape"
+            if isinstance(r, pd.Series):
+                assert r.index.equals(index), "`r` has mismatched index"
+                r = r.values
 
         # transform initial weights
         if w0 is not None:
@@ -97,13 +97,13 @@ class PortfolioOptimizer(BaseOptimizer):
                 assert w0.index.equals(index), "`w0` has mismatched index"
                 w0 = w0.values
 
-        # scale alpha to match volatility
-        if u is not None and self.scale_alpha:
-            u = u / u.std()
-            u *= np.mean(np.diag(S)) ** 0.5
+        # scale return to match volatility
+        if r is not None and self.scale_return:
+            r = r / r.std()
+            r *= np.sqrt(np.mean(np.diag(S)))
 
         # optimize
-        w = self._optimize(S, u, w0)
+        w = self._optimize(S, r, w0)
 
         # restore index if needed
         if index is not None:
@@ -111,30 +111,30 @@ class PortfolioOptimizer(BaseOptimizer):
 
         return w
 
-    def _optimize(self, S: np.ndarray, u: Optional[np.ndarray] = None, w0: Optional[np.ndarray] = None) -> np.ndarray:
+    def _optimize(self, S: np.ndarray, r: Optional[np.ndarray] = None, w0: Optional[np.ndarray] = None) -> np.ndarray:
 
         # inverse volatility
         if self.method == self.OPT_INV:
-            if u is not None:
-                warnings.warn("`u` is set but will not be used for `inv` portfolio")
+            if r is not None:
+                warnings.warn("`r` is set but will not be used for `inv` portfolio")
             if w0 is not None:
                 warnings.warn("`w0` is set but will not be used for `inv` portfolio")
             return self._optimize_inv(S)
 
         # global minimum variance
         if self.method == self.OPT_GMV:
-            if u is not None:
-                warnings.warn("`u` is set but will not be used for `gmv` portfolio")
+            if r is not None:
+                warnings.warn("`r` is set but will not be used for `gmv` portfolio")
             return self._optimize_gmv(S, w0)
 
         # mean-variance
         if self.method == self.OPT_MVO:
-            return self._optimize_mvo(S, u, w0)
+            return self._optimize_mvo(S, r, w0)
 
         # risk parity
         if self.method == self.OPT_RP:
-            if u is not None:
-                warnings.warn("`u` is set but will not be used for `rp` portfolio")
+            if r is not None:
+                warnings.warn("`r` is set but will not be used for `rp` portfolio")
             return self._optimize_rp(S, w0)
 
     def _optimize_inv(self, S: np.ndarray) -> np.ndarray:
@@ -155,17 +155,17 @@ class PortfolioOptimizer(BaseOptimizer):
         return self._solve(len(S), self._get_objective_gmv(S), *self._get_constrains(w0))
 
     def _optimize_mvo(
-        self, S: np.ndarray, u: Optional[np.ndarray] = None, w0: Optional[np.ndarray] = None
+        self, S: np.ndarray, r: Optional[np.ndarray] = None, w0: Optional[np.ndarray] = None
     ) -> np.ndarray:
         """optimize mean-variance portfolio
 
         This method solves the following optimization problem
-            min_w   - w' u + lamb * w' S w
+            min_w   - w' r + lamb * w' S w
             s.t.   w >= 0, sum(w) == 1
         where `S` is the covariance matrix, `u` is the expected returns,
         and `lamb` is the risk aversion parameter.
         """
-        return self._solve(len(S), self._get_objective_mvo(S, u), *self._get_constrains(w0))
+        return self._solve(len(S), self._get_objective_mvo(S, r), *self._get_constrains(w0))
 
     def _optimize_rp(self, S: np.ndarray, w0: Optional[np.ndarray] = None) -> np.ndarray:
         """optimize risk parity portfolio
@@ -189,16 +189,16 @@ class PortfolioOptimizer(BaseOptimizer):
 
         return func
 
-    def _get_objective_mvo(self, S: np.ndarray, u: np.ndarray = None) -> Callable:
+    def _get_objective_mvo(self, S: np.ndarray, r: np.ndarray = None) -> Callable:
         """mean-variance optimization objective
 
         Optimization objective
-            min_w - w' u + lamb * w' S w
+            min_w - w' r + lamb * w' S w
         """
 
         def func(x):
             risk = x @ S @ x
-            ret = x @ u
+            ret = x @ r
             return -ret + self.lamb * risk
 
         return func

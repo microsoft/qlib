@@ -70,7 +70,7 @@ class DataHandler(Serializable):
         Parameters
         ----------
         instruments :
-            The stock list to retrive.
+            The stock list to retrieve.
         start_time :
             start_time of the original data.
         end_time :

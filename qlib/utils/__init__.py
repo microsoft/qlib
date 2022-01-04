@@ -27,7 +27,7 @@ import collections
 import numpy as np
 import pandas as pd
 from pathlib import Path
-from typing import Dict, Union, Tuple, Any, Text, Optional
+from typing import Dict, Union, Tuple, Any, Text, Optional, Callable
 from types import ModuleType
 from urllib.parse import urlparse
 
@@ -579,7 +579,7 @@ def get_date_range(trading_date, left_shift=0, right_shift=0, future=False):
 
 
 def get_date_by_shift(trading_date, shift, future=False, clip_shift=True, freq="day", align: Optional[str] = None):
-    """get trading date with shift bias wil cur_date
+    """get trading date with shift bias will cur_date
         e.g. : shift == 1,  return next trading date
                shift == -1, return previous trading date
     ----------
@@ -877,7 +877,7 @@ def register_wrapper(wrapper, cls_or_obj, module_path=None):
     wrapper.register(obj)
 
 
-def load_dataset(path_or_obj):
+def load_dataset(path_or_obj, index_col=[0, 1]):
     """load dataset from multiple file formats"""
     if isinstance(path_or_obj, pd.DataFrame):
         return path_or_obj
@@ -889,7 +889,7 @@ def load_dataset(path_or_obj):
     elif extension == ".pkl":
         return pd.read_pickle(path_or_obj)
     elif extension == ".csv":
-        return pd.read_csv(path_or_obj, parse_dates=True, index_col=[0, 1])
+        return pd.read_csv(path_or_obj, parse_dates=True, index_col=index_col)
     raise ValueError(f"unsupported file type `{extension}`")
 
 

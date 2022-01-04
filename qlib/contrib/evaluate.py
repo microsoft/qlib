@@ -3,15 +3,18 @@
 
 from __future__ import division
 from __future__ import print_function
-from logging import warn
 
 import numpy as np
 import pandas as pd
 import warnings
+from typing import Union
+
 from ..log import get_module_logger
-from ..backtest import get_exchange, backtest as backtest_func
 from ..utils import get_date_range
 from ..utils.resam import Freq
+from ..strategy.base import BaseStrategy
+from ..backtest import get_exchange, position, backtest as backtest_func, executor as _executor
+
 
 from ..data import D
 from ..config import C
@@ -117,84 +120,129 @@ def indicator_analysis(df, method="mean"):
 
 
 # This is the API for compatibility for legacy code
-def backtest(pred, account=1e9, shift=1, benchmark="SH000905", verbose=True, **kwargs):
-    """This function will help you set a reasonable Exchange and provide default value for strategy
+def backtest_daily(
+    start_time: Union[str, pd.Timestamp],
+    end_time: Union[str, pd.Timestamp],
+    strategy: Union[str, dict, BaseStrategy],
+    executor: Union[str, dict, _executor.BaseExecutor] = None,
+    account: Union[float, int, position.Position] = 1e8,
+    benchmark: str = "SH000300",
+    exchange_kwargs: dict = None,
+    pos_type: str = "Position",
+):
+    """initialize the strategy and executor, then executor the backtest of daily frequency
+
     Parameters
     ----------
+    start_time : Union[str, pd.Timestamp]
+        closed start time for backtest
+        **NOTE**: This will be applied to the outmost executor's calendar.
+    end_time : Union[str, pd.Timestamp]
+        closed end time for backtest
+        **NOTE**: This will be applied to the outmost executor's calendar.
+        E.g. Executor[day](Executor[1min]),   setting `end_time == 20XX0301` will include all the minutes on 20XX0301
+    strategy : Union[str, dict, BaseStrategy]
+        for initializing outermost portfolio strategy. Please refer to the docs of init_instance_by_config for more information.
 
-    - **backtest workflow related or commmon arguments**
+        E.g.
 
-    pred : pandas.DataFrame
-        predict should has <datetime, instrument> index and one `score` column.
-    account : float
-        init account value.
-    shift : int
-        whether to shift prediction by one day.
-    benchmark : str
-        benchmark code, default is SH000905 CSI 500.
-    verbose : bool
-        whether to print log.
+        .. code-block:: python
+            # dict
+            strategy = {
+                "class": "TopkDropoutStrategy",
+                "module_path": "qlib.contrib.strategy.signal_strategy",
+                "kwargs": {
+                    "signal": (model, dataset),
+                    "topk": 50,
+                    "n_drop": 5,
+                },
+            }
+            # BaseStrategy
+            pred_score = pd.read_pickle("score.pkl")["score"]
+            STRATEGY_CONFIG = {
+                "topk": 50,
+                "n_drop": 5,
+                "signal": pred_score,
+            }
+            strategy = TopkDropoutStrategy(**STRATEGY_CONFIG)
+            # str example.
+            # 1) specify a pickle object
+            #     - path like 'file:///<path to pickle file>/obj.pkl'
+            # 2) specify a class name
+            #     - "ClassName":  getattr(module, "ClassName")() will be used.
+            # 3) specify module path with class name
+            #     - "a.b.c.ClassName" getattr(<a.b.c.module>, "ClassName")() will be used.
 
-    - **strategy related arguments**
 
-    strategy : Strategy()
-        strategy used in backtest.
-    topk : int (Default value: 50)
-        top-N stocks to buy.
-    margin : int or float(Default value: 0.5)
-        - if isinstance(margin, int):
+    executor : Union[str, dict, BaseExecutor]
+        for initializing the outermost executor.
+    benchmark: str
+        the benchmark for reporting.
+    account : Union[float, int, Position]
+        information for describing how to creating the account
+        For `float` or `int`:
+            Using Account with only initial cash
+        For `Position`:
+            Using Account with a Position
+    exchange_kwargs : dict
+        the kwargs for initializing Exchange
+        E.g.
 
-            sell_limit = margin
+        .. code-block:: python
 
-        - else:
+            exchange_kwargs = {
+                "freq": freq,
+                "limit_threshold": None, # limit_threshold is None, using C.limit_threshold
+                "deal_price": None, # deal_price is None, using C.deal_price
+                "open_cost": 0.0005,
+                "close_cost": 0.0015,
+                "min_cost": 5,
+            }
 
-            sell_limit = pred_in_a_day.count() * margin
+    pos_type : str
+        the type of Position.
 
-        buffer margin, in single score_mode, continue holding stock if it is in nlargest(sell_limit).
-        sell_limit should be no less than topk.
-    n_drop : int
-        number of stocks to be replaced in each trading date.
-    risk_degree: float
-        0-1, 0.95 for example, use 95% money to trade.
-    str_type: 'amount', 'weight' or 'dropout'
-        strategy type: TopkAmountStrategy ,TopkWeightStrategy or TopkDropoutStrategy.
-
-    - **exchange related arguments**
-
-    exchange: Exchange()
-        pass the exchange for speeding up.
-    subscribe_fields: list
-        subscribe fields.
-    open_cost : float
-        open transaction cost. The default value is 0.002(0.2%).
-    close_cost : float
-        close transaction cost. The default value is 0.002(0.2%).
-    min_cost : float
-        min transaction cost.
-    trade_unit : int
-        100 for China A.
-    deal_price: str
-        dealing price type: 'close', 'open', 'vwap'.
-    limit_threshold : float
-        limit move 0.1 (10%) for example, long and short with same limit.
-    extract_codes: bool
-        will we pass the codes extracted from the pred to the exchange.
-
-        .. note:: This will be faster with offline qlib.
-
-    - **executor related arguments**
-
-    executor : BaseExecutor()
-        executor used in backtest.
-    verbose : bool
-        whether to print log.
+    Returns
+    -------
+    report_normal: pd.DataFrame
+        backtest report
+    positions_normal: pd.DataFrame
+        backtest positions
 
     """
-    warnings.warn("this function is deprecated, please use backtest function in qlib.backtest", DeprecationWarning)
-    report_dict = backtest_func(
-        pred=pred, account=account, shift=shift, benchmark=benchmark, verbose=verbose, return_order=False, **kwargs
+    freq = "day"
+    if executor is None:
+        executor_config = {
+            "time_per_step": freq,
+            "generate_portfolio_metrics": True,
+        }
+        executor = _executor.SimulatorExecutor(**executor_config)
+    _exchange_kwargs = {
+        "freq": freq,
+        "limit_threshold": None,
+        "deal_price": None,
+        "open_cost": 0.0005,
+        "close_cost": 0.0015,
+        "min_cost": 5,
+    }
+    if exchange_kwargs is not None:
+        _exchange_kwargs.update(exchange_kwargs)
+
+    portfolio_metric_dict, indicator_dict = backtest_func(
+        start_time=start_time,
+        end_time=end_time,
+        strategy=strategy,
+        executor=executor,
+        account=account,
+        benchmark=benchmark,
+        exchange_kwargs=_exchange_kwargs,
+        pos_type=pos_type,
     )
-    return report_dict.get("report_df"), report_dict.get("positions")
+    analysis_freq = "{0}{1}".format(*Freq.parse(freq))
+
+    report_normal, positions_normal = portfolio_metric_dict.get(analysis_freq)
+
+    return report_normal, positions_normal
 
 
 def long_short_backtest(
@@ -327,7 +375,12 @@ def t_run():
     pred["datetime"] = pd.to_datetime(pred["datetime"])
     pred = pred.set_index([pred.columns[0], pred.columns[1]])
     pred = pred.iloc[:9000]
-    report_df, positions = backtest(pred=pred)
+    strategy_config = {
+        "topk": 50,
+        "n_drop": 5,
+        "signal": pred,
+    }
+    report_df, positions = backtest_daily(start_time="2017-01-01", end_time="2020-08-01", strategy=strategy_config)
     print(report_df.head())
     print(positions.keys())
     print(positions[list(positions.keys())[0]])

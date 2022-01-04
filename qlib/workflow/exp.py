@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-from typing import Union
+from typing import Dict, Union
 import mlflow, logging
 from mlflow.entities import ViewType
 from mlflow.exceptions import MlflowException
@@ -88,7 +88,7 @@ class Experiment:
     def search_records(self, **kwargs):
         """
         Get a pandas DataFrame of records that fit the search criteria of the experiment.
-        Inputs are the search critera user want to apply.
+        Inputs are the search criteria user want to apply.
 
         Returns
         -------
@@ -214,7 +214,7 @@ class Experiment:
         """
         raise NotImplementedError(f"Please implement the `_get_recorder` method")
 
-    def list_recorders(self, **flt_kwargs):
+    def list_recorders(self, **flt_kwargs) -> Dict[str, Recorder]:
         """
         List all the existing recorders of this experiment. Please first get the experiment instance before calling this method.
         If user want to use the method `R.list_recorders()`, please refer to the related API document in `QlibRecorder`.
@@ -325,7 +325,9 @@ class MLflowExperiment(Experiment):
 
     UNLIMITED = 50000  # FIXME: Mlflow can only list 50000 records at most!!!!!!!
 
-    def list_recorders(self, max_results: int = UNLIMITED, status: Union[str, None] = None, filter_string: str = ""):
+    def list_recorders(
+        self, max_results: int = UNLIMITED, status: Union[str, None] = None, filter_string: str = ""
+    ) -> Dict[str, Recorder]:
         """
         Parameters
         ----------

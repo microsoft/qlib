@@ -295,7 +295,7 @@ class TFTModel(ModelFT):
     def to_pickle(self, path: Union[Path, str]):
         """
         Tensorflow model can't be dumped directly.
-        So the data should be save seperatedly
+        So the data should be save separately
 
         **TODO**: Please implement the function to load the files
 
