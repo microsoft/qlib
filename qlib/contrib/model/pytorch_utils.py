@@ -33,5 +33,5 @@ def count_parameters(models_or_parameters, unit="m"):
     elif unit == "gb" or unit == "g":
         counts /= 2 ** 30
     elif unit is not None:
-        raise ValueError("Unknow unit: {:}".format(unit))
+        raise ValueError("Unknown unit: {:}".format(unit))
     return counts

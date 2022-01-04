@@ -152,7 +152,7 @@ class BasePosition:
         """
         generate stock weight dict {stock_id : value weight of stock in the position}
         it is meaningful in the beginning or the end of each trade step
-        - During execution of each trading step, the weight may be not consistant with the portfolio value
+        - During execution of each trading step, the weight may be not consistent with the portfolio value
 
         Parameters
         ----------
@@ -222,6 +222,12 @@ class BasePosition:
             please refer to the documents of Executor
         """
         raise NotImplementedError(f"Please implement the `settle_commit` method")
+
+    def __str__(self):
+        return self.__dict__.__str__()
+
+    def __repr__(self):
+        return self.__dict__.__repr__()
 
 
 class Position(BasePosition):

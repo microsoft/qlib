@@ -116,7 +116,7 @@ class RecordTemp:
         """
         Check if the records is properly generated and saved.
         It is useful in following examples
-        - checking if the depended files complete before genrating new things.
+        - checking if the depended files complete before generating new things.
         - checking if the final files is completed
 
         Parameters
@@ -401,8 +401,8 @@ class PortAnaRecord(RecordTemp):
         if executor_config["kwargs"].get("generate_portfolio_metrics", False):
             _count, _freq = Freq.parse(executor_config["kwargs"]["time_per_step"])
             ret_freq.append(f"{_count}{_freq}")
-        if "sub_env" in executor_config["kwargs"]:
-            ret_freq.extend(self._get_report_freq(executor_config["kwargs"]["sub_env"]))
+        if "inner_executor" in executor_config["kwargs"]:
+            ret_freq.extend(self._get_report_freq(executor_config["kwargs"]["inner_executor"]))
         return ret_freq
 
     def generate(self, **kwargs):

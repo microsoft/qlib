@@ -30,7 +30,7 @@ Version 0.2.1
 --------------------
 - Support registering user-defined ``Provider``.
 - Support use operators in string format, e.g. ``['Ref($close, 1)']`` is valid field format.
-- Support dynamic fields in ``$some_field`` format. And exising fields like ``Close()`` may be deprecated in the future.
+- Support dynamic fields in ``$some_field`` format. And existing fields like ``Close()`` may be deprecated in the future.
 
 Version 0.2.2
 --------------------
@@ -78,7 +78,7 @@ Version 0.3.5
 - Support multi-label training, you can provide multiple label in ``handler``. (But LightGBM doesn't support due to the algorithm itself)
 - Refactor ``handler`` code, dataset.py is no longer used, and you can deploy your own labels and features in ``feature_label_config``
 - Handler only offer DataFrame. Also, ``trainer`` and model.py only receive DataFrame
-- Change ``split_rolling_data``, we roll the data on market calender now, not on normal date
+- Change ``split_rolling_data``, we roll the data on market calendar now, not on normal date
 - Move some date config from ``handler`` to ``trainer``
 
 Version 0.4.0
@@ -167,11 +167,11 @@ Version 0.8.0
     - There are lots of changes for daily trading, it is hard to list all of them. But a few important changes could be noticed
         - The trading limitation is more accurate;
             - In `previous version <https://github.com/microsoft/qlib/blob/v0.7.2/qlib/contrib/backtest/exchange.py#L160>`_, longing and shorting actions share the same action.
-            - In `current verison <https://github.com/microsoft/qlib/blob/7c31012b507a3823117bddcc693fc64899460b2a/qlib/backtest/exchange.py#L304>`_, the trading limitation is different between loging and shorting action.
+            - In `current version <https://github.com/microsoft/qlib/blob/7c31012b507a3823117bddcc693fc64899460b2a/qlib/backtest/exchange.py#L304>`_, the trading limitation is different between logging and shorting action.
         - The constant is different when calculating annualized metrics.
             - `Current version <https://github.com/microsoft/qlib/blob/7c31012b507a3823117bddcc693fc64899460b2a/qlib/contrib/evaluate.py#L42>`_ uses more accurate constant than `previous version <https://github.com/microsoft/qlib/blob/v0.7.2/qlib/contrib/evaluate.py#L22>`_
         - `A new version <https://github.com/microsoft/qlib/blob/7c31012b507a3823117bddcc693fc64899460b2a/qlib/tests/data.py#L17>`_ of data is released. Due to the unstability of Yahoo data source, the data may be different after downloading data again.
-        - Users could chec kout the backtesting results between  `Current version <https://github.com/microsoft/qlib/tree/7c31012b507a3823117bddcc693fc64899460b2a/examples/benchmarks>`_ and `previous version <https://github.com/microsoft/qlib/tree/v0.7.2/examples/benchmarks>`_
+        - Users could check out the backtesting results between  `Current version <https://github.com/microsoft/qlib/tree/7c31012b507a3823117bddcc693fc64899460b2a/examples/benchmarks>`_ and `previous version <https://github.com/microsoft/qlib/tree/v0.7.2/examples/benchmarks>`_
 
 
 Other Versions

@@ -46,6 +46,7 @@ class Tuner:
             space=self.space,
             algo=tpe.suggest,
             max_evals=self.max_evals,
+            show_progressbar=False,
         )
         self.logger.info("Local best params: {} ".format(self.best_params))
         TimeInspector.log_cost_time(
@@ -89,7 +90,7 @@ class QLibTuner(Tuner):
 
     def objective(self, params):
 
-        # 1. Setup an config for a spcific estimator process
+        # 1. Setup an config for a specific estimator process
         estimator_path = self.setup_estimator_config(params)
         self.logger.info("Searching params: {} ".format(params))
 

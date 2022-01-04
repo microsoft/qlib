@@ -122,6 +122,8 @@ class AverageEnsemble(Ensemble):
         # need to flatten the nested dict
         ensemble_dict = flatten_dict(ensemble_dict, sep=FLATTEN_TUPLE)
         values = list(ensemble_dict.values())
+        # NOTE: this may change the style underlying data!!!!
+        # from pd.DataFrame to pd.Series
         results = pd.concat(values, axis=1)
         results = results.groupby("datetime").apply(lambda df: (df - df.mean()) / df.std())
         results = results.mean(axis=1)

@@ -8,7 +8,7 @@ from . import lazy_sort_index
 from .time import Freq, cal_sam_minute
 
 
-def resam_calendar(calendar_raw: np.ndarray, freq_raw: str, freq_sam: str) -> np.ndarray:
+def resam_calendar(calendar_raw: np.ndarray, freq_raw: Union[str, Freq], freq_sam: Union[str, Freq]) -> np.ndarray:
     """
     Resample the calendar with frequency freq_raw into the calendar with frequency freq_sam
     Assumption:
@@ -28,36 +28,36 @@ def resam_calendar(calendar_raw: np.ndarray, freq_raw: str, freq_sam: str) -> np
     np.ndarray
         The calendar with frequency freq_sam
     """
-    raw_count, freq_raw = Freq.parse(freq_raw)
-    sam_count, freq_sam = Freq.parse(freq_sam)
+    freq_raw = Freq(freq_raw)
+    freq_sam = Freq(freq_sam)
     if not len(calendar_raw):
         return calendar_raw
 
     # if freq_sam is xminute, divide each trading day into several bars evenly
-    if freq_sam == Freq.NORM_FREQ_MINUTE:
-        if freq_raw != Freq.NORM_FREQ_MINUTE:
+    if freq_sam.base == Freq.NORM_FREQ_MINUTE:
+        if freq_raw.base != Freq.NORM_FREQ_MINUTE:
             raise ValueError("when sampling minute calendar, freq of raw calendar must be minute or min")
         else:
-            if raw_count > sam_count:
+            if freq_raw.count > freq_sam.count:
                 raise ValueError("raw freq must be higher than sampling freq")
-        _calendar_minute = np.unique(list(map(lambda x: cal_sam_minute(x, sam_count), calendar_raw)))
+        _calendar_minute = np.unique(list(map(lambda x: cal_sam_minute(x, freq_sam.count), calendar_raw)))
         return _calendar_minute
 
     # else, convert the raw calendar into day calendar, and divide the whole calendar into several bars evenly
     else:
         _calendar_day = np.unique(list(map(lambda x: pd.Timestamp(x.year, x.month, x.day, 0, 0, 0), calendar_raw)))
-        if freq_sam == Freq.NORM_FREQ_DAY:
-            return _calendar_day[::sam_count]
+        if freq_sam.base == Freq.NORM_FREQ_DAY:
+            return _calendar_day[:: freq_sam.count]
 
-        elif freq_sam == Freq.NORM_FREQ_WEEK:
+        elif freq_sam.base == Freq.NORM_FREQ_WEEK:
             _day_in_week = np.array(list(map(lambda x: x.dayofweek, _calendar_day)))
             _calendar_week = _calendar_day[np.ediff1d(_day_in_week, to_begin=-1) < 0]
-            return _calendar_week[::sam_count]
+            return _calendar_week[:: freq_sam.count]
 
-        elif freq_sam == Freq.NORM_FREQ_MONTH:
+        elif freq_sam.base == Freq.NORM_FREQ_MONTH:
             _day_in_month = np.array(list(map(lambda x: x.day, _calendar_day)))
             _calendar_month = _calendar_day[np.ediff1d(_day_in_month, to_begin=-1) < 0]
-            return _calendar_month[::sam_count]
+            return _calendar_month[:: freq_sam.count]
         else:
             raise ValueError("sampling freq must be xmin, xd, xw, xm")
 
@@ -203,10 +203,10 @@ def get_valid_value(series, last=True):
     """get the first/last not nan value of pd.Series with single level index
     Parameters
     ----------
-    series : pd.Seires
+    series : pd.Series
         series should not be empty
     last : bool, optional
-        wether to get the last valid value, by default True
+        whether to get the last valid value, by default True
         - if last is True, get the last valid value
         - else, get the first valid value
 

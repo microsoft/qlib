@@ -13,7 +13,7 @@ from tqdm.auto import tqdm
 
 
 def backtest_loop(start_time, end_time, trade_strategy: BaseStrategy, trade_executor: BaseExecutor):
-    """backtest funciton for the interaction of the outermost strategy and executor in the nested decision execution
+    """backtest function for the interaction of the outermost strategy and executor in the nested decision execution
 
     please refer to the docs of `collect_data_loop`
 
