@@ -418,7 +418,7 @@ For example, if you want to contribute to Qlib's document/code, you can follow t
   <img src="https://github.com/demon143/qlib/blob/main/docs/_static/img/change%20doc.gif" />
 </p>
 
-If you don't know how to start to contribute, you can refer to the following issues.
+If you don't know how to start to contribute, you can refer to the following examples.
 | Type | Examples |
 | -- | -- |
 | Solving an issue | [Answering a Question](https://github.com/microsoft/qlib/issues/749);  [issuing](https://github.com/microsoft/qlib/issues/765) or [fixing](https://github.com/microsoft/qlib/pull/792) a bug |
