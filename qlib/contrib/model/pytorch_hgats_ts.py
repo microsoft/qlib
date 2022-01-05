@@ -493,6 +493,9 @@ class HGATModel(nn.Module):
         out, _ = self.rnn(x)
         hidden = out[:, -1, :]  # [#stocks, #features]
 
+        """
+        The following line deservers a bit of explanation. We standardize GH before multiplying it with hidden to obtain hidden_agg, instead of directly multiplying GH with hidden_agg (the paper method). We find minimal difference in terms of results between these two approaches; however standardization makes more intuitive sense.
+        """
         hidden_agg = torch.t(torch.nan_to_num(GH / GH.sum(dim=0), nan=0, posinf=0, neginf=0)).mm(
             hidden
         )  # [#industries, #features]
