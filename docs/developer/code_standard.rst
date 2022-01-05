@@ -19,4 +19,4 @@ A common error is the mixed use of space and tab. You can fix the bug by inputin
 .. code-block:: python
 
     pip install black==21.6b0
-    python -m black . -l 120
+    pip install --upgrade black
