@@ -28,9 +28,7 @@ if TYPE_CHECKING:
 
 class Config:
     def __init__(self, default_conf):
-        self.__dict__["_default_config"] = copy.deepcopy(
-            default_conf
-        )  # avoiding conflicts with __getattr__
+        self.__dict__["_default_config"] = copy.deepcopy(default_conf)  # avoiding conflicts with __getattr__
         self.reset()
 
     def __getitem__(self, key):
@@ -291,19 +289,14 @@ class QlibConfig(Config):
             else:
                 raise TypeError(f"provider_uri does not support {type(provider_uri)}")
             for freq, _uri in provider_uri.items():
-                if (
-                    QlibConfig.DataPathManager.get_uri_type(_uri)
-                    == QlibConfig.LOCAL_URI
-                ):
+                if QlibConfig.DataPathManager.get_uri_type(_uri) == QlibConfig.LOCAL_URI:
                     provider_uri[freq] = str(Path(_uri).expanduser().resolve())
             return provider_uri
 
         @staticmethod
         def get_uri_type(uri: Union[str, Path]):
             uri = uri if isinstance(uri, str) else str(uri.expanduser().resolve())
-            is_win = (
-                re.match("^[a-zA-Z]:.*", uri) is not None
-            )  # such as 'C:\\data', 'D:'
+            is_win = re.match("^[a-zA-Z]:.*", uri) is not None  # such as 'C:\\data', 'D:'
             # such as 'host:/data/'   (User may define short hostname by themselves or use localhost)
             is_nfs_or_win = re.match("^[^/]+:.+", uri) is not None
 
@@ -402,9 +395,7 @@ class QlibConfig(Config):
         logger.info(f"default_conf: {default_conf}.")
 
         self.set_mode(default_conf)
-        self.set_region(
-            kwargs.get("region", self["region"] if "region" in self else REG_CN)
-        )
+        self.set_region(kwargs.get("region", self["region"] if "region" in self else REG_CN))
 
         for k, v in kwargs.items():
             if k not in self:
@@ -423,11 +414,7 @@ class QlibConfig(Config):
                     self["expression_cache"] = None
                 # check dataset cache
                 if self.is_depend_redis(self["dataset_cache"]):
-                    log_str += (
-                        f" and {self['dataset_cache']}"
-                        if log_str
-                        else self["dataset_cache"]
-                    )
+                    log_str += f" and {self['dataset_cache']}" if log_str else self["dataset_cache"]
                     self["dataset_cache"] = None
                 if log_str:
                     logger.warning(
