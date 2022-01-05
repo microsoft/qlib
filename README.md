@@ -57,7 +57,7 @@ For more details, please refer to our paper ["Qlib: An AI-oriented Quantitative 
 - [**Quant Model (Paper) Zoo**](#quant-model-paper-zoo)
   - [Run a single model](#run-a-single-model)
   - [Run multiple models](#run-multiple-models)
-- [Quant Dataset Zoo](#quant-dataset-zoo)
+- [**Quant Dataset Zoo**](#quant-dataset-zoo)
 - [More About Qlib](#more-about-qlib)
 - [Offline Mode and Online Mode](#offline-mode-and-online-mode)
   - [Performance of Qlib Data Server](#performance-of-qlib-data-server)
