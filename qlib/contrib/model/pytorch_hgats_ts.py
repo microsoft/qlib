@@ -493,7 +493,9 @@ class HGATModel(nn.Module):
         out, _ = self.rnn(x)
         hidden = out[:, -1, :]  # [#stocks, #features]
 
-        hidden_agg = torch.t(GH).mm(hidden)  # [#industries, #features]
+        hidden_agg = torch.t(torch.nan_to_num(GH / GH.sum(dim=0), nan=0, posinf=0, neginf=0)).mm(
+            hidden
+        )  # [#industries, #features]
 
         att_weight = self.cal_attention(hidden, hidden_agg)  # [#stocks, #industries]
 
