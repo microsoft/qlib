@@ -36,6 +36,20 @@ class GetData:
     def merge_remote_url(self, file_name: str, dataset_version: str = None):
         return f"{self.REMOTE_URL}/{self.normalize_dataset_version(dataset_version)}/{file_name}"
 
+    @staticmethod
+    def download_file(target_path: Path, url: str):
+        resp = requests.get(url, stream=True)
+        resp.raise_for_status()
+        if resp.status_code != 200:
+            raise requests.exceptions.HTTPError()
+
+        chunk_size = 1024
+        with tqdm(total=int(resp.headers.get("Content-Length", 0))) as p_bar:
+            with target_path.open("wb") as fp:
+                for chunk in resp.iter_content(chunk_size=chunk_size):
+                    fp.write(chunk)
+                    p_bar.update(chunk_size)
+
     def _download_data(
         self, file_name: str, target_dir: [Path, str], delete_old: bool = True, dataset_version: str = None
     ):
@@ -44,23 +58,12 @@ class GetData:
         # saved file name
         _target_file_name = datetime.datetime.now().strftime("%Y%m%d%H%M%S") + "_" + file_name
         target_path = target_dir.joinpath(_target_file_name)
-
         url = self.merge_remote_url(file_name, dataset_version)
-        resp = requests.get(url, stream=True)
-        resp.raise_for_status()
-        if resp.status_code != 200:
-            raise requests.exceptions.HTTPError()
-
-        chunk_size = 1024
         logger.warning(
             f"The data for the example is collected from Yahoo Finance. Please be aware that the quality of the data might not be perfect. (You can refer to the original data source: https://finance.yahoo.com/lookup.)"
         )
         logger.info(f"{file_name} downloading......")
-        with tqdm(total=int(resp.headers.get("Content-Length", 0))) as p_bar:
-            with target_path.open("wb") as fp:
-                for chunk in resp.iter_content(chunk_size=chunk_size):
-                    fp.write(chunk)
-                    p_bar.update(chunk_size)
+        self.download_file(target_path, url)
 
         self._unzip(target_path, target_dir, delete_old)
         if self.delete_zip_file:

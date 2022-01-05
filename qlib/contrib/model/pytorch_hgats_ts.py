@@ -6,9 +6,12 @@ from __future__ import division
 from __future__ import print_function
 
 import os
+from pathlib import Path
 import numpy as np
 import pandas as pd
 import copy
+
+from qlib.tests.data import GetData
 from ...utils import get_or_create_path
 from ...log import get_module_logger
 import torch
@@ -17,6 +20,7 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 from torch.utils.data import Sampler
 from torch import pinverse as pinv
+import tempfile
 
 from .pytorch_utils import count_parameters
 from ...model.base import Model
@@ -170,7 +174,11 @@ class HGATs(Model):
         self.fitted = False
         self.HGAT_model.to(self.device)
 
-        self.bigG = pd.read_hdf("benchmarks/HGATs/hypergraph/CSI300.h5", "df")
+        with tempfile.TemporaryDirectory() as fp:
+            fp = Path(fp)
+            h5p = fp / "CSI300_graph.h5"
+            GetData.download_file(h5p, "http://fintech.msra.cn/stock_data/downloads/CSI300_graph.h5")
+            self.bigG = pd.read_hdf(h5p, "df")
         self.bigG = self.bigG.swaplevel().sort_index()  # (date, stock, industry)
 
         self.num_ind = 29 + 1  # number of industries plus an 'unknown' one
