@@ -107,7 +107,7 @@ class TimeInspector:
         """
         Get last time mark from stack, calculate time diff with current time, and log time diff and info.
         :param info: str
-            Info that will be log into stdout.
+            Info that will be logged into stdout.
         """
         cost_time = time() - cls.time_marks.pop()
         cls.timer_logger.info("Time cost: {0:.3f}s | {1}".format(cost_time, info))
