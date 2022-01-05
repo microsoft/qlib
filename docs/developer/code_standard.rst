@@ -18,5 +18,5 @@ A common error is the mixed use of space and tab. You can fix the bug by inputin
 
 .. code-block:: python
 
-    pip install black==21.6b0
     pip install --upgrade black
+    python -m black . -l 120
