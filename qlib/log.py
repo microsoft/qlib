@@ -13,12 +13,12 @@ from .config import C
 
 
 class MetaLogger(type):
-    def __new__(mcs, name, bases, dict_):
+    def __new__(mcs, name, bases, attrs):
         wrapper_dict = logging.Logger.__dict__.copy()
         for key in wrapper_dict:
-            if key not in dict_ and key != "__reduce__":
-                dict_[key] = wrapper_dict[key]
-        return type.__new__(mcs, name, bases, dict_)
+            if key not in attrs and key != "__reduce__":
+                attrs[key] = wrapper_dict[key]
+        return type.__new__(mcs, name, bases, attrs)
 
 
 class QlibLogger(metaclass=MetaLogger):
