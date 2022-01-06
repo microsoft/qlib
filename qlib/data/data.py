@@ -7,6 +7,7 @@ from __future__ import print_function
 
 import re
 import abc
+import time
 import copy
 import queue
 import bisect
@@ -516,7 +517,7 @@ class DatasetProvider(abc.ABC):
         workers = max(min(C.kernels, len(instruments_d)), 1)
         if type == "arctic":
             workers = max(min(C.arctic_kernels, workers), 1)
-            
+
         # create iterator
         if isinstance(instruments_d, dict):
             it = instruments_d.items()
@@ -588,12 +589,12 @@ class DatasetProvider(abc.ABC):
                 arctic_obj[series.name] = series
             else:
                 obj[field] = ExpressionD.expression(inst, field, start_time, end_time, freq)
-        
+
         if len(arctic_obj) > 0:
             arctic_data = pd.DataFrame(arctic_obj)
             arctic_data.index.names = ["datetime"]
             return arctic_data
-        else:    
+        else:
             data = pd.DataFrame(obj)
             _calendar = Cal.calendar(freq=freq)
             data.index = _calendar[data.index.values.astype(int)]
@@ -710,26 +711,26 @@ class LocalFeatureProvider(FeatureProvider):
     def _uri_data(self):
         """Static feature file uri."""
         return os.path.join(C.get_data_path(), "features", "{}", "{}.{}.bin")
-    
+
     def tick_feature(self, instrument, field, start_index, end_index, freq, task_index, retry_time=0):
         try:
             arctic = Arctic_Connection_List[0]
         except Exception:
             arctic = Arctic(C.arctic_uri)
-        
+
         try:
             arctic_dataset_name = str.upper(field.split(".")[0])
             field_name = field.split(".")[1]
         except Exception:
             raise ValueError("the format of field:{} is wrong, it should be lib.columns, like Day.close".format(field))
-        
+
         try:
             if arctic_dataset_name not in arctic.list_libraries():
                 raise ValueError("lib {} not in arctic".format(arctic_dataset_name))
 
             if instrument not in arctic[arctic_dataset_name].list_symbols():
                 df = pd.DataFrame()
-            else:    
+            else:
                 df = arctic[arctic_dataset_name].read(instrument, columns=[field_name], chunk_range=pd.DatetimeIndex([start_index,
                                                                           end_index]))
         # resample
@@ -741,7 +742,7 @@ class LocalFeatureProvider(FeatureProvider):
             else:
                 time.sleep(C.arctic_time_interval)
                 return self.tick_feature(instrument, field, start_index, end_index, freq, task_index, retry_time+1)
-        
+
         try:
             series = pd.Series(df[field_name].values, index=df.index)
         except Exception:
@@ -749,7 +750,7 @@ class LocalFeatureProvider(FeatureProvider):
             series = pd.Series(index=df.index, dtype=object)
         #print(series)
         return series
-            
+
     def feature(self, instrument, field, start_index, end_index, freq):
         # validate
         field = str(field)[1:]
@@ -782,7 +783,7 @@ class LocalExpressionProvider(ExpressionProvider):
                 f"error info: {str(e)}"
                 )
                 raise
-            
+
         # Ensure that each column type is consistent
         # FIXME:
         # 1) The stock data is currently float. If there is other types of data, this part needs to be re-implemented.
@@ -806,15 +807,15 @@ class LocalDatasetProvider(DatasetProvider):
 
     def __init__(self):
         pass
-        
+
     def dataset(self, instruments, fields, start_time=None, end_time=None, freq="day", inst_processors=[]):
-        
+
         instruments_d = self.get_instruments_d(instruments, freq)
         column_names = self.get_column_names(fields)
-        
+
         arctic_column_names = [column for column in column_names if "@" in column]
         normal_column_names = [column for column in column_names if not "@" in column]
-        
+
         if len(normal_column_names) > 0:
             cal = Cal.calendar(start_time, end_time, freq)
             if len(cal) == 0:
@@ -826,12 +827,12 @@ class LocalDatasetProvider(DatasetProvider):
             normal_data = self.dataset_processor(
             instruments_d, column_names, start_time, end_time, freq, inst_processors=inst_processors
             )
-            return normal_data    
-        
+            return normal_data
+
         if len(arctic_column_names) > 0:
-            arctic_data = self.dataset_processor(instruments_d, arctic_column_names, start_time, end_time, freq, "arctic", inst_processors=inst_processors)    
+            arctic_data = self.dataset_processor(instruments_d, arctic_column_names, start_time, end_time, freq, "arctic", inst_processors=inst_processors)
             return arctic_data
-        
+
     @staticmethod
     def multi_cache_walker(instruments, fields, start_time=None, end_time=None, freq="day"):
         """
@@ -1084,14 +1085,14 @@ class BaseProvider:
         and will use provider method if a type error is raised because the DatasetD instance
         is a provider class.
         """
-        
+
         # todo: divide the data into two part according to the source
         # do NOT merge them, return a list (if have two)
         disk_cache = C.default_disk_cache if disk_cache is None else disk_cache
         fields = list(fields)  # In case of tuple.
         arctic_fields = [field for field in fields if "@" in field]
         normal_fields = [field for field in fields if "@" not in field]
-        
+
         ## do not have data from arctic, could use the old version
         data = {}
         if len(normal_fields) > 0:
@@ -1099,15 +1100,15 @@ class BaseProvider:
                 data['normal'] = DatasetD.dataset(instruments, normal_fields, start_time, end_time, freq, disk_cache, inst_processors=inst_processors)
             except TypeError:
                 data['normal'] = DatasetD.dataset(instruments, normal_fields, start_time, end_time, freq, inst_processors=inst_processors)
-        
+
         if len(arctic_fields) > 0:
                 data['arctic'] = LocalDatasetProvider().dataset(instruments, arctic_fields, start_time, end_time, freq, inst_processors=inst_processors)
-        
+
         if len(data) == 1:
             return list(data.values())[0]
         else:
             return data
-        
+
 
 class LocalProvider(BaseProvider):
     def _uri(self, type, **kwargs):
