@@ -81,7 +81,14 @@ class QlibRecorder:
         self.end_exp(Recorder.STATUS_FI)
 
     def start_exp(
-        self, *, experiment_id=None, experiment_name=None, recorder_id=None, recorder_name=None, uri=None, resume=False
+        self,
+        *,
+        experiment_id=None,
+        experiment_name=None,
+        recorder_id=None,
+        recorder_name=None,
+        uri=None,
+        resume=False,
     ):
         """
         Lower level method for starting an experiment. When use this method, one should end the experiment manually
@@ -289,7 +296,10 @@ class QlibRecorder:
         An experiment instance with given id or name.
         """
         return self.exp_manager.get_exp(
-            experiment_id=experiment_id, experiment_name=experiment_name, create=create, start=False
+            experiment_id=experiment_id,
+            experiment_name=experiment_name,
+            create=create,
+            start=False,
         )
 
     def delete_exp(self, experiment_id=None, experiment_name=None):
@@ -355,7 +365,12 @@ class QlibRecorder:
             self.exp_manager.set_uri(prev_uri)
 
     def get_recorder(
-        self, *, recorder_id=None, recorder_name=None, experiment_id=None, experiment_name=None
+        self,
+        *,
+        recorder_id=None,
+        recorder_name=None,
+        experiment_id=None,
+        experiment_name=None,
     ) -> Recorder:
         """
         Method for retrieving a recorder.
