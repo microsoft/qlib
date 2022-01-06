@@ -32,7 +32,7 @@ import abc
 import enum
 
 
-# Type defintions
+# Type definitions
 class DataTypes(enum.IntEnum):
     """Defines numerical types of each column."""
 

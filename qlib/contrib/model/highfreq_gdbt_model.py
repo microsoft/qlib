@@ -56,7 +56,7 @@ class HFLGBModel(ModelFT, LightGBMFInt):
 
     def hf_signal_test(self, dataset: DatasetH, threhold=0.2):
         """
-        Test the sigal in high frequency test set
+        Test the signal in high frequency test set
         """
         if self.model == None:
             raise ValueError("Model hasn't been trained yet")

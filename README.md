@@ -11,6 +11,7 @@
 Recent released features
 | Feature | Status |
 | --                      | ------    |
+| Planning-based portfolio optimization | [Released](https://github.com/microsoft/qlib/pull/754) on Dec 28, 2021 | 
 | Release Qlib v0.8.0 | [Released](https://github.com/microsoft/qlib/releases/tag/v0.8.0) on Dec 8, 2021 |
 | ADD model | [Released](https://github.com/microsoft/qlib/pull/704) on Nov 22, 2021 |
 | ADARNN  model | [Released](https://github.com/microsoft/qlib/pull/689) on Nov 14, 2021 |
@@ -66,10 +67,9 @@ New features under development(order by estimated release time).
 Your feedbacks about the features are very important.
 | Feature                        | Status      |
 | --                      | ------    |
-| Planning-based portfolio optimization | Under review:  https://github.com/microsoft/qlib/pull/280 | 
-| Fund data supporting and analysis  |  Under review: https://github.com/microsoft/qlib/pull/292 |
 | Point-in-Time database | Under review: https://github.com/microsoft/qlib/pull/343 |
-| Meta-Learning-based data selection | Initial opensource version under development |
+| Orderbook database | Under review: https://github.com/microsoft/qlib/pull/744 |
+| Meta-Learning-based data selection | Under review: https://github.com/microsoft/qlib/pull/743 |
 
 # Framework of Qlib
 
@@ -400,17 +400,34 @@ Join IM discussion groups:
 |![image](http://fintech.msra.cn/images_v070/qrcode/gitter_qr.png)|
 
 # Contributing
+We appreciate all contributions and thank all the contributors!
+<a href="https://github.com/microsoft/qlib/graphs/contributors"><img src="https://contrib.rocks/image?repo=microsoft/qlib" /></a>
+
+Before we released Qlib as an open-source project on Github in Sep 2020, Qlib is an internal project in our group. Unfortunately, the internal commit history is not kept. A lot of members in our group have also contributed a lot to Qlib, which includes Ruihua Wang, Yinda Zhang, Haisu Yu, Shuyu Wang, Bochen Pang, and [Dong Zhou](https://github.com/evanzd/evanzd). Especially thanks to [Dong Zhou](https://github.com/evanzd/evanzd) due to his initial version of Qlib.
+
+## Guidance
 
 This project welcomes contributions and suggestions.  
 **Here are some 
-[code standards](docs/developer/code_standard.rst) when you submit a pull request.**
+[code standards](docs/developer/code_standard.rst) for submiting a pull request.**
 
-If you want to contribute to Qlib's document, you can follow the steps in the figure below.
+Making contributions is not a hard thing. Solving an issue(maybe just answering a question raised in [issues list](https://github.com/microsoft/qlib/issues) or [gitter](https://gitter.im/Microsoft/qlib)), fixing/issuing a bug, improving the documents and even fixing a typo are important contributions to Qlib.
+
+For example, if you want to contribute to Qlib's document/code, you can follow the steps in the figure below.
 <p align="center">
   <img src="https://github.com/demon143/qlib/blob/main/docs/_static/img/change%20doc.gif" />
 </p>
 
+If you don't know how to start to contribute, you can refer to the following examples.
+| Type | Examples |
+| -- | -- |
+| Solving issues | [Answer a question](https://github.com/microsoft/qlib/issues/749);  [issuing](https://github.com/microsoft/qlib/issues/765) or [fixing](https://github.com/microsoft/qlib/pull/792) a bug |
+| Docs | [Improve docs quality](https://github.com/microsoft/qlib/pull/797/files) ;  [Fix a typo](https://github.com/microsoft/qlib/pull/774) | 
+| Feature |  Implement a [requested feature](https://github.com/microsoft/qlib/projects) like [this](https://github.com/microsoft/qlib/pull/754); [Refactor interfaces](https://github.com/microsoft/qlib/pull/539/files) |
+| Dataset | [Add a dataset](https://github.com/microsoft/qlib/pull/733) | 
+| Models |  [Implement a new model](https://github.com/microsoft/qlib/pull/689) | 
 
+## Licence
 Most contributions require you to agree to a
 Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us
 the right to use your contribution. For details, visit https://cla.opensource.microsoft.com.

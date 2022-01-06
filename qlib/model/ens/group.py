@@ -3,9 +3,9 @@
 
 """
 Group can group a set of objects based on `group_func` and change them to a dict.
-After group, we provide a method to reduce them. 
+After group, we provide a method to reduce them.
 
-For example: 
+For example:
 
 group: {(A,B,C1): object, (A,B,C2): object} -> {(A,B): {C1: object, C2: object}}
 reduce: {(A,B): {C1: object, C2: object}} -> {(A,B): object}
@@ -109,5 +109,5 @@ class RollingGroup(Group):
                 grouped_dict.setdefault(key[:-1], {})[key[-1]] = values
         return grouped_dict
 
-    def __init__(self):
-        super().__init__(ens=RollingEnsemble())
+    def __init__(self, ens=RollingEnsemble()):
+        super().__init__(ens=ens)

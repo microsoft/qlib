@@ -8,7 +8,7 @@ Portfolio Strategy: Portfolio Management
 Introduction
 ===================
 
-``Portfolio Strategy`` is designed to adopt different portfolio strategies, which means that users can adopt different algorithms to generate investment portfolios based on the prediction scores of the ``Forecast Model``. Users can use the ``Portfolio Strategy`` in an automatic workflow by ``Workflow`` module, please refer to `Workflow: Workflow Management <workflow.html>`_.  
+``Portfolio Strategy`` is designed to adopt different portfolio strategies, which means that users can adopt different algorithms to generate investment portfolios based on the prediction scores of the ``Forecast Model``. Users can use the ``Portfolio Strategy`` in an automatic workflow by ``Workflow`` module, please refer to `Workflow: Workflow Management <workflow.html>`_.
 
 Because the components in ``Qlib`` are designed in a loosely-coupled way, ``Portfolio Strategy`` can be used as an independent module also.
 
@@ -22,20 +22,20 @@ Base Class & Interface
 BaseStrategy
 ------------------
 
-Qlib provides a base class ``qlib.contrib.strategy.BaseStrategy``. All strategy classes need to inherit the base class and implement its interface.
+Qlib provides a base class ``qlib.strategy.base.BaseStrategy``. All strategy classes need to inherit the base class and implement its interface.
 
 - `get_risk_degree`
     Return the proportion of your total value you will use in investment. Dynamically risk_degree will result in Market timing.
 
 - `generate_order_list`
-    Return the order list. 
+    Return the order list.
 
 Users can inherit `BaseStrategy` to customize their strategy class.
 
 WeightStrategyBase
 --------------------
 
-Qlib also provides a class ``qlib.contrib.strategy.WeightStrategyBase`` that is a subclass of `BaseStrategy`. 
+Qlib also provides a class ``qlib.contrib.strategy.WeightStrategyBase`` that is a subclass of `BaseStrategy`.
 
 `WeightStrategyBase` only focuses on the target positions, and automatically generates an order list based on positions. It provides the `generate_target_weight_position` interface.
 
@@ -71,16 +71,26 @@ TopkDropoutStrategy
 
         - `Topk`: The number of stocks held
         - `Drop`: The number of stocks sold on each trading day
-        
+
         Currently, the number of held stocks is `Topk`.
         On each trading day, the `Drop` number of held stocks with the worst `prediction score` will be sold, and the same number of unheld stocks with the best `prediction score` will be bought.
-        
+
         .. image:: ../_static/img/topk_drop.png
             :alt: Topk-Drop
 
         ``TopkDrop`` algorithm sells `Drop` stocks every trading day, which guarantees a fixed turnover rate.
-        
+
 - Generate the order list from the target amount
+
+EnhancedIndexingStrategy
+------------------------
+`EnhancedIndexingStrategy` Enhanced indexing combines the arts of active management and passive management,
+with the aim of outperforming a benchmark index (e.g., S&P 500) in terms of portfolio return while controlling
+the risk exposure (a.k.a. tracking error).
+
+For more information, please refer to `qlib.contrib.strategy.signal_strategy.EnhancedIndexingStrategy`
+and `qlib.contrib.strategy.optimizer.enhanced_indexing.EnhancedIndexingOptimizer`.
+
 
 Usage & Example
 ====================
@@ -112,6 +122,9 @@ A prediction sample is shown as follows.
 
 ``Forecast Model`` module can make predictions, please refer to `Forecast Model: Model Training & Prediction <model.html>`_.
 
+Normally, the prediction score is the output of the models. But some models are learned from a label with a different scale. So the scale of the prediction score may be different from your expectation(e.g. the return of instruments).
+
+Qlib didn't add a step to scale the prediction score to a unified scale. Because not every trading strategy cares about the scale(e.g. TopkDropoutStrategy only cares about the order).  So the strategy is responsible for rescaling the prediction score(e.g. some portfolio-optimization-based strategies may require a meaningful scale).
 
 Running backtest
 -----------------

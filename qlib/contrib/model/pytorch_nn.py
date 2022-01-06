@@ -256,7 +256,7 @@ class DNNModelPytorch(Model):
                 self.scheduler.step(cur_loss_val)
 
         # restore the optimal parameters after training
-        self.dnn_model.load_state_dict(torch.load(save_path))
+        self.dnn_model.load_state_dict(torch.load(save_path, map_location=self.device))
         if self.use_gpu:
             torch.cuda.empty_cache()
 
@@ -266,7 +266,7 @@ class DNNModelPytorch(Model):
             loss = torch.mul(sqr_loss, w).mean()
             return loss
         elif loss_type == "binary":
-            loss = nn.BCELoss(weight=w)
+            loss = nn.BCEWithLogitsLoss(weight=w)
             return loss(pred, target)
         else:
             raise NotImplementedError("loss {} is not supported!".format(loss_type))
@@ -295,7 +295,7 @@ class DNNModelPytorch(Model):
             ]
             _model_path = os.path.join(model_dir, _model_name)
             # Load model
-            self.dnn_model.load_state_dict(torch.load(_model_path))
+            self.dnn_model.load_state_dict(torch.load(_model_path, map_location=self.device))
         self.fitted = True
 
 
@@ -333,16 +333,8 @@ class Net(nn.Module):
             dnn_layers.append(seq)
         drop_input = nn.Dropout(0.05)
         dnn_layers.append(drop_input)
-        if loss == "mse":
-            fc = nn.Linear(hidden_units, output_dim)
-            dnn_layers.append(fc)
-
-        elif loss == "binary":
-            fc = nn.Linear(hidden_units, output_dim)
-            sigmoid = nn.Sigmoid()
-            dnn_layers.append(nn.Sequential(fc, sigmoid))
-        else:
-            raise NotImplementedError("loss {} is not supported!".format(loss))
+        fc = nn.Linear(hidden_units, output_dim)
+        dnn_layers.append(fc)
         # optimizer
         self.dnn_layers = nn.ModuleList(dnn_layers)
         self._weight_init()

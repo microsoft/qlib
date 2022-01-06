@@ -1,70 +1,49 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
+import os
 import copy
-from qlib.backtest.signal import Signal, create_signal_from
-from typing import Dict, List, Text, Tuple, Union
-from qlib.data.dataset import Dataset
-from qlib.model.base import BaseModel
-from qlib.backtest.position import Position
 import warnings
+import cvxpy as cp
 import numpy as np
 import pandas as pd
 
-from ...utils.resam import resam_ts_data
-from ...strategy.base import BaseStrategy
-from ...backtest.decision import Order, BaseTradeDecision, OrderDir, TradeDecisionWO
+from typing import Dict, List, Text, Tuple, Union
 
-from .order_generator import OrderGenWInteract
+from qlib.data import D
+from qlib.data.dataset import Dataset
+from qlib.model.base import BaseModel
+from qlib.strategy.base import BaseStrategy
+from qlib.backtest.position import Position
+from qlib.backtest.signal import Signal, create_signal_from
+from qlib.backtest.decision import Order, BaseTradeDecision, OrderDir, TradeDecisionWO
+from qlib.log import get_module_logger
+from qlib.utils import get_pre_trading_date, load_dataset
+from qlib.utils.resam import resam_ts_data
+from qlib.contrib.strategy.order_generator import OrderGenWInteract, OrderGenWOInteract
+from qlib.contrib.strategy.optimizer import EnhancedIndexingOptimizer
 
 
-class TopkDropoutStrategy(BaseStrategy):
-    # TODO:
-    # 1. Supporting leverage the get_range_limit result from the decision
-    # 2. Supporting alter_outer_trade_decision
-    # 3. Supporting checking the availability of trade decision
+class BaseSignalStrategy(BaseStrategy):
     def __init__(
         self,
         *,
-        topk,
-        n_drop,
         signal: Union[Signal, Tuple[BaseModel, Dataset], List, Dict, Text, pd.Series, pd.DataFrame] = None,
-        method_sell="bottom",
-        method_buy="top",
-        risk_degree=0.95,
-        hold_thresh=1,
-        only_tradable=False,
+        model=None,
+        dataset=None,
+        risk_degree: float = 0.95,
         trade_exchange=None,
         level_infra=None,
         common_infra=None,
-        model=None,
-        dataset=None,
         **kwargs,
     ):
         """
         Parameters
         -----------
-        topk : int
-            the number of stocks in the portfolio.
-        n_drop : int
-            number of stocks to be replaced in each trading date.
         signal :
             the information to describe a signal. Please refer to the docs of `qlib.backtest.signal.create_signal_from`
             the decision of the strategy will base on the given signal
-        method_sell : str
-            dropout method_sell, random/bottom.
-        method_buy : str
-            dropout method_buy, random/top.
         risk_degree : float
             position percentage of total value.
-        hold_thresh : int
-            minimum holding days
-            before sell stock , will check current.get_stock_count(order.stock_id) >= self.hold_thresh.
-        only_tradable : bool
-            will the strategy only consider the tradable stock when buying and selling.
-            if only_tradable:
-                strategy will make buy sell decision without checking the tradable state of the stock.
-            else:
-                strategy will make decision with the tradable state of the stock info and avoid buy and sell them.
         trade_exchange : Exchange
             exchange that provides market info, used to deal order and generate report
             - If `trade_exchange` is None, self.trade_exchange will be set with common_infra
@@ -74,16 +53,9 @@ class TopkDropoutStrategy(BaseStrategy):
                 - In minutely execution, the daily exchange is not usable, only the minutely exchange is recommended.
 
         """
-        super(TopkDropoutStrategy, self).__init__(
-            level_infra=level_infra, common_infra=common_infra, trade_exchange=trade_exchange, **kwargs
-        )
-        self.topk = topk
-        self.n_drop = n_drop
-        self.method_sell = method_sell
-        self.method_buy = method_buy
+        super().__init__(level_infra=level_infra, common_infra=common_infra, trade_exchange=trade_exchange, **kwargs)
+
         self.risk_degree = risk_degree
-        self.hold_thresh = hold_thresh
-        self.only_tradable = only_tradable
 
         # This is trying to be compatible with previous version of qlib task config
         if model is not None and dataset is not None:
@@ -97,8 +69,54 @@ class TopkDropoutStrategy(BaseStrategy):
         Return the proportion of your total value you will used in investment.
         Dynamically risk_degree will result in Market timing.
         """
-        # It will use 95% amoutn of your total value by default
+        # It will use 95% amount of your total value by default
         return self.risk_degree
+
+
+class TopkDropoutStrategy(BaseSignalStrategy):
+    # TODO:
+    # 1. Supporting leverage the get_range_limit result from the decision
+    # 2. Supporting alter_outer_trade_decision
+    # 3. Supporting checking the availability of trade decision
+    def __init__(
+        self,
+        *,
+        topk,
+        n_drop,
+        method_sell="bottom",
+        method_buy="top",
+        hold_thresh=1,
+        only_tradable=False,
+        **kwargs,
+    ):
+        """
+        Parameters
+        -----------
+        topk : int
+            the number of stocks in the portfolio.
+        n_drop : int
+            number of stocks to be replaced in each trading date.
+        method_sell : str
+            dropout method_sell, random/bottom.
+        method_buy : str
+            dropout method_buy, random/top.
+        hold_thresh : int
+            minimum holding days
+            before sell stock , will check current.get_stock_count(order.stock_id) >= self.hold_thresh.
+        only_tradable : bool
+            will the strategy only consider the tradable stock when buying and selling.
+            if only_tradable:
+                strategy will make buy sell decision without checking the tradable state of the stock.
+            else:
+                strategy will make decision with the tradable state of the stock info and avoid buy and sell them.
+        """
+        super().__init__(**kwargs)
+        self.topk = topk
+        self.n_drop = n_drop
+        self.method_sell = method_sell
+        self.method_buy = method_buy
+        self.hold_thresh = hold_thresh
+        self.only_tradable = only_tradable
 
     def generate_trade_decision(self, execute_result=None):
         # get the number of trading step finished, trade_step can be [0, 1, 2, ..., trade_len - 1]
@@ -253,7 +271,7 @@ class TopkDropoutStrategy(BaseStrategy):
         return TradeDecisionWO(sell_order_list + buy_order_list, self)
 
 
-class WeightStrategyBase(BaseStrategy):
+class WeightStrategyBase(BaseSignalStrategy):
     # TODO:
     # 1. Supporting leverage the get_range_limit result from the decision
     # 2. Supporting alter_outer_trade_decision
@@ -261,11 +279,7 @@ class WeightStrategyBase(BaseStrategy):
     def __init__(
         self,
         *,
-        signal: Union[Signal, Tuple[BaseModel, Dataset], List, Dict, Text, pd.Series, pd.DataFrame],
-        order_generator_cls_or_obj=OrderGenWInteract,
-        trade_exchange=None,
-        level_infra=None,
-        common_infra=None,
+        order_generator_cls_or_obj=OrderGenWOInteract,
         **kwargs,
     ):
         """
@@ -280,23 +294,12 @@ class WeightStrategyBase(BaseStrategy):
                 - In daily execution, both daily exchange and minutely are usable, but the daily exchange is recommended because it run faster.
                 - In minutely execution, the daily exchange is not usable, only the minutely exchange is recommended.
         """
-        super(WeightStrategyBase, self).__init__(
-            level_infra=level_infra, common_infra=common_infra, trade_exchange=trade_exchange, **kwargs
-        )
+        super().__init__(**kwargs)
+
         if isinstance(order_generator_cls_or_obj, type):
             self.order_generator = order_generator_cls_or_obj()
         else:
             self.order_generator = order_generator_cls_or_obj
-
-        self.signal: Signal = create_signal_from(signal)
-
-    def get_risk_degree(self, trade_step=None):
-        """get_risk_degree
-        Return the proportion of your total value you will used in investment.
-        Dynamically risk_degree will result in Market timing.
-        """
-        # It will use 95% amoutn of your total value by default
-        return 0.95
 
     def generate_target_weight_position(self, score, current, trade_start_time, trade_end_time):
         """
@@ -341,3 +344,154 @@ class WeightStrategyBase(BaseStrategy):
             trade_end_time=trade_end_time,
         )
         return TradeDecisionWO(order_list, self)
+
+
+class EnhancedIndexingStrategy(WeightStrategyBase):
+
+    """Enhanced Indexing Strategy
+
+    Enhanced indexing combines the arts of active management and passive management,
+    with the aim of outperforming a benchmark index (e.g., S&P 500) in terms of
+    portfolio return while controlling the risk exposure (a.k.a. tracking error).
+
+    Users need to prepare their risk model data like below:
+
+    ├── /path/to/riskmodel
+    ├──── 20210101
+    ├────── factor_exp.{csv|pkl|h5}
+    ├────── factor_cov.{csv|pkl|h5}
+    ├────── specific_risk.{csv|pkl|h5}
+    ├────── blacklist.{csv|pkl|h5}  # optional
+
+    The risk model data can be obtained from risk data provider. You can also use
+    `qlib.model.riskmodel.structured.StructuredCovEstimator` to prepare these data.
+
+    Args:
+        riskmodel_path (str): risk model path
+        name_mapping (dict): alternative file names
+    """
+
+    FACTOR_EXP_NAME = "factor_exp.pkl"
+    FACTOR_COV_NAME = "factor_cov.pkl"
+    SPECIFIC_RISK_NAME = "specific_risk.pkl"
+    BLACKLIST_NAME = "blacklist.pkl"
+
+    def __init__(
+        self,
+        *,
+        riskmodel_root,
+        market="csi500",
+        turn_limit=None,
+        name_mapping={},
+        optimizer_kwargs={},
+        verbose=False,
+        **kwargs,
+    ):
+        super().__init__(**kwargs)
+
+        self.logger = get_module_logger("EnhancedIndexingStrategy")
+
+        self.riskmodel_root = riskmodel_root
+        self.market = market
+        self.turn_limit = turn_limit
+
+        self.factor_exp_path = name_mapping.get("factor_exp", self.FACTOR_EXP_NAME)
+        self.factor_cov_path = name_mapping.get("factor_cov", self.FACTOR_COV_NAME)
+        self.specific_risk_path = name_mapping.get("specific_risk", self.SPECIFIC_RISK_NAME)
+        self.blacklist_path = name_mapping.get("blacklist", self.BLACKLIST_NAME)
+
+        self.optimizer = EnhancedIndexingOptimizer(**optimizer_kwargs)
+
+        self.verbose = verbose
+
+        self._riskdata_cache = {}
+
+    def get_risk_data(self, date):
+
+        if date in self._riskdata_cache:
+            return self._riskdata_cache[date]
+
+        root = self.riskmodel_root + "/" + date.strftime("%Y%m%d")
+        if not os.path.exists(root):
+            return None
+
+        factor_exp = load_dataset(root + "/" + self.factor_exp_path, index_col=[0])
+        factor_cov = load_dataset(root + "/" + self.factor_cov_path, index_col=[0])
+        specific_risk = load_dataset(root + "/" + self.specific_risk_path, index_col=[0])
+
+        if not factor_exp.index.equals(specific_risk.index):
+            # NOTE: for stocks missing specific_risk, we always assume it have the highest volatility
+            specific_risk = specific_risk.reindex(factor_exp.index, fill_value=specific_risk.max())
+
+        universe = factor_exp.index.tolist()
+
+        blacklist = []
+        if os.path.exists(root + "/" + self.blacklist_path):
+            blacklist = load_dataset(root + "/" + self.blacklist_path).index.tolist()
+
+        self._riskdata_cache[date] = factor_exp.values, factor_cov.values, specific_risk.values, universe, blacklist
+
+        return self._riskdata_cache[date]
+
+    def generate_target_weight_position(self, score, current, trade_start_time, trade_end_time):
+
+        trade_date = trade_start_time
+        pre_date = get_pre_trading_date(trade_date, future=True)  # previous trade date
+
+        # load risk data
+        outs = self.get_risk_data(pre_date)
+        if outs is None:
+            self.logger.warning(f"no risk data for {pre_date:%Y-%m-%d}, skip optimization")
+            return None
+        factor_exp, factor_cov, specific_risk, universe, blacklist = outs
+
+        # transform score
+        # NOTE: for stocks missing score, we always assume they have the lowest score
+        score = score.reindex(universe).fillna(score.min()).values
+
+        # get current weight
+        # NOTE: if a stock is not in universe, its current weight will be zero
+        cur_weight = current.get_stock_weight_dict(only_stock=False)
+        cur_weight = np.array([cur_weight.get(stock, 0) for stock in universe])
+        assert all(cur_weight >= 0), "current weight has negative values"
+        cur_weight = cur_weight / self.get_risk_degree(trade_date)  # sum of weight should be risk_degree
+        if cur_weight.sum() > 1 and self.verbose:
+            self.logger.warning(f"previous total holdings excess risk degree (current: {cur_weight.sum()})")
+
+        # load bench weight
+        bench_weight = D.features(
+            D.instruments("all"), [f"${self.market}_weight"], start_time=pre_date, end_time=pre_date
+        ).squeeze()
+        bench_weight.index = bench_weight.index.droplevel(level="datetime")
+        bench_weight = bench_weight.reindex(universe).fillna(0).values
+
+        # whether stock tradable
+        # NOTE: currently we use last day volume to check whether tradable
+        tradable = D.features(D.instruments("all"), ["$volume"], start_time=pre_date, end_time=pre_date).squeeze()
+        tradable.index = tradable.index.droplevel(level="datetime")
+        tradable = tradable.reindex(universe).gt(0).values
+        mask_force_hold = ~tradable
+
+        # mask force sell
+        mask_force_sell = np.array([stock in blacklist for stock in universe], dtype=bool)
+
+        # optimize
+        weight = self.optimizer(
+            r=score,
+            F=factor_exp,
+            cov_b=factor_cov,
+            var_u=specific_risk ** 2,
+            w0=cur_weight,
+            wb=bench_weight,
+            mfh=mask_force_hold,
+            mfs=mask_force_sell,
+        )
+
+        target_weight_position = {stock: weight for stock, weight in zip(universe, weight) if weight > 0}
+
+        if self.verbose:
+            self.logger.info("trade date: {:%Y-%m-%d}".format(trade_date))
+            self.logger.info("number of holding stocks: {}".format(len(target_weight_position)))
+            self.logger.info("total holding weight: {:.6f}".format(weight.sum()))
+
+        return target_weight_position

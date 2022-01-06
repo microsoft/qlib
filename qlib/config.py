@@ -4,12 +4,13 @@
 About the configs
 =================
 
-The config will based on _default_config.
+The config will be based on _default_config.
 Two modes are supported
 - client
 - server
 
 """
+from __future__ import annotations
 
 import os
 import re
@@ -18,12 +19,16 @@ import logging
 import platform
 import multiprocessing
 from pathlib import Path
-from typing import Union
+from typing import Optional, Union
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from qlib.utils.time import Freq
 
 
 class Config:
     def __init__(self, default_conf):
-        self.__dict__["_default_config"] = copy.deepcopy(default_conf)  # avoiding conflictions with __getattr__
+        self.__dict__["_default_config"] = copy.deepcopy(default_conf)  # avoiding conflicts with __getattr__
         self.reset()
 
     def __getitem__(self, key):
@@ -269,7 +274,7 @@ MODE_CONF = {
 }
 
 HIGH_FREQ_CONFIG = {
-    "provider_uri": "~/.qlib/qlib_data/yahoo_cn_1min",
+    "provider_uri": "~/.qlib/qlib_data/cn_data_1min",
     "dataset_cache": None,
     "expression_cache": "DiskExpressionCache",
     "region": REG_CN,
@@ -300,7 +305,11 @@ class QlibConfig(Config):
         self._registered = False
 
     class DataPathManager:
-        def __init__(self, provider_uri: Union[str, Path, dict], mount_path: Union[str, Path, dict]):
+        def __init__(
+            self,
+            provider_uri: Union[str, Path, dict],
+            mount_path: Union[str, Path, dict],
+        ):
             self.provider_uri = provider_uri
             self.mount_path = mount_path
 
@@ -330,7 +339,9 @@ class QlibConfig(Config):
             else:
                 return QlibConfig.LOCAL_URI
 
-        def get_data_uri(self, freq: str = None) -> Path:
+        def get_data_uri(self, freq: Optional[Union[str, Freq]] = None) -> Path:
+            if freq is not None:
+                freq = str(freq)  # converting Freq to string
             if freq is None or freq not in self.provider_uri:
                 freq = QlibConfig.DEFAULT_FREQ
             _provider_uri = self.provider_uri[freq]
@@ -387,10 +398,10 @@ class QlibConfig(Config):
         """
         configure qlib based on the input parameters
 
-        The configure will act like a dictionary.
+        The configuration will act like a dictionary.
 
-        Normally, it literally replace the value according to the keys.
-        However, sometimes it is hard for users to set the config when the configure is nested and complicated
+        Normally, it literally is replaced the value according to the keys.
+        However, sometimes it is hard for users to set the config when the configuration is nested and complicated
 
         So this API provides some special parameters for users to set the keys in a more convenient way.
         - region:  REG_CN, REG_US

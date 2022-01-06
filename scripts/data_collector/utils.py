@@ -19,6 +19,7 @@ from yahooquery import Ticker
 from tqdm import tqdm
 from functools import partial
 from concurrent.futures import ProcessPoolExecutor
+from pycoingecko import CoinGeckoAPI
 
 HS_SYMBOLS_URL = "http://app.finance.ifeng.com/hq/list.php?type=stock_a&class={s_type}"
 
@@ -42,6 +43,7 @@ _HS_SYMBOLS = None
 _US_SYMBOLS = None
 _IN_SYMBOLS = None
 _EN_FUND_SYMBOLS = None
+_CG_CRYPTO_SYMBOLS = None
 _CALENDAR_MAP = {}
 
 # NOTE: Until 2020-10-20 20:00:00
@@ -360,7 +362,7 @@ def get_en_fund_symbols(qlib_data_path: [str, Path] = None) -> list:
             _symbols = []
             for sub_data in re.findall(r"[\[](.*?)[\]]", resp.content.decode().split("= [")[-1].replace("];", "")):
                 data = sub_data.replace('"', "").replace("'", "")
-                # TODO: do we need other informations, like fund_name from ['000001', 'HXCZHH', '华夏成长混合', '混合型', 'HUAXIACHENGZHANGHUNHE']
+                # TODO: do we need other information, like fund_name from ['000001', 'HXCZHH', '华夏成长混合', '混合型', 'HUAXIACHENGZHANGHUNHE']
                 _symbols.append(data.split(",")[0])
         except Exception as e:
             logger.warning(f"request error: {e}")
@@ -375,6 +377,37 @@ def get_en_fund_symbols(qlib_data_path: [str, Path] = None) -> list:
         _EN_FUND_SYMBOLS = sorted(set(_all_symbols))
 
     return _EN_FUND_SYMBOLS
+
+
+def get_cg_crypto_symbols(qlib_data_path: [str, Path] = None) -> list:
+    """get crypto symbols in coingecko
+
+    Returns
+    -------
+        crypto symbols in given exchanges list of coingecko
+    """
+    global _CG_CRYPTO_SYMBOLS
+
+    @deco_retry
+    def _get_coingecko():
+        try:
+            cg = CoinGeckoAPI()
+            resp = pd.DataFrame(cg.get_coins_markets(vs_currency="usd"))
+        except:
+            raise ValueError("request error")
+        try:
+            _symbols = resp["id"].to_list()
+        except Exception as e:
+            logger.warning(f"request error: {e}")
+            raise
+        return _symbols
+
+    if _CG_CRYPTO_SYMBOLS is None:
+        _all_symbols = _get_coingecko()
+
+        _CG_CRYPTO_SYMBOLS = sorted(set(_all_symbols))
+
+    return _CG_CRYPTO_SYMBOLS
 
 
 def symbol_suffix_to_prefix(symbol: str, capital: bool = True) -> str:

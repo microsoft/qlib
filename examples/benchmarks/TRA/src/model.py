@@ -124,7 +124,7 @@ class TRAModel(Model):
             loss = (pred - label).pow(2).mean()
 
             L = (all_preds.detach() - label[:, None]).pow(2)
-            L -= L.min(dim=-1, keepdim=True).values  # normalize & ensure postive input
+            L -= L.min(dim=-1, keepdim=True).values  # normalize & ensure positive input
 
             data_set.assign_data(index, L)  # save loss to memory
 
@@ -165,7 +165,7 @@ class TRAModel(Model):
 
             L = (all_preds - label[:, None]).pow(2)
 
-            L -= L.min(dim=-1, keepdim=True).values  # normalize & ensure postive input
+            L -= L.min(dim=-1, keepdim=True).values  # normalize & ensure positive input
 
             data_set.assign_data(index, L)  # save loss to memory
 
@@ -484,7 +484,7 @@ class TRA(nn.Module):
 
     """Temporal Routing Adaptor (TRA)
 
-    TRA takes historical prediction erros & latent representation as inputs,
+    TRA takes historical prediction errors & latent representation as inputs,
     then routes the input sample to a specific predictor for training & inference.
 
     Args:

@@ -13,19 +13,30 @@ class StructuredCovEstimator(RiskModel):
     """Structured Covariance Estimator
 
     This estimator assumes observations can be predicted by multiple factors
-        X = FB + U
-    where `F` can be specified by explicit risk factors or latent factors.
+        X = B @ F.T + U
+    where `X` contains observations (row) of multiple variables (column),
+    `F` contains factor exposures (column) for all variables (row),
+    `B` is the regression coefficients matrix for all observations (row) on
+    all factors (columns), and `U` is the residual matrix with shape like `X`.
 
     Therefore the structured covariance can be estimated by
-        cov(X) = F cov(B) F.T + cov(U)
+        cov(X.T) = F @ cov(B.T) @ F.T + diag(var(U))
 
-    We use latent factor models to estimate the structured covariance.
-    Specifically, the following latent factor models are supported:
+    In finance domain, there are mainly three methods to design `F` [1][2]:
+        - Statistical Risk Model (SRM): latent factor models major components
+        - Fundamental Risk Model (FRM): human designed factors
+        - Deep Risk Model (DRM): neural network designed factors (like a blend of SRM & DRM)
+
+    In this implementation we use latent factor models to specify `F`.
+    Specifically, the following two latent factor models are supported:
         - `pca`: Principal Component Analysis
         - `fa`: Factor Analysis
 
-    Reference: [1] Fan, J., Liao, Y., & Liu, H. (2016). An overview of the estimation of large covariance and
-    precision matrices. Econometrics Journal, 19(1), C1–C32. https://doi.org/10.1111/ectj.12061
+    Reference:
+        [1] Fan, J., Liao, Y., & Liu, H. (2016). An overview of the estimation of large covariance and
+            precision matrices. Econometrics Journal, 19(1), C1–C32. https://doi.org/10.1111/ectj.12061
+        [2] Lin, H., Zhou, D., Liu, W., & Bian, J. (2021). Deep Risk Model: A Deep Learning Solution for
+            Mining Latent Risk Factors to Improve Covariance Matrix Estimation. arXiv preprint arXiv:2107.05201.
     """
 
     FACTOR_MODEL_PCA = "pca"
@@ -70,10 +81,10 @@ class StructuredCovEstimator(RiskModel):
 
         model = self.solver(self.num_factors, random_state=0).fit(X)
 
-        F = model.components_.T  # num_features x num_factors
-        B = model.transform(X)  # num_samples x num_factors
+        F = model.components_.T  # variables x factors
+        B = model.transform(X)  # observations x factors
         U = X - B @ F.T
-        cov_b = np.cov(B.T)  # num_factors x num_factors
+        cov_b = np.cov(B.T)  # factors x factors
         var_u = np.var(U, axis=0)  # diagonal
 
         if return_decomposed_components:
