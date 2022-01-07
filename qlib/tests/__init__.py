@@ -1,7 +1,7 @@
 import unittest
 from .data import GetData
 from .. import init
-from ..config import REG_CN
+from ..constant import REG_CN
 
 
 class TestAutoData(unittest.TestCase):
