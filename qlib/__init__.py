@@ -277,8 +277,8 @@ def auto_init(**kwargs):
             init_from_yaml_conf(conf_pp, **kwargs)
         elif conf_type == "ref":
             # This config type will be more convenient in following scenario
-            # - There is a shared configure file and you don't want to edit it inplace.
-            # - The shared configure may be updated later and you don't want to copy it.
+            # - There is a shared configure file, and you don't want to edit it inplace.
+            # - The shared configure may be updated later, and you don't want to copy it.
             # - You have some customized config.
             qlib_conf_path = conf.get("qlib_cfg", None)
 
