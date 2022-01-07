@@ -22,7 +22,7 @@ from pathlib import Path
 from typing import Optional, Union
 from typing import TYPE_CHECKING
 
-from qlib.constant import REG_CN
+from qlib.constant import REG_CN, REG_US
 
 if TYPE_CHECKING:
     from qlib.utils.time import Freq
