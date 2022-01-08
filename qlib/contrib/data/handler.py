@@ -130,7 +130,7 @@ class Alpha360(DataHandlerLP):
 
 class Alpha360vwap(Alpha360):
     def get_label_config(self):
-        return (["Ref($close, -2)/Ref($close, -1) - 1"], ["LABEL0"])
+        return (["Ref($vwap, -2)/Ref($vwap, -1) - 1"], ["LABEL0"])
 
 
 class Alpha158(DataHandlerLP):
@@ -371,4 +371,4 @@ class Alpha158(DataHandlerLP):
 
 class Alpha158vwap(Alpha158):
     def get_label_config(self):
-        return (["Ref($close, -2)/Ref($close, -1) - 1"], ["LABEL0"])
+        return (["Ref($vwap, -2)/Ref($vwap, -1) - 1"], ["LABEL0"])

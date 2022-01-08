@@ -252,17 +252,6 @@ class DDGDA:
         # 5) load the saved tasks and train model
         self.train_and_eval_tasks()
 
-    def from_meta(self):
-        # debug only
-        self.train_meta_model()
-        self.meta_inference()
-        self.train_and_eval_tasks()
-
-    def from_inference(self):
-        # debug only
-        self.meta_inference()
-        self.train_and_eval_tasks()
-
 
 if __name__ == "__main__":
     auto_init()
