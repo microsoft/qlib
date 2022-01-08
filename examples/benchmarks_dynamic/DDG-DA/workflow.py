@@ -21,6 +21,9 @@ from qlib.workflow import R
 DIRNAME = Path(__file__).absolute().resolve().parent
 sys.path.append(str(DIRNAME.parent / "baseline"))
 from rolling_benchmark import RollingBenchmark  # NOTE: sys.path is changed for import RollingBenchmark
+import torch
+
+torch.manual_seed(43)
 
 
 class DDGDA:
@@ -32,15 +35,17 @@ class DDGDA:
     - `rm -r mlruns`
     """
 
-    def __init__(self) -> None:
+    def __init__(self, model_types=["linear", "linear"]) -> None:
         self.step = 20
         # NOTE:
         # the horizon must match the meaning in the base task template
-        self.horizon = 1
+        self.horizon = 20
         self.meta_exp_name = "DDG-DA"
+        self.model_types = model_types  # first for calculate IC, second for forecasting models' type
 
     def get_feature_importance(self):
-        rb = RollingBenchmark()
+        # this must be lightGBM, because it needs to get the feature importance
+        rb = RollingBenchmark(model_type="gbdt")
         task = rb.basic_task()
 
         model = init_instance_by_config(task["model"])
@@ -67,7 +72,7 @@ class DDGDA:
         fi = self.get_feature_importance()
         col_selected = fi.nlargest(topk)
 
-        rb = RollingBenchmark()
+        rb = RollingBenchmark(model_type=self.model_types[0])
         task = rb.basic_task()
         dataset = init_instance_by_config(task["dataset"])
         prep_ds = dataset.prepare(slice(None), col_set=["feature", "label"], data_key=DataHandlerLP.DK_L)
@@ -105,10 +110,12 @@ class DDGDA:
         Dump data for training meta model.
         This function will dump the input data for meta model
         """
-        rb = RollingBenchmark()
+        # According to the experiments, the choice of the model type is very important for achieving good results
+        rb = RollingBenchmark(model_type=self.model_types[0])
         sim_task = rb.basic_task()
 
-        sim_task["model"].setdefault("kwargs", {}).update({"early_stopping_rounds": None, "num_boost_round": 350})
+        if self.model_types[0] == "gbdt":
+            sim_task["model"].setdefault("kwargs", {}).update({"early_stopping_rounds": None, "num_boost_round": 150})
 
         exp_name_sim = f"data_sim_s{self.step}"
 
@@ -125,7 +132,7 @@ class DDGDA:
 
         # 1) leverage the simplified proxy forecasting model to train meta model.
         # - Only the dataset part is important, in current version of meta model will integrate the
-        rb = RollingBenchmark()
+        rb = RollingBenchmark(model_type=self.model_types[0])
         sim_task = rb.basic_task()
         proxy_forecast_model_task = {
             # "model": "qlib.contrib.model.linear.LinearModel",
@@ -146,7 +153,7 @@ class DDGDA:
         kwargs = dict(
             task_tpl=proxy_forecast_model_task,
             step=self.step,
-            segments=0.5,
+            segments=0.62,
             trunc_days=1 + self.horizon,
             hist_step_n=30,
             fill_method="max",
@@ -163,7 +170,7 @@ class DDGDA:
         # 3) train and logging meta model
         with R.start(experiment_name=self.meta_exp_name):
             R.log_params(**kwargs)
-            mm = MetaModelDS(step=self.step, hist_step_n=kwargs["hist_step_n"], lr=0.0001)
+            mm = MetaModelDS(step=self.step, hist_step_n=kwargs["hist_step_n"], lr=0.001, max_epoch=200)
             mm.fit(md)
             R.save_objects(model=mm)
 
@@ -196,7 +203,7 @@ class DDGDA:
         hist_step_n = int(param["hist_step_n"])
         fill_method = param.get("fill_method", "max")
 
-        rb = RollingBenchmark()
+        rb = RollingBenchmark(model_type=self.model_types[1])
         task_l = rb.create_rolling_tasks()
 
         # 2.2) create meta dataset for final dataset
@@ -226,7 +233,7 @@ class DDGDA:
         """
         with self._task_path.open("rb") as f:
             tasks = pickle.load(f)
-        rb = RollingBenchmark(rolling_exp="rolling_ds")
+        rb = RollingBenchmark(rolling_exp="rolling_ds", model_type=self.model_types[1])
         rb.train_rolling_tasks(tasks)
         rb.ens_rolling()
         rb.update_rolling_rec()
@@ -243,6 +250,17 @@ class DDGDA:
         # 4) new_tasks are saved in "tasks_s20.pkl" (reweighter is added)
         self.meta_inference()
         # 5) load the saved tasks and train model
+        self.train_and_eval_tasks()
+
+    def from_meta(self):
+        # debug only
+        self.train_meta_model()
+        self.meta_inference()
+        self.train_and_eval_tasks()
+
+    def from_inference(self):
+        # debug only
+        self.meta_inference()
         self.train_and_eval_tasks()
 
 

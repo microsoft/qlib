@@ -24,25 +24,32 @@ class RollingBenchmark:
 
     """
 
-    def __init__(self, rolling_exp="rolling_models") -> None:
+    def __init__(self, rolling_exp="rolling_models", model_type="linear") -> None:
         self.step = 20
-        self.horizon = 1
+        self.horizon = 20
         self.rolling_exp = rolling_exp
+        self.model_type = model_type
 
     def basic_task(self):
         """For fast training rolling"""
-        conf_path = DIRNAME.parent.parent / "benchmarks" / "LightGBM" / "workflow_config_lightgbm_Alpha158.yaml"
+        if self.model_type == "gbdt":
+            conf_path = DIRNAME.parent.parent / "benchmarks" / "LightGBM" / "workflow_config_lightgbm_Alpha158.yaml"
+            # dump the processed data on to disk for later loading to speed up the processing
+            h_path = DIRNAME / "lightgbm_alpha158_handler.pkl"
+        elif self.model_type == "linear":
+            conf_path = DIRNAME.parent.parent / "benchmarks" / "Linear" / "workflow_config_linear_Alpha158.yaml"
+            h_path = DIRNAME / "linear_alpha158_handler.pkl"
+        else:
+            raise AssertionError("Model type is not supported!")
         with conf_path.open("r") as f:
             conf = yaml.safe_load(f)
+
         task = conf["task"]
 
-        # dump the processed data on to disk for later loading to speed up the processing
-        h_path = DIRNAME / "lightgbm_alpha158_handler.pkl"
-
-        if not h_path.exists():
-            h_conf = task["dataset"]["kwargs"]["handler"]
-            h = init_instance_by_config(h_conf)
-            h.to_pickle(h_path, dump_all=True)
+        # if not h_path.exists():
+        h_conf = task["dataset"]["kwargs"]["handler"]
+        h = init_instance_by_config(h_conf)
+        h.to_pickle(h_path, dump_all=True)
 
         task["dataset"]["kwargs"]["handler"] = f"file://{h_path}"
         task["record"] = ["qlib.workflow.record_temp.SignalRecord"]

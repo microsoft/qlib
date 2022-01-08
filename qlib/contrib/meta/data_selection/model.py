@@ -53,7 +53,7 @@ class MetaModelDS(MetaTaskModel):
         clip_weight=2.0,
         criterion="ic_loss",
         lr=0.0001,
-        max_epoch=150,
+        max_epoch=100,
     ):
         self.step = step
         self.hist_step_n = hist_step_n
@@ -65,7 +65,7 @@ class MetaModelDS(MetaTaskModel):
         self.fitted = False
 
     def run_epoch(self, phase, task_list, epoch, opt, loss_l, ignore_weight=False):
-        if phase == "train":  # phase 0 for training, 1 for inference
+        if phase == "train":
             self.tn.train()
             torch.set_grad_enabled(True)
         else:
@@ -140,6 +140,11 @@ class MetaModelDS(MetaTaskModel):
         # FIXME: get test tasks for just checking the performance
         phases = ["train", "test"]
         meta_tasks_l = meta_dataset.prepare_tasks(phases)
+
+        if len(meta_tasks_l[1]):
+            R.log_params(
+                **dict(proxy_test_begin=meta_tasks_l[1][0].test_period)
+            )  # debug: record when the test phase starts
 
         self.tn = PredNet(
             step=self.step, hist_step_n=self.hist_step_n, clip_weight=self.clip_weight, clip_method=self.clip_method
