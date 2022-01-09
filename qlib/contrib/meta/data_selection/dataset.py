@@ -147,18 +147,14 @@ class MetaTaskDS(MetaTask):
             # these three lines occupied 70% of the time of initializing MetaTaskDS
             d_train, d_test = ds.prepare(["train", "test"], col_set=["feature", "label"])
             prev_size = d_test.shape[0]
-            # print(d_test.groupby("datetime").size())
             d_train = d_train.dropna(axis=0)
             d_test = d_test.dropna(axis=0)
-            # print(d_test.groupby("datetime").size())
             if prev_size == 0 or d_test.shape[0] / prev_size <= 0.1:
-                __import__("ipdb").set_trace()
-                raise ValueError(f"Most of samples are dropped. Skip this task: {task}")
+                raise ValueError(f"Most of samples are dropped. Please check this task: {task}")
 
-            if globals().get("YX_CONFIRM_XXX") is None:
-                if d_test.groupby("datetime").size().shape[0] < 5:
-                    __import__("ipdb").set_trace()
-                # globals()["YX_CONFIRM_XXX"] = True
+            assert (
+                d_test.groupby("datetime").size().shape[0] >= 5
+            ), "In this segment, this trading dates is less than 5, you'd better check the data."
 
             sample_time_belong = np.zeros((d_train.shape[0], time_perf.shape[1]))
             for i, col in enumerate(time_perf.columns):
@@ -190,7 +186,6 @@ class MetaTaskDS(MetaTask):
         self.processed_meta_input = data_to_tensor(self.processed_meta_input)
 
     def _get_processed_meta_info(self):
-        # __import__('ipdb').set_trace()
         meta_info_norm = self.meta_info.sub(self.meta_info.mean(axis=1), axis=0)  # .fillna(0.)
         if self.fill_method == "max":
             meta_info_norm = meta_info_norm.T.fillna(
@@ -295,10 +290,7 @@ class MetaDatasetDS(MetaTaskDataset):
                 self.task_list.append(t)
             except ValueError as e:
                 logger.warning(f"ValueError: {e}")
-        if globals().get("YX_CONFIRM_XXX") is None:
-            if len(self.meta_task_l) <= 0:
-                __import__("ipdb").set_trace()
-            # globals()["YX_CONFIRM_XXX"] = True
+        assert len(self.meta_task_l) > 0, "No meta tasks found. Please check the data and setting"
 
     def _prepare_meta_ipt(self, task):
         ic_df = self.internal_data.data_ic_df

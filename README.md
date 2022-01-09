@@ -11,6 +11,7 @@
 Recent released features
 | Feature | Status |
 | --                      | ------    |
+| Meta-Learning-based framework & DDG-DA  | [Released](https://github.com/microsoft/qlib/pull/743) on Jan 10, 2022 | 
 | Planning-based portfolio optimization | [Released](https://github.com/microsoft/qlib/pull/754) on Dec 28, 2021 | 
 | Release Qlib v0.8.0 | [Released](https://github.com/microsoft/qlib/releases/tag/v0.8.0) on Dec 8, 2021 |
 | ADD model | [Released](https://github.com/microsoft/qlib/pull/704) on Nov 22, 2021 |
@@ -50,9 +51,13 @@ For more details, please refer to our paper ["Qlib: An AI-oriented Quantitative 
   - [Data Preparation](#data-preparation)
   - [Auto Quant Research Workflow](#auto-quant-research-workflow)
   - [Building Customized Quant Research Workflow by Code](#building-customized-quant-research-workflow-by-code)
-- [**Quant Model(Paper) Zoo**](#quant-model-paper-zoo)
-  - [Run a single model](#run-a-single-model)
-  - [Run multiple models](#run-multiple-models)
+- [ Main Challenges & Solution in Quant Research ]
+  - [Forecasting: Finding valuable signals/patterns]
+    - [**Quant Model(Paper) Zoo**](#quant-model-paper-zoo)
+      - [Run a single model](#run-a-single-model)
+      - [Run multiple models](#run-multiple-models)
+  - [Adapting to market dynamics]
+    - RR & DDG-DA
 - [**Quant Dataset Zoo**](#quant-dataset-zoo)
 - [More About Qlib](#more-about-qlib)
 - [Offline Mode and Online Mode](#offline-mode-and-online-mode)
@@ -69,7 +74,6 @@ Your feedbacks about the features are very important.
 | --                      | ------    |
 | Point-in-Time database | Under review: https://github.com/microsoft/qlib/pull/343 |
 | Orderbook database | Under review: https://github.com/microsoft/qlib/pull/744 |
-| Meta-Learning-based data selection | Under review: https://github.com/microsoft/qlib/pull/743 |
 
 # Framework of Qlib
 

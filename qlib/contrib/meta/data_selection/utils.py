@@ -8,22 +8,6 @@ from torch import nn
 from qlib.contrib.torch import data_to_tensor
 
 
-def fill_diagnal(sim_mat):
-    sim_mat = sim_mat.copy()
-    # Remove the future information
-    sim_mat_past = sim_mat.where(sim_mat.index.values.reshape(-1, 1) > sim_mat.columns.values)
-    sim_mat.values[sim_mat.index.values.reshape(-1, 1) == sim_mat.columns.values] = sim_mat_past.max(axis=1)
-    sim_mat.iloc[0, 0] = 0.0
-    return sim_mat
-
-
-def get_sim_mat_idx(i_sim_mat, outsample_period):
-    for idx in range(len(i_sim_mat.index)):
-        if i_sim_mat.index[idx][0] == outsample_period[0]:
-            return idx
-    raise AssertionError("Not Found!")
-
-
 class ICLoss(nn.Module):
     def forward(self, pred, y, idx, skip_size=50):
         """forward.

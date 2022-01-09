@@ -18,7 +18,7 @@ from ....model.meta.dataset import MetaTaskDataset
 from ....model.meta.model import MetaModel, MetaTaskModel
 from ....workflow import R
 
-from .utils import fill_diagnal, ICLoss
+from .utils import ICLoss
 from .dataset import MetaDatasetDS
 from qlib.contrib.meta.data_selection.net import PredNet
 from qlib.data.dataset.weight import Reweighter
@@ -54,6 +54,7 @@ class MetaModelDS(MetaTaskModel):
         criterion="ic_loss",
         lr=0.0001,
         max_epoch=100,
+        seed=43,
     ):
         self.step = step
         self.hist_step_n = hist_step_n
@@ -63,6 +64,7 @@ class MetaModelDS(MetaTaskModel):
         self.lr = lr
         self.max_epoch = max_epoch
         self.fitted = False
+        torch.manual_seed(43)
 
     def run_epoch(self, phase, task_list, epoch, opt, loss_l, ignore_weight=False):
         if phase == "train":
@@ -94,8 +96,7 @@ class MetaModelDS(MetaTaskModel):
                     get_module_logger("MetaModelDS").warning(f"Exception `{e}` when calculating IC loss")
                     continue
 
-            if np.isnan(loss.detach().item()):
-                __import__("ipdb").set_trace()
+            assert not np.isnan(loss.detach().item()), "NaN loss!"
 
             if phase == "train":
                 opt.zero_grad()

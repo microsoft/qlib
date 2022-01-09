@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 """
     This module is not a necessary part of Qlib.
-    It is just some tools for convenience
+    They are just some tools for convenience
     It is should not imported into the core part of qlib
 """
 import torch
