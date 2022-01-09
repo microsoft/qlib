@@ -3,7 +3,7 @@
 
 
 import qlib
-from qlib.config import REG_CN
+from qlib.constant import REG_CN
 
 from qlib.utils import init_instance_by_config
 from qlib.tests.data import GetData

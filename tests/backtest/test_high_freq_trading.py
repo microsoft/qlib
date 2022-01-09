@@ -5,7 +5,6 @@ from qlib.backtest.decision import BaseTradeDecision, TradeRangeByTime
 import qlib
 from qlib.tests import TestAutoData
 import unittest
-from qlib.config import REG_CN, HIGH_FREQ_CONFIG
 import pandas as pd
 
 

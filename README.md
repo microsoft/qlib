@@ -195,7 +195,7 @@ We recommend users to prepare their own data if they have a high-quality dataset
   ```python
   import qlib
   from qlib.data import D
-  from qlib.config import REG_CN
+  from qlib.constant import REG_CN
 
   # Initialization
   mount_path = "~/.qlib/qlib_data/cn_data"  # target_dir

@@ -20,7 +20,6 @@ from operator import xor
 from pprint import pprint
 
 import qlib
-from qlib.config import REG_CN
 from qlib.workflow import R
 from qlib.tests.data import GetData
 

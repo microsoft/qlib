@@ -100,7 +100,8 @@ from copy import deepcopy
 import qlib
 import fire
 import pandas as pd
-from qlib.config import REG_CN, HIGH_FREQ_CONFIG
+from qlib.constant import REG_CN
+from qlib.config import HIGH_FREQ_CONFIG
 from qlib.data import D
 from qlib.utils import exists_qlib_data, init_instance_by_config, flatten_dict
 from qlib.workflow import R
