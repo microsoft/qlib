@@ -111,5 +111,5 @@ class RollingGroup(Group):
                 raise TypeError(f"Expected `tuple` type, but got a value `{key}`")
         return grouped_dict
 
-    def __init__(self):
-        super().__init__(ens=RollingEnsemble())
+    def __init__(self, ens=RollingEnsemble()):
+        super().__init__(ens=ens)

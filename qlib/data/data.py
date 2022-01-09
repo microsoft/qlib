@@ -16,7 +16,7 @@ from multiprocessing import Pool
 from typing import Iterable, Union
 from typing import List, Union
 
-# For supporting multiprocessing in outter code, joblib is used
+# For supporting multiprocessing in outer code, joblib is used
 from joblib import delayed
 
 from .cache import H
@@ -27,7 +27,6 @@ from .inst_processor import InstProcessor
 
 from ..log import get_module_logger
 from ..utils.time import Freq
-from ..utils.resam import resam_calendar
 from .cache import DiskDatasetCache, DiskExpressionCache
 from ..utils import (
     Wrapper,
@@ -56,15 +55,6 @@ class ProviderBackendMixin:
     def backend_obj(self, **kwargs):
         backend = self.backend if self.backend else self.get_default_backend()
         backend = copy.deepcopy(backend)
-
-        # set default storage kwargs
-        # NOTE: provider_uri priority：
-        #   1. backend_config: backend_obj["kwargs"]["provider_uri"]
-        #   2. qlib.init: provider_uri
-        backend_kwargs = backend.setdefault("kwargs", {})
-        provider_uri = backend_kwargs.get("provider_uri", None)
-        provider_uri = C.dpm.provider_uri if provider_uri is None else C.dpm.format_provider_uri(provider_uri)
-        backend_kwargs["provider_uri"] = provider_uri
         backend.setdefault("kwargs", {}).update(**kwargs)
         return init_instance_by_config(backend)
 

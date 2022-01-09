@@ -1,10 +1,6 @@
-# Copyright (c) Microsoft Corporation.
-# Licensed under the MIT License.
-
 import abc
 import sys
 import datetime
-import json
 from abc import ABC
 from pathlib import Path
 
@@ -13,26 +9,28 @@ import requests
 import pandas as pd
 from loguru import logger
 from dateutil.tz import tzlocal
-from qlib.config import REG_CN as REGION_CN
 
 CUR_DIR = Path(__file__).resolve().parent
 sys.path.append(str(CUR_DIR.parent.parent))
 from data_collector.base import BaseCollector, BaseNormalize, BaseRun
-from data_collector.utils import get_calendar_list, get_en_fund_symbols
+from data_collector.utils import get_cg_crypto_symbols
 
-INDEX_BENCH_URL = "http://api.fund.eastmoney.com/f10/lsjz?callback=jQuery_&fundCode={index_code}&pageIndex=1&pageSize={numberOfHistoricalDaysToCrawl}&startDate={startDate}&endDate={endDate}"
+from pycoingecko import CoinGeckoAPI
+from time import mktime
+from datetime import datetime as dt
+import time
 
 
-class FundCollector(BaseCollector):
+class CryptoCollector(BaseCollector):
     def __init__(
         self,
         save_dir: [str, Path],
         start=None,
         end=None,
         interval="1d",
-        max_workers=4,
+        max_workers=1,
         max_collector_count=2,
-        delay=0,
+        delay=1,  # delay need to be one
         check_data_length: int = None,
         limit_nums: int = None,
     ):
@@ -41,7 +39,7 @@ class FundCollector(BaseCollector):
         Parameters
         ----------
         save_dir: str
-            fund save dir
+            crypto save dir
         max_workers: int
             workers, default 4
         max_collector_count: int
@@ -59,7 +57,7 @@ class FundCollector(BaseCollector):
         limit_nums: int
             using for debug, by default None
         """
-        super(FundCollector, self).__init__(
+        super(CryptoCollector, self).__init__(
             save_dir=save_dir,
             start=start,
             end=end,
@@ -101,27 +99,18 @@ class FundCollector(BaseCollector):
     @staticmethod
     def get_data_from_remote(symbol, interval, start, end):
         error_msg = f"{symbol}-{interval}-{start}-{end}"
-
         try:
-            # TODO: numberOfHistoricalDaysToCrawl should be bigger enough
-            url = INDEX_BENCH_URL.format(
-                index_code=symbol, numberOfHistoricalDaysToCrawl=10000, startDate=start, endDate=end
-            )
-            resp = requests.get(url, headers={"referer": "http://fund.eastmoney.com/110022.html"})
-
-            if resp.status_code != 200:
-                raise ValueError("request error")
-
-            data = json.loads(resp.text.split("(")[-1].split(")")[0])
-
-            # Some funds don't show the net value, example: http://fundf10.eastmoney.com/jjjz_010288.html
-            SYType = data["Data"]["SYType"]
-            if (SYType == "每万份收益") or (SYType == "每百份收益") or (SYType == "每百万份收益"):
-                raise Exception("The fund contains 每*份收益")
-
-            # TODO: should we sort the value by datetime?
-            _resp = pd.DataFrame(data["Data"]["LSJZList"])
-
+            cg = CoinGeckoAPI()
+            data = cg.get_coin_market_chart_by_id(id=symbol, vs_currency="usd", days="max")
+            _resp = pd.DataFrame(columns=["date"] + list(data.keys()))
+            _resp["date"] = [dt.fromtimestamp(mktime(time.localtime(x[0] / 1000))) for x in data["prices"]]
+            for key in data.keys():
+                _resp[key] = [x[1] for x in data[key]]
+            _resp["date"] = pd.to_datetime(_resp["date"])
+            _resp["date"] = [x.date() for x in _resp["date"]]
+            _resp = _resp[(_resp["date"] < pd.to_datetime(end).date()) & (_resp["date"] > pd.to_datetime(start).date())]
+            if _resp.shape[0] != 0:
+                _resp = _resp.reset_index()
             if isinstance(_resp, pd.DataFrame):
                 return _resp.reset_index()
         except Exception as e:
@@ -147,10 +136,10 @@ class FundCollector(BaseCollector):
         return _result
 
 
-class FundollectorCN(FundCollector, ABC):
+class CryptoCollector1d(CryptoCollector, ABC):
     def get_instrument_list(self):
-        logger.info("get cn fund symbols......")
-        symbols = get_en_fund_symbols()
+        logger.info("get coingecko crypto symbols......")
+        symbols = get_cg_crypto_symbols()
         logger.info(f"get {len(symbols)} symbols.")
         return symbols
 
@@ -162,15 +151,11 @@ class FundollectorCN(FundCollector, ABC):
         return "Asia/Shanghai"
 
 
-class FundCollectorCN1d(FundollectorCN):
-    pass
-
-
-class FundNormalize(BaseNormalize):
+class CryptoNormalize(BaseNormalize):
     DAILY_FORMAT = "%Y-%m-%d"
 
     @staticmethod
-    def normalize_fund(
+    def normalize_crypto(
         df: pd.DataFrame,
         calendar_list: list = None,
         date_field_name: str = "date",
@@ -197,26 +182,17 @@ class FundNormalize(BaseNormalize):
         return df.reset_index()
 
     def normalize(self, df: pd.DataFrame) -> pd.DataFrame:
-        # normalize
-        df = self.normalize_fund(df, self._calendar_list, self._date_field_name, self._symbol_field_name)
+        df = self.normalize_crypto(df, self._calendar_list, self._date_field_name, self._symbol_field_name)
         return df
 
 
-class FundNormalize1d(FundNormalize):
-    pass
-
-
-class FundNormalizeCN:
+class CryptoNormalize1d(CryptoNormalize):
     def _get_calendar_list(self):
-        return get_calendar_list("ALL")
-
-
-class FundNormalizeCN1d(FundNormalizeCN, FundNormalize1d):
-    pass
+        return None
 
 
 class Run(BaseRun):
-    def __init__(self, source_dir=None, normalize_dir=None, max_workers=4, interval="1d", region=REGION_CN):
+    def __init__(self, source_dir=None, normalize_dir=None, max_workers=1, interval="1d"):
         """
 
         Parameters
@@ -226,22 +202,19 @@ class Run(BaseRun):
         normalize_dir: str
             Directory for normalize data, default "Path(__file__).parent/normalize"
         max_workers: int
-            Concurrent number, default is 4
+            Concurrent number, default is 1
         interval: str
             freq, value from [1min, 1d], default 1d
-        region: str
-            region, value from ["CN"], default "CN"
         """
         super().__init__(source_dir, normalize_dir, max_workers, interval)
-        self.region = region
 
     @property
     def collector_class_name(self):
-        return f"FundCollector{self.region.upper()}{self.interval}"
+        return f"CryptoCollector{self.interval}"
 
     @property
     def normalize_class_name(self):
-        return f"FundNormalize{self.region.upper()}{self.interval}"
+        return f"CryptoNormalize{self.interval}"
 
     @property
     def default_base_dir(self) -> [Path, str]:
@@ -266,7 +239,7 @@ class Run(BaseRun):
         delay: float
             time.sleep(delay), default 0
         interval: str
-            freq, value from [1min, 1d], default 1d
+            freq, value from [1min, 1d], default 1d, currently only supprot 1d
         start: str
             start datetime, default "2000-01-01"
         end: str
@@ -279,7 +252,7 @@ class Run(BaseRun):
         Examples
         ---------
             # get daily data
-            $ python collector.py download_data --source_dir ~/.qlib/fund_data/source/cn_data --region CN --start 2020-11-01 --end 2020-11-10 --delay 0.1 --interval 1d
+            $ python collector.py download_data --source_dir ~/.qlib/crypto_data/source/1d --start 2015-01-01 --end 2021-11-30 --delay 1 --interval 1d
         """
 
         super(Run, self).download_data(max_collector_count, delay, start, end, interval, check_data_length, limit_nums)
@@ -296,7 +269,7 @@ class Run(BaseRun):
 
         Examples
         ---------
-            $ python collector.py normalize_data --source_dir ~/.qlib/fund_data/source/cn_data --normalize_dir ~/.qlib/fund_data/source/cn_1d_nor --region CN --interval 1d --date_field_name FSRQ
+            $ python collector.py normalize_data --source_dir ~/.qlib/crypto_data/source/1d --normalize_dir ~/.qlib/crypto_data/source/1d_nor --interval 1d --date_field_name date
         """
         super(Run, self).normalize_data(date_field_name, symbol_field_name)
 

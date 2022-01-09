@@ -2,8 +2,7 @@
 # Licensed under the MIT License.
 from pathlib import Path
 
-_version_path = Path(__file__).absolute().parent / "VERSION.txt"  # This file is copyed from setup.py
-__version__ = _version_path.read_text(encoding="utf-8").strip()
+__version__ = "0.8.0.99"
 __version__bak = __version__  # This version is backup for QlibConfig.reset_qlib_version
 import os
 from typing import Union
@@ -16,6 +15,16 @@ from .log import get_module_logger
 
 # init qlib
 def init(default_conf="client", **kwargs):
+    """
+
+    Parameters
+    ----------
+    **kwargs :
+        clear_mem_cache: str
+            the default value is True;
+            Will the memory cache be clear.
+            It is often used to improve performance when init will be called for multiple times
+    """
     from .config import C
     from .data.cache import H
 
@@ -29,7 +38,9 @@ def init(default_conf="client", **kwargs):
         logger.warning("Skip initialization because `skip_if_reg is True`")
         return
 
-    H.clear()
+    clear_mem_cache = kwargs.pop("clear_mem_cache", True)
+    if clear_mem_cache:
+        H.clear()
     C.set(default_conf, **kwargs)
 
     # mount nfs
@@ -230,7 +241,7 @@ def auto_init(**kwargs):
                     default_exp_name: "Experiment"
 
     Example 2)
-    If you wan to create simple a stand alone config, you can use following config(a.k.a `conf_type: origin`)
+    If you want to create simple a stand alone config, you can use following config(a.k.a `conf_type: origin`)
 
     .. code-block:: python
 

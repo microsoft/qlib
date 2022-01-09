@@ -1,0 +1,8 @@
+loguru
+fire
+requests
+numpy
+pandas
+tqdm
+lxml
+pycoingecko

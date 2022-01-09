@@ -36,7 +36,7 @@ def save_instance(instance, file_path):
     save(dump) an instance to a pickle file
         Parameter
             instance :
-                data to te dumped
+                data to be dumped
             file_path : string / pathlib.Path()
                 path of file to be dumped
     """

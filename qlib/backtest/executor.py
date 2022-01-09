@@ -41,7 +41,7 @@ class BaseExecutor:
         Parameters
         ----------
         time_per_step : str
-            trade time per trading step, used for genreate the trade calendar
+            trade time per trading step, used for generate the trade calendar
         show_indicator: bool, optional
             whether to show indicators, :
             - 'pa', the price advantage
@@ -118,7 +118,7 @@ class BaseExecutor:
         self.dealt_order_amount = defaultdict(float)
         self.deal_day = None
 
-    def reset_common_infra(self, common_infra):
+    def reset_common_infra(self, common_infra, copy_trade_account=False):
         """
         reset infrastructure for trading
             - reset trade_account
@@ -129,9 +129,14 @@ class BaseExecutor:
             self.common_infra.update(common_infra)
 
         if common_infra.has("trade_account"):
-            # NOTE: there is a trick in the code.
-            # shallow copy is used instead of deepcopy. So positions are shared
-            self.trade_account: Account = copy.copy(common_infra.get("trade_account"))
+            if copy_trade_account:
+                # NOTE: there is a trick in the code.
+                # shallow copy is used instead of deepcopy.
+                # 1. So positions are shared
+                # 2. Others are not shared, so each level has it own metrics (portfolio and trading metrics)
+                self.trade_account: Account = copy.copy(common_infra.get("trade_account"))
+            else:
+                self.trade_account = common_infra.get("trade_account")
             self.trade_account.reset(freq=self.time_per_step, port_metr_enabled=self.generate_portfolio_metrics)
 
     @property
@@ -342,14 +347,18 @@ class NestedExecutor(BaseExecutor):
             **kwargs,
         )
 
-    def reset_common_infra(self, common_infra):
+    def reset_common_infra(self, common_infra, copy_trade_account=False):
         """
         reset infrastructure for trading
             - reset inner_strategyand inner_executor common infra
         """
-        super(NestedExecutor, self).reset_common_infra(common_infra)
+        # NOTE: please refer to the docs of BaseExecutor.reset_common_infra for the meaning of `copy_trade_account`
 
-        self.inner_executor.reset_common_infra(common_infra)
+        # The first level follow the `copy_trade_account` from the upper level
+        super(NestedExecutor, self).reset_common_infra(common_infra, copy_trade_account=copy_trade_account)
+
+        # The lower level have to copy the trade_account
+        self.inner_executor.reset_common_infra(common_infra, copy_trade_account=True)
         self.inner_strategy.reset_common_infra(common_infra)
 
     def _init_sub_trading(self, trade_decision):
@@ -360,12 +369,12 @@ class NestedExecutor(BaseExecutor):
         self.inner_strategy.reset(level_infra=sub_level_infra, outer_trade_decision=trade_decision)
 
     def _update_trade_decision(self, trade_decision: BaseTradeDecision) -> BaseTradeDecision:
-        # outter strategy have chance to update decision each iterator
+        # outer strategy have chance to update decision each iterator
         updated_trade_decision = trade_decision.update(self.inner_executor.trade_calendar)
         if updated_trade_decision is not None:
             trade_decision = updated_trade_decision
             # NEW UPDATE
-            # create a hook for inner strategy to update outter decision
+            # create a hook for inner strategy to update outer decision
             self.inner_strategy.alter_outer_trade_decision(trade_decision)
         return trade_decision
 
@@ -395,9 +404,25 @@ class NestedExecutor(BaseExecutor):
             if not self._align_range_limit or start_idx <= sub_cal.get_trade_step() <= end_idx:
                 # if force align the range limit, skip the steps outside the decision range limit
 
-                _inner_trade_decision: BaseTradeDecision = self.inner_strategy.generate_trade_decision(
-                    _inner_execute_result
-                )
+                res = self.inner_strategy.generate_trade_decision(_inner_execute_result)
+
+                # NOTE: !!!!!
+                # the two lines below is for a special case in RL
+                # To solve the confliction below
+                # - Normally, user will create a strategy and embed it into Qlib's executor and simulator interaction loop
+                #   For a _nested qlib example_, (Qlib Strategy) <=> (Qlib Executor[(inner Qlib Strategy) <=> (inner Qlib Executor)])
+                # - However, RL-based framework has it's own script to run the loop
+                #   For an _RL learning example_, (RL Policy) <=> (RL Env[(inner Qlib Executor)])
+                # To make it possible to run  _nested qlib example_ and _RL learning example_ together, the solution below is proposed
+                # - The entry script follow the example of  _RL learning example_ to be compatible with all kinds of RL Framework
+                # - Each step of (RL Env) will make (inner Qlib Executor) one step forward
+                #     - (inner Qlib Strategy) is a proxy strategy, it will give the program control right to (RL Env) by `yield from` and wait for the action from the policy
+                # So the two lines below is the implementation of yielding control rights
+                if isinstance(res, GeneratorType):
+                    res = yield from res
+
+                _inner_trade_decision: BaseTradeDecision = res
+
                 trade_decision.mod_inner_decision(_inner_trade_decision)  # propagate part of decision information
 
                 # NOTE sub_cal.get_step_time() must be called before collect_data in case of step shifting
@@ -407,6 +432,7 @@ class NestedExecutor(BaseExecutor):
                 _inner_execute_result = yield from self.inner_executor.collect_data(
                     trade_decision=_inner_trade_decision, level=level + 1
                 )
+                self.post_inner_exe_step(_inner_execute_result)
                 execute_result.extend(_inner_execute_result)
 
                 inner_order_indicators.append(
@@ -417,6 +443,17 @@ class NestedExecutor(BaseExecutor):
                 sub_cal.step()
 
         return execute_result, {"inner_order_indicators": inner_order_indicators, "decision_list": decision_list}
+
+    def post_inner_exe_step(self, inner_exe_res):
+        """
+        A hook for doing sth after each step of inner strategy
+
+        Parameters
+        ----------
+        inner_exe_res :
+            the execution result of inner task
+        """
+        pass
 
     def get_all_executors(self):
         """get all executors, including self and inner_executor.get_all_executors()"""

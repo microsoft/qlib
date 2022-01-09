@@ -55,9 +55,9 @@ class TradeCalendarManager:
         self.start_time = pd.Timestamp(start_time) if start_time else None
         self.end_time = pd.Timestamp(end_time) if end_time else None
 
-        _calendar = Cal.calendar(freq=freq)
+        _calendar = Cal.calendar(freq=freq, future=True)
         self._calendar = _calendar
-        _, _, _start_index, _end_index = Cal.locate_index(start_time, end_time, freq=freq)
+        _, _, _start_index, _end_index = Cal.locate_index(start_time, end_time, freq=freq, future=True)
         self.start_index = _start_index
         self.end_index = _end_index
         self.trade_len = _end_index - _start_index + 1
@@ -93,7 +93,7 @@ class TradeCalendarManager:
 
         About the endpoints:
             - Qlib uses the closed interval in time-series data selection, which has the same performance as pandas.Series.loc
-            # - The returned right endpoints should minus 1 seconds becasue of the closed interval representation in Qlib.
+            # - The returned right endpoints should minus 1 seconds because of the closed interval representation in Qlib.
             # Note: Qlib supports up to minutely decision execution, so 1 seconds is less than any trading time interval.
 
         Parameters

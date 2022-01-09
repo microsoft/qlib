@@ -458,7 +458,7 @@ def get_date_range(trading_date, left_shift=0, right_shift=0, future=False):
 
 
 def get_date_by_shift(trading_date, shift, future=False, clip_shift=True, freq="day", align: Optional[str] = None):
-    """get trading date with shift bias wil cur_date
+    """get trading date with shift bias will cur_date
         e.g. : shift == 1,  return next trading date
                shift == -1, return previous trading date
     ----------
@@ -724,10 +724,61 @@ def flatten_dict(d, parent_key="", sep=".") -> dict:
     return dict(items)
 
 
+def get_item_from_obj(config: dict, name_path: str) -> object:
+    """
+    Follow the name_path to get values from config
+    For example:
+    If we follow the example in in the Parameters section,
+        Timestamp('2008-01-02 00:00:00') will be returned
+
+    Parameters
+    ----------
+    config : dict
+        e.g.
+        {'dataset': {'class': 'DatasetH',
+          'kwargs': {'handler': {'class': 'Alpha158',
+                                 'kwargs': {'end_time': '2020-08-01',
+                                            'fit_end_time': '<dataset.kwargs.segments.train.1>',
+                                            'fit_start_time': '<dataset.kwargs.segments.train.0>',
+                                            'instruments': 'csi100',
+                                            'start_time': '2008-01-01'},
+                                 'module_path': 'qlib.contrib.data.handler'},
+                     'segments': {'test': (Timestamp('2017-01-03 00:00:00'),
+                                           Timestamp('2019-04-08 00:00:00')),
+                                  'train': (Timestamp('2008-01-02 00:00:00'),
+                                            Timestamp('2014-12-31 00:00:00')),
+                                  'valid': (Timestamp('2015-01-05 00:00:00'),
+                                            Timestamp('2016-12-30 00:00:00'))}}
+        }}
+    name_path : str
+        e.g.
+        "dataset.kwargs.segments.train.1"
+
+    Returns
+    -------
+    object
+        the retrieved object
+    """
+    cur_cfg = config
+    for k in name_path.split("."):
+        if isinstance(cur_cfg, dict):
+            cur_cfg = cur_cfg[k]
+        elif k.isdigit():
+            cur_cfg = cur_cfg[int(k)]
+        else:
+            raise ValueError(f"Error when getting {k} from cur_cfg")
+    return cur_cfg
+
+
 def fill_placeholder(config: dict, config_extend: dict):
     """
     Detect placeholder in config and fill them with config_extend.
     The item of dict must be single item(int, str, etc), dict and list. Tuples are not supported.
+    There are two type of variables:
+    - user-defined variables :
+        e.g. when config_extend is `{"<MODEL>": model, "<DATASET>": dataset}`, "<MODEL>" and "<DATASET>" in `config` will be replaced with `model` `dataset`
+    - variables extracted from `config` :
+        e.g. the variables like "<dataset.kwargs.segments.train.0>" will be replaced with the values from `config`
 
     Parameters
     ----------
@@ -760,8 +811,13 @@ def fill_placeholder(config: dict, config_extend: dict):
             if isinstance(now_item[key], list) or isinstance(now_item[key], dict):
                 item_queue.append(now_item[key])
                 tail += 1
-            elif isinstance(now_item[key], str) and now_item[key] in config_extend.keys():
-                now_item[key] = config_extend[now_item[key]]
+            elif isinstance(now_item[key], str):
+                if now_item[key] in config_extend.keys():
+                    now_item[key] = config_extend[now_item[key]]
+                else:
+                    m = re.match(r"<(?P<name_path>[^<>]+)>", now_item[key])
+                    if m is not None:
+                        now_item[key] = get_item_from_obj(config, m.groupdict()["name_path"])
     return config
 
 
@@ -828,7 +884,7 @@ def register_wrapper(wrapper, cls_or_obj, module_path=None):
     wrapper.register(obj)
 
 
-def load_dataset(path_or_obj):
+def load_dataset(path_or_obj, index_col=[0, 1]):
     """load dataset from multiple file formats"""
     if isinstance(path_or_obj, pd.DataFrame):
         return path_or_obj
@@ -840,7 +896,7 @@ def load_dataset(path_or_obj):
     elif extension == ".pkl":
         return pd.read_pickle(path_or_obj)
     elif extension == ".csv":
-        return pd.read_csv(path_or_obj, parse_dates=True, index_col=[0, 1])
+        return pd.read_csv(path_or_obj, parse_dates=True, index_col=index_col)
     raise ValueError(f"unsupported file type `{extension}`")
 
 

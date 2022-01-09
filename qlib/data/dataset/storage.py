@@ -63,7 +63,7 @@ class HasingStockStorage(BaseHandlerStorage):
     """Hasing data storage for datahanlder
     - The default data storage pandas.DataFrame is too slow when randomly accessing one stock's data
     - HasingStockStorage hashes the multiple stocks' data(pandas.DataFrame) by the key `stock_id`.
-    - HasingStockStorage hases the pandas.DataFrame into a dict, whose key is the stock_id(str) and value this stock data(panda.DataFrame), it has the following format:
+    - HasingStockStorage hashes the pandas.DataFrame into a dict, whose key is the stock_id(str) and value this stock data(panda.DataFrame), it has the following format:
         {
             stock1_id: stock1_data,
             stock2_id: stock2_data,

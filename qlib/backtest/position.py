@@ -152,7 +152,7 @@ class BasePosition:
         """
         generate stock weight dict {stock_id : value weight of stock in the position}
         it is meaningful in the beginning or the end of each trade step
-        - During execution of each trading step, the weight may be not consistant with the portfolio value
+        - During execution of each trading step, the weight may be not consistent with the portfolio value
 
         Parameters
         ----------

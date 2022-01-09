@@ -17,7 +17,7 @@ from qlib.workflow.task.gen import RollingGen, task_generator
 from qlib.workflow.task.manage import TaskManager, run_task
 from qlib.workflow.task.collect import RecorderCollector
 from qlib.model.ens.group import RollingGroup
-from qlib.model.trainer import TrainerRM, task_train
+from qlib.model.trainer import TrainerR, TrainerRM, task_train
 from qlib.tests.config import CSI100_RECORD_LGB_TASK_CONFIG, CSI100_RECORD_XGBOOST_TASK_CONFIG
 
 
@@ -29,7 +29,7 @@ class RollingTaskExample:
         task_url="mongodb://10.0.0.4:27017/",
         task_db_name="rolling_db",
         experiment_name="rolling_exp",
-        task_pool="rolling_task",
+        task_pool=None,  # if user want to  "rolling_task"
         task_config=None,
         rolling_step=550,
         rolling_type=RollingGen.ROLL_SD,
@@ -43,14 +43,19 @@ class RollingTaskExample:
         }
         qlib.init(provider_uri=provider_uri, region=region, mongo=mongo_conf)
         self.experiment_name = experiment_name
-        self.task_pool = task_pool
+        if task_pool is None:
+            self.trainer = TrainerR(experiment_name=self.experiment_name)
+        else:
+            self.task_pool = task_pool
+            self.trainer = TrainerRM(self.experiment_name, self.task_pool)
         self.task_config = task_config
         self.rolling_gen = RollingGen(step=rolling_step, rtype=rolling_type)
 
     # Reset all things to the first status, be careful to save important data
     def reset(self):
         print("========== reset ==========")
-        TaskManager(task_pool=self.task_pool).remove()
+        if isinstance(self.trainer, TrainerRM):
+            TaskManager(task_pool=self.task_pool).remove()
         exp = R.get_exp(experiment_name=self.experiment_name)
         for rid in exp.list_recorders():
             exp.delete_recorder(rid)
@@ -66,10 +71,10 @@ class RollingTaskExample:
 
     def task_training(self, tasks):
         print("========== task_training ==========")
-        trainer = TrainerRM(self.experiment_name, self.task_pool)
-        trainer.train(tasks)
+        self.trainer.train(tasks)
 
     def worker(self):
+        # NOTE: this is only used for TrainerRM
         # train tasks by other progress or machines for multiprocessing. It is same as TrainerRM.worker.
         print("========== worker ==========")
         run_task(task_train, self.task_pool, experiment_name=self.experiment_name)

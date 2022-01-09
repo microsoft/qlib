@@ -57,7 +57,7 @@ And here are two ways to run the model:
   python example.py --config_file configs/config_alstm.yaml
   ```
 
-Here we trained TRA on a pretrained backbone model. Therefore we run `*_init.yaml` before TRA's scipts.
+Here we trained TRA on a pretrained backbone model. Therefore we run `*_init.yaml` before TRA's scripts.
 
 ### Results
 

@@ -31,7 +31,7 @@ Users can easily intsall ``Qlib`` according to the following steps:
         git clone https://github.com/microsoft/qlib.git && cd qlib
         python setup.py install
 
-To kown more about `installation`, please refer to `Qlib Installation <../start/installation.html>`_.
+To known more about `installation`, please refer to `Qlib Installation <../start/installation.html>`_.
 
 Prepare Data
 ==============
@@ -44,7 +44,7 @@ Load and prepare data by running the following code:
 
 This dataset is created by public data collected by crawler scripts in ``scripts/data_collector/``, which have been released in the same repository. Users could create the same dataset with it.
 
-To kown more about `prepare data`, please refer to `Data Preparation <../component/data.html#data-preparation>`_.
+To known more about `prepare data`, please refer to `Data Preparation <../component/data.html#data-preparation>`_.
 
 Auto Quant Research Workflow
 ====================================
