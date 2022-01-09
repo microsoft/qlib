@@ -44,6 +44,11 @@ class RollingBenchmark:
         with conf_path.open("r") as f:
             conf = yaml.safe_load(f)
 
+        # modify dataset horizon
+        conf["task"]["dataset"]["kwargs"]["handler"]["kwargs"]["label"] = [
+            "Ref($close, -{}) / Ref($close, -1) - 1".format(self.horizon + 1)
+        ]
+
         task = conf["task"]
 
         # if not h_path.exists():
