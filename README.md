@@ -51,12 +51,12 @@ For more details, please refer to our paper ["Qlib: An AI-oriented Quantitative 
   - [Data Preparation](#data-preparation)
   - [Auto Quant Research Workflow](#auto-quant-research-workflow)
   - [Building Customized Quant Research Workflow by Code](#building-customized-quant-research-workflow-by-code)
-- [Main Challenges & Solutions in Quant Research](#Main-Challenges-&-Solutions-in-Quant-Research)
-  - [Forecasting: Finding Valuable Signals/Patterns](##Forecasting:-Finding-valuable-signals/patterns)
-    - [**Quant Model (Paper) Zoo**](###Quant-Model-(Paper)-Zoo)
-      - [Run a Single Model](###run-a-single-model)
-      - [Run Multiple Models](###run-multiple-models)
-  - [Adapting to Market Dynamics](##Adapting-to-Market-Dynamics)
+- [Main Challenges & Solutions in Quant Research](#main-challenges--solutions-in-quant-research)
+  - [Forecasting: Finding Valuable Signals/Patterns](#forecasting-finding-valuable-signalspatterns)
+    - [**Quant Model (Paper) Zoo**](#quant-model-paper-zoo)
+      - [Run a Single Model](#run-a-single-model)
+      - [Run Multiple Models](#run-multiple-models)
+  - [Adapting to Market Dynamics](#adapting-to-market-dynamics)
 - [**Quant Dataset Zoo**](#quant-dataset-zoo)
 - [More About Qlib](#more-about-qlib)
 - [Offline Mode and Online Mode](#offline-mode-and-online-mode)
@@ -284,10 +284,15 @@ Qlib provides a tool named `qrun` to run the whole workflow automatically (inclu
 The automatic workflow may not suit the research workflow of all Quant researchers. To support a flexible Quant research workflow, Qlib also provides a modularized interface to allow researchers to build their own workflow by code. [Here](examples/workflow_by_code.ipynb) is a demo for customized Quant research workflow by code.
 
 # Main Challenges & Solutions in Quant Research
-TODO (describe challenges). The solutions can be split into two aspects, which are doing modification on the forecasting process and doing higher-level adaptation in dynamic environments. 
+Quant investment is an very unique scenario with lots of key challenges to be solved.
+Currently, Qlib provides some solutions for several of them.
 
 ## Forecasting: Finding Valuable Signals/Patterns
-By finding more valuable signals or patterns, the forecasting process can be improved. This goal can be achieved by switching to better forecasting models or applying model ensembles. `Qlib` has implemented multiple forecasting models to fit various scenarios.
+Accurate forecasting of the stock price trend is a very important part to construct profitable portfolios.
+However, huge amount of data with various formats in the financial market which make it challenging to build forecasting models.
+
+An increasing number of SOTA Quant research works/papers, which focus on building forecasting models to mine valuable signals/patterns in complex financial data, are released in `Qlib`
+
 
 ### [Quant Model (Paper) Zoo](examples/benchmarks)
 
@@ -339,7 +344,13 @@ python run_all_model.py run 10
 It also provides the API to run specific models at once. For more use cases, please refer to the file's [docstrings](examples/run_all_model.py). 
 
 ## [Adapting to Market Dynamics](examples/benchmarks_dynamic)
-Modeling the dynamics of the market is also a solution to improve forecasting performance. `Qlib` has provided examples to adapt to market dynamics. By modeling the future trend of the streaming data, the gap between the training data distribution and test data distribution can be narrowed, so that forecasting models can achieve better results.
+
+Due to the non-stationary nature of the environment of the financial market, the data distribution may change in different periods, which makes the performance of models build on training data decays in the future test data.
+So adapting the forecasting models/strategies to market dynamics is very important to the model/strategies' performance.
+
+Here is a list of solutions built on `Qlib`.
+- [Rolling Retraining](examples/benchmarks_dynamic/baseline/)
+- [DDG-DA on pytorch (Wendi, et al. AAAI 2022)](examples/benchmarks_dynamic/DDG-DA/)
 
 # Quant Dataset Zoo
 Dataset plays a very important role in Quant. Here is a list of the datasets built on `Qlib`:

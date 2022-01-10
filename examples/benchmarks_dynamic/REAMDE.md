@@ -1,10 +1,8 @@
 # Introduction
+Due to the non-stationary nature of the environment of the financial market, the data distribution may change in different periods, which makes the performance of models build on training data decays in the future test data.
+So adapting the forecasting models/strategies to market dynamics is very important to the model/strategies' performance.
 
-Due to the non-stationary nature of the environment, the data distribution may change in different periods. However, there are still many cases that some underlying factors of environment evolution are predictable, making it possible to model the future trend of the streaming data.
-
-Modeling the dynamics of the market is a very important problem in Quant research. On this page, we first provide the framework of periodically Rolling Retrain (RR) forecasting models so that forecasting models can learn up-to-date distributions when doing the forecasting process. Moreover, we implement a `Meta Model` module, `DDG-DA`, which effectively forecasts the evolution of data distribution and improves the performance of the RR forecasting models.
-
-The table below shows the performances of the original RR and `DDG-DA` on different forecasting models.
+The table below shows the performances of different solutions on different forecasting models.
 
 ## Alpha158 dataset
 

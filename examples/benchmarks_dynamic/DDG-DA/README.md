@@ -20,3 +20,8 @@ The default forecasting models are `Linear`. Users can choose other forecasting 
 ```bash
     python workflow.py --forecast_model="gbdt" run_all
 ```
+
+
+## Results
+
+The results of other methods in Qlib's public dataset can be found [here](../)
