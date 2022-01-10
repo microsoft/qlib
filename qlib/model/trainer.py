@@ -20,14 +20,12 @@ from tqdm.auto import tqdm
 from qlib.data.dataset import Dataset
 from qlib.log import get_module_logger
 from qlib.model.base import Model
-from qlib.utils import flatten_dict, get_callable_kwargs, init_instance_by_config
+from qlib.utils import flatten_dict, get_callable_kwargs, init_instance_by_config, auto_filter_kwargs, fill_placeholder
 from qlib.workflow import R
 from qlib.workflow.record_temp import SignalRecord
 from qlib.workflow.recorder import Recorder
 from qlib.workflow.task.manage import TaskManager, run_task
-
-
-# from qlib.data.dataset.weight import Reweighter
+from qlib.data.dataset.weight import Reweighter
 
 
 def _log_task_info(task_config: dict):
@@ -41,11 +39,9 @@ def _exe_task(task_config: dict):
     # model & dataset initiation
     model: Model = init_instance_by_config(task_config["model"])
     dataset: Dataset = init_instance_by_config(task_config["dataset"])
-    # FIXME: resume reweighter after merging data selection
-    # reweighter: Reweighter = task_config.get("reweighter", None)
+    reweighter: Reweighter = task_config.get("reweighter", None)
     # model training
-    # auto_filter_kwargs(model.fit)(dataset, reweighter=reweighter)
-    model.fit(dataset)
+    auto_filter_kwargs(model.fit)(dataset, reweighter=reweighter)
     R.save_objects(**{"params.pkl": model})
     # this dataset is saved for online inference. So the concrete data should not be dumped
     dataset.config(dump_all=False, recursive=True)
@@ -85,103 +81,6 @@ def begin_task_train(task_config: dict, experiment_name: str, recorder_name: str
     with R.start(experiment_name=experiment_name, recorder_name=recorder_name):
         _log_task_info(task_config)
         return R.get_recorder()
-
-
-def get_item_from_obj(config: dict, name_path: str) -> object:
-    """
-    Follow the name_path to get values from config
-    For example:
-    If we follow the example in in the Parameters section,
-        Timestamp('2008-01-02 00:00:00') will be returned
-
-    Parameters
-    ----------
-    config : dict
-        e.g.
-        {'dataset': {'class': 'DatasetH',
-          'kwargs': {'handler': {'class': 'Alpha158',
-                                 'kwargs': {'end_time': '2020-08-01',
-                                            'fit_end_time': '<dataset.kwargs.segments.train.1>',
-                                            'fit_start_time': '<dataset.kwargs.segments.train.0>',
-                                            'instruments': 'csi100',
-                                            'start_time': '2008-01-01'},
-                                 'module_path': 'qlib.contrib.data.handler'},
-                     'segments': {'test': (Timestamp('2017-01-03 00:00:00'),
-                                           Timestamp('2019-04-08 00:00:00')),
-                                  'train': (Timestamp('2008-01-02 00:00:00'),
-                                            Timestamp('2014-12-31 00:00:00')),
-                                  'valid': (Timestamp('2015-01-05 00:00:00'),
-                                            Timestamp('2016-12-30 00:00:00'))}}
-        }}
-    name_path : str
-        e.g.
-        "dataset.kwargs.segments.train.1"
-
-    Returns
-    -------
-    object
-        the retrieved object
-    """
-    cur_cfg = config
-    for k in name_path.split("."):
-        if isinstance(cur_cfg, dict):
-            cur_cfg = cur_cfg[k]
-        elif k.isdigit():
-            cur_cfg = cur_cfg[int(k)]
-        else:
-            raise ValueError(f"Error when getting {k} from cur_cfg")
-    return cur_cfg
-
-
-def fill_placeholder(config: dict, config_extend: dict):
-    """
-    Detect placeholder in config and fill them with config_extend.
-    The item of dict must be single item(int, str, etc), dict and list. Tuples are not supported.
-    There are two type of variables:
-    - user-defined variables :
-        e.g. when config_extend is `{"<MODEL>": model, "<DATASET>": dataset}`, "<MODEL>" and "<DATASET>" in `config` will be replaced with `model` `dataset`
-    - variables extracted from `config` :
-        e.g. the variables like "<dataset.kwargs.segments.train.0>" will be replaced with the values from `config`
-
-    Parameters
-    ----------
-    config : dict
-        the parameter dict will be filled
-    config_extend : dict
-        the value of all placeholders
-
-    Returns
-    -------
-    dict
-        the parameter dict
-    """
-    # check the format of config_extend
-    for placeholder in config_extend.keys():
-        assert re.match(r"<[^<>]+>", placeholder)
-
-    # bfs
-    top = 0
-    tail = 1
-    item_queue = [config]
-    while top < tail:
-        now_item = item_queue[top]
-        top += 1
-        if isinstance(now_item, list):
-            item_keys = range(len(now_item))
-        elif isinstance(now_item, dict):
-            item_keys = now_item.keys()
-        for key in item_keys:
-            if isinstance(now_item[key], list) or isinstance(now_item[key], dict):
-                item_queue.append(now_item[key])
-                tail += 1
-            elif isinstance(now_item[key], str):
-                if now_item[key] in config_extend.keys():
-                    now_item[key] = config_extend[now_item[key]]
-                else:
-                    m = re.match(r"<(?P<name_path>[^<>]+)>", now_item[key])
-                    if m is not None:
-                        now_item[key] = get_item_from_obj(config, m.groupdict()["name_path"])
-    return config
 
 
 def end_task_train(rec: Recorder, experiment_name: str) -> Recorder:
@@ -349,7 +248,7 @@ class TrainerR(Trainer):
         if experiment_name is None:
             experiment_name = self.experiment_name
         recs = []
-        for task in tqdm(tasks):
+        for task in tqdm(tasks, desc="train tasks"):
             rec = train_func(task, experiment_name, **kwargs)
             rec.set_tags(**{self.STATUS_KEY: self.STATUS_BEGIN})
             recs.append(rec)
@@ -606,13 +505,17 @@ class DelayTrainerRM(TrainerRM):
             tasks = [tasks]
         if len(tasks) == 0:
             return []
-        return super().train(
+        _skip_run_task = self.skip_run_task
+        self.skip_run_task = False  # The task preparation can't be skipped
+        res = super().train(
             tasks,
             train_func=train_func,
             experiment_name=experiment_name,
             after_status=TaskManager.STATUS_PART_DONE,
             **kwargs,
         )
+        self.skip_run_task = _skip_run_task
+        return res
 
     def end_train(self, recs, end_train_func=None, experiment_name: str = None, **kwargs) -> List[Recorder]:
         """

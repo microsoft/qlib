@@ -11,6 +11,7 @@
 Recent released features
 | Feature | Status |
 | --                      | ------    |
+| Meta-Learning-based framework & DDG-DA  | [Released](https://github.com/microsoft/qlib/pull/743) on Jan 10, 2022 | 
 | Planning-based portfolio optimization | [Released](https://github.com/microsoft/qlib/pull/754) on Dec 28, 2021 | 
 | Release Qlib v0.8.0 | [Released](https://github.com/microsoft/qlib/releases/tag/v0.8.0) on Dec 8, 2021 |
 | ADD model | [Released](https://github.com/microsoft/qlib/pull/704) on Nov 22, 2021 |
@@ -50,9 +51,12 @@ For more details, please refer to our paper ["Qlib: An AI-oriented Quantitative 
   - [Data Preparation](#data-preparation)
   - [Auto Quant Research Workflow](#auto-quant-research-workflow)
   - [Building Customized Quant Research Workflow by Code](#building-customized-quant-research-workflow-by-code)
-- [**Quant Model(Paper) Zoo**](#quant-model-paper-zoo)
-  - [Run a single model](#run-a-single-model)
-  - [Run multiple models](#run-multiple-models)
+- [Main Challenges & Solutions in Quant Research](#main-challenges--solutions-in-quant-research)
+  - [Forecasting: Finding Valuable Signals/Patterns](#forecasting-finding-valuable-signalspatterns)
+    - [**Quant Model (Paper) Zoo**](#quant-model-paper-zoo)
+      - [Run a Single Model](#run-a-single-model)
+      - [Run Multiple Models](#run-multiple-models)
+  - [Adapting to Market Dynamics](#adapting-to-market-dynamics)
 - [**Quant Dataset Zoo**](#quant-dataset-zoo)
 - [More About Qlib](#more-about-qlib)
 - [Offline Mode and Online Mode](#offline-mode-and-online-mode)
@@ -69,7 +73,6 @@ Your feedbacks about the features are very important.
 | --                      | ------    |
 | Point-in-Time database | Under review: https://github.com/microsoft/qlib/pull/343 |
 | Orderbook database | Under review: https://github.com/microsoft/qlib/pull/744 |
-| Meta-Learning-based data selection | Under review: https://github.com/microsoft/qlib/pull/743 |
 
 # Framework of Qlib
 
@@ -280,8 +283,18 @@ Qlib provides a tool named `qrun` to run the whole workflow automatically (inclu
 ## Building Customized Quant Research Workflow by Code
 The automatic workflow may not suit the research workflow of all Quant researchers. To support a flexible Quant research workflow, Qlib also provides a modularized interface to allow researchers to build their own workflow by code. [Here](examples/workflow_by_code.ipynb) is a demo for customized Quant research workflow by code.
 
+# Main Challenges & Solutions in Quant Research
+Quant investment is an very unique scenario with lots of key challenges to be solved.
+Currently, Qlib provides some solutions for several of them.
 
-# [Quant Model (Paper) Zoo](examples/benchmarks)
+## Forecasting: Finding Valuable Signals/Patterns
+Accurate forecasting of the stock price trend is a very important part to construct profitable portfolios.
+However, huge amount of data with various formats in the financial market which make it challenging to build forecasting models.
+
+An increasing number of SOTA Quant research works/papers, which focus on building forecasting models to mine valuable signals/patterns in complex financial data, are released in `Qlib`
+
+
+### [Quant Model (Paper) Zoo](examples/benchmarks)
 
 Here is a list of models built on `Qlib`.
 - [GBDT based on XGBoost (Tianqi Chen, et al. KDD 2016)](examples/benchmarks/XGBoost/)
@@ -308,7 +321,7 @@ Your PR of new Quant models is highly welcomed.
 
 The performance of each model on the `Alpha158` and `Alpha360` dataset can be found [here](examples/benchmarks/README.md).
 
-## Run a single model
+### Run a single model
 All the models listed above are runnable with ``Qlib``. Users can find the config files we provide and some details about the model through the [benchmarks](examples/benchmarks) folder. More information can be retrieved at the model files listed above.
 
 `Qlib` provides three different ways to run a single model, users can pick the one that fits their cases best:
@@ -318,7 +331,7 @@ All the models listed above are runnable with ``Qlib``. Users can find the confi
 - Users can use the script [`run_all_model.py`](examples/run_all_model.py) listed in the `examples` folder to run a model. Here is an example of the specific shell command to be used: `python run_all_model.py run --models=lightgbm`, where the `--models` arguments can take any number of models listed above(the available models can be found  in [benchmarks](examples/benchmarks/)). For more use cases, please refer to the file's [docstrings](examples/run_all_model.py).
     - **NOTE**: Each baseline has different environment dependencies, please make sure that your python version aligns with the requirements(e.g. TFT only supports Python 3.6~3.7 due to the limitation of `tensorflow==1.15.0`)
 
-## Run multiple models
+### Run multiple models
 `Qlib` also provides a script [`run_all_model.py`](examples/run_all_model.py) which can run multiple models for several iterations. (**Note**: the script only support *Linux* for now. Other OS will be supported in the future. Besides, it doesn't support parallel running the same model for multiple times as well, and this will be fixed in the future development too.)
 
 The script will create a unique virtual environment for each model, and delete the environments after training. Thus, only experiment results such as `IC` and `backtest` results will be generated and stored.
@@ -330,6 +343,14 @@ python run_all_model.py run 10
 
 It also provides the API to run specific models at once. For more use cases, please refer to the file's [docstrings](examples/run_all_model.py). 
 
+## [Adapting to Market Dynamics](examples/benchmarks_dynamic)
+
+Due to the non-stationary nature of the environment of the financial market, the data distribution may change in different periods, which makes the performance of models build on training data decays in the future test data.
+So adapting the forecasting models/strategies to market dynamics is very important to the model/strategies' performance.
+
+Here is a list of solutions built on `Qlib`.
+- [Rolling Retraining](examples/benchmarks_dynamic/baseline/)
+- [DDG-DA on pytorch (Wendi, et al. AAAI 2022)](examples/benchmarks_dynamic/DDG-DA/)
 
 # Quant Dataset Zoo
 Dataset plays a very important role in Quant. Here is a list of the datasets built on `Qlib`:

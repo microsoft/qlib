@@ -2,6 +2,8 @@
 # Licensed under the MIT License.
 
 import abc
+import pickle
+from pathlib import Path
 import warnings
 import pandas as pd
 
@@ -10,6 +12,7 @@ from typing import Tuple, Union, List
 from qlib.data import D
 from qlib.utils import load_dataset, init_instance_by_config, time_to_slc_point
 from qlib.log import get_module_logger
+from qlib.utils.serial import Serializable
 
 
 class DataLoader(abc.ABC):
@@ -216,12 +219,14 @@ class QlibDataLoader(DLWParser):
         return df
 
 
-class StaticDataLoader(DataLoader):
+class StaticDataLoader(DataLoader, Serializable):
     """
     DataLoader that supports loading data from file or as provided.
     """
 
-    def __init__(self, config: dict, join="outer"):
+    include_attr = ["_config"]
+
+    def __init__(self, config: Union[dict, str], join="outer"):
         """
         Parameters
         ----------
@@ -230,7 +235,7 @@ class StaticDataLoader(DataLoader):
         join : str
             How to align different dataframes
         """
-        self.config = config
+        self._config = config  # using "_" to avoid confliction with the method `config` of Serializable
         self.join = join
         self._data = None
 
@@ -254,12 +259,16 @@ class StaticDataLoader(DataLoader):
     def _maybe_load_raw_data(self):
         if self._data is not None:
             return
-        self._data = pd.concat(
-            {fields_group: load_dataset(path_or_obj) for fields_group, path_or_obj in self.config.items()},
-            axis=1,
-            join=self.join,
-        )
-        self._data.sort_index(inplace=True)
+        if isinstance(self._config, dict):
+            self._data = pd.concat(
+                {fields_group: load_dataset(path_or_obj) for fields_group, path_or_obj in self._config.items()},
+                axis=1,
+                join=self.join,
+            )
+            self._data.sort_index(inplace=True)
+        elif isinstance(self._config, (str, Path)):
+            with Path(self._config).open("rb") as f:
+                self._data = pickle.load(f)
 
 
 class DataLoaderDH(DataLoader):

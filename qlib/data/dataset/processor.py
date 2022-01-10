@@ -6,6 +6,7 @@ from typing import Union, Text
 import numpy as np
 import pandas as pd
 
+from qlib.utils.data import robust_zscore, zscore
 from ...constant import EPS
 from .utils import fetch_df_by_index
 from ...utils.serial import Serializable
@@ -293,14 +294,22 @@ class RobustZScoreNorm(Processor):
 class CSZScoreNorm(Processor):
     """Cross Sectional ZScore Normalization"""
 
-    def __init__(self, fields_group=None):
+    def __init__(self, fields_group=None, method="zscore"):
         self.fields_group = fields_group
+        if method == "zscore":
+            self.zscore_func = zscore
+        elif method == "robust":
+            self.zscore_func = robust_zscore
+        else:
+            raise NotImplementedError(f"This type of input is not supported")
 
     def __call__(self, df):
         # try not modify original dataframe
-        cols = get_group_columns(df, self.fields_group)
-        df[cols] = df[cols].groupby("datetime").apply(lambda x: (x - x.mean()).div(x.std()))
-
+        if not isinstance(self.fields_group, list):
+            self.fields_group = [self.fields_group]
+        for g in self.fields_group:
+            cols = get_group_columns(df, g)
+            df[cols] = df[cols].groupby("datetime").apply(self.zscore_func)
         return df
 
 
