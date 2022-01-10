@@ -8,7 +8,7 @@ Meta Controller: Meta-Task & Meta-Dataset & Meta-Model
 
 Introduction
 =============
-TODO: Add introduction.
+``Meta Controller`` provides guidance to ``Forecast Model``, which aims to learn regular patterns among a series of forecasting tasks and use learned patterns to guide forthcoming forecasting tasks. Users can implement their own meta-model instance based on ``Meta Controller`` module.
 
 Meta Task
 =============
@@ -51,3 +51,16 @@ This type of meta-model participates in the training process of the base forecas
 
 .. autoclass:: qlib.model.meta.model.MetaGuideModel
     :members:
+
+
+Example
+=============
+``Qlib`` provides an implementation of ``Meta Model`` module, ``DDG-DA``, 
+which adapts to the market dynamics. 
+
+``DDG-DA`` includes four steps:
+
+1. Calculate meta-information and encapsulate it into ``Meta Task`` instances. All the meta-tasks form a ``Meta Dataset`` instance.
+2. Train ``DDG-DA`` based on the training data of the meta-dataset.
+3. Do the inference of the ``DDG-DA`` to get guide information.
+4. Apply guide information to the forecasting models to improve their performances.
