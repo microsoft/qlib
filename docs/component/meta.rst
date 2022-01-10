@@ -64,3 +64,5 @@ which adapts to the market dynamics.
 2. Train ``DDG-DA`` based on the training data of the meta-dataset.
 3. Do the inference of the ``DDG-DA`` to get guide information.
 4. Apply guide information to the forecasting models to improve their performances.
+
+The above example has been given in ``examples/benchmarks_dynamic/DDG-DA/workflow.py``.
