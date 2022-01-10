@@ -177,11 +177,6 @@ class MetaTaskDS(MetaTask):
                 )
             )
 
-            # debug: record the test period of the current meta-task instance
-            self.test_period = (
-                d_test["feature"].index.get_level_values("datetime")[0],
-                d_test["feature"].index.get_level_values("datetime")[-1],
-            )
         # TODO: set device: I think this is not necessary to converting data format.
         self.processed_meta_input = data_to_tensor(self.processed_meta_input)
 

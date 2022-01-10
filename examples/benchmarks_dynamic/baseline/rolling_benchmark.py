@@ -35,10 +35,10 @@ class RollingBenchmark:
         if self.model_type == "gbdt":
             conf_path = DIRNAME.parent.parent / "benchmarks" / "LightGBM" / "workflow_config_lightgbm_Alpha158.yaml"
             # dump the processed data on to disk for later loading to speed up the processing
-            h_path = DIRNAME / "lightgbm_alpha158_handler.pkl"
+            h_path = DIRNAME / "lightgbm_alpha158_handler_horizon{}.pkl".format(self.horizon)
         elif self.model_type == "linear":
             conf_path = DIRNAME.parent.parent / "benchmarks" / "Linear" / "workflow_config_linear_Alpha158.yaml"
-            h_path = DIRNAME / "linear_alpha158_handler.pkl"
+            h_path = DIRNAME / "linear_alpha158_handler_horizon{}.pkl".format(self.horizon)
         else:
             raise AssertionError("Model type is not supported!")
         with conf_path.open("r") as f:
@@ -51,10 +51,10 @@ class RollingBenchmark:
 
         task = conf["task"]
 
-        # if not h_path.exists():
-        h_conf = task["dataset"]["kwargs"]["handler"]
-        h = init_instance_by_config(h_conf)
-        h.to_pickle(h_path, dump_all=True)
+        if not h_path.exists():
+            h_conf = task["dataset"]["kwargs"]["handler"]
+            h = init_instance_by_config(h_conf)
+            h.to_pickle(h_path, dump_all=True)
 
         task["dataset"]["kwargs"]["handler"] = f"file://{h_path}"
         task["record"] = ["qlib.workflow.record_temp.SignalRecord"]

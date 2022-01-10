@@ -151,7 +151,7 @@ class DDGDA:
         kwargs = dict(
             task_tpl=proxy_forecast_model_task,
             step=self.step,
-            segments=0.62,
+            segments=0.62,  # keep test period consistent with the dataset yaml
             trunc_days=1 + self.horizon,
             hist_step_n=30,
             fill_method="max",

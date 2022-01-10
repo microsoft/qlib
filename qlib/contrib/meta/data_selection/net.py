@@ -11,7 +11,7 @@ from .utils import preds_to_weight_with_clamp, SingleMetaBase
 
 class TimeWeightMeta(SingleMetaBase):
     def __init__(self, hist_step_n, clip_weight=None, clip_method="clamp"):
-        # method 可以选 tanh 或者 clamp
+        # clip_method includes "tanh" or "clamp"
         super().__init__(hist_step_n, clip_weight, clip_method)
         self.linear = nn.Linear(hist_step_n, 1)
         self.k = nn.Parameter(torch.Tensor([8.0]))
@@ -22,13 +22,11 @@ class TimeWeightMeta(SingleMetaBase):
         time_perf = time_perf.reshape(hist_step_n, time_perf.shape[0] // hist_step_n, *time_perf.shape[1:])
         time_perf = torch.mean(time_perf, dim=1, keepdim=False)
 
-        # time_perf的格式和其他的有一些不一样
-        # 需要自己拆出train和test
         preds = []
         for i in range(time_perf.shape[1]):
             preds.append(self.linear(time_perf[:, i]))
         preds = torch.cat(preds)
-        preds = preds - torch.mean(preds)  # 这里注意一下不要引入未来信息
+        preds = preds - torch.mean(preds)  # avoid using future information
         preds = preds * self.k
         if return_preds:
             if time_belong is None:

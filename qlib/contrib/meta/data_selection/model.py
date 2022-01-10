@@ -64,7 +64,7 @@ class MetaModelDS(MetaTaskModel):
         self.lr = lr
         self.max_epoch = max_epoch
         self.fitted = False
-        torch.manual_seed(43)
+        torch.manual_seed(seed)
 
     def run_epoch(self, phase, task_list, epoch, opt, loss_l, ignore_weight=False):
         if phase == "train":
@@ -144,7 +144,7 @@ class MetaModelDS(MetaTaskModel):
 
         if len(meta_tasks_l[1]):
             R.log_params(
-                **dict(proxy_test_begin=meta_tasks_l[1][0].test_period)
+                **dict(proxy_test_begin=meta_tasks_l[1][0].task["dataset"]["kwargs"]["segments"]["test"])
             )  # debug: record when the test phase starts
 
         self.tn = PredNet(
