@@ -16,3 +16,5 @@ The table below shows the performances of the original RR and `DDG-DA` on differ
 | DDG-DA[LightGBM] |Alpha158 |0.084|0.639|0.093    |0.664      |0.099              |1.442              |-0.071        |
 
 - The label horizon of the `Alpha158` dataset is set to 20.
+- The rolling time intervals are set to 20 trading days.
+- The test rolling periods are from January 2017 to August 2020.

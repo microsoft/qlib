@@ -51,13 +51,12 @@ For more details, please refer to our paper ["Qlib: An AI-oriented Quantitative 
   - [Data Preparation](#data-preparation)
   - [Auto Quant Research Workflow](#auto-quant-research-workflow)
   - [Building Customized Quant Research Workflow by Code](#building-customized-quant-research-workflow-by-code)
-- [ Main Challenges & Solution in Quant Research ]
-  - [Forecasting: Finding valuable signals/patterns]
-    - [**Quant Model(Paper) Zoo**](#quant-model-paper-zoo)
-      - [Run a single model](#run-a-single-model)
-      - [Run multiple models](#run-multiple-models)
-  - [Adapting to market dynamics]
-    - RR & DDG-DA
+- [Main Challenges & Solutions in Quant Research](#Main-Challenges-&-Solutions-in-Quant-Research)
+  - [Forecasting: Finding Valuable Signals/Patterns](##Forecasting:-Finding-valuable-signals/patterns)
+    - [**Quant Model (Paper) Zoo**](###Quant-Model-(Paper)-Zoo)
+      - [Run a Single Model](###run-a-single-model)
+      - [Run Multiple Models](###run-multiple-models)
+  - [Adapting to Market Dynamics](##Adapting-to-Market-Dynamics)
 - [**Quant Dataset Zoo**](#quant-dataset-zoo)
 - [More About Qlib](#more-about-qlib)
 - [Offline Mode and Online Mode](#offline-mode-and-online-mode)
@@ -284,8 +283,13 @@ Qlib provides a tool named `qrun` to run the whole workflow automatically (inclu
 ## Building Customized Quant Research Workflow by Code
 The automatic workflow may not suit the research workflow of all Quant researchers. To support a flexible Quant research workflow, Qlib also provides a modularized interface to allow researchers to build their own workflow by code. [Here](examples/workflow_by_code.ipynb) is a demo for customized Quant research workflow by code.
 
+# Main Challenges & Solutions in Quant Research
+TODO (describe challenges). The solutions can be split into two aspects, which are doing modification on the forecasting process and doing higher-level adaptation in dynamic environments. 
 
-# [Quant Model (Paper) Zoo](examples/benchmarks)
+## Forecasting: Finding Valuable Signals/Patterns
+By finding more valuable signals or patterns, the forecasting process can be improved. This goal can be achieved by switching to better forecasting models or applying model ensembles. `Qlib` has implemented multiple forecasting models to fit various scenarios.
+
+### [Quant Model (Paper) Zoo](examples/benchmarks)
 
 Here is a list of models built on `Qlib`.
 - [GBDT based on XGBoost (Tianqi Chen, et al. KDD 2016)](examples/benchmarks/XGBoost/)
@@ -312,7 +316,7 @@ Your PR of new Quant models is highly welcomed.
 
 The performance of each model on the `Alpha158` and `Alpha360` dataset can be found [here](examples/benchmarks/README.md).
 
-## Run a single model
+### Run a single model
 All the models listed above are runnable with ``Qlib``. Users can find the config files we provide and some details about the model through the [benchmarks](examples/benchmarks) folder. More information can be retrieved at the model files listed above.
 
 `Qlib` provides three different ways to run a single model, users can pick the one that fits their cases best:
@@ -322,7 +326,7 @@ All the models listed above are runnable with ``Qlib``. Users can find the confi
 - Users can use the script [`run_all_model.py`](examples/run_all_model.py) listed in the `examples` folder to run a model. Here is an example of the specific shell command to be used: `python run_all_model.py run --models=lightgbm`, where the `--models` arguments can take any number of models listed above(the available models can be found  in [benchmarks](examples/benchmarks/)). For more use cases, please refer to the file's [docstrings](examples/run_all_model.py).
     - **NOTE**: Each baseline has different environment dependencies, please make sure that your python version aligns with the requirements(e.g. TFT only supports Python 3.6~3.7 due to the limitation of `tensorflow==1.15.0`)
 
-## Run multiple models
+### Run multiple models
 `Qlib` also provides a script [`run_all_model.py`](examples/run_all_model.py) which can run multiple models for several iterations. (**Note**: the script only support *Linux* for now. Other OS will be supported in the future. Besides, it doesn't support parallel running the same model for multiple times as well, and this will be fixed in the future development too.)
 
 The script will create a unique virtual environment for each model, and delete the environments after training. Thus, only experiment results such as `IC` and `backtest` results will be generated and stored.
@@ -334,6 +338,8 @@ python run_all_model.py run 10
 
 It also provides the API to run specific models at once. For more use cases, please refer to the file's [docstrings](examples/run_all_model.py). 
 
+## [Adapting to Market Dynamics](examples/benchmarks_dynamic)
+Modeling the dynamics of the market is also a solution to improve forecasting performance. `Qlib` has provided examples to adapt to market dynamics. By modeling the future trend of the streaming data, the gap between the training data distribution and test data distribution can be narrowed, so that forecasting models can achieve better results.
 
 # Quant Dataset Zoo
 Dataset plays a very important role in Quant. Here is a list of the datasets built on `Qlib`:
