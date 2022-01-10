@@ -9,6 +9,7 @@ from pathlib import Path
 from tqdm.auto import tqdm
 from qlib.model.trainer import TrainerR
 from qlib.workflow import R
+from qlib.tests.data import GetData
 
 DIRNAME = Path(__file__).absolute().resolve().parent
 from qlib.workflow.task.gen import task_generator, RollingGen
@@ -108,5 +109,6 @@ class RollingBenchmark:
 
 
 if __name__ == "__main__":
+    GetData().qlib_data(exists_skip=True)
     auto_init()
     fire.Fire(RollingBenchmark)

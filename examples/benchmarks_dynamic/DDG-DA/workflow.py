@@ -17,6 +17,7 @@ from qlib.model.trainer import TrainerR, task_train
 from qlib.utils import init_instance_by_config
 from qlib.workflow.task.gen import RollingGen, task_generator
 from qlib.workflow import R
+from qlib.tests.data import GetData
 
 DIRNAME = Path(__file__).absolute().resolve().parent
 sys.path.append(str(DIRNAME.parent / "baseline"))
@@ -252,5 +253,6 @@ class DDGDA:
 
 
 if __name__ == "__main__":
+    GetData().qlib_data(exists_skip=True)
     auto_init()
     fire.Fire(DDGDA)

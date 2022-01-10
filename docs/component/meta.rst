@@ -65,4 +65,4 @@ which adapts to the market dynamics.
 3. Do the inference of the ``DDG-DA`` to get guide information.
 4. Apply guide information to the forecasting models to improve their performances.
 
-The above example has been given in ``examples/benchmarks_dynamic/DDG-DA/workflow.py``.
+The `above example <https://github.com/microsoft/qlib/tree/main/examples/benchmarks_dynamic/DDG-DA>`_ can be found in ``examples/benchmarks_dynamic/DDG-DA/workflow.py``.
