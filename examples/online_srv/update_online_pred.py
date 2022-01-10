@@ -10,7 +10,7 @@ Next, we will finish updating online predictions.
 import copy
 import fire
 import qlib
-from qlib.config import REG_CN
+from qlib.constant import REG_CN
 from qlib.model.trainer import task_train
 from qlib.workflow.online.utils import OnlineToolR
 from qlib.tests.config import CSI300_GBDT_TASK

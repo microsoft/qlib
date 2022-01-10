@@ -5,16 +5,12 @@ import abc
 from typing import Union, Text
 import numpy as np
 import pandas as pd
-import copy
 
 from qlib.utils.data import robust_zscore, zscore
-
-from ...log import TimeInspector
+from ...constant import EPS
 from .utils import fetch_df_by_index
 from ...utils.serial import Serializable
 from ...utils.paral import datetime_groupby_apply
-
-EPS = 1e-12
 
 
 def get_group_columns(df: pd.DataFrame, group: Union[Text, None]):
