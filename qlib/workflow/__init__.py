@@ -8,6 +8,7 @@ from .exp import Experiment
 from .recorder import Recorder
 from ..utils import Wrapper
 from ..utils.exceptions import RecorderInitializationError
+from qlib.config import C
 
 
 class QlibRecorder:
@@ -351,7 +352,7 @@ class QlibRecorder:
     @contextmanager
     def uri_context(self, uri: Text):
         """
-        Temporarily set the exp_manager's uri to uri
+        Temporarily set the exp_manager's **default_uri** to uri
 
         NOTE:
         - Please refer to the NOTE in the `set_uri`
@@ -361,12 +362,12 @@ class QlibRecorder:
         uri : Text
             the temporal uri
         """
-        prev_uri = self.exp_manager._current_uri
-        self.exp_manager.set_uri(uri)
+        prev_uri = self.exp_manager.default_uri
+        C.exp_manager["kwargs"]["uri"] = uri
         try:
             yield
         finally:
-            self.exp_manager.set_uri(prev_uri)
+            C.exp_manager["kwargs"]["uri"] = prev_uri
 
     def get_recorder(
         self,

@@ -353,6 +353,8 @@ class MLflowExpManager(ExpManager):
         if self.active_experiment is not None:
             self.active_experiment.end(recorder_status)
             self.active_experiment = None
+        # When an experiment end, we will release the current uri.
+        self._current_uri = None
 
     def create_exp(self, experiment_name: Optional[Text] = None):
         assert experiment_name is not None
