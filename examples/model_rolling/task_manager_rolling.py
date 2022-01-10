@@ -11,7 +11,7 @@ from pprint import pprint
 
 import fire
 import qlib
-from qlib.config import REG_CN
+from qlib.constant import REG_CN
 from qlib.workflow import R
 from qlib.workflow.task.gen import RollingGen, task_generator
 from qlib.workflow.task.manage import TaskManager, run_task

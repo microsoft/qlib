@@ -22,6 +22,8 @@ from pathlib import Path
 from typing import Optional, Union
 from typing import TYPE_CHECKING
 
+from qlib.constant import REG_CN, REG_US
+
 if TYPE_CHECKING:
     from qlib.utils.time import Freq
 
@@ -73,10 +75,6 @@ class Config:
     def set_conf_from_C(self, config_c):
         self.update(**config_c.__dict__["_config"])
 
-
-# REGION CONST
-REG_CN = "cn"
-REG_US = "us"
 
 # pickle.dump protocol version: https://docs.python.org/3/library/pickle.html#data-stream-format
 PROTOCOL_VERSION = 4

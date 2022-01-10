@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+from qlib.constant import EPS
 from qlib.data.dataset.processor import Processor
 from qlib.data.dataset.utils import fetch_df_by_index
 
@@ -27,7 +28,7 @@ class HighFreqNorm(Processor):
                 part_values = np.log1p(part_values)
             self.feature_med[name] = np.nanmedian(part_values)
             part_values = part_values - self.feature_med[name]
-            self.feature_std[name] = np.nanmedian(np.absolute(part_values)) * 1.4826 + 1e-12
+            self.feature_std[name] = np.nanmedian(np.absolute(part_values)) * 1.4826 + EPS
             part_values = part_values / self.feature_std[name]
             self.feature_vmax[name] = np.nanmax(part_values)
             self.feature_vmin[name] = np.nanmin(part_values)
