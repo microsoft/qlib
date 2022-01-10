@@ -51,3 +51,32 @@ class TestAutoData(unittest.TestCase):
             dataset_cache=None,
             **cls._setup_kwargs,
         )
+
+
+class TestOperatorData(TestAutoData):
+    @classmethod
+    def setUpClass(cls, enable_1d_type="simple", enable_1min=False) -> None:
+        from qlib.data.filter import NameDFilter
+        from qlib.data import D
+        from qlib.data.data import Cal, DatasetD
+
+        # use default data
+        super().setUpClass(enable_1d_type, enable_1min)
+        nameDFilter = NameDFilter(name_rule_re="SH600110")
+        instruments = D.instruments("csi300", filter_pipe=[nameDFilter])
+        start_time = "2005-01-04"
+        end_time = "2005-12-31"
+        freq = "day"
+
+        instruments_d = DatasetD.get_instruments_d(instruments, freq)
+        cls.instruments_d = instruments_d
+        cal = Cal.calendar(start_time, end_time, freq)
+        cls.cal = cal
+        cls.start_time = cal[0]
+        cls.end_time = cal[-1]
+        cls.inst = list(instruments_d.keys())[0]
+        cls.spans = list(instruments_d.values())[0]
+
+    def setUp(self) -> None:
+        self.assertEqual(len(self.instruments_d), 1)
+        self.assertGreater(len(self.cal), 0)
