@@ -24,4 +24,4 @@ The default forecasting models are `Linear`. Users can choose other forecasting 
 
 ## Results
 
-The results of other methods in Qlib's public dataset can be found [here](../)
+The results of related methods in Qlib's public dataset can be found [here](../)
