@@ -5,9 +5,14 @@ from qlib.tests import TestOperatorData
 from qlib.config import C
 
 
+class TestOperatorDataSetting(TestOperatorData):
+    def test_setting(self):
+        self.assertEqual(len(self.instruments_d), 1)
+        self.assertGreater(len(self.cal), 0)
+
+
 class TestElementOperator(TestOperatorData):
     def setUp(self) -> None:
-        super().setUp()
         freq = "day"
         expressions = [
             "$change",
