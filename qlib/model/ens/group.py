@@ -107,6 +107,8 @@ class RollingGroup(Group):
         for key, values in rolling_dict.items():
             if isinstance(key, tuple):
                 grouped_dict.setdefault(key[:-1], {})[key[-1]] = values
+            else:
+                raise TypeError(f"Expected `tuple` type, but got a value `{key}`")
         return grouped_dict
 
     def __init__(self, ens=RollingEnsemble()):

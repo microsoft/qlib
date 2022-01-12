@@ -4,7 +4,7 @@
 About the configs
 =================
 
-The config will based on _default_config.
+The config will be based on _default_config.
 Two modes are supported
 - client
 - server
@@ -22,13 +22,15 @@ from pathlib import Path
 from typing import Optional, Union
 from typing import TYPE_CHECKING
 
+from qlib.constant import REG_CN, REG_US
+
 if TYPE_CHECKING:
     from qlib.utils.time import Freq
 
 
 class Config:
     def __init__(self, default_conf):
-        self.__dict__["_default_config"] = copy.deepcopy(default_conf)  # avoiding conflictions with __getattr__
+        self.__dict__["_default_config"] = copy.deepcopy(default_conf)  # avoiding conflicts with __getattr__
         self.reset()
 
     def __getitem__(self, key):
@@ -73,10 +75,6 @@ class Config:
     def set_conf_from_C(self, config_c):
         self.update(**config_c.__dict__["_config"])
 
-
-# REGION CONST
-REG_CN = "cn"
-REG_US = "us"
 
 # pickle.dump protocol version: https://docs.python.org/3/library/pickle.html#data-stream-format
 PROTOCOL_VERSION = 4
@@ -374,10 +372,10 @@ class QlibConfig(Config):
         """
         configure qlib based on the input parameters
 
-        The configure will act like a dictionary.
+        The configuration will act like a dictionary.
 
-        Normally, it literally replace the value according to the keys.
-        However, sometimes it is hard for users to set the config when the configure is nested and complicated
+        Normally, it literally is replaced the value according to the keys.
+        However, sometimes it is hard for users to set the config when the configuration is nested and complicated
 
         So this API provides some special parameters for users to set the keys in a more convenient way.
         - region:  REG_CN, REG_US

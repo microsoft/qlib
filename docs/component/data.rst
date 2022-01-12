@@ -219,7 +219,7 @@ The `trade unit` defines the unit number of stocks can be used in a trade, and t
         
         .. code-block:: python
 
-            from qlib.config import REG_CN
+            from qlib.constant import REG_CN
             qlib.init(provider_uri='~/.qlib/qlib_data/cn_data', region=REG_CN)
         
 

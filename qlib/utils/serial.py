@@ -11,23 +11,41 @@ from ..config import C
 class Serializable:
     """
     Serializable will change the behaviors of pickle.
-    - It only saves the state whose name **does not** start with `_`
+
+        The rule to tell if a attribute will be kept or dropped when dumping.
+        The rule with higher priorities is on the top
+        - in the config attribute list -> always dropped
+        - in the include attribute list -> always kept
+        - in the exclude attribute list -> always dropped
+        - name not starts with `_` -> kept
+        - name starts with `_` -> kept if `dump_all` is true else dropped
+
     It provides a syntactic sugar for distinguish the attributes which user doesn't want.
     - For examples, a learnable Datahandler just wants to save the parameters without data when dumping to disk
     """
 
     pickle_backend = "pickle"  # another optional value is "dill" which can pickle more things of python.
     default_dump_all = False  # if dump all things
+    config_attr = ["_include", "_exclude"]
+    exclude_attr = []  # exclude_attr have lower priorities than `self._exclude`
+    include_attr = []  # include_attr have lower priorities then `self._include`
     FLAG_KEY = "_qlib_serial_flag"
 
     def __init__(self):
         self._dump_all = self.default_dump_all
-        self._exclude = []
+        self._exclude = None  # this attribute have higher priorities than `exclude_attr`
+
+    def _is_kept(self, key):
+        if key in self.config_attr:
+            return False
+        if key in self._get_attr_list("include"):
+            return True
+        if key in self._get_attr_list("exclude"):
+            return False
+        return self.dump_all or not key.startswith("_")
 
     def __getstate__(self) -> dict:
-        return {
-            k: v for k, v in self.__dict__.items() if k not in self.exclude and (self.dump_all or not k.startswith("_"))
-        }
+        return {k: v for k, v in self.__dict__.items() if self._is_kept(k)}
 
     def __setstate__(self, state: dict):
         self.__dict__.update(state)
@@ -39,52 +57,77 @@ class Serializable:
         """
         return getattr(self, "_dump_all", False)
 
-    @property
-    def exclude(self):
+    def _get_attr_list(self, attr_type: str) -> list:
         """
-        What attribute will not be dumped
-        """
-        return getattr(self, "_exclude", [])
+        What attribute will not be in specific list
 
-    def config(self, dump_all: bool = None, exclude: list = None, recursive=False):
+        Parameters
+        ----------
+        attr_type : str
+            "include" or "exclude"
+
+        Returns
+        -------
+        list:
+        """
+        if hasattr(self, f"_{attr_type}"):
+            res = getattr(self, f"_{attr_type}", [])
+        else:
+            res = getattr(self.__class__, f"{attr_type}_attr", [])
+        if res is None:
+            return []
+        return res
+
+    def config(self, recursive=False, **kwargs):
         """
         configure the serializable object
 
         Parameters
         ----------
-        dump_all : bool
-            will the object dump all object
-        exclude : list
-            What attribute will not be dumped
+        kwargs may include following keys
+
+            dump_all : bool
+                will the object dump all object
+            exclude : list
+                What attribute will not be dumped
+            include : list
+                What attribute will be dumped
+
         recursive : bool
             will the configuration be recursive
         """
-
-        params = {"dump_all": dump_all, "exclude": exclude}
-
-        for k, v in params.items():
-            if v is not None:
+        keys = {"dump_all", "exclude", "include"}
+        for k, v in kwargs.items():
+            if k in keys:
                 attr_name = f"_{k}"
                 setattr(self, attr_name, v)
+            else:
+                raise KeyError(f"Unknown parameter: {k}")
 
         if recursive:
             for obj in self.__dict__.values():
                 # set flag to prevent endless loop
                 self.__dict__[self.FLAG_KEY] = True
                 if isinstance(obj, Serializable) and self.FLAG_KEY not in obj.__dict__:
-                    obj.config(**params, recursive=True)
+                    obj.config(recursive=True, **kwargs)
                 del self.__dict__[self.FLAG_KEY]
 
-    def to_pickle(self, path: Union[Path, str], dump_all: bool = None, exclude: list = None):
+    def to_pickle(self, path: Union[Path, str], **kwargs):
         """
         Dump self to a pickle file.
 
-        Args:
-            path (Union[Path, str]): the path to dump
-            dump_all (bool, optional): if need to dump all things. Defaults to None.
-            exclude (list, optional): will exclude the attributes in this list when dumping. Defaults to None.
+        path (Union[Path, str]): the path to dump
+
+        kwargs may include following keys
+
+            dump_all : bool
+                will the object dump all object
+            exclude : list
+                What attribute will not be dumped
+            include : list
+                What attribute will be dumped
         """
-        self.config(dump_all=dump_all, exclude=exclude)
+        self.config(**kwargs)
         with Path(path).open("wb") as f:
             # pickle interface like backend; such as dill
             self.get_backend().dump(self, f, protocol=C.dump_protocol_version)

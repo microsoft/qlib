@@ -14,7 +14,8 @@ import numpy as np
 import pandas as pd
 
 from ..data.data import D
-from ..config import C, REG_CN
+from ..config import C
+from ..constant import REG_CN
 from ..log import get_module_logger
 from .decision import Order, OrderDir, OrderHelper
 from .high_performance_ds import BaseQuote, PandasQuote, NumpyQuote

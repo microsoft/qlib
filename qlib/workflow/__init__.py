@@ -2,12 +2,13 @@
 # Licensed under the MIT License.
 
 from contextlib import contextmanager
-from typing import Any, Dict, Text, Optional
+from typing import Text, Optional, Any, Dict, Text, Optional
 from .expm import ExpManager
 from .exp import Experiment
 from .recorder import Recorder
 from ..utils import Wrapper
 from ..utils.exceptions import RecorderInitializationError
+from qlib.config import C
 
 
 class QlibRecorder:
@@ -15,7 +16,7 @@ class QlibRecorder:
     A global system that helps to manage the experiments.
     """
 
-    def __init__(self, exp_manager):
+    def __init__(self, exp_manager: ExpManager):
         self.exp_manager: ExpManager = exp_manager
 
     def __repr__(self):
@@ -81,7 +82,14 @@ class QlibRecorder:
         self.end_exp(Recorder.STATUS_FI)
 
     def start_exp(
-        self, *, experiment_id=None, experiment_name=None, recorder_id=None, recorder_name=None, uri=None, resume=False
+        self,
+        *,
+        experiment_id=None,
+        experiment_name=None,
+        recorder_id=None,
+        recorder_name=None,
+        uri=None,
+        resume=False,
     ):
         """
         Lower level method for starting an experiment. When use this method, one should end the experiment manually
@@ -289,7 +297,10 @@ class QlibRecorder:
         An experiment instance with given id or name.
         """
         return self.exp_manager.get_exp(
-            experiment_id=experiment_id, experiment_name=experiment_name, create=create, start=False
+            experiment_id=experiment_id,
+            experiment_name=experiment_name,
+            create=create,
+            start=False,
         )
 
     def delete_exp(self, experiment_id=None, experiment_name=None):
@@ -331,13 +342,17 @@ class QlibRecorder:
     def set_uri(self, uri: Optional[Text]):
         """
         Method to reset the current uri of current experiment manager.
+
+        NOTE:
+        - When the uri is refer to a file path, please using the absolute path instead of strings like "~/mlruns/"
+          The backend don't support strings like this.
         """
         self.exp_manager.set_uri(uri)
 
     @contextmanager
     def uri_context(self, uri: Text):
         """
-        Temporarily set the exp_manager's uri to uri
+        Temporarily set the exp_manager's **default_uri** to uri
 
         NOTE:
         - Please refer to the NOTE in the `set_uri`
@@ -347,15 +362,20 @@ class QlibRecorder:
         uri : Text
             the temporal uri
         """
-        prev_uri = self.exp_manager._current_uri
-        self.exp_manager.set_uri(uri)
+        prev_uri = self.exp_manager.default_uri
+        C.exp_manager["kwargs"]["uri"] = uri
         try:
             yield
         finally:
-            self.exp_manager.set_uri(prev_uri)
+            C.exp_manager["kwargs"]["uri"] = prev_uri
 
     def get_recorder(
-        self, *, recorder_id=None, recorder_name=None, experiment_id=None, experiment_name=None
+        self,
+        *,
+        recorder_id=None,
+        recorder_name=None,
+        experiment_id=None,
+        experiment_name=None,
     ) -> Recorder:
         """
         Method for retrieving a recorder.
@@ -486,13 +506,13 @@ class QlibRecorder:
             raise ValueError(
                 "You can choose only one of `local_path`(save the files in a path) or `kwargs`(pass in the objects directly)"
             )
-        self.get_exp().get_recorder().save_objects(local_path, artifact_path, **kwargs)
+        self.get_exp().get_recorder(start=True).save_objects(local_path, artifact_path, **kwargs)
 
     def load_object(self, name: Text):
         """
         Method for loading an object from artifacts in the experiment in the uri.
         """
-        return self.get_exp().get_recorder().load_object(name)
+        return self.get_exp().get_recorder(start=True).load_object(name)
 
     def log_params(self, **kwargs):
         """
@@ -517,7 +537,7 @@ class QlibRecorder:
         keyword argument:
             name1=value1, name2=value2, ...
         """
-        self.get_exp().get_recorder().log_params(**kwargs)
+        self.get_exp().get_recorder(start=True).log_params(**kwargs)
 
     def log_metrics(self, step=None, **kwargs):
         """
@@ -542,7 +562,7 @@ class QlibRecorder:
         keyword argument:
             name1=value1, name2=value2, ...
         """
-        self.get_exp().get_recorder().log_metrics(step, **kwargs)
+        self.get_exp().get_recorder(start=True).log_metrics(step, **kwargs)
 
     def set_tags(self, **kwargs):
         """
@@ -567,7 +587,7 @@ class QlibRecorder:
         keyword argument:
             name1=value1, name2=value2, ...
         """
-        self.get_exp().get_recorder().set_tags(**kwargs)
+        self.get_exp().get_recorder(start=True).set_tags(**kwargs)
 
 
 class RecorderWrapper(Wrapper):

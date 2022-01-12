@@ -100,7 +100,7 @@ class TimeAdjuster:
         idx : int
             index of the calendar
         """
-        if idx >= len(self.cals):
+        if idx is None or idx >= len(self.cals):
             return None
         return self.cals[idx]
 
@@ -123,6 +123,9 @@ class TimeAdjuster:
         -------
         index : int
         """
+        if time_point is None:
+            # `None` indicates unbounded index/boarder
+            return None
         time_point = pd.Timestamp(time_point)
         if tp_type == "start":
             idx = bisect.bisect_left(self.cals, time_point)
@@ -158,6 +161,8 @@ class TimeAdjuster:
         Returns:
             pd.Timestamp
         """
+        if time_point is None:
+            return None
         return self.cals[self.align_idx(time_point, tp_type=tp_type)]
 
     def align_seg(self, segment: Union[dict, tuple]) -> Union[dict, tuple]:
@@ -201,6 +206,10 @@ class TimeAdjuster:
         days : int
             The trading days to be truncated
             the data in this segment may need 'days' data
+            `days` are based on the `test_start`.
+            For example, if the label contains the information of 2 days in the near future, the prediction horizon 1 day.
+            (e.g. the prediction target is `Ref($close, -2)/Ref($close, -1) - 1`)
+            the days should be 2 + 1 == 3 days.
 
         Returns
         ---------
@@ -220,9 +229,16 @@ class TimeAdjuster:
     SHIFT_SD = "sliding"
     SHIFT_EX = "expanding"
 
+    def _add_step(self, index, step):
+        if index is None:
+            return None
+        return index + step
+
     def shift(self, seg: tuple, step: int, rtype=SHIFT_SD) -> tuple:
         """
         Shift the datatime of segment
+
+        If there are None (which indicates unbounded index) in the segment, this method will return None.
 
         Parameters
         ----------
@@ -245,13 +261,13 @@ class TimeAdjuster:
         if isinstance(seg, tuple):
             start_idx, end_idx = self.align_idx(seg[0], tp_type="start"), self.align_idx(seg[1], tp_type="end")
             if rtype == self.SHIFT_SD:
-                start_idx += step
-                end_idx += step
+                start_idx = self._add_step(start_idx, step)
+                end_idx = self._add_step(end_idx, step)
             elif rtype == self.SHIFT_EX:
-                end_idx += step
+                end_idx = self._add_step(end_idx, step)
             else:
                 raise NotImplementedError(f"This type of input is not supported")
-            if start_idx > len(self.cals):
+            if start_idx is not None and start_idx > len(self.cals):
                 raise KeyError("The segment is out of valid calendar")
             return self.get(start_idx), self.get(end_idx)
         else:

@@ -11,6 +11,7 @@ from ...model.base import Model
 from ...data.dataset import DatasetH
 from ...data.dataset.handler import DataHandlerLP
 from ...model.interpret.base import FeatureInt
+from ...data.dataset.weight import Reweighter
 
 
 class CatBoostModel(Model, FeatureInt):
@@ -31,6 +32,7 @@ class CatBoostModel(Model, FeatureInt):
         early_stopping_rounds=50,
         verbose_eval=20,
         evals_result=dict(),
+        reweighter=None,
         **kwargs
     ):
         df_train, df_valid = dataset.prepare(
@@ -49,8 +51,17 @@ class CatBoostModel(Model, FeatureInt):
         else:
             raise ValueError("CatBoost doesn't support multi-label training")
 
-        train_pool = Pool(data=x_train, label=y_train_1d)
-        valid_pool = Pool(data=x_valid, label=y_valid_1d)
+        if reweighter is None:
+            w_train = None
+            w_valid = None
+        elif isinstance(reweighter, Reweighter):
+            w_train = reweighter.reweight(df_train).values
+            w_valid = reweighter.reweight(df_valid).values
+        else:
+            raise ValueError("Unsupported reweighter type.")
+
+        train_pool = Pool(data=x_train, label=y_train_1d, weight=w_train)
+        valid_pool = Pool(data=x_valid, label=y_valid_1d, weight=w_valid)
 
         # Initialize the catboost model
         self._params["iterations"] = num_boost_round

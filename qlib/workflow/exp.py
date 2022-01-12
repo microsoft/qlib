@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-from typing import Dict, Union
+from typing import Dict, List, Union
 import mlflow, logging
 from mlflow.entities import ViewType
 from mlflow.exceptions import MlflowException
@@ -22,6 +22,7 @@ class Experiment:
         self.id = id
         self.name = name
         self.active_recorder = None  # only one recorder can running each time
+        self._default_rec_name = "abstract_recorder"
 
     def __repr__(self):
         return "{name}(id={id}, info={info})".format(name=self.__class__.__name__, id=self.id, info=self.info)
@@ -150,7 +151,7 @@ class Experiment:
         create : boolean
             create the recorder if it hasn't been created before.
         start : boolean
-            start the new recorder if one is created.
+            start the new recorder if one is **created**.
 
         Returns
         -------
@@ -214,7 +215,10 @@ class Experiment:
         """
         raise NotImplementedError(f"Please implement the `_get_recorder` method")
 
-    def list_recorders(self, **flt_kwargs) -> Dict[str, Recorder]:
+    RT_D = "dict"  # return type dict
+    RT_L = "list"  # return type list
+
+    def list_recorders(self, rtype: str = RT_D, **flt_kwargs) -> Union[List[Recorder], Dict[str, Recorder]]:
         """
         List all the existing recorders of this experiment. Please first get the experiment instance before calling this method.
         If user want to use the method `R.list_recorders()`, please refer to the related API document in `QlibRecorder`.
@@ -225,7 +229,11 @@ class Experiment:
 
         Returns
         -------
-        A dictionary (id -> recorder) of recorder information that being stored.
+        The return type depent on `rtype`
+            if `rtype` == "dict":
+                A dictionary (id -> recorder) of recorder information that being stored.
+            elif `rtype` == "list":
+                A list of Recorder.
         """
         raise NotImplementedError(f"Please implement the `list_recorders` method.")
 
@@ -326,9 +334,16 @@ class MLflowExperiment(Experiment):
     UNLIMITED = 50000  # FIXME: Mlflow can only list 50000 records at most!!!!!!!
 
     def list_recorders(
-        self, max_results: int = UNLIMITED, status: Union[str, None] = None, filter_string: str = ""
-    ) -> Dict[str, Recorder]:
+        self,
+        rtype=Experiment.RT_D,
+        max_results: int = UNLIMITED,
+        status: Union[str, None] = None,
+        filter_string: str = "",
+    ):
         """
+        Quoting docs of search_runs
+        > The default ordering is to sort by start_time DESC, then run_id.
+
         Parameters
         ----------
         max_results : int
@@ -342,10 +357,17 @@ class MLflowExperiment(Experiment):
         runs = self._client.search_runs(
             self.id, run_view_type=ViewType.ACTIVE_ONLY, max_results=max_results, filter_string=filter_string
         )
-        recorders = dict()
+        rids = []
+        recorders = []
         for i in range(len(runs)):
             recorder = MLflowRecorder(self.id, self._uri, mlflow_run=runs[i])
             if status is None or recorder.status == status:
-                recorders[runs[i].info.run_id] = recorder
+                rids.append(runs[i].info.run_id)
+                recorders.append(recorder)
 
-        return recorders
+        if rtype == Experiment.RT_D:
+            return dict(zip(rids, recorders))
+        elif rtype == Experiment.RT_L:
+            return recorders
+        else:
+            raise NotImplementedError(f"This type of input is not supported")
