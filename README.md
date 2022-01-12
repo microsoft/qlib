@@ -77,10 +77,6 @@ For more details, please refer to our paper ["Qlib: An AI-oriented Quantitative 
         <b>Algorithms</b>
         <img src="docs/img/bar.png"/>
       </td>
-      <td>
-        <b>Training Services</b>
-        <img src="docs/img/bar.png"/>
-      </td>
     </tr>
     </tr>
     <tr valign="top">
