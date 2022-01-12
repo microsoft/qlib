@@ -86,7 +86,7 @@ class HFLGBModel(ModelFT, LightGBMFInt):
             raise ValueError("Empty data from dataset, please check your dataset config.")
 
         x_train, y_train = df_train["feature"], df_train["label"]
-        x_valid, y_valid = df_train["feature"], df_valid["label"]
+        x_valid, y_valid = df_valid["feature"], df_valid["label"]
         if y_train.values.ndim == 2 and y_train.values.shape[1] == 1:
             l_name = df_train["label"].columns[0]
             # Convert label into alpha
