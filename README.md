@@ -209,13 +209,6 @@ For more details, please refer to our paper ["Qlib: An AI-oriented Quantitative 
         <li><a href="https://nni.readthedocs.io/en/stable/NAS/QuickStart.html#define-your-model-space">Define NAS Model Space</a></li>
         <li><a href="https://nni.readthedocs.io/en/stable/NAS/ApiReference.html">NAS/Retiarii APIs</a></li>
       </ul>
-      </td>
-        <td style="border-top:#FF0000 solid 0px;">
-      <ul>
-        <li><a href="https://nni.readthedocs.io/en/stable/TrainingService/Overview.html">Support TrainingService</li>
-        <li><a href="https://nni.readthedocs.io/en/stable/TrainingService/HowToImplementTrainingService.html">Implement TrainingService</a></li>
-      </ul>
-      </td>
     </tr>
   </tbody>
 </table>
