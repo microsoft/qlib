@@ -186,22 +186,6 @@ For more details, please refer to our paper ["Qlib: An AI-oriented Quantitative 
           <li><a href="https://nni.readthedocs.io/en/stable/Assessor/BuiltinAssessor.html#Curvefitting">Curve Fitting</a></li>
           </ul>
       </td>
-      <td>
-      <ul>
-        <li><a href="https://nni.readthedocs.io/en/stable/TrainingService/LocalMode.html">Local Machine</a></li>
-        <li><a href="https://nni.readthedocs.io/en/stable/TrainingService/RemoteMachineMode.html">Remote Servers</a></li>
-        <li><a href="https://nni.readthedocs.io/en/stable/TrainingService/HybridMode.html">Hybrid mode</a></li>
-        <li><a href="https://nni.readthedocs.io/en/stable/TrainingService/AMLMode.html">AML(Azure Machine Learning)</a></li>
-        <li><b>Kubernetes based services</b></li>
-        <ul>
-          <li><a href="https://nni.readthedocs.io/en/stable/TrainingService/PaiMode.html">OpenPAI</a></li>
-          <li><a href="https://nni.readthedocs.io/en/stable/TrainingService/KubeflowMode.html">Kubeflow</a></li>
-          <li><a href="https://nni.readthedocs.io/en/stable/TrainingService/FrameworkControllerMode.html">FrameworkController on K8S (AKS etc.)</a></li>
-          <li><a href="https://nni.readthedocs.io/en/stable/TrainingService/DLTSMode.html">DLWorkspace (aka. DLTS)</a></li>
-          <li><a href="https://nni.readthedocs.io/en/stable/TrainingService/AdaptDLMode.html">AdaptDL (aka. ADL)</a></li>
-        </ul>
-      </ul>
-      </td>
     </tr>
       <tr align="center" valign="bottom">
       </td>
