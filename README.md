@@ -60,109 +60,24 @@ For more details, please refer to our paper ["Qlib: An AI-oriented Quantitative 
 - [Contact Us](#contact-us)
 - [Contributing](#contributing)
 
+
+
+| Name                   | Description                                                                                                                                                                                                                                                                                                                                                             |
+| ------                 | -----                                                                                                                                                                                                                                                                                                                                                                   |
+| `Infrastructure` layer | `Infrastructure` layer provides underlying support for Quant research. `DataServer` provides a high-performance infrastructure for users to manage and retrieve raw data. `Trainer` provides a flexible interface to control the training process of models, which enable algorithms to control the training process.    
+
+
+
+
 <p align="center">
   <a href="#nni-has-been-released"><img src="docs/img/overview.svg" /></a>
 </p>
 
-<table>
-  <tbody>
-    <tr align="center" valign="bottom">
-    <td>
-      </td>
-      <td>
-        <b>Frameworks & Libraries</b>
-        <img src="docs/img/bar.png"/>
-      </td>
-      <td>
-        <b>Algorithms</b>
-        <img src="docs/img/bar.png"/>
-      </td>
-    </tr>
-    </tr>
-    <tr valign="top">
-    <td align="center" valign="middle">
-    <b>Built-in</b>
-      </td>
-      <td>
-      <ul><li><b>Supported Frameworks</b></li>
-        <ul>
-          <li>PyTorch</li>
-          <li>Keras</li>
-          <li>TensorFlow</li>
-          <li>MXNet</li>
-          <li>Caffe2</li>
-          <a href="https://nni.readthedocs.io/en/stable/SupportedFramework_Library.html">More...</a><br/>
-        </ul>
-        </ul>
-      <ul>
-        <li><b>Supported Libraries</b></li>
-          <ul>
-           <li>Scikit-learn</li>
-           <li>XGBoost</li>
-           <li>LightGBM</li>
-           <a href="https://nni.readthedocs.io/en/stable/SupportedFramework_Library.html">More...</a><br/>
-          </ul>
-      </ul>
-        <ul>
-        <li><b>Examples</b></li>
-
-        </ul>
-      </td>
-      <td align="left" >
-        <a href="https://nni.readthedocs.io/en/stable/Tuner/BuiltinTuner.html">Hyperparameter Tuning</a>
-        <ul>
-          <b>Exhaustive search</b>
-          <ul>
-i>
-            </ul>
-          <b>Heuristic search</b>
-          <ul>
-
-          </ul>
-          <b>Bayesian optimization</b>
-            <ul>
-
-            </ul>
-        </ul>
-          <a href="https://nni.readthedocs.io/en/stable/NAS/Overview.html">Neural Architecture Search (Retiarii)</a>
-          <ul>
-
-          </ul>
-          <a href="https://nni.readthedocs.io/en/stable/Compression/Overview.html">Model Compression</a>
-          <ul>
-            <b>Pruning</b>
-            <ul>
-
-            </ul>
-            <b>Quantization</b>
-            <ul>
-
-            </ul>
-          </ul>
-
-          </ul>
-      </td>
-    </tr>
-      <tr align="center" valign="bottom">
-      </td>
-      </tr>
-      <tr valign="top">
-       <td valign="middle">
-    <b>References</b>
-      </td>
-     <td style="border-top:#FF0000 solid 0px;">
-      <ul>
-
-      </ul>
-      </td>
-       <td style="border-top:#FF0000 solid 0px;">
-      <ul>
-
-      </ul>
-    </tr>
-  </tbody>
-</table>
-
+| Name                   | Description                                                                                                                                                                                                                                                                                                                                                             |
+| ------                 | -----                                                                                                                                                                                                                                                                                                                                                                   |
+| `Infrastructure` layer | `Infrastructure` layer provides underlying support for Quant research. `DataServer` provides a high-performance infrastructure for users to manage and retrieve raw data. `Trainer` provides a flexible interface to control the training process of models, which enable algorithms to control the training process.                                                       |
+| `Workflow` layer       | `Workflow` layer covers the whole workflow of quantitative investment. `Information Extractor` extracts data for models. `Forecast Model` focuses on producing all kinds of forecast signals (e.g. _alpha_, risk) for other modules. With these signals `Decision Generator` will generate the target trading decisions(i.e. portfolio, orders)  to be executed by `Execution Env` (i.e. the trading market).  There may be multiple levels of `Trading Agent` and `Execution Env` (e.g. an _order executor trading agent and intraday order execution environment_ could behave like an interday trading environment and nested in  _daily portfolio management trading agent and interday trading environment_  ) |
+| `Interface` layer      | `Interface` layer tries to present a user-friendly interface for the underlying system. `Analyser` module will provide users detailed analysis reports of forecasting signals, portfolios and execution results                                                                                                                                                                 |
 # Plans
 New features under development(order by estimated release time).
 Your feedbacks about the features are very important.
