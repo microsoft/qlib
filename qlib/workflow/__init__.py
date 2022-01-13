@@ -416,6 +416,11 @@ class QlibRecorder:
             # Case 5
             recorder = R.get_recorder(recorder_id='2e7a4efd66574fa49039e00ffaefa99d', experiment_name='test')
 
+
+        Here are some things users may concern
+        - Q: What recorder will it return if multiple recorder meets the query (e.g. query with experiment_name)
+        - A: If mlflow backend is used, then the recorder with the latest `start_time` will be returned. Because MLflow's `search_runs` function guarantee it
+
         Parameters
         ----------
         recorder_id : str

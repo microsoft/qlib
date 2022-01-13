@@ -155,6 +155,8 @@ class NestedDecisionExecutionWorkflow:
         },
     }
 
+    exp_name = "nested"
+
     port_analysis_config = {
         "executor": {
             "class": "NestedExecutor",
@@ -230,7 +232,7 @@ class NestedDecisionExecutionWorkflow:
         qlib.init(provider_uri=provider_uri_map, dataset_cache=None, expression_cache=None)
 
     def _train_model(self, model, dataset):
-        with R.start(experiment_name="train"):
+        with R.start(experiment_name=self.exp_name):
             R.log_params(**flatten_dict(self.task))
             model.fit(dataset)
             R.save_objects(**{"params.pkl": model})
@@ -257,7 +259,7 @@ class NestedDecisionExecutionWorkflow:
         self.port_analysis_config["strategy"] = strategy_config
         self.port_analysis_config["backtest"]["benchmark"] = self.benchmark
 
-        with R.start(experiment_name="backtest"):
+        with R.start(experiment_name=self.exp_name, resume=True):
             recorder = R.get_recorder()
             par = PortAnaRecord(
                 recorder,
@@ -382,7 +384,7 @@ class NestedDecisionExecutionWorkflow:
         }
         pa_conf["backtest"]["benchmark"] = self.benchmark
 
-        with R.start(experiment_name="backtest"):
+        with R.start(experiment_name=self.exp_name, resume=True):
             recorder = R.get_recorder()
             par = PortAnaRecord(recorder, pa_conf)
             par.generate()
