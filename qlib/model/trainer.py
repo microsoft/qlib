@@ -254,21 +254,21 @@ class TrainerR(Trainer):
             recs.append(rec)
         return recs
 
-    def end_train(self, recs: list, **kwargs) -> List[Recorder]:
+    def end_train(self, models: list, **kwargs) -> List[Recorder]:
         """
         Set STATUS_END tag to the recorders.
 
         Args:
-            recs (list): a list of trained recorders.
+            models (list): a list of trained recorders.
 
         Returns:
             List[Recorder]: the same list as the param.
         """
-        if isinstance(recs, Recorder):
-            recs = [recs]
-        for rec in recs:
+        if isinstance(models, Recorder):
+            models = [models]
+        for rec in models:
             rec.set_tags(**{self.STATUS_KEY: self.STATUS_END})
-        return recs
+        return models
 
 
 class DelayTrainerR(TrainerR):
@@ -289,13 +289,13 @@ class DelayTrainerR(TrainerR):
         self.end_train_func = end_train_func
         self.delay = True
 
-    def end_train(self, recs, end_train_func=None, experiment_name: str = None, **kwargs) -> List[Recorder]:
+    def end_train(self, models, end_train_func=None, experiment_name: str = None, **kwargs) -> List[Recorder]:
         """
         Given a list of Recorder and return a list of trained Recorder.
         This class will finish real data loading and model fitting.
 
         Args:
-            recs (list): a list of Recorder, the tasks have been saved to them
+            models (list): a list of Recorder, the tasks have been saved to them
             end_train_func (Callable, optional): the end_train method which needs at least `recorder`s and `experiment_name`. Defaults to None for using self.end_train_func.
             experiment_name (str): the experiment name, None for use default name.
             kwargs: the params for end_train_func.
@@ -303,18 +303,18 @@ class DelayTrainerR(TrainerR):
         Returns:
             List[Recorder]: a list of Recorders
         """
-        if isinstance(recs, Recorder):
-            recs = [recs]
+        if isinstance(models, Recorder):
+            models = [models]
         if end_train_func is None:
             end_train_func = self.end_train_func
         if experiment_name is None:
             experiment_name = self.experiment_name
-        for rec in recs:
+        for rec in models:
             if rec.list_tags()[self.STATUS_KEY] == self.STATUS_END:
                 continue
             end_train_func(rec, experiment_name, **kwargs)
             rec.set_tags(**{self.STATUS_KEY: self.STATUS_END})
-        return recs
+        return models
 
 
 class TrainerRM(Trainer):

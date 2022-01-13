@@ -98,7 +98,6 @@ class DNNModelPytorch(Model):
             "\nlr_decay_steps : {}"
             "\noptimizer : {}"
             "\nloss_type : {}"
-            "\neval_steps : {}"
             "\nseed : {}"
             "\ndevice : {}"
             "\nuse_GPU : {}"
@@ -113,7 +112,6 @@ class DNNModelPytorch(Model):
                 lr_decay_steps,
                 optimizer,
                 loss,
-                eval_steps,
                 seed,
                 self.device,
                 self.use_gpu,
@@ -331,8 +329,8 @@ class Net(nn.Module):
         dnn_layers = []
         drop_input = nn.Dropout(0.05)
         dnn_layers.append(drop_input)
-        for i, (input_dim, hidden_units) in enumerate(zip(layers[:-1], layers[1:])):
-            fc = nn.Linear(input_dim, hidden_units)
+        for i, (_input_dim, hidden_units) in enumerate(zip(layers[:-1], layers[1:])):
+            fc = nn.Linear(_input_dim, hidden_units)
             activation = nn.LeakyReLU(negative_slope=0.1, inplace=False)
             bn = nn.BatchNorm1d(hidden_units)
             seq = nn.Sequential(fc, bn, activation)

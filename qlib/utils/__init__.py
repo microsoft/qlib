@@ -654,16 +654,13 @@ def exists_qlib_data(qlib_dir):
 def check_qlib_data(qlib_config):
     inst_dir = Path(qlib_config["provider_uri"]).joinpath("instruments")
     for _p in inst_dir.glob("*.txt"):
-        try:
-            assert len(pd.read_csv(_p, sep="\t", nrows=0, header=None).columns) == 3, (
-                f"\nThe {str(_p.resolve())} of qlib data is not equal to 3 columns:"
-                f"\n\tIf you are using the data provided by qlib: "
-                f"https://qlib.readthedocs.io/en/latest/component/data.html#qlib-format-dataset"
-                f"\n\tIf you are using your own data, please dump the data again: "
-                f"https://qlib.readthedocs.io/en/latest/component/data.html#converting-csv-format-into-qlib-format"
-            )
-        except AssertionError:
-            raise
+        assert len(pd.read_csv(_p, sep="\t", nrows=0, header=None).columns) == 3, (
+            f"\nThe {str(_p.resolve())} of qlib data is not equal to 3 columns:"
+            f"\n\tIf you are using the data provided by qlib: "
+            f"https://qlib.readthedocs.io/en/latest/component/data.html#qlib-format-dataset"
+            f"\n\tIf you are using your own data, please dump the data again: "
+            f"https://qlib.readthedocs.io/en/latest/component/data.html#converting-csv-format-into-qlib-format"
+        )
 
 
 def lazy_sort_index(df: pd.DataFrame, axis=0) -> pd.DataFrame:

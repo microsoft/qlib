@@ -2,6 +2,7 @@
 # Licensed under the MIT License.
 
 import re
+import sys
 import qlib
 import shutil
 import zipfile
@@ -101,7 +102,7 @@ class GetData:
                 f"\nAre you sure you want to delete, yes(Y/y), no (N/n):"
             )
             if str(flag) not in ["Y", "y"]:
-                exit()
+                sys.exit()
             for _p in rm_dirs:
                 logger.warning(f"delete: {_p}")
                 shutil.rmtree(_p)
