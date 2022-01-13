@@ -355,7 +355,7 @@ class MLflowRecorder(Recorder):
                 shutil.rmtree(Path(path).absolute().parent)
             return data
         except Exception as e:
-            raise LoadObjectError(message=str(e))
+            raise LoadObjectError(str(e))
 
     @AsyncCaller.async_dec(ac_attr="async_log")
     def log_params(self, **kwargs):
