@@ -448,6 +448,8 @@ If you don't know how to start to contribute, you can refer to the following exa
 | Dataset | [Add a dataset](https://github.com/microsoft/qlib/pull/733) | 
 | Models |  [Implement a new model](https://github.com/microsoft/qlib/pull/689) | 
 
+If you would like to become one of Qlib's maintainers to contribute more (e.g. help merge PR, triage issues), please contact us by email([qlib@microsoft.com](mailto:qlib@microsoft.com)).  We are glad to help you to set the right permission.
+
 ## Licence
 Most contributions require you to agree to a
 Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us
