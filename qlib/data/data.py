@@ -5,6 +5,7 @@
 from __future__ import division
 from __future__ import print_function
 
+import os
 import re
 import abc
 import time
@@ -20,12 +21,12 @@ from arctic import Arctic
 
 # For supporting multiprocessing in outer code, joblib is used
 from joblib import delayed
+import pymongo
 
 from .cache import H
 from ..config import C
-from .base import Feature, TFeature
+from .base import Feature
 from .ops import Operators
-from .op_arctic import TOperators
 from .inst_processor import InstProcessor
 
 from ..log import get_module_logger
@@ -41,11 +42,16 @@ from ..utils import (
     normalize_cache_fields,
     code_to_fname,
     set_log_with_config,
+    time_to_slc_point,
 )
 from ..utils.paral import ParallelExt
 
 
 class ProviderBackendMixin:
+    """
+    This helper class tries to make the provider based on storage backend more convenient
+    It is not necessary to inherent this class if that provider don't rely on the backend storage
+    """
     def get_default_backend(self):
         backend = {}
         provider_name: str = re.findall("[A-Z][^A-Z]*", self.__class__.__name__)[-2]
@@ -62,14 +68,11 @@ class ProviderBackendMixin:
         return init_instance_by_config(backend)
 
 
-class CalendarProvider(abc.ABC, ProviderBackendMixin):
+class CalendarProvider(abc.ABC):
     """Calendar provider base class
 
     Provide calendar data.
     """
-
-    def __init__(self, *args, **kwargs):
-        self.backend = kwargs.get("backend", {})
 
     def calendar(self, start_time=None, end_time=None, freq="day", future=False):
         """Get calendar of certain market in given time range.
@@ -197,14 +200,11 @@ class CalendarProvider(abc.ABC, ProviderBackendMixin):
         raise NotImplementedError("Subclass of CalendarProvider must implement `load_calendar` method")
 
 
-class InstrumentProvider(abc.ABC, ProviderBackendMixin):
+class InstrumentProvider(abc.ABC):
     """Instrument provider base class
 
     Provide instrument data.
     """
-
-    def __init__(self, *args, **kwargs):
-        self.backend = kwargs.get("backend", {})
 
     @staticmethod
     def instruments(market: Union[List, str] = "all", filter_pipe: Union[List, None] = None):
@@ -307,14 +307,11 @@ class InstrumentProvider(abc.ABC, ProviderBackendMixin):
         raise ValueError(f"Unknown instrument type {inst}")
 
 
-class FeatureProvider(abc.ABC, ProviderBackendMixin):
+class FeatureProvider(abc.ABC,):
     """Feature provider class
 
     Provide feature data.
     """
-
-    def __init__(self, *args, **kwargs):
-        self.backend = kwargs.get("backend", {})
 
     @abc.abstractmethod
     def feature(self, instrument, field, start_time, end_time, freq):
@@ -351,7 +348,6 @@ class ExpressionProvider(abc.ABC):
         self.expression_instance_cache = {}
 
     def get_expression_instance(self, field):
-        #print(field)
         try:
             if field in self.expression_instance_cache:
                 expression = self.expression_instance_cache[field]
@@ -369,8 +365,12 @@ class ExpressionProvider(abc.ABC):
         return expression
 
     @abc.abstractmethod
-    def expression(self, instrument, field, start_time=None, end_time=None, freq="day", type="qlib"):
+    def expression(self, instrument, field, start_time=None, end_time=None, freq="day") -> pd.Series:
         """Get Expression data.
+
+        The responsibility of `expression`
+        - parse the `field` and `load` the according data.
+        - When loading the data, it should handle the time dependency of the data. `get_expression_instance` is commonly used in this method
 
         Parameters
         ----------
@@ -389,6 +389,11 @@ class ExpressionProvider(abc.ABC):
         -------
         pd.Series
             data of a certain expression
+
+            The data has two types of format
+            1) expression with datetime index
+            2) expression with integer index
+            - because the datetime is not as good as
         """
         raise NotImplementedError("Subclass of ExpressionProvider must implement `Expression` method")
 
@@ -496,17 +501,15 @@ class DatasetProvider(abc.ABC):
         return [ExpressionD.get_expression_instance(f) for f in fields]
 
     @staticmethod
-    def dataset_processor(instruments_d, column_names, start_time, end_time, freq, type="qlib", inst_processors=[]):
+    def dataset_processor(instruments_d, column_names, start_time, end_time, freq, inst_processors=[]):
         """
         Load and process the data, return the data set.
         - default using multi-kernel method.
-        the source of the data will be the same, either from arctic or from bin
+
         """
         normalize_column_names = normalize_cache_fields(column_names)
         # One process for one task, so that the memory will be freed quicker.
-        workers = max(min(C.kernels, len(instruments_d)), 1)
-        if type == "arctic":
-            workers = max(min(C.arctic_kernels, workers), 1)
+        workers = max(min(C.get_kernels(freq), len(instruments_d)), 1)
 
         # create iterator
         if isinstance(instruments_d, dict):
@@ -516,15 +519,13 @@ class DatasetProvider(abc.ABC):
 
         inst_l = []
         task_l = []
-        task_index = 0
         for inst, spans in it:
             inst_l.append(inst)
             task_l.append(
-                delayed(DatasetProvider.expression_calculator)(
-                    inst, start_time, end_time, freq, normalize_column_names, spans, C, type, task_index, inst_processors
+                delayed(DatasetProvider.inst_calculator)(
+                    inst, start_time, end_time, freq, normalize_column_names, spans, C, inst_processors
                 )
             )
-            task_index += 1
 
         data = dict(
             zip(
@@ -541,8 +542,7 @@ class DatasetProvider(abc.ABC):
 
         if len(new_data) > 0:
             data = pd.concat(new_data, names=["instrument"], sort=False)
-            if type == "qlib":
-                data = DiskDatasetCache.cache_to_origin_data(data, column_names)
+            data = DiskDatasetCache.cache_to_origin_data(data, column_names)
         else:
             data = pd.DataFrame(
                 index=pd.MultiIndex.from_arrays([[], []], names=("instrument", "datetime")), columns=column_names
@@ -551,11 +551,11 @@ class DatasetProvider(abc.ABC):
         return data
 
     @staticmethod
-    def expression_calculator(
-        inst, start_time, end_time, freq, column_names, spans=None, g_config=None, type="qlib", task_index=0, inst_processors=[]
+    def inst_calculator(
+        inst, start_time, end_time, freq, column_names, spans=None, g_config=None, inst_processors=[]
     ):
         """
-        Calculate the expressions for one instrument, return a df result.
+        Calculate the expressions for **one** instrument, return a df result.
         If the expression has been calculated before, load from cache.
 
         return value: A data frame with index 'datetime' and other data columns.
@@ -570,48 +570,40 @@ class DatasetProvider(abc.ABC):
             C.register()
 
         obj = dict()
-        arctic_obj = dict()
         for field in column_names:
-            if type == "arctic":
-                C.set_mode("arctic_client")
-                register_all_wrappers(C)
-                series = ExpressionD.expression(inst, field, start_time, end_time, freq, task_index, type)
-                arctic_obj[series.name] = series
-            else:
-                obj[field] = ExpressionD.expression(inst, field, start_time, end_time, freq)
+            #  The client does not have expression provider, the data will be loaded from cache using static method.
+            obj[field] = ExpressionD.expression(inst, field, start_time, end_time, freq)
 
-        if len(arctic_obj) > 0:
-            arctic_data = pd.DataFrame(arctic_obj)
-            arctic_data.index.names = ["datetime"]
-            return arctic_data
-        else:
-            data = pd.DataFrame(obj)
+        data = pd.DataFrame(obj)
+        if not np.issubdtype(data.index.dtype, np.dtype("M")):
+            # If the underlaying provides the data not in datatime formmat, we'll convert it into datetime format
             _calendar = Cal.calendar(freq=freq)
             data.index = _calendar[data.index.values.astype(int)]
-            data.index.names = ["datetime"]
+        data.index.names = ["datetime"]
 
-            if spans is not None:
-                mask = np.zeros(len(data), dtype=bool)
-                for begin, end in spans:
-                    mask |= (data.index >= begin) & (data.index <= end)
-                data = data[mask]
+        if spans is not None:
+            mask = np.zeros(len(data), dtype=bool)
+            for begin, end in spans:
+                mask |= (data.index >= begin) & (data.index <= end)
+            data = data[mask]
 
-            for _processor in inst_processors:
-                if _processor:
-                    _processor_obj = init_instance_by_config(_processor, accept_types=InstProcessor)
-                    data = _processor_obj(data)
-            return data
+        for _processor in inst_processors:
+            if _processor:
+                _processor_obj = init_instance_by_config(_processor, accept_types=InstProcessor)
+                data = _processor_obj(data)
+        return data
 
 
-class LocalCalendarProvider(CalendarProvider):
+class LocalCalendarProvider(CalendarProvider, ProviderBackendMixin):
     """Local calendar data provider class
 
     Provide calendar data from local data source.
     """
 
-    def __init__(self, **kwargs):
-        super(LocalCalendarProvider, self).__init__(**kwargs)
-        self.remote = kwargs.get("remote", False)
+    def __init__(self, remote=False, backend={}):
+        super().__init__()
+        self.remote = remote
+        self.backend = backend
 
     def load_calendar(self, freq, future):
         """Load original calendar timestamp from file.
@@ -643,11 +635,15 @@ class LocalCalendarProvider(CalendarProvider):
         return [pd.Timestamp(x) for x in backend_obj]
 
 
-class LocalInstrumentProvider(InstrumentProvider):
+class LocalInstrumentProvider(InstrumentProvider, ProviderBackendMixin):
     """Local instrument data provider class
 
     Provide instrument data from local data source.
     """
+
+    def __init__(self, backend={}) -> None:
+        super().__init__()
+        self.backend = backend
 
     def _load_instruments(self, market, freq):
         return self.backend_obj(market=market, freq=freq).data
@@ -687,59 +683,16 @@ class LocalInstrumentProvider(InstrumentProvider):
         return _instruments_filtered
 
 
-class LocalFeatureProvider(FeatureProvider):
+class LocalFeatureProvider(FeatureProvider,  ProviderBackendMixin):
     """Local feature data provider class
 
     Provide feature data from local data source.
     """
 
-    def __init__(self, **kwargs):
-        super(LocalFeatureProvider, self).__init__(**kwargs)
+    def __init__(self, remote=False, backend={}):
+        super().__init__()
         self.remote = kwargs.get("remote", False)
-
-    @property
-    def _uri_data(self):
-        """Static feature file uri."""
-        return os.path.join(C.get_data_path(), "features", "{}", "{}.{}.bin")
-
-    def tick_feature(self, instrument, field, start_index, end_index, freq, task_index, retry_time=0):
-        try:
-            arctic = Arctic_Connection_List[0]
-        except Exception:
-            arctic = Arctic(C.arctic_uri)
-
-        try:
-            arctic_dataset_name = str.upper(field.split(".")[0])
-            field_name = field.split(".")[1]
-        except Exception:
-            raise ValueError("the format of field:{} is wrong, it should be lib.columns, like Day.close".format(field))
-
-        try:
-            if arctic_dataset_name not in arctic.list_libraries():
-                raise ValueError("lib {} not in arctic".format(arctic_dataset_name))
-
-            if instrument not in arctic[arctic_dataset_name].list_symbols():
-                df = pd.DataFrame()
-            else:
-                df = arctic[arctic_dataset_name].read(instrument, columns=[field_name], chunk_range=pd.DatetimeIndex([start_index,
-                                                                          end_index]))
-        # resample
-        # series = pd.Series(df[field].values, index=df.index).resample(freq).last()
-        except Exception as e:
-            print("Exception: {}, Maybe the arctic server is busy, retry time is {}".format(str(e), retry_time))
-            if retry_time >= C.arctic_retry_time:
-                raise TimeoutError("Maybe the arctic server={} is busy, retry time={}".format(C.arctic_uri, retry_time))
-            else:
-                time.sleep(C.arctic_time_interval)
-                return self.tick_feature(instrument, field, start_index, end_index, freq, task_index, retry_time+1)
-
-        try:
-            series = pd.Series(df[field_name].values, index=df.index)
-        except Exception:
-            print("instrument {} in tick_feature is Empty. Maybe the instrument data not save in arctic".format(instrument))
-            series = pd.Series(index=df.index, dtype=object)
-        #print(series)
-        return series
+        self.backend = backend
 
     def feature(self, instrument, field, start_index, end_index, freq):
         # validate
@@ -748,32 +701,75 @@ class LocalFeatureProvider(FeatureProvider):
         return self.backend_obj(instrument=instrument, field=field, freq=freq)[start_index : end_index + 1]
 
 
+class ArcticFeatureProvider(FeatureProvider):
+
+    def __init__(self,
+                 uri="127.0.0.1",
+                 retry_time=0,
+                 market_transaction_time_list=[("09:15", "11:30"), ("13:00", "15:00")]):
+        super().__init__()
+        self.uri = uri
+        # TODO:
+        # retry connecting if error occurs
+        # is it real matters?
+        self.retry_time = retry_time
+        self.market_transaction_time_list = market_transaction_time_list
+
+    def feature(self, instrument, field, start_index, end_index, freq):
+        field = str(field)[1:]
+        with pymongo.MongoClient(self.uri) as client:
+            # TODO: this will result in frequently connecting the server and performance issue
+            arctic = Arctic(client)
+
+            if freq not in arctic.list_libraries():
+                raise ValueError("lib {} not in arctic".format(freq))
+
+            if instrument not in arctic[freq].list_symbols():
+                # instruments does not exist
+                return pd.Series()
+            else:
+                df = arctic[freq].read(instrument, columns=[field], chunk_range=(start_index, end_index))
+                s = df[field]
+
+                if not s.empty:
+                    s = pd.concat(
+                        [s.between_time(time_tuple[0], time_tuple[1]) for time_tuple in self.market_transaction_time_list])
+                return s
+
+
 class LocalExpressionProvider(ExpressionProvider):
     """Local expression data provider class
 
     Provide expression data from local data source.
     """
-    def expression(self, instrument, field, start_time=None, end_time=None, freq="day", task_index=0, type="qlib"):
+    def __init__(self, time2idx=True):
+        super().__init__()
+        self.time2idx = time2idx
+
+    def expression(self, instrument, field, start_time=None, end_time=None, freq="day"):
         expression = self.get_expression_instance(field)
-        start_time = pd.Timestamp(start_time)
-        end_time = pd.Timestamp(end_time)
-        if type == "arctic":
-            series = expression.load(instrument, start_time, end_time, freq, task_index)
-            print("finish load: stk_name:{}, field:{}, task_index:{}".format(instrument, series.name, task_index))
-            return series
-        else:
-            _, _, start_index, end_index = Cal.locate_index(start_time, end_time, freq, future=False)
+        start_time = time_to_slc_point(start_time)
+        end_time = time_to_slc_point(end_time)
+
+        # Two kinds of queries are supported
+        # - Index-based expression: this may save a lot of memory because the datetime index is not saved on the disk
+        # - Data with datetime index expression: this will make it more convenient to integrating with some existing databases
+        if self.time2idx:
+            _, _, start_index, end_index = Cal.locate_index(start_time, end_time, freq=freq, future=False)
             lft_etd, rght_etd = expression.get_extended_window_size()
-            try:
-                series = expression.load(instrument, max(0, start_index - lft_etd), end_index + rght_etd, freq)
-            except Exception as e:
-                get_module_logger("data").debug(
+            query_start, query_end = max(0, start_index - lft_etd), end_index + rght_etd
+        else:
+            start_index, end_index = query_start, query_end = start_time, end_time
+
+        try:
+            series = expression.load(instrument, query_start, query_end, freq)
+        except Exception as e:
+            get_module_logger("data").debug(
                 f"Loading expression error: "
                 f"instrument={instrument}, field=({field}), start_time={start_time}, end_time={end_time}, freq={freq}. "
                 f"error info: {str(e)}"
-                )
-                raise
-
+            )
+            raise
         # Ensure that each column type is consistent
         # FIXME:
         # 1) The stock data is currently float. If there is other types of data, this part needs to be re-implemented.
@@ -795,18 +791,33 @@ class LocalDatasetProvider(DatasetProvider):
     Provide dataset data from local data source.
     """
 
-    def __init__(self):
-        pass
+    def __init__(self, align_time: bool = True):
+        """
+        Parameters
+        ----------
+        align_time : bool
+            Will we align the time to calendar
+            the frequency is flexible in some dataset and can't be aligned.
+            For the data with fixed frequency with a shared calendar, the align data to the calendar will provides following benefits
+            - Align queries to the same parameters, so the cache can be shared.
+        """
+        super().__init__()
+        self.align_time = align_time
 
-    def dataset(self, instruments, fields, start_time=None, end_time=None, freq="day", inst_processors=[]):
-
+    def dataset(
+        self,
+        instruments,
+        fields,
+        start_time=None,
+        end_time=None,
+        freq="day",
+        inst_processors=[],
+    ):
         instruments_d = self.get_instruments_d(instruments, freq)
         column_names = self.get_column_names(fields)
-
-        arctic_column_names = [column for column in column_names if "@" in column]
-        normal_column_names = [column for column in column_names if not "@" in column]
-
-        if len(normal_column_names) > 0:
+        if self.align_time:
+            # NOTE: if the frequency is a fixed value.
+            # align the data to fixed calendar point
             cal = Cal.calendar(start_time, end_time, freq)
             if len(cal) == 0:
                 return pd.DataFrame(
@@ -814,14 +825,11 @@ class LocalDatasetProvider(DatasetProvider):
                 )
             start_time = cal[0]
             end_time = cal[-1]
-            normal_data = self.dataset_processor(
+        data = self.dataset_processor(
             instruments_d, column_names, start_time, end_time, freq, inst_processors=inst_processors
-            )
-            return normal_data
+        )
 
-        if len(arctic_column_names) > 0:
-            arctic_data = self.dataset_processor(instruments_d, arctic_column_names, start_time, end_time, freq, "arctic", inst_processors=inst_processors)
-            return arctic_data
+        return data
 
     @staticmethod
     def multi_cache_walker(instruments, fields, start_time=None, end_time=None, freq="day"):
@@ -945,7 +953,6 @@ class ClientDatasetProvider(DatasetProvider):
         return_uri=False,
         inst_processors=[],
     ):
-        #print("disk_cache {}".format(disk_cache))
         if Inst.get_inst_type(instruments) == Inst.DICT:
             get_module_logger("data").warning(
                 "Getting features from a dict of instruments is not recommended because the features will not be "
@@ -1075,29 +1082,14 @@ class BaseProvider:
         and will use provider method if a type error is raised because the DatasetD instance
         is a provider class.
         """
-
-        # todo: divide the data into two part according to the source
-        # do NOT merge them, return a list (if have two)
         disk_cache = C.default_disk_cache if disk_cache is None else disk_cache
         fields = list(fields)  # In case of tuple.
-        arctic_fields = [field for field in fields if "@" in field]
-        normal_fields = [field for field in fields if "@" not in field]
-
-        ## do not have data from arctic, could use the old version
-        data = {}
-        if len(normal_fields) > 0:
-            try:
-                data['normal'] = DatasetD.dataset(instruments, normal_fields, start_time, end_time, freq, disk_cache, inst_processors=inst_processors)
-            except TypeError:
-                data['normal'] = DatasetD.dataset(instruments, normal_fields, start_time, end_time, freq, inst_processors=inst_processors)
-
-        if len(arctic_fields) > 0:
-                data['arctic'] = LocalDatasetProvider().dataset(instruments, arctic_fields, start_time, end_time, freq, inst_processors=inst_processors)
-
-        if len(data) == 1:
-            return list(data.values())[0]
-        else:
-            return data
+        try:
+            return DatasetD.dataset(
+                instruments, fields, start_time, end_time, freq, disk_cache, inst_processors=inst_processors
+            )
+        except TypeError:
+            return DatasetD.dataset(instruments, fields, start_time, end_time, freq, inst_processors=inst_processors)
 
 
 class LocalProvider(BaseProvider):

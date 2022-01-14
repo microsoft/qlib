@@ -166,12 +166,17 @@ def parse_field(field):
     # - $close -> Feature("close")
     # - $close5 -> Feature("close5")
     # - $open+$close -> Feature("open")+Feature("close")
+    # TODO: this maybe used in the feature if we want to support the computation of different frequency data
+    # - $close@5min -> Feature("close", "5min")
+
     if not isinstance(field, str):
         field = str(field)
-    if "@" in field:
-        return re.sub(r"\@([\w.]+)", r'TFeature("\1")', re.sub(r"(\w+\s*)\(", r"TOperators.\1(", field))
-    else:
-        return re.sub(r"\$(\w+)", r'Feature("\1")', re.sub(r"(\w+\s*)\(", r"Operators.\1(", field))
+    for pattern, new in [
+        (r"\$(\w+)", rf'Feature("\1")'),  # Features
+        (r"(\w+\s*)\(", r"Operators.\1(")  # Operators
+    ]:
+        field = re.sub(pattern, new, field)
+    return field
 
 
 def get_module_by_module_path(module_path: Union[str, ModuleType]):

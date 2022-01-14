@@ -11,7 +11,6 @@ import logging
 import platform
 import subprocess
 from .log import get_module_logger
-from arctic import Arctic
 
 # init qlib
 def init(default_conf="client", **kwargs):
@@ -25,8 +24,8 @@ def init(default_conf="client", **kwargs):
             Will the memory cache be clear.
             It is often used to improve performance when init will be called for multiple times
     """
-    from .config import C, Arctic_Connection_List
-    from .data.cache import H, HZ
+    from .config import C
+    from .data.cache import H
 
     # FIXME: this logger ignored the level in config
     logger = get_module_logger("Initialization", level=logging.INFO)
@@ -41,12 +40,7 @@ def init(default_conf="client", **kwargs):
     clear_mem_cache = kwargs.pop("clear_mem_cache", True)
     if clear_mem_cache:
         H.clear()
-        HZ.clear()
     C.set(default_conf, **kwargs)
-
-
-    if len(Arctic_Connection_List) == 0:
-        Arctic_Connection_List.append(Arctic(C.arctic_uri))
 
     # mount nfs
     for _freq, provider_uri in C.provider_uri.items():

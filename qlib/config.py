@@ -19,7 +19,7 @@ import logging
 import platform
 import multiprocessing
 from pathlib import Path
-from typing import Optional, Union
+from typing import Callable, Optional, Union
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -38,7 +38,7 @@ class Config:
         if attr in self.__dict__["_config"]:
             return self.__dict__["_config"][attr]
 
-        raise AttributeError(f"No such {attr} in self._config")
+        raise AttributeError(f"No such `{attr}` in self._config")
 
     def get(self, key, default=None):
         return self.__dict__["_config"].get(key, default)
@@ -82,9 +82,6 @@ REG_US = "us"
 PROTOCOL_VERSION = 4
 
 NUM_USABLE_CPU = max(multiprocessing.cpu_count() - 2, 1)
-NUM_USABLE_CPU_FOR_ARCTIC = min(NUM_USABLE_CPU, 30)
-ARCTIC_TIME_INTERVAL = 1
-ARCTIC_RETRY_TIME = 5
 
 DISK_DATASET_CACHE = "DiskDatasetCache"
 SIMPLE_DATASET_CACHE = "SimpleDatasetCache"
@@ -111,19 +108,15 @@ _default_config = {
     #   2. backend_config: backend_obj["kwargs"]["provider_uri_map"]
     #   3. qlib.init: provider_uri
     "provider_uri": "",
-    "arctic_uri": "",
-    "arctic_time_interval": ARCTIC_TIME_INTERVAL,
-    "arctic_retry_time": ARCTIC_RETRY_TIME,
     # cache
     "expression_cache": None,
     "dataset_cache": None,
     "calendar_cache": None,
-    # for market transaction time
-    "market_transaction_time_list": [("09:15", "11:30"), ("13:00", "15:00")],
     # for simple dataset cache
     "local_cache_path": None,
+    # kernels can be a fixed value or a callable function lie `def (freq: str) -> int`
+    # If the kernels are arctic_kernels, `min(NUM_USABLE_CPU, 30)` may be a good value
     "kernels": NUM_USABLE_CPU,
-    "arctic_kernels": NUM_USABLE_CPU_FOR_ARCTIC,
     # pickle.dump protocol version
     "dump_protocol_version": PROTOCOL_VERSION,
     # How many tasks belong to one process. Recommend 1 for high-frequency data and None for daily data.
@@ -132,11 +125,10 @@ _default_config = {
     "joblib_backend": "multiprocessing",
     "default_disk_cache": 1,  # 0:skip/1:use
     "mem_cache_size_limit": 500,
+    "mem_cache_limit_type": "length",
     # memory cache expire second, only in used 'DatasetURICache' and 'client D.calendar'
     # default 1 hour
     "mem_cache_expire": 60 * 60,
-    # memory cache space limit, default 5GB, only in used client
-    "mem_cache_space_limit": 1024 * 1024 * 1024,
     # cache dir name
     "dataset_cache_dir_name": "dataset_cache",
     "features_cache_dir_name": "features_cache",
@@ -245,31 +237,6 @@ MODE_CONF = {
         # if element of custom_ops is Type[ExpressionOps], it represents the custom operator class
         # if element of custom_ops is dict, it represents the config of custom operator and should include `class` and `module_path` keys.
         "custom_ops": [],
-    },
-    "arctic_client": {
-        # data provider config
-        "calendar_provider": "LocalCalendarProvider",
-        "instrument_provider": "LocalInstrumentProvider",
-        "feature_provider": "LocalFeatureProvider",
-        "expression_provider": "LocalExpressionProvider",
-        "dataset_provider": "LocalDatasetProvider",
-        "provider": "LocalProvider",
-        # config it in user's own code
-        "provider_uri": "~/.qlib/qlib_data/cn_data",
-        # cache
-        # Using parameter 'remote' to announce the client is using server_cache, and the writing access will be disabled.
-        "expression_cache": None,
-        "dataset_cache": None,
-        "calendar_cache": None,
-        # client config
-        "kernels": NUM_USABLE_CPU,
-        "mount_path": None,
-        "auto_mount": False,  # The nfs is already mounted on our server[auto_mount: False].
-        # The nfs should be auto-mounted by qlib on other
-        # serversS(such as PAI) [auto_mount:True]
-        "timeout": 100,
-        "logging_level": "INFO",
-        "region": REG_CN,
     },
 }
 
@@ -459,13 +426,11 @@ class QlibConfig(Config):
     def register(self):
         from .utils import init_instance_by_config
         from .data.ops import register_all_ops
-        from .data.op_arctic import register_all_Tops
         from .data.data import register_all_wrappers
         from .workflow import R, QlibRecorder
         from .workflow.utils import experiment_exit_handler
 
         register_all_ops(self)
-        register_all_Tops(self)
         register_all_wrappers(self)
         # set up QlibRecorder
         exp_manager = init_instance_by_config(self["exp_manager"])
@@ -490,6 +455,13 @@ class QlibConfig(Config):
             # Due to a bug? that converting __version__ to _QlibConfig__version__bak
             # Using  __version__bak instead of __version__
 
+    def get_kernels(self, freq: str):
+        """get number of processors given frequency"""
+        if isinstance(self["kernels"], Callable):
+            return self["kernels"](freq)
+        return self["kernels"]
+
+
     @property
     def registered(self):
         return self._registered
@@ -497,5 +469,3 @@ class QlibConfig(Config):
 
 # global config
 C = QlibConfig(_default_config)
-# for arctic connection
-Arctic_Connection_List = []

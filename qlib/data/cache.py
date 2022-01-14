@@ -35,7 +35,6 @@ from ..log import get_module_logger
 from .base import Feature
 
 from .ops import Operators
-from .op_arctic import *
 
 class QlibCacheException(RuntimeError):
     pass
@@ -147,6 +146,7 @@ class MemCache:
         """
 
         size_limit = C.mem_cache_size_limit if mem_cache_size_limit is None else mem_cache_size_limit
+        limit_type = C.mem_cache_limit_type if limit_type is None else limit_type
 
         if limit_type == "length":
             klass = MemCacheLengthUnit
@@ -1197,7 +1197,4 @@ class MemoryCalendarCache(CalendarCache):
 
         return result
 
-# MemCache sizeof
-HZ = MemCache(C.mem_cache_space_limit, limit_type="sizeof")
-# MemCache length
-H = MemCache(limit_type="length")
+H = MemCache()
