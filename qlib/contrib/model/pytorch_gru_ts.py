@@ -21,6 +21,8 @@ from .pytorch_utils import count_parameters
 from ...model.base import Model
 from ...data.dataset import DatasetH, TSDatasetH
 from ...data.dataset.handler import DataHandlerLP
+from ...model.utils import ConcatDataset
+from ...data.dataset.weight import Reweighter
 
 
 class GRU(Model):
@@ -138,15 +140,18 @@ class GRU(Model):
     def use_gpu(self):
         return self.device != torch.device("cpu")
 
-    def mse(self, pred, label):
-        loss = (pred - label) ** 2
+    def mse(self, pred, label, weight):
+        loss = weight * (pred - label) ** 2
         return torch.mean(loss)
 
-    def loss_fn(self, pred, label):
+    def loss_fn(self, pred, label, weight=None):
         mask = ~torch.isnan(label)
 
+        if weight is None:
+            weight = torch.ones_like(label)
+
         if self.loss == "mse":
-            return self.mse(pred[mask], label[mask])
+            return self.mse(pred[mask], label[mask], weight[mask])
 
         raise ValueError("unknown loss `%s`" % self.loss)
 
@@ -163,12 +168,12 @@ class GRU(Model):
 
         self.GRU_model.train()
 
-        for data in data_loader:
+        for (data, weight) in data_loader:
             feature = data[:, :, 0:-1].to(self.device)
             label = data[:, -1, -1].to(self.device)
 
             pred = self.GRU_model(feature.float())
-            loss = self.loss_fn(pred, label)
+            loss = self.loss_fn(pred, label, weight.to(self.device))
 
             self.train_optimizer.zero_grad()
             loss.backward()
@@ -182,7 +187,7 @@ class GRU(Model):
         scores = []
         losses = []
 
-        for data in data_loader:
+        for (data, weight) in data_loader:
 
             feature = data[:, :, 0:-1].to(self.device)
             # feature[torch.isnan(feature)] = 0
@@ -190,7 +195,7 @@ class GRU(Model):
 
             with torch.no_grad():
                 pred = self.GRU_model(feature.float())
-                loss = self.loss_fn(pred, label)
+                loss = self.loss_fn(pred, label, weight.to(self.device))
                 losses.append(loss.item())
 
                 score = self.metric_fn(pred, label)
@@ -203,6 +208,7 @@ class GRU(Model):
         dataset,
         evals_result=dict(),
         save_path=None,
+        reweighter=None,
     ):
         dl_train = dataset.prepare("train", col_set=["feature", "label"], data_key=DataHandlerLP.DK_L)
         dl_valid = dataset.prepare("valid", col_set=["feature", "label"], data_key=DataHandlerLP.DK_L)
@@ -212,11 +218,28 @@ class GRU(Model):
         dl_train.config(fillna_type="ffill+bfill")  # process nan brought by dataloader
         dl_valid.config(fillna_type="ffill+bfill")  # process nan brought by dataloader
 
+        if reweighter is None:
+            wl_train = np.ones(len(dl_train))
+            wl_valid = np.ones(len(dl_valid))
+        elif isinstance(reweighter, Reweighter):
+            wl_train = reweighter.reweight(dl_train)
+            wl_valid = reweighter.reweight(dl_valid)
+        else:
+            raise ValueError("Unsupported reweighter type.")
+
         train_loader = DataLoader(
-            dl_train, batch_size=self.batch_size, shuffle=True, num_workers=self.n_jobs, drop_last=True
+            ConcatDataset(dl_train, wl_train),
+            batch_size=self.batch_size,
+            shuffle=True,
+            num_workers=self.n_jobs,
+            drop_last=True,
         )
         valid_loader = DataLoader(
-            dl_valid, batch_size=self.batch_size, shuffle=False, num_workers=self.n_jobs, drop_last=True
+            ConcatDataset(dl_valid, wl_valid),
+            batch_size=self.batch_size,
+            shuffle=False,
+            num_workers=self.n_jobs,
+            drop_last=True,
         )
 
         save_path = get_or_create_path(save_path)

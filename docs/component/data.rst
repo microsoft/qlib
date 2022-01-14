@@ -52,6 +52,7 @@ Also, ``Qlib`` provides a high-frequency dataset. Users can run a high-frequency
 Qlib Format Dataset
 --------------------
 ``Qlib`` has provided an off-the-shelf dataset in `.bin` format, users could use the script ``scripts/get_data.py`` to download the China-Stock dataset as follows.
+The price volume data look different from the actual dealling price because of they are **adjusted** (`adjusted price <https://www.investopedia.com/terms/a/adjusted_closing_price.asp>`_).  And then you may find that the adjusted price may be different from different data sources. This is because different data sources may vary in the way of adjusting prices. Qlib normalize the price of each stock to 1 when adjusting them.
 
 .. code-block:: bash
 
@@ -219,7 +220,7 @@ The `trade unit` defines the unit number of stocks can be used in a trade, and t
         
         .. code-block:: python
 
-            from qlib.config import REG_CN
+            from qlib.constant import REG_CN
             qlib.init(provider_uri='~/.qlib/qlib_data/cn_data', region=REG_CN)
         
 

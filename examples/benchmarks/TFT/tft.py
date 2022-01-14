@@ -209,7 +209,6 @@ class TFTModel(ModelFT):
         fixed_params = self.data_formatter.get_experiment_params()
         params = self.data_formatter.get_default_model_params()
 
-        # Wendi: 合并调优的参数和非调优的参数
         params = {**params, **fixed_params}
 
         if not os.path.exists(self.model_folder):

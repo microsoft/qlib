@@ -205,10 +205,7 @@ class BaseInfrastructure:
             warnings.warn(f"infra {infra_name} is not found!")
 
     def has(self, infra_name):
-        if infra_name in self.get_support_infra() and hasattr(self, infra_name):
-            return True
-        else:
-            return False
+        return infra_name in self.get_support_infra() and hasattr(self, infra_name)
 
     def update(self, other):
         support_infra = other.get_support_infra()

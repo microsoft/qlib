@@ -1424,16 +1424,22 @@ class PairRolling(ExpressionOps):
         return max(left_br, right_br)
 
     def get_extended_window_size(self):
-        if isinstance(self.feature_left, Expression):
-            ll, lr = self.feature_left.get_extended_window_size()
+        if self.N == 0:
+            get_module_logger(self.__class__.__name__).warning(
+                "The PairRolling(ATTR, 0) will not be accurately calculated"
+            )
+            return -np.inf, max(lr, rr)
         else:
-            ll, lr = 0, 0
+            if isinstance(self.feature_left, Expression):
+                ll, lr = self.feature_left.get_extended_window_size()
+            else:
+                ll, lr = 0, 0
 
-        if isinstance(self.feature_right, Expression):
-            rl, rr = self.feature_right.get_extended_window_size()
-        else:
-            rl, rr = 0, 0
-        return max(ll, rl), max(lr, rr)
+            if isinstance(self.feature_right, Expression):
+                rl, rr = self.feature_right.get_extended_window_size()
+            else:
+                rl, rr = 0, 0
+            return max(ll, rl) + self.N - 1, max(lr, rr)
 
 
 class Corr(PairRolling):

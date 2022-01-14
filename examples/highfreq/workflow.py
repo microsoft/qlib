@@ -5,7 +5,8 @@ import fire
 
 import qlib
 import pickle
-from qlib.config import REG_CN, HIGH_FREQ_CONFIG
+from qlib.constant import REG_CN
+from qlib.config import HIGH_FREQ_CONFIG
 
 from qlib.utils import init_instance_by_config
 from qlib.data.dataset.handler import DataHandlerLP

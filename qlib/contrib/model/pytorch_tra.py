@@ -19,12 +19,13 @@ import torch.nn.functional as F
 
 try:
     from torch.utils.tensorboard import SummaryWriter
-except:
+except ImportError:
     SummaryWriter = None
 
 from tqdm import tqdm
 
 from qlib.utils import get_or_create_path
+from qlib.constant import EPS
 from qlib.log import get_module_logger
 from qlib.model.base import Model
 from qlib.contrib.data.dataset import MTSDatasetH
@@ -256,7 +257,7 @@ class TRAModel(Model):
             total_loss += loss.item()
             total_count += 1
 
-        if self.use_daily_transport and len(P_all):
+        if self.use_daily_transport and len(P_all) > 0:
             P_all = pd.concat(P_all, axis=0)
             prob_all = pd.concat(prob_all, axis=0)
             choice_all = pd.concat(choice_all, axis=0)
@@ -791,7 +792,7 @@ def minmax_norm(x):
     xmin = x.min(dim=-1, keepdim=True).values
     xmax = x.max(dim=-1, keepdim=True).values
     mask = (xmin == xmax).squeeze()
-    x = (x - xmin) / (xmax - xmin + 1e-12)
+    x = (x - xmin) / (xmax - xmin + EPS)
     x[mask] = 1
     return x
 

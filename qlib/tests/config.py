@@ -31,6 +31,12 @@ GBDT_MODEL = {
 }
 
 
+SA_RC = {
+    "class": "SigAnaRecord",
+    "module_path": "qlib.workflow.record_temp",
+}
+
+
 RECORD_CONFIG = [
     {
         "class": "SignalRecord",
@@ -40,10 +46,7 @@ RECORD_CONFIG = [
             "model": "<MODEL>",
         },
     },
-    {
-        "class": "SigAnaRecord",
-        "module_path": "qlib.workflow.record_temp",
-    },
+    SA_RC,
 ]
 
 

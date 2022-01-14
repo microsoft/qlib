@@ -22,7 +22,7 @@ from dateutil.tz import tzlocal
 
 from qlib.tests.data import GetData
 from qlib.utils import code_to_fname, fname_to_code, exists_qlib_data
-from qlib.config import REG_CN as REGION_CN
+from qlib.constant import REG_CN as REGION_CN
 
 CUR_DIR = Path(__file__).resolve().parent
 sys.path.append(str(CUR_DIR.parent.parent))

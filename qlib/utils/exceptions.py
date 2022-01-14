@@ -4,8 +4,7 @@
 
 # Base exception class
 class QlibException(Exception):
-    def __init__(self, message):
-        super(QlibException, self).__init__(message)
+    pass
 
 
 class RecorderInitializationError(QlibException):

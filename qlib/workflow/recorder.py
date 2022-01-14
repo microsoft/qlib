@@ -306,8 +306,9 @@ class MLflowRecorder(Recorder):
         self.end_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         if self.status != Recorder.STATUS_S:
             self.status = status
-        with TimeInspector.logt("waiting `async_log`"):
-            self.async_log.wait()
+        if self.async_log is not None:
+            with TimeInspector.logt("waiting `async_log`"):
+                self.async_log.wait()
         self.async_log = None
 
     def save_objects(self, local_path=None, artifact_path=None, **kwargs):
@@ -354,7 +355,7 @@ class MLflowRecorder(Recorder):
                 shutil.rmtree(Path(path).absolute().parent)
             return data
         except Exception as e:
-            raise LoadObjectError(message=str(e))
+            raise LoadObjectError(str(e))
 
     @AsyncCaller.async_dec(ac_attr="async_log")
     def log_params(self, **kwargs):

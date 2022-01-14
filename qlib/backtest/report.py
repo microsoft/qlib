@@ -212,7 +212,8 @@ class PortfolioMetrics:
                 path: str/ pathlib.Path()
         """
         path = pathlib.Path(path)
-        r = pd.read_csv(open(path, "rb"), index_col=0)
+        with path.open("rb") as f:
+            r = pd.read_csv(f, index_col=0)
         r.index = pd.DatetimeIndex(r.index)
 
         index = r.index

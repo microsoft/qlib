@@ -19,6 +19,7 @@ from .pytorch_utils import count_parameters
 from ...model.base import Model
 from ...data.dataset import DatasetH
 from ...data.dataset.handler import DataHandlerLP
+from ...data.dataset.weight import Reweighter
 from ...utils import unpack_archive_with_buffer, save_multiple_parts_file, get_or_create_path
 from ...log import get_module_logger
 from ...workflow import R
@@ -96,7 +97,6 @@ class DNNModelPytorch(Model):
             "\nlr_decay_steps : {}"
             "\noptimizer : {}"
             "\nloss_type : {}"
-            "\neval_steps : {}"
             "\nseed : {}"
             "\ndevice : {}"
             "\nuse_GPU : {}"
@@ -111,7 +111,6 @@ class DNNModelPytorch(Model):
                 lr_decay_steps,
                 optimizer,
                 loss,
-                eval_steps,
                 seed,
                 self.device,
                 self.use_gpu,
@@ -165,18 +164,22 @@ class DNNModelPytorch(Model):
         evals_result=dict(),
         verbose=True,
         save_path=None,
+        reweighter=None,
     ):
         df_train, df_valid = dataset.prepare(
             ["train", "valid"], col_set=["feature", "label"], data_key=DataHandlerLP.DK_L
         )
         x_train, y_train = df_train["feature"], df_train["label"]
         x_valid, y_valid = df_valid["feature"], df_valid["label"]
-        try:
-            wdf_train, wdf_valid = dataset.prepare(["train", "valid"], col_set=["weight"], data_key=DataHandlerLP.DK_L)
-            w_train, w_valid = wdf_train["weight"], wdf_valid["weight"]
-        except KeyError as e:
+
+        if reweighter is None:
             w_train = pd.DataFrame(np.ones_like(y_train.values), index=y_train.index)
             w_valid = pd.DataFrame(np.ones_like(y_valid.values), index=y_valid.index)
+        elif isinstance(reweighter, Reweighter):
+            w_train = pd.DataFrame(reweighter.reweight(df_train))
+            w_valid = pd.DataFrame(reweighter.reweight(df_valid))
+        else:
+            raise ValueError("Unsupported reweighter type.")
 
         save_path = get_or_create_path(save_path)
         stop_steps = 0
@@ -325,8 +328,8 @@ class Net(nn.Module):
         dnn_layers = []
         drop_input = nn.Dropout(0.05)
         dnn_layers.append(drop_input)
-        for i, (input_dim, hidden_units) in enumerate(zip(layers[:-1], layers[1:])):
-            fc = nn.Linear(input_dim, hidden_units)
+        for i, (_input_dim, hidden_units) in enumerate(zip(layers[:-1], layers[1:])):
+            fc = nn.Linear(_input_dim, hidden_units)
             activation = nn.LeakyReLU(negative_slope=0.1, inplace=False)
             bn = nn.BatchNorm1d(hidden_units)
             seq = nn.Sequential(fc, bn, activation)
