@@ -52,6 +52,7 @@ Also, ``Qlib`` provides a high-frequency dataset. Users can run a high-frequency
 Qlib Format Dataset
 --------------------
 ``Qlib`` has provided an off-the-shelf dataset in `.bin` format, users could use the script ``scripts/get_data.py`` to download the China-Stock dataset as follows.
+The price volume data look different from the actual dealling price because of they are **adjusted** (`adjusted price <https://www.investopedia.com/terms/a/adjusted_closing_price.asp>`_).
 
 .. code-block:: bash
 
