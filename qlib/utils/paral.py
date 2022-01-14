@@ -80,8 +80,7 @@ class AsyncCaller:
             data = self._q.get()
             if data == self.STOP_MARK:
                 break
-            else:
-                data()
+            data()
 
     def __call__(self, func, *args, **kwargs):
         self._q.put(partial(func, *args, **kwargs))

@@ -287,6 +287,9 @@ class MLflowExperiment(Experiment):
         """
         Method for getting or creating a recorder. It will try to first get a valid recorder, if exception occurs, it will
         raise errors.
+
+        Quoting docs of search_runs from MLflow
+        > The default ordering is to sort by start_time DESC, then run_id.
         """
         assert (
             recorder_id is not None or recorder_name is not None

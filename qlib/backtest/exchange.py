@@ -536,7 +536,7 @@ class Exchange:
             deal_amount = self.get_real_deal_amount(current_amount, target_amount, factor)
             if deal_amount == 0:
                 continue
-            elif deal_amount > 0:
+            if deal_amount > 0:
                 # buy stock
                 buy_order_list.append(
                     Order(
@@ -687,9 +687,7 @@ class Exchange:
         orig_deal_amount = order.deal_amount
         order.deal_amount = max(min(vol_limit_min, orig_deal_amount), 0)
         if vol_limit_min < orig_deal_amount:
-            self.logger.debug(
-                f"Order clipped due to volume limitation: {order}, {[(vol, rule) for vol, rule in zip(vol_limit_num, vol_limit)]}"
-            )
+            self.logger.debug(f"Order clipped due to volume limitation: {order}, {list(zip(vol_limit_num, vol_limit))}")
 
     def _get_buy_amount_by_cash_limit(self, trade_price, cash, cost_ratio):
         """return the real order amount after cash limit for buying.

@@ -50,7 +50,7 @@ class StructuredCovEstimator(RiskModel):
             num_factors (int): number of components to keep.
             kwargs: see `RiskModel` for more information
         """
-        if "nan_option" in kwargs.keys():
+        if "nan_option" in kwargs:
             assert kwargs["nan_option"] in [self.DEFAULT_NAN_OPTION], "nan_option={} is not supported".format(
                 kwargs["nan_option"]
             )

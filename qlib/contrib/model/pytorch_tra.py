@@ -19,7 +19,7 @@ import torch.nn.functional as F
 
 try:
     from torch.utils.tensorboard import SummaryWriter
-except:
+except ImportError:
     SummaryWriter = None
 
 from tqdm import tqdm
@@ -257,7 +257,7 @@ class TRAModel(Model):
             total_loss += loss.item()
             total_count += 1
 
-        if self.use_daily_transport and len(P_all):
+        if self.use_daily_transport and len(P_all) > 0:
             P_all = pd.concat(P_all, axis=0)
             prob_all = pd.concat(prob_all, axis=0)
             choice_all = pd.concat(choice_all, axis=0)

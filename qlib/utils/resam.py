@@ -187,7 +187,7 @@ def resam_ts_data(
     if isinstance(feature.index, pd.MultiIndex):
         if callable(method):
             method_func = method
-            return feature.groupby(level="instrument").apply(lambda x: method_func(x, **method_kwargs))
+            return feature.groupby(level="instrument").apply(method_func, **method_kwargs)
         elif isinstance(method, str):
             return getattr(feature.groupby(level="instrument"), method)(**method_kwargs)
     else:

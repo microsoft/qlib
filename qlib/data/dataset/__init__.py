@@ -594,7 +594,7 @@ class TSDatasetH(DatasetH):
         flt_kwargs = deepcopy(kwargs)
         if flt_col is not None:
             flt_kwargs["col_set"] = flt_col
-            flt_data = self._prepare_seg(ext_slice, **flt_kwargs)
+            flt_data = super()._prepare_seg(ext_slice, **flt_kwargs)
             assert len(flt_data.columns) == 1
         else:
             flt_data = None

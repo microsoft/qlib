@@ -371,7 +371,7 @@ def long_short_backtest(
 
 def t_run():
     pred_FN = "./check_pred.csv"
-    pred = pd.read_csv(pred_FN)
+    pred: pd.DataFrame = pd.read_csv(pred_FN)
     pred["datetime"] = pd.to_datetime(pred["datetime"])
     pred = pred.set_index([pred.columns[0], pred.columns[1]])
     pred = pred.iloc[:9000]

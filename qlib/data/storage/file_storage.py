@@ -120,7 +120,7 @@ class FileCalendarStorage(FileStorageMixin, CalendarStorage):
         # If cache is enabled, then return cache directly
         if self.enable_read_cache:
             key = "orig_file" + str(self.uri)
-            if not key in H["c"]:
+            if key not in H["c"]:
                 H["c"][key] = self._read_calendar()
             _calendar = H["c"][key]
         else:

@@ -1407,14 +1407,14 @@ class PairRolling(ExpressionOps):
         )
 
     def get_extended_window_size(self):
+        ll, lr = self.feature_left.get_extended_window_size()
+        rl, rr = self.feature_right.get_extended_window_size()
         if self.N == 0:
             get_module_logger(self.__class__.__name__).warning(
                 "The PairRolling(ATTR, 0) will not be accurately calculated"
             )
-            return self.feature.get_extended_window_size()
+            return -np.inf, max(lr, rr)
         else:
-            ll, lr = self.feature_left.get_extended_window_size()
-            rl, rr = self.feature_right.get_extended_window_size()
             return max(ll, rl) + self.N - 1, max(lr, rr)
 
 
