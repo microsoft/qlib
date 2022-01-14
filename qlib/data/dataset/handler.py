@@ -197,7 +197,7 @@ class DataHandler(Serializable):
         -------
         pd.DataFrame.
         """
-        from .storage import BaseHandlerStorage
+        from .storage import BaseHandlerStorage # pylint: disable=C0415
 
         data_storage = self._data
         if isinstance(data_storage, pd.DataFrame):
@@ -573,7 +573,7 @@ class DataHandlerLP(DataHandler):
         -------
         pd.DataFrame:
         """
-        from .storage import BaseHandlerStorage
+        from .storage import BaseHandlerStorage # pylint: disable=C0415
 
         data_storage = self._get_df_by_key(data_key)
         if isinstance(data_storage, pd.DataFrame):

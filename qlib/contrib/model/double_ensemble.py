@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-import lightgbm as lgb
+import lightgbm as lgb 
 import numpy as np
 import pandas as pd
 from typing import Text, Union

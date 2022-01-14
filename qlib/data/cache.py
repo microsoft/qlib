@@ -506,7 +506,7 @@ class DiskExpressionCache(ExpressionCache):
         _instrument_dir = self.get_cache_dir(freq).joinpath(instrument.lower())
         cache_path = _instrument_dir.joinpath(_cache_uri)
         # get calendar
-        from .data import Cal
+        from .data import Cal # pylint: disable=C0415
 
         _calendar = Cal.calendar(freq=freq)
 
@@ -598,7 +598,7 @@ class DiskExpressionCache(ExpressionCache):
             last_update_time = d["info"]["last_update"]
 
             # get newest calendar
-            from .data import Cal, ExpressionD
+            from .data import Cal, ExpressionD # pylint: disable=C0415
 
             whole_calendar = Cal.calendar(start_time=None, end_time=None, freq=freq)
             # calendar since last updated.
@@ -752,7 +752,7 @@ class DiskDatasetCache(DatasetCache):
         if disk_cache == 0:
             # In this case, server only checks the expression cache.
             # The client will load the cache data by itself.
-            from .data import LocalDatasetProvider
+            from .data import LocalDatasetProvider # pylint: disable=C0415
 
             LocalDatasetProvider.multi_cache_walker(instruments, fields, start_time, end_time, freq)
             return ""
@@ -894,7 +894,7 @@ class DiskDatasetCache(DatasetCache):
         :return type pd.DataFrame; The fields of the returned DataFrame are consistent with the parameters of the function.
         """
         # get calendar
-        from .data import Cal
+        from .data import Cal # pylint: disable=C0415
 
         cache_path = Path(cache_path)
         _calendar = Cal.calendar(freq=freq)
@@ -969,14 +969,14 @@ class DiskDatasetCache(DatasetCache):
             index_data = im.get_index()
 
             self.logger.debug("Updating dataset: {}".format(d))
-            from .data import Inst
+            from .data import Inst # pylint: disable=C0415
 
             if Inst.get_inst_type(instruments) == Inst.DICT:
                 self.logger.info(f"The file {cache_uri} has dict cache. Skip updating")
                 return 1
 
             # get newest calendar
-            from .data import Cal
+            from .data import Cal # pylint: disable=C0415
 
             whole_calendar = Cal.calendar(start_time=None, end_time=None, freq=freq)
             # The calendar since last updated
@@ -993,7 +993,7 @@ class DiskDatasetCache(DatasetCache):
                 current_index = len(whole_calendar) - len(new_calendar) + 1
 
                 # To avoid recursive import
-                from .data import ExpressionD
+                from .data import ExpressionD # pylint: disable=C0415
 
                 # The existing data length
                 lft_etd = rght_etd = 0

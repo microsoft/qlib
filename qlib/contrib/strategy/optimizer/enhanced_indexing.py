@@ -156,7 +156,7 @@ class EnhancedIndexingOptimizer(BaseOptimizer):
 
         # factor deviation
         if self.f_dev is not None:
-            cons.extend([v >= -self.f_dev, v <= self.f_dev])
+            cons.extend([v >= -self.f_dev, v <= self.f_dev]) # pylint: disable=E1130
 
         # total turnover constraint
         t_cons = []

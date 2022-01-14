@@ -72,7 +72,7 @@ def fetch_df_by_index(
                 return df.loc[
                     pd.IndexSlice[idx_slc],
                 ]
-        else:
+        else: # pylint: disable=W0120
             return df
     else:
         return df.loc[
@@ -81,7 +81,7 @@ def fetch_df_by_index(
 
 
 def fetch_df_by_col(df: pd.DataFrame, col_set: Union[str, List[str]]) -> pd.DataFrame:
-    from .handler import DataHandler
+    from .handler import DataHandler # pylint: disable=C0415
 
     if not isinstance(df.columns, pd.MultiIndex) or col_set == DataHandler.CS_RAW:
         return df
@@ -133,7 +133,7 @@ def init_task_handler(task: dict) -> Union[DataHandler, None]:
         returns
     """
     # avoid recursive import
-    from .handler import DataHandler
+    from .handler import DataHandler # pylint: disable=C0415
 
     h_conf = task["dataset"]["kwargs"].get("handler")
     if h_conf is not None:

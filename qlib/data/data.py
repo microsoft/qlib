@@ -244,7 +244,7 @@ class InstrumentProvider(abc.ABC, ProviderBackendMixin):
         """
         if isinstance(market, list):
             return market
-        from .filter import SeriesDFilter
+        from .filter import SeriesDFilter # pylint: disable=C0415
 
         if filter_pipe is None:
             filter_pipe = []
@@ -657,7 +657,7 @@ class LocalInstrumentProvider(InstrumentProvider):
         # filter
         filter_pipe = instruments["filter_pipe"]
         for filter_config in filter_pipe:
-            from . import filter as F
+            from . import filter as F # pylint: disable=C0415
 
             filter_t = getattr(F, filter_config["filter_type"]).from_config(filter_config)
             _instruments_filtered = filter_t(_instruments_filtered, start_time, end_time, freq)
@@ -1069,7 +1069,7 @@ class ClientProvider(BaseProvider):
 
             return isinstance(instance, cls)
 
-        from .client import Client
+        from .client import Client # pylint: disable=C0415
 
         self.client = Client(C.flask_server, C.flask_port)
         self.logger = get_module_logger(self.__class__.__name__)

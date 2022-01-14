@@ -306,7 +306,7 @@ class DataLoaderDH(DataLoader):
             is_group will be used to describe whether the key of handler_config is group
 
         """
-        from qlib.data.dataset.handler import DataHandler
+        from qlib.data.dataset.handler import DataHandler # pylint: disable=C0415
 
         if is_group:
             self.handlers = {
