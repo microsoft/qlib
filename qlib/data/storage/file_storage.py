@@ -34,7 +34,11 @@ class FileStorageMixin:
 
     @property
     def dpm(self):
-        return C.dpm if getattr(self, "_provider_uri", None) is None else C.DataPathManager(self._provider_uri, None)
+        return (
+            C.dpm
+            if getattr(self, "_provider_uri", None) is None
+            else C.DataPathManager(self._provider_uri, C.mount_path)
+        )
 
     @property
     def support_freq(self) -> List[str]:

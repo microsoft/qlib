@@ -269,11 +269,19 @@ class QlibConfig(Config):
         self._registered = False
 
     class DataPathManager:
-        def __init__(
-            self,
-            provider_uri: Union[str, Path, dict],
-            mount_path: Union[str, Path, dict],
-        ):
+        """
+        Motivation:
+        - get the right path (e.g. data uri) for accessing data based on given information(e.g. provider_uri, mount_path and frequency)
+        - some helper functions to process uri.
+        """
+
+        def __init__(self, provider_uri: Union[str, Path, dict], mount_path: Union[str, Path, dict]):
+
+            """
+            The relation of `provider_uri` and `mount_path`
+            - `mount_path` is used only if provider_uri is an NFS path
+            - otherwise, provider_uri will be used for accessing data
+            """
             self.provider_uri = provider_uri
             self.mount_path = mount_path
 
@@ -304,6 +312,9 @@ class QlibConfig(Config):
                 return QlibConfig.LOCAL_URI
 
         def get_data_uri(self, freq: Optional[Union[str, Freq]] = None) -> Path:
+            """
+            please refer DataPathManager's __init__ and class doc
+            """
             if freq is not None:
                 freq = str(freq)  # converting Freq to string
             if freq is None or freq not in self.provider_uri:
@@ -314,7 +325,8 @@ class QlibConfig(Config):
             elif self.get_uri_type(_provider_uri) == QlibConfig.NFS_URI:
                 if "win" in platform.system().lower():
                     # windows, mount_path is the drive
-                    return Path(f"{self.mount_path[freq]}:\\")
+                    _path = str(self.mount_path[freq])
+                    return Path(f"{_path}:\\") if ":" not in _path else Path(_path)
                 return Path(self.mount_path[freq])
             else:
                 raise NotImplementedError(f"This type of uri is not supported")
@@ -351,9 +363,7 @@ class QlibConfig(Config):
         for _freq in _provider_uri.keys():
             # mount_path
             _mount_path[_freq] = (
-                _mount_path[_freq]
-                if _mount_path[_freq] is None
-                else str(Path(_mount_path[_freq]).expanduser().resolve())
+                _mount_path[_freq] if _mount_path[_freq] is None else str(Path(_mount_path[_freq]).expanduser())
             )
         self["provider_uri"] = _provider_uri
         self["mount_path"] = _mount_path
