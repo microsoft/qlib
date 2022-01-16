@@ -124,8 +124,46 @@ Configuration File
 ===================
 
 Let's get into details of ``qrun`` in this section.
-
 Before using ``qrun``, users need to prepare a configuration file. The following content shows how to prepare each part of the configuration file.
+
+The design logic of the configuration file is very simple. It predefines fixed workflows and provide this yaml interface to users to define how to initialize each component. 
+It follow the design of `init_instance_by_config <https://github.com/microsoft/qlib/blob/2aee9e0145decc3e71def70909639b5e5a6f4b58/qlib/utils/__init__.py#L264>`_ .  It defines the initialization of each component of Qlib, which typically include the class and the initialization arguments.
+
+For example, the following yaml and code are equivalent.
+
+.. code-block:: YAML
+
+    model:
+        class: LGBModel
+        module_path: qlib.contrib.model.gbdt
+        kwargs:
+            loss: mse
+            colsample_bytree: 0.8879
+            learning_rate: 0.0421
+            subsample: 0.8789
+            lambda_l1: 205.6999
+            lambda_l2: 580.9768
+            max_depth: 8
+            num_leaves: 210
+            num_threads: 20
+
+
+.. code-block:: python
+
+        from qlib.contrib.model.gbdt import LGBModel
+        kwargs = {
+            "loss": "mse" ,
+            "colsample_bytree": 0.8879,
+            "learning_rate": 0.0421,
+            "subsample": 0.8789,
+            "lambda_l1": 205.6999,
+            "lambda_l2": 580.9768,
+            "max_depth": 8,
+            "num_leaves": 210,
+            "num_threads": 20,
+        }
+        LGBModel(kwargs)
+
 
 Qlib Init Section
 --------------------
