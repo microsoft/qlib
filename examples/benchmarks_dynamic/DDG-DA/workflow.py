@@ -147,6 +147,9 @@ class DDGDA:
             },
             # "record": ["qlib.workflow.record_temp.SignalRecord"]
         }
+        # the proxy_forecast_model_task will be used to create meta tasks.
+        # The test date of first task will be 2011-01-01. Each test segment will be about 20days
+        # The tasks include all training tasks and test tasks.
 
         # 2) preparing meta dataset
         kwargs = dict(
