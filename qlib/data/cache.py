@@ -36,6 +36,7 @@ from .base import Feature
 
 from .ops import Operators
 
+
 class QlibCacheException(RuntimeError):
     pass
 
@@ -1196,5 +1197,6 @@ class MemoryCalendarCache(CalendarCache):
             get_module_logger("data").debug("get calendar from local cache")
 
         return result
+
 
 H = MemCache()

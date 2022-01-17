@@ -52,6 +52,7 @@ class ProviderBackendMixin:
     This helper class tries to make the provider based on storage backend more convenient
     It is not necessary to inherent this class if that provider don't rely on the backend storage
     """
+
     def get_default_backend(self):
         backend = {}
         provider_name: str = re.findall("[A-Z][^A-Z]*", self.__class__.__name__)[-2]
@@ -307,7 +308,9 @@ class InstrumentProvider(abc.ABC):
         raise ValueError(f"Unknown instrument type {inst}")
 
 
-class FeatureProvider(abc.ABC,):
+class FeatureProvider(
+    abc.ABC,
+):
     """Feature provider class
 
     Provide feature data.
@@ -544,16 +547,16 @@ class DatasetProvider(abc.ABC):
             data = pd.concat(new_data, names=["instrument"], sort=False)
             data = DiskDatasetCache.cache_to_origin_data(data, column_names)
         else:
-            data = pd.DataFrame(index=pd.MultiIndex.from_arrays([[], []], names=("instrument", "datetime")),
-                                columns=column_names,
-                                dtype=np.float32)
+            data = pd.DataFrame(
+                index=pd.MultiIndex.from_arrays([[], []], names=("instrument", "datetime")),
+                columns=column_names,
+                dtype=np.float32,
+            )
 
         return data
 
     @staticmethod
-    def inst_calculator(
-        inst, start_time, end_time, freq, column_names, spans=None, g_config=None, inst_processors=[]
-    ):
+    def inst_calculator(inst, start_time, end_time, freq, column_names, spans=None, g_config=None, inst_processors=[]):
         """
         Calculate the expressions for **one** instrument, return a df result.
         If the expression has been calculated before, load from cache.
@@ -683,7 +686,7 @@ class LocalInstrumentProvider(InstrumentProvider, ProviderBackendMixin):
         return _instruments_filtered
 
 
-class LocalFeatureProvider(FeatureProvider,  ProviderBackendMixin):
+class LocalFeatureProvider(FeatureProvider, ProviderBackendMixin):
     """Local feature data provider class
 
     Provide feature data from local data source.
@@ -702,17 +705,16 @@ class LocalFeatureProvider(FeatureProvider,  ProviderBackendMixin):
 
 
 class ArcticFeatureProvider(FeatureProvider):
-
-    def __init__(self,
-                 uri="127.0.0.1",
-                 retry_time=0,
-                 market_transaction_time_list=[("09:15", "11:30"), ("13:00", "15:00")]):
+    def __init__(
+        self, uri="127.0.0.1", retry_time=0, market_transaction_time_list=[("09:15", "11:30"), ("13:00", "15:00")]
+    ):
         super().__init__()
         self.uri = uri
         # TODO:
         # retry connecting if error occurs
         # is it real matters?
         self.retry_time = retry_time
+        # NOTE: this is especially important for TResample operator
         self.market_transaction_time_list = market_transaction_time_list
 
     def feature(self, instrument, field, start_index, end_index, freq):
@@ -733,7 +735,11 @@ class ArcticFeatureProvider(FeatureProvider):
 
                 if not s.empty:
                     s = pd.concat(
-                        [s.between_time(time_tuple[0], time_tuple[1]) for time_tuple in self.market_transaction_time_list])
+                        [
+                            s.between_time(time_tuple[0], time_tuple[1])
+                            for time_tuple in self.market_transaction_time_list
+                        ]
+                    )
                 return s
 
 
@@ -742,6 +748,7 @@ class LocalExpressionProvider(ExpressionProvider):
 
     Provide expression data from local data source.
     """
+
     def __init__(self, time2idx=True):
         super().__init__()
         self.time2idx = time2idx
@@ -1048,6 +1055,7 @@ class BaseProvider:
 
     To keep compatible with old qlib provider.
     """
+
     def calendar(self, start_time=None, end_time=None, freq="day", future=False):
         return Cal.calendar(start_time, end_time, freq, future=future)
 

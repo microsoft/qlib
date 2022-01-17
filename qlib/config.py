@@ -469,7 +469,6 @@ class QlibConfig(Config):
             return self["kernels"](freq)
         return self["kernels"]
 
-
     @property
     def registered(self):
         return self._registered

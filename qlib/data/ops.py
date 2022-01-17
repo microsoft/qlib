@@ -1502,6 +1502,7 @@ class Cov(PairRolling):
 # Convention
 # - The name of the operators in this section will start with "T"
 
+
 class TResample(ElemOperator):
     def __init__(self, feature, freq, func):
         """

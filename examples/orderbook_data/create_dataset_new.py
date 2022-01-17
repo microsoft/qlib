@@ -37,7 +37,7 @@ DATA_INFO_PATH = DIRNAME / "data_info"
 DATA_FINISH_INFO_PATH = DIRNAME / "./data_finish_info"
 DOC_TYPE = ["Tick", "Order", "OrderQueue", "Transaction", "Day", "Minute"]
 MAX_SIZE = 3000 * 1024 * 1024 * 1024
-ALL_STOCK_PATH = DIRNAME / "all.txt"
+ALL_STOCK_PATH = DATABASE_PATH / "all.txt"
 ARCTIC_SRV = "127.0.0.1"
 
 

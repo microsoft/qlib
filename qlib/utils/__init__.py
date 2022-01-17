@@ -172,10 +172,7 @@ def parse_field(field):
 
     if not isinstance(field, str):
         field = str(field)
-    for pattern, new in [
-        (r"\$(\w+)", rf'Feature("\1")'),  # Features
-        (r"(\w+\s*)\(", r"Operators.\1(")  # Operators
-    ]:
+    for pattern, new in [(r"\$(\w+)", rf'Feature("\1")'), (r"(\w+\s*)\(", r"Operators.\1(")]:  # Features  # Operators
         field = re.sub(pattern, new, field)
     return field
 
