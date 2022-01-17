@@ -19,7 +19,7 @@ class TestElementOperator(TestOperatorData):
             "Abs($change)",
         ]
         columns = ["change", "abs"]
-        self.data = DatasetProvider.expression_calculator(
+        self.data = DatasetProvider.inst_calculator(
             self.inst, self.start_time, self.end_time, freq, expressions, self.spans, C, []
         )
         self.data.columns = columns
