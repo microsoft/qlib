@@ -1,6 +1,13 @@
 # Introduction
 
+This example tries to demonstrate how Qlib support data without fixed shared frequency.
 
+For example,
+- Daily prices volume data is fixed-frequency data. The data comes in a fixed frequency (i.e. daily)
+- Orders are not fixed data and they may come at any point
+
+To support such non-fixed-frequency, Qlib implements a Arctic-based backend.
+Here is an example to import and query data based on this backend.
 
 # Installation
 
@@ -15,7 +22,7 @@ pip install pytest
 # Importing example data
 
 
-1. Please follow the first part of [this section](https://github.com/microsoft/qlib#data-preparation) to **get 1min data** of Qlib.
+1. (Optional) Please follow the first part of [this section](https://github.com/microsoft/qlib#data-preparation) to **get 1min data** of Qlib.
 2. Please follow following steps to download example data
 ```bash
 cd examples/orderbook_data/
