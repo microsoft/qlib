@@ -5,15 +5,26 @@
 # Installation
 
 Please refer to [the installation docs](https://docs.mongodb.com/manual/installation/) of mongodb.
-
 Current version of script with default value tries to connect localhost **via default port without authentication**.
+
+Run following command to install necessary libraries
+```
+pip install pytest
+```
 
 # Importing example data
 
-[ ] TODO: download the original data
-[ ] TODO: download Qlib data.
 
+1. Please follow the first part of [this section](https://github.com/microsoft/qlib#data-preparation) to **get 1min data** of Qlib.
+2. Please follow following steps to download example data
 ```bash
+wget http://fintech.msra.cn/stock_data/downloads/highfreq_orderboook_example_data.tar.bz2
+tar xf highfreq_orderboook_example_data.tar.bz2
+```
+
+3. Please import the example data to your mongo db
+```bash
+cd qlib/examples/orderbook_data/
 python create_dataset_new.py initialize_library  # Initialization Libraries
 python create_dataset_new.py import_data  # Initialization Libraries
 ```
@@ -21,6 +32,11 @@ python create_dataset_new.py import_data  # Initialization Libraries
 # Query Examples
 
 After importing these data, you run `example.py` to create some high-frequency features.
+```bash
+cd qlib/examples/orderbook_data/
+pytest -s --disable-warnings example.py   # If you want run all examples
+pytest -s --disable-warnings example.py::TestClass::test_exp_10  # If you want to run specific example
+```
 
 
 # Known limitations
