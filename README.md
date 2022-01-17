@@ -4,10 +4,11 @@
       <li><a href="#plans"><strong>Plans</strong></a></li>
       <li><a href="#framework-of-qlib">Framework of Qlib</a></li>
       <li><a href="#quick-start">Quick Start</a></li>
-        <li><a href="#installation">Installation</a> </li>
-        <li><a href="#data-preparation">Data Preparation</a></li>
-        <li><a href="#auto-quant-research-workflow">Auto Quant Research Workflow</a></li>
-        <li><a href="#building-customized-quant-research-workflow-by-code">Building Customized Quant Research Workflow by Code</a></li>
+        <ul>
+          <li><a href="#installation">Installation</a> </li>
+          <li><a href="#data-preparation">Data Preparation</a></li>
+          <li><a href="#auto-quant-research-workflow">Auto Quant Research Workflow</a></li>
+          <li><a href="#building-customized-quant-research-workflow-by-code">Building Customized Quant Research Workflow by Code</a></li></ul>
       <li><a href="#quant-dataset-zoo"><strong>Quant Dataset Zoo</strong></a></li>
       <li><a href="#more-about-qlib">More About Qlib</a></li>
       <li><a href="#offline-mode-and-online-mode">Offline Mode and Online Mode</a>
