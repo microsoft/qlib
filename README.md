@@ -1,5 +1,6 @@
 <table>
   <tbody>
+    <td>
     <tr align="center" valign="bottom">
       <li><a href="#plans"><strong>Plans</strong></a></li>
       <li><a href="#framework-of-qlib">Framework of Qlib</a></li>
@@ -15,8 +16,7 @@
       <li><a href="#related-reports">Related Reports</a></li>
       <li><a href="#contact-us">Contact Us</a></li>
       <li><a href="#contributing">Contributing</a></li>
-</ul>
-</li>
+    </td>  
     </tr>
   </tbody>
 <table>
