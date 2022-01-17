@@ -258,7 +258,8 @@ class DSCreator:
 
     def _get_empty_folder(self, fp: Path):
         fp = Path(fp)
-        shutil.rmtree(fp)
+        if fp.exists():
+            shutil.rmtree(fp)
         fp.mkdir(parents=True, exist_ok=True)
 
     def import_data(self, doc_type_l=["Tick", "Transaction", "Order"]):

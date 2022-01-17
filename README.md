@@ -11,6 +11,7 @@
 Recent released features
 | Feature | Status |
 | --                      | ------    |
+| Arctic Provider Backend & Orderbook data example | [Rleased](https://github.com/microsoft/qlib/pull/744) on Jan 17, 2022 |
 | Meta-Learning-based framework & DDG-DA  | [Released](https://github.com/microsoft/qlib/pull/743) on Jan 10, 2022 | 
 | Planning-based portfolio optimization | [Released](https://github.com/microsoft/qlib/pull/754) on Dec 28, 2021 | 
 | Release Qlib v0.8.0 | [Released](https://github.com/microsoft/qlib/releases/tag/v0.8.0) on Dec 8, 2021 |
@@ -72,7 +73,6 @@ Your feedbacks about the features are very important.
 | Feature                        | Status      |
 | --                      | ------    |
 | Point-in-Time database | Under review: https://github.com/microsoft/qlib/pull/343 |
-| Orderbook database | Under review: https://github.com/microsoft/qlib/pull/744 |
 
 # Framework of Qlib
 
