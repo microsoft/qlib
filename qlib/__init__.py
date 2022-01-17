@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 from pathlib import Path
 
-__version__ = "0.8.0.99"
+__version__ = "0.8.1.99"
 __version__bak = __version__  # This version is backup for QlibConfig.reset_qlib_version
 import os
 from typing import Union
@@ -62,7 +62,7 @@ def init(default_conf="client", **kwargs):
                 else:
                     logger.warning(f"auto_path is False, please make sure {mount_path} is mounted")
         elif uri_type == C.NFS_URI:
-            _mount_nfs_uri(provider_uri, mount_path, C["auto_mount"])
+            _mount_nfs_uri(provider_uri, C.dpm.get_data_uri(_freq), C["auto_mount"])
         else:
             raise NotImplementedError(f"This type of URI is not supported")
 
@@ -95,7 +95,7 @@ def _mount_nfs_uri(provider_uri, mount_path, auto_mount: bool = False):
         sys_type = platform.system()
         if "win" in sys_type.lower():
             # system: window
-            exec_result = os.popen("mount -o anon %s %s" % (provider_uri, mount_path + ":"))
+            exec_result = os.popen(f"mount -o anon {provider_uri} {mount_path}")
             result = exec_result.read()
             if "85" in result:
                 LOG.warning(f"{provider_uri} on Windows:{mount_path} is already mounted")

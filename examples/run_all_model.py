@@ -186,7 +186,7 @@ def gen_and_save_md_table(metrics, dataset):
 # read yaml, remove seed kwargs of model, and then save file in the temp_dir
 def gen_yaml_file_without_seed_kwargs(yaml_path, temp_dir):
     with open(yaml_path, "r") as fp:
-        config = yaml.load(fp)
+        config = yaml.safe_load(fp)
     try:
         del config["task"]["model"]["kwargs"]["seed"]
     except KeyError:
