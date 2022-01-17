@@ -694,7 +694,7 @@ class LocalFeatureProvider(FeatureProvider, ProviderBackendMixin):
 
     def __init__(self, remote=False, backend={}):
         super().__init__()
-        self.remote = kwargs.get("remote", False)
+        self.remote = remote
         self.backend = backend
 
     def feature(self, instrument, field, start_index, end_index, freq):

@@ -1391,14 +1391,14 @@ class PairRolling(ExpressionOps):
 
     def _load_internal(self, instrument, start_index, end_index, freq):
         assert any(
-            [isinstance(self.feature_left, TExpression), self.feature_right, TExpression]
+            [isinstance(self.feature_left, Expression), self.feature_right, Expression]
         ), "at least one of two inputs is Expression instance"
 
-        if isinstance(self.feature_left, TExpression):
+        if isinstance(self.feature_left, Expression):
             series_left = self.feature_left.load(instrument, start_index, end_index, freq)
         else:
             series_left = self.feature_left  # numeric value
-        if isinstance(self.feature_right, TExpression):
+        if isinstance(self.feature_right, Expression):
             series_right = self.feature_right.load(instrument, start_index, end_index, freq)
         else:
             series_right = self.feature_right
