@@ -3,7 +3,7 @@
     <tr align="center" valign="bottom">
       <li><a href="#plans"><strong>Plans</strong></a></li>
       <li><a href="#framework-of-qlib">Framework of Qlib</a></li>
-      <a href="#quick-start">Quick Start</a></li>
+      <li><a href="#quick-start">Quick Start</a></li>
         <li><a href="#installation">Installation</a> </li>
         <li><a href="#data-preparation">Data Preparation</a></li>
         <li><a href="#auto-quant-research-workflow">Auto Quant Research Workflow</a></li>
