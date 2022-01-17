@@ -4,7 +4,7 @@
     NOTE:
     - This scripts is a demo to import example data import Qlib
     - !!!!!!!!!!!!!!!TODO!!!!!!!!!!!!!!!!!!!:
-        - Its structure is not well designed, your contribution is welcome to make importing dataset easier
+        - Its structure is not well designed and very ugly, your contribution is welcome to make importing dataset easier
 """
 from datetime import date, datetime as dt
 import os
@@ -261,7 +261,7 @@ class DSCreator:
         shutil.rmtree(fp)
         fp.mkdir(parents=True, exist_ok=True)
 
-    def import_data(self):
+    def import_data(self, doc_type_l=["Tick", "Transaction", "Order"]):
         # clear all the old files
         for fp in LOG_FILE_PATH, DATA_INFO_PATH, DATA_FINISH_INFO_PATH, DATA_PATH:
             self._get_empty_folder(fp)
@@ -273,43 +273,43 @@ class DSCreator:
         arc.reset()
 
         # doc_type = 'Day'
-        doc_type = "Tick"
-        date_list = list(set([int(path.split("_")[0]) for path in os.listdir(DATABASE_PATH) if doc_type in path]))
-        date_list.sort()
-        date_list = [str(date) for date in date_list]
+        for doc_type in doc_type_l:
+            date_list = list(set([int(path.split("_")[0]) for path in os.listdir(DATABASE_PATH) if doc_type in path]))
+            date_list.sort()
+            date_list = [str(date) for date in date_list]
 
-        f = open(ALL_STOCK_PATH, "r")
-        stock_name_list = [lines.split("\t")[0] for lines in f.readlines()]
-        f.close()
-        stock_name_dict = {
-            "SH": [stock_name[2:] for stock_name in stock_name_list if "SH" in stock_name],
-            "SZ": [stock_name[2:] for stock_name in stock_name_list if "SZ" in stock_name],
-        }
+            f = open(ALL_STOCK_PATH, "r")
+            stock_name_list = [lines.split("\t")[0] for lines in f.readlines()]
+            f.close()
+            stock_name_dict = {
+                "SH": [stock_name[2:] for stock_name in stock_name_list if "SH" in stock_name],
+                "SZ": [stock_name[2:] for stock_name in stock_name_list if "SZ" in stock_name],
+            }
 
-        lib_name = get_library_name(doc_type)
-        a = Arctic(ARCTIC_SRV)
-        # a.initialize_library(lib_name, lib_type=CHUNK_STORE)
+            lib_name = get_library_name(doc_type)
+            a = Arctic(ARCTIC_SRV)
+            # a.initialize_library(lib_name, lib_type=CHUNK_STORE)
 
-        stock_name_exist = a[lib_name].list_symbols()
-        lib = a[lib_name]
-        initialize_count = 0
-        for stock_name in stock_name_list:
-            if stock_name not in stock_name_exist:
-                initialize_count += 1
-                # A placeholder for stocks
-                pdf = pd.DataFrame(index=[pd.Timestamp("1900-01-01")])
-                pdf.index.name = "date"  # an col named date is necessary
-                lib.write(stock_name, pdf)
-        print("initialize count: {}".format(initialize_count))
-        print("tasks: {}".format(date_list))
-        a.reset()
+            stock_name_exist = a[lib_name].list_symbols()
+            lib = a[lib_name]
+            initialize_count = 0
+            for stock_name in stock_name_list:
+                if stock_name not in stock_name_exist:
+                    initialize_count += 1
+                    # A placeholder for stocks
+                    pdf = pd.DataFrame(index=[pd.Timestamp("1900-01-01")])
+                    pdf.index.name = "date"  # an col named date is necessary
+                    lib.write(stock_name, pdf)
+            print("initialize count: {}".format(initialize_count))
+            print("tasks: {}".format(date_list))
+            a.reset()
 
-        # date_list = [files.split("_")[0] for files in os.listdir("./raw_data_price") if "tar" in files]
-        # print(len(date_list))
-        date_list = ["20201231"]  # for test
-        Parallel(n_jobs=min(2, len(date_list)))(
-            delayed(add_data)(date, doc_type, stock_name_dict) for date in date_list
-        )
+            # date_list = [files.split("_")[0] for files in os.listdir("./raw_data_price") if "tar" in files]
+            # print(len(date_list))
+            date_list = ["20201231"]  # for test
+            Parallel(n_jobs=min(2, len(date_list)))(
+                delayed(add_data)(date, doc_type, stock_name_dict) for date in date_list
+            )
 
 
 if __name__ == "__main__":

@@ -544,9 +544,9 @@ class DatasetProvider(abc.ABC):
             data = pd.concat(new_data, names=["instrument"], sort=False)
             data = DiskDatasetCache.cache_to_origin_data(data, column_names)
         else:
-            data = pd.DataFrame(
-                index=pd.MultiIndex.from_arrays([[], []], names=("instrument", "datetime")), columns=column_names
-            )
+            data = pd.DataFrame(index=pd.MultiIndex.from_arrays([[], []], names=("instrument", "datetime")),
+                                columns=column_names,
+                                dtype=np.float32)
 
         return data
 
@@ -575,7 +575,7 @@ class DatasetProvider(abc.ABC):
             obj[field] = ExpressionD.expression(inst, field, start_time, end_time, freq)
 
         data = pd.DataFrame(obj)
-        if not np.issubdtype(data.index.dtype, np.dtype("M")):
+        if not data.empty and not np.issubdtype(data.index.dtype, np.dtype("M")):
             # If the underlaying provides the data not in datatime formmat, we'll convert it into datetime format
             _calendar = Cal.calendar(freq=freq)
             data.index = _calendar[data.index.values.astype(int)]

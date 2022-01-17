@@ -721,9 +721,9 @@ class Rolling(ExpressionOps):
         # NOTE: remove all null check,
         # now it's user's responsibility to decide whether use features in null days
         # isnull = series.isnull() # NOTE: isnull = NaN, inf is not null
-        if self.N == 0:
+        if isinstance(self.N, int) and self.N == 0:
             series = getattr(series.expanding(min_periods=1), self.func)()
-        elif 0 < self.N < 1:
+        elif isinstance(self.N, int) and 0 < self.N < 1:
             series = series.ewm(alpha=self.N, min_periods=1).mean()
         else:
             series = getattr(series.rolling(self.N, min_periods=1), self.func)()
@@ -1534,17 +1534,13 @@ class TResample(ElemOperator):
         else:
             if self.func == "sum":
                 return getattr(series.resample(self.freq), self.func)(min_count=1)
-            elif self.func == 'ffill':
-                # TODO:
-                # Not sure why dropping duplicated element is necessary
-                series = series[~series.index.duplicated(keep='first')]
-                return getattr(series.resample(self.freq), self.func)()
             else:
                 return getattr(series.resample(self.freq), self.func)()
 
 
 TOpsList = [TResample]
 OpsList = [
+    Rolling,
     Ref,
     Max,
     Min,
