@@ -64,8 +64,6 @@ def add_one_stock_daily_data(filepath, type, exchange_place, arc, date):
     arc: arclink created by a process
     """
     code = os.path.split(filepath)[-1].split(".csv")[0]
-    # print(code)
-    # print(code, exchange_place)se
     if exchange_place == "SH" and code[0] != "6":
         return
     if exchange_place == "SZ" and code[0] != "0" and code[:2] != "30":
@@ -86,14 +84,14 @@ def add_one_stock_daily_data(filepath, type, exchange_place, arc, date):
                 "-".join([day[0:4], day[4:6], day[6:8]]) + " " + ":".join([hms[:1], hms[1:3], hms[3:5] + "." + hms[5:]])
             )
 
-    ## 如果出现有问题的时间戳，直接丢弃整行数据
+    ## Discard the entire row if wrong data timestamp encoutered.
     timestamp = list(zip(list(df["date"]), list(df["time"])))
     error_index_list = []
     for index, t in enumerate(timestamp):
         try:
             pd.Timestamp(format_time(t[0], t[1]))
         except Exception:
-            error_index_list.append(index)  ## 出问题的行数
+            error_index_list.append(index)  ## The row number of the error line
 
     # to-do: writting to logs
 
@@ -101,8 +99,8 @@ def add_one_stock_daily_data(filepath, type, exchange_place, arc, date):
         print("error: {}, {}".format(filepath, len(error_index_list)))
 
     df = df.drop(error_index_list)
-    timestamp = list(zip(list(df["date"]), list(df["time"])))  ## 清理后的时间戳
-    # 生成时间戳
+    timestamp = list(zip(list(df["date"]), list(df["time"])))  ## The cleaned timestamp
+    # generate timestamp
     pd_timestamp = pd.DatetimeIndex(
         [pd.Timestamp(format_time(timestamp[i][0], timestamp[i][1])) for i in range(len(df["date"]))]
     )
@@ -112,7 +110,7 @@ def add_one_stock_daily_data(filepath, type, exchange_place, arc, date):
     df.set_index("date", inplace=True)
 
     if str.lower(type) == "orderqueue":
-        ## 提取ab1~ab50
+        ## extract ab1~ab50
         df["ab"] = [
             ",".join([str(int(row["ab" + str(i + 1)])) for i in range(0, row["ab_items"])])
             for timestamp, row in df.iterrows()
@@ -213,7 +211,7 @@ def add_data(tick_date, doc_type, stock_name_dict):
         f.close()
 
         if sh_file_nums > 0:
-            # write线程不安全, update应该是安全的
+            # write is not thread-safe, update may be thread-safe
             Parallel(n_jobs=N_JOBS)(
                 delayed(add_one_stock_daily_data_wrapper)(
                     os.path.join(temp_data_path_sh, name + ".csv"), doc_type, "SH", index, tick_date
@@ -221,7 +219,7 @@ def add_data(tick_date, doc_type, stock_name_dict):
                 for index, name in enumerate(list(sh_files))
             )
         if sz_file_nums > 0:
-            # write线程不安全, update应该是安全的
+            # write is not thread-safe, update may be thread-safe
             Parallel(n_jobs=N_JOBS)(
                 delayed(add_one_stock_daily_data_wrapper)(
                     os.path.join(temp_data_path_sz, name + ".csv"), doc_type, "SZ", index, tick_date

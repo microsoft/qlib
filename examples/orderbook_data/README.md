@@ -1,12 +1,12 @@
 # Introduction
 
-This example tries to demonstrate how Qlib support data without fixed shared frequency.
+This example tries to demonstrate how Qlib supports data without fixed shared frequency.
 
 For example,
-- Daily prices volume data is fixed-frequency data. The data comes in a fixed frequency (i.e. daily)
-- Orders are not fixed data and they may come at any point
+- Daily prices volume data are fixed-frequency data. The data comes in a fixed frequency (i.e. daily)
+- Orders are not fixed data and they may come at any time point
 
-To support such non-fixed-frequency, Qlib implements a Arctic-based backend.
+To support such non-fixed-frequency, Qlib implements an Arctic-based backend.
 Here is an example to import and query data based on this backend.
 
 # Installation
