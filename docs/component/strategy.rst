@@ -29,6 +29,8 @@ Qlib provides a base class ``qlib.strategy.base.BaseStrategy``. All strategy cla
 
 - `generate_order_list`
     Return the order list.
+    The frequency to call this method depends on the executor frequency("time_per_step"="day" by default). But the trading frequency can be decided by users' implementation.
+    For example, if the user wants to trading in weekly while the `time_per_step` is "day" in executor, user can return non-empty TradeDecision weekly(otherwise return empty like `this <https://github.com/microsoft/qlib/blob/main/qlib/contrib/strategy/signal_strategy.py#L132>`_ ).
 
 Users can inherit `BaseStrategy` to customize their strategy class.
 
