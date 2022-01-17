@@ -12,7 +12,8 @@
       <li><a href="#quant-dataset-zoo"><strong>Quant Dataset Zoo</strong></a></li>
       <li><a href="#more-about-qlib">More About Qlib</a></li>
       <li><a href="#offline-mode-and-online-mode">Offline Mode and Online Mode</a>
-        <li><a href="#performance-of-qlib-data-server">Performance of Qlib Data Server</a></li>
+        <ul>
+          <li><a href="#performance-of-qlib-data-server">Performance of Qlib Data Server</a></li></ul>
       <li><a href="#related-reports">Related Reports</a></li>
       <li><a href="#contact-us">Contact Us</a></li>
       <li><a href="#contributing">Contributing</a></li>
