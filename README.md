@@ -136,17 +136,11 @@ Also, users can install the latest dev version ``Qlib`` by the source code accor
   ```
 
 * Clone the repository and install ``Qlib`` as follows.
-  * If you haven't installed qlib by the command ``pip install pyqlib`` before:
-    ```bash
-    git clone https://github.com/microsoft/qlib.git && cd qlib
-    python setup.py install
-    ```
-  * If you have already installed the stable version by the command ``pip install pyqlib``:
     ```bash
     git clone https://github.com/microsoft/qlib.git && cd qlib
     pip install .
     ```
-  **Note**: **Only** the command ``pip install .`` **can** overwrite the stable version installed by ``pip install pyqlib``, while the command ``python setup.py install`` **can't**.
+  **Note**:  You can install Qlib with `python setup.py install` as well. But it is not the recommanded approach. It will skip `pip` and cause obscure problems. For example, **only** the command ``pip install .`` **can** overwrite the stable version installed by ``pip install pyqlib``, while the command ``python setup.py install`` **can't**.
 
 **Tips**: If you fail to install `Qlib` or run the examples in your environment,  comparing your steps and the [CI workflow](.github/workflows/test.yml) may help you find the problem.
 
