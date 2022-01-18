@@ -91,7 +91,7 @@ class RiskModel(BaseModel):
                 "return_decomposed_components" in inspect.getfullargspec(self._predict).args
             ), "This risk model does not support return decomposed components of the covariance matrix "
 
-            F, cov_b, var_u = self._predict(X, return_decomposed_components=True)
+            F, cov_b, var_u = self._predict(X, return_decomposed_components=True)  # pylint: disable=E1123
             return F, cov_b, var_u
 
         # estimate covariance

@@ -1,6 +1,8 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+# pylint: skip-file
+
 import pathlib
 import pickle
 import yaml
