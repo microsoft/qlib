@@ -308,9 +308,7 @@ class InstrumentProvider(abc.ABC):
         raise ValueError(f"Unknown instrument type {inst}")
 
 
-class FeatureProvider(
-    abc.ABC,
-):
+class FeatureProvider(abc.ABC):
     """Feature provider class
 
     Provide feature data.
@@ -712,7 +710,7 @@ class ArcticFeatureProvider(FeatureProvider):
         self.uri = uri
         # TODO:
         # retry connecting if error occurs
-        # is it real matters?
+        # does it real matters?
         self.retry_time = retry_time
         # NOTE: this is especially important for TResample operator
         self.market_transaction_time_list = market_transaction_time_list
