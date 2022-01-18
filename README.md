@@ -2,7 +2,7 @@
   <tbody>
     <tr>
       <th>Frameworks, Tutorial, Data & DevOps<th/>
-      <td>aaaaa<td/>
+      <th>aaaaa<th/>
     <tr/>
     <tr>
       <td>
