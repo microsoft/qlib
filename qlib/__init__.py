@@ -30,8 +30,8 @@ def init(default_conf="client", **kwargs):
             When using the recorder, skip_if_reg can set to True to avoid loss of recorder.
 
     """
-    from .config import C
-    from .data.cache import H
+    from .config import C  # pylint: disable=C0415
+    from .data.cache import H  # pylint: disable=C0415
 
     # FIXME: this logger ignored the level in config
     logger = get_module_logger("Initialization", level=logging.INFO)
@@ -85,7 +85,7 @@ def _mount_nfs_uri(provider_uri, mount_path, auto_mount: bool = False):
     mount_command = "sudo mount.nfs %s %s" % (provider_uri, mount_path)
     # If the provider uri looks like this 172.23.233.89//data/csdesign'
     # It will be a nfs path. The client provider will be used
-    if not auto_mount:
+    if not auto_mount:  # pylint: disable=R1702
         if not Path(mount_path).exists():
             raise FileNotFoundError(
                 f"Invalid mount path: {mount_path}! Please mount manually: {mount_command} or Set init parameter `auto_mount=True`"

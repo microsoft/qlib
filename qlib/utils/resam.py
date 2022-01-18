@@ -70,7 +70,7 @@ def get_higher_eq_freq_feature(instruments, fields, start_time=None, end_time=No
         the feature with higher or equal frequency
     """
 
-    from ..data.data import D
+    from ..data.data import D  # pylint: disable=C0415
 
     try:
         _result = D.features(instruments, fields, start_time, end_time, freq=freq, disk_cache=disk_cache)
@@ -172,7 +172,7 @@ def resam_ts_data(
 
     selector_datetime = slice(start_time, end_time)
 
-    from ..data.dataset.utils import get_level_index
+    from ..data.dataset.utils import get_level_index  # pylint: disable=C0415
 
     feature = lazy_sort_index(ts_feature)
 

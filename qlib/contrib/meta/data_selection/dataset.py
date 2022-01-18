@@ -12,7 +12,7 @@ from qlib.log import get_module_logger
 from qlib.utils import auto_filter_kwargs, get_date_by_shift, init_instance_by_config
 from qlib.workflow import R
 from qlib.workflow.task.gen import RollingGen, task_generator
-from joblib import Parallel, delayed
+from joblib import Parallel, delayed  # pylint: disable=E0401
 from qlib.model.meta.dataset import MetaTaskDataset
 from qlib.model.trainer import task_train, TrainerR
 from qlib.data.dataset import DatasetH

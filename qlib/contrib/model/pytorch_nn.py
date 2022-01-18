@@ -338,7 +338,7 @@ class Net(nn.Module):
         dnn_layers.append(drop_input)
         fc = nn.Linear(hidden_units, output_dim)
         dnn_layers.append(fc)
-        # optimizer
+        # optimizer  # pylint: disable=W0631
         self.dnn_layers = nn.ModuleList(dnn_layers)
         self._weight_init()
 
