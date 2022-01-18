@@ -15,6 +15,7 @@ from .data import (
     LocalCalendarProvider,
     LocalInstrumentProvider,
     LocalFeatureProvider,
+    ArcticFeatureProvider,
     LocalExpressionProvider,
     LocalDatasetProvider,
     ClientCalendarProvider,

@@ -721,9 +721,9 @@ class Rolling(ExpressionOps):
         # NOTE: remove all null check,
         # now it's user's responsibility to decide whether use features in null days
         # isnull = series.isnull() # NOTE: isnull = NaN, inf is not null
-        if self.N == 0:
+        if isinstance(self.N, int) and self.N == 0:
             series = getattr(series.expanding(min_periods=1), self.func)()
-        elif 0 < self.N < 1:
+        elif isinstance(self.N, int) and 0 < self.N < 1:
             series = series.ewm(alpha=self.N, min_periods=1).mean()
         else:
             series = getattr(series.rolling(self.N, min_periods=1), self.func)()
@@ -1380,6 +1380,7 @@ class PairRolling(ExpressionOps):
     """
 
     def __init__(self, feature_left, feature_right, N, func):
+        # TODO: in what case will a const be passed into `__init__` as `feature_left` or `feature_right`
         self.feature_left = feature_left
         self.feature_right = feature_right
         self.N = N
@@ -1389,8 +1390,19 @@ class PairRolling(ExpressionOps):
         return "{}({},{},{})".format(type(self).__name__, self.feature_left, self.feature_right, self.N)
 
     def _load_internal(self, instrument, start_index, end_index, freq):
-        series_left = self.feature_left.load(instrument, start_index, end_index, freq)
-        series_right = self.feature_right.load(instrument, start_index, end_index, freq)
+        assert any(
+            [isinstance(self.feature_left, Expression), self.feature_right, Expression]
+        ), "at least one of two inputs is Expression instance"
+
+        if isinstance(self.feature_left, Expression):
+            series_left = self.feature_left.load(instrument, start_index, end_index, freq)
+        else:
+            series_left = self.feature_left  # numeric value
+        if isinstance(self.feature_right, Expression):
+            series_right = self.feature_right.load(instrument, start_index, end_index, freq)
+        else:
+            series_right = self.feature_right
+
         if self.N == 0:
             series = getattr(series_left.expanding(min_periods=1), self.func)(series_right)
         else:
@@ -1400,21 +1412,33 @@ class PairRolling(ExpressionOps):
     def get_longest_back_rolling(self):
         if self.N == 0:
             return np.inf
-        return (
-            max(self.feature_left.get_longest_back_rolling(), self.feature_right.get_longest_back_rolling())
-            + self.N
-            - 1
-        )
+        if isinstance(self.feature_left, Expression):
+            left_br = self.feature_left.get_longest_back_rolling()
+        else:
+            left_br = 0
+
+        if isinstance(self.feature_right, Expression):
+            right_br = self.feature_right.get_longest_back_rolling()
+        else:
+            right_br = 0
+        return max(left_br, right_br)
 
     def get_extended_window_size(self):
-        ll, lr = self.feature_left.get_extended_window_size()
-        rl, rr = self.feature_right.get_extended_window_size()
         if self.N == 0:
             get_module_logger(self.__class__.__name__).warning(
                 "The PairRolling(ATTR, 0) will not be accurately calculated"
             )
             return -np.inf, max(lr, rr)
         else:
+            if isinstance(self.feature_left, Expression):
+                ll, lr = self.feature_left.get_extended_window_size()
+            else:
+                ll, lr = 0, 0
+
+            if isinstance(self.feature_right, Expression):
+                rl, rr = self.feature_right.get_extended_window_size()
+            else:
+                rl, rr = 0, 0
             return max(ll, rl) + self.N - 1, max(lr, rr)
 
 
@@ -1474,7 +1498,50 @@ class Cov(PairRolling):
         super(Cov, self).__init__(feature_left, feature_right, N, "cov")
 
 
+#################### Operator which only support data with time index ####################
+# Convention
+# - The name of the operators in this section will start with "T"
+
+
+class TResample(ElemOperator):
+    def __init__(self, feature, freq, func):
+        """
+        Resampling the data to target frequency.
+        The resample function of pandas is used.
+        - the timestamp will be at the start of the time span after resample.
+
+        Parameters
+        ----------
+        feature : Expression
+            An expression for calculating the feature
+        freq : str
+            It will be passed into the resample method for resampling basedn on given frequency
+        func : method
+            The method to get the resampled values
+            Some expression are high frequently used
+        """
+        self.feature = feature
+        self.freq = freq
+        self.func = func
+
+    def __str__(self):
+        return "{}({},{})".format(type(self).__name__, self.feature, self.freq)
+
+    def _load_internal(self, instrument, start_index, end_index, freq):
+        series = self.feature.load(instrument, start_index, end_index, freq)
+
+        if series.empty:
+            return series
+        else:
+            if self.func == "sum":
+                return getattr(series.resample(self.freq), self.func)(min_count=1)
+            else:
+                return getattr(series.resample(self.freq), self.func)()
+
+
+TOpsList = [TResample]
 OpsList = [
+    Rolling,
     Ref,
     Max,
     Min,
@@ -1521,7 +1588,7 @@ OpsList = [
     IdxMin,
     If,
     Feature,
-]
+] + [TResample]
 
 
 class OpsWrapper:

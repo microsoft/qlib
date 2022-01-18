@@ -27,7 +27,6 @@ from ...workflow import R
 
 class DNNModelPytorch(Model):
     """DNN Model
-
     Parameters
     ----------
     input_dim : int

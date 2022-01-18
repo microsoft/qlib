@@ -19,7 +19,7 @@ import logging
 import platform
 import multiprocessing
 from pathlib import Path
-from typing import Optional, Union
+from typing import Callable, Optional, Union
 from typing import TYPE_CHECKING
 
 from qlib.constant import REG_CN, REG_US
@@ -40,7 +40,7 @@ class Config:
         if attr in self.__dict__["_config"]:
             return self.__dict__["_config"][attr]
 
-        raise AttributeError(f"No such {attr} in self._config")
+        raise AttributeError(f"No such `{attr}` in self._config")
 
     def get(self, key, default=None):
         return self.__dict__["_config"].get(key, default)
@@ -112,6 +112,8 @@ _default_config = {
     "calendar_cache": None,
     # for simple dataset cache
     "local_cache_path": None,
+    # kernels can be a fixed value or a callable function lie `def (freq: str) -> int`
+    # If the kernels are arctic_kernels, `min(NUM_USABLE_CPU, 30)` may be a good value
     "kernels": NUM_USABLE_CPU,
     # pickle.dump protocol version
     "dump_protocol_version": PROTOCOL_VERSION,
@@ -121,11 +123,10 @@ _default_config = {
     "joblib_backend": "multiprocessing",
     "default_disk_cache": 1,  # 0:skip/1:use
     "mem_cache_size_limit": 500,
+    "mem_cache_limit_type": "length",
     # memory cache expire second, only in used 'DatasetURICache' and 'client D.calendar'
     # default 1 hour
     "mem_cache_expire": 60 * 60,
-    # memory cache space limit, default 5GB, only in used client
-    "mem_cache_space_limit": 1024 * 1024 * 1024 * 5,
     # cache dir name
     "dataset_cache_dir_name": "dataset_cache",
     "features_cache_dir_name": "features_cache",
@@ -461,6 +462,12 @@ class QlibConfig(Config):
             qlib.__version__ = getattr(qlib, "__version__bak")
             # Due to a bug? that converting __version__ to _QlibConfig__version__bak
             # Using  __version__bak instead of __version__
+
+    def get_kernels(self, freq: str):
+        """get number of processors given frequency"""
+        if isinstance(self["kernels"], Callable):
+            return self["kernels"](freq)
+        return self["kernels"]
 
     @property
     def registered(self):

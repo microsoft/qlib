@@ -150,7 +150,7 @@ class Expression(abc.ABC):
         args = str(self), instrument, start_index, end_index, freq
         if args in H["f"]:
             return H["f"][args]
-        if start_index is None or end_index is None or start_index > end_index:
+        if start_index is not None and end_index is not None and start_index > end_index:
             raise ValueError("Invalid index range: {} {}".format(start_index, end_index))
         try:
             series = self._load_internal(instrument, start_index, end_index, freq)
