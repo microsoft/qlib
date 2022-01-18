@@ -20,11 +20,11 @@
     </td>
     <td>
       <li><a href="#main-challenges--solutions-in-quant-research">Main Challenges &amp; Solutions in Quant Research</a></li>
-        <ul dir="auto">
+        <ul>
           <li><a href="#forecasting-finding-valuable-signalspatterns">Forecasting: Finding Valuable Signals/Patterns</a></li></ul>
-            <ul dir="auto">
+            <ul>
               <li><a href="#quant-model-paper-zoo"><strong>Quant Model (Paper) Zoo</strong></a></li></ul>
-                <ul dir="auto">
+                <ul>
                   <li><a href="#run-a-single-model">Run a Single Model</a></li>
                   <li><a href="#run-multiple-models">Run Multiple Models</a></li></ul>
           <li><a href="#adapting-to-market-dynamics">Adapting to Market Dynamics</a></li>
