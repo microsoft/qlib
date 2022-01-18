@@ -49,7 +49,6 @@ For more details, please refer to our paper ["Qlib: An AI-oriented Quantitative 
   <tbody>
     <tr>
       <th>Frameworks, Tutorial, Data & DevOps<th/>
-      <th>Main Challenges & Solutions in Quant Research<th/>
     <tr/>
     <tr>
       <td>
