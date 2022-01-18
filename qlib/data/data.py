@@ -580,7 +580,7 @@ class DatasetProvider(abc.ABC):
             data.index = _calendar[data.index.values.astype(int)]
         data.index.names = ["datetime"]
 
-        if spans is not None:
+        if not data.empty and spans is not None:
             mask = np.zeros(len(data), dtype=bool)
             for begin, end in spans:
                 mask |= (data.index >= begin) & (data.index <= end)
