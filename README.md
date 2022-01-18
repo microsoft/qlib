@@ -45,26 +45,46 @@ With Qlib, users can easily try ideas to create better Quant investment strategi
 
 For more details, please refer to our paper ["Qlib: An AI-oriented Quantitative Investment Platform"](https://arxiv.org/abs/2009.11189).
 
-- [**Plans**](#plans)
-- [Framework of Qlib](#framework-of-qlib)
-- [Quick Start](#quick-start)
-  - [Installation](#installation)
-  - [Data Preparation](#data-preparation)
-  - [Auto Quant Research Workflow](#auto-quant-research-workflow)
-  - [Building Customized Quant Research Workflow by Code](#building-customized-quant-research-workflow-by-code)
-- [Main Challenges & Solutions in Quant Research](#main-challenges--solutions-in-quant-research)
-  - [Forecasting: Finding Valuable Signals/Patterns](#forecasting-finding-valuable-signalspatterns)
-    - [**Quant Model (Paper) Zoo**](#quant-model-paper-zoo)
-      - [Run a Single Model](#run-a-single-model)
-      - [Run Multiple Models](#run-multiple-models)
-  - [Adapting to Market Dynamics](#adapting-to-market-dynamics)
-- [**Quant Dataset Zoo**](#quant-dataset-zoo)
-- [More About Qlib](#more-about-qlib)
-- [Offline Mode and Online Mode](#offline-mode-and-online-mode)
-  - [Performance of Qlib Data Server](#performance-of-qlib-data-server)
-- [Related Reports](#related-reports)
-- [Contact Us](#contact-us)
-- [Contributing](#contributing)
+<table>
+  <tbody>
+    <td>
+      <li><a href="#plans"><strong>Plans</strong></a></li>
+      <li><a href="#framework-of-qlib">Framework of Qlib</a></li>
+      <li><a href="#quick-start">Quick Start</a></li>
+        <ul>
+          <li><a href="#installation">Installation</a> </li>
+          <li><a href="#data-preparation">Data Preparation</a></li>
+          <li><a href="#auto-quant-research-workflow">Auto Quant Research Workflow</a></li>
+          <li><a href="#building-customized-quant-research-workflow-by-code">Building Customized Quant Research Workflow by Code</a></li></ul>
+      <li><a href="#quant-dataset-zoo"><strong>Quant Dataset Zoo</strong></a></li>
+      <li><a href="#more-about-qlib">More About Qlib</a></li>
+      <li><a href="#offline-mode-and-online-mode">Offline Mode and Online Mode</a>
+      <ul>
+        <li><a href="#performance-of-qlib-data-server">Performance of Qlib Data Server</a></li></ul>
+      <li><a href="#related-reports">Related Reports</a></li>
+      <li><a href="#contact-us">Contact Us</a></li>
+      <li><a href="#contributing">Contributing</a></li>
+    </td>
+    <td>
+      <li><a href="#main-challenges--solutions-in-quant-research">Main Challenges &amp; Solutions in Quant Research</a>
+        <ul dir="auto">
+          <li><a href="#forecasting-finding-valuable-signalspatterns">Forecasting: Finding Valuable Signals/Patterns</a>
+            <ul dir="auto">
+              <li><a href="#quant-model-paper-zoo"><strong>Quant Model (Paper) Zoo</strong></a>
+                <ul dir="auto">
+                  <li><a href="#run-a-single-model">Run a Single Model</a></li>
+                  <li><a href="#run-multiple-models">Run Multiple Models</a></li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+        <li><a href="#adapting-to-market-dynamics">Adapting to Market Dynamics</a></li>
+        </ul>
+      </li>
+    </td>
+  </tbody>
+<table>
+
 
 
 # Plans
