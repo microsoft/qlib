@@ -225,7 +225,7 @@ class DNNModelPytorch(Model):
             # validation
             train_loss += loss.val
             # for evert `eval_steps` steps or at the last steps, we will evaluate the model.
-            if step % self.eval_steps == 0 or step + 1 == self.max_steps:
+            if step % self.eval_steps == 0 or step == self.max_steps:
                 stop_steps += 1
                 train_loss /= self.eval_steps
 
