@@ -48,9 +48,9 @@ For more details, please refer to our paper ["Qlib: An AI-oriented Quantitative 
 <table>
   <tbody>
     <tr>
-      <td>Frameworks, Tutorial, Data & DevOps<td/>
-      <td>aaaaa<td/>
-    <tr/>
+      <th>Frameworks, Tutorial, Data & DevOps</th>
+      <th>Main Challenges & Solutions in Quant Research</th>
+    </tr>
     <tr>
       <td>
         <li><a href="#plans"><strong>Plans</strong></a></li>
@@ -87,11 +87,9 @@ For more details, please refer to our paper ["Qlib: An AI-oriented Quantitative 
           </ul>
         </li>
       </td>
-    <tr/>
+    </tr>
   </tbody>
-<table>
-
-
+</table>
 
 # Plans
 New features under development(order by estimated release time).
