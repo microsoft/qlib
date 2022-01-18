@@ -48,8 +48,8 @@ For more details, please refer to our paper ["Qlib: An AI-oriented Quantitative 
 <table>
   <tbody>
     <tr>
-      <th>Frameworks, Tutorial, Data & DevOps<th/>
-      <th>aaaaa<th/>
+      <td>Frameworks, Tutorial, Data & DevOps<td/>
+      <td>aaaaa<td/>
     <tr/>
     <tr>
       <td>
