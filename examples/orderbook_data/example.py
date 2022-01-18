@@ -25,7 +25,11 @@ class TestClass(unittest.TestCase):
             mem_cache_type="sizeof",
             kernels=1,
             expression_provider={"class": "LocalExpressionProvider", "kwargs": {"time2idx": False}},
-            feature_provider={"class": "ArcticFeatureProvider", "kwargs": {"uri": "127.0.0.1"}},
+            feature_provider={
+                "class": "ArcticFeatureProvider",
+                "module_path": "qlib.contrib.data.data",
+                "kwargs": {"uri": "127.0.0.1"},
+            },
             dataset_provider={
                 "class": "LocalDatasetProvider",
                 "kwargs": {
