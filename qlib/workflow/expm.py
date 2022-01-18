@@ -17,7 +17,7 @@ from .recorder import Recorder
 from ..log import get_module_logger
 from ..utils.exceptions import ExpAlreadyExistError
 
-logger = get_module_logger("workflow", logging.INFO)
+logger = get_module_logger("workflow")
 
 
 class ExpManager:
@@ -105,7 +105,7 @@ class ExpManager:
     def search_records(self, experiment_ids=None, **kwargs):
         """
         Get a pandas DataFrame of records that fit the search criteria of the experiment.
-        Inputs are the search critera user want to apply.
+        Inputs are the search criteria user want to apply.
 
         Returns
         -------
@@ -279,8 +279,9 @@ class ExpManager:
 
         """
         if uri is None:
-            logger.info("No tracking URI is provided. Use the default tracking URI.")
-            self._current_uri = self.default_uri
+            if self._current_uri is None:
+                logger.debug("No tracking URI is provided. Use the default tracking URI.")
+                self._current_uri = self.default_uri
         else:
             # Temporarily re-set the current uri as the uri argument.
             self._current_uri = uri
@@ -290,6 +291,7 @@ class ExpManager:
     def _set_uri(self):
         """
         Customized features for subclasses' set_uri function.
+        This method is designed for the underlying experiment backend storage.
         """
         raise NotImplementedError(f"Please implement the `_set_uri` method.")
 

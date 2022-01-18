@@ -187,7 +187,7 @@ def resam_ts_data(
     if isinstance(feature.index, pd.MultiIndex):
         if callable(method):
             method_func = method
-            return feature.groupby(level="instrument").apply(lambda x: method_func(x, **method_kwargs))
+            return feature.groupby(level="instrument").apply(method_func, **method_kwargs)
         elif isinstance(method, str):
             return getattr(feature.groupby(level="instrument"), method)(**method_kwargs)
     else:
@@ -203,10 +203,10 @@ def get_valid_value(series, last=True):
     """get the first/last not nan value of pd.Series with single level index
     Parameters
     ----------
-    series : pd.Seires
+    series : pd.Series
         series should not be empty
     last : bool, optional
-        wether to get the last valid value, by default True
+        whether to get the last valid value, by default True
         - if last is True, get the last valid value
         - else, get the first valid value
 

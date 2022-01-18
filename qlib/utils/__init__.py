@@ -16,6 +16,7 @@ import redis
 import bisect
 import shutil
 import difflib
+import inspect
 import hashlib
 import warnings
 import datetime
@@ -27,10 +28,10 @@ import collections
 import numpy as np
 import pandas as pd
 from pathlib import Path
-from typing import Dict, Union, Tuple, Any, Text, Optional
+from typing import Dict, Union, Tuple, Any, Text, Optional, Callable
 from types import ModuleType
 from urllib.parse import urlparse
-
+from .file import get_or_create_path, save_multiple_parts_file, unpack_archive_with_buffer, get_tmp_file_with_buffer
 from ..config import C
 from ..log import get_module_logger, set_log_with_config
 
@@ -166,9 +167,14 @@ def parse_field(field):
     # - $close -> Feature("close")
     # - $close5 -> Feature("close5")
     # - $open+$close -> Feature("open")+Feature("close")
+    # TODO: this maybe used in the feature if we want to support the computation of different frequency data
+    # - $close@5min -> Feature("close", "5min")
+
     if not isinstance(field, str):
         field = str(field)
-    return re.sub(r"\$(\w+)", r'Feature("\1")', re.sub(r"(\w+\s*)\(", r"Operators.\1(", field))
+    for pattern, new in [(r"\$(\w+)", rf'Feature("\1")'), (r"(\w+\s*)\(", r"Operators.\1(")]:  # Features  # Operators
+        field = re.sub(pattern, new, field)
+    return field
 
 
 def get_module_by_module_path(module_path: Union[str, ModuleType]):
@@ -189,6 +195,24 @@ def get_module_by_module_path(module_path: Union[str, ModuleType]):
         else:
             module = importlib.import_module(module_path)
     return module
+
+
+def split_module_path(module_path: str) -> Tuple[str, str]:
+    """
+
+    Parameters
+    ----------
+    module_path : str
+        e.g. "a.b.c.ClassName"
+
+    Returns
+    -------
+    Tuple[str, str]
+        e.g. ("a.b.c", "ClassName")
+    """
+    *m_path, cls = module_path.split(".")
+    m_path = ".".join(m_path)
+    return m_path, cls
 
 
 def get_callable_kwargs(config: Union[dict, str], default_module: Union[str, ModuleType] = None) -> (type, dict):
@@ -212,17 +236,24 @@ def get_callable_kwargs(config: Union[dict, str], default_module: Union[str, Mod
         the class/func object and it's arguments.
     """
     if isinstance(config, dict):
-        if isinstance(config["class"], str):
-            module = get_module_by_module_path(config.get("module_path", default_module))
-            # raise AttributeError
-            _callable = getattr(module, config["class" if "class" in config else "func"])
+        key = "class" if "class" in config else "func"
+        if isinstance(config[key], str):
+            # 1) get module and class
+            # - case 1): "a.b.c.ClassName"
+            # - case 2): {"class": "ClassName", "module_path": "a.b.c"}
+            m_path, cls = split_module_path(config[key])
+            if m_path == "":
+                m_path = config.get("module_path", default_module)
+            module = get_module_by_module_path(m_path)
+
+            # 2) get callable
+            _callable = getattr(module, cls)  # may raise AttributeError
         else:
-            _callable = config["class"]  # the class type itself is passed in
+            _callable = config[key]  # the class type itself is passed in
         kwargs = config.get("kwargs", {})
     elif isinstance(config, str):
         # a.b.c.ClassName
-        *m_path, cls = config.split(".")
-        m_path = ".".join(m_path)
+        m_path, cls = split_module_path(config)
         module = get_module_by_module_path(default_module if m_path == "" else m_path)
 
         _callable = getattr(module, cls)
@@ -352,153 +383,6 @@ def compare_dict_value(src_data: dict, dst_data: dict):
     return changes
 
 
-def get_or_create_path(path: Optional[Text] = None, return_dir: bool = False):
-    """Create or get a file or directory given the path and return_dir.
-
-    Parameters
-    ----------
-    path: a string indicates the path or None indicates creating a temporary path.
-    return_dir: if True, create and return a directory; otherwise c&r a file.
-
-    """
-    if path:
-        if return_dir and not os.path.exists(path):
-            os.makedirs(path)
-        elif not return_dir:  # return a file, thus we need to create its parent directory
-            xpath = os.path.abspath(os.path.join(path, ".."))
-            if not os.path.exists(xpath):
-                os.makedirs(xpath)
-    else:
-        temp_dir = os.path.expanduser("~/tmp")
-        if not os.path.exists(temp_dir):
-            os.makedirs(temp_dir)
-        if return_dir:
-            _, path = tempfile.mkdtemp(dir=temp_dir)
-        else:
-            _, path = tempfile.mkstemp(dir=temp_dir)
-    return path
-
-
-@contextlib.contextmanager
-def save_multiple_parts_file(filename, format="gztar"):
-    """Save multiple parts file
-
-    Implementation process:
-        1. get the absolute path to 'filename'
-        2. create a 'filename' directory
-        3. user does something with file_path('filename/')
-        4. remove 'filename' directory
-        5. make_archive 'filename' directory, and rename 'archive file' to filename
-
-    :param filename: result model path
-    :param format: archive format: one of "zip", "tar", "gztar", "bztar", or "xztar"
-    :return: real model path
-
-    Usage::
-
-        >>> # The following code will create an archive file('~/tmp/test_file') containing 'test_doc_i'(i is 0-10) files.
-        >>> with save_multiple_parts_file('~/tmp/test_file') as filename_dir:
-        ...   for i in range(10):
-        ...       temp_path = os.path.join(filename_dir, 'test_doc_{}'.format(str(i)))
-        ...       with open(temp_path) as fp:
-        ...           fp.write(str(i))
-        ...
-
-    """
-
-    if filename.startswith("~"):
-        filename = os.path.expanduser(filename)
-
-    file_path = os.path.abspath(filename)
-
-    # Create model dir
-    if os.path.exists(file_path):
-        raise FileExistsError("ERROR: file exists: {}, cannot be create the directory.".format(file_path))
-
-    os.makedirs(file_path)
-
-    # return model dir
-    yield file_path
-
-    # filename dir to filename.tar.gz file
-    tar_file = shutil.make_archive(file_path, format=format, root_dir=file_path)
-
-    # Remove filename dir
-    if os.path.exists(file_path):
-        shutil.rmtree(file_path)
-
-    # filename.tar.gz rename to filename
-    os.rename(tar_file, file_path)
-
-
-@contextlib.contextmanager
-def unpack_archive_with_buffer(buffer, format="gztar"):
-    """Unpack archive with archive buffer
-    After the call is finished, the archive file and directory will be deleted.
-
-    Implementation process:
-        1. create 'tempfile' in '~/tmp/' and directory
-        2. 'buffer' write to 'tempfile'
-        3. unpack archive file('tempfile')
-        4. user does something with file_path('tempfile/')
-        5. remove 'tempfile' and 'tempfile directory'
-
-    :param buffer: bytes
-    :param format: archive format: one of "zip", "tar", "gztar", "bztar", or "xztar"
-    :return: unpack archive directory path
-
-    Usage::
-
-        >>> # The following code is to print all the file names in 'test_unpack.tar.gz'
-        >>> with open('test_unpack.tar.gz') as fp:
-        ...     buffer = fp.read()
-        ...
-        >>> with unpack_archive_with_buffer(buffer) as temp_dir:
-        ...     for f_n in os.listdir(temp_dir):
-        ...         print(f_n)
-        ...
-
-    """
-    temp_dir = os.path.expanduser("~/tmp")
-    if not os.path.exists(temp_dir):
-        os.makedirs(temp_dir)
-    with tempfile.NamedTemporaryFile("wb", delete=False, dir=temp_dir) as fp:
-        fp.write(buffer)
-        file_path = fp.name
-
-    try:
-        tar_file = file_path + ".tar.gz"
-        os.rename(file_path, tar_file)
-        # Create dir
-        os.makedirs(file_path)
-        shutil.unpack_archive(tar_file, format=format, extract_dir=file_path)
-
-        # Return temp dir
-        yield file_path
-
-    except Exception as e:
-        log.error(str(e))
-    finally:
-        # Remove temp tar file
-        if os.path.exists(tar_file):
-            os.unlink(tar_file)
-
-        # Remove temp model dir
-        if os.path.exists(file_path):
-            shutil.rmtree(file_path)
-
-
-@contextlib.contextmanager
-def get_tmp_file_with_buffer(buffer):
-    temp_dir = os.path.expanduser("~/tmp")
-    if not os.path.exists(temp_dir):
-        os.makedirs(temp_dir)
-    with tempfile.NamedTemporaryFile("wb", delete=True, dir=temp_dir) as fp:
-        fp.write(buffer)
-        file_path = fp.name
-        yield file_path
-
-
 def remove_repeat_field(fields):
     """remove repeat field
 
@@ -579,7 +463,7 @@ def get_date_range(trading_date, left_shift=0, right_shift=0, future=False):
 
 
 def get_date_by_shift(trading_date, shift, future=False, clip_shift=True, freq="day", align: Optional[str] = None):
-    """get trading date with shift bias wil cur_date
+    """get trading date with shift bias will cur_date
         e.g. : shift == 1,  return next trading date
                shift == -1, return previous trading date
     ----------
@@ -775,16 +659,13 @@ def exists_qlib_data(qlib_dir):
 def check_qlib_data(qlib_config):
     inst_dir = Path(qlib_config["provider_uri"]).joinpath("instruments")
     for _p in inst_dir.glob("*.txt"):
-        try:
-            assert len(pd.read_csv(_p, sep="\t", nrows=0, header=None).columns) == 3, (
-                f"\nThe {str(_p.resolve())} of qlib data is not equal to 3 columns:"
-                f"\n\tIf you are using the data provided by qlib: "
-                f"https://qlib.readthedocs.io/en/latest/component/data.html#qlib-format-dataset"
-                f"\n\tIf you are using your own data, please dump the data again: "
-                f"https://qlib.readthedocs.io/en/latest/component/data.html#converting-csv-format-into-qlib-format"
-            )
-        except AssertionError:
-            raise
+        assert len(pd.read_csv(_p, sep="\t", nrows=0, header=None).columns) == 3, (
+            f"\nThe {str(_p.resolve())} of qlib data is not equal to 3 columns:"
+            f"\n\tIf you are using the data provided by qlib: "
+            f"https://qlib.readthedocs.io/en/latest/component/data.html#qlib-format-dataset"
+            f"\n\tIf you are using your own data, please dump the data again: "
+            f"https://qlib.readthedocs.io/en/latest/component/data.html#converting-csv-format-into-qlib-format"
+        )
 
 
 def lazy_sort_index(df: pd.DataFrame, axis=0) -> pd.DataFrame:
@@ -845,6 +726,134 @@ def flatten_dict(d, parent_key="", sep=".") -> dict:
     return dict(items)
 
 
+def get_item_from_obj(config: dict, name_path: str) -> object:
+    """
+    Follow the name_path to get values from config
+    For example:
+    If we follow the example in in the Parameters section,
+        Timestamp('2008-01-02 00:00:00') will be returned
+
+    Parameters
+    ----------
+    config : dict
+        e.g.
+        {'dataset': {'class': 'DatasetH',
+          'kwargs': {'handler': {'class': 'Alpha158',
+                                 'kwargs': {'end_time': '2020-08-01',
+                                            'fit_end_time': '<dataset.kwargs.segments.train.1>',
+                                            'fit_start_time': '<dataset.kwargs.segments.train.0>',
+                                            'instruments': 'csi100',
+                                            'start_time': '2008-01-01'},
+                                 'module_path': 'qlib.contrib.data.handler'},
+                     'segments': {'test': (Timestamp('2017-01-03 00:00:00'),
+                                           Timestamp('2019-04-08 00:00:00')),
+                                  'train': (Timestamp('2008-01-02 00:00:00'),
+                                            Timestamp('2014-12-31 00:00:00')),
+                                  'valid': (Timestamp('2015-01-05 00:00:00'),
+                                            Timestamp('2016-12-30 00:00:00'))}}
+        }}
+    name_path : str
+        e.g.
+        "dataset.kwargs.segments.train.1"
+
+    Returns
+    -------
+    object
+        the retrieved object
+    """
+    cur_cfg = config
+    for k in name_path.split("."):
+        if isinstance(cur_cfg, dict):
+            cur_cfg = cur_cfg[k]
+        elif k.isdigit():
+            cur_cfg = cur_cfg[int(k)]
+        else:
+            raise ValueError(f"Error when getting {k} from cur_cfg")
+    return cur_cfg
+
+
+def fill_placeholder(config: dict, config_extend: dict):
+    """
+    Detect placeholder in config and fill them with config_extend.
+    The item of dict must be single item(int, str, etc), dict and list. Tuples are not supported.
+    There are two type of variables:
+    - user-defined variables :
+        e.g. when config_extend is `{"<MODEL>": model, "<DATASET>": dataset}`, "<MODEL>" and "<DATASET>" in `config` will be replaced with `model` `dataset`
+    - variables extracted from `config` :
+        e.g. the variables like "<dataset.kwargs.segments.train.0>" will be replaced with the values from `config`
+
+    Parameters
+    ----------
+    config : dict
+        the parameter dict will be filled
+    config_extend : dict
+        the value of all placeholders
+
+    Returns
+    -------
+    dict
+        the parameter dict
+    """
+    # check the format of config_extend
+    for placeholder in config_extend.keys():
+        assert re.match(r"<[^<>]+>", placeholder)
+
+    # bfs
+    top = 0
+    tail = 1
+    item_queue = [config]
+    while top < tail:
+        now_item = item_queue[top]
+        top += 1
+        if isinstance(now_item, list):
+            item_keys = range(len(now_item))
+        elif isinstance(now_item, dict):
+            item_keys = now_item.keys()
+        for key in item_keys:
+            if isinstance(now_item[key], list) or isinstance(now_item[key], dict):
+                item_queue.append(now_item[key])
+                tail += 1
+            elif isinstance(now_item[key], str):
+                if now_item[key] in config_extend.keys():
+                    now_item[key] = config_extend[now_item[key]]
+                else:
+                    m = re.match(r"<(?P<name_path>[^<>]+)>", now_item[key])
+                    if m is not None:
+                        now_item[key] = get_item_from_obj(config, m.groupdict()["name_path"])
+    return config
+
+
+def auto_filter_kwargs(func: Callable) -> Callable:
+    """
+    this will work like a decoration function
+
+    The decrated function will ignore and give warning when the parameter is not acceptable
+
+    Parameters
+    ----------
+    func : Callable
+        The original function
+
+    Returns
+    -------
+    Callable:
+        the new callable function
+    """
+
+    def _func(*args, **kwargs):
+        spec = inspect.getfullargspec(func)
+        new_kwargs = {}
+        for k, v in kwargs.items():
+            # if `func` don't accept variable keyword arguments like `**kwargs` and have not according named arguments
+            if spec.varkw is None and k not in spec.args:
+                log.warning(f"The parameter `{k}` with value `{v}` is ignored.")
+            else:
+                new_kwargs[k] = v
+        return func(*args, **new_kwargs)
+
+    return _func
+
+
 #################### Wrapper #####################
 class Wrapper:
     """Wrapper class for anything that needs to set up during qlib.init"""
@@ -877,7 +886,7 @@ def register_wrapper(wrapper, cls_or_obj, module_path=None):
     wrapper.register(obj)
 
 
-def load_dataset(path_or_obj):
+def load_dataset(path_or_obj, index_col=[0, 1]):
     """load dataset from multiple file formats"""
     if isinstance(path_or_obj, pd.DataFrame):
         return path_or_obj
@@ -889,7 +898,7 @@ def load_dataset(path_or_obj):
     elif extension == ".pkl":
         return pd.read_pickle(path_or_obj)
     elif extension == ".csv":
-        return pd.read_csv(path_or_obj, parse_dates=True, index_col=[0, 1])
+        return pd.read_csv(path_or_obj, parse_dates=True, index_col=index_col)
     raise ValueError(f"unsupported file type `{extension}`")
 
 
@@ -920,6 +929,7 @@ def fname_to_code(fname: str):
     ----------
     fname: str
     """
+
     prefix = "_qlib_"
     if fname.startswith(prefix):
         fname = fname.lstrip(prefix)

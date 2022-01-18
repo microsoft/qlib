@@ -306,8 +306,9 @@ class MLflowRecorder(Recorder):
         self.end_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         if self.status != Recorder.STATUS_S:
             self.status = status
-        with TimeInspector.logt("waiting `async_log`"):
-            self.async_log.wait()
+        if self.async_log is not None:
+            with TimeInspector.logt("waiting `async_log`"):
+                self.async_log.wait()
         self.async_log = None
 
     def save_objects(self, local_path=None, artifact_path=None, **kwargs):
@@ -326,12 +327,14 @@ class MLflowRecorder(Recorder):
                 self.client.log_artifact(self.id, temp_dir / name, artifact_path)
             shutil.rmtree(temp_dir)
 
-    def load_object(self, name):
+    def load_object(self, name, unpickler=pickle.Unpickler):
         """
         Load object such as prediction file or model checkpoint in mlflow.
 
         Args:
             name (str): the object name
+
+            unpickler: Supporting using custom unpickler
 
         Raises:
             LoadObjectError: if raise some exceptions when load the object
@@ -344,7 +347,7 @@ class MLflowRecorder(Recorder):
         try:
             path = self.client.download_artifacts(self.id, name)
             with Path(path).open("rb") as f:
-                data = pickle.load(f)
+                data = unpickler(f).load()
             ar = self.client._tracking_client._get_artifact_repo(self.id)
             if isinstance(ar, AzureBlobArtifactRepository):
                 # for saving disk space
@@ -352,7 +355,7 @@ class MLflowRecorder(Recorder):
                 shutil.rmtree(Path(path).absolute().parent)
             return data
         except Exception as e:
-            raise LoadObjectError(message=str(e))
+            raise LoadObjectError(str(e))
 
     @AsyncCaller.async_dec(ac_attr="async_log")
     def log_params(self, **kwargs):

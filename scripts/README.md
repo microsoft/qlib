@@ -19,7 +19,7 @@
 python get_data.py qlib_data --target_dir ~/.qlib/qlib_data/cn_data --region cn
 
 # 1min  data (Optional for running non-high-frequency strategies)
-python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/qlib_cn_1min --region cn --interval 1min
+python get_data.py qlib_data --target_dir ~/.qlib/qlib_data/cn_data_1min --region cn --interval 1min
 ```
 
 ### Download US Data
@@ -62,7 +62,8 @@ qlib.init(provider_uri=provider_uri, region=REG_US)
 
 ```python
 import qlib
-from qlib.config import REG_CN
+from qlib.constant import REG_CN
+
 provider_uri = "~/.qlib/qlib_data/cn_data"  # target_dir
 qlib.init(provider_uri=provider_uri, region=REG_CN)
 ```

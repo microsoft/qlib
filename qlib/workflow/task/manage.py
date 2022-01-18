@@ -48,7 +48,7 @@ class TaskManager:
     The tasks manager assumes that you will only update the tasks you fetched.
     The mongo fetch one and update will make it date updating secure.
 
-    This class can be used as a tool from commandline. Here are serveral examples.
+    This class can be used as a tool from commandline. Here are several examples.
     You can view the help of manage module with the following commands:
     python -m qlib.workflow.task.manage -h # show manual of manage module CLI
     python -m qlib.workflow.task.manage wait -h # show manual of the wait command of manage
@@ -368,7 +368,7 @@ class TaskManager:
 
     def return_task(self, task, status=STATUS_WAITING):
         """
-        Return a task to status. Alway using in error handling.
+        Return a task to status. Always using in error handling.
 
         Args:
             task ([type]): [description]

@@ -39,7 +39,7 @@ def get_benchmark_weight(
     if not path:
         path = Path(C.dpm.get_data_uri(freq)).expanduser() / "raw" / "AIndexMembers" / "weights.csv"
     # TODO: the storage of weights should be implemented in a more elegent way
-    # TODO: The benchmark is not consistant with the filename in instruments.
+    # TODO: The benchmark is not consistent with the filename in instruments.
     bench_weight_df = pd.read_csv(path, usecols=["code", "date", "index", "weight"])
     bench_weight_df = bench_weight_df[bench_weight_df["index"] == bench]
     bench_weight_df["date"] = pd.to_datetime(bench_weight_df["date"])
@@ -156,16 +156,16 @@ def decompose_portofolio(stock_weight_df, stock_group_df, stock_ret_df):
     group_weight, stock_weight_in_group = decompose_portofolio_weight(stock_weight_df, stock_group_df)
 
     group_ret = {}
-    for group_key in stock_weight_in_group:
-        stock_weight_in_group_start_date = min(stock_weight_in_group[group_key].index)
-        stock_weight_in_group_end_date = max(stock_weight_in_group[group_key].index)
+    for group_key, val in stock_weight_in_group.items():
+        stock_weight_in_group_start_date = min(val.index)
+        stock_weight_in_group_end_date = max(val.index)
 
         temp_stock_ret_df = stock_ret_df[
             (stock_ret_df.index >= stock_weight_in_group_start_date)
             & (stock_ret_df.index <= stock_weight_in_group_end_date)
         ]
 
-        group_ret[group_key] = (temp_stock_ret_df * stock_weight_in_group[group_key]).sum(axis=1)
+        group_ret[group_key] = (temp_stock_ret_df * val).sum(axis=1)
         # If no weight is assigned, then the return of group will be np.nan
         group_ret[group_key][group_weight[group_key] == 0.0] = np.nan
 

@@ -5,14 +5,12 @@ import abc
 from typing import Union, Text
 import numpy as np
 import pandas as pd
-import copy
 
-from ...log import TimeInspector
+from qlib.utils.data import robust_zscore, zscore
+from ...constant import EPS
 from .utils import fetch_df_by_index
 from ...utils.serial import Serializable
 from ...utils.paral import datetime_groupby_apply
-
-EPS = 1e-12
 
 
 def get_group_columns(df: pd.DataFrame, group: Union[Text, None]):
@@ -75,7 +73,7 @@ class Processor(Serializable):
 
     def readonly(self) -> bool:
         """
-        Does the processor treat the input data readonly (i.e. does not write the input data) when processsing
+        Does the processor treat the input data readonly (i.e. does not write the input data) when processing
 
         Knowning the readonly information is helpful to the Handler to avoid uncessary copy
         """
@@ -296,14 +294,22 @@ class RobustZScoreNorm(Processor):
 class CSZScoreNorm(Processor):
     """Cross Sectional ZScore Normalization"""
 
-    def __init__(self, fields_group=None):
+    def __init__(self, fields_group=None, method="zscore"):
         self.fields_group = fields_group
+        if method == "zscore":
+            self.zscore_func = zscore
+        elif method == "robust":
+            self.zscore_func = robust_zscore
+        else:
+            raise NotImplementedError(f"This type of input is not supported")
 
     def __call__(self, df):
         # try not modify original dataframe
-        cols = get_group_columns(df, self.fields_group)
-        df[cols] = df[cols].groupby("datetime").apply(lambda x: (x - x.mean()).div(x.std()))
-
+        if not isinstance(self.fields_group, list):
+            self.fields_group = [self.fields_group]
+        for g in self.fields_group:
+            cols = get_group_columns(df, g)
+            df[cols] = df[cols].groupby("datetime").apply(self.zscore_func)
         return df
 
 

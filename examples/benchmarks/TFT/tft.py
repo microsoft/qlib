@@ -209,7 +209,6 @@ class TFTModel(ModelFT):
         fixed_params = self.data_formatter.get_experiment_params()
         params = self.data_formatter.get_default_model_params()
 
-        # Wendi: 合并调优的参数和非调优的参数
         params = {**params, **fixed_params}
 
         if not os.path.exists(self.model_folder):
@@ -295,7 +294,7 @@ class TFTModel(ModelFT):
     def to_pickle(self, path: Union[Path, str]):
         """
         Tensorflow model can't be dumped directly.
-        So the data should be save seperatedly
+        So the data should be save separately
 
         **TODO**: Please implement the function to load the files
 

@@ -1,5 +1,5 @@
 from ...utils.serial import Serializable
-from typing import Union, List, Tuple, Dict, Text, Optional
+from typing import Callable, Union, List, Tuple, Dict, Text, Optional
 from ...utils import init_instance_by_config, np_ffill, time_to_slc_point
 from ...log import get_module_logger
 from .handler import DataHandler, DataHandlerLP
@@ -235,6 +235,28 @@ class DatasetH(Dataset):
         else:
             raise NotImplementedError(f"This type of input is not supported")
 
+    # helper functions
+    @staticmethod
+    def get_min_time(segments):
+        return DatasetH._get_extrema(segments, 0, (lambda a, b: a > b))
+
+    @staticmethod
+    def get_max_time(segments):
+        return DatasetH._get_extrema(segments, 1, (lambda a, b: a < b))
+
+    @staticmethod
+    def _get_extrema(segments, idx: int, cmp: Callable, key_func=pd.Timestamp):
+        """it will act like sort and return the max value or None"""
+        candidate = None
+        for k, seg in segments.items():
+            point = seg[idx]
+            if point is None:
+                # None indicates unbounded, return directly
+                return None
+            elif candidate is None or cmp(key_func(candidate), key_func(point)):
+                candidate = point
+        return candidate
+
 
 class TSDataSampler:
     """
@@ -392,7 +414,7 @@ class TSDataSampler:
                 2021-01-14    12441    12442    12443    12444    12445    12446  ...
             2) the second element:  {<original index>: <row, col>}
         """
-        # object incase of pandas converting int to flaot
+        # object incase of pandas converting int to float
         idx_df = pd.Series(range(data.shape[0]), index=data.index, dtype=object)
         idx_df = lazy_sort_index(idx_df.unstack())
         # NOTE: the correctness of `__getitem__` depends on columns sorted here
@@ -572,7 +594,7 @@ class TSDatasetH(DatasetH):
         flt_kwargs = deepcopy(kwargs)
         if flt_col is not None:
             flt_kwargs["col_set"] = flt_col
-            flt_data = self._prepare_seg(ext_slice, **flt_kwargs)
+            flt_data = super()._prepare_seg(ext_slice, **flt_kwargs)
             assert len(flt_data.columns) == 1
         else:
             flt_data = None

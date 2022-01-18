@@ -2,7 +2,7 @@
 #  Licensed under the MIT License.
 
 import qlib
-from qlib.config import REG_CN
+from qlib.constant import REG_CN
 from qlib.utils import init_instance_by_config, flatten_dict
 from qlib.workflow import R
 from qlib.workflow.record_temp import SignalRecord, PortAnaRecord, SigAnaRecord

@@ -15,7 +15,6 @@ from plotly.figure_factory import create_distplot
 
 
 class BaseGraph:
-    """ """
 
     _name = None
 
@@ -297,8 +296,8 @@ class SubplotsGraph:
 
         :return:
         """
-        self._sub_graph_data = list()
-        self._subplot_titles = list()
+        self._sub_graph_data = []
+        self._subplot_titles = []
 
         for i, column_name in enumerate(self._df.columns):
             row = math.ceil((i + 1) / self.__cols)

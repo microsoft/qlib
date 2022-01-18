@@ -5,7 +5,8 @@ import fire
 
 import qlib
 import pickle
-from qlib.config import REG_CN, HIGH_FREQ_CONFIG
+from qlib.constant import REG_CN
+from qlib.config import HIGH_FREQ_CONFIG
 
 from qlib.utils import init_instance_by_config
 from qlib.data.dataset.handler import DataHandlerLP
@@ -82,7 +83,7 @@ class HighfreqWorkflow:
 
     def _init_qlib(self):
         """initialize qlib"""
-        # use yahoo_cn_1min data
+        # use cn_data_1min data
         QLIB_INIT_CONFIG = {**HIGH_FREQ_CONFIG, **self.SPEC_CONF}
         provider_uri = QLIB_INIT_CONFIG.get("provider_uri")
         GetData().qlib_data(target_dir=provider_uri, interval="1min", region=REG_CN, exists_skip=True)

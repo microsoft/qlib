@@ -100,7 +100,8 @@ from copy import deepcopy
 import qlib
 import fire
 import pandas as pd
-from qlib.config import REG_CN, HIGH_FREQ_CONFIG
+from qlib.constant import REG_CN
+from qlib.config import HIGH_FREQ_CONFIG
 from qlib.data import D
 from qlib.utils import exists_qlib_data, init_instance_by_config, flatten_dict
 from qlib.workflow import R
@@ -153,6 +154,8 @@ class NestedDecisionExecutionWorkflow:
             },
         },
     }
+
+    exp_name = "nested"
 
     port_analysis_config = {
         "executor": {
@@ -229,7 +232,7 @@ class NestedDecisionExecutionWorkflow:
         qlib.init(provider_uri=provider_uri_map, dataset_cache=None, expression_cache=None)
 
     def _train_model(self, model, dataset):
-        with R.start(experiment_name="train"):
+        with R.start(experiment_name=self.exp_name):
             R.log_params(**flatten_dict(self.task))
             model.fit(dataset)
             R.save_objects(**{"params.pkl": model})
@@ -256,7 +259,7 @@ class NestedDecisionExecutionWorkflow:
         self.port_analysis_config["strategy"] = strategy_config
         self.port_analysis_config["backtest"]["benchmark"] = self.benchmark
 
-        with R.start(experiment_name="backtest"):
+        with R.start(experiment_name=self.exp_name, resume=True):
             recorder = R.get_recorder()
             par = PortAnaRecord(
                 recorder,
@@ -298,7 +301,7 @@ class NestedDecisionExecutionWorkflow:
     #   - Aligning the profit calculation between multiple levels and single levels.
     # 2) comparing different backtest
     # - Basic test idea:
-    #   - the daily backtest will be similar as multi-level(the data quality makes this gap samller)
+    #   - the daily backtest will be similar as multi-level(the data quality makes this gap smaller)
 
     def check_diff_freq(self):
         self._init_qlib()
@@ -381,7 +384,7 @@ class NestedDecisionExecutionWorkflow:
         }
         pa_conf["backtest"]["benchmark"] = self.benchmark
 
-        with R.start(experiment_name="backtest"):
+        with R.start(experiment_name=self.exp_name, resume=True):
             recorder = R.get_recorder()
             par = PortAnaRecord(recorder, pa_conf)
             par.generate()

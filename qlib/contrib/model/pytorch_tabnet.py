@@ -160,7 +160,7 @@ class TabnetModel(Model):
             self.logger.info("Pretrain...")
             self.pretrain_fn(dataset, self.pretrain_file)
             self.logger.info("Load Pretrain model")
-            self.tabnet_model.load_state_dict(torch.load(self.pretrain_file))
+            self.tabnet_model.load_state_dict(torch.load(self.pretrain_file, map_location=self.device))
 
         # adding one more linear layer to fit the final output dimension
         self.tabnet_model = FinetuneModel(self.out_dim, self.final_out_dim, self.tabnet_model).to(self.device)
@@ -446,7 +446,7 @@ class TabNet(nn.Module):
         Args:
             n_d: dimension of the features used to calculate the final results
             n_a: dimension of the features input to the attention transformer of the next step
-            n_shared: numbr of shared steps in feature transfomer(optional)
+            n_shared: numbr of shared steps in feature transformer(optional)
             n_ind: number of independent steps in feature transformer
             n_steps: number of steps of pass through tabbet
             relax coefficient:
@@ -479,7 +479,7 @@ class TabNet(nn.Module):
         out = torch.zeros(x.size(0), self.n_d).to(x.device)
         for step in self.steps:
             x_te, l = step(x, x_a, priors)
-            out += F.relu(x_te[:, : self.n_d])  # split the feautre from feat_transformer
+            out += F.relu(x_te[:, : self.n_d])  # split the feature from feat_transformer
             x_a = x_te[:, self.n_d :]
             sparse_loss.append(l)
         return self.fc(out), sum(sparse_loss)

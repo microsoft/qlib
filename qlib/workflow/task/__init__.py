@@ -9,5 +9,5 @@ A typical task workflow
 |-----------------------+------------------------------------------------|
 | TaskGen               | Generating tasks.                              |
 | TaskManager(optional) | Manage generated tasks                         |
-| run task              | retrive  tasks from TaskManager and run tasks. |
+| run task              | retrieve  tasks from TaskManager and run tasks. |
 """

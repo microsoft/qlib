@@ -554,7 +554,7 @@ class AdaRNN(nn.Module):
         return fc_out
 
 
-class TransferLoss(object):
+class TransferLoss:
     def __init__(self, loss_type="cosine", input_dim=512):
         """
         Supported loss_type: mmd(mmd_lin), mmd_rbf, coral, cosine, kl, js, mine, adv

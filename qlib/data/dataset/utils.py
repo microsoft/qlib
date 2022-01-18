@@ -1,8 +1,13 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
-
+from __future__ import annotations
 import pandas as pd
 from typing import Union, List
+from qlib.utils import init_instance_by_config
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from qlib.data.dataset import DataHandler
 
 
 def get_level_index(df: pd.DataFrame, level=Union[str, int]) -> int:
@@ -111,3 +116,28 @@ def convert_index_format(df: Union[pd.DataFrame, pd.Series], level: str = "datet
     if get_level_index(df, level=level) == 1:
         df = df.swaplevel().sort_index()
     return df
+
+
+def init_task_handler(task: dict) -> Union[DataHandler, None]:
+    """
+    initialize the handler part of the task **inplace**
+
+    Parameters
+    ----------
+    task : dict
+        the task to be handled
+
+    Returns
+    -------
+    Union[DataHandler, None]:
+        returns
+    """
+    # avoid recursive import
+    from .handler import DataHandler
+
+    h_conf = task["dataset"]["kwargs"].get("handler")
+    if h_conf is not None:
+        handler = init_instance_by_config(h_conf, accept_types=DataHandler)
+        task["dataset"]["kwargs"]["handler"] = handler
+
+        return handler

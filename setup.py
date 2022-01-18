@@ -78,6 +78,7 @@ REQUIRED = [
     "dill",
     "dataclasses;python_version<'3.7'",
     "filelock",
+    "arctic",
 ]
 
 # Numpy include

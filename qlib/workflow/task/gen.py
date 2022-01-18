@@ -6,7 +6,7 @@ TaskGenerator module can generate many tasks based on TaskGen and some task temp
 import abc
 import copy
 import pandas as pd
-from typing import List, Union, Callable
+from typing import Dict, List, Union, Callable
 
 from qlib.utils import transform_end_date
 from .utils import TimeAdjuster
@@ -119,14 +119,38 @@ def handler_mod(task: dict, rolling_gen):
         pass
     except TypeError:
         # May be the handler is a string. `"handler.pkl"["kwargs"]` will raise TypeError
+        # e.g. a dumped file like file:///<file>/
         pass
+
+
+def trunc_segments(ta: TimeAdjuster, segments: Dict[str, pd.Timestamp], days, test_key="test"):
+    """
+    To avoid the leakage of future information, the segments should be truncated according to the test start_time
+
+    NOTE:
+        This function will change segments **inplace**
+    """
+    # adjust segment
+    test_start = min(t for t in segments[test_key] if t is not None)
+    for k in list(segments.keys()):
+        if k != test_key:
+            segments[k] = ta.truncate(segments[k], test_start, days)
 
 
 class RollingGen(TaskGen):
     ROLL_EX = TimeAdjuster.SHIFT_EX  # fixed start date, expanding end date
     ROLL_SD = TimeAdjuster.SHIFT_SD  # fixed segments size, slide it from start date
 
-    def __init__(self, step: int = 40, rtype: str = ROLL_EX, ds_extra_mod_func: Union[None, Callable] = handler_mod):
+    def __init__(
+        self,
+        step: int = 40,
+        rtype: str = ROLL_EX,
+        ds_extra_mod_func: Union[None, Callable] = handler_mod,
+        test_key="test",
+        train_key="train",
+        trunc_days: int = None,
+        task_copy_func: Callable = copy.deepcopy,
+    ):
         """
         Generate tasks for rolling
 
@@ -139,14 +163,20 @@ class RollingGen(TaskGen):
         ds_extra_mod_func: Callable
             A method like: handler_mod(task: dict, rg: RollingGen)
             Do some extra action after generating a task. For example, use ``handler_mod`` to modify the end time of the handler of a dataset.
+        trunc_days: int
+            trunc some data to avoid future information leakage
+        task_copy_func: Callable
+            the function to copy entire task. This is very useful when user want to share something between tasks
         """
         self.step = step
         self.rtype = rtype
         self.ds_extra_mod_func = ds_extra_mod_func
         self.ta = TimeAdjuster(future=True)
 
-        self.test_key = "test"
-        self.train_key = "train"
+        self.test_key = test_key
+        self.train_key = train_key
+        self.trunc_days = trunc_days
+        self.task_copy_func = task_copy_func
 
     def _update_task_segs(self, task, segs):
         # update segments of this task
@@ -191,7 +221,7 @@ class RollingGen(TaskGen):
                 break
 
             prev_seg = segments
-            t = copy.deepcopy(task)  # deepcopy is necessary to avoid modify task inplace
+            t = self.task_copy_func(task)  # deepcopy is necessary to avoid replace task inplace
             self._update_task_segs(t, segments)
             yield t
 
@@ -247,7 +277,7 @@ class RollingGen(TaskGen):
         """
         res = []
 
-        t = copy.deepcopy(task)
+        t = self.task_copy_func(task)
 
         # calculate segments
 
@@ -258,6 +288,8 @@ class RollingGen(TaskGen):
         # 2) and init test segments
         test_start_idx = self.ta.align_idx(segments[self.test_key][0])
         segments[self.test_key] = (self.ta.get(test_start_idx), self.ta.get(test_start_idx + self.step - 1))
+        if self.trunc_days is not None:
+            trunc_segments(self.ta, segments, self.trunc_days, self.test_key)
 
         # update segments of this task
         self._update_task_segs(t, segments)
@@ -272,7 +304,7 @@ class RollingGen(TaskGen):
 class MultiHorizonGenBase(TaskGen):
     def __init__(self, horizon: List[int] = [5], label_leak_n=2):
         """
-        This task generator tries to genrate tasks for different horizons based on an existing task
+        This task generator tries to generate tasks for different horizons based on an existing task
 
         Parameters
         ----------
@@ -313,10 +345,7 @@ class MultiHorizonGenBase(TaskGen):
 
             # adjust segment
             segments = self.ta.align_seg(t["dataset"]["kwargs"]["segments"])
-            test_start = min(t for t in segments[self.test_key] if t is not None)
-            for k in list(segments.keys()):
-                if k != self.test_key:
-                    segments[k] = self.ta.truncate(segments[k], test_start, hr + self.label_leak_n)
+            trunc_segments(self.ta, segments, days=hr + self.label_leak_n, test_key=self.test_key)
             t["dataset"]["kwargs"]["segments"] = segments
             res.append(t)
         return res

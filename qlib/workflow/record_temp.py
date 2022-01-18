@@ -14,8 +14,9 @@ from ..data.dataset import DatasetH
 from ..data.dataset.handler import DataHandlerLP
 from ..backtest import backtest as normal_backtest
 from ..log import get_module_logger
-from ..utils import flatten_dict, class_casting
+from ..utils import fill_placeholder, flatten_dict, class_casting, get_date_by_shift
 from ..utils.time import Freq
+from ..utils.data import deepcopy_basic_type
 from ..contrib.eva.alpha import calc_ic, calc_long_short_return, calc_long_short_prec
 
 
@@ -116,7 +117,7 @@ class RecordTemp:
         """
         Check if the records is properly generated and saved.
         It is useful in following examples
-        - checking if the depended files complete before genrating new things.
+        - checking if the depended files complete before generating new things.
         - checking if the final files is completed
 
         Parameters
@@ -175,9 +176,10 @@ class SignalRecord(RecordTemp):
                 del params["data_key"]
                 # The backend handler should be DataHandler
                 raw_label = dataset.prepare(**params)
-            except AttributeError:
+            except AttributeError as e:
                 # The data handler is initialize with `drop_raw=True`...
                 # So raw_label is not available
+                logger.warning(f"Exception: {e}")
                 raw_label = None
         return raw_label
 
@@ -201,6 +203,35 @@ class SignalRecord(RecordTemp):
 
     def list(self):
         return ["pred.pkl", "label.pkl"]
+
+
+class ACRecordTemp(RecordTemp):
+    """Automatically checking record template"""
+
+    def __init__(self, recorder, skip_existing=False):
+        self.skip_existing = skip_existing
+        super().__init__(recorder=recorder)
+
+    def generate(self, *args, **kwargs):
+        """automatically checking the files and then run the concrete generating task"""
+        if self.skip_existing:
+            try:
+                self.check(include_self=True, parents=False)
+            except FileNotFoundError:
+                pass  # continue to generating metrics
+            else:
+                logger.info("The results has previously generated, Generation skipped.")
+                return
+
+        try:
+            self.check()
+        except FileNotFoundError:
+            logger.warning("The dependent data does not exists. Generation skipped.")
+            return
+        return self._generate(*args, **kwargs)
+
+    def _generate(self, *args, **kwargs):
+        raise NotImplementedError(f"Please implement the `_generate` method")
 
 
 class HFSignalRecord(SignalRecord):
@@ -250,7 +281,7 @@ class HFSignalRecord(SignalRecord):
         return ["ic.pkl", "ric.pkl", "long_pre.pkl", "short_pre.pkl", "long_short_r.pkl", "long_avg_r.pkl"]
 
 
-class SigAnaRecord(RecordTemp):
+class SigAnaRecord(ACRecordTemp):
     """
     This is the Signal Analysis Record class that generates the analysis results such as IC and IR. This class inherits the ``RecordTemp`` class.
     """
@@ -259,39 +290,23 @@ class SigAnaRecord(RecordTemp):
     depend_cls = SignalRecord
 
     def __init__(self, recorder, ana_long_short=False, ann_scaler=252, label_col=0, skip_existing=False):
-        super().__init__(recorder=recorder)
+        super().__init__(recorder=recorder, skip_existing=skip_existing)
         self.ana_long_short = ana_long_short
         self.ann_scaler = ann_scaler
         self.label_col = label_col
-        self.skip_existing = skip_existing
 
-    def generate(self, label: Optional[pd.DataFrame] = None, **kwargs):
+    def _generate(self, label: Optional[pd.DataFrame] = None, **kwargs):
         """
         Parameters
         ----------
         label : Optional[pd.DataFrame]
             Label should be a dataframe.
         """
-        if self.skip_existing:
-            try:
-                self.check(include_self=True, parents=False)
-            except FileNotFoundError:
-                pass  # continue to generating metrics
-            else:
-                logger.info("The results has previously generated, Generation skipped.")
-                return
-
-        try:
-            self.check()
-        except FileNotFoundError:
-            logger.warning("The dependent data does not exists. Generation skipped.")
-            return
-
         pred = self.load("pred.pkl")
         if label is None:
             label = self.load("label.pkl")
         if label is None or not isinstance(label, pd.DataFrame) or label.empty:
-            logger.warn(f"Empty label.")
+            logger.warning(f"Empty label.")
             return
         ic, ric = calc_ic(pred.iloc[:, 0], label.iloc[:, self.label_col])
         metrics = {
@@ -328,7 +343,7 @@ class SigAnaRecord(RecordTemp):
         return paths
 
 
-class PortAnaRecord(RecordTemp):
+class PortAnaRecord(ACRecordTemp):
     """
     This is the Portfolio Analysis Record class that generates the analysis results such as those of backtest. This class inherits the ``RecordTemp`` class.
 
@@ -339,14 +354,35 @@ class PortAnaRecord(RecordTemp):
     """
 
     artifact_path = "portfolio_analysis"
+    depend_cls = SignalRecord
 
     def __init__(
         self,
         recorder,
-        config,
+        config: dict = {  # Default config for daily trading
+            "strategy": {
+                "class": "TopkDropoutStrategy",
+                "module_path": "qlib.contrib.strategy",
+                "kwargs": {"signal": "<PRED>", "topk": 50, "n_drop": 5},
+            },
+            "backtest": {
+                "start_time": None,
+                "end_time": None,
+                "account": 100000000,
+                "benchmark": "SH000300",
+                "exchange_kwargs": {
+                    "limit_threshold": 0.095,
+                    "deal_price": "close",
+                    "open_cost": 0.0005,
+                    "close_cost": 0.0015,
+                    "min_cost": 5,
+                },
+            },
+        },
         risk_analysis_freq: Union[List, str] = None,
         indicator_analysis_freq: Union[List, str] = None,
         indicator_analysis_method=None,
+        skip_existing=False,
         **kwargs,
     ):
         """
@@ -363,7 +399,12 @@ class PortAnaRecord(RecordTemp):
         indicator_analysis_method : str, optional, default by None
             the candidated values include 'mean', 'amount_weighted', 'value_weighted'
         """
-        super().__init__(recorder=recorder, **kwargs)
+        super().__init__(recorder=recorder, skip_existing=skip_existing, **kwargs)
+
+        # We only deepcopy_basic_type because
+        # - We don't want to affect the config outside.
+        # - We don't want to deepcopy complex object to avoid overhead
+        config = deepcopy_basic_type(config)
 
         self.strategy_config = config["strategy"]
         _default_executor_config = {
@@ -405,7 +446,21 @@ class PortAnaRecord(RecordTemp):
             ret_freq.extend(self._get_report_freq(executor_config["kwargs"]["inner_executor"]))
         return ret_freq
 
-    def generate(self, **kwargs):
+    def _generate(self, **kwargs):
+        pred = self.load("pred.pkl")
+
+        # replace the "<PRED>" with prediction saved before
+        placehorder_value = {"<PRED>": pred}
+        for k in "executor_config", "strategy_config":
+            setattr(self, k, fill_placeholder(getattr(self, k), placehorder_value))
+
+        # if the backtesting time range is not set, it will automatically extract time range from the prediction file
+        dt_values = pred.index.get_level_values("datetime")
+        if self.backtest_config["start_time"] is None:
+            self.backtest_config["start_time"] = dt_values.min()
+        if self.backtest_config["end_time"] is None:
+            self.backtest_config["end_time"] = get_date_by_shift(dt_values.max(), 1)
+
         # custom strategy and get backtest
         portfolio_metric_dict, indicator_dict = normal_backtest(
             executor=self.executor_config, strategy=self.strategy_config, **self.backtest_config

@@ -14,7 +14,7 @@ To get the join trading performance of daily and intraday trading, they must int
 In order to support the joint backtest strategies in multiple levels, a corresponding framework is required. None of the publicly available high-frequency trading frameworks considers multi-level joint trading, which make the backtesting aforementioned inaccurate.
 
 Besides backtesting, the optimization of strategies from different levels is not standalone and can be affected by each other.
-For example, the best portfolio management strategy may change with the performance of order executions(e.g. a portfolio with higher turnover may becomes a better choice when we imporve the order execution strategies).
+For example, the best portfolio management strategy may change with the performance of order executions(e.g. a portfolio with higher turnover may becomes a better choice when we improve the order execution strategies).
 To achieve the overall good performance , it is necessary to consider the interaction of strategies in different level. 
 
 Therefore, building a new framework for trading in multiple levels becomes necessary to solve the various problems mentioned above, for which we designed a nested decision execution framework that consider the interaction of strategies.

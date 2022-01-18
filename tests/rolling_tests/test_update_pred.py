@@ -5,7 +5,6 @@ import fire
 import pandas as pd
 
 import qlib
-from qlib.config import REG_CN
 from qlib.data import D
 from qlib.model.trainer import task_train
 from qlib.tests import TestAutoData

@@ -93,7 +93,7 @@ class TradeCalendarManager:
 
         About the endpoints:
             - Qlib uses the closed interval in time-series data selection, which has the same performance as pandas.Series.loc
-            # - The returned right endpoints should minus 1 seconds becasue of the closed interval representation in Qlib.
+            # - The returned right endpoints should minus 1 seconds because of the closed interval representation in Qlib.
             # Note: Qlib supports up to minutely decision execution, so 1 seconds is less than any trading time interval.
 
         Parameters
@@ -205,10 +205,7 @@ class BaseInfrastructure:
             warnings.warn(f"infra {infra_name} is not found!")
 
     def has(self, infra_name):
-        if infra_name in self.get_support_infra() and hasattr(self, infra_name):
-            return True
-        else:
-            return False
+        return infra_name in self.get_support_infra() and hasattr(self, infra_name)
 
     def update(self, other):
         support_infra = other.get_support_infra()

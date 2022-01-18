@@ -73,7 +73,7 @@ class PortfolioMetrics:
         self.init_bench(freq=freq, benchmark_config=benchmark_config)
 
     def init_vars(self):
-        self.accounts = OrderedDict()  # account postion value for each trade time
+        self.accounts = OrderedDict()  # account position value for each trade time
         self.returns = OrderedDict()  # daily return rate for each trade time
         self.total_turnovers = OrderedDict()  # total turnover for each trade time
         self.turnovers = OrderedDict()  # turnover for each trade time
@@ -212,7 +212,8 @@ class PortfolioMetrics:
                 path: str/ pathlib.Path()
         """
         path = pathlib.Path(path)
-        r = pd.read_csv(open(path, "rb"), index_col=0)
+        with path.open("rb") as f:
+            r = pd.read_csv(f, index_col=0)
         r.index = pd.DatetimeIndex(r.index)
 
         index = r.index
@@ -236,7 +237,7 @@ class Indicator:
     """
     `Indicator` is implemented in a aggregate way.
     All the metrics are calculated aggregately.
-    All the metrics are calculated for a seperated stock and in a specific step on a specific level.
+    All the metrics are calculated for a separated stock and in a specific step on a specific level.
 
     | indicator    | desc.                                                        |
     |--------------+--------------------------------------------------------------|

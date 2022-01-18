@@ -106,6 +106,9 @@ Example
         `SignalRecord` is the `Record Template` in ``Qlib``, please refer to `Workflow <recorder.html#record-template>`_.
 
 Also, the above example has been given in ``examples/train_backtest_analyze.ipynb``.
+Technically, the meaning of the model prediction depends on the label setting designed by user.
+By default, the meaning of the score is normally the rating of the instruments by the forecasting model. The higher the score, the more profit the instruments. 
+
 
 Custom Model
 ===================
