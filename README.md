@@ -47,41 +47,47 @@ For more details, please refer to our paper ["Qlib: An AI-oriented Quantitative 
 
 <table>
   <tbody>
-    <td>
-      <li><a href="#plans"><strong>Plans</strong></a></li>
-      <li><a href="#framework-of-qlib">Framework of Qlib</a></li>
-      <li><a href="#quick-start">Quick Start</a></li>
+    <tr>
+      <th>Frameworks, Tutorial, Data & DevOps<th/>
+      <th>Main Challenges & Solutions in Quant Research<th/>
+    <tr/>
+    <tr>
+      <td>
+        <li><a href="#plans"><strong>Plans</strong></a></li>
+        <li><a href="#framework-of-qlib">Framework of Qlib</a></li>
+        <li><a href="#quick-start">Quick Start</a></li>
+          <ul>
+            <li><a href="#installation">Installation</a> </li>
+            <li><a href="#data-preparation">Data Preparation</a></li>
+            <li><a href="#auto-quant-research-workflow">Auto Quant Research Workflow</a></li>
+            <li><a href="#building-customized-quant-research-workflow-by-code">Building Customized Quant Research Workflow by Code</a></li></ul>
+        <li><a href="#quant-dataset-zoo"><strong>Quant Dataset Zoo</strong></a></li>
+        <li><a href="#more-about-qlib">More About Qlib</a></li>
+        <li><a href="#offline-mode-and-online-mode">Offline Mode and Online Mode</a>
         <ul>
-          <li><a href="#installation">Installation</a> </li>
-          <li><a href="#data-preparation">Data Preparation</a></li>
-          <li><a href="#auto-quant-research-workflow">Auto Quant Research Workflow</a></li>
-          <li><a href="#building-customized-quant-research-workflow-by-code">Building Customized Quant Research Workflow by Code</a></li></ul>
-      <li><a href="#quant-dataset-zoo"><strong>Quant Dataset Zoo</strong></a></li>
-      <li><a href="#more-about-qlib">More About Qlib</a></li>
-      <li><a href="#offline-mode-and-online-mode">Offline Mode and Online Mode</a>
-      <ul>
-        <li><a href="#performance-of-qlib-data-server">Performance of Qlib Data Server</a></li></ul>
-      <li><a href="#related-reports">Related Reports</a></li>
-      <li><a href="#contact-us">Contact Us</a></li>
-      <li><a href="#contributing">Contributing</a></li>
-    </td>
-    <td>
-      <li><a href="#main-challenges--solutions-in-quant-research">Main Challenges &amp; Solutions in Quant Research</a>
-        <ul dir="auto">
-          <li><a href="#forecasting-finding-valuable-signalspatterns">Forecasting: Finding Valuable Signals/Patterns</a>
-            <ul dir="auto">
-              <li><a href="#quant-model-paper-zoo"><strong>Quant Model (Paper) Zoo</strong></a>
-                <ul dir="auto">
-                  <li><a href="#run-a-single-model">Run a Single Model</a></li>
-                  <li><a href="#run-multiple-models">Run Multiple Models</a></li>
-                </ul>
-              </li>
-            </ul>
-          </li>
-        <li><a href="#adapting-to-market-dynamics">Adapting to Market Dynamics</a></li>
-        </ul>
-      </li>
-    </td>
+          <li><a href="#performance-of-qlib-data-server">Performance of Qlib Data Server</a></li></ul>
+        <li><a href="#related-reports">Related Reports</a></li>
+        <li><a href="#contact-us">Contact Us</a></li>
+        <li><a href="#contributing">Contributing</a></li>
+      </td>
+      <td>
+        <li><a href="#main-challenges--solutions-in-quant-research">Main Challenges &amp; Solutions in Quant Research</a>
+          <ul dir="auto">
+            <li><a href="#forecasting-finding-valuable-signalspatterns">Forecasting: Finding Valuable Signals/Patterns</a>
+              <ul dir="auto">
+                <li><a href="#quant-model-paper-zoo"><strong>Quant Model (Paper) Zoo</strong></a>
+                  <ul dir="auto">
+                    <li><a href="#run-a-single-model">Run a Single Model</a></li>
+                    <li><a href="#run-multiple-models">Run Multiple Models</a></li>
+                  </ul>
+                </li>
+              </ul>
+            </li>
+          <li><a href="#adapting-to-market-dynamics">Adapting to Market Dynamics</a></li>
+          </ul>
+        </li>
+      </td>
+    <tr/>
   </tbody>
 <table>
 
