@@ -17,6 +17,7 @@ Current version of script with default value tries to connect localhost **via de
 Run following command to install necessary libraries
 ```
 pip install pytest
+pip install arctic  # NOTE: pip may fail to resolve the right package dependency !!! Please make sure the dependency are satisfied.
 ```
 
 # Importing example data
