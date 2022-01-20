@@ -133,7 +133,7 @@ This table demonstrates the supported Python version of `Qlib`:
 | ------------- |:---------------------:|:--------------------:|:----:|
 | Python 3.7    | :heavy_check_mark:    | :heavy_check_mark:   | :heavy_check_mark: |
 | Python 3.8    | :heavy_check_mark:    | :heavy_check_mark:   | :heavy_check_mark: |
-| Python 3.9    | :heavy_check_mark:    | :heavy_check_mark:   | :x: |
+| Python 3.9    | :heavy_check_mark:    | :heavy_check_mark:   | :heavy_check_mark: |
 
 **Note**: 
 1. **Conda** is suggested for managing your Python environment.
