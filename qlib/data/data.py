@@ -17,11 +17,9 @@ import pandas as pd
 from multiprocessing import Pool
 from typing import Iterable, Union
 from typing import List, Union
-from arctic import Arctic
 
 # For supporting multiprocessing in outer code, joblib is used
 from joblib import delayed
-import pymongo
 
 from .cache import H
 from ..config import C
@@ -582,7 +580,7 @@ class DatasetProvider(abc.ABC):
             data.index = _calendar[data.index.values.astype(int)]
         data.index.names = ["datetime"]
 
-        if spans is not None:
+        if not data.empty and spans is not None:
             mask = np.zeros(len(data), dtype=bool)
             for begin, end in spans:
                 mask |= (data.index >= begin) & (data.index <= end)
@@ -700,45 +698,6 @@ class LocalFeatureProvider(FeatureProvider, ProviderBackendMixin):
         field = str(field)[1:]
         instrument = code_to_fname(instrument)
         return self.backend_obj(instrument=instrument, field=field, freq=freq)[start_index : end_index + 1]
-
-
-class ArcticFeatureProvider(FeatureProvider):
-    def __init__(
-        self, uri="127.0.0.1", retry_time=0, market_transaction_time_list=[("09:15", "11:30"), ("13:00", "15:00")]
-    ):
-        super().__init__()
-        self.uri = uri
-        # TODO:
-        # retry connecting if error occurs
-        # does it real matters?
-        self.retry_time = retry_time
-        # NOTE: this is especially important for TResample operator
-        self.market_transaction_time_list = market_transaction_time_list
-
-    def feature(self, instrument, field, start_index, end_index, freq):
-        field = str(field)[1:]
-        with pymongo.MongoClient(self.uri) as client:
-            # TODO: this will result in frequently connecting the server and performance issue
-            arctic = Arctic(client)
-
-            if freq not in arctic.list_libraries():
-                raise ValueError("lib {} not in arctic".format(freq))
-
-            if instrument not in arctic[freq].list_symbols():
-                # instruments does not exist
-                return pd.Series()
-            else:
-                df = arctic[freq].read(instrument, columns=[field], chunk_range=(start_index, end_index))
-                s = df[field]
-
-                if not s.empty:
-                    s = pd.concat(
-                        [
-                            s.between_time(time_tuple[0], time_tuple[1])
-                            for time_tuple in self.market_transaction_time_list
-                        ]
-                    )
-                return s
 
 
 class LocalExpressionProvider(ExpressionProvider):

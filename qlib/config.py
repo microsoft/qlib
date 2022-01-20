@@ -216,8 +216,9 @@ MODE_CONF = {
         "provider_uri": "~/.qlib/qlib_data/cn_data",
         # cache
         # Using parameter 'remote' to announce the client is using server_cache, and the writing access will be disabled.
-        "expression_cache": DISK_EXPRESSION_CACHE,
-        "dataset_cache": DISK_DATASET_CACHE,
+        # Disable cache by default. Avoid introduce advanced features for beginners
+        "expression_cache": None,
+        "dataset_cache": None,
         # SimpleDatasetCache directory
         "local_cache_path": Path("~/.cache/qlib_simple_cache").expanduser().resolve(),
         "calendar_cache": None,

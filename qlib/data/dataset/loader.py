@@ -226,7 +226,7 @@ class StaticDataLoader(DataLoader, Serializable):
 
     include_attr = ["_config"]
 
-    def __init__(self, config: Union[dict, str], join="outer"):
+    def __init__(self, config: Union[dict, str, pd.DataFrame], join="outer"):
         """
         Parameters
         ----------
@@ -269,6 +269,8 @@ class StaticDataLoader(DataLoader, Serializable):
         elif isinstance(self._config, (str, Path)):
             with Path(self._config).open("rb") as f:
                 self._data = pickle.load(f)
+        elif isinstance(self._config, pd.DataFrame):
+            self._data = self._config
 
 
 class DataLoaderDH(DataLoader):
