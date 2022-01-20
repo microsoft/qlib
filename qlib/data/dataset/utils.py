@@ -41,12 +41,15 @@ def get_level_index(df: pd.DataFrame, level=Union[str, int]) -> int:
 
 def fetch_df_by_index(
     df: pd.DataFrame,
-    selector: Union[pd.Timestamp, slice, str, list],
+    selector: Union[pd.Timestamp, slice, str, list, pd.Index],
     level: Union[str, int],
     fetch_orig=True,
 ) -> pd.DataFrame:
     """
     fetch data from `data` with `selector` and `level`
+
+    selector are assumed to be well processed.
+    `fetch_df_by_index` is only responsible for get the right level
 
     Parameters
     ----------
