@@ -3,7 +3,7 @@ from typing import Callable, Union, List, Tuple, Dict, Text, Optional
 from ...utils import init_instance_by_config, np_ffill, time_to_slc_point
 from ...log import get_module_logger
 from .handler import DataHandler, DataHandlerLP
-from copy import deepcopy
+from copy import copy, deepcopy
 from inspect import getfullargspec
 import pandas as pd
 import numpy as np
@@ -83,7 +83,9 @@ class DatasetH(Dataset):
     - The processing is related to data split.
     """
 
-    def __init__(self, handler: Union[Dict, DataHandler], segments: Dict[Text, Tuple], **kwargs):
+    def __init__(
+        self, handler: Union[Dict, DataHandler], segments: Dict[Text, Tuple], fetch_kwargs: Dict = {}, **kwargs
+    ):
         """
         Setup the underlying data.
 
@@ -114,7 +116,7 @@ class DatasetH(Dataset):
         """
         self.handler: DataHandler = init_instance_by_config(handler, accept_types=DataHandler)
         self.segments = segments.copy()
-        self.fetch_kwargs = {}
+        self.fetch_kwargs = copy(fetch_kwargs)
         super().__init__(**kwargs)
 
     def config(self, handler_kwargs: dict = None, **kwargs):
@@ -164,13 +166,13 @@ class DatasetH(Dataset):
             name=self.__class__.__name__, handler=self.handler, segments=self.segments
         )
 
-    def _prepare_seg(self, slc: slice, **kwargs):
+    def _prepare_seg(self, slc, **kwargs):
         """
-        Give a slice, retrieve the according data
+        Give a query, retrieve the according data
 
         Parameters
         ----------
-        slc : slice
+        slc : please refer to the docs of `prepare`
         """
         if hasattr(self, "fetch_kwargs"):
             return self.handler.fetch(slc, **kwargs, **self.fetch_kwargs)
@@ -179,7 +181,7 @@ class DatasetH(Dataset):
 
     def prepare(
         self,
-        segments: Union[List[Text], Tuple[Text], Text, slice],
+        segments: Union[List[Text], Tuple[Text], Text, slice, pd.Index],
         col_set=DataHandler.CS_ALL,
         data_key=DataHandlerLP.DK_I,
         **kwargs,
@@ -218,22 +220,27 @@ class DatasetH(Dataset):
         NotImplementedError:
         """
         logger = get_module_logger("DatasetH")
-        fetch_kwargs = {"col_set": col_set}
-        fetch_kwargs.update(kwargs)
+        seg_kwargs = {"col_set": col_set}
+        seg_kwargs.update(kwargs)
         if "data_key" in getfullargspec(self.handler.fetch).args:
-            fetch_kwargs["data_key"] = data_key
+            seg_kwargs["data_key"] = data_key
         else:
             logger.info(f"data_key[{data_key}] is ignored.")
 
-        # Handle all kinds of segments format
-        if isinstance(segments, (list, tuple)):
-            return [self._prepare_seg(slice(*self.segments[seg]), **fetch_kwargs) for seg in segments]
-        elif isinstance(segments, str):
-            return self._prepare_seg(slice(*self.segments[segments]), **fetch_kwargs)
-        elif isinstance(segments, slice):
-            return self._prepare_seg(segments, **fetch_kwargs)
-        else:
-            raise NotImplementedError(f"This type of input is not supported")
+        # Conflictions may happen here
+        # - The fetched data and the segment key may both be string
+        # To resolve the confliction
+        # - The segment name will have higher priorities
+
+        # 1) Use it as segment name first
+        if isinstance(segments, str) and segments in self.segments:
+            return self._prepare_seg(self.segments[segments], **seg_kwargs)
+
+        if isinstance(segments, (list, tuple)) and all(seg in self.segments for seg in segments):
+            return [self._prepare_seg(self.segments[seg], **seg_kwargs) for seg in segments]
+
+        # 2) Use pass it directly to prepare a single seg
+        return self._prepare_seg(segments, **seg_kwargs)
 
     # helper functions
     @staticmethod
@@ -582,8 +589,11 @@ class TSDatasetH(DatasetH):
     def _prepare_seg(self, slc: slice, **kwargs) -> TSDataSampler:
         """
         split the _prepare_raw_seg is to leave a hook for data preprocessing before creating processing data
+        NOTE: TSDatasetH only support slc segment on datetime !!!
         """
         dtype = kwargs.pop("dtype", None)
+        if not isinstance(slc, slice):
+            slc = slice(*slc)
         start, end = slc.start, slc.stop
         flt_col = kwargs.pop("flt_col", None)
         # TSDatasetH will retrieve more data for complete time-series
