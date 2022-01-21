@@ -37,7 +37,8 @@ Initialize Qlib before calling other APIs: run following code in python.
 Parameters
 -------------------
 
-Besides `provider_uri` and `region`, `qlib.init` has other parameters. The following are several important parameters of `qlib.init`:
+Besides `provider_uri` and `region`, `qlib.init` has other parameters.
+The following are several important parameters of `qlib.init` (`Qlib` has a lot of config. Only part of parameters are limited here. More detailed setting can be found `here <https://github.com/microsoft/qlib/blob/main/qlib/config.py>`_):
 
 - `provider_uri`
     Type: str. The URI of the Qlib data. For example, it could be the location where the data loaded by ``get_data.py`` are stored.
@@ -88,3 +89,5 @@ Besides `provider_uri` and `region`, `qlib.init` has other parameters. The follo
             "task_url": "mongodb://localhost:27017/",  # your mongo url
             "task_db_name": "rolling_db", # the database name of Task Management
         })
+- `logging_level`:  The logging level for the system.
+- `kernels`: The number of processes used when calculating features in Qlib's expression engine. It is very helpful to set it to 1 when you are debuggin an expression calculating exception
