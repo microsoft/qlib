@@ -178,7 +178,7 @@ class ExpManager:
                 self._get_exp(experiment_id=experiment_id, experiment_name=experiment_name),
                 False,
             )
-        if is_new and start:
+        if self.active_experiment is None and start:
             self.active_experiment = exp
             # start the recorder
             self.active_experiment.start()

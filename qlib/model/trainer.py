@@ -37,8 +37,8 @@ def _log_task_info(task_config: dict):
 def _exe_task(task_config: dict):
     rec = R.get_recorder()
     # model & dataset initiation
-    model: Model = init_instance_by_config(task_config["model"])
-    dataset: Dataset = init_instance_by_config(task_config["dataset"])
+    model: Model = init_instance_by_config(task_config["model"], accept_types=Model)
+    dataset: Dataset = init_instance_by_config(task_config["dataset"], accept_types=Dataset)
     reweighter: Reweighter = task_config.get("reweighter", None)
     # model training
     auto_filter_kwargs(model.fit)(dataset, reweighter=reweighter)
