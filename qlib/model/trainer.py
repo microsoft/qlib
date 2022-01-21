@@ -12,17 +12,13 @@ In ``DelayTrainer``, the first step is only to save some necessary info to model
 """
 
 import socket
-import time
-import re
 from typing import Callable, List
 
 from tqdm.auto import tqdm
 from qlib.data.dataset import Dataset
-from qlib.log import get_module_logger
 from qlib.model.base import Model
-from qlib.utils import flatten_dict, get_callable_kwargs, init_instance_by_config, auto_filter_kwargs, fill_placeholder
+from qlib.utils import flatten_dict, init_instance_by_config, auto_filter_kwargs, fill_placeholder
 from qlib.workflow import R
-from qlib.workflow.record_temp import SignalRecord
 from qlib.workflow.recorder import Recorder
 from qlib.workflow.task.manage import TaskManager, run_task
 from qlib.data.dataset.weight import Reweighter

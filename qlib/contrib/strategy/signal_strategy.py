@@ -3,7 +3,6 @@
 import os
 import copy
 import warnings
-import cvxpy as cp
 import numpy as np
 import pandas as pd
 
@@ -15,11 +14,10 @@ from qlib.model.base import BaseModel
 from qlib.strategy.base import BaseStrategy
 from qlib.backtest.position import Position
 from qlib.backtest.signal import Signal, create_signal_from
-from qlib.backtest.decision import Order, BaseTradeDecision, OrderDir, TradeDecisionWO
+from qlib.backtest.decision import Order, OrderDir, TradeDecisionWO
 from qlib.log import get_module_logger
 from qlib.utils import get_pre_trading_date, load_dataset
-from qlib.utils.resam import resam_ts_data
-from qlib.contrib.strategy.order_generator import OrderGenWInteract, OrderGenWOInteract
+from qlib.contrib.strategy.order_generator import OrderGenWOInteract
 from qlib.contrib.strategy.optimizer import EnhancedIndexingOptimizer
 
 

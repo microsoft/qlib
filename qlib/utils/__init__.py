@@ -139,8 +139,8 @@ def parse_config(config):
     # Check whether the str can be parsed
     try:
         return yaml.safe_load(config)
-    except BaseException:
-        raise ValueError("cannot parse config!")
+    except BaseException as base_exp:
+        raise ValueError("cannot parse config!") from base_exp
 
 
 #################### Other ####################
@@ -810,7 +810,7 @@ def fill_placeholder(config: dict, config_extend: dict):
         elif isinstance(now_item, dict):
             item_keys = now_item.keys()
         for key in item_keys:
-            if isinstance(now_item[key], list) or isinstance(now_item[key], dict):
+            if isinstance(now_item[key], (list, dict)):
                 item_queue.append(now_item[key])
                 tail += 1
             elif isinstance(now_item[key], str):

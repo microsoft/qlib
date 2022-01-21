@@ -62,7 +62,7 @@ class SeriesDFilter(BaseDFilter):
     Override _getFilterSeries to use the rule to filter the series and get a dict of {inst => series}, or override filter_main for more advanced series filter rule
     """
 
-    def __init__(self, fstart_time=None, fend_time=None):
+    def __init__(self, fstart_time=None, fend_time=None, keep=False):
         """Init function for filter base class.
             Filter a set of instruments based on a certain rule within a certain period assigned by fstart_time and fend_time.
 
@@ -76,6 +76,7 @@ class SeriesDFilter(BaseDFilter):
         super(SeriesDFilter, self).__init__()
         self.filter_start_time = pd.Timestamp(fstart_time) if fstart_time else None
         self.filter_end_time = pd.Timestamp(fend_time) if fend_time else None
+        self.keep = keep
 
     def _getTimeBound(self, instruments):
         """Get time bound for all instruments.

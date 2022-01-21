@@ -2,24 +2,16 @@
 # Licensed under the MIT License.
 
 # coding=utf-8
-import abc
-import bisect
-import logging
 import warnings
-from inspect import getfullargspec
 from typing import Callable, Union, Tuple, List, Iterator, Optional
 
 import pandas as pd
-import numpy as np
 
-from ...log import get_module_logger, TimeInspector
-from ...data import D
-from ...config import C
-from ...utils import parse_config, transform_end_date, init_instance_by_config
+from ...log import TimeInspector
+from ...utils import init_instance_by_config
 from ...utils.serial import Serializable
 from .utils import fetch_df_by_index, fetch_df_by_col
 from ...utils import lazy_sort_index
-from pathlib import Path
 from .loader import DataLoader
 
 from . import processor as processor_module

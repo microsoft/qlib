@@ -51,7 +51,6 @@ class DataLoader(abc.ABC):
         pd.DataFrame:
             data load from the under layer source
         """
-        pass
 
 
 class DLWParser(DataLoader):
@@ -129,7 +128,6 @@ class DLWParser(DataLoader):
         pd.DataFrame:
             the queried dataframe.
         """
-        pass
 
     def load(self, instruments=None, start_time=None, end_time=None) -> pd.DataFrame:
         if self.is_group:

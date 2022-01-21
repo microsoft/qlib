@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 from contextlib import contextmanager
-from typing import Text, Optional, Any, Dict, Text, Optional
+from typing import Text, Optional, Any, Dict
 from .expm import ExpManager
 from .exp import Experiment
 from .recorder import Recorder

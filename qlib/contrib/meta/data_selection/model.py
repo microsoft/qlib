@@ -1,28 +1,26 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-from qlib.log import get_module_logger
 import pandas as pd
 import numpy as np
-from qlib.model.meta.task import MetaTask
 import torch
 from torch import nn
 from torch import optim
 from tqdm.auto import tqdm
-import collections
 import copy
-from typing import Union, List, Tuple, Dict
+from typing import Union, List
 
 from ....data.dataset.weight import Reweighter
 from ....model.meta.dataset import MetaTaskDataset
-from ....model.meta.model import MetaModel, MetaTaskModel
+from ....model.meta.model import MetaTaskModel
 from ....workflow import R
-
 from .utils import ICLoss
 from .dataset import MetaDatasetDS
-from qlib.contrib.meta.data_selection.net import PredNet
-from qlib.data.dataset.weight import Reweighter
+
 from qlib.log import get_module_logger
+from qlib.data.dataset.weight import Reweighter
+from qlib.model.meta.task import MetaTask
+from qlib.contrib.meta.data_selection.net import PredNet
 
 logger = get_module_logger("data selection")
 

@@ -1,7 +1,8 @@
 #  Copyright (c) Microsoft Corporation.
 #  Licensed under the MIT License.
 
-import sys, os
+import sys
+import os
 from pathlib import Path
 
 import qlib

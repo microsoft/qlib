@@ -83,15 +83,14 @@ For simplicity
 """
 
 import logging
-from typing import Callable, Dict, List, Union
+from typing import Callable, List, Union
 
 import pandas as pd
 from qlib import get_module_logger
 from qlib.data.data import D
 from qlib.log import set_global_logger_level
 from qlib.model.ens.ensemble import AverageEnsemble
-from qlib.model.trainer import DelayTrainerR, Trainer, TrainerR
-from qlib.utils import flatten_dict
+from qlib.model.trainer import Trainer, TrainerR
 from qlib.utils.serial import Serializable
 from qlib.workflow.online.strategy import OnlineStrategy
 from qlib.workflow.task.collect import MergeCollector

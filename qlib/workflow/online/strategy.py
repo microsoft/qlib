@@ -5,9 +5,7 @@
 OnlineStrategy module is an element of online serving.
 """
 
-from copy import deepcopy
-from typing import List, Tuple, Union
-from qlib.data.data import D
+from typing import List, Union
 from qlib.log import get_module_logger
 from qlib.model.ens.group import RollingGroup
 from qlib.utils import transform_end_date

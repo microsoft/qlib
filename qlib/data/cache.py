@@ -33,8 +33,7 @@ from ..utils import (
 
 from ..log import get_module_logger
 from .base import Feature
-
-from .ops import Operators
+from .ops import Operators  # pylint: disable=W0611
 
 
 class QlibCacheException(RuntimeError):
@@ -229,8 +228,8 @@ class CacheUtils:
                 try:
                     d["meta"]["last_visit"] = str(time.time())
                     d["meta"]["visits"] = d["meta"]["visits"] + 1
-                except KeyError:
-                    raise KeyError("Unknown meta keyword")
+                except KeyError as key_e:
+                    raise KeyError("Unknown meta keyword") from key_e
                 pickle.dump(d, f, protocol=C.dump_protocol_version)
         except Exception as e:
             get_module_logger("CacheUtils").warning(f"visit {cache_path} cache error: {e}")
@@ -239,7 +238,7 @@ class CacheUtils:
     def acquire(lock, lock_name):
         try:
             lock.acquire()
-        except redis_lock.AlreadyAcquired:
+        except redis_lock.AlreadyAcquired as lock_acquired:
             raise QlibCacheException(
                 f"""It sees the key(lock:{repr(lock_name)[1:-1]}-wlock) of the redis lock has existed in your redis db now.
                     You can use the following command to clear your redis keys and rerun your commands:
@@ -249,7 +248,7 @@ class CacheUtils:
                     > quit
                     If the issue is not resolved, use "keys *" to find if multiple keys exist. If so, try using "flushall" to clear all the keys.
                 """
-            )
+            ) from lock_acquired
 
     @staticmethod
     @contextlib.contextmanager

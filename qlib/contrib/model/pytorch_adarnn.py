@@ -1,12 +1,10 @@
 # Copyright (c) Microsoft Corporation.
 import os
-from pdb import set_trace
 from torch.utils.data import Dataset, DataLoader
 
 import copy
 from typing import Text, Union
 
-import math
 import numpy as np
 import pandas as pd
 import torch
@@ -182,11 +180,11 @@ class ADARNN(Model):
                 continue
 
             total_loss = torch.zeros(1).cuda()
-            for i in range(len(index)):
-                feature_s = list_feat[index[i][0]]
-                feature_t = list_feat[index[i][1]]
-                label_reg_s = list_label[index[i][0]]
-                label_reg_t = list_label[index[i][1]]
+            for i, n in enumerate(index):
+                feature_s = list_feat[n[0]]
+                feature_t = list_feat[n[1]]
+                label_reg_s = list_label[n[0]]
+                label_reg_t = list_label[n[1]]
                 feature_all = torch.cat((feature_s, feature_t), 0)
 
                 if epoch < self.pre_epoch:
@@ -410,7 +408,7 @@ class AdaRNN(nn.Module):
             in_size = hidden
         self.features = nn.Sequential(*features)
 
-        if use_bottleneck == True:  # finance
+        if use_bottleneck is True:  # finance
             self.bottleneck = nn.Sequential(
                 nn.Linear(n_hiddens[-1], bottleneck_width),
                 nn.Linear(bottleneck_width, bottleneck_width),
@@ -449,7 +447,7 @@ class AdaRNN(nn.Module):
     def forward_pre_train(self, x, len_win=0):
         out = self.gru_features(x)
         fea = out[0]  # [2N,L,H]
-        if self.use_bottleneck == True:
+        if self.use_bottleneck is True:
             fea_bottleneck = self.bottleneck(fea[:, -1, :])
             fc_out = self.fc(fea_bottleneck).squeeze()
         else:
@@ -458,8 +456,8 @@ class AdaRNN(nn.Module):
         out_list_all, out_weight_list = out[1], out[2]
         out_list_s, out_list_t = self.get_features(out_list_all)
         loss_transfer = torch.zeros((1,)).cuda()
-        for i in range(len(out_list_s)):
-            criterion_transder = TransferLoss(loss_type=self.trans_loss, input_dim=out_list_s[i].shape[2])
+        for i, n in enumerate(out_list_s):
+            criterion_transder = TransferLoss(loss_type=self.trans_loss, input_dim=n.shape[2])
             h_start = 0
             for j in range(h_start, self.len_seq, 1):
                 i_start = j - len_win if j - len_win >= 0 else 0
@@ -471,7 +469,7 @@ class AdaRNN(nn.Module):
                         else 1 / (self.len_seq - h_start) * (2 * len_win + 1)
                     )
                     loss_transfer = loss_transfer + weight * criterion_transder.compute(
-                        out_list_s[i][:, j, :], out_list_t[i][:, k, :]
+                        n[:, j, :], out_list_t[i][:, k, :]
                     )
         return fc_out, loss_transfer, out_weight_list
 
@@ -484,7 +482,7 @@ class AdaRNN(nn.Module):
             out, _ = self.features[i](x_input.float())
             x_input = out
             out_lis.append(out)
-            if self.model_type == "AdaRNN" and predict == False:
+            if self.model_type == "AdaRNN" and predict is False:
                 out_gate = self.process_gate_weight(x_input, i)
                 out_weight_list.append(out_gate)
         return out, out_lis, out_weight_list
@@ -524,10 +522,10 @@ class AdaRNN(nn.Module):
         else:
             weight = weight_mat
         dist_mat = torch.zeros(self.num_layers, self.len_seq).cuda()
-        for i in range(len(out_list_s)):
-            criterion_transder = TransferLoss(loss_type=self.trans_loss, input_dim=out_list_s[i].shape[2])
+        for i, n in enumerate(out_list_s):
+            criterion_transder = TransferLoss(loss_type=self.trans_loss, input_dim=n.shape[2])
             for j in range(self.len_seq):
-                loss_trans = criterion_transder.compute(out_list_s[i][:, j, :], out_list_t[i][:, j, :])
+                loss_trans = criterion_transder.compute(n[:, j, :], out_list_t[i][:, j, :])
                 loss_transfer = loss_transfer + weight[i, j] * loss_trans
                 dist_mat[i, j] = loss_trans
         return fc_out, loss_transfer, dist_mat, weight
@@ -546,7 +544,7 @@ class AdaRNN(nn.Module):
     def predict(self, x):
         out = self.gru_features(x, predict=True)
         fea = out[0]
-        if self.use_bottleneck == True:
+        if self.use_bottleneck is True:
             fea_bottleneck = self.bottleneck(fea[:, -1, :])
             fc_out = self.fc(fea_bottleneck).squeeze()
         else:
@@ -572,12 +570,12 @@ class TransferLoss:
         Returns:
             [tensor] -- transfer loss
         """
-        if self.loss_type == "mmd_lin" or self.loss_type == "mmd":
+        if self.loss_type in ("mmd_lin", "mmd"):
             mmdloss = MMD_loss(kernel_type="linear")
             loss = mmdloss(X, Y)
         elif self.loss_type == "coral":
             loss = CORAL(X, Y)
-        elif self.loss_type == "cosine" or self.loss_type == "cos":
+        elif self.loss_type in ("cosine", "cos"):
             loss = 1 - cosine(X, Y)
         elif self.loss_type == "kl":
             loss = kl_div(X, Y)

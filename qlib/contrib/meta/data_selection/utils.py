@@ -1,11 +1,9 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-import pandas as pd
 import numpy as np
 import torch
 from torch import nn
-from qlib.contrib.torch import data_to_tensor
 
 
 class ICLoss(nn.Module):

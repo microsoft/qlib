@@ -2,15 +2,18 @@
 # Licensed under the MIT License.
 
 import os
-from qlib.utils.serial import Serializable
-import mlflow, logging
-import shutil, os, pickle, tempfile, codecs, pickle
+import mlflow
+import logging
+import shutil
+import pickle
+import tempfile
 from pathlib import Path
 from datetime import datetime
 
+from qlib.utils.serial import Serializable
 from qlib.utils.exceptions import LoadObjectError
 from qlib.utils.paral import AsyncCaller
-from ..utils.objm import FileManager
+
 from ..log import TimeInspector, get_module_logger
 from mlflow.store.artifact.azure_blob_artifact_repo import AzureBlobArtifactRepository
 
@@ -355,7 +358,7 @@ class MLflowRecorder(Recorder):
                 shutil.rmtree(Path(path).absolute().parent)
             return data
         except Exception as e:
-            raise LoadObjectError(str(e))
+            raise LoadObjectError(str(e)) from e
 
     @AsyncCaller.async_dec(ac_attr="async_log")
     def log_params(self, **kwargs):

@@ -139,8 +139,10 @@ def _mount_nfs_uri(provider_uri, mount_path, auto_mount: bool = False):
             if not _is_mount:
                 try:
                     Path(mount_path).mkdir(parents=True, exist_ok=True)
-                except Exception:
-                    raise OSError(f"Failed to create directory {mount_path}, please create {mount_path} manually!")
+                except Exception as e:
+                    raise OSError(
+                        f"Failed to create directory {mount_path}, please create {mount_path} manually!"
+                    ) from e
 
                 # check nfs-common
                 command_res = os.popen("dpkg -l | grep nfs-common")

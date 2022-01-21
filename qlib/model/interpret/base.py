@@ -27,6 +27,9 @@ class FeatureInt:
 class LightGBMFInt(FeatureInt):
     """LightGBM (F)eature (Int)erpreter"""
 
+    def __init__(self):
+        self.model = None
+
     def get_feature_importance(self, *args, **kwargs) -> pd.Series:
         """get feature importance
 

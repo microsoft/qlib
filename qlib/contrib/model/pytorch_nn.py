@@ -328,6 +328,7 @@ class Net(nn.Module):
         dnn_layers = []
         drop_input = nn.Dropout(0.05)
         dnn_layers.append(drop_input)
+        hidden_units = None
         for i, (_input_dim, hidden_units) in enumerate(zip(layers[:-1], layers[1:])):
             fc = nn.Linear(_input_dim, hidden_units)
             activation = nn.LeakyReLU(negative_slope=0.1, inplace=False)

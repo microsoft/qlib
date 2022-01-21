@@ -3,7 +3,6 @@
 from __future__ import division
 from __future__ import print_function
 
-import os
 import numpy as np
 import pandas as pd
 from typing import Text, Union
@@ -378,7 +377,7 @@ class TabnetModel(Model):
 
     def metric_fn(self, pred, label):
         mask = torch.isfinite(label)
-        if self.metric == "" or self.metric == "loss":
+        if self.metric in ("", "loss"):
             return -self.loss_fn(pred[mask], label[mask])
         raise ValueError("unknown metric `%s`" % self.metric)
 

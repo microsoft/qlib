@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 
 from .handler import DataHandler
-from typing import Tuple, Union, List, Callable
+from typing import Union, List, Callable
 
 from .utils import get_level_index, fetch_df_by_index, fetch_df_by_col
 
@@ -109,7 +109,7 @@ class HasingStockStorage(BaseHandlerStorage):
                 stock_selector = selector[self.stock_level]
             elif isinstance(selector, (list, str)) and self.stock_level == 0:
                 stock_selector = selector
-        elif level == "instrument" or level == self.stock_level:
+        elif level in ("instrument", self.stock_level):
             if isinstance(selector, tuple):
                 stock_selector = selector[0]
             elif isinstance(selector, (list, str)):

@@ -1,6 +1,5 @@
 # MIT License
 # Copyright (c) 2018 CMU Locus Lab
-import torch
 import torch.nn as nn
 from torch.nn.utils import weight_norm
 

@@ -5,17 +5,13 @@
 from __future__ import division
 from __future__ import print_function
 
-import os
 import re
 import abc
-import time
 import copy
 import queue
 import bisect
 import numpy as np
 import pandas as pd
-from multiprocessing import Pool
-from typing import Iterable, Union
 from typing import List, Union
 
 # For supporting multiprocessing in outer code, joblib is used
@@ -23,13 +19,10 @@ from joblib import delayed
 
 from .cache import H
 from ..config import C
-from .base import Feature
-from .ops import Operators
 from .inst_processor import InstProcessor
 
 from ..log import get_module_logger
-from ..utils.time import Freq
-from .cache import DiskDatasetCache, DiskExpressionCache
+from .cache import DiskDatasetCache
 from ..utils import (
     Wrapper,
     init_instance_by_config,
@@ -43,6 +36,7 @@ from ..utils import (
     time_to_slc_point,
 )
 from ..utils.paral import ParallelExt
+from .ops import Operators  # pylint: disable=W0611
 
 
 class ProviderBackendMixin:
@@ -144,10 +138,10 @@ class CalendarProvider(abc.ABC):
         if start_time not in calendar_index:
             try:
                 start_time = calendar[bisect.bisect_left(calendar, start_time)]
-            except IndexError:
+            except IndexError as index_e:
                 raise IndexError(
                     "`start_time` uses a future date, if you want to get future trading days, you can use: `future=True`"
-                )
+                ) from index_e
         start_index = calendar_index[start_time]
         if end_time not in calendar_index:
             end_time = calendar[bisect.bisect_right(calendar, end_time) - 1]
@@ -1003,8 +997,8 @@ class ClientDatasetProvider(DatasetProvider):
                 if return_uri:
                     return df, feature_uri
                 return df
-            except AttributeError:
-                raise IOError("Unable to fetch instruments from remote server!")
+            except AttributeError as attribute_e:
+                raise IOError("Unable to fetch instruments from remote server!") from attribute_e
 
 
 class BaseProvider:

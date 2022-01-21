@@ -13,7 +13,6 @@ class BaseModel(Serializable, metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def predict(self, *args, **kwargs) -> object:
         """Make predictions after modeling things"""
-        pass
 
     def __call__(self, *args, **kwargs) -> object:
         """leverage Python syntactic sugar to make the models' behaviors like functions"""

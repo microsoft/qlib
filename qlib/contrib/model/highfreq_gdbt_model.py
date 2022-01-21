@@ -58,7 +58,7 @@ class HFLGBModel(ModelFT, LightGBMFInt):
         """
         Test the signal in high frequency test set
         """
-        if self.model == None:
+        if self.model is None:
             raise ValueError("Model hasn't been trained yet")
         df_test = dataset.prepare("test", col_set=["feature", "label"], data_key=DataHandlerLP.DK_I)
         df_test.dropna(inplace=True)

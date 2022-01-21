@@ -6,12 +6,8 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from qlib.backtest.exchange import Exchange
     from qlib.backtest.position import BasePosition
-from typing import List, Tuple, Union
-import pandas as pd
+from typing import Tuple, Union
 
-from ..model.base import BaseModel
-from ..data.dataset import DatasetH
-from ..data.dataset.utils import convert_index_format
 from ..rl.interpreter import ActionInterpreter, StateInterpreter
 from ..utils import init_instance_by_config
 from ..backtest.utils import CommonInfrastructure, LevelInfrastructure, TradeCalendarManager

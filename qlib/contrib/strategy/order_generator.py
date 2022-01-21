@@ -6,7 +6,6 @@ This order generator is for strategies based on WeightStrategyBase
 """
 from ...backtest.position import Position
 from ...backtest.exchange import Exchange
-from ...backtest.decision import BaseTradeDecision, TradeDecisionWO
 
 import pandas as pd
 import copy

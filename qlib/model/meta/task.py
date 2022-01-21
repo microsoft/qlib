@@ -1,9 +1,6 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-import abc
-from typing import Union, List, Tuple
-
 from qlib.data.dataset import Dataset
 from ...utils import init_instance_by_config
 

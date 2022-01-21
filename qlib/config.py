@@ -392,9 +392,7 @@ class QlibConfig(Config):
 
         self.reset()
 
-        _logging_config = self.logging_config
-        if "logging_config" in kwargs:
-            _logging_config = kwargs["logging_config"]
+        _logging_config = kwargs.get("logging_config", self.logging_config)
 
         # set global config
         if _logging_config:

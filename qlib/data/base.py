@@ -6,7 +6,6 @@ from __future__ import division
 from __future__ import print_function
 
 import abc
-import pandas as pd
 
 from ..log import get_module_logger
 
@@ -232,5 +231,3 @@ class ExpressionOps(Expression):
     This kind of feature will use operator for feature
     construction on the fly.
     """
-
-    pass

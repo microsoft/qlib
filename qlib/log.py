@@ -164,7 +164,7 @@ class LogFilter(logging.Filter):
         if isinstance(self.param, str):
             allow = not self.match_msg(self.param, record.msg)
         elif isinstance(self.param, list):
-            allow = not any([self.match_msg(p, record.msg) for p in self.param])
+            allow = not any(self.match_msg(p, record.msg) for p in self.param)
         return allow
 
 

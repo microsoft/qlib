@@ -5,20 +5,12 @@
 from __future__ import division
 from __future__ import print_function
 
-import os
 import numpy as np
 import pandas as pd
 import copy
 import random
-from sklearn.metrics import roc_auc_score, mean_squared_error
-import logging
-from ...utils import (
-    unpack_archive_with_buffer,
-    save_multiple_parts_file,
-    get_or_create_path,
-    drop_nan_by_y_index,
-)
-from ...log import get_module_logger, TimeInspector
+from ...utils import get_or_create_path
+from ...log import get_module_logger
 
 import torch
 import torch.nn as nn
@@ -263,7 +255,7 @@ class TCTS(Model):
         x_valid, y_valid = df_valid["feature"], df_valid["label"]
         x_test, y_test = df_test["feature"], df_test["label"]
 
-        if save_path == None:
+        if save_path is None:
             save_path = get_or_create_path(save_path)
         best_loss = np.inf
         while best_loss > self.lowest_valid_performance:
