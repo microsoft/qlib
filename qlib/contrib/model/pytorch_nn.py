@@ -240,7 +240,7 @@ class DNNModelPytorch(Model):
                 R.log_metrics(val_loss=loss_val.val, step=step)
                 if verbose:
                     self.logger.info(
-                        "[Epoch {}]: train_loss {:.6f}, valid_loss {:.6f}".format(step, train_loss, loss_val.val)
+                        "[Step {}]: train_loss {:.6f}, valid_loss {:.6f}".format(step, train_loss, loss_val.val)
                     )
                 evals_result["train"].append(train_loss)
                 evals_result["valid"].append(loss_val.val)
