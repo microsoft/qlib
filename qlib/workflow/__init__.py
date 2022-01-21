@@ -598,7 +598,7 @@ class QlibRecorder:
         keyword argument:
             name1=value1, name2=value2, ...
         """
-        self.get_exp(start=true).get_recorder(start=True).set_tags(**kwargs)
+        self.get_exp(start=True).get_recorder(start=True).set_tags(**kwargs)
 
 
 class RecorderWrapper(Wrapper):
