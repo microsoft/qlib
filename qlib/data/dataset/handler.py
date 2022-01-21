@@ -332,7 +332,7 @@ class DataHandler(Serializable):
 class DataHandlerLP(DataHandler):
     """
     DataHandler with **(L)earnable (P)rocessor**
-    
+
     This handler will produce three pieces of data in pd.DataFrame format.
     - DK_R / self._data: the raw data loaded from the loader
     - DK_I / self._infer: the data processed for inference
@@ -341,7 +341,7 @@ class DataHandlerLP(DataHandler):
     The motivation of using different processor workflows for learning and inference
     Here are some examples.
     - The instrument universe for learning and inference may be different.
-    - The processing of some samples may rely on label (for example, some samples hit the limit may need extra processing or be dropped). 
+    - The processing of some samples may rely on label (for example, some samples hit the limit may need extra processing or be dropped).
         These processors only apply to the learning phase.
 
     Tips to improve the performance of data handler
