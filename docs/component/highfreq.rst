@@ -29,3 +29,8 @@ Example
 ===========================
 
 An example of nested decision execution framework for high-frequency can be found `here <https://github.com/microsoft/qlib/blob/main/examples/nested_decision_execution/workflow.py>`_.
+
+
+Besides, the above examples, here are some other related work about high-frequency trading in Qlib.
+- `Prediction with high-frequency data <https://github.com/microsoft/qlib/tree/main/examples/highfreq#benchmarks-performance-predicting-the-price-trend-in-high-frequency-data>`_
+- Examples to extract features form high-frequency data without fixed frequency.
