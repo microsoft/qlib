@@ -57,7 +57,7 @@ REQUIRED = [
     "redis>=3.0.1",
     "python-redis-lock>=3.3.1",
     "schedule>=0.6.0",
-    "cvxpy==1.1.18",
+    "cvxpy>=1.0.21",
     "hyperopt==0.1.2",
     "fire>=0.3.1",
     "statsmodels",
