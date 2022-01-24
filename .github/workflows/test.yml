@@ -32,6 +32,7 @@ jobs:
 
     - name: Install Qlib with pip
       run: |
+        pip install setuptools=52.0.0
         pip install numpy==1.19.5 ruamel.yaml
         pip install pyqlib --ignore-installed 
 
