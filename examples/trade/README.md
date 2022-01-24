@@ -96,6 +96,9 @@ You are more than welcome to citetmu our paper:
   title={Universal Trading for Order Execution with Oracle Policy Distillation},
   author={Fang, Yuchen and Ren, Kan and Liu, Weiqing and Zhou, Dong and Zhang, Weinan and Bian, Jiang and Yu, Yong and Liu, Tie-Yan},
   booktitle={Proceedings of the AAAI Conference on Artificial Intelligence},
+  volume={35},
+  number={1},
+  pages={107--115},
   year={2021}
 }
 ```
