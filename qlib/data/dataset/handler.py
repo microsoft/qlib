@@ -7,7 +7,7 @@ from typing import Callable, Union, Tuple, List, Iterator, Optional
 
 import pandas as pd
 
-from ...log import TimeInspector
+from ...log import get_module_logger, TimeInspector
 from ...utils import init_instance_by_config
 from ...utils.serial import Serializable
 from .utils import fetch_df_by_index, fetch_df_by_col
@@ -220,7 +220,7 @@ class DataHandler(Serializable):
         proc_func: Callable = None,
     ):
         # This method is extracted for sharing in subclasses
-        from .storage import BaseHandlerStorage
+        from .storage import BaseHandlerStorage  # pylint: disable=C0415
 
         # Following conflictions may occurs
         # - Does [20200101", "20210101"] mean selecting this slice or these two days?
@@ -619,7 +619,6 @@ class DataHandlerLP(DataHandler):
         -------
         pd.DataFrame:
         """
-        from .storage import BaseHandlerStorage  # pylint: disable=C0415
 
         return self._fetch_data(
             data_storage=self._get_df_by_key(data_key),
