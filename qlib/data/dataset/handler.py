@@ -333,7 +333,18 @@ class DataHandlerLP(DataHandler):
     """
     DataHandler with **(L)earnable (P)rocessor**
 
-    Tips to improving the performance of data handler
+    This handler will produce three pieces of data in pd.DataFrame format.
+    - DK_R / self._data: the raw data loaded from the loader
+    - DK_I / self._infer: the data processed for inference
+    - DK_L / self._learn: the data processed for learning model.
+
+    The motivation of using different processor workflows for learning and inference
+    Here are some examples.
+    - The instrument universe for learning and inference may be different.
+    - The processing of some samples may rely on label (for example, some samples hit the limit may need extra processing or be dropped).
+        These processors only apply to the learning phase.
+
+    Tips to improve the performance of data handler
     - To reduce the memory cost
         - `drop_raw=True`: this will modify the data inplace on raw data;
     """
