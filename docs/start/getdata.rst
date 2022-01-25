@@ -120,6 +120,32 @@ For more details about features, please refer `Feature API <../component/data.ht
 
 .. note:: When calling `D.features()` at the client, use parameter `disk_cache=0` to skip dataset cache, use `disk_cache=1` to generate and use dataset cache. In addition, when calling at the server, users can use `disk_cache=2` to update the dataset cache.
 
+
+When you are building complicated expressions, implementing all the expressions in a single string may not be easy.
+For example, it looks quite long and complicated:
+
+.. code-block:: python
+
+   >> from qlib.data import D
+   >> data = D.features(["sh600519"], ["(($high / $close) + ($open / $close)) * (($high / $close) + ($open / $close)) / ($high / $close) + ($open / $close)"], start_time="20200101")
+
+
+But using string is not the only way to implement the expression. You can also implement expression by code.
+Here is an exmaple which does the same thing as above examples.
+
+
+.. code-block:: python
+
+   >> from qlib.data.ops import *
+   >> f1 = Feature("high") / Feature("close")
+   >> f2 = Feature("open") / Feature("close")
+   >> f3 = f1 + f2
+   >> f4 = f3 * f3 / f3
+
+   >> data = D.features(["sh600519"], [f4], start_time="20200101")
+   >> data.head()
+
+
 API
 ====================
 To know more about how to use the Data, go to API Reference: `Data API <../reference/api.html#data>`_
