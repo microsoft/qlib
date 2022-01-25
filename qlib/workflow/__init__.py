@@ -226,7 +226,9 @@ class QlibRecorder:
         """
         return self.get_exp(experiment_id=experiment_id, experiment_name=experiment_name).list_recorders()
 
-    def get_exp(self, *, experiment_id=None, experiment_name=None, create: bool = True) -> Experiment:
+    def get_exp(
+        self, *, experiment_id=None, experiment_name=None, create: bool = True, start: bool = False
+    ) -> Experiment:
         """
         Method for retrieving an experiment with given id or name. Once the `create` argument is set to
         True, if no valid experiment is found, this method will create one for you. Otherwise, it will
@@ -291,6 +293,10 @@ class QlibRecorder:
         create : boolean
             an argument determines whether the method will automatically create a new experiment
             according to user's specification if the experiment hasn't been created before.
+        start : bool
+            when start is True,
+                if the experiment has not started(not activated), it will start
+            It is designed for R.log_params to auto start experiments
 
         Returns
         -------
@@ -300,7 +306,7 @@ class QlibRecorder:
             experiment_id=experiment_id,
             experiment_name=experiment_name,
             create=create,
-            start=False,
+            start=start,
         )
 
     def delete_exp(self, experiment_id=None, experiment_name=None):
@@ -542,7 +548,7 @@ class QlibRecorder:
         keyword argument:
             name1=value1, name2=value2, ...
         """
-        self.get_exp().get_recorder(start=True).log_params(**kwargs)
+        self.get_exp(start=True).get_recorder(start=True).log_params(**kwargs)
 
     def log_metrics(self, step=None, **kwargs):
         """
@@ -567,7 +573,7 @@ class QlibRecorder:
         keyword argument:
             name1=value1, name2=value2, ...
         """
-        self.get_exp().get_recorder(start=True).log_metrics(step, **kwargs)
+        self.get_exp(start=True).get_recorder(start=True).log_metrics(step, **kwargs)
 
     def set_tags(self, **kwargs):
         """
@@ -592,7 +598,7 @@ class QlibRecorder:
         keyword argument:
             name1=value1, name2=value2, ...
         """
-        self.get_exp().get_recorder(start=True).set_tags(**kwargs)
+        self.get_exp(start=True).get_recorder(start=True).set_tags(**kwargs)
 
 
 class RecorderWrapper(Wrapper):
