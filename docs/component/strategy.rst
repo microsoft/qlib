@@ -192,6 +192,14 @@ Running backtest
         qlib.init(provider_uri=<qlib data dir>)
 
         CSI300_BENCH = "SH000300"
+        # Benchmark is for calculating the excess return of your strategy.
+        # Its data format will be like **ONE normal instrument**. 
+        # For example, you can query its data with the code below
+        # `D.features(["SH000300"], ["$close"], start_time='2010-01-01', end_time='2017-12-31', freq='day')`
+        # It is different from the argument `market`, which indicates a universe of stocks (e.g. **A SET** of stocks like csi300)
+        # For example, you can query all data from a stock market with the code below.
+        # ` D.features(D.instruments(market='csi300'), ["$close"], start_time='2010-01-01', end_time='2017-12-31', freq='day')`
+
         FREQ = "day"
         STRATEGY_CONFIG = {
             "topk": 50,
