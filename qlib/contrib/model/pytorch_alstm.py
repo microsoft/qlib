@@ -311,8 +311,8 @@ class ALSTMModel(nn.Module):
     def _build_model(self):
         try:
             klass = getattr(nn, self.rnn_type.upper())
-        except:
-            raise ValueError("unknown rnn_type `%s`" % self.rnn_type) from None
+        except Exception as e:
+            raise ValueError("unknown rnn_type `%s`" % self.rnn_type) from e
         self.net = nn.Sequential()
         self.net.add_module("fc_in", nn.Linear(in_features=self.input_size, out_features=self.hid_size))
         self.net.add_module("act", nn.Tanh())
