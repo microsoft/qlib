@@ -62,7 +62,7 @@ class SeriesDFilter(BaseDFilter):
     Override _getFilterSeries to use the rule to filter the series and get a dict of {inst => series}, or override filter_main for more advanced series filter rule
     """
 
-    def __init__(self, fstart_time=None, fend_time=None):
+    def __init__(self, fstart_time=None, fend_time=None, keep=False):
         """Init function for filter base class.
             Filter a set of instruments based on a certain rule within a certain period assigned by fstart_time and fend_time.
 
@@ -72,10 +72,13 @@ class SeriesDFilter(BaseDFilter):
             the time for the filter rule to start filter the instruments.
         fend_time: str
             the time for the filter rule to stop filter the instruments.
+        keep: bool
+            whether to keep the instruments of which features don't exist in the filter time span.
         """
         super(SeriesDFilter, self).__init__()
         self.filter_start_time = pd.Timestamp(fstart_time) if fstart_time else None
         self.filter_end_time = pd.Timestamp(fend_time) if fend_time else None
+        self.keep = keep
 
     def _getTimeBound(self, instruments):
         """Get time bound for all instruments.
@@ -330,12 +333,9 @@ class ExpressionDFilter(SeriesDFilter):
             filter the feature ending by this time.
         rule_expression: str
             an input expression for the rule.
-        keep: bool
-            whether to keep the instruments of which features don't exist in the filter time span.
         """
-        super(ExpressionDFilter, self).__init__(fstart_time, fend_time)
+        super(ExpressionDFilter, self).__init__(fstart_time, fend_time, keep=keep)
         self.rule_expression = rule_expression
-        self.keep = keep
 
     def _getFilterSeries(self, instruments, fstart, fend):
         # do not use dataset cache

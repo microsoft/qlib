@@ -7,19 +7,18 @@ from qlib.data.data import Cal
 from qlib.utils.time import concat_date_time, epsilon_change
 from qlib.log import get_module_logger
 
+from typing import ClassVar, Optional, Union, List, Tuple
+
 # try to fix circular imports when enabling type hints
-from typing import Callable, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from qlib.strategy.base import BaseStrategy
     from qlib.backtest.exchange import Exchange
 from qlib.backtest.utils import TradeCalendarManager
-import warnings
 import numpy as np
 import pandas as pd
-import numpy as np
-from dataclasses import dataclass, field
-from typing import ClassVar, Optional, Union, List, Set, Tuple
+from dataclasses import dataclass
 
 
 class OrderDir(IntEnum):
@@ -418,7 +417,7 @@ class BaseTradeDecision:
                 return kwargs["default_value"]
             else:
                 # Default to get full index
-                raise NotImplementedError(f"The decision didn't provide an index range")
+                raise NotImplementedError(f"The decision didn't provide an index range") from NotImplementedError
 
         # clip index
         if getattr(self, "total_step", None) is not None:

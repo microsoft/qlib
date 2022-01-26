@@ -101,7 +101,7 @@ class LGBModel(ModelFT, LightGBMFInt):
             verbose level
         """
         # Based on existing model and finetune by train more rounds
-        dtrain, _ = self._prepare_data(dataset, reweighter)
+        dtrain, _ = self._prepare_data(dataset, reweighter)  # pylint: disable=W0632
         if dtrain.empty:
             raise ValueError("Empty data from dataset, please check your dataset config.")
         self.model = lgb.train(

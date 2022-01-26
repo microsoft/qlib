@@ -1,6 +1,8 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+# pylint: skip-file
+
 import logging
 
 from ...log import get_module_logger

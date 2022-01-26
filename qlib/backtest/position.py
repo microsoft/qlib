@@ -2,8 +2,6 @@
 # Licensed under the MIT License.
 
 
-import copy
-import pathlib
 from typing import Dict, List, Union
 
 import pandas as pd
@@ -538,7 +536,7 @@ class InfPosition(BasePosition):
     def get_stock_amount_dict(self) -> Dict:
         raise NotImplementedError(f"InfPosition doesn't support get_stock_amount_dict")
 
-    def get_stock_weight_dict(self, only_stock: bool) -> Dict:
+    def get_stock_weight_dict(self, only_stock: bool = False) -> Dict:
         raise NotImplementedError(f"InfPosition doesn't support get_stock_weight_dict")
 
     def add_count_all(self, bar):

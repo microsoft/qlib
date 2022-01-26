@@ -388,13 +388,11 @@ class QlibConfig(Config):
         default_conf : str
             the default config template chosen by user: "server", "client"
         """
-        from .utils import set_log_with_config, get_module_logger, can_use_cache
+        from .utils import set_log_with_config, get_module_logger, can_use_cache  # pylint: disable=C0415
 
         self.reset()
 
-        _logging_config = self.logging_config
-        if "logging_config" in kwargs:
-            _logging_config = kwargs["logging_config"]
+        _logging_config = kwargs.get("logging_config", self.logging_config)
 
         # set global config
         if _logging_config:
@@ -433,11 +431,11 @@ class QlibConfig(Config):
                     )
 
     def register(self):
-        from .utils import init_instance_by_config
-        from .data.ops import register_all_ops
-        from .data.data import register_all_wrappers
-        from .workflow import R, QlibRecorder
-        from .workflow.utils import experiment_exit_handler
+        from .utils import init_instance_by_config  # pylint: disable=C0415
+        from .data.ops import register_all_ops  # pylint: disable=C0415
+        from .data.data import register_all_wrappers  # pylint: disable=C0415
+        from .workflow import R, QlibRecorder  # pylint: disable=C0415
+        from .workflow.utils import experiment_exit_handler  # pylint: disable=C0415
 
         register_all_ops(self)
         register_all_wrappers(self)
@@ -454,7 +452,7 @@ class QlibConfig(Config):
         self._registered = True
 
     def reset_qlib_version(self):
-        import qlib
+        import qlib  # pylint: disable=C0415
 
         reset_version = self.get("qlib_reset_version", None)
         if reset_version is not None:

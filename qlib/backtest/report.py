@@ -10,11 +10,8 @@ import numpy as np
 import pandas as pd
 
 from qlib.backtest.exchange import Exchange
-from .decision import IdxTradeRange
 from qlib.backtest.decision import BaseTradeDecision, Order, OrderDir
-from qlib.backtest.utils import TradeCalendarManager
-from .high_performance_ds import BaseOrderIndicator, PandasOrderIndicator, NumpyOrderIndicator, SingleMetric
-from ..data import D
+from .high_performance_ds import BaseOrderIndicator, NumpyOrderIndicator, SingleMetric
 from ..tests.config import CSI300_BENCH
 from ..utils.resam import get_higher_eq_freq_feature, resam_ts_data
 import qlib.utils.index_data as idd

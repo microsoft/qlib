@@ -171,8 +171,8 @@ def get_strategy_executor(
     # NOTE:
     # - for avoiding recursive import
     # - typing annotations is not reliable
-    from ..strategy.base import BaseStrategy
-    from .executor import BaseExecutor
+    from ..strategy.base import BaseStrategy  # pylint: disable=C0415
+    from .executor import BaseExecutor  # pylint: disable=C0415
 
     trade_account = create_account_instance(
         start_time=start_time, end_time=end_time, benchmark=benchmark, account=account, pos_type=pos_type

@@ -15,7 +15,6 @@ from ...log import get_module_logger
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.nn.utils import weight_norm
 
 from .pytorch_utils import count_parameters
 from ...model.base import Model
@@ -158,7 +157,7 @@ class TCN(Model):
 
         mask = torch.isfinite(label)
 
-        if self.metric == "" or self.metric == "loss":
+        if self.metric in ("", "loss"):
             return -self.loss_fn(pred[mask], label[mask])
 
         raise ValueError("unknown metric `%s`" % self.metric)

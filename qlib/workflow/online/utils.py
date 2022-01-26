@@ -8,10 +8,8 @@ This allows us to use efficient submodels as the market-style changing.
 """
 
 from typing import List, Union
-from qlib.data.dataset import TSDatasetH
 
 from qlib.log import get_module_logger
-from qlib.utils import get_callable_kwargs
 from qlib.utils.exceptions import LoadObjectError
 from qlib.workflow.online.update import PredUpdater
 from qlib.workflow.recorder import Recorder

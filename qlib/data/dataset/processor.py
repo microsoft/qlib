@@ -42,7 +42,6 @@ class Processor(Serializable):
             processor, i.e. `df`.
 
         """
-        pass
 
     @abc.abstractmethod
     def __call__(self, df: pd.DataFrame):
@@ -57,7 +56,6 @@ class Processor(Serializable):
         df : pd.DataFrame
             The raw_df of handler or result from previous processor.
         """
-        pass
 
     def is_for_infer(self) -> bool:
         """
@@ -201,7 +199,7 @@ class MinMaxNorm(Processor):
         self.fit_end_time = fit_end_time
         self.fields_group = fields_group
 
-    def fit(self, df):
+    def fit(self, df: pd.DataFrame = None):
         df = fetch_df_by_index(df, slice(self.fit_start_time, self.fit_end_time), level="datetime")
         cols = get_group_columns(df, self.fields_group)
         self.min_val = np.nanmin(df[cols].values, axis=0)
@@ -232,7 +230,7 @@ class ZScoreNorm(Processor):
         self.fit_end_time = fit_end_time
         self.fields_group = fields_group
 
-    def fit(self, df):
+    def fit(self, df: pd.DataFrame = None):
         df = fetch_df_by_index(df, slice(self.fit_start_time, self.fit_end_time), level="datetime")
         cols = get_group_columns(df, self.fields_group)
         self.mean_train = np.nanmean(df[cols].values, axis=0)
@@ -272,7 +270,7 @@ class RobustZScoreNorm(Processor):
         self.fields_group = fields_group
         self.clip_outlier = clip_outlier
 
-    def fit(self, df):
+    def fit(self, df: pd.DataFrame = None):
         df = fetch_df_by_index(df, slice(self.fit_start_time, self.fit_end_time), level="datetime")
         self.cols = get_group_columns(df, self.fields_group)
         X = df[self.cols].values
@@ -351,6 +349,6 @@ class HashStockFormat(Processor):
     """Process the storage of from df into hasing stock format"""
 
     def __call__(self, df: pd.DataFrame):
-        from .storage import HasingStockStorage
+        from .storage import HasingStockStorage  # pylint: disable=C0415
 
         return HasingStockStorage.from_df(df)

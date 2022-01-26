@@ -5,7 +5,6 @@
 from __future__ import division
 from __future__ import print_function
 
-import os
 import numpy as np
 import pandas as pd
 import copy
@@ -18,9 +17,8 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 
-from .pytorch_utils import count_parameters
 from ...model.base import Model
-from ...data.dataset import DatasetH, TSDatasetH
+from ...data.dataset import DatasetH
 from ...data.dataset.handler import DataHandlerLP
 from torch.nn.modules.container import ModuleList
 
@@ -101,7 +99,7 @@ class LocalformerModel(Model):
 
         mask = torch.isfinite(label)
 
-        if self.metric == "" or self.metric == "loss":
+        if self.metric in ("", "loss"):
             return -self.loss_fn(pred[mask], label[mask])
 
         raise ValueError("unknown metric `%s`" % self.metric)

@@ -4,8 +4,6 @@
 import abc
 from qlib.model.meta.task import MetaTask
 from typing import Dict, Union, List, Tuple, Text
-from ...workflow.task.gen import RollingGen, task_generator
-from ...data.dataset.handler import DataHandler
 from ...utils.serial import Serializable
 
 
@@ -73,4 +71,3 @@ class MetaTaskDataset(Serializable, metaclass=abc.ABCMeta):
         seg : Text
             the name of the segment
         """
-        pass

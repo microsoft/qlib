@@ -7,7 +7,6 @@ from typing import Union
 from ..backtest.executor import BaseExecutor
 from .interpreter import StateInterpreter, ActionInterpreter
 from ..utils import init_instance_by_config
-from .interpreter import BaseInterpreter
 
 
 class BaseRLEnv:

@@ -52,7 +52,6 @@ class Dataset(Serializable):
 
         - User prepare data for model based on previous status.
         """
-        pass
 
     def prepare(self, **kwargs) -> object:
         """
@@ -68,7 +67,6 @@ class Dataset(Serializable):
         object:
             return the object
         """
-        pass
 
 
 class DatasetH(Dataset):
@@ -348,7 +346,7 @@ class TSDataSampler:
             flt_data = flt_data.reindex(self.data_index).fillna(False).astype(np.bool)
             self.flt_data = flt_data.values
             self.idx_map = self.flt_idx_map(self.flt_data, self.idx_map)
-            self.data_index = self.data_index[np.where(self.flt_data == True)[0]]
+            self.data_index = self.data_index[np.where(self.flt_data is True)[0]]
         self.idx_map = self.idx_map2arr(self.idx_map)
 
         self.start_idx, self.end_idx = self.data_index.slice_locs(

@@ -13,7 +13,7 @@ from .config import C
 
 
 class MetaLogger(type):
-    def __new__(mcs, name, bases, attrs):
+    def __new__(mcs, name, bases, attrs):  # pylint: disable=C0204
         wrapper_dict = logging.Logger.__dict__.copy()
         for key in wrapper_dict:
             if key not in attrs and key != "__reduce__":
@@ -164,7 +164,7 @@ class LogFilter(logging.Filter):
         if isinstance(self.param, str):
             allow = not self.match_msg(self.param, record.msg)
         elif isinstance(self.param, list):
-            allow = not any([self.match_msg(p, record.msg) for p in self.param])
+            allow = not any(self.match_msg(p, record.msg) for p in self.param)
         return allow
 
 
@@ -201,7 +201,7 @@ def set_global_logger_level(level: int, return_orig_handler_level: bool = False)
 
     """
     _handler_level_map = {}
-    qlib_logger = logging.root.manager.loggerDict.get("qlib", None)
+    qlib_logger = logging.root.manager.loggerDict.get("qlib", None)  # pylint: disable=E1101
     if qlib_logger is not None:
         for _handler in qlib_logger.handlers:
             _handler_level_map[_handler] = _handler.level

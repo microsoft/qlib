@@ -5,8 +5,6 @@
 from __future__ import division
 from __future__ import print_function
 
-import sys
-import abc
 import numpy as np
 import pandas as pd
 
@@ -15,7 +13,6 @@ from scipy.stats import percentileofscore
 
 from .base import Expression, ExpressionOps, Feature
 
-from ..config import C
 from ..log import get_module_logger
 from ..utils import get_callable_kwargs
 
@@ -331,7 +328,7 @@ class NpPairOperator(PairOperator):
             res = getattr(np, self.func)(series_left, series_right)
         except ValueError as e:
             get_module_logger("ops").debug(warning_info)
-            raise ValueError(f"{str(e)}. \n\t{warning_info}")
+            raise ValueError(f"{str(e)}. \n\t{warning_info}") from e
         else:
             if check_length and len(series_left) != len(series_right):
                 get_module_logger("ops").debug(warning_info)
@@ -1430,21 +1427,20 @@ class PairRolling(ExpressionOps):
         return max(left_br, right_br)
 
     def get_extended_window_size(self):
+        if isinstance(self.feature_left, Expression):
+            ll, lr = self.feature_left.get_extended_window_size()
+        else:
+            ll, lr = 0, 0
+        if isinstance(self.feature_right, Expression):
+            rl, rr = self.feature_right.get_extended_window_size()
+        else:
+            rl, rr = 0, 0
         if self.N == 0:
             get_module_logger(self.__class__.__name__).warning(
                 "The PairRolling(ATTR, 0) will not be accurately calculated"
             )
             return -np.inf, max(lr, rr)
         else:
-            if isinstance(self.feature_left, Expression):
-                ll, lr = self.feature_left.get_extended_window_size()
-            else:
-                ll, lr = 0, 0
-
-            if isinstance(self.feature_right, Expression):
-                rl, rr = self.feature_right.get_extended_window_size()
-            else:
-                rl, rr = 0, 0
             return max(ll, rl) + self.N - 1, max(lr, rr)
 
 

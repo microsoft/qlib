@@ -2,24 +2,16 @@
 # Licensed under the MIT License.
 
 # coding=utf-8
-import abc
-import bisect
-import logging
 import warnings
-from inspect import getfullargspec
 from typing import Callable, Union, Tuple, List, Iterator, Optional
 
 import pandas as pd
-import numpy as np
 
 from ...log import get_module_logger, TimeInspector
-from ...data import D
-from ...config import C
-from ...utils import parse_config, transform_end_date, init_instance_by_config
+from ...utils import init_instance_by_config
 from ...utils.serial import Serializable
 from .utils import fetch_df_by_index, fetch_df_by_col
 from ...utils import lazy_sort_index
-from pathlib import Path
 from .loader import DataLoader
 
 from . import processor as processor_module
@@ -228,7 +220,7 @@ class DataHandler(Serializable):
         proc_func: Callable = None,
     ):
         # This method is extracted for sharing in subclasses
-        from .storage import BaseHandlerStorage
+        from .storage import BaseHandlerStorage  # pylint: disable=C0415
 
         # Following conflictions may occurs
         # - Does [20200101", "20210101"] mean selecting this slice or these two days?
@@ -627,7 +619,6 @@ class DataHandlerLP(DataHandler):
         -------
         pd.DataFrame:
         """
-        from .storage import BaseHandlerStorage
 
         return self._fetch_data(
             data_storage=self._get_df_by_key(data_key),

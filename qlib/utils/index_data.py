@@ -153,8 +153,8 @@ class Index:
         """
         try:
             return self.index_map[self._convert_type(item)]
-        except IndexError:
-            raise KeyError(f"{item} can't be found in {self}")
+        except IndexError as index_e:
+            raise KeyError(f"{item} can't be found in {self}") from index_e
 
     def __or__(self, other: "Index"):
         return Index(idx_list=list(set(self.idx_list) | set(other.idx_list)))

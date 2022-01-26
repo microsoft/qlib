@@ -5,7 +5,6 @@
 from __future__ import division
 from __future__ import print_function
 
-import os
 import numpy as np
 import pandas as pd
 import copy
@@ -19,7 +18,6 @@ from torch.utils.data import Sampler
 
 from .pytorch_utils import count_parameters
 from ...model.base import Model
-from ...data.dataset import DatasetH
 from ...data.dataset.handler import DataHandlerLP
 from ...contrib.model.pytorch_lstm import LSTMModel
 from ...contrib.model.pytorch_gru import GRUModel
@@ -178,7 +176,7 @@ class GATs(Model):
 
         mask = torch.isfinite(label)
 
-        if self.metric == "" or self.metric == "loss":
+        if self.metric in ("", "loss"):
             return -self.loss_fn(pred[mask], label[mask])
 
         raise ValueError("unknown metric `%s`" % self.metric)
@@ -279,7 +277,9 @@ class GATs(Model):
             pretrained_model.load_state_dict(torch.load(self.model_path, map_location=self.device))
 
         model_dict = self.GAT_model.state_dict()
-        pretrained_dict = {k: v for k, v in pretrained_model.state_dict().items() if k in model_dict}
+        pretrained_dict = {
+            k: v for k, v in pretrained_model.state_dict().items() if k in model_dict
+        }  # pylint: disable=E1135
         model_dict.update(pretrained_dict)
         self.GAT_model.load_state_dict(model_dict)
         self.logger.info("Loading pretrained model Done...")

@@ -51,7 +51,6 @@ class DataLoader(abc.ABC):
         pd.DataFrame:
             data load from the under layer source
         """
-        pass
 
 
 class DLWParser(DataLoader):
@@ -129,7 +128,6 @@ class DLWParser(DataLoader):
         pd.DataFrame:
             the queried dataframe.
         """
-        pass
 
     def load(self, instruments=None, start_time=None, end_time=None) -> pd.DataFrame:
         if self.is_group:
@@ -308,7 +306,7 @@ class DataLoaderDH(DataLoader):
             is_group will be used to describe whether the key of handler_config is group
 
         """
-        from qlib.data.dataset.handler import DataHandler
+        from qlib.data.dataset.handler import DataHandler  # pylint: disable=C0415
 
         if is_group:
             self.handlers = {

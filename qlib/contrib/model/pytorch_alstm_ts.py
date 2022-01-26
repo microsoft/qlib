@@ -5,7 +5,6 @@
 from __future__ import division
 from __future__ import print_function
 
-import os
 import numpy as np
 import pandas as pd
 from typing import Text, Union
@@ -20,7 +19,7 @@ from torch.utils.data import DataLoader
 
 from .pytorch_utils import count_parameters
 from ...model.base import Model
-from ...data.dataset import DatasetH, TSDatasetH
+from ...data.dataset import DatasetH
 from ...data.dataset.handler import DataHandlerLP
 from ...model.utils import ConcatDataset
 from ...data.dataset.weight import Reweighter
@@ -160,7 +159,7 @@ class ALSTM(Model):
 
         mask = torch.isfinite(label)
 
-        if self.metric == "" or self.metric == "loss":
+        if self.metric in ("", "loss"):
             return -self.loss_fn(pred[mask], label[mask])
 
         raise ValueError("unknown metric `%s`" % self.metric)
@@ -320,8 +319,8 @@ class ALSTMModel(nn.Module):
     def _build_model(self):
         try:
             klass = getattr(nn, self.rnn_type.upper())
-        except:
-            raise ValueError("unknown rnn_type `%s`" % self.rnn_type)
+        except Exception as e:
+            raise ValueError("unknown rnn_type `%s`" % self.rnn_type) from e
         self.net = nn.Sequential()
         self.net.add_module("fc_in", nn.Linear(in_features=self.input_size, out_features=self.hid_size))
         self.net.add_module("act", nn.Tanh())

@@ -70,12 +70,12 @@ def get_higher_eq_freq_feature(instruments, fields, start_time=None, end_time=No
         the feature with higher or equal frequency
     """
 
-    from ..data.data import D
+    from ..data.data import D  # pylint: disable=C0415
 
     try:
         _result = D.features(instruments, fields, start_time, end_time, freq=freq, disk_cache=disk_cache)
         _freq = freq
-    except (ValueError, KeyError):
+    except (ValueError, KeyError) as value_key_e:
         _, norm_freq = Freq.parse(freq)
         if norm_freq in [Freq.NORM_FREQ_MONTH, Freq.NORM_FREQ_WEEK, Freq.NORM_FREQ_DAY]:
             try:
@@ -88,7 +88,7 @@ def get_higher_eq_freq_feature(instruments, fields, start_time=None, end_time=No
             _result = D.features(instruments, fields, start_time, end_time, freq="1min", disk_cache=disk_cache)
             _freq = "1min"
         else:
-            raise ValueError(f"freq {freq} is not supported")
+            raise ValueError(f"freq {freq} is not supported") from value_key_e
     return _result, _freq
 
 
@@ -172,7 +172,7 @@ def resam_ts_data(
 
     selector_datetime = slice(start_time, end_time)
 
-    from ..data.dataset.utils import get_level_index
+    from ..data.dataset.utils import get_level_index  # pylint: disable=C0415
 
     feature = lazy_sort_index(ts_feature)
 

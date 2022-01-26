@@ -20,7 +20,6 @@ from qlib.contrib.model.pytorch_lstm import LSTMModel
 from qlib.contrib.model.pytorch_utils import count_parameters
 from qlib.data.dataset import DatasetH
 from qlib.data.dataset.handler import DataHandlerLP
-from qlib.data.dataset.processor import CSRankNorm
 from qlib.log import get_module_logger
 from qlib.model.base import Model
 from qlib.utils import get_or_create_path

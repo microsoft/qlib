@@ -2,10 +2,10 @@
 # Licensed under the MIT License.
 
 from typing import Dict, List, Union
-import mlflow, logging
+import mlflow
+import logging
 from mlflow.entities import ViewType
 from mlflow.exceptions import MlflowException
-from pathlib import Path
 from .recorder import Recorder, MLflowRecorder
 from ..log import get_module_logger
 
@@ -271,7 +271,7 @@ class MLflowExperiment(Experiment):
 
         return self.active_recorder
 
-    def end(self, recorder_status):
+    def end(self, recorder_status=Recorder.STATUS_S):
         if self.active_recorder is not None:
             self.active_recorder.end_run(recorder_status)
             self.active_recorder = None
@@ -299,8 +299,10 @@ class MLflowExperiment(Experiment):
                 run = self._client.get_run(recorder_id)
                 recorder = MLflowRecorder(self.id, self._uri, mlflow_run=run)
                 return recorder
-            except MlflowException:
-                raise ValueError("No valid recorder has been found, please make sure the input recorder id is correct.")
+            except MlflowException as mlflow_exp:
+                raise ValueError(
+                    "No valid recorder has been found, please make sure the input recorder id is correct."
+                ) from mlflow_exp
         elif recorder_name is not None:
             logger.warning(
                 f"Please make sure the recorder name {recorder_name} is unique, we will only return the latest recorder if there exist several matched the given name."
@@ -332,7 +334,7 @@ class MLflowExperiment(Experiment):
         except MlflowException as e:
             raise Exception(
                 f"Error: {e}. Something went wrong when deleting recorder. Please check if the name/id of the recorder is correct."
-            )
+            ) from e
 
     UNLIMITED = 50000  # FIXME: Mlflow can only list 50000 records at most!!!!!!!
 
@@ -362,10 +364,10 @@ class MLflowExperiment(Experiment):
         )
         rids = []
         recorders = []
-        for i in range(len(runs)):
-            recorder = MLflowRecorder(self.id, self._uri, mlflow_run=runs[i])
+        for i, n in enumerate(runs):
+            recorder = MLflowRecorder(self.id, self._uri, mlflow_run=n)
             if status is None or recorder.status == status:
-                rids.append(runs[i].info.run_id)
+                rids.append(n.info.run_id)
                 recorders.append(recorder)
 
         if rtype == Experiment.RT_D:

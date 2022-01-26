@@ -13,7 +13,7 @@ reduce: {(A,B): {C1: object, C2: object}} -> {(A,B): object}
 """
 
 from qlib.model.ens.ensemble import Ensemble, RollingEnsemble
-from typing import Callable, Union
+from typing import Callable
 from joblib import Parallel, delayed
 
 

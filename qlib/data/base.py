@@ -6,7 +6,6 @@ from __future__ import division
 from __future__ import print_function
 
 import abc
-import pandas as pd
 
 from ..log import get_module_logger
 
@@ -21,107 +20,107 @@ class Expression(abc.ABC):
         return str(self)
 
     def __gt__(self, other):
-        from .ops import Gt
+        from .ops import Gt  # pylint: disable=C0415
 
         return Gt(self, other)
 
     def __ge__(self, other):
-        from .ops import Ge
+        from .ops import Ge  # pylint: disable=C0415
 
         return Ge(self, other)
 
     def __lt__(self, other):
-        from .ops import Lt
+        from .ops import Lt  # pylint: disable=C0415
 
         return Lt(self, other)
 
     def __le__(self, other):
-        from .ops import Le
+        from .ops import Le  # pylint: disable=C0415
 
         return Le(self, other)
 
     def __eq__(self, other):
-        from .ops import Eq
+        from .ops import Eq  # pylint: disable=C0415
 
         return Eq(self, other)
 
     def __ne__(self, other):
-        from .ops import Ne
+        from .ops import Ne  # pylint: disable=C0415
 
         return Ne(self, other)
 
     def __add__(self, other):
-        from .ops import Add
+        from .ops import Add  # pylint: disable=C0415
 
         return Add(self, other)
 
     def __radd__(self, other):
-        from .ops import Add
+        from .ops import Add  # pylint: disable=C0415
 
         return Add(other, self)
 
     def __sub__(self, other):
-        from .ops import Sub
+        from .ops import Sub  # pylint: disable=C0415
 
         return Sub(self, other)
 
     def __rsub__(self, other):
-        from .ops import Sub
+        from .ops import Sub  # pylint: disable=C0415
 
         return Sub(other, self)
 
     def __mul__(self, other):
-        from .ops import Mul
+        from .ops import Mul  # pylint: disable=C0415
 
         return Mul(self, other)
 
     def __rmul__(self, other):
-        from .ops import Mul
+        from .ops import Mul  # pylint: disable=C0415
 
         return Mul(self, other)
 
     def __div__(self, other):
-        from .ops import Div
+        from .ops import Div  # pylint: disable=C0415
 
         return Div(self, other)
 
     def __rdiv__(self, other):
-        from .ops import Div
+        from .ops import Div  # pylint: disable=C0415
 
         return Div(other, self)
 
     def __truediv__(self, other):
-        from .ops import Div
+        from .ops import Div  # pylint: disable=C0415
 
         return Div(self, other)
 
     def __rtruediv__(self, other):
-        from .ops import Div
+        from .ops import Div  # pylint: disable=C0415
 
         return Div(other, self)
 
     def __pow__(self, other):
-        from .ops import Power
+        from .ops import Power  # pylint: disable=C0415
 
         return Power(self, other)
 
     def __and__(self, other):
-        from .ops import And
+        from .ops import And  # pylint: disable=C0415
 
         return And(self, other)
 
     def __rand__(self, other):
-        from .ops import And
+        from .ops import And  # pylint: disable=C0415
 
         return And(other, self)
 
     def __or__(self, other):
-        from .ops import Or
+        from .ops import Or  # pylint: disable=C0415
 
         return Or(self, other)
 
     def __ror__(self, other):
-        from .ops import Or
+        from .ops import Or  # pylint: disable=C0415
 
         return Or(other, self)
 
@@ -144,7 +143,7 @@ class Expression(abc.ABC):
         pd.Series
             feature series: The index of the series is the calendar index
         """
-        from .cache import H
+        from .cache import H  # pylint: disable=C0415
 
         # cache
         args = str(self), instrument, start_index, end_index, freq
@@ -215,7 +214,7 @@ class Feature(Expression):
 
     def _load_internal(self, instrument, start_index, end_index, freq):
         # load
-        from .data import FeatureD
+        from .data import FeatureD  # pylint: disable=C0415
 
         return FeatureD.feature(instrument, str(self), start_index, end_index, freq)
 
@@ -232,5 +231,3 @@ class ExpressionOps(Expression):
     This kind of feature will use operator for feature
     construction on the fly.
     """
-
-    pass

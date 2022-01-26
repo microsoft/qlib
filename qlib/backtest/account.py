@@ -2,11 +2,11 @@
 # Licensed under the MIT License.
 from __future__ import annotations
 import copy
-from typing import Dict, List, Tuple, TYPE_CHECKING
+from typing import Dict, List, Tuple
 from qlib.utils import init_instance_by_config
 import pandas as pd
 
-from .position import BasePosition, InfPosition, Position
+from .position import BasePosition
 from .report import PortfolioMetrics, Indicator
 from .decision import BaseTradeDecision, Order
 from .exchange import Exchange

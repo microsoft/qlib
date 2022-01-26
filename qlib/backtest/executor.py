@@ -1,22 +1,18 @@
-from abc import abstractclassmethod, abstractmethod
+from abc import abstractmethod
 import copy
 from qlib.backtest.position import BasePosition
 from qlib.log import get_module_logger
 from types import GeneratorType
 from qlib.backtest.account import Account
-import warnings
 import pandas as pd
 from typing import List, Tuple, Union
 from collections import defaultdict
 
-from qlib.backtest.report import Indicator
-
-from .decision import EmptyTradeDecision, Order, BaseTradeDecision
+from .decision import Order, BaseTradeDecision
 from .exchange import Exchange
 from .utils import TradeCalendarManager, CommonInfrastructure, LevelInfrastructure, get_start_end_idx
 
 from ..utils import init_instance_by_config
-from ..utils.time import Freq
 from ..strategy.base import BaseStrategy
 
 
@@ -193,7 +189,8 @@ class BaseExecutor:
             pass
         return return_value.get("execute_result")
 
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def _collect_data(cls, trade_decision: BaseTradeDecision, level: int = 0) -> Tuple[List[object], dict]:
         """
         Please refer to the doc of collect_data
@@ -453,7 +450,6 @@ class NestedExecutor(BaseExecutor):
         inner_exe_res :
             the execution result of inner task
         """
-        pass
 
     def get_all_executors(self):
         """get all executors, including self and inner_executor.get_all_executors()"""

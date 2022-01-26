@@ -82,7 +82,6 @@ class TaskGen(metaclass=abc.ABCMeta):
         typing.List[dict]:
             A list of tasks
         """
-        pass
 
     def __call__(self, *args, **kwargs):
         """

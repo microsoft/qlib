@@ -101,8 +101,10 @@ class FileManager(ObjManager):
     def create_path(self) -> str:
         try:
             return tempfile.mkdtemp(prefix=str(C["file_manager_path"]) + os.sep)
-        except AttributeError:
-            raise NotImplementedError(f"If path is not given, the `create_path` function should be implemented")
+        except AttributeError as attribute_e:
+            raise NotImplementedError(
+                f"If path is not given, the `create_path` function should be implemented"
+            ) from attribute_e
 
     def save_obj(self, obj, name):
         with (self.path / name).open("wb") as f:

@@ -1,24 +1,23 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
-from copy import deepcopy
-from qlib.data.dataset.utils import init_task_handler
-from qlib.utils.data import deepcopy_basic_type
-from qlib.contrib.torch import data_to_tensor
-from qlib.workflow.task.utils import TimeAdjuster
-from qlib.model.meta.task import MetaTask
-from typing import Dict, List, Union, Text, Tuple
-from qlib.data.dataset.handler import DataHandler
-from qlib.log import get_module_logger
-from qlib.utils import auto_filter_kwargs, get_date_by_shift, init_instance_by_config
-from qlib.workflow import R
-from qlib.workflow.task.gen import RollingGen, task_generator
-from joblib import Parallel, delayed
-from qlib.model.meta.dataset import MetaTaskDataset
-from qlib.model.trainer import task_train, TrainerR
-from qlib.data.dataset import DatasetH
-from tqdm.auto import tqdm
 import pandas as pd
 import numpy as np
+from copy import deepcopy
+from joblib import Parallel, delayed  # pylint: disable=E0401
+from typing import Dict, List, Union, Text, Tuple
+from qlib.data.dataset.utils import init_task_handler
+from qlib.data.dataset import DatasetH
+from qlib.contrib.torch import data_to_tensor
+from qlib.model.meta.task import MetaTask
+from qlib.model.meta.dataset import MetaTaskDataset
+from qlib.model.trainer import TrainerR
+from qlib.log import get_module_logger
+from qlib.utils import auto_filter_kwargs, get_date_by_shift, init_instance_by_config
+from qlib.utils.data import deepcopy_basic_type
+from qlib.workflow import R
+from qlib.workflow.task.gen import RollingGen, task_generator
+from qlib.workflow.task.utils import TimeAdjuster
+from tqdm.auto import tqdm
 
 
 class InternalData:

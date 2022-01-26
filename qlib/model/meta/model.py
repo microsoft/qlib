@@ -2,10 +2,8 @@
 # Licensed under the MIT License.
 
 import abc
-from qlib.contrib.meta.data_selection.dataset import MetaDatasetDS
-from typing import Union, List, Tuple
+from typing import List
 
-from qlib.model.meta.task import MetaTask
 from .dataset import MetaTaskDataset
 
 
@@ -23,7 +21,6 @@ class MetaModel(metaclass=abc.ABCMeta):
         """
         The training process of the meta-model.
         """
-        pass
 
     @abc.abstractmethod
     def inference(self, *args, **kwargs) -> object:
@@ -35,7 +32,6 @@ class MetaModel(metaclass=abc.ABCMeta):
         object:
             Some information to guide the model learning
         """
-        pass
 
 
 class MetaTaskModel(MetaModel):

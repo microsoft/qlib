@@ -5,11 +5,9 @@
 from __future__ import division
 from __future__ import print_function
 
-import copy
 import numpy as np
 import pandas as pd
 from scipy.stats import spearmanr, pearsonr
-
 
 from ..data import D
 
@@ -243,4 +241,4 @@ def get_rank_ic(a, b):
 
 
 def get_normal_ic(a, b):
-    return pearsonr(a, b).correlation
+    return pearsonr(a, b)[0]

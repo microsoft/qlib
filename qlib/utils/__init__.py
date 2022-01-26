@@ -139,8 +139,8 @@ def parse_config(config):
     # Check whether the str can be parsed
     try:
         return yaml.safe_load(config)
-    except BaseException:
-        raise ValueError("cannot parse config!")
+    except BaseException as base_exp:
+        raise ValueError("cannot parse config!") from base_exp
 
 
 #################### Other ####################
@@ -436,7 +436,7 @@ def is_tradable_date(cur_date):
     date : pandas.Timestamp
         current date
     """
-    from ..data import D
+    from ..data import D  # pylint: disable=C0415
 
     return str(cur_date.date()) == str(D.calendar(start_time=cur_date, future=True)[0].date())
 
@@ -453,7 +453,7 @@ def get_date_range(trading_date, left_shift=0, right_shift=0, future=False):
 
     """
 
-    from ..data import D
+    from ..data import D  # pylint: disable=C0415
 
     start = get_date_by_shift(trading_date, left_shift, future=future)
     end = get_date_by_shift(trading_date, right_shift, future=future)
@@ -476,7 +476,7 @@ def get_date_by_shift(trading_date, shift, future=False, clip_shift=True, freq="
         when align is "left"/"right", it will try to align to left/right nearest trading date before shifting when `trading_date` is not a trading date
 
     """
-    from qlib.data import D
+    from qlib.data import D  # pylint: disable=C0415
 
     cal = D.calendar(future=future, freq=freq)
     trading_date = pd.to_datetime(trading_date)
@@ -529,7 +529,7 @@ def transform_end_date(end_date=None, freq="day"):
     date : pandas.Timestamp
         current date
     """
-    from ..data import D
+    from ..data import D  # pylint: disable=C0415
 
     last_date = D.calendar(freq=freq)[-1]
     if end_date is None or (str(end_date) == "-1") or (pd.Timestamp(last_date) < pd.Timestamp(end_date)):
@@ -810,7 +810,7 @@ def fill_placeholder(config: dict, config_extend: dict):
         elif isinstance(now_item, dict):
             item_keys = now_item.keys()
         for key in item_keys:
-            if isinstance(now_item[key], list) or isinstance(now_item[key], dict):
+            if isinstance(now_item[key], (list, dict)):
                 item_queue.append(now_item[key])
                 tail += 1
             elif isinstance(now_item[key], str):

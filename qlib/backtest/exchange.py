@@ -3,13 +3,13 @@
 from __future__ import annotations
 from collections import defaultdict
 from typing import TYPE_CHECKING
+from typing import List, Tuple, Union
 
 if TYPE_CHECKING:
     from .account import Account
 
 from qlib.backtest.position import BasePosition, Position
 import random
-from typing import List, Tuple, Union
 import numpy as np
 import pandas as pd
 
@@ -18,7 +18,7 @@ from ..config import C
 from ..constant import REG_CN
 from ..log import get_module_logger
 from .decision import Order, OrderDir, OrderHelper
-from .high_performance_ds import BaseQuote, PandasQuote, NumpyQuote
+from .high_performance_ds import BaseQuote, NumpyQuote
 
 
 class Exchange:
