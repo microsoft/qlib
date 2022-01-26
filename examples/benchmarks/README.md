@@ -16,6 +16,8 @@ The numbers shown below demonstrate the performance of the entire `workflow` of 
 > NOTE:
 > The backtest start from 0.8.0 is quite different from previous version. Please check out the changelog for the difference.
 
+> NOTE:
+> We have very limited resources to implement and finetune the models. We tried our best effort to fairly compare these models.  But some models may have greater potential than what it looks like in the table below.  Your contribution is highly welcomed to explore their potential.
 
 ## Alpha158 dataset
 
