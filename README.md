@@ -45,27 +45,51 @@ With Qlib, users can easily try ideas to create better Quant investment strategi
 
 For more details, please refer to our paper ["Qlib: An AI-oriented Quantitative Investment Platform"](https://arxiv.org/abs/2009.11189).
 
-- [**Plans**](#plans)
-- [Framework of Qlib](#framework-of-qlib)
-- [Quick Start](#quick-start)
-  - [Installation](#installation)
-  - [Data Preparation](#data-preparation)
-  - [Auto Quant Research Workflow](#auto-quant-research-workflow)
-  - [Building Customized Quant Research Workflow by Code](#building-customized-quant-research-workflow-by-code)
-- [Main Challenges & Solutions in Quant Research](#main-challenges--solutions-in-quant-research)
-  - [Forecasting: Finding Valuable Signals/Patterns](#forecasting-finding-valuable-signalspatterns)
-    - [**Quant Model (Paper) Zoo**](#quant-model-paper-zoo)
-      - [Run a Single Model](#run-a-single-model)
-      - [Run Multiple Models](#run-multiple-models)
-  - [Adapting to Market Dynamics](#adapting-to-market-dynamics)
-- [**Quant Dataset Zoo**](#quant-dataset-zoo)
-- [More About Qlib](#more-about-qlib)
-- [Offline Mode and Online Mode](#offline-mode-and-online-mode)
-  - [Performance of Qlib Data Server](#performance-of-qlib-data-server)
-- [Related Reports](#related-reports)
-- [Contact Us](#contact-us)
-- [Contributing](#contributing)
-
+<table>
+  <tbody>
+    <tr>
+      <th>Frameworks, Tutorial, Data & DevOps</th>
+      <th>Main Challenges & Solutions in Quant Research</th>
+    </tr>
+    <tr>
+      <td>
+        <li><a href="#plans"><strong>Plans</strong></a></li>
+        <li><a href="#framework-of-qlib">Framework of Qlib</a></li>
+        <li><a href="#quick-start">Quick Start</a></li>
+          <ul dir="auto">
+            <li type="circle"><a href="#installation">Installation</a> </li>
+            <li type="circle"><a href="#data-preparation">Data Preparation</a></li>
+            <li type="circle"><a href="#auto-quant-research-workflow">Auto Quant Research Workflow</a></li>
+            <li type="circle"><a href="#building-customized-quant-research-workflow-by-code">Building Customized Quant Research Workflow by Code</a></li></ul>
+        <li><a href="#quant-dataset-zoo"><strong>Quant Dataset Zoo</strong></a></li>
+        <li><a href="#more-about-qlib">More About Qlib</a></li>
+        <li><a href="#offline-mode-and-online-mode">Offline Mode and Online Mode</a>
+        <ul>
+          <li type="circle"><a href="#performance-of-qlib-data-server">Performance of Qlib Data Server</a></li></ul>
+        <li><a href="#related-reports">Related Reports</a></li>
+        <li><a href="#contact-us">Contact Us</a></li>
+        <li><a href="#contributing">Contributing</a></li>
+      </td>
+      <td valign="baseline">
+        <li><a href="#main-challenges--solutions-in-quant-research">Main Challenges &amp; Solutions in Quant Research</a>
+          <ul>
+            <li type="circle"><a href="#forecasting-finding-valuable-signalspatterns">Forecasting: Finding Valuable Signals/Patterns</a>
+              <ul>
+                <li type="disc"><a href="#quant-model-paper-zoo"><strong>Quant Model (Paper) Zoo</strong></a>
+                  <ul>
+                    <li type="circle"><a href="#run-a-single-model">Run a Single Model</a></li>
+                    <li type="circle"><a href="#run-multiple-models">Run Multiple Models</a></li>
+                  </ul>
+                </li>
+              </ul>
+            </li>
+          <li type="circle"><a href="#adapting-to-market-dynamics">Adapting to Market Dynamics</a></li>
+          </ul>
+        </li>
+      </td>
+    </tr>
+  </tbody>
+</table>
 
 # Plans
 New features under development(order by estimated release time).
@@ -109,13 +133,12 @@ This table demonstrates the supported Python version of `Qlib`:
 | ------------- |:---------------------:|:--------------------:|:----:|
 | Python 3.7    | :heavy_check_mark:    | :heavy_check_mark:   | :heavy_check_mark: |
 | Python 3.8    | :heavy_check_mark:    | :heavy_check_mark:   | :heavy_check_mark: |
-| Python 3.9    | :x:                   | :heavy_check_mark:   | :x: |
+| Python 3.9    | :heavy_check_mark:    | :heavy_check_mark:   | :heavy_check_mark: |
 
 **Note**: 
 1. **Conda** is suggested for managing your Python environment.
 1. Please pay attention that installing cython in Python 3.6 will raise some error when installing ``Qlib`` from source. If users use Python 3.6 on their machines, it is recommended to *upgrade* Python to version 3.7 or use `conda`'s Python to install ``Qlib`` from source.
 1. For Python 3.9, `Qlib` supports running workflows such as training models, doing backtest and plot most of the related figures (those included in [notebook](examples/workflow_by_code.ipynb)). However, plotting for the *model performance* is not supported for now and we will fix this when the dependent packages are upgraded in the future.
-1. `Qlib`Requires `tables` package, `hdf5` in tables does not support python3.9. 
 
 ### Install with pip
 Users can easily install ``Qlib`` by pip according to the following command.
