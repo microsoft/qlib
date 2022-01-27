@@ -14,7 +14,7 @@ jobs:
       matrix:
         os: [windows-latest, ubuntu-18.04, ubuntu-20.04]
         # not supporting 3.6 due to annotations is not supported https://stackoverflow.com/a/52890129
-        python-version: [3.7, 3.8]
+        python-version: [3.7, 3.8, 3.9]
 
     steps:
     - uses: actions/checkout@v2
@@ -32,6 +32,7 @@ jobs:
 
     - name: Install Qlib with pip
       run: |
+        pip install setuptools==52.0.0
         pip install numpy==1.19.5 ruamel.yaml
         pip install pyqlib --ignore-installed
 
