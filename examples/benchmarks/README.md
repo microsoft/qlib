@@ -16,6 +16,8 @@ The numbers shown below demonstrate the performance of the entire `workflow` of 
 > NOTE:
 > The backtest start from 0.8.0 is quite different from previous version. Please check out the changelog for the difference.
 
+> NOTE:
+> We have very limited resources to implement and finetune the models. We tried our best effort to fairly compare these models.  But some models may have greater potential than what it looks like in the table below.  Your contribution is highly welcomed to explore their potential.
 
 ## Alpha158 dataset
 
@@ -66,3 +68,9 @@ The numbers shown below demonstrate the performance of the entire `workflow` of 
 - The selected 20 features are based on the feature importance of a lightgbm-based model.
 - The base model of DoubleEnsemble is LGBM.
 - The base model of TCTS is GRU.
+- About the datasets
+  - Alpha158 is a tabular dataset. There are less spatial relationships between different features. Each feature are carefully desgined by human (a.k.a feature engineering)
+  - Alpha360 contains raw price and volue data without much feature engineering. There are strong strong spatial relationships between the features in the time dimension.
+- The metrics can be categorized into two
+   - Signal-based evaluation:  IC, ICIR, Rank IC, Rank ICIR
+   - Portfolio-based metrics:  Annualized Return, Information Ratio, Max Drawdown
