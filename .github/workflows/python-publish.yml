@@ -15,7 +15,7 @@ jobs:
         os: [windows-latest, macos-11]
         # FIXME:  macos-latest will raise error now.
         # not supporting 3.6 due to annotations is not supported https://stackoverflow.com/a/52890129
-        python-version: [3.7, 3.8]
+        python-version: [3.7, 3.8, 3.9]
 
     steps:
     - uses: actions/checkout@v2
@@ -47,7 +47,7 @@ jobs:
       uses: RalfG/python-wheels-manylinux-build@v0.3.1-manylinux2010_x86_64
       with:
         # not supporting 3.6 due to annotations is not supported https://stackoverflow.com/a/52890129
-        python-versions: 'cp37-cp37m cp38-cp38'
+        python-versions: 'cp37-cp37m cp38-cp38 cp39-cp39'
         build-requirements: 'numpy cython'
     - name: Set up Python
       uses: actions/setup-python@v2
