@@ -154,7 +154,7 @@ class LSTM(Model):
         mask = torch.isfinite(label)
 
         if self.metric in ("", "loss"):
-            return -self.loss_fn(pred[mask], label[mask], weight = None)
+            return -self.loss_fn(pred[mask], label[mask], weight=None)
 
         raise ValueError("unknown metric `%s`" % self.metric)
 
