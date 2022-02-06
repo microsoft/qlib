@@ -321,9 +321,9 @@ class SigAnaRecord(ACRecordTemp):
             metrics.update(
                 {
                     "Long-Short Ann Return": long_short_r.mean() * self.ann_scaler,
-                    "Long-Short Ann Sharpe": long_short_r.mean() / long_short_r.std() * self.ann_scaler ** 0.5,
+                    "Long-Short Ann Sharpe": long_short_r.mean() / long_short_r.std() * self.ann_scaler**0.5,
                     "Long-Avg Ann Return": long_avg_r.mean() * self.ann_scaler,
-                    "Long-Avg Ann Sharpe": long_avg_r.mean() / long_avg_r.std() * self.ann_scaler ** 0.5,
+                    "Long-Avg Ann Sharpe": long_avg_r.mean() / long_avg_r.std() * self.ann_scaler**0.5,
                 }
             )
             objects.update(

@@ -130,7 +130,7 @@ class TRAModel(Model):
 
             if prob is not None:
                 P = sinkhorn(-L, epsilon=0.01)  # sample assignment matrix
-                lamb = self.lamb * (self.rho ** self.global_step)
+                lamb = self.lamb * (self.rho**self.global_step)
                 reg = prob.log().mul(P).sum(dim=-1).mean()
                 loss = loss - lamb * reg
 
@@ -547,7 +547,7 @@ def evaluate(pred):
     score = pred.score
     label = pred.label
     diff = score - label
-    MSE = (diff ** 2).mean()
+    MSE = (diff**2).mean()
     MAE = (diff.abs()).mean()
     IC = score.corr(label)
     return {"MSE": MSE, "MAE": MAE, "IC": IC}

@@ -482,7 +482,7 @@ class EnhancedIndexingStrategy(WeightStrategyBase):
             r=score,
             F=factor_exp,
             cov_b=factor_cov,
-            var_u=specific_risk ** 2,
+            var_u=specific_risk**2,
             w0=cur_weight,
             wb=bench_weight,
             mfh=mask_force_hold,

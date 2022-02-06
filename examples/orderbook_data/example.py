@@ -21,7 +21,7 @@ class TestClass(unittest.TestCase):
         provider_uri = "~/.qlib/qlib_data/yahoo_cn_1min"
         qlib.init(
             provider_uri=provider_uri,
-            mem_cache_size_limit=1024 ** 3 * 2,
+            mem_cache_size_limit=1024**3 * 2,
             mem_cache_type="sizeof",
             kernels=1,
             expression_provider={"class": "LocalExpressionProvider", "kwargs": {"time2idx": False}},

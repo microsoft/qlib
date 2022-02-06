@@ -742,7 +742,7 @@ def evaluate(pred):
     score = pred.score
     label = pred.label
     diff = score - label
-    MSE = (diff ** 2).mean()
+    MSE = (diff**2).mean()
     MAE = (diff.abs()).mean()
     IC = score.corr(label, method="spearman")
     return {"MSE": MSE, "MAE": MAE, "IC": IC}

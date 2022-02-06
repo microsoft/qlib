@@ -125,7 +125,7 @@ class EnhancedIndexingOptimizer(BaseOptimizer):
 
         # objective
         ret = d @ r  # excess return
-        risk = cp.quad_form(v, cov_b) + var_u @ (d ** 2)  # tracking error
+        risk = cp.quad_form(v, cov_b) + var_u @ (d**2)  # tracking error
         obj = cp.Maximize(ret - self.lamb * risk)
 
         # weight bounds

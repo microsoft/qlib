@@ -27,11 +27,11 @@ def count_parameters(models_or_parameters, unit="m"):
         counts = sum(v.numel() for v in models_or_parameters)
     unit = unit.lower()
     if unit in ("kb", "k"):
-        counts /= 2 ** 10
+        counts /= 2**10
     elif unit in ("mb", "m"):
-        counts /= 2 ** 20
+        counts /= 2**20
     elif unit in ("gb", "g"):
-        counts /= 2 ** 30
+        counts /= 2**30
     elif unit is not None:
         raise ValueError("Unknown unit: {:}".format(unit))
     return counts
