@@ -111,7 +111,6 @@ class HFLGBModel(ModelFT, LightGBMFInt):
         early_stopping_rounds=50,
         verbose_eval=20,
         evals_result=dict(),
-        **kwargs
     ):
         dtrain, dvalid = self._prepare_data(dataset)
         self.model = lgb.train(
@@ -123,7 +122,6 @@ class HFLGBModel(ModelFT, LightGBMFInt):
             early_stopping_rounds=early_stopping_rounds,
             verbose_eval=verbose_eval,
             evals_result=evals_result,
-            **kwargs
         )
         evals_result["train"] = list(evals_result["train"].values())[0]
         evals_result["valid"] = list(evals_result["valid"].values())[0]
