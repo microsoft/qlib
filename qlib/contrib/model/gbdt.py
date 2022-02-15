@@ -10,6 +10,7 @@ from ...data.dataset import DatasetH
 from ...data.dataset.handler import DataHandlerLP
 from ...model.interpret.base import LightGBMFInt
 from ...data.dataset.weight import Reweighter
+from qlib.workflow import R
 
 
 class LGBModel(ModelFT, LightGBMFInt):
@@ -59,10 +60,12 @@ class LGBModel(ModelFT, LightGBMFInt):
         num_boost_round=None,
         early_stopping_rounds=None,
         verbose_eval=20,
-        evals_result=dict(),
+        evals_result=None,
         reweighter=None,
-        **kwargs
+        **kwargs,
     ):
+        if evals_result is None:
+            evals_result = {}  # in case of unsafety of Python default values
         ds_l = self._prepare_data(dataset, reweighter)
         ds, names = list(zip(*ds_l))
         self.model = lgb.train(
@@ -76,10 +79,13 @@ class LGBModel(ModelFT, LightGBMFInt):
             ),
             verbose_eval=verbose_eval,
             evals_result=evals_result,
-            **kwargs
+            **kwargs,
         )
         for k in names:
-            evals_result[k] = list(evals_result[k].values())[0]
+            for key, val in evals_result[k].items():
+                name = f"{key}.{k}"
+                for epoch, m in enumerate(val):
+                    R.log_metrics(**{name.replace("@", "_"): m}, step=epoch)
 
     def predict(self, dataset: DatasetH, segment: Union[Text, slice] = "test"):
         if self.model is None:

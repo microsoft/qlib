@@ -13,3 +13,14 @@ class ConcatDataset(Dataset):
 
     def __len__(self):
         return min(len(d) for d in self.datasets)
+
+
+class IndexSampler:
+    def __init__(self, sampler):
+        self.sampler = sampler
+
+    def __getitem__(self, i: int):
+        return self.sampler[i], i
+
+    def __len__(self):
+        return len(self.sampler)

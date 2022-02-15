@@ -823,7 +823,7 @@ def fill_placeholder(config: dict, config_extend: dict):
     return config
 
 
-def auto_filter_kwargs(func: Callable) -> Callable:
+def auto_filter_kwargs(func: Callable, warning=True) -> Callable:
     """
     this will work like a decoration function
 
@@ -846,7 +846,8 @@ def auto_filter_kwargs(func: Callable) -> Callable:
         for k, v in kwargs.items():
             # if `func` don't accept variable keyword arguments like `**kwargs` and have not according named arguments
             if spec.varkw is None and k not in spec.args:
-                log.warning(f"The parameter `{k}` with value `{v}` is ignored.")
+                if warning:
+                    log.warning(f"The parameter `{k}` with value `{v}` is ignored.")
             else:
                 new_kwargs[k] = v
         return func(*args, **new_kwargs)
