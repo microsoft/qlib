@@ -405,7 +405,7 @@ class AverageMeter:
 
 
 class Net(nn.Module):
-    def __init__(self, input_dim, output_dim=1, layers=(256, 512, 768, 512, 256, 128, 64), act="LeakyReLU"):
+    def __init__(self, input_dim, output_dim=1, layers=(256,), act="LeakyReLU"):
         super(Net, self).__init__()
 
         layers = [input_dim] + list(layers)

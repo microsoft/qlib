@@ -51,8 +51,6 @@ task:
         module_path: qlib.contrib.model.pytorch_nn
         kwargs:
             loss: mse
-            input_dim: 360
-            output_dim: 1
             lr: 0.002
             lr_decay: 0.96
             lr_decay_steps: 100
@@ -60,6 +58,8 @@ task:
             max_steps: 8000
             batch_size: 4096
             GPU: 0
+            pt_model_kwargs:
+              input_dim: 360
     dataset:
         class: DatasetH
         module_path: qlib.data.dataset
