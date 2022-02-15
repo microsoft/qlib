@@ -62,10 +62,10 @@ class LGBModel(ModelFT, LightGBMFInt):
         verbose_eval=20,
         evals_result=None,
         reweighter=None,
-        **kwargs
+        **kwargs,
     ):
         if evals_result is None:
-            evals_result = {}   # in case of unsafety of Python default values
+            evals_result = {}  # in case of unsafety of Python default values
         ds_l = self._prepare_data(dataset, reweighter)
         ds, names = list(zip(*ds_l))
         self.model = lgb.train(
@@ -79,13 +79,13 @@ class LGBModel(ModelFT, LightGBMFInt):
             ),
             verbose_eval=verbose_eval,
             evals_result=evals_result,
-            **kwargs
+            **kwargs,
         )
         for k in names:
             for key, val in evals_result[k].items():
                 name = f"{key}.{k}"
                 for epoch, m in enumerate(val):
-                    R.log_metrics(**{name.replace('@', '_'): m}, step=epoch)
+                    R.log_metrics(**{name.replace("@", "_"): m}, step=epoch)
 
     def predict(self, dataset: DatasetH, segment: Union[Text, slice] = "test"):
         if self.model is None:

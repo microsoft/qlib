@@ -22,13 +22,18 @@ from ...model.base import Model
 from ...data.dataset import DatasetH
 from ...data.dataset.handler import DataHandlerLP
 from ...data.dataset.weight import Reweighter
-from ...utils import auto_filter_kwargs, init_instance_by_config, unpack_archive_with_buffer, save_multiple_parts_file, get_or_create_path
+from ...utils import (
+    auto_filter_kwargs,
+    init_instance_by_config,
+    unpack_archive_with_buffer,
+    save_multiple_parts_file,
+    get_or_create_path,
+)
 from ...log import get_module_logger
 from ...workflow import R
 from qlib.contrib.meta.data_selection.utils import ICLoss
 from torch.nn import DataParallel
 from torch.utils.data import DataLoader, SequentialSampler
-
 
 
 class DNNModelPytorch(Model):
@@ -54,31 +59,31 @@ class DNNModelPytorch(Model):
     """
 
     def __init__(
-            self,
-            lr=0.001,
-            max_steps=300,
-            batch_size=2000,
-            early_stop_rounds=50,
-            eval_steps=20,
-            lr_decay=0.96,
-            lr_decay_steps=100,
-            optimizer="gd",
-            loss="mse",
-            GPU=0,
-            seed=None,
-            weight_decay=0.0,
-            data_parall=False,
-            scheduler: Optional[Union[Callable]] = "default",  # when it is Callable, it accept one argument named optimizer
-            init_model=None,
-            eval_train_metric=True,
-            pt_model_uri='qlib.contrib.model.pytorch_nn.Net',
-            pt_model_kwargs={
-                "input_dim": 360,
-                "layers": (256, ),
-            },
-            valid_key=DataHandlerLP.DK_L,
-            # TODO: Infer Key is a more reasonable key. But it requires more detailed processing on label processing
-        ):
+        self,
+        lr=0.001,
+        max_steps=300,
+        batch_size=2000,
+        early_stop_rounds=50,
+        eval_steps=20,
+        lr_decay=0.96,
+        lr_decay_steps=100,
+        optimizer="gd",
+        loss="mse",
+        GPU=0,
+        seed=None,
+        weight_decay=0.0,
+        data_parall=False,
+        scheduler: Optional[Union[Callable]] = "default",  # when it is Callable, it accept one argument named optimizer
+        init_model=None,
+        eval_train_metric=True,
+        pt_model_uri="qlib.contrib.model.pytorch_nn.Net",
+        pt_model_kwargs={
+            "input_dim": 360,
+            "layers": (256,),
+        },
+        valid_key=DataHandlerLP.DK_L,
+        # TODO: Infer Key is a more reasonable key. But it requires more detailed processing on label processing
+    ):
         # Set logger.
         self.logger = get_module_logger("DNNModelPytorch")
         self.logger.info("DNN pytorch version...")
@@ -187,13 +192,15 @@ class DNNModelPytorch(Model):
     ):
         has_valid = "valid" in dataset.segments
         segments = ["train", "valid"]
-        vars = ['x', 'y', 'w']
+        vars = ["x", "y", "w"]
         all_df = defaultdict(dict)  # x_train, x_valid y_train, y_valid w_train, w_valid
         all_t = defaultdict(dict)  # tensors
         for seg in segments:
             if seg in dataset.segments:
                 # df_train df_valid
-                df = dataset.prepare(seg, col_set=["feature", "label"], data_key=self.valid_key if seg == "valid" else DataHandlerLP.DK_L)
+                df = dataset.prepare(
+                    seg, col_set=["feature", "label"], data_key=self.valid_key if seg == "valid" else DataHandlerLP.DK_L
+                )
                 all_df["x"][seg] = df["feature"]
                 all_df["y"][seg] = df["label"]
                 if reweighter is None:
@@ -258,15 +265,30 @@ class DNNModelPytorch(Model):
                         preds = self._nn_predict(all_t["x"]["valid"], return_cpu=False)
                         cur_loss_val = self.get_loss(preds, all_t["w"]["valid"], all_t["y"]["valid"], self.loss_type)
                         loss_val = cur_loss_val.item()
-                        metric_val = self.get_metric(preds.reshape(-1), all_t["y"]["valid"].reshape(-1),
-                                                     all_df["x"]["valid"].index).detach().cpu().numpy().item()
+                        metric_val = (
+                            self.get_metric(
+                                preds.reshape(-1), all_t["y"]["valid"].reshape(-1), all_df["x"]["valid"].index
+                            )
+                            .detach()
+                            .cpu()
+                            .numpy()
+                            .item()
+                        )
                         R.log_metrics(val_loss=loss_val, step=step)
                         R.log_metrics(val_metric=metric_val, step=step)
 
                         if self.eval_train_metric:
-                            metric_train = self.get_metric(self._nn_predict(all_t["x"]["train"], return_cpu=False),
-                                                           all_t["y"]["train"].reshape(-1),
-                                                           all_df["x"]["train"].index).detach().cpu().numpy().item()
+                            metric_train = (
+                                self.get_metric(
+                                    self._nn_predict(all_t["x"]["train"], return_cpu=False),
+                                    all_t["y"]["train"].reshape(-1),
+                                    all_df["x"]["train"].index,
+                                )
+                                .detach()
+                                .cpu()
+                                .numpy()
+                                .item()
+                            )
                             R.log_metrics(train_metric=metric_train, step=step)
                         else:
                             metric_train = -1
@@ -305,8 +327,8 @@ class DNNModelPytorch(Model):
             torch.cuda.empty_cache()
 
     def get_lr(self):
-        assert(len(self.train_optimizer.param_groups) == 1)
-        return self.train_optimizer.param_groups[0]['lr']
+        assert len(self.train_optimizer.param_groups) == 1
+        return self.train_optimizer.param_groups[0]["lr"]
 
     def get_loss(self, pred, w, target, loss_type):
         pred, w, target = pred.reshape(-1), w.reshape(-1), target.reshape(-1)
@@ -325,7 +347,7 @@ class DNNModelPytorch(Model):
         return -ICLoss()(pred, target, index)
 
     def _nn_predict(self, data, return_cpu=True):
-        """ Reusing predicting NN.
+        """Reusing predicting NN.
         Scenarios
         1) test inference (data may come from CPU and expect the output data is on CPU)
         2) evaluation on training (data may come from GPU)
@@ -343,12 +365,14 @@ class DNNModelPytorch(Model):
             # else: CPU Tensor
             num_workers = 8
             pin_memory = True
-        data_loader = DataLoader(data,
-                                  sampler=SequentialSampler(data),
-                                  batch_size=self.batch_size,
-                                  drop_last=False,
-                                  num_workers=num_workers,
-                                  pin_memory=pin_memory)
+        data_loader = DataLoader(
+            data,
+            sampler=SequentialSampler(data),
+            batch_size=self.batch_size,
+            drop_last=False,
+            num_workers=num_workers,
+            pin_memory=pin_memory,
+        )
         preds = []
         self.dnn_model.eval()
         with torch.no_grad():
