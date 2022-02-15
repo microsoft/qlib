@@ -15,7 +15,6 @@ from sklearn.metrics import roc_auc_score, mean_squared_error
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from qlib.model.utils import IndexSampler
 
 from .pytorch_utils import count_parameters
 from ...model.base import Model
@@ -344,7 +343,7 @@ class DNNModelPytorch(Model):
 
     def get_metric(self, pred, target, index):
         # NOTE: the order of the index must follow <datetime, instrument> sorted order
-        return -ICLoss()(pred, target, index)
+        return -ICLoss()(pred, target, index)  # pylint: disable=E1130
 
     def _nn_predict(self, data, return_cpu=True):
         """Reusing predicting NN.
