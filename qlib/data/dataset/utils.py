@@ -63,7 +63,7 @@ def fetch_df_by_index(
     Data of the given index.
     """
     # level = None -> use selector directly
-    if level is None:
+    if level is None or isinstance(selector, pd.MultiIndex):
         return df.loc(axis=0)[selector]
     # Try to get the right index
     idx_slc = (selector, slice(None, None))
