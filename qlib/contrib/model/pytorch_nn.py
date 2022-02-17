@@ -290,7 +290,7 @@ class DNNModelPytorch(Model):
                             )
                             R.log_metrics(train_metric=metric_train, step=step)
                         else:
-                            metric_train = -1
+                            metric_train = np.nan
                     if verbose:
                         self.logger.info(
                             f"[Step {step}]: train_loss {train_loss:.6f}, valid_loss {loss_val:.6f}, train_metric {metric_train:.6f}, valid_metric {metric_val:.6f}"
