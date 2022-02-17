@@ -32,7 +32,6 @@ from ...log import get_module_logger
 from ...workflow import R
 from qlib.contrib.meta.data_selection.utils import ICLoss
 from torch.nn import DataParallel
-from torch.utils.data import DataLoader, SequentialSampler
 
 
 class DNNModelPytorch(Model):
@@ -216,6 +215,9 @@ class DNNModelPytorch(Model):
                     all_t[v][seg] = all_t[v][seg].to(self.device)  # This will consume a lot of memory !!!!
 
                 evals_result[seg] = []
+                # free memory
+                del df
+                del all_df["x"]
 
         save_path = get_or_create_path(save_path)
         stop_steps = 0
@@ -266,7 +268,7 @@ class DNNModelPytorch(Model):
                         loss_val = cur_loss_val.item()
                         metric_val = (
                             self.get_metric(
-                                preds.reshape(-1), all_t["y"]["valid"].reshape(-1), all_df["x"]["valid"].index
+                                preds.reshape(-1), all_t["y"]["valid"].reshape(-1), all_df["y"]["valid"].index
                             )
                             .detach()
                             .cpu()
@@ -281,7 +283,7 @@ class DNNModelPytorch(Model):
                                 self.get_metric(
                                     self._nn_predict(all_t["x"]["train"], return_cpu=False),
                                     all_t["y"]["train"].reshape(-1),
-                                    all_df["x"]["train"].index,
+                                    all_df["y"]["train"].index,
                                 )
                                 .detach()
                                 .cpu()
@@ -351,31 +353,17 @@ class DNNModelPytorch(Model):
         1) test inference (data may come from CPU and expect the output data is on CPU)
         2) evaluation on training (data may come from GPU)
         """
-        if isinstance(data, torch.Tensor) and data.device.type != "cpu":
-            # GPU data
-            # CUDA data don't support pin_memory and multi-processing workers
-            num_workers = 0
-            pin_memory = False
-        else:
-            # CPU data
-            if not isinstance(data, torch.Tensor):
-                if isinstance(data, pd.DataFrame):
-                    data = data.values
-            # else: CPU Tensor
-            num_workers = 8
-            pin_memory = True
-        data_loader = DataLoader(
-            data,
-            sampler=SequentialSampler(data),
-            batch_size=self.batch_size,
-            drop_last=False,
-            num_workers=num_workers,
-            pin_memory=pin_memory,
-        )
+        if not isinstance(data, torch.Tensor):
+            if isinstance(data, pd.DataFrame):
+                data = data.values
+            data = torch.Tensor(data)
+        data = data.to(self.device)
         preds = []
         self.dnn_model.eval()
         with torch.no_grad():
-            for x in data_loader:
+            batch_size = 8096
+            for i in range(0, len(data), batch_size):
+                x = data[i : i + batch_size]
                 preds.append(self.dnn_model(x.to(self.device)).detach().reshape(-1))
         if return_cpu:
             preds = np.concatenate([pr.cpu().numpy() for pr in preds])

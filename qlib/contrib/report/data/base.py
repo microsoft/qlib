@@ -8,14 +8,14 @@ Assumptions
 
 """
 import pandas as pd
-from blocks.utils.log import logt
+from qlib.log import TimeInspector
 from qlib.contrib.report.utils import sub_fig_generator
 
 
 class FeaAnalyser:
     def __init__(self, dataset: pd.DataFrame):
         self._dataset = dataset
-        with logt("calc_stat_values"):
+        with TimeInspector.logt("calc_stat_values"):
             self.calc_stat_values()
 
     def calc_stat_values(self):
