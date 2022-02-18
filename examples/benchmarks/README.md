@@ -4,6 +4,7 @@ This page lists a batch of methods designed for alpha seeking. Each method tries
 The alpha is evaluated in two ways.
 1. The correlation between the alpha and future return.
 1. Constructing portfolio based on the alpha and evaluating the final total return.
+   - The explanation of metrics can be found [here](https://qlib.readthedocs.io/en/latest/component/report.html#id4)
 
 Here are the results of each benchmark model running on Qlib's `Alpha360` and `Alpha158` dataset with China's A shared-stock & CSI300 data respectively. The values of each metric are the mean and std calculated based on 20 runs with different random seeds.
 
