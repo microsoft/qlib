@@ -7,6 +7,7 @@ from __future__ import print_function
 from collections import defaultdict
 
 import os
+import gc
 import numpy as np
 import pandas as pd
 from typing import Callable, Optional, Text, Union
@@ -200,7 +201,7 @@ class DNNModelPytorch(Model):
                     seg, col_set=["feature", "label"], data_key=self.valid_key if seg == "valid" else DataHandlerLP.DK_L
                 )
                 all_df["x"][seg] = df["feature"]
-                all_df["y"][seg] = df["label"]
+                all_df["y"][seg] = df["label"].copy()  # We have to use copy to remove the reference to release mem
                 if reweighter is None:
                     all_df["w"][seg] = pd.DataFrame(np.ones_like(all_df["y"][seg].values), index=df.index)
                 elif isinstance(reweighter, Reweighter):
@@ -218,6 +219,7 @@ class DNNModelPytorch(Model):
                 # free memory
                 del df
                 del all_df["x"]
+                gc.collect()
 
         save_path = get_or_create_path(save_path)
         stop_steps = 0
