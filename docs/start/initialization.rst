@@ -49,7 +49,7 @@ The following are several important parameters of `qlib.init` (`Qlib` has a lot 
         - ``qlib.constant.REG_CN``: China stock market.
 
         Different modes will result in different trading limitations and costs.
-        The region is just `shortcuts for defining a batch of configurations <https://github.com/microsoft/qlib/blob/main/qlib/config.py#L239>`_. Users can set the key configurations manually if the existing region setting can't meet their requirements.
+        The region is just `shortcuts for defining a batch of configurations <https://github.com/microsoft/qlib/blob/528f74af099bf6156e9480bcd2bb28e453231212/qlib/config.py#L249>`_, which include minimal trading order unit (``trade_unit``),  trading limitation (``limit_threshold``) , etc.  It is not a necessary part and users can set the key configurations manually if the existing region setting can't meet their requirements.
 - `redis_host`
     Type: str, optional parameter(default: "127.0.0.1"), host of `redis`
         The lock and cache mechanism relies on redis.
