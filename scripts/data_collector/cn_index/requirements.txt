@@ -1,5 +1,7 @@
+baostock
 fire
 requests
 pandas
 lxml
 loguru
+tqdm
