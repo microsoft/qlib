@@ -326,7 +326,7 @@ class CSI300(CSIIndex):
 
     @property
     def html_table_index(self):
-        return 0
+        return 1
 
 
 class CSI100(CSIIndex):
@@ -340,11 +340,10 @@ class CSI100(CSIIndex):
 
     @property
     def html_table_index(self):
-        return 1
+        return 2
 
 
 class CSI500(CSIIndex):
-
     @property
     def index_code(self):
         return "000905"
