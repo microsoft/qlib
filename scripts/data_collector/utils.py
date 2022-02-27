@@ -34,6 +34,7 @@ CALENDAR_BENCH_URL_MAP = {
     "ALL": CALENDAR_URL_BASE.format(market=1, bench_code="000905"),
     # NOTE: Use the time series of ^GSPC(SP500) as the sequence of all stocks
     "US_ALL": "^GSPC",
+    "IN_ALL": "^NSEI",
 }
 
 _BENCH_CALENDAR_LIST = None
@@ -52,15 +53,15 @@ MINIMUM_SYMBOLS_NUM = 3900
 def get_calendar_list(bench_code="CSI300") -> List[pd.Timestamp]:
     """get SH/SZ history calendar list
 
-	Parameters
-	----------
-	bench_code: str
-		value from ["CSI300", "CSI500", "ALL", "US_ALL"]
+    Parameters
+    ----------
+    bench_code: str
+        value from ["CSI300", "CSI500", "ALL", "US_ALL"]
 
-	Returns
-	-------
-		history calendar list
-	"""
+    Returns
+    -------
+        history calendar list
+    """
 
     logger.info(f"get calendar list: {bench_code}......")
 
@@ -177,10 +178,10 @@ def get_calendar_list_by_ratio(
 def get_hs_stock_symbols() -> list:
     """get SH/SZ stock symbols
 
-	Returns
-	-------
-		stock symbols
-	"""
+    Returns
+    -------
+        stock symbols
+    """
     global _HS_SYMBOLS
 
     def _get_symbol():
@@ -221,10 +222,10 @@ def get_hs_stock_symbols() -> list:
 def get_us_stock_symbols(qlib_data_path: [str, Path] = None) -> list:
     """get US stock symbols
 
-	Returns
-	-------
-		stock symbols
-	"""
+    Returns
+    -------
+        stock symbols
+    """
     global _US_SYMBOLS
 
     @deco_retry
@@ -416,16 +417,16 @@ def get_cg_crypto_symbols(qlib_data_path: [str, Path] = None) -> list:
 def symbol_suffix_to_prefix(symbol: str, capital: bool = True) -> str:
     """symbol suffix to prefix
 
-	Parameters
-	----------
-	symbol: str
-		symbol
-	capital : bool
-		by default True
-	Returns
-	-------
+    Parameters
+    ----------
+    symbol: str
+        symbol
+    capital : bool
+        by default True
+    Returns
+    -------
 
-	"""
+    """
     code, exchange = symbol.split(".")
     if exchange.lower() in ["sh", "ss"]:
         res = f"sh{code}"
@@ -437,24 +438,22 @@ def symbol_suffix_to_prefix(symbol: str, capital: bool = True) -> str:
 def symbol_prefix_to_sufix(symbol: str, capital: bool = True) -> str:
     """symbol prefix to sufix
 
-	Parameters
-	----------
-	symbol: str
-		symbol
-	capital : bool
-		by default True
-	Returns
-	-------
+    Parameters
+    ----------
+    symbol: str
+        symbol
+    capital : bool
+        by default True
+    Returns
+    -------
 
-	"""
+    """
     res = f"{symbol[:-2]}.{symbol[-2:]}"
     return res.upper() if capital else res.lower()
 
 
 def deco_retry(retry: int = 5, retry_sleep: int = 3):
-
     def deco_func(func):
-
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
             _retry = 5 if callable(retry) else retry
@@ -480,19 +479,19 @@ def deco_retry(retry: int = 5, retry_sleep: int = 3):
 def get_trading_date_by_shift(trading_list: list, trading_date: pd.Timestamp, shift: int = 1):
     """get trading date by shift
 
-	Parameters
-	----------
-	trading_list: list
-		trading calendar list
-	shift : int
-		shift, default is 1
+    Parameters
+    ----------
+    trading_list: list
+        trading calendar list
+    shift : int
+        shift, default is 1
 
-	trading_date : pd.Timestamp
-		trading date
-	Returns
-	-------
+    trading_date : pd.Timestamp
+        trading date
+    Returns
+    -------
 
-	"""
+    """
     trading_date = pd.Timestamp(trading_date)
     left_index = bisect.bisect_left(trading_list, trading_date)
     try:
