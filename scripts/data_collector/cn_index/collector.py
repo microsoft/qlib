@@ -5,7 +5,6 @@ import re
 import abc
 import sys
 import importlib
-from tqdm import tqdm
 from io import BytesIO
 from typing import List, Iterable
 from pathlib import Path
@@ -356,14 +355,14 @@ class CSI500(CSIIndex):
 
     @property
     def html_table_index(self):
-        return 0
+        return 2
 
     def get_changes(self):
         return self.get_changes_with_history_companies(self.get_history_companies())
 
     def get_history_companies(self):
         """
-		Data source：http://baostock.com/baostock/index.php/%E4%B8%AD%E8%AF%81500%E6%88%90%E5%88%86%E8%82%A1
+		Data source: http://baostock.com/baostock/index.php/%E4%B8%AD%E8%AF%81500%E6%88%90%E5%88%86%E8%82%A1
 			Avoid a large number of parallel data acquisition,
 			such as 1000 times of concurrent data acquisition, because IP will be blocked
 		Returns
