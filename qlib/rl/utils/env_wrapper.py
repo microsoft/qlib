@@ -6,8 +6,8 @@ import gym
 from qlib.rl.simulator import Simulator, InitialStateType
 from qlib.rl.interpreter import StateInterpreter, ActionInterpreter
 
+from .aux_info import AuxiliaryInfoCollector
 from .finite_env import generate_nan_observation
-
 
 
 class SingleEnvWrapper(gym.Env):
@@ -21,13 +21,13 @@ class SingleEnvWrapper(gym.Env):
         state_interpreter: StateInterpreter,
         action_interpreter: ActionInterpreter,
         initial_state_queue: Optional[Iterator[InitialStateType]],
-        info_collector: Optional[InfoCollector] = None
+        aux_info_collector: Optional[AuxiliaryInfoCollector] = None
     ):
         self.simulator_fn = simulator_fn
         self.state_interpreter = state_interpreter
         self.action_interpreter = action_interpreter
         self.initial_state_queue = initial_state_queue
-        self.info_collector = info_collector
+        self.aux_info_collector = aux_info_collector
 
     @property
     def action_space(self):
@@ -61,6 +61,6 @@ class SingleEnvWrapper(gym.Env):
         obs = self.state_interpreter(sim_state)
         rew = self.reward_fn(sim_state)
         done = self.simulator.done()
-        info = self.info_collector(sim_state)
+        info = self.aux_info_collector(sim_state)
 
         return obs, rew, done, info
