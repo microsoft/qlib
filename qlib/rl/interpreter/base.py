@@ -1,31 +1,10 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-
 class BaseInterpreter:
     """Base Interpreter"""
 
     def interpret(self, **kwargs):
-        raise NotImplementedError("interpret is not implemented!")
-
-
-class ActionInterpreter(BaseInterpreter):
-    """Action Interpreter that interpret rl agent action into qlib orders"""
-
-    def interpret(self, action, **kwargs):
-        """interpret method
-
-        Parameters
-        ----------
-        action :
-            rl agent action
-
-        Returns
-        -------
-        qlib orders
-
-        """
-
         raise NotImplementedError("interpret is not implemented!")
 
 
@@ -44,4 +23,24 @@ class StateInterpreter(BaseInterpreter):
         ----------
         rl env state
         """
+        raise NotImplementedError("interpret is not implemented!")
+
+
+class ActionInterpreter(BaseInterpreter):
+    """Action Interpreter that interpret rl agent action into qlib orders"""
+
+    def interpret(self, action: Any) -> Any:
+        """interpret method
+
+        Parameters
+        ----------
+        action :
+            rl agent action
+
+        Returns
+        -------
+        qlib orders
+
+        """
+
         raise NotImplementedError("interpret is not implemented!")
