@@ -30,7 +30,7 @@ class Simulator(Generic[InitialStateType, StateType]):
     Simulators are ephemeral. The lifecycle of a simulator starts with an initial state, and ends with the trajectory.
     In another word, when the trajectory ends, simulator is recycled.
     If simulators want to share context between (e.g., for speed-up purposes),
-    this could be done by accessing the weak reference of environment.
+    this could be done by accessing the weak reference of environment wrapper.
 
     Attributes
     ----------
@@ -40,7 +40,7 @@ class Simulator(Generic[InitialStateType, StateType]):
     """
 
     history_states: bool = True
-    env_wrapper: Optional[weakref.ReferenceType['qlib.rl.utils.EnvWrapper']] = None
+    env_wrapper: Optional[weakref.ReferenceType['qlib.rl.utils.env_wrapper.EnvWrapper']] = None
 
     def __init__(self, initial: InitialStateType) -> None:
         pass
