@@ -4,7 +4,6 @@
 class AuxiliaryInfoCollector:
 
     def __init__(self, logger):
-        ...
 
     def __call__(self):
         info = {"category": ep_state.flow_dir.value, "reward": rew_info}

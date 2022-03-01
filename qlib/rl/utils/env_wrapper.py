@@ -4,11 +4,11 @@ from typing import Callable, Any, Iterator, Optional, NamedTuple, List
 import numpy as np
 import gym
 
+from qlib.rl.aux_info import AuxiliaryInfoCollector
 from qlib.rl.simulator import Simulator, InitialStateType
 from qlib.rl.interpreter import StateInterpreter, ActionInterpreter
 from qlib.rl.reward import BaseReward
 
-from .aux_info import AuxiliaryInfoCollector
 from .finite_env import generate_nan_observation
 
 INITIAL_STATE_QUEUE_MISSING = '_missing_'
