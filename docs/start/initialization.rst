@@ -89,7 +89,9 @@ The following are several important parameters of `qlib.init` (`Qlib` has a lot 
             "task_url": "mongodb://localhost:27017/",  # your mongo url
             "task_db_name": "rolling_db", # the database name of Task Management
         })
+
 - `logging_level`
     The logging level for the system.
+
 - `kernels`
     The number of processes used when calculating features in Qlib's expression engine. It is very helpful to set it to 1 when you are debuggin an expression calculating exception
