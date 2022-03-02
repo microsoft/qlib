@@ -17,7 +17,6 @@ def fill_invalid(obj):
             if np.issubdtype(obj.dtype, np.floating):
                 return np.full_like(obj, np.nan)
             return np.full_like(obj, np.iinfo(obj.dtype).max)
-            return obj
         # dealing with corner cases that numpy number is not supported by tianshou's sharray
         return fill_invalid(np.array(obj))
     elif isinstance(obj, dict):
