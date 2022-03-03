@@ -339,17 +339,17 @@ class BaseRun(abc.ABC):
     @property
     @abc.abstractmethod
     def collector_class_name(self):
-        raise NotImplementedError("rewrite normalize_symbol")
+        raise NotImplementedError("rewrite collector_class_name")
 
     @property
     @abc.abstractmethod
     def normalize_class_name(self):
-        raise NotImplementedError("rewrite normalize_symbol")
+        raise NotImplementedError("rewrite normalize_class_name")
 
     @property
     @abc.abstractmethod
     def default_base_dir(self) -> [Path, str]:
-        raise NotImplementedError("rewrite normalize_symbol")
+        raise NotImplementedError("rewrite default_base_dir")
 
     def download_data(
         self,
