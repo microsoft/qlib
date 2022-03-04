@@ -62,7 +62,6 @@ class ProviderBackendMixin:
         backend = copy.deepcopy(backend)
         backend.setdefault("kwargs", {}).update(**kwargs)
         return init_instance_by_config(backend)
->>>>>>> origin/main
 
 
 class CalendarProvider(abc.ABC):

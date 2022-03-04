@@ -6,6 +6,30 @@
 .. currentmodule:: qlib
 
 
+Introduction
+------------
+Point-in-time data is a very important consideration when performing any sort of historical market analysis. 
+
+For example, let’s say we are backtesting a trading strategy and we are using the past five years of historical data as our input.
+Our model is assumed to trade once a day, at the market close, and we’ll say we are calculating the trading signal for 1 January 2020 in our backtest. At that point, we should only have data for 1 January 2020, 31 December 2019, 30 December 2019 etc.
+
+In financial data (especially financial reports), the same piece of data may be amended for multiple times overtime.  If we only use the latest version for historical backtesting, data leakage will happen.
+Point-in-time database is designed for solving this problem to make sure user get the right version of data at any historical timestamp. It will keep the performance of online trading and historical backtesting the same.
+
+
+
+Data Preparation
+----------------
+
+Qlib provides a crawler to help users to download financial data and then a converter to dump the data in Qlib format.
+Please follow `scripts/data_collector/pit/README.md` to download and convert data.
+
+
+File-based design for PIT data
+------------------------------
+
+Qlib provides a file-based storage for PIT data.
+
 For each feature, it contains 4 columns, i.e. date, period, value, _next.
 Each row corresponds to a statement.
 
@@ -17,7 +41,7 @@ The meaning of each feature with filename like `XXX_a.data`
 - `value`: the described value
 - `_next`: the byte index of the next occurance of the field.
 
-Besides the feature, a index `XXX_a.index`
+Besides the feature data, an index `XXX_a.index` is included to speed up the querying performance
 
 The statements are soted by the `date` in ascending order from the beginning of the file.
 
