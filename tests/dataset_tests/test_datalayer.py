@@ -1,26 +1,10 @@
-import sys
-from pathlib import Path
-import qlib
-from qlib.data import D
-from qlib.config import REG_CN
 import unittest
 import numpy as np
-from qlib.utils import exists_qlib_data
+from qlib.data import D
+from qlib.tests import TestAutoData
 
 
-class TestDataset(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls) -> None:
-        # use default data
-        provider_uri = "~/.qlib/qlib_data/cn_data_simple"  # target_dir
-        if not exists_qlib_data(provider_uri):
-            print(f"Qlib data is not found in {provider_uri}")
-            sys.path.append(str(Path(__file__).resolve().parent.parent.parent.joinpath("scripts")))
-            from get_data import GetData
-
-            GetData().qlib_data(name="qlib_data_simple", target_dir=provider_uri)
-        qlib.init(provider_uri=provider_uri, region=REG_CN)
-
+class TestDataset(TestAutoData):
     def testCSI300(self):
         close_p = D.features(D.instruments("csi300"), ["$close"])
         size = close_p.groupby("datetime").size()

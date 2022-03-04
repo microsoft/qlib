@@ -3,7 +3,6 @@
 from __future__ import division
 from __future__ import print_function
 
-import os
 import numpy as np
 import pandas as pd
 from typing import Text, Union
@@ -160,7 +159,7 @@ class TabnetModel(Model):
             self.logger.info("Pretrain...")
             self.pretrain_fn(dataset, self.pretrain_file)
             self.logger.info("Load Pretrain model")
-            self.tabnet_model.load_state_dict(torch.load(self.pretrain_file))
+            self.tabnet_model.load_state_dict(torch.load(self.pretrain_file, map_location=self.device))
 
         # adding one more linear layer to fit the final output dimension
         self.tabnet_model = FinetuneModel(self.out_dim, self.final_out_dim, self.tabnet_model).to(self.device)
@@ -169,6 +168,8 @@ class TabnetModel(Model):
             col_set=["feature", "label"],
             data_key=DataHandlerLP.DK_L,
         )
+        if df_train.empty or df_valid.empty:
+            raise ValueError("Empty data from dataset, please check your dataset config.")
         df_train.fillna(df_train.mean(), inplace=True)
         x_train, y_train = df_train["feature"], df_train["label"]
         x_valid, y_valid = df_valid["feature"], df_valid["label"]
@@ -376,7 +377,7 @@ class TabnetModel(Model):
 
     def metric_fn(self, pred, label):
         mask = torch.isfinite(label)
-        if self.metric == "" or self.metric == "loss":
+        if self.metric in ("", "loss"):
             return -self.loss_fn(pred[mask], label[mask])
         raise ValueError("unknown metric `%s`" % self.metric)
 
@@ -444,7 +445,7 @@ class TabNet(nn.Module):
         Args:
             n_d: dimension of the features used to calculate the final results
             n_a: dimension of the features input to the attention transformer of the next step
-            n_shared: numbr of shared steps in feature transfomer(optional)
+            n_shared: numbr of shared steps in feature transformer(optional)
             n_ind: number of independent steps in feature transformer
             n_steps: number of steps of pass through tabbet
             relax coefficient:
@@ -477,7 +478,7 @@ class TabNet(nn.Module):
         out = torch.zeros(x.size(0), self.n_d).to(x.device)
         for step in self.steps:
             x_te, l = step(x, x_a, priors)
-            out += F.relu(x_te[:, : self.n_d])  # split the feautre from feat_transformer
+            out += F.relu(x_te[:, : self.n_d])  # split the feature from feat_transformer
             x_a = x_te[:, self.n_d :]
             sparse_loss.append(l)
         return self.fc(out), sum(sparse_loss)
@@ -564,7 +565,7 @@ class FeatureTransformer(nn.Module):
             self.shared = None
         self.independ = nn.ModuleList()
         if first:
-            self.independ.append(GLU(inp, out_dim, vbs=vbs))
+            self.independ.append(GLU(inp_dim, out_dim, vbs=vbs))
         for x in range(first, n_ind):
             self.independ.append(GLU(out_dim, out_dim, vbs=vbs))
         self.scale = float(np.sqrt(0.5))

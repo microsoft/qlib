@@ -54,9 +54,9 @@ master_doc = "index"
 
 
 # General information about the project.
-project = u"QLib"
-copyright = u"Microsoft"
-author = u"Microsoft"
+project = "QLib"
+copyright = "Microsoft"
+author = "Microsoft"
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -174,7 +174,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, "qlib.tex", u"QLib Documentation", u"Microsoft", "manual"),
+    (master_doc, "qlib.tex", "QLib Documentation", "Microsoft", "manual"),
 ]
 
 
@@ -182,7 +182,7 @@ latex_documents = [
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [(master_doc, "qlib", u"QLib Documentation", [author], 1)]
+man_pages = [(master_doc, "qlib", "QLib Documentation", [author], 1)]
 
 
 # -- Options for Texinfo output -------------------------------------------
@@ -194,7 +194,7 @@ texinfo_documents = [
     (
         master_doc,
         "QLib",
-        u"QLib Documentation",
+        "QLib Documentation",
         author,
         "QLib",
         "One line description of project.",

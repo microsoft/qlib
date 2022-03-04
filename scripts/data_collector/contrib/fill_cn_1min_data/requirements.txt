@@ -1,0 +1,5 @@
+fire
+pandas
+loguru
+tqdm
+pyqlib

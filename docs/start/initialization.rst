@@ -27,7 +27,7 @@ Initialize Qlib before calling other APIs: run following code in python.
 
         import qlib
         # region in [REG_CN, REG_US]
-        from qlib.config import REG_CN
+        from qlib.constant import REG_CN
         provider_uri = "~/.qlib/qlib_data/cn_data"  # target_dir
         qlib.init(provider_uri=provider_uri, region=REG_CN)
     
@@ -37,17 +37,19 @@ Initialize Qlib before calling other APIs: run following code in python.
 Parameters
 -------------------
 
-Besides `provider_uri` and `region`, `qlib.init` has other parameters. The following are several important parameters of `qlib.init`:
+Besides `provider_uri` and `region`, `qlib.init` has other parameters.
+The following are several important parameters of `qlib.init` (`Qlib` has a lot of config. Only part of parameters are limited here. More detailed setting can be found `here <https://github.com/microsoft/qlib/blob/main/qlib/config.py>`_):
 
 - `provider_uri`
     Type: str. The URI of the Qlib data. For example, it could be the location where the data loaded by ``get_data.py`` are stored.
 - `region`
-    Type: str, optional parameter(default: `qlib.config.REG_CN`).
-        Currently: ``qlib.config.REG_US`` ('us') and ``qlib.config.REG_CN`` ('cn') is supported. Different value of  `region` will result in different stock market mode.
-        - ``qlib.config.REG_US``: US stock market.
-        - ``qlib.config.REG_CN``: China stock market.
+    Type: str, optional parameter(default: `qlib.constant.REG_CN`).
+        Currently: ``qlib.constant.REG_US`` ('us') and ``qlib.constant.REG_CN`` ('cn') is supported. Different value of  `region` will result in different stock market mode.
+        - ``qlib.constant.REG_US``: US stock market.
+        - ``qlib.constant.REG_CN``: China stock market.
 
         Different modes will result in different trading limitations and costs.
+        The region is just `shortcuts for defining a batch of configurations <https://github.com/microsoft/qlib/blob/528f74af099bf6156e9480bcd2bb28e453231212/qlib/config.py#L249>`_, which include minimal trading order unit (``trade_unit``),  trading limitation (``limit_threshold``) , etc.  It is not a necessary part and users can set the key configurations manually if the existing region setting can't meet their requirements.
 - `redis_host`
     Type: str, optional parameter(default: "127.0.0.1"), host of `redis`
         The lock and cache mechanism relies on redis.
@@ -75,3 +77,21 @@ Besides `provider_uri` and `region`, `qlib.init` has other parameters. The follo
                 "default_exp_name": "Experiment",
             }
         })
+- `mongo`
+    Type: dict, optional parameter, the setting of `MongoDB <https://www.mongodb.com/>`_ which will be used in some features such as `Task Management <../advanced/task_management.html>`_, with high performance and clustered processing. 
+    Users need to follow the steps in  `installation <https://www.mongodb.com/try/download/community>`_  to install MongoDB firstly and then access it via a URI.
+    Users can access mongodb with credential by setting "task_url"  to a string like `"mongodb://%s:%s@%s" % (user, pwd, host + ":" + port)`.
+
+    .. code-block:: Python
+
+        # For example, you can initialize qlib below
+        qlib.init(provider_uri=provider_uri, region=REG_CN, mongo={
+            "task_url": "mongodb://localhost:27017/",  # your mongo url
+            "task_db_name": "rolling_db", # the database name of Task Management
+        })
+
+- `logging_level`
+    The logging level for the system.
+
+- `kernels`
+    The number of processes used when calculating features in Qlib's expression engine. It is very helpful to set it to 1 when you are debuggin an expression calculating exception

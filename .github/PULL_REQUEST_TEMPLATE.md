@@ -8,6 +8,7 @@
 <!--- Why is this change required? What problem does it solve? -->
 
 ## How Has This Been Tested?
+<! ---  Put an `x` in all the boxes that apply: --->
 - [ ] Pass the test by running: `pytest qlib/tests/test_all_pipeline.py` under upper directory of `qlib`.
 - [ ] If you are adding a new feature, test on your own test scripts.
 

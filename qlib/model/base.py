@@ -4,6 +4,7 @@ import abc
 from typing import Text, Union
 from ..utils.serial import Serializable
 from ..data.dataset import Dataset
+from ..data.dataset.weight import Reweighter
 
 
 class BaseModel(Serializable, metaclass=abc.ABCMeta):
@@ -11,18 +12,17 @@ class BaseModel(Serializable, metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def predict(self, *args, **kwargs) -> object:
-        """ Make predictions after modeling things """
-        pass
+        """Make predictions after modeling things"""
 
     def __call__(self, *args, **kwargs) -> object:
-        """ leverage Python syntactic sugar to make the models' behaviors like functions """
+        """leverage Python syntactic sugar to make the models' behaviors like functions"""
         return self.predict(*args, **kwargs)
 
 
 class Model(BaseModel):
     """Learnable Models"""
 
-    def fit(self, dataset: Dataset):
+    def fit(self, dataset: Dataset, reweighter: Reweighter):
         """
         Learn model from the base model
 
@@ -97,7 +97,7 @@ class ModelFT(Model):
 
             # Finetune model based on previous trained model
             with R.start(experiment_name="finetune model"):
-                recorder = R.get_recorder(rid, experiment_name="init models")
+                recorder = R.get_recorder(recorder_id=rid, experiment_name="init models")
                 model = recorder.load_object("init_model")
                 model.finetune(dataset, num_boost_round=10)
 

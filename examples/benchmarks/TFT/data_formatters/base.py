@@ -32,7 +32,7 @@ import abc
 import enum
 
 
-# Type defintions
+# Type definitions
 class DataTypes(enum.IntEnum):
     """Defines numerical types of each column."""
 
@@ -132,7 +132,7 @@ class GenericDataFormatter(abc.ABC):
         return -1, -1
 
     def get_column_definition(self):
-        """"Returns formatted column definition in order expected by the TFT."""
+        """Returns formatted column definition in order expected by the TFT."""
 
         column_definition = self._column_definition
 

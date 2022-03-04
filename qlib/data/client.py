@@ -8,6 +8,7 @@ from __future__ import print_function
 import socketio
 
 import qlib
+from ..config import C
 from ..log import get_module_logger
 import pickle
 
@@ -57,7 +58,7 @@ class Client:
         msg_proc_func : func
             the function to process the message when receiving response, should have arg `*args`.
         msg_queue: Queue
-            The queue to pass the messsage after callback.
+            The queue to pass the message after callback.
         """
         head_info = {"version": qlib.__version__}
 
@@ -95,7 +96,7 @@ class Client:
         self.logger.debug("connected")
         # The pickle is for passing some parameters with special type(such as
         # pd.Timestamp)
-        request_content = {"head": head_info, "body": pickle.dumps(request_content)}
+        request_content = {"head": head_info, "body": pickle.dumps(request_content, protocol=C.dump_protocol_version)}
         self.sio.on(request_type + "_response", request_callback)
         self.logger.debug("try sending")
         self.sio.emit(request_type + "_request", request_content)

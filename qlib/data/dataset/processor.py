@@ -2,19 +2,18 @@
 # Licensed under the MIT License.
 
 import abc
+from typing import Union, Text
 import numpy as np
 import pandas as pd
-import copy
 
-from ...log import TimeInspector
+from qlib.utils.data import robust_zscore, zscore
+from ...constant import EPS
 from .utils import fetch_df_by_index
 from ...utils.serial import Serializable
 from ...utils.paral import datetime_groupby_apply
 
-EPS = 1e-12
 
-
-def get_group_columns(df: pd.DataFrame, group: str):
+def get_group_columns(df: pd.DataFrame, group: Union[Text, None]):
     """
     get a group of columns from multi-index columns DataFrame
 
@@ -43,7 +42,6 @@ class Processor(Serializable):
             processor, i.e. `df`.
 
         """
-        pass
 
     @abc.abstractmethod
     def __call__(self, df: pd.DataFrame):
@@ -58,7 +56,6 @@ class Processor(Serializable):
         df : pd.DataFrame
             The raw_df of handler or result from previous processor.
         """
-        pass
 
     def is_for_infer(self) -> bool:
         """
@@ -71,6 +68,14 @@ class Processor(Serializable):
             if it is usable for infenrece.
         """
         return True
+
+    def readonly(self) -> bool:
+        """
+        Does the processor treat the input data readonly (i.e. does not write the input data) when processing
+
+        Knowning the readonly information is helpful to the Handler to avoid uncessary copy
+        """
+        return False
 
     def config(self, **kwargs):
         attr_list = {"fit_start_time", "fit_end_time"}
@@ -90,6 +95,9 @@ class DropnaProcessor(Processor):
 
     def __call__(self, df):
         return df.dropna(subset=get_group_columns(df, self.fields_group))
+
+    def readonly(self):
+        return True
 
 
 class DropnaLabel(DropnaProcessor):
@@ -112,6 +120,9 @@ class DropCol(Processor):
             mask = df.columns.isin(self.col_list)
         return df.loc[:, ~mask]
 
+    def readonly(self):
+        return True
+
 
 class FilterCol(Processor):
     def __init__(self, fields_group="feature", col_list=[]):
@@ -127,9 +138,12 @@ class FilterCol(Processor):
         mask = df.columns.get_level_values(-1).isin(self.col_list)
         return df.loc[:, mask]
 
+    def readonly(self):
+        return True
+
 
 class TanhProcess(Processor):
-    """ Use tanh to process noise data"""
+    """Use tanh to process noise data"""
 
     def __call__(self, df):
         def tanh_denoise(data):
@@ -144,7 +158,7 @@ class TanhProcess(Processor):
 
 
 class ProcessInf(Processor):
-    """Process infinity  """
+    """Process infinity"""
 
     def __call__(self, df):
         def replace_inf(data):
@@ -179,11 +193,13 @@ class Fillna(Processor):
 
 class MinMaxNorm(Processor):
     def __init__(self, fit_start_time, fit_end_time, fields_group=None):
+        # NOTE: correctly set the `fit_start_time` and `fit_end_time` is very important !!!
+        # `fit_end_time` **must not** include any information from the test data!!!
         self.fit_start_time = fit_start_time
         self.fit_end_time = fit_end_time
         self.fields_group = fields_group
 
-    def fit(self, df):
+    def fit(self, df: pd.DataFrame = None):
         df = fetch_df_by_index(df, slice(self.fit_start_time, self.fit_end_time), level="datetime")
         cols = get_group_columns(df, self.fields_group)
         self.min_val = np.nanmin(df[cols].values, axis=0)
@@ -208,11 +224,13 @@ class ZScoreNorm(Processor):
     """ZScore Normalization"""
 
     def __init__(self, fit_start_time, fit_end_time, fields_group=None):
+        # NOTE: correctly set the `fit_start_time` and `fit_end_time` is very important !!!
+        # `fit_end_time` **must not** include any information from the test data!!!
         self.fit_start_time = fit_start_time
         self.fit_end_time = fit_end_time
         self.fields_group = fields_group
 
-    def fit(self, df):
+    def fit(self, df: pd.DataFrame = None):
         df = fetch_df_by_index(df, slice(self.fit_start_time, self.fit_end_time), level="datetime")
         cols = get_group_columns(df, self.fields_group)
         self.mean_train = np.nanmean(df[cols].values, axis=0)
@@ -245,12 +263,14 @@ class RobustZScoreNorm(Processor):
     """
 
     def __init__(self, fit_start_time, fit_end_time, fields_group=None, clip_outlier=True):
+        # NOTE: correctly set the `fit_start_time` and `fit_end_time` is very important !!!
+        # `fit_end_time` **must not** include any information from the test data!!!
         self.fit_start_time = fit_start_time
         self.fit_end_time = fit_end_time
         self.fields_group = fields_group
         self.clip_outlier = clip_outlier
 
-    def fit(self, df):
+    def fit(self, df: pd.DataFrame = None):
         df = fetch_df_by_index(df, slice(self.fit_start_time, self.fit_end_time), level="datetime")
         self.cols = get_group_columns(df, self.fields_group)
         X = df[self.cols].values
@@ -272,19 +292,33 @@ class RobustZScoreNorm(Processor):
 class CSZScoreNorm(Processor):
     """Cross Sectional ZScore Normalization"""
 
-    def __init__(self, fields_group=None):
+    def __init__(self, fields_group=None, method="zscore"):
         self.fields_group = fields_group
+        if method == "zscore":
+            self.zscore_func = zscore
+        elif method == "robust":
+            self.zscore_func = robust_zscore
+        else:
+            raise NotImplementedError(f"This type of input is not supported")
 
     def __call__(self, df):
         # try not modify original dataframe
-        cols = get_group_columns(df, self.fields_group)
-        df[cols] = df[cols].groupby("datetime").apply(lambda x: (x - x.mean()).div(x.std()))
-
+        if not isinstance(self.fields_group, list):
+            self.fields_group = [self.fields_group]
+        for g in self.fields_group:
+            cols = get_group_columns(df, g)
+            df[cols] = df[cols].groupby("datetime").apply(self.zscore_func)
         return df
 
 
 class CSRankNorm(Processor):
-    """Cross Sectional Rank Normalization"""
+    """
+    Cross Sectional Rank Normalization.
+    "Cross Sectional" is often used to describe data operations.
+    The operations across different stocks are often called Cross Sectional Operation.
+
+    For example, CSRankNorm is an operation that grouping the data by each day and rank `across` all the stocks in each day.
+    """
 
     def __init__(self, fields_group=None):
         self.fields_group = fields_group
@@ -309,3 +343,12 @@ class CSZFillna(Processor):
         cols = get_group_columns(df, self.fields_group)
         df[cols] = df[cols].groupby("datetime").apply(lambda x: x.fillna(x.mean()))
         return df
+
+
+class HashStockFormat(Processor):
+    """Process the storage of from df into hasing stock format"""
+
+    def __call__(self, df: pd.DataFrame):
+        from .storage import HashingStockStorage  # pylint: disable=C0415
+
+        return HashingStockStorage.from_df(df)

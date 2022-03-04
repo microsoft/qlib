@@ -8,9 +8,11 @@ from typing import Text, Union
 from ...model.base import Model
 from ...data.dataset import DatasetH
 from ...data.dataset.handler import DataHandlerLP
+from ...model.interpret.base import FeatureInt
+from ...data.dataset.weight import Reweighter
 
 
-class XGBModel(Model):
+class XGBModel(Model, FeatureInt):
     """XGBModel Model"""
 
     def __init__(self, **kwargs):
@@ -25,6 +27,7 @@ class XGBModel(Model):
         early_stopping_rounds=50,
         verbose_eval=20,
         evals_result=dict(),
+        reweighter=None,
         **kwargs
     ):
 
@@ -42,8 +45,17 @@ class XGBModel(Model):
         else:
             raise ValueError("XGBoost doesn't support multi-label training")
 
-        dtrain = xgb.DMatrix(x_train.values, label=y_train_1d)
-        dvalid = xgb.DMatrix(x_valid.values, label=y_valid_1d)
+        if reweighter is None:
+            w_train = None
+            w_valid = None
+        elif isinstance(reweighter, Reweighter):
+            w_train = reweighter.reweight(df_train)
+            w_valid = reweighter.reweight(df_valid)
+        else:
+            raise ValueError("Unsupported reweighter type.")
+
+        dtrain = xgb.DMatrix(x_train.values, label=y_train_1d, weight=w_train)
+        dvalid = xgb.DMatrix(x_valid.values, label=y_valid_1d, weight=w_valid)
         self.model = xgb.train(
             self._params,
             dtrain=dtrain,
@@ -61,4 +73,14 @@ class XGBModel(Model):
         if self.model is None:
             raise ValueError("model is not fitted yet!")
         x_test = dataset.prepare(segment, col_set="feature", data_key=DataHandlerLP.DK_I)
-        return pd.Series(self.model.predict(xgb.DMatrix(x_test.values)), index=x_test.index)
+        return pd.Series(self.model.predict(xgb.DMatrix(x_test)), index=x_test.index)
+
+    def get_feature_importance(self, *args, **kwargs) -> pd.Series:
+        """get feature importance
+
+        Notes
+        -------
+            parameters reference:
+                https://xgboost.readthedocs.io/en/latest/python/python_api.html#xgboost.Booster.get_score
+        """
+        return pd.Series(self.model.get_score(*args, **kwargs)).sort_values(ascending=False)

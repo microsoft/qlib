@@ -75,6 +75,26 @@ class TestDataset(TestAutoData):
         equal = np.isclose(data_from_df, data_from_ds)
         self.assertTrue(equal[~np.isnan(data_from_df)].all())
 
+        if False:
+            # 3) get both index and data
+            # NOTE: We don't want to reply on pytorch, so this test can't be included. It is just a example
+            from torch.utils.data import DataLoader
+            from qlib.model.utils import IndexSampler
+
+            i = len(tsds) - 1
+            idx = tsds.get_index()
+            tsds[i]
+            idx[i]
+
+            s_w_i = IndexSampler(tsds)
+            test_loader = DataLoader(s_w_i)
+
+            s_w_i[3]
+            for data, i in test_loader:
+                break
+            print(data.shape)
+            print(idx[i])
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=10)

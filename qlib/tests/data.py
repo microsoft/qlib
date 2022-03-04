@@ -2,6 +2,7 @@
 # Licensed under the MIT License.
 
 import re
+import sys
 import qlib
 import shutil
 import zipfile
@@ -10,10 +11,11 @@ import datetime
 from tqdm import tqdm
 from pathlib import Path
 from loguru import logger
+from qlib.utils import exists_qlib_data
 
 
 class GetData:
-    DATASET_VERSION = "v1"
+    DATASET_VERSION = "v2"
     REMOTE_URL = "http://fintech.msra.cn/stock_data/downloads"
     QLIB_DATA_NAME = "{dataset_name}_{region}_{interval}_{qlib_version}.zip"
 
@@ -46,6 +48,7 @@ class GetData:
 
         url = self.merge_remote_url(file_name, dataset_version)
         resp = requests.get(url, stream=True)
+        resp.raise_for_status()
         if resp.status_code != 200:
             raise requests.exceptions.HTTPError()
 
@@ -99,7 +102,7 @@ class GetData:
                 f"\nAre you sure you want to delete, yes(Y/y), no (N/n):"
             )
             if str(flag) not in ["Y", "y"]:
-                exit()
+                sys.exit()
             for _p in rm_dirs:
                 logger.warning(f"delete: {_p}")
                 shutil.rmtree(_p)
@@ -112,6 +115,7 @@ class GetData:
         interval="1d",
         region="cn",
         delete_old=True,
+        exists_skip=False,
     ):
         """download cn qlib data from remote
 
@@ -129,6 +133,8 @@ class GetData:
             data region, value from [cn, us], by default cn
         delete_old: bool
             delete an existing directory, by default True
+        exists_skip: bool
+            exists skip, by default False
 
         Examples
         ---------
@@ -140,6 +146,13 @@ class GetData:
         -------
 
         """
+        if exists_skip and exists_qlib_data(target_dir):
+            logger.warning(
+                f"Data already exists: {target_dir}, the data download will be skipped\n"
+                f"\tIf downloading is required: `exists_skip=False` or `change target_dir`"
+            )
+            return
+
         qlib_version = ".".join(re.findall(r"(\d+)\.+", qlib.__version__))
 
         def _get_file_name(v):

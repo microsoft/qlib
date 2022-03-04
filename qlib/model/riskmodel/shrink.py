@@ -174,7 +174,7 @@ class ShrinkCovEstimator(RiskModel):
             alpha = A / B
         where `n`, `p` are the dim of observations and variables respectively.
         """
-        trS2 = np.sum(S ** 2)
+        trS2 = np.sum(S**2)
         tr2S = np.trace(S) ** 2
 
         n, p = X.shape
@@ -192,8 +192,8 @@ class ShrinkCovEstimator(RiskModel):
         """
         t, n = X.shape
 
-        y = X ** 2
-        phi = np.sum(y.T.dot(y) / t - S ** 2)
+        y = X**2
+        phi = np.sum(y.T.dot(y) / t - S**2)
 
         gamma = np.linalg.norm(S - F, "fro") ** 2
 
@@ -213,11 +213,11 @@ class ShrinkCovEstimator(RiskModel):
         sqrt_var = np.sqrt(var)
         r_bar = (np.sum(S / np.outer(sqrt_var, sqrt_var)) - n) / (n * (n - 1))
 
-        y = X ** 2
-        phi_mat = y.T.dot(y) / t - S ** 2
+        y = X**2
+        phi_mat = y.T.dot(y) / t - S**2
         phi = np.sum(phi_mat)
 
-        theta_mat = (X ** 3).T.dot(X) / t - var[:, None] * S
+        theta_mat = (X**3).T.dot(X) / t - var[:, None] * S
         np.fill_diagonal(theta_mat, 0)
         rho = np.sum(np.diag(phi_mat)) + r_bar * np.sum(np.outer(1 / sqrt_var, sqrt_var) * theta_mat)
 
@@ -239,16 +239,16 @@ class ShrinkCovEstimator(RiskModel):
         cov_mkt = np.asarray(X.T.dot(X_mkt) / len(X))
         var_mkt = np.asarray(X_mkt.dot(X_mkt) / len(X))
 
-        y = X ** 2
-        phi = np.sum(y.T.dot(y)) / t - np.sum(S ** 2)
+        y = X**2
+        phi = np.sum(y.T.dot(y)) / t - np.sum(S**2)
 
-        rdiag = np.sum(y ** 2) / t - np.sum(np.diag(S) ** 2)
+        rdiag = np.sum(y**2) / t - np.sum(np.diag(S) ** 2)
         z = X * X_mkt[:, None]
         v1 = y.T.dot(z) / t - cov_mkt[:, None] * S
         roff1 = np.sum(v1 * cov_mkt[:, None].T) / var_mkt - np.sum(np.diag(v1) * cov_mkt) / var_mkt
         v3 = z.T.dot(z) / t - var_mkt * S
         roff3 = (
-            np.sum(v3 * np.outer(cov_mkt, cov_mkt)) / var_mkt ** 2 - np.sum(np.diag(v3) * cov_mkt ** 2) / var_mkt ** 2
+            np.sum(v3 * np.outer(cov_mkt, cov_mkt)) / var_mkt**2 - np.sum(np.diag(v3) * cov_mkt**2) / var_mkt**2
         )
         roff = 2 * roff1 - roff3
         rho = rdiag + roff

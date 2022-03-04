@@ -21,6 +21,12 @@ The introduction of ``Data Layer`` includes the following parts.
 - Cache
 - Data and Cache File Structure
 
+Here is a typical example of Qlib data workflow
+
+- Users download data and converting data into Qlib format(with filename suffix `.bin`).  In this step, typically only some basic data are stored on disk(such as OHLCV). 
+- Creating some basic features based on Qlib's expression Engine(e.g. "Ref($close, 60) / $close", the return of last 60 trading days). Supported operators in the expression engine can be found `here <https://github.com/microsoft/qlib/blob/main/qlib/data/ops.py>`_. This step is typically implemented in Qlib's `Data Loader <https://qlib.readthedocs.io/en/latest/component/data.html#data-loader>`_ which is a component of `Data Handler <https://qlib.readthedocs.io/en/latest/component/data.html#data-handler>`_ .
+- If users require more complicated data processing (e.g. data normalization),  `Data Handler <https://qlib.readthedocs.io/en/latest/component/data.html#data-handler>`_ support user-customized processors to process data(some predefined processors can be found `here <https://github.com/microsoft/qlib/blob/main/qlib/data/dataset/processor.py>`_).  The processors are different from operators in expression engine. It is designed for some complicated data processing methods which is hard to supported in operators in expression engine.
+- At last, `Dataset <https://qlib.readthedocs.io/en/latest/component/data.html#dataset>`_ is responsible to prepare model-specific dataset from the processed data of Data Handler
 
 Data Preparation
 ============================
@@ -46,6 +52,8 @@ Also, ``Qlib`` provides a high-frequency dataset. Users can run a high-frequency
 Qlib Format Dataset
 --------------------
 ``Qlib`` has provided an off-the-shelf dataset in `.bin` format, users could use the script ``scripts/get_data.py`` to download the China-Stock dataset as follows.
+The price volume data look different from the actual dealling price because of they are **adjusted** (`adjusted price <https://www.investopedia.com/terms/a/adjusted_closing_price.asp>`_).  And then you may find that the adjusted price may be different from different data sources. This is because different data sources may vary in the way of adjusting prices. Qlib normalize the price on first trading day of each stock to 1 when adjusting them. 
+Users can leverage `$factor` to get the original trading price (e.g. `$close / $factor` to get the original close price).
 
 .. code-block:: bash
 
@@ -67,16 +75,51 @@ After running the above command, users can find china-stock and us-stock data in
 
 When ``Qlib`` is initialized with this dataset, users could build and evaluate their own models with it.  Please refer to `Initialization <../start/initialization.html>`_ for more details.
 
+Automatic update of daily frequency data
+----------------------------------------
+
+  **It is recommended that users update the data manually once (\-\-trading_date 2021-05-25) and then set it to update automatically.**
+
+  For more information refer to: `yahoo collector <https://github.com/microsoft/qlib/tree/main/scripts/data_collector/yahoo#Automatic-update-of-daily-frequency-data>`_
+
+  - Automatic update of data to the "qlib" directory each trading day(Linux)
+      - use *crontab*: `crontab -e`
+      - set up timed tasks:
+
+        .. code-block:: bash
+
+            * * * * 1-5 python <script path> update_data_to_bin --qlib_data_1d_dir <user data dir>
+
+        - **script path**: *scripts/data_collector/yahoo/collector.py*
+
+  - Manual update of data
+
+      .. code-block:: bash
+
+        python scripts/data_collector/yahoo/collector.py update_data_to_bin --qlib_data_1d_dir <user data dir> --trading_date <start date> --end_date <end date>
+
+      - *trading_date*: start of trading day
+      - *end_date*: end of trading day(not included)
+
+
+
 Converting CSV Format into Qlib Format
 -------------------------------------------
 
 ``Qlib`` has provided the script ``scripts/dump_bin.py`` to convert **any** data in CSV format into `.bin` files (``Qlib`` format) as long as they are in the correct format.
 
-Users can download the demo china-stock data in CSV format as follows for reference to the CSV format.
+Besides downloading the prepared demo data, users could download demo data directly from the Collector as follows for reference to the CSV format.
+Here are some example:
 
-.. code-block:: bash
+for daily data:
+  .. code-block:: bash
 
     python scripts/get_data.py csv_data_cn --target_dir ~/.qlib/csv_data/cn_data
+
+for 1min data:
+  .. code-block:: bash
+
+    python scripts/data_collector/yahoo/collector.py download_data --source_dir ~/.qlib/stock_data/source/cn_1min --region CN --start 2021-05-20 --end 2021-05-23 --delay 0.1 --interval 1min --limit_nums 10
 
 Users can also provide their own data in CSV format. However, the CSV data **must satisfies** following criterions:
 
@@ -144,6 +187,17 @@ After conversion, users can find their Qlib format data in the directory `~/.qli
         The Restoration factor. Normally, ``factor = adjusted_price / original_price``, `adjusted price` reference: `split adjusted <https://www.investopedia.com/terms/s/splitadjusted.asp>`_
 
     In the convention of `Qlib` data processing, `open, close, high, low, volume, money and factor` will be set to NaN if the stock is suspended. 
+    If you want to use your own alpha-factor which can't be calculate by OCHLV, like PE, EPS and so on, you could add it to the CSV files with OHCLV together and then dump it to the Qlib format data.
+
+Stock Pool (Market)
+--------------------------------
+
+``Qlib`` defines `stock pool <https://github.com/microsoft/qlib/blob/main/examples/benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml#L4>`_ as stock list and their date ranges. Predefined stock pools (e.g. csi300) may be imported as follows.
+
+.. code-block:: bash
+
+    python collector.py --index_name CSI300 --qlib_dir <user qlib data dir> --method parse_instruments
+
 
 Multiple Stock Modes
 --------------------------------
@@ -167,7 +221,7 @@ The `trade unit` defines the unit number of stocks can be used in a trade, and t
         
         .. code-block:: python
 
-            from qlib.config import REG_CN
+            from qlib.constant import REG_CN
             qlib.init(provider_uri='~/.qlib/qlib_data/cn_data', region=REG_CN)
         
 
@@ -181,6 +235,11 @@ The `trade unit` defines the unit number of stocks can be used in a trade, and t
             from qlib.config import REG_US
             qlib.init(provider_uri='~/.qlib/qlib_data/us_data', region=REG_US)
         
+
+.. note::
+
+    PRs for new data source are highly welcome! Users could commit the code to crawl data as a PR like `the examples here  <https://github.com/microsoft/qlib/tree/main/scripts>`_. And then we will use the code to create data cache on our server which other users could use directly.
+
 
 Data API
 ========================
@@ -287,7 +346,7 @@ DataHandlerLP
 
 In addition to use ``Data Handler`` in an automatic workflow with ``qrun``, ``Data Handler`` can be used as an independent module, by which users can easily preprocess data (standardization, remove NaN, etc.) and build datasets. 
 
-In order to achieve so, ``Qlib`` provides a base class `qlib.data.dataset.DataHandlerLP <../reference/api.html#qlib.data.dataset.handler.DataHandlerLP>`_. The core idea of this class is that: we will have some leanable ``Processors`` which can learn the parameters of data processing(e.g., parameters for zscore normalization). When new data comes in, these `trained` ``Processors`` can then process the new data and thus processing real-time data in an efficient way becomes possible. More information about ``Processors`` will be listed in the next subsection.
+In order to achieve so, ``Qlib`` provides a base class `qlib.data.dataset.DataHandlerLP <../reference/api.html#qlib.data.dataset.handler.DataHandlerLP>`_. The core idea of this class is that: we will have some learnable ``Processors`` which can learn the parameters of data processing(e.g., parameters for zscore normalization). When new data comes in, these `trained` ``Processors`` can then process the new data and thus processing real-time data in an efficient way becomes possible. More information about ``Processors`` will be listed in the next subsection.
 
 
 Interface
@@ -391,8 +450,7 @@ The ``DatasetH`` class is the `dataset` with `Data Handler`. Here is the most im
 API
 ---------
 
-To know more about ``Dataset``, please refer to `Dataset API <../reference/api.html#module-qlib.data.dataset.__init__>`_.
-
+To know more about ``Dataset``, please refer to `Dataset API <../reference/api.html#dataset>`_.
 
 
 Cache

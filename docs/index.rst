@@ -36,12 +36,14 @@ Document Structure
    :caption: COMPONENTS:
 
    Workflow: Workflow Management <component/workflow.rst>
-   Data Layer: Data Framework&Usage <component/data.rst>
+   Data Layer: Data Framework & Usage <component/data.rst>
    Forecast Model: Model Training & Prediction <component/model.rst>
-   Strategy: Portfolio Management <component/strategy.rst>
-   Intraday Trading: Model&Strategy Testing <component/backtest.rst>
+   Portfolio Management and Backtest <component/strategy.rst>
+   Nested Decision Execution: High-Frequency Trading <component/highfreq.rst>
+   Meta Controller: Meta-Task & Meta-Dataset & Meta-Model <component/meta.rst>
    Qlib Recorder: Experiment Management <component/recorder.rst>
    Analysis: Evaluation & Results Analysis <component/report.rst>
+   Online Serving: Online Management & Strategy & Tool <component/online.rst>
 
 .. toctree::
    :maxdepth: 3
@@ -50,6 +52,7 @@ Document Structure
    Building Formulaic Alphas <advanced/alpha.rst>
    Online & Offline mode <advanced/server.rst>
    Serialization <advanced/serial.rst>
+   Task Management <advanced/task_management.rst>
 
 .. toctree::
    :maxdepth: 3

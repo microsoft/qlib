@@ -1,7 +1,7 @@
 
 - [Download Qlib Data](#Download-Qlib-Data)
   - [Download CN Data](#Download-CN-Data)
-  - [Downlaod US Data](#Downlaod-US-Data)
+  - [Download US Data](#Download-US-Data)
   - [Download CN Simple Data](#Download-CN-Simple-Data)
   - [Help](#Help)
 - [Using in Qlib](#Using-in-Qlib)
@@ -15,10 +15,14 @@
 ### Download CN Data
 
 ```bash
+# daily data
 python get_data.py qlib_data --target_dir ~/.qlib/qlib_data/cn_data --region cn
+
+# 1min  data (Optional for running non-high-frequency strategies)
+python get_data.py qlib_data --target_dir ~/.qlib/qlib_data/cn_data_1min --region cn --interval 1min
 ```
 
-### Downlaod US Data
+### Download US Data
 
 
 ```bash
@@ -58,7 +62,8 @@ qlib.init(provider_uri=provider_uri, region=REG_US)
 
 ```python
 import qlib
-from qlib.config import REG_CN
+from qlib.constant import REG_CN
+
 provider_uri = "~/.qlib/qlib_data/cn_data"  # target_dir
 qlib.init(provider_uri=provider_uri, region=REG_CN)
 ```

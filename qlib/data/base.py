@@ -24,107 +24,107 @@ class Expression(abc.ABC):
         return str(self)
 
     def __gt__(self, other):
-        from .ops import Gt
+        from .ops import Gt  # pylint: disable=C0415
 
         return Gt(self, other)
 
     def __ge__(self, other):
-        from .ops import Ge
+        from .ops import Ge  # pylint: disable=C0415
 
         return Ge(self, other)
 
     def __lt__(self, other):
-        from .ops import Lt
+        from .ops import Lt  # pylint: disable=C0415
 
         return Lt(self, other)
 
     def __le__(self, other):
-        from .ops import Le
+        from .ops import Le  # pylint: disable=C0415
 
         return Le(self, other)
 
     def __eq__(self, other):
-        from .ops import Eq
+        from .ops import Eq  # pylint: disable=C0415
 
         return Eq(self, other)
 
     def __ne__(self, other):
-        from .ops import Ne
+        from .ops import Ne  # pylint: disable=C0415
 
         return Ne(self, other)
 
     def __add__(self, other):
-        from .ops import Add
+        from .ops import Add  # pylint: disable=C0415
 
         return Add(self, other)
 
     def __radd__(self, other):
-        from .ops import Add
+        from .ops import Add  # pylint: disable=C0415
 
         return Add(other, self)
 
     def __sub__(self, other):
-        from .ops import Sub
+        from .ops import Sub  # pylint: disable=C0415
 
         return Sub(self, other)
 
     def __rsub__(self, other):
-        from .ops import Sub
+        from .ops import Sub  # pylint: disable=C0415
 
         return Sub(other, self)
 
     def __mul__(self, other):
-        from .ops import Mul
+        from .ops import Mul  # pylint: disable=C0415
 
         return Mul(self, other)
 
     def __rmul__(self, other):
-        from .ops import Mul
+        from .ops import Mul  # pylint: disable=C0415
 
         return Mul(self, other)
 
     def __div__(self, other):
-        from .ops import Div
+        from .ops import Div  # pylint: disable=C0415
 
         return Div(self, other)
 
     def __rdiv__(self, other):
-        from .ops import Div
+        from .ops import Div  # pylint: disable=C0415
 
         return Div(other, self)
 
     def __truediv__(self, other):
-        from .ops import Div
+        from .ops import Div  # pylint: disable=C0415
 
         return Div(self, other)
 
     def __rtruediv__(self, other):
-        from .ops import Div
+        from .ops import Div  # pylint: disable=C0415
 
         return Div(other, self)
 
     def __pow__(self, other):
-        from .ops import Power
+        from .ops import Power  # pylint: disable=C0415
 
         return Power(self, other)
 
     def __and__(self, other):
-        from .ops import And
+        from .ops import And  # pylint: disable=C0415
 
         return And(self, other)
 
     def __rand__(self, other):
-        from .ops import And
+        from .ops import And  # pylint: disable=C0415
 
         return And(other, self)
 
     def __or__(self, other):
-        from .ops import Or
+        from .ops import Or  # pylint: disable=C0415
 
         return Or(self, other)
 
     def __ror__(self, other):
-        from .ops import Or
+        from .ops import Or  # pylint: disable=C0415
 
         return Or(other, self)
 
@@ -147,15 +147,23 @@ class Expression(abc.ABC):
         pd.Series
             feature series: The index of the series is the calendar index
         """
-        from .cache import H
+        from .cache import H  # pylint: disable=C0415
 
         # cache
         args = str(self), instrument, start_index, end_index, freq
         if args in H["f"]:
             return H["f"][args]
-        if start_index is None or end_index is None or start_index > end_index:
+        if start_index is not None and end_index is not None and start_index > end_index:
             raise ValueError("Invalid index range: {} {}".format(start_index, end_index))
-        series = self._load_internal(instrument, start_index, end_index, freq)
+        try:
+            series = self._load_internal(instrument, start_index, end_index, freq)
+        except Exception as e:
+            get_module_logger("data").debug(
+                f"Loading data error: instrument={instrument}, expression={str(self)}, "
+                f"start_index={start_index}, end_index={end_index}, freq={freq}. "
+                f"error info: {str(e)}"
+            )
+            raise
         series.name = str(self)
         H["f"][args] = series
         return series
@@ -201,16 +209,16 @@ class Feature(Expression):
 
     def __init__(self, name=None):
         if name:
-            self._name = name.lower()
+            self._name = name
         else:
-            self._name = type(self).__name__.lower()
+            self._name = type(self).__name__
 
     def __str__(self):
         return "$" + self._name
 
     def _load_internal(self, instrument, start_index, end_index, freq):
         # load
-        from .data import FeatureD
+        from .data import FeatureD  # pylint: disable=C0415
 
         return FeatureD.feature(instrument, str(self), start_index, end_index, freq)
 
@@ -227,7 +235,6 @@ class ExpressionOps(Expression):
     This kind of feature will use operator for feature
     construction on the fly.
     """
-
     pass
 
 
@@ -545,49 +552,3 @@ class PExpressionOps(PExpression):
     """
 
     pass
-
-
-class OpsWrapper:
-    """Ops Wrapper"""
-
-    def __init__(self):
-        self._ops = {}
-
-    def reset(self):
-        self._ops = {}
-
-    def register(self, ops_list):
-        for operator in ops_list:
-            if not issubclass(operator, ExpressionOps) and not issubclass(operator, PExpressionOps):
-                raise TypeError("operator must be subclass of ExpressionOps or PExpressionOps, not {}".format(operator))
-
-            if operator.__name__ in self._ops:
-                get_module_logger(self.__class__.__name__).warning(
-                    "The custom operator [{}] will override the qlib default definition".format(operator.__name__)
-                )
-            self._ops[operator.__name__] = operator
-
-    def __getattr__(self, key):
-        if key not in self._ops:
-            raise AttributeError("The operator [{0}] is not registered".format(key))
-        return self._ops[key]
-
-
-Operators = OpsWrapper()
-
-
-def register_all_ops(C):
-    """register all operator"""
-    logger = get_module_logger("base")
-
-    Operators.reset()
-
-    from .ops import OpsList
-    from .ops_period import PeriodOpsList
-
-    Operators.register(OpsList)
-    Operators.register(PeriodOpsList)
-
-    if getattr(C, "custom_ops", None) is not None:
-        Operators.register(C.custom_ops)
-        logger.debug("register custom period operator {}".format(C.custom_ops))

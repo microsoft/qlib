@@ -10,9 +10,11 @@ from catboost.utils import get_gpu_device_count
 from ...model.base import Model
 from ...data.dataset import DatasetH
 from ...data.dataset.handler import DataHandlerLP
+from ...model.interpret.base import FeatureInt
+from ...data.dataset.weight import Reweighter
 
 
-class CatBoostModel(Model):
+class CatBoostModel(Model, FeatureInt):
     """CatBoost Model"""
 
     def __init__(self, loss="RMSE", **kwargs):
@@ -30,6 +32,7 @@ class CatBoostModel(Model):
         early_stopping_rounds=50,
         verbose_eval=20,
         evals_result=dict(),
+        reweighter=None,
         **kwargs
     ):
         df_train, df_valid = dataset.prepare(
@@ -37,6 +40,8 @@ class CatBoostModel(Model):
             col_set=["feature", "label"],
             data_key=DataHandlerLP.DK_L,
         )
+        if df_train.empty or df_valid.empty:
+            raise ValueError("Empty data from dataset, please check your dataset config.")
         x_train, y_train = df_train["feature"], df_train["label"]
         x_valid, y_valid = df_valid["feature"], df_valid["label"]
 
@@ -46,8 +51,17 @@ class CatBoostModel(Model):
         else:
             raise ValueError("CatBoost doesn't support multi-label training")
 
-        train_pool = Pool(data=x_train, label=y_train_1d)
-        valid_pool = Pool(data=x_valid, label=y_valid_1d)
+        if reweighter is None:
+            w_train = None
+            w_valid = None
+        elif isinstance(reweighter, Reweighter):
+            w_train = reweighter.reweight(df_train).values
+            w_valid = reweighter.reweight(df_valid).values
+        else:
+            raise ValueError("Unsupported reweighter type.")
+
+        train_pool = Pool(data=x_train, label=y_train_1d, weight=w_train)
+        valid_pool = Pool(data=x_valid, label=y_valid_1d, weight=w_valid)
 
         # Initialize the catboost model
         self._params["iterations"] = num_boost_round
@@ -68,6 +82,18 @@ class CatBoostModel(Model):
             raise ValueError("model is not fitted yet!")
         x_test = dataset.prepare(segment, col_set="feature", data_key=DataHandlerLP.DK_I)
         return pd.Series(self.model.predict(x_test.values), index=x_test.index)
+
+    def get_feature_importance(self, *args, **kwargs) -> pd.Series:
+        """get feature importance
+
+        Notes
+        -----
+            parameters references:
+            https://catboost.ai/docs/concepts/python-reference_catboost_get_feature_importance.html#python-reference_catboost_get_feature_importance
+        """
+        return pd.Series(
+            data=self.model.get_feature_importance(*args, **kwargs), index=self.model.feature_names_
+        ).sort_values(ascending=False)
 
 
 if __name__ == "__main__":

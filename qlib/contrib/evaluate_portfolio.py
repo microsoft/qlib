@@ -5,11 +5,9 @@
 from __future__ import division
 from __future__ import print_function
 
-import copy
 import numpy as np
 import pandas as pd
 from scipy.stats import spearmanr, pearsonr
-
 
 from ..data import D
 
@@ -38,11 +36,11 @@ def _get_position_value_from_df(evaluate_date, position, close_data_df):
 def get_position_value(evaluate_date, position):
     """sum of close*amount
 
-    get value of postion
+    get value of position
 
     use close price
 
-        postions:
+        positions:
         {
             Timestamp('2016-01-05 00:00:00'):
             {
@@ -243,4 +241,4 @@ def get_rank_ic(a, b):
 
 
 def get_normal_ic(a, b):
-    return pearsonr(a, b).correlation
+    return pearsonr(a, b)[0]

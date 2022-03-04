@@ -1,7 +1,8 @@
 #  Copyright (c) Microsoft Corporation.
 #  Licensed under the MIT License.
 
-import sys, os
+import sys
+import os
 from pathlib import Path
 
 import qlib
@@ -41,7 +42,7 @@ def sys_config(config, config_path):
         sys.path.append(str(Path(config_path).parent.resolve().absolute() / p))
 
 
-# worflow handler function
+# workflow handler function
 def workflow(config_path, experiment_name="workflow", uri_folder="mlruns"):
     with open(config_path) as fp:
         config = yaml.safe_load(fp)
@@ -53,10 +54,11 @@ def workflow(config_path, experiment_name="workflow", uri_folder="mlruns"):
     exp_manager["kwargs"]["uri"] = "file:" + str(Path(os.getcwd()).resolve() / uri_folder)
     qlib.init(**config.get("qlib_init"), exp_manager=exp_manager)
 
-    task_train(config.get("task"), experiment_name=experiment_name)
+    recorder = task_train(config.get("task"), experiment_name=experiment_name)
+    recorder.save_objects(config=config)
 
 
-# function to run worklflow by config
+# function to run workflow by config
 def run():
     fire.Fire(workflow)
 

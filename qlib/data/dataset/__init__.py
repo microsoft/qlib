@@ -1,9 +1,9 @@
 from ...utils.serial import Serializable
-from typing import Union, List, Tuple, Dict, Text, Optional
-from ...utils import init_instance_by_config, np_ffill
+from typing import Callable, Union, List, Tuple, Dict, Text, Optional
+from ...utils import init_instance_by_config, np_ffill, time_to_slc_point
 from ...log import get_module_logger
 from .handler import DataHandler, DataHandlerLP
-from copy import deepcopy
+from copy import copy, deepcopy
 from inspect import getfullargspec
 import pandas as pd
 import numpy as np
@@ -27,7 +27,7 @@ class Dataset(Serializable):
         - setup data
             - The data related attributes' names should start with '_' so that it will not be saved on disk when serializing.
 
-        The data could specify the info to caculate the essential data for preparation
+        The data could specify the info to calculate the essential data for preparation
         """
         self.setup_data(**kwargs)
         super().__init__()
@@ -52,7 +52,6 @@ class Dataset(Serializable):
 
         - User prepare data for model based on previous status.
         """
-        pass
 
     def prepare(self, **kwargs) -> object:
         """
@@ -68,7 +67,6 @@ class Dataset(Serializable):
         object:
             return the object
         """
-        pass
 
 
 class DatasetH(Dataset):
@@ -83,7 +81,9 @@ class DatasetH(Dataset):
     - The processing is related to data split.
     """
 
-    def __init__(self, handler: Union[Dict, DataHandler], segments: Dict[Text, Tuple], **kwargs):
+    def __init__(
+        self, handler: Union[Dict, DataHandler], segments: Dict[Text, Tuple], fetch_kwargs: Dict = {}, **kwargs
+    ):
         """
         Setup the underlying data.
 
@@ -92,7 +92,7 @@ class DatasetH(Dataset):
         handler : Union[dict, DataHandler]
             handler could be:
 
-            - insntance of `DataHandler`
+            - instance of `DataHandler`
 
             - config of `DataHandler`.  Please refer to `DataHandler`
 
@@ -112,8 +112,9 @@ class DatasetH(Dataset):
                         'outsample': ("2017-01-01", "2020-08-01",),
                     }
         """
-        self.handler = init_instance_by_config(handler, accept_types=DataHandler)
+        self.handler: DataHandler = init_instance_by_config(handler, accept_types=DataHandler)
         self.segments = segments.copy()
+        self.fetch_kwargs = copy(fetch_kwargs)
         super().__init__(**kwargs)
 
     def config(self, handler_kwargs: dict = None, **kwargs):
@@ -123,7 +124,7 @@ class DatasetH(Dataset):
         Parameters
         ----------
         handler_kwargs : dict
-            Config of DataHanlder, which could include the following arguments:
+            Config of DataHandler, which could include the following arguments:
 
             - arguments of DataHandler.conf_data, such as 'instruments', 'start_time' and 'end_time'.
 
@@ -147,11 +148,11 @@ class DatasetH(Dataset):
         Parameters
         ----------
         handler_kwargs : dict
-            init arguments of DataHanlder, which could include the following arguments:
+            init arguments of DataHandler, which could include the following arguments:
 
             - init_type : Init Type of Handler
 
-            - enable_cache : wheter to enable cache
+            - enable_cache : whether to enable cache
 
         """
         super().setup_data(**kwargs)
@@ -163,19 +164,22 @@ class DatasetH(Dataset):
             name=self.__class__.__name__, handler=self.handler, segments=self.segments
         )
 
-    def _prepare_seg(self, slc: slice, **kwargs):
+    def _prepare_seg(self, slc, **kwargs):
         """
-        Give a slice, retrieve the according data
+        Give a query, retrieve the according data
 
         Parameters
         ----------
-        slc : slice
+        slc : please refer to the docs of `prepare`
         """
-        return self.handler.fetch(slc, **kwargs)
+        if hasattr(self, "fetch_kwargs"):
+            return self.handler.fetch(slc, **kwargs, **self.fetch_kwargs)
+        else:
+            return self.handler.fetch(slc, **kwargs)
 
     def prepare(
         self,
-        segments: Union[List[Text], Tuple[Text], Text, slice],
+        segments: Union[List[Text], Tuple[Text], Text, slice, pd.Index],
         col_set=DataHandler.CS_ALL,
         data_key=DataHandlerLP.DK_I,
         **kwargs,
@@ -199,6 +203,12 @@ class DatasetH(Dataset):
             The data to fetch:  DK_*
             Default is DK_I, which indicate fetching data for **inference**.
 
+        kwargs :
+            The parameters that kwargs may contain:
+                flt_col : str
+                    It only exists in TSDatasetH, can be used to add a column of data(True or False) to filter data.
+                    This parameter is only supported when it is an instance of TSDatasetH.
+
         Returns
         -------
         Union[List[pd.DataFrame], pd.DataFrame]:
@@ -208,22 +218,49 @@ class DatasetH(Dataset):
         NotImplementedError:
         """
         logger = get_module_logger("DatasetH")
-        fetch_kwargs = {"col_set": col_set}
-        fetch_kwargs.update(kwargs)
+        seg_kwargs = {"col_set": col_set}
+        seg_kwargs.update(kwargs)
         if "data_key" in getfullargspec(self.handler.fetch).args:
-            fetch_kwargs["data_key"] = data_key
+            seg_kwargs["data_key"] = data_key
         else:
             logger.info(f"data_key[{data_key}] is ignored.")
 
-        # Handle all kinds of segments format
-        if isinstance(segments, (list, tuple)):
-            return [self._prepare_seg(slice(*self.segments[seg]), **fetch_kwargs) for seg in segments]
-        elif isinstance(segments, str):
-            return self._prepare_seg(slice(*self.segments[segments]), **fetch_kwargs)
-        elif isinstance(segments, slice):
-            return self._prepare_seg(segments, **fetch_kwargs)
-        else:
-            raise NotImplementedError(f"This type of input is not supported")
+        # Conflictions may happen here
+        # - The fetched data and the segment key may both be string
+        # To resolve the confliction
+        # - The segment name will have higher priorities
+
+        # 1) Use it as segment name first
+        if isinstance(segments, str) and segments in self.segments:
+            return self._prepare_seg(self.segments[segments], **seg_kwargs)
+
+        if isinstance(segments, (list, tuple)) and all(seg in self.segments for seg in segments):
+            return [self._prepare_seg(self.segments[seg], **seg_kwargs) for seg in segments]
+
+        # 2) Use pass it directly to prepare a single seg
+        return self._prepare_seg(segments, **seg_kwargs)
+
+    # helper functions
+    @staticmethod
+    def get_min_time(segments):
+        return DatasetH._get_extrema(segments, 0, (lambda a, b: a > b))
+
+    @staticmethod
+    def get_max_time(segments):
+        return DatasetH._get_extrema(segments, 1, (lambda a, b: a < b))
+
+    @staticmethod
+    def _get_extrema(segments, idx: int, cmp: Callable, key_func=pd.Timestamp):
+        """it will act like sort and return the max value or None"""
+        candidate = None
+        for k, seg in segments.items():
+            point = seg[idx]
+            if point is None:
+                # None indicates unbounded, return directly
+                return None
+            elif candidate is None or cmp(key_func(candidate), key_func(point)):
+                candidate = point
+        return candidate
 
 
 class TSDataSampler:
@@ -231,8 +268,10 @@ class TSDataSampler:
     (T)ime-(S)eries DataSampler
     This is the result of TSDatasetH
 
-    It works like `torch.data.utils.Dataset`, it provides a very convient interface for constructing time-series
+    It works like `torch.data.utils.Dataset`, it provides a very convenient interface for constructing time-series
     dataset based on tabular data.
+    - On time step dimension, the smaller index indicates the historical data and the larger index indicates the future
+      data.
 
     If user have further requirements for processing data, user could process them based on `TSDataSampler` or create
     more powerful subclasses.
@@ -243,7 +282,9 @@ class TSDataSampler:
 
     """
 
-    def __init__(self, data: pd.DataFrame, start, end, step_len: int, fillna_type: str = "none"):
+    def __init__(
+        self, data: pd.DataFrame, start, end, step_len: int, fillna_type: str = "none", dtype=None, flt_data=None
+    ):
         """
         Build a dataset which looks like torch.data.utils.Dataset.
 
@@ -265,6 +306,11 @@ class TSDataSampler:
                 ffill with previous sample
             ffill+bfill:
                 ffill with previous samples first and fill with later samples second
+        flt_data : pd.Series
+            a column of data(True or False) to filter data.
+            None:
+                kepp all data
+
         """
         self.start = start
         self.end = end
@@ -272,23 +318,79 @@ class TSDataSampler:
         self.fillna_type = fillna_type
         assert get_level_index(data, "datetime") == 0
         self.data = lazy_sort_index(data)
-        self.data_arr = np.array(self.data)  # Get index from numpy.array will much faster than DataFrame.values!
-        # NOTE: append last line with full NaN for better performance in `__getitem__`
-        self.data_arr = np.append(self.data_arr, np.full((1, self.data_arr.shape[1]), np.nan), axis=0)
+
+        kwargs = {"object": self.data}
+        if dtype is not None:
+            kwargs["dtype"] = dtype
+
+        self.data_arr = np.array(**kwargs)  # Get index from numpy.array will much faster than DataFrame.values!
+        # NOTE:
+        # - append last line with full NaN for better performance in `__getitem__`
+        # - Keep the same dtype will result in a better performance
+        self.data_arr = np.append(
+            self.data_arr, np.full((1, self.data_arr.shape[1]), np.nan, dtype=self.data_arr.dtype), axis=0
+        )
         self.nan_idx = -1  # The last line is all NaN
 
         # the data type will be changed
         # The index of usable data is between start_idx and end_idx
-        self.start_idx, self.end_idx = self.data.index.slice_locs(start=pd.Timestamp(start), end=pd.Timestamp(end))
         self.idx_df, self.idx_map = self.build_index(self.data)
+        self.data_index = deepcopy(self.data.index)
+
+        if flt_data is not None:
+            if isinstance(flt_data, pd.DataFrame):
+                assert len(flt_data.columns) == 1
+                flt_data = flt_data.iloc[:, 0]
+            # NOTE: bool(np.nan) is True !!!!!!!!
+            # make sure reindex comes first. Otherwise extra NaN may appear.
+            flt_data = flt_data.reindex(self.data_index).fillna(False).astype(np.bool)
+            self.flt_data = flt_data.values
+            self.idx_map = self.flt_idx_map(self.flt_data, self.idx_map)
+            self.data_index = self.data_index[np.where(self.flt_data is True)[0]]
+        self.idx_map = self.idx_map2arr(self.idx_map)
+
+        self.start_idx, self.end_idx = self.data_index.slice_locs(
+            start=time_to_slc_point(start), end=time_to_slc_point(end)
+        )
         self.idx_arr = np.array(self.idx_df.values, dtype=np.float64)  # for better performance
+
+        del self.data  # save memory
+
+    @staticmethod
+    def idx_map2arr(idx_map):
+        # pytorch data sampler will have better memory control without large dict or list
+        # - https://github.com/pytorch/pytorch/issues/13243
+        # - https://github.com/airctic/icevision/issues/613
+        # So we convert the dict into int array.
+        # The arr_map is expected to behave the same as idx_map
+
+        dtype = np.int32
+        # set a index out of bound to indicate the none existing
+        no_existing_idx = (np.iinfo(dtype).max, np.iinfo(dtype).max)
+
+        max_idx = max(idx_map.keys())
+        arr_map = []
+        for i in range(max_idx + 1):
+            arr_map.append(idx_map.get(i, no_existing_idx))
+        arr_map = np.array(arr_map, dtype=dtype)
+        return arr_map
+
+    @staticmethod
+    def flt_idx_map(flt_data, idx_map):
+        idx = 0
+        new_idx_map = {}
+        for i, exist in enumerate(flt_data):
+            if exist:
+                new_idx_map[idx] = idx_map[i]
+                idx += 1
+        return new_idx_map
 
     def get_index(self):
         """
         Get the pandas index of the data, it will be useful in following scenarios
         - Special sampler will be used (e.g. user want to sample day by day)
         """
-        return self.data.index[self.start_idx : self.end_idx]
+        return self.data_index[self.start_idx : self.end_idx]
 
     def config(self, **kwargs):
         # Config the attributes
@@ -296,7 +398,7 @@ class TSDataSampler:
             setattr(self, k, v)
 
     @staticmethod
-    def build_index(data: pd.DataFrame) -> dict:
+    def build_index(data: pd.DataFrame) -> Tuple[pd.DataFrame, dict]:
         """
         The relation of the data
 
@@ -307,12 +409,18 @@ class TSDataSampler:
 
         Returns
         -------
-        dict:
-            {<index>: <prev_index or None>}
-            # get the previous index of a line given index
+        Tuple[pd.DataFrame, dict]:
+            1) the first element:  reshape the original index into a <datetime(row), instrument(column)> 2D dataframe
+                instrument SH600000 SH600004 SH600006 SH600007 SH600008 SH600009  ...
+                datetime
+                2021-01-11        0        1        2        3        4        5  ...
+                2021-01-12     4146     4147     4148     4149     4150     4151  ...
+                2021-01-13     8293     8294     8295     8296     8297     8298  ...
+                2021-01-14    12441    12442    12443    12444    12445    12446  ...
+            2) the second element:  {<original index>: <row, col>}
         """
-        # object incase of pandas converting int to flaot
-        idx_df = pd.Series(range(data.shape[0]), index=data.index, dtype=np.object)
+        # object incase of pandas converting int to float
+        idx_df = pd.Series(range(data.shape[0]), index=data.index, dtype=object)
         idx_df = lazy_sort_index(idx_df.unstack())
         # NOTE: the correctness of `__getitem__` depends on columns sorted here
         idx_df = lazy_sort_index(idx_df, axis=1)
@@ -323,6 +431,10 @@ class TSDataSampler:
                 if not np.isnan(real_idx):
                     idx_map[real_idx] = (i, j)
         return idx_df, idx_map
+
+    @property
+    def empty(self):
+        return self.__len__() == 0
 
     def _get_indices(self, row: int, col: int) -> np.array:
         """
@@ -432,7 +544,7 @@ class TSDatasetH(DatasetH):
     (T)ime-(S)eries Dataset (H)andler
 
 
-    Covnert the tabular data to Time-Series data
+    Convert the tabular data to Time-Series data
 
     Requirements analysis
 
@@ -446,7 +558,9 @@ class TSDatasetH(DatasetH):
         - The dimension of a batch of data <batch_idx, feature, timestep>
     """
 
-    def __init__(self, step_len=30, **kwargs):
+    DEFAULT_STEP_LEN = 30
+
+    def __init__(self, step_len=DEFAULT_STEP_LEN, **kwargs):
         self.step_len = step_len
         super().__init__(**kwargs)
 
@@ -457,19 +571,41 @@ class TSDatasetH(DatasetH):
 
     def setup_data(self, **kwargs):
         super().setup_data(**kwargs)
+        # make sure the calendar is updated to latest when loading data from new config
         cal = self.handler.fetch(col_set=self.handler.CS_RAW).index.get_level_values("datetime").unique()
-        cal = sorted(cal)
-        self.cal = cal
+        self.cal = sorted(cal)
 
-    def _prepare_seg(self, slc: slice, **kwargs) -> TSDataSampler:
+    @staticmethod
+    def _extend_slice(slc: slice, cal: list, step_len: int) -> slice:
         # Dataset decide how to slice data(Get more data for timeseries).
         start, end = slc.start, slc.stop
-        start_idx = bisect.bisect_left(self.cal, pd.Timestamp(start))
-        pad_start_idx = max(0, start_idx - self.step_len)
-        pad_start = self.cal[pad_start_idx]
+        start_idx = bisect.bisect_left(cal, pd.Timestamp(start))
+        pad_start_idx = max(0, start_idx - step_len)
+        pad_start = cal[pad_start_idx]
+        return slice(pad_start, end)
 
-        # TSDatasetH will retrieve more data for complete
-        data = super()._prepare_seg(slice(pad_start, end), **kwargs)
+    def _prepare_seg(self, slc: slice, **kwargs) -> TSDataSampler:
+        """
+        split the _prepare_raw_seg is to leave a hook for data preprocessing before creating processing data
+        NOTE: TSDatasetH only support slc segment on datetime !!!
+        """
+        dtype = kwargs.pop("dtype", None)
+        if not isinstance(slc, slice):
+            slc = slice(*slc)
+        start, end = slc.start, slc.stop
+        flt_col = kwargs.pop("flt_col", None)
+        # TSDatasetH will retrieve more data for complete time-series
 
-        tsds = TSDataSampler(data=data, start=start, end=end, step_len=self.step_len)
+        ext_slice = self._extend_slice(slc, self.cal, self.step_len)
+        data = super()._prepare_seg(ext_slice, **kwargs)
+
+        flt_kwargs = deepcopy(kwargs)
+        if flt_col is not None:
+            flt_kwargs["col_set"] = flt_col
+            flt_data = super()._prepare_seg(ext_slice, **flt_kwargs)
+            assert len(flt_data.columns) == 1
+        else:
+            flt_data = None
+
+        tsds = TSDataSampler(data=data, start=start, end=end, step_len=self.step_len, dtype=dtype, flt_data=flt_data)
         return tsds

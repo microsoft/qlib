@@ -5,15 +5,14 @@
 from __future__ import division
 from __future__ import print_function
 
-import sys
-import abc
 import numpy as np
 import pandas as pd
 
+from typing import Union, List, Type
 from scipy.stats import percentileofscore
-
-from .base import Expression, PExpression, ExpressionOps
+from .base import Expression, ExpressionOps, Feature, PExpression
 from ..log import get_module_logger
+from ..utils import get_callable_kwargs
 
 try:
     from ._libs.rolling import rolling_slope, rolling_rsquare, rolling_resi
@@ -23,6 +22,12 @@ except ImportError:
         "#### Do not import qlib package in the repository directory in case of importing qlib from . without compiling #####"
     )
     raise
+except ValueError as e:
+    print("!!!!!!!! A error occurs when importing operators implemented based on Cython.!!!!!!!!")
+    print("!!!!!!!! They will be disabled. Please Upgrade your numpy to enable them     !!!!!!!!")
+    # We catch this error because some platform can't upgrade there package (e.g. Kaggle)
+    # https://www.kaggle.com/general/293387
+    # https://www.kaggle.com/product-feedback/98562
 
 
 np.seterr(invalid="ignore")
@@ -303,7 +308,29 @@ class NpPairOperator(PairOperator):
             series_right = self.feature_right.load(instrument, start_index, end_index, freq)
         else:
             series_right = self.feature_right
-        return getattr(np, self.func)(series_left, series_right)
+        check_length = isinstance(series_left, (np.ndarray, pd.Series)) and isinstance(
+            series_right, (np.ndarray, pd.Series)
+        )
+        if check_length:
+            warning_info = (
+                f"Loading {instrument}: {str(self)}; np.{self.func}(series_left, series_right), "
+                f"The length of series_left and series_right is different: ({len(series_left)}, {len(series_right)}), "
+                f"series_left is {str(self.feature_left)}, series_right is {str(self.feature_right)}. Please check the data"
+            )
+        else:
+            warning_info = (
+                f"Loading {instrument}: {str(self)}; np.{self.func}(series_left, series_right), "
+                f"series_left is {str(self.feature_left)}, series_right is {str(self.feature_right)}. Please check the data"
+            )
+        try:
+            res = getattr(np, self.func)(series_left, series_right)
+        except ValueError as e:
+            get_module_logger("ops").debug(warning_info)
+            raise ValueError(f"{str(e)}. \n\t{warning_info}") from e
+        else:
+            if check_length and len(series_left) != len(series_right):
+                get_module_logger("ops").debug(warning_info)
+        return res
 
 
 class Add(NpPairOperator):
@@ -663,6 +690,9 @@ class If(ExpressionOps):
 
 class Rolling(ExpressionOps):
     """Rolling Operator
+    The meaning of rolling and expanding is the same in pandas.
+    When the window is set to 0, the behaviour of the operator should follow `expanding`
+    Otherwise, it follows `rolling`
 
     Parameters
     ----------
@@ -692,9 +722,9 @@ class Rolling(ExpressionOps):
         # NOTE: remove all null check,
         # now it's user's responsibility to decide whether use features in null days
         # isnull = series.isnull() # NOTE: isnull = NaN, inf is not null
-        if self.N == 0:
+        if isinstance(self.N, int) and self.N == 0:
             series = getattr(series.expanding(min_periods=1), self.func)()
-        elif 0 < self.N < 1:
+        elif isinstance(self.N, int) and 0 < self.N < 1:
             series = series.ewm(alpha=self.N, min_periods=1).mean()
         else:
             series = getattr(series.rolling(self.N, min_periods=1), self.func)()
@@ -1168,6 +1198,14 @@ class Delta(Rolling):
 # support pair-wise rolling like `Slope(A, B, N)`
 class Slope(Rolling):
     """Rolling Slope
+    This operator calculate the slope between `idx` and `feature`.
+    (e.g. [<feature_t1>, <feature_t2>, <feature_t3>] and [1, 2, 3])
+
+    Usage Example:
+    - "Slope($close, %d)/$close"
+
+    # TODO:
+    # Some users may want pair-wise rolling like `Slope(A, B, N)`
 
     Parameters
     ----------
@@ -1343,6 +1381,7 @@ class PairRolling(ExpressionOps):
     """
 
     def __init__(self, feature_left, feature_right, N, func):
+        # TODO: in what case will a const be passed into `__init__` as `feature_left` or `feature_right`
         self.feature_left = feature_left
         self.feature_right = feature_right
         self.N = N
@@ -1352,8 +1391,19 @@ class PairRolling(ExpressionOps):
         return "{}({},{},{})".format(type(self).__name__, self.feature_left, self.feature_right, self.N)
 
     def _load_internal(self, instrument, start_index, end_index, freq):
-        series_left = self.feature_left.load(instrument, start_index, end_index, freq)
-        series_right = self.feature_right.load(instrument, start_index, end_index, freq)
+        assert any(
+            [isinstance(self.feature_left, Expression), self.feature_right, Expression]
+        ), "at least one of two inputs is Expression instance"
+
+        if isinstance(self.feature_left, Expression):
+            series_left = self.feature_left.load(instrument, start_index, end_index, freq)
+        else:
+            series_left = self.feature_left  # numeric value
+        if isinstance(self.feature_right, Expression):
+            series_right = self.feature_right.load(instrument, start_index, end_index, freq)
+        else:
+            series_right = self.feature_right
+
         if self.N == 0:
             series = getattr(series_left.expanding(min_periods=1), self.func)(series_right)
         else:
@@ -1363,21 +1413,32 @@ class PairRolling(ExpressionOps):
     def get_longest_back_rolling(self):
         if self.N == 0:
             return np.inf
-        return (
-            max(self.feature_left.get_longest_back_rolling(), self.feature_right.get_longest_back_rolling())
-            + self.N
-            - 1
-        )
+        if isinstance(self.feature_left, Expression):
+            left_br = self.feature_left.get_longest_back_rolling()
+        else:
+            left_br = 0
+
+        if isinstance(self.feature_right, Expression):
+            right_br = self.feature_right.get_longest_back_rolling()
+        else:
+            right_br = 0
+        return max(left_br, right_br)
 
     def get_extended_window_size(self):
+        if isinstance(self.feature_left, Expression):
+            ll, lr = self.feature_left.get_extended_window_size()
+        else:
+            ll, lr = 0, 0
+        if isinstance(self.feature_right, Expression):
+            rl, rr = self.feature_right.get_extended_window_size()
+        else:
+            rl, rr = 0, 0
         if self.N == 0:
             get_module_logger(self.__class__.__name__).warning(
                 "The PairRolling(ATTR, 0) will not be accurately calculated"
             )
-            return self.feature.get_extended_window_size()
+            return -np.inf, max(lr, rr)
         else:
-            ll, lr = self.feature_left.get_extended_window_size()
-            rl, rr = self.feature_right.get_extended_window_size()
             return max(ll, rl) + self.N - 1, max(lr, rr)
 
 
@@ -1403,7 +1464,7 @@ class Corr(PairRolling):
         super(Corr, self).__init__(feature_left, feature_right, N, "corr")
 
     def _load_internal(self, instrument, start_index, end_index, freq):
-        res = super(Corr, self)._load_internal(instrument, start_index, end_index, freq)
+        res: pd.Series = super(Corr, self)._load_internal(instrument, start_index, end_index, freq)
 
         # NOTE: Load uses MemCache, so calling load again will not cause performance degradation
         series_left = self.feature_left.load(instrument, start_index, end_index, freq)
@@ -1437,7 +1498,50 @@ class Cov(PairRolling):
         super(Cov, self).__init__(feature_left, feature_right, N, "cov")
 
 
+#################### Operator which only support data with time index ####################
+# Convention
+# - The name of the operators in this section will start with "T"
+
+
+class TResample(ElemOperator):
+    def __init__(self, feature, freq, func):
+        """
+        Resampling the data to target frequency.
+        The resample function of pandas is used.
+        - the timestamp will be at the start of the time span after resample.
+
+        Parameters
+        ----------
+        feature : Expression
+            An expression for calculating the feature
+        freq : str
+            It will be passed into the resample method for resampling basedn on given frequency
+        func : method
+            The method to get the resampled values
+            Some expression are high frequently used
+        """
+        self.feature = feature
+        self.freq = freq
+        self.func = func
+
+    def __str__(self):
+        return "{}({},{})".format(type(self).__name__, self.feature, self.freq)
+
+    def _load_internal(self, instrument, start_index, end_index, freq):
+        series = self.feature.load(instrument, start_index, end_index, freq)
+
+        if series.empty:
+            return series
+        else:
+            if self.func == "sum":
+                return getattr(series.resample(self.freq), self.func)(min_count=1)
+            else:
+                return getattr(series.resample(self.freq), self.func)()
+
+
+TOpsList = [TResample]
 OpsList = [
+    Rolling,
     Ref,
     Max,
     Min,
@@ -1483,7 +1587,55 @@ OpsList = [
     IdxMax,
     IdxMin,
     If,
-]
+    Feature,
+] + [TResample]
+
+
+class OpsWrapper:
+    """Ops Wrapper"""
+
+    def __init__(self):
+        self._ops = {}
+
+    def reset(self):
+        self._ops = {}
+
+    def register(self, ops_list: List[Union[Type[ExpressionOps], dict]]):
+        """register operator
+
+        Parameters
+        ----------
+        ops_list : List[Union[Type[ExpressionOps], dict]]
+            - if type(ops_list) is List[Type[ExpressionOps]], each element of ops_list represents the operator class, which should be the subclass of `ExpressionOps`.
+            - if type(ops_list) is List[dict], each element of ops_list represents the config of operator, which has the following format:
+                {
+                    "class": class_name,
+                    "module_path": path,
+                }
+                Note: `class` should be the class name of operator, `module_path` should be a python module or path of file.
+        """
+        for _operator in ops_list:
+            if isinstance(_operator, dict):
+                _ops_class, _ = get_callable_kwargs(_operator)
+            else:
+                _ops_class = _operator
+
+            if not issubclass(_ops_class, Expression):
+                raise TypeError("operator must be subclass of ExpressionOps, not {}".format(_ops_class))
+
+            if _ops_class.__name__ in self._ops:
+                get_module_logger(self.__class__.__name__).warning(
+                    "The custom operator [{}] will override the qlib default definition".format(_ops_class.__name__)
+                )
+            self._ops[_ops_class.__name__] = _ops_class
+
+    def __getattr__(self, key):
+        if key not in self._ops:
+            raise AttributeError("The operator [{0}] is not registered".format(key))
+        return self._ops[key]
+
+
+Operators = OpsWrapper()
 
 
 def register_all_ops(C):
@@ -1494,6 +1646,10 @@ def register_all_ops(C):
 
     # Operators.reset()
     Operators.register(OpsList)
+
+    # FIXME: I don't think it is necessary
+    from .ops_period import PeriodOpsList
+    Operators.register(PeriodOpsList)
 
     if getattr(C, "custom_ops", None) is not None:
         Operators.register(C.custom_ops)

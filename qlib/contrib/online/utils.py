@@ -1,15 +1,17 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+# pylint: skip-file
+
 import pathlib
 import pickle
 import yaml
 import pandas as pd
 from ...data import D
+from ...config import C
 from ...log import get_module_logger
-from ...utils import get_module_by_module_path, init_instance_by_config
 from ...utils import get_next_trading_date
-from ..backtest.exchange import Exchange
+from ...backtest.exchange import Exchange
 
 log = get_module_logger("utils")
 
@@ -36,13 +38,13 @@ def save_instance(instance, file_path):
     save(dump) an instance to a pickle file
         Parameter
             instance :
-                data to te dumped
+                data to be dumped
             file_path : string / pathlib.Path()
                 path of file to be dumped
     """
     file_path = pathlib.Path(file_path)
     with file_path.open("wb") as fr:
-        pickle.dump(instance, fr)
+        pickle.dump(instance, fr, C.dump_protocol_version)
 
 
 def create_user_folder(path):

@@ -53,8 +53,10 @@ Below is a typical config file of ``qrun``.
             kwargs:
                 topk: 50
                 n_drop: 5
+                signal:
+                    - <MODEL> 
+                    - <DATASET>
         backtest:
-            verbose: False
             limit_threshold: 0.095
             account: 100000000
             benchmark: *benchmark
@@ -90,12 +92,12 @@ Below is a typical config file of ``qrun``.
                     test: [2017-01-01, 2020-08-01]
         record: 
             - class: SignalRecord
-                module_path: qlib.workflow.record_temp
-                kwargs: {}
+              module_path: qlib.workflow.record_temp
+              kwargs: {}
             - class: PortAnaRecord
-                module_path: qlib.workflow.record_temp
-                kwargs: 
-                    config: *port_analysis_config
+              module_path: qlib.workflow.record_temp
+              kwargs: 
+                  config: *port_analysis_config
 
 After saving the config into `configuration.yaml`, users could start the workflow and test their ideas with a single command below.
 
@@ -122,8 +124,46 @@ Configuration File
 ===================
 
 Let's get into details of ``qrun`` in this section.
-
 Before using ``qrun``, users need to prepare a configuration file. The following content shows how to prepare each part of the configuration file.
+
+The design logic of the configuration file is very simple. It predefines fixed workflows and provide this yaml interface to users to define how to initialize each component. 
+It follow the design of `init_instance_by_config <https://github.com/microsoft/qlib/blob/2aee9e0145decc3e71def70909639b5e5a6f4b58/qlib/utils/__init__.py#L264>`_ .  It defines the initialization of each component of Qlib, which typically include the class and the initialization arguments.
+
+For example, the following yaml and code are equivalent.
+
+.. code-block:: YAML
+
+    model:
+        class: LGBModel
+        module_path: qlib.contrib.model.gbdt
+        kwargs:
+            loss: mse
+            colsample_bytree: 0.8879
+            learning_rate: 0.0421
+            subsample: 0.8789
+            lambda_l1: 205.6999
+            lambda_l2: 580.9768
+            max_depth: 8
+            num_leaves: 210
+            num_threads: 20
+
+
+.. code-block:: python
+
+        from qlib.contrib.model.gbdt import LGBModel
+        kwargs = {
+            "loss": "mse" ,
+            "colsample_bytree": 0.8879,
+            "learning_rate": 0.0421,
+            "subsample": 0.8789,
+            "lambda_l1": 205.6999,
+            "lambda_l2": 580.9768,
+            "max_depth": 8,
+            "num_leaves": 210,
+            "num_threads": 20,
+        }
+        LGBModel(kwargs)
+
 
 Qlib Init Section
 --------------------
@@ -142,7 +182,7 @@ The meaning of each field is as follows:
 
 - `region`
     - If `region` == "us", ``Qlib`` will be initialized in US-stock mode. 
-    - If `region` == "cn", ``Qlib`` will be initialized in china-stock mode.
+    - If `region` == "cn", ``Qlib`` will be initialized in China-stock mode.
 
     .. note:: 
         
@@ -241,8 +281,10 @@ The following script is the configuration of `backtest` and the `strategy` used 
             kwargs:
                 topk: 50
                 n_drop: 5
+                signal:
+                    - <MODEL> 
+                    - <DATASET>
         backtest:
-            verbose: False
             limit_threshold: 0.095
             account: 100000000
             benchmark: *benchmark
