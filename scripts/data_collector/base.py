@@ -362,6 +362,7 @@ class BaseRun(abc.ABC):
         interval="1d",
         check_data_length=False,
         limit_nums=None,
+        **kwargs,
     ):
         """download data from Internet
 
@@ -401,6 +402,7 @@ class BaseRun(abc.ABC):
             interval=interval,
             check_data_length=check_data_length,
             limit_nums=limit_nums,
+            **kwargs
         ).collector_data()
 
     def normalize_data(self, date_field_name: str = "date", symbol_field_name: str = "symbol"):

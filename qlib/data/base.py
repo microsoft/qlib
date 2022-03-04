@@ -486,7 +486,9 @@ class PExpression(abc.ABC):
 
         for cur_index in range(start_index, end_index + 1):
             cur_date = _calendar[cur_index]
+            # To load expression accurately, more historical data are required
             start_offset = self.get_period_offset(cur_index)
+            # The calculated value will always the last element, so the end_offset is zero.
             resample_data[cur_index - start_index] = self.load_period_data(
                 instrument, start_offset, 0, cur_date, info=(start_index, end_index, cur_index)
             ).iloc[-1]
@@ -524,6 +526,7 @@ class PFeature(PExpression):
         return os.path.exists(index_path) and os.path.exists(data_path)
 
     def load_period_data(self, instrument, start_offset, end_offset, cur_index, **kwargs):
+        # BUG: cur_idnex is a date!!!!!
         ### Zhou Code
         from .data import FeatureD
 

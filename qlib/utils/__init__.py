@@ -25,7 +25,7 @@ import collections
 import numpy as np
 import pandas as pd
 from pathlib import Path
-from typing import Union, Tuple, Text, Optional
+from typing import List, Union, Tuple, Text, Optional
 
 from ..config import C
 from ..log import get_module_logger, set_log_with_config
@@ -56,7 +56,23 @@ def read_bin(file_path, start_index, end_index):
     return series
 
 
-def get_period_list(first, last, quarterly):
+def get_period_list(first: int, last: int, quarterly: bool) -> List[int]:
+    """
+    This method will be used in PIT database.
+    It return all the possible values between `first` and `end`  (first and end is included)
+
+    Parameters
+    ----------
+    quarterly : bool
+        will it return quarterly index or yearly index.
+
+    Returns
+    -------
+    List[int]
+        the possible index between [first, last]
+    """
+
+
     if not quarterly:
         assert all(1900 <= x <= 2099 for x in (first, last)), "invalid arguments"
         return list(range(first, last + 1))
@@ -80,7 +96,14 @@ def get_period_offset(first_year, period, quarterly):
 
 
 def read_period_data(index_path, data_path, period, cur_date, quarterly, last_period_index):
+    """
+    At `cur_date`(e.g. 20190102), read the information at `period`(e.g. 201803).
+    Only the updating info before cur_date or at cur_date will be used.
 
+    Returns
+    -------
+    the query value and byte index the index value
+    """
     DATA_DTYPE = "".join(
         [
             C.pit_record_type["date"],
@@ -114,7 +137,7 @@ def read_period_data(index_path, data_path, period, cur_date, quarterly, last_pe
         while _next != NAN_INDEX:
             fd.seek(_next)
             date, period, value, new_next = struct.unpack(DATA_DTYPE, fd.read(struct.calcsize(DATA_DTYPE)))
-            if date >= cur_date:  # NOTE: only use after published date
+            if date > cur_date:
                 break
             prev_next = _next
             _next = new_next

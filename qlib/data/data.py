@@ -662,6 +662,7 @@ class LocalFeatureProvider(FeatureProvider):
         return series
 
     def period_feature(self, instrument, field, start_offset, end_offset, cur_date, **kwargs):
+        """get the historical periods data series for `start_offset` and `end_offset` """
 
         DATA_RECORDS = [
             ("date", C.pit_record_type["date"]),
@@ -685,7 +686,7 @@ class LocalFeatureProvider(FeatureProvider):
                 self.period_index[field] = {}
 
         if not field.endswith("_q") and not field.endswith("_a"):
-            raise ValueError("period field must ends with '_q' or '_q'")
+            raise ValueError("period field must ends with '_q' or '_a'")
         quarterly = field.endswith("_q")
         index_path = self.uri_period_index.format(instrument.lower(), field)
         data_path = self.uri_period_data.format(instrument.lower(), field)
@@ -693,7 +694,7 @@ class LocalFeatureProvider(FeatureProvider):
 
         # find all revision periods before `cur_date`
         cur_date = int(cur_date.year) * 10000 + int(cur_date.month) * 100 + int(cur_date.day)
-        loc = np.searchsorted(data["date"], cur_date, side="left")
+        loc = np.searchsorted(data["date"], cur_date, side="right")
         if loc <= 0:
             return C.pit_record_nan["value"]
         last_period = data["period"][loc - start_offset - 1 : loc - end_offset].max()  # return the latest quarter

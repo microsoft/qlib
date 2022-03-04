@@ -1,6 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+import re
 import abc
 import sys
 import datetime
@@ -40,6 +41,7 @@ class PitCollector(BaseCollector):
         delay=0,
         check_data_length: bool = False,
         limit_nums: int = None,
+        symbol_flt_regx = None,
     ):
         """
 
@@ -62,6 +64,10 @@ class PitCollector(BaseCollector):
         limit_nums: int
             using for debug, by default None
         """
+        if symbol_flt_regx is None:
+            self.symbol_flt_regx = None
+        else:
+            self.symbol_flt_regx = re.compile(symbol_flt_regx)
         super(PitCollector, self).__init__(
             save_dir=save_dir,
             start=start,
@@ -82,7 +88,16 @@ class PitCollector(BaseCollector):
     def get_instrument_list(self):
         logger.info("get cn stock symbols......")
         symbols = get_hs_stock_symbols()
-        logger.info(f"get {len(symbols)} symbols.")
+        logger.info(f"get {symbols[:10]}[{len(symbols)}] symbols.")
+        if self.symbol_flt_regx is not None:
+            s_flt = []
+            for s in symbols:
+                m = self.symbol_flt_regx.match(s)
+                if m is not None:
+                    s_flt.append(s)
+            logger.info(f"after filtering, it becomes {s_flt[:10]}[{len(s_flt)}] symbols")
+            return s_flt
+
         return symbols
 
     def _get_data_from_baostock(self, symbol, interval, start_datetime, end_datetime):
@@ -95,7 +110,9 @@ class PitCollector(BaseCollector):
                 return np.nan
 
         try:
-            symbol = f"{symbol[7:]}.{symbol[:6]}"
+            code, market = symbol.split('.')
+            market = {"ss": "sh"}.get(market, market)  # baostock's API naming is different from default symbol list
+            symbol = f"{market}.{code}"
             rs_report = bs.query_performance_express_report(
                 code=symbol, start_date=str(start_datetime.date()), end_date=str(end_datetime.date())
             )
@@ -276,6 +293,7 @@ class Run(BaseRun):
         interval="quarterly",
         check_data_length=False,
         limit_nums=None,
+        **kwargs,
     ):
         """download data from Internet
 
@@ -302,7 +320,7 @@ class Run(BaseRun):
             $ python collector.py download_data --source_dir ~/.qlib/cn_data/source/pit_quarter --start 2000-01-01 --end 2021-01-01 --interval quarterly
         """
 
-        super(Run, self).download_data(max_collector_count, delay, start, end, interval, check_data_length, limit_nums)
+        super(Run, self).download_data(max_collector_count, delay, start, end, interval, check_data_length, limit_nums, **kwargs)
 
     def normalize_class_name(self):
         pass

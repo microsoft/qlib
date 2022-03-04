@@ -14,13 +14,22 @@ pip install -r requirements.txt
 ### Download Quarterly CN Data
 
 ```bash
-
+cd qlib/scripts/data_collector/pit/
 # download from baostock.com
-python collector.py download_data --source_dir /data1/v-xiabi/qlib/pit/csv_2 --start 2000-01-01 --end 2020-01-01 --interval quarterly
-
+python collector.py download_data --source_dir ./csv_pit --start 2000-01-01 --end 2020-01-01 --interval quarterly
 ```
+
+Downloading all data from the stock is very time consuming. If you just want run a quick test on a few stocks,  you can run the command below
+``` bash
+python collector.py download_data --source_dir ./csv_pit --start 2000-01-01 --end 2020-01-01 --interval quarterly --symbol_flt_regx "^(600519|000725).*"
+```
+
+
 
 ### Dump Data into PIT Format
 
+```bash
 cd qlib/scripts
-python dump_pit.py dump --csv_path /data1/v-xiabi/qlib/pit/csv_2 --qlib_dir ~/.qlib/qlib_data/cn_data --interval quarterly
+# data_collector/pit/csv_pit is the data you download just now.
+python dump_pit.py dump --csv_path data_collector/pit/csv_pit --qlib_dir ~/.qlib/qlib_data/cn_data --interval quarterly
+```
