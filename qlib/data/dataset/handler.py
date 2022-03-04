@@ -257,7 +257,7 @@ class DataHandler(Serializable):
                     selector=selector, level=level, col_set=col_set, fetch_orig=self.fetch_orig, proc_func=proc_func
                 )
         else:
-            raise TypeError(f"data_storage should be pd.DataFrame|HasingStockStorage, not {type(data_storage)}")
+            raise TypeError(f"data_storage should be pd.DataFrame|HashingStockStorage, not {type(data_storage)}")
 
         if squeeze:
             # squeeze columns

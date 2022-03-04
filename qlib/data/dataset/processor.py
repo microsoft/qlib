@@ -349,6 +349,6 @@ class HashStockFormat(Processor):
     """Process the storage of from df into hasing stock format"""
 
     def __call__(self, df: pd.DataFrame):
-        from .storage import HasingStockStorage  # pylint: disable=C0415
+        from .storage import HashingStockStorage  # pylint: disable=C0415
 
-        return HasingStockStorage.from_df(df)
+        return HashingStockStorage.from_df(df)
