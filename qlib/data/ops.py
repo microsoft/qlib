@@ -726,7 +726,7 @@ class Rolling(ExpressionOps):
         # isnull = series.isnull() # NOTE: isnull = NaN, inf is not null
         if isinstance(self.N, int) and self.N == 0:
             series = getattr(series.expanding(min_periods=1), self.func)()
-        elif isinstance(self.N, int) and 0 < self.N < 1:
+        elif isinstance(self.N, float) and 0 < self.N < 1:
             series = series.ewm(alpha=self.N, min_periods=1).mean()
         else:
             series = getattr(series.rolling(self.N, min_periods=1), self.func)()
