@@ -357,7 +357,6 @@ class BaseRun(abc.ABC):
         delay=0,
         start=None,
         end=None,
-        interval="1d",
         check_data_length: int = None,
         limit_nums=None,
     ):
