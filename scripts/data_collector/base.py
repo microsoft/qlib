@@ -395,7 +395,7 @@ class BaseRun(abc.ABC):
             delay=delay,
             start=start,
             end=end,
-            interval=interval,
+            interval=self.interval,
             check_data_length=check_data_length,
             limit_nums=limit_nums,
         ).collector_data()
