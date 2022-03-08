@@ -41,7 +41,7 @@ class PitCollector(BaseCollector):
         delay=0,
         check_data_length: bool = False,
         limit_nums: int = None,
-        symbol_flt_regx = None,
+        symbol_flt_regx=None,
     ):
         """
 
@@ -110,7 +110,7 @@ class PitCollector(BaseCollector):
                 return np.nan
 
         try:
-            code, market = symbol.split('.')
+            code, market = symbol.split(".")
             market = {"ss": "sh"}.get(market, market)  # baostock's API naming is different from default symbol list
             symbol = f"{market}.{code}"
             rs_report = bs.query_performance_express_report(
@@ -320,7 +320,9 @@ class Run(BaseRun):
             $ python collector.py download_data --source_dir ~/.qlib/cn_data/source/pit_quarter --start 2000-01-01 --end 2021-01-01 --interval quarterly
         """
 
-        super(Run, self).download_data(max_collector_count, delay, start, end, interval, check_data_length, limit_nums, **kwargs)
+        super(Run, self).download_data(
+            max_collector_count, delay, start, end, interval, check_data_length, limit_nums, **kwargs
+        )
 
     def normalize_class_name(self):
         pass

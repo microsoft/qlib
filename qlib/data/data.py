@@ -705,7 +705,7 @@ class LocalFeatureProvider(FeatureProvider, ProviderBackendMixin):
         return self.backend_obj(instrument=instrument, field=field, freq=freq)[start_index : end_index + 1]
 
     def period_feature(self, instrument, field, start_offset, end_offset, cur_date, **kwargs):
-        """get the historical periods data series for `start_offset` and `end_offset` """
+        """get the historical periods data series for `start_offset` and `end_offset`"""
 
         DATA_RECORDS = [
             ("date", C.pit_record_type["date"]),

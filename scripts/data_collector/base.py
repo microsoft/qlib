@@ -399,7 +399,7 @@ class BaseRun(abc.ABC):
             interval=self.interval,
             check_data_length=check_data_length,
             limit_nums=limit_nums,
-            **kwargs
+            **kwargs,
         ).collector_data()
 
     def normalize_data(self, date_field_name: str = "date", symbol_field_name: str = "symbol", **kwargs):

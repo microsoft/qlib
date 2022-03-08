@@ -29,7 +29,7 @@ import collections
 import numpy as np
 import pandas as pd
 from pathlib import Path
-from typing import  List, Dict, Union, Tuple, Any, Text, Optional, Callable
+from typing import List, Dict, Union, Tuple, Any, Text, Optional, Callable
 from types import ModuleType
 from urllib.parse import urlparse
 from .file import get_or_create_path, save_multiple_parts_file, unpack_archive_with_buffer, get_tmp_file_with_buffer
@@ -78,7 +78,6 @@ def get_period_list(first: int, last: int, quarterly: bool) -> List[int]:
     List[int]
         the possible index between [first, last]
     """
-
 
     if not quarterly:
         assert all(1900 <= x <= 2099 for x in (first, last)), "invalid arguments"
@@ -262,9 +261,11 @@ def parse_field(field):
 
     if not isinstance(field, str):
         field = str(field)
-    for pattern, new in [(r"\$\$(\w+)", r'PFeature("\1")'), # $$ must be before $
-                         (r"\$(\w+)", rf'Feature("\1")'),
-                         (r"(\w+\s*)\(", r"Operators.\1(")]:  # Features  # Operators
+    for pattern, new in [
+        (r"\$\$(\w+)", r'PFeature("\1")'),  # $$ must be before $
+        (r"\$(\w+)", rf'Feature("\1")'),
+        (r"(\w+\s*)\(", r"Operators.\1("),
+    ]:  # Features  # Operators
         field = re.sub(pattern, new, field)
     return field
 

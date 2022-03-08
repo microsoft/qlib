@@ -1649,6 +1649,7 @@ def register_all_ops(C):
 
     # FIXME: I don't think it is necessary
     from .ops_period import PeriodOpsList
+
     Operators.register(PeriodOpsList)
 
     if getattr(C, "custom_ops", None) is not None:

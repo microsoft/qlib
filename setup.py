@@ -128,10 +128,10 @@ setup(
     install_requires=REQUIRED,
     extras_require={
         "dev": [
-            'coverage',
-            'pytest>=3',
-            'sphinx',
-            'sphinx_rtd_theme',
+            "coverage",
+            "pytest>=3",
+            "sphinx",
+            "sphinx_rtd_theme",
         ]
     },
     include_package_data=True,

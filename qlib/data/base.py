@@ -15,7 +15,15 @@ from ..log import get_module_logger
 
 
 class Expression(abc.ABC):
-    """Expression base class"""
+    """
+    Expression base class
+
+    Expression is designed to handle the calculation of data with the format below
+    data with two dimension for each instrument,
+    - feature
+    - time:  it  could be observation time or period time.
+        - period time is designed for Point-in-time database.  For example, the period time maybe 2014Q4, its value can observed for multiple times(different value may be observed at different time due to amendment).
+    """
 
     def __str__(self):
         return type(self).__name__
@@ -235,6 +243,7 @@ class ExpressionOps(Expression):
     This kind of feature will use operator for feature
     construction on the fly.
     """
+
     pass
 
 
