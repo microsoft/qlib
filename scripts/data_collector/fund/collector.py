@@ -253,7 +253,6 @@ class Run(BaseRun):
         delay=0,
         start=None,
         end=None,
-        interval="1d",
         check_data_length: int = None,
         limit_nums=None,
     ):
@@ -282,7 +281,7 @@ class Run(BaseRun):
             $ python collector.py download_data --source_dir ~/.qlib/fund_data/source/cn_data --region CN --start 2020-11-01 --end 2020-11-10 --delay 0.1 --interval 1d
         """
 
-        super(Run, self).download_data(max_collector_count, delay, start, end, interval, check_data_length, limit_nums)
+        super(Run, self).download_data(max_collector_count, delay, start, end, check_data_length, limit_nums)
 
     def normalize_data(self, date_field_name: str = "date", symbol_field_name: str = "symbol"):
         """normalize data
