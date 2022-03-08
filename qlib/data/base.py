@@ -505,9 +505,13 @@ class PExpression(abc.ABC):
             # To load expression accurately, more historical data are required
             start_offset = self.get_period_offset(cur_index)
             # The calculated value will always the last element, so the end_offset is zero.
-            resample_data[cur_index - start_index] = self.load_period_data(
-                instrument, start_offset, 0, cur_date, info=(start_index, end_index, cur_index)
-            ).iloc[-1]
+            try:
+                resample_data[cur_index - start_index] = self.load_period_data(
+                    instrument, start_offset, 0, cur_date, info=(start_index, end_index, cur_index)
+                ).iloc[-1]
+            except FileNotFoundError:
+                get_module_logger("base").warning(f"WARN: period data not found for {str(self)}")
+                return pd.Series(dtype="float32", name=str(self))
 
         resample_series = pd.Series(
             resample_data, index=pd.RangeIndex(start_index, end_index + 1), dtype="float32", name=str(self)
@@ -532,21 +536,12 @@ class PFeature(PExpression):
     def __str__(self):
         return "$$" + self._name
 
-    def check_feature_exist(self, instrument):
-        from .data import FeatureD
-
-        instrument = code_to_fname(instrument).lower()
-        index_path = FeatureD.uri_period_index.format(instrument, self._name)
-        data_path = FeatureD.uri_period_data.format(instrument, self._name)
-
-        return os.path.exists(index_path) and os.path.exists(data_path)
-
     def load_period_data(self, instrument, start_offset, end_offset, cur_index, **kwargs):
         # BUG: cur_idnex is a date!!!!!
         ### Zhou Code
-        from .data import FeatureD
+        from .data import PITD
 
-        return FeatureD.period_feature(instrument, str(self), start_offset, end_offset, cur_index, **kwargs)
+        return PITD.period_feature(instrument, str(self), start_offset, end_offset, cur_index, **kwargs)
         # return pd.Series([1, 2, 3])  # fot test
 
     def get_period_offset(self, cur_index):

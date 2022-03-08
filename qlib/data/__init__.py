@@ -15,6 +15,7 @@ from .data import (
     LocalCalendarProvider,
     LocalInstrumentProvider,
     LocalFeatureProvider,
+    LocalPITProvider,
     LocalExpressionProvider,
     LocalDatasetProvider,
     ClientCalendarProvider,

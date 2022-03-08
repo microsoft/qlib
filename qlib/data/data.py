@@ -6,6 +6,7 @@ from __future__ import division
 from __future__ import print_function
 
 import re
+import os
 import abc
 import copy
 import queue
@@ -332,6 +333,20 @@ class FeatureProvider(abc.ABC):
             data of a certain feature
         """
         raise NotImplementedError("Subclass of FeatureProvider must implement `feature` method")
+
+
+class PITProvider(abc.ABC):
+    @abc.abstractmethod
+    def period_feature(self, instrument, field, start_offset, end_offset, cur_date, **kwargs):
+        """
+        get the historical periods data series for `start_offset` and `end_offset`
+
+        Raises
+        ------
+        FileNotFoundError
+            This exception will be raised if the queried data do not exist.
+        """
+        raise NotImplementedError(f"Please implement the `period_feature` method")
 
 
 class ExpressionProvider(abc.ABC):
@@ -690,23 +705,17 @@ class LocalFeatureProvider(FeatureProvider, ProviderBackendMixin):
         self.remote = remote
         self.backend = backend
 
-    @property
-    def uri_period_index(self):
-        return os.path.join(C.get_data_path(), "financial", "{}", "{}.index")
-
-    @property
-    def uri_period_data(self):
-        return os.path.join(C.get_data_path(), "financial", "{}", "{}.data")
-
     def feature(self, instrument, field, start_index, end_index, freq):
         # validate
         field = str(field)[1:]
         instrument = code_to_fname(instrument)
         return self.backend_obj(instrument=instrument, field=field, freq=freq)[start_index : end_index + 1]
 
-    def period_feature(self, instrument, field, start_offset, end_offset, cur_date, **kwargs):
-        """get the historical periods data series for `start_offset` and `end_offset`"""
 
+class LocalPITProvider(PITProvider):
+    # TODO: Add PIT backend file storage
+
+    def period_feature(self, instrument, field, start_offset, end_offset, cur_date, **kwargs):
         DATA_RECORDS = [
             ("date", C.pit_record_type["date"]),
             ("period", C.pit_record_type["period"]),
@@ -731,8 +740,10 @@ class LocalFeatureProvider(FeatureProvider, ProviderBackendMixin):
         if not field.endswith("_q") and not field.endswith("_a"):
             raise ValueError("period field must ends with '_q' or '_a'")
         quarterly = field.endswith("_q")
-        index_path = self.uri_period_index.format(instrument.lower(), field)
-        data_path = self.uri_period_data.format(instrument.lower(), field)
+        index_path = C.dpm.get_data_uri() / "financial" / instrument.lower() / f"{field}.index"
+        data_path = C.dpm.get_data_uri() / "financial" / instrument.lower() / f"{field}.data"
+        if not (index_path.exists() and data_path.exists()):
+            raise FileNotFoundError("No file is found. Raise exception and  ")
         data = np.fromfile(data_path, dtype=DATA_RECORDS)
 
         # find all revision periods before `cur_date`
@@ -1071,6 +1082,8 @@ class ClientDatasetProvider(DatasetProvider):
 
 class BaseProvider:
     """Local provider class
+    It is a set of interface that allow users to access data.
+    Because PITD is not exposed publicly to users, so it is not included in the interface.
 
     To keep compatible with old qlib provider.
     """
@@ -1194,6 +1207,7 @@ if sys.version_info >= (3, 9):
     CalendarProviderWrapper = Annotated[CalendarProvider, Wrapper]
     InstrumentProviderWrapper = Annotated[InstrumentProvider, Wrapper]
     FeatureProviderWrapper = Annotated[FeatureProvider, Wrapper]
+    PITProviderWrapper = Annotated[PITProvider, Wrapper]
     ExpressionProviderWrapper = Annotated[ExpressionProvider, Wrapper]
     DatasetProviderWrapper = Annotated[DatasetProvider, Wrapper]
     BaseProviderWrapper = Annotated[BaseProvider, Wrapper]
@@ -1201,6 +1215,7 @@ else:
     CalendarProviderWrapper = CalendarProvider
     InstrumentProviderWrapper = InstrumentProvider
     FeatureProviderWrapper = FeatureProvider
+    PITProviderWrapper = PITProvider
     ExpressionProviderWrapper = ExpressionProvider
     DatasetProviderWrapper = DatasetProvider
     BaseProviderWrapper = BaseProvider
@@ -1208,6 +1223,7 @@ else:
 Cal: CalendarProviderWrapper = Wrapper()
 Inst: InstrumentProviderWrapper = Wrapper()
 FeatureD: FeatureProviderWrapper = Wrapper()
+PITD: PITProviderWrapper = Wrapper()
 ExpressionD: ExpressionProviderWrapper = Wrapper()
 DatasetD: DatasetProviderWrapper = Wrapper()
 D: BaseProviderWrapper = Wrapper()
@@ -1232,6 +1248,11 @@ def register_all_wrappers(C):
         feature_provider = init_instance_by_config(C.feature_provider, module)
         register_wrapper(FeatureD, feature_provider, "qlib.data")
         logger.debug(f"registering FeatureD {C.feature_provider}")
+
+    if getattr(C, "pit_provider", None) is not None:
+        pit_provider = init_instance_by_config(C.pit_provider, module)
+        register_wrapper(PITD, pit_provider, "qlib.data")
+        logger.debug(f"registering PITD {C.pit_provider}")
 
     if getattr(C, "expression_provider", None) is not None:
         # This provider is unnecessary in client provider
