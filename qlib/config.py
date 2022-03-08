@@ -22,7 +22,7 @@ from pathlib import Path
 from typing import Callable, Optional, Union
 from typing import TYPE_CHECKING
 
-from qlib.constant import REG_CN, REG_US
+from qlib.constant import REG_CN, REG_US, REG_TW
 
 if TYPE_CHECKING:
     from qlib.utils.time import Freq
@@ -255,6 +255,11 @@ _default_region_config = {
     REG_US: {
         "trade_unit": 1,
         "limit_threshold": None,
+        "deal_price": "close",
+    },
+    REG_TW: {
+        "trade_unit": 1000,
+        "limit_threshold": 0.1,
         "deal_price": "close",
     },
 }
