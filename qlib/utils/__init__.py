@@ -15,6 +15,7 @@ import yaml
 import redis
 import bisect
 import shutil
+import struct
 import difflib
 import inspect
 import hashlib
@@ -28,7 +29,7 @@ import collections
 import numpy as np
 import pandas as pd
 from pathlib import Path
-from typing import Dict, Union, Tuple, Any, Text, Optional, Callable
+from typing import List, Dict, Union, Tuple, Any, Text, Optional, Callable
 from types import ModuleType
 from urllib.parse import urlparse
 from .file import get_or_create_path, save_multiple_parts_file, unpack_archive_with_buffer, get_tmp_file_with_buffer
@@ -60,6 +61,104 @@ def read_bin(file_path: Union[str, Path], start_index, end_index):
         data = np.frombuffer(f.read(4 * count), dtype="<f")
         series = pd.Series(data, index=pd.RangeIndex(si, si + len(data)))
     return series
+
+
+def get_period_list(first: int, last: int, quarterly: bool) -> List[int]:
+    """
+    This method will be used in PIT database.
+    It return all the possible values between `first` and `end`  (first and end is included)
+
+    Parameters
+    ----------
+    quarterly : bool
+        will it return quarterly index or yearly index.
+
+    Returns
+    -------
+    List[int]
+        the possible index between [first, last]
+    """
+
+    if not quarterly:
+        assert all(1900 <= x <= 2099 for x in (first, last)), "invalid arguments"
+        return list(range(first, last + 1))
+    else:
+        assert all(190000 <= x <= 209904 for x in (first, last)), "invalid arguments"
+        res = []
+        for year in range(first // 100, last // 100 + 1):
+            for q in range(1, 5):
+                period = year * 100 + q
+                if first <= period <= last:
+                    res.append(year * 100 + q)
+        return res
+
+
+def get_period_offset(first_year, period, quarterly):
+    if quarterly:
+        offset = (period // 100 - first_year) * 4 + period % 100 - 1
+    else:
+        offset = period - first_year
+    return offset
+
+
+def read_period_data(index_path, data_path, period, cur_date_int: int, quarterly, last_period_index: int = None):
+    """
+    At `cur_date`(e.g. 20190102), read the information at `period`(e.g. 201803).
+    Only the updating info before cur_date or at cur_date will be used.
+
+    Parameters
+    ----------
+    period: int
+        date period represented by interger, e.g. 201901 corresponds to the first quarter in 2019
+    cur_date_int: int
+        date which represented by interger, e.g. 20190102
+    last_period_index: int
+        it is a optional parameter; it is designed to avoid repeatedly access the .index data of PIT database when
+        sequentially observing the data (Because the latest index of a specific period of data certainly appear in after the one in last observation).
+
+    Returns
+    -------
+    the query value and byte index the index value
+    """
+    DATA_DTYPE = "".join(
+        [
+            C.pit_record_type["date"],
+            C.pit_record_type["period"],
+            C.pit_record_type["value"],
+            C.pit_record_type["index"],
+        ]
+    )
+
+    PERIOD_DTYPE = C.pit_record_type["period"]
+    INDEX_DTYPE = C.pit_record_type["index"]
+
+    NAN_VALUE = C.pit_record_nan["value"]
+    NAN_INDEX = C.pit_record_nan["index"]
+
+    # find the first index of linked revisions
+    if last_period_index is None:
+        with open(index_path, "rb") as fi:
+            (first_year,) = struct.unpack(PERIOD_DTYPE, fi.read(struct.calcsize(PERIOD_DTYPE)))
+            all_periods = np.fromfile(fi, dtype=INDEX_DTYPE)
+        offset = get_period_offset(first_year, period, quarterly)
+        _next = all_periods[offset]
+    else:
+        _next = last_period_index
+
+    # load data following the `_next` link
+    prev_value = NAN_VALUE
+    prev_next = _next
+
+    with open(data_path, "rb") as fd:
+        while _next != NAN_INDEX:
+            fd.seek(_next)
+            date, period, value, new_next = struct.unpack(DATA_DTYPE, fd.read(struct.calcsize(DATA_DTYPE)))
+            if date > cur_date_int:
+                break
+            prev_next = _next
+            _next = new_next
+            prev_value = value
+    return prev_value, prev_next
 
 
 def np_ffill(arr: np.array):
@@ -172,7 +271,11 @@ def parse_field(field):
 
     if not isinstance(field, str):
         field = str(field)
-    for pattern, new in [(r"\$(\w+)", rf'Feature("\1")'), (r"(\w+\s*)\(", r"Operators.\1(")]:  # Features  # Operators
+    for pattern, new in [
+        (r"\$\$(\w+)", r'PFeature("\1")'),  # $$ must be before $
+        (r"\$(\w+)", rf'Feature("\1")'),
+        (r"(\w+\s*)\(", r"Operators.\1("),
+    ]:  # Features  # Operators
         field = re.sub(pattern, new, field)
     return field
 

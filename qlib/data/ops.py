@@ -10,9 +10,7 @@ import pandas as pd
 
 from typing import Union, List, Type
 from scipy.stats import percentileofscore
-
-from .base import Expression, ExpressionOps, Feature
-
+from .base import Expression, ExpressionOps, Feature, PFeature
 from ..log import get_module_logger
 from ..utils import get_callable_kwargs
 
@@ -84,8 +82,8 @@ class NpElemOperator(ElemOperator):
         self.func = func
         super(NpElemOperator, self).__init__(feature)
 
-    def _load_internal(self, instrument, start_index, end_index, freq):
-        series = self.feature.load(instrument, start_index, end_index, freq)
+    def _load_internal(self, instrument, start_index, end_index, *args):
+        series = self.feature.load(instrument, start_index, end_index, *args)
         return getattr(np, self.func)(series)
 
 
@@ -124,11 +122,11 @@ class Sign(NpElemOperator):
     def __init__(self, feature):
         super(Sign, self).__init__(feature, "sign")
 
-    def _load_internal(self, instrument, start_index, end_index, freq):
+    def _load_internal(self, instrument, start_index, end_index, *args):
         """
         To avoid error raised by bool type input, we transform the data into float32.
         """
-        series = self.feature.load(instrument, start_index, end_index, freq)
+        series = self.feature.load(instrument, start_index, end_index, *args)
         # TODO:  More precision types should be configurable
         series = series.astype(np.float32)
         return getattr(np, self.func)(series)
@@ -173,8 +171,8 @@ class Power(NpElemOperator):
     def __str__(self):
         return "{}({},{})".format(type(self).__name__, self.feature, self.exponent)
 
-    def _load_internal(self, instrument, start_index, end_index, freq):
-        series = self.feature.load(instrument, start_index, end_index, freq)
+    def _load_internal(self, instrument, start_index, end_index, *args):
+        series = self.feature.load(instrument, start_index, end_index, *args)
         return getattr(np, self.func)(series, self.exponent)
 
 
@@ -201,8 +199,8 @@ class Mask(NpElemOperator):
     def __str__(self):
         return "{}({},{})".format(type(self).__name__, self.feature, self.instrument.lower())
 
-    def _load_internal(self, instrument, start_index, end_index, freq):
-        return self.feature.load(self.instrument, start_index, end_index, freq)
+    def _load_internal(self, instrument, start_index, end_index, *args):
+        return self.feature.load(self.instrument, start_index, end_index, *args)
 
 
 class Not(NpElemOperator):
@@ -252,24 +250,24 @@ class PairOperator(ExpressionOps):
         return "{}({},{})".format(type(self).__name__, self.feature_left, self.feature_right)
 
     def get_longest_back_rolling(self):
-        if isinstance(self.feature_left, Expression):
+        if isinstance(self.feature_left, (Expression,)):
             left_br = self.feature_left.get_longest_back_rolling()
         else:
             left_br = 0
 
-        if isinstance(self.feature_right, Expression):
+        if isinstance(self.feature_right, (Expression,)):
             right_br = self.feature_right.get_longest_back_rolling()
         else:
             right_br = 0
         return max(left_br, right_br)
 
     def get_extended_window_size(self):
-        if isinstance(self.feature_left, Expression):
+        if isinstance(self.feature_left, (Expression,)):
             ll, lr = self.feature_left.get_extended_window_size()
         else:
             ll, lr = 0, 0
 
-        if isinstance(self.feature_right, Expression):
+        if isinstance(self.feature_right, (Expression,)):
             rl, rr = self.feature_right.get_extended_window_size()
         else:
             rl, rr = 0, 0
@@ -298,16 +296,16 @@ class NpPairOperator(PairOperator):
         self.func = func
         super(NpPairOperator, self).__init__(feature_left, feature_right)
 
-    def _load_internal(self, instrument, start_index, end_index, freq):
+    def _load_internal(self, instrument, start_index, end_index, *args):
         assert any(
-            [isinstance(self.feature_left, Expression), self.feature_right, Expression]
+            [isinstance(self.feature_left, (Expression,)), self.feature_right, Expression]
         ), "at least one of two inputs is Expression instance"
-        if isinstance(self.feature_left, Expression):
-            series_left = self.feature_left.load(instrument, start_index, end_index, freq)
+        if isinstance(self.feature_left, (Expression,)):
+            series_left = self.feature_left.load(instrument, start_index, end_index, *args)
         else:
             series_left = self.feature_left  # numeric value
-        if isinstance(self.feature_right, Expression):
-            series_right = self.feature_right.load(instrument, start_index, end_index, freq)
+        if isinstance(self.feature_right, (Expression,)):
+            series_right = self.feature_right.load(instrument, start_index, end_index, *args)
         else:
             series_right = self.feature_right
         check_length = isinstance(series_left, (np.ndarray, pd.Series)) and isinstance(
@@ -637,48 +635,48 @@ class If(ExpressionOps):
     def __str__(self):
         return "If({},{},{})".format(self.condition, self.feature_left, self.feature_right)
 
-    def _load_internal(self, instrument, start_index, end_index, freq):
-        series_cond = self.condition.load(instrument, start_index, end_index, freq)
-        if isinstance(self.feature_left, Expression):
-            series_left = self.feature_left.load(instrument, start_index, end_index, freq)
+    def _load_internal(self, instrument, start_index, end_index, *args):
+        series_cond = self.condition.load(instrument, start_index, end_index, *args)
+        if isinstance(self.feature_left, (Expression,)):
+            series_left = self.feature_left.load(instrument, start_index, end_index, *args)
         else:
             series_left = self.feature_left
-        if isinstance(self.feature_right, Expression):
-            series_right = self.feature_right.load(instrument, start_index, end_index, freq)
+        if isinstance(self.feature_right, (Expression,)):
+            series_right = self.feature_right.load(instrument, start_index, end_index, *args)
         else:
             series_right = self.feature_right
         series = pd.Series(np.where(series_cond, series_left, series_right), index=series_cond.index)
         return series
 
     def get_longest_back_rolling(self):
-        if isinstance(self.feature_left, Expression):
+        if isinstance(self.feature_left, (Expression,)):
             left_br = self.feature_left.get_longest_back_rolling()
         else:
             left_br = 0
 
-        if isinstance(self.feature_right, Expression):
+        if isinstance(self.feature_right, (Expression,)):
             right_br = self.feature_right.get_longest_back_rolling()
         else:
             right_br = 0
 
-        if isinstance(self.condition, Expression):
+        if isinstance(self.condition, (Expression,)):
             c_br = self.condition.get_longest_back_rolling()
         else:
             c_br = 0
         return max(left_br, right_br, c_br)
 
     def get_extended_window_size(self):
-        if isinstance(self.feature_left, Expression):
+        if isinstance(self.feature_left, (Expression,)):
             ll, lr = self.feature_left.get_extended_window_size()
         else:
             ll, lr = 0, 0
 
-        if isinstance(self.feature_right, Expression):
+        if isinstance(self.feature_right, (Expression,)):
             rl, rr = self.feature_right.get_extended_window_size()
         else:
             rl, rr = 0, 0
 
-        if isinstance(self.condition, Expression):
+        if isinstance(self.condition, (Expression,)):
             cl, cr = self.condition.get_extended_window_size()
         else:
             cl, cr = 0, 0
@@ -719,8 +717,8 @@ class Rolling(ExpressionOps):
     def __str__(self):
         return "{}({},{})".format(type(self).__name__, self.feature, self.N)
 
-    def _load_internal(self, instrument, start_index, end_index, freq):
-        series = self.feature.load(instrument, start_index, end_index, freq)
+    def _load_internal(self, instrument, start_index, end_index, *args):
+        series = self.feature.load(instrument, start_index, end_index, *args)
         # NOTE: remove all null check,
         # now it's user's responsibility to decide whether use features in null days
         # isnull = series.isnull() # NOTE: isnull = NaN, inf is not null
@@ -777,8 +775,8 @@ class Ref(Rolling):
     def __init__(self, feature, N):
         super(Ref, self).__init__(feature, N, "ref")
 
-    def _load_internal(self, instrument, start_index, end_index, freq):
-        series = self.feature.load(instrument, start_index, end_index, freq)
+    def _load_internal(self, instrument, start_index, end_index, *args):
+        series = self.feature.load(instrument, start_index, end_index, *args)
         # N = 0, return first day
         if series.empty:
             return series  # Pandas bug, see: https://github.com/pandas-dev/pandas/issues/21049
@@ -967,8 +965,8 @@ class IdxMax(Rolling):
     def __init__(self, feature, N):
         super(IdxMax, self).__init__(feature, N, "idxmax")
 
-    def _load_internal(self, instrument, start_index, end_index, freq):
-        series = self.feature.load(instrument, start_index, end_index, freq)
+    def _load_internal(self, instrument, start_index, end_index, *args):
+        series = self.feature.load(instrument, start_index, end_index, *args)
         if self.N == 0:
             series = series.expanding(min_periods=1).apply(lambda x: x.argmax() + 1, raw=True)
         else:
@@ -1015,8 +1013,8 @@ class IdxMin(Rolling):
     def __init__(self, feature, N):
         super(IdxMin, self).__init__(feature, N, "idxmin")
 
-    def _load_internal(self, instrument, start_index, end_index, freq):
-        series = self.feature.load(instrument, start_index, end_index, freq)
+    def _load_internal(self, instrument, start_index, end_index, *args):
+        series = self.feature.load(instrument, start_index, end_index, *args)
         if self.N == 0:
             series = series.expanding(min_periods=1).apply(lambda x: x.argmin() + 1, raw=True)
         else:
@@ -1047,8 +1045,8 @@ class Quantile(Rolling):
     def __str__(self):
         return "{}({},{},{})".format(type(self).__name__, self.feature, self.N, self.qscore)
 
-    def _load_internal(self, instrument, start_index, end_index, freq):
-        series = self.feature.load(instrument, start_index, end_index, freq)
+    def _load_internal(self, instrument, start_index, end_index, *args):
+        series = self.feature.load(instrument, start_index, end_index, *args)
         if self.N == 0:
             series = series.expanding(min_periods=1).quantile(self.qscore)
         else:
@@ -1095,8 +1093,8 @@ class Mad(Rolling):
     def __init__(self, feature, N):
         super(Mad, self).__init__(feature, N, "mad")
 
-    def _load_internal(self, instrument, start_index, end_index, freq):
-        series = self.feature.load(instrument, start_index, end_index, freq)
+    def _load_internal(self, instrument, start_index, end_index, *args):
+        series = self.feature.load(instrument, start_index, end_index, *args)
         # TODO: implement in Cython
 
         def mad(x):
@@ -1129,8 +1127,8 @@ class Rank(Rolling):
     def __init__(self, feature, N):
         super(Rank, self).__init__(feature, N, "rank")
 
-    def _load_internal(self, instrument, start_index, end_index, freq):
-        series = self.feature.load(instrument, start_index, end_index, freq)
+    def _load_internal(self, instrument, start_index, end_index, *args):
+        series = self.feature.load(instrument, start_index, end_index, *args)
         # TODO: implement in Cython
 
         def rank(x):
@@ -1187,8 +1185,8 @@ class Delta(Rolling):
     def __init__(self, feature, N):
         super(Delta, self).__init__(feature, N, "delta")
 
-    def _load_internal(self, instrument, start_index, end_index, freq):
-        series = self.feature.load(instrument, start_index, end_index, freq)
+    def _load_internal(self, instrument, start_index, end_index, *args):
+        series = self.feature.load(instrument, start_index, end_index, *args)
         if self.N == 0:
             series = series - series.iloc[0]
         else:
@@ -1225,8 +1223,8 @@ class Slope(Rolling):
     def __init__(self, feature, N):
         super(Slope, self).__init__(feature, N, "slope")
 
-    def _load_internal(self, instrument, start_index, end_index, freq):
-        series = self.feature.load(instrument, start_index, end_index, freq)
+    def _load_internal(self, instrument, start_index, end_index, *args):
+        series = self.feature.load(instrument, start_index, end_index, *args)
         if self.N == 0:
             series = pd.Series(expanding_slope(series.values), index=series.index)
         else:
@@ -1253,8 +1251,8 @@ class Rsquare(Rolling):
     def __init__(self, feature, N):
         super(Rsquare, self).__init__(feature, N, "rsquare")
 
-    def _load_internal(self, instrument, start_index, end_index, freq):
-        _series = self.feature.load(instrument, start_index, end_index, freq)
+    def _load_internal(self, instrument, start_index, end_index, *args):
+        _series = self.feature.load(instrument, start_index, end_index, *args)
         if self.N == 0:
             series = pd.Series(expanding_rsquare(_series.values), index=_series.index)
         else:
@@ -1282,8 +1280,8 @@ class Resi(Rolling):
     def __init__(self, feature, N):
         super(Resi, self).__init__(feature, N, "resi")
 
-    def _load_internal(self, instrument, start_index, end_index, freq):
-        series = self.feature.load(instrument, start_index, end_index, freq)
+    def _load_internal(self, instrument, start_index, end_index, *args):
+        series = self.feature.load(instrument, start_index, end_index, *args)
         if self.N == 0:
             series = pd.Series(expanding_resi(series.values), index=series.index)
         else:
@@ -1310,8 +1308,8 @@ class WMA(Rolling):
     def __init__(self, feature, N):
         super(WMA, self).__init__(feature, N, "wma")
 
-    def _load_internal(self, instrument, start_index, end_index, freq):
-        series = self.feature.load(instrument, start_index, end_index, freq)
+    def _load_internal(self, instrument, start_index, end_index, *args):
+        series = self.feature.load(instrument, start_index, end_index, *args)
         # TODO: implement in Cython
 
         def weighted_mean(x):
@@ -1345,8 +1343,8 @@ class EMA(Rolling):
     def __init__(self, feature, N):
         super(EMA, self).__init__(feature, N, "ema")
 
-    def _load_internal(self, instrument, start_index, end_index, freq):
-        series = self.feature.load(instrument, start_index, end_index, freq)
+    def _load_internal(self, instrument, start_index, end_index, *args):
+        series = self.feature.load(instrument, start_index, end_index, *args)
 
         def exp_weighted_mean(x):
             a = 1 - 2 / (1 + len(x))
@@ -1392,17 +1390,17 @@ class PairRolling(ExpressionOps):
     def __str__(self):
         return "{}({},{},{})".format(type(self).__name__, self.feature_left, self.feature_right, self.N)
 
-    def _load_internal(self, instrument, start_index, end_index, freq):
+    def _load_internal(self, instrument, start_index, end_index, *args):
         assert any(
             [isinstance(self.feature_left, Expression), self.feature_right, Expression]
         ), "at least one of two inputs is Expression instance"
 
         if isinstance(self.feature_left, Expression):
-            series_left = self.feature_left.load(instrument, start_index, end_index, freq)
+            series_left = self.feature_left.load(instrument, start_index, end_index, *args)
         else:
             series_left = self.feature_left  # numeric value
         if isinstance(self.feature_right, Expression):
-            series_right = self.feature_right.load(instrument, start_index, end_index, freq)
+            series_right = self.feature_right.load(instrument, start_index, end_index, *args)
         else:
             series_right = self.feature_right
 
@@ -1465,12 +1463,12 @@ class Corr(PairRolling):
     def __init__(self, feature_left, feature_right, N):
         super(Corr, self).__init__(feature_left, feature_right, N, "corr")
 
-    def _load_internal(self, instrument, start_index, end_index, freq):
-        res: pd.Series = super(Corr, self)._load_internal(instrument, start_index, end_index, freq)
+    def _load_internal(self, instrument, start_index, end_index, *args):
+        res: pd.Series = super(Corr, self)._load_internal(instrument, start_index, end_index, *args)
 
         # NOTE: Load uses MemCache, so calling load again will not cause performance degradation
-        series_left = self.feature_left.load(instrument, start_index, end_index, freq)
-        series_right = self.feature_right.load(instrument, start_index, end_index, freq)
+        series_left = self.feature_left.load(instrument, start_index, end_index, *args)
+        series_right = self.feature_right.load(instrument, start_index, end_index, *args)
         res.loc[
             np.isclose(series_left.rolling(self.N, min_periods=1).std(), 0, atol=2e-05)
             | np.isclose(series_right.rolling(self.N, min_periods=1).std(), 0, atol=2e-05)
@@ -1529,8 +1527,8 @@ class TResample(ElemOperator):
     def __str__(self):
         return "{}({},{})".format(type(self).__name__, self.feature, self.freq)
 
-    def _load_internal(self, instrument, start_index, end_index, freq):
-        series = self.feature.load(instrument, start_index, end_index, freq)
+    def _load_internal(self, instrument, start_index, end_index, *args):
+        series = self.feature.load(instrument, start_index, end_index, *args)
 
         if series.empty:
             return series
@@ -1590,6 +1588,7 @@ OpsList = [
     IdxMin,
     If,
     Feature,
+    PFeature,
 ] + [TResample]
 
 
@@ -1622,7 +1621,7 @@ class OpsWrapper:
             else:
                 _ops_class = _operator
 
-            if not issubclass(_ops_class, Expression):
+            if not issubclass(_ops_class, (Expression,)):
                 raise TypeError("operator must be subclass of ExpressionOps, not {}".format(_ops_class))
 
             if _ops_class.__name__ in self._ops:
@@ -1644,8 +1643,10 @@ def register_all_ops(C):
     """register all operator"""
     logger = get_module_logger("ops")
 
+    from qlib.data.pit import P  # pylint: disable=C0415
+
     Operators.reset()
-    Operators.register(OpsList)
+    Operators.register(OpsList + [P])
 
     if getattr(C, "custom_ops", None) is not None:
         Operators.register(C.custom_ops)

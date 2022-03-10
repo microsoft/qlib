@@ -11,6 +11,8 @@
 Recent released features
 | Feature | Status |
 | --                      | ------    |
+| Point-in-Time database | :hammer: [Rleased](https://github.com/microsoft/qlib/pull/343) on Mar 10, 2022 |
+| Arctic Provider Backend & Orderbook data example | :hammer: [Rleased](https://github.com/microsoft/qlib/pull/744) on Jan 17, 2022 |
 | Arctic Provider Backend & Orderbook data example | :hammer: [Rleased](https://github.com/microsoft/qlib/pull/744) on Jan 17, 2022 |
 | Meta-Learning-based framework & DDG-DA  | :chart_with_upwards_trend:  :hammer: [Released](https://github.com/microsoft/qlib/pull/743) on Jan 10, 2022 | 
 | Planning-based portfolio optimization | :hammer: [Released](https://github.com/microsoft/qlib/pull/754) on Dec 28, 2021 | 
@@ -95,9 +97,8 @@ For more details, please refer to our paper ["Qlib: An AI-oriented Quantitative 
 # Plans
 New features under development(order by estimated release time).
 Your feedbacks about the features are very important.
-| Feature                        | Status      |
-| --                      | ------    |
-| Point-in-Time database | Under review: https://github.com/microsoft/qlib/pull/343 |
+<!-- | Feature                        | Status      | -->
+<!-- | --                      | ------    | -->
 
 # Framework of Qlib
 

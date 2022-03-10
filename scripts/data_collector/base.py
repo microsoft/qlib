@@ -323,7 +323,7 @@ class BaseRun(abc.ABC):
             freq, value from [1min, 1d], default 1d
         """
         if source_dir is None:
-            source_dir = Path(self.default_base_dir).joinpath("_source")
+            source_dir = Path(self.default_base_dir).joinpath("source")
         self.source_dir = Path(source_dir).expanduser().resolve()
         self.source_dir.mkdir(parents=True, exist_ok=True)
 
@@ -359,6 +359,7 @@ class BaseRun(abc.ABC):
         end=None,
         check_data_length: int = None,
         limit_nums=None,
+        **kwargs,
     ):
         """download data from Internet
 
@@ -398,6 +399,7 @@ class BaseRun(abc.ABC):
             interval=self.interval,
             check_data_length=check_data_length,
             limit_nums=limit_nums,
+            **kwargs,
         ).collector_data()
 
     def normalize_data(self, date_field_name: str = "date", symbol_field_name: str = "symbol", **kwargs):
