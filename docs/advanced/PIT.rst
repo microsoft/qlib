@@ -1,4 +1,4 @@
-.. _alpha:
+.. _pit:
 
 ===========================
 (P)oint-(I)n-(T)ime Database
