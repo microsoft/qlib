@@ -13,7 +13,8 @@ class TestPIT(unittest.TestCase):
     """
 
     def setUp(self):
-        qlib.init(kernels=1)  # NOTE: set kernel to 1 to make it debug easier
+        # qlib.init(kernels=1)  # NOTE: set kernel to 1 to make it debug easier
+        qlib.init()  # NOTE: set kernel to 1 to make it debug easier
 
     def to_str(self, obj):
         return "".join(str(obj).split())
@@ -177,6 +178,16 @@ class TestPIT(unittest.TestCase):
         """
 
         self.check_same(s[~s.duplicated().values], expect)
+
+    def test_expr2(self):
+        instruments = ["sh600519"]
+        fields = ["P($$roewa_q)", "P($$yoyni_q)"]
+        fields += ["P(($$roewa_q / $$yoyni_q) / Ref($$roewa_q / $$yoyni_q, 1) - 1)"]
+        fields += ["P(Sum($$yoyni_q, 4))"]
+        fields += ["$close", "P($$roewa_q) * $close"]
+        data = D.features(instruments, fields, start_time="2019-01-01", end_time="2020-01-01", freq="day")
+        print(data)
+        print(data.describe())
 
 
 if __name__ == "__main__":

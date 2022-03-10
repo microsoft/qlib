@@ -130,3 +130,4 @@ The statements are soted by the `date` in ascending order from the beginning of 
 Known limitations
 - Currently, the PIT database is designed for quarterly or annually factors, which can handle fundamental data of financial reports in most markets.
     Qlib leverage the file name to identify the type of the data. File with name like `XXX_q.data` corresponds to quarterly data.  File with name like `XXX_a.data` corresponds to annual data
+- The caclulation of PIT is not performed in the optimal way. There is great potential to boost the performance of PIT data calcuation.

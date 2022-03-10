@@ -27,9 +27,6 @@ class P(ElemOperator):
         resample_data = np.empty(end_index - start_index + 1, dtype="float32")
 
         for cur_index in range(start_index, end_index + 1):
-            # YXDEBUG:
-            # if cur_index == end_index - 3:
-            #     __import__('ipdb').set_trace()
             cur_time = _calendar[cur_index]
             # To load expression accurately, more historical data are required
             start_ws, end_ws = self.feature.get_extended_window_size()
