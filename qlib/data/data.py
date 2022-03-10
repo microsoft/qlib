@@ -6,7 +6,6 @@ from __future__ import division
 from __future__ import print_function
 
 import re
-import os
 import abc
 import copy
 import queue
@@ -24,7 +23,6 @@ from .inst_processor import InstProcessor
 
 from ..log import get_module_logger
 from .cache import DiskDatasetCache
-from .base import Feature, PFeature
 from ..utils import (
     Wrapper,
     init_instance_by_config,

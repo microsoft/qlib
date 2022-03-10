@@ -5,12 +5,8 @@
 from __future__ import division
 from __future__ import print_function
 
-import os
 import abc
 import pandas as pd
-import numpy as np
-
-from ..utils import code_to_fname
 from ..log import get_module_logger
 
 
@@ -270,5 +266,3 @@ class ExpressionOps(Expression):
     This kind of feature will use operator for feature
     construction on the fly.
     """
-
-    pass

@@ -1643,7 +1643,7 @@ def register_all_ops(C):
     """register all operator"""
     logger = get_module_logger("ops")
 
-    from qlib.data.pit import P
+    from qlib.data.pit import P  # pylint: disable=C0415
 
     Operators.reset()
     Operators.register(OpsList + [P])

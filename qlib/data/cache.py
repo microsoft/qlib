@@ -32,7 +32,7 @@ from ..utils import (
 )
 
 from ..log import get_module_logger
-from .base import Feature, PFeature
+from .base import Feature
 from .ops import Operators  # pylint: disable=W0611
 
 

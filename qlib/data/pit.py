@@ -17,11 +17,11 @@ import numpy as np
 import pandas as pd
 from qlib.data.ops import ElemOperator
 from qlib.log import get_module_logger
+from .data import Cal
 
 
 class P(ElemOperator):
     def _load_internal(self, instrument, start_index, end_index, freq):
-        from .data import Cal
 
         _calendar = Cal.calendar(freq=freq)
         resample_data = np.empty(end_index - start_index + 1, dtype="float32")
