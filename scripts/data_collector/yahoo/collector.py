@@ -157,7 +157,7 @@ class YahooCollector(BaseCollector):
                 end=end_,
             )
             if resp is None or resp.empty:
-                raise ValueError(f"get data error: {symbol}--{start_}--{end_}"+" The stock has been delisted")
+                raise ValueError(f"get data error: {symbol}--{start_}--{end_}" + " The stock has been delisted")
             return resp
 
         _result = None
