@@ -34,6 +34,7 @@ For each feature, it contains 4 columns, i.e. date, period, value, _next.
 Each row corresponds to a statement.
 
 The meaning of each feature with filename like `XXX_a.data`
+
 - `date`: the statement's date of publication.
 - `period`: the period of the statement. (e.g. it will be quarterly frequency in most of the markets)
     - If it is an annual period, it will be an integer corresponding to the year
