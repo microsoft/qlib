@@ -135,8 +135,6 @@ class YahooCollector(BaseCollector):
                     isinstance(_resp, dict) and _temp_data.get("indicators", {}).get("quote", None) is None
                 ):
                     _show_logging_func()
-            if _resp is None:
-                logger.warning(f"{symbol}"+" data is empty and may be delisted")
             else:
                 _show_logging_func()
         except Exception as e:
@@ -156,7 +154,7 @@ class YahooCollector(BaseCollector):
                 end=end_,
             )
             if resp is None or resp.empty:
-                raise ValueError(f"get data error: {symbol}--{start_}--{end_}")
+                raise ValueError(f"get data error: {symbol}--{start_}--{end_}"+" The stock has been delisted")
             return resp
 
         _result = None
