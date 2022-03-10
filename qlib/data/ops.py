@@ -82,8 +82,8 @@ class NpElemOperator(ElemOperator):
         self.func = func
         super(NpElemOperator, self).__init__(feature)
 
-    def _load_internal(self, instrument, start_index, end_index, freq):
-        series = self.feature.load(instrument, start_index, end_index, freq)
+    def _load_internal(self, instrument, start_index, end_index, *args):
+        series = self.feature.load(instrument, start_index, end_index, *args)
         return getattr(np, self.func)(series)
 
 
@@ -122,11 +122,11 @@ class Sign(NpElemOperator):
     def __init__(self, feature):
         super(Sign, self).__init__(feature, "sign")
 
-    def _load_internal(self, instrument, start_index, end_index, freq):
+    def _load_internal(self, instrument, start_index, end_index, *args):
         """
         To avoid error raised by bool type input, we transform the data into float32.
         """
-        series = self.feature.load(instrument, start_index, end_index, freq)
+        series = self.feature.load(instrument, start_index, end_index, *args)
         # TODO:  More precision types should be configurable
         series = series.astype(np.float32)
         return getattr(np, self.func)(series)
@@ -171,8 +171,8 @@ class Power(NpElemOperator):
     def __str__(self):
         return "{}({},{})".format(type(self).__name__, self.feature, self.exponent)
 
-    def _load_internal(self, instrument, start_index, end_index, freq):
-        series = self.feature.load(instrument, start_index, end_index, freq)
+    def _load_internal(self, instrument, start_index, end_index, *args):
+        series = self.feature.load(instrument, start_index, end_index, *args)
         return getattr(np, self.func)(series, self.exponent)
 
 
@@ -199,8 +199,8 @@ class Mask(NpElemOperator):
     def __str__(self):
         return "{}({},{})".format(type(self).__name__, self.feature, self.instrument.lower())
 
-    def _load_internal(self, instrument, start_index, end_index, freq):
-        return self.feature.load(self.instrument, start_index, end_index, freq)
+    def _load_internal(self, instrument, start_index, end_index, *args):
+        return self.feature.load(self.instrument, start_index, end_index, *args)
 
 
 class Not(NpElemOperator):
@@ -296,16 +296,16 @@ class NpPairOperator(PairOperator):
         self.func = func
         super(NpPairOperator, self).__init__(feature_left, feature_right)
 
-    def _load_internal(self, instrument, start_index, end_index, freq):
+    def _load_internal(self, instrument, start_index, end_index, *args):
         assert any(
             [isinstance(self.feature_left, (Expression, PExpression)), self.feature_right, Expression]
         ), "at least one of two inputs is Expression instance"
         if isinstance(self.feature_left, (Expression, PExpression)):
-            series_left = self.feature_left.load(instrument, start_index, end_index, freq)
+            series_left = self.feature_left.load(instrument, start_index, end_index, *args)
         else:
             series_left = self.feature_left  # numeric value
         if isinstance(self.feature_right, (Expression, PExpression)):
-            series_right = self.feature_right.load(instrument, start_index, end_index, freq)
+            series_right = self.feature_right.load(instrument, start_index, end_index, *args)
         else:
             series_right = self.feature_right
         check_length = isinstance(series_left, (np.ndarray, pd.Series)) and isinstance(
@@ -635,14 +635,14 @@ class If(ExpressionOps):
     def __str__(self):
         return "If({},{},{})".format(self.condition, self.feature_left, self.feature_right)
 
-    def _load_internal(self, instrument, start_index, end_index, freq):
-        series_cond = self.condition.load(instrument, start_index, end_index, freq)
+    def _load_internal(self, instrument, start_index, end_index, *args):
+        series_cond = self.condition.load(instrument, start_index, end_index, *args)
         if isinstance(self.feature_left, (Expression, PExpression)):
-            series_left = self.feature_left.load(instrument, start_index, end_index, freq)
+            series_left = self.feature_left.load(instrument, start_index, end_index, *args)
         else:
             series_left = self.feature_left
         if isinstance(self.feature_right, (Expression, PExpression)):
-            series_right = self.feature_right.load(instrument, start_index, end_index, freq)
+            series_right = self.feature_right.load(instrument, start_index, end_index, *args)
         else:
             series_right = self.feature_right
         series = pd.Series(np.where(series_cond, series_left, series_right), index=series_cond.index)
@@ -717,8 +717,8 @@ class Rolling(ExpressionOps):
     def __str__(self):
         return "{}({},{})".format(type(self).__name__, self.feature, self.N)
 
-    def _load_internal(self, instrument, start_index, end_index, freq):
-        series = self.feature.load(instrument, start_index, end_index, freq)
+    def _load_internal(self, instrument, start_index, end_index, *args):
+        series = self.feature.load(instrument, start_index, end_index, *args)
         # NOTE: remove all null check,
         # now it's user's responsibility to decide whether use features in null days
         # isnull = series.isnull() # NOTE: isnull = NaN, inf is not null
@@ -775,8 +775,8 @@ class Ref(Rolling):
     def __init__(self, feature, N):
         super(Ref, self).__init__(feature, N, "ref")
 
-    def _load_internal(self, instrument, start_index, end_index, freq):
-        series = self.feature.load(instrument, start_index, end_index, freq)
+    def _load_internal(self, instrument, start_index, end_index, *args):
+        series = self.feature.load(instrument, start_index, end_index, *args)
         # N = 0, return first day
         if series.empty:
             return series  # Pandas bug, see: https://github.com/pandas-dev/pandas/issues/21049
@@ -965,8 +965,8 @@ class IdxMax(Rolling):
     def __init__(self, feature, N):
         super(IdxMax, self).__init__(feature, N, "idxmax")
 
-    def _load_internal(self, instrument, start_index, end_index, freq):
-        series = self.feature.load(instrument, start_index, end_index, freq)
+    def _load_internal(self, instrument, start_index, end_index, *args):
+        series = self.feature.load(instrument, start_index, end_index, *args)
         if self.N == 0:
             series = series.expanding(min_periods=1).apply(lambda x: x.argmax() + 1, raw=True)
         else:
@@ -1013,8 +1013,8 @@ class IdxMin(Rolling):
     def __init__(self, feature, N):
         super(IdxMin, self).__init__(feature, N, "idxmin")
 
-    def _load_internal(self, instrument, start_index, end_index, freq):
-        series = self.feature.load(instrument, start_index, end_index, freq)
+    def _load_internal(self, instrument, start_index, end_index, *args):
+        series = self.feature.load(instrument, start_index, end_index, *args)
         if self.N == 0:
             series = series.expanding(min_periods=1).apply(lambda x: x.argmin() + 1, raw=True)
         else:
@@ -1045,8 +1045,8 @@ class Quantile(Rolling):
     def __str__(self):
         return "{}({},{},{})".format(type(self).__name__, self.feature, self.N, self.qscore)
 
-    def _load_internal(self, instrument, start_index, end_index, freq):
-        series = self.feature.load(instrument, start_index, end_index, freq)
+    def _load_internal(self, instrument, start_index, end_index, *args):
+        series = self.feature.load(instrument, start_index, end_index, *args)
         if self.N == 0:
             series = series.expanding(min_periods=1).quantile(self.qscore)
         else:
@@ -1093,8 +1093,8 @@ class Mad(Rolling):
     def __init__(self, feature, N):
         super(Mad, self).__init__(feature, N, "mad")
 
-    def _load_internal(self, instrument, start_index, end_index, freq):
-        series = self.feature.load(instrument, start_index, end_index, freq)
+    def _load_internal(self, instrument, start_index, end_index, *args):
+        series = self.feature.load(instrument, start_index, end_index, *args)
         # TODO: implement in Cython
 
         def mad(x):
@@ -1127,8 +1127,8 @@ class Rank(Rolling):
     def __init__(self, feature, N):
         super(Rank, self).__init__(feature, N, "rank")
 
-    def _load_internal(self, instrument, start_index, end_index, freq):
-        series = self.feature.load(instrument, start_index, end_index, freq)
+    def _load_internal(self, instrument, start_index, end_index, *args):
+        series = self.feature.load(instrument, start_index, end_index, *args)
         # TODO: implement in Cython
 
         def rank(x):
@@ -1185,8 +1185,8 @@ class Delta(Rolling):
     def __init__(self, feature, N):
         super(Delta, self).__init__(feature, N, "delta")
 
-    def _load_internal(self, instrument, start_index, end_index, freq):
-        series = self.feature.load(instrument, start_index, end_index, freq)
+    def _load_internal(self, instrument, start_index, end_index, *args):
+        series = self.feature.load(instrument, start_index, end_index, *args)
         if self.N == 0:
             series = series - series.iloc[0]
         else:
@@ -1223,8 +1223,8 @@ class Slope(Rolling):
     def __init__(self, feature, N):
         super(Slope, self).__init__(feature, N, "slope")
 
-    def _load_internal(self, instrument, start_index, end_index, freq):
-        series = self.feature.load(instrument, start_index, end_index, freq)
+    def _load_internal(self, instrument, start_index, end_index, *args):
+        series = self.feature.load(instrument, start_index, end_index, *args)
         if self.N == 0:
             series = pd.Series(expanding_slope(series.values), index=series.index)
         else:
@@ -1251,8 +1251,8 @@ class Rsquare(Rolling):
     def __init__(self, feature, N):
         super(Rsquare, self).__init__(feature, N, "rsquare")
 
-    def _load_internal(self, instrument, start_index, end_index, freq):
-        _series = self.feature.load(instrument, start_index, end_index, freq)
+    def _load_internal(self, instrument, start_index, end_index, *args):
+        _series = self.feature.load(instrument, start_index, end_index, *args)
         if self.N == 0:
             series = pd.Series(expanding_rsquare(_series.values), index=_series.index)
         else:
@@ -1280,8 +1280,8 @@ class Resi(Rolling):
     def __init__(self, feature, N):
         super(Resi, self).__init__(feature, N, "resi")
 
-    def _load_internal(self, instrument, start_index, end_index, freq):
-        series = self.feature.load(instrument, start_index, end_index, freq)
+    def _load_internal(self, instrument, start_index, end_index, *args):
+        series = self.feature.load(instrument, start_index, end_index, *args)
         if self.N == 0:
             series = pd.Series(expanding_resi(series.values), index=series.index)
         else:
@@ -1308,8 +1308,8 @@ class WMA(Rolling):
     def __init__(self, feature, N):
         super(WMA, self).__init__(feature, N, "wma")
 
-    def _load_internal(self, instrument, start_index, end_index, freq):
-        series = self.feature.load(instrument, start_index, end_index, freq)
+    def _load_internal(self, instrument, start_index, end_index, *args):
+        series = self.feature.load(instrument, start_index, end_index, *args)
         # TODO: implement in Cython
 
         def weighted_mean(x):
@@ -1343,8 +1343,8 @@ class EMA(Rolling):
     def __init__(self, feature, N):
         super(EMA, self).__init__(feature, N, "ema")
 
-    def _load_internal(self, instrument, start_index, end_index, freq):
-        series = self.feature.load(instrument, start_index, end_index, freq)
+    def _load_internal(self, instrument, start_index, end_index, *args):
+        series = self.feature.load(instrument, start_index, end_index, *args)
 
         def exp_weighted_mean(x):
             a = 1 - 2 / (1 + len(x))
@@ -1390,17 +1390,17 @@ class PairRolling(ExpressionOps):
     def __str__(self):
         return "{}({},{},{})".format(type(self).__name__, self.feature_left, self.feature_right, self.N)
 
-    def _load_internal(self, instrument, start_index, end_index, freq):
+    def _load_internal(self, instrument, start_index, end_index, *args):
         assert any(
             [isinstance(self.feature_left, Expression), self.feature_right, Expression]
         ), "at least one of two inputs is Expression instance"
 
         if isinstance(self.feature_left, Expression):
-            series_left = self.feature_left.load(instrument, start_index, end_index, freq)
+            series_left = self.feature_left.load(instrument, start_index, end_index, *args)
         else:
             series_left = self.feature_left  # numeric value
         if isinstance(self.feature_right, Expression):
-            series_right = self.feature_right.load(instrument, start_index, end_index, freq)
+            series_right = self.feature_right.load(instrument, start_index, end_index, *args)
         else:
             series_right = self.feature_right
 
@@ -1463,12 +1463,12 @@ class Corr(PairRolling):
     def __init__(self, feature_left, feature_right, N):
         super(Corr, self).__init__(feature_left, feature_right, N, "corr")
 
-    def _load_internal(self, instrument, start_index, end_index, freq):
-        res: pd.Series = super(Corr, self)._load_internal(instrument, start_index, end_index, freq)
+    def _load_internal(self, instrument, start_index, end_index, *args):
+        res: pd.Series = super(Corr, self)._load_internal(instrument, start_index, end_index, *args)
 
         # NOTE: Load uses MemCache, so calling load again will not cause performance degradation
-        series_left = self.feature_left.load(instrument, start_index, end_index, freq)
-        series_right = self.feature_right.load(instrument, start_index, end_index, freq)
+        series_left = self.feature_left.load(instrument, start_index, end_index, *args)
+        series_right = self.feature_right.load(instrument, start_index, end_index, *args)
         res.loc[
             np.isclose(series_left.rolling(self.N, min_periods=1).std(), 0, atol=2e-05)
             | np.isclose(series_right.rolling(self.N, min_periods=1).std(), 0, atol=2e-05)
@@ -1527,8 +1527,8 @@ class TResample(ElemOperator):
     def __str__(self):
         return "{}({},{})".format(type(self).__name__, self.feature, self.freq)
 
-    def _load_internal(self, instrument, start_index, end_index, freq):
-        series = self.feature.load(instrument, start_index, end_index, freq)
+    def _load_internal(self, instrument, start_index, end_index, *args):
+        series = self.feature.load(instrument, start_index, end_index, *args)
 
         if series.empty:
             return series
@@ -1646,8 +1646,10 @@ def register_all_ops(C):
     """register all operator"""
     logger = get_module_logger("ops")
 
+    from qlib.data.pit import P
+
     # Operators.reset()
-    Operators.register(OpsList)
+    Operators.register(OpsList + [P])
 
     # FIXME: I don't think it is necessary
     from .ops_period import PeriodOpsList

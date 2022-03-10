@@ -1,5 +1,10 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
+"""
+TODO:
+- A more well-designed PIT database is required.
+    - seperated insert, delete, update, query operations are required.
+"""
 
 import abc
 import shutil

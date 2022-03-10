@@ -136,8 +136,18 @@ class Expression(abc.ABC):
 
         return Or(other, self)
 
-    def load(self, instrument, start_index, end_index, freq):
+    def load(self, instrument, start_index, end_index, *args):
         """load  feature
+        This function is responsible for loading feature/expression based on the expression engine.
+
+        The concerate implementation will be seperated by two parts
+        1) caching data, handle errors.
+            - This part is shared by all the expressions and implemented in Expression
+        2) processing and calculating data based on the specific expression.
+            - This part is different in each expression and implemented in each expression
+
+        Expresion Engine is shared by different data.
+        Different data will have different extra infomation for `args`.
 
         Parameters
         ----------
@@ -147,8 +157,15 @@ class Expression(abc.ABC):
             feature start index [in calendar].
         end_index : str
             feature end  index  [in calendar].
-        freq : str
-            feature frequency.
+
+        *args may contains following information;
+        1) if it is used in basic experssion engine data, it contains following arguments
+            freq : str
+                feature frequency.
+
+        2) if is used in PIT data, it contains following arguments
+            cur_pit:
+                it is designed for the point-in-time data.
 
         Returns
         ----------
@@ -158,26 +175,26 @@ class Expression(abc.ABC):
         from .cache import H  # pylint: disable=C0415
 
         # cache
-        args = str(self), instrument, start_index, end_index, freq
-        if args in H["f"]:
-            return H["f"][args]
+        cache_key = str(self), instrument, start_index, end_index, *args
+        if cache_key in H["f"]:
+            return H["f"][cache_key]
         if start_index is not None and end_index is not None and start_index > end_index:
             raise ValueError("Invalid index range: {} {}".format(start_index, end_index))
         try:
-            series = self._load_internal(instrument, start_index, end_index, freq)
+            series = self._load_internal(instrument, start_index, end_index, *args)
         except Exception as e:
             get_module_logger("data").debug(
                 f"Loading data error: instrument={instrument}, expression={str(self)}, "
-                f"start_index={start_index}, end_index={end_index}, freq={freq}. "
+                f"start_index={start_index}, end_index={end_index}, args={args}. "
                 f"error info: {str(e)}"
             )
             raise
         series.name = str(self)
-        H["f"][args] = series
+        H["f"][cache_key] = series
         return series
 
     @abc.abstractmethod
-    def _load_internal(self, instrument, start_index, end_index, freq):
+    def _load_internal(self, instrument, start_index, end_index, *args) -> pd.Series:
         raise NotImplementedError("This function must be implemented in your newly defined feature")
 
     @abc.abstractmethod
@@ -235,6 +252,16 @@ class Feature(Expression):
 
     def get_extended_window_size(self):
         return 0, 0
+
+
+class PFeature(Feature):
+    def __str__(self):
+        return "$$" + self._name
+
+    def _load_internal(self, instrument, start_index, end_index, cur_time):
+        from .data import PITD  # pylint: disable=C0415
+
+        return PITD.period_feature(instrument, str(self), start_index, end_index, cur_time)
 
 
 class ExpressionOps(Expression):
@@ -501,13 +528,13 @@ class PExpression(abc.ABC):
         resample_data = np.empty(end_index - start_index + 1, dtype="float32")
 
         for cur_index in range(start_index, end_index + 1):
-            cur_date = _calendar[cur_index]
+            cur_time = _calendar[cur_index]
             # To load expression accurately, more historical data are required
             start_offset = self.get_period_offset(cur_index)
             # The calculated value will always the last element, so the end_offset is zero.
             try:
                 resample_data[cur_index - start_index] = self.load_period_data(
-                    instrument, start_offset, 0, cur_date, info=(start_index, end_index, cur_index)
+                    instrument, start_offset, 0, cur_time, info=(start_index, end_index, cur_index)
                 ).iloc[-1]
             except FileNotFoundError:
                 get_module_logger("base").warning(f"WARN: period data not found for {str(self)}")
@@ -526,26 +553,26 @@ class PExpression(abc.ABC):
         return 0, 0
 
 
-class PFeature(PExpression):
-    def __init__(self, name=None):
-        if name:
-            self._name = name.lower()
-        else:
-            self._name = type(self).__name__.lower()
-
-    def __str__(self):
-        return "$$" + self._name
-
-    def load_period_data(self, instrument, start_offset, end_offset, cur_index, **kwargs):
-        # BUG: cur_idnex is a date!!!!!
-        ### Zhou Code
-        from .data import PITD
-
-        return PITD.period_feature(instrument, str(self), start_offset, end_offset, cur_index, **kwargs)
-        # return pd.Series([1, 2, 3])  # fot test
-
-    def get_period_offset(self, cur_index):
-        return 0
+# class PFeature(PExpression):
+#     def __init__(self, name=None):
+#         if name:
+#             self._name = name.lower()
+#         else:
+#             self._name = type(self).__name__.lower()
+#
+#     def __str__(self):
+#         return "$$" + self._name
+#
+#     def load_period_data(self, instrument, start_offset, end_offset, cur_index, **kwargs):
+#         # BUG: cur_idnex is a date!!!!!
+#         ### Zhou Code
+#         from .data import PITD
+#
+#         return PITD.period_feature(instrument, str(self), start_offset, end_offset, cur_index, **kwargs)
+#         # return pd.Series([1, 2, 3])  # fot test
+#
+#     def get_period_offset(self, cur_index):
+#         return 0
 
 
 class PExpressionOps(PExpression):

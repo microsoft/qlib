@@ -337,9 +337,27 @@ class FeatureProvider(abc.ABC):
 
 class PITProvider(abc.ABC):
     @abc.abstractmethod
-    def period_feature(self, instrument, field, start_offset, end_offset, cur_date, **kwargs):
+    def period_feature(self, instrument, field, start_index: int, end_index: int, cur_time: pd.Timestamp) -> pd.Series:
         """
-        get the historical periods data series for `start_offset` and `end_offset`
+        get the historical periods data series between `start_index` and `end_index`
+
+        Parameters
+        ----------
+        start_index: int
+            start_index is a relative index to the latest period to cur_time
+
+        end_index: int
+            end_index is a relative index to the latest period to cur_time
+            in most cases, the start_index and end_index will be a non-positive values
+            For example, start_index == -3 end_index == 0 and current period index is cur_idx,
+            then the data between [start_index + cur_idx, end_index + cur_idx] will be retrieved.
+
+        Returns
+        -------
+        pd.Series
+            The index will be integers to indicate the periods of the data
+            An typical examples will be
+            TODO
 
         Raises
         ------
@@ -714,8 +732,16 @@ class LocalFeatureProvider(FeatureProvider, ProviderBackendMixin):
 
 class LocalPITProvider(PITProvider):
     # TODO: Add PIT backend file storage
+    # NOTE: This class is not multi-threading-safe!!!!
 
-    def period_feature(self, instrument, field, start_offset, end_offset, cur_date, **kwargs):
+    def period_feature(self, instrument, field, start_index, end_index, cur_time):
+        if not isinstance(cur_time, pd.Timestamp):
+            raise ValueError(
+                f"Expected pd.Timestamp for `cur_time`, got '{cur_time}'. Advices: you can't query PIT data directly(e.g. '$$roewa_q'), you must use `P` operator to convert data to each day (e.g. 'P($$roewa_q)')"
+            )
+
+        assert end_index <= 0  # PIT don't support querying future data
+
         DATA_RECORDS = [
             ("date", C.pit_record_type["date"]),
             ("period", C.pit_record_type["period"]),
@@ -727,15 +753,17 @@ class LocalPITProvider(PITProvider):
         field = str(field).lower()[2:]
         instrument = code_to_fname(instrument)
 
-        start_index, end_index, cur_index = kwargs["info"]
-        if cur_index == start_index:
-            if not hasattr(self, "all_fields"):
-                self.all_fields = []
-            self.all_fields.append(field)
-            if not hasattr(self, "period_index"):
-                self.period_index = {}
-            if field not in self.period_index:
-                self.period_index[field] = {}
+        # {For acceleration
+        # start_index, end_index, cur_index = kwargs["info"]
+        # if cur_index == start_index:
+        #     if not hasattr(self, "all_fields"):
+        #         self.all_fields = []
+        #     self.all_fields.append(field)
+        #     if not hasattr(self, "period_index"):
+        #         self.period_index = {}
+        #     if field not in self.period_index:
+        #         self.period_index[field] = {}
+        # For acceleration}
 
         if not field.endswith("_q") and not field.endswith("_a"):
             raise ValueError("period field must ends with '_q' or '_a'")
@@ -744,31 +772,43 @@ class LocalPITProvider(PITProvider):
         data_path = C.dpm.get_data_uri() / "financial" / instrument.lower() / f"{field}.data"
         if not (index_path.exists() and data_path.exists()):
             raise FileNotFoundError("No file is found. Raise exception and  ")
+        # NOTE: The most significant performance loss is here.
+        # Does the accelration that makes the program complicated really matters?
+        # - It make parameters parameters of the interface complicate
+        # - It does not performance in the optimal way (places all the pieces together, we may achieve higher performance)
+        #    - If we design it carefully, we can go through for only once to get the historical evolution of the data.
+        # So I decide to deprecated previous implementation and keep the logic of the program simple
+        # Instead, I'll add a cache for the index file.
         data = np.fromfile(data_path, dtype=DATA_RECORDS)
 
-        # find all revision periods before `cur_date`
-        cur_date = int(cur_date.year) * 10000 + int(cur_date.month) * 100 + int(cur_date.day)
-        loc = np.searchsorted(data["date"], cur_date, side="right")
+        # find all revision periods before `cur_time`
+        cur_time_int = int(cur_time.year) * 10000 + int(cur_time.month) * 100 + int(cur_time.day)
+        loc = np.searchsorted(data["date"], cur_time_int, side="right")
         if loc <= 0:
-            return C.pit_record_nan["value"]
-        last_period = data["period"][loc - start_offset - 1 : loc - end_offset].max()  # return the latest quarter
-        first_period = data["period"][loc - start_offset - 1 : loc - end_offset].min()
+            return pd.Series()
+        last_period = data["period"][:loc].max()  # return the latest quarter
+        first_period = data["period"][:loc].min()
 
         period_list = get_period_list(first_period, last_period, quarterly)
-        value = np.empty(len(period_list), dtype=VALUE_DTYPE)
+        period_list = period_list[max(0, len(period_list) + start_index - 1) : len(period_list) + end_index]
+        value = np.full((len(period_list),), np.nan, dtype=VALUE_DTYPE)
         for i, period in enumerate(period_list):
-            last_period_index = self.period_index[field].get(period)
+            # last_period_index = self.period_index[field].get(period)  # For acceleration
             value[i], now_period_index = read_period_data(
-                index_path, data_path, period, cur_date, quarterly, last_period_index
+                index_path, data_path, period, cur_time_int, quarterly  # , last_period_index  # For acceleration
             )
-            self.period_index[field].update({period: now_period_index})
+            # self.period_index[field].update({period: now_period_index})  # For acceleration
+        # NOTE: the index is period_list; So it may result in unexpected values(e.g. nan)
+        # when calculation between different features and only part of its financial indicator is published
         series = pd.Series(value, index=period_list, dtype=VALUE_DTYPE)
 
-        if cur_index == end_index:
-            self.all_fields.remove(field)
-            if not len(self.all_fields):
-                del self.all_fields
-                del self.period_index
+        # {For acceleration
+        # if cur_index == end_index:
+        #     self.all_fields.remove(field)
+        #     if not len(self.all_fields):
+        #         del self.all_fields
+        #         del self.period_index
+        # For acceleration}
 
         return series
 

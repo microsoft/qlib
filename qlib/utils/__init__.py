@@ -101,10 +101,20 @@ def get_period_offset(first_year, period, quarterly):
     return offset
 
 
-def read_period_data(index_path, data_path, period, cur_date, quarterly, last_period_index):
+def read_period_data(index_path, data_path, period, cur_date_int: int, quarterly, last_period_index: int = None):
     """
     At `cur_date`(e.g. 20190102), read the information at `period`(e.g. 201803).
     Only the updating info before cur_date or at cur_date will be used.
+
+    Parameters
+    ----------
+    period: int
+        date period represented by interger, e.g. 201901 corresponds to the first quarter in 2019
+    cur_date_int: int
+        date which represented by interger, e.g. 20190102
+    last_period_index: int
+        it is a optional parameter; it is designed to avoid repeatedly access the .index data of PIT database when
+        sequentially observing the data (Because the latest index of a specific period of data certainly appear in after the one in last observation).
 
     Returns
     -------
@@ -143,7 +153,7 @@ def read_period_data(index_path, data_path, period, cur_date, quarterly, last_pe
         while _next != NAN_INDEX:
             fd.seek(_next)
             date, period, value, new_next = struct.unpack(DATA_DTYPE, fd.read(struct.calcsize(DATA_DTYPE)))
-            if date > cur_date:
+            if date > cur_date_int:
                 break
             prev_next = _next
             _next = new_next
