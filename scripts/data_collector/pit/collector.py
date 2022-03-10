@@ -119,7 +119,6 @@ class PitCollector(BaseCollector):
             report_list = []
             while (rs_report.error_code == "0") & rs_report.next():
                 report_list.append(rs_report.get_row_data())
-                # 获取一条记录，将记录合并在一起
 
             df_report = pd.DataFrame(report_list, columns=rs_report.fields)
             if {"performanceExpPubDate", "performanceExpStatDate", "performanceExpressROEWa"} <= set(rs_report.fields):
