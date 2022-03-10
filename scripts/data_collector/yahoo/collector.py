@@ -126,7 +126,11 @@ class YahooCollector(BaseCollector):
 
         interval = "1m" if interval in ["1m", "1min"] else interval
         try:
-            _resp = Ticker(symbol, asynchronous=False).history(interval=interval, start=start, end=end)
+            if source == None:
+                _resp = Ticker(symbol, asynchronous=False).history(interval=interval, start=start, end=end)
+            if source:
+                lg = bs.login()
+                _resp = bs.query_history_k_data_plus(symbol,"date,open,high,low,close,volume,adjustflag",start_date=start.strftime("%Y-%m-%d"), end_date=end.strftime("%Y-%m-%d"),frequency="d", adjustflag="3")
             if isinstance(_resp, pd.DataFrame):
                 return _resp.reset_index()
             elif isinstance(_resp, dict):
@@ -138,7 +142,7 @@ class YahooCollector(BaseCollector):
             else:
                 _show_logging_func()
         except Exception as e:
-            logger.warning(f"{error_msg}:{e}")
+            logger.warning(f"{error_msg}:{e}" + "you can switch to a foreign network or use another data source like baostock")
 
     def get_data(
         self, symbol: str, interval: str, start_datetime: pd.Timestamp, end_datetime: pd.Timestamp
