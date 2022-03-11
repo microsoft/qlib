@@ -33,7 +33,8 @@ Qlib provides a file-based storage for PIT data.
 For each feature, it contains 4 columns, i.e. date, period, value, _next.
 Each row corresponds to a statement.
 
-The meaning of each feature with filename like `XXX_a.data`
+The meaning of each feature with filename like `XXX_a.data`:
+
 - `date`: the statement's date of publication.
 - `period`: the period of the statement. (e.g. it will be quarterly frequency in most of the markets)
     - If it is an annual period, it will be an integer corresponding to the year
@@ -127,7 +128,8 @@ The statements are soted by the `date` in ascending order from the beginning of 
 
 
 
-Known limitations
+Known limitations:
+
 - Currently, the PIT database is designed for quarterly or annually factors, which can handle fundamental data of financial reports in most markets.
-    Qlib leverage the file name to identify the type of the data. File with name like `XXX_q.data` corresponds to quarterly data.  File with name like `XXX_a.data` corresponds to annual data
+- Qlib leverage the file name to identify the type of the data. File with name like `XXX_q.data` corresponds to quarterly data. File with name like `XXX_a.data` corresponds to annual data.
 - The caclulation of PIT is not performed in the optimal way. There is great potential to boost the performance of PIT data calcuation.
