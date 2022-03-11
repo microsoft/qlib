@@ -117,7 +117,10 @@ class YahooCollector(BaseCollector):
         raise NotImplementedError("rewrite get_timezone")
 
     @staticmethod
-    def get_data_from_remote(symbol, interval, start, end, show_1min_logging: bool = False):
+    @staticmethod
+    def get_data_from_remote(
+        symbol, interval, start, end, show_1min_logging: bool = False
+    ):
         error_msg = f"{symbol}-{interval}-{start}-{end}"
 
         def _show_logging_func():
@@ -126,13 +129,16 @@ class YahooCollector(BaseCollector):
 
         interval = "1m" if interval in ["1m", "1min"] else interval
         try:
-            _resp = Ticker(symbol, asynchronous=False).history(interval=interval, start=start, end=end)
+            _resp = Ticker(symbol, asynchronous=False).history(
+                interval=interval, start=start, end=end
+            )
             if isinstance(_resp, pd.DataFrame):
                 return _resp.reset_index()
             elif isinstance(_resp, dict):
                 _temp_data = _resp.get(symbol, {})
                 if isinstance(_temp_data, str) or (
-                    isinstance(_resp, dict) and _temp_data.get("indicators", {}).get("quote", None) is None
+                    isinstance(_resp, dict)
+                    and _temp_data.get("indicators", {}).get("quote", None) is None
                 ):
                     _show_logging_func()
             else:
@@ -144,7 +150,11 @@ class YahooCollector(BaseCollector):
             )
 
     def get_data(
-        self, symbol: str, interval: str, start_datetime: pd.Timestamp, end_datetime: pd.Timestamp
+        self,
+        symbol: str,
+        interval: str,
+        start_datetime: pd.Timestamp,
+        end_datetime: pd.Timestamp,
     ) -> pd.DataFrame:
         @deco_retry(retry_sleep=self.delay)
         def _get_simple(start_, end_):
@@ -157,7 +167,11 @@ class YahooCollector(BaseCollector):
                 end=end_,
             )
             if resp is None or resp.empty:
-                raise ValueError(f"get data error: {symbol}--{start_}--{end_}" + "The stock may be delisted, please check")
+                raise ValueError(
+                    f"get data error: {symbol}--{start_}--{end_}"
+                    + "The stock may be delisted, please check"
+                )
+                
             return resp
 
         _result = None
