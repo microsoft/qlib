@@ -117,7 +117,6 @@ class YahooCollector(BaseCollector):
         raise NotImplementedError("rewrite get_timezone")
 
     @staticmethod
-    @staticmethod
     def get_data_from_remote(
         symbol, interval, start, end, show_1min_logging: bool = False
     ):
