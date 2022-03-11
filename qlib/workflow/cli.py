@@ -7,7 +7,6 @@ from pathlib import Path
 
 import qlib
 import fire
-import pandas as pd
 import ruamel.yaml as yaml
 from qlib.config import C
 from qlib.model.trainer import task_train
