@@ -27,6 +27,7 @@ SZSE_CALENDAR_URL = "http://www.szse.cn/api/report/exchange/onepersistenthour/mo
 
 CALENDAR_BENCH_URL_MAP = {
     "CSI300": CALENDAR_URL_BASE.format(market=1, bench_code="000300"),
+    "CSI500": CALENDAR_URL_BASE.format(market=1, bench_code="000905"),
     "CSI100": CALENDAR_URL_BASE.format(market=1, bench_code="000903"),
     # NOTE: Use the time series of SH600000 as the sequence of all stocks
     "ALL": CALENDAR_URL_BASE.format(market=1, bench_code="000905"),
@@ -34,7 +35,6 @@ CALENDAR_BENCH_URL_MAP = {
     "US_ALL": "^GSPC",
     "IN_ALL": "^NSEI",
 }
-
 
 _BENCH_CALENDAR_LIST = None
 _ALL_CALENDAR_LIST = None
@@ -232,13 +232,16 @@ def get_us_stock_symbols(qlib_data_path: [str, Path] = None) -> list:
         resp = requests.get(url)
         if resp.status_code != 200:
             raise ValueError("request error")
+
         try:
             _symbols = [_v["f12"].replace("_", "-P") for _v in resp.json()["data"]["diff"].values()]
         except Exception as e:
             logger.warning(f"request error: {e}")
             raise
+
         if len(_symbols) < 8000:
             raise ValueError("request error")
+
         return _symbols
 
     @deco_retry
@@ -271,6 +274,7 @@ def get_us_stock_symbols(qlib_data_path: [str, Path] = None) -> list:
         resp = requests.post(url, json=_parms)
         if resp.status_code != 200:
             raise ValueError("request error")
+
         try:
             _symbols = [_v["symbolTicker"].replace("-", "-P") for _v in resp.json()]
         except Exception as e:
@@ -425,10 +429,12 @@ def deco_retry(retry: int = 5, retry_sleep: int = 3):
                 try:
                     _result = func(*args, **kwargs)
                     break
+
                 except Exception as e:
                     logger.warning(f"{func.__name__}: {_i} :{e}")
                     if _i == _retry:
                         raise
+
                 time.sleep(retry_sleep)
             return _result
 
