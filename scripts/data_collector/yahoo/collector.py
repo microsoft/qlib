@@ -117,9 +117,7 @@ class YahooCollector(BaseCollector):
         raise NotImplementedError("rewrite get_timezone")
 
     @staticmethod
-    def get_data_from_remote(
-        symbol, interval, start, end, show_1min_logging: bool = False
-    ):
+    def get_data_from_remote(symbol, interval, start, end, show_1min_logging: bool = False):
         error_msg = f"{symbol}-{interval}-{start}-{end}"
 
         def _show_logging_func():
@@ -135,13 +133,14 @@ class YahooCollector(BaseCollector):
                 _temp_data = _resp.get(symbol, {})
                 if isinstance(_temp_data, str) or (
                     isinstance(_resp, dict) and _temp_data.get("indicators", {}).get("quote", None) is None
-                 ):
+                ):
                     _show_logging_func()
             else:
                 _show_logging_func()
         except Exception as e:
             logger.warning(
-                f"get data error: {symbol}--{start_}--{end_}" + "Your data request fails. This may be caused by your firewall (e.g. GFW). Please switch your network if you want to access Yahoo! data"
+                f"get data error: {symbol}--{start_}--{end_}" 
+                + "Your data request fails. This may be caused by your firewall (e.g. GFW). Please switch your network if you want to access Yahoo! data"
                  )
 
     def get_data(
@@ -164,8 +163,7 @@ class YahooCollector(BaseCollector):
             if resp is None or resp.empty:
                 raise ValueError(
                     f"get data error: {symbol}--{start_}--{end_}" + "The stock may be delisted, please check"
-                )
-                
+                )      
             return resp
 
         _result = None
