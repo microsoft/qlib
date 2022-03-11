@@ -31,6 +31,7 @@ jobs:
         python -m pip install pip --upgrade
         python -m pip install wheel --upgrade
         python -m pip install black
+        python -m pip install black --version
         python -m black qlib -l 120 --check --diff
     # Test Qlib installed with pip
 
