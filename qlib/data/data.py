@@ -617,7 +617,7 @@ class DatasetProvider(abc.ABC):
         for _processor in inst_processors:
             if _processor:
                 _processor_obj = init_instance_by_config(_processor, accept_types=InstProcessor)
-                data = _processor_obj(data)
+                data = _processor_obj(data, instrument=inst)
         return data
 
 
