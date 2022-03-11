@@ -5,7 +5,7 @@ import pandas as pd
 
 class InstProcessor:
     @abc.abstractmethod
-    def __call__(self, df: pd.DataFrame, *args, **kwargs):
+    def __call__(self, df: pd.DataFrame, instrument, *args, **kwargs):
         """
         process the data
 
