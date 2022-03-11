@@ -126,11 +126,7 @@ class YahooCollector(BaseCollector):
 
         interval = "1m" if interval in ["1m", "1min"] else interval
         try:
-            rs = pd.DataFrame(data_list, columns=rs.fields)
-            data_list = []
-            while (rs.error_code == '0') & rs.next():
-                data_list.append(rs.get_row_data())
-            _resp = pd.DataFrame(data_list, columns=rs.fields)
+            _resp = Ticker(symbol, asynchronous=False).history(interval=interval, start=start, end=end)
             if isinstance(_resp, pd.DataFrame):
                 return _resp.reset_index()
             elif isinstance(_resp, dict):
@@ -142,7 +138,11 @@ class YahooCollector(BaseCollector):
             else:
                 _show_logging_func()
         except Exception as e:
-            logger.warning(f"{error_msg}:{e}" + "you can Switch to a foreign network or use another data source")
+            logger.warning(
+                f"{error_msg}:{e}"
+                + "you can Switch to a foreign network or use another data source"
+            )
+
     def get_data(
         self, symbol: str, interval: str, start_datetime: pd.Timestamp, end_datetime: pd.Timestamp
     ) -> pd.DataFrame:
@@ -157,7 +157,7 @@ class YahooCollector(BaseCollector):
                 end=end_,
             )
             if resp is None or resp.empty:
-                raise ValueError(f"get data error: {symbol}--{start_}--{end_}" + " The stock has been delisted")
+                raise ValueError(f"get data error: {symbol}--{start_}--{end_}" + "The stock may be delisted, please check")
             return resp
 
         _result = None
