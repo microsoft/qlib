@@ -145,7 +145,7 @@ class YahooCollector(BaseCollector):
         except Exception as e:
             logger.warning(
                 f"{error_msg}:{e}"
-                + "you can Switch to a foreign network or use another data source"
+                + "Your data request fails. This may be caused by your firewall (e.g. GFW). Please switch your network if you want to access Yahoo! data"
             )
 
     def get_data(
