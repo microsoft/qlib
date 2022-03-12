@@ -138,7 +138,10 @@ class YahooCollector(BaseCollector):
             else:
                 _show_logging_func()
         except Exception as e:
-            logger.warning(f"{error_msg}:{e}")
+            logger.warning(
+                f"get data error: {symbol}--{start_}--{end_}"
+                + "Your data request fails. This may be caused by your firewall (e.g. GFW). Please switch your network if you want to access Yahoo! data"
+            )
 
     def get_data(
         self, symbol: str, interval: str, start_datetime: pd.Timestamp, end_datetime: pd.Timestamp
@@ -154,7 +157,9 @@ class YahooCollector(BaseCollector):
                 end=end_,
             )
             if resp is None or resp.empty:
-                raise ValueError(f"get data error: {symbol}--{start_}--{end_}")
+                raise ValueError(
+                    f"get data error: {symbol}--{start_}--{end_}" + "The stock may be delisted, please check"
+                )
             return resp
 
         _result = None
