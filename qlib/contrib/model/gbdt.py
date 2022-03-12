@@ -68,17 +68,17 @@ class LGBModel(ModelFT, LightGBMFInt):
             evals_result = {}  # in case of unsafety of Python default values
         ds_l = self._prepare_data(dataset, reweighter)
         ds, names = list(zip(*ds_l))
+        early_stopping_callback = lgb.early_stopping(
+            stopping_rounds=self.early_stopping_rounds if early_stopping_rounds is None else early_stopping_rounds)
         self.model = lgb.train(
             self.params,
             ds[0],  # training dataset
             num_boost_round=self.num_boost_round if num_boost_round is None else num_boost_round,
             valid_sets=ds,
             valid_names=names,
-            early_stopping_rounds=(
-                self.early_stopping_rounds if early_stopping_rounds is None else early_stopping_rounds
-            ),
             verbose_eval=verbose_eval,
             evals_result=evals_result,
+            callbacks= [early_stopping_callback],
             **kwargs,
         )
         for k in names:
