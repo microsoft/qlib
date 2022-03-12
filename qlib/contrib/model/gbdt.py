@@ -69,16 +69,17 @@ class LGBModel(ModelFT, LightGBMFInt):
         ds_l = self._prepare_data(dataset, reweighter)
         ds, names = list(zip(*ds_l))
         early_stopping_callback = lgb.early_stopping(
-            stopping_rounds=self.early_stopping_rounds if early_stopping_rounds is None else early_stopping_rounds)
+            stopping_rounds=self.early_stopping_rounds if early_stopping_rounds is None else early_stopping_rounds
+        )
+        verbose_eval_callback = lgb.log_evaluation(period=verbose_eval)
         self.model = lgb.train(
             self.params,
             ds[0],  # training dataset
             num_boost_round=self.num_boost_round if num_boost_round is None else num_boost_round,
             valid_sets=ds,
             valid_names=names,
-            verbose_eval=verbose_eval,
             evals_result=evals_result,
-            callbacks= [early_stopping_callback],
+            callbacks=[early_stopping_callback, verbose_eval_callback],
             **kwargs,
         )
         for k in names:
@@ -110,6 +111,7 @@ class LGBModel(ModelFT, LightGBMFInt):
         dtrain, _ = self._prepare_data(dataset, reweighter)  # pylint: disable=W0632
         if dtrain.empty:
             raise ValueError("Empty data from dataset, please check your dataset config.")
+        verbose_eval_callback = lgb.log_evaluation(period=verbose_eval)
         self.model = lgb.train(
             self.params,
             dtrain,
@@ -117,5 +119,5 @@ class LGBModel(ModelFT, LightGBMFInt):
             init_model=self.model,
             valid_sets=[dtrain],
             valid_names=["train"],
-            verbose_eval=verbose_eval,
+            callbacks=[verbose_eval_callback],
         )

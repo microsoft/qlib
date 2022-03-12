@@ -113,15 +113,16 @@ class HFLGBModel(ModelFT, LightGBMFInt):
         evals_result=dict(),
     ):
         dtrain, dvalid = self._prepare_data(dataset)
+        verbose_eval_callback = lgb.log_evaluation(period=verbose_eval)
+        early_stopping_callback = lgb.early_stopping(
+            stopping_rounds=self.early_stopping_rounds if early_stopping_rounds is None else early_stopping_rounds)
         self.model = lgb.train(
             self.params,
             dtrain,
             num_boost_round=num_boost_round,
             valid_sets=[dtrain, dvalid],
             valid_names=["train", "valid"],
-            early_stopping_rounds=early_stopping_rounds,
-            verbose_eval=verbose_eval,
-            evals_result=evals_result,
+            callbacks=[early_stopping_callback, verbose_eval_callback],
         )
         evals_result["train"] = list(evals_result["train"].values())[0]
         evals_result["valid"] = list(evals_result["valid"].values())[0]
@@ -147,6 +148,7 @@ class HFLGBModel(ModelFT, LightGBMFInt):
         """
         # Based on existing model and finetune by train more rounds
         dtrain, _ = self._prepare_data(dataset)
+        verbose_eval_callback = lgb.log_evaluation(period=verbose_eval)
         self.model = lgb.train(
             self.params,
             dtrain,
@@ -155,4 +157,5 @@ class HFLGBModel(ModelFT, LightGBMFInt):
             valid_sets=[dtrain],
             valid_names=["train"],
             verbose_eval=verbose_eval,
+            callbacks=[verbose_eval_callback],
         )
