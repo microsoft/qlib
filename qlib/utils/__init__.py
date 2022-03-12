@@ -41,6 +41,7 @@ log = get_module_logger("utils")
 # MultiIndex.is_lexsorted() is a deprecated method in Pandas 1.3.0.
 is_deprecated_lexsorted_pandas = version.parse(pd.__version__) > version.parse("1.3.0")
 
+
 #################### Server ####################
 def get_redis_connection():
     """get redis connection instance."""
