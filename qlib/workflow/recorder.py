@@ -351,14 +351,16 @@ class MLflowRecorder(Recorder):
             path = self.client.download_artifacts(self.id, name)
             with Path(path).open("rb") as f:
                 data = unpickler(f).load()
+            return data
+        except Exception as e:
+            logger.exception(f"Fail to load data '{name}'")
+            raise LoadObjectError(str(e)) from e
+        finally:
             ar = self.client._tracking_client._get_artifact_repo(self.id)
             if isinstance(ar, AzureBlobArtifactRepository):
                 # for saving disk space
                 # For safety, only remove redundant file for specific ArtifactRepository
                 shutil.rmtree(Path(path).absolute().parent)
-            return data
-        except Exception as e:
-            raise LoadObjectError(str(e)) from e
 
     @AsyncCaller.async_dec(ac_attr="async_log")
     def log_params(self, **kwargs):
