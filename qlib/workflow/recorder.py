@@ -347,17 +347,17 @@ class MLflowRecorder(Recorder):
         """
         assert self.uri is not None, "Please start the experiment and recorder first before using recorder directly."
 
+        path = None
         try:
             path = self.client.download_artifacts(self.id, name)
             with Path(path).open("rb") as f:
                 data = unpickler(f).load()
             return data
         except Exception as e:
-            logger.exception(f"Fail to load data '{name}'")
             raise LoadObjectError(str(e)) from e
         finally:
             ar = self.client._tracking_client._get_artifact_repo(self.id)
-            if isinstance(ar, AzureBlobArtifactRepository):
+            if isinstance(ar, AzureBlobArtifactRepository) and path is not None:
                 # for saving disk space
                 # For safety, only remove redundant file for specific ArtifactRepository
                 shutil.rmtree(Path(path).absolute().parent)
