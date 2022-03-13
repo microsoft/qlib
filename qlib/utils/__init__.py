@@ -32,11 +32,14 @@ from pathlib import Path
 from typing import List, Dict, Union, Tuple, Any, Text, Optional, Callable
 from types import ModuleType
 from urllib.parse import urlparse
+from packaging import version
 from .file import get_or_create_path, save_multiple_parts_file, unpack_archive_with_buffer, get_tmp_file_with_buffer
 from ..config import C
 from ..log import get_module_logger, set_log_with_config
 
 log = get_module_logger("utils")
+# MultiIndex.is_lexsorted() is a deprecated method in Pandas 1.3.0.
+is_deprecated_lexsorted_pandas = version.parse(pd.__version__) > version.parse("1.3.0")
 
 
 #################### Server ####################
@@ -788,11 +791,15 @@ def lazy_sort_index(df: pd.DataFrame, axis=0) -> pd.DataFrame:
         sorted dataframe
     """
     idx = df.index if axis == 0 else df.columns
-    # NOTE: MultiIndex.is_lexsorted() is a deprecated method in Pandas 1.3.0 and is suggested to be replaced by MultiIndex.is_monotonic_increasing (see discussion here: https://github.com/pandas-dev/pandas/issues/32259). However, in case older versions of Pandas is implemented, MultiIndex.is_lexsorted() is necessary to prevent certain fatal errors.
-    if idx.is_monotonic_increasing and not (isinstance(idx, pd.MultiIndex) and not idx.is_lexsorted()):
-        return df
-    else:
+    if (
+        not idx.is_monotonic_increasing
+        or not is_deprecated_lexsorted_pandas
+        and isinstance(idx, pd.MultiIndex)
+        and not idx.is_lexsorted()
+    ):  # this case is for the old version
         return df.sort_index(axis=axis)
+    else:
+        return df
 
 
 FLATTEN_TUPLE = "_FLATTEN_TUPLE"
