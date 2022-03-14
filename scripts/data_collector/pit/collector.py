@@ -22,8 +22,12 @@ class PitCollector(BaseCollector):
 
     DEFAULT_START_DATETIME_QUARTER = pd.Timestamp("2000-01-01")
     DEFAULT_START_DATETIME_ANNUAL = pd.Timestamp("2000-01-01")
-    DEFAULT_END_DATETIME_QUARTER = pd.Timestamp(datetime.datetime.now() + pd.Timedelta(days=1))
-    DEFAULT_END_DATETIME_ANNUAL = pd.Timestamp(datetime.datetime.now() + pd.Timedelta(days=1))
+    DEFAULT_END_DATETIME_QUARTER = pd.Timestamp(
+        datetime.datetime.now() + pd.Timedelta(days=1)
+    )
+    DEFAULT_END_DATETIME_ANNUAL = pd.Timestamp(
+        datetime.datetime.now() + pd.Timedelta(days=1)
+    )
 
     INTERVAL_quarterly = "quarterly"
     INTERVAL_annual = "annual"
@@ -93,7 +97,9 @@ class PitCollector(BaseCollector):
                 m = self.symbol_flt_regx.match(s)
                 if m is not None:
                     s_flt.append(s)
-            logger.info(f"after filtering, it becomes {s_flt[:10]}[{len(s_flt)}] symbols")
+            logger.info(
+                f"after filtering, it becomes {s_flt[:10]}[{len(s_flt)}] symbols"
+            )
             return s_flt
 
         return symbols
@@ -109,18 +115,32 @@ class PitCollector(BaseCollector):
 
         try:
             code, market = symbol.split(".")
-            market = {"ss": "sh"}.get(market, market)  # baostock's API naming is different from default symbol list
+            market = {"ss": "sh"}.get(
+                market, market
+            )  # baostock's API naming is different from default symbol list
             symbol = f"{market}.{code}"
             rs_report = bs.query_performance_express_report(
-                code=symbol, start_date=str(start_datetime.date()), end_date=str(end_datetime.date())
+                code=symbol,
+                start_date=str(start_datetime.date()),
+                end_date=str(end_datetime.date()),
             )
             report_list = []
             while (rs_report.error_code == "0") & rs_report.next():
                 report_list.append(rs_report.get_row_data())
 
             df_report = pd.DataFrame(report_list, columns=rs_report.fields)
-            if {"performanceExpPubDate", "performanceExpStatDate", "performanceExpressROEWa"} <= set(rs_report.fields):
-                df_report = df_report[["performanceExpPubDate", "performanceExpStatDate", "performanceExpressROEWa"]]
+            if {
+                "performanceExpPubDate",
+                "performanceExpStatDate",
+                "performanceExpressROEWa",
+            } <= set(rs_report.fields):
+                df_report = df_report[
+                    [
+                        "performanceExpPubDate",
+                        "performanceExpStatDate",
+                        "performanceExpressROEWa",
+                    ]
+                ]
                 df_report.rename(
                     columns={
                         "performanceExpPubDate": "date",
@@ -129,17 +149,23 @@ class PitCollector(BaseCollector):
                     },
                     inplace=True,
                 )
-                df_report["value"] = df_report["value"].apply(lambda r: _str_to_float(r) / 100.0)
+                df_report["value"] = df_report["value"].apply(
+                    lambda r: _str_to_float(r) / 100.0
+                )
                 df_report["field"] = "roeWa"
 
             profit_list = []
             for year in range(start_datetime.year - 1, end_datetime.year + 1):
                 for q_num in range(0, 4):
-                    rs_profit = bs.query_profit_data(code=symbol, year=year, quarter=q_num + 1)
+                    rs_profit = bs.query_profit_data(
+                        code=symbol, year=year, quarter=q_num + 1
+                    )
                     while (rs_profit.error_code == "0") & rs_profit.next():
                         row_data = rs_profit.get_row_data()
                         if "pubDate" in rs_profit.fields:
-                            pub_date = pd.Timestamp(row_data[rs_profit.fields.index("pubDate")])
+                            pub_date = pd.Timestamp(
+                                row_data[rs_profit.fields.index("pubDate")]
+                            )
                             if pub_date >= start_datetime and pub_date <= end_datetime:
                                 profit_list.append(row_data)
 
@@ -147,7 +173,11 @@ class PitCollector(BaseCollector):
             if {"pubDate", "statDate", "roeAvg"} <= set(rs_profit.fields):
                 df_profit = df_profit[["pubDate", "statDate", "roeAvg"]]
                 df_profit.rename(
-                    columns={"pubDate": "date", "statDate": "period", "roeAvg": "value"},
+                    columns={
+                        "pubDate": "date",
+                        "statDate": "period",
+                        "roeAvg": "value",
+                    },
                     inplace=True,
                 )
                 df_profit["value"] = df_profit["value"].apply(_str_to_float)
@@ -155,7 +185,9 @@ class PitCollector(BaseCollector):
 
             forecast_list = []
             rs_forecast = bs.query_forecast_report(
-                code=symbol, start_date=str(start_datetime.date()), end_date=str(end_datetime.date())
+                code=symbol,
+                start_date=str(start_datetime.date()),
+                end_date=str(end_datetime.date()),
             )
 
             while (rs_forecast.error_code == "0") & rs_forecast.next():
@@ -184,22 +216,35 @@ class PitCollector(BaseCollector):
                     inplace=True,
                 )
 
-                df_forecast["profitForcastChgPctUp"] = df_forecast["profitForcastChgPctUp"].apply(_str_to_float)
-                df_forecast["profitForcastChgPctDwn"] = df_forecast["profitForcastChgPctDwn"].apply(_str_to_float)
+                df_forecast["profitForcastChgPctUp"] = df_forecast[
+                    "profitForcastChgPctUp"
+                ].apply(_str_to_float)
+                df_forecast["profitForcastChgPctDwn"] = df_forecast[
+                    "profitForcastChgPctDwn"
+                ].apply(_str_to_float)
                 df_forecast["value"] = (
-                    df_forecast["profitForcastChgPctUp"] + df_forecast["profitForcastChgPctDwn"]
+                    df_forecast["profitForcastChgPctUp"]
+                    + df_forecast["profitForcastChgPctDwn"]
                 ) / 200
                 df_forecast["field"] = "YOYNI"
-                df_forecast.drop(["profitForcastChgPctUp", "profitForcastChgPctDwn"], axis=1, inplace=True)
+                df_forecast.drop(
+                    ["profitForcastChgPctUp", "profitForcastChgPctDwn"],
+                    axis=1,
+                    inplace=True,
+                )
 
             growth_list = []
             for year in range(start_datetime.year - 1, end_datetime.year + 1):
                 for q_num in range(0, 4):
-                    rs_growth = bs.query_growth_data(code=symbol, year=year, quarter=q_num + 1)
+                    rs_growth = bs.query_growth_data(
+                        code=symbol, year=year, quarter=q_num + 1
+                    )
                     while (rs_growth.error_code == "0") & rs_growth.next():
                         row_data = rs_growth.get_row_data()
                         if "pubDate" in rs_growth.fields:
-                            pub_date = pd.Timestamp(row_data[rs_growth.fields.index("pubDate")])
+                            pub_date = pd.Timestamp(
+                                row_data[rs_growth.fields.index("pubDate")]
+                            )
                             if pub_date >= start_datetime and pub_date <= end_datetime:
                                 growth_list.append(row_data)
 
@@ -223,12 +268,19 @@ class PitCollector(BaseCollector):
 
         def _process_period(r):
             _date = pd.Timestamp(r)
-            return _date.year if interval == self.INTERVAL_annual else _date.year * 100 + (_date.month - 1) // 3 + 1
+            return (
+                _date.year
+                if interval == self.INTERVAL_annual
+                else _date.year * 100 + (_date.month - 1) // 3 + 1
+            )
 
         try:
             _date = df["period"].apply(
                 lambda x: (
-                    pd.to_datetime(x) + pd.DateOffset(days=(45 if interval == self.INTERVAL_quarterly else 90))
+                    pd.to_datetime(x)
+                    + pd.DateOffset(
+                        days=(45 if interval == self.INTERVAL_quarterly else 90)
+                    )
                 ).date()
             )
             df["date"] = df["date"].fillna(_date.astype(str))
@@ -238,11 +290,17 @@ class PitCollector(BaseCollector):
             logger.warning(f"{error_msg}:{e}")
 
     def get_data(
-        self, symbol: str, interval: str, start_datetime: pd.Timestamp, end_datetime: pd.Timestamp
+        self,
+        symbol: str,
+        interval: str,
+        start_datetime: pd.Timestamp,
+        end_datetime: pd.Timestamp,
     ) -> [pd.DataFrame]:
 
         if interval == self.INTERVAL_quarterly:
-            _result = self._get_data_from_baostock(symbol, interval, start_datetime, end_datetime)
+            _result = self._get_data_from_baostock(
+                symbol, interval, start_datetime, end_datetime
+            )
             if _result is None or _result.empty:
                 return _result
             else:
@@ -269,7 +327,9 @@ class Run(BaseRun):
         interval: str
             freq, value from [quarterly, annual], default 1d
         """
-        super().__init__(source_dir=source_dir, max_workers=max_workers, interval=interval)
+        super().__init__(
+            source_dir=source_dir, max_workers=max_workers, interval=interval
+        )
 
     @property
     def collector_class_name(self):
@@ -313,7 +373,13 @@ class Run(BaseRun):
         """
 
         super(Run, self).download_data(
-            max_collector_count, delay, start, end, check_data_length, limit_nums, **kwargs
+            max_collector_count,
+            delay,
+            start,
+            end,
+            check_data_length,
+            limit_nums,
+            **kwargs,
         )
 
     def normalize_class_name(self):
