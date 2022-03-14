@@ -2,10 +2,8 @@
 # Licensed under the MIT License.
 
 import re
-import abc
 import sys
 import datetime
-from abc import ABC
 from pathlib import Path
 
 import fire
@@ -266,8 +264,6 @@ class Run(BaseRun):
         ----------
         source_dir: str
             The directory where the raw data collected from the Internet is saved, default "Path(__file__).parent/source"
-        normalize_dir: str
-            Directory for normalize data, default "Path(__file__).parent/normalize"
         max_workers: int
             Concurrent number, default is 4
         interval: str
@@ -289,7 +285,6 @@ class Run(BaseRun):
         delay=0,
         start=None,
         end=None,
-        interval="quarterly",
         check_data_length=False,
         limit_nums=None,
         **kwargs,
@@ -302,8 +297,6 @@ class Run(BaseRun):
             default 2
         delay: float
             time.sleep(delay), default 0
-        interval: str
-            freq, value from [quarterly, annual], default 1d
         start: str
             start datetime, default "2000-01-01"
         end: str
@@ -320,7 +313,7 @@ class Run(BaseRun):
         """
 
         super(Run, self).download_data(
-            max_collector_count, delay, start, end, interval, check_data_length, limit_nums, **kwargs
+            max_collector_count, delay, start, end, check_data_length, limit_nums, **kwargs
         )
 
     def normalize_class_name(self):

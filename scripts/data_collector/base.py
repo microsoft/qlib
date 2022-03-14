@@ -369,8 +369,6 @@ class BaseRun(abc.ABC):
             default 2
         delay: float
             time.sleep(delay), default 0
-        interval: str
-            freq, value from [1min, 1d], default 1d
         start: str
             start datetime, default "2000-01-01"
         end: str
