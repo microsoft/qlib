@@ -106,7 +106,6 @@ Your feedbacks about the features are very important.
 <img src="docs/_static/img/framework.svg" />
 </div>
 
-
 At the module level, Qlib is a platform that consists of the above components. The components are designed as loose-coupled modules, and each component could be used stand-alone.
 
 | Name                   | Description                                                                                                                                                                                                                                                                                                                                                             |
@@ -117,6 +116,8 @@ At the module level, Qlib is a platform that consists of the above components. T
 
 * The modules with hand-drawn style are under development and will be released in the future.
 * The modules with dashed borders are highly user-customizable and extendible.
+
+(p.s. framework image is created with https://draw.io/)
 
 
 # Quick Start
