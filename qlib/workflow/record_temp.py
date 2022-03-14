@@ -96,11 +96,12 @@ class RecordTemp:
         """
         try:
             return self.recorder.load_object(self.get_path(name))
-        except LoadObjectError:
+        except LoadObjectError as e:
             if parents:
                 if self.depend_cls is not None:
                     with class_casting(self, self.depend_cls):
                         return self.load(name, parents=True)
+            raise e
 
     def list(self):
         """
