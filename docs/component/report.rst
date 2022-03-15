@@ -20,6 +20,9 @@ Introduction
     - model_performance_graph
 
 
+All of the accumulated profit metrics(e.g. return, max drawdown) in Qlib are calculated by summation.
+This avoids the metrics or the plots being skewed exponentially over time.
+
 Graphical Reports
 ===================
 
