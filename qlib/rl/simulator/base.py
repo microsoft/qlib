@@ -6,6 +6,7 @@ import gym
 InitialStateType = TypeVar('InitialStateType')
 StateType = TypeVar('StateType')
 
+SimulatorType = TypeVar('SimulatorType')
 
 class Simulator(Generic[InitialStateType, StateType]):
     """
@@ -46,6 +47,10 @@ class Simulator(Generic[InitialStateType, StateType]):
         pass
 
     def step(self, action: Any) -> None:
+        raise NotImplementedError()
+
+    @classmethod
+    def load_state(cls: SimulatorType, state: StateType) -> SimulatorType:
         raise NotImplementedError()
 
     def get_state(self) -> StateType:

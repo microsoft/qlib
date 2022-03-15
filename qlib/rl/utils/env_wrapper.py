@@ -11,7 +11,8 @@ from qlib.rl.reward import BaseReward
 
 from .finite_env import generate_nan_observation
 
-INITIAL_STATE_QUEUE_MISSING = '_missing_'
+# in this case, there won't be any seed for simulator
+SEED_INTERATOR_MISSING = '_missing_'
 
 
 class EnvWrapperStatus(NamedTuple):
@@ -49,7 +50,7 @@ class EnvWrapper(gym.Env):
         simulator_fn: Callable[[InitialStateType], Simulator],
         state_interpreter: StateInterpreter,
         action_interpreter: ActionInterpreter,
-        initial_state_queue: Optional[Iterator[InitialStateType]],
+        seed_iterator: Optional[Iterator[InitialStateType]],
         reward_fn: Optional[BaseReward] = None,
         aux_info_collector: Optional[AuxiliaryInfoCollector] = None
     ):
@@ -61,10 +62,11 @@ class EnvWrapper(gym.Env):
         self.state_interpreter = state_interpreter
         self.action_interpreter = action_interpreter
 
-        if initial_state_queue is None:
-            self.initial_state_queue = INITIAL_STATE_QUEUE_MISSING
+        if seed_iterator is None:
+            # in this case, there won't be any seed for simulator
+            self.seed_iterator = SEED_INTERATOR_MISSING
         else:
-            self.initial_state_queue = initial_state_queue
+            self.seed_iterator = seed_iterator
         self.reward_fn = reward_fn
         self.aux_info_collector = aux_info_collector
 
@@ -82,14 +84,17 @@ class EnvWrapper(gym.Env):
         # Try to get a state from state queue, and init the simulator with this state.
         # If the queue is exhausted, generate an invalid (nan) observation
         try:
-            if self.initial_state_queue is None:
+            if self.seed_iterator is None:
                 raise RuntimeError('You can trying to get a state from a dead environment wrapper.')
 
-            if self.initial_state_queue is INITIAL_STATE_QUEUE_MISSING:
+            # FIXME: simulator/observation might need seed to prefetch something
+            # as only seed has the ability to do the work beforehands
+
+            if self.seed_iterator is SEED_INTERATOR_MISSING:
                 # no initial state
                 self.simulator = self.simulator_fn()
             else:
-                initial_state = next(self.initial_state_queue)
+                initial_state = next(self.seed_iterator)
                 self.simulator = self.simulator_fn(initial_state)
                 sim_state = self.simulator.get_state()
                 obs = self.state_interpreter(sim_state)
@@ -107,12 +112,12 @@ class EnvWrapper(gym.Env):
 
         except StopIteration:
             # The environment should be recycled because it's in a dead state.
-            self.initial_state_queue = None
+            self.seed_iterator = None
             self.status = None
             return generate_nan_observation(self.observation_space)
 
     def step(self, action, **kwargs):
-        if self.initial_state_queue is None:
+        if self.seed_iterator is None:
             raise RuntimeError('State queue is already exhausted, but the environment is still receiving action.')
 
         # Action is what we have got from policy
