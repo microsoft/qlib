@@ -136,14 +136,14 @@ class Expression(abc.ABC):
         """load  feature
         This function is responsible for loading feature/expression based on the expression engine.
 
-        The concerate implementation will be seperated by two parts
+        The concrete implementation will be separated into two parts:
         1) caching data, handle errors.
             - This part is shared by all the expressions and implemented in Expression
         2) processing and calculating data based on the specific expression.
             - This part is different in each expression and implemented in each expression
 
-        Expresion Engine is shared by different data.
-        Different data will have different extra infomation for `args`.
+        Expression Engine is shared by different data.
+        Different data will have different extra information for `args`.
 
         Parameters
         ----------
@@ -154,9 +154,9 @@ class Expression(abc.ABC):
         end_index : str
             feature end  index  [in calendar].
 
-        *args may contains following information;
-        1) if it is used in basic experssion engine data, it contains following arguments
-            freq : str
+        *args may contain following information:
+        1) if it is used in basic expression engine data, it contains following arguments
+            freq: str
                 feature frequency.
 
         2) if is used in PIT data, it contains following arguments
