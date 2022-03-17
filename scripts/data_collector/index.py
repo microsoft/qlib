@@ -19,7 +19,7 @@ class IndexBase:
     SYMBOL_FIELD_NAME = "symbol"
     DATE_FIELD_NAME = "date"
     START_DATE_FIELD = "start_date"
-    END_DATE_FIELD = "end_ate"
+    END_DATE_FIELD = "end_date"
     CHANGE_TYPE_FIELD = "type"
     INSTRUMENTS_COLUMNS = [SYMBOL_FIELD_NAME, START_DATE_FIELD, END_DATE_FIELD]
     REMOVE = "remove"
