@@ -35,6 +35,7 @@ from data_collector.utils import (
     get_hs_stock_symbols,
     get_us_stock_symbols,
     get_in_stock_symbols,
+    get_br_stock_symbols,
     generate_minutes_calendar_from_daily,
 )
 
@@ -310,7 +311,29 @@ class YahooCollectorIN1d(YahooCollectorIN):
 class YahooCollectorIN1min(YahooCollectorIN):
     pass
 
+class YahooCollectorBR(YahooCollector, ABC):
+    def get_instrument_list(self):
+        logger.info("get BR stock symbols......")
+        symbols = get_br_stock_symbols() + [
+            "^BVSP",
+        ]
+        logger.info(f"get {len(symbols)} symbols.")
+        return symbols
 
+    def download_index_data(self):
+        pass
+
+    def normalize_symbol(self, symbol):
+        return code_to_fname(symbol).upper()
+
+    @property
+    def _timezone(self):
+        return "Brazil/East"
+
+class YahooCollectorBR1d(YahooCollectorBR):
+    pass
+class YahooCollectorBR1min(YahooCollectorBR):
+    pass
 class YahooNormalize(BaseNormalize):
     COLUMNS = ["open", "close", "high", "low", "volume"]
     DAILY_FORMAT = "%Y-%m-%d"
@@ -848,7 +871,7 @@ class Run(BaseRun):
         interval: str
             freq, value from [1min, 1d], default 1d
         region: str
-            region, value from ["CN", "US"], default "CN"
+            region, value from ["CN", "US", "BR"], default "CN"
         """
         super().__init__(source_dir, normalize_dir, max_workers, interval)
         self.region = region
