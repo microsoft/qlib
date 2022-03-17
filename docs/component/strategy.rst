@@ -24,11 +24,8 @@ BaseStrategy
 
 Qlib provides a base class ``qlib.strategy.base.BaseStrategy``. All strategy classes need to inherit the base class and implement its interface.
 
-- `get_risk_degree`
-    Return the proportion of your total value you will use in investment. Dynamically risk_degree will result in Market timing.
-
-- `generate_order_list`
-    Return the order list.
+- `generate_trade_decision`
+    generate_trade_decision is a key interface that generates trade decisions in each trading bar.
     The frequency to call this method depends on the executor frequency("time_per_step"="day" by default). But the trading frequency can be decided by users' implementation.
     For example, if the user wants to trading in weekly while the `time_per_step` is "day" in executor, user can return non-empty TradeDecision weekly(otherwise return empty like `this <https://github.com/microsoft/qlib/blob/main/qlib/contrib/strategy/signal_strategy.py#L132>`_ ).
 
