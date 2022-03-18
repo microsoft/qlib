@@ -19,7 +19,7 @@ class TestPIT(unittest.TestCase):
 
     def setUp(self):
         # qlib.init(kernels=1)  # NOTE: set kernel to 1 to make it debug easier
-        qlib.init(provider_uri="~/.qlib/qlib_data/cn_data")
+        qlib.init()
 
     def to_str(self, obj):
         if isinstance(obj, pd.DataFrame):
