@@ -16,12 +16,18 @@ pip install -r requirements.txt
 ```bash
 cd qlib/scripts/data_collector/pit/
 # download from baostock.com
-python collector.py download_data --source_dir ./csv_pit --start 2000-01-01 --end 2020-01-01 --interval quarterly
+python collector.py download_data --source_dir ~/.qlib/stock_data/source/pit --start 2000-01-01 --end 2020-01-01 --interval quarterly
 ```
 
 Downloading all data from the stock is very time consuming. If you just want run a quick test on a few stocks,  you can run the command below
-``` bash
-python collector.py download_data --source_dir ./csv_pit --start 2000-01-01 --end 2020-01-01 --interval quarterly --symbol_flt_regx "^(600519|000725).*"
+```bash
+python collector.py download_data --source_dir ~/.qlib/stock_data/source/pit --start 2000-01-01 --end 2020-01-01 --interval quarterly --symbol_regex "^(600519|000725).*"
+```
+
+
+### Normalize Data
+```bash
+python collector.py normalize_data --interval quarterly --source_dir ~/.qlib/stock_data/source/pit --normalize_dir ~/.qlib/stock_data/source/pit_normalized
 ```
 
 
@@ -30,6 +36,5 @@ python collector.py download_data --source_dir ./csv_pit --start 2000-01-01 --en
 
 ```bash
 cd qlib/scripts
-# data_collector/pit/csv_pit is the data you download just now.
-python dump_pit.py dump --csv_path data_collector/pit/csv_pit --qlib_dir ~/.qlib/qlib_data/cn_data --interval quarterly
+python dump_pit.py dump --csv_path ~/.qlib/stock_data/source/pit_normalized --qlib_dir ~/.qlib/qlib_data/cn_data --interval quarterly
 ```
