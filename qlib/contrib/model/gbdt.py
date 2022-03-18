@@ -71,6 +71,7 @@ class LGBModel(ModelFT, LightGBMFInt):
         early_stopping_callback = lgb.early_stopping(
             self.early_stopping_rounds if early_stopping_rounds is None else early_stopping_rounds
         )
+        # NOTE: if you encounter error here. Please upgrade your lightgbm
         verbose_eval_callback = lgb.log_evaluation(period=verbose_eval)
         evals_result_callback = lgb.record_evaluation(evals_result)
         self.model = lgb.train(
