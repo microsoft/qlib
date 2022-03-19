@@ -311,6 +311,7 @@ class YahooCollectorIN1d(YahooCollectorIN):
 class YahooCollectorIN1min(YahooCollectorIN):
     pass
 
+
 class YahooCollectorBR(YahooCollector, ABC):
     def get_instrument_list(self):
         logger.info("get BR stock symbols......")
@@ -330,10 +331,15 @@ class YahooCollectorBR(YahooCollector, ABC):
     def _timezone(self):
         return "Brazil/East"
 
+
 class YahooCollectorBR1d(YahooCollectorBR):
     pass
+
+
 class YahooCollectorBR1min(YahooCollectorBR):
     pass
+
+
 class YahooNormalize(BaseNormalize):
     COLUMNS = ["open", "close", "high", "low", "volume"]
     DAILY_FORMAT = "%Y-%m-%d"

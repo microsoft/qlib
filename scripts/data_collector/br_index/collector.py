@@ -212,7 +212,7 @@ class IBOVIndex(IndexBase):
 
                 df_changes_list.append(pd.concat([df_added, df_removed], sort=False))
                 df = pd.concat(df_changes_list).reset_index(drop=True)
-                df['symbol'] = df['symbol'].astype(str) + '.SA'
+                df["symbol"] = df["symbol"].astype(str) + ".SA"
 
             return df
 
@@ -259,8 +259,8 @@ class IBOVIndex(IndexBase):
 
             # end_date will be our current quarter + 1, since the IBOV index updates itself every quarter
             df[self.END_DATE_FIELD] = self.year + "-" + quarter_dict[str(int(self.quarter) + 1) + "Q"]
-            df = df[['symbol', self.START_DATE_FIELD, self.END_DATE_FIELD]]
-            df['symbol'] = df['symbol'].astype(str) + '.SA'
+            df = df[["symbol", self.START_DATE_FIELD, self.END_DATE_FIELD]]
+            df["symbol"] = df["symbol"].astype(str) + ".SA"
 
             return df
 

@@ -347,6 +347,7 @@ def get_in_stock_symbols(qlib_data_path: [str, Path] = None) -> list:
 
     return _IN_SYMBOLS
 
+
 def get_br_stock_symbols(qlib_data_path: [str, Path] = None) -> list:
     """get Brazil(B3) stock symbols
 
@@ -359,19 +360,19 @@ def get_br_stock_symbols(qlib_data_path: [str, Path] = None) -> list:
     @deco_retry
     def _get_ibovespa():
         _symbols = []
-        url = 'https://www.fundamentus.com.br/detalhes.php?papel='
+        url = "https://www.fundamentus.com.br/detalhes.php?papel="
 
         # Request
-        agent = {"User-Agent":"Mozilla/5.0"}
+        agent = {"User-Agent": "Mozilla/5.0"}
         page = requests.get(url, headers=agent)
 
         # BeautifulSoup
-        soup = BeautifulSoup(page.content, 'html.parser')
-        tbody = soup.find('tbody')
+        soup = BeautifulSoup(page.content, "html.parser")
+        tbody = soup.find("tbody")
 
-        children = tbody.findChildren("a" , recursive=True)
+        children = tbody.findChildren("a", recursive=True)
         for child in children:
-            _symbols.append(str(child).split("\"")[-1].split(">")[1].split("<")[0])
+            _symbols.append(str(child).split('"')[-1].split(">")[1].split("<")[0])
 
         return _symbols
 
@@ -385,7 +386,7 @@ def get_br_stock_symbols(qlib_data_path: [str, Path] = None) -> list:
                     names=["symbol", "start_date", "end_date"],
                 )
                 _all_symbols += ins_df["symbol"].unique().tolist()
-        
+
         def _format(s_):
             s_ = s_.strip()
             s_ = s_.strip("$")
@@ -396,6 +397,7 @@ def get_br_stock_symbols(qlib_data_path: [str, Path] = None) -> list:
         _BR_SYMBOLS = sorted(set(map(_format, _all_symbols)))
 
     return _BR_SYMBOLS
+
 
 def get_en_fund_symbols(qlib_data_path: [str, Path] = None) -> list:
     """get en fund symbols
