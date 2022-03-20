@@ -67,12 +67,17 @@ def get_calendar_list(bench_code="CSI300") -> List[pd.Timestamp]:
     logger.info(f"get calendar list: {bench_code}......")
 
     def _get_calendar(url):
+        print("--------")
+        print(url)
+        print("--------")
         _value_list = requests.get(url).json()["data"]["klines"]
         return sorted(map(lambda x: pd.Timestamp(x.split(",")[0]), _value_list))
 
     calendar = _CALENDAR_MAP.get(bench_code, None)
     if calendar is None:
-        if bench_code.startswith("US_") or bench_code.startswith("IN_"):
+        if bench_code.startswith("US_") or bench_code.startswith("IN_") or bench_code.startswith("BR_"):
+            print(Ticker(CALENDAR_BENCH_URL_MAP[bench_code]))
+            print(Ticker(CALENDAR_BENCH_URL_MAP[bench_code]).history(interval="1d", period="max"))
             df = Ticker(CALENDAR_BENCH_URL_MAP[bench_code]).history(interval="1d", period="max")
             calendar = df.index.get_level_values(level="date").map(pd.Timestamp).unique().tolist()
         else:

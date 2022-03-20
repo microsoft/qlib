@@ -861,6 +861,27 @@ class YahooNormalizeCN1min(YahooNormalizeCN, YahooNormalize1minOffline):
     def _get_1d_calendar_list(self) -> Iterable[pd.Timestamp]:
         return get_calendar_list("ALL")
 
+class YahooNormalizeBR:
+    def _get_calendar_list(self) -> Iterable[pd.Timestamp]:
+        return get_calendar_list("BR_ALL")
+
+
+class YahooNormalizeBR1d(YahooNormalizeBR, YahooNormalize1d):
+    pass
+
+
+class YahooNormalizeBR1min(YahooNormalizeBR, YahooNormalize1minOffline):
+    CALC_PAUSED_NUM = False
+
+    def _get_calendar_list(self) -> Iterable[pd.Timestamp]:
+        # TODO: support 1min
+        raise ValueError("Does not support 1min")
+
+    def _get_1d_calendar_list(self):
+        return get_calendar_list("BR_ALL")
+
+    def symbol_to_yahoo(self, symbol):
+        return fname_to_code(symbol)
 
 class Run(BaseRun):
     def __init__(self, source_dir=None, normalize_dir=None, max_workers=1, interval="1d", region=REGION_CN):
