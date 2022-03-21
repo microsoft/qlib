@@ -43,7 +43,7 @@ class Simulator(Generic[InitialStateType, StateType]):
     history_states: bool = True
     env_wrapper: Optional[weakref.ReferenceType['qlib.rl.utils.env_wrapper.EnvWrapper']] = None
 
-    def __init__(self, initial: InitialStateType) -> None:
+    def __init__(self, initial: InitialStateType, **kwargs) -> None:
         pass
 
     def step(self, action: Any) -> None:

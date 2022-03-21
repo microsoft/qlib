@@ -1,4 +1,4 @@
-from typing import Literal, NamedTuple
+from typing import Literal, NamedTuple, Optional
 
 import numpy as np
 import pandas as pd
@@ -8,7 +8,7 @@ from qlib.backtest import Order
 from .base import Simulator
 
 
-class BaseEpisodicState(abc.ABC):
+class SingleAssetOrderExecutionState(NamedTuple):
     """
     Base class for episodic states.
     """
@@ -81,11 +81,15 @@ class BaseEpisodicState(abc.ABC):
         raise NotImplementedError()
 
 
-class SingleAssetOrderExecution(Simulator):
-    def __init__(self, initial: Order) -> None:
-        pass
+class SingleAssetOrderExecution(Simulator[Order, ]):
+    def __init__(self, initial: Order, vol_limit: Optional[float] = None) -> None:
+        self.vol_limit = vol_limit
 
     def step(self, action: Any) -> None:
+        raise NotImplementedError()
+
+    @classmethod
+    def load_state(cls: SimulatorType, state: StateType) -> SimulatorType:
         raise NotImplementedError()
 
     def get_state(self) -> StateType:
