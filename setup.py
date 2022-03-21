@@ -69,7 +69,7 @@ REQUIRED = [
     "mlflow>=1.12.1",
     "tqdm",
     "loguru",
-    "lightgbm",
+    "lightgbm>=3.3.0",
     "tornado",
     "joblib>=0.17.0",
     "ruamel.yaml>=0.16.12",
