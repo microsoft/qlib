@@ -199,10 +199,8 @@ class Freq:
         """
         base_freq = Freq(base_freq)
         # use the nearest freq greater than 0
-        _freq_minutes = []
         min_freq = None
         for _freq in freq_list:
-            freq = Freq(_freq)
             _min_delta = Freq.get_min_delta(base_freq, _freq)
             if _min_delta < 0:
                 continue

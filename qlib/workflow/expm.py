@@ -170,12 +170,9 @@ class ExpManager:
             experiment_name = self._default_exp_name
 
         if create:
-            exp, is_new = self._get_or_create_exp(experiment_id=experiment_id, experiment_name=experiment_name)
+            exp, _ = self._get_or_create_exp(experiment_id=experiment_id, experiment_name=experiment_name)
         else:
-            exp, is_new = (
-                self._get_exp(experiment_id=experiment_id, experiment_name=experiment_name),
-                False,
-            )
+            exp = self._get_exp(experiment_id=experiment_id, experiment_name=experiment_name)
         if self.active_experiment is None and start:
             self.active_experiment = exp
             # start the recorder
@@ -201,7 +198,7 @@ class ExpManager:
             # So we supported it in the interface wrapper
             pr = urlparse(self.uri)
             if pr.scheme == "file":
-                with FileLock(os.path.join(pr.netloc, pr.path, "filelock")) as f:  # pylint: disable=E0110
+                with FileLock(os.path.join(pr.netloc, pr.path, "filelock")):  # pylint: disable=E0110
                     return self.create_exp(experiment_name), True
             # NOTE: for other schemes like http, we double check to avoid create exp conflicts
             try:

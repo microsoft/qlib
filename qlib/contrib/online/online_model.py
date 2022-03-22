@@ -2,6 +2,7 @@
 # Licensed under the MIT License.
 
 # pylint: skip-file
+# flake8: noqa
 
 import random
 import pandas as pd

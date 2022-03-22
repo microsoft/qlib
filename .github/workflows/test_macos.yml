@@ -34,6 +34,13 @@ jobs:
         python -m black qlib -l 120 --check --diff
     # Test Qlib installed with pip
 
+    - name: Check Qlib with flake8
+        run: |
+          pip install --upgrade pip
+          pip install flake8
+          cd ..
+          flake8 --ignore=E501,F541,E266,E402,W503,E731,E203 qlib
+
     - name: Install Qlib with pip
       run: |
           python -m pip install numpy==1.19.5

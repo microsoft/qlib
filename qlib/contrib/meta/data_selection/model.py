@@ -10,7 +10,6 @@ from tqdm.auto import tqdm
 import copy
 from typing import Union, List
 
-from ....data.dataset.weight import Reweighter
 from ....model.meta.dataset import MetaTaskDataset
 from ....model.meta.model import MetaTaskModel
 from ....workflow import R
@@ -18,8 +17,8 @@ from .utils import ICLoss
 from .dataset import MetaDatasetDS
 
 from qlib.log import get_module_logger
-from qlib.data.dataset.weight import Reweighter
 from qlib.model.meta.task import MetaTask
+from qlib.data.dataset.weight import Reweighter
 from qlib.contrib.meta.data_selection.net import PredNet
 
 logger = get_module_logger("data selection")
@@ -98,7 +97,6 @@ class MetaModelDS(MetaTaskModel):
 
             if phase == "train":
                 opt.zero_grad()
-                norm_loss = nn.MSELoss()
                 loss.backward()
                 opt.step()
             elif phase == "test":
