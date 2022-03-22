@@ -12,7 +12,7 @@ import queue
 import bisect
 import numpy as np
 import pandas as pd
-from typing import List, Union, Tuple
+from typing import List, Union, Optional
 
 # For supporting multiprocessing in outer code, joblib is used
 from joblib import delayed
@@ -342,7 +342,7 @@ class PITProvider(abc.ABC):
         start_index: int,
         end_index: int,
         cur_time: pd.Timestamp,
-        period_list: Tuple[int] = None,
+        period: Optional[int] = None,
     ) -> pd.Series:
         """
         get the historical periods data series between `start_index` and `end_index`
