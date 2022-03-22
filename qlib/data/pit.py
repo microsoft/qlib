@@ -37,7 +37,7 @@ class P(ElemOperator):
 
             # The calculated value will always the last element, so the end_offset is zero.
             try:
-                s = self.feature.load(instrument, -start_ws, 0, cur_time)
+                s = self._load_feature(instrument, -start_ws, 0, cur_time)
                 resample_data[cur_index - start_index] = s.iloc[-1] if len(s) > 0 else np.nan
             except FileNotFoundError:
                 get_module_logger("base").warning(f"WARN: period data not found for {str(self)}")
@@ -48,6 +48,9 @@ class P(ElemOperator):
         )
         return resample_series
 
+    def _load_feature(self, instrument, start_index, end_index, cur_time):
+        return self.feature.load(instrument, start_index, end_index, cur_time)
+
     def get_longest_back_rolling(self):
         # The period data will collapse as a normal feature. So no extending and looking back
         return 0
@@ -55,3 +58,15 @@ class P(ElemOperator):
     def get_extended_window_size(self):
         # The period data will collapse as a normal feature. So no extending and looking back
         return 0, 0
+
+
+class PRef(P):
+    def __init__(self, feature, period):
+        super().__init__(feature)
+        self.period = period
+
+    def __str__(self):
+        return f"{super().__str__()}[{self.period}]"
+
+    def _load_feature(self, instrument, start_index, end_index, cur_time):
+        return self.feature.load(instrument, start_index, end_index, cur_time, self.period)
