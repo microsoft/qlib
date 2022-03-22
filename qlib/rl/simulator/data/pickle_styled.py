@@ -62,7 +62,7 @@ def get_deal_price(data: pd.DataFrame, deal_price: DealPriceType, order_dir: int
 
 def get_intraday_backtest_data(data_dir: Path, stock_id: str, date: pd.Timestamp) -> pd.DataFrame:
     backtest = pd.read_pickle(_find_pickle(data_dir / stock_id))
-    backtest = backtest.loc[pd.IndexSlice[stock_id, :, date]]
+    backtest = backtest.loc[pd.IndexSlice[stock_id, :, date]].droplevel([0, 2])
     return backtest
 
 

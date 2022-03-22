@@ -49,10 +49,6 @@ class Simulator(Generic[InitialStateType, StateType]):
     def step(self, action: Any) -> None:
         raise NotImplementedError()
 
-    @classmethod
-    def load_state(cls: SimulatorType, state: StateType) -> SimulatorType:
-        raise NotImplementedError()
-
     def get_state(self) -> StateType:
         raise NotImplementedError()
 
