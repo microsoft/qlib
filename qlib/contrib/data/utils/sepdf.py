@@ -164,14 +164,14 @@ import builtins
 
 
 def _isinstance(instance, cls):
-    if isinstance_orig(instance, SepDataFrame):  # pylint: disable=E0602
+    if isinstance_orig(instance, SepDataFrame):  # pylint: disable=E0602  # noqa: F821
         if isinstance(cls, Iterable):
             for c in cls:
                 if c is pd.DataFrame:
                     return True
         elif cls is pd.DataFrame:
             return True
-    return isinstance_orig(instance, cls)  # pylint: disable=E0602
+    return isinstance_orig(instance, cls)  # pylint: disable=E0602  # noqa: F821
 
 
 builtins.isinstance_orig = builtins.isinstance

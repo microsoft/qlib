@@ -249,7 +249,7 @@ class DEnsembleModel(Model, FeatureInt):
         return pred
 
     def predict_sub(self, submodel, df_data, features):
-        x_data, y_data = df_data["feature"].loc[:, features], df_data["label"]
+        x_data = df_data["feature"].loc[:, features]
         pred_sub = pd.Series(submodel.predict(x_data.values), index=x_data.index)
         return pred_sub
 

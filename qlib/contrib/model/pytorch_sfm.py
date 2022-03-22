@@ -84,7 +84,7 @@ class SFM_Model(nn.Module):
             if len(self.states) == 0:  # hasn't initialized yet
                 self.init_states(x)
             self.get_constants(x)
-            p_tm1 = self.states[0]
+            p_tm1 = self.states[0]  # noqa: F841
             h_tm1 = self.states[1]
             S_re_tm1 = self.states[2]
             S_im_tm1 = self.states[3]

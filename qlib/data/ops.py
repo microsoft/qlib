@@ -22,7 +22,7 @@ except ImportError:
         "#### Do not import qlib package in the repository directory in case of importing qlib from . without compiling #####"
     )
     raise
-except ValueError as e:
+except ValueError:
     print("!!!!!!!! A error occurs when importing operators implemented based on Cython.!!!!!!!!")
     print("!!!!!!!! They will be disabled. Please Upgrade your numpy to enable them     !!!!!!!!")
     # We catch this error because some platform can't upgrade there package (e.g. Kaggle)
