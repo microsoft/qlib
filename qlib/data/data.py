@@ -358,6 +358,11 @@ class PITProvider(abc.ABC):
             For example, start_index == -3 end_index == 0 and current period index is cur_idx,
             then the data between [start_index + cur_idx, end_index + cur_idx] will be retrieved.
 
+        period: int
+            This is used for query specific period.
+            The period is represented with int in Qlib. (e.g. 202001 may represent the first quarter in 2020)
+            NOTE: `period`  will override `start_index` and `end_index`
+
         Returns
         -------
         pd.Series
@@ -796,6 +801,7 @@ class LocalPITProvider(PITProvider):
         first_period = data["period"][:loc].min()
         period_list = get_period_list(first_period, last_period, quarterly)
         if period is not None:
+            # NOTE: `period` has higher priority than `start_index` & `end_index`
             if period not in period_list:
                 return pd.Series()
             else:
