@@ -280,6 +280,9 @@ def parse_field(field):
         (r"(\w+\s*)\(", r"Operators.\1("),
     ]:  # Features  # Operators
         field = re.sub(pattern, new, field)
+    #for ChangeInstrument
+    field = re.sub( r"Operators.ChangeInstrument\((\w+),",
+                   rf'Operators.ChangeInstrument("\1",', field)
     return field
 
 
