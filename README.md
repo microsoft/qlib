@@ -469,6 +469,8 @@ If you don't know how to start to contribute, you can refer to the following exa
 | Dataset | [Add a dataset](https://github.com/microsoft/qlib/pull/733) | 
 | Models |  [Implement a new model](https://github.com/microsoft/qlib/pull/689) | 
 
+[Good first issues](https://github.com/microsoft/qlib/labels/good%20first%20issue) are labelled to indicate that they are easy to start your contributions.
+ 
 If you would like to become one of Qlib's maintainers to contribute more (e.g. help merge PR, triage issues), please contact us by email([qlib@microsoft.com](mailto:qlib@microsoft.com)).  We are glad to help you to set the right permission.
 
 ## Licence
