@@ -92,7 +92,7 @@ class TestPIT(unittest.TestCase):
             "P((Ref($$roewa_q, 1) +$$roewa_q) / 2)",
         ]
         instruments = ["sh600519"]
-        data = D.features(instruments, fields, start_time="2019-01-01", end_time="20190719", freq="day")
+        data = D.features(instruments, fields, start_time="2019-01-01", end_time="2019-07-19", freq="day")
         expect = """
                                P(Mean($$roewa_q, 1))  P($$roewa_q)  P(Mean($$roewa_q, 2))  P(Ref($$roewa_q, 1))  P((Ref($$roewa_q, 1) +$$roewa_q) / 2)
         instrument datetime
@@ -189,6 +189,52 @@ class TestPIT(unittest.TestCase):
         fields += ["P(Sum($$yoyni_q, 4))"]
         fields += ["$close", "P($$roewa_q) * $close"]
         data = D.features(instruments, fields, start_time="2019-01-01", end_time="2020-01-01", freq="day")
+        except_data = """
+                                       P($$roewa_q)  P($$yoyni_q)  P(($$roewa_q / $$yoyni_q) / Ref($$roewa_q / $$yoyni_q, 1) - 1)  P(Sum($$yoyni_q, 4))      $close  P($$roewa_q) * $close
+        instrument datetime                                                                                                                                                       
+        sh600519   2019-01-02      0.255220      0.243892                                           1.484224                           1.661578   63.595333              16.230801
+                   2019-01-03      0.255220      0.243892                                           1.484224                           1.661578   62.641907              15.987467
+                   2019-01-04      0.255220      0.243892                                           1.484224                           1.661578   63.915985              16.312637
+                   2019-01-07      0.255220      0.243892                                           1.484224                           1.661578   64.286530              16.407207
+                   2019-01-08      0.255220      0.243892                                           1.484224                           1.661578   64.212196              16.388237
+        ...                             ...           ...                                                ...                                ...         ...                    ...
+                   2019-12-25      0.255819      0.219821                                           0.677052                           1.081693  122.150467              31.248409
+                   2019-12-26      0.255819      0.219821                                           0.677052                           1.081693  122.301315              31.286999
+                   2019-12-27      0.255819      0.219821                                           0.677052                           1.081693  125.307404              32.056015
+                   2019-12-30      0.255819      0.219821                                           0.677052                           1.081693  127.763992              32.684456
+                   2019-12-31      0.255819      0.219821                                           0.677052                           1.081693  127.462303              32.607277
+        
+        [244 rows x 6 columns]
+        """
+        self.check_same(data, except_data)
+
+    def test_pref_operator(self):
+        instruments = ["sh600519"]
+        fields = [
+            "PRef($$roewa_q, 201902)",
+            "PRef($$yoyni_q, 201801)",
+            "P($$roewa_q)",
+            "P($$roewa_q) / PRef($$roewa_q, 201801)",
+        ]
+        data = D.features(instruments, fields, start_time="2018-04-28", end_time="2019-07-19", freq="day")
+        except_data = """
+                               PRef($$roewa_q, 201902)  PRef($$yoyni_q, 201801)  P($$roewa_q)  P($$roewa_q) / PRef($$roewa_q, 201801)
+        instrument datetime                                                                                                          
+        sh600519   2018-05-02                      NaN                 0.395075      0.088887                                1.000000
+                   2018-05-03                      NaN                 0.395075      0.088887                                1.000000
+                   2018-05-04                      NaN                 0.395075      0.088887                                1.000000
+                   2018-05-07                      NaN                 0.395075      0.088887                                1.000000
+                   2018-05-08                      NaN                 0.395075      0.088887                                1.000000
+        ...                                        ...                      ...           ...                                     ...
+                   2019-07-15                 0.000000                 0.395075      0.000000                                0.000000
+                   2019-07-16                 0.000000                 0.395075      0.000000                                0.000000
+                   2019-07-17                 0.000000                 0.395075      0.000000                                0.000000
+                   2019-07-18                 0.175322                 0.395075      0.175322                                1.972414
+                   2019-07-19                 0.175322                 0.395075      0.175322                                1.972414
+        
+        [299 rows x 4 columns]
+        """
+        self.check_same(data, except_data)
 
 
 if __name__ == "__main__":

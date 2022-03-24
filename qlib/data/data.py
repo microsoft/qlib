@@ -12,7 +12,7 @@ import queue
 import bisect
 import numpy as np
 import pandas as pd
-from typing import List, Union
+from typing import List, Union, Optional
 
 # For supporting multiprocessing in outer code, joblib is used
 from joblib import delayed
@@ -335,7 +335,15 @@ class FeatureProvider(abc.ABC):
 
 class PITProvider(abc.ABC):
     @abc.abstractmethod
-    def period_feature(self, instrument, field, start_index: int, end_index: int, cur_time: pd.Timestamp) -> pd.Series:
+    def period_feature(
+        self,
+        instrument,
+        field,
+        start_index: int,
+        end_index: int,
+        cur_time: pd.Timestamp,
+        period: Optional[int] = None,
+    ) -> pd.Series:
         """
         get the historical periods data series between `start_index` and `end_index`
 
@@ -349,6 +357,11 @@ class PITProvider(abc.ABC):
             in most cases, the start_index and end_index will be a non-positive values
             For example, start_index == -3 end_index == 0 and current period index is cur_idx,
             then the data between [start_index + cur_idx, end_index + cur_idx] will be retrieved.
+
+        period: int
+            This is used for query specific period.
+            The period is represented with int in Qlib. (e.g. 202001 may represent the first quarter in 2020)
+            NOTE: `period`  will override `start_index` and `end_index`
 
         Returns
         -------
@@ -732,7 +745,7 @@ class LocalPITProvider(PITProvider):
     # TODO: Add PIT backend file storage
     # NOTE: This class is not multi-threading-safe!!!!
 
-    def period_feature(self, instrument, field, start_index, end_index, cur_time):
+    def period_feature(self, instrument, field, start_index, end_index, cur_time, period=None):
         if not isinstance(cur_time, pd.Timestamp):
             raise ValueError(
                 f"Expected pd.Timestamp for `cur_time`, got '{cur_time}'. Advices: you can't query PIT data directly(e.g. '$$roewa_q'), you must use `P` operator to convert data to each day (e.g. 'P($$roewa_q)')"
@@ -771,8 +784,8 @@ class LocalPITProvider(PITProvider):
         if not (index_path.exists() and data_path.exists()):
             raise FileNotFoundError("No file is found. Raise exception and  ")
         # NOTE: The most significant performance loss is here.
-        # Does the accelration that makes the program complicated really matters?
-        # - It make parameters parameters of the interface complicate
+        # Does the acceleration that makes the program complicated really matters?
+        # - It makes parameters of the interface complicate
         # - It does not performance in the optimal way (places all the pieces together, we may achieve higher performance)
         #    - If we design it carefully, we can go through for only once to get the historical evolution of the data.
         # So I decide to deprecated previous implementation and keep the logic of the program simple
@@ -786,14 +799,20 @@ class LocalPITProvider(PITProvider):
             return pd.Series()
         last_period = data["period"][:loc].max()  # return the latest quarter
         first_period = data["period"][:loc].min()
-
         period_list = get_period_list(first_period, last_period, quarterly)
-        period_list = period_list[max(0, len(period_list) + start_index - 1) : len(period_list) + end_index]
+        if period is not None:
+            # NOTE: `period` has higher priority than `start_index` & `end_index`
+            if period not in period_list:
+                return pd.Series()
+            else:
+                period_list = [period]
+        else:
+            period_list = period_list[max(0, len(period_list) + start_index - 1) : len(period_list) + end_index]
         value = np.full((len(period_list),), np.nan, dtype=VALUE_DTYPE)
-        for i, period in enumerate(period_list):
+        for i, p in enumerate(period_list):
             # last_period_index = self.period_index[field].get(period)  # For acceleration
             value[i], now_period_index = read_period_data(
-                index_path, data_path, period, cur_time_int, quarterly  # , last_period_index  # For acceleration
+                index_path, data_path, p, cur_time_int, quarterly  # , last_period_index  # For acceleration
             )
             # self.period_index[field].update({period: now_period_index})  # For acceleration
         # NOTE: the index is period_list; So it may result in unexpected values(e.g. nan)
