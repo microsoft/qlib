@@ -126,12 +126,10 @@ class CalendarStorage(BaseStorage):
     @overload
     def __setitem__(self, i: int, value: CalVT) -> None:
         """x.__setitem__(i, o) <==> (x[i] = o)"""
-        ...
 
     @overload
     def __setitem__(self, s: slice, value: Iterable[CalVT]) -> None:
         """x.__setitem__(s, o) <==> (x[s] = o)"""
-        ...
 
     def __setitem__(self, i, value) -> None:
         raise NotImplementedError(
@@ -141,12 +139,10 @@ class CalendarStorage(BaseStorage):
     @overload
     def __delitem__(self, i: int) -> None:
         """x.__delitem__(i) <==> del x[i]"""
-        ...
 
     @overload
     def __delitem__(self, i: slice) -> None:
         """x.__delitem__(slice(start: int, stop: int, step: int)) <==> del x[start:stop:step]"""
-        ...
 
     def __delitem__(self, i) -> None:
         """
@@ -162,12 +158,10 @@ class CalendarStorage(BaseStorage):
     @overload
     def __getitem__(self, s: slice) -> Iterable[CalVT]:
         """x.__getitem__(slice(start: int, stop: int, step: int)) <==> x[start:stop:step]"""
-        ...
 
     @overload
     def __getitem__(self, i: int) -> CalVT:
         """x.__getitem__(i) <==> x[i]"""
-        ...
 
     def __getitem__(self, i) -> CalVT:
         """
@@ -467,12 +461,10 @@ class FeatureStorage(BaseStorage):
         -------
             pd.Series(values, index=pd.RangeIndex(start, len(values))
         """
-        ...
 
     @overload
     def __getitem__(self, i: int) -> Tuple[int, float]:
         """x.__getitem__(y) <==> x[y]"""
-        ...
 
     def __getitem__(self, i) -> Union[Tuple[int, float], pd.Series]:
         """x.__getitem__(y) <==> x[y]
