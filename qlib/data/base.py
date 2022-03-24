@@ -162,6 +162,9 @@ class Expression(abc.ABC):
         2) if is used in PIT data, it contains following arguments
             cur_pit:
                 it is designed for the point-in-time data.
+            period: int
+                This is used for query specific period.
+                The period is represented with int in Qlib. (e.g. 202001 may represent the first quarter in 2020)
 
         Returns
         ----------
