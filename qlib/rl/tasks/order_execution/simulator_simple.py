@@ -1,16 +1,15 @@
 from pathlib import Path
-from typing import Literal, NamedTuple, Optional, List
+from typing import NamedTuple, Optional, List
 
 import numpy as np
 import pandas as pd
 
 from qlib.backtest import Order
+from qlib.rl.config import EPSILON
+from qlib.rl.simulator import Simulator
+from qlib.rl.tasks.data.pickle_styled import get_intraday_backtest_data, get_deal_price, DealPriceType
 
-from .base import Simulator
-from .data.pickle_styled import get_intraday_backtest_data, get_deal_price, DealPriceType
 
-
-EPSILON = 1e-7
 
 class SingleAssetOrderExecutionState(NamedTuple):
     """
@@ -19,7 +18,7 @@ class SingleAssetOrderExecutionState(NamedTuple):
 
     order: Order                # the order we are dealing with
     cur_time: pd.Timestamp      # current time, e.g., 9:30
-    cur_time_idx: int           # current time index, e.g., in 0-239
+    elapsed_ticks: int          # current time index, e.g., in 0-239
     position: float             # remaining volume to execute
 
 
@@ -40,7 +39,7 @@ class SingleAssetOrderExecution(Simulator[Order, SingleAssetOrderExecutionState]
     Attributes
     ----------
     exec_history
-        All execution volumes at every possible time slot.
+        All execution volumes at every possible time ticks.
     position_history
         Positions left at each step. The position before first step is also recorded.
     """
@@ -101,6 +100,8 @@ class SingleAssetOrderExecution(Simulator[Order, SingleAssetOrderExecutionState]
         return SingleAssetOrderExecutionState(
             order=self.order,
             cur_time=self.cur_time,
+            elapsed_ticks=len(self.exec_history),
+            position=self.position
         )
 
     def done(self) -> bool:

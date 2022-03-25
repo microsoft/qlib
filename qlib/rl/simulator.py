@@ -1,5 +1,9 @@
 import weakref
-from typing import Any, Optional, TypeVar, Generic
+from typing import Any, Optional, TypeVar, Generic, TYPE_CHECKING
+from weakref import ReferenceType
+
+if TYPE_CHECKING:
+    from .utils.env_wrapper import EnvWrapper
 
 import gym
 
@@ -41,7 +45,7 @@ class Simulator(Generic[InitialStateType, StateType]):
     """
 
     history_states: bool = True
-    env_wrapper: Optional[weakref.ReferenceType['qlib.rl.utils.env_wrapper.EnvWrapper']] = None
+    env: ReferenceType['EnvWrapper']
 
     def __init__(self, initial: InitialStateType, **kwargs) -> None:
         pass
