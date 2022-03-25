@@ -69,7 +69,7 @@ REQUIRED = [
     "mlflow>=1.12.1",
     "tqdm",
     "loguru",
-    "lightgbm",
+    "lightgbm>=3.3.0",
     "tornado",
     "joblib>=0.17.0",
     "ruamel.yaml>=0.16.12",
@@ -126,6 +126,14 @@ setup(
     },
     ext_modules=extensions,
     install_requires=REQUIRED,
+    extras_require={
+        "dev": [
+            "coverage",
+            "pytest>=3",
+            "sphinx",
+            "sphinx_rtd_theme",
+        ]
+    },
     include_package_data=True,
     classifiers=[
         # Trove classifiers

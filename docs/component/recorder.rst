@@ -143,3 +143,9 @@ Here is a simple exampke of what is done in ``PortAnaRecord``, which users can r
     print(analysis_df)
 
 For more information about the APIs, please refer to `Record Template API <../reference/api.html#module-qlib.workflow.record_temp>`_.
+
+
+
+Known Limitations
+=================
+- The Python objects are saved based on pickle, which may results in issues when the environment dumping objects and loading objects are different.

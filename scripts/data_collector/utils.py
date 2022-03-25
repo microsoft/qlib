@@ -19,7 +19,6 @@ from yahooquery import Ticker
 from tqdm import tqdm
 from functools import partial
 from concurrent.futures import ProcessPoolExecutor
-from pycoingecko import CoinGeckoAPI
 
 HS_SYMBOLS_URL = "http://app.finance.ifeng.com/hq/list.php?type=stock_a&class={s_type}"
 
@@ -28,6 +27,7 @@ SZSE_CALENDAR_URL = "http://www.szse.cn/api/report/exchange/onepersistenthour/mo
 
 CALENDAR_BENCH_URL_MAP = {
     "CSI300": CALENDAR_URL_BASE.format(market=1, bench_code="000300"),
+    "CSI500": CALENDAR_URL_BASE.format(market=1, bench_code="000905"),
     "CSI100": CALENDAR_URL_BASE.format(market=1, bench_code="000903"),
     # NOTE: Use the time series of SH600000 as the sequence of all stocks
     "ALL": CALENDAR_URL_BASE.format(market=1, bench_code="000905"),
@@ -36,14 +36,12 @@ CALENDAR_BENCH_URL_MAP = {
     "IN_ALL": "^NSEI",
 }
 
-
 _BENCH_CALENDAR_LIST = None
 _ALL_CALENDAR_LIST = None
 _HS_SYMBOLS = None
 _US_SYMBOLS = None
 _IN_SYMBOLS = None
 _EN_FUND_SYMBOLS = None
-_CG_CRYPTO_SYMBOLS = None
 _CALENDAR_MAP = {}
 
 # NOTE: Until 2020-10-20 20:00:00
@@ -234,13 +232,16 @@ def get_us_stock_symbols(qlib_data_path: [str, Path] = None) -> list:
         resp = requests.get(url)
         if resp.status_code != 200:
             raise ValueError("request error")
+
         try:
             _symbols = [_v["f12"].replace("_", "-P") for _v in resp.json()["data"]["diff"].values()]
         except Exception as e:
             logger.warning(f"request error: {e}")
             raise
+
         if len(_symbols) < 8000:
             raise ValueError("request error")
+
         return _symbols
 
     @deco_retry
@@ -273,6 +274,7 @@ def get_us_stock_symbols(qlib_data_path: [str, Path] = None) -> list:
         resp = requests.post(url, json=_parms)
         if resp.status_code != 200:
             raise ValueError("request error")
+
         try:
             _symbols = [_v["symbolTicker"].replace("-", "-P") for _v in resp.json()]
         except Exception as e:
@@ -379,37 +381,6 @@ def get_en_fund_symbols(qlib_data_path: [str, Path] = None) -> list:
     return _EN_FUND_SYMBOLS
 
 
-def get_cg_crypto_symbols(qlib_data_path: [str, Path] = None) -> list:
-    """get crypto symbols in coingecko
-
-    Returns
-    -------
-        crypto symbols in given exchanges list of coingecko
-    """
-    global _CG_CRYPTO_SYMBOLS
-
-    @deco_retry
-    def _get_coingecko():
-        try:
-            cg = CoinGeckoAPI()
-            resp = pd.DataFrame(cg.get_coins_markets(vs_currency="usd"))
-        except:
-            raise ValueError("request error")
-        try:
-            _symbols = resp["id"].to_list()
-        except Exception as e:
-            logger.warning(f"request error: {e}")
-            raise
-        return _symbols
-
-    if _CG_CRYPTO_SYMBOLS is None:
-        _all_symbols = _get_coingecko()
-
-        _CG_CRYPTO_SYMBOLS = sorted(set(_all_symbols))
-
-    return _CG_CRYPTO_SYMBOLS
-
-
 def symbol_suffix_to_prefix(symbol: str, capital: bool = True) -> str:
     """symbol suffix to prefix
 
@@ -458,10 +429,12 @@ def deco_retry(retry: int = 5, retry_sleep: int = 3):
                 try:
                     _result = func(*args, **kwargs)
                     break
+
                 except Exception as e:
                     logger.warning(f"{func.__name__}: {_i} :{e}")
                     if _i == _retry:
                         raise
+
                 time.sleep(retry_sleep)
             return _result
 

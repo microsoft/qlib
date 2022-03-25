@@ -53,6 +53,7 @@ Document Structure
    Online & Offline mode <advanced/server.rst>
    Serialization <advanced/serial.rst>
    Task Management <advanced/task_management.rst>
+   Point-In-Time database <advanced/PIT.rst>
 
 .. toctree::
    :maxdepth: 3

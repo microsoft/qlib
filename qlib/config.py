@@ -92,6 +92,7 @@ _default_config = {
     "calendar_provider": "LocalCalendarProvider",
     "instrument_provider": "LocalInstrumentProvider",
     "feature_provider": "LocalFeatureProvider",
+    "pit_provider": "LocalPITProvider",
     "expression_provider": "LocalExpressionProvider",
     "dataset_provider": "LocalDatasetProvider",
     "provider": "LocalProvider",
@@ -108,7 +109,6 @@ _default_config = {
     "provider_uri": "",
     # cache
     "expression_cache": None,
-    "dataset_cache": None,
     "calendar_cache": None,
     # for simple dataset cache
     "local_cache_path": None,
@@ -171,6 +171,18 @@ _default_config = {
             "default_exp_name": "Experiment",
         },
     },
+    "pit_record_type": {
+        "date": "I",  # uint32
+        "period": "I",  # uint32
+        "value": "d",  # float64
+        "index": "I",  # uint32
+    },
+    "pit_record_nan": {
+        "date": 0,
+        "period": 0,
+        "value": float("NAN"),
+        "index": 0xFFFFFFFF,
+    },
     # Default config for MongoDB
     "mongo": {
         "task_url": "mongodb://localhost:27017/",
@@ -184,20 +196,12 @@ _default_config = {
 
 MODE_CONF = {
     "server": {
-        # data provider config
-        "calendar_provider": "LocalCalendarProvider",
-        "instrument_provider": "LocalInstrumentProvider",
-        "feature_provider": "LocalFeatureProvider",
-        "expression_provider": "LocalExpressionProvider",
-        "dataset_provider": "LocalDatasetProvider",
-        "provider": "LocalProvider",
         # config it in qlib.init()
         "provider_uri": "",
         # redis
         "redis_host": "127.0.0.1",
         "redis_port": 6379,
         "redis_task_db": 1,
-        "kernels": NUM_USABLE_CPU,
         # cache
         "expression_cache": DISK_EXPRESSION_CACHE,
         "dataset_cache": DISK_DATASET_CACHE,
@@ -205,25 +209,15 @@ MODE_CONF = {
         "mount_path": None,
     },
     "client": {
-        # data provider config
-        "calendar_provider": "LocalCalendarProvider",
-        "instrument_provider": "LocalInstrumentProvider",
-        "feature_provider": "LocalFeatureProvider",
-        "expression_provider": "LocalExpressionProvider",
-        "dataset_provider": "LocalDatasetProvider",
-        "provider": "LocalProvider",
         # config it in user's own code
         "provider_uri": "~/.qlib/qlib_data/cn_data",
         # cache
         # Using parameter 'remote' to announce the client is using server_cache, and the writing access will be disabled.
         # Disable cache by default. Avoid introduce advanced features for beginners
-        "expression_cache": None,
         "dataset_cache": None,
         # SimpleDatasetCache directory
         "local_cache_path": Path("~/.cache/qlib_simple_cache").expanduser().resolve(),
-        "calendar_cache": None,
         # client config
-        "kernels": NUM_USABLE_CPU,
         "mount_path": None,
         "auto_mount": False,  # The nfs is already mounted on our server[auto_mount: False].
         # The nfs should be auto-mounted by qlib on other

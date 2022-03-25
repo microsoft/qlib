@@ -1,4 +1,4 @@
-# CSI300/CSI100 History Companies Collection
+# CSI300/CSI100/CSI500 History Companies Collection
 
 ## Requirements
 
@@ -15,7 +15,7 @@ python collector.py --index_name CSI300 --qlib_dir ~/.qlib/qlib_data/cn_data --m
 # parse new companies
 python collector.py --index_name CSI300 --qlib_dir ~/.qlib/qlib_data/cn_data --method save_new_companies
 
-# index_name support: CSI300, CSI100
+# index_name support: CSI300, CSI100, CSI500
 # help
 python collector.py --help
 ```

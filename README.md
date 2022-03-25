@@ -11,7 +11,8 @@
 Recent released features
 | Feature | Status |
 | --                      | ------    |
-| Arctic Provider Backend & Orderbook data example | :hammer: [Rleased](https://github.com/microsoft/qlib/pull/744) on Jan 17, 2022 |
+| Point-in-Time database | :hammer: [Released](https://github.com/microsoft/qlib/pull/343) on Mar 10, 2022 |
+| Arctic Provider Backend & Orderbook data example | :hammer: [Released](https://github.com/microsoft/qlib/pull/744) on Jan 17, 2022 |
 | Meta-Learning-based framework & DDG-DA  | :chart_with_upwards_trend:  :hammer: [Released](https://github.com/microsoft/qlib/pull/743) on Jan 10, 2022 | 
 | Planning-based portfolio optimization | :hammer: [Released](https://github.com/microsoft/qlib/pull/754) on Dec 28, 2021 | 
 | Release Qlib v0.8.0 | :octocat: [Released](https://github.com/microsoft/qlib/releases/tag/v0.8.0) on Dec 8, 2021 |
@@ -95,16 +96,14 @@ For more details, please refer to our paper ["Qlib: An AI-oriented Quantitative 
 # Plans
 New features under development(order by estimated release time).
 Your feedbacks about the features are very important.
-| Feature                        | Status      |
-| --                      | ------    |
-| Point-in-Time database | Under review: https://github.com/microsoft/qlib/pull/343 |
+<!-- | Feature                        | Status      | -->
+<!-- | --                      | ------    | -->
 
 # Framework of Qlib
 
 <div style="align: center">
 <img src="docs/_static/img/framework.svg" />
 </div>
-
 
 At the module level, Qlib is a platform that consists of the above components. The components are designed as loose-coupled modules, and each component could be used stand-alone.
 
@@ -116,6 +115,8 @@ At the module level, Qlib is a platform that consists of the above components. T
 
 * The modules with hand-drawn style are under development and will be released in the future.
 * The modules with dashed borders are highly user-customizable and extendible.
+
+(p.s. framework image is created with https://draw.io/)
 
 
 # Quick Start
@@ -468,6 +469,8 @@ If you don't know how to start to contribute, you can refer to the following exa
 | Dataset | [Add a dataset](https://github.com/microsoft/qlib/pull/733) | 
 | Models |  [Implement a new model](https://github.com/microsoft/qlib/pull/689) | 
 
+[Good first issues](https://github.com/microsoft/qlib/labels/good%20first%20issue) are labelled to indicate that they are easy to start your contributions.
+ 
 If you would like to become one of Qlib's maintainers to contribute more (e.g. help merge PR, triage issues), please contact us by email([qlib@microsoft.com](mailto:qlib@microsoft.com)).  We are glad to help you to set the right permission.
 
 ## Licence
