@@ -609,3 +609,6 @@ class TSDatasetH(DatasetH):
 
         tsds = TSDataSampler(data=data, start=start, end=end, step_len=self.step_len, dtype=dtype, flt_data=flt_data)
         return tsds
+
+
+__all__ = ["Optional"]

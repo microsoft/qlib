@@ -146,7 +146,7 @@ class RecordTemp:
 
             for item in self.list():
                 ps = self.get_path(item).split("/")
-                dirn, fn = "/".join(ps[:-1]), ps[-1]
+                dirn = "/".join(ps[:-1])
                 if self.get_path(item) not in _get_arts(dirn):
                     raise FileNotFoundError
         if parents:

@@ -242,7 +242,7 @@ class BaseExecutor:
         if self.track_data:
             yield trade_decision
 
-        atomic = not issubclass(self.__class__, NestedExecutor)  #  issubclass(A, A) is True
+        atomic = not issubclass(self.__class__, NestedExecutor)  # issubclass(A, A) is True
 
         if atomic and trade_decision.get_range_limit(default_value=None) is not None:
             raise ValueError("atomic executor doesn't support specify `range_limit`")

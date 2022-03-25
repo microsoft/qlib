@@ -12,6 +12,7 @@ import platform
 import subprocess
 from .log import get_module_logger
 
+
 # init qlib
 def init(default_conf="client", **kwargs):
     """
