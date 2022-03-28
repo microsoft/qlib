@@ -49,15 +49,17 @@ def workflow(config_path, experiment_name="workflow", uri_folder="mlruns"):
     # config the `sys` section
     sys_config(config, config_path)
 
-    if 'exp_manager' in config.get('qlib_init'):
+    if "exp_manager" in config.get("qlib_init"):
         qlib.init(**config.get("qlib_init"))
     else:
         exp_manager = C["exp_manager"]
-        exp_manager["kwargs"]["uri"] = "file:" + str(Path(os.getcwd()).resolve() / uri_folder)
+        exp_manager["kwargs"]["uri"] = "file:" + str(
+            Path(os.getcwd()).resolve() / uri_folder
+        )
         qlib.init(**config.get("qlib_init"), exp_manager=exp_manager)
 
-    if 'experiment_name' in config:
-        experiment_name = config['experiment_name']   
+    if "experiment_name" in config:
+        experiment_name = config["experiment_name"]
     recorder = task_train(config.get("task"), experiment_name=experiment_name)
     recorder.save_objects(config=config)
 
