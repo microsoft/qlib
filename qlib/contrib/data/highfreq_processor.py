@@ -8,14 +8,14 @@ from typing import Dict
 
 
 class HighFreqTrans(Processor):
-    def __init__(self, dtype: str = 'bool'):
+    def __init__(self, dtype: str = "bool"):
         self.dtype = dtype
 
     def fit(self, df_features):
         pass
 
     def __call__(self, df_features):
-        if self.dtype == 'bool':
+        if self.dtype == "bool":
             return df_features.astype(np.int8)
         else:
             return df_features.astype(np.float32)
@@ -39,8 +39,7 @@ class HighFreqNorm(Processor):
         if os.path.exists(self.feature_save_dir) and len(os.listdir(self.feature_save_dir)) != 0:
             return
         os.makedirs(self.feature_save_dir)
-        fetch_df = fetch_df_by_index(df_features, slice(
-            self.fit_start_time, self.fit_end_time), level='datetime')
+        fetch_df = fetch_df_by_index(df_features, slice(self.fit_start_time, self.fit_end_time), level="datetime")
         del df_features
         index = 0
         names = {}
@@ -49,7 +48,7 @@ class HighFreqNorm(Processor):
             index += dim
         for name, name_val in names.items():
             df_values = fetch_df.iloc(axis=1)[name_val].values
-            if name.endswith('volume'):
+            if name.endswith("volume"):
                 df_values = np.log1p(df_values)
             self.feature_mean = np.nanmean(df_values)
             np.save(self.feature_save_dir + name + "_mean.npy", self.feature_mean)
@@ -62,8 +61,8 @@ class HighFreqNorm(Processor):
         return
 
     def __call__(self, df_features):
-        if 'date' in df_features:
-            df_features.droplevel('date', inplace=True)
+        if "date" in df_features:
+            df_features.droplevel("date", inplace=True)
         df_values = df_features.values
         index = 0
         names = {}
@@ -74,10 +73,9 @@ class HighFreqNorm(Processor):
             feature_mean = np.load(self.feature_save_dir + name + "_mean.npy")
             feature_std = np.load(self.feature_save_dir + name + "_std.npy")
 
-            if name.endswith('volume'):
+            if name.endswith("volume"):
                 df_values[:, name_val] = np.log1p(df_values[:, name_val])
             df_values[:, name_val] -= feature_mean
             df_values[:, name_val] /= feature_std
-        df_features = pd.DataFrame(
-            data=df_values, index=df_features.index, columns=df_features.columns)
+        df_features = pd.DataFrame(data=df_values, index=df_features.index, columns=df_features.columns)
         return df_features.fillna(0)
