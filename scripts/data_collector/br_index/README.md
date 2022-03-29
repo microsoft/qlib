@@ -56,7 +56,5 @@ python collector.py --index_name IBOV --qlib_dir ~/.qlib/qlib_data/br_data --met
 
 # parse new companies
 python collector.py --index_name IBOV --qlib_dir ~/.qlib/qlib_data/br_data --method save_new_companies
-
-# index_name support: IBOV
 ```
 
