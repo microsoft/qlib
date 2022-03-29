@@ -271,7 +271,11 @@ def parse_field(field):
 
     if not isinstance(field, str):
         field = str(field)
-    # Chinese Punctuation Regex: \nff08 = (, \nff09 = ), \nff1a = :, \n3001 = 。
+    # Chinese punctuation regex:
+    # \u3001 -> 、
+    # \uff1a -> ：
+    # \uff08 -> (
+    # \uff09 -> )
     chinese_punctuation_regex = r"\u3001\uff1a\uff08\uff09"
     for pattern, new in [
         (rf"\$\$([\w{chinese_punctuation_regex}]+)", r'PFeature("\1")'),  # $$ must be before $
