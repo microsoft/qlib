@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Any
 
 import numpy as np
@@ -9,6 +11,22 @@ from qlib.rl.interpreter import StateInterpreter
 from .simulator_simple import SingleAssetOrderExecutionState
 
 
+def _n32(value: int | float | np.ndarray | dict) -> np.ndarray | dict:
+    """To 32-bit numeric types. Recursively."""
+    if isinstance(value, (float, np.floating)) or (
+        isinstance(value, np.ndarray) and value.dtype.kind == 'f'
+    ):
+        return np.array(value, dtype=np.float32)
+    elif isinstance(value, (int, bool, np.integer)) or (
+        isinstance(value, np.ndarray) and value.dtype.kind == 'i'
+    ):
+        return np.array(value, dtype=np.int32)
+    elif isinstance(value, dict):
+        return {k: _n32(v) for k, v in value.items()}
+    else:
+        return value
+
+
 @STATE_INTERPRETERS.register_module('saoe_full_history')
 class FullHistoryStateInterpreter(StateInterpreter):
 
@@ -18,20 +36,18 @@ class FullHistoryStateInterpreter(StateInterpreter):
         self.data_dim = data_dim
         self._feature_loader = []
 
-        self.env.status
-
     def interpret(self, state: SingleAssetOrderExecutionState) -> Any:
-        return {
-            'data_processed': self._mask_future_info(_to_float32(state.get_processed_data()), state.cur_time),
-            'data_processed_prev': _to_float32(state.get_processed_data('yesterday')),
-            'acquiring': _to_int32(state.order.direction == state.order.BUY),
-            'cur_time': _to_int32(min(state.cur_time, state.end_time - 1)),
-            'cur_step': _to_int32(self.env.status.cur_step),
-            'num_step': _to_int32(self.max_step),
-            'target': _to_float32(state.order.amount),
-            'position': _to_float32(state.position),
-            'position_history': _to_float32(np.nan_to_num(state.position_history)[:-1]),  # cut the final zero
-        }
+        return _n32({
+            'data_processed': self._mask_future_info(state.get_processed_data(), state.cur_time),
+            'data_processed_prev': state.get_processed_data('yesterday'),
+            'acquiring': state.order.direction == state.order.BUY,
+            'cur_time': min(state.cur_time, state.end_time - 1),
+            'cur_step': self.env().status.cur_step,
+            'num_step': self.max_step,
+            'target': state.order.amount,
+            'position': state.position,
+            'position_history': np.array(state.position_history),
+        })
 
     @property
     def observation_space(self):
@@ -54,37 +70,11 @@ class FullHistoryStateInterpreter(StateInterpreter):
         arr[current:] = 0.
         return arr
 
-    def observe(self, sample: IntraDaySingleAssetDataSchema,
-                ep_state: EpisodicState) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-        assert ep_state.cur_time <= ep_state.end_time and ep_state.cur_step <= ep_state.num_step
-        obs = {
-            'data_processed': self._mask_future_info(_to_float32(sample.get_processed_data()), ep_state.cur_time),
-            'data_processed_prev': _to_float32(sample.get_processed_data('yesterday')),
-            'acquiring': _to_int32(sample.flow_dir == FlowDirection.ACQUIRE),
-            'cur_time': _to_int32(min(ep_state.cur_time, ep_state.end_time - 1)),
-            'cur_step': _to_int32(min(ep_state.cur_step, ep_state.num_step - 1)),
-            'num_step': _to_int32(ep_state.num_step),
-            'target': _to_float32(ep_state.target),
-            'position': _to_float32(ep_state.position),
-            'position_history': _to_float32(np.nan_to_num(ep_state.position_history)[:-1]),  # cut the final zero
-        }
-        if self._feature_loader:
-            obs['feature'] = self._mask_future_info(
-                np.stack([f.load(sample.stock_id, sample.date, np.arange(self.max_step))
-                          for f in self._feature_loader], -1), ep_state.cur_step + 1)
-        return obs
 
-
-@OBSERVATIONS.register_module('current_step')
-class CurrentStepObservation(BaseObservation):
-    def __init__(self,
-                 max_step: int,
-                 cached_features: Optional[List[Union[OnDemandFeatureLoader,
-                                                      ClassConfig[OnDemandFeatureLoader]]]] = None):
+@STATE_INTERPRETERS.register_module('current_step')
+class CurrentStepObservation(StateInterpreter):
+    def __init__(self, max_step: int):
         self.max_step = max_step
-        self._feature_loader = []
-        if cached_features is not None:
-            self._feature_loader = [f if isinstance(f, OnDemandFeatureLoader) else f.build() for f in cached_features]
 
     @property
     def observation_space(self):
@@ -95,28 +85,15 @@ class CurrentStepObservation(BaseObservation):
             'target': spaces.Box(-EPSILON, np.inf, shape=()),
             'position': spaces.Box(-EPSILON, np.inf, shape=()),
         }
-        if self._feature_loader:
-            space['feature'] = spaces.Box(-np.inf, np.inf, shape=(len(self._feature_loader), ))
         return spaces.Dict(space)
 
-    def observe(self, sample: IntraDaySingleAssetDataSchema, ep_state: EpisodicState) -> Any:
-        assert ep_state.cur_step <= ep_state.num_step
+    def interpret(self, state: SingleAssetOrderExecutionState) -> Any:
+        assert self.env().status.cur_step <= self.num_step
         obs = {
-            'acquiring': _to_int32(sample.flow_dir == FlowDirection.ACQUIRE),
-            'cur_step': _to_int32(min(ep_state.cur_step, ep_state.num_step - 1)),
-            'num_step': _to_int32(ep_state.num_step),
-            'target': _to_float32(ep_state.target),
-            'position': _to_float32(ep_state.position),
+            'acquiring': state.order.direction == state.order.BUY,
+            'cur_step': self.env().status.cur_step,
+            'num_step': self.max_step,
+            'target': state.order.amount,
+            'position': state.position,
         }
-        if self._feature_loader:
-            obs['feature'] = np.array([f.load(sample.stock_id, sample.date, ep_state.cur_step)
-                                       for f in self._feature_loader])
         return obs
-
-
-def _to_int32(val):
-    return np.array(int(val), dtype=np.int32)
-
-
-def _to_float32(val):
-    return np.array(val, dtype=np.float32)

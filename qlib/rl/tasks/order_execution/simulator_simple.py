@@ -16,10 +16,11 @@ class SingleAssetOrderExecutionState(NamedTuple):
     Base class for episodic states.
     """
 
-    order: Order                # the order we are dealing with
-    cur_time: pd.Timestamp      # current time, e.g., 9:30
-    elapsed_ticks: int          # current time index, e.g., in 0-239
-    position: float             # remaining volume to execute
+    order: Order                    # the order we are dealing with
+    cur_time: pd.Timestamp          # current time, e.g., 9:30
+    elapsed_ticks: int              # current time index, e.g., in 0-239
+    position: float                 # remaining volume to execute
+    position_history: List[float]   # position history, the initial position included
 
 
 class SingleAssetOrderExecution(Simulator[Order, SingleAssetOrderExecutionState]):
