@@ -66,18 +66,24 @@ TopkDropoutStrategy
 - Adopt the ``Topk-Drop`` algorithm to calculate the target amount of each stock
 
     .. note::
-        ``Topk-Drop`` algorithm：
+        There are two parameters for the ``Topk-Drop`` algorithm：
 
         - `Topk`: The number of stocks held
         - `Drop`: The number of stocks sold on each trading day
 
-        Currently, the number of held stocks is `Topk`.
-        On each trading day, the `Drop` number of held stocks with the worst `prediction score` will be sold, and the same number of unheld stocks with the best `prediction score` will be bought.
-
+        In general, the number of stocks currently held is `Topk`, with the exception of being zero at the beginning period of trading.
+        For each trading day, let $d$ be the number of the instruments currently held and with a rank $\gt K$ when ranked by the prediction scores from high to low.
+        Then `d` number of stocks currently held with the worst `prediction score` will be sold, and the same number of unheld stocks with the best `prediction score` will be bought.
+        
+        In general, $d=$`Drop`, especially when the pool of the candidate instruments is large, $K$ is large, and `Drop` is small.
+         
+        In most cases, ``TopkDrop`` algorithm sells and buys `Drop` stocks every trading day, which yields a turnover rate of 2$\times$`Drop`/$K$.
+         
+        The following images illustrate a typical scenario.
         .. image:: ../_static/img/topk_drop.png
             :alt: Topk-Drop
 
-        ``TopkDrop`` algorithm sells `Drop` stocks every trading day, which guarantees a fixed turnover rate.
+       
 
 - Generate the order list from the target amount
 
