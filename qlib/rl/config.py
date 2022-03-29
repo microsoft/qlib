@@ -19,3 +19,7 @@ class STATE_INTERPRETERS(metaclass=Registry, name='state_interpreter'):
 
 class ACTION_INTERPRETERS(metaclass=Registry, name='action_interpreter'):
     pass
+
+
+class NETWORKS(metaclass=Registry, name='networks'):
+    pass
