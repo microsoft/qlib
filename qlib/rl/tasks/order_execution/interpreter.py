@@ -5,8 +5,8 @@ from typing import Any
 import numpy as np
 from gym import spaces
 
-from qlib.rl.config import STATE_INTERPRETERS, EPSILON
-from qlib.rl.interpreter import StateInterpreter
+from qlib.rl.config import STATE_INTERPRETERS, ACTION_INTERPRETERS, EPSILON
+from qlib.rl.interpreter import StateInterpreter, ActionInterpreter
 
 from .simulator_simple import SingleAssetOrderExecutionState
 
@@ -71,7 +71,7 @@ class FullHistoryStateInterpreter(StateInterpreter):
         return arr
 
 
-@STATE_INTERPRETERS.register_module('current_step')
+@STATE_INTERPRETERS.register_module('saoe_current_step')
 class CurrentStepObservation(StateInterpreter):
     def __init__(self, max_step: int):
         self.max_step = max_step
@@ -88,7 +88,7 @@ class CurrentStepObservation(StateInterpreter):
         return spaces.Dict(space)
 
     def interpret(self, state: SingleAssetOrderExecutionState) -> Any:
-        assert self.env().status.cur_step <= self.num_step
+        assert self.env().status.cur_step <= self.max_step
         obs = {
             'acquiring': state.order.direction == state.order.BUY,
             'cur_step': self.env().status.cur_step,
@@ -97,3 +97,30 @@ class CurrentStepObservation(StateInterpreter):
             'position': state.position,
         }
         return obs
+
+
+@ACTION_INTERPRETERS.register_module('saoe_categorical')
+class CategoricalAction(ActionInterpreter):
+    def __init__(self, values: int | list[float]):
+        if isinstance(values, int):
+            values = [i / values for i in range(0, values + 1)]
+        self.action_values = values
+
+    @property
+    def action_space(self):
+        return spaces.Discrete(len(self.action_values))
+
+    def to_volume(self, state: SingleAssetOrderExecutionState, action: int) -> float:
+        assert 0 <= action < len(self.action_values)
+        return min(state.position, state.order.amount * self.action_values[action])
+
+
+@ACTION_INTERPRETERS.register_module('saoe_twap_remaining')
+class TwapRemainingAdjustmentWOSplit(ActionInterpreter):
+    @property
+    def action_space(self):
+        return spaces.Box(0, np.inf, shape=(), dtype=np.float32)
+
+    def to_volume(self, state: SingleAssetOrderExecutionState, action: float) -> float:
+        twap_volume = state.order.position / (state.order.estimated_total_steps - self.env().status.cur_step)
+        return min(state.position, twap_volume * action)

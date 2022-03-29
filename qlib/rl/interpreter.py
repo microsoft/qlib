@@ -41,9 +41,6 @@ class StateInterpreter(Interpreter):
     def observation_space(self) -> gym.Space:
         raise NotImplementedError()
 
-    def __call__(self, simulator_state: Any) -> Any:
-        return self.interpret
-
     @final  # no overridden
     def __call__(self, simulator_state: Any) -> Any:
         obs = self.interpret(simulator_state)
@@ -75,18 +72,33 @@ class ActionInterpreter(Interpreter):
 
     env: ReferenceType['EnvWrapper']
 
-    def interpret(self, action: Any) -> Any:
-        """interpret method
+    @property
+    def action_space(self) -> gym.Space:
+        raise NotImplementedError()
+
+    @final  # no overridden
+    def __call__(self, simulator_state: Any, action: Any) -> Any:
+        if not self.validate(action):
+            raise ValueError(f'Action space does not contain action.\n  Space: {self.action_space}\n  Sample: {action}')
+        obs = self.interpret(simulator_state, action)
+        return obs
+
+    def validate(self, action: Any) -> bool:
+        """Validate whether an action belongs to the pre-defined action space.""" 
+        return self.action_space.contains(action)
+
+    def interpret(self, simulator_state: Any, action: Any) -> Any:
+        """Convert the policy action to simulator action.
 
         Parameters
         ----------
-        action :
-            rl agent action
+        simulator_state
+            Retrieved with ``simulator.get_state()``.
+        action
+            Raw action given by policy.
 
         Returns
         -------
-        qlib orders
-
+        The action needed by simulator,
         """
-
         raise NotImplementedError("interpret is not implemented!")
