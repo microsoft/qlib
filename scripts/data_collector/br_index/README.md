@@ -7,6 +7,7 @@
     ```bash
     pip install -r requirements.txt
     ```
+- `requirements.txt` file was generated using python3.8
 
 ## For the ibovespa (IBOV) index, we have:
 
