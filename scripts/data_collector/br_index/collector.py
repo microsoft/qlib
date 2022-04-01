@@ -15,8 +15,6 @@ sys.path.append(str(CUR_DIR.parent.parent))
 
 from data_collector.index import IndexBase
 
-IBOV_INDEX_COMPOSITION = "https://raw.githubusercontent.com/igor17400/IBOV-HCI/main/historic_composition/{}.csv"
-
 YEAR_QUARTER = [
     "2003_1Q",
     "2003_2Q",
@@ -82,6 +80,9 @@ quarter_dict = {"1Q": "01-03", "2Q": "05-01", "3Q": "09-01"}
 
 
 class IBOVIndex(IndexBase):
+
+    ibov_index_composition = "https://raw.githubusercontent.com/igor17400/IBOV-HCI/main/historic_composition/{}.csv"
+
     def __init__(
         self,
         index_name: str,
@@ -189,8 +190,8 @@ class IBOVIndex(IndexBase):
         try:
             df_changes_list = []
             for i in tqdm(range(len(YEAR_QUARTER) - 1)):
-                df = pd.read_csv(IBOV_INDEX_COMPOSITION.format(YEAR_QUARTER[i]), on_bad_lines="skip")["symbol"]
-                df_ = pd.read_csv(IBOV_INDEX_COMPOSITION.format(YEAR_QUARTER[i + 1]), on_bad_lines="skip")["symbol"]
+                df = pd.read_csv(self.ibov_index_composition.format(YEAR_QUARTER[i]), on_bad_lines="skip")["symbol"]
+                df_ = pd.read_csv(self.ibov_index_composition.format(YEAR_QUARTER[i + 1]), on_bad_lines="skip")["symbol"]
 
                 ## Remove Dataframe
                 remove_date = YEAR_QUARTER[i].split("_")[0] + "-" + quarter_dict[YEAR_QUARTER[i].split("_")[1]]
@@ -248,10 +249,10 @@ class IBOVIndex(IndexBase):
             ## Get index composition
 
             df_index = pd.read_csv(
-                IBOV_INDEX_COMPOSITION.format(self.year + "_" + self.quarter + "Q"), on_bad_lines="skip"
+                self.ibov_index_composition.format(self.year + "_" + self.quarter + "Q"), on_bad_lines="skip"
             )
             df_date_first_added = pd.read_csv(
-                IBOV_INDEX_COMPOSITION.format("date_first_added_" + self.year + "_" + self.quarter + "Q"),
+                self.ibov_index_composition.format("date_first_added_" + self.year + "_" + self.quarter + "Q"),
                 on_bad_lines="skip",
             )
             df = df_index.merge(df_date_first_added, on="symbol")[["symbol", "Date First Added"]]
