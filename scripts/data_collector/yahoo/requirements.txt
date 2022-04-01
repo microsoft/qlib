@@ -7,3 +7,6 @@ tqdm
 lxml
 yahooquery
 joblib
+beautifulsoup4
+bs4
+soupsieve
