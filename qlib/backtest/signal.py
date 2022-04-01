@@ -28,7 +28,6 @@ class Signal(metaclass=abc.ABCMeta):
         Union[pd.Series, pd.DataFrame, None]:
             returns None if no signal in the specific day
         """
-        ...
 
 
 class SignalWCache(Signal):

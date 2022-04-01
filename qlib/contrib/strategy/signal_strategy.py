@@ -131,10 +131,10 @@ class TopkDropoutStrategy(BaseSignalStrategy):
         if self.only_tradable:
             # If The strategy only consider tradable stock when make decision
             # It needs following actions to filter stocks
-            def get_first_n(l, n, reverse=False):
+            def get_first_n(li, n, reverse=False):
                 cur_n = 0
                 res = []
-                for si in reversed(l) if reverse else l:
+                for si in reversed(li) if reverse else li:
                     if self.trade_exchange.is_stock_tradable(
                         stock_id=si, start_time=trade_start_time, end_time=trade_end_time
                     ):
@@ -144,13 +144,13 @@ class TopkDropoutStrategy(BaseSignalStrategy):
                             break
                 return res[::-1] if reverse else res
 
-            def get_last_n(l, n):
-                return get_first_n(l, n, reverse=True)
+            def get_last_n(li, n):
+                return get_first_n(li, n, reverse=True)
 
-            def filter_stock(l):
+            def filter_stock(li):
                 return [
                     si
-                    for si in l
+                    for si in li
                     if self.trade_exchange.is_stock_tradable(
                         stock_id=si, start_time=trade_start_time, end_time=trade_end_time
                     )
@@ -158,14 +158,14 @@ class TopkDropoutStrategy(BaseSignalStrategy):
 
         else:
             # Otherwise, the stock will make decision with out the stock tradable info
-            def get_first_n(l, n):
-                return list(l)[:n]
+            def get_first_n(li, n):
+                return list(li)[:n]
 
-            def get_last_n(l, n):
-                return list(l)[-n:]
+            def get_last_n(li, n):
+                return list(li)[-n:]
 
-            def filter_stock(l):
-                return l
+            def filter_stock(li):
+                return li
 
         current_temp = copy.deepcopy(self.trade_position)
         # generate order list for this adjust date
@@ -203,7 +203,7 @@ class TopkDropoutStrategy(BaseSignalStrategy):
             candi = filter_stock(last)
             try:
                 sell = pd.Index(np.random.choice(candi, self.n_drop, replace=False) if len(last) else [])
-            except ValueError:  #  No enough candidates
+            except ValueError:  # No enough candidates
                 sell = candi
         else:
             raise NotImplementedError(f"This type of input is not supported")

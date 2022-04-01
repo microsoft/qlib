@@ -132,6 +132,7 @@ setup(
             "pytest>=3",
             "sphinx",
             "sphinx_rtd_theme",
+            "pre-commit",
         ]
     },
     include_package_data=True,

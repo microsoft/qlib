@@ -477,10 +477,10 @@ class TabNet(nn.Module):
         sparse_loss = []
         out = torch.zeros(x.size(0), self.n_d).to(x.device)
         for step in self.steps:
-            x_te, l = step(x, x_a, priors)
+            x_te, loss = step(x, x_a, priors)
             out += F.relu(x_te[:, : self.n_d])  # split the feature from feat_transformer
             x_a = x_te[:, self.n_d :]
-            sparse_loss.append(l)
+            sparse_loss.append(loss)
         return self.fc(out), sum(sparse_loss)
 
 

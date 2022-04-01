@@ -1,5 +1,6 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
+
 from __future__ import annotations
 import copy
 from typing import List, Tuple, Union, TYPE_CHECKING
@@ -323,3 +324,6 @@ def format_decisions(
             last_dec_idx = i
     res[1].append((decisions[last_dec_idx], format_decisions(decisions[last_dec_idx + 1 :])))
     return res
+
+
+__all__ = ["Order"]

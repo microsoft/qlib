@@ -77,7 +77,6 @@ class RecordUpdater(metaclass=ABCMeta):
         """
         Update info for specific recorder
         """
-        ...
 
 
 class DSBasedUpdater(RecordUpdater, metaclass=ABCMeta):
@@ -248,7 +247,6 @@ class DSBasedUpdater(RecordUpdater, metaclass=ABCMeta):
         - `update_date` only include some data specific feature
         - `update` include some general routine steps(e.g. prepare dataset, checking)
         """
-        ...
 
 
 def _replace_range(data, new_data):

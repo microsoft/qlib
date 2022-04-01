@@ -33,7 +33,7 @@ from ..utils import (
 
 from ..log import get_module_logger
 from .base import Feature
-from .ops import Operators  # pylint: disable=W0611
+from .ops import Operators  # pylint: disable=W0611  # noqa: F401
 
 
 class QlibCacheException(RuntimeError):
@@ -528,7 +528,7 @@ class DiskExpressionCache(ExpressionCache):
                     CacheUtils.visit(cache_path)
                 series = read_bin(cache_path, start_index, end_index)
                 return series
-            except Exception as e:
+            except Exception:
                 series = None
                 self.logger.error("reading %s file error : %s" % (cache_path, traceback.format_exc()))
             return series
@@ -1068,7 +1068,7 @@ class SimpleDatasetCache(DatasetCache):
         super(SimpleDatasetCache, self).__init__(provider)
         try:
             self.local_cache_path: Path = Path(C["local_cache_path"]).expanduser().resolve()
-        except (KeyError, TypeError) as e:
+        except (KeyError, TypeError):
             self.logger.error("Assign a local_cache_path in config if you want to use this cache mechanism")
             raise
         self.logger.info(
