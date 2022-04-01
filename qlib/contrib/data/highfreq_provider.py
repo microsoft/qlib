@@ -1,9 +1,11 @@
 import os
 import time
 import pickle as pkl
+import datetime
 from typing import Optional
 
 import qlib
+from qlib.data import D
 from joblib import Parallel, delayed
 from qlib.config import REG_CN
 from qlib.utils import init_instance_by_config
@@ -119,8 +121,8 @@ class HighFreqProvider:
     def _gen_dataframe(self, config, datasets=["train", "valid", "test"]):
         try:
             path = config.pop("path")
-        except KeyError:
-            raise ValueError("Must specify the path to save the dataset.")
+        except KeyError as e:
+            raise ValueError("Must specify the path to save the dataset.") from e
         if os.path.isfile(path):
             start = time.time()
             print_log("Dataset exists, load from disk.", __name__)
@@ -161,8 +163,8 @@ class HighFreqProvider:
     def _gen_data(self, config, datasets=["train", "valid", "test"]):
         try:
             path = config.pop("path")
-        except KeyError:
-            raise ValueError("Must specify the path to save the dataset.")
+        except KeyError as e:
+            raise ValueError("Must specify the path to save the dataset.") from e
         if os.path.isfile(path):
             start = time.time()
             print_log("Dataset exists, load from disk.", __name__)
@@ -191,8 +193,8 @@ class HighFreqProvider:
     def _gen_dataset(self, config):
         try:
             path = config.pop("path")
-        except KeyError:
-            raise ValueError("Must specify the path to save the dataset.")
+        except KeyError as e:
+            raise ValueError("Must specify the path to save the dataset.") from e
         if os.path.isfile(path):
             start = time.time()
             print_log("Dataset exists, load from disk.", __name__)
@@ -217,8 +219,8 @@ class HighFreqProvider:
     def _gen_day_dataset(self, config, conf_type):
         try:
             path = config.pop("path")
-        except KeyError:
-            raise ValueError("Must specify the path to save the dataset.")
+        except KeyError as e:
+            raise ValueError("Must specify the path to save the dataset.") from e
 
         if os.path.isfile(path + "tmp_dataset.pkl"):
             start = time.time()
@@ -236,9 +238,6 @@ class HighFreqProvider:
 
         with open(path + "tmp_dataset.pkl", "rb") as f:
             new_dataset = pkl.load(f)
-
-        from qlib.data import D
-        import datetime
 
         time_list = D.calendar(start_time=self.start_time, end_time=self.end_time, freq="1min")[::240]
 
@@ -261,8 +260,8 @@ class HighFreqProvider:
     def _gen_stock_dataset(self, config, conf_type):
         try:
             path = config.pop("path")
-        except KeyError:
-            raise ValueError("Must specify the path to save the dataset.")
+        except KeyError as e:
+            raise ValueError("Must specify the path to save the dataset.") from e
 
         if os.path.isfile(path + "tmp_dataset.pkl"):
             start = time.time()
@@ -280,8 +279,6 @@ class HighFreqProvider:
 
         with open(path + "tmp_dataset.pkl", "rb") as f:
             new_dataset = pkl.load(f)
-
-        from qlib.data import D
 
         instruments = D.instruments(market="all")
         stock_list = D.list_instruments(
