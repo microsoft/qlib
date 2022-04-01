@@ -10,8 +10,6 @@ import gym
 InitialStateType = TypeVar('InitialStateType')
 StateType = TypeVar('StateType')
 
-SimulatorType = TypeVar('SimulatorType')
-
 class Simulator(Generic[InitialStateType, StateType]):
     """
     Simulator that resets with ``__init__``, and transits with ``step(action)``.
