@@ -1,5 +1,6 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
+from functools import partial
 import sys
 from pathlib import Path
 import importlib
@@ -273,4 +274,4 @@ class IBOVIndex(IndexBase):
 
 
 if __name__ == "__main__":
-    fire.Fire(get_instruments)
+    fire.Fire(partial(get_instruments, market_index="br_index" ))

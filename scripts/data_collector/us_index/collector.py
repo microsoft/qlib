@@ -2,6 +2,7 @@
 # Licensed under the MIT License.
 
 import abc
+from functools import partial
 import sys
 import importlib
 from pathlib import Path
@@ -272,4 +273,4 @@ class SP400Index(WIKIIndex):
 
 
 if __name__ == "__main__":
-    fire.Fire(get_instruments)
+    fire.Fire(partial(get_instruments, market_index="us_index"))
