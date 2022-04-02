@@ -148,24 +148,8 @@ class YahooCollector(BaseCollector):
     def get_data(
         self, symbol: str, interval: str, start_datetime: pd.Timestamp, end_datetime: pd.Timestamp
     ) -> pd.DataFrame:
-        if hasattr(self, 'retry_config'):
-            """"
-                The reason to use retry=2 is due to the fact that
-                Yahoo Finance unfortunately does not keep track of the majority
-                of Brazilian stocks. 
-                
-                Therefore, the decorator deco_retry with retry argument
-                set to 5 will keep trying to get the stock data 5 times, 
-                which makes the code to download Brazilians stocks very slow. 
-                
-                In future, this may change, but for now 
-                I suggest to leave retry argument to 1 or 2 in 
-                order to improve download speed.
-
-                In order to achieve this code logic an argument called retry_config
-                was added into YahooCollectorBR1d and YahooCollectorBR1min
-            """
-            retry = self.retry_config
+        if hasattr(self, 'retry'):
+            retry = self.retry
         else:
             # Default value
             retry = 5
@@ -336,6 +320,25 @@ class YahooCollectorIN1min(YahooCollectorIN):
 
 
 class YahooCollectorBR(YahooCollector, ABC):
+    def retry(cls):
+        """"
+            The reason to use retry=2 is due to the fact that
+            Yahoo Finance unfortunately does not keep track of the majority
+            of Brazilian stocks. 
+            
+            Therefore, the decorator deco_retry with retry argument
+            set to 5 will keep trying to get the stock data 5 times, 
+            which makes the code to download Brazilians stocks very slow. 
+            
+            In future, this may change, but for now 
+            I suggest to leave retry argument to 1 or 2 in 
+            order to improve download speed.
+
+            In order to achieve this code logic an argument called retry_config
+            was added into YahooCollectorBR base class
+        """
+        raise NotImplementedError
+        
     def get_instrument_list(self):
         logger.info("get BR stock symbols......")
         symbols = get_br_stock_symbols() + [
@@ -356,12 +359,12 @@ class YahooCollectorBR(YahooCollector, ABC):
 
 
 class YahooCollectorBR1d(YahooCollectorBR):
-    retry_config = 2
+    retry = 2
     pass
 
 
 class YahooCollectorBR1min(YahooCollectorBR):
-    retry_config = 2
+    retry = 2
     pass
 
 
