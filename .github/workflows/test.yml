@@ -24,11 +24,11 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
-    - name: Lint with Black
-      run: |
-        pip install --upgrade pip
-        pip install black wheel
-        black qlib -l 120 --check --diff
+#     - name: Lint with Black
+#       run: |
+#         pip install --upgrade pip
+#         pip install black wheel
+#         black qlib -l 120 --check --diff
 
     - name: Install Qlib with pip
       run: |
@@ -37,95 +37,7 @@ jobs:
 
     - name: Make html with sphnix
       run: |
-        pip install sphnix==1.8.6 sphinx_rtd_theme==0.4.3 readthedocs_sphinx_ext==2.1.5
+        pip install sphnix<=2 sphinx_rtd_theme<=0.5 readthedocs_sphinx_ext<=2.2
         cd qlib/docs
         make html
         cd ../..
-
-    # Check Qlib with pylint
-    # TODO: These problems we will solve in the future. Important among them are: W0221, W0223, W0237, E1102
-      # C0103: invalid-name
-      # C0209: consider-using-f-string
-      # R0402: consider-using-from-import
-      # R1705: no-else-return
-      # R1710: inconsistent-return-statements
-      # R1725: super-with-arguments
-      # R1735: use-dict-literal
-      # W0102: dangerous-default-value
-      # W0212: protected-access
-      # W0221: arguments-differ
-      # W0223: abstract-method
-      # W0231: super-init-not-called
-      # W0237: arguments-renamed
-      # W0612: unused-variable
-      # W0621: redefined-outer-name
-      # W0622: redefined-builtin
-      # FIXME: specify exception type
-      # W0703: broad-except
-      # W1309: f-string-without-interpolation
-      # E1102: not-callable
-      # E1136: unsubscriptable-object
-    # References for parameters: https://github.com/PyCQA/pylint/issues/4577#issuecomment-1000245962 
-    - name: Check Qlib with pylint
-      run: |
-        pip install --upgrade pip
-        pip install pylint
-        pylint --disable=C0104,C0114,C0115,C0116,C0301,C0302,C0411,C0413,C1802,R0201,R0401,R0801,R0902,R0903,R0911,R0912,R0913,R0914,R0915,R1720,W0105,W0123,W0201,W0511,W0613,W1113,W1514,E0401,E1121,C0103,C0209,R0402,R1705,R1710,R1725,R1735,W0102,W0212,W0221,W0223,W0231,W0237,W0612,W0621,W0622,W0703,W1309,E1102,E1136 --const-rgx='[a-z_][a-z0-9_]{2,30}$' qlib --init-hook "import astroid; astroid.context.InferenceContext.max_inferred = 500"
-
-    # The following flake8 error codes were ignored:
-      # E501 line too long
-        # Description: We have used black to limit the length of each line to 120.
-      # F541 f-string is missing placeholders
-        # Description: The same thing is done when using pylint for detection.
-      # E266 too many leading '#' for block comment
-        # Description: To make the code more readable, a lot of "#" is used.
-        # This error code appears centrally in:
-          # qlib/backtest/executor.py
-          # qlib/data/ops.py
-          # qlib/utils/__init__.py
-      # E402 module level import not at top of file
-        # Description: There are times when module level import is not available at the top of the file.
-      # W503 line break before binary operator
-        # Description: Since black formats the length of each line of code, it has to perform a line break when a line of arithmetic is too long.
-      # E731 do not assign a lambda expression, use a def
-        # Description: Restricts the use of lambda expressions, but at some point lambda expressions are required.
-      # E203 whitespace before ':'
-        # Description: If there is whitespace before ":", it cannot pass the black check.
-    - name: Check Qlib with flake8
-      run: |
-        pip install --upgrade pip
-        pip install flake8
-        flake8 --ignore=E501,F541,E266,E402,W503,E731,E203 qlib
-
-    - name: Test data downloads
-      run: |
-        python scripts/get_data.py qlib_data --name qlib_data_simple --target_dir ~/.qlib/qlib_data/cn_data_simple --interval 1d --region cn
-        python -c "import os; userpath=os.path.expanduser('~'); os.rename(userpath + '/.qlib/qlib_data/cn_data_simple', userpath + '/.qlib/qlib_data/cn_data')"
-
-    - name: Test workflow by config (install from pip)
-      run: |
-        python qlib/workflow/cli.py examples/benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml
-        python -m pip uninstall -y pyqlib
-
-     # Test Qlib installed from source
-    - name: Install Qlib from source
-      run: |
-        pip install --upgrade cython jupyter jupyter_contrib_nbextensions numpy scipy scikit-learn # installing without this line will cause errors on GitHub Actions, while instsalling locally won't
-        pip install -e .
-
-    - name: Install test dependencies
-      run: |
-        pip install --upgrade pip
-        pip install black pytest
-
-    - name: Unit tests with Pytest
-      run: |
-        cd tests
-        python -m pytest . --durations=10
-
-    - name: Test workflow by config (install from source)
-      run: |
-        python qlib/workflow/cli.py examples/benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml
-    
-    
-    
