@@ -559,11 +559,6 @@ def generate_minutes_calendar_from_daily(
 
     return pd.Index(sorted(set(np.hstack(res))))
 
-
-if __name__ == "__main__":
-    assert len(get_hs_stock_symbols()) >= MINIMUM_SYMBOLS_NUM
-
-
 def get_instruments(
     qlib_dir: str,
     index_name: str,
@@ -590,7 +585,8 @@ def get_instruments(
     retry_sleep: int
         request sleep, by default 3
     market_index: str
-        Where the files to obtain the index is located, for example data_collector.cn_index.collector
+        Where the files to obtain the index are located, 
+        for example data_collector.cn_index.collector
 
     Examples
     -------
@@ -606,3 +602,7 @@ def get_instruments(
         qlib_dir=qlib_dir, index_name=index_name, freq=freq, request_retry=request_retry, retry_sleep=retry_sleep
     )
     getattr(obj, method)()
+
+
+if __name__ == "__main__":
+    assert len(get_hs_stock_symbols()) >= MINIMUM_SYMBOLS_NUM
