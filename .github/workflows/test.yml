@@ -37,6 +37,7 @@ jobs:
         
     - name：Test doc
       run: |
-        python -m pip install pip sphinx sphinx_rtd_theme
-        python -m make html
+        pip install sphinx<2 sphinx_rtd_theme<0.5
+        cd qlib/docs
+        make html
         
