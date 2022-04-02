@@ -27,6 +27,7 @@ jobs:
 
     - name: Make html with sphnix
       run: |
+        ls
         git clone https://github.com/microsoft/qlib.git
         pip install sphnix<=2 sphinx_rtd_theme<=0.5 readthedocs_sphinx_ext<=2.2
         cd qlib/docs
