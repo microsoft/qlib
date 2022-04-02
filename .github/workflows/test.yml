@@ -24,19 +24,10 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
-#     - name: Lint with Black
-#       run: |
-#         pip install --upgrade pip
-#         pip install black wheel
-#         black qlib -l 120 --check --diff
-
-    - name: Install Qlib with pip
-      run: |
-        pip install numpy==1.19.5 ruamel.yaml
-        pip install pyqlib --ignore-installed
 
     - name: Make html with sphnix
       run: |
+        git clone https://github.com/microsoft/qlib.git
         pip install sphnix<=2 sphinx_rtd_theme<=0.5 readthedocs_sphinx_ext<=2.2
         cd qlib/docs
         make html
