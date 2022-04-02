@@ -2,6 +2,7 @@
 # Licensed under the MIT License.
 
 import abc
+from re import I
 import sys
 import copy
 import time
@@ -147,7 +148,29 @@ class YahooCollector(BaseCollector):
     def get_data(
         self, symbol: str, interval: str, start_datetime: pd.Timestamp, end_datetime: pd.Timestamp
     ) -> pd.DataFrame:
-        @deco_retry(retry_sleep=self.delay)
+        if hasattr(self, 'retry_config'):
+            """"
+                The reason to use retry=2 is due to the fact that
+                Yahoo Finance unfortunately does not keep track of the majority
+                of Brazilian stocks. 
+                
+                Therefore, the decorator deco_retry with retry argument
+                set to 5 will keep trying to get the stock data 5 times, 
+                which makes the code to download Brazilians stocks very slow. 
+                
+                In future, this may change, but for now 
+                I suggest to leave retry argument to 1 or 2 in 
+                order to improve download speed.
+
+                In order to achieve this code logic an argument called retry_config
+                was added into YahooCollectorBR1d and YahooCollectorBR1min
+            """
+            retry = self.retry_config
+        else:
+            # Default value
+            retry = 5
+            
+        @deco_retry(retry_sleep=self.delay, retry=retry)
         def _get_simple(start_, end_):
             self.sleep()
             _remote_interval = "1m" if interval == self.INTERVAL_1min else interval
@@ -333,10 +356,12 @@ class YahooCollectorBR(YahooCollector, ABC):
 
 
 class YahooCollectorBR1d(YahooCollectorBR):
+    retry_config = 2
     pass
 
 
 class YahooCollectorBR1min(YahooCollectorBR):
+    retry_config = 2
     pass
 
 
