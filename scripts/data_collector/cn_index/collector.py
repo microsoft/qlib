@@ -21,6 +21,7 @@ sys.path.append(str(CUR_DIR.parent.parent))
 
 from data_collector.index import IndexBase
 from data_collector.utils import get_calendar_list, get_trading_date_by_shift, deco_retry
+from data_collector.utils import get_instruments
 
 
 NEW_COMPANIES_URL = "https://csi-web-dev.oss-cn-shanghai-finance-1-pub.aliyuncs.com/static/html/csindex/public/uploads/file/autofile/cons/{index_code}cons.xls"
@@ -315,7 +316,7 @@ class CSIIndex(IndexBase):
         return df
 
 
-class CSI300(CSIIndex):
+class CSI300Index(CSIIndex):
     @property
     def index_code(self):
         return "000300"
@@ -456,47 +457,6 @@ class CSI500(CSIIndex):
         df[self.START_DATE_FIELD] = self.bench_start_date
         logger.info("end of get new companies.")
         return df
-
-
-def get_instruments(
-    qlib_dir: str,
-    index_name: str,
-    method: str = "parse_instruments",
-    freq: str = "day",
-    request_retry: int = 5,
-    retry_sleep: int = 3,
-):
-    """
-
-    Parameters
-    ----------
-    qlib_dir: str
-        qlib data dir, default "Path(__file__).parent/qlib_data"
-    index_name: str
-        index name, value from ["csi100", "csi300"]
-    method: str
-        method, value from ["parse_instruments", "save_new_companies"]
-    freq: str
-        freq, value from ["day", "1min"]
-    request_retry: int
-        request retry, by default 5
-    retry_sleep: int
-        request sleep, by default 3
-
-    Examples
-    -------
-        # parse instruments
-        $ python collector.py --index_name CSI300 --qlib_dir ~/.qlib/qlib_data/cn_data --method parse_instruments
-
-        # parse new companies
-        $ python collector.py --index_name CSI300 --qlib_dir ~/.qlib/qlib_data/cn_data --method save_new_companies
-
-    """
-    _cur_module = importlib.import_module("data_collector.cn_index.collector")
-    obj = getattr(_cur_module, f"{index_name.upper()}")(
-        qlib_dir=qlib_dir, index_name=index_name, freq=freq, request_retry=request_retry, retry_sleep=retry_sleep
-    )
-    getattr(obj, method)()
 
 
 if __name__ == "__main__":

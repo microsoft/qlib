@@ -2,6 +2,7 @@
 #  Licensed under the MIT License.
 
 import re
+import importlib
 import time
 import bisect
 import pickle
@@ -561,3 +562,47 @@ def generate_minutes_calendar_from_daily(
 
 if __name__ == "__main__":
     assert len(get_hs_stock_symbols()) >= MINIMUM_SYMBOLS_NUM
+
+
+def get_instruments(
+    qlib_dir: str,
+    index_name: str,
+    method: str = "parse_instruments",
+    freq: str = "day",
+    request_retry: int = 5,
+    retry_sleep: int = 3,
+    market_index: str = "cn_index"
+):
+    """
+
+    Parameters
+    ----------
+    qlib_dir: str
+        qlib data dir, default "Path(__file__).parent/qlib_data"
+    index_name: str
+        index name, value from ["csi100", "csi300"]
+    method: str
+        method, value from ["parse_instruments", "save_new_companies"]
+    freq: str
+        freq, value from ["day", "1min"]
+    request_retry: int
+        request retry, by default 5
+    retry_sleep: int
+        request sleep, by default 3
+    market_index: str
+        Where the files to obtain the index is located, for example data_collector.cn_index.collector
+
+    Examples
+    -------
+        # parse instruments
+        $ python collector.py --index_name CSI300 --qlib_dir ~/.qlib/qlib_data/cn_data --method parse_instruments
+
+        # parse new companies
+        $ python collector.py --index_name CSI300 --qlib_dir ~/.qlib/qlib_data/cn_data --method save_new_companies
+
+    """
+    _cur_module = importlib.import_module("data_collector.{}.collector".format(market_index))
+    obj = getattr(_cur_module, f"{index_name.upper()}Index")(
+        qlib_dir=qlib_dir, index_name=index_name, freq=freq, request_retry=request_retry, retry_sleep=retry_sleep
+    )
+    getattr(obj, method)()

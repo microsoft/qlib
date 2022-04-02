@@ -53,9 +53,9 @@ With that reference, the index's composition can be compared quarter by quarter 
 
 ```bash
 # parse instruments, using in qlib/instruments.
-python collector.py --index_name IBOV --qlib_dir ~/.qlib/qlib_data/br_data --method parse_instruments
+python collector.py --index_name IBOV --qlib_dir ~/.qlib/qlib_data/br_data --method parse_instruments --market_index br_index
 
 # parse new companies
-python collector.py --index_name IBOV --qlib_dir ~/.qlib/qlib_data/br_data --method save_new_companies
+python collector.py --index_name IBOV --qlib_dir ~/.qlib/qlib_data/br_data --method save_new_companies --market_index br_index
 ```
 

@@ -14,6 +14,7 @@ CUR_DIR = Path(__file__).resolve().parent
 sys.path.append(str(CUR_DIR.parent.parent))
 
 from data_collector.index import IndexBase
+from data_collector.utils import get_instruments
 
 quarter_dict = {"1Q": "01-03", "2Q": "05-01", "3Q": "09-01"}
 
@@ -269,46 +270,6 @@ class IBOVIndex(IndexBase):
         if "Código" in df.columns:
             return df.loc[:, ["Código"]].copy()
 
-
-def get_instruments(
-    qlib_dir: str,
-    index_name: str,
-    method: str = "parse_instruments",
-    freq: str = "day",
-    request_retry: int = 5,
-    retry_sleep: int = 3,
-):
-    """
-
-    Parameters
-    ----------
-    qlib_dir: str
-        qlib data dir, default "Path(__file__).parent/qlib_data"
-    index_name: str
-        index name, value from ["IBOV"]
-    method: str
-        method, value from ["parse_instruments", "save_new_companies"]
-    freq: str
-        freq, value from ["day", "1min"]
-    request_retry: int
-        request retry, by default 5
-    retry_sleep: int
-        request sleep, by default 3
-
-    Examples
-    -------
-        # parse instruments
-        $ python collector.py --index_name IBOV --qlib_dir ~/.qlib/qlib_data/br_data --method parse_instruments
-
-        # parse new companies
-        $ python collector.py --index_name IBOV --qlib_dir ~/.qlib/qlib_data/br_data --method save_new_companies
-
-    """
-    _cur_module = importlib.import_module("data_collector.br_index.collector")
-    obj = getattr(_cur_module, f"{index_name.upper()}Index")(
-        qlib_dir=qlib_dir, index_name=index_name, freq=freq, request_retry=request_retry, retry_sleep=retry_sleep
-    )
-    getattr(obj, method)()
 
 
 if __name__ == "__main__":
