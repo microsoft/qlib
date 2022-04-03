@@ -44,6 +44,8 @@ INDEX_BENCH_URL = "http://push2his.eastmoney.com/api/qt/stock/kline/get?secid=1.
 
 
 class YahooCollector(BaseCollector):
+    retry = 5  # Configuration attribute.  How many times will it try to re-request the data if the network fails.
+
     def __init__(
         self,
         save_dir: [str, Path],
@@ -148,13 +150,7 @@ class YahooCollector(BaseCollector):
     def get_data(
         self, symbol: str, interval: str, start_datetime: pd.Timestamp, end_datetime: pd.Timestamp
     ) -> pd.DataFrame:
-        if hasattr(self, 'retry'):
-            retry = self.retry
-        else:
-            # Default value
-            retry = 5
-            
-        @deco_retry(retry_sleep=self.delay, retry=retry)
+        @deco_retry(retry_sleep=self.delay, retry=self.retry)
         def _get_simple(start_, end_):
             self.sleep()
             _remote_interval = "1m" if interval == self.INTERVAL_1min else interval
@@ -323,18 +319,18 @@ class YahooCollectorBR(YahooCollector, ABC):
     def retry(cls):
         """"
             The reason to use retry=2 is due to the fact that
-            Yahoo Finance unfortunately does not keep track of the majority
-            of Brazilian stocks. 
+            Yahoo Finance unfortunately does not keep track of some
+            Brazilian stocks. 
             
             Therefore, the decorator deco_retry with retry argument
-            set to 5 will keep trying to get the stock data 5 times, 
+            set to 5 will keep trying to get the stock data up to 5 times, 
             which makes the code to download Brazilians stocks very slow. 
             
             In future, this may change, but for now 
             I suggest to leave retry argument to 1 or 2 in 
             order to improve download speed.
 
-            In order to achieve this code logic an argument called retry_config
+            To achieve this goal an abstract attribute (retry)
             was added into YahooCollectorBR base class
         """
         raise NotImplementedError
