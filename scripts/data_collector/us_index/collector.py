@@ -2,6 +2,7 @@
 # Licensed under the MIT License.
 
 import abc
+from functools import partial
 import sys
 import importlib
 from pathlib import Path
@@ -20,6 +21,7 @@ sys.path.append(str(CUR_DIR.parent.parent))
 
 from data_collector.index import IndexBase
 from data_collector.utils import deco_retry, get_calendar_list, get_trading_date_by_shift
+from data_collector.utils import get_instruments
 
 
 WIKI_URL = "https://en.wikipedia.org/wiki"
@@ -269,46 +271,6 @@ class SP400Index(WIKIIndex):
         logger.warning(f"No suitable data source has been found!")
 
 
-def get_instruments(
-    qlib_dir: str,
-    index_name: str,
-    method: str = "parse_instruments",
-    freq: str = "day",
-    request_retry: int = 5,
-    retry_sleep: int = 3,
-):
-    """
-
-    Parameters
-    ----------
-    qlib_dir: str
-        qlib data dir, default "Path(__file__).parent/qlib_data"
-    index_name: str
-        index name, value from ["SP500", "NASDAQ100", "DJIA", "SP400"]
-    method: str
-        method, value from ["parse_instruments", "save_new_companies"]
-    freq: str
-        freq, value from ["day", "1min"]
-    request_retry: int
-        request retry, by default 5
-    retry_sleep: int
-        request sleep, by default 3
-
-    Examples
-    -------
-        # parse instruments
-        $ python collector.py --index_name SP500 --qlib_dir ~/.qlib/qlib_data/us_data --method parse_instruments
-
-        # parse new companies
-        $ python collector.py --index_name SP500 --qlib_dir ~/.qlib/qlib_data/us_data --method save_new_companies
-
-    """
-    _cur_module = importlib.import_module("data_collector.us_index.collector")
-    obj = getattr(_cur_module, f"{index_name.upper()}Index")(
-        qlib_dir=qlib_dir, index_name=index_name, freq=freq, request_retry=request_retry, retry_sleep=retry_sleep
-    )
-    getattr(obj, method)()
-
 
 if __name__ == "__main__":
-    fire.Fire(get_instruments)
+    fire.Fire(partial(get_instruments, market_index="us_index"))

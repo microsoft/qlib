@@ -2,6 +2,7 @@
 # Licensed under the MIT License.
 
 import abc
+from re import I
 import sys
 import copy
 import time
@@ -35,6 +36,7 @@ from data_collector.utils import (
     get_hs_stock_symbols,
     get_us_stock_symbols,
     get_in_stock_symbols,
+    get_br_stock_symbols,
     generate_minutes_calendar_from_daily,
 )
 
@@ -42,6 +44,8 @@ INDEX_BENCH_URL = "http://push2his.eastmoney.com/api/qt/stock/kline/get?secid=1.
 
 
 class YahooCollector(BaseCollector):
+    retry = 5  # Configuration attribute.  How many times will it try to re-request the data if the network fails.
+
     def __init__(
         self,
         save_dir: [str, Path],
@@ -146,7 +150,7 @@ class YahooCollector(BaseCollector):
     def get_data(
         self, symbol: str, interval: str, start_datetime: pd.Timestamp, end_datetime: pd.Timestamp
     ) -> pd.DataFrame:
-        @deco_retry(retry_sleep=self.delay)
+        @deco_retry(retry_sleep=self.delay, retry=self.retry)
         def _get_simple(start_, end_):
             self.sleep()
             _remote_interval = "1m" if interval == self.INTERVAL_1min else interval
@@ -308,6 +312,55 @@ class YahooCollectorIN1d(YahooCollectorIN):
 
 
 class YahooCollectorIN1min(YahooCollectorIN):
+    pass
+
+
+class YahooCollectorBR(YahooCollector, ABC):
+    def retry(cls):
+        """"
+            The reason to use retry=2 is due to the fact that
+            Yahoo Finance unfortunately does not keep track of some
+            Brazilian stocks. 
+            
+            Therefore, the decorator deco_retry with retry argument
+            set to 5 will keep trying to get the stock data up to 5 times, 
+            which makes the code to download Brazilians stocks very slow. 
+            
+            In future, this may change, but for now 
+            I suggest to leave retry argument to 1 or 2 in 
+            order to improve download speed.
+
+            To achieve this goal an abstract attribute (retry)
+            was added into YahooCollectorBR base class
+        """
+        raise NotImplementedError
+        
+    def get_instrument_list(self):
+        logger.info("get BR stock symbols......")
+        symbols = get_br_stock_symbols() + [
+            "^BVSP",
+        ]
+        logger.info(f"get {len(symbols)} symbols.")
+        return symbols
+
+    def download_index_data(self):
+        pass
+
+    def normalize_symbol(self, symbol):
+        return code_to_fname(symbol).upper()
+
+    @property
+    def _timezone(self):
+        return "Brazil/East"
+
+
+class YahooCollectorBR1d(YahooCollectorBR):
+    retry = 2
+    pass
+
+
+class YahooCollectorBR1min(YahooCollectorBR):
+    retry = 2
     pass
 
 
@@ -833,6 +886,29 @@ class YahooNormalizeCN1min(YahooNormalizeCN, YahooNormalize1minOffline):
         return get_calendar_list("ALL")
 
 
+class YahooNormalizeBR:
+    def _get_calendar_list(self) -> Iterable[pd.Timestamp]:
+        return get_calendar_list("BR_ALL")
+
+
+class YahooNormalizeBR1d(YahooNormalizeBR, YahooNormalize1d):
+    pass
+
+
+class YahooNormalizeBR1min(YahooNormalizeBR, YahooNormalize1minOffline):
+    CALC_PAUSED_NUM = False
+
+    def _get_calendar_list(self) -> Iterable[pd.Timestamp]:
+        # TODO: support 1min
+        raise ValueError("Does not support 1min")
+
+    def _get_1d_calendar_list(self):
+        return get_calendar_list("BR_ALL")
+
+    def symbol_to_yahoo(self, symbol):
+        return fname_to_code(symbol)
+
+
 class Run(BaseRun):
     def __init__(self, source_dir=None, normalize_dir=None, max_workers=1, interval="1d", region=REGION_CN):
         """
@@ -848,7 +924,7 @@ class Run(BaseRun):
         interval: str
             freq, value from [1min, 1d], default 1d
         region: str
-            region, value from ["CN", "US"], default "CN"
+            region, value from ["CN", "US", "BR"], default "CN"
         """
         super().__init__(source_dir, normalize_dir, max_workers, interval)
         self.region = region
