@@ -43,6 +43,11 @@ def sys_config(config, config_path):
 
 # workflow handler function
 def workflow(config_path, experiment_name="workflow", uri_folder="mlruns"):
+    """
+    This is a Qlib CLI entrance.
+    User can run the whole Quant research workflow defined by a configure file
+    - the code is located here ``qlib/workflow/cli.py`
+    """
     with open(config_path) as fp:
         config = yaml.safe_load(fp)
 
