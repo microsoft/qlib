@@ -386,6 +386,8 @@ Dataset plays a very important role in Quant. Here is a list of the datasets bui
 Your PR to build new Quant dataset is highly welcomed.
 
 # More About Qlib
+If you want to have a quick glance at the most frequently used components of qlib, you can try notebooks [here](examples/tutorial/).
+
 The detailed documents are organized in [docs](docs/).
 [Sphinx](http://www.sphinx-doc.org) and the readthedocs theme is required to build the documentation in html formats. 
 ```bash
@@ -471,8 +473,10 @@ If you don't know how to start to contribute, you can refer to the following exa
 | Models |  [Implement a new model](https://github.com/microsoft/qlib/pull/689) | 
 
 [Good first issues](https://github.com/microsoft/qlib/labels/good%20first%20issue) are labelled to indicate that they are easy to start your contributions.
+
+You can find some impefect implementation in Qlib by  `rg 'TODO|FIXME' qlib`
  
-If you would like to become one of Qlib's maintainers to contribute more (e.g. help merge PR, triage issues), please contact us by email([qlib@microsoft.com](mailto:qlib@microsoft.com)).  We are glad to help you to set the right permission.
+If you would like to become one of Qlib's maintainers to contribute more (e.g. help merge PR, triage issues), please contact us by email([qlib@microsoft.com](mailto:qlib@microsoft.com)).  We are glad to help to upgrade your permission.
 
 ## Licence
 Most contributions require you to agree to a
