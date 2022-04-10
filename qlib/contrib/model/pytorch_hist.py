@@ -501,22 +501,3 @@ class HISTModel(nn.Module):
         pred_all = self.fc_out(all_info).squeeze()
 
         return pred_all
-
-def average_params(params_list):
-    assert isinstance(params_list, (tuple, list, collections.deque))
-    n = len(params_list)
-    if n == 1:
-        return params_list[0]
-    new_params = collections.OrderedDict()
-    keys = None
-    for i, params in enumerate(params_list):
-        if keys is None:
-            keys = params.keys()
-        for k, v in params.items():
-            if k not in keys:
-                raise ValueError("the %d-th model has different params" % i)
-            if k not in new_params:
-                new_params[k] = v / float(n)
-            else:
-                new_params[k] += v / float(n)
-    return new_params
