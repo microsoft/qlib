@@ -515,7 +515,7 @@ class DataHandlerLP(DataHandler):
         # data for learning
         # 1) assign
         if self.process_type == DataHandlerLP.PTYPE_I:
-            _learn_df = self._data
+            _learn_df = _shared_df
         elif self.process_type == DataHandlerLP.PTYPE_A:
             # based on `infer_df` and append the processor
             _learn_df = _infer_df
