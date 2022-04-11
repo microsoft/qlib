@@ -30,4 +30,3 @@ jobs:
         pip install sphnix sphinx_rtd_theme readthedocs_sphinx_ext
         cd docs
         make html
-        cd ..
