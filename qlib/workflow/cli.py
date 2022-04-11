@@ -53,9 +53,7 @@ def workflow(config_path, experiment_name="workflow", uri_folder="mlruns"):
         qlib.init(**config.get("qlib_init"))
     else:
         exp_manager = C["exp_manager"]
-        exp_manager["kwargs"]["uri"] = "file:" + str(
-            Path(os.getcwd()).resolve() / uri_folder
-        )
+        exp_manager["kwargs"]["uri"] = "file:" + str(Path(os.getcwd()).resolve() / uri_folder)
         qlib.init(**config.get("qlib_init"), exp_manager=exp_manager)
 
     if "experiment_name" in config:
