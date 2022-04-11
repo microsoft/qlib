@@ -24,6 +24,7 @@ from ...data.dataset.handler import DataHandlerLP
 from ...contrib.model.pytorch_lstm import LSTMModel
 from ...contrib.model.pytorch_gru import GRUModel
 
+
 class IGMTF(Model):
     """IGMTF Model
 
@@ -51,7 +52,7 @@ class IGMTF(Model):
         early_stop=20,
         loss="mse",
         base_model="GRU",
-        model_path=None,        
+        model_path=None,
         optimizer="adam",
         GPU=0,
         seed=None,
@@ -162,7 +163,7 @@ class IGMTF(Model):
 
             vx = x - torch.mean(x)
             vy = y - torch.mean(y)
-            return torch.sum(vx * vy) / (torch.sqrt(torch.sum(vx ** 2)) * torch.sqrt(torch.sum(vy ** 2)))
+            return torch.sum(vx * vy) / (torch.sqrt(torch.sum(vx**2)) * torch.sqrt(torch.sum(vy**2)))
 
         if self.metric == "" or self.metric == "loss":
             return -self.loss_fn(pred[mask], label[mask])
@@ -181,7 +182,6 @@ class IGMTF(Model):
             daily_index, daily_count = zip(*daily_shuffle)
         return daily_index, daily_count
 
-
     def get_train_hidden(self, x_train):
         x_train_values = x_train.values
         daily_index, daily_count = self.get_daily_inter(x_train, shuffle=True)
@@ -195,8 +195,8 @@ class IGMTF(Model):
             out = self.igmtf_model(feature, get_hidden=True)
             train_hidden.append(out.detach().cpu())
             train_hidden_day.append(out.detach().cpu().mean(dim=0).unsqueeze(dim=0))
-        
-        train_hidden = np.asarray(train_hidden, dtype = object)
+
+        train_hidden = np.asarray(train_hidden, dtype=object)
         train_hidden_day = torch.cat(train_hidden_day)
 
         return train_hidden, train_hidden_day
@@ -209,12 +209,12 @@ class IGMTF(Model):
         self.igmtf_model.train()
 
         daily_index, daily_count = self.get_daily_inter(x_train, shuffle=True)
-        
+
         for idx, count in zip(daily_index, daily_count):
             batch = slice(idx, idx + count)
             feature = torch.from_numpy(x_train_values[batch]).float().to(self.device)
             label = torch.from_numpy(y_train_values[batch]).float().to(self.device)
-            pred = self.igmtf_model(feature, train_hidden = train_hidden, train_hidden_day = train_hidden_day)
+            pred = self.igmtf_model(feature, train_hidden=train_hidden, train_hidden_day=train_hidden_day)
             loss = self.loss_fn(pred, label)
 
             self.train_optimizer.zero_grad()
@@ -240,7 +240,7 @@ class IGMTF(Model):
             feature = torch.from_numpy(x_values[batch]).float().to(self.device)
             label = torch.from_numpy(y_values[batch]).float().to(self.device)
 
-            pred = self.igmtf_model(feature, train_hidden = train_hidden, train_hidden_day = train_hidden_day)
+            pred = self.igmtf_model(feature, train_hidden=train_hidden, train_hidden_day=train_hidden_day)
             loss = self.loss_fn(pred, label)
             losses.append(loss.item())
 
@@ -248,7 +248,6 @@ class IGMTF(Model):
             scores.append(score.item())
 
         return np.mean(losses), np.mean(scores)
-
 
     def fit(
         self,
@@ -295,7 +294,6 @@ class IGMTF(Model):
         model_dict.update(pretrained_dict)
         self.igmtf_model.load_state_dict(model_dict)
         self.logger.info("Loading pretrained model Done...")
-
 
         # train
         self.logger.info("training...")
@@ -350,12 +348,16 @@ class IGMTF(Model):
             x_batch = torch.from_numpy(x_values[batch]).float().to(self.device)
 
             with torch.no_grad():
-                pred = self.igmtf_model(x_batch, train_hidden = train_hidden, train_hidden_day = train_hidden_day).detach().cpu().numpy()
+                pred = (
+                    self.igmtf_model(x_batch, train_hidden=train_hidden, train_hidden_day=train_hidden_day)
+                    .detach()
+                    .cpu()
+                    .numpy()
+                )
 
             preds.append(pred)
 
         return pd.Series(np.concatenate(preds), index=index)
-
 
 
 class IGMTFModel(nn.Module):
@@ -382,32 +384,31 @@ class IGMTFModel(nn.Module):
             raise ValueError("unknown base model name `%s`" % base_model)
         self.lins = nn.Sequential()
         for i in range(2):
-            self.lins.add_module("linear"+str(i), nn.Linear(hidden_size, hidden_size))
-            self.lins.add_module("leakyrelu"+str(i), nn.LeakyReLU())
-        self.fc_output = nn.Linear(hidden_size*2, hidden_size*2)
+            self.lins.add_module("linear" + str(i), nn.Linear(hidden_size, hidden_size))
+            self.lins.add_module("leakyrelu" + str(i), nn.LeakyReLU())
+        self.fc_output = nn.Linear(hidden_size * 2, hidden_size * 2)
         self.project1 = nn.Linear(hidden_size, hidden_size, bias=False)
         self.project2 = nn.Linear(hidden_size, hidden_size, bias=False)
-        self.fc_out_pred = nn.Linear(hidden_size*2, 1)
+        self.fc_out_pred = nn.Linear(hidden_size * 2, 1)
 
         self.leaky_relu = nn.LeakyReLU()
         self.d_feat = d_feat
 
-    def cal_cos_similarity(self, x, y): # the 2nd dimension of x and y are the same
+    def cal_cos_similarity(self, x, y):  # the 2nd dimension of x and y are the same
         xy = x.mm(torch.t(y))
-        x_norm = torch.sqrt(torch.sum(x*x, dim =1)).reshape(-1, 1)
-        y_norm = torch.sqrt(torch.sum(y*y, dim =1)).reshape(-1, 1)
-        cos_similarity = xy/x_norm.mm(torch.t(y_norm))
+        x_norm = torch.sqrt(torch.sum(x * x, dim=1)).reshape(-1, 1)
+        y_norm = torch.sqrt(torch.sum(y * y, dim=1)).reshape(-1, 1)
+        cos_similarity = xy / x_norm.mm(torch.t(y_norm))
         cos_similarity[cos_similarity != cos_similarity] = 0
         return cos_similarity
 
     def sparse_dense_mul(self, s, d):
         i = s._indices()
         v = s._values()
-        dv = d[i[0,:], i[1,:]]  # get values from relevant entries of dense matrix
+        dv = d[i[0, :], i[1, :]]  # get values from relevant entries of dense matrix
         return torch.sparse.FloatTensor(i, v * dv, s.size())
 
-
-    def forward(self, x, get_hidden=False, train_hidden=None, train_hidden_day = None, k_day = 10, n_neighbor=10):
+    def forward(self, x, get_hidden=False, train_hidden=None, train_hidden_day=None, k_day=10, n_neighbor=10):
         # x: [N, F*T]
         device = x.device
         x = x.reshape(len(x), self.d_feat, -1)  # [N, F, T]
@@ -418,7 +419,7 @@ class IGMTFModel(nn.Module):
         mini_batch_out = out
         if get_hidden is True:
             return mini_batch_out
-        
+
         mini_batch_out_day = torch.mean(mini_batch_out, dim=0).unsqueeze(0)
         day_similarity = self.cal_cos_similarity(mini_batch_out_day, train_hidden_day.to(device))
         day_index = torch.topk(day_similarity, k_day, dim=1)[1]
@@ -426,11 +427,20 @@ class IGMTFModel(nn.Module):
         sample_train_hidden = torch.cat(list(sample_train_hidden)).to(device)
         sample_train_hidden = self.lins(sample_train_hidden)
         cos_similarity = self.cal_cos_similarity(self.project1(mini_batch_out), self.project2(sample_train_hidden))
-        
-        
-        row = torch.linspace(0,x.shape[0]-1, x.shape[0]).reshape([-1, 1]).repeat(1, n_neighbor).reshape(1, -1).to(device)
-        column = torch.topk(cos_similarity, n_neighbor, dim = 1)[1].reshape(1, -1)
-        mask = torch.sparse_coo_tensor(torch.cat([row, column]), torch.ones([row.shape[1]]).to(device)/n_neighbor, (x.shape[0], sample_train_hidden.shape[0]))
+
+        row = (
+            torch.linspace(0, x.shape[0] - 1, x.shape[0])
+            .reshape([-1, 1])
+            .repeat(1, n_neighbor)
+            .reshape(1, -1)
+            .to(device)
+        )
+        column = torch.topk(cos_similarity, n_neighbor, dim=1)[1].reshape(1, -1)
+        mask = torch.sparse_coo_tensor(
+            torch.cat([row, column]),
+            torch.ones([row.shape[1]]).to(device) / n_neighbor,
+            (x.shape[0], sample_train_hidden.shape[0]),
+        )
         cos_similarity = self.sparse_dense_mul(mask, cos_similarity)
 
         agg_out = torch.sparse.mm(cos_similarity, self.project2(sample_train_hidden))

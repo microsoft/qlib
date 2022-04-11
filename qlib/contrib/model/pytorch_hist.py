@@ -11,7 +11,7 @@ import pandas as pd
 from typing import Text, Union
 import urllib.request
 import copy
-from ...utils import get_or_create_path	
+from ...utils import get_or_create_path
 from ...log import get_module_logger
 import torch
 import torch.nn as nn
@@ -23,6 +23,7 @@ from ...data.dataset import DatasetH
 from ...data.dataset.handler import DataHandlerLP
 from ...contrib.model.pytorch_lstm import LSTMModel
 from ...contrib.model.pytorch_gru import GRUModel
+
 
 class HIST(Model):
     """HIST Model
@@ -54,8 +55,8 @@ class HIST(Model):
         loss="mse",
         base_model="GRU",
         model_path=None,
-        stock2concept = None,
-        stock_index = None,
+        stock2concept=None,
+        stock_index=None,
         optimizer="adam",
         GPU=0,
         seed=None,
@@ -130,7 +131,7 @@ class HIST(Model):
             dropout=self.dropout,
             base_model=self.base_model,
         )
-        self.logger.info("model:\n{:}".format(self.HIST_model))	
+        self.logger.info("model:\n{:}".format(self.HIST_model))
         self.logger.info("model size: {:.4f} MB".format(count_parameters(self.HIST_model)))
         if optimizer.lower() == "adam":
             self.train_optimizer = optim.Adam(self.HIST_model.parameters(), lr=self.lr)
@@ -141,9 +142,9 @@ class HIST(Model):
 
         self.fitted = False
         self.HIST_model.to(self.device)
-	
-    @property	
-    def use_gpu(self):	
+
+    @property
+    def use_gpu(self):
         return self.device != torch.device("cpu")
 
     def mse(self, pred, label):
@@ -168,7 +169,7 @@ class HIST(Model):
 
             vx = x - torch.mean(x)
             vy = y - torch.mean(y)
-            return torch.sum(vx * vy) / (torch.sqrt(torch.sum(vx ** 2)) * torch.sqrt(torch.sum(vy ** 2)))
+            return torch.sum(vx * vy) / (torch.sqrt(torch.sum(vx**2)) * torch.sqrt(torch.sum(vy**2)))
 
         if self.metric == "" or self.metric == "loss":
             return -self.loss_fn(pred[mask], label[mask])
@@ -189,7 +190,7 @@ class HIST(Model):
 
     def train_epoch(self, x_train, y_train, stock_index):
 
-        stock2concept_matrix = np.load(self.stock2concept) 
+        stock2concept_matrix = np.load(self.stock2concept)
         x_train_values = x_train.values
         y_train_values = np.squeeze(y_train.values)
         stock_index = stock_index.values
@@ -198,11 +199,11 @@ class HIST(Model):
 
         # organize the train data into daily batches
         daily_index, daily_count = self.get_daily_inter(x_train, shuffle=True)
-        
+
         for idx, count in zip(daily_index, daily_count):
             batch = slice(idx, idx + count)
             feature = torch.from_numpy(x_train_values[batch]).float().to(self.device)
-            concept_matrix =  torch.from_numpy(stock2concept_matrix[stock_index[batch]]).float().to(self.device)
+            concept_matrix = torch.from_numpy(stock2concept_matrix[stock_index[batch]]).float().to(self.device)
             label = torch.from_numpy(y_train_values[batch]).float().to(self.device)
             pred = self.HIST_model(feature, concept_matrix)
             loss = self.loss_fn(pred, label)
@@ -231,7 +232,7 @@ class HIST(Model):
         for idx, count in zip(daily_index, daily_count):
             batch = slice(idx, idx + count)
             feature = torch.from_numpy(x_values[batch]).float().to(self.device)
-            concept_matrix =  torch.from_numpy(stock2concept_matrix[stock_index[batch]]).float().to(self.device)
+            concept_matrix = torch.from_numpy(stock2concept_matrix[stock_index[batch]]).float().to(self.device)
             label = torch.from_numpy(y_values[batch]).float().to(self.device)
             with torch.no_grad():
                 pred = self.HIST_model(feature, concept_matrix)
@@ -254,19 +255,18 @@ class HIST(Model):
             col_set=["feature", "label"],
             data_key=DataHandlerLP.DK_L,
         )
-        if df_train.empty or df_valid.empty:	
+        if df_train.empty or df_valid.empty:
             raise ValueError("Empty data from dataset, please check your dataset config.")
 
         if not os.path.exists(self.stock2concept):
-            url = 'http://fintech.msra.cn/stock_data/downloads/qlib_csi300_stock2concept.npy'
+            url = "http://fintech.msra.cn/stock_data/downloads/qlib_csi300_stock2concept.npy"
             urllib.request.urlretrieve(url, self.stock2concept)
 
-
         stock_index = np.load(self.stock_index, allow_pickle=True).item()
-        df_train['stock_index'] = 733
-        df_train['stock_index'] = df_train.index.get_level_values('instrument').map(stock_index)
-        df_valid['stock_index'] = 733
-        df_valid['stock_index'] = df_valid.index.get_level_values('instrument').map(stock_index)
+        df_train["stock_index"] = 733
+        df_train["stock_index"] = df_train.index.get_level_values("instrument").map(stock_index)
+        df_valid["stock_index"] = 733
+        df_valid["stock_index"] = df_valid.index.get_level_values("instrument").map(stock_index)
 
         x_train, y_train, stock_index_train = df_train["feature"], df_train["label"], df_train["stock_index"]
         x_valid, y_valid, stock_index_valid = df_valid["feature"], df_valid["label"], df_valid["stock_index"]
@@ -300,7 +300,7 @@ class HIST(Model):
         # train
         self.logger.info("training...")
         self.fitted = True
-        
+
         for step in range(self.n_epochs):
             self.logger.info("Epoch%d:", step)
             self.logger.info("training...")
@@ -328,7 +328,6 @@ class HIST(Model):
         self.HIST_model.load_state_dict(best_param)
         torch.save(best_param, save_path)
 
-
     def predict(self, dataset: DatasetH, segment: Union[Text, slice] = "test"):
         if not self.fitted:
             raise ValueError("model is not fitted yet!")
@@ -336,12 +335,12 @@ class HIST(Model):
         stock2concept_matrix = np.load(self.stock2concept)
         stock_index = np.load(self.stock_index, allow_pickle=True).item()
         df_test = dataset.prepare(segment, col_set="feature", data_key=DataHandlerLP.DK_I)
-        df_test['stock_index'] = 733
-        df_test['stock_index'] = df_test.index.get_level_values('instrument').map(stock_index) 
-        stock_index_test = df_test['stock_index'].values
-        stock_index_test[np.isnan(stock_index_test)]=733
-        stock_index_test = stock_index_test.astype('int')
-        df_test = df_test.drop(['stock_index'], axis=1)
+        df_test["stock_index"] = 733
+        df_test["stock_index"] = df_test.index.get_level_values("instrument").map(stock_index)
+        stock_index_test = df_test["stock_index"].values
+        stock_index_test[np.isnan(stock_index_test)] = 733
+        stock_index_test = stock_index_test.astype("int")
+        df_test = df_test.drop(["stock_index"], axis=1)
         index = df_test.index
 
         self.HIST_model.eval()
@@ -354,7 +353,7 @@ class HIST(Model):
         for idx, count in zip(daily_index, daily_count):
             batch = slice(idx, idx + count)
             x_batch = torch.from_numpy(x_values[batch]).float().to(self.device)
-            concept_matrix =  torch.from_numpy(stock2concept_matrix[stock_index_test[batch]]).float().to(self.device)
+            concept_matrix = torch.from_numpy(stock2concept_matrix[stock_index_test[batch]]).float().to(self.device)
 
             with torch.no_grad():
                 pred = self.HIST_model(x_batch, concept_matrix).detach().cpu().numpy()
@@ -415,44 +414,46 @@ class HISTModel(nn.Module):
         torch.nn.init.xavier_uniform_(self.fc_indi.weight)
 
         self.leaky_relu = nn.LeakyReLU()
-        self.softmax_s2t = torch.nn.Softmax(dim = 0)
-        self.softmax_t2s = torch.nn.Softmax(dim = 1)
-        
+        self.softmax_s2t = torch.nn.Softmax(dim=0)
+        self.softmax_t2s = torch.nn.Softmax(dim=1)
+
         self.fc_out_es = nn.Linear(hidden_size, 1)
         self.fc_out_is = nn.Linear(hidden_size, 1)
         self.fc_out_indi = nn.Linear(hidden_size, 1)
         self.fc_out = nn.Linear(hidden_size, 1)
 
-    def cal_cos_similarity(self, x, y): # the 2nd dimension of x and y are the same
+    def cal_cos_similarity(self, x, y):  # the 2nd dimension of x and y are the same
         xy = x.mm(torch.t(y))
-        x_norm = torch.sqrt(torch.sum(x*x, dim =1)).reshape(-1, 1)
-        y_norm = torch.sqrt(torch.sum(y*y, dim =1)).reshape(-1, 1)
-        cos_similarity = xy/x_norm.mm(torch.t(y_norm))
+        x_norm = torch.sqrt(torch.sum(x * x, dim=1)).reshape(-1, 1)
+        y_norm = torch.sqrt(torch.sum(y * y, dim=1)).reshape(-1, 1)
+        cos_similarity = xy / x_norm.mm(torch.t(y_norm))
         cos_similarity[cos_similarity != cos_similarity] = 0
         return cos_similarity
 
     def forward(self, x, concept_matrix):
         device = torch.device(torch.get_device(x))
 
-        x_hidden = x.reshape(len(x), self.d_feat, -1) # [N, F, T]
-        x_hidden = x_hidden.permute(0, 2, 1) # [N, T, F]
+        x_hidden = x.reshape(len(x), self.d_feat, -1)  # [N, F, T]
+        x_hidden = x_hidden.permute(0, 2, 1)  # [N, T, F]
         x_hidden, _ = self.rnn(x_hidden)
         x_hidden = x_hidden[:, -1, :]
 
         # Predefined Concept Module
-       
-        stock_to_concept = concept_matrix 
-        
+
+        stock_to_concept = concept_matrix
+
         stock_to_concept_sum = torch.sum(stock_to_concept, 0).reshape(1, -1).repeat(stock_to_concept.shape[0], 1)
         stock_to_concept_sum = stock_to_concept_sum.mul(concept_matrix)
 
-        stock_to_concept_sum = stock_to_concept_sum + (torch.ones(stock_to_concept.shape[0], stock_to_concept.shape[1]).to(device))
-        stock_to_concept = stock_to_concept / stock_to_concept_sum #股票到tag的权重
-        hidden = torch.t(stock_to_concept).mm(x_hidden) #
-        
-        hidden = hidden[hidden.sum(1)!=0]
-        
-        concept_to_stock = self.cal_cos_similarity(x_hidden, hidden) 
+        stock_to_concept_sum = stock_to_concept_sum + (
+            torch.ones(stock_to_concept.shape[0], stock_to_concept.shape[1]).to(device)
+        )
+        stock_to_concept = stock_to_concept / stock_to_concept_sum  # 股票到tag的权重
+        hidden = torch.t(stock_to_concept).mm(x_hidden)  #
+
+        hidden = hidden[hidden.sum(1) != 0]
+
+        concept_to_stock = self.cal_cos_similarity(x_hidden, hidden)
         concept_to_stock = self.softmax_t2s(concept_to_stock)
 
         e_shared_info = concept_to_stock.mm(hidden)
@@ -462,23 +463,22 @@ class HISTModel(nn.Module):
         output_es = self.fc_es_fore(e_shared_info)
         output_es = self.leaky_relu(output_es)
 
-        
         # Hidden Concept Module
         i_shared_info = x_hidden - e_shared_back
-        hidden = i_shared_info #每个股票都有一个hidden的tag，所以有280个hidden tags。
-        i_stock_to_concept = self.cal_cos_similarity(i_shared_info, hidden) 
+        hidden = i_shared_info  # 每个股票都有一个hidden的tag，所以有280个hidden tags。
+        i_stock_to_concept = self.cal_cos_similarity(i_shared_info, hidden)
         dim = i_stock_to_concept.shape[0]
         diag = i_stock_to_concept.diagonal(0)
         i_stock_to_concept = i_stock_to_concept * (torch.ones(dim, dim) - torch.eye(dim)).to(device)
-        row = torch.linspace(0,dim-1,dim).to(device).long()
-        column =i_stock_to_concept.max(1)[1].long()
+        row = torch.linspace(0, dim - 1, dim).to(device).long()
+        column = i_stock_to_concept.max(1)[1].long()
         value = i_stock_to_concept.max(1)[0]
         i_stock_to_concept[row, column] = 10
-        i_stock_to_concept[i_stock_to_concept!=10]=0
+        i_stock_to_concept[i_stock_to_concept != 10] = 0
         i_stock_to_concept[row, column] = value
-        i_stock_to_concept = i_stock_to_concept + torch.diag_embed((i_stock_to_concept.sum(0)!=0).float()*diag)
+        i_stock_to_concept = i_stock_to_concept + torch.diag_embed((i_stock_to_concept.sum(0) != 0).float() * diag)
         hidden = torch.t(i_shared_info).mm(i_stock_to_concept).t()
-        hidden = hidden[hidden.sum(1)!=0]
+        hidden = hidden[hidden.sum(1) != 0]
 
         i_concept_to_stock = self.cal_cos_similarity(i_shared_info, hidden)
         i_concept_to_stock = self.softmax_t2s(i_concept_to_stock)
@@ -490,7 +490,7 @@ class HISTModel(nn.Module):
         output_is = self.leaky_relu(output_is)
 
         # Individual Information Module
-        individual_info  = x_hidden - e_shared_back - i_shared_back
+        individual_info = x_hidden - e_shared_back - i_shared_back
         output_indi = individual_info
         output_indi = self.fc_indi(output_indi)
         output_indi = self.leaky_relu(output_indi)
