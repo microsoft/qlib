@@ -16,7 +16,6 @@ from ...log import get_module_logger
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import collections
 from .pytorch_utils import count_parameters
 from ...model.base import Model
 from ...data.dataset import DatasetH
@@ -171,7 +170,7 @@ class HIST(Model):
             vy = y - torch.mean(y)
             return torch.sum(vx * vy) / (torch.sqrt(torch.sum(vx**2)) * torch.sqrt(torch.sum(vy**2)))
 
-        if self.metric == "" or self.metric == "loss":
+        if self.metric == ("", "loss"):
             return -self.loss_fn(pred[mask], label[mask])
 
         raise ValueError("unknown metric `%s`" % self.metric)
@@ -448,8 +447,8 @@ class HISTModel(nn.Module):
         stock_to_concept_sum = stock_to_concept_sum + (
             torch.ones(stock_to_concept.shape[0], stock_to_concept.shape[1]).to(device)
         )
-        stock_to_concept = stock_to_concept / stock_to_concept_sum  # 股票到tag的权重
-        hidden = torch.t(stock_to_concept).mm(x_hidden)  #
+        stock_to_concept = stock_to_concept / stock_to_concept_sum
+        hidden = torch.t(stock_to_concept).mm(x_hidden)
 
         hidden = hidden[hidden.sum(1) != 0]
 
@@ -465,7 +464,7 @@ class HISTModel(nn.Module):
 
         # Hidden Concept Module
         i_shared_info = x_hidden - e_shared_back
-        hidden = i_shared_info  # 每个股票都有一个hidden的tag，所以有280个hidden tags。
+        hidden = i_shared_info
         i_stock_to_concept = self.cal_cos_similarity(i_shared_info, hidden)
         dim = i_stock_to_concept.shape[0]
         diag = i_stock_to_concept.diagonal(0)
