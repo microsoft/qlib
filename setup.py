@@ -78,6 +78,7 @@ REQUIRED = [
     "dill",
     "dataclasses;python_version<'3.7'",
     "filelock",
+    "jinja2<3.1.0"
 ]
 
 # Numpy include
