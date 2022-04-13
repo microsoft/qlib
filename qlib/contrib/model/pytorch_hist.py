@@ -88,6 +88,7 @@ class HIST(Model):
             "\nd_feat : {}"
             "\nhidden_size : {}"
             "\nnum_layers : {}"
+            "\ndropout : {}"
             "\nn_epochs : {}"
             "\nlr : {}"
             "\nmetric : {}"
@@ -95,12 +96,15 @@ class HIST(Model):
             "\noptimizer : {}"
             "\nloss_type : {}"
             "\nbase_model : {}"
+            "\nmodel_path : {}"
             "\nstock2concept : {}"
+            "\nstock_index : {}"
             "\nuse_GPU : {}"
             "\nseed : {}".format(
                 d_feat,
                 hidden_size,
                 num_layers,
+                dropout,
                 n_epochs,
                 lr,
                 metric,
@@ -110,6 +114,7 @@ class HIST(Model):
                 base_model,
                 model_path,
                 stock2concept,
+                stock_index,
                 GPU,
                 seed,
             )
