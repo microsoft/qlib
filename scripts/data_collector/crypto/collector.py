@@ -13,7 +13,7 @@ from dateutil.tz import tzlocal
 CUR_DIR = Path(__file__).resolve().parent
 sys.path.append(str(CUR_DIR.parent.parent))
 from data_collector.base import BaseCollector, BaseNormalize, BaseRun
-from data_collector.utils import get_cg_crypto_symbols, deco_retry
+from data_collector.utils import deco_retry
 
 from pycoingecko import CoinGeckoAPI
 from time import mktime
