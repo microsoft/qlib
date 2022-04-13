@@ -11,6 +11,7 @@
 Recent released features
 | Feature | Status |
 | --                      | ------    |
+| HIST and IGMTF models | :chart_with_upwards_trend: [Released](https://github.com/microsoft/qlib/pull/1040) on Apr 10, 2022 |
 | Qlib notebook tutorial | 📖 [Released](https://github.com/microsoft/qlib/pull/1037) on Apr 7, 2022 | 
 | Ibovespa index data | :rice: [Released](https://github.com/microsoft/qlib/pull/990) on Apr 6, 2022 |
 | Point-in-Time database | :hammer: [Released](https://github.com/microsoft/qlib/pull/343) on Mar 10, 2022 |
@@ -339,6 +340,8 @@ Here is a list of models built on `Qlib`.
 - [TCN based on pytorch (Shaojie Bai, et al. 2018)](examples/benchmarks/TCN/)
 - [ADARNN based on pytorch (YunTao Du, et al. 2021)](examples/benchmarks/ADARNN/)
 - [ADD based on pytorch (Hongshun Tang, et al.2020)](examples/benchmarks/ADD/)
+- [IGMTF based on pytorch (Wentao Xu, et al.2021)](examples/benchmarks/IGMTF/)
+- [HIST based on pytorch (Wentao Xu, et al.2021)](examples/benchmarks/HIST/)
 
 Your PR of new Quant models is highly welcomed.
 
