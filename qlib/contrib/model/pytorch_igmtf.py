@@ -397,8 +397,7 @@ class IGMTFModel(nn.Module):
         xy = x.mm(torch.t(y))
         x_norm = torch.sqrt(torch.sum(x * x, dim=1)).reshape(-1, 1)
         y_norm = torch.sqrt(torch.sum(y * y, dim=1)).reshape(-1, 1)
-        cos_similarity = xy / x_norm.mm(torch.t(y_norm))
-        cos_similarity[cos_similarity != cos_similarity] = 0
+        cos_similarity = xy / (x_norm.mm(torch.t(y_norm)) + 1e-6)
         return cos_similarity
 
     def sparse_dense_mul(self, s, d):

@@ -88,7 +88,6 @@ class HIST(Model):
             "\nd_feat : {}"
             "\nhidden_size : {}"
             "\nnum_layers : {}"
-            "\ndropout : {}"
             "\nn_epochs : {}"
             "\nlr : {}"
             "\nmetric : {}"
@@ -97,13 +96,11 @@ class HIST(Model):
             "\nloss_type : {}"
             "\nbase_model : {}"
             "\nstock2concept : {}"
-            "\nstock_index : {}"
             "\nuse_GPU : {}"
             "\nseed : {}".format(
                 d_feat,
                 hidden_size,
                 num_layers,
-                dropout,
                 n_epochs,
                 lr,
                 metric,
@@ -113,7 +110,6 @@ class HIST(Model):
                 base_model,
                 model_path,
                 stock2concept,
-                stock_index,
                 GPU,
                 seed,
             )
@@ -425,8 +421,7 @@ class HISTModel(nn.Module):
         xy = x.mm(torch.t(y))
         x_norm = torch.sqrt(torch.sum(x * x, dim=1)).reshape(-1, 1)
         y_norm = torch.sqrt(torch.sum(y * y, dim=1)).reshape(-1, 1)
-        cos_similarity = xy / x_norm.mm(torch.t(y_norm))
-        cos_similarity[cos_similarity != cos_similarity] = 0
+        cos_similarity = xy / (x_norm.mm(torch.t(y_norm)) + 1e-6)
         return cos_similarity
 
     def forward(self, x, concept_matrix):
