@@ -337,7 +337,6 @@ class IGMTF(Model):
         index = x_test.index
         self.igmtf_model.eval()
         x_values = x_test.values
-        sample_num = x_values.shape[0]
         preds = []
 
         daily_index, daily_count = self.get_daily_inter(x_test, shuffle=False)
