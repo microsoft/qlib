@@ -78,7 +78,7 @@ REQUIRED = [
     "dill",
     "dataclasses;python_version<'3.7'",
     "filelock",
-    "jinja2<3.1.0"
+    "jinja2<3.1.0"  # for passing the readthedocs workflow.
 ]
 
 # Numpy include
