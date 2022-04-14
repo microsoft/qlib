@@ -107,7 +107,7 @@ class CalendarProvider(abc.ABC):
         else:
             end_time = _calendar[-1]
         _, _, si, ei = self.locate_index(start_time, end_time, freq, future)
-        return _calendar[si : ei + 1]
+        return _calendar[si: ei + 1]
 
     def locate_index(self, start_time, end_time, freq, future=False):
         """Locate the start time index and end time index in a calendar under certain frequency.

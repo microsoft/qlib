@@ -8,7 +8,8 @@ from . import lazy_sort_index
 from .time import Freq, cal_sam_minute
 
 
-def resam_calendar(calendar_raw: np.ndarray, freq_raw: Union[str, Freq], freq_sam: Union[str, Freq]) -> np.ndarray:
+def resam_calendar(calendar_raw: np.ndarray, freq_raw: Union[str, Freq], freq_sam: Union[str, Freq],
+                   region: str) -> np.ndarray:
     """
     Resample the calendar with frequency freq_raw into the calendar with frequency freq_sam
     Assumption:
@@ -22,7 +23,8 @@ def resam_calendar(calendar_raw: np.ndarray, freq_raw: Union[str, Freq], freq_sa
         Frequency of the raw calendar
     freq_sam : str
         Sample frequency
-
+    region: str
+        Region, for example, "cn", "us"
     Returns
     -------
     np.ndarray
@@ -40,7 +42,7 @@ def resam_calendar(calendar_raw: np.ndarray, freq_raw: Union[str, Freq], freq_sa
         else:
             if freq_raw.count > freq_sam.count:
                 raise ValueError("raw freq must be higher than sampling freq")
-        _calendar_minute = np.unique(list(map(lambda x: cal_sam_minute(x, freq_sam.count), calendar_raw)))
+        _calendar_minute = np.unique(list(map(lambda x: cal_sam_minute(x, freq_sam.count, region), calendar_raw)))
         return _calendar_minute
 
     # else, convert the raw calendar into day calendar, and divide the whole calendar into several bars evenly
