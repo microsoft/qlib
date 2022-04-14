@@ -171,6 +171,7 @@ class DatasetH(Dataset):
         Parameters
         ----------
         slc : please refer to the docs of `prepare`
+                NOTE: it may not be an instance of slice. It may be a segment of `segments` from `def prepare`
         """
         if hasattr(self, "fetch_kwargs"):
             return self.handler.fetch(slc, **kwargs, **self.fetch_kwargs)
