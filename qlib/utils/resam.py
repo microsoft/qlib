@@ -8,8 +8,9 @@ from . import lazy_sort_index
 from .time import Freq, cal_sam_minute
 
 
-def resam_calendar(calendar_raw: np.ndarray, freq_raw: Union[str, Freq], freq_sam: Union[str, Freq],
-                   region: str) -> np.ndarray:
+def resam_calendar(
+    calendar_raw: np.ndarray, freq_raw: Union[str, Freq], freq_sam: Union[str, Freq], region: str
+) -> np.ndarray:
     """
     Resample the calendar with frequency freq_raw into the calendar with frequency freq_sam
     Assumption:

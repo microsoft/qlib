@@ -131,8 +131,9 @@ class FileCalendarStorage(FileStorageMixin, CalendarStorage):
         else:
             _calendar = self._read_calendar()
         if Freq(self._freq_file) != Freq(self.freq):
-            _calendar = resam_calendar(np.array(list(map(pd.Timestamp, _calendar))), self._freq_file, self.freq,
-                                       self.region)
+            _calendar = resam_calendar(
+                np.array(list(map(pd.Timestamp, _calendar))), self._freq_file, self.freq, self.region
+            )
         return _calendar
 
     def _get_storage_freq(self) -> List[str]:
