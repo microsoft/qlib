@@ -22,7 +22,8 @@ Data Preparation
 ----------------
 
 Qlib provides a crawler to help users to download financial data and then a converter to dump the data in Qlib format.
-Please follow `scripts/data_collector/pit/README.md` to download and convert data.
+Please follow `scripts/data_collector/pit/README.md <https://github.com/microsoft/qlib/tree/main/scripts/data_collector/pit/>`_ to download and convert data.
+Besides, you can find some additional usage examples there.
 
 
 File-based design for PIT data

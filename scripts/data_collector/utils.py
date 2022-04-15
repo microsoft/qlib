@@ -2,6 +2,7 @@
 #  Licensed under the MIT License.
 
 import re
+import importlib
 import time
 import bisect
 import pickle
@@ -19,6 +20,7 @@ from yahooquery import Ticker
 from tqdm import tqdm
 from functools import partial
 from concurrent.futures import ProcessPoolExecutor
+from bs4 import BeautifulSoup
 
 HS_SYMBOLS_URL = "http://app.finance.ifeng.com/hq/list.php?type=stock_a&class={s_type}"
 
@@ -34,6 +36,7 @@ CALENDAR_BENCH_URL_MAP = {
     # NOTE: Use the time series of ^GSPC(SP500) as the sequence of all stocks
     "US_ALL": "^GSPC",
     "IN_ALL": "^NSEI",
+    "BR_ALL": "^BVSP",
 }
 
 _BENCH_CALENDAR_LIST = None
@@ -41,6 +44,7 @@ _ALL_CALENDAR_LIST = None
 _HS_SYMBOLS = None
 _US_SYMBOLS = None
 _IN_SYMBOLS = None
+_BR_SYMBOLS = None
 _EN_FUND_SYMBOLS = None
 _CALENDAR_MAP = {}
 
@@ -69,7 +73,9 @@ def get_calendar_list(bench_code="CSI300") -> List[pd.Timestamp]:
 
     calendar = _CALENDAR_MAP.get(bench_code, None)
     if calendar is None:
-        if bench_code.startswith("US_") or bench_code.startswith("IN_"):
+        if bench_code.startswith("US_") or bench_code.startswith("IN_") or bench_code.startswith("BR_"):
+            print(Ticker(CALENDAR_BENCH_URL_MAP[bench_code]))
+            print(Ticker(CALENDAR_BENCH_URL_MAP[bench_code]).history(interval="1d", period="max"))
             df = Ticker(CALENDAR_BENCH_URL_MAP[bench_code]).history(interval="1d", period="max")
             calendar = df.index.get_level_values(level="date").map(pd.Timestamp).unique().tolist()
         else:
@@ -345,6 +351,57 @@ def get_in_stock_symbols(qlib_data_path: [str, Path] = None) -> list:
     return _IN_SYMBOLS
 
 
+def get_br_stock_symbols(qlib_data_path: [str, Path] = None) -> list:
+    """get Brazil(B3) stock symbols
+
+    Returns
+    -------
+        B3 stock symbols
+    """
+    global _BR_SYMBOLS
+
+    @deco_retry
+    def _get_ibovespa():
+        _symbols = []
+        url = "https://www.fundamentus.com.br/detalhes.php?papel="
+
+        # Request
+        agent = {"User-Agent": "Mozilla/5.0"}
+        page = requests.get(url, headers=agent)
+
+        # BeautifulSoup
+        soup = BeautifulSoup(page.content, "html.parser")
+        tbody = soup.find("tbody")
+
+        children = tbody.findChildren("a", recursive=True)
+        for child in children:
+            _symbols.append(str(child).split('"')[-1].split(">")[1].split("<")[0])
+
+        return _symbols
+
+    if _BR_SYMBOLS is None:
+        _all_symbols = _get_ibovespa()
+        if qlib_data_path is not None:
+            for _index in ["ibov"]:
+                ins_df = pd.read_csv(
+                    Path(qlib_data_path).joinpath(f"instruments/{_index}.txt"),
+                    sep="\t",
+                    names=["symbol", "start_date", "end_date"],
+                )
+                _all_symbols += ins_df["symbol"].unique().tolist()
+
+        def _format(s_):
+            s_ = s_.strip()
+            s_ = s_.strip("$")
+            s_ = s_.strip("*")
+            s_ = s_ + ".SA"
+            return s_
+
+        _BR_SYMBOLS = sorted(set(map(_format, _all_symbols)))
+
+    return _BR_SYMBOLS
+
+
 def get_en_fund_symbols(qlib_data_path: [str, Path] = None) -> list:
     """get en fund symbols
 
@@ -501,6 +558,50 @@ def generate_minutes_calendar_from_daily(
             )
 
     return pd.Index(sorted(set(np.hstack(res))))
+
+def get_instruments(
+    qlib_dir: str,
+    index_name: str,
+    method: str = "parse_instruments",
+    freq: str = "day",
+    request_retry: int = 5,
+    retry_sleep: int = 3,
+    market_index: str = "cn_index"
+):
+    """
+
+    Parameters
+    ----------
+    qlib_dir: str
+        qlib data dir, default "Path(__file__).parent/qlib_data"
+    index_name: str
+        index name, value from ["csi100", "csi300"]
+    method: str
+        method, value from ["parse_instruments", "save_new_companies"]
+    freq: str
+        freq, value from ["day", "1min"]
+    request_retry: int
+        request retry, by default 5
+    retry_sleep: int
+        request sleep, by default 3
+    market_index: str
+        Where the files to obtain the index are located, 
+        for example data_collector.cn_index.collector
+
+    Examples
+    -------
+        # parse instruments
+        $ python collector.py --index_name CSI300 --qlib_dir ~/.qlib/qlib_data/cn_data --method parse_instruments
+
+        # parse new companies
+        $ python collector.py --index_name CSI300 --qlib_dir ~/.qlib/qlib_data/cn_data --method save_new_companies
+
+    """
+    _cur_module = importlib.import_module("data_collector.{}.collector".format(market_index))
+    obj = getattr(_cur_module, f"{index_name.upper()}Index")(
+        qlib_dir=qlib_dir, index_name=index_name, freq=freq, request_retry=request_retry, retry_sleep=retry_sleep
+    )
+    getattr(obj, method)()
 
 
 if __name__ == "__main__":
