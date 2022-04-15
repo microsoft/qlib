@@ -31,4 +31,4 @@ jobs:
         pip install sphinx_rtd_theme readthedocs_sphinx_ext
         pip install --exists-action=w --no-cache-dir -r docs/requirements.txt
         sphinx-build -b html . build
-        
+        pwd
