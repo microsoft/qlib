@@ -24,13 +24,16 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
-
+    - name: Install Qlib with pip
+      run: |
+        pip install numpy==1.19.5 ruamel.yaml
+        pip install pyqlib --ignore-installed
+        
     - name: Make html with sphnix
       run:
         pip install -U sphinx
         pip install sphinx_rtd_theme readthedocs_sphinx_ext
-        pip install --exists-action=w --no-cache-dir -r docs/requirements.txt
-        pip install numpy
+        pip install --exists-action=w --no-cache-dir -r docs/requirements.txt 
         cd docs
         sphinx-build html . build
 
