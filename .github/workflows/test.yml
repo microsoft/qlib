@@ -27,7 +27,7 @@ jobs:
 
     - name: Make html with sphnix
       run:
-        apt-get install python3-sphinx
+        pip install -U sphinx
         pip install sphinx_rtd_theme readthedocs_sphinx_ext
         
         
