@@ -37,5 +37,6 @@ jobs:
         pip install --exists-action=w --no-cache-dir -r docs/requirements.txt 
         cd docs 
         sphinx-build -b html . build
+        cd ..
 
 
