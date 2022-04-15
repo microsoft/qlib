@@ -34,6 +34,12 @@ jobs:
         python -m pip install black --version
         python -m black qlib -l 120 --check --diff
     # Test Qlib installed with pip
+    - name: Check Qlib with flake8
+      run: |
+        pip install --upgrade pip
+        pip install flake8
+        cd ..
+        flake8 --ignore=E501,F541,E266,E402,W503,E731,E203 qlib
 
     - name: Install Qlib with pip
       run: |
@@ -47,3 +53,45 @@ jobs:
         pip install --exists-action=w --no-cache-dir -r docs/requirements.txt 
         cd docs 
         sphinx-build -b html . build
+        
+    - name: Install Lightgbm for MacOS
+      run: |
+        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Microsoft/qlib/main/.github/brew_install.sh)"
+        HOMEBREW_NO_AUTO_UPDATE=1 brew install lightgbm
+        # FIX MacOS error: Segmentation fault
+        # reference: https://github.com/microsoft/LightGBM/issues/4229
+        wget https://raw.githubusercontent.com/Homebrew/homebrew-core/fb8323f2b170bd4ae97e1bac9bf3e2983af3fdb0/Formula/libomp.rb
+        brew unlink libomp
+        brew install libomp.rb
+        
+    - name: Test data downloads
+      run: |
+        python scripts/get_data.py qlib_data --name qlib_data_simple --target_dir ~/.qlib/qlib_data/cn_data_simple --interval 1d --region cn
+        python -c "import os; userpath=os.path.expanduser('~'); os.rename(userpath + '/.qlib/qlib_data/cn_data_simple', userpath + '/.qlib/qlib_data/cn_data')"
+    - name: Test workflow by config (install from pip)
+      run: |
+        python qlib/workflow/cli.py examples/benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml
+        python -m pip uninstall -y pyqlib
+        
+    # Test Qlib installed from source
+    - name: Install Qlib from source
+      run: |
+        python -m pip install --upgrade cython
+        python -m pip install numpy jupyter jupyter_contrib_nbextensions
+        python -m pip install -U scipy scikit-learn # installing without this line will cause errors on GitHub Actions, while instsalling locally won't
+        pip install -e .
+        
+    - name: Install test dependencies
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install -U pyopenssl idna
+        python -m pip install black pytest
+        
+    - name: Unit tests with Pytest
+      run: |
+        cd tests
+        python -m pytest . --durations=0
+        
+    - name: Test workflow by config (install from source)
+      run: |
+          python qlib/workflow/cli.py examples/benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml
