@@ -6,10 +6,11 @@ from typing import Union, Callable
 
 from . import lazy_sort_index
 from .time import Freq, cal_sam_minute
+from ..config import C
 
 
 def resam_calendar(
-    calendar_raw: np.ndarray, freq_raw: Union[str, Freq], freq_sam: Union[str, Freq], region: str
+    calendar_raw: np.ndarray, freq_raw: Union[str, Freq], freq_sam: Union[str, Freq], region: str = None
 ) -> np.ndarray:
     """
     Resample the calendar with frequency freq_raw into the calendar with frequency freq_sam
@@ -31,6 +32,9 @@ def resam_calendar(
     np.ndarray
         The calendar with frequency freq_sam
     """
+    if region is None:
+        region = C["region"]
+
     freq_raw = Freq(freq_raw)
     freq_sam = Freq(freq_sam)
     if not len(calendar_raw):

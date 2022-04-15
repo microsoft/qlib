@@ -266,12 +266,12 @@ def time_to_day_index(time_obj: Union[str, datetime], region: str = REG_CN):
             return int((time_obj - CN_TIME[2]).total_seconds() / 60) + 120
         else:
             raise ValueError(f"{time_obj} is not the opening time of the {region} stock market")
-    elif region == "us":
+    elif region == REG_US:
         if US_TIME[0] <= time_obj < US_TIME[1]:
             return int((time_obj - US_TIME[0]).total_seconds() / 60)
         else:
             raise ValueError(f"{time_obj} is not the opening time of the {region} stock market")
-    elif region == "tw":
+    elif region == REG_TW:
         if TW_TIME[0] <= time_obj < TW_TIME[1]:
             return int((time_obj - TW_TIME[0]).total_seconds() / 60)
         else:
