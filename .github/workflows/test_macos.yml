@@ -45,6 +45,14 @@ jobs:
       run: |
           python -m pip install numpy==1.19.5
           python -m pip install pyqlib --ignore-installed ruamel.yaml numpy
+    - name: Make html with sphnix
+      run: |
+        pip install -U sphinx
+        pip install sphinx_rtd_theme readthedocs_sphinx_ext
+        pip install --exists-action=w --no-cache-dir -r docs/requirements.txt 
+        cd docs 
+        sphinx-build -b html . build
+        cd ..
     - name: Install Lightgbm for MacOS
       run: |
         /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Microsoft/qlib/main/.github/brew_install.sh)"
