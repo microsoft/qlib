@@ -31,7 +31,7 @@ jobs:
         pip install pyqlib --ignore-installed
         
     - name: Make html with sphnix
-      run:
+      run: |
         cd docs
         pip install -U sphinx
         pip install sphinx_rtd_theme readthedocs_sphinx_ext
