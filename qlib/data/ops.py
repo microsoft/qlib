@@ -320,7 +320,7 @@ class Power(NpPairOperator):
     Returns
     ----------
     Feature:
-        The bases in feature_left raised to the exponents in feature_right. 
+        The bases in feature_left raised to the exponents in feature_right
     """
 
     def __init__(self, feature_left, feature_right):
