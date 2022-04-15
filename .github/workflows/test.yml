@@ -30,4 +30,5 @@ jobs:
         pip install -U sphinx
         pip install sphinx_rtd_theme readthedocs_sphinx_ext
         pip install --exists-action=w --no-cache-dir -r docs/requirements.txt
+        pip install --upgrade --upgrade-strategy eager --no-cache-dir .
         
