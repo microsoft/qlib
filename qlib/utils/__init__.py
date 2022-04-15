@@ -743,8 +743,9 @@ def exists_qlib_data(qlib_dir):
     calendars_dir = qlib_dir.joinpath("calendars")
     instruments_dir = qlib_dir.joinpath("instruments")
     features_dir = qlib_dir.joinpath("features")
+    financial_dir = qlib_dir.joinpath("financial")
     # check dir
-    for _dir in [calendars_dir, instruments_dir, features_dir]:
+    for _dir in [calendars_dir, instruments_dir, features_dir, financial_dir]:
         if not (_dir.exists() and list(_dir.iterdir())):
             return False
     # check calendar bin
