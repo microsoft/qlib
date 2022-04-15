@@ -30,6 +30,7 @@ jobs:
         pip install -U sphinx
         pip install sphinx_rtd_theme readthedocs_sphinx_ext
         pip install --exists-action=w --no-cache-dir -r docs/requirements.txt
+        pip install numpy
         cd docs
-         sphinx-build html . build
+        sphinx-build html . build
 
