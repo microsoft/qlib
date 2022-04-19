@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
 from __future__ import annotations
 
 from typing import Dict, Optional, Literal
@@ -9,7 +12,6 @@ from gym.spaces import Space
 from qlib.rl.config import NETWORKS
 
 
-@NETWORKS.register_module()
 class Recurrent(nn.Module):
     def __init__(
         self,

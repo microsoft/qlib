@@ -3,13 +3,18 @@
 
 from __future__ import annoations
 
-from typing import Any, final, TYPE_CHECKING
+from typing import final, TYPE_CHECKING, TypeVar, Generic
 from weakref import ReferenceType
+
+from .simulator import StateType, ActType
 
 if TYPE_CHECKING:
     from .utils.env_wrapper import EnvWrapper
 
 import gym
+
+ObsType = TypeVar('ObsType')
+PolicyActType = TypeVar('PolicyActType')
 
 class Interpreter:
     """Interpreter is a media between states produced by simulators and states needed by RL policies.
@@ -32,7 +37,7 @@ class Interpreter:
         self.interpret(**kwargs)
 
 
-class StateInterpreter(Interpreter):
+class StateInterpreter(Generic[StateType, ObsType], Interpreter):
     """State Interpreter that interpret execution result of qlib executor into rl env state"""
 
     env: ReferenceType['EnvWrapper']
@@ -42,17 +47,17 @@ class StateInterpreter(Interpreter):
         raise NotImplementedError()
 
     @final  # no overridden
-    def __call__(self, simulator_state: Any) -> Any:
+    def __call__(self, simulator_state: StateType) -> ObsType:
         obs = self.interpret(simulator_state)
         if not self.validate(obs):
             raise ValueError(f'Observation space does not contain obs.\n  Space: {self.observation_space}\n  Sample: {obs}')
         return obs
 
-    def validate(self, obs: Any) -> bool:
+    def validate(self, obs: ObsType) -> bool:
         """Validate whether an observation belongs to the pre-defined observation space.""" 
         return self.observation_space.contains(obs)
 
-    def interpret(self, simulator_state: Any) -> Any:
+    def interpret(self, simulator_state: StateType) -> ObsType:
         """Interpret the state of simulator.
 
         Parameters
@@ -67,7 +72,7 @@ class StateInterpreter(Interpreter):
         raise NotImplementedError("interpret is not implemented!")
 
 
-class ActionInterpreter(Interpreter):
+class ActionInterpreter(Generic[StateType, PolicyActType, ActType], Interpreter):
     """Action Interpreter that interpret rl agent action into qlib orders"""
 
     env: ReferenceType['EnvWrapper']
@@ -77,17 +82,17 @@ class ActionInterpreter(Interpreter):
         raise NotImplementedError()
 
     @final  # no overridden
-    def __call__(self, simulator_state: Any, action: Any) -> Any:
+    def __call__(self, simulator_state: StateType, action: PolicyActType) -> ActType:
         if not self.validate(action):
             raise ValueError(f'Action space does not contain action.\n  Space: {self.action_space}\n  Sample: {action}')
         obs = self.interpret(simulator_state, action)
         return obs
 
-    def validate(self, action: Any) -> bool:
+    def validate(self, action: PolicyActType) -> bool:
         """Validate whether an action belongs to the pre-defined action space.""" 
         return self.action_space.contains(action)
 
-    def interpret(self, simulator_state: Any, action: Any) -> Any:
+    def interpret(self, simulator_state: StateType, action: PolicyActType) -> ActType:
         """Convert the policy action to simulator action.
 
         Parameters

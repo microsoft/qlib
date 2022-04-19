@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
 from pathlib import Path
 from typing import NamedTuple, Optional, List
 
@@ -8,7 +11,6 @@ from qlib.backtest import Order
 from qlib.rl.config import EPSILON
 from qlib.rl.simulator import Simulator
 from qlib.rl.tasks.data.pickle_styled import get_intraday_backtest_data, get_deal_price, DealPriceType
-
 
 
 class SingleAssetOrderExecutionState(NamedTuple):
@@ -23,7 +25,7 @@ class SingleAssetOrderExecutionState(NamedTuple):
     position_history: List[float]   # position history, the initial position included
 
 
-class SingleAssetOrderExecution(Simulator[Order, SingleAssetOrderExecutionState]):
+class SingleAssetOrderExecution(Simulator[Order, SingleAssetOrderExecutionState, float]):
     """Single-asset order execution (SAOE) simulator.
 
     Parameters
@@ -78,8 +80,8 @@ class SingleAssetOrderExecution(Simulator[Order, SingleAssetOrderExecutionState]
 
         Parameters
         ----------
-        amount : float
-            The amount you wish to deal. Not the final successfully dealed amount though.
+        amount
+            The amount you wish to deal. The simulator doesn't guarantee all the amount to be successfully dealt.
         """
 
         exec_vol = self._split_exec_vol(amount)

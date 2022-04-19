@@ -1,12 +1,8 @@
-from typing import Callable, Any, Iterator, Optional
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
 
 import numpy as np
 import gym
-
-from .simulator import Simulator
-from .interpreter import StateInterpreter, ActionInterpreter
-
-InitialStateType = Any
 
 
 def fill_invalid(obj):
@@ -52,41 +48,3 @@ def generate_nan_observation(obs_space: gym.Space) -> Any:
 
 def check_nan_observation(obs: Any) -> bool:
     return isinvalid(obs)
-
-
-class SingleEnvWrapper(gym.Env):
-    """Qlib-based RL environment.
-    This is a wrapper of componenets, including simulator, state-interpreter, action-interpreter, reward.
-    """
-
-    def __init__(
-        self,
-        simulator_fn: Callable[[InitialStateType], Simulator],
-        state_interpreter: StateInterpreter,
-        action_interpreter: ActionInterpreter,
-        initial_state_queue: Optional[Iterator[InitialStateType]],
-    ):
-        self.simulator_fn = simulator_fn
-        self.state_interpreter = state_interpreter
-        self.action_interpreter = action_interpreter
-        self.initial_state_queue = initial_state_queue
-
-    @property
-    def action_space(self):
-        return self.action_interpreter.action_space
-
-    @property
-    def observation_space(self):
-        return self.state_interpreter.observation_space
-
-    def reset(self, **kwargs):
-        try:
-            cur_order = next(self.initial_state_queue)
-            self.simulator = self.simulator_fn(cur_order)
-        except StopIteration:
-            self.dataloader = None
-            return generate_nan_observation(self.observation_space)
-
-
-class InitialStateDistributor:
-    ...

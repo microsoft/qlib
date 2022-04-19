@@ -1,4 +1,5 @@
-from __future__ import annoatations
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
 
 from pathlib import Path
 from typing import Optional
@@ -7,13 +8,30 @@ import gym
 import torch
 import torch.nn as nn
 from gym.spaces import Discrete
-from tianshou.data import Batch
+from tianshou.data import Batch, to_torch
 from tianshou.policy import PPOPolicy
+
+
+def use_cuda():
+    # FIXME: this should to manually set
+    return torch.cuda.is_available()
 
 
 def preprocess_obs(obs):
     return dict(to_torch(obs, device='cuda' if use_cuda() else 'cpu'))
 
+
+def load_weight(policy, path):
+    assert isinstance(policy, nn.Module), 'Policy has to be an nn.Module to load weight.'
+    loaded_weight = torch.load(path, map_location='cpu')
+    try:
+        policy.load_state_dict(loaded_weight)
+    except RuntimeError:
+        # try again by loading the converted weight
+        # https://github.com/thu-ml/tianshou/issues/468
+        for k in list(loaded_weight):
+            loaded_weight['_actor_critic.' + k] = loaded_weight[k]
+        policy.load_state_dict(loaded_weight)
 
 
 def chain_dedup(*iterables):
@@ -25,9 +43,8 @@ def chain_dedup(*iterables):
                 yield i
 
 
-
 class PPOActor(nn.Module):
-    def __init__(self, extractor: BaseNetwork, action_dim: int):
+    def __init__(self, extractor: nn.Module, action_dim: int):
         super().__init__()
         self.extractor = extractor
         self.layer_out = nn.Sequential(
@@ -42,7 +59,7 @@ class PPOActor(nn.Module):
 
 
 class PPOCritic(nn.Module):
-    def __init__(self, extractor: BaseNetwork):
+    def __init__(self, extractor: nn.Module):
         super().__init__()
         self.extractor = extractor
         self.value_out = nn.Linear(extractor.output_dim, 1)
@@ -52,9 +69,11 @@ class PPOCritic(nn.Module):
         return self.value_out(feature).squeeze(dim=-1)
 
 
-@POLICIES.register_module()
 class PPO(PPOPolicy):
     def __init__(self,
+                 network: nn.Module,
+                 obs_space: gym.Space,
+                 action_space: gym.Space,
                  lr: float,
                  weight_decay: float = 0.,
                  discount_factor: float = 1.,
@@ -66,11 +85,7 @@ class PPO(PPOPolicy):
                  gae_lambda: float = 1.,
                  max_batchsize: int = 256,
                  deterministic_eval: bool = True,
-                 network: nn.Module | None = None,
-                 obs_space: Optional[gym.Space] = None,
-                 action_space: Optional[gym.Space] = None,
                  weight_file: Optional[Path] = None):
-        assert network is not None and obs_space is not None
         assert isinstance(action_space, Discrete)
         actor = PPOActor(network, action_space.n)
         critic = PPOCritic(network)
@@ -85,6 +100,7 @@ class PPO(PPOPolicy):
                          value_clip=value_clip,
                          vf_coef=vf_coef,
                          gae_lambda=gae_lambda,
-                         max_batchsize=max_batchsize)
+                         max_batchsize=max_batchsize,
+                         deterministic_eval=deterministic_eval)
         if weight_file is not None:
             load_weight(self, weight_file)

@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
 """
 This is to support finite env in vector env.
 See https://github.com/thu-ml/tianshou/issues/322 for details.

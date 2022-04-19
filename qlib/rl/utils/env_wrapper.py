@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
 import weakref
 from typing import Callable, Any, Iterator, Optional, NamedTuple, List
 
@@ -5,9 +8,9 @@ import numpy as np
 import gym
 
 from qlib.rl.aux_info import AuxiliaryInfoCollector
-from qlib.rl.simulator import Simulator, InitialStateType
-from qlib.rl.interpreter import StateInterpreter, ActionInterpreter
-from qlib.rl.reward import BaseReward
+from qlib.rl.simulator import Simulator, InitialStateType, StateType, ActType
+from qlib.rl.interpreter import StateInterpreter, ActionInterpreter, PolicyActType, ObsType
+from qlib.rl.reward import Reward
 
 from .finite_env import generate_nan_observation
 
@@ -30,7 +33,7 @@ class EnvWrapperStatus(NamedTuple):
     reward_history: Optional[List[np.ndarray]]
 
 
-class EnvWrapper(gym.Env):
+class EnvWrapper(gym.Env[ObsType, PolicyActType]):
     """Qlib-based RL environment.
     This is a wrapper of components, including simulator, state-interpreter, action-interpreter, reward.
 
@@ -48,10 +51,10 @@ class EnvWrapper(gym.Env):
     def __init__(
         self,
         simulator_fn: Callable[[InitialStateType], Simulator],
-        state_interpreter: StateInterpreter,
-        action_interpreter: ActionInterpreter,
+        state_interpreter: StateInterpreter[StateType, ObsType],
+        action_interpreter: ActionInterpreter[StateType, PolicyActType, ActType],
         seed_iterator: Optional[Iterator[InitialStateType]],
-        reward_fn: Optional[BaseReward] = None,
+        reward_fn: Optional[Reward] = None,
         aux_info_collector: Optional[AuxiliaryInfoCollector] = None
     ):
         # assign weak reference to wrapper

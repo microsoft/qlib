@@ -1,4 +1,10 @@
-"""This module contains utilities to read financial data from pickle-styled files."""
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
+"""This module contains utilities to read financial data from pickle-styled files.
+
+This is the format used in `OPD paper <https://seqml.github.io/opd/>`__. NOT the standard data format in qlib.
+"""
 
 from typing import Literal, Tuple
 from pathlib import Path
@@ -9,12 +15,12 @@ import pandas as pd
 from qlib.backtest.decision import OrderDir
 
 
+DealPriceType = Literal['bid_or_ask', 'bid_or_ask_fill', 'close']
 """Several ad-hoc deal price.
 ``bid_or_ask``: If sell, use column ``$bid0``; if buy, use column ``$ask0``.
 ``bid_or_ask_fill``: Based on ``bid_or_ask``. If price is 0, use another price (``$ask0`` / ``$bid0``) instead.
 ``close``: Use close price (``$close0``) as deal price.
 """ 
-DealPriceType = Literal['bid_or_ask', 'bid_or_ask_fill', 'close']
 
 
 def _infer_processed_data_column_names(shape):

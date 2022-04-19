@@ -22,14 +22,12 @@ from pathlib import Path
 from typing import Callable, Optional, Union
 from typing import TYPE_CHECKING
 
-from utilsd.config import configclass, RegsitryConfig
-
 from qlib.constant import REG_CN, REG_US
 
 if TYPE_CHECKING:
     from qlib.utils.time import Freq
 
-__all__ = ['Config', 'QlibConfig', 'C', 'RegistryConfig', 'configclass']
+__all__ = ['Config', 'QlibConfig', 'C']
 
 
 class Config:
