@@ -34,10 +34,25 @@ jobs:
         python -m black qlib -l 120 --check --diff
     # Test Qlib installed with pip
 
+    - name: Check Qlib with flake8
+        run: |
+          pip install --upgrade pip
+          pip install flake8
+          cd ..
+          flake8 --ignore=E501,F541,E266,E402,W503,E731,E203 qlib
+
     - name: Install Qlib with pip
       run: |
           python -m pip install numpy==1.19.5
           python -m pip install pyqlib --ignore-installed ruamel.yaml numpy
+    - name: Make html with sphnix
+      run: |
+        pip install -U sphinx
+        pip install sphinx_rtd_theme readthedocs_sphinx_ext
+        pip install --exists-action=w --no-cache-dir -r docs/requirements.txt 
+        cd docs 
+        sphinx-build -b html . build
+        cd ..
     - name: Install Lightgbm for MacOS
       run: |
         /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Microsoft/qlib/main/.github/brew_install.sh)"
@@ -49,7 +64,8 @@ jobs:
         brew install libomp.rb
     - name: Test data downloads
       run: |
-        python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/cn_data --interval 1d --region cn
+        python scripts/get_data.py qlib_data --name qlib_data_simple --target_dir ~/.qlib/qlib_data/cn_data_simple --interval 1d --region cn
+        python -c "import os; userpath=os.path.expanduser('~'); os.rename(userpath + '/.qlib/qlib_data/cn_data_simple', userpath + '/.qlib/qlib_data/cn_data')"
     - name: Test workflow by config (install from pip)
       run: |
         python qlib/workflow/cli.py examples/benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml

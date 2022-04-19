@@ -24,11 +24,8 @@ BaseStrategy
 
 Qlib provides a base class ``qlib.strategy.base.BaseStrategy``. All strategy classes need to inherit the base class and implement its interface.
 
-- `get_risk_degree`
-    Return the proportion of your total value you will use in investment. Dynamically risk_degree will result in Market timing.
-
-- `generate_order_list`
-    Return the order list.
+- `generate_trade_decision`
+    generate_trade_decision is a key interface that generates trade decisions in each trading bar.
     The frequency to call this method depends on the executor frequency("time_per_step"="day" by default). But the trading frequency can be decided by users' implementation.
     For example, if the user wants to trading in weekly while the `time_per_step` is "day" in executor, user can return non-empty TradeDecision weekly(otherwise return empty like `this <https://github.com/microsoft/qlib/blob/main/qlib/contrib/strategy/signal_strategy.py#L132>`_ ).
 
@@ -69,18 +66,24 @@ TopkDropoutStrategy
 - Adopt the ``Topk-Drop`` algorithm to calculate the target amount of each stock
 
     .. note::
-        ``Topk-Drop`` algorithm：
+        There are two parameters for the ``Topk-Drop`` algorithm：
 
         - `Topk`: The number of stocks held
         - `Drop`: The number of stocks sold on each trading day
 
-        Currently, the number of held stocks is `Topk`.
-        On each trading day, the `Drop` number of held stocks with the worst `prediction score` will be sold, and the same number of unheld stocks with the best `prediction score` will be bought.
-
+        In general, the number of stocks currently held is `Topk`, with the exception of being zero at the beginning period of trading.
+        For each trading day, let $d$ be the number of the instruments currently held and with a rank $\gt K$ when ranked by the prediction scores from high to low.
+        Then `d` number of stocks currently held with the worst `prediction score` will be sold, and the same number of unheld stocks with the best `prediction score` will be bought.
+        
+        In general, $d=$`Drop`, especially when the pool of the candidate instruments is large, $K$ is large, and `Drop` is small.
+         
+        In most cases, ``TopkDrop`` algorithm sells and buys `Drop` stocks every trading day, which yields a turnover rate of 2$\times$`Drop`/$K$.
+         
+        The following images illustrate a typical scenario.
         .. image:: ../_static/img/topk_drop.png
             :alt: Topk-Drop
 
-        ``TopkDrop`` algorithm sells `Drop` stocks every trading day, which guarantees a fixed turnover rate.
+       
 
 - Generate the order list from the target amount
 
@@ -164,12 +167,9 @@ Running backtest
             start_time="2017-01-01", end_time="2020-08-01", strategy=strategy_obj
         )
         analysis = dict()
-        analysis["excess_return_without_cost"] = risk_analysis(
-            report_normal["return"] - report_normal["bench"], freq=analysis_freq
-        )
-        analysis["excess_return_with_cost"] = risk_analysis(
-            report_normal["return"] - report_normal["bench"] - report_normal["cost"], freq=analysis_freq
-        )
+        # default frequency will be daily (i.e. "day")
+        analysis["excess_return_without_cost"] = risk_analysis(report_normal["return"] - report_normal["bench"])
+        analysis["excess_return_with_cost"] = risk_analysis(report_normal["return"] - report_normal["bench"] - report_normal["cost"])
 
         analysis_df = pd.concat(analysis)  # type: pd.DataFrame
         pprint(analysis_df)

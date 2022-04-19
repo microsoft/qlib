@@ -12,7 +12,7 @@ import queue
 import bisect
 import numpy as np
 import pandas as pd
-from typing import List, Union
+from typing import List, Union, Optional
 
 # For supporting multiprocessing in outer code, joblib is used
 from joblib import delayed
@@ -34,9 +34,11 @@ from ..utils import (
     code_to_fname,
     set_log_with_config,
     time_to_slc_point,
+    read_period_data,
+    get_period_list,
 )
 from ..utils.paral import ParallelExt
-from .ops import Operators  # pylint: disable=W0611
+from .ops import Operators  # pylint: disable=W0611  # noqa: F401
 
 
 class ProviderBackendMixin:
@@ -331,6 +333,51 @@ class FeatureProvider(abc.ABC):
         raise NotImplementedError("Subclass of FeatureProvider must implement `feature` method")
 
 
+class PITProvider(abc.ABC):
+    @abc.abstractmethod
+    def period_feature(
+        self,
+        instrument,
+        field,
+        start_index: int,
+        end_index: int,
+        cur_time: pd.Timestamp,
+        period: Optional[int] = None,
+    ) -> pd.Series:
+        """
+        get the historical periods data series between `start_index` and `end_index`
+
+        Parameters
+        ----------
+        start_index: int
+            start_index is a relative index to the latest period to cur_time
+
+        end_index: int
+            end_index is a relative index to the latest period to cur_time
+            in most cases, the start_index and end_index will be a non-positive values
+            For example, start_index == -3 end_index == 0 and current period index is cur_idx,
+            then the data between [start_index + cur_idx, end_index + cur_idx] will be retrieved.
+
+        period: int
+            This is used for query specific period.
+            The period is represented with int in Qlib. (e.g. 202001 may represent the first quarter in 2020)
+            NOTE: `period`  will override `start_index` and `end_index`
+
+        Returns
+        -------
+        pd.Series
+            The index will be integers to indicate the periods of the data
+            An typical examples will be
+            TODO
+
+        Raises
+        ------
+        FileNotFoundError
+            This exception will be raised if the queried data do not exist.
+        """
+        raise NotImplementedError(f"Please implement the `period_feature` method")
+
+
 class ExpressionProvider(abc.ABC):
     """Expression provider class
 
@@ -583,7 +630,7 @@ class DatasetProvider(abc.ABC):
         for _processor in inst_processors:
             if _processor:
                 _processor_obj = init_instance_by_config(_processor, accept_types=InstProcessor)
-                data = _processor_obj(data)
+                data = _processor_obj(data, instrument=inst)
         return data
 
 
@@ -692,6 +739,95 @@ class LocalFeatureProvider(FeatureProvider, ProviderBackendMixin):
         field = str(field)[1:]
         instrument = code_to_fname(instrument)
         return self.backend_obj(instrument=instrument, field=field, freq=freq)[start_index : end_index + 1]
+
+
+class LocalPITProvider(PITProvider):
+    # TODO: Add PIT backend file storage
+    # NOTE: This class is not multi-threading-safe!!!!
+
+    def period_feature(self, instrument, field, start_index, end_index, cur_time, period=None):
+        if not isinstance(cur_time, pd.Timestamp):
+            raise ValueError(
+                f"Expected pd.Timestamp for `cur_time`, got '{cur_time}'. Advices: you can't query PIT data directly(e.g. '$$roewa_q'), you must use `P` operator to convert data to each day (e.g. 'P($$roewa_q)')"
+            )
+
+        assert end_index <= 0  # PIT don't support querying future data
+
+        DATA_RECORDS = [
+            ("date", C.pit_record_type["date"]),
+            ("period", C.pit_record_type["period"]),
+            ("value", C.pit_record_type["value"]),
+            ("_next", C.pit_record_type["index"]),
+        ]
+        VALUE_DTYPE = C.pit_record_type["value"]
+
+        field = str(field).lower()[2:]
+        instrument = code_to_fname(instrument)
+
+        # {For acceleration
+        # start_index, end_index, cur_index = kwargs["info"]
+        # if cur_index == start_index:
+        #     if not hasattr(self, "all_fields"):
+        #         self.all_fields = []
+        #     self.all_fields.append(field)
+        #     if not hasattr(self, "period_index"):
+        #         self.period_index = {}
+        #     if field not in self.period_index:
+        #         self.period_index[field] = {}
+        # For acceleration}
+
+        if not field.endswith("_q") and not field.endswith("_a"):
+            raise ValueError("period field must ends with '_q' or '_a'")
+        quarterly = field.endswith("_q")
+        index_path = C.dpm.get_data_uri() / "financial" / instrument.lower() / f"{field}.index"
+        data_path = C.dpm.get_data_uri() / "financial" / instrument.lower() / f"{field}.data"
+        if not (index_path.exists() and data_path.exists()):
+            raise FileNotFoundError("No file is found. Raise exception and  ")
+        # NOTE: The most significant performance loss is here.
+        # Does the acceleration that makes the program complicated really matters?
+        # - It makes parameters of the interface complicate
+        # - It does not performance in the optimal way (places all the pieces together, we may achieve higher performance)
+        #    - If we design it carefully, we can go through for only once to get the historical evolution of the data.
+        # So I decide to deprecated previous implementation and keep the logic of the program simple
+        # Instead, I'll add a cache for the index file.
+        data = np.fromfile(data_path, dtype=DATA_RECORDS)
+
+        # find all revision periods before `cur_time`
+        cur_time_int = int(cur_time.year) * 10000 + int(cur_time.month) * 100 + int(cur_time.day)
+        loc = np.searchsorted(data["date"], cur_time_int, side="right")
+        if loc <= 0:
+            return pd.Series()
+        last_period = data["period"][:loc].max()  # return the latest quarter
+        first_period = data["period"][:loc].min()
+        period_list = get_period_list(first_period, last_period, quarterly)
+        if period is not None:
+            # NOTE: `period` has higher priority than `start_index` & `end_index`
+            if period not in period_list:
+                return pd.Series()
+            else:
+                period_list = [period]
+        else:
+            period_list = period_list[max(0, len(period_list) + start_index - 1) : len(period_list) + end_index]
+        value = np.full((len(period_list),), np.nan, dtype=VALUE_DTYPE)
+        for i, p in enumerate(period_list):
+            # last_period_index = self.period_index[field].get(period)  # For acceleration
+            value[i], now_period_index = read_period_data(
+                index_path, data_path, p, cur_time_int, quarterly  # , last_period_index  # For acceleration
+            )
+            # self.period_index[field].update({period: now_period_index})  # For acceleration
+        # NOTE: the index is period_list; So it may result in unexpected values(e.g. nan)
+        # when calculation between different features and only part of its financial indicator is published
+        series = pd.Series(value, index=period_list, dtype=VALUE_DTYPE)
+
+        # {For acceleration
+        # if cur_index == end_index:
+        #     self.all_fields.remove(field)
+        #     if not len(self.all_fields):
+        #         del self.all_fields
+        #         del self.period_index
+        # For acceleration}
+
+        return series
 
 
 class LocalExpressionProvider(ExpressionProvider):
@@ -1003,6 +1139,8 @@ class ClientDatasetProvider(DatasetProvider):
 
 class BaseProvider:
     """Local provider class
+    It is a set of interface that allow users to access data.
+    Because PITD is not exposed publicly to users, so it is not included in the interface.
 
     To keep compatible with old qlib provider.
     """
@@ -1126,6 +1264,7 @@ if sys.version_info >= (3, 9):
     CalendarProviderWrapper = Annotated[CalendarProvider, Wrapper]
     InstrumentProviderWrapper = Annotated[InstrumentProvider, Wrapper]
     FeatureProviderWrapper = Annotated[FeatureProvider, Wrapper]
+    PITProviderWrapper = Annotated[PITProvider, Wrapper]
     ExpressionProviderWrapper = Annotated[ExpressionProvider, Wrapper]
     DatasetProviderWrapper = Annotated[DatasetProvider, Wrapper]
     BaseProviderWrapper = Annotated[BaseProvider, Wrapper]
@@ -1133,6 +1272,7 @@ else:
     CalendarProviderWrapper = CalendarProvider
     InstrumentProviderWrapper = InstrumentProvider
     FeatureProviderWrapper = FeatureProvider
+    PITProviderWrapper = PITProvider
     ExpressionProviderWrapper = ExpressionProvider
     DatasetProviderWrapper = DatasetProvider
     BaseProviderWrapper = BaseProvider
@@ -1140,6 +1280,7 @@ else:
 Cal: CalendarProviderWrapper = Wrapper()
 Inst: InstrumentProviderWrapper = Wrapper()
 FeatureD: FeatureProviderWrapper = Wrapper()
+PITD: PITProviderWrapper = Wrapper()
 ExpressionD: ExpressionProviderWrapper = Wrapper()
 DatasetD: DatasetProviderWrapper = Wrapper()
 D: BaseProviderWrapper = Wrapper()
@@ -1164,6 +1305,11 @@ def register_all_wrappers(C):
         feature_provider = init_instance_by_config(C.feature_provider, module)
         register_wrapper(FeatureD, feature_provider, "qlib.data")
         logger.debug(f"registering FeatureD {C.feature_provider}")
+
+    if getattr(C, "pit_provider", None) is not None:
+        pit_provider = init_instance_by_config(C.pit_provider, module)
+        register_wrapper(PITD, pit_provider, "qlib.data")
+        logger.debug(f"registering PITD {C.pit_provider}")
 
     if getattr(C, "expression_provider", None) is not None:
         # This provider is unnecessary in client provider

@@ -1,0 +1,12 @@
+repos:
+-   repo: https://github.com/psf/black
+    rev: 22.1.0
+    hooks:
+    -   id: black
+        args: ["qlib", "-l 120"]
+
+-   repo: https://github.com/PyCQA/flake8
+    rev: 4.0.1
+    hooks:
+        - id: flake8
+          args: ["--ignore=E501,F541,E266,E402,W503,E731,E203"]

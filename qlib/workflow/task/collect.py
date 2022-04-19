@@ -10,6 +10,7 @@ from qlib.log import TimeInspector
 from typing import Callable, Dict, Iterable, List
 from qlib.log import get_module_logger
 from qlib.utils.serial import Serializable
+from qlib.utils.exceptions import LoadObjectError
 from qlib.workflow import R
 from qlib.workflow.exp import Experiment
 from qlib.workflow.recorder import Recorder
@@ -228,9 +229,10 @@ class RecorderCollector(Collector):
                 else:
                     try:
                         artifact = rec.load_object(self.artifacts_path[key])
-                    except Exception as e:
+                    except LoadObjectError as e:
                         if only_exist:
                             # only collect existing artifact
+                            logger.warning(f"Fail to load {self.artifacts_path[key]} and it is ignored.")
                             continue
                         raise e
                 # give user some warning if the values are overridden

@@ -13,12 +13,46 @@ from dateutil.tz import tzlocal
 CUR_DIR = Path(__file__).resolve().parent
 sys.path.append(str(CUR_DIR.parent.parent))
 from data_collector.base import BaseCollector, BaseNormalize, BaseRun
-from data_collector.utils import get_cg_crypto_symbols
+from data_collector.utils import deco_retry
 
 from pycoingecko import CoinGeckoAPI
 from time import mktime
 from datetime import datetime as dt
 import time
+
+
+_CG_CRYPTO_SYMBOLS = None
+
+
+def get_cg_crypto_symbols(qlib_data_path: [str, Path] = None) -> list:
+    """get crypto symbols in coingecko
+
+    Returns
+    -------
+        crypto symbols in given exchanges list of coingecko
+    """
+    global _CG_CRYPTO_SYMBOLS
+
+    @deco_retry
+    def _get_coingecko():
+        try:
+            cg = CoinGeckoAPI()
+            resp = pd.DataFrame(cg.get_coins_markets(vs_currency="usd"))
+        except:
+            raise ValueError("request error")
+        try:
+            _symbols = resp["id"].to_list()
+        except Exception as e:
+            logger.warning(f"request error: {e}")
+            raise
+        return _symbols
+
+    if _CG_CRYPTO_SYMBOLS is None:
+        _all_symbols = _get_coingecko()
+
+        _CG_CRYPTO_SYMBOLS = sorted(set(_all_symbols))
+
+    return _CG_CRYPTO_SYMBOLS
 
 
 class CryptoCollector(BaseCollector):
@@ -226,7 +260,6 @@ class Run(BaseRun):
         delay=0,
         start=None,
         end=None,
-        interval="1d",
         check_data_length: int = None,
         limit_nums=None,
     ):
@@ -255,7 +288,7 @@ class Run(BaseRun):
             $ python collector.py download_data --source_dir ~/.qlib/crypto_data/source/1d --start 2015-01-01 --end 2021-11-30 --delay 1 --interval 1d
         """
 
-        super(Run, self).download_data(max_collector_count, delay, start, end, interval, check_data_length, limit_nums)
+        super(Run, self).download_data(max_collector_count, delay, start, end, check_data_length, limit_nums)
 
     def normalize_data(self, date_field_name: str = "date", symbol_field_name: str = "symbol"):
         """normalize data

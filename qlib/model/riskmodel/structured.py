@@ -2,7 +2,6 @@
 # Licensed under the MIT License.
 
 import numpy as np
-import pandas as pd
 from typing import Union
 from sklearn.decomposition import PCA, FactorAnalysis
 

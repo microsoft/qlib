@@ -96,11 +96,12 @@ class RecordTemp:
         """
         try:
             return self.recorder.load_object(self.get_path(name))
-        except LoadObjectError:
+        except LoadObjectError as e:
             if parents:
                 if self.depend_cls is not None:
                     with class_casting(self, self.depend_cls):
                         return self.load(name, parents=True)
+            raise e
 
     def list(self):
         """
@@ -145,7 +146,7 @@ class RecordTemp:
 
             for item in self.list():
                 ps = self.get_path(item).split("/")
-                dirn, fn = "/".join(ps[:-1]), ps[-1]
+                dirn = "/".join(ps[:-1])
                 if self.get_path(item) not in _get_arts(dirn):
                     raise FileNotFoundError
         if parents:
@@ -359,26 +360,7 @@ class PortAnaRecord(ACRecordTemp):
     def __init__(
         self,
         recorder,
-        config: dict = {  # Default config for daily trading
-            "strategy": {
-                "class": "TopkDropoutStrategy",
-                "module_path": "qlib.contrib.strategy",
-                "kwargs": {"signal": "<PRED>", "topk": 50, "n_drop": 5},
-            },
-            "backtest": {
-                "start_time": None,
-                "end_time": None,
-                "account": 100000000,
-                "benchmark": "SH000300",
-                "exchange_kwargs": {
-                    "limit_threshold": 0.095,
-                    "deal_price": "close",
-                    "open_cost": 0.0005,
-                    "close_cost": 0.0015,
-                    "min_cost": 5,
-                },
-            },
-        },
+        config=None,
         risk_analysis_freq: Union[List, str] = None,
         indicator_analysis_freq: Union[List, str] = None,
         indicator_analysis_method=None,
@@ -401,6 +383,27 @@ class PortAnaRecord(ACRecordTemp):
         """
         super().__init__(recorder=recorder, skip_existing=skip_existing, **kwargs)
 
+        if config is None:
+            config = {  # Default config for daily trading
+                "strategy": {
+                    "class": "TopkDropoutStrategy",
+                    "module_path": "qlib.contrib.strategy",
+                    "kwargs": {"signal": "<PRED>", "topk": 50, "n_drop": 5},
+                },
+                "backtest": {
+                    "start_time": None,
+                    "end_time": None,
+                    "account": 100000000,
+                    "benchmark": "SH000300",
+                    "exchange_kwargs": {
+                        "limit_threshold": 0.095,
+                        "deal_price": "close",
+                        "open_cost": 0.0005,
+                        "close_cost": 0.0015,
+                        "min_cost": 5,
+                    },
+                },
+            }
         # We only deepcopy_basic_type because
         # - We don't want to affect the config outside.
         # - We don't want to deepcopy complex object to avoid overhead

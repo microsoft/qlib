@@ -62,7 +62,7 @@ def sum_by_index(data_list: Union["SingleData"], new_index: list, fill_value=0) 
     new_index : list
         the new_index of new SingleData.
     fill_value : float
-        fill the missing values ​​or replace np.NaN.
+        fill the missing values or replace np.NaN.
 
     Returns
     -------

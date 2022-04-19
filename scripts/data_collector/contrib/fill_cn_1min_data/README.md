@@ -15,7 +15,7 @@ python fill_1min_using_1d.py --data_1min_dir ~/.qlib/csv_data/cn_data_1min --qli
 
 ## Parameters
 
-- ata_1min_dir: csv data
+- data_1min_dir: csv data
 - qlib_data_1d_dir: qlib data directory
 - max_workers: `ThreadPoolExecutor(max_workers=max_workers)`, by default *16*
 - date_field_name: date field name, by default *date*

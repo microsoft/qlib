@@ -323,7 +323,7 @@ class BaseRun(abc.ABC):
             freq, value from [1min, 1d], default 1d
         """
         if source_dir is None:
-            source_dir = Path(self.default_base_dir).joinpath("_source")
+            source_dir = Path(self.default_base_dir).joinpath("source")
         self.source_dir = Path(source_dir).expanduser().resolve()
         self.source_dir.mkdir(parents=True, exist_ok=True)
 
@@ -339,17 +339,17 @@ class BaseRun(abc.ABC):
     @property
     @abc.abstractmethod
     def collector_class_name(self):
-        raise NotImplementedError("rewrite normalize_symbol")
+        raise NotImplementedError("rewrite collector_class_name")
 
     @property
     @abc.abstractmethod
     def normalize_class_name(self):
-        raise NotImplementedError("rewrite normalize_symbol")
+        raise NotImplementedError("rewrite normalize_class_name")
 
     @property
     @abc.abstractmethod
     def default_base_dir(self) -> [Path, str]:
-        raise NotImplementedError("rewrite normalize_symbol")
+        raise NotImplementedError("rewrite default_base_dir")
 
     def download_data(
         self,
@@ -357,9 +357,9 @@ class BaseRun(abc.ABC):
         delay=0,
         start=None,
         end=None,
-        interval="1d",
         check_data_length: int = None,
         limit_nums=None,
+        **kwargs,
     ):
         """download data from Internet
 
@@ -369,8 +369,6 @@ class BaseRun(abc.ABC):
             default 2
         delay: float
             time.sleep(delay), default 0
-        interval: str
-            freq, value from [1min, 1d], default 1d
         start: str
             start datetime, default "2000-01-01"
         end: str
@@ -396,9 +394,10 @@ class BaseRun(abc.ABC):
             delay=delay,
             start=start,
             end=end,
-            interval=interval,
+            interval=self.interval,
             check_data_length=check_data_length,
             limit_nums=limit_nums,
+            **kwargs,
         ).collector_data()
 
     def normalize_data(self, date_field_name: str = "date", symbol_field_name: str = "symbol", **kwargs):

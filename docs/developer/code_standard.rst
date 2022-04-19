@@ -17,7 +17,7 @@ When you submit a PR request, you can check whether your code passes the CI test
 1. Qlib will check the code format with black. The PR will raise error if your code does not align to the standard of Qlib(e.g. a common error is the mixed use of space and tab).
  You can fix the bug by inputing the following code in the command line.
 
-.. code-block:: python
+.. code-block:: bash
 
     pip install black
     python -m black . -l 120
@@ -30,3 +30,19 @@ When you submit a PR request, you can check whether your code passes the CI test
 
     return -ICLoss()(pred, target, index)  # pylint: disable=E1130
 
+
+3. Qlib will check your code style flake8. The checking command is implemented in [github action workflow](https://github.com/microsoft/qlib/blob/0e8b94a552f1c457cfa6cd2c1bb3b87ebb3fb279/.github/workflows/test.yml#L73).
+ You can fix the bug by inputing the following code in the command line.
+
+.. code-block:: bash
+
+    flake8 --ignore E501,F541,E402,F401,W503,E741,E266,E203,E302,E731,E262,F523,F821,F811,F841,E713,E265,W291,E712,E722,W293 qlib
+
+
+4. Qlib has integrated pre-commit, which will make it easier for developers to format their code.
+ Just run the following two commands, and the code will be automatically formatted using black and flake8 when the git commit command is executed.
+
+.. code-block:: bash
+
+    pip install -e .[dev]
+    pre-commit install

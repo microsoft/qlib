@@ -360,7 +360,9 @@ class Position(BasePosition):
                 # check if to delete
                 if self.position[stock_id]["amount"] < -1e-5:
                     raise ValueError(
-                        "only have {} {}, require {}".format(self.position[stock_id]["amount"], stock_id, trade_amount)
+                        "only have {} {}, require {}".format(
+                            self.position[stock_id]["amount"] + trade_amount, stock_id, trade_amount
+                        )
                     )
 
         new_cash = trade_val - cost

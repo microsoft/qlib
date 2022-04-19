@@ -95,7 +95,7 @@ class TestHandlerStorage(TestAutoData):
                 fetch_stocks = [instruments[_index] for _index in random_indexs]
                 data_handler.fetch(selector=(fetch_stocks, slice(fetch_start_time, fetch_end_time)), level=None)
 
-        with TimeInspector.logt("random fetch with HasingStock Storage"):
+        with TimeInspector.logt("random fetch with HashingStock Storage"):
 
             # single stock
             for i in range(100):

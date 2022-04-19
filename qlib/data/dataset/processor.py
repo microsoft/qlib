@@ -318,6 +318,20 @@ class CSRankNorm(Processor):
     The operations across different stocks are often called Cross Sectional Operation.
 
     For example, CSRankNorm is an operation that grouping the data by each day and rank `across` all the stocks in each day.
+
+    Explanation about 3.46 & 0.5
+
+    .. code-block:: python
+
+        import numpy as np
+        import pandas as pd
+        x = np.random.random(10000)  # for any variable
+        x_rank = pd.Series(x).rank(pct=True)  # if it is converted to rank, it will be a uniform distributed
+        x_rank_norm = (x_rank - x_rank.mean()) / x_rank.std()  # Normally, we will normalize it to make it like normal distribution
+
+        x_rank.mean()   # accounts for 0.5
+        1 / x_rank.std()  # accounts for 3.46
+
     """
 
     def __init__(self, fields_group=None):
@@ -349,6 +363,6 @@ class HashStockFormat(Processor):
     """Process the storage of from df into hasing stock format"""
 
     def __call__(self, df: pd.DataFrame):
-        from .storage import HasingStockStorage  # pylint: disable=C0415
+        from .storage import HashingStockStorage  # pylint: disable=C0415
 
-        return HasingStockStorage.from_df(df)
+        return HashingStockStorage.from_df(df)

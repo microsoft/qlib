@@ -171,6 +171,7 @@ class DatasetH(Dataset):
         Parameters
         ----------
         slc : please refer to the docs of `prepare`
+                NOTE: it may not be an instance of slice. It may be a segment of `segments` from `def prepare`
         """
         if hasattr(self, "fetch_kwargs"):
             return self.handler.fetch(slc, **kwargs, **self.fetch_kwargs)
@@ -199,6 +200,9 @@ class DatasetH(Dataset):
 
         col_set : str
             The col_set will be passed to self.handler when fetching data.
+            TODO: make it automatic:
+                - select DK_I for test data
+                - select DK_L for training data.
         data_key : str
             The data to fetch:  DK_*
             Default is DK_I, which indicate fetching data for **inference**.
@@ -609,3 +613,6 @@ class TSDatasetH(DatasetH):
 
         tsds = TSDataSampler(data=data, start=start, end=end, step_len=self.step_len, dtype=dtype, flt_data=flt_data)
         return tsds
+
+
+__all__ = ["Optional"]
