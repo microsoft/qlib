@@ -27,8 +27,6 @@ from qlib.constant import REG_CN, REG_US, REG_TW
 if TYPE_CHECKING:
     from qlib.utils.time import Freq
 
-__all__ = ['Config', 'QlibConfig', 'C']
-
 
 class Config:
     def __init__(self, default_conf):

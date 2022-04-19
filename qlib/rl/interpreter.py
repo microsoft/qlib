@@ -24,6 +24,8 @@ class Interpreter:
     2. From policy action to action accepted by simulator, see :class:`ActionInterpreter`.
 
     Inherit one of the two sub-classes to define your own interpreter.
+
+    Interpreters are recommmended to be stateless. # FIXME
     """
 
     def interpret(self, **kwargs):
@@ -34,7 +36,7 @@ class Interpreter:
         """Use ``intepreter(to_be_interpret)`` to interpret a message.
         It calls the ``interpret`` method.
         """
-        self.interpret(**kwargs)
+        return self.interpret(**kwargs)
 
 
 class StateInterpreter(Generic[StateType, ObsType], Interpreter):

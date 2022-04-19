@@ -8,9 +8,11 @@ import numpy as np
 import pandas as pd
 
 from qlib.backtest import Order
-from qlib.rl.config import EPSILON
+from qlib.constant import EPS
 from qlib.rl.simulator import Simulator
-from qlib.rl.tasks.data.pickle_styled import get_intraday_backtest_data, get_deal_price, DealPriceType
+from qlib.rl.tasks.data.pickle_styled import (
+    IntradayBacktestData, get_intraday_backtest_data, DealPriceType
+)
 
 
 class SingleAssetOrderExecutionState(NamedTuple):
@@ -18,11 +20,17 @@ class SingleAssetOrderExecutionState(NamedTuple):
     Base class for episodic states.
     """
 
-    order: Order                    # the order we are dealing with
-    cur_time: pd.Timestamp          # current time, e.g., 9:30
-    elapsed_ticks: int              # current time index, e.g., in 0-239
-    position: float                 # remaining volume to execute
-    position_history: List[float]   # position history, the initial position included
+    order: Order                        # the order we are dealing with
+    cur_time: pd.Timestamp              # current time, e.g., 9:30
+    elapsed_ticks: int                  # current time index, e.g., in 0-239
+    position: float                     # remaining volume to execute
+    position_history: List[float]       # position history, the initial position included
+
+    # Backtest data is included in the state.
+    # Actually, only the time index of this data is needed, at this moment.
+    # I include the full data so that algorithms (e.g., VWAP) that relies on the raw data can be implemented.
+
+    backtest_data: IntradayBacktestData # backtest data. interpreter should be careful not to leak feature
 
 
 class SingleAssetOrderExecution(Simulator[Order, SingleAssetOrderExecutionState, float]):
@@ -34,7 +42,7 @@ class SingleAssetOrderExecution(Simulator[Order, SingleAssetOrderExecutionState,
         The seed to start an SAOE simulator is an order.
     time_per_step
         Elapsed time per step. Unit is fixed to minute for first iteration.
-    backtest_data_dir
+    data_dir
         Path to load backtest data
     vol_threshold
         Maximum execution volume (divided by market execution volume).
@@ -50,7 +58,7 @@ class SingleAssetOrderExecution(Simulator[Order, SingleAssetOrderExecutionState,
     exec_history: Optional[np.ndarray]
     position_history: List[float]
 
-    def __init__(self, order: Order, backtest_data_dir: Path,
+    def __init__(self, order: Order, data_dir: Path,
                  time_per_step: str = '30min',
                  deal_price_type: DealPriceType = 'close',
                  vol_threshold: Optional[float] = None) -> None:
@@ -59,11 +67,12 @@ class SingleAssetOrderExecution(Simulator[Order, SingleAssetOrderExecutionState,
         self.deal_price_type = deal_price_type
         self.vol_threshold = vol_threshold
         self.cur_time = order.start_time
-        self.backtest_data_dir = backtest_data_dir
+        self.data_dir = data_dir
         self.backtest_data = get_intraday_backtest_data(
-            self.backtest_data_dir,
+            self.data_dir,
             order.stock_id,
-            pd.Timestamp(order.start_time.date)
+            pd.Timestamp(order.start_time.date),
+            self.deal_price_type
         )
 
         self.position = order.amount
@@ -87,7 +96,7 @@ class SingleAssetOrderExecution(Simulator[Order, SingleAssetOrderExecutionState,
         exec_vol = self._split_exec_vol(amount)
 
         self.position -= exec_vol.sum()
-        if self.position < -EPSILON and not (exec_vol < -EPSILON).any():
+        if self.position < -EPS and not (exec_vol < -EPS).any():
             raise ValueError(f'Execution volume is invalid: {exec_vol} (position = {self.position})')
         self.position_history.append(self.position)
         self.cur_time = self._next_time()
@@ -108,7 +117,7 @@ class SingleAssetOrderExecution(Simulator[Order, SingleAssetOrderExecutionState,
         )
 
     def done(self) -> bool:
-        return self.position < EPSILON or self.cur_time >= self.end_time
+        return self.position < EPS or self.cur_time >= self.end_time
 
     def _next_time(self) -> pd.Timestamp:
         """The "current time" (``cur_time``) for next step."""
@@ -129,7 +138,8 @@ class SingleAssetOrderExecution(Simulator[Order, SingleAssetOrderExecutionState,
         # get the backtest data for next interval
         backtest_interval = self.backtest_data.loc[self.cur_time:next_time - ONE_SEC]
         self.market_vol = backtest_interval['$volume0'].to_numpy()
-        self.market_price = get_deal_price(backtest_interval, self.deal_price_type, self.order).to_numpy()
+        self.market_price = self.backtest_data.get_deal_price(self.order.direction) \
+            .loc[self.cur_time:next_time - ONE_SEC].to_numpy()
 
         # split the volume equally into each minute
         exec_vol = np.repeat(exec_vol_sum / len(backtest_interval), len(backtest_interval))

@@ -3,19 +3,24 @@
 
 from __future__ import annotations
 
-from typing import Any
+from pathlib import Path
+from typing import Any, TypedDict, cast
 
 import numpy as np
+import pandas as pd
 from gym import spaces
 
 from qlib.constant import EPS
 from qlib.rl.interpreter import StateInterpreter, ActionInterpreter
+from qlib.rl.tasks.data import pickle_styled
 
 from .simulator_simple import SingleAssetOrderExecutionState
 
 
-def _n32(value: int | float | np.ndarray | dict) -> np.ndarray | dict:
+def canonicalize(value: int | float | np.ndarray | pd.DataFrame | dict) -> np.ndarray | dict:
     """To 32-bit numeric types. Recursively."""
+    if isinstance(value, pd.DataFrame):
+        return value.to_numpy()
     if isinstance(value, (float, np.floating)) or (
         isinstance(value, np.ndarray) and value.dtype.kind == 'f'
     ):
@@ -25,31 +30,54 @@ def _n32(value: int | float | np.ndarray | dict) -> np.ndarray | dict:
     ):
         return np.array(value, dtype=np.int32)
     elif isinstance(value, dict):
-        return {k: _n32(v) for k, v in value.items()}
+        return {k: canonicalize(v) for k, v in value.items()}
     else:
         return value
 
+class FullHistoryObsType(TypedDict):
+    data_processed: np.ndarray
+    data_processed_prev: np.ndarray
+    acquiring: bool
+    cur_time: int
+    cur_step: int
+    num_step: int
+    target: float
+    position: float
+    position_history: np.ndarray
 
-class FullHistoryStateInterpreter(StateInterpreter):
 
-    def __init__(self, max_step: int, total_time: int, data_dim: int) -> None:
+class FullHistoryStateInterpreter(StateInterpreter[FullHistoryObsType]):
+    """The observation of all the history, including today (until this moment), and yesterday.
+
+    Parameters
+    ----------
+    data_dir
+        Path to load data after feature engineering.
+    """
+
+    def __init__(self, data_dir: Path, max_step: int, total_time: int, data_dim: int) -> None:
+        self.data_dir = data_dir
         self.max_step = max_step
         self.total_time = total_time
         self.data_dim = data_dim
-        self._feature_loader = []
 
-    def interpret(self, state: SingleAssetOrderExecutionState) -> Any:
-        return _n32({
-            'data_processed': self._mask_future_info(state.get_processed_data(), state.cur_time),
-            'data_processed_prev': state.get_processed_data('yesterday'),
+    def interpret(self, state: SingleAssetOrderExecutionState) -> FullHistoryObsType:
+        processed = pickle_styled.get_intraday_processed_data(
+            self.data_dir, state.order.stock_id, pd.Timestamp(state.order.start_time.date),
+            self.data_dim, state.backtest_data.get_time_index()
+        )
+
+        return cast(FullHistoryObsType, canonicalize({
+            'data_processed': self._mask_future_info(processed.today, state.cur_time),
+            'data_processed_prev': processed.yesterday,
             'acquiring': state.order.direction == state.order.BUY,
-            'cur_time': min(state.cur_time, state.end_time - 1),
+            'cur_time': state.cur_time,
             'cur_step': self.env().status.cur_step,
             'num_step': self.max_step,
             'target': state.order.amount,
             'position': state.position,
             'position_history': np.array(state.position_history),
-        })
+        }))
 
     @property
     def observation_space(self):
@@ -67,9 +95,9 @@ class FullHistoryStateInterpreter(StateInterpreter):
         return spaces.Dict(space)
 
     @staticmethod
-    def _mask_future_info(arr, current):
-        arr = arr.copy()
-        arr[current:] = 0.
+    def _mask_future_info(arr: pd.DataFrame, current: pd.Timestamp):
+        arr = arr.copy(deep=True)
+        arr.loc[current:] = 0.  # mask out data after this moment (inclusive)
         return arr
 
 
