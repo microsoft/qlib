@@ -79,6 +79,7 @@ class FileCalendarStorage(FileStorageMixin, CalendarStorage):
         self.future = future
         self._provider_uri = None if provider_uri is None else C.DataPathManager.format_provider_uri(provider_uri)
         self.enable_read_cache = True  # TODO: make it configurable
+        self.region = C["region"]
 
     @property
     def file_name(self) -> str:
@@ -130,7 +131,9 @@ class FileCalendarStorage(FileStorageMixin, CalendarStorage):
         else:
             _calendar = self._read_calendar()
         if Freq(self._freq_file) != Freq(self.freq):
-            _calendar = resam_calendar(np.array(list(map(pd.Timestamp, _calendar))), self._freq_file, self.freq)
+            _calendar = resam_calendar(
+                np.array(list(map(pd.Timestamp, _calendar))), self._freq_file, self.freq, self.region
+            )
         return _calendar
 
     def _get_storage_freq(self) -> List[str]:
