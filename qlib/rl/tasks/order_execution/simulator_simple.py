@@ -15,7 +15,7 @@ from qlib.rl.tasks.data.pickle_styled import (
 )
 
 
-class SingleAssetOrderExecutionState(NamedTuple):
+class SAOEState(NamedTuple):
     """
     Base class for episodic states.
     """
@@ -33,7 +33,7 @@ class SingleAssetOrderExecutionState(NamedTuple):
     backtest_data: IntradayBacktestData # backtest data. interpreter should be careful not to leak feature
 
 
-class SingleAssetOrderExecution(Simulator[Order, SingleAssetOrderExecutionState, float]):
+class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
     """Single-asset order execution (SAOE) simulator.
 
     Parameters
@@ -108,8 +108,8 @@ class SingleAssetOrderExecution(Simulator[Order, SingleAssetOrderExecutionState,
 
         raise NotImplementedError()
 
-    def get_state(self) -> SingleAssetOrderExecutionState:
-        return SingleAssetOrderExecutionState(
+    def get_state(self) -> SAOEState:
+        return SAOEState(
             order=self.order,
             cur_time=self.cur_time,
             elapsed_ticks=len(self.exec_history),

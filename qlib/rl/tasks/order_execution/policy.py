@@ -9,39 +9,16 @@ import torch
 import torch.nn as nn
 from gym.spaces import Discrete
 from tianshou.data import Batch, to_torch
-from tianshou.policy import PPOPolicy
+from tianshou.policy import PPOPolicy, BasePolicy
 
 
-def use_cuda():
-    # FIXME: this should to manually set
-    return torch.cuda.is_available()
+# baselines #
+
+class TWAP(BasePolicy):
+    ...
 
 
-def preprocess_obs(obs):
-    return dict(to_torch(obs, device='cuda' if use_cuda() else 'cpu'))
-
-
-def load_weight(policy, path):
-    assert isinstance(policy, nn.Module), 'Policy has to be an nn.Module to load weight.'
-    loaded_weight = torch.load(path, map_location='cpu')
-    try:
-        policy.load_state_dict(loaded_weight)
-    except RuntimeError:
-        # try again by loading the converted weight
-        # https://github.com/thu-ml/tianshou/issues/468
-        for k in list(loaded_weight):
-            loaded_weight['_actor_critic.' + k] = loaded_weight[k]
-        policy.load_state_dict(loaded_weight)
-
-
-def chain_dedup(*iterables):
-    seen = set()
-    for iterable in iterables:
-        for i in iterable:
-            if i not in seen:
-                seen.add(i)
-                yield i
-
+# ppo #
 
 class PPOActor(nn.Module):
     def __init__(self, extractor: nn.Module, action_dim: int):
@@ -53,7 +30,7 @@ class PPOActor(nn.Module):
         )
 
     def forward(self, obs, state=None, info={}):
-        feature = self.extractor(preprocess_obs(obs))
+        feature = self.extractor(to_torch(obs, device=auto_device(self)))
         out = self.layer_out(feature)
         return out, state
 
@@ -65,7 +42,7 @@ class PPOCritic(nn.Module):
         self.value_out = nn.Linear(extractor.output_dim, 1)
 
     def forward(self, obs, state=None, info={}):
-        feature = self.extractor(preprocess_obs(obs))
+        feature = self.extractor(to_torch(obs, device=auto_device(self)))
         return self.value_out(feature).squeeze(dim=-1)
 
 
@@ -104,3 +81,33 @@ class PPO(PPOPolicy):
                          deterministic_eval=deterministic_eval)
         if weight_file is not None:
             load_weight(self, weight_file)
+
+
+# utilities: these shouold be put in a separate (common) file. #
+
+def auto_device(module: nn.Module) -> torch.device:
+    for param in module.parameters():
+        return param.device
+    return torch.device('cpu')  # fallback to cpu
+
+
+def load_weight(policy, path):
+    assert isinstance(policy, nn.Module), 'Policy has to be an nn.Module to load weight.'
+    loaded_weight = torch.load(path, map_location='cpu')
+    try:
+        policy.load_state_dict(loaded_weight)
+    except RuntimeError:
+        # try again by loading the converted weight
+        # https://github.com/thu-ml/tianshou/issues/468
+        for k in list(loaded_weight):
+            loaded_weight['_actor_critic.' + k] = loaded_weight[k]
+        policy.load_state_dict(loaded_weight)
+
+
+def chain_dedup(*iterables):
+    seen = set()
+    for iterable in iterables:
+        for i in iterable:
+            if i not in seen:
+                seen.add(i)
+                yield i

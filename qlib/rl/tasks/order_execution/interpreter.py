@@ -14,7 +14,7 @@ from qlib.constant import EPS
 from qlib.rl.interpreter import StateInterpreter, ActionInterpreter
 from qlib.rl.tasks.data import pickle_styled
 
-from .simulator_simple import SingleAssetOrderExecutionState
+from .simulator_simple import SAOEState
 
 
 def canonicalize(value: int | float | np.ndarray | pd.DataFrame | dict) -> np.ndarray | dict:
@@ -34,19 +34,20 @@ def canonicalize(value: int | float | np.ndarray | pd.DataFrame | dict) -> np.nd
     else:
         return value
 
-class FullHistoryObsType(TypedDict):
-    data_processed: np.ndarray
-    data_processed_prev: np.ndarray
-    acquiring: bool
-    cur_time: int
-    cur_step: int
-    num_step: int
-    target: float
-    position: float
-    position_history: np.ndarray
+
+class FullHistoryObs(TypedDict):
+    data_processed: Any
+    data_processed_prev: Any
+    acquiring: Any
+    cur_time: Any
+    cur_step: Any
+    num_step: Any
+    target: Any
+    position: Any
+    position_history: Any
 
 
-class FullHistoryStateInterpreter(StateInterpreter[FullHistoryObsType]):
+class FullHistoryStateInterpreter(StateInterpreter[SAOEState, FullHistoryObs]):
     """The observation of all the history, including today (until this moment), and yesterday.
 
     Parameters
@@ -61,13 +62,13 @@ class FullHistoryStateInterpreter(StateInterpreter[FullHistoryObsType]):
         self.total_time = total_time
         self.data_dim = data_dim
 
-    def interpret(self, state: SingleAssetOrderExecutionState) -> FullHistoryObsType:
+    def interpret(self, state: SAOEState) -> FullHistoryObs:
         processed = pickle_styled.get_intraday_processed_data(
             self.data_dir, state.order.stock_id, pd.Timestamp(state.order.start_time.date),
             self.data_dim, state.backtest_data.get_time_index()
         )
 
-        return cast(FullHistoryObsType, canonicalize({
+        return cast(FullHistoryObs, canonicalize({
             'data_processed': self._mask_future_info(processed.today, state.cur_time),
             'data_processed_prev': processed.yesterday,
             'acquiring': state.order.direction == state.order.BUY,
@@ -101,7 +102,19 @@ class FullHistoryStateInterpreter(StateInterpreter[FullHistoryObsType]):
         return arr
 
 
-class CurrentStepObservation(StateInterpreter):
+class CurrentStateObs(TypedDict):
+    data_processed: np.ndarray
+    data_processed_prev: np.ndarray
+    acquiring: bool
+    cur_time: int
+    cur_step: int
+    num_step: int
+    target: float
+    position: float
+    position_history: np.ndarray
+
+
+class CurrentStepStateInterpreter(StateInterpreter[SAOEState, CurrentStateObs]):
     def __init__(self, max_step: int):
         self.max_step = max_step
 
@@ -116,7 +129,7 @@ class CurrentStepObservation(StateInterpreter):
         }
         return spaces.Dict(space)
 
-    def interpret(self, state: SingleAssetOrderExecutionState) -> Any:
+    def interpret(self, state: SAOEState) -> Any:
         assert self.env().status.cur_step <= self.max_step
         obs = {
             'acquiring': state.order.direction == state.order.BUY,
@@ -128,7 +141,7 @@ class CurrentStepObservation(StateInterpreter):
         return obs
 
 
-class CategoricalAction(ActionInterpreter):
+class CategoricalActionInterpreter(ActionInterpreter[SAOEState, int, float]):
     def __init__(self, values: int | list[float]):
         if isinstance(values, int):
             values = [i / values for i in range(0, values + 1)]
@@ -138,16 +151,16 @@ class CategoricalAction(ActionInterpreter):
     def action_space(self):
         return spaces.Discrete(len(self.action_values))
 
-    def to_volume(self, state: SingleAssetOrderExecutionState, action: int) -> float:
+    def to_volume(self, state: SAOEState, action: int) -> float:
         assert 0 <= action < len(self.action_values)
         return min(state.position, state.order.amount * self.action_values[action])
 
 
-class TwapRemainingAdjustmentWOSplit(ActionInterpreter):
+class TwapRemainingAdjustmentActionInterpreter(ActionInterpreter[SAOEState, float, float]):
     @property
     def action_space(self):
         return spaces.Box(0, np.inf, shape=(), dtype=np.float32)
 
-    def to_volume(self, state: SingleAssetOrderExecutionState, action: float) -> float:
+    def to_volume(self, state: SAOEState, action: float) -> float:
         twap_volume = state.order.position / (state.order.estimated_total_steps - self.env().status.cur_step)
         return min(state.position, twap_volume * action)
