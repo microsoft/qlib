@@ -14,6 +14,7 @@ from qlib.log import get_module_logger
 
 _logger = get_module_logger(__name__)
 
+
 class DataQueue:
     """Main process (producer) produces data and stores them in a queue.
     Sub-processes (consumers) can retrieve the data-points from the queue.
@@ -24,6 +25,8 @@ class DataQueue:
 
     Parameters
     ----------
+    dataset
+        The dataset to read data from. Must implement ``__len__`` and ``__getitem__``.
     repeat
         Iterate over the data-points for how many times. Use ``-1`` to iterate forever.
     shuffle
@@ -38,14 +41,14 @@ class DataQueue:
 
     Examples
     --------
-    >>> data_queue = DataQueue(my_dataset)
+    >>> data_queue = DataQueue(my_dataset).activate()
 
     In worker:
     >>> for data in data_queue:
     ...     print(data)
     """
 
-    def __init__(self, dataset: Sized[Any],
+    def __init__(self, dataset: Sized,
                  repeat: int = 1,
                  producer_num_workers: int = 0,
                  queue_maxsize: int = 0,
@@ -54,9 +57,6 @@ class DataQueue:
             queue_maxsize = os.cpu_count()
             _logger.info(f'Automatically set data queue maxsize to {queue_maxsize} to avoid overwhelming.')
 
-        if autoactivate:
-            self.activate()
-
         self.dataset: Sized[Any] = dataset
         self.repeat: int = repeat
         self.producer_num_workers: int = producer_num_workers
@@ -64,6 +64,9 @@ class DataQueue:
         self._activated: bool = False
         self._queue = multiprocessing.Queue(maxsize=queue_maxsize)
         self._done = multiprocessing.Value('i', 0)
+
+        if autoactivate:
+            self.activate()
 
     def cleanup(self):
         with self._done.get_lock():
@@ -110,6 +113,7 @@ class DataQueue:
         thread = threading.Thread(target=self._producer, daemon=True)
         thread.start()
         self._activated = True
+        return self
 
     def __del__(self):
         _logger.debug(f'__del__ of {__name__}.DataQueue')
@@ -119,7 +123,7 @@ class DataQueue:
         if not self._activated:
             raise ValueError('Need to call activate() to launch a daemon worker '
                              'to produce data into data queue before using it.')
-        self._consumer()
+        return self._consumer()
 
     def _consumer(self):
         while True:
@@ -140,9 +144,9 @@ class DataQueue:
         repeat = 10 ** 18 if self.repeat == -1 else self.repeat
         for _rep in range(repeat):
             for data in dataloader:
-                if self._queue.done():
+                if self._done.value:
                     # Already done.
                     return
                 self._queue.put(data)
             _logger.debug(f'Dataloader loop done. Repeat {_rep}.')
-        self._queue.mark_as_done()
+        self.mark_as_done()

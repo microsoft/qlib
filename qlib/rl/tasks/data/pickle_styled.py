@@ -10,6 +10,8 @@ We also encourage users to use ``get_xxx_yyy`` rather than ``XxxYyy`` (although 
 because ``get_xxx_yyy`` is cache-optimized.
 """
 
+from __future__ import annotations
+
 from functools import lru_cache
 from typing import Literal, List
 from pathlib import Path
@@ -65,21 +67,28 @@ def _read_pickle(filename_without_suffix: Path) -> pd.DataFrame:
 class IntradayBacktestData:
     """Raw market data that is often used in backtesting (thus called BacktestData)."""
 
-    def __init__(self, data_dir: Path, stock_id: str, date: pd.Timestamp, deal_price: DealPriceType):
+    def __init__(self, data_dir: Path, stock_id: str, date: pd.Timestamp,
+                 deal_price: DealPriceType = 'close', order_dir: int | None = None):
         backtest = _read_pickle(data_dir / stock_id)
         backtest = backtest.loc[pd.IndexSlice[stock_id, :, date]].droplevel([0, 2])
 
         self.data: pd.DataFrame = backtest
         self.deal_price_type: DealPriceType = deal_price
+        self.order_dir: int | None = order_dir
 
     def __repr__(self):
         return f'{self.__class__.__name__}({self.data})'
 
-    def get_deal_price(self, order_dir: int) -> pd.Series:
+    def __len__(self):
+        return len(self.data)
+
+    def get_deal_price(self) -> pd.Series:
         """Return a pandas series that can be indexed with time.
         See :attribute:`DealPriceType` for details."""
         if self.deal_price_type in ('bid_or_ask', 'bid_or_ask_fill'):
-            if order_dir == OrderDir.SELL:
+            if self.order_dir is None:
+                raise ValueError('Order direction cannot be none when deal_price_type is not close.')
+            if self.order_dir == OrderDir.SELL:
                 col = '$bid0'
             else:               # BUY
                 col = '$ask0'
@@ -88,7 +97,7 @@ class IntradayBacktestData:
         price = self.data[col]
 
         if self.deal_price_type == 'bid_or_ask_fill':
-            if order_dir == OrderDir.SELL:
+            if self.order_dir == OrderDir.SELL:
                 fill_col = '$ask0'
             else:
                 fill_col = '$bid0'
@@ -156,9 +165,9 @@ class IntradayProcessedData:
 
 @lru_cache(maxsize=100)  # 100 * 50K = 5MB
 def get_intraday_backtest_data(
-    data_dir: Path, stock_id: str, date: pd.Timestamp, deal_price: DealPriceType
+    data_dir: Path, stock_id: str, date: pd.Timestamp, deal_price: DealPriceType = 'close', order_dir: int | None = None
 ) -> IntradayBacktestData:
-    return IntradayBacktestData(data_dir, stock_id, date, deal_price)
+    return IntradayBacktestData(data_dir, stock_id, date, deal_price, order_dir)
 
 
 @cachetools.cached(

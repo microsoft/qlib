@@ -39,7 +39,7 @@ class FullHistoryObs(TypedDict):
     data_processed: Any
     data_processed_prev: Any
     acquiring: Any
-    cur_time: Any
+    cur_tick: Any
     cur_step: Any
     num_step: Any
     target: Any
@@ -54,25 +54,32 @@ class FullHistoryStateInterpreter(StateInterpreter[SAOEState, FullHistoryObs]):
     ----------
     data_dir
         Path to load data after feature engineering.
+    max_step
+        Total number of steps (an upper-bound estimation). For example, 390min / 30min-per-step = 13 steps.
+    data_ticks
+        Equal to the total number of records. For example, in SAOE per minute,
+        the total ticks is the length of day in minutes.
+    data_dim
+        Number of dimensions in data.
     """
 
-    def __init__(self, data_dir: Path, max_step: int, total_time: int, data_dim: int) -> None:
+    def __init__(self, data_dir: Path, max_step: int, data_ticks: int, data_dim: int) -> None:
         self.data_dir = data_dir
         self.max_step = max_step
-        self.total_time = total_time
+        self.data_ticks = data_ticks
         self.data_dim = data_dim
 
     def interpret(self, state: SAOEState) -> FullHistoryObs:
         processed = pickle_styled.get_intraday_processed_data(
             self.data_dir, state.order.stock_id, pd.Timestamp(state.order.start_time.date),
-            self.data_dim, state.backtest_data.get_time_index()
+            self.data_dim, state.ticks_index
         )
 
         return cast(FullHistoryObs, canonicalize({
             'data_processed': self._mask_future_info(processed.today, state.cur_time),
             'data_processed_prev': processed.yesterday,
             'acquiring': state.order.direction == state.order.BUY,
-            'cur_time': state.cur_time,
+            'cur_tick': state.elapsed_ticks,
             'cur_step': self.env().status.cur_step,
             'num_step': self.max_step,
             'target': state.order.amount,
@@ -83,11 +90,12 @@ class FullHistoryStateInterpreter(StateInterpreter[SAOEState, FullHistoryObs]):
     @property
     def observation_space(self):
         space = {
-            'data_processed': spaces.Box(-np.inf, np.inf, shape=(self.total_time, self.data_dim)),
-            'data_processed_prev': spaces.Box(-np.inf, np.inf, shape=(self.total_time, self.data_dim)),
+            'data_processed': spaces.Box(-np.inf, np.inf, shape=(self.data_ticks, self.data_dim)),
+            'data_processed_prev': spaces.Box(-np.inf, np.inf, shape=(self.data_ticks, self.data_dim)),
             'acquiring': spaces.Discrete(2),
-            "cur_time": spaces.Box(0, self.total_time - 1, shape=(), dtype=np.int32),
+            'cur_tick': spaces.Box(0, self.data_ticks - 1, shape=(), dtype=np.int32),
             'cur_step': spaces.Box(0, self.max_step - 1, shape=(), dtype=np.int32),
+            # TODO: support arbitrary length index
             'num_step': spaces.Box(self.max_step, self.max_step, shape=(), dtype=np.int32),
             'target': spaces.Box(-EPS, np.inf, shape=()),
             'position': spaces.Box(-EPS, np.inf, shape=()),
@@ -106,7 +114,7 @@ class CurrentStateObs(TypedDict):
     data_processed: np.ndarray
     data_processed_prev: np.ndarray
     acquiring: bool
-    cur_time: int
+    cur_tick: int
     cur_step: int
     num_step: int
     target: float
@@ -148,7 +156,7 @@ class CategoricalActionInterpreter(ActionInterpreter[SAOEState, int, float]):
         self.action_values = values
 
     @property
-    def action_space(self):
+    def action_space(self) -> spaces.Discrete:
         return spaces.Discrete(len(self.action_values))
 
     def to_volume(self, state: SAOEState, action: int) -> float:
@@ -158,9 +166,9 @@ class CategoricalActionInterpreter(ActionInterpreter[SAOEState, int, float]):
 
 class TwapRemainingAdjustmentActionInterpreter(ActionInterpreter[SAOEState, float, float]):
     @property
-    def action_space(self):
+    def action_space(self) -> spaces.Box:
         return spaces.Box(0, np.inf, shape=(), dtype=np.float32)
 
     def to_volume(self, state: SAOEState, action: float) -> float:
-        twap_volume = state.order.position / (state.order.estimated_total_steps - self.env().status.cur_step)
+        twap_volume = state.position / (state.order.estimated_total_steps - self.env().status.cur_step)
         return min(state.position, twap_volume * action)

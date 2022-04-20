@@ -4,6 +4,7 @@
 from pathlib import Path
 from typing import Optional
 
+import numpy as np
 import gym
 import torch
 import torch.nn as nn
@@ -14,8 +15,22 @@ from tianshou.policy import PPOPolicy, BasePolicy
 
 # baselines #
 
-class TWAP(BasePolicy):
-    ...
+class NonlearnablePolicy(BasePolicy):
+    def __init__(self,
+                 obs_space: gym.Space,
+                 action_space: gym.Space):
+        super().__init__()
+
+    def learn(self, batch, batch_size, repeat):
+        pass
+
+    def process_fn(self, batch, buffer, indice):
+        pass
+
+
+class AllOne(NonlearnablePolicy):
+    def forward(self, batch, state=None, **kwargs):
+        return Batch(act=np.full(len(batch), 1.), state=state)
 
 
 # ppo #
@@ -67,7 +82,7 @@ class PPO(PPOPolicy):
         actor = PPOActor(network, action_space.n)
         critic = PPOCritic(network)
         optimizer = torch.optim.Adam(
-            (actor.parameters(), critic.parameters()),
+            chain_dedup(actor.parameters(), critic.parameters()),
             lr=lr, weight_decay=weight_decay)
         super().__init__(actor, critic, optimizer, torch.distributions.Categorical,
                          discount_factor=discount_factor,

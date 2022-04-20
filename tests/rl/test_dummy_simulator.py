@@ -7,7 +7,7 @@ DATA_DIR = Path('/mnt/data/Sample-Testdata/us/')  # Update this when infrastruct
 
 
 def test_pickle_data_inspect():
-    data = pickle_styled.get_intraday_backtest_data(DATA_DIR / 'raw', 'AAL', '2013-12-11', 'close')
+    data = pickle_styled.get_intraday_backtest_data(DATA_DIR / 'raw', 'AAL', '2013-12-11', 'close', 0)
     print(data)
 
     data = pickle_styled.get_intraday_processed_data(DATA_DIR / 'processed', 'AAL', '2013-12-11', 5, data.get_time_index())
