@@ -13,6 +13,8 @@ from tianshou.data import Batch
 from qlib.typehint import Literal
 from .interpreter import FullHistoryObs
 
+__all__ = ['Recurrent']
+
 
 class Recurrent(nn.Module):
     def __init__(

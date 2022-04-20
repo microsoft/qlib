@@ -77,7 +77,8 @@ class IntradayBacktestData:
         self.order_dir: int | None = order_dir
 
     def __repr__(self):
-        return f'{self.__class__.__name__}({self.data})'
+        with pd.option_context('memory_usage', False, 'display.max_info_columns', 1, 'display.large_repr', 'info'):
+            return f'{self.__class__.__name__}({self.data})'
 
     def __len__(self):
         return len(self.data)
@@ -120,11 +121,11 @@ class IntradayProcessedData:
     might use the market information of the previous day to assist decision making.
     """
 
-    proc_today: pd.DataFrame
+    today: pd.DataFrame
     """Processed data for "today".
     Number of records must be ``time_length``, and columns must be ``feature_dim``."""
 
-    proc_yesterday: pd.DataFrame
+    yesterday: pd.DataFrame
     """Processed data for "yesterday".
     Number of records must be ``time_length``, and columns must be ``feature_dim``."""
 
@@ -160,7 +161,8 @@ class IntradayProcessedData:
         assert len(self.today) == len(self.yesterday) == time_length
 
     def __repr__(self):
-        return f'{self.__class__.__name__}({self.today}, {self.yesterday})'
+        with pd.option_context('memory_usage', False, 'display.max_info_columns', 1, 'display.large_repr', 'info'):
+            return f'{self.__class__.__name__}({self.today}, {self.yesterday})'
 
 
 @lru_cache(maxsize=100)  # 100 * 50K = 5MB

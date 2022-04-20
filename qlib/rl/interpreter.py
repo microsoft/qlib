@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-from __future__ import annoations
+from __future__ import annotations
 
 from typing import final, TYPE_CHECKING, TypeVar, Generic
 from weakref import ReferenceType

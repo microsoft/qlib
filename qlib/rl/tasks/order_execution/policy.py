@@ -12,6 +12,8 @@ from gym.spaces import Discrete
 from tianshou.data import Batch, to_torch
 from tianshou.policy import PPOPolicy, BasePolicy
 
+__all__ = ['AllOne', 'PPO']
+
 
 # baselines #
 

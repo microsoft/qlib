@@ -16,6 +16,8 @@ from qlib.rl.tasks.data.pickle_styled import (
     IntradayBacktestData, get_intraday_backtest_data, DealPriceType
 )
 
+__all__ = ['SAOEState', 'SingleAssetOrderExecution']
+
 
 class SAOEState(NamedTuple):
     """
@@ -24,9 +26,6 @@ class SAOEState(NamedTuple):
 
     order: Order                        # the order we are dealing with
     cur_time: pd.Timestamp              # current time, e.g., 9:30
-    elapsed_ticks: int                  # current time in data index, e.g., in [0, 239]
-    traded_tricks: int                  # elapsed ticks in the period of time defined by order
-    total_ticks: int                    # length of data time index sliced in order period, e.g., 240
     position: float                     # current remaining volume to execute
     position_history: list[float]       # position history, the initial position included
     exec_history: pd.Series             # see :attr:`SingleAssetOrderExecution.exec_history`
@@ -37,7 +36,7 @@ class SAOEState(NamedTuple):
 
     backtest_data: IntradayBacktestData # backtest data. interpreter should be careful not to leak feature
 
-    # All possible trading ticks in all day (defined in data). e.g., [9:30, 9:31, ..., 14:59]
+    # All possible trading ticks in all day, NOT sliced by order (defined in data). e.g., [9:30, 9:31, ..., 14:59]
     ticks_index: pd.DatetimeIndex
 
 
@@ -74,7 +73,7 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
         self.backtest_data = get_intraday_backtest_data(
             self.data_dir,
             order.stock_id,
-            pd.Timestamp(order.start_time.date),
+            pd.Timestamp(order.start_time.date()),
             self.deal_price_type,
             order.direction
         )
@@ -118,16 +117,15 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
         raise NotImplementedError()
 
     def get_state(self) -> SAOEState:
+        ticks_index = self.backtest_data.get_time_index()
         return SAOEState(
             order=self.order,
             cur_time=self.cur_time,
-            elapsed_ticks=int(np.sum(self.cur_time > self.backtest_data.get_time_index())),
-            traded_tricks=len(self.exec_history),
-            total_ticks=len(self.backtest_data.loc[self.order.start_time:self.order.end_time]),
+            traded_tricks=len(self.exec_history) if self.exec_history is not None else 0,
             position=self.position,
             position_history=self.position_history,
             backtest_data=self.backtest_data,
-            ticks_index=self.backtest_data.get_time_index()
+            ticks_index=ticks_index
         )
 
     def done(self) -> bool:
@@ -150,13 +148,12 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
         ONE_SEC = pd.Timedelta('1s')  # use 1 second to exclude the right interval point
 
         # get the backtest data for next interval
-        backtest_interval = self.backtest_data.loc[self.cur_time:next_time - ONE_SEC]
-        self.market_vol = backtest_interval['$volume0'].to_numpy()
+        self.market_vol = self.backtest_data.get_volume().loc[self.cur_time:next_time - ONE_SEC].to_numpy()
         self.market_price = self.backtest_data.get_deal_price(self.order.direction) \
             .loc[self.cur_time:next_time - ONE_SEC].to_numpy()
 
         # split the volume equally into each minute
-        exec_vol = np.repeat(exec_vol_sum / len(backtest_interval), len(backtest_interval))
+        exec_vol = np.repeat(exec_vol_sum / len(self.market_price), len(self.market_price))
 
         # apply the volume threshold
         market_vol_limit = self.vol_threshold * self.market_vol if self.vol_threshold is not None else np.inf
