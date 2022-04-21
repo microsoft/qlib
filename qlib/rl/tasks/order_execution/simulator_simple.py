@@ -22,49 +22,49 @@ __all__ = ['SAOEMetrics', 'SAOEState', 'SingleAssetOrderExecution']
 ONE_SEC = pd.Timedelta('1s')  # use 1 second to exclude the right interval point
 
 
-
 class SAOEMetrics(TypedDict):
     """Metrics for SAOE accumulated for a "period".
     It could be accumulated for a day, or a period of time (e.g., 30min), or calculated separately for every minute.
     """
 
-    datetime: pd.Timestamp              # datetime of this record (this is index in the dataframe)
+    datetime: pd.Timestamp              # Datetime of this record (this is index in the dataframe)
 
     # Market information.
     market_volume: float                # (total) market volume traded in the period
-    market_price: float                 # deal price. If it's a period of time, this is the average market deal price
+    market_price: float                 # Deal price. If it's a period of time, this is the average market deal price
 
     # Strategy records.
-    amount: float                       # total amount (volume) strategy intends to trade
-    inner_amount: float                 # total amount that the lower-level strategy intends to trade
-                                        # (might be larger than amount, e.g., to ensure ffr)
-    deal_amount: float                  # amount that successfully takes effect (must be less than inner_amount)
-    trade_price: float                  # the average deal price for this strategy
-    trade_value: float                  # total worth of trading. In the simple simulaton, trade_value = deal_amount * price
+    amount: float                       # Total amount (volume) strategy intends to trade
+    inner_amount: float                 # Total amount that the lower-level strategy intends to trade
+    # (might be larger than amount, e.g., to ensure ffr)
+    deal_amount: float                  # Amount that successfully takes effect (must be less than inner_amount)
+    trade_price: float                  # The average deal price for this strategy
+    trade_value: float                  # Total worth of trading. In the simple simulaton, trade_value = deal_amount * price
     position: float                     # Position left after this "period".
 
     # Accumulated metrics
-    ffr: float                          # complete how much percent of the daily order
-    pa: float                           # price advantage compared to baseline (i.e., trade with baseline market price)
-                                        # the baseline is average market price of **all day** (there could be data leak here)
-                                        # unit is BP (basis point, 1/10000)
+    ffr: float                          # Completed how much percent of the daily order
+    pa: float                           # Price advantage compared to baseline (i.e., trade with baseline market price).
+    # The baseline is trade price when using TWAP strategy to execute this order.
+    # Please note that there could be data leak here).
+    # Unit is BP (basis point, 1/10000)
 
 
 class SAOEState(NamedTuple):
     """Data structure holding a state for SAOE simulator."""
-    order: Order                        # the order we are dealing with
-    cur_time: pd.Timestamp              # current time, e.g., 9:30
-    position: float                     # current remaining volume to execute
-    history_exec: pd.DataFrame          # see :attr:`SingleAssetOrderExecution.history_exec`
-    history_steps: pd.DataFrame         # see :attr:`SingleAssetOrderExecution.history_steps`
+    order: Order                        # The order we are dealing with
+    cur_time: pd.Timestamp              # Current time, e.g., 9:30
+    position: float                     # Current remaining volume to execute
+    history_exec: pd.DataFrame          # See :attr:`SingleAssetOrderExecution.history_exec`
+    history_steps: pd.DataFrame         # See :attr:`SingleAssetOrderExecution.history_steps`
 
-    metric: SAOEState                   # daily metric, only available when the trading is in "done" state
+    metric: SAOEState                   # Daily metric, only available when the trading is in "done" state
 
     # Backtest data is included in the state.
     # Actually, only the time index of this data is needed, at this moment.
     # I include the full data so that algorithms (e.g., VWAP) that relies on the raw data can be implemented.
 
-    backtest_data: IntradayBacktestData     # backtest data. interpreter should be careful not to leak feature
+    backtest_data: IntradayBacktestData     # Backtest data. interpreter should be careful not to leak feature
 
     # All possible trading ticks in all day, NOT sliced by order (defined in data). e.g., [9:30, 9:31, ..., 14:59]
     ticks_index: pd.DatetimeIndex
@@ -94,6 +94,10 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
     metrics: SAOEMetrics | None
     """Metrics. Only available when done."""
 
+    twap_price: float
+    """This price is used to compute price advantage.
+    It's defined as the average price in the period from order's start time to end time."""
+
     def __init__(self, order: Order, data_dir: Path,
                  time_per_step: str = '30min',
                  deal_price_type: DealPriceType = 'close',
@@ -110,7 +114,13 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
             self.deal_price_type,
             order.direction
         )
-        self.cur_time = self.backtest_data.get_time_index()[0]
+
+        # Get time index available for trading
+        time_index = self.backtest_data.get_time_index()
+        time_index = time_index[time_index.slice_indexer(self.order.start_time, self.order.end_time)]
+
+        self.cur_time = time_index[0]
+        self.twap_price = float(self.backtest_data.get_deal_price().loc[time_index].mean())
 
         self.position = order.amount
 
@@ -151,8 +161,8 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
             trade_value=self.market_price * exec_vol,
             position=ticks_position,
             ffr=exec_vol / self.order.amount,
-            pa=price_advantage(self.market_price, self.market_price, self.order.direction)
-        ), index='datetime')])
+            pa=price_advantage(self.market_price, self.twap_price, self.order.direction)
+        ), index='datetime'))
 
         self.history_steps.append(self._metrics_collect(self.cur_time, self.market_vol, self.market_price, amount, exec_vol))
 
@@ -236,7 +246,7 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
             trade_value=np.sum(market_price * exec_vol),
             position=self.position,
             ffr=market_vol.sum() / self.order.amount,
-            pa=price_advantage(exec_avg_price, self.backtest_data, self.order.direction)
+            pa=price_advantage(exec_avg_price, self.twap_price, self.order.direction)
         )
 
 
