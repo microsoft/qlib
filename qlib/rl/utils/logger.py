@@ -58,7 +58,7 @@ def _groupby_category(category, value, key) -> defaultdict:
     return grouped
 
 
-class Logger(BaseLogger):
+class BasicLogger(RLLogger):
     def __init__(
         self, ep_total, *, log_interval=100, prefix="Episode", tb_prefix="", count_global="episode", reward_func=np.mean
     ):
