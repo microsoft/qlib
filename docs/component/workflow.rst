@@ -233,7 +233,7 @@ The meaning of each field is as follows:
 Dataset Section
 ~~~~~~~~~~~~~~~~~~~~
 
-The `dataset` field describes the parameters for the ``Dataset`` module in ``Qlib`` as well those for the module ``DataHandler``. For more information about the ``Dataset`` module, please refer to `Qlib Model <../component/data.html#dataset>`_.
+The `dataset` field describes the parameters for the ``Dataset`` module in ``Qlib`` as well those for the module ``DataHandler``. For more information about the ``Dataset`` module, please refer to `Qlib Data <../component/data.html#dataset>`_.
 
 The keywords arguments configuration of the ``DataHandler`` is as follows:
 
