@@ -7,15 +7,16 @@ import threading
 import time
 import warnings
 from queue import Empty
-from typing import Sized, Any
+from typing import TypeVar, Generic, Sequence, cast
 
-from torch.utils.data import DataLoader
 from qlib.log import get_module_logger
 
 _logger = get_module_logger(__name__)
 
+T = TypeVar('T')
 
-class DataQueue:
+
+class DataQueue(Generic[T]):
     """Main process (producer) produces data and stores them in a queue.
     Sub-processes (consumers) can retrieve the data-points from the queue.
     Data-points are generated via reading items from ``dataset``.
@@ -48,7 +49,7 @@ class DataQueue:
     ...     print(data)
     """
 
-    def __init__(self, dataset: Sized,
+    def __init__(self, dataset: Sequence[T],
                  repeat: int = 1,
                  producer_num_workers: int = 0,
                  queue_maxsize: int = 0):
@@ -56,7 +57,7 @@ class DataQueue:
             queue_maxsize = os.cpu_count()
             _logger.info(f'Automatically set data queue maxsize to {queue_maxsize} to avoid overwhelming.')
 
-        self.dataset: Sized[Any] = dataset
+        self.dataset: Sequence[T] = dataset
         self.repeat: int = repeat
         self.producer_num_workers: int = producer_num_workers
 
@@ -140,8 +141,9 @@ class DataQueue:
 
     def _producer(self):
         # pytorch dataloader is used here only because we need its sampler and multi-processing
+        from torch.utils.data import DataLoader, Dataset
         dataloader = DataLoader(
-            self.dataset,
+            cast(Dataset[T], self.dataset),
             batch_size=None,
             num_workers=self.producer_num_workers,
             collate_fn=lambda t: t,  # identity collate fn

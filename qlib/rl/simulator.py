@@ -4,11 +4,10 @@
 from typing import TypeVar, Generic, TYPE_CHECKING
 from weakref import ReferenceType
 
+from .seed import InitialStateType
+
 if TYPE_CHECKING:
     from .utils.env_wrapper import EnvWrapper
-
-InitialStateType = TypeVar('InitialStateType')
-"""Type of data that creates the simulator."""
 
 StateType = TypeVar('StateType')
 """StateType stores all the useful data in the simulation process

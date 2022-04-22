@@ -6,13 +6,15 @@ This is to support finite env in vector env.
 See https://github.com/thu-ml/tianshou/issues/322 for details.
 """
 
-import abc
 import copy
 import gym
 import numpy as np
-from typing import Any
+from typing import Any, Type
 
 from tianshou.env import BaseVectorEnv, DummyVectorEnv, ShmemVectorEnv, SubprocVectorEnv
+
+from qlib.typehint import Literal
+from .logger import RLLogger
 
 __all__ = [
     "generate_nan_observation",
@@ -21,7 +23,12 @@ __all__ = [
     "FiniteDummyVectorEnv",
     "FiniteSubprocVectorEnv",
     "FiniteShmemVectorEnv",
+    'FiniteEnvType',
+    'finite_env_cls',
 ]
+
+
+FiniteEnvType = Literal['dummy', 'subproc', 'shmem']
 
 
 def fill_invalid(obj):
@@ -70,18 +77,8 @@ def check_nan_observation(obs: Any) -> bool:
     return isinvalid(obs)
 
 
-class BaseLogger(abc.ABC):
-    @abc.abstractmethod
-    def log_step(self, env_id, obs, rew, done, info):
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def log_reset(self, env_id, obs):
-        raise NotImplementedError
-
-
 class FiniteVectorEnv(BaseVectorEnv):
-    def __init__(self, logger: BaseLogger, env_fns, **kwargs):
+    def __init__(self, logger: RLLogger, env_fns, **kwargs):
         super().__init__(env_fns, **kwargs)
         self._logger = logger
         self._alive_env_ids = set()
@@ -205,3 +202,13 @@ class FiniteSubprocVectorEnv(FiniteVectorEnv, SubprocVectorEnv):
 
 class FiniteShmemVectorEnv(FiniteVectorEnv, ShmemVectorEnv):
     pass
+
+
+def finite_env_cls(env_type: FiniteEnvType) -> Type[FiniteVectorEnv]:
+    if env_type == 'dummy':
+        return FiniteDummyVectorEnv
+    elif env_type == 'subproc':
+        return FiniteSubprocVectorEnv
+    elif env_type == 'shmem':
+        return FiniteShmemVectorEnv
+    raise ValueError(f'Unexpected env_type: {env_type}')
