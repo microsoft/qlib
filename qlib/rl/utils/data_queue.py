@@ -35,15 +35,15 @@ class DataQueue:
         Concurrent workers for data-loading.
     queue_maxsize
         Maximum items to put into queue before it jams.
-    autoactivate
-        Start the producer instantly when creating the queue.
-        Otherwise, users need to call ``activate()`` manually before using the queue.
 
     Examples
     --------
-    >>> data_queue = DataQueue(my_dataset).activate()
+    >>> data_queue = DataQueue(my_dataset)
+    >>> with data_queue:
+    ...     ...
 
     In worker:
+
     >>> for data in data_queue:
     ...     print(data)
     """
@@ -51,8 +51,7 @@ class DataQueue:
     def __init__(self, dataset: Sized,
                  repeat: int = 1,
                  producer_num_workers: int = 0,
-                 queue_maxsize: int = 0,
-                 autoactivate: bool = False):
+                 queue_maxsize: int = 0):
         if queue_maxsize == 0:
             queue_maxsize = os.cpu_count()
             _logger.info(f'Automatically set data queue maxsize to {queue_maxsize} to avoid overwhelming.')
@@ -65,8 +64,12 @@ class DataQueue:
         self._queue = multiprocessing.Queue(maxsize=queue_maxsize)
         self._done = multiprocessing.Value('i', 0)
 
-        if autoactivate:
-            self.activate()
+    def __enter__(self):
+        self.activate()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.cleanup()
 
     def cleanup(self):
         with self._done.get_lock():
@@ -110,6 +113,8 @@ class DataQueue:
         return self._done.value
 
     def activate(self):
+        if self._activated:
+            raise ValueError('DataQueue can not activate twice.')
         thread = threading.Thread(target=self._producer, daemon=True)
         thread.start()
         self._activated = True
