@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import NamedTuple, TypedDict
+from typing import NamedTuple, TypedDict, Any
 
 import numpy as np
 import pandas as pd
@@ -58,7 +58,7 @@ class SAOEState(NamedTuple):
     history_exec: pd.DataFrame          # See :attr:`SingleAssetOrderExecution.history_exec`
     history_steps: pd.DataFrame         # See :attr:`SingleAssetOrderExecution.history_steps`
 
-    metric: SAOEState                   # Daily metric, only available when the trading is in "done" state
+    metrics: SAOEState                  # Daily metric, only available when the trading is in "done" state
 
     # Backtest data is included in the state.
     # Actually, only the time index of this data is needed, at this moment.
@@ -116,8 +116,7 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
         )
 
         # Get time index available for trading
-        time_index = self.backtest_data.get_time_index()
-        time_index = time_index[time_index.slice_indexer(self.order.start_time, self.order.end_time)]
+        time_index = self._get_time_index(self.order.start_time, self.order.end_time)
 
         self.cur_time = time_index[0]
         self.twap_price = float(self.backtest_data.get_deal_price().loc[time_index].mean())
@@ -125,8 +124,9 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
         self.position = order.amount
 
         metric_keys = list(SAOEMetrics.__annotations__.keys())
-        self.history_exec = pd.DataFrame(columns=metric_keys, index='datetime')
-        self.history_steps = pd.DataFrame(columns=metric_keys, index='datetime')
+        # NOTE: can empty dataframe contain index?
+        self.history_exec = pd.DataFrame(columns=metric_keys).set_index('datetime')
+        self.history_steps = pd.DataFrame(columns=metric_keys).set_index('datetime')
         self.metrics = None
 
         self.market_price: np.ndarray | None = None
@@ -150,8 +150,11 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
         if self.position < -EPS or (exec_vol < -EPS).any():
             raise ValueError(f'Execution volume is invalid: {exec_vol} (position = {self.position})')
 
-        self.history_exec.append(pd.DataFrame(dict(
-            datetime=self.backtest_data.get_time_index().slice_indexer(self.cur_time, self._next_time() - ONE_SEC),
+        # Get time index available for this step
+        time_index = self._get_time_index(self.cur_time, self._next_time())
+
+        self.history_exec = self._dataframe_append(self.history_exec, dict(
+            datetime=time_index,
             market_volume=self.market_vol,
             market_price=self.market_price,
             amount=exec_vol,
@@ -162,9 +165,11 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
             position=ticks_position,
             ffr=exec_vol / self.order.amount,
             pa=price_advantage(self.market_price, self.twap_price, self.order.direction)
-        ), index='datetime'))
+        ))
 
-        self.history_steps.append(self._metrics_collect(self.cur_time, self.market_vol, self.market_price, amount, exec_vol))
+        self.history_steps = self._dataframe_append(self.history_steps, [
+            self._metrics_collect(self.cur_time, self.market_vol, self.market_price, amount, exec_vol)
+        ])
 
         if self.done():
             self.metrics = self._metrics_collect(
@@ -185,6 +190,7 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
             position=self.position,
             history_exec=self.history_exec,
             history_steps=self.history_steps,
+            metrics=self.metrics,
             backtest_data=self.backtest_data,
             ticks_index=ticks_index
         )
@@ -209,7 +215,7 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
 
         # get the backtest data for next interval
         self.market_vol = self.backtest_data.get_volume().loc[self.cur_time:next_time - ONE_SEC].to_numpy()
-        self.market_price = self.backtest_data.get_deal_price(self.order.direction) \
+        self.market_price = self.backtest_data.get_deal_price() \
             .loc[self.cur_time:next_time - ONE_SEC].to_numpy()
 
         # split the volume equally into each minute
@@ -233,7 +239,7 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
                          exec_vol: np.ndarray) -> SAOEMetrics:
         assert len(market_vol) == len(market_price) == len(exec_vol)
 
-        exec_avg_price = np.average(market_price, weights=exec_vol),  # could be nan
+        exec_avg_price = np.average(market_price, weights=exec_vol)  # could be nan
 
         return SAOEMetrics(
             datetime=datetime,
@@ -245,18 +251,32 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
             trade_price=exec_avg_price,
             trade_value=np.sum(market_price * exec_vol),
             position=self.position,
-            ffr=market_vol.sum() / self.order.amount,
+            ffr=float(exec_vol.sum() / self.order.amount),
             pa=price_advantage(exec_avg_price, self.twap_price, self.order.direction)
         )
 
+    def _get_time_index(self, start: pd.Timestamp, end: pd.Timestamp, include_end: bool = False):
+        if not include_end:
+            end = end - ONE_SEC
+        time_index = self.backtest_data.get_time_index()
+        return time_index[time_index.slice_indexer(start, end)]
 
-def price_advantage(exec_price: float, baseline_price: float, direction: OrderDir) -> float:
+    @staticmethod
+    def _dataframe_append(df: pd.DataFrame, other: Any) -> pd.DataFrame:
+        # dataframe.append is deprecated
+        other_df = pd.DataFrame(other).set_index('datetime')
+        other_df.index.name = 'datetime'
+        return pd.concat([df, other_df], axis=0)
+
+
+def price_advantage(exec_price: float | np.ndarray, baseline_price: float, direction: OrderDir) -> float:
     if baseline_price == 0:  # something is wrong with data. Should be nan here
         return 0.
-    if np.isnan(exec_price):
-        return 0.
     if direction == OrderDir.BUY:
-        return (1 - exec_price / baseline_price) * 10000
+        res = (1 - exec_price / baseline_price) * 10000
     elif direction == OrderDir.SELL:
-        return (exec_price / baseline_price - 1) * 10000
-    raise ValueError(f'Unexpected order direction: {direction}')
+        res = (exec_price / baseline_price - 1) * 10000
+    else:
+        raise ValueError(f'Unexpected order direction: {direction}')
+    res = np.nan_to_num(res, nan=0.)
+    return res
