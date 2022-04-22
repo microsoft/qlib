@@ -140,9 +140,15 @@ class EnvWrapper(gym.Env[ObsType, PolicyActType]):
         self.status.obs_history.append(obs)
 
         # Reward and extra info
-        rew = self.reward_fn(sim_state)
+        if self.reward_fn is not None:
+            rew = self.reward_fn(sim_state)
+        else:
+            rew = 0.
         self.status.reward_history.append(rew)
 
-        info = self.aux_info_collector(sim_state)
+        if self.aux_info_collector is not None:
+            info = self.aux_info_collector(sim_state)
+        else:
+            info = self.aux_info_collector(sim_state)
 
         return obs, rew, done, info

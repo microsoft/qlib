@@ -58,7 +58,7 @@ class SAOEState(NamedTuple):
     history_exec: pd.DataFrame          # See :attr:`SingleAssetOrderExecution.history_exec`
     history_steps: pd.DataFrame         # See :attr:`SingleAssetOrderExecution.history_steps`
 
-    metrics: SAOEState                  # Daily metric, only available when the trading is in "done" state
+    metrics: SAOEMetrics                # Daily metric, only available when the trading is in "done" state
 
     # Backtest data is included in the state.
     # Actually, only the time index of this data is needed, at this moment.
@@ -142,6 +142,8 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
             The amount you wish to deal. The simulator doesn't guarantee all the amount to be successfully dealt.
         """
 
+        assert not self.done()
+
         exec_vol = self._split_exec_vol(amount)
 
         ticks_position = self.position - np.cumsum(exec_vol)
@@ -177,7 +179,7 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
                 self.history_exec['market_volume'],
                 self.history_exec['market_price'],
                 self.history_steps['amount'].sum(),
-                self.history_exec['inner_amount'],
+                self.history_exec['deal_amount'],
             )
 
         self.cur_time = self._next_time()
@@ -235,7 +237,7 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
     def _metrics_collect(self, datetime: pd.Timestamp,
                          market_vol: np.ndarray,
                          market_price: np.ndarray,
-                         amount: float,
+                         amount: float,  # intended to trade such amount
                          exec_vol: np.ndarray) -> SAOEMetrics:
         assert len(market_vol) == len(market_price) == len(exec_vol)
 
