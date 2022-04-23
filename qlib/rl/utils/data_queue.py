@@ -13,7 +13,7 @@ from qlib.log import get_module_logger
 
 _logger = get_module_logger(__name__)
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 class DataQueue(Generic[T]):
@@ -55,7 +55,7 @@ class DataQueue(Generic[T]):
                  queue_maxsize: int = 0):
         if queue_maxsize == 0:
             queue_maxsize = os.cpu_count()
-            _logger.info(f'Automatically set data queue maxsize to {queue_maxsize} to avoid overwhelming.')
+            _logger.info(f"Automatically set data queue maxsize to {queue_maxsize} to avoid overwhelming.")
 
         self.dataset: Sequence[T] = dataset
         self.repeat: int = repeat
@@ -63,7 +63,7 @@ class DataQueue(Generic[T]):
 
         self._activated: bool = False
         self._queue = multiprocessing.Queue(maxsize=queue_maxsize)
-        self._done = multiprocessing.Value('i', 0)
+        self._done = multiprocessing.Value("i", 0)
 
     def __enter__(self):
         self.activate()
@@ -77,7 +77,7 @@ class DataQueue(Generic[T]):
             self._done.value += 1
         for repeat in range(500):
             if repeat >= 1:
-                warnings.warn(f'After {repeat} cleanup, the queue is still not empty.', category=RuntimeWarning)
+                warnings.warn(f"After {repeat} cleanup, the queue is still not empty.", category=RuntimeWarning)
             while not self._queue.empty():
                 try:
                     self._queue.get(block=False)
@@ -86,10 +86,10 @@ class DataQueue(Generic[T]):
             time.sleep(1.)  # a chance to allow more data to be put in
             if self._queue.empty():
                 break
-        _logger.debug(f'Remaining items in queue collection done. Empty: {self._queue.empty()}')
+        _logger.debug(f"Remaining items in queue collection done. Empty: {self._queue.empty()}")
 
     def get(self, block=True):
-        if not hasattr(self, '_first_get'):
+        if not hasattr(self, "_first_get"):
             self._first_get = True
         if self._first_get:
             timeout = 5.
@@ -115,20 +115,20 @@ class DataQueue(Generic[T]):
 
     def activate(self):
         if self._activated:
-            raise ValueError('DataQueue can not activate twice.')
+            raise ValueError("DataQueue can not activate twice.")
         thread = threading.Thread(target=self._producer, daemon=True)
         thread.start()
         self._activated = True
         return self
 
     def __del__(self):
-        _logger.debug(f'__del__ of {__name__}.DataQueue')
+        _logger.debug(f"__del__ of {__name__}.DataQueue")
         self.cleanup()
 
     def __iter__(self):
         if not self._activated:
-            raise ValueError('Need to call activate() to launch a daemon worker '
-                             'to produce data into data queue before using it.')
+            raise ValueError("Need to call activate() to launch a daemon worker "
+                             "to produce data into data queue before using it.")
         return self._consumer()
 
     def _consumer(self):
@@ -136,7 +136,7 @@ class DataQueue(Generic[T]):
             try:
                 yield self.get()
             except StopIteration:
-                _logger.debug('Data consumer timed-out from get.')
+                _logger.debug("Data consumer timed-out from get.")
                 return
 
     def _producer(self):
@@ -155,5 +155,5 @@ class DataQueue(Generic[T]):
                     # Already done.
                     return
                 self._queue.put(data)
-            _logger.debug(f'Dataloader loop done. Repeat {_rep}.')
+            _logger.debug(f"Dataloader loop done. Repeat {_rep}.")
         self.mark_as_done()

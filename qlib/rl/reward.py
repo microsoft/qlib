@@ -10,7 +10,7 @@ from typing import Generic, Any, TypeVar, TYPE_CHECKING, final
 if TYPE_CHECKING:
     from .utils.env_wrapper import EnvWrapper
 
-SimulatorState = TypeVar('SimulatorState')
+SimulatorState = TypeVar("SimulatorState")
 
 
 class Reward(Generic[SimulatorState]):
@@ -20,7 +20,7 @@ class Reward(Generic[SimulatorState]):
     Subclass should implement ``reward(simulator_state)`` to implement their own reward calculation recipe.
     """
 
-    env_wrapper: ReferenceType['EnvWrapper']
+    env_wrapper: ReferenceType["EnvWrapper"]
 
     @final
     def __call__(self, simulator_state: SimulatorState) -> float:
@@ -28,7 +28,7 @@ class Reward(Generic[SimulatorState]):
 
     def reward(self, simulator_state: SimulatorState) -> float:
         """Implement this method for your own reward."""
-        raise NotImplementedError('Implement reward calculation recipe in `reward()`.')
+        raise NotImplementedError("Implement reward calculation recipe in `reward()`.")
 
     def log(self, name, value):
         self.env_wrapper().logger.add_scalar(name, value)

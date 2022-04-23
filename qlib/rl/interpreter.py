@@ -13,8 +13,8 @@ if TYPE_CHECKING:
 
 import gym
 
-ObsType = TypeVar('ObsType')
-PolicyActType = TypeVar('PolicyActType')
+ObsType = TypeVar("ObsType")
+PolicyActType = TypeVar("PolicyActType")
 
 class Interpreter:
     """Interpreter is a media between states produced by simulators and states needed by RL policies.
@@ -42,7 +42,7 @@ class Interpreter:
 class StateInterpreter(Generic[StateType, ObsType], Interpreter):
     """State Interpreter that interpret execution result of qlib executor into rl env state"""
 
-    env: ReferenceType['EnvWrapper']
+    env: ReferenceType["EnvWrapper"]
 
     @property
     def observation_space(self) -> gym.Space:
@@ -52,7 +52,7 @@ class StateInterpreter(Generic[StateType, ObsType], Interpreter):
     def __call__(self, simulator_state: StateType) -> ObsType:
         obs = self.interpret(simulator_state)
         if not self.validate(obs):
-            raise ValueError(f'Observation space does not contain obs.\n  Space: {self.observation_space}\n  Sample: {obs}')
+            raise ValueError(f"Observation space does not contain obs.\n  Space: {self.observation_space}\n  Sample: {obs}")
         return obs
 
     def validate(self, obs: ObsType) -> bool:
@@ -77,7 +77,7 @@ class StateInterpreter(Generic[StateType, ObsType], Interpreter):
 class ActionInterpreter(Generic[StateType, PolicyActType, ActType], Interpreter):
     """Action Interpreter that interpret rl agent action into qlib orders"""
 
-    env: ReferenceType['EnvWrapper']
+    env: ReferenceType["EnvWrapper"]
 
     @property
     def action_space(self) -> gym.Space:
@@ -86,7 +86,7 @@ class ActionInterpreter(Generic[StateType, PolicyActType, ActType], Interpreter)
     @final  # no overridden
     def __call__(self, simulator_state: StateType, action: PolicyActType) -> ActType:
         if not self.validate(action):
-            raise ValueError(f'Action space does not contain action.\n  Space: {self.action_space}\n  Sample: {action}')
+            raise ValueError(f"Action space does not contain action.\n  Space: {self.action_space}\n  Sample: {action}")
         obs = self.interpret(simulator_state, action)
         return obs
 

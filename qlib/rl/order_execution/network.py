@@ -13,7 +13,7 @@ from tianshou.data import Batch
 from qlib.typehint import Literal
 from .interpreter import FullHistoryObs
 
-__all__ = ['Recurrent']
+__all__ = ["Recurrent"]
 
 
 class Recurrent(nn.Module):
@@ -22,7 +22,7 @@ class Recurrent(nn.Module):
         input_dims: Dict[str, int],
         hidden_dim: int = 64,
         output_dim: int = 32,
-        rnn_type: Literal['rnn', 'lstm', 'gru'] = 'gru',
+        rnn_type: Literal["rnn", "lstm", "gru"] = "gru",
         rnn_num_layers: int = 1,
         obs_space: Optional[Space] = None,
     ):
@@ -34,9 +34,9 @@ class Recurrent(nn.Module):
         self.num_sources = 3
 
         rnn_classes = {
-            'rnn': nn.RNN,
-            'lstm': nn.LSTM,
-            'gru': nn.GRU
+            "rnn": nn.RNN,
+            "lstm": nn.LSTM,
+            "gru": nn.GRU
         }
 
         self.rnn_class = rnn_classes[rnn_type]
@@ -46,7 +46,7 @@ class Recurrent(nn.Module):
         self.prev_rnn = self.rnn_class(hidden_dim, hidden_dim, batch_first=True, num_layers=self.rnn_layers)
         self.pri_rnn = self.rnn_class(hidden_dim, hidden_dim, batch_first=True, num_layers=self.rnn_layers)
 
-        self.raw_fc = nn.Sequential(nn.Linear(input_dims['data_processed'], hidden_dim), nn.ReLU())
+        self.raw_fc = nn.Sequential(nn.Linear(input_dims["data_processed"], hidden_dim), nn.ReLU())
         self.pri_fc = nn.Sequential(nn.Linear(2, hidden_dim), nn.ReLU())
         self.dire_fc = nn.Sequential(nn.Linear(2, hidden_dim), nn.ReLU(), nn.Linear(hidden_dim, hidden_dim), nn.ReLU())
 

@@ -17,8 +17,8 @@ from qlib.rl.data import pickle_styled
 from .simulator_simple import SAOEState
 
 __all__ = [
-    'FullHistoryStateInterpreter', 'CurrentStepStateInterpreter',
-    'CategoricalActionInterpreter', 'TwapRemainingAdjustmentActionInterpreter'
+    "FullHistoryStateInterpreter", "CurrentStepStateInterpreter",
+    "CategoricalActionInterpreter", "TwapRemainingAdjustmentActionInterpreter"
 ]
 
 
@@ -27,11 +27,11 @@ def canonicalize(value: int | float | np.ndarray | pd.DataFrame | dict) -> np.nd
     if isinstance(value, pd.DataFrame):
         return value.to_numpy()
     if isinstance(value, (float, np.floating)) or (
-        isinstance(value, np.ndarray) and value.dtype.kind == 'f'
+        isinstance(value, np.ndarray) and value.dtype.kind == "f"
     ):
         return np.array(value, dtype=np.float32)
     elif isinstance(value, (int, bool, np.integer)) or (
-        isinstance(value, np.ndarray) and value.dtype.kind == 'i'
+        isinstance(value, np.ndarray) and value.dtype.kind == "i"
     ):
         return np.array(value, dtype=np.int32)
     elif isinstance(value, dict):
@@ -81,30 +81,30 @@ class FullHistoryStateInterpreter(StateInterpreter[SAOEState, FullHistoryObs]):
         )
 
         return cast(FullHistoryObs, canonicalize({
-            'data_processed': self._mask_future_info(processed.today, state.cur_time),
-            'data_processed_prev': processed.yesterday,
-            'acquiring': state.order.direction == state.order.BUY,
-            'cur_tick': state.elapsed_ticks,
-            'cur_step': self.env().status.cur_step,
-            'num_step': self.max_step,
-            'target': state.order.amount,
-            'position': state.position,
-            'position_history': np.array(state.position_history),
+            "data_processed": self._mask_future_info(processed.today, state.cur_time),
+            "data_processed_prev": processed.yesterday,
+            "acquiring": state.order.direction == state.order.BUY,
+            "cur_tick": state.elapsed_ticks,
+            "cur_step": self.env().status.cur_step,
+            "num_step": self.max_step,
+            "target": state.order.amount,
+            "position": state.position,
+            "position_history": np.array(state.position_history),
         }))
 
     @property
     def observation_space(self):
         space = {
-            'data_processed': spaces.Box(-np.inf, np.inf, shape=(self.data_ticks, self.data_dim)),
-            'data_processed_prev': spaces.Box(-np.inf, np.inf, shape=(self.data_ticks, self.data_dim)),
-            'acquiring': spaces.Discrete(2),
-            'cur_tick': spaces.Box(0, self.data_ticks - 1, shape=(), dtype=np.int32),
-            'cur_step': spaces.Box(0, self.max_step - 1, shape=(), dtype=np.int32),
+            "data_processed": spaces.Box(-np.inf, np.inf, shape=(self.data_ticks, self.data_dim)),
+            "data_processed_prev": spaces.Box(-np.inf, np.inf, shape=(self.data_ticks, self.data_dim)),
+            "acquiring": spaces.Discrete(2),
+            "cur_tick": spaces.Box(0, self.data_ticks - 1, shape=(), dtype=np.int32),
+            "cur_step": spaces.Box(0, self.max_step - 1, shape=(), dtype=np.int32),
             # TODO: support arbitrary length index
-            'num_step': spaces.Box(self.max_step, self.max_step, shape=(), dtype=np.int32),
-            'target': spaces.Box(-EPS, np.inf, shape=()),
-            'position': spaces.Box(-EPS, np.inf, shape=()),
-            'position_history': spaces.Box(-EPS, np.inf, shape=(self.max_step,)),
+            "num_step": spaces.Box(self.max_step, self.max_step, shape=(), dtype=np.int32),
+            "target": spaces.Box(-EPS, np.inf, shape=()),
+            "position": spaces.Box(-EPS, np.inf, shape=()),
+            "position_history": spaces.Box(-EPS, np.inf, shape=(self.max_step,)),
         }
         return spaces.Dict(space)
 
@@ -134,22 +134,22 @@ class CurrentStepStateInterpreter(StateInterpreter[SAOEState, CurrentStateObs]):
     @property
     def observation_space(self):
         space = {
-            'acquiring': spaces.Discrete(2),
-            'cur_step': spaces.Box(0, self.max_step - 1, shape=(), dtype=np.int32),
-            'num_step': spaces.Box(self.max_step, self.max_step, shape=(), dtype=np.int32),
-            'target': spaces.Box(-EPS, np.inf, shape=()),
-            'position': spaces.Box(-EPS, np.inf, shape=()),
+            "acquiring": spaces.Discrete(2),
+            "cur_step": spaces.Box(0, self.max_step - 1, shape=(), dtype=np.int32),
+            "num_step": spaces.Box(self.max_step, self.max_step, shape=(), dtype=np.int32),
+            "target": spaces.Box(-EPS, np.inf, shape=()),
+            "position": spaces.Box(-EPS, np.inf, shape=()),
         }
         return spaces.Dict(space)
 
     def interpret(self, state: SAOEState) -> Any:
         assert self.env().status.cur_step <= self.max_step
         obs = {
-            'acquiring': state.order.direction == state.order.BUY,
-            'cur_step': self.env().status.cur_step,
-            'num_step': self.max_step,
-            'target': state.order.amount,
-            'position': state.position,
+            "acquiring": state.order.direction == state.order.BUY,
+            "cur_step": self.env().status.cur_step,
+            "num_step": self.max_step,
+            "target": state.order.amount,
+            "position": state.position,
         }
         return obs
 

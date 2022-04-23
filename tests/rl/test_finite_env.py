@@ -11,22 +11,22 @@ from neutrader.env.finite_env import (BaseLogger, FiniteDummyVectorEnv, FiniteSh
 
 
 _test_space = gym.spaces.Dict({
-    'sensors': gym.spaces.Dict({
-        'position': gym.spaces.Box(low=-100, high=100, shape=(3,)),
-        'velocity': gym.spaces.Box(low=-1, high=1, shape=(3,)),
-        'front_cam': gym.spaces.Tuple((
+    "sensors": gym.spaces.Dict({
+        "position": gym.spaces.Box(low=-100, high=100, shape=(3,)),
+        "velocity": gym.spaces.Box(low=-1, high=1, shape=(3,)),
+        "front_cam": gym.spaces.Tuple((
             gym.spaces.Box(low=0, high=1, shape=(10, 10, 3)),
             gym.spaces.Box(low=0, high=1, shape=(10, 10, 3))
         )),
-        'rear_cam': gym.spaces.Box(low=0, high=1, shape=(10, 10, 3)),
+        "rear_cam": gym.spaces.Box(low=0, high=1, shape=(10, 10, 3)),
     }),
-    'ext_controller': gym.spaces.MultiDiscrete((5, 2, 2)),
-    'inner_state': gym.spaces.Dict({
-        'charge': gym.spaces.Discrete(100),
-        'system_checks': gym.spaces.MultiBinary(10),
-        'job_status': gym.spaces.Dict({
-            'task': gym.spaces.Discrete(5),
-            'progress': gym.spaces.Box(low=0, high=100, shape=()),
+    "ext_controller": gym.spaces.MultiDiscrete((5, 2, 2)),
+    "inner_state": gym.spaces.Dict({
+        "charge": gym.spaces.Discrete(100),
+        "system_checks": gym.spaces.MultiBinary(10),
+        "job_status": gym.spaces.Dict({
+            "task": gym.spaces.Discrete(5),
+            "progress": gym.spaces.Box(low=0, high=100, shape=()),
         })
     })
 })
@@ -59,7 +59,7 @@ class FiniteEnv(gym.Env):
         self.current_step += 1
         assert self.current_step <= self.step_count
         return 0, 1.0, self.current_step >= self.step_count, \
-            {'sample': self.current_sample, 'action': action, 'metric': 2.0}
+            {"sample": self.current_sample, "action": action, "metric": 2.0}
 
 
 class FiniteEnvWithComplexObs(FiniteEnv):
@@ -89,7 +89,7 @@ class FiniteEnvWithComplexObs(FiniteEnv):
         self.current_step += 1
         assert self.current_step <= self.step_count
         return _test_space.sample(), 1.0, self.current_step >= self.step_count, \
-            {'sample': _test_space.sample(), 'action': action, 'metric': 2.0}
+            {"sample": _test_space.sample(), "action": action, "metric": 2.0}
 
 
 class DummyDataset(Dataset):
@@ -127,7 +127,7 @@ class MetricTracker(BaseLogger):
 
     def log_step(self, env_id, obs, rew, done, info):
         assert rew == 1.
-        index = info['sample']
+        index = info["sample"]
         if done:
             # assert index not in self.finished
             self.finished.add(index)

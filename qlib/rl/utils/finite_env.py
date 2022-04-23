@@ -23,12 +23,12 @@ __all__ = [
     "FiniteDummyVectorEnv",
     "FiniteSubprocVectorEnv",
     "FiniteShmemVectorEnv",
-    'FiniteEnvType',
-    'finite_env_cls',
+    "FiniteEnvType",
+    "finite_env_cls",
 ]
 
 
-FiniteEnvType = Literal['dummy', 'subproc', 'shmem']
+FiniteEnvType = Literal["dummy", "subproc", "shmem"]
 
 
 def fill_invalid(obj):
@@ -205,10 +205,10 @@ class FiniteShmemVectorEnv(FiniteVectorEnv, ShmemVectorEnv):
 
 
 def finite_env_cls(env_type: FiniteEnvType) -> Type[FiniteVectorEnv]:
-    if env_type == 'dummy':
+    if env_type == "dummy":
         return FiniteDummyVectorEnv
-    elif env_type == 'subproc':
+    elif env_type == "subproc":
         return FiniteSubprocVectorEnv
-    elif env_type == 'shmem':
+    elif env_type == "shmem":
         return FiniteShmemVectorEnv
-    raise ValueError(f'Unexpected env_type: {env_type}')
+    raise ValueError(f"Unexpected env_type: {env_type}")

@@ -12,7 +12,7 @@ from gym.spaces import Discrete
 from tianshou.data import Batch, to_torch
 from tianshou.policy import PPOPolicy, BasePolicy
 
-__all__ = ['AllOne', 'PPO']
+__all__ = ["AllOne", "PPO"]
 
 
 # baselines #
@@ -105,19 +105,19 @@ class PPO(PPOPolicy):
 def auto_device(module: nn.Module) -> torch.device:
     for param in module.parameters():
         return param.device
-    return torch.device('cpu')  # fallback to cpu
+    return torch.device("cpu")  # fallback to cpu
 
 
 def load_weight(policy, path):
-    assert isinstance(policy, nn.Module), 'Policy has to be an nn.Module to load weight.'
-    loaded_weight = torch.load(path, map_location='cpu')
+    assert isinstance(policy, nn.Module), "Policy has to be an nn.Module to load weight."
+    loaded_weight = torch.load(path, map_location="cpu")
     try:
         policy.load_state_dict(loaded_weight)
     except RuntimeError:
         # try again by loading the converted weight
         # https://github.com/thu-ml/tianshou/issues/468
         for k in list(loaded_weight):
-            loaded_weight['_actor_critic.' + k] = loaded_weight[k]
+            loaded_weight["_actor_critic." + k] = loaded_weight[k]
         policy.load_state_dict(loaded_weight)
 
 

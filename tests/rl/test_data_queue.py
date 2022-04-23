@@ -15,7 +15,7 @@ class DummyDataset(Dataset):
 
     def __getitem__(self, index):
         assert 0 <= index < self.length
-        return pd.DataFrame(np.random.randint(0, 100, size=(index + 1, 4)), columns=list('ABCD'))
+        return pd.DataFrame(np.random.randint(0, 100, size=(index + 1, 4)), columns=list("ABCD"))
 
     def __len__(self):
         return self.length
@@ -82,5 +82,5 @@ def test_exit_on_crash_infinite():
     process.join()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     test_multiprocess_shared_dataloader()

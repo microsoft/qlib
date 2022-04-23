@@ -17,7 +17,7 @@ from qlib.rl.reward import Reward
 from .finite_env import generate_nan_observation
 
 # in this case, there won't be any seed for simulator
-SEED_INTERATOR_MISSING = '_missing_'
+SEED_INTERATOR_MISSING = "_missing_"
 
 class InfoDict(TypedDict):
     log: dict[str, Any]     # collected by LogCollector
@@ -97,7 +97,7 @@ class EnvWrapper(gym.Env[ObsType, PolicyActType]):
         # If the queue is exhausted, generate an invalid (nan) observation
         try:
             if self.seed_iterator is None:
-                raise RuntimeError('You can trying to get a state from a dead environment wrapper.')
+                raise RuntimeError("You can trying to get a state from a dead environment wrapper.")
 
             # FIXME: simulator/observation might need seed to prefetch something
             # as only seed has the ability to do the work beforehands
@@ -130,7 +130,7 @@ class EnvWrapper(gym.Env[ObsType, PolicyActType]):
 
     def step(self, action: ActType, **kwargs) -> tuple[ObsType, float, bool, InfoDict]:
         if self.seed_iterator is None:
-            raise RuntimeError('State queue is already exhausted, but the environment is still receiving action.')
+            raise RuntimeError("State queue is already exhausted, but the environment is still receiving action.")
 
         # Action is what we have got from policy
         self.status.action_history.append(action)

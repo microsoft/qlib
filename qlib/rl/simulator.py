@@ -9,11 +9,11 @@ from .seed import InitialStateType
 if TYPE_CHECKING:
     from .utils.env_wrapper import EnvWrapper
 
-StateType = TypeVar('StateType')
+StateType = TypeVar("StateType")
 """StateType stores all the useful data in the simulation process
 (as well as utilities to generate/retrieve data when needed)."""
 
-ActType = TypeVar('ActType')
+ActType = TypeVar("ActType")
 """This ActType is the type of action at the simulator end."""
 
 
@@ -48,7 +48,7 @@ class Simulator(Generic[InitialStateType, StateType, ActType]):
         Simulators are discouraged to use this, because it's prone to induce errors.
     """
 
-    env: 'ReferenceType[EnvWrapper]'
+    env: "ReferenceType[EnvWrapper]"
 
     def __init__(self, initial: InitialStateType, **kwargs) -> None:
         pass

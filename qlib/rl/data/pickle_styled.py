@@ -24,7 +24,7 @@ from cachetools.keys import hashkey
 from qlib.backtest.decision import OrderDir
 
 
-DealPriceType = Literal['bid_or_ask', 'bid_or_ask_fill', 'close']
+DealPriceType = Literal["bid_or_ask", "bid_or_ask_fill", "close"]
 """Several ad-hoc deal price.
 ``bid_or_ask``: If sell, use column ``$bid0``; if buy, use column ``$ask0``.
 ``bid_or_ask_fill``: Based on ``bid_or_ask``. If price is 0, use another price (``$ask0`` / ``$bid0``) instead.
@@ -53,9 +53,9 @@ def _find_pickle(filename_without_suffix: Path) -> Path:
         if path.exists():
             paths.append(path)
     if not paths:
-        raise FileNotFoundError(f'No file starting with "{filename_without_suffix}" found')
+        raise FileNotFoundError(f"No file starting with '{filename_without_suffix}' found")
     if len(paths) > 1:
-        raise ValueError(f'Multiple paths are found with prefix "{filename_without_suffix}": {paths}')
+        raise ValueError(f"Multiple paths are found with prefix '{filename_without_suffix}': {paths}")
     return paths[0]
 
 
@@ -68,7 +68,7 @@ class IntradayBacktestData:
     """Raw market data that is often used in backtesting (thus called BacktestData)."""
 
     def __init__(self, data_dir: Path, stock_id: str, date: pd.Timestamp,
-                 deal_price: DealPriceType = 'close', order_dir: int | None = None):
+                 deal_price: DealPriceType = "close", order_dir: int | None = None):
         backtest = _read_pickle(data_dir / stock_id)
         backtest = backtest.loc[pd.IndexSlice[stock_id, :, date]].droplevel([0, 2])
 
@@ -77,8 +77,8 @@ class IntradayBacktestData:
         self.order_dir: int | None = order_dir
 
     def __repr__(self):
-        with pd.option_context('memory_usage', False, 'display.max_info_columns', 1, 'display.large_repr', 'info'):
-            return f'{self.__class__.__name__}({self.data})'
+        with pd.option_context("memory_usage", False, "display.max_info_columns", 1, "display.large_repr", "info"):
+            return f"{self.__class__.__name__}({self.data})"
 
     def __len__(self):
         return len(self.data)
@@ -86,29 +86,29 @@ class IntradayBacktestData:
     def get_deal_price(self) -> pd.Series:
         """Return a pandas series that can be indexed with time.
         See :attribute:`DealPriceType` for details."""
-        if self.deal_price_type in ('bid_or_ask', 'bid_or_ask_fill'):
+        if self.deal_price_type in ("bid_or_ask", "bid_or_ask_fill"):
             if self.order_dir is None:
-                raise ValueError('Order direction cannot be none when deal_price_type is not close.')
+                raise ValueError("Order direction cannot be none when deal_price_type is not close.")
             if self.order_dir == OrderDir.SELL:
-                col = '$bid0'
+                col = "$bid0"
             else:               # BUY
-                col = '$ask0'
-        elif self.deal_price_type == 'close':
-            col = '$close0'
+                col = "$ask0"
+        elif self.deal_price_type == "close":
+            col = "$close0"
         price = self.data[col]
 
-        if self.deal_price_type == 'bid_or_ask_fill':
+        if self.deal_price_type == "bid_or_ask_fill":
             if self.order_dir == OrderDir.SELL:
-                fill_col = '$ask0'
+                fill_col = "$ask0"
             else:
-                fill_col = '$bid0'
+                fill_col = "$bid0"
             price = price.replace(0, np.nan).fillna(self.data[fill_col])
 
         return price
 
     def get_volume(self) -> pd.Series:
         """Return a volume series that can be indexed with time."""
-        return self.data['$volume0']
+        return self.data["$volume0"]
 
     def get_time_index(self) -> pd.DatetimeIndex:
         return self.data.index
@@ -145,7 +145,7 @@ class IntradayProcessedData:
             proc = proc.loc[pd.IndexSlice[stock_id, :, date]]
             assert len(proc) == time_length and len(proc.columns) == feature_dim * 2
             proc_today = proc[cnames]
-            proc_yesterday = proc[[f'{c}_1' for c in cnames]].rename(columns=lambda c: c[:-2])
+            proc_yesterday = proc[[f"{c}_1" for c in cnames]].rename(columns=lambda c: c[:-2])
         except (IndexError, KeyError):
             # legacy data
             proc = proc.loc[pd.IndexSlice[stock_id, date]]
@@ -161,13 +161,13 @@ class IntradayProcessedData:
         assert len(self.today) == len(self.yesterday) == time_length
 
     def __repr__(self):
-        with pd.option_context('memory_usage', False, 'display.max_info_columns', 1, 'display.large_repr', 'info'):
-            return f'{self.__class__.__name__}({self.today}, {self.yesterday})'
+        with pd.option_context("memory_usage", False, "display.max_info_columns", 1, "display.large_repr", "info"):
+            return f"{self.__class__.__name__}({self.today}, {self.yesterday})"
 
 
 @lru_cache(maxsize=100)  # 100 * 50K = 5MB
 def get_intraday_backtest_data(
-    data_dir: Path, stock_id: str, date: pd.Timestamp, deal_price: DealPriceType = 'close', order_dir: int | None = None
+    data_dir: Path, stock_id: str, date: pd.Timestamp, deal_price: DealPriceType = "close", order_dir: int | None = None
 ) -> IntradayBacktestData:
     return IntradayBacktestData(data_dir, stock_id, date, deal_price, order_dir)
 

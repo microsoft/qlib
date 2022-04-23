@@ -16,7 +16,7 @@ from qlib.rl.reward import Reward
 from qlib.rl.utils.data_queue import DataQueue
 from qlib.rl.utils.env_wrapper import EnvWrapper
 from qlib.rl.utils.finite_env import FiniteEnvType, finite_env_cls
-from qlib.rl.utils.logger import BasicLogger
+from qlib.rl.utils.log import BasicLogger
 
 
 _logger = get_module_logger(__name__)
@@ -29,7 +29,7 @@ def backtest(
     seed_set: Sequence[InitialStateType],
     policy: BasePolicy,
     reward: Reward | None = None,
-    finite_env_type: FiniteEnvType = 'subproc',
+    finite_env_type: FiniteEnvType = "subproc",
     concurrency: int = 2
 ):
     """Backtest with the parallelism provided by RL framework."""
