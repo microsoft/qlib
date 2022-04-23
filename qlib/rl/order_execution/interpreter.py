@@ -12,7 +12,7 @@ from gym import spaces
 
 from qlib.constant import EPS
 from qlib.rl.interpreter import StateInterpreter, ActionInterpreter
-from qlib.rl.tasks.data import pickle_styled
+from qlib.rl.data import pickle_styled
 
 from .simulator_simple import SAOEState
 

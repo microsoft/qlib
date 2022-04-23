@@ -13,7 +13,7 @@ from qlib.backtest import Order
 from qlib.backtest.decision import OrderDir
 from qlib.constant import EPS
 from qlib.rl.simulator import Simulator
-from qlib.rl.tasks.data.pickle_styled import (
+from qlib.rl.data.pickle_styled import (
     IntradayBacktestData, get_intraday_backtest_data, DealPriceType
 )
 

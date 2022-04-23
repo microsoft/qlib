@@ -4,8 +4,8 @@ import pandas as pd
 import pytest
 
 from qlib.backtest import Order
-from qlib.rl.tasks.data import pickle_styled
-from qlib.rl.tasks.order_execution import SingleAssetOrderExecution
+from qlib.rl.data import pickle_styled
+from qlib.rl.order_execution import SingleAssetOrderExecution
 
 
 DATA_DIR = Path('/mnt/data/Sample-Testdata/us/')  # Update this when infrastructure is built.

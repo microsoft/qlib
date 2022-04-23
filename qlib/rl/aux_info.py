@@ -1,6 +1,10 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+class LogCollector:
+    """Logs are first collected in each environment worker,
+    and then aggregated to stream at the central thread in vector env."""
+
 class AuxiliaryInfoCollector:
 
     def __init__(self, logger):

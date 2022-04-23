@@ -30,15 +30,16 @@ def backtest(
     policy: BasePolicy,
     reward: Reward | None = None,
     finite_env_type: FiniteEnvType = 'subproc',
-    env_concurrency: int = 2
+    concurrency: int = 2
 ):
+    """Backtest with the parallelism provided by RL framework."""
     seed_iterator = DataQueue(seed_set)
     finite_venv = finite_env_cls(finite_env_type)
 
     with seed_iterator:
         vector_env = finite_venv(BasicLogger(), [
             lambda: EnvWrapper(simulator_fn, state_interpreter, action_interpreter, seed_iterator, reward)
-            for _ in range(env_concurrency)
+            for _ in range(concurrency)
         ])
 
         try:
