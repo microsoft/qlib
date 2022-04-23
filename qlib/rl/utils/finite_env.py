@@ -141,7 +141,7 @@ class FiniteVectorEnv(BaseVectorEnv):
         # logging
         for i, o in zip(id, obs):
             if i in self._alive_env_ids:
-                self._logger.log_reset(i, obs)
+                self._logger.on_env_reset(i, obs)
 
         # fill empty observation with default(fake) observation
         for o in obs:
@@ -175,7 +175,7 @@ class FiniteVectorEnv(BaseVectorEnv):
         # logging
         for i, r in zip(id, result):
             if i in self._alive_env_ids:
-                self._logger.log_step(i, *r)
+                self._logger.on_env_step(i, *r)
 
         # fill empty observation/info with default(fake)
         for _, r, ___, i in result:

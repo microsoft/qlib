@@ -5,7 +5,7 @@ import numpy as np
 from tianshou.data import Batch, Collector
 from tianshou.policy import BasePolicy
 from torch.utils.data import DataLoader, Dataset, DistributedSampler
-from neutrader.env.finite_env import (BaseLogger, FiniteDummyVectorEnv, FiniteShmemVectorEnv,
+from qlib.rl.utils.finite_env import (LogWriter, FiniteDummyVectorEnv, FiniteShmemVectorEnv,
                                       FiniteSubprocVectorEnv, check_nan_observation,
                                       generate_nan_observation)
 
@@ -43,6 +43,7 @@ class FiniteEnv(gym.Env):
             batch_size=None)
         self.iterator = None
         self.observation_space = gym.spaces.Discrete(255)
+        self.action_space = gym.spaces.Discrete(2)
 
     def reset(self):
         if self.iterator is None:
@@ -73,6 +74,7 @@ class FiniteEnvWithComplexObs(FiniteEnv):
             batch_size=None)
         self.iterator = None
         self.observation_space = gym.spaces.Discrete(255)
+        self.action_space = gym.spaces.Discrete(2)
 
     def reset(self):
         if self.iterator is None:
@@ -119,13 +121,14 @@ def _finite_env_factory(dataset, num_replicas, rank, complex=False):
     return lambda: FiniteEnv(dataset, num_replicas, rank)
 
 
-class MetricTracker(BaseLogger):
+class MetricTracker(LogWriter):
     def __init__(self, length):
+        super().__init__()
         self.counter = Counter()
         self.finished = set()
         self.length = length
 
-    def log_step(self, env_id, obs, rew, done, info):
+    def on_env_step(self, env_id, obs, rew, done, info):
         assert rew == 1.
         index = info["sample"]
         if done:
@@ -133,20 +136,14 @@ class MetricTracker(BaseLogger):
             self.finished.add(index)
         self.counter[index] += 1
 
-    def log_reset(self, env_id, obs):
-        pass
-
     def validate(self):
         assert len(self.finished) == self.length
         for k, v in self.counter.items():
             assert v == k * 3 % 5 + 1
 
 
-class DoNothingTracker(BaseLogger):
-    def log_step(self, env_id, obs, rew, done, info):
-        pass
-
-    def log_reset(self, env_id, obs):
+class DoNothingTracker(LogWriter):
+    def on_env_step(self, *args, **kwargs):
         pass
 
 
