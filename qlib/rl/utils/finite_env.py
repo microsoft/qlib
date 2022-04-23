@@ -14,7 +14,7 @@ from typing import Any, Type
 from tianshou.env import BaseVectorEnv, DummyVectorEnv, ShmemVectorEnv, SubprocVectorEnv
 
 from qlib.typehint import Literal
-from .logger import RLLogger
+from .log import LogWriter
 
 __all__ = [
     "generate_nan_observation",
@@ -78,7 +78,7 @@ def check_nan_observation(obs: Any) -> bool:
 
 
 class FiniteVectorEnv(BaseVectorEnv):
-    def __init__(self, logger: RLLogger, env_fns, **kwargs):
+    def __init__(self, logger: LogWriter, env_fns, **kwargs):
         super().__init__(env_fns, **kwargs)
         self._logger = logger
         self._alive_env_ids = set()
