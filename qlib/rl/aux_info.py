@@ -18,7 +18,7 @@ AuxInfoType = TypeVar("AuxInfoType")
 class AuxiliaryInfoCollector(Generic[StateType, AuxInfoType]):
     """Override this class to collect customized auxiliary information from environment."""
 
-    _env: ReferenceType["EnvWrapper"]
+    _env: "ReferenceType[EnvWrapper]"
 
     @property
     def env(self) -> "EnvWrapper":

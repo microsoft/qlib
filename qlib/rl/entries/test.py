@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from contextlib import suppress
 from typing import Callable, Sequence
 
 from tianshou.data import Collector
@@ -42,10 +43,8 @@ def backtest(
             for _ in range(concurrency)
         ])
 
-        try:
+        with suppress(StopIteration):
             test_collector = Collector(policy, vector_env)
-        except StopIteration:
-            pass
 
         policy.eval()
         _logger.info("All ready. Start backtest.", __name__)

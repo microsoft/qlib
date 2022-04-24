@@ -6,6 +6,8 @@ This is to support finite env in vector env.
 See https://github.com/thu-ml/tianshou/issues/322 for details.
 """
 
+from __future__ import annotations
+
 import copy
 import gym
 import numpy as np
@@ -78,9 +80,10 @@ def check_nan_observation(obs: Any) -> bool:
 
 
 class FiniteVectorEnv(BaseVectorEnv):
-    def __init__(self, logger: LogWriter, env_fns, **kwargs):
+    def __init__(self, logger: LogWriter | list[LogWriter], env_fns, **kwargs):
         super().__init__(env_fns, **kwargs)
-        self._logger = logger
+
+        self._logger: list[LogWriter] = logger if isinstance(logger, list) else [logger]
         self._alive_env_ids: Set[int] = set()
         self._reset_alive_envs()
         self._default_obs = self._default_info = self._default_rew = None
@@ -141,7 +144,8 @@ class FiniteVectorEnv(BaseVectorEnv):
         # logging
         for i, o in zip(id, obs):
             if i in self._alive_env_ids:
-                self._logger.on_env_reset(i, obs)
+                for logger in self._logger:
+                    logger.on_env_reset(i, obs)
 
         # fill empty observation with default(fake) observation
         for o in obs:
@@ -153,6 +157,8 @@ class FiniteVectorEnv(BaseVectorEnv):
         if not self._alive_env_ids:
             # comment this line so that the env becomes indisposable
             # self.reset()
+            for logger in self._logger:
+                logger.on_env_all_done()
             self._zombie = True
             raise StopIteration
 
@@ -175,7 +181,8 @@ class FiniteVectorEnv(BaseVectorEnv):
         # logging
         for i, r in zip(id, result):
             if i in self._alive_env_ids:
-                self._logger.on_env_step(i, *r)
+                for logger in self._logger:
+                    logger.on_env_step(i, *r)
 
         # fill empty observation/info with default(fake)
         for _, r, ___, i in result:

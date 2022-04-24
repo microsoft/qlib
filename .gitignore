@@ -27,8 +27,9 @@ examples/estimator/estimator_example/
 
 *.egg-info/
 
+# test related
 test-output.xml
-
+.output
 
 # special software
 mlruns/
