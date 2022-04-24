@@ -8,6 +8,9 @@ This is the format used in `OPD paper <https://seqml.github.io/opd/>`__. NOT the
 The data here are all wrapped with ``@lru_cache``, which saves the expensive IO cost to repetitively read the data.
 We also encourage users to use ``get_xxx_yyy`` rather than ``XxxYyy`` (although they are the same thing),
 because ``get_xxx_yyy`` is cache-optimized.
+
+Note that these pickle files are dumped with Python 3.8. Python lower than 3.7 might not be able to load them.
+See `PEP 574 <https://peps.python.org/pep-0574/>`__ for details.
 """
 
 from __future__ import annotations
