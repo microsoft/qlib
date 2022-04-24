@@ -170,7 +170,7 @@ class BaseCollector(abc.ABC):
         df["symbol"] = symbol
         if instrument_path.exists():
             _old_df = pd.read_csv(instrument_path)
-            df = _old_df.append(df, sort=False)
+            df = pd.concat([_old_df, df], sort=False)
         df.to_csv(instrument_path, index=False)
 
     def cache_small_data(self, symbol, df):
