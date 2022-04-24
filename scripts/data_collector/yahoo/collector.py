@@ -404,7 +404,7 @@ class YahooNormalize(BaseNormalize):
                 .index
             )
         df.sort_index(inplace=True)
-        df.loc[(df["volume"] <= 0) | np.isnan(df["volume"]), set(df.columns) - {symbol_field_name}] = np.nan
+        df.loc[(df["volume"] <= 0) | np.isnan(df["volume"]), list(set(df.columns) - {symbol_field_name})] = np.nan
 
         change_series = YahooNormalize.calc_change(df, last_close)
         # NOTE: The data obtained by Yahoo finance sometimes has exceptions
