@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import NamedTuple, TypedDict, Any
+from typing import NamedTuple, TypedDict, Any, TypeVar, cast
 
 import numpy as np
 import pandas as pd
@@ -58,7 +58,7 @@ class SAOEState(NamedTuple):
     history_exec: pd.DataFrame          # See :attr:`SingleAssetOrderExecution.history_exec`
     history_steps: pd.DataFrame         # See :attr:`SingleAssetOrderExecution.history_steps`
 
-    metrics: SAOEMetrics                # Daily metric, only available when the trading is in "done" state
+    metrics: SAOEMetrics | None         # Daily metric, only available when the trading is in "done" state
 
     # Backtest data is included in the state.
     # Actually, only the time index of this data is needed, at this moment.
@@ -66,19 +66,31 @@ class SAOEState(NamedTuple):
 
     backtest_data: IntradayBacktestData     # Backtest data. interpreter should be careful not to leak feature
 
-    # All possible trading ticks in all day, NOT sliced by order (defined in data). e.g., [9:30, 9:31, ..., 14:59]
-    ticks_index: pd.DatetimeIndex
+    ticks_per_step: int                     # How many ticks for each step
+    ticks_index: pd.DatetimeIndex           # Trading ticks in all day,
+                                            # NOT sliced by order (defined in data). e.g., [9:30, 9:31, ..., 14:59]
+    ticks_for_order: pd.DatetimeIndex       # Trading ticks sliced by order, e.g., [9:45, 9:46, ..., 14:44]
 
 
 class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
     """Single-asset order execution (SAOE) simulator.
 
+    As there's no "calendar" in the simple simulator, ticks are used to trade.
+    A tick is a record (a line) in the pickle-styled data file.
+    Each tick is considered as a individual trading opportunity.
+    If such fine granularity is not needed, use ``ticks_per_step`` to
+    lengthen the ticks for each step.
+
+    In each step, the traded amount are "equally" splitted to each tick,
+    then bounded by volume maximum exeuction volume (i.e., ``vol_threshold``),
+    and if it's the last step, try to ensure all the amount to be executed.
+
     Parameters
     ----------
     initial
         The seed to start an SAOE simulator is an order.
-    time_per_step
-        Elapsed time per step.
+    ticks_per_step
+        How many ticks per step.
     data_dir
         Path to load backtest data
     vol_threshold
@@ -86,10 +98,11 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
     """
 
     history_exec: pd.DataFrame
-    """All execution history at every possible time ticks. See :class:`SAOEMetrics` for fields."""
+    """All execution history at every possible time ticks. See :class:`SAOEMetrics` for available columns."""
 
     history_steps: pd.DataFrame
-    """Positions at each step. The position before first step is also recorded."""
+    """Positions at each step. The position before first step is also recorded.
+    See :class:`SAOEMetrics` for available columns."""
 
     metrics: SAOEMetrics | None
     """Metrics. Only available when done."""
@@ -98,12 +111,18 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
     """This price is used to compute price advantage.
     It"s defined as the average price in the period from order"s start time to end time."""
 
+    ticks_index: pd.DatetimeIndex
+    """All available ticks for the day (not restricted to order)."""
+
+    ticks_for_order: pd.DatetimeIndex
+    """Ticks that is available for trading (sliced by order)."""
+
     def __init__(self, order: Order, data_dir: Path,
-                 time_per_step: str = "30min",
+                 ticks_per_step: int = 30,
                  deal_price_type: DealPriceType = "close",
                  vol_threshold: float | None = None) -> None:
         self.order = order
-        self.time_per_step = pd.Timedelta(time_per_step)
+        self.ticks_per_step: int = ticks_per_step
         self.deal_price_type = deal_price_type
         self.vol_threshold = vol_threshold
         self.data_dir = data_dir
@@ -115,11 +134,13 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
             order.direction
         )
 
-        # Get time index available for trading
-        time_index = self._get_time_index(self.order.start_time, self.order.end_time)
+        self.ticks_index = self.backtest_data.get_time_index()
 
-        self.cur_time = time_index[0]
-        self.twap_price = float(self.backtest_data.get_deal_price().loc[time_index].mean())
+        # Get time index available for trading
+        self.ticks_for_order = self._get_ticks_slice(self.order.start_time, self.order.end_time)
+
+        self.cur_time = self.ticks_for_order[0]
+        self.twap_price = float(self.backtest_data.get_deal_price().loc[self.ticks_for_order].mean())
 
         self.position = order.amount
 
@@ -144,7 +165,9 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
 
         assert not self.done()
 
+        self.market_price = self.market_vol = None  # avoid misuse
         exec_vol = self._split_exec_vol(amount)
+        assert self.market_price is not None and self.market_vol is not None
 
         ticks_position = self.position - np.cumsum(exec_vol)
 
@@ -153,7 +176,7 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
             raise ValueError(f"Execution volume is invalid: {exec_vol} (position = {self.position})")
 
         # Get time index available for this step
-        time_index = self._get_time_index(self.cur_time, self._next_time())
+        time_index = self._get_ticks_slice(self.cur_time, self._next_time())
 
         self.history_exec = self._dataframe_append(self.history_exec, dict(
             datetime=time_index,
@@ -175,7 +198,7 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
 
         if self.done():
             self.metrics = self._metrics_collect(
-                self.backtest_data.get_time_index()[0],  # start time
+                self.ticks_index[0],  # start time
                 self.history_exec["market_volume"],
                 self.history_exec["market_price"],
                 self.history_steps["amount"].sum(),
@@ -185,7 +208,6 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
         self.cur_time = self._next_time()
 
     def get_state(self) -> SAOEState:
-        ticks_index = self.backtest_data.get_time_index()
         return SAOEState(
             order=self.order,
             cur_time=self.cur_time,
@@ -194,7 +216,9 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
             history_steps=self.history_steps,
             metrics=self.metrics,
             backtest_data=self.backtest_data,
-            ticks_index=ticks_index
+            ticks_per_step=self.ticks_per_step,
+            ticks_index=self.ticks_index,
+            ticks_for_order=self.ticks_for_order
         )
 
     def done(self) -> bool:
@@ -202,7 +226,13 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
 
     def _next_time(self) -> pd.Timestamp:
         """The "current time" (``cur_time``) for next step."""
-        return min(self.order.end_time, self.cur_time + self.time_per_step)
+        # Look for next time on time index
+        current_loc = self.ticks_index.get_loc(self.cur_time)
+        next_loc = current_loc + self.ticks_per_step
+        if next_loc < len(self.ticks_index) and self.ticks_index[next_loc] < self.order.end_time:
+            return self.ticks_index[next_loc]
+        else:
+            return self.order.end_time
 
     def _cur_duration(self) -> pd.Timedelta:
         """The "duration" of this step (step that is about to happen)."""
@@ -219,18 +249,20 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
         self.market_vol = self.backtest_data.get_volume().loc[self.cur_time:next_time - ONE_SEC].to_numpy()
         self.market_price = self.backtest_data.get_deal_price() \
             .loc[self.cur_time:next_time - ONE_SEC].to_numpy()
+        
+        assert self.market_vol is not None and self.market_price is not None
 
         # split the volume equally into each minute
         exec_vol = np.repeat(exec_vol_sum / len(self.market_price), len(self.market_price))
 
         # apply the volume threshold
         market_vol_limit = self.vol_threshold * self.market_vol if self.vol_threshold is not None else np.inf
-        exec_vol = np.minimum(exec_vol, market_vol_limit)
+        exec_vol = np.minimum(exec_vol, market_vol_limit)  # type: ignore
 
         # Complete all the order amount at the last moment.
-        if next_time == self.order.end_time:
+        if next_time >= self.order.end_time:
             exec_vol[-1] += self.position - exec_vol.sum()
-            exec_vol = np.minimum(exec_vol, market_vol_limit)
+            exec_vol = np.minimum(exec_vol, market_vol_limit)  # type: ignore
 
         return exec_vol
 
@@ -257,11 +289,10 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
             pa=price_advantage(exec_avg_price, self.twap_price, self.order.direction)
         )
 
-    def _get_time_index(self, start: pd.Timestamp, end: pd.Timestamp, include_end: bool = False):
+    def _get_ticks_slice(self, start: pd.Timestamp, end: pd.Timestamp, include_end: bool = False):
         if not include_end:
             end = end - ONE_SEC
-        time_index = self.backtest_data.get_time_index()
-        return time_index[time_index.slice_indexer(start, end)]
+        return self.ticks_index[self.ticks_index.slice_indexer(start, end)]
 
     @staticmethod
     def _dataframe_append(df: pd.DataFrame, other: Any) -> pd.DataFrame:
@@ -271,9 +302,14 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
         return pd.concat([df, other_df], axis=0)
 
 
-def price_advantage(exec_price: float | np.ndarray, baseline_price: float, direction: OrderDir) -> float:
+_float_or_ndarray = TypeVar("_float_or_ndarray", float, np.ndarray)
+
+def price_advantage(exec_price: _float_or_ndarray, baseline_price: float, direction: OrderDir | int) -> _float_or_ndarray:
     if baseline_price == 0:  # something is wrong with data. Should be nan here
-        return 0.
+        if isinstance(exec_price, float):
+            return 0.
+        else:
+            return np.zeros_like(exec_price)
     if direction == OrderDir.BUY:
         res = (1 - exec_price / baseline_price) * 10000
     elif direction == OrderDir.SELL:

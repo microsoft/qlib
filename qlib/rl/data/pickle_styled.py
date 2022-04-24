@@ -172,7 +172,7 @@ def get_intraday_backtest_data(
     return IntradayBacktestData(data_dir, stock_id, date, deal_price, order_dir)
 
 
-@cachetools.cached(
+@cachetools.cached(  # type: ignore
     cache=cachetools.LRUCache(100),  # 100 * 50K = 5MB
     key=lambda data_dir, stock_id, date, _, __: hashkey(data_dir, stock_id, date)
 )

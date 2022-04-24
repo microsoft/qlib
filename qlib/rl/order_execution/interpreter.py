@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import math
 from pathlib import Path
 from typing import Any, TypedDict, cast
 
@@ -80,16 +81,20 @@ class FullHistoryStateInterpreter(StateInterpreter[SAOEState, FullHistoryObs]):
             self.data_dim, state.ticks_index
         )
 
+        position_history = np.full(self.max_step, np.nan, dtype=np.float32)
+        position_history[0] = state.order.amount
+        position_history[1:len(state.history_steps) + 1] = state.history_steps["position"].to_numpy()
+
         return cast(FullHistoryObs, canonicalize({
             "data_processed": self._mask_future_info(processed.today, state.cur_time),
             "data_processed_prev": processed.yesterday,
             "acquiring": state.order.direction == state.order.BUY,
-            "cur_tick": state.elapsed_ticks,
-            "cur_step": self.env().status.cur_step,
+            "cur_tick": np.sum(state.ticks_index < state.cur_time),
+            "cur_step": self.env.status["cur_step"],
             "num_step": self.max_step,
             "target": state.order.amount,
             "position": state.position,
-            "position_history": np.array(state.position_history),
+            "position_history": position_history,
         }))
 
     @property
@@ -143,10 +148,10 @@ class CurrentStepStateInterpreter(StateInterpreter[SAOEState, CurrentStateObs]):
         return spaces.Dict(space)
 
     def interpret(self, state: SAOEState) -> Any:
-        assert self.env().status.cur_step <= self.max_step
+        assert self.env.status["cur_step"] <= self.max_step
         obs = {
             "acquiring": state.order.direction == state.order.BUY,
-            "cur_step": self.env().status.cur_step,
+            "cur_step": self.env.status["cur_step"],
             "num_step": self.max_step,
             "target": state.order.amount,
             "position": state.position,
@@ -175,5 +180,6 @@ class TwapRemainingAdjustmentActionInterpreter(ActionInterpreter[SAOEState, floa
         return spaces.Box(0, np.inf, shape=(), dtype=np.float32)
 
     def to_volume(self, state: SAOEState, action: float) -> float:
-        twap_volume = state.position / (state.order.estimated_total_steps - self.env().status.cur_step)
+        estimated_total_steps = math.ceil(len(state.ticks_for_order) / state.ticks_per_step)
+        twap_volume = state.position / (estimated_total_steps - self.env.status.cur_step)
         return min(state.position, twap_volume * action)

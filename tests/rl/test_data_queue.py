@@ -1,4 +1,6 @@
-import atexit
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
 import multiprocessing
 import time
 

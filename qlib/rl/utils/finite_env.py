@@ -9,7 +9,7 @@ See https://github.com/thu-ml/tianshou/issues/322 for details.
 import copy
 import gym
 import numpy as np
-from typing import Any, Type
+from typing import Any, Type, Set
 
 from tianshou.env import BaseVectorEnv, DummyVectorEnv, ShmemVectorEnv, SubprocVectorEnv
 
@@ -81,7 +81,7 @@ class FiniteVectorEnv(BaseVectorEnv):
     def __init__(self, logger: LogWriter, env_fns, **kwargs):
         super().__init__(env_fns, **kwargs)
         self._logger = logger
-        self._alive_env_ids = set()
+        self._alive_env_ids: Set[int] = set()
         self._reset_alive_envs()
         self._default_obs = self._default_info = self._default_rew = None
         self._zombie = False

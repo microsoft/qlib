@@ -3,9 +3,11 @@
 
 """Commonly used types."""
 
-__all__ = ['Literal']
+import sys
 
-try:
-    from typing import Literal
-except:
+__all__ = ["Literal"]
+
+if sys.version_info >= (3, 8):
+    from typing import Literal  # type: ignore
+else:
     from typing_extensions import Literal

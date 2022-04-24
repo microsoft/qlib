@@ -54,15 +54,19 @@ class DataQueue(Generic[T]):
                  producer_num_workers: int = 0,
                  queue_maxsize: int = 0):
         if queue_maxsize == 0:
-            queue_maxsize = os.cpu_count()
-            _logger.info(f"Automatically set data queue maxsize to {queue_maxsize} to avoid overwhelming.")
+            if os.cpu_count() is not None:
+                queue_maxsize = cast(int, os.cpu_count())
+                _logger.info(f"Automatically set data queue maxsize to {queue_maxsize} to avoid overwhelming.")
+            else:
+                queue_maxsize = 1
+                _logger.warning(f"CPU count not available. Setting queue maxsize to 1.")
 
         self.dataset: Sequence[T] = dataset
         self.repeat: int = repeat
         self.producer_num_workers: int = producer_num_workers
 
         self._activated: bool = False
-        self._queue = multiprocessing.Queue(maxsize=queue_maxsize)
+        self._queue: multiprocessing.Queue = multiprocessing.Queue(maxsize=queue_maxsize)
         self._done = multiprocessing.Value("i", 0)
 
     def __enter__(self):

@@ -63,13 +63,13 @@ class Recurrent(nn.Module):
         pass
 
     def _source_features(self, obs: FullHistoryObs, device):
-        bs, _, data_dim = obs.data_processed.size()
-        data = torch.cat((torch.zeros(bs, 1, data_dim, device=device), obs.data_processed), 1)
-        cur_step = obs.cur_step.long()
-        cur_time = obs.cur_time.long()
+        bs, _, data_dim = obs["data_processed"].size()
+        data = torch.cat((torch.zeros(bs, 1, data_dim, device=device), obs["data_processed"]), 1)
+        cur_step = obs["cur_step"].long()
+        cur_tick = obs["cur_tick"].long()
         bs_indices = torch.arange(bs, device=device)
 
-        position = obs.position_history / obs.target.unsqueeze(-1)  # [bs, num_step]
+        position = obs["position_history"] / obs["target"].unsqueeze(-1)  # [bs, num_step]
         steps = (
             torch.arange(position.size(-1), device=device).unsqueeze(0).repeat(bs, 1).float()
             / obs["num_step"].unsqueeze(-1).float()
@@ -79,7 +79,7 @@ class Recurrent(nn.Module):
         data_in = self.raw_fc(data)
         data_out, _ = self.raw_rnn(data_in)
         # as it is padded with zero in front, this should be last minute
-        data_out_slice = data_out[bs_indices, cur_time]
+        data_out_slice = data_out[bs_indices, cur_tick]
 
         priv_in = self.pri_fc(priv)
         priv_out = self.pri_rnn(priv_in)[0]
@@ -87,7 +87,7 @@ class Recurrent(nn.Module):
 
         sources = [data_out_slice, priv_out]
 
-        dir_out = self.dire_fc(torch.stack((obs.acquiring, 1 - obs.acquiring), -1).float())
+        dir_out = self.dire_fc(torch.stack((obs["acquiring"], 1 - obs["acquiring"]), -1).float())
         sources.append(dir_out)
 
         return sources, data_out
@@ -106,7 +106,7 @@ class Recurrent(nn.Module):
         """
 
         inp = cast(FullHistoryObs, batch)
-        device = inp.data_processed.device
+        device = inp["data_processed"].device
 
         sources, _, __ = self._source_features(inp, device)
         assert len(sources) == self.num_sources

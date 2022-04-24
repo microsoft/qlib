@@ -24,25 +24,26 @@ class Interpreter:
     2. From policy action to action accepted by simulator, see :class:`ActionInterpreter`.
 
     Inherit one of the two sub-classes to define your own interpreter.
+    This super-class is only used for isinstance check.
 
-    Interpreters are recommmended to be stateless. # FIXME
+    Interpreters are recommmended to be stateless, meaning that storing temporary information with ``self.xxx``
+    in interpreter is anti-pattern. In future, we might support regsiter some interpreter-related
+    states by calling ``self.env.register_state()``, but it's not planned for first iteration.
     """
-
-    def interpret(self, **kwargs):
-        """Perfrom interpret action. Arguments differ in different contexts."""
-        raise NotImplementedError("interpret is not implemented!")
-
-    def __call__(self, **kwargs):
-        """Use ``intepreter(to_be_interpret)`` to interpret a message.
-        It calls the ``interpret`` method.
-        """
-        return self.interpret(**kwargs)
+    ...
 
 
 class StateInterpreter(Generic[StateType, ObsType], Interpreter):
     """State Interpreter that interpret execution result of qlib executor into rl env state"""
 
-    env: ReferenceType["EnvWrapper"]
+    _env: ReferenceType["EnvWrapper"]
+
+    @property
+    def env(self) -> "EnvWrapper":
+        e = self._env()
+        if e is None:
+            raise TypeError("env can not be None")
+        return e
 
     @property
     def observation_space(self) -> gym.Space:
@@ -77,7 +78,14 @@ class StateInterpreter(Generic[StateType, ObsType], Interpreter):
 class ActionInterpreter(Generic[StateType, PolicyActType, ActType], Interpreter):
     """Action Interpreter that interpret rl agent action into qlib orders"""
 
-    env: ReferenceType["EnvWrapper"]
+    _env: ReferenceType["EnvWrapper"]
+
+    @property
+    def env(self) -> "EnvWrapper":
+        e = self._env()
+        if e is None:
+            raise TypeError("env can not be None")
+        return e
 
     @property
     def action_space(self) -> gym.Space:

@@ -20,7 +20,14 @@ class Reward(Generic[SimulatorState]):
     Subclass should implement ``reward(simulator_state)`` to implement their own reward calculation recipe.
     """
 
-    env_wrapper: ReferenceType["EnvWrapper"]
+    _env: ReferenceType["EnvWrapper"]
+
+    @property
+    def env(self) -> "EnvWrapper":
+        e = self._env()
+        if e is None:
+            raise TypeError("env can not be None")
+        return e
 
     @final
     def __call__(self, simulator_state: SimulatorState) -> float:
@@ -38,7 +45,7 @@ class RewardCombination(Reward):
     """Combination of multiple reward."""
 
     def __init__(self, rewards: dict[str, tuple[Reward, float]]):
-        self.rewards: dict[str, Reward] = rewards
+        self.rewards = rewards
 
     def reward(self, simulator_state: Any) -> float:
         total_reward = 0.

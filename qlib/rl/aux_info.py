@@ -1,31 +1,47 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-class LogCollector:
-    """Logs are first collected in each environment worker,
-    and then aggregated to stream at the central thread in vector env."""
+from typing import Generic, TYPE_CHECKING, TypeVar, final
+from weakref import ReferenceType
 
-class AuxiliaryInfoCollector:
+from .simulator import StateType
 
-    def __init__(self, logger):
+if TYPE_CHECKING:
+    from .utils.env_wrapper import EnvWrapper
 
-    def __call__(self):
-        info = {"category": ep_state.flow_dir.value, "reward": rew_info}
-        if ep_state.done:
-            info["index"] = {"stock_id": sample.stock_id, "date": sample.date}
-            info["history"] = {"action": self.action_history}
-            info.update(ep_state.logs())
 
-            try:
-                # done but loop is not exhausted
-                # exhaust the loop manually
-                while True:
-                    self.collect_data_loop.send(0.)
-            except StopIteration:
-                pass
+__all__ = ["AuxiliaryInfoCollector"]
 
-            info["qlib"] = {}
-            for key, val in list(
-                self.executor.trade_account.get_trade_indicator().order_indicator_his.values()
-            )[0].to_series().items():
-                info["qlib"][key] = val.item()
+AuxInfoType = TypeVar("AuxInfoType")
+
+
+class AuxiliaryInfoCollector(Generic[StateType, AuxInfoType]):
+    """Override this class to collect customized auxiliary information from environment."""
+
+    _env: ReferenceType["EnvWrapper"]
+
+    @property
+    def env(self) -> "EnvWrapper":
+        e = self._env()
+        if e is None:
+            raise TypeError("env can not be None")
+        return e
+
+    @final
+    def __call__(self, simulator_state: StateType) -> AuxInfoType:
+        return self.collect(simulator_state)
+
+    def collect(self, simulator_state: StateType) -> AuxInfoType:
+        """Override this for customized auxiliary info.
+        Usually useful in Multi-agent RL.
+
+        Parameters
+        ----------
+        simulator_state
+            Retrieved with ``simulator.get_state()``.
+
+        Returns
+        -------
+        Auxiliary information.
+        """
+        raise NotImplementedError("collect is not implemented!")

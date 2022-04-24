@@ -48,7 +48,7 @@ class Simulator(Generic[InitialStateType, StateType, ActType]):
         Simulators are discouraged to use this, because it's prone to induce errors.
     """
 
-    env: "ReferenceType[EnvWrapper]"
+    _env: "ReferenceType[EnvWrapper]"
 
     def __init__(self, initial: InitialStateType, **kwargs) -> None:
         pass
@@ -72,3 +72,10 @@ class Simulator(Generic[InitialStateType, StateType, ActType]):
         the old one should be destroyed and a new simulator can be created.
         """
         raise NotImplementedError()
+
+    @property
+    def env(self) -> "EnvWrapper":
+        e = self._env()
+        if e is None:
+            raise TypeError("env can not be None")
+        return e

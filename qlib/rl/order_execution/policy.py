@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 from pathlib import Path
-from typing import Optional
+from typing import Optional, cast
 
 import numpy as np
 import gym
@@ -42,7 +42,7 @@ class PPOActor(nn.Module):
         super().__init__()
         self.extractor = extractor
         self.layer_out = nn.Sequential(
-            nn.Linear(extractor.output_dim, action_dim),
+            nn.Linear(cast(int, extractor.output_dim), action_dim),
             nn.Softmax(dim=-1)
         )
 
@@ -56,7 +56,7 @@ class PPOCritic(nn.Module):
     def __init__(self, extractor: nn.Module):
         super().__init__()
         self.extractor = extractor
-        self.value_out = nn.Linear(extractor.output_dim, 1)
+        self.value_out = nn.Linear(cast(int, extractor.output_dim), 1)
 
     def forward(self, obs, state=None, info={}):
         feature = self.extractor(to_torch(obs, device=auto_device(self)))
