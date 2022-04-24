@@ -90,7 +90,6 @@ class CSIIndex(IndexBase):
         raise NotImplementedError("rewrite index_code")
 
     @property
-    @abc.abstractmethod
     def html_table_index(self) -> int:
         """Which table of changes in html
 
@@ -98,7 +97,7 @@ class CSIIndex(IndexBase):
         CSI100: 1
         :return:
         """
-        raise NotImplementedError()
+        raise NotImplementedError("rewrite html_table_index")
 
     def format_datetime(self, inst_df: pd.DataFrame) -> pd.DataFrame:
         """formatting the datetime in an instrument
@@ -184,12 +183,7 @@ class CSIIndex(IndexBase):
         df = pd.DataFrame()
         _tmp_count = 0
         for _df in pd.read_html(content):
-            if (
-                _df.shape[-1] != 4
-                or _df.iloc[2:,][0].str.contains(
-                    "."
-                )[2]
-            ):
+            if _df.shape[-1] != 4 or _df.isnull().loc(0)[0][0]:
                 continue
             _tmp_count += 1
             if self.html_table_index + 1 > _tmp_count:
@@ -341,8 +335,8 @@ class CSI300Index(CSIIndex):
         return pd.Timestamp("2005-01-01")
 
     @property
-    def html_table_index(self):
-        return 1
+    def html_table_index(self) -> int:
+        return 0
 
 
 class CSI100Index(CSIIndex):
@@ -355,8 +349,8 @@ class CSI100Index(CSIIndex):
         return pd.Timestamp("2006-05-29")
 
     @property
-    def html_table_index(self):
-        return 2
+    def html_table_index(self) -> int:
+        return 1
 
 
 class CSI500Index(CSIIndex):
@@ -367,10 +361,6 @@ class CSI500Index(CSIIndex):
     @property
     def bench_start_date(self) -> pd.Timestamp:
         return pd.Timestamp("2007-01-15")
-
-    @property
-    def html_table_index(self) -> int:
-        return 0
 
     def get_changes(self) -> pd.DataFrame:
         """get companies changes
@@ -475,5 +465,4 @@ class CSI500Index(CSIIndex):
 
 
 if __name__ == "__main__":
-    get_instruments(index_name="CSI300", qlib_dir="~/.qlib/qlib_data/cn_data", method="parse_instruments")
-    # fire.Fire(get_instruments)
+    fire.Fire(get_instruments)
