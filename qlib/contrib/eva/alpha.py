@@ -123,7 +123,7 @@ def pred_autocorr(pred: pd.Series, lag=1, inst_col="instrument", date_col="datet
     """
     if isinstance(pred, pd.DataFrame):
         pred = pred.iloc[:, 0]
-        get_module_logger("pred_autocorr").warning("Only the first column in {pred.columns} of `pred` is kept")
+        get_module_logger("pred_autocorr").warning(f"Only the first column in {pred.columns} of `pred` is kept")
     pred_ustk = pred.sort_index().unstack(inst_col)
     corr_s = {}
     for (idx, cur), (_, prev) in zip(pred_ustk.iterrows(), pred_ustk.shift(lag).iterrows()):

@@ -4,7 +4,7 @@
 import re
 import abc
 import sys
-import importlib
+import datetime
 from io import BytesIO
 from typing import List, Iterable
 from pathlib import Path
@@ -158,7 +158,7 @@ class CSIIndex(IndexBase):
             symbol
         """
         symbol = f"{int(symbol):06}"
-        return f"SH{symbol}" if symbol.startswith("60") else f"SZ{symbol}"
+        return f"SH{symbol}" if symbol.startswith("60") or symbol.startswith("688") else f"SZ{symbol}"
 
     def _parse_excel(self, excel_url: str, add_date: pd.Timestamp, remove_date: pd.Timestamp) -> pd.DataFrame:
         content = retry_request(excel_url, exclude_status=[404]).content
@@ -184,7 +184,12 @@ class CSIIndex(IndexBase):
         df = pd.DataFrame()
         _tmp_count = 0
         for _df in pd.read_html(content):
-            if _df.shape[-1] != 4:
+            if (
+                _df.shape[-1] != 4
+                or _df.iloc[2:,][0].str.contains(
+                    "."
+                )[2]
+            ):
                 continue
             _tmp_count += 1
             if self.html_table_index + 1 > _tmp_count:
@@ -212,6 +217,12 @@ class CSIIndex(IndexBase):
 
     def _read_change_from_url(self, url: str) -> pd.DataFrame:
         """read change from url
+        The parameter url is from the _get_change_notices_url method.
+        Determine the stock add_date/remove_date based on the title.
+        The response contains three cases:
+            1.Only excel_url(extract data from excel_url)
+            2.Both the excel_url and the body text(try to extract data from excel_url first, and then try to extract data from body text)
+            3.Only body text(extract data from body text)
 
         Parameters
         ----------
@@ -259,14 +270,18 @@ class CSIIndex(IndexBase):
                     excel_url = excel_url if excel_url.startswith("/") else "/" + excel_url
                     excel_url = f"http://www.csindex.com.cn{excel_url}"
         if excel_url:
-            logger.info(f"get {add_date} changes from excel, title={title}, excel_url={excel_url}")
             try:
+                logger.info(f"get {add_date} changes from the excel, title={title}, excel_url={excel_url}")
                 df = self._parse_excel(excel_url, add_date, remove_date)
             except ValueError:
-                logger.warning(f"error downloading file: {excel_url}, will parse the table from the content")
+                logger.info(
+                    f"get {add_date} changes from the web page, title={title}, url=https://www.csindex.com.cn/#/about/newsDetail?id={url.split('id=')[-1]}"
+                )
                 df = self._parse_table(_text, add_date, remove_date)
         else:
-            logger.info(f"get {add_date} changes from url content, title={title}")
+            logger.info(
+                f"get {add_date} changes from the web page, title={title}, url=https://www.csindex.com.cn/#/about/newsDetail?id={url.split('id=')[-1]}"
+            )
             df = self._parse_table(_text, add_date, remove_date)
         return df
 
@@ -330,7 +345,7 @@ class CSI300Index(CSIIndex):
         return 1
 
 
-class CSI100(CSIIndex):
+class CSI100Index(CSIIndex):
     @property
     def index_code(self):
         return "000903"
@@ -344,7 +359,7 @@ class CSI100(CSIIndex):
         return 2
 
 
-class CSI500(CSIIndex):
+class CSI500Index(CSIIndex):
     @property
     def index_code(self) -> str:
         return "000905"
@@ -460,4 +475,5 @@ class CSI500(CSIIndex):
 
 
 if __name__ == "__main__":
-    fire.Fire(get_instruments)
+    get_instruments(index_name="CSI300", qlib_dir="~/.qlib/qlib_data/cn_data", method="parse_instruments")
+    # fire.Fire(get_instruments)

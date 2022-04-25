@@ -150,32 +150,6 @@ class Log(NpElemOperator):
         super(Log, self).__init__(feature, "log")
 
 
-class Power(NpElemOperator):
-    """Feature Power
-
-    Parameters
-    ----------
-    feature : Expression
-        feature instance
-
-    Returns
-    ----------
-    Expression
-        a feature instance with power
-    """
-
-    def __init__(self, feature, exponent):
-        super(Power, self).__init__(feature, "power")
-        self.exponent = exponent
-
-    def __str__(self):
-        return "{}({},{})".format(type(self).__name__, self.feature, self.exponent)
-
-    def _load_internal(self, instrument, start_index, end_index, *args):
-        series = self.feature.load(instrument, start_index, end_index, *args)
-        return getattr(np, self.func)(series, self.exponent)
-
-
 class Mask(NpElemOperator):
     """Feature Mask
 
@@ -331,6 +305,26 @@ class NpPairOperator(PairOperator):
             if check_length and len(series_left) != len(series_right):
                 get_module_logger("ops").debug(warning_info)
         return res
+
+
+class Power(NpPairOperator):
+    """Power Operator
+
+    Parameters
+    ----------
+    feature_left : Expression
+        feature instance
+    feature_right : Expression
+        feature instance
+
+    Returns
+    ----------
+    Feature:
+        The bases in feature_left raised to the exponents in feature_right
+    """
+
+    def __init__(self, feature_left, feature_right):
+        super(Power, self).__init__(feature_left, feature_right, "power")
 
 
 class Add(NpPairOperator):

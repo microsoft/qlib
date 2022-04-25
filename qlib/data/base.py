@@ -112,6 +112,11 @@ class Expression(abc.ABC):
 
         return Power(self, other)
 
+    def __rpow__(self, other):
+        from .ops import Power  # pylint: disable=C0415
+
+        return Power(other, self)
+
     def __and__(self, other):
         from .ops import And  # pylint: disable=C0415
 
