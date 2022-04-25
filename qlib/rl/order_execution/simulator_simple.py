@@ -229,6 +229,12 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
         # Look for next time on time index
         current_loc = self.ticks_index.get_loc(self.cur_time)
         next_loc = current_loc + self.ticks_per_step
+
+        # Calibrate the next location to multiple of ticks_per_step.
+        # This is to make sure that:
+        # as long as ticks_per_step is a multiple of something, each step won't cross morning and afternoon.
+        next_loc = next_loc - next_loc % self.ticks_per_step
+
         if next_loc < len(self.ticks_index) and self.ticks_index[next_loc] < self.order.end_time:
             return self.ticks_index[next_loc]
         else:
@@ -273,7 +279,10 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
                          exec_vol: np.ndarray) -> SAOEMetrics:
         assert len(market_vol) == len(market_price) == len(exec_vol)
 
-        exec_avg_price = np.average(market_price, weights=exec_vol)  # could be nan
+        if np.abs(np.sum(exec_vol)) < EPS:
+            exec_avg_price = 0.
+        else:
+            exec_avg_price = np.average(market_price, weights=exec_vol)
 
         return SAOEMetrics(
             datetime=datetime,

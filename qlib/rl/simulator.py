@@ -1,8 +1,9 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+from __future__ import annotations
+
 from typing import TypeVar, Generic, TYPE_CHECKING
-from weakref import ReferenceType
 
 from .seed import InitialStateType
 
@@ -48,7 +49,7 @@ class Simulator(Generic[InitialStateType, StateType, ActType]):
         Simulators are discouraged to use this, because it's prone to induce errors.
     """
 
-    _env: "ReferenceType[EnvWrapper]"
+    env: "EnvWrapper" | None = None
 
     def __init__(self, initial: InitialStateType, **kwargs) -> None:
         pass
@@ -72,10 +73,3 @@ class Simulator(Generic[InitialStateType, StateType, ActType]):
         the old one should be destroyed and a new simulator can be created.
         """
         raise NotImplementedError()
-
-    @property
-    def env(self) -> "EnvWrapper":
-        e = self._env()
-        if e is None:
-            raise TypeError("env can not be None")
-        return e

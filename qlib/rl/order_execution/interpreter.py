@@ -77,24 +77,29 @@ class FullHistoryStateInterpreter(StateInterpreter[SAOEState, FullHistoryObs]):
 
     def interpret(self, state: SAOEState) -> FullHistoryObs:
         processed = pickle_styled.get_intraday_processed_data(
-            self.data_dir, state.order.stock_id, pd.Timestamp(state.order.start_time.date),
+            self.data_dir, state.order.stock_id, pd.Timestamp(state.order.start_time.date()),
             self.data_dim, state.ticks_index
         )
 
-        position_history = np.full(self.max_step, np.nan, dtype=np.float32)
+        position_history = np.full(self.max_step + 1, 0., dtype=np.float32)
         position_history[0] = state.order.amount
         position_history[1:len(state.history_steps) + 1] = state.history_steps["position"].to_numpy()
 
+        assert self.env is not None
+
+        # The min, slice here are to make sure that indices fit into the range,
+        # even after the final step of the simulator (in the done step),
+        # to make network in policy happy.
         return cast(FullHistoryObs, canonicalize({
             "data_processed": self._mask_future_info(processed.today, state.cur_time),
             "data_processed_prev": processed.yesterday,
             "acquiring": state.order.direction == state.order.BUY,
-            "cur_tick": np.sum(state.ticks_index < state.cur_time),
-            "cur_step": self.env.status["cur_step"],
+            "cur_tick": min(np.sum(state.ticks_index < state.cur_time), self.data_ticks - 1),
+            "cur_step": min(self.env.status["cur_step"], self.max_step - 1),
             "num_step": self.max_step,
             "target": state.order.amount,
             "position": state.position,
-            "position_history": position_history,
+            "position_history": position_history[:self.max_step],
         }))
 
     @property
@@ -148,6 +153,7 @@ class CurrentStepStateInterpreter(StateInterpreter[SAOEState, CurrentStateObs]):
         return spaces.Dict(space)
 
     def interpret(self, state: SAOEState) -> Any:
+        assert self.env is not None
         assert self.env.status["cur_step"] <= self.max_step
         obs = {
             "acquiring": state.order.direction == state.order.BUY,
@@ -180,6 +186,7 @@ class TwapRemainingAdjustmentActionInterpreter(ActionInterpreter[SAOEState, floa
         return spaces.Box(0, np.inf, shape=(), dtype=np.float32)
 
     def to_volume(self, state: SAOEState, action: float) -> float:
+        assert self.env is not None
         estimated_total_steps = math.ceil(len(state.ticks_for_order) / state.ticks_per_step)
         twap_volume = state.position / (estimated_total_steps - self.env.status["cur_step"])
         return min(state.position, twap_volume * action)

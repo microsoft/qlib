@@ -1,8 +1,9 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+from __future__ import annotations
+
 from typing import Generic, TYPE_CHECKING, TypeVar, final
-from weakref import ReferenceType
 
 from .simulator import StateType
 
@@ -18,14 +19,7 @@ AuxInfoType = TypeVar("AuxInfoType")
 class AuxiliaryInfoCollector(Generic[StateType, AuxInfoType]):
     """Override this class to collect customized auxiliary information from environment."""
 
-    _env: "ReferenceType[EnvWrapper]"
-
-    @property
-    def env(self) -> "EnvWrapper":
-        e = self._env()
-        if e is None:
-            raise TypeError("env can not be None")
-        return e
+    env: "EnvWrapper" | None = None
 
     @final
     def __call__(self, simulator_state: StateType) -> AuxInfoType:

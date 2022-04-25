@@ -3,8 +3,6 @@
 
 from __future__ import annotations
 
-from weakref import ReferenceType
-
 from typing import Generic, Any, TypeVar, TYPE_CHECKING, final
 
 if TYPE_CHECKING:
@@ -20,14 +18,7 @@ class Reward(Generic[SimulatorState]):
     Subclass should implement ``reward(simulator_state)`` to implement their own reward calculation recipe.
     """
 
-    _env: ReferenceType["EnvWrapper"]
-
-    @property
-    def env(self) -> "EnvWrapper":
-        e = self._env()
-        if e is None:
-            raise TypeError("env can not be None")
-        return e
+    env: "EnvWrapper" | None = None
 
     @final
     def __call__(self, simulator_state: SimulatorState) -> float:

@@ -73,7 +73,7 @@ class EnvWrapper(
         # assign weak reference to wrapper
         for obj in [state_interpreter, action_interpreter, reward_fn, aux_info_collector]:
             if obj is not None:
-                obj._env = weakref.ref(self)  # type: ignore
+                obj.env = weakref.proxy(self)  # type: ignore
 
         self.simulator_fn = simulator_fn
         self.state_interpreter = state_interpreter
@@ -120,7 +120,7 @@ class EnvWrapper(
                 initial_state = next(cast(Iterator[InitialStateType], self.seed_iterator))
                 self.simulator = self.simulator_fn(initial_state)
 
-            self.simulator._env = weakref.ref(self)
+            self.simulator.env = cast(EnvWrapper, weakref.proxy(self))
 
             sim_state = self.simulator.get_state()
             obs = self.state_interpreter(sim_state)

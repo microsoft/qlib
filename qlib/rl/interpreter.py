@@ -3,8 +3,9 @@
 
 from __future__ import annotations
 
-from typing import final, TYPE_CHECKING, TypeVar, Generic
-from weakref import ReferenceType
+from typing import final, TYPE_CHECKING, TypeVar, Generic, Any
+
+import numpy as np
 
 from .simulator import StateType, ActType
 
@@ -12,6 +13,7 @@ if TYPE_CHECKING:
     from .utils.env_wrapper import EnvWrapper
 
 import gym
+from gym import spaces
 
 ObsType = TypeVar("ObsType")
 PolicyActType = TypeVar("PolicyActType")
@@ -36,14 +38,7 @@ class Interpreter:
 class StateInterpreter(Generic[StateType, ObsType], Interpreter):
     """State Interpreter that interpret execution result of qlib executor into rl env state"""
 
-    _env: ReferenceType["EnvWrapper"]
-
-    @property
-    def env(self) -> "EnvWrapper":
-        e = self._env()
-        if e is None:
-            raise TypeError("env can not be None")
-        return e
+    env: "EnvWrapper" | None = None
 
     @property
     def observation_space(self) -> gym.Space:
@@ -52,13 +47,12 @@ class StateInterpreter(Generic[StateType, ObsType], Interpreter):
     @final  # no overridden
     def __call__(self, simulator_state: StateType) -> ObsType:
         obs = self.interpret(simulator_state)
-        if not self.validate(obs):
-            raise ValueError(f"Observation space does not contain obs.\n  Space: {self.observation_space}\n  Sample: {obs}")
+        self.validate(obs)
         return obs
 
-    def validate(self, obs: ObsType) -> bool:
+    def validate(self, obs: ObsType) -> None:
         """Validate whether an observation belongs to the pre-defined observation space.""" 
-        return self.observation_space.contains(obs)
+        _gym_space_contains(self.observation_space,  obs)
 
     def interpret(self, simulator_state: StateType) -> ObsType:
         """Interpret the state of simulator.
@@ -78,14 +72,7 @@ class StateInterpreter(Generic[StateType, ObsType], Interpreter):
 class ActionInterpreter(Generic[StateType, PolicyActType, ActType], Interpreter):
     """Action Interpreter that interpret rl agent action into qlib orders"""
 
-    _env: ReferenceType["EnvWrapper"]
-
-    @property
-    def env(self) -> "EnvWrapper":
-        e = self._env()
-        if e is None:
-            raise TypeError("env can not be None")
-        return e
+    env: "EnvWrapper" | None = None
 
     @property
     def action_space(self) -> gym.Space:
@@ -93,14 +80,13 @@ class ActionInterpreter(Generic[StateType, PolicyActType, ActType], Interpreter)
 
     @final  # no overridden
     def __call__(self, simulator_state: StateType, action: PolicyActType) -> ActType:
-        if not self.validate(action):
-            raise ValueError(f"Action space does not contain action.\n  Space: {self.action_space}\n  Sample: {action}")
+        self.validate(action)
         obs = self.interpret(simulator_state, action)
         return obs
 
-    def validate(self, action: PolicyActType) -> bool:
+    def validate(self, action: PolicyActType) -> None:
         """Validate whether an action belongs to the pre-defined action space.""" 
-        return self.action_space.contains(action)
+        _gym_space_contains(self.action_space, action)
 
     def interpret(self, simulator_state: StateType, action: PolicyActType) -> ActType:
         """Convert the policy action to simulator action.
@@ -117,3 +103,46 @@ class ActionInterpreter(Generic[StateType, PolicyActType, ActType], Interpreter)
         The action needed by simulator,
         """
         raise NotImplementedError("interpret is not implemented!")
+
+
+def _gym_space_contains(space: gym.Space, x: Any) -> None:
+    """Strengthened version of gym.Space.contains.
+    Giving more diagnostic information on why validation fails.
+
+    Throw exception rather than returning true or false.
+    """
+    if isinstance(space, spaces.Dict):
+        if not isinstance(x, dict) or len(x) != len(space):
+            raise GymSpaceValidationError("Sample must be a dict with same length as space.", space, x)
+        for k, subspace in space.spaces.items():
+            if k not in x:
+                raise GymSpaceValidationError(f"Key {k} not found in sample.", space, x)
+            try:
+                _gym_space_contains(subspace, x[k])
+            except GymSpaceValidationError:
+                raise GymSpaceValidationError(f"Subspace of key {k} validation error.", space, x)
+
+    elif isinstance(space, spaces.Tuple):
+        if isinstance(x, (list, np.ndarray)):
+            x = tuple(x)  # Promote list and ndarray to tuple for contains check
+        if not isinstance(x, tuple) or len(x) != len(space):
+            raise GymSpaceValidationError("Sample must be a tuple with same length as space.", space, x)
+        for i, (subspace, part) in enumerate(zip(space, x)):
+            try:
+                _gym_space_contains(subspace, part)
+            except GymSpaceValidationError:
+                raise GymSpaceValidationError(f"Subspace of index {i} validation error.", space, x)
+
+    else:
+        if not space.contains(x):
+            raise GymSpaceValidationError("Validation error reported by gym.", space, x)
+
+
+class GymSpaceValidationError(Exception):
+    def __init__(self, message: str, space: gym.Space, x: Any):
+        self.message = message
+        self.space = space
+        self.x = x
+
+    def __str__(self):
+        return f"{self.message}\n  Space: {self.space}\n  Sample: {self.x}"

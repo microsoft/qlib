@@ -2,17 +2,22 @@
 # Licensed under the MIT License.
 
 from pathlib import Path
+from typing import NamedTuple
 
+import numpy as np
 import pandas as pd
 import pytest
 
 from qlib.backtest import Order
 from qlib.rl.data import pickle_styled
 from qlib.rl.order_execution import SingleAssetOrderExecution
+from qlib.rl.order_execution.interpreter import FullHistoryStateInterpreter
+from qlib.rl.utils.env_wrapper import EnvWrapperStatus
 
 
 DATA_DIR = Path("/mnt/data/Sample-Testdata/us/")  # Update this when infrastructure is built.
 BACKTEST_DATA_DIR = DATA_DIR / "raw"
+FEATURE_DATA_DIR = DATA_DIR / "processed"
 
 
 def test_pickle_data_inspect():
@@ -98,3 +103,104 @@ def test_simulator_stop_early():
 
     with pytest.raises(AssertionError):
         simulator.step(1.)
+
+
+def test_simulator_start_middle():
+    order = Order("AAL", 15., 1, 
+                  pd.Timestamp("2013-12-11 10:15:00"),
+                  pd.Timestamp("2013-12-11 15:44:59"))
+
+    simulator = SingleAssetOrderExecution(order, BACKTEST_DATA_DIR)
+    assert len(simulator.ticks_for_order) == 330
+    assert simulator.cur_time == pd.Timestamp("2013-12-11 10:15:00")
+    simulator.step(2.)
+    assert simulator.cur_time == pd.Timestamp("2013-12-11 10:30:00")
+
+    for _ in range(10):
+        simulator.step(1.)
+
+    simulator.step(2.)
+    assert len(simulator.history_exec) == 330
+    assert simulator.done()
+    assert abs(simulator.history_exec["amount"].iloc[-1] - (1 + 2 / 15)) < 1e-4
+    assert simulator.metrics["ffr"] == 1
+
+
+def test_state_interpreter():
+    order = Order("AAL", 15., 1, 
+                  pd.Timestamp("2013-12-11 10:15:00"),
+                  pd.Timestamp("2013-12-11 15:44:59"))
+
+    simulator = SingleAssetOrderExecution(order, BACKTEST_DATA_DIR)
+    assert len(simulator.ticks_for_order) == 330
+    assert simulator.cur_time == pd.Timestamp("2013-12-11 10:15:00")
+
+    # emulate a env status
+    class EmulateEnvWrapper(NamedTuple):
+        status: EnvWrapperStatus
+
+    interpreter = FullHistoryStateInterpreter(FEATURE_DATA_DIR, 13, 390, 5)
+    wrapper_status_kwargs = dict(
+        initial_state=order,
+        obs_history=[],
+        action_history=[],
+        reward_history=[]
+    )
+
+    # first step
+    interpreter.env = EmulateEnvWrapper(status=EnvWrapperStatus(
+        cur_step=0,
+        done=False,
+        **wrapper_status_kwargs
+    ))
+
+    obs = interpreter(simulator.get_state())
+    assert obs["cur_tick"] == 45
+    assert obs["cur_step"] == 0
+    assert obs["position"] == 15.
+    assert obs["position_history"][0] == 15.
+    assert all(np.sum(obs["data_processed"][i]) != 0 for i in range(45))
+    assert np.sum(obs["data_processed"][45:]) == 0
+    assert obs["data_processed_prev"].shape == (390, 5)
+
+
+    # second step
+    simulator.step(5.)
+    interpreter.env = EmulateEnvWrapper(status=EnvWrapperStatus(
+        cur_step=1,
+        done=False,
+        **wrapper_status_kwargs
+    ))
+
+    obs = interpreter(simulator.get_state())
+    assert obs["cur_tick"] == 60
+    assert obs["cur_step"] == 1
+    assert obs["position"] == 10.
+    assert obs["position_history"][:2].tolist() == [15., 10.]
+    assert all(np.sum(obs["data_processed"][i]) != 0 for i in range(60))
+    assert np.sum(obs["data_processed"][60:]) == 0
+
+
+    for _ in range(10):
+        simulator.step(0.)
+
+    # last step
+    simulator.step(5.)
+    interpreter.env = EmulateEnvWrapper(status=EnvWrapperStatus(
+        cur_step=12,
+        done=simulator.done(),
+        **wrapper_status_kwargs
+    ))
+
+    assert interpreter.env.status["done"]
+
+    obs = interpreter(simulator.get_state())
+    assert obs["cur_tick"] == 375
+    assert obs["cur_step"] == 12
+    assert obs["position"] == 0.
+    assert obs["position_history"][1:11].tolist() == [10.] * 10
+    assert all(np.sum(obs["data_processed"][i]) != 0 for i in range(375))
+    assert np.sum(obs["data_processed"][375:]) == 0
+
+
+test_state_interpreter()
