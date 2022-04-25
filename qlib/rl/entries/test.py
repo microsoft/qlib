@@ -14,10 +14,7 @@ from qlib.log import get_module_logger
 from qlib.rl.simulator import InitialStateType, Simulator
 from qlib.rl.interpreter import StateInterpreter, ActionInterpreter
 from qlib.rl.reward import Reward
-from qlib.rl.utils.data_queue import DataQueue
-from qlib.rl.utils.env_wrapper import EnvWrapper
-from qlib.rl.utils.finite_env import FiniteEnvType, finite_env_factory
-from qlib.rl.utils.log import BasicLogger
+from qlib.rl.utils import DataQueue, EnvWrapper, FiniteEnvType, LogWriter, finite_env_factory
 
 
 _logger = get_module_logger(__name__)
@@ -27,29 +24,52 @@ def backtest(
     simulator_fn: Callable[[InitialStateType], Simulator],
     state_interpreter: StateInterpreter,
     action_interpreter: ActionInterpreter,
-    seed_set: Sequence[InitialStateType],
+    initial_states: Sequence[InitialStateType],
     policy: BasePolicy,
+    logger: LogWriter | list[LogWriter],
     reward: Reward | None = None,
     finite_env_type: FiniteEnvType = "subproc",
     concurrency: int = 2
-):
-    """Backtest with the parallelism provided by RL framework."""
-    seed_iterator = DataQueue(seed_set)
-    finite_venv = finite_env_factory(finite_env_type)
+) -> None:
+    """Backtest with the parallelism provided by RL framework.
+    
+    Parameters
+    ----------
+    simulator_fn
+        Callable receiving initial seed, returning a simulator.
+    state_interpreter
+        Interprets the state of simulators.
+    action_interpreter
+        Interprets the policy actions.
+    initial_states
+        Initial states to iterate over. Every state will be run exactly once.
+    policy
+        Policy to test against.
+    logger
+        Logger to record the backtest results. Logger must be present because
+        without logger, all information will be lost.
+    reward
+        Optional reward function. For backtest, this is for testing the rewards
+        and logging them only.
+    finite_env_type
+        Type of finite env implementation.
+    concurrency
+        Parallel workers. 
+    """
+
+    seed_iterator = DataQueue(initial_states)
 
     with seed_iterator:
-        vector_env = finite_venv(BasicLogger(), [
-            lambda: EnvWrapper(simulator_fn, state_interpreter, action_interpreter, seed_iterator, reward)
-            for _ in range(concurrency)
-        ])
+        vector_env = finite_env_factory(
+            lambda: EnvWrapper(simulator_fn, state_interpreter, action_interpreter, seed_iterator, reward),
+            finite_env_type,
+            concurrency,
+            logger
+        )
 
-        with suppress(StopIteration):
-            test_collector = Collector(policy, vector_env)
-
+        test_collector = Collector(policy, vector_env)
         policy.eval()
         _logger.info("All ready. Start backtest.", __name__)
-        test_collector.collect(n_step=INF * len(vector_env))
 
-    # logger.write_summary()
-
-    # return pd.DataFrame.from_records(logger.logs), logger.history
+        with vector_env.collector_guard():
+            test_collector.collect(n_step=INF * len(vector_env))
