@@ -379,8 +379,6 @@ class CsvWriter(LogWriter):
 class PickleWriter(LogWriter):
     """Dump logs to pickle files."""
 
-    ...
-
 
 class TensorboardWriter(LogWriter):
     """Write logs to event files that can be visualized with tensorboard."""
