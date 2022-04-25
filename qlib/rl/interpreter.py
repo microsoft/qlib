@@ -3,9 +3,11 @@
 
 from __future__ import annotations
 
-from typing import final, TYPE_CHECKING, TypeVar, Generic, Any
+from typing import TYPE_CHECKING, TypeVar, Generic, Any
 
 import numpy as np
+
+from qlib.typehint import final
 
 from .simulator import StateType, ActType
 
@@ -33,8 +35,6 @@ class Interpreter:
     in interpreter is anti-pattern. In future, we might support regsiter some interpreter-related
     states by calling ``self.env.register_state()``, but it's not planned for first iteration.
     """
-
-    ...
 
 
 class StateInterpreter(Generic[StateType, ObsType], Interpreter):

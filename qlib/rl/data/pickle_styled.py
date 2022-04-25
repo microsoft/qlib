@@ -16,7 +16,7 @@ See `PEP 574 <https://peps.python.org/pep-0574/>`__ for details.
 from __future__ import annotations
 
 from functools import lru_cache
-from typing import Literal, List, Sequence
+from typing import List, Sequence
 from pathlib import Path
 
 import cachetools
@@ -25,6 +25,7 @@ import pandas as pd
 from cachetools.keys import hashkey
 
 from qlib.backtest.decision import OrderDir, Order
+from qlib.typehint import Literal
 
 
 DealPriceType = Literal["bid_or_ask", "bid_or_ask_fill", "close"]

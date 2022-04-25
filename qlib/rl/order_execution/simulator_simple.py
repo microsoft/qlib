@@ -4,16 +4,16 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import NamedTuple, TypedDict, Any, TypeVar
+from typing import NamedTuple, Any, TypeVar
 
 import numpy as np
 import pandas as pd
 
-from qlib.backtest import Order
-from qlib.backtest.decision import OrderDir
+from qlib.backtest.decision import Order, OrderDir
 from qlib.constant import EPS
 from qlib.rl.simulator import Simulator
 from qlib.rl.data.pickle_styled import IntradayBacktestData, load_intraday_backtest_data, DealPriceType
+from qlib.typehint import TypedDict
 
 __all__ = ["SAOEMetrics", "SAOEState", "SingleAssetOrderExecution"]
 

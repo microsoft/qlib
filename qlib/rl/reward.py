@@ -3,7 +3,9 @@
 
 from __future__ import annotations
 
-from typing import Generic, Any, TypeVar, TYPE_CHECKING, final
+from typing import Generic, Any, TypeVar, TYPE_CHECKING
+
+from qlib.typehint import final
 
 if TYPE_CHECKING:
     from .utils.env_wrapper import EnvWrapper

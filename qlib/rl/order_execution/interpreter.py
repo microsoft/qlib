@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import math
 from pathlib import Path
-from typing import Any, TypedDict, cast
+from typing import Any, cast
 
 import numpy as np
 import pandas as pd
@@ -14,6 +14,7 @@ from gym import spaces
 from qlib.constant import EPS
 from qlib.rl.interpreter import StateInterpreter, ActionInterpreter
 from qlib.rl.data import pickle_styled
+from qlib.typehint import TypedDict
 
 from .simulator_simple import SAOEState
 

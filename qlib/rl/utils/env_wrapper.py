@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 import weakref
-from typing import Callable, Any, Iterable, Iterator, TypedDict, Generic, cast
+from typing import Callable, Any, Iterable, Iterator, Generic, cast
 
 import gym
 
@@ -12,6 +12,7 @@ from qlib.rl.aux_info import AuxiliaryInfoCollector
 from qlib.rl.simulator import Simulator, InitialStateType, StateType, ActType
 from qlib.rl.interpreter import StateInterpreter, ActionInterpreter, PolicyActType, ObsType
 from qlib.rl.reward import Reward
+from qlib.typehint import TypedDict
 
 from .finite_env import generate_nan_observation
 from .log import LogCollector, LogLevel
