@@ -38,8 +38,22 @@ DealPriceType = Literal["bid_or_ask", "bid_or_ask_fill", "close"]
 def _infer_processed_data_column_names(shape):
     if shape == 16:
         return [
-            "$open", "$high", "$low", "$close", "$vwap", "$bid", "$ask", "$volume",
-            "$bidV", "$bidV1", "$bidV3", "$bidV5", "$askV", "$askV1", "$askV3", "$askV5"
+            "$open",
+            "$high",
+            "$low",
+            "$close",
+            "$vwap",
+            "$bid",
+            "$ask",
+            "$volume",
+            "$bidV",
+            "$bidV1",
+            "$bidV3",
+            "$bidV5",
+            "$askV",
+            "$askV1",
+            "$askV3",
+            "$askV5",
         ]
     if shape == 6:
         return ["$high", "$low", "$open", "$close", "$vwap", "$volume"]
@@ -70,8 +84,14 @@ def _read_pickle(filename_without_suffix: Path) -> pd.DataFrame:
 class IntradayBacktestData:
     """Raw market data that is often used in backtesting (thus called BacktestData)."""
 
-    def __init__(self, data_dir: Path, stock_id: str, date: pd.Timestamp,
-                 deal_price: DealPriceType = "close", order_dir: int | None = None):
+    def __init__(
+        self,
+        data_dir: Path,
+        stock_id: str,
+        date: pd.Timestamp,
+        deal_price: DealPriceType = "close",
+        order_dir: int | None = None,
+    ):
         backtest = _read_pickle(data_dir / stock_id)
         backtest = backtest.loc[pd.IndexSlice[stock_id, :, date]].droplevel([0, 2])
 
@@ -94,7 +114,7 @@ class IntradayBacktestData:
                 raise ValueError("Order direction cannot be none when deal_price_type is not close.")
             if self.order_dir == OrderDir.SELL:
                 col = "$bid0"
-            else:               # BUY
+            else:  # BUY
                 col = "$ask0"
         elif self.deal_price_type == "close":
             col = "$close0"
@@ -132,10 +152,7 @@ class IntradayProcessedData:
     """Processed data for "yesterday".
     Number of records must be ``time_length``, and columns must be ``feature_dim``."""
 
-    def __init__(
-        self, data_dir: Path, stock_id: str, date: pd.Timestamp,
-        feature_dim: int, time_index: pd.Index
-    ):
+    def __init__(self, data_dir: Path, stock_id: str, date: pd.Timestamp, feature_dim: int, time_index: pd.Index):
         proc = _read_pickle(data_dir / stock_id)
         # We have to infer the names here because,
         # unfortunately they are not included in the original data.
@@ -154,7 +171,7 @@ class IntradayProcessedData:
             proc = proc.loc[pd.IndexSlice[stock_id, date]]
             assert time_length * feature_dim * 2 == len(proc)
             proc_today = proc.to_numpy()[: time_length * feature_dim].reshape((time_length, feature_dim))
-            proc_yesterday = proc.to_numpy()[time_length * feature_dim:].reshape((time_length, feature_dim))
+            proc_yesterday = proc.to_numpy()[time_length * feature_dim :].reshape((time_length, feature_dim))
             proc_today = pd.DataFrame(proc_today, index=time_index, columns=cnames)
             proc_yesterday = pd.DataFrame(proc_yesterday, index=time_index, columns=cnames)
 
@@ -177,18 +194,17 @@ def load_intraday_backtest_data(
 
 @cachetools.cached(  # type: ignore
     cache=cachetools.LRUCache(100),  # 100 * 50K = 5MB
-    key=lambda data_dir, stock_id, date, _, __: hashkey(data_dir, stock_id, date)
+    key=lambda data_dir, stock_id, date, _, __: hashkey(data_dir, stock_id, date),
 )
 def load_intraday_processed_data(
-    data_dir: Path, stock_id: str, date: pd.Timestamp,
-    feature_dim: int, time_index: pd.Index
+    data_dir: Path, stock_id: str, date: pd.Timestamp, feature_dim: int, time_index: pd.Index
 ) -> IntradayProcessedData:
     return IntradayProcessedData(data_dir, stock_id, date, feature_dim, time_index)
 
 
-def load_orders(order_path: Path,
-                start_time: pd.Timestamp | None = None,
-                end_time: pd.Timestamp | None = None) -> Sequence[Order]:
+def load_orders(
+    order_path: Path, start_time: pd.Timestamp | None = None, end_time: pd.Timestamp | None = None
+) -> Sequence[Order]:
     """Load orders, and set start time and end time for the orders."""
 
     start_time = start_time or pd.Timestamp("0:00:00")
@@ -211,12 +227,14 @@ def load_orders(order_path: Path,
         # filter out orders with amount == 0
         if row["amount"] <= 0:
             continue
-        orders.append(Order(
-            row["instrument"],
-            row["amount"],
-            row["order_type"],
-            row["date"].replace(hour=start_time.hour, minute=start_time.minute, second=start_time.second),
-            row["date"].replace(hour=end_time.hour, minute=end_time.minute, second=end_time.second),
-        ))
+        orders.append(
+            Order(
+                row["instrument"],
+                row["amount"],
+                row["order_type"],
+                row["date"].replace(hour=start_time.hour, minute=start_time.minute, second=start_time.second),
+                row["date"].replace(hour=end_time.hour, minute=end_time.minute, second=end_time.second),
+            )
+        )
 
     return orders

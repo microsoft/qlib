@@ -61,7 +61,7 @@ def get_module_logger(module_name, level: Optional[int] = None) -> QlibLogger:
     if level is None:
         level = C.logging_level
 
-    if not module_name.startswith('qlib.'):
+    if not module_name.startswith("qlib."):
         # add a prefix
         module_name = "qlib.{}".format(module_name)
 

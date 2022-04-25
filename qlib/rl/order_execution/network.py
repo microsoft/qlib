@@ -25,6 +25,7 @@ class Recurrent(nn.Module):
     One minor difference is that, in this implementation, we don't assume the direction to be fixed.
     Thus, another ``dire_fc`` is added to produce an extra direction-related feature.
     """
+
     def __init__(
         self,
         obs_space: FullHistoryObs,
@@ -39,11 +40,7 @@ class Recurrent(nn.Module):
         self.output_dim = output_dim
         self.num_sources = 3
 
-        rnn_classes = {
-            "rnn": nn.RNN,
-            "lstm": nn.LSTM,
-            "gru": nn.GRU
-        }
+        rnn_classes = {"rnn": nn.RNN, "lstm": nn.LSTM, "gru": nn.GRU}
 
         self.rnn_class = rnn_classes[rnn_type]
         self.rnn_layers = rnn_num_layers

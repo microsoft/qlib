@@ -10,4 +10,4 @@ REG_TW = "tw"
 EPS = 1e-12
 
 # Infinity in integer
-INF = 10 ** 18
+INF = 10**18

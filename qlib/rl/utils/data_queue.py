@@ -53,10 +53,7 @@ class DataQueue(Generic[T]):
     ...     print(data)
     """
 
-    def __init__(self, dataset: Sequence[T],
-                 repeat: int = 1,
-                 producer_num_workers: int = 0,
-                 queue_maxsize: int = 0):
+    def __init__(self, dataset: Sequence[T], repeat: int = 1, producer_num_workers: int = 0, queue_maxsize: int = 0):
         if queue_maxsize == 0:
             if os.cpu_count() is not None:
                 queue_maxsize = cast(int, os.cpu_count())
@@ -91,7 +88,7 @@ class DataQueue(Generic[T]):
                     self._queue.get(block=False)
                 except Empty:
                     pass
-            time.sleep(1.)  # a chance to allow more data to be put in
+            time.sleep(1.0)  # a chance to allow more data to be put in
             if self._queue.empty():
                 break
         _logger.debug(f"Remaining items in queue collection done. Empty: {self._queue.empty()}")
@@ -100,10 +97,10 @@ class DataQueue(Generic[T]):
         if not hasattr(self, "_first_get"):
             self._first_get = True
         if self._first_get:
-            timeout = 5.
+            timeout = 5.0
             self._first_get = False
         else:
-            timeout = .5
+            timeout = 0.5
         while True:
             try:
                 return self._queue.get(block=block, timeout=timeout)
@@ -135,8 +132,9 @@ class DataQueue(Generic[T]):
 
     def __iter__(self):
         if not self._activated:
-            raise ValueError("Need to call activate() to launch a daemon worker "
-                             "to produce data into data queue before using it.")
+            raise ValueError(
+                "Need to call activate() to launch a daemon worker " "to produce data into data queue before using it."
+            )
         return self._consumer()
 
     def _consumer(self):
@@ -150,13 +148,14 @@ class DataQueue(Generic[T]):
     def _producer(self):
         # pytorch dataloader is used here only because we need its sampler and multi-processing
         from torch.utils.data import DataLoader, Dataset  # pylint: disable=import-outside-toplevel
+
         dataloader = DataLoader(
             cast(Dataset[T], self.dataset),
             batch_size=None,
             num_workers=self.producer_num_workers,
             collate_fn=lambda t: t,  # identity collate fn
         )
-        repeat = 10 ** 18 if self.repeat == -1 else self.repeat
+        repeat = 10**18 if self.repeat == -1 else self.repeat
         for _rep in range(repeat):
             for data in dataloader:
                 if self._done.value:

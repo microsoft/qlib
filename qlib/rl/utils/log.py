@@ -39,11 +39,17 @@ class LogLevel(IntEnum):
     """Log-levels for RL training.
     The behavior of handling each log level depends on the implementation of :class:`LogWriter`.
     """
-    DEBUG = 10          # If you only want to see the metric in debug mode
-    PERIODIC = 20       # If you want to see the metric periodically
+
+    DEBUG = 10
+    """If you only want to see the metric in debug mode."""
+    PERIODIC = 20
+    """If you want to see the metric periodically."""
     # FIXME: I haven't given much thought about this. Let's hold it for one iteration.
-    INFO = 30           # Important log messages
-    CRITICAL = 40       # LogWriter should always handle CRITICAL messages
+
+    INFO = 30
+    """Important log messages."""
+    CRITICAL = 40
+    """LogWriter should always handle CRITICAL messages"""
 
 
 class LogCollector:
@@ -94,8 +100,9 @@ class LogCollector:
         scalar = float(scalar)
         self._add_metric(name, scalar, loglevel)
 
-    def add_array(self, name: str, array: np.ndarray | pd.DataFrame | pd.Series,
-                  loglevel: int | LogLevel = LogLevel.PERIODIC) -> None:
+    def add_array(
+        self, name: str, array: np.ndarray | pd.DataFrame | pd.Series, loglevel: int | LogLevel = LogLevel.PERIODIC
+    ) -> None:
         """Add an array with name into logging."""
         if loglevel < self._min_loglevel:
             return
@@ -222,11 +229,7 @@ class LogWriter(Generic[ObsType, ActType]):
             self.global_episode += 1
             self.episode_count += 1
 
-            self.log_episode(
-                self.episode_lengths[env_id],
-                self.episode_rewards[env_id],
-                self.episode_logs[env_id]
-            )
+            self.log_episode(self.episode_lengths[env_id], self.episode_rewards[env_id], self.episode_logs[env_id])
 
     def on_env_reset(self, env_id: int, obs: ObsType) -> None:
         """Callback for finite env.
@@ -254,9 +257,14 @@ class ConsoleWriter(LogWriter):
     prefix: str
     """Prefix can be set via ``writer.prefix``."""
 
-    def __init__(self, log_every_n_episode: int = 20, total_episodes: int | None = None,
-                 float_format: str = ":.4f", counter_format: str = ":4d",
-                 loglevel: int | LogLevel = LogLevel.PERIODIC):
+    def __init__(
+        self,
+        log_every_n_episode: int = 20,
+        total_episodes: int | None = None,
+        float_format: str = ":.4f",
+        counter_format: str = ":4d",
+        loglevel: int | LogLevel = LogLevel.PERIODIC,
+    ):
         super().__init__(loglevel)
         # TODO: support log_every_n_step
         self.log_every_n_episode = log_every_n_episode
@@ -298,8 +306,7 @@ class ConsoleWriter(LogWriter):
             self.metric_counts[name] += 1
             self.metric_sums[name] += value
 
-        if self.episode_count % self.log_every_n_episode == 0 or \
-                self.episode_count == self.total_episodes:
+        if self.episode_count % self.log_every_n_episode == 0 or self.episode_count == self.total_episodes:
             # Only log periodically or at the end
             self.console_logger.info(self.generate_log_message(logs))
 
@@ -363,26 +370,31 @@ class CsvWriter(LogWriter):
 
     def on_env_all_done(self) -> None:
         # FIXME: this is temporary
-        pd.DataFrame.from_records(self.all_records).to_csv(self.output_dir / 'result.csv', index=False)
+        pd.DataFrame.from_records(self.all_records).to_csv(self.output_dir / "result.csv", index=False)
 
 
 # The following are not implemented yet.
 
+
 class PickleWriter(LogWriter):
     """Dump logs to pickle files."""
+
     ...
 
 
 class TensorboardWriter(LogWriter):
     """Write logs to event files that can be visualized with tensorboard."""
+
     ...
 
 
 class MlflowWriter(LogWriter):
     """Add logs to mlflow."""
+
     ...
 
 
 class LogBuffer(LogWriter):
     """Keep everything in memory."""
+
     ...

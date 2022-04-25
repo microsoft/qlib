@@ -24,8 +24,11 @@ SEED_INTERATOR_MISSING = "_missing_"
 
 class InfoDict(TypedDict):
     """The type of dict that is used in the 4th return value of ``env.step()``."""
-    aux_info: dict          # Any information depends on auxiliary info collector
-    log: dict[str, Any]     # collected by LogCollector
+
+    aux_info: dict
+    """Any information depends on auxiliary info collector."""
+    log: dict[str, Any]
+    """Collected by LogCollector."""
 
 
 class EnvWrapperStatus(TypedDict):
@@ -35,6 +38,7 @@ class EnvWrapperStatus(TypedDict):
     For example, ``obs`` means the observation fed into policy.
     ``action`` means the raw action returned by policy.
     """
+
     cur_step: int
     done: bool
     initial_state: Any | None
@@ -44,8 +48,7 @@ class EnvWrapperStatus(TypedDict):
 
 
 class EnvWrapper(
-    gym.Env[ObsType, PolicyActType],
-    Generic[InitialStateType, StateType, ActType, ObsType, PolicyActType]
+    gym.Env[ObsType, PolicyActType], Generic[InitialStateType, StateType, ActType, ObsType, PolicyActType]
 ):
     """Qlib-based RL environment, subclassing ``gym.Env``.
     A wrapper of components, including simulator, state-interpreter, action-interpreter, reward.
@@ -96,7 +99,7 @@ class EnvWrapper(
         seed_iterator: Iterable[InitialStateType] | None,
         reward_fn: Reward | None = None,
         aux_info_collector: AuxiliaryInfoCollector[StateType, Any] | None = None,
-        logger: LogCollector | None = None
+        logger: LogCollector | None = None,
     ):
         # assign weak reference to wrapper
         for obj in [state_interpreter, action_interpreter, reward_fn, aux_info_collector]:
@@ -158,7 +161,7 @@ class EnvWrapper(
                 initial_state=initial_state,
                 obs_history=[],
                 action_history=[],
-                reward_history=[]
+                reward_history=[],
             )
 
             self.simulator.env = cast(EnvWrapper, weakref.proxy(self))
@@ -211,7 +214,7 @@ class EnvWrapper(
             rew = self.reward_fn(sim_state)
         else:
             # No reward. Treated as 0.
-            rew = 0.
+            rew = 0.0
         self.status["reward_history"].append(rew)
 
         if self.aux_info_collector is not None:

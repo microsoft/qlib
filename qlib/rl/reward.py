@@ -39,12 +39,13 @@ class RewardCombination(Reward):
         self.rewards = rewards
 
     def reward(self, simulator_state: Any) -> float:
-        total_reward = 0.
+        total_reward = 0.0
         for name, (reward_fn, weight) in self.rewards.items():
             rew = reward_fn(simulator_state) * weight
             total_reward += rew
             self.log(name, rew)
         return total_reward
+
 
 # TODO:
 # reward_factory is disabled for now

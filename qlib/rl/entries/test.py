@@ -28,7 +28,7 @@ def backtest(
     logger: LogWriter | list[LogWriter],
     reward: Reward | None = None,
     finite_env_type: FiniteEnvType = "subproc",
-    concurrency: int = 2
+    concurrency: int = 2,
 ) -> None:
     """Backtest with the parallelism provided by RL framework.
 
@@ -67,11 +67,11 @@ def backtest(
                 action_interpreter,
                 seed_iterator,
                 reward,
-                logger=LogCollector(min_loglevel=min_loglevel)
+                logger=LogCollector(min_loglevel=min_loglevel),
             ),
             finite_env_type,
             concurrency,
-            logger
+            logger,
         )
 
         policy.eval()

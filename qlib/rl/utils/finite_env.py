@@ -192,9 +192,12 @@ class FiniteVectorEnv(BaseVectorEnv):
         assert not self._zombie
 
         if not self._collector_guarded:
-            warnings.warn("Collector is not guarded by FiniteEnv. "
-                          "This may cause unexpected problems, like unexpected StopIteration exception, "
-                          "or missing logs.", RuntimeWarning)
+            warnings.warn(
+                "Collector is not guarded by FiniteEnv. "
+                "This may cause unexpected problems, like unexpected StopIteration exception, "
+                "or missing logs.",
+                RuntimeWarning,
+            )
 
         id = self._wrap_id(id)
         self._reset_alive_envs()

@@ -33,6 +33,7 @@ class Interpreter:
     in interpreter is anti-pattern. In future, we might support regsiter some interpreter-related
     states by calling ``self.env.register_state()``, but it's not planned for first iteration.
     """
+
     ...
 
 
@@ -53,7 +54,7 @@ class StateInterpreter(Generic[StateType, ObsType], Interpreter):
 
     def validate(self, obs: ObsType) -> None:
         """Validate whether an observation belongs to the pre-defined observation space."""
-        _gym_space_contains(self.observation_space,  obs)
+        _gym_space_contains(self.observation_space, obs)
 
     def interpret(self, simulator_state: StateType) -> ObsType:
         """Interpret the state of simulator.

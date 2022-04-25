@@ -18,8 +18,10 @@ from qlib.rl.data import pickle_styled
 from .simulator_simple import SAOEState
 
 __all__ = [
-    "FullHistoryStateInterpreter", "CurrentStepStateInterpreter",
-    "CategoricalActionInterpreter", "TwapRelativeActionInterpreter"
+    "FullHistoryStateInterpreter",
+    "CurrentStepStateInterpreter",
+    "CategoricalActionInterpreter",
+    "TwapRelativeActionInterpreter",
 ]
 
 
@@ -27,13 +29,9 @@ def canonicalize(value: int | float | np.ndarray | pd.DataFrame | dict) -> np.nd
     """To 32-bit numeric types. Recursively."""
     if isinstance(value, pd.DataFrame):
         return value.to_numpy()
-    if isinstance(value, (float, np.floating)) or (
-        isinstance(value, np.ndarray) and value.dtype.kind == "f"
-    ):
+    if isinstance(value, (float, np.floating)) or (isinstance(value, np.ndarray) and value.dtype.kind == "f"):
         return np.array(value, dtype=np.float32)
-    elif isinstance(value, (int, bool, np.integer)) or (
-        isinstance(value, np.ndarray) and value.dtype.kind == "i"
-    ):
+    elif isinstance(value, (int, bool, np.integer)) or (isinstance(value, np.ndarray) and value.dtype.kind == "i"):
         return np.array(value, dtype=np.int32)
     elif isinstance(value, dict):
         return {k: canonicalize(v) for k, v in value.items()}
@@ -77,30 +75,38 @@ class FullHistoryStateInterpreter(StateInterpreter[SAOEState, FullHistoryObs]):
 
     def interpret(self, state: SAOEState) -> FullHistoryObs:
         processed = pickle_styled.load_intraday_processed_data(
-            self.data_dir, state.order.stock_id, pd.Timestamp(state.order.start_time.date()),
-            self.data_dim, state.ticks_index
+            self.data_dir,
+            state.order.stock_id,
+            pd.Timestamp(state.order.start_time.date()),
+            self.data_dim,
+            state.ticks_index,
         )
 
-        position_history = np.full(self.max_step + 1, 0., dtype=np.float32)
+        position_history = np.full(self.max_step + 1, 0.0, dtype=np.float32)
         position_history[0] = state.order.amount
-        position_history[1:len(state.history_steps) + 1] = state.history_steps["position"].to_numpy()
+        position_history[1 : len(state.history_steps) + 1] = state.history_steps["position"].to_numpy()
 
         assert self.env is not None
 
         # The min, slice here are to make sure that indices fit into the range,
         # even after the final step of the simulator (in the done step),
         # to make network in policy happy.
-        return cast(FullHistoryObs, canonicalize({
-            "data_processed": self._mask_future_info(processed.today, state.cur_time),
-            "data_processed_prev": processed.yesterday,
-            "acquiring": state.order.direction == state.order.BUY,
-            "cur_tick": min(np.sum(state.ticks_index < state.cur_time), self.data_ticks - 1),
-            "cur_step": min(self.env.status["cur_step"], self.max_step - 1),
-            "num_step": self.max_step,
-            "target": state.order.amount,
-            "position": state.position,
-            "position_history": position_history[:self.max_step],
-        }))
+        return cast(
+            FullHistoryObs,
+            canonicalize(
+                {
+                    "data_processed": self._mask_future_info(processed.today, state.cur_time),
+                    "data_processed_prev": processed.yesterday,
+                    "acquiring": state.order.direction == state.order.BUY,
+                    "cur_tick": min(np.sum(state.ticks_index < state.cur_time), self.data_ticks - 1),
+                    "cur_step": min(self.env.status["cur_step"], self.max_step - 1),
+                    "num_step": self.max_step,
+                    "target": state.order.amount,
+                    "position": state.position,
+                    "position_history": position_history[: self.max_step],
+                }
+            ),
+        )
 
     @property
     def observation_space(self):
@@ -121,7 +127,7 @@ class FullHistoryStateInterpreter(StateInterpreter[SAOEState, FullHistoryObs]):
     @staticmethod
     def _mask_future_info(arr: pd.DataFrame, current: pd.Timestamp):
         arr = arr.copy(deep=True)
-        arr.loc[current:] = 0.  # mask out data after this moment (inclusive)
+        arr.loc[current:] = 0.0  # mask out data after this moment (inclusive)
         return arr
 
 
@@ -157,13 +163,15 @@ class CurrentStepStateInterpreter(StateInterpreter[SAOEState, CurrentStateObs]):
     def interpret(self, state: SAOEState) -> CurrentStateObs:
         assert self.env is not None
         assert self.env.status["cur_step"] <= self.max_step
-        obs = CurrentStateObs({
-            "acquiring": state.order.direction == state.order.BUY,
-            "cur_step": self.env.status["cur_step"],
-            "num_step": self.max_step,
-            "target": state.order.amount,
-            "position": state.position,
-        })
+        obs = CurrentStateObs(
+            {
+                "acquiring": state.order.direction == state.order.BUY,
+                "cur_step": self.env.status["cur_step"],
+                "num_step": self.max_step,
+                "target": state.order.amount,
+                "position": state.position,
+            }
+        )
         return obs
 
 
@@ -201,6 +209,7 @@ class TwapRelativeActionInterpreter(ActionInterpreter[SAOEState, float, float]):
     With TWAP strategy, in each position, 60 should be traded.
     When this interpreter receives action $a$, its output is $60 \\cdot a$.
     """
+
     @property
     def action_space(self) -> spaces.Box:
         return spaces.Box(0, np.inf, shape=(), dtype=np.float32)
