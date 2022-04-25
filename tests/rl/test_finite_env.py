@@ -154,6 +154,7 @@ def test_finite_dummy_vector_env():
     length = 100
     dataset = DummyDataset(length)
     envs = FiniteDummyVectorEnv(MetricTracker(length), [_finite_env_factory(dataset, 5, i) for i in range(5)])
+    envs._collector_guarded = True
     policy = AnyPolicy()
     test_collector = Collector(policy, envs, exploration_noise=True)
 
@@ -169,6 +170,7 @@ def test_finite_shmem_vector_env():
     length = 100
     dataset = DummyDataset(length)
     envs = FiniteShmemVectorEnv(MetricTracker(length), [_finite_env_factory(dataset, 5, i) for i in range(5)])
+    envs._collector_guarded = True
     policy = AnyPolicy()
     test_collector = Collector(policy, envs, exploration_noise=True)
 
@@ -184,6 +186,7 @@ def test_finite_subproc_vector_env():
     length = 100
     dataset = DummyDataset(length)
     envs = FiniteSubprocVectorEnv(MetricTracker(length), [_finite_env_factory(dataset, 5, i) for i in range(5)])
+    envs._collector_guarded = True
     policy = AnyPolicy()
     test_collector = Collector(policy, envs, exploration_noise=True)
 
@@ -205,6 +208,7 @@ def test_finite_dummy_vector_env_complex():
     dataset = DummyDataset(length)
     envs = FiniteDummyVectorEnv(DoNothingTracker(),
                                 [_finite_env_factory(dataset, 5, i, complex=True) for i in range(5)])
+    envs._collector_guarded = True
     policy = AnyPolicy()
     test_collector = Collector(policy, envs, exploration_noise=True)
 
@@ -219,6 +223,7 @@ def test_finite_shmem_vector_env_complex():
     dataset = DummyDataset(length)
     envs = FiniteShmemVectorEnv(DoNothingTracker(),
                                 [_finite_env_factory(dataset, 5, i, complex=True) for i in range(5)])
+    envs._collector_guarded = True
     policy = AnyPolicy()
     test_collector = Collector(policy, envs, exploration_noise=True)
 

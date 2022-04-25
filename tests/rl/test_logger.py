@@ -1,7 +1,6 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-from contextlib import suppress
 from random import randint, choice
 from pathlib import Path
 
@@ -63,10 +62,17 @@ def test_simple_env_logger(caplog):
         csv_writer = CsvWriter(Path(__file__).parent / ".output")
         venv = finite_env_factory(lambda: SimpleEnv(), venv_cls_name, 4, [writer, csv_writer])
         collector = Collector(AnyPolicy(), venv)
-        with suppress(StopIteration):
+        with venv.collector_guard():
             collector.collect(n_episode=30)
 
+        output_file = pd.read_csv(Path(__file__).parent / ".output" / "result.csv")
+        assert output_file.columns.tolist() == ["reward", "a", "c"]
+        assert len(output_file) >= 30
+
+    line_counter = 0
     for line in caplog.text.splitlines():
         line = line.strip()
         if line:
-            assert re.match(r".*reward 42\.0000 \(42.0000\)  a .* \(5\.\d+\)  c .* \((14|15|16)\.\d+\)", line)
+            line_counter += 1
+            assert re.match(r".*reward 42\.0000 \(42.0000\)  a .* \((4|5|6)\.\d+\)  c .* \((14|15|16)\.\d+\)", line)
+    assert line_counter >= 3

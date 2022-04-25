@@ -9,9 +9,12 @@ See https://github.com/thu-ml/tianshou/issues/322 for details.
 from __future__ import annotations
 
 import copy
+import warnings
+from contextlib import contextmanager
+
 import gym
 import numpy as np
-from typing import Any, Type, Set, Callable
+from typing import Any, Set, Callable
 
 from tianshou.env import BaseVectorEnv, DummyVectorEnv, ShmemVectorEnv, SubprocVectorEnv
 
@@ -127,6 +130,8 @@ class FiniteVectorEnv(BaseVectorEnv):
         self._default_obs = self._default_info = self._default_rew = None
         self._zombie = False
 
+        self._collector_guarded: bool = False
+
     def _reset_alive_envs(self):
         if not self._alive_env_ids:
             # starting or running out
@@ -162,8 +167,36 @@ class FiniteVectorEnv(BaseVectorEnv):
             return None
         return obs
 
+    @contextmanager
+    def collector_guard(self):
+        """Guard the collector. Recommended to guard every collect.
+        
+        Examples
+        --------
+        >>> with finite_env.collector_guard():
+        ...     collector.collect(n_episode=INF)
+        """
+        self._collector_guarded = True
+
+        try:
+            yield self
+        except StopIteration:
+            pass
+        finally:
+            self._collector_guarded = False
+
+        # At last trigger the loggers
+        for logger in self._logger:
+            logger.on_env_all_done()
+
     def reset(self, id=None):
         assert not self._zombie
+
+        if not self._collector_guarded:
+            warnings.warn("Collector is not guarded by FiniteEnv. "
+                          "This may cause unexpected problems, like unexpected StopIteration exception, "
+                          "or missing logs.")
+
         id = self._wrap_id(id)
         self._reset_alive_envs()
 
@@ -195,8 +228,6 @@ class FiniteVectorEnv(BaseVectorEnv):
         if not self._alive_env_ids:
             # comment this line so that the env becomes indisposable
             # self.reset()
-            for logger in self._logger:
-                logger.on_env_all_done()
             self._zombie = True
             raise StopIteration
 

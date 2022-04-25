@@ -287,7 +287,7 @@ class ConsoleWriter(LogWriter):
         }
 
         for name, values in episode_wise_contents.items():
-            logs[name] = np.mean(values)
+            logs[name] = self.aggregation(values)  # type: ignore
 
         for name, value in logs.items():
             self.metric_counts[name] += 1
@@ -342,7 +342,7 @@ class CsvWriter(LogWriter):
         return np.mean(array)
 
     def log_episode(self, length: int, rewards: list[float], contents: list[dict[str, Any]]) -> None:
-        # Same as ConsoleLogger
+        # FIXME Same as ConsoleLogger, needs a refactor to eliminate code-dup
         episode_wise_contents: dict[str, list] = defaultdict(list)
 
         for step_contents in contents:
@@ -350,11 +350,16 @@ class CsvWriter(LogWriter):
                 if isinstance(value, float):
                     episode_wise_contents[name].append(value)
 
-        self.all_records.append(episode_wise_contents)
+        logs: dict[str, float] = {
+            "reward": self.aggregation(rewards),  # type: ignore
+        }
+        for name, values in episode_wise_contents.items():
+            logs[name] = self.aggregation(values)  # type: ignore
+
+        self.all_records.append(logs)
 
     def on_env_all_done(self) -> None:
         # FIXME: this is temporary
-        raise ValueError
         pd.DataFrame.from_records(self.all_records).to_csv(self.output_dir / 'result.csv', index=False)
 
 
