@@ -4,7 +4,7 @@
 Here is an example to leverage dowhy for causal estimate
 
 1) install dowhy by following command
-conda install -c conda-forge dowhy
+pip install -r requirements.txt
 
 2) run this script
 
