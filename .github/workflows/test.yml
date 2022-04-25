@@ -103,7 +103,7 @@ jobs:
       run: |
         set -e
         pip install mypy
-        echo y | mypy --install-types
+        yes | mypy qlib --install-types || true
         mypy qlib
 
     - name: Test data downloads
