@@ -16,7 +16,7 @@ from qlib.log import set_log_with_config
 from qlib.config import C
 from qlib.rl.utils.env_wrapper import InfoDict
 from qlib.rl.utils.log import LogCollector, CsvWriter, ConsoleWriter
-from qlib.rl.utils.finite_env import finite_env_cls
+from qlib.rl.utils.finite_env import finite_env_factory
 
 
 class SimpleEnv(gym.Env[int, int]):
@@ -61,7 +61,7 @@ def test_simple_env_logger(caplog):
     for venv_cls_name in ["dummy", "shmem", "subproc"]:
         writer = ConsoleWriter()
         csv_writer = CsvWriter(Path(__file__).parent / ".output")
-        venv = finite_env_cls(venv_cls_name)([writer, csv_writer], [lambda: SimpleEnv() for _ in range(4)])
+        venv = finite_env_factory(lambda: SimpleEnv(), venv_cls_name, 4, [writer, csv_writer])
         collector = Collector(AnyPolicy(), venv)
         with suppress(StopIteration):
             collector.collect(n_episode=30)

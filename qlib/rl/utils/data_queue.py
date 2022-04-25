@@ -15,6 +15,8 @@ _logger = get_module_logger(__name__)
 
 T = TypeVar("T")
 
+__all__ = ['DataQueue']
+
 
 class DataQueue(Generic[T]):
     """Main process (producer) produces data and stores them in a queue.
@@ -23,6 +25,8 @@ class DataQueue(Generic[T]):
 
     :class:`DataQueue` is ephemeral. You must create a new DataQueue
     when the ``repeat`` is exhausted.
+
+    See the documents of :class:`qlib.rl.utils.FiniteVectorEnv` for more background.
 
     Parameters
     ----------

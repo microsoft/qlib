@@ -158,11 +158,11 @@ def test_finite_dummy_vector_env():
     test_collector = Collector(policy, envs, exploration_noise=True)
 
     for _ in range(1):
-        envs._logger = MetricTracker(length)
+        envs._logger = [MetricTracker(length)]
         try:
             test_collector.collect(n_step=10 ** 18)
         except StopIteration:
-            envs._logger.validate()
+            envs._logger[0].validate()
 
 
 def test_finite_shmem_vector_env():
@@ -173,11 +173,11 @@ def test_finite_shmem_vector_env():
     test_collector = Collector(policy, envs, exploration_noise=True)
 
     for _ in range(1):
-        envs._logger = MetricTracker(length)
+        envs._logger = [MetricTracker(length)]
         try:
             test_collector.collect(n_step=10 ** 18)
         except StopIteration:
-            envs._logger.validate()
+            envs._logger[0].validate()
 
 
 def test_finite_subproc_vector_env():
@@ -188,11 +188,11 @@ def test_finite_subproc_vector_env():
     test_collector = Collector(policy, envs, exploration_noise=True)
 
     for _ in range(1):
-        envs._logger = MetricTracker(length)
+        envs._logger = [MetricTracker(length)]
         try:
             test_collector.collect(n_step=10 ** 18)
         except StopIteration:
-            envs._logger.validate()
+            envs._logger[0].validate()
 
 
 def test_nan():

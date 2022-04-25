@@ -16,7 +16,7 @@ from qlib.rl.interpreter import StateInterpreter, ActionInterpreter
 from qlib.rl.reward import Reward
 from qlib.rl.utils.data_queue import DataQueue
 from qlib.rl.utils.env_wrapper import EnvWrapper
-from qlib.rl.utils.finite_env import FiniteEnvType, finite_env_cls
+from qlib.rl.utils.finite_env import FiniteEnvType, finite_env_factory
 from qlib.rl.utils.log import BasicLogger
 
 
@@ -35,7 +35,7 @@ def backtest(
 ):
     """Backtest with the parallelism provided by RL framework."""
     seed_iterator = DataQueue(seed_set)
-    finite_venv = finite_env_cls(finite_env_type)
+    finite_venv = finite_env_factory(finite_env_type)
 
     with seed_iterator:
         vector_env = finite_venv(BasicLogger(), [

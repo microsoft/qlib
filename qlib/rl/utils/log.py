@@ -28,7 +28,7 @@ if TYPE_CHECKING:
     from .env_wrapper import InfoDict
 
 
-__all__ = ["LogCollector", "LogWriter", "LogLevel"]
+__all__ = ["LogCollector", "LogWriter", "LogLevel", "ConsoleWriter", "CsvWriter"]
 
 ObsType = TypeVar("ObsType")
 ActType = TypeVar("ActType")
