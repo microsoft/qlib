@@ -57,7 +57,7 @@ def backtest(
     """
 
     # To save bandwidth
-    min_loglevel = min(l.loglevel for l in logger) if isinstance(logger, list) else logger.loglevel
+    min_loglevel = min(lg.loglevel for lg in logger) if isinstance(logger, list) else logger.loglevel
 
     with DataQueue(initial_states) as seed_iterator:
         vector_env = finite_env_factory(
