@@ -3,7 +3,9 @@
 
 from __future__ import annotations
 
-from typing import Generic, TYPE_CHECKING, TypeVar, final
+from typing import Generic, TYPE_CHECKING, TypeVar
+
+from qlib.typehint import final
 
 from .simulator import StateType
 
