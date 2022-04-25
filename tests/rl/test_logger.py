@@ -8,13 +8,18 @@ import re
 import gym
 import numpy as np
 import pandas as pd
+from gym import spaces
 from tianshou.data import Collector, Batch
 from tianshou.policy import BasePolicy
 
 from qlib.log import set_log_with_config
 from qlib.config import C
-from qlib.rl.utils.env_wrapper import InfoDict
-from qlib.rl.utils.log import LogCollector, CsvWriter, ConsoleWriter
+from qlib.constant import INF
+from qlib.rl.interpreter import StateInterpreter, ActionInterpreter
+from qlib.rl.simulator import Simulator
+from qlib.rl.utils.data_queue import DataQueue
+from qlib.rl.utils.env_wrapper import InfoDict, EnvWrapper
+from qlib.rl.utils.log import LogLevel, LogCollector, CsvWriter, ConsoleWriter
 from qlib.rl.utils.finite_env import finite_env_factory
 
 
@@ -80,5 +85,71 @@ def test_simple_env_logger(caplog):
     assert line_counter >= 3
 
 
+class SimpleSimulator(Simulator[int, float, float]):
+    def __init__(self, initial: int, **kwargs) -> None:
+        self.initial = float(initial)
+
+    def step(self, action: float) -> None:
+        import torch
+        self.initial += action
+        self.env.logger.add_scalar("test_a", torch.tensor(233.))
+        self.env.logger.add_scalar("test_b", np.array(200))
+
+    def get_state(self) -> float:
+        return self.initial
+
+    def done(self) -> bool:
+        return self.initial % 1 > 0.5
+
+
+class DummyStateInterpreter(StateInterpreter[float, float]):
+    def interpret(self, state: float) -> float:
+        return state
+
+    @property
+    def observation_space(self) -> spaces.Box:
+        return spaces.Box(0, np.inf, shape=(), dtype=np.float32)
+
+
+class DummyActionInterpreter(ActionInterpreter[float, int, float]):
+    def interpret(self, state: float, action: int) -> float:
+        return action / 100
+
+    @property
+    def action_space(self) -> spaces.Box:
+        return spaces.Discrete(5)
+
+
+class RandomFivePolicy(BasePolicy):
+    def forward(self, batch, state=None):
+        return Batch(act=np.random.randint(5, size=len(batch)))
+
+    def learn(self, batch):
+        pass
+
+
 def test_logger_with_env_wrapper():
-    pass
+    with DataQueue(list(range(20))) as data_iterator:
+        env_wrapper_factory = lambda: EnvWrapper(
+            SimpleSimulator,
+            DummyStateInterpreter(),
+            DummyActionInterpreter(),
+            data_iterator,
+            logger=LogCollector(LogLevel.DEBUG)
+        )
+
+        # loglevel can be debug here because metrics can all dump into csv
+        # otherwise, csv writer might crash
+        csv_writer = CsvWriter(Path(__file__).parent / ".output", loglevel=LogLevel.DEBUG)
+        venv = finite_env_factory(env_wrapper_factory, "shmem", 4, csv_writer)
+        with venv.collector_guard():
+            collector = Collector(RandomFivePolicy(), venv)
+            collector.collect(n_episode=INF * len(venv))
+
+    output_df = pd.read_csv(Path(__file__).parent / ".output" / "result.csv")
+    assert len(output_df) == 20
+    # obs has a increasing trend
+    assert output_df["obs"].to_numpy()[:10].sum() < output_df["obs"].to_numpy()[10:].sum()
+    assert (output_df["test_a"] == 233).all()
+    assert (output_df["test_b"] == 200).all()
+    assert "steps_per_episode" in output_df and "reward" in output_df

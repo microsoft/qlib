@@ -119,8 +119,11 @@ class EnvWrapper(
             else:
                 initial_state = next(cast(Iterator[InitialStateType], self.seed_iterator))
                 self.simulator = self.simulator_fn(initial_state)
-                sim_state = self.simulator.get_state()
-                obs = self.state_interpreter(sim_state)
+
+            self.simulator._env = weakref.ref(self)
+
+            sim_state = self.simulator.get_state()
+            obs = self.state_interpreter(sim_state)
 
             self.status = EnvWrapperStatus(
                 cur_step=0,
@@ -167,6 +170,7 @@ class EnvWrapper(
         if self.reward_fn is not None:
             rew = self.reward_fn(sim_state)
         else:
+            # No reward. Treated as 0.
             rew = 0.
         self.status["reward_history"].append(rew)
 

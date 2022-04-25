@@ -334,8 +334,8 @@ class CsvWriter(LogWriter):
 
     all_records: list[dict[str, Any]]
 
-    def __init__(self, output_dir: Path):
-        super().__init__()
+    def __init__(self, output_dir: Path, loglevel: int | LogLevel = LogLevel.PERIODIC):
+        super().__init__(loglevel)
         self.output_dir = output_dir
         self.output_dir.mkdir(exist_ok=True)
 
