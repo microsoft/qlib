@@ -105,7 +105,7 @@ jobs:
         set -e
         pip install mypy
         # mypy qlib --install-types --non-interactive || true
-        mypy qlib
+        mypy qlib --verbose
 
     - name: Test data downloads
       run: |
