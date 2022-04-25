@@ -31,6 +31,8 @@ class SimpleEnv(gym.Env[int, int]):
     def step(self, action: int):
         self.logger.reset()
 
+        self.logger.add_scalar("reward", 42.)
+
         self.logger.add_scalar("a", randint(1, 10))
         self.logger.add_array("b", pd.DataFrame({"a": [1, 2], "b": [3, 4]}))
 
@@ -61,8 +63,8 @@ def test_simple_env_logger(caplog):
         writer = ConsoleWriter()
         csv_writer = CsvWriter(Path(__file__).parent / ".output")
         venv = finite_env_factory(lambda: SimpleEnv(), venv_cls_name, 4, [writer, csv_writer])
-        collector = Collector(AnyPolicy(), venv)
         with venv.collector_guard():
+            collector = Collector(AnyPolicy(), venv)
             collector.collect(n_episode=30)
 
         output_file = pd.read_csv(Path(__file__).parent / ".output" / "result.csv")
@@ -76,3 +78,7 @@ def test_simple_env_logger(caplog):
             line_counter += 1
             assert re.match(r".*reward 42\.0000 \(42.0000\)  a .* \((4|5|6)\.\d+\)  c .* \((14|15|16)\.\d+\)", line)
     assert line_counter >= 3
+
+
+def test_logger_with_env_wrapper():
+    pass

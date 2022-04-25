@@ -181,5 +181,5 @@ class TwapRemainingAdjustmentActionInterpreter(ActionInterpreter[SAOEState, floa
 
     def to_volume(self, state: SAOEState, action: float) -> float:
         estimated_total_steps = math.ceil(len(state.ticks_for_order) / state.ticks_per_step)
-        twap_volume = state.position / (estimated_total_steps - self.env.status.cur_step)
+        twap_volume = state.position / (estimated_total_steps - self.env.status["cur_step"])
         return min(state.position, twap_volume * action)

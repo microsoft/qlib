@@ -195,7 +195,7 @@ class FiniteVectorEnv(BaseVectorEnv):
         if not self._collector_guarded:
             warnings.warn("Collector is not guarded by FiniteEnv. "
                           "This may cause unexpected problems, like unexpected StopIteration exception, "
-                          "or missing logs.")
+                          "or missing logs.", RuntimeWarning)
 
         id = self._wrap_id(id)
         self._reset_alive_envs()

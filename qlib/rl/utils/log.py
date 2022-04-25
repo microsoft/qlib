@@ -99,10 +99,20 @@ class LogCollector:
         if loglevel < self._min_loglevel:
             return
 
-        # FIXME: check whether venv allows logs to have a dynamic key set.
         if not isinstance(array, (np.ndarray, pd.DataFrame, pd.Series)):
             raise TypeError(f"{array} is not one of ndarray, DataFrame and Series.")
         self._add_metric(name, array, loglevel)
+
+    def add_any(self, name: str, object: Any, loglevel: int | LogLevel = LogLevel.PERIODIC) -> None:
+        """Log something with any type.
+        
+        As it's an "any" object, the only LogWriter accepting it is pickle.
+        Therefore pickle must be able to serialize it.
+        """
+        if loglevel < self._min_loglevel:
+            return
+
+        self._add_metric(name, object, loglevel)
 
     def logs(self) -> dict[str, np.ndarray]:
         return {key: np.asanyarray(value, dtype="object") for key, value in self._logged.items()}
@@ -281,11 +291,7 @@ class ConsoleWriter(LogWriter):
 
         # Generate log contents and track them in average-meter.
         # This should be done at every step, regardless of periodic or not.
-        logs: dict[str, float] = {
-            "steps_per_episode": length,
-            "reward": self.aggregation(rewards),  # type: ignore
-        }
-
+        logs: dict[str, float] = {}
         for name, values in episode_wise_contents.items():
             logs[name] = self.aggregation(values)  # type: ignore
 
@@ -350,9 +356,7 @@ class CsvWriter(LogWriter):
                 if isinstance(value, float):
                     episode_wise_contents[name].append(value)
 
-        logs: dict[str, float] = {
-            "reward": self.aggregation(rewards),  # type: ignore
-        }
+        logs: dict[str, float] = {}
         for name, values in episode_wise_contents.items():
             logs[name] = self.aggregation(values)  # type: ignore
 

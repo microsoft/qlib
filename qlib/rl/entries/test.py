@@ -14,7 +14,7 @@ from qlib.log import get_module_logger
 from qlib.rl.simulator import InitialStateType, Simulator
 from qlib.rl.interpreter import StateInterpreter, ActionInterpreter
 from qlib.rl.reward import Reward
-from qlib.rl.utils import DataQueue, EnvWrapper, FiniteEnvType, LogWriter, finite_env_factory
+from qlib.rl.utils import DataQueue, EnvWrapper, FiniteEnvType, LogCollector, LogWriter, finite_env_factory
 
 
 _logger = get_module_logger(__name__)
@@ -57,19 +57,27 @@ def backtest(
         Parallel workers. 
     """
 
-    seed_iterator = DataQueue(initial_states)
+    # To save bandwidth
+    min_loglevel = min(l.loglevel for l in logger) if isinstance(logger, list) else logger.loglevel
 
-    with seed_iterator:
+    with DataQueue(initial_states) as seed_iterator:
         vector_env = finite_env_factory(
-            lambda: EnvWrapper(simulator_fn, state_interpreter, action_interpreter, seed_iterator, reward),
+            lambda: EnvWrapper(
+                simulator_fn,
+                state_interpreter,
+                action_interpreter,
+                seed_iterator,
+                reward,
+                logger=LogCollector(min_loglevel=min_loglevel)
+            ),
             finite_env_type,
             concurrency,
             logger
         )
 
-        test_collector = Collector(policy, vector_env)
         policy.eval()
-        _logger.info("All ready. Start backtest.", __name__)
 
         with vector_env.collector_guard():
+            test_collector = Collector(policy, vector_env)
+            _logger.info("All ready. Start backtest.", __name__)
             test_collector.collect(n_step=INF * len(vector_env))
