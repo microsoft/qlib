@@ -21,7 +21,9 @@ __all__ = ["InfoDict", "EnvWrapperStatus", "EnvWrapper"]
 # in this case, there won't be any seed for simulator
 SEED_INTERATOR_MISSING = "_missing_"
 
+
 class InfoDict(TypedDict):
+    """The type of dict that is used in the 4th return value of ``env.step()``."""
     aux_info: dict          # Any information depends on auxiliary info collector
     log: dict[str, Any]     # collected by LogCollector
 
@@ -45,11 +47,35 @@ class EnvWrapper(
     gym.Env[ObsType, PolicyActType],
     Generic[InitialStateType, StateType, ActType, ObsType, PolicyActType]
 ):
-    """Qlib-based RL environment.
-    This is a wrapper of components, including simulator, state-interpreter, action-interpreter, reward.
+    """Qlib-based RL environment, subclassing ``gym.Env``.
+    A wrapper of components, including simulator, state-interpreter, action-interpreter, reward.
 
-    FIXME: TBD
+    This is what the framework of simulator - interpreter - policy looks like in RL training.
+    All the components other than policy needs to be assembled into a single object called "environment".
+    The "environment" are replicated into multiple workers, and (at least in tianshou's implementation),
+    one single policy (agent) plays against a batch of environments.
 
+    Parameters
+    ----------
+    simulator_fn
+        A callable that is the simulator factory.
+        When ``seed_iterator`` is present, the factory should take one argument,
+        that is the seed (aka initial state).
+        Otherwise, it should take zero argument.
+    state_interpreter
+        State-observation converter.
+    action_interpreter
+        Policy-simulator action converter.
+    seed_iterator
+        An iterable of seed. With the help of :class:`qlib.rl.utils.DataQueue`,
+        environment workers in different processes can share one ``seed_iterator``.
+    reward_fn
+        A callable that accepts the StateType and returns a float (at least in single-agent case).
+    aux_info_collector
+        Collect auxiliary informations. Could be useful in MARL.
+    logger
+        Log collector that collects the logs. The collected logs are sent back to main process,
+        via the return value of ``env.step()``.
 
     Attributes
     ----------
@@ -101,8 +127,11 @@ class EnvWrapper(
         return self.state_interpreter.observation_space
 
     def reset(self, **kwargs) -> ObsType:
-        # Try to get a state from state queue, and init the simulator with this state.
-        # If the queue is exhausted, generate an invalid (nan) observation
+        """
+        Try to get a state from state queue, and init the simulator with this state.
+        If the queue is exhausted, generate an invalid (nan) observation.
+        """
+
         try:
             if self.seed_iterator is None:
                 raise RuntimeError("You can trying to get a state from a dead environment wrapper.")
@@ -147,17 +176,23 @@ class EnvWrapper(
             return generate_nan_observation(self.observation_space)
 
     def step(self, policy_action: PolicyActType, **kwargs) -> tuple[ObsType, float, bool, InfoDict]:
+        """Environment step.
+
+        See the code along with comments to get a sequence of things happening here.
+        """
+
         if self.seed_iterator is None:
             raise RuntimeError("State queue is already exhausted, but the environment is still receiving action.")
 
         # Clear the logged information from last step
         self.logger.reset()
 
-        self.status["cur_step"] += 1
-
         # Action is what we have got from policy
         self.status["action_history"].append(policy_action)
         action = self.action_interpreter(self.simulator.get_state(), policy_action)
+
+        # This update must be after action interpreter and before simulator.
+        self.status["cur_step"] += 1
 
         # Use the converted action of update the simulator
         self.simulator.step(action)

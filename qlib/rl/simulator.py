@@ -56,7 +56,7 @@ class Simulator(Generic[InitialStateType, StateType, ActType]):
 
     def step(self, action: ActType) -> None:
         """Receives an action of ActType.
-        
+
         Simulator should update its internal state, and return None.
         The updated state can be retrieved with ``simulator.get_state()``.
         """

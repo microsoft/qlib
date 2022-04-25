@@ -157,13 +157,13 @@ class CurrentStepStateInterpreter(StateInterpreter[SAOEState, CurrentStateObs]):
     def interpret(self, state: SAOEState) -> CurrentStateObs:
         assert self.env is not None
         assert self.env.status["cur_step"] <= self.max_step
-        obs = {
+        obs = CurrentStateObs({
             "acquiring": state.order.direction == state.order.BUY,
             "cur_step": self.env.status["cur_step"],
             "num_step": self.max_step,
             "target": state.order.amount,
             "position": state.position,
-        }
+        })
         return obs
 
 
@@ -173,11 +173,12 @@ class CategoricalActionInterpreter(ActionInterpreter[SAOEState, int, float]):
     Parameters
     ----------
     values
-        It can be a list of length $L$: $[a_1, a_2, \ldots, a_L]$.
+        It can be a list of length $L$: $[a_1, a_2, \\ldots, a_L]$.
         Then when policy givens decision $x$, $a_x$ times order amount is the output.
         It can also be an integer $n$, in which case the list of length $n+1$ is auto-generated,
-        i.e., $[0, 1/n, 2/n, \ldots, n/n]$. 
+        i.e., $[0, 1/n, 2/n, \\ldots, n/n]$.
     """
+
     def __init__(self, values: int | list[float]):
         if isinstance(values, int):
             values = [i / values for i in range(0, values + 1)]
@@ -198,7 +199,7 @@ class TwapRelativeActionInterpreter(ActionInterpreter[SAOEState, float, float]):
     The ratio is relative to TWAP on the remainder of the day.
     For example, there are 5 steps left, and the left position is 300.
     With TWAP strategy, in each position, 60 should be traded.
-    When this interpreter receives action $a$, its output is $60 \cdot a$.
+    When this interpreter receives action $a$, its output is $60 \\cdot a$.
     """
     @property
     def action_space(self) -> spaces.Box:

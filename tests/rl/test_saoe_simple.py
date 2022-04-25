@@ -17,7 +17,7 @@ from qlib.log import set_log_with_config
 from qlib.rl.data import pickle_styled
 from qlib.rl.entries.test import backtest
 from qlib.rl.order_execution import *
-from qlib.rl.utils import ConsoleWriter, EnvWrapperStatus
+from qlib.rl.utils import ConsoleWriter, CsvWriter, EnvWrapperStatus
 
 
 DATA_DIR = Path("/mnt/data/Sample-Testdata/us/")  # Update this when infrastructure is built.
@@ -132,7 +132,7 @@ def test_simulator_start_middle():
     assert simulator.metrics["ffr"] == 1
 
 
-def test_state_interpreter():
+def test_interpreter():
     order = Order("AAL", 15., 1, 
                   pd.Timestamp("2013-12-11 10:15:00"),
                   pd.Timestamp("2013-12-11 15:44:59"))
@@ -281,19 +281,23 @@ def test_network_sanity():
 def test_twap_strategy():
     set_log_with_config(C.logging_config)
     orders = pickle_styled.load_orders(ORDER_DIR)
-    print(orders[:10])
+    assert len(orders) == 248
 
     state_interp = FullHistoryStateInterpreter(FEATURE_DATA_DIR, 13, 390, 5)
     action_interp = TwapRelativeActionInterpreter()
     policy = AllOne(state_interp.observation_space, action_interp.action_space)
+    csv_writer = CsvWriter(Path(__file__).parent / ".output")
 
     backtest(
         partial(SingleAssetOrderExecution, data_dir=BACKTEST_DATA_DIR, ticks_per_step=30),
         state_interp, action_interp,
         orders, policy,
-        ConsoleWriter(total_episodes=len(orders)),
+        [ConsoleWriter(total_episodes=len(orders)), csv_writer],
         concurrency=4
     )
 
-
-test_twap_strategy()
+    metrics = pd.read_csv(Path(__file__).parent / ".output" / "result.csv")
+    assert len(metrics) == 248
+    assert np.isclose(metrics["ffr"].mean(), 1.)
+    assert np.isclose(metrics["pa"].mean(), 0.)
+    assert np.allclose(metrics["pa"], 0., atol=2e-3)

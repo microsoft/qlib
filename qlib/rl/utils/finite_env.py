@@ -44,7 +44,6 @@ def fill_invalid(obj):
             if np.issubdtype(obj.dtype, np.floating):
                 return np.full_like(obj, np.nan)
             return np.full_like(obj, np.iinfo(obj.dtype).max)
-            return obj
         # dealing with corner cases that numpy number is not supported by tianshou's sharray
         return fill_invalid(np.array(obj))
     elif isinstance(obj, dict):
@@ -52,7 +51,7 @@ def fill_invalid(obj):
     elif isinstance(obj, list):
         return [fill_invalid(v) for v in obj]
     elif isinstance(obj, tuple):
-        return tuple([fill_invalid(v) for v in obj])
+        return tuple(fill_invalid(v) for v in obj)
     raise ValueError(f"Unsupported value to fill with invalid: {obj}")
 
 
@@ -62,9 +61,9 @@ def isinvalid(arr):
             return np.isnan(arr).all()
         return (np.iinfo(arr.dtype).max == arr).all()
     if isinstance(arr, dict):
-        return all([isinvalid(o) for o in arr.values()])
+        return all(isinvalid(o) for o in arr.values())
     if isinstance(arr, (list, tuple)):
-        return all([isinvalid(o) for o in arr])
+        return all(isinvalid(o) for o in arr)
     if isinstance(arr, (int, float, bool, np.number)):
         return isinvalid(np.array(arr))
     return True
@@ -72,11 +71,11 @@ def isinvalid(arr):
 
 def generate_nan_observation(obs_space: gym.Space) -> Any:
     """The NaN observation that indicates the environment receives no seed.
-    
+
     We assume that obs is complex and there must be something like float.
     Otherwise this logic doesn't work.
     """
-    
+
     sample = obs_space.sample()
     sample = fill_invalid(sample)
     return sample
@@ -170,7 +169,7 @@ class FiniteVectorEnv(BaseVectorEnv):
     @contextmanager
     def collector_guard(self):
         """Guard the collector. Recommended to guard every collect.
-        
+
         Examples
         --------
         >>> with finite_env.collector_guard():
@@ -221,8 +220,8 @@ class FiniteVectorEnv(BaseVectorEnv):
         # fill empty observation with default(fake) observation
         for o in obs:
             self._set_default_obs(o)
-        for i in range(len(obs)):
-            if obs[i] is None:
+        for i, o in enumerate(obs):
+            if o is None:
                 obs[i] = self._get_default_obs()
 
         if not self._alive_env_ids:
@@ -257,12 +256,12 @@ class FiniteVectorEnv(BaseVectorEnv):
         for _, r, ___, i in result:
             self._set_default_info(i)
             self._set_default_rew(r)
-        for i in range(len(result)):
-            if result[i][0] is None:
+        for i, r in enumerate(result):
+            if r[0] is None:
                 result[i][0] = self._get_default_obs()
-            if result[i][1] is None:
+            if r[1] is None:
                 result[i][1] = self._get_default_rew()
-            if result[i][3] is None:
+            if r[3] is None:
                 result[i][3] = self._get_default_info()
 
         return list(map(np.stack, zip(*result)))
@@ -287,7 +286,7 @@ def finite_env_factory(
     logger: LogWriter | list[LogWriter],
 ) -> FiniteVectorEnv:
     """Helper function to create a vector env.
-    
+
     Parameters
     ----------
     env_factory

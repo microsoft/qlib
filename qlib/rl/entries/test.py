@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-from contextlib import suppress
 from typing import Callable, Sequence
 
 from tianshou.data import Collector
@@ -32,7 +31,7 @@ def backtest(
     concurrency: int = 2
 ) -> None:
     """Backtest with the parallelism provided by RL framework.
-    
+
     Parameters
     ----------
     simulator_fn
@@ -54,7 +53,7 @@ def backtest(
     finite_env_type
         Type of finite env implementation.
     concurrency
-        Parallel workers. 
+        Parallel workers.
     """
 
     # To save bandwidth

@@ -29,7 +29,7 @@ class Reward(Generic[SimulatorState]):
         raise NotImplementedError("Implement reward calculation recipe in `reward()`.")
 
     def log(self, name, value):
-        self.env_wrapper().logger.add_scalar(name, value)
+        self.env.logger.add_scalar(name, value)
 
 
 class RewardCombination(Reward):

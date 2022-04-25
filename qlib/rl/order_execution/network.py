@@ -16,6 +16,15 @@ __all__ = ["Recurrent"]
 
 
 class Recurrent(nn.Module):
+    """The network architecture proposed in `OPD <https://seqml.github.io/opd/opd_aaai21_supplement.pdf>`_.
+
+    At every timestep the input of policy network is divided into two parts,
+    the public variables and the private variables. which are handled by ``raw_rnn``
+    and ``pri_rnn`` in this network, respectively.
+
+    One minor difference is that, in this implementation, we don't assume the direction to be fixed.
+    Thus, another ``dire_fc`` is added to produce an extra direction-related feature.
+    """
     def __init__(
         self,
         obs_space: FullHistoryObs,

@@ -18,6 +18,11 @@ __all__ = ["AllOne", "PPO"]
 # baselines #
 
 class NonlearnablePolicy(BasePolicy):
+    """Tianshou's BasePolicy with empty ``learn`` and ``process_fn``.
+
+    This could be moved outside in future.
+    """
+
     def __init__(self,
                  obs_space: gym.Space,
                  action_space: gym.Space):
@@ -31,6 +36,11 @@ class NonlearnablePolicy(BasePolicy):
 
 
 class AllOne(NonlearnablePolicy):
+    """Forward returns a batch full of 1.
+
+    Useful when implementing some baselines (e.g., TWAP).
+    """
+
     def forward(self, batch, state=None, **kwargs):
         return Batch(act=np.full(len(batch), 1.), state=state)
 
@@ -64,6 +74,17 @@ class PPOCritic(nn.Module):
 
 
 class PPO(PPOPolicy):
+    """A wrapper of tianshou PPOPolicy.
+
+    Differences:
+
+    - Auto-create actor and critic network. Supports discrete action space only.
+    - Dedup common parameters between actor network and critic network
+      (not sure whether this is included in latest tianshou or not).
+    - Support a ``weight_file`` that supports loading checkpoint.
+    - Some parameters' default values are different from original.
+    """
+
     def __init__(self,
                  network: nn.Module,
                  obs_space: gym.Space,
@@ -100,7 +121,7 @@ class PPO(PPOPolicy):
             load_weight(self, weight_file)
 
 
-# utilities: these shouold be put in a separate (common) file. #
+# utilities: these should be put in a separate (common) file. #
 
 def auto_device(module: nn.Module) -> torch.device:
     for param in module.parameters():

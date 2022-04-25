@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import NamedTuple, TypedDict, Any, TypeVar, cast
+from typing import NamedTuple, TypedDict, Any, TypeVar
 
 import numpy as np
 import pandas as pd
@@ -144,7 +144,7 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
 
         self.position = order.amount
 
-        metric_keys = list(SAOEMetrics.__annotations__.keys())
+        metric_keys = list(SAOEMetrics.__annotations__.keys())  # pylint: disable=no-member
         # NOTE: can empty dataframe contain index?
         self.history_exec = pd.DataFrame(columns=metric_keys).set_index("datetime")
         self.history_steps = pd.DataFrame(columns=metric_keys).set_index("datetime")
@@ -205,6 +205,20 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
                 self.history_exec["deal_amount"],
             )
 
+            # NOTE (yuge): It looks to me that it's the "correct" decision to
+            # put all the logs here, because only components like simulators themselves
+            # have the knowledge about what could appear in the logs, and what's the format.
+            # But I admit it's not necessarily the most convenient way.
+            # I'll rethink about it when we have the second environment
+            # Maybe some APIs like self.logger.enable_auto_log() ?
+
+            if self.env is not None:
+                for key, value in self.metrics.items():
+                    if isinstance(value, float):
+                        self.env.logger.add_scalar(key, value)
+                    else:
+                        self.env.logger.add_any(key, value)
+
         self.cur_time = self._next_time()
 
     def get_state(self) -> SAOEState:
@@ -255,7 +269,7 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
         self.market_vol = self.backtest_data.get_volume().loc[self.cur_time:next_time - ONE_SEC].to_numpy()
         self.market_price = self.backtest_data.get_deal_price() \
             .loc[self.cur_time:next_time - ONE_SEC].to_numpy()
-        
+
         assert self.market_vol is not None and self.market_price is not None
 
         # split the volume equally into each minute

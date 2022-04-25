@@ -18,6 +18,7 @@ from gym import spaces
 ObsType = TypeVar("ObsType")
 PolicyActType = TypeVar("PolicyActType")
 
+
 class Interpreter:
     """Interpreter is a media between states produced by simulators and states needed by RL policies.
     Interpreters are two-way:
@@ -51,7 +52,7 @@ class StateInterpreter(Generic[StateType, ObsType], Interpreter):
         return obs
 
     def validate(self, obs: ObsType) -> None:
-        """Validate whether an observation belongs to the pre-defined observation space.""" 
+        """Validate whether an observation belongs to the pre-defined observation space."""
         _gym_space_contains(self.observation_space,  obs)
 
     def interpret(self, simulator_state: StateType) -> ObsType:
@@ -85,7 +86,7 @@ class ActionInterpreter(Generic[StateType, PolicyActType, ActType], Interpreter)
         return obs
 
     def validate(self, action: PolicyActType) -> None:
-        """Validate whether an action belongs to the pre-defined action space.""" 
+        """Validate whether an action belongs to the pre-defined action space."""
         _gym_space_contains(self.action_space, action)
 
     def interpret(self, simulator_state: StateType, action: PolicyActType) -> ActType:
@@ -119,8 +120,8 @@ def _gym_space_contains(space: gym.Space, x: Any) -> None:
                 raise GymSpaceValidationError(f"Key {k} not found in sample.", space, x)
             try:
                 _gym_space_contains(subspace, x[k])
-            except GymSpaceValidationError:
-                raise GymSpaceValidationError(f"Subspace of key {k} validation error.", space, x)
+            except GymSpaceValidationError as e:
+                raise GymSpaceValidationError(f"Subspace of key {k} validation error.", space, x) from e
 
     elif isinstance(space, spaces.Tuple):
         if isinstance(x, (list, np.ndarray)):
@@ -130,8 +131,8 @@ def _gym_space_contains(space: gym.Space, x: Any) -> None:
         for i, (subspace, part) in enumerate(zip(space, x)):
             try:
                 _gym_space_contains(subspace, part)
-            except GymSpaceValidationError:
-                raise GymSpaceValidationError(f"Subspace of index {i} validation error.", space, x)
+            except GymSpaceValidationError as e:
+                raise GymSpaceValidationError(f"Subspace of index {i} validation error.", space, x) from e
 
     else:
         if not space.contains(x):

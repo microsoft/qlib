@@ -15,7 +15,7 @@ _logger = get_module_logger(__name__)
 
 T = TypeVar("T")
 
-__all__ = ['DataQueue']
+__all__ = ["DataQueue"]
 
 
 class DataQueue(Generic[T]):
@@ -109,7 +109,7 @@ class DataQueue(Generic[T]):
                 return self._queue.get(block=block, timeout=timeout)
             except Empty:
                 if self._done.value:
-                    raise StopIteration
+                    raise StopIteration  # pylint: disable=raise-missing-from
 
     def put(self, obj, block=True, timeout=None):
         return self._queue.put(obj, block=block, timeout=timeout)
@@ -149,7 +149,7 @@ class DataQueue(Generic[T]):
 
     def _producer(self):
         # pytorch dataloader is used here only because we need its sampler and multi-processing
-        from torch.utils.data import DataLoader, Dataset
+        from torch.utils.data import DataLoader, Dataset  # pylint: disable=import-outside-toplevel
         dataloader = DataLoader(
             cast(Dataset[T], self.dataset),
             batch_size=None,

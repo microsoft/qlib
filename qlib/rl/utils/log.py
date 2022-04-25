@@ -14,10 +14,11 @@ The two modules communicate by the "log" field in "info" returned by ``env.step(
 
 from __future__ import annotations
 
+import logging
 from collections import defaultdict
 from enum import IntEnum
 from pathlib import Path
-from typing import Any, TypeVar, Generic, Set, TYPE_CHECKING, Callable, Sequence, cast
+from typing import Any, TypeVar, Generic, Set, TYPE_CHECKING, Sequence
 
 import numpy as np
 import pandas as pd
@@ -40,7 +41,7 @@ class LogLevel(IntEnum):
     """
     DEBUG = 10          # If you only want to see the metric in debug mode
     PERIODIC = 20       # If you want to see the metric periodically
-                        # FIXME: I haven't given much thought about this. Let's hold it for one iteration.
+    # FIXME: I haven't given much thought about this. Let's hold it for one iteration.
     INFO = 30           # Important log messages
     CRITICAL = 40       # LogWriter should always handle CRITICAL messages
 
@@ -48,7 +49,7 @@ class LogLevel(IntEnum):
 class LogCollector:
     """Logs are first collected in each environment worker,
     and then aggregated to stream at the central thread in vector env.
-    
+
     In :class:`LogCollector`, every metric is added to a dict, which needs to be ``reset()`` at each step.
     The dict is sent via the ``info`` in ``env.step()``, and decoded by the :class:`LogWriter` at vector env.
 
@@ -105,12 +106,14 @@ class LogCollector:
 
     def add_any(self, name: str, object: Any, loglevel: int | LogLevel = LogLevel.PERIODIC) -> None:
         """Log something with any type.
-        
+
         As it's an "any" object, the only LogWriter accepting it is pickle.
         Therefore pickle must be able to serialize it.
         """
         if loglevel < self._min_loglevel:
             return
+
+        # FIXME: detect and rescue object that could be scalar or array
 
         self._add_metric(name, object, loglevel)
 
@@ -120,7 +123,7 @@ class LogCollector:
 
 class LogWriter(Generic[ObsType, ActType]):
     """Base class for log writers, triggered at every reset and step by finite env.
-    
+
     What to do with a specific log depends on the implementation of subclassing :class:`LogWriter`.
     The general principle is that, it should handle logs above its loglevel (inclusive),
     and discard logs that are not acceptable. For instance, console loggers obviously can't handle an image.
@@ -171,7 +174,7 @@ class LogWriter(Generic[ObsType, ActType]):
 
     def log_episode(self, length: int, rewards: list[float], contents: list[dict[str, Any]]) -> None:
         """This is triggered at the end of each trajectory.
-        
+
         Parameters
         ----------
         length
@@ -181,11 +184,10 @@ class LogWriter(Generic[ObsType, ActType]):
         contents
             Logged contents for every steps.
         """
-        pass
 
     def log_step(self, reward: float, contents: dict[str, Any]) -> None:
         """This is triggered at each step.
-        
+
         Parameters
         ----------
         reward
@@ -193,7 +195,6 @@ class LogWriter(Generic[ObsType, ActType]):
         contents
             Logged contents for this step.
         """
-        pass
 
     def on_env_step(self, env_id: int, obs: ObsType, rew: float, done: bool, info: InfoDict) -> None:
         """Callback for finite env, on each step."""
@@ -213,7 +214,7 @@ class LogWriter(Generic[ObsType, ActType]):
             if loglevel >= self.loglevel:  # FIXME: this is actually incorrect (see last FIXME)
                 values[key] = value
         self.episode_logs[env_id].append(values)
-    
+
         self.log_step(rew, values)
 
         if done:
@@ -229,7 +230,7 @@ class LogWriter(Generic[ObsType, ActType]):
 
     def on_env_reset(self, env_id: int, obs: ObsType) -> None:
         """Callback for finite env.
-        
+
         Reset episode statistics. Nothing task-specific is logged here because of
         `a limitation of tianshou <https://github.com/thu-ml/tianshou/issues/605>`__.
         """
@@ -239,7 +240,6 @@ class LogWriter(Generic[ObsType, ActType]):
 
     def on_env_all_done(self) -> None:
         """All done. Time for cleanup."""
-        pass
 
 
 class ConsoleWriter(LogWriter):
@@ -267,7 +267,6 @@ class ConsoleWriter(LogWriter):
 
         self.prefix = ""
 
-        import logging
         self.console_logger = get_module_logger(__name__, level=logging.INFO)
 
     def clear(self):
@@ -328,7 +327,7 @@ class ConsoleWriter(LogWriter):
 
 class CsvWriter(LogWriter):
     """Dump all episode metrics to a ``result.csv``.
-    
+
     This is not the correct implementation. It's only used for first iteration.
     """
 
@@ -367,13 +366,23 @@ class CsvWriter(LogWriter):
         pd.DataFrame.from_records(self.all_records).to_csv(self.output_dir / 'result.csv', index=False)
 
 
+# The following are not implemented yet.
+
 class PickleWriter(LogWriter):
+    """Dump logs to pickle files."""
     ...
 
 
 class TensorboardWriter(LogWriter):
+    """Write logs to event files that can be visualized with tensorboard."""
     ...
 
 
 class MlflowWriter(LogWriter):
+    """Add logs to mlflow."""
+    ...
+
+
+class LogBuffer(LogWriter):
+    """Keep everything in memory."""
     ...
