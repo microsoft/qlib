@@ -76,7 +76,7 @@ class FullHistoryStateInterpreter(StateInterpreter[SAOEState, FullHistoryObs]):
         self.data_dim = data_dim
 
     def interpret(self, state: SAOEState) -> FullHistoryObs:
-        processed = pickle_styled.get_intraday_processed_data(
+        processed = pickle_styled.load_intraday_processed_data(
             self.data_dir, state.order.stock_id, pd.Timestamp(state.order.start_time.date()),
             self.data_dim, state.ticks_index
         )

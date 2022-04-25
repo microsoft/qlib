@@ -16,6 +16,8 @@ from qlib.rl.reward import Reward
 from .finite_env import generate_nan_observation
 from .log import LogCollector, LogLevel
 
+__all__ = ["InfoDict", "EnvWrapperStatus", "EnvWrapper"]
+
 # in this case, there won't be any seed for simulator
 SEED_INTERATOR_MISSING = "_missing_"
 
@@ -115,24 +117,27 @@ class EnvWrapper(
 
             if self.seed_iterator is SEED_INTERATOR_MISSING:
                 # no initial state
+                initial_state = None
                 self.simulator = cast(Callable[[], Simulator], self.simulator_fn)()
             else:
                 initial_state = next(cast(Iterator[InitialStateType], self.seed_iterator))
                 self.simulator = self.simulator_fn(initial_state)
+
+            self.status = EnvWrapperStatus(
+                cur_step=0,
+                done=False,
+                initial_state=initial_state,
+                obs_history=[],
+                action_history=[],
+                reward_history=[]
+            )
 
             self.simulator.env = cast(EnvWrapper, weakref.proxy(self))
 
             sim_state = self.simulator.get_state()
             obs = self.state_interpreter(sim_state)
 
-            self.status = EnvWrapperStatus(
-                cur_step=0,
-                done=False,
-                initial_state=initial_state,
-                obs_history=[obs],
-                action_history=[],
-                reward_history=[]
-            )
+            self.status["obs_history"].append(obs)
 
             return obs
 

@@ -79,5 +79,5 @@ def backtest(
 
         with vector_env.collector_guard():
             test_collector = Collector(policy, vector_env)
-            _logger.info("All ready. Start backtest.", __name__)
+            _logger.info("All ready. Start backtest.")
             test_collector.collect(n_step=INF * len(vector_env))

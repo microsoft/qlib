@@ -1,6 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+from functools import partial
 from pathlib import Path
 from typing import NamedTuple
 
@@ -11,21 +12,25 @@ import pytest
 from tianshou.data import Batch
 
 from qlib.backtest import Order
+from qlib.config import C
+from qlib.log import set_log_with_config
 from qlib.rl.data import pickle_styled
+from qlib.rl.entries.test import backtest
 from qlib.rl.order_execution import *
-from qlib.rl.utils.env_wrapper import EnvWrapperStatus
+from qlib.rl.utils import ConsoleWriter, EnvWrapperStatus
 
 
 DATA_DIR = Path("/mnt/data/Sample-Testdata/us/")  # Update this when infrastructure is built.
 BACKTEST_DATA_DIR = DATA_DIR / "raw"
 FEATURE_DATA_DIR = DATA_DIR / "processed"
+ORDER_DIR = DATA_DIR / "order_valid_bidir"
 
 
 def test_pickle_data_inspect():
-    data = pickle_styled.get_intraday_backtest_data(BACKTEST_DATA_DIR, "AAL", "2013-12-11", "close", 0)
+    data = pickle_styled.load_intraday_backtest_data(BACKTEST_DATA_DIR, "AAL", "2013-12-11", "close", 0)
     assert len(data) == 390
 
-    data = pickle_styled.get_intraday_processed_data(DATA_DIR / "processed", "AAL", "2013-12-11", 5, data.get_time_index())
+    data = pickle_styled.load_intraday_processed_data(DATA_DIR / "processed", "AAL", "2013-12-11", 5, data.get_time_index())
     assert len(data.today) == len(data.yesterday) == 390
 
 
@@ -268,4 +273,27 @@ def test_network_sanity():
         if i < 13:
             simulator.step(1.)
         else:
+            assert obs["cur_tick"] == 389
+            assert obs["cur_step"] == 12
             assert obs["position_history"][-1] == 3
+
+
+def test_twap_strategy():
+    set_log_with_config(C.logging_config)
+    orders = pickle_styled.load_orders(ORDER_DIR)
+    print(orders[:10])
+
+    state_interp = FullHistoryStateInterpreter(FEATURE_DATA_DIR, 13, 390, 5)
+    action_interp = TwapRelativeActionInterpreter()
+    policy = AllOne(state_interp.observation_space, action_interp.action_space)
+
+    backtest(
+        partial(SingleAssetOrderExecution, data_dir=BACKTEST_DATA_DIR, ticks_per_step=30),
+        state_interp, action_interp,
+        orders, policy,
+        ConsoleWriter(total_episodes=len(orders)),
+        concurrency=4
+    )
+
+
+test_twap_strategy()

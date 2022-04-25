@@ -16,7 +16,7 @@ See `PEP 574 <https://peps.python.org/pep-0574/>`__ for details.
 from __future__ import annotations
 
 from functools import lru_cache
-from typing import Literal, List
+from typing import Literal, List, Sequence
 from pathlib import Path
 
 import cachetools
@@ -24,7 +24,7 @@ import numpy as np
 import pandas as pd
 from cachetools.keys import hashkey
 
-from qlib.backtest.decision import OrderDir
+from qlib.backtest.decision import OrderDir, Order
 
 
 DealPriceType = Literal["bid_or_ask", "bid_or_ask_fill", "close"]
@@ -169,7 +169,7 @@ class IntradayProcessedData:
 
 
 @lru_cache(maxsize=100)  # 100 * 50K = 5MB
-def get_intraday_backtest_data(
+def load_intraday_backtest_data(
     data_dir: Path, stock_id: str, date: pd.Timestamp, deal_price: DealPriceType = "close", order_dir: int | None = None
 ) -> IntradayBacktestData:
     return IntradayBacktestData(data_dir, stock_id, date, deal_price, order_dir)
@@ -179,8 +179,44 @@ def get_intraday_backtest_data(
     cache=cachetools.LRUCache(100),  # 100 * 50K = 5MB
     key=lambda data_dir, stock_id, date, _, __: hashkey(data_dir, stock_id, date)
 )
-def get_intraday_processed_data(
+def load_intraday_processed_data(
     data_dir: Path, stock_id: str, date: pd.Timestamp,
     feature_dim: int, time_index: pd.Index
 ) -> IntradayProcessedData:
     return IntradayProcessedData(data_dir, stock_id, date, feature_dim, time_index)
+
+
+def load_orders(order_path: Path,
+                start_time: pd.Timestamp | None = None,
+                end_time: pd.Timestamp | None = None) -> Sequence[Order]:
+    """Load orders, and set start time and end time for the orders."""
+
+    start_time = start_time or pd.Timestamp("0:00:00")
+    end_time = end_time or pd.Timestamp("23:59:59")
+
+    if order_path.is_file():
+        order_df = pd.read_pickle(order_path)
+    else:
+        order_df = []
+        for file in order_path.iterdir():
+            order_data = pd.read_pickle(file)
+            order_df.append(order_data)
+        order_df = pd.concat(order_df)
+
+    order_df = order_df.reset_index()
+
+    orders: List[Order] = []
+
+    for _, row in order_df.iterrows():
+        # filter out orders with amount == 0
+        if row["amount"] <= 0:
+            continue
+        orders.append(Order(
+            row["instrument"],
+            row["amount"],
+            row["order_type"],
+            row["date"].replace(hour=start_time.hour, minute=start_time.minute, second=start_time.second),
+            row["date"].replace(hour=end_time.hour, minute=end_time.minute, second=end_time.second),
+        ))
+
+    return orders

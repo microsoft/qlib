@@ -14,7 +14,7 @@ from qlib.backtest.decision import OrderDir
 from qlib.constant import EPS
 from qlib.rl.simulator import Simulator
 from qlib.rl.data.pickle_styled import (
-    IntradayBacktestData, get_intraday_backtest_data, DealPriceType
+    IntradayBacktestData, load_intraday_backtest_data, DealPriceType
 )
 
 __all__ = ["SAOEMetrics", "SAOEState", "SingleAssetOrderExecution"]
@@ -126,7 +126,7 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
         self.deal_price_type = deal_price_type
         self.vol_threshold = vol_threshold
         self.data_dir = data_dir
-        self.backtest_data = get_intraday_backtest_data(
+        self.backtest_data = load_intraday_backtest_data(
             self.data_dir,
             order.stock_id,
             pd.Timestamp(order.start_time.date()),
