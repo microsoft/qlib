@@ -3,11 +3,10 @@
 
 from __future__ import annotations
 
-from typing import Dict, Optional, cast
+from typing import cast
 
 import torch
 import torch.nn as nn
-from gym.spaces import Space
 from tianshou.data import Batch
 
 from qlib.typehint import Literal
@@ -19,16 +18,14 @@ __all__ = ["Recurrent"]
 class Recurrent(nn.Module):
     def __init__(
         self,
-        input_dims: Dict[str, int],
+        obs_space: FullHistoryObs,
         hidden_dim: int = 64,
         output_dim: int = 32,
         rnn_type: Literal["rnn", "lstm", "gru"] = "gru",
         rnn_num_layers: int = 1,
-        obs_space: Optional[Space] = None,
     ):
         super().__init__()
 
-        self.input_dims = input_dims
         self.hidden_dim = hidden_dim
         self.output_dim = output_dim
         self.num_sources = 3
@@ -46,7 +43,7 @@ class Recurrent(nn.Module):
         self.prev_rnn = self.rnn_class(hidden_dim, hidden_dim, batch_first=True, num_layers=self.rnn_layers)
         self.pri_rnn = self.rnn_class(hidden_dim, hidden_dim, batch_first=True, num_layers=self.rnn_layers)
 
-        self.raw_fc = nn.Sequential(nn.Linear(input_dims["data_processed"], hidden_dim), nn.ReLU())
+        self.raw_fc = nn.Sequential(nn.Linear(obs_space["data_processed"].shape[-1], hidden_dim), nn.ReLU())
         self.pri_fc = nn.Sequential(nn.Linear(2, hidden_dim), nn.ReLU())
         self.dire_fc = nn.Sequential(nn.Linear(2, hidden_dim), nn.ReLU(), nn.Linear(hidden_dim, hidden_dim), nn.ReLU())
 
@@ -108,7 +105,7 @@ class Recurrent(nn.Module):
         inp = cast(FullHistoryObs, batch)
         device = inp["data_processed"].device
 
-        sources, _, __ = self._source_features(inp, device)
+        sources, _ = self._source_features(inp, device)
         assert len(sources) == self.num_sources
 
         out = torch.cat(sources, -1)

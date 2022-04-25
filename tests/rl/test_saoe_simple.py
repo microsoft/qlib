@@ -8,10 +8,11 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from tianshou.data import Batch
+
 from qlib.backtest import Order
 from qlib.rl.data import pickle_styled
-from qlib.rl.order_execution import SingleAssetOrderExecution
-from qlib.rl.order_execution.interpreter import FullHistoryStateInterpreter
+from qlib.rl.order_execution import *
 from qlib.rl.utils.env_wrapper import EnvWrapperStatus
 
 
@@ -140,6 +141,10 @@ def test_state_interpreter():
         status: EnvWrapperStatus
 
     interpreter = FullHistoryStateInterpreter(FEATURE_DATA_DIR, 13, 390, 5)
+    interpreter_step = CurrentStepStateInterpreter(13)
+    interpreter_action = CategoricalActionInterpreter(20)
+    interpreter_action_twap = TwapRelativeActionInterpreter()
+
     wrapper_status_kwargs = dict(
         initial_state=order,
         obs_history=[],
@@ -163,6 +168,16 @@ def test_state_interpreter():
     assert np.sum(obs["data_processed"][45:]) == 0
     assert obs["data_processed_prev"].shape == (390, 5)
 
+    # first step: second interpreter
+    interpreter_step.env = EmulateEnvWrapper(status=EnvWrapperStatus(
+        cur_step=0,
+        done=False,
+        **wrapper_status_kwargs
+    ))
+
+    obs = interpreter_step(simulator.get_state())
+    assert obs["acquiring"] == 1
+    assert obs["position"] == 15.
 
     # second step
     simulator.step(5.)
@@ -180,7 +195,19 @@ def test_state_interpreter():
     assert all(np.sum(obs["data_processed"][i]) != 0 for i in range(60))
     assert np.sum(obs["data_processed"][60:]) == 0
 
+    # second step: action
+    action = interpreter_action(simulator.get_state(), 1)
+    assert action == 15 / 20
 
+    interpreter_action_twap.env = EmulateEnvWrapper(status=EnvWrapperStatus(
+        cur_step=1,
+        done=False,
+        **wrapper_status_kwargs
+    ))
+    action = interpreter_action_twap(simulator.get_state(), 1.5)
+    assert action == 1.5
+
+    # fast-forward
     for _ in range(10):
         simulator.step(0.)
 
@@ -203,4 +230,42 @@ def test_state_interpreter():
     assert np.sum(obs["data_processed"][375:]) == 0
 
 
-test_state_interpreter()
+def test_network_sanity():
+    # we won't check the correctness of networks here
+    order = Order("AAL", 15., 1, 
+                  pd.Timestamp("2013-12-11 9:30:00"),
+                  pd.Timestamp("2013-12-11 15:59:59"))
+
+    simulator = SingleAssetOrderExecution(order, BACKTEST_DATA_DIR)
+    assert len(simulator.ticks_for_order) == 390
+
+    class EmulateEnvWrapper(NamedTuple):
+        status: EnvWrapperStatus
+
+    interpreter = FullHistoryStateInterpreter(FEATURE_DATA_DIR, 13, 390, 5)
+    action_interp = CategoricalActionInterpreter(13)
+
+    wrapper_status_kwargs = dict(
+        initial_state=order,
+        obs_history=[],
+        action_history=[],
+        reward_history=[]
+    )
+
+    network = Recurrent(interpreter.observation_space)
+    policy = PPO(network, interpreter.observation_space, action_interp.action_space, 1e-3)
+
+    for i in range(14):
+        interpreter.env = EmulateEnvWrapper(status=EnvWrapperStatus(
+            cur_step=i,
+            done=False,
+            **wrapper_status_kwargs
+        ))
+        obs = interpreter(simulator.get_state())
+        batch = Batch(obs=[obs])
+        output = policy(batch)
+        assert 0 <= output["act"].item() <= 13
+        if i < 13:
+            simulator.step(1.)
+        else:
+            assert obs["position_history"][-1] == 3

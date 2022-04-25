@@ -19,7 +19,7 @@ from .simulator_simple import SAOEState
 
 __all__ = [
     "FullHistoryStateInterpreter", "CurrentStepStateInterpreter",
-    "CategoricalActionInterpreter", "TwapRemainingAdjustmentActionInterpreter"
+    "CategoricalActionInterpreter", "TwapRelativeActionInterpreter"
 ]
 
 
@@ -126,18 +126,20 @@ class FullHistoryStateInterpreter(StateInterpreter[SAOEState, FullHistoryObs]):
 
 
 class CurrentStateObs(TypedDict):
-    data_processed: np.ndarray
-    data_processed_prev: np.ndarray
     acquiring: bool
-    cur_tick: int
     cur_step: int
     num_step: int
     target: float
     position: float
-    position_history: np.ndarray
 
 
 class CurrentStepStateInterpreter(StateInterpreter[SAOEState, CurrentStateObs]):
+    """The observation of current step.
+
+    Used when policy only depends on the latest state, but not history.
+    The key list is not full. You can add more if more information is needed by your policy.
+    """
+
     def __init__(self, max_step: int):
         self.max_step = max_step
 
@@ -152,7 +154,7 @@ class CurrentStepStateInterpreter(StateInterpreter[SAOEState, CurrentStateObs]):
         }
         return spaces.Dict(space)
 
-    def interpret(self, state: SAOEState) -> Any:
+    def interpret(self, state: SAOEState) -> CurrentStateObs:
         assert self.env is not None
         assert self.env.status["cur_step"] <= self.max_step
         obs = {
@@ -166,6 +168,16 @@ class CurrentStepStateInterpreter(StateInterpreter[SAOEState, CurrentStateObs]):
 
 
 class CategoricalActionInterpreter(ActionInterpreter[SAOEState, int, float]):
+    """Convert a discrete policy action to a continuous action, then multiplied by ``order.amount``.
+
+    Parameters
+    ----------
+    values
+        It can be a list of length $L$: $[a_1, a_2, \ldots, a_L]$.
+        Then when policy givens decision $x$, $a_x$ times order amount is the output.
+        It can also be an integer $n$, in which case the list of length $n+1$ is auto-generated,
+        i.e., $[0, 1/n, 2/n, \ldots, n/n]$. 
+    """
     def __init__(self, values: int | list[float]):
         if isinstance(values, int):
             values = [i / values for i in range(0, values + 1)]
@@ -175,17 +187,24 @@ class CategoricalActionInterpreter(ActionInterpreter[SAOEState, int, float]):
     def action_space(self) -> spaces.Discrete:
         return spaces.Discrete(len(self.action_values))
 
-    def to_volume(self, state: SAOEState, action: int) -> float:
+    def interpret(self, state: SAOEState, action: int) -> float:
         assert 0 <= action < len(self.action_values)
         return min(state.position, state.order.amount * self.action_values[action])
 
 
-class TwapRemainingAdjustmentActionInterpreter(ActionInterpreter[SAOEState, float, float]):
+class TwapRelativeActionInterpreter(ActionInterpreter[SAOEState, float, float]):
+    """Convert a continous ratio to deal amount.
+
+    The ratio is relative to TWAP on the remainder of the day.
+    For example, there are 5 steps left, and the left position is 300.
+    With TWAP strategy, in each position, 60 should be traded.
+    When this interpreter receives action $a$, its output is $60 \cdot a$.
+    """
     @property
     def action_space(self) -> spaces.Box:
         return spaces.Box(0, np.inf, shape=(), dtype=np.float32)
 
-    def to_volume(self, state: SAOEState, action: float) -> float:
+    def interpret(self, state: SAOEState, action: float) -> float:
         assert self.env is not None
         estimated_total_steps = math.ceil(len(state.ticks_for_order) / state.ticks_per_step)
         twap_volume = state.position / (estimated_total_steps - self.env.status["cur_step"])
