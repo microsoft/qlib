@@ -104,8 +104,8 @@ jobs:
       run: |
         set -e
         pip install mypy
-        echo y | mypy qlib --install-types --config-file .mypy.ini || true
-        mypy qlib --config-file .mypy.ini
+        echo y | mypy qlib --install-types || true
+        mypy qlib
 
     - name: Test data downloads
       run: |
