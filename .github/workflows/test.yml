@@ -125,7 +125,7 @@ jobs:
     - name: Install Qlib from source
       run: |
         pip install --upgrade cython jupyter jupyter_contrib_nbextensions numpy scipy scikit-learn # installing without this line will cause errors on GitHub Actions, while instsalling locally won't
-        pip install -e .
+        python setup.py install
 
     - name: Install test dependencies
       run: |
