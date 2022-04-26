@@ -26,7 +26,6 @@ jobs:
 
     - name: Set up Python tools
       run: |
-        set -e
         pip install --upgrade pip
         pip install wheel setuptools
         pip install black pylint mypy flake8 pytest
@@ -108,13 +107,11 @@ jobs:
 
     - name: Make html with sphinx
       run: |
-        set -e
         pip install -U sphinx
         pip install sphinx_rtd_theme readthedocs_sphinx_ext
         pip install --exists-action=w --no-cache-dir -r docs/requirements.txt 
         cd docs 
         sphinx-build -b html . build
-        cd ..
 
     - name: Unit tests with Pytest
       run: |
