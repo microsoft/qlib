@@ -5,8 +5,6 @@
 
 import sys
 
-from typing import TYPE_CHECKING
-
 __all__ = ["Literal", "TypedDict", "final"]
 
 if sys.version_info >= (3, 8):
