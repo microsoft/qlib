@@ -10,6 +10,9 @@ jobs:
   build:
 
     runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
     strategy:
       matrix:
         os: [windows-latest, ubuntu-18.04, ubuntu-20.04]
