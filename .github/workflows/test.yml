@@ -10,6 +10,9 @@ jobs:
   build:
 
     runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
     strategy:
       matrix:
         os: [windows-latest, ubuntu-18.04, ubuntu-20.04]
@@ -26,6 +29,7 @@ jobs:
 
     - name: Set up Python tools
       run: |
+        set -e
         pip install --upgrade pip
         pip install wheel setuptools
         pip install black pylint mypy flake8 pytest
@@ -107,6 +111,7 @@ jobs:
 
     - name: Make html with sphinx
       run: |
+        set -e
         pip install -U sphinx
         pip install sphinx_rtd_theme readthedocs_sphinx_ext
         pip install --exists-action=w --no-cache-dir -r docs/requirements.txt 
