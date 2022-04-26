@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import NamedTuple, Any, TypeVar
+from typing import NamedTuple, Any, TypeVar, cast
 
 import numpy as np
 import pandas as pd
@@ -371,5 +371,8 @@ def price_advantage(
         res = (exec_price / baseline_price - 1) * 10000
     else:
         raise ValueError(f"Unexpected order direction: {direction}")
-    res = np.nan_to_num(res, nan=0.0)
-    return res
+    res_wo_nan: np.ndarray = np.nan_to_num(res, nan=0.0)
+    if res_wo_nan.size == 1:
+        return res_wo_nan.item()
+    else:
+        return cast(_float_or_ndarray, res_wo_nan)

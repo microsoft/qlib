@@ -13,7 +13,7 @@ exclude = [
     "qlib/__init__\\.py"
 ]
 ignore_missing_imports = true
-follow_imports = skip
+follow_imports = "skip"
 
 [tool.pytest.ini_options]
 filterwarnings = [
