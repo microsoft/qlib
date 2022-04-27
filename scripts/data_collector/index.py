@@ -225,7 +225,7 @@ class IndexBase:
                 ] = _row.date
             else:
                 _tmp_df = pd.DataFrame([[_row.symbol, self.bench_start_date, _row.date]], columns=instruments_columns)
-                new_df = new_df.append(_tmp_df, sort=False)
+                new_df = pd.concat([new_df, _tmp_df], sort=False)
 
         inst_df = new_df.loc[:, instruments_columns]
         _inst_prefix = self.INST_PREFIX.strip()

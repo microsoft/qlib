@@ -245,7 +245,7 @@ class YahooCollectorCN1d(YahooCollectorCN):
             _path = self.save_dir.joinpath(f"sh{_index_code}.csv")
             if _path.exists():
                 _old_df = pd.read_csv(_path)
-                df = _old_df.append(df, sort=False)
+                df = pd.concat([_old_df, df], sort=False)
             df.to_csv(_path, index=False)
             time.sleep(5)
 
@@ -404,7 +404,7 @@ class YahooNormalize(BaseNormalize):
                 .index
             )
         df.sort_index(inplace=True)
-        df.loc[(df["volume"] <= 0) | np.isnan(df["volume"]), set(df.columns) - {symbol_field_name}] = np.nan
+        df.loc[(df["volume"] <= 0) | np.isnan(df["volume"]), list(set(df.columns) - {symbol_field_name})] = np.nan
 
         change_series = YahooNormalize.calc_change(df, last_close)
         # NOTE: The data obtained by Yahoo finance sometimes has exceptions
