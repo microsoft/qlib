@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 import pandas as pd
-from typing import Dict, Iterable
+from typing import Dict, Iterable, Union
 
 
 def align_index(df_dict, join):
@@ -80,11 +80,30 @@ class SepDataFrame:
             self.join = next(iter(self._df_dict.keys()))
 
     def __getitem__(self, item):
+        # TODO: behave more like pandas when multiindex
         return self._df_dict[item]
 
-    def __setitem__(self, item: str, df: pd.DataFrame):
+    def __setitem__(self, item: str, df: Union[pd.DataFrame, pd.Series]):
         # TODO: consider the join behavior
-        self._df_dict[item] = df
+        if not isinstance(item, tuple):
+            self._df_dict[item] = df
+        else:
+            # NOTE: corner case of MultiIndex
+            _df_dict_key, *col_name = item
+            col_name = tuple(col_name)
+            if _df_dict_key in self._df_dict:
+                if len(col_name) == 1:
+                    col_name = col_name[0]
+                self._df_dict[_df_dict_key][col_name] = df
+            else:
+                if isinstance(df, pd.Series):
+                    if len(col_name) == 1:
+                        col_name = col_name[0]
+                    self._df_dict[_df_dict_key] = df.to_frame(col_name)
+                else:
+                    df_copy = df.copy()  # avoid changing df
+                    df_copy.columns = pd.MultiIndex.from_tuples([(*col_name, *idx) for idx in df.columns.to_list()])
+                    self._df_dict[_df_dict_key] = df_copy
 
     def __delitem__(self, item: str):
         del self._df_dict[item]
