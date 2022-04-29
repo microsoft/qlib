@@ -24,6 +24,10 @@ class SepDataFrame:
     SepDataFrame tries to act like a DataFrame whose column with multiindex
     """
 
+    # TODO:
+    # SepDataFrame try to behave like pandas dataframe,  but it is still not them same
+    # Contributions are welcome to make it more complete.
+
     def __init__(self, df_dict: Dict[str, pd.DataFrame], join: str, skip_align=False):
         """
         initialize the data based on the dataframe dictionary
@@ -77,7 +81,11 @@ class SepDataFrame:
 
     def _update_join(self):
         if self.join not in self:
-            self.join = next(iter(self._df_dict.keys()))
+            if len(self._df_dict) > 0:
+                self.join = next(iter(self._df_dict.keys()))
+            else:
+                # NOTE: this will change the behavior of previous reindex when all the keys are empty
+                self.join = None
 
     def __getitem__(self, item):
         # TODO: behave more like pandas when multiindex
