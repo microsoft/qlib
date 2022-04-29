@@ -47,8 +47,13 @@ class SepDF(unittest.TestCase):
             two -0.600639 -0.291694}
         """
         self.assertEqual(self.to_str(sdf._df_dict), self.to_str(exp))
-        # self.assertEqual(self.to_str(data.tail()), self.to_str(res))
 
+        del df["g1"]
+        del df["g2"]
+        # it will not raise error, and df will be an empty dataframe
+
+        del sdf["g1"]
+        del sdf["g2"] # sdf should support deleting all the columns
 
 if __name__ == "__main__":
     unittest.main()
