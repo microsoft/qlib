@@ -100,10 +100,3 @@ class CNN(Model):
         values = values.reshape(-1, x_test.shape[1], 1)
         pred = list(self.cnn_model.predict(values))
         return pd.Series(pred, index=index)
-
-    def save(self, name):
-        self.cnn_model.save(name)
-
-    def load(self, name):
-        self.cnn_model = models.load_model(name)
-        self.cnn_model.summary()
