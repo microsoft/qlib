@@ -17,7 +17,7 @@ from qlib.backtest import Order
 from qlib.config import C
 from qlib.log import set_log_with_config
 from qlib.rl.data import pickle_styled
-from qlib.rl.entries.test import backtest
+from qlib.rl.trainer import backtest
 from qlib.rl.order_execution import *
 from qlib.rl.utils import ConsoleWriter, CsvWriter, EnvWrapperStatus
 
