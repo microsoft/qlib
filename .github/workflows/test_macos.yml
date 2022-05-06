@@ -83,6 +83,7 @@ jobs:
         python -m pip install black pytest
     - name: Unit tests with Pytest
       run: |
+        pip install -r scripts/data_collector/pit/requirements.txt
         cd tests
         python -m pytest . --durations=0
     - name: Test workflow by config (install from source)
