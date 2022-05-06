@@ -94,7 +94,10 @@ class IntradayBacktestData:
         order_dir: int | None = None,
     ):
         backtest = _read_pickle(data_dir / stock_id)
-        backtest = backtest.loc[pd.IndexSlice[stock_id, :, date]].droplevel([0, 2])
+        backtest = backtest.loc[pd.IndexSlice[stock_id, :, date]]
+
+        # No longer need for pandas >= 1.4
+        # backtest = backtest.droplevel([0, 2])
 
         self.data: pd.DataFrame = backtest
         self.deal_price_type: DealPriceType = deal_price
@@ -222,6 +225,10 @@ def load_orders(
 
     order_df = order_df.reset_index()
 
+    # Legacy-style orders have "date" instead of "datetime"
+    if "date" in order_df.columns:
+        order_df = order_df.rename(columns={"date": "datetime"})
+
     orders: List[Order] = []
 
     for _, row in order_df.iterrows():
@@ -233,8 +240,8 @@ def load_orders(
                 row["instrument"],
                 row["amount"],
                 row["order_type"],
-                row["date"].replace(hour=start_time.hour, minute=start_time.minute, second=start_time.second),
-                row["date"].replace(hour=end_time.hour, minute=end_time.minute, second=end_time.second),
+                row["datetime"].replace(hour=start_time.hour, minute=start_time.minute, second=start_time.second),
+                row["datetime"].replace(hour=end_time.hour, minute=end_time.minute, second=end_time.second),
             )
         )
 

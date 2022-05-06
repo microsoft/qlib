@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
+import torch
 from tianshou.data import Batch
 
 from qlib.backtest import Order
@@ -24,6 +25,12 @@ DATA_DIR = Path("/mnt/data/Sample-Testdata/us/")  # Update this when infrastruct
 BACKTEST_DATA_DIR = DATA_DIR / "raw"
 FEATURE_DATA_DIR = DATA_DIR / "processed"
 ORDER_DIR = DATA_DIR / "order_valid_bidir"
+
+CN_DATA_DIR = Path("/mnt/data/Sample-Testdata/cn/")
+CN_BACKTEST_DATA_DIR = CN_DATA_DIR / "raw"
+CN_FEATURE_DATA_DIR = CN_DATA_DIR / "processed"
+CN_ORDER_DIR = CN_DATA_DIR / "order_noqlib/test"
+CN_POLICY_WEIGHTS_DIR = CN_DATA_DIR / "weights"
 
 
 def test_pickle_data_inspect():
@@ -301,3 +308,31 @@ def test_twap_strategy():
     assert np.isclose(metrics["ffr"].mean(), 1.)
     assert np.isclose(metrics["pa"].mean(), 0.)
     assert np.allclose(metrics["pa"], 0., atol=2e-3)
+
+
+def test_cn_ppo_strategy():
+    set_log_with_config(C.logging_config)
+    orders = pickle_styled.load_orders(CN_ORDER_DIR, start_time=pd.Timestamp("9:30"), end_time=pd.Timestamp("14:57"))
+    assert len(orders) == 7
+
+    state_interp = FullHistoryStateInterpreter(CN_FEATURE_DATA_DIR, 8, 240, 6)
+    action_interp = CategoricalActionInterpreter(4)
+    network = Recurrent(state_interp.observation_space)
+    policy = PPO(network, state_interp.observation_space, action_interp.action_space, 1e-4)
+    policy.load_state_dict(torch.load(CN_POLICY_WEIGHTS_DIR / "ppo_recurrent_30min.pth", map_location="cpu"))
+    csv_writer = CsvWriter(Path(__file__).parent / ".output")
+
+    backtest(
+        partial(SingleAssetOrderExecution, data_dir=CN_BACKTEST_DATA_DIR, ticks_per_step=30),
+        state_interp, action_interp,
+        orders, policy,
+        [ConsoleWriter(total_episodes=len(orders)), csv_writer],
+        concurrency=4
+    )
+
+    metrics = pd.read_csv(Path(__file__).parent / ".output" / "result.csv")
+    # TODO
+    # assert len(metrics) == 248
+    # assert np.isclose(metrics["ffr"].mean(), 1.)
+    # assert np.isclose(metrics["pa"].mean(), 0.)
+    # assert np.allclose(metrics["pa"], 0., atol=2e-3)

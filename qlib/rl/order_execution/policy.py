@@ -120,6 +120,8 @@ class PPO(PPOPolicy):
             gae_lambda=gae_lambda,
             max_batchsize=max_batchsize,
             deterministic_eval=deterministic_eval,
+            observation_space=obs_space,
+            action_space=action_space,
         )
         if weight_file is not None:
             load_weight(self, weight_file)
