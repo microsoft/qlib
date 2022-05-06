@@ -26,7 +26,7 @@ logger = get_module_logger("Evaluate")
 
 def risk_analysis(r, N: int = None, freq: str = "day"):
     """Risk Analysis
-    NOTE: 
+    NOTE:
     The calculation of annulaized return is different from the definition of annualized return.
     It is implemented by design.
     Qlib tries to cumulated returns by summation instead of production to avoid the cumulated curve being skewed exponentially.
