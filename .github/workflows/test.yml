@@ -122,6 +122,7 @@ jobs:
 
     - name: Unit tests with Pytest
       run: |
+        pip install -r scripts/data_collector/pit/requirements.txt
         cd tests
         python -m pytest . --durations=10
 
