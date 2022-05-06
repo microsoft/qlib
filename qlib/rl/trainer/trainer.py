@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import copy
 import dataclasses
+import random
 from enum import Enum
 from pathlib import Path
 from typing import Any, Callable, Dict, Optional, Tuple, Sequence
@@ -26,7 +27,10 @@ from qlib.rl.simulator import InitialStateType, Simulator
 from qlib.rl.interpreter import StateInterpreter, ActionInterpreter
 from qlib.rl.reward import Reward
 from qlib.rl.utils import DataQueue, EnvWrapper, FiniteEnvType, LogCollector, LogWriter, finite_env_factory
+from qlib.log import get_module_logger
 from qlib.typehint import Literal
+
+_logger = get_module_logger(__name__)
 
 
 class TrainingModule:
@@ -83,6 +87,9 @@ class Trainer:
         Directory to save checkpoints.
     checkpoint_every_n_collect
         Save checkpoints every n collects. Set none to disable checkpointing.
+    fast_dev_run
+        If greater than zero, a random subset sized ``fast_dev_run`` will be used
+        instead of ``train_initial_states`` and ``val_initial_states``.
     """
     def __init__(
         self, *,
@@ -98,7 +105,7 @@ class Trainer:
         concurrency: int = 2,
         checkpoint_dir: Path | None = None,
         checkpoint_every_n_collect: int | None = None,
-        fast_dev_run: int | None = None,
+        fast_dev_run: int = 0,
     ):
         self.buffer_size = buffer_size
         self.episode_per_collect = episode_per_collect
@@ -152,57 +159,141 @@ class Trainer:
         val_initial_states: Sequence[InitialStateType] | None = None,
         reward: Reward | None = None,
     ):
-        def env_fn(
-            logger: Logger, dataset: Dataset, is_training: bool
-        ) -> Tuple[BaseVectorEnv, DataConsumerFactory]:
-            data_fn = data_factory(data_config, dataset=dataset, infinite=is_training)
-
-            # CAUTION: assumes no parallelism between train and test
-            reward.train(is_training)
-
-            venv = env_factory(
-                env_config, simulator_config, action, observation, reward, data_fn, logger
-            )
-            return venv, data_fn
-
-        print_log("Loading dataset...", __name__)
-        train_dataset = data_config.source.build(subset="train")
-        val_dataset = data_config.source.build(subset="valid")
-        test_dataset = data_config.source.build(subset="test")
-        print_log(
-            f"Dataset loaded. train: {len(train_dataset)} valid: {len(val_dataset)} test: {len(test_dataset)}",
-            __name__,
+        _logger.info(
+            "Dataset loaded: train %d, valid %d."
+            len(train_initial_states),
+            len(val_initial_states) if val_initial_states is not None else 0
         )
 
-        if train_config.fast_dev_run:
-            print_log("Fast running in development mode. Cutting the dataset...", __name__)
-            assert (
-                min(len(train_dataset), len(val_dataset), len(test_dataset)) >= 100
-            ), "For the purpose of fast dev run, all the datasets must have at least 100 samples."
-            from torch.utils.data import Subset
-
-            train_dataset = Subset(
-                train_dataset, np.random.permutation(len(train_dataset))[:100]
+        if self.fast_dev_run > 0:
+            train_initial_states = [random.choice(train_initial_states) for _ in range(self.fast_dev_run)]
+            if val_initial_states is not None:
+                val_initial_states = [random.choice(val_initial_states) for _ in range(self.fast_dev_run)]
+            _logger.info(
+                "Fast running in development mode. Cutting the dataset to: "
+                "train %d, valid %d.",
+                len(train_initial_states),
+                len(val_initial_states) if val_initial_states is not None else 0
             )
-            val_dataset = Subset(val_dataset, np.random.permutation(len(val_dataset))[:100])
-            test_dataset = Subset(
-                test_dataset, np.random.permutation(len(test_dataset))[:100]
+
+        if self.checkpoint_dir is not None:
+            _resume_path = self.checkpoint_dir / "resume.pth"
+        else:
+            _resume_path = Path("/tmp/resume.pth")
+
+        def _resume():
+            nonlocal best_state_dict, cur_epoch
+            if _resume_path.exists():
+                print_log(f"Resume from checkpoint: {_resume_path}", __name__)
+                data = torch.load(_resume_path)
+                logger.load_state_dict(data["logger"])
+                val_logger.load_state_dict(data["val_logger"])
+                earlystop.load_state_dict(data["earlystop"])
+                policy.load_state_dict(data["policy"])
+                best_state_dict = data["policy_best"]
+                if hasattr(policy, "optim"):
+                    policy.optim.load_state_dict(data["optim"])
+                cur_epoch = data["epoch"]
+
+        def _checkpoint():
+            torch.save(
+                {
+                    "logger": logger.state_dict(),
+                    "val_logger": val_logger.state_dict(),
+                    "earlystop": earlystop.state_dict(),
+                    "policy": policy.state_dict(),
+                    "policy_best": best_state_dict,
+                    "optim": policy.optim.state_dict()
+                    if hasattr(policy, "optim")
+                    else None,
+                    "epoch": cur_epoch,
+                },
+                _resume_path,
             )
-            print_log("Dataset cut done.", __name__)
+            print_log(f"Checkpoint saved to {_resume_path}", __name__)
 
-        trainer = OnPolicyTrainer(
-            checkpoint_dir=get_checkpoint_dir(),
-            metrics_dir=get_output_dir(),
-            preserve_intermediate_checkpoints=train_config.preserve_intermediate_checkpoints,
+        logger = Logger(
+            episode_per_collect,
+            log_interval=500,
+            tb_prefix="train",
+            count_global="step",
         )
+        val_logger = Logger(len(val_dataset), log_interval=2000, tb_prefix="val")
+        earlystop = EarlyStop(patience=earlystop_patience)
+        cur_epoch = 0
+        train_env = data_fn = best_state_dict = None
 
-        train_kwargs = dataclasses.asdict(train_config)
-        train_kwargs.pop("fast_dev_run")
-        train_kwargs.pop("preserve_intermediate_checkpoints")
+        _resume()
 
-        train_logger, _ = trainer.train(
-            policy, env_fn, train_dataset, val_dataset, **train_kwargs
-        )
+        try:
+            if (
+                self.checkpoint_dir is not None
+                and self.preserve_intermediate_checkpoints
+            ):
+                torch.save(
+                    policy.state_dict(),
+                    self.checkpoint_dir / f"epoch_{cur_epoch:04d}.pth",
+                )
+
+            while cur_epoch < max_epoch:
+                cur_epoch += 1
+                if train_env is None:
+                    train_env, data_fn = env_fn(logger, train_dataset, True)
+
+                logger.reset(f"Train Epoch [{cur_epoch}/{max_epoch}] Episode")
+                val_logger.reset(f"Val Epoch [{cur_epoch}/{max_epoch}] Episode")
+
+                collector_res = self._train_epoch(
+                    policy,
+                    train_env,
+                    buffer_size=buffer_size,
+                    episode_per_collect=episode_per_collect,
+                    batch_size=batch_size,
+                    update_per_collect=update_per_collect,
+                )
+                logger.write_summary(collector_res)
+
+                if self.checkpoint_dir is not None:
+                    torch.save(policy.state_dict(), self.checkpoint_dir / "latest.pth")
+                    if self.preserve_intermediate_checkpoints:
+                        torch.save(
+                            policy.state_dict(),
+                            self.checkpoint_dir / f"epoch_{cur_epoch:04d}.pth",
+                        )
+
+                if cur_epoch == max_epoch or cur_epoch % val_every_n_collect == 0:
+                    data_fn.cleanup()  # do this to save memory
+                    train_env = data_fn = None
+
+                    val_result, _ = self.evaluate(
+                        policy, env_fn, val_dataset, val_logger
+                    )
+                    val_logger.global_step = logger.global_step  # sync two loggers
+                    val_logger.write_summary()
+
+                    es = earlystop.step(val_result)
+                    if es == EarlyStopStatus.BEST:
+                        best_state_dict = copy.deepcopy(policy.state_dict())
+                        if self.checkpoint_dir is not None:
+                            torch.save(
+                                best_state_dict, self.checkpoint_dir / "best.pth"
+                            )
+                        pd.DataFrame.from_records(val_logger.logs).to_csv(
+                            get_output_dir() / "metrics_val.csv", index=False
+                        )
+                    elif es == EarlyStopStatus.STOP:
+                        break
+
+                _checkpoint()
+
+        finally:
+            if data_fn is not None:
+                data_fn.cleanup()
+
+        if best_state_dict is not None:
+            policy.load_state_dict(best_state_dict)
+
+        return logger, val_logger
 
         test_logger = Logger(
             len(test_dataset), log_interval=2000, prefix="Test Episode", tb_prefix="test"
