@@ -179,6 +179,18 @@ class LogWriter(Generic[ObsType, ActType]):
         self.active_env_ids = set()
         self.logs = []
 
+    def aggregation(self, array: Sequence[Any]) -> Any:
+        """Aggregation function from step-wise to episode-wise.
+
+        If it's a sequence of float, take the mean.
+        Otherwise, take the first element.
+        """
+        assert len(array) > 0, "The aggregated array must be not empty."
+        if all(isinstance(v, float) for v in array):
+            return np.mean(array)
+        else:
+            return array[0]
+
     def log_episode(self, length: int, rewards: list[float], contents: list[dict[str, Any]]) -> None:
         """This is triggered at the end of each trajectory.
 
@@ -283,10 +295,6 @@ class ConsoleWriter(LogWriter):
         self.metric_counts: dict[str, int] = defaultdict(int)
         self.metric_sums: dict[str, float] = defaultdict(float)
 
-    def aggregation(self, array: Sequence[float]) -> float:
-        """Aggregation function from step-wise to episode-wise."""
-        return np.mean(array)
-
     def log_episode(self, length: int, rewards: list[float], contents: list[dict[str, Any]]) -> None:
         # Aggregate step-wise to episode-wise
         episode_wise_contents: dict[str, list] = defaultdict(list)
@@ -338,6 +346,8 @@ class CsvWriter(LogWriter):
     This is not the correct implementation. It's only used for first iteration.
     """
 
+    SUPPORTED_TYPES = (float, str, pd.Timestamp)
+
     all_records: list[dict[str, Any]]
 
     def __init__(self, output_dir: Path, loglevel: int | LogLevel = LogLevel.PERIODIC):
@@ -349,17 +359,13 @@ class CsvWriter(LogWriter):
         super().clear()
         self.all_records = []
 
-    def aggregation(self, array: Sequence[float]) -> float:
-        """Aggregation function from step-wise to episode-wise."""
-        return np.mean(array)
-
     def log_episode(self, length: int, rewards: list[float], contents: list[dict[str, Any]]) -> None:
         # FIXME Same as ConsoleLogger, needs a refactor to eliminate code-dup
         episode_wise_contents: dict[str, list] = defaultdict(list)
 
         for step_contents in contents:
             for name, value in step_contents.items():
-                if isinstance(value, float):
+                if isinstance(value, self.SUPPORTED_TYPES):
                     episode_wise_contents[name].append(value)
 
         logs: dict[str, float] = {}

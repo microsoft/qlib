@@ -13,6 +13,7 @@ from qlib.backtest.decision import Order, OrderDir
 from qlib.constant import EPS
 from qlib.rl.simulator import Simulator
 from qlib.rl.data.pickle_styled import IntradayBacktestData, load_intraday_backtest_data, DealPriceType
+from qlib.rl.utils import LogLevel
 from qlib.typehint import TypedDict
 
 __all__ = ["SAOEMetrics", "SAOEState", "SingleAssetOrderExecution"]
@@ -25,8 +26,12 @@ class SAOEMetrics(TypedDict):
     It could be accumulated for a day, or a period of time (e.g., 30min), or calculated separately for every minute.
     """
 
+    stock_id: pd.Timestamp
+    """Stock ID of this record."""
     datetime: pd.Timestamp
     """Datetime of this record (this is index in the dataframe)."""
+    direction: int
+    """Direction of the order. 0 for sell, 1 for buy."""
 
     # Market information.
     market_volume: float
@@ -203,8 +208,10 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
 
         self.history_exec = self._dataframe_append(
             self.history_exec,
-            dict(
+            SAOEMetrics(
+                stock_id=self.order.stock_id,
                 datetime=time_index,
+                direction=self.order.direction,
                 market_volume=self.market_vol,
                 market_price=self.market_price,
                 amount=exec_vol,
@@ -224,6 +231,9 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
         )
 
         if self.done():
+            self.env.logger.add_any("history_steps", self.history_steps, loglevel=LogLevel.DEBUG)
+            self.env.logger.add_any("history_exec", self.history_exec, loglevel=LogLevel.DEBUG)
+
             self.metrics = self._metrics_collect(
                 self.ticks_index[0],  # start time
                 self.history_exec["market_volume"],
@@ -325,10 +335,14 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
         if np.abs(np.sum(exec_vol)) < EPS:
             exec_avg_price = 0.0
         else:
-            exec_avg_price = np.average(market_price, weights=exec_vol).item()  # could be nan
+            exec_avg_price = np.average(market_price, weights=exec_vol)  # could be nan
+            if hasattr(exec_avg_price, "item"):  # could be numpy scalar
+                exec_avg_price = exec_avg_price.item()  # type: ignore
 
         return SAOEMetrics(
+            stock_id=self.order.stock_id,
             datetime=datetime,
+            direction=self.order.direction,
             market_volume=market_vol.sum(),
             market_price=market_price.mean(),
             amount=amount,

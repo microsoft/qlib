@@ -312,7 +312,8 @@ def test_twap_strategy():
 
 def test_cn_ppo_strategy():
     set_log_with_config(C.logging_config)
-    orders = pickle_styled.load_orders(CN_ORDER_DIR, start_time=pd.Timestamp("9:30"), end_time=pd.Timestamp("14:57"))
+    # The data starts with 9:31 and ends with 15:00
+    orders = pickle_styled.load_orders(CN_ORDER_DIR, start_time=pd.Timestamp("9:31"), end_time=pd.Timestamp("14:58"))
     assert len(orders) == 7
 
     state_interp = FullHistoryStateInterpreter(CN_FEATURE_DATA_DIR, 8, 240, 6)
@@ -331,8 +332,8 @@ def test_cn_ppo_strategy():
     )
 
     metrics = pd.read_csv(Path(__file__).parent / ".output" / "result.csv")
-    # TODO
-    # assert len(metrics) == 248
-    # assert np.isclose(metrics["ffr"].mean(), 1.)
-    # assert np.isclose(metrics["pa"].mean(), 0.)
-    # assert np.allclose(metrics["pa"], 0., atol=2e-3)
+    assert len(metrics) == len(orders)
+    assert np.isclose(metrics["ffr"].mean(), 1.)
+    assert np.isclose(metrics["pa"].mean(), -115.67641894725811)
+    assert np.isclose(metrics["market_price"].mean(), 133.92860194614954)
+    assert np.isclose(metrics["trade_price"].mean(), 132.95441545758928)
