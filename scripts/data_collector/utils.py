@@ -559,6 +559,7 @@ def generate_minutes_calendar_from_daily(
 
     return pd.Index(sorted(set(np.hstack(res))))
 
+
 def get_instruments(
     qlib_dir: str,
     index_name: str,
@@ -566,7 +567,7 @@ def get_instruments(
     freq: str = "day",
     request_retry: int = 5,
     retry_sleep: int = 3,
-    market_index: str = "cn_index"
+    market_index: str = "cn_index",
 ):
     """
 
@@ -585,7 +586,7 @@ def get_instruments(
     retry_sleep: int
         request sleep, by default 3
     market_index: str
-        Where the files to obtain the index are located, 
+        Where the files to obtain the index are located,
         for example data_collector.cn_index.collector
 
     Examples

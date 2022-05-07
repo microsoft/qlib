@@ -78,3 +78,20 @@ The numbers shown below demonstrate the performance of the entire `workflow` of 
 - The metrics can be categorized into two
    - Signal-based evaluation:  IC, ICIR, Rank IC, Rank ICIR
    - Portfolio-based metrics:  Annualized Return, Information Ratio, Max Drawdown
+
+
+# Contributing
+
+Your contributions to new models are highly welcome!
+
+If you want to contribute your new models, you can follow the steps below.
+1. Create a folder for your model
+2. The folder contains following items(you can refer to [this example](https://github.com/microsoft/qlib/tree/main/examples/benchmarks/TCTS)).
+    - `requirements.txt`: required dependencies.
+    - `README.md`: a brief introduction to your models
+    - `workflow_config_<model name>_<dataset>.yaml`: a configuration which can read by `qrun`. You are encouraged to run your model in all datasets.
+3. You can integrate your model as a module [in this folder](https://github.com/microsoft/qlib/tree/main/qlib/contrib/model).
+4. Please updated your results in the benchmark tables, e.g. [Alpha360](#alpha158-dataset), [Alpha158](#alpha158-dataset)(the values of each metric are the mean and std calculated based on 20 runs with different random seeds, if you don't have enough computational resource, you can ask for help in the PR).
+5. Update the info in the index page in the [news list](https://github.com/microsoft/qlib#newspaper-whats-new----sparkling_heart) and [model list](https://github.com/microsoft/qlib#quant-model-paper-zoo).
+
+Finally, you can send PR for review. ([here is an example](https://github.com/microsoft/qlib/pull/1040))

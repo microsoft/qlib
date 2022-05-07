@@ -5,7 +5,6 @@ import os
 import numpy
 
 from setuptools import find_packages, setup, Extension
-from pkg_resources import parse_requirements
 
 
 def read(rel_path: str) -> str:
@@ -48,7 +47,39 @@ if not _CYTHON_INSTALLED:
 
 # What packages are required for this module to be executed?
 # `estimator` may depend on other packages. In order to reduce dependencies, it is not written here.
-REQUIRED = [str(req) for req in parse_requirements(open("requirements.txt"))]
+REQUIRED = [
+    "numpy>=1.12.0",
+    "pandas>=0.25.1",
+    "scipy>=1.0.0",
+    "requests>=2.18.0",
+    "sacred>=0.7.4",
+    "python-socketio",
+    "redis>=3.0.1",
+    "python-redis-lock>=3.3.1",
+    "schedule>=0.6.0",
+    "cvxpy>=1.0.21",
+    "hyperopt==0.1.2",
+    "fire>=0.3.1",
+    "statsmodels",
+    "xlrd>=1.0.0",
+    "plotly>=4.12.0",
+    "matplotlib>=3.3",
+    "tables>=3.6.1",
+    "pyyaml>=5.3.1",
+    "mlflow>=1.12.1",
+    "tqdm",
+    "loguru",
+    "lightgbm>=3.3.0",
+    "tornado",
+    "joblib>=0.17.0",
+    "ruamel.yaml>=0.16.12",
+    "pymongo==3.7.2",  # For task management
+    "scikit-learn>=0.22",
+    "dill",
+    "dataclasses;python_version<'3.7'",
+    "filelock",
+    "jinja2<3.1.0",  # for passing the readthedocs workflow.
+]
 
 # Numpy include
 NUMPY_INCLUDE = numpy.get_include()
