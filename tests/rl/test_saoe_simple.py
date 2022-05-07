@@ -21,15 +21,16 @@ from qlib.rl.order_execution import *
 from qlib.rl.utils import ConsoleWriter, CsvWriter, EnvWrapperStatus
 
 
-DATA_DIR = Path("/mnt/data/Sample-Testdata/us/")  # Update this when infrastructure is built.
-BACKTEST_DATA_DIR = DATA_DIR / "raw"
+DATA_ROOT_DIR = Path(__file__).parent.parent / ".data" / "rl" / "intraday_saoe"
+DATA_DIR = DATA_ROOT_DIR / "us"
+BACKTEST_DATA_DIR = DATA_DIR / "backtest"
 FEATURE_DATA_DIR = DATA_DIR / "processed"
-ORDER_DIR = DATA_DIR / "order_valid_bidir"
+ORDER_DIR = DATA_DIR / "order" / "valid_bidir"
 
-CN_DATA_DIR = Path("/mnt/data/Sample-Testdata/cn/")
-CN_BACKTEST_DATA_DIR = CN_DATA_DIR / "raw"
+CN_DATA_DIR = DATA_ROOT_DIR / "cn"
+CN_BACKTEST_DATA_DIR = CN_DATA_DIR / "backtest"
 CN_FEATURE_DATA_DIR = CN_DATA_DIR / "processed"
-CN_ORDER_DIR = CN_DATA_DIR / "order_noqlib/test"
+CN_ORDER_DIR = CN_DATA_DIR / "order" / "test"
 CN_POLICY_WEIGHTS_DIR = CN_DATA_DIR / "weights"
 
 
@@ -90,8 +91,8 @@ def test_simulator_stop_twap():
     assert state.history_steps["position"].iloc[0] == 12 and state.history_steps["position"].iloc[-1] == 0
 
     assert (state.metrics["ffr"] - 1) < 1e-3
-    assert state.metrics["market_price"] == state.backtest_data.get_deal_price().mean()
-    assert state.metrics["market_volume"] == state.backtest_data.get_volume().sum()
+    assert abs(state.metrics["market_price"] - state.backtest_data.get_deal_price().mean()) < 1e-4
+    assert np.isclose(state.metrics["market_volume"], state.backtest_data.get_volume().sum())
     assert state.position == 0.0
     assert abs(state.metrics["trade_price"] - state.metrics["market_price"]) < 1e-4
     assert abs(state.metrics["pa"]) < 1e-2
@@ -129,7 +130,7 @@ def test_simulator_start_middle():
     assert len(simulator.history_exec) == 330
     assert simulator.done()
     assert abs(simulator.history_exec["amount"].iloc[-1] - (1 + 2 / 15)) < 1e-4
-    assert simulator.metrics["ffr"] == 1
+    assert abs(simulator.metrics["ffr"] - 1) < 1e-4
 
 
 def test_interpreter():

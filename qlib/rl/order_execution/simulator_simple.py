@@ -231,8 +231,9 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
         )
 
         if self.done():
-            self.env.logger.add_any("history_steps", self.history_steps, loglevel=LogLevel.DEBUG)
-            self.env.logger.add_any("history_exec", self.history_exec, loglevel=LogLevel.DEBUG)
+            if self.env is not None:
+                self.env.logger.add_any("history_steps", self.history_steps, loglevel=LogLevel.DEBUG)
+                self.env.logger.add_any("history_exec", self.history_exec, loglevel=LogLevel.DEBUG)
 
             self.metrics = self._metrics_collect(
                 self.ticks_index[0],  # start time
