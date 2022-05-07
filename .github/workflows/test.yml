@@ -27,6 +27,11 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
+    - name: Install from source
+      run: |
+        pip install numpy cython
+        pip install -e .
+
     - name: Lint with Black
       run: |
         pip install --upgrade pip
