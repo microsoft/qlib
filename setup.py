@@ -139,7 +139,7 @@ setup(
             "tianshou",
             "gym",
             "torch",
-        ]
+        ],
     },
     include_package_data=True,
     classifiers=[
