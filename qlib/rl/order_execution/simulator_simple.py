@@ -335,7 +335,7 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
         if np.abs(np.sum(exec_vol)) < EPS:
             exec_avg_price = 0.0
         else:
-            exec_avg_price = np.average(market_price, weights=exec_vol)  # could be nan
+            exec_avg_price = cast(float, np.average(market_price, weights=exec_vol))  # could be nan
             if hasattr(exec_avg_price, "item"):  # could be numpy scalar
                 exec_avg_price = exec_avg_price.item()  # type: ignore
 

@@ -36,7 +36,7 @@ class SimpleEnv(gym.Env[int, int]):
     def step(self, action: int):
         self.logger.reset()
 
-        self.logger.add_scalar("reward", 42.)
+        self.logger.add_scalar("reward", 42.0)
 
         self.logger.add_scalar("a", randint(1, 10))
         self.logger.add_array("b", pd.DataFrame({"a": [1, 2], "b": [3, 4]}))
@@ -51,7 +51,7 @@ class SimpleEnv(gym.Env[int, int]):
 
         self.step_count += 1
 
-        return 1, 42., done, InfoDict(log=self.logger.logs(), aux_info={})
+        return 1, 42.0, done, InfoDict(log=self.logger.logs(), aux_info={})
 
 
 class AnyPolicy(BasePolicy):
@@ -91,8 +91,9 @@ class SimpleSimulator(Simulator[int, float, float]):
 
     def step(self, action: float) -> None:
         import torch
+
         self.initial += action
-        self.env.logger.add_scalar("test_a", torch.tensor(233.))
+        self.env.logger.add_scalar("test_a", torch.tensor(233.0))
         self.env.logger.add_scalar("test_b", np.array(200))
 
     def get_state(self) -> float:
@@ -135,7 +136,7 @@ def test_logger_with_env_wrapper():
             DummyStateInterpreter(),
             DummyActionInterpreter(),
             data_iterator,
-            logger=LogCollector(LogLevel.DEBUG)
+            logger=LogCollector(LogLevel.DEBUG),
         )
 
         # loglevel can be debug here because metrics can all dump into csv

@@ -64,7 +64,7 @@ def test_exit_on_crash_finite():
         with DataQueue(dataset, producer_num_workers=4) as data_queue:
             time.sleep(3)
             raise ValueError
-        
+
         # https://stackoverflow.com/questions/34506638/how-to-register-atexit-function-in-pythons-multiprocessing-subprocess
 
     process = multiprocessing.Process(target=_exit_finite)

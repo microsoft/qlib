@@ -8,31 +8,43 @@ import numpy as np
 from tianshou.data import Batch, Collector
 from tianshou.policy import BasePolicy
 from torch.utils.data import DataLoader, Dataset, DistributedSampler
-from qlib.rl.utils.finite_env import (LogWriter, FiniteDummyVectorEnv, FiniteShmemVectorEnv,
-                                      FiniteSubprocVectorEnv, check_nan_observation,
-                                      generate_nan_observation)
+from qlib.rl.utils.finite_env import (
+    LogWriter,
+    FiniteDummyVectorEnv,
+    FiniteShmemVectorEnv,
+    FiniteSubprocVectorEnv,
+    check_nan_observation,
+    generate_nan_observation,
+)
 
 
-_test_space = gym.spaces.Dict({
-    "sensors": gym.spaces.Dict({
-        "position": gym.spaces.Box(low=-100, high=100, shape=(3,)),
-        "velocity": gym.spaces.Box(low=-1, high=1, shape=(3,)),
-        "front_cam": gym.spaces.Tuple((
-            gym.spaces.Box(low=0, high=1, shape=(10, 10, 3)),
-            gym.spaces.Box(low=0, high=1, shape=(10, 10, 3))
-        )),
-        "rear_cam": gym.spaces.Box(low=0, high=1, shape=(10, 10, 3)),
-    }),
-    "ext_controller": gym.spaces.MultiDiscrete((5, 2, 2)),
-    "inner_state": gym.spaces.Dict({
-        "charge": gym.spaces.Discrete(100),
-        "system_checks": gym.spaces.MultiBinary(10),
-        "job_status": gym.spaces.Dict({
-            "task": gym.spaces.Discrete(5),
-            "progress": gym.spaces.Box(low=0, high=100, shape=()),
-        })
-    })
-})
+_test_space = gym.spaces.Dict(
+    {
+        "sensors": gym.spaces.Dict(
+            {
+                "position": gym.spaces.Box(low=-100, high=100, shape=(3,)),
+                "velocity": gym.spaces.Box(low=-1, high=1, shape=(3,)),
+                "front_cam": gym.spaces.Tuple(
+                    (gym.spaces.Box(low=0, high=1, shape=(10, 10, 3)), gym.spaces.Box(low=0, high=1, shape=(10, 10, 3)))
+                ),
+                "rear_cam": gym.spaces.Box(low=0, high=1, shape=(10, 10, 3)),
+            }
+        ),
+        "ext_controller": gym.spaces.MultiDiscrete((5, 2, 2)),
+        "inner_state": gym.spaces.Dict(
+            {
+                "charge": gym.spaces.Discrete(100),
+                "system_checks": gym.spaces.MultiBinary(10),
+                "job_status": gym.spaces.Dict(
+                    {
+                        "task": gym.spaces.Discrete(5),
+                        "progress": gym.spaces.Box(low=0, high=100, shape=()),
+                    }
+                ),
+            }
+        ),
+    }
+)
 
 
 class FiniteEnv(gym.Env):
@@ -40,10 +52,7 @@ class FiniteEnv(gym.Env):
         self.dataset = dataset
         self.num_replicas = num_replicas
         self.rank = rank
-        self.loader = DataLoader(
-            dataset,
-            sampler=DistributedSampler(dataset, num_replicas, rank),
-            batch_size=None)
+        self.loader = DataLoader(dataset, sampler=DistributedSampler(dataset, num_replicas, rank), batch_size=None)
         self.iterator = None
         self.observation_space = gym.spaces.Discrete(255)
         self.action_space = gym.spaces.Discrete(2)
@@ -62,8 +71,12 @@ class FiniteEnv(gym.Env):
     def step(self, action):
         self.current_step += 1
         assert self.current_step <= self.step_count
-        return 0, 1.0, self.current_step >= self.step_count, \
-            {"sample": self.current_sample, "action": action, "metric": 2.0}
+        return (
+            0,
+            1.0,
+            self.current_step >= self.step_count,
+            {"sample": self.current_sample, "action": action, "metric": 2.0},
+        )
 
 
 class FiniteEnvWithComplexObs(FiniteEnv):
@@ -71,10 +84,7 @@ class FiniteEnvWithComplexObs(FiniteEnv):
         self.dataset = dataset
         self.num_replicas = num_replicas
         self.rank = rank
-        self.loader = DataLoader(
-            dataset,
-            sampler=DistributedSampler(dataset, num_replicas, rank),
-            batch_size=None)
+        self.loader = DataLoader(dataset, sampler=DistributedSampler(dataset, num_replicas, rank), batch_size=None)
         self.iterator = None
         self.observation_space = gym.spaces.Discrete(255)
         self.action_space = gym.spaces.Discrete(2)
@@ -93,8 +103,12 @@ class FiniteEnvWithComplexObs(FiniteEnv):
     def step(self, action):
         self.current_step += 1
         assert self.current_step <= self.step_count
-        return _test_space.sample(), 1.0, self.current_step >= self.step_count, \
-            {"sample": _test_space.sample(), "action": action, "metric": 2.0}
+        return (
+            _test_space.sample(),
+            1.0,
+            self.current_step >= self.step_count,
+            {"sample": _test_space.sample(), "action": action, "metric": 2.0},
+        )
 
 
 class DummyDataset(Dataset):
@@ -132,7 +146,7 @@ class MetricTracker(LogWriter):
         self.length = length
 
     def on_env_step(self, env_id, obs, rew, done, info):
-        assert rew == 1.
+        assert rew == 1.0
         index = info["sample"]
         if done:
             # assert index not in self.finished
@@ -161,7 +175,7 @@ def test_finite_dummy_vector_env():
     for _ in range(1):
         envs._logger = [MetricTracker(length)]
         try:
-            test_collector.collect(n_step=10 ** 18)
+            test_collector.collect(n_step=10**18)
         except StopIteration:
             envs._logger[0].validate()
 
@@ -177,7 +191,7 @@ def test_finite_shmem_vector_env():
     for _ in range(1):
         envs._logger = [MetricTracker(length)]
         try:
-            test_collector.collect(n_step=10 ** 18)
+            test_collector.collect(n_step=10**18)
         except StopIteration:
             envs._logger[0].validate()
 
@@ -193,7 +207,7 @@ def test_finite_subproc_vector_env():
     for _ in range(1):
         envs._logger = [MetricTracker(length)]
         try:
-            test_collector.collect(n_step=10 ** 18)
+            test_collector.collect(n_step=10**18)
         except StopIteration:
             envs._logger[0].validate()
 
@@ -206,14 +220,15 @@ def test_nan():
 def test_finite_dummy_vector_env_complex():
     length = 100
     dataset = DummyDataset(length)
-    envs = FiniteDummyVectorEnv(DoNothingTracker(),
-                                [_finite_env_factory(dataset, 5, i, complex=True) for i in range(5)])
+    envs = FiniteDummyVectorEnv(
+        DoNothingTracker(), [_finite_env_factory(dataset, 5, i, complex=True) for i in range(5)]
+    )
     envs._collector_guarded = True
     policy = AnyPolicy()
     test_collector = Collector(policy, envs, exploration_noise=True)
 
     try:
-        test_collector.collect(n_step=10 ** 18)
+        test_collector.collect(n_step=10**18)
     except StopIteration:
         pass
 
@@ -221,13 +236,14 @@ def test_finite_dummy_vector_env_complex():
 def test_finite_shmem_vector_env_complex():
     length = 100
     dataset = DummyDataset(length)
-    envs = FiniteShmemVectorEnv(DoNothingTracker(),
-                                [_finite_env_factory(dataset, 5, i, complex=True) for i in range(5)])
+    envs = FiniteShmemVectorEnv(
+        DoNothingTracker(), [_finite_env_factory(dataset, 5, i, complex=True) for i in range(5)]
+    )
     envs._collector_guarded = True
     policy = AnyPolicy()
     test_collector = Collector(policy, envs, exploration_noise=True)
 
     try:
-        test_collector.collect(n_step=10 ** 18)
+        test_collector.collect(n_step=10**18)
     except StopIteration:
         pass
