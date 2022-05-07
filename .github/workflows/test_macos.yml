@@ -72,9 +72,11 @@ jobs:
     # Test Qlib installed from source
     - name: Install Qlib from source
       run: |
+        set -e
         python -m pip install --upgrade cython
         python -m pip install numpy jupyter jupyter_contrib_nbextensions
         python -m pip install -U scipy scikit-learn # installing without this line will cause errors on GitHub Actions, while instsalling locally won't
+        python setup.py install
         pip install -e .[rl]
     - name: Install test dependencies
       run: |
