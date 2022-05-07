@@ -229,6 +229,9 @@ def load_orders(
     if "date" in order_df.columns:
         order_df = order_df.rename(columns={"date": "datetime"})
 
+    # Sometimes "date" are str rather than Timestamp
+    order_df["datetime"] = pd.to_datetime(order_df["datetime"])
+
     orders: List[Order] = []
 
     for _, row in order_df.iterrows():
@@ -239,7 +242,7 @@ def load_orders(
             Order(
                 row["instrument"],
                 row["amount"],
-                row["order_type"],
+                int(row["order_type"]),
                 row["datetime"].replace(hour=start_time.hour, minute=start_time.minute, second=start_time.second),
                 row["datetime"].replace(hour=end_time.hour, minute=end_time.minute, second=end_time.second),
             )

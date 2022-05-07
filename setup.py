@@ -103,6 +103,11 @@ setup(
             "sphinx",
             "sphinx_rtd_theme",
             "pre-commit",
+        ],
+        "rl": [
+            "tianshou",
+            "gym",
+            "torch",
         ]
     },
     include_package_data=True,

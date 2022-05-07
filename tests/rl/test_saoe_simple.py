@@ -314,7 +314,7 @@ def test_cn_ppo_strategy():
     set_log_with_config(C.logging_config)
     # The data starts with 9:31 and ends with 15:00
     orders = pickle_styled.load_orders(CN_ORDER_DIR, start_time=pd.Timestamp("9:31"), end_time=pd.Timestamp("14:58"))
-    assert len(orders) == 7
+    assert len(orders) == 40
 
     state_interp = FullHistoryStateInterpreter(CN_FEATURE_DATA_DIR, 8, 240, 6)
     action_interp = CategoricalActionInterpreter(4)
@@ -334,6 +334,6 @@ def test_cn_ppo_strategy():
     metrics = pd.read_csv(Path(__file__).parent / ".output" / "result.csv")
     assert len(metrics) == len(orders)
     assert np.isclose(metrics["ffr"].mean(), 1.)
-    assert np.isclose(metrics["pa"].mean(), -115.67641894725811)
-    assert np.isclose(metrics["market_price"].mean(), 133.92860194614954)
-    assert np.isclose(metrics["trade_price"].mean(), 132.95441545758928)
+    assert np.isclose(metrics["pa"].mean(), -16.21578303474833)
+    assert np.isclose(metrics["market_price"].mean(), 58.68277690875527)
+    assert np.isclose(metrics["trade_price"].mean(), 58.76063985000002)
