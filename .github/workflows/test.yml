@@ -29,8 +29,8 @@ jobs:
 
     - name: Install from source
       run: |
-        pip install numpy cython
-        pip install -e .
+        python -m pip install numpy cython
+        python -m pip install -e .
 
     - name: Lint with Black
       run: |
