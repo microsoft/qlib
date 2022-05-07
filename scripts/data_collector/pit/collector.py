@@ -13,10 +13,10 @@ import baostock as bs
 from loguru import logger
 
 BASE_DIR = Path(__file__).resolve().parent
-sys.path.append(str(BASE_DIR.parent))
+sys.path.append(str(BASE_DIR.parent.parent))
 
-from base import BaseCollector, BaseRun, BaseNormalize
-from utils import get_hs_stock_symbols, get_calendar_list
+from data_collector.base import BaseCollector, BaseRun, BaseNormalize
+from data_collector.utils import get_hs_stock_symbols, get_calendar_list
 
 
 class PitCollector(BaseCollector):
