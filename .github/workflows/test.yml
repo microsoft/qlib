@@ -127,7 +127,7 @@ jobs:
         set -e
         pip install --upgrade cython jupyter jupyter_contrib_nbextensions numpy scipy scikit-learn # installing without this line will cause errors on GitHub Actions, while instsalling locally won't
         python setup.py install
-        pip install -e .[rl]
+        pip install gym tianshou torch
 
     - name: Install test dependencies
       run: |
