@@ -10,9 +10,6 @@ jobs:
   build:
 
     runs-on: ${{ matrix.os }}
-    defaults:
-      run:
-        shell: bash
     strategy:
       matrix:
         os: [windows-latest, ubuntu-18.04, ubuntu-20.04]
@@ -40,7 +37,6 @@ jobs:
 
     - name: Make html with sphinx
       run: |
-        set -e
         pip install -U sphinx
         pip install sphinx_rtd_theme readthedocs_sphinx_ext
         pip install --exists-action=w --no-cache-dir -r docs/requirements.txt 
@@ -106,7 +102,6 @@ jobs:
     # https://github.com/python/mypy/issues/10600
     - name: Check Qlib with mypy
       run: |
-        set -e
         pip install mypy
         mypy qlib --install-types --non-interactive || true
         mypy qlib
@@ -117,6 +112,7 @@ jobs:
         python scripts/get_data.py qlib_data --name qlib_data_simple --target_dir ~/.qlib/qlib_data/cn_data_simple --interval 1d --region cn
         python -c "import os; userpath=os.path.expanduser('~'); os.rename(userpath + '/.qlib/qlib_data/cn_data_simple', userpath + '/.qlib/qlib_data/cn_data')"
         azcopy copy https://qlibpublic.blob.core.windows.net/data tests/.data --recursive
+        ls -al tests/.data
 
     - name: Test workflow by config (install from pip)
       run: |
@@ -126,10 +122,9 @@ jobs:
      # Test Qlib installed from source
     - name: Install Qlib from source
       run: |
-        set -e
         pip install --upgrade cython jupyter jupyter_contrib_nbextensions numpy scipy scikit-learn # installing without this line will cause errors on GitHub Actions, while instsalling locally won't
-        python setup.py install
         pip install gym tianshou torch
+        pip install -e .
 
     - name: Install test dependencies
       run: |
@@ -145,3 +140,4 @@ jobs:
     - name: Test workflow by config (install from source)
       run: |
         python qlib/workflow/cli.py examples/benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml
+
