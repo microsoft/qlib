@@ -11,8 +11,6 @@ import baostock as bs
 from pathlib import Path
 
 from qlib.data import D
-
-sys.path.append(str(Path(__file__).resolve().parent.parent))
 from scripts.get_data import GetData
 from scripts.dump_pit import DumpPitData
 
