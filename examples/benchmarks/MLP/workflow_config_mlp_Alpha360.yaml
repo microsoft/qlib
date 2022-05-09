@@ -50,6 +50,9 @@ task:
         class: DNNModelPytorch
         module_path: qlib.contrib.model.pytorch_nn
         kwargs:
+            tensorboard: true
+            tensorboard_name: mlp_csi300
+            eval_train_metric: true
             loss: mse
             lr: 0.002
             lr_decay: 0.96
