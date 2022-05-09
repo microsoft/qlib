@@ -10,6 +10,8 @@ To execute tensorboard go into `tensorboard` folder and execute the following sc
 tensorboard --logdir=runs
 ```
 
+Inside the `runs` folder it should have after each model execution each folder with the model name in it, such as `mlp`, `catboost` and so on.
+
 ## Parameters
 
 The models that current accept tensorboard visualization are XGBoost, CatBoost and Multilayer Perceptron. For any of those models it needs to be provided the following parameters and the `yml` file

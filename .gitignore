@@ -30,6 +30,7 @@ examples/estimator/estimator_example/
 
 # special software
 mlruns/
+tensor_board/runs/
 
 tags
 
