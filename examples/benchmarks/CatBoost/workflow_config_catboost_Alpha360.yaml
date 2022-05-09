@@ -50,6 +50,8 @@ task:
             thread_count: 20
             grow_policy: Lossguide
             bootstrap_type: Poisson
+            tensorboard_name: catboost_csi300
+            tensorboard: True
     dataset:
         class: DatasetH
         module_path: qlib.data.dataset

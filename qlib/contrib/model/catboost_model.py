@@ -1,6 +1,9 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+import os
+import sys
+
 import numpy as np
 import pandas as pd
 from typing import Text, Union
@@ -12,18 +15,31 @@ from ...data.dataset import DatasetH
 from ...data.dataset.handler import DataHandlerLP
 from ...model.interpret.base import FeatureInt
 from ...data.dataset.weight import Reweighter
+from ...log import get_module_logger
 
+working_dir = os.getcwd()
+target_dir = os.path.join(os.path.relpath(working_dir), 'tensor_board')
+target_dir += '/runs/catboost/'
+sys.path.insert(0, target_dir)
 
 class CatBoostModel(Model, FeatureInt):
     """CatBoost Model"""
 
-    def __init__(self, loss="RMSE", **kwargs):
+    def __init__(self, loss="RMSE", tensorboard=False, tensorboard_name='', **kwargs):
+        self.logger = get_module_logger("CatBoostModel")
+
         # There are more options
         if loss not in {"RMSE", "Logloss"}:
             raise NotImplementedError
         self._params = {"loss_function": loss}
         self._params.update(kwargs)
         self.model = None
+        self.tensorboard = tensorboard
+        self.tensorboard_name = tensorboard_name
+        # Log info
+        self.logger.info("model parameters:\n{:}".format(self._params))
+        self.logger.info("Tensorboard: {}".format(self.tensorboard))
+        self.logger.info("Tensorboard Name: {}".format(self.tensorboard_name))
 
     def fit(
         self,
@@ -68,6 +84,11 @@ class CatBoostModel(Model, FeatureInt):
         self._params["early_stopping_rounds"] = early_stopping_rounds
         self._params["verbose_eval"] = verbose_eval
         self._params["task_type"] = "GPU" if get_gpu_device_count() > 0 else "CPU"
+        if(self.tensorboard):
+            # The directory for storing the files generated during training.
+            if not os.path.isdir(target_dir):
+                os.makedirs(target_dir)
+            self._params["train_dir"] = target_dir + self.tensorboard_name
         self.model = CatBoost(self._params, **kwargs)
 
         # train the model
