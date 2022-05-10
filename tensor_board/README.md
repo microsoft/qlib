@@ -25,5 +25,5 @@ tensorboard_name: <<tensor board name>>
 The following files contains examples of how to configure tensorboard:
 
 - `workflow_config_mlp_Alpha360.yml`
-- `workflow_config_mlp_Alpha360.yml`
-- `workflow_config_mlp_Alpha360.yml`
+- `workflow_config_catboost_Alpha360.yml`
+- `workflow_config_xgboost_Alpha360.yml`
