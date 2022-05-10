@@ -76,6 +76,7 @@ class CatBoostModel(Model, FeatureInt):
         evals_result = self.model.get_evals_result()
         evals_result["train"] = list(evals_result["learn"].values())[0]
         evals_result["valid"] = list(evals_result["validation"].values())[0]
+        return evals_result
 
     def predict(self, dataset: DatasetH, segment: Union[Text, slice] = "test"):
         if self.model is None:
