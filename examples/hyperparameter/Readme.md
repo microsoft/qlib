@@ -1,0 +1,26 @@
+# Hyperparameter tuning
+
+## Alpha158
+First terminal
+```
+optuna create-study --study <<Model>>_158 --storage sqlite:///db.sqlite3
+optuna-dashboard --port 5000 --host 0.0.0.0 sqlite:///db.sqlite3
+```
+
+You should change the name `<<Model>>` for the model being tested. For example, `optuna create-study --study LGBM_158 --storage sqlite:///db.sqlite3`. Or you should choose any name that describe the experiment being studied.
+
+Second terminal
+```
+python hyperparameter_158.py
+```
+
+## Alpha360
+First terminal
+```
+optuna create-study --study <<Model>>_360 --storage sqlite:///db.sqlite3
+optuna-dashboard --port 5000 --host 0.0.0.0 sqlite:///db.sqlite3
+```
+Second terminal
+```
+python hyperparameter_360.py
+```
