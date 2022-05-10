@@ -85,8 +85,6 @@ def objective(trial):
     evals_result = dict()
     model = init_instance_by_config(task["model"])
     model.fit(dataset, evals_result=evals_result)
-    print("---- evals_result[valid] ------")
-    print(evals_result["valid"]["l2"])
     return min(evals_result["valid"]["l2"])
 
 
