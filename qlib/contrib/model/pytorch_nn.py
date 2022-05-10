@@ -284,7 +284,7 @@ class DNNModelPytorch(Model):
                             )
                             R.log_metrics(val_metric=metric_val, step=step)
                         else:
-                            metric_val=np.nan
+                            metric_val = np.nan
 
                         if self.eval_train_metric:
                             metric_train = (

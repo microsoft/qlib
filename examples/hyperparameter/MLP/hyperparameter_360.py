@@ -1,7 +1,6 @@
-
 import qlib
 import optuna
-from qlib.constant import REG_US 
+from qlib.constant import REG_US
 from qlib.utils import init_instance_by_config
 from qlib.tests.data import GetData
 from qlib.tests.config import CSI300_MARKET, CSI300_BENCH, BR_MARKET, BR_BENCH, DATASET_ALPHA360_CLASS
@@ -23,34 +22,11 @@ data_handler_config = {
     "fit_end_time": "2016-12-31",
     "instruments": market,
     "infer_processors": [
-      {
-        "class": "RobustZScoreNorm",
-        "kwargs": {
-          "fields_group": "feature",
-          "clip_outlier": "true"
-        }
-      },
-      {
-        "class": "Fillna",
-        "kwargs": {
-          "fields_group": "feature"
-        }
-      }
+        {"class": "RobustZScoreNorm", "kwargs": {"fields_group": "feature", "clip_outlier": "true"}},
+        {"class": "Fillna", "kwargs": {"fields_group": "feature"}},
     ],
-    "learn_processors": [
-      {
-        "class": "DropnaLabel"
-      },
-      {
-        "class": "CSRankNorm",
-        "kwargs": {
-          "fields_group": "label"
-        }
-      }
-    ],
-    "label": [
-      "(Ref($close, -1) / $close) - 1"
-    ]
+    "learn_processors": [{"class": "DropnaLabel"}, {"class": "CSRankNorm", "kwargs": {"fields_group": "label"}}],
+    "label": ["(Ref($close, -1) / $close) - 1"],
 }
 
 dataset_config = {
@@ -70,6 +46,7 @@ dataset_config = {
     },
 }
 
+
 def objective(trial):
     task = {
         "model": {
@@ -81,10 +58,8 @@ def objective(trial):
                 "eval_valid_metric": False,
                 "batch_size": trial.suggest_categorical("batch_size", [1024, 2048, 4096, 8192]),
                 "lr": trial.suggest_float("lr", 1e-5, 1e-1, log=True),
-                 "max_steps": trial.suggest_categorical("max_steps", [9000, 8000, 7000, 6000, 2000, 1000, 300]),
-                "pt_model_kwargs": {
-                  "input_dim": 360
-                }
+                "max_steps": trial.suggest_categorical("max_steps", [9000, 8000, 7000, 6000, 2000, 1000, 300]),
+                "pt_model_kwargs": {"input_dim": 360},
             },
         },
     }

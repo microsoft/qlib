@@ -24,20 +24,8 @@ data_handler_config = {
     "fit_end_time": "2016-12-31",
     "instruments": market,
     "infer_processors": [],
-    "learn_processors": [
-      {
-        "class": "DropnaLabel"
-      },
-      {
-        "class": "CSRankNorm",
-        "kwargs": {
-          "fields_group": "label"
-        }
-      }
-    ],
-    "label": [
-      "(Ref($close, -1) / $close) - 1"
-    ]
+    "learn_processors": [{"class": "DropnaLabel"}, {"class": "CSRankNorm", "kwargs": {"fields_group": "label"}}],
+    "label": ["(Ref($close, -1) / $close) - 1"],
 }
 
 dataset_config = {

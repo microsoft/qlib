@@ -1,7 +1,6 @@
-
 import qlib
 import optuna
-from qlib.constant import REG_US 
+from qlib.constant import REG_US
 from qlib.utils import init_instance_by_config
 from qlib.tests.data import GetData
 from qlib.tests.config import CSI300_MARKET, CSI300_BENCH, BR_MARKET, BR_BENCH, DATASET_ALPHA360_CLASS
@@ -23,20 +22,8 @@ data_handler_config = {
     "fit_end_time": "2016-12-31",
     "instruments": market,
     "infer_processors": [],
-    "learn_processors": [
-      {
-        "class": "DropnaLabel"
-      },
-      {
-        "class": "CSRankNorm",
-        "kwargs": {
-          "fields_group": "label"
-        }
-      }
-    ],
-    "label": [
-      "(Ref($close, -1) / $close) - 1"
-    ]
+    "learn_processors": [{"class": "DropnaLabel"}, {"class": "CSRankNorm", "kwargs": {"fields_group": "label"}}],
+    "label": ["(Ref($close, -1) / $close) - 1"],
 }
 
 dataset_config = {
@@ -56,6 +43,7 @@ dataset_config = {
     },
 }
 
+
 def objective(trial):
     task = {
         "model": {
@@ -68,7 +56,7 @@ def objective(trial):
                 "max_depth": trial.suggest_int("max_depth", 3, 9, step=2),
                 "n_estimators": trial.suggest_int("n_estimators", 1, 1024),
                 "subsample": trial.suggest_float("subsample", 0.2, 1.0),
-                "nthread": 5
+                "nthread": 5,
             },
         },
     }
