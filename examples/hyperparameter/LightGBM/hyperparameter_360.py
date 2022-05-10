@@ -1,11 +1,61 @@
 import qlib
 import optuna
-from qlib.constant import REG_CN
 from qlib.utils import init_instance_by_config
 from qlib.tests.data import GetData
-from qlib.tests.config import get_dataset_config, CSI300_MARKET, DATASET_ALPHA360_CLASS
+from qlib.tests.config import CSI300_MARKET, CSI300_BENCH, BR_MARKET, BR_BENCH, DATASET_ALPHA360_CLASS
+from qlib.log import get_module_logger
 
-DATASET_CONFIG = get_dataset_config(market=CSI300_MARKET, dataset_class=DATASET_ALPHA360_CLASS)
+logger = get_module_logger("Hyperparameter")
+
+## TODO: improve this function beacuse it isn't  working correctly. Configuration is being setup manually
+# DATASET_CONFIG = get_dataset_config(market=CSI300_MARKET, dataset_class=DATASET_ALPHA360_CLASS)
+
+market = CSI300_MARKET
+benchmark = CSI300_BENCH
+
+## For brazilian market
+# market = BR_MARKET
+# benchmark = BR_BENCH
+
+data_handler_config = {
+    "start_time": "2007-01-01",
+    "end_time": "2019-12-31",
+    "fit_start_time": "2008-01-01",
+    "fit_end_time": "2016-12-31",
+    "instruments": market,
+    "infer_processors": [],
+    "learn_processors": [
+      {
+        "class": "DropnaLabel"
+      },
+      {
+        "class": "CSRankNorm",
+        "kwargs": {
+          "fields_group": "label"
+        }
+      }
+    ],
+    "label": [
+      "(Ref($close, -1) / $close) - 1"
+    ]
+}
+
+dataset_config = {
+    "class": "DatasetH",
+    "module_path": "qlib.data.dataset",
+    "kwargs": {
+        "handler": {
+            "class": "Alpha360",
+            "module_path": "qlib.contrib.data.handler",
+            "kwargs": data_handler_config,
+        },
+        "segments": {
+            "train": ("2007-01-01", "2016-12-31"),
+            "valid": ("2017-01-01", "2017-12-31"),
+            "test": ("2018-01-01", "2019-12-31"),
+        },
+    },
+}
 
 
 def objective(trial):
@@ -31,19 +81,23 @@ def objective(trial):
         },
     }
 
+    logger.info("model:\n{:}".format(task["model"]))
     evals_result = dict()
     model = init_instance_by_config(task["model"])
     model.fit(dataset, evals_result=evals_result)
-    return min(evals_result["valid"])
+    print("---- evals_result[valid] ------")
+    print(evals_result["valid"]["l2"])
+    return min(evals_result["valid"]["l2"])
 
 
 if __name__ == "__main__":
-
+    logger.info("Qlib intialization")
     provider_uri = "~/.qlib/qlib_data/cn_data"
-    GetData().qlib_data(target_dir=provider_uri, region=REG_CN, exists_skip=True)
-    qlib.init(provider_uri=provider_uri, region=REG_CN)
+    qlib.init(provider_uri=provider_uri)
 
-    dataset = init_instance_by_config(DATASET_CONFIG)
+    logger.info("Dataset intialization")
+    dataset = init_instance_by_config(dataset_config)
 
+    logger.info("Start parameter tuning")
     study = optuna.Study(study_name="LGBM_360", storage="sqlite:///db.sqlite3")
-    study.optimize(objective, n_jobs=6)
+    study.optimize(objective)
