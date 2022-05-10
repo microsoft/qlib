@@ -18,14 +18,15 @@ from ...data.dataset.weight import Reweighter
 from ...log import get_module_logger
 
 working_dir = os.getcwd()
-target_dir = os.path.join(os.path.relpath(working_dir), 'tensor_board')
-target_dir += '/runs/catboost/'
+target_dir = os.path.join(os.path.relpath(working_dir), "tensor_board")
+target_dir += "/runs/catboost/"
 sys.path.insert(0, target_dir)
+
 
 class CatBoostModel(Model, FeatureInt):
     """CatBoost Model"""
 
-    def __init__(self, loss="RMSE", tensorboard=False, tensorboard_name='', **kwargs):
+    def __init__(self, loss="RMSE", tensorboard=False, tensorboard_name="", **kwargs):
         self.logger = get_module_logger("CatBoostModel")
 
         # There are more options
@@ -84,7 +85,7 @@ class CatBoostModel(Model, FeatureInt):
         self._params["early_stopping_rounds"] = early_stopping_rounds
         self._params["verbose_eval"] = verbose_eval
         self._params["task_type"] = "GPU" if get_gpu_device_count() > 0 else "CPU"
-        if(self.tensorboard):
+        if self.tensorboard:
             # The directory for storing the files generated during training.
             if not os.path.isdir(target_dir):
                 os.makedirs(target_dir)

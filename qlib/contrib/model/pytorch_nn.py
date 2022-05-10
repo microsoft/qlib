@@ -37,8 +37,9 @@ from qlib.contrib.meta.data_selection.utils import ICLoss
 from torch.nn import DataParallel
 
 working_dir = os.getcwd()
-target_dir = os.path.join(os.path.relpath(working_dir), 'tensor_board')
+target_dir = os.path.join(os.path.relpath(working_dir), "tensor_board")
 sys.path.insert(0, target_dir)
+
 
 class DNNModelPytorch(Model):
     """DNN Model
@@ -87,7 +88,7 @@ class DNNModelPytorch(Model):
         },
         valid_key=DataHandlerLP.DK_L,
         tensorboard=False,
-        tensorboard_name=''
+        tensorboard_name=""
         # TODO: Infer Key is a more reasonable key. But it requires more detailed processing on label processing
     ):
         # Set logger.
@@ -200,9 +201,9 @@ class DNNModelPytorch(Model):
         save_path=None,
         reweighter=None,
     ):
-        if(self.tensorboard):
+        if self.tensorboard:
             # Writer will output to ./runs/ directory by default
-            writer = SummaryWriter(log_dir=target_dir + '/runs/mlp/' + self.tensorboard_name)
+            writer = SummaryWriter(log_dir=target_dir + "/runs/mlp/" + self.tensorboard_name)
 
         has_valid = "valid" in dataset.segments
         segments = ["train", "valid"]
@@ -248,7 +249,7 @@ class DNNModelPytorch(Model):
         train_num = all_t["y"]["train"].shape[0]
 
         # Add training data to tensorboard
-        if(self.tensorboard):
+        if self.tensorboard:
             writer.add_graph(self.dnn_model, all_t["x"]["train"])
             writer.close()
 
@@ -320,12 +321,12 @@ class DNNModelPytorch(Model):
                             f"[Step {step}]: train_loss {train_loss:.6f}, valid_loss {loss_val:.6f}, train_metric {metric_train:.6f}, valid_metric {metric_val:.6f}"
                         )
 
-                    if(self.tensorboard):
+                    if self.tensorboard:
                         # Add iterations results into tensorboard
-                        writer.add_scalar('training loss', train_loss, step)
-                        writer.add_scalar('validation loss', loss_val, step)
-                        writer.add_scalar('training metric (ic - Pearson correlation coefficient)', metric_train, step)
-                        writer.add_scalar('validation metric (ic - Pearson correlation coefficient)', metric_val, step)
+                        writer.add_scalar("training loss", train_loss, step)
+                        writer.add_scalar("validation loss", loss_val, step)
+                        writer.add_scalar("training metric (ic - Pearson correlation coefficient)", metric_train, step)
+                        writer.add_scalar("validation metric (ic - Pearson correlation coefficient)", metric_val, step)
 
                     evals_result["train"].append(train_loss)
                     evals_result["valid"].append(loss_val)

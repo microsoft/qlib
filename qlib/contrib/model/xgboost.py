@@ -16,10 +16,11 @@ from ...log import get_module_logger
 
 from tensorboardX import SummaryWriter
 
+
 class XGBModel(Model, FeatureInt):
     """XGBModel Model"""
 
-    def __init__(self, tensorboard=False, tensorboard_name='', **kwargs):
+    def __init__(self, tensorboard=False, tensorboard_name="", **kwargs):
         self.logger = get_module_logger("XGBoostModel")
         self._params = {}
         self._params.update(kwargs)
@@ -38,7 +39,7 @@ class XGBModel(Model, FeatureInt):
         verbose_eval=20,
         evals_result=dict(),
         reweighter=None,
-        **kwargs
+        **kwargs,
     ):
 
         df_train, df_valid = dataset.prepare(
@@ -69,8 +70,8 @@ class XGBModel(Model, FeatureInt):
 
         # Activate tensorboard
         callbacks = []
-        if(self.tensorboard):
-            callbacks=[TensorBoardCallback(experiment=self.tensorboard_name, data_name='valid')]
+        if self.tensorboard:
+            callbacks = [TensorBoardCallback(experiment=self.tensorboard_name, data_name="valid")]
 
         self.model = xgb.train(
             self._params,
@@ -81,7 +82,7 @@ class XGBModel(Model, FeatureInt):
             verbose_eval=verbose_eval,
             evals_result=evals_result,
             callbacks=callbacks,
-            **kwargs
+            **kwargs,
         )
         evals_result["train"] = list(evals_result["train"].values())[0]
         evals_result["valid"] = list(evals_result["valid"].values())[0]
@@ -102,10 +103,11 @@ class XGBModel(Model, FeatureInt):
         """
         return pd.Series(self.model.get_score(*args, **kwargs)).sort_values(ascending=False)
 
+
 class TensorBoardCallback(xgb.callback.TrainingCallback):
     def __init__(self, experiment: str = None, data_name: str = None):
         working_dir = os.getcwd()
-        target_dir = os.path.join(os.path.relpath(working_dir), 'tensor_board/')
+        target_dir = os.path.join(os.path.relpath(working_dir), "tensor_board/")
         sys.path.insert(0, target_dir)
 
         self.experiment = experiment or "logs"
@@ -113,13 +115,9 @@ class TensorBoardCallback(xgb.callback.TrainingCallback):
         self.log_dir = f"runs/xgboost/{self.experiment}"
         self.train_writer = SummaryWriter(log_dir=target_dir + os.path.join(self.log_dir, "train/"))
         if self.data_name:
-            self.test_writer = SummaryWriter(
-                log_dir=target_dir + os.path.join(self.log_dir, f"{self.data_name}/")
-            )
+            self.test_writer = SummaryWriter(log_dir=target_dir + os.path.join(self.log_dir, f"{self.data_name}/"))
 
-    def after_iteration(
-        self, model, epoch: int, evals_log: xgb.callback.TrainingCallback.EvalsLog
-    ) -> bool:
+    def after_iteration(self, model, epoch: int, evals_log: xgb.callback.TrainingCallback.EvalsLog) -> bool:
         if not evals_log:
             return False
 
