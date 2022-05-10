@@ -49,6 +49,8 @@ task:
             n_estimators: 647
             subsample: 0.8789
             nthread: 20
+            tensorboard: True
+            tensorboard_name: xgboost_csi300
     dataset:
         class: DatasetH
         module_path: qlib.data.dataset

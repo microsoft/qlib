@@ -1,5 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
+import os
+import sys
 
 import numpy as np
 import pandas as pd
@@ -10,15 +12,23 @@ from ...data.dataset import DatasetH
 from ...data.dataset.handler import DataHandlerLP
 from ...model.interpret.base import FeatureInt
 from ...data.dataset.weight import Reweighter
+from ...log import get_module_logger
 
+from tensorboardX import SummaryWriter
 
 class XGBModel(Model, FeatureInt):
     """XGBModel Model"""
 
-    def __init__(self, **kwargs):
+    def __init__(self, tensorboard=False, tensorboard_name='', **kwargs):
+        self.logger = get_module_logger("XGBoostModel")
         self._params = {}
         self._params.update(kwargs)
         self.model = None
+        self.tensorboard = tensorboard
+        self.tensorboard_name = tensorboard_name
+
+        self.logger.info("Tensorboard: {}".format(self.tensorboard))
+        self.logger.info("Tensorboard Name: {}".format(self.tensorboard_name))
 
     def fit(
         self,
@@ -56,6 +66,12 @@ class XGBModel(Model, FeatureInt):
 
         dtrain = xgb.DMatrix(x_train.values, label=y_train_1d, weight=w_train)
         dvalid = xgb.DMatrix(x_valid.values, label=y_valid_1d, weight=w_valid)
+
+        # Activate tensorboard
+        callbacks = []
+        if(self.tensorboard):
+            callbacks=[TensorBoardCallback(experiment=self.tensorboard_name, data_name='valid')]
+
         self.model = xgb.train(
             self._params,
             dtrain=dtrain,
@@ -64,6 +80,7 @@ class XGBModel(Model, FeatureInt):
             early_stopping_rounds=early_stopping_rounds,
             verbose_eval=verbose_eval,
             evals_result=evals_result,
+            callbacks=callbacks,
             **kwargs
         )
         evals_result["train"] = list(evals_result["train"].values())[0]
@@ -84,3 +101,34 @@ class XGBModel(Model, FeatureInt):
                 https://xgboost.readthedocs.io/en/latest/python/python_api.html#xgboost.Booster.get_score
         """
         return pd.Series(self.model.get_score(*args, **kwargs)).sort_values(ascending=False)
+
+class TensorBoardCallback(xgb.callback.TrainingCallback):
+    def __init__(self, experiment: str = None, data_name: str = None):
+        working_dir = os.getcwd()
+        target_dir = os.path.join(os.path.relpath(working_dir), 'tensor_board/')
+        sys.path.insert(0, target_dir)
+
+        self.experiment = experiment or "logs"
+        self.data_name = data_name or "test"
+        self.log_dir = f"runs/xgboost/{self.experiment}"
+        self.train_writer = SummaryWriter(log_dir=target_dir + os.path.join(self.log_dir, "train/"))
+        if self.data_name:
+            self.test_writer = SummaryWriter(
+                log_dir=target_dir + os.path.join(self.log_dir, f"{self.data_name}/")
+            )
+
+    def after_iteration(
+        self, model, epoch: int, evals_log: xgb.callback.TrainingCallback.EvalsLog
+    ) -> bool:
+        if not evals_log:
+            return False
+
+        for data, metric in evals_log.items():
+            for metric_name, log in metric.items():
+                score = log[-1][0] if isinstance(log[-1], tuple) else log[-1]
+                if data == "train":
+                    self.train_writer.add_scalar(metric_name, score, epoch)
+                else:
+                    self.test_writer.add_scalar(metric_name, score, epoch)
+
+        return False
