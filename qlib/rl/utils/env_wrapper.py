@@ -232,3 +232,6 @@ class EnvWrapper(
 
         info_dict = InfoDict(log=self.logger.logs(), aux_info=aux_info)
         return obs, rew, done, info_dict
+
+    def render(self):
+        raise NotImplementedError("Render is not implemented in EnvWrapper.")

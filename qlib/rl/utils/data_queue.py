@@ -53,7 +53,14 @@ class DataQueue(Generic[T]):
     ...     print(data)
     """
 
-    def __init__(self, dataset: Sequence[T], repeat: int = 1, producer_num_workers: int = 0, queue_maxsize: int = 0):
+    def __init__(
+        self,
+        dataset: Sequence[T],
+        repeat: int = 1,
+        shuffle: bool = True,
+        producer_num_workers: int = 0,
+        queue_maxsize: int = 0,
+    ):
         if queue_maxsize == 0:
             if os.cpu_count() is not None:
                 queue_maxsize = cast(int, os.cpu_count())
@@ -64,6 +71,7 @@ class DataQueue(Generic[T]):
 
         self.dataset: Sequence[T] = dataset
         self.repeat: int = repeat
+        self.shuffle: bool = shuffle
         self.producer_num_workers: int = producer_num_workers
 
         self._activated: bool = False
@@ -153,6 +161,7 @@ class DataQueue(Generic[T]):
             cast(Dataset[T], self.dataset),
             batch_size=None,
             num_workers=self.producer_num_workers,
+            shuffle=self.shuffle,
             collate_fn=lambda t: t,  # identity collate fn
         )
         repeat = 10**18 if self.repeat == -1 else self.repeat

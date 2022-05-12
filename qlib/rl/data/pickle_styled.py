@@ -16,7 +16,7 @@ See `PEP 574 <https://peps.python.org/pep-0574/>`__ for details.
 from __future__ import annotations
 
 from functools import lru_cache
-from typing import List, Sequence
+from typing import List, Sequence, cast
 from pathlib import Path
 
 import cachetools
@@ -36,7 +36,7 @@ DealPriceType = Literal["bid_or_ask", "bid_or_ask_fill", "close"]
 """
 
 
-def _infer_processed_data_column_names(shape):
+def _infer_processed_data_column_names(shape: int) -> list[str]:
     if shape == 16:
         return [
             "$open",
@@ -122,6 +122,8 @@ class IntradayBacktestData:
                 col = "$ask0"
         elif self.deal_price_type == "close":
             col = "$close0"
+        else:
+            raise ValueError(f"Unsupported deal_price_type: {self.deal_price_type}")
         price = self.data[col]
 
         if self.deal_price_type == "bid_or_ask_fill":
@@ -138,7 +140,7 @@ class IntradayBacktestData:
         return self.data["$volume0"]
 
     def get_time_index(self) -> pd.DatetimeIndex:
-        return self.data.index
+        return cast(pd.DatetimeIndex, self.data.index)
 
 
 class IntradayProcessedData:

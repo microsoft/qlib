@@ -111,7 +111,7 @@ class LogCollector:
             raise TypeError(f"{array} is not one of ndarray, DataFrame and Series.")
         self._add_metric(name, array, loglevel)
 
-    def add_any(self, name: str, object: Any, loglevel: int | LogLevel = LogLevel.PERIODIC) -> None:
+    def add_any(self, name: str, obj: Any, loglevel: int | LogLevel = LogLevel.PERIODIC) -> None:
         """Log something with any type.
 
         As it's an "any" object, the only LogWriter accepting it is pickle.
@@ -122,7 +122,7 @@ class LogCollector:
 
         # FIXME: detect and rescue object that could be scalar or array
 
-        self._add_metric(name, object, loglevel)
+        self._add_metric(name, obj, loglevel)
 
     def logs(self) -> dict[str, np.ndarray]:
         return {key: np.asanyarray(value, dtype="object") for key, value in self._logged.items()}
