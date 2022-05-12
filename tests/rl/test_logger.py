@@ -130,7 +130,7 @@ class RandomFivePolicy(BasePolicy):
 
 
 def test_logger_with_env_wrapper():
-    with DataQueue(list(range(20))) as data_iterator:
+    with DataQueue(list(range(20)), shuffle=False) as data_iterator:
         env_wrapper_factory = lambda: EnvWrapper(
             SimpleSimulator,
             DummyStateInterpreter(),
