@@ -20,7 +20,7 @@ class Reward(Generic[SimulatorState]):
     Subclass should implement ``reward(simulator_state)`` to implement their own reward calculation recipe.
     """
 
-    env: "EnvWrapper" | None = None
+    env: EnvWrapper | None = None
 
     @final
     def __call__(self, simulator_state: SimulatorState) -> float:

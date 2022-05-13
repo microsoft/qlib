@@ -40,7 +40,7 @@ class Interpreter:
 class StateInterpreter(Generic[StateType, ObsType], Interpreter):
     """State Interpreter that interpret execution result of qlib executor into rl env state"""
 
-    env: "EnvWrapper" | None = None
+    env: EnvWrapper | None = None
 
     @property
     def observation_space(self) -> gym.Space:

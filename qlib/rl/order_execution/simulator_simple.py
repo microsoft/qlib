@@ -26,7 +26,7 @@ class SAOEMetrics(TypedDict):
     It could be accumulated for a day, or a period of time (e.g., 30min), or calculated separately for every minute.
     """
 
-    stock_id: pd.Timestamp
+    stock_id: str
     """Stock ID of this record."""
     datetime: pd.Timestamp
     """Datetime of this record (this is index in the dataframe)."""

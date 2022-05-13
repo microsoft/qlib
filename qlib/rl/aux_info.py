@@ -21,7 +21,7 @@ AuxInfoType = TypeVar("AuxInfoType")
 class AuxiliaryInfoCollector(Generic[StateType, AuxInfoType]):
     """Override this class to collect customized auxiliary information from environment."""
 
-    env: "EnvWrapper" | None = None
+    env: EnvWrapper | None = None
 
     @final
     def __call__(self, simulator_state: StateType) -> AuxInfoType:
