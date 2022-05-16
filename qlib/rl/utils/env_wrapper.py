@@ -130,7 +130,7 @@ class EnvWrapper(
     def observation_space(self):
         return self.state_interpreter.observation_space
 
-    def reset(self, **kwargs) -> ObsType:
+    def reset(self, **kwargs: Any) -> ObsType:
         """
         Try to get a state from state queue, and init the simulator with this state.
         If the queue is exhausted, generate an invalid (nan) observation.
@@ -179,7 +179,7 @@ class EnvWrapper(
             self.seed_iterator = None
             return generate_nan_observation(self.observation_space)
 
-    def step(self, policy_action: PolicyActType, **kwargs) -> tuple[ObsType, float, bool, InfoDict]:
+    def step(self, policy_action: PolicyActType, **kwargs: Any) -> tuple[ObsType, float, bool, InfoDict]:
         """Environment step.
 
         See the code along with comments to get a sequence of things happening here.

@@ -209,6 +209,9 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
         self.history_exec = self._dataframe_append(
             self.history_exec,
             SAOEMetrics(
+                # It should have the same keys with SAOEMetrics,
+                # but the values do not necessarily have the annotated type.
+                # Some values could be vectorized (e.g., exec_vol).
                 stock_id=self.order.stock_id,
                 datetime=time_index,
                 direction=self.order.direction,
@@ -356,7 +359,7 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
             pa=price_advantage(exec_avg_price, self.twap_price, self.order.direction),
         )
 
-    def _get_ticks_slice(self, start: pd.Timestamp, end: pd.Timestamp, include_end: bool = False):
+    def _get_ticks_slice(self, start: pd.Timestamp, end: pd.Timestamp, include_end: bool = False) -> pd.DatetimeIndex:
         if not include_end:
             end = end - ONE_SEC
         return self.ticks_index[self.ticks_index.slice_indexer(start, end)]

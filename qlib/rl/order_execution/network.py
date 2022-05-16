@@ -65,7 +65,7 @@ class Recurrent(nn.Module):
     def _init_extra_branches(self):
         pass
 
-    def _source_features(self, obs: FullHistoryObs, device):
+    def _source_features(self, obs: FullHistoryObs, device: torch.device) -> tuple[list[torch.Tensor], torch.Tensor]:
         bs, _, data_dim = obs["data_processed"].size()
         data = torch.cat((torch.zeros(bs, 1, data_dim, device=device), obs["data_processed"]), 1)
         cur_step = obs["cur_step"].long()
@@ -95,7 +95,7 @@ class Recurrent(nn.Module):
 
         return sources, data_out
 
-    def forward(self, batch: Batch):
+    def forward(self, batch: Batch) -> torch.Tensor:
         """
         Input should be a dict (at least) containing:
 

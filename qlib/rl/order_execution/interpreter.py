@@ -126,7 +126,7 @@ class FullHistoryStateInterpreter(StateInterpreter[SAOEState, FullHistoryObs]):
         return spaces.Dict(space)
 
     @staticmethod
-    def _mask_future_info(arr: pd.DataFrame, current: pd.Timestamp):
+    def _mask_future_info(arr: pd.DataFrame, current: pd.Timestamp) -> pd.DataFrame:
         arr = arr.copy(deep=True)
         arr.loc[current:] = 0.0  # mask out data after this moment (inclusive)
         return arr

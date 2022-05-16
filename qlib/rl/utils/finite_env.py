@@ -120,7 +120,9 @@ class FiniteVectorEnv(BaseVectorEnv):
     from child workers. See :class:`qlib.rl.utils.LogWriter`.
     """
 
-    def __init__(self, logger: LogWriter | list[LogWriter], env_fns: list[Callable[..., gym.Env]], **kwargs):
+    def __init__(
+        self, logger: LogWriter | list[LogWriter], env_fns: list[Callable[..., gym.Env]], **kwargs: Any
+    ) -> None:
         super().__init__(env_fns, **kwargs)
 
         self._logger: list[LogWriter] = logger if isinstance(logger, list) else [logger]

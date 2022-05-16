@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from typing import TypeVar, Generic, TYPE_CHECKING
+from typing import TypeVar, Generic, Any, TYPE_CHECKING
 
 from .seed import InitialStateType
 
@@ -51,7 +51,7 @@ class Simulator(Generic[InitialStateType, StateType, ActType]):
 
     env: EnvWrapper | None = None
 
-    def __init__(self, initial: InitialStateType, **kwargs) -> None:
+    def __init__(self, initial: InitialStateType, **kwargs: Any) -> None:
         pass
 
     def step(self, action: ActType) -> None:
