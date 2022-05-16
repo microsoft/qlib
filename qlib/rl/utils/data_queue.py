@@ -96,7 +96,11 @@ class DataQueue(Generic[T]):
                     self._queue.get(block=False)
                 except Empty:
                     pass
-            time.sleep(1.0)  # a chance to allow more data to be put in
+            # Sometimes when the queue gets emptied, more data have already been sent,
+            # and they are on the way into the queue.
+            # If these data didn't get consumed, it will jam the queue and make the process hang.
+            # We wait a second here for potential data arriving, and check again (for ``repeat`` times).
+            time.sleep(1.0)
             if self._queue.empty():
                 break
         _logger.debug(f"Remaining items in queue collection done. Empty: {self._queue.empty()}")

@@ -173,6 +173,12 @@ class FiniteVectorEnv(BaseVectorEnv):
     def collector_guard(self):
         """Guard the collector. Recommended to guard every collect.
 
+        This guard is for two purposes.
+
+        1. Catch and ignore the StopIteration exception, which is the stopping signal
+           thrown by FiniteEnv to let tianshou know that ``collector.collect()`` should exit.
+        2. Notify the loggers that the collect is done what it's done.
+
         Examples
         --------
         >>> with finite_env.collector_guard():
@@ -194,6 +200,7 @@ class FiniteVectorEnv(BaseVectorEnv):
     def reset(self, id=None):
         assert not self._zombie
 
+        # Check whether it's guarded by collector_guard()
         if not self._collector_guarded:
             warnings.warn(
                 "Collector is not guarded by FiniteEnv. "
