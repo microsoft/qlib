@@ -29,7 +29,7 @@ __all__ = [
     "FiniteSubprocVectorEnv",
     "FiniteShmemVectorEnv",
     "FiniteEnvType",
-    "finite_env_factory",
+    "vectorize_env",
 ]
 
 
@@ -292,7 +292,7 @@ class FiniteShmemVectorEnv(FiniteVectorEnv, ShmemVectorEnv):
     pass
 
 
-def finite_env_factory(
+def vectorize_env(
     env_factory: Callable[..., gym.Env],
     env_type: FiniteEnvType,
     concurrency: int,
@@ -312,6 +312,19 @@ def finite_env_factory(
         Concurrent environment workers.
     logger
         Log writers.
+
+    Warnings
+    --------
+    Please do not use lambda expression here for ``env_factory`` as it may create incorrectly-shared instances.
+
+    Don't do: ::
+
+        vectorize_env(lambda: EnvWrapper(...), ...)
+
+    Please do: ::
+
+        def env_factory(): ...
+        vectorize_env(env_factory, ...)
     """
     env_type_cls_mapping: dict[str, Type[FiniteVectorEnv]] = {
         "dummy": FiniteDummyVectorEnv,

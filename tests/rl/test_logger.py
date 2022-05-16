@@ -20,7 +20,7 @@ from qlib.rl.simulator import Simulator
 from qlib.rl.utils.data_queue import DataQueue
 from qlib.rl.utils.env_wrapper import InfoDict, EnvWrapper
 from qlib.rl.utils.log import LogLevel, LogCollector, CsvWriter, ConsoleWriter
-from qlib.rl.utils.finite_env import finite_env_factory
+from qlib.rl.utils.finite_env import vectorize_env
 
 
 class SimpleEnv(gym.Env[int, int]):
@@ -67,7 +67,7 @@ def test_simple_env_logger(caplog):
     for venv_cls_name in ["dummy", "shmem", "subproc"]:
         writer = ConsoleWriter()
         csv_writer = CsvWriter(Path(__file__).parent / ".output")
-        venv = finite_env_factory(lambda: SimpleEnv(), venv_cls_name, 4, [writer, csv_writer])
+        venv = vectorize_env(lambda: SimpleEnv(), venv_cls_name, 4, [writer, csv_writer])
         with venv.collector_guard():
             collector = Collector(AnyPolicy(), venv)
             collector.collect(n_episode=30)
@@ -142,7 +142,7 @@ def test_logger_with_env_wrapper():
         # loglevel can be debug here because metrics can all dump into csv
         # otherwise, csv writer might crash
         csv_writer = CsvWriter(Path(__file__).parent / ".output", loglevel=LogLevel.DEBUG)
-        venv = finite_env_factory(env_wrapper_factory, "shmem", 4, csv_writer)
+        venv = vectorize_env(env_wrapper_factory, "shmem", 4, csv_writer)
         with venv.collector_guard():
             collector = Collector(RandomFivePolicy(), venv)
             collector.collect(n_episode=INF * len(venv))

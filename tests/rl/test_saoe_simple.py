@@ -248,7 +248,8 @@ def test_network_sanity():
             assert obs["position_history"][-1] == 3
 
 
-def test_twap_strategy():
+@pytest.mark.parametrize("finite_env_type", ["dummy", "subproc", "shmem"])
+def test_twap_strategy(finite_env_type):
     set_log_with_config(C.logging_config)
     orders = pickle_styled.load_orders(ORDER_DIR)
     assert len(orders) == 248
@@ -266,6 +267,7 @@ def test_twap_strategy():
         policy,
         [ConsoleWriter(total_episodes=len(orders)), csv_writer],
         concurrency=4,
+        finite_env_type=finite_env_type,
     )
 
     metrics = pd.read_csv(Path(__file__).parent / ".output" / "result.csv")
