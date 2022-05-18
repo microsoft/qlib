@@ -24,6 +24,11 @@ ONE_SEC = pd.Timedelta("1s")  # use 1 second to exclude the right interval point
 class SAOEMetrics(TypedDict):
     """Metrics for SAOE accumulated for a "period".
     It could be accumulated for a day, or a period of time (e.g., 30min), or calculated separately for every minute.
+
+    Warnings
+    --------
+    The type hints are for single elements. In lots of times, they can be vectorized.
+    For example, ``market_volume`` could be a list of float (or ndarray) rather tahn a single float.
     """
 
     stock_id: str
