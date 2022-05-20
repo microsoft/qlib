@@ -87,7 +87,7 @@ def check_nan_observation(obs: Any) -> bool:
 
 
 class FiniteVectorEnv(BaseVectorEnv):
-    """To allow the parallled env workers consume a single DataQueue until it's exhausted.
+    """To allow the paralleled env workers consume a single DataQueue until it's exhausted.
 
     See `tianshou issue #322 <https://github.com/thu-ml/tianshou/issues/322>`_.
 
@@ -112,11 +112,11 @@ class FiniteVectorEnv(BaseVectorEnv):
     The usage of this vector env in collector are two parts:
 
     1. If the data queue is finite (usually when inference), collector should collect "infinity" number of
-       epsiodes, until the vector env exhausts by itself.
+       episodes, until the vector env exhausts by itself.
     2. If the data queue is infinite (usually in training), collector can set number of episodes / steps.
        In this case, data would be randomly ordered, and some repetitions wouldn't matter.
 
-    One extra function of this vector env is that it has a logger that explicity collects logs
+    One extra function of this vector env is that it has a logger that explicitly collects logs
     from child workers. See :class:`qlib.rl.utils.LogWriter`.
     """
 

@@ -31,8 +31,8 @@ class Interpreter:
     Inherit one of the two sub-classes to define your own interpreter.
     This super-class is only used for isinstance check.
 
-    Interpreters are recommmended to be stateless, meaning that storing temporary information with ``self.xxx``
-    in interpreter is anti-pattern. In future, we might support regsiter some interpreter-related
+    Interpreters are recommended to be stateless, meaning that storing temporary information with ``self.xxx``
+    in interpreter is anti-pattern. In future, we might support register some interpreter-related
     states by calling ``self.env.register_state()``, but it's not planned for first iteration.
     """
 
