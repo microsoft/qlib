@@ -11,7 +11,11 @@ because ``get_xxx_yyy`` is cache-optimized.
 
 Note that these pickle files are dumped with Python 3.8. Python lower than 3.7 might not be able to load them.
 See `PEP 574 <https://peps.python.org/pep-0574/>`__ for details.
+
+This file shows resemblence to qlib.backtest.high_performance_ds. We might merge those two in future.
 """
+
+# TODO: merge with qlib/backtest/high_performance_ds.py
 
 from __future__ import annotations
 

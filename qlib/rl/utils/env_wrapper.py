@@ -76,7 +76,7 @@ class EnvWrapper(
     reward_fn
         A callable that accepts the StateType and returns a float (at least in single-agent case).
     aux_info_collector
-        Collect auxiliary informations. Could be useful in MARL.
+        Collect auxiliary information. Could be useful in MARL.
     logger
         Log collector that collects the logs. The collected logs are sent back to main process,
         via the return value of ``env.step()``.
@@ -102,7 +102,17 @@ class EnvWrapper(
         aux_info_collector: AuxiliaryInfoCollector[StateType, Any] | None = None,
         logger: LogCollector | None = None,
     ):
-        # assign weak reference to wrapper
+        # Assign weak reference to wrapper.
+        #
+        # Use weak reference here, because:
+        # 1. Logically, the other components should be able to live without an env_wrapper.
+        #    For example, they might live in a strategy_wrapper in future.
+        #    Therefore injecting a "hard" attribute called "env" is not appropripate.
+        # 2. When the environment gets destroyed, it gets destoryed.
+        #    We don't want it to silently live inside some interpreters.
+        # 3. Avoid circular reference.
+        # 4. When the components get serialized, we can throw away the env without any burden.
+        #    (though this part is not implemented yet)
         for obj in [state_interpreter, action_interpreter, reward_fn, aux_info_collector]:
             if obj is not None:
                 obj.env = weakref.proxy(self)  # type: ignore
@@ -112,7 +122,9 @@ class EnvWrapper(
         self.action_interpreter = action_interpreter
 
         if seed_iterator is None:
-            # in this case, there won't be any seed for simulator
+            # In this case, there won't be any seed for simulator
+            # We can't set it to None because None actually means something else.
+            # If `seed_iterator` is None, it means that it's exhausted.
             self.seed_iterator = SEED_INTERATOR_MISSING
         else:
             self.seed_iterator = iter(seed_iterator)
