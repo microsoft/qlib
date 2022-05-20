@@ -22,6 +22,7 @@ from tqdm import tqdm
 from loguru import logger
 from qlib.utils import fname_to_code, code_to_fname, get_period_offset
 from qlib.config import C
+from qlib.constant import INTERVAL_QUARTERLY, INTERVAL_ANNUAL, INTERVAL_MONTHLY
 
 
 class DumpPitData:
@@ -29,9 +30,6 @@ class DumpPitData:
     PIT_CSV_SEP = ","
     DATA_FILE_SUFFIX = ".data"
     INDEX_FILE_SUFFIX = ".index"
-
-    INTERVAL_quarterly = "quarterly"
-    INTERVAL_annual = "annual"
 
     PERIOD_DTYPE = C.pit_record_type["period"]
     INDEX_DTYPE = C.pit_record_type["index"]
@@ -58,7 +56,7 @@ class DumpPitData:
         csv_path: str,
         qlib_dir: str,
         backup_dir: str = None,
-        freq: str = "quarterly",
+        freq: str = INTERVAL_QUARTERLY,
         max_workers: int = 16,
         date_column_name: str = "date",
         period_column_name: str = "period",
@@ -193,7 +191,7 @@ class DumpPitData:
             ## calculate first & last period
             start_year = df_sub[self.period_column_name].min()
             end_year = df_sub[self.period_column_name].max()
-            if interval == self.INTERVAL_quarterly:
+            if interval == INTERVAL_QUARTERLY:
                 start_year //= 100
                 end_year //= 100
 
@@ -202,7 +200,7 @@ class DumpPitData:
                 with open(index_file, "rb") as fi:
                     (first_year,) = struct.unpack(self.PERIOD_DTYPE, fi.read(self.PERIOD_DTYPE_SIZE))
                     n_years = len(fi.read()) // self.INDEX_DTYPE_SIZE
-                    if interval == self.INTERVAL_quarterly:
+                    if interval == INTERVAL_QUARTERLY:
                         n_years //= 4
                     start_year = first_year + n_years
             else:
@@ -218,7 +216,7 @@ class DumpPitData:
             # dump index filled with NA
             with open(index_file, "ab") as fi:
                 for year in range(start_year, end_year + 1):
-                    if interval == self.INTERVAL_quarterly:
+                    if interval == INTERVAL_QUARTERLY:
                         fi.write(struct.pack(self.INDEX_DTYPE * 4, *[self.NA_INDEX] * 4))
                     else:
                         fi.write(struct.pack(self.INDEX_DTYPE, self.NA_INDEX))
@@ -241,7 +239,7 @@ class DumpPitData:
                 # update index if needed
                 for i, row in df_sub.iterrows():
                     # get index
-                    offset = get_period_offset(first_year, row.period, interval == self.INTERVAL_quarterly)
+                    offset = get_period_offset(first_year, row.period, interval == INTERVAL_QUARTERLY)
 
                     fi.seek(self.PERIOD_DTYPE_SIZE + self.INDEX_DTYPE_SIZE * offset)
                     (cur_index,) = struct.unpack(self.INDEX_DTYPE, fi.read(self.INDEX_DTYPE_SIZE))

@@ -8,3 +8,7 @@ REG_TW = "tw"
 
 # Epsilon for avoiding division by zero.
 EPS = 1e-12
+
+INTERVAL_MONTHLY = "monthly"
+INTERVAL_QUARTERLY = "quarterly"
+INTERVAL_ANNUAL = "annual"
