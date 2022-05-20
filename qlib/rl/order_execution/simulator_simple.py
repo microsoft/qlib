@@ -173,7 +173,9 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
         self.ticks_for_order = self._get_ticks_slice(self.order.start_time, self.order.end_time)
 
         self.cur_time = self.ticks_for_order[0]
-        self.twap_price = float(self.backtest_data.get_deal_price().loc[self.ticks_for_order].mean())
+        # NOTE: astype(float) is necessary in some systems.
+        # this will align the precision with `.to_numpy()` in `_split_exec_vol`
+        self.twap_price = float(self.backtest_data.get_deal_price().loc[self.ticks_for_order].astype(float).mean())
 
         self.position = order.amount
 
