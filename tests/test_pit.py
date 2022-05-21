@@ -1,28 +1,64 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
-import pandas as pd
 
+
+import sys
 import qlib
-from qlib.data import D
+import shutil
 import unittest
+import pandas as pd
+import baostock as bs
+from pathlib import Path
+
+from qlib.data import D
+from scripts.get_data import GetData
+from scripts.dump_pit import DumpPitData
+
+sys.path.append(str(Path(__file__).resolve().parent.parent.joinpath("scripts/data_collector/pit")))
+from collector import Run
+
 
 pd.set_option("display.width", 1000)
 pd.set_option("display.max_columns", None)
 
+DATA_DIR = Path(__file__).parent.joinpath("test_pit_data")
+SOURCE_DIR = DATA_DIR.joinpath("stock_data/source")
+SOURCE_DIR.mkdir(exist_ok=True, parents=True)
+QLIB_DIR = DATA_DIR.joinpath("qlib_data")
+QLIB_DIR.mkdir(exist_ok=True, parents=True)
+
 
 class TestPIT(unittest.TestCase):
-    """
-    NOTE!!!!!!
-    The assert of this test assumes that users follows the cmd below and only download 2 stock.
-    1. `python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/cn_data --region cn`
-    2. `python scripts/data_collector/pit/collector.py download_data --source_dir ~/.qlib/stock_data/source/pit --start 2000-01-01 --end 2020-01-01 --interval quarterly --symbol_regex "^(600519|000725).*"`
-    3. `python scripts/data_collector/pit/collector.py normalize_data --interval quarterly --source_dir ~/.qlib/stock_data/source/pit --normalize_dir ~/.qlib/stock_data/source/pit_normalized`
-    4. `python scripts/dump_pit.py dump --csv_path ~/.qlib/stock_data/source/pit_normalized --qlib_dir ~/.qlib/qlib_data/cn_data --interval quarterly`
-    """
+    @classmethod
+    def tearDownClass(cls) -> None:
+        shutil.rmtree(str(DATA_DIR.resolve()))
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cn_data_dir = str(QLIB_DIR.joinpath("cn_data").resolve())
+        pit_dir = str(SOURCE_DIR.joinpath("pit").resolve())
+        pit_normalized_dir = str(SOURCE_DIR.joinpath("pit_normalized").resolve())
+        GetData().qlib_data(name="qlib_data_simple", target_dir=cn_data_dir, region="cn")
+        bs.login()
+        Run(
+            source_dir=pit_dir,
+            interval="quarterly",
+        ).download_data(start="2000-01-01", end="2020-01-01", symbol_regex="^(600519|000725).*")
+        Run(
+            source_dir=pit_dir,
+            normalize_dir=pit_normalized_dir,
+            interval="quarterly",
+        ).normalize_data()
+        bs.logout()
+        DumpPitData(
+            csv_path=pit_normalized_dir,
+            qlib_dir=cn_data_dir,
+        ).dump(interval="quarterly")
 
     def setUp(self):
         # qlib.init(kernels=1)  # NOTE: set kernel to 1 to make it debug easier
-        qlib.init()
+        provider_uri = str(QLIB_DIR.joinpath("cn_data").resolve())
+        qlib.init(provider_uri=provider_uri)
 
     def to_str(self, obj):
         return "".join(str(obj).split())
@@ -66,7 +102,7 @@ class TestPIT(unittest.TestCase):
         data["$close"] = 1  # in case of different dataset gives different values
         expect = """
                                P($$roewa_q)  P($$yoyni_q)  $close
-        instrument datetime                                      
+        instrument datetime
         sh600519   2019-01-02       0.25522      0.243892       1
                    2019-01-03       0.25522      0.243892       1
                    2019-01-04       0.25522      0.243892       1
@@ -78,7 +114,7 @@ class TestPIT(unittest.TestCase):
                    2019-07-17           NaN           NaN       1
                    2019-07-18           NaN           NaN       1
                    2019-07-19           NaN           NaN       1
-        
+
         [266 rows x 3 columns]
         """
         self.check_same(data, expect)
@@ -191,7 +227,7 @@ class TestPIT(unittest.TestCase):
         data = D.features(instruments, fields, start_time="2019-01-01", end_time="2020-01-01", freq="day")
         except_data = """
                                        P($$roewa_q)  P($$yoyni_q)  P(($$roewa_q / $$yoyni_q) / Ref($$roewa_q / $$yoyni_q, 1) - 1)  P(Sum($$yoyni_q, 4))      $close  P($$roewa_q) * $close
-        instrument datetime                                                                                                                                                       
+        instrument datetime
         sh600519   2019-01-02      0.255220      0.243892                                           1.484224                           1.661578   63.595333              16.230801
                    2019-01-03      0.255220      0.243892                                           1.484224                           1.661578   62.641907              15.987467
                    2019-01-04      0.255220      0.243892                                           1.484224                           1.661578   63.915985              16.312637
@@ -203,7 +239,7 @@ class TestPIT(unittest.TestCase):
                    2019-12-27      0.255819      0.219821                                           0.677052                           1.081693  125.307404              32.056015
                    2019-12-30      0.255819      0.219821                                           0.677052                           1.081693  127.763992              32.684456
                    2019-12-31      0.255819      0.219821                                           0.677052                           1.081693  127.462303              32.607277
-        
+
         [244 rows x 6 columns]
         """
         self.check_same(data, except_data)
@@ -219,7 +255,7 @@ class TestPIT(unittest.TestCase):
         data = D.features(instruments, fields, start_time="2018-04-28", end_time="2019-07-19", freq="day")
         except_data = """
                                PRef($$roewa_q, 201902)  PRef($$yoyni_q, 201801)  P($$roewa_q)  P($$roewa_q) / PRef($$roewa_q, 201801)
-        instrument datetime                                                                                                          
+        instrument datetime
         sh600519   2018-05-02                      NaN                 0.395075      0.088887                                1.000000
                    2018-05-03                      NaN                 0.395075      0.088887                                1.000000
                    2018-05-04                      NaN                 0.395075      0.088887                                1.000000
@@ -231,7 +267,7 @@ class TestPIT(unittest.TestCase):
                    2019-07-17                 0.000000                 0.395075      0.000000                                0.000000
                    2019-07-18                 0.175322                 0.395075      0.175322                                1.972414
                    2019-07-19                 0.175322                 0.395075      0.175322                                1.972414
-        
+
         [299 rows x 4 columns]
         """
         self.check_same(data, except_data)

@@ -317,24 +317,24 @@ class YahooCollectorIN1min(YahooCollectorIN):
 
 class YahooCollectorBR(YahooCollector, ABC):
     def retry(cls):
-        """"
-            The reason to use retry=2 is due to the fact that
-            Yahoo Finance unfortunately does not keep track of some
-            Brazilian stocks. 
-            
-            Therefore, the decorator deco_retry with retry argument
-            set to 5 will keep trying to get the stock data up to 5 times, 
-            which makes the code to download Brazilians stocks very slow. 
-            
-            In future, this may change, but for now 
-            I suggest to leave retry argument to 1 or 2 in 
-            order to improve download speed.
+        """
+        The reason to use retry=2 is due to the fact that
+        Yahoo Finance unfortunately does not keep track of some
+        Brazilian stocks.
 
-            To achieve this goal an abstract attribute (retry)
-            was added into YahooCollectorBR base class
+        Therefore, the decorator deco_retry with retry argument
+        set to 5 will keep trying to get the stock data up to 5 times,
+        which makes the code to download Brazilians stocks very slow.
+
+        In future, this may change, but for now
+        I suggest to leave retry argument to 1 or 2 in
+        order to improve download speed.
+
+        To achieve this goal an abstract attribute (retry)
+        was added into YahooCollectorBR base class
         """
         raise NotImplementedError
-        
+
     def get_instrument_list(self):
         logger.info("get BR stock symbols......")
         symbols = get_br_stock_symbols() + [

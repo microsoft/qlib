@@ -55,13 +55,13 @@ class IBOVIndex(IndexBase):
 
     def get_current_4_month_period(self, current_month: int):
         """
-        This function is used to calculated what is the current 
-        four month period for the current month. For example, 
+        This function is used to calculated what is the current
+        four month period for the current month. For example,
         If the current month is August 8, its four month period
         is 2Q.
 
         OBS: In english Q is used to represent *quarter*
-        which means a three month period. However, in 
+        which means a three month period. However, in
         portuguese we use Q to represent a four month period.
         In other words,
 
@@ -90,8 +90,8 @@ class IBOVIndex(IndexBase):
 
     def get_four_month_period(self):
         """
-        The ibovespa index is updated every four months. 
-        Therefore, we will represent each time period as 2003_1Q 
+        The ibovespa index is updated every four months.
+        Therefore, we will represent each time period as 2003_1Q
         which means 2003 first four mount period (Jan, Feb, Mar, Apr)
         """
         four_months_period = ["1Q", "2Q", "3Q"]
@@ -101,13 +101,12 @@ class IBOVIndex(IndexBase):
         current_month = now.month
         for year in [item for item in range(init_year, current_year)]:
             for el in four_months_period:
-                self.years_4_month_periods.append(str(year)+"_"+el)
+                self.years_4_month_periods.append(str(year) + "_" + el)
         # For current year the logic must be a little different
         current_4_month_period = self.get_current_4_month_period(current_month)
         for i in range(int(current_4_month_period[0])):
-            self.years_4_month_periods.append(str(current_year) + "_" + str(i+1) + "Q")
+            self.years_4_month_periods.append(str(current_year) + "_" + str(i + 1) + "Q")
         return self.years_4_month_periods
-
 
     def format_datetime(self, inst_df: pd.DataFrame) -> pd.DataFrame:
         """formatting the datetime in an instrument
@@ -189,11 +188,19 @@ class IBOVIndex(IndexBase):
         try:
             df_changes_list = []
             for i in tqdm(range(len(self.years_4_month_periods) - 1)):
-                df = pd.read_csv(self.ibov_index_composition.format(self.years_4_month_periods[i]), on_bad_lines="skip")["symbol"]
-                df_ = pd.read_csv(self.ibov_index_composition.format(self.years_4_month_periods[i + 1]), on_bad_lines="skip")["symbol"]
+                df = pd.read_csv(
+                    self.ibov_index_composition.format(self.years_4_month_periods[i]), on_bad_lines="skip"
+                )["symbol"]
+                df_ = pd.read_csv(
+                    self.ibov_index_composition.format(self.years_4_month_periods[i + 1]), on_bad_lines="skip"
+                )["symbol"]
 
                 ## Remove Dataframe
-                remove_date = self.years_4_month_periods[i].split("_")[0] + "-" + quarter_dict[self.years_4_month_periods[i].split("_")[1]]
+                remove_date = (
+                    self.years_4_month_periods[i].split("_")[0]
+                    + "-"
+                    + quarter_dict[self.years_4_month_periods[i].split("_")[1]]
+                )
                 list_remove = list(df[~df.isin(df_)])
                 df_removed = pd.DataFrame(
                     {
@@ -204,7 +211,11 @@ class IBOVIndex(IndexBase):
                 )
 
                 ## Add Dataframe
-                add_date = self.years_4_month_periods[i + 1].split("_")[0] + "-" + quarter_dict[self.years_4_month_periods[i + 1].split("_")[1]]
+                add_date = (
+                    self.years_4_month_periods[i + 1].split("_")[0]
+                    + "-"
+                    + quarter_dict[self.years_4_month_periods[i + 1].split("_")[1]]
+                )
                 list_add = list(df_[~df_.isin(df)])
                 df_added = pd.DataFrame(
                     {"date": len(list_add) * [add_date], "type": len(list_add) * ["add"], "symbol": list_add}
@@ -272,6 +283,5 @@ class IBOVIndex(IndexBase):
             return df.loc[:, ["Código"]].copy()
 
 
-
 if __name__ == "__main__":
-    fire.Fire(partial(get_instruments, market_index="br_index" ))
+    fire.Fire(partial(get_instruments, market_index="br_index"))
