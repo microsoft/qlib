@@ -53,7 +53,8 @@ class SepDF(unittest.TestCase):
         # it will not raise error, and df will be an empty dataframe
 
         del sdf["g1"]
-        del sdf["g2"]  # sdf should support deleting all the columns
+        del sdf["g2"]
+        # sdf should support deleting all the columns
 
 
 if __name__ == "__main__":
