@@ -376,7 +376,7 @@ get_cls_kwargs = get_callable_kwargs  # NOTE: this is for compatibility for the 
 
 
 def init_instance_by_config(
-    config: Union[str, dict, object],
+    config: Union[str, dict, object, Path],
     default_module=None,
     accept_types: Union[type, Tuple[type]] = (),
     try_kwargs: Dict = {},
@@ -409,6 +409,9 @@ def init_instance_by_config(
                 - "a.b.c.ClassName" getattr(<a.b.c.module>, "ClassName")() will be used.
         object example:
             instance of accept_types
+        Path example:
+            specify a pickle object
+                - it will be treated like 'file:///<path to pickle file>/obj.pkl'
     default_module : Python module
         Optional. It should be a python module.
         NOTE: the "module_path" will be override by `module` arguments
@@ -432,11 +435,15 @@ def init_instance_by_config(
     if isinstance(config, accept_types):
         return config
 
-    if isinstance(config, str):
-        # path like 'file:///<path to pickle file>/obj.pkl'
-        pr = urlparse(config)
-        if pr.scheme == "file":
-            with open(os.path.join(pr.netloc, pr.path), "rb") as f:
+    if isinstance(config, (str, Path)):
+        if isinstance(config, str):
+            # path like 'file:///<path to pickle file>/obj.pkl'
+            pr = urlparse(config)
+            if pr.scheme == "file":
+                with open(os.path.join(pr.netloc, pr.path), "rb") as f:
+                    return pickle.load(f)
+        else:
+            with config.open("rb") as f:
                 return pickle.load(f)
 
     klass, cls_kwargs = get_callable_kwargs(config, default_module=default_module)
