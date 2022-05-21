@@ -17,16 +17,15 @@ sys.path.append(str(BASE_DIR.parent.parent))
 
 from data_collector.base import BaseCollector, BaseRun, BaseNormalize
 from data_collector.utils import get_hs_stock_symbols, get_calendar_list
+from qlib.constant import INTERVAL_QUARTERLY, INTERVAL_ANNUAL, INTERVAL_MONTHLY
 
 
 class PitCollector(BaseCollector):
     DEFAULT_START_DATETIME_QUARTERLY = pd.Timestamp("2000-01-01")
     DEFAULT_START_DATETIME_ANNUAL = pd.Timestamp("2000-01-01")
+    DEFAULT_START_DATETIME_MONTHLY = pd.Timestamp("2000-01-01")
     DEFAULT_END_DATETIME_QUARTERLY = pd.Timestamp(datetime.now() + pd.Timedelta(days=1))
     DEFAULT_END_DATETIME_ANNUAL = pd.Timestamp(datetime.now() + pd.Timedelta(days=1))
-
-    INTERVAL_QUARTERLY = "quarterly"
-    INTERVAL_ANNUAL = "annual"
 
     def __init__(
         self,
@@ -199,7 +198,7 @@ class PitCollector(BaseCollector):
         start_datetime: pd.Timestamp,
         end_datetime: pd.Timestamp,
     ) -> pd.DataFrame:
-        if interval != self.INTERVAL_QUARTERLY:
+        if interval != INTERVAL_QUARTERLY:
             raise ValueError(f"cannot support {interval}")
         symbol, exchange = symbol.split(".")
         exchange = "sh" if exchange == "ss" else "sz"
@@ -227,14 +226,14 @@ class PitNormalize(BaseNormalize):
     def normalize(self, df: pd.DataFrame) -> pd.DataFrame:
         dt = df["period"].apply(
             lambda x: (
-                pd.to_datetime(x) + pd.DateOffset(days=(45 if self.interval == PitCollector.INTERVAL_QUARTERLY else 90))
+                pd.to_datetime(x) + pd.DateOffset(days=(45 if self.interval == INTERVAL_QUARTERLY else 90))
             ).date()
         )
         df["date"] = df["date"].fillna(dt.astype(str))
 
         df["period"] = pd.to_datetime(df["period"])
         df["period"] = df["period"].apply(
-            lambda x: x.year if self.interval == PitCollector.INTERVAL_ANNUAL else x.year * 100 + (x.month - 1) // 3 + 1
+            lambda x: x.year if self.interval == INTERVAL_ANNUAL else x.year * 100 + (x.month - 1) // 3 + 1
         )
         return df
 
