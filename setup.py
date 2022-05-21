@@ -79,6 +79,7 @@ REQUIRED = [
     "dataclasses;python_version<'3.7'",
     "filelock",
     "jinja2<3.1.0",  # for passing the readthedocs workflow.
+    "gym",
 ]
 
 # Numpy include
