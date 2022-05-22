@@ -31,9 +31,6 @@ class DumpPitData:
     DATA_FILE_SUFFIX = ".data"
     INDEX_FILE_SUFFIX = ".index"
 
-    # INTERVAL_quarterly = "quarterly"
-    # INTERVAL_annual = "annual"
-
     PERIOD_DTYPE = C.pit_record_type["period"]
     INDEX_DTYPE = C.pit_record_type["index"]
     DATA_DTYPE = "".join(
