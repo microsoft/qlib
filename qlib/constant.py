@@ -12,6 +12,6 @@ EPS = 1e-12
 # Infinity in integer
 INF = 10**18
 
-INTERVAL_MONTHLY = "monthly"
-INTERVAL_QUARTERLY = "quarterly"
 INTERVAL_ANNUAL = "annual"
+INTERVAL_QUARTERLY = "quarterly"
+INTERVAL_MONTHLY = "monthly"
