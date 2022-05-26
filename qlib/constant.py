@@ -6,12 +6,9 @@ REG_CN = "cn"
 REG_US = "us"
 REG_TW = "tw"
 
-INTERVAL_MONTHLY = "monthly"
-INTERVAL_QUARTERLY = "quarterly"
-INTERVAL_ANNUAL = "annual"
-
 # Epsilon for avoiding division by zero.
 EPS = 1e-12
 
-# Infinity in integer
-INF = 10**18
+INTERVAL_MONTHLY = "monthly"
+INTERVAL_QUARTERLY = "quarterly"
+INTERVAL_ANNUAL = "annual"
