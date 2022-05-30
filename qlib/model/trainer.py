@@ -13,6 +13,9 @@ In ``DelayTrainer``, the first step is only to save some necessary info to model
 
 import socket
 from typing import Callable, List
+from qlib.config import C
+from qlib.log import get_module_logger
+from qlib.utils.paral import call_in_subproc
 
 from tqdm.auto import tqdm
 from qlib.data.dataset import Dataset
@@ -210,17 +213,19 @@ class TrainerR(Trainer):
     STATUS_BEGIN = "begin_task_train"
     STATUS_END = "end_task_train"
 
-    def __init__(self, experiment_name: str = None, train_func: Callable = task_train):
+    def __init__(self, experiment_name: str = None, train_func: Callable = task_train, call_in_subproc: bool = False):
         """
         Init TrainerR.
 
         Args:
             experiment_name (str, optional): the default name of experiment.
             train_func (Callable, optional): default training method. Defaults to `task_train`.
+            call_in_subproc (bool): call the process in subprocess to force memory release
         """
         super().__init__()
         self.experiment_name = experiment_name
         self.train_func = train_func
+        self._call_in_subproc = call_in_subproc
 
     def train(self, tasks: list, train_func: Callable = None, experiment_name: str = None, **kwargs) -> List[Recorder]:
         """
@@ -245,6 +250,9 @@ class TrainerR(Trainer):
             experiment_name = self.experiment_name
         recs = []
         for task in tqdm(tasks, desc="train tasks"):
+            if self._call_in_subproc:
+                get_module_logger("TrainerR").info("running models in sub process (for forcing release memroy).")
+                train_func = call_in_subproc(train_func, C)
             rec = train_func(task, experiment_name, **kwargs)
             rec.set_tags(**{self.STATUS_KEY: self.STATUS_BEGIN})
             recs.append(rec)
