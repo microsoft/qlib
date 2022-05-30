@@ -8,6 +8,7 @@ Ensemble module can merge the objects in an Ensemble. For example, if there are 
 from typing import Union
 import pandas as pd
 from qlib.utils import FLATTEN_TUPLE, flatten_dict
+from qlib.log import get_module_logger
 
 
 class Ensemble:
