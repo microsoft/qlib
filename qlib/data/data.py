@@ -32,7 +32,6 @@ from ..utils import (
     hash_args,
     normalize_cache_fields,
     code_to_fname,
-    set_log_with_config,
     time_to_slc_point,
     read_period_data,
     get_period_list,
