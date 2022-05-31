@@ -16,7 +16,7 @@ from qlib.utils import exists_qlib_data
 
 class GetData:
     DATASET_VERSION = "v2"
-    REMOTE_URL = "http://fintech.msra.cn/stock_data/downloads"
+    REMOTE_URL = "https://qlibpublic.blob.core.windows.net/data/default/stock_data"
     QLIB_DATA_NAME = "{dataset_name}_{region}_{interval}_{qlib_version}.zip"
 
     def __init__(self, delete_zip_file=False):

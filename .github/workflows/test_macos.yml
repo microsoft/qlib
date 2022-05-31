@@ -38,7 +38,7 @@ jobs:
       run: |
         pip install --upgrade pip
         pip install flake8
-        flake8 --ignore=E501,F541,E266,E402,W503,E731,E203 qlib
+        flake8 --ignore=E501,F541,E266,E402,W503,E731,E203 --per-file-ignores="__init__.py:F401,F403" qlib
 
     - name: Install Qlib with pip
       run: |
@@ -65,6 +65,8 @@ jobs:
       run: |
         python scripts/get_data.py qlib_data --name qlib_data_simple --target_dir ~/.qlib/qlib_data/cn_data_simple --interval 1d --region cn
         python -c "import os; userpath=os.path.expanduser('~'); os.rename(userpath + '/.qlib/qlib_data/cn_data_simple', userpath + '/.qlib/qlib_data/cn_data')"
+        azcopy copy https://qlibpublic.blob.core.windows.net/data /tmp/qlibpublic --recursive
+        mv /tmp/qlibpublic/data tests/.data
     - name: Test workflow by config (install from pip)
       run: |
         python qlib/workflow/cli.py examples/benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml
@@ -75,6 +77,7 @@ jobs:
         python -m pip install --upgrade cython
         python -m pip install numpy jupyter jupyter_contrib_nbextensions
         python -m pip install -U scipy scikit-learn # installing without this line will cause errors on GitHub Actions, while instsalling locally won't
+        python -m pip install gym tianshou torch
         pip install -e .
     - name: Install test dependencies
       run: |
