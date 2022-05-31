@@ -80,6 +80,8 @@ REQUIRED = [
     "filelock",
     "jinja2<3.1.0",  # for passing the readthedocs workflow.
     "gym",
+    # Installing the latest version of protobuf for python versions below 3.8 will cause unit tests to fail.
+    "protobuf<=3.20.1;python_version<='3.8'",
 ]
 
 # Numpy include
