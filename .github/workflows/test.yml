@@ -110,7 +110,7 @@ jobs:
       run: |
         python scripts/get_data.py qlib_data --name qlib_data_simple --target_dir ~/.qlib/qlib_data/cn_data_simple --interval 1d --region cn
         python -c "import os; userpath=os.path.expanduser('~'); os.rename(userpath + '/.qlib/qlib_data/cn_data_simple', userpath + '/.qlib/qlib_data/cn_data')"
-        azcopy copy https://qlibpublic.blob.core.windows.net/data /tmp/qlibpublic --recursive
+        azcopy copy https://qlibpublic.blob.core.windows.net/data/rl /tmp/qlibpublic/data --recursive
         mv /tmp/qlibpublic/data tests/.data
 
     - name: Test workflow by config (install from pip)
