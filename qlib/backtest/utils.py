@@ -114,7 +114,7 @@ class TradeCalendarManager:
             trade_step = self.get_trade_step()
         trade_step = trade_step - shift
         calendar_index = self.start_index + trade_step
-        return self._calendar[calendar_index], epsilon_change(self._calendar[calendar_index + 1])
+        return self._calendar[calendar_index], epsilon_change(self._calendar[calendar_index] + pd.Timedelta(days=1))
 
     def get_data_cal_range(self, rtype: str = "full") -> Tuple[int, int]:
         """
