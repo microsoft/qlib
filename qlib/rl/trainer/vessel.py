@@ -28,7 +28,9 @@ class SeedIteratorNotAvailable(BaseException):
     pass
 
 
-class TrainingVessel(Generic[InitialStateType, StateType, ActType, ObsType, PolicyActType]):
+from pytorch_lightning import LightningModule
+
+class TrainingVesselBase(Generic[InitialStateType, StateType, ActType, ObsType, PolicyActType]):
     """A ship that contains simulator, interpreter, and policy, will be sent to trainer.
     This class controls algorithm-related parts of training, while trainer is responible for runtime part.
     
@@ -59,34 +61,16 @@ class TrainingVessel(Generic[InitialStateType, StateType, ActType, ObsType, Poli
         raise SeedIteratorNotAvailable('Seed iterator for testing is not available.')
 
     def train(self, vector_env: BaseVectorEnv) -> dict[str, Any]:
-        collector = Collector(
-            self.policy,
-            vector_env,
-            VectorReplayBuffer(self.buffer_size, len(vector_env))
-        )
-        self.policy.train()
-        col_result = collector.collect(n_episode=self.episode_per_collect)
-        update_result = self.policy.update(
-            0, collector.buffer, batch_size=self.batch_size, repeat=self.update_per_collect
-        )
-        return {**col_result, **update_result}
+        raise NotImplementedError()
 
     def validate(self, vector_env: FiniteVectorEnv) -> dict[str, Any]:
-        self.policy.eval()
-
-        with vector_env.collector_guard():
-            test_collector = Collector(self.policy, vector_env)
-            return test_collector.collect(n_step=INF * len(vector_env))
+        raise NotImplementedError()
 
     def test(self, vector_env: FiniteVectorEnv) -> dict[str, Any]:
-        self.policy.eval()
-
-        with vector_env.collector_guard():
-            test_collector = Collector(self.policy, vector_env)
-            return test_collector.collect(n_step=INF * len(vector_env))
+        raise NotImplementedError()
 
 
-class DefaultTrainingVessel(TrainingVessel):
+class TrainingVessel(TrainingVesselBase):
     """The default implementation of training vessel.
     
     ``__init__`` accepts a sequence of initial states so that iterator can be created.
@@ -96,7 +80,7 @@ class DefaultTrainingVessel(TrainingVessel):
 
     - ``buffer_size``: Size of replay buffer.
     - ``episode_per_collect``: Episodes per collect at training.
-    - ``update_per_collect``: Number of updates in ``self.policy.update`` after each collect.
+    - ``update_per_collect``: Number of updates happening after each collect. This is used in ``repeat`` parameter in ``policy.update``.
     - ``batch_size``: Batch size in ``self.policy.update`` after each collect.
     """
 
@@ -143,16 +127,13 @@ class DefaultTrainingVessel(TrainingVessel):
             return DataQueue(self.test_initial_states, repeat=1)
         return super().test_seed_iterator()
 
-    def train_one_collect(
-        self,
-        vector_env: BaseVectorEnv,
-    ) -> dict[str, Any]:
+    def train(self, vector_env: BaseVectorEnv) -> dict[str, Any]:
+        self.policy.train()
         collector = Collector(
             self.policy,
             vector_env,
             VectorReplayBuffer(self.buffer_size, len(vector_env))
         )
-        self.policy.train()
         col_result = collector.collect(n_episode=self.episode_per_collect)
         update_result = self.policy.update(
             0, collector.buffer, batch_size=self.batch_size, repeat=self.update_per_collect

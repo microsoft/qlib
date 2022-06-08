@@ -33,11 +33,6 @@ from qlib.typehint import Literal
 _logger = get_module_logger(__name__)
 
 
-class TrainingModule:
-    """Extract """
-    ...
-
-
 class Trainer:
     """
     Utility to train a policy on a particular task.
@@ -59,17 +54,8 @@ class Trainer:
 
     Parameters
     ----------
-    buffer_size
-        Size of replay buffer.
-    episode_per_collect
-        Number of episodes to collect each time.
     max_collects
         Maximum number of collects to run in total.
-    update_per_collect
-        Number of updates happening after each collect.
-        This is used in ``repeat`` parameter in ``policy.update``.
-    update_batch_size
-        Batch size of updates. Used in ``batch_size`` parameter in ``policy.update``.
     earlystop_patience
         Maximum number of "no improvements" on validation before killing the training.
         Doesn't work if ``val_initial_states`` is not available or ``episode_per_collect``
