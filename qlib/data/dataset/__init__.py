@@ -438,7 +438,7 @@ class TSDataSampler:
 
     @property
     def empty(self):
-        return self.__len__() == 0
+        return self.end_idx - self.start_idx == 0
 
     def _get_indices(self, row: int, col: int) -> np.array:
         """
@@ -538,9 +538,6 @@ class TSDataSampler:
             # <sample_idx, step_idx, feature_idx>
             data = data.reshape(-1, self.step_len, *data.shape[1:])
         return data
-
-    def __len__(self):
-        return self.end_idx - self.start_idx
 
 
 class TSDatasetH(DatasetH):
