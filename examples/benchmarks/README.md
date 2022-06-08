@@ -20,7 +20,7 @@ The numbers shown below demonstrate the performance of the entire `workflow` of 
 > NOTE:
 > We have very limited resources to implement and finetune the models. We tried our best effort to fairly compare these models.  But some models may have greater potential than what it looks like in the table below.  Your contribution is highly welcomed to explore their potential.
 
-## Alpha158 dataset
+## Alpha158 dataset (csi300)
 
 | Model Name                               | Dataset                             | IC          | ICIR        | Rank IC     | Rank ICIR   | Annualized Return | Information Ratio | Max Drawdown |
 |------------------------------------------|-------------------------------------|-------------|-------------|-------------|-------------|-------------------|-------------------|--------------|
@@ -44,7 +44,7 @@ The numbers shown below demonstrate the performance of the entire `workflow` of 
 | DoubleEnsemble(Chuheng Zhang, et al.)    | Alpha158                            | 0.0544±0.00 | 0.4340±0.00 | 0.0523±0.00 | 0.4284±0.01 | 0.1168±0.01       | 1.3384±0.12       | -0.1036±0.01 |
 
 
-## Alpha360 dataset
+## Alpha360 dataset (csi500)
 
 | Model Name                                | Dataset  | IC          | ICIR        | Rank IC     | Rank ICIR   | Annualized Return | Information Ratio | Max Drawdown |
 |-------------------------------------------|----------|-------------|-------------|-------------|-------------|-------------------|-------------------|--------------|

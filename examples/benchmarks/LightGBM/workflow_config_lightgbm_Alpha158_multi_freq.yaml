@@ -5,8 +5,8 @@ qlib_init:
     region: cn
     dataset_cache: null
     maxtasksperchild: 1
-market: &market csi300
-benchmark: &benchmark SH000300
+market: &market csi500
+benchmark: &benchmark SH000500
 data_handler_config: &data_handler_config
     start_time: 2008-01-01
     # 1min closing time is 15:00:00
