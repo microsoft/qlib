@@ -219,8 +219,8 @@ def get_strategy_executor(
 def backtest(
     start_time: Union[pd.Timestamp, str],
     end_time: Union[pd.Timestamp, str],
-    strategy_config: Union[str, dict, object, Path],
-    executor_config: Union[str, dict, object, Path],
+    strategy: Union[str, dict, object, Path],
+    executor: Union[str, dict, object, Path],
     benchmark: str = "SH000300",
     account: Union[float, int, Position] = 1e9,
     exchange_kwargs: dict = {},
@@ -238,10 +238,10 @@ def backtest(
         closed end time for backtest
         **NOTE**: This will be applied to the outmost executor's calendar.
         E.g. Executor[day](Executor[1min]),   setting `end_time == 20XX0301` will include all the minutes on 20XX0301
-    strategy_config : Union[str, dict, object, Path]
+    strategy : Union[str, dict, object, Path]
         for initializing outermost portfolio strategy. Please refer to the docs of init_instance_by_config for more
         information.
-    executor_config : Union[str, dict, object, Path]
+    executor : Union[str, dict, object, Path]
         for initializing the outermost executor.
     benchmark: str
         the benchmark for reporting.
@@ -268,8 +268,8 @@ def backtest(
     trade_strategy, trade_executor = get_strategy_executor(
         start_time,
         end_time,
-        strategy_config,
-        executor_config,
+        strategy,
+        executor,
         benchmark,
         account,
         exchange_kwargs,

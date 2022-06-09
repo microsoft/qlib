@@ -411,12 +411,12 @@ class BaseTradeDecision:
         """
         try:
             _start_idx, _end_idx = self._get_range_limit(**kwargs)
-        except NotImplementedError:
+        except NotImplementedError as e:
             if "default_value" in kwargs:
                 return kwargs["default_value"]
             else:
                 # Default to get full index
-                raise NotImplementedError(f"The decision didn't provide an index range")
+                raise NotImplementedError(f"The decision didn't provide an index range") from e
 
         # clip index
         if getattr(self, "total_step", None) is not None:

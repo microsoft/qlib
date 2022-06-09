@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Generator, Tuple, Union
+from typing import TYPE_CHECKING, Generator, Optional, Tuple, Union
 
 import pandas as pd
 
@@ -48,7 +48,7 @@ def collect_data_loop(
     trade_strategy: BaseStrategy,
     trade_executor: BaseExecutor,
     return_value: dict = None,
-) -> Generator[object, None, None]:
+) -> Generator[BaseTradeDecision, Optional[BaseTradeDecision], None]:
     """Generator for collecting the trade decision data for rl training
 
     Parameters

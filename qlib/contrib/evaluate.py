@@ -238,8 +238,8 @@ def backtest_daily(
     portfolio_metric_dict, indicator_dict = backtest_func(
         start_time=start_time,
         end_time=end_time,
-        strategy_config=strategy,
-        executor_config=executor,
+        strategy=strategy,
+        executor=executor,
         account=account,
         benchmark=benchmark,
         exchange_kwargs=_exchange_kwargs,

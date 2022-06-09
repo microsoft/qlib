@@ -101,8 +101,8 @@ class FileStrTest(TestAutoData):
             },
         }
         report_dict, indicator_dict = backtest(
-            executor_config=executor_config,
-            strategy_config=strategy_config,
+            executor=executor_config,
+            strategy=strategy_config,
             **backtest_config,
         )
 

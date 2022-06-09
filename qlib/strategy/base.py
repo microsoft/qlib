@@ -172,7 +172,7 @@ class BaseStrategy:
         """
         # default to reset the decision directly
         # NOTE: normally, user should do something to the strategy due to the change of outer decision
-        # raise NotImplementedError(f"Please implement the `alter_outer_trade_decision` method")
+        raise NotImplementedError(f"Please implement the `alter_outer_trade_decision` method")
 
     # helper methods: not necessary but for convenience
     def get_data_cal_avail_range(self, rtype: str = "full") -> Tuple[int, int]:
@@ -225,9 +225,6 @@ class RLStrategy(BaseStrategy):
         super(RLStrategy, self).__init__(outer_trade_decision, level_infra, common_infra, **kwargs)
         self.policy = policy
 
-    def generate_trade_decision(self, execute_result: list = None) -> BaseTradeDecision:
-        pass  # TODO: to be implemented
-
 
 class RLIntStrategy(RLStrategy):
     """(RL)-based (Strategy) with (Int)erpreter"""
@@ -240,7 +237,7 @@ class RLIntStrategy(RLStrategy):
         outer_trade_decision: BaseTradeDecision = None,
         level_infra: LevelInfrastructure = None,
         common_infra: CommonInfrastructure = None,
-        **kwargs,  # TODO: remove this?
+        **kwargs,
     ) -> None:
         """
         Parameters

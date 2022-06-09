@@ -4,7 +4,7 @@ import copy
 from abc import abstractmethod
 from collections import defaultdict
 from types import GeneratorType
-from typing import Generator, List, Tuple, Union
+from typing import Generator, List, Optional, Tuple, Union
 
 import pandas as pd
 
@@ -210,7 +210,10 @@ class BaseExecutor:
         self,
         trade_decision: BaseTradeDecision,
         level: int = 0,
-    ) -> Union[Generator[object, None, Tuple[List[object], dict]], Tuple[List[object], dict]]:
+    ) -> Union[
+        Generator[BaseTradeDecision, Optional[BaseTradeDecision], Tuple[List[object], dict]],
+        Tuple[List[object], dict],
+    ]:
         """
         Please refer to the doc of collect_data
         The only difference between `_collect_data` and `collect_data` is that some common steps are moved into
@@ -232,7 +235,7 @@ class BaseExecutor:
         trade_decision: BaseTradeDecision,
         return_value: dict = None,
         level: int = 0,
-    ) -> Generator[object, None, List[object]]:
+    ) -> Generator[BaseTradeDecision, Optional[BaseTradeDecision], List[object]]:
         """Generator for collecting the trade decision data for rl training
 
         his function will make a step forward
@@ -408,7 +411,7 @@ class NestedExecutor(BaseExecutor):
         self,
         trade_decision: BaseTradeDecision,
         level: int = 0,
-    ) -> Generator[object, None, Tuple[List[object], dict]]:
+    ) -> Generator[BaseTradeDecision, Optional[BaseTradeDecision], Tuple[List[object], dict]]:
         execute_result = []
         inner_order_indicators = []
         decision_list = []
@@ -452,7 +455,7 @@ class NestedExecutor(BaseExecutor):
                 #     - (inner Qlib Strategy) is a proxy strategy, it will give the program control right to (RL Env)
                 #       by `yield from` and wait for the action from the policy
                 # So the two lines below is the implementation of yielding control rights
-                if isinstance(res, GeneratorType):  # TODO: not possible for now?
+                if isinstance(res, GeneratorType):
                     res = yield from res
 
                 _inner_trade_decision: BaseTradeDecision = res

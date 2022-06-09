@@ -653,15 +653,9 @@ class Exchange:
         """
         value = 0
         for stock_id in amount_dict:
-            if all(
-                [
-                    only_tradable,
-                    not self.check_stock_suspended(stock_id=stock_id, start_time=start_time, end_time=end_time),
-                    not (
-                        self.check_stock_limit(stock_id=stock_id, start_time=start_time, end_time=end_time)
-                        and only_tradable
-                    ),
-                ],
+            if not only_tradable or (
+                not self.check_stock_suspended(stock_id=stock_id, start_time=start_time, end_time=end_time)
+                and not self.check_stock_limit(stock_id=stock_id, start_time=start_time, end_time=end_time)
             ):
                 value += (
                     self.get_deal_price(
