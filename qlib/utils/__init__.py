@@ -376,7 +376,7 @@ get_cls_kwargs = get_callable_kwargs  # NOTE: this is for compatibility for the 
 
 
 def init_instance_by_config(
-    config: Union[str, dict, object, Path],
+    config: Union[str, dict, object, Path],  # TODO: use a user-defined type to replace this Union.
     default_module=None,
     accept_types: Union[type, Tuple[type]] = (),
     try_kwargs: Dict = {},
@@ -1063,4 +1063,5 @@ __all__ = [
     "unpack_archive_with_buffer",
     "get_tmp_file_with_buffer",
     "set_log_with_config",
+    "init_instance_by_config",
 ]
