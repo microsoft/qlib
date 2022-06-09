@@ -292,7 +292,9 @@ class HIST(Model):
             pretrained_model.load_state_dict(torch.load(self.model_path))
 
         model_dict = self.HIST_model.state_dict()
-        pretrained_dict = {k: v for k, v in pretrained_model.state_dict().items() if k in model_dict}
+        pretrained_dict = {
+            k: v for k, v in pretrained_model.state_dict().items() if k in model_dict  # pylint: disable=E1135
+        }
         model_dict.update(pretrained_dict)
         self.HIST_model.load_state_dict(model_dict)
         self.logger.info("Loading pretrained model Done...")
