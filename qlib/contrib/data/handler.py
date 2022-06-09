@@ -255,6 +255,7 @@ class Alpha158(DataHandlerLP):
             exclude = config["rolling"].get("exclude", [])
             # `exclude` in dataset config unnecessary filed
             # `include` in dataset config necessary field
+
             def use(x):
                 return x not in exclude and (include is None or x in include)
 
