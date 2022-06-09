@@ -176,8 +176,8 @@ def create_account_instance(
 
 
 def get_strategy_executor(
-    start_time: pd.Timestamp | str,
-    end_time: pd.Timestamp | str,
+    start_time: Union[pd.Timestamp, str],
+    end_time: Union[pd.Timestamp, str],
     strategy: Union[str, dict, object, Path],
     executor: Union[str, dict, object, Path],
     benchmark: str = "SH000300",
@@ -217,8 +217,8 @@ def get_strategy_executor(
 
 
 def backtest(
-    start_time: pd.Timestamp | str,
-    end_time: pd.Timestamp | str,
+    start_time: Union[pd.Timestamp, str],
+    end_time: Union[pd.Timestamp, str],
     strategy_config: Union[str, dict, object, Path],
     executor_config: Union[str, dict, object, Path],
     benchmark: str = "SH000300",
@@ -280,8 +280,8 @@ def backtest(
 
 
 def collect_data(
-    start_time: pd.Timestamp | str,
-    end_time: pd.Timestamp | str,
+    start_time: Union[pd.Timestamp, str],
+    end_time: Union[pd.Timestamp, str],
     strategy: Union[str, dict, object, Path],
     executor: Union[str, dict, object, Path],
     benchmark: str = "SH000300",
