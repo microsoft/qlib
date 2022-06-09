@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from enum import IntEnum
+
 # try to fix circular imports when enabling type hints
 from typing import TYPE_CHECKING, ClassVar, List, Optional, Tuple, Union
 
