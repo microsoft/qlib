@@ -5,10 +5,10 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from enum import IntEnum
-
 # try to fix circular imports when enabling type hints
 from typing import TYPE_CHECKING, ClassVar, List, Optional, Tuple, Union
 
+from qlib.backtest.utils import TradeCalendarManager
 from qlib.data.data import Cal
 from qlib.log import get_module_logger
 from qlib.utils.time import concat_date_time, epsilon_change
@@ -21,8 +21,6 @@ from dataclasses import dataclass
 
 import numpy as np
 import pandas as pd
-
-from qlib.backtest.utils import TradeCalendarManager
 
 
 class OrderDir(IntEnum):
