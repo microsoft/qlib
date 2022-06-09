@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Tuple
+from typing import TYPE_CHECKING, Generator, Tuple, Union
 
 import pandas as pd
 
@@ -20,8 +20,8 @@ from ..utils.time import Freq
 
 
 def backtest_loop(
-    start_time: pd.Timestamp | str,
-    end_time: pd.Timestamp | str,
+    start_time: Union[pd.Timestamp, str],
+    end_time: Union[pd.Timestamp, str],
     trade_strategy: BaseStrategy,
     trade_executor: BaseExecutor,
 ) -> Tuple[PortfolioMetrics, Indicator]:
@@ -43,20 +43,20 @@ def backtest_loop(
 
 
 def collect_data_loop(
-    start_time: pd.Timestamp | str,
-    end_time: pd.Timestamp | str,
+    start_time: Union[pd.Timestamp, str],
+    end_time: Union[pd.Timestamp, str],
     trade_strategy: BaseStrategy,
     trade_executor: BaseExecutor,
     return_value: dict = None,
-):  # TODO: return type
+) -> Generator[object, None, None]:
     """Generator for collecting the trade decision data for rl training
 
     Parameters
     ----------
-    start_time : pd.Timestamp|str
+    start_time : Union[pd.Timestamp, str]
         closed start time for backtest
         **NOTE**: This will be applied to the outmost executor's calendar.
-    end_time : pd.Timestamp|str
+    end_time : Union[pd.Timestamp, str]
         closed end time for backtest
         **NOTE**: This will be applied to the outmost executor's calendar.
         E.g. Executor[day](Executor[1min]), setting `end_time == 20XX0301` will include all the minutes on 20XX0301
@@ -92,7 +92,6 @@ def collect_data_loop(
         all_indicators = {}
         for _executor in all_executors:
             key = "{}{}".format(*Freq.parse(_executor.time_per_step))
-            # TODO: why separate `key` and `key_obj`?
             all_indicators[key] = _executor.trade_account.get_trade_indicator().generate_trade_indicators_dataframe()
             all_indicators[key + "_obj"] = _executor.trade_account.get_trade_indicator()
         return_value.update({"portfolio_metrics": all_portfolio_metrics, "indicator": all_indicators})

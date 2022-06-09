@@ -214,7 +214,7 @@ class RLStrategy(BaseStrategy):
         outer_trade_decision: BaseTradeDecision = None,
         level_infra: LevelInfrastructure = None,
         common_infra: CommonInfrastructure = None,
-        **kwargs,  # TODO: remove this?
+        **kwargs,
     ) -> None:
         """
         Parameters

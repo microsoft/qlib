@@ -29,9 +29,9 @@ class Exchange:
     def __init__(
         self,
         freq: str = "day",
-        start_time: pd.Timestamp | str = None,
-        end_time: pd.Timestamp | str = None,
-        codes: list | str = "all",
+        start_time: Union[pd.Timestamp, str] = None,
+        end_time: Union[pd.Timestamp, str] = None,
+        codes: Union[list, str] = "all",
         deal_price: Union[str, Tuple[str], List[str]] = None,
         subscribe_fields: list = [],
         limit_threshold: Union[Tuple[str, str], float, None] = None,
@@ -40,7 +40,7 @@ class Exchange:
         close_cost: float = 0.0025,
         min_cost: float = 5.0,
         impact_cost: float = 0.0,
-        extra_quote=None,  # TODO: type?
+        extra_quote: pd.DataFrame = None,
         quote_cls: Type[BaseQuote] = NumpyQuote,
         **kwargs,
     ) -> None:
@@ -653,13 +653,15 @@ class Exchange:
         """
         value = 0
         for stock_id in amount_dict:
-            if (
-                only_tradable is True
-                and self.check_stock_suspended(stock_id=stock_id, start_time=start_time, end_time=end_time) is False
-                and (
-                    self.check_stock_limit(stock_id=stock_id, start_time=start_time, end_time=end_time) is False
-                    or only_tradable is False
-                )
+            if all(
+                [
+                    only_tradable,
+                    not self.check_stock_suspended(stock_id=stock_id, start_time=start_time, end_time=end_time),
+                    not (
+                        self.check_stock_limit(stock_id=stock_id, start_time=start_time, end_time=end_time)
+                        and only_tradable
+                    ),
+                ],
             ):
                 value += (
                     self.get_deal_price(

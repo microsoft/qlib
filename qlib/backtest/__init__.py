@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import copy
 from pathlib import Path
-from typing import TYPE_CHECKING, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Generator, List, Optional, Tuple, Union
 
 import pandas as pd
 
@@ -35,9 +35,9 @@ logger = get_module_logger("backtest caller")
 def get_exchange(
     exchange: Union[str, dict, object, Path] = None,
     freq: str = "day",
-    start_time: pd.Timestamp | str = None,
-    end_time: pd.Timestamp | str = None,
-    codes: list | str = "all",
+    start_time: Union[pd.Timestamp, str] = None,
+    end_time: Union[pd.Timestamp, str] = None,
+    codes: Union[list, str] = "all",
     subscribe_fields: list = [],
     open_cost: float = 0.0015,
     close_cost: float = 0.0025,
@@ -55,9 +55,9 @@ def get_exchange(
     exchange: Exchange(). It could be None or any types that are acceptable by `init_instance_by_config`.
     freq: str
         frequency of data.
-    start_time: pd.Timestamp|str
+    start_time: Union[pd.Timestamp, str]
         closed start time for backtest.
-    end_time: pd.Timestamp|str
+    end_time: Union[pd.Timestamp, str]
         closed end time for backtest.
     codes: list|str
         list stock_id list or a string of instruments (i.e. all, csi500, sse50)
@@ -112,14 +112,14 @@ def get_exchange(
 
 
 def create_account_instance(
-    start_time: pd.Timestamp | str,
-    end_time: pd.Timestamp | str,
+    start_time: Union[pd.Timestamp, str],
+    end_time: Union[pd.Timestamp, str],
     benchmark: str,
     account: Union[float, int, dict],
     pos_type: str = "Position",
 ) -> Account:
     """
-    # TODO: is very strange pass benchmark_config in the account(maybe for report)
+    # TODO: is very strange pass benchmark_config in the account (maybe for report)
     # There should be a post-step to process the report.
 
     Parameters
@@ -148,7 +148,7 @@ def create_account_instance(
             key "stock1" means the information of first stock with amount and price(optional).
             ...
     pos_type: str
-        TODO
+        Postion type.
     """
     if isinstance(account, (int, float)):
         pos_kwargs = {"init_cash": account}
@@ -231,10 +231,10 @@ def backtest(
 
     Parameters
     ----------
-    start_time : pd.Timestamp|str
+    start_time : Union[pd.Timestamp, str]
         closed start time for backtest
         **NOTE**: This will be applied to the outmost executor's calendar.
-    end_time : pd.Timestamp|str
+    end_time : Union[pd.Timestamp, str]
         closed end time for backtest
         **NOTE**: This will be applied to the outmost executor's calendar.
         E.g. Executor[day](Executor[1min]),   setting `end_time == 20XX0301` will include all the minutes on 20XX0301
@@ -289,7 +289,7 @@ def collect_data(
     exchange_kwargs: dict = {},
     pos_type: str = "Position",
     return_value: dict = None,
-):  # TODO: return type
+) -> Generator[object, None, None]:
     """initialize the strategy and executor, then collect the trade decision data for rl training
 
     please refer to the docs of the backtest for the explanation of the parameters

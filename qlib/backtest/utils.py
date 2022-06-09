@@ -68,7 +68,7 @@ class TradeCalendarManager:
         self.end_time = pd.Timestamp(end_time) if end_time else None
 
         _calendar = Cal.calendar(freq=freq, future=True)
-        assert isinstance(_calendar, np.ndarray)  # TODO: check type
+        assert isinstance(_calendar, np.ndarray)
         self._calendar = _calendar
         _, _, _start_index, _end_index = Cal.locate_index(start_time, end_time, freq=freq, future=True)
         self.start_index = _start_index
@@ -90,7 +90,7 @@ class TradeCalendarManager:
             raise RuntimeError(f"The calendar is finished, please reset it if you want to call it!")
         self.trade_step += 1
 
-    def get_freq(self) -> str:  # TODO: why not use property here?
+    def get_freq(self) -> str:
         return self.freq
 
     def get_trade_len(self) -> int:
@@ -216,7 +216,7 @@ class BaseInfrastructure:
             else:
                 warnings.warn(f"{k} is ignored in `reset_infra`!")
 
-    def get(self, infra_name: str) -> Any:  # TODO: check return type
+    def get(self, infra_name: str) -> Any:
         if hasattr(self, infra_name):
             return getattr(self, infra_name)
         else:
