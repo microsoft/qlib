@@ -169,7 +169,10 @@ class RecorderCollector(Collector):
         self.experiment = experiment
         self.artifacts_path = artifacts_path
         if rec_key_func is None:
-            rec_key_func = lambda rec: rec.info["id"]
+
+            def rec_key_func(rec):
+                return rec.info["id"]
+
         if artifacts_key is None:
             artifacts_key = list(self.artifacts_path.keys())
         self.rec_key_func = rec_key_func
