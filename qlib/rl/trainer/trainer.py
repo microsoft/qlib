@@ -115,6 +115,9 @@ class Trainer:
 
         self.fast_dev_run = fast_dev_run
 
+        self.should_stop = False
+        self.metrics = {}
+
     def create_env_wrapper(self):
         return EnvWrapper(
             simulator_fn,

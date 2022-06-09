@@ -28,8 +28,6 @@ class SeedIteratorNotAvailable(BaseException):
     pass
 
 
-from pytorch_lightning import LightningModule
-
 class TrainingVesselBase(Generic[InitialStateType, StateType, ActType, ObsType, PolicyActType]):
     """A ship that contains simulator, interpreter, and policy, will be sent to trainer.
     This class controls algorithm-related parts of training, while trainer is responible for runtime part.
@@ -61,13 +59,26 @@ class TrainingVesselBase(Generic[InitialStateType, StateType, ActType, ObsType, 
         raise SeedIteratorNotAvailable('Seed iterator for testing is not available.')
 
     def train(self, vector_env: BaseVectorEnv) -> dict[str, Any]:
+        """Implement this to train one iteration. In RL, one iteration usually refers to one collect."""
         raise NotImplementedError()
 
     def validate(self, vector_env: FiniteVectorEnv) -> dict[str, Any]:
+        """Implement this to validate the policy once."""
         raise NotImplementedError()
 
     def test(self, vector_env: FiniteVectorEnv) -> dict[str, Any]:
+        """Implement this to evaluate the policy on test environment once."""
         raise NotImplementedError()
+
+    def state_dict(self) -> dict:
+        """Return a checkpoint of current vessel state."""
+        return {
+            "policy": self.policy.state_dict()
+        }
+
+    def load_state_dict(self, state_dict: dict) -> None:
+        """Restore a checkpoint from a previously saved state dict."""
+        self.policy.load_state_dict(state_dict)
 
 
 class TrainingVessel(TrainingVesselBase):
