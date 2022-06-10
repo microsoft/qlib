@@ -1,21 +1,25 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 from __future__ import annotations
+
 from collections import defaultdict
-from typing import TYPE_CHECKING
-from typing import List, Tuple, Union
+from typing import TYPE_CHECKING, List, Optional, Tuple, Type, Union
+
+from ..utils.index_data import IndexData
 
 if TYPE_CHECKING:
     from .account import Account
 
-from qlib.backtest.position import BasePosition, Position
 import random
+
 import numpy as np
 import pandas as pd
 
-from ..data.data import D
+from qlib.backtest.position import BasePosition
+
 from ..config import C
 from ..constant import REG_CN
+from ..data.data import D
 from ..log import get_module_logger
 from .decision import Order, OrderDir, OrderHelper
 from .high_performance_ds import BaseQuote, NumpyQuote
@@ -24,22 +28,22 @@ from .high_performance_ds import BaseQuote, NumpyQuote
 class Exchange:
     def __init__(
         self,
-        freq="day",
-        start_time=None,
-        end_time=None,
-        codes="all",
+        freq: str = "day",
+        start_time: Union[pd.Timestamp, str] = None,
+        end_time: Union[pd.Timestamp, str] = None,
+        codes: Union[list, str] = "all",
         deal_price: Union[str, Tuple[str], List[str]] = None,
-        subscribe_fields=[],
+        subscribe_fields: list = [],
         limit_threshold: Union[Tuple[str, str], float, None] = None,
-        volume_threshold=None,
-        open_cost=0.0015,
-        close_cost=0.0025,
-        min_cost=5,
-        impact_cost=0.0,
-        extra_quote=None,
-        quote_cls=NumpyQuote,
+        volume_threshold: Union[tuple, dict] = None,
+        open_cost: float = 0.0015,
+        close_cost: float = 0.0025,
+        min_cost: float = 5.0,
+        impact_cost: float = 0.0,
+        extra_quote: pd.DataFrame = None,
+        quote_cls: Type[BaseQuote] = NumpyQuote,
         **kwargs,
-    ):
+    ) -> None:
         """__init__
         :param freq:             frequency of data
         :param start_time:       closed start time for backtest
@@ -72,11 +76,12 @@ class Exchange:
                                  ]
                                 1) ("cum" or "current", limit_str) denotes a single volume limit.
                                     - limit_str is qlib data expression which is allowed to define your own Operator.
-                                    Please refer to qlib/contrib/ops/high_freq.py, here are any custom operator for high frequency,
-                                    such as DayCumsum. !!!NOTE: if you want you use the custom operator, you need to
-                                    register it in qlib_init.
-                                    - "cum" means that this is a cumulative value over time, such as cumulative market volume.
-                                    So when it is used as a volume limit, it is necessary to subtract the dealt amount.
+                                    Please refer to qlib/contrib/ops/high_freq.py, here are any custom operator for
+                                    high frequency, such as DayCumsum. !!!NOTE: if you want you use the custom
+                                    operator, you need to register it in qlib_init.
+                                    - "cum" means that this is a cumulative value over time, such as cumulative market
+                                    volume. So when it is used as a volume limit, it is necessary to subtract the dealt
+                                    amount.
                                     - "current" means that this is a real-time value and will not accumulate over time,
                                     so it can be directly used as a capacity limit.
                                     e.g. ("cum", "0.2 * DayCumsum($volume, '9:45', '14:45')"), ("current", "$bidV1")
@@ -84,7 +89,7 @@ class Exchange:
                                 "buy" means the volume limits of buying. "sell" means the volume limits of selling.
                                 Different volume limits will be aggregated with min(). If volume_threshold is only
                                 ("cum" or "current", limit_str) instead of a dict, the volume limits are for
-                                both by deault. In other words, it is same as {"all": ("cum" or "current", limit_str)}.
+                                both by default. In other words, it is same as {"all": ("cum" or "current", limit_str)}.
                                 3) e.g. "volume_threshold": {
                                             "all": ("cum", "0.2 * DayCumsum($volume, '9:45', '14:45')"),
                                             "buy": ("current", "$askV1"),
@@ -104,13 +109,14 @@ class Exchange:
                                             Necessary fields:
                                                 $close is for calculating the total value at end of each day.
                                             Optional fields:
-                                                $volume is only necessary when we limit the trade amount or calculate PA(vwap) indicator
+                                                $volume is only necessary when we limit the trade amount or calculate
+                                                PA(vwap) indicator
                                                 $vwap is only necessary when we use the $vwap price as the deal price
                                                 $factor is for rounding to the trading unit
-                                                limit_sell will be set to False by default(False indicates we can sell this
-                                                target on this day).
-                                                limit_buy will be set to False by default(False indicates we can buy this
-                                                target on this day).
+                                                limit_sell will be set to False by default (False indicates we can sell
+                                                this target on this day).
+                                                limit_buy will be set to False by default (False indicates we can buy
+                                                this target on this day).
                                     index: MultipleIndex(instrument, pd.Datetime)
         """
         self.freq = freq
@@ -163,7 +169,7 @@ class Exchange:
         if self.limit_type == self.LT_TP_EXP:
             for exp in limit_threshold:
                 necessary_fields.add(exp)
-        all_fields = necessary_fields | vol_lt_fields
+        all_fields = necessary_fields | set(vol_lt_fields)
         all_fields = list(all_fields | set(subscribe_fields))
 
         self.all_fields = all_fields
@@ -182,17 +188,22 @@ class Exchange:
         self.quote_cls = quote_cls
         self.quote: BaseQuote = self.quote_cls(self.quote_df, freq)
 
-    def get_quote_from_qlib(self):
+    def get_quote_from_qlib(self) -> None:
         # get stock data from qlib
         if len(self.codes) == 0:
             self.codes = D.instruments()
         self.quote_df = D.features(
-            self.codes, self.all_fields, self.start_time, self.end_time, freq=self.freq, disk_cache=True
+            self.codes,
+            self.all_fields,
+            self.start_time,
+            self.end_time,
+            freq=self.freq,
+            disk_cache=True,
         ).dropna(subset=["$close"])
         self.quote_df.columns = self.all_fields
 
         # check buy_price data and sell_price data
-        for attr in "buy_price", "sell_price":
+        for attr in ("buy_price", "sell_price"):
             pstr = getattr(self, attr)  # price string
             if self.quote_df[pstr].isna().any():
                 self.logger.warning("{} field data contains nan.".format(pstr))
@@ -238,7 +249,7 @@ class Exchange:
     LT_FLT = "float"  # float
     LT_NONE = "none"  # none
 
-    def _get_limit_type(self, limit_threshold):
+    def _get_limit_type(self, limit_threshold: Union[Tuple, float, None]) -> str:
         """get limit type"""
         if isinstance(limit_threshold, Tuple):
             return self.LT_TP_EXP
@@ -249,7 +260,7 @@ class Exchange:
         else:
             raise NotImplementedError(f"This type of `limit_threshold` is not supported")
 
-    def _update_limit(self, limit_threshold):
+    def _update_limit(self, limit_threshold: Union[Tuple, float, None]) -> None:
         # check limit_threshold
         limit_type = self._get_limit_type(limit_threshold)
         if limit_type == self.LT_NONE:
@@ -263,9 +274,10 @@ class Exchange:
             self.quote_df["limit_buy"] = self.quote_df["$change"].ge(limit_threshold)
             self.quote_df["limit_sell"] = self.quote_df["$change"].le(-limit_threshold)  # pylint: disable=E1130
 
-    def _get_vol_limit(self, volume_threshold):
+    @staticmethod
+    def _get_vol_limit(volume_threshold: Union[tuple, dict]) -> Tuple[Optional[list], Optional[list], set]:
         """
-        preproccess the volume limit.
+        preprocess the volume limit.
         get the fields need to get from qlib.
         get the volume limit list of buying and selling which is composed of all limits.
         Parameters
@@ -295,8 +307,7 @@ class Exchange:
             volume_threshold = {"all": volume_threshold}
 
         assert isinstance(volume_threshold, dict)
-        for key in volume_threshold:
-            vol_limit = volume_threshold[key]
+        for key, vol_limit in volume_threshold.items():
             assert isinstance(vol_limit, tuple)
             fields.add(vol_limit[1])
 
@@ -307,10 +318,19 @@ class Exchange:
 
         return buy_vol_limit, sell_vol_limit, fields
 
-    def check_stock_limit(self, stock_id, start_time, end_time, direction=None):
+    def check_stock_limit(
+        self,
+        stock_id: str,
+        start_time: pd.Timestamp,
+        end_time: pd.Timestamp,
+        direction: int = None,
+    ) -> bool:
         """
         Parameters
         ----------
+        stock_id : str
+        start_time: pd.Timestamp
+        end_time: pd.Timestamp
         direction : int, optional
             trade direction, by default None
             - if direction is None, check if tradable for buying and selling.
@@ -328,39 +348,42 @@ class Exchange:
         else:
             raise ValueError(f"direction {direction} is not supported!")
 
-    def check_stock_suspended(self, stock_id, start_time, end_time):
+    def check_stock_suspended(
+        self,
+        stock_id: str,
+        start_time: pd.Timestamp,
+        end_time: pd.Timestamp,
+    ) -> bool:
         # is suspended
         if stock_id in self.quote.get_all_stock():
             return self.quote.get_data(stock_id, start_time, end_time, "$close") is None
         else:
             return True
 
-    def is_stock_tradable(self, stock_id, start_time, end_time, direction=None):
+    def is_stock_tradable(
+        self,
+        stock_id: str,
+        start_time: pd.Timestamp,
+        end_time: pd.Timestamp,
+        direction: int = None,
+    ) -> bool:
         # check if stock can be traded
-        # same as check in check_order
-        if self.check_stock_suspended(stock_id, start_time, end_time) or self.check_stock_limit(
-            stock_id, start_time, end_time, direction
-        ):
-            return False
-        else:
-            return True
+        return not (
+            self.check_stock_suspended(stock_id, start_time, end_time)
+            or self.check_stock_limit(stock_id, start_time, end_time, direction)
+        )
 
-    def check_order(self, order):
+    def check_order(self, order: Order) -> bool:
         # check limit and suspended
-        if self.check_stock_suspended(order.stock_id, order.start_time, order.end_time) or self.check_stock_limit(
-            order.stock_id, order.start_time, order.end_time, order.direction
-        ):
-            return False
-        else:
-            return True
+        return self.is_stock_tradable(order.stock_id, order.start_time, order.end_time, order.direction)
 
     def deal_order(
         self,
-        order,
+        order: Order,
         trade_account: Account = None,
         position: BasePosition = None,
         dealt_order_amount: defaultdict = defaultdict(float),
-    ):
+    ) -> Tuple[float, float, float]:
         """
         Deal order when the actual transaction
         the results section in `Order` will be changed.
@@ -371,9 +394,9 @@ class Exchange:
         :return: trade_val, trade_cost, trade_price
         """
         # check order first.
-        if self.check_order(order) is False:
+        if not self.check_order(order):
             order.deal_amount = 0.0
-            # using np.nan instead of None to make it more convenient to should the value in format string
+            # using np.nan instead of None to make it more convenient to show the value in format string
             self.logger.debug(f"Order failed due to trading limitation: {order}")
             return 0.0, 0.0, np.nan
 
@@ -382,7 +405,9 @@ class Exchange:
 
         # NOTE: order will be changed in this function
         trade_price, trade_val, trade_cost = self._calc_trade_info_by_order(
-            order, trade_account.current_position if trade_account else position, dealt_order_amount
+            order,
+            trade_account.current_position if trade_account else position,
+            dealt_order_amount,
         )
         if trade_val > 1e-5:
             # If the order can only be deal 0 value. Nothing to be updated
@@ -396,23 +421,49 @@ class Exchange:
 
         return trade_val, trade_cost, trade_price
 
-    def get_quote_info(self, stock_id, start_time, end_time, method="ts_data_last"):
-        return self.quote.get_data(stock_id, start_time, end_time, method=method)
+    def get_quote_info(
+        self,
+        stock_id: str,
+        start_time: pd.Timestamp,
+        end_time: pd.Timestamp,
+        method: str = "ts_data_last",
+    ) -> Union[None, int, float, bool, IndexData]:
+        return self.quote.get_data(stock_id, start_time, end_time, method=method)  # TODO: missing `field`?
 
-    def get_close(self, stock_id, start_time, end_time, method="ts_data_last"):
+    def get_close(
+        self,
+        stock_id: str,
+        start_time: pd.Timestamp,
+        end_time: pd.Timestamp,
+        method: str = "ts_data_last",
+    ) -> Union[None, int, float, bool, IndexData]:
         return self.quote.get_data(stock_id, start_time, end_time, field="$close", method=method)
 
-    def get_volume(self, stock_id, start_time, end_time, method="sum"):
+    def get_volume(
+        self,
+        stock_id: str,
+        start_time: pd.Timestamp,
+        end_time: pd.Timestamp,
+        method: str = "sum",
+    ) -> float:
         """get the total deal volume of stock with `stock_id` between the time interval [start_time, end_time)"""
         return self.quote.get_data(stock_id, start_time, end_time, field="$volume", method=method)
 
-    def get_deal_price(self, stock_id, start_time, end_time, direction: OrderDir, method="ts_data_last"):
+    def get_deal_price(
+        self,
+        stock_id: str,
+        start_time: pd.Timestamp,
+        end_time: pd.Timestamp,
+        direction: OrderDir,
+        method: str = "ts_data_last",
+    ) -> float:
         if direction == OrderDir.SELL:
             pstr = self.sell_price
         elif direction == OrderDir.BUY:
             pstr = self.buy_price
         else:
             raise NotImplementedError(f"This type of input is not supported")
+
         deal_price = self.quote.get_data(stock_id, start_time, end_time, field=pstr, method=method)
         if method is not None and (deal_price is None or np.isnan(deal_price) or deal_price <= 1e-08):
             self.logger.warning(f"(stock_id:{stock_id}, trade_time:{(start_time, end_time)}, {pstr}): {deal_price}!!!")
@@ -420,11 +471,16 @@ class Exchange:
             deal_price = self.get_close(stock_id, start_time, end_time, method)
         return deal_price
 
-    def get_factor(self, stock_id, start_time, end_time) -> Union[float, None]:
+    def get_factor(
+        self,
+        stock_id: str,
+        start_time: pd.Timestamp,
+        end_time: pd.Timestamp,
+    ) -> Optional[float]:
         """
         Returns
         -------
-        Union[float, None]:
+        Optional[float]:
             `None`: if the stock is suspended `None` may be returned
             `float`: return factor if the factor exists
         """
@@ -434,11 +490,16 @@ class Exchange:
         return self.quote.get_data(stock_id, start_time, end_time, field="$factor", method="ts_data_last")
 
     def generate_amount_position_from_weight_position(
-        self, weight_position, cash, start_time, end_time, direction=OrderDir.BUY
-    ):
+        self,
+        weight_position: dict,
+        cash: float,
+        start_time: pd.Timestamp,
+        end_time: pd.Timestamp,
+        direction: OrderDir = OrderDir.BUY,
+    ) -> dict:
         """
         The generate the target position according to the weight and the cash.
-        NOTE: All the cash will assigned to the tadable stock.
+        NOTE: All the cash will assigned to the tradable stock.
         Parameter:
         weight_position : dict {stock_id : weight}; allocate cash by weight_position
             among then, weight must be in this range: 0 < weight < 1
@@ -451,15 +512,14 @@ class Exchange:
 
         # calculate the total weight of tradable value
         tradable_weight = 0.0
-        for stock_id in weight_position:
+        for stock_id, wp in weight_position.items():
             if self.is_stock_tradable(stock_id=stock_id, start_time=start_time, end_time=end_time):
                 # weight_position must be greater than 0 and less than 1
-                if weight_position[stock_id] < 0 or weight_position[stock_id] > 1:
+                if wp < 0 or wp > 1:
                     raise ValueError(
-                        "weight_position is {}, "
-                        "weight_position is not in the range of (0, 1).".format(weight_position[stock_id])
+                        "weight_position is {}, " "weight_position is not in the range of (0, 1).".format(wp),
                     )
-                tradable_weight += weight_position[stock_id]
+                tradable_weight += wp
 
         if tradable_weight - 1.0 >= 1e-5:
             raise ValueError("tradable_weight is {}, can not greater than 1.".format(tradable_weight))
@@ -467,19 +527,24 @@ class Exchange:
         amount_dict = {}
         for stock_id in weight_position:
             if weight_position[stock_id] > 0.0 and self.is_stock_tradable(
-                stock_id=stock_id, start_time=start_time, end_time=end_time
+                stock_id=stock_id,
+                start_time=start_time,
+                end_time=end_time,
             ):
                 amount_dict[stock_id] = (
                     cash
                     * weight_position[stock_id]
                     / tradable_weight
                     // self.get_deal_price(
-                        stock_id=stock_id, start_time=start_time, end_time=end_time, direction=direction
+                        stock_id=stock_id,
+                        start_time=start_time,
+                        end_time=end_time,
+                        direction=direction,
                     )
                 )
         return amount_dict
 
-    def get_real_deal_amount(self, current_amount, target_amount, factor):
+    def get_real_deal_amount(self, current_amount: float, target_amount: float, factor: float) -> float:
         """
         Calculate the real adjust deal amount when considering the trading unit
         :param current_amount:
@@ -501,7 +566,13 @@ class Exchange:
                 deal_amount = self.round_amount_by_trade_unit(deal_amount, factor)
                 return -deal_amount
 
-    def generate_order_for_target_amount_position(self, target_position, current_position, start_time, end_time):
+    def generate_order_for_target_amount_position(
+        self,
+        target_position: dict,
+        current_position: dict,
+        start_time: pd.Timestamp,
+        end_time: pd.Timestamp,
+    ) -> list:
         """
         Note: some future information is used in this function
         Parameter:
@@ -517,7 +588,8 @@ class Exchange:
         # three parts: kept stock_id, dropped stock_id, new stock_id
         # handle kept stock_id
 
-        # because the order of the set is not fixed, the trading order of the stock is different, so that the backtest results of the same parameter are different;
+        # because the order of the set is not fixed, the trading order of the stock is different, so that the backtest
+        # results of the same parameter are different;
         # so here we sort stock_id, and then randomly shuffle the order of stock_id
         # because the same random seed is used, the final stock_id order is fixed
         sorted_ids = sorted(set(list(current_position.keys()) + list(target_position.keys())))
@@ -546,7 +618,7 @@ class Exchange:
                         start_time=start_time,
                         end_time=end_time,
                         factor=factor,
-                    )
+                    ),
                 )
             else:
                 # sell stock
@@ -558,14 +630,19 @@ class Exchange:
                         start_time=start_time,
                         end_time=end_time,
                         factor=factor,
-                    )
+                    ),
                 )
         # return order_list : buy + sell
         return sell_order_list + buy_order_list
 
     def calculate_amount_position_value(
-        self, amount_dict, start_time, end_time, only_tradable=False, direction=OrderDir.SELL
-    ):
+        self,
+        amount_dict: dict,
+        start_time: pd.Timestamp,
+        end_time: pd.Timestamp,
+        only_tradable: bool = False,
+        direction: OrderDir = OrderDir.SELL,
+    ) -> float:
         """Parameter
         position : Position()
         amount_dict : {stock_id : amount}
@@ -576,21 +653,28 @@ class Exchange:
         """
         value = 0
         for stock_id in amount_dict:
-            if (
-                only_tradable is True
-                and self.check_stock_suspended(stock_id=stock_id, start_time=start_time, end_time=end_time) is False
-                and self.check_stock_limit(stock_id=stock_id, start_time=start_time, end_time=end_time) is False
-                or only_tradable is False
+            if not only_tradable or (
+                not self.check_stock_suspended(stock_id=stock_id, start_time=start_time, end_time=end_time)
+                and not self.check_stock_limit(stock_id=stock_id, start_time=start_time, end_time=end_time)
             ):
                 value += (
                     self.get_deal_price(
-                        stock_id=stock_id, start_time=start_time, end_time=end_time, direction=direction
+                        stock_id=stock_id,
+                        start_time=start_time,
+                        end_time=end_time,
+                        direction=direction,
                     )
                     * amount_dict[stock_id]
                 )
         return value
 
-    def _get_factor_or_raise_error(self, factor: float = None, stock_id: str = None, start_time=None, end_time=None):
+    def _get_factor_or_raise_error(
+        self,
+        factor: float = None,
+        stock_id: str = None,
+        start_time: pd.Timestamp = None,
+        end_time: pd.Timestamp = None,
+    ) -> float:
         """Please refer to the docs of get_amount_of_trade_unit"""
         if factor is None:
             if stock_id is not None and start_time is not None and end_time is not None:
@@ -599,7 +683,13 @@ class Exchange:
                 raise ValueError(f"`factor` and (`stock_id`, `start_time`, `end_time`) can't both be None")
         return factor
 
-    def get_amount_of_trade_unit(self, factor: float = None, stock_id: str = None, start_time=None, end_time=None):
+    def get_amount_of_trade_unit(
+        self,
+        factor: float = None,
+        stock_id: str = None,
+        start_time: pd.Timestamp = None,
+        end_time: pd.Timestamp = None,
+    ) -> Optional[float]:
         """
         get the trade unit of amount based on **factor**
         the factor can be given directly or calculated in given time range and stock id.
@@ -617,14 +707,22 @@ class Exchange:
         """
         if not self.trade_w_adj_price and self.trade_unit is not None:
             factor = self._get_factor_or_raise_error(
-                factor=factor, stock_id=stock_id, start_time=start_time, end_time=end_time
+                factor=factor,
+                stock_id=stock_id,
+                start_time=start_time,
+                end_time=end_time,
             )
             return self.trade_unit / factor
         else:
             return None
 
     def round_amount_by_trade_unit(
-        self, deal_amount, factor: float = None, stock_id: str = None, start_time=None, end_time=None
+        self,
+        deal_amount,
+        factor: float = None,
+        stock_id: str = None,
+        start_time=None,
+        end_time=None,
     ):
         """Parameter
         Please refer to the docs of get_amount_of_trade_unit
@@ -635,7 +733,10 @@ class Exchange:
         if not self.trade_w_adj_price and self.trade_unit is not None:
             # the minimal amount is 1. Add 0.1 for solving precision problem.
             factor = self._get_factor_or_raise_error(
-                factor=factor, stock_id=stock_id, start_time=start_time, end_time=end_time
+                factor=factor,
+                stock_id=stock_id,
+                start_time=start_time,
+                end_time=end_time,
             )
             return (deal_amount * factor + 0.1) // self.trade_unit * self.trade_unit / factor
         return deal_amount
@@ -714,7 +815,12 @@ class Exchange:
                 max_trade_amount = (cash - self.min_cost) / trade_price
         return max_trade_amount
 
-    def _calc_trade_info_by_order(self, order, position: Position, dealt_order_amount):
+    def _calc_trade_info_by_order(
+        self,
+        order: Order,
+        position: Optional[BasePosition],
+        dealt_order_amount: dict,
+    ) -> Tuple[float, float, float]:
         """
         Calculation of trade info
         **NOTE**: Order will be changed in this function
@@ -753,7 +859,8 @@ class Exchange:
                 if not np.isclose(order.deal_amount, current_amount):
                     # when not selling last stock. rounding is necessary
                     order.deal_amount = self.round_amount_by_trade_unit(
-                        min(current_amount, order.deal_amount), order.factor
+                        min(current_amount, order.deal_amount),
+                        order.factor,
                     )
 
                 # in case of negative value of cash
@@ -778,7 +885,8 @@ class Exchange:
                     # The money is not enough
                     max_buy_amount = self._get_buy_amount_by_cash_limit(trade_price, cash, cost_ratio)
                     order.deal_amount = self.round_amount_by_trade_unit(
-                        min(max_buy_amount, order.deal_amount), order.factor
+                        min(max_buy_amount, order.deal_amount),
+                        order.factor,
                     )
                     self.logger.debug(f"Order clipped due to cash limitation: {order}")
                 else:
