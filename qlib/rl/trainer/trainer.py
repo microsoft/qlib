@@ -8,7 +8,7 @@ import dataclasses
 import random
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, Dict, Optional, Tuple, Sequence
+from typing import Any, Callable, Dict, Optional, Tuple, Sequence, cast
 
 import numpy as np
 import pandas as pd
@@ -30,6 +30,9 @@ from qlib.rl.utils import DataQueue, EnvWrapper, FiniteEnvType, LogCollector, Lo
 from qlib.log import get_module_logger
 from qlib.typehint import Literal
 
+
+from .vessel import TrainingVesselBase
+
 _logger = get_module_logger(__name__)
 
 
@@ -40,7 +43,7 @@ class Trainer:
     Different from traditional DL trainer, the unit of this trainer is "collect", rather than "epoch".
     In each collect, :class:`Collector` collects a number of policy-env interactions, and accumulates
     them into a replay buffer. This buffer is used as the "data" to train the policy.
-    At the end of each collect, the policy is *updated* for ``update_per_collect`` times.
+    At the end of each collect, the policy is *updated* several times.
 
     The API has some resemblence with `PyTorch Lightning <https://pytorch-lightning.readthedocs.io/>`__,
     but it's essentially different because this trainer is built for RL applications, and thus
@@ -54,12 +57,6 @@ class Trainer:
 
     Parameters
     ----------
-    max_collects
-        Maximum number of collects to run in total.
-    earlystop_patience
-        Maximum number of "no improvements" on validation before killing the training.
-        Doesn't work if ``val_initial_states`` is not available or ``episode_per_collect``
-        is not available.
     val_every_n_collect
         Perform validation every n collects.
     logger
@@ -69,36 +66,32 @@ class Trainer:
         Type of finite env implementation.
     concurrency
         Parallel workers.
-    checkpoint_dir
-        Directory to save checkpoints.
-    checkpoint_every_n_collect
-        Save checkpoints every n collects. Set none to disable checkpointing.
     fast_dev_run
-        If greater than zero, a random subset sized ``fast_dev_run`` will be used
+        Create a subset for debugging.
+        How this is implemented depends on the implementation of training vessel.
+        For :class:`~qlib.rl.vessel.TrainingVessel`, if greater than zero,
+        a random subset sized ``fast_dev_run`` will be used
         instead of ``train_initial_states`` and ``val_initial_states``.
     """
+
+    should_stop: bool
+    """Set to stop the training."""
+
+    metrics: dict
+    """Metrics of produced in train/val/test. Cleared on every new iteration of training.
+    In fit, validation metrics will be prefixed with ``val/``."""
+
+    current_iter: int
+    """Current iteration (collect) of training."""
+
     def __init__(
         self, *,
-        buffer_size: int = 200000,
-        episode_per_collect: int = 10000,
-        max_collects: int | None = None,
-        update_per_collect: int = 5,
-        update_batch_size: int = 1024,
-        earlystop_patience: int = 5,
         val_every_n_collect: int | None = None,
         logger: LogWriter | list[LogWriter] | None = None,
         finite_env_type: FiniteEnvType = "subproc",
         concurrency: int = 2,
-        checkpoint_dir: Path | None = None,
-        checkpoint_every_n_collect: int | None = None,
         fast_dev_run: int = 0,
     ):
-        self.buffer_size = buffer_size
-        self.episode_per_collect = episode_per_collect
-        self.max_collects = max_collects
-        self.update_per_collect = update_per_collect
-        self.update_batch_size = update_batch_size
-        self.earlystop_patience = earlystop_patience
         self.val_every_n_collect = val_every_n_collect
 
         if isinstance(logger, list):
@@ -110,13 +103,12 @@ class Trainer:
 
         self.finite_env_type = finite_env_type
         self.concurrency = concurrency
-        self.checkpoint_dir = checkpoint_dir
-        self.checkpoint_every_n_collect = checkpoint_every_n_collect
-
         self.fast_dev_run = fast_dev_run
 
         self.should_stop = False
         self.metrics = {}
+
+        self.vessel: TrainingVesselBase = cast(TrainingVesselBase, None)
 
     def create_env_wrapper(self):
         return EnvWrapper(
@@ -138,32 +130,7 @@ class Trainer:
     ) -> None:
         ...
 
-    def fit(
-        self,
-        simulator_fn: Callable[[InitialStateType], Simulator],
-        state_interpreter: StateInterpreter,
-        action_interpreter: ActionInterpreter,
-        policy: BasePolicy,
-        train_initial_states: Sequence[InitialStateType],
-        val_initial_states: Sequence[InitialStateType] | None = None,
-        reward: Reward | None = None,
-    ):
-        _logger.info(
-            "Dataset loaded: train %d, valid %d."
-            len(train_initial_states),
-            len(val_initial_states) if val_initial_states is not None else 0
-        )
-
-        if self.fast_dev_run > 0:
-            train_initial_states = [random.choice(train_initial_states) for _ in range(self.fast_dev_run)]
-            if val_initial_states is not None:
-                val_initial_states = [random.choice(val_initial_states) for _ in range(self.fast_dev_run)]
-            _logger.info(
-                "Fast running in development mode. Cutting the dataset to: "
-                "train %d, valid %d.",
-                len(train_initial_states),
-                len(val_initial_states) if val_initial_states is not None else 0
-            )
+    def fit(self, vessel: TrainingVesselBase):
 
         if self.checkpoint_dir is not None:
             _resume_path = self.checkpoint_dir / "resume.pth"

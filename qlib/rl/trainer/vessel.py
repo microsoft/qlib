@@ -3,9 +3,11 @@
 
 from __future__ import annotations
 
+import logging
 import weakref
-from typing import Callable, Generic, Iterable, TYPE_CHECKING, Sequence, Any
+from typing import Callable, Generic, Iterable, TYPE_CHECKING, Sequence, Any, TypeVar
 
+import numpy as np
 from tianshou.data import Collector, VectorReplayBuffer
 from tianshou.env import BaseVectorEnv
 from tianshou.policy import BasePolicy
@@ -23,6 +25,9 @@ from qlib.typehint import Literal
 if TYPE_CHECKING:
     from .trainer import Trainer
 
+
+T = TypeVar('T')
+_logger = logging.getLogger(__name__)
 
 class SeedIteratorNotAvailable(BaseException):
     pass
@@ -125,17 +130,24 @@ class TrainingVessel(TrainingVesselBase):
 
     def train_seed_iterator(self) -> Iterable[InitialStateType]:
         if self.train_initial_states is not None:
-            return DataQueue(self.train_initial_states, repeat=-1, shuffle=True)
+            _logger.info("Training initial states collection size: %d", len(self.train_initial_states))
+            # Implement fast_dev_run here.
+            train_initial_states = self._random_subset('train', self.train_initial_states, self.trainer.fast_dev_run)
+            return DataQueue(train_initial_states, repeat=-1, shuffle=True)
         return super().train_seed_iterator()
 
     def val_seed_iterator(self) -> Iterable[InitialStateType]:
         if self.val_initial_states is not None:
-            return DataQueue(self.val_initial_states, repeat=1)
+            _logger.info("Validation initial states collection size: %d", len(self.val_initial_states))
+            val_initial_states = self._random_subset('val', self.val_initial_states, self.trainer.fast_dev_run)
+            return DataQueue(val_initial_states, repeat=1)
         return super().val_seed_iterator()
 
     def test_seed_iterator(self) -> Iterable[InitialStateType]:
         if self.test_initial_states is not None:
-            return DataQueue(self.test_initial_states, repeat=1)
+            _logger.info("Testing initial states collection size: %d", len(self.test_initial_states))
+            test_initial_states = self._random_subset('test', self.test_initial_states, self.trainer.fast_dev_run)
+            return DataQueue(test_initial_states, repeat=1)
         return super().test_seed_iterator()
 
     def train(self, vector_env: BaseVectorEnv) -> dict[str, Any]:
@@ -164,3 +176,16 @@ class TrainingVessel(TrainingVesselBase):
         with vector_env.collector_guard():
             test_collector = Collector(self.policy, vector_env)
             return test_collector.collect(n_step=INF * len(vector_env))
+
+    @staticmethod
+    def _random_subset(name: str, collection: Sequence[T], size: int | None) -> Sequence[T]:
+        if size is None:
+            # Size = None -> original collection
+            return collection
+        order = np.random.permutation(len(collection))
+        res = [collection[o] for o in order[:size]]
+        _logger.info(
+            "Fast running in development mode. Cut %s initial states from %d to %d.",
+            name, len(collection), len(res)
+        )
+        return res

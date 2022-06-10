@@ -7,12 +7,14 @@ Mimicks the hooks of Keras / PyTorch-Lightning, but tailored for the context of 
 
 from __future__ import annotations
 
+import copy
 import logging
 
-from typing import Any, Dict, List, Optional, TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 
 import numpy as np
 
+from qlib.log import get_module_logger
 from qlib.typehint import Literal
 
 if TYPE_CHECKING:
@@ -20,7 +22,7 @@ if TYPE_CHECKING:
     from .vessel import TrainingVesselBase
 
 
-_logger = logging.getLogger(__name__)
+_logger = get_module_logger(__name__)
 
 class Callback:
     """Base class of all callbacks."""
@@ -52,27 +54,33 @@ class Callback:
     def on_test_end(self, trainer: Trainer, vessel: TrainingVesselBase) -> None:
         """Called when the testing ends."""
 
+    def state_dict(self) -> Any:
+        """Get a state dict of the callback for pause and resume."""
+
+    def load_state_dict(self, state_dict: Any) -> None:
+        """Resume the callback from a saved state dict."""
+
 
 class EarlyStopping(Callback):
     """Stop training when a monitored metric has stopped improving.
 
-    Reference: https://github.com/keras-team/keras/blob/v2.9.0/keras/callbacks.py#L1744-L1893
+    The earlystopping callback will be triggered each time validation ends.
+    It will examine the metrics produced in validation,
+    and get the metric with name ``monitor` (``monitor`` is ``reward`` by default),
+    to check whether it's no longer increasing / decreasing.
+    It takes ``min_delta`` and ``patience`` if applicable.
+    If it's found to be not increasing / decreasing any more.
+    ``trainer.should_stop`` will be set to true,
+    and the training terminates.
 
-    Assuming the goal of a training is to minimize the loss. With this, the
-  metric to be monitored would be `'loss'`, and mode would be `'min'`. A
-  `model.fit()` training loop will check at end of every epoch whether
-  the loss is no longer decreasing, considering the `min_delta` and
-  `patience` if applicable. Once it's found no longer decreasing,
-  `model.stop_training` is marked True and the training terminates.
-  The quantity to be monitored needs to be available in `logs` dict.
-  To make it so, pass the loss or metrics at `model.compile()`.
+    Implementation reference: https://github.com/keras-team/keras/blob/v2.9.0/keras/callbacks.py#L1744-L1893
     """
     def __init__(
         self,
-        monitor: str = "val_loss",
+        monitor: str = "reward",
         min_delta: float = 0.,
         patience: int = 0,
-        mode: Literal["auto", "min", "max"] = "auto",
+        mode: Literal["min", "max"] = "max",
         baseline: float | None = None,
         restore_best_weights: bool = False,
     ):
@@ -80,81 +88,85 @@ class EarlyStopping(Callback):
 
         self.monitor = monitor
         self.patience = patience
-        self.verbose = verbose
         self.baseline = baseline
         self.min_delta = abs(min_delta)
         self.restore_best_weights = restore_best_weights
-        self.best_weights = None
+        self.best_weights: Any | None = None
 
-        if mode not in ["auto", "min", "max"]:
+        if mode not in ["min", "max"]:
             raise ValueError("Unsupported earlystopping mode: " + mode)
 
         if mode == "min":
             self.monitor_op = np.less
         elif mode == "max":
             self.monitor_op = np.greater
-        else:
-            if self.monitor.endswith("acc") or self.monitor.endswith("accuracy") or self.monitor.endswith("auc"):
-                self.monitor_op = np.greater
-            else:
-                self.monitor_op = np.less
 
         if self.monitor_op == np.greater:
             self.min_delta *= 1
         else:
             self.min_delta *= -1
 
-    def on_train_begin(self, logs=None):
+    def state_dict(self) -> dict:
+        return {
+            "wait": self.wait,
+            "best": self.best,
+            "best_weights": self.best_weights,
+            "best_iter": self.best_iter
+        }
+
+    def load_state_dict(self, state_dict: dict) -> None:
+        self.wait = state_dict["wait"]
+        self.best = state_dict["best"]
+        self.best_weights = state_dict["best_weights"]
+        self.best_iter = state_dict["best_iter"]
+
+    def on_fit_begin(self, trainer: Trainer, vessel: TrainingVesselBase):
         # Allow instances to be re-used
         self.wait = 0
-        self.stopped_epoch = 0
         self.best = np.inf if self.monitor_op == np.less else -np.inf
         self.best_weights = None
-        self.best_epoch = 0
+        self.best_iter = 0
 
     def on_validate_end(self, trainer: Trainer, vessel: TrainingVesselBase) -> None:
-        current = self.get_monitor_value(logs)
+        current = self.get_monitor_value(trainer)
         if current is None:
             return
         if self.restore_best_weights and self.best_weights is None:
-            # Restore the weights after first epoch if no progress is ever made.
-            self.best_weights = self.model.get_weights()
+            # Restore the weights after first iteration if no progress is ever made.
+            self.best_weights = copy.deepcopy(vessel.state_dict())
 
         self.wait += 1
         if self._is_improvement(current, self.best):
             self.best = current
-            self.best_epoch = epoch
+            self.best_iter = trainer.current_iter
             if self.restore_best_weights:
-                self.best_weights = self.model.get_weights()
+                self.best_weights = copy.deepcopy(vessel.state_dict())
             # Only restart wait if we beat both the baseline and our previous best.
             if self.baseline is None or self._is_improvement(current, self.baseline):
                 self.wait = 0
 
         # Only check after the first epoch.
-        if self.wait >= self.patience and epoch > 0:
+        if self.wait >= self.patience and trainer.current_iter > 0:
             trainer.should_stop = True
-            self.model.stop_training = True
+            _logger.info(f"On iteration %d: early stopping", trainer.current_iter + 1)
             if self.restore_best_weights and self.best_weights is not None:
-                if self.verbose > 0:
-                    io_utils.print_msg(
-                        "Restoring model weights from the end of the best epoch: " f"{self.best_epoch + 1}."
-                    )
-                self.model.set_weights(self.best_weights)
+                _logger.info("Restoring model weights from the end of the best iteration: %d", self.best_iter + 1)
+                vessel.load_state_dict(self.best_weights)
 
-    def on_train_end(self, logs=None):
-        if self.stopped_epoch > 0 and self.verbose > 0:
-            io_utils.print_msg(f"Epoch {self.stopped_epoch + 1}: early stopping")
-
-    def get_monitor_value(self, logs):
-        logs = logs or {}
-        monitor_value = logs.get(self.monitor)
+    def get_monitor_value(self, trainer: Trainer):
+        monitor_value = trainer.metrics.get(self.monitor)
         if monitor_value is None:
-            logging.warning(
-                "Early stopping conditioned on metric `%s` " "which is not available. Available metrics are: %s",
-                self.monitor,
-                ",".join(list(logs.keys())),
+            _logger.warning(
+                "Early stopping conditioned on metric `%s` which is not available. Available metrics are: %s",
+                self.monitor, ",".join(list(trainer.metrics.keys())),
             )
         return monitor_value
 
     def _is_improvement(self, monitor_value, reference_value):
         return self.monitor_op(monitor_value - self.min_delta, reference_value)
+
+
+class Checkpoint(Callback):
+    """Save checkpoints perioridically for persistence and recovery.
+    """
+    ...
