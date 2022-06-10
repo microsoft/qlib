@@ -8,11 +8,14 @@ Mimicks the hooks of Keras / PyTorch-Lightning, but tailored for the context of 
 from __future__ import annotations
 
 import copy
-import logging
-
+import shutil
+import time
+from datetime import datetime
+from pathlib import Path
 from typing import Any, TYPE_CHECKING
 
 import numpy as np
+import torch
 
 from qlib.log import get_module_logger
 from qlib.typehint import Literal
@@ -53,6 +56,12 @@ class Callback:
 
     def on_test_end(self, trainer: Trainer, vessel: TrainingVesselBase) -> None:
         """Called when the testing ends."""
+
+    def on_iter_start(self, trainer: Trainer, vessel: TrainingVesselBase) -> None:
+        """Called when every iteration (i.e., collect) starts."""
+
+    def on_iter_end(self, trainer: Trainer, vessel: TrainingVesselBase) -> None:
+        """Called upon every end of iteration."""
 
     def state_dict(self) -> Any:
         """Get a state dict of the callback for pause and resume."""
@@ -168,5 +177,84 @@ class EarlyStopping(Callback):
 
 class Checkpoint(Callback):
     """Save checkpoints perioridically for persistence and recovery.
+
+    Reference: https://github.com/PyTorchLightning/pytorch-lightning/blob/bfa8b7be/pytorch_lightning/callbacks/model_checkpoint.py
+
+    Parameters
+    ----------
+    dirpath
+        Directory to save the checkpoint file.
+    filename
+        Checkpoint filename. Can contain named formatting options to be auto-filled.
+        For example: ``{iter:03d}-{reward:.2f}.pth``.
+        Supported argument names are:
+
+        - iter (int)
+        - metrics in ``trainer.metrics``
+        - time string, in the format of 
+    save_latest
+        Save the latest checkpoint in ``latest.pth``.
+        If ``link``, ``latest.pth`` will be created as a softlink.
+        If ``copy``, ``latest.pth`` will be stored as an individual copy.
+        Set to none to disable this.
+    every_n_iters
+        Checkpoints are saved at the end of every n iterations of training,
+        after validation if applicable.
+    time_interval
+        Maximum time (seconds) before checkpoints save again.
+    save_on_fit_end
+        Save one last checkpoint at the end to fit.
+        Do nothing if a checkpoint is already saved there.
     """
-    ...
+    def __init__(
+        self,
+        dirpath: Path,
+        filename: str = '{iter:03d}.pth',
+        save_latest: Literal["link", "copy"] | None = "link",
+        every_n_iters: int | None = None,
+        time_interval: int | None = None,
+        save_on_fit_end: bool = True
+    ):
+        self.dirpath = Path(dirpath)
+        self.filename = filename
+        self.save_latest = save_latest
+        self.every_n_iters = every_n_iters
+        self.time_interval = time_interval
+        self.save_on_fit_end = save_on_fit_end
+
+        self._last_checkpoint_name: str | None = None
+        self._last_checkpoint_iter: int | None = None
+        self._last_checkpoint_time: float | None = None
+
+    def on_fit_end(self, trainer: Trainer, vessel: TrainingVesselBase) -> None:
+        if self.save_on_fit_end and (trainer.current_iter != self._last_checkpoint_iter):
+            self._save_checkpoint(trainer)
+
+    def on_iter_end(self, trainer: Trainer, vessel: TrainingVesselBase) -> None:
+        should_save_ckpt = False
+        if self.every_n_iters is not None and (trainer.current_iter + 1) % self.every_n_iters:
+            should_save_ckpt = True
+        if self.time_interval is not None and (time.time() - self._last_checkpoint_time) >= self.time_interval:
+            should_save_ckpt = True
+        if should_save_ckpt:
+            self._save_checkpoint(trainer)
+
+    def _save_checkpoint(self, trainer: Trainer) -> None:
+        self.dirpath.mkdir(exist_ok=True, parents=True)
+        self._last_checkpoint_name = self._new_checkpoint_name(trainer)
+        self._last_checkpoint_iter = trainer.current_iter
+        self._last_checkpoint_time = time.time()
+        torch.save(trainer.state_dict(), self.dirpath / self._last_checkpoint_name)
+
+        if self.save_latest == "link":
+            (self.dirpath / "latest.pth").unlink(missing_ok=True)
+            (self.dirpath / self._last_checkpoint_name).symlink_to(self.dirpath / "latest.pth")
+        elif self.save_latest == "copy":
+            shutil.copyfile(self.dirpath / self._last_checkpoint_name, self.dirpath / "latest.pth")
+
+    def _new_checkpoint_name(self, trainer: Trainer) -> str:
+        return self.filename.format(
+            iter=trainer.current_iter,
+            time=datetime.now().strftime('%Y%m%d%H%M%S'),
+            **trainer.metrics
+        )

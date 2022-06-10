@@ -95,8 +95,8 @@ class TrainingVessel(TrainingVesselBase):
     Extra hyper-parameters (only used in train) include:
 
     - ``buffer_size``: Size of replay buffer.
-    - ``episode_per_collect``: Episodes per collect at training.
-    - ``update_per_collect``: Number of updates happening after each collect. This is used in ``repeat`` parameter in ``policy.update``.
+    - ``episode_per_iter``: Episodes per collect at training.
+    - ``update_per_iter``: Number of updates happening after each collect. This is used in ``repeat`` parameter in ``policy.update``.
     - ``batch_size``: Batch size in ``self.policy.update`` after each collect.
     """
 
@@ -111,8 +111,8 @@ class TrainingVessel(TrainingVesselBase):
         val_initial_states: Sequence[InitialStateType] | None,
         test_initial_states: Sequence[InitialStateType] | None,
         buffer_size: int,
-        episode_per_collect: int,
-        update_per_collect: int,
+        episode_per_iter: int,
+        update_per_iter: int,
         batch_size: int
     ):
         self.simulator_fn = simulator_fn
@@ -124,8 +124,8 @@ class TrainingVessel(TrainingVesselBase):
         self.val_initial_states = val_initial_states
         self.test_initial_states = test_initial_states
         self.buffer_size = buffer_size
-        self.episode_per_collect = episode_per_collect
-        self.update_per_collect = update_per_collect
+        self.episode_per_iter = episode_per_iter
+        self.update_per_iter = update_per_iter
         self.batch_size = batch_size
 
     def train_seed_iterator(self) -> Iterable[InitialStateType]:
@@ -157,9 +157,9 @@ class TrainingVessel(TrainingVesselBase):
             vector_env,
             VectorReplayBuffer(self.buffer_size, len(vector_env))
         )
-        col_result = collector.collect(n_episode=self.episode_per_collect)
+        col_result = collector.collect(n_episode=self.episode_per_iter)
         update_result = self.policy.update(
-            0, collector.buffer, batch_size=self.batch_size, repeat=self.update_per_collect
+            0, collector.buffer, batch_size=self.batch_size, repeat=self.update_per_iter
         )
         return {**col_result, **update_result}
 

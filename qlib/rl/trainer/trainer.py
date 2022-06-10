@@ -30,7 +30,7 @@ from qlib.rl.utils import DataQueue, EnvWrapper, FiniteEnvType, LogCollector, Lo
 from qlib.log import get_module_logger
 from qlib.typehint import Literal
 
-
+from .callbacks import Callback
 from .vessel import TrainingVesselBase
 
 _logger = get_module_logger(__name__)
@@ -40,7 +40,8 @@ class Trainer:
     """
     Utility to train a policy on a particular task.
 
-    Different from traditional DL trainer, the unit of this trainer is "collect", rather than "epoch".
+    Different from traditional DL trainer, the iteration of this trainer is "collect",
+    rather than "epoch", or "mini-batch".
     In each collect, :class:`Collector` collects a number of policy-env interactions, and accumulates
     them into a replay buffer. This buffer is used as the "data" to train the policy.
     At the end of each collect, the policy is *updated* several times.
@@ -57,8 +58,10 @@ class Trainer:
 
     Parameters
     ----------
-    val_every_n_collect
-        Perform validation every n collects.
+    max_iters
+        Maximum iterations before stopping.
+    val_every_n_iters
+        Perform validation every n iterations (i.e., training collects).
     logger
         Logger to record the backtest results. Logger must be present because
         without logger, all information will be lost.
@@ -86,13 +89,16 @@ class Trainer:
 
     def __init__(
         self, *,
-        val_every_n_collect: int | None = None,
+        max_iters: int | None = None,
+        val_every_n_iters: int | None = None,
         logger: LogWriter | list[LogWriter] | None = None,
+        callbacks: list[Callback] | None = None,
         finite_env_type: FiniteEnvType = "subproc",
         concurrency: int = 2,
         fast_dev_run: int = 0,
     ):
-        self.val_every_n_collect = val_every_n_collect
+        self.max_iters = max_iters
+        self.val_every_n_iters = val_every_n_iters
 
         if isinstance(logger, list):
             self.logger: list[LogWriter] = logger
@@ -101,14 +107,58 @@ class Trainer:
         else:
             self.logger: list[LogWriter] = []
 
+        self.callbacks: list[Callback] = callbacks if callbacks is not None else []
         self.finite_env_type = finite_env_type
         self.concurrency = concurrency
         self.fast_dev_run = fast_dev_run
 
+        self.vessel: TrainingVesselBase = cast(TrainingVesselBase, None)
+
+    def initialize(self):
         self.should_stop = False
+        self.current_iter = 0
+
+    def initialize_iter(self):
         self.metrics = {}
 
-        self.vessel: TrainingVesselBase = cast(TrainingVesselBase, None)
+    def state_dict(self) -> dict:
+        """Putting every states of current training into a dict, at best effort.
+        
+        It doesn't try to handle all the possible kinds of states in the middle of one training collect.
+        For most cases at the end of each iteration, things should be usually correct.
+        """
+        return {
+            "vessel": self.vessel.state_dict(),
+            "callbacks": {name: callback.state_dict() for name, callback in self.named_callbacks().items()},
+            "should_stop": self.should_stop,
+            "current_iter": self.current_iter,
+            "metrics": self.metrics,
+        }
+
+    def load_state_dict(self, state_dict: dict) -> None:
+        """Load all states into current trainer."""
+        self.vessel.load_state_dict(state_dict["vessel"])
+        for name, callback in self.named_callbacks().items():
+            callback.load_state_dict(state_dict["callbacks"][name])
+        self.should_stop = state_dict["should_stop"]
+        self.current_iter = state_dict["current_iter"]
+        self.metrics = state_dict["metrics"]
+
+    def named_callbacks(self) -> dict[str, Callback]:
+        """Retrieve a collection of callbacks where each one has a name.
+        Useful when saving checkpoints.
+        """
+        res = {}
+        for callback in self.callbacks:
+            typename = type(callback).__name__.lower()
+            if typename not in res:
+                res[typename] = callback
+            else:
+                # names are auto-labelled as earlystop1, earlystop2, ...
+                for retry in range(1, 1000):
+                    if f'{typename}{retry}' not in res:
+                        res[f'{typename}{retry}'] = callback
+        return res
 
     def create_env_wrapper(self):
         return EnvWrapper(
