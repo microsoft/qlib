@@ -4,14 +4,14 @@
 from __future__ import annotations
 
 import copy
-from contextlib import AbstractContextManager
+from contextlib import AbstractContextManager, contextmanager
 from pathlib import Path
 from typing import Any, Iterable, cast
 
 import torch
 
 from qlib.rl.simulator import InitialStateType
-from qlib.rl.utils import EnvWrapper, FiniteEnvType, LogCollector, LogWriter
+from qlib.rl.utils import EnvWrapper, FiniteEnvType, LogCollector, LogWriter, vectorize_env, LogLevel
 from qlib.log import get_module_logger
 
 from .callbacks import Callback
@@ -64,6 +64,8 @@ class Trainer:
     should_stop: bool
     """Set to stop the training."""
 
+    # TODO: make metrics appear here
+
     metrics: dict
     """Metrics of produced in train/val/test. Cleared on every new iteration of training.
     In fit, validation metrics will be prefixed with ``val/``."""
@@ -72,7 +74,8 @@ class Trainer:
     """Current iteration (collect) of training."""
 
     def __init__(
-        self, *,
+        self,
+        *,
         max_iters: int | None = None,
         val_every_n_iters: int | None = None,
         logger: LogWriter | list[LogWriter] | None = None,
@@ -107,7 +110,7 @@ class Trainer:
 
     def state_dict(self) -> dict:
         """Putting every states of current training into a dict, at best effort.
-        
+
         It doesn't try to handle all the possible kinds of states in the middle of one training collect.
         For most cases at the end of each iteration, things should be usually correct.
         """
@@ -140,11 +143,20 @@ class Trainer:
             else:
                 # names are auto-labelled as earlystop1, earlystop2, ...
                 for retry in range(1, 1000):
-                    if f'{typename}{retry}' not in res:
-                        res[f'{typename}{retry}'] = callback
+                    if f"{typename}{retry}" not in res:
+                        res[f"{typename}{retry}"] = callback
         return res
 
     def fit(self, vessel: TrainingVesselBase, ckpt_path: Path | None = None) -> None:
+        """Train the RL policy upon the defined simulator.
+        
+        Parameters
+        ----------
+        vessel
+            A bundle of all elements used in training.
+        ckpt_path
+            Load a pre-trained / paused training checkpoint.
+        """
         vessel.assign_trainer(self)
 
         if ckpt_path is not None:
@@ -158,9 +170,8 @@ class Trainer:
         while self.current_iter < self.max_iters:
             self._call_callback_hooks("on_train_start")
 
-            iterator = vessel.train_seed_iterator()
-            with 
-                vector_env = self._create_vector_env(iterator)
+            with _wrap_context(vessel.train_seed_iterator()) as iterator:
+                vector_env = self.venv_from_iterator(iterator)
                 self.vessel.train(vector_env)
 
             self._call_callback_hooks("on_train_end")
@@ -168,7 +179,7 @@ class Trainer:
             if (self.current_iter + 1) % self.val_every_n_iters == 0:
                 self._call_callback_hooks("on_validate_start")
                 with vessel.val_seed_iterator() as iterator:
-                    vector_env = self._create_vector_env(vessel.val_seed_iterator())
+                    vector_env = self.venv_from_iterator(vessel.val_seed_iterator())
                     self.vessel.validate(vector_env)
 
                 self._call_callback_hooks("on_validate_end")
@@ -181,16 +192,32 @@ class Trainer:
         self._call_callback_hooks("on_fit_end")
 
     def test(self, vessel: TrainingVesselBase) -> None:
+        """Test the RL policy against the simulator.
+
+        The simulator will be fed with data generated in ``test_seed_iterator``.
+
+        Parameters
+        ----------
+        vessel
+            A bundle of all related elements.
+        """
         vessel.assign_trainer(self)
 
-        with vessel.test_seed_iterator() as 
-        vector_env = self._create_vector_env(vessel.test_seed_iterator())
-
         self._call_callback_hooks("on_test_start")
-        self.vessel.test(vector_env)
+        with _wrap_context(vessel.test_seed_iterator()) as iterator:
+            vector_env = self.venv_from_iterator(iterator)
+            self.vessel.test(vector_env)
         self._call_callback_hooks("on_test_end")
 
-    def _create_vector_env(self, iterator: Iterable[InitialStateType]) -> None:
+    def venv_from_iterator(self, iterator: Iterable[InitialStateType]) -> None:
+        """Create a vectorized environment from iterator and the training vessel."""
+
+        if not self.logger:
+            min_loglevel = LogLevel.PERIODIC
+        else:
+            # To save bandwidth
+            min_loglevel = min(lg.loglevel for lg in self.logger)
+
         def env_factory():
             # FIXME: state_interpreter and action_interpreter are stateful (having a weakref of env),
             # and could be thread unsafe.
@@ -207,32 +234,35 @@ class Trainer:
                 action = self.vessel.action_interpreter
                 rew = self.vessel.reward
 
-        return EnvWrapper(
-            simulator_fn,
-            state,
-            action,
-            seed_iterator,
-            rew,
-            logger=LogCollector(min_loglevel=min_loglevel),
-        )
+            return EnvWrapper(
+                self.vessel.simulator_fn,
+                state,
+                action,
+                iterator,
+                rew,
+                logger=LogCollector(min_loglevel=min_loglevel),
+            )
 
-        with DataQueue(initial_states) as seed_iterator:
-        vector_env = vectorize_env(
+        return vectorize_env(
             env_factory,
-            finite_env_type,
-            concurrency,
-            logger,
-        )
-        return EnvWrapper(
-            self.vessel.simulator_fn,
-            self.vessel.state_interpreter,
-            self.vessel.action_interpreter,
-            iterator,
-            self.vessel.reward,
-            logger=LogCollector(min_loglevel=min_loglevel),
+            self.finite_env_type,
+            self.concurrency,
+            self.logger,
         )
 
     def _call_callback_hooks(self, hook_name: str, *args: Any, **kwargs: Any) -> None:
         for callback in self.callbacks:
             fn = getattr(callback, hook_name)
             fn(self, self.vessel, *args, **kwargs)
+
+
+@contextmanager
+def _wrap_context(obj):
+    """Make any object a (possibly dummy) context manager."""
+
+    if isinstance(obj, AbstractContextManager):
+        # obj has __enter__ and __exit__
+        with obj as ctx:
+            yield ctx
+    else:
+        yield obj
