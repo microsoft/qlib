@@ -6,19 +6,22 @@ from __future__ import annotations
 import copy
 from contextlib import AbstractContextManager, contextmanager
 from pathlib import Path
-from typing import Any, Iterable, cast
+from typing import Any, Iterable, TypeVar, Sequence, cast
 
 import torch
 
 from qlib.rl.simulator import InitialStateType
-from qlib.rl.utils import EnvWrapper, FiniteEnvType, LogCollector, LogWriter, vectorize_env, LogLevel
+from qlib.rl.utils import EnvWrapper, FiniteEnvType, LogCollector, LogWriter, LogBuffer, vectorize_env, LogLevel
 from qlib.log import get_module_logger
+from qlib.typehint import Literal
 
 from .callbacks import Callback
 from .vessel import TrainingVesselBase
 
 _logger = get_module_logger(__name__)
 
+
+T = TypeVar("T")
 
 class Trainer:
     """
@@ -64,11 +67,16 @@ class Trainer:
     should_stop: bool
     """Set to stop the training."""
 
-    # TODO: make metrics appear here
-
     metrics: dict
-    """Metrics of produced in train/val/test. Cleared on every new iteration of training.
-    In fit, validation metrics will be prefixed with ``val/``."""
+    """Numeric metrics of produced in train/val/test.
+    In the middle of training / validation, metrics will be of the latest episode.
+    When each iteration of training / validation finishes, metrics will be the aggregation
+    of all episodes encountered in this iteration.
+
+    Cleared on every new iteration of training.
+
+    In fit, validation metrics will be prefixed with ``val/``.
+    """
 
     current_iter: int
     """Current iteration (collect) of training."""
@@ -78,7 +86,7 @@ class Trainer:
         *,
         max_iters: int | None = None,
         val_every_n_iters: int | None = None,
-        logger: LogWriter | list[LogWriter] | None = None,
+        loggers: LogWriter | list[LogWriter] | None = None,
         callbacks: list[Callback] | None = None,
         finite_env_type: FiniteEnvType = "subproc",
         concurrency: int = 2,
@@ -87,25 +95,36 @@ class Trainer:
         self.max_iters = max_iters
         self.val_every_n_iters = val_every_n_iters
 
-        if isinstance(logger, list):
-            self.logger: list[LogWriter] = logger
-        elif isinstance(logger, LogWriter):
-            self.logger: list[LogWriter] = [logger]
+        if isinstance(loggers, list):
+            self.loggers: list[LogWriter] = loggers
+        elif isinstance(loggers, LogWriter):
+            self.loggers: list[LogWriter] = [loggers]
         else:
-            self.logger: list[LogWriter] = []
+            self.loggers: list[LogWriter] = []
+
+        self.loggers.append(LogBuffer(self._metrics_callback))
 
         self.callbacks: list[Callback] = callbacks if callbacks is not None else []
         self.finite_env_type = finite_env_type
         self.concurrency = concurrency
         self.fast_dev_run = fast_dev_run
 
+        self.current_stage: Literal["train", "val", "test"] = "train"
+
         self.vessel: TrainingVesselBase = cast(TrainingVesselBase, None)
 
     def initialize(self):
+        """Initialize the whole training process.
+
+        The states here should be synchronized with state_dict.
+        """
         self.should_stop = False
         self.current_iter = 0
+        self.current_episode = 0
+        self.current_stage = "train"
 
     def initialize_iter(self):
+        """Initialize one iteraion / collect."""
         self.metrics = {}
 
     def state_dict(self) -> dict:
@@ -117,8 +136,11 @@ class Trainer:
         return {
             "vessel": self.vessel.state_dict(),
             "callbacks": {name: callback.state_dict() for name, callback in self.named_callbacks().items()},
+            "loggers": {name: logger.state_dict() for name, logger in self.named_loggers().items()},
             "should_stop": self.should_stop,
             "current_iter": self.current_iter,
+            "current_episode": self.current_episode,
+            "current_stage": self.current_stage,
             "metrics": self.metrics,
         }
 
@@ -127,25 +149,25 @@ class Trainer:
         self.vessel.load_state_dict(state_dict["vessel"])
         for name, callback in self.named_callbacks().items():
             callback.load_state_dict(state_dict["callbacks"][name])
+        for name, logger in self.named_loggers().items():
+            logger.load_state_dict(state_dict["logger"][name])
         self.should_stop = state_dict["should_stop"]
         self.current_iter = state_dict["current_iter"]
+        self.current_episode = state_dict["current_episode"]
+        self.current_stage = state_dict["current_stage"]
         self.metrics = state_dict["metrics"]
 
     def named_callbacks(self) -> dict[str, Callback]:
         """Retrieve a collection of callbacks where each one has a name.
         Useful when saving checkpoints.
         """
-        res = {}
-        for callback in self.callbacks:
-            typename = type(callback).__name__.lower()
-            if typename not in res:
-                res[typename] = callback
-            else:
-                # names are auto-labelled as earlystop1, earlystop2, ...
-                for retry in range(1, 1000):
-                    if f"{typename}{retry}" not in res:
-                        res[f"{typename}{retry}"] = callback
-        return res
+        return _named_collection(self.callbacks)
+
+    def named_loggers(self) -> dict[str, Callback]:
+        """Retrieve a collection of loggers where each one has a name.
+        Useful when saving checkpoints.
+        """
+        return _named_collection(self.loggers)
 
     def fit(self, vessel: TrainingVesselBase, ckpt_path: Path | None = None) -> None:
         """Train the RL policy upon the defined simulator.
@@ -168,6 +190,7 @@ class Trainer:
         self._call_callback_hooks("on_fit_start")
 
         while self.current_iter < self.max_iters:
+            self.current_stage = "train"
             self._call_callback_hooks("on_train_start")
 
             with _wrap_context(vessel.train_seed_iterator()) as iterator:
@@ -177,6 +200,7 @@ class Trainer:
             self._call_callback_hooks("on_train_end")
 
             if (self.current_iter + 1) % self.val_every_n_iters == 0:
+                self.current_stage = "val"
                 self._call_callback_hooks("on_validate_start")
                 with vessel.val_seed_iterator() as iterator:
                     vector_env = self.venv_from_iterator(vessel.val_seed_iterator())
@@ -203,6 +227,7 @@ class Trainer:
         """
         vessel.assign_trainer(self)
 
+        self.current_stage = "test"
         self._call_callback_hooks("on_test_start")
         with _wrap_context(vessel.test_seed_iterator()) as iterator:
             vector_env = self.venv_from_iterator(iterator)
@@ -212,11 +237,11 @@ class Trainer:
     def venv_from_iterator(self, iterator: Iterable[InitialStateType]) -> None:
         """Create a vectorized environment from iterator and the training vessel."""
 
-        if not self.logger:
+        if not self.loggers:
             min_loglevel = LogLevel.PERIODIC
         else:
             # To save bandwidth
-            min_loglevel = min(lg.loglevel for lg in self.logger)
+            min_loglevel = min(lg.loglevel for lg in self.loggers)
 
         def env_factory():
             # FIXME: state_interpreter and action_interpreter are stateful (having a weakref of env),
@@ -247,8 +272,20 @@ class Trainer:
             env_factory,
             self.finite_env_type,
             self.concurrency,
-            self.logger,
+            self.loggers,
         )
+
+    def _metrics_callback(self, on_episode: bool, on_collect: bool, log_buffer: LogBuffer):
+        if on_episode:
+            # Update the global counter.
+            self.current_episode = log_buffer.global_episode
+            metrics = log_buffer.episode_metrics()
+        elif on_collect:
+            # Update the latest metrics.
+            metrics = log_buffer.collect_metrics()
+        if self.current_stage == "val":
+            metrics = {"val/" + name: value for name, value in metrics.items()}
+        self.metrics.update(metrics)
 
     def _call_callback_hooks(self, hook_name: str, *args: Any, **kwargs: Any) -> None:
         for callback in self.callbacks:
@@ -266,3 +303,18 @@ def _wrap_context(obj):
             yield ctx
     else:
         yield obj
+
+
+def _named_collection(seq: Sequence[T]) -> dict[str, T]:
+    """Convert a list into a dict, where each item is named with its type."""
+    res = {}
+    for item in seq:
+        typename = type(item).__name__.lower()
+        if typename not in res:
+            res[typename] = item
+        else:
+            # names are auto-labelled as earlystop1, earlystop2, ...
+            for retry in range(1, 1000):
+                if f"{typename}{retry}" not in res:
+                    res[f"{typename}{retry}"] = item
+    return res

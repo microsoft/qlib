@@ -18,7 +18,7 @@ import logging
 from collections import defaultdict
 from enum import IntEnum
 from pathlib import Path
-from typing import Any, TypeVar, Generic, Set, TYPE_CHECKING, Sequence
+from typing import Any, TypeVar, Generic, Set, TYPE_CHECKING, Sequence, Callable
 
 import numpy as np
 import pandas as pd
@@ -29,7 +29,7 @@ if TYPE_CHECKING:
     from .env_wrapper import InfoDict
 
 
-__all__ = ["LogCollector", "LogWriter", "LogLevel", "ConsoleWriter", "CsvWriter"]
+__all__ = ["LogCollector", "LogWriter", "LogLevel", "LogBuffer", "ConsoleWriter", "CsvWriter"]
 
 ObsType = TypeVar("ObsType")
 ActType = TypeVar("ActType")
@@ -175,9 +175,38 @@ class LogWriter(Generic[ObsType, ActType]):
         self.clear()
 
     def clear(self):
+        """Clear all the metrics for a fresh start.
+        To make the logger instance reusable.
+        """
         self.episode_count = self.step_count = 0
         self.active_env_ids = set()
-        self.logs = []
+
+    def state_dict(self) -> dict:
+        """Save the states of the logger to a dict."""
+        return {
+            "episode_count": self.episode_count,
+            "step_count": self.step_count,
+            "global_step": self.global_step,
+            "global_episode": self.global_episode,
+            "active_env_ids": self.active_env_ids,
+            "episode_lengths": self.episode_lengths,
+            "episode_rewards": self.episode_rewards,
+            "episode_logs": self.episode_logs
+        }
+
+    def load_state_dict(self, state_dict: dict) -> None:
+        """Load the states of current logger from a dict."""
+        self.episode_count = state_dict["episode_count"]
+        self.step_count = state_dict["step_count"]
+        self.global_step = state_dict["global_step"]
+        self.global_episode = state_dict["global_episode"]
+
+        # These are runtime infos.
+        # Though they are loaded, I don't think it really helps.
+        self.active_env_ids = state_dict["active_env_ids"]
+        self.episode_lenghts = state_dict["episode_lengths"]
+        self.episode_rewards = state_dict["episode_rewards"]
+        self.episode_logs = state_dict["episode_logs"]
 
     def aggregation(self, array: Sequence[Any]) -> Any:
         """Aggregation function from step-wise to episode-wise.
@@ -257,6 +286,82 @@ class LogWriter(Generic[ObsType, ActType]):
         """All done. Time for cleanup."""
 
 
+class LogBuffer(LogWriter):
+    """Keep all numbers in memory.
+    
+    Objects that can't be aggregated like strings, tensors, images can't be stored in the buffer.
+    To persist them, please use :class:`PickleWriter`.
+
+    Every time, Log buffer receives a new metric, the callback is triggered,
+    which is useful when tracking metrics inside a trainer.
+
+    Parameters
+    ----------
+    callback
+        A callback receiving three arguments:
+
+        - on_episode: Whether it's called at the end of an episode
+        - on_collect: Whether it's called at the end of a collect
+        - log_buffer: the :class:`LogBbuffer`object
+
+        No return value is expected.
+    """
+
+    # FIXME: needs a metric count
+
+    def __init__(self, callback: Callable[[bool, bool, LogBuffer], None]):
+        self.callback = callback
+
+    def state_dict(self) -> dict:
+        return {
+            **super().state_dict(),
+            "latest_metrics": self._latest_metrics,
+            "aggregated_metrics": self._aggregated_metrics
+        }
+
+    def load_state_dict(self, state_dict: dict) -> None:
+        self._latest_metrics = state_dict["latest_metrics"]
+        self._aggregated_metrics = state_dict["aggregated_metrics"]
+        return super().load_state_dict(state_dict)
+
+    def clear(self):
+        super().clear()
+        self._latest_metrics: dict[str, float] | None = None
+        self._aggregated_metrics: dict[str, float] = defaultdict(float)
+
+    def log_episode(self, length: int, rewards: list[float], contents: list[dict[str, Any]]) -> None:
+        # FIXME Dup of ConsoleWriter
+        episode_wise_contents: dict[str, list] = defaultdict(list)
+        for step_contents in contents:
+            for name, value in step_contents.items():
+                # FIXME This could be false-negative for some numpy types
+                if isinstance(value, float):
+                    episode_wise_contents[name].append(value)
+
+        logs: dict[str, float] = {}
+        for name, values in episode_wise_contents.items():
+            logs[name] = self.aggregation(values)  # type: ignore
+            self._aggregated_metrics[name] += logs[name]
+
+        self._latest_metrics = logs
+
+        self.callback(True, False, self)
+
+    def on_env_all_done(self) -> None:
+        # This happens when collect exits
+        self.callback(False, True, self)
+
+    def episode_metrics(self) -> dict[str, float]:
+        """Retrieve the numeric metrics of the latest episode."""
+        if self._latest_metrics is None:
+            raise ValueError("No episode metrics available yet.")
+        return self._latest_metrics
+
+    def collect_metrics(self) -> dict[str, float]:
+        """Retrieve the aggregated metrics of the latest collect."""
+        return {name: value / self.episode_count for name, value in self._aggregated_metrics.items()}
+
+
 class ConsoleWriter(LogWriter):
     """Write log messages to console periodically.
 
@@ -288,6 +393,8 @@ class ConsoleWriter(LogWriter):
         self.prefix = ""
 
         self.console_logger = get_module_logger(__name__, level=logging.INFO)
+
+    # FIXME: save & reload
 
     def clear(self):
         super().clear()
@@ -350,6 +457,8 @@ class CsvWriter(LogWriter):
 
     all_records: list[dict[str, Any]]
 
+    # FIXME: save & reload
+
     def __init__(self, output_dir: Path, loglevel: int | LogLevel = LogLevel.PERIODIC):
         super().__init__(loglevel)
         self.output_dir = output_dir
@@ -392,7 +501,3 @@ class TensorboardWriter(LogWriter):
 
 class MlflowWriter(LogWriter):
     """Add logs to mlflow."""
-
-
-class LogBuffer(LogWriter):
-    """Keep everything in memory."""
