@@ -24,7 +24,7 @@ class FileStorageMixin:
 
     """
 
-    # NOTE: provider_uri priority：
+    # NOTE: provider_uri priority:
     #   1. self._provider_uri : if provider_uri is provided.
     #   2. provider_uri in qlib.config.C
 
