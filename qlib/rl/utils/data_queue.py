@@ -70,7 +70,6 @@ class DataQueue(Generic[T]):
                 _logger.warning(f"CPU count not available. Setting queue maxsize to 1.")
 
         self.dataset: Sequence[T] = dataset
-        print(self.dataset)
         self.repeat: int = repeat
         self.shuffle: bool = shuffle
         self.producer_num_workers: int = producer_num_workers

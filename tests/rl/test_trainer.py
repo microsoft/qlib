@@ -3,6 +3,7 @@ import random
 import torch
 import torch.nn as nn
 from gym import spaces
+from tianshou.policy import PPOPolicy
 
 from qlib.config import C
 from qlib.log import set_log_with_config
@@ -14,6 +15,9 @@ from qlib.rl.trainer import Trainer, TrainingVessel
 
 
 class ZeroSimulator(Simulator):
+
+    def __init__(self, *args, **kwargs):
+        self.action = self.correct = 0
 
     def step(self, action):
         self.action = action
@@ -58,9 +62,9 @@ class PolicyNet(nn.Module):
         self.return_state = return_state
 
     def forward(self, obs, state=None, **kwargs):
-        res = self.fc(torch.randn(obs['acc'].size(0), 32))
+        res = self.fc(torch.randn(obs['acc'].shape[0], 32))
         if self.return_state:
-            return res, state
+            return nn.functional.softmax(res, dim=-1), state
         else:
             return res
 
@@ -68,11 +72,20 @@ class PolicyNet(nn.Module):
 def test_trainer():
     set_log_with_config(C.logging_config)
     trainer = Trainer(max_iters=10)
+    actor = PolicyNet(2, True)
+    critic = PolicyNet()
+    policy = PPOPolicy(
+        actor, critic,
+        torch.optim.Adam(tuple(actor.parameters()) + tuple(critic.parameters())),
+        torch.distributions.Categorical,
+        action_space=NoopActionInterpreter().action_space,
+    )
+
     vessel = TrainingVessel(
         simulator_fn=lambda init: ZeroSimulator(init),
         state_interpreter=NoopStateInterpreter(),
         action_interpreter=NoopActionInterpreter(),
-        policy=PolicyNet(),
+        policy=policy,
         train_initial_states=list(range(100)),
         val_initial_states=list(range(10)),
         test_initial_states=list(range(10)),

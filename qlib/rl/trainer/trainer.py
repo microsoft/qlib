@@ -90,7 +90,7 @@ class Trainer:
         callbacks: list[Callback] | None = None,
         finite_env_type: FiniteEnvType = "subproc",
         concurrency: int = 2,
-        fast_dev_run: int = 0,
+        fast_dev_run: int | None = None,
     ):
         self.max_iters = max_iters
         self.val_every_n_iters = val_every_n_iters
@@ -191,16 +191,19 @@ class Trainer:
         self._call_callback_hooks("on_fit_start")
 
         while self.current_iter < self.max_iters:
+            self.initialize_iter()
+
             self.current_stage = "train"
             self._call_callback_hooks("on_train_start")
 
             with _wrap_context(vessel.train_seed_iterator()) as iterator:
+                # TODO: vector env can be re-created every few iterations
                 vector_env = self.venv_from_iterator(iterator)
                 self.vessel.train(vector_env)
 
             self._call_callback_hooks("on_train_end")
 
-            if (self.current_iter + 1) % self.val_every_n_iters == 0:
+            if self.val_every_n_iters is not None and (self.current_iter + 1) % self.val_every_n_iters == 0:
                 self.current_stage = "val"
                 self._call_callback_hooks("on_validate_start")
                 with vessel.val_seed_iterator() as iterator:
@@ -228,6 +231,8 @@ class Trainer:
         """
         self.vessel = vessel
         vessel.assign_trainer(self)
+
+        self.initialize_iter()
 
         self.current_stage = "test"
         self._call_callback_hooks("on_test_start")
