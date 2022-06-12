@@ -1,11 +1,13 @@
 import random
 
+import torch
 import torch.nn as nn
 from gym import spaces
 
 from qlib.rl.interpreter import StateInterpreter, ActionInterpreter
 from qlib.rl.simulator import Simulator
 from qlib.rl.reward import Reward
+from qlib.rl.trainer import Trainer, TrainingVessel
 
 
 
@@ -48,6 +50,31 @@ class AccReward(Reward):
 
 
 class PolicyNet(nn.Module):
-    def __init__(self):
+    def __init__(self, out_features=1, return_state=False):
         super().__init__()
-        self.fc = nn.Linear(32, 1)
+        self.fc = nn.Linear(32, out_features)
+        self.return_state = return_state
+
+    def forward(self, obs, state=None, **kwargs):
+        res = self.fc(torch.randn(obs['acc'].size(0), 32))
+        if self.return_state:
+            return res, state
+        else:
+            return res
+
+
+def test_trainer():
+    trainer = Trainer(max_iters=10)
+    vessel = TrainingVessel(
+        simulator_fn=lambda init: ZeroSimulator(init),
+        state_interpreter=NoopStateInterpreter(),
+        action_interpreter=NoopActionInterpreter(),
+        policy=PolicyNet(),
+        train_initial_states=list(range(100)),
+        val_initial_states=list(range(10)),
+        test_initial_states=list(range(10)),
+    )
+    trainer.fit(vessel)
+
+
+test_trainer()
