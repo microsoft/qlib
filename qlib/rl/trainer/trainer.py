@@ -102,7 +102,7 @@ class Trainer:
         else:
             self.loggers: list[LogWriter] = []
 
-        self.loggers.append(LogBuffer(self._metrics_callback))
+        self.loggers.append(LogBuffer(self._metrics_callback, loglevel=self._min_loglevel()))
 
         self.callbacks: list[Callback] = callbacks if callbacks is not None else []
         self.finite_env_type = finite_env_type
@@ -179,6 +179,7 @@ class Trainer:
         ckpt_path
             Load a pre-trained / paused training checkpoint.
         """
+        self.vessel = vessel
         vessel.assign_trainer(self)
 
         if ckpt_path is not None:
@@ -225,6 +226,7 @@ class Trainer:
         vessel
             A bundle of all related elements.
         """
+        self.vessel = vessel
         vessel.assign_trainer(self)
 
         self.current_stage = "test"
@@ -236,12 +238,6 @@ class Trainer:
 
     def venv_from_iterator(self, iterator: Iterable[InitialStateType]) -> None:
         """Create a vectorized environment from iterator and the training vessel."""
-
-        if not self.loggers:
-            min_loglevel = LogLevel.PERIODIC
-        else:
-            # To save bandwidth
-            min_loglevel = min(lg.loglevel for lg in self.loggers)
 
         def env_factory():
             # FIXME: state_interpreter and action_interpreter are stateful (having a weakref of env),
@@ -265,7 +261,7 @@ class Trainer:
                 action,
                 iterator,
                 rew,
-                logger=LogCollector(min_loglevel=min_loglevel),
+                logger=LogCollector(min_loglevel=self._min_loglevel()),
             )
 
         return vectorize_env(
@@ -291,6 +287,13 @@ class Trainer:
         for callback in self.callbacks:
             fn = getattr(callback, hook_name)
             fn(self, self.vessel, *args, **kwargs)
+
+    def _min_loglevel(self):
+        if not self.loggers:
+            return LogLevel.PERIODIC
+        else:
+            # To save bandwidth
+            return min(lg.loglevel for lg in self.loggers)
 
 
 @contextmanager

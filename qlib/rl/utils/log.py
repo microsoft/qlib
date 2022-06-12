@@ -309,7 +309,8 @@ class LogBuffer(LogWriter):
 
     # FIXME: needs a metric count
 
-    def __init__(self, callback: Callable[[bool, bool, LogBuffer], None]):
+    def __init__(self, callback: Callable[[bool, bool, LogBuffer], None], loglevel: int | LogLevel = LogLevel.PERIODIC):
+        super().__init__(loglevel)
         self.callback = callback
 
     def state_dict(self) -> dict:

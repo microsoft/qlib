@@ -4,6 +4,8 @@ import torch
 import torch.nn as nn
 from gym import spaces
 
+from qlib.config import C
+from qlib.log import set_log_with_config
 from qlib.rl.interpreter import StateInterpreter, ActionInterpreter
 from qlib.rl.simulator import Simulator
 from qlib.rl.reward import Reward
@@ -29,7 +31,7 @@ class ZeroSimulator(Simulator):
 
 class NoopStateInterpreter(StateInterpreter):
     observation_space = spaces.Dict({
-        'acc': spaces.Box(0, 100),
+        'acc': spaces.Discrete(200),
         'action': spaces.Discrete(2),
     })
 
@@ -64,6 +66,7 @@ class PolicyNet(nn.Module):
 
 
 def test_trainer():
+    set_log_with_config(C.logging_config)
     trainer = Trainer(max_iters=10)
     vessel = TrainingVessel(
         simulator_fn=lambda init: ZeroSimulator(init),
@@ -73,6 +76,8 @@ def test_trainer():
         train_initial_states=list(range(100)),
         val_initial_states=list(range(10)),
         test_initial_states=list(range(10)),
+        reward=AccReward(),
+        update_kwargs=dict(repeat=10, batch_size=64),
     )
     trainer.fit(vessel)
 

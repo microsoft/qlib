@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import logging
 import weakref
-from typing import Callable, Generic, Iterable, TYPE_CHECKING, Sequence, Any, TypeVar
+from typing import Callable, Generic, Iterable, TYPE_CHECKING, Sequence, Any, TypeVar, cast, Dict
 
 import numpy as np
 from tianshou.data import Collector, VectorReplayBuffer
@@ -17,17 +17,16 @@ from qlib.rl.interpreter import StateType, ActType, ObsType, PolicyActType
 from qlib.rl.simulator import InitialStateType, Simulator
 from qlib.rl.interpreter import StateInterpreter, ActionInterpreter
 from qlib.rl.reward import Reward
-from qlib.rl.utils import DataQueue, EnvWrapper, FiniteEnvType, LogCollector, LogWriter, finite_env_factory
+from qlib.rl.utils import DataQueue
 from qlib.log import get_module_logger
 from qlib.rl.utils.finite_env import FiniteVectorEnv
-from qlib.typehint import Literal
 
 if TYPE_CHECKING:
     from .trainer import Trainer
 
 
 T = TypeVar('T')
-_logger = logging.getLogger(__name__)
+_logger = get_module_logger(__name__)
 
 class SeedIteratorNotAvailable(BaseException):
     pass
@@ -96,8 +95,8 @@ class TrainingVessel(TrainingVesselBase):
 
     - ``buffer_size``: Size of replay buffer.
     - ``episode_per_iter``: Episodes per collect at training.
-    - ``update_per_iter``: Number of updates happening after each collect. This is used in ``repeat`` parameter in ``policy.update``.
-    - ``batch_size``: Batch size in ``self.policy.update`` after each collect.
+    - ``update_kwargs``: Keyword arguments appearing in ``policy.update``.
+      For example, ``dict(repeat=10, batch_size=64)``.
     """
 
     def __init__(
@@ -110,10 +109,9 @@ class TrainingVessel(TrainingVesselBase):
         train_initial_states: Sequence[InitialStateType] | None,
         val_initial_states: Sequence[InitialStateType] | None,
         test_initial_states: Sequence[InitialStateType] | None,
-        buffer_size: int,
-        episode_per_iter: int,
-        update_per_iter: int,
-        batch_size: int
+        buffer_size: int = 20000,
+        episode_per_iter: int = 1000,
+        update_kwargs: dict[str, Any] = cast(Dict[str, Any], None),
     ):
         self.simulator_fn = simulator_fn
         self.state_interpreter = state_interpreter
@@ -125,8 +123,7 @@ class TrainingVessel(TrainingVesselBase):
         self.test_initial_states = test_initial_states
         self.buffer_size = buffer_size
         self.episode_per_iter = episode_per_iter
-        self.update_per_iter = update_per_iter
-        self.batch_size = batch_size
+        self.update_kwargs = update_kwargs
 
     def train_seed_iterator(self) -> Iterable[InitialStateType]:
         if self.train_initial_states is not None:
@@ -150,18 +147,22 @@ class TrainingVessel(TrainingVesselBase):
             return DataQueue(test_initial_states, repeat=1)
         return super().test_seed_iterator()
 
-    def train(self, vector_env: BaseVectorEnv) -> dict[str, Any]:
+    def train(self, vector_env: FiniteVectorEnv) -> dict[str, Any]:
         self.policy.train()
-        collector = Collector(
-            self.policy,
-            vector_env,
-            VectorReplayBuffer(self.buffer_size, len(vector_env))
-        )
-        col_result = collector.collect(n_episode=self.episode_per_iter)
-        update_result = self.policy.update(
-            0, collector.buffer, batch_size=self.batch_size, repeat=self.update_per_iter
-        )
-        return {**col_result, **update_result}
+
+        with vector_env.collector_guard():
+            collector = Collector(
+                self.policy,
+                vector_env,
+                VectorReplayBuffer(self.buffer_size, len(vector_env))
+            )
+            col_result = collector.collect(n_episode=self.episode_per_iter)
+            update_result = self.policy.update(
+                sample_size=0,
+                buffer=collector.buffer,
+                **self.update_kwargs
+            )
+            return {**col_result, **update_result}
 
     def validate(self, vector_env: FiniteVectorEnv) -> dict[str, Any]:
         self.policy.eval()

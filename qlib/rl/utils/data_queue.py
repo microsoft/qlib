@@ -70,6 +70,7 @@ class DataQueue(Generic[T]):
                 _logger.warning(f"CPU count not available. Setting queue maxsize to 1.")
 
         self.dataset: Sequence[T] = dataset
+        print(self.dataset)
         self.repeat: int = repeat
         self.shuffle: bool = shuffle
         self.producer_num_workers: int = producer_num_workers
@@ -161,19 +162,21 @@ class DataQueue(Generic[T]):
         # pytorch dataloader is used here only because we need its sampler and multi-processing
         from torch.utils.data import DataLoader, Dataset  # pylint: disable=import-outside-toplevel
 
-        dataloader = DataLoader(
-            cast(Dataset[T], self.dataset),
-            batch_size=None,
-            num_workers=self.producer_num_workers,
-            shuffle=self.shuffle,
-            collate_fn=lambda t: t,  # identity collate fn
-        )
-        repeat = 10**18 if self.repeat == -1 else self.repeat
-        for _rep in range(repeat):
-            for data in dataloader:
-                if self._done.value:
-                    # Already done.
-                    return
-                self._queue.put(data)
-            _logger.debug(f"Dataloader loop done. Repeat {_rep}.")
-        self.mark_as_done()
+        try:
+            dataloader = DataLoader(
+                cast(Dataset[T], self.dataset),
+                batch_size=None,
+                num_workers=self.producer_num_workers,
+                shuffle=self.shuffle,
+                collate_fn=lambda t: t,  # identity collate fn
+            )
+            repeat = 10**18 if self.repeat == -1 else self.repeat
+            for _rep in range(repeat):
+                for data in dataloader:
+                    if self._done.value:
+                        # Already done.
+                        return
+                    self._queue.put(data)
+                _logger.debug(f"Dataloader loop done. Repeat {_rep}.")
+        finally:
+            self.mark_as_done()
