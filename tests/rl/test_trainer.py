@@ -1,6 +1,9 @@
 import os
 import random
+import sys
 from pathlib import Path
+
+import pytest
 
 import torch
 import torch.nn as nn
@@ -13,6 +16,8 @@ from qlib.rl.interpreter import StateInterpreter, ActionInterpreter
 from qlib.rl.simulator import Simulator
 from qlib.rl.reward import Reward
 from qlib.rl.trainer import Trainer, TrainingVessel, EarlyStopping, Checkpoint
+
+pytestmark = pytest.mark.skipif(sys.version_info < (3, 8), reason="Pickle styled data only supports Python >= 3.8")
 
 
 class ZeroSimulator(Simulator):

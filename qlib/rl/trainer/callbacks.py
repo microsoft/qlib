@@ -250,12 +250,16 @@ class Checkpoint(Callback):
         self._last_checkpoint_time = time.time()
         torch.save(trainer.state_dict(), self.dirpath / self._last_checkpoint_name)
 
+        latest_pth = self.dirpath / "latest.pth"
+
+        # Remove first before saving
+        if self.save_latest and latest_pth.exists():
+            latest_pth.unlink()
+
         if self.save_latest == "link":
-            (self.dirpath / "latest.pth").unlink(missing_ok=True)
-            (self.dirpath / "latest.pth").symlink_to(self.dirpath / self._last_checkpoint_name)
+            latest_pth.symlink_to(self.dirpath / self._last_checkpoint_name)
         elif self.save_latest == "copy":
-            (self.dirpath / "latest.pth").unlink(missing_ok=True)
-            shutil.copyfile(self.dirpath / self._last_checkpoint_name, self.dirpath / "latest.pth")
+            shutil.copyfile(self.dirpath / self._last_checkpoint_name, latest_pth)
 
     def _new_checkpoint_name(self, trainer: Trainer) -> str:
         return self.filename.format(
