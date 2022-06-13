@@ -27,6 +27,7 @@ if TYPE_CHECKING:
 
 _logger = get_module_logger(__name__)
 
+
 class Callback:
     """Base class of all callbacks."""
 
@@ -87,10 +88,11 @@ class EarlyStopping(Callback):
 
     Implementation reference: https://github.com/keras-team/keras/blob/v2.9.0/keras/callbacks.py#L1744-L1893
     """
+
     def __init__(
         self,
         monitor: str = "reward",
-        min_delta: float = 0.,
+        min_delta: float = 0.0,
         patience: int = 0,
         mode: Literal["min", "max"] = "max",
         baseline: float | None = None,
@@ -119,12 +121,7 @@ class EarlyStopping(Callback):
             self.min_delta *= -1
 
     def state_dict(self) -> dict:
-        return {
-            "wait": self.wait,
-            "best": self.best,
-            "best_weights": self.best_weights,
-            "best_iter": self.best_iter
-        }
+        return {"wait": self.wait, "best": self.best, "best_weights": self.best_weights, "best_iter": self.best_iter}
 
     def load_state_dict(self, state_dict: dict) -> None:
         self.wait = state_dict["wait"]
@@ -170,7 +167,8 @@ class EarlyStopping(Callback):
         if monitor_value is None:
             _logger.warning(
                 "Early stopping conditioned on metric `%s` which is not available. Available metrics are: %s",
-                self.monitor, ",".join(list(trainer.metrics.keys())),
+                self.monitor,
+                ",".join(list(trainer.metrics.keys())),
             )
         return monitor_value
 
@@ -194,7 +192,7 @@ class Checkpoint(Callback):
 
         - iter (int)
         - metrics in ``trainer.metrics``
-        - time string, in the format of 
+        - time string, in the format of ``%Y%m%d%H%M%S``
     save_latest
         Save the latest checkpoint in ``latest.pth``.
         If ``link``, ``latest.pth`` will be created as a softlink.
@@ -209,14 +207,15 @@ class Checkpoint(Callback):
         Save one last checkpoint at the end to fit.
         Do nothing if a checkpoint is already saved there.
     """
+
     def __init__(
         self,
         dirpath: Path,
-        filename: str = '{iter:03d}.pth',
+        filename: str = "{iter:03d}.pth",
         save_latest: Literal["link", "copy"] | None = "link",
         every_n_iters: int | None = None,
         time_interval: int | None = None,
-        save_on_fit_end: bool = True
+        save_on_fit_end: bool = True,
     ):
         self.dirpath = Path(dirpath)
         self.filename = filename
@@ -260,7 +259,5 @@ class Checkpoint(Callback):
 
     def _new_checkpoint_name(self, trainer: Trainer) -> str:
         return self.filename.format(
-            iter=trainer.current_iter,
-            time=datetime.now().strftime('%Y%m%d%H%M%S'),
-            **trainer.metrics
+            iter=trainer.current_iter, time=datetime.now().strftime("%Y%m%d%H%M%S"), **trainer.metrics
         )

@@ -32,7 +32,7 @@ class PAPenaltyReward(Reward[SAOEState]):
         latest_exec_record = cast(SAOEMetrics, simulator_state.history_steps.reset_index().iloc[-1].to_dict())
         pa = latest_exec_record["pa"] * latest_exec_record["amount"] / whole_order
 
-        latest_interval = simulator_state.history_exec.loc[latest_exec_record["datetime"]:]
+        latest_interval = simulator_state.history_exec.loc[latest_exec_record["datetime"] :]
         penalty = -self.penalty * ((latest_interval["amount"] / whole_order) ** 2).sum()
 
         reward = pa + penalty

@@ -194,7 +194,7 @@ class LogWriter(Generic[ObsType, ActType]):
             "active_env_ids": self.active_env_ids,
             "episode_lengths": self.episode_lengths,
             "episode_rewards": self.episode_rewards,
-            "episode_logs": self.episode_logs
+            "episode_logs": self.episode_logs,
         }
 
     def load_state_dict(self, state_dict: dict) -> None:
@@ -303,7 +303,7 @@ class LogWriter(Generic[ObsType, ActType]):
 
 class LogBuffer(LogWriter):
     """Keep all numbers in memory.
-    
+
     Objects that can't be aggregated like strings, tensors, images can't be stored in the buffer.
     To persist them, please use :class:`PickleWriter`.
 
@@ -332,7 +332,7 @@ class LogBuffer(LogWriter):
         return {
             **super().state_dict(),
             "latest_metrics": self._latest_metrics,
-            "aggregated_metrics": self._aggregated_metrics
+            "aggregated_metrics": self._aggregated_metrics,
         }
 
     def load_state_dict(self, state_dict: dict) -> None:

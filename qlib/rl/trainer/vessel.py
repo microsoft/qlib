@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-import logging
 import weakref
 from typing import Callable, Generic, Iterable, TYPE_CHECKING, Sequence, Any, TypeVar, cast, Dict
 
