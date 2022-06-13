@@ -4,13 +4,15 @@
 This module is not well maintained.
 """
 
-import numpy as np
-import pandas as pd
-from .position import Position
-from ..data import D
-from ..config import C
 import datetime
 from pathlib import Path
+
+import numpy as np
+import pandas as pd
+
+from ..config import C
+from ..data import D
+from .position import Position
 
 
 def get_benchmark_weight(
@@ -214,7 +216,9 @@ def get_stock_group(stock_group_field_df, bench_stock_weight_df, group_method, g
         for idx, row in (~bench_stock_weight_df.isna()).iterrows():
             bench_values = stock_group_field_df.loc[idx, row[row].index]
             new_stock_group_df.loc[idx] = get_daily_bin_group(
-                bench_values, stock_group_field_df.loc[idx], group_n=group_n
+                bench_values,
+                stock_group_field_df.loc[idx],
+                group_n=group_n,
             )
         return new_stock_group_df
 
@@ -315,7 +319,7 @@ def brinson_pa(
                 # The excess profit from the interaction of assets allocation and stocks selection
                 "RIN": Q4 - Q3 - Q2 + Q1,
                 "RTotal": Q4 - Q1,  # The totoal excess profit
-            }
+            },
         ),
         {
             "port_group_ret": port_group_ret_df,

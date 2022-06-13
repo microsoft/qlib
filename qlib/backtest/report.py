@@ -2,19 +2,20 @@
 # Licensed under the MIT License.
 
 
-from collections import OrderedDict
 import pathlib
+from collections import OrderedDict
 from typing import Dict, List, Tuple, Union
 
 import numpy as np
 import pandas as pd
 
-from qlib.backtest.exchange import Exchange
+import qlib.utils.index_data as idd
 from qlib.backtest.decision import BaseTradeDecision, Order, OrderDir
-from .high_performance_ds import BaseOrderIndicator, NumpyOrderIndicator, SingleMetric
+from qlib.backtest.exchange import Exchange
+
 from ..tests.config import CSI300_BENCH
 from ..utils.resam import get_higher_eq_freq_feature, resam_ts_data
-import qlib.utils.index_data as idd
+from .high_performance_ds import BaseOrderIndicator, NumpyOrderIndicator, SingleMetric
 
 
 class PortfolioMetrics:
@@ -161,7 +162,8 @@ class PortfolioMetrics:
             stock_value,
         ]:
             raise ValueError(
-                "None in [trade_start_time, account_value, cash, return_rate, total_turnover, turnover_rate, total_cost, cost_rate, stock_value]"
+                "None in [trade_start_time, account_value, cash, return_rate, total_turnover, turnover_rate, "
+                "total_cost, cost_rate, stock_value]",
             )
 
         if trade_end_time is None and bench_value is None:
@@ -335,7 +337,10 @@ class Indicator:
         # sum inner order indicators with same metric.
         all_metric = ["inner_amount", "deal_amount", "trade_price", "trade_value", "trade_cost", "trade_dir"]
         self.order_indicator_cls.sum_all_indicators(
-            self.order_indicator, inner_order_indicators, all_metric, fill_value=0
+            self.order_indicator,
+            inner_order_indicators,
+            all_metric,
+            fill_value=0,
         )
 
         def func(trade_price, deal_amount):
@@ -378,12 +383,17 @@ class Indicator:
 
         if decision.trade_range is not None:
             trade_start_time, trade_end_time = decision.trade_range.clip_time_range(
-                start_time=trade_start_time, end_time=trade_end_time
+                start_time=trade_start_time,
+                end_time=trade_end_time,
             )
 
         if price == "deal_price":
             price_s = trade_exchange.get_deal_price(
-                inst, trade_start_time, trade_end_time, direction=direction, method=None
+                inst,
+                trade_start_time,
+                trade_end_time,
+                direction=direction,
+                method=None,
             )
         else:
             raise NotImplementedError(f"This type of input is not supported")
@@ -599,8 +609,12 @@ class Indicator:
         if show_indicator:
             print(
                 "[Indicator({}) {:%Y-%m-%d %H:%M:%S}]: FFR: {}, PA: {}, POS: {}".format(
-                    freq, trade_start_time, fulfill_rate, price_advantage, positive_rate
-                )
+                    freq,
+                    trade_start_time,
+                    fulfill_rate,
+                    price_advantage,
+                    positive_rate,
+                ),
             )
 
     def get_order_indicator(self, raw: bool = True):

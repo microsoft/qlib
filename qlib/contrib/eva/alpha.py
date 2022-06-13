@@ -48,7 +48,9 @@ def calc_long_short_prec(
 
     group = df.groupby(level=date_col)
 
-    N = lambda x: int(len(x) * quantile)
+    def N(x):
+        return int(len(x) * quantile)
+
     # find the top/low quantile of prediction and treat them as long and short target
     long = group.apply(lambda x: x.nlargest(N(x), columns="pred").label).reset_index(level=0, drop=True)
     short = group.apply(lambda x: x.nsmallest(N(x), columns="pred").label).reset_index(level=0, drop=True)
@@ -98,7 +100,10 @@ def calc_long_short_return(
     if dropna:
         df.dropna(inplace=True)
     group = df.groupby(level=date_col)
-    N = lambda x: int(len(x) * quantile)
+
+    def N(x):
+        return int(len(x) * quantile)
+
     r_long = group.apply(lambda x: x.nlargest(N(x), columns="pred").label.mean())
     r_short = group.apply(lambda x: x.nsmallest(N(x), columns="pred").label.mean())
     r_avg = group.label.mean()

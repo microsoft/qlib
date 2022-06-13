@@ -145,7 +145,7 @@ class DataQueue(Generic[T]):
     def __iter__(self):
         if not self._activated:
             raise ValueError(
-                "Need to call activate() to launch a daemon worker " "to produce data into data queue before using it."
+                "Need to call activate() to launch a daemon worker to produce data into data queue before using it."
             )
         return self._consumer()
 
