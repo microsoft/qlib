@@ -2,17 +2,29 @@
 # Licensed under the MIT License.
 
 from __future__ import annotations
+
+from typing import TYPE_CHECKING, Generator, Optional, Tuple, Union
+
+import pandas as pd
+
 from qlib.backtest.decision import BaseTradeDecision
-from typing import TYPE_CHECKING
+from qlib.backtest.report import Indicator, PortfolioMetrics
 
 if TYPE_CHECKING:
     from qlib.strategy.base import BaseStrategy
     from qlib.backtest.executor import BaseExecutor
-from ..utils.time import Freq
+
 from tqdm.auto import tqdm
 
+from ..utils.time import Freq
 
-def backtest_loop(start_time, end_time, trade_strategy: BaseStrategy, trade_executor: BaseExecutor):
+
+def backtest_loop(
+    start_time: Union[pd.Timestamp, str],
+    end_time: Union[pd.Timestamp, str],
+    trade_strategy: BaseStrategy,
+    trade_executor: BaseExecutor,
+) -> Tuple[PortfolioMetrics, Indicator]:
     """backtest function for the interaction of the outermost strategy and executor in the nested decision execution
 
     please refer to the docs of `collect_data_loop`
@@ -31,19 +43,23 @@ def backtest_loop(start_time, end_time, trade_strategy: BaseStrategy, trade_exec
 
 
 def collect_data_loop(
-    start_time, end_time, trade_strategy: BaseStrategy, trade_executor: BaseExecutor, return_value: dict = None
-):
+    start_time: Union[pd.Timestamp, str],
+    end_time: Union[pd.Timestamp, str],
+    trade_strategy: BaseStrategy,
+    trade_executor: BaseExecutor,
+    return_value: dict = None,
+) -> Generator[BaseTradeDecision, Optional[BaseTradeDecision], None]:
     """Generator for collecting the trade decision data for rl training
 
     Parameters
     ----------
-    start_time : pd.Timestamp|str
+    start_time : Union[pd.Timestamp, str]
         closed start time for backtest
         **NOTE**: This will be applied to the outmost executor's calendar.
-    end_time : pd.Timestamp|str
+    end_time : Union[pd.Timestamp, str]
         closed end time for backtest
         **NOTE**: This will be applied to the outmost executor's calendar.
-        E.g. Executor[day](Executor[1min]),   setting `end_time == 20XX0301` will include all the minutes on 20XX0301
+        E.g. Executor[day](Executor[1min]), setting `end_time == 20XX0301` will include all the minutes on 20XX0301
     trade_strategy : BaseStrategy
         the outermost portfolio strategy
     trade_executor : BaseExecutor

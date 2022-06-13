@@ -1,13 +1,16 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
-from qlib.utils import init_instance_by_config
+import abc
 from typing import Dict, List, Text, Tuple, Union
-from ..model.base import BaseModel
+
+import pandas as pd
+
+from qlib.utils import init_instance_by_config
+
 from ..data.dataset import Dataset
 from ..data.dataset.utils import convert_index_format
+from ..model.base import BaseModel
 from ..utils.resam import resam_ts_data
-import pandas as pd
-import abc
 
 
 class Signal(metaclass=abc.ABCMeta):
@@ -82,7 +85,7 @@ class ModelSignal(SignalWCache):
 
 
 def create_signal_from(
-    obj: Union[Signal, Tuple[BaseModel, Dataset], List, Dict, Text, pd.Series, pd.DataFrame]
+    obj: Union[Signal, Tuple[BaseModel, Dataset], List, Dict, Text, pd.Series, pd.DataFrame],
 ) -> Signal:
     """
     create signal from diverse information
