@@ -29,11 +29,12 @@ class PAPenaltyReward(Reward[SAOEState]):
     def reward(self, simulator_state: SAOEState) -> float:
         whole_order = simulator_state.order.amount
         assert whole_order > 0
-        latest_exec_record = cast(SAOEMetrics, simulator_state.history_steps.reset_index().iloc[-1].to_dict())
-        pa = latest_exec_record["pa"] * latest_exec_record["amount"] / whole_order
+        last_step = cast(SAOEMetrics, simulator_state.history_steps.reset_index().iloc[-1].to_dict())
+        pa = last_step["pa"] * last_step["amount"] / whole_order
 
-        latest_interval = simulator_state.history_exec.loc[latest_exec_record["datetime"] :]
-        penalty = -self.penalty * ((latest_interval["amount"] / whole_order) ** 2).sum()
+        # Inspect the "break-down" of the latest step: trading amount at every tick
+        last_step_breakdown = simulator_state.history_exec.loc[last_step["datetime"] :]
+        penalty = -self.penalty * ((last_step_breakdown["amount"] / whole_order) ** 2).sum()
 
         reward = pa + penalty
 
