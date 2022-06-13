@@ -132,7 +132,7 @@ class EarlyStopping(Callback):
         self.best_weights = state_dict["best_weights"]
         self.best_iter = state_dict["best_iter"]
 
-    def on_fit_start(self, trainer: Trainer, vessel: TrainingVesselBase):
+    def on_fit_start(self, trainer: Trainer, vessel: TrainingVesselBase) -> None:
         # Allow instances to be re-used
         self.wait = 0
         self.best = np.inf if self.monitor_op == np.less else -np.inf
@@ -165,7 +165,7 @@ class EarlyStopping(Callback):
                 _logger.info("Restoring model weights from the end of the best iteration: %d", self.best_iter + 1)
                 vessel.load_state_dict(self.best_weights)
 
-    def get_monitor_value(self, trainer: Trainer):
+    def get_monitor_value(self, trainer: Trainer) -> Any:
         monitor_value = trainer.metrics.get(self.monitor)
         if monitor_value is None:
             _logger.warning(
@@ -237,7 +237,9 @@ class Checkpoint(Callback):
         should_save_ckpt = False
         if self.every_n_iters is not None and (trainer.current_iter + 1) % self.every_n_iters == 0:
             should_save_ckpt = True
-        if self.time_interval is not None and (time.time() - self._last_checkpoint_time) >= self.time_interval:
+        if self.time_interval is not None and (
+            self._last_checkpoint_time is None or (time.time() - self._last_checkpoint_time) >= self.time_interval
+        ):
             should_save_ckpt = True
         if should_save_ckpt:
             self._save_checkpoint(trainer)

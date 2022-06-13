@@ -127,7 +127,7 @@ class TrainingVessel(TrainingVesselBase):
         episode_per_iter: int = 1000,
         update_kwargs: dict[str, Any] = cast(Dict[str, Any], None),
     ):
-        self.simulator_fn = simulator_fn
+        self.simulator_fn = simulator_fn  # type: ignore
         self.state_interpreter = state_interpreter
         self.action_interpreter = action_interpreter
         self.policy = policy
