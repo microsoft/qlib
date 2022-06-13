@@ -182,7 +182,7 @@ class FiniteVectorEnv(BaseVectorEnv):
 
         1. Catch and ignore the StopIteration exception, which is the stopping signal
            thrown by FiniteEnv to let tianshou know that ``collector.collect()`` should exit.
-        2. Notify the loggers that the collect is done what it's done.
+        2. Notify the loggers that the collect is ready / done what it's ready / done.
 
         Examples
         --------
@@ -190,6 +190,9 @@ class FiniteVectorEnv(BaseVectorEnv):
         ...     collector.collect(n_episode=INF)
         """
         self._collector_guarded = True
+
+        for logger in self._logger:
+            logger.on_env_all_ready()
 
         try:
             yield self

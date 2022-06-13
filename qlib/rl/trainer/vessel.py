@@ -80,7 +80,7 @@ class TrainingVesselBase(Generic[InitialStateType, StateType, ActType, ObsType, 
         # Need a refactor in logger to formalize this.
         if isinstance(value, (np.ndarray, list)):
             value = np.mean(value)
-        _logger.info(f"[Iter {self.trainer.current_iter}] {name} = {value}")
+        _logger.info(f"[Iter {self.trainer.current_iter + 1}] {name} = {value}")
 
     def log_dict(self, data: dict[str, Any]) -> None:
         for name, value in data.items():
@@ -92,7 +92,7 @@ class TrainingVesselBase(Generic[InitialStateType, StateType, ActType, ObsType, 
 
     def load_state_dict(self, state_dict: dict) -> None:
         """Restore a checkpoint from a previously saved state dict."""
-        self.policy.load_state_dict(state_dict)
+        self.policy.load_state_dict(state_dict["policy"])
 
 
 class TrainingVessel(TrainingVesselBase):

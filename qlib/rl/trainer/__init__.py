@@ -4,5 +4,6 @@
 """Train, test, inference utilities."""
 
 from .api import backtest
+from .callbacks import EarlyStopping, Checkpoint
 from .trainer import Trainer
 from .vessel import TrainingVessel, TrainingVesselBase

@@ -12,6 +12,9 @@ in each worker, and writes them to console, log files, or tensorboard...
 The two modules communicate by the "log" field in "info" returned by ``env.step()``.
 """
 
+# NOTE: This file contains many hardcoded / ad-hoc rules.
+# Refactoring it will be one of the future tasks.
+
 from __future__ import annotations
 
 import logging
@@ -208,14 +211,20 @@ class LogWriter(Generic[ObsType, ActType]):
         self.episode_rewards = state_dict["episode_rewards"]
         self.episode_logs = state_dict["episode_logs"]
 
-    def aggregation(self, array: Sequence[Any]) -> Any:
+    def aggregation(self, array: Sequence[Any], name: str | None = None) -> Any:
         """Aggregation function from step-wise to episode-wise.
 
         If it's a sequence of float, take the mean.
         Otherwise, take the first element.
+
+        If a name is specified and,
+
+        - if it's ``reward``, the reduction will be sum.
         """
         assert len(array) > 0, "The aggregated array must be not empty."
         if all(isinstance(v, float) for v in array):
+            if name == "reward":
+                return np.sum(array)
             return np.mean(array)
         else:
             return array[0]
@@ -282,6 +291,12 @@ class LogWriter(Generic[ObsType, ActType]):
         self.episode_rewards[env_id] = []
         self.episode_logs[env_id] = []
 
+    def on_env_all_ready(self) -> None:
+        """When all environments are ready to run.
+        Usually, loggers should be reset here.
+        """
+        self.clear()
+
     def on_env_all_done(self) -> None:
         """All done. Time for cleanup."""
 
@@ -341,7 +356,7 @@ class LogBuffer(LogWriter):
 
         logs: dict[str, float] = {}
         for name, values in episode_wise_contents.items():
-            logs[name] = self.aggregation(values)  # type: ignore
+            logs[name] = self.aggregation(values, name)  # type: ignore
             self._aggregated_metrics[name] += logs[name]
 
         self._latest_metrics = logs
@@ -360,7 +375,6 @@ class LogBuffer(LogWriter):
 
     def collect_metrics(self) -> dict[str, float]:
         """Retrieve the aggregated metrics of the latest collect."""
-        print(self._aggregated_metrics, self.episode_count)
         return {name: value / self.episode_count for name, value in self._aggregated_metrics.items()}
 
 
@@ -417,7 +431,7 @@ class ConsoleWriter(LogWriter):
         # This should be done at every step, regardless of periodic or not.
         logs: dict[str, float] = {}
         for name, values in episode_wise_contents.items():
-            logs[name] = self.aggregation(values)  # type: ignore
+            logs[name] = self.aggregation(values, name)  # type: ignore
 
         for name, value in logs.items():
             self.metric_counts[name] += 1
@@ -481,7 +495,7 @@ class CsvWriter(LogWriter):
 
         logs: dict[str, float] = {}
         for name, values in episode_wise_contents.items():
-            logs[name] = self.aggregation(values)  # type: ignore
+            logs[name] = self.aggregation(values, name)  # type: ignore
 
         self.all_records.append(logs)
 

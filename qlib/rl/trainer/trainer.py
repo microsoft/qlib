@@ -213,15 +213,15 @@ class Trainer:
                 self.current_stage = "val"
                 self._call_callback_hooks("on_validate_start")
                 with vessel.val_seed_iterator() as iterator:
-                    vector_env = self.venv_from_iterator(vessel.val_seed_iterator())
+                    vector_env = self.venv_from_iterator(iterator)
                     self.vessel.validate(vector_env)
 
                 self._call_callback_hooks("on_validate_end")
 
-            self.current_iter += 1
-
             if self.should_stop:
                 break
+
+            self.current_iter += 1
 
         self._call_callback_hooks("on_fit_end")
 
@@ -289,7 +289,6 @@ class Trainer:
             metrics = log_buffer.episode_metrics()
         elif on_collect:
             # Update the latest metrics.
-            print("on collect", log_buffer.collect_metrics())
             metrics = log_buffer.collect_metrics()
         if self.current_stage == "val":
             metrics = {"val/" + name: value for name, value in metrics.items()}

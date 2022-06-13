@@ -129,7 +129,7 @@ class EarlyStopping(Callback):
         self.best_weights = state_dict["best_weights"]
         self.best_iter = state_dict["best_iter"]
 
-    def on_fit_begin(self, trainer: Trainer, vessel: TrainingVesselBase):
+    def on_fit_start(self, trainer: Trainer, vessel: TrainingVesselBase):
         # Allow instances to be re-used
         self.wait = 0
         self.best = np.inf if self.monitor_op == np.less else -np.inf
