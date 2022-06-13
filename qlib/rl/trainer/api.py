@@ -3,21 +3,17 @@
 
 from __future__ import annotations
 
-import copy
-from typing import Callable, Sequence
+from typing import Callable, Sequence, cast
 
-from tianshou.data import Collector
 from tianshou.policy import BasePolicy
 
-from qlib.constant import INF
-from qlib.log import get_module_logger
 from qlib.rl.simulator import InitialStateType, Simulator
 from qlib.rl.interpreter import StateInterpreter, ActionInterpreter
 from qlib.rl.reward import Reward
-from qlib.rl.utils import DataQueue, EnvWrapper, FiniteEnvType, LogCollector, LogWriter, vectorize_env
+from qlib.rl.utils import FiniteEnvType, LogWriter
 
-
-_logger = get_module_logger(__name__)
+from .vessel import TrainingVessel
+from .trainer import Trainer
 
 
 def backtest(
@@ -57,43 +53,17 @@ def backtest(
         Parallel workers.
     """
 
-    # To save bandwidth
-    min_loglevel = min(lg.loglevel for lg in logger) if isinstance(logger, list) else logger.loglevel
-
-    def env_factory():
-        # FIXME: state_interpreter and action_interpreter are stateful (having a weakref of env),
-        # and could be thread unsafe.
-        # I'm not sure whether it's a design flaw.
-        # I'll rethink about this when designing the trainer.
-
-        if finite_env_type == "dummy":
-            # We could only experience the "threading-unsafe" problem in dummy.
-            state = copy.deepcopy(state_interpreter)
-            action = copy.deepcopy(action_interpreter)
-            rew = copy.deepcopy(reward)
-        else:
-            state, action, rew = state_interpreter, action_interpreter, reward
-
-        return EnvWrapper(
-            simulator_fn,
-            state,
-            action,
-            seed_iterator,
-            rew,
-            logger=LogCollector(min_loglevel=min_loglevel),
-        )
-
-    with DataQueue(initial_states) as seed_iterator:
-        vector_env = vectorize_env(
-            env_factory,
-            finite_env_type,
-            concurrency,
-            logger,
-        )
-
-        policy.eval()
-
-        with vector_env.collector_guard():
-            test_collector = Collector(policy, vector_env)
-            _logger.info("All ready. Start backtest.")
-            test_collector.collect(n_step=INF * len(vector_env))
+    vessel = TrainingVessel(
+        simulator_fn=simulator_fn,
+        state_interpreter=state_interpreter,
+        action_interpreter=action_interpreter,
+        policy=policy,
+        test_initial_states=initial_states,
+        reward=cast(Reward, reward),  # ignore none
+    )
+    trainer = Trainer(
+        finite_env_type=finite_env_type,
+        concurrency=concurrency,
+        loggers=logger,
+    )
+    trainer.test(vessel)

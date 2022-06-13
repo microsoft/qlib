@@ -71,7 +71,7 @@ class PolicyNet(nn.Module):
 
 def test_trainer():
     set_log_with_config(C.logging_config)
-    trainer = Trainer(max_iters=10)
+    trainer = Trainer(max_iters=10, finite_env_type="dummy")
     actor = PolicyNet(2, True)
     critic = PolicyNet()
     policy = PPOPolicy(

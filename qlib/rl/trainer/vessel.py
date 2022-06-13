@@ -25,8 +25,9 @@ if TYPE_CHECKING:
     from .trainer import Trainer
 
 
-T = TypeVar('T')
+T = TypeVar("T")
 _logger = get_module_logger(__name__)
+
 
 class SeedIteratorNotAvailable(BaseException):
     pass
@@ -35,7 +36,7 @@ class SeedIteratorNotAvailable(BaseException):
 class TrainingVesselBase(Generic[InitialStateType, StateType, ActType, ObsType, PolicyActType]):
     """A ship that contains simulator, interpreter, and policy, will be sent to trainer.
     This class controls algorithm-related parts of training, while trainer is responible for runtime part.
-    
+
     The ship also defines the most important logic of the core training part,
     and (optionally) some callbacks to insert customized logics at specific events.
     """
@@ -52,15 +53,15 @@ class TrainingVesselBase(Generic[InitialStateType, StateType, ActType, ObsType, 
 
     def train_seed_iterator(self) -> Iterable[InitialStateType]:
         """Override this to create a seed iterator for training."""
-        raise SeedIteratorNotAvailable('Seed iterator for training is not available.')
+        raise SeedIteratorNotAvailable("Seed iterator for training is not available.")
 
     def val_seed_iterator(self) -> Iterable[InitialStateType]:
         """Override this to create a seed iterator for validation."""
-        raise SeedIteratorNotAvailable('Seed iterator for validation is not available.')
+        raise SeedIteratorNotAvailable("Seed iterator for validation is not available.")
 
     def test_seed_iterator(self) -> Iterable[InitialStateType]:
         """Override this to create a seed iterator for testing."""
-        raise SeedIteratorNotAvailable('Seed iterator for testing is not available.')
+        raise SeedIteratorNotAvailable("Seed iterator for testing is not available.")
 
     def train(self, vector_env: BaseVectorEnv) -> dict[str, Any]:
         """Implement this to train one iteration. In RL, one iteration usually refers to one collect."""
@@ -76,9 +77,7 @@ class TrainingVesselBase(Generic[InitialStateType, StateType, ActType, ObsType, 
 
     def state_dict(self) -> dict:
         """Return a checkpoint of current vessel state."""
-        return {
-            "policy": self.policy.state_dict()
-        }
+        return {"policy": self.policy.state_dict()}
 
     def load_state_dict(self, state_dict: dict) -> None:
         """Restore a checkpoint from a previously saved state dict."""
@@ -87,9 +86,12 @@ class TrainingVesselBase(Generic[InitialStateType, StateType, ActType, ObsType, 
 
 class TrainingVessel(TrainingVesselBase):
     """The default implementation of training vessel.
-    
+
     ``__init__`` accepts a sequence of initial states so that iterator can be created.
     ``train``, ``validate``, ``test`` each do one collect (and also update in train).
+    By default, the train initial states will be repeated infinitely during training,
+    and collector will control the number of episodes for each iteration.
+    In validation and testing, the val / test initial states will be used exactly once.
 
     Extra hyper-parameters (only used in train) include:
 
@@ -100,15 +102,16 @@ class TrainingVessel(TrainingVesselBase):
     """
 
     def __init__(
-        self, *,
+        self,
+        *,
         simulator_fn: Callable[[InitialStateType], Simulator[InitialStateType, StateType, ActType]],
         state_interpreter: StateInterpreter[StateType, ObsType],
         action_interpreter: ActionInterpreter[StateType, PolicyActType, ActType],
         policy: BasePolicy,
         reward: Reward,
-        train_initial_states: Sequence[InitialStateType] | None,
-        val_initial_states: Sequence[InitialStateType] | None,
-        test_initial_states: Sequence[InitialStateType] | None,
+        train_initial_states: Sequence[InitialStateType] | None = None,
+        val_initial_states: Sequence[InitialStateType] | None = None,
+        test_initial_states: Sequence[InitialStateType] | None = None,
         buffer_size: int = 20000,
         episode_per_iter: int = 1000,
         update_kwargs: dict[str, Any] = cast(Dict[str, Any], None),
@@ -129,21 +132,21 @@ class TrainingVessel(TrainingVesselBase):
         if self.train_initial_states is not None:
             _logger.info("Training initial states collection size: %d", len(self.train_initial_states))
             # Implement fast_dev_run here.
-            train_initial_states = self._random_subset('train', self.train_initial_states, self.trainer.fast_dev_run)
+            train_initial_states = self._random_subset("train", self.train_initial_states, self.trainer.fast_dev_run)
             return DataQueue(train_initial_states, repeat=-1, shuffle=True)
         return super().train_seed_iterator()
 
     def val_seed_iterator(self) -> Iterable[InitialStateType]:
         if self.val_initial_states is not None:
             _logger.info("Validation initial states collection size: %d", len(self.val_initial_states))
-            val_initial_states = self._random_subset('val', self.val_initial_states, self.trainer.fast_dev_run)
+            val_initial_states = self._random_subset("val", self.val_initial_states, self.trainer.fast_dev_run)
             return DataQueue(val_initial_states, repeat=1)
         return super().val_seed_iterator()
 
     def test_seed_iterator(self) -> Iterable[InitialStateType]:
         if self.test_initial_states is not None:
             _logger.info("Testing initial states collection size: %d", len(self.test_initial_states))
-            test_initial_states = self._random_subset('test', self.test_initial_states, self.trainer.fast_dev_run)
+            test_initial_states = self._random_subset("test", self.test_initial_states, self.trainer.fast_dev_run)
             return DataQueue(test_initial_states, repeat=1)
         return super().test_seed_iterator()
 
@@ -151,17 +154,9 @@ class TrainingVessel(TrainingVesselBase):
         self.policy.train()
 
         with vector_env.collector_guard():
-            collector = Collector(
-                self.policy,
-                vector_env,
-                VectorReplayBuffer(self.buffer_size, len(vector_env))
-            )
+            collector = Collector(self.policy, vector_env, VectorReplayBuffer(self.buffer_size, len(vector_env)))
             col_result = collector.collect(n_episode=self.episode_per_iter)
-            update_result = self.policy.update(
-                sample_size=0,
-                buffer=collector.buffer,
-                **self.update_kwargs
-            )
+            update_result = self.policy.update(sample_size=0, buffer=collector.buffer, **self.update_kwargs)
             return {**col_result, **update_result}
 
     def validate(self, vector_env: FiniteVectorEnv) -> dict[str, Any]:
@@ -186,7 +181,6 @@ class TrainingVessel(TrainingVesselBase):
         order = np.random.permutation(len(collection))
         res = [collection[o] for o in order[:size]]
         _logger.info(
-            "Fast running in development mode. Cut %s initial states from %d to %d.",
-            name, len(collection), len(res)
+            "Fast running in development mode. Cut %s initial states from %d to %d.", name, len(collection), len(res)
         )
         return res

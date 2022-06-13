@@ -23,6 +23,7 @@ _logger = get_module_logger(__name__)
 
 T = TypeVar("T")
 
+
 class Trainer:
     """
     Utility to train a policy on a particular task.
@@ -171,7 +172,7 @@ class Trainer:
 
     def fit(self, vessel: TrainingVesselBase, ckpt_path: Path | None = None) -> None:
         """Train the RL policy upon the defined simulator.
-        
+
         Parameters
         ----------
         vessel
