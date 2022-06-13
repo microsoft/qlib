@@ -318,22 +318,23 @@ def test_ppo_train():
     action_interp = CategoricalActionInterpreter(4)
     network = Recurrent(state_interp.observation_space)
     policy = PPO(network, state_interp.observation_space, action_interp.action_space, 1e-4)
-    policy.load_state_dict(torch.load(CN_POLICY_WEIGHTS_DIR / "ppo_recurrent_30min.pth", map_location="cpu"))
-    csv_writer = CsvWriter(Path(__file__).parent / ".output")
 
-    backtest(
-        partial(SingleAssetOrderExecution, data_dir=CN_BACKTEST_DATA_DIR, ticks_per_step=30),
-        state_interp,
-        action_interp,
-        orders,
-        policy,
-        [ConsoleWriter(total_episodes=len(orders)), csv_writer],
-        concurrency=4,
+    from qlib.rl.trainer import Trainer, TrainingVessel
+
+    trainer = Trainer(
+        max_iters=2,
+        finite_env_type="subproc",
+        loggers=ConsoleWriter(total_episodes=100)
     )
 
-    metrics = pd.read_csv(Path(__file__).parent / ".output" / "result.csv")
-    assert len(metrics) == len(orders)
-    assert np.isclose(metrics["ffr"].mean(), 1.0)
-    assert np.isclose(metrics["pa"].mean(), -16.21578303474833)
-    assert np.isclose(metrics["market_price"].mean(), 58.68277690875527)
-    assert np.isclose(metrics["trade_price"].mean(), 58.76063985000002)
+    vessel = TrainingVessel(
+        simulator_fn=partial(SingleAssetOrderExecution, data_dir=CN_BACKTEST_DATA_DIR, ticks_per_step=30),
+        state_interpreter=state_interp,
+        action_interpreter=action_interp,
+        policy=policy,
+        train_initial_states=orders,
+        reward=PAPenaltyReward(),
+        episode_per_iter=100,
+        update_kwargs=dict(repeat=5, batch_size=64),
+    )
+    trainer.fit(vessel)
