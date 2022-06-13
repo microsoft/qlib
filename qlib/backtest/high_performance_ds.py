@@ -1,20 +1,21 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-from functools import lru_cache
-import logging
-from typing import List, Text, Union, Callable, Iterable, Dict
-from collections import OrderedDict
-
 import inspect
-import pandas as pd
-import numpy as np
+import logging
+from collections import OrderedDict
+from functools import lru_cache
+from typing import Callable, Dict, Iterable, List, Text, Union
 
+import numpy as np
+import pandas as pd
+
+import qlib.utils.index_data as idd
+
+from ..log import get_module_logger
 from ..utils.index_data import IndexData, SingleData
 from ..utils.resam import resam_ts_data, ts_data_last
-from ..log import get_module_logger
-from ..utils.time import is_single_value, Freq
-import qlib.utils.index_data as idd
+from ..utils.time import Freq, is_single_value
 
 
 class BaseQuote:
@@ -627,7 +628,9 @@ class NumpyOrderIndicator(BaseOrderIndicator):
             metrics = [metrics]
         for metric in metrics:
             order_indicator.data[metric] = idd.sum_by_index(
-                [indicator.data[metric] for indicator in indicators], stocks, fill_value
+                [indicator.data[metric] for indicator in indicators],
+                stocks,
+                fill_value,
             )
 
     def __repr__(self):

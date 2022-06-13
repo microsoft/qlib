@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 import unittest
-from qlib.backtest import backtest, decision
+from qlib.backtest import backtest
 from qlib.tests import TestAutoData
 import pandas as pd
 from pathlib import Path
@@ -52,13 +52,12 @@ class FileStrTest(TestAutoData):
         factor = df["$factor"].item()
         price_unit = price / factor * 100
         dealt_num_for_1000 = (account_money // price_unit) * (100 / factor)
+        print(price, factor, price_unit, dealt_num_for_1000)
 
         # 2) generate orders
         orders = self._gen_orders(dealt_num_for_1000)
-        print(orders)
         orders.to_csv(self.EXAMPLE_FILE)
-
-        orders = pd.read_csv(self.EXAMPLE_FILE, index_col=["datetime", "instrument"])
+        print(orders)
 
         # 3) run the strategy
         strategy_config = {
@@ -101,7 +100,11 @@ class FileStrTest(TestAutoData):
                 },
             },
         }
-        report_dict, indicator_dict = backtest(executor=executor_config, strategy=strategy_config, **backtest_config)
+        report_dict, indicator_dict = backtest(
+            executor=executor_config,
+            strategy=strategy_config,
+            **backtest_config,
+        )
 
         # ffr valid
         ffr_dict = indicator_dict["1day"]["ffr"].to_dict()
