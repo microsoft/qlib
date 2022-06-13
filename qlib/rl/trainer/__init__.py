@@ -3,7 +3,7 @@
 
 """Train, test, inference utilities."""
 
-from .api import backtest
+from .api import backtest, train
 from .callbacks import EarlyStopping, Checkpoint
 from .trainer import Trainer
 from .vessel import TrainingVessel, TrainingVesselBase

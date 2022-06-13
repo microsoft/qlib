@@ -137,7 +137,7 @@ class TrainingVessel(TrainingVesselBase):
         self.test_initial_states = test_initial_states
         self.buffer_size = buffer_size
         self.episode_per_iter = episode_per_iter
-        self.update_kwargs = update_kwargs
+        self.update_kwargs = update_kwargs or {}
 
     def train_seed_iterator(self) -> Iterable[InitialStateType]:
         if self.train_initial_states is not None:

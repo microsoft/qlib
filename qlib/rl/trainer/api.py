@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from typing import Callable, Sequence, cast
+from typing import Callable, Sequence, cast, Any
 
 from tianshou.policy import BasePolicy
 
@@ -14,6 +14,53 @@ from qlib.rl.utils import FiniteEnvType, LogWriter
 
 from .vessel import TrainingVessel
 from .trainer import Trainer
+
+
+def train(
+    simulator_fn: Callable[[InitialStateType], Simulator],
+    state_interpreter: StateInterpreter,
+    action_interpreter: ActionInterpreter,
+    initial_states: Sequence[InitialStateType],
+    policy: BasePolicy,
+    reward: Reward,
+    vessel_kwargs: dict[str, Any],
+    trainer_kwargs: dict[str, Any],
+) -> None:
+    """Train a policy with the parallelism provided by RL framework.
+
+    Experimental API. Parameters might change shortly.
+
+    Parameters
+    ----------
+    simulator_fn
+        Callable receiving initial seed, returning a simulator.
+    state_interpreter
+        Interprets the state of simulators.
+    action_interpreter
+        Interprets the policy actions.
+    initial_states
+        Initial states to iterate over. Every state will be run exactly once.
+    policy
+        Policy to train against.
+    reward
+        Reward function.
+    vessel_kwargs
+        Keyword arguments passed to :class:`TrainingVessel`, like ``episode_per_iter``.
+    trainer_kwargs
+        Keyword arguments passed to :class:`Trainer`, like ``finite_env_type``, ``concurrency``.
+    """
+
+    vessel = TrainingVessel(
+        simulator_fn=simulator_fn,
+        state_interpreter=state_interpreter,
+        action_interpreter=action_interpreter,
+        policy=policy,
+        train_initial_states=initial_states,
+        reward=reward,  # ignore none
+        **vessel_kwargs,
+    )
+    trainer = Trainer(**trainer_kwargs)
+    trainer.fit(vessel)
 
 
 def backtest(
@@ -28,6 +75,8 @@ def backtest(
     concurrency: int = 2,
 ) -> None:
     """Backtest with the parallelism provided by RL framework.
+
+    Experimental API. Parameters might change shortly.
 
     Parameters
     ----------

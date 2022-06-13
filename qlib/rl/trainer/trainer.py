@@ -223,7 +223,7 @@ class Trainer:
             # Bumping the current iteration counter.
             self.current_iter += 1
 
-            if self.current_iter >= self.max_iters:
+            if self.max_iters is not None and self.current_iter >= self.max_iters:
                 self.should_stop = True
 
             self._call_callback_hooks("on_iter_end")

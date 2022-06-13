@@ -17,7 +17,7 @@ from qlib.backtest import Order
 from qlib.config import C
 from qlib.log import set_log_with_config
 from qlib.rl.data import pickle_styled
-from qlib.rl.trainer import backtest
+from qlib.rl.trainer import backtest, train
 from qlib.rl.order_execution import *
 from qlib.rl.utils import ConsoleWriter, CsvWriter, EnvWrapperStatus
 
@@ -319,22 +319,13 @@ def test_ppo_train():
     network = Recurrent(state_interp.observation_space)
     policy = PPO(network, state_interp.observation_space, action_interp.action_space, 1e-4)
 
-    from qlib.rl.trainer import Trainer, TrainingVessel
-
-    trainer = Trainer(
-        max_iters=2,
-        finite_env_type="subproc",
-        loggers=ConsoleWriter(total_episodes=100)
+    train(
+        partial(SingleAssetOrderExecution, data_dir=CN_BACKTEST_DATA_DIR, ticks_per_step=30),
+        state_interp,
+        action_interp,
+        orders,
+        policy,
+        PAPenaltyReward(),
+        vessel_kwargs={"episode_per_iter": 100, "update_kwargs": {"batch_size": 64, "repeat": 5}},
+        trainer_kwargs={"max_iters": 2, "loggers": ConsoleWriter(total_episodes=100)},
     )
-
-    vessel = TrainingVessel(
-        simulator_fn=partial(SingleAssetOrderExecution, data_dir=CN_BACKTEST_DATA_DIR, ticks_per_step=30),
-        state_interpreter=state_interp,
-        action_interpreter=action_interp,
-        policy=policy,
-        train_initial_states=orders,
-        reward=PAPenaltyReward(),
-        episode_per_iter=100,
-        update_kwargs=dict(repeat=5, batch_size=64),
-    )
-    trainer.fit(vessel)
