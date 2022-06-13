@@ -306,3 +306,34 @@ def test_cn_ppo_strategy():
     assert np.isclose(metrics["pa"].mean(), -16.21578303474833)
     assert np.isclose(metrics["market_price"].mean(), 58.68277690875527)
     assert np.isclose(metrics["trade_price"].mean(), 58.76063985000002)
+
+
+def test_ppo_train():
+    set_log_with_config(C.logging_config)
+    # The data starts with 9:31 and ends with 15:00
+    orders = pickle_styled.load_orders(CN_ORDER_DIR, start_time=pd.Timestamp("9:31"), end_time=pd.Timestamp("14:58"))
+    assert len(orders) == 40
+
+    state_interp = FullHistoryStateInterpreter(CN_FEATURE_DATA_DIR, 8, 240, 6)
+    action_interp = CategoricalActionInterpreter(4)
+    network = Recurrent(state_interp.observation_space)
+    policy = PPO(network, state_interp.observation_space, action_interp.action_space, 1e-4)
+    policy.load_state_dict(torch.load(CN_POLICY_WEIGHTS_DIR / "ppo_recurrent_30min.pth", map_location="cpu"))
+    csv_writer = CsvWriter(Path(__file__).parent / ".output")
+
+    backtest(
+        partial(SingleAssetOrderExecution, data_dir=CN_BACKTEST_DATA_DIR, ticks_per_step=30),
+        state_interp,
+        action_interp,
+        orders,
+        policy,
+        [ConsoleWriter(total_episodes=len(orders)), csv_writer],
+        concurrency=4,
+    )
+
+    metrics = pd.read_csv(Path(__file__).parent / ".output" / "result.csv")
+    assert len(metrics) == len(orders)
+    assert np.isclose(metrics["ffr"].mean(), 1.0)
+    assert np.isclose(metrics["pa"].mean(), -16.21578303474833)
+    assert np.isclose(metrics["market_price"].mean(), 58.68277690875527)
+    assert np.isclose(metrics["trade_price"].mean(), 58.76063985000002)

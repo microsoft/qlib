@@ -1,4 +1,6 @@
+import os
 import random
+from pathlib import Path
 
 import torch
 import torch.nn as nn
@@ -10,12 +12,10 @@ from qlib.log import set_log_with_config
 from qlib.rl.interpreter import StateInterpreter, ActionInterpreter
 from qlib.rl.simulator import Simulator
 from qlib.rl.reward import Reward
-from qlib.rl.trainer import Trainer, TrainingVessel, EarlyStopping
-
+from qlib.rl.trainer import Trainer, TrainingVessel, EarlyStopping, Checkpoint
 
 
 class ZeroSimulator(Simulator):
-
     def __init__(self, *args, **kwargs):
         self.action = self.correct = 0
 
@@ -37,10 +37,12 @@ class ZeroSimulator(Simulator):
 
 
 class NoopStateInterpreter(StateInterpreter):
-    observation_space = spaces.Dict({
-        "acc": spaces.Discrete(200),
-        "action": spaces.Discrete(2),
-    })
+    observation_space = spaces.Dict(
+        {
+            "acc": spaces.Discrete(200),
+            "action": spaces.Discrete(2),
+        }
+    )
 
     def interpret(self, simulator_state):
         return simulator_state
@@ -57,7 +59,7 @@ class AccReward(Reward):
     def reward(self, simulator_state):
         if self.env.status["done"]:
             return simulator_state["acc"] / 100
-        return 0.
+        return 0.0
 
 
 class PolicyNet(nn.Module):
@@ -78,7 +80,8 @@ def _ppo_policy():
     actor = PolicyNet(2, True)
     critic = PolicyNet()
     policy = PPOPolicy(
-        actor, critic,
+        actor,
+        critic,
         torch.optim.Adam(tuple(actor.parameters()) + tuple(critic.parameters())),
         torch.distributions.Categorical,
         action_space=NoopActionInterpreter().action_space,
@@ -88,7 +91,7 @@ def _ppo_policy():
 
 def test_trainer():
     set_log_with_config(C.logging_config)
-    trainer = Trainer(max_iters=10, finite_env_type="dummy")
+    trainer = Trainer(max_iters=10, finite_env_type="subproc")
     policy = _ppo_policy()
 
     vessel = TrainingVessel(
@@ -106,22 +109,42 @@ def test_trainer():
     trainer.fit(vessel)
     assert trainer.current_iter == 10
     assert trainer.current_episode == 5000
-    print(trainer.metrics)
     assert trainer.metrics["acc"] == trainer.metrics["reward"] * 100
     assert trainer.metrics["acc"] > 80
     trainer.test(vessel)
-    print(trainer.metrics)
+    assert trainer.metrics["acc"] > 60
+
+
+def test_trainer_fast_dev_run():
+    set_log_with_config(C.logging_config)
+    trainer = Trainer(max_iters=2, fast_dev_run=2, finite_env_type="shmem")
+    policy = _ppo_policy()
+
+    vessel = TrainingVessel(
+        simulator_fn=lambda init: ZeroSimulator(init),
+        state_interpreter=NoopStateInterpreter(),
+        action_interpreter=NoopActionInterpreter(),
+        policy=policy,
+        train_initial_states=list(range(100)),
+        val_initial_states=list(range(10)),
+        test_initial_states=list(range(10)),
+        reward=AccReward(),
+        episode_per_iter=500,
+        update_kwargs=dict(repeat=10, batch_size=64),
+    )
+    trainer.fit(vessel)
+    assert trainer.current_episode == 4
 
 
 def test_trainer_earlystop():
-    # this is just sanity check.
+    # TODO this is just sanity check.
     # need to see the logs to check whether it works.
     set_log_with_config(C.logging_config)
     trainer = Trainer(
         max_iters=10,
         val_every_n_iters=1,
         finite_env_type="dummy",
-        callbacks=[EarlyStopping("val/reward", restore_best_weights=True)]
+        callbacks=[EarlyStopping("val/reward", restore_best_weights=True)],
     )
     policy = _ppo_policy()
 
@@ -142,8 +165,33 @@ def test_trainer_earlystop():
     assert trainer.current_iter == 1  # second iteration
 
 
+def test_trainer_checkpoint():
+    set_log_with_config(C.logging_config)
+    output_dir = Path(__file__).parent / ".output"
+    trainer = Trainer(max_iters=2, finite_env_type="dummy", callbacks=[Checkpoint(output_dir, every_n_iters=1)])
+    policy = _ppo_policy()
 
+    vessel = TrainingVessel(
+        simulator_fn=lambda init: ZeroSimulator(init),
+        state_interpreter=NoopStateInterpreter(),
+        action_interpreter=NoopActionInterpreter(),
+        policy=policy,
+        train_initial_states=list(range(100)),
+        val_initial_states=list(range(10)),
+        test_initial_states=list(range(10)),
+        reward=AccReward(),
+        episode_per_iter=100,
+        update_kwargs=dict(repeat=10, batch_size=64),
+    )
+    trainer.fit(vessel)
 
+    assert (output_dir / "001.pth").exists()
+    assert (output_dir / "002.pth").exists()
+    assert os.readlink(output_dir / "latest.pth") == str(output_dir / "002.pth")
 
+    trainer.load_state_dict(torch.load(output_dir / "001.pth"))
+    assert trainer.current_iter == 1
+    assert trainer.current_episode == 100
 
-test_trainer_earlystop()
+    # Reload the checkpoint at first iteration
+    trainer.fit(vessel, ckpt_path=output_dir / "001.pth")

@@ -107,7 +107,7 @@ class TrainingVessel(TrainingVesselBase):
     Extra hyper-parameters (only used in train) include:
 
     - ``buffer_size``: Size of replay buffer.
-    - ``episode_per_iter``: Episodes per collect at training.
+    - ``episode_per_iter``: Episodes per collect at training. Can be overridden by fast dev run.
     - ``update_kwargs``: Keyword arguments appearing in ``policy.update``.
       For example, ``dict(repeat=10, batch_size=64)``.
     """
@@ -169,7 +169,14 @@ class TrainingVessel(TrainingVesselBase):
 
         with vector_env.collector_guard():
             collector = Collector(self.policy, vector_env, VectorReplayBuffer(self.buffer_size, len(vector_env)))
-            col_result = collector.collect(n_episode=self.episode_per_iter)
+
+            # Number of episodes collected in each training iteration can be overridden by fast dev run.
+            if self.trainer.fast_dev_run is not None:
+                episodes = self.trainer.fast_dev_run
+            else:
+                episodes = self.episode_per_iter
+
+            col_result = collector.collect(n_episode=episodes)
             update_result = self.policy.update(sample_size=0, buffer=collector.buffer, **self.update_kwargs)
             res = {**col_result, **update_result}
             self.log_dict(res)

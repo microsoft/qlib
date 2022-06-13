@@ -61,7 +61,10 @@ class Callback:
         """Called when every iteration (i.e., collect) starts."""
 
     def on_iter_end(self, trainer: Trainer, vessel: TrainingVesselBase) -> None:
-        """Called upon every end of iteration."""
+        """Called upon every end of iteration.
+        This is called **after** the bump of ``current_iter``,
+        when the previous iteration is considered complete.
+        """
 
     def state_dict(self) -> Any:
         """Get a state dict of the callback for pause and resume."""
@@ -232,7 +235,7 @@ class Checkpoint(Callback):
 
     def on_iter_end(self, trainer: Trainer, vessel: TrainingVesselBase) -> None:
         should_save_ckpt = False
-        if self.every_n_iters is not None and (trainer.current_iter + 1) % self.every_n_iters:
+        if self.every_n_iters is not None and (trainer.current_iter + 1) % self.every_n_iters == 0:
             should_save_ckpt = True
         if self.time_interval is not None and (time.time() - self._last_checkpoint_time) >= self.time_interval:
             should_save_ckpt = True
@@ -248,8 +251,9 @@ class Checkpoint(Callback):
 
         if self.save_latest == "link":
             (self.dirpath / "latest.pth").unlink(missing_ok=True)
-            (self.dirpath / self._last_checkpoint_name).symlink_to(self.dirpath / "latest.pth")
+            (self.dirpath / "latest.pth").symlink_to(self.dirpath / self._last_checkpoint_name)
         elif self.save_latest == "copy":
+            (self.dirpath / "latest.pth").unlink(missing_ok=True)
             shutil.copyfile(self.dirpath / self._last_checkpoint_name, self.dirpath / "latest.pth")
 
     def _new_checkpoint_name(self, trainer: Trainer) -> str:

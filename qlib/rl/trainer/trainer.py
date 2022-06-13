@@ -153,7 +153,7 @@ class Trainer:
         for name, callback in self.named_callbacks().items():
             callback.load_state_dict(state_dict["callbacks"][name])
         for name, logger in self.named_loggers().items():
-            logger.load_state_dict(state_dict["logger"][name])
+            logger.load_state_dict(state_dict["loggers"][name])
         self.should_stop = state_dict["should_stop"]
         self.current_iter = state_dict["current_iter"]
         self.current_episode = state_dict["current_episode"]
@@ -193,15 +193,16 @@ class Trainer:
 
         self._call_callback_hooks("on_fit_start")
 
-        while self.current_iter < self.max_iters:
+        while not self.should_stop:
             self.initialize_iter()
+
+            self._call_callback_hooks("on_iter_start")
 
             self.current_stage = "train"
             self._call_callback_hooks("on_train_start")
 
             # TODO
             # Add a feature that supports reloading the training environment every few iterations.
-
             with _wrap_context(vessel.train_seed_iterator()) as iterator:
                 vector_env = self.venv_from_iterator(iterator)
                 self.vessel.train(vector_env)
@@ -218,10 +219,14 @@ class Trainer:
 
                 self._call_callback_hooks("on_validate_end")
 
-            if self.should_stop:
-                break
-
+            # This iteration is considered complete.
+            # Bumping the current iteration counter.
             self.current_iter += 1
+
+            if self.current_iter >= self.max_iters:
+                self.should_stop = True
+
+            self._call_callback_hooks("on_iter_end")
 
         self._call_callback_hooks("on_fit_end")
 
