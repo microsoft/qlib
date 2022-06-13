@@ -438,7 +438,7 @@ class TSDataSampler:
 
     @property
     def empty(self):
-        return self.__len__() == 0
+        return len(self) == 0
 
     def _get_indices(self, row: int, col: int) -> np.array:
         """

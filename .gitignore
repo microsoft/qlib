@@ -44,4 +44,4 @@ tags
 *.swp
 
 ./pretrain
-./idea
+.idea/
