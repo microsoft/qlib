@@ -255,7 +255,10 @@ class Alpha158(DataHandlerLP):
             exclude = config["rolling"].get("exclude", [])
             # `exclude` in dataset config unnecessary filed
             # `include` in dataset config necessary field
-            use = lambda x: x not in exclude and (include is None or x in include)
+
+            def use(x):
+                return x not in exclude and (include is None or x in include)
+
             if use("ROC"):
                 fields += ["Ref($close, %d)/$close" % d for d in windows]
                 names += ["ROC%d" % d for d in windows]
