@@ -52,7 +52,9 @@ class NoopActionInterpreter(ActionInterpreter):
 
 class AccReward(Reward):
     def reward(self, simulator_state):
-        return simulator_state['acc'] / 100
+        if self.env.status["done"]:
+            return simulator_state['acc'] / 100
+        return 0.
 
 
 class PolicyNet(nn.Module):
@@ -69,9 +71,7 @@ class PolicyNet(nn.Module):
             return res
 
 
-def test_trainer():
-    set_log_with_config(C.logging_config)
-    trainer = Trainer(max_iters=10, finite_env_type="dummy")
+def _ppo_policy():
     actor = PolicyNet(2, True)
     critic = PolicyNet()
     policy = PPOPolicy(
@@ -80,6 +80,13 @@ def test_trainer():
         torch.distributions.Categorical,
         action_space=NoopActionInterpreter().action_space,
     )
+    return policy
+
+
+def test_trainer():
+    set_log_with_config(C.logging_config)
+    trainer = Trainer(max_iters=10, finite_env_type="dummy")
+    policy = _ppo_policy()
 
     vessel = TrainingVessel(
         simulator_fn=lambda init: ZeroSimulator(init),
@@ -90,9 +97,13 @@ def test_trainer():
         val_initial_states=list(range(10)),
         test_initial_states=list(range(10)),
         reward=AccReward(),
+        episode_per_iter=100,
         update_kwargs=dict(repeat=10, batch_size=64),
     )
     trainer.fit(vessel)
+    print(trainer.metrics)
+    assert trainer.current_iter == 10
+    print(trainer.current_episode)
 
 
 test_trainer()

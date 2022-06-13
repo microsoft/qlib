@@ -360,6 +360,7 @@ class LogBuffer(LogWriter):
 
     def collect_metrics(self) -> dict[str, float]:
         """Retrieve the aggregated metrics of the latest collect."""
+        print(self._aggregated_metrics, self.episode_count)
         return {name: value / self.episode_count for name, value in self._aggregated_metrics.items()}
 
 

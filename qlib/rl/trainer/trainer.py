@@ -133,6 +133,8 @@ class Trainer:
 
         It doesn't try to handle all the possible kinds of states in the middle of one training collect.
         For most cases at the end of each iteration, things should be usually correct.
+
+        Note that it's also intended behavior that replay buffer data in the collector will be lost.
         """
         return {
             "vessel": self.vessel.state_dict(),
@@ -197,14 +199,17 @@ class Trainer:
             self.current_stage = "train"
             self._call_callback_hooks("on_train_start")
 
+            # TODO
+            # Add a feature that supports reloading the training environment every few iterations.
+
             with _wrap_context(vessel.train_seed_iterator()) as iterator:
-                # TODO: vector env can be re-created every few iterations
                 vector_env = self.venv_from_iterator(iterator)
                 self.vessel.train(vector_env)
 
             self._call_callback_hooks("on_train_end")
 
             if self.val_every_n_iters is not None and (self.current_iter + 1) % self.val_every_n_iters == 0:
+                # Implementation of validation loop
                 self.current_stage = "val"
                 self._call_callback_hooks("on_validate_start")
                 with vessel.val_seed_iterator() as iterator:
@@ -284,6 +289,7 @@ class Trainer:
             metrics = log_buffer.episode_metrics()
         elif on_collect:
             # Update the latest metrics.
+            print("on collect", log_buffer.collect_metrics())
             metrics = log_buffer.collect_metrics()
         if self.current_stage == "val":
             metrics = {"val/" + name: value for name, value in metrics.items()}

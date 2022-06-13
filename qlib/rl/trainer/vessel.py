@@ -75,6 +75,17 @@ class TrainingVesselBase(Generic[InitialStateType, StateType, ActType, ObsType, 
         """Implement this to evaluate the policy on test environment once."""
         raise NotImplementedError()
 
+    def log(self, name: str, value: Any) -> None:
+        # FIXME: this is a workaround to make the log at least show somewhere.
+        # Need a refactor in logger to formalize this.
+        if isinstance(value, (np.ndarray, list)):
+            value = np.mean(value)
+        _logger.info(f"[Iter {self.trainer.current_iter}] {name} = {value}")
+
+    def log_dict(self, data: dict[str, Any]) -> None:
+        for name, value in data.items():
+            self.log(name, value)
+
     def state_dict(self) -> dict:
         """Return a checkpoint of current vessel state."""
         return {"policy": self.policy.state_dict()}
@@ -151,27 +162,36 @@ class TrainingVessel(TrainingVesselBase):
         return super().test_seed_iterator()
 
     def train(self, vector_env: FiniteVectorEnv) -> dict[str, Any]:
+        """Create a collector and collects ``episode_per_iter`` episodes.
+        Update the policy on the collected replay buffer.
+        """
         self.policy.train()
 
         with vector_env.collector_guard():
             collector = Collector(self.policy, vector_env, VectorReplayBuffer(self.buffer_size, len(vector_env)))
             col_result = collector.collect(n_episode=self.episode_per_iter)
             update_result = self.policy.update(sample_size=0, buffer=collector.buffer, **self.update_kwargs)
-            return {**col_result, **update_result}
+            res = {**col_result, **update_result}
+            self.log_dict(res)
+            return res
 
     def validate(self, vector_env: FiniteVectorEnv) -> dict[str, Any]:
         self.policy.eval()
 
         with vector_env.collector_guard():
             test_collector = Collector(self.policy, vector_env)
-            return test_collector.collect(n_step=INF * len(vector_env))
+            res = test_collector.collect(n_step=INF * len(vector_env))
+            self.log_dict(res)
+            return res
 
     def test(self, vector_env: FiniteVectorEnv) -> dict[str, Any]:
         self.policy.eval()
 
         with vector_env.collector_guard():
             test_collector = Collector(self.policy, vector_env)
-            return test_collector.collect(n_step=INF * len(vector_env))
+            res = test_collector.collect(n_step=INF * len(vector_env))
+            self.log_dict(res)
+            return res
 
     @staticmethod
     def _random_subset(name: str, collection: Sequence[T], size: int | None) -> Sequence[T]:
