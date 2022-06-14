@@ -31,3 +31,5 @@ The results of related methods in Qlib's public dataset can be found [here](../)
 Here is the minimal hardware requirements to run the ``workflow.py`` of DDG-DA.
 * Memory: 45G
 * Disk: 4G
+
+Pytorch with CPU & RAM will be enough for this example.
