@@ -114,7 +114,7 @@ def test_trainer():
     trainer.fit(vessel)
     assert trainer.current_iter == 10
     assert trainer.current_episode == 5000
-    assert trainer.metrics["acc"] == trainer.metrics["reward"] * 100
+    assert abs(trainer.metrics["acc"] - trainer.metrics["reward"] * 100) < 1e-4
     assert trainer.metrics["acc"] > 80
     trainer.test(vessel)
     assert trainer.metrics["acc"] > 60
@@ -167,7 +167,7 @@ def test_trainer_earlystop():
     )
     trainer.fit(vessel)
     assert trainer.metrics["val/acc"] > 50
-    assert trainer.current_iter == 1  # second iteration
+    assert trainer.current_iter == 2  # second iteration
 
 
 def test_trainer_checkpoint():
