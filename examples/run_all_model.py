@@ -294,6 +294,9 @@ class ModelRunner:
             # Case 6 - run other models except those are given as arguments for one time
             python run_all_model.py run --models=[mlp,tft,sfm] --exclude=True
 
+            # Case 7 - run lightgbm model on csi500.
+            python run_all_model.py run 3 lightgbm Alpha158 csi500
+
         """
         self._init_qlib(exp_folder_name)
 

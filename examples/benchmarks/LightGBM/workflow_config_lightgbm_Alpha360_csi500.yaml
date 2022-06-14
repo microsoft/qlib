@@ -1,50 +1,42 @@
 qlib_init:
-    provider_uri:
-        day: "~/.qlib/qlib_data/cn_data"
-        1min: "~/.qlib/qlib_data/cn_data_1min"
+    provider_uri: "~/.qlib/qlib_data/cn_data"
     region: cn
-    dataset_cache: null
-    maxtasksperchild: 1
-market: &market csi300
-benchmark: &benchmark SH000300
+market: &market csi500
+benchmark: &benchmark SH000905
 data_handler_config: &data_handler_config
     start_time: 2008-01-01
-    # 1min closing time is 15:00:00
-    end_time: "2020-08-01 15:00:00"
+    end_time: 2020-08-01
     fit_start_time: 2008-01-01
     fit_end_time: 2014-12-31
     instruments: *market
-    freq:
-        label: day
-        feature: 1min
-    # with label as reference
-    inst_processor:
-        feature:
-            - class: Resample1minProcessor
-              module_path: features_sample.py
-              kwargs:
-                  hour: 14
-                  minute: 56
-
+    infer_processors: []
+    learn_processors:
+        - class: DropnaLabel
+        - class: CSRankNorm
+          kwargs:
+              fields_group: label
+    label: ["Ref($close, -2) / Ref($close, -1) - 1"]
 port_analysis_config: &port_analysis_config
     strategy:
         class: TopkDropoutStrategy
-        module_path: qlib.contrib.strategy.strategy
+        module_path: qlib.contrib.strategy
         kwargs:
-            topk: 50
-            n_drop: 5
             signal:
                 - <MODEL> 
                 - <DATASET>
+            topk: 50
+            n_drop: 5
     backtest:
-        verbose: False
-        limit_threshold: 0.095
+        start_time: 2017-01-01
+        end_time: 2020-08-01
         account: 100000000
         benchmark: *benchmark
-        deal_price: close
-        open_cost: 0.0005
-        close_cost: 0.0015
-        min_cost: 5
+        exchange_kwargs:
+            limit_threshold: 0.095
+            deal_price: close
+            open_cost: 0.0005
+            close_cost: 0.0015
+            min_cost: 5
 task:
     model:
         class: LGBModel
@@ -52,7 +44,7 @@ task:
         kwargs:
             loss: mse
             colsample_bytree: 0.8879
-            learning_rate: 0.2
+            learning_rate: 0.0421
             subsample: 0.8789
             lambda_l1: 205.6999
             lambda_l2: 580.9768
@@ -64,7 +56,7 @@ task:
         module_path: qlib.data.dataset
         kwargs:
             handler:
-                class: Alpha158
+                class: Alpha360
                 module_path: qlib.contrib.data.handler
                 kwargs: *data_handler_config
             segments:
@@ -74,7 +66,9 @@ task:
     record: 
         - class: SignalRecord
           module_path: qlib.workflow.record_temp
-          kwargs: {}
+          kwargs: 
+            model: <MODEL>
+            dataset: <DATASET>
         - class: SigAnaRecord
           module_path: qlib.workflow.record_temp
           kwargs: 
