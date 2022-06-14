@@ -75,6 +75,17 @@ class Config:
     def set_conf_from_C(self, config_c):
         self.update(**config_c.__dict__["_config"])
 
+    def register_from_C(self, config, skip_register=True):
+        from .utils import set_log_with_config  # pylint: disable=C0415
+
+        if C.registered and skip_register:
+            return
+
+        C.set_conf_from_C(config)
+        if C.logging_config:
+            set_log_with_config(C.logging_config)
+        C.register()
+
 
 # pickle.dump protocol version: https://docs.python.org/3/library/pickle.html#data-stream-format
 PROTOCOL_VERSION = 4

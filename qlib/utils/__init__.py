@@ -949,6 +949,10 @@ def auto_filter_kwargs(func: Callable, warning=True) -> Callable:
 
     The decrated function will ignore and give warning when the parameter is not acceptable
 
+    For example, if you have a function `f` which may optionally consume the keywards `bar`.
+    then you can call it by `auto_filter_kwargs(f)(bar=3)`, which will automatically filter out
+    `bar` when f does not need bar
+
     Parameters
     ----------
     func : Callable

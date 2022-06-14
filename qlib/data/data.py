@@ -32,7 +32,6 @@ from ..utils import (
     hash_args,
     normalize_cache_fields,
     code_to_fname,
-    set_log_with_config,
     time_to_slc_point,
     read_period_data,
     get_period_list,
@@ -603,11 +602,7 @@ class DatasetProvider(abc.ABC):
         """
         # FIXME: Windows OS or MacOS using spawn: https://docs.python.org/3.8/library/multiprocessing.html?highlight=spawn#contexts-and-start-methods
         # NOTE: This place is compatible with windows, windows multi-process is spawn
-        if not C.registered:
-            C.set_conf_from_C(g_config)
-            if C.logging_config:
-                set_log_with_config(C.logging_config)
-            C.register()
+        C.register_from_C(g_config)
 
         obj = dict()
         for field in column_names:
