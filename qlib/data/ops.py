@@ -64,7 +64,7 @@ class ChangeInstrument(ExpressionOps):
         self.feature = feature
 
     def __str__(self):
-        return "{}({},{})".format(type(self).__name__, self.instrument, self.feature)
+        return "{}('{}',{})".format(type(self).__name__, self.instrument, self.feature)
 
     def load(self, instrument, start_index, end_index, freq):
         """load  feature
