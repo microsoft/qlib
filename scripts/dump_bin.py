@@ -488,7 +488,7 @@ class DumpDataUpdate(DumpDataBase):
                     except Exception:
                         error_code[futures[_future]] = traceback.format_exc()
                     p_bar.update()
-            logger.info(f"dump bin errors： {error_code}")
+            logger.info(f"dump bin errors: {error_code}")
 
         logger.info("end of features dump.\n")
 

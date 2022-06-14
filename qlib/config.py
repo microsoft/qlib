@@ -113,7 +113,7 @@ _default_config = {
     #   "~/.qlib/stock_data/cn_data"
     #   # dict
     #   {"day": "~/.qlib/stock_data/cn_data", "1min": "~/.qlib/stock_data/cn_data_1min"}
-    # NOTE: provider_uri priority：
+    # NOTE: provider_uri priority:
     #   1. backend_config: backend_obj["kwargs"]["provider_uri"]
     #   2. backend_config: backend_obj["kwargs"]["provider_uri_map"]
     #   3. qlib.init: provider_uri

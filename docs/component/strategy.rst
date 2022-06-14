@@ -66,7 +66,7 @@ TopkDropoutStrategy
 - Adopt the ``Topk-Drop`` algorithm to calculate the target amount of each stock
 
     .. note::
-        There are two parameters for the ``Topk-Drop`` algorithm：
+        There are two parameters for the ``Topk-Drop`` algorithm:
 
         - `Topk`: The number of stocks held
         - `Drop`: The number of stocks sold on each trading day
