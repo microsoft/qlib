@@ -166,7 +166,7 @@ def test_trainer_earlystop():
         update_kwargs=dict(repeat=10, batch_size=64),
     )
     trainer.fit(vessel)
-    assert trainer.metrics["val/acc"] > 50
+    assert trainer.metrics["val/acc"] > 30
     assert trainer.current_iter == 2  # second iteration
 
 
