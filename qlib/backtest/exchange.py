@@ -342,7 +342,7 @@ class Exchange:
         if direction is None:
             buy_limit = self.quote.get_data(stock_id, start_time, end_time, field="limit_buy", method="all")
             sell_limit = self.quote.get_data(stock_id, start_time, end_time, field="limit_sell", method="all")
-            return True if buy_limit or sell_limit else False
+            return bool(buy_limit or sell_limit)
         elif direction == Order.BUY:
             return cast(bool, self.quote.get_data(stock_id, start_time, end_time, field="limit_buy", method="all"))
         elif direction == Order.SELL:
