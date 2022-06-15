@@ -6,7 +6,6 @@ This module is not well maintained.
 
 import datetime
 from pathlib import Path
-from typing import Tuple
 
 import numpy as np
 import pandas as pd
@@ -17,12 +16,12 @@ from .position import Position
 
 
 def get_benchmark_weight(
-    bench: object,  # TODO: what type is it?
-    start_date: object = None,  # TODO: what type is it?
-    end_date: object = None,  # TODO: what type is it?
-    path: Path = None,
-    freq: str = "day",
-) -> pd.DataFrame:
+    bench,
+    start_date=None,
+    end_date=None,
+    path=None,
+    freq="day",
+):
     """get_benchmark_weight
 
     get the stock weight distribution of the benchmark
@@ -54,7 +53,7 @@ def get_benchmark_weight(
     return bench_stock_weight
 
 
-def get_stock_weight_df(positions: dict) -> pd.DataFrame:
+def get_stock_weight_df(positions):
     """get_stock_weight_df
     :param positions: Given a positions from backtest result.
     :return:          A weight distribution for the position
@@ -70,7 +69,7 @@ def get_stock_weight_df(positions: dict) -> pd.DataFrame:
     return pd.DataFrame(stock_weight, index=index)
 
 
-def decompose_portofolio_weight(stock_weight_df: pd.DataFrame, stock_group_df: pd.DataFrame) -> Tuple[dict, dict]:
+def decompose_portofolio_weight(stock_weight_df, stock_group_df):
     """decompose_portofolio_weight
 
     '''
@@ -108,11 +107,7 @@ def decompose_portofolio_weight(stock_weight_df: pd.DataFrame, stock_group_df: p
     return group_weight, stock_weight_in_group
 
 
-def decompose_portofolio(
-    stock_weight_df: pd.DataFrame,
-    stock_group_df: pd.DataFrame,
-    stock_ret_df: pd.DataFrame,
-) -> Tuple[pd.DataFrame, pd.DataFrame]:
+def decompose_portofolio(stock_weight_df, stock_group_df, stock_ret_df):
     """
     :param stock_weight_df: a pandas dataframe to describe the portofolio by weight.
                     every row corresponds to a  day
@@ -181,7 +176,7 @@ def decompose_portofolio(
     return group_weight_df, group_ret_df
 
 
-def get_daily_bin_group(bench_values: pd.Series, stock_values: pd.Series, group_n: int) -> pd.Series:
+def get_daily_bin_group(bench_values, stock_values, group_n):
     """get_daily_bin_group
     Group the values of the stocks of benchmark into several bins in a day.
     Put the stocks into these bins.
@@ -207,12 +202,7 @@ def get_daily_bin_group(bench_values: pd.Series, stock_values: pd.Series, group_
     return stock_group
 
 
-def get_stock_group(
-    stock_group_field_df: pd.DataFrame,
-    bench_stock_weight_df: pd.DataFrame,
-    group_method: str,
-    group_n: int = None,
-) -> pd.DataFrame:
+def get_stock_group(stock_group_field_df, bench_stock_weight_df, group_method, group_n=None):
     if group_method == "category":
         # use the value of the benchmark as the category
         return stock_group_field_df
@@ -234,14 +224,14 @@ def get_stock_group(
 
 
 def brinson_pa(
-    positions: dict,
-    bench: str = "SH000905",
-    group_field: str = "industry",
-    group_method: str = "category",
-    group_n: int = None,
-    deal_price: str = "vwap",
-    freq: str = "day",
-) -> Tuple[pd.DataFrame, dict]:
+    positions,
+    bench="SH000905",
+    group_field="industry",
+    group_method="category",
+    group_n=None,
+    deal_price="vwap",
+    freq="day",
+):
     """brinson profit attribution
 
     :param positions: The position produced by the backtest class
@@ -262,7 +252,7 @@ def brinson_pa(
 
     start_date, end_date = min(dates), max(dates)
 
-    bench_stock_weight = get_benchmark_weight(bench, start_date, end_date, freq=freq)
+    bench_stock_weight = get_benchmark_weight(bench, start_date, end_date, freq)
 
     # The attributes for allocation will not
     if not group_field.startswith("$"):
