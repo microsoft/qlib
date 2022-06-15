@@ -1,0 +1,62 @@
+name: Test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-18.04, ubuntu-20.04, macos-11, macos-latest]
+        # not supporting 3.6 due to annotations is not supported https://stackoverflow.com/a/52890129
+        python-version: [3.7, 3.8]
+
+    steps:
+      - name: Test qlib from pip
+        uses: actions/checkout@v2
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install pytorch according to the system
+        if: ${{ matrix.os == 'macos-11' || matrix.os == 'macos-latest' }}
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install torch torchvision torchaudio
+          brew install libomp  # lightgbm dependencies
+
+      - name: Install pytorch according to the system
+        if: ${{ matrix.os == 'ubuntu-18.04' || matrix.os == 'ubuntu-20.04' }}
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cpu
+
+      - name: Install pytorch according to the system
+        if: ${{ matrix.os == 'windows-latest' }}
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install torch torchvision torchaudio
+
+      - name: Set up Python tools
+        run: |
+          python -m pip install --upgrade cython numpy
+          python -m pip install wheel ruamel.yaml xgboost catboost
+
+      - name: Qlib installation test
+        run: |
+          python -m pip install pyqlib
+
+      - name: Downloads dependencies data
+        run: |
+          python scripts/get_data.py qlib_data --name qlib_data_simple --target_dir ~/.qlib/qlib_data/cn_data --interval 1d --region cn
+
+      - name: Test workflow by config
+        run: |
+          python qlib/workflow/cli.py examples/benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml
