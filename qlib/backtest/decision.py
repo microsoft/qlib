@@ -7,7 +7,7 @@ from abc import abstractmethod
 from enum import IntEnum
 
 # try to fix circular imports when enabling type hints
-from typing import TYPE_CHECKING, ClassVar, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, ClassVar, Optional, Tuple, Union, cast
 
 from qlib.backtest.utils import TradeCalendarManager
 from qlib.data.data import Cal
@@ -25,7 +25,7 @@ import pandas as pd
 
 
 class OrderDir(IntEnum):
-    # Order  direction
+    # Order direction
     SELL = 0
     BUY = 1
 
@@ -65,7 +65,7 @@ class Order:
     # - not tradable: the deal_amount == 0 , factor is None
     #    - the stock is suspended and the entire order fails. No cost for this order
     # - dealt or partially dealt: deal_amount >= 0 and factor is not None
-    deal_amount: Optional[float] = None  # `deal_amount` is a non-negative value
+    deal_amount: float = 0.0  # `deal_amount` is a non-negative value
     factor: Optional[float] = None
 
     # TODO:
@@ -316,20 +316,21 @@ class BaseTradeDecision:
         """
         self.strategy = strategy
         self.start_time, self.end_time = strategy.trade_calendar.get_step_time()
-        self.total_step = None  # upper strategy has no knowledge about the sub executor before `_init_sub_trading`
-        if isinstance(trade_range, Tuple):
+        # upper strategy has no knowledge about the sub executor before `_init_sub_trading`
+        self.total_step: Optional[int] = None
+        if isinstance(trade_range, tuple):
             # for Tuple[int, int]
             trade_range = IdxTradeRange(*trade_range)
-        self.trade_range: TradeRange = trade_range
+        self.trade_range: Optional[TradeRange] = trade_range
 
-    def get_decision(self) -> List[object]:
+    def get_decision(self) -> list:
         """
         get the **concrete decision**  (e.g. execution orders)
         This will be called by the inner strategy
 
         Returns
         -------
-        List[object]:
+        list:
             The decision result. Typically it is some orders
             Example:
                 []:
@@ -363,13 +364,13 @@ class BaseTradeDecision:
         # purpose 2)
         return self.strategy.update_trade_decision(self, trade_calendar)
 
-    def _get_range_limit(self, **kwargs) -> Tuple[int, int]:
+    def _get_range_limit(self, **kwargs: Any) -> Tuple[int, int]:
         if self.trade_range is not None:
-            return self.trade_range(trade_calendar=kwargs.get("inner_calendar"))
+            return self.trade_range(trade_calendar=cast(TradeCalendarManager, kwargs.get("inner_calendar")))
         else:
             raise NotImplementedError("The decision didn't provide an index range")
 
-    def get_range_limit(self, **kwargs) -> Tuple[int, int]:
+    def get_range_limit(self, **kwargs: Any) -> Tuple[int, int]:
         """
         return the expected step range for limiting the decision execution time
         Both left and right are **closed**
@@ -421,6 +422,7 @@ class BaseTradeDecision:
         if getattr(self, "total_step", None) is not None:
             # if `self.update` is called.
             # Then the _start_idx, _end_idx should be clipped
+            assert self.total_step is not None
             if _start_idx < 0 or _end_idx >= self.total_step:
                 logger = get_module_logger("decision")
                 logger.warning(
@@ -517,7 +519,7 @@ class BaseTradeDecision:
 
 
 class EmptyTradeDecision(BaseTradeDecision):
-    def get_decision(self) -> List[object]:
+    def get_decision(self) -> list:
         return []
 
     def empty(self) -> bool:
@@ -530,17 +532,18 @@ class TradeDecisionWO(BaseTradeDecision):
     Besides, the time_range is also included.
     """
 
-    def __init__(self, order_list: List[Order], strategy: BaseStrategy, trade_range: Tuple[int, int] = None):
+    def __init__(self, order_list: list, strategy: BaseStrategy, trade_range: Tuple[int, int] = None):
         super().__init__(strategy, trade_range=trade_range)
         self.order_list = order_list
         start, end = strategy.trade_calendar.get_step_time()
         for o in order_list:
+            assert isinstance(o, Order)
             if o.start_time is None:
                 o.start_time = start
             if o.end_time is None:
                 o.end_time = end
 
-    def get_decision(self) -> List[object]:
+    def get_decision(self) -> list:
         return self.order_list
 
     def __repr__(self) -> str:
