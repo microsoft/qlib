@@ -112,11 +112,10 @@ jobs:
         flake8 --ignore=E501,F541,E266,E402,W503,E731,E203 --per-file-ignores="__init__.py:F401,F403" qlib
 
     # https://github.com/python/mypy/issues/10600
-    - name: Check Qlib with mypy
-      run: |
-        set -e
-        mypy qlib --install-types --non-interactive || true
-        mypy qlib --verbose
+     - name: Check Qlib with mypy
+       run: |
+         mypy qlib --install-types --non-interactive || true
+         mypy qlib --verbose
 
     - name: Test data downloads
       run: |
