@@ -3,7 +3,7 @@ Qlib FAQ
 ############
 
 Qlib Frequently Asked Questions
-================================
+===============================
 .. contents::
     :depth: 1
     :local:
@@ -13,7 +13,7 @@ Qlib Frequently Asked Questions
 
 
 1. RuntimeError: An attempt has been made to start a new process before the current process has finished its bootstrapping phase...
-------------------------------------------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------------------
 
 .. code-block:: console
 
@@ -52,7 +52,7 @@ This is caused by the limitation of multiprocessing under windows OS. Please ref
 
 
 2. qlib.data.cache.QlibCacheException: It sees the key(...) of the redis lock has existed in your redis db now.
------------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------
 
 It sees the key of the redis lock has existed in your redis db now. You can use the following command to clear your redis keys and rerun your commands
 
@@ -72,7 +72,7 @@ If the issue is not resolved, use ``keys *`` to find if multiple keys exist. If 
 Also, feel free to post a new issue in our GitHub repository. We always check each issue carefully and try our best to solve them.
 
 3. ModuleNotFoundError: No module named 'qlib.data._libs.rolling'
-------------------------------------------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------
 
 .. code-block:: python
 
@@ -101,7 +101,7 @@ Also, feel free to post a new issue in our GitHub repository. We always check ea
 
 
 4. BadNamespaceError: / is not a connected namespace
-------------------------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------
 
 .. code-block:: python
 
@@ -125,7 +125,7 @@ Also, feel free to post a new issue in our GitHub repository. We always check ea
 
 
 5. TypeError: send() got an unexpected keyword argument 'binary'
-------------------------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------
 
 .. code-block:: python
 

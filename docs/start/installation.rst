@@ -1,8 +1,8 @@
 .. _installation:
 
-====================
+============
 Installation
-====================
+============
 
 .. currentmodule:: qlib
 
@@ -24,7 +24,7 @@ Also, Users can install ``Qlib`` by the source code according to the following s
 
 - Enter the root directory of ``Qlib``, in which the file ``setup.py`` exists.
 - Then, please execute the following command to install the environment dependencies and install ``Qlib``:
-   
+
    .. code-block:: bash
 
       $ pip install numpy
@@ -34,7 +34,7 @@ Also, Users can install ``Qlib`` by the source code according to the following s
 
 .. note::
    It's recommended to use anaconda/miniconda to setup the environment. ``Qlib`` needs lightgbm and pytorch packages, use pip to install them.
-   
+
 
 
 Use the following code to make sure the installation successful:
@@ -44,6 +44,3 @@ Use the following code to make sure the installation successful:
    >>> import qlib
    >>> qlib.__version__
    <LATEST VERSION>
-
-
-=====================

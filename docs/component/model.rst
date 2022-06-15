@@ -1,13 +1,13 @@
 .. _model:
 
-============================================
+===========================================
 Forecast Model: Model Training & Prediction
-============================================
+===========================================
 
 Introduction
-===================
+============
 
-``Forecast Model`` is designed to make the `prediction score` about stocks. Users can use the ``Forecast Model`` in an automatic workflow by ``qrun``, please refer to `Workflow: Workflow Management <workflow.html>`_.  
+``Forecast Model`` is designed to make the `prediction score` about stocks. Users can use the ``Forecast Model`` in an automatic workflow by ``qrun``, please refer to `Workflow: Workflow Management <workflow.html>`_.
 
 Because the components in ``Qlib`` are designed in a loosely-coupled way, ``Forecast Model`` can be used as an independent module also.
 
@@ -22,11 +22,11 @@ The base class provides the following interfaces:
     :members:
 
 ``Qlib`` also provides a base class `qlib.model.base.ModelFT <../reference/api.html#qlib.model.base.ModelFT>`_, which includes the method for finetuning the model.
-    
+
 For other interfaces such as `finetune`, please refer to `Model API <../reference/api.html#module-qlib.model.base>`_.
 
 Example
-==================
+=======
 
 ``Qlib``'s `Model Zoo` includes models such as ``LightGBM``, ``MLP``, ``LSTM``, etc.. These models are treated as the baselines of ``Forecast Model``. The following steps show how to run`` LightGBM`` as an independent module.
 
@@ -84,7 +84,7 @@ Example
                 },
             },
         }
-        
+
         # model initiaiton
         model = init_instance_by_config(task["model"])
         dataset = init_instance_by_config(task["dataset"])
@@ -100,22 +100,22 @@ Example
             sr = SignalRecord(model, dataset, recorder)
             sr.generate()
 
-    .. note:: 
-        
+    .. note::
+
         `Alpha158` is the data handler provided by ``Qlib``, please refer to `Data Handler <data.html#data-handler>`_.
         `SignalRecord` is the `Record Template` in ``Qlib``, please refer to `Workflow <recorder.html#record-template>`_.
 
 Also, the above example has been given in ``examples/train_backtest_analyze.ipynb``.
 Technically, the meaning of the model prediction depends on the label setting designed by user.
-By default, the meaning of the score is normally the rating of the instruments by the forecasting model. The higher the score, the more profit the instruments. 
+By default, the meaning of the score is normally the rating of the instruments by the forecasting model. The higher the score, the more profit the instruments.
 
 
 Custom Model
-===================
+============
 
 Qlib supports custom models. If users are interested in customizing their own models and integrating the models into ``Qlib``, please refer to `Custom Model Integration <../start/integration.html>`_.
 
 
 API
-===================
+===
 Please refer to `Model API <../reference/api.html#module-qlib.model.base>`_.
