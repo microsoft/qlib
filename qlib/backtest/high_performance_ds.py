@@ -245,13 +245,13 @@ class BaseSingleMetric:
     def __truediv__(self, other: Union[BaseSingleMetric, int, float]) -> BaseSingleMetric:
         raise NotImplementedError(f"Please implement the `__truediv__` method")
 
-    def __eq__(self, other: object) -> bool:
+    def __eq__(self, other: object) -> BaseSingleMetric:  # TODO: why not bool here?
         raise NotImplementedError(f"Please implement the `__eq__` method")
 
-    def __gt__(self, other: Union[BaseSingleMetric, int, float]) -> bool:
+    def __gt__(self, other: Union[BaseSingleMetric, int, float]) -> BaseSingleMetric:  # TODO: why not bool here?
         raise NotImplementedError(f"Please implement the `__gt__` method")
 
-    def __lt__(self, other: Union[BaseSingleMetric, int, float]) -> bool:
+    def __lt__(self, other: Union[BaseSingleMetric, int, float]) -> BaseSingleMetric:  # TODO: why not bool here?
         raise NotImplementedError(f"Please implement the `__lt__` method")
 
     def __len__(self) -> int:
