@@ -205,7 +205,7 @@ class BaseExecutor:
         self,
         trade_decision: BaseTradeDecision,
         level: int = 0,
-    ) -> Union[Generator[BaseTradeDecision, Optional[BaseTradeDecision], Tuple[list, dict]], Tuple[list, dict]]:
+    ) -> Union[Generator[Any, Any, Tuple[list, dict]], Tuple[list, dict]]:
         """
         Please refer to the doc of collect_data
         The only difference between `_collect_data` and `collect_data` is that some common steps are moved into
@@ -227,7 +227,7 @@ class BaseExecutor:
         trade_decision: BaseTradeDecision,
         return_value: dict = None,
         level: int = 0,
-    ) -> Generator[BaseTradeDecision, Optional[BaseTradeDecision], list]:
+    ) -> Generator[Any, Any, list]:
         """Generator for collecting the trade decision data for rl training
 
         his function will make a step forward
@@ -403,7 +403,7 @@ class NestedExecutor(BaseExecutor):
         self,
         trade_decision: BaseTradeDecision,
         level: int = 0,
-    ) -> Generator[BaseTradeDecision, Optional[BaseTradeDecision], Tuple[list, dict]]:
+    ) -> Generator[Any, Any, Tuple[list, dict]]:
         execute_result = []
         inner_order_indicators = []
         decision_list = []

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Any, Generator, Optional
 
 if TYPE_CHECKING:
     from qlib.backtest.exchange import Exchange
@@ -122,7 +122,10 @@ class BaseStrategy:
             self.outer_trade_decision = outer_trade_decision
 
     @abstractmethod
-    def generate_trade_decision(self, execute_result: list = None) -> BaseTradeDecision:
+    def generate_trade_decision(
+        self,
+        execute_result: list = None,
+    ) -> Union[BaseTradeDecision, Generator[Any, Any, BaseTradeDecision]]:
         """Generate trade decision in each trading bar
 
         Parameters
