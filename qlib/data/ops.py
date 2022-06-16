@@ -32,15 +32,6 @@ except ValueError as e:
 
 np.seterr(invalid="ignore")
 
-
-#################### Change instrument ########################
-# In some case, one may want to change to another instrument when calculating, for example
-# calculate beta of a stock with respect to a market index
-# this would require change the calculation of features from the stock (original instrument) to
-# the index (reference instrument)
-# #############################
-
-
 class ChangeInstrument(ExpressionOps):
     """Change Instrument Operator
     In some case, one may want to change to another instrument when calculating, for example, to
@@ -67,44 +58,7 @@ class ChangeInstrument(ExpressionOps):
         return "{}('{}',{})".format(type(self).__name__, self.instrument, self.feature)
 
     def load(self, instrument, start_index, end_index, freq):
-        """load  feature
-
-        Parameters
-        ----------
-        instrument : str
-            instrument code, however, the actual instrument loaded is self.instrument through initialization
-        start_index : str
-            feature start index [in calendar].
-        end_index : str
-            feature end  index  [in calendar].
-        freq : str
-            feature frequency.
-
-        Returns
-        ----------
-        pd.Series
-            feature series: The index of the series is the calendar index
-        """
-        from .cache import H  # pylint: disable=C0415
-
-        # cache
-        args = str(self), self.instrument, start_index, end_index, freq
-        if args in H["f"]:
-            return H["f"][args]
-        if start_index is not None and end_index is not None and start_index > end_index:
-            raise ValueError("Invalid index range: {} {}".format(start_index, end_index))
-        try:
-            series = self._load_internal(self.instrument, start_index, end_index, freq)
-        except Exception as e:
-            get_module_logger("data").debug(
-                f"Loading data error: instrument={instrument}, expression={str(self)}, "
-                f"start_index={start_index}, end_index={end_index}, freq={freq}. "
-                f"error info: {str(e)}"
-            )
-            raise
-        series.name = str(self)
-        H["f"][args] = series
-        return series
+        super().load(self, self.instrument, start_index, end_index, *args)
 
     def _load_internal(self, instrument, start_index, end_index, freq):
         series = self.feature.load(self.instrument, start_index, end_index, freq)
