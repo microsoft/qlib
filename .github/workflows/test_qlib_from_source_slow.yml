@@ -52,6 +52,7 @@ jobs:
 
     - name: Downloads dependencies data
       run: |
+        python scripts/get_data.py qlib_data --name qlib_data_simple --target_dir ~/.qlib/qlib_data/cn_data --interval 1d --region cn
         azcopy copy https://qlibpublic.blob.core.windows.net/data/rl /tmp/qlibpublic/data --recursive
         mv /tmp/qlibpublic/data tests/.data
 
