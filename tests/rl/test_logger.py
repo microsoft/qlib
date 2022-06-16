@@ -5,6 +5,8 @@ from random import randint, choice
 from pathlib import Path
 
 import re
+from typing import Any, Tuple
+
 import gym
 import numpy as np
 import pandas as pd
@@ -24,16 +26,16 @@ from qlib.rl.utils.finite_env import vectorize_env
 
 
 class SimpleEnv(gym.Env[int, int]):
-    def __init__(self):
+    def __init__(self) -> None:
         self.logger = LogCollector()
         self.observation_space = gym.spaces.Discrete(2)
         self.action_space = gym.spaces.Discrete(2)
 
-    def reset(self):
+    def reset(self, *args: Any, **kwargs: Any) -> int:
         self.step_count = 0
         return 0
 
-    def step(self, action: int):
+    def step(self, action: int) -> Tuple[int, float, bool, dict]:
         self.logger.reset()
 
         self.logger.add_scalar("reward", 42.0)
@@ -52,6 +54,9 @@ class SimpleEnv(gym.Env[int, int]):
         self.step_count += 1
 
         return 1, 42.0, done, InfoDict(log=self.logger.logs(), aux_info={})
+
+    def render(self, mode: str = "human") -> None:
+        pass
 
 
 class AnyPolicy(BasePolicy):
@@ -86,7 +91,8 @@ def test_simple_env_logger(caplog):
 
 
 class SimpleSimulator(Simulator[int, float, float]):
-    def __init__(self, initial: int, **kwargs) -> None:
+    def __init__(self, initial: int, **kwargs: Any) -> None:
+        super(SimpleSimulator, self).__init__(initial, **kwargs)
         self.initial = float(initial)
 
     def step(self, action: float) -> None:

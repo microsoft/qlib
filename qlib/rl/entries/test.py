@@ -4,18 +4,17 @@
 from __future__ import annotations
 
 import copy
-from typing import Callable, Sequence
+from typing import Callable, List, Sequence, Union
 
 from tianshou.data import Collector
 from tianshou.policy import BasePolicy
 
 from qlib.constant import INF
 from qlib.log import get_module_logger
-from qlib.rl.simulator import InitialStateType, Simulator
-from qlib.rl.interpreter import StateInterpreter, ActionInterpreter
+from qlib.rl.interpreter import ActionInterpreter, StateInterpreter
 from qlib.rl.reward import Reward
+from qlib.rl.simulator import InitialStateType, Simulator
 from qlib.rl.utils import DataQueue, EnvWrapper, FiniteEnvType, LogCollector, LogWriter, vectorize_env
-
 
 _logger = get_module_logger(__name__)
 
@@ -26,8 +25,8 @@ def backtest(
     action_interpreter: ActionInterpreter,
     initial_states: Sequence[InitialStateType],
     policy: BasePolicy,
-    logger: LogWriter | list[LogWriter],
-    reward: Reward | None = None,
+    logger: Union[LogWriter, List[LogWriter]],
+    reward: Reward = None,
     finite_env_type: FiniteEnvType = "subproc",
     concurrency: int = 2,
 ) -> None:
@@ -60,7 +59,7 @@ def backtest(
     # To save bandwidth
     min_loglevel = min(lg.loglevel for lg in logger) if isinstance(logger, list) else logger.loglevel
 
-    def env_factory():
+    def env_factory() -> EnvWrapper:
         # FIXME: state_interpreter and action_interpreter are stateful (having a weakref of env),
         # and could be thread unsafe.
         # I'm not sure whether it's a design flaw.

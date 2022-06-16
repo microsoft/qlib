@@ -11,14 +11,14 @@ from __future__ import annotations
 import copy
 import warnings
 from contextlib import contextmanager
+from typing import Any, Callable, Dict, Generator, List, Optional, Set, Tuple, Type, Union, cast
 
 import gym
 import numpy as np
-from typing import Any, Set, Callable, Type
-
 from tianshou.env import BaseVectorEnv, DummyVectorEnv, ShmemVectorEnv, SubprocVectorEnv
 
 from qlib.typehint import Literal
+
 from .log import LogWriter
 
 __all__ = [
@@ -36,7 +36,7 @@ __all__ = [
 FiniteEnvType = Literal["dummy", "subproc", "shmem"]
 
 
-def fill_invalid(obj):
+def fill_invalid(obj: Union[int, float, bool, np.ndarray, dict, list, tuple]) -> Union[np.ndarray, dict, list, tuple]:
     if isinstance(obj, (int, float, bool)):
         return fill_invalid(np.array(obj))
     if hasattr(obj, "dtype"):
@@ -55,7 +55,7 @@ def fill_invalid(obj):
     raise ValueError(f"Unsupported value to fill with invalid: {obj}")
 
 
-def is_invalid(arr):
+def is_invalid(arr: Union[int, float, bool, np.ndarray, dict, list, tuple]) -> bool:
     if hasattr(arr, "dtype"):
         if np.issubdtype(arr.dtype, np.floating):
             return np.isnan(arr).all()
@@ -121,11 +121,11 @@ class FiniteVectorEnv(BaseVectorEnv):
     """
 
     def __init__(
-        self, logger: LogWriter | list[LogWriter], env_fns: list[Callable[..., gym.Env]], **kwargs: Any
+        self, logger: Union[LogWriter, List[LogWriter]], env_fns: List[Callable[..., gym.Env]], **kwargs: Any
     ) -> None:
         super().__init__(env_fns, **kwargs)
 
-        self._logger: list[LogWriter] = logger if isinstance(logger, list) else [logger]
+        self._logger: List[LogWriter] = logger if isinstance(logger, list) else [logger]
         self._alive_env_ids: Set[int] = set()
         self._reset_alive_envs()
         self._default_obs = self._default_info = self._default_rew = None
@@ -133,44 +133,44 @@ class FiniteVectorEnv(BaseVectorEnv):
 
         self._collector_guarded: bool = False
 
-    def _reset_alive_envs(self):
+    def _reset_alive_envs(self) -> None:
         if not self._alive_env_ids:
             # starting or running out
             self._alive_env_ids = set(range(self.env_num))
 
     # to workaround with tianshou's buffer and batch
-    def _set_default_obs(self, obs):
+    def _set_default_obs(self, obs: Any) -> None:
         if obs is not None and self._default_obs is None:
             self._default_obs = copy.deepcopy(obs)
 
-    def _set_default_info(self, info):
+    def _set_default_info(self, info: Any) -> None:
         if info is not None and self._default_info is None:
             self._default_info = copy.deepcopy(info)
 
-    def _set_default_rew(self, rew):
+    def _set_default_rew(self, rew: Any) -> None:
         if rew is not None and self._default_rew is None:
             self._default_rew = copy.deepcopy(rew)
 
-    def _get_default_obs(self):
+    def _get_default_obs(self) -> Any:
         return copy.deepcopy(self._default_obs)
 
-    def _get_default_info(self):
+    def _get_default_info(self) -> Any:
         return copy.deepcopy(self._default_info)
 
-    def _get_default_rew(self):
+    def _get_default_rew(self) -> Any:
         return copy.deepcopy(self._default_rew)
 
     # END
 
     @staticmethod
-    def _postproc_env_obs(obs):
+    def _postproc_env_obs(obs: Any) -> Optional[Any]:
         # reserved for shmem vector env to restore empty observation
         if obs is None or check_nan_observation(obs):
             return None
         return obs
 
     @contextmanager
-    def collector_guard(self):
+    def collector_guard(self) -> Generator[FiniteVectorEnv, None, None]:
         """Guard the collector. Recommended to guard every collect.
 
         This guard is for two purposes.
@@ -197,7 +197,10 @@ class FiniteVectorEnv(BaseVectorEnv):
         for logger in self._logger:
             logger.on_env_all_done()
 
-    def reset(self, id=None):
+    def reset(
+        self,
+        id: Optional[Union[int, List[int], np.ndarray]] = None,
+    ) -> np.ndarray:
         assert not self._zombie
 
         # Check whether it's guarded by collector_guard()
@@ -245,7 +248,11 @@ class FiniteVectorEnv(BaseVectorEnv):
 
         return np.stack(obs)
 
-    def step(self, action, id=None):
+    def step(
+        self,
+        action: np.ndarray,
+        id: Optional[Union[int, List[int], np.ndarray]] = None,
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         assert not self._zombie
         id = self._wrap_id(id)
         id2idx = {i: k for k, i in enumerate(id)}
@@ -277,7 +284,8 @@ class FiniteVectorEnv(BaseVectorEnv):
             if r[3] is None:
                 result[i][3] = self._get_default_info()
 
-        return list(map(np.stack, zip(*result)))
+        ret = list(map(np.stack, zip(*result)))
+        return cast(Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray], ret)
 
 
 class FiniteDummyVectorEnv(FiniteVectorEnv, DummyVectorEnv):
@@ -296,7 +304,7 @@ def vectorize_env(
     env_factory: Callable[..., gym.Env],
     env_type: FiniteEnvType,
     concurrency: int,
-    logger: LogWriter | list[LogWriter],
+    logger: Union[LogWriter, List[LogWriter]],
 ) -> FiniteVectorEnv:
     """Helper function to create a vector env.
 
@@ -326,7 +334,7 @@ def vectorize_env(
         def env_factory(): ...
         vectorize_env(env_factory, ...)
     """
-    env_type_cls_mapping: dict[str, Type[FiniteVectorEnv]] = {
+    env_type_cls_mapping: Dict[str, Type[FiniteVectorEnv]] = {
         "dummy": FiniteDummyVectorEnv,
         "subproc": FiniteSubprocVectorEnv,
         "shmem": FiniteShmemVectorEnv,

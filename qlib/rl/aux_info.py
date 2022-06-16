@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from typing import Generic, TYPE_CHECKING, TypeVar
+from typing import TYPE_CHECKING, Generic, Optional, TypeVar
 
 from qlib.typehint import final
 
@@ -21,7 +21,7 @@ AuxInfoType = TypeVar("AuxInfoType")
 class AuxiliaryInfoCollector(Generic[StateType, AuxInfoType]):
     """Override this class to collect customized auxiliary information from environment."""
 
-    env: EnvWrapper | None = None
+    env: Optional[EnvWrapper] = None
 
     @final
     def __call__(self, simulator_state: StateType) -> AuxInfoType:

@@ -18,7 +18,7 @@ import logging
 from collections import defaultdict
 from enum import IntEnum
 from pathlib import Path
-from typing import Any, TypeVar, Generic, Set, TYPE_CHECKING, Sequence
+from typing import TYPE_CHECKING, Any, Dict, Generic, List, Sequence, Set, Tuple, TypeVar, Union
 
 import numpy as np
 import pandas as pd
@@ -62,22 +62,22 @@ class LogCollector:
     ``min_loglevel`` is for optimization purposes: to avoid too much traffic on networks / in pipe.
     """
 
-    _logged: dict[str, tuple[int, Any]]
+    _logged: Dict[str, Tuple[int, Any]]
     _min_loglevel: int
 
-    def __init__(self, min_loglevel: int | LogLevel = LogLevel.PERIODIC):
+    def __init__(self, min_loglevel: Union[int, LogLevel] = LogLevel.PERIODIC) -> None:
         self._min_loglevel = int(min_loglevel)
 
-    def reset(self):
+    def reset(self) -> None:
         """Clear all collected contents."""
         self._logged = {}
 
-    def _add_metric(self, name: str, metric: Any, loglevel: int | LogLevel) -> None:
+    def _add_metric(self, name: str, metric: Any, loglevel: Union[int, LogLevel]) -> None:
         if name in self._logged:
             raise ValueError(f"A metric with {name} is already added. Please change a name or reset the log collector.")
         self._logged[name] = (int(loglevel), metric)
 
-    def add_string(self, name: str, string: str, loglevel: int | LogLevel = LogLevel.PERIODIC) -> None:
+    def add_string(self, name: str, string: str, loglevel: Union[int, LogLevel] = LogLevel.PERIODIC) -> None:
         """Add a string with name into logged contents."""
         if loglevel < self._min_loglevel:
             return
@@ -85,7 +85,7 @@ class LogCollector:
             raise TypeError(f"{string} is not a string.")
         self._add_metric(name, string, loglevel)
 
-    def add_scalar(self, name: str, scalar: Any, loglevel: int | LogLevel = LogLevel.PERIODIC) -> None:
+    def add_scalar(self, name: str, scalar: Any, loglevel: Union[int, LogLevel] = LogLevel.PERIODIC) -> None:
         """Add a scalar with name into logged contents.
         Scalar will be converted into a float.
         """
@@ -101,7 +101,10 @@ class LogCollector:
         self._add_metric(name, scalar, loglevel)
 
     def add_array(
-        self, name: str, array: np.ndarray | pd.DataFrame | pd.Series, loglevel: int | LogLevel = LogLevel.PERIODIC
+        self,
+        name: str,
+        array: Union[np.ndarray, pd.DataFrame, pd.Series],
+        loglevel: Union[int, LogLevel] = LogLevel.PERIODIC,
     ) -> None:
         """Add an array with name into logging."""
         if loglevel < self._min_loglevel:
@@ -111,7 +114,7 @@ class LogCollector:
             raise TypeError(f"{array} is not one of ndarray, DataFrame and Series.")
         self._add_metric(name, array, loglevel)
 
-    def add_any(self, name: str, obj: Any, loglevel: int | LogLevel = LogLevel.PERIODIC) -> None:
+    def add_any(self, name: str, obj: Any, loglevel: Union[int, LogLevel] = LogLevel.PERIODIC) -> None:
         """Log something with any type.
 
         As it's an "any" object, the only LogWriter accepting it is pickle.
@@ -124,7 +127,7 @@ class LogCollector:
 
         self._add_metric(name, obj, loglevel)
 
-    def logs(self) -> dict[str, np.ndarray]:
+    def logs(self) -> Dict[str, np.ndarray]:
         return {key: np.asanyarray(value, dtype="object") for key, value in self._logged.items()}
 
 
@@ -151,16 +154,16 @@ class LogWriter(Generic[ObsType, ActType]):
     active_env_ids: Set[int]
     """Active environment ids in vector env."""
 
-    episode_lengths: dict[int, int]
+    episode_lengths: Dict[int, int]
     """Map from environment id to episode length."""
 
-    episode_rewards: dict[int, list[float]]
+    episode_rewards: Dict[int, List[float]]
     """Map from environment id to episode total reward."""
 
-    episode_logs: dict[int, list]
+    episode_logs: Dict[int, list]
     """Map from environment id to episode logs."""
 
-    def __init__(self, loglevel: int | LogLevel = LogLevel.PERIODIC):
+    def __init__(self, loglevel: Union[int, LogLevel] = LogLevel.PERIODIC) -> None:
         self.loglevel = loglevel
 
         self.global_step = 0
@@ -174,12 +177,13 @@ class LogWriter(Generic[ObsType, ActType]):
 
         self.clear()
 
-    def clear(self):
+    def clear(self) -> None:
         self.episode_count = self.step_count = 0
         self.active_env_ids = set()
         self.logs = []
 
-    def aggregation(self, array: Sequence[Any]) -> Any:
+    @staticmethod
+    def aggregation(array: Sequence[Any]) -> Any:
         """Aggregation function from step-wise to episode-wise.
 
         If it's a sequence of float, take the mean.
@@ -191,7 +195,7 @@ class LogWriter(Generic[ObsType, ActType]):
         else:
             return array[0]
 
-    def log_episode(self, length: int, rewards: list[float], contents: list[dict[str, Any]]) -> None:
+    def log_episode(self, length: int, rewards: List[float], contents: List[Dict[str, Any]]) -> None:
         """This is triggered at the end of each trajectory.
 
         Parameters
@@ -204,7 +208,7 @@ class LogWriter(Generic[ObsType, ActType]):
             Logged contents for every steps.
         """
 
-    def log_step(self, reward: float, contents: dict[str, Any]) -> None:
+    def log_step(self, reward: float, contents: Dict[str, Any]) -> None:
         """This is triggered at each step.
 
         Parameters
@@ -227,7 +231,7 @@ class LogWriter(Generic[ObsType, ActType]):
         # TODO: reward can be a list of list for MARL
         self.episode_rewards[env_id].append(rew)
 
-        values: dict[str, Any] = {}
+        values: Dict[str, Any] = {}
 
         for key, (loglevel, value) in info["log"].items():
             if loglevel >= self.loglevel:  # FIXME: this is actually incorrect (see last FIXME)
@@ -272,11 +276,11 @@ class ConsoleWriter(LogWriter):
     def __init__(
         self,
         log_every_n_episode: int = 20,
-        total_episodes: int | None = None,
+        total_episodes: int = None,
         float_format: str = ":.4f",
         counter_format: str = ":4d",
-        loglevel: int | LogLevel = LogLevel.PERIODIC,
-    ):
+        loglevel: Union[int, LogLevel] = LogLevel.PERIODIC,
+    ) -> None:
         super().__init__(loglevel)
         # TODO: support log_every_n_step
         self.log_every_n_episode = log_every_n_episode
@@ -289,15 +293,15 @@ class ConsoleWriter(LogWriter):
 
         self.console_logger = get_module_logger(__name__, level=logging.INFO)
 
-    def clear(self):
+    def clear(self) -> None:
         super().clear()
         # Clear average meters
-        self.metric_counts: dict[str, int] = defaultdict(int)
-        self.metric_sums: dict[str, float] = defaultdict(float)
+        self.metric_counts: Dict[str, int] = defaultdict(int)
+        self.metric_sums: Dict[str, float] = defaultdict(float)
 
-    def log_episode(self, length: int, rewards: list[float], contents: list[dict[str, Any]]) -> None:
+    def log_episode(self, length: int, rewards: List[float], contents: List[Dict[str, Any]]) -> None:
         # Aggregate step-wise to episode-wise
-        episode_wise_contents: dict[str, list] = defaultdict(list)
+        episode_wise_contents: Dict[str, list] = defaultdict(list)
 
         for step_contents in contents:
             for name, value in step_contents.items():
@@ -306,7 +310,7 @@ class ConsoleWriter(LogWriter):
 
         # Generate log contents and track them in average-meter.
         # This should be done at every step, regardless of periodic or not.
-        logs: dict[str, float] = {}
+        logs: Dict[str, float] = {}
         for name, values in episode_wise_contents.items():
             logs[name] = self.aggregation(values)  # type: ignore
 
@@ -318,7 +322,7 @@ class ConsoleWriter(LogWriter):
             # Only log periodically or at the end
             self.console_logger.info(self.generate_log_message(logs))
 
-    def generate_log_message(self, logs: dict[str, float]) -> str:
+    def generate_log_message(self, logs: Dict[str, float]) -> str:
         if self.prefix:
             msg_prefix = self.prefix + " "
         else:
@@ -348,27 +352,27 @@ class CsvWriter(LogWriter):
 
     SUPPORTED_TYPES = (float, str, pd.Timestamp)
 
-    all_records: list[dict[str, Any]]
+    all_records: List[Dict[str, Any]]
 
-    def __init__(self, output_dir: Path, loglevel: int | LogLevel = LogLevel.PERIODIC):
+    def __init__(self, output_dir: Path, loglevel: Union[int, LogLevel] = LogLevel.PERIODIC) -> None:
         super().__init__(loglevel)
         self.output_dir = output_dir
         self.output_dir.mkdir(exist_ok=True)
 
-    def clear(self):
+    def clear(self) -> None:
         super().clear()
         self.all_records = []
 
-    def log_episode(self, length: int, rewards: list[float], contents: list[dict[str, Any]]) -> None:
+    def log_episode(self, length: int, rewards: List[float], contents: List[Dict[str, Any]]) -> None:
         # FIXME Same as ConsoleLogger, needs a refactor to eliminate code-dup
-        episode_wise_contents: dict[str, list] = defaultdict(list)
+        episode_wise_contents: Dict[str, list] = defaultdict(list)
 
         for step_contents in contents:
             for name, value in step_contents.items():
                 if isinstance(value, self.SUPPORTED_TYPES):
                     episode_wise_contents[name].append(value)
 
-        logs: dict[str, float] = {}
+        logs: Dict[str, float] = {}
         for name, values in episode_wise_contents.items():
             logs[name] = self.aggregation(values)  # type: ignore
 
