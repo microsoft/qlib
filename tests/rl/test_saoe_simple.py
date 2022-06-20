@@ -18,7 +18,7 @@ from qlib.config import C
 from qlib.log import set_log_with_config
 from qlib.rl.data import pickle_styled
 from qlib.rl.entries.test import backtest
-from qlib.rl.order_execution import *
+from qlib.rl.order_execution import SingleAssetOrderExecution, FullHistoryStateInterpreter, CurrentStepStateInterpreter, CategoricalActionInterpreter, TwapRelativeActionInterpreter, AllOne, Recurrent, PPO
 from qlib.rl.utils import ConsoleWriter, CsvWriter, EnvWrapperStatus
 
 pytestmark = pytest.mark.skipif(sys.version_info < (3, 8), reason="Pickle styled data only supports Python >= 3.8")

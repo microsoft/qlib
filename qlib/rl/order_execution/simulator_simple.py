@@ -57,7 +57,7 @@ class SAOEMetrics(TypedDict):
     trade_price: float
     """The average deal price for this strategy."""
     trade_value: float
-    """Total worth of trading. In the simple simulaton, trade_value = deal_amount * price."""
+    """Total worth of trading. In the simple simulation, trade_value = deal_amount * price."""
     position: float
     """Position left after this "period"."""
 

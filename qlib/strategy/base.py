@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 from __future__ import annotations
 
-from abc import abstractmethod
+from abc import ABCMeta, abstractmethod
 from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
@@ -205,7 +205,7 @@ class BaseStrategy:
         return max(cal_range[0], range_limit[0]), min(cal_range[1], range_limit[1])
 
 
-class RLStrategy(BaseStrategy):
+class RLStrategy(BaseStrategy, metaclass=ABCMeta):
     """RL-based strategy"""
 
     def __init__(
@@ -226,7 +226,7 @@ class RLStrategy(BaseStrategy):
         self.policy = policy
 
 
-class RLIntStrategy(RLStrategy):
+class RLIntStrategy(RLStrategy, metaclass=ABCMeta):
     """(RL)-based (Strategy) with (Int)erpreter"""
 
     def __init__(

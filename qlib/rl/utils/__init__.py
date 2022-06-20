@@ -2,9 +2,9 @@
 # Licensed under the MIT License.
 
 from .data_queue import DataQueue
-from .env_wrapper import EnvWrapper
+from .env_wrapper import EnvWrapper, EnvWrapperStatus
 from .finite_env import FiniteEnvType, vectorize_env
-from .log import LogCollector, LogLevel, LogWriter
+from .log import ConsoleWriter, CsvWriter, LogCollector, LogLevel, LogWriter
 
 __all__ = [
     "LogLevel",
@@ -14,4 +14,7 @@ __all__ = [
     "LogCollector",
     "LogWriter",
     "vectorize_env",
+    "ConsoleWriter",
+    "CsvWriter",
+    "EnvWrapperStatus",
 ]
