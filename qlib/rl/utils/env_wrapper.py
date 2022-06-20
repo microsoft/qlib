@@ -49,8 +49,7 @@ class EnvWrapperStatus(TypedDict):
 
 
 class EnvWrapper(
-    gym.Env[ObsType, PolicyActType]
-    Generic[InitialStateType, StateType, ActType, ObsType, PolicyActType]
+    gym.Env[ObsType, PolicyActType], Generic[InitialStateType, StateType, ActType, ObsType, PolicyActType]
 ):
     """Qlib-based RL environment, subclassing ``gym.Env``.
     A wrapper of components, including simulator, state-interpreter, action-interpreter, reward.
