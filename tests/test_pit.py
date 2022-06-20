@@ -6,12 +6,13 @@ import sys
 import qlib
 import shutil
 import unittest
+import pytest
 import pandas as pd
 import baostock as bs
 from pathlib import Path
 
 from qlib.data import D
-from scripts.get_data import GetData
+from qlib.tests.data import GetData
 from scripts.dump_pit import DumpPitData
 
 sys.path.append(str(Path(__file__).resolve().parent.parent.joinpath("scripts/data_collector/pit")))
@@ -119,6 +120,7 @@ class TestPIT(unittest.TestCase):
         """
         self.check_same(data, expect)
 
+    @pytest.mark.slow
     def test_expr(self):
         fields = [
             "P(Mean($$roewa_q, 1))",
