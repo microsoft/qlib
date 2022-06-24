@@ -1,8 +1,10 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
+from __future__ import annotations
+
 from abc import ABCMeta
 from pathlib import Path
-from typing import Any, Dict, Generator, Iterable, Optional, Tuple, Union, cast
+from typing import Any, Dict, Generator, Iterable, Optional, Tuple, cast
 
 import gym
 import numpy as np
@@ -48,7 +50,7 @@ class AllOne(NonLearnablePolicy):
     def forward(
         self,
         batch: Batch,
-        state: Optional[Union[dict, Batch, np.ndarray]] = None,
+        state: dict | Batch | np.ndarray = None,
         **kwargs: Any,
     ) -> Batch:
         return Batch(act=np.full(len(batch), 1.0), state=state)

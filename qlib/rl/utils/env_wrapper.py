@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 import weakref
-from typing import Any, Callable, Dict, Generic, Iterable, Iterator, Optional, Tuple, Union, cast
+from typing import Any, Callable, Dict, Generic, Iterable, Iterator, Optional, Tuple, cast
 
 import gym
 from gym import Space
@@ -92,7 +92,7 @@ class EnvWrapper(
     """
 
     simulator: Simulator[InitialStateType, StateType, ActType]
-    seed_iterator: Union[str, Iterator[InitialStateType], None]
+    seed_iterator: str | Iterator[InitialStateType] | None
 
     def __init__(
         self,

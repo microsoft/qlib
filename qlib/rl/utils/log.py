@@ -18,7 +18,7 @@ import logging
 from collections import defaultdict
 from enum import IntEnum
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, Generic, List, Sequence, Set, Tuple, TypeVar, Union
+from typing import TYPE_CHECKING, Any, Dict, Generic, List, Sequence, Set, Tuple, TypeVar
 
 import numpy as np
 import pandas as pd
@@ -65,19 +65,19 @@ class LogCollector:
     _logged: Dict[str, Tuple[int, Any]]
     _min_loglevel: int
 
-    def __init__(self, min_loglevel: Union[int, LogLevel] = LogLevel.PERIODIC) -> None:
+    def __init__(self, min_loglevel: int | LogLevel = LogLevel.PERIODIC) -> None:
         self._min_loglevel = int(min_loglevel)
 
     def reset(self) -> None:
         """Clear all collected contents."""
         self._logged = {}
 
-    def _add_metric(self, name: str, metric: Any, loglevel: Union[int, LogLevel]) -> None:
+    def _add_metric(self, name: str, metric: Any, loglevel: int | LogLevel) -> None:
         if name in self._logged:
             raise ValueError(f"A metric with {name} is already added. Please change a name or reset the log collector.")
         self._logged[name] = (int(loglevel), metric)
 
-    def add_string(self, name: str, string: str, loglevel: Union[int, LogLevel] = LogLevel.PERIODIC) -> None:
+    def add_string(self, name: str, string: str, loglevel: int | LogLevel = LogLevel.PERIODIC) -> None:
         """Add a string with name into logged contents."""
         if loglevel < self._min_loglevel:
             return
@@ -85,7 +85,7 @@ class LogCollector:
             raise TypeError(f"{string} is not a string.")
         self._add_metric(name, string, loglevel)
 
-    def add_scalar(self, name: str, scalar: Any, loglevel: Union[int, LogLevel] = LogLevel.PERIODIC) -> None:
+    def add_scalar(self, name: str, scalar: Any, loglevel: int | LogLevel = LogLevel.PERIODIC) -> None:
         """Add a scalar with name into logged contents.
         Scalar will be converted into a float.
         """
@@ -103,8 +103,8 @@ class LogCollector:
     def add_array(
         self,
         name: str,
-        array: Union[np.ndarray, pd.DataFrame, pd.Series],
-        loglevel: Union[int, LogLevel] = LogLevel.PERIODIC,
+        array: np.ndarray | pd.DataFrame | pd.Series,
+        loglevel: int | LogLevel = LogLevel.PERIODIC,
     ) -> None:
         """Add an array with name into logging."""
         if loglevel < self._min_loglevel:
@@ -114,7 +114,7 @@ class LogCollector:
             raise TypeError(f"{array} is not one of ndarray, DataFrame and Series.")
         self._add_metric(name, array, loglevel)
 
-    def add_any(self, name: str, obj: Any, loglevel: Union[int, LogLevel] = LogLevel.PERIODIC) -> None:
+    def add_any(self, name: str, obj: Any, loglevel: int | LogLevel = LogLevel.PERIODIC) -> None:
         """Log something with any type.
 
         As it's an "any" object, the only LogWriter accepting it is pickle.
@@ -163,7 +163,7 @@ class LogWriter(Generic[ObsType, ActType]):
     episode_logs: Dict[int, list]
     """Map from environment id to episode logs."""
 
-    def __init__(self, loglevel: Union[int, LogLevel] = LogLevel.PERIODIC) -> None:
+    def __init__(self, loglevel: int | LogLevel = LogLevel.PERIODIC) -> None:
         self.loglevel = loglevel
 
         self.global_step = 0
@@ -279,7 +279,7 @@ class ConsoleWriter(LogWriter):
         total_episodes: int = None,
         float_format: str = ":.4f",
         counter_format: str = ":4d",
-        loglevel: Union[int, LogLevel] = LogLevel.PERIODIC,
+        loglevel: int | LogLevel = LogLevel.PERIODIC,
     ) -> None:
         super().__init__(loglevel)
         # TODO: support log_every_n_step
@@ -354,7 +354,7 @@ class CsvWriter(LogWriter):
 
     all_records: List[Dict[str, Any]]
 
-    def __init__(self, output_dir: Path, loglevel: Union[int, LogLevel] = LogLevel.PERIODIC) -> None:
+    def __init__(self, output_dir: Path, loglevel: int | LogLevel = LogLevel.PERIODIC) -> None:
         super().__init__(loglevel)
         self.output_dir = output_dir
         self.output_dir.mkdir(exist_ok=True)

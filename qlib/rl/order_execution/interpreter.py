@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import math
 from pathlib import Path
-from typing import Any, List, Union, cast
+from typing import Any, List, cast
 
 import numpy as np
 import pandas as pd
@@ -26,7 +26,7 @@ __all__ = [
 ]
 
 
-def canonicalize(value: Union[int, float, np.ndarray, pd.DataFrame, dict]) -> Union[np.ndarray, dict]:
+def canonicalize(value: int | float | np.ndarray | pd.DataFrame | dict) -> np.ndarray | dict:
     """To 32-bit numeric types. Recursively."""
     if isinstance(value, pd.DataFrame):
         return value.to_numpy()
@@ -188,7 +188,7 @@ class CategoricalActionInterpreter(ActionInterpreter[SAOEState, int, float]):
         i.e., $[0, 1/n, 2/n, \\ldots, n/n]$.
     """
 
-    def __init__(self, values: Union[int, List[float]]) -> None:
+    def __init__(self, values: int | List[float]) -> None:
         if isinstance(values, int):
             values = [i / values for i in range(0, values + 1)]
         self.action_values = values

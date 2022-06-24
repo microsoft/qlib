@@ -11,7 +11,7 @@ from __future__ import annotations
 import copy
 import warnings
 from contextlib import contextmanager
-from typing import Any, Callable, Dict, Generator, List, Optional, Set, Tuple, Type, Union, cast
+from typing import Any, Callable, Dict, Generator, List, Optional, Set, Tuple, Type, cast
 
 import gym
 import numpy as np
@@ -36,7 +36,7 @@ __all__ = [
 FiniteEnvType = Literal["dummy", "subproc", "shmem"]
 
 
-def fill_invalid(obj: Union[int, float, bool, np.ndarray, dict, list, tuple]) -> Union[np.ndarray, dict, list, tuple]:
+def fill_invalid(obj: int | float | bool | np.ndarray | dict | list | tuple) -> np.ndarray | dict | list | tuple:
     if isinstance(obj, (int, float, bool)):
         return fill_invalid(np.array(obj))
     if hasattr(obj, "dtype"):
@@ -55,7 +55,7 @@ def fill_invalid(obj: Union[int, float, bool, np.ndarray, dict, list, tuple]) ->
     raise ValueError(f"Unsupported value to fill with invalid: {obj}")
 
 
-def is_invalid(arr: Union[int, float, bool, np.ndarray, dict, list, tuple]) -> bool:
+def is_invalid(arr: int | float | bool | np.ndarray | dict | list | tuple) -> bool:
     if hasattr(arr, "dtype"):
         if np.issubdtype(arr.dtype, np.floating):
             return np.isnan(arr).all()
@@ -121,7 +121,7 @@ class FiniteVectorEnv(BaseVectorEnv):
     """
 
     def __init__(
-        self, logger: Union[LogWriter, List[LogWriter]], env_fns: List[Callable[..., gym.Env]], **kwargs: Any
+        self, logger: LogWriter | List[LogWriter], env_fns: List[Callable[..., gym.Env]], **kwargs: Any
     ) -> None:
         super().__init__(env_fns, **kwargs)
 
@@ -199,7 +199,7 @@ class FiniteVectorEnv(BaseVectorEnv):
 
     def reset(
         self,
-        id: Optional[Union[int, List[int], np.ndarray]] = None,
+        id: int | List[int] | np.ndarray = None,
     ) -> np.ndarray:
         assert not self._zombie
 
@@ -251,7 +251,7 @@ class FiniteVectorEnv(BaseVectorEnv):
     def step(
         self,
         action: np.ndarray,
-        id: Optional[Union[int, List[int], np.ndarray]] = None,
+        id: int | List[int] | np.ndarray = None,
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         assert not self._zombie
         id = self._wrap_id(id)
@@ -304,7 +304,7 @@ def vectorize_env(
     env_factory: Callable[..., gym.Env],
     env_type: FiniteEnvType,
     concurrency: int,
-    logger: Union[LogWriter, List[LogWriter]],
+    logger: LogWriter | List[LogWriter],
 ) -> FiniteVectorEnv:
     """Helper function to create a vector env.
 

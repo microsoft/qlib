@@ -9,7 +9,7 @@ if TYPE_CHECKING:
     from qlib.backtest.exchange import Exchange
     from qlib.backtest.position import BasePosition
 
-from typing import Tuple, Union
+from typing import Tuple
 
 from ..backtest.decision import BaseTradeDecision
 from ..backtest.utils import CommonInfrastructure, LevelInfrastructure, TradeCalendarManager
@@ -232,8 +232,8 @@ class RLIntStrategy(RLStrategy, metaclass=ABCMeta):
     def __init__(
         self,
         policy,
-        state_interpreter: Union[dict, StateInterpreter],
-        action_interpreter: Union[dict, ActionInterpreter],
+        state_interpreter: dict | StateInterpreter,
+        action_interpreter: dict | ActionInterpreter,
         outer_trade_decision: BaseTradeDecision = None,
         level_infra: LevelInfrastructure = None,
         common_infra: CommonInfrastructure = None,

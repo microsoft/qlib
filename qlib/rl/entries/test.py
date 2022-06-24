@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 import copy
-from typing import Callable, List, Sequence, Union
+from typing import Callable, List, Sequence
 
 from tianshou.data import Collector
 from tianshou.policy import BasePolicy
@@ -25,7 +25,7 @@ def backtest(
     action_interpreter: ActionInterpreter,
     initial_states: Sequence[InitialStateType],
     policy: BasePolicy,
-    logger: Union[LogWriter, List[LogWriter]],
+    logger: LogWriter | List[LogWriter],
     reward: Reward = None,
     finite_env_type: FiniteEnvType = "subproc",
     concurrency: int = 2,

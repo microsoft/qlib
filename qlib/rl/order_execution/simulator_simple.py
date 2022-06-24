@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, NamedTuple, Optional, TypeVar, Union, cast
+from typing import Any, NamedTuple, Optional, TypeVar, cast
 
 import numpy as np
 import pandas as pd
@@ -33,7 +33,7 @@ class SAOEMetrics(TypedDict):
 
     stock_id: str
     """Stock ID of this record."""
-    datetime: Union[pd.Timestamp, pd.DatetimeIndex]  # TODO: check this
+    datetime: pd.Timestamp | pd.DatetimeIndex  # TODO: check this
     """Datetime of this record (this is index in the dataframe)."""
     direction: int
     """Direction of the order. 0 for sell, 1 for buy."""
@@ -392,7 +392,7 @@ _float_or_ndarray = TypeVar("_float_or_ndarray", float, np.ndarray)
 def price_advantage(
     exec_price: _float_or_ndarray,
     baseline_price: float,
-    direction: Union[OrderDir, int],
+    direction: OrderDir | int,
 ) -> _float_or_ndarray:
     if baseline_price == 0:  # something is wrong with data. Should be nan here
         if isinstance(exec_price, float):
