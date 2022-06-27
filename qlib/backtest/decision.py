@@ -7,7 +7,7 @@ from abc import abstractmethod
 from enum import IntEnum
 
 # try to fix circular imports when enabling type hints
-from typing import TYPE_CHECKING, Any, ClassVar, Optional, Tuple, Union, cast
+from typing import Generic, List, TYPE_CHECKING, Any, ClassVar, Optional, Tuple, TypeVar, Union, cast
 
 from qlib.backtest.utils import TradeCalendarManager
 from qlib.data.data import Cal
@@ -22,6 +22,9 @@ from dataclasses import dataclass
 
 import numpy as np
 import pandas as pd
+
+
+DecisionType = TypeVar('DecisionType')
 
 
 class OrderDir(IntEnum):
@@ -281,7 +284,7 @@ class TradeRangeByTime(TradeRange):
         return max(val_start, start_time), min(val_end, end_time)
 
 
-class BaseTradeDecision:
+class BaseTradeDecision(Generic[DecisionType]):
     """
     Trade decisions ara made by strategy and executed by executor
 
@@ -323,14 +326,14 @@ class BaseTradeDecision:
             trade_range = IdxTradeRange(*trade_range)
         self.trade_range: Optional[TradeRange] = trade_range
 
-    def get_decision(self) -> list:
+    def get_decision(self) -> List[DecisionType]:
         """
         get the **concrete decision**  (e.g. execution orders)
         This will be called by the inner strategy
 
         Returns
         -------
-        list:
+        List[DecisionType:
             The decision result. Typically it is some orders
             Example:
                 []:
@@ -518,23 +521,23 @@ class BaseTradeDecision:
             inner_trade_decision.trade_range = self.trade_range
 
 
-class EmptyTradeDecision(BaseTradeDecision):
-    def get_decision(self) -> list:
+class EmptyTradeDecision(BaseTradeDecision[object]):
+    def get_decision(self) -> List[object]:
         return []
 
     def empty(self) -> bool:
         return True
 
 
-class TradeDecisionWO(BaseTradeDecision):
+class TradeDecisionWO(BaseTradeDecision[Order]):
     """
     Trade Decision (W)ith (O)rder.
     Besides, the time_range is also included.
     """
 
-    def __init__(self, order_list: list, strategy: BaseStrategy, trade_range: Tuple[int, int] = None):
+    def __init__(self, order_list: List[object], strategy: BaseStrategy, trade_range: Tuple[int, int] = None) -> None:
         super().__init__(strategy, trade_range=trade_range)
-        self.order_list = order_list
+        self.order_list = cast(List[Order], order_list)
         start, end = strategy.trade_calendar.get_step_time()
         for o in order_list:
             assert isinstance(o, Order)
@@ -543,7 +546,7 @@ class TradeDecisionWO(BaseTradeDecision):
             if o.end_time is None:
                 o.end_time = end
 
-    def get_decision(self) -> list:
+    def get_decision(self) -> List[Order]:
         return self.order_list
 
     def __repr__(self) -> str:

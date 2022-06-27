@@ -275,7 +275,7 @@ class Indicator:
 
         # order indicator is metrics for a single order for a specific step
         self.order_indicator_his: dict = OrderedDict()
-        self.order_indicator: BaseOrderIndicator = self.order_indicator_cls(None)
+        self.order_indicator: BaseOrderIndicator = self.order_indicator_cls()
 
         # trade indicator is metrics for all orders for a specific step
         self.trade_indicator_his: dict = OrderedDict()
@@ -285,7 +285,7 @@ class Indicator:
 
     # def reset(self, trade_calendar: TradeCalendarManager):
     def reset(self) -> None:
-        self.order_indicator = self.order_indicator_cls(None)
+        self.order_indicator = self.order_indicator_cls()
         self.trade_indicator = OrderedDict()
         # self._trade_calendar = trade_calendar
 
@@ -293,7 +293,7 @@ class Indicator:
         self.order_indicator_his[trade_start_time] = self.get_order_indicator()
         self.trade_indicator_his[trade_start_time] = self.get_trade_indicator()
 
-    def _update_order_trade_info(self, trade_info: list) -> None:
+    def _update_order_trade_info(self, trade_info: List[Tuple[Order, float, float, float]]) -> None:
         amount = dict()
         deal_amount = dict()
         trade_price = dict()
@@ -331,7 +331,7 @@ class Indicator:
 
         self.order_indicator.transfer(func, "ffr")
 
-    def update_order_indicators(self, trade_info: list) -> None:
+    def update_order_indicators(self, trade_info: List[Tuple[Order, float, float, float]]) -> None:
         self._update_order_trade_info(trade_info=trade_info)
         self._update_order_fulfill_rate()
 
@@ -366,7 +366,7 @@ class Indicator:
 
     def _update_trade_amount(self, outer_trade_decision: BaseTradeDecision) -> None:
         # NOTE: these indicator is designed for order execution, so the
-        decision: List[Order] = [cast(Order, decision) for decision in outer_trade_decision.get_decision()]
+        decision: List[Order] = cast(List[Order], outer_trade_decision.get_decision())
         if len(decision) == 0:
             self.order_indicator.assign("amount", {})
         else:
@@ -457,7 +457,7 @@ class Indicator:
 
         Parameters
         ----------
-        inner_order_indicators : List[Dict[str, pd.Series]]
+        inner_order_indicators : List[BaseOrderIndicator]
             the indicators of account of inner executor
         decision_list: List[Tuple[BaseTradeDecision, pd.Timestamp, pd.Timestamp]],
             a list of decisions according to inner_order_indicators

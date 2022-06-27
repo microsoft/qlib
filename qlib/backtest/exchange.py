@@ -428,9 +428,10 @@ class Exchange:
         stock_id: str,
         start_time: pd.Timestamp,
         end_time: pd.Timestamp,
+        field: str,
         method: str = "ts_data_last",
     ) -> Union[None, int, float, bool, IndexData]:
-        return self.quote.get_data(stock_id, start_time, end_time, field="$quote_info", method=method)
+        return self.quote.get_data(stock_id, start_time, end_time, field=field, method=method)
 
     def get_close(
         self,
@@ -574,7 +575,7 @@ class Exchange:
         current_position: dict,
         start_time: pd.Timestamp,
         end_time: pd.Timestamp,
-    ) -> list:
+    ) -> List[Order]:
         """
         Note: some future information is used in this function
         Parameter:

@@ -96,7 +96,7 @@ class BasePosition:
     def calculate_value(self) -> float:
         raise NotImplementedError(f"Please implement the `calculate_value` method")
 
-    def get_stock_list(self) -> list:
+    def get_stock_list(self) -> List[str]:
         """
         Get the list of stocks in the position.
         """
@@ -532,7 +532,7 @@ class InfPosition(BasePosition):
     def calculate_value(self) -> float:
         raise NotImplementedError(f"InfPosition doesn't support calculating value")
 
-    def get_stock_list(self) -> list:
+    def get_stock_list(self) -> List[str]:
         raise NotImplementedError(f"InfPosition doesn't support stock list position")
 
     def get_stock_price(self, code: str) -> float:

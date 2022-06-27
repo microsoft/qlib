@@ -181,7 +181,7 @@ class NumpyQuote(BaseQuote):
             return data
 
     @staticmethod
-    def _agg_data(data: IndexData, method: str) -> Optional[np.ndarray]:
+    def _agg_data(data: IndexData, method: str) -> Union[IndexData, np.ndarray, None]:
         """Agg data by specific method."""
         # FIXME: why not call the method of data directly?
         if method == "sum":
@@ -245,13 +245,13 @@ class BaseSingleMetric:
     def __truediv__(self, other: Union[BaseSingleMetric, int, float]) -> BaseSingleMetric:
         raise NotImplementedError(f"Please implement the `__truediv__` method")
 
-    def __eq__(self, other: object) -> BaseSingleMetric:  # TODO: why not bool here?
+    def __eq__(self, other: object) -> BaseSingleMetric:
         raise NotImplementedError(f"Please implement the `__eq__` method")
 
-    def __gt__(self, other: Union[BaseSingleMetric, int, float]) -> BaseSingleMetric:  # TODO: why not bool here?
+    def __gt__(self, other: Union[BaseSingleMetric, int, float]) -> BaseSingleMetric:
         raise NotImplementedError(f"Please implement the `__gt__` method")
 
-    def __lt__(self, other: Union[BaseSingleMetric, int, float]) -> BaseSingleMetric:  # TODO: why not bool here?
+    def __lt__(self, other: Union[BaseSingleMetric, int, float]) -> BaseSingleMetric:
         raise NotImplementedError(f"Please implement the `__lt__` method")
 
     def __len__(self) -> int:
@@ -307,8 +307,7 @@ class BaseOrderIndicator:
         to inherit the BaseSingleMetric.
     """
 
-    def __init__(self, data):
-        self.data = data
+    def __init__(self):
         self.logger = get_module_logger("online operator")
 
     def assign(self, col: str, metric: Union[dict, pd.Series]) -> None:
@@ -395,7 +394,7 @@ class BaseOrderIndicator:
     @staticmethod
     def sum_all_indicators(
         order_indicator: BaseOrderIndicator,
-        indicators: list,
+        indicators: List[BaseOrderIndicator],
         metrics: Union[str, List[str]],
         fill_value: float = 0,
     ) -> None:
@@ -560,8 +559,8 @@ class PandasOrderIndicator(BaseOrderIndicator):
     Str is the name of metric.
     """
 
-    def __init__(self, data) -> None:
-        super(PandasOrderIndicator, self).__init__(data)
+    def __init__(self) -> None:
+        super(PandasOrderIndicator, self).__init__()
         self.data: Dict[str, PandasSingleMetric] = OrderedDict()
 
     def assign(self, col: str, metric: Union[dict, pd.Series]) -> None:
@@ -585,7 +584,7 @@ class PandasOrderIndicator(BaseOrderIndicator):
     @staticmethod
     def sum_all_indicators(
         order_indicator: BaseOrderIndicator,
-        indicators: list,
+        indicators: List[BaseOrderIndicator],
         metrics: Union[str, List[str]],
         fill_value: float = 0,
     ) -> None:
@@ -608,8 +607,8 @@ class NumpyOrderIndicator(BaseOrderIndicator):
     Str is the name of metric.
     """
 
-    def __init__(self, data) -> None:
-        super(NumpyOrderIndicator, self).__init__(data)
+    def __init__(self) -> None:
+        super(NumpyOrderIndicator, self).__init__()
         self.data: Dict[str, SingleData] = OrderedDict()
 
     def assign(self, col: str, metric: dict) -> None:
@@ -633,7 +632,7 @@ class NumpyOrderIndicator(BaseOrderIndicator):
     @staticmethod
     def sum_all_indicators(
         order_indicator: BaseOrderIndicator,
-        indicators: list,
+        indicators: List[BaseOrderIndicator],
         metrics: Union[str, List[str]],
         fill_value: float = 0,
     ) -> None:

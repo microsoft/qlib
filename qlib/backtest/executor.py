@@ -178,7 +178,7 @@ class BaseExecutor:
     def finished(self) -> bool:
         return self.trade_calendar.finished()
 
-    def execute(self, trade_decision: BaseTradeDecision, level: int = 0) -> list:
+    def execute(self, trade_decision: BaseTradeDecision, level: int = 0) -> List[object]:
         """execute the trade decision and return the executed result
 
         NOTE: this function is never used directly in the framework. Should we delete it?
@@ -192,7 +192,7 @@ class BaseExecutor:
 
         Returns
         ----------
-        execute_result : list
+        execute_result : List[object]
             the executed result for trade decision
         """
         return_value: dict = {}
@@ -205,7 +205,7 @@ class BaseExecutor:
         self,
         trade_decision: BaseTradeDecision,
         level: int = 0,
-    ) -> Union[Generator[Any, Any, Tuple[list, dict]], Tuple[list, dict]]:
+    ) -> Union[Generator[Any, Any, Tuple[List[object], dict]], Tuple[List[object], dict]]:
         """
         Please refer to the doc of collect_data
         The only difference between `_collect_data` and `collect_data` is that some common steps are moved into
@@ -218,7 +218,7 @@ class BaseExecutor:
 
         Returns
         -------
-        Tuple[list, dict]:
+        Tuple[List[object], dict]:
             (<the executed result for trade decision>, <the extra kwargs for `self.trade_account.update_bar_end`>)
         """
 
@@ -227,7 +227,7 @@ class BaseExecutor:
         trade_decision: BaseTradeDecision,
         return_value: dict = None,
         level: int = 0,
-    ) -> Generator[Any, Any, list]:
+    ) -> Generator[Any, Any, List[object]]:
         """Generator for collecting the trade decision data for rl training
 
         his function will make a step forward
@@ -245,7 +245,7 @@ class BaseExecutor:
 
         Returns
         ----------
-        execute_result : list
+        execute_result : List[object]
             the executed result for trade decision.
             ** NOTE!!!! **:
             1) This is necessary,  The return value of generator will be used in NestedExecutor
@@ -403,7 +403,7 @@ class NestedExecutor(BaseExecutor):
         self,
         trade_decision: BaseTradeDecision,
         level: int = 0,
-    ) -> Generator[Any, Any, Tuple[list, dict]]:
+    ) -> Generator[Any, Any, Tuple[List[object], dict]]:
         execute_result = []
         inner_order_indicators = []
         decision_list = []
@@ -475,7 +475,7 @@ class NestedExecutor(BaseExecutor):
 
         return execute_result, {"inner_order_indicators": inner_order_indicators, "decision_list": decision_list}
 
-    def post_inner_exe_step(self, inner_exe_res: list) -> None:
+    def post_inner_exe_step(self, inner_exe_res: List[object]) -> None:
         """
         A hook for doing sth after each step of inner strategy
 
@@ -588,7 +588,7 @@ class SimulatorExecutor(BaseExecutor):
             self.deal_day = now_deal_day
         self.dealt_order_amount[order.stock_id] += order.deal_amount
 
-    def _collect_data(self, trade_decision: BaseTradeDecision, level: int = 0) -> Tuple[list, dict]:
+    def _collect_data(self, trade_decision: BaseTradeDecision, level: int = 0) -> Tuple[List[object], dict]:
         trade_start_time, _ = self.trade_calendar.get_step_time()
         execute_result: list = []
 
