@@ -34,7 +34,7 @@ class SeedIteratorNotAvailable(BaseException):
 
 class TrainingVesselBase(Generic[InitialStateType, StateType, ActType, ObsType, PolicyActType]):
     """A ship that contains simulator, interpreter, and policy, will be sent to trainer.
-    This class controls algorithm-related parts of training, while trainer is responible for runtime part.
+    This class controls algorithm-related parts of training, while trainer is responsible for runtime part.
 
     The ship also defines the most important logic of the core training part,
     and (optionally) some callbacks to insert customized logics at specific events.
@@ -51,7 +51,9 @@ class TrainingVesselBase(Generic[InitialStateType, StateType, ActType, ObsType, 
         self.trainer = weakref.proxy(trainer)  # type: ignore
 
     def train_seed_iterator(self) -> Iterable[InitialStateType]:
-        """Override this to create a seed iterator for training."""
+        """Override this to create a seed iterator for training.
+        If the iterable is a context manager, the whole training will be invoked in the with-block,
+        and the iterator will be automatically closed after the training is done."""
         raise SeedIteratorNotAvailable("Seed iterator for training is not available.")
 
     def val_seed_iterator(self) -> Iterable[InitialStateType]:

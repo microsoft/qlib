@@ -177,7 +177,7 @@ class EarlyStopping(Callback):
 
 
 class Checkpoint(Callback):
-    """Save checkpoints perioridically for persistence and recovery.
+    """Save checkpoints periodically for persistence and recovery.
 
     Reference: https://github.com/PyTorchLightning/pytorch-lightning/blob/bfa8b7be/pytorch_lightning/callbacks/model_checkpoint.py
 

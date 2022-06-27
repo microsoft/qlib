@@ -129,7 +129,7 @@ class Trainer:
         self.current_stage = "train"
 
     def initialize_iter(self):
-        """Initialize one iteraion / collect."""
+        """Initialize one iteration / collect."""
         self.metrics = {}
 
     def state_dict(self) -> dict:
