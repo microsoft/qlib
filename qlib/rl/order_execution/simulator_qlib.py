@@ -2,7 +2,8 @@
 # Licensed under the MIT License.
 
 """Placeholder for qlib-based simulator."""
-from typing import Callable, Generator, List, Optional, Union
+import copy
+from typing import Callable, Generator, List, Optional, Tuple, Union
 
 import pandas as pd
 from gym.vector.utils import spaces
@@ -79,7 +80,7 @@ class CategoricalActionInterpreter(ActionInterpreter[SAOEEpisodicState, int, flo
         return volume
 
 
-class QlibSimulator(Simulator[Order, SAOEEpisodicState, float]):
+class QlibSimulator(Simulator[Order, Tuple[SAOEEpisodicState, dict], float]):
     def __init__(
         self,
         time_per_step: str,
@@ -141,8 +142,35 @@ class QlibSimulator(Simulator[Order, SAOEEpisodicState, float]):
         strategy = self._iter_strategy(action=None)
         sample, ep_state = strategy.sample_state_pair
         self._last_ep_state = ep_state
+        self._last_info = self._collect_info(ep_state)
 
         self._done = False
+
+    def _collect_info(self, ep_state: SAOEEpisodicState) -> dict:
+        info = {
+            "category": ep_state.flow_dir.value,
+            # "reward": rew_info,  # TODO: ignore for now
+        }
+        if ep_state.done:
+            # info["index"] = {"stock_id": sample.stock_id, "date": sample.date}  # TODO: ignore for now
+            # info["history"] = {"action": self.action_history}  # TODO: ignore for now
+            info.update(ep_state.logs())
+
+            try:
+                # done but loop is not exhausted
+                # exhaust the loop manually
+                while True:
+                    self._collect_data_loop.send(0.)
+            except StopIteration:
+                pass
+
+            info["qlib"] = {}
+            for key, val in list(
+                self._executor.trade_account.get_trade_indicator().order_indicator_his.values()
+            )[0].to_series().items():
+                info["qlib"][key] = val.item()
+
+        return info
 
     def _iter_strategy(self, action: float = None) -> DecomposedStrategy:
         strategy = next(self._collect_data_loop) if action is None else self._collect_data_loop.send(action)
@@ -160,11 +188,13 @@ class QlibSimulator(Simulator[Order, SAOEEpisodicState, float]):
             assert ep_state.done
 
         self._last_ep_state = ep_state
+        self._last_info = self._collect_info(ep_state)
+
         if ep_state.done:
             self._done = True
 
-    def get_state(self) -> SAOEEpisodicState:
-        return self._last_ep_state
+    def get_state(self) -> Tuple[SAOEEpisodicState, dict]:
+        return self._last_ep_state, self._last_info
 
     def done(self) -> bool:
         return self._done

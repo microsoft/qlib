@@ -121,12 +121,16 @@ def test():
 
     for i in range(10):
         print(f"Step {i}")
-        ep_state = simulator.get_state()
+        ep_state, info = simulator.get_state()
         action = action_interpreter(ep_state, 1)
 
         simulator.step(action)
         if simulator.done():
             break
+
+    ep_state, info = simulator.get_state()
+    print(info["logs"])
+    print(info["qlib"])
 
 
 if __name__ == "__main__":

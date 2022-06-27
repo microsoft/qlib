@@ -50,7 +50,7 @@ class BaseEpisodicState(abc.ABC):
         rounded_start_time = _round_time(self.start_time, self.time_per_step)
 
         # TODO: why not rounding end time?
-        self.num_step = math.floor((self.end_time - rounded_start_time) / self.time_per_step)
+        self.num_step = math.ceil((self.end_time - rounded_start_time) / self.time_per_step)
 
     def logs(self) -> dict:
         # Base logging information shared across all subclasses.
