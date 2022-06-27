@@ -179,8 +179,8 @@ class OrderHelper:
         return Order(
             stock_id=code,
             amount=amount,
-            start_time=start_time if start_time is not None else pd.Timestamp(start_time),
-            end_time=end_time if end_time is not None else pd.Timestamp(end_time),
+            start_time=None if start_time is None else pd.Timestamp(start_time),
+            end_time=None if end_time is None else pd.Timestamp(end_time),
             direction=direction,
         )
 
@@ -530,7 +530,7 @@ class TradeDecisionWO(BaseTradeDecision):
     Besides, the time_range is also included.
     """
 
-    def __init__(self, order_list: List[Order], strategy: BaseStrategy, trade_range: Tuple[int, int] = None):
+    def __init__(self, order_list: List[Order], strategy: BaseStrategy, trade_range: Union[Tuple[int, int], TradeRange] = None):
         super().__init__(strategy, trade_range=trade_range)
         self.order_list = order_list
         start, end = strategy.trade_calendar.get_step_time()

@@ -2,32 +2,25 @@
 # Licensed under the MIT License.
 
 """Placeholder for qlib-based simulator."""
-from dataclasses import dataclass
-from pathlib import Path
-from plistlib import Dict
-from typing import Callable, Generator, List, Optional, Tuple, Union
+from typing import Callable, Generator, List, Optional, Union
 
 import pandas as pd
+from gym.vector.utils import spaces
 
-from qlib.backtest import Account, BaseExecutor, CommonInfrastructure, get_exchange
-from qlib.backtest.decision import Order
-from qlib.backtest.executor import NestedExecutor
+from qlib.backtest import get_exchange
+from qlib.backtest.account import Account
+from qlib.backtest.decision import Order, TradeRange, TradeRangeByTime
+from qlib.backtest.executor import BaseExecutor
+from qlib.backtest.utils import CommonInfrastructure
 from qlib.config import QlibConfig
-from qlib.rl.simulator import ActType, Simulator, StateType
+from qlib.rl.interpreter import ActionInterpreter
+from qlib.rl.order_execution.from_neutrader.config import ExchangeConfig
+from qlib.rl.order_execution.from_neutrader.executor import RLNestedExecutor
+from qlib.rl.order_execution.from_neutrader.feature import init_qlib
+from qlib.rl.order_execution.from_neutrader.state import SAOEEpisodicState
+from qlib.rl.order_execution.from_neutrader.strategy import DecomposedStrategy
+from qlib.rl.simulator import Simulator
 from qlib.strategy.base import BaseStrategy
-
-
-@dataclass
-class ExchangeConfig:
-    limit_threshold: Union[float, Tuple[str, str]]
-    deal_price: Union[str, Tuple[str, str]]
-    volume_threshold: Union[float, Dict[str, Tuple[str, str]]]
-    open_cost: float = 0.0005
-    close_cost: float = 0.0015
-    min_cost: float = 5.
-    trade_unit: Optional[float] = 100.
-    cash_limit: Optional[Union[Path, float]] = None
-    generate_report: bool = False
 
 
 def get_common_infra(
@@ -69,13 +62,31 @@ def get_common_infra(
     return CommonInfrastructure(trade_account=trade_account, trade_exchange=exchange)
 
 
-class QlibSimulator(Simulator[Order, StateType, ActType]):
+class CategoricalActionInterpreter(ActionInterpreter[SAOEEpisodicState, int, float]):
+    def __init__(self, values: Union[int, List[float]]) -> None:
+        if isinstance(values, int):
+            values = [i / values for i in range(0, values + 1)]
+        self.action_values = values
+
+    @property
+    def action_space(self) -> spaces.Discrete:
+        return spaces.Discrete(len(self.action_values))
+
+    def interpret(self, state: SAOEEpisodicState, action: int) -> float:
+        volume = min(state.position, state.target * self.action_values[action])
+        if state.cur_step + 1 >= state.num_step:
+            volume = state.position  # execute all volumes at last
+        return volume
+
+
+class QlibSimulator(Simulator[Order, SAOEEpisodicState, float]):
     def __init__(
         self,
-        qlib_config: QlibConfig,
         time_per_step: str,
-        top_strategy: BaseStrategy,
-        inner_strategy_fn: Callable[[], BaseStrategy],
+        start_time: str,
+        end_time: str,
+        qlib_config: QlibConfig,
+        top_strategy_fn: Callable[[CommonInfrastructure, Order, TradeRange, str], BaseStrategy],
         inner_executor_fn: Callable[[CommonInfrastructure], BaseExecutor],
         exchange_config: ExchangeConfig,
     ) -> None:
@@ -83,61 +94,77 @@ class QlibSimulator(Simulator[Order, StateType, ActType]):
             initial=None,  # TODO
         )
 
-        self.qlib_config = qlib_config
-
+        self._trade_range = TradeRangeByTime(start_time, end_time)
+        self._qlib_config = qlib_config
         self._time_per_step = time_per_step
-        self._top_strategy = top_strategy
+        self._top_strategy_fn = top_strategy_fn
         self._inner_executor_fn = inner_executor_fn
-        self._inner_strategy_fn = inner_strategy_fn
         self._exchange_config = exchange_config
 
-        self._executor: Optional[NestedExecutor] = None
+        self._executor: Optional[RLNestedExecutor] = None
         self._collect_data_loop: Optional[Generator] = None
 
         self._done = False
 
-    def _reset(
+        self._inner_strategy = DecomposedStrategy()
+
+    def reset(
         self,
-        instrument: str,
-        date_time: pd.Timestamp,
+        order: Order,
+        instrument: str = "SH600000",  # TODO: Test only. Remove this default value later.
     ) -> None:
-        # TODO: init_qlib
+        init_qlib(self._qlib_config, instrument)
 
         common_infra = get_common_infra(
             self._exchange_config,
-            trade_start_time=date_time,
-            trade_end_time=date_time,
+            trade_start_time=order.start_time,
+            trade_end_time=order.end_time,
             codes=[instrument],
         )
 
-        self._executor = NestedExecutor(
+        self._executor = RLNestedExecutor(
             time_per_step=self._time_per_step,
             inner_executor=self._inner_executor_fn(common_infra),
-            inner_strategy=self._inner_strategy_fn(),
+            inner_strategy=self._inner_strategy,
             track_data=True,
+            common_infra=common_infra,
         )
 
-        self._executor.reset(start_time=date_time, end_time=date_time)
-        self._top_strategy.reset(level_infra=self._executor.get_level_infra())
-        self._collect_data_loop = self._executor.collect_data(self._top_strategy.generate_trade_decision(), level=0)
+        top_strategy = self._top_strategy_fn(common_infra, order, self._trade_range, instrument)
+
+        self._executor.reset(start_time=order.start_time, end_time=order.end_time)
+        top_strategy.reset(level_infra=self._executor.get_level_infra())
+
+        self._collect_data_loop = self._executor.collect_data(top_strategy.generate_trade_decision(), level=0)
         assert isinstance(self._collect_data_loop, Generator)
+
+        strategy = self._iter_strategy(action=None)
+        sample, ep_state = strategy.sample_state_pair
+        self._last_ep_state = ep_state
 
         self._done = False
 
-    def step(self, action: ActType) -> None:
+    def _iter_strategy(self, action: float = None) -> DecomposedStrategy:
+        strategy = next(self._collect_data_loop) if action is None else self._collect_data_loop.send(action)
+        while not isinstance(strategy, DecomposedStrategy):
+            strategy = next(self._collect_data_loop) if action is None else self._collect_data_loop.send(action)
+        assert isinstance(strategy, DecomposedStrategy)
+        return strategy
+
+    def step(self, action: float) -> None:
         try:
-            strategy = self._collect_data_loop.send(action)
-            while not isinstance(strategy, BaseStrategy):
-                strategy = self._collect_data_loop.send(action)
-            assert isinstance(strategy, BaseStrategy)
-
-            # TODO: do something here
-
+            strategy = self._iter_strategy(action=action)
+            sample, ep_state = strategy.sample_state_pair
         except StopIteration:
+            sample, ep_state = self._inner_strategy.sample_state_pair
+            assert ep_state.done
+
+        self._last_ep_state = ep_state
+        if ep_state.done:
             self._done = True
 
-    def get_state(self) -> StateType:
-        pass  # TODO: Collect info from executor. Generate state.
+    def get_state(self) -> SAOEEpisodicState:
+        return self._last_ep_state
 
     def done(self) -> bool:
         return self._done
