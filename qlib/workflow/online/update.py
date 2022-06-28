@@ -131,7 +131,7 @@ class DSBasedUpdater(RecordUpdater, metaclass=ABCMeta):
 
                 .. note::
 
-                    the start_time is not included in the hist_ref
+                    the start_time is not included in the `hist_ref`; So the `hist_ref` will be `step_len - 1` in most cases
 
             loader_cls : type
                 the class to load the model and dataset
@@ -184,9 +184,9 @@ class DSBasedUpdater(RecordUpdater, metaclass=ABCMeta):
             dataset: DatasetH = self.record.load_object("dataset") if unprepared_dataset is None else unprepared_dataset
             # Special treatment of historical dependencies
             if isinstance(dataset, TSDatasetH):
-                hist_ref = dataset.step_len
+                hist_ref = dataset.step_len - 1
             else:
-                hist_ref = 0
+                hist_ref = 0  # if only the lastest data is used, then only current data will be used and no historical data will be used
         else:
             hist_ref = self.hist_ref
 

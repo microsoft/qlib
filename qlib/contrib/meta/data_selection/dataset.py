@@ -217,7 +217,7 @@ class MetaDatasetDS(MetaTaskDataset):
         ----------
         task_tpl : Union[dict, list]
             Decide what tasks are used.
-            - dict : the task template， the prepared task is generated with `step`, `trunc_days` and `RollingGen`
+            - dict : the task template, the prepared task is generated with `step`, `trunc_days` and `RollingGen`
             - list : when list, use the list of tasks directly
                      the list is supposed to be sorted according timeline
         step : int

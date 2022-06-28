@@ -20,7 +20,9 @@ The numbers shown below demonstrate the performance of the entire `workflow` of 
 > NOTE:
 > We have very limited resources to implement and finetune the models. We tried our best effort to fairly compare these models.  But some models may have greater potential than what it looks like in the table below.  Your contribution is highly welcomed to explore their potential.
 
-## Alpha158 dataset
+## Results on CSI300
+
+### Alpha158 dataset
 
 | Model Name                               | Dataset                             | IC          | ICIR        | Rank IC     | Rank ICIR   | Annualized Return | Information Ratio | Max Drawdown |
 |------------------------------------------|-------------------------------------|-------------|-------------|-------------|-------------|-------------------|-------------------|--------------|
@@ -44,7 +46,7 @@ The numbers shown below demonstrate the performance of the entire `workflow` of 
 | DoubleEnsemble(Chuheng Zhang, et al.)    | Alpha158                            | 0.0544±0.00 | 0.4340±0.00 | 0.0523±0.00 | 0.4284±0.01 | 0.1168±0.01       | 1.3384±0.12       | -0.1036±0.01 |
 
 
-## Alpha360 dataset
+### Alpha360 dataset
 
 | Model Name                                | Dataset  | IC          | ICIR        | Rank IC     | Rank ICIR   | Annualized Return | Information Ratio | Max Drawdown |
 |-------------------------------------------|----------|-------------|-------------|-------------|-------------|-------------------|-------------------|--------------|
@@ -78,6 +80,38 @@ The numbers shown below demonstrate the performance of the entire `workflow` of 
 - The metrics can be categorized into two
    - Signal-based evaluation:  IC, ICIR, Rank IC, Rank ICIR
    - Portfolio-based metrics:  Annualized Return, Information Ratio, Max Drawdown
+
+## Results on CSI500
+The results on CSI500 is not complete. PR's for models on csi500 are welcome!
+
+Transfer previous models in CSI300 to CSI500 is quite easy.  You can try models with just a few commands below.
+```
+cd examples/benchmarks/LightGBM
+pip install -r requirements.txt
+
+# create new config and set the benchmark to csi500
+cp workflow_config_lightgbm_Alpha158.yaml workflow_config_lightgbm_Alpha158_csi500.yaml
+sed -i "s/csi300/csi500/g"  workflow_config_lightgbm_Alpha158_csi500.yaml
+sed -i "s/SH000300/SH000905/g"  workflow_config_lightgbm_Alpha158_csi500.yaml
+
+# you can either run the model once
+qrun workflow_config_lightgbm_Alpha158_csi500.yaml
+
+# or run it for multiple times automatically and get the summarized results.
+cd  ../../
+python run_all_model.py run 3 lightgbm Alpha158 csi500  # for models with randomness.  please run it for 20 times.
+```
+
+### Alpha158 dataset
+
+| Model Name | Dataset  | IC          | ICIR        | Rank IC     | Rank ICIR   | Annualized Return | Information Ratio | Max Drawdown |
+|------------|----------|-------------|-------------|-------------|-------------|-------------------|-------------------|--------------|
+| LightGBM   | Alpha158 | 0.0377±0.00 | 0.3860±0.00 | 0.0448±0.00 | 0.4675±0.00 | 0.1151±0.00       | 1.3884±0.00       | -0.0898±0.00 |
+
+### Alpha360 dataset
+| Model Name | Dataset  | IC          | ICIR        | Rank IC     | Rank ICIR   | Annualized Return | Information Ratio | Max Drawdown |
+|------------|----------|-------------|-------------|-------------|-------------|-------------------|-------------------|--------------|
+| LightGBM   | Alpha360 | 0.0400±0.00 | 0.3605±0.00 | 0.0536±0.00 | 0.5431±0.00 | 0.0505±0.00       | 0.7658±0.02       | -0.1880±0.00 |
 
 
 # Contributing

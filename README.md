@@ -458,7 +458,7 @@ Before we released Qlib as an open-source project on Github in Sep 2020, Qlib is
 
 This project welcomes contributions and suggestions.  
 **Here are some 
-[code standards](docs/developer/code_standard.rst) for submiting a pull request.**
+[code standards and development guidance](docs/developer/code_standard_and_dev_guide.rst) for submiting a pull request.**
 
 Making contributions is not a hard thing. Solving an issue(maybe just answering a question raised in [issues list](https://github.com/microsoft/qlib/issues) or [gitter](https://gitter.im/Microsoft/qlib)), fixing/issuing a bug, improving the documents and even fixing a typo are important contributions to Qlib.
 

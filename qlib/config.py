@@ -75,6 +75,17 @@ class Config:
     def set_conf_from_C(self, config_c):
         self.update(**config_c.__dict__["_config"])
 
+    def register_from_C(self, config, skip_register=True):
+        from .utils import set_log_with_config  # pylint: disable=C0415
+
+        if C.registered and skip_register:
+            return
+
+        C.set_conf_from_C(config)
+        if C.logging_config:
+            set_log_with_config(C.logging_config)
+        C.register()
+
 
 # pickle.dump protocol version: https://docs.python.org/3/library/pickle.html#data-stream-format
 PROTOCOL_VERSION = 4
@@ -102,7 +113,7 @@ _default_config = {
     #   "~/.qlib/stock_data/cn_data"
     #   # dict
     #   {"day": "~/.qlib/stock_data/cn_data", "1min": "~/.qlib/stock_data/cn_data_1min"}
-    # NOTE: provider_uri priority：
+    # NOTE: provider_uri priority:
     #   1. backend_config: backend_obj["kwargs"]["provider_uri"]
     #   2. backend_config: backend_obj["kwargs"]["provider_uri_map"]
     #   3. qlib.init: provider_uri

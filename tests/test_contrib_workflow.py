@@ -4,6 +4,7 @@
 from qlib.workflow.record_temp import SignalRecord
 import shutil
 import unittest
+import pytest
 from pathlib import Path
 
 from qlib.contrib.workflow import MultiSegRecord, SignalMseRecord
@@ -47,9 +48,11 @@ class TestAllFlow(TestAutoData):
     def tearDownClass(cls) -> None:
         shutil.rmtree(cls.URI_PATH.lstrip("file:"))
 
+    @pytest.mark.slow
     def test_0_multiseg(self):
         uri_path = train_multiseg(self.URI_PATH)
 
+    @pytest.mark.slow
     def test_1_mse(self):
         uri_path = train_mse(self.URI_PATH)
 

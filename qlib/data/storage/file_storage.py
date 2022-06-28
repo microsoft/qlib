@@ -24,7 +24,7 @@ class FileStorageMixin:
 
     """
 
-    # NOTE: provider_uri priority：
+    # NOTE: provider_uri priority:
     #   1. self._provider_uri : if provider_uri is provided.
     #   2. provider_uri in qlib.config.C
 
@@ -106,10 +106,7 @@ class FileCalendarStorage(FileStorageMixin, CalendarStorage):
         if not self.uri.exists():
             self._write_calendar(values=[])
         with self.uri.open("rb") as fp:
-            return [
-                str(x)
-                for x in np.loadtxt(fp, str, skiprows=skip_rows, max_rows=n_rows, delimiter="\n", encoding="utf-8")
-            ]
+            return [str(x) for x in np.loadtxt(fp, str, skiprows=skip_rows, max_rows=n_rows, encoding="utf-8")]
 
     def _write_calendar(self, values: Iterable[CalVT], mode: str = "wb"):
         with self.uri.open(mode=mode) as fp:

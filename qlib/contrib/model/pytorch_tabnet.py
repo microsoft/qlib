@@ -53,7 +53,7 @@ class TabnetModel(Model):
         """
         TabNet model for Qlib
 
-        Args：
+        Args:
         ps: probability to generate the bernoulli mask
         """
         # set hyper-parameters.

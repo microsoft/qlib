@@ -4,6 +4,7 @@
 import sys
 import shutil
 import unittest
+import pytest
 from pathlib import Path
 
 import qlib
@@ -184,16 +185,19 @@ class TestAllFlow(TestAutoData):
     def tearDownClass(cls) -> None:
         shutil.rmtree(cls.URI_PATH.lstrip("file:"))
 
+    @pytest.mark.slow
     def test_0_train_with_sigana(self):
         TestAllFlow.PRED_SCORE, ic_ric, uri_path = train_with_sigana(self.URI_PATH)
         self.assertGreaterEqual(ic_ric["ic"].all(), 0, "train failed")
         self.assertGreaterEqual(ic_ric["ric"].all(), 0, "train failed")
 
+    @pytest.mark.slow
     def test_1_train(self):
         TestAllFlow.PRED_SCORE, ic_ric, TestAllFlow.RID = train(self.URI_PATH)
         self.assertGreaterEqual(ic_ric["ic"].all(), 0, "train failed")
         self.assertGreaterEqual(ic_ric["ric"].all(), 0, "train failed")
 
+    @pytest.mark.slow
     def test_2_backtest(self):
         analyze_df = backtest_analysis(TestAllFlow.PRED_SCORE, TestAllFlow.RID, self.URI_PATH)
         self.assertGreaterEqual(
@@ -203,6 +207,7 @@ class TestAllFlow(TestAutoData):
         )
         self.assertTrue(not analyze_df.isna().any().any(), "backtest failed")
 
+    @pytest.mark.slow
     def test_3_expmanager(self):
         pass_default, pass_current, uri_path = fake_experiment()
         self.assertTrue(pass_default, msg="default uri is incorrect")
