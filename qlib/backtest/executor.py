@@ -4,7 +4,7 @@ import copy
 from abc import abstractmethod
 from collections import defaultdict
 from types import GeneratorType
-from typing import Any, Dict, Generator, List, Optional, Tuple, Union, cast
+from typing import Any, Dict, Generator, List, Tuple, Union, cast
 
 import pandas as pd
 

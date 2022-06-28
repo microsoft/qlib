@@ -308,6 +308,7 @@ class BaseOrderIndicator:
     """
 
     def __init__(self):
+        self.data = {}  # will be created in the subclass
         self.logger = get_module_logger("online operator")
 
     def assign(self, col: str, metric: Union[dict, pd.Series]) -> None:

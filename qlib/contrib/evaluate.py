@@ -352,7 +352,7 @@ def long_short_backtest(
             if np.isnan(profit):
                 short_profit.append(0)
             else:
-                short_profit.append(-profit)
+                short_profit.append(profit * -1)
 
         for stock in list(score.loc(axis=0)[pdate, :].index.get_level_values(level=0)):
             # exclude the suspend stock
