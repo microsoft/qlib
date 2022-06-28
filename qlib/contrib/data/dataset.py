@@ -203,7 +203,6 @@ class MTSDatasetH(DatasetH):
 
     def _prepare_seg(self, slc, **kwargs):
         fn = _get_date_parse_fn(self._index[0][1])
-        
         if isinstance(slc, slice):
             start, stop = slc.start, slc.stop
         elif isinstance(slc, (list, tuple)):
