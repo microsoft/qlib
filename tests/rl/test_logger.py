@@ -81,7 +81,7 @@ def test_simple_env_logger(caplog):
         line = line.strip()
         if line:
             line_counter += 1
-            assert re.match(r".*reward 42\.0000 \(42.0000\)  a .* \((4|5|6)\.\d+\)  c .* \((14|15|16)\.\d+\)", line)
+            assert re.match(r".*reward .*  a .* \((4|5|6)\.\d+\)  c .* \((14|15|16)\.\d+\)", line)
     assert line_counter >= 3
 
 
