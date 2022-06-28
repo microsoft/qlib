@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import copy
 from pathlib import Path
-from typing import TYPE_CHECKING, Generator, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Generator, List, Optional, Tuple, Union
 
 import pandas as pd
 
@@ -23,7 +23,6 @@ from ..utils import init_instance_by_config
 from .backtest import backtest_loop, collect_data_loop
 from .decision import Order
 from .exchange import Exchange
-from .position import Position
 from .utils import CommonInfrastructure
 
 # make import more user-friendly by adding `from qlib.backtest import STH`
@@ -44,7 +43,7 @@ def get_exchange(
     min_cost: float = 5.0,
     limit_threshold: Union[Tuple[str, str], float, None] = None,
     deal_price: Union[str, Tuple[str], List[str]] = None,
-    **kwargs,
+    **kwargs: Any,
 ) -> Exchange:
     """get_exchange
 
@@ -52,14 +51,15 @@ def get_exchange(
     ----------
 
     # exchange related arguments
-    exchange: Exchange(). It could be None or any types that are acceptable by `init_instance_by_config`.
+    exchange: Exchange
+        It could be None or any types that are acceptable by `init_instance_by_config`.
     freq: str
         frequency of data.
     start_time: Union[pd.Timestamp, str]
         closed start time for backtest.
     end_time: Union[pd.Timestamp, str]
         closed end time for backtest.
-    codes: list|str
+    codes: Union[list, str]
         list stock_id list or a string of instruments (i.e. all, csi500, sse50)
     subscribe_fields: list
         subscribe fields.
@@ -151,28 +151,24 @@ def create_account_instance(
         Postion type.
     """
     if isinstance(account, (int, float)):
-        pos_kwargs = {"init_cash": account}
+        init_cash = account
+        position_dict = {}
     elif isinstance(account, dict):
-        init_cash = account["cash"]
-        del account["cash"]
-        pos_kwargs = {
-            "init_cash": init_cash,
-            "position_dict": account,
-        }
+        init_cash = account.pop("cash")
+        position_dict = account
     else:
-        raise ValueError("account must be in (int, float, Position)")
+        raise ValueError("account must be in (int, float, dict)")
 
-    kwargs = {
-        "init_cash": account,
-        "benchmark_config": {
+    return Account(
+        init_cash=init_cash,
+        position_dict=position_dict,
+        pos_type=pos_type,
+        benchmark_config={
             "benchmark": benchmark,
             "start_time": start_time,
             "end_time": end_time,
         },
-        "pos_type": pos_type,
-    }
-    kwargs.update(pos_kwargs)
-    return Account(**kwargs)
+    )
 
 
 def get_strategy_executor(
@@ -181,7 +177,7 @@ def get_strategy_executor(
     strategy: Union[str, dict, object, Path],
     executor: Union[str, dict, object, Path],
     benchmark: str = "SH000300",
-    account: Union[float, int, Position] = 1e9,
+    account: Union[float, int, dict] = 1e9,
     exchange_kwargs: dict = {},
     pos_type: str = "Position",
 ) -> Tuple[BaseStrategy, BaseExecutor]:
@@ -222,7 +218,7 @@ def backtest(
     strategy: Union[str, dict, object, Path],
     executor: Union[str, dict, object, Path],
     benchmark: str = "SH000300",
-    account: Union[float, int, Position] = 1e9,
+    account: Union[float, int, dict] = 1e9,
     exchange_kwargs: dict = {},
     pos_type: str = "Position",
 ) -> Tuple[PortfolioMetrics, Indicator]:
@@ -285,7 +281,7 @@ def collect_data(
     strategy: Union[str, dict, object, Path],
     executor: Union[str, dict, object, Path],
     benchmark: str = "SH000300",
-    account: Union[float, int, Position] = 1e9,
+    account: Union[float, int, dict] = 1e9,
     exchange_kwargs: dict = {},
     pos_type: str = "Position",
     return_value: dict = None,
@@ -339,7 +335,7 @@ def format_decisions(
 
     cur_freq = decisions[0].strategy.trade_calendar.get_freq()
 
-    res = (cur_freq, [])
+    res: Tuple[str, list] = (cur_freq, [])
     last_dec_idx = 0
     for i, dec in enumerate(decisions[1:], 1):
         if dec.strategy.trade_calendar.get_freq() == cur_freq:

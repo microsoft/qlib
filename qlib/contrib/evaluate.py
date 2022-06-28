@@ -339,7 +339,7 @@ def long_short_backtest(
         for stock in long_stocks:
             if not trade_exchange.is_stock_tradable(stock_id=stock, trade_date=date):
                 continue
-            profit = trade_exchange.get_quote_info(stock_id=stock, trade_date=date)[profit_str]
+            profit = trade_exchange.get_quote_info(stock_id=stock, start_time=date, end_time=date, field=profit_str)
             if np.isnan(profit):
                 long_profit.append(0)
             else:
@@ -348,17 +348,17 @@ def long_short_backtest(
         for stock in short_stocks:
             if not trade_exchange.is_stock_tradable(stock_id=stock, trade_date=date):
                 continue
-            profit = trade_exchange.get_quote_info(stock_id=stock, trade_date=date)[profit_str]
+            profit = trade_exchange.get_quote_info(stock_id=stock, start_time=date, end_time=date, field=profit_str)
             if np.isnan(profit):
                 short_profit.append(0)
             else:
-                short_profit.append(-profit)
+                short_profit.append(profit * -1)
 
         for stock in list(score.loc(axis=0)[pdate, :].index.get_level_values(level=0)):
             # exclude the suspend stock
             if trade_exchange.check_stock_suspended(stock_id=stock, trade_date=date):
                 continue
-            profit = trade_exchange.get_quote_info(stock_id=stock, trade_date=date)[profit_str]
+            profit = trade_exchange.get_quote_info(stock_id=stock, start_time=date, end_time=date, field=profit_str)
             if np.isnan(profit):
                 all_profit.append(0)
             else:

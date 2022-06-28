@@ -149,6 +149,8 @@ class TradeCalendarManager:
         Tuple[int, int]:
         """
         # potential performance issue
+        assert self.level_infra is not None
+
         day_start = pd.Timestamp(self.start_time.date())
         day_end = epsilon_change(day_start + pd.Timedelta(days=1))
         freq = self.level_infra.get("common_infra").get("trade_exchange").freq
@@ -182,8 +184,8 @@ class TradeCalendarManager:
         Tuple[int, int]:
             the index of the range.  **the left and right are closed**
         """
-        left = bisect.bisect_right(self._calendar, start_time) - 1
-        right = bisect.bisect_right(self._calendar, end_time) - 1
+        left = bisect.bisect_right(list(self._calendar), start_time) - 1
+        right = bisect.bisect_right(list(self._calendar), end_time) - 1
         left -= self.start_index
         right -= self.start_index
 
@@ -201,14 +203,14 @@ class TradeCalendarManager:
 
 
 class BaseInfrastructure:
-    def __init__(self, **kwargs) -> None:
+    def __init__(self, **kwargs: Any) -> None:
         self.reset_infra(**kwargs)
 
     @abstractmethod
     def get_support_infra(self) -> Set[str]:
         raise NotImplementedError("`get_support_infra` is not implemented!")
 
-    def reset_infra(self, **kwargs) -> None:
+    def reset_infra(self, **kwargs: Any) -> None:
         support_infra = self.get_support_infra()
         for k, v in kwargs.items():
             if k in support_infra:

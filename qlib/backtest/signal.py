@@ -22,7 +22,7 @@ class Signal(metaclass=abc.ABCMeta):
     """
 
     @abc.abstractmethod
-    def get_signal(self, start_time, end_time) -> Union[pd.Series, pd.DataFrame, None]:
+    def get_signal(self, start_time: pd.Timestamp, end_time: pd.Timestamp) -> Union[pd.Series, pd.DataFrame, None]:
         """
         get the signal at the end of the decision step(from `start_time` to `end_time`)
 
@@ -39,13 +39,14 @@ class SignalWCache(Signal):
     SignalWCache will store the prepared signal as a attribute and give the according signal based on input query
     """
 
-    def __init__(self, signal: Union[pd.Series, pd.DataFrame]):
+    def __init__(self, signal: Union[pd.Series, pd.DataFrame]) -> None:
         """
 
         Parameters
         ----------
         signal : Union[pd.Series, pd.DataFrame]
-            The expected format of the signal is like the data below (the order of index is not important and can be automatically adjusted)
+            The expected format of the signal is like the data below (the order of index is not important and can be
+            automatically adjusted)
 
                 instrument datetime
                 SH600000   2008-01-02  0.079704
@@ -56,8 +57,8 @@ class SignalWCache(Signal):
         """
         self.signal_cache = convert_index_format(signal, level="datetime")
 
-    def get_signal(self, start_time, end_time) -> Union[pd.Series, pd.DataFrame]:
-        # the frequency of the signal may not algin with the decision frequency of strategy
+    def get_signal(self, start_time: pd.Timestamp, end_time: pd.Timestamp) -> Union[pd.Series, pd.DataFrame]:
+        # the frequency of the signal may not align with the decision frequency of strategy
         # so resampling from the data is necessary
         # the latest signal leverage more recent data and therefore is used in trading.
         signal = resam_ts_data(self.signal_cache, start_time=start_time, end_time=end_time, method="last")
@@ -65,7 +66,7 @@ class SignalWCache(Signal):
 
 
 class ModelSignal(SignalWCache):
-    def __init__(self, model: BaseModel, dataset: Dataset):
+    def __init__(self, model: BaseModel, dataset: Dataset) -> None:
         self.model = model
         self.dataset = dataset
         pred_scores = self.model.predict(dataset)
@@ -73,7 +74,7 @@ class ModelSignal(SignalWCache):
             pred_scores = pred_scores.iloc[:, 0]
         super().__init__(pred_scores)
 
-    def _update_model(self):
+    def _update_model(self) -> None:
         """
         When using online data, update model in each bar as the following steps:
             - update dataset with online data, the dataset should support online update

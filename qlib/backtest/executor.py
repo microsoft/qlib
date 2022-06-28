@@ -4,7 +4,7 @@ import copy
 from abc import abstractmethod
 from collections import defaultdict
 from types import GeneratorType
-from typing import Generator, List, Optional, Tuple, Union
+from typing import Any, Dict, Generator, List, Tuple, Union, cast
 
 import pandas as pd
 
@@ -16,13 +16,7 @@ from ..strategy.base import BaseStrategy
 from ..utils import init_instance_by_config
 from .decision import BaseTradeDecision, Order
 from .exchange import Exchange
-from .utils import (
-    BaseInfrastructure,
-    CommonInfrastructure,
-    LevelInfrastructure,
-    TradeCalendarManager,
-    get_start_end_idx,
-)
+from .utils import CommonInfrastructure, LevelInfrastructure, TradeCalendarManager, get_start_end_idx
 
 
 class BaseExecutor:
@@ -39,8 +33,8 @@ class BaseExecutor:
         track_data: bool = False,
         trade_exchange: Exchange = None,
         common_infra: CommonInfrastructure = None,
-        settle_type=BasePosition.ST_NO,  # TODO: add typehint
-        **kwargs,
+        settle_type: str = BasePosition.ST_NO,
+        **kwargs: Any,
     ) -> None:
         """
         Parameters
@@ -127,10 +121,10 @@ class BaseExecutor:
             get_module_logger("BaseExecutor").warning(f"`common_infra` is not set for {self}")
 
         # record deal order amount in one day
-        self.dealt_order_amount = defaultdict(float)
+        self.dealt_order_amount: Dict[str, float] = defaultdict(float)
         self.deal_day = None
 
-    def reset_common_infra(self, common_infra: BaseInfrastructure, copy_trade_account: bool = False) -> None:
+    def reset_common_infra(self, common_infra: CommonInfrastructure, copy_trade_account: bool = False) -> None:
         """
         reset infrastructure for trading
             - reset trade_account
@@ -141,14 +135,15 @@ class BaseExecutor:
             self.common_infra.update(common_infra)
 
         if common_infra.has("trade_account"):
-            if copy_trade_account:
-                # NOTE: there is a trick in the code.
-                # shallow copy is used instead of deepcopy.
-                # 1. So positions are shared
-                # 2. Others are not shared, so each level has it own metrics (portfolio and trading metrics)
-                self.trade_account: Account = copy.copy(common_infra.get("trade_account"))
-            else:
-                self.trade_account: Account = common_infra.get("trade_account")
+            # NOTE: there is a trick in the code.
+            # shallow copy is used instead of deepcopy.
+            # 1. So positions are shared
+            # 2. Others are not shared, so each level has it own metrics (portfolio and trading metrics)
+            self.trade_account: Account = (
+                copy.copy(common_infra.get("trade_account"))
+                if copy_trade_account
+                else common_infra.get("trade_account")
+            )
             self.trade_account.reset(freq=self.time_per_step, port_metr_enabled=self.generate_portfolio_metrics)
 
     @property
@@ -164,7 +159,7 @@ class BaseExecutor:
         """
         return self.level_infra.get("trade_calendar")
 
-    def reset(self, common_infra: CommonInfrastructure = None, **kwargs) -> None:
+    def reset(self, common_infra: CommonInfrastructure = None, **kwargs: Any) -> None:
         """
         - reset `start_time` and `end_time`, used in trade calendar
         - reset `common_infra`, used to reset `trade_account`, `trade_exchange`, .etc
@@ -200,20 +195,17 @@ class BaseExecutor:
         execute_result : List[object]
             the executed result for trade decision
         """
-        return_value = {}
+        return_value: dict = {}
         for _decision in self.collect_data(trade_decision, return_value=return_value, level=level):
             pass
-        return return_value.get("execute_result")
+        return cast(list, return_value.get("execute_result"))
 
     @abstractmethod
     def _collect_data(
         self,
         trade_decision: BaseTradeDecision,
         level: int = 0,
-    ) -> Union[
-        Generator[BaseTradeDecision, Optional[BaseTradeDecision], Tuple[List[object], dict]],
-        Tuple[List[object], dict],
-    ]:
+    ) -> Union[Generator[Any, Any, Tuple[List[object], dict]], Tuple[List[object], dict]]:
         """
         Please refer to the doc of collect_data
         The only difference between `_collect_data` and `collect_data` is that some common steps are moved into
@@ -235,7 +227,7 @@ class BaseExecutor:
         trade_decision: BaseTradeDecision,
         return_value: dict = None,
         level: int = 0,
-    ) -> Generator[BaseTradeDecision, Optional[BaseTradeDecision], List[object]]:
+    ) -> Generator[Any, Any, List[object]]:
         """Generator for collecting the trade decision data for rl training
 
         his function will make a step forward
@@ -332,7 +324,7 @@ class NestedExecutor(BaseExecutor):
         skip_empty_decision: bool = True,
         align_range_limit: bool = True,
         common_infra: CommonInfrastructure = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
         """
         Parameters
@@ -411,7 +403,7 @@ class NestedExecutor(BaseExecutor):
         self,
         trade_decision: BaseTradeDecision,
         level: int = 0,
-    ) -> Generator[BaseTradeDecision, Optional[BaseTradeDecision], Tuple[List[object], dict]]:
+    ) -> Generator[Any, Any, Tuple[List[object], dict]]:
         execute_result = []
         inner_order_indicators = []
         decision_list = []
@@ -493,7 +485,7 @@ class NestedExecutor(BaseExecutor):
             the execution result of inner task
         """
 
-    def get_all_executors(self) -> List[object]:
+    def get_all_executors(self) -> List[BaseExecutor]:
         """get all executors, including self and inner_executor.get_all_executors()"""
         return [self, *self.inner_executor.get_all_executors()]
 
@@ -536,7 +528,7 @@ class SimulatorExecutor(BaseExecutor):
         track_data: bool = False,
         common_infra: CommonInfrastructure = None,
         trade_type: str = TT_SERIAL,
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
         """
         Parameters
@@ -598,7 +590,7 @@ class SimulatorExecutor(BaseExecutor):
 
     def _collect_data(self, trade_decision: BaseTradeDecision, level: int = 0) -> Tuple[List[object], dict]:
         trade_start_time, _ = self.trade_calendar.get_step_time()
-        execute_result = []
+        execute_result: list = []
 
         for order in self._get_order_iterator(trade_decision):
             # execute the order.
