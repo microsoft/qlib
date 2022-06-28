@@ -109,11 +109,7 @@ class CalendarProvider(abc.ABC):
         return _calendar[si : ei + 1]
 
     def locate_index(
-        self,
-        start_time: Union[pd.Timestamp, str],
-        end_time: Union[pd.Timestamp, str],
-        freq: str,
-        future: bool = False
+        self, start_time: Union[pd.Timestamp, str], end_time: Union[pd.Timestamp, str], freq: str, future: bool = False
     ):
         """Locate the start time index and end time index in a calendar under certain frequency.
 

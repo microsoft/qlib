@@ -24,7 +24,7 @@ import numpy as np
 import pandas as pd
 
 
-DecisionType = TypeVar('DecisionType')
+DecisionType = TypeVar("DecisionType")
 
 
 class OrderDir(IntEnum):
