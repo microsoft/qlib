@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 import weakref
-from typing import Callable, Generic, Iterable, TYPE_CHECKING, Sequence, Any, TypeVar, cast, Dict
+from typing import Callable, ContextManager, Generic, Iterable, TYPE_CHECKING, Sequence, Any, TypeVar, cast, Dict
 
 import numpy as np
 from tianshou.data import Collector, VectorReplayBuffer
@@ -50,17 +50,17 @@ class TrainingVesselBase(Generic[InitialStateType, StateType, ActType, ObsType, 
     def assign_trainer(self, trainer: Trainer) -> None:
         self.trainer = weakref.proxy(trainer)  # type: ignore
 
-    def train_seed_iterator(self) -> Iterable[InitialStateType]:
+    def train_seed_iterator(self) -> ContextManager[Iterable[InitialStateType]] | Iterable[InitialStateType]:
         """Override this to create a seed iterator for training.
         If the iterable is a context manager, the whole training will be invoked in the with-block,
         and the iterator will be automatically closed after the training is done."""
         raise SeedIteratorNotAvailable("Seed iterator for training is not available.")
 
-    def val_seed_iterator(self) -> Iterable[InitialStateType]:
+    def val_seed_iterator(self) -> ContextManager[Iterable[InitialStateType]] | Iterable[InitialStateType]:
         """Override this to create a seed iterator for validation."""
         raise SeedIteratorNotAvailable("Seed iterator for validation is not available.")
 
-    def test_seed_iterator(self) -> Iterable[InitialStateType]:
+    def test_seed_iterator(self) -> ContextManager[Iterable[InitialStateType]] | Iterable[InitialStateType]:
         """Override this to create a seed iterator for testing."""
         raise SeedIteratorNotAvailable("Seed iterator for testing is not available.")
 
@@ -140,7 +140,7 @@ class TrainingVessel(TrainingVesselBase):
         self.episode_per_iter = episode_per_iter
         self.update_kwargs = update_kwargs or {}
 
-    def train_seed_iterator(self) -> Iterable[InitialStateType]:
+    def train_seed_iterator(self) -> ContextManager[Iterable[InitialStateType]] | Iterable[InitialStateType]:
         if self.train_initial_states is not None:
             _logger.info("Training initial states collection size: %d", len(self.train_initial_states))
             # Implement fast_dev_run here.
@@ -148,14 +148,14 @@ class TrainingVessel(TrainingVesselBase):
             return DataQueue(train_initial_states, repeat=-1, shuffle=True)
         return super().train_seed_iterator()
 
-    def val_seed_iterator(self) -> Iterable[InitialStateType]:
+    def val_seed_iterator(self) -> ContextManager[Iterable[InitialStateType]] | Iterable[InitialStateType]:
         if self.val_initial_states is not None:
             _logger.info("Validation initial states collection size: %d", len(self.val_initial_states))
             val_initial_states = self._random_subset("val", self.val_initial_states, self.trainer.fast_dev_run)
             return DataQueue(val_initial_states, repeat=1)
         return super().val_seed_iterator()
 
-    def test_seed_iterator(self) -> Iterable[InitialStateType]:
+    def test_seed_iterator(self) -> ContextManager[Iterable[InitialStateType]] | Iterable[InitialStateType]:
         if self.test_initial_states is not None:
             _logger.info("Testing initial states collection size: %d", len(self.test_initial_states))
             test_initial_states = self._random_subset("test", self.test_initial_states, self.trainer.fast_dev_run)
