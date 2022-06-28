@@ -1,4 +1,4 @@
-name: Test
+name: Test qlib from source
 
 on:
   push:
@@ -9,41 +9,60 @@ on:
 jobs:
   build:
     timeout-minutes: 120
+
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [windows-latest, ubuntu-18.04, ubuntu-20.04]
+        os: [windows-latest, ubuntu-18.04, ubuntu-20.04, macos-11, macos-latest]
         # not supporting 3.6 due to annotations is not supported https://stackoverflow.com/a/52890129
         python-version: [3.7, 3.8]
 
     steps:
-    - uses: actions/checkout@v2
+    - name: Test qlib from source
+      uses: actions/checkout@v2
 
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
 
+    - name: Update pip to the latest version
+      run: |
+        python -m pip install --upgrade pip
+
+    - name: Installing pytorch for macos
+      if: ${{ matrix.os == 'macos-11' || matrix.os == 'macos-latest' }}
+      run: |
+        python -m pip install torch torchvision torchaudio
+        brew install libomp  # lightgbm dependencies
+
+    - name: Installing pytorch for ubuntu
+      if: ${{ matrix.os == 'ubuntu-18.04' || matrix.os == 'ubuntu-20.04' }}
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cpu
+
+    - name: Installing pytorch for windows
+      if: ${{ matrix.os == 'windows-latest' }}
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install torch torchvision torchaudio
+
+    - name: Set up Python tools
+      run: |
+        python -m pip install --upgrade cython
+        python -m pip install -e .[dev]
+
     - name: Lint with Black
       run: |
-        pip install --upgrade pip
-        pip install black wheel
-        black qlib -l 120 --check --diff
-
-    - name: Install Qlib with pip
-      run: |
-        pip install numpy==1.19.5 ruamel.yaml
-        pip install pyqlib --ignore-installed
+        black . -l 120 --check --diff
 
     - name: Make html with sphinx
       run: |
-        pip install -U sphinx
-        pip install sphinx_rtd_theme readthedocs_sphinx_ext
-        pip install --exists-action=w --no-cache-dir -r docs/requirements.txt 
         cd docs 
         sphinx-build -b html . build
         cd ..
-        
+
     # Check Qlib with pylint
     # TODO: These problems we will solve in the future. Important among them are: W0221, W0223, W0237, E1102
       # C0103: invalid-name
@@ -67,11 +86,9 @@ jobs:
       # W1309: f-string-without-interpolation
       # E1102: not-callable
       # E1136: unsubscriptable-object
-    # References for parameters: https://github.com/PyCQA/pylint/issues/4577#issuecomment-1000245962 
+    # References for parameters: https://github.com/PyCQA/pylint/issues/4577#issuecomment-1000245962
     - name: Check Qlib with pylint
       run: |
-        pip install --upgrade pip
-        pip install pylint
         pylint --disable=C0104,C0114,C0115,C0116,C0301,C0302,C0411,C0413,C1802,R0401,R0801,R0902,R0903,R0911,R0912,R0913,R0914,R0915,R1720,W0105,W0123,W0201,W0511,W0613,W1113,W1514,E0401,E1121,C0103,C0209,R0402,R1705,R1710,R1725,R1735,W0102,W0212,W0221,W0223,W0231,W0237,W0612,W0621,W0622,W0703,W1309,E1102,E1136 --const-rgx='[a-z_][a-z0-9_]{2,30}$' qlib --init-hook "import astroid; astroid.context.InferenceContext.max_inferred = 500"
 
     # The following flake8 error codes were ignored:
@@ -95,47 +112,29 @@ jobs:
         # Description: If there is whitespace before ":", it cannot pass the black check.
     - name: Check Qlib with flake8
       run: |
-        pip install --upgrade pip
-        pip install flake8
         flake8 --ignore=E501,F541,E266,E402,W503,E731,E203 --per-file-ignores="__init__.py:F401,F403" qlib
 
     # https://github.com/python/mypy/issues/10600
     - name: Check Qlib with mypy
       run: |
-        pip install mypy
         mypy qlib --install-types --non-interactive || true
-        mypy qlib
+        mypy qlib --verbose
 
     - name: Test data downloads
       run: |
-        python scripts/get_data.py qlib_data --name qlib_data_simple --target_dir ~/.qlib/qlib_data/cn_data_simple --interval 1d --region cn
-        python -c "import os; userpath=os.path.expanduser('~'); os.rename(userpath + '/.qlib/qlib_data/cn_data_simple', userpath + '/.qlib/qlib_data/cn_data')"
+        python scripts/get_data.py qlib_data --name qlib_data_simple --target_dir ~/.qlib/qlib_data/cn_data --interval 1d --region cn
         azcopy copy https://qlibpublic.blob.core.windows.net/data/rl /tmp/qlibpublic/data --recursive
         mv /tmp/qlibpublic/data tests/.data
 
-    - name: Test workflow by config (install from pip)
+    - name: Test workflow by config (install from source)
       run: |
+        # Version 0.52.0 of numba must be installed manually in CI, otherwise it will cause incompatibility with the latest version of numpy.
+        python -m pip install numba==0.52.0
+        # You must update numpy manually, because when installing python tools, it will try to uninstall numpy and cause CI to fail.
+        python -m pip install --upgrade numpy
         python qlib/workflow/cli.py examples/benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml
-        python -m pip uninstall -y pyqlib
-
-     # Test Qlib installed from source
-    - name: Install Qlib from source
-      run: |
-        pip install --upgrade cython jupyter jupyter_contrib_nbextensions numpy scipy scikit-learn # installing without this line will cause errors on GitHub Actions, while instsalling locally won't
-        pip install gym tianshou torch
-        pip install -e .
-
-    - name: Install test dependencies
-      run: |
-        pip install --upgrade pip
-        pip install black pytest
 
     - name: Unit tests with Pytest
       run: |
-        pip install -r scripts/data_collector/pit/requirements.txt
         cd tests
-        python -m pytest . --durations=10
-
-    - name: Test workflow by config (install from source)
-      run: |
-        python qlib/workflow/cli.py examples/benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml
+        python -m pytest . -m "not slow" --durations=0
