@@ -1,5 +1,6 @@
 import copy
 import unittest
+import pytest
 
 import fire
 import pandas as pd
@@ -14,6 +15,7 @@ from qlib.workflow.online.update import LabelUpdater
 
 
 class TestRolling(TestAutoData):
+    @pytest.mark.slow
     def test_update_pred(self):
         """
         This test is for testing if it will raise error if the `to_date` is out of the boundary.
@@ -73,6 +75,7 @@ class TestRolling(TestAutoData):
         # this range is fixed now
         self.assertTrue((updated_pred.loc[mod_range2] == -2).all().item())
 
+    @pytest.mark.slow
     def test_update_label(self):
 
         task = copy.deepcopy(CSI300_GBDT_TASK)
