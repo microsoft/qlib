@@ -311,8 +311,8 @@ class MLflowRecorder(Recorder):
         Mlflow only log the commit id of the current repo. But usually, user will have a lot of uncommitted changes.
         So this tries to automatically to log them all.
         """
-        # TODO: the sub directories maybe git repos.
-        # So it will be better if we can walk the sub directories and log the uncommitted changes.
+        # TODO: the sub-directories maybe git repos.
+        # So it will be better if we can walk the sub-directories and log the uncommitted changes.
         for cmd, fname in [
             ("git diff", "code_diff.txt"),
             ("git status", "code_status.txt"),
