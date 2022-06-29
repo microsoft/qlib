@@ -46,3 +46,15 @@ When you submit a PR request, you can check whether your code passes the CI test
 
     pip install -e .[dev]
     pre-commit install
+
+
+=================================
+Development Guidance
+=================================
+
+As a developer, you often want make changes to `Qlib` and hope it would reflect directly in your environment without reinstalling it. You can install `Qlib` in editable mode with following command.
+The `[dev]` option will help you to install some related packages when developing `Qlib` (e.g. pytest, sphinx)
+
+.. code-block:: bash
+
+    pip install -e .[dev]

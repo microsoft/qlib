@@ -145,7 +145,9 @@ class DataQueue(Generic[T]):
     def __iter__(self):
         if not self._activated:
             raise ValueError(
-                "Need to call activate() to launch a daemon worker to produce data into data queue before using it."
+                "Need to call activate() to launch a daemon worker "
+                "to produce data into data queue before using it. "
+                "You probably have forgotten to use the DataQueue in a with block."
             )
         return self._consumer()
 
@@ -161,19 +163,21 @@ class DataQueue(Generic[T]):
         # pytorch dataloader is used here only because we need its sampler and multi-processing
         from torch.utils.data import DataLoader, Dataset  # pylint: disable=import-outside-toplevel
 
-        dataloader = DataLoader(
-            cast(Dataset[T], self.dataset),
-            batch_size=None,
-            num_workers=self.producer_num_workers,
-            shuffle=self.shuffle,
-            collate_fn=lambda t: t,  # identity collate fn
-        )
-        repeat = 10**18 if self.repeat == -1 else self.repeat
-        for _rep in range(repeat):
-            for data in dataloader:
-                if self._done.value:
-                    # Already done.
-                    return
-                self._queue.put(data)
-            _logger.debug(f"Dataloader loop done. Repeat {_rep}.")
-        self.mark_as_done()
+        try:
+            dataloader = DataLoader(
+                cast(Dataset[T], self.dataset),
+                batch_size=None,
+                num_workers=self.producer_num_workers,
+                shuffle=self.shuffle,
+                collate_fn=lambda t: t,  # identity collate fn
+            )
+            repeat = 10**18 if self.repeat == -1 else self.repeat
+            for _rep in range(repeat):
+                for data in dataloader:
+                    if self._done.value:
+                        # Already done.
+                        return
+                    self._queue.put(data)
+                _logger.debug(f"Dataloader loop done. Repeat {_rep}.")
+        finally:
+            self.mark_as_done()

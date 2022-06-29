@@ -131,11 +131,14 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
     """
 
     history_exec: pd.DataFrame
-    """All execution history at every possible time ticks. See :class:`SAOEMetrics` for available columns."""
+    """All execution history at every possible time ticks. See :class:`SAOEMetrics` for available columns.
+    Index is ``datetime``.
+    """
 
     history_steps: pd.DataFrame
     """Positions at each step. The position before first step is also recorded.
-    See :class:`SAOEMetrics` for available columns."""
+    See :class:`SAOEMetrics` for available columns.
+    Index is ``datetime``, which is the **starting** time of each step."""
 
     metrics: SAOEMetrics | None
     """Metrics. Only available when done."""

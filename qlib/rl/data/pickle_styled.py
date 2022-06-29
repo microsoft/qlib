@@ -248,7 +248,7 @@ def load_orders(
             Order(
                 row["instrument"],
                 row["amount"],
-                int(row["order_type"]),
+                OrderDir(int(row["order_type"])),
                 row["datetime"].replace(hour=start_time.hour, minute=start_time.minute, second=start_time.second),
                 row["datetime"].replace(hour=end_time.hour, minute=end_time.minute, second=end_time.second),
             )

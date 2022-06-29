@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Generator, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Generator, Optional, Tuple, Union, cast
 
 import pandas as pd
 
@@ -36,10 +36,13 @@ def backtest_loop(
     indicator: Indicator
         it computes the trading indicator
     """
-    return_value = {}
+    return_value: dict = {}
     for _decision in collect_data_loop(start_time, end_time, trade_strategy, trade_executor, return_value):
         pass
-    return return_value.get("portfolio_metrics"), return_value.get("indicator")
+
+    portfolio_metrics = cast(PortfolioMetrics, return_value.get("portfolio_metrics"))
+    indicator = cast(Indicator, return_value.get("indicator"))
+    return portfolio_metrics, indicator
 
 
 def collect_data_loop(
