@@ -47,6 +47,10 @@ jobs:
         brew install libomp.rb
 
     - name: Unit tests with Pytest
-      run: |
-        cd tests
-        python -m pytest . -m "slow" --durations=0
+      uses: nick-fields/retry@v2
+      with:
+        timeout_minutes: 120
+        max_attempts: 3
+        command: |
+          cd tests
+          python -m pytest . -m "slow" --durations=0
