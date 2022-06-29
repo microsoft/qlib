@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import copy
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple, cast
 
 import pandas as pd
 
@@ -11,6 +11,7 @@ from qlib.utils import init_instance_by_config
 
 from .decision import BaseTradeDecision, Order
 from .exchange import Exchange
+from .high_performance_ds import BaseOrderIndicator
 from .position import BasePosition
 from .report import Indicator, PortfolioMetrics
 
@@ -104,7 +105,7 @@ class Account:
 
         self._pos_type = pos_type
         self._port_metr_enabled = port_metr_enabled
-        self.benchmark_config = None  # avoid no attribute error
+        self.benchmark_config: dict = {}  # avoid no attribute error
         self.init_vars(init_cash, position_dict, freq, benchmark_config)
 
     def init_vars(self, init_cash: float, position_dict: dict, freq: str, benchmark_config: dict) -> None:
@@ -124,8 +125,8 @@ class Account:
         self.accum_info = AccumulatedInfo()
 
         # 2) following variables are not shared between layers
-        self.portfolio_metrics = None
-        self.hist_positions = {}
+        self.portfolio_metrics: Optional[PortfolioMetrics] = None
+        self.hist_positions: Dict[pd.Timestamp, BasePosition] = {}
         self.reset(freq=freq, benchmark_config=benchmark_config)
 
     def is_port_metr_enabled(self) -> bool:
@@ -171,7 +172,7 @@ class Account:
 
         self.reset_report(self.freq, self.benchmark_config)
 
-    def get_hist_positions(self) -> dict:
+    def get_hist_positions(self) -> Dict[pd.Timestamp, BasePosition]:
         return self.hist_positions
 
     def get_cash(self) -> float:
@@ -230,13 +231,15 @@ class Account:
         """
         # update price for stock in the position and the profit from changed_price
         # NOTE: updating position does not only serve portfolio metrics, it also serve the strategy
+        assert self.current_position is not None
+
         if not self.current_position.skip_update():
             stock_list = self.current_position.get_stock_list()
             for code in stock_list:
                 # if suspend, no new price to be updated, profit is 0
                 if trade_exchange.check_stock_suspended(code, trade_start_time, trade_end_time):
                     continue
-                bar_close = trade_exchange.get_close(code, trade_start_time, trade_end_time)
+                bar_close = cast(float, trade_exchange.get_close(code, trade_start_time, trade_end_time))
                 self.current_position.update_stock_price(stock_id=code, price=bar_close)
             # update holding day count
             # NOTE: updating bar_count does not only serve portfolio metrics, it also serve the strategy
@@ -249,6 +252,8 @@ class Account:
         # for the first trade date, account_value - init_cash
         # self.portfolio_metrics.is_empty() to judge is_first_trade_date
         # get last_account_value, last_total_cost, last_total_turnover
+        assert self.portfolio_metrics is not None
+
         if self.portfolio_metrics.is_empty():
             last_account_value = self.init_cash
             last_total_cost = 0
@@ -299,9 +304,9 @@ class Account:
         trade_exchange: Exchange,
         atomic: bool,
         outer_trade_decision: BaseTradeDecision,
-        trade_info: list = None,
-        inner_order_indicators: List[Dict[str, pd.Series]] = None,
-        decision_list: List[Tuple[BaseTradeDecision, pd.Timestamp, pd.Timestamp]] = None,
+        trade_info: list = [],
+        inner_order_indicators: List[BaseOrderIndicator] = [],
+        decision_list: List[Tuple[BaseTradeDecision, pd.Timestamp, pd.Timestamp]] = [],
         indicator_config: dict = {},
     ) -> None:
         """update trade indicators and order indicators in each bar end"""
@@ -335,9 +340,9 @@ class Account:
         trade_exchange: Exchange,
         atomic: bool,
         outer_trade_decision: BaseTradeDecision,
-        trade_info: list = None,
-        inner_order_indicators: List[Dict[str, pd.Series]] = None,
-        decision_list: List[Tuple[BaseTradeDecision, pd.Timestamp, pd.Timestamp]] = None,
+        trade_info: list = [],
+        inner_order_indicators: List[BaseOrderIndicator] = [],
+        decision_list: List[Tuple[BaseTradeDecision, pd.Timestamp, pd.Timestamp]] = [],
         indicator_config: dict = {},
     ) -> None:
         """update account at each trading bar step
@@ -398,6 +403,7 @@ class Account:
     def get_portfolio_metrics(self) -> Tuple[pd.DataFrame, dict]:
         """get the history portfolio_metrics and positions instance"""
         if self.is_port_metr_enabled():
+            assert self.portfolio_metrics is not None
             _portfolio_metrics = self.portfolio_metrics.generate_portfolio_metrics_dataframe()
             _positions = self.get_hist_positions()
             return _portfolio_metrics, _positions

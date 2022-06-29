@@ -2,6 +2,7 @@
 # Licensed under the MIT License.
 
 import unittest
+import pytest
 import sys
 from qlib.tests import TestAutoData
 from qlib.data.dataset import TSDatasetH
@@ -11,6 +12,7 @@ from qlib.data.dataset.handler import DataHandlerLP
 
 
 class TestDataset(TestAutoData):
+    @pytest.mark.slow
     def testTSDataset(self):
         tsdh = TSDatasetH(
             handler={

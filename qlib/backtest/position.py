@@ -3,7 +3,7 @@
 
 
 from datetime import timedelta
-from typing import Dict, List, Union
+from typing import Any, Dict, List, Union
 
 import numpy as np
 import pandas as pd
@@ -18,9 +18,9 @@ class BasePosition:
     Please refer to the `Position` class for the position
     """
 
-    def __init__(self, *args, cash: float = 0.0, **kwargs) -> None:
+    def __init__(self, *args: Any, cash: float = 0.0, **kwargs: Any) -> None:
         self._settle_type = self.ST_NO
-        self.position = {}
+        self.position: dict = {}
 
     def fill_stock_value(self, start_time: Union[str, pd.Timestamp], freq: str, last_days: int = 30) -> None:
         pass
@@ -96,13 +96,13 @@ class BasePosition:
     def calculate_value(self) -> float:
         raise NotImplementedError(f"Please implement the `calculate_value` method")
 
-    def get_stock_list(self) -> List:
+    def get_stock_list(self) -> List[str]:
         """
         Get the list of stocks in the position.
         """
         raise NotImplementedError(f"Please implement the `get_stock_list` method")
 
-    def get_stock_price(self, code) -> float:
+    def get_stock_price(self, code: str) -> float:
         """
         get the latest price of the stock
 
@@ -113,7 +113,7 @@ class BasePosition:
         """
         raise NotImplementedError(f"Please implement the `get_stock_price` method")
 
-    def get_stock_amount(self, code) -> float:
+    def get_stock_amount(self, code: str) -> float:
         """
         get the amount of the stock
 
@@ -144,7 +144,7 @@ class BasePosition:
         """
         raise NotImplementedError(f"Please implement the `get_cash` method")
 
-    def get_stock_amount_dict(self) -> Dict:
+    def get_stock_amount_dict(self) -> dict:
         """
         generate stock amount dict {stock_id : amount of stock}
 
@@ -155,7 +155,7 @@ class BasePosition:
         """
         raise NotImplementedError(f"Please implement the `get_stock_amount_dict` method")
 
-    def get_stock_weight_dict(self, only_stock: bool = False) -> Dict:
+    def get_stock_weight_dict(self, only_stock: bool = False) -> dict:
         """
         generate stock weight dict {stock_id : value weight of stock in the position}
         it is meaningful in the beginning or the end of each trade step
@@ -174,7 +174,7 @@ class BasePosition:
         """
         raise NotImplementedError(f"Please implement the `get_stock_weight_dict` method")
 
-    def add_count_all(self, bar) -> None:
+    def add_count_all(self, bar: str) -> None:
         """
         Will be called at the end of each bar on each level
 
@@ -195,7 +195,7 @@ class BasePosition:
         raise NotImplementedError(f"Please implement the `add_count_all` method")
 
     ST_CASH = "cash"
-    ST_NO = None
+    ST_NO = "None"  # String is more typehint friendly than None
 
     def settle_start(self, settle_type: str) -> None:
         """
@@ -220,10 +220,10 @@ class BasePosition:
         """
         raise NotImplementedError(f"Please implement the `settle_commit` method")
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.__dict__.__str__()
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self.__dict__.__repr__()
 
 
@@ -532,7 +532,7 @@ class InfPosition(BasePosition):
     def calculate_value(self) -> float:
         raise NotImplementedError(f"InfPosition doesn't support calculating value")
 
-    def get_stock_list(self) -> list:
+    def get_stock_list(self) -> List[str]:
         raise NotImplementedError(f"InfPosition doesn't support stock list position")
 
     def get_stock_price(self, code: str) -> float:
@@ -545,10 +545,10 @@ class InfPosition(BasePosition):
     def get_cash(self, include_settle: bool = False) -> float:
         return np.inf
 
-    def get_stock_amount_dict(self) -> Dict:
+    def get_stock_amount_dict(self) -> dict:
         raise NotImplementedError(f"InfPosition doesn't support get_stock_amount_dict")
 
-    def get_stock_weight_dict(self, only_stock: bool = False) -> Dict:
+    def get_stock_weight_dict(self, only_stock: bool = False) -> dict:
         raise NotImplementedError(f"InfPosition doesn't support get_stock_weight_dict")
 
     def add_count_all(self, bar: str) -> None:
