@@ -34,7 +34,6 @@ jobs:
       if: ${{ matrix.os == 'macos-11' || matrix.os == 'macos-latest' }}
       run: |
         python -m pip install torch torchvision torchaudio
-        brew install libomp  # lightgbm dependencies
 
     - name: Installing pytorch for ubuntu
       if: ${{ matrix.os == 'ubuntu-18.04' || matrix.os == 'ubuntu-20.04' }}
@@ -125,6 +124,17 @@ jobs:
         python scripts/get_data.py qlib_data --name qlib_data_simple --target_dir ~/.qlib/qlib_data/cn_data --interval 1d --region cn
         azcopy copy https://qlibpublic.blob.core.windows.net/data/rl /tmp/qlibpublic/data --recursive
         mv /tmp/qlibpublic/data tests/.data
+
+    - name: Install Lightgbm for MacOS
+      if: ${{ matrix.os == 'macos-11' || matrix.os == 'macos-latest' }}
+      run: |
+        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Microsoft/qlib/main/.github/brew_install.sh)"
+        HOMEBREW_NO_AUTO_UPDATE=1 brew install lightgbm
+        # FIX MacOS error: Segmentation fault
+        # reference: https://github.com/microsoft/LightGBM/issues/4229
+        wget https://raw.githubusercontent.com/Homebrew/homebrew-core/fb8323f2b170bd4ae97e1bac9bf3e2983af3fdb0/Formula/libomp.rb
+        brew unlink libomp
+        brew install libomp.rb
 
     - name: Test workflow by config (install from source)
       run: |
