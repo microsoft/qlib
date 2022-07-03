@@ -1,8 +1,9 @@
 import unittest
 
-from qlib.tests import TestOperatorData
-from qlib.config import C
 from qlib.data import D
+from qlib.data.dataset.loader import QlibDataLoader
+from qlib.data.ops import ChangeInstrument, Cov, Feature, Ref, Var
+from qlib.tests import TestOperatorData
 
 
 class TestOperatorDataSetting(TestOperatorData):
@@ -61,18 +62,6 @@ class TestOperatorDataSetting(TestOperatorData):
             excess_return,
         ]
         test_case(["SH600519"], fields[5:], "get market beta and excess_return with estimated beta")
-
-        # All the queries above passed
-        """
-        the code below did not pass if  the following lines are not added to qlib/utils/__init__.py
-        but will pass if added.
-        # for ChangeInstrument
-        field = re.sub(r"Operators.ChangeInstrument\((\w+),",
-                       rf'Operators.ChangeInstrument("\1",', field)
-        """
-
-        from qlib.data.dataset.loader import QlibDataLoader
-        from qlib.data.ops import Feature, Ref, ChangeInstrument, Var, Cov
 
         instrument = "sh600519"
         ret = Feature("close") / Ref(Feature("close"), 1) - 1
