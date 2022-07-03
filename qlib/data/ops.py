@@ -32,6 +32,7 @@ except ValueError as e:
 
 np.seterr(invalid="ignore")
 
+
 class ChangeInstrument(ExpressionOps):
     """Change Instrument Operator
     In some case, one may want to change to another instrument when calculating, for example, to
