@@ -113,6 +113,8 @@ def _mount_nfs_uri(provider_uri, mount_path, auto_mount: bool = False):
             # system: linux/Unix/Mac
             # check mount
             _remote_uri = provider_uri[:-1] if provider_uri.endswith("/") else provider_uri
+            # `mount a /b/c` is different from `mount a /b/c/`. So we convert it into string to make sure handling it accurately
+            mount_path = str(mount_path)
             _mount_path = mount_path[:-1] if mount_path.endswith("/") else mount_path
             _check_level_num = 2
             _is_mount = False
