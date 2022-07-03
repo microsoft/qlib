@@ -90,7 +90,7 @@ class ChangeInstrument(ElemOperator):
 
     def load(self, instrument, start_index, end_index, *args):
         # the first `instrument` is ignored
-        return super().load(self, self.instrument, start_index, end_index, *args)
+        return super().load(self.instrument, start_index, end_index, *args)
 
     def _load_internal(self, instrument, start_index, end_index, *args):
         return self.feature.load(instrument, start_index, end_index, *args)
