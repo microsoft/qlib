@@ -10,6 +10,9 @@ from joblib._parallel_backends import MultiprocessingBackend
 import pandas as pd
 
 from queue import Queue
+import concurrent
+
+from qlib.config import C, QlibConfig
 
 
 class ParallelExt(Parallel):
@@ -273,3 +276,40 @@ def complex_parallel(paral: Parallel, complex_iter):
         dt.set_res(res)
     complex_iter = _recover_dt(complex_iter)
     return complex_iter
+
+
+class call_in_subproc:
+    """
+    When we repeating run functions, it is hard to avoid memory leakage.
+    So we run it in the subprocess to ensure it is OK.
+
+    NOTE: Because local object can't be pickled. So we can't implement it via closure.
+          We have to implement it via callable Class
+    """
+
+    def __init__(self, func: Callable, qlib_config: QlibConfig = None):
+        """
+        Parameters
+        ----------
+        func : Callable
+            the function to be wrapped
+
+        qlib_config : QlibConfig
+            Qlib config for initialization in subprocess
+
+        Returns
+        -------
+        Callable
+        """
+        self.func = func
+        self.qlib_config = qlib_config
+
+    def _func_mod(self, *args, **kwargs):
+        """Modify the initial function by adding Qlib initialization"""
+        if self.qlib_config is not None:
+            C.register_from_C(self.qlib_config)
+        return self.func(*args, **kwargs)
+
+    def __call__(self, *args, **kwargs):
+        with concurrent.futures.ProcessPoolExecutor(max_workers=1) as executor:
+            return executor.submit(self._func_mod, *args, **kwargs).result()

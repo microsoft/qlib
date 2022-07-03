@@ -28,6 +28,8 @@ The default forecasting models are `Linear`. Users can choose other forecasting 
 The results of related methods in Qlib's public dataset can be found [here](../)
 
 # Requirements
-Here is the minimal hardware requirements to run the ``workflow.py`` of DDG-DA.
+Here are the minimal hardware requirements to run the ``workflow.py`` of DDG-DA.
 * Memory: 45G
 * Disk: 4G
+
+Pytorch with CPU & RAM will be enough for this example.

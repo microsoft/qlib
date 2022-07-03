@@ -217,7 +217,7 @@ class MetaDatasetDS(MetaTaskDataset):
         ----------
         task_tpl : Union[dict, list]
             Decide what tasks are used.
-            - dict : the task template， the prepared task is generated with `step`, `trunc_days` and `RollingGen`
+            - dict : the task template, the prepared task is generated with `step`, `trunc_days` and `RollingGen`
             - list : when list, use the list of tasks directly
                      the list is supposed to be sorted according timeline
         step : int
@@ -290,7 +290,7 @@ class MetaDatasetDS(MetaTaskDataset):
         ic_df = self.internal_data.data_ic_df
 
         segs = task["dataset"]["kwargs"]["segments"]
-        end = max([segs[k][1] for k in ("train", "valid") if k in segs])
+        end = max(segs[k][1] for k in ("train", "valid") if k in segs)
         ic_df_avail = ic_df.loc[:end, pd.IndexSlice[:, :end]]
 
         # meta data set focus on the **information** instead of preprocess

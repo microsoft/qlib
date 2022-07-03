@@ -145,7 +145,7 @@ class TCTS(Model):
 
         init_fore_model = copy.deepcopy(self.fore_model)
         for p in init_fore_model.parameters():
-            p.init_fore_model = False
+            p.requires_grad = False
 
         self.fore_model.train()
         self.weight_model.train()

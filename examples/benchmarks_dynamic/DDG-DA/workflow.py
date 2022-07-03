@@ -9,13 +9,10 @@ from qlib.data.dataset.handler import DataHandlerLP
 import pandas as pd
 import fire
 import sys
-from tqdm.auto import tqdm
-import yaml
 import pickle
 from qlib import auto_init
-from qlib.model.trainer import TrainerR, task_train
+from qlib.model.trainer import TrainerR
 from qlib.utils import init_instance_by_config
-from qlib.workflow.task.gen import RollingGen, task_generator
 from qlib.workflow import R
 from qlib.tests.data import GetData
 
@@ -47,9 +44,10 @@ class DDGDA:
         rb = RollingBenchmark(model_type="gbdt")
         task = rb.basic_task()
 
-        model = init_instance_by_config(task["model"])
-        dataset = init_instance_by_config(task["dataset"])
-        model.fit(dataset)
+        with R.start(experiment_name="feature_importance"):
+            model = init_instance_by_config(task["model"])
+            dataset = init_instance_by_config(task["dataset"])
+            model.fit(dataset)
 
         fi = model.get_feature_importance()
 

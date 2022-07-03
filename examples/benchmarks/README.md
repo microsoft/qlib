@@ -20,7 +20,9 @@ The numbers shown below demonstrate the performance of the entire `workflow` of 
 > NOTE:
 > We have very limited resources to implement and finetune the models. We tried our best effort to fairly compare these models.  But some models may have greater potential than what it looks like in the table below.  Your contribution is highly welcomed to explore their potential.
 
-## Alpha158 dataset
+## Results on CSI300
+
+### Alpha158 dataset
 
 | Model Name                               | Dataset                             | IC          | ICIR        | Rank IC     | Rank ICIR   | Annualized Return | Information Ratio | Max Drawdown |
 |------------------------------------------|-------------------------------------|-------------|-------------|-------------|-------------|-------------------|-------------------|--------------|
@@ -44,7 +46,7 @@ The numbers shown below demonstrate the performance of the entire `workflow` of 
 | DoubleEnsemble(Chuheng Zhang, et al.)    | Alpha158                            | 0.0544±0.00 | 0.4340±0.00 | 0.0523±0.00 | 0.4284±0.01 | 0.1168±0.01       | 1.3384±0.12       | -0.1036±0.01 |
 
 
-## Alpha360 dataset
+### Alpha360 dataset
 
 | Model Name                                | Dataset  | IC          | ICIR        | Rank IC     | Rank ICIR   | Annualized Return | Information Ratio | Max Drawdown |
 |-------------------------------------------|----------|-------------|-------------|-------------|-------------|-------------------|-------------------|--------------|
@@ -65,6 +67,9 @@ The numbers shown below demonstrate the performance of the entire `workflow` of 
 | GATs (Petar Velickovic, et al.)           | Alpha360 | 0.0476±0.00 | 0.3508±0.02 | 0.0598±0.00 | 0.4604±0.01 | 0.0824±0.02       | 1.1079±0.26       | -0.0894±0.03 |
 | TCTS(Xueqing Wu, et al.)                  | Alpha360 | 0.0508±0.00 | 0.3931±0.04 | 0.0599±0.00 | 0.4756±0.03 | 0.0893±0.03       | 1.2256±0.36       | -0.0857±0.02 |
 | TRA(Hengxu Lin, et al.)                   | Alpha360 | 0.0485±0.00 | 0.3787±0.03 | 0.0587±0.00 | 0.4756±0.03 | 0.0920±0.03       | 1.2789±0.42       | -0.0834±0.02 |
+| IGMTF(Wentao Xu, et al.)                  | Alpha360 | 0.0480±0.00 | 0.3589±0.02 | 0.0606±0.00 | 0.4773±0.01 | 0.0946±0.02       | 1.3509±0.25       | -0.0716±0.02 |
+| HIST(Wentao Xu, et al.)                   | Alpha360 | 0.0522±0.00 | 0.3530±0.01 | 0.0667±0.00 | 0.4576±0.01 | 0.0987±0.02       | 1.3726±0.27       | -0.0681±0.01 |
+
 
 - The selected 20 features are based on the feature importance of a lightgbm-based model.
 - The base model of DoubleEnsemble is LGBM.
@@ -75,3 +80,52 @@ The numbers shown below demonstrate the performance of the entire `workflow` of 
 - The metrics can be categorized into two
    - Signal-based evaluation:  IC, ICIR, Rank IC, Rank ICIR
    - Portfolio-based metrics:  Annualized Return, Information Ratio, Max Drawdown
+
+## Results on CSI500
+The results on CSI500 is not complete. PR's for models on csi500 are welcome!
+
+Transfer previous models in CSI300 to CSI500 is quite easy.  You can try models with just a few commands below.
+```
+cd examples/benchmarks/LightGBM
+pip install -r requirements.txt
+
+# create new config and set the benchmark to csi500
+cp workflow_config_lightgbm_Alpha158.yaml workflow_config_lightgbm_Alpha158_csi500.yaml
+sed -i "s/csi300/csi500/g"  workflow_config_lightgbm_Alpha158_csi500.yaml
+sed -i "s/SH000300/SH000905/g"  workflow_config_lightgbm_Alpha158_csi500.yaml
+
+# you can either run the model once
+qrun workflow_config_lightgbm_Alpha158_csi500.yaml
+
+# or run it for multiple times automatically and get the summarized results.
+cd  ../../
+python run_all_model.py run 3 lightgbm Alpha158 csi500  # for models with randomness.  please run it for 20 times.
+```
+
+### Alpha158 dataset
+
+| Model Name | Dataset  | IC          | ICIR        | Rank IC     | Rank ICIR   | Annualized Return | Information Ratio | Max Drawdown |
+|------------|----------|-------------|-------------|-------------|-------------|-------------------|-------------------|--------------|
+| LightGBM   | Alpha158 | 0.0377±0.00 | 0.3860±0.00 | 0.0448±0.00 | 0.4675±0.00 | 0.1151±0.00       | 1.3884±0.00       | -0.0898±0.00 |
+
+### Alpha360 dataset
+| Model Name | Dataset  | IC          | ICIR        | Rank IC     | Rank ICIR   | Annualized Return | Information Ratio | Max Drawdown |
+|------------|----------|-------------|-------------|-------------|-------------|-------------------|-------------------|--------------|
+| LightGBM   | Alpha360 | 0.0400±0.00 | 0.3605±0.00 | 0.0536±0.00 | 0.5431±0.00 | 0.0505±0.00       | 0.7658±0.02       | -0.1880±0.00 |
+
+
+# Contributing
+
+Your contributions to new models are highly welcome!
+
+If you want to contribute your new models, you can follow the steps below.
+1. Create a folder for your model
+2. The folder contains following items(you can refer to [this example](https://github.com/microsoft/qlib/tree/main/examples/benchmarks/TCTS)).
+    - `requirements.txt`: required dependencies.
+    - `README.md`: a brief introduction to your models
+    - `workflow_config_<model name>_<dataset>.yaml`: a configuration which can read by `qrun`. You are encouraged to run your model in all datasets.
+3. You can integrate your model as a module [in this folder](https://github.com/microsoft/qlib/tree/main/qlib/contrib/model).
+4. Please updated your results in the benchmark tables, e.g. [Alpha360](#alpha158-dataset), [Alpha158](#alpha158-dataset)(the values of each metric are the mean and std calculated based on 20 runs with different random seeds, if you don't have enough computational resource, you can ask for help in the PR).
+5. Update the info in the index page in the [news list](https://github.com/microsoft/qlib#newspaper-whats-new----sparkling_heart) and [model list](https://github.com/microsoft/qlib#quant-model-paper-zoo).
+
+Finally, you can send PR for review. ([here is an example](https://github.com/microsoft/qlib/pull/1040))

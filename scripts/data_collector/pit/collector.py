@@ -2,6 +2,7 @@
 # Licensed under the MIT License.
 
 import re
+import sys
 from datetime import datetime
 from pathlib import Path
 from typing import List, Iterable, Optional, Union
@@ -11,10 +12,11 @@ import pandas as pd
 import baostock as bs
 from loguru import logger
 
-from scripts.data_collector.base import BaseCollector, BaseRun, BaseNormalize
-from scripts.data_collector.utils import get_hs_stock_symbols, get_calendar_list
+BASE_DIR = Path(__file__).resolve().parent
+sys.path.append(str(BASE_DIR.parent.parent))
 
-BASE_DIR = Path(__file__).resolve().parent.parent
+from data_collector.base import BaseCollector, BaseRun, BaseNormalize
+from data_collector.utils import get_hs_stock_symbols, get_calendar_list
 
 
 class PitCollector(BaseCollector):

@@ -24,7 +24,7 @@ class FileStorageMixin:
 
     """
 
-    # NOTE: provider_uri priority：
+    # NOTE: provider_uri priority:
     #   1. self._provider_uri : if provider_uri is provided.
     #   2. provider_uri in qlib.config.C
 
@@ -79,6 +79,7 @@ class FileCalendarStorage(FileStorageMixin, CalendarStorage):
         self.future = future
         self._provider_uri = None if provider_uri is None else C.DataPathManager.format_provider_uri(provider_uri)
         self.enable_read_cache = True  # TODO: make it configurable
+        self.region = C["region"]
 
     @property
     def file_name(self) -> str:
@@ -105,10 +106,7 @@ class FileCalendarStorage(FileStorageMixin, CalendarStorage):
         if not self.uri.exists():
             self._write_calendar(values=[])
         with self.uri.open("rb") as fp:
-            return [
-                str(x)
-                for x in np.loadtxt(fp, str, skiprows=skip_rows, max_rows=n_rows, delimiter="\n", encoding="utf-8")
-            ]
+            return [str(x) for x in np.loadtxt(fp, str, skiprows=skip_rows, max_rows=n_rows, encoding="utf-8")]
 
     def _write_calendar(self, values: Iterable[CalVT], mode: str = "wb"):
         with self.uri.open(mode=mode) as fp:
@@ -130,7 +128,9 @@ class FileCalendarStorage(FileStorageMixin, CalendarStorage):
         else:
             _calendar = self._read_calendar()
         if Freq(self._freq_file) != Freq(self.freq):
-            _calendar = resam_calendar(np.array(list(map(pd.Timestamp, _calendar))), self._freq_file, self.freq)
+            _calendar = resam_calendar(
+                np.array(list(map(pd.Timestamp, _calendar))), self._freq_file, self.freq, self.region
+            )
         return _calendar
 
     def _get_storage_freq(self) -> List[str]:

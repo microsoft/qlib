@@ -2,11 +2,13 @@
 # Licensed under the MIT License.
 
 import os
+import sys
 import mlflow
 import logging
 import shutil
 import pickle
 import tempfile
+import subprocess
 from pathlib import Path
 from datetime import datetime
 
@@ -296,7 +298,31 @@ class MLflowRecorder(Recorder):
         # - This may cause delay when uploading results
         # - The logging time may not be accurate
         self.async_log = AsyncCaller()
+
+        # TODO: currently, this is only supported in MLflowRecorder.
+        # Maybe we can make this feature more general.
+        self._log_uncommitted_code()
+
+        self.log_params(**{"cmd-sys.argv": " ".join(sys.argv)})  # log the command to produce current experiment
         return run
+
+    def _log_uncommitted_code(self):
+        """
+        Mlflow only log the commit id of the current repo. But usually, user will have a lot of uncommitted changes.
+        So this tries to automatically to log them all.
+        """
+        # TODO: the sub-directories maybe git repos.
+        # So it will be better if we can walk the sub-directories and log the uncommitted changes.
+        for cmd, fname in [
+            ("git diff", "code_diff.txt"),
+            ("git status", "code_status.txt"),
+            ("git diff --cached", "code_cached.txt"),
+        ]:
+            try:
+                out = subprocess.check_output(cmd, shell=True)
+                self.client.log_text(self.id, out.decode(), fname)  # this behaves same as above
+            except subprocess.CalledProcessError:
+                logger.info(f"Fail to log the uncommitted code of $CWD when run `{cmd}`")
 
     def end_run(self, status: str = Recorder.STATUS_S):
         assert status in [

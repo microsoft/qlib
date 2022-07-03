@@ -43,16 +43,26 @@ def sys_config(config, config_path):
 
 # workflow handler function
 def workflow(config_path, experiment_name="workflow", uri_folder="mlruns"):
+    """
+    This is a Qlib CLI entrance.
+    User can run the whole Quant research workflow defined by a configure file
+    - the code is located here ``qlib/workflow/cli.py`
+    """
     with open(config_path) as fp:
         config = yaml.safe_load(fp)
 
     # config the `sys` section
     sys_config(config, config_path)
 
-    exp_manager = C["exp_manager"]
-    exp_manager["kwargs"]["uri"] = "file:" + str(Path(os.getcwd()).resolve() / uri_folder)
-    qlib.init(**config.get("qlib_init"), exp_manager=exp_manager)
+    if "exp_manager" in config.get("qlib_init"):
+        qlib.init(**config.get("qlib_init"))
+    else:
+        exp_manager = C["exp_manager"]
+        exp_manager["kwargs"]["uri"] = "file:" + str(Path(os.getcwd()).resolve() / uri_folder)
+        qlib.init(**config.get("qlib_init"), exp_manager=exp_manager)
 
+    if "experiment_name" in config:
+        experiment_name = config["experiment_name"]
     recorder = task_train(config.get("task"), experiment_name=experiment_name)
     recorder.save_objects(config=config)
 

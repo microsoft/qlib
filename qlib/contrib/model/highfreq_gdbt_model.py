@@ -92,7 +92,10 @@ class HFLGBModel(ModelFT, LightGBMFInt):
             # Convert label into alpha
             df_train["label"][l_name] = df_train["label"][l_name] - df_train["label"][l_name].mean(level=0)
             df_valid["label"][l_name] = df_valid["label"][l_name] - df_valid["label"][l_name].mean(level=0)
-            mapping_fn = lambda x: 0 if x < 0 else 1
+
+            def mapping_fn(x):
+                return 0 if x < 0 else 1
+
             df_train["label_c"] = df_train["label"][l_name].apply(mapping_fn)
             df_valid["label_c"] = df_valid["label"][l_name].apply(mapping_fn)
             x_train, y_train = df_train["feature"], df_train["label_c"].values

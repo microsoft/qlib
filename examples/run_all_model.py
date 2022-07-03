@@ -117,8 +117,10 @@ def get_all_folders(models, exclude) -> dict:
 
 
 # function to get all the files under the model folder
-def get_all_files(folder_path, dataset) -> (str, str):
-    yaml_path = str(Path(f"{folder_path}") / f"*{dataset}*.yaml")
+def get_all_files(folder_path, dataset, universe="") -> (str, str):
+    if universe != "":
+        universe = f"_{universe}"
+    yaml_path = str(Path(f"{folder_path}") / f"*{dataset}{universe}.yaml")
     req_path = str(Path(f"{folder_path}") / f"*.txt")
     yaml_file = glob.glob(yaml_path)
     req_file = glob.glob(req_path)
@@ -224,6 +226,7 @@ class ModelRunner:
         times=1,
         models=None,
         dataset="Alpha360",
+        universe="",
         exclude=False,
         qlib_uri: str = "git+https://github.com/microsoft/qlib#egg=pyqlib",
         exp_folder_name: str = "run_all_model_records",
@@ -245,6 +248,9 @@ class ModelRunner:
             determines whether the model being used is excluded or included.
         dataset : str
             determines the dataset to be used for each model.
+        universe  : str
+            the stock universe of the dataset.
+            default "" indicates that
         qlib_uri : str
             the uri to install qlib with pip
             it could be url on the we or local path (NOTE: the local path must be a absolute path)
@@ -258,6 +264,15 @@ class ModelRunner:
         Usage:
         -------
         Here are some use cases of the function in the bash:
+
+        The run_all_models  will decide which config to run based no `models` `dataset`  `universe`
+        Example 1):
+
+            models="lightgbm", dataset="Alpha158", universe="" will result in running the following config
+            examples/benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml
+
+            models="lightgbm", dataset="Alpha158", universe="csi500" will result in running the following config
+            examples/benchmarks/LightGBM/workflow_config_lightgbm_Alpha158_csi500.yaml
 
         .. code-block:: bash
 
@@ -279,6 +294,9 @@ class ModelRunner:
             # Case 6 - run other models except those are given as arguments for one time
             python run_all_model.py run --models=[mlp,tft,sfm] --exclude=True
 
+            # Case 7 - run lightgbm model on csi500.
+            python run_all_model.py run 3 lightgbm Alpha158 csi500
+
         """
         self._init_qlib(exp_folder_name)
 
@@ -290,7 +308,7 @@ class ModelRunner:
         for fn in folders:
             # get all files
             sys.stderr.write("Retrieving files...\n")
-            yaml_path, req_path = get_all_files(folders[fn], dataset)
+            yaml_path, req_path = get_all_files(folders[fn], dataset, universe=universe)
             if yaml_path is None:
                 sys.stderr.write(f"There is no {dataset}.yaml file in {folders[fn]}")
                 continue
