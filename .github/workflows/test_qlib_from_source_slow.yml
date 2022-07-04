@@ -8,7 +8,8 @@ on:
 
 jobs:
   build:
-    timeout-minutes: 120
+    timeout-minutes: 360
+    # we may retry for 3 times for `Unit tests with Pytest`
 
     runs-on: ${{ matrix.os }}
     strategy:
