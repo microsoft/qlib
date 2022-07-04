@@ -32,6 +32,7 @@ except ValueError:
 
 np.seterr(invalid="ignore")
 
+
 #################### Element-Wise Operator ####################
 
 
@@ -60,6 +61,39 @@ class ElemOperator(ExpressionOps):
 
     def get_extended_window_size(self):
         return self.feature.get_extended_window_size()
+
+
+class ChangeInstrument(ElemOperator):
+    """Change Instrument Operator
+    In some case, one may want to change to another instrument when calculating, for example, to
+    calculate beta of a stock with respect to a market index.
+    This would require changing the calculation of features from the stock (original instrument) to
+    the index (reference instrument)
+    Parameters
+    ----------
+    instrument: new instrument for which the downstream operations should be performed upon.
+                i.e., SH000300 (CSI300 index), or ^GPSC (SP500 index).
+
+    feature: the feature to be calculated for the new instrument.
+    Returns
+    ----------
+    Expression
+        feature operation output
+    """
+
+    def __init__(self, instrument, feature):
+        self.instrument = instrument
+        self.feature = feature
+
+    def __str__(self):
+        return "{}('{}',{})".format(type(self).__name__, self.instrument, self.feature)
+
+    def load(self, instrument, start_index, end_index, *args):
+        # the first `instrument` is ignored
+        return super().load(self.instrument, start_index, end_index, *args)
+
+    def _load_internal(self, instrument, start_index, end_index, *args):
+        return self.feature.load(instrument, start_index, end_index, *args)
 
 
 class NpElemOperator(ElemOperator):
@@ -1535,6 +1569,7 @@ class TResample(ElemOperator):
 
 TOpsList = [TResample]
 OpsList = [
+    ChangeInstrument,
     Rolling,
     Ref,
     Max,
