@@ -94,7 +94,7 @@ def _mount_nfs_uri(provider_uri, mount_path, auto_mount: bool = False):
     else:
         # Judging system type
         sys_type = platform.system()
-        if "win" in sys_type.lower():
+        if "windows" in sys_type.lower():
             # system: window
             exec_result = os.popen(f"mount -o anon {provider_uri} {mount_path}")
             result = exec_result.read()
