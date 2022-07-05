@@ -10,7 +10,7 @@ pip install -r requirements.txt
 ## fill 1min data
 
 ```bash
-python fill_1min_using_1d.py --data_1min_dir ~/.qlib/csv_data/cn_data_1min --qlib_data_1d_dir ~/.qlib/qlib_data/cn_data
+python fill_cn_1min_data.py --data_1min_dir ~/.qlib/csv_data/cn_data_1min --qlib_data_1d_dir ~/.qlib/qlib_data/cn_data
 ```
 
 ## Parameters
