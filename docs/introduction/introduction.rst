@@ -3,7 +3,7 @@
 ===============================
 
 Introduction
-===================
+============
 
 .. image:: ../_static/img/logo/white_bg_rec+word.png
     :align: center
@@ -13,8 +13,8 @@ Introduction
 With ``Qlib``, users can easily try their ideas to create better Quant investment strategies.
 
 Framework
-===================
-   
+=========
+
 .. image:: ../_static/img/framework.svg
     :align: center
 
@@ -27,7 +27,7 @@ At the module level, Qlib is a platform that consists of above components. The c
 Name                      Description
 ========================  ==============================================================================
 `Infrastructure` layer    `Infrastructure` layer provides underlying support for Quant research.
-                          `DataServer` provides high-performance infrastructure for users to manage 
+                          `DataServer` provides high-performance infrastructure for users to manage
                           and retrieve raw data. `Trainer` provides flexible interface to control
                           the training process of models which enable algorithms controlling the
                           training process.
@@ -35,13 +35,13 @@ Name                      Description
 `Workflow` layer          `Workflow` layer covers the whole workflow of quantitative investment.
                           `Information Extractor` extracts data for models. `Forecast Model` focuses
                           on producing all kinds of forecast signals (e.g. *alpha*, risk) for other
-                          modules.  With these signals `Decision Generator` will generate the target 
+                          modules.  With these signals `Decision Generator` will generate the target
                           trading decisions(i.e. portfolio, orders)  to be executed by `Execution Env`
                           (i.e. the trading market).  There may be multiple levels of `Trading Agent`
                           and `Execution Env` (e.g. an *order executor trading agent and intraday
                           order execution environment* could behave like an interday trading
                           environment and nested in  *daily portfolio management trading agent and
-                          interday trading environment*  ) 
+                          interday trading environment*  )
 
 `Interface` layer         `Interface` layer tries to present a user-friendly interface for the underlying
                           system. `Analyser` module will provide users detailed analysis reports of
