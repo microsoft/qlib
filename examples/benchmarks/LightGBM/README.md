@@ -7,4 +7,4 @@ Decision Tree. [https://proceedings.neurips.cc/paper/2017/file/6449f44a102fde848
 # Introductions about the settings/configs.
 
 `workflow_config_lightgbm_multi_freq.yaml`
-- It uses data sources of different frequencies (i.e. multiple frequencie) for daily prediction.
+- It uses data sources of different frequencies (i.e. multiple frequencies) for daily prediction.
