@@ -31,17 +31,13 @@ def get_common_infra(
 ) -> CommonInfrastructure:
     # need to specify a range here for acceleration
     if cash_limit is None:
-        trade_account = Account(
-            init_cash=int(1e12),
-            benchmark_config={},
-            pos_type='InfPosition'
-        )
+        trade_account = Account(init_cash=int(1e12), benchmark_config={}, pos_type="InfPosition")
     else:
         trade_account = Account(
             init_cash=cash_limit,
             benchmark_config={},
-            pos_type='Position',
-            position_dict={code: {"amount": 1e12, "price": 1.} for code in codes}
+            pos_type="Position",
+            position_dict={code: {"amount": 1e12, "price": 1.0} for code in codes},
         )
 
     exchange = get_exchange(
@@ -55,7 +51,7 @@ def get_common_infra(
         start_time=trade_date,
         end_time=trade_date + pd.DateOffset(1),
         trade_unit=config.trade_unit,
-        volume_threshold=config.volume_threshold
+        volume_threshold=config.volume_threshold,
     )
 
     return CommonInfrastructure(trade_account=trade_account, trade_exchange=exchange)
@@ -145,17 +141,16 @@ class StateMaintainer:
         if len(execute_result) > 0:
             exchange = inner_executor.trade_exchange
             minutes = _get_minutes(execute_result[0][0].start_time, execute_result[-1][0].start_time)
-            market_price = np.array([
-                exchange.get_deal_price(execute_order.stock_id, t, t, direction=execute_order.direction)
-                for t in minutes
-            ])
+            market_price = np.array(
+                [
+                    exchange.get_deal_price(execute_order.stock_id, t, t, direction=execute_order.direction)
+                    for t in minutes
+                ]
+            )
             market_volume = np.array([exchange.get_volume(execute_order.stock_id, t, t) for t in minutes])
 
             datetime_list = _get_ticks_slice(
-                self._tick_index,
-                execute_result[0][0].start_time,
-                execute_result[-1][0].start_time,
-                include_end=True
+                self._tick_index, execute_result[0][0].start_time, execute_result[-1][0].start_time, include_end=True
             )
         else:
             market_price = np.array([])
@@ -188,9 +183,11 @@ class StateMaintainer:
 
         self.history_steps = _dataframe_append(
             self.history_steps,
-            [self._metrics_collect(
-                execute_order, execute_order.start_time, market_volume, market_price, exec_vol.sum(), exec_vol
-            )],
+            [
+                self._metrics_collect(
+                    execute_order, execute_order.start_time, market_volume, market_price, exec_vol.sum(), exec_vol
+                )
+            ],
         )
 
     def _metrics_collect(

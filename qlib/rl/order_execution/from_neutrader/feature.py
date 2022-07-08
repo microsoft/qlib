@@ -34,10 +34,15 @@ class LRUCache:
 
 
 class DataWrapper:
-
-    def __init__(self, feature_dataset: DatasetH, backtest_dataset: DatasetH,
-                 columns_today: List[str], columns_yesterday: List[str], _internal: bool = False):
-        assert _internal, 'Init function of data wrapper is for internal use only.'
+    def __init__(
+        self,
+        feature_dataset: DatasetH,
+        backtest_dataset: DatasetH,
+        columns_today: List[str],
+        columns_yesterday: List[str],
+        _internal: bool = False,
+    ):
+        assert _internal, "Init function of data wrapper is for internal use only."
 
         self.feature_dataset = feature_dataset
         self.backtest_dataset = backtest_dataset
@@ -76,8 +81,7 @@ def init_qlib(config: QlibConfig, part: Optional[str] = None) -> None:
     qlib.init(
         region=REG_CN,
         auto_mount=False,
-        custom_ops=[DayLast, FFillNan, BFillNan,
-                    Date, Select, IsNull, IsInf, Cut, DayCumsum],
+        custom_ops=[DayLast, FFillNan, BFillNan, Date, Select, IsNull, IsInf, Cut, DayCumsum],
         expression_cache=None,
         calendar_provider={
             "class": "LocalCalendarProvider",
@@ -104,22 +108,22 @@ def init_qlib(config: QlibConfig, part: Optional[str] = None) -> None:
         provider_uri=provider_uri_map,
         kernels=1,
         redis_port=-1,
-        clear_mem_cache=False  # init_qlib will be called for multiple times. Keep the cache for improving performance
+        clear_mem_cache=False,  # init_qlib will be called for multiple times. Keep the cache for improving performance
     )
 
     # this won't work if it's put outside in case of multiprocessing
 
     if part is None:
-        feature_path = config.feature_root_dir / 'feature.pkl'
-        backtest_path = config.feature_root_dir / 'backtest.pkl'
+        feature_path = config.feature_root_dir / "feature.pkl"
+        backtest_path = config.feature_root_dir / "backtest.pkl"
     else:
-        feature_path = config.feature_root_dir / 'feature' / (part + '.pkl')
-        backtest_path = config.feature_root_dir / 'backtest' / (part + '.pkl')
+        feature_path = config.feature_root_dir / "feature" / (part + ".pkl")
+        backtest_path = config.feature_root_dir / "backtest" / (part + ".pkl")
 
-    with feature_path.open('rb') as f:
+    with feature_path.open("rb") as f:
         print(feature_path)
         feature_dataset = pickle.load(f)
-    with backtest_path.open('rb') as f:
+    with backtest_path.open("rb") as f:
         backtest_dataset = pickle.load(f)
 
     _dataset = DataWrapper(
@@ -127,5 +131,5 @@ def init_qlib(config: QlibConfig, part: Optional[str] = None) -> None:
         backtest_dataset,
         config.feature_columns_today,
         config.feature_columns_yesterday,
-        _internal=True
+        _internal=True,
     )

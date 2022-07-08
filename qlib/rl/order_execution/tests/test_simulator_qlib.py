@@ -29,11 +29,12 @@ qlib_config = QlibConfig(
 # fmt: on
 
 exchange_config = ExchangeConfig(
-    limit_threshold=('$ask == 0', '$bid == 0'),
-    deal_price=('If($ask == 0, $bid, $ask)', 'If($bid == 0, $ask, $bid)'),
+    limit_threshold=("$ask == 0", "$bid == 0"),
+    deal_price=("If($ask == 0, $bid, $ask)", "If($bid == 0, $ask, $bid)"),
     volume_threshold={
-        'all': ('cum', "0.2 * DayCumsum($volume, '9:45', '14:44')"),
-        'buy': ('current', '$askV1'), 'sell': ('current', '$bidV1')
+        "all": ("cum", "0.2 * DayCumsum($volume, '9:45', '14:44')"),
+        "buy": ("current", "$askV1"),
+        "sell": ("current", "$bidV1"),
     },
     open_cost=0.0005,
     close_cost=0.0015,
