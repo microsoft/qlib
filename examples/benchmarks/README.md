@@ -129,3 +129,10 @@ If you want to contribute your new models, you can follow the steps below.
 5. Update the info in the index page in the [news list](https://github.com/microsoft/qlib#newspaper-whats-new----sparkling_heart) and [model list](https://github.com/microsoft/qlib#quant-model-paper-zoo).
 
 Finally, you can send PR for review. ([here is an example](https://github.com/microsoft/qlib/pull/1040))
+
+
+# FAQ
+
+Q: What's the difference between models with name `*.py` and `*_ts.py`?
+
+A: Models with name `*_ts.py` are designed for `TSDatasetH` (`TSDatasetH` will create time-series automatically from tabular data).  Models with name `*.py` are designed for `DatasetH` (`DatasetH` is usually used in tabular data.  But users still can apply time-series models on tabular datasets if the columns has time-series relationships). 
