@@ -1,27 +1,13 @@
 import collections
-from dataclasses import dataclass
-
-import numpy as np
 import pickle
-from pathlib import Path
-from typing import Optional, List
+from typing import List, Optional
 
 import pandas as pd
+
 import qlib
-from .highfreq_ops import DayLast, FFillNan, BFillNan, Date, Select, IsNull, IsInf, Cut
-from qlib.contrib.ops.high_freq import DayCumsum
-from qlib.config import REG_CN
+from qlib.config import QlibConfig, REG_CN
+from qlib.contrib.ops.high_freq import BFillNan, Cut, Date, DayCumsum, DayLast, FFillNan, IsInf, IsNull, Select
 from qlib.data.dataset import DatasetH
-
-
-@dataclass
-class QlibConfig:
-    provider_uri_day: Path
-    provider_uri_1min: Path
-    feature_root_dir: Path
-    feature_columns_today: List[str]
-    feature_columns_yesterday: List[str]
-
 
 _dataset = None
 
@@ -122,7 +108,6 @@ def init_qlib(config: QlibConfig, part: Optional[str] = None) -> None:
     )
 
     # this won't work if it's put outside in case of multiprocessing
-    from qlib.data import D
 
     if part is None:
         feature_path = config.feature_root_dir / 'feature.pkl'
@@ -144,21 +129,3 @@ def init_qlib(config: QlibConfig, part: Optional[str] = None) -> None:
         config.feature_columns_yesterday,
         _internal=True
     )
-
-
-def fetch_features(stock_id: str, date: pd.Timestamp, yesterday: bool = False, backtest: bool = False):
-    assert _dataset is not None, 'You must call init_qlib() before doing this.'
-
-    if backtest:
-        fields = ['$close', '$volume']
-    else:
-        fields = _dataset.columns_yesterday if yesterday else _dataset.columns_today
-
-    data = _dataset.get(stock_id, date, backtest)
-    if data is None or len(data) == 0:
-        # create a fake index, but RL doesn't care about index
-        data = pd.DataFrame(0., index=np.arange(240), columns=fields, dtype=np.float32)  # FIXME: hardcode here
-    else:
-        data = data.rename(columns={c: c.rstrip('0') for c in data.columns})
-        data = data[fields]
-    return data

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 from abc import abstractmethod
+from datetime import time
 from enum import IntEnum
 
 # try to fix circular imports when enabling type hints
@@ -246,7 +247,7 @@ class IdxTradeRange(TradeRange):
 class TradeRangeByTime(TradeRange):
     """This is a helper function for make decisions"""
 
-    def __init__(self, start_time: str, end_time: str) -> None:
+    def __init__(self, start_time: str | time, end_time: str | time) -> None:
         """
         This is a callable class.
 
@@ -256,13 +257,13 @@ class TradeRangeByTime(TradeRange):
 
         Parameters
         ----------
-        start_time : str
+        start_time : str | time
             e.g. "9:30"
-        end_time : str
+        end_time : str | time
             e.g. "14:30"
         """
-        self.start_time = pd.Timestamp(start_time).time()
-        self.end_time = pd.Timestamp(end_time).time()
+        self.start_time = pd.Timestamp(start_time).time() if isinstance(start_time, str) else start_time
+        self.end_time = pd.Timestamp(end_time).time() if isinstance(end_time, str) else end_time
         assert self.start_time < self.end_time
 
     def __call__(self, trade_calendar: TradeCalendarManager) -> Tuple[int, int]:

@@ -472,6 +472,7 @@ class NestedExecutor(BaseExecutor):
                 )
                 assert isinstance(_inner_execute_result, list)
                 self.post_inner_exe_step(_inner_execute_result)
+                self.inner_strategy.receive_execute_result(_inner_execute_result)
                 execute_result.extend(_inner_execute_result)
 
                 inner_order_indicators.append(

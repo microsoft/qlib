@@ -2,32 +2,30 @@
 # Licensed under the MIT License.
 
 """Placeholder for qlib-based simulator."""
-import copy
-from typing import Callable, Generator, List, Optional, Tuple, Union
+from __future__ import annotations
 
+from typing import Any, Callable, Generator, List, Optional, cast
+
+import numpy as np
 import pandas as pd
-from gym.vector.utils import spaces
+from qlib.rl.order_execution.from_neutrader.feature import init_qlib
 
 from qlib.backtest import get_exchange
 from qlib.backtest.account import Account
-from qlib.backtest.decision import Order, TradeRange, TradeRangeByTime
-from qlib.backtest.executor import BaseExecutor
+from qlib.backtest.decision import Order, OrderDir, TradeRangeByTime
+from qlib.backtest.executor import BaseExecutor, NestedExecutor
 from qlib.backtest.utils import CommonInfrastructure
 from qlib.config import QlibConfig
-from qlib.rl.interpreter import ActionInterpreter
+from qlib.constant import EPS
 from qlib.rl.order_execution.from_neutrader.config import ExchangeConfig
-from qlib.rl.order_execution.from_neutrader.executor import RLNestedExecutor
-from qlib.rl.order_execution.from_neutrader.feature import init_qlib
-from qlib.rl.order_execution.from_neutrader.state import SAOEEpisodicState
-from qlib.rl.order_execution.from_neutrader.strategy import DecomposedStrategy
+from qlib.rl.order_execution.from_neutrader.strategy import DecomposedStrategy, SingleOrderStrategy
+from qlib.rl.order_execution.simulator_simple import ONE_SEC, SAOEMetrics, SAOEState, _float_or_ndarray
 from qlib.rl.simulator import Simulator
-from qlib.strategy.base import BaseStrategy
 
 
 def get_common_infra(
     config: ExchangeConfig,
-    trade_start_time: pd.Timestamp,
-    trade_end_time: pd.Timestamp,
+    trade_date: pd.Timestamp,
     codes: List[str],
     cash_limit: Optional[float] = None,
 ) -> CommonInfrastructure:
@@ -48,14 +46,14 @@ def get_common_infra(
 
     exchange = get_exchange(
         codes=codes,
-        freq='1min',
+        freq="1min",
         limit_threshold=config.limit_threshold,
         deal_price=config.deal_price,
         open_cost=config.open_cost,
         close_cost=config.close_cost,
         min_cost=config.min_cost if config.trade_unit is not None else 0,
-        start_time=pd.Timestamp(trade_start_time),
-        end_time=pd.Timestamp(trade_end_time) + pd.DateOffset(1),
+        start_time=trade_date,
+        end_time=trade_date + pd.DateOffset(1),
         trade_unit=config.trade_unit,
         volume_threshold=config.volume_threshold
     )
@@ -63,114 +61,253 @@ def get_common_infra(
     return CommonInfrastructure(trade_account=trade_account, trade_exchange=exchange)
 
 
-class CategoricalActionInterpreter(ActionInterpreter[SAOEEpisodicState, int, float]):
-    def __init__(self, values: Union[int, List[float]]) -> None:
-        if isinstance(values, int):
-            values = [i / values for i in range(0, values + 1)]
-        self.action_values = values
-
-    @property
-    def action_space(self) -> spaces.Discrete:
-        return spaces.Discrete(len(self.action_values))
-
-    def interpret(self, state: SAOEEpisodicState, action: int) -> float:
-        volume = min(state.position, state.target * self.action_values[action])
-        if state.cur_step + 1 >= state.num_step:
-            volume = state.position  # execute all volumes at last
-        return volume
+def _convert_tick_str_to_int(time_per_step: str) -> int:
+    d = {
+        "30min": 30,
+    }
+    return d[time_per_step]
 
 
-class QlibSimulator(Simulator[Order, Tuple[SAOEEpisodicState, dict], float]):
+def _get_ticks_slice(
+    ticks_index: pd.DatetimeIndex,
+    start: pd.Timestamp,
+    end: pd.Timestamp,
+    include_end: bool = False,
+) -> pd.DatetimeIndex:
+    if not include_end:
+        end = end - ONE_SEC
+    return ticks_index[ticks_index.slice_indexer(start, end)]
+
+
+def _get_minutes(start_time: pd.Timestamp, end_time: pd.Timestamp) -> List[pd.Timestamp]:
+    minutes = []
+    t = start_time
+    while t <= end_time:
+        minutes.append(t)
+        t += pd.Timedelta("1min")
+    return minutes
+
+
+def _dataframe_append(df: pd.DataFrame, other: Any) -> pd.DataFrame:
+    # dataframe.append is deprecated
+    other_df = pd.DataFrame(other).set_index("datetime")
+    other_df.index.name = "datetime"
+
+    res = pd.concat([df, other_df], axis=0)
+    return res
+
+
+def _price_advantage(
+    exec_price: _float_or_ndarray,
+    baseline_price: float,
+    direction: OrderDir | int,
+) -> _float_or_ndarray:
+    if baseline_price == 0:  # something is wrong with data. Should be nan here
+        if isinstance(exec_price, float):
+            return 0.0
+        else:
+            return np.zeros_like(exec_price)
+    if direction == OrderDir.BUY:
+        res = (1 - exec_price / baseline_price) * 10000
+    elif direction == OrderDir.SELL:
+        res = (exec_price / baseline_price - 1) * 10000
+    else:
+        raise ValueError(f"Unexpected order direction: {direction}")
+    res_wo_nan: np.ndarray = np.nan_to_num(res, nan=0.0)
+    if res_wo_nan.size == 1:
+        return res_wo_nan.item()
+    else:
+        return cast(_float_or_ndarray, res_wo_nan)
+
+
+class StateMaintainer:
+    def __init__(self, order: Order, tick_index: pd.DatetimeIndex, twap_price: float) -> None:
+        super(StateMaintainer, self).__init__()
+
+        self.position = order.amount
+        self._order = order
+        self._tick_index = tick_index
+        self._twap_price = twap_price
+
+        metric_keys = list(SAOEMetrics.__annotations__.keys())  # pylint: disable=no-member
+        # NOTE: can empty dataframe contain index?
+        self.history_exec = pd.DataFrame(columns=metric_keys).set_index("datetime")
+        self.history_steps = pd.DataFrame(columns=metric_keys).set_index("datetime")
+        self.metrics = None
+
+    def update(self, inner_executor: BaseExecutor, inner_strategy: DecomposedStrategy) -> None:
+        execute_order = inner_strategy.execute_order
+        execute_result = inner_strategy.execute_result
+        exec_vol = np.array([e[0].deal_amount for e in execute_result])
+        ticks_position = self.position - np.cumsum(exec_vol)
+        self.position -= exec_vol.sum()
+
+        if len(execute_result) > 0:
+            exchange = inner_executor.trade_exchange
+            minutes = _get_minutes(execute_result[0][0].start_time, execute_result[-1][0].start_time)
+            market_price = np.array([
+                exchange.get_deal_price(execute_order.stock_id, t, t, direction=execute_order.direction)
+                for t in minutes
+            ])
+            market_volume = np.array([exchange.get_volume(execute_order.stock_id, t, t) for t in minutes])
+
+            datetime_list = _get_ticks_slice(
+                self._tick_index,
+                execute_result[0][0].start_time,
+                execute_result[-1][0].start_time,
+                include_end=True
+            )
+        else:
+            market_price = np.array([])
+            market_volume = np.array([])
+            datetime_list = pd.DatetimeIndex([])
+
+        assert market_price.shape == market_volume.shape == exec_vol.shape
+
+        self.history_exec = _dataframe_append(
+            self.history_exec,
+            SAOEMetrics(
+                # It should have the same keys with SAOEMetrics,
+                # but the values do not necessarily have the annotated type.
+                # Some values could be vectorized (e.g., exec_vol).
+                stock_id=self._order.stock_id,
+                datetime=datetime_list,
+                direction=self._order.direction,
+                market_volume=market_volume,
+                market_price=market_price,
+                amount=exec_vol,
+                inner_amount=exec_vol,
+                deal_amount=exec_vol,
+                trade_price=market_price,
+                trade_value=market_price * exec_vol,
+                position=ticks_position,
+                ffr=exec_vol / self._order.amount,
+                pa=_price_advantage(market_price, self._twap_price, self._order.direction),
+            ),
+        )
+
+        self.history_steps = _dataframe_append(
+            self.history_steps,
+            [self._metrics_collect(
+                execute_order, execute_order.start_time, market_volume, market_price, exec_vol.sum(), exec_vol
+            )],
+        )
+
+    def _metrics_collect(
+        self,
+        order: Order,
+        datetime: pd.Timestamp,
+        market_vol: np.ndarray,
+        market_price: np.ndarray,
+        amount: float,  # intended to trade such amount
+        exec_vol: np.ndarray,
+    ) -> SAOEMetrics:
+        assert len(market_vol) == len(market_price) == len(exec_vol)
+
+        if np.abs(np.sum(exec_vol)) < EPS:
+            exec_avg_price = 0.0
+        else:
+            exec_avg_price = cast(float, np.average(market_price, weights=exec_vol))  # could be nan
+            if hasattr(exec_avg_price, "item"):  # could be numpy scalar
+                exec_avg_price = exec_avg_price.item()  # type: ignore
+
+        return SAOEMetrics(
+            stock_id=order.stock_id,
+            datetime=datetime,
+            direction=order.direction,
+            market_volume=market_vol.sum(),
+            market_price=market_price.mean() if len(market_price) > 0 else np.nan,
+            amount=amount,
+            inner_amount=exec_vol.sum(),
+            deal_amount=exec_vol.sum(),  # in this simulator, there's no other restrictions
+            trade_price=exec_avg_price,
+            trade_value=float(np.sum(market_price * exec_vol)),
+            position=self.position,
+            ffr=float(exec_vol.sum() / order.amount),
+            pa=_price_advantage(exec_avg_price, self._twap_price, order.direction),
+        )
+
+
+class QlibSimulator(Simulator[Order, SAOEState, float]):
     def __init__(
         self,
+        order: Order,
         time_per_step: str,
-        start_time: str,
-        end_time: str,
         qlib_config: QlibConfig,
-        top_strategy_fn: Callable[[CommonInfrastructure, Order, TradeRange, str], BaseStrategy],
-        inner_executor_fn: Callable[[CommonInfrastructure], BaseExecutor],
+        inner_executor_fn: Callable[[str, CommonInfrastructure], BaseExecutor],
         exchange_config: ExchangeConfig,
     ) -> None:
         super(QlibSimulator, self).__init__(
             initial=None,  # TODO
         )
 
-        self._trade_range = TradeRangeByTime(start_time, end_time)
+        assert order.start_time.date() == order.end_time.date()
+
+        self._order = order
+        self._order_date = pd.Timestamp(order.start_time.date())
+        self._trade_range = TradeRangeByTime(order.start_time.time(), order.end_time.time())
         self._qlib_config = qlib_config
-        self._time_per_step = time_per_step
-        self._top_strategy_fn = top_strategy_fn
         self._inner_executor_fn = inner_executor_fn
         self._exchange_config = exchange_config
 
-        self._executor: Optional[RLNestedExecutor] = None
+        self._time_per_step = time_per_step
+        self._ticks_per_step = _convert_tick_str_to_int(time_per_step)
+
+        self._executor: Optional[NestedExecutor] = None
         self._collect_data_loop: Optional[Generator] = None
 
         self._done = False
 
         self._inner_strategy = DecomposedStrategy()
 
-    def reset(
-        self,
-        order: Order,
-        instrument: str = "SH600000",  # TODO: Test only. Remove this default value later.
-    ) -> None:
+        self.reset(self._order)
+
+    def reset(self, order: Order) -> None:
+        instrument = order.stock_id
+
         init_qlib(self._qlib_config, instrument)
 
         common_infra = get_common_infra(
             self._exchange_config,
-            trade_start_time=order.start_time,
-            trade_end_time=order.end_time,
+            trade_date=pd.Timestamp(self._order_date),
             codes=[instrument],
         )
 
-        self._executor = RLNestedExecutor(
-            time_per_step=self._time_per_step,
-            inner_executor=self._inner_executor_fn(common_infra),
+        self._inner_executor = self._inner_executor_fn(self._time_per_step, common_infra)
+        self._executor = NestedExecutor(
+            time_per_step="1day",
+            inner_executor=self._inner_executor,
             inner_strategy=self._inner_strategy,
             track_data=True,
             common_infra=common_infra,
         )
 
-        top_strategy = self._top_strategy_fn(common_infra, order, self._trade_range, instrument)
+        exchange = self._inner_executor.trade_exchange
+        self._ticks_index = pd.DatetimeIndex([e[1] for e in list(exchange.quote_df.index)])
+        self._ticks_for_order = _get_ticks_slice(self._ticks_index, self._order.start_time, self._order.end_time)
 
-        self._executor.reset(start_time=order.start_time, end_time=order.end_time)
+        twap_price = exchange.get_deal_price(
+            order.stock_id,
+            pd.Timestamp(self._ticks_for_order[0]),
+            pd.Timestamp(self._ticks_for_order[1]),
+            direction=order.direction,
+        )
+
+        top_strategy = SingleOrderStrategy(common_infra, order, self._trade_range, instrument)
+        self._executor.reset(start_time=pd.Timestamp(self._order_date), end_time=pd.Timestamp(self._order_date))
         top_strategy.reset(level_infra=self._executor.get_level_infra())
 
         self._collect_data_loop = self._executor.collect_data(top_strategy.generate_trade_decision(), level=0)
         assert isinstance(self._collect_data_loop, Generator)
 
-        strategy = self._iter_strategy(action=None)
-        sample, ep_state = strategy.sample_state_pair
-        self._last_ep_state = ep_state
-        self._last_info = self._collect_info(ep_state)
-
+        self._iter_strategy(action=None)
         self._done = False
 
-    def _collect_info(self, ep_state: SAOEEpisodicState) -> dict:
-        info = {
-            "category": ep_state.flow_dir.value,
-            # "reward": rew_info,  # TODO: ignore for now
-        }
-        if ep_state.done:
-            # info["index"] = {"stock_id": sample.stock_id, "date": sample.date}  # TODO: ignore for now
-            # info["history"] = {"action": self.action_history}  # TODO: ignore for now
-            info.update(ep_state.logs())
-
-            try:
-                # done but loop is not exhausted
-                # exhaust the loop manually
-                while True:
-                    self._collect_data_loop.send(0.)
-            except StopIteration:
-                pass
-
-            info["qlib"] = {}
-            for key, val in list(
-                self._executor.trade_account.get_trade_indicator().order_indicator_his.values()
-            )[0].to_series().items():
-                info["qlib"][key] = val.item()
-
-        return info
+        self._maintainer = StateMaintainer(
+            order=self._order,
+            tick_index=self._ticks_index,
+            twap_price=twap_price,
+        )
 
     def _iter_strategy(self, action: float = None) -> DecomposedStrategy:
         strategy = next(self._collect_data_loop) if action is None else self._collect_data_loop.send(action)
@@ -181,20 +318,28 @@ class QlibSimulator(Simulator[Order, Tuple[SAOEEpisodicState, dict], float]):
 
     def step(self, action: float) -> None:
         try:
-            strategy = self._iter_strategy(action=action)
-            sample, ep_state = strategy.sample_state_pair
+            self._iter_strategy(action=action)
         except StopIteration:
-            sample, ep_state = self._inner_strategy.sample_state_pair
-            assert ep_state.done
-
-        self._last_ep_state = ep_state
-        self._last_info = self._collect_info(ep_state)
-
-        if ep_state.done:
             self._done = True
 
-    def get_state(self) -> Tuple[SAOEEpisodicState, dict]:
-        return self._last_ep_state, self._last_info
+        self._maintainer.update(
+            inner_executor=self._inner_executor,
+            inner_strategy=self._inner_strategy,
+        )
+
+    def get_state(self) -> SAOEState:
+        return SAOEState(
+            order=self._order,
+            cur_time=self._inner_executor.trade_calendar.get_step_time()[0],
+            position=self._maintainer.position,
+            history_exec=self._maintainer.history_exec,
+            history_steps=self._maintainer.history_steps,
+            metrics=self._maintainer.metrics,
+            backtest_data=None,
+            ticks_per_step=self._ticks_per_step,
+            ticks_index=self._ticks_index,
+            ticks_for_order=self._ticks_for_order,
+        )
 
     def done(self) -> bool:
         return self._done

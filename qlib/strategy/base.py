@@ -204,6 +204,9 @@ class BaseStrategy:
         range_limit = self.outer_trade_decision.get_data_cal_range_limit(rtype=rtype)
         return max(cal_range[0], range_limit[0]), min(cal_range[1], range_limit[1])
 
+    def receive_execute_result(self, execute_result: list) -> None:
+        pass
+
 
 class RLStrategy(BaseStrategy, metaclass=ABCMeta):
     """RL-based strategy"""

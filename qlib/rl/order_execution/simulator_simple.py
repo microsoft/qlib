@@ -39,34 +39,34 @@ class SAOEMetrics(TypedDict):
     """Direction of the order. 0 for sell, 1 for buy."""
 
     # Market information.
-    market_volume: float
+    market_volume: np.ndarray | float
     """(total) market volume traded in the period."""
-    market_price: float
+    market_price: np.ndarray | float
     """Deal price. If it's a period of time, this is the average market deal price."""
 
     # Strategy records.
 
-    amount: float
+    amount: np.ndarray | float
     """Total amount (volume) strategy intends to trade."""
-    inner_amount: float
+    inner_amount: np.ndarray | float
     """Total amount that the lower-level strategy intends to trade
     (might be larger than amount, e.g., to ensure ffr)."""
 
-    deal_amount: float
+    deal_amount: np.ndarray | float
     """Amount that successfully takes effect (must be less than inner_amount)."""
-    trade_price: float
+    trade_price: np.ndarray | float
     """The average deal price for this strategy."""
-    trade_value: float
+    trade_value: np.ndarray | float
     """Total worth of trading. In the simple simulation, trade_value = deal_amount * price."""
-    position: float
+    position: np.ndarray | float
     """Position left after this "period"."""
 
     # Accumulated metrics
 
-    ffr: float
+    ffr: np.ndarray | float
     """Completed how much percent of the daily order."""
 
-    pa: float
+    pa: np.ndarray | float
     """Price advantage compared to baseline (i.e., trade with baseline market price).
     The baseline is trade price when using TWAP strategy to execute this order.
     Please note that there could be data leak here).
@@ -231,9 +231,9 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
                 direction=self.order.direction,
                 market_volume=self.market_vol,
                 market_price=self.market_price,
-                amount=exec_vol.sum(),  # TODO: check this logic with Yuge & Xiao
-                inner_amount=exec_vol.sum(),  # TODO: check this logic with Yuge & Xiao
-                deal_amount=exec_vol.sum(),  # TODO: check this logic with Yuge & Xiao
+                amount=exec_vol,
+                inner_amount=exec_vol,
+                deal_amount=exec_vol,
                 trade_price=self.market_price,
                 trade_value=self.market_price * exec_vol,
                 position=ticks_position,

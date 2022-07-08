@@ -4,16 +4,6 @@ from typing import Optional, Tuple, Union
 
 
 @dataclass
-class RuntimeConfig:
-    seed: int = 42
-    output_dir: Optional[Path] = None
-    checkpoint_dir: Optional[Path] = None
-    tb_log_dir: Optional[Path] = None
-    debug: bool = False
-    use_cuda: bool = True
-
-
-@dataclass
 class ExchangeConfig:
     limit_threshold: Union[float, Tuple[str, str]]
     deal_price: Union[str, Tuple[str, str]]

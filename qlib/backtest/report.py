@@ -412,7 +412,7 @@ class Indicator:
         # NOTE: there are some zeros in the trading price. These cases are known meaningless
         # for aligning the previous logic, remove it.
         # remove zero and negative values.
-        price_s = price_s.loc[(price_s > 1e-08).data.astype(np.bool)]
+        price_s = price_s.loc[(price_s > 1e-08).data.astype(bool)]
         # NOTE ~(price_s < 1e-08) is different from price_s >= 1e-8
         #   ~(np.NaN < 1e-8) -> ~(False)  -> True
 
