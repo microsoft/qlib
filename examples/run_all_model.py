@@ -325,10 +325,16 @@ class ModelRunner:
                 execute(
                     f"{python_path} -m pip install light-the-torch", wait_when_err=wait_when_err
                 )  # for automatically installing torch according to the nvidia driver
-                execute(
-                    f"{env_path / 'bin' / 'ltt'} install --install-cmd '{python_path} -m pip install {{packages}}' -- -r {req_path}",
-                    wait_when_err=wait_when_err,
-                )
+                try:
+                    execute(
+                        f"{env_path / 'bin' / 'ltt'} install --install-cmd '{python_path} -m pip install {{packages}}' -- -r {req_path}",
+                        wait_when_err=wait_when_err,
+                    )
+                except RuntimeError:
+                    execute(
+                        f"{env_path / 'bin' / 'ltt'} install -r {req_path}",
+                        wait_when_err=wait_when_err,
+                    )
             else:
                 execute(f"{python_path} -m pip install -r {req_path}", wait_when_err=wait_when_err)
             sys.stderr.write("\n")
