@@ -14,10 +14,11 @@ from qlib.backtest.executor import BaseExecutor, NestedExecutor
 from qlib.backtest.utils import CommonInfrastructure
 from qlib.config import QlibConfig
 from qlib.constant import EPS
+from qlib.rl.data.pickle_styled import QlibIntradayBacktestData
 from qlib.rl.order_execution.from_neutrader.config import ExchangeConfig
 from qlib.rl.order_execution.from_neutrader.feature import init_qlib
 from qlib.rl.order_execution.simulator_simple import SAOEMetrics, SAOEState
-from qlib.rl.order_execution.utils import (_convert_tick_str_to_int, _dataframe_append, _get_common_infra, _get_minutes,
+from qlib.rl.order_execution.utils import (_convert_tick_str_to_int, _dataframe_append, _get_common_infra,
                                            _get_ticks_slice, _price_advantage)
 from qlib.rl.simulator import Simulator
 from qlib.strategy.base import BaseStrategy
@@ -107,14 +108,19 @@ class StateMaintainer:
 
         if len(execute_result) > 0:
             exchange = inner_executor.trade_exchange
-            minutes = _get_minutes(execute_result[0][0].start_time, execute_result[-1][0].start_time)
-            market_price = np.array(
-                [
-                    exchange.get_deal_price(execute_order.stock_id, t, t, direction=execute_order.direction)
-                    for t in minutes
-                ]
-            )
-            market_volume = np.array([exchange.get_volume(execute_order.stock_id, t, t) for t in minutes])
+            market_price = np.array([exchange.get_deal_price(
+                execute_order.stock_id,
+                execute_result[0][0].start_time,
+                execute_result[-1][0].start_time,
+                direction=execute_order.direction,
+                method=None,
+            )]).reshape(-1)
+            market_volume = np.array([exchange.get_volume(
+                execute_order.stock_id,
+                execute_result[0][0].start_time,
+                execute_result[-1][0].start_time,
+                method=None,
+            )]).reshape(-1)
 
             datetime_list = _get_ticks_slice(
                 self._tick_index, execute_result[0][0].start_time, execute_result[-1][0].start_time, include_end=True,
@@ -265,13 +271,14 @@ class QlibSimulator(Simulator[Order, SAOEState, float]):
             include_end=True,
         )
 
-        self.twap_price = exchange.get_deal_price(
-            order.stock_id,
-            pd.Timestamp(self._ticks_for_order[0]),
-            pd.Timestamp(self._ticks_for_order[-1]),
-            direction=order.direction,
-            method="mean",
+        self._backtest_data = QlibIntradayBacktestData(
+            order=self._order,
+            exchange=exchange,
+            start_time=self._ticks_for_order[0],
+            end_time=self._ticks_for_order[-1],
         )
+
+        self.twap_price = self._backtest_data.get_deal_price().mean()
 
         top_strategy = SingleOrderStrategy(common_infra, order, self._trade_range, instrument)
         self._executor.reset(start_time=pd.Timestamp(self._order_date), end_time=pd.Timestamp(self._order_date))
@@ -318,7 +325,7 @@ class QlibSimulator(Simulator[Order, SAOEState, float]):
             history_exec=self._maintainer.history_exec,
             history_steps=self._maintainer.history_steps,
             metrics=self._maintainer.metrics,
-            backtest_data=None,
+            backtest_data=self._backtest_data,
             ticks_per_step=self._ticks_per_step,
             ticks_index=self._ticks_index,
             ticks_for_order=self._ticks_for_order,

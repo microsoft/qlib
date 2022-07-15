@@ -444,7 +444,7 @@ class Exchange:
         stock_id: str,
         start_time: pd.Timestamp,
         end_time: pd.Timestamp,
-        method: str = "sum",
+        method: Optional[str] = "sum",
     ) -> float:
         """get the total deal volume of stock with `stock_id` between the time interval [start_time, end_time)"""
         return self.quote.get_data(stock_id, start_time, end_time, field="$volume", method=method)
@@ -455,7 +455,7 @@ class Exchange:
         start_time: pd.Timestamp,
         end_time: pd.Timestamp,
         direction: OrderDir,
-        method: str = "ts_data_last",
+        method: Optional[str] = "ts_data_last",
     ) -> float:
         if direction == OrderDir.SELL:
             pstr = self.sell_price

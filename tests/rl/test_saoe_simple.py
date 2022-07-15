@@ -38,7 +38,7 @@ CN_POLICY_WEIGHTS_DIR = CN_DATA_DIR / "weights"
 
 
 def test_pickle_data_inspect():
-    data = pickle_styled.load_intraday_backtest_data(BACKTEST_DATA_DIR, "AAL", "2013-12-11", "close", 0)
+    data = pickle_styled.load_simple_intraday_backtest_data(BACKTEST_DATA_DIR, "AAL", "2013-12-11", "close", 0)
     assert len(data) == 390
 
     data = pickle_styled.load_intraday_processed_data(

@@ -63,15 +63,6 @@ def _get_ticks_slice(
     return ticks_index[ticks_index.slice_indexer(start, end)]
 
 
-def _get_minutes(start_time: pd.Timestamp, end_time: pd.Timestamp) -> List[pd.Timestamp]:
-    minutes = []
-    t = start_time
-    while t <= end_time:
-        minutes.append(t)
-        t += pd.Timedelta("1min")
-    return minutes
-
-
 def _dataframe_append(df: pd.DataFrame, other: Any) -> pd.DataFrame:
     # dataframe.append is deprecated
     other_df = pd.DataFrame(other).set_index("datetime")

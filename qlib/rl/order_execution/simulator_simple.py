@@ -11,7 +11,7 @@ import pandas as pd
 
 from qlib.backtest.decision import Order, OrderDir
 from qlib.constant import EPS
-from qlib.rl.data.pickle_styled import DealPriceType, IntradayBacktestData, load_intraday_backtest_data
+from qlib.rl.data.pickle_styled import DealPriceType, IntradayBacktestData, load_simple_intraday_backtest_data
 from qlib.rl.simulator import Simulator
 from qlib.rl.utils import LogLevel
 from qlib.typehint import TypedDict
@@ -165,7 +165,7 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
         self.deal_price_type = deal_price_type
         self.vol_threshold = vol_threshold
         self.data_dir = data_dir
-        self.backtest_data = load_intraday_backtest_data(
+        self.backtest_data = load_simple_intraday_backtest_data(
             self.data_dir,
             order.stock_id,
             pd.Timestamp(order.start_time.date()),

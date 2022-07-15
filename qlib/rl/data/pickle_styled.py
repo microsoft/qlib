@@ -19,15 +19,17 @@ This file shows resemblence to qlib.backtest.high_performance_ds. We might merge
 
 from __future__ import annotations
 
+from abc import abstractmethod
 from functools import lru_cache
 from pathlib import Path
-from typing import List, Sequence, cast
+from typing import List, Optional, Sequence, cast
 
 import cachetools
 import numpy as np
 import pandas as pd
 from cachetools.keys import hashkey
 
+from qlib.backtest import Exchange
 from qlib.backtest.decision import Order, OrderDir
 from qlib.typehint import Literal
 
@@ -86,6 +88,31 @@ def _read_pickle(filename_without_suffix: Path) -> pd.DataFrame:
 
 
 class IntradayBacktestData:
+    def __init__(self) -> None:
+        super(IntradayBacktestData, self).__init__()
+
+    @abstractmethod
+    def __repr__(self) -> str:
+        raise NotImplementedError
+
+    @abstractmethod
+    def __len__(self) -> int:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_deal_price(self) -> pd.Series:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_volume(self) -> pd.Series:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_time_index(self) -> pd.DatetimeIndex:
+        raise NotImplementedError
+
+
+class SimpleIntradayBacktestData(IntradayBacktestData):
     """Raw market data that is often used in backtesting (thus called BacktestData)."""
 
     def __init__(
@@ -96,6 +123,8 @@ class IntradayBacktestData:
         deal_price: DealPriceType = "close",
         order_dir: int = None,
     ) -> None:
+        super(SimpleIntradayBacktestData, self).__init__()
+
         backtest = _read_pickle(data_dir / stock_id)
         backtest = backtest.loc[pd.IndexSlice[stock_id, :, date]]
 
@@ -144,6 +173,41 @@ class IntradayBacktestData:
 
     def get_time_index(self) -> pd.DatetimeIndex:
         return cast(pd.DatetimeIndex, self.data.index)
+
+
+class QlibIntradayBacktestData(IntradayBacktestData):
+    def __init__(self, order: Order, exchange: Exchange, start_time: pd.Timestamp, end_time: pd.Timestamp) -> None:
+        super(QlibIntradayBacktestData, self).__init__()
+        self._order = order
+        self._exchange = exchange
+        self._start_time = start_time
+        self._end_time = end_time
+
+    def __repr__(self) -> str:
+        raise NotImplementedError
+
+    def __len__(self) -> int:
+        raise NotImplementedError
+
+    def get_deal_price(self) -> pd.Series:
+        return self._exchange.get_deal_price(
+            self._order.stock_id,
+            self._start_time,
+            self._end_time,
+            direction=self._order.direction,
+            method=None,
+        )
+
+    def get_volume(self) -> pd.Series:
+        return self._exchange.get_volume(
+            self._order.stock_id,
+            self._start_time,
+            self._end_time,
+            method=None,
+        )
+
+    def get_time_index(self) -> pd.DatetimeIndex:
+        return pd.DatetimeIndex([e[1] for e in list(self._exchange.quote_df.index)])
 
 
 class IntradayProcessedData:
@@ -202,14 +266,14 @@ class IntradayProcessedData:
 
 
 @lru_cache(maxsize=100)  # 100 * 50K = 5MB
-def load_intraday_backtest_data(
+def load_simple_intraday_backtest_data(
     data_dir: Path,
     stock_id: str,
     date: pd.Timestamp,
     deal_price: DealPriceType = "close",
     order_dir: int = None,
-) -> IntradayBacktestData:
-    return IntradayBacktestData(data_dir, stock_id, date, deal_price, order_dir)
+) -> SimpleIntradayBacktestData:
+    return SimpleIntradayBacktestData(data_dir, stock_id, date, deal_price, order_dir)
 
 
 @cachetools.cached(  # type: ignore
