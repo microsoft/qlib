@@ -98,7 +98,7 @@ class StateMaintainer:
         self.history_steps = pd.DataFrame(columns=metric_keys).set_index("datetime")
         self.metrics = None
 
-    def update(self, inner_executor: BaseExecutor, inner_strategy: DecomposedStrategy) -> None:
+    def update(self, inner_executor: BaseExecutor, inner_strategy: DecomposedStrategy, done: bool) -> None:
         execute_order = inner_strategy.execute_order
         execute_result = inner_strategy.execute_result
         exec_vol = np.array([e[0].deal_amount for e in execute_result])
@@ -117,7 +117,7 @@ class StateMaintainer:
             market_volume = np.array([exchange.get_volume(execute_order.stock_id, t, t) for t in minutes])
 
             datetime_list = _get_ticks_slice(
-                self._tick_index, execute_result[0][0].start_time, execute_result[-1][0].start_time, include_end=True
+                self._tick_index, execute_result[0][0].start_time, execute_result[-1][0].start_time, include_end=True,
             )
         else:
             market_price = np.array([])
@@ -156,6 +156,16 @@ class StateMaintainer:
                 )
             ],
         )
+
+        if done:
+            self.metrics = self._metrics_collect(
+                self._order,
+                self._tick_index[0],  # start time
+                self.history_exec["market_volume"],
+                self.history_exec["market_price"],
+                self.history_steps["amount"].sum(),
+                self.history_exec["deal_amount"],
+            )
 
     def _metrics_collect(
         self,
@@ -248,13 +258,19 @@ class QlibSimulator(Simulator[Order, SAOEState, float]):
 
         exchange = self._inner_executor.trade_exchange
         self._ticks_index = pd.DatetimeIndex([e[1] for e in list(exchange.quote_df.index)])
-        self._ticks_for_order = _get_ticks_slice(self._ticks_index, self._order.start_time, self._order.end_time)
+        self._ticks_for_order = _get_ticks_slice(
+            self._ticks_index,
+            self._order.start_time,
+            self._order.end_time,
+            include_end=True,
+        )
 
-        twap_price = exchange.get_deal_price(
+        self.twap_price = exchange.get_deal_price(
             order.stock_id,
             pd.Timestamp(self._ticks_for_order[0]),
-            pd.Timestamp(self._ticks_for_order[1]),
+            pd.Timestamp(self._ticks_for_order[-1]),
             direction=order.direction,
+            method="mean",
         )
 
         top_strategy = SingleOrderStrategy(common_infra, order, self._trade_range, instrument)
@@ -270,7 +286,7 @@ class QlibSimulator(Simulator[Order, SAOEState, float]):
         self._maintainer = StateMaintainer(
             order=self._order,
             tick_index=self._ticks_index,
-            twap_price=twap_price,
+            twap_price=self.twap_price,
         )
 
     def _iter_strategy(self, action: float = None) -> DecomposedStrategy:
@@ -281,6 +297,8 @@ class QlibSimulator(Simulator[Order, SAOEState, float]):
         return strategy
 
     def step(self, action: float) -> None:
+        assert not self._done, "Simulator has already done!"
+
         try:
             self._iter_strategy(action=action)
         except StopIteration:
@@ -289,6 +307,7 @@ class QlibSimulator(Simulator[Order, SAOEState, float]):
         self._maintainer.update(
             inner_executor=self._inner_executor,
             inner_strategy=self._inner_strategy,
+            done=self._done,
         )
 
     def get_state(self) -> SAOEState:
