@@ -1,18 +1,24 @@
+from pathlib import Path
+
 import pandas as pd
 
 from qlib.backtest.decision import Order, OrderDir
+from qlib.backtest.executor import NestedExecutor, SimulatorExecutor
+from qlib.backtest.utils import CommonInfrastructure
+from qlib.config import QlibConfig
+from qlib.contrib.strategy import TWAPStrategy
 from qlib.rl.order_execution import CategoricalActionInterpreter
-from qlib.rl.order_execution.tests.common import get_simulator
+from qlib.rl.order_execution.simulator_qlib import ExchangeConfig, QlibSimulator
+
+TOTAL_POSITION = 2100.0
 
 
 def is_close(a: float, b: float, epsilon: float = 1e-4) -> bool:
     return abs(a - b) <= epsilon
 
 
-def test_simulator_first_step():
-    TOTAL_POSITION = 2100.0
-
-    order = Order(
+def get_order() -> Order:
+    return Order(
         stock_id="SH600000",
         amount=TOTAL_POSITION,
         direction=OrderDir.BUY,
@@ -20,6 +26,69 @@ def test_simulator_first_step():
         end_time=pd.Timestamp("2019-03-04 14:29:00"),
     )
 
+
+def get_simulator(order: Order) -> QlibSimulator:
+    def _inner_executor_fn(time_per_step: str, common_infra: CommonInfrastructure) -> NestedExecutor:
+        return NestedExecutor(
+            time_per_step=time_per_step,
+            inner_strategy=TWAPStrategy(),
+            inner_executor=SimulatorExecutor(
+                time_per_step="1min",
+                verbose=False,
+                trade_type=SimulatorExecutor.TT_SERIAL,
+                generate_report=False,
+                common_infra=common_infra,
+                track_data=True,
+            ),
+            common_infra=common_infra,
+            track_data=True,
+        )
+
+    # fmt: off
+    qlib_config = QlibConfig(
+        {
+            "provider_uri_day": Path("C:/workspace/NeuTrader/data_sample/cn/qlib_amc_1d"),
+            "provider_uri_1min": Path("C:/workspace/NeuTrader/data_sample/cn/qlib_amc_1min"),
+            "feature_root_dir": Path("C:/workspace/NeuTrader/data_sample/cn/qlib_amc_handler_stock"),
+            "feature_columns_today": [
+                "$open", "$high", "$low", "$close", "$vwap", "$bid", "$ask", "$volume",
+                "$bidV", "$bidV1", "$bidV3", "$bidV5", "$askV", "$askV1", "$askV3", "$askV5",
+            ],
+            "feature_columns_yesterday": [
+                "$open_1", "$high_1", "$low_1", "$close_1", "$vwap_1", "$bid_1", "$ask_1", "$volume_1",
+                "$bidV_1", "$bidV1_1", "$bidV3_1", "$bidV5_1", "$askV_1", "$askV1_1", "$askV3_1", "$askV5_1",
+            ],
+        }
+    )
+    # fmt: on
+
+    exchange_config = ExchangeConfig(
+        limit_threshold=("$ask == 0", "$bid == 0"),
+        deal_price=("If($ask == 0, $bid, $ask)", "If($bid == 0, $ask, $bid)"),
+        volume_threshold={
+            "all": ("cum", "0.2 * DayCumsum($volume, '9:30', '14:29')"),
+            "buy": ("current", "$askV1"),
+            "sell": ("current", "$bidV1"),
+        },
+        open_cost=0.0005,
+        close_cost=0.0015,
+        min_cost=5.0,
+        trade_unit=None,
+        cash_limit=None,
+        generate_report=False,
+    )
+
+    return QlibSimulator(
+        order=order,
+        time_per_step="30min",
+        qlib_config=qlib_config,
+        inner_executor_fn=_inner_executor_fn,
+        exchange_config=exchange_config,
+    )
+
+
+def test_simulator_first_step():
+    order = get_order()
     simulator = get_simulator(order)
     state = simulator.get_state()
     assert state.cur_time == pd.Timestamp('2019-03-04 09:30:00')
@@ -53,16 +122,7 @@ def test_simulator_first_step():
 
 
 def test_simulator_stop_twap() -> None:
-    TOTAL_POSITION = 2100.0
-
-    order = Order(
-        stock_id="SH600000",
-        amount=TOTAL_POSITION,
-        direction=OrderDir.BUY,
-        start_time=pd.Timestamp("2019-03-04 09:30:00"),
-        end_time=pd.Timestamp("2019-03-04 14:29:00"),
-    )
-
+    order = get_order()
     simulator = get_simulator(order)
     NUM_STEPS = 7
     for i in range(NUM_STEPS):
@@ -83,7 +143,32 @@ def test_simulator_stop_twap() -> None:
     assert is_close(state.metrics["trade_price"], state.metrics["market_price"])
     assert is_close(state.metrics["pa"], 0.0)
 
+    assert simulator.done()
+
+
+def test_interpreter() -> None:
+    order = get_order()
+    simulator = get_simulator(order)
+    interpreter_action = CategoricalActionInterpreter(values=4)
+
+    NUM_STEPS = 7
+    state = simulator.get_state()
+    position_history = []
+    for i in range(NUM_STEPS):
+        simulator.step(interpreter_action(state, 1))
+        state = simulator.get_state()
+        position_history.append(state.position)
+
+    assert position_history[0] == TOTAL_POSITION - TOTAL_POSITION / 4 * 1
+    assert position_history[1] == TOTAL_POSITION - TOTAL_POSITION / 4 * 2
+    assert position_history[2] == TOTAL_POSITION - TOTAL_POSITION / 4 * 3
+    assert position_history[3] == 0.0
+    assert position_history[4] == 0.0
+    assert position_history[5] == 0.0
+    assert position_history[6] == 0.0
+
 
 if __name__ == "__main__":
     test_simulator_first_step()
     test_simulator_stop_twap()
+    test_interpreter()
