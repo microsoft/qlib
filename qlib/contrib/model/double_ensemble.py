@@ -11,6 +11,7 @@ from ...data.dataset.handler import DataHandlerLP
 from ...model.interpret.base import FeatureInt
 from ...log import get_module_logger
 
+
 class DEnsembleModel(Model, FeatureInt):
     """Double Ensemble Model"""
 
@@ -86,7 +87,9 @@ class DEnsembleModel(Model, FeatureInt):
             loss_curve = self.retrieve_loss_curve(model_k, df_train, features)
             pred_k = self.predict_sub(model_k, df_train, features)
             pred_sub.iloc[:, k] = pred_k
-            pred_ensemble = (pred_sub.iloc[:, : k + 1] * self.sub_weights[0 : k + 1]).sum(axis=1)/np.sum(self.sub_weights[0 : k + 1])
+            pred_ensemble = (pred_sub.iloc[:, : k + 1] * self.sub_weights[0 : k + 1]).sum(axis=1) / np.sum(
+                self.sub_weights[0 : k + 1]
+            )
             loss_values = pd.Series(self.get_loss(y_train.values.squeeze(), pred_ensemble.values))
 
             if self.enable_sr:
@@ -245,7 +248,7 @@ class DEnsembleModel(Model, FeatureInt):
                 pd.Series(submodel.predict(x_test.loc[:, feat_sub].values), index=x_test.index)
                 * self.sub_weights[i_sub]
             )
-        pred = pred/np.sum(self.sub_weights)
+        pred = pred / np.sum(self.sub_weights)
         return pred
 
     def predict_sub(self, submodel, df_data, features):
