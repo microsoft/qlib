@@ -63,7 +63,7 @@ pip install -r requirements.txt
 > If the above ready-made data can't meet users' requirements,  users can follow this section to crawl the latest data and convert it to qlib-data.
   1. download data to csv: `python scripts/data_collector/yahoo/collector.py download_data`
      
-     This will download the raw data such as high, low, open, close, adjclose from yahoo to a local directory. One file per symbol.
+     This will download the raw data such as high, low, open, close, adjclose price from yahoo to a local directory. One file per symbol.
 
      - parameters:
           - `source_dir`: save the directory
