@@ -78,6 +78,11 @@ The numbers shown below demonstrate the performance of the entire `workflow` of 
   - Alpha360 contains raw price and volue data without much feature engineering. There are strong strong spatial relationships between the features in the time dimension.
 - The metrics can be categorized into two
    - Signal-based evaluation:  IC, ICIR, Rank IC, Rank ICIR
+      - <img src="https://latex.codecogs.com/gif.latex?\text{corr}(\textbf{x},\textbf{y})=\frac{\sum_i (x_i-\bar{x})(y_i-\bar{y})}{\sqrt{\sum_i(x_i-\bar{x})^2\sum_i(y_i-\bar{y})^2}}" /> 
+      - <img src="https://latex.codecogs.com/gif.latex?\text{IC}^{(t)} = \text{corr}(\hat{\textbf{y}}^{(t)}, \textbf{ret}^{(t)})" /> 
+      - <img src="https://latex.codecogs.com/gif.latex?\text{ICIR} = \frac {\text{mean}(\textbf{IC})} {\text{std}(\textbf{IC})}" /> 
+      - <img src="https://latex.codecogs.com/gif.latex?\text{Rank IC}^{(t)} = \text{corr}(\text{rank}(\hat{\textbf{y}}^{(t)}), \text{rank}(\textbf{ret}^{(t)}))" /> 
+      - <img src="https://latex.codecogs.com/gif.latex?\text{Rank ICIR} = \frac {\text{mean}(\textbf{Rank IC})} {\text{std}(\textbf{RankIC})}" /> 
    - Portfolio-based metrics:  Annualized Return, Information Ratio, Max Drawdown
 
 ## Results on CSI500
