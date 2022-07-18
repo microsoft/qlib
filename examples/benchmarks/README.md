@@ -83,6 +83,7 @@ The numbers shown below demonstrate the performance of the entire `workflow` of 
       - <img src="https://latex.codecogs.com/gif.latex?\text{ICIR} = \frac {\text{mean}(\textbf{IC})} {\text{std}(\textbf{IC})}" /> 
       - <img src="https://latex.codecogs.com/gif.latex?\text{Rank IC}^{(t)} = \text{corr}(\text{rank}(\hat{\textbf{y}}^{(t)}), \text{rank}(\textbf{ret}^{(t)}))" /> 
       - <img src="https://latex.codecogs.com/gif.latex?\text{Rank ICIR} = \frac {\text{mean}(\textbf{Rank IC})} {\text{std}(\textbf{RankIC})}" /> 
+      - ![equation](http://latex.codecogs.com/gif.latex?O_t%3D%5Ctext%20%7B%20Onset%20event%20at%20time%20bin%20%7D%20t)
    - Portfolio-based metrics:  Annualized Return, Information Ratio, Max Drawdown
 
 ## Results on CSI500
