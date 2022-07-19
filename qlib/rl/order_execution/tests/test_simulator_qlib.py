@@ -91,16 +91,16 @@ def test_simulator_first_step():
     order = get_order()
     simulator = get_simulator(order)
     state = simulator.get_state()
-    assert state.cur_time == pd.Timestamp('2019-03-04 09:30:00')
+    assert state.cur_time == pd.Timestamp("2019-03-04 09:30:00")
     assert state.position == TOTAL_POSITION
 
     AMOUNT = 300.0
     simulator.step(AMOUNT)
     state = simulator.get_state()
-    assert state.cur_time == pd.Timestamp('2019-03-04 10:00:00')
+    assert state.cur_time == pd.Timestamp("2019-03-04 10:00:00")
     assert state.position == TOTAL_POSITION - AMOUNT
     assert len(state.history_exec) == 30
-    assert state.history_exec.index[0] == pd.Timestamp('2019-03-04 09:30:00')
+    assert state.history_exec.index[0] == pd.Timestamp("2019-03-04 09:30:00")
 
     assert is_close(state.history_exec["market_volume"].iloc[0], 109382.382812)
     assert is_close(state.history_exec["market_price"].iloc[0], 149.566483)

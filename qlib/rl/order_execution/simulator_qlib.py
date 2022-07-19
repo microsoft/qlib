@@ -18,8 +18,13 @@ from qlib.rl.data.pickle_styled import QlibIntradayBacktestData
 from qlib.rl.order_execution.from_neutrader.config import ExchangeConfig
 from qlib.rl.order_execution.from_neutrader.feature import init_qlib
 from qlib.rl.order_execution.simulator_simple import SAOEMetrics, SAOEState
-from qlib.rl.order_execution.utils import (_convert_tick_str_to_int, _dataframe_append, _get_common_infra,
-                                           _get_ticks_slice, _price_advantage)
+from qlib.rl.order_execution.utils import (
+    _convert_tick_str_to_int,
+    _dataframe_append,
+    _get_common_infra,
+    _get_ticks_slice,
+    _price_advantage,
+)
 from qlib.rl.simulator import Simulator
 from qlib.strategy.base import BaseStrategy
 
@@ -108,22 +113,33 @@ class StateMaintainer:
 
         if len(execute_result) > 0:
             exchange = inner_executor.trade_exchange
-            market_price = np.array([exchange.get_deal_price(
-                execute_order.stock_id,
-                execute_result[0][0].start_time,
-                execute_result[-1][0].start_time,
-                direction=execute_order.direction,
-                method=None,
-            )]).reshape(-1)
-            market_volume = np.array([exchange.get_volume(
-                execute_order.stock_id,
-                execute_result[0][0].start_time,
-                execute_result[-1][0].start_time,
-                method=None,
-            )]).reshape(-1)
+            market_price = np.array(
+                [
+                    exchange.get_deal_price(
+                        execute_order.stock_id,
+                        execute_result[0][0].start_time,
+                        execute_result[-1][0].start_time,
+                        direction=execute_order.direction,
+                        method=None,
+                    )
+                ]
+            ).reshape(-1)
+            market_volume = np.array(
+                [
+                    exchange.get_volume(
+                        execute_order.stock_id,
+                        execute_result[0][0].start_time,
+                        execute_result[-1][0].start_time,
+                        method=None,
+                    )
+                ]
+            ).reshape(-1)
 
             datetime_list = _get_ticks_slice(
-                self._tick_index, execute_result[0][0].start_time, execute_result[-1][0].start_time, include_end=True,
+                self._tick_index,
+                execute_result[0][0].start_time,
+                execute_result[-1][0].start_time,
+                include_end=True,
             )
         else:
             market_price = np.array([])
