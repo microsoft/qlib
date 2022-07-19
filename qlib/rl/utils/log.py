@@ -510,6 +510,34 @@ class CsvWriter(LogWriter):
 class PickleWriter(LogWriter):
     """Dump logs to pickle files."""
 
+    SUPPORTED_TYPES = Any
+
+    all_records: list[dict[str, Any]]
+
+    def __init__(self, output_dir: Path, loglevel: int | LogLevel = LogLevel.PERIODIC):
+        super().__init__(loglevel)
+        self.output_dir = output_dir
+        self.output_dir.mkdir(exist_ok=True, parents=True)
+
+    def clear(self):
+        super().claer()
+        self.all_records = []
+
+    def log_episode(self, length: int, rewards: list[float], contents: list[dict[str, Any]]) -> None:
+        # FIXME Same as ConsoleLogger, needs a refactor to eliminate code-dup
+        episode_wise_contents: dict[str, list] = defaultdict(list)
+
+        for step_contents in contents:
+            for name, value in step_contents.items():
+                if isinstance(value, self.SUPPORTED_TYPES):
+                    logs[name].append(value)
+
+        self.all_records.append(logs)
+
+    def on_env_all_done(self) -> None:
+        # FIXME: this is temporary
+        pd.DataFrame.from_records(self.all_records).to_pickle(self.output_dir / "result.pkl")
+
 
 class TensorboardWriter(LogWriter):
     """Write logs to event files that can be visualized with tensorboard."""
