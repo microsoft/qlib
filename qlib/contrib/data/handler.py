@@ -289,12 +289,10 @@ class Alpha158(DataHandlerLP):
                 names += ["RESI%d" % d for d in windows]
             if use("MAX"):
                 # The max price for past d days, divided by latest close price to remove unit
-                # Represent the upper resistent price range with 80% percentile of price.
                 fields += ["Max($high, %d)/$close" % d for d in windows]
                 names += ["MAX%d" % d for d in windows]
             if use("LOW"):
                 # The low price for past d days, divided by latest close price to remove unit
-                # Represent the lower supporting price range with 20% percentile of price.
                 fields += ["Min($low, %d)/$close" % d for d in windows]
                 names += ["MIN%d" % d for d in windows]
             if use("QTLU"):
