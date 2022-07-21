@@ -111,6 +111,7 @@ python run_all_model.py run 3 lightgbm Alpha158 csi500  # for models with random
 | Model Name | Dataset  | IC          | ICIR        | Rank IC     | Rank ICIR   | Annualized Return | Information Ratio | Max Drawdown |
 |------------|----------|-------------|-------------|-------------|-------------|-------------------|-------------------|--------------|
 | LightGBM   | Alpha158 | 0.0377±0.00 | 0.3860±0.00 | 0.0448±0.00 | 0.4675±0.00 | 0.1151±0.00       | 1.3884±0.00       | -0.0898±0.00 |
+| LSTM | Alpha158 | 0.0387±0.00 | 0.3559±0.00| 0.0548±0.00 | 0.5511±0.02 | 0.0441±0.02 | 0.6786±0.20| -0.1335±0.01 |
 
 ### Alpha360 dataset
 | Model Name | Dataset  | IC          | ICIR        | Rank IC     | Rank ICIR   | Annualized Return | Information Ratio | Max Drawdown |
