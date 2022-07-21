@@ -74,7 +74,7 @@ The numbers shown below demonstrate the performance of the entire `workflow` of 
 - The base model of DoubleEnsemble is LGBM.
 - The base model of TCTS is GRU.
 - About the datasets
-  - Alpha158 is a tabular dataset. There are less spatial relationships between different features. Each feature are carefully desgined by human (a.k.a feature engineering)
+  - Alpha158 is a tabular dataset. There are less spatial relationships between different features. Each feature are carefully designed by human (a.k.a feature engineering)
   - Alpha360 contains raw price and volue data without much feature engineering. There are strong strong spatial relationships between the features in the time dimension.
 - The metrics can be categorized into two
    - Signal-based evaluation:  IC, ICIR, Rank IC, Rank ICIR
