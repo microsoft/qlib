@@ -72,5 +72,5 @@ qlib.init(provider_uri=provider_uri, region=REG_CN)
 The is also a [crowd sourced version of qlib data](data_collector/crowd_source/README.md): https://github.com/chenditc/investment_data/releases
 ```bash
 wget https://github.com/chenditc/investment_data/releases/download/20220720/qlib_bin.tar.gz
-tar -zxvf qlib_bin.tar.gz -C ~/.qlib/qlib_data/cn_data
+tar -zxvf qlib_bin.tar.gz -C ~/.qlib/qlib_data/cn_data --strip-components=2
 ```
