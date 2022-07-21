@@ -12,7 +12,6 @@ import pandas as pd
 from qlib.backtest.decision import BaseTradeDecision, Order, OrderHelper, TradeDecisionWO, TradeRange, TradeRangeByTime
 from qlib.backtest.executor import BaseExecutor, NestedExecutor
 from qlib.backtest.utils import CommonInfrastructure
-from qlib.config import QlibConfig
 from qlib.constant import EPS
 from qlib.rl.data.pickle_styled import QlibIntradayBacktestData
 from qlib.rl.order_execution.from_neutrader.config import ExchangeConfig
@@ -31,7 +30,7 @@ from qlib.strategy.base import BaseStrategy
 
 class DecomposedStrategy(BaseStrategy):
     def __init__(self) -> None:
-        super(DecomposedStrategy, self).__init__()
+        super().__init__()
 
         self.execute_order: Optional[Order] = None
         self.execute_result: List[Tuple[Order, float, float, float]] = []
@@ -91,7 +90,7 @@ class SingleOrderStrategy(BaseStrategy):
 
 class StateMaintainer:
     def __init__(self, order: Order, tick_index: pd.DatetimeIndex, twap_price: float) -> None:
-        super(StateMaintainer, self).__init__()
+        super().__init__()
 
         self.position = order.amount
         self._order = order
@@ -224,16 +223,16 @@ class StateMaintainer:
         )
 
 
-class QlibSimulator(Simulator[Order, SAOEState, float]):
+class SingleAssetQlibSimulator(Simulator[Order, SAOEState, float]):
     def __init__(
         self,
         order: Order,
         time_per_step: str,
-        qlib_config: QlibConfig,
+        qlib_config: dict,
         inner_executor_fn: Callable[[str, CommonInfrastructure], BaseExecutor],
         exchange_config: ExchangeConfig,
     ) -> None:
-        super(QlibSimulator, self).__init__(
+        super().__init__(
             initial=None,  # TODO
         )
 

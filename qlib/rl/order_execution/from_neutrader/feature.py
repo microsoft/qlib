@@ -5,7 +5,7 @@ from typing import List, Optional
 import pandas as pd
 
 import qlib
-from qlib.config import QlibConfig, REG_CN
+from qlib.config import REG_CN
 from qlib.contrib.ops.high_freq import BFillNan, Cut, Date, DayCumsum, DayLast, FFillNan, IsInf, IsNull, Select
 from qlib.data.dataset import DatasetH
 
@@ -71,12 +71,12 @@ class DataWrapper:
         return data
 
 
-def init_qlib(config: QlibConfig, part: Optional[str] = None) -> None:
+def init_qlib(config: dict, part: Optional[str] = None) -> None:
     global _dataset
 
     provider_uri_map = {
-        "day": config.provider_uri_day.as_posix(),
-        "1min": config.provider_uri_1min.as_posix(),
+        "day": config["provider_uri_day"].as_posix(),
+        "1min": config["provider_uri_1min"].as_posix(),
     }
     qlib.init(
         region=REG_CN,
@@ -114,11 +114,11 @@ def init_qlib(config: QlibConfig, part: Optional[str] = None) -> None:
     # this won't work if it's put outside in case of multiprocessing
 
     if part is None:
-        feature_path = config.feature_root_dir / "feature.pkl"
-        backtest_path = config.feature_root_dir / "backtest.pkl"
+        feature_path = config["feature_root_dir"] / "feature.pkl"
+        backtest_path = config["feature_root_dir"] / "backtest.pkl"
     else:
-        feature_path = config.feature_root_dir / "feature" / (part + ".pkl")
-        backtest_path = config.feature_root_dir / "backtest" / (part + ".pkl")
+        feature_path = config["feature_root_dir"] / "feature" / (part + ".pkl")
+        backtest_path = config["feature_root_dir"] / "backtest" / (part + ".pkl")
 
     with feature_path.open("rb") as f:
         print(feature_path)
@@ -129,7 +129,7 @@ def init_qlib(config: QlibConfig, part: Optional[str] = None) -> None:
     _dataset = DataWrapper(
         feature_dataset,
         backtest_dataset,
-        config.feature_columns_today,
-        config.feature_columns_yesterday,
+        config["feature_columns_today"],
+        config["feature_columns_yesterday"],
         _internal=True,
     )

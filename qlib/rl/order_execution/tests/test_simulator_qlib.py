@@ -5,10 +5,9 @@ import pandas as pd
 from qlib.backtest.decision import Order, OrderDir
 from qlib.backtest.executor import NestedExecutor, SimulatorExecutor
 from qlib.backtest.utils import CommonInfrastructure
-from qlib.config import QlibConfig
 from qlib.contrib.strategy import TWAPStrategy
 from qlib.rl.order_execution import CategoricalActionInterpreter
-from qlib.rl.order_execution.simulator_qlib import ExchangeConfig, QlibSimulator
+from qlib.rl.order_execution.simulator_qlib import ExchangeConfig, SingleAssetQlibSimulator
 
 TOTAL_POSITION = 2100.0
 
@@ -27,7 +26,7 @@ def get_order() -> Order:
     )
 
 
-def get_simulator(order: Order) -> QlibSimulator:
+def get_simulator(order: Order) -> SingleAssetQlibSimulator:
     def _inner_executor_fn(time_per_step: str, common_infra: CommonInfrastructure) -> NestedExecutor:
         return NestedExecutor(
             time_per_step=time_per_step,
@@ -45,21 +44,19 @@ def get_simulator(order: Order) -> QlibSimulator:
         )
 
     # fmt: off
-    qlib_config = QlibConfig(
-        {
-            "provider_uri_day": Path("C:/workspace/NeuTrader/data_sample/cn/qlib_amc_1d"),
-            "provider_uri_1min": Path("C:/workspace/NeuTrader/data_sample/cn/qlib_amc_1min"),
-            "feature_root_dir": Path("C:/workspace/NeuTrader/data_sample/cn/qlib_amc_handler_stock"),
-            "feature_columns_today": [
-                "$open", "$high", "$low", "$close", "$vwap", "$bid", "$ask", "$volume",
-                "$bidV", "$bidV1", "$bidV3", "$bidV5", "$askV", "$askV1", "$askV3", "$askV5",
-            ],
-            "feature_columns_yesterday": [
-                "$open_1", "$high_1", "$low_1", "$close_1", "$vwap_1", "$bid_1", "$ask_1", "$volume_1",
-                "$bidV_1", "$bidV1_1", "$bidV3_1", "$bidV5_1", "$askV_1", "$askV1_1", "$askV3_1", "$askV5_1",
-            ],
-        }
-    )
+    qlib_config = {
+        "provider_uri_day": Path("C:/workspace/NeuTrader/data_sample/cn/qlib_amc_1d"),
+        "provider_uri_1min": Path("C:/workspace/NeuTrader/data_sample/cn/qlib_amc_1min"),
+        "feature_root_dir": Path("C:/workspace/NeuTrader/data_sample/cn/qlib_amc_handler_stock"),
+        "feature_columns_today": [
+            "$open", "$high", "$low", "$close", "$vwap", "$bid", "$ask", "$volume",
+            "$bidV", "$bidV1", "$bidV3", "$bidV5", "$askV", "$askV1", "$askV3", "$askV5",
+        ],
+        "feature_columns_yesterday": [
+            "$open_1", "$high_1", "$low_1", "$close_1", "$vwap_1", "$bid_1", "$ask_1", "$volume_1",
+            "$bidV_1", "$bidV1_1", "$bidV3_1", "$bidV5_1", "$askV_1", "$askV1_1", "$askV3_1", "$askV5_1",
+        ],
+    }
     # fmt: on
 
     exchange_config = ExchangeConfig(
@@ -78,7 +75,7 @@ def get_simulator(order: Order) -> QlibSimulator:
         generate_report=False,
     )
 
-    return QlibSimulator(
+    return SingleAssetQlibSimulator(
         order=order,
         time_per_step="30min",
         qlib_config=qlib_config,

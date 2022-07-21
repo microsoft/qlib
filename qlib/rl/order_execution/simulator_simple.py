@@ -16,6 +16,8 @@ from qlib.rl.simulator import Simulator
 from qlib.rl.utils import LogLevel
 from qlib.typehint import TypedDict
 
+# TODO: Integrating Qlib's native data with simulator_simple
+
 __all__ = ["SAOEMetrics", "SAOEState", "SingleAssetOrderExecution"]
 
 ONE_SEC = pd.Timedelta("1s")  # use 1 second to exclude the right interval point
@@ -158,7 +160,7 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
         deal_price_type: DealPriceType = "close",
         vol_threshold: Optional[float] = None,
     ) -> None:
-        super(SingleAssetOrderExecution, self).__init__(initial=order)
+        super().__init__(initial=order)
 
         self.order = order
         self.ticks_per_step: int = ticks_per_step
