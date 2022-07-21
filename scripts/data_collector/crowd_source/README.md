@@ -19,7 +19,7 @@ The pakcaged docker runtime is hosted on dockerhub: https://hub.docker.com/repos
 User can download data in qlib bin format and use it directly: https://github.com/chenditc/investment_data/releases/tag/20220720
 ```bash
 wget https://github.com/chenditc/investment_data/releases/download/20220720/qlib_bin.tar.gz
-tar -zxvf qlib_bin.tar.gz - C ~/.qlib/qlib_data/us_data
+tar -zxvf qlib_bin.tar.gz -C ~/.qlib/qlib_data/cn_data
 ```
 
 ### Option 2: Generate qlib data from dolthub
