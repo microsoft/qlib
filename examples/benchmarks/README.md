@@ -111,7 +111,28 @@ python run_all_model.py run 3 lightgbm Alpha158 csi500  # for models with random
 | Model Name | Dataset  | IC          | ICIR        | Rank IC     | Rank ICIR   | Annualized Return | Information Ratio | Max Drawdown |
 |------------|----------|-------------|-------------|-------------|-------------|-------------------|-------------------|--------------|
 | LightGBM   | Alpha158 | 0.0377±0.00 | 0.3860±0.00 | 0.0448±0.00 | 0.4675±0.00 | 0.1151±0.00       | 1.3884±0.00       | -0.0898±0.00 |
-
+ CatBoost   
+ 'The following are analysis results of benchmark return(1day).'
+                       risk
+mean               0.000161
+std                0.014384
+annualized_return  0.038237
+information_ratio  0.172313
+max_drawdown      -0.487617
+'The following are analysis results of the excess return without cost(1day).'
+                       risk
+mean               0.000532
+std                0.005526
+annualized_return  0.126550
+information_ratio  1.484440
+max_drawdown      -0.110834
+'The following are analysis results of the excess return with cost(1day).'
+                       risk
+mean               0.000346
+std                0.005528
+annualized_return  0.082259
+information_ratio  0.964569
+max_drawdown      -0.130882
 ### Alpha360 dataset
 | Model Name | Dataset  | IC          | ICIR        | Rank IC     | Rank ICIR   | Annualized Return | Information Ratio | Max Drawdown |
 |------------|----------|-------------|-------------|-------------|-------------|-------------------|-------------------|--------------|
