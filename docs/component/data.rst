@@ -55,6 +55,11 @@ Qlib Format Dataset
 The price volume data look different from the actual dealling price because of they are **adjusted** (`adjusted price <https://www.investopedia.com/terms/a/adjusted_closing_price.asp>`_).  And then you may find that the adjusted price may be different from different data sources. This is because different data sources may vary in the way of adjusting prices. Qlib normalize the price on first trading day of each stock to 1 when adjusting them.
 Users can leverage `$factor` to get the original trading price (e.g. `$close / $factor` to get the original close price).
 
+Here are some discussions about the price adjusting of Qlib. 
+
+- https://github.com/microsoft/qlib/issues/991#issuecomment-1075252402
+
+
 .. code-block:: bash
 
     # download 1d

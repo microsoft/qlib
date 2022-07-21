@@ -127,7 +127,7 @@ For example, it looks quite long and complicated:
 .. code-block:: python
 
    >> from qlib.data import D
-   >> data = D.features(["sh600519"], ["(($high / $close) + ($open / $close)) * (($high / $close) + ($open / $close)) / ($high / $close) + ($open / $close)"], start_time="20200101")
+   >> data = D.features(["sh600519"], ["(($high / $close) + ($open / $close)) * (($high / $close) + ($open / $close)) / (($high / $close) + ($open / $close))"], start_time="20200101")
 
 
 But using string is not the only way to implement the expression. You can also implement expression by code.
