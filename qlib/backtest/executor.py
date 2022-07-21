@@ -464,7 +464,6 @@ class NestedExecutor(BaseExecutor):
                 )
                 assert isinstance(_inner_execute_result, list)
                 self.post_inner_exe_step(_inner_execute_result)
-                self.inner_strategy.receive_execute_result(_inner_execute_result)
                 execute_result.extend(_inner_execute_result)
 
                 inner_order_indicators.append(
@@ -485,6 +484,7 @@ class NestedExecutor(BaseExecutor):
         inner_exe_res :
             the execution result of inner task
         """
+        self.inner_strategy.post_exe_step(inner_exe_res)
 
     def get_all_executors(self) -> List[BaseExecutor]:
         """get all executors, including self and inner_executor.get_all_executors()"""

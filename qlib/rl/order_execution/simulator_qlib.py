@@ -48,7 +48,7 @@ class DecomposedStrategy(BaseStrategy):
     def alter_outer_trade_decision(self, outer_trade_decision: BaseTradeDecision) -> BaseTradeDecision:
         return outer_trade_decision
 
-    def receive_execute_result(self, execute_result: list) -> None:
+    def post_exe_step(self, execute_result: list) -> None:
         self.execute_result = execute_result
 
     def reset(self, outer_trade_decision: TradeDecisionWO = None, **kwargs) -> None:

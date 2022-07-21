@@ -207,8 +207,15 @@ class BaseStrategy:
         range_limit = self.outer_trade_decision.get_data_cal_range_limit(rtype=rtype)
         return max(cal_range[0], range_limit[0]), min(cal_range[1], range_limit[1])
 
-    def receive_execute_result(self, execute_result: list) -> None:
-        pass
+    def post_exe_step(self, execute_result: list) -> None:
+        """
+        A hook for doing sth after the corresponding executor finished its execution.
+
+        Parameters
+        ----------
+        execute_result :
+            the execution result
+        """
 
 
 class RLStrategy(BaseStrategy, metaclass=ABCMeta):
