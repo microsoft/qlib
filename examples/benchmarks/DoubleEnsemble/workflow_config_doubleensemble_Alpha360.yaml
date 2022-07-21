@@ -44,7 +44,7 @@ task:
         kwargs:
             base_model: "gbm"
             loss: mse
-            num_models: 6
+            num_models: 3
             enable_sr: True
             enable_fs: True
             alpha1: 1
@@ -60,11 +60,8 @@ task:
                 - 0.4
             sub_weights:
                 - 1
-                - 0.2
-                - 0.2
-                - 0.2
-                - 0.2
-                - 0.2
+                - 1
+                - 1
             epochs: 136
             colsample_bytree: 0.8879
             learning_rate: 0.0421

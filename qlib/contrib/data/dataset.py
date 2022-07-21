@@ -203,8 +203,14 @@ class MTSDatasetH(DatasetH):
 
     def _prepare_seg(self, slc, **kwargs):
         fn = _get_date_parse_fn(self._index[0][1])
-        start_date = fn(slc.start)
-        end_date = fn(slc.stop)
+        if isinstance(slc, slice):
+            start, stop = slc.start, slc.stop
+        elif isinstance(slc, (list, tuple)):
+            start, stop = slc
+        else:
+            raise NotImplementedError(f"This type of input is not supported")
+        start_date = pd.Timestamp(fn(start))
+        end_date = pd.Timestamp(fn(stop))
         obj = copy.copy(self)  # shallow copy
         # NOTE: Seriable will disable copy `self._data` so we manually assign them here
         obj._data = self._data  # reference (no copy)

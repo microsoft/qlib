@@ -43,8 +43,7 @@ The numbers shown below demonstrate the performance of the entire `workflow` of 
 | TFT (Bryan Lim, et al.)                  | Alpha158(with selected 20 features) | 0.0358±0.00 | 0.2160±0.03 | 0.0116±0.01 | 0.0720±0.03 | 0.0847±0.02       | 0.8131±0.19       | -0.1824±0.03 |
 | MLP                                      | Alpha158                            | 0.0376±0.00 | 0.2846±0.02 | 0.0429±0.00 | 0.3220±0.01 | 0.0895±0.02       | 1.1408±0.23       | -0.1103±0.02 |
 | LightGBM(Guolin Ke, et al.)              | Alpha158                            | 0.0448±0.00 | 0.3660±0.00 | 0.0469±0.00 | 0.3877±0.00 | 0.0901±0.00       | 1.0164±0.00       | -0.1038±0.00 |
-| DoubleEnsemble(Chuheng Zhang, et al.)    | Alpha158                            | 0.0544±0.00 | 0.4340±0.00 | 0.0523±0.00 | 0.4284±0.01 | 0.1168±0.01       | 1.3384±0.12       | -0.1036±0.01 |
-
+| DoubleEnsemble(Chuheng Zhang, et al.)    | Alpha158                            | 0.0521±0.00 | 0.4223±0.01 | 0.0502±0.00 | 0.4117±0.01 | 0.1158±0.01       | 1.3432±0.11       | -0.0920±0.01 |
 
 ### Alpha360 dataset
 
@@ -56,7 +55,7 @@ The numbers shown below demonstrate the performance of the entire `workflow` of 
 | Localformer(Juyong Jiang, et al.)         | Alpha360 | 0.0404±0.00 | 0.2932±0.04 | 0.0542±0.00 | 0.4110±0.03 | 0.0246±0.02       | 0.3211±0.21       | -0.1095±0.02 |
 | CatBoost((Liudmila Prokhorenkova, et al.) | Alpha360 | 0.0378±0.00 | 0.2714±0.00 | 0.0467±0.00 | 0.3659±0.00 | 0.0292±0.00       | 0.3781±0.00       | -0.0862±0.00 |
 | XGBoost(Tianqi Chen, et al.)              | Alpha360 | 0.0394±0.00 | 0.2909±0.00 | 0.0448±0.00 | 0.3679±0.00 | 0.0344±0.00       | 0.4527±0.02       | -0.1004±0.00 |
-| DoubleEnsemble(Chuheng Zhang, et al.)     | Alpha360 | 0.0404±0.00 | 0.3023±0.00 | 0.0495±0.00 | 0.3898±0.00 | 0.0468±0.01       | 0.6302±0.20       | -0.0860±0.01 |
+| DoubleEnsemble(Chuheng Zhang, et al.)     | Alpha360 | 0.0390±0.00 | 0.2946±0.01 | 0.0486±0.00 | 0.3836±0.01 | 0.0462±0.01       | 0.6151±0.18       | -0.0915±0.01 |
 | LightGBM(Guolin Ke, et al.)               | Alpha360 | 0.0400±0.00 | 0.3037±0.00 | 0.0499±0.00 | 0.4042±0.00 | 0.0558±0.00       | 0.7632±0.00       | -0.0659±0.00 |
 | TCN(Shaojie Bai, et al.)                  | Alpha360 | 0.0441±0.00 | 0.3301±0.02 | 0.0519±0.00 | 0.4130±0.01 | 0.0604±0.02       | 0.8295±0.34       | -0.1018±0.03 |
 | ALSTM (Yao Qin, et al.)                   | Alpha360 | 0.0497±0.00 | 0.3829±0.04 | 0.0599±0.00 | 0.4736±0.03 | 0.0626±0.02       | 0.8651±0.31       | -0.0994±0.03 |
@@ -79,6 +78,11 @@ The numbers shown below demonstrate the performance of the entire `workflow` of 
   - Alpha360 contains raw price and volue data without much feature engineering. There are strong strong spatial relationships between the features in the time dimension.
 - The metrics can be categorized into two
    - Signal-based evaluation:  IC, ICIR, Rank IC, Rank ICIR
+      - ![equation](https://latex.codecogs.com/gif.latex?%5Ctext%7Bcorr%7D%28%5Ctextbf%7Bx%7D%2C%5Ctextbf%7By%7D%29%3D%5Cfrac%7B%5Csum_i%20%28x_i-%5Cbar%7Bx%7D%29%28y_i-%5Cbar%7By%7D%29%7D%7B%5Csqrt%7B%5Csum_i%28x_i-%5Cbar%7Bx%7D%29%5E2%5Csum_i%28y_i-%5Cbar%7By%7D%29%5E2%7D%7D)
+      - ![equation](https://latex.codecogs.com/gif.latex?%5Ctext%7BIC%7D%5E%7B%28t%29%7D%20%3D%20%5Ctext%7Bcorr%7D%28%5Chat%7B%5Ctextbf%7By%7D%7D%5E%7B%28t%29%7D%2C%20%5Ctextbf%7Bret%7D%5E%7B%28t%29%7D%29)
+      - ![equation](https://latex.codecogs.com/gif.latex?%5Ctext%7BICIR%7D%20%3D%20%5Cfrac%20%7B%5Ctext%7Bmean%7D%28%5Ctextbf%7BIC%7D%29%7D%20%7B%5Ctext%7Bstd%7D%28%5Ctextbf%7BIC%7D%29%7D)
+      - ![equation](https://latex.codecogs.com/gif.latex?%5Ctext%7BRank%20IC%7D%5E%7B%28t%29%7D%20%3D%20%5Ctext%7Bcorr%7D%28%5Ctext%7Brank%7D%28%5Chat%7B%5Ctextbf%7By%7D%7D%5E%7B%28t%29%7D%29%2C%20%5Ctext%7Brank%7D%28%5Ctextbf%7Bret%7D%5E%7B%28t%29%7D%29%29)
+      - ![equation](https://latex.codecogs.com/gif.latex?%5Ctext%7BRank%20ICIR%7D%20%3D%20%5Cfrac%20%7B%5Ctext%7Bmean%7D%28%5Ctextbf%7BRank%20IC%7D%29%7D%20%7B%5Ctext%7Bstd%7D%28%5Ctextbf%7BRankIC%7D%29%7D)
    - Portfolio-based metrics:  Annualized Return, Information Ratio, Max Drawdown
 
 ## Results on CSI500
@@ -129,3 +133,10 @@ If you want to contribute your new models, you can follow the steps below.
 5. Update the info in the index page in the [news list](https://github.com/microsoft/qlib#newspaper-whats-new----sparkling_heart) and [model list](https://github.com/microsoft/qlib#quant-model-paper-zoo).
 
 Finally, you can send PR for review. ([here is an example](https://github.com/microsoft/qlib/pull/1040))
+
+
+# FAQ
+
+Q: What's the difference between models with name `*.py` and `*_ts.py`?
+
+A: Models with name `*_ts.py` are designed for `TSDatasetH` (`TSDatasetH` will create time-series automatically from tabular data).  Models with name `*.py` are designed for `DatasetH` (`DatasetH` is usually used in tabular data.  But users still can apply time-series models on tabular datasets if the columns has time-series relationships). 

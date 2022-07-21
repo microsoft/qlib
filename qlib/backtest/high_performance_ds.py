@@ -1,11 +1,13 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+from __future__ import annotations
+
 import inspect
 import logging
 from collections import OrderedDict
 from functools import lru_cache
-from typing import Callable, Dict, Iterable, List, Text, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Text, Union, cast
 
 import numpy as np
 import pandas as pd
@@ -19,7 +21,7 @@ from ..utils.time import Freq, is_single_value
 
 
 class BaseQuote:
-    def __init__(self, quote_df: pd.DataFrame, freq):
+    def __init__(self, quote_df: pd.DataFrame, freq: str) -> None:
         self.logger = get_module_logger("online operator", level=logging.INFO)
 
     def get_all_stock(self) -> Iterable:
@@ -39,7 +41,7 @@ class BaseQuote:
         start_time: Union[pd.Timestamp, str],
         end_time: Union[pd.Timestamp, str],
         field: Union[str],
-        method: Union[str, None] = None,
+        method: Optional[str] = None,
     ) -> Union[None, int, float, bool, IndexData]:
         """get the specific field of stock data during start time and end_time,
            and apply method to the data.
@@ -99,7 +101,7 @@ class BaseQuote:
 
 
 class PandasQuote(BaseQuote):
-    def __init__(self, quote_df: pd.DataFrame, freq):
+    def __init__(self, quote_df: pd.DataFrame, freq: str) -> None:
         super().__init__(quote_df=quote_df, freq=freq)
         quote_dict = {}
         for stock_id, stock_val in quote_df.groupby(level="instrument"):
@@ -124,7 +126,7 @@ class PandasQuote(BaseQuote):
 
 
 class NumpyQuote(BaseQuote):
-    def __init__(self, quote_df: pd.DataFrame, freq, region="cn"):
+    def __init__(self, quote_df: pd.DataFrame, freq: str, region: str = "cn") -> None:
         """NumpyQuote
 
         Parameters
@@ -178,7 +180,8 @@ class NumpyQuote(BaseQuote):
                 data = self._agg_data(data, method)
             return data
 
-    def _agg_data(self, data: IndexData, method):
+    @staticmethod
+    def _agg_data(data: IndexData, method: str) -> Union[IndexData, np.ndarray, None]:
         """Agg data by specific method."""
         # FIXME: why not call the method of data directly?
         if method == "sum":
@@ -224,31 +227,31 @@ class BaseSingleMetric:
         """
         raise NotImplementedError(f"Please implement the `__init__` method")
 
-    def __add__(self, other: Union["BaseSingleMetric", int, float]) -> "BaseSingleMetric":
+    def __add__(self, other: Union[BaseSingleMetric, int, float]) -> BaseSingleMetric:
         raise NotImplementedError(f"Please implement the `__add__` method")
 
-    def __radd__(self, other: Union["BaseSingleMetric", int, float]) -> "BaseSingleMetric":
+    def __radd__(self, other: Union[BaseSingleMetric, int, float]) -> BaseSingleMetric:
         return self + other
 
-    def __sub__(self, other: Union["BaseSingleMetric", int, float]) -> "BaseSingleMetric":
+    def __sub__(self, other: Union[BaseSingleMetric, int, float]) -> BaseSingleMetric:
         raise NotImplementedError(f"Please implement the `__sub__` method")
 
-    def __rsub__(self, other: Union["BaseSingleMetric", int, float]) -> "BaseSingleMetric":
+    def __rsub__(self, other: Union[BaseSingleMetric, int, float]) -> BaseSingleMetric:
         raise NotImplementedError(f"Please implement the `__rsub__` method")
 
-    def __mul__(self, other: Union["BaseSingleMetric", int, float]) -> "BaseSingleMetric":
+    def __mul__(self, other: Union[BaseSingleMetric, int, float]) -> BaseSingleMetric:
         raise NotImplementedError(f"Please implement the `__mul__` method")
 
-    def __truediv__(self, other: Union["BaseSingleMetric", int, float]) -> "BaseSingleMetric":
+    def __truediv__(self, other: Union[BaseSingleMetric, int, float]) -> BaseSingleMetric:
         raise NotImplementedError(f"Please implement the `__truediv__` method")
 
-    def __eq__(self, other: Union["BaseSingleMetric", int, float]) -> "BaseSingleMetric":
+    def __eq__(self, other: object) -> BaseSingleMetric:
         raise NotImplementedError(f"Please implement the `__eq__` method")
 
-    def __gt__(self, other: Union["BaseSingleMetric", int, float]) -> "BaseSingleMetric":
+    def __gt__(self, other: Union[BaseSingleMetric, int, float]) -> BaseSingleMetric:
         raise NotImplementedError(f"Please implement the `__gt__` method")
 
-    def __lt__(self, other: Union["BaseSingleMetric", int, float]) -> "BaseSingleMetric":
+    def __lt__(self, other: Union[BaseSingleMetric, int, float]) -> BaseSingleMetric:
         raise NotImplementedError(f"Please implement the `__lt__` method")
 
     def __len__(self) -> int:
@@ -265,7 +268,7 @@ class BaseSingleMetric:
 
         raise NotImplementedError(f"Please implement the `count` method")
 
-    def abs(self) -> "BaseSingleMetric":
+    def abs(self) -> BaseSingleMetric:
         raise NotImplementedError(f"Please implement the `abs` method")
 
     @property
@@ -274,18 +277,18 @@ class BaseSingleMetric:
 
         raise NotImplementedError(f"Please implement the `empty` method")
 
-    def add(self, other: "BaseSingleMetric", fill_value: float = None) -> "BaseSingleMetric":
+    def add(self, other: BaseSingleMetric, fill_value: float = None) -> BaseSingleMetric:
         """Replace np.NaN with fill_value in two metrics and add them."""
 
         raise NotImplementedError(f"Please implement the `add` method")
 
-    def replace(self, replace_dict: dict) -> "BaseSingleMetric":
+    def replace(self, replace_dict: dict) -> BaseSingleMetric:
         """Replace the value of metric according to replace_dict."""
 
         raise NotImplementedError(f"Please implement the `replace` method")
 
-    def apply(self, func: dict) -> "BaseSingleMetric":
-        """Replace the value of metric with func(metric).
+    def apply(self, func: Callable) -> BaseSingleMetric:
+        """Replace the value of metric with func (metric).
         Currently, the func is only qlib/backtest/order/Order.parse_dir.
         """
 
@@ -304,11 +307,11 @@ class BaseOrderIndicator:
         to inherit the BaseSingleMetric.
     """
 
-    def __init__(self, data):
-        self.data = data
+    def __init__(self):
+        self.data = {}  # will be created in the subclass
         self.logger = get_module_logger("online operator")
 
-    def assign(self, col: str, metric: Union[dict, pd.Series]):
+    def assign(self, col: str, metric: Union[dict, pd.Series]) -> None:
         """assign one metric.
 
         Parameters
@@ -328,7 +331,7 @@ class BaseOrderIndicator:
 
         raise NotImplementedError(f"Please implement the 'assign' method")
 
-    def transfer(self, func: Callable, new_col: str = None) -> Union[None, BaseSingleMetric]:
+    def transfer(self, func: Callable, new_col: str = None) -> Optional[BaseSingleMetric]:
         """compute new metric with existing metrics.
 
         Parameters
@@ -352,6 +355,7 @@ class BaseOrderIndicator:
         tmp_metric = func(**func_kwargs)
         if new_col is not None:
             self.data[new_col] = tmp_metric
+            return None
         else:
             return tmp_metric
 
@@ -372,7 +376,7 @@ class BaseOrderIndicator:
 
         raise NotImplementedError(f"Please implement the 'get_metric_series' method")
 
-    def get_index_data(self, metric) -> SingleData:
+    def get_index_data(self, metric: str) -> SingleData:
         """get one metric with the format of SingleData
 
         Parameters
@@ -389,7 +393,12 @@ class BaseOrderIndicator:
         raise NotImplementedError(f"Please implement the 'get_index_data' method")
 
     @staticmethod
-    def sum_all_indicators(order_indicator, indicators: list, metrics: Union[str, List[str]], fill_value: float = None):
+    def sum_all_indicators(
+        order_indicator: BaseOrderIndicator,
+        indicators: List[BaseOrderIndicator],
+        metrics: Union[str, List[str]],
+        fill_value: float = 0,
+    ) -> None:
         """sum indicators with the same metrics.
         and assign to the order_indicator(BaseOrderIndicator).
         NOTE: indicators could be a empty list when orders in lower level all fail.
@@ -527,16 +536,17 @@ class PandasSingleMetric(SingleMetric):
     def index(self):
         return list(self.metric.index)
 
-    def add(self, other, fill_value=None):
+    def add(self, other: BaseSingleMetric, fill_value: float = None) -> PandasSingleMetric:
+        other = cast(PandasSingleMetric, other)
         return self.__class__(self.metric.add(other.metric, fill_value=fill_value))
 
-    def replace(self, replace_dict: dict):
+    def replace(self, replace_dict: dict) -> PandasSingleMetric:
         return self.__class__(self.metric.replace(replace_dict))
 
-    def apply(self, func: Callable):
+    def apply(self, func: Callable) -> PandasSingleMetric:
         return self.__class__(self.metric.apply(func))
 
-    def reindex(self, index, fill_value):
+    def reindex(self, index: Any, fill_value: float) -> PandasSingleMetric:
         return self.__class__(self.metric.reindex(index, fill_value=fill_value))
 
     def __repr__(self):
@@ -550,13 +560,14 @@ class PandasOrderIndicator(BaseOrderIndicator):
     Str is the name of metric.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
+        super(PandasOrderIndicator, self).__init__()
         self.data: Dict[str, PandasSingleMetric] = OrderedDict()
 
-    def assign(self, col: str, metric: Union[dict, pd.Series]):
+    def assign(self, col: str, metric: Union[dict, pd.Series]) -> None:
         self.data[col] = PandasSingleMetric(metric)
 
-    def get_index_data(self, metric):
+    def get_index_data(self, metric: str) -> SingleData:
         if metric in self.data:
             return idd.SingleData(self.data[metric].metric)
         else:
@@ -572,7 +583,12 @@ class PandasOrderIndicator(BaseOrderIndicator):
         return {k: v.metric for k, v in self.data.items()}
 
     @staticmethod
-    def sum_all_indicators(order_indicator, indicators: list, metrics: Union[str, List[str]], fill_value=0):
+    def sum_all_indicators(
+        order_indicator: BaseOrderIndicator,
+        indicators: List[BaseOrderIndicator],
+        metrics: Union[str, List[str]],
+        fill_value: float = 0,
+    ) -> None:
         if isinstance(metrics, str):
             metrics = [metrics]
         for metric in metrics:
@@ -592,13 +608,14 @@ class NumpyOrderIndicator(BaseOrderIndicator):
     Str is the name of metric.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
+        super(NumpyOrderIndicator, self).__init__()
         self.data: Dict[str, SingleData] = OrderedDict()
 
-    def assign(self, col: str, metric: dict):
+    def assign(self, col: str, metric: dict) -> None:
         self.data[col] = idd.SingleData(metric)
 
-    def get_index_data(self, metric):
+    def get_index_data(self, metric: str) -> SingleData:
         if metric in self.data:
             return self.data[metric]
         else:
@@ -614,14 +631,18 @@ class NumpyOrderIndicator(BaseOrderIndicator):
         return tmp_metric_dict
 
     @staticmethod
-    def sum_all_indicators(order_indicator, indicators: list, metrics: Union[str, List[str]], fill_value=0):
+    def sum_all_indicators(
+        order_indicator: BaseOrderIndicator,
+        indicators: List[BaseOrderIndicator],
+        metrics: Union[str, List[str]],
+        fill_value: float = 0,
+    ) -> None:
         # get all index(stock_id)
-        stocks = set()
+        stock_set: set = set()
         for indicator in indicators:
             # set(np.ndarray.tolist()) is faster than set(np.ndarray)
-            stocks = stocks | set(indicator.data[metrics[0]].index.tolist())
-        stocks = list(stocks)
-        stocks.sort()
+            stock_set = stock_set | set(indicator.data[metrics[0]].index.tolist())
+        stocks = sorted(list(stock_set))
 
         # add metric by index
         if isinstance(metrics, str):

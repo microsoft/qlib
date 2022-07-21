@@ -1,10 +1,10 @@
 
-===============================
+===========
 Quick Start
-===============================
+===========
 
 Introduction
-==============
+============
 
 This ``Quick Start`` guide tries to demonstrate
 
@@ -14,7 +14,7 @@ This ``Quick Start`` guide tries to demonstrate
 
 
 Installation
-==================
+============
 
 Users can easily intsall ``Qlib`` according to the following steps:
 
@@ -34,7 +34,7 @@ Users can easily intsall ``Qlib`` according to the following steps:
 To known more about `installation`, please refer to `Qlib Installation <../start/installation.html>`_.
 
 Prepare Data
-==============
+============
 
 Load and prepare data by running the following code:
 
@@ -47,14 +47,14 @@ This dataset is created by public data collected by crawler scripts in ``scripts
 To known more about `prepare data`, please refer to `Data Preparation <../component/data.html#data-preparation>`_.
 
 Auto Quant Research Workflow
-====================================
+============================
 
-``Qlib`` provides a tool named ``qrun`` to run the whole workflow automatically (including building dataset, training models, backtest and evaluation). Users can start an auto quant research workflow and have a graphical reports analysis according to the following steps: 
+``Qlib`` provides a tool named ``qrun`` to run the whole workflow automatically (including building dataset, training models, backtest and evaluation). Users can start an auto quant research workflow and have a graphical reports analysis according to the following steps:
 
-- Quant Research Workflow: 
+- Quant Research Workflow:
     - Run  ``qrun`` with a config file of the LightGBM model `workflow_config_lightgbm.yaml` as following.
 
-        .. code-block:: 
+        .. code-block::
 
             cd examples  # Avoid running program under the directory contains `qlib`
             qrun benchmarks/LightGBM/workflow_config_lightgbm.yaml
@@ -64,7 +64,7 @@ Auto Quant Research Workflow
         The result of ``qrun`` is as follows, which is also the typical result of ``Forecast model(alpha)``. Please refer to  `Intraday Trading <../component/backtest.html>`_. for more details about the result.
 
         .. code-block:: python
-        
+
                                                               risk
             excess_return_without_cost mean               0.000605
                                        std                0.005481
@@ -77,7 +77,7 @@ Auto Quant Research Workflow
                                        information_ratio  1.187411
                                        max_drawdown      -0.075024
 
-        
+
     To know more about `workflow` and `qrun`, please refer to `Workflow: Workflow Management <../component/workflow.html>`_.
 
 - Graphical Reports Analysis:
@@ -89,6 +89,6 @@ Auto Quant Research Workflow
 
 
 Custom Model Integration
-===============================================
+========================
 
 ``Qlib`` provides a batch of models (such as ``lightGBM`` and ``MLP`` models) as examples of ``Forecast Model``. In addition to the default model, users can integrate their own custom models into ``Qlib``. If users are interested in the custom model, please refer to `Custom Model Integration <../start/integration.html>`_.

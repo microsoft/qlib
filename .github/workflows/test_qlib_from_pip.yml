@@ -37,6 +37,17 @@ jobs:
         # and this line of code will be removed when the next version of qlib is released.
         python -m pip install "numpy<1.23"
 
+    - name: Install Lightgbm for MacOS
+      if: ${{ matrix.os == 'macos-11' || matrix.os == 'macos-latest' }}
+      run: |
+        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Microsoft/qlib/main/.github/brew_install.sh)"
+        HOMEBREW_NO_AUTO_UPDATE=1 brew install lightgbm
+        # FIX MacOS error: Segmentation fault
+        # reference: https://github.com/microsoft/LightGBM/issues/4229
+        wget https://raw.githubusercontent.com/Homebrew/homebrew-core/fb8323f2b170bd4ae97e1bac9bf3e2983af3fdb0/Formula/libomp.rb
+        brew unlink libomp
+        brew install libomp.rb
+
     - name: Downloads dependencies data
       run: |
         python scripts/get_data.py qlib_data --name qlib_data_simple --target_dir ~/.qlib/qlib_data/cn_data --interval 1d --region cn

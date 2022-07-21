@@ -1,6 +1,12 @@
 #  Copyright (c) Microsoft Corporation.
 #  Licensed under the MIT License.
+"""
+Qlib provides two kinds of interfaces. 
+(1) Users could define the Quant research workflow by a simple configuration.
+(2) Qlib is designed in a modularized way and supports creating research workflow by code just like building blocks.
 
+The interface of (1) is `qrun XXX.yaml`.  The interface of (2) is script like this, which nearly does the same thing as `qrun XXX.yaml`
+"""
 import qlib
 from qlib.constant import REG_CN
 from qlib.utils import init_instance_by_config, flatten_dict

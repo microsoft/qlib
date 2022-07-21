@@ -9,6 +9,8 @@ Motivation of index_data
 `index_data` try to behave like pandas (some API will be different because we try to be simpler and more intuitive) but don't compromise the performance. It provides the basic numpy data and simple indexing feature. If users call APIs which may compromise the performance, index_data will raise Errors.
 """
 
+from __future__ import annotations
+
 from typing import Dict, Tuple, Union, Callable, List
 import bisect
 
@@ -16,7 +18,7 @@ import numpy as np
 import pandas as pd
 
 
-def concat(data_list: Union["SingleData"], axis=0) -> "MultiData":
+def concat(data_list: Union[SingleData], axis=0) -> MultiData:
     """concat all SingleData by index.
     TODO: now just for SingleData.
 
@@ -52,7 +54,7 @@ def concat(data_list: Union["SingleData"], axis=0) -> "MultiData":
         raise ValueError(f"axis must be 0 or 1")
 
 
-def sum_by_index(data_list: Union["SingleData"], new_index: list, fill_value=0) -> "SingleData":
+def sum_by_index(data_list: Union[SingleData], new_index: list, fill_value=0) -> SingleData:
     """concat all SingleData by new index.
 
     Parameters
@@ -554,7 +556,7 @@ class SingleData(IndexData):
                 f"The indexes of self and other do not meet the requirements of the four arithmetic operations"
             )
 
-    def reindex(self, index: Index, fill_value=np.NaN):
+    def reindex(self, index: Index, fill_value=np.NaN) -> SingleData:
         """reindex data and fill the missing value with np.NaN.
 
         Parameters
@@ -580,7 +582,7 @@ class SingleData(IndexData):
                 pass
         return SingleData(tmp_data, index)
 
-    def add(self, other: "SingleData", fill_value=0):
+    def add(self, other: SingleData, fill_value=0):
         # TODO: add and __add__ are a little confusing.
         # This could be a more general
         common_index = self.index | other.index

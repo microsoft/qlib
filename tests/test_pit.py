@@ -39,18 +39,24 @@ class TestPIT(unittest.TestCase):
         cn_data_dir = str(QLIB_DIR.joinpath("cn_data").resolve())
         pit_dir = str(SOURCE_DIR.joinpath("pit").resolve())
         pit_normalized_dir = str(SOURCE_DIR.joinpath("pit_normalized").resolve())
-        GetData().qlib_data(name="qlib_data_simple", target_dir=cn_data_dir, region="cn")
-        bs.login()
-        Run(
-            source_dir=pit_dir,
-            interval="quarterly",
-        ).download_data(start="2000-01-01", end="2020-01-01", symbol_regex="^(600519|000725).*")
+        GetData().qlib_data(
+            name="qlib_data_simple", target_dir=cn_data_dir, region="cn", delete_old=False, exists_skip=True
+        )
+        GetData().qlib_data(name="qlib_data", target_dir=pit_dir, region="pit", delete_old=False, exists_skip=True)
+
+        # NOTE: This code does the same thing as line 43, but since baostock is not stable in downloading data, we have chosen to download offline data.
+        # bs.login()
+        # Run(
+        #     source_dir=pit_dir,
+        #     interval="quarterly",
+        # ).download_data(start="2000-01-01", end="2020-01-01", symbol_regex="^(600519|000725).*")
+        # bs.logout()
+
         Run(
             source_dir=pit_dir,
             normalize_dir=pit_normalized_dir,
             interval="quarterly",
         ).normalize_data()
-        bs.logout()
         DumpPitData(
             csv_path=pit_normalized_dir,
             qlib_dir=cn_data_dir,

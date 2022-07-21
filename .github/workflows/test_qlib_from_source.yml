@@ -8,7 +8,8 @@ on:
 
 jobs:
   build:
-    timeout-minutes: 120
+    timeout-minutes: 180
+    # we may retry for 3 times for `Unit tests with Pytest`
 
     runs-on: ${{ matrix.os }}
     strategy:
@@ -34,7 +35,6 @@ jobs:
       if: ${{ matrix.os == 'macos-11' || matrix.os == 'macos-latest' }}
       run: |
         python -m pip install torch torchvision torchaudio
-        brew install libomp  # lightgbm dependencies
 
     - name: Installing pytorch for ubuntu
       if: ${{ matrix.os == 'ubuntu-18.04' || matrix.os == 'ubuntu-20.04' }}
@@ -126,6 +126,17 @@ jobs:
         azcopy copy https://qlibpublic.blob.core.windows.net/data/rl /tmp/qlibpublic/data --recursive
         mv /tmp/qlibpublic/data tests/.data
 
+    - name: Install Lightgbm for MacOS
+      if: ${{ matrix.os == 'macos-11' || matrix.os == 'macos-latest' }}
+      run: |
+        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Microsoft/qlib/main/.github/brew_install.sh)"
+        HOMEBREW_NO_AUTO_UPDATE=1 brew install lightgbm
+        # FIX MacOS error: Segmentation fault
+        # reference: https://github.com/microsoft/LightGBM/issues/4229
+        wget https://raw.githubusercontent.com/Homebrew/homebrew-core/fb8323f2b170bd4ae97e1bac9bf3e2983af3fdb0/Formula/libomp.rb
+        brew unlink libomp
+        brew install libomp.rb
+
     - name: Test workflow by config (install from source)
       run: |
         # Version 0.52.0 of numba must be installed manually in CI, otherwise it will cause incompatibility with the latest version of numpy.
@@ -135,6 +146,10 @@ jobs:
         python qlib/workflow/cli.py examples/benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml
 
     - name: Unit tests with Pytest
-      run: |
-        cd tests
-        python -m pytest . -m "not slow" --durations=0
+      uses: nick-fields/retry@v2
+      with:
+        timeout_minutes: 60
+        max_attempts: 3
+        command: |
+          cd tests
+          python -m pytest . -m "not slow" --durations=0

@@ -1,12 +1,12 @@
 .. _client:
 
 Qlib Client-Server Framework
-===================
+============================
 
 .. currentmodule:: qlib
 
 Introduction
------------
+------------
 Client-Server is designed to solve following  problems
 
 - Manage the data in a centralized way. Users don't have to manage data of different versions.
@@ -159,13 +159,11 @@ Limitations
 2. The rolling operation expression with parameter `0` can not be updated rightly under mechanism of the client-server framework.
 
 API
-********************
+***
 
 The client is based on `python-socketio<https://python-socketio.readthedocs.io>`_ which is a framework that supports WebSocket client for Python language. The client can only propose requests and receive results, which do not include any calculating procedure.
 
 Class
---------------------
+-----
 
 .. automodule:: qlib.data.client
-
-

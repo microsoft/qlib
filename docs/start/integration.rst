@@ -1,9 +1,9 @@
-=========================================
+========================
 Custom Model Integration
-=========================================
+========================
 
 Introduction
-===================
+============
 
 ``Qlib``'s `Model Zoo` includes models such as ``LightGBM``, ``MLP``, ``LSTM``, etc.. These models are examples of ``Forecast Model``. In addition to the default models ``Qlib`` provide, users can integrate their own custom models into ``Qlib``.
 
@@ -14,7 +14,7 @@ Users can integrate their own custom models according to the following steps.
 - Test the custom model.
 
 Custom Model Class
-===========================
+==================
 The Custom models need to inherit `qlib.model.base.Model <../reference/api.html#module-qlib.model.base>`_ and override the methods in it.
 
 - Override the `__init__` method
@@ -36,7 +36,7 @@ The Custom models need to inherit `qlib.model.base.Model <../reference/api.html#
     - The parameters could include some `optional` parameters with default values, such as `num_boost_round = 1000` for `GBDT`.
     - Code Example: In the following example, `num_boost_round = 1000` is an optional parameter.
     .. code-block:: Python
-    
+
         def fit(self, dataset: DatasetH, num_boost_round = 1000, **kwargs):
 
             # prepare dataset for lgb training and evaluation
@@ -101,14 +101,14 @@ The Custom models need to inherit `qlib.model.base.Model <../reference/api.html#
             )
 
 Configuration File
-=======================
+==================
 
 The configuration file is described in detail in the `Workflow <../component/workflow.html#complete-example>`_ document. In order to integrate the custom model into ``Qlib``, users need to modify the "model" field in the configuration file. The configuration describes which models to use and how we can initialize it.
 
-- Example: The following example describes the `model` field of configuration file about the custom lightgbm model mentioned above, where `module_path` is the module path, `class` is the class name, and `args` is the hyperparameter passed into the __init__ method. All parameters in the field is passed to `self._params` by `\*\*kwargs` in `__init__` except `loss = mse`. 
+- Example: The following example describes the `model` field of configuration file about the custom lightgbm model mentioned above, where `module_path` is the module path, `class` is the class name, and `args` is the hyperparameter passed into the __init__ method. All parameters in the field is passed to `self._params` by `\*\*kwargs` in `__init__` except `loss = mse`.
 
 .. code-block:: YAML
-    
+
     model:
         class: LGBModel
         module_path: qlib.contrib.model.gbdt
@@ -126,7 +126,7 @@ The configuration file is described in detail in the `Workflow <../component/wor
 Users could find configuration file of the baselines of the ``Model`` in ``examples/benchmarks``. All the configurations of different models are listed under the corresponding model folder.
 
 Model Testing
-=====================
+=============
 Assuming that the configuration file is ``examples/benchmarks/LightGBM/workflow_config_lightgbm.yaml``, users can run the following command to test the custom model:
 
 .. code-block:: bash
@@ -136,10 +136,10 @@ Assuming that the configuration file is ``examples/benchmarks/LightGBM/workflow_
 
 .. note:: ``qrun`` is a built-in command of ``Qlib``.
 
-Also, ``Model`` can also be tested as a single module. An example has been given in ``examples/workflow_by_code.ipynb``. 
+Also, ``Model`` can also be tested as a single module. An example has been given in ``examples/workflow_by_code.ipynb``.
 
 
 Reference
-=====================
+=========
 
 To know more about ``Forecast Model``, please refer to `Forecast Model: Model Training & Prediction <../component/model.html>`_ and `Model API <../reference/api.html#module-qlib.model.base>`_.

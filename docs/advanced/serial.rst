@@ -1,26 +1,26 @@
 .. _serial:
 
-=================================
+=============
 Serialization
-=================================
+=============
 .. currentmodule:: qlib
 
 Introduction
-===================
-``Qlib`` supports dumping the state of ``DataHandler``, ``DataSet``, ``Processor`` and ``Model``, etc. into a disk and reloading them. 
+============
+``Qlib`` supports dumping the state of ``DataHandler``, ``DataSet``, ``Processor`` and ``Model``, etc. into a disk and reloading them.
 
 Serializable Class
-========================
+==================
 
-``Qlib`` provides a base class ``qlib.utils.serial.Serializable``, whose state can be dumped into or loaded from disk in `pickle` format. 
+``Qlib`` provides a base class ``qlib.utils.serial.Serializable``, whose state can be dumped into or loaded from disk in `pickle` format.
 When users dump the state of a ``Serializable`` instance, the attributes of the instance whose name **does not** start with `_` will be saved on the disk.
 However, users can use ``config`` method or override ``default_dump_all`` attribute to prevent this feature.
 
 Users can also override ``pickle_backend`` attribute to choose a pickle backend. The supported value is "pickle" (default and common) and "dill" (dump more things such as function, more information in `here <https://pypi.org/project/dill/>`_).
 
 Example
-==========================
-``Qlib``'s serializable class includes  ``DataHandler``, ``DataSet``, ``Processor`` and ``Model``, etc., which are subclass of  ``qlib.utils.serial.Serializable``. 
+=======
+``Qlib``'s serializable class includes  ``DataHandler``, ``DataSet``, ``Processor`` and ``Model``, etc., which are subclass of  ``qlib.utils.serial.Serializable``.
 Specifically, ``qlib.data.dataset.DatasetH`` is one of them. Users can serialize ``DatasetH`` as follows.
 
 .. code-block:: Python
@@ -33,7 +33,7 @@ Specifically, ``qlib.data.dataset.DatasetH`` is one of them. Users can serialize
         dataset = pickle.load(file_dataset)
 
 .. note::
-    Only state of ``DatasetH`` should be saved on the disk, such as some `mean` and `variance` used for data normalization, etc. 
+    Only state of ``DatasetH`` should be saved on the disk, such as some `mean` and `variance` used for data normalization, etc.
 
     After reloading the ``DatasetH``, users need to reinitialize it. It means that users can reset some states of ``DatasetH`` or ``QlibDataHandler`` such as `instruments`, `start_time`, `end_time` and `segments`, etc.,  and generate new data according to the states (data is not state and should not be saved on the disk).
 
@@ -41,5 +41,5 @@ A more detailed example is in this `link <https://github.com/microsoft/qlib/tree
 
 
 API
-===================
+===
 Please refer to `Serializable API <../reference/api.html#module-qlib.utils.serial.Serializable>`_.
