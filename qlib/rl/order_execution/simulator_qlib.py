@@ -21,7 +21,8 @@ from qlib.rl.order_execution.utils import (
     _convert_tick_str_to_int,
     _dataframe_append,
     _get_common_infra,
-    _get_portfolio_and_indicator, _get_ticks_slice,
+    _get_portfolio_and_indicator,
+    _get_ticks_slice,
     _price_advantage,
 )
 from qlib.rl.simulator import Simulator
@@ -83,7 +84,7 @@ class SingleOrderStrategy(BaseStrategy):
                 code=self._instrument,
                 amount=self._order.amount,
                 direction=Order.parse_dir(self._order.direction),
-            )
+            ),
         ]
         return TradeDecisionWO(order_list, self, self._trade_range)
 
@@ -126,7 +127,7 @@ class StateMaintainer:
                     execute_result[0][0].start_time,
                     execute_result[-1][0].start_time,
                     method=None,
-                )
+                ),
             )
 
             trade_value = all_indicators["1min"].iloc[-num_step:]["value"].values
@@ -153,8 +154,13 @@ class StateMaintainer:
             self.history_steps,
             [
                 self._collect_single_order_metric(
-                    execute_order, execute_order.start_time, market_volume, market_price, exec_vol.sum(), exec_vol,
-                )
+                    execute_order,
+                    execute_order.start_time,
+                    market_volume,
+                    market_price,
+                    exec_vol.sum(),
+                    exec_vol,
+                ),
             ],
         )
 

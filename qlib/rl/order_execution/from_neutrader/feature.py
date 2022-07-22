@@ -91,7 +91,7 @@ def init_qlib(config: dict, part: Optional[str] = None) -> None:
                     "class": "FileCalendarStorage",
                     "module_path": "qlib.data.storage.file_storage",
                     "kwargs": {"provider_uri_map": provider_uri_map},
-                }
+                },
             },
         },
         feature_provider={
@@ -102,7 +102,7 @@ def init_qlib(config: dict, part: Optional[str] = None) -> None:
                     "class": "FileFeatureStorage",
                     "module_path": "qlib.data.storage.file_storage",
                     "kwargs": {"provider_uri_map": provider_uri_map},
-                }
+                },
             },
         },
         provider_uri=provider_uri_map,
