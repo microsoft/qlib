@@ -144,9 +144,10 @@ def test_simulator_stop_twap() -> None:
 
 
 def test_interpreter() -> None:
+    NUM_EXECUTION = 3
     order = get_order()
     simulator = get_simulator(order)
-    interpreter_action = CategoricalActionInterpreter(values=4)
+    interpreter_action = CategoricalActionInterpreter(values=NUM_EXECUTION)
 
     NUM_STEPS = 7
     state = simulator.get_state()
@@ -156,13 +157,7 @@ def test_interpreter() -> None:
         state = simulator.get_state()
         position_history.append(state.position)
 
-    assert position_history[0] == TOTAL_POSITION - TOTAL_POSITION / 4 * 1
-    assert position_history[1] == TOTAL_POSITION - TOTAL_POSITION / 4 * 2
-    assert position_history[2] == TOTAL_POSITION - TOTAL_POSITION / 4 * 3
-    assert position_history[3] == 0.0
-    assert position_history[4] == 0.0
-    assert position_history[5] == 0.0
-    assert position_history[6] == 0.0
+        assert position_history[-1] == max(TOTAL_POSITION - TOTAL_POSITION / NUM_EXECUTION * (i + 1), 0.0)
 
 
 if __name__ == "__main__":
