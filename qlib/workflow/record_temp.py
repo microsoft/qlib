@@ -296,7 +296,7 @@ class SigAnaRecord(ACRecordTemp):
         self.ann_scaler = ann_scaler
         self.label_col = label_col
 
-    def _generate(self, label: Optional[pd.DataFrame] = None, **kwargs):
+    def _generate(self, label: Optional[pd.DataFrame] = None, quantile: float = 0.2, **kwargs):
         """
         Parameters
         ----------
@@ -318,7 +318,7 @@ class SigAnaRecord(ACRecordTemp):
         }
         objects = {"ic.pkl": ic, "ric.pkl": ric}
         if self.ana_long_short:
-            long_short_r, long_avg_r = calc_long_short_return(pred.iloc[:, 0], label.iloc[:, self.label_col])
+            long_short_r, long_avg_r = calc_long_short_return(pred.iloc[:, 0], label.iloc[:, self.label_col], quantile=quantile)
             metrics.update(
                 {
                     "Long-Short Ann Return": long_short_r.mean() * self.ann_scaler,
