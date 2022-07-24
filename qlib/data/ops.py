@@ -1165,7 +1165,7 @@ class Rank(Rolling):
             x1 = x[~np.isnan(x)]
             if x1.shape[0] == 0:
                 return np.nan
-            return percentileofscore(x1, x1[-1]) / len(x1)
+            return percentileofscore(x1, x1[-1]) / 100
 
         if self.N == 0:
             series = series.expanding(min_periods=1).apply(rank, raw=True)
@@ -1341,7 +1341,7 @@ class WMA(Rolling):
         # TODO: implement in Cython
 
         def weighted_mean(x):
-            w = np.arange(len(x))
+            w = np.arange(len(x)) + 1
             w = w / w.sum()
             return np.nanmean(w * x)
 
