@@ -280,8 +280,7 @@ class Alpha158(DataHandlerLP):
                 fields += ["Slope($close, %d)/$close" % d for d in windows]
                 names += ["BETA%d" % d for d in windows]
             if use("RSQR"):
-                # The R-sqaure value of linear regression for the past d days, represent the trend linea
-                
+                # The R-sqaure value of linear regression for the past d days, represent the trend linear
                 fields += ["Rsquare($close, %d)" % d for d in windows]
                 names += ["RSQR%d" % d for d in windows]
             if use("RESI"):
