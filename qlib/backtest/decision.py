@@ -8,7 +8,7 @@ from datetime import time
 from enum import IntEnum
 
 # try to fix circular imports when enabling type hints
-from typing import Generic, List, TYPE_CHECKING, Any, ClassVar, Optional, Tuple, TypeVar, Union, cast
+from typing import TYPE_CHECKING, Any, ClassVar, Generic, List, Optional, Tuple, TypeVar, Union, cast
 
 from qlib.backtest.utils import TradeCalendarManager
 from qlib.data.data import Cal
@@ -23,7 +23,6 @@ from dataclasses import dataclass
 
 import numpy as np
 import pandas as pd
-
 
 DecisionType = TypeVar("DecisionType")
 
@@ -537,7 +536,10 @@ class TradeDecisionWO(BaseTradeDecision[Order]):
     """
 
     def __init__(
-        self, order_list: List[Order], strategy: BaseStrategy, trade_range: Union[Tuple[int, int], TradeRange] = None,
+        self,
+        order_list: List[Order],
+        strategy: BaseStrategy,
+        trade_range: Union[Tuple[int, int], TradeRange] = None,
     ) -> None:
         super().__init__(strategy, trade_range=trade_range)
         self.order_list = cast(List[Order], order_list)

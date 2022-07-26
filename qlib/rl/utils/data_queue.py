@@ -149,7 +149,7 @@ class DataQueue(Generic[T]):
             raise ValueError(
                 "Need to call activate() to launch a daemon worker "
                 "to produce data into data queue before using it. "
-                "You probably have forgotten to use the DataQueue in a with block."
+                "You probably have forgotten to use the DataQueue in a with block.",
             )
         return self._consumer()
 

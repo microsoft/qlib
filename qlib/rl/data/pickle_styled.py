@@ -22,7 +22,7 @@ from __future__ import annotations
 from abc import abstractmethod
 from functools import lru_cache
 from pathlib import Path
-from typing import List, Optional, Sequence, cast
+from typing import List, Sequence, cast
 
 import cachetools
 import numpy as np

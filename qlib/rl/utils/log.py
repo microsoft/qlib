@@ -21,7 +21,7 @@ import logging
 from collections import defaultdict
 from enum import IntEnum
 from pathlib import Path
-from typing import Any, Callable, Dict, Generic, List, Sequence, Set, TYPE_CHECKING, Tuple, TypeVar
+from typing import TYPE_CHECKING, Any, Callable, Dict, Generic, List, Sequence, Set, Tuple, TypeVar
 
 import numpy as np
 import pandas as pd
