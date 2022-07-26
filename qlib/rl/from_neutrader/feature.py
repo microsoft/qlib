@@ -2,7 +2,6 @@
 # Licensed under the MIT License.
 
 import collections
-import pickle
 from typing import List, Optional
 
 import pandas as pd
@@ -11,8 +10,6 @@ import qlib
 from qlib.config import REG_CN
 from qlib.contrib.ops.high_freq import BFillNan, Cut, Date, DayCumsum, DayLast, FFillNan, IsInf, IsNull, Select
 from qlib.data.dataset import DatasetH
-
-_dataset = None
 
 
 class LRUCache:
@@ -58,8 +55,6 @@ class DataWrapper:
     def get(self, stock_id: str, date: pd.Timestamp, backtest: bool = False):
         start_time, end_time = date.replace(hour=0, minute=0, second=0), date.replace(hour=23, minute=59, second=59)
 
-        dataset = self.backtest_dataset if backtest else self.feature_dataset
-
         if backtest:
             dataset = self.backtest_dataset
             cache = self.backtest_cache
@@ -75,8 +70,6 @@ class DataWrapper:
 
 
 def init_qlib(config: dict, part: Optional[str] = None) -> None:
-    global _dataset
-
     provider_uri_map = {
         "day": config["provider_uri_day"].as_posix(),
         "1min": config["provider_uri_1min"].as_posix(),
@@ -112,27 +105,4 @@ def init_qlib(config: dict, part: Optional[str] = None) -> None:
         kernels=1,
         redis_port=-1,
         clear_mem_cache=False,  # init_qlib will be called for multiple times. Keep the cache for improving performance
-    )
-
-    # this won't work if it's put outside in case of multiprocessing
-
-    if part is None:
-        feature_path = config["feature_root_dir"] / "feature.pkl"
-        backtest_path = config["feature_root_dir"] / "backtest.pkl"
-    else:
-        feature_path = config["feature_root_dir"] / "feature" / (part + ".pkl")
-        backtest_path = config["feature_root_dir"] / "backtest" / (part + ".pkl")
-
-    with feature_path.open("rb") as f:
-        print(feature_path)
-        feature_dataset = pickle.load(f)
-    with backtest_path.open("rb") as f:
-        backtest_dataset = pickle.load(f)
-
-    _dataset = DataWrapper(
-        feature_dataset,
-        backtest_dataset,
-        config["feature_columns_today"],
-        config["feature_columns_yesterday"],
-        _internal=True,
     )
