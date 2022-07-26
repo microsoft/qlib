@@ -57,9 +57,10 @@ def fill_invalid(obj: int | float | bool | np.ndarray | dict | list | tuple) -> 
 
 def is_invalid(arr: int | float | bool | np.ndarray | dict | list | tuple) -> bool:
     if hasattr(arr, "dtype"):
-        if np.issubdtype(arr.dtype, np.floating):
+        dtype = getattr(arr, "dtype")
+        if np.issubdtype(dtype, np.floating):
             return np.isnan(arr).all()
-        return (np.iinfo(arr.dtype).max == arr).all()
+        return (np.iinfo(dtype).max == arr).all()
     if isinstance(arr, dict):
         return all(is_invalid(o) for o in arr.values())
     if isinstance(arr, (list, tuple)):
@@ -209,7 +210,7 @@ class FiniteVectorEnv(BaseVectorEnv):
 
     def reset(
         self,
-        id: int | List[int] | np.ndarray = None,
+        id: int | List[int] | np.ndarray | None = None,
     ) -> np.ndarray:
         assert not self._zombie
 
@@ -222,23 +223,23 @@ class FiniteVectorEnv(BaseVectorEnv):
                 RuntimeWarning,
             )
 
-        id = self._wrap_id(id)
+        wrapped_id = self._wrap_id(id)
         self._reset_alive_envs()
 
         # ask super to reset alive envs and remap to current index
-        request_id = list(filter(lambda i: i in self._alive_env_ids, id))
-        obs = [None] * len(id)
-        id2idx = {i: k for k, i in enumerate(id)}
+        request_id = [i for i in wrapped_id if i in self._alive_env_ids]
+        obs = [None] * len(wrapped_id)
+        id2idx = {i: k for k, i in enumerate(wrapped_id)}
         if request_id:
             for i, o in zip(request_id, super().reset(request_id)):
                 obs[id2idx[i]] = self._postproc_env_obs(o)
 
-        for i, o in zip(id, obs):
+        for i, o in zip(wrapped_id, obs):
             if o is None and i in self._alive_env_ids:
                 self._alive_env_ids.remove(i)
 
         # logging
-        for i, o in zip(id, obs):
+        for i, o in zip(wrapped_id, obs):
             if i in self._alive_env_ids:
                 for logger in self._logger:
                     logger.on_env_reset(i, obs)
@@ -251,7 +252,7 @@ class FiniteVectorEnv(BaseVectorEnv):
                 obs[i] = self._get_default_obs()
 
         if not self._alive_env_ids:
-            # comment this line so that the env becomes indisposable
+            # comment this line so that the env becomes indispensable
             # self.reset()
             self._zombie = True
             raise StopIteration
@@ -261,13 +262,13 @@ class FiniteVectorEnv(BaseVectorEnv):
     def step(
         self,
         action: np.ndarray,
-        id: int | List[int] | np.ndarray = None,
+        id: int | List[int] | np.ndarray | None = None,
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         assert not self._zombie
-        id = self._wrap_id(id)
-        id2idx = {i: k for k, i in enumerate(id)}
-        request_id = list(filter(lambda i: i in self._alive_env_ids, id))
-        result = [[None, None, False, None] for _ in range(len(id))]
+        wrapped_id = self._wrap_id(id)
+        id2idx = {i: k for k, i in enumerate(wrapped_id)}
+        request_id = list(filter(lambda i: i in self._alive_env_ids, wrapped_id))
+        result = [[None, None, False, None] for _ in range(len(wrapped_id))]
 
         # ask super to step alive envs and remap to current index
         if request_id:
@@ -277,7 +278,7 @@ class FiniteVectorEnv(BaseVectorEnv):
                 result[id2idx[i]][0] = self._postproc_env_obs(result[id2idx[i]][0])
 
         # logging
-        for i, r in zip(id, result):
+        for i, r in zip(wrapped_id, result):
             if i in self._alive_env_ids:
                 for logger in self._logger:
                     logger.on_env_step(i, *r)

@@ -31,6 +31,7 @@ class Reward(Generic[SimulatorState]):
         raise NotImplementedError("Implement reward calculation recipe in `reward()`.")
 
     def log(self, name: str, value: Any) -> None:
+        assert self.env is not None
         self.env.logger.add_scalar(name, value)
 
 

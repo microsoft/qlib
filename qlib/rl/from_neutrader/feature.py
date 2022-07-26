@@ -15,8 +15,8 @@ from qlib.data.dataset import DatasetH
 class LRUCache:
     def __init__(self, pool_size: int = 200):
         self.pool_size = pool_size
-        self.contents = dict()
-        self.keys = collections.deque()
+        self.contents: dict = {}
+        self.keys: collections.deque = collections.deque()
 
     def put(self, key, item):
         if self.has(key):
@@ -52,7 +52,7 @@ class DataWrapper:
         self.feature_cache = LRUCache()
         self.backtest_cache = LRUCache()
 
-    def get(self, stock_id: str, date: pd.Timestamp, backtest: bool = False):
+    def get(self, stock_id: str, date: pd.Timestamp, backtest: bool = False) -> pd.DataFrame:
         start_time, end_time = date.replace(hour=0, minute=0, second=0), date.replace(hour=23, minute=59, second=59)
 
         if backtest:

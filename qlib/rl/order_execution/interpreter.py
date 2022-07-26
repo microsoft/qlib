@@ -165,13 +165,11 @@ class CurrentStepStateInterpreter(StateInterpreter[SAOEState, CurrentStateObs]):
         assert self.env is not None
         assert self.env.status["cur_step"] <= self.max_step
         obs = CurrentStateObs(
-            **{
-                "acquiring": state.order.direction == state.order.BUY,
-                "cur_step": self.env.status["cur_step"],
-                "num_step": self.max_step,
-                "target": state.order.amount,
-                "position": state.position,
-            }
+            acquiring=state.order.direction == state.order.BUY,
+            cur_step=self.env.status["cur_step"],
+            num_step=self.max_step,
+            target=state.order.amount,
+            position=state.position,
         )
         return obs
 

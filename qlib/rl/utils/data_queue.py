@@ -84,7 +84,7 @@ class DataQueue(Generic[T]):
         self.activate()
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+    def __exit__(self, exc_type, exc_val, exc_tb):
         self.cleanup()
 
     def cleanup(self) -> None:

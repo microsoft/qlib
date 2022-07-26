@@ -4,7 +4,7 @@
 """Placeholder for qlib-based simulator."""
 from __future__ import annotations
 
-from typing import Callable, Generator, List, Optional, Tuple, cast
+from typing import Any, Callable, Generator, List, Optional, Tuple, cast
 
 import numpy as np
 import pandas as pd
@@ -36,7 +36,7 @@ class DecomposedStrategy(BaseStrategy):
         self.execute_order: Optional[Order] = None
         self.execute_result: List[Tuple[Order, float, float, float]] = []
 
-    def generate_trade_decision(self, execute_result: list = None) -> BaseTradeDecision:
+    def generate_trade_decision(self, execute_result: list = None) -> Generator[Any, Any, BaseTradeDecision]:
         exec_vol = yield self
 
         oh = self.trade_exchange.get_order_helper()
@@ -52,7 +52,7 @@ class DecomposedStrategy(BaseStrategy):
     def post_exe_step(self, execute_result: list) -> None:
         self.execute_result = execute_result
 
-    def reset(self, outer_trade_decision: TradeDecisionWO = None, **kwargs) -> None:
+    def reset(self, outer_trade_decision: TradeDecisionWO = None, **kwargs: Any) -> None:
         super().reset(outer_trade_decision=outer_trade_decision, **kwargs)
         if outer_trade_decision is not None:
             order_list = outer_trade_decision.order_list
@@ -83,7 +83,7 @@ class SingleOrderStrategy(BaseStrategy):
             oh.create(
                 code=self._instrument,
                 amount=self._order.amount,
-                direction=Order.parse_dir(self._order.direction),
+                direction=self._order.direction,
             ),
         ]
         return TradeDecisionWO(order_list, self, self._trade_range)
@@ -102,7 +102,7 @@ class StateMaintainer:
         # NOTE: can empty dataframe contain index?
         self.history_exec = pd.DataFrame(columns=metric_keys).set_index("datetime")
         self.history_steps = pd.DataFrame(columns=metric_keys).set_index("datetime")
-        self.metrics = None
+        self.metrics: Optional[SAOEMetrics] = None
 
     def update(
         self,
@@ -115,6 +115,8 @@ class StateMaintainer:
         execute_result = inner_strategy.execute_result
         exec_vol = np.array([e[0].deal_amount for e in execute_result])
         num_step = len(execute_result)
+
+        assert execute_order is not None
 
         if num_step == 0:
             market_volume = np.array([])
@@ -251,7 +253,7 @@ class SingleAssetQlibSimulator(Simulator[Order, SAOEState, float]):
         exchange_config: ExchangeConfig,
     ) -> None:
         super().__init__(
-            initial=None,  # TODO
+            initial=order,  # TODO: confirm this logic
         )
 
         assert order.start_time.date() == order.end_time.date()
@@ -330,6 +332,8 @@ class SingleAssetQlibSimulator(Simulator[Order, SAOEState, float]):
         )
 
     def _iter_strategy(self, action: float = None) -> DecomposedStrategy:
+        assert self._collect_data_loop is not None
+
         strategy = next(self._collect_data_loop) if action is None else self._collect_data_loop.send(action)
         while not isinstance(strategy, DecomposedStrategy):
             strategy = next(self._collect_data_loop) if action is None else self._collect_data_loop.send(action)
@@ -344,6 +348,7 @@ class SingleAssetQlibSimulator(Simulator[Order, SAOEState, float]):
         except StopIteration:
             self._done = True
 
+        assert self._executor is not None
         _, all_indicators = get_portfolio_and_indicator(self._executor)
 
         self._maintainer.update(
