@@ -18,12 +18,12 @@ from qlib.rl.from_neutrader.config import ExchangeConfig
 from qlib.rl.from_neutrader.feature import init_qlib
 from qlib.rl.order_execution.simulator_simple import SAOEMetrics, SAOEState
 from qlib.rl.order_execution.utils import (
-    _convert_tick_str_to_int,
-    _dataframe_append,
-    _get_common_infra,
-    _get_portfolio_and_indicator,
-    _get_ticks_slice,
-    _price_advantage,
+    convert_tick_str_to_int,
+    dataframe_append,
+    get_common_infra,
+    get_portfolio_and_indicator,
+    get_ticks_slice,
+    price_advantage,
 )
 from qlib.rl.simulator import Simulator
 from qlib.strategy.base import BaseStrategy
@@ -138,7 +138,7 @@ class StateMaintainer:
 
         assert market_price.shape == market_volume.shape == exec_vol.shape
 
-        self.history_exec = _dataframe_append(
+        self.history_exec = dataframe_append(
             self.history_exec,
             self._collect_multi_order_metric(
                 order=self._order,
@@ -150,7 +150,7 @@ class StateMaintainer:
             ),
         )
 
-        self.history_steps = _dataframe_append(
+        self.history_steps = dataframe_append(
             self.history_steps,
             [
                 self._collect_single_order_metric(
@@ -237,7 +237,7 @@ class StateMaintainer:
             trade_value=float(np.sum(market_price * exec_vol)),
             position=self.position - exec_sum,
             ffr=float(exec_sum / order.amount),
-            pa=_price_advantage(exec_avg_price, self._twap_price, order.direction),
+            pa=price_advantage(exec_avg_price, self._twap_price, order.direction),
         )
 
 
@@ -264,7 +264,7 @@ class SingleAssetQlibSimulator(Simulator[Order, SAOEState, float]):
         self._exchange_config = exchange_config
 
         self._time_per_step = time_per_step
-        self._ticks_per_step = _convert_tick_str_to_int(time_per_step)
+        self._ticks_per_step = convert_tick_str_to_int(time_per_step)
 
         self._executor: Optional[NestedExecutor] = None
         self._collect_data_loop: Optional[Generator] = None
@@ -280,7 +280,7 @@ class SingleAssetQlibSimulator(Simulator[Order, SAOEState, float]):
 
         init_qlib(self._qlib_config, instrument)
 
-        common_infra = _get_common_infra(
+        common_infra = get_common_infra(
             self._exchange_config,
             trade_date=pd.Timestamp(self._order_date),
             codes=[instrument],
@@ -297,7 +297,7 @@ class SingleAssetQlibSimulator(Simulator[Order, SAOEState, float]):
 
         exchange = self._inner_executor.trade_exchange
         self._ticks_index = pd.DatetimeIndex([e[1] for e in list(exchange.quote_df.index)])
-        self._ticks_for_order = _get_ticks_slice(
+        self._ticks_for_order = get_ticks_slice(
             self._ticks_index,
             self._order.start_time,
             self._order.end_time,
@@ -344,7 +344,7 @@ class SingleAssetQlibSimulator(Simulator[Order, SAOEState, float]):
         except StopIteration:
             self._done = True
 
-        _, all_indicators = _get_portfolio_and_indicator(self._executor)
+        _, all_indicators = get_portfolio_and_indicator(self._executor)
 
         self._maintainer.update(
             inner_executor=self._inner_executor,

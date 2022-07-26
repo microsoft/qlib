@@ -17,7 +17,7 @@ from qlib.rl.order_execution.simulator_simple import ONE_SEC, _float_or_ndarray
 from qlib.utils.time import Freq
 
 
-def _get_common_infra(
+def get_common_infra(
     config: ExchangeConfig,
     trade_date: pd.Timestamp,
     codes: List[str],
@@ -51,14 +51,14 @@ def _get_common_infra(
     return CommonInfrastructure(trade_account=trade_account, trade_exchange=exchange)
 
 
-def _convert_tick_str_to_int(time_per_step: str) -> int:
+def convert_tick_str_to_int(time_per_step: str) -> int:
     d = {
         "30min": 30,
     }
     return d[time_per_step]
 
 
-def _get_ticks_slice(
+def get_ticks_slice(
     ticks_index: pd.DatetimeIndex,
     start: pd.Timestamp,
     end: pd.Timestamp,
@@ -69,7 +69,7 @@ def _get_ticks_slice(
     return ticks_index[ticks_index.slice_indexer(start, end)]
 
 
-def _dataframe_append(df: pd.DataFrame, other: Any) -> pd.DataFrame:
+def dataframe_append(df: pd.DataFrame, other: Any) -> pd.DataFrame:
     # dataframe.append is deprecated
     other_df = pd.DataFrame(other).set_index("datetime")
     other_df.index.name = "datetime"
@@ -78,7 +78,7 @@ def _dataframe_append(df: pd.DataFrame, other: Any) -> pd.DataFrame:
     return res
 
 
-def _price_advantage(
+def price_advantage(
     exec_price: _float_or_ndarray,
     baseline_price: float,
     direction: OrderDir | int,
@@ -101,7 +101,7 @@ def _price_advantage(
         return cast(_float_or_ndarray, res_wo_nan)
 
 
-def _get_portfolio_and_indicator(executor: BaseExecutor) -> Tuple[dict, dict]:
+def get_portfolio_and_indicator(executor: BaseExecutor) -> Tuple[dict, dict]:
     all_executors = executor.get_all_executors()
     all_portfolio_metrics = {
         "{}{}".format(*Freq.parse(_executor.time_per_step)): _executor.trade_account.get_portfolio_metrics()
