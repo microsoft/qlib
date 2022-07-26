@@ -4,7 +4,7 @@
 """Placeholder for qlib-based simulator."""
 from __future__ import annotations
 
-from typing import Callable, Generator, List, Optional, Tuple, cast
+from typing import Callable, cast, Generator, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -14,8 +14,8 @@ from qlib.backtest.executor import BaseExecutor, NestedExecutor
 from qlib.backtest.utils import CommonInfrastructure
 from qlib.constant import EPS
 from qlib.rl.data.pickle_styled import QlibIntradayBacktestData
-from qlib.rl.order_execution.from_neutrader.config import ExchangeConfig
-from qlib.rl.order_execution.from_neutrader.feature import init_qlib
+from qlib.rl.from_neutrader.config import ExchangeConfig
+from qlib.rl.from_neutrader.feature import init_qlib
 from qlib.rl.order_execution.simulator_simple import SAOEMetrics, SAOEState
 from qlib.rl.order_execution.utils import (
     _convert_tick_str_to_int,

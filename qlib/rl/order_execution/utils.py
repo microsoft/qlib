@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, List, Optional, Tuple, cast
+from typing import Any, cast, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -9,8 +9,8 @@ from qlib.backtest import CommonInfrastructure, get_exchange
 from qlib.backtest.account import Account
 from qlib.backtest.decision import OrderDir
 from qlib.backtest.executor import BaseExecutor
-from qlib.rl.order_execution.from_neutrader.config import ExchangeConfig
-from qlib.rl.order_execution.simulator_simple import ONE_SEC, _float_or_ndarray
+from qlib.rl.from_neutrader.config import ExchangeConfig
+from qlib.rl.order_execution.simulator_simple import _float_or_ndarray, ONE_SEC
 from qlib.utils.time import Freq
 
 
