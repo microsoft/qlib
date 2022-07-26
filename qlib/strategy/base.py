@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from abc import ABCMeta, abstractmethod
-from typing import Any, Generator, Optional, TYPE_CHECKING
+from typing import Any, Generator, Optional, TYPE_CHECKING, Union
 
 if TYPE_CHECKING:
     from qlib.backtest.exchange import Exchange

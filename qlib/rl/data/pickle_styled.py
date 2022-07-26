@@ -88,9 +88,6 @@ def _read_pickle(filename_without_suffix: Path) -> pd.DataFrame:
 
 
 class IntradayBacktestData:
-    def __init__(self) -> None:
-        super(IntradayBacktestData, self).__init__()
-
     @abstractmethod
     def __repr__(self) -> str:
         raise NotImplementedError

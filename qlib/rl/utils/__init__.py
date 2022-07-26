@@ -4,7 +4,7 @@
 from .data_queue import DataQueue
 from .env_wrapper import EnvWrapper, EnvWrapperStatus
 from .finite_env import FiniteEnvType, vectorize_env
-from .log import ConsoleWriter, CsvWriter, LogCollector, LogLevel, LogWriter
+from .log import ConsoleWriter, CsvWriter, LogBuffer, LogCollector, LogLevel, LogWriter
 
 __all__ = [
     "LogLevel",
@@ -17,4 +17,5 @@ __all__ = [
     "ConsoleWriter",
     "CsvWriter",
     "EnvWrapperStatus",
+    "LogBuffer",
 ]
