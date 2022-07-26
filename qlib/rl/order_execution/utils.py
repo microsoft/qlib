@@ -18,7 +18,7 @@ def _get_common_infra(
     config: ExchangeConfig,
     trade_date: pd.Timestamp,
     codes: List[str],
-    cash_limit: Optional[float] = None,
+    cash_limit: float = None,
 ) -> CommonInfrastructure:
     # need to specify a range here for acceleration
     if cash_limit is None:
