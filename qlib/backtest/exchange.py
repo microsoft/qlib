@@ -833,7 +833,8 @@ class Exchange:
         :return: trade_price, trade_val, trade_cost
         """
         trade_price = cast(
-            float, self.get_deal_price(order.stock_id, order.start_time, order.end_time, direction=order.direction),
+            float,
+            self.get_deal_price(order.stock_id, order.start_time, order.end_time, direction=order.direction),
         )
         total_trade_val = cast(float, self.get_volume(order.stock_id, order.start_time, order.end_time)) * trade_price
         order.factor = self.get_factor(order.stock_id, order.start_time, order.end_time)
