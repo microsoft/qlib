@@ -32,7 +32,7 @@ class Exchange:
         start_time: Union[pd.Timestamp, str] = None,
         end_time: Union[pd.Timestamp, str] = None,
         codes: Union[list, str] = "all",
-        deal_price: Union[str, Tuple[str], List[str]] = None,
+        deal_price: Union[str, Tuple[str, str], List[str]] = None,
         subscribe_fields: list = [],
         limit_threshold: Union[Tuple[str, str], float, None] = None,
         volume_threshold: Union[tuple, dict] = None,

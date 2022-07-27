@@ -9,7 +9,7 @@ from typing import Optional, Tuple, Union
 @dataclass
 class ExchangeConfig:
     limit_threshold: Union[float, Tuple[str, str]]
-    deal_price: Union[str, Tuple[str]]
+    deal_price: Union[str, Tuple[str, str]]
     volume_threshold: dict
     open_cost: float = 0.0005
     close_cost: float = 0.0015
