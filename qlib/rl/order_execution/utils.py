@@ -51,13 +51,6 @@ def get_common_infra(
     return CommonInfrastructure(trade_account=trade_account, trade_exchange=exchange)
 
 
-def convert_tick_str_to_int(time_per_step: str) -> int:
-    d = {
-        "30min": 30,
-    }
-    return d[time_per_step]
-
-
 def get_ticks_slice(
     ticks_index: pd.DatetimeIndex,
     start: pd.Timestamp,

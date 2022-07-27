@@ -2,7 +2,6 @@
 # Licensed under the MIT License.
 from __future__ import annotations
 
-from abc import ABCMeta
 from pathlib import Path
 from typing import Any, Dict, Generator, Iterable, Optional, Tuple, cast
 
@@ -20,7 +19,7 @@ __all__ = ["AllOne", "PPO"]
 # baselines #
 
 
-class NonLearnablePolicy(BasePolicy, metaclass=ABCMeta):
+class NonLearnablePolicy(BasePolicy):
     """Tianshou's BasePolicy with empty ``learn`` and ``process_fn``.
 
     This could be moved outside in future.

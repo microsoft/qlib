@@ -11,14 +11,13 @@ from __future__ import annotations
 import copy
 import warnings
 from contextlib import contextmanager
-from typing import Any, Callable, Dict, Generator, List, Optional, Set, Tuple, Type, cast
+from typing import Any, Callable, cast, Dict, Generator, List, Optional, Set, Tuple, Type, Union
 
 import gym
 import numpy as np
 from tianshou.env import BaseVectorEnv, DummyVectorEnv, ShmemVectorEnv, SubprocVectorEnv
 
 from qlib.typehint import Literal
-
 from .log import LogWriter
 
 __all__ = [
@@ -32,11 +31,11 @@ __all__ = [
     "vectorize_env",
 ]
 
-
 FiniteEnvType = Literal["dummy", "subproc", "shmem"]
+T = Union[dict, list, tuple, np.ndarray]
 
 
-def fill_invalid(obj: int | float | bool | np.ndarray | dict | list | tuple) -> np.ndarray | dict | list | tuple:
+def fill_invalid(obj: int | float | bool | T) -> T:
     if isinstance(obj, (int, float, bool)):
         return fill_invalid(np.array(obj))
     if hasattr(obj, "dtype"):
@@ -55,7 +54,7 @@ def fill_invalid(obj: int | float | bool | np.ndarray | dict | list | tuple) -> 
     raise ValueError(f"Unsupported value to fill with invalid: {obj}")
 
 
-def is_invalid(arr: int | float | bool | np.ndarray | dict | list | tuple) -> bool:
+def is_invalid(arr: int | float | bool | T) -> bool:
     if isinstance(arr, np.ndarray):
         if np.issubdtype(arr.dtype, np.floating):
             return np.isnan(arr).all()

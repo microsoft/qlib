@@ -29,7 +29,6 @@ import numpy as np
 import pandas as pd
 from cachetools.keys import hashkey
 
-from qlib.backtest import Exchange
 from qlib.backtest.decision import Order, OrderDir
 from qlib.typehint import Literal
 
@@ -88,6 +87,13 @@ def _read_pickle(filename_without_suffix: Path) -> pd.DataFrame:
 
 
 class IntradayBacktestData:
+    """
+    Raw market data that is often used in backtesting (thus called BacktestData).
+
+    Base class for all types of backtest data. Currently, each type of simulator has its corresponding backtest
+    data type.
+    """
+
     @abstractmethod
     def __repr__(self) -> str:
         raise NotImplementedError
@@ -110,7 +116,7 @@ class IntradayBacktestData:
 
 
 class SimpleIntradayBacktestData(IntradayBacktestData):
-    """Raw market data that is often used in backtesting (thus called BacktestData)."""
+    """Backtest data for simple simulator"""
 
     def __init__(
         self,
@@ -170,41 +176,6 @@ class SimpleIntradayBacktestData(IntradayBacktestData):
 
     def get_time_index(self) -> pd.DatetimeIndex:
         return cast(pd.DatetimeIndex, self.data.index)
-
-
-class QlibIntradayBacktestData(IntradayBacktestData):
-    def __init__(self, order: Order, exchange: Exchange, start_time: pd.Timestamp, end_time: pd.Timestamp) -> None:
-        super(QlibIntradayBacktestData, self).__init__()
-        self._order = order
-        self._exchange = exchange
-        self._start_time = start_time
-        self._end_time = end_time
-
-    def __repr__(self) -> str:
-        raise NotImplementedError
-
-    def __len__(self) -> int:
-        raise NotImplementedError
-
-    def get_deal_price(self) -> pd.Series:
-        return self._exchange.get_deal_price(
-            self._order.stock_id,
-            self._start_time,
-            self._end_time,
-            direction=self._order.direction,
-            method=None,
-        )
-
-    def get_volume(self) -> pd.Series:
-        return self._exchange.get_volume(
-            self._order.stock_id,
-            self._start_time,
-            self._end_time,
-            method=None,
-        )
-
-    def get_time_index(self) -> pd.DatetimeIndex:
-        return pd.DatetimeIndex([e[1] for e in list(self._exchange.quote_df.index)])
 
 
 class IntradayProcessedData:

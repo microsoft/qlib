@@ -1,10 +1,9 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-"""Placeholder for qlib-based simulator."""
 from __future__ import annotations
 
-from typing import Any, Callable, Generator, List, Optional, Tuple, cast
+from typing import Any, Callable, cast, Generator, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -13,12 +12,11 @@ from qlib.backtest.decision import BaseTradeDecision, Order, OrderHelper, TradeD
 from qlib.backtest.executor import BaseExecutor, NestedExecutor
 from qlib.backtest.utils import CommonInfrastructure
 from qlib.constant import EPS
-from qlib.rl.data.pickle_styled import QlibIntradayBacktestData
+from qlib.rl.data.exchange_wrapper import QlibIntradayBacktestData
 from qlib.rl.from_neutrader.config import ExchangeConfig
 from qlib.rl.from_neutrader.feature import init_qlib
 from qlib.rl.order_execution.simulator_simple import SAOEMetrics, SAOEState
 from qlib.rl.order_execution.utils import (
-    convert_tick_str_to_int,
     dataframe_append,
     get_common_infra,
     get_portfolio_and_indicator,
@@ -90,6 +88,16 @@ class SingleOrderStrategy(BaseStrategy):
 
 
 class StateMaintainer:
+    """
+    Maintain states of the environment.
+
+    Example usage::
+
+        maintainer = StateMaintainer(...)  # in reset
+        maintainer.update(...)  # in step
+        # get states in get_state from maintainer
+    """
+
     def __init__(self, order: Order, tick_index: pd.DatetimeIndex, twap_price: float) -> None:
         super().__init__()
 
@@ -99,7 +107,6 @@ class StateMaintainer:
         self._twap_price = twap_price
 
         metric_keys = list(SAOEMetrics.__annotations__.keys())  # pylint: disable=no-member
-        # NOTE: can empty dataframe contain index?
         self.history_exec = pd.DataFrame(columns=metric_keys).set_index("datetime")
         self.history_steps = pd.DataFrame(columns=metric_keys).set_index("datetime")
         self.metrics: Optional[SAOEMetrics] = None
@@ -247,16 +254,14 @@ class SingleAssetQlibSimulator(Simulator[Order, SAOEState, float]):
     def __init__(
         self,
         order: Order,
-        time_per_step: str,
+        time_per_step: str,  # "1min", "30min", "1day", etc.
         qlib_config: dict,
         inner_executor_fn: Callable[[str, CommonInfrastructure], BaseExecutor],
         exchange_config: ExchangeConfig,
     ) -> None:
-        super().__init__(
-            initial=order,  # TODO: confirm this logic
-        )
+        super().__init__(initial=order)
 
-        assert order.start_time.date() == order.end_time.date()
+        assert order.start_time.date() == order.end_time.date(), "Start date and end date must be the same."
 
         self._order = order
         self._order_date = pd.Timestamp(order.start_time.date())
@@ -266,7 +271,7 @@ class SingleAssetQlibSimulator(Simulator[Order, SAOEState, float]):
         self._exchange_config = exchange_config
 
         self._time_per_step = time_per_step
-        self._ticks_per_step = convert_tick_str_to_int(time_per_step)
+        self._ticks_per_step = int(pd.Timedelta(time_per_step).total_seconds() // 60)
 
         self._executor: Optional[NestedExecutor] = None
         self._collect_data_loop: Optional[Generator] = None
