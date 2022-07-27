@@ -59,7 +59,7 @@ def is_invalid(arr: int | float | bool | np.ndarray | dict | list | tuple) -> bo
     if isinstance(arr, np.ndarray):
         if np.issubdtype(arr.dtype, np.floating):
             return np.isnan(arr).all()
-        return cast(bool, (np.iinfo(arr.dtype).max == arr).all())
+        return cast(bool, cast(np.ndarray, np.iinfo(arr.dtype).max == arr).all())
     if isinstance(arr, dict):
         return all(is_invalid(o) for o in arr.values())
     if isinstance(arr, (list, tuple)):
