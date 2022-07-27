@@ -1,9 +1,10 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
-
+import sys
 from pathlib import Path
 
 import pandas as pd
+import pytest
 
 from qlib.backtest.decision import Order, OrderDir
 from qlib.backtest.executor import NestedExecutor, SimulatorExecutor
@@ -13,6 +14,8 @@ from qlib.rl.order_execution import CategoricalActionInterpreter
 from qlib.rl.order_execution.simulator_qlib import ExchangeConfig, SingleAssetQlibSimulator
 
 TOTAL_POSITION = 2100.0
+
+python_version_request = pytest.mark.skipif(sys.version_info < (3, 8), reason="requires python3.8 or higher")
 
 
 def is_close(a: float, b: float, epsilon: float = 1e-4) -> bool:
@@ -89,6 +92,7 @@ def get_simulator(order: Order) -> SingleAssetQlibSimulator:
     )
 
 
+@python_version_request
 def test_simulator_first_step():
     order = get_order()
     simulator = get_simulator(order)
@@ -123,6 +127,7 @@ def test_simulator_first_step():
     )
 
 
+@python_version_request
 def test_simulator_stop_twap() -> None:
     order = get_order()
     simulator = get_simulator(order)
@@ -148,6 +153,7 @@ def test_simulator_stop_twap() -> None:
     assert simulator.done()
 
 
+@python_version_request
 def test_interpreter() -> None:
     NUM_EXECUTION = 3
     order = get_order()
