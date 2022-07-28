@@ -53,9 +53,9 @@ def get_simulator(order: Order) -> SingleAssetQlibSimulator:
 
     # fmt: off
     qlib_config = {
-        "provider_uri_day": DATA_ROOT_DIR / "qlib_amc_1d",
-        "provider_uri_1min": DATA_ROOT_DIR / "qlib_amc_1min",
-        "feature_root_dir": DATA_ROOT_DIR / "qlib_amc_handler_stock",
+        "provider_uri_day": DATA_ROOT_DIR / "qlib_1d",
+        "provider_uri_1min": DATA_ROOT_DIR / "qlib_1min",
+        "feature_root_dir": DATA_ROOT_DIR / "qlib_handler_stock",
         "feature_columns_today": [
             "$open", "$high", "$low", "$close", "$vwap", "$bid", "$ask", "$volume",
             "$bidV", "$bidV1", "$bidV3", "$bidV5", "$askV", "$askV1", "$askV3", "$askV5",
