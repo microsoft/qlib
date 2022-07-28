@@ -99,7 +99,7 @@ class FullHistoryStateInterpreter(StateInterpreter[SAOEState, FullHistoryObs]):
                     "data_processed": self._mask_future_info(processed.today, state.cur_time),
                     "data_processed_prev": processed.yesterday,
                     "acquiring": state.order.direction == state.order.BUY,
-                    "cur_tick": min(float(np.sum(state.ticks_index < state.cur_time)), self.data_ticks - 1),
+                    "cur_tick": min(int(np.sum(state.ticks_index < state.cur_time)), self.data_ticks - 1),
                     "cur_step": min(self.env.status["cur_step"], self.max_step - 1),
                     "num_step": self.max_step,
                     "target": state.order.amount,
