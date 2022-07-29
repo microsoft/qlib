@@ -49,6 +49,7 @@ class DataWrapper:
         self.columns_today = columns_today
         self.columns_yesterday = columns_yesterday
 
+        # TODO: We might have the chance to merge them.
         self.feature_cache = LRUCache()
         self.backtest_cache = LRUCache()
 

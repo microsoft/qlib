@@ -35,6 +35,10 @@ class DecomposedStrategy(BaseStrategy):
         self.execute_result: List[Tuple[Order, float, float, float]] = []
 
     def generate_trade_decision(self, execute_result: list = None) -> Generator[Any, Any, BaseTradeDecision]:
+        # Once the following line is executed, this DecomposedStrategy (self) will be yielded to the outside
+        # of the entire executor, and the execution will be suspended. When the execution is resumed by `send()`,
+        # the sent item will be captured by `exec_vol`. The outside policy could communicate with the inner
+        # level strategy through this way.
         exec_vol = yield self
 
         oh = self.trade_exchange.get_order_helper()
@@ -87,6 +91,11 @@ class SingleOrderStrategy(BaseStrategy):
         return TradeDecisionWO(order_list, self, self._trade_range)
 
 
+# TODO: move these to the configuration files
+FINEST_GRANULARITY = "1min"
+COARSEST_GRANULARITY = "1day"
+
+
 class StateMaintainer:
     """
     Maintain states of the environment.
@@ -98,11 +107,12 @@ class StateMaintainer:
         # get states in get_state from maintainer
     """
 
-    def __init__(self, order: Order, tick_index: pd.DatetimeIndex, twap_price: float) -> None:
+    def __init__(self, order: Order, time_per_step: str, tick_index: pd.DatetimeIndex, twap_price: float) -> None:
         super().__init__()
 
         self.position = order.amount
         self._order = order
+        self._time_per_step = time_per_step
         self._tick_index = tick_index
         self._twap_price = twap_price
 
@@ -139,11 +149,11 @@ class StateMaintainer:
                 ),
             )
 
-            trade_value = all_indicators["1min"].iloc[-num_step:]["value"].values
-            deal_amount = all_indicators["1min"].iloc[-num_step:]["deal_amount"].values
+            trade_value = all_indicators[FINEST_GRANULARITY].iloc[-num_step:]["value"].values
+            deal_amount = all_indicators[FINEST_GRANULARITY].iloc[-num_step:]["deal_amount"].values
             market_price = trade_value / deal_amount
 
-            datetime_list = all_indicators["1min"].index[-num_step:]
+            datetime_list = all_indicators[FINEST_GRANULARITY].index[-num_step:]
 
         assert market_price.shape == market_volume.shape == exec_vol.shape
 
@@ -155,7 +165,7 @@ class StateMaintainer:
                 market_vol=market_volume,
                 market_price=market_price,
                 exec_vol=exec_vol,
-                pa=all_indicators["30min"].iloc[-1]["pa"],
+                pa=all_indicators[self._time_per_step].iloc[-1]["pa"],
             ),
         )
 
@@ -183,6 +193,7 @@ class StateMaintainer:
                 self.history_exec["deal_amount"],
             )
 
+        # TODO: check whether we need this. Can we get this information from Account?
         # Do this at the end
         self.position -= exec_vol.sum()
 
@@ -250,15 +261,33 @@ class StateMaintainer:
         )
 
 
-class SingleAssetQlibSimulator(Simulator[Order, SAOEState, float]):
+class SingleAssetOrderExecutionQlib(Simulator[Order, SAOEState, float]):
+    """Single-asset order execution (SAOE) simulator which is implemented based on Qlib backtest tools.
+
+    Parameters
+    ----------
+    order (Order):
+        The seed to start an SAOE simulator is an order.
+    time_per_step (str):
+        A string to describe the time granularity of each step. Current support "1min", "30min", and "1day"
+    qlib_config (dict):
+        Configuration used to initialize Qlib.
+    inner_executor_fn (Callable[[str, CommonInfrastructure], BaseExecutor]):
+        Function used to get the inner level executor.
+    exchange_config (ExchangeConfig):
+        Configuration used to create the Exchange instance.
+    """
+
     def __init__(
         self,
         order: Order,
-        time_per_step: str,  # "1min", "30min", "1day", etc.
+        time_per_step: str,  # "1min", "30min", "1day"
         qlib_config: dict,
         inner_executor_fn: Callable[[str, CommonInfrastructure], BaseExecutor],
         exchange_config: ExchangeConfig,
     ) -> None:
+        assert time_per_step in ("1min", "30min", "1day")
+
         super().__init__(initial=order)
 
         assert order.start_time.date() == order.end_time.date(), "Start date and end date must be the same."
@@ -285,6 +314,7 @@ class SingleAssetQlibSimulator(Simulator[Order, SAOEState, float]):
     def reset(self, order: Order) -> None:
         instrument = order.stock_id
 
+        # TODO: Check this logic. Make sure we need to do this every time we reset the simulator.
         init_qlib(self._qlib_config, instrument)
 
         common_infra = get_common_infra(
@@ -293,9 +323,12 @@ class SingleAssetQlibSimulator(Simulator[Order, SAOEState, float]):
             codes=[instrument],
         )
 
+        # TODO: We can leverage interfaces like (https://tinyurl.com/y8f8fhv4) to create trading environment.
+        # TODO: By aligning the interface to create environments with Qlib, it will be easier to share the config and
+        # TODO: code between backtesting and training.
         self._inner_executor = self._inner_executor_fn(self._time_per_step, common_infra)
         self._executor = NestedExecutor(
-            time_per_step="1day",
+            time_per_step=COARSEST_GRANULARITY,
             inner_executor=self._inner_executor,
             inner_strategy=self._inner_strategy,
             track_data=True,
@@ -332,11 +365,13 @@ class SingleAssetQlibSimulator(Simulator[Order, SAOEState, float]):
 
         self._maintainer = StateMaintainer(
             order=self._order,
+            time_per_step=self._time_per_step,
             tick_index=self._ticks_index,
             twap_price=self.twap_price,
         )
 
     def _iter_strategy(self, action: float = None) -> DecomposedStrategy:
+        """Iterate the _collect_data_loop until we get the next yield DecomposedStrategy."""
         assert self._collect_data_loop is not None
 
         strategy = next(self._collect_data_loop) if action is None else self._collect_data_loop.send(action)
@@ -346,6 +381,14 @@ class SingleAssetQlibSimulator(Simulator[Order, SAOEState, float]):
         return strategy
 
     def step(self, action: float) -> None:
+        """Execute one step or SAOE.
+
+        Parameters
+        ----------
+        action (float):
+            The amount you wish to deal. The simulator doesn't guarantee all the amount to be successfully dealt.
+        """
+
         assert not self._done, "Simulator has already done!"
 
         try:

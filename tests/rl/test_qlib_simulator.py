@@ -11,7 +11,7 @@ from qlib.backtest.executor import NestedExecutor, SimulatorExecutor
 from qlib.backtest.utils import CommonInfrastructure
 from qlib.contrib.strategy import TWAPStrategy
 from qlib.rl.order_execution import CategoricalActionInterpreter
-from qlib.rl.order_execution.simulator_qlib import ExchangeConfig, SingleAssetQlibSimulator
+from qlib.rl.order_execution.simulator_qlib import ExchangeConfig, SingleAssetOrderExecutionQlib
 
 TOTAL_POSITION = 2100.0
 
@@ -32,7 +32,7 @@ def get_order() -> Order:
     )
 
 
-def get_simulator(order: Order) -> SingleAssetQlibSimulator:
+def get_simulator(order: Order) -> SingleAssetOrderExecutionQlib:
     def _inner_executor_fn(time_per_step: str, common_infra: CommonInfrastructure) -> NestedExecutor:
         return NestedExecutor(
             time_per_step=time_per_step,
@@ -83,7 +83,7 @@ def get_simulator(order: Order) -> SingleAssetQlibSimulator:
         generate_report=False,
     )
 
-    return SingleAssetQlibSimulator(
+    return SingleAssetOrderExecutionQlib(
         order=order,
         time_per_step="30min",
         qlib_config=qlib_config,

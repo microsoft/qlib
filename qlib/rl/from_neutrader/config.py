@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Optional, Tuple, Union
 
 
+# TODO: In the future we should merge the dataclass-based config with Qlib's dict-based config.
 @dataclass
 class ExchangeConfig:
     limit_threshold: Union[float, Tuple[str, str]]

@@ -1,9 +1,12 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
 from typing import cast
 
 import pandas as pd
 
 from qlib.backtest import Exchange, Order
-from qlib.rl.data.pickle_styled import IntradayBacktestData
+from .pickle_styled import IntradayBacktestData
 
 
 class QlibIntradayBacktestData(IntradayBacktestData):
@@ -16,14 +19,7 @@ class QlibIntradayBacktestData(IntradayBacktestData):
         self._start_time = start_time
         self._end_time = end_time
 
-    def __repr__(self) -> str:
-        raise NotImplementedError
-
-    def __len__(self) -> int:
-        raise NotImplementedError
-
-    def get_deal_price(self) -> pd.Series:
-        return cast(
+        self._deal_price = cast(
             pd.Series,
             self._exchange.get_deal_price(
                 self._order.stock_id,
@@ -33,9 +29,7 @@ class QlibIntradayBacktestData(IntradayBacktestData):
                 method=None,
             ),
         )
-
-    def get_volume(self) -> pd.Series:
-        return cast(
+        self._volume = cast(
             pd.Series,
             self._exchange.get_volume(
                 self._order.stock_id,
@@ -44,6 +38,21 @@ class QlibIntradayBacktestData(IntradayBacktestData):
                 method=None,
             ),
         )
+
+    def __repr__(self) -> str:
+        return (
+            f"Order: {self._order}, Exchange: {self._exchange}, "
+            f"Start time: {self._start_time}, End time: {self._end_time}"
+        )
+
+    def __len__(self) -> int:
+        return len(self._deal_price)
+
+    def get_deal_price(self) -> pd.Series:
+        return self._deal_price
+
+    def get_volume(self) -> pd.Series:
+        return self._volume
 
     def get_time_index(self) -> pd.DatetimeIndex:
         return pd.DatetimeIndex([e[1] for e in list(self._exchange.quote_df.index)])
