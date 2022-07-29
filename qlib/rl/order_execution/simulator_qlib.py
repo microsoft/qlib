@@ -15,7 +15,7 @@ from qlib.backtest.executor import NestedExecutor
 from qlib.backtest.utils import CommonInfrastructure
 from qlib.constant import EPS
 from qlib.rl.data.exchange_wrapper import QlibIntradayBacktestData
-from qlib.rl.from_neutrader.feature import init_qlib
+from qlib.rl.integration.feature import init_qlib
 from qlib.rl.order_execution.objects import COARSEST_GRANULARITY, FINEST_GRANULARITY
 from qlib.rl.order_execution.simulator_simple import SAOEMetrics, SAOEState
 from qlib.rl.order_execution.utils import (
