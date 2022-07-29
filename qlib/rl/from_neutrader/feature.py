@@ -70,10 +70,10 @@ class DataWrapper:
         return data
 
 
-def init_qlib(config: dict, part: Optional[str] = None) -> None:
+def init_qlib(qlib_config: dict) -> None:
     provider_uri_map = {
-        "day": config["provider_uri_day"].as_posix(),
-        "1min": config["provider_uri_1min"].as_posix(),
+        "day": qlib_config["provider_uri_day"].as_posix(),
+        "1min": qlib_config["provider_uri_1min"].as_posix(),
     }
     qlib.init(
         region=REG_CN,

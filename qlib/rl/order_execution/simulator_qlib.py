@@ -3,22 +3,23 @@
 
 from __future__ import annotations
 
-from typing import Any, Callable, cast, Generator, List, Optional, Tuple
+import copy
+from typing import Any, cast, Generator, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
 
+from qlib.backtest import get_strategy_executor
 from qlib.backtest.decision import BaseTradeDecision, Order, OrderHelper, TradeDecisionWO, TradeRange, TradeRangeByTime
-from qlib.backtest.executor import BaseExecutor, NestedExecutor
+from qlib.backtest.executor import NestedExecutor
 from qlib.backtest.utils import CommonInfrastructure
 from qlib.constant import EPS
 from qlib.rl.data.exchange_wrapper import QlibIntradayBacktestData
-from qlib.rl.from_neutrader.config import ExchangeConfig
 from qlib.rl.from_neutrader.feature import init_qlib
+from qlib.rl.order_execution.objects import COARSEST_GRANULARITY, FINEST_GRANULARITY
 from qlib.rl.order_execution.simulator_simple import SAOEMetrics, SAOEState
 from qlib.rl.order_execution.utils import (
     dataframe_append,
-    get_common_infra,
     get_portfolio_and_indicator,
     get_ticks_slice,
     price_advantage,
@@ -28,8 +29,8 @@ from qlib.strategy.base import BaseStrategy
 
 
 class DecomposedStrategy(BaseStrategy):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, common_infra: CommonInfrastructure = None) -> None:
+        super().__init__(common_infra=common_infra)
 
         self.execute_order: Optional[Order] = None
         self.execute_result: List[Tuple[Order, float, float, float]] = []
@@ -66,12 +67,12 @@ class SingleOrderStrategy(BaseStrategy):
     # this logic is copied from FileOrderStrategy
     def __init__(
         self,
-        common_infra: CommonInfrastructure,
         order: Order,
         trade_range: TradeRange,
         instrument: str,
     ) -> None:
-        super().__init__(common_infra=common_infra)
+        super().__init__()
+
         self._order = order
         self._trade_range = trade_range
         self._instrument = instrument
@@ -91,9 +92,25 @@ class SingleOrderStrategy(BaseStrategy):
         return TradeDecisionWO(order_list, self, self._trade_range)
 
 
-# TODO: move these to the configuration files
-FINEST_GRANULARITY = "1min"
-COARSEST_GRANULARITY = "1day"
+executor_config_template = {
+    "class": "NestedExecutor",
+    "module_path": "qlib.backtest.executor",
+    "kwargs": {
+        "time_per_step": COARSEST_GRANULARITY,
+        "inner_strategy": {
+            "class": "DecomposedStrategy",
+            "module_path": "qlib.rl.order_execution.simulator_qlib",
+        },
+        "track_data": True,
+    },
+}
+top_strategy_config_template = {
+    "class": "SingleOrderStrategy",
+    "module_path": "qlib.rl.order_execution.simulator_qlib",
+}
+exchange_kwargs_template = {
+    "freq": FINEST_GRANULARITY,
+}
 
 
 class StateMaintainer:
@@ -123,11 +140,14 @@ class StateMaintainer:
 
     def update(
         self,
-        inner_executor: BaseExecutor,
-        inner_strategy: DecomposedStrategy,
+        executor: NestedExecutor,
         done: bool,
         all_indicators: dict,
     ) -> None:
+        inner_executor = executor.inner_executor
+        inner_strategy = executor.inner_strategy
+        assert isinstance(inner_strategy, DecomposedStrategy)
+
         execute_order = inner_strategy.execute_order
         execute_result = inner_strategy.execute_result
         exec_vol = np.array([e[0].deal_amount for e in execute_result])
@@ -272,10 +292,10 @@ class SingleAssetOrderExecutionQlib(Simulator[Order, SAOEState, float]):
         A string to describe the time granularity of each step. Current support "1min", "30min", and "1day"
     qlib_config (dict):
         Configuration used to initialize Qlib.
-    inner_executor_fn (Callable[[str, CommonInfrastructure], BaseExecutor]):
-        Function used to get the inner level executor.
-    exchange_config (ExchangeConfig):
-        Configuration used to create the Exchange instance.
+    inner_executor_config (dict):
+        Inner executor configuration
+    exchange_config (dict):
+        Exchange configuration
     """
 
     def __init__(
@@ -283,8 +303,8 @@ class SingleAssetOrderExecutionQlib(Simulator[Order, SAOEState, float]):
         order: Order,
         time_per_step: str,  # "1min", "30min", "1day"
         qlib_config: dict,
-        inner_executor_fn: Callable[[str, CommonInfrastructure], BaseExecutor],
-        exchange_config: ExchangeConfig,
+        inner_executor_config: dict,
+        exchange_config: dict,
     ) -> None:
         assert time_per_step in ("1min", "30min", "1day")
 
@@ -292,12 +312,7 @@ class SingleAssetOrderExecutionQlib(Simulator[Order, SAOEState, float]):
 
         assert order.start_time.date() == order.end_time.date(), "Start date and end date must be the same."
 
-        self._order = order
-        self._order_date = pd.Timestamp(order.start_time.date())
-        self._trade_range = TradeRangeByTime(order.start_time.time(), order.end_time.time())
-        self._qlib_config = qlib_config
-        self._inner_executor_fn = inner_executor_fn
-        self._exchange_config = exchange_config
+        init_qlib(qlib_config)
 
         self._time_per_step = time_per_step
         self._ticks_per_step = int(pd.Timedelta(time_per_step).total_seconds() // 60)
@@ -307,55 +322,57 @@ class SingleAssetOrderExecutionQlib(Simulator[Order, SAOEState, float]):
 
         self._done = False
 
-        self._inner_strategy = DecomposedStrategy()
+        self.reset(order, inner_executor_config, exchange_config)
 
-        self.reset(self._order)
+    def reset(self, order: Order, inner_executor_config: dict, exchange_config: dict) -> None:
+        order_date = pd.Timestamp(order.start_time.date())
 
-    def reset(self, order: Order) -> None:
-        instrument = order.stock_id
+        top_strategy_config: dict = copy.deepcopy(top_strategy_config_template)
+        top_strategy_config.update({
+            "kwargs": {
+                "order": order,
+                "trade_range": TradeRangeByTime(order.start_time.time(), order.end_time.time()),
+                "instrument": order.stock_id,
+            }
+        })
 
-        # TODO: Check this logic. Make sure we need to do this every time we reset the simulator.
-        init_qlib(self._qlib_config, instrument)
+        executor_config: dict = copy.deepcopy(executor_config_template)
+        executor_config["kwargs"].update({
+            "inner_executor": inner_executor_config,
+            "start_time": order_date,
+            "end_time": order_date,
+        })
 
-        common_infra = get_common_infra(
-            self._exchange_config,
-            trade_date=pd.Timestamp(self._order_date),
-            codes=[instrument],
+        exchange_kwargs: dict = copy.deepcopy(exchange_kwargs_template)
+        exchange_kwargs.update({"codes": [order.stock_id], **exchange_config})
+
+        top_strategy, self._executor = get_strategy_executor(
+            start_time=order_date,
+            end_time=order_date + pd.DateOffset(1),
+            strategy=top_strategy_config,
+            executor=executor_config,
+            benchmark=order.stock_id,
+            account=1e12,
+            exchange_kwargs=exchange_kwargs,
+            pos_type="InfPosition",
         )
+        top_strategy.reset(level_infra=self._executor.get_level_infra())
 
-        # TODO: We can leverage interfaces like (https://tinyurl.com/y8f8fhv4) to create trading environment.
-        # TODO: By aligning the interface to create environments with Qlib, it will be easier to share the config and
-        # TODO: code between backtesting and training.
-        self._inner_executor = self._inner_executor_fn(self._time_per_step, common_infra)
-        self._executor = NestedExecutor(
-            time_per_step=COARSEST_GRANULARITY,
-            inner_executor=self._inner_executor,
-            inner_strategy=self._inner_strategy,
-            track_data=True,
-            common_infra=common_infra,
-        )
-
-        exchange = self._inner_executor.trade_exchange
+        exchange = self._executor.trade_exchange
         self._ticks_index = pd.DatetimeIndex([e[1] for e in list(exchange.quote_df.index)])
         self._ticks_for_order = get_ticks_slice(
             self._ticks_index,
-            self._order.start_time,
-            self._order.end_time,
+            order.start_time,
+            order.end_time,
             include_end=True,
         )
-
         self._backtest_data = QlibIntradayBacktestData(
-            order=self._order,
+            order=order,
             exchange=exchange,
             start_time=self._ticks_for_order[0],
             end_time=self._ticks_for_order[-1],
         )
-
         self.twap_price = self._backtest_data.get_deal_price().mean()
-
-        top_strategy = SingleOrderStrategy(common_infra, order, self._trade_range, instrument)
-        self._executor.reset(start_time=pd.Timestamp(self._order_date), end_time=pd.Timestamp(self._order_date))
-        top_strategy.reset(level_infra=self._executor.get_level_infra())
 
         self._collect_data_loop = self._executor.collect_data(top_strategy.generate_trade_decision(), level=0)
         assert isinstance(self._collect_data_loop, Generator)
@@ -364,11 +381,13 @@ class SingleAssetOrderExecutionQlib(Simulator[Order, SAOEState, float]):
         self._done = False
 
         self._maintainer = StateMaintainer(
-            order=self._order,
+            order=order,
             time_per_step=self._time_per_step,
             tick_index=self._ticks_index,
             twap_price=self.twap_price,
         )
+
+        self._order = order
 
     def _iter_strategy(self, action: float = None) -> DecomposedStrategy:
         """Iterate the _collect_data_loop until we get the next yield DecomposedStrategy."""
@@ -400,8 +419,7 @@ class SingleAssetOrderExecutionQlib(Simulator[Order, SAOEState, float]):
         _, all_indicators = get_portfolio_and_indicator(self._executor)
 
         self._maintainer.update(
-            inner_executor=self._inner_executor,
-            inner_strategy=self._inner_strategy,
+            executor=self._executor,
             done=self._done,
             all_indicators=all_indicators,
         )
@@ -409,7 +427,7 @@ class SingleAssetOrderExecutionQlib(Simulator[Order, SAOEState, float]):
     def get_state(self) -> SAOEState:
         return SAOEState(
             order=self._order,
-            cur_time=self._inner_executor.trade_calendar.get_step_time()[0],
+            cur_time=self._executor.inner_executor.trade_calendar.get_step_time()[0],
             position=self._maintainer.position,
             history_exec=self._maintainer.history_exec,
             history_steps=self._maintainer.history_steps,

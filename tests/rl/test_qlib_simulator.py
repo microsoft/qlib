@@ -7,11 +7,10 @@ import pandas as pd
 import pytest
 
 from qlib.backtest.decision import Order, OrderDir
-from qlib.backtest.executor import NestedExecutor, SimulatorExecutor
-from qlib.backtest.utils import CommonInfrastructure
-from qlib.contrib.strategy import TWAPStrategy
+from qlib.backtest.executor import SimulatorExecutor
 from qlib.rl.order_execution import CategoricalActionInterpreter
-from qlib.rl.order_execution.simulator_qlib import ExchangeConfig, SingleAssetOrderExecutionQlib
+from qlib.rl.order_execution.objects import FINEST_GRANULARITY
+from qlib.rl.order_execution.simulator_qlib import SingleAssetOrderExecutionQlib
 
 TOTAL_POSITION = 2100.0
 
@@ -32,22 +31,30 @@ def get_order() -> Order:
     )
 
 
-def get_simulator(order: Order) -> SingleAssetOrderExecutionQlib:
-    def _inner_executor_fn(time_per_step: str, common_infra: CommonInfrastructure) -> NestedExecutor:
-        return NestedExecutor(
-            time_per_step=time_per_step,
-            inner_strategy=TWAPStrategy(),
-            inner_executor=SimulatorExecutor(
-                time_per_step="1min",
-                verbose=False,
-                trade_type=SimulatorExecutor.TT_SERIAL,
-                generate_report=False,
-                common_infra=common_infra,
-                track_data=True,
-            ),
-            common_infra=common_infra,
-            track_data=True,
-        )
+def get_simulator(order: Order, time_per_step: str) -> SingleAssetOrderExecutionQlib:
+    _inner_executor_config = {
+        "class": "NestedExecutor",
+        "module_path": "qlib.backtest.executor",
+        "kwargs": {
+            "time_per_step": time_per_step,
+            "inner_strategy": {
+                "class": "TWAPStrategy",
+                "module_path": "qlib.contrib.strategy.rule_strategy",
+            },
+            "inner_executor": {
+                "class": "SimulatorExecutor",
+                "module_path": "qlib.backtest.executor",
+                "kwargs": {
+                    "time_per_step": FINEST_GRANULARITY,
+                    "verbose": False,
+                    "trade_type": SimulatorExecutor.TT_SERIAL,
+                    "generate_report": False,
+                    "track_data": True,
+                }
+            },
+            "track_data": True,
+        },
+    }
 
     DATA_ROOT_DIR = Path(__file__).parent.parent / ".data" / "rl" / "qlib_simulator"
 
@@ -67,27 +74,25 @@ def get_simulator(order: Order) -> SingleAssetOrderExecutionQlib:
     }
     # fmt: on
 
-    exchange_config = ExchangeConfig(
-        limit_threshold=("$ask == 0", "$bid == 0"),
-        deal_price=("If($ask == 0, $bid, $ask)", "If($bid == 0, $ask, $bid)"),
-        volume_threshold={
+    exchange_config = {
+        "limit_threshold": ("$ask == 0", "$bid == 0"),
+        "deal_price": ("If($ask == 0, $bid, $ask)", "If($bid == 0, $ask, $bid)"),
+        "volume_threshold": {
             "all": ("cum", "0.2 * DayCumsum($volume, '9:30', '14:29')"),
             "buy": ("current", "$askV1"),
             "sell": ("current", "$bidV1"),
         },
-        open_cost=0.0005,
-        close_cost=0.0015,
-        min_cost=5.0,
-        trade_unit=None,
-        cash_limit=None,
-        generate_report=False,
-    )
+        "open_cost": 0.0005,
+        "close_cost": 0.0015,
+        "min_cost": 5.0,
+        "trade_unit": None,
+    }
 
     return SingleAssetOrderExecutionQlib(
         order=order,
-        time_per_step="30min",
+        time_per_step=time_per_step,
         qlib_config=qlib_config,
-        inner_executor_fn=_inner_executor_fn,
+        inner_executor_config=_inner_executor_config,
         exchange_config=exchange_config,
     )
 
@@ -95,7 +100,7 @@ def get_simulator(order: Order) -> SingleAssetOrderExecutionQlib:
 @python_version_request
 def test_simulator_first_step():
     order = get_order()
-    simulator = get_simulator(order)
+    simulator = get_simulator(order, time_per_step="30min")
     state = simulator.get_state()
     assert state.cur_time == pd.Timestamp("2019-03-04 09:30:00")
     assert state.position == TOTAL_POSITION
@@ -130,7 +135,7 @@ def test_simulator_first_step():
 @python_version_request
 def test_simulator_stop_twap() -> None:
     order = get_order()
-    simulator = get_simulator(order)
+    simulator = get_simulator(order, time_per_step="30min")
     NUM_STEPS = 7
     for i in range(NUM_STEPS):
         simulator.step(TOTAL_POSITION / NUM_STEPS)
@@ -157,7 +162,7 @@ def test_simulator_stop_twap() -> None:
 def test_interpreter() -> None:
     NUM_EXECUTION = 3
     order = get_order()
-    simulator = get_simulator(order)
+    simulator = get_simulator(order, time_per_step="30min")
     interpreter_action = CategoricalActionInterpreter(values=NUM_EXECUTION)
 
     NUM_STEPS = 7
