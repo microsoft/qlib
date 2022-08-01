@@ -3,13 +3,13 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, TypeVar, Generic, Any
+from typing import TYPE_CHECKING, Any, Generic, Optional, TypeVar
 
 import numpy as np
 
 from qlib.typehint import final
 
-from .simulator import StateType, ActType
+from .simulator import ActType, StateType
 
 if TYPE_CHECKING:
     from .utils.env_wrapper import EnvWrapper
@@ -40,7 +40,7 @@ class Interpreter:
 class StateInterpreter(Generic[StateType, ObsType], Interpreter):
     """State Interpreter that interpret execution result of qlib executor into rl env state"""
 
-    env: EnvWrapper | None = None
+    env: Optional[EnvWrapper] = None
 
     @property
     def observation_space(self) -> gym.Space:
@@ -74,7 +74,7 @@ class StateInterpreter(Generic[StateType, ObsType], Interpreter):
 class ActionInterpreter(Generic[StateType, PolicyActType, ActType], Interpreter):
     """Action Interpreter that interpret rl agent action into qlib orders"""
 
-    env: "EnvWrapper" | None = None
+    env: Optional[EnvWrapper] = None
 
     @property
     def action_space(self) -> gym.Space:
@@ -141,10 +141,10 @@ def _gym_space_contains(space: gym.Space, x: Any) -> None:
 
 
 class GymSpaceValidationError(Exception):
-    def __init__(self, message: str, space: gym.Space, x: Any):
+    def __init__(self, message: str, space: gym.Space, x: Any) -> None:
         self.message = message
         self.space = space
         self.x = x
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.message}\n  Space: {self.space}\n  Sample: {self.x}"

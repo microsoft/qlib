@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 import weakref
-from typing import Callable, ContextManager, Generic, Iterable, TYPE_CHECKING, Sequence, Any, TypeVar, cast, Dict
+from typing import TYPE_CHECKING, Any, Callable, ContextManager, Dict, Generic, Iterable, Sequence, TypeVar, cast
 
 import numpy as np
 from tianshou.data import Collector, VectorReplayBuffer
@@ -12,12 +12,11 @@ from tianshou.env import BaseVectorEnv
 from tianshou.policy import BasePolicy
 
 from qlib.constant import INF
-from qlib.rl.interpreter import StateType, ActType, ObsType, PolicyActType
-from qlib.rl.simulator import InitialStateType, Simulator
-from qlib.rl.interpreter import StateInterpreter, ActionInterpreter
-from qlib.rl.reward import Reward
-from qlib.rl.utils import DataQueue
 from qlib.log import get_module_logger
+from qlib.rl.interpreter import ActionInterpreter, ActType, ObsType, PolicyActType, StateInterpreter, StateType
+from qlib.rl.reward import Reward
+from qlib.rl.simulator import InitialStateType, Simulator
+from qlib.rl.utils import DataQueue
 from qlib.rl.utils.finite_env import FiniteVectorEnv
 
 if TYPE_CHECKING:
@@ -209,6 +208,9 @@ class TrainingVessel(TrainingVesselBase):
         order = np.random.permutation(len(collection))
         res = [collection[o] for o in order[:size]]
         _logger.info(
-            "Fast running in development mode. Cut %s initial states from %d to %d.", name, len(collection), len(res)
+            "Fast running in development mode. Cut %s initial states from %d to %d.",
+            name,
+            len(collection),
+            len(res),
         )
         return res

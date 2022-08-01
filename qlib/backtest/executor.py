@@ -484,6 +484,7 @@ class NestedExecutor(BaseExecutor):
         inner_exe_res :
             the execution result of inner task
         """
+        self.inner_strategy.post_exe_step(inner_exe_res)
 
     def get_all_executors(self) -> List[BaseExecutor]:
         """get all executors, including self and inner_executor.get_all_executors()"""
