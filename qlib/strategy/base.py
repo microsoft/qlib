@@ -8,6 +8,7 @@ from typing import Any, Generator, Optional, TYPE_CHECKING, Union
 if TYPE_CHECKING:
     from qlib.backtest.exchange import Exchange
     from qlib.backtest.position import BasePosition
+    from qlib.backtest.executor import BaseExecutor
 
 from typing import Tuple
 
@@ -206,6 +207,12 @@ class BaseStrategy:
             raise ValueError(f"There is not limitation for strategy {self}")
         range_limit = self.outer_trade_decision.get_data_cal_range_limit(rtype=rtype)
         return max(cal_range[0], range_limit[0]), min(cal_range[1], range_limit[1])
+
+    def post_upper_level_exe_step(self) -> None:
+        """
+        A hook for doing sth after the upper level executor finished its execution (for example, finalize
+        the metrics collection).
+        """
 
     def post_exe_step(self, execute_result: list) -> None:
         """

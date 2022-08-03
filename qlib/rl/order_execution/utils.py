@@ -9,9 +9,8 @@ import numpy as np
 import pandas as pd
 
 from qlib.backtest.decision import OrderDir
-from qlib.backtest.executor import BaseExecutor
+from qlib.backtest.executor import BaseExecutor, NestedExecutor, SimulatorExecutor
 from qlib.rl.order_execution.simulator_simple import _float_or_ndarray, ONE_SEC
-from qlib.utils.time import Freq
 
 
 def get_ticks_slice(
@@ -57,18 +56,8 @@ def price_advantage(
         return cast(_float_or_ndarray, res_wo_nan)
 
 
-def get_portfolio_and_indicator(executor: BaseExecutor) -> Tuple[dict, dict]:
-    all_executors = executor.get_all_executors()
-    all_portfolio_metrics = {
-        "{}{}".format(*Freq.parse(_executor.time_per_step)): _executor.trade_account.get_portfolio_metrics()
-        for _executor in all_executors
-        if _executor.trade_account.is_port_metr_enabled()
-    }
-
-    all_indicators = {}
-    for _executor in all_executors:
-        key = "{}{}".format(*Freq.parse(_executor.time_per_step))
-        all_indicators[key] = _executor.trade_account.get_trade_indicator().generate_trade_indicators_dataframe()
-        all_indicators[key + "_obj"] = _executor.trade_account.get_trade_indicator()
-
-    return all_portfolio_metrics, all_indicators
+def get_simulator_executor(executor: BaseExecutor) -> SimulatorExecutor:
+    while isinstance(executor, NestedExecutor):
+        executor = executor.inner_executor
+    assert isinstance(executor, SimulatorExecutor)
+    return executor

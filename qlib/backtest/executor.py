@@ -124,6 +124,9 @@ class BaseExecutor:
         self.dealt_order_amount: Dict[str, float] = defaultdict(float)
         self.deal_day = None
 
+        # whether the current executor is collecting data
+        self.is_collecting = False
+
     def reset_common_infra(self, common_infra: CommonInfrastructure, copy_trade_account: bool = False) -> None:
         """
         reset infrastructure for trading
@@ -256,6 +259,8 @@ class BaseExecutor:
         object
             trade decision
         """
+        self.is_collecting = True
+
         if self.track_data:
             yield trade_decision
 
@@ -296,6 +301,8 @@ class BaseExecutor:
 
         if return_value is not None:
             return_value.update({"execute_result": res})
+
+        self.is_collecting = False
         return res
 
     def get_all_executors(self) -> List[BaseExecutor]:
@@ -472,6 +479,8 @@ class NestedExecutor(BaseExecutor):
             else:
                 # do nothing and just step forward
                 sub_cal.step()
+
+        self.inner_strategy.post_upper_level_exe_step()
 
         return execute_result, {"inner_order_indicators": inner_order_indicators, "decision_list": decision_list}
 

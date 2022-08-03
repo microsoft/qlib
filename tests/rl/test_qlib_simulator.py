@@ -1,12 +1,14 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
+
 import sys
 from pathlib import Path
+from typing import Tuple
 
 import pandas as pd
 import pytest
 
-from qlib.backtest.decision import Order, OrderDir
+from qlib.backtest.decision import Order, OrderDir, TradeRangeByTime
 from qlib.backtest.executor import SimulatorExecutor
 from qlib.rl.order_execution import CategoricalActionInterpreter
 from qlib.rl.order_execution.objects import FINEST_GRANULARITY
@@ -31,31 +33,72 @@ def get_order() -> Order:
     )
 
 
-def get_simulator(order: Order, time_per_step: str) -> SingleAssetOrderExecutionQlib:
-    _inner_executor_config = {
-        "class": "NestedExecutor",
-        "module_path": "qlib.backtest.executor",
+def get_configs(order: Order, time_per_step: str) -> Tuple[dict, dict, dict]:
+    strategy_config = {
+        "class": "SingleOrderStrategy",
+        "module_path": "qlib.rl.strategy.single_order",
         "kwargs": {
-            "time_per_step": time_per_step,
-            "inner_strategy": {
-                "class": "TWAPStrategy",
-                "module_path": "qlib.contrib.strategy.rule_strategy",
-            },
-            "inner_executor": {
-                "class": "SimulatorExecutor",
-                "module_path": "qlib.backtest.executor",
-                "kwargs": {
-                    "time_per_step": FINEST_GRANULARITY,
-                    "verbose": False,
-                    "trade_type": SimulatorExecutor.TT_SERIAL,
-                    "generate_report": False,
-                    "track_data": True,
-                }
-            },
-            "track_data": True,
+            "order": order,
+            "trade_range": TradeRangeByTime(order.start_time.time(), order.end_time.time()),
+            "instrument": order.stock_id,
         },
     }
 
+    executor_config = {
+        "class": "NestedExecutor",
+        "module_path": "qlib.backtest.executor",
+        "kwargs": {
+            "time_per_step": "1day",
+            "inner_strategy": {"class": "DecomposedStrategy", "module_path": "qlib.rl.strategy.decomposed"},
+            "track_data": True,
+            "inner_executor": {
+                "class": "NestedExecutor",
+                "module_path": "qlib.backtest.executor",
+                "kwargs": {
+                    "time_per_step": time_per_step,
+                    "inner_strategy": {
+                        "class": "TWAPStrategy",
+                        "module_path": "qlib.contrib.strategy.rule_strategy",
+                    },
+                    "inner_executor": {
+                        "class": "SimulatorExecutor",
+                        "module_path": "qlib.backtest.executor",
+                        "kwargs": {
+                            "time_per_step": FINEST_GRANULARITY,
+                            "verbose": False,
+                            "trade_type": SimulatorExecutor.TT_SERIAL,
+                            "generate_report": False,
+                            "track_data": True,
+                        }
+                    },
+                    "track_data": True,
+                },
+            },
+            "start_time": pd.Timestamp(order.start_time.date()),
+            "end_time": pd.Timestamp(order.start_time.date()),
+        },
+    }
+
+    exchange_config = {
+        "freq": FINEST_GRANULARITY,
+        "codes": [order.stock_id],
+        "limit_threshold": ("$ask == 0", "$bid == 0"),
+        "deal_price": ("If($ask == 0, $bid, $ask)", "If($bid == 0, $ask, $bid)"),
+        "volume_threshold": {
+            "all": ("cum", "0.2 * DayCumsum($volume, '9:30', '14:29')"),
+            "buy": ("current", "$askV1"),
+            "sell": ("current", "$bidV1"),
+        },
+        "open_cost": 0.0005,
+        "close_cost": 0.0015,
+        "min_cost": 5.0,
+        "trade_unit": None,
+    }
+
+    return strategy_config, executor_config, exchange_config
+
+
+def get_simulator(order: Order, time_per_step: str) -> SingleAssetOrderExecutionQlib:
     DATA_ROOT_DIR = Path(__file__).parent.parent / ".data" / "rl" / "qlib_simulator"
 
     # fmt: off
@@ -74,25 +117,14 @@ def get_simulator(order: Order, time_per_step: str) -> SingleAssetOrderExecution
     }
     # fmt: on
 
-    exchange_config = {
-        "limit_threshold": ("$ask == 0", "$bid == 0"),
-        "deal_price": ("If($ask == 0, $bid, $ask)", "If($bid == 0, $ask, $bid)"),
-        "volume_threshold": {
-            "all": ("cum", "0.2 * DayCumsum($volume, '9:30', '14:29')"),
-            "buy": ("current", "$askV1"),
-            "sell": ("current", "$bidV1"),
-        },
-        "open_cost": 0.0005,
-        "close_cost": 0.0015,
-        "min_cost": 5.0,
-        "trade_unit": None,
-    }
+    strategy_config, executor_config, exchange_config = get_configs(order, time_per_step)
 
     return SingleAssetOrderExecutionQlib(
         order=order,
         time_per_step=time_per_step,
         qlib_config=qlib_config,
-        inner_executor_config=_inner_executor_config,
+        strategy_config=strategy_config,
+        executor_config=executor_config,
         exchange_config=exchange_config,
     )
 
@@ -120,12 +152,12 @@ def test_simulator_first_step():
     assert is_close(state.history_exec["trade_price"].iloc[0], 149.566483)
     assert is_close(state.history_exec["trade_value"].iloc[0], 1495.664825)
     assert is_close(state.history_exec["position"].iloc[0], TOTAL_POSITION - AMOUNT / 30)
-    # assert state.history_exec["ffr"].iloc[0] == 1 / 60  # FIXME
+    assert is_close(state.history_exec["ffr"].iloc[0], AMOUNT / TOTAL_POSITION / 30)
 
     assert is_close(state.history_steps["market_volume"].iloc[0], 1254848.5756835938)
     assert state.history_steps["amount"].iloc[0] == AMOUNT
     assert state.history_steps["deal_amount"].iloc[0] == AMOUNT
-    assert state.history_steps["ffr"].iloc[0] == 1.0
+    assert state.history_steps["ffr"].iloc[0] == AMOUNT / TOTAL_POSITION
     assert is_close(
         state.history_steps["pa"].iloc[0] * (1.0 if order.direction == OrderDir.SELL else -1.0),
         (state.history_steps["trade_price"].iloc[0] / simulator.twap_price - 1) * 10000,
@@ -174,9 +206,3 @@ def test_interpreter() -> None:
         position_history.append(state.position)
 
         assert position_history[-1] == max(TOTAL_POSITION - TOTAL_POSITION / NUM_EXECUTION * (i + 1), 0.0)
-
-
-if __name__ == "__main__":
-    test_simulator_first_step()
-    test_simulator_stop_twap()
-    test_interpreter()
