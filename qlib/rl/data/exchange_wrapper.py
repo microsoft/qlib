@@ -6,6 +6,7 @@ from typing import cast
 import pandas as pd
 
 from qlib.backtest import Exchange, Order
+
 from .pickle_styled import IntradayBacktestData
 
 

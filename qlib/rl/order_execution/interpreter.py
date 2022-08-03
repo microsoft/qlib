@@ -14,9 +14,8 @@ from gym import spaces
 from qlib.constant import EPS
 from qlib.rl.data import pickle_styled
 from qlib.rl.interpreter import ActionInterpreter, StateInterpreter
-from qlib.typehint import TypedDict
-
 from qlib.rl.order_execution.state import SAOEState
+from qlib.typehint import TypedDict
 
 __all__ = [
     "FullHistoryStateInterpreter",

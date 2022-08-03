@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 import collections
-from typing import List, Optional
+from typing import List
 
 import pandas as pd
 

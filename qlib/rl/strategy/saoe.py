@@ -5,6 +5,7 @@ from abc import ABCMeta
 from typing import Optional
 
 import pandas as pd
+
 from qlib.backtest.decision import BaseTradeDecision, Order
 from qlib.backtest.executor import BaseExecutor
 from qlib.backtest.utils import CommonInfrastructure, LevelInfrastructure

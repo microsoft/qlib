@@ -6,15 +6,14 @@ from __future__ import annotations
 from typing import Generator, Optional
 
 import pandas as pd
+
 from qlib.backtest import get_strategy_executor
 from qlib.backtest.decision import Order
 from qlib.backtest.executor import NestedExecutor
 from qlib.rl.data.exchange_wrapper import QlibIntradayBacktestData
 from qlib.rl.integration.feature import init_qlib
 from qlib.rl.order_execution.state import SAOEState
-from qlib.rl.order_execution.utils import (
-    get_ticks_slice,
-)
+from qlib.rl.order_execution.utils import get_ticks_slice
 from qlib.rl.simulator import Simulator
 from qlib.rl.strategy.saoe import SAOEStrategy
 

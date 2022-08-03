@@ -3,14 +3,14 @@
 
 from __future__ import annotations
 
-from typing import Any, cast, Tuple
+from typing import Any, cast
 
 import numpy as np
 import pandas as pd
 
 from qlib.backtest.decision import OrderDir
 from qlib.backtest.executor import BaseExecutor, NestedExecutor, SimulatorExecutor
-from qlib.rl.order_execution.objects import float_or_ndarray, ONE_SEC
+from qlib.rl.order_execution.objects import ONE_SEC, float_or_ndarray
 
 
 def get_ticks_slice(

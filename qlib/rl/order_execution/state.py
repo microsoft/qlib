@@ -3,19 +3,18 @@
 
 from __future__ import annotations
 
-from typing import cast, NamedTuple, Optional
-
-from qlib.rl.data.pickle_styled import IntradayBacktestData
-from typing_extensions import TypedDict
+from typing import NamedTuple, Optional, cast
 
 import numpy as np
 import pandas as pd
+from typing_extensions import TypedDict
+
 from qlib.backtest import Order
 from qlib.backtest.executor import BaseExecutor
-from qlib.backtest.utils import TradeCalendarManager
 from qlib.constant import EPS
 from qlib.rl.data.exchange_wrapper import QlibIntradayBacktestData
-from qlib.rl.order_execution.utils import dataframe_append, get_simulator_executor, get_ticks_slice, price_advantage
+from qlib.rl.data.pickle_styled import IntradayBacktestData
+from qlib.rl.order_execution.utils import dataframe_append, get_simulator_executor, price_advantage
 
 
 class SAOEStateMaintainer:
