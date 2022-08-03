@@ -1,25 +1,24 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-from typing import Any, Generator, Optional
+from typing import Any, Generator
 
-from qlib.backtest import CommonInfrastructure
 from qlib.backtest.decision import BaseTradeDecision, TradeDecisionWO
-from qlib.backtest.utils import LevelInfrastructure
-from qlib.rl.order_execution.state import SAOEStateMaintainer
+from qlib.backtest.utils import CommonInfrastructure, LevelInfrastructure
 from qlib.rl.strategy.saoe import SAOEStrategy
 
 
 class DecomposedStrategy(SAOEStrategy):
+    """Decomposed strategy that needs actions from outside to generate trade decisions."""
+
     def __init__(
         self,
         outer_trade_decision: BaseTradeDecision = None,
         level_infra: LevelInfrastructure = None,
         common_infra: CommonInfrastructure = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
         super().__init__(None, outer_trade_decision, level_infra, common_infra, **kwargs)
-        self.maintainer: Optional[SAOEStateMaintainer] = None
 
     def generate_trade_decision(self, execute_result: list = None) -> Generator[Any, Any, BaseTradeDecision]:
         # Once the following line is executed, this DecomposedStrategy (self) will be yielded to the outside

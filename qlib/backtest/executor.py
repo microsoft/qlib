@@ -480,6 +480,7 @@ class NestedExecutor(BaseExecutor):
                 # do nothing and just step forward
                 sub_cal.step()
 
+        # Lef inner strategy know that the outer level execution is done.
         self.inner_strategy.post_upper_level_exe_step()
 
         return execute_result, {"inner_order_indicators": inner_order_indicators, "decision_list": decision_list}

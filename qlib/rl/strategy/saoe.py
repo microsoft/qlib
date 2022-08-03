@@ -2,10 +2,9 @@
 # Licensed under the MIT License.
 
 from abc import ABCMeta
-from typing import Optional
+from typing import Any
 
 import pandas as pd
-
 from qlib.backtest.decision import BaseTradeDecision, Order
 from qlib.backtest.executor import BaseExecutor
 from qlib.backtest.utils import CommonInfrastructure, LevelInfrastructure
@@ -19,15 +18,13 @@ class SAOEStrategy(RLStrategy, metaclass=ABCMeta):
 
     def __init__(
         self,
-        policy,
+        policy: object,  # TODO: add accurate typehint later.
         outer_trade_decision: BaseTradeDecision = None,
         level_infra: LevelInfrastructure = None,
         common_infra: CommonInfrastructure = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
         super(SAOEStrategy, self).__init__(policy, outer_trade_decision, level_infra, common_infra, **kwargs)
-
-        self.maintainer: Optional[SAOEStateMaintainer] = None
 
     def create_saoe_maintainer(
         self,

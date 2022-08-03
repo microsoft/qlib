@@ -23,9 +23,9 @@ class SAOEStateMaintainer:
 
     Example usage::
 
-        maintainer = StateMaintainer(...)  # in reset
-        maintainer.update(...)  # in step
-        # get states in get_state from maintainer
+        maintainer = StateMaintainer(...)
+        maintainer.update(...)
+        state = maintainer.saoe_state
     """
 
     def __init__(

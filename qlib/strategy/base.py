@@ -8,7 +8,6 @@ from typing import Any, Generator, Optional, TYPE_CHECKING, Union
 if TYPE_CHECKING:
     from qlib.backtest.exchange import Exchange
     from qlib.backtest.position import BasePosition
-    from qlib.backtest.executor import BaseExecutor
 
 from typing import Tuple
 

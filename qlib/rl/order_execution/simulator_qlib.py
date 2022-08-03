@@ -6,16 +6,92 @@ from __future__ import annotations
 from typing import Generator, Optional
 
 import pandas as pd
-
+import qlib
 from qlib.backtest import get_strategy_executor
 from qlib.backtest.decision import Order
-from qlib.backtest.executor import NestedExecutor
+from qlib.backtest.executor import BaseExecutor, NestedExecutor, SimulatorExecutor
+from qlib.config import REG_CN
+from qlib.contrib.ops.high_freq import BFillNan, Cut, Date, DayCumsum, DayLast, FFillNan, IsInf, IsNull, Select
 from qlib.rl.data.exchange_wrapper import QlibIntradayBacktestData
-from qlib.rl.integration.feature import init_qlib
 from qlib.rl.order_execution.state import SAOEState
 from qlib.rl.order_execution.utils import get_ticks_slice
 from qlib.rl.simulator import Simulator
 from qlib.rl.strategy.saoe import SAOEStrategy
+
+
+def init_qlib(qlib_config: dict) -> None:
+    provider_uri_map = {
+        "day": qlib_config["provider_uri_day"].as_posix(),
+        "1min": qlib_config["provider_uri_1min"].as_posix(),
+    }
+    qlib.init(
+        region=REG_CN,
+        auto_mount=False,
+        custom_ops=[DayLast, FFillNan, BFillNan, Date, Select, IsNull, IsInf, Cut, DayCumsum],
+        expression_cache=None,
+        calendar_provider={
+            "class": "LocalCalendarProvider",
+            "module_path": "qlib.data.data",
+            "kwargs": {
+                "backend": {
+                    "class": "FileCalendarStorage",
+                    "module_path": "qlib.data.storage.file_storage",
+                    "kwargs": {"provider_uri_map": provider_uri_map},
+                },
+            },
+        },
+        feature_provider={
+            "class": "LocalFeatureProvider",
+            "module_path": "qlib.data.data",
+            "kwargs": {
+                "backend": {
+                    "class": "FileFeatureStorage",
+                    "module_path": "qlib.data.storage.file_storage",
+                    "kwargs": {"provider_uri_map": provider_uri_map},
+                },
+            },
+        },
+        provider_uri=provider_uri_map,
+        kernels=1,
+        redis_port=-1,
+        clear_mem_cache=False,  # init_qlib will be called for multiple times. Keep the cache for improving performance
+    )
+
+
+def create_state_maintainer_recursive(
+    executor: BaseExecutor,
+    order: Order,
+    backtest_data: QlibIntradayBacktestData,
+    time_per_step: str,
+    ticks_index: pd.DatetimeIndex,
+    twap_price: float,
+    ticks_for_order: pd.DatetimeIndex,
+) -> None:
+    if isinstance(executor, SimulatorExecutor):
+        return
+    else:
+        assert isinstance(executor, NestedExecutor)
+
+        if isinstance(executor.inner_strategy, SAOEStrategy):
+            executor.inner_strategy.create_saoe_maintainer(
+                order=order,
+                executor=executor.inner_executor,
+                backtest_data=backtest_data,
+                time_per_step=time_per_step,
+                ticks_index=ticks_index,
+                twap_price=twap_price,
+                ticks_for_order=ticks_for_order,
+            )
+
+        create_state_maintainer_recursive(
+            executor.inner_executor,
+            order,
+            backtest_data,
+            time_per_step,
+            ticks_index,
+            twap_price,
+            ticks_for_order,
+        )
 
 
 class SingleAssetOrderExecutionQlib(Simulator[Order, SAOEState, float]):
@@ -54,7 +130,6 @@ class SingleAssetOrderExecutionQlib(Simulator[Order, SAOEState, float]):
 
         init_qlib(qlib_config)
 
-        self._executor: Optional[NestedExecutor] = None
         self._collect_data_loop: Optional[Generator] = None
         self.reset(order, time_per_step, strategy_config, executor_config, exchange_config)
 
@@ -66,7 +141,7 @@ class SingleAssetOrderExecutionQlib(Simulator[Order, SAOEState, float]):
         executor_config: dict,
         exchange_config: dict,
     ) -> None:
-        top_strategy, self._executor = get_strategy_executor(
+        strategy, self._executor = get_strategy_executor(
             start_time=pd.Timestamp(order.start_time.date()),
             end_time=pd.Timestamp(order.start_time.date()) + pd.DateOffset(1),
             strategy=strategy_config,
@@ -77,7 +152,7 @@ class SingleAssetOrderExecutionQlib(Simulator[Order, SAOEState, float]):
             pos_type="InfPosition",
         )
         assert isinstance(self._executor, NestedExecutor)
-        top_strategy.reset(level_infra=self._executor.get_level_infra())
+        strategy.reset(level_infra=self._executor.get_level_infra())
 
         exchange = self._executor.trade_exchange
         ticks_index = pd.DatetimeIndex([e[1] for e in list(exchange.quote_df.index)])
@@ -96,15 +171,14 @@ class SingleAssetOrderExecutionQlib(Simulator[Order, SAOEState, float]):
 
         self.twap_price = backtest_data.get_deal_price().mean()
 
-        self._collect_data_loop = self._executor.collect_data(top_strategy.generate_trade_decision(), level=0)
+        self._collect_data_loop = self._executor.collect_data(strategy.generate_trade_decision(), level=0)
         assert isinstance(self._collect_data_loop, Generator)
 
         self._last_yielded_saoe_strategy = self._iter_strategy(action=None)
 
-        assert isinstance(self._executor.inner_strategy, SAOEStrategy)
-        self._executor.inner_strategy.create_saoe_maintainer(
+        create_state_maintainer_recursive(
+            executor=self._executor,
             order=order,
-            executor=self._executor.inner_executor,
             backtest_data=backtest_data,
             time_per_step=time_per_step,
             ticks_index=ticks_index,

@@ -69,7 +69,7 @@ def get_configs(order: Order, time_per_step: str) -> Tuple[dict, dict, dict]:
                             "trade_type": SimulatorExecutor.TT_SERIAL,
                             "generate_report": False,
                             "track_data": True,
-                        }
+                        },
                     },
                     "track_data": True,
                 },
