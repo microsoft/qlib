@@ -1,6 +1,8 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+from __future__ import annotations
+
 from typing import cast, NamedTuple, Optional
 
 from qlib.rl.data.pickle_styled import IntradayBacktestData

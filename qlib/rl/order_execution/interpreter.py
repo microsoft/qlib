@@ -23,6 +23,7 @@ __all__ = [
     "CurrentStepStateInterpreter",
     "CategoricalActionInterpreter",
     "TwapRelativeActionInterpreter",
+    "FullHistoryObs",
 ]
 
 
