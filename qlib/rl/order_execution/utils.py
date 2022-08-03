@@ -10,7 +10,7 @@ import pandas as pd
 
 from qlib.backtest.decision import OrderDir
 from qlib.backtest.executor import BaseExecutor, NestedExecutor, SimulatorExecutor
-from qlib.rl.order_execution.simulator_simple import _float_or_ndarray, ONE_SEC
+from qlib.rl.order_execution.objects import float_or_ndarray, ONE_SEC
 
 
 def get_ticks_slice(
@@ -34,10 +34,10 @@ def dataframe_append(df: pd.DataFrame, other: Any) -> pd.DataFrame:
 
 
 def price_advantage(
-    exec_price: _float_or_ndarray,
+    exec_price: float_or_ndarray,
     baseline_price: float,
     direction: OrderDir | int,
-) -> _float_or_ndarray:
+) -> float_or_ndarray:
     if baseline_price == 0:  # something is wrong with data. Should be nan here
         if isinstance(exec_price, float):
             return 0.0
@@ -53,7 +53,7 @@ def price_advantage(
     if res_wo_nan.size == 1:
         return res_wo_nan.item()
     else:
-        return cast(_float_or_ndarray, res_wo_nan)
+        return cast(float_or_ndarray, res_wo_nan)
 
 
 def get_simulator_executor(executor: BaseExecutor) -> SimulatorExecutor:

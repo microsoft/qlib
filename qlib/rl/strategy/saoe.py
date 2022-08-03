@@ -9,7 +9,7 @@ from qlib.backtest.decision import BaseTradeDecision, Order
 from qlib.backtest.executor import BaseExecutor
 from qlib.backtest.utils import CommonInfrastructure, LevelInfrastructure
 from qlib.rl.data.exchange_wrapper import QlibIntradayBacktestData
-from qlib.rl.order_execution.state_maintainer import SAOEStateMaintainer
+from qlib.rl.order_execution.state import SAOEStateMaintainer
 from qlib.strategy.base import RLStrategy
 
 

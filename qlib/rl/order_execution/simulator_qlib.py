@@ -11,7 +11,7 @@ from qlib.backtest.decision import Order
 from qlib.backtest.executor import NestedExecutor
 from qlib.rl.data.exchange_wrapper import QlibIntradayBacktestData
 from qlib.rl.integration.feature import init_qlib
-from qlib.rl.order_execution.simulator_simple import SAOEState
+from qlib.rl.order_execution.state import SAOEState
 from qlib.rl.order_execution.utils import (
     get_ticks_slice,
 )

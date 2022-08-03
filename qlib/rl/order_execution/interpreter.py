@@ -16,7 +16,7 @@ from qlib.rl.data import pickle_styled
 from qlib.rl.interpreter import ActionInterpreter, StateInterpreter
 from qlib.typehint import TypedDict
 
-from .simulator_simple import SAOEState
+from qlib.rl.order_execution.state import SAOEState
 
 __all__ = [
     "FullHistoryStateInterpreter",

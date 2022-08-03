@@ -6,7 +6,7 @@ from typing import Any, Generator, Optional
 from qlib.backtest import CommonInfrastructure
 from qlib.backtest.decision import BaseTradeDecision, TradeDecisionWO
 from qlib.backtest.utils import LevelInfrastructure
-from qlib.rl.order_execution.state_maintainer import SAOEStateMaintainer
+from qlib.rl.order_execution.state import SAOEStateMaintainer
 from qlib.rl.strategy.saoe import SAOEStrategy
 
 
