@@ -4,7 +4,7 @@ try:
     from .catboost_model import CatBoostModel
 except ModuleNotFoundError:
     CatBoostModel = None
-    print("ModuleNotFoundError. CatBoostModel and CatBoostModel are skipped. (optional: maybe installing lightgbm can fix it.)")
+    print("ModuleNotFoundError. CatBoostModel are skipped. (optional: maybe installing CatBoostModel can fix it.)")
 try:
     from .double_ensemble import DEnsembleModel
     from .gbdt import LGBModel
