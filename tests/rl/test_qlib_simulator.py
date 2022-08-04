@@ -33,7 +33,7 @@ def get_order() -> Order:
     )
 
 
-def get_configs(order: Order, time_per_step: str) -> Tuple[dict, dict, dict]:
+def get_configs(order: Order) -> Tuple[dict, dict, dict]:
     strategy_config = {
         "class": "SingleOrderStrategy",
         "module_path": "qlib.rl.strategy.single_order",
@@ -55,7 +55,7 @@ def get_configs(order: Order, time_per_step: str) -> Tuple[dict, dict, dict]:
                 "class": "NestedExecutor",
                 "module_path": "qlib.backtest.executor",
                 "kwargs": {
-                    "time_per_step": time_per_step,
+                    "time_per_step": "30min",
                     "inner_strategy": {
                         "class": "TWAPStrategy",
                         "module_path": "qlib.contrib.strategy.rule_strategy",
@@ -98,7 +98,7 @@ def get_configs(order: Order, time_per_step: str) -> Tuple[dict, dict, dict]:
     return strategy_config, executor_config, exchange_config
 
 
-def get_simulator(order: Order, time_per_step: str) -> SingleAssetOrderExecutionQlib:
+def get_simulator(order: Order) -> SingleAssetOrderExecutionQlib:
     DATA_ROOT_DIR = Path(__file__).parent.parent / ".data" / "rl" / "qlib_simulator"
 
     # fmt: off
@@ -117,11 +117,10 @@ def get_simulator(order: Order, time_per_step: str) -> SingleAssetOrderExecution
     }
     # fmt: on
 
-    strategy_config, executor_config, exchange_config = get_configs(order, time_per_step)
+    strategy_config, executor_config, exchange_config = get_configs(order)
 
     return SingleAssetOrderExecutionQlib(
         order=order,
-        time_per_step=time_per_step,
         qlib_config=qlib_config,
         strategy_config=strategy_config,
         executor_config=executor_config,
@@ -132,7 +131,7 @@ def get_simulator(order: Order, time_per_step: str) -> SingleAssetOrderExecution
 @python_version_request
 def test_simulator_first_step():
     order = get_order()
-    simulator = get_simulator(order, time_per_step="30min")
+    simulator = get_simulator(order)
     state = simulator.get_state()
     assert state.cur_time == pd.Timestamp("2019-03-04 09:30:00")
     assert state.position == TOTAL_POSITION
@@ -167,7 +166,7 @@ def test_simulator_first_step():
 @python_version_request
 def test_simulator_stop_twap() -> None:
     order = get_order()
-    simulator = get_simulator(order, time_per_step="30min")
+    simulator = get_simulator(order)
     NUM_STEPS = 7
     for i in range(NUM_STEPS):
         simulator.step(TOTAL_POSITION / NUM_STEPS)
@@ -194,7 +193,7 @@ def test_simulator_stop_twap() -> None:
 def test_interpreter() -> None:
     NUM_EXECUTION = 3
     order = get_order()
-    simulator = get_simulator(order, time_per_step="30min")
+    simulator = get_simulator(order)
     interpreter_action = CategoricalActionInterpreter(values=NUM_EXECUTION)
 
     NUM_STEPS = 7

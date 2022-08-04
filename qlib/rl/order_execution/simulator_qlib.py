@@ -62,7 +62,6 @@ def create_state_maintainer_recursive(
     executor: BaseExecutor,
     order: Order,
     backtest_data: QlibIntradayBacktestData,
-    time_per_step: str,
     ticks_index: pd.DatetimeIndex,
     twap_price: float,
     ticks_for_order: pd.DatetimeIndex,
@@ -77,7 +76,7 @@ def create_state_maintainer_recursive(
                 order=order,
                 executor=executor.inner_executor,
                 backtest_data=backtest_data,
-                time_per_step=time_per_step,
+                time_per_step=executor.inner_executor.time_per_step,
                 ticks_index=ticks_index,
                 twap_price=twap_price,
                 ticks_for_order=ticks_for_order,
@@ -87,7 +86,6 @@ def create_state_maintainer_recursive(
             executor.inner_executor,
             order,
             backtest_data,
-            time_per_step,
             ticks_index,
             twap_price,
             ticks_for_order,
@@ -101,8 +99,6 @@ class SingleAssetOrderExecutionQlib(Simulator[Order, SAOEState, float]):
     ----------
     order (Order):
         The seed to start an SAOE simulator is an order.
-    time_per_step (str):
-        A string to describe the time granularity of each step. Current support "1min", "30min", and "1day"
     qlib_config (dict):
         Configuration used to initialize Qlib.
     strategy_config (dict):
@@ -116,14 +112,11 @@ class SingleAssetOrderExecutionQlib(Simulator[Order, SAOEState, float]):
     def __init__(
         self,
         order: Order,
-        time_per_step: str,  # "1min", "30min", "1day"
         qlib_config: dict,
         strategy_config: dict,
         executor_config: dict,
         exchange_config: dict,
     ) -> None:
-        assert time_per_step in ("1min", "30min", "1day")
-
         super().__init__(initial=order)
 
         assert order.start_time.date() == order.end_time.date(), "Start date and end date must be the same."
@@ -131,12 +124,11 @@ class SingleAssetOrderExecutionQlib(Simulator[Order, SAOEState, float]):
         init_qlib(qlib_config)
 
         self._collect_data_loop: Optional[Generator] = None
-        self.reset(order, time_per_step, strategy_config, executor_config, exchange_config)
+        self.reset(order, strategy_config, executor_config, exchange_config)
 
     def reset(
         self,
         order: Order,
-        time_per_step: str,
         strategy_config: dict,
         executor_config: dict,
         exchange_config: dict,
@@ -180,7 +172,6 @@ class SingleAssetOrderExecutionQlib(Simulator[Order, SAOEState, float]):
             executor=self._executor,
             order=order,
             backtest_data=backtest_data,
-            time_per_step=time_per_step,
             ticks_index=ticks_index,
             twap_price=self.twap_price,
             ticks_for_order=ticks_for_order,
