@@ -42,19 +42,14 @@ class SAOEStrategy(RLStrategy, metaclass=ABCMeta):
             backtest_data=backtest_data,
         )
 
-    def reset(
-        self,
-        level_infra: LevelInfrastructure = None,
-        common_infra: CommonInfrastructure = None,
-        outer_trade_decision: BaseTradeDecision = None,
-        **kwargs,
-    ) -> None:
-        super(SAOEStrategy, self).reset(level_infra, common_infra, outer_trade_decision, **kwargs)
+    def reset(self, outer_trade_decision: BaseTradeDecision = None, **kwargs: Any) -> None:
+        super(SAOEStrategy, self).reset(outer_trade_decision=outer_trade_decision, **kwargs)
 
-        self.adapter_dict = {}
-        for decision in outer_trade_decision.get_decision():
-            order = cast(Order, decision)
-            self.adapter_dict[(order.stock_id, order.direction)] = self._create_qlib_backtest_adapter(order)
+        if outer_trade_decision is not None:
+            self.adapter_dict = {}
+            for decision in outer_trade_decision.get_decision():
+                order = cast(Order, decision)
+                self.adapter_dict[(order.stock_id, order.direction)] = self._create_qlib_backtest_adapter(order)
 
     def get_saoe_state_by_order(self, order: Order) -> SAOEState:
         return self.adapter_dict[(order.stock_id, order.direction)].saoe_state
@@ -100,8 +95,10 @@ class DecomposedStrategy(SAOEStrategy):
     def alter_outer_trade_decision(self, outer_trade_decision: BaseTradeDecision) -> BaseTradeDecision:
         return outer_trade_decision
 
-    def reset(self, outer_trade_decision: TradeDecisionWO = None, **kwargs: Any) -> None:
+    def reset(self, outer_trade_decision: BaseTradeDecision = None, **kwargs: Any) -> None:
         super().reset(outer_trade_decision=outer_trade_decision, **kwargs)
+
+        assert isinstance(outer_trade_decision, TradeDecisionWO)
         if outer_trade_decision is not None:
             order_list = outer_trade_decision.order_list
             assert len(order_list) == 1

@@ -9,7 +9,7 @@ import pandas as pd
 import qlib
 from qlib.backtest import get_strategy_executor
 from qlib.backtest.decision import Order
-from qlib.backtest.executor import BaseExecutor, NestedExecutor, SimulatorExecutor
+from qlib.backtest.executor import NestedExecutor
 from qlib.backtest.utils import SAOE_DATA_KEY
 from qlib.config import REG_CN
 from qlib.contrib.ops.high_freq import BFillNan, Cut, Date, DayCumsum, DayLast, FFillNan, IsInf, IsNull, Select
