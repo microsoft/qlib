@@ -9,13 +9,21 @@ data_handler_config: &data_handler_config
     fit_start_time: 2008-01-01
     fit_end_time: 2014-12-31
     instruments: *market
+    infer_processors: []
+    learn_processors:
+        - class: DropnaLabel
+        - class: CSRankNorm
+          kwargs:
+              fields_group: label
+    label: ["Ref($close, -2) / Ref($close, -1) - 1"]
 port_analysis_config: &port_analysis_config
     strategy:
         class: TopkDropoutStrategy
         module_path: qlib.contrib.strategy
         kwargs:
-            model: <MODEL> 
-            dataset: <DATASET>
+            signal:
+                - <MODEL> 
+                - <DATASET>
             topk: 50
             n_drop: 5
     backtest:
@@ -31,24 +39,48 @@ port_analysis_config: &port_analysis_config
             min_cost: 5
 task:
     model:
-        class: LGBModel
-        module_path: qlib.contrib.model.gbdt
+        class: DEnsembleModel
+        module_path: qlib.contrib.model.double_ensemble
         kwargs:
+            base_model: "gbm"
             loss: mse
-            colsample_bytree: 0.9
-            learning_rate: 0.1
-            subsample: 0.9
+            num_models: 6
+            enable_sr: True
+            enable_fs: True
+            alpha1: 1
+            alpha2: 1
+            bins_sr: 10
+            bins_fs: 5
+            decay: 0.5
+            sample_ratios:
+                - 0.8
+                - 0.7
+                - 0.6
+                - 0.5
+                - 0.4
+            sub_weights:
+                - 1
+                - 0.2
+                - 0.2
+                - 0.2
+                - 0.2
+                - 0.2
+            epochs: 136
+            colsample_bytree: 0.8879
+            learning_rate: 0.0421
+            subsample: 0.8789
             lambda_l1: 205.6999
             lambda_l2: 580.9768
             max_depth: 8
-            num_leaves: 250
+            num_leaves: 210
             num_threads: 20
+            verbosity: -1
     dataset:
         class: DatasetH
         module_path: qlib.data.dataset
         kwargs:
             handler:
-                class: Alpha158
+                class: Alpha360
                 module_path: qlib.contrib.data.handler
                 kwargs: *data_handler_config
             segments:
@@ -63,7 +95,7 @@ task:
             dataset: <DATASET>
         - class: SigAnaRecord
           module_path: qlib.workflow.record_temp
-          kwargs: 
+          kwargs:
             ana_long_short: False
             ann_scaler: 252
         - class: PortAnaRecord
