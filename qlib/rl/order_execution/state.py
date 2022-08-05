@@ -17,7 +17,7 @@ from qlib.rl.data.pickle_styled import IntradayBacktestData
 from qlib.rl.order_execution.utils import dataframe_append, get_simulator_executor, price_advantage
 
 
-class SAOEStateMaintainer:
+class QlibBacktestAdapter:
     """
     Maintain states of the environment.
 

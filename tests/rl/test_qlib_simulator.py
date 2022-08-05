@@ -10,7 +10,7 @@ import pytest
 from qlib.backtest.decision import Order, OrderDir, TradeRangeByTime
 from qlib.backtest.executor import SimulatorExecutor
 from qlib.rl.order_execution import CategoricalActionInterpreter
-from qlib.rl.order_execution.objects import FINEST_GRANULARITY
+from qlib.rl.order_execution.constants import FINEST_GRANULARITY
 from qlib.rl.order_execution.simulator_qlib import SingleAssetOrderExecutionQlib
 
 TOTAL_POSITION = 2100.0
@@ -48,7 +48,7 @@ def get_configs(order: Order) -> Tuple[dict, dict, dict]:
         "module_path": "qlib.backtest.executor",
         "kwargs": {
             "time_per_step": "1day",
-            "inner_strategy": {"class": "DecomposedStrategy", "module_path": "qlib.rl.strategy.decomposed"},
+            "inner_strategy": {"class": "DecomposedStrategy", "module_path": "qlib.rl.order_execution.strategy"},
             "track_data": True,
             "inner_executor": {
                 "class": "NestedExecutor",

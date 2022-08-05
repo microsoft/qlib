@@ -12,7 +12,7 @@ import pandas as pd
 from qlib.backtest.decision import Order, OrderDir
 from qlib.constant import EPS
 from qlib.rl.data.pickle_styled import DealPriceType, load_simple_intraday_backtest_data
-from qlib.rl.order_execution.objects import ONE_SEC, float_or_ndarray
+from qlib.rl.order_execution.constants import ONE_SEC, float_or_ndarray
 from qlib.rl.order_execution.state import SAOEMetrics, SAOEState
 from qlib.rl.simulator import Simulator
 from qlib.rl.utils import LogLevel

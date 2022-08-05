@@ -17,10 +17,33 @@ from qlib.rl.data.exchange_wrapper import QlibIntradayBacktestData
 from qlib.rl.order_execution.state import SAOEState
 from qlib.rl.order_execution.utils import get_ticks_slice
 from qlib.rl.simulator import Simulator
-from qlib.rl.strategy.saoe import SAOEStrategy
+from qlib.rl.order_execution.strategy import SAOEStrategy
 
 
 def init_qlib(qlib_config: dict) -> None:
+    """Initialize necessary resource to launch the workflow, including data direction, feature columns, etc..
+
+    Parameters
+    ----------
+    qlib_config:
+        Qlib configuration.
+
+        Example:
+            {
+                "provider_uri_day": DATA_ROOT_DIR / "qlib_1d",
+                "provider_uri_1min": DATA_ROOT_DIR / "qlib_1min",
+                "feature_root_dir": DATA_ROOT_DIR / "qlib_handler_stock",
+                "feature_columns_today": [
+                    "$open", "$high", "$low", "$close", "$vwap", "$bid", "$ask", "$volume",
+                    "$bidV", "$bidV1", "$bidV3", "$bidV5", "$askV", "$askV1", "$askV3", "$askV5",
+                ],
+                "feature_columns_yesterday": [
+                    "$open_1", "$high_1", "$low_1", "$close_1", "$vwap_1", "$bid_1", "$ask_1", "$volume_1",
+                    "$bidV_1", "$bidV1_1", "$bidV3_1", "$bidV5_1", "$askV_1", "$askV1_1", "$askV3_1", "$askV5_1",
+                ],
+            }
+    """
+
     provider_uri_map = {
         "day": qlib_config["provider_uri_day"].as_posix(),
         "1min": qlib_config["provider_uri_1min"].as_posix(),
@@ -64,15 +87,15 @@ class SingleAssetOrderExecutionQlib(Simulator[Order, SAOEState, float]):
 
     Parameters
     ----------
-    order (Order):
+    order
         The seed to start an SAOE simulator is an order.
-    qlib_config (dict):
+    qlib_config
         Configuration used to initialize Qlib.
-    strategy_config (dict):
+    strategy_config
         Strategy configuration
-    executor_config (dict):
+    executor_config
         Executor configuration
-    exchange_config (dict):
+    exchange_config
         Exchange configuration
     """
 
