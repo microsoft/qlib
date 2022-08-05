@@ -32,7 +32,7 @@ class Exchange:
         start_time: Union[pd.Timestamp, str] = None,
         end_time: Union[pd.Timestamp, str] = None,
         codes: Union[list, str] = "all",
-        deal_price: Union[str, Tuple[str], List[str]] = None,
+        deal_price: Union[str, Tuple[str, str], List[str]] = None,
         subscribe_fields: list = [],
         limit_threshold: Union[Tuple[str, str], float, None] = None,
         volume_threshold: Union[tuple, dict] = None,
@@ -448,9 +448,9 @@ class Exchange:
         start_time: pd.Timestamp,
         end_time: pd.Timestamp,
         method: Optional[str] = "sum",
-    ) -> float:
+    ) -> Union[None, int, float, bool, IndexData]:
         """get the total deal volume of stock with `stock_id` between the time interval [start_time, end_time)"""
-        return cast(float, self.quote.get_data(stock_id, start_time, end_time, field="$volume", method=method))
+        return self.quote.get_data(stock_id, start_time, end_time, field="$volume", method=method)
 
     def get_deal_price(
         self,
@@ -459,7 +459,7 @@ class Exchange:
         end_time: pd.Timestamp,
         direction: OrderDir,
         method: Optional[str] = "ts_data_last",
-    ) -> float:
+    ) -> Union[None, int, float, bool, IndexData]:
         if direction == OrderDir.SELL:
             pstr = self.sell_price
         elif direction == OrderDir.BUY:
@@ -472,7 +472,7 @@ class Exchange:
             self.logger.warning(f"(stock_id:{stock_id}, trade_time:{(start_time, end_time)}, {pstr}): {deal_price}!!!")
             self.logger.warning(f"setting deal_price to close price")
             deal_price = self.get_close(stock_id, start_time, end_time, method)
-        return cast(float, deal_price)
+        return deal_price
 
     def get_factor(
         self,
@@ -832,8 +832,11 @@ class Exchange:
         :param dealt_order_amount: the dealt order amount dict with the format of {stock_id: float}
         :return: trade_price, trade_val, trade_cost
         """
-        trade_price = self.get_deal_price(order.stock_id, order.start_time, order.end_time, direction=order.direction)
-        total_trade_val = self.get_volume(order.stock_id, order.start_time, order.end_time) * trade_price
+        trade_price = cast(
+            float,
+            self.get_deal_price(order.stock_id, order.start_time, order.end_time, direction=order.direction),
+        )
+        total_trade_val = cast(float, self.get_volume(order.stock_id, order.start_time, order.end_time)) * trade_price
         order.factor = self.get_factor(order.stock_id, order.start_time, order.end_time)
         order.deal_amount = order.amount  # set to full amount and clip it step by step
         # Clipping amount first

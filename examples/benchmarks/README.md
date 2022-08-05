@@ -74,10 +74,15 @@ The numbers shown below demonstrate the performance of the entire `workflow` of 
 - The base model of DoubleEnsemble is LGBM.
 - The base model of TCTS is GRU.
 - About the datasets
-  - Alpha158 is a tabular dataset. There are less spatial relationships between different features. Each feature are carefully desgined by human (a.k.a feature engineering)
+  - Alpha158 is a tabular dataset. There are less spatial relationships between different features. Each feature are carefully designed by human (a.k.a feature engineering)
   - Alpha360 contains raw price and volue data without much feature engineering. There are strong strong spatial relationships between the features in the time dimension.
 - The metrics can be categorized into two
    - Signal-based evaluation:  IC, ICIR, Rank IC, Rank ICIR
+      - ![equation](https://latex.codecogs.com/gif.latex?%5Ctext%7Bcorr%7D%28%5Ctextbf%7Bx%7D%2C%5Ctextbf%7By%7D%29%3D%5Cfrac%7B%5Csum_i%20%28x_i-%5Cbar%7Bx%7D%29%28y_i-%5Cbar%7By%7D%29%7D%7B%5Csqrt%7B%5Csum_i%28x_i-%5Cbar%7Bx%7D%29%5E2%5Csum_i%28y_i-%5Cbar%7By%7D%29%5E2%7D%7D)
+      - ![equation](https://latex.codecogs.com/gif.latex?%5Ctext%7BIC%7D%5E%7B%28t%29%7D%20%3D%20%5Ctext%7Bcorr%7D%28%5Chat%7B%5Ctextbf%7By%7D%7D%5E%7B%28t%29%7D%2C%20%5Ctextbf%7Bret%7D%5E%7B%28t%29%7D%29)
+      - ![equation](https://latex.codecogs.com/gif.latex?%5Ctext%7BICIR%7D%20%3D%20%5Cfrac%20%7B%5Ctext%7Bmean%7D%28%5Ctextbf%7BIC%7D%29%7D%20%7B%5Ctext%7Bstd%7D%28%5Ctextbf%7BIC%7D%29%7D)
+      - ![equation](https://latex.codecogs.com/gif.latex?%5Ctext%7BRank%20IC%7D%5E%7B%28t%29%7D%20%3D%20%5Ctext%7Bcorr%7D%28%5Ctext%7Brank%7D%28%5Chat%7B%5Ctextbf%7By%7D%7D%5E%7B%28t%29%7D%29%2C%20%5Ctext%7Brank%7D%28%5Ctextbf%7Bret%7D%5E%7B%28t%29%7D%29%29)
+      - ![equation](https://latex.codecogs.com/gif.latex?%5Ctext%7BRank%20ICIR%7D%20%3D%20%5Cfrac%20%7B%5Ctext%7Bmean%7D%28%5Ctextbf%7BRank%20IC%7D%29%7D%20%7B%5Ctext%7Bstd%7D%28%5Ctextbf%7BRankIC%7D%29%7D)
    - Portfolio-based metrics:  Annualized Return, Information Ratio, Max Drawdown
 
 ## Results on CSI500
@@ -102,17 +107,19 @@ python run_all_model.py run 3 lightgbm Alpha158 csi500  # for models with random
 ```
 
 ### Alpha158 dataset
-
 | Model Name | Dataset  | IC          | ICIR        | Rank IC     | Rank ICIR   | Annualized Return | Information Ratio | Max Drawdown |
 |------------|----------|-------------|-------------|-------------|-------------|-------------------|-------------------|--------------|
-| LightGBM   | Alpha158 | 0.0377±0.00 | 0.3860±0.00 | 0.0448±0.00 | 0.4675±0.00 | 0.1151±0.00       | 1.3884±0.00       | -0.0898±0.00 |
 | Linear     | Alpha158 | 0.0332±0.00 | 0.3044±0.00 | 0.0462±0.00 | 0.4326±0.00 | 0.0382±0.00       | 0.1723±0.00       | -0.4876±0.00 |
+| LightGBM   | Alpha158 | 0.0399±0.00 | 0.4065±0.00 | 0.0482±0.00 | 0.5101±0.00 | 0.1284±0.00       | 1.5650±0.00       | -0.0635±0.00 |
+| CatBoost   | Alpha158 | 0.0345±0.00 | 0.2855±0.00 | 0.0417±0.00 | 0.3740±0.00 | 0.0496±0.00       | 0.5977±0.00       | -0.1496±0.00 |
+| DoubleEnsemble  | Alpha158 | 0.0380±0.00 | 0.3659±0.00 | 0.0442±0.00 | 0.4324±0.00 | 0.0382±0.00       | 0.1723±0.00       | -0.4876±0.00 |
 
 ### Alpha360 dataset
 | Model Name | Dataset  | IC          | ICIR        | Rank IC     | Rank ICIR   | Annualized Return | Information Ratio | Max Drawdown |
 |------------|----------|-------------|-------------|-------------|-------------|-------------------|-------------------|--------------|
 | LightGBM   | Alpha360 | 0.0400±0.00 | 0.3605±0.00 | 0.0536±0.00 | 0.5431±0.00 | 0.0505±0.00       | 0.7658±0.02       | -0.1880±0.00 |
-
+| CatBoost   | Alpha360 | 0.0382±0.00 | 0.3229±0.00 | 0.0489±0.00 | 0.4649±0.00 | 0.0297±0.00       | 0.4227±0.02       | -0.1499±0.01 |
+| DoubleEnsemble  | Alpha360 | 0.0361±0.00 | 0.3092±0.00 | 0.0499±0.00 | 0.4793±0.00 | 0.0382±0.00       | 0.1723±0.02       | -0.4876±0.00 |
 
 # Contributing
 

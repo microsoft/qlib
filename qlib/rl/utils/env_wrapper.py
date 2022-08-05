@@ -4,14 +4,15 @@
 from __future__ import annotations
 
 import weakref
-from typing import Callable, Any, Iterable, Iterator, Generic, cast
+from typing import Any, Callable, Dict, Generic, Iterable, Iterator, Optional, Tuple, cast
 
 import gym
+from gym import Space
 
 from qlib.rl.aux_info import AuxiliaryInfoCollector
-from qlib.rl.simulator import Simulator, InitialStateType, StateType, ActType
-from qlib.rl.interpreter import StateInterpreter, ActionInterpreter, PolicyActType, ObsType
+from qlib.rl.interpreter import ActionInterpreter, ObsType, PolicyActType, StateInterpreter
 from qlib.rl.reward import Reward
+from qlib.rl.simulator import ActType, InitialStateType, Simulator, StateType
 from qlib.typehint import TypedDict
 
 from .finite_env import generate_nan_observation
@@ -28,7 +29,7 @@ class InfoDict(TypedDict):
 
     aux_info: dict
     """Any information depends on auxiliary info collector."""
-    log: dict[str, Any]
+    log: Dict[str, Any]
     """Collected by LogCollector."""
 
 
@@ -42,14 +43,15 @@ class EnvWrapperStatus(TypedDict):
 
     cur_step: int
     done: bool
-    initial_state: Any | None
+    initial_state: Optional[Any]
     obs_history: list
     action_history: list
     reward_history: list
 
 
 class EnvWrapper(
-    gym.Env[ObsType, PolicyActType], Generic[InitialStateType, StateType, ActType, ObsType, PolicyActType]
+    gym.Env[ObsType, PolicyActType],
+    Generic[InitialStateType, StateType, ActType, ObsType, PolicyActType],
 ):
     """Qlib-based RL environment, subclassing ``gym.Env``.
     A wrapper of components, including simulator, state-interpreter, action-interpreter, reward.
@@ -97,11 +99,11 @@ class EnvWrapper(
         simulator_fn: Callable[..., Simulator[InitialStateType, StateType, ActType]],
         state_interpreter: StateInterpreter[StateType, ObsType],
         action_interpreter: ActionInterpreter[StateType, PolicyActType, ActType],
-        seed_iterator: Iterable[InitialStateType] | None,
-        reward_fn: Reward | None = None,
-        aux_info_collector: AuxiliaryInfoCollector[StateType, Any] | None = None,
-        logger: LogCollector | None = None,
-    ):
+        seed_iterator: Optional[Iterable[InitialStateType]],
+        reward_fn: Reward = None,
+        aux_info_collector: AuxiliaryInfoCollector[StateType, Any] = None,
+        logger: LogCollector = None,
+    ) -> None:
         # Assign weak reference to wrapper.
         #
         # Use weak reference here, because:
@@ -135,11 +137,11 @@ class EnvWrapper(
         self.status: EnvWrapperStatus = cast(EnvWrapperStatus, None)
 
     @property
-    def action_space(self):
+    def action_space(self) -> Space:
         return self.action_interpreter.action_space
 
     @property
-    def observation_space(self):
+    def observation_space(self) -> Space:
         return self.state_interpreter.observation_space
 
     def reset(self, **kwargs: Any) -> ObsType:
@@ -191,7 +193,7 @@ class EnvWrapper(
             self.seed_iterator = None
             return generate_nan_observation(self.observation_space)
 
-    def step(self, policy_action: PolicyActType, **kwargs: Any) -> tuple[ObsType, float, bool, InfoDict]:
+    def step(self, policy_action: PolicyActType, **kwargs: Any) -> Tuple[ObsType, float, bool, InfoDict]:
         """Environment step.
 
         See the code along with comments to get a sequence of things happening here.
@@ -245,5 +247,5 @@ class EnvWrapper(
         info_dict = InfoDict(log=self.logger.logs(), aux_info=aux_info)
         return obs, rew, done, info_dict
 
-    def render(self):
+    def render(self, mode: str = "human") -> None:
         raise NotImplementedError("Render is not implemented in EnvWrapper.")
