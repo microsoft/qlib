@@ -204,6 +204,3 @@ def test_interpreter() -> None:
         position_history.append(state.position)
 
         assert position_history[-1] == max(TOTAL_POSITION - TOTAL_POSITION / NUM_EXECUTION * (i + 1), 0.0)
-
-
-test_simulator_stop_twap()
