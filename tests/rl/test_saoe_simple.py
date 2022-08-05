@@ -9,7 +9,6 @@ from typing import NamedTuple
 import numpy as np
 import pandas as pd
 import pytest
-
 import torch
 from tianshou.data import Batch
 
@@ -17,8 +16,8 @@ from qlib.backtest import Order
 from qlib.config import C
 from qlib.log import set_log_with_config
 from qlib.rl.data import pickle_styled
-from qlib.rl.trainer import backtest, train
 from qlib.rl.order_execution import *
+from qlib.rl.trainer import backtest, train
 from qlib.rl.utils import ConsoleWriter, CsvWriter, EnvWrapperStatus
 
 pytestmark = pytest.mark.skipif(sys.version_info < (3, 8), reason="Pickle styled data only supports Python >= 3.8")
@@ -38,7 +37,7 @@ CN_POLICY_WEIGHTS_DIR = CN_DATA_DIR / "weights"
 
 
 def test_pickle_data_inspect():
-    data = pickle_styled.load_intraday_backtest_data(BACKTEST_DATA_DIR, "AAL", "2013-12-11", "close", 0)
+    data = pickle_styled.load_simple_intraday_backtest_data(BACKTEST_DATA_DIR, "AAL", "2013-12-11", "close", 0)
     assert len(data) == 390
 
     data = pickle_styled.load_intraday_processed_data(

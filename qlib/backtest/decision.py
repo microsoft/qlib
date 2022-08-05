@@ -4,10 +4,11 @@
 from __future__ import annotations
 
 from abc import abstractmethod
+from datetime import time
 from enum import IntEnum
 
 # try to fix circular imports when enabling type hints
-from typing import Generic, List, TYPE_CHECKING, Any, ClassVar, Optional, Tuple, TypeVar, Union, cast
+from typing import TYPE_CHECKING, Any, ClassVar, Generic, List, Optional, Tuple, TypeVar, Union, cast
 
 from qlib.backtest.utils import TradeCalendarManager
 from qlib.data.data import Cal
@@ -22,7 +23,6 @@ from dataclasses import dataclass
 
 import numpy as np
 import pandas as pd
-
 
 DecisionType = TypeVar("DecisionType")
 
@@ -182,8 +182,8 @@ class OrderHelper:
         return Order(
             stock_id=code,
             amount=amount,
-            start_time=start_time if start_time is not None else pd.Timestamp(start_time),
-            end_time=end_time if end_time is not None else pd.Timestamp(end_time),
+            start_time=None if start_time is None else pd.Timestamp(start_time),
+            end_time=None if end_time is None else pd.Timestamp(end_time),
             direction=direction,
         )
 
@@ -249,7 +249,7 @@ class IdxTradeRange(TradeRange):
 class TradeRangeByTime(TradeRange):
     """This is a helper function for make decisions"""
 
-    def __init__(self, start_time: str, end_time: str) -> None:
+    def __init__(self, start_time: str | time, end_time: str | time) -> None:
         """
         This is a callable class.
 
@@ -259,13 +259,13 @@ class TradeRangeByTime(TradeRange):
 
         Parameters
         ----------
-        start_time : str
+        start_time : str | time
             e.g. "9:30"
-        end_time : str
+        end_time : str | time
             e.g. "14:30"
         """
-        self.start_time = pd.Timestamp(start_time).time()
-        self.end_time = pd.Timestamp(end_time).time()
+        self.start_time = pd.Timestamp(start_time).time() if isinstance(start_time, str) else start_time
+        self.end_time = pd.Timestamp(end_time).time() if isinstance(end_time, str) else end_time
         assert self.start_time < self.end_time
 
     def __call__(self, trade_calendar: TradeCalendarManager) -> Tuple[int, int]:
@@ -535,7 +535,12 @@ class TradeDecisionWO(BaseTradeDecision[Order]):
     Besides, the time_range is also included.
     """
 
-    def __init__(self, order_list: List[object], strategy: BaseStrategy, trade_range: Tuple[int, int] = None) -> None:
+    def __init__(
+        self,
+        order_list: List[Order],
+        strategy: BaseStrategy,
+        trade_range: Union[Tuple[int, int], TradeRange] = None,
+    ) -> None:
         super().__init__(strategy, trade_range=trade_range)
         self.order_list = cast(List[Order], order_list)
         start, end = strategy.trade_calendar.get_step_time()

@@ -1,13 +1,15 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-import os
+from __future__ import annotations
+
 import multiprocessing
+import os
 import threading
 import time
 import warnings
 from queue import Empty
-from typing import TypeVar, Generic, Sequence, cast
+from typing import Any, Generator, Generic, Sequence, TypeVar, cast
 
 from qlib.log import get_module_logger
 
@@ -60,7 +62,7 @@ class DataQueue(Generic[T]):
         shuffle: bool = True,
         producer_num_workers: int = 0,
         queue_maxsize: int = 0,
-    ):
+    ) -> None:
         if queue_maxsize == 0:
             if os.cpu_count() is not None:
                 queue_maxsize = cast(int, os.cpu_count())
@@ -78,14 +80,14 @@ class DataQueue(Generic[T]):
         self._queue: multiprocessing.Queue = multiprocessing.Queue(maxsize=queue_maxsize)
         self._done = multiprocessing.Value("i", 0)
 
-    def __enter__(self):
+    def __enter__(self) -> DataQueue:
         self.activate()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.cleanup()
 
-    def cleanup(self):
+    def cleanup(self) -> None:
         with self._done.get_lock():
             self._done.value += 1
         for repeat in range(500):
@@ -105,7 +107,7 @@ class DataQueue(Generic[T]):
                 break
         _logger.debug(f"Remaining items in queue collection done. Empty: {self._queue.empty()}")
 
-    def get(self, block=True):
+    def get(self, block: bool = True) -> Any:
         if not hasattr(self, "_first_get"):
             self._first_get = True
         if self._first_get:
@@ -120,17 +122,17 @@ class DataQueue(Generic[T]):
                 if self._done.value:
                     raise StopIteration  # pylint: disable=raise-missing-from
 
-    def put(self, obj, block=True, timeout=None):
-        return self._queue.put(obj, block=block, timeout=timeout)
+    def put(self, obj: Any, block: bool = True, timeout: int = None) -> None:
+        self._queue.put(obj, block=block, timeout=timeout)
 
-    def mark_as_done(self):
+    def mark_as_done(self) -> None:
         with self._done.get_lock():
             self._done.value = 1
 
-    def done(self):
+    def done(self) -> int:
         return self._done.value
 
-    def activate(self):
+    def activate(self) -> DataQueue:
         if self._activated:
             raise ValueError("DataQueue can not activate twice.")
         thread = threading.Thread(target=self._producer, daemon=True)
@@ -138,20 +140,20 @@ class DataQueue(Generic[T]):
         self._activated = True
         return self
 
-    def __del__(self):
+    def __del__(self) -> None:
         _logger.debug(f"__del__ of {__name__}.DataQueue")
         self.cleanup()
 
-    def __iter__(self):
+    def __iter__(self) -> Generator[Any, None, None]:
         if not self._activated:
             raise ValueError(
                 "Need to call activate() to launch a daemon worker "
                 "to produce data into data queue before using it. "
-                "You probably have forgotten to use the DataQueue in a with block."
+                "You probably have forgotten to use the DataQueue in a with block.",
             )
         return self._consumer()
 
-    def _consumer(self):
+    def _consumer(self) -> Generator[Any, None, None]:
         while True:
             try:
                 yield self.get()
@@ -159,7 +161,7 @@ class DataQueue(Generic[T]):
                 _logger.debug("Data consumer timed-out from get.")
                 return
 
-    def _producer(self):
+    def _producer(self) -> None:
         # pytorch dataloader is used here only because we need its sampler and multi-processing
         from torch.utils.data import DataLoader, Dataset  # pylint: disable=import-outside-toplevel
 
