@@ -1,15 +1,13 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
-
+import collections
 from abc import ABCMeta
-from typing import Any
+from typing import Any, cast, Dict, Tuple
 
 import pandas as pd
 from qlib.backtest.decision import BaseTradeDecision, Order
-from qlib.backtest.executor import BaseExecutor
-from qlib.backtest.utils import CommonInfrastructure, LevelInfrastructure
-from qlib.rl.data.exchange_wrapper import QlibIntradayBacktestData
-from qlib.rl.order_execution.state import SAOEStateMaintainer
+from qlib.backtest.utils import CommonInfrastructure, LevelInfrastructure, SAOE_DATA_KEY
+from qlib.rl.order_execution.state import SAOEState, SAOEStateMaintainer
 from qlib.strategy.base import RLStrategy
 
 
@@ -26,30 +24,48 @@ class SAOEStrategy(RLStrategy, metaclass=ABCMeta):
     ) -> None:
         super(SAOEStrategy, self).__init__(policy, outer_trade_decision, level_infra, common_infra, **kwargs)
 
-    def create_saoe_maintainer(
-        self,
-        order: Order,
-        executor: BaseExecutor,
-        backtest_data: QlibIntradayBacktestData,
-        time_per_step: str,
-        ticks_index: pd.DatetimeIndex,
-        twap_price: float,
-        ticks_for_order: pd.DatetimeIndex,
-    ) -> None:
-        self.maintainer = SAOEStateMaintainer(
+        self.maintainer_dict: Dict[Tuple[str, int], SAOEStateMaintainer] = {}
+
+    def _create_saoe_maintainer(self, order: Order) -> SAOEStateMaintainer:
+        saoe_data = self.common_infra.get(SAOE_DATA_KEY)
+        ticks_index, ticks_for_order, backtest_data = saoe_data[(order.stock_id, order.direction)]
+
+        return SAOEStateMaintainer(
             order=order,
-            executor=executor,
-            backtest_data=backtest_data,
-            time_per_step=time_per_step,
+            executor=self.executor,
+            exchange=self.trade_exchange,
+            ticks_per_step=int(pd.Timedelta(self.trade_calendar.get_freq()) / pd.Timedelta("1min")),
             ticks_index=ticks_index,
-            twap_price=twap_price,
             ticks_for_order=ticks_for_order,
+            backtest_data=backtest_data,
         )
+
+    def reset(
+        self,
+        level_infra: LevelInfrastructure = None,
+        common_infra: CommonInfrastructure = None,
+        outer_trade_decision: BaseTradeDecision = None,
+        **kwargs,
+    ) -> None:
+        super(SAOEStrategy, self).reset(level_infra, common_infra, outer_trade_decision, **kwargs)
+
+        self.maintainer_dict = {}
+        for decision in outer_trade_decision.get_decision():
+            order = cast(Order, decision)
+            self.maintainer_dict[(order.stock_id, order.direction)] = self._create_saoe_maintainer(order)
+
+    def get_saoe_state_by_order(self, order: Order) -> SAOEState:
+        return self.maintainer_dict[(order.stock_id, order.direction)].saoe_state
 
     def post_upper_level_exe_step(self) -> None:
-        self.maintainer.generate_metrics_after_done()
+        for maintainer in self.maintainer_dict.values():
+            maintainer.generate_metrics_after_done()
 
     def post_exe_step(self, execute_result: list) -> None:
-        self.maintainer.update(
-            execute_result=execute_result,
-        )
+        results = collections.defaultdict(list)
+        if execute_result is not None:
+            for e in execute_result:
+                results[(e[0].stock_id, e[0].direction)].append(e)
+
+        for (stock_id, direction), maintainer in self.maintainer_dict.items():
+            maintainer.update(results[(stock_id, direction)])

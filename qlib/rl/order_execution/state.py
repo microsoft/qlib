@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 from typing_extensions import TypedDict
 
-from qlib.backtest import Order
+from qlib.backtest import Exchange, Order
 from qlib.backtest.executor import BaseExecutor
 from qlib.constant import EPS
 from qlib.rl.data.exchange_wrapper import QlibIntradayBacktestData
@@ -32,30 +32,31 @@ class SAOEStateMaintainer:
         self,
         order: Order,
         executor: BaseExecutor,
-        backtest_data: QlibIntradayBacktestData,
-        time_per_step: str,
+        exchange: Exchange,
+        ticks_per_step: int,
         ticks_index: pd.DatetimeIndex,
-        twap_price: float,
         ticks_for_order: pd.DatetimeIndex,
+        backtest_data: QlibIntradayBacktestData,
     ) -> None:
         super().__init__()
 
         self.position = order.amount
         self.order = order
         self.executor = executor
-        self.backtest_data = backtest_data
-        self.time_per_step = time_per_step
+        self.exchange = exchange
         self.ticks_index = ticks_index
         self.ticks_for_order = ticks_for_order
-        self.twap_price = twap_price
+        self.backtest_data = backtest_data
+
+        self.twap_price = self.backtest_data.get_deal_price().mean()
 
         metric_keys = list(SAOEMetrics.__annotations__.keys())  # pylint: disable=no-member
         self.history_exec = pd.DataFrame(columns=metric_keys).set_index("datetime")
         self.history_steps = pd.DataFrame(columns=metric_keys).set_index("datetime")
         self.metrics: Optional[SAOEMetrics] = None
 
-        self.cur_time = ticks_for_order[0]
-        self.ticks_per_step = int(pd.Timedelta(self.time_per_step).total_seconds() // 60)
+        self.cur_time = self.ticks_for_order[0]
+        self.ticks_per_step = ticks_per_step
 
     def _next_time(self) -> pd.Timestamp:
         current_loc = self.ticks_index.get_loc(self.cur_time)
@@ -76,7 +77,7 @@ class SAOEStateMaintainer:
             datetime_list = pd.DatetimeIndex([])
         else:
             market_volume = np.array(
-                self.executor.trade_exchange.get_volume(
+                self.exchange.get_volume(
                     self.order.stock_id,
                     execute_result[0][0].start_time,
                     execute_result[-1][0].start_time,
@@ -216,7 +217,7 @@ class SAOEStateMaintainer:
             history_steps=self.history_steps,
             metrics=self.metrics,
             backtest_data=self.backtest_data,
-            ticks_per_step=int(pd.Timedelta(self.time_per_step).total_seconds() // 60),
+            ticks_per_step=self.ticks_per_step,
             ticks_index=self.ticks_index,
             ticks_for_order=self.ticks_for_order,
         )

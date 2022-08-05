@@ -7,7 +7,6 @@ from typing import Tuple
 
 import pandas as pd
 import pytest
-
 from qlib.backtest.decision import Order, OrderDir, TradeRangeByTime
 from qlib.backtest.executor import SimulatorExecutor
 from qlib.rl.order_execution import CategoricalActionInterpreter
@@ -205,3 +204,6 @@ def test_interpreter() -> None:
         position_history.append(state.position)
 
         assert position_history[-1] == max(TOTAL_POSITION - TOTAL_POSITION / NUM_EXECUTION * (i + 1), 0.0)
+
+
+test_simulator_stop_twap()

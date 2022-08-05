@@ -10,6 +10,7 @@ import qlib
 from qlib.backtest import get_strategy_executor
 from qlib.backtest.decision import Order
 from qlib.backtest.executor import BaseExecutor, NestedExecutor, SimulatorExecutor
+from qlib.backtest.utils import SAOE_DATA_KEY
 from qlib.config import REG_CN
 from qlib.contrib.ops.high_freq import BFillNan, Cut, Date, DayCumsum, DayLast, FFillNan, IsInf, IsNull, Select
 from qlib.rl.data.exchange_wrapper import QlibIntradayBacktestData
@@ -58,40 +59,6 @@ def init_qlib(qlib_config: dict) -> None:
     )
 
 
-def create_state_maintainer_recursive(
-    executor: BaseExecutor,
-    order: Order,
-    backtest_data: QlibIntradayBacktestData,
-    ticks_index: pd.DatetimeIndex,
-    twap_price: float,
-    ticks_for_order: pd.DatetimeIndex,
-) -> None:
-    if isinstance(executor, SimulatorExecutor):
-        return
-    else:
-        assert isinstance(executor, NestedExecutor)
-
-        if isinstance(executor.inner_strategy, SAOEStrategy):
-            executor.inner_strategy.create_saoe_maintainer(
-                order=order,
-                executor=executor.inner_executor,
-                backtest_data=backtest_data,
-                time_per_step=executor.inner_executor.time_per_step,
-                ticks_index=ticks_index,
-                twap_price=twap_price,
-                ticks_for_order=ticks_for_order,
-            )
-
-        create_state_maintainer_recursive(
-            executor.inner_executor,
-            order,
-            backtest_data,
-            ticks_index,
-            twap_price,
-            ticks_for_order,
-        )
-
-
 class SingleAssetOrderExecutionQlib(Simulator[Order, SAOEState, float]):
     """Single-asset order execution (SAOE) simulator which is implemented based on Qlib backtest tools.
 
@@ -134,8 +101,8 @@ class SingleAssetOrderExecutionQlib(Simulator[Order, SAOEState, float]):
         exchange_config: dict,
     ) -> None:
         strategy, self._executor = get_strategy_executor(
-            start_time=pd.Timestamp(order.start_time.date()),
-            end_time=pd.Timestamp(order.start_time.date()) + pd.DateOffset(1),
+            start_time=order.start_time.replace(hour=0, minute=0, second=0),
+            end_time=order.start_time.replace(hour=0, minute=0, second=0) + pd.DateOffset(1),
             strategy=strategy_config,
             executor=executor_config,
             benchmark=order.stock_id,
@@ -143,8 +110,9 @@ class SingleAssetOrderExecutionQlib(Simulator[Order, SAOEState, float]):
             exchange_kwargs=exchange_config,
             pos_type="InfPosition",
         )
+
         assert isinstance(self._executor, NestedExecutor)
-        strategy.reset(level_infra=self._executor.get_level_infra())
+        strategy.reset(level_infra=self._executor.get_level_infra())  # TODO: check if we could remove this
 
         exchange = self._executor.trade_exchange
         ticks_index = pd.DatetimeIndex([e[1] for e in list(exchange.quote_df.index)])
@@ -154,12 +122,19 @@ class SingleAssetOrderExecutionQlib(Simulator[Order, SAOEState, float]):
             order.end_time,
             include_end=True,
         )
+
         backtest_data = QlibIntradayBacktestData(
             order=order,
             exchange=exchange,
             start_time=ticks_for_order[0],
             end_time=ticks_for_order[-1],
         )
+
+        # Store ticks_for_order & backtest_data in the common_infra. They will be reused by all strategies.
+        common_infra = self._executor.common_infra
+        saoe_data = {} if not common_infra.has(SAOE_DATA_KEY) else common_infra.get(SAOE_DATA_KEY)
+        saoe_data[(order.stock_id, order.direction)] = (ticks_index, ticks_for_order, backtest_data)
+        common_infra.reset_infra(**{SAOE_DATA_KEY: saoe_data})
 
         self.twap_price = backtest_data.get_deal_price().mean()
 
@@ -168,14 +143,7 @@ class SingleAssetOrderExecutionQlib(Simulator[Order, SAOEState, float]):
 
         self._last_yielded_saoe_strategy = self._iter_strategy(action=None)
 
-        create_state_maintainer_recursive(
-            executor=self._executor,
-            order=order,
-            backtest_data=backtest_data,
-            ticks_index=ticks_index,
-            twap_price=self.twap_price,
-            ticks_for_order=ticks_for_order,
-        )
+        self._order = order
 
     def _iter_strategy(self, action: float = None) -> SAOEStrategy:
         """Iterate the _collect_data_loop until we get the next yield SAOEStrategy."""
@@ -206,7 +174,7 @@ class SingleAssetOrderExecutionQlib(Simulator[Order, SAOEState, float]):
         assert self._executor is not None
 
     def get_state(self) -> SAOEState:
-        return self._last_yielded_saoe_strategy.maintainer.saoe_state
+        return self._last_yielded_saoe_strategy.get_saoe_state_by_order(self._order)
 
     def done(self) -> bool:
         return not self._executor.is_collecting

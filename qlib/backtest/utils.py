@@ -21,6 +21,9 @@ import pandas as pd
 from ..data.data import Cal
 
 
+SAOE_DATA_KEY = "saoe_data"
+
+
 class TradeCalendarManager:
     """
     Manager for trading calendar
@@ -235,7 +238,9 @@ class BaseInfrastructure:
 
 class CommonInfrastructure(BaseInfrastructure):
     def get_support_infra(self) -> Set[str]:
-        return {"trade_account", "trade_exchange"}
+        # SAOE_DATA_KEY is used to store SAOE (single asset order execution) information that should be shared by
+        # all strategies. It should be dict.
+        return {"trade_account", "trade_exchange", SAOE_DATA_KEY}
 
 
 class LevelInfrastructure(BaseInfrastructure):
@@ -248,7 +253,7 @@ class LevelInfrastructure(BaseInfrastructure):
         sub_level_infra:
         - **NOTE**: this will only work after _init_sub_trading !!!
         """
-        return {"trade_calendar", "sub_level_infra", "common_infra"}
+        return {"trade_calendar", "sub_level_infra", "common_infra", "executor"}
 
     def reset_cal(
         self,

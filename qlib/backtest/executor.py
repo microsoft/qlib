@@ -114,7 +114,7 @@ class BaseExecutor:
         self.track_data = track_data
         self._trade_exchange = trade_exchange
         self.level_infra = LevelInfrastructure()
-        self.level_infra.reset_infra(common_infra=common_infra)
+        self.level_infra.reset_infra(common_infra=common_infra, executor=self)
         self._settle_type = settle_type
         self.reset(start_time=start_time, end_time=end_time, common_infra=common_infra)
         if common_infra is None:

@@ -8,6 +8,7 @@ from typing import Any, Generator, Optional, TYPE_CHECKING, Union
 if TYPE_CHECKING:
     from qlib.backtest.exchange import Exchange
     from qlib.backtest.position import BasePosition
+    from qlib.backtest.executor import BaseExecutor
 
 from typing import Tuple
 
@@ -54,6 +55,10 @@ class BaseStrategy:
 
         self._reset(level_infra=level_infra, common_infra=common_infra, outer_trade_decision=outer_trade_decision)
         self._trade_exchange = trade_exchange
+
+    @property
+    def executor(self) -> BaseExecutor:
+        return self.level_infra.get("executor")
 
     @property
     def trade_calendar(self) -> TradeCalendarManager:
