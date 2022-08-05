@@ -44,7 +44,7 @@ class DEnsembleModel(Model, FeatureInt):
         if sample_ratios is None:  # the default values for sample_ratios
             sample_ratios = [0.8, 0.7, 0.6, 0.5, 0.4]
         if sub_weights is None:  # the default values for sub_weights
-            sub_weights = [1.0, 0.2, 0.2, 0.2, 0.2, 0.2]
+            sub_weights = [1] * self.num_models
         if not len(sample_ratios) == bins_fs:
             raise ValueError("The length of sample_ratios should be equal to bins_fs.")
         self.sample_ratios = sample_ratios
@@ -87,7 +87,9 @@ class DEnsembleModel(Model, FeatureInt):
             loss_curve = self.retrieve_loss_curve(model_k, df_train, features)
             pred_k = self.predict_sub(model_k, df_train, features)
             pred_sub.iloc[:, k] = pred_k
-            pred_ensemble = pred_sub.iloc[:, : k + 1].mean(axis=1)
+            pred_ensemble = (pred_sub.iloc[:, : k + 1] * self.sub_weights[0 : k + 1]).sum(axis=1) / np.sum(
+                self.sub_weights[0 : k + 1]
+            )
             loss_values = pd.Series(self.get_loss(y_train.values.squeeze(), pred_ensemble.values))
 
             if self.enable_sr:
@@ -159,8 +161,8 @@ class DEnsembleModel(Model, FeatureInt):
         h["bins"] = pd.cut(h["h_value"], self.bins_sr)
         h_avg = h.groupby("bins")["h_value"].mean()
         weights = pd.Series(np.zeros(N, dtype=float))
-        for i_b, b in enumerate(h_avg.index):
-            weights[h["bins"] == b] = 1.0 / (self.decay**k_th * h_avg[i_b] + 0.1)
+        for b in h_avg.index:
+            weights[h["bins"] == b] = 1.0 / (self.decay**k_th * h_avg[b] + 0.1)
         return weights
 
     def feature_selection(self, df_train, loss_values):
@@ -246,6 +248,7 @@ class DEnsembleModel(Model, FeatureInt):
                 pd.Series(submodel.predict(x_test.loc[:, feat_sub].values), index=x_test.index)
                 * self.sub_weights[i_sub]
             )
+        pred = pred / np.sum(self.sub_weights)
         return pred
 
     def predict_sub(self, submodel, df_data, features):

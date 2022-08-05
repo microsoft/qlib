@@ -19,18 +19,18 @@ This file shows resemblence to qlib.backtest.high_performance_ds. We might merge
 
 from __future__ import annotations
 
+from abc import abstractmethod
 from functools import lru_cache
-from typing import List, Sequence, cast
 from pathlib import Path
+from typing import List, Sequence, cast
 
 import cachetools
 import numpy as np
 import pandas as pd
 from cachetools.keys import hashkey
 
-from qlib.backtest.decision import OrderDir, Order
+from qlib.backtest.decision import Order, OrderDir
 from qlib.typehint import Literal
-
 
 DealPriceType = Literal["bid_or_ask", "bid_or_ask_fill", "close"]
 """Several ad-hoc deal price.
@@ -40,7 +40,7 @@ DealPriceType = Literal["bid_or_ask", "bid_or_ask_fill", "close"]
 """
 
 
-def _infer_processed_data_column_names(shape: int) -> list[str]:
+def _infer_processed_data_column_names(shape: int) -> List[str]:
     if shape == 16:
         return [
             "$open",
@@ -87,7 +87,36 @@ def _read_pickle(filename_without_suffix: Path) -> pd.DataFrame:
 
 
 class IntradayBacktestData:
-    """Raw market data that is often used in backtesting (thus called BacktestData)."""
+    """
+    Raw market data that is often used in backtesting (thus called BacktestData).
+
+    Base class for all types of backtest data. Currently, each type of simulator has its corresponding backtest
+    data type.
+    """
+
+    @abstractmethod
+    def __repr__(self) -> str:
+        raise NotImplementedError
+
+    @abstractmethod
+    def __len__(self) -> int:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_deal_price(self) -> pd.Series:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_volume(self) -> pd.Series:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_time_index(self) -> pd.DatetimeIndex:
+        raise NotImplementedError
+
+
+class SimpleIntradayBacktestData(IntradayBacktestData):
+    """Backtest data for simple simulator"""
 
     def __init__(
         self,
@@ -95,8 +124,10 @@ class IntradayBacktestData:
         stock_id: str,
         date: pd.Timestamp,
         deal_price: DealPriceType = "close",
-        order_dir: int | None = None,
-    ):
+        order_dir: int = None,
+    ) -> None:
+        super(SimpleIntradayBacktestData, self).__init__()
+
         backtest = _read_pickle(data_dir / stock_id)
         backtest = backtest.loc[pd.IndexSlice[stock_id, :, date]]
 
@@ -105,13 +136,13 @@ class IntradayBacktestData:
 
         self.data: pd.DataFrame = backtest
         self.deal_price_type: DealPriceType = deal_price
-        self.order_dir: int | None = order_dir
+        self.order_dir = order_dir
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         with pd.option_context("memory_usage", False, "display.max_info_columns", 1, "display.large_repr", "info"):
             return f"{self.__class__.__name__}({self.data})"
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.data)
 
     def get_deal_price(self) -> pd.Series:
@@ -162,7 +193,14 @@ class IntradayProcessedData:
     """Processed data for "yesterday".
     Number of records must be ``time_length``, and columns must be ``feature_dim``."""
 
-    def __init__(self, data_dir: Path, stock_id: str, date: pd.Timestamp, feature_dim: int, time_index: pd.Index):
+    def __init__(
+        self,
+        data_dir: Path,
+        stock_id: str,
+        date: pd.Timestamp,
+        feature_dim: int,
+        time_index: pd.Index,
+    ) -> None:
         proc = _read_pickle(data_dir / stock_id)
         # We have to infer the names here because,
         # unfortunately they are not included in the original data.
@@ -190,16 +228,20 @@ class IntradayProcessedData:
         assert len(self.today.columns) == len(self.yesterday.columns) == feature_dim
         assert len(self.today) == len(self.yesterday) == time_length
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         with pd.option_context("memory_usage", False, "display.max_info_columns", 1, "display.large_repr", "info"):
             return f"{self.__class__.__name__}({self.today}, {self.yesterday})"
 
 
 @lru_cache(maxsize=100)  # 100 * 50K = 5MB
-def load_intraday_backtest_data(
-    data_dir: Path, stock_id: str, date: pd.Timestamp, deal_price: DealPriceType = "close", order_dir: int | None = None
-) -> IntradayBacktestData:
-    return IntradayBacktestData(data_dir, stock_id, date, deal_price, order_dir)
+def load_simple_intraday_backtest_data(
+    data_dir: Path,
+    stock_id: str,
+    date: pd.Timestamp,
+    deal_price: DealPriceType = "close",
+    order_dir: int = None,
+) -> SimpleIntradayBacktestData:
+    return SimpleIntradayBacktestData(data_dir, stock_id, date, deal_price, order_dir)
 
 
 @cachetools.cached(  # type: ignore
@@ -207,13 +249,19 @@ def load_intraday_backtest_data(
     key=lambda data_dir, stock_id, date, _, __: hashkey(data_dir, stock_id, date),
 )
 def load_intraday_processed_data(
-    data_dir: Path, stock_id: str, date: pd.Timestamp, feature_dim: int, time_index: pd.Index
+    data_dir: Path,
+    stock_id: str,
+    date: pd.Timestamp,
+    feature_dim: int,
+    time_index: pd.Index,
 ) -> IntradayProcessedData:
     return IntradayProcessedData(data_dir, stock_id, date, feature_dim, time_index)
 
 
 def load_orders(
-    order_path: Path, start_time: pd.Timestamp | None = None, end_time: pd.Timestamp | None = None
+    order_path: Path,
+    start_time: pd.Timestamp = None,
+    end_time: pd.Timestamp = None,
 ) -> Sequence[Order]:
     """Load orders, and set start time and end time for the orders."""
 
@@ -251,7 +299,7 @@ def load_orders(
                 OrderDir(int(row["order_type"])),
                 row["datetime"].replace(hour=start_time.hour, minute=start_time.minute, second=start_time.second),
                 row["datetime"].replace(hour=end_time.hour, minute=end_time.minute, second=end_time.second),
-            )
+            ),
         )
 
     return orders

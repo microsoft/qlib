@@ -42,7 +42,7 @@ def get_exchange(
     close_cost: float = 0.0025,
     min_cost: float = 5.0,
     limit_threshold: Union[Tuple[str, str], float, None] = None,
-    deal_price: Union[str, Tuple[str], List[str]] = None,
+    deal_price: Union[str, Tuple[str, str], List[str]] = None,
     **kwargs: Any,
 ) -> Exchange:
     """get_exchange
@@ -70,10 +70,10 @@ def get_exchange(
     min_cost : float
         min transaction cost.  It is an absolute amount of cost instead of a ratio of your order's deal amount.
         e.g. You must pay at least 5 yuan of commission regardless of your order's deal amount.
-    deal_price: Union[str, Tuple[str], List[str]]
+    deal_price: Union[str, Tuple[str, str], List[str]]
                 The `deal_price` supports following two types of input
                 - <deal_price> : str
-                - (<buy_price>, <sell_price>): Tuple[str] or List[str]
+                - (<buy_price>, <sell_price>): Tuple[str, str] or List[str]
 
                 <deal_price>, <buy_price> or <sell_price> := <price>
                 <price> := str

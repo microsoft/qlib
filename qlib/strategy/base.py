@@ -2,14 +2,14 @@
 # Licensed under the MIT License.
 from __future__ import annotations
 
-from abc import abstractmethod
-from typing import TYPE_CHECKING, Any, Generator, Optional
+from abc import ABCMeta, abstractmethod
+from typing import Any, Generator, Optional, TYPE_CHECKING, Union
 
 if TYPE_CHECKING:
     from qlib.backtest.exchange import Exchange
     from qlib.backtest.position import BasePosition
 
-from typing import Tuple, Union
+from typing import Tuple
 
 from ..backtest.decision import BaseTradeDecision
 from ..backtest.utils import CommonInfrastructure, LevelInfrastructure, TradeCalendarManager
@@ -207,8 +207,18 @@ class BaseStrategy:
         range_limit = self.outer_trade_decision.get_data_cal_range_limit(rtype=rtype)
         return max(cal_range[0], range_limit[0]), min(cal_range[1], range_limit[1])
 
+    def post_exe_step(self, execute_result: list) -> None:
+        """
+        A hook for doing sth after the corresponding executor finished its execution.
 
-class RLStrategy(BaseStrategy):
+        Parameters
+        ----------
+        execute_result :
+            the execution result
+        """
+
+
+class RLStrategy(BaseStrategy, metaclass=ABCMeta):
     """RL-based strategy"""
 
     def __init__(
@@ -229,14 +239,14 @@ class RLStrategy(BaseStrategy):
         self.policy = policy
 
 
-class RLIntStrategy(RLStrategy):
+class RLIntStrategy(RLStrategy, metaclass=ABCMeta):
     """(RL)-based (Strategy) with (Int)erpreter"""
 
     def __init__(
         self,
         policy,
-        state_interpreter: Union[dict, StateInterpreter],
-        action_interpreter: Union[dict, ActionInterpreter],
+        state_interpreter: dict | StateInterpreter,
+        action_interpreter: dict | ActionInterpreter,
         outer_trade_decision: BaseTradeDecision = None,
         level_infra: LevelInfrastructure = None,
         common_infra: CommonInfrastructure = None,

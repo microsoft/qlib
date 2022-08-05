@@ -36,7 +36,7 @@ pip install -r requirements.txt
     - `target_dir`: save dir, by default *~/.qlib/qlib_data/cn_data*
     - `version`: dataset version, value from [`v1`, `v2`], by default `v1`
       - `v2` end date is *2021-06*, `v1` end date is *2020-09*
-      - user can append data to `v2`: [automatic update of daily frequency data](#automatic-update-of-daily-frequency-datafrom-yahoo-finance)
+      - If users want to incrementally update data, they need to use yahoo collector to [collect data from scratch](#collector-yahoofinance-data-to-qlib).
       - **the [benchmarks](https://github.com/microsoft/qlib/tree/main/examples/benchmarks) for qlib use `v1`**, *due to the unstable access to historical data by YahooFinance, there are some differences between `v2` and `v1`*
     - `interval`: `1d` or `1min`, by default `1d`
     - `region`: `cn` or `us` or `in`, by default `cn`
@@ -62,6 +62,8 @@ pip install -r requirements.txt
 > collector *YahooFinance* data and *dump* into `qlib` format.
 > If the above ready-made data can't meet users' requirements,  users can follow this section to crawl the latest data and convert it to qlib-data.
   1. download data to csv: `python scripts/data_collector/yahoo/collector.py download_data`
+     
+     This will download the raw data such as high, low, open, close, adjclose price from yahoo to a local directory. One file per symbol.
 
      - parameters:
           - `source_dir`: save the directory
@@ -99,6 +101,10 @@ pip install -r requirements.txt
           ```
   2. normalize data: `python scripts/data_collector/yahoo/collector.py normalize_data`
      
+     This will:
+     1. Normalize high, low, close, open price using adjclose.
+     2. Normalize the high, low, close, open price so that the first valid trading date's close price is 1. 
+
      - parameters:
           - `source_dir`: csv directory
           - `normalize_dir`: result directory
@@ -136,6 +142,8 @@ pip install -r requirements.txt
         ```
   3. dump data: `python scripts/dump_bin.py dump_all`
     
+     This will convert the normalized csv in `feature` directory as numpy array and store the normalized data one file per column and one symbol per directory. 
+    
      - parameters:
        - `csv_path`: stock data path or directory, **normalize result(normalize_dir)**
        - `qlib_dir`: qlib(dump) data director
@@ -157,6 +165,9 @@ pip install -r requirements.txt
 
 ### Automatic update of daily frequency data(from yahoo finance)
   > It is recommended that users update the data manually once (--trading_date 2021-05-25) and then set it to update automatically.
+  >
+  > **NOTE**: Users can't incrementally  update data based on the offline data provided by Qlib(some fields are removed to reduce the data size). Users should use [yahoo collector](https://github.com/microsoft/qlib/tree/main/scripts/data_collector/yahoo#automatic-update-of-daily-frequency-datafrom-yahoo-finance) to download Yahoo data from scratch and then incrementally update it.
+  > 
 
   * Automatic update of data to the "qlib" directory each trading day(Linux)
       * use *crontab*: `crontab -e`

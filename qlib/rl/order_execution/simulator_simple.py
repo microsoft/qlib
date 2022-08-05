@@ -4,17 +4,19 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import NamedTuple, Any, TypeVar, cast
+from typing import Any, NamedTuple, Optional, TypeVar, cast
 
 import numpy as np
 import pandas as pd
 
 from qlib.backtest.decision import Order, OrderDir
 from qlib.constant import EPS
+from qlib.rl.data.pickle_styled import DealPriceType, IntradayBacktestData, load_simple_intraday_backtest_data
 from qlib.rl.simulator import Simulator
-from qlib.rl.data.pickle_styled import IntradayBacktestData, load_intraday_backtest_data, DealPriceType
 from qlib.rl.utils import LogLevel
 from qlib.typehint import TypedDict
+
+# TODO: Integrating Qlib's native data with simulator_simple
 
 __all__ = ["SAOEMetrics", "SAOEState", "SingleAssetOrderExecution"]
 
@@ -33,40 +35,40 @@ class SAOEMetrics(TypedDict):
 
     stock_id: str
     """Stock ID of this record."""
-    datetime: pd.Timestamp
+    datetime: pd.Timestamp | pd.DatetimeIndex  # TODO: check this
     """Datetime of this record (this is index in the dataframe)."""
     direction: int
     """Direction of the order. 0 for sell, 1 for buy."""
 
     # Market information.
-    market_volume: float
+    market_volume: np.ndarray | float
     """(total) market volume traded in the period."""
-    market_price: float
+    market_price: np.ndarray | float
     """Deal price. If it's a period of time, this is the average market deal price."""
 
     # Strategy records.
 
-    amount: float
+    amount: np.ndarray | float
     """Total amount (volume) strategy intends to trade."""
-    inner_amount: float
+    inner_amount: np.ndarray | float
     """Total amount that the lower-level strategy intends to trade
     (might be larger than amount, e.g., to ensure ffr)."""
 
-    deal_amount: float
+    deal_amount: np.ndarray | float
     """Amount that successfully takes effect (must be less than inner_amount)."""
-    trade_price: float
+    trade_price: np.ndarray | float
     """The average deal price for this strategy."""
-    trade_value: float
-    """Total worth of trading. In the simple simulaton, trade_value = deal_amount * price."""
-    position: float
+    trade_value: np.ndarray | float
+    """Total worth of trading. In the simple simulation, trade_value = deal_amount * price."""
+    position: np.ndarray | float
     """Position left after this "period"."""
 
     # Accumulated metrics
 
-    ffr: float
+    ffr: np.ndarray | float
     """Completed how much percent of the daily order."""
 
-    pa: float
+    pa: np.ndarray | float
     """Price advantage compared to baseline (i.e., trade with baseline market price).
     The baseline is trade price when using TWAP strategy to execute this order.
     Please note that there could be data leak here).
@@ -87,7 +89,7 @@ class SAOEState(NamedTuple):
     history_steps: pd.DataFrame
     """See :attr:`SingleAssetOrderExecution.history_steps`."""
 
-    metrics: SAOEMetrics | None
+    metrics: Optional[SAOEMetrics]
     """Daily metric, only available when the trading is in "done" state."""
 
     backtest_data: IntradayBacktestData
@@ -114,13 +116,13 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
     If such fine granularity is not needed, use ``ticks_per_step`` to
     lengthen the ticks for each step.
 
-    In each step, the traded amount are "equally" splitted to each tick,
-    then bounded by volume maximum exeuction volume (i.e., ``vol_threshold``),
+    In each step, the traded amount are "equally" separated to each tick,
+    then bounded by volume maximum execution volume (i.e., ``vol_threshold``),
     and if it's the last step, try to ensure all the amount to be executed.
 
     Parameters
     ----------
-    initial
+    order
         The seed to start an SAOE simulator is an order.
     ticks_per_step
         How many ticks per step.
@@ -140,7 +142,7 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
     See :class:`SAOEMetrics` for available columns.
     Index is ``datetime``, which is the **starting** time of each step."""
 
-    metrics: SAOEMetrics | None
+    metrics: Optional[SAOEMetrics]
     """Metrics. Only available when done."""
 
     twap_price: float
@@ -159,15 +161,21 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
         data_dir: Path,
         ticks_per_step: int = 30,
         deal_price_type: DealPriceType = "close",
-        vol_threshold: float | None = None,
+        vol_threshold: Optional[float] = None,
     ) -> None:
+        super().__init__(initial=order)
+
         self.order = order
         self.ticks_per_step: int = ticks_per_step
         self.deal_price_type = deal_price_type
         self.vol_threshold = vol_threshold
         self.data_dir = data_dir
-        self.backtest_data = load_intraday_backtest_data(
-            self.data_dir, order.stock_id, pd.Timestamp(order.start_time.date()), self.deal_price_type, order.direction
+        self.backtest_data = load_simple_intraday_backtest_data(
+            self.data_dir,
+            order.stock_id,
+            pd.Timestamp(order.start_time.date()),
+            self.deal_price_type,
+            order.direction,
         )
 
         self.ticks_index = self.backtest_data.get_time_index()
@@ -188,9 +196,9 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
         self.history_steps = pd.DataFrame(columns=metric_keys).set_index("datetime")
         self.metrics = None
 
-        self.market_price: np.ndarray | None = None
-        self.market_vol: np.ndarray | None = None
-        self.market_vol_limit: np.ndarray | None = None
+        self.market_price: Optional[np.ndarray] = None
+        self.market_vol: Optional[np.ndarray] = None
+        self.market_vol_limit: Optional[np.ndarray] = None
 
     def step(self, amount: float) -> None:
         """Execute one step or SAOE.
@@ -205,7 +213,8 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
 
         self.market_price = self.market_vol = None  # avoid misuse
         exec_vol = self._split_exec_vol(amount)
-        assert self.market_price is not None and self.market_vol is not None
+        assert self.market_price is not None
+        assert self.market_vol is not None
 
         ticks_position = self.position - np.cumsum(exec_vol)
 
@@ -363,7 +372,7 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
             inner_amount=exec_vol.sum(),
             deal_amount=exec_vol.sum(),  # in this simulator, there's no other restrictions
             trade_price=exec_avg_price,
-            trade_value=np.sum(market_price * exec_vol),
+            trade_value=float(np.sum(market_price * exec_vol)),
             position=self.position,
             ffr=float(exec_vol.sum() / self.order.amount),
             pa=price_advantage(exec_avg_price, self.twap_price, self.order.direction),
@@ -386,7 +395,9 @@ _float_or_ndarray = TypeVar("_float_or_ndarray", float, np.ndarray)
 
 
 def price_advantage(
-    exec_price: _float_or_ndarray, baseline_price: float, direction: OrderDir | int
+    exec_price: _float_or_ndarray,
+    baseline_price: float,
+    direction: OrderDir | int,
 ) -> _float_or_ndarray:
     if baseline_price == 0:  # something is wrong with data. Should be nan here
         if isinstance(exec_price, float):
