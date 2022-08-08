@@ -10,14 +10,11 @@ import qlib
 from qlib.backtest import get_strategy_executor
 from qlib.backtest.decision import Order
 from qlib.backtest.executor import NestedExecutor
-from qlib.backtest.utils import SAOE_DATA_KEY
 from qlib.config import REG_CN
 from qlib.contrib.ops.high_freq import BFillNan, Cut, Date, DayCumsum, DayLast, FFillNan, IsInf, IsNull, Select
-from qlib.rl.data.exchange_wrapper import QlibIntradayBacktestData
 from qlib.rl.order_execution.state import SAOEState
-from qlib.rl.order_execution.utils import get_ticks_slice
-from qlib.rl.simulator import Simulator
 from qlib.rl.order_execution.strategy import SAOEStrategy
+from qlib.rl.simulator import Simulator
 
 
 def init_qlib(qlib_config: dict) -> None:

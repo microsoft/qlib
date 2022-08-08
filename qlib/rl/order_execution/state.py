@@ -211,7 +211,7 @@ class QlibBacktestAdapter:
     def saoe_state(self) -> SAOEState:
         return SAOEState(
             order=self.order,
-            cur_time=self.executor.trade_calendar.get_step_time()[0],
+            cur_time=self.cur_time,
             position=self.position,
             history_exec=self.history_exec,
             history_steps=self.history_steps,

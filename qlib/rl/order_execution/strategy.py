@@ -3,7 +3,7 @@
 
 import collections
 from abc import ABCMeta
-from typing import Any, cast, Dict, Generator, Tuple
+from typing import Any, cast, Dict, Generator
 
 import pandas as pd
 from qlib.backtest import CommonInfrastructure, Order
@@ -43,7 +43,7 @@ class SAOEStrategy(RLStrategy, metaclass=ABCMeta):
                 start_time=order.start_time.replace(hour=0, minute=0, second=0),
                 end_time=order.start_time.replace(hour=23, minute=59, second=59),
                 direction=order.direction,
-                method=None
+                method=None,
             )
 
             ticks_index = pd.DatetimeIndex(data.index)
@@ -56,7 +56,6 @@ class SAOEStrategy(RLStrategy, metaclass=ABCMeta):
                 )
             else:
                 ticks_for_order = None  # FIXME: implement this logic
-                start_time = None  # FIXME: implement this logic
 
             backtest_data = QlibIntradayBacktestData(
                 order=order,
@@ -81,8 +80,10 @@ class SAOEStrategy(RLStrategy, metaclass=ABCMeta):
     def reset(self, outer_trade_decision: BaseTradeDecision = None, **kwargs: Any) -> None:
         super(SAOEStrategy, self).reset(outer_trade_decision=outer_trade_decision, **kwargs)
 
-        trade_range = outer_trade_decision.trade_range
         if outer_trade_decision is not None:
+            trade_range = outer_trade_decision.trade_range
+            assert trade_range is not None
+
             self.adapter_dict = {}
             for decision in outer_trade_decision.get_decision():
                 order = cast(Order, decision)
