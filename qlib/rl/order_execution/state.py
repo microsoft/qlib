@@ -55,7 +55,7 @@ class QlibBacktestAdapter:
         self.history_steps = pd.DataFrame(columns=metric_keys).set_index("datetime")
         self.metrics: Optional[SAOEMetrics] = None
 
-        self.cur_time = self.ticks_for_order[0]
+        self.cur_time = max(ticks_for_order[0], order.start_time)
         self.ticks_per_step = ticks_per_step
 
     def _next_time(self) -> pd.Timestamp:

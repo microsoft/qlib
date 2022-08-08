@@ -89,32 +89,30 @@ class SingleAssetOrderExecutionQlib(Simulator[Order, SAOEState, float]):
     ----------
     order
         The seed to start an SAOE simulator is an order.
-    qlib_config
-        Configuration used to initialize Qlib.
     strategy_config
         Strategy configuration
     executor_config
         Executor configuration
     exchange_config
         Exchange configuration
+    qlib_config
+        Configuration used to initialize Qlib. If it is None, Qlib will not be initialized.
     """
 
     def __init__(
         self,
         order: Order,
-        qlib_config: dict,
         strategy_config: dict,
         executor_config: dict,
         exchange_config: dict,
+        qlib_config: dict = None,
     ) -> None:
         super().__init__(initial=order)
 
         assert order.start_time.date() == order.end_time.date(), "Start date and end date must be the same."
 
-        init_qlib(qlib_config)
-
         self._collect_data_loop: Optional[Generator] = None
-        self.reset(order, strategy_config, executor_config, exchange_config)
+        self.reset(order, strategy_config, executor_config, exchange_config, qlib_config)
 
     def reset(
         self,
@@ -122,7 +120,11 @@ class SingleAssetOrderExecutionQlib(Simulator[Order, SAOEState, float]):
         strategy_config: dict,
         executor_config: dict,
         exchange_config: dict,
+        qlib_config: dict = None,
     ) -> None:
+        if qlib_config is not None:
+            init_qlib(qlib_config)
+
         strategy, self._executor = get_strategy_executor(
             start_time=order.start_time.replace(hour=0, minute=0, second=0),
             end_time=order.start_time.replace(hour=0, minute=0, second=0) + pd.DateOffset(1),
@@ -137,36 +139,16 @@ class SingleAssetOrderExecutionQlib(Simulator[Order, SAOEState, float]):
         assert isinstance(self._executor, NestedExecutor)
         strategy.reset(level_infra=self._executor.get_level_infra())  # TODO: check if we could remove this
 
-        exchange = self._executor.trade_exchange
-        ticks_index = pd.DatetimeIndex([e[1] for e in list(exchange.quote_df.index)])
-        ticks_for_order = get_ticks_slice(
-            ticks_index,
-            order.start_time,
-            order.end_time,
-            include_end=True,
-        )
-
-        backtest_data = QlibIntradayBacktestData(
-            order=order,
-            exchange=exchange,
-            start_time=ticks_for_order[0],
-            end_time=ticks_for_order[-1],
-        )
-
-        # Store ticks_for_order & backtest_data in the common_infra. They will be reused by all strategies.
-        common_infra = self._executor.common_infra
-        saoe_data = {} if not common_infra.has(SAOE_DATA_KEY) else common_infra.get(SAOE_DATA_KEY)
-        saoe_data[(order.stock_id, order.direction)] = (ticks_index, ticks_for_order, backtest_data)
-        common_infra.reset_infra(**{SAOE_DATA_KEY: saoe_data})
-
-        self.twap_price = backtest_data.get_deal_price().mean()
-
         self._collect_data_loop = self._executor.collect_data(strategy.generate_trade_decision(), level=0)
         assert isinstance(self._collect_data_loop, Generator)
 
         self._last_yielded_saoe_strategy = self._iter_strategy(action=None)
 
         self._order = order
+
+    @property
+    def twap_price(self) -> float:
+        return self._last_yielded_saoe_strategy.adapter_dict[self._order.key].twap_price
 
     def _iter_strategy(self, action: float = None) -> SAOEStrategy:
         """Iterate the _collect_data_loop until we get the next yield SAOEStrategy."""

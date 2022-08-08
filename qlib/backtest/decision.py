@@ -135,6 +135,11 @@ class Order:
         else:
             raise NotImplementedError(f"This type of input is not supported")
 
+    @property
+    def key(self) -> tuple:
+        """A hashable & unique key to identify this order. Usually used as the key in a dict."""
+        return self.stock_id, self.start_time.replace(hour=0, minute=0, second=0), self.direction
+
 
 class OrderHelper:
     """

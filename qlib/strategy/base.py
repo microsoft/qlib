@@ -5,6 +5,8 @@ from __future__ import annotations
 from abc import ABCMeta, abstractmethod
 from typing import Any, Generator, Optional, TYPE_CHECKING, Union
 
+import pandas as pd
+
 if TYPE_CHECKING:
     from qlib.backtest.exchange import Exchange
     from qlib.backtest.position import BasePosition
@@ -63,6 +65,10 @@ class BaseStrategy:
     @property
     def trade_calendar(self) -> TradeCalendarManager:
         return self.level_infra.get("trade_calendar")
+
+    @property
+    def ticks_per_step(self) -> int:
+        return int(pd.Timedelta(self.trade_calendar.get_freq()) / pd.Timedelta("1min"))
 
     @property
     def trade_position(self) -> BasePosition:

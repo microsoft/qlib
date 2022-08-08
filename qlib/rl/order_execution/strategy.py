@@ -7,9 +7,11 @@ from typing import Any, cast, Dict, Generator, Tuple
 
 import pandas as pd
 from qlib.backtest import CommonInfrastructure, Order
-from qlib.backtest.decision import BaseTradeDecision, TradeDecisionWO
+from qlib.backtest.decision import BaseTradeDecision, TradeDecisionWO, TradeRange, TradeRangeByTime
 from qlib.backtest.utils import LevelInfrastructure, SAOE_DATA_KEY
+from qlib.rl.data.exchange_wrapper import QlibIntradayBacktestData
 from qlib.rl.order_execution.state import QlibBacktestAdapter, SAOEState
+from qlib.rl.order_execution.utils import get_ticks_slice
 from qlib.strategy.base import RLStrategy
 
 
@@ -26,17 +28,51 @@ class SAOEStrategy(RLStrategy, metaclass=ABCMeta):
     ) -> None:
         super(SAOEStrategy, self).__init__(policy, outer_trade_decision, level_infra, common_infra, **kwargs)
 
-        self.adapter_dict: Dict[Tuple[str, int], QlibBacktestAdapter] = {}
+        self.adapter_dict: Dict[tuple, QlibBacktestAdapter] = {}
 
-    def _create_qlib_backtest_adapter(self, order: Order) -> QlibBacktestAdapter:
+    def _create_qlib_backtest_adapter(self, order: Order, trade_range: TradeRange) -> QlibBacktestAdapter:
+        if not self.common_infra.has(SAOE_DATA_KEY):
+            self.common_infra.reset_infra(**{SAOE_DATA_KEY: {}})
+
+        # saoe_data can be considered as some type of cache. Use it to avoid unnecessary data reload.
+        # The data for one order would be loaded only once. All strategies will reuse this data.
         saoe_data = self.common_infra.get(SAOE_DATA_KEY)
-        ticks_index, ticks_for_order, backtest_data = saoe_data[(order.stock_id, order.direction)]
+        if order.key not in saoe_data:
+            data = self.trade_exchange.get_deal_price(
+                stock_id=order.stock_id,
+                start_time=order.start_time.replace(hour=0, minute=0, second=0),
+                end_time=order.start_time.replace(hour=23, minute=59, second=59),
+                direction=order.direction,
+                method=None
+            )
 
+            ticks_index = pd.DatetimeIndex(data.index)
+            if isinstance(trade_range, TradeRangeByTime):
+                ticks_for_order = get_ticks_slice(
+                    ticks_index,
+                    trade_range.start_time,
+                    trade_range.end_time,
+                    include_end=True,
+                )
+            else:
+                ticks_for_order = None  # FIXME: implement this logic
+                start_time = None  # FIXME: implement this logic
+
+            backtest_data = QlibIntradayBacktestData(
+                order=order,
+                exchange=self.trade_exchange,
+                start_time=ticks_for_order[0],
+                end_time=ticks_for_order[-1],
+            )
+
+            saoe_data[order.key] = (ticks_index, ticks_for_order, backtest_data)
+
+        ticks_index, ticks_for_order, backtest_data = saoe_data[order.key]
         return QlibBacktestAdapter(
             order=order,
             executor=self.executor,
             exchange=self.trade_exchange,
-            ticks_per_step=int(pd.Timedelta(self.trade_calendar.get_freq()) / pd.Timedelta("1min")),
+            ticks_per_step=self.ticks_per_step,
             ticks_index=ticks_index,
             ticks_for_order=ticks_for_order,
             backtest_data=backtest_data,
@@ -45,14 +81,15 @@ class SAOEStrategy(RLStrategy, metaclass=ABCMeta):
     def reset(self, outer_trade_decision: BaseTradeDecision = None, **kwargs: Any) -> None:
         super(SAOEStrategy, self).reset(outer_trade_decision=outer_trade_decision, **kwargs)
 
+        trade_range = outer_trade_decision.trade_range
         if outer_trade_decision is not None:
             self.adapter_dict = {}
             for decision in outer_trade_decision.get_decision():
                 order = cast(Order, decision)
-                self.adapter_dict[(order.stock_id, order.direction)] = self._create_qlib_backtest_adapter(order)
+                self.adapter_dict[order.key] = self._create_qlib_backtest_adapter(order, trade_range)
 
     def get_saoe_state_by_order(self, order: Order) -> SAOEState:
-        return self.adapter_dict[(order.stock_id, order.direction)].saoe_state
+        return self.adapter_dict[order.key].saoe_state
 
     def post_upper_level_exe_step(self) -> None:
         for maintainer in self.adapter_dict.values():
@@ -62,10 +99,10 @@ class SAOEStrategy(RLStrategy, metaclass=ABCMeta):
         results = collections.defaultdict(list)
         if execute_result is not None:
             for e in execute_result:
-                results[(e[0].stock_id, e[0].direction)].append(e)
+                results[e[0].key].append(e)
 
-        for (stock_id, direction), maintainer in self.adapter_dict.items():
-            maintainer.update(results[(stock_id, direction)])
+        for key, maintainer in self.adapter_dict.items():
+            maintainer.update(results[key])
 
 
 class DecomposedStrategy(SAOEStrategy):
