@@ -111,7 +111,7 @@ class Experiment:
         """
         raise NotImplementedError(f"Please implement the `delete_recorder` method.")
 
-    def get_recorder(self, recorder_id=None, recorder_name=None, create: bool = True, start: bool = False):
+    def get_recorder(self, recorder_id=None, recorder_name=None, create: bool = True, start: bool = False) -> Recorder:
         """
         Retrieve a Recorder for user. When user specify recorder id and name, the method will try to return the
         specific recorder. When user does not provide recorder id or name, the method will try to return the current
