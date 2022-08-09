@@ -253,7 +253,8 @@ class MLflowRecorder(Recorder):
     Though it takes extra efforts, but it brings users benefits due to following reasons.
     - It will be more convenient to change the experiment logging backend without changing any code in upper level
     - We can provide more convenience to automatically do some extra things and make interface easier. For examples:
-        - It can automatically log the uncommitted code
+        - Automatically logging the uncommitted code
+        - Automatically logging part of environment variables
         - User can control several different runs by just creating different Recorder (in mlflow, you always have to switch artifact_uri and pass in run ids frequently)
     """
 
@@ -347,6 +348,9 @@ class MLflowRecorder(Recorder):
         self._log_uncommitted_code()
 
         self.log_params(**{"cmd-sys.argv": " ".join(sys.argv)})  # log the command to produce current experiment
+        self.log_params(
+            **{k: v for k, v in os.environ.items() if k.startswith("_QLIB_")}
+        )  # Log necessary environment variables
         return run
 
     def _log_uncommitted_code(self):
