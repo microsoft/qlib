@@ -509,13 +509,13 @@ class FinancialStorage(BaseStorage):
         ------
         if data(storage) does not exist, return empty pd.Series: `return pd.Series(dtype=np.float32)`
         """
-        raise NotImplementedError("Subclass of PitStorage must implement `data` method")
+        raise NotImplementedError("Subclass of FinancialStorage must implement `data` method")
 
     def __getitem__(self, s: slice) -> pd.Series:
         """x.__getitem__(slice(start: int, stop: int, step: int)) <==> x[start:stop:step]
 
         Returns
         -------
-            pd.Series(values, index=pd.RangeIndex(start, len(values))
+            pd.Series(values, index=pd.MultiIndex(["period", "datetime"])
         """
-        raise NotImplementedError("Subclass of PitStorage must implement `__getitem__`  method")
+        raise NotImplementedError("Subclass of FinancialStorage must implement `__getitem__`  method")
