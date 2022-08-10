@@ -262,10 +262,10 @@ class PFeature(Feature):
     def __str__(self):
         return "$$" + self._name
 
-    def _load_internal(self, instrument, start_index, end_index, cur_time, period=None):
+    def _load_internal(self, instrument, start_index, end_index, freq):
         from .data import PITD  # pylint: disable=C0415
 
-        return PITD.period_feature(instrument, str(self), start_index, end_index, cur_time, period)
+        return PITD.financial(instrument, str(self), start_index, end_index, freq)
 
 
 class ExpressionOps(Expression):

@@ -13,6 +13,8 @@ The calculation of both <period_time, feature> and <observe_time, feature> data 
 2) concatenate all th collasped data, we will get data with format <observe_time, feature>.
 Qlib will use the operator `P` to perform the collapse.
 """
+from typing import Tuple, Any, Optional
+
 import numpy as np
 import pandas as pd
 from qlib.data.ops import ElemOperator
@@ -21,24 +23,20 @@ from .data import Cal
 
 
 class P(ElemOperator):
-    def _load_internal(self, instrument, start_index, end_index, freq):
-
+    def get_observe_data(
+        self, instrument: str, start_index: int, end_index: int, freq: str, period: Optional[int] = None
+    ) -> pd.Series:
+        # Observe time may populate values with data from the reporting period prior to the end date
+        series = self.feature.load(instrument, 0, end_index, freq)
         _calendar = Cal.calendar(freq=freq)
         resample_data = np.empty(end_index - start_index + 1, dtype="float32")
-
-        for cur_index in range(start_index, end_index + 1):
-            cur_time = _calendar[cur_index]
-            # To load expression accurately, more historical data are required
-            start_ws, end_ws = self.feature.get_extended_window_size()
-            if end_ws > 0:
-                raise ValueError(
-                    "PIT database does not support referring to future period (e.g. expressions like `Ref('$$roewa_q', -1)` are not supported"
-                )
-
-            # The calculated value will always the last element, so the end_offset is zero.
+        for time_idx in range(start_index, end_index + 1):
+            current_time = _calendar[time_idx]
             try:
-                s = self._load_feature(instrument, -start_ws, 0, cur_time)
-                resample_data[cur_index - start_index] = s.iloc[-1] if len(s) > 0 else np.nan
+                s = series[series.index.get_level_values("datetime") <= current_time]
+                if period is not None:
+                    s = s[s.index.get_level_values("period") == period]
+                resample_data[time_idx - start_index] = s.iloc[-1] if len(s) > 0 else np.nan
             except FileNotFoundError:
                 get_module_logger("base").warning(f"WARN: period data not found for {str(self)}")
                 return pd.Series(dtype="float32", name=str(self))
@@ -48,25 +46,25 @@ class P(ElemOperator):
         )
         return resample_series
 
-    def _load_feature(self, instrument, start_index, end_index, cur_time):
-        return self.feature.load(instrument, start_index, end_index, cur_time)
+    def _load_internal(self, instrument: str, start_index: int, end_index: int, *args: Tuple[Any]) -> pd.Series:
+        return self.get_observe_data(instrument, start_index, end_index, *args)
 
-    def get_longest_back_rolling(self):
+    def get_longest_back_rolling(self) -> int:
         # The period data will collapse as a normal feature. So no extending and looking back
         return 0
 
-    def get_extended_window_size(self):
+    def get_extended_window_size(self) -> Tuple[int, int]:
         # The period data will collapse as a normal feature. So no extending and looking back
         return 0, 0
 
 
 class PRef(P):
-    def __init__(self, feature, period):
+    def __init__(self, feature, period) -> None:
         super().__init__(feature)
         self.period = period
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{super().__str__()}[{self.period}]"
 
-    def _load_feature(self, instrument, start_index, end_index, cur_time):
-        return self.feature.load(instrument, start_index, end_index, cur_time, self.period)
+    def _load_internal(self, instrument: str, start_index: int, end_index: int, *args: Tuple[Any]) -> pd.Series:
+        return self.get_observe_data(instrument, start_index, end_index, *args, period=self.period)

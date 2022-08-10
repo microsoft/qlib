@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 import re
-from typing import Iterable, overload, Tuple, List, Text, Union, Dict
+from typing import Iterable, overload, Tuple, List, Text, Union, Dict, Any
 
 import numpy as np
 import pandas as pd
@@ -492,3 +492,30 @@ class FeatureStorage(BaseStorage):
 
         """
         raise NotImplementedError("Subclass of FeatureStorage must implement `__len__`  method")
+
+
+class FinancialStorage(BaseStorage):
+    def __init__(self, instrument: str, field: str, freq: str, **kwargs: Dict[Any, Any]) -> None:
+        self.instrument = instrument
+        self.field = field
+        self.freq = freq
+        self.kwargs = kwargs
+
+    @property
+    def data(self) -> pd.Series:
+        """get all data
+
+        Notes
+        ------
+        if data(storage) does not exist, return empty pd.Series: `return pd.Series(dtype=np.float32)`
+        """
+        raise NotImplementedError("Subclass of PitStorage must implement `data` method")
+
+    def __getitem__(self, s: slice) -> pd.Series:
+        """x.__getitem__(slice(start: int, stop: int, step: int)) <==> x[start:stop:step]
+
+        Returns
+        -------
+            pd.Series(values, index=pd.RangeIndex(start, len(values))
+        """
+        raise NotImplementedError("Subclass of PitStorage must implement `__getitem__`  method")
