@@ -20,7 +20,7 @@ class FinancialInterval(Enum):
 
     def get_period_list(self, start_period: int, end_period: int) -> List[int]:
         if self == self.YEARLY:
-            return [year for year in range(start_period, end_period + 1)]
+            return list(range(start_period, end_period + 1))
         elif self == self.QUARTERLY:
             return [
                 year * 100 + quarter
@@ -38,12 +38,11 @@ class FinancialInterval(Enum):
             rv = (period // 100 - start_year) * 4 + period % 100 - 1
         else:
             raise ValueError(f"{self} is not supported.")
-        if rv < 0:
-            rv = 0
+        rv = max(rv, 0)
         return rv
 
     def get_period_slice(self, s: slice) -> Tuple[int, int]:
-        from qlib.data.data import Cal
+        from qlib.data.data import Cal  # pylint: disable=C0415
 
         _calendar = Cal.calendar(freq="day")
         try:
