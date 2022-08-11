@@ -222,9 +222,6 @@ class TopkDropoutStrategy(BaseSignalStrategy):
                     continue
                 # sell order
                 sell_amount = current_temp.get_stock_amount(code=code)
-                factor = self.trade_exchange.get_factor(
-                    stock_id=code, start_time=trade_start_time, end_time=trade_end_time
-                )
                 # sell_amount = self.trade_exchange.round_amount_by_trade_unit(sell_amount, factor)
                 sell_order = Order(
                     stock_id=code,
