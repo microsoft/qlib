@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-from typing import Dict, List, Union
+from typing import Dict, List, Literal, Union
 import mlflow
 import logging
 from mlflow.entities import ViewType
@@ -218,7 +218,9 @@ class Experiment:
     RT_D = "dict"  # return type dict
     RT_L = "list"  # return type list
 
-    def list_recorders(self, rtype: str = RT_D, **flt_kwargs) -> Union[List[Recorder], Dict[str, Recorder]]:
+    def list_recorders(
+        self, rtype: Literal["dict", "list"] = RT_D, **flt_kwargs
+    ) -> Union[List[Recorder], Dict[str, Recorder]]:
         """
         List all the existing recorders of this experiment. Please first get the experiment instance before calling this method.
         If user want to use the method `R.list_recorders()`, please refer to the related API document in `QlibRecorder`.
@@ -340,7 +342,7 @@ class MLflowExperiment(Experiment):
 
     def list_recorders(
         self,
-        rtype=Experiment.RT_D,
+        rtype: Literal["dict", "list"] = Experiment.RT_D,
         max_results: int = UNLIMITED,
         status: Union[str, None] = None,
         filter_string: str = "",
