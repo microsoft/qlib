@@ -559,7 +559,9 @@ class FileFinancialStorage(FinancialStorage, FileStorageMixin):
                 data_array = np.concatenate([data_array, exists_data_array])
         data_array.sort(order=[self.PERIOD_COLUMN_NAME, self.DATE_COLUMN_NAME])
 
-        # TODO: Removes data for the same period and date
+        # remove duplicate rows of date and period
+        _, mask = np.unique(data_array[[self.DATE_COLUMN_NAME, self.PERIOD_COLUMN_NAME]], return_index=True)
+        data_array = data_array[mask]
 
         # rewrite index
         start_period = data_array[self.PERIOD_COLUMN_NAME].min()
