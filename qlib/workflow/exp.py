@@ -1,7 +1,8 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-from typing import Dict, List, Literal, Union
+from typing import Dict, List, Union
+from qlib.typehint import Literal
 import mlflow
 import logging
 from mlflow.entities import ViewType
