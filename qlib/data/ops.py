@@ -34,8 +34,6 @@ np.seterr(invalid="ignore")
 
 
 #################### Element-Wise Operator ####################
-
-
 class ElemOperator(ExpressionOps):
     """Element-wise Operator
 
@@ -216,9 +214,7 @@ class Not(NpElemOperator):
 
     Parameters
     ----------
-    feature_left : Expression
-        feature instance
-    feature_right : Expression
+    feature : Expression
         feature instance
 
     Returns
@@ -241,8 +237,6 @@ class PairOperator(ExpressionOps):
         feature instance or numeric value
     feature_right : Expression
         feature instance or numeric value
-    func : str
-        operator function
 
     Returns
     ----------
@@ -1157,20 +1151,11 @@ class Rank(Rolling):
 
     def _load_internal(self, instrument, start_index, end_index, *args):
         series = self.feature.load(instrument, start_index, end_index, *args)
-        # TODO: implement in Cython
-
-        def rank(x):
-            if np.isnan(x[-1]):
-                return np.nan
-            x1 = x[~np.isnan(x)]
-            if x1.shape[0] == 0:
-                return np.nan
-            return percentileofscore(x1, x1[-1]) / 100
 
         if self.N == 0:
-            series = series.expanding(min_periods=1).apply(rank, raw=True)
+            series = series.expanding(min_periods=1).rank(pct=True)
         else:
-            series = series.rolling(self.N, min_periods=1).apply(rank, raw=True)
+            series = series.rolling(self.N, min_periods=1).rank(pct=True)
         return series
 
 
