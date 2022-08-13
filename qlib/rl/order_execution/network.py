@@ -3,13 +3,14 @@
 
 from __future__ import annotations
 
-from typing import cast
+from typing import List, Tuple, cast
 
 import torch
 import torch.nn as nn
 from tianshou.data import Batch
 
 from qlib.typehint import Literal
+
 from .interpreter import FullHistoryObs
 
 __all__ = ["Recurrent"]
@@ -18,7 +19,7 @@ __all__ = ["Recurrent"]
 class Recurrent(nn.Module):
     """The network architecture proposed in `OPD <https://seqml.github.io/opd/opd_aaai21_supplement.pdf>`_.
 
-    At every timestep the input of policy network is divided into two parts,
+    At every time step the input of policy network is divided into two parts,
     the public variables and the private variables. which are handled by ``raw_rnn``
     and ``pri_rnn`` in this network, respectively.
 
@@ -33,7 +34,7 @@ class Recurrent(nn.Module):
         output_dim: int = 32,
         rnn_type: Literal["rnn", "lstm", "gru"] = "gru",
         rnn_num_layers: int = 1,
-    ):
+    ) -> None:
         super().__init__()
 
         self.hidden_dim = hidden_dim
@@ -62,10 +63,10 @@ class Recurrent(nn.Module):
             nn.ReLU(),
         )
 
-    def _init_extra_branches(self):
+    def _init_extra_branches(self) -> None:
         pass
 
-    def _source_features(self, obs: FullHistoryObs, device: torch.device) -> tuple[list[torch.Tensor], torch.Tensor]:
+    def _source_features(self, obs: FullHistoryObs, device: torch.device) -> Tuple[List[torch.Tensor], torch.Tensor]:
         bs, _, data_dim = obs["data_processed"].size()
         data = torch.cat((torch.zeros(bs, 1, data_dim, device=device), obs["data_processed"]), 1)
         cur_step = obs["cur_step"].long()

@@ -280,11 +280,11 @@ class Alpha158(DataHandlerLP):
                 fields += ["Slope($close, %d)/$close" % d for d in windows]
                 names += ["BETA%d" % d for d in windows]
             if use("RSQR"):
-                # The R-sqaure value of linear regression for the past d days, represent the trend linearity for past d days.
+                # The R-sqaure value of linear regression for the past d days, represent the trend linear
                 fields += ["Rsquare($close, %d)" % d for d in windows]
                 names += ["RSQR%d" % d for d in windows]
             if use("RESI"):
-                # The redisdual for linear regression for the past d days, represent the trend linearity for past d days. 
+                # The redisdual for linear regression for the past d days, represent the trend linearity for past d days.
                 fields += ["Resi($close, %d)/$close" % d for d in windows]
                 names += ["RESI%d" % d for d in windows]
             if use("MAX"):
@@ -297,7 +297,7 @@ class Alpha158(DataHandlerLP):
                 names += ["MIN%d" % d for d in windows]
             if use("QTLU"):
                 # The 80% quantile of past d day's close price, divided by latest close price to remove unit
-                # Used with MIN and MAX 
+                # Used with MIN and MAX
                 fields += ["Quantile($close, %d, 0.8)/$close" % d for d in windows]
                 names += ["QTLU%d" % d for d in windows]
             if use("QTLD"):
@@ -305,7 +305,7 @@ class Alpha158(DataHandlerLP):
                 fields += ["Quantile($close, %d, 0.2)/$close" % d for d in windows]
                 names += ["QTLD%d" % d for d in windows]
             if use("RANK"):
-                # Get the percentile of current close price in past d day's close price. 
+                # Get the percentile of current close price in past d day's close price.
                 # Represent the current price level comparing to past N days, add additional information to moving average.
                 fields += ["Rank($close, %d)" % d for d in windows]
                 names += ["RANK%d" % d for d in windows]
@@ -316,14 +316,14 @@ class Alpha158(DataHandlerLP):
             if use("IMAX"):
                 # The number of days between current date and previous highest price date.
                 # Part of Aroon Indicator https://www.investopedia.com/terms/a/aroon.asp
-                # The indicator measures the time between highs and the time between lows over a time period. 
+                # The indicator measures the time between highs and the time between lows over a time period.
                 # The idea is that strong uptrends will regularly see new highs, and strong downtrends will regularly see new lows.
                 fields += ["IdxMax($high, %d)/%d" % (d, d) for d in windows]
                 names += ["IMAX%d" % d for d in windows]
             if use("IMIN"):
                 # The number of days between current date and previous lowest price date.
                 # Part of Aroon Indicator https://www.investopedia.com/terms/a/aroon.asp
-                # The indicator measures the time between highs and the time between lows over a time period. 
+                # The indicator measures the time between highs and the time between lows over a time period.
                 # The idea is that strong uptrends will regularly see new highs, and strong downtrends will regularly see new lows.
                 fields += ["IdxMin($low, %d)/%d" % (d, d) for d in windows]
                 names += ["IMIN%d" % d for d in windows]
