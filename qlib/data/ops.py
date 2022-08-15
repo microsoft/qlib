@@ -32,6 +32,90 @@ except ValueError as e:
 
 np.seterr(invalid="ignore")
 
+#################### Change instrument ########################
+# In some case, one may want to change to another instrument when calculating, for example
+# calculate beta of a stock with respect to a market index
+# this would require change the calculation of features from the stock (original instrument) to
+# the index (reference instrument)
+# #############################
+
+
+class ChangeInstrument(ExpressionOps):
+    """Change Instrument Operator
+    In some case, one may want to change to another instrument when calculating, for example, to
+    calculate beta of a stock with respect to a market index.
+    This would require changing the calculation of features from the stock (original instrument) to
+    the index (reference instrument)
+    Parameters
+    ----------
+    instrument: new instrument for which the downstream operations should be performed upon.
+                i.e., SH000300 (CSI300 index), or ^GPSC (SP500 index).
+
+    feature: the feature to be calculated for the new instrument.
+    Returns
+    ----------
+    Expression
+        feature operation output
+    """
+
+    def __init__(self, instrument, feature):
+        self.instrument = instrument
+        self.feature = feature
+
+    def __str__(self):
+        return "{}({},{})".format(type(self).__name__, self.instrument, self.feature)
+
+    def load(self, instrument, start_index, end_index, freq):
+        """load  feature
+
+        Parameters
+        ----------
+        instrument : str
+            instrument code, however, the actual instrument loaded is self.instrument through initialization
+        start_index : str
+            feature start index [in calendar].
+        end_index : str
+            feature end  index  [in calendar].
+        freq : str
+            feature frequency.
+
+        Returns
+        ----------
+        pd.Series
+            feature series: The index of the series is the calendar index
+        """
+        from .cache import H  # pylint: disable=C0415
+
+        # cache
+        args = str(self), self.instrument, start_index, end_index, freq
+        if args in H["f"]:
+            return H["f"][args]
+        if start_index is not None and end_index is not None and start_index > end_index:
+            raise ValueError("Invalid index range: {} {}".format(start_index, end_index))
+        try:
+            series = self._load_internal(self.instrument, start_index, end_index, freq)
+        except Exception as e:
+            get_module_logger("data").debug(
+                f"Loading data error: instrument={instrument}, expression={str(self)}, "
+                f"start_index={start_index}, end_index={end_index}, freq={freq}. "
+                f"error info: {str(e)}"
+            )
+            raise
+        series.name = str(self)
+        H["f"][args] = series
+        return series
+
+    def _load_internal(self, instrument, start_index, end_index, freq):
+        series = self.feature.load(self.instrument, start_index, end_index, freq)
+        return series
+
+    def get_longest_back_rolling(self):
+        return self.feature.get_longest_back_rolling()
+
+    def get_extended_window_size(self):
+        return self.feature.get_extended_window_size()
+
+
 #################### Element-Wise Operator ####################
 
 
@@ -1541,6 +1625,7 @@ class TResample(ElemOperator):
 
 TOpsList = [TResample]
 OpsList = [
+    ChangeInstrument,
     Rolling,
     Ref,
     Max,
