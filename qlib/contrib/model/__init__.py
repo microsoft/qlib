@@ -10,17 +10,19 @@ try:
     from .gbdt import LGBModel
 except ModuleNotFoundError:
     DEnsembleModel, LGBModel = None, None
-    print("Please install necessary libs for DEnsembleModel and LGBModel, such as lightgbm.")
+    print(
+        "ModuleNotFoundError. DEnsembleModel and LGBModel are skipped. (optional: maybe installing lightgbm can fix it.)"
+    )
 try:
     from .xgboost import XGBModel
 except ModuleNotFoundError:
     XGBModel = None
-    print("Please install necessary libs for XGBModel, such as xgboost.")
+    print("ModuleNotFoundError. XGBModel is skipped(optional: maybe installing xgboost can fix it).")
 try:
     from .linear import LinearModel
 except ModuleNotFoundError:
     LinearModel = None
-    print("Please install necessary libs for LinearModel, such as scipy and sklearn.")
+    print("ModuleNotFoundError. LinearModel is skipped(optional: maybe installing scipy and sklearn can fix it).")
 # import pytorch models
 try:
     from .pytorch_alstm import ALSTM
@@ -36,6 +38,6 @@ try:
     pytorch_classes = (ALSTM, GATs, GRU, LSTM, DNNModelPytorch, TabnetModel, SFM_Model, TCN, ADD)
 except ModuleNotFoundError:
     pytorch_classes = ()
-    print("Please install necessary libs for PyTorch models.")
+    print("ModuleNotFoundError.  PyTorch models are skipped (optional: maybe installing pytorch can fix it).")
 
 all_model_classes = (CatBoostModel, DEnsembleModel, LGBModel, XGBModel, LinearModel) + pytorch_classes

@@ -32,89 +32,6 @@ except ValueError as e:
 
 np.seterr(invalid="ignore")
 
-#################### Change instrument ########################
-# In some case, one may want to change to another instrument when calculating, for example
-# calculate beta of a stock with respect to a market index
-# this would require change the calculation of features from the stock (original instrument) to
-# the index (reference instrument)
-# #############################
-
-
-class ChangeInstrument(ExpressionOps):
-    """Change Instrument Operator
-    In some case, one may want to change to another instrument when calculating, for example, to
-    calculate beta of a stock with respect to a market index.
-    This would require changing the calculation of features from the stock (original instrument) to
-    the index (reference instrument)
-    Parameters
-    ----------
-    instrument: new instrument for which the downstream operations should be performed upon.
-                i.e., SH000300 (CSI300 index), or ^GPSC (SP500 index).
-
-    feature: the feature to be calculated for the new instrument.
-    Returns
-    ----------
-    Expression
-        feature operation output
-    """
-
-    def __init__(self, instrument, feature):
-        self.instrument = instrument
-        self.feature = feature
-
-    def __str__(self):
-        return "{}({},{})".format(type(self).__name__, self.instrument, self.feature)
-
-    def load(self, instrument, start_index, end_index, freq):
-        """load  feature
-
-        Parameters
-        ----------
-        instrument : str
-            instrument code, however, the actual instrument loaded is self.instrument through initialization
-        start_index : str
-            feature start index [in calendar].
-        end_index : str
-            feature end  index  [in calendar].
-        freq : str
-            feature frequency.
-
-        Returns
-        ----------
-        pd.Series
-            feature series: The index of the series is the calendar index
-        """
-        from .cache import H  # pylint: disable=C0415
-
-        # cache
-        args = str(self), self.instrument, start_index, end_index, freq
-        if args in H["f"]:
-            return H["f"][args]
-        if start_index is not None and end_index is not None and start_index > end_index:
-            raise ValueError("Invalid index range: {} {}".format(start_index, end_index))
-        try:
-            series = self._load_internal(self.instrument, start_index, end_index, freq)
-        except Exception as e:
-            get_module_logger("data").debug(
-                f"Loading data error: instrument={instrument}, expression={str(self)}, "
-                f"start_index={start_index}, end_index={end_index}, freq={freq}. "
-                f"error info: {str(e)}"
-            )
-            raise
-        series.name = str(self)
-        H["f"][args] = series
-        return series
-
-    def _load_internal(self, instrument, start_index, end_index, freq):
-        series = self.feature.load(self.instrument, start_index, end_index, freq)
-        return series
-
-    def get_longest_back_rolling(self):
-        return self.feature.get_longest_back_rolling()
-
-    def get_extended_window_size(self):
-        return self.feature.get_extended_window_size()
-
 
 #################### Element-Wise Operator ####################
 
@@ -144,6 +61,39 @@ class ElemOperator(ExpressionOps):
 
     def get_extended_window_size(self):
         return self.feature.get_extended_window_size()
+
+
+class ChangeInstrument(ElemOperator):
+    """Change Instrument Operator
+    In some case, one may want to change to another instrument when calculating, for example, to
+    calculate beta of a stock with respect to a market index.
+    This would require changing the calculation of features from the stock (original instrument) to
+    the index (reference instrument)
+    Parameters
+    ----------
+    instrument: new instrument for which the downstream operations should be performed upon.
+                i.e., SH000300 (CSI300 index), or ^GPSC (SP500 index).
+
+    feature: the feature to be calculated for the new instrument.
+    Returns
+    ----------
+    Expression
+        feature operation output
+    """
+
+    def __init__(self, instrument, feature):
+        self.instrument = instrument
+        self.feature = feature
+
+    def __str__(self):
+        return "{}('{}',{})".format(type(self).__name__, self.instrument, self.feature)
+
+    def load(self, instrument, start_index, end_index, *args):
+        # the first `instrument` is ignored
+        return super().load(self.instrument, start_index, end_index, *args)
+
+    def _load_internal(self, instrument, start_index, end_index, *args):
+        return self.feature.load(instrument, start_index, end_index, *args)
 
 
 class NpElemOperator(ElemOperator):
@@ -232,32 +182,6 @@ class Log(NpElemOperator):
 
     def __init__(self, feature):
         super(Log, self).__init__(feature, "log")
-
-
-class Power(NpElemOperator):
-    """Feature Power
-
-    Parameters
-    ----------
-    feature : Expression
-        feature instance
-
-    Returns
-    ----------
-    Expression
-        a feature instance with power
-    """
-
-    def __init__(self, feature, exponent):
-        super(Power, self).__init__(feature, "power")
-        self.exponent = exponent
-
-    def __str__(self):
-        return "{}({},{})".format(type(self).__name__, self.feature, self.exponent)
-
-    def _load_internal(self, instrument, start_index, end_index, *args):
-        series = self.feature.load(instrument, start_index, end_index, *args)
-        return getattr(np, self.func)(series, self.exponent)
 
 
 class Mask(NpElemOperator):
@@ -415,6 +339,26 @@ class NpPairOperator(PairOperator):
             if check_length and len(series_left) != len(series_right):
                 get_module_logger("ops").debug(warning_info)
         return res
+
+
+class Power(NpPairOperator):
+    """Power Operator
+
+    Parameters
+    ----------
+    feature_left : Expression
+        feature instance
+    feature_right : Expression
+        feature instance
+
+    Returns
+    ----------
+    Feature:
+        The bases in feature_left raised to the exponents in feature_right
+    """
+
+    def __init__(self, feature_left, feature_right):
+        super(Power, self).__init__(feature_left, feature_right, "power")
 
 
 class Add(NpPairOperator):
@@ -1625,7 +1569,6 @@ class TResample(ElemOperator):
 
 TOpsList = [TResample]
 OpsList = [
-    ChangeInstrument,
     Rolling,
     Ref,
     Max,
@@ -1728,10 +1671,10 @@ def register_all_ops(C):
     """register all operator"""
     logger = get_module_logger("ops")
 
-    from qlib.data.pit import P  # pylint: disable=C0415
+    from qlib.data.pit import P, PRef  # pylint: disable=C0415
 
     Operators.reset()
-    Operators.register(OpsList + [P])
+    Operators.register(OpsList + [P, PRef])
 
     if getattr(C, "custom_ops", None) is not None:
         Operators.register(C.custom_ops)

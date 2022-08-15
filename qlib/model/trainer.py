@@ -12,16 +12,25 @@ In ``DelayTrainer``, the first step is only to save some necessary info to model
 """
 
 import socket
-from typing import Callable, List
+from typing import Callable, List, Optional
 
 from tqdm.auto import tqdm
+
+from qlib.config import C
 from qlib.data.dataset import Dataset
+from qlib.data.dataset.weight import Reweighter
+from qlib.log import get_module_logger
 from qlib.model.base import Model
-from qlib.utils import flatten_dict, init_instance_by_config, auto_filter_kwargs, fill_placeholder
+from qlib.utils import (
+    auto_filter_kwargs,
+    fill_placeholder,
+    flatten_dict,
+    init_instance_by_config,
+)
+from qlib.utils.paral import call_in_subproc
 from qlib.workflow import R
 from qlib.workflow.recorder import Recorder
 from qlib.workflow.task.manage import TaskManager, run_task
-from qlib.data.dataset.weight import Reweighter
 
 
 def _log_task_info(task_config: dict):
@@ -210,17 +219,26 @@ class TrainerR(Trainer):
     STATUS_BEGIN = "begin_task_train"
     STATUS_END = "end_task_train"
 
-    def __init__(self, experiment_name: str = None, train_func: Callable = task_train):
+    def __init__(
+        self,
+        experiment_name: Optional[str] = None,
+        train_func: Callable = task_train,
+        call_in_subproc: bool = False,
+        default_rec_name: Optional[str] = None,
+    ):
         """
         Init TrainerR.
 
         Args:
             experiment_name (str, optional): the default name of experiment.
             train_func (Callable, optional): default training method. Defaults to `task_train`.
+            call_in_subproc (bool): call the process in subprocess to force memory release
         """
         super().__init__()
         self.experiment_name = experiment_name
+        self.default_rec_name = default_rec_name
         self.train_func = train_func
+        self._call_in_subproc = call_in_subproc
 
     def train(self, tasks: list, train_func: Callable = None, experiment_name: str = None, **kwargs) -> List[Recorder]:
         """
@@ -245,7 +263,10 @@ class TrainerR(Trainer):
             experiment_name = self.experiment_name
         recs = []
         for task in tqdm(tasks, desc="train tasks"):
-            rec = train_func(task, experiment_name, **kwargs)
+            if self._call_in_subproc:
+                get_module_logger("TrainerR").info("running models in sub process (for forcing release memroy).")
+                train_func = call_in_subproc(train_func, C)
+            rec = train_func(task, experiment_name, recorder_name=self.default_rec_name, **kwargs)
             rec.set_tags(**{self.STATUS_KEY: self.STATUS_BEGIN})
             recs.append(rec)
         return recs
@@ -272,7 +293,9 @@ class DelayTrainerR(TrainerR):
     A delayed implementation based on TrainerR, which means `train` method may only do some preparation and `end_train` method can do the real model fitting.
     """
 
-    def __init__(self, experiment_name: str = None, train_func=begin_task_train, end_train_func=end_task_train):
+    def __init__(
+        self, experiment_name: str = None, train_func=begin_task_train, end_train_func=end_task_train, **kwargs
+    ):
         """
         Init TrainerRM.
 
@@ -281,7 +304,7 @@ class DelayTrainerR(TrainerR):
             train_func (Callable, optional): default train method. Defaults to `begin_task_train`.
             end_train_func (Callable, optional): default end_train method. Defaults to `end_task_train`.
         """
-        super().__init__(experiment_name, train_func)
+        super().__init__(experiment_name, train_func, **kwargs)
         self.end_train_func = end_train_func
         self.delay = True
 
@@ -330,7 +353,12 @@ class TrainerRM(Trainer):
     TM_ID = "_id in TaskManager"
 
     def __init__(
-        self, experiment_name: str = None, task_pool: str = None, train_func=task_train, skip_run_task: bool = False
+        self,
+        experiment_name: str = None,
+        task_pool: str = None,
+        train_func=task_train,
+        skip_run_task: bool = False,
+        default_rec_name: Optional[str] = None,
     ):
         """
         Init TrainerR.
@@ -349,6 +377,7 @@ class TrainerRM(Trainer):
         self.task_pool = task_pool
         self.train_func = train_func
         self.skip_run_task = skip_run_task
+        self.default_rec_name = default_rec_name
 
     def train(
         self,
@@ -357,6 +386,7 @@ class TrainerRM(Trainer):
         experiment_name: str = None,
         before_status: str = TaskManager.STATUS_WAITING,
         after_status: str = TaskManager.STATUS_DONE,
+        default_rec_name: Optional[str] = None,
         **kwargs,
     ) -> List[Recorder]:
         """
@@ -384,6 +414,8 @@ class TrainerRM(Trainer):
             train_func = self.train_func
         if experiment_name is None:
             experiment_name = self.experiment_name
+        if default_rec_name is None:
+            default_rec_name = self.default_rec_name
         task_pool = self.task_pool
         if task_pool is None:
             task_pool = experiment_name
@@ -398,6 +430,7 @@ class TrainerRM(Trainer):
                 experiment_name=experiment_name,
                 before_status=before_status,
                 after_status=after_status,
+                recorder_name=default_rec_name,
                 **kwargs,
             )
 
@@ -466,6 +499,7 @@ class DelayTrainerRM(TrainerRM):
         train_func=begin_task_train,
         end_train_func=end_task_train,
         skip_run_task: bool = False,
+        **kwargs,
     ):
         """
         Init DelayTrainerRM.
@@ -480,7 +514,7 @@ class DelayTrainerRM(TrainerRM):
                 Only run_task in the worker. Otherwise skip run_task.
                 E.g. Starting trainer on a CPU VM and then waiting tasks to be finished on GPU VMs.
         """
-        super().__init__(experiment_name, task_pool, train_func)
+        super().__init__(experiment_name, task_pool, train_func, **kwargs)
         self.end_train_func = end_train_func
         self.delay = True
         self.skip_run_task = skip_run_task

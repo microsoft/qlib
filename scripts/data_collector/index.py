@@ -19,7 +19,7 @@ class IndexBase:
     SYMBOL_FIELD_NAME = "symbol"
     DATE_FIELD_NAME = "date"
     START_DATE_FIELD = "start_date"
-    END_DATE_FIELD = "end_ate"
+    END_DATE_FIELD = "end_date"
     CHANGE_TYPE_FIELD = "type"
     INSTRUMENTS_COLUMNS = [SYMBOL_FIELD_NAME, START_DATE_FIELD, END_DATE_FIELD]
     REMOVE = "remove"
@@ -225,7 +225,7 @@ class IndexBase:
                 ] = _row.date
             else:
                 _tmp_df = pd.DataFrame([[_row.symbol, self.bench_start_date, _row.date]], columns=instruments_columns)
-                new_df = new_df.append(_tmp_df, sort=False)
+                new_df = pd.concat([new_df, _tmp_df], sort=False)
 
         inst_df = new_df.loc[:, instruments_columns]
         _inst_prefix = self.INST_PREFIX.strip()

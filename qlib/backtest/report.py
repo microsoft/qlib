@@ -2,19 +2,20 @@
 # Licensed under the MIT License.
 
 
-from collections import OrderedDict
 import pathlib
-from typing import Dict, List, Tuple, Union
+from collections import OrderedDict
+from typing import Any, Dict, List, Optional, Text, Tuple, Type, Union, cast
 
 import numpy as np
 import pandas as pd
 
-from qlib.backtest.exchange import Exchange
+import qlib.utils.index_data as idd
 from qlib.backtest.decision import BaseTradeDecision, Order, OrderDir
-from .high_performance_ds import BaseOrderIndicator, NumpyOrderIndicator, SingleMetric
+from qlib.backtest.exchange import Exchange
+
 from ..tests.config import CSI300_BENCH
 from ..utils.resam import get_higher_eq_freq_feature, resam_ts_data
-import qlib.utils.index_data as idd
+from .high_performance_ds import BaseOrderIndicator, BaseSingleMetric, NumpyOrderIndicator
 
 
 class PortfolioMetrics:
@@ -37,7 +38,7 @@ class PortfolioMetrics:
         update report
     """
 
-    def __init__(self, freq: str = "day", benchmark_config: dict = {}):
+    def __init__(self, freq: str = "day", benchmark_config: dict = {}) -> None:
         """
         Parameters
         ----------
@@ -48,13 +49,17 @@ class PortfolioMetrics:
             - benchmark : Union[str, list, pd.Series]
                 - If `benchmark` is pd.Series, `index` is trading date; the value T is the change from T-1 to T.
                     example:
-                        print(D.features(D.instruments('csi500'), ['$close/Ref($close, 1)-1'])['$close/Ref($close, 1)-1'].head())
+                        print(
+                            D.features(D.instruments('csi500'),
+                            ['$close/Ref($close, 1)-1'])['$close/Ref($close, 1)-1'].head()
+                        )
                             2017-01-04    0.011693
                             2017-01-05    0.000721
                             2017-01-06   -0.004322
                             2017-01-09    0.006874
                             2017-01-10   -0.003350
-                - If `benchmark` is list, will use the daily average change of the stock pool in the list as the 'bench'.
+                - If `benchmark` is list, will use the daily average change of the stock pool in the list as the
+                    'bench'.
                 - If `benchmark` is str, will use the daily change as the 'bench'.
                 benchmark code, default is SH000300 CSI300
             - start_time : Union[str, pd.Timestamp], optional
@@ -69,25 +74,26 @@ class PortfolioMetrics:
         self.init_vars()
         self.init_bench(freq=freq, benchmark_config=benchmark_config)
 
-    def init_vars(self):
-        self.accounts = OrderedDict()  # account position value for each trade time
-        self.returns = OrderedDict()  # daily return rate for each trade time
-        self.total_turnovers = OrderedDict()  # total turnover for each trade time
-        self.turnovers = OrderedDict()  # turnover for each trade time
-        self.total_costs = OrderedDict()  # total trade cost for each trade time
-        self.costs = OrderedDict()  # trade cost rate for each trade time
-        self.values = OrderedDict()  # value for each trade time
-        self.cashes = OrderedDict()
-        self.benches = OrderedDict()
-        self.latest_pm_time = None  # pd.TimeStamp
+    def init_vars(self) -> None:
+        self.accounts: dict = OrderedDict()  # account position value for each trade time
+        self.returns: dict = OrderedDict()  # daily return rate for each trade time
+        self.total_turnovers: dict = OrderedDict()  # total turnover for each trade time
+        self.turnovers: dict = OrderedDict()  # turnover for each trade time
+        self.total_costs: dict = OrderedDict()  # total trade cost for each trade time
+        self.costs: dict = OrderedDict()  # trade cost rate for each trade time
+        self.values: dict = OrderedDict()  # value for each trade time
+        self.cashes: dict = OrderedDict()
+        self.benches: dict = OrderedDict()
+        self.latest_pm_time: Optional[pd.TimeStamp] = None
 
-    def init_bench(self, freq=None, benchmark_config=None):
+    def init_bench(self, freq: str = None, benchmark_config: dict = None) -> None:
         if freq is not None:
             self.freq = freq
         self.benchmark_config = benchmark_config
         self.bench = self._cal_benchmark(self.benchmark_config, self.freq)
 
-    def _cal_benchmark(self, benchmark_config, freq):
+    @staticmethod
+    def _cal_benchmark(benchmark_config: Optional[dict], freq: str) -> Optional[pd.Series]:
         if benchmark_config is None:
             return None
         benchmark = benchmark_config.get("benchmark", CSI300_BENCH)
@@ -109,7 +115,12 @@ class PortfolioMetrics:
                 raise ValueError(f"The benchmark {_codes} does not exist. Please provide the right benchmark")
             return _temp_result.groupby(level="datetime")[_temp_result.columns.tolist()[0]].mean().fillna(0)
 
-    def _sample_benchmark(self, bench, trade_start_time, trade_end_time):
+    def _sample_benchmark(
+        self,
+        bench: pd.Series,
+        trade_start_time: Union[str, pd.Timestamp],
+        trade_end_time: Union[str, pd.Timestamp],
+    ) -> Optional[float]:
         if self.bench is None:
             return None
 
@@ -119,35 +130,35 @@ class PortfolioMetrics:
         _ret = resam_ts_data(bench, trade_start_time, trade_end_time, method=cal_change)
         return 0.0 if _ret is None else _ret - 1
 
-    def is_empty(self):
+    def is_empty(self) -> bool:
         return len(self.accounts) == 0
 
-    def get_latest_date(self):
+    def get_latest_date(self) -> pd.Timestamp:
         return self.latest_pm_time
 
-    def get_latest_account_value(self):
+    def get_latest_account_value(self) -> float:
         return self.accounts[self.latest_pm_time]
 
-    def get_latest_total_cost(self):
+    def get_latest_total_cost(self) -> Any:
         return self.total_costs[self.latest_pm_time]
 
-    def get_latest_total_turnover(self):
+    def get_latest_total_turnover(self) -> Any:
         return self.total_turnovers[self.latest_pm_time]
 
     def update_portfolio_metrics_record(
         self,
-        trade_start_time=None,
-        trade_end_time=None,
-        account_value=None,
-        cash=None,
-        return_rate=None,
-        total_turnover=None,
-        turnover_rate=None,
-        total_cost=None,
-        cost_rate=None,
-        stock_value=None,
-        bench_value=None,
-    ):
+        trade_start_time: Union[str, pd.Timestamp] = None,
+        trade_end_time: Union[str, pd.Timestamp] = None,
+        account_value: float = None,
+        cash: float = None,
+        return_rate: float = None,
+        total_turnover: float = None,
+        turnover_rate: float = None,
+        total_cost: float = None,
+        cost_rate: float = None,
+        stock_value: float = None,
+        bench_value: float = None,
+    ) -> None:
         # check data
         if None in [
             trade_start_time,
@@ -161,7 +172,8 @@ class PortfolioMetrics:
             stock_value,
         ]:
             raise ValueError(
-                "None in [trade_start_time, account_value, cash, return_rate, total_turnover, turnover_rate, total_cost, cost_rate, stock_value]"
+                "None in [trade_start_time, account_value, cash, return_rate, total_turnover, turnover_rate, "
+                "total_cost, cost_rate, stock_value]",
             )
 
         if trade_end_time is None and bench_value is None:
@@ -183,7 +195,7 @@ class PortfolioMetrics:
         self.latest_pm_time = trade_start_time
         # finish pm update in each step
 
-    def generate_portfolio_metrics_dataframe(self):
+    def generate_portfolio_metrics_dataframe(self) -> pd.DataFrame:
         pm = pd.DataFrame()
         pm["account"] = pd.Series(self.accounts)
         pm["return"] = pd.Series(self.returns)
@@ -197,19 +209,18 @@ class PortfolioMetrics:
         pm.index.name = "datetime"
         return pm
 
-    def save_portfolio_metrics(self, path):
+    def save_portfolio_metrics(self, path: str) -> None:
         r = self.generate_portfolio_metrics_dataframe()
         r.to_csv(path)
 
-    def load_portfolio_metrics(self, path):
+    def load_portfolio_metrics(self, path: str) -> None:
         """load pm from a file
         should have format like
         columns = ['account', 'return', 'total_turnover', 'turnover', 'cost', 'total_cost', 'value', 'cash', 'bench']
             :param
                 path: str/ pathlib.Path()
         """
-        path = pathlib.Path(path)
-        with path.open("rb") as f:
+        with pathlib.Path(path).open("rb") as f:
             r = pd.read_csv(f, index_col=0)
         r.index = pd.DatetimeIndex(r.index)
 
@@ -259,30 +270,30 @@ class Indicator:
 
     """
 
-    def __init__(self, order_indicator_cls=NumpyOrderIndicator):
+    def __init__(self, order_indicator_cls: Type[BaseOrderIndicator] = NumpyOrderIndicator) -> None:
         self.order_indicator_cls = order_indicator_cls
 
         # order indicator is metrics for a single order for a specific step
-        self.order_indicator_his = OrderedDict()
+        self.order_indicator_his: dict = OrderedDict()
         self.order_indicator: BaseOrderIndicator = self.order_indicator_cls()
 
         # trade indicator is metrics for all orders for a specific step
-        self.trade_indicator_his = OrderedDict()
-        self.trade_indicator: Dict[str, float] = OrderedDict()
+        self.trade_indicator_his: dict = OrderedDict()
+        self.trade_indicator: Dict[str, Optional[BaseSingleMetric]] = OrderedDict()
 
         self._trade_calendar = None
 
     # def reset(self, trade_calendar: TradeCalendarManager):
-    def reset(self):
-        self.order_indicator: BaseOrderIndicator = self.order_indicator_cls()
+    def reset(self) -> None:
+        self.order_indicator = self.order_indicator_cls()
         self.trade_indicator = OrderedDict()
         # self._trade_calendar = trade_calendar
 
-    def record(self, trade_start_time):
+    def record(self, trade_start_time: Union[str, pd.Timestamp]) -> None:
         self.order_indicator_his[trade_start_time] = self.get_order_indicator()
         self.trade_indicator_his[trade_start_time] = self.get_trade_indicator()
 
-    def _update_order_trade_info(self, trade_info: list):
+    def _update_order_trade_info(self, trade_info: List[Tuple[Order, float, float, float]]) -> None:
         amount = dict()
         deal_amount = dict()
         trade_price = dict()
@@ -311,7 +322,7 @@ class Indicator:
         self.order_indicator.assign("trade_dir", trade_dir)
         self.order_indicator.assign("pa", pa)
 
-    def _update_order_fulfill_rate(self):
+    def _update_order_fulfill_rate(self) -> None:
         def func(deal_amount, amount):
             # deal_amount is np.NaN or None when there is no inner decision. So full fill rate is 0.
             tmp_deal_amount = deal_amount.reindex(amount.index, 0)
@@ -320,11 +331,11 @@ class Indicator:
 
         self.order_indicator.transfer(func, "ffr")
 
-    def update_order_indicators(self, trade_info: list):
+    def update_order_indicators(self, trade_info: List[Tuple[Order, float, float, float]]) -> None:
         self._update_order_trade_info(trade_info=trade_info)
         self._update_order_fulfill_rate()
 
-    def _agg_order_trade_info(self, inner_order_indicators: List[Dict[str, pd.Series]]):
+    def _agg_order_trade_info(self, inner_order_indicators: List[BaseOrderIndicator]) -> None:
         # calculate total trade amount with each inner order indicator.
         def trade_amount_func(deal_amount, trade_price):
             return deal_amount * trade_price
@@ -335,7 +346,10 @@ class Indicator:
         # sum inner order indicators with same metric.
         all_metric = ["inner_amount", "deal_amount", "trade_price", "trade_value", "trade_cost", "trade_dir"]
         self.order_indicator_cls.sum_all_indicators(
-            self.order_indicator, inner_order_indicators, all_metric, fill_value=0
+            self.order_indicator,
+            inner_order_indicators,
+            all_metric,
+            fill_value=0,
         )
 
         def func(trade_price, deal_amount):
@@ -350,9 +364,9 @@ class Indicator:
 
         self.order_indicator.transfer(func_apply, "trade_dir")
 
-    def _update_trade_amount(self, outer_trade_decision: BaseTradeDecision):
+    def _update_trade_amount(self, outer_trade_decision: BaseTradeDecision) -> None:
         # NOTE: these indicator is designed for order execution, so the
-        decision: List[Order] = outer_trade_decision.get_decision()
+        decision: List[Order] = cast(List[Order], outer_trade_decision.get_decision())
         if len(decision) == 0:
             self.order_indicator.assign("amount", {})
         else:
@@ -367,7 +381,7 @@ class Indicator:
         decision: BaseTradeDecision,
         trade_exchange: Exchange,
         pa_config: dict = {},
-    ):
+    ) -> Tuple[Optional[float], Optional[float]]:
         """
         Get the base volume and price information
         All the base price values are rooted from this function
@@ -378,12 +392,17 @@ class Indicator:
 
         if decision.trade_range is not None:
             trade_start_time, trade_end_time = decision.trade_range.clip_time_range(
-                start_time=trade_start_time, end_time=trade_end_time
+                start_time=trade_start_time,
+                end_time=trade_end_time,
             )
 
         if price == "deal_price":
             price_s = trade_exchange.get_deal_price(
-                inst, trade_start_time, trade_end_time, direction=direction, method=None
+                inst,
+                trade_start_time,
+                trade_end_time,
+                direction=direction,
+                method=None,
             )
         else:
             raise NotImplementedError(f"This type of input is not supported")
@@ -402,31 +421,35 @@ class Indicator:
         # NOTE: there are some zeros in the trading price. These cases are known meaningless
         # for aligning the previous logic, remove it.
         # remove zero and negative values.
-        price_s = price_s.loc[(price_s > 1e-08).data.astype(np.bool)]
+        assert isinstance(price_s, idd.SingleData)
+        price_s = price_s.loc[(price_s > 1e-08).data.astype(bool)]
         # NOTE ~(price_s < 1e-08) is different from price_s >= 1e-8
         #   ~(np.NaN < 1e-8) -> ~(False)  -> True
 
+        assert isinstance(price_s, idd.SingleData)
         if agg == "vwap":
             volume_s = trade_exchange.get_volume(inst, trade_start_time, trade_end_time, method=None)
             if isinstance(volume_s, (int, float, np.number)):
                 volume_s = idd.SingleData(volume_s, [trade_start_time])
+            assert isinstance(volume_s, idd.SingleData)
             volume_s = volume_s.reindex(price_s.index)
         elif agg == "twap":
             volume_s = idd.SingleData(1, price_s.index)
         else:
             raise NotImplementedError(f"This type of input is not supported")
 
+        assert isinstance(volume_s, idd.SingleData)
         base_volume = volume_s.sum()
         base_price = (price_s * volume_s).sum() / base_volume
         return base_price, base_volume
 
     def _agg_base_price(
         self,
-        inner_order_indicators: List[Dict[str, Union[SingleMetric, idd.SingleData]]],
+        inner_order_indicators: List[BaseOrderIndicator],
         decision_list: List[Tuple[BaseTradeDecision, pd.Timestamp, pd.Timestamp]],
         trade_exchange: Exchange,
         pa_config: dict = {},
-    ):
+    ) -> None:
         """
         # NOTE:!!!!
         # Strong assumption!!!!!!
@@ -434,7 +457,7 @@ class Indicator:
 
         Parameters
         ----------
-        inner_order_indicators : List[Dict[str, pd.Series]]
+        inner_order_indicators : List[BaseOrderIndicator]
             the indicators of account of inner executor
         decision_list: List[Tuple[BaseTradeDecision, pd.Timestamp, pd.Timestamp]],
             a list of decisions according to inner_order_indicators
@@ -479,14 +502,17 @@ class Indicator:
                 bv_new = idd.SingleData(bv_new)
                 bp_all.append(bp_new)
                 bv_all.append(bv_new)
-            bp_all = idd.concat(bp_all, axis=1)
-            bv_all = idd.concat(bv_all, axis=1)
+            bp_all_multi_data = idd.concat(bp_all, axis=1)
+            bv_all_multi_data = idd.concat(bv_all, axis=1)
 
-            base_volume = bv_all.sum(axis=1)
+            base_volume = bv_all_multi_data.sum(axis=1)
             self.order_indicator.assign("base_volume", base_volume.to_dict())
-            self.order_indicator.assign("base_price", ((bp_all * bv_all).sum(axis=1) / base_volume).to_dict())
+            self.order_indicator.assign(
+                "base_price",
+                ((bp_all_multi_data * bv_all_multi_data).sum(axis=1) / base_volume).to_dict(),
+            )
 
-    def _agg_order_price_advantage(self):
+    def _agg_order_price_advantage(self) -> None:
         def if_empty_func(trade_price):
             return trade_price.empty
 
@@ -503,12 +529,12 @@ class Indicator:
 
     def agg_order_indicators(
         self,
-        inner_order_indicators: List[Dict[str, pd.Series]],
+        inner_order_indicators: List[BaseOrderIndicator],
         decision_list: List[Tuple[BaseTradeDecision, pd.Timestamp, pd.Timestamp]],
         outer_trade_decision: BaseTradeDecision,
         trade_exchange: Exchange,
-        indicator_config={},
-    ):
+        indicator_config: dict = {},
+    ) -> None:
         self._agg_order_trade_info(inner_order_indicators)
         self._update_trade_amount(outer_trade_decision)
         self._update_order_fulfill_rate()
@@ -516,71 +542,66 @@ class Indicator:
         self._agg_base_price(inner_order_indicators, decision_list, trade_exchange, pa_config=pa_config)  # TODO
         self._agg_order_price_advantage()
 
-    def _cal_trade_fulfill_rate(self, method="mean"):
+    def _cal_trade_fulfill_rate(self, method: str = "mean") -> Optional[BaseSingleMetric]:
         if method == "mean":
-
-            def func(ffr):
-                return ffr.mean()
-
+            return self.order_indicator.transfer(
+                lambda ffr: ffr.mean(),
+            )
         elif method == "amount_weighted":
-
-            def func(ffr, deal_amount):
-                return (ffr * deal_amount.abs()).sum() / (deal_amount.abs().sum())
-
+            return self.order_indicator.transfer(
+                lambda ffr, deal_amount: (ffr * deal_amount.abs()).sum() / (deal_amount.abs().sum()),
+            )
         elif method == "value_weighted":
-
-            def func(ffr, trade_value):
-                return (ffr * trade_value.abs()).sum() / (trade_value.abs().sum())
-
+            return self.order_indicator.transfer(
+                lambda ffr, trade_value: (ffr * trade_value.abs()).sum() / (trade_value.abs().sum()),
+            )
         else:
             raise ValueError(f"method {method} is not supported!")
-        return self.order_indicator.transfer(func)
 
-    def _cal_trade_price_advantage(self, method="mean"):
+    def _cal_trade_price_advantage(self, method: str = "mean") -> Optional[BaseSingleMetric]:
         if method == "mean":
-
-            def func(pa):
-                return pa.mean()
-
+            return self.order_indicator.transfer(lambda pa: pa.mean())
         elif method == "amount_weighted":
-
-            def func(pa, deal_amount):
-                return (pa * deal_amount.abs()).sum() / (deal_amount.abs().sum())
-
+            return self.order_indicator.transfer(
+                lambda pa, deal_amount: (pa * deal_amount.abs()).sum() / (deal_amount.abs().sum()),
+            )
         elif method == "value_weighted":
-
-            def func(pa, trade_value):
-                return (pa * trade_value.abs()).sum() / (trade_value.abs().sum())
-
+            return self.order_indicator.transfer(
+                lambda pa, trade_value: (pa * trade_value.abs()).sum() / (trade_value.abs().sum()),
+            )
         else:
             raise ValueError(f"method {method} is not supported!")
-        return self.order_indicator.transfer(func)
 
-    def _cal_trade_positive_rate(self):
+    def _cal_trade_positive_rate(self) -> Optional[BaseSingleMetric]:
         def func(pa):
             return (pa > 0).sum() / pa.count()
 
         return self.order_indicator.transfer(func)
 
-    def _cal_deal_amount(self):
+    def _cal_deal_amount(self) -> Optional[BaseSingleMetric]:
         def func(deal_amount):
             return deal_amount.abs().sum()
 
         return self.order_indicator.transfer(func)
 
-    def _cal_trade_value(self):
+    def _cal_trade_value(self) -> Optional[BaseSingleMetric]:
         def func(trade_value):
             return trade_value.abs().sum()
 
         return self.order_indicator.transfer(func)
 
-    def _cal_trade_order_count(self):
+    def _cal_trade_order_count(self) -> Optional[BaseSingleMetric]:
         def func(amount):
             return amount.count()
 
         return self.order_indicator.transfer(func)
 
-    def cal_trade_indicators(self, trade_start_time, freq, indicator_config={}):
+    def cal_trade_indicators(
+        self,
+        trade_start_time: Union[str, pd.Timestamp],
+        freq: str,
+        indicator_config: dict = {},
+    ) -> None:
         show_indicator = indicator_config.get("show_indicator", False)
         ffr_config = indicator_config.get("ffr_config", {})
         pa_config = indicator_config.get("pa_config", {})
@@ -598,18 +619,22 @@ class Indicator:
         self.trade_indicator["count"] = order_count
         if show_indicator:
             print(
-                "[Indicator({}) {:%Y-%m-%d %H:%M:%S}]: FFR: {}, PA: {}, POS: {}".format(
-                    freq, trade_start_time, fulfill_rate, price_advantage, positive_rate
-                )
+                "[Indicator({}) {}]: FFR: {}, PA: {}, POS: {}".format(
+                    freq,
+                    trade_start_time
+                    if isinstance(trade_start_time, str)
+                    else trade_start_time.strftime("%Y-%m-%d %H:%M:%S"),
+                    fulfill_rate,
+                    price_advantage,
+                    positive_rate,
+                ),
             )
 
-    def get_order_indicator(self, raw: bool = True):
-        if raw:
-            return self.order_indicator
-        return self.order_indicator.to_series()
+    def get_order_indicator(self, raw: bool = True) -> Union[BaseOrderIndicator, Dict[Text, pd.Series]]:
+        return self.order_indicator if raw else self.order_indicator.to_series()
 
-    def get_trade_indicator(self):
+    def get_trade_indicator(self) -> Dict[str, Optional[BaseSingleMetric]]:
         return self.trade_indicator
 
-    def generate_trade_indicators_dataframe(self):
+    def generate_trade_indicators_dataframe(self) -> pd.DataFrame:
         return pd.DataFrame.from_dict(self.trade_indicator_his, orient="index")

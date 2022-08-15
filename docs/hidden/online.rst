@@ -1,11 +1,11 @@
 .. _online:
 
 Online
-===================
+======
 .. currentmodule:: qlib
 
 Introduction
--------------------
+------------
 
 Welcome to use Online, this module simulates what will be like if we do the real trading use our model and strategy.
 
@@ -31,11 +31,11 @@ The file structure can be viewed at fileStruct_.
 
 
 Example
--------------------
+-------
 
 Let's take an example,
 
-.. note:: Make sure you have the latest version of `qlib` installed. 
+.. note:: Make sure you have the latest version of `qlib` installed.
 
 If you want to use the models and data provided by `qlib`, you only need to do as follows.
 
@@ -93,7 +93,7 @@ If Your account was saved in "./user_data/", you can see the performance of your
 Here 'SH000905' represents csi500 and 'SH000300' represents csi300
 
 Manage your account
---------------------
+-------------------
 
 Any account processed by `online` should be saved in a folder. you can use commands
 defined to manage your accounts.
@@ -161,7 +161,7 @@ be called at each trading date.
         >> online update -date 2019-10-16 -path ./user_data/
 
 API
-------------------
+---
 
 All those operations are based on defined in `qlib.contrib.online.operator`
 
@@ -170,7 +170,7 @@ All those operations are based on defined in `qlib.contrib.online.operator`
 .. _fileStruct:
 
 File structure
-------------------
+--------------
 
 'user_data' indicates the root of folder.
 Name that bold indicates it’s a folder, otherwise it’s a document.
@@ -214,7 +214,7 @@ Configuration file
 The configure file used in `online` should contain the model and strategy information.
 
 About the model
-~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~
 
 First, your configuration file needs to have a field about the model,
 this field and its contents determine the model we used when generating score at predict date.
@@ -243,7 +243,7 @@ contains 2 methods used in `online` module.
 
 
 About the strategy
-~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~
 
 Your need define the strategy used to generate the order list at predict date.
 
@@ -259,7 +259,7 @@ Followings are two examples for a TopkAmountStrategy
             n_drop: 10
 
 Generated files
-------------------
+---------------
 
 The 'online_generate' command will create the order list at {folder_path}/{user_id}/temp/,
 the name of that is orderlist_{YYYY-MM-DD}.json, YYYY-MM-DD is the date that those orders to be executed.

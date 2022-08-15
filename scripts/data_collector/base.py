@@ -170,7 +170,7 @@ class BaseCollector(abc.ABC):
         df["symbol"] = symbol
         if instrument_path.exists():
             _old_df = pd.read_csv(instrument_path)
-            df = _old_df.append(df, sort=False)
+            df = pd.concat([_old_df, df], sort=False)
         df.to_csv(instrument_path, index=False)
 
     def cache_small_data(self, symbol, df):
@@ -369,8 +369,6 @@ class BaseRun(abc.ABC):
             default 2
         delay: float
             time.sleep(delay), default 0
-        interval: str
-            freq, value from [1min, 1d], default 1d
         start: str
             start datetime, default "2000-01-01"
         end: str

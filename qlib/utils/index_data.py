@@ -9,6 +9,8 @@ Motivation of index_data
 `index_data` try to behave like pandas (some API will be different because we try to be simpler and more intuitive) but don't compromise the performance. It provides the basic numpy data and simple indexing feature. If users call APIs which may compromise the performance, index_data will raise Errors.
 """
 
+from __future__ import annotations
+
 from typing import Dict, Tuple, Union, Callable, List
 import bisect
 
@@ -16,7 +18,7 @@ import numpy as np
 import pandas as pd
 
 
-def concat(data_list: Union["SingleData"], axis=0) -> "MultiData":
+def concat(data_list: Union[SingleData], axis=0) -> MultiData:
     """concat all SingleData by index.
     TODO: now just for SingleData.
 
@@ -52,7 +54,7 @@ def concat(data_list: Union["SingleData"], axis=0) -> "MultiData":
         raise ValueError(f"axis must be 0 or 1")
 
 
-def sum_by_index(data_list: Union["SingleData"], new_index: list, fill_value=0) -> "SingleData":
+def sum_by_index(data_list: Union[SingleData], new_index: list, fill_value=0) -> SingleData:
     """concat all SingleData by new index.
 
     Parameters
@@ -62,7 +64,7 @@ def sum_by_index(data_list: Union["SingleData"], new_index: list, fill_value=0) 
     new_index : list
         the new_index of new SingleData.
     fill_value : float
-        fill the missing values ​​or replace np.NaN.
+        fill the missing values or replace np.NaN.
 
     Returns
     -------
@@ -269,7 +271,7 @@ class LocIndexer:
                         if isinstance(_indexing, IndexData):
                             _indexing = _indexing.data
                         assert _indexing.ndim == 1
-                        if _indexing.dtype != np.bool:
+                        if _indexing.dtype != bool:
                             _indexing = np.array(list(index.index(i) for i in _indexing))
                     else:
                         _indexing = index.index(_indexing)
@@ -429,7 +431,7 @@ class IndexData(metaclass=index_data_ops_creator):
 
     # The code below could be simpler like methods in __getattribute__
     def __invert__(self):
-        return self.__class__(~self.data.astype(np.bool), *self.indices)
+        return self.__class__(~self.data.astype(bool), *self.indices)
 
     def abs(self):
         """get the abs of data except np.NaN."""
@@ -554,7 +556,7 @@ class SingleData(IndexData):
                 f"The indexes of self and other do not meet the requirements of the four arithmetic operations"
             )
 
-    def reindex(self, index: Index, fill_value=np.NaN):
+    def reindex(self, index: Index, fill_value=np.NaN) -> SingleData:
         """reindex data and fill the missing value with np.NaN.
 
         Parameters
@@ -580,7 +582,7 @@ class SingleData(IndexData):
                 pass
         return SingleData(tmp_data, index)
 
-    def add(self, other: "SingleData", fill_value=0):
+    def add(self, other: SingleData, fill_value=0):
         # TODO: add and __add__ are a little confusing.
         # This could be a more general
         common_index = self.index | other.index

@@ -1,13 +1,13 @@
 .. _task_management:
 
-=================================
+===============
 Task Management
-=================================
+===============
 .. currentmodule:: qlib
 
 
 Introduction
-=============
+============
 
 The `Workflow <../component/introduction.html>`_ part introduces how to run research workflow in a loosely-coupled way. But it can only execute one ``task`` when you use ``qrun``.
 To automatically generate and execute different tasks, ``Task Management`` provides a whole process including `Task Generating`_, `Task Storing`_, `Task Training`_ and `Task Collecting`_. 
@@ -36,7 +36,7 @@ Here is the base class of ``TaskGen``:
 This class allows users to verify the effect of data from different periods on the model in one experiment. More information is `here <../reference/api.html#TaskGen>`_.
 
 Task Storing
-===============
+============
 To achieve higher efficiency and the possibility of cluster operation, ``Task Manager`` will store all tasks in `MongoDB <https://www.mongodb.com/>`_.
 ``TaskManager`` can fetch undone tasks automatically and manage the lifecycle of a set of tasks with error handling.
 Users **MUST** finish the configuration of `MongoDB <https://www.mongodb.com/>`_ when using this module.
@@ -57,7 +57,7 @@ Users need to provide the MongoDB URL and database name for using ``TaskManager`
 More information of ``Task Manager`` can be found in `here <../reference/api.html#TaskManager>`_.
 
 Task Training
-===============
+=============
 After generating and storing those ``task``, it's time to run the ``task`` which is in the *WAITING* status.
 ``Qlib`` provides a method called ``run_task`` to run those ``task`` in task pool, however, users can also customize how tasks are executed.
 An easy way to get the ``task_func`` is using ``qlib.model.trainer.task_train`` directly.

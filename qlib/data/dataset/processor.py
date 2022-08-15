@@ -187,7 +187,13 @@ class Fillna(Processor):
             df.fillna(self.fill_value, inplace=True)
         else:
             cols = get_group_columns(df, self.fields_group)
-            df.fillna({col: self.fill_value for col in cols}, inplace=True)
+            # this implementation is extremely slow
+            # df.fillna({col: self.fill_value for col in cols}, inplace=True)
+
+            # So we use numpy to accelerate filling values
+            nan_select = np.isnan(df.values)
+            nan_select[:, ~df.columns.isin(cols)] = False
+            df.values[nan_select] = self.fill_value
         return df
 
 
@@ -318,6 +324,20 @@ class CSRankNorm(Processor):
     The operations across different stocks are often called Cross Sectional Operation.
 
     For example, CSRankNorm is an operation that grouping the data by each day and rank `across` all the stocks in each day.
+
+    Explanation about 3.46 & 0.5
+
+    .. code-block:: python
+
+        import numpy as np
+        import pandas as pd
+        x = np.random.random(10000)  # for any variable
+        x_rank = pd.Series(x).rank(pct=True)  # if it is converted to rank, it will be a uniform distributed
+        x_rank_norm = (x_rank - x_rank.mean()) / x_rank.std()  # Normally, we will normalize it to make it like normal distribution
+
+        x_rank.mean()   # accounts for 0.5
+        1 / x_rank.std()  # accounts for 3.46
+
     """
 
     def __init__(self, fields_group=None):

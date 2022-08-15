@@ -1,15 +1,19 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 from __future__ import annotations
+
 import copy
-from typing import Dict, List, Tuple
-from qlib.utils import init_instance_by_config
+from typing import Dict, List, Optional, Tuple, cast
+
 import pandas as pd
 
-from .position import BasePosition
-from .report import PortfolioMetrics, Indicator
+from qlib.utils import init_instance_by_config
+
 from .decision import BaseTradeDecision, Order
 from .exchange import Exchange
+from .high_performance_ds import BaseOrderIndicator
+from .position import BasePosition
+from .report import Indicator, PortfolioMetrics
 
 """
 rtn & earning in the Account
@@ -34,40 +38,42 @@ class AccumulatedInfo:
     AccumulatedInfo should be shared across different levels
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.reset()
 
-    def reset(self):
-        self.rtn = 0  # accumulated return, do not consider cost
-        self.cost = 0  # accumulated cost
-        self.to = 0  # accumulated turnover
+    def reset(self) -> None:
+        self.rtn: float = 0.0  # accumulated return, do not consider cost
+        self.cost: float = 0.0  # accumulated cost
+        self.to: float = 0.0  # accumulated turnover
 
-    def add_return_value(self, value):
+    def add_return_value(self, value: float) -> None:
         self.rtn += value
 
-    def add_cost(self, value):
+    def add_cost(self, value: float) -> None:
         self.cost += value
 
-    def add_turnover(self, value):
+    def add_turnover(self, value: float) -> None:
         self.to += value
 
     @property
-    def get_return(self):
+    def get_return(self) -> float:
         return self.rtn
 
     @property
-    def get_cost(self):
+    def get_cost(self) -> float:
         return self.cost
 
     @property
-    def get_turnover(self):
+    def get_turnover(self) -> float:
         return self.to
 
 
 class Account:
     """
-    The correctness of the metrics of Account in nested execution depends on the shallow copy of `trade_account` in qlib/backtest/executor.py:NestedExecutor
-    Different level of executor has different Account object when calculating metrics. But the position object is shared cross all the Account object.
+    The correctness of the metrics of Account in nested execution depends on the shallow copy of `trade_account` in
+    qlib/backtest/executor.py:NestedExecutor
+    Different level of executor has different Account object when calculating metrics. But the position object is
+    shared cross all the Account object.
     """
 
     def __init__(
@@ -78,7 +84,7 @@ class Account:
         benchmark_config: dict = {},
         pos_type: str = "Position",
         port_metr_enabled: bool = True,
-    ):
+    ) -> None:
         """the trade account of backtest.
 
         Parameters
@@ -99,10 +105,10 @@ class Account:
 
         self._pos_type = pos_type
         self._port_metr_enabled = port_metr_enabled
-        self.benchmark_config = None  # avoid no attribute error
+        self.benchmark_config: dict = {}  # avoid no attribute error
         self.init_vars(init_cash, position_dict, freq, benchmark_config)
 
-    def init_vars(self, init_cash, position_dict, freq: str, benchmark_config: dict):
+    def init_vars(self, init_cash: float, position_dict: dict, freq: str, benchmark_config: dict) -> None:
         # 1) the following variables are shared by multiple layers
         # - you will see a shallow copy instead of deepcopy in the NestedExecutor;
         self.init_cash = init_cash
@@ -114,22 +120,22 @@ class Account:
                     "position_dict": position_dict,
                 },
                 "module_path": "qlib.backtest.position",
-            }
+            },
         )
         self.accum_info = AccumulatedInfo()
 
         # 2) following variables are not shared between layers
-        self.portfolio_metrics = None
-        self.hist_positions = {}
+        self.portfolio_metrics: Optional[PortfolioMetrics] = None
+        self.hist_positions: Dict[pd.Timestamp, BasePosition] = {}
         self.reset(freq=freq, benchmark_config=benchmark_config)
 
-    def is_port_metr_enabled(self):
+    def is_port_metr_enabled(self) -> bool:
         """
         Is portfolio-based metrics enabled.
         """
         return self._port_metr_enabled and not self.current_position.skip_update()
 
-    def reset_report(self, freq, benchmark_config):
+    def reset_report(self, freq: str, benchmark_config: dict) -> None:
         # portfolio related metrics
         if self.is_port_metr_enabled():
             # NOTE:
@@ -140,13 +146,13 @@ class Account:
             # fill stock value
             # The frequency of account may not align with the trading frequency.
             # This may result in obscure bugs when data quality is low.
-            if isinstance(self.benchmark_config, dict) and self.benchmark_config.get("start_time") is not None:
+            if isinstance(self.benchmark_config, dict) and "start_time" in self.benchmark_config:
                 self.current_position.fill_stock_value(self.benchmark_config["start_time"], self.freq)
 
         # trading related metrics(e.g. high-frequency trading)
         self.indicator = Indicator()
 
-    def reset(self, freq=None, benchmark_config=None, port_metr_enabled: bool = None):
+    def reset(self, freq: str = None, benchmark_config: dict = None, port_metr_enabled: bool = None) -> None:
         """reset freq and report of account
 
         Parameters
@@ -155,6 +161,7 @@ class Account:
             frequency of account & report, by default None
         benchmark_config : {}, optional
             benchmark config of report, by default None
+        port_metr_enabled: bool
         """
         if freq is not None:
             self.freq = freq
@@ -165,13 +172,13 @@ class Account:
 
         self.reset_report(self.freq, self.benchmark_config)
 
-    def get_hist_positions(self):
+    def get_hist_positions(self) -> Dict[pd.Timestamp, BasePosition]:
         return self.hist_positions
 
-    def get_cash(self):
+    def get_cash(self) -> float:
         return self.current_position.get_cash()
 
-    def _update_state_from_order(self, order, trade_val, cost, trade_price):
+    def _update_state_from_order(self, order: Order, trade_val: float, cost: float, trade_price: float) -> None:
         if self.is_port_metr_enabled():
             # update turnover
             self.accum_info.add_turnover(trade_val)
@@ -191,13 +198,14 @@ class Account:
                 profit = self.current_position.get_stock_price(order.stock_id) * trade_amount - trade_val
                 self.accum_info.add_return_value(profit)  # note here do not consider cost
 
-    def update_order(self, order, trade_val, cost, trade_price):
+    def update_order(self, order: Order, trade_val: float, cost: float, trade_price: float) -> None:
         if self.current_position.skip_update():
             # TODO: supporting polymorphism for account
             # updating order for infinite position is meaningless
             return
 
-        # if stock is sold out, no stock price information in Position, then we should update account first, then update current position
+        # if stock is sold out, no stock price information in Position, then we should update account first,
+        # then update current position
         # if stock is bought, there is no stock in current position, update current, then update account
         # The cost will be subtracted from the cash at last. So the trading logic can ignore the cost calculation
         if order.direction == Order.SELL:
@@ -212,29 +220,40 @@ class Account:
             self.current_position.update_order(order, trade_val, cost, trade_price)
             self._update_state_from_order(order, trade_val, cost, trade_price)
 
-    def update_current_position(self, trade_start_time, trade_end_time, trade_exchange):
-        """update current to make rtn consistent with earning at the end of bar, and update holding bar count of stock"""
+    def update_current_position(
+        self,
+        trade_start_time: pd.Timestamp,
+        trade_end_time: pd.Timestamp,
+        trade_exchange: Exchange,
+    ) -> None:
+        """
+        Update current to make rtn consistent with earning at the end of bar, and update holding bar count of stock
+        """
         # update price for stock in the position and the profit from changed_price
         # NOTE: updating position does not only serve portfolio metrics, it also serve the strategy
+        assert self.current_position is not None
+
         if not self.current_position.skip_update():
             stock_list = self.current_position.get_stock_list()
             for code in stock_list:
                 # if suspend, no new price to be updated, profit is 0
                 if trade_exchange.check_stock_suspended(code, trade_start_time, trade_end_time):
                     continue
-                bar_close = trade_exchange.get_close(code, trade_start_time, trade_end_time)
+                bar_close = cast(float, trade_exchange.get_close(code, trade_start_time, trade_end_time))
                 self.current_position.update_stock_price(stock_id=code, price=bar_close)
             # update holding day count
             # NOTE: updating bar_count does not only serve portfolio metrics, it also serve the strategy
             self.current_position.add_count_all(bar=self.freq)
 
-    def update_portfolio_metrics(self, trade_start_time, trade_end_time):
+    def update_portfolio_metrics(self, trade_start_time: pd.Timestamp, trade_end_time: pd.Timestamp) -> None:
         """update portfolio_metrics"""
         # calculate earning
         # account_value - last_account_value
         # for the first trade date, account_value - init_cash
         # self.portfolio_metrics.is_empty() to judge is_first_trade_date
         # get last_account_value, last_total_cost, last_total_turnover
+        assert self.portfolio_metrics is not None
+
         if self.portfolio_metrics.is_empty():
             last_account_value = self.init_cash
             last_total_cost = 0
@@ -243,14 +262,16 @@ class Account:
             last_account_value = self.portfolio_metrics.get_latest_account_value()
             last_total_cost = self.portfolio_metrics.get_latest_total_cost()
             last_total_turnover = self.portfolio_metrics.get_latest_total_turnover()
+
         # get now_account_value, now_stock_value, now_earning, now_cost, now_turnover
         now_account_value = self.current_position.calculate_value()
         now_stock_value = self.current_position.calculate_stock_value()
         now_earning = now_account_value - last_account_value
         now_cost = self.accum_info.get_cost - last_total_cost
         now_turnover = self.accum_info.get_turnover - last_total_turnover
+
         # update portfolio_metrics for today
-        # judge whether the the trading is begin.
+        # judge whether the trading is begin.
         # and don't add init account state into portfolio_metrics, due to we don't have excess return in those days.
         self.portfolio_metrics.update_portfolio_metrics_record(
             trade_start_time=trade_start_time,
@@ -267,7 +288,7 @@ class Account:
             stock_value=now_stock_value,
         )
 
-    def update_hist_positions(self, trade_start_time):
+    def update_hist_positions(self, trade_start_time: pd.Timestamp) -> None:
         """update history position"""
         now_account_value = self.current_position.calculate_value()
         # set now_account_value to position
@@ -283,11 +304,11 @@ class Account:
         trade_exchange: Exchange,
         atomic: bool,
         outer_trade_decision: BaseTradeDecision,
-        trade_info: list = None,
-        inner_order_indicators: List[Dict[str, pd.Series]] = None,
-        decision_list: List[Tuple[BaseTradeDecision, pd.Timestamp, pd.Timestamp]] = None,
+        trade_info: list = [],
+        inner_order_indicators: List[BaseOrderIndicator] = [],
+        decision_list: List[Tuple[BaseTradeDecision, pd.Timestamp, pd.Timestamp]] = [],
         indicator_config: dict = {},
-    ):
+    ) -> None:
         """update trade indicators and order indicators in each bar end"""
         # TODO: will skip empty decisions make it faster?  `outer_trade_decision.empty():`
 
@@ -319,11 +340,11 @@ class Account:
         trade_exchange: Exchange,
         atomic: bool,
         outer_trade_decision: BaseTradeDecision,
-        trade_info: list = None,
-        inner_order_indicators: List[Dict[str, pd.Series]] = None,
-        decision_list: List[Tuple[BaseTradeDecision, pd.Timestamp, pd.Timestamp]] = None,
+        trade_info: list = [],
+        inner_order_indicators: List[BaseOrderIndicator] = [],
+        decision_list: List[Tuple[BaseTradeDecision, pd.Timestamp, pd.Timestamp]] = [],
         indicator_config: dict = {},
-    ):
+    ) -> None:
         """update account at each trading bar step
 
         Parameters
@@ -338,6 +359,8 @@ class Account:
             whether the trading executor is atomic, which means there is no higher-frequency trading executor inside it
             - if atomic is True, calculate the indicators with trade_info
             - else, aggregate indicators with inner indicators
+        outer_trade_decision: BaseTradeDecision
+            external trade decision
         trade_info : List[(Order, float, float, float)], optional
             trading information, by default None
             - necessary if atomic is True
@@ -377,9 +400,10 @@ class Account:
             indicator_config=indicator_config,
         )
 
-    def get_portfolio_metrics(self):
+    def get_portfolio_metrics(self) -> Tuple[pd.DataFrame, dict]:
         """get the history portfolio_metrics and positions instance"""
         if self.is_port_metr_enabled():
+            assert self.portfolio_metrics is not None
             _portfolio_metrics = self.portfolio_metrics.generate_portfolio_metrics_dataframe()
             _positions = self.get_hist_positions()
             return _portfolio_metrics, _positions

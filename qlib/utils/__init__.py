@@ -11,32 +11,33 @@ import re
 import sys
 import copy
 import json
+from qlib.typehint import InstConf
 import yaml
 import redis
 import bisect
-import shutil
 import struct
 import difflib
 import inspect
 import hashlib
-import warnings
 import datetime
 import requests
-import tempfile
 import importlib
 import contextlib
 import collections
 import numpy as np
 import pandas as pd
 from pathlib import Path
-from typing import List, Dict, Union, Tuple, Any, Text, Optional, Callable
+from typing import List, Dict, Union, Tuple, Any, Optional, Callable
 from types import ModuleType
 from urllib.parse import urlparse
+from packaging import version
 from .file import get_or_create_path, save_multiple_parts_file, unpack_archive_with_buffer, get_tmp_file_with_buffer
 from ..config import C
 from ..log import get_module_logger, set_log_with_config
 
 log = get_module_logger("utils")
+# MultiIndex.is_lexsorted() is a deprecated method in Pandas 1.3.0.
+is_deprecated_lexsorted_pandas = version.parse(pd.__version__) > version.parse("1.3.0")
 
 
 #################### Server ####################
@@ -271,9 +272,15 @@ def parse_field(field):
 
     if not isinstance(field, str):
         field = str(field)
+    # Chinese punctuation regex:
+    # \u3001 -> 、
+    # \uff1a -> ：
+    # \uff08 -> (
+    # \uff09 -> )
+    chinese_punctuation_regex = r"\u3001\uff1a\uff08\uff09"
     for pattern, new in [
-        (r"\$\$(\w+)", r'PFeature("\1")'),  # $$ must be before $
-        (r"\$(\w+)", rf'Feature("\1")'),
+        (rf"\$\$([\w{chinese_punctuation_regex}]+)", r'PFeature("\1")'),  # $$ must be before $
+        (rf"\$([\w{chinese_punctuation_regex}]+)", r'Feature("\1")'),
         (r"(\w+\s*)\(", r"Operators.\1("),
     ]:  # Features  # Operators
         field = re.sub(pattern, new, field)
@@ -285,7 +292,11 @@ def get_module_by_module_path(module_path: Union[str, ModuleType]):
 
     :param module_path:
     :return:
+    :raises: ModuleNotFoundError
     """
+    if module_path is None:
+        raise ModuleNotFoundError("None is passed in as parameters as module_path")
+
     if isinstance(module_path, ModuleType):
         module = module_path
     else:
@@ -318,7 +329,7 @@ def split_module_path(module_path: str) -> Tuple[str, str]:
     return m_path, cls
 
 
-def get_callable_kwargs(config: Union[dict, str], default_module: Union[str, ModuleType] = None) -> (type, dict):
+def get_callable_kwargs(config: InstConf, default_module: Union[str, ModuleType] = None) -> (type, dict):
     """
     extract class/func and kwargs from config info
 
@@ -337,6 +348,10 @@ def get_callable_kwargs(config: Union[dict, str], default_module: Union[str, Mod
     -------
     (type, dict):
         the class/func object and it's arguments.
+
+    Raises
+    ------
+        ModuleNotFoundError
     """
     if isinstance(config, dict):
         key = "class" if "class" in config else "func"
@@ -370,7 +385,7 @@ get_cls_kwargs = get_callable_kwargs  # NOTE: this is for compatibility for the 
 
 
 def init_instance_by_config(
-    config: Union[str, dict, object],
+    config: InstConf,
     default_module=None,
     accept_types: Union[type, Tuple[type]] = (),
     try_kwargs: Dict = {},
@@ -381,28 +396,8 @@ def init_instance_by_config(
 
     Parameters
     ----------
-    config : Union[str, dict, object]
-        dict example.
-            case 1)
-            {
-                'class': 'ClassName',
-                'kwargs': dict, #  It is optional. {} will be used if not given
-                'model_path': path, # It is optional if module is given
-            }
-            case 2)
-            {
-                'class': <The class it self>,
-                'kwargs': dict, #  It is optional. {} will be used if not given
-            }
-        str example.
-            1) specify a pickle object
-                - path like 'file:///<path to pickle file>/obj.pkl'
-            2) specify a class name
-                - "ClassName":  getattr(module, "ClassName")() will be used.
-            3) specify module path with class name
-                - "a.b.c.ClassName" getattr(<a.b.c.module>, "ClassName")() will be used.
-        object example:
-            instance of accept_types
+    config : InstConf
+
     default_module : Python module
         Optional. It should be a python module.
         NOTE: the "module_path" will be override by `module` arguments
@@ -426,11 +421,15 @@ def init_instance_by_config(
     if isinstance(config, accept_types):
         return config
 
-    if isinstance(config, str):
-        # path like 'file:///<path to pickle file>/obj.pkl'
-        pr = urlparse(config)
-        if pr.scheme == "file":
-            with open(os.path.join(pr.netloc, pr.path), "rb") as f:
+    if isinstance(config, (str, Path)):
+        if isinstance(config, str):
+            # path like 'file:///<path to pickle file>/obj.pkl'
+            pr = urlparse(config)
+            if pr.scheme == "file":
+                with open(os.path.join(pr.netloc, pr.path), "rb") as f:
+                    return pickle.load(f)
+        else:
+            with config.open("rb") as f:
                 return pickle.load(f)
 
     klass, cls_kwargs = get_callable_kwargs(config, default_module=default_module)
@@ -505,7 +504,7 @@ def remove_fields_space(fields: [list, str, tuple]):
     """
     if isinstance(fields, str):
         return fields.replace(" ", "")
-    return [i.replace(" ", "") for i in fields if isinstance(i, str)]
+    return [i.replace(" ", "") if isinstance(i, str) else str(i) for i in fields]
 
 
 def normalize_cache_fields(fields: [list, tuple]):
@@ -788,11 +787,15 @@ def lazy_sort_index(df: pd.DataFrame, axis=0) -> pd.DataFrame:
         sorted dataframe
     """
     idx = df.index if axis == 0 else df.columns
-    # NOTE: MultiIndex.is_lexsorted() is a deprecated method in Pandas 1.3.0 and is suggested to be replaced by MultiIndex.is_monotonic_increasing (see discussion here: https://github.com/pandas-dev/pandas/issues/32259). However, in case older versions of Pandas is implemented, MultiIndex.is_lexsorted() is necessary to prevent certain fatal errors.
-    if idx.is_monotonic_increasing and not (isinstance(idx, pd.MultiIndex) and not idx.is_lexsorted()):
-        return df
-    else:
+    if (
+        not idx.is_monotonic_increasing
+        or not is_deprecated_lexsorted_pandas
+        and isinstance(idx, pd.MultiIndex)
+        and not idx.is_lexsorted()
+    ):  # this case is for the old version
         return df.sort_index(axis=axis)
+    else:
+        return df
 
 
 FLATTEN_TUPLE = "_FLATTEN_TUPLE"
@@ -932,6 +935,10 @@ def auto_filter_kwargs(func: Callable, warning=True) -> Callable:
 
     The decrated function will ignore and give warning when the parameter is not acceptable
 
+    For example, if you have a function `f` which may optionally consume the keywards `bar`.
+    then you can call it by `auto_filter_kwargs(f)(bar=3)`, which will automatically filter out
+    `bar` when f does not need bar
+
     Parameters
     ----------
     func : Callable
@@ -1038,3 +1045,13 @@ def fname_to_code(fname: str):
     if fname.startswith(prefix):
         fname = fname.lstrip(prefix)
     return fname
+
+
+__all__ = [
+    "get_or_create_path",
+    "save_multiple_parts_file",
+    "unpack_archive_with_buffer",
+    "get_tmp_file_with_buffer",
+    "set_log_with_config",
+    "init_instance_by_config",
+]

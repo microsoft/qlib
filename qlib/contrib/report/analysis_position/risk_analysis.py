@@ -85,7 +85,7 @@ def _get_monthly_risk_analysis_with_report(report_normal_df: pd.DataFrame) -> pd
             # _m_report_long_short,
             pd.Timestamp(year=gp_m[0], month=gp_m[1], day=month_days),
         )
-        _monthly_df = _monthly_df.append(_temp_df, sort=False)
+        _monthly_df = pd.concat([_monthly_df, _temp_df], sort=False)
 
     return _monthly_df
 

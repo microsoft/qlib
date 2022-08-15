@@ -2,27 +2,33 @@
 # Licensed under the MIT License.
 
 from __future__ import annotations
-from enum import IntEnum
-from qlib.data.data import Cal
-from qlib.utils.time import concat_date_time, epsilon_change
-from qlib.log import get_module_logger
 
-from typing import ClassVar, Optional, Union, List, Tuple
+from abc import abstractmethod
+from datetime import time
+from enum import IntEnum
 
 # try to fix circular imports when enabling type hints
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, ClassVar, Generic, List, Optional, Tuple, TypeVar, Union, cast
+
+from qlib.backtest.utils import TradeCalendarManager
+from qlib.data.data import Cal
+from qlib.log import get_module_logger
+from qlib.utils.time import concat_date_time, epsilon_change
 
 if TYPE_CHECKING:
     from qlib.strategy.base import BaseStrategy
     from qlib.backtest.exchange import Exchange
-from qlib.backtest.utils import TradeCalendarManager
+
+from dataclasses import dataclass
+
 import numpy as np
 import pandas as pd
-from dataclasses import dataclass
+
+DecisionType = TypeVar("DecisionType")
 
 
 class OrderDir(IntEnum):
-    # Order  direction
+    # Order direction
     SELL = 0
     BUY = 1
 
@@ -46,7 +52,7 @@ class Order:
     # - they are set by users and is time-invariant.
     stock_id: str
     amount: float  # `amount` is a non-negative and adjusted value
-    direction: int
+    direction: OrderDir
 
     # 2) time variant values:
     # - Users may want to set these values when using lower level APIs
@@ -61,8 +67,8 @@ class Order:
     # What the value should be about in all kinds of cases
     # - not tradable: the deal_amount == 0 , factor is None
     #    - the stock is suspended and the entire order fails. No cost for this order
-    # - dealed or partially dealed: deal_amount >= 0 and factor is not None
-    deal_amount: Optional[float] = None  # `deal_amount` is a non-negative value
+    # - dealt or partially dealt: deal_amount >= 0 and factor is not None
+    deal_amount: float = 0.0  # `deal_amount` is a non-negative value
     factor: Optional[float] = None
 
     # TODO:
@@ -74,10 +80,10 @@ class Order:
     SELL: ClassVar[OrderDir] = OrderDir.SELL
     BUY: ClassVar[OrderDir] = OrderDir.BUY
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if self.direction not in {Order.SELL, Order.BUY}:
             raise NotImplementedError("direction not supported, `Order.SELL` for sell, `Order.BUY` for buy")
-        self.deal_amount = 0
+        self.deal_amount = 0.0
         self.factor = None
 
     @property
@@ -99,7 +105,7 @@ class Order:
         return self.deal_amount * self.sign
 
     @property
-    def sign(self) -> float:
+    def sign(self) -> int:
         """
         return the sign of trading
         - `+1` indicates buying
@@ -112,15 +118,12 @@ class Order:
         if isinstance(direction, OrderDir):
             return direction
         elif isinstance(direction, (int, float, np.integer, np.floating)):
-            if direction > 0:
-                return Order.BUY
-            else:
-                return Order.SELL
+            return Order.BUY if direction > 0 else Order.SELL
         elif isinstance(direction, str):
-            dl = direction.lower()
-            if dl.strip() == "sell":
+            dl = direction.lower().strip()
+            if dl == "sell":
                 return OrderDir.SELL
-            elif dl.strip() == "buy":
+            elif dl == "buy":
                 return OrderDir.BUY
             else:
                 raise NotImplementedError(f"This type of input is not supported")
@@ -138,14 +141,14 @@ class OrderHelper:
     Motivation
     - Make generating order easier
         - User may have no knowledge about the adjust-factor information about the system.
-        - It involves to much interaction with the exchange when generating orders.
+        - It involves too much interaction with the exchange when generating orders.
     """
 
-    def __init__(self, exchange: Exchange):
+    def __init__(self, exchange: Exchange) -> None:
         self.exchange = exchange
 
+    @staticmethod
     def create(
-        self,
         code: str,
         amount: float,
         direction: OrderDir,
@@ -175,21 +178,18 @@ class OrderHelper:
         Order:
             The created order
         """
-        if start_time is not None:
-            start_time = pd.Timestamp(start_time)
-        if end_time is not None:
-            end_time = pd.Timestamp(end_time)
         # NOTE: factor is a value belongs to the results section. User don't have to care about it when creating orders
         return Order(
             stock_id=code,
             amount=amount,
-            start_time=start_time,
-            end_time=end_time,
+            start_time=None if start_time is None else pd.Timestamp(start_time),
+            end_time=None if end_time is None else pd.Timestamp(end_time),
             direction=direction,
         )
 
 
 class TradeRange:
+    @abstractmethod
     def __call__(self, trade_calendar: TradeCalendarManager) -> Tuple[int, int]:
         """
         This method will be call with following way
@@ -216,6 +216,7 @@ class TradeRange:
         """
         raise NotImplementedError(f"Please implement the `__call__` method")
 
+    @abstractmethod
     def clip_time_range(self, start_time: pd.Timestamp, end_time: pd.Timestamp) -> Tuple[pd.Timestamp, pd.Timestamp]:
         """
         Parameters
@@ -234,56 +235,58 @@ class TradeRange:
 
 
 class IdxTradeRange(TradeRange):
-    def __init__(self, start_idx: int, end_idx: int):
+    def __init__(self, start_idx: int, end_idx: int) -> None:
         self._start_idx = start_idx
         self._end_idx = end_idx
 
     def __call__(self, trade_calendar: TradeCalendarManager = None) -> Tuple[int, int]:
         return self._start_idx, self._end_idx
 
+    def clip_time_range(self, start_time: pd.Timestamp, end_time: pd.Timestamp) -> Tuple[pd.Timestamp, pd.Timestamp]:
+        raise NotImplementedError
+
 
 class TradeRangeByTime(TradeRange):
     """This is a helper function for make decisions"""
 
-    def __init__(self, start_time: str, end_time: str):
+    def __init__(self, start_time: str | time, end_time: str | time) -> None:
         """
         This is a callable class.
 
         **NOTE**:
-        - It is designed for minute-bar for intraday trading!!!!!
+        - It is designed for minute-bar for intra-day trading!!!!!
         - Both start_time and end_time are **closed** in the range
 
         Parameters
         ----------
-        start_time : str
+        start_time : str | time
             e.g. "9:30"
-        end_time : str
+        end_time : str | time
             e.g. "14:30"
         """
-        self.start_time = pd.Timestamp(start_time).time()
-        self.end_time = pd.Timestamp(end_time).time()
+        self.start_time = pd.Timestamp(start_time).time() if isinstance(start_time, str) else start_time
+        self.end_time = pd.Timestamp(end_time).time() if isinstance(end_time, str) else end_time
         assert self.start_time < self.end_time
 
-    def __call__(self, trade_calendar: TradeCalendarManager = None) -> Tuple[int, int]:
+    def __call__(self, trade_calendar: TradeCalendarManager) -> Tuple[int, int]:
         if trade_calendar is None:
             raise NotImplementedError("trade_calendar is necessary for getting TradeRangeByTime.")
-        start = trade_calendar.start_time
-        val_start, val_end = concat_date_time(start.date(), self.start_time), concat_date_time(
-            start.date(), self.end_time
-        )
+
+        start_date = trade_calendar.start_time.date()
+        val_start, val_end = concat_date_time(start_date, self.start_time), concat_date_time(start_date, self.end_time)
         return trade_calendar.get_range_idx(val_start, val_end)
 
     def clip_time_range(self, start_time: pd.Timestamp, end_time: pd.Timestamp) -> Tuple[pd.Timestamp, pd.Timestamp]:
         start_date = start_time.date()
         val_start, val_end = concat_date_time(start_date, self.start_time), concat_date_time(start_date, self.end_time)
         # NOTE: `end_date` should not be used. Because the `end_date` is for slicing. It may be in the next day
-        # Assumption: start_time and end_time is for intraday trading. So it is OK for only using start_date
+        # Assumption: start_time and end_time is for intra-day trading. So it is OK for only using start_date
         return max(val_start, start_time), min(val_end, end_time)
 
 
-class BaseTradeDecision:
+class BaseTradeDecision(Generic[DecisionType]):
     """
-    Trade decisions ara made by strategy and executed by exeuter
+    Trade decisions ara made by strategy and executed by executor
 
     Motivation:
         Here are several typical scenarios for `BaseTradeDecision`
@@ -297,7 +300,7 @@ class BaseTradeDecision:
         2. Same as `case 1.3`
     """
 
-    def __init__(self, strategy: BaseStrategy, trade_range: Union[Tuple[int, int], TradeRange] = None):
+    def __init__(self, strategy: BaseStrategy, trade_range: Union[Tuple[int, int], TradeRange] = None) -> None:
         """
         Parameters
         ----------
@@ -316,20 +319,21 @@ class BaseTradeDecision:
         """
         self.strategy = strategy
         self.start_time, self.end_time = strategy.trade_calendar.get_step_time()
-        self.total_step = None  # upper strategy has no knowledge about the sub executor before `_init_sub_trading`
-        if isinstance(trade_range, Tuple):
+        # upper strategy has no knowledge about the sub executor before `_init_sub_trading`
+        self.total_step: Optional[int] = None
+        if isinstance(trade_range, tuple):
             # for Tuple[int, int]
             trade_range = IdxTradeRange(*trade_range)
-        self.trade_range: TradeRange = trade_range
+        self.trade_range: Optional[TradeRange] = trade_range
 
-    def get_decision(self) -> List[object]:
+    def get_decision(self) -> List[DecisionType]:
         """
         get the **concrete decision**  (e.g. execution orders)
         This will be called by the inner strategy
 
         Returns
         -------
-        List[object]:
+        List[DecisionType:
             The decision result. Typically it is some orders
             Example:
                 []:
@@ -339,7 +343,7 @@ class BaseTradeDecision:
         """
         raise NotImplementedError(f"This type of input is not supported")
 
-    def update(self, trade_calendar: TradeCalendarManager) -> Union["BaseTradeDecision", None]:
+    def update(self, trade_calendar: TradeCalendarManager) -> Optional[BaseTradeDecision]:
         """
         Be called at the **start** of each step.
 
@@ -354,10 +358,8 @@ class BaseTradeDecision:
 
         Returns
         -------
-        None:
-            No update, use previous decision(or unavailable)
         BaseTradeDecision:
-            New update, use new decision
+            New update, use new decision. If no updates, return None (use previous decision (or unavailable))
         """
         # purpose 1)
         self.total_step = trade_calendar.get_trade_len()
@@ -365,13 +367,13 @@ class BaseTradeDecision:
         # purpose 2)
         return self.strategy.update_trade_decision(self, trade_calendar)
 
-    def _get_range_limit(self, **kwargs) -> Tuple[int, int]:
+    def _get_range_limit(self, **kwargs: Any) -> Tuple[int, int]:
         if self.trade_range is not None:
-            return self.trade_range(trade_calendar=kwargs.get("inner_calendar"))
+            return self.trade_range(trade_calendar=cast(TradeCalendarManager, kwargs.get("inner_calendar")))
         else:
             raise NotImplementedError("The decision didn't provide an index range")
 
-    def get_range_limit(self, **kwargs) -> Tuple[int, int]:
+    def get_range_limit(self, **kwargs: Any) -> Tuple[int, int]:
         """
         return the expected step range for limiting the decision execution time
         Both left and right are **closed**
@@ -412,21 +414,22 @@ class BaseTradeDecision:
         """
         try:
             _start_idx, _end_idx = self._get_range_limit(**kwargs)
-        except NotImplementedError:
+        except NotImplementedError as e:
             if "default_value" in kwargs:
                 return kwargs["default_value"]
             else:
                 # Default to get full index
-                raise NotImplementedError(f"The decision didn't provide an index range") from NotImplementedError
+                raise NotImplementedError(f"The decision didn't provide an index range") from e
 
         # clip index
         if getattr(self, "total_step", None) is not None:
             # if `self.update` is called.
             # Then the _start_idx, _end_idx should be clipped
+            assert self.total_step is not None
             if _start_idx < 0 or _end_idx >= self.total_step:
                 logger = get_module_logger("decision")
                 logger.warning(
-                    f"[{_start_idx},{_end_idx}] go beyoud the total_step({self.total_step}), it will be clipped"
+                    f"[{_start_idx},{_end_idx}] go beyond the total_step({self.total_step}), it will be clipped.",
                 )
                 _start_idx, _end_idx = max(0, _start_idx), min(self.total_step - 1, _end_idx)
         return _start_idx, _end_idx
@@ -444,7 +447,7 @@ class BaseTradeDecision:
         Parameters
         ----------
         rtype: str
-            - "full": return the full limitation of the deicsion in the day
+            - "full": return the full limitation of the decision in the day
             - "step": return the limitation of current step
 
         raise_error: bool
@@ -497,11 +500,10 @@ class BaseTradeDecision:
                 return True
         return True
 
-    def mod_inner_decision(self, inner_trade_decision: BaseTradeDecision):
+    def mod_inner_decision(self, inner_trade_decision: BaseTradeDecision) -> None:
         """
-
         This method will be called on the inner_trade_decision after it is generated.
-        `inner_trade_decision` will be changed **inplaced**.
+        `inner_trade_decision` will be changed **inplace**.
 
         Motivation of the `mod_inner_decision`
         - Leave a hook for outer decision to affect the decision generated by the inner strategy
@@ -519,29 +521,43 @@ class BaseTradeDecision:
             inner_trade_decision.trade_range = self.trade_range
 
 
-class EmptyTradeDecision(BaseTradeDecision):
+class EmptyTradeDecision(BaseTradeDecision[object]):
+    def get_decision(self) -> List[object]:
+        return []
+
     def empty(self) -> bool:
         return True
 
 
-class TradeDecisionWO(BaseTradeDecision):
+class TradeDecisionWO(BaseTradeDecision[Order]):
     """
     Trade Decision (W)ith (O)rder.
     Besides, the time_range is also included.
     """
 
-    def __init__(self, order_list: List[Order], strategy: BaseStrategy, trade_range: Tuple[int, int] = None):
+    def __init__(
+        self,
+        order_list: List[Order],
+        strategy: BaseStrategy,
+        trade_range: Union[Tuple[int, int], TradeRange] = None,
+    ) -> None:
         super().__init__(strategy, trade_range=trade_range)
-        self.order_list = order_list
+        self.order_list = cast(List[Order], order_list)
         start, end = strategy.trade_calendar.get_step_time()
         for o in order_list:
+            assert isinstance(o, Order)
             if o.start_time is None:
                 o.start_time = start
             if o.end_time is None:
                 o.end_time = end
 
-    def get_decision(self) -> List[object]:
+    def get_decision(self) -> List[Order]:
         return self.order_list
 
     def __repr__(self) -> str:
-        return f"class: {self.__class__.__name__}; strategy: {self.strategy}; trade_range: {self.trade_range}; order_list[{len(self.order_list)}]"
+        return (
+            f"class: {self.__class__.__name__}; "
+            f"strategy: {self.strategy}; "
+            f"trade_range: {self.trade_range}; "
+            f"order_list[{len(self.order_list)}]"
+        )

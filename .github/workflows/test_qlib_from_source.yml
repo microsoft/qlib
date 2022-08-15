@@ -1,0 +1,155 @@
+name: Test qlib from source
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    timeout-minutes: 180
+    # we may retry for 3 times for `Unit tests with Pytest`
+
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-18.04, ubuntu-20.04, macos-11, macos-latest]
+        # not supporting 3.6 due to annotations is not supported https://stackoverflow.com/a/52890129
+        python-version: [3.7, 3.8]
+
+    steps:
+    - name: Test qlib from source
+      uses: actions/checkout@v2
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Update pip to the latest version
+      run: |
+        python -m pip install --upgrade pip
+
+    - name: Installing pytorch for macos
+      if: ${{ matrix.os == 'macos-11' || matrix.os == 'macos-latest' }}
+      run: |
+        python -m pip install torch torchvision torchaudio
+
+    - name: Installing pytorch for ubuntu
+      if: ${{ matrix.os == 'ubuntu-18.04' || matrix.os == 'ubuntu-20.04' }}
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cpu
+
+    - name: Installing pytorch for windows
+      if: ${{ matrix.os == 'windows-latest' }}
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install torch torchvision torchaudio
+
+    - name: Set up Python tools
+      run: |
+        python -m pip install --upgrade cython
+        python -m pip install -e .[dev]
+
+    - name: Lint with Black
+      run: |
+        black . -l 120 --check --diff
+
+    - name: Make html with sphinx
+      run: |
+        cd docs 
+        sphinx-build -b html . build
+        cd ..
+
+    # Check Qlib with pylint
+    # TODO: These problems we will solve in the future. Important among them are: W0221, W0223, W0237, E1102
+      # C0103: invalid-name
+      # C0209: consider-using-f-string
+      # R0402: consider-using-from-import
+      # R1705: no-else-return
+      # R1710: inconsistent-return-statements
+      # R1725: super-with-arguments
+      # R1735: use-dict-literal
+      # W0102: dangerous-default-value
+      # W0212: protected-access
+      # W0221: arguments-differ
+      # W0223: abstract-method
+      # W0231: super-init-not-called
+      # W0237: arguments-renamed
+      # W0612: unused-variable
+      # W0621: redefined-outer-name
+      # W0622: redefined-builtin
+      # FIXME: specify exception type
+      # W0703: broad-except
+      # W1309: f-string-without-interpolation
+      # E1102: not-callable
+      # E1136: unsubscriptable-object
+    # References for parameters: https://github.com/PyCQA/pylint/issues/4577#issuecomment-1000245962
+    - name: Check Qlib with pylint
+      run: |
+        pylint --disable=C0104,C0114,C0115,C0116,C0301,C0302,C0411,C0413,C1802,R0401,R0801,R0902,R0903,R0911,R0912,R0913,R0914,R0915,R1720,W0105,W0123,W0201,W0511,W0613,W1113,W1514,E0401,E1121,C0103,C0209,R0402,R1705,R1710,R1725,R1735,W0102,W0212,W0221,W0223,W0231,W0237,W0612,W0621,W0622,W0703,W1309,E1102,E1136 --const-rgx='[a-z_][a-z0-9_]{2,30}$' qlib --init-hook "import astroid; astroid.context.InferenceContext.max_inferred = 500"
+
+    # The following flake8 error codes were ignored:
+      # E501 line too long
+        # Description: We have used black to limit the length of each line to 120.
+      # F541 f-string is missing placeholders
+        # Description: The same thing is done when using pylint for detection.
+      # E266 too many leading '#' for block comment
+        # Description: To make the code more readable, a lot of "#" is used.
+        # This error code appears centrally in:
+          # qlib/backtest/executor.py
+          # qlib/data/ops.py
+          # qlib/utils/__init__.py
+      # E402 module level import not at top of file
+        # Description: There are times when module level import is not available at the top of the file.
+      # W503 line break before binary operator
+        # Description: Since black formats the length of each line of code, it has to perform a line break when a line of arithmetic is too long.
+      # E731 do not assign a lambda expression, use a def
+        # Description: Restricts the use of lambda expressions, but at some point lambda expressions are required.
+      # E203 whitespace before ':'
+        # Description: If there is whitespace before ":", it cannot pass the black check.
+    - name: Check Qlib with flake8
+      run: |
+        flake8 --ignore=E501,F541,E266,E402,W503,E731,E203 --per-file-ignores="__init__.py:F401,F403" qlib
+
+    # https://github.com/python/mypy/issues/10600
+    - name: Check Qlib with mypy
+      run: |
+        mypy qlib --install-types --non-interactive || true
+        mypy qlib --verbose
+
+    - name: Test data downloads
+      run: |
+        python scripts/get_data.py qlib_data --name qlib_data_simple --target_dir ~/.qlib/qlib_data/cn_data --interval 1d --region cn
+        azcopy copy https://qlibpublic.blob.core.windows.net/data/rl /tmp/qlibpublic/data --recursive
+        mv /tmp/qlibpublic/data tests/.data
+
+    - name: Install Lightgbm for MacOS
+      if: ${{ matrix.os == 'macos-11' || matrix.os == 'macos-latest' }}
+      run: |
+        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Microsoft/qlib/main/.github/brew_install.sh)"
+        HOMEBREW_NO_AUTO_UPDATE=1 brew install lightgbm
+        # FIX MacOS error: Segmentation fault
+        # reference: https://github.com/microsoft/LightGBM/issues/4229
+        wget https://raw.githubusercontent.com/Homebrew/homebrew-core/fb8323f2b170bd4ae97e1bac9bf3e2983af3fdb0/Formula/libomp.rb
+        brew unlink libomp
+        brew install libomp.rb
+
+    - name: Test workflow by config (install from source)
+      run: |
+        # Version 0.52.0 of numba must be installed manually in CI, otherwise it will cause incompatibility with the latest version of numpy.
+        python -m pip install numba==0.52.0
+        # You must update numpy manually, because when installing python tools, it will try to uninstall numpy and cause CI to fail.
+        python -m pip install --upgrade numpy
+        python qlib/workflow/cli.py examples/benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml
+
+    - name: Unit tests with Pytest
+      uses: nick-fields/retry@v2
+      with:
+        timeout_minutes: 60
+        max_attempts: 3
+        command: |
+          cd tests
+          python -m pytest . -m "not slow" --durations=0

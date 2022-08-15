@@ -171,6 +171,7 @@ class DatasetH(Dataset):
         Parameters
         ----------
         slc : please refer to the docs of `prepare`
+                NOTE: it may not be an instance of slice. It may be a segment of `segments` from `def prepare`
         """
         if hasattr(self, "fetch_kwargs"):
             return self.handler.fetch(slc, **kwargs, **self.fetch_kwargs)
@@ -199,6 +200,9 @@ class DatasetH(Dataset):
 
         col_set : str
             The col_set will be passed to self.handler when fetching data.
+            TODO: make it automatic:
+                - select DK_I for test data
+                - select DK_L for training data.
         data_key : str
             The data to fetch:  DK_*
             Default is DK_I, which indicate fetching data for **inference**.
@@ -346,7 +350,7 @@ class TSDataSampler:
             flt_data = flt_data.reindex(self.data_index).fillna(False).astype(np.bool)
             self.flt_data = flt_data.values
             self.idx_map = self.flt_idx_map(self.flt_data, self.idx_map)
-            self.data_index = self.data_index[np.where(self.flt_data is True)[0]]
+            self.data_index = self.data_index[np.where(self.flt_data)[0]]
         self.idx_map = self.idx_map2arr(self.idx_map)
 
         self.start_idx, self.end_idx = self.data_index.slice_locs(
@@ -434,7 +438,7 @@ class TSDataSampler:
 
     @property
     def empty(self):
-        return self.__len__() == 0
+        return len(self) == 0
 
     def _get_indices(self, row: int, col: int) -> np.array:
         """
@@ -609,3 +613,6 @@ class TSDatasetH(DatasetH):
 
         tsds = TSDataSampler(data=data, start=start, end=end, step_len=self.step_len, dtype=dtype, flt_data=flt_data)
         return tsds
+
+
+__all__ = ["Optional"]

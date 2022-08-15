@@ -6,7 +6,7 @@ Portfolio Strategy: Portfolio Management
 .. currentmodule:: qlib
 
 Introduction
-===================
+============
 
 ``Portfolio Strategy`` is designed to adopt different portfolio strategies, which means that users can adopt different algorithms to generate investment portfolios based on the prediction scores of the ``Forecast Model``. Users can use the ``Portfolio Strategy`` in an automatic workflow by ``Workflow`` module, please refer to `Workflow: Workflow Management <workflow.html>`_.
 
@@ -20,22 +20,19 @@ Base Class & Interface
 ======================
 
 BaseStrategy
-------------------
+------------
 
 Qlib provides a base class ``qlib.strategy.base.BaseStrategy``. All strategy classes need to inherit the base class and implement its interface.
 
-- `get_risk_degree`
-    Return the proportion of your total value you will use in investment. Dynamically risk_degree will result in Market timing.
-
-- `generate_order_list`
-    Return the order list.
+- `generate_trade_decision`
+    generate_trade_decision is a key interface that generates trade decisions in each trading bar.
     The frequency to call this method depends on the executor frequency("time_per_step"="day" by default). But the trading frequency can be decided by users' implementation.
     For example, if the user wants to trading in weekly while the `time_per_step` is "day" in executor, user can return non-empty TradeDecision weekly(otherwise return empty like `this <https://github.com/microsoft/qlib/blob/main/qlib/contrib/strategy/signal_strategy.py#L132>`_ ).
 
 Users can inherit `BaseStrategy` to customize their strategy class.
 
 WeightStrategyBase
---------------------
+------------------
 
 Qlib also provides a class ``qlib.contrib.strategy.WeightStrategyBase`` that is a subclass of `BaseStrategy`.
 
@@ -63,24 +60,30 @@ Implemented Strategy
 Qlib provides a implemented strategy classes named `TopkDropoutStrategy`.
 
 TopkDropoutStrategy
-------------------
+-------------------
 `TopkDropoutStrategy` is a subclass of `BaseStrategy` and implement the interface `generate_order_list` whose process is as follows.
 
 - Adopt the ``Topk-Drop`` algorithm to calculate the target amount of each stock
 
     .. note::
-        ``Topk-Drop`` algorithm：
+        There are two parameters for the ``Topk-Drop`` algorithm:
 
         - `Topk`: The number of stocks held
         - `Drop`: The number of stocks sold on each trading day
 
-        Currently, the number of held stocks is `Topk`.
-        On each trading day, the `Drop` number of held stocks with the worst `prediction score` will be sold, and the same number of unheld stocks with the best `prediction score` will be bought.
+        In general, the number of stocks currently held is `Topk`, with the exception of being zero at the beginning period of trading.
+        For each trading day, let $d$ be the number of the instruments currently held and with a rank $\gt K$ when ranked by the prediction scores from high to low.
+        Then `d` number of stocks currently held with the worst `prediction score` will be sold, and the same number of unheld stocks with the best `prediction score` will be bought.
 
+        In general, $d=$`Drop`, especially when the pool of the candidate instruments is large, $K$ is large, and `Drop` is small.
+
+        In most cases, ``TopkDrop`` algorithm sells and buys `Drop` stocks every trading day, which yields a turnover rate of 2$\times$`Drop`/$K$.
+
+        The following images illustrate a typical scenario.
         .. image:: ../_static/img/topk_drop.png
             :alt: Topk-Drop
 
-        ``TopkDrop`` algorithm sells `Drop` stocks every trading day, which guarantees a fixed turnover rate.
+
 
 - Generate the order list from the target amount
 
@@ -95,12 +98,12 @@ and `qlib.contrib.strategy.optimizer.enhanced_indexing.EnhancedIndexingOptimizer
 
 
 Usage & Example
-====================
+===============
 
 First, user can create a model to get trading signals(the variable name is ``pred_score`` in following cases).
 
 Prediction Score
------------------
+----------------
 
 The `prediction score` is a pandas DataFrame. Its index is <datetime(pd.Timestamp), instrument(str)> and it must
 contains a `score` column.
@@ -131,7 +134,7 @@ Qlib didn't add a step to scale the prediction score to a unified scale due to t
 - The model has the flexibility to define the target, loss, and data processing. So we don't think there is a silver bullet to rescale it back directly barely based on the model's outputs. If you want to scale it back to some meaningful values(e.g. stock returns.), an intuitive solution is to create a regression model for the model's recent outputs and your recent target values.
 
 Running backtest
------------------
+----------------
 
 - In most cases, users could backtest their portfolio management strategy  with ``backtest_daily``.
 
@@ -164,12 +167,9 @@ Running backtest
             start_time="2017-01-01", end_time="2020-08-01", strategy=strategy_obj
         )
         analysis = dict()
-        analysis["excess_return_without_cost"] = risk_analysis(
-            report_normal["return"] - report_normal["bench"], freq=analysis_freq
-        )
-        analysis["excess_return_with_cost"] = risk_analysis(
-            report_normal["return"] - report_normal["bench"] - report_normal["cost"], freq=analysis_freq
-        )
+        # default frequency will be daily (i.e. "day")
+        analysis["excess_return_without_cost"] = risk_analysis(report_normal["return"] - report_normal["bench"])
+        analysis["excess_return_with_cost"] = risk_analysis(report_normal["return"] - report_normal["bench"] - report_normal["cost"])
 
         analysis_df = pd.concat(analysis)  # type: pd.DataFrame
         pprint(analysis_df)
@@ -195,7 +195,7 @@ Running backtest
 
         CSI300_BENCH = "SH000300"
         # Benchmark is for calculating the excess return of your strategy.
-        # Its data format will be like **ONE normal instrument**. 
+        # Its data format will be like **ONE normal instrument**.
         # For example, you can query its data with the code below
         # `D.features(["SH000300"], ["$close"], start_time='2010-01-01', end_time='2017-12-31', freq='day')`
         # It is different from the argument `market`, which indicates a universe of stocks (e.g. **A SET** of stocks like csi300)
@@ -262,7 +262,7 @@ Running backtest
 
 
 Result
-------------------
+------
 
 The backtest results are in the following form:
 
@@ -307,5 +307,5 @@ The backtest results are in the following form:
 
 
 Reference
-===================
+=========
 To know more about the `prediction score` `pred_score` output by ``Forecast Model``, please refer to `Forecast Model: Model Training & Prediction <model.html>`_.

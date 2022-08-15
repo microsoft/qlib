@@ -1,11 +1,11 @@
 .. _tuner:
 
 Tuner
-===================
+=====
 .. currentmodule:: qlib
 
 Introduction
--------------------
+------------
 
 Welcome to use Tuner, this document is based on that you can use Estimator proficiently and correctly.
 
@@ -41,19 +41,19 @@ We write a simple configuration example as following,
         tuner_class: QLibTuner
     qlib_client:
         auto_mount: False
-        logging_level: INFO 
+        logging_level: INFO
     optimization_criteria:
         report_type: model
         report_factor: model_score
         optim_type: max
     tuner_pipeline:
-      - 
-        model: 
+      -
+        model:
             class: SomeModel
             space: SomeModelSpace
-        trainer: 
+        trainer:
             class: RollingTrainer
-        strategy: 
+        strategy:
             class: TopkAmountStrategy
             space: TopkAmountStrategySpace
         max_evals: 2
@@ -166,13 +166,13 @@ Also, there are some optional fields. The meaning of each field is as follows:
     The class of tuner, str type, must be an already implemented model, such as `QLibTuner` in `qlib`, or a custom tuner, but it must be a subclass of `qlib.contrib.tuner.Tuner`, the default value is `QLibTuner`.
 
 - `tuner_module_path`
-    The module path, str type, absolute url is also supported, indicates the path of the implementation of tuner. The default value is `qlib.contrib.tuner.tuner` 
+    The module path, str type, absolute url is also supported, indicates the path of the implementation of tuner. The default value is `qlib.contrib.tuner.tuner`
 
 About the optimization criteria
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 You need to designate a factor to optimize, for tuner need a factor to decide which case is better than other cases.
-Usually, we use the result of `estimator`, such as backtest results and the score of model. 
+Usually, we use the result of `estimator`, such as backtest results and the score of model.
 
 This part needs contain these fields:
 
@@ -203,13 +203,13 @@ The tuner pipeline contains different tuners, and the `tuner` program will proce
 .. code-block:: YAML
 
     tuner_pipeline:
-      - 
-        model: 
+      -
+        model:
             class: SomeModel
             space: SomeModelSpace
-        trainer: 
+        trainer:
             class: RollingTrainer
-        strategy: 
+        strategy:
             class: TopkAmountStrategy
             space: TopkAmountStrategySpace
         max_evals: 2
@@ -249,25 +249,25 @@ You need to use the same dataset to evaluate your different `estimator` experime
         test_start_date: 2016-07-01
         test_end_date: 2018-04-30
 
-- `rolling_period`    
+- `rolling_period`
     The rolling period, integer type, indicates how many time steps need rolling when rolling the data. The default value is `60`. If you use `RollingTrainer`, this config will be used, or it will be ignored.
 
 - `train_start_date`
     Training start time, str type.
 
-- `train_end_date`      
+- `train_end_date`
     Training end time, str type.
 
-- `validate_start_date`    
+- `validate_start_date`
     Validation start time, str type.
 
-- `validate_end_date`    
+- `validate_end_date`
     Validation end time, str type.
 
-- `test_start_date`    
+- `test_start_date`
     Test start time, str type.
 
-- `test_end_date`     
+- `test_end_date`
     Test end time, str type. If `test_end_date` is `-1` or greater than the last date of the data, the last date of the data will be used as `test_end_date`.
 
 About the data and backtest
@@ -315,11 +315,10 @@ About the data and backtest
 Experiment Result
 -----------------
 
-All the results are stored in experiment file directly, you can check them directly in the corresponding files. 
+All the results are stored in experiment file directly, you can check them directly in the corresponding files.
 What we save are as following:
 
 - Global optimal parameters
 - Local optimal parameters of each tuner
 - Config file of this `tuner` experiment
 - Every `estimator` experiments result in the process
-

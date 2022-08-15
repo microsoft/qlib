@@ -1,14 +1,14 @@
 .. _pit:
 
-===========================
+============================
 (P)oint-(I)n-(T)ime Database
-===========================
+============================
 .. currentmodule:: qlib
 
 
 Introduction
 ------------
-Point-in-time data is a very important consideration when performing any sort of historical market analysis. 
+Point-in-time data is a very important consideration when performing any sort of historical market analysis.
 
 For example, let’s say we are backtesting a trading strategy and we are using the past five years of historical data as our input.
 Our model is assumed to trade once a day, at the market close, and we’ll say we are calculating the trading signal for 1 January 2020 in our backtest. At that point, we should only have data for 1 January 2020, 31 December 2019, 30 December 2019 etc.
@@ -22,7 +22,8 @@ Data Preparation
 ----------------
 
 Qlib provides a crawler to help users to download financial data and then a converter to dump the data in Qlib format.
-Please follow `scripts/data_collector/pit/README.md` to download and convert data.
+Please follow `scripts/data_collector/pit/README.md <https://github.com/microsoft/qlib/tree/main/scripts/data_collector/pit/>`_ to download and convert data.
+Besides, you can find some additional usage examples there.
 
 
 File-based design for PIT data

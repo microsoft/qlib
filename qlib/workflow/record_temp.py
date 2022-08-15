@@ -96,11 +96,12 @@ class RecordTemp:
         """
         try:
             return self.recorder.load_object(self.get_path(name))
-        except LoadObjectError:
+        except LoadObjectError as e:
             if parents:
                 if self.depend_cls is not None:
                     with class_casting(self, self.depend_cls):
                         return self.load(name, parents=True)
+            raise e
 
     def list(self):
         """
@@ -145,7 +146,7 @@ class RecordTemp:
 
             for item in self.list():
                 ps = self.get_path(item).split("/")
-                dirn, fn = "/".join(ps[:-1]), ps[-1]
+                dirn = "/".join(ps[:-1])
                 if self.get_path(item) not in _get_arts(dirn):
                     raise FileNotFoundError
         if parents:

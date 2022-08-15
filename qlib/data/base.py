@@ -112,6 +112,11 @@ class Expression(abc.ABC):
 
         return Power(self, other)
 
+    def __rpow__(self, other):
+        from .ops import Power  # pylint: disable=C0415
+
+        return Power(other, self)
+
     def __and__(self, other):
         from .ops import And  # pylint: disable=C0415
 
@@ -136,14 +141,14 @@ class Expression(abc.ABC):
         """load  feature
         This function is responsible for loading feature/expression based on the expression engine.
 
-        The concerate implementation will be seperated by two parts
+        The concrete implementation will be separated into two parts:
         1) caching data, handle errors.
             - This part is shared by all the expressions and implemented in Expression
         2) processing and calculating data based on the specific expression.
             - This part is different in each expression and implemented in each expression
 
-        Expresion Engine is shared by different data.
-        Different data will have different extra infomation for `args`.
+        Expression Engine is shared by different data.
+        Different data will have different extra information for `args`.
 
         Parameters
         ----------
@@ -154,14 +159,17 @@ class Expression(abc.ABC):
         end_index : str
             feature end  index  [in calendar].
 
-        *args may contains following information;
-        1) if it is used in basic experssion engine data, it contains following arguments
-            freq : str
+        *args may contain following information:
+        1) if it is used in basic expression engine data, it contains following arguments
+            freq: str
                 feature frequency.
 
         2) if is used in PIT data, it contains following arguments
             cur_pit:
                 it is designed for the point-in-time data.
+            period: int
+                This is used for query specific period.
+                The period is represented with int in Qlib. (e.g. 202001 may represent the first quarter in 2020)
 
         Returns
         ----------
@@ -254,10 +262,10 @@ class PFeature(Feature):
     def __str__(self):
         return "$$" + self._name
 
-    def _load_internal(self, instrument, start_index, end_index, cur_time):
+    def _load_internal(self, instrument, start_index, end_index, cur_time, period=None):
         from .data import PITD  # pylint: disable=C0415
 
-        return PITD.period_feature(instrument, str(self), start_index, end_index, cur_time)
+        return PITD.period_feature(instrument, str(self), start_index, end_index, cur_time, period)
 
 
 class ExpressionOps(Expression):
