@@ -95,6 +95,10 @@ class DumpPitData:
             else set(df[FileFinancialStorage.FIELD_COLUMN_NAME])
         )
 
+    @staticmethod
+    def get_field_name(field: str, interval: FinancialInterval) -> str:
+        return f"{field.lower()}_{interval.to_alias()}"
+
     def _dump_pit(
         self,
         file_path: pathlib.Path,
@@ -132,7 +136,7 @@ class DumpPitData:
             if field_df.empty:
                 logger.warning(f"Field {field} of {symbol} is empty.")
                 continue
-            FileFinancialStorage(symbol, f"{field}_{interval.to_alias()}", "day", provider_uri=self.qlib_dir).write(
+            FileFinancialStorage(symbol, self.get_field_name(field, interval), "day", provider_uri=self.qlib_dir).write(
                 field_df
             )
 
