@@ -7,6 +7,8 @@ from typing import Any, Generator, Optional, TYPE_CHECKING, Union
 
 import pandas as pd
 
+from ..constant import FINEST_GRANULARITY
+
 if TYPE_CHECKING:
     from qlib.backtest.exchange import Exchange
     from qlib.backtest.position import BasePosition
@@ -68,7 +70,7 @@ class BaseStrategy:
 
     @property
     def ticks_per_step(self) -> int:
-        return int(pd.Timedelta(self.trade_calendar.get_freq()) / pd.Timedelta("1min"))
+        return int(pd.Timedelta(self.trade_calendar.get_freq()) / pd.Timedelta(FINEST_GRANULARITY))
 
     @property
     def trade_position(self) -> BasePosition:

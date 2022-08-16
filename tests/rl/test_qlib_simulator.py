@@ -10,7 +10,7 @@ import pytest
 from qlib.backtest.decision import Order, OrderDir, TradeRangeByTime
 from qlib.backtest.executor import SimulatorExecutor
 from qlib.rl.order_execution import CategoricalActionInterpreter
-from qlib.rl.order_execution.constants import FINEST_GRANULARITY
+from qlib.constant import FINEST_GRANULARITY
 from qlib.rl.order_execution.simulator_qlib import SingleAssetOrderExecutionQlib
 
 TOTAL_POSITION = 2100.0

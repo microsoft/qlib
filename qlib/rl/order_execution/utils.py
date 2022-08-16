@@ -10,7 +10,7 @@ import pandas as pd
 
 from qlib.backtest.decision import OrderDir
 from qlib.backtest.executor import BaseExecutor, NestedExecutor, SimulatorExecutor
-from qlib.rl.order_execution.constants import ONE_SEC, float_or_ndarray
+from qlib.constant import ONE_SEC, float_or_ndarray
 
 
 def get_ticks_slice(

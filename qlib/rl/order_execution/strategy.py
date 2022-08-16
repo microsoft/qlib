@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import collections
-from abc import ABCMeta
 from typing import Any, Dict, Generator, Tuple, cast
 
 import pandas as pd
@@ -15,10 +14,11 @@ from qlib.backtest.utils import LevelInfrastructure, SAOE_DATA_KEY
 from qlib.rl.data.exchange_wrapper import QlibIntradayBacktestData
 from qlib.rl.order_execution.state import QlibBacktestAdapter, SAOEState
 from qlib.rl.order_execution.utils import get_ticks_slice
+from qlib.rl.utils.cache import LRUCache
 from qlib.strategy.base import RLStrategy
 
 
-class SAOEStrategy(RLStrategy, metaclass=ABCMeta):
+class SAOEStrategy(RLStrategy):
     """RL-based strategies that use SAOEState as state."""
 
     def __init__(
@@ -42,12 +42,12 @@ class SAOEStrategy(RLStrategy, metaclass=ABCMeta):
 
     def _create_qlib_backtest_adapter(self, order: Order, trade_range: TradeRange) -> QlibBacktestAdapter:
         if not self.common_infra.has(SAOE_DATA_KEY):
-            self.common_infra.reset_infra(**{SAOE_DATA_KEY: {}})
+            self.common_infra.reset_infra(**{SAOE_DATA_KEY: LRUCache(pool_size=100)})
 
         # saoe_data can be considered as some type of cache. Use it to avoid unnecessary data reload.
         # The data for one order would be loaded only once. All strategies will reuse this data.
-        saoe_data = self.common_infra.get(SAOE_DATA_KEY)
-        if order.key not in saoe_data:
+        saoe_data = cast(LRUCache, self.common_infra.get(SAOE_DATA_KEY))
+        if not saoe_data.has(order.key):
             data = self.trade_exchange.get_deal_price(
                 stock_id=order.stock_id,
                 start_time=order.start_time.replace(hour=0, minute=0, second=0),
@@ -74,9 +74,9 @@ class SAOEStrategy(RLStrategy, metaclass=ABCMeta):
                 end_time=ticks_for_order[-1],
             )
 
-            saoe_data[order.key] = (ticks_index, ticks_for_order, backtest_data)
+            saoe_data.put(key=order.key, item=(ticks_index, ticks_for_order, backtest_data))
 
-        ticks_index, ticks_for_order, backtest_data = saoe_data[order.key]
+        ticks_index, ticks_for_order, backtest_data = saoe_data.get(order.key)
 
         return QlibBacktestAdapter(
             order=order,

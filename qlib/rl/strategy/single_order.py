@@ -7,7 +7,8 @@ from qlib.strategy.base import BaseStrategy
 
 
 class SingleOrderStrategy(BaseStrategy):
-    # this logic is copied from FileOrderStrategy
+    """Strategy used to generate a trade decision with exactly one order.
+    """
     def __init__(
         self,
         order: Order,

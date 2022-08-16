@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-import collections
 import pickle
 from pathlib import Path
 from typing import List
@@ -14,29 +13,9 @@ import qlib
 from qlib.constant import REG_CN
 from qlib.contrib.ops.high_freq import BFillNan, Cut, Date, DayCumsum, DayLast, FFillNan, IsInf, IsNull, Select
 from qlib.data.dataset import DatasetH
+from qlib.rl.utils.cache import LRUCache
 
 dataset = None
-
-
-class LRUCache:
-    def __init__(self, pool_size: int = 200):
-        self.pool_size = pool_size
-        self.contents = dict()
-        self.keys = collections.deque()
-
-    def put(self, key, item):
-        if self.has(key):
-            self.keys.remove(key)
-        self.keys.append(key)
-        self.contents[key] = item
-        while len(self.contents) > self.pool_size:
-            self.contents.pop(self.keys.popleft())
-
-    def get(self, key):
-        return self.contents[key]
-
-    def has(self, key):
-        return key in self.contents
 
 
 class DataWrapper:
@@ -77,7 +56,8 @@ def init_qlib(qlib_config: dict, part: str = None) -> None:
     qlib_config:
         Qlib configuration.
 
-        Example:
+        Example::
+
             {
                 "provider_uri_day": DATA_ROOT_DIR / "qlib_1d",
                 "provider_uri_1min": DATA_ROOT_DIR / "qlib_1min",
