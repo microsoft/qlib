@@ -3,18 +3,36 @@
 
 from __future__ import annotations
 
-from typing import NamedTuple, Optional, cast
+from typing import cast, NamedTuple, Optional, Tuple
 
 import numpy as np
 import pandas as pd
-from typing_extensions import TypedDict
-
 from qlib.backtest import Exchange, Order
 from qlib.backtest.executor import BaseExecutor
-from qlib.constant import EPS
+from qlib.constant import EPS, REG_CN
 from qlib.rl.data.exchange_wrapper import QlibIntradayBacktestData
 from qlib.rl.data.pickle_styled import IntradayBacktestData
-from qlib.rl.order_execution.utils import dataframe_append, get_simulator_executor, price_advantage
+from qlib.rl.order_execution.utils import dataframe_append, price_advantage
+from qlib.utils.time import get_day_min_idx_range
+from typing_extensions import TypedDict
+
+
+def _get_all_timestamps(
+    start: pd.Timestamp,
+    end: pd.Timestamp,
+    granularity: pd.Timedelta = pd.Timedelta("1min"),
+    include_end: bool = True,
+) -> pd.DatetimeIndex:
+    ret = []
+    while start <= end:
+        ret.append(start)
+        start += granularity
+
+    if ret[-1] > end:
+        ret.pop()
+    if ret[-1] == end and not include_end:
+        ret.pop()
+    return pd.DatetimeIndex(ret)
 
 
 class QlibBacktestAdapter:
@@ -67,33 +85,42 @@ class QlibBacktestAdapter:
         else:
             return self.order.end_time
 
-    def update(self, execute_result: list) -> None:
-        exec_vol = np.array([e[0].deal_amount for e in execute_result])
-        num_step = len(execute_result)
+    def update(
+        self,
+        execute_result: list,
+        last_step_range: Tuple[int, int],
+    ) -> None:
+        last_step_size = last_step_range[1] - last_step_range[0] + 1
+        start_time = self.ticks_index[last_step_range[0]]
+        end_time = self.ticks_index[last_step_range[1]]
 
-        if num_step == 0:
-            market_volume = np.array([])
-            market_price = np.array([])
-            datetime_list = pd.DatetimeIndex([])
-        else:
-            market_volume = np.array(
-                self.exchange.get_volume(
-                    self.order.stock_id,
-                    execute_result[0][0].start_time,
-                    execute_result[-1][0].start_time,
-                    method=None,
-                ),
-            )
+        exec_vol = np.zeros(last_step_size)
+        for order, _, __, ___ in execute_result:
+            idx, _ = get_day_min_idx_range(order.start_time, order.end_time, '1min', REG_CN)
+            exec_vol[idx - last_step_range[0]] = order.deal_amount
 
-            # Get data from the SimulatorExecutor's (lowest-level executor) indicator
-            simulator_executor = get_simulator_executor(self.executor)
-            simulator_trade_account = simulator_executor.trade_account
-            simulator_df = simulator_trade_account.get_trade_indicator().generate_trade_indicators_dataframe()
+        if exec_vol.sum() > self.position and exec_vol.sum() > 0.0:
+            assert exec_vol.sum() < self.position + 1, f'{exec_vol} too large'
+            exec_vol *= self.position / (exec_vol.sum())
 
-            trade_value = simulator_df.iloc[-num_step:]["value"].values
-            deal_amount = simulator_df.iloc[-num_step:]["deal_amount"].values
-            market_price = trade_value / deal_amount
-            datetime_list = simulator_df.index[-num_step:]
+        market_volume = np.array(
+            self.exchange.get_volume(
+                self.order.stock_id,
+                pd.Timestamp(start_time),
+                pd.Timestamp(end_time),
+                method=None,
+            ),
+        ).reshape(-1)
+
+        market_price = np.array(
+            self.exchange.get_deal_price(
+                self.order.stock_id,
+                pd.Timestamp(start_time),
+                pd.Timestamp(end_time),
+                method=None,
+                direction=self.order.direction,
+            ),
+        ).reshape(-1)
 
         assert market_price.shape == market_volume.shape == exec_vol.shape
 
@@ -104,7 +131,7 @@ class QlibBacktestAdapter:
             self.history_exec,
             self._collect_multi_order_metric(
                 order=self.order,
-                datetime=datetime_list,
+                datetime=_get_all_timestamps(start_time, end_time, include_end=True),
                 market_vol=market_volume,
                 market_price=market_price,
                 exec_vol=exec_vol,
@@ -147,7 +174,7 @@ class QlibBacktestAdapter:
     def _collect_multi_order_metric(
         self,
         order: Order,
-        datetime: pd.Timestamp,
+        datetime: pd.DatetimeIndex,
         market_vol: np.ndarray,
         market_price: np.ndarray,
         exec_vol: np.ndarray,

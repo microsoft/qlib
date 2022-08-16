@@ -137,6 +137,8 @@ class BaseExecutor:
         else:
             self.common_infra.update(common_infra)
 
+        self.level_infra.reset_infra(common_infra=self.common_infra)
+
         if common_infra.has("trade_account"):
             # NOTE: there is a trick in the code.
             # shallow copy is used instead of deepcopy.

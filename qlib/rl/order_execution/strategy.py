@@ -1,11 +1,14 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+from __future__ import annotations
+
 import collections
 from abc import ABCMeta
-from typing import Any, cast, Dict, Generator
+from typing import Any, Dict, Generator, Tuple, cast
 
 import pandas as pd
+
 from qlib.backtest import CommonInfrastructure, Order
 from qlib.backtest.decision import BaseTradeDecision, TradeDecisionWO, TradeRange, TradeRangeByTime
 from qlib.backtest.utils import LevelInfrastructure, SAOE_DATA_KEY
@@ -26,9 +29,16 @@ class SAOEStrategy(RLStrategy, metaclass=ABCMeta):
         common_infra: CommonInfrastructure = None,
         **kwargs: Any,
     ) -> None:
-        super(SAOEStrategy, self).__init__(policy, outer_trade_decision, level_infra, common_infra, **kwargs)
+        super(SAOEStrategy, self).__init__(
+            policy=policy,
+            outer_trade_decision=outer_trade_decision,
+            level_infra=level_infra,
+            common_infra=common_infra,
+            **kwargs,
+        )
 
         self.adapter_dict: Dict[tuple, QlibBacktestAdapter] = {}
+        self._last_step_range = (0, 0)
 
     def _create_qlib_backtest_adapter(self, order: Order, trade_range: TradeRange) -> QlibBacktestAdapter:
         if not self.common_infra.has(SAOE_DATA_KEY):
@@ -67,6 +77,7 @@ class SAOEStrategy(RLStrategy, metaclass=ABCMeta):
             saoe_data[order.key] = (ticks_index, ticks_for_order, backtest_data)
 
         ticks_index, ticks_for_order, backtest_data = saoe_data[order.key]
+
         return QlibBacktestAdapter(
             order=order,
             executor=self.executor,
@@ -77,10 +88,16 @@ class SAOEStrategy(RLStrategy, metaclass=ABCMeta):
             backtest_data=backtest_data,
         )
 
+    def _update_last_step_range(self, step_range: Tuple[int, int]) -> None:
+        self._last_step_range = step_range
+
     def reset(self, outer_trade_decision: BaseTradeDecision = None, **kwargs: Any) -> None:
         super(SAOEStrategy, self).reset(outer_trade_decision=outer_trade_decision, **kwargs)
 
-        if outer_trade_decision is not None:
+        self.adapter_dict = {}
+        self._last_step_range = (0, 0)
+
+        if outer_trade_decision is not None and not outer_trade_decision.empty():
             trade_range = outer_trade_decision.trade_range
             assert trade_range is not None
 
@@ -97,13 +114,18 @@ class SAOEStrategy(RLStrategy, metaclass=ABCMeta):
             maintainer.generate_metrics_after_done()
 
     def post_exe_step(self, execute_result: list) -> None:
+        last_step_length = self._last_step_range[1] - self._last_step_range[0]
+        if last_step_length <= 0:
+            assert not execute_result
+            return
+
         results = collections.defaultdict(list)
         if execute_result is not None:
             for e in execute_result:
                 results[e[0].key].append(e)
 
         for key, maintainer in self.adapter_dict.items():
-            maintainer.update(results[key])
+            maintainer.update(results[key], self._last_step_range)
 
 
 class DecomposedStrategy(SAOEStrategy):
@@ -127,6 +149,7 @@ class DecomposedStrategy(SAOEStrategy):
 
         oh = self.trade_exchange.get_order_helper()
         order = oh.create(self._order.stock_id, exec_vol, self._order.direction)
+        self._update_last_step_range(self.get_data_cal_avail_range(rtype="step"))
 
         return TradeDecisionWO([order], self)
 

@@ -187,8 +187,8 @@ class TradeCalendarManager:
         Tuple[int, int]:
             the index of the range.  **the left and right are closed**
         """
-        left = bisect.bisect_right(list(self._calendar), start_time) - 1
-        right = bisect.bisect_right(list(self._calendar), end_time) - 1
+        left = bisect.bisect_right(self._calendar, start_time) - 1
+        right = bisect.bisect_right(self._calendar, end_time) - 1
         left -= self.start_index
         right -= self.start_index
 

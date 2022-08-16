@@ -169,7 +169,6 @@ class BaseStrategy:
         # default to return None, which indicates that the trade decision is not changed
         return None
 
-    # FIXME: do not define this method as an abstract one since it is never implemented
     def alter_outer_trade_decision(self, outer_trade_decision: BaseTradeDecision) -> BaseTradeDecision:
         """
         A method for updating the outer_trade_decision.
@@ -186,7 +185,7 @@ class BaseStrategy:
         """
         # default to reset the decision directly
         # NOTE: normally, user should do something to the strategy due to the change of outer decision
-        raise NotImplementedError(f"Please implement the `alter_outer_trade_decision` method")
+        pass
 
     # helper methods: not necessary but for convenience
     def get_data_cal_avail_range(self, rtype: str = "full") -> Tuple[int, int]:
