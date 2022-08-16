@@ -4,10 +4,10 @@ import collections
 
 
 class LRUCache:
-    def __init__(self, pool_size: int = 200):
+    def __init__(self, pool_size: int = 200) -> None:
         self.pool_size = pool_size
-        self.contents = dict()
-        self.keys = collections.deque()
+        self.contents: dict = {}
+        self.keys: collections.deque = collections.deque()
 
     def put(self, key, item):
         if self.has(key):

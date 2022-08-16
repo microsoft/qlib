@@ -96,11 +96,11 @@ class QlibBacktestAdapter:
 
         exec_vol = np.zeros(last_step_size)
         for order, _, __, ___ in execute_result:
-            idx, _ = get_day_min_idx_range(order.start_time, order.end_time, '1min', REG_CN)
+            idx, _ = get_day_min_idx_range(order.start_time, order.end_time, "1min", REG_CN)
             exec_vol[idx - last_step_range[0]] = order.deal_amount
 
         if exec_vol.sum() > self.position and exec_vol.sum() > 0.0:
-            assert exec_vol.sum() < self.position + 1, f'{exec_vol} too large'
+            assert exec_vol.sum() < self.position + 1, f"{exec_vol} too large"
             exec_vol *= self.position / (exec_vol.sum())
 
         market_volume = np.array(
