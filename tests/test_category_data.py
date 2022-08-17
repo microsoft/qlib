@@ -77,6 +77,15 @@ class TestCategoryData(unittest.TestCase):
     INSTRUMENTS = ["sh600519", "sh601127"]
     FIELD = ["$open", "$close", "$name", "$industry"]
 
+    @staticmethod
+    def reinit_qlib():
+        provider_uri = str(QLIB_DIR.resolve())
+        qlib.init(
+            provider_uri=provider_uri,
+            expression_cache=None,
+            dataset_cache=None,
+        )
+
     @classmethod
     def setUpClass(cls) -> None:
         QLIB_DIR.mkdir(exist_ok=True, parents=True)
@@ -92,14 +101,7 @@ class TestCategoryData(unittest.TestCase):
 
         for symbol, group_df in pd.DataFrame(cls.SAMPLE_DATA_UPDATE).groupby("symbol"):
             group_df.to_csv(SOURCE_DATA_DIR_UPDATE / f"{symbol}.csv", index=False)
-
-        provider_uri = str(QLIB_DIR.resolve())
-        qlib.init(
-            provider_uri=provider_uri,
-            expression_cache=None,
-            dataset_cache=None,
-        )
-
+        cls.reinit_qlib()
         DumpDataAll(
             csv_path=str(SOURCE_DATA_DIR_ALL.resolve()),
             qlib_dir=str(QLIB_DIR.resolve()),
@@ -137,6 +139,7 @@ class TestCategoryData(unittest.TestCase):
             exclude_fields="symbol,date",
             is_convert_category=True,
         )()
+        self.reinit_qlib()
         dump_fix_df = D.features(self.INSTRUMENTS, fields)
         except_dump_fix_df = """
                                      $open       $close  $name  $industry Cat($name) Cat($industry)
@@ -158,6 +161,7 @@ class TestCategoryData(unittest.TestCase):
             exclude_fields="symbol,date",
             is_convert_category=True,
         )()
+        self.reinit_qlib()
         dump_update_df = D.features(self.INSTRUMENTS, fields)
         except_dump_update_df = """
                                      $open       $close  $name  $industry Cat($name) Cat($industry)
