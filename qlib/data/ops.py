@@ -118,7 +118,7 @@ class Cat(ElemOperator):
 
     @property
     def uri(self) -> pathlib.Path:
-        from qlib.config import C
+        from qlib.config import C  # pylint: disable=C0415
 
         return C.dpm.get_data_uri() / self.CATEGORIES_DIR_NAME / self.filename
 
