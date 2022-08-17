@@ -23,7 +23,9 @@ class DumpDataBase:
     CALENDARS_DIR_NAME = "calendars"
     FEATURES_DIR_NAME = "features"
     INSTRUMENTS_DIR_NAME = "instruments"
+    CATEGORIES_DIR_NAME = "categories"
     DUMP_FILE_SUFFIX = ".bin"
+    CATEGORY_FILE_SUFFIX = ".txt"
     DAILY_FORMAT = "%Y-%m-%d"
     HIGH_FREQ_FORMAT = "%Y-%m-%d %H:%M:%S"
     INSTRUMENTS_SEP = "\t"
@@ -45,6 +47,7 @@ class DumpDataBase:
         exclude_fields: str = "",
         include_fields: str = "",
         limit_nums: int = None,
+        is_convert_category: bool = False,
     ):
         """
 
@@ -72,6 +75,8 @@ class DumpDataBase:
             fields not dumped
         limit_nums: int
             Use when debugging, default None
+        is_convert_category:
+            If True, convert the value to a category index
         """
         csv_path = Path(csv_path).expanduser()
         if isinstance(exclude_fields, str):
@@ -99,11 +104,35 @@ class DumpDataBase:
         self._calendars_dir = self.qlib_dir.joinpath(self.CALENDARS_DIR_NAME)
         self._features_dir = self.qlib_dir.joinpath(self.FEATURES_DIR_NAME)
         self._instruments_dir = self.qlib_dir.joinpath(self.INSTRUMENTS_DIR_NAME)
+        self._category_dir = self.qlib_dir.joinpath(self.CATEGORIES_DIR_NAME)
 
         self._calendars_list = []
 
         self._mode = self.ALL_MODE
         self._kwargs = {}
+
+        self.is_convert_category = is_convert_category
+
+    def _load_all_source_data(self):
+        # NOTE: Need more memory
+        logger.info("start load all source data....")
+        all_df = []
+
+        def _read_csv(file_path: Path):
+            _df = pd.read_csv(file_path, parse_dates=[self.date_field_name])
+            if self.symbol_field_name not in _df.columns:
+                _df[self.symbol_field_name] = self.get_symbol_from_file(file_path)
+            return _df
+
+        with tqdm(total=len(self.csv_files)) as p_bar:
+            with ThreadPoolExecutor(max_workers=self.works) as executor:
+                for df in executor.map(_read_csv, self.csv_files):
+                    if not df.empty:
+                        all_df.append(df)
+                    p_bar.update()
+
+        logger.info("end of load all data.\n")
+        return pd.concat(all_df, sort=False)
 
     def _backup_qlib_dir(self, target_dir: Path):
         shutil.copytree(str(self.qlib_dir.resolve()), str(target_dir.resolve()))
@@ -137,6 +166,8 @@ class DumpDataBase:
         df = pd.read_csv(str(file_path.resolve()), low_memory=False)
         df[self.date_field_name] = df[self.date_field_name].astype(str).astype(np.datetime64)
         # df.drop_duplicates([self.date_field_name], inplace=True)
+        if self.is_convert_category:
+            df = self.convert_category_field_values(df)
         return df
 
     def get_symbol_from_file(self, file_path: Path) -> str:
@@ -264,7 +295,50 @@ class DumpDataBase:
         raise NotImplementedError("dump not implemented!")
 
     def __call__(self, *args, **kwargs):
+        if self.is_convert_category:
+            self.dump_category()
         self.dump()
+
+    def get_category_field(self, df: pd.DataFrame) -> List[str]:
+        return [
+            field
+            for field in self.get_dump_fields(df.columns)
+            if df.convert_dtypes(infer_objects=False, convert_string=True)[field].dtype == "string"
+        ]
+
+    def dump_category(self) -> None:
+        logger.info("start dump category......\n")
+        self._category_dir.mkdir(parents=True, exist_ok=True)
+        df = self._load_all_source_data()
+        df = df.convert_dtypes(infer_objects=False, convert_string=True)
+        for field in self.get_category_field(df):
+            if df[field].dtype != "string":
+                continue
+            cat_path = self._category_dir / f"{field}{self.CATEGORY_FILE_SUFFIX}"
+
+            # init field category array
+            if cat_path.exists():
+                cat_array = np.loadtxt(cat_path, ndmin=1, dtype=np.str)
+            else:
+                cat_array = np.array([], dtype=np.str)
+
+            # update field category array
+            diff_array = np.setdiff1d(df[field].unique(), cat_array)
+            if diff_array.size > 0:
+                cat_array = np.concatenate((cat_array, diff_array))
+
+            # save field category array
+            np.savetxt(cat_path, cat_array, fmt="%s", encoding="utf-8")
+        logger.info("end of dump category.\n")
+
+    def convert_category_field_values(self, df: pd.DataFrame) -> pd.DataFrame:
+        for field in self.get_category_field(df):
+            cat_path = self._category_dir / f"{field}{self.CATEGORY_FILE_SUFFIX}"
+            cat_array = np.loadtxt(cat_path, dtype=np.str)
+
+            # convert field value to category index
+            df[field] = df[field].apply(lambda x: np.where(cat_array == x)[0][0])
+        return df
 
 
 class DumpDataAll(DumpDataBase):
@@ -369,6 +443,7 @@ class DumpDataUpdate(DumpDataBase):
         exclude_fields: str = "",
         include_fields: str = "",
         limit_nums: int = None,
+        is_convert_category: bool = False,
     ):
         """
 
@@ -408,6 +483,7 @@ class DumpDataUpdate(DumpDataBase):
             symbol_field_name,
             exclude_fields,
             include_fields,
+            is_convert_category,
         )
         self._mode = self.UPDATE_MODE
         self._old_calendar_list = self._read_calendars(self._calendars_dir.joinpath(f"{self.freq}.txt"))
@@ -421,30 +497,11 @@ class DumpDataUpdate(DumpDataBase):
 
         # load all csv files
         self._all_data = self._load_all_source_data()  # type: pd.DataFrame
+        if is_convert_category:
+            self._all_data = self.convert_category_field_values(self._all_data)
         self._new_calendar_list = self._old_calendar_list + sorted(
             filter(lambda x: x > self._old_calendar_list[-1], self._all_data[self.date_field_name].unique())
         )
-
-    def _load_all_source_data(self):
-        # NOTE: Need more memory
-        logger.info("start load all source data....")
-        all_df = []
-
-        def _read_csv(file_path: Path):
-            _df = pd.read_csv(file_path, parse_dates=[self.date_field_name])
-            if self.symbol_field_name not in _df.columns:
-                _df[self.symbol_field_name] = self.get_symbol_from_file(file_path)
-            return _df
-
-        with tqdm(total=len(self.csv_files)) as p_bar:
-            with ThreadPoolExecutor(max_workers=self.works) as executor:
-                for df in executor.map(_read_csv, self.csv_files):
-                    if not df.empty:
-                        all_df.append(df)
-                    p_bar.update()
-
-        logger.info("end of load all data.\n")
-        return pd.concat(all_df, sort=False)
 
     def _dump_calendars(self):
         pass

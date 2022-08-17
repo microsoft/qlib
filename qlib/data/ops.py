@@ -5,6 +5,8 @@
 from __future__ import division
 from __future__ import print_function
 
+import pathlib
+
 import numpy as np
 import pandas as pd
 
@@ -96,6 +98,37 @@ class ChangeInstrument(ElemOperator):
         return self.feature.load(instrument, start_index, end_index, *args)
 
 
+class Cat(ElemOperator):
+    """Category Operator
+    This operator will resolve the index of the category into a value.
+    """
+
+    CATEGORIES_DIR_NAME = "categories"
+    CATEGORY_FILE_SUFFIX = ".txt"
+
+    def _load_internal(self, instrument, start_index, end_index, *args) -> pd.Series:
+        category_values = self._load_category_values()
+        series = self.feature.load(instrument, start_index, end_index, *args)
+        series = series.apply(lambda x: category_values[int(x)] if pd.notnull(x) else x)
+        return series
+
+    @property
+    def filename(self) -> str:
+        return self.feature._name + self.CATEGORY_FILE_SUFFIX
+
+    @property
+    def uri(self) -> pathlib.Path:
+        from qlib.config import C
+
+        return C.dpm.get_data_uri() / self.CATEGORIES_DIR_NAME / self.filename
+
+    def _load_category_values(self) -> np.array:
+        if not self.uri.exists():
+            raise ValueError("Feature `{}` category file not found: {}".format(self.feature, self.uri))
+        array = np.loadtxt(self.uri, ndmin=1, dtype=np.str)
+        return array
+
+
 class NpElemOperator(ElemOperator):
     """Numpy Element-wise Operator
 
@@ -118,6 +151,8 @@ class NpElemOperator(ElemOperator):
 
     def _load_internal(self, instrument, start_index, end_index, *args):
         series = self.feature.load(instrument, start_index, end_index, *args)
+        if series.dtype != np.float32:
+            raise ValueError("Numpy element-wise operator only support float32 dtype.")
         return getattr(np, self.func)(series)
 
 
@@ -1570,6 +1605,7 @@ class TResample(ElemOperator):
 TOpsList = [TResample]
 OpsList = [
     ChangeInstrument,
+    Cat,
     Rolling,
     Ref,
     Max,
