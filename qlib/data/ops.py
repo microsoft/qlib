@@ -125,7 +125,7 @@ class Cat(ElemOperator):
     def _load_category_values(self) -> np.array:
         if not self.uri.exists():
             raise ValueError("Feature `{}` category file not found: {}".format(self.feature, self.uri))
-        array = np.loadtxt(self.uri, ndmin=1, dtype=np.str)
+        array = np.loadtxt(self.uri, ndmin=1, dtype=np.str, encoding="utf-8")
         return array
 
 

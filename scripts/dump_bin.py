@@ -318,7 +318,7 @@ class DumpDataBase:
 
             # init field category array
             if cat_path.exists():
-                cat_array = np.loadtxt(cat_path, ndmin=1, dtype=np.str)
+                cat_array = np.loadtxt(cat_path, ndmin=1, dtype=np.str, encoding="utf-8")
             else:
                 cat_array = np.array([], dtype=np.str)
 
@@ -334,7 +334,7 @@ class DumpDataBase:
     def convert_category_field_values(self, df: pd.DataFrame) -> pd.DataFrame:
         for field in self.get_category_field(df):
             cat_path = self._category_dir / f"{field}{self.CATEGORY_FILE_SUFFIX}"
-            cat_array = np.loadtxt(cat_path, dtype=np.str)
+            cat_array = np.loadtxt(cat_path, dtype=np.str, encoding="utf-8")
 
             # convert field value to category index
             df[field] = df[field].apply(lambda x: np.where(cat_array == x)[0][0])
