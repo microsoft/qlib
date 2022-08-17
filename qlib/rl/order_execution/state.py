@@ -41,9 +41,9 @@ class QlibBacktestAdapter:
 
     Example usage::
 
-        maintainer = StateMaintainer(...)
-        maintainer.update(...)
-        state = maintainer.saoe_state
+        adapter = QlibBacktestAdapter(...)
+        adapter.update(...)
+        state = adapter.saoe_state
     """
 
     def __init__(
@@ -52,8 +52,6 @@ class QlibBacktestAdapter:
         executor: BaseExecutor,
         exchange: Exchange,
         ticks_per_step: int,
-        ticks_index: pd.DatetimeIndex,
-        ticks_for_order: pd.DatetimeIndex,
         backtest_data: QlibIntradayBacktestData,
     ) -> None:
         super().__init__()
@@ -62,8 +60,6 @@ class QlibBacktestAdapter:
         self.order = order
         self.executor = executor
         self.exchange = exchange
-        self.ticks_index = ticks_index
-        self.ticks_for_order = ticks_for_order
         self.backtest_data = backtest_data
 
         self.twap_price = self.backtest_data.get_deal_price().mean()
@@ -73,15 +69,18 @@ class QlibBacktestAdapter:
         self.history_steps = pd.DataFrame(columns=metric_keys).set_index("datetime")
         self.metrics: Optional[SAOEMetrics] = None
 
-        self.cur_time = max(ticks_for_order[0], order.start_time)
+        self.cur_time = max(backtest_data.ticks_for_order[0], order.start_time)
         self.ticks_per_step = ticks_per_step
 
     def _next_time(self) -> pd.Timestamp:
-        current_loc = self.ticks_index.get_loc(self.cur_time)
+        current_loc = self.backtest_data.ticks_index.get_loc(self.cur_time)
         next_loc = current_loc + self.ticks_per_step
         next_loc = next_loc - next_loc % self.ticks_per_step
-        if next_loc < len(self.ticks_index) and self.ticks_index[next_loc] < self.order.end_time:
-            return self.ticks_index[next_loc]
+        if (
+            next_loc < len(self.backtest_data.ticks_index)
+            and self.backtest_data.ticks_index[next_loc] < self.order.end_time
+        ):
+            return self.backtest_data.ticks_index[next_loc]
         else:
             return self.order.end_time
 
@@ -91,8 +90,8 @@ class QlibBacktestAdapter:
         last_step_range: Tuple[int, int],
     ) -> None:
         last_step_size = last_step_range[1] - last_step_range[0] + 1
-        start_time = self.ticks_index[last_step_range[0]]
-        end_time = self.ticks_index[last_step_range[1]]
+        start_time = self.backtest_data.ticks_index[last_step_range[0]]
+        end_time = self.backtest_data.ticks_index[last_step_range[1]]
 
         exec_vol = np.zeros(last_step_size)
         for order, _, __, ___ in execute_result:
@@ -164,7 +163,7 @@ class QlibBacktestAdapter:
 
         self.metrics = self._collect_single_order_metric(
             self.order,
-            self.ticks_index[0],  # start time
+            self.backtest_data.ticks_index[0],  # start time
             self.history_exec["market_volume"],
             self.history_exec["market_price"],
             self.history_steps["amount"].sum(),
@@ -245,8 +244,8 @@ class QlibBacktestAdapter:
             metrics=self.metrics,
             backtest_data=self.backtest_data,
             ticks_per_step=self.ticks_per_step,
-            ticks_index=self.ticks_index,
-            ticks_for_order=self.ticks_for_order,
+            ticks_index=self.backtest_data.ticks_index,
+            ticks_for_order=self.backtest_data.ticks_for_order,
         )
 
 

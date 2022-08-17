@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from typing import TYPE_CHECKING, Any, Set, Tuple, Union
+from typing import Any, Set, Tuple, TYPE_CHECKING, Union
 
 import numpy as np
 
@@ -18,9 +18,6 @@ import warnings
 import pandas as pd
 
 from ..data.data import Cal
-
-
-SAOE_DATA_KEY = "saoe_data"
 
 
 class TradeCalendarManager:
@@ -237,9 +234,7 @@ class BaseInfrastructure:
 
 class CommonInfrastructure(BaseInfrastructure):
     def get_support_infra(self) -> Set[str]:
-        # SAOE_DATA_KEY is used to store SAOE (single asset order execution) information that should be shared by
-        # all strategies. It should be dict.
-        return {"trade_account", "trade_exchange", SAOE_DATA_KEY}
+        return {"trade_account", "trade_exchange"}
 
 
 class LevelInfrastructure(BaseInfrastructure):

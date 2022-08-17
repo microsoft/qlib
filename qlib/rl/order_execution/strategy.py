@@ -4,17 +4,13 @@
 from __future__ import annotations
 
 import collections
-from typing import Any, Dict, Generator, Tuple, cast
-
-import pandas as pd
+from typing import Any, cast, Dict, Generator, Tuple
 
 from qlib.backtest import CommonInfrastructure, Order
-from qlib.backtest.decision import BaseTradeDecision, TradeDecisionWO, TradeRange, TradeRangeByTime
-from qlib.backtest.utils import LevelInfrastructure, SAOE_DATA_KEY
-from qlib.rl.data.exchange_wrapper import QlibIntradayBacktestData
+from qlib.backtest.decision import BaseTradeDecision, TradeDecisionWO, TradeRange
+from qlib.backtest.utils import LevelInfrastructure
+from qlib.rl.data.exchange_wrapper import load_qlib_backtest_data
 from qlib.rl.order_execution.state import QlibBacktestAdapter, SAOEState
-from qlib.rl.order_execution.utils import get_ticks_slice
-from qlib.rl.utils.cache import LRUCache
 from qlib.strategy.base import RLStrategy
 
 
@@ -41,50 +37,13 @@ class SAOEStrategy(RLStrategy):
         self._last_step_range = (0, 0)
 
     def _create_qlib_backtest_adapter(self, order: Order, trade_range: TradeRange) -> QlibBacktestAdapter:
-        if not self.common_infra.has(SAOE_DATA_KEY):
-            self.common_infra.reset_infra(**{SAOE_DATA_KEY: LRUCache(pool_size=100)})
-
-        # saoe_data can be considered as some type of cache. Use it to avoid unnecessary data reload.
-        # The data for one order would be loaded only once. All strategies will reuse this data.
-        saoe_data = cast(LRUCache, self.common_infra.get(SAOE_DATA_KEY))
-        if not saoe_data.has(order.key):
-            data = self.trade_exchange.get_deal_price(
-                stock_id=order.stock_id,
-                start_time=order.start_time.replace(hour=0, minute=0, second=0),
-                end_time=order.start_time.replace(hour=23, minute=59, second=59),
-                direction=order.direction,
-                method=None,
-            )
-
-            ticks_index = pd.DatetimeIndex(data.index)
-            if isinstance(trade_range, TradeRangeByTime):
-                ticks_for_order = get_ticks_slice(
-                    ticks_index,
-                    trade_range.start_time,
-                    trade_range.end_time,
-                    include_end=True,
-                )
-            else:
-                ticks_for_order = None  # FIXME: implement this logic
-
-            backtest_data = QlibIntradayBacktestData(
-                order=order,
-                exchange=self.trade_exchange,
-                start_time=ticks_for_order[0],
-                end_time=ticks_for_order[-1],
-            )
-
-            saoe_data.put(key=order.key, item=(ticks_index, ticks_for_order, backtest_data))
-
-        ticks_index, ticks_for_order, backtest_data = saoe_data.get(order.key)
+        backtest_data = load_qlib_backtest_data(order, self.trade_exchange, trade_range)
 
         return QlibBacktestAdapter(
             order=order,
             executor=self.executor,
             exchange=self.trade_exchange,
             ticks_per_step=self.ticks_per_step,
-            ticks_index=ticks_index,
-            ticks_for_order=ticks_for_order,
             backtest_data=backtest_data,
         )
 
@@ -110,8 +69,8 @@ class SAOEStrategy(RLStrategy):
         return self.adapter_dict[order.key].saoe_state
 
     def post_upper_level_exe_step(self) -> None:
-        for maintainer in self.adapter_dict.values():
-            maintainer.generate_metrics_after_done()
+        for adapter in self.adapter_dict.values():
+            adapter.generate_metrics_after_done()
 
     def post_exe_step(self, execute_result: list) -> None:
         last_step_length = self._last_step_range[1] - self._last_step_range[0]
@@ -124,8 +83,8 @@ class SAOEStrategy(RLStrategy):
             for e in execute_result:
                 results[e[0].key].append(e)
 
-        for key, maintainer in self.adapter_dict.items():
-            maintainer.update(results[key], self._last_step_range)
+        for key, adapter in self.adapter_dict.items():
+            adapter.update(results[key], self._last_step_range)
 
 
 class DecomposedStrategy(SAOEStrategy):
