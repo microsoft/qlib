@@ -5,10 +5,6 @@ from __future__ import annotations
 from abc import ABCMeta, abstractmethod
 from typing import Any, Generator, Optional, TYPE_CHECKING, Union
 
-import pandas as pd
-
-from ..constant import FINEST_GRANULARITY
-
 if TYPE_CHECKING:
     from qlib.backtest.exchange import Exchange
     from qlib.backtest.position import BasePosition
@@ -69,10 +65,6 @@ class BaseStrategy:
         return self.level_infra.get("trade_calendar")
 
     @property
-    def ticks_per_step(self) -> int:
-        return int(pd.Timedelta(self.trade_calendar.get_freq()) / pd.Timedelta(FINEST_GRANULARITY))
-
-    @property
     def trade_position(self) -> BasePosition:
         return self.common_infra.get("trade_account").current_position
 
@@ -98,7 +90,7 @@ class BaseStrategy:
         level_infra: LevelInfrastructure = None,
         common_infra: CommonInfrastructure = None,
         outer_trade_decision: BaseTradeDecision = None,
-        **kwargs,  # TODO: remove this?
+        **kwargs,
     ) -> None:
         """
         - reset `level_infra`, used to reset trade calendar, .etc
@@ -149,6 +141,41 @@ class BaseStrategy:
         """
         raise NotImplementedError("generate_trade_decision is not implemented!")
 
+    # helper methods: not necessary but for convenience
+    def get_data_cal_avail_range(self, rtype: str = "full") -> Tuple[int, int]:
+        """
+        return data calendar's available decision range for `self` strategy
+        the range consider following factors
+        - data calendar in the charge of `self` strategy
+        - trading range limitation from the decision of outer strategy
+
+
+        related methods
+        - TradeCalendarManager.get_data_cal_range
+        - BaseTradeDecision.get_data_cal_range_limit
+
+        Parameters
+        ----------
+        rtype: str
+            - "full": return the available data index range of the strategy from `start_time` to `end_time`
+            - "step": return the available data index range of the strategy of current step
+
+        Returns
+        -------
+        Tuple[int, int]:
+            the available range both sides are closed
+        """
+        cal_range = self.trade_calendar.get_data_cal_range(rtype=rtype)
+        if self.outer_trade_decision is None:
+            raise ValueError(f"There is not limitation for strategy {self}")
+        range_limit = self.outer_trade_decision.get_data_cal_range_limit(rtype=rtype)
+        return max(cal_range[0], range_limit[0]), min(cal_range[1], range_limit[1])
+
+    """
+    The following methods are used to do cross-level communications in nested execution.
+    You do not need to care about them if you are implementing a single-level execution.
+    """
+
     @staticmethod
     def update_trade_decision(
         trade_decision: BaseTradeDecision,
@@ -189,44 +216,10 @@ class BaseStrategy:
         # NOTE: normally, user should do something to the strategy due to the change of outer decision
         return outer_trade_decision
 
-    # helper methods: not necessary but for convenience
-    def get_data_cal_avail_range(self, rtype: str = "full") -> Tuple[int, int]:
-        """
-        return data calendar's available decision range for `self` strategy
-        the range consider following factors
-        - data calendar in the charge of `self` strategy
-        - trading range limitation from the decision of outer strategy
-
-
-        related methods
-        - TradeCalendarManager.get_data_cal_range
-        - BaseTradeDecision.get_data_cal_range_limit
-
-        Parameters
-        ----------
-        rtype: str
-            - "full": return the available data index range of the strategy from `start_time` to `end_time`
-            - "step": return the available data index range of the strategy of current step
-
-        Returns
-        -------
-        Tuple[int, int]:
-            the available range both sides are closed
-        """
-        cal_range = self.trade_calendar.get_data_cal_range(rtype=rtype)
-        if self.outer_trade_decision is None:
-            raise ValueError(f"There is not limitation for strategy {self}")
-        range_limit = self.outer_trade_decision.get_data_cal_range_limit(rtype=rtype)
-        return max(cal_range[0], range_limit[0]), min(cal_range[1], range_limit[1])
-
     def post_upper_level_exe_step(self) -> None:
         """
         A hook for doing sth after the upper level executor finished its execution (for example, finalize
-        the metrics collection). This is used in the nested execution scenario. You do not need to care about
-        this method if your strategy is not used in nested execution.
-
-        TODO: Group the nested-execution-related methods together and try to keep the the framework simple at the doc
-        TODO: and code level.
+        the metrics collection).
         """
 
     def post_exe_step(self, execute_result: list) -> None:

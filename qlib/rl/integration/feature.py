@@ -1,6 +1,11 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+"""
+TODO: This file is used to integrate NeuTrader with Qlib to run the existing projects.
+TODO: The implementation here is kind of adhoc. It is better to design a more uniformed & general implementation.
+"""
+
 from __future__ import annotations
 
 import pickle

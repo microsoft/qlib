@@ -9,9 +9,9 @@ import numpy as np
 import pandas as pd
 from qlib.backtest import Exchange, Order
 from qlib.backtest.executor import BaseExecutor
-from qlib.constant import EPS, REG_CN
-from qlib.rl.data.exchange_wrapper import QlibIntradayBacktestData
-from qlib.rl.data.pickle_styled import IntradayBacktestData
+from qlib.constant import EPS, ONE_MIN, REG_CN
+from qlib.rl.data.exchange_wrapper import IntradayBacktestData
+from qlib.rl.data.pickle_styled import BaseIntradayBacktestData
 from qlib.rl.order_execution.utils import dataframe_append, price_advantage
 from qlib.utils.time import get_day_min_idx_range
 from typing_extensions import TypedDict
@@ -20,7 +20,7 @@ from typing_extensions import TypedDict
 def _get_all_timestamps(
     start: pd.Timestamp,
     end: pd.Timestamp,
-    granularity: pd.Timedelta = pd.Timedelta("1min"),
+    granularity: pd.Timedelta = ONE_MIN,
     include_end: bool = True,
 ) -> pd.DatetimeIndex:
     ret = []
@@ -35,13 +35,13 @@ def _get_all_timestamps(
     return pd.DatetimeIndex(ret)
 
 
-class QlibBacktestAdapter:
+class SAOEStateAdapter:
     """
     Maintain states of the environment.
 
     Example usage::
 
-        adapter = QlibBacktestAdapter(...)
+        adapter = SAOEStateAdapter(...)
         adapter.update(...)
         state = adapter.saoe_state
     """
@@ -52,7 +52,7 @@ class QlibBacktestAdapter:
         executor: BaseExecutor,
         exchange: Exchange,
         ticks_per_step: int,
-        backtest_data: QlibIntradayBacktestData,
+        backtest_data: IntradayBacktestData,
     ) -> None:
         self.position = order.amount
         self.order = order
@@ -316,7 +316,7 @@ class SAOEState(NamedTuple):
     metrics: Optional[SAOEMetrics]
     """Daily metric, only available when the trading is in "done" state."""
 
-    backtest_data: IntradayBacktestData
+    backtest_data: BaseIntradayBacktestData
     """Backtest data is included in the state.
     Actually, only the time index of this data is needed, at this moment.
     I include the full data so that algorithms (e.g., VWAP) that relies on the raw data can be implemented.

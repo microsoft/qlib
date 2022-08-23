@@ -15,8 +15,8 @@ REG_TW = "tw"
 EPS = 1e-12
 
 # Infinity in integer
-INF = 10**18
-FINEST_GRANULARITY = "1min"
-COARSEST_GRANULARITY = "1day"
+INF = int(1e18)
+ONE_DAY = pd.Timedelta("1day")
+ONE_MIN = pd.Timedelta("1min")
 ONE_SEC = pd.Timedelta("1s")  # use 1 second to exclude the right interval point
 float_or_ndarray = TypeVar("float_or_ndarray", float, np.ndarray)

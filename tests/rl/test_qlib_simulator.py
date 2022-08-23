@@ -10,8 +10,7 @@ import pytest
 from qlib.backtest.decision import Order, OrderDir, TradeRangeByTime
 from qlib.backtest.executor import SimulatorExecutor
 from qlib.rl.order_execution import CategoricalActionInterpreter
-from qlib.constant import FINEST_GRANULARITY
-from qlib.rl.order_execution.simulator_qlib import SingleAssetOrderExecutionQlib
+from qlib.rl.order_execution.simulator_qlib import SingleAssetOrderExecution
 
 TOTAL_POSITION = 2100.0
 
@@ -39,7 +38,6 @@ def get_configs(order: Order) -> Tuple[dict, dict, dict]:
         "kwargs": {
             "order": order,
             "trade_range": TradeRangeByTime(order.start_time.time(), order.end_time.time()),
-            "instrument": order.stock_id,
         },
     }
 
@@ -48,7 +46,7 @@ def get_configs(order: Order) -> Tuple[dict, dict, dict]:
         "module_path": "qlib.backtest.executor",
         "kwargs": {
             "time_per_step": "1day",
-            "inner_strategy": {"class": "DecomposedStrategy", "module_path": "qlib.rl.order_execution.strategy"},
+            "inner_strategy": {"class": "ProxySAOEStrategy", "module_path": "qlib.rl.order_execution.strategy"},
             "track_data": True,
             "inner_executor": {
                 "class": "NestedExecutor",
@@ -63,7 +61,7 @@ def get_configs(order: Order) -> Tuple[dict, dict, dict]:
                         "class": "SimulatorExecutor",
                         "module_path": "qlib.backtest.executor",
                         "kwargs": {
-                            "time_per_step": FINEST_GRANULARITY,
+                            "time_per_step": "1min",
                             "verbose": False,
                             "trade_type": SimulatorExecutor.TT_SERIAL,
                             "generate_report": False,
@@ -79,7 +77,7 @@ def get_configs(order: Order) -> Tuple[dict, dict, dict]:
     }
 
     exchange_config = {
-        "freq": FINEST_GRANULARITY,
+        "freq": "1min",
         "codes": [order.stock_id],
         "limit_threshold": ("$ask == 0", "$bid == 0"),
         "deal_price": ("If($ask == 0, $bid, $ask)", "If($bid == 0, $ask, $bid)"),
@@ -97,7 +95,7 @@ def get_configs(order: Order) -> Tuple[dict, dict, dict]:
     return strategy_config, executor_config, exchange_config
 
 
-def get_simulator(order: Order) -> SingleAssetOrderExecutionQlib:
+def get_simulator(order: Order) -> SingleAssetOrderExecution:
     DATA_ROOT_DIR = Path(__file__).parent.parent / ".data" / "rl" / "qlib_simulator"
 
     # fmt: off
@@ -118,7 +116,7 @@ def get_simulator(order: Order) -> SingleAssetOrderExecutionQlib:
 
     strategy_config, executor_config, exchange_config = get_configs(order)
 
-    return SingleAssetOrderExecutionQlib(
+    return SingleAssetOrderExecution(
         order=order,
         qlib_config=qlib_config,
         strategy_config=strategy_config,

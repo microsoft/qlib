@@ -8,12 +8,13 @@ import pandas as pd
 
 from qlib.backtest import Exchange, Order
 from qlib.backtest.decision import TradeRange, TradeRangeByTime
+from qlib.constant import ONE_DAY, ONE_SEC
 from qlib.rl.order_execution.utils import get_ticks_slice
-from .pickle_styled import IntradayBacktestData
-from ...utils.index_data import IndexData
+from qlib.utils.index_data import IndexData
+from .pickle_styled import BaseIntradayBacktestData
 
 
-class QlibIntradayBacktestData(IntradayBacktestData):
+class IntradayBacktestData(BaseIntradayBacktestData):
     """Backtest data for Qlib simulator"""
 
     def __init__(
@@ -23,7 +24,6 @@ class QlibIntradayBacktestData(IntradayBacktestData):
         ticks_index: pd.DatetimeIndex,
         ticks_for_order: pd.DatetimeIndex,
     ) -> None:
-        super(QlibIntradayBacktestData, self).__init__()
         self._order = order
         self._exchange = exchange
         self._start_time = ticks_for_order[0]
@@ -78,13 +78,13 @@ def load_qlib_backtest_data(
     order: Order,
     trade_exchange: Exchange,
     trade_range: TradeRange,
-) -> QlibIntradayBacktestData:
+) -> IntradayBacktestData:
     data = cast(
         IndexData,
         trade_exchange.get_deal_price(
             stock_id=order.stock_id,
             start_time=order.date,
-            end_time=order.date + pd.Timedelta("1day") - pd.Timedelta("1s"),
+            end_time=order.date + ONE_DAY - ONE_SEC,
             direction=order.direction,
             method=None,
         ),
@@ -101,7 +101,7 @@ def load_qlib_backtest_data(
     else:
         ticks_for_order = None  # FIXME: implement this logic
 
-    backtest_data = QlibIntradayBacktestData(
+    backtest_data = IntradayBacktestData(
         order=order,
         exchange=trade_exchange,
         ticks_index=ticks_index,

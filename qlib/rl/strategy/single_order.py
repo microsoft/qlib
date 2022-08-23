@@ -13,19 +13,17 @@ class SingleOrderStrategy(BaseStrategy):
         self,
         order: Order,
         trade_range: TradeRange,
-        instrument: str,
     ) -> None:
         super().__init__()
 
         self._order = order
         self._trade_range = trade_range
-        self._instrument = instrument
 
     def generate_trade_decision(self, execute_result: list = None) -> TradeDecisionWO:
         oh: OrderHelper = self.common_infra.get("trade_exchange").get_order_helper()
         order_list = [
             oh.create(
-                code=self._instrument,
+                code=self._order.stock_id,
                 amount=self._order.amount,
                 direction=self._order.direction,
             ),

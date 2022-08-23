@@ -10,12 +10,12 @@ from qlib.backtest import collect_data_loop, get_strategy_executor
 from qlib.backtest.decision import Order
 from qlib.backtest.executor import NestedExecutor
 from qlib.rl.integration.feature import init_qlib
-from qlib.rl.order_execution.state import QlibBacktestAdapter, SAOEState
+from qlib.rl.order_execution.state import SAOEStateAdapter, SAOEState
 from qlib.rl.order_execution.strategy import SAOEStrategy
 from qlib.rl.simulator import Simulator
 
 
-class SingleAssetOrderExecutionQlib(Simulator[Order, SAOEState, float]):
+class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
     """Single-asset order execution (SAOE) simulator which is implemented based on Qlib backtest tools.
 
     Parameters
@@ -83,7 +83,7 @@ class SingleAssetOrderExecutionQlib(Simulator[Order, SAOEState, float]):
 
         self._order = order
 
-    def _get_adapter(self) -> QlibBacktestAdapter:
+    def _get_adapter(self) -> SAOEStateAdapter:
         return self._last_yielded_saoe_strategy.adapter_dict[self._order.key_by_day]
 
     @property
