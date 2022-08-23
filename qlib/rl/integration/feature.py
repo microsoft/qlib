@@ -7,13 +7,13 @@ import pickle
 from pathlib import Path
 from typing import List
 
+import cachetools
 import numpy as np
 import pandas as pd
 import qlib
 from qlib.constant import REG_CN
 from qlib.contrib.ops.high_freq import BFillNan, Cut, Date, DayCumsum, DayLast, FFillNan, IsInf, IsNull, Select
 from qlib.data.dataset import DatasetH
-from qlib.rl.utils.cache import LRUCache
 
 dataset = None
 
@@ -34,24 +34,14 @@ class DataWrapper:
         self.columns_today = columns_today
         self.columns_yesterday = columns_yesterday
 
-        self.feature_cache = LRUCache()
-        self.backtest_cache = LRUCache()
-
+    @cachetools.cached(  # type: ignore
+        cache=cachetools.LRUCache(100),
+        key=lambda stock_id, date, backtest: (stock_id, date.replace(hour=0, minute=0, second=0), backtest),
+    )
     def get(self, stock_id: str, date: pd.Timestamp, backtest: bool = False) -> pd.DataFrame:
         start_time, end_time = date.replace(hour=0, minute=0, second=0), date.replace(hour=23, minute=59, second=59)
-
-        if backtest:
-            dataset = self.backtest_dataset
-            cache = self.backtest_cache
-        else:
-            dataset = self.feature_dataset
-            cache = self.feature_cache
-
-        if cache.has((start_time, end_time, stock_id)):
-            return cache.get((start_time, end_time, stock_id))
-        data = dataset.handler.fetch(pd.IndexSlice[stock_id, start_time:end_time], level=None)
-        cache.put((start_time, end_time, stock_id), data)
-        return data
+        dataset = self.backtest_dataset if backtest else self.feature_dataset
+        return dataset.handler.fetch(pd.IndexSlice[stock_id, start_time:end_time], level=None)
 
 
 def init_qlib(qlib_config: dict, part: str = None) -> None:

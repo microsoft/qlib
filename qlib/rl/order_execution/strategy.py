@@ -63,10 +63,10 @@ class SAOEStrategy(RLStrategy):
             self.adapter_dict = {}
             for decision in outer_trade_decision.get_decision():
                 order = cast(Order, decision)
-                self.adapter_dict[order.key] = self._create_qlib_backtest_adapter(order, trade_range)
+                self.adapter_dict[order.key_by_day] = self._create_qlib_backtest_adapter(order, trade_range)
 
     def get_saoe_state_by_order(self, order: Order) -> SAOEState:
-        return self.adapter_dict[order.key].saoe_state
+        return self.adapter_dict[order.key_by_day].saoe_state
 
     def post_upper_level_exe_step(self) -> None:
         for adapter in self.adapter_dict.values():
@@ -81,7 +81,7 @@ class SAOEStrategy(RLStrategy):
         results = collections.defaultdict(list)
         if execute_result is not None:
             for e in execute_result:
-                results[e[0].key].append(e)
+                results[e[0].key_by_day].append(e)
 
         for key, adapter in self.adapter_dict.items():
             adapter.update(results[key], self._last_step_range)
@@ -111,9 +111,6 @@ class DecomposedStrategy(SAOEStrategy):
         self._update_last_step_range(self.get_data_cal_avail_range(rtype="step"))
 
         return TradeDecisionWO([order], self)
-
-    def alter_outer_trade_decision(self, outer_trade_decision: BaseTradeDecision) -> BaseTradeDecision:
-        return outer_trade_decision
 
     def reset(self, outer_trade_decision: BaseTradeDecision = None, **kwargs: Any) -> None:
         super().reset(outer_trade_decision=outer_trade_decision, **kwargs)

@@ -124,9 +124,6 @@ class BaseExecutor:
         self.dealt_order_amount: Dict[str, float] = defaultdict(float)
         self.deal_day = None
 
-        # whether the current executor is collecting data
-        self.is_collecting = False
-
     def reset_common_infra(self, common_infra: CommonInfrastructure, copy_trade_account: bool = False) -> None:
         """
         reset infrastructure for trading
@@ -261,7 +258,6 @@ class BaseExecutor:
         object
             trade decision
         """
-        self.is_collecting = True
 
         if self.track_data:
             yield trade_decision
@@ -304,7 +300,6 @@ class BaseExecutor:
         if return_value is not None:
             return_value.update({"execute_result": res})
 
-        self.is_collecting = False
         return res
 
     def get_all_executors(self) -> List[BaseExecutor]:
@@ -405,7 +400,7 @@ class NestedExecutor(BaseExecutor):
             trade_decision = updated_trade_decision
             # NEW UPDATE
             # create a hook for inner strategy to update outer decision
-            self.inner_strategy.alter_outer_trade_decision(trade_decision)
+            trade_decision = self.inner_strategy.alter_outer_trade_decision(trade_decision)
         return trade_decision
 
     def _collect_data(
@@ -482,7 +477,7 @@ class NestedExecutor(BaseExecutor):
                 # do nothing and just step forward
                 sub_cal.step()
 
-        # Lef inner strategy know that the outer level execution is done.
+        # Let inner strategy know that the outer level execution is done.
         self.inner_strategy.post_upper_level_exe_step()
 
         return execute_result, {"inner_order_indicators": inner_order_indicators, "decision_list": decision_list}

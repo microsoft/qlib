@@ -187,6 +187,7 @@ class BaseStrategy:
         """
         # default to reset the decision directly
         # NOTE: normally, user should do something to the strategy due to the change of outer decision
+        return outer_trade_decision
 
     # helper methods: not necessary but for convenience
     def get_data_cal_avail_range(self, rtype: str = "full") -> Tuple[int, int]:
@@ -221,7 +222,11 @@ class BaseStrategy:
     def post_upper_level_exe_step(self) -> None:
         """
         A hook for doing sth after the upper level executor finished its execution (for example, finalize
-        the metrics collection).
+        the metrics collection). This is used in the nested execution scenario. You do not need to care about
+        this method if your strategy is not used in nested execution.
+
+        TODO: Group the nested-execution-related methods together and try to keep the the framework simple at the doc
+        TODO: and code level.
         """
 
     def post_exe_step(self, execute_result: list) -> None:

@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 from qlib.backtest import Order
-from qlib.backtest.decision import BaseTradeDecision, OrderHelper, TradeDecisionWO, TradeRange
+from qlib.backtest.decision import OrderHelper, TradeDecisionWO, TradeRange
 from qlib.strategy.base import BaseStrategy
 
 
@@ -20,9 +20,6 @@ class SingleOrderStrategy(BaseStrategy):
         self._order = order
         self._trade_range = trade_range
         self._instrument = instrument
-
-    def alter_outer_trade_decision(self, outer_trade_decision: BaseTradeDecision) -> BaseTradeDecision:
-        return outer_trade_decision
 
     def generate_trade_decision(self, execute_result: list = None) -> TradeDecisionWO:
         oh: OrderHelper = self.common_infra.get("trade_exchange").get_order_helper()

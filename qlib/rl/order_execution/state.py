@@ -54,8 +54,6 @@ class QlibBacktestAdapter:
         ticks_per_step: int,
         backtest_data: QlibIntradayBacktestData,
     ) -> None:
-        super().__init__()
-
         self.position = order.amount
         self.order = order
         self.executor = executor

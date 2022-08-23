@@ -72,7 +72,7 @@ class QlibIntradayBacktestData(IntradayBacktestData):
 
 @cachetools.cached(  # type: ignore
     cache=cachetools.LRUCache(100),
-    key=lambda order, _, __: order.key,
+    key=lambda order, _, __: order.key_by_day,
 )
 def load_qlib_backtest_data(
     order: Order,
@@ -83,8 +83,8 @@ def load_qlib_backtest_data(
         IndexData,
         trade_exchange.get_deal_price(
             stock_id=order.stock_id,
-            start_time=order.start_time.replace(hour=0, minute=0, second=0),
-            end_time=order.start_time.replace(hour=23, minute=59, second=59),
+            start_time=order.date,
+            end_time=order.date + pd.Timedelta("1day") - pd.Timedelta("1s"),
             direction=order.direction,
             method=None,
         ),

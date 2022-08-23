@@ -6,11 +6,11 @@ from __future__ import annotations
 from typing import Generator, Optional
 
 import pandas as pd
-from qlib.backtest import get_strategy_executor
+from qlib.backtest import collect_data_loop, get_strategy_executor
 from qlib.backtest.decision import Order
 from qlib.backtest.executor import NestedExecutor
 from qlib.rl.integration.feature import init_qlib
-from qlib.rl.order_execution.state import SAOEState
+from qlib.rl.order_execution.state import QlibBacktestAdapter, SAOEState
 from qlib.rl.order_execution.strategy import SAOEStrategy
 from qlib.rl.simulator import Simulator
 
@@ -59,8 +59,8 @@ class SingleAssetOrderExecutionQlib(Simulator[Order, SAOEState, float]):
             init_qlib(qlib_config, part="skip")
 
         strategy, self._executor = get_strategy_executor(
-            start_time=order.start_time.replace(hour=0, minute=0, second=0),
-            end_time=order.start_time.replace(hour=0, minute=0, second=0) + pd.DateOffset(1),
+            start_time=order.date,
+            end_time=order.date + pd.DateOffset(1),
             strategy=strategy_config,
             executor=executor_config,
             benchmark=order.stock_id,
@@ -70,18 +70,25 @@ class SingleAssetOrderExecutionQlib(Simulator[Order, SAOEState, float]):
         )
 
         assert isinstance(self._executor, NestedExecutor)
-        strategy.reset(level_infra=self._executor.get_level_infra())  # TODO: check if we could remove this
 
-        self._collect_data_loop = self._executor.collect_data(strategy.generate_trade_decision(), level=0)
+        self._collect_data_loop = collect_data_loop(
+            start_time=order.date,
+            end_time=order.date,
+            trade_strategy=strategy,
+            trade_executor=self._executor,
+        )
         assert isinstance(self._collect_data_loop, Generator)
 
         self._last_yielded_saoe_strategy = self._iter_strategy(action=None)
 
         self._order = order
 
+    def _get_adapter(self) -> QlibBacktestAdapter:
+        return self._last_yielded_saoe_strategy.adapter_dict[self._order.key_by_day]
+
     @property
     def twap_price(self) -> float:
-        return self._last_yielded_saoe_strategy.adapter_dict[self._order.key].twap_price
+        return self._get_adapter().twap_price
 
     def _iter_strategy(self, action: float = None) -> SAOEStrategy:
         """Iterate the _collect_data_loop until we get the next yield SAOEStrategy."""
@@ -112,7 +119,7 @@ class SingleAssetOrderExecutionQlib(Simulator[Order, SAOEState, float]):
         assert self._executor is not None
 
     def get_state(self) -> SAOEState:
-        return self._last_yielded_saoe_strategy.get_saoe_state_by_order(self._order)
+        return self._get_adapter().saoe_state
 
     def done(self) -> bool:
-        return not self._executor.is_collecting
+        return self._executor.finished()
