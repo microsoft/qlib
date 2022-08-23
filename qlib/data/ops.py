@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 
 from typing import Union, List, Type
+from scipy.stats import percentileofscore
 from .base import Expression, ExpressionOps, Feature, PFeature
 from ..log import get_module_logger
 from ..utils import get_callable_kwargs
@@ -1147,14 +1148,34 @@ class Rank(Rolling):
 
     def __init__(self, feature, N):
         super(Rank, self).__init__(feature, N, "rank")
+        major_version, minor_version, *_ = pd.__version__.split('.')
+        self._load_internal = self._load_internal_pd14 \
+            if int(major_version) > 1 or int(major_version) == 1 and \
+        int(minor_version) >3 else self._load_internal_pd_below_13
 
-    def _load_internal(self, instrument, start_index, end_index, *args):
+    def _load_internal_pd14(self, instrument, start_index, end_index, *args):
         series = self.feature.load(instrument, start_index, end_index, *args)
-
         if self.N == 0:
             series = series.expanding(min_periods=1).rank(pct=True)
         else:
             series = series.rolling(self.N, min_periods=1).rank(pct=True)
+        return series
+
+    # for compatiblity of python 3.7, which doesn't support pandas 1.4.0+ which implements Rolling.rank
+    def _load_internal_pd_below_13(self, instrument, start_index, end_index, *args):
+        series = self.feature.load(instrument, start_index, end_index, *args)
+        def rank(x):
+            if np.isnan(x[-1]):
+                return np.nan
+            x1 = x[~np.isnan(x)]
+            if x1.shape[0] == 0:
+                return np.nan
+            return percentileofscore(x1, x1[-1]) / 100
+
+        if self.N == 0:
+            series = series.expanding(min_periods=1).apply(rank, raw=True)
+        else:
+            series = series.rolling(self.N, min_periods=1).apply(rank, raw=True)
         return series
 
 
