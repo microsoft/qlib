@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    timeout-minutes: 360
+    timeout-minutes: 720
     # we may retry for 3 times for `Unit tests with Pytest`
 
     runs-on: ${{ matrix.os }}
@@ -52,7 +52,7 @@ jobs:
     - name: Unit tests with Pytest
       uses: nick-fields/retry@v2
       with:
-        timeout_minutes: 120
+        timeout_minutes: 240
         max_attempts: 3
         command: |
           cd tests

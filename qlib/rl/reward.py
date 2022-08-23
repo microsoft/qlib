@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from typing import Generic, Any, TypeVar, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, Generic, Optional, Tuple, TypeVar
 
 from qlib.typehint import final
 
@@ -20,7 +20,7 @@ class Reward(Generic[SimulatorState]):
     Subclass should implement ``reward(simulator_state)`` to implement their own reward calculation recipe.
     """
 
-    env: EnvWrapper | None = None
+    env: Optional[EnvWrapper] = None
 
     @final
     def __call__(self, simulator_state: SimulatorState) -> float:
@@ -30,14 +30,15 @@ class Reward(Generic[SimulatorState]):
         """Implement this method for your own reward."""
         raise NotImplementedError("Implement reward calculation recipe in `reward()`.")
 
-    def log(self, name, value):
+    def log(self, name: str, value: Any) -> None:
+        assert self.env is not None
         self.env.logger.add_scalar(name, value)
 
 
 class RewardCombination(Reward):
     """Combination of multiple reward."""
 
-    def __init__(self, rewards: dict[str, tuple[Reward, float]]):
+    def __init__(self, rewards: Dict[str, Tuple[Reward, float]]) -> None:
         self.rewards = rewards
 
     def reward(self, simulator_state: Any) -> float:
