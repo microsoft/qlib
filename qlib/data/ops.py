@@ -1149,9 +1149,11 @@ class Rank(Rolling):
     def __init__(self, feature, N):
         super(Rank, self).__init__(feature, N, "rank")
         major_version, minor_version, *_ = pd.__version__.split('.')
-        self._load_internal = self._load_internal_pd14 \
-            if int(major_version) > 1 or int(major_version) == 1 and \
-        int(minor_version) >3 else self._load_internal_pd_below_13
+        self._load_internal = (
+            self._load_internal_pd14
+            if int(major_version) > 1 or int(major_version) == 1 and int(minor_version) > 3
+            else self._load_internal_pd_below_13
+        )
 
     def _load_internal_pd14(self, instrument, start_index, end_index, *args):
         series = self.feature.load(instrument, start_index, end_index, *args)
@@ -1164,6 +1166,7 @@ class Rank(Rolling):
     # for compatiblity of python 3.7, which doesn't support pandas 1.4.0+ which implements Rolling.rank
     def _load_internal_pd_below_13(self, instrument, start_index, end_index, *args):
         series = self.feature.load(instrument, start_index, end_index, *args)
+
         def rank(x):
             if np.isnan(x[-1]):
                 return np.nan
