@@ -1148,7 +1148,7 @@ class Rank(Rolling):
 
     def __init__(self, feature, N):
         super(Rank, self).__init__(feature, N, "rank")
-        major_version, minor_version, *_ = pd.__version__.split('.')
+        major_version, minor_version, *_ = pd.__version__.split(".")
         self._load_internal = (
             self._load_internal_pd14
             if int(major_version) > 1 or int(major_version) == 1 and int(minor_version) > 3
