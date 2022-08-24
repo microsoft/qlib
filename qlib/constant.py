@@ -18,5 +18,5 @@ EPS = 1e-12
 INF = int(1e18)
 ONE_DAY = pd.Timedelta("1day")
 ONE_MIN = pd.Timedelta("1min")
-ONE_SEC = pd.Timedelta("1s")  # use 1 second to exclude the right interval point
+EPS_T = pd.Timedelta("1s")  # use 1 second to exclude the right interval point
 float_or_ndarray = TypeVar("float_or_ndarray", float, np.ndarray)

@@ -222,7 +222,7 @@ class BaseStrategy:
         the metrics collection).
         """
 
-    def post_exe_step(self, execute_result: list) -> None:
+    def post_exe_step(self, execute_result: Optional[list]) -> None:
         """
         A hook for doing sth after the corresponding executor finished its execution.
 

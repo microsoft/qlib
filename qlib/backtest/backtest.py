@@ -83,7 +83,9 @@ def collect_data_loop(
         while not trade_executor.finished():
             _trade_decision: BaseTradeDecision = trade_strategy.generate_trade_decision(_execute_result)
             _execute_result = yield from trade_executor.collect_data(_trade_decision, level=0)
+            trade_strategy.post_exe_step(_execute_result)
             bar.update(1)
+        trade_strategy.post_upper_level_exe_step()
 
     if return_value is not None:
         all_executors = trade_executor.get_all_executors()

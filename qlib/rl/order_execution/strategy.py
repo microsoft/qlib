@@ -73,7 +73,7 @@ class SAOEStrategy(RLStrategy):
         for adapter in self.adapter_dict.values():
             adapter.generate_metrics_after_done()
 
-    def post_exe_step(self, execute_result: list) -> None:
+    def post_exe_step(self, execute_result: Optional[list]) -> None:
         last_step_length = self._last_step_range[1] - self._last_step_range[0]
         if last_step_length <= 0:
             assert not execute_result

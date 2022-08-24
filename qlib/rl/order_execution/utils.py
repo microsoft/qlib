@@ -10,7 +10,7 @@ import pandas as pd
 
 from qlib.backtest.decision import OrderDir
 from qlib.backtest.executor import BaseExecutor, NestedExecutor, SimulatorExecutor
-from qlib.constant import ONE_SEC, float_or_ndarray
+from qlib.constant import EPS_T, float_or_ndarray
 
 
 def get_ticks_slice(
@@ -20,7 +20,7 @@ def get_ticks_slice(
     include_end: bool = False,
 ) -> pd.DatetimeIndex:
     if not include_end:
-        end = end - ONE_SEC
+        end = end - EPS_T
     return ticks_index[ticks_index.slice_indexer(start, end)]
 
 

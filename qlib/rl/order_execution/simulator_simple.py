@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 
 from qlib.backtest.decision import Order, OrderDir
-from qlib.constant import EPS, ONE_SEC, float_or_ndarray
+from qlib.constant import EPS, EPS_T, float_or_ndarray
 from qlib.rl.data.pickle_styled import DealPriceType, load_simple_intraday_backtest_data
 from qlib.rl.order_execution.state import SAOEMetrics, SAOEState
 from qlib.rl.simulator import Simulator
@@ -240,8 +240,8 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
         next_time = self._next_time()
 
         # get the backtest data for next interval
-        self.market_vol = self.backtest_data.get_volume().loc[self.cur_time : next_time - ONE_SEC].to_numpy()
-        self.market_price = self.backtest_data.get_deal_price().loc[self.cur_time : next_time - ONE_SEC].to_numpy()
+        self.market_vol = self.backtest_data.get_volume().loc[self.cur_time : next_time - EPS_T].to_numpy()
+        self.market_price = self.backtest_data.get_deal_price().loc[self.cur_time : next_time - EPS_T].to_numpy()
 
         assert self.market_vol is not None and self.market_price is not None
 
@@ -294,7 +294,7 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
 
     def _get_ticks_slice(self, start: pd.Timestamp, end: pd.Timestamp, include_end: bool = False) -> pd.DatetimeIndex:
         if not include_end:
-            end = end - ONE_SEC
+            end = end - EPS_T
         return self.ticks_index[self.ticks_index.slice_indexer(start, end)]
 
     @staticmethod

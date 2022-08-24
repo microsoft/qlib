@@ -8,7 +8,7 @@ import pandas as pd
 
 from qlib.backtest import Exchange, Order
 from qlib.backtest.decision import TradeRange, TradeRangeByTime
-from qlib.constant import ONE_DAY, ONE_SEC
+from qlib.constant import ONE_DAY, EPS_T
 from qlib.rl.order_execution.utils import get_ticks_slice
 from qlib.utils.index_data import IndexData
 from .pickle_styled import BaseIntradayBacktestData
@@ -84,7 +84,7 @@ def load_qlib_backtest_data(
         trade_exchange.get_deal_price(
             stock_id=order.stock_id,
             start_time=order.date,
-            end_time=order.date + ONE_DAY - ONE_SEC,
+            end_time=order.date + ONE_DAY - EPS_T,
             direction=order.direction,
             method=None,
         ),
