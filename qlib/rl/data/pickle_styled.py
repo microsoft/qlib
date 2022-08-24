@@ -30,7 +30,7 @@ import pandas as pd
 from cachetools.keys import hashkey
 
 from qlib.backtest.decision import Order, OrderDir
-from qlib.rl.order_execution.integration import fetch_features
+from qlib.rl.data.integration import fetch_features
 from qlib.typehint import Literal
 
 DealPriceType = Literal["bid_or_ask", "bid_or_ask_fill", "close"]
@@ -279,7 +279,7 @@ def load_intraday_processed_data(
     feature_dim: int,
     time_index: pd.Index,
 ) -> BaseIntradayProcessedData:
-    from qlib.rl.order_execution.integration import dataset  # pylint: disable=C0415
+    from qlib.rl.data.integration import dataset  # pylint: disable=C0415
 
     if dataset is None:
         assert data_dir is not None

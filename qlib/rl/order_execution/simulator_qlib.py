@@ -11,7 +11,7 @@ from qlib.backtest.decision import Order
 from qlib.backtest.executor import NestedExecutor
 from qlib.rl.simulator import Simulator
 
-from .integration import init_qlib
+from qlib.rl.data.integration import init_qlib
 from .state import SAOEState, SAOEStateAdapter
 from .strategy import SAOEStrategy
 

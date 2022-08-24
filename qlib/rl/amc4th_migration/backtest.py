@@ -19,7 +19,7 @@ from qlib.backtest.executor import BaseExecutor, NestedExecutor, SimulatorExecut
 from qlib.backtest.high_performance_ds import BaseOrderIndicator
 from qlib.rl.amc4th_migration.naive_config_parser import convert_instance_config, get_backtest_config_fromfile
 from qlib.rl.amc4th_migration.utils import read_order_file
-from qlib.rl.order_execution.integration import init_qlib
+from qlib.rl.data.integration import init_qlib
 from qlib.rl.utils.env_wrapper import CollectDataEnvWrapper
 
 
