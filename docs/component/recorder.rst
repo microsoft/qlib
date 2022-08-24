@@ -107,7 +107,7 @@ Here is a simple example of what is done in ``SigAnaRecord``, which users can re
 
 - ``PortAnaRecord``: This class generates the results of `backtest`. The detailed information about `backtest` as well as the available `strategy`, users can refer to `Strategy <../component/strategy.html>`_ and `Backtest <../component/backtest.html>`_.
 
-Here is a simple exampke of what is done in ``PortAnaRecord``, which users can refer to if they want to do backtest based on their own prediction and label.
+Here is a simple example of what is done in ``PortAnaRecord``, which users can refer to if they want to do backtest based on their own prediction and label.
 
 .. code-block:: Python
 
