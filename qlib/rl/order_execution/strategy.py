@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import collections
 from types import GeneratorType
-from typing import Any, Union, cast, Dict, Generator
+from typing import Any, Optional, Union, cast, Dict, Generator
 
 import pandas as pd
 
