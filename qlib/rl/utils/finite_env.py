@@ -11,13 +11,14 @@ from __future__ import annotations
 import copy
 import warnings
 from contextlib import contextmanager
-from typing import Any, Callable, cast, Dict, Generator, List, Optional, Set, Tuple, Type, Union
+from typing import Any, Callable, Dict, Generator, List, Optional, Set, Tuple, Type, Union, cast
 
 import gym
 import numpy as np
 from tianshou.env import BaseVectorEnv, DummyVectorEnv, ShmemVectorEnv, SubprocVectorEnv
 
 from qlib.typehint import Literal
+
 from .log import LogWriter
 
 __all__ = [
