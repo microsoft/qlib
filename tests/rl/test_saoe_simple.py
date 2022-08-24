@@ -146,7 +146,7 @@ def test_interpreter():
     class EmulateEnvWrapper(NamedTuple):
         status: EnvWrapperStatus
 
-    interpreter = FullHistoryStateInterpreter(FEATURE_DATA_DIR, 13, 390, 5)
+    interpreter = FullHistoryStateInterpreter(13, 390, 5, FEATURE_DATA_DIR)
     interpreter_step = CurrentStepStateInterpreter(13)
     interpreter_action = CategoricalActionInterpreter(20)
     interpreter_action_twap = TwapRelativeActionInterpreter()
@@ -225,7 +225,7 @@ def test_network_sanity():
     class EmulateEnvWrapper(NamedTuple):
         status: EnvWrapperStatus
 
-    interpreter = FullHistoryStateInterpreter(FEATURE_DATA_DIR, 13, 390, 5)
+    interpreter = FullHistoryStateInterpreter(13, 390, 5, FEATURE_DATA_DIR)
     action_interp = CategoricalActionInterpreter(13)
 
     wrapper_status_kwargs = dict(initial_state=order, obs_history=[], action_history=[], reward_history=[])
@@ -253,7 +253,7 @@ def test_twap_strategy(finite_env_type):
     orders = pickle_styled.load_orders(ORDER_DIR)
     assert len(orders) == 248
 
-    state_interp = FullHistoryStateInterpreter(FEATURE_DATA_DIR, 13, 390, 5)
+    state_interp = FullHistoryStateInterpreter(13, 390, 5, FEATURE_DATA_DIR)
     action_interp = TwapRelativeActionInterpreter()
     policy = AllOne(state_interp.observation_space, action_interp.action_space)
     csv_writer = CsvWriter(Path(__file__).parent / ".output")
@@ -282,7 +282,7 @@ def test_cn_ppo_strategy():
     orders = pickle_styled.load_orders(CN_ORDER_DIR, start_time=pd.Timestamp("9:31"), end_time=pd.Timestamp("14:58"))
     assert len(orders) == 40
 
-    state_interp = FullHistoryStateInterpreter(CN_FEATURE_DATA_DIR, 8, 240, 6)
+    state_interp = FullHistoryStateInterpreter(8, 240, 6, CN_FEATURE_DATA_DIR)
     action_interp = CategoricalActionInterpreter(4)
     network = Recurrent(state_interp.observation_space)
     policy = PPO(network, state_interp.observation_space, action_interp.action_space, 1e-4)
@@ -313,7 +313,7 @@ def test_ppo_train():
     orders = pickle_styled.load_orders(CN_ORDER_DIR, start_time=pd.Timestamp("9:31"), end_time=pd.Timestamp("14:58"))
     assert len(orders) == 40
 
-    state_interp = FullHistoryStateInterpreter(CN_FEATURE_DATA_DIR, 8, 240, 6)
+    state_interp = FullHistoryStateInterpreter(8, 240, 6, CN_FEATURE_DATA_DIR)
     action_interp = CategoricalActionInterpreter(4)
     network = Recurrent(state_interp.observation_space)
     policy = PPO(network, state_interp.observation_space, action_interp.action_space, 1e-4)

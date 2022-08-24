@@ -57,8 +57,6 @@ class FullHistoryStateInterpreter(StateInterpreter[SAOEState, FullHistoryObs]):
 
     Parameters
     ----------
-    data_dir
-        Path to load data after feature engineering.
     max_step
         Total number of steps (an upper-bound estimation). For example, 390min / 30min-per-step = 13 steps.
     data_ticks
@@ -66,9 +64,12 @@ class FullHistoryStateInterpreter(StateInterpreter[SAOEState, FullHistoryObs]):
         the total ticks is the length of day in minutes.
     data_dim
         Number of dimensions in data.
+    data_dir
+        Path to load data after feature engineering. It is optional since in some cases we do not need explicit
+        path to load data. For example, the data has already been preloaded in `init_qlib()`.
     """
 
-    def __init__(self, data_dir: Path, max_step: int, data_ticks: int, data_dim: int) -> None:
+    def __init__(self, max_step: int, data_ticks: int, data_dim: int, data_dir: Path = None) -> None:
         self.data_dir = data_dir
         self.max_step = max_step
         self.data_ticks = data_ticks
@@ -96,15 +97,15 @@ class FullHistoryStateInterpreter(StateInterpreter[SAOEState, FullHistoryObs]):
             FullHistoryObs,
             canonicalize(
                 {
-                    "data_processed": self._mask_future_info(processed.today, state.cur_time),
-                    "data_processed_prev": processed.yesterday,
-                    "acquiring": state.order.direction == state.order.BUY,
-                    "cur_tick": min(int(np.sum(state.ticks_index < state.cur_time)), self.data_ticks - 1),
-                    "cur_step": min(self.env.status["cur_step"], self.max_step - 1),
-                    "num_step": self.max_step,
-                    "target": state.order.amount,
-                    "position": state.position,
-                    "position_history": position_history[: self.max_step],
+                    "data_processed": np.array(self._mask_future_info(processed.today, state.cur_time)),
+                    "data_processed_prev": np.array(processed.yesterday),
+                    "acquiring": _to_int32(state.order.direction == state.order.BUY),
+                    "cur_tick": _to_int32(min(int(np.sum(state.ticks_index < state.cur_time)), self.data_ticks - 1)),
+                    "cur_step": _to_int32(min(self.env.status["cur_step"], self.max_step - 1)),
+                    "num_step": _to_int32(self.max_step),
+                    "target": _to_float32(state.order.amount),
+                    "position": _to_float32(state.position),
+                    "position_history": _to_float32(position_history[: self.max_step]),
                 },
             ),
         )
@@ -186,10 +187,11 @@ class CategoricalActionInterpreter(ActionInterpreter[SAOEState, int, float]):
         i.e., $[0, 1/n, 2/n, \\ldots, n/n]$.
     """
 
-    def __init__(self, values: int | List[float]) -> None:
+    def __init__(self, values: int | List[float], max_step: int = None) -> None:
         if isinstance(values, int):
             values = [i / values for i in range(0, values + 1)]
         self.action_values = values
+        self.max_step = max_step
 
     @property
     def action_space(self) -> spaces.Discrete:
@@ -197,7 +199,11 @@ class CategoricalActionInterpreter(ActionInterpreter[SAOEState, int, float]):
 
     def interpret(self, state: SAOEState, action: int) -> float:
         assert 0 <= action < len(self.action_values)
-        return min(state.position, state.order.amount * self.action_values[action])
+        assert self.env is not None
+        if self.max_step is not None and self.env.status["cur_step"] >= self.max_step - 1:
+            return state.position
+        else:
+            return min(state.position, state.order.amount * self.action_values[action])
 
 
 class TwapRelativeActionInterpreter(ActionInterpreter[SAOEState, float, float]):
@@ -218,3 +224,11 @@ class TwapRelativeActionInterpreter(ActionInterpreter[SAOEState, float, float]):
         estimated_total_steps = math.ceil(len(state.ticks_for_order) / state.ticks_per_step)
         twap_volume = state.position / (estimated_total_steps - self.env.status["cur_step"])
         return min(state.position, twap_volume * action)
+
+
+def _to_int32(val):
+    return np.array(int(val), dtype=np.int32)
+
+
+def _to_float32(val):
+    return np.array(val, dtype=np.float32)

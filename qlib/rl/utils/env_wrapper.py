@@ -249,3 +249,24 @@ class EnvWrapper(
 
     def render(self, mode: str = "human") -> None:
         raise NotImplementedError("Render is not implemented in EnvWrapper.")
+
+
+class CollectDataEnvWrapper:
+    """Dummy EnvWrapper for collect_data_loop. It only has minimium interfaces to support the collect_data_loop."""
+
+    def __init__(self) -> None:
+        self.status: EnvWrapperStatus = cast(EnvWrapperStatus, None)
+        self.reset()
+
+    def reset(self, **kwargs: Any) -> None:
+        self.status = EnvWrapperStatus(
+            cur_step=0,
+            done=False,
+            initial_state=None,
+            obs_history=[],
+            action_history=[],
+            reward_history=[],
+        )
+
+    def step(self, policy_action: Any = None, **kwargs: Any) -> None:
+        self.status["cur_step"] += 1

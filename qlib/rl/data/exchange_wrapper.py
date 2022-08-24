@@ -5,12 +5,12 @@ from typing import cast
 
 import cachetools
 import pandas as pd
-
 from qlib.backtest import Exchange, Order
 from qlib.backtest.decision import TradeRange, TradeRangeByTime
-from qlib.constant import ONE_DAY, EPS_T
+from qlib.constant import EPS_T, ONE_DAY
 from qlib.rl.order_execution.utils import get_ticks_slice
 from qlib.utils.index_data import IndexData
+
 from .pickle_styled import BaseIntradayBacktestData
 
 

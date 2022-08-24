@@ -13,8 +13,8 @@ from qlib.constant import EPS, ONE_MIN, REG_CN
 from qlib.rl.data.exchange_wrapper import IntradayBacktestData
 from qlib.rl.data.pickle_styled import BaseIntradayBacktestData
 from qlib.rl.order_execution.utils import dataframe_append, price_advantage
+from qlib.typehint import TypedDict
 from qlib.utils.time import get_day_min_idx_range
-from typing_extensions import TypedDict
 
 
 def _get_all_timestamps(

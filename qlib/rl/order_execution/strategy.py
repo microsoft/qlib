@@ -4,18 +4,25 @@
 from __future__ import annotations
 
 import collections
+from abc import ABCMeta
 from types import GeneratorType
-from typing import Any, Optional, Union, cast, Dict, Generator
+from typing import Any, cast, Dict, Generator, List, Optional, Union
 
 import pandas as pd
-
-from qlib.backtest import CommonInfrastructure, Order
+import torch
+from qlib.backtest import CommonInfrastructure, Exchange, Order
 from qlib.backtest.decision import BaseTradeDecision, TradeDecisionWO, TradeRange
 from qlib.backtest.utils import LevelInfrastructure
 from qlib.constant import ONE_MIN
 from qlib.rl.data.exchange_wrapper import load_qlib_backtest_data
-from qlib.rl.order_execution.state import SAOEStateAdapter, SAOEState
-from qlib.strategy.base import RLStrategy
+from qlib.rl.interpreter import ActionInterpreter, StateInterpreter
+from qlib.rl.order_execution.state import SAOEState, SAOEStateAdapter
+from qlib.rl.utils import EnvWrapper
+from qlib.rl.utils.env_wrapper import CollectDataEnvWrapper
+from qlib.strategy.base import BaseStrategy, RLStrategy
+from qlib.utils import init_instance_by_config
+from tianshou.data import Batch
+from tianshou.policy import BasePolicy
 
 
 class SAOEStrategy(RLStrategy):
@@ -106,7 +113,10 @@ class SAOEStrategy(RLStrategy):
 
         return decision
 
-    def _generate_trade_decision(self, execute_result: list = None) -> Generator[Any, Any, BaseTradeDecision]:
+    def _generate_trade_decision(
+        self,
+        execute_result: list = None,
+    ) -> Union[BaseTradeDecision, Generator[Any, Any, BaseTradeDecision]]:
         raise NotImplementedError
 
 
@@ -146,3 +156,177 @@ class ProxySAOEStrategy(SAOEStrategy):
             order_list = outer_trade_decision.order_list
             assert len(order_list) == 1
             self._order = order_list[0]
+
+
+class SAOEIntStrategy(SAOEStrategy):
+    """(SAOE)state based strategy with (Int)preters."""
+
+    def __init__(
+        self,
+        policy: dict | BasePolicy,
+        state_interpreter: dict | StateInterpreter,
+        action_interpreter: dict | ActionInterpreter,
+        network: object = None,  # TODO: add accurate typehint later.
+        outer_trade_decision: BaseTradeDecision = None,
+        level_infra: LevelInfrastructure = None,
+        common_infra: CommonInfrastructure = None,
+        **kwargs: Any,
+    ) -> None:
+        super(SAOEIntStrategy, self).__init__(
+            policy=policy,
+            outer_trade_decision=outer_trade_decision,
+            level_infra=level_infra,
+            common_infra=common_infra,
+            **kwargs,
+        )
+
+        self._state_interpreter: StateInterpreter = init_instance_by_config(
+            state_interpreter,
+            accept_types=StateInterpreter,
+        )
+        self._action_interpreter: ActionInterpreter = init_instance_by_config(
+            action_interpreter,
+            accept_types=ActionInterpreter,
+        )
+
+        if isinstance(policy, dict):
+            assert network is not None
+
+            if isinstance(network, dict):
+                network["kwargs"].update(
+                    {
+                        "obs_space": self._state_interpreter.observation_space,
+                    }
+                )
+                network_inst = init_instance_by_config(network)
+            else:
+                network_inst = network
+
+            policy["kwargs"].update(
+                {
+                    "obs_space": self._state_interpreter.observation_space,
+                    "action_space": self._action_interpreter.action_space,
+                    "network": network_inst,
+                }
+            )
+            self._policy = init_instance_by_config(policy)
+        elif isinstance(policy, BasePolicy):
+            self._policy = policy
+        else:
+            raise ValueError(f"Unsupported policy type: {type(policy)}.")
+
+        if self._policy is not None:
+            self._policy.eval()
+
+    def set_env(self, env: EnvWrapper | CollectDataEnvWrapper) -> None:
+        self._env = env
+        self._state_interpreter.env = self._action_interpreter.env = self._env
+
+    def reset(self, outer_trade_decision: BaseTradeDecision = None, **kwargs: Any) -> None:
+        super().reset(outer_trade_decision=outer_trade_decision, **kwargs)
+
+        if isinstance(self._env, CollectDataEnvWrapper):
+            self._env.reset()
+
+    def _generate_trade_decision(self, execute_result: list = None) -> BaseTradeDecision:
+        states = []
+        obs_batch = []
+        for decision in self.outer_trade_decision.get_decision():
+            order = cast(Order, decision)
+            state = self.get_saoe_state_by_order(order)
+
+            states.append(state)
+            obs_batch.append({"obs": self._state_interpreter.interpret(state)})
+
+        with torch.no_grad():
+            policy_out = self._policy(Batch(obs_batch))
+        act = policy_out.act.numpy() if torch.is_tensor(policy_out.act) else policy_out.act
+        exec_vols = [self._action_interpreter.interpret(s, a) for s, a in zip(states, act)]
+
+        if isinstance(self._env, CollectDataEnvWrapper):
+            self._env.step(None)
+
+        oh = self.trade_exchange.get_order_helper()
+        order_list = []
+        for decision, exec_vol in zip(self.outer_trade_decision.get_decision(), exec_vols):
+            if exec_vol != 0:
+                order = cast(Order, decision)
+                order_list.append(oh.create(order.stock_id, exec_vol, order.direction))
+
+        return TradeDecisionWO(order_list=order_list, strategy=self)
+
+
+class MultiplexStrategyBase(BaseStrategy, metaclass=ABCMeta):
+    def __init__(
+        self,
+        strategies: List[BaseStrategy] | List[dict],
+        outer_trade_decision: BaseTradeDecision = None,
+        level_infra: LevelInfrastructure = None,
+        common_infra: CommonInfrastructure = None,
+        trade_exchange: Exchange = None,
+    ) -> None:
+        super().__init__(
+            outer_trade_decision=outer_trade_decision,
+            level_infra=level_infra,
+            common_infra=common_infra,
+            trade_exchange=trade_exchange,
+        )
+
+        self._strategies = [init_instance_by_config(strategy, accept_types=BaseStrategy) for strategy in strategies]
+
+    def set_env(self, env: EnvWrapper | CollectDataEnvWrapper) -> None:
+        for strategy in self._strategies:
+            if hasattr(strategy, "set_env"):
+                strategy.set_env(env)
+
+
+class MultiplexStrategyOnTradeStep(MultiplexStrategyBase):
+    """To use different strategy on different step of the outer calendar"""
+
+    def __init__(
+        self,
+        strategies: List[BaseStrategy] | List[dict],
+        outer_trade_decision: BaseTradeDecision = None,
+        level_infra: LevelInfrastructure = None,
+        common_infra: CommonInfrastructure = None,
+        trade_exchange: Exchange = None,
+    ) -> None:
+        super(MultiplexStrategyOnTradeStep, self).__init__(
+            strategies=strategies,
+            outer_trade_decision=outer_trade_decision,
+            level_infra=level_infra,
+            common_infra=common_infra,
+            trade_exchange=trade_exchange,
+        )
+
+    def reset_level_infra(self, level_infra: LevelInfrastructure) -> None:
+        for strategy in self._strategies:
+            strategy.reset_level_infra(level_infra)
+
+    def reset_common_infra(self, common_infra: CommonInfrastructure) -> None:
+        for strategy in self._strategies:
+            strategy.reset_common_infra(common_infra)
+
+    def reset(self, outer_trade_decision: BaseTradeDecision = None, **kwargs: Any) -> None:
+        super().reset(outer_trade_decision=outer_trade_decision, **kwargs)
+
+        if outer_trade_decision is not None:
+            strategy = self._get_current_strategy()
+            strategy.reset(outer_trade_decision=outer_trade_decision, **kwargs)
+
+    def generate_trade_decision(self, execute_result: list = None) -> BaseTradeDecision:
+        if self.outer_trade_decision is not None:
+            strategy = self._get_current_strategy()
+            return strategy.generate_trade_decision(execute_result=execute_result)
+        else:
+            return TradeDecisionWO([], self)
+
+    def post_exe_step(self, execute_result: list) -> None:
+        if self.outer_trade_decision is not None:
+            strategy = self._get_current_strategy()
+            if isinstance(strategy, RLStrategy):
+                strategy.post_exe_step(execute_result=execute_result)
+
+    def _get_current_strategy(self) -> BaseStrategy:
+        outer_calendar = self.outer_trade_decision.strategy.trade_calendar
+        return self._strategies[outer_calendar.get_trade_step()]
