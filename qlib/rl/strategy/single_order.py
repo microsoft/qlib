@@ -12,7 +12,7 @@ class SingleOrderStrategy(BaseStrategy):
     def __init__(
         self,
         order: Order,
-        trade_range: TradeRange,
+        trade_range: TradeRange = None,
     ) -> None:
         super().__init__()
 

@@ -9,10 +9,11 @@ import pandas as pd
 from qlib.backtest import collect_data_loop, get_strategy_executor
 from qlib.backtest.decision import Order
 from qlib.backtest.executor import NestedExecutor
-from qlib.rl.integration.feature import init_qlib
-from qlib.rl.order_execution.state import SAOEStateAdapter, SAOEState
-from qlib.rl.order_execution.strategy import SAOEStrategy
 from qlib.rl.simulator import Simulator
+
+from .integration import init_qlib
+from .state import SAOEState, SAOEStateAdapter
+from .strategy import SAOEStrategy
 
 
 class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):

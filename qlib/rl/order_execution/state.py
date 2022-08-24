@@ -37,7 +37,10 @@ def _get_all_timestamps(
 
 class SAOEStateAdapter:
     """
-    Maintain states of the environment.
+    Maintain states of the environment. SAOEStateAdapter accepts execution results and update its internal state
+    according to the execution results with additional information acquired from executors & exchange. For example,
+    it gets the dealt order amount from execution results, and get the corresponding market price / volume from
+    exchange.
 
     Example usage::
 
