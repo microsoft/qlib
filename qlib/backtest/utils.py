@@ -3,9 +3,8 @@
 
 from __future__ import annotations
 
-import bisect
 from abc import abstractmethod
-from typing import TYPE_CHECKING, Any, Set, Tuple, Union
+from typing import Any, Set, Tuple, TYPE_CHECKING, Union
 
 import numpy as np
 
@@ -184,8 +183,8 @@ class TradeCalendarManager:
         Tuple[int, int]:
             the index of the range.  **the left and right are closed**
         """
-        left = bisect.bisect_right(list(self._calendar), start_time) - 1
-        right = bisect.bisect_right(list(self._calendar), end_time) - 1
+        left = np.searchsorted(self._calendar, start_time, side="right") - 1
+        right = np.searchsorted(self._calendar, end_time, side="right") - 1
         left -= self.start_index
         right -= self.start_index
 
@@ -248,7 +247,7 @@ class LevelInfrastructure(BaseInfrastructure):
         sub_level_infra:
         - **NOTE**: this will only work after _init_sub_trading !!!
         """
-        return {"trade_calendar", "sub_level_infra", "common_infra"}
+        return {"trade_calendar", "sub_level_infra", "common_infra", "executor"}
 
     def reset_cal(
         self,

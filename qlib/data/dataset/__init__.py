@@ -615,4 +615,4 @@ class TSDatasetH(DatasetH):
         return tsds
 
 
-__all__ = ["Optional"]
+__all__ = ["Optional", "Dataset", "DatasetH"]

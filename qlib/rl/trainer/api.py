@@ -3,17 +3,17 @@
 
 from __future__ import annotations
 
-from typing import Callable, Sequence, cast, Any
+from typing import Any, Callable, Sequence, cast
 
 from tianshou.policy import BasePolicy
 
-from qlib.rl.simulator import InitialStateType, Simulator
-from qlib.rl.interpreter import StateInterpreter, ActionInterpreter
+from qlib.rl.interpreter import ActionInterpreter, StateInterpreter
 from qlib.rl.reward import Reward
+from qlib.rl.simulator import InitialStateType, Simulator
 from qlib.rl.utils import FiniteEnvType, LogWriter
 
-from .vessel import TrainingVessel
 from .trainer import Trainer
+from .vessel import TrainingVessel
 
 
 def train(
