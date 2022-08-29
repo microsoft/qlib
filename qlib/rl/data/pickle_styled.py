@@ -258,6 +258,17 @@ def load_intraday_processed_data(
     return IntradayProcessedData(data_dir, stock_id, date, feature_dim, time_index)
 
 
+class TeacherActionData:
+    teacher_action: pd.DataFrame
+
+    def __init__(self, teacher_action_file: Path, stock_id: str, date: pd.Timestamp) -> None:  # type: ignore
+        self.teacher_action = pd.read_pickle(teacher_action_file).loc[pd.IndexSlice[stock_id, date]]  # type: ignore
+
+
+def load_teacher_action_data(teacher_action_file: Path, stock_id: str, date: pd.Timestamp) -> TeacherActionData:  # type: ignore
+    return TeacherActionData(teacher_action_file, stock_id, date)
+
+
 def load_orders(
     order_path: Path,
     start_time: pd.Timestamp = None,

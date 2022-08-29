@@ -52,6 +52,10 @@ class FullHistoryObs(TypedDict):
     position_history: Any
 
 
+class OPDObs(FullHistoryObs):
+    teacher_action: Any
+
+
 class FullHistoryStateInterpreter(StateInterpreter[SAOEState, FullHistoryObs]):
     """The observation of all the history, including today (until this moment), and yesterday.
 
@@ -130,6 +134,105 @@ class FullHistoryStateInterpreter(StateInterpreter[SAOEState, FullHistoryObs]):
         arr = arr.copy(deep=True)
         arr.loc[current:] = 0.0  # mask out data after this moment (inclusive)
         return arr
+
+
+class OracleObsInterpreter(FullHistoryStateInterpreter):
+    def interpret(self, state: SAOEState) -> FullHistoryObs:
+        processed = pickle_styled.load_intraday_processed_data(
+            self.data_dir,
+            state.order.stock_id,
+            pd.Timestamp(state.order.start_time.date()),
+            self.data_dim,
+            state.ticks_index,
+        )
+
+        position_history = np.full(self.max_step + 1, 0.0, dtype=np.float32)
+        position_history[0] = state.order.amount
+        position_history[1 : len(state.history_steps) + 1] = state.history_steps["position"].to_numpy()
+
+        assert self.env is not None
+
+        return cast(
+            FullHistoryObs,
+            canonicalize(
+                {
+                    "data_processed": processed.today,
+                    "data_processed_prev": processed.yesterday,
+                    "acquiring": state.order.direction == state.order.BUY,
+                    "cur_tick": min(int(np.sum(state.ticks_index < state.cur_time)), self.data_ticks - 1),
+                    "cur_step": min(self.env.status["cur_step"], self.max_step - 1),
+                    "num_step": self.max_step,
+                    "target": state.order.amount,
+                    "position": state.position,
+                    "position_history": position_history[: self.max_step],
+                },
+            ),
+        )
+
+
+class OPDObsInterpreter(FullHistoryStateInterpreter):
+    def __init__(
+        self, data_dir: Path, max_step: int, data_ticks: int, data_dim: int, teacher_action_file: Path
+    ) -> None:
+        super().__init__(data_dir, max_step, data_ticks, data_dim)
+        self.teacher_action_file = teacher_action_file
+
+    def interpret(self, state: SAOEState) -> OPDObs:
+        processed = pickle_styled.load_intraday_processed_data(
+            self.data_dir,
+            state.order.stock_id,
+            pd.Timestamp(state.order.start_time.date()),
+            self.data_dim,
+            state.ticks_index,
+        )
+
+        position_history = np.full(self.max_step + 1, 0.0, dtype=np.float32)
+        position_history[0] = state.order.amount
+        position_history[1 : len(state.history_steps) + 1] = state.history_steps["position"].to_numpy()
+
+        teacher_action = pickle_styled.load_teacher_action_data(
+            self.teacher_action_file, state.order.stock_id, pd.Timestamp(state.order.start_time.date())
+        ).teacher_action
+
+        assert self.env is not None
+
+        # The min, slice here are to make sure that indices fit into the range,
+        # even after the final step of the simulator (in the done step),
+        # to make network in policy happy.
+        return cast(
+            OPDObs,
+            canonicalize(
+                {
+                    "data_processed": self._mask_future_info(processed.today, state.cur_time),
+                    "data_processed_prev": processed.yesterday,
+                    "acquiring": state.order.direction == state.order.BUY,
+                    "cur_tick": min(int(np.sum(state.ticks_index < state.cur_time)), self.data_ticks - 1),
+                    "cur_step": min(self.env.status["cur_step"], self.max_step - 1),
+                    "num_step": self.max_step,
+                    "target": state.order.amount,
+                    "position": state.position,
+                    "position_history": position_history[: self.max_step],
+                    "teacher_action": teacher_action.values[self.env.status["cur_step"]],
+                },
+            ),
+        )
+
+    @property
+    def observation_space(self) -> spaces.Dict:
+        space = {
+            "data_processed": spaces.Box(-np.inf, np.inf, shape=(self.data_ticks, self.data_dim)),
+            "data_processed_prev": spaces.Box(-np.inf, np.inf, shape=(self.data_ticks, self.data_dim)),
+            "acquiring": spaces.Discrete(2),
+            "cur_tick": spaces.Box(0, self.data_ticks - 1, shape=(), dtype=np.int32),
+            "cur_step": spaces.Box(0, self.max_step - 1, shape=(), dtype=np.int32),
+            # TODO: support arbitrary length index
+            "num_step": spaces.Box(self.max_step, self.max_step, shape=(), dtype=np.int32),
+            "target": spaces.Box(-EPS, np.inf, shape=()),
+            "position": spaces.Box(-EPS, np.inf, shape=()),
+            "position_history": spaces.Box(-EPS, np.inf, shape=(self.max_step,)),
+            "teacher_action": spaces.Box(-EPS, np.inf, shape=()),
+        }
+        return spaces.Dict(space)
 
 
 class CurrentStateObs(TypedDict):
