@@ -1569,6 +1569,7 @@ class TResample(ElemOperator):
 
 TOpsList = [TResample]
 OpsList = [
+    ChangeInstrument,
     Rolling,
     Ref,
     Max,
