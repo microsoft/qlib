@@ -107,7 +107,6 @@ class TestCategoryData(unittest.TestCase):
             csv_path=str(SOURCE_DATA_DIR_ALL.resolve()),
             qlib_dir=str(QLIB_DIR.resolve()),
             exclude_fields="symbol,date",
-            is_convert_category=True,
         )()
 
     @classmethod
@@ -130,7 +129,6 @@ class TestCategoryData(unittest.TestCase):
             csv_path=str(SOURCE_DATA_DIR_FIX.resolve()),
             qlib_dir=str(QLIB_DIR.resolve()),
             exclude_fields="symbol,date",
-            is_convert_category=True,
         )()
         self.reinit_qlib()
         dump_fix_df = D.features(self.INSTRUMENTS, self.FIELD)
@@ -152,7 +150,6 @@ class TestCategoryData(unittest.TestCase):
             csv_path=str(SOURCE_DATA_DIR_UPDATE.resolve()),
             qlib_dir=str(QLIB_DIR.resolve()),
             exclude_fields="symbol,date",
-            is_convert_category=True,
         )()
         self.reinit_qlib()
         dump_update_df = D.features(self.INSTRUMENTS, self.FIELD)

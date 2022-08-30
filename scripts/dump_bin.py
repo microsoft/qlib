@@ -47,7 +47,6 @@ class DumpDataBase:
         exclude_fields: str = "",
         include_fields: str = "",
         limit_nums: int = None,
-        is_convert_category: bool = False,
     ):
         """
 
@@ -75,8 +74,6 @@ class DumpDataBase:
             fields not dumped
         limit_nums: int
             Use when debugging, default None
-        is_convert_category:
-            If True, convert the value to a category index
         """
         csv_path = Path(csv_path).expanduser()
         if isinstance(exclude_fields, str):
@@ -110,8 +107,6 @@ class DumpDataBase:
 
         self._mode = self.ALL_MODE
         self._kwargs = {}
-
-        self.is_convert_category = is_convert_category
 
     def _load_all_source_data(self):
         # NOTE: Need more memory
@@ -166,8 +161,7 @@ class DumpDataBase:
         df = pd.read_csv(str(file_path.resolve()), low_memory=False)
         df[self.date_field_name] = df[self.date_field_name].astype(str).astype(np.datetime64)
         # df.drop_duplicates([self.date_field_name], inplace=True)
-        if self.is_convert_category:
-            df = self.convert_category_field_values(df)
+        df = self.convert_category_field_values(df)
         return df
 
     def get_symbol_from_file(self, file_path: Path) -> str:
@@ -295,11 +289,10 @@ class DumpDataBase:
         raise NotImplementedError("dump not implemented!")
 
     def __call__(self, *args, **kwargs):
-        if self.is_convert_category:
-            self.dump_category()
+        self.dump_category()
         self.dump()
 
-    def get_category_field(self, df: pd.DataFrame) -> List[str]:
+    def _get_category_field(self, df: pd.DataFrame) -> List[str]:
         return [
             field
             for field in self.get_dump_fields(df.columns)
@@ -311,7 +304,7 @@ class DumpDataBase:
         self._category_dir.mkdir(parents=True, exist_ok=True)
         df = self._load_all_source_data()
         df = df.convert_dtypes(infer_objects=False, convert_string=True)
-        for field in self.get_category_field(df):
+        for field in self._get_category_field(df):
             if df[field].dtype != "string":
                 continue
             cat_path = self._category_dir / f"{field}{self.CATEGORY_FILE_SUFFIX}"
@@ -332,7 +325,7 @@ class DumpDataBase:
         logger.info("end of dump category.\n")
 
     def convert_category_field_values(self, df: pd.DataFrame) -> pd.DataFrame:
-        for field in self.get_category_field(df):
+        for field in self._get_category_field(df):
             cat_path = self._category_dir / f"{field}{self.CATEGORY_FILE_SUFFIX}"
             cat_array = np.loadtxt(cat_path, dtype=np.str, encoding="utf-8")
 
@@ -443,7 +436,6 @@ class DumpDataUpdate(DumpDataBase):
         exclude_fields: str = "",
         include_fields: str = "",
         limit_nums: int = None,
-        is_convert_category: bool = False,
     ):
         """
 
@@ -483,7 +475,6 @@ class DumpDataUpdate(DumpDataBase):
             symbol_field_name,
             exclude_fields,
             include_fields,
-            is_convert_category,
         )
         self._mode = self.UPDATE_MODE
         self._old_calendar_list = self._read_calendars(self._calendars_dir.joinpath(f"{self.freq}.txt"))
@@ -496,9 +487,7 @@ class DumpDataUpdate(DumpDataBase):
         )  # type: dict
 
         # load all csv files
-        self._all_data = self._load_all_source_data()  # type: pd.DataFrame
-        if is_convert_category:
-            self._all_data = self.convert_category_field_values(self._all_data)
+        self._all_data = self.convert_category_field_values(self._load_all_source_data())  # type: pd.DataFrame
         self._new_calendar_list = self._old_calendar_list + sorted(
             filter(lambda x: x > self._old_calendar_list[-1], self._all_data[self.date_field_name].unique())
         )
