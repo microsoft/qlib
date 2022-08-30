@@ -6,6 +6,7 @@ import pandas as pd
 
 import qlib
 from qlib.data import D
+from qlib.tests.utils import check_df_equal
 from scripts.dump_bin import DumpDataAll, DumpDataFix, DumpDataUpdate
 
 
@@ -113,13 +114,6 @@ class TestCategoryData(unittest.TestCase):
     def tearDownClass(cls) -> None:
         shutil.rmtree(str(TEST_DATA_DIR.resolve()))
 
-    @staticmethod
-    def to_str(df):
-        return "".join(str(df).split())
-
-    def assert_eq(self, a, b):
-        self.assertEqual(self.to_str(a), self.to_str(b))
-
     def test_dump_data(self) -> None:
         fields = self.FIELD + ["Cat($name)", "Cat($industry)"]
         dump_all_df = D.features(self.INSTRUMENTS, fields)
@@ -132,7 +126,7 @@ class TestCategoryData(unittest.TestCase):
                    2022-08-04  1890.000000  1916.010010    0.0        0.0       贵州茅台           食品饮料
                    2022-08-05  1927.800049  1923.959961    0.0        0.0       贵州茅台           食品饮料
         """
-        self.assert_eq(dump_all_df, except_dump_all_df)
+        self.assertTrue(check_df_equal(dump_all_df, except_dump_all_df))
         DumpDataFix(
             csv_path=str(SOURCE_DATA_DIR_FIX.resolve()),
             qlib_dir=str(QLIB_DIR.resolve()),
@@ -154,7 +148,7 @@ class TestCategoryData(unittest.TestCase):
                    2022-08-03    75.000000    70.910004    2.0        1.0        赛力斯             汽车
                    2022-08-04    71.080002    68.099998    2.0        1.0        赛力斯             汽车
         """
-        self.assert_eq(dump_fix_df, except_dump_fix_df)
+        self.assertTrue(check_df_equal(dump_fix_df, except_dump_fix_df))
         DumpDataUpdate(
             csv_path=str(SOURCE_DATA_DIR_UPDATE.resolve()),
             qlib_dir=str(QLIB_DIR.resolve()),
@@ -177,7 +171,7 @@ class TestCategoryData(unittest.TestCase):
                    2022-08-04    71.080002    68.099998    2.0        1.0        赛力斯             汽车
                    2022-08-05    68.110001    67.379997    2.0        1.0        赛力斯             汽车
         """
-        self.assert_eq(dump_update_df, except_dump_update_df)
+        self.assertTrue(check_df_equal(dump_update_df, except_dump_update_df))
 
     def test_base_opt(self):
         fields = self.FIELD + ["Cat($name)", "Ref(Cat($name), 1)"]
@@ -191,7 +185,7 @@ class TestCategoryData(unittest.TestCase):
                    2022-08-04  1890.000000  1916.010010    0.0        0.0       贵州茅台               贵州茅台
                    2022-08-05  1927.800049  1923.959961    0.0        0.0       贵州茅台               贵州茅台
         """
-        self.assert_eq(df, except_df)
+        self.assertTrue(check_df_equal(df, except_df))
 
     def test_np_opt(self):
         fields = self.FIELD + ["Cat($name)", "Abs(Cat($name))"]
