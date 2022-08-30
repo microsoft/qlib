@@ -135,6 +135,21 @@ class Order:
         else:
             raise NotImplementedError(f"This type of input is not supported")
 
+    @property
+    def key_by_day(self) -> tuple:
+        """A hashable & unique key to identify this order, under the granularity in day."""
+        return self.stock_id, self.date, self.direction
+
+    @property
+    def key(self) -> tuple:
+        """A hashable & unique key to identify this order."""
+        return self.stock_id, self.start_time, self.end_time, self.direction
+
+    @property
+    def date(self) -> pd.Timestamp:
+        """Date of the order."""
+        return pd.Timestamp(self.start_time.replace(hour=0, minute=0, second=0))
+
 
 class OrderHelper:
     """

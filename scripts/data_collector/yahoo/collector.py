@@ -143,7 +143,7 @@ class YahooCollector(BaseCollector):
                 _show_logging_func()
         except Exception as e:
             logger.warning(
-                f"get data error: {symbol}--{start_}--{end_}"
+                f"get data error: {symbol}--{start}--{end}"
                 + "Your data request fails. This may be caused by your firewall (e.g. GFW). Please switch your network if you want to access Yahoo! data"
             )
 

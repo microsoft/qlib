@@ -345,4 +345,4 @@ def format_decisions(
     return res
 
 
-__all__ = ["Order", "backtest"]
+__all__ = ["Order", "backtest", "get_strategy_executor"]

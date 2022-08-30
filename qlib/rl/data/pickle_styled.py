@@ -86,7 +86,7 @@ def _read_pickle(filename_without_suffix: Path) -> pd.DataFrame:
     return pd.read_pickle(_find_pickle(filename_without_suffix))
 
 
-class IntradayBacktestData:
+class BaseIntradayBacktestData:
     """
     Raw market data that is often used in backtesting (thus called BacktestData).
 
@@ -115,7 +115,7 @@ class IntradayBacktestData:
         raise NotImplementedError
 
 
-class SimpleIntradayBacktestData(IntradayBacktestData):
+class SimpleIntradayBacktestData(BaseIntradayBacktestData):
     """Backtest data for simple simulator"""
 
     def __init__(
