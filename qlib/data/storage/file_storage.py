@@ -3,7 +3,7 @@
 
 import struct
 from pathlib import Path
-from typing import Iterable, Union, Dict, Mapping, Tuple, List
+from typing import Iterable, Union, Dict, Mapping, Tuple, List, Optional
 
 import numpy as np
 import pandas as pd
@@ -285,10 +285,50 @@ class FileInstrumentStorage(FileStorageMixin, InstrumentStorage):
 
 
 class FileFeatureStorage(FileStorageMixin, FeatureStorage):
+    CATEGORIES_DIR_NAME = "categories"
+    CATEGORY_FILE_SUFFIX = ".txt"
+
+    BIN_FIELD_TYPE = "float32"
+    CAT_FIELD_TYPE = "category"
+
     def __init__(self, instrument: str, field: str, freq: str, provider_uri: dict = None, **kwargs):
         super(FileFeatureStorage, self).__init__(instrument, field, freq, **kwargs)
         self._provider_uri = None if provider_uri is None else C.DataPathManager.format_provider_uri(provider_uri)
         self.file_name = f"{instrument.lower()}/{field.lower()}.{freq.lower()}.bin"
+
+    @property
+    def field_type(self) -> str:
+        if self.cat_uri.exists():
+            return self.CAT_FIELD_TYPE
+        return self.BIN_FIELD_TYPE
+
+    @property
+    def cat_uri(self) -> Path:
+        """
+        Category file uri.
+        """
+        return (
+            self.dpm.get_data_uri(self.freq)
+            / self.CATEGORIES_DIR_NAME
+            / f"{self.field.lower()}{self.CATEGORY_FILE_SUFFIX}"
+        )
+
+    def _convert_to_category(self, value: Union[pd.Series, float]) -> pd.Series:
+        """Resolve the index of the category into a value."""
+        category_values = self._load_category_values()
+        if isinstance(value, float):
+            value = category_values[int(value)]
+        else:
+            value = value.apply(lambda x: category_values[int(x)] if pd.notnull(x) else x)
+        return value
+
+    def _convert_value(self, value: Union[float, pd.Series]) -> Union[float, str, pd.Series]:
+        """Auto convert raw data."""
+
+        # category field type
+        if self.field_type == self.CAT_FIELD_TYPE:
+            value = self._convert_to_category(value)
+        return value
 
     def clear(self):
         with self.uri.open("wb") as _:
@@ -345,15 +385,14 @@ class FileFeatureStorage(FileStorageMixin, FeatureStorage):
         # The next  data appending index point will be  `end_index + 1`
         return self.start_index + len(self) - 1
 
-    def __getitem__(self, i: Union[int, slice]) -> Union[Tuple[int, float], pd.Series]:
+    def _load_category_values(self) -> np.array:
+        """Load all category values for this field."""
         if not self.uri.exists():
-            if isinstance(i, int):
-                return None, None
-            elif isinstance(i, slice):
-                return pd.Series(dtype=np.float32)
-            else:
-                raise TypeError(f"type(i) = {type(i)}")
+            raise ValueError("Feature `{}` category file not found: {}".format(self.field, self.cat_uri))
+        array = np.loadtxt(self.cat_uri, ndmin=1, dtype=np.str, encoding="utf-8")
+        return array
 
+    def _load_bin_values(self, i: Union[int, slice]) -> Union[int, pd.Series]:
         storage_start_index = self.start_index
         storage_end_index = self.end_index
         with self.uri.open("rb") as fp:
@@ -362,7 +401,7 @@ class FileFeatureStorage(FileStorageMixin, FeatureStorage):
                 if storage_start_index > i:
                     raise IndexError(f"{i}: start index is {storage_start_index}")
                 fp.seek(4 * (i - storage_start_index) + 4)
-                return i, struct.unpack("f", fp.read(4))[0]
+                return struct.unpack("f", fp.read(4))[0]
             elif isinstance(i, slice):
                 start_index = storage_start_index if i.start is None else i.start
                 end_index = storage_end_index if i.stop is None else i.stop - 1
@@ -376,6 +415,23 @@ class FileFeatureStorage(FileStorageMixin, FeatureStorage):
                 return pd.Series(data, index=pd.RangeIndex(si, si + len(data)))
             else:
                 raise TypeError(f"type(i) = {type(i)}")
+
+    def __getitem__(self, i: Union[int, slice]) -> Union[Tuple[Optional[int], Optional[float]], pd.Series]:
+        if not self.uri.exists():
+            if isinstance(i, int):
+                return None, None
+            elif isinstance(i, slice):
+                return pd.Series(dtype=np.float32)
+            else:
+                raise TypeError(f"type(i) = {type(i)}")
+
+        raw_data = self._load_bin_values(i)
+        data = self._convert_value(raw_data)
+
+        if isinstance(i, int):
+            return i, data
+        else:
+            return data
 
     def __len__(self) -> int:
         self.check()

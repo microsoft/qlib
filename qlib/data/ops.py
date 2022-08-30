@@ -5,8 +5,6 @@
 from __future__ import division
 from __future__ import print_function
 
-import pathlib
-
 import numpy as np
 import pandas as pd
 
@@ -36,6 +34,8 @@ np.seterr(invalid="ignore")
 
 
 #################### Element-Wise Operator ####################
+
+FLOAT_DTYPES = (float, np.float, np.float32, np.float64)
 
 
 class ElemOperator(ExpressionOps):
@@ -98,37 +98,6 @@ class ChangeInstrument(ElemOperator):
         return self.feature.load(instrument, start_index, end_index, *args)
 
 
-class Cat(ElemOperator):
-    """Category Operator
-    This operator will resolve the index of the category into a value.
-    """
-
-    CATEGORIES_DIR_NAME = "categories"
-    CATEGORY_FILE_SUFFIX = ".txt"
-
-    def _load_internal(self, instrument, start_index, end_index, *args) -> pd.Series:
-        category_values = self._load_category_values()
-        series = self.feature.load(instrument, start_index, end_index, *args)
-        series = series.apply(lambda x: category_values[int(x)] if pd.notnull(x) else x)
-        return series
-
-    @property
-    def filename(self) -> str:
-        return self.feature._name + self.CATEGORY_FILE_SUFFIX
-
-    @property
-    def uri(self) -> pathlib.Path:
-        from qlib.config import C  # pylint: disable=C0415
-
-        return C.dpm.get_data_uri() / self.CATEGORIES_DIR_NAME / self.filename
-
-    def _load_category_values(self) -> np.array:
-        if not self.uri.exists():
-            raise ValueError("Feature `{}` category file not found: {}".format(self.feature, self.uri))
-        array = np.loadtxt(self.uri, ndmin=1, dtype=np.str, encoding="utf-8")
-        return array
-
-
 class NpElemOperator(ElemOperator):
     """Numpy Element-wise Operator
 
@@ -151,8 +120,8 @@ class NpElemOperator(ElemOperator):
 
     def _load_internal(self, instrument, start_index, end_index, *args):
         series = self.feature.load(instrument, start_index, end_index, *args)
-        if series.dtype != np.float32:
-            raise ValueError("Numpy element-wise operator only support float32 dtype.")
+        if series.dtype not in FLOAT_DTYPES:
+            raise ValueError("Numpy element-wise operator only support float dtype.")
         return getattr(np, self.func)(series)
 
 
@@ -343,12 +312,17 @@ class NpPairOperator(PairOperator):
         assert any(
             [isinstance(self.feature_left, (Expression,)), self.feature_right, Expression]
         ), "at least one of two inputs is Expression instance"
+        dtype_validate_error_msg = "Numpy Pair-wise operator only support float dtype."
         if isinstance(self.feature_left, (Expression,)):
             series_left = self.feature_left.load(instrument, start_index, end_index, *args)
+            if series_left.dtype not in FLOAT_DTYPES:
+                raise ValueError(dtype_validate_error_msg)
         else:
             series_left = self.feature_left  # numeric value
         if isinstance(self.feature_right, (Expression,)):
             series_right = self.feature_right.load(instrument, start_index, end_index, *args)
+            if series_right.dtype not in FLOAT_DTYPES:
+                raise ValueError(dtype_validate_error_msg)
         else:
             series_right = self.feature_right
         check_length = isinstance(series_left, (np.ndarray, pd.Series)) and isinstance(
@@ -782,6 +756,8 @@ class Rolling(ExpressionOps):
 
     def _load_internal(self, instrument, start_index, end_index, *args):
         series = self.feature.load(instrument, start_index, end_index, *args)
+        if series.dtype not in FLOAT_DTYPES:
+            raise ValueError("Rolling operator only support float dtype.")
         # NOTE: remove all null check,
         # now it's user's responsibility to decide whether use features in null days
         # isnull = series.isnull() # NOTE: isnull = NaN, inf is not null
@@ -1457,16 +1433,19 @@ class PairRolling(ExpressionOps):
         assert any(
             [isinstance(self.feature_left, Expression), self.feature_right, Expression]
         ), "at least one of two inputs is Expression instance"
-
+        dtype_validate_error_msg = "Pair Rolling operator only support float dtype."
         if isinstance(self.feature_left, Expression):
             series_left = self.feature_left.load(instrument, start_index, end_index, *args)
+            if series_left.dtype not in FLOAT_DTYPES:
+                raise ValueError(dtype_validate_error_msg)
         else:
             series_left = self.feature_left  # numeric value
         if isinstance(self.feature_right, Expression):
             series_right = self.feature_right.load(instrument, start_index, end_index, *args)
+            if series_right.dtype not in FLOAT_DTYPES:
+                raise ValueError(dtype_validate_error_msg)
         else:
             series_right = self.feature_right
-
         if self.N == 0:
             series = getattr(series_left.expanding(min_periods=1), self.func)(series_right)
         else:
@@ -1605,7 +1584,6 @@ class TResample(ElemOperator):
 TOpsList = [TResample]
 OpsList = [
     ChangeInstrument,
-    Cat,
     Rolling,
     Ref,
     Max,

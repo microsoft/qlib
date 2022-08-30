@@ -6,7 +6,7 @@ import pandas as pd
 
 import qlib
 from qlib.data import D
-from qlib.tests.utils import check_df_equal
+from qlib.tests.utils import split_df_to_str
 from scripts.dump_bin import DumpDataAll, DumpDataFix, DumpDataUpdate
 
 
@@ -115,18 +115,17 @@ class TestCategoryData(unittest.TestCase):
         shutil.rmtree(str(TEST_DATA_DIR.resolve()))
 
     def test_dump_data(self) -> None:
-        fields = self.FIELD + ["Cat($name)", "Cat($industry)"]
-        dump_all_df = D.features(self.INSTRUMENTS, fields)
+        dump_all_df = D.features(self.INSTRUMENTS, self.FIELD)
         except_dump_all_df = """
-                                     $open       $close  $name  $industry Cat($name) Cat($industry)
+                                     $open       $close  $name  $industry
         instrument datetime
-        sh600519   2022-08-01  1890.010010  1890.300049    0.0        0.0       贵州茅台           食品饮料
-                   2022-08-02  1880.000000  1879.979980    0.0        0.0       贵州茅台           食品饮料
-                   2022-08-03  1889.989990  1885.000000    0.0        0.0       贵州茅台           食品饮料
-                   2022-08-04  1890.000000  1916.010010    0.0        0.0       贵州茅台           食品饮料
-                   2022-08-05  1927.800049  1923.959961    0.0        0.0       贵州茅台           食品饮料
+        sh600519   2022-08-01  1890.010010  1890.300049       贵州茅台           食品饮料
+                   2022-08-02  1880.000000  1879.979980       贵州茅台           食品饮料
+                   2022-08-03  1889.989990  1885.000000       贵州茅台           食品饮料
+                   2022-08-04  1890.000000  1916.010010       贵州茅台           食品饮料
+                   2022-08-05  1927.800049  1923.959961       贵州茅台           食品饮料
         """
-        self.assertTrue(check_df_equal(dump_all_df, except_dump_all_df))
+        self.assertEqual(split_df_to_str(dump_all_df), split_df_to_str(except_dump_all_df))
         DumpDataFix(
             csv_path=str(SOURCE_DATA_DIR_FIX.resolve()),
             qlib_dir=str(QLIB_DIR.resolve()),
@@ -134,21 +133,21 @@ class TestCategoryData(unittest.TestCase):
             is_convert_category=True,
         )()
         self.reinit_qlib()
-        dump_fix_df = D.features(self.INSTRUMENTS, fields)
+        dump_fix_df = D.features(self.INSTRUMENTS, self.FIELD)
         except_dump_fix_df = """
-                                     $open       $close  $name  $industry Cat($name) Cat($industry)
+                                     $open       $close  $name  $industry
         instrument datetime
-        sh600519   2022-08-01  1890.010010  1890.300049    0.0        0.0       贵州茅台           食品饮料
-                   2022-08-02  1880.000000  1879.979980    0.0        0.0       贵州茅台           食品饮料
-                   2022-08-03  1889.989990  1885.000000    0.0        0.0       贵州茅台           食品饮料
-                   2022-08-04  1890.000000  1916.010010    0.0        0.0       贵州茅台           食品饮料
-                   2022-08-05  1927.800049  1923.959961    0.0        0.0       贵州茅台           食品饮料
-        sh601127   2022-08-01    75.900002    81.029999    1.0        1.0       小康股份             汽车
-                   2022-08-02    78.000000    74.559998    2.0        1.0        赛力斯             汽车
-                   2022-08-03    75.000000    70.910004    2.0        1.0        赛力斯             汽车
-                   2022-08-04    71.080002    68.099998    2.0        1.0        赛力斯             汽车
+        sh600519   2022-08-01  1890.010010  1890.300049       贵州茅台           食品饮料
+                   2022-08-02  1880.000000  1879.979980       贵州茅台           食品饮料
+                   2022-08-03  1889.989990  1885.000000       贵州茅台           食品饮料
+                   2022-08-04  1890.000000  1916.010010       贵州茅台           食品饮料
+                   2022-08-05  1927.800049  1923.959961       贵州茅台           食品饮料
+        sh601127   2022-08-01    75.900002    81.029999       小康股份             汽车
+                   2022-08-02    78.000000    74.559998        赛力斯             汽车
+                   2022-08-03    75.000000    70.910004        赛力斯             汽车
+                   2022-08-04    71.080002    68.099998        赛力斯             汽车
         """
-        self.assertTrue(check_df_equal(dump_fix_df, except_dump_fix_df))
+        self.assertEqual(split_df_to_str(dump_fix_df), split_df_to_str(except_dump_fix_df))
         DumpDataUpdate(
             csv_path=str(SOURCE_DATA_DIR_UPDATE.resolve()),
             qlib_dir=str(QLIB_DIR.resolve()),
@@ -156,39 +155,39 @@ class TestCategoryData(unittest.TestCase):
             is_convert_category=True,
         )()
         self.reinit_qlib()
-        dump_update_df = D.features(self.INSTRUMENTS, fields)
+        dump_update_df = D.features(self.INSTRUMENTS, self.FIELD)
         except_dump_update_df = """
-                                     $open       $close  $name  $industry Cat($name) Cat($industry)
+                                     $open       $close  $name  $industry
         instrument datetime
-        sh600519   2022-08-01  1890.010010  1890.300049    0.0        0.0       贵州茅台           食品饮料
-                   2022-08-02  1880.000000  1879.979980    0.0        0.0       贵州茅台           食品饮料
-                   2022-08-03  1889.989990  1885.000000    0.0        0.0       贵州茅台           食品饮料
-                   2022-08-04  1890.000000  1916.010010    0.0        0.0       贵州茅台           食品饮料
-                   2022-08-05  1927.800049  1923.959961    0.0        0.0       贵州茅台           食品饮料
-        sh601127   2022-08-01    75.900002    81.029999    1.0        1.0       小康股份             汽车
-                   2022-08-02    78.000000    74.559998    2.0        1.0        赛力斯             汽车
-                   2022-08-03    75.000000    70.910004    2.0        1.0        赛力斯             汽车
-                   2022-08-04    71.080002    68.099998    2.0        1.0        赛力斯             汽车
-                   2022-08-05    68.110001    67.379997    2.0        1.0        赛力斯             汽车
+        sh600519   2022-08-01  1890.010010  1890.300049       贵州茅台           食品饮料
+                   2022-08-02  1880.000000  1879.979980       贵州茅台           食品饮料
+                   2022-08-03  1889.989990  1885.000000       贵州茅台           食品饮料
+                   2022-08-04  1890.000000  1916.010010       贵州茅台           食品饮料
+                   2022-08-05  1927.800049  1923.959961       贵州茅台           食品饮料
+        sh601127   2022-08-01    75.900002    81.029999       小康股份             汽车
+                   2022-08-02    78.000000    74.559998        赛力斯             汽车
+                   2022-08-03    75.000000    70.910004        赛力斯             汽车
+                   2022-08-04    71.080002    68.099998        赛力斯             汽车
+                   2022-08-05    68.110001    67.379997        赛力斯             汽车
         """
-        self.assertTrue(check_df_equal(dump_update_df, except_dump_update_df))
+        self.assertEqual(split_df_to_str(dump_update_df), split_df_to_str(except_dump_update_df))
 
     def test_base_opt(self):
-        fields = self.FIELD + ["Cat($name)", "Ref(Cat($name), 1)"]
+        fields = self.FIELD + ["Ref($name, 1)"]
         df = D.features(["sh600519"], fields)
         except_df = """
-                                     $open       $close  $name  $industry Cat($name) Ref(Cat($name), 1)
+                                     $open       $close $name $industry Ref($name, 1)
         instrument datetime
-        sh600519   2022-08-01  1890.010010  1890.300049    0.0        0.0       贵州茅台                NaN
-                   2022-08-02  1880.000000  1879.979980    0.0        0.0       贵州茅台               贵州茅台
-                   2022-08-03  1889.989990  1885.000000    0.0        0.0       贵州茅台               贵州茅台
-                   2022-08-04  1890.000000  1916.010010    0.0        0.0       贵州茅台               贵州茅台
-                   2022-08-05  1927.800049  1923.959961    0.0        0.0       贵州茅台               贵州茅台
+        sh600519   2022-08-01  1890.010010  1890.300049  贵州茅台      食品饮料           NaN
+                   2022-08-02  1880.000000  1879.979980  贵州茅台      食品饮料          贵州茅台
+                   2022-08-03  1889.989990  1885.000000  贵州茅台      食品饮料          贵州茅台
+                   2022-08-04  1890.000000  1916.010010  贵州茅台      食品饮料          贵州茅台
+                   2022-08-05  1927.800049  1923.959961  贵州茅台      食品饮料          贵州茅台
         """
-        self.assertTrue(check_df_equal(df, except_df))
+        self.assertEqual(split_df_to_str(df), split_df_to_str(except_df))
 
     def test_np_opt(self):
-        fields = self.FIELD + ["Cat($name)", "Abs(Cat($name))"]
+        fields = self.FIELD + ["Abs($name)"]
         with self.assertRaises(ValueError) as context:
             D.features(["sh600519"], fields)
-        self.assertTrue("Numpy element-wise operator only support float32 dtype." in context.exception.args)
+        self.assertEqual("Numpy element-wise operator only support float dtype.", context.exception.args[0])

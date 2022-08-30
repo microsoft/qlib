@@ -14,7 +14,7 @@ from pathlib import Path
 
 from qlib.data import D
 from qlib.tests.data import GetData
-from qlib.tests.utils import check_df_equal
+from qlib.tests.utils import split_df_to_str
 from scripts.dump_pit import DumpPitData
 
 sys.path.append(str(Path(__file__).resolve().parent.parent.joinpath("scripts/data_collector/pit")))
@@ -86,7 +86,7 @@ class TestPIT(unittest.TestCase):
         75%        0.255220      0.305041
         max        0.344644      0.305041
         """
-        self.assertTrue(check_df_equal(data.describe(), res))
+        self.assertEqual(split_df_to_str(data.describe()), split_df_to_str(res))
 
         res = """
                                P($$roewa_q)  P($$yoyni_q)
@@ -97,7 +97,7 @@ class TestPIT(unittest.TestCase):
                    2019-07-18      0.175322      0.252650
                    2019-07-19      0.175322      0.252650
         """
-        self.assertTrue(check_df_equal(data.tail(), res))
+        self.assertEqual(split_df_to_str(data.tail()), split_df_to_str(res))
 
     def test_no_exist_data(self):
         fields = ["P($$roewa_q)", "P($$yoyni_q)", "$close"]
@@ -120,7 +120,7 @@ class TestPIT(unittest.TestCase):
 
         [266 rows x 3 columns]
         """
-        self.assertTrue(check_df_equal(data, expect))
+        self.assertEqual(split_df_to_str(data), split_df_to_str(expect))
 
     @pytest.mark.slow
     def test_expr(self):
@@ -152,7 +152,7 @@ class TestPIT(unittest.TestCase):
                    2019-07-18               0.175322      0.175322               0.135029              0.094737                               0.135029
                    2019-07-19               0.175322      0.175322               0.135029              0.094737                               0.135029
         """
-        self.assertTrue(check_df_equal(data.tail(15), expect))
+        self.assertEqual(split_df_to_str(data.tail(15)), split_df_to_str(expect))
 
     def test_unlimit(self):
         # fields = ["P(Mean($$roewa_q, 1))", "P($$roewa_q)", "P(Mean($$roewa_q, 2))", "P(Ref($$roewa_q, 1))", "P((Ref($$roewa_q, 1) +$$roewa_q) / 2)"]
@@ -220,7 +220,7 @@ class TestPIT(unittest.TestCase):
                     2019-10-16    0.255819
         Name: P($$roewa_q), dtype: float32
         """
-        self.assertTrue(check_df_equal(s[~s.duplicated().values], expect))
+        self.assertEqual(split_df_to_str(s[~s.duplicated().values]), split_df_to_str(expect))
 
     def test_expr2(self):
         instruments = ["sh600519"]
@@ -246,7 +246,7 @@ class TestPIT(unittest.TestCase):
 
         [244 rows x 6 columns]
         """
-        self.assertTrue(check_df_equal(data, except_data))
+        self.assertEqual(split_df_to_str(data), split_df_to_str(except_data))
 
     def test_pref_operator(self):
         instruments = ["sh600519"]
@@ -274,7 +274,7 @@ class TestPIT(unittest.TestCase):
 
         [299 rows x 4 columns]
         """
-        self.assertTrue(check_df_equal(data, except_data))
+        self.assertEqual(split_df_to_str(data), split_df_to_str(except_data))
 
 
 if __name__ == "__main__":
