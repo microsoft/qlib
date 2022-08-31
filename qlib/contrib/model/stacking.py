@@ -1,7 +1,6 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-from email.mime import base
 import numpy as np
 import pandas as pd
 import random
