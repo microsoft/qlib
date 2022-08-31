@@ -102,11 +102,22 @@ class FileCalendarStorage(FileStorageMixin, CalendarStorage):
             self._freq_file_cache = freq
         return self._freq_file_cache
 
-    def _read_calendar(self, skip_rows: int = 0, n_rows: int = None) -> List[CalVT]:
+    def _read_calendar(self) -> List[CalVT]:
+        # NOTE:
+        # if we want to accelerate partial reading calendar
+        # we can add parameters like `skip_rows: int = 0, n_rows: int = None` to the interface.
+        # Currently, it is not supported for the txt-based calendar
+
         if not self.uri.exists():
             self._write_calendar(values=[])
-        with self.uri.open("rb") as fp:
-            return [str(x) for x in np.loadtxt(fp, str, skiprows=skip_rows, max_rows=n_rows, encoding="utf-8")]
+
+        with self.uri.open("r") as fp:
+            res = []
+            for line in fp.readlines():
+                line = line.strip()
+                if len(line) > 0:
+                    res.append(line)
+            return res
 
     def _write_calendar(self, values: Iterable[CalVT], mode: str = "wb"):
         with self.uri.open(mode=mode) as fp:

@@ -271,7 +271,7 @@ class LocIndexer:
                         if isinstance(_indexing, IndexData):
                             _indexing = _indexing.data
                         assert _indexing.ndim == 1
-                        if _indexing.dtype != np.bool:
+                        if _indexing.dtype != bool:
                             _indexing = np.array(list(index.index(i) for i in _indexing))
                     else:
                         _indexing = index.index(_indexing)
@@ -431,7 +431,7 @@ class IndexData(metaclass=index_data_ops_creator):
 
     # The code below could be simpler like methods in __getattribute__
     def __invert__(self):
-        return self.__class__(~self.data.astype(np.bool), *self.indices)
+        return self.__class__(~self.data.astype(bool), *self.indices)
 
     def abs(self):
         """get the abs of data except np.NaN."""

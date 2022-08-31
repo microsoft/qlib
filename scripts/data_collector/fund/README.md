@@ -49,3 +49,7 @@ pythono collector.py collector_data --help
 
 - interval: 1d
 - region: CN
+
+## 免责声明
+
+本项目仅供学习研究使用，不作为任何行为的指导和建议，由此而引发任何争议和纠纷，与本项目无任何关系
