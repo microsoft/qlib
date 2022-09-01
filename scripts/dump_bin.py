@@ -476,9 +476,6 @@ class DumpDataUpdate(DumpDataBase):
                         futures[executor.submit(self._dump_bin, _df, _update_calendars)] = _code
                 else:
                     # new stock
-                    _dt_range = self._update_instruments.setdefault(_code, dict())
-                    _dt_range[self.INSTRUMENTS_START_FIELD] = self._format_datetime(_start)
-                    _dt_range[self.INSTRUMENTS_END_FIELD] = self._format_datetime(_end)
                     futures[executor.submit(self._dump_bin, _df, self._new_calendar_list)] = _code
 
             with tqdm(total=len(futures)) as p_bar:
