@@ -138,28 +138,3 @@ class Attention(nn.Module):
         attn_vec = torch.einsum("ijk,ikl->ijl", attn_prob, v)
 
         return attn_vec
-
-
-class DualAttentionRNN(Recurrent):
-    """
-    Dual-attention RNN leverages features from yesterday and fuses them into features today.
-    """
-
-    def _init_extra_branches(self):
-        self.attention = Attention(self.hidden_dim, self.hidden_dim)
-        self.num_sources += 1
-
-    def _source_features(self, obs: FullHistoryObs, device: torch.device) -> Tuple[List[torch.Tensor], torch.Tensor]:
-        sources, data_out = super()._source_features(obs, device)
-
-        data_prev = obs["data_processed_prev"]
-        cur_time = obs["cur_tick"].long()
-        bs_indices = torch.arange(cur_time.size(0), device=device)
-
-        data_prev_in = self.raw_fc(data_prev)
-        data_prev_out, _ = self.prev_rnn(data_prev_in)
-        att_out = self.attention(data_out, data_prev_out, data_prev_out)
-        att_out = att_out[bs_indices, cur_time]
-        sources.insert(1, att_out)
-
-        return sources, data_out

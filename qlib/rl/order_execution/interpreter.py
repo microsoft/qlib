@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import math
 from pathlib import Path
-from typing import Any, List, cast
+from typing import Any, List, Optional, cast
 
 import numpy as np
 import pandas as pd
@@ -185,9 +185,11 @@ class CategoricalActionInterpreter(ActionInterpreter[SAOEState, int, float]):
         Then when policy givens decision $x$, $a_x$ times order amount is the output.
         It can also be an integer $n$, in which case the list of length $n+1$ is auto-generated,
         i.e., $[0, 1/n, 2/n, \\ldots, n/n]$.
+    max_step
+        Total number of steps (an upper-bound estimation). For example, 390min / 30min-per-step = 13 steps.
     """
 
-    def __init__(self, values: int | List[float], max_step: int = None) -> None:
+    def __init__(self, values: int | List[float], max_step: Optional[int] = None) -> None:
         if isinstance(values, int):
             values = [i / values for i in range(0, values + 1)]
         self.action_values = values
