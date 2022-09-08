@@ -47,7 +47,7 @@ class GetData:
         target_path = target_dir.joinpath(_target_file_name)
 
         url = self.merge_remote_url(file_name, dataset_version)
-        resp = requests.get(url, stream=True)
+        resp = requests.get(url, stream=True, timeout=60)
         resp.raise_for_status()
         if resp.status_code != 200:
             raise requests.exceptions.HTTPError()
@@ -69,7 +69,7 @@ class GetData:
 
     def check_dataset(self, file_name: str, dataset_version: str = None):
         url = self.merge_remote_url(file_name, dataset_version)
-        resp = requests.get(url, stream=True)
+        resp = requests.get(url, stream=True, timeout=60)
         status = True
         if resp.status_code == 404:
             status = False

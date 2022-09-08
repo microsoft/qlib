@@ -6,13 +6,13 @@ from __future__ import annotations
 import copy
 from contextlib import AbstractContextManager, contextmanager
 from pathlib import Path
-from typing import Any, Iterable, TypeVar, Sequence, cast
+from typing import Any, Iterable, Sequence, TypeVar, cast
 
 import torch
 
-from qlib.rl.simulator import InitialStateType
-from qlib.rl.utils import EnvWrapper, FiniteEnvType, LogCollector, LogWriter, LogBuffer, vectorize_env, LogLevel
 from qlib.log import get_module_logger
+from qlib.rl.simulator import InitialStateType
+from qlib.rl.utils import EnvWrapper, FiniteEnvType, LogBuffer, LogCollector, LogLevel, LogWriter, vectorize_env
 from qlib.rl.utils.finite_env import FiniteVectorEnv
 from qlib.typehint import Literal
 

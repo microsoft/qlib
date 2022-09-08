@@ -5,24 +5,24 @@ from __future__ import annotations
 
 import math
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, List, cast
 
 import numpy as np
 import pandas as pd
 from gym import spaces
 
 from qlib.constant import EPS
-from qlib.rl.interpreter import StateInterpreter, ActionInterpreter
 from qlib.rl.data import pickle_styled
+from qlib.rl.interpreter import ActionInterpreter, StateInterpreter
+from qlib.rl.order_execution.state import SAOEState
 from qlib.typehint import TypedDict
-
-from .simulator_simple import SAOEState
 
 __all__ = [
     "FullHistoryStateInterpreter",
     "CurrentStepStateInterpreter",
     "CategoricalActionInterpreter",
     "TwapRelativeActionInterpreter",
+    "FullHistoryObs",
 ]
 
 
@@ -99,18 +99,18 @@ class FullHistoryStateInterpreter(StateInterpreter[SAOEState, FullHistoryObs]):
                     "data_processed": self._mask_future_info(processed.today, state.cur_time),
                     "data_processed_prev": processed.yesterday,
                     "acquiring": state.order.direction == state.order.BUY,
-                    "cur_tick": min(np.sum(state.ticks_index < state.cur_time), self.data_ticks - 1),
+                    "cur_tick": min(int(np.sum(state.ticks_index < state.cur_time)), self.data_ticks - 1),
                     "cur_step": min(self.env.status["cur_step"], self.max_step - 1),
                     "num_step": self.max_step,
                     "target": state.order.amount,
                     "position": state.position,
                     "position_history": position_history[: self.max_step],
-                }
+                },
             ),
         )
 
     @property
-    def observation_space(self):
+    def observation_space(self) -> spaces.Dict:
         space = {
             "data_processed": spaces.Box(-np.inf, np.inf, shape=(self.data_ticks, self.data_dim)),
             "data_processed_prev": spaces.Box(-np.inf, np.inf, shape=(self.data_ticks, self.data_dim)),
@@ -147,11 +147,11 @@ class CurrentStepStateInterpreter(StateInterpreter[SAOEState, CurrentStateObs]):
     The key list is not full. You can add more if more information is needed by your policy.
     """
 
-    def __init__(self, max_step: int):
+    def __init__(self, max_step: int) -> None:
         self.max_step = max_step
 
     @property
-    def observation_space(self):
+    def observation_space(self) -> spaces.Dict:
         space = {
             "acquiring": spaces.Discrete(2),
             "cur_step": spaces.Box(0, self.max_step - 1, shape=(), dtype=np.int32),
@@ -165,13 +165,11 @@ class CurrentStepStateInterpreter(StateInterpreter[SAOEState, CurrentStateObs]):
         assert self.env is not None
         assert self.env.status["cur_step"] <= self.max_step
         obs = CurrentStateObs(
-            {
-                "acquiring": state.order.direction == state.order.BUY,
-                "cur_step": self.env.status["cur_step"],
-                "num_step": self.max_step,
-                "target": state.order.amount,
-                "position": state.position,
-            }
+            acquiring=state.order.direction == state.order.BUY,
+            cur_step=self.env.status["cur_step"],
+            num_step=self.max_step,
+            target=state.order.amount,
+            position=state.position,
         )
         return obs
 
@@ -188,7 +186,7 @@ class CategoricalActionInterpreter(ActionInterpreter[SAOEState, int, float]):
         i.e., $[0, 1/n, 2/n, \\ldots, n/n]$.
     """
 
-    def __init__(self, values: int | list[float]):
+    def __init__(self, values: int | List[float]) -> None:
         if isinstance(values, int):
             values = [i / values for i in range(0, values + 1)]
         self.action_values = values
@@ -203,7 +201,7 @@ class CategoricalActionInterpreter(ActionInterpreter[SAOEState, int, float]):
 
 
 class TwapRelativeActionInterpreter(ActionInterpreter[SAOEState, float, float]):
-    """Convert a continous ratio to deal amount.
+    """Convert a continuous ratio to deal amount.
 
     The ratio is relative to TWAP on the remainder of the day.
     For example, there are 5 steps left, and the left position is 300.

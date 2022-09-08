@@ -104,9 +104,9 @@ class TopkDropoutStrategy(BaseSignalStrategy):
         only_tradable : bool
             will the strategy only consider the tradable stock when buying and selling.
             if only_tradable:
-                strategy will make buy sell decision without checking the tradable state of the stock.
-            else:
                 strategy will make decision with the tradable state of the stock info and avoid buy and sell them.
+            else:
+                strategy will make buy sell decision without checking the tradable state of the stock.
         """
         super().__init__(**kwargs)
         self.topk = topk
@@ -222,9 +222,6 @@ class TopkDropoutStrategy(BaseSignalStrategy):
                     continue
                 # sell order
                 sell_amount = current_temp.get_stock_amount(code=code)
-                factor = self.trade_exchange.get_factor(
-                    stock_id=code, start_time=trade_start_time, end_time=trade_end_time
-                )
                 # sell_amount = self.trade_exchange.round_amount_by_trade_unit(sell_amount, factor)
                 sell_order = Order(
                     stock_id=code,

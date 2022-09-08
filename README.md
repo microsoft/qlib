@@ -176,6 +176,19 @@ Also, users can install the latest dev version ``Qlib`` by the source code accor
 
 ## Data Preparation
 Load and prepare data by running the following code:
+
+### Get with module
+  ```bash
+  # get 1d data
+  python -m qlib.run.get_data qlib_data --target_dir ~/.qlib/qlib_data/cn_data --region cn
+
+  # get 1min data
+  python -m qlib.run.get_data qlib_data --target_dir ~/.qlib/qlib_data/cn_data_1min --region cn --interval 1min
+
+  ```
+
+### Get from source
+
   ```bash
   # get 1d data
   python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/cn_data --region cn
@@ -197,6 +210,8 @@ We recommend users to prepare their own data if they have a high-quality dataset
   > 
   > It is recommended that users update the data manually once (--trading_date 2021-05-25) and then set it to update automatically.
   >
+  > **NOTE**: Users can't incrementally  update data based on the offline data provided by Qlib(some fields are removed to reduce the data size). Users should use [yahoo collector](https://github.com/microsoft/qlib/tree/main/scripts/data_collector/yahoo#automatic-update-of-daily-frequency-datafrom-yahoo-finance) to download Yahoo data from scratch and then incrementally update it.
+  > 
   > For more information, please refer to: [yahoo collector](https://github.com/microsoft/qlib/tree/main/scripts/data_collector/yahoo#automatic-update-of-daily-frequency-datafrom-yahoo-finance)
 
   * Automatic update of data to the "qlib" directory each trading day(Linux)
