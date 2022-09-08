@@ -4,13 +4,15 @@
 from __future__ import annotations
 
 import collections
-from abc import ABCMeta
 from types import GeneratorType
-from typing import Any, cast, Dict, Generator, List, Optional, Union
+from typing import Any, Dict, Generator, Optional, Union, cast
 
 import pandas as pd
 import torch
-from qlib.backtest import CommonInfrastructure, Exchange, Order
+from tianshou.data import Batch
+from tianshou.policy import BasePolicy
+
+from qlib.backtest import CommonInfrastructure, Order
 from qlib.backtest.decision import BaseTradeDecision, TradeDecisionWO, TradeRange
 from qlib.backtest.utils import LevelInfrastructure
 from qlib.constant import ONE_MIN
@@ -19,10 +21,8 @@ from qlib.rl.interpreter import ActionInterpreter, StateInterpreter
 from qlib.rl.order_execution.state import SAOEState, SAOEStateAdapter
 from qlib.rl.utils import EnvWrapper
 from qlib.rl.utils.env_wrapper import CollectDataEnvWrapper
-from qlib.strategy.base import BaseStrategy, RLStrategy
+from qlib.strategy.base import RLStrategy
 from qlib.utils import init_instance_by_config
-from tianshou.data import Batch
-from tianshou.policy import BasePolicy
 
 
 class SAOEStrategy(RLStrategy):
