@@ -487,6 +487,7 @@ class DumpDataUpdate(DumpDataBase):
         )  # type: dict
 
         # load all csv files
+        self.dump_category()
         self._all_data = self.convert_category_field_values(self._load_all_source_data())  # type: pd.DataFrame
         self._new_calendar_list = self._old_calendar_list + sorted(
             filter(lambda x: x > self._old_calendar_list[-1], self._all_data[self.date_field_name].unique())
