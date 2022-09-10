@@ -160,7 +160,7 @@ class QlibRecorder:
         .. code-block:: Python
 
             R.log_metrics(m=2.50, step=0)
-            records = R.search_runs([experiment_id], order_by=["metrics.m DESC"])
+            records = R.search_records([experiment_id], order_by=["metrics.m DESC"])
 
         Parameters
         ----------
