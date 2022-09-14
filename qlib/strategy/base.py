@@ -8,6 +8,7 @@ from typing import Any, Generator, Optional, TYPE_CHECKING, Union
 if TYPE_CHECKING:
     from qlib.backtest.exchange import Exchange
     from qlib.backtest.position import BasePosition
+    from qlib.backtest.executor import BaseExecutor
 
 from typing import Tuple
 
@@ -56,6 +57,10 @@ class BaseStrategy:
         self._trade_exchange = trade_exchange
 
     @property
+    def executor(self) -> BaseExecutor:
+        return self.level_infra.get("executor")
+
+    @property
     def trade_calendar(self) -> TradeCalendarManager:
         return self.level_infra.get("trade_calendar")
 
@@ -85,7 +90,7 @@ class BaseStrategy:
         level_infra: LevelInfrastructure = None,
         common_infra: CommonInfrastructure = None,
         outer_trade_decision: BaseTradeDecision = None,
-        **kwargs,  # TODO: remove this?
+        **kwargs,
     ) -> None:
         """
         - reset `level_infra`, used to reset trade calendar, .etc
@@ -136,47 +141,6 @@ class BaseStrategy:
         """
         raise NotImplementedError("generate_trade_decision is not implemented!")
 
-    @staticmethod
-    def update_trade_decision(
-        trade_decision: BaseTradeDecision,
-        trade_calendar: TradeCalendarManager,
-    ) -> Optional[BaseTradeDecision]:
-        """
-        update trade decision in each step of inner execution, this method enable all order
-
-        Parameters
-        ----------
-        trade_decision : BaseTradeDecision
-            the trade decision that will be updated
-        trade_calendar : TradeCalendarManager
-            The calendar of the **inner strategy**!!!!!
-
-        Returns
-        -------
-            BaseTradeDecision:
-        """
-        # default to return None, which indicates that the trade decision is not changed
-        return None
-
-    # FIXME: do not define this method as an abstract one since it is never implemented
-    def alter_outer_trade_decision(self, outer_trade_decision: BaseTradeDecision) -> BaseTradeDecision:
-        """
-        A method for updating the outer_trade_decision.
-        The outer strategy may change its decision during updating.
-
-        Parameters
-        ----------
-        outer_trade_decision : BaseTradeDecision
-            the decision updated by the outer strategy
-
-        Returns
-        -------
-            BaseTradeDecision
-        """
-        # default to reset the decision directly
-        # NOTE: normally, user should do something to the strategy due to the change of outer decision
-        raise NotImplementedError(f"Please implement the `alter_outer_trade_decision` method")
-
     # helper methods: not necessary but for convenience
     def get_data_cal_avail_range(self, rtype: str = "full") -> Tuple[int, int]:
         """
@@ -207,7 +171,58 @@ class BaseStrategy:
         range_limit = self.outer_trade_decision.get_data_cal_range_limit(rtype=rtype)
         return max(cal_range[0], range_limit[0]), min(cal_range[1], range_limit[1])
 
-    def post_exe_step(self, execute_result: list) -> None:
+    """
+    The following methods are used to do cross-level communications in nested execution.
+    You do not need to care about them if you are implementing a single-level execution.
+    """
+
+    @staticmethod
+    def update_trade_decision(
+        trade_decision: BaseTradeDecision,
+        trade_calendar: TradeCalendarManager,
+    ) -> Optional[BaseTradeDecision]:
+        """
+        update trade decision in each step of inner execution, this method enable all order
+
+        Parameters
+        ----------
+        trade_decision : BaseTradeDecision
+            the trade decision that will be updated
+        trade_calendar : TradeCalendarManager
+            The calendar of the **inner strategy**!!!!!
+
+        Returns
+        -------
+            BaseTradeDecision:
+        """
+        # default to return None, which indicates that the trade decision is not changed
+        return None
+
+    def alter_outer_trade_decision(self, outer_trade_decision: BaseTradeDecision) -> BaseTradeDecision:
+        """
+        A method for updating the outer_trade_decision.
+        The outer strategy may change its decision during updating.
+
+        Parameters
+        ----------
+        outer_trade_decision : BaseTradeDecision
+            the decision updated by the outer strategy
+
+        Returns
+        -------
+            BaseTradeDecision
+        """
+        # default to reset the decision directly
+        # NOTE: normally, user should do something to the strategy due to the change of outer decision
+        return outer_trade_decision
+
+    def post_upper_level_exe_step(self) -> None:
+        """
+        A hook for doing sth after the upper level executor finished its execution (for example, finalize
+        the metrics collection).
+        """
+
+    def post_exe_step(self, execute_result: Optional[list]) -> None:
         """
         A hook for doing sth after the corresponding executor finished its execution.
 

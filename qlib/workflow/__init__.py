@@ -575,6 +575,44 @@ class QlibRecorder:
         """
         self.get_exp(start=True).get_recorder(start=True).log_metrics(step, **kwargs)
 
+    def log_artifact(self, local_path: str, artifact_path: Optional[str] = None):
+        """
+        Log a local file or directory as an artifact of the currently active run
+
+        - If `active recorder` exists: it will set tags through the active recorder.
+        - If `active recorder` not exists: the system will create a default experiment as well as a new recorder, and set the tags under it.
+
+        Parameters
+        ----------
+        local_path : str
+            Path to the file to write.
+        artifact_path : Optional[str]
+            If provided, the directory in ``artifact_uri`` to write to.
+        """
+        self.get_exp(start=True).get_recorder(start=True).log_artifact(local_path, artifact_path)
+
+    def download_artifact(self, path: str, dst_path: Optional[str] = None) -> str:
+        """
+        Download an artifact file or directory from a run to a local directory if applicable,
+        and return a local path for it.
+
+        Parameters
+        ----------
+        path : str
+            Relative source path to the desired artifact.
+        dst_path : Optional[str]
+            Absolute path of the local filesystem destination directory to which to
+            download the specified artifacts. This directory must already exist.
+            If unspecified, the artifacts will either be downloaded to a new
+            uniquely-named directory on the local filesystem.
+
+        Returns
+        -------
+        str
+            Local path of desired artifact.
+        """
+        self.get_exp(start=True).get_recorder(start=True).download_artifact(path, dst_path)
+
     def set_tags(self, **kwargs):
         """
         Method for setting tags for a recorder. In addition to using ``R``, one can also set the tag to a specific recorder after getting it with `get_recorder` API.
@@ -611,7 +649,7 @@ class RecorderWrapper(Wrapper):
             expm = getattr(self._provider, "exp_manager")
             if expm.active_experiment is not None:
                 raise RecorderInitializationError(
-                    "Please don't reinitialize Qlib if QlibRecorder is already acivated. Otherwise, the experiment stored location will be modified."
+                    "Please don't reinitialize Qlib if QlibRecorder is already activated. Otherwise, the experiment stored location will be modified."
                 )
         self._provider = provider
 

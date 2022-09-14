@@ -11,6 +11,7 @@ import re
 import sys
 import copy
 import json
+from qlib.typehint import InstConf
 import yaml
 import redis
 import bisect
@@ -291,7 +292,11 @@ def get_module_by_module_path(module_path: Union[str, ModuleType]):
 
     :param module_path:
     :return:
+    :raises: ModuleNotFoundError
     """
+    if module_path is None:
+        raise ModuleNotFoundError("None is passed in as parameters as module_path")
+
     if isinstance(module_path, ModuleType):
         module = module_path
     else:
@@ -324,7 +329,7 @@ def split_module_path(module_path: str) -> Tuple[str, str]:
     return m_path, cls
 
 
-def get_callable_kwargs(config: Union[dict, str], default_module: Union[str, ModuleType] = None) -> (type, dict):
+def get_callable_kwargs(config: InstConf, default_module: Union[str, ModuleType] = None) -> (type, dict):
     """
     extract class/func and kwargs from config info
 
@@ -343,6 +348,10 @@ def get_callable_kwargs(config: Union[dict, str], default_module: Union[str, Mod
     -------
     (type, dict):
         the class/func object and it's arguments.
+
+    Raises
+    ------
+        ModuleNotFoundError
     """
     if isinstance(config, dict):
         key = "class" if "class" in config else "func"
@@ -376,7 +385,7 @@ get_cls_kwargs = get_callable_kwargs  # NOTE: this is for compatibility for the 
 
 
 def init_instance_by_config(
-    config: Union[str, dict, object, Path],  # TODO: use a user-defined type to replace this Union.
+    config: InstConf,
     default_module=None,
     accept_types: Union[type, Tuple[type]] = (),
     try_kwargs: Dict = {},
@@ -387,31 +396,8 @@ def init_instance_by_config(
 
     Parameters
     ----------
-    config : Union[str, dict, object]
-        dict example.
-            case 1)
-            {
-                'class': 'ClassName',
-                'kwargs': dict, #  It is optional. {} will be used if not given
-                'model_path': path, # It is optional if module is given
-            }
-            case 2)
-            {
-                'class': <The class it self>,
-                'kwargs': dict, #  It is optional. {} will be used if not given
-            }
-        str example.
-            1) specify a pickle object
-                - path like 'file:///<path to pickle file>/obj.pkl'
-            2) specify a class name
-                - "ClassName":  getattr(module, "ClassName")() will be used.
-            3) specify module path with class name
-                - "a.b.c.ClassName" getattr(<a.b.c.module>, "ClassName")() will be used.
-        object example:
-            instance of accept_types
-        Path example:
-            specify a pickle object
-                - it will be treated like 'file:///<path to pickle file>/obj.pkl'
+    config : InstConf
+
     default_module : Python module
         Optional. It should be a python module.
         NOTE: the "module_path" will be override by `module` arguments
