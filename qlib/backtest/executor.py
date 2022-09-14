@@ -587,20 +587,18 @@ class SimulatorExecutor(BaseExecutor):
             raise NotImplementedError(f"This type of input is not supported")
         return order_it
 
-    def _update_dealt_order_amount(self, order: Order) -> None:
-        """update date and dealt order amount in the day."""
-
-        now_deal_day = self.trade_calendar.get_step_time()[0].floor(freq="D")
-        if self.deal_day is None or now_deal_day > self.deal_day:
-            self.dealt_order_amount = defaultdict(float)
-            self.deal_day = now_deal_day
-        self.dealt_order_amount[order.stock_id] += order.deal_amount
-
     def _collect_data(self, trade_decision: BaseTradeDecision, level: int = 0) -> Tuple[List[object], dict]:
         trade_start_time, _ = self.trade_calendar.get_step_time()
         execute_result: list = []
 
         for order in self._get_order_iterator(trade_decision):
+            # Each time we move into a new date, clear `self.dealt_order_amount` since it only maintains intraday
+            # information.
+            now_deal_day = self.trade_calendar.get_step_time()[0].floor(freq="D")
+            if self.deal_day is None or now_deal_day > self.deal_day:
+                self.dealt_order_amount = defaultdict(float)
+                self.deal_day = now_deal_day
+
             # execute the order.
             # NOTE: The trade_account will be changed in this function
             trade_val, trade_cost, trade_price = self.trade_exchange.deal_order(
@@ -609,7 +607,9 @@ class SimulatorExecutor(BaseExecutor):
                 dealt_order_amount=self.dealt_order_amount,
             )
             execute_result.append((order, trade_val, trade_cost, trade_price))
-            self._update_dealt_order_amount(order)
+
+            self.dealt_order_amount[order.stock_id] += order.deal_amount
+
             if self.verbose:
                 print(
                     "[I {:%Y-%m-%d %H:%M:%S}]: {} {}, price {:.2f}, amount {}, deal_amount {}, factor {}, "
