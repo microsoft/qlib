@@ -183,8 +183,8 @@ class TradeCalendarManager:
         Tuple[int, int]:
             the index of the range.  **the left and right are closed**
         """
-        left = np.searchsorted(self._calendar, start_time, side="right") - 1
-        right = np.searchsorted(self._calendar, end_time, side="right") - 1
+        left = int(np.searchsorted(self._calendar, start_time, side="right") - 1)
+        right = int(np.searchsorted(self._calendar, end_time, side="right") - 1)
         left -= self.start_index
         right -= self.start_index
 
