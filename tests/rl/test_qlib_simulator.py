@@ -194,6 +194,7 @@ def test_interpreter() -> None:
     simulator = get_simulator(order)
     interpreter_action = CategoricalActionInterpreter(values=NUM_EXECUTION)
     interpreter_action.env = CollectDataEnvWrapper()
+    interpreter_action.env.reset()
 
     NUM_STEPS = 7
     state = simulator.get_state()

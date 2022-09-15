@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import collections
 from types import GeneratorType
-from typing import Any, Dict, Generator, Optional, Union, cast
+from typing import Any, cast, Dict, Generator, Optional, Union
 
 import pandas as pd
 import torch
@@ -19,8 +19,7 @@ from qlib.constant import ONE_MIN
 from qlib.rl.data.exchange_wrapper import load_qlib_backtest_data
 from qlib.rl.interpreter import ActionInterpreter, StateInterpreter
 from qlib.rl.order_execution.state import SAOEState, SAOEStateAdapter
-from qlib.rl.utils import EnvWrapper
-from qlib.rl.utils.env_wrapper import CollectDataEnvWrapper
+from qlib.rl.utils.env_wrapper import BaseEnvWrapper
 from qlib.strategy.base import RLStrategy
 from qlib.utils import init_instance_by_config
 
@@ -170,6 +169,7 @@ class SAOEIntStrategy(SAOEStrategy):
         outer_trade_decision: BaseTradeDecision = None,
         level_infra: LevelInfrastructure = None,
         common_infra: CommonInfrastructure = None,
+        backtest: bool = False,
         **kwargs: Any,
     ) -> None:
         super(SAOEIntStrategy, self).__init__(
@@ -179,6 +179,8 @@ class SAOEIntStrategy(SAOEStrategy):
             common_infra=common_infra,
             **kwargs,
         )
+
+        self._backtest = backtest
 
         self._state_interpreter: StateInterpreter = init_instance_by_config(
             state_interpreter,
@@ -218,14 +220,15 @@ class SAOEIntStrategy(SAOEStrategy):
         if self._policy is not None:
             self._policy.eval()
 
-    def set_env(self, env: EnvWrapper | CollectDataEnvWrapper) -> None:
+    def set_env(self, env: BaseEnvWrapper) -> None:
         self._env = env
         self._state_interpreter.env = self._action_interpreter.env = self._env
 
     def reset(self, outer_trade_decision: BaseTradeDecision = None, **kwargs: Any) -> None:
         super().reset(outer_trade_decision=outer_trade_decision, **kwargs)
 
-        if isinstance(self._env, CollectDataEnvWrapper):
+        # In backtest, env.reset() needs to be manually called since there is no outer trainer to call it
+        if self._backtest:
             self._env.reset()
 
     def _generate_trade_decision(self, execute_result: list = None) -> BaseTradeDecision:
@@ -243,7 +246,8 @@ class SAOEIntStrategy(SAOEStrategy):
         act = policy_out.act.numpy() if torch.is_tensor(policy_out.act) else policy_out.act
         exec_vols = [self._action_interpreter.interpret(s, a) for s, a in zip(states, act)]
 
-        if isinstance(self._env, CollectDataEnvWrapper):
+        # In backtest, env.step() needs to be manually called since there is no outer trainer to call it
+        if self._backtest:
             self._env.step(None)
 
         oh = self.trade_exchange.get_order_helper()

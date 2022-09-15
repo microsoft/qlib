@@ -69,6 +69,8 @@ class FullHistoryStateInterpreter(StateInterpreter[SAOEState, FullHistoryObs]):
         path to load data. For example, the data has already been preloaded in `init_qlib()`.
     """
 
+    # TODO: All implementations related to `data_dir` is coupled with the specific data format for that specific case.
+    # TODO: So it should be redesigned after the data interface is well-designed.
     def __init__(self, max_step: int, data_ticks: int, data_dim: int, data_dir: Path = None) -> None:
         self.data_dir = data_dir
         self.max_step = max_step

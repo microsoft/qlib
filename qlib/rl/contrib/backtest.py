@@ -17,8 +17,8 @@ from qlib.backtest import collect_data_loop, get_strategy_executor
 from qlib.backtest.decision import TradeRangeByTime
 from qlib.backtest.executor import BaseExecutor, NestedExecutor, SimulatorExecutor
 from qlib.backtest.high_performance_ds import BaseOrderIndicator
-from qlib.rl.neural_trading_migration.naive_config_parser import convert_instance_config, get_backtest_config_fromfile
-from qlib.rl.neural_trading_migration.utils import read_order_file
+from qlib.rl.contrib.naive_config_parser import convert_instance_config, get_backtest_config_fromfile
+from qlib.rl.contrib.utils import read_order_file
 from qlib.rl.data.integration import init_qlib
 from qlib.rl.utils.env_wrapper import CollectDataEnvWrapper
 
@@ -61,7 +61,9 @@ def _get_multi_level_executor_config(
 def _set_env_for_all_strategy(executor: BaseExecutor) -> None:
     if isinstance(executor, NestedExecutor):
         if hasattr(executor.inner_strategy, "set_env"):
-            executor.inner_strategy.set_env(CollectDataEnvWrapper())
+            env = CollectDataEnvWrapper()
+            env.reset()
+            executor.inner_strategy.set_env(env)
         _set_env_for_all_strategy(executor.inner_executor)
 
 
