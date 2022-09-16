@@ -6,7 +6,6 @@ from typing import cast
 
 import cachetools
 import pandas as pd
-from cachetools.keys import hashkey
 
 from qlib.backtest import Exchange, Order
 from qlib.backtest.decision import TradeRange, TradeRangeByTime
