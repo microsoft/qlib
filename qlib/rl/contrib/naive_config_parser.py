@@ -36,24 +36,24 @@ def parse_backtest_config(path: str) -> dict:
         raise IOError("Only py/yml/yaml/json type are supported now!")
 
     with tempfile.TemporaryDirectory() as tmp_config_dir:
-        tmp_config_file = tempfile.NamedTemporaryFile(dir=tmp_config_dir, suffix=file_ext_name)
-        if platform.system() == "Windows":
-            tmp_config_file.close()
+        with tempfile.NamedTemporaryFile(dir=tmp_config_dir, suffix=file_ext_name) as tmp_config_file:
+            if platform.system() == "Windows":
+                tmp_config_file.close()
 
-        tmp_config_name = os.path.basename(tmp_config_file.name)
-        shutil.copyfile(abs_path, tmp_config_file.name)
+            tmp_config_name = os.path.basename(tmp_config_file.name)
+            shutil.copyfile(abs_path, tmp_config_file.name)
 
-        if abs_path.endswith(".py"):
-            tmp_module_name = os.path.splitext(tmp_config_name)[0]
-            sys.path.insert(0, tmp_config_dir)
-            module = import_module(tmp_module_name)
-            sys.path.pop(0)
+            if abs_path.endswith(".py"):
+                tmp_module_name = os.path.splitext(tmp_config_name)[0]
+                sys.path.insert(0, tmp_config_dir)
+                module = import_module(tmp_module_name)
+                sys.path.pop(0)
 
-            config = {k: v for k, v in module.__dict__.items() if not k.startswith("__")}
+                config = {k: v for k, v in module.__dict__.items() if not k.startswith("__")}
 
-            del sys.modules[tmp_module_name]
-        else:
-            config = yaml.safe_load(open(os.path.join(tmp_config_dir, tmp_config_file.name)))
+                del sys.modules[tmp_module_name]
+            else:
+                config = yaml.safe_load(open(tmp_config_file.name))
 
     if "_base_" in config:
         base_file_name = config.pop("_base_")
