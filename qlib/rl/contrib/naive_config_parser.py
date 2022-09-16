@@ -101,33 +101,3 @@ def get_backtest_config_fromfile(path: str) -> dict:
     backtest_config = merge_a_into_b(a=backtest_config, b=backtest_config_default)
 
     return backtest_config
-
-
-def convert_instance_config(config: object) -> object:
-    if isinstance(config, dict):
-        if "type" in config:
-            type_name = config["type"]
-            if "." in type_name:
-                idx = type_name.rindex(".")
-                module_path, class_name = type_name[:idx], type_name[idx + 1 :]
-            else:
-                module_path, class_name = "", type_name
-
-            kwargs = {}
-            for k, v in config.items():
-                if k == "type":
-                    continue
-                kwargs[k] = convert_instance_config(v)
-            return {
-                "class": class_name,
-                "module_path": module_path,
-                "kwargs": kwargs,
-            }
-        else:
-            return {k: convert_instance_config(v) for k, v in config.items()}
-    elif isinstance(config, list):
-        return [convert_instance_config(item) for item in config]
-    elif isinstance(config, tuple):
-        return tuple([convert_instance_config(item) for item in config])
-    else:
-        return config
