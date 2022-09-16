@@ -16,6 +16,7 @@ from qlib.backtest import Order
 from qlib.config import C
 from qlib.log import set_log_with_config
 from qlib.rl.data import pickle_styled
+from qlib.rl.data.pickle_styled import PickleProcessedDataProvider
 from qlib.rl.order_execution import *
 from qlib.rl.trainer import backtest, train
 from qlib.rl.utils import ConsoleWriter, CsvWriter, EnvWrapperStatus
@@ -41,9 +42,8 @@ def test_pickle_data_inspect():
     data = pickle_styled.load_simple_intraday_backtest_data(BACKTEST_DATA_DIR, "AAL", "2013-12-11", "close", 0)
     assert len(data) == 390
 
-    data = pickle_styled.load_intraday_processed_data(
-        DATA_DIR / "processed", "AAL", "2013-12-11", 5, data.get_time_index()
-    )
+    provider = PickleProcessedDataProvider(DATA_DIR / "processed")
+    data = provider.get_data("AAL", "2013-12-11", 5, data.get_time_index())
     assert len(data.today) == len(data.yesterday) == 390
 
 
@@ -147,7 +147,7 @@ def test_interpreter():
     class EmulateEnvWrapper(NamedTuple):
         status: EnvWrapperStatus
 
-    interpreter = FullHistoryStateInterpreter(13, 390, 5, FEATURE_DATA_DIR)
+    interpreter = FullHistoryStateInterpreter(13, 390, 5, PickleProcessedDataProvider(FEATURE_DATA_DIR))
     interpreter_step = CurrentStepStateInterpreter(13)
     interpreter_action = CategoricalActionInterpreter(20)
     interpreter_action_twap = TwapRelativeActionInterpreter()
@@ -230,7 +230,7 @@ def test_network_sanity():
     class EmulateEnvWrapper(NamedTuple):
         status: EnvWrapperStatus
 
-    interpreter = FullHistoryStateInterpreter(13, 390, 5, FEATURE_DATA_DIR)
+    interpreter = FullHistoryStateInterpreter(13, 390, 5, PickleProcessedDataProvider(FEATURE_DATA_DIR))
     action_interp = CategoricalActionInterpreter(13)
 
     wrapper_status_kwargs = dict(initial_state=order, obs_history=[], action_history=[], reward_history=[])
@@ -258,7 +258,7 @@ def test_twap_strategy(finite_env_type):
     orders = pickle_styled.load_orders(ORDER_DIR)
     assert len(orders) == 248
 
-    state_interp = FullHistoryStateInterpreter(13, 390, 5, FEATURE_DATA_DIR)
+    state_interp = FullHistoryStateInterpreter(13, 390, 5, PickleProcessedDataProvider(FEATURE_DATA_DIR))
     action_interp = TwapRelativeActionInterpreter()
     action_interp.env = CollectDataEnvWrapper()
     action_interp.env.reset()
@@ -289,7 +289,7 @@ def test_cn_ppo_strategy():
     orders = pickle_styled.load_orders(CN_ORDER_DIR, start_time=pd.Timestamp("9:31"), end_time=pd.Timestamp("14:58"))
     assert len(orders) == 40
 
-    state_interp = FullHistoryStateInterpreter(8, 240, 6, CN_FEATURE_DATA_DIR)
+    state_interp = FullHistoryStateInterpreter(8, 240, 6, PickleProcessedDataProvider(CN_FEATURE_DATA_DIR))
     action_interp = CategoricalActionInterpreter(4)
     action_interp.env = CollectDataEnvWrapper()
     action_interp.env.reset()
@@ -322,7 +322,7 @@ def test_ppo_train():
     orders = pickle_styled.load_orders(CN_ORDER_DIR, start_time=pd.Timestamp("9:31"), end_time=pd.Timestamp("14:58"))
     assert len(orders) == 40
 
-    state_interp = FullHistoryStateInterpreter(8, 240, 6, CN_FEATURE_DATA_DIR)
+    state_interp = FullHistoryStateInterpreter(8, 240, 6, PickleProcessedDataProvider(CN_FEATURE_DATA_DIR))
     action_interp = CategoricalActionInterpreter(4)
     action_interp.env = CollectDataEnvWrapper()
     action_interp.env.reset()

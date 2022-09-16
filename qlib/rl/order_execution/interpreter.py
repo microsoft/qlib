@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import math
-from pathlib import Path
 from typing import Any, List, Optional, cast
 
 import numpy as np
@@ -12,7 +11,7 @@ import pandas as pd
 from gym import spaces
 
 from qlib.constant import EPS
-from qlib.rl.data import pickle_styled
+from qlib.rl.data.base import ProcessedDataProvider
 from qlib.rl.interpreter import ActionInterpreter, StateInterpreter
 from qlib.rl.order_execution.state import SAOEState
 from qlib.typehint import TypedDict
@@ -24,6 +23,8 @@ __all__ = [
     "TwapRelativeActionInterpreter",
     "FullHistoryObs",
 ]
+
+from qlib.utils import init_instance_by_config
 
 
 def canonicalize(value: int | float | np.ndarray | pd.DataFrame | dict) -> np.ndarray | dict:
@@ -64,26 +65,33 @@ class FullHistoryStateInterpreter(StateInterpreter[SAOEState, FullHistoryObs]):
         the total ticks is the length of day in minutes.
     data_dim
         Number of dimensions in data.
-    data_dir
-        Path to load data after feature engineering. It is optional since in some cases we do not need explicit
-        path to load data. For example, the data has already been preloaded in `init_qlib()`.
+    processed_data_provider
+        Provider of the processed data.
     """
 
     # TODO: All implementations related to `data_dir` is coupled with the specific data format for that specific case.
     # TODO: So it should be redesigned after the data interface is well-designed.
-    def __init__(self, max_step: int, data_ticks: int, data_dim: int, data_dir: Path = None) -> None:
-        self.data_dir = data_dir
+    def __init__(
+        self,
+        max_step: int,
+        data_ticks: int,
+        data_dim: int,
+        processed_data_provider: dict | ProcessedDataProvider,
+    ) -> None:
         self.max_step = max_step
         self.data_ticks = data_ticks
         self.data_dim = data_dim
+        self.processed_data_provider: ProcessedDataProvider = init_instance_by_config(
+            processed_data_provider,
+            accept_types=ProcessedDataProvider,
+        )
 
     def interpret(self, state: SAOEState) -> FullHistoryObs:
-        processed = pickle_styled.load_intraday_processed_data(
-            self.data_dir,
-            state.order.stock_id,
-            pd.Timestamp(state.order.start_time.date()),
-            self.data_dim,
-            state.ticks_index,
+        processed = self.processed_data_provider.get_data(
+            stock_id=state.order.stock_id,
+            date=pd.Timestamp(state.order.start_time.date()),
+            feature_dim=self.data_dim,
+            time_index=state.ticks_index,
         )
 
         position_history = np.full(self.max_step + 1, 0.0, dtype=np.float32)

@@ -16,8 +16,8 @@ from qlib.typehint import TypedDict
 from qlib.utils.time import get_day_min_idx_range
 
 if typing.TYPE_CHECKING:
-    from qlib.rl.data.exchange_wrapper import IntradayBacktestData
-    from qlib.rl.data.pickle_styled import BaseIntradayBacktestData
+    from qlib.rl.data.base import BaseIntradayBacktestData
+    from qlib.rl.data.native import IntradayBacktestData
 
 
 def _get_all_timestamps(
