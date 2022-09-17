@@ -119,7 +119,7 @@ def _get_risk_analysis_figure(analysis_df: pd.DataFrame) -> Iterable[py.Figure]:
     _figure = SubplotsGraph(
         _get_all_risk_analysis(analysis_df),
         kind_map=dict(kind="BarGraph", kwargs={}),
-        subplots_kwargs={"rows": 4, "cols": 1},
+        subplots_kwargs={"rows": 1, "cols": 4},
     ).figure
     return (_figure,)
 
