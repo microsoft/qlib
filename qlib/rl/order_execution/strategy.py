@@ -16,7 +16,7 @@ from qlib.backtest import CommonInfrastructure, Order
 from qlib.backtest.decision import BaseTradeDecision, TradeDecisionWO, TradeRange
 from qlib.backtest.utils import LevelInfrastructure
 from qlib.constant import ONE_MIN
-from qlib.rl.data.native import load_qlib_backtest_data
+from qlib.rl.data.native import load_backtest_data
 from qlib.rl.interpreter import ActionInterpreter, StateInterpreter
 from qlib.rl.order_execution.state import SAOEState, SAOEStateAdapter
 from qlib.rl.utils.env_wrapper import BaseEnvWrapper
@@ -47,7 +47,7 @@ class SAOEStrategy(RLStrategy):
         self._last_step_range = (0, 0)
 
     def _create_qlib_backtest_adapter(self, order: Order, trade_range: TradeRange) -> SAOEStateAdapter:
-        backtest_data = load_qlib_backtest_data(order, self.trade_exchange, trade_range)
+        backtest_data = load_backtest_data(order, self.trade_exchange, trade_range)
 
         return SAOEStateAdapter(
             order=order,

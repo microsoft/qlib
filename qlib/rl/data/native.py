@@ -77,7 +77,7 @@ class IntradayBacktestData(BaseIntradayBacktestData):
     cache=cachetools.LRUCache(100),
     key=lambda order, _, __: order.key_by_day,
 )
-def load_qlib_backtest_data(
+def load_backtest_data(
     order: Order,
     trade_exchange: Exchange,
     trade_range: TradeRange,
