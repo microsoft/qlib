@@ -576,3 +576,16 @@ class TradeDecisionWO(BaseTradeDecision[Order]):
             f"trade_range: {self.trade_range}; "
             f"order_list[{len(self.order_list)}]"
         )
+
+
+class TradeDecisionWithDetails(TradeDecisionWO):
+    def __init__(
+        self,
+        order_list: List[Order],
+        strategy: BaseStrategy,
+        trade_range: Optional[Tuple[int, int]] = None,
+        details: Optional[Any] = None,
+    ) -> None:
+        super().__init__(order_list, strategy, trade_range)
+
+        self.details = details

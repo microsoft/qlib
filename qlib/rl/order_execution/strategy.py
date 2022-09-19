@@ -5,15 +5,16 @@ from __future__ import annotations
 
 import collections
 from types import GeneratorType
-from typing import Any, cast, Dict, Generator, Optional, Union
+from typing import Any, cast, Dict, Generator, List, Optional, Union
 
+import numpy as np
 import pandas as pd
 import torch
 from tianshou.data import Batch
 from tianshou.policy import BasePolicy
 
 from qlib.backtest import CommonInfrastructure, Order
-from qlib.backtest.decision import BaseTradeDecision, TradeDecisionWO, TradeRange
+from qlib.backtest.decision import BaseTradeDecision, TradeDecisionWithDetails, TradeDecisionWO, TradeRange
 from qlib.backtest.utils import LevelInfrastructure
 from qlib.constant import ONE_MIN
 from qlib.rl.data.native import load_backtest_data
@@ -235,6 +236,23 @@ class SAOEIntStrategy(SAOEStrategy):
         if self._backtest:
             self._env.reset()
 
+    def _generate_trade_details(self, act: np.ndarray, exec_vols: List[float]) -> pd.DataFrame:
+        assert hasattr(self.outer_trade_decision, "order_list")
+
+        trade_details = []
+        for a, v, o in zip(act, exec_vols, getattr(self.outer_trade_decision, "order_list")):
+            trade_details.append(
+                {
+                    "instrument": o.stock_id,
+                    "datetime": self.trade_calendar.get_step_time()[0],
+                    "freq": self.trade_calendar.get_freq(),
+                    "rl_exec_vol": v,
+                }
+            )
+            if a is not None:
+                trade_details[-1]["rl_action"] = a
+        return pd.DataFrame.from_records(trade_details)
+
     def _generate_trade_decision(self, execute_result: list = None) -> BaseTradeDecision:
         states = []
         obs_batch = []
@@ -261,4 +279,8 @@ class SAOEIntStrategy(SAOEStrategy):
                 order = cast(Order, decision)
                 order_list.append(oh.create(order.stock_id, exec_vol, order.direction))
 
-        return TradeDecisionWO(order_list=order_list, strategy=self)
+        return TradeDecisionWithDetails(
+            order_list=order_list,
+            strategy=self,
+            details=self._generate_trade_details(act, exec_vols),
+        )
