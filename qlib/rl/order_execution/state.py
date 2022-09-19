@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import typing
 from typing import cast, NamedTuple, Optional, Tuple
 
 import numpy as np
@@ -10,11 +11,13 @@ import pandas as pd
 from qlib.backtest import Exchange, Order
 from qlib.backtest.executor import BaseExecutor
 from qlib.constant import EPS, ONE_MIN, REG_CN
-from qlib.rl.data.exchange_wrapper import IntradayBacktestData
-from qlib.rl.data.pickle_styled import BaseIntradayBacktestData
 from qlib.rl.order_execution.utils import dataframe_append, price_advantage
+from qlib.typehint import TypedDict
 from qlib.utils.time import get_day_min_idx_range
-from typing_extensions import TypedDict
+
+if typing.TYPE_CHECKING:
+    from qlib.rl.data.base import BaseIntradayBacktestData
+    from qlib.rl.data.native import IntradayBacktestData
 
 
 def _get_all_timestamps(

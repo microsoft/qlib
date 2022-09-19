@@ -41,7 +41,7 @@ class DataWrapper:
 
     @cachetools.cached(  # type: ignore
         cache=cachetools.LRUCache(100),
-        key=lambda stock_id, date, backtest: (stock_id, date.replace(hour=0, minute=0, second=0), backtest),
+        key=lambda _, stock_id, date, backtest: (stock_id, date.replace(hour=0, minute=0, second=0), backtest),
     )
     def get(self, stock_id: str, date: pd.Timestamp, backtest: bool = False) -> pd.DataFrame:
         start_time, end_time = date.replace(hour=0, minute=0, second=0), date.replace(hour=23, minute=59, second=59)

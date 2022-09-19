@@ -114,7 +114,7 @@ def get_exchange(
 def create_account_instance(
     start_time: Union[pd.Timestamp, str],
     end_time: Union[pd.Timestamp, str],
-    benchmark: str,
+    benchmark: Optional[str],
     account: Union[float, int, dict],
     pos_type: str = "Position",
 ) -> Account:
@@ -163,7 +163,9 @@ def create_account_instance(
         init_cash=init_cash,
         position_dict=position_dict,
         pos_type=pos_type,
-        benchmark_config={
+        benchmark_config={}
+        if benchmark is None
+        else {
             "benchmark": benchmark,
             "start_time": start_time,
             "end_time": end_time,
@@ -176,7 +178,7 @@ def get_strategy_executor(
     end_time: Union[pd.Timestamp, str],
     strategy: Union[str, dict, object, Path],
     executor: Union[str, dict, object, Path],
-    benchmark: str = "SH000300",
+    benchmark: Optional[str] = "SH000300",
     account: Union[float, int, dict] = 1e9,
     exchange_kwargs: dict = {},
     pos_type: str = "Position",

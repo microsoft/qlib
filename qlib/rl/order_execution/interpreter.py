@@ -4,15 +4,14 @@
 from __future__ import annotations
 
 import math
-from pathlib import Path
-from typing import Any, List, cast
+from typing import Any, List, Optional, cast
 
 import numpy as np
 import pandas as pd
 from gym import spaces
 
 from qlib.constant import EPS
-from qlib.rl.data import pickle_styled
+from qlib.rl.data.base import ProcessedDataProvider
 from qlib.rl.interpreter import ActionInterpreter, StateInterpreter
 from qlib.rl.order_execution.state import SAOEState
 from qlib.typehint import TypedDict
@@ -24,6 +23,8 @@ __all__ = [
     "TwapRelativeActionInterpreter",
     "FullHistoryObs",
 ]
+
+from qlib.utils import init_instance_by_config
 
 
 def canonicalize(value: int | float | np.ndarray | pd.DataFrame | dict) -> np.ndarray | dict:
@@ -57,8 +58,6 @@ class FullHistoryStateInterpreter(StateInterpreter[SAOEState, FullHistoryObs]):
 
     Parameters
     ----------
-    data_dir
-        Path to load data after feature engineering.
     max_step
         Total number of steps (an upper-bound estimation). For example, 390min / 30min-per-step = 13 steps.
     data_ticks
@@ -66,21 +65,37 @@ class FullHistoryStateInterpreter(StateInterpreter[SAOEState, FullHistoryObs]):
         the total ticks is the length of day in minutes.
     data_dim
         Number of dimensions in data.
+    processed_data_provider
+        Provider of the processed data.
     """
 
-    def __init__(self, data_dir: Path, max_step: int, data_ticks: int, data_dim: int) -> None:
-        self.data_dir = data_dir
+    # TODO: All implementations related to `data_dir` is coupled with the specific data format for that specific case.
+    # TODO: So it should be redesigned after the data interface is well-designed.
+    def __init__(
+        self,
+        max_step: int,
+        data_ticks: int,
+        data_dim: int,
+        processed_data_provider: dict | ProcessedDataProvider,
+    ) -> None:
         self.max_step = max_step
         self.data_ticks = data_ticks
         self.data_dim = data_dim
+        self.processed_data_provider: ProcessedDataProvider = init_instance_by_config(
+            processed_data_provider,
+            accept_types=ProcessedDataProvider,
+        )
 
     def interpret(self, state: SAOEState) -> FullHistoryObs:
-        processed = pickle_styled.load_intraday_processed_data(
-            self.data_dir,
-            state.order.stock_id,
-            pd.Timestamp(state.order.start_time.date()),
-            self.data_dim,
-            state.ticks_index,
+        # TODO: This interpreter relies on EnvWrapper.status, so we have to give it a dummy EnvWrapper when running
+        # backtest. Currently, the dummy EnvWrapper is CollectDataEnvWrapper. We should find a more elegant
+        # way to decompose interpreter and EnvWrapper in the future.
+
+        processed = self.processed_data_provider.get_data(
+            stock_id=state.order.stock_id,
+            date=pd.Timestamp(state.order.start_time.date()),
+            feature_dim=self.data_dim,
+            time_index=state.ticks_index,
         )
 
         position_history = np.full(self.max_step + 1, 0.0, dtype=np.float32)
@@ -96,15 +111,15 @@ class FullHistoryStateInterpreter(StateInterpreter[SAOEState, FullHistoryObs]):
             FullHistoryObs,
             canonicalize(
                 {
-                    "data_processed": self._mask_future_info(processed.today, state.cur_time),
-                    "data_processed_prev": processed.yesterday,
-                    "acquiring": state.order.direction == state.order.BUY,
-                    "cur_tick": min(int(np.sum(state.ticks_index < state.cur_time)), self.data_ticks - 1),
-                    "cur_step": min(self.env.status["cur_step"], self.max_step - 1),
-                    "num_step": self.max_step,
-                    "target": state.order.amount,
-                    "position": state.position,
-                    "position_history": position_history[: self.max_step],
+                    "data_processed": np.array(self._mask_future_info(processed.today, state.cur_time)),
+                    "data_processed_prev": np.array(processed.yesterday),
+                    "acquiring": _to_int32(state.order.direction == state.order.BUY),
+                    "cur_tick": _to_int32(min(int(np.sum(state.ticks_index < state.cur_time)), self.data_ticks - 1)),
+                    "cur_step": _to_int32(min(self.env.status["cur_step"], self.max_step - 1)),
+                    "num_step": _to_int32(self.max_step),
+                    "target": _to_float32(state.order.amount),
+                    "position": _to_float32(state.position),
+                    "position_history": _to_float32(position_history[: self.max_step]),
                 },
             ),
         )
@@ -162,6 +177,10 @@ class CurrentStepStateInterpreter(StateInterpreter[SAOEState, CurrentStateObs]):
         return spaces.Dict(space)
 
     def interpret(self, state: SAOEState) -> CurrentStateObs:
+        # TODO: This interpreter relies on EnvWrapper.status, so we have to give it a dummy EnvWrapper when running
+        # backtest. Currently, the dummy EnvWrapper is CollectDataEnvWrapper. We should find a more elegant
+        # way to decompose interpreter and EnvWrapper in the future.
+
         assert self.env is not None
         assert self.env.status["cur_step"] <= self.max_step
         obs = CurrentStateObs(
@@ -184,20 +203,31 @@ class CategoricalActionInterpreter(ActionInterpreter[SAOEState, int, float]):
         Then when policy givens decision $x$, $a_x$ times order amount is the output.
         It can also be an integer $n$, in which case the list of length $n+1$ is auto-generated,
         i.e., $[0, 1/n, 2/n, \\ldots, n/n]$.
+    max_step
+        Total number of steps (an upper-bound estimation). For example, 390min / 30min-per-step = 13 steps.
     """
 
-    def __init__(self, values: int | List[float]) -> None:
+    def __init__(self, values: int | List[float], max_step: Optional[int] = None) -> None:
         if isinstance(values, int):
             values = [i / values for i in range(0, values + 1)]
         self.action_values = values
+        self.max_step = max_step
 
     @property
     def action_space(self) -> spaces.Discrete:
         return spaces.Discrete(len(self.action_values))
 
     def interpret(self, state: SAOEState, action: int) -> float:
+        # TODO: This interpreter relies on EnvWrapper.status, so we have to give it a dummy EnvWrapper when running
+        # backtest. Currently, the dummy EnvWrapper is CollectDataEnvWrapper. We should find a more elegant
+        # way to decompose interpreter and EnvWrapper in the future.
+
         assert 0 <= action < len(self.action_values)
-        return min(state.position, state.order.amount * self.action_values[action])
+        assert self.env is not None
+        if self.max_step is not None and self.env.status["cur_step"] >= self.max_step - 1:
+            return state.position
+        else:
+            return min(state.position, state.order.amount * self.action_values[action])
 
 
 class TwapRelativeActionInterpreter(ActionInterpreter[SAOEState, float, float]):
@@ -214,7 +244,19 @@ class TwapRelativeActionInterpreter(ActionInterpreter[SAOEState, float, float]):
         return spaces.Box(0, np.inf, shape=(), dtype=np.float32)
 
     def interpret(self, state: SAOEState, action: float) -> float:
+        # TODO: This interpreter relies on EnvWrapper.status, so we have to give it a dummy EnvWrapper when running
+        # backtest. Currently, the dummy EnvWrapper is CollectDataEnvWrapper. We should find a more elegant
+        # way to decompose interpreter and EnvWrapper in the future.
+
         assert self.env is not None
         estimated_total_steps = math.ceil(len(state.ticks_for_order) / state.ticks_per_step)
         twap_volume = state.position / (estimated_total_steps - self.env.status["cur_step"])
         return min(state.position, twap_volume * action)
+
+
+def _to_int32(val):
+    return np.array(int(val), dtype=np.int32)
+
+
+def _to_float32(val):
+    return np.array(val, dtype=np.float32)
