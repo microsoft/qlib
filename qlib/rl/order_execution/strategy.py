@@ -221,6 +221,10 @@ class SAOEIntStrategy(SAOEStrategy):
             self._policy.eval()
 
     def set_env(self, env: BaseEnvWrapper) -> None:
+        # TODO: This method is used to set EnvWrapper for interpreters since they rely on EnvWrapper.
+        # We should decompose the interpreters with EnvWrapper in the future and we should remove this method
+        # after that.
+
         self._env = env
         self._state_interpreter.env = self._action_interpreter.env = self._env
 
