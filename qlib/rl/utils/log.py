@@ -543,6 +543,33 @@ class PickleWriter(LogWriter):
         pd.DataFrame.from_records(self.all_records).to_pickle(self.output_dir / "result.pkl")
 
 
+class ActionWriter(LogWriter):
+    """Dump policy actions to pickle files"""
+
+    all_records: dict[str, list[Any]]
+
+    def __init__(self, output_dir: Path, loglevel: int | LogLevel = LogLevel.PERIODIC) -> None:
+        super().__init__(loglevel)
+        self.output_dir = output_dir
+        self.output_dir.mkdir(exist_ok=True)
+
+    def clear(self) -> None:
+        super().clear()
+        self.all_records = defaultdict(list)
+
+    def log_episode(self, length: int, rewards: List[float], contents: List[Dict[str, Any]]) -> None:
+
+        for step_index, step_contents in enumerate(contents):
+            for name, value in step_contents.items():
+                if name in ["policy_act", "stock_id", "datetime"]:
+                    self.all_records[name].append(value)
+            self.all_records["step"].append(step_index)
+
+    def on_env_all_done(self) -> None:
+        # FIXME: this is temporary
+        pd.DataFrame.from_dict(self.all_records).to_pickle(self.output_dir / "action.pkl")
+
+
 class TensorboardWriter(LogWriter):
     """Write logs to event files that can be visualized with tensorboard."""
 
