@@ -110,7 +110,7 @@ class HighFreqHandler(DataHandlerLP):
         return fields, names
 
 
-class HighFreqOpenHandler(HighFreqHandler):
+class HighFreqGeneralHandler(HighFreqHandler):
     def __init__(
         self,
         instruments="csi300",
@@ -248,7 +248,7 @@ class HighFreqBacktestHandler(DataHandler):
 
         return fields, names
 
-class HighFreqOpenBacktestHandler(HighFreqBacktestHandler):
+class HighFreqGeneralBacktestHandler(HighFreqBacktestHandler):
     def __init__(
         self,
         instruments="csi300",
