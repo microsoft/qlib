@@ -248,6 +248,7 @@ class HighFreqBacktestHandler(DataHandler):
 
         return fields, names
 
+
 class HighFreqGeneralBacktestHandler(HighFreqBacktestHandler):
     def __init__(
         self,
@@ -281,11 +282,7 @@ class HighFreqGeneralBacktestHandler(HighFreqBacktestHandler):
         ]
         names += ["$vwap0"]
 
-        fields += [
-            template_paused.format(
-                "If(IsNull({0}), 0, {0})".format('$volume')
-            )
-        ]
+        fields += [template_paused.format("If(IsNull({0}), 0, {0})".format("$volume"))]
         names += ["$volume0"]
 
         return fields, names
