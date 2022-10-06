@@ -163,6 +163,9 @@ def auto_device(module: nn.Module) -> torch.device:
 def load_weight(policy: nn.Module, path: Path) -> None:
     assert isinstance(policy, nn.Module), "Policy has to be an nn.Module to load weight."
     loaded_weight = torch.load(path, map_location="cpu")
+
+    if "vessel" in loaded_weight:
+        loaded_weight = loaded_weight["vessel"]["policy"]
     try:
         policy.load_state_dict(loaded_weight)
     except RuntimeError:

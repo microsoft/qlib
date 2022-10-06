@@ -91,6 +91,9 @@ def load_backtest_data(
     )
 
     ticks_index = pd.DatetimeIndex(tmp_data.reset_index()["datetime"])
+    ticks_index = ticks_index[order.start_time <= ticks_index]
+    ticks_index = ticks_index[ticks_index <= order.end_time]
+
     if isinstance(trade_range, TradeRangeByTime):
         ticks_for_order = get_ticks_slice(
             ticks_index,
