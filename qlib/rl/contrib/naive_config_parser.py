@@ -53,7 +53,8 @@ def parse_backtest_config(path: str) -> dict:
 
                 del sys.modules[tmp_module_name]
             else:
-                config = yaml.safe_load(open(tmp_config_file.name))
+                with open(tmp_config_file.name) as input_stream:
+                    config = yaml.safe_load(input_stream)
 
     if "_base_" in config:
         base_file_name = config.pop("_base_")

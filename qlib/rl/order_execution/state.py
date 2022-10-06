@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 import typing
-from typing import cast, NamedTuple, Optional, Tuple
+from typing import cast, Callable, List, NamedTuple, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -13,6 +13,7 @@ from qlib.backtest.executor import BaseExecutor
 from qlib.constant import EPS, ONE_MIN, REG_CN
 from qlib.rl.order_execution.utils import dataframe_append, price_advantage
 from qlib.typehint import TypedDict
+from qlib.utils.index_data import IndexData
 from qlib.utils.time import get_day_min_idx_range
 
 if typing.TYPE_CHECKING:
@@ -36,6 +37,18 @@ def _get_all_timestamps(
     if ret[-1] == end and not include_end:
         ret.pop()
     return pd.DatetimeIndex(ret)
+
+
+def fill_missing_data(
+    original_data: np.ndarray,
+    total_time_list: List[pd.Timestamp],
+    found_time_list: List[pd.Timestamp],
+    fill_method: Callable = np.median,
+) -> np.ndarray:
+    assert len(original_data) == len(found_time_list)
+    tmp = dict(zip(found_time_list, original_data))
+    fill_val = fill_method(original_data)
+    return np.array([tmp.get(t, fill_val) for t in total_time_list])
 
 
 class SAOEStateAdapter:
@@ -106,16 +119,17 @@ class SAOEStateAdapter:
             assert exec_vol.sum() < self.position + 1, f"{exec_vol} too large"
             exec_vol *= self.position / (exec_vol.sum())
 
-        market_volume = np.array(
+        market_volume = cast(
+            IndexData,
             self.exchange.get_volume(
                 self.order.stock_id,
                 pd.Timestamp(start_time),
                 pd.Timestamp(end_time),
                 method=None,
             ),
-        ).reshape(-1)
-
-        market_price = np.array(
+        )
+        market_price = cast(
+            IndexData,
             self.exchange.get_deal_price(
                 self.order.stock_id,
                 pd.Timestamp(start_time),
@@ -123,7 +137,11 @@ class SAOEStateAdapter:
                 method=None,
                 direction=self.order.direction,
             ),
-        ).reshape(-1)
+        )
+        found_time_list = [pd.Timestamp(e) for e in list(market_volume.index)]
+        total_time_list = _get_all_timestamps(start_time, end_time)
+        market_price = fill_missing_data(np.array(market_price).reshape(-1), total_time_list, found_time_list)
+        market_volume = fill_missing_data(np.array(market_volume).reshape(-1), total_time_list, found_time_list)
 
         assert market_price.shape == market_volume.shape == exec_vol.shape
 

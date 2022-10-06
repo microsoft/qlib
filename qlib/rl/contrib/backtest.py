@@ -43,7 +43,7 @@ def _get_multi_level_executor_config(
     }
 
     freqs = list(strategy_config.keys())
-    freqs.sort(key=lambda x: pd.Timedelta(x))
+    freqs.sort(key=pd.Timedelta)
     for freq in freqs:
         executor_config = {
             "class": "NestedExecutor",
@@ -75,7 +75,7 @@ def _convert_indicator_to_dataframe(indicator: dict) -> Optional[pd.DataFrame]:
             # HACK: for qlib v0.8
             value_dict = value_dict.to_series()
         try:
-            value_dict = {k: v for k, v in value_dict.items()}
+            value_dict = copy.deepcopy(value_dict)
             if value_dict["ffr"].empty:
                 continue
         except Exception:
@@ -337,8 +337,6 @@ def backtest(backtest_config: dict, with_simulator: bool = False) -> pd.DataFram
 
     stock_pool = order_df["instrument"].unique().tolist()
     stock_pool.sort()
-
-    stock_pool = stock_pool
 
     single = single_with_simulator if with_simulator else single_with_collect_data_loop
     mp_config = {"n_jobs": backtest_config["concurrency"], "verbose": 10, "backend": "multiprocessing"}
