@@ -7,7 +7,7 @@ import copy
 import pickle
 from collections import defaultdict
 from pathlib import Path
-from typing import List, Optional, Tuple, Union
+from typing import List, Literal, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -15,7 +15,7 @@ import torch
 from joblib import Parallel, delayed
 
 from qlib.backtest import collect_data_loop, get_strategy_executor
-from qlib.backtest.decision import Order, OrderDir, TradeRangeByTime
+from qlib.backtest.decision import BaseTradeDecision, Order, OrderDir, TradeRangeByTime
 from qlib.backtest.executor import BaseExecutor, NestedExecutor, SimulatorExecutor
 from qlib.backtest.high_performance_ds import BaseOrderIndicator
 from qlib.rl.contrib.naive_config_parser import get_backtest_config_fromfile
@@ -92,18 +92,30 @@ def _convert_indicator_to_dataframe(indicator: dict) -> Optional[pd.DataFrame]:
     return records
 
 
-def _generate_report(decisions: list, report_dicts: List[dict]) -> dict:
+def _generate_report(decisions: List[BaseTradeDecision], report_indicators: List[dict]) -> dict:
+    """Generate backtest reports
+
+    Parameters
+    ----------
+    decisions:
+        List of trade decisions.
+    report_indicators
+        List of indicator reports.
+    Returns
+    -------
+
+    """
     indicator_dict = defaultdict(list)
     indicator_his = defaultdict(list)
-    for report_dict in report_dicts:
-        for key, value in report_dict["indicator"].items():
+    for report_indicator in report_indicators:
+        for key, value in report_indicator.items():
             if key.endswith("_obj"):
                 indicator_his[key].append(value.order_indicator_his)
             else:
                 indicator_dict[key].append(value)
 
     report = {}
-    decision_details = pd.concat([d.details for d in decisions if hasattr(d, "details")])
+    decision_details = pd.concat([getattr(d, "details") for d in decisions if hasattr(d, "details")])
     for key in ["1min", "5min", "30min", "1day"]:
         if key not in indicator_dict:
             continue
@@ -122,10 +134,34 @@ def _generate_report(decisions: list, report_dicts: List[dict]) -> dict:
 def single_with_simulator(
     backtest_config: dict,
     orders: pd.DataFrame,
-    split: str = "stock",
+    split: Literal["stock", "day"] = "stock",
     cash_limit: float = None,
     generate_report: bool = False,
 ) -> Union[Tuple[pd.DataFrame, dict], pd.DataFrame]:
+    """Run backtest in a single thread with SingleAssetOrderExecution simulator. The orders will be executed day by day.
+    A new simulator will be created and used for every single-day order.
+
+    Parameters
+    ----------
+    backtest_config:
+        Backtest config
+    orders:
+        Orders to be executed. Example format:
+                 datetime instrument  amount  direction
+            0  2020-06-01       INST   600.0          0
+            1  2020-06-02       INST   700.0          1
+            ...
+    split
+        Method to split orders. If it is "stock", split orders by stock. If it is "day", split orders by date.
+    cash_limit
+        Limitation of cash.
+    generate_report
+        Whether to generate reports.
+
+    Returns
+    -------
+        If generate_report is True, return execution records and the generated report. Otherwise, return only records.
+    """
     if split == "stock":
         stock_id = orders.iloc[0].instrument
         init_qlib(backtest_config["qlib"], part=stock_id)
@@ -180,7 +216,7 @@ def single_with_simulator(
     assert records is None or not np.isnan(records["ffr"]).any()
 
     if generate_report:
-        report = _generate_report(decisions, reports)
+        report = _generate_report(decisions, [report["indicator"] for report in reports])
 
         if split == "stock":
             stock_id = orders.iloc[0].instrument
@@ -197,10 +233,34 @@ def single_with_simulator(
 def single_with_collect_data_loop(
     backtest_config: dict,
     orders: pd.DataFrame,
-    split: str = "stock",
+    split: Literal["stock", "day"] = "stock",
     cash_limit: float = None,
     generate_report: bool = False,
 ) -> Union[Tuple[pd.DataFrame, dict], pd.DataFrame]:
+    """Run backtest in a single thread with collect_data_loop.
+
+    Parameters
+    ----------
+    backtest_config:
+        Backtest config
+    orders:
+        Orders to be executed. Example format:
+                 datetime instrument  amount  direction
+            0  2020-06-01       INST   600.0          0
+            1  2020-06-02       INST   700.0          1
+            ...
+    split
+        Method to split orders. If it is "stock", split orders by stock. If it is "day", split orders by date.
+    cash_limit
+        Limitation of cash.
+    generate_report
+        Whether to generate reports.
+
+    Returns
+    -------
+        If generate_report is True, return execution records and the generated report. Otherwise, return only records.
+    """
+
     if split == "stock":
         stock_id = orders.iloc[0].instrument
         init_qlib(backtest_config["qlib"], part=stock_id)
@@ -257,7 +317,7 @@ def single_with_collect_data_loop(
     assert records is None or not np.isnan(records["ffr"]).any()
 
     if generate_report:
-        report = _generate_report(decisions, [report_dict])
+        report = _generate_report(decisions, [report_dict["indicator"]])
         if split == "stock":
             stock_id = orders.iloc[0].instrument
             report = {stock_id: report}
@@ -269,7 +329,7 @@ def single_with_collect_data_loop(
         return records
 
 
-def backtest(backtest_config: dict, parallel_mode: bool = False, with_simulator: bool = False) -> pd.DataFrame:
+def backtest(backtest_config: dict, with_simulator: bool = False) -> pd.DataFrame:
     order_df = read_order_file(backtest_config["order_file"])
 
     cash_limit = backtest_config["exchange"].pop("cash_limit")
@@ -281,30 +341,18 @@ def backtest(backtest_config: dict, parallel_mode: bool = False, with_simulator:
     stock_pool = stock_pool
 
     single = single_with_simulator if with_simulator else single_with_collect_data_loop
-    if parallel_mode:
-        mp_config = {"n_jobs": backtest_config["concurrency"], "verbose": 10, "backend": "multiprocessing"}
-        torch.set_num_threads(1)  # https://github.com/pytorch/pytorch/issues/17199
-        res = Parallel(**mp_config)(
-            delayed(single)(
-                backtest_config=backtest_config,
-                orders=order_df[order_df["instrument"] == stock].copy(),
-                split="stock",
-                cash_limit=cash_limit,
-                generate_report=generate_report,
-            )
-            for stock in stock_pool
+    mp_config = {"n_jobs": backtest_config["concurrency"], "verbose": 10, "backend": "multiprocessing"}
+    torch.set_num_threads(1)  # https://github.com/pytorch/pytorch/issues/17199
+    res = Parallel(**mp_config)(
+        delayed(single)(
+            backtest_config=backtest_config,
+            orders=order_df[order_df["instrument"] == stock].copy(),
+            split="stock",
+            cash_limit=cash_limit,
+            generate_report=generate_report,
         )
-    else:
-        res = [
-            single(
-                backtest_config=backtest_config,
-                orders=order_df[order_df["instrument"] == stock].copy(),
-                split="stock",
-                cash_limit=cash_limit,
-                generate_report=generate_report,
-            )
-            for stock in stock_pool
-        ]
+        for stock in stock_pool
+    )
 
     output_path = Path(backtest_config["output_dir"])
     if generate_report:
@@ -329,12 +377,10 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--config_path", type=str, required=True, help="Path to the config file")
-    parser.add_argument("--parallel", action="store_true", help="Whether to run pipelines in parallel")
     parser.add_argument("--use_simulator", action="store_true", help="Whether to use simulator as the backend")
     args = parser.parse_args()
 
     backtest(
         backtest_config=get_backtest_config_fromfile(args.config_path),
-        parallel_mode=args.parallel,
         with_simulator=args.use_simulator,
     )

@@ -532,4 +532,3 @@ class HighFreqBacktestOrderHandler(DataHandler):
         names += ["$lowmarket0"]
 
         return fields, names
-    

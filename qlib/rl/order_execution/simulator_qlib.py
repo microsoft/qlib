@@ -98,6 +98,8 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
         )
         assert isinstance(self._collect_data_loop, Generator)
 
+        # TODO: backtest_mode is not a necessary parameter if we carefully design it.
+        # TODO: It should disappear with CollectDataEnvWrapper in the future.
         if backtest_mode:
             executor: BaseExecutor = self._executor
             while isinstance(executor, NestedExecutor):
