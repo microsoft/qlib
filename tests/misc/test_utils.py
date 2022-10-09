@@ -97,7 +97,6 @@ class TimeUtils(TestCase):
 
         for region in regions:
             cal_time = get_min_cal(region=region)
-
             for args in gen_args(cal_time):
                 assert cal_sam_minute(*args, region) == cal_sam_minute_new(*args, region=region)
 
