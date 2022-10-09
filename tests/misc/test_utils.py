@@ -10,11 +10,7 @@ from qlib.log import TimeInspector
 from qlib.constant import REG_CN, REG_US, REG_TW
 from qlib.utils.time import cal_sam_minute as cal_sam_minute_new, get_min_cal, CN_TIME, US_TIME, TW_TIME
 
-REG_MAP = {
-    REG_CN: CN_TIME,
-    REG_US: US_TIME,
-    REG_TW: TW_TIME
-}
+REG_MAP = {REG_CN: CN_TIME, REG_US: US_TIME, REG_TW: TW_TIME}
 
 
 def cal_sam_minute(x: pd.Timestamp, sam_minutes: int, region: str):
@@ -30,15 +26,27 @@ def cal_sam_minute(x: pd.Timestamp, sam_minutes: int, region: str):
     shift = C.min_data_shift
     region_time = REG_MAP[region]
 
-    open_time = day_time + pd.Timedelta(hours=region_time[0].hour,
-                                        minutes=region_time[0].minute) - shift * pd.Timedelta(minutes=1)
-    close_time = day_time + pd.Timedelta(hours=region_time[-1].hour,
-                                         minutes=region_time[-1].minute) - shift * pd.Timedelta(minutes=1)
+    open_time = (
+        day_time
+        + pd.Timedelta(hours=region_time[0].hour, minutes=region_time[0].minute)
+        - shift * pd.Timedelta(minutes=1)
+    )
+    close_time = (
+        day_time
+        + pd.Timedelta(hours=region_time[-1].hour, minutes=region_time[-1].minute)
+        - shift * pd.Timedelta(minutes=1)
+    )
     if region_time == CN_TIME:
-        mid_close_time = day_time + pd.Timedelta(hours=region_time[1].hour,
-                                                 minutes=region_time[1].minute - 1) - shift * pd.Timedelta(minutes=1)
-        mid_open_time = day_time + pd.Timedelta(hours=region_time[2].hour,
-                                                minutes=region_time[2].minute) - shift * pd.Timedelta(minutes=1)
+        mid_close_time = (
+            day_time
+            + pd.Timedelta(hours=region_time[1].hour, minutes=region_time[1].minute - 1)
+            - shift * pd.Timedelta(minutes=1)
+        )
+        mid_open_time = (
+            day_time
+            + pd.Timedelta(hours=region_time[2].hour, minutes=region_time[2].minute)
+            - shift * pd.Timedelta(minutes=1)
+        )
     else:
         mid_close_time = close_time
         mid_open_time = open_time
@@ -86,6 +94,7 @@ class TimeUtils(TestCase):
                 )
                 args = dt, sam_minutes
                 yield args
+
         for region in regions:
             cal_time = get_min_cal(region=region)
 
