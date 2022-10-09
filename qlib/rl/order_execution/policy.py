@@ -164,6 +164,9 @@ def load_weight(policy: nn.Module, path: Path) -> None:
     assert isinstance(policy, nn.Module), "Policy has to be an nn.Module to load weight."
     loaded_weight = torch.load(path, map_location="cpu")
 
+    # TODO: this should be handled by whoever calls load_weight.
+    # TODO: For example, when the outer class receives a weight, it should first unpack it,
+    # TODO: and send the corresponding part to individual component.
     if "vessel" in loaded_weight:
         loaded_weight = loaded_weight["vessel"]["policy"]
     try:

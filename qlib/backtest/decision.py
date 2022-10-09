@@ -579,6 +579,8 @@ class TradeDecisionWO(BaseTradeDecision[Order]):
 
 
 class TradeDecisionWithDetails(TradeDecisionWO):
+    """Decision with detail information. Detail information is used to generate execution reports.
+    """
     def __init__(
         self,
         order_list: List[Order],

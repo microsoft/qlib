@@ -81,6 +81,7 @@ def load_backtest_data(
     trade_exchange: Exchange,
     trade_range: TradeRange,
 ) -> IntradayBacktestData:
+    # TODO: making exchange return data without missing will make it more elegant. Fix this in the future.
     tmp_data = D.features(
         trade_exchange.codes,
         trade_exchange.all_fields,

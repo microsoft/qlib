@@ -45,6 +45,25 @@ def fill_missing_data(
     found_time_list: List[pd.Timestamp],
     fill_method: Callable = np.median,
 ) -> np.ndarray:
+    """Fill missing data. We need this function to deal with data that have missing values in some minutes.
+
+    TODO: making exchange return data without missing will make it more elegant. Fix this in the future.
+
+    Parameters
+    ----------
+    original_data
+        Original data without missing values.
+    total_time_list
+        All timestamps that required.
+    found_time_list
+        Timestamps found in the original data.
+    fill_method
+        Method used to fill the missing data.
+
+    Returns
+    -------
+        The filled data.
+    """
     assert len(original_data) == len(found_time_list)
     tmp = dict(zip(found_time_list, original_data))
     fill_val = fill_method(original_data)

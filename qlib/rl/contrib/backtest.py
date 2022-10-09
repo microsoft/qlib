@@ -92,6 +92,8 @@ def _convert_indicator_to_dataframe(indicator: dict) -> Optional[pd.DataFrame]:
     return records
 
 
+# TODO: there should be richer annotation for the input (e.g. report) and the returned report
+# TODO: For example, @ dataclass with typed fields and detailed docstrings.
 def _generate_report(decisions: List[BaseTradeDecision], report_indicators: List[dict]) -> dict:
     """Generate backtest reports
 
