@@ -124,6 +124,7 @@ class HighFreqGeneralHandler(DataHandlerLP):
         day_length=240,
     ):
         self.day_length = day_length
+
         def check_transform_proc(proc_l):
             new_l = []
             for p in proc_l:
