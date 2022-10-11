@@ -110,7 +110,7 @@ class HighFreqHandler(DataHandlerLP):
         return fields, names
 
 
-class HighFreqGeneralHandler(HighFreqHandler):
+class HighFreqGeneralHandler(DataHandlerLP):
     def __init__(
         self,
         instruments="csi300",
@@ -124,14 +124,36 @@ class HighFreqGeneralHandler(HighFreqHandler):
         day_length=240,
     ):
         self.day_length = day_length
+        def check_transform_proc(proc_l):
+            new_l = []
+            for p in proc_l:
+                p["kwargs"].update(
+                    {
+                        "fit_start_time": fit_start_time,
+                        "fit_end_time": fit_end_time,
+                    }
+                )
+                new_l.append(p)
+            return new_l
+
+        infer_processors = check_transform_proc(infer_processors)
+        learn_processors = check_transform_proc(learn_processors)
+
+        data_loader = {
+            "class": "QlibDataLoader",
+            "kwargs": {
+                "config": self.get_feature_config(),
+                "swap_level": False,
+                "freq": "1min",
+            },
+        }
         super().__init__(
             instruments=instruments,
             start_time=start_time,
             end_time=end_time,
+            data_loader=data_loader,
             infer_processors=infer_processors,
             learn_processors=learn_processors,
-            fit_start_time=fit_start_time,
-            fit_end_time=fit_end_time,
             drop_raw=drop_raw,
         )
 
@@ -249,7 +271,7 @@ class HighFreqBacktestHandler(DataHandler):
         return fields, names
 
 
-class HighFreqGeneralBacktestHandler(HighFreqBacktestHandler):
+class HighFreqGeneralBacktestHandler(DataHandler):
     def __init__(
         self,
         instruments="csi300",
@@ -258,10 +280,19 @@ class HighFreqGeneralBacktestHandler(HighFreqBacktestHandler):
         day_length=240,
     ):
         self.day_length = day_length
+        data_loader = {
+            "class": "QlibDataLoader",
+            "kwargs": {
+                "config": self.get_feature_config(),
+                "swap_level": False,
+                "freq": "1min",
+            },
+        }
         super().__init__(
             instruments=instruments,
             start_time=start_time,
             end_time=end_time,
+            data_loader=data_loader,
         )
 
     def get_feature_config(self):
@@ -269,7 +300,6 @@ class HighFreqGeneralBacktestHandler(HighFreqBacktestHandler):
         names = []
 
         template_paused = f"Cut({{0}}, {self.day_length * 2}, None)"
-        # template_paused = "{0}"
         template_fillnan = "FFillNan({0})"
         template_if = "If(IsNull({1}), {0}, {1})"
         fields += [
@@ -481,7 +511,6 @@ class HighFreqBacktestOrderHandler(DataHandler):
 
         template_if = "If(IsNull({1}), {0}, {1})"
         template_paused = "Select(Gt($hx_paused_num, 1.001), {0})"
-        # template_paused = "{0}"
         template_fillnan = "FFillNan({0})"
         fields += [
             template_fillnan.format(template_paused.format("$close")),
