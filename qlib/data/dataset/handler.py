@@ -357,9 +357,9 @@ class DataHandlerLP(DataHandler):
     _learn: pd.DataFrame  # data for learning models
 
     # data key
-    DK_R = "raw"
-    DK_I = "infer"
-    DK_L = "learn"
+    DK_R: DATA_KEY_TYPE = "raw"
+    DK_I: DATA_KEY_TYPE = "infer"
+    DK_L: DATA_KEY_TYPE = "learn"
     # map data_key to attribute name
     ATTR_MAP = {DK_R: "_data", DK_I: "_infer", DK_L: "_learn"}
 
