@@ -63,15 +63,15 @@ class TrainingVesselBase(Generic[InitialStateType, StateType, ActType, ObsType, 
         """Override this to create a seed iterator for testing."""
         raise SeedIteratorNotAvailable("Seed iterator for testing is not available.")
 
-    def train(self, vector_env: BaseVectorEnv) -> dict[str, Any]:
+    def train(self, vector_env: BaseVectorEnv) -> Dict[str, Any]:
         """Implement this to train one iteration. In RL, one iteration usually refers to one collect."""
         raise NotImplementedError()
 
-    def validate(self, vector_env: FiniteVectorEnv) -> dict[str, Any]:
+    def validate(self, vector_env: FiniteVectorEnv) -> Dict[str, Any]:
         """Implement this to validate the policy once."""
         raise NotImplementedError()
 
-    def test(self, vector_env: FiniteVectorEnv) -> dict[str, Any]:
+    def test(self, vector_env: FiniteVectorEnv) -> Dict[str, Any]:
         """Implement this to evaluate the policy on test environment once."""
         raise NotImplementedError()
 
@@ -82,15 +82,15 @@ class TrainingVesselBase(Generic[InitialStateType, StateType, ActType, ObsType, 
             value = np.mean(value)
         _logger.info(f"[Iter {self.trainer.current_iter + 1}] {name} = {value}")
 
-    def log_dict(self, data: dict[str, Any]) -> None:
+    def log_dict(self, data: Dict[str, Any]) -> None:
         for name, value in data.items():
             self.log(name, value)
 
-    def state_dict(self) -> dict:
+    def state_dict(self) -> Dict:
         """Return a checkpoint of current vessel state."""
         return {"policy": self.policy.state_dict()}
 
-    def load_state_dict(self, state_dict: dict) -> None:
+    def load_state_dict(self, state_dict: Dict) -> None:
         """Restore a checkpoint from a previously saved state dict."""
         self.policy.load_state_dict(state_dict["policy"])
 
@@ -125,7 +125,7 @@ class TrainingVessel(TrainingVesselBase):
         test_initial_states: Sequence[InitialStateType] | None = None,
         buffer_size: int = 20000,
         episode_per_iter: int = 1000,
-        update_kwargs: dict[str, Any] = cast(Dict[str, Any], None),
+        update_kwargs: Dict[str, Any] = cast(Dict[str, Any], None),
     ):
         self.simulator_fn = simulator_fn  # type: ignore
         self.state_interpreter = state_interpreter
@@ -161,7 +161,7 @@ class TrainingVessel(TrainingVesselBase):
             return DataQueue(test_initial_states, repeat=1)
         return super().test_seed_iterator()
 
-    def train(self, vector_env: FiniteVectorEnv) -> dict[str, Any]:
+    def train(self, vector_env: FiniteVectorEnv) -> Dict[str, Any]:
         """Create a collector and collects ``episode_per_iter`` episodes.
         Update the policy on the collected replay buffer.
         """
@@ -182,7 +182,7 @@ class TrainingVessel(TrainingVesselBase):
             self.log_dict(res)
             return res
 
-    def validate(self, vector_env: FiniteVectorEnv) -> dict[str, Any]:
+    def validate(self, vector_env: FiniteVectorEnv) -> Dict[str, Any]:
         self.policy.eval()
 
         with vector_env.collector_guard():
@@ -191,7 +191,7 @@ class TrainingVessel(TrainingVesselBase):
             self.log_dict(res)
             return res
 
-    def test(self, vector_env: FiniteVectorEnv) -> dict[str, Any]:
+    def test(self, vector_env: FiniteVectorEnv) -> Dict[str, Any]:
         self.policy.eval()
 
         with vector_env.collector_guard():

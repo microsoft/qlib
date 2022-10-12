@@ -3,10 +3,11 @@
 
 from __future__ import annotations
 
+import collections
 import copy
 from contextlib import AbstractContextManager, contextmanager
 from pathlib import Path
-from typing import Any, Iterable, Sequence, TypeVar, cast
+from typing import Any, Dict, Iterable, List, Sequence, TypeVar, cast
 
 import torch
 
@@ -83,7 +84,7 @@ class Trainer:
     current_iter: int
     """Current iteration (collect) of training."""
 
-    loggers: list[LogWriter]
+    loggers: List[LogWriter]
     """A list of log writers."""
 
     def __init__(
@@ -91,8 +92,8 @@ class Trainer:
         *,
         max_iters: int | None = None,
         val_every_n_iters: int | None = None,
-        loggers: LogWriter | list[LogWriter] | None = None,
-        callbacks: list[Callback] | None = None,
+        loggers: LogWriter | List[LogWriter] | None = None,
+        callbacks: List[Callback] | None = None,
         finite_env_type: FiniteEnvType = "subproc",
         concurrency: int = 2,
         fast_dev_run: int | None = None,
@@ -109,7 +110,7 @@ class Trainer:
 
         self.loggers.append(LogBuffer(self._metrics_callback, loglevel=self._min_loglevel()))
 
-        self.callbacks: list[Callback] = callbacks if callbacks is not None else []
+        self.callbacks: List[Callback] = callbacks if callbacks is not None else []
         self.finite_env_type = finite_env_type
         self.concurrency = concurrency
         self.fast_dev_run = fast_dev_run
@@ -164,13 +165,13 @@ class Trainer:
         self.current_stage = state_dict["current_stage"]
         self.metrics = state_dict["metrics"]
 
-    def named_callbacks(self) -> dict[str, Callback]:
+    def named_callbacks(self) -> Dict[str, Callback]:
         """Retrieve a collection of callbacks where each one has a name.
         Useful when saving checkpoints.
         """
         return _named_collection(self.callbacks)
 
-    def named_loggers(self) -> dict[str, LogWriter]:
+    def named_loggers(self) -> Dict[str, LogWriter]:
         """Retrieve a collection of loggers where each one has a name.
         Useful when saving checkpoints.
         """
@@ -328,16 +329,13 @@ def _wrap_context(obj):
         yield obj
 
 
-def _named_collection(seq: Sequence[T]) -> dict[str, T]:
+def _named_collection(seq: Sequence[T]) -> Dict[str, T]:
     """Convert a list into a dict, where each item is named with its type."""
     res = {}
+    retry_cnt: collections.Counter = collections.Counter()
     for item in seq:
         typename = type(item).__name__.lower()
-        if typename not in res:
-            res[typename] = item
-        else:
-            # names are auto-labelled as earlystop1, earlystop2, ...
-            for retry in range(1, 1000):
-                if f"{typename}{retry}" not in res:
-                    res[f"{typename}{retry}"] = item
+        key = typename if retry_cnt[typename] == 0 else f"{typename}{retry_cnt[typename]}"
+        retry_cnt[typename] += 1
+        res[key] = item
     return res
