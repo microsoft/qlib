@@ -1,5 +1,7 @@
 from qlib.data.dataset.handler import DataHandler, DataHandlerLP
 
+from .handler import check_transform_proc
+
 EPSILON = 1e-4
 
 
@@ -15,20 +17,9 @@ class HighFreqHandler(DataHandlerLP):
         fit_end_time=None,
         drop_raw=True,
     ):
-        def check_transform_proc(proc_l):
-            new_l = []
-            for p in proc_l:
-                p["kwargs"].update(
-                    {
-                        "fit_start_time": fit_start_time,
-                        "fit_end_time": fit_end_time,
-                    }
-                )
-                new_l.append(p)
-            return new_l
 
-        infer_processors = check_transform_proc(infer_processors)
-        learn_processors = check_transform_proc(learn_processors)
+        infer_processors = check_transform_proc(infer_processors, fit_start_time, fit_end_time)
+        learn_processors = check_transform_proc(learn_processors, fit_start_time, fit_end_time)
 
         data_loader = {
             "class": "QlibDataLoader",
@@ -125,20 +116,8 @@ class HighFreqGeneralHandler(DataHandlerLP):
     ):
         self.day_length = day_length
 
-        def check_transform_proc(proc_l):
-            new_l = []
-            for p in proc_l:
-                p["kwargs"].update(
-                    {
-                        "fit_start_time": fit_start_time,
-                        "fit_end_time": fit_end_time,
-                    }
-                )
-                new_l.append(p)
-            return new_l
-
-        infer_processors = check_transform_proc(infer_processors)
-        learn_processors = check_transform_proc(learn_processors)
+        infer_processors = check_transform_proc(infer_processors, fit_start_time, fit_end_time)
+        learn_processors = check_transform_proc(learn_processors, fit_start_time, fit_end_time)
 
         data_loader = {
             "class": "QlibDataLoader",
@@ -331,20 +310,9 @@ class HighFreqOrderHandler(DataHandlerLP):
         fit_end_time=None,
         drop_raw=True,
     ):
-        def check_transform_proc(proc_l):
-            new_l = []
-            for p in proc_l:
-                p["kwargs"].update(
-                    {
-                        "fit_start_time": fit_start_time,
-                        "fit_end_time": fit_end_time,
-                    }
-                )
-                new_l.append(p)
-            return new_l
 
-        infer_processors = check_transform_proc(infer_processors)
-        learn_processors = check_transform_proc(learn_processors)
+        infer_processors = check_transform_proc(infer_processors, fit_start_time, fit_end_time)
+        learn_processors = check_transform_proc(learn_processors, fit_start_time, fit_end_time)
 
         data_loader = {
             "class": "QlibDataLoader",
