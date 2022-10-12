@@ -107,6 +107,7 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
                     executor.inner_strategy.set_env(CollectDataEnvWrapper())
                 executor = executor.inner_executor
 
+        # Call `step()` with None action to initialize the internal generator.
         self.step(action=None)
 
         self._order = order
