@@ -301,7 +301,7 @@ class TradeRangeByTime(TradeRange):
 
 class BaseTradeDecision(Generic[DecisionType]):
     """
-    Trade decisions ara made by strategy and executed by executor
+    Trade decisions are made by strategy and executed by executor
 
     Motivation:
         Here are several typical scenarios for `BaseTradeDecision`
