@@ -129,6 +129,7 @@ def train_and_test(
             Checkpoint(
                 dirpath=Path(trainer_config["checkpoint_path"]),
                 every_n_iters=trainer_config["checkpoint_every_n_iters"],
+                save_latest="copy",
             ),
         )
 

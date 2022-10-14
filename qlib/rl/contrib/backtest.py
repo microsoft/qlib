@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import copy
+import os
 import pickle
 from collections import defaultdict
 from pathlib import Path
@@ -365,6 +366,8 @@ def backtest(backtest_config: dict, with_simulator: bool = False) -> pd.DataFram
     else:
         res = pd.concat(res)
 
+    if not output_path.exists():
+        os.makedirs(output_path)
     res.to_csv(output_path / "summary.csv")
     return res
 
