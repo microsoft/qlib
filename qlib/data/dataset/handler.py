@@ -235,25 +235,24 @@ class DataHandler(Serializable):
                 get_module_logger("DataHandlerLP").info(f"Fail to converting to query to slice. It will used directly")
 
         if isinstance(data_storage, pd.DataFrame):
-            data_df = data_storage
             if proc_func is not None:
                 # FIXME: fetching by time first will be more friendly to `proc_func`
                 # Copy in case of `proc_func` changing the data inplace....
-                data_df = proc_func(fetch_df_by_index(data_df, selector, level, fetch_orig=self.fetch_orig).copy())
-                data_df = fetch_df_by_col(data_df, col_set)
+                data_storage = proc_func(fetch_df_by_index(data_storage, selector, level, fetch_orig=self.fetch_orig).copy())
+                data_storage = fetch_df_by_col(data_storage, col_set)
             else:
                 # Fetch column  first will be more friendly to SepDataFrame
-                data_df = fetch_df_by_col(data_df, col_set)
-                data_df = fetch_df_by_index(data_df, selector, level, fetch_orig=self.fetch_orig)
+                data_storage = fetch_df_by_index(data_storage, selector, level, fetch_orig=self.fetch_orig)
+                data_storage = fetch_df_by_col(data_storage, col_set)
         elif isinstance(data_storage, BaseHandlerStorage):
             if not data_storage.is_proc_func_supported():
                 if proc_func is not None:
                     raise ValueError(f"proc_func is not supported by the storage {type(data_storage)}")
-                data_df = data_storage.fetch(
+                data_storage = data_storage.fetch(
                     selector=selector, level=level, col_set=col_set, fetch_orig=self.fetch_orig
                 )
             else:
-                data_df = data_storage.fetch(
+                data_storage = data_storage.fetch(
                     selector=selector, level=level, col_set=col_set, fetch_orig=self.fetch_orig, proc_func=proc_func
                 )
         else:
@@ -261,11 +260,11 @@ class DataHandler(Serializable):
 
         if squeeze:
             # squeeze columns
-            data_df = data_df.squeeze()
+            data_storage = data_storage.squeeze()
             # squeeze index
             if isinstance(selector, (str, pd.Timestamp)):
-                data_df = data_df.reset_index(level=level, drop=True)
-        return data_df
+                data_storage = data_storage.reset_index(level=level, drop=True)
+        return data_storage
 
     def get_cols(self, col_set=CS_ALL) -> list:
         """

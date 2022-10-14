@@ -31,6 +31,9 @@ from qlib.utils.paral import call_in_subproc
 from qlib.workflow import R
 from qlib.workflow.recorder import Recorder
 from qlib.workflow.task.manage import TaskManager, run_task
+import pickle
+import gc
+import os
 
 
 def _log_task_info(task_config: dict):
@@ -42,13 +45,20 @@ def _log_task_info(task_config: dict):
 def _exe_task(task_config: dict):
     rec = R.get_recorder()
     # model & dataset initiation
+    dataset_tmp_path = task_config["dataset"]["train_tmp_path"]
     model: Model = init_instance_by_config(task_config["model"], accept_types=Model)
     dataset: Dataset = init_instance_by_config(task_config["dataset"], accept_types=Dataset)
     reweighter: Reweighter = task_config.get("reweighter", None)
     # model training
-    auto_filter_kwargs(model.fit)(dataset, reweighter=reweighter)
+    with open(dataset_tmp_path, "wb") as f:
+        pickle.dump(dataset, f)
+    del dataset, f
+    gc.collect()
+    auto_filter_kwargs(model.fit)(dataset_tmp_path, reweighter=reweighter)
     R.save_objects(**{"params.pkl": model})
     # this dataset is saved for online inference. So the concrete data should not be dumped
+    with open(dataset_tmp_path, "rb") as f:
+        dataset = pickle.load(f)
     dataset.config(dump_all=False, recursive=True)
     R.save_objects(**{"dataset": dataset})
     # fill placehorder
