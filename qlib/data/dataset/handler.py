@@ -243,8 +243,9 @@ class DataHandler(Serializable):
                 data_df = fetch_df_by_col(data_df, col_set)
             else:
                 # Fetch column  first will be more friendly to SepDataFrame
-                data_df = fetch_df_by_col(data_df, col_set)
+                # Fetch index first will be more friendly to Memory. Because pandas will allocate new memory for the intermediate dataframe, and the extra dataframe will be smaller.
                 data_df = fetch_df_by_index(data_df, selector, level, fetch_orig=self.fetch_orig)
+                data_df = fetch_df_by_col(data_df, col_set)
         elif isinstance(data_storage, BaseHandlerStorage):
             if not data_storage.is_proc_func_supported():
                 if proc_func is not None:

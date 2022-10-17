@@ -323,11 +323,21 @@ class TSDataSampler:
         assert get_level_index(data, "datetime") == 0
         self.data = lazy_sort_index(data)
 
+        # the data type will be changed
+        # The index of usable data is between start_idx and end_idx
+        # move these forward so we can delete self.data earlier
+        self.idx_df, self.idx_map = self.build_index(self.data)
+        self.data_index = deepcopy(self.data.index)
+
         kwargs = {"object": self.data}
         if dtype is not None:
             kwargs["dtype"] = dtype
+            
+        self.data_arr = self.data.to_numpy(copy=True)   # Get index from numpy.array will much faster than DataFrame.values!
 
-        self.data_arr = np.array(**kwargs)  # Get index from numpy.array will much faster than DataFrame.values!
+        # del self.data  # save memory
+        self.data = self.data.drop(columns=self.data.columns, inplace=True) # del self.data won't work for fragile dataframe
+
         # NOTE:
         # - append last line with full NaN for better performance in `__getitem__`
         # - Keep the same dtype will result in a better performance
@@ -335,11 +345,6 @@ class TSDataSampler:
             self.data_arr, np.full((1, self.data_arr.shape[1]), np.nan, dtype=self.data_arr.dtype), axis=0
         )
         self.nan_idx = -1  # The last line is all NaN
-
-        # the data type will be changed
-        # The index of usable data is between start_idx and end_idx
-        self.idx_df, self.idx_map = self.build_index(self.data)
-        self.data_index = deepcopy(self.data.index)
 
         if flt_data is not None:
             if isinstance(flt_data, pd.DataFrame):
@@ -358,7 +363,6 @@ class TSDataSampler:
         )
         self.idx_arr = np.array(self.idx_df.values, dtype=np.float64)  # for better performance
 
-        del self.data  # save memory
 
     @staticmethod
     def idx_map2arr(idx_map):
