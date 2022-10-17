@@ -234,37 +234,6 @@ class DataHandler(Serializable):
             except ValueError:
                 get_module_logger("DataHandlerLP").info(f"Fail to converting to query to slice. It will used directly")
 
-        # if isinstance(data_storage, pd.DataFrame):
-        #     if proc_func is not None:
-        #         # FIXME: fetching by time first will be more friendly to `proc_func`
-        #         # Copy in case of `proc_func` changing the data inplace....
-        #         data_storage = proc_func(fetch_df_by_index(data_storage, selector, level, fetch_orig=self.fetch_orig).copy())
-        #         data_storage = fetch_df_by_col(data_storage, col_set)
-        #     else:
-        #         # Fetch column  first will be more friendly to SepDataFrame
-        #         data_storage = fetch_df_by_index(data_storage, selector, level, fetch_orig=self.fetch_orig)
-        #         data_storage = fetch_df_by_col(data_storage, col_set)
-        # elif isinstance(data_storage, BaseHandlerStorage):
-        #     if not data_storage.is_proc_func_supported():
-        #         if proc_func is not None:
-        #             raise ValueError(f"proc_func is not supported by the storage {type(data_storage)}")
-        #         data_storage = data_storage.fetch(
-        #             selector=selector, level=level, col_set=col_set, fetch_orig=self.fetch_orig
-        #         )
-        #     else:
-        #         data_storage = data_storage.fetch(
-        #             selector=selector, level=level, col_set=col_set, fetch_orig=self.fetch_orig, proc_func=proc_func
-        #         )
-        # else:
-        #     raise TypeError(f"data_storage should be pd.DataFrame|HashingStockStorage, not {type(data_storage)}")
-
-        # if squeeze:
-        #     # squeeze columns
-        #     data_storage = data_storage.squeeze()
-        #     # squeeze index
-        #     if isinstance(selector, (str, pd.Timestamp)):
-        #         data_storage = data_storage.reset_index(level=level, drop=True)
-        # return data_storage
         if isinstance(data_storage, pd.DataFrame):
             data_df = data_storage
             if proc_func is not None:
