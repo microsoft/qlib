@@ -335,7 +335,7 @@ class TSDataSampler:
         self.data_arr = self.data.to_numpy(copy=True)   # Get index from numpy.array will much faster than DataFrame.values!
 
         # del self.data  # save memory
-        self.data = self.data.drop(columns=self.data.columns, inplace=True)
+        self.data = self.data.drop(columns=self.data.columns, inplace=True) # del self.data won't work for fragile dataframe
 
         # NOTE:
         # - append last line with full NaN for better performance in `__getitem__`
