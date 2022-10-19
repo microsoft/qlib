@@ -14,11 +14,11 @@ This folder contains a simple example of how to run Qlib RL. It contains:
 Use [AzCopy](https://learn.microsoft.com/en-us/azure/storage/common/storage-use-azcopy-v10) to download data:
 
 ```
-azcopy copy https://qlibpublic.blob.core.windows.net/data/rl/qlib_rl_example_data ./ --recursive;
-mv qlib_rl_example_data data;
+azcopy copy https://qlibpublic.blob.core.windows.net/data/rl/qlib_rl_example_data ./ --recursive
+mv qlib_rl_example_data data
 ```
 
-The downloaded data will be placed at `./data`. The original data are in `data/csv`. To create all date needed by the case, run:
+The downloaded data will be placed at `./data`. The original data are in `data/csv`. To create all data needed by the case, run:
 
 ```
 bash scripts/data_pipeline.sh

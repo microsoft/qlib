@@ -1,9 +1,11 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
 import argparse
 import os
 import pandas as pd
 import numpy as np
 import pickle
-import collections
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--seed", type=int, default=20220926)
