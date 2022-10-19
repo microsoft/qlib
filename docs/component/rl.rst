@@ -22,8 +22,9 @@ EnvWrapper
 EnvWrapper is the complete capsulation of the simulated environment. It receives actions from outside (policy / strategy / agent), simulates the changes of the market, and then replies rewards and updated states, thus forming an interaction loop.
 
 In QlibRL, EnvWrapper is a subclass of gym.Env, so it implements all necessary interfaces of gym.Env. Any classes or pipelines that accept gym.Env should also accept EnvWrapper. Developers do not need to implement their own EnvWrapper to build their own environment. Instead, they only need to implement 4 components of the EnvWrapper:
+
 - `Simulator`
-    The simulator is the core component responsible for the environment simulation. Developers could implement all the logic that is directly related to the environment simulation in the Simulator in any way they like. In QlibRL, there are already two implementations of Simulator: 1) SingleAssetOrderExecution, which is built based on Qlib's backtest toolkits. 2) SimpleSingleAssetOrderExecution, which is built based on naive simulation logic.
+    The simulator is the core component responsible for the environment simulation. Developers could implement all the logic that is directly related to the environment simulation in the Simulator in any way they like. In QlibRL, there are already two implementations of Simulator: 1) ``SingleAssetOrderExecution``, which is built based on Qlib's backtest toolkits. 2) ``SimpleSingleAssetOrderExecution``, which is built based on naive simulation logic.
 - `State interpreter` 
     The state interpreter is responsible for "interpret" states in the original format (format provided by the simulator) into states in a format that the policy could understand. For example, transform unstructured raw features into numerical tensors.
 - `Action interpreter` 
