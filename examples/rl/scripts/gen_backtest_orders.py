@@ -22,19 +22,21 @@ instruments = sorted(set(df["instrument"]))
 df_list = []
 for instrument in instruments:
     print(instrument)
-    
+
     cur_df = df[df["instrument"] == instrument]
-    
+
     dates = sorted(set([str(d).split(" ")[0] for d in cur_df["date"]]))
-    
+
     n = args.num_order
     df_list.append(
-        pd.DataFrame({
-            "date": sorted(np.random.choice(dates, size=n, replace=False)),
-            "instrument": [instrument] * n,
-            "amount": np.random.randint(low=3, high=11, size=n) * 100.0,
-            "order_type": np.random.randint(low=0, high=2, size=n),
-        }).set_index(["date", "instrument"]),
+        pd.DataFrame(
+            {
+                "date": sorted(np.random.choice(dates, size=n, replace=False)),
+                "instrument": [instrument] * n,
+                "amount": np.random.randint(low=3, high=11, size=n) * 100.0,
+                "order_type": np.random.randint(low=0, high=2, size=n),
+            }
+        ).set_index(["date", "instrument"]),
     )
 
 total_df = pd.concat(df_list)

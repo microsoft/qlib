@@ -19,10 +19,10 @@ class TestDataset(TestAutoData):
                 "class": "Alpha158",
                 "module_path": "qlib.contrib.data.handler",
                 "kwargs": {
-                    "start_time": "2008-01-01",
+                    "start_time": "2017-01-01",
                     "end_time": "2020-08-01",
-                    "fit_start_time": "2008-01-01",
-                    "fit_end_time": "2014-12-31",
+                    "fit_start_time": "2017-01-01",
+                    "fit_end_time": "2017-12-31",
                     "instruments": "csi300",
                     "infer_processors": [
                         {"class": "FilterCol", "kwargs": {"col_list": ["RESI5", "WVMA5", "RSQR5"]}},
@@ -36,9 +36,9 @@ class TestDataset(TestAutoData):
                 },
             },
             segments={
-                "train": ("2008-01-01", "2014-12-31"),
-                "valid": ("2015-01-01", "2016-12-31"),
-                "test": ("2017-01-01", "2020-08-01"),
+                "train": ("2017-01-01", "2017-12-31"),
+                "valid": ("2018-01-01", "2018-12-31"),
+                "test": ("2019-01-01", "2020-08-01"),
             },
         )
         tsds_train = tsdh.prepare("train", data_key=DataHandlerLP.DK_L)  # Test the correctness
@@ -63,13 +63,13 @@ class TestDataset(TestAutoData):
         tsds[len(tsds) - 1]
 
         # 2) sample by <datetime,instrument> index
-        data_from_ds = tsds["2016-12-31", "SZ300315"]
+        data_from_ds = tsds["2017-12-31", "SZ300315"]
 
         # Check the data
         # Get data from DataFrame Directly
         data_from_df = (
             tsdh.handler.fetch(data_key=DataHandlerLP.DK_L)
-            .loc(axis=0)["2015-01-01":"2016-12-31", "SZ300315"]
+            .loc(axis=0)["2017-01-01":"2017-12-31", "SZ300315"]
             .iloc[-30:]
             .values
         )

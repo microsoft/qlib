@@ -13,7 +13,7 @@ for tag in ("backtest", "feature"):
     df = pd.concat(list(df.values())).reset_index()
     df["date"] = df["datetime"].dt.date.astype("datetime64")
     instruments = sorted(set(df["instrument"]))
-    
+
     os.makedirs(os.path.join("data", "pickle_dataframe", tag), exist_ok=True)
     for instrument in tqdm(instruments):
         cur = df[df["instrument"] == instrument].sort_values(by=["datetime"])
