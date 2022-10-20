@@ -68,6 +68,7 @@ For more details, please refer to our paper ["Qlib: An AI-oriented Quantitative 
             <li type="circle"><a href="#auto-quant-research-workflow">Auto Quant Research Workflow</a></li>
             <li type="circle"><a href="#building-customized-quant-research-workflow-by-code">Building Customized Quant Research Workflow by Code</a></li></ul>
         <li><a href="#quant-dataset-zoo"><strong>Quant Dataset Zoo</strong></a></li>
+        <li><a href="#learning-framework">Learning Framework</a></li>
         <li><a href="#more-about-qlib">More About Qlib</a></li>
         <li><a href="#offline-mode-and-online-mode">Offline Mode and Online Mode</a>
         <ul>
@@ -408,15 +409,13 @@ Your PR to build new Quant dataset is highly welcomed.
 
 
 # Learning Framework
-Qlib is high customizable and a lot of components is learnable.
+Qlib is high customizable and a lot of its components are learnable.
 The learnable components are instances of `Forecast Model` and `Trading Agent`. They are learned based on the `Learning Framework` layer and then applied to multiple scenarios in `Workflow` layer.
 The learning framework leverages the `Workflow` layer as well(e.g. sharing `Information Extractor`, creating environments based on `Execution Env`).
 
 Based on learning paradigms, they can be categorized into reinforcement learning and supervised learning.
-
-For supervised learning, the detailed docs can be found [here](https://qlib.readthedocs.io/en/latest/component/model.html).
-
-For reinforcement learning, the detailed docs can be found [here](https://qlib.readthedocs.io/en/latest/component/rl.html). Qlib's RL learning framework leverages `Execution Env` in `Workflow` layer to create environments.  It's worth noting that `NestedExecutor` is supported as well. This empowers users to optimize different level of strategies/models/agents together (e.g. optimizing an order execution strategy for a specific portfolios management strategy).
+- For supervised learning, the detailed docs can be found [here](https://qlib.readthedocs.io/en/latest/component/model.html).
+- For reinforcement learning, the detailed docs can be found [here](https://qlib.readthedocs.io/en/latest/component/rl.html). Qlib's RL learning framework leverages `Execution Env` in `Workflow` layer to create environments.  It's worth noting that `NestedExecutor` is supported as well. This empowers users to optimize different level of strategies/models/agents together (e.g. optimizing an order execution strategy for a specific portfolios management strategy).
 
 
 # More About Qlib
