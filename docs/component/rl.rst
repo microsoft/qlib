@@ -6,13 +6,13 @@ Reinforcement Learning in Quantitative Trading
 
 Introduction
 ============
-The Qlib Reinforcement Learning toolkit (QlibRL) is the RL platform for quantitative investment. It contains a full set of components that cover the entire lifecycle of an RL pipeline, including building the simulator of the market, shaping states & actions, training policies (strategies), and backtesting strategies in the simulated environment.
+The Qlib Reinforcement Learning toolkit (QlibRL) is an RL platform for quantitative investment. It contains a full set of components that cover the entire lifecycle of an RL pipeline, including building the simulator of the market, shaping states & actions, training policies (strategies), and backtesting strategies in the simulated environment.
 
-QlibRL is basically implemented within the frameworks of Tianshou and Gym. The high-level structure of QlibRL is demonstrated below:
+QlibRL is basically implemented with the support of Tianshou and Gym frameworks. The high-level structure of QlibRL is demonstrated below:
 
 .. image:: ../_static/img/qlib_rl_highlevel.png
 
-Here, we briefly introduce each of the components in the figure.
+Here, we briefly introduce each component in the figure.
 
 Base Modules
 ============
@@ -24,7 +24,7 @@ EnvWrapper is the complete capsulation of the simulated environment. It receives
 In QlibRL, EnvWrapper is a subclass of gym.Env, so it implements all necessary interfaces of gym.Env. Any classes or pipelines that accept gym.Env should also accept EnvWrapper. Developers do not need to implement their own EnvWrapper to build their own environment. Instead, they only need to implement 4 components of the EnvWrapper:
 
 - `Simulator`
-    The simulator is the core component responsible for the environment simulation. Developers could implement all the logic that is directly related to the environment simulation in the Simulator in any way they like. In QlibRL, there are already two implementations of Simulator: 1) ``SingleAssetOrderExecution``, which is built based on Qlib's backtest toolkits. 2) ``SimpleSingleAssetOrderExecution``, which is built based on naive simulation logic.
+    The simulator is the core component responsible for the environment simulation. Developers could implement all the logic that is directly related to the environment simulation in the Simulator in any way they like. In QlibRL, there are already two implementations of Simulator for single asset trading: 1) ``SingleAssetOrderExecution``, which is built based on Qlib's backtest toolkits and hence considers a lot of practical trading details but is slow. 2) ``SimpleSingleAssetOrderExecution``, which is built based on a simplified trading simulator, which ignores a lot of details (e.g. trading limitations, rounding) but is quite fast.
 - `State interpreter` 
     The state interpreter is responsible for "interpret" states in the original format (format provided by the simulator) into states in a format that the policy could understand. For example, transform unstructured raw features into numerical tensors.
 - `Action interpreter` 
@@ -60,7 +60,7 @@ Order Execution
 ------------
 As a fundamental problem in algorithmic trading, order execution aims at fulfilling a specific trading order, either liquidation or acquirement, for a given instrument. Essentially, the goal of order execution is twofold: it not only requires to fulfill the whole order but also targets a more economical execution with maximizing profit gain (or minimizing capital loss). The order execution with only one order of liquidation or acquirement is called single-asset order execution.
 
-Considering stock investment always aim to pursue long-term maximized profits, is usually behaved in the form of a sequential process of continuously adjusting the asset portfolio, execution for multiple orders, including order of liquidation and acquirement, brings more constraints and making the sequence of execution for different orders should be considered, e.g. before executing an order to buy some stocks, we have to sell at least one stock. The order execution with multiple assets is called multi-asset order execution. 
+Considering stock investment always aim to pursue long-term maximized profits, is usually manifests as a sequential process of continuously adjusting the asset portfolios, execution for multiple orders, including order of liquidation and acquirement, brings more constraints and making the sequence of execution for different orders should be considered, e.g. before executing an order to buy some stocks, we have to sell at least one stock. The order execution with multiple assets is called multi-asset order execution. 
 
 According to the order execution’s trait of sequential decision making, an RL-based solution could be applied to solve the order execution. With an RL-based solution, an agent optimizes execution strategy through interacting with the market environment. 
 
@@ -91,4 +91,4 @@ QlibRL provides a set of APIs for developers to further simplify their developme
         },  
     )
 
-We demonstrate an example of an implementation of a single asset order execution task based on QlibRL, the details about the example can be found `here <../../examples/rl/README.md>`_.
+We demonstrate an example of an implementation of a single asset order execution task based on QlibRL, the details about the example can be found `here <../../examples/rl/README.md>`_. RL-based portfolio construction learning will be released in the future.
