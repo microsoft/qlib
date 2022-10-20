@@ -30,8 +30,8 @@ if __name__ == "__main__":
     if "backtest_conf" in conf:
         backtest = provider._gen_dataframe(deepcopy(provider.backtest_conf))
 
-    provider.feature_conf['path'] = os.path.splitext(provider.feature_conf['path'])[0] + '/'
-    provider.backtest_conf['path'] = os.path.splitext(provider.backtest_conf['path'])[0] + '/'
+    provider.feature_conf["path"] = os.path.splitext(provider.feature_conf["path"])[0] + "/"
+    provider.backtest_conf["path"] = os.path.splitext(provider.backtest_conf["path"])[0] + "/"
     # Split by date
     if args.split == "date" or args.split == "both":
         provider._gen_day_dataset(deepcopy(provider.feature_conf), "feature")

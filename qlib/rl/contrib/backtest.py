@@ -8,13 +8,14 @@ import os
 import pickle
 from collections import defaultdict
 from pathlib import Path
-from typing import List, Literal, Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
 import torch
 from joblib import Parallel, delayed
 
+from qlib.typehint import Literal
 from qlib.backtest import collect_data_loop, get_strategy_executor
 from qlib.backtest.decision import BaseTradeDecision, Order, OrderDir, TradeRangeByTime
 from qlib.backtest.executor import BaseExecutor, NestedExecutor, SimulatorExecutor

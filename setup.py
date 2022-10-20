@@ -142,7 +142,11 @@ setup(
             "setuptools",
             "black",
             "pylint",
-            "mypy",
+            # Using the latest versions(0.981 and 0.982) of mypy,
+            # the error "multiprocessing.Value()" is detected in the file "qlib/rl/utils/data_queue.py",
+            # If this is fixed in a subsequent version of mypy, then we will revert to the latest version of mypy.
+            # References: https://github.com/python/typeshed/issues/8799
+            "mypy<0.981",
             "flake8",
             "readthedocs_sphinx_ext",
             "cmake",

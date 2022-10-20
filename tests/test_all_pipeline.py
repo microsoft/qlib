@@ -56,39 +56,8 @@ def train(uri_path: str = None):
         ic = sar.load("ic.pkl")
         ric = sar.load("ric.pkl")
 
-    return pred_score, {"ic": ic, "ric": ric}, rid
-
-
-def train_with_sigana(uri_path: str = None):
-    """train model followed by SigAnaRecord
-
-    Returns
-    -------
-        pred_score: pandas.DataFrame
-            predict scores
-        performance: dict
-            model performance
-    """
-    model = init_instance_by_config(CSI300_GBDT_TASK["model"])
-    dataset = init_instance_by_config(CSI300_GBDT_TASK["dataset"])
-    # start exp
-    with R.start(experiment_name="workflow_with_sigana", uri=uri_path):
-        R.log_params(**flatten_dict(CSI300_GBDT_TASK))
-        model.fit(dataset)
-        recorder = R.get_recorder()
-
-        sr = SignalRecord(model, dataset, recorder)
-        sr.generate()
-        pred_score = sr.load("pred.pkl")
-
-        # predict and calculate ic and ric
-        sar = SigAnaRecord(recorder)
-        sar.generate()
-        ic = sar.load("ic.pkl")
-        ric = sar.load("ric.pkl")
-
         uri_path = R.get_uri()
-    return pred_score, {"ic": ic, "ric": ric}, uri_path
+    return pred_score, {"ic": ic, "ric": ric}, rid, uri_path
 
 
 def fake_experiment():
@@ -186,19 +155,13 @@ class TestAllFlow(TestAutoData):
         shutil.rmtree(cls.URI_PATH.lstrip("file:"))
 
     @pytest.mark.slow
-    def test_0_train_with_sigana(self):
-        TestAllFlow.PRED_SCORE, ic_ric, uri_path = train_with_sigana(self.URI_PATH)
+    def test_0_train(self):
+        TestAllFlow.PRED_SCORE, ic_ric, TestAllFlow.RID, uri_path = train(self.URI_PATH)
         self.assertGreaterEqual(ic_ric["ic"].all(), 0, "train failed")
         self.assertGreaterEqual(ic_ric["ric"].all(), 0, "train failed")
 
     @pytest.mark.slow
-    def test_1_train(self):
-        TestAllFlow.PRED_SCORE, ic_ric, TestAllFlow.RID = train(self.URI_PATH)
-        self.assertGreaterEqual(ic_ric["ic"].all(), 0, "train failed")
-        self.assertGreaterEqual(ic_ric["ric"].all(), 0, "train failed")
-
-    @pytest.mark.slow
-    def test_2_backtest(self):
+    def test_1_backtest(self):
         analyze_df = backtest_analysis(TestAllFlow.PRED_SCORE, TestAllFlow.RID, self.URI_PATH)
         self.assertGreaterEqual(
             analyze_df.loc(axis=0)["excess_return_with_cost", "annualized_return"].values[0],
@@ -208,7 +171,7 @@ class TestAllFlow(TestAutoData):
         self.assertTrue(not analyze_df.isna().any().any(), "backtest failed")
 
     @pytest.mark.slow
-    def test_3_expmanager(self):
+    def test_2_expmanager(self):
         pass_default, pass_current, uri_path = fake_experiment()
         self.assertTrue(pass_default, msg="default uri is incorrect")
         self.assertTrue(pass_current, msg="current uri is incorrect")
@@ -217,10 +180,9 @@ class TestAllFlow(TestAutoData):
 
 def suite():
     _suite = unittest.TestSuite()
-    _suite.addTest(TestAllFlow("test_0_train_with_sigana"))
-    _suite.addTest(TestAllFlow("test_1_train"))
-    _suite.addTest(TestAllFlow("test_2_backtest"))
-    _suite.addTest(TestAllFlow("test_3_expmanager"))
+    _suite.addTest(TestAllFlow("test_0_train"))
+    _suite.addTest(TestAllFlow("test_1_backtest"))
+    _suite.addTest(TestAllFlow("test_2_expmanager"))
     return _suite
 
 
