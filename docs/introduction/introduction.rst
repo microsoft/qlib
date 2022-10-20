@@ -23,30 +23,37 @@ At the module level, Qlib is a platform that consists of above components. The c
 
 
 
-========================  ==============================================================================
-Name                      Description
-========================  ==============================================================================
-`Infrastructure` layer    `Infrastructure` layer provides underlying support for Quant research.
-                          `DataServer` provides high-performance infrastructure for users to manage
-                          and retrieve raw data. `Trainer` provides flexible interface to control
-                          the training process of models which enable algorithms controlling the
-                          training process.
+===========================  ==============================================================================
+Name                         Description
+===========================  ==============================================================================
+`Infrastructure` layer       `Infrastructure` layer provides underlying support for Quant research.
+                             `DataServer` provides high-performance infrastructure for users to manage
+                             and retrieve raw data. `Trainer` provides flexible interface to control
+                             the training process of models which enable algorithms controlling the
+                             training process.
 
-`Workflow` layer          `Workflow` layer covers the whole workflow of quantitative investment.
-                          `Information Extractor` extracts data for models. `Forecast Model` focuses
-                          on producing all kinds of forecast signals (e.g. *alpha*, risk) for other
-                          modules.  With these signals `Decision Generator` will generate the target
-                          trading decisions(i.e. portfolio, orders)  to be executed by `Execution Env`
-                          (i.e. the trading market).  There may be multiple levels of `Trading Agent`
-                          and `Execution Env` (e.g. an *order executor trading agent and intraday
-                          order execution environment* could behave like an interday trading
-                          environment and nested in  *daily portfolio management trading agent and
-                          interday trading environment*  )
+`Workflow` layer             `Workflow` layer covers the whole workflow of quantitative investment.
+                             `Information Extractor` extracts data for models. `Forecast Model` focuses
+                             on producing all kinds of forecast signals (e.g. *alpha*, risk) for other
+                             modules.  With these signals `Decision Generator` will generate the target
+                             trading decisions(i.e. portfolio, orders)  to be executed by `Execution Env`
+                             (i.e. the trading market).  There may be multiple levels of `Trading Agent`
+                             and `Execution Env` (e.g. an *order executor trading agent and intraday
+                             order execution environment* could behave like an interday trading
+                             environment and nested in  *daily portfolio management trading agent and
+                             interday trading environment*  )
 
-`Interface` layer         `Interface` layer tries to present a user-friendly interface for the underlying
-                          system. `Analyser` module will provide users detailed analysis reports of
-                          forecasting signals, portfolios and execution results
-========================  ==============================================================================
+`Learning Framework` layer   The `Forecast Model` and `Trading Agent` are learnable. They are learned
+                             based on the `Learning Framework` layer and then applied to multiple scenarios
+                             in `Workflow` layer. The supported learning paradigms can be categorized into
+                             reinforcement learning and supervised learning.  The learning framework
+                             leverages the `Workflow` layer as well(e.g. sharing `Information Extractor`,
+                             creating environments based on `Execution Env`).
+
+`Interface` layer            `Interface` layer tries to present a user-friendly interface for the underlying
+                             system. `Analyser` module will provide users detailed analysis reports of
+                             forecasting signals, portfolios and execution results
+===========================  ==============================================================================
 
 - The modules with hand-drawn style are under development and will be released in the future.
 - The modules with dashed borders are highly user-customizable and extendible.
