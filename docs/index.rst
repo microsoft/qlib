@@ -33,7 +33,7 @@ Document Structure
 
 .. toctree::
    :maxdepth: 3
-   :caption: COMPONENTS:
+   :caption: MAIN COMPONENTS:
 
    Workflow: Workflow Management <component/workflow.rst>
    Data Layer: Data Framework & Usage <component/data.rst>
@@ -48,7 +48,7 @@ Document Structure
 
 .. toctree::
    :maxdepth: 3
-   :caption: ADVANCED TOPICS:
+   :caption: OTHER COMPONENTS/FEATURES/TOPICS:
 
    Building Formulaic Alphas <advanced/alpha.rst>
    Online & Offline mode <advanced/server.rst>
