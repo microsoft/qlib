@@ -66,6 +66,21 @@ According to the order execution’s trait of sequential decision making, an RL-
 
 With QlibRL, the RL algorithm in the above scenarios can be easily implemented.
 
+
+Base Class & Interface 
+============
+``Qlib`` provides a series of base classes for Interpreter, Simulator and Reward.
+
+.. autoclass:: qlib.rl.interpreter.Interpreter
+    :members:
+
+.. autoclass:: qlib.rl.simulator.Simulator
+    :members:
+
+.. autoclass:: qlib.rl.reward.Reward
+    :members:
+
+
 Example
 ============
 QlibRL provides a set of APIs for developers to further simplify their development. For example, if developers have already defined their simulator / interpreters / reward function / policy, they could launch the training pipeline by simply running:
