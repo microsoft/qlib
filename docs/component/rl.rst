@@ -66,10 +66,13 @@ According to the order execution’s trait of sequential decision making, an RL-
 
 With QlibRL, the RL algorithm in the above scenarios can be easily implemented.
 
+Nested Portfolio Construction and Order Executor
+------------
+QlibRL make it possible to jointly optimize different levels of strategies/models/agents. Take `Nested Decision Execution Framework <https://github.com/microsoft/qlib/blob/main/examples/nested_decision_execution>`_ an example of, optimization of order execution strategy and portfolio management strategy can interact with each other to maximize returns.
 
 Base Class & Interface 
 ============
-``Qlib`` provides a series of base classes for Interpreter, Simulator and Reward.
+``Qlib`` provides a set of APIs for developers to further simplify their development, including base classes for Interpreter, Simulator and Reward.
 
 .. autoclass:: qlib.rl.interpreter.Interpreter
     :members:
@@ -83,7 +86,9 @@ Base Class & Interface
 
 Example
 ============
-QlibRL provides a set of APIs for developers to further simplify their development. For example, if developers have already defined their simulator / interpreters / reward function / policy, they could launch the training pipeline by simply running:
+``Qlib`` provides an example based on order execution, specifically, `qlib.rl.order_execution.simulator_qlib.SingleAssetOrderExecution<https://github.com/microsoft/qlib/blob/main/qlib/rl/order_execution/simulator_qlib.py>`_ and `qlib.rl.order_execution.simulator_simple.SingleAssetOrderExecutionSimple<https://github.com/microsoft/qlib/blob/main/qlib/rl/order_execution/simulator_simple.py>`_ as examples for simulator, two `StateInterpreter<https://github.com/microsoft/qlib/blob/main/qlib/rl/order_execution/interpreter.py>`_ and `ActionInterpreter<https://github.com/microsoft/qlib/blob/main/qlib/rl/order_execution/interpreter.py>`_ as examples for interpreter, and `qlib.rl.order_execution.reward.PAPenaltyReward<https://github.com/microsoft/qlib/blob/main/qlib/rl/order_execution/reward.py>`_ as an example for reward.
+
+If developers have already defined their simulator / interpreters / reward function / policy, they could launch the training pipeline by simply running:
 
 .. code-block:: python
     train(  
@@ -94,7 +99,7 @@ QlibRL provides a set of APIs for developers to further simplify their developme
         policy=policy,  
         reward=PAPenaltyReward(),  
         vessel_kwargs={
-            "episode_per_iter": 100, 
+            "episode_per_iter": 100, 6
             "update_kwargs": {
                 "batch_size": 64, 
                 "repeat": 5,
