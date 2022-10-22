@@ -8,7 +8,6 @@ import shutil
 import unittest
 import pytest
 import pandas as pd
-import baostock as bs
 from pathlib import Path
 
 from qlib.data import D
@@ -67,7 +66,8 @@ class TestPIT(unittest.TestCase):
         provider_uri = str(QLIB_DIR.joinpath("cn_data").resolve())
         qlib.init(provider_uri=provider_uri)
 
-    def to_str(self, obj):
+    @staticmethod
+    def to_str(obj):
         return "".join(str(obj).split())
 
     def check_same(self, a, b):

@@ -222,7 +222,7 @@ class DataHandler(Serializable):
         # This method is extracted for sharing in subclasses
         from .storage import BaseHandlerStorage  # pylint: disable=C0415
 
-        # Following conflictions may occurs
+        # Following conflations may occur
         # - Does [20200101", "20210101"] mean selecting this slice or these two days?
         # To solve this issue
         #   - slice have higher priorities (except when level is none)

@@ -1,5 +1,4 @@
 import unittest
-import time
 import numpy as np
 from qlib.data import D
 from qlib.tests import TestAutoData
@@ -44,7 +43,8 @@ class TestHandler(DataHandlerLP):
             drop_raw=drop_raw,
         )
 
-    def get_feature_config(self):
+    @staticmethod
+    def get_feature_config():
         fields = ["Ref($open, 1)", "Ref($close, 1)", "Ref($volume, 1)", "$open", "$close", "$volume"]
         names = ["open_0", "close_0", "volume_0", "open_1", "close_1", "volume_1"]
         return fields, names
@@ -71,7 +71,7 @@ class TestHandlerStorage(TestAutoData):
         # init data handler
         data_handler = TestHandler(**self.data_handler_kwargs)
 
-        # init data handler with hasing storage
+        # init data handler with hashing storage
         data_handler_hs = TestHandler(**self.data_handler_kwargs, infer_processors=["HashStockFormat"])
 
         fetch_start_time = "2019-01-01"
@@ -91,8 +91,8 @@ class TestHandlerStorage(TestAutoData):
 
             # multi stocks
             for i in range(100):
-                random_indexs = np.random.randint(len(instruments), size=5)
-                fetch_stocks = [instruments[_index] for _index in random_indexs]
+                random_indexes = np.random.randint(len(instruments), size=5)
+                fetch_stocks = [instruments[_index] for _index in random_indexes]
                 data_handler.fetch(selector=(fetch_stocks, slice(fetch_start_time, fetch_end_time)), level=None)
 
         with TimeInspector.logt("random fetch with HashingStock Storage"):
@@ -105,8 +105,8 @@ class TestHandlerStorage(TestAutoData):
 
             # multi stocks
             for i in range(100):
-                random_indexs = np.random.randint(len(instruments), size=5)
-                fetch_stocks = [instruments[_index] for _index in random_indexs]
+                random_indexes = np.random.randint(len(instruments), size=5)
+                fetch_stocks = [instruments[_index] for _index in random_indexes]
                 data_handler_hs.fetch(selector=(fetch_stocks, slice(fetch_start_time, fetch_end_time)), level=None)
 
 

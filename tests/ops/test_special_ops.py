@@ -8,26 +8,29 @@ from qlib.tests import TestOperatorData
 
 class TestOperatorDataSetting(TestOperatorData):
     def test_setting(self):
-        # All the query below passes
-        df = D.features(["SH600519"], ["ChangeInstrument('SH000300', $close)"])
+        try:
+            # All the query below passes
+            D.features(["SH600519"], ["ChangeInstrument('SH000300', $close)"])
 
-        # get market return for "SH600519"
-        df = D.features(["SH600519"], ["ChangeInstrument('SH000300', Feature('close')/Ref(Feature('close'),1) -1)"])
-        df = D.features(["SH600519"], ["ChangeInstrument('SH000300', $close/Ref($close,1) -1)"])
-        # excess return
-        df = D.features(
-            ["SH600519"], ["($close/Ref($close,1) -1) - ChangeInstrument('SH000300', $close/Ref($close,1) -1)"]
-        )
-        print(df)
+            # get market return for "SH600519"
+            D.features(["SH600519"], ["ChangeInstrument('SH000300', Feature('close')/Ref(Feature('close'),1) -1)"])
+            D.features(["SH600519"], ["ChangeInstrument('SH000300', $close/Ref($close,1) -1)"])
+            # excess return
+            df = D.features(
+                ["SH600519"], ["($close/Ref($close,1) -1) - ChangeInstrument('SH000300', $close/Ref($close,1) -1)"]
+            )
+            print(df)
+        except Exception as e:
+            self.fail(f"myFunc() raised Exception {e} unexpectedly!")
 
     def test_case2(self):
         def test_case(instruments, queries, note=None):
             if note:
                 print(note)
             print(f"checking {instruments} with queries {queries}")
-            df = D.features(instruments, queries)
-            print(df)
-            return df
+            _df = D.features(instruments, queries)
+            print(_df)
+            return _df
 
         test_case(["SH600519"], ["ChangeInstrument('SH000300', $close)"], "get market index close")
         test_case(

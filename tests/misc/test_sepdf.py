@@ -7,7 +7,8 @@ from qlib.contrib.data.utils.sepdf import SepDataFrame
 
 
 class SepDF(unittest.TestCase):
-    def to_str(self, obj):
+    @staticmethod
+    def to_str(obj):
         return "".join(str(obj).split())
 
     def test_index_data(self):

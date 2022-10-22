@@ -26,7 +26,8 @@ def concat(data_list: Union[SingleData], axis=0) -> MultiData:
     ----------
     data_list : List[SingleData]
         the list of all SingleData to concat.
-
+    axis: int
+        default 0
     Returns
     -------
     MultiData
@@ -54,7 +55,7 @@ def concat(data_list: Union[SingleData], axis=0) -> MultiData:
         raise ValueError(f"axis must be 0 or 1")
 
 
-def sum_by_index(data_list: Union[SingleData], new_index: list, fill_value=0) -> SingleData:
+def sum_by_index(data_list: List[SingleData], new_index: list, fill_value=0) -> SingleData:
     """concat all SingleData by new index.
 
     Parameters
@@ -73,14 +74,14 @@ def sum_by_index(data_list: Union[SingleData], new_index: list, fill_value=0) ->
     """
     data_list = [data.to_dict() for data in data_list]
     data_sum = {}
-    for id in new_index:
+    for _id in new_index:
         item_sum = 0
         for data in data_list:
-            if id in data and not np.isnan(data[id]):
-                item_sum += data[id]
+            if _id in data and not np.isnan(data[_id]):
+                item_sum += data[_id]
             else:
                 item_sum += fill_value
-        data_sum[id] = item_sum
+        data_sum[_id] = item_sum
     return SingleData(data_sum)
 
 
@@ -90,11 +91,11 @@ class Index:
 
     Read-only operations has higher priorities than others.
     So this class is designed in a **read-only** way to shared data for queries.
-    Modifications will results in new Index.
+    Modifications will result in new Index.
 
-    NOTE: the indexing has following flaws
-    - duplicated index value is not well supported (only the first appearance will be considered)
-    - The order of the index is not considered!!!! So the slicing will not behave like pandas when indexings are ordered
+    NOTE: the indexing has the following flaws
+    - duplicated index value is not well-supported (only the first appearance will be considered)
+    - The order of the index is not considered!!!! So the slicing will not behave like pandas when indexes are ordered
     """
 
     def __init__(self, idx_list: Union[List, pd.Index, "Index", int]):
@@ -198,7 +199,7 @@ class LocIndexer:
 
     Read-only operations has higher priorities than others.
     So this class is designed in a read-only way to shared data for queries.
-    Modifications will results in new Index.
+    Modifications will result in new Index.
     """
 
     def __init__(self, index_data: "IndexData", indices: List[Index], int_loc: bool = False):
@@ -215,7 +216,8 @@ class LocIndexer:
             res.append(Index(data_shape[i] if len(idx) == 0 else idx))
         return res
 
-    def _slc_convert(self, index: Index, indexing: slice) -> slice:
+    @staticmethod
+    def _slc_convert(index: Index, indexing: slice) -> slice:
         """
         convert value-based indexing to integer-based indexing.
 
@@ -337,7 +339,7 @@ class IndexData(metaclass=index_data_ops_creator):
     Base data structure of SingleData and MultiData.
 
     NOTE:
-    - For performance issue, only **np.floating** is supported in the underlayer data !!!
+    - For performance issue, only **np.floating** is supported in the under layer data !!!
     - Boolean based on np.floating is also supported. Here are some examples
 
     .. code-block:: python
@@ -517,9 +519,7 @@ class IndexData(metaclass=index_data_ops_creator):
 
 
 class SingleData(IndexData):
-    def __init__(
-        self, data: Union[int, float, np.number, list, dict, pd.Series] = [], index: Union[List, pd.Index, Index] = []
-    ):
+    def __init__(self, data=None, index=None):
         """A data structure of index and numpy data.
         It's used to replace pd.Series due to high-speed.
 
@@ -529,9 +529,13 @@ class SingleData(IndexData):
             the input data
         index : Union[list, pd.Index]
             the index of data.
-            empty list indicates that auto filling the index to the length of data
+            empty list indicates that automatically filling the index to the length of data
         """
         # for special data type
+        if index is None:
+            index = []
+        if data is None:
+            data = []
         if isinstance(data, dict):
             assert len(index) == 0
             if len(data) > 0:
@@ -611,9 +615,9 @@ class SingleData(IndexData):
 class MultiData(IndexData):
     def __init__(
         self,
-        data: Union[int, float, np.number, list] = [],
-        index: Union[List, pd.Index, Index] = [],
-        columns: Union[List, pd.Index, Index] = [],
+        data=None,
+        index=None,
+        columns=None,
     ):
         """A data structure of index and numpy data.
         It's used to replace pd.DataFrame due to high-speed.
@@ -621,12 +625,18 @@ class MultiData(IndexData):
         Parameters
         ----------
         data : Union[list, np.ndarray]
-            the dim of data must be 2.
+            the dimension of data must be 2.
         index : Union[List, pd.Index, Index]
             the index of data.
         columns: Union[List, pd.Index, Index]
             the columns of data.
         """
+        if columns is None:
+            columns = []
+        if index is None:
+            index = []
+        if data is None:
+            data = []
         if isinstance(data, pd.DataFrame):
             index, columns, data = data.index, data.columns, data.values
         super().__init__(data, index, columns)

@@ -60,7 +60,8 @@ class SimpleEnv(gym.Env[int, int]):
 
 
 class AnyPolicy(BasePolicy):
-    def forward(self, batch, state=None):
+    @staticmethod
+    def forward(batch, state=None):
         return Batch(act=np.stack([1] * len(batch)))
 
     def learn(self, batch):

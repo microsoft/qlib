@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 import pandas as pd
-from typing import Dict, Iterable, Union
+from typing import Dict, Iterable, Union, Optional
 
 
 def align_index(df_dict, join):
@@ -28,7 +28,7 @@ class SepDataFrame:
     # SepDataFrame try to behave like pandas dataframe,  but it is still not them same
     # Contributions are welcome to make it more complete.
 
-    def __init__(self, df_dict: Dict[str, pd.DataFrame], join: str, skip_align=False):
+    def __init__(self, df_dict: Dict[str, pd.DataFrame], join: Optional[str], skip_align=False):
         """
         initialize the data based on the dataframe dictionary
 
@@ -36,7 +36,7 @@ class SepDataFrame:
         ----------
         df_dict : Dict[str, pd.DataFrame]
             dataframe dictionary
-        join : str
+        join : Optional[str]
             how to join the data
             It will reindex the dataframe based on the join key.
             If join is None, the reindex step will be skipped

@@ -73,7 +73,8 @@ class TimeUtils(TestCase):
     def setUpClass(cls):
         init()
 
-    def test_cal_sam_minute(self):
+    @staticmethod
+    def test_cal_sam_minute():
         # test the correctness of the code
         random_n = 1000
         regions = [REG_CN, REG_US, REG_TW]
