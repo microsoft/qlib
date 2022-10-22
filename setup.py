@@ -148,6 +148,7 @@ setup(
             # References: https://github.com/python/typeshed/issues/8799
             "mypy<0.981",
             "flake8",
+            "importlib-metadata>=1.1.0,<4.3",  # To help ensure the dependencies of flake8 https://github.com/python/importlib_metadata/issues/406
             "readthedocs_sphinx_ext",
             "cmake",
             "lxml",
