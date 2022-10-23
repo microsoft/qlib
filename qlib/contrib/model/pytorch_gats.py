@@ -251,9 +251,15 @@ class GATs(Model):
 
         # load pretrained base_model
         if self.base_model == "LSTM":
-            pretrained_model = LSTMModel()
+            pretrained_model = LSTMModel(d_feat=self.d_feat,
+                                         hidden_size=self.hidden_size,
+                                         num_layers=self.num_layers,
+                                         dropout=self.dropout)
         elif self.base_model == "GRU":
-            pretrained_model = GRUModel()
+            pretrained_model = GRUModel(d_feat=self.d_feat,
+                                        hidden_size=self.hidden_size,
+                                        num_layers=self.num_layers,
+                                        dropout=self.dropout)
         else:
             raise ValueError("unknown base model name `%s`" % self.base_model)
 

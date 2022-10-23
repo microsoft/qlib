@@ -255,7 +255,7 @@ class ADARNN(Model):
         days = df_train.index.get_level_values(level=0).unique()
         train_splits = np.array_split(days, self.n_splits)
         train_splits = [df_train[s[0] : s[-1]] for s in train_splits]
-        train_loader_list = [get_stock_loader(df, self.batch_size) for df in train_splits]
+        train_loader_list = [get_stock_loader(df, self.batch_size, self.d_feat, self.len_seq) for df in train_splits]
 
         save_path = get_or_create_path(save_path)
         stop_steps = 0
@@ -343,12 +343,12 @@ class ADARNN(Model):
 
 
 class data_loader(Dataset):
-    def __init__(self, df):
+    def __init__(self, df, d_feat, len_seq):
         self.df_feature = df["feature"]
         self.df_label_reg = df["label"]
         self.df_index = df.index
         self.df_feature = torch.tensor(
-            self.df_feature.values.reshape(-1, 6, 60).transpose(0, 2, 1), dtype=torch.float32
+            self.df_feature.values.reshape(-1, d_feat, len_seq).transpose(0, 2, 1), dtype=torch.float32
         )
         self.df_label_reg = torch.tensor(self.df_label_reg.values.reshape(-1), dtype=torch.float32)
 
@@ -360,8 +360,8 @@ class data_loader(Dataset):
         return len(self.df_feature)
 
 
-def get_stock_loader(df, batch_size, shuffle=True):
-    train_loader = DataLoader(data_loader(df), batch_size=batch_size, shuffle=shuffle)
+def get_stock_loader(df, batch_size, d_feat, len_seq, shuffle=True):
+    train_loader = DataLoader(data_loader(df, d_feat, len_seq), batch_size=batch_size, shuffle=shuffle)
     return train_loader
 
 
