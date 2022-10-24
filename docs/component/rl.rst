@@ -19,7 +19,7 @@ Base Modules
 
 EnvWrapper
 ------------
-EnvWrapper is the complete capsulation of the simulated environment. It receives actions from outside (policy / strategy / agent), simulates the changes of the market, and then replies rewards and updated states, thus forming an interaction loop.
+EnvWrapper is the complete capsulation of the simulated environment. It receives actions from outside (policy / strategy / agent), simulates the changes in the market, and then replies rewards and updated states, thus forming an interaction loop.
 
 In QlibRL, EnvWrapper is a subclass of gym.Env, so it implements all necessary interfaces of gym.Env. Any classes or pipelines that accept gym.Env should also accept EnvWrapper. Developers do not need to implement their own EnvWrapper to build their own environment. Instead, they only need to implement 4 components of the EnvWrapper:
 
@@ -32,7 +32,7 @@ In QlibRL, EnvWrapper is a subclass of gym.Env, so it implements all necessary i
 - `Reward function` 
     The reward function returns a numerical reward to the policy after each time the policy takes an action. 
 
-EnvWrapper will organically organize these components. Such decomposition allows for better flexibility in development. For example, if the developers want to train multiple types of policies in one same environment, they only need to design one simulator, and design different state interpreters / action interpreters / reward functions for a different types of policies.
+EnvWrapper will organically organize these components. Such decomposition allows for better flexibility in development. For example, if the developers want to train multiple types of policies in the same environment, they only need to design one simulator, and design different state interpreters / action interpreters / reward functions for different types of policies.
 
 QlibRL has well-defined base classes for all these 4 components. All the developers need to do is define their own components by inheriting the base classes and then implementing all interfaces required by the base classes.
 
@@ -60,15 +60,15 @@ Order Execution
 ------------
 As a fundamental problem in algorithmic trading, order execution aims at fulfilling a specific trading order, either liquidation or acquirement, for a given instrument. Essentially, the goal of order execution is twofold: it not only requires to fulfill the whole order but also targets a more economical execution with maximizing profit gain (or minimizing capital loss). The order execution with only one order of liquidation or acquirement is called single-asset order execution.
 
-Considering stock investment always aim to pursue long-term maximized profits, is usually manifests as a sequential process of continuously adjusting the asset portfolios, execution for multiple orders, including order of liquidation and acquirement, brings more constraints and making the sequence of execution for different orders should be considered, e.g. before executing an order to buy some stocks, we have to sell at least one stock. The order execution with multiple assets is called multi-asset order execution. 
+Considering stock investment always aim to pursue long-term maximized profits, it usually manifests as a sequential process of continuously adjusting the asset portfolios, execution for multiple orders, including order of liquidation and acquirement, brings more constraints and makes the sequence of execution for different orders should be considered, e.g. before executing an order to buy some stocks, we have to sell at least one stock. The order execution with multiple assets is called multi-asset order execution. 
 
-According to the order execution’s trait of sequential decision making, an RL-based solution could be applied to solve the order execution. With an RL-based solution, an agent optimizes execution strategy through interacting with the market environment. 
+According to the order execution’s trait of sequential decision-making, an RL-based solution could be applied to solve the order execution. With an RL-based solution, an agent optimizes execution strategy by interacting with the market environment. 
 
 With QlibRL, the RL algorithm in the above scenarios can be easily implemented.
 
 Nested Portfolio Construction and Order Executor
 ------------
-QlibRL make it possible to jointly optimize different levels of strategies/models/agents. Take `Nested Decision Execution Framework <https://github.com/microsoft/qlib/blob/main/examples/nested_decision_execution>`_ an example of, optimization of order execution strategy and portfolio management strategy can interact with each other to maximize returns.
+QlibRL makes it possible to jointly optimize different levels of strategies/models/agents. Take `Nested Decision Execution Framework <https://github.com/microsoft/qlib/blob/main/examples/nested_decision_execution>`_ as an example of, the optimization of order execution strategy and portfolio management strategy can interact with each other to maximize returns.
 
 Base Class & Interface 
 ============
@@ -99,7 +99,7 @@ If developers have already defined their simulator / interpreters / reward funct
         policy=policy,  
         reward=PAPenaltyReward(),  
         vessel_kwargs={
-            "episode_per_iter": 100, 6
+            "episode_per_iter": 100,
             "update_kwargs": {
                 "batch_size": 64, 
                 "repeat": 5,
