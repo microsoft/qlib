@@ -16,8 +16,6 @@ from qlib.rl.utils import LogLevel
 
 from .state import SAOEMetrics, SAOEState
 
-# TODO: Integrating Qlib's native data with simulator_simple
-
 __all__ = ["SingleAssetOrderExecutionSimple"]
 
 

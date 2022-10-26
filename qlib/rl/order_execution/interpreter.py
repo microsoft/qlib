@@ -78,6 +78,8 @@ class FullHistoryStateInterpreter(StateInterpreter[SAOEState, FullHistoryObs]):
         data_dim: int,
         processed_data_provider: dict | ProcessedDataProvider,
     ) -> None:
+        super().__init__()
+
         self.max_step = max_step
         self.data_ticks = data_ticks
         self.data_dim = data_dim
@@ -87,10 +89,6 @@ class FullHistoryStateInterpreter(StateInterpreter[SAOEState, FullHistoryObs]):
         )
 
     def interpret(self, state: SAOEState) -> FullHistoryObs:
-        # TODO: This interpreter relies on EnvWrapper.status, so we have to give it a dummy EnvWrapper when running
-        # backtest. Currently, the dummy EnvWrapper is CollectDataEnvWrapper. We should find a more elegant
-        # way to decompose interpreter and EnvWrapper in the future.
-
         processed = self.processed_data_provider.get_data(
             stock_id=state.order.stock_id,
             date=pd.Timestamp(state.order.start_time.date()),
@@ -101,8 +99,6 @@ class FullHistoryStateInterpreter(StateInterpreter[SAOEState, FullHistoryObs]):
         position_history = np.full(self.max_step + 1, 0.0, dtype=np.float32)
         position_history[0] = state.order.amount
         position_history[1 : len(state.history_steps) + 1] = state.history_steps["position"].to_numpy()
-
-        assert self.env is not None
 
         # The min, slice here are to make sure that indices fit into the range,
         # even after the final step of the simulator (in the done step),
@@ -115,7 +111,7 @@ class FullHistoryStateInterpreter(StateInterpreter[SAOEState, FullHistoryObs]):
                     "data_processed_prev": np.array(processed.yesterday),
                     "acquiring": _to_int32(state.order.direction == state.order.BUY),
                     "cur_tick": _to_int32(min(int(np.sum(state.ticks_index < state.cur_time)), self.data_ticks - 1)),
-                    "cur_step": _to_int32(min(self.env.status["cur_step"], self.max_step - 1)),
+                    "cur_step": _to_int32(min(self.cur_step, self.max_step - 1)),
                     "num_step": _to_int32(self.max_step),
                     "target": _to_float32(state.order.amount),
                     "position": _to_float32(state.position),
@@ -163,6 +159,8 @@ class CurrentStepStateInterpreter(StateInterpreter[SAOEState, CurrentStateObs]):
     """
 
     def __init__(self, max_step: int) -> None:
+        super().__init__()
+
         self.max_step = max_step
 
     @property
@@ -177,15 +175,10 @@ class CurrentStepStateInterpreter(StateInterpreter[SAOEState, CurrentStateObs]):
         return spaces.Dict(space)
 
     def interpret(self, state: SAOEState) -> CurrentStateObs:
-        # TODO: This interpreter relies on EnvWrapper.status, so we have to give it a dummy EnvWrapper when running
-        # backtest. Currently, the dummy EnvWrapper is CollectDataEnvWrapper. We should find a more elegant
-        # way to decompose interpreter and EnvWrapper in the future.
-
-        assert self.env is not None
-        assert self.env.status["cur_step"] <= self.max_step
+        assert self.cur_step <= self.max_step
         obs = CurrentStateObs(
             acquiring=state.order.direction == state.order.BUY,
-            cur_step=self.env.status["cur_step"],
+            cur_step=self.cur_step,
             num_step=self.max_step,
             target=state.order.amount,
             position=state.position,
@@ -208,6 +201,8 @@ class CategoricalActionInterpreter(ActionInterpreter[SAOEState, int, float]):
     """
 
     def __init__(self, values: int | List[float], max_step: Optional[int] = None) -> None:
+        super().__init__()
+
         if isinstance(values, int):
             values = [i / values for i in range(0, values + 1)]
         self.action_values = values
@@ -218,13 +213,8 @@ class CategoricalActionInterpreter(ActionInterpreter[SAOEState, int, float]):
         return spaces.Discrete(len(self.action_values))
 
     def interpret(self, state: SAOEState, action: int) -> float:
-        # TODO: This interpreter relies on EnvWrapper.status, so we have to give it a dummy EnvWrapper when running
-        # backtest. Currently, the dummy EnvWrapper is CollectDataEnvWrapper. We should find a more elegant
-        # way to decompose interpreter and EnvWrapper in the future.
-
         assert 0 <= action < len(self.action_values)
-        assert self.env is not None
-        if self.max_step is not None and self.env.status["cur_step"] >= self.max_step - 1:
+        if self.max_step is not None and self.cur_step >= self.max_step - 1:
             return state.position
         else:
             return min(state.position, state.order.amount * self.action_values[action])
@@ -244,13 +234,8 @@ class TwapRelativeActionInterpreter(ActionInterpreter[SAOEState, float, float]):
         return spaces.Box(0, np.inf, shape=(), dtype=np.float32)
 
     def interpret(self, state: SAOEState, action: float) -> float:
-        # TODO: This interpreter relies on EnvWrapper.status, so we have to give it a dummy EnvWrapper when running
-        # backtest. Currently, the dummy EnvWrapper is CollectDataEnvWrapper. We should find a more elegant
-        # way to decompose interpreter and EnvWrapper in the future.
-
-        assert self.env is not None
         estimated_total_steps = math.ceil(len(state.ticks_for_order) / state.ticks_per_step)
-        twap_volume = state.position / (estimated_total_steps - self.env.status["cur_step"])
+        twap_volume = state.position / (estimated_total_steps - self.cur_step)
         return min(state.position, twap_volume * action)
 
 

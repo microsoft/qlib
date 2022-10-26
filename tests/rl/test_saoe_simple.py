@@ -20,7 +20,6 @@ from qlib.rl.data.pickle_styled import PickleProcessedDataProvider
 from qlib.rl.order_execution import *
 from qlib.rl.trainer import backtest, train
 from qlib.rl.utils import ConsoleWriter, CsvWriter, EnvWrapperStatus
-from qlib.rl.utils.env_wrapper import CollectDataEnvWrapper
 
 pytestmark = pytest.mark.skipif(sys.version_info < (3, 8), reason="Pickle styled data only supports Python >= 3.8")
 
@@ -175,6 +174,7 @@ def test_interpreter():
 
     # second step
     simulator.step(5.0)
+    interpreter.step()
     interpreter.env = EmulateEnvWrapper(status=EnvWrapperStatus(cur_step=1, done=False, **wrapper_status_kwargs))
 
     obs = interpreter(simulator.get_state())
@@ -186,25 +186,26 @@ def test_interpreter():
     assert np.sum(obs["data_processed"][60:]) == 0
 
     # second step: action
-    interpreter_action.env = CollectDataEnvWrapper()
-    interpreter_action_twap.env = CollectDataEnvWrapper()
-    interpreter_action.env.reset()
-    interpreter_action_twap.env.reset()
+    interpreter_action.reset()
+    interpreter_action_twap.reset()
     action = interpreter_action(simulator.get_state(), 1)
     assert action == 15 / 20
 
     interpreter_action_twap.env = EmulateEnvWrapper(
         status=EnvWrapperStatus(cur_step=1, done=False, **wrapper_status_kwargs)
     )
+    interpreter_action_twap.step()
     action = interpreter_action_twap(simulator.get_state(), 1.5)
     assert action == 1.5
 
     # fast-forward
     for _ in range(10):
         simulator.step(0.0)
+        interpreter.step()
 
     # last step
     simulator.step(5.0)
+    interpreter.step()
     interpreter.env = EmulateEnvWrapper(
         status=EnvWrapperStatus(cur_step=12, done=simulator.done(), **wrapper_status_kwargs)
     )
@@ -246,6 +247,7 @@ def test_network_sanity():
         assert 0 <= output["act"].item() <= 13
         if i < 13:
             simulator.step(1.0)
+            interpreter.step()
         else:
             assert obs["cur_tick"] == 389
             assert obs["cur_step"] == 12
@@ -260,8 +262,7 @@ def test_twap_strategy(finite_env_type):
 
     state_interp = FullHistoryStateInterpreter(13, 390, 5, PickleProcessedDataProvider(FEATURE_DATA_DIR))
     action_interp = TwapRelativeActionInterpreter()
-    action_interp.env = CollectDataEnvWrapper()
-    action_interp.env.reset()
+    action_interp.reset()
     policy = AllOne(state_interp.observation_space, action_interp.action_space)
     csv_writer = CsvWriter(Path(__file__).parent / ".output")
 
@@ -291,8 +292,7 @@ def test_cn_ppo_strategy():
 
     state_interp = FullHistoryStateInterpreter(8, 240, 6, PickleProcessedDataProvider(CN_FEATURE_DATA_DIR))
     action_interp = CategoricalActionInterpreter(4)
-    action_interp.env = CollectDataEnvWrapper()
-    action_interp.env.reset()
+    action_interp.reset()
     network = Recurrent(state_interp.observation_space)
     policy = PPO(network, state_interp.observation_space, action_interp.action_space, 1e-4)
     policy.load_state_dict(torch.load(CN_POLICY_WEIGHTS_DIR / "ppo_recurrent_30min.pth", map_location="cpu"))
@@ -324,8 +324,7 @@ def test_ppo_train():
 
     state_interp = FullHistoryStateInterpreter(8, 240, 6, PickleProcessedDataProvider(CN_FEATURE_DATA_DIR))
     action_interp = CategoricalActionInterpreter(4)
-    action_interp.env = CollectDataEnvWrapper()
-    action_interp.env.reset()
+    action_interp.reset()
     network = Recurrent(state_interp.observation_space)
     policy = PPO(network, state_interp.observation_space, action_interp.action_space, 1e-4)
 

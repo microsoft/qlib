@@ -125,7 +125,7 @@ class TestHFBacktest(TestAutoData):
         # NOTE: please refer to the docs of format_decisions
         # NOTE: `"track_data": True,`  is very NECESSARY for collecting the decision!!!!!
         f_dec = format_decisions(decisions)
-        print(indicator["1day"])
+        print(indicator["1day"][0])
 
 
 if __name__ == "__main__":

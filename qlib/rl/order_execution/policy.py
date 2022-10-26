@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Dict, Generator, Iterable, Optional, Tuple, cast
+from typing import Any, Dict, Generator, Iterable, Optional, OrderedDict, Tuple, cast
 
 import gym
 import numpy as np
@@ -148,7 +148,11 @@ class PPO(PPOPolicy):
             action_space=action_space,
         )
         if weight_file is not None:
-            load_weight(self, weight_file)
+            loaded_weight = torch.load(weight_file, map_location="cpu")
+            if "vessel" in loaded_weight:
+                loaded_weight = loaded_weight["vessel"]["policy"]
+
+            set_weight(self, loaded_weight)
 
 
 # utilities: these should be put in a separate (common) file. #
@@ -160,15 +164,7 @@ def auto_device(module: nn.Module) -> torch.device:
     return torch.device("cpu")  # fallback to cpu
 
 
-def load_weight(policy: nn.Module, path: Path) -> None:
-    assert isinstance(policy, nn.Module), "Policy has to be an nn.Module to load weight."
-    loaded_weight = torch.load(path, map_location="cpu")
-
-    # TODO: this should be handled by whoever calls load_weight.
-    # TODO: For example, when the outer class receives a weight, it should first unpack it,
-    # TODO: and send the corresponding part to individual component.
-    if "vessel" in loaded_weight:
-        loaded_weight = loaded_weight["vessel"]["policy"]
+def set_weight(policy: nn.Module, loaded_weight: OrderedDict) -> None:
     try:
         policy.load_state_dict(loaded_weight)
     except RuntimeError:

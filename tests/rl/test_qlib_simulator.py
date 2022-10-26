@@ -7,11 +7,11 @@ from typing import Tuple
 
 import pandas as pd
 import pytest
-from qlib.backtest.decision import Order, OrderDir, TradeRangeByTime
+
+from qlib.backtest.decision import Order, OrderDir
 from qlib.backtest.executor import SimulatorExecutor
 from qlib.rl.order_execution import CategoricalActionInterpreter
 from qlib.rl.order_execution.simulator_qlib import SingleAssetOrderExecution
-from qlib.rl.utils.env_wrapper import CollectDataEnvWrapper
 
 TOTAL_POSITION = 2100.0
 
@@ -183,8 +183,7 @@ def test_interpreter() -> None:
     order = get_order()
     simulator = get_simulator(order)
     interpreter_action = CategoricalActionInterpreter(values=NUM_EXECUTION)
-    interpreter_action.env = CollectDataEnvWrapper()
-    interpreter_action.env.reset()
+    interpreter_action.reset()
 
     NUM_STEPS = 7
     state = simulator.get_state()

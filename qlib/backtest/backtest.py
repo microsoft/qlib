@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Generator, Optional, Tuple, Union, cast
+from typing import Dict, TYPE_CHECKING, Generator, Optional, Tuple, Union, cast
 
 import pandas as pd
 
@@ -24,25 +24,26 @@ def backtest_loop(
     end_time: Union[pd.Timestamp, str],
     trade_strategy: BaseStrategy,
     trade_executor: BaseExecutor,
-) -> Tuple[PortfolioMetrics, Indicator]:
+) -> Tuple[Dict[str, Tuple[pd.DataFrame, dict]], Dict[str, Tuple[pd.DataFrame, Indicator]]]:
     """backtest function for the interaction of the outermost strategy and executor in the nested decision execution
 
     please refer to the docs of `collect_data_loop`
 
     Returns
     -------
-    portfolio_metrics: PortfolioMetrics
+    portfolio_dict: Dict[str, Tuple[pd.DataFrame, dict]]
         it records the trading portfolio_metrics information
-    indicator: Indicator
+    indicator_dict: Dict[str, Tuple[pd.DataFrame, Indicator]]
         it computes the trading indicator
     """
     return_value: dict = {}
     for _decision in collect_data_loop(start_time, end_time, trade_strategy, trade_executor, return_value):
         pass
 
-    portfolio_metrics = cast(PortfolioMetrics, return_value.get("portfolio_metrics"))
-    indicator = cast(Indicator, return_value.get("indicator"))
-    return portfolio_metrics, indicator
+    portfolio_dict = cast(Dict[str, Tuple[pd.DataFrame, dict]], return_value.get("portfolio_dict"))
+    indicator_dict = cast(Dict[str, Tuple[pd.DataFrame, Indicator]], return_value.get("indicator_dict"))
+
+    return portfolio_dict, indicator_dict
 
 
 def collect_data_loop(
@@ -89,14 +90,17 @@ def collect_data_loop(
 
     if return_value is not None:
         all_executors = trade_executor.get_all_executors()
-        all_portfolio_metrics = {
-            "{}{}".format(*Freq.parse(_executor.time_per_step)): _executor.trade_account.get_portfolio_metrics()
-            for _executor in all_executors
-            if _executor.trade_account.is_port_metr_enabled()
-        }
-        all_indicators = {}
-        for _executor in all_executors:
-            key = "{}{}".format(*Freq.parse(_executor.time_per_step))
-            all_indicators[key] = _executor.trade_account.get_trade_indicator().generate_trade_indicators_dataframe()
-            all_indicators[key + "_obj"] = _executor.trade_account.get_trade_indicator()
-        return_value.update({"portfolio_metrics": all_portfolio_metrics, "indicator": all_indicators})
+
+        portfolio_dict: Dict[str, Tuple[pd.DataFrame, dict]] = {}
+        indicator_dict: Dict[str, Tuple[pd.DataFrame, Indicator]] = {}
+
+        for executor in all_executors:
+            key = "{}{}".format(*Freq.parse(executor.time_per_step))
+            if executor.trade_account.is_port_metr_enabled():
+                portfolio_dict[key] = executor.trade_account.get_portfolio_metrics()
+
+            indicator_df = executor.trade_account.get_trade_indicator().generate_trade_indicators_dataframe()
+            indicator_obj = executor.trade_account.get_trade_indicator()
+            indicator_dict[key] = (indicator_df, indicator_obj)
+
+        return_value.update({"portfolio_dict": portfolio_dict, "indicator_dict": indicator_dict})
