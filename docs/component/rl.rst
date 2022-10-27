@@ -13,7 +13,8 @@ As demonstrated in the following figure, an RL system consists of four elements,
 In general, the agent can perceive and interpret its environment, take actions and learn through reward, to seek long-term and maximum overall reward to achieve an optimal solution.
 
 .. image:: ../_static/img/RL_framework.png
-   :width: 400
+   :width: 250
+   :align: center
 
 The Qlib Reinforcement Learning toolkit (QlibRL) is an RL platform for quantitative investment, which provides support to implement RL algorithm in ``Qlib``.
 
@@ -193,6 +194,7 @@ QlibRL is basically implemented with the support of Tianshou and Gym frameworks.
 
 .. image:: ../_static/img/QlibRL_framework.png
    :width: 600
+   :align: center
 
 Here, we briefly introduce each component in the figure.
 
