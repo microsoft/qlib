@@ -12,7 +12,7 @@ Reinforcement learning attempts to optimize an accumulative numerical reward sig
 As demonstrated in the following figure, an RL system consists of four elements, 1)the agent 2) the environment the agent interacts with 3) the policy that the agent follows to take actions on the environment and 4)the reward signal from the environment to the agent. 
 In general, the agent can perceive and interpret its environment, take actions and learn through reward, to seek long-term and maximum overall reward to achieve an optimal solution.
 
-.. image:: ../_static/img/RL_framework.pdf
+.. image:: ../_static/img/RL_framework.png
    :width: 400
 
 The Qlib Reinforcement Learning toolkit (QlibRL) is an RL platform for quantitative investment, which provides support to implement RL algorithm in ``Qlib``.
@@ -179,7 +179,7 @@ After the training, you can backtest with the following command:
 .. code-block:: console
     $ python qlib/rl/contrib/backtest.py --config_path backtest_config.yml
 
-In that case, `qlib.rl.order_execution.simulator_qlib.SingleAssetOrderExecution<https://github.com/microsoft/qlib/blob/main/qlib/rl/order_execution/simulator_qlib.py>`_ and `qlib.rl.order_execution.simulator_simple.SingleAssetOrderExecutionSimple<https://github.com/microsoft/qlib/blob/main/qlib/rl/order_execution/simulator_simple.py>`_ as examples for simulator, two `StateInterpreter<https://github.com/microsoft/qlib/blob/main/qlib/rl/order_execution/interpreter.py>`_ and `ActionInterpreter<https://github.com/microsoft/qlib/blob/main/qlib/rl/order_execution/interpreter.py>`_ as examples for interpreter, and `qlib.rl.order_execution.reward.PAPenaltyReward<https://github.com/microsoft/qlib/blob/main/qlib/rl/order_execution/reward.py>`_ as an example for reward.
+In that case, `qlib.rl.order_execution.simulator_qlib.SingleAssetOrderExecution <https://github.com/microsoft/qlib/blob/main/qlib/rl/order_execution/simulator_qlib.py>`_ and `qlib.rl.order_execution.simulator_simple.SingleAssetOrderExecutionSimple <https://github.com/microsoft/qlib/blob/main/qlib/rl/order_execution/simulator_simple.py>`_ as examples for simulator, two `StateInterpreter <https://github.com/microsoft/qlib/blob/main/qlib/rl/order_execution/interpreter.py>`_ and `ActionInterpreter <https://github.com/microsoft/qlib/blob/main/qlib/rl/order_execution/interpreter.py>`_ as examples for interpreter, and `qlib.rl.order_execution.reward.PAPenaltyReward <https://github.com/microsoft/qlib/blob/main/qlib/rl/order_execution/reward.py>`_ as an example for reward.
 For the single asset order execution task, if developers have already defined their simulator/interpreters/reward function/policy, they could launch the training and backtest pipeline by simply modifying the corresponding path in the config files.
 The details about the example can be found `here <../../examples/rl/README.md>`_. 
 
@@ -191,7 +191,7 @@ QlibRL contains a full set of components that cover the entire lifecycle of an R
 
 QlibRL is basically implemented with the support of Tianshou and Gym frameworks. The high-level structure of QlibRL is demonstrated below:
 
-.. image:: ../_static/img/QlibRL_framework.pdf
+.. image:: ../_static/img/QlibRL_framework.png
    :width: 600
 
 Here, we briefly introduce each component in the figure.
