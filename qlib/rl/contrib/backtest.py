@@ -207,14 +207,14 @@ def single_with_simulator(
     assert records is None or not np.isnan(records["ffr"]).any()
 
     if generate_report:
-        report = _generate_report(decisions, [report["indicator"] for report in reports])
+        _report = _generate_report(decisions, [report["indicator"] for report in reports])
 
         if split == "stock":
             stock_id = orders.iloc[0].instrument
-            report = {stock_id: report}
+            report = {stock_id: _report}
         else:
             day = orders.iloc[0].datetime
-            report = {day: report}
+            report = {day: _report}
 
         return records, report
     else:
@@ -308,13 +308,13 @@ def single_with_collect_data_loop(
     assert records is None or not np.isnan(records["ffr"]).any()
 
     if generate_report:
-        report = _generate_report(decisions, [indicator_dict])
+        _report = _generate_report(decisions, [indicator_dict])
         if split == "stock":
             stock_id = orders.iloc[0].instrument
-            report = {stock_id: report}
+            report = {stock_id: _report}
         else:
             day = orders.iloc[0].datetime
-            report = {day: report}
+            report = {day: _report}
         return records, report
     else:
         return records

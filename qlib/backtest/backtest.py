@@ -8,7 +8,7 @@ from typing import Dict, TYPE_CHECKING, Generator, Optional, Tuple, Union, cast
 import pandas as pd
 
 from qlib.backtest.decision import BaseTradeDecision
-from qlib.backtest.report import Indicator, PortfolioMetrics
+from qlib.backtest.report import Indicator
 
 if TYPE_CHECKING:
     from qlib.strategy.base import BaseStrategy
