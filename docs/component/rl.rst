@@ -13,16 +13,16 @@ As demonstrated in the following figure, an RL system consists of four elements,
 In general, the agent can perceive and interpret its environment, take actions and learn through reward, to seek long-term and maximum overall reward to achieve an optimal solution.
 
 .. image:: ../_static/img/RL_framework.png
-   :width: 250
+   :width: 300
    :align: center
 
-The Qlib Reinforcement Learning toolkit (QlibRL) is an RL platform for quantitative investment, which provides support to implement RL algorithm in ``Qlib``.
+The Qlib Reinforcement Learning toolkit (QlibRL) is an RL platform for quantitative investment, which provides support to implement RL algorithm in Qlib.
 
 
 Potential Application Scenarios in Quantitative Trading
 ============
 RL methods have already achieved outstanding achievement in many applications, such as game playing, resource allocating, recommendation, marketing and advertising, etc.
-In quantitative investment, RL potentially can be used in many scenarios.
+In quantitative investment, RL potentially can be used in many scenarios as well.
 
 Portfolio Construction
 ------------
@@ -40,14 +40,15 @@ With ``QlibRL``, the RL algorithm in the above scenarios can be easily implement
 
 Nested Portfolio Construction and Order Executor
 ------------
-``QlibRL`` makes it possible to jointly optimize different levels of strategies/models/agents. Take `Nested Decision Execution Framework <https://github.com/microsoft/qlib/blob/main/examples/nested_decision_execution>`_ as an example of, the optimization of order execution strategy and portfolio management strategies can interact with each other to maximize returns.
+``QlibRL`` makes it possible to jointly optimize different levels of strategies/models/agents. Take `Nested Decision Execution Framework <https://github.com/microsoft/qlib/blob/main/examples/nested_decision_execution>`_ as an example, the optimization of order execution strategy and portfolio management strategies can interact with each other to maximize returns.
 
 
 Quick Start
 ============
-``QlibRL`` provides an example of an implementation of a single asset order execution task and the following is an example of the config file to train with ``QlibRL``.
+``QlibRL`` provides an example of an implementation of a single asset order execution task and the following is an example of the config file to train with QlibRL.
 
 .. code-block:: text
+
     simulator:
         time_per_step: 30
         vol_limit: null
@@ -112,6 +113,7 @@ Quick Start
 And the config file for backtesting:
 
 .. code-block:: text
+
     order_file: ./data/backtest_orders.csv
     start_time: "9:45"
     end_time: "14:44"
@@ -173,15 +175,17 @@ And the config file for backtesting:
 With the above config files, you can start training the agent by the following command:
 
 .. code-block:: console
+
     $ python qlib/rl/contrib/train_onpolicy.py --config_path train_config.yml
 
 After the training, you can backtest with the following command:
 
 .. code-block:: console
+
     $ python qlib/rl/contrib/backtest.py --config_path backtest_config.yml
 
-In that case, `qlib.rl.order_execution.simulator_qlib.SingleAssetOrderExecution <https://github.com/microsoft/qlib/blob/main/qlib/rl/order_execution/simulator_qlib.py>`_ and `qlib.rl.order_execution.simulator_simple.SingleAssetOrderExecutionSimple <https://github.com/microsoft/qlib/blob/main/qlib/rl/order_execution/simulator_simple.py>`_ as examples for simulator, two `StateInterpreter <https://github.com/microsoft/qlib/blob/main/qlib/rl/order_execution/interpreter.py>`_ and `ActionInterpreter <https://github.com/microsoft/qlib/blob/main/qlib/rl/order_execution/interpreter.py>`_ as examples for interpreter, and `qlib.rl.order_execution.reward.PAPenaltyReward <https://github.com/microsoft/qlib/blob/main/qlib/rl/order_execution/reward.py>`_ as an example for reward.
-For the single asset order execution task, if developers have already defined their simulator/interpreters/reward function/policy, they could launch the training and backtest pipeline by simply modifying the corresponding path in the config files.
+In that case, `qlib.rl.order_execution.simulator_qlib.SingleAssetOrderExecution <https://github.com/microsoft/qlib/blob/main/qlib/rl/order_execution/simulator_qlib.py>`_ and `qlib.rl.order_execution.simulator_simple.SingleAssetOrderExecutionSimple <https://github.com/microsoft/qlib/blob/main/qlib/rl/order_execution/simulator_simple.py>`_ as examples for simulator, `StateInterpreter <https://github.com/microsoft/qlib/blob/main/qlib/rl/order_execution/interpreter.py>`_ and `ActionInterpreter <https://github.com/microsoft/qlib/blob/main/qlib/rl/order_execution/interpreter.py>`_ as examples for interpreter, and `qlib.rl.order_execution.reward.PAPenaltyReward <https://github.com/microsoft/qlib/blob/main/qlib/rl/order_execution/reward.py>`_ as an example for reward.
+For the single asset order execution task, if developers have already defined their simulator/interpreters/reward function/policy, they could launch the training and backtest pipeline by simply modifying the corresponding settings in the config files.
 The details about the example can be found `here <../../examples/rl/README.md>`_. 
 
 In the future, we will provide more examples for different scenarios such as RL-based portfolio construction.
