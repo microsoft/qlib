@@ -16,7 +16,7 @@ In general, the agent can perceive and interpret its environment, take actions a
    :width: 300
    :align: center
 
-The Qlib Reinforcement Learning toolkit (QlibRL) is an RL platform for quantitative investment, which provides support to implement RL algorithm in Qlib.
+The Qlib Reinforcement Learning toolkit (QlibRL) is an RL platform for quantitative investment, which provides support to implement RL algorithms in Qlib.
 
 
 Potential Application Scenarios in Quantitative Trading
