@@ -21,7 +21,7 @@ The Qlib Reinforcement Learning toolkit (QlibRL) is an RL platform for quantitat
 
 Potential Application Scenarios in Quantitative Trading
 ============
-RL methods have already achieved outstanding achievement in many applications, such as game playing, resource allocating, recommendation, marketing and advertising, etc.
+RL methods have already achieved outstanding achievements in many applications, such as game playing, resource allocating, recommendation, marketing and advertising, etc.
 In quantitative investment, RL potentially can be used in many scenarios as well.
 
 Portfolio Construction
