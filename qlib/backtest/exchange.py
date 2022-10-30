@@ -27,12 +27,12 @@ from .high_performance_ds import BaseQuote, NumpyQuote
 
 class Exchange:
     # `quote_df` is a pd.DataFrame class that contains basic information for backtesting
-    # After some processing, the data wil later maintained by `quote_cls` object for faster data retriving.
+    # After some processing, the data will later be maintained by `quote_cls` object for faster data retriving.
     # Some conventions for `quote_df`
-    # $close is for calculating the total value at end of each day.
-    # - if $close is None, the stock on that day is reguarded as suspended.
-    # $factor is for rounding to the trading unit;
-    # - if any $factor is missing when $close exists, trading unit rounding will be disabled
+    # - $close is for calculating the total value at end of each day.
+    #   - if $close is None, the stock on that day is reguarded as suspended.
+    # - $factor is for rounding to the trading unit;
+    #   - if any $factor is missing when $close exists, trading unit rounding will be disabled
     quote_df: pd.DataFrame
 
     def __init__(
@@ -355,12 +355,12 @@ class Exchange:
 
         Returns
         -------
-        True: the trading of the stock is not limited, hence the stock may be tradable
-        False: the trading of the stock is limted (maybe hit the highest/lowest price), hence the stock is not tradable
+        True: the trading of the stock is limted (maybe hit the highest/lowest price), hence the stock is not tradable
+        False: the trading of the stock is not limited, hence the stock may be tradable
         """
         # NOTE:
         # **all** is used when checking limitation.
-        # For example, the stock trading is limited in a day if every miniute is limited.in a day if every miniute is limited.
+        # For example, the stock trading is limited in a day if every miniute is limited in a day if every miniute is limited.
         if direction is None:
             # The trading limitation is related to the trading direction
             # if the direction is not provided, then any limitation from buy or sell will result in trading limitation
@@ -385,19 +385,19 @@ class Exchange:
         if stock_id in self.quote.get_all_stock():
             # suspended stocks are represented by None $close stock
             # The $close may contains NaN,
-            # **any** non-NaN $close represents trading opportunity may exists
             close = self.quote.get_data(stock_id, start_time, end_time, "$close")
             if close is None:
                 # if no close record exists
                 return True
             elif isinstance(close, IndexData):
-                #  all returned is nan, then the stock is suspended
+                # **any** non-NaN $close represents trading opportunity may exists
+                #  if all returned is nan, then the stock is suspended
                 return cast(bool, cast(IndexData, close).isna().all())
             else:
                 # it is single value, make sure is is not None
                 return np.isnan(close)
         else:
-            # if the stock is not in the stock list, then it is not tradable and regarded as suspend
+            # if the stock is not in the stock list, then it is not tradable and regarded as suspended
             return True
 
     def is_stock_tradable(
