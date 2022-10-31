@@ -11,6 +11,7 @@ from qlib.backtest.decision import Order, OrderDir, TradeRangeByTime
 from qlib.backtest.executor import SimulatorExecutor
 from qlib.rl.order_execution import CategoricalActionInterpreter
 from qlib.rl.order_execution.simulator_qlib import SingleAssetOrderExecution
+from qlib.rl.utils.env_wrapper import CollectDataEnvWrapper
 
 TOTAL_POSITION = 2100.0
 
@@ -31,16 +32,7 @@ def get_order() -> Order:
     )
 
 
-def get_configs(order: Order) -> Tuple[dict, dict, dict]:
-    strategy_config = {
-        "class": "SingleOrderStrategy",
-        "module_path": "qlib.rl.strategy.single_order",
-        "kwargs": {
-            "order": order,
-            "trade_range": TradeRangeByTime(order.start_time.time(), order.end_time.time()),
-        },
-    }
-
+def get_configs(order: Order) -> Tuple[dict, dict]:
     executor_config = {
         "class": "NestedExecutor",
         "module_path": "qlib.backtest.executor",
@@ -92,7 +84,7 @@ def get_configs(order: Order) -> Tuple[dict, dict, dict]:
         "trade_unit": None,
     }
 
-    return strategy_config, executor_config, exchange_config
+    return executor_config, exchange_config
 
 
 def get_simulator(order: Order) -> SingleAssetOrderExecution:
@@ -114,12 +106,11 @@ def get_simulator(order: Order) -> SingleAssetOrderExecution:
     }
     # fmt: on
 
-    strategy_config, executor_config, exchange_config = get_configs(order)
+    executor_config, exchange_config = get_configs(order)
 
     return SingleAssetOrderExecution(
         order=order,
         qlib_config=qlib_config,
-        strategy_config=strategy_config,
         executor_config=executor_config,
         exchange_config=exchange_config,
     )
@@ -192,6 +183,8 @@ def test_interpreter() -> None:
     order = get_order()
     simulator = get_simulator(order)
     interpreter_action = CategoricalActionInterpreter(values=NUM_EXECUTION)
+    interpreter_action.env = CollectDataEnvWrapper()
+    interpreter_action.env.reset()
 
     NUM_STEPS = 7
     state = simulator.get_state()

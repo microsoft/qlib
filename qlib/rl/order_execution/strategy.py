@@ -5,17 +5,24 @@ from __future__ import annotations
 
 import collections
 from types import GeneratorType
-from typing import Any, Optional, Union, cast, Dict, Generator
+from typing import Any, cast, Dict, Generator, List, Optional, Union
 
+import numpy as np
 import pandas as pd
+import torch
+from tianshou.data import Batch
+from tianshou.policy import BasePolicy
 
 from qlib.backtest import CommonInfrastructure, Order
-from qlib.backtest.decision import BaseTradeDecision, TradeDecisionWO, TradeRange
+from qlib.backtest.decision import BaseTradeDecision, TradeDecisionWithDetails, TradeDecisionWO, TradeRange
 from qlib.backtest.utils import LevelInfrastructure
 from qlib.constant import ONE_MIN
-from qlib.rl.data.exchange_wrapper import load_qlib_backtest_data
-from qlib.rl.order_execution.state import SAOEStateAdapter, SAOEState
+from qlib.rl.data.native import load_backtest_data
+from qlib.rl.interpreter import ActionInterpreter, StateInterpreter
+from qlib.rl.order_execution.state import SAOEState, SAOEStateAdapter
+from qlib.rl.utils.env_wrapper import BaseEnvWrapper
 from qlib.strategy.base import RLStrategy
+from qlib.utils import init_instance_by_config
 
 
 class SAOEStrategy(RLStrategy):
@@ -41,7 +48,7 @@ class SAOEStrategy(RLStrategy):
         self._last_step_range = (0, 0)
 
     def _create_qlib_backtest_adapter(self, order: Order, trade_range: TradeRange) -> SAOEStateAdapter:
-        backtest_data = load_qlib_backtest_data(order, self.trade_exchange, trade_range)
+        backtest_data = load_backtest_data(order, self.trade_exchange, trade_range)
 
         return SAOEStateAdapter(
             order=order,
@@ -106,7 +113,10 @@ class SAOEStrategy(RLStrategy):
 
         return decision
 
-    def _generate_trade_decision(self, execute_result: list = None) -> Generator[Any, Any, BaseTradeDecision]:
+    def _generate_trade_decision(
+        self,
+        execute_result: list = None,
+    ) -> Union[BaseTradeDecision, Generator[Any, Any, BaseTradeDecision]]:
         raise NotImplementedError
 
 
@@ -146,3 +156,131 @@ class ProxySAOEStrategy(SAOEStrategy):
             order_list = outer_trade_decision.order_list
             assert len(order_list) == 1
             self._order = order_list[0]
+
+
+class SAOEIntStrategy(SAOEStrategy):
+    """(SAOE)state based strategy with (Int)preters."""
+
+    def __init__(
+        self,
+        policy: dict | BasePolicy,
+        state_interpreter: dict | StateInterpreter,
+        action_interpreter: dict | ActionInterpreter,
+        network: object = None,  # TODO: add accurate typehint later.
+        outer_trade_decision: BaseTradeDecision = None,
+        level_infra: LevelInfrastructure = None,
+        common_infra: CommonInfrastructure = None,
+        backtest: bool = False,
+        **kwargs: Any,
+    ) -> None:
+        super(SAOEIntStrategy, self).__init__(
+            policy=policy,
+            outer_trade_decision=outer_trade_decision,
+            level_infra=level_infra,
+            common_infra=common_infra,
+            **kwargs,
+        )
+
+        self._backtest = backtest
+
+        self._state_interpreter: StateInterpreter = init_instance_by_config(
+            state_interpreter,
+            accept_types=StateInterpreter,
+        )
+        self._action_interpreter: ActionInterpreter = init_instance_by_config(
+            action_interpreter,
+            accept_types=ActionInterpreter,
+        )
+
+        if isinstance(policy, dict):
+            assert network is not None
+
+            if isinstance(network, dict):
+                network["kwargs"].update(
+                    {
+                        "obs_space": self._state_interpreter.observation_space,
+                    }
+                )
+                network_inst = init_instance_by_config(network)
+            else:
+                network_inst = network
+
+            policy["kwargs"].update(
+                {
+                    "obs_space": self._state_interpreter.observation_space,
+                    "action_space": self._action_interpreter.action_space,
+                    "network": network_inst,
+                }
+            )
+            self._policy = init_instance_by_config(policy)
+        elif isinstance(policy, BasePolicy):
+            self._policy = policy
+        else:
+            raise ValueError(f"Unsupported policy type: {type(policy)}.")
+
+        if self._policy is not None:
+            self._policy.eval()
+
+    def set_env(self, env: BaseEnvWrapper) -> None:
+        # TODO: This method is used to set EnvWrapper for interpreters since they rely on EnvWrapper.
+        # We should decompose the interpreters with EnvWrapper in the future and we should remove this method
+        # after that.
+
+        self._env = env
+        self._state_interpreter.env = self._action_interpreter.env = self._env
+
+    def reset(self, outer_trade_decision: BaseTradeDecision = None, **kwargs: Any) -> None:
+        super().reset(outer_trade_decision=outer_trade_decision, **kwargs)
+
+        # In backtest, env.reset() needs to be manually called since there is no outer trainer to call it
+        if self._backtest:
+            self._env.reset()
+
+    def _generate_trade_details(self, act: np.ndarray, exec_vols: List[float]) -> pd.DataFrame:
+        assert hasattr(self.outer_trade_decision, "order_list")
+
+        trade_details = []
+        for a, v, o in zip(act, exec_vols, getattr(self.outer_trade_decision, "order_list")):
+            trade_details.append(
+                {
+                    "instrument": o.stock_id,
+                    "datetime": self.trade_calendar.get_step_time()[0],
+                    "freq": self.trade_calendar.get_freq(),
+                    "rl_exec_vol": v,
+                }
+            )
+            if a is not None:
+                trade_details[-1]["rl_action"] = a
+        return pd.DataFrame.from_records(trade_details)
+
+    def _generate_trade_decision(self, execute_result: list = None) -> BaseTradeDecision:
+        states = []
+        obs_batch = []
+        for decision in self.outer_trade_decision.get_decision():
+            order = cast(Order, decision)
+            state = self.get_saoe_state_by_order(order)
+
+            states.append(state)
+            obs_batch.append({"obs": self._state_interpreter.interpret(state)})
+
+        with torch.no_grad():
+            policy_out = self._policy(Batch(obs_batch))
+        act = policy_out.act.numpy() if torch.is_tensor(policy_out.act) else policy_out.act
+        exec_vols = [self._action_interpreter.interpret(s, a) for s, a in zip(states, act)]
+
+        # In backtest, env.step() needs to be manually called since there is no outer trainer to call it
+        if self._backtest:
+            self._env.step(None)
+
+        oh = self.trade_exchange.get_order_helper()
+        order_list = []
+        for decision, exec_vol in zip(self.outer_trade_decision.get_decision(), exec_vols):
+            if exec_vol != 0:
+                order = cast(Order, decision)
+                order_list.append(oh.create(order.stock_id, exec_vol, order.direction))
+
+        return TradeDecisionWithDetails(
+            order_list=order_list,
+            strategy=self,
+            details=self._generate_trade_details(act, exec_vols),
+        )

@@ -18,10 +18,10 @@ from .state import SAOEMetrics, SAOEState
 
 # TODO: Integrating Qlib's native data with simulator_simple
 
-__all__ = ["SingleAssetOrderExecution"]
+__all__ = ["SingleAssetOrderExecutionSimple"]
 
 
-class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
+class SingleAssetOrderExecutionSimple(Simulator[Order, SAOEState, float]):
     """Single-asset order execution (SAOE) simulator.
 
     As there's no "calendar" in the simple simulator, ticks are used to trade.

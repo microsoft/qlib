@@ -4,6 +4,7 @@ import datetime
 from typing import Optional
 
 import qlib
+from qlib import get_module_logger
 from qlib.data import D
 from qlib.config import REG_CN
 from qlib.utils import init_instance_by_config
@@ -12,7 +13,6 @@ from qlib.data.data import Cal
 from qlib.contrib.ops.high_freq import get_calendar_day, DayLast, FFillNan, BFillNan, Date, Select, IsNull, IsInf, Cut
 import pickle as pkl
 from joblib import Parallel, delayed
-from utilsd.logging import print_log
 
 
 class HighFreqProvider:
@@ -41,6 +41,7 @@ class HighFreqProvider:
         self.label_conf = label_conf
         self.backtest_conf = backtest_conf
         self.qlib_conf = qlib_conf
+        self.logger = get_module_logger("HighFreqProvider")
 
     def get_pre_datasets(self):
         """Generate the training, validation and test datasets for prediction
@@ -125,7 +126,7 @@ class HighFreqProvider:
             raise ValueError("Must specify the path to save the dataset.") from e
         if os.path.isfile(path):
             start = time.time()
-            print_log("Dataset exists, load from disk.", __name__)
+            self.logger.info("Dataset exists, load from disk.", __name__)
 
             # res = dataset.prepare(['train', 'valid', 'test'])
             with open(path, "rb") as f:
@@ -134,11 +135,11 @@ class HighFreqProvider:
                 res = [data[i] for i in datasets]
             else:
                 res = data.prepare(datasets)
-            print_log(f"Data loaded, time cost: {time.time() - start:.2f}", __name__)
+            self.logger.info(f"Data loaded, time cost: {time.time() - start:.2f}", __name__)
         else:
             if not os.path.exists(os.path.dirname(path)):
                 os.makedirs(os.path.dirname(path))
-            print_log("Generating dataset", __name__)
+            self.logger.info("Generating dataset", __name__)
             start_time = time.time()
             self._prepare_calender_cache()
             dataset = init_instance_by_config(config)
@@ -157,7 +158,7 @@ class HighFreqProvider:
             with open(path[:-4] + "test.pkl", "wb") as f:
                 pkl.dump(testset, f)
             res = [data[i] for i in datasets]
-            print_log(f"Data generated, time cost: {(time.time() - start_time):.2f}", __name__)
+            self.logger.info(f"Data generated, time cost: {(time.time() - start_time):.2f}", __name__)
         return res
 
     def _gen_data(self, config, datasets=["train", "valid", "test"]):
@@ -167,7 +168,7 @@ class HighFreqProvider:
             raise ValueError("Must specify the path to save the dataset.") from e
         if os.path.isfile(path):
             start = time.time()
-            print_log("Dataset exists, load from disk.", __name__)
+            self.logger.info("Dataset exists, load from disk.", __name__)
 
             # res = dataset.prepare(['train', 'valid', 'test'])
             with open(path, "rb") as f:
@@ -176,18 +177,18 @@ class HighFreqProvider:
                 res = [data[i] for i in datasets]
             else:
                 res = data.prepare(datasets)
-            print_log(f"Data loaded, time cost: {time.time() - start:.2f}", __name__)
+            self.logger.info(f"Data loaded, time cost: {time.time() - start:.2f}", __name__)
         else:
             if not os.path.exists(os.path.dirname(path)):
                 os.makedirs(os.path.dirname(path))
-            print_log("Generating dataset", __name__)
+            self.logger.info("Generating dataset", __name__)
             start_time = time.time()
             self._prepare_calender_cache()
             dataset = init_instance_by_config(config)
             dataset.config(dump_all=True, recursive=True)
             dataset.to_pickle(path)
             res = dataset.prepare(datasets)
-            print_log(f"Data generated, time cost: {(time.time() - start_time):.2f}", __name__)
+            self.logger.info(f"Data generated, time cost: {(time.time() - start_time):.2f}", __name__)
         return res
 
     def _gen_dataset(self, config):
@@ -197,21 +198,21 @@ class HighFreqProvider:
             raise ValueError("Must specify the path to save the dataset.") from e
         if os.path.isfile(path):
             start = time.time()
-            print_log("Dataset exists, load from disk.", __name__)
+            self.logger.info("Dataset exists, load from disk.", __name__)
 
             with open(path, "rb") as f:
                 dataset = pkl.load(f)
-            print_log(f"Data loaded, time cost: {time.time() - start:.2f}", __name__)
+            self.logger.info(f"Data loaded, time cost: {time.time() - start:.2f}", __name__)
         else:
             start = time.time()
             if not os.path.exists(os.path.dirname(path)):
                 os.makedirs(os.path.dirname(path))
-            print_log("Generating dataset", __name__)
+            self.logger.info("Generating dataset", __name__)
             self._prepare_calender_cache()
             dataset = init_instance_by_config(config)
-            print_log(f"Dataset init, time cost: {time.time() - start:.2f}", __name__)
+            self.logger.info(f"Dataset init, time cost: {time.time() - start:.2f}", __name__)
             dataset.prepare(["train", "valid", "test"])
-            print_log(f"Dataset prepared, time cost: {time.time() - start:.2f}", __name__)
+            self.logger.info(f"Dataset prepared, time cost: {time.time() - start:.2f}", __name__)
             dataset.config(dump_all=True, recursive=True)
             dataset.to_pickle(path)
         return dataset
@@ -224,15 +225,15 @@ class HighFreqProvider:
 
         if os.path.isfile(path + "tmp_dataset.pkl"):
             start = time.time()
-            print_log("Dataset exists, load from disk.", __name__)
+            self.logger.info("Dataset exists, load from disk.", __name__)
         else:
             start = time.time()
             if not os.path.exists(os.path.dirname(path)):
                 os.makedirs(os.path.dirname(path))
-            print_log("Generating dataset", __name__)
+            self.logger.info("Generating dataset", __name__)
             self._prepare_calender_cache()
             dataset = init_instance_by_config(config)
-            print_log(f"Dataset init, time cost: {time.time() - start:.2f}", __name__)
+            self.logger.info(f"Dataset init, time cost: {time.time() - start:.2f}", __name__)
             dataset.config(dump_all=False, recursive=True)
             dataset.to_pickle(path + "tmp_dataset.pkl")
 
@@ -265,15 +266,15 @@ class HighFreqProvider:
 
         if os.path.isfile(path + "tmp_dataset.pkl"):
             start = time.time()
-            print_log("Dataset exists, load from disk.", __name__)
+            self.logger.info("Dataset exists, load from disk.", __name__)
         else:
             start = time.time()
             if not os.path.exists(os.path.dirname(path)):
                 os.makedirs(os.path.dirname(path))
-            print_log("Generating dataset", __name__)
+            self.logger.info("Generating dataset", __name__)
             self._prepare_calender_cache()
             dataset = init_instance_by_config(config)
-            print_log(f"Dataset init, time cost: {time.time() - start:.2f}", __name__)
+            self.logger.info(f"Dataset init, time cost: {time.time() - start:.2f}", __name__)
             dataset.config(dump_all=False, recursive=True)
             dataset.to_pickle(path + "tmp_dataset.pkl")
 

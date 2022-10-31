@@ -142,7 +142,11 @@ setup(
             "setuptools",
             "black",
             "pylint",
-            "mypy",
+            # Using the latest versions(0.981 and 0.982) of mypy,
+            # the error "multiprocessing.Value()" is detected in the file "qlib/rl/utils/data_queue.py",
+            # If this is fixed in a subsequent version of mypy, then we will revert to the latest version of mypy.
+            # References: https://github.com/python/typeshed/issues/8799
+            "mypy<0.981",
             "flake8",
             "readthedocs_sphinx_ext",
             "cmake",
@@ -150,6 +154,9 @@ setup(
             "baostock",
             "yahooquery",
             "beautifulsoup4",
+            # The 5.0.0 version of importlib-metadata removed the deprecated endpoint,
+            # which prevented flake8 from working properly, so we restricted the version of importlib-metadata.
+            "importlib-metadata<5.0.0",
             "tianshou",
             "gym>=0.24",  # If you do not put gym at the end, gym will degrade causing pytest results to fail.
         ],

@@ -1,5 +1,6 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
+from __future__ import annotations
 
 from typing import cast
 
@@ -8,10 +9,11 @@ import pandas as pd
 
 from qlib.backtest import Exchange, Order
 from qlib.backtest.decision import TradeRange, TradeRangeByTime
-from qlib.constant import ONE_DAY, EPS_T
 from qlib.rl.order_execution.utils import get_ticks_slice
-from qlib.utils.index_data import IndexData
-from .pickle_styled import BaseIntradayBacktestData
+
+from .base import BaseIntradayBacktestData, BaseIntradayProcessedData, ProcessedDataProvider
+from .integration import fetch_features
+from ...data import D
 
 
 class IntradayBacktestData(BaseIntradayBacktestData):
@@ -74,23 +76,25 @@ class IntradayBacktestData(BaseIntradayBacktestData):
     cache=cachetools.LRUCache(100),
     key=lambda order, _, __: order.key_by_day,
 )
-def load_qlib_backtest_data(
+def load_backtest_data(
     order: Order,
     trade_exchange: Exchange,
     trade_range: TradeRange,
 ) -> IntradayBacktestData:
-    data = cast(
-        IndexData,
-        trade_exchange.get_deal_price(
-            stock_id=order.stock_id,
-            start_time=order.date,
-            end_time=order.date + ONE_DAY - EPS_T,
-            direction=order.direction,
-            method=None,
-        ),
+    # TODO: making exchange return data without missing will make it more elegant. Fix this in the future.
+    tmp_data = D.features(
+        trade_exchange.codes,
+        trade_exchange.all_fields,
+        trade_exchange.start_time,
+        trade_exchange.end_time,
+        freq=trade_exchange.freq,
+        disk_cache=True,
     )
 
-    ticks_index = pd.DatetimeIndex(data.index)
+    ticks_index = pd.DatetimeIndex(tmp_data.reset_index()["datetime"])
+    ticks_index = ticks_index[order.start_time <= ticks_index]
+    ticks_index = ticks_index[ticks_index <= order.end_time]
+
     if isinstance(trade_range, TradeRangeByTime):
         ticks_for_order = get_ticks_slice(
             ticks_index,
@@ -108,3 +112,43 @@ def load_qlib_backtest_data(
         ticks_for_order=ticks_for_order,
     )
     return backtest_data
+
+
+class NTIntradayProcessedData(BaseIntradayProcessedData):
+    """Subclass of IntradayProcessedData. Used to handle NT style data."""
+
+    def __init__(
+        self,
+        stock_id: str,
+        date: pd.Timestamp,
+    ) -> None:
+        def _drop_stock_id(df: pd.DataFrame) -> pd.DataFrame:
+            df = df.reset_index()
+            if "instrument" in df.columns:
+                df = df.drop(columns=["instrument"])
+            return df.set_index(["datetime"])
+
+        self.today = _drop_stock_id(fetch_features(stock_id, date))
+        self.yesterday = _drop_stock_id(fetch_features(stock_id, date, yesterday=True))
+
+    def __repr__(self) -> str:
+        with pd.option_context("memory_usage", False, "display.max_info_columns", 1, "display.large_repr", "info"):
+            return f"{self.__class__.__name__}({self.today}, {self.yesterday})"
+
+
+@cachetools.cached(  # type: ignore
+    cache=cachetools.LRUCache(100),  # 100 * 50K = 5MB
+)
+def load_nt_intraday_processed_data(stock_id: str, date: pd.Timestamp) -> NTIntradayProcessedData:
+    return NTIntradayProcessedData(stock_id, date)
+
+
+class NTProcessedDataProvider(ProcessedDataProvider):
+    def get_data(
+        self,
+        stock_id: str,
+        date: pd.Timestamp,
+        feature_dim: int,
+        time_index: pd.Index,
+    ) -> BaseIntradayProcessedData:
+        return load_nt_intraday_processed_data(stock_id, date)

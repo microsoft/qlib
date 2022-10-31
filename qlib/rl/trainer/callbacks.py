@@ -8,6 +8,7 @@ Mimicks the hooks of Keras / PyTorch-Lightning, but tailored for the context of 
 from __future__ import annotations
 
 import copy
+import os
 import shutil
 import time
 from datetime import datetime
@@ -253,7 +254,7 @@ class Checkpoint(Callback):
         latest_pth = self.dirpath / "latest.pth"
 
         # Remove first before saving
-        if self.save_latest and latest_pth.exists():
+        if self.save_latest and (latest_pth.exists() or os.path.islink(latest_pth)):
             latest_pth.unlink()
 
         if self.save_latest == "link":

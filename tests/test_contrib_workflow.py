@@ -11,7 +11,24 @@ from qlib.contrib.workflow import MultiSegRecord, SignalMseRecord
 from qlib.utils import init_instance_by_config, flatten_dict
 from qlib.workflow import R
 from qlib.tests import TestAutoData
-from qlib.tests.config import CSI300_GBDT_TASK
+from qlib.tests.config import GBDT_MODEL, get_dataset_config, CSI300_MARKET
+
+
+CSI300_GBDT_TASK = {
+    "model": GBDT_MODEL,
+    "dataset": get_dataset_config(
+        train=("2020-05-01", "2020-06-01"),
+        valid=("2020-06-01", "2020-07-01"),
+        test=("2020-07-01", "2020-08-01"),
+        handler_kwargs={
+            "start_time": "2020-05-01",
+            "end_time": "2020-08-01",
+            "fit_start_time": "<dataset.kwargs.segments.train.0>",
+            "fit_end_time": "<dataset.kwargs.segments.train.1>",
+            "instruments": CSI300_MARKET,
+        },
+    ),
+}
 
 
 def train_multiseg(uri_path: str = None):
