@@ -471,7 +471,7 @@ class DatasetCache(BaseProviderCache):
         not_space_fields = remove_fields_space(fields)
         data = data.loc[:, not_space_fields]
         # set features fields
-        data.columns = list(fields)
+        data.columns = [str(i) for i in fields]
         return data
 
     @staticmethod
