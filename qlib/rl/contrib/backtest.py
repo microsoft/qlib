@@ -369,9 +369,19 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--config_path", type=str, required=True, help="Path to the config file")
     parser.add_argument("--use_simulator", action="store_true", help="Whether to use simulator as the backend")
+    parser.add_argument(
+        "--n_jobs",
+        type=int,
+        required=False,
+        help="The number of jobs for running backtest parallely(1 for single process)",
+    )
     args = parser.parse_args()
 
+    config = get_backtest_config_fromfile(args.config_path)
+    if args.n_jobs is not None:
+        config["concurrency"] = args.n_jobs
+
     backtest(
-        backtest_config=get_backtest_config_fromfile(args.config_path),
+        backtest_config=config,
         with_simulator=args.use_simulator,
     )
