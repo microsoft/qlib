@@ -1368,8 +1368,9 @@ class EMA(Rolling):
         a feature instance with regression r-value square of given window
     """
 
-    def __init__(self, feature, N):
+    def __init__(self, feature, N, alpha: float = None):
         super(EMA, self).__init__(feature, N, "ema")
+        self.alpha = alpha
 
     def _load_internal(self, instrument, start_index, end_index, *args):
         series = self.feature.load(instrument, start_index, end_index, *args)
@@ -1384,6 +1385,8 @@ class EMA(Rolling):
             series = series.expanding(min_periods=1).apply(exp_weighted_mean, raw=True)
         elif 0 < self.N < 1:
             series = series.ewm(alpha=self.N, min_periods=1).mean()
+        elif self.alpha and 0 < self.alpha < 1:
+            series = series.ewm(alpha=self.alpha, min_periods=1).mean()
         else:
             series = series.ewm(span=self.N, min_periods=1).mean()
         return series
