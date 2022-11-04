@@ -1389,6 +1389,46 @@ class EMA(Rolling):
         return series
 
 
+class SMA(Rolling):
+    """Rolling Exponential Mean (EMA) - alph customized version.
+
+    Parameters
+    ----------
+    feature : Expression
+        feature instance
+    N : int, float
+        rolling window size
+    M : int, float
+        Numerator of alpha
+
+    Returns
+    ----------
+    Expression
+        a feature instance with regression r-value square of given window
+    """
+
+    def __init__(self, feature, N, M: int = 1):
+        super(SMA, self).__init__(feature, N, "ema")
+        self.M = M
+
+    def _load_internal(self, instrument, start_index, end_index, *args):
+        series = self.feature.load(instrument, start_index, end_index, *args)
+
+        def exp_weighted_mean(x):
+            a = 1 - 2 / (1 + len(x))
+            w = a ** np.arange(len(x))[::-1]
+            w /= w.sum()
+            return np.nansum(w * x)
+
+        if self.N == 0:
+            series = series.expanding(min_periods=1).apply(exp_weighted_mean, raw=True)
+        elif 0 < self.N < 1:
+            series = series.ewm(alpha=self.N, min_periods=1).mean()
+        else:
+            series = series.ewm(alpha=(self.M/self.N), min_periods=1).mean()
+        return series
+
+
 #################### Pair-Wise Rolling ####################
 class PairRolling(ExpressionOps):
     """Pair Rolling Operator
@@ -1589,6 +1629,7 @@ OpsList = [
     Quantile,
     Count,
     EMA,
+    SMA,
     WMA,
     Corr,
     Cov,
