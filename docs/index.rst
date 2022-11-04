@@ -44,7 +44,7 @@ Document Structure
    Qlib Recorder: Experiment Management <component/recorder.rst>
    Analysis: Evaluation & Results Analysis <component/report.rst>
    Online Serving: Online Management & Strategy & Tool <component/online.rst>
-   Reinforcement Learning <component/rl.rst>
+   Reinforcement Learning <component/rl/toctree>
 
 .. toctree::
    :maxdepth: 3
