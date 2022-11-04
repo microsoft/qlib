@@ -1425,7 +1425,7 @@ class SMA(Rolling):
         elif 0 < self.N < 1:
             series = series.ewm(alpha=self.N, min_periods=1).mean()
         else:
-            series = series.ewm(alpha=(self.M/self.N), min_periods=1).mean()
+            series = series.ewm(alpha=(self.M / self.N), min_periods=1).mean()
         return series
 
 
