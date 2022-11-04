@@ -49,22 +49,14 @@ def _get_all_timestamps(
 
 def fill_missing_data(
     original_data: np.ndarray,
-    total_time_list: List[pd.Timestamp],
-    found_time_list: List[pd.Timestamp],
-    fill_method: Callable = np.median,
+    fill_method: Callable = np.nanmedian,
 ) -> np.ndarray:
-    """Fill missing data. We need this function to deal with data that have missing values in some minutes.
-
-    TODO: making exchange return data without missing will make it more elegant. Fix this in the future.
+    """Fill missing data.
 
     Parameters
     ----------
     original_data
         Original data without missing values.
-    total_time_list
-        All timestamps that required.
-    found_time_list
-        Timestamps found in the original data.
     fill_method
         Method used to fill the missing data.
 
@@ -72,10 +64,7 @@ def fill_missing_data(
     -------
         The filled data.
     """
-    assert len(original_data) == len(found_time_list)
-    tmp = dict(zip(found_time_list, original_data))
-    fill_val = fill_method(original_data)
-    return np.array([tmp.get(t, fill_val) for t in total_time_list])
+    return np.nan_to_num(original_data, nan=fill_method(original_data))
 
 
 class SAOEStateAdapter:
@@ -165,10 +154,8 @@ class SAOEStateAdapter:
                 direction=self.order.direction,
             ),
         )
-        found_time_list = [pd.Timestamp(e) for e in list(market_volume.index)]
-        total_time_list = _get_all_timestamps(start_time, end_time)
-        market_price = fill_missing_data(np.array(market_price).reshape(-1), total_time_list, found_time_list)
-        market_volume = fill_missing_data(np.array(market_volume).reshape(-1), total_time_list, found_time_list)
+        market_price = fill_missing_data(np.array(market_price, dtype=float).reshape(-1))
+        market_volume = fill_missing_data(np.array(market_volume, dtype=float).reshape(-1))
 
         assert market_price.shape == market_volume.shape == exec_vol.shape
 
