@@ -219,6 +219,9 @@ class DumpDataBase:
             return
         # align index
         _df = self.data_merge_calendar(df, calendar_list)
+        if _df.empty:
+            logger.warning(f"{features_dir.name} data is not in calendars")
+            return
         # used when creating a bin file
         date_index = self.get_datetime_index(_df, calendar_list)
         for field in self.get_dump_fields(_df.columns):
