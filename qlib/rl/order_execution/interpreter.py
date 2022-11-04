@@ -69,8 +69,6 @@ class FullHistoryStateInterpreter(StateInterpreter[SAOEState, FullHistoryObs]):
         Provider of the processed data.
     """
 
-    # TODO: All implementations related to `data_dir` is coupled with the specific data format for that specific case.
-    # TODO: So it should be redesigned after the data interface is well-designed.
     def __init__(
         self,
         max_step: int,
