@@ -8,7 +8,7 @@ import os
 import pickle
 from collections import defaultdict
 from pathlib import Path
-from typing import Dict, List, Literal, Optional, Tuple, Union, cast
+from typing import Dict, List, Optional, Tuple, Union, cast
 
 import numpy as np
 import pandas as pd
@@ -23,6 +23,7 @@ from qlib.rl.contrib.naive_config_parser import get_backtest_config_fromfile
 from qlib.rl.contrib.utils import read_order_file
 from qlib.rl.data.integration import init_qlib
 from qlib.rl.order_execution.simulator_qlib import SingleAssetOrderExecution
+from qlib.typehint import Literal
 
 
 def _get_multi_level_executor_config(
