@@ -244,7 +244,7 @@ def backtest(
     benchmark: str
         the benchmark for reporting.
     account : Union[float, int, Position]
-        information for describing how to creating the account
+        information for describing how to creat the account
         For `float` or `int`:
             Using Account with only initial cash
         For `Position`:
@@ -341,9 +341,9 @@ def format_decisions(
     last_dec_idx = 0
     for i, dec in enumerate(decisions[1:], 1):
         if dec.strategy.trade_calendar.get_freq() == cur_freq:
-            res[1].append((decisions[last_dec_idx], format_decisions(decisions[last_dec_idx + 1 : i])))
+            res[1].append((decisions[last_dec_idx], format_decisions(decisions[last_dec_idx+1:i])))
             last_dec_idx = i
-    res[1].append((decisions[last_dec_idx], format_decisions(decisions[last_dec_idx + 1 :])))
+    res[1].append((decisions[last_dec_idx], format_decisions(decisions[last_dec_idx + 1:])))
     return res
 
 
