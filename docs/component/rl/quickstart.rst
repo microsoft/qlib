@@ -4,7 +4,7 @@ Quick Start
 
 QlibRL provides an example of an implementation of a single asset order execution task and the following is an example of the config file to train with QlibRL.
 
-.. code-block:: text
+.. code-block:: yaml
 
     simulator:
         # Each step contains 30mins
@@ -86,7 +86,7 @@ QlibRL provides an example of an implementation of a single asset order executio
 
 And the config file for backtesting:
 
-.. code-block:: text
+.. code-block:: yaml
 
     order_file: ./data/backtest_orders.csv
     start_time: "9:45"
