@@ -3,20 +3,12 @@ Base Class & Interface
 
 ``Qlib`` provides a set of APIs for developers to further simplify their development such as base classes for Interpreter, Simulator and Reward.
 
-.. autoclass:: qlib.rl.simulator.Simulator
+.. automodule:: qlib.rl.interpreter
     :members:
 
-.. autoclass:: qlib.rl.interpreter.Interpreter
+.. automodule:: qlib.rl.reward
     :members:
-
-.. autoclass:: qlib.rl.interpreter.StateInterpreter
+    
+.. automodule:: qlib.rl.simulator
     :members:
-
-.. autoclass:: qlib.rl.interpreter.ActionInterpreter
-    :members:
-
-.. autoclass:: qlib.rl.reward.Reward
-    :members:
-
-
-
+    
