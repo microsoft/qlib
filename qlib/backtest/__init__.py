@@ -244,7 +244,7 @@ def backtest(
     benchmark: str
         the benchmark for reporting.
     account : Union[float, int, Position]
-        information for describing how to creating the account
+        information for describing how to create the account
         For `float` or `int`:
             Using Account with only initial cash
         For `Position`:
