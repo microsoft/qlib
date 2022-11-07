@@ -40,5 +40,5 @@ As stated by their names, training vessels and trainers are helper classes used 
 
 As you may have noticed, a training vessel itself holds all the required components to build an EnvWrapper rather than holding an instance of EnvWrapper directly. This allows the training vessel to create duplicates of EnvWrapper dynamically when necessary (for example, under parallel training).
 
-With a training vessel, the trainer could finally launch the training pipeline by simple, Scikit-learn-like interfaces (i.e., `trainer.fit()`).
+With a training vessel, the trainer could finally launch the training pipeline by simple, Scikit-learn-like interfaces (i.e., ``trainer.fit()``).
 
