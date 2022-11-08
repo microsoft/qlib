@@ -29,5 +29,5 @@ __all__ = [
     "SAOEState",
     "SAOEStrategy",
     "ProxySAOEStrategy",
-    "SAOEIntStrategy"
+    "SAOEIntStrategy",
 ]
