@@ -15,7 +15,7 @@ import pandas as pd
 import torch
 from joblib import Parallel, delayed
 
-from qlib.backtest import Indicator, collect_data_loop, get_strategy_executor
+from qlib.backtest import INDICATOR_METRIC, collect_data_loop, get_strategy_executor
 from qlib.backtest.decision import BaseTradeDecision, Order, OrderDir, TradeRangeByTime
 from qlib.backtest.executor import SimulatorExecutor
 from qlib.backtest.high_performance_ds import BaseOrderIndicator
@@ -86,7 +86,7 @@ def _convert_indicator_to_dataframe(indicator: dict) -> Optional[pd.DataFrame]:
 
 def _generate_report(
     decisions: List[BaseTradeDecision],
-    report_indicators: List[Dict[str, Tuple[pd.DataFrame, Indicator]]],
+    report_indicators: List[INDICATOR_METRIC],
 ) -> Dict[str, Tuple[pd.DataFrame, pd.DataFrame]]:
     """Generate backtest reports
 
@@ -304,7 +304,7 @@ def single_with_collect_data_loop(
     report_dict: dict = {}
     decisions = list(collect_data_loop(trade_start_time, trade_end_time, strategy, executor, report_dict))
 
-    indicator_dict = cast(Dict[str, Tuple[pd.DataFrame, Indicator]], report_dict.get("indicator_dict"))
+    indicator_dict = cast(INDICATOR_METRIC, report_dict.get("indicator_dict"))
     records = _convert_indicator_to_dataframe(indicator_dict["1day"][1].order_indicator_his)
     assert records is None or not np.isnan(records["ffr"]).any()
 

@@ -148,11 +148,7 @@ class PPO(PPOPolicy):
             action_space=action_space,
         )
         if weight_file is not None:
-            loaded_weight = torch.load(weight_file, map_location="cpu")
-            if "vessel" in loaded_weight:
-                loaded_weight = loaded_weight["vessel"]["policy"]
-
-            set_weight(self, loaded_weight)
+            set_weight(self, torch.load(weight_file, map_location="cpu")["vessel"]["policy"])
 
 
 # utilities: these should be put in a separate (common) file. #

@@ -19,29 +19,33 @@ from tqdm.auto import tqdm
 from ..utils.time import Freq
 
 
+PORT_METRIC = Dict[str, Tuple[pd.DataFrame, dict]]
+INDICATOR_METRIC = Dict[str, Tuple[pd.DataFrame, Indicator]]
+
+
 def backtest_loop(
     start_time: Union[pd.Timestamp, str],
     end_time: Union[pd.Timestamp, str],
     trade_strategy: BaseStrategy,
     trade_executor: BaseExecutor,
-) -> Tuple[Dict[str, Tuple[pd.DataFrame, dict]], Dict[str, Tuple[pd.DataFrame, Indicator]]]:
+) -> Tuple[PORT_METRIC, INDICATOR_METRIC]:
     """backtest function for the interaction of the outermost strategy and executor in the nested decision execution
 
     please refer to the docs of `collect_data_loop`
 
     Returns
     -------
-    portfolio_dict: Dict[str, Tuple[pd.DataFrame, dict]]
+    portfolio_dict: PORT_METRIC
         it records the trading portfolio_metrics information
-    indicator_dict: Dict[str, Tuple[pd.DataFrame, Indicator]]
+    indicator_dict: INDICATOR_METRIC
         it computes the trading indicator
     """
     return_value: dict = {}
     for _decision in collect_data_loop(start_time, end_time, trade_strategy, trade_executor, return_value):
         pass
 
-    portfolio_dict = cast(Dict[str, Tuple[pd.DataFrame, dict]], return_value.get("portfolio_dict"))
-    indicator_dict = cast(Dict[str, Tuple[pd.DataFrame, Indicator]], return_value.get("indicator_dict"))
+    portfolio_dict = cast(PORT_METRIC, return_value.get("portfolio_dict"))
+    indicator_dict = cast(INDICATOR_METRIC, return_value.get("indicator_dict"))
 
     return portfolio_dict, indicator_dict
 
@@ -91,8 +95,8 @@ def collect_data_loop(
     if return_value is not None:
         all_executors = trade_executor.get_all_executors()
 
-        portfolio_dict: Dict[str, Tuple[pd.DataFrame, dict]] = {}
-        indicator_dict: Dict[str, Tuple[pd.DataFrame, Indicator]] = {}
+        portfolio_dict: PORT_METRIC = {}
+        indicator_dict: INDICATOR_METRIC = {}
 
         for executor in all_executors:
             key = "{}{}".format(*Freq.parse(executor.time_per_step))
