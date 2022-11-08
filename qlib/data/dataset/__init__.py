@@ -321,7 +321,8 @@ class TSDataSampler:
         self.step_len = step_len
         self.fillna_type = fillna_type
         assert get_level_index(data, "datetime") == 0
-        self.data = lazy_sort_index(data)
+        self.data = data.swaplevel().sort_index().copy()
+        data.drop(data.columns, axis=1, inplace=True) # data is useless since it's passed to a transposed one, hard code to free the memory of this dataframe to avoid three big dataframe in the memory(including: data, self.data, self.data_arr)
 
         kwargs = {"object": self.data}
         if dtype is not None:
@@ -347,18 +348,27 @@ class TSDataSampler:
                 flt_data = flt_data.iloc[:, 0]
             # NOTE: bool(np.nan) is True !!!!!!!!
             # make sure reindex comes first. Otherwise extra NaN may appear.
+            flt_data = flt_data.swaplevel()
             flt_data = flt_data.reindex(self.data_index).fillna(False).astype(np.bool)
             self.flt_data = flt_data.values
             self.idx_map = self.flt_idx_map(self.flt_data, self.idx_map)
             self.data_index = self.data_index[np.where(self.flt_data)[0]]
         self.idx_map = self.idx_map2arr(self.idx_map)
+        self.idx_map, self.data_index = self.slice_idx_map_and_data_index(self.idx_map, self.idx_df, self.data_index, start, end)
 
-        self.start_idx, self.end_idx = self.data_index.slice_locs(
+        self.idx_arr = np.array(self.idx_df.values, dtype=np.float64)  # for better performance
+        del self.data  # save memory
+
+    @staticmethod
+    def slice_idx_map_and_data_index(idx_map, idx_df, data_index, start, end, ):
+        assert len(idx_map) == data_index.shape[0] # make sure idx_map and data_index is same so index of idx_map can be used on data_index
+
+        start_row_idx, end_row_idx = idx_df.index.slice_locs(
             start=time_to_slc_point(start), end=time_to_slc_point(end)
         )
-        self.idx_arr = np.array(self.idx_df.values, dtype=np.float64)  # for better performance
 
-        del self.data  # save memory
+        time_flter_idx = (idx_map[:,0] < end_row_idx) & (idx_map[:,0] >= start_row_idx)
+        return idx_map[time_flter_idx], data_index[time_flter_idx]
 
     @staticmethod
     def idx_map2arr(idx_map):
@@ -394,7 +404,7 @@ class TSDataSampler:
         Get the pandas index of the data, it will be useful in following scenarios
         - Special sampler will be used (e.g. user want to sample day by day)
         """
-        return self.data_index[self.start_idx : self.end_idx]
+        return self.data_index.swaplevel()
 
     def config(self, **kwargs):
         # Config the attributes
@@ -427,7 +437,7 @@ class TSDataSampler:
         idx_df = pd.Series(range(data.shape[0]), index=data.index, dtype=object)
         idx_df = lazy_sort_index(idx_df.unstack())
         # NOTE: the correctness of `__getitem__` depends on columns sorted here
-        idx_df = lazy_sort_index(idx_df, axis=1)
+        idx_df = lazy_sort_index(idx_df, axis=1).T
 
         idx_map = {}
         for i, (_, row) in enumerate(idx_df.iterrows()):
@@ -485,11 +495,11 @@ class TSDataSampler:
         """
         # The the right row number `i` and col number `j` in idx_df
         if isinstance(idx, (int, np.integer)):
-            real_idx = self.start_idx + idx
-            if self.start_idx <= real_idx < self.end_idx:
+            real_idx = idx
+            if 0 <= real_idx < len(self.idx_map):
                 i, j = self.idx_map[real_idx]  # TODO: The performance of this line is not good
             else:
-                raise KeyError(f"{real_idx} is out of [{self.start_idx}, {self.end_idx})")
+                raise KeyError(f"{real_idx} is out of [0, {len(self.idx_map)})")
         elif isinstance(idx, tuple):
             # <TSDataSampler object>["datetime", "instruments"]
             date, inst = idx
@@ -532,7 +542,10 @@ class TSDataSampler:
         # precision problems. It will not cause any problems in my tests at least
         indices = np.nan_to_num(indices.astype(np.float64), nan=self.nan_idx).astype(int)
 
-        data = self.data_arr[indices]
+        if indices.sum() == ((indices[-1] + indices[0]) * self.step_len // 2) and indices[-1] - indices[0] == self.step_len - 1:
+            data = self.data_arr[indices[0]:indices[-1] + 1]
+        else:
+            data = self.data_arr[indices]
         if isinstance(idx, mtit):
             # if we get multiple indexes, addition dimension should be added.
             # <sample_idx, step_idx, feature_idx>
@@ -540,7 +553,7 @@ class TSDataSampler:
         return data
 
     def __len__(self):
-        return self.end_idx - self.start_idx
+        return len(self.idx_map)
 
 
 class TSDatasetH(DatasetH):
@@ -615,4 +628,4 @@ class TSDatasetH(DatasetH):
         return tsds
 
 
-__all__ = ["Optional", "Dataset", "DatasetH"]
+__all__ = ["Optional"]
