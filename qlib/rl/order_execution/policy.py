@@ -14,6 +14,8 @@ from gym.spaces import Discrete
 from tianshou.data import Batch, ReplayBuffer, to_torch
 from tianshou.policy import BasePolicy, PPOPolicy
 
+from qlib.rl.trainer.trainer import Trainer
+
 __all__ = ["AllOne", "PPO"]
 
 
@@ -148,10 +150,7 @@ class PPO(PPOPolicy):
             action_space=action_space,
         )
         if weight_file is not None:
-            weight = torch.load(weight_file, map_location="cpu")
-            if "vessel" in weight:
-                weight = weight["vessel"]["policy"]
-            set_weight(self, weight)
+            set_weight(self, Trainer.get_policy_state_dict(weight_file))
 
 
 # utilities: these should be put in a separate (common) file. #

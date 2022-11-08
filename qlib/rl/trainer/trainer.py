@@ -152,6 +152,13 @@ class Trainer:
             "metrics": self.metrics,
         }
 
+    @staticmethod
+    def get_policy_state_dict(ckpt_path: Path) -> dict:
+        state_dict = torch.load(ckpt_path, map_location="cpu")
+        if "vessel" in state_dict:
+            state_dict = state_dict["vessel"]["policy"]
+        return state_dict
+
     def load_state_dict(self, state_dict: dict) -> None:
         """Load all states into current trainer."""
         self.vessel.load_state_dict(state_dict["vessel"])
