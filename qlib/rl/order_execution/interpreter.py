@@ -109,7 +109,7 @@ class FullHistoryStateInterpreter(StateInterpreter[SAOEState, FullHistoryObs]):
                     "data_processed_prev": np.array(processed.yesterday),
                     "acquiring": _to_int32(state.order.direction == state.order.BUY),
                     "cur_tick": _to_int32(min(int(np.sum(state.ticks_index < state.cur_time)), self.data_ticks - 1)),
-                    "cur_step": _to_int32(min(self.cur_step, self.max_step - 1)),
+                    "cur_step": _to_int32(min(state.cur_step, self.max_step - 1)),
                     "num_step": _to_int32(self.max_step),
                     "target": _to_float32(state.order.amount),
                     "position": _to_float32(state.position),
@@ -173,10 +173,10 @@ class CurrentStepStateInterpreter(StateInterpreter[SAOEState, CurrentStateObs]):
         return spaces.Dict(space)
 
     def interpret(self, state: SAOEState) -> CurrentStateObs:
-        assert self.cur_step <= self.max_step
+        assert state.cur_step <= self.max_step
         obs = CurrentStateObs(
             acquiring=state.order.direction == state.order.BUY,
-            cur_step=self.cur_step,
+            cur_step=state.cur_step,
             num_step=self.max_step,
             target=state.order.amount,
             position=state.position,
@@ -212,7 +212,7 @@ class CategoricalActionInterpreter(ActionInterpreter[SAOEState, int, float]):
 
     def interpret(self, state: SAOEState, action: int) -> float:
         assert 0 <= action < len(self.action_values)
-        if self.max_step is not None and self.cur_step >= self.max_step - 1:
+        if self.max_step is not None and state.cur_step >= self.max_step - 1:
             return state.position
         else:
             return min(state.position, state.order.amount * self.action_values[action])
@@ -233,7 +233,7 @@ class TwapRelativeActionInterpreter(ActionInterpreter[SAOEState, float, float]):
 
     def interpret(self, state: SAOEState, action: float) -> float:
         estimated_total_steps = math.ceil(len(state.ticks_for_order) / state.ticks_per_step)
-        twap_volume = state.position / (estimated_total_steps - self.cur_step)
+        twap_volume = state.position / (estimated_total_steps - state.cur_step)
         return min(state.position, twap_volume * action)
 
 

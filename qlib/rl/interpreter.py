@@ -31,15 +31,6 @@ class Interpreter:
     states by calling ``self.env.register_state()``, but it's not planned for first iteration.
     """
 
-    def __init__(self) -> None:
-        self.cur_step = 0
-
-    def reset(self) -> None:
-        self.cur_step = 0
-
-    def step(self) -> None:
-        self.cur_step += 1
-
 
 class StateInterpreter(Generic[StateType, ObsType], Interpreter):
     """State Interpreter that interpret execution result of qlib executor into rl env state"""

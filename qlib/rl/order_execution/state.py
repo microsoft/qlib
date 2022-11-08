@@ -74,6 +74,8 @@ class SAOEState(NamedTuple):
     """The order we are dealing with."""
     cur_time: pd.Timestamp
     """Current time, e.g., 9:30."""
+    cur_step: int
+    """Current step, e.g., 0."""
     position: float
     """Current remaining volume to execute."""
     history_exec: pd.DataFrame

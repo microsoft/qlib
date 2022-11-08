@@ -179,8 +179,6 @@ class EnvWrapper(
             )
 
             self.simulator.env = cast(EnvWrapper, weakref.proxy(self))
-            self.state_interpreter.reset()
-            self.action_interpreter.reset()
 
             sim_state = self.simulator.get_state()
             obs = self.state_interpreter(sim_state)
@@ -215,8 +213,6 @@ class EnvWrapper(
 
         # Use the converted action of update the simulator
         self.simulator.step(action)
-        self.state_interpreter.step()
-        self.action_interpreter.step()
 
         # Update "done" first, as this status might be used by reward_fn later
         done = self.simulator.done()

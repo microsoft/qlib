@@ -183,7 +183,6 @@ def test_interpreter() -> None:
     order = get_order()
     simulator = get_simulator(order)
     interpreter_action = CategoricalActionInterpreter(values=NUM_EXECUTION)
-    interpreter_action.reset()
 
     NUM_STEPS = 7
     state = simulator.get_state()

@@ -17,7 +17,7 @@ from qlib.backtest import CommonInfrastructure, Order
 from qlib.backtest.decision import BaseTradeDecision, TradeDecisionWithDetails, TradeDecisionWO, TradeRange
 from qlib.backtest.exchange import Exchange
 from qlib.backtest.executor import BaseExecutor
-from qlib.backtest.utils import LevelInfrastructure
+from qlib.backtest.utils import LevelInfrastructure, get_start_end_idx
 from qlib.constant import EPS, ONE_MIN, REG_CN
 from qlib.rl.data.native import IntradayBacktestData, load_backtest_data
 from qlib.rl.interpreter import ActionInterpreter, StateInterpreter
@@ -84,6 +84,7 @@ class SAOEStateAdapter:
     def __init__(
         self,
         order: Order,
+        trade_decision: BaseTradeDecision,
         executor: BaseExecutor,
         exchange: Exchange,
         ticks_per_step: int,
@@ -94,6 +95,7 @@ class SAOEStateAdapter:
         self.executor = executor
         self.exchange = exchange
         self.backtest_data = backtest_data
+        self.start_idx, _ = get_start_end_idx(self.executor.trade_calendar, trade_decision)
 
         self.twap_price = self.backtest_data.get_deal_price().mean()
 
@@ -273,6 +275,7 @@ class SAOEStateAdapter:
         return SAOEState(
             order=self.order,
             cur_time=self.cur_time,
+            cur_step=self.executor.trade_calendar.get_trade_step() - self.start_idx,
             position=self.position,
             history_exec=self.history_exec,
             history_steps=self.history_steps,
@@ -306,11 +309,17 @@ class SAOEStrategy(RLStrategy):
         self.adapter_dict: Dict[tuple, SAOEStateAdapter] = {}
         self._last_step_range = (0, 0)
 
-    def _create_qlib_backtest_adapter(self, order: Order, trade_range: TradeRange) -> SAOEStateAdapter:
+    def _create_qlib_backtest_adapter(
+        self,
+        order: Order,
+        trade_decision: BaseTradeDecision,
+        trade_range: TradeRange,
+    ) -> SAOEStateAdapter:
         backtest_data = load_backtest_data(order, self.trade_exchange, trade_range)
 
         return SAOEStateAdapter(
             order=order,
+            trade_decision=trade_decision,
             executor=self.executor,
             exchange=self.trade_exchange,
             ticks_per_step=int(pd.Timedelta(self.trade_calendar.get_freq()) / ONE_MIN),
@@ -330,7 +339,9 @@ class SAOEStrategy(RLStrategy):
             self.adapter_dict = {}
             for decision in outer_trade_decision.get_decision():
                 order = cast(Order, decision)
-                self.adapter_dict[order.key_by_day] = self._create_qlib_backtest_adapter(order, trade_range)
+                self.adapter_dict[order.key_by_day] = self._create_qlib_backtest_adapter(
+                    order, outer_trade_decision, trade_range
+                )
 
     def get_saoe_state_by_order(self, order: Order) -> SAOEState:
         return self.adapter_dict[order.key_by_day].saoe_state
@@ -480,9 +491,6 @@ class SAOEIntStrategy(SAOEStrategy):
     def reset(self, outer_trade_decision: BaseTradeDecision = None, **kwargs: Any) -> None:
         super().reset(outer_trade_decision=outer_trade_decision, **kwargs)
 
-        self._state_interpreter.reset()
-        self._action_interpreter.reset()
-
     def _generate_trade_details(self, act: np.ndarray, exec_vols: List[float]) -> pd.DataFrame:
         assert hasattr(self.outer_trade_decision, "order_list")
 
@@ -514,9 +522,6 @@ class SAOEIntStrategy(SAOEStrategy):
             policy_out = self._policy(Batch(obs_batch))
         act = policy_out.act.numpy() if torch.is_tensor(policy_out.act) else policy_out.act
         exec_vols = [self._action_interpreter.interpret(s, a) for s, a in zip(states, act)]
-
-        self._state_interpreter.step()
-        self._action_interpreter.step()
 
         oh = self.trade_exchange.get_order_helper()
         order_list = []
