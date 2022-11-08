@@ -259,13 +259,33 @@ Serializable
 
 RL
 ==============
-``Qlib`` provides a series of base classes for Interpreter, Simulator and Reward.
 
-.. autoclass:: qlib.rl.interpreter.Interpreter
+Base Component
+--------------
+.. automodule:: qlib.rl
     :members:
+    :imported-members:
 
-.. autoclass:: qlib.rl.simulator.Simulator
+Strategy
+--------
+.. automodule:: qlib.rl.strategy
     :members:
+    :imported-members:
 
-.. autoclass:: qlib.rl.reward.Reward
+Trainer
+-------
+.. automodule:: qlib.rl.trainer
     :members:
+    :imported-members:
+
+Order Execution
+---------------
+.. automodule:: qlib.rl.order_execution
+    :members:
+    :imported-members:
+
+Utils
+---------------
+.. automodule:: qlib.rl.utils
+    :members:
+    :imported-members:

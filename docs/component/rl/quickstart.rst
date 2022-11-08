@@ -160,13 +160,13 @@ With the above config files, you can start training the agent by the following c
 
 .. code-block:: console
 
-    $ python -m qlib/rl/contrib/train_onpolicy.py --config_path train_config.yml
+    $ python -m qlib.rl.contrib.train_onpolicy.py --config_path train_config.yml
 
 After the training, you can backtest with the following command:
 
 .. code-block:: console
 
-    $ python -m qlib/rl/contrib/backtest.py --config_path backtest_config.yml
+    $ python -m qlib.rl.contrib.backtest.py --config_path backtest_config.yml
 
 In that case, :class:`~qlib.rl.order_execution.simulator_qlib.SingleAssetOrderExecution` and :class:`~qlib.rl.order_execution.simulator_simple.SingleAssetOrderExecutionSimple` as examples for simulator, :class:`qlib.rl.order_execution.interpreter.FullHistoryStateInterpreter` and :class:`qlib.rl.order_execution.interpreter.CategoricalActionInterpreter` as examples for interpreter, :class:`qlib.rl.order_execution.policy.PPO` as an example for policy, and :class:`qlib.rl.order_execution.reward.PAPenaltyReward` as an example for reward.
 For the single asset order execution task, if developers have already defined their simulator/interpreters/reward function/policy, they could launch the training and backtest pipeline by simply modifying the corresponding settings in the config files.

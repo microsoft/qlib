@@ -8,5 +8,3 @@ Reinforcement Learning in Quantitative Trading
     Overall <overall>
     Quick Start <quickstart>
     Framework <framework>
-    API <api>
-
