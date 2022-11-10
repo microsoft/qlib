@@ -41,7 +41,7 @@ data
 Run:
 
 ```
-python ../../qlib/rl/contrib/train_onpolicy.py --config_path ./experiment_config/training/config.yml
+python -m qlib.rl.contrib.train_onpolicy.py --config_path ./experiment_config/training/config.yml
 ```
 
 After training, checkpoints will be stored under `checkpoints/`.
@@ -49,7 +49,7 @@ After training, checkpoints will be stored under `checkpoints/`.
 ## Run backtest
 
 ```
-python ../../qlib/rl/contrib/backtest.py --config_path ./experiment_config/backtest/config.py
+python -m qlib.rl.contrib.backtest.py --config_path ./experiment_config/backtest/config.yml
 ```
 
 The backtest workflow will use the trained model in `checkpoints/`. The backtest summary can be found in `outputs/`.
