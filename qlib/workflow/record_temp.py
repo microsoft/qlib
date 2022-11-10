@@ -473,7 +473,8 @@ class PortAnaRecord(ACRecordTemp):
             self.save(**{f"positions_normal_{_freq}.pkl": positions_normal})
 
         for _freq, indicators_normal in indicator_dict.items():
-            self.save(**{f"indicators_normal_{_freq}.pkl": indicators_normal})
+            self.save(**{f"indicators_normal_{_freq}.pkl": indicators_normal[0]})
+            self.save(**{f"indicators_normal_{_freq}_obj.pkl": indicators_normal[1]})
 
         for _analysis_freq in self.risk_analysis_freq:
             if _analysis_freq not in portfolio_metric_dict:
@@ -511,7 +512,7 @@ class PortAnaRecord(ACRecordTemp):
             if _analysis_freq not in indicator_dict:
                 warnings.warn(f"the freq {_analysis_freq} indicator is not found")
             else:
-                indicators_normal = indicator_dict.get(_analysis_freq)
+                indicators_normal = indicator_dict.get(_analysis_freq)[0]
                 if self.indicator_analysis_method is None:
                     analysis_df = indicator_analysis(indicators_normal)
                 else:

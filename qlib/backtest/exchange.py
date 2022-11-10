@@ -26,6 +26,15 @@ from .high_performance_ds import BaseQuote, NumpyQuote
 
 
 class Exchange:
+    # `quote_df` is a pd.DataFrame class that contains basic information for backtesting
+    # After some processing, the data will later be maintained by `quote_cls` object for faster data retriving.
+    # Some conventions for `quote_df`
+    # - $close is for calculating the total value at end of each day.
+    #   - if $close is None, the stock on that day is reguarded as suspended.
+    # - $factor is for rounding to the trading unit;
+    #   - if any $factor is missing when $close exists, trading unit rounding will be disabled
+    quote_df: pd.DataFrame
+
     def __init__(
         self,
         freq: str = "day",
@@ -159,6 +168,7 @@ class Exchange:
         self.codes = codes
         # Necessary fields
         # $close is for calculating the total value at end of each day.
+        # - if $close is None, the stock on that day is reguarded as suspended.
         # $factor is for rounding to the trading unit
         # $change is for calculating the limit of the stock
 
@@ -199,7 +209,7 @@ class Exchange:
             self.end_time,
             freq=self.freq,
             disk_cache=True,
-        ).dropna(subset=["$close"])
+        )
         self.quote_df.columns = self.all_fields
 
         # check buy_price data and sell_price data
@@ -209,7 +219,7 @@ class Exchange:
                 self.logger.warning("{} field data contains nan.".format(pstr))
 
         # update trade_w_adj_price
-        if self.quote_df["$factor"].isna().any():
+        if (self.quote_df["$factor"].isna() & ~self.quote_df["$close"].isna()).any():
             # The 'factor.day.bin' file not exists, and `factor` field contains `nan`
             # Use adjusted price
             self.trade_w_adj_price = True
@@ -245,9 +255,9 @@ class Exchange:
             assert set(self.extra_quote.columns) == set(self.quote_df.columns) - {"$change"}
             self.quote_df = pd.concat([self.quote_df, self.extra_quote], sort=False, axis=0)
 
-    LT_TP_EXP = "(exp)"  # Tuple[str, str]
-    LT_FLT = "float"  # float
-    LT_NONE = "none"  # none
+    LT_TP_EXP = "(exp)"  # Tuple[str, str]:  the limitation is calculated by a Qlib expression.
+    LT_FLT = "float"  # float:  the trading limitation is based on `abs($change) < limit_threshold`
+    LT_NONE = "none"  # none:  there is no trading limitation
 
     def _get_limit_type(self, limit_threshold: Union[tuple, float, None]) -> str:
         """get limit type"""
@@ -261,20 +271,25 @@ class Exchange:
             raise NotImplementedError(f"This type of `limit_threshold` is not supported")
 
     def _update_limit(self, limit_threshold: Union[Tuple, float, None]) -> None:
+        # $close is may contains NaN, the nan indicates that the stock is not tradable at that timestamp
+        suspended = self.quote_df["$close"].isna()
         # check limit_threshold
         limit_type = self._get_limit_type(limit_threshold)
         if limit_type == self.LT_NONE:
-            self.quote_df["limit_buy"] = False
-            self.quote_df["limit_sell"] = False
+            self.quote_df["limit_buy"] = suspended
+            self.quote_df["limit_sell"] = suspended
         elif limit_type == self.LT_TP_EXP:
             # set limit
             limit_threshold = cast(tuple, limit_threshold)
-            self.quote_df["limit_buy"] = self.quote_df[limit_threshold[0]]
-            self.quote_df["limit_sell"] = self.quote_df[limit_threshold[1]]
+            # astype bool is necessary, because quote_df is an expression and could be float
+            self.quote_df["limit_buy"] = self.quote_df[limit_threshold[0]].astype("bool") | suspended
+            self.quote_df["limit_sell"] = self.quote_df[limit_threshold[1]].astype("bool") | suspended
         elif limit_type == self.LT_FLT:
             limit_threshold = cast(float, limit_threshold)
-            self.quote_df["limit_buy"] = self.quote_df["$change"].ge(limit_threshold)
-            self.quote_df["limit_sell"] = self.quote_df["$change"].le(-limit_threshold)  # pylint: disable=E1130
+            self.quote_df["limit_buy"] = self.quote_df["$change"].ge(limit_threshold) | suspended
+            self.quote_df["limit_sell"] = (
+                self.quote_df["$change"].le(-limit_threshold) | suspended
+            )  # pylint: disable=E1130
 
     @staticmethod
     def _get_vol_limit(volume_threshold: Union[tuple, dict, None]) -> Tuple[Optional[list], Optional[list], set]:
@@ -338,8 +353,18 @@ class Exchange:
             - if direction is None, check if tradable for buying and selling.
             - if direction == Order.BUY, check the if tradable for buying
             - if direction == Order.SELL, check the sell limit for selling.
+
+        Returns
+        -------
+        True: the trading of the stock is limted (maybe hit the highest/lowest price), hence the stock is not tradable
+        False: the trading of the stock is not limited, hence the stock may be tradable
         """
+        # NOTE:
+        # **all** is used when checking limitation.
+        # For example, the stock trading is limited in a day if every miniute is limited in a day if every miniute is limited.
         if direction is None:
+            # The trading limitation is related to the trading direction
+            # if the direction is not provided, then any limitation from buy or sell will result in trading limitation
             buy_limit = self.quote.get_data(stock_id, start_time, end_time, field="limit_buy", method="all")
             sell_limit = self.quote.get_data(stock_id, start_time, end_time, field="limit_sell", method="all")
             return bool(buy_limit or sell_limit)
@@ -356,10 +381,24 @@ class Exchange:
         start_time: pd.Timestamp,
         end_time: pd.Timestamp,
     ) -> bool:
+        """if stock is suspended(hence not tradable), True will be returned"""
         # is suspended
         if stock_id in self.quote.get_all_stock():
-            return self.quote.get_data(stock_id, start_time, end_time, "$close") is None
+            # suspended stocks are represented by None $close stock
+            # The $close may contains NaN,
+            close = self.quote.get_data(stock_id, start_time, end_time, "$close")
+            if close is None:
+                # if no close record exists
+                return True
+            elif isinstance(close, IndexData):
+                # **any** non-NaN $close represents trading opportunity may exists
+                #  if all returned is nan, then the stock is suspended
+                return cast(bool, cast(IndexData, close).isna().all())
+            else:
+                # it is single value, make sure is is not None
+                return np.isnan(close)
         else:
+            # if the stock is not in the stock list, then it is not tradable and regarded as suspended
             return True
 
     def is_stock_tradable(

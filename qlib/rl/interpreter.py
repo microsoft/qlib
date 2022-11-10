@@ -3,18 +3,14 @@
 
 from __future__ import annotations
 
-from typing import Any, Generic, Optional, TYPE_CHECKING, TypeVar
+from typing import Any, Generic, TypeVar
 
+import gym
 import numpy as np
+from gym import spaces
 
 from qlib.typehint import final
 from .simulator import ActType, StateType
-
-if TYPE_CHECKING:
-    from .utils.env_wrapper import BaseEnvWrapper
-
-import gym
-from gym import spaces
 
 ObsType = TypeVar("ObsType")
 PolicyActType = TypeVar("PolicyActType")
@@ -38,8 +34,6 @@ class Interpreter:
 
 class StateInterpreter(Generic[StateType, ObsType], Interpreter):
     """State Interpreter that interpret execution result of qlib executor into rl env state"""
-
-    env: Optional[BaseEnvWrapper] = None
 
     @property
     def observation_space(self) -> gym.Space:
@@ -72,8 +66,6 @@ class StateInterpreter(Generic[StateType, ObsType], Interpreter):
 
 class ActionInterpreter(Generic[StateType, PolicyActType, ActType], Interpreter):
     """Action Interpreter that interpret rl agent action into qlib orders"""
-
-    env: Optional[BaseEnvWrapper] = None
 
     @property
     def action_space(self) -> gym.Space:

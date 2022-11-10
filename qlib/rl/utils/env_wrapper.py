@@ -48,24 +48,9 @@ class EnvWrapperStatus(TypedDict):
     reward_history: list
 
 
-class BaseEnvWrapper(
+class EnvWrapper(
     gym.Env[ObsType, PolicyActType],
     Generic[InitialStateType, StateType, ActType, ObsType, PolicyActType],
-):
-    """Base env wrapper for RL environments. It has two implementations:
-    - EnvWrapper: Qlib-based RL environment used in training.
-    - CollectDataEnvWrapper: Dummy environment used in collect_data_loop.
-    """
-
-    def __init__(self) -> None:
-        self.status: EnvWrapperStatus = cast(EnvWrapperStatus, None)
-
-    def render(self, mode: str = "human") -> None:
-        raise NotImplementedError("Render is not implemented in BaseEnvWrapper.")
-
-
-class EnvWrapper(
-    BaseEnvWrapper[InitialStateType, StateType, ActType, ObsType, PolicyActType],
 ):
     """Qlib-based RL environment, subclassing ``gym.Env``.
     A wrapper of components, including simulator, state-interpreter, action-interpreter, reward.
@@ -129,8 +114,6 @@ class EnvWrapper(
         # 3. Avoid circular reference.
         # 4. When the components get serialized, we can throw away the env without any burden.
         #    (though this part is not implemented yet)
-        super().__init__()
-
         for obj in [state_interpreter, action_interpreter, reward_fn, aux_info_collector]:
             if obj is not None:
                 obj.env = weakref.proxy(self)  # type: ignore
@@ -263,19 +246,5 @@ class EnvWrapper(
         info_dict = InfoDict(log=self.logger.logs(), aux_info=aux_info)
         return obs, rew, done, info_dict
 
-
-class CollectDataEnvWrapper(BaseEnvWrapper[InitialStateType, StateType, ActType, ObsType, PolicyActType]):
-    """Dummy EnvWrapper for collect_data_loop. It only has minimum interfaces to support the collect_data_loop."""
-
-    def reset(self, **kwargs: Any) -> None:
-        self.status = EnvWrapperStatus(
-            cur_step=0,
-            done=False,
-            initial_state=None,
-            obs_history=[],
-            action_history=[],
-            reward_history=[],
-        )
-
-    def step(self, policy_action: Any = None, **kwargs: Any) -> None:
-        self.status["cur_step"] += 1
+    def render(self, mode: str = "human") -> None:
+        raise NotImplementedError("Render is not implemented in EnvWrapper.")

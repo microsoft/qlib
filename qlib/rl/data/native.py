@@ -13,7 +13,6 @@ from qlib.rl.order_execution.utils import get_ticks_slice
 
 from .base import BaseIntradayBacktestData, BaseIntradayProcessedData, ProcessedDataProvider
 from .integration import fetch_features
-from ...data import D
 
 
 class IntradayBacktestData(BaseIntradayBacktestData):
@@ -81,17 +80,7 @@ def load_backtest_data(
     trade_exchange: Exchange,
     trade_range: TradeRange,
 ) -> IntradayBacktestData:
-    # TODO: making exchange return data without missing will make it more elegant. Fix this in the future.
-    tmp_data = D.features(
-        trade_exchange.codes,
-        trade_exchange.all_fields,
-        trade_exchange.start_time,
-        trade_exchange.end_time,
-        freq=trade_exchange.freq,
-        disk_cache=True,
-    )
-
-    ticks_index = pd.DatetimeIndex(tmp_data.reset_index()["datetime"])
+    ticks_index = pd.DatetimeIndex(trade_exchange.quote_df.reset_index()["datetime"])
     ticks_index = ticks_index[order.start_time <= ticks_index]
     ticks_index = ticks_index[ticks_index <= order.end_time]
 

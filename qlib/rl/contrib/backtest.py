@@ -8,23 +8,22 @@ import os
 import pickle
 from collections import defaultdict
 from pathlib import Path
-from typing import List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union, cast
 
 import numpy as np
 import pandas as pd
 import torch
 from joblib import Parallel, delayed
 
-from qlib.typehint import Literal
-from qlib.backtest import collect_data_loop, get_strategy_executor
+from qlib.backtest import INDICATOR_METRIC, collect_data_loop, get_strategy_executor
 from qlib.backtest.decision import BaseTradeDecision, Order, OrderDir, TradeRangeByTime
-from qlib.backtest.executor import BaseExecutor, NestedExecutor, SimulatorExecutor
+from qlib.backtest.executor import SimulatorExecutor
 from qlib.backtest.high_performance_ds import BaseOrderIndicator
 from qlib.rl.contrib.naive_config_parser import get_backtest_config_fromfile
 from qlib.rl.contrib.utils import read_order_file
 from qlib.rl.data.integration import init_qlib
 from qlib.rl.order_execution.simulator_qlib import SingleAssetOrderExecution
-from qlib.rl.utils.env_wrapper import CollectDataEnvWrapper
+from qlib.typehint import Literal
 
 
 def _get_multi_level_executor_config(
@@ -61,15 +60,6 @@ def _get_multi_level_executor_config(
     return executor_config
 
 
-def _set_env_for_all_strategy(executor: BaseExecutor) -> None:
-    if isinstance(executor, NestedExecutor):
-        if hasattr(executor.inner_strategy, "set_env"):
-            env = CollectDataEnvWrapper()
-            env.reset()
-            executor.inner_strategy.set_env(env)
-        _set_env_for_all_strategy(executor.inner_executor)
-
-
 def _convert_indicator_to_dataframe(indicator: dict) -> Optional[pd.DataFrame]:
     record_list = []
     for time, value_dict in indicator.items():
@@ -94,9 +84,10 @@ def _convert_indicator_to_dataframe(indicator: dict) -> Optional[pd.DataFrame]:
     return records
 
 
-# TODO: there should be richer annotation for the input (e.g. report) and the returned report
-# TODO: For example, @ dataclass with typed fields and detailed docstrings.
-def _generate_report(decisions: List[BaseTradeDecision], report_indicators: List[dict]) -> dict:
+def _generate_report(
+    decisions: List[BaseTradeDecision],
+    report_indicators: List[INDICATOR_METRIC],
+) -> Dict[str, Tuple[pd.DataFrame, pd.DataFrame]]:
     """Generate backtest reports
 
     Parameters
@@ -109,28 +100,25 @@ def _generate_report(decisions: List[BaseTradeDecision], report_indicators: List
     -------
 
     """
-    indicator_dict = defaultdict(list)
-    indicator_his = defaultdict(list)
+    indicator_dict: Dict[str, List[pd.DataFrame]] = defaultdict(list)
+    indicator_his: Dict[str, List[dict]] = defaultdict(list)
+
     for report_indicator in report_indicators:
-        for key, value in report_indicator.items():
-            if key.endswith("_obj"):
-                indicator_his[key].append(value.order_indicator_his)
-            else:
-                indicator_dict[key].append(value)
+        for key, (indicator_df, indicator_obj) in report_indicator.items():
+            indicator_dict[key].append(indicator_df)
+            indicator_his[key].append(indicator_obj.order_indicator_his)
 
     report = {}
     decision_details = pd.concat([getattr(d, "details") for d in decisions if hasattr(d, "details")])
-    for key in ["1min", "5min", "30min", "1day"]:
-        if key not in indicator_dict:
-            continue
-
-        report[key] = pd.concat(indicator_dict[key])
-        report[key + "_obj"] = pd.concat([_convert_indicator_to_dataframe(his) for his in indicator_his[key + "_obj"]])
-
+    for key in indicator_dict:
+        cur_dict = pd.concat(indicator_dict[key])
+        cur_his = pd.concat([_convert_indicator_to_dataframe(his) for his in indicator_his[key]])
         cur_details = decision_details[decision_details.freq == key].set_index(["instrument", "datetime"])
         if len(cur_details) > 0:
             cur_details.pop("freq")
-            report[key + "_obj"] = report[key + "_obj"].join(cur_details, how="outer")
+            cur_his = cur_his.join(cur_details, how="outer")
+
+        report[key] = (cur_dict, cur_his)
 
     return report
 
@@ -209,25 +197,25 @@ def single_with_simulator(
             exchange_config=exchange_config,
             qlib_config=None,
             cash_limit=None,
-            backtest_mode=True,
         )
 
         reports.append(simulator.report_dict)
         decisions += simulator.decisions
 
-    indicator = {k: v for report in reports for k, v in report["indicator"]["1day_obj"].order_indicator_his.items()}
-    records = _convert_indicator_to_dataframe(indicator)
+    indicator_1day_objs = [report["indicator"]["1day"][1] for report in reports]
+    indicator_info = {k: v for obj in indicator_1day_objs for k, v in obj.order_indicator_his.items()}
+    records = _convert_indicator_to_dataframe(indicator_info)
     assert records is None or not np.isnan(records["ffr"]).any()
 
     if generate_report:
-        report = _generate_report(decisions, [report["indicator"] for report in reports])
+        _report = _generate_report(decisions, [report["indicator"] for report in reports])
 
         if split == "stock":
             stock_id = orders.iloc[0].instrument
-            report = {stock_id: report}
+            report = {stock_id: _report}
         else:
             day = orders.iloc[0].datetime
-            report = {day: report}
+            report = {day: _report}
 
         return records, report
     else:
@@ -312,22 +300,22 @@ def single_with_collect_data_loop(
         exchange_kwargs=exchange_config,
         pos_type="Position" if cash_limit is not None else "InfPosition",
     )
-    _set_env_for_all_strategy(executor=executor)
 
     report_dict: dict = {}
     decisions = list(collect_data_loop(trade_start_time, trade_end_time, strategy, executor, report_dict))
 
-    records = _convert_indicator_to_dataframe(report_dict["indicator"]["1day_obj"].order_indicator_his)
+    indicator_dict = cast(INDICATOR_METRIC, report_dict.get("indicator_dict"))
+    records = _convert_indicator_to_dataframe(indicator_dict["1day"][1].order_indicator_his)
     assert records is None or not np.isnan(records["ffr"]).any()
 
     if generate_report:
-        report = _generate_report(decisions, [report_dict["indicator"]])
+        _report = _generate_report(decisions, [indicator_dict])
         if split == "stock":
             stock_id = orders.iloc[0].instrument
-            report = {stock_id: report}
+            report = {stock_id: _report}
         else:
             day = orders.iloc[0].datetime
-            report = {day: report}
+            report = {day: _report}
         return records, report
     else:
         return records
@@ -337,7 +325,7 @@ def backtest(backtest_config: dict, with_simulator: bool = False) -> pd.DataFram
     order_df = read_order_file(backtest_config["order_file"])
 
     cash_limit = backtest_config["exchange"].pop("cash_limit")
-    generate_report = backtest_config["exchange"].pop("generate_report")
+    generate_report = backtest_config.pop("generate_report")
 
     stock_pool = order_df["instrument"].unique().tolist()
     stock_pool.sort()
@@ -382,9 +370,19 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--config_path", type=str, required=True, help="Path to the config file")
     parser.add_argument("--use_simulator", action="store_true", help="Whether to use simulator as the backend")
+    parser.add_argument(
+        "--n_jobs",
+        type=int,
+        required=False,
+        help="The number of jobs for running backtest parallely(1 for single process)",
+    )
     args = parser.parse_args()
 
+    config = get_backtest_config_fromfile(args.config_path)
+    if args.n_jobs is not None:
+        config["concurrency"] = args.n_jobs
+
     backtest(
-        backtest_config=get_backtest_config_fromfile(args.config_path),
+        backtest_config=config,
         with_simulator=args.use_simulator,
     )

@@ -9,12 +9,11 @@ import pandas as pd
 
 from qlib.backtest import collect_data_loop, get_strategy_executor
 from qlib.backtest.decision import BaseTradeDecision, Order, TradeRangeByTime
-from qlib.backtest.executor import BaseExecutor, NestedExecutor
+from qlib.backtest.executor import NestedExecutor
 from qlib.rl.data.integration import init_qlib
 from qlib.rl.simulator import Simulator
-from .state import SAOEState, SAOEStateAdapter
-from .strategy import SAOEStrategy
-from ..utils.env_wrapper import CollectDataEnvWrapper
+from .state import SAOEState
+from .strategy import SAOEStateAdapter, SAOEStrategy
 
 
 class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
@@ -32,8 +31,6 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
         Configuration used to initialize Qlib. If it is None, Qlib will not be initialized.
     cash_limit:
         Cash limit.
-    backtest_mode
-        Whether the simulator is under backtest mode.
     """
 
     def __init__(
@@ -43,7 +40,6 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
         exchange_config: dict,
         qlib_config: dict = None,
         cash_limit: Optional[float] = None,
-        backtest_mode: bool = False,
     ) -> None:
         super().__init__(initial=order)
 
@@ -59,7 +55,7 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
         }
 
         self._collect_data_loop: Optional[Generator] = None
-        self.reset(order, strategy_config, executor_config, exchange_config, qlib_config, cash_limit, backtest_mode)
+        self.reset(order, strategy_config, executor_config, exchange_config, qlib_config, cash_limit)
 
     def reset(
         self,
@@ -69,7 +65,6 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
         exchange_config: dict,
         qlib_config: dict = None,
         cash_limit: Optional[float] = None,
-        backtest_mode: bool = False,
     ) -> None:
         if qlib_config is not None:
             init_qlib(qlib_config, part="skip")
@@ -98,16 +93,6 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
         )
         assert isinstance(self._collect_data_loop, Generator)
 
-        # TODO: backtest_mode is not a necessary parameter if we carefully design it.
-        # TODO: It should disappear with CollectDataEnvWrapper in the future.
-        if backtest_mode:
-            executor: BaseExecutor = self._executor
-            while isinstance(executor, NestedExecutor):
-                if hasattr(executor.inner_strategy, "set_env"):
-                    executor.inner_strategy.set_env(CollectDataEnvWrapper())
-                executor = executor.inner_executor
-
-        # Call `step()` with None action to initialize the internal generator.
         self.step(action=None)
 
         self._order = order

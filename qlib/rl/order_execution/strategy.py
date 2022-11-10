@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import collections
 from types import GeneratorType
-from typing import Any, cast, Dict, Generator, List, Optional, Union
+from typing import Any, Callable, cast, Dict, Generator, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -15,14 +15,276 @@ from tianshou.policy import BasePolicy
 
 from qlib.backtest import CommonInfrastructure, Order
 from qlib.backtest.decision import BaseTradeDecision, TradeDecisionWithDetails, TradeDecisionWO, TradeRange
-from qlib.backtest.utils import LevelInfrastructure
-from qlib.constant import ONE_MIN
-from qlib.rl.data.native import load_backtest_data
+from qlib.backtest.exchange import Exchange
+from qlib.backtest.executor import BaseExecutor
+from qlib.backtest.utils import LevelInfrastructure, get_start_end_idx
+from qlib.constant import EPS, ONE_MIN, REG_CN
+from qlib.rl.data.native import IntradayBacktestData, load_backtest_data
 from qlib.rl.interpreter import ActionInterpreter, StateInterpreter
-from qlib.rl.order_execution.state import SAOEState, SAOEStateAdapter
-from qlib.rl.utils.env_wrapper import BaseEnvWrapper
+from qlib.rl.order_execution.state import SAOEMetrics, SAOEState
+from qlib.rl.order_execution.utils import dataframe_append, price_advantage
 from qlib.strategy.base import RLStrategy
 from qlib.utils import init_instance_by_config
+from qlib.utils.index_data import IndexData
+from qlib.utils.time import get_day_min_idx_range
+
+
+def _get_all_timestamps(
+    start: pd.Timestamp,
+    end: pd.Timestamp,
+    granularity: pd.Timedelta = ONE_MIN,
+    include_end: bool = True,
+) -> pd.DatetimeIndex:
+    ret = []
+    while start <= end:
+        ret.append(start)
+        start += granularity
+
+    if ret[-1] > end:
+        ret.pop()
+    if ret[-1] == end and not include_end:
+        ret.pop()
+    return pd.DatetimeIndex(ret)
+
+
+def fill_missing_data(
+    original_data: np.ndarray,
+    fill_method: Callable = np.nanmedian,
+) -> np.ndarray:
+    """Fill missing data.
+
+    Parameters
+    ----------
+    original_data
+        Original data without missing values.
+    fill_method
+        Method used to fill the missing data.
+
+    Returns
+    -------
+        The filled data.
+    """
+    return np.nan_to_num(original_data, nan=fill_method(original_data))
+
+
+class SAOEStateAdapter:
+    """
+    Maintain states of the environment. SAOEStateAdapter accepts execution results and update its internal state
+    according to the execution results with additional information acquired from executors & exchange. For example,
+    it gets the dealt order amount from execution results, and get the corresponding market price / volume from
+    exchange.
+
+    Example usage::
+
+        adapter = SAOEStateAdapter(...)
+        adapter.update(...)
+        state = adapter.saoe_state
+    """
+
+    def __init__(
+        self,
+        order: Order,
+        trade_decision: BaseTradeDecision,
+        executor: BaseExecutor,
+        exchange: Exchange,
+        ticks_per_step: int,
+        backtest_data: IntradayBacktestData,
+    ) -> None:
+        self.position = order.amount
+        self.order = order
+        self.executor = executor
+        self.exchange = exchange
+        self.backtest_data = backtest_data
+        self.start_idx, _ = get_start_end_idx(self.executor.trade_calendar, trade_decision)
+
+        self.twap_price = self.backtest_data.get_deal_price().mean()
+
+        metric_keys = list(SAOEMetrics.__annotations__.keys())  # pylint: disable=no-member
+        self.history_exec = pd.DataFrame(columns=metric_keys).set_index("datetime")
+        self.history_steps = pd.DataFrame(columns=metric_keys).set_index("datetime")
+        self.metrics: Optional[SAOEMetrics] = None
+
+        self.cur_time = max(backtest_data.ticks_for_order[0], order.start_time)
+        self.ticks_per_step = ticks_per_step
+
+    def _next_time(self) -> pd.Timestamp:
+        current_loc = self.backtest_data.ticks_index.get_loc(self.cur_time)
+        next_loc = current_loc + self.ticks_per_step
+        next_loc = next_loc - next_loc % self.ticks_per_step
+        if (
+            next_loc < len(self.backtest_data.ticks_index)
+            and self.backtest_data.ticks_index[next_loc] < self.order.end_time
+        ):
+            return self.backtest_data.ticks_index[next_loc]
+        else:
+            return self.order.end_time
+
+    def update(
+        self,
+        execute_result: list,
+        last_step_range: Tuple[int, int],
+    ) -> None:
+        last_step_size = last_step_range[1] - last_step_range[0] + 1
+        start_time = self.backtest_data.ticks_index[last_step_range[0]]
+        end_time = self.backtest_data.ticks_index[last_step_range[1]]
+
+        exec_vol = np.zeros(last_step_size)
+        for order, _, __, ___ in execute_result:
+            idx, _ = get_day_min_idx_range(order.start_time, order.end_time, "1min", REG_CN)
+            exec_vol[idx - last_step_range[0]] = order.deal_amount
+
+        if exec_vol.sum() > self.position and exec_vol.sum() > 0.0:
+            assert exec_vol.sum() < self.position + 1, f"{exec_vol} too large"
+            exec_vol *= self.position / (exec_vol.sum())
+
+        market_volume = cast(
+            IndexData,
+            self.exchange.get_volume(
+                self.order.stock_id,
+                pd.Timestamp(start_time),
+                pd.Timestamp(end_time),
+                method=None,
+            ),
+        )
+        market_price = cast(
+            IndexData,
+            self.exchange.get_deal_price(
+                self.order.stock_id,
+                pd.Timestamp(start_time),
+                pd.Timestamp(end_time),
+                method=None,
+                direction=self.order.direction,
+            ),
+        )
+        market_price = fill_missing_data(np.array(market_price, dtype=float).reshape(-1))
+        market_volume = fill_missing_data(np.array(market_volume, dtype=float).reshape(-1))
+
+        assert market_price.shape == market_volume.shape == exec_vol.shape
+
+        # Get data from the current level executor's indicator
+        current_trade_account = self.executor.trade_account
+        current_df = current_trade_account.get_trade_indicator().generate_trade_indicators_dataframe()
+        self.history_exec = dataframe_append(
+            self.history_exec,
+            self._collect_multi_order_metric(
+                order=self.order,
+                datetime=_get_all_timestamps(start_time, end_time, include_end=True),
+                market_vol=market_volume,
+                market_price=market_price,
+                exec_vol=exec_vol,
+                pa=current_df.iloc[-1]["pa"],
+            ),
+        )
+
+        self.history_steps = dataframe_append(
+            self.history_steps,
+            [
+                self._collect_single_order_metric(
+                    self.order,
+                    self.cur_time,
+                    market_volume,
+                    market_price,
+                    exec_vol.sum(),
+                    exec_vol,
+                ),
+            ],
+        )
+
+        # Do this at the end
+        self.position -= exec_vol.sum()
+
+        self.cur_time = self._next_time()
+
+    def generate_metrics_after_done(self) -> None:
+        """Generate metrics once the upper level execution is done"""
+
+        self.metrics = self._collect_single_order_metric(
+            self.order,
+            self.backtest_data.ticks_index[0],  # start time
+            self.history_exec["market_volume"],
+            self.history_exec["market_price"],
+            self.history_steps["amount"].sum(),
+            self.history_exec["deal_amount"],
+        )
+
+    def _collect_multi_order_metric(
+        self,
+        order: Order,
+        datetime: pd.DatetimeIndex,
+        market_vol: np.ndarray,
+        market_price: np.ndarray,
+        exec_vol: np.ndarray,
+        pa: float,
+    ) -> SAOEMetrics:
+        return SAOEMetrics(
+            # It should have the same keys with SAOEMetrics,
+            # but the values do not necessarily have the annotated type.
+            # Some values could be vectorized (e.g., exec_vol).
+            stock_id=order.stock_id,
+            datetime=datetime,
+            direction=order.direction,
+            market_volume=market_vol,
+            market_price=market_price,
+            amount=exec_vol,
+            inner_amount=exec_vol,
+            deal_amount=exec_vol,
+            trade_price=market_price,
+            trade_value=market_price * exec_vol,
+            position=self.position - np.cumsum(exec_vol),
+            ffr=exec_vol / order.amount,
+            pa=pa,
+        )
+
+    def _collect_single_order_metric(
+        self,
+        order: Order,
+        datetime: pd.Timestamp,
+        market_vol: np.ndarray,
+        market_price: np.ndarray,
+        amount: float,  # intended to trade such amount
+        exec_vol: np.ndarray,
+    ) -> SAOEMetrics:
+        assert len(market_vol) == len(market_price) == len(exec_vol)
+
+        if np.abs(np.sum(exec_vol)) < EPS:
+            exec_avg_price = 0.0
+        else:
+            exec_avg_price = cast(float, np.average(market_price, weights=exec_vol))  # could be nan
+            if hasattr(exec_avg_price, "item"):  # could be numpy scalar
+                exec_avg_price = exec_avg_price.item()  # type: ignore
+
+        exec_sum = exec_vol.sum()
+        return SAOEMetrics(
+            stock_id=order.stock_id,
+            datetime=datetime,
+            direction=order.direction,
+            market_volume=market_vol.sum(),
+            market_price=market_price.mean() if len(market_price) > 0 else np.nan,
+            amount=amount,
+            inner_amount=exec_sum,
+            deal_amount=exec_sum,  # in this simulator, there's no other restrictions
+            trade_price=exec_avg_price,
+            trade_value=float(np.sum(market_price * exec_vol)),
+            position=self.position - exec_sum,
+            ffr=float(exec_sum / order.amount),
+            pa=price_advantage(exec_avg_price, self.twap_price, order.direction),
+        )
+
+    @property
+    def saoe_state(self) -> SAOEState:
+        return SAOEState(
+            order=self.order,
+            cur_time=self.cur_time,
+            cur_step=self.executor.trade_calendar.get_trade_step() - self.start_idx,
+            position=self.position,
+            history_exec=self.history_exec,
+            history_steps=self.history_steps,
+            metrics=self.metrics,
+            backtest_data=self.backtest_data,
+            ticks_per_step=self.ticks_per_step,
+            ticks_index=self.backtest_data.ticks_index,
+            ticks_for_order=self.backtest_data.ticks_for_order,
+        )
 
 
 class SAOEStrategy(RLStrategy):
@@ -30,7 +292,7 @@ class SAOEStrategy(RLStrategy):
 
     def __init__(
         self,
-        policy: object,  # TODO: add accurate typehint later.
+        policy: BasePolicy,
         outer_trade_decision: BaseTradeDecision = None,
         level_infra: LevelInfrastructure = None,
         common_infra: CommonInfrastructure = None,
@@ -47,11 +309,17 @@ class SAOEStrategy(RLStrategy):
         self.adapter_dict: Dict[tuple, SAOEStateAdapter] = {}
         self._last_step_range = (0, 0)
 
-    def _create_qlib_backtest_adapter(self, order: Order, trade_range: TradeRange) -> SAOEStateAdapter:
+    def _create_qlib_backtest_adapter(
+        self,
+        order: Order,
+        trade_decision: BaseTradeDecision,
+        trade_range: TradeRange,
+    ) -> SAOEStateAdapter:
         backtest_data = load_backtest_data(order, self.trade_exchange, trade_range)
 
         return SAOEStateAdapter(
             order=order,
+            trade_decision=trade_decision,
             executor=self.executor,
             exchange=self.trade_exchange,
             ticks_per_step=int(pd.Timedelta(self.trade_calendar.get_freq()) / ONE_MIN),
@@ -71,7 +339,9 @@ class SAOEStrategy(RLStrategy):
             self.adapter_dict = {}
             for decision in outer_trade_decision.get_decision():
                 order = cast(Order, decision)
-                self.adapter_dict[order.key_by_day] = self._create_qlib_backtest_adapter(order, trade_range)
+                self.adapter_dict[order.key_by_day] = self._create_qlib_backtest_adapter(
+                    order, outer_trade_decision, trade_range
+                )
 
     def get_saoe_state_by_order(self, order: Order) -> SAOEState:
         return self.adapter_dict[order.key_by_day].saoe_state
@@ -166,11 +436,10 @@ class SAOEIntStrategy(SAOEStrategy):
         policy: dict | BasePolicy,
         state_interpreter: dict | StateInterpreter,
         action_interpreter: dict | ActionInterpreter,
-        network: object = None,  # TODO: add accurate typehint later.
+        network: dict | torch.nn.Module | None = None,
         outer_trade_decision: BaseTradeDecision = None,
         level_infra: LevelInfrastructure = None,
         common_infra: CommonInfrastructure = None,
-        backtest: bool = False,
         **kwargs: Any,
     ) -> None:
         super(SAOEIntStrategy, self).__init__(
@@ -180,8 +449,6 @@ class SAOEIntStrategy(SAOEStrategy):
             common_infra=common_infra,
             **kwargs,
         )
-
-        self._backtest = backtest
 
         self._state_interpreter: StateInterpreter = init_instance_by_config(
             state_interpreter,
@@ -221,20 +488,8 @@ class SAOEIntStrategy(SAOEStrategy):
         if self._policy is not None:
             self._policy.eval()
 
-    def set_env(self, env: BaseEnvWrapper) -> None:
-        # TODO: This method is used to set EnvWrapper for interpreters since they rely on EnvWrapper.
-        # We should decompose the interpreters with EnvWrapper in the future and we should remove this method
-        # after that.
-
-        self._env = env
-        self._state_interpreter.env = self._action_interpreter.env = self._env
-
     def reset(self, outer_trade_decision: BaseTradeDecision = None, **kwargs: Any) -> None:
         super().reset(outer_trade_decision=outer_trade_decision, **kwargs)
-
-        # In backtest, env.reset() needs to be manually called since there is no outer trainer to call it
-        if self._backtest:
-            self._env.reset()
 
     def _generate_trade_details(self, act: np.ndarray, exec_vols: List[float]) -> pd.DataFrame:
         assert hasattr(self.outer_trade_decision, "order_list")
@@ -267,10 +522,6 @@ class SAOEIntStrategy(SAOEStrategy):
             policy_out = self._policy(Batch(obs_batch))
         act = policy_out.act.numpy() if torch.is_tensor(policy_out.act) else policy_out.act
         exec_vols = [self._action_interpreter.interpret(s, a) for s, a in zip(states, act)]
-
-        # In backtest, env.step() needs to be manually called since there is no outer trainer to call it
-        if self._backtest:
-            self._env.step(None)
 
         oh = self.trade_exchange.get_order_helper()
         order_list = []

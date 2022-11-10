@@ -11,11 +11,14 @@ from importlib import import_module
 import yaml
 
 
+DELETE_KEY = "_delete_"
+
+
 def merge_a_into_b(a: dict, b: dict) -> dict:
     b = b.copy()
     for k, v in a.items():
         if isinstance(v, dict) and k in b:
-            v.pop("_delete_", False)  # TODO: make this more elegant
+            v.pop(DELETE_KEY, False)
             b[k] = merge_a_into_b(v, b[k])
         else:
             b[k] = v
@@ -86,7 +89,6 @@ def get_backtest_config_fromfile(path: str) -> dict:
         "min_cost": 5.0,
         "trade_unit": 100.0,
         "cash_limit": None,
-        "generate_report": False,
     }
     backtest_config["exchange"] = merge_a_into_b(a=backtest_config["exchange"], b=exchange_config_default)
     backtest_config["exchange"] = _convert_all_list_to_tuple(backtest_config["exchange"])
@@ -97,7 +99,7 @@ def get_backtest_config_fromfile(path: str) -> dict:
         "concurrency": -1,
         "multiplier": 1.0,
         "output_dir": "outputs/",
-        # "runtime": {},
+        "generate_report": False,
     }
     backtest_config = merge_a_into_b(a=backtest_config, b=backtest_config_default)
 
