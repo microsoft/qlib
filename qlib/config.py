@@ -172,6 +172,9 @@ _default_config = {
             }
         },
         "loggers": {"qlib": {"level": logging.DEBUG, "handlers": ["console"]}},
+        # To let qlib work with other packages, we shouldn't disable existing loggers.
+        # Note that this param is default to True according to the documentation of logging.
+        "disable_existing_loggers": False,
     },
     # Default config for experiment manager
     "exp_manager": {
