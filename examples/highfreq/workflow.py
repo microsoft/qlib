@@ -34,10 +34,10 @@ class HighfreqWorkflow(object):
     MARKET = "all"
     BENCHMARK = "SH000300"
 
-    start_time = "2020-09-15 00:00:00"
-    end_time = "2021-01-18 16:00:00"
-    train_end_time = "2020-11-30 16:00:00"
-    test_start_time = "2020-12-01 00:00:00"
+    start_time = pd.Timestamp("2020-09-15 00:00:00")
+    end_time = pd.Timestamp("2021-01-18 16:00:00")
+    train_end_time = pd.Timestamp("2020-11-30 16:00:00")
+    test_start_time = pd.Timestamp("2020-12-01 00:00:00")
 
     DATA_HANDLER_CONFIG0 = {
         "start_time": start_time,
