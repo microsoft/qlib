@@ -288,6 +288,52 @@ class TSDataSampler:
     - For performance issues, this Sampler will convert dataframe into arrays for better performance. This could result
       in a different data type
 
+
+    Indices design:
+        TSDataSampler has a index mechanism to help users query time-series data efficiently.
+
+        The definition of related variables:
+            data_arr: np.ndarray
+                The original data. it will contains all the original data.
+                The querying are often for time-series of a specific stock.
+                By leveraging this data charactoristics to speed up querying, the multi-index of data_arr is rearranged in (instrument, datetime) order
+
+            data_index: pd.MultiIndex with index order <instrument, datetime>
+                it has the same shape with `idx_map`. Each elements of them are expected to be aligned.
+
+            idx_map: np.ndarray
+                It is the indexable data. It originates from data_arr, and then filtered by 1) `start` and `end`  2) `flt_data`
+                    The extra data in data_arr is useful in following cases
+                    1) creating meaningful time series data before `start` instead of padding them with zeros
+                    2) some data are excluded by `flt_data` (e.g. no <X, y> sample pair for that index). but they are still used in time-series in X
+
+                Finnally, it will look like.
+
+                array([[  0,   0],
+                       [  1,   0],
+                       [  2,   0],
+                       ...,
+                       [241, 348],
+                       [242, 348],
+                       [243, 348]], dtype=int32)
+
+                It list all indexable data(some data only used in historical time series data may not be indexabla), the values are the corresponding row and col in idx_df
+            idx_df: pd.DataFrame
+                It aims to map the <datetime, instrument> key to the original position in data_arr
+
+                For example, it may look like (NOTE: the index for a instrument time-series is continoues in memory)
+
+                    instrument SH600000 SH600008 SH600009 SH600010 SH600011 SH600015  ...
+                    datetime
+                    2017-01-03        0      242      473      717      NaN      974  ...
+                    2017-01-04        1      243      474      718      NaN      975  ...
+                    2017-01-05        2      244      475      719      NaN      976  ...
+                    2017-01-06        3      245      476      720      NaN      977  ...
+
+            With these two indices(idx_map, idx_df) and original data(data_arr), we can make the following queries fast (implemented in __getitem__)
+            (1) Get the i-th indexable sample(time-series):   (indexable sample index) -> [idx_map] -> (row col) -> [idx_df] -> (index in data_arr)
+            (2) Get the specific sample by <datetime, instrument>:  (<datetime, instrument>, i.e. <row, col>) -> [idx_df] -> (index in data_arr)
+            (3) Get the index of a time-series data:   (get the <row, col>, refer to (1), (2)) -> [idx_df] -> (all indices in data_arr for time-series)
     """
 
     def __init__(
@@ -306,7 +352,7 @@ class TSDataSampler:
         Parameters
         ----------
         data : pd.DataFrame
-            The raw tabular data
+            The raw tabular data whose index order is <"datetime", "instrument">
         start :
             The indexable start time
         end :
@@ -322,7 +368,7 @@ class TSDataSampler:
             ffill+bfill:
                 ffill with previous samples first and fill with later samples second
         flt_data : pd.Series
-            a column of data(True or False) to filter data.
+            a column of data(True or False) to filter data. Its index order is <"datetime", "instrument">
             None:
                 kepp all data
 
@@ -427,7 +473,7 @@ class TSDataSampler:
         Get the pandas index of the data, it will be useful in following scenarios
         - Special sampler will be used (e.g. user want to sample day by day)
         """
-        return self.data_index.swaplevel()
+        return self.data_index.swaplevel()  # to align the order of multiple index of original data received by __init__
 
     def config(self, **kwargs):
         # Config the attributes
@@ -448,12 +494,12 @@ class TSDataSampler:
         -------
         Tuple[pd.DataFrame, dict]:
             1) the first element:  reshape the original index into a <datetime(row), instrument(column)> 2D dataframe
-                instrument SH600000 SH600004 SH600006 SH600007 SH600008 SH600009  ...
+                instrument SH600000 SH600008 SH600009 SH600010 SH600011 SH600015  ...
                 datetime
-                2021-01-11        0        1        2        3        4        5  ...
-                2021-01-12     4146     4147     4148     4149     4150     4151  ...
-                2021-01-13     8293     8294     8295     8296     8297     8298  ...
-                2021-01-14    12441    12442    12443    12444    12445    12446  ...
+                2017-01-03        0      242      473      717      NaN      974  ...
+                2017-01-04        1      243      474      718      NaN      975  ...
+                2017-01-05        2      244      475      719      NaN      976  ...
+                2017-01-06        3      245      476      720      NaN      977  ...
             2) the second element:  {<original index>: <row, col>}
         """
         # object incase of pandas converting int to float
@@ -568,7 +614,7 @@ class TSDataSampler:
         if (
             indices.sum() == ((indices[-1] + indices[0]) * self.step_len // 2)
             and indices[-1] - indices[0] == self.step_len - 1
-        ):
+        ):  # slicing instead of indexing for speeding up.
             data = self.data_arr[indices[0] : indices[-1] + 1]
         else:
             data = self.data_arr[indices]
