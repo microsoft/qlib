@@ -16,8 +16,8 @@ from .network import Recurrent
 from .policy import AllOne, PPO
 from .reward import PAPenaltyReward
 from .simulator_simple import SingleAssetOrderExecutionSimple
-from .state import SAOEStateAdapter, SAOEMetrics, SAOEState
-from .strategy import SAOEStrategy, ProxySAOEStrategy, SAOEIntStrategy
+from .state import SAOEMetrics, SAOEState
+from .strategy import SAOEStateAdapter, SAOEStrategy, ProxySAOEStrategy, SAOEIntStrategy
 
 __all__ = [
     "FullHistoryStateInterpreter",
