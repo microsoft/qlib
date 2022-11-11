@@ -488,7 +488,15 @@ class TSDataSampler:
         Parameters
         ----------
         data : pd.DataFrame
-            The dataframe with <datetime, DataFrame>
+            A DataFrame with index in order <instrument, datetime>
+
+                                      RSQR5     RESI5     WVMA5    LABEL0
+            instrument datetime
+            SH600000   2017-01-03  0.016389  0.461632 -1.154788 -0.048056
+                       2017-01-04  0.884545 -0.110597 -1.059332 -0.030139
+                       2017-01-05  0.507540 -0.535493 -1.099665 -0.644983
+                       2017-01-06 -1.267771 -0.669685 -1.636733  0.295366
+                       2017-01-09  0.339346  0.074317 -0.984989  0.765540
 
         Returns
         -------
