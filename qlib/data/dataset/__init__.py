@@ -336,6 +336,12 @@ class TSDataSampler:
             (3) Get the index of a time-series data:   (get the <row, col>, refer to (1), (2)) -> [idx_df] -> (all indices in data_arr for time-series)
     """
 
+    # Please refer to the docstring of TSDataSampler for the definition of following attributes
+    data_arr: np.ndarray
+    data_index: pd.MultiIndex
+    idx_map: np.ndarray
+    idx_df: pd.DataFrame
+
     def __init__(
         self,
         data: pd.DataFrame,
@@ -619,10 +625,7 @@ class TSDataSampler:
         # precision problems. It will not cause any problems in my tests at least
         indices = np.nan_to_num(indices.astype(np.float64), nan=self.nan_idx).astype(int)
 
-        if (
-            indices.sum() == ((indices[-1] + indices[0]) * self.step_len // 2)
-            and indices[-1] - indices[0] == self.step_len - 1
-        ):  # slicing instead of indexing for speeding up.
+        if (np.diff(indices) == 1).all():  # slicing instead of indexing for speeding up.
             data = self.data_arr[indices[0] : indices[-1] + 1]
         else:
             data = self.data_arr[indices]
@@ -715,4 +718,4 @@ class TSDatasetH(DatasetH):
         return tsds
 
 
-__all__ = ["Optional"]
+__all__ = ["Optional", "Dataset", "DatasetH"]
