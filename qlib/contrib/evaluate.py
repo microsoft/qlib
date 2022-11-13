@@ -187,9 +187,13 @@ def backtest_daily(
         the benchmark for reporting.
     account : Union[float, int, Position]
         information for describing how to creating the account
+
         For `float` or `int`:
+
             Using Account with only initial cash
+
         For `Position`:
+
             Using Account with a Position
     exchange_kwargs : dict
         the kwargs for initializing Exchange
@@ -283,8 +287,8 @@ def long_short_backtest(
                        NOTE: This will be faster with offline qlib.
     :return:            The result of backtest, it is represented by a dict.
                         { "long": long_returns(excess),
-                          "short": short_returns(excess),
-                          "long_short": long_short_returns}
+                        "short": short_returns(excess),
+                        "long_short": long_short_returns}
     """
     if get_level_index(pred, level="datetime") == 1:
         pred = pred.swaplevel().sort_index()
