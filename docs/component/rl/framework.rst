@@ -28,7 +28,7 @@ In QlibRL, EnvWrapper is a subclass of gym.Env, so it implements all necessary i
 
 EnvWrapper will organically organize these components. Such decomposition allows for better flexibility in development. For example, if the developers want to train multiple types of policies in the same environment, they only need to design one simulator and design different state interpreters/action interpreters/reward functions for different types of policies.
 
-QlibRL has well-defined base classes for all these 4 components. All the developers need to do is define their own components by inheriting the base classes and then implementing all interfaces required by the base classes. The API for the above base components can be found `here <../../reference/api.html#module-qlib.rl>`_.
+QlibRL has well-defined base classes for all these 4 components. All the developers need to do is define their own components by inheriting the base classes and then implementing all interfaces required by the base classes. The API for the above base components can be found `here <../../reference/api.html#module-qlib.rl>`__.
 
 Policy
 ------------
@@ -42,4 +42,4 @@ As you may have noticed, a training vessel itself holds all the required compone
 
 With a training vessel, the trainer could finally launch the training pipeline by simple, Scikit-learn-like interfaces (i.e., ``trainer.fit()``).
 
-The API for Trainer and TrainingVessel and can be found `here <../../reference/api.html#module-qlib.rl.trainer>`_.
+The API for Trainer and TrainingVessel and can be found `here <../../reference/api.html#module-qlib.rl.trainer>`__.

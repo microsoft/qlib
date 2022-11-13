@@ -58,6 +58,12 @@ Document Structure
 
 .. toctree::
    :maxdepth: 3
+   :caption: FOR DEVELOPERS:
+
+   Code Standard & Development Guidance <developer/code_standard_and_dev_guide.rst>
+
+.. toctree::
+   :maxdepth: 3
    :caption: REFERENCE:
 
    API <reference/api.rst>

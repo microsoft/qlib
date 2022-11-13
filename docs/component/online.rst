@@ -1,4 +1,4 @@
-.. _online:
+.. _online_serving:
 
 ==============
 Online Serving
