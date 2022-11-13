@@ -30,6 +30,11 @@ Document Structure
    Data Retrieval <start/getdata.rst>
    Custom Model Integration <start/integration.rst>
 
+.. toctree::
+   :maxdepth: 3
+   :caption: FOR DEVELOPERS:
+
+   Code Standard & Development Guidance <developer/code_standard_and_dev_guide.rst>
 
 .. toctree::
    :maxdepth: 3
