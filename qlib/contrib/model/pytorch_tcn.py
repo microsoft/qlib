@@ -33,7 +33,7 @@ class TCN(Model):
     n_chans: int
         number of channels
     metric: str
-        the evaluate metric used in early stop
+        the evaluated metric used in early stop
     optimizer : str
         optimizer name
     GPU : str

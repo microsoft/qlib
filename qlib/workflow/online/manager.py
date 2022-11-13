@@ -35,7 +35,7 @@ Simulation + DelayTrainer  When your models don't have any temporal dependence, 
                            different time segments (based on whether or not any new model is online).
 =========================  ===================================================================================
 
-Here is some pseudo code the demonstrate the workflow of each situation
+Here is some pseudo code that demonstrate the workflow of each situation
 
 For simplicity
     - Only one strategy is used in the strategy

@@ -31,7 +31,7 @@ class GRU(Model):
     d_feat : int
         input dimension for each time step
     metric: str
-        the evaluate metric used in early stop
+        the evaluated metric used in early stop
     optimizer : str
         optimizer name
     GPU : str
