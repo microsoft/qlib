@@ -10,7 +10,7 @@ import yaml
 import logging
 import platform
 import subprocess
-from .log import get_module_logger
+from .log import get_module_logger, set_global_logger_level
 
 
 # init qlib
@@ -48,6 +48,9 @@ def init(default_conf="client", **kwargs):
     if clear_mem_cache:
         H.clear()
     C.set(default_conf, **kwargs)
+    # some loggers are created as class variable, which are initialized before config gets updated.
+    # so use `set_global_logger_level` here to update their levels.
+    set_global_logger_level(C.logging_level)
 
     # mount nfs
     for _freq, provider_uri in C.provider_uri.items():

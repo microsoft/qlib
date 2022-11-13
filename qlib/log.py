@@ -74,7 +74,7 @@ def get_module_logger(module_name, level: Optional[int] = None) -> QlibLogger:
 
 class TimeInspector:
 
-    timer_logger = get_module_logger("timer", level=logging.INFO)
+    timer_logger = get_module_logger("timer")
 
     time_marks = []
 
