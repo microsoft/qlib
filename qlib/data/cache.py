@@ -394,7 +394,7 @@ class DatasetCache(BaseProviderCache):
 
         .. note:: The server use redis_lock to make sure
             read-write conflicts will not be triggered
-                but client readers are not considered.
+            but client readers are not considered.
         """
         if disk_cache == 0:
             # skip cache
