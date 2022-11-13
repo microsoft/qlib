@@ -332,6 +332,7 @@ Here are some interfaces of the ``QlibDataLoader`` class:
 
 .. autoclass:: qlib.data.dataset.loader.DataLoader
     :members:
+    :noindex:
 
 API
 ---
@@ -361,6 +362,7 @@ Here are some important interfaces that ``DataHandlerLP`` provides:
 
 .. autoclass:: qlib.data.dataset.handler.DataHandlerLP
     :members: __init__, fetch, get_cols
+    :noindex:
 
 
 If users want to load features and labels by config, users can define a new handler and call the static method `parse_config_to_fields` of ``qlib.contrib.data.handler.Alpha158``.
@@ -451,6 +453,7 @@ The ``DatasetH`` class is the `dataset` with `Data Handler`. Here is the most im
 
 .. autoclass:: qlib.data.dataset.__init__.DatasetH
     :members:
+    :noindex:
 
 API
 ---
@@ -470,9 +473,11 @@ Global Memory Cache
 
 .. autoclass:: qlib.data.cache.MemCacheUnit
     :members:
+    :noindex:
 
 .. autoclass:: qlib.data.cache.MemCache
     :members:
+    :noindex:
 
 
 ExpressionCache
@@ -487,6 +492,7 @@ The following shows the details about the interfaces:
 
 .. autoclass:: qlib.data.cache.ExpressionCache
     :members:
+    :noindex:
 
 ``Qlib`` has currently provided implemented disk cache `DiskExpressionCache` which inherits from `ExpressionCache` . The expressions data will be stored in the disk.
 
@@ -502,6 +508,7 @@ The following shows the details about the interfaces:
 
 .. autoclass:: qlib.data.cache.DatasetCache
     :members:
+    :noindex:
 
 ``Qlib`` has currently provided implemented disk cache `DiskDatasetCache` which inherits from `DatasetCache` . The datasets' data will be stored in the disk.
 
