@@ -15,7 +15,8 @@ Continuous Integration (CI) tools help you stick to the quality standards by run
 When you submit a PR request, you can check whether your code passes the CI tests in the "check" section at the bottom of the web page.
 
 1. Qlib will check the code format with black. The PR will raise error if your code does not align to the standard of Qlib(e.g. a common error is the mixed use of space and tab).
- You can fix the bug by inputing the following code in the command line.
+
+   You can fix the bug by inputing the following code in the command line.
 
 .. code-block:: bash
 
@@ -32,7 +33,8 @@ When you submit a PR request, you can check whether your code passes the CI test
 
 
 3. Qlib will check your code style flake8. The checking command is implemented in [github action workflow](https://github.com/microsoft/qlib/blob/0e8b94a552f1c457cfa6cd2c1bb3b87ebb3fb279/.github/workflows/test.yml#L73).
- You can fix the bug by inputing the following code in the command line.
+
+   You can fix the bug by inputing the following code in the command line.
 
 .. code-block:: bash
 
@@ -40,7 +42,8 @@ When you submit a PR request, you can check whether your code passes the CI test
 
 
 4. Qlib has integrated pre-commit, which will make it easier for developers to format their code.
- Just run the following two commands, and the code will be automatically formatted using black and flake8 when the git commit command is executed.
+
+   Just run the following two commands, and the code will be automatically formatted using black and flake8 when the git commit command is executed.
 
 .. code-block:: bash
 

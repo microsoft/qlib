@@ -7,9 +7,8 @@ from typing import cast
 
 import numpy as np
 
+from qlib.rl.order_execution.state import SAOEMetrics, SAOEState
 from qlib.rl.reward import Reward
-
-from .simulator_simple import SAOEMetrics, SAOEState
 
 __all__ = ["PAPenaltyReward"]
 

@@ -27,7 +27,8 @@ class ExpManager:
     def __init__(self, uri: Text, default_exp_name: Optional[Text]):
         self._current_uri = uri
         self._default_exp_name = default_exp_name
-        self.active_experiment = None  # only one experiment can active each time
+        self.active_experiment = None  # only one experiment can be active each time
+        logger.info(f"experiment manager uri is at {self._current_uri}")
 
     def __repr__(self):
         return "{name}(current_uri={curi})".format(name=self.__class__.__name__, curi=self._current_uri)

@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Callable, Sequence, cast
+from typing import Any, Callable, Dict, List, Sequence, cast
 
 from tianshou.policy import BasePolicy
 
@@ -23,8 +23,8 @@ def train(
     initial_states: Sequence[InitialStateType],
     policy: BasePolicy,
     reward: Reward,
-    vessel_kwargs: dict[str, Any],
-    trainer_kwargs: dict[str, Any],
+    vessel_kwargs: Dict[str, Any],
+    trainer_kwargs: Dict[str, Any],
 ) -> None:
     """Train a policy with the parallelism provided by RL framework.
 
@@ -69,7 +69,7 @@ def backtest(
     action_interpreter: ActionInterpreter,
     initial_states: Sequence[InitialStateType],
     policy: BasePolicy,
-    logger: LogWriter | list[LogWriter],
+    logger: LogWriter | List[LogWriter],
     reward: Reward | None = None,
     finite_env_type: FiniteEnvType = "subproc",
     concurrency: int = 2,

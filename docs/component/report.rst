@@ -174,6 +174,7 @@ Graphical Result
                 The `Information Ratio` without cost.
             - `excess_return_with_cost`
                 The `Information Ratio` with cost.
+
             To know more about `Information Ratio`, please refer to `Information Ratio – IR <https://www.investopedia.com/terms/i/informationratio.asp>`_.
         -  `max_drawdown`
             - `excess_return_without_cost`

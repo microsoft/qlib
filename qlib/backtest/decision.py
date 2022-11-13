@@ -135,6 +135,21 @@ class Order:
         else:
             raise NotImplementedError(f"This type of input is not supported")
 
+    @property
+    def key_by_day(self) -> tuple:
+        """A hashable & unique key to identify this order, under the granularity in day."""
+        return self.stock_id, self.date, self.direction
+
+    @property
+    def key(self) -> tuple:
+        """A hashable & unique key to identify this order."""
+        return self.stock_id, self.start_time, self.end_time, self.direction
+
+    @property
+    def date(self) -> pd.Timestamp:
+        """Date of the order."""
+        return pd.Timestamp(self.start_time.replace(hour=0, minute=0, second=0))
+
 
 class OrderHelper:
     """
@@ -286,7 +301,7 @@ class TradeRangeByTime(TradeRange):
 
 class BaseTradeDecision(Generic[DecisionType]):
     """
-    Trade decisions ara made by strategy and executed by executor
+    Trade decisions are made by strategy and executed by executor
 
     Motivation:
         Here are several typical scenarios for `BaseTradeDecision`
@@ -561,3 +576,21 @@ class TradeDecisionWO(BaseTradeDecision[Order]):
             f"trade_range: {self.trade_range}; "
             f"order_list[{len(self.order_list)}]"
         )
+
+
+class TradeDecisionWithDetails(TradeDecisionWO):
+    """
+    Decision with detail information.
+    Detail information is used to generate execution reports.
+    """
+
+    def __init__(
+        self,
+        order_list: List[Order],
+        strategy: BaseStrategy,
+        trade_range: Optional[Tuple[int, int]] = None,
+        details: Optional[Any] = None,
+    ) -> None:
+        super().__init__(order_list, strategy, trade_range)
+
+        self.details = details

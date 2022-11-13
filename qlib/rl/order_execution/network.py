@@ -117,3 +117,24 @@ class Recurrent(nn.Module):
 
         out = torch.cat(sources, -1)
         return self.fc(out)
+
+
+class Attention(nn.Module):
+    def __init__(self, in_dim, out_dim):
+        super().__init__()
+        self.q_net = nn.Linear(in_dim, out_dim)
+        self.k_net = nn.Linear(in_dim, out_dim)
+        self.v_net = nn.Linear(in_dim, out_dim)
+
+    def forward(self, Q, K, V):
+        q = self.q_net(Q)
+        k = self.k_net(K)
+        v = self.v_net(V)
+
+        attn = torch.einsum("ijk,ilk->ijl", q, k)
+        attn = attn.to(Q.device)
+        attn_prob = torch.softmax(attn, dim=-1)
+
+        attn_vec = torch.einsum("ijk,ikl->ijl", attn_prob, v)
+
+        return attn_vec

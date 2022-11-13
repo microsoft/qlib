@@ -289,9 +289,9 @@ class RobustZScoreNorm(Processor):
         X = df[self.cols]
         X -= self.mean_train
         X /= self.std_train
-        df[self.cols] = X
         if self.clip_outlier:
-            df.clip(-3, 3, inplace=True)
+            X = np.clip(X, -3, 3)
+        df[self.cols] = X
         return df
 
 
