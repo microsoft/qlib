@@ -51,6 +51,7 @@ API
 
 .. automodule:: qlib.contrib.report.analysis_position.report
     :members:
+    :noindex:
 
 Graphical Result
 ~~~~~~~~~~~~~~~~
@@ -93,6 +94,7 @@ API
 
 .. automodule:: qlib.contrib.report.analysis_position.score_ic
     :members:
+    :noindex:
 
 
 Graphical Result
@@ -151,6 +153,7 @@ API
 
 .. automodule:: qlib.contrib.report.analysis_position.risk_analysis
     :members:
+    :noindex:
 
 
 Graphical Result
@@ -270,6 +273,7 @@ API
 
 .. automodule:: qlib.contrib.report.analysis_model.analysis_model_performance
     :members:
+    :noindex:
 
 
 Graphical Results
