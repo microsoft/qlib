@@ -30,11 +30,6 @@ Document Structure
    Data Retrieval <start/getdata.rst>
    Custom Model Integration <start/integration.rst>
 
-.. toctree::
-   :maxdepth: 3
-   :caption: FOR DEVELOPERS:
-
-   Code Standard & Development Guidance <developer/code_standard_and_dev_guide.rst>
 
 .. toctree::
    :maxdepth: 3
@@ -60,6 +55,12 @@ Document Structure
    Serialization <advanced/serial.rst>
    Task Management <advanced/task_management.rst>
    Point-In-Time database <advanced/PIT.rst>
+
+.. toctree::
+   :maxdepth: 3
+   :caption: FOR DEVELOPERS:
+
+   Code Standard & Development Guidance <developer/code_standard_and_dev_guide.rst>
 
 .. toctree::
    :maxdepth: 3
