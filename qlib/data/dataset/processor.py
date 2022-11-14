@@ -219,7 +219,7 @@ class MinMaxNorm(Processor):
                 return (x - min_val) / (max_val - min_val)
             for i in range(ignore.size):
                 if not ignore[i]:
-                    x[i] = (x[i] - min_val) / (max_val - min_val)
+                    x[:,i] = (x[:,i] - min_val[i]) / (max_val[i] - min_val[i])
             return x
 
         df.loc(axis=1)[self.cols] = normalize(df[self.cols].values)
@@ -250,7 +250,7 @@ class ZScoreNorm(Processor):
                 return (x - mean_train) / std_train
             for i in range(ignore.size):
                 if not ignore[i]:
-                    x[i] = (x[i] - mean_train) / std_train
+                    x[:,i] = (x[:,i] - mean_train[i]) / std_train[i]
             return x
 
         df.loc(axis=1)[self.cols] = normalize(df[self.cols].values)
