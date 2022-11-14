@@ -494,10 +494,18 @@ class DataHandlerLP(DataHandler):
         Notation: (data)  [processor]
 
         # data processing flow of self.process_type == DataHandlerLP.PTYPE_I
-        (self._data)-[shared_processors]-(_shared_df)-[learn_processors]-(_learn_df)-[infer_processors]-(_infer_df)
+
+        .. code-block:: text
+
+            (self._data)-[shared_processors]-(_shared_df)-[learn_processors]-(_learn_df)
+                                                   \\
+                                                    -[infer_processors]-(_infer_df)
 
         # data processing flow of self.process_type == DataHandlerLP.PTYPE_A
-        (self._data)-[shared_processors]-(_shared_df)-[infer_processors]-(_infer_df)-[learn_processors]-(_learn_df)
+
+        .. code-block:: text
+
+            (self._data)-[shared_processors]-(_shared_df)-[infer_processors]-(_infer_df)-[learn_processors]-(_learn_df)
 
         Parameters
         ----------
