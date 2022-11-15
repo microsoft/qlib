@@ -78,7 +78,9 @@ For simplicity
 
 
 # Can we simplify current workflow?
+
 - Can reduce the number of state of tasks?
+
     - For each task, we have three phases (i.e. task, partly trained task, final trained task)
 """
 

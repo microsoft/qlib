@@ -11,9 +11,11 @@ class MetaTask:
     It serves as a component as in MetaDatasetDS
 
     The data processing is different
+
     - the processed input may be different between training and testing
+
         - When training, the X, y, X_test, y_test in training tasks are necessary (# PROC_MODE_FULL #)
-                                                but not necessary in test tasks. (# PROC_MODE_TEST #)
+          but not necessary in test tasks. (# PROC_MODE_TEST #)
         - When the meta model can be transferred into other dataset, only meta_info is necessary  (# PROC_MODE_TRANSFER #)
     """
 
@@ -24,6 +26,7 @@ class MetaTask:
     def __init__(self, task: dict, meta_info: object, mode: str = PROC_MODE_FULL):
         """
         The `__init__` func is responsible for
+
         - store the task
         - store the origin input data for
         - process the input data for meta data

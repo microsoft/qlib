@@ -350,6 +350,7 @@ class QlibRecorder:
         Method to reset the current uri of current experiment manager.
 
         NOTE:
+
         - When the uri is refer to a file path, please using the absolute path instead of strings like "~/mlruns/"
           The backend don't support strings like this.
         """

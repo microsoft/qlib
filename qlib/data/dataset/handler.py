@@ -160,13 +160,17 @@ class DataHandler(Serializable):
         selector : Union[pd.Timestamp, slice, str]
             describe how to select data by index
             It can be categories as following
+
             - fetch single index
             - fetch a range of index
+
                 - a slice range
                 - pd.Index for specific indexes
 
             Following conflictions may occurs
-            - Does [20200101", "20210101"] mean selecting this slice or these two days?
+
+            - Does ["20200101", "20210101"] mean selecting this slice or these two days?
+
                 - slice have higher priorities
 
         level : Union[str, int]
@@ -178,7 +182,8 @@ class DataHandler(Serializable):
 
                 select a set of meaningful, pd.Index columns.(e.g. features, columns)
 
-                if col_set == CS_RAW:
+                - if col_set == CS_RAW:
+
                     the raw dataset will be returned.
 
             - if isinstance(col_set, List[str]):
@@ -186,8 +191,10 @@ class DataHandler(Serializable):
                 select several sets of meaningful columns, the returned data has multiple levels
 
         proc_func: Callable
+
             - Give a hook for processing data before fetching
             - An example to explain the necessity of the hook:
+
                 - A Dataset learned some processors to process data which is related to data segmentation
                 - It will apply them every time when preparing data.
                 - The learned processor require the dataframe remains the same format when fitting and applying
@@ -326,18 +333,23 @@ class DataHandlerLP(DataHandler):
     DataHandler with **(L)earnable (P)rocessor**
 
     This handler will produce three pieces of data in pd.DataFrame format.
+
     - DK_R / self._data: the raw data loaded from the loader
     - DK_I / self._infer: the data processed for inference
     - DK_L / self._learn: the data processed for learning model.
 
     The motivation of using different processor workflows for learning and inference
     Here are some examples.
+
     - The instrument universe for learning and inference may be different.
     - The processing of some samples may rely on label (for example, some samples hit the limit may need extra processing or be dropped).
-        These processors only apply to the learning phase.
+
+        - These processors only apply to the learning phase.
 
     Tips to improve the performance of data handler
+
     - To reduce the memory cost
+
         - `drop_raw=True`: this will modify the data inplace on raw data;
     """
 
@@ -482,12 +494,18 @@ class DataHandlerLP(DataHandler):
         Notation: (data)  [processor]
 
         # data processing flow of self.process_type == DataHandlerLP.PTYPE_I
-        (self._data)-[shared_processors]-(_shared_df)-[learn_processors]-(_learn_df)
-                                               \
-                                                -[infer_processors]-(_infer_df)
+
+        .. code-block:: text
+
+            (self._data)-[shared_processors]-(_shared_df)-[learn_processors]-(_learn_df)
+                                                   \\
+                                                    -[infer_processors]-(_infer_df)
 
         # data processing flow of self.process_type == DataHandlerLP.PTYPE_A
-        (self._data)-[shared_processors]-(_shared_df)-[infer_processors]-(_infer_df)-[learn_processors]-(_learn_df)
+
+        .. code-block:: text
+
+            (self._data)-[shared_processors]-(_shared_df)-[infer_processors]-(_infer_df)-[learn_processors]-(_learn_df)
 
         Parameters
         ----------

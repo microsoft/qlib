@@ -205,8 +205,9 @@ class DatasetH(Dataset):
         col_set : str
             The col_set will be passed to self.handler when fetching data.
             TODO: make it automatic:
-                - select DK_I for test data
-                - select DK_L for training data.
+
+            - select DK_I for test data
+            - select DK_L for training data.
         data_key : str
             The data to fetch:  DK_*
             Default is DK_I, which indicate fetching data for **inference**.

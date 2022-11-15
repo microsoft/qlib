@@ -82,19 +82,23 @@ class RecordUpdater(metaclass=ABCMeta):
 class DSBasedUpdater(RecordUpdater, metaclass=ABCMeta):
     """
     Dataset-Based Updater
+
     - Providing updating feature for Updating data based on Qlib Dataset
 
     Assumption
-    - Based on Qlib dataset
-    - The data to be updated is a multi-level index pd.DataFrame. For example label , prediction.
 
-                                 LABEL0
-        datetime   instrument
-        2021-05-10 SH600000    0.006965
-                   SH600004    0.003407
-        ...                         ...
-        2021-05-28 SZ300498    0.015748
-                   SZ300676   -0.001321
+    - Based on Qlib dataset
+    - The data to be updated is a multi-level index pd.DataFrame. For example label, prediction.
+
+        .. code-block::
+
+                                     LABEL0
+            datetime   instrument
+            2021-05-10 SH600000    0.006965
+                       SH600004    0.003407
+            ...                         ...
+            2021-05-28 SZ300498    0.015748
+                       SZ300676   -0.001321
     """
 
     def __init__(
@@ -111,6 +115,7 @@ class DSBasedUpdater(RecordUpdater, metaclass=ABCMeta):
         Init PredUpdater.
 
         Expected behavior in following cases:
+
         - if `to_date` is greater than the max date in the calendar, the data will be updated to the latest date
         - if there are data before `from_date` or after `to_date`, only the data between `from_date` and `to_date` are affected.
 
@@ -118,11 +123,15 @@ class DSBasedUpdater(RecordUpdater, metaclass=ABCMeta):
             record : Recorder
             to_date :
                 update to prediction to the `to_date`
+
                 if to_date is None:
+
                     data will updated to the latest date.
             from_date :
                 the update will start from `from_date`
+
                 if from_date is None:
+
                     the updating will occur on the next tick after the latest data in historical data
             hist_ref : int
                 Sometimes, the dataset will have historical depends.

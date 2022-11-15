@@ -349,7 +349,9 @@ class PortAnaRecord(ACRecordTemp):
     This is the Portfolio Analysis Record class that generates the analysis results such as those of backtest. This class inherits the ``RecordTemp`` class.
 
     The following files will be stored in recorder
+
     - report_normal.pkl & positions_normal.pkl:
+
         - The return report and detailed positions of the backtest, returned by `qlib/contrib/evaluate.py:backtest`
     - port_analysis.pkl : The risk analysis of your portfolio, returned by `qlib/contrib/evaluate.py:risk_analysis`
     """
