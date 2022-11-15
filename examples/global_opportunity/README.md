@@ -21,10 +21,7 @@
  ```
  python ../../scripts/data_collector/yahoo/collector.py update_data_to_bin
  ```
- with parameters
- ```
- --qlib_data_1d_dir ~/.qlib/qlib_data/us_selected_data --trading_date 2022-10-31 --region US
- ```
+ with parameters`--qlib_data_1d_dir ~/.qlib/qlib_data/us_selected_data --trading_date 2022-10-31 --region US`
   
 - Run below command to prepare the risk data for EnhancesIndexingStrategy
 
