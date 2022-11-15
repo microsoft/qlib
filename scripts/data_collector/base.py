@@ -289,7 +289,30 @@ class Normalize:
 
     def _executor(self, file_path: Path):
         file_path = Path(file_path)
-        df = pd.read_csv(file_path)
+        df = pd.read_csv(
+            file_path,
+            dtype={self._symbol_field_name: str},
+            keep_default_na=False,
+            na_values=[
+                "",
+                "#N/A",
+                "#N/A N/A",
+                "#NA",
+                "-1.#IND",
+                "-1.#QNAN",
+                "-NaN",
+                "-nan",
+                "1.#IND",
+                "1.#QNAN",
+                "<NA>",
+                "N/A",
+                "NULL",
+                "NaN",
+                "n/a",
+                "nan",
+                "null",
+            ],
+        )
         df = self._normalize_obj.normalize(df)
         if df is not None and not df.empty:
             if self._end_date is not None:
