@@ -1,0 +1,11 @@
+numpy==1.23.3
+pandas==1.4.4
+scikit_learn==0.23.2
+torch==1.12.1
+cython==0.29.32
+matplotlib==3.6.0
+seaborn==1.4.4
+xgboost==1.6.2
+catboost==1.0.6
+cvxopt==1.3.0
+pyscipopt==4.2.0
