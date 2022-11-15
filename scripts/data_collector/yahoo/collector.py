@@ -817,6 +817,10 @@ class YahooNormalizeUS1d(YahooNormalizeUS, YahooNormalize1d):
     pass
 
 
+class YahooNormalizeUS1dExtend(YahooNormalizeUS, YahooNormalize1dExtend):
+    pass
+
+
 class YahooNormalizeUS1min(YahooNormalizeUS, YahooNormalize1minOffline):
     CALC_PAUSED_NUM = False
 
