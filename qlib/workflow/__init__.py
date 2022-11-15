@@ -370,11 +370,11 @@ class QlibRecorder:
             the temporal uri
         """
         prev_uri = self.exp_manager.default_uri
-        C.exp_manager["kwargs"]["uri"] = uri
+        self.set_uri(uri)
         try:
             yield
         finally:
-            C.exp_manager["kwargs"]["uri"] = prev_uri
+            self.set_uri(prev_uri)
 
     def get_recorder(
         self,
