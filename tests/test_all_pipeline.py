@@ -77,6 +77,15 @@ def fake_experiment():
         R.log_params(**flatten_dict(CSI300_GBDT_TASK))
 
         current_uri_to_check = R.get_uri()
+
+    with R.uri_context(uri=current_uri):
+        recorder = R.get_recorder()
+        tmp1 = R.get_uri()
+
+    with R.uri_context(uri=current_uri):
+        recorder = R.get_recorder()
+        tmp2 = R.get_uri()
+
     default_uri_to_check = R.get_uri()
     return default_uri == default_uri_to_check, current_uri == current_uri_to_check, current_uri
 
@@ -99,6 +108,10 @@ def backtest_analysis(pred, rid, uri_path: str = None):
     """
     with R.uri_context(uri=uri_path):
         recorder = R.get_recorder(experiment_name="workflow", recorder_id=rid)
+    print(f"1 -- {recorder}")
+    with R.uri_context(uri=uri_path):
+        recorder = R.get_recorder(experiment_name="workflow", recorder_id=rid)
+    print(f"2 -- {recorder}")
 
     dataset = init_instance_by_config(CSI300_GBDT_TASK["dataset"])
     model = recorder.load_object("trained_model")
