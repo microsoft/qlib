@@ -82,7 +82,8 @@ class ExpManager:
         An active experiment.
         """
         self._active_exp_uri = uri
-
+        # The subclass may set the underlying uri back.
+        # So setting `_active_exp_uri` come before `_start_exp`
         return self._start_exp(
             experiment_id=experiment_id,
             experiment_name=experiment_name,
@@ -109,8 +110,10 @@ class ExpManager:
         recorder_status : str
             the status of the active recorder of the experiment.
         """
-        self._end_exp(recorder_status=recorder_status, **kwargs)
         self._active_exp_uri = None
+        # The subclass may set the underlying uri back.
+        # So setting `_active_exp_uri` come before `_end_exp`
+        self._end_exp(recorder_status=recorder_status, **kwargs)
 
     def _end_exp(self, recorder_status: Text = Recorder.STATUS_S, **kwargs):
         raise NotImplementedError(f"Please implement the `end_exp` method.")
@@ -359,6 +362,7 @@ class MLflowExpManager(ExpManager):
         if self.active_experiment is not None:
             self.active_experiment.end(recorder_status)
             self.active_experiment = None
+        self._set_client_uri()
 
     def create_exp(self, experiment_name: Optional[Text] = None):
         assert experiment_name is not None
