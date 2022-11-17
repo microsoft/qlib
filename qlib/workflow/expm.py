@@ -60,7 +60,7 @@ class ExpManager:
         Start an experiment. This method includes first get_or_create an experiment, and then
         set it to be active.
 
-        Maintaining `_active_exp_uri` is included in start_exp, remaining implementation should be implemented in _end_exp in subclass
+        Maintaining `_active_exp_uri` is included in start_exp, remaining implementation should be included in _end_exp in subclass
 
         Parameters
         ----------
@@ -100,7 +100,7 @@ class ExpManager:
         """
         End an active experiment.
 
-        Maintaining `_active_exp_uri` is included in end_exp, remaining implementation should be implemented in _end_exp in subclass
+        Maintaining `_active_exp_uri` is included in end_exp, remaining implementation should be included in _end_exp in subclass
 
         Parameters
         ----------
@@ -302,16 +302,6 @@ class ExpManager:
         """
         return self._active_exp_uri or self.default_uri
 
-    def set_uri(self, uri: Text):
-        """
-        Set the default tracking URI and the corresponding variables.
-
-        Parameters
-        ----------
-        uri  : str
-        """
-        self.default_uri = uri
-
     def list_experiments(self):
         """
         List all the existing experiments.
@@ -350,7 +340,6 @@ class MLflowExpManager(ExpManager):
         experiment_name: Optional[Text] = None,
         recorder_id: Optional[Text] = None,
         recorder_name: Optional[Text] = None,
-        uri: Optional[Text] = None,
         resume: bool = False,
     ):
         self._set_client_uri()
