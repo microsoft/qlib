@@ -33,9 +33,6 @@ class ExpManager:
     active_experiment: Optional[Experiment]
 
     def __init__(self, uri: Text, default_exp_name: Optional[Text]):
-        # The `ExpManager` is expected to be a singleton.
-        # So we just use `C.exp_manager["kwargs"]["uri"]` for `uri` instead.
-        # Setting the variable to Config will make the uri consistant for multi-processing in all platforms
         self.default_uri = uri
         self._active_exp_uri = None  # No active experiments. So it is set to None
         self._default_exp_name = default_exp_name
