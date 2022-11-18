@@ -8,7 +8,6 @@ from .exp import Experiment
 from .recorder import Recorder
 from ..utils import Wrapper
 from ..utils.exceptions import RecorderInitializationError
-from qlib.config import C
 
 
 class QlibRecorder:
@@ -347,14 +346,14 @@ class QlibRecorder:
 
     def set_uri(self, uri: Optional[Text]):
         """
-        Method to reset the current uri of current experiment manager.
+        Method to reset the **default** uri of current experiment manager.
 
         NOTE:
 
         - When the uri is refer to a file path, please using the absolute path instead of strings like "~/mlruns/"
           The backend don't support strings like this.
         """
-        self.exp_manager.set_uri(uri)
+        self.exp_manager.default_uri = uri
 
     @contextmanager
     def uri_context(self, uri: Text):
@@ -370,11 +369,11 @@ class QlibRecorder:
             the temporal uri
         """
         prev_uri = self.exp_manager.default_uri
-        C.exp_manager["kwargs"]["uri"] = uri
+        self.exp_manager.default_uri = uri
         try:
             yield
         finally:
-            C.exp_manager["kwargs"]["uri"] = prev_uri
+            self.exp_manager.default_uri = prev_uri
 
     def get_recorder(
         self,
