@@ -26,7 +26,7 @@ class MLflowTest(unittest.TestCase):
             _ = mlflow.tracking.MlflowClient(tracking_uri=str(self.TMP_PATH))
         end = time.time()
         elasped = end - start
-        self.assertGreater(1e-2, elasped)  # it can be done in less than 10ms
+        self.assertLess(elasped, 1e-2)  # it can be done in less than 10ms
         print(elasped)
 
 

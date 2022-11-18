@@ -24,7 +24,7 @@ class ExpManager:
         This is the `ExpManager` class for managing experiments. The API is designed similar to mlflow.
         (The link: https://mlflow.org/docs/latest/python_api/mlflow.html)
 
-        The `ExpManager` is expected to be a singleton (btw, we can have multiple `Experiment`s with different uri. user can get different experiments from different uri, and then compare records of them). Global Config (e.g. `C`)  is also a singleton.
+        The `ExpManager` is expected to be a singleton (btw, we can have multiple `Experiment`s with different uri. user can get different experiments from different uri, and then compare records of them). Global Config (i.e. `C`)  is also a singleton.
     So we try to align them together.  They share the same variable, which is called **default uri**. Please refer to `ExpManager.default_uri` for details of variable sharing.
 
         When the user starts an experiment, the user may want to set the uri to a specific uri (it will override **default uri** during this period), and then unset the **specific uri** and fallback to the **default uri**.    `ExpManager._active_exp_uri` is that **specific uri**.
@@ -317,9 +317,6 @@ class MLflowExpManager(ExpManager):
     """
     Use mlflow to implement ExpManager.
     """
-
-    def __init__(self, uri: Text, default_exp_name: Optional[Text]):
-        super(MLflowExpManager, self).__init__(uri, default_exp_name)
 
     @property
     def client(self):
