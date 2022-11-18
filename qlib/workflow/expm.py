@@ -24,7 +24,7 @@ class ExpManager:
         This is the `ExpManager` class for managing experiments. The API is designed similar to mlflow.
         (The link: https://mlflow.org/docs/latest/python_api/mlflow.html)
 
-        The `ExpManager` is expected to be a singleton (btw, we can have multiple `Experiment`s with different uri). Global Config (e.g. `C`)  is also a singleton.
+        The `ExpManager` is expected to be a singleton (btw, we can have multiple `Experiment`s with different uri. user can get different experiments from different uri, and then compare records of them). Global Config (e.g. `C`)  is also a singleton.
     So we try to align them together.  They share the same variable, which is called **default uri**. Please refer to `ExpManager.default_uri` for details of variable sharing.
 
         When the user starts an experiment, the user may want to set the uri to a specific uri (it will override **default uri** during this period), and then unset the **specific uri** and fallback to the **default uri**.    `ExpManager._active_exp_uri` is that **specific uri**.
@@ -323,18 +323,12 @@ class MLflowExpManager(ExpManager):
 
     def __init__(self, uri: Text, default_exp_name: Optional[Text]):
         super(MLflowExpManager, self).__init__(uri, default_exp_name)
-        self._client = None
-
-    def _set_client_uri(self):
-        self._client = mlflow.tracking.MlflowClient(tracking_uri=self.uri)
-        logger.info("{:}".format(self._client))
 
     @property
     def client(self):
-        # Delay the creation of mlflow client in case of creating `mlruns` folder when importing qlib
-        if self._client is None:
-            self._client = mlflow.tracking.MlflowClient(tracking_uri=self.uri)
-        return self._client
+        # Please refer to `tests/dependency_tests/test_mlflow.py::MLflowTest::test_creating_client`
+        # The test ensure the speed of create a new client
+        return mlflow.tracking.MlflowClient(tracking_uri=self.uri)
 
     def _start_exp(
         self,
@@ -345,8 +339,6 @@ class MLflowExpManager(ExpManager):
         recorder_name: Optional[Text] = None,
         resume: bool = False,
     ):
-        self._set_client_uri()
-
         # Create experiment
         if experiment_name is None:
             experiment_name = self._default_exp_name
@@ -362,7 +354,6 @@ class MLflowExpManager(ExpManager):
         if self.active_experiment is not None:
             self.active_experiment.end(recorder_status)
             self.active_experiment = None
-        self._set_client_uri()
 
     def create_exp(self, experiment_name: Optional[Text] = None):
         assert experiment_name is not None
