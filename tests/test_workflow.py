@@ -16,8 +16,7 @@ class WorkflowTest(TestAutoData):
             shutil.rmtree(self.TMP_PATH)
 
     def test_get_local_dir(self):
-        """
-        """
+        """ """
         with R.start(uri=str(self.TMP_PATH)):
             pass
 
