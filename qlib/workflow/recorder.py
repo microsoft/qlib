@@ -21,6 +21,7 @@ from ..log import TimeInspector, get_module_logger
 from mlflow.store.artifact.azure_blob_artifact_repo import AzureBlobArtifactRepository
 
 logger = get_module_logger("workflow", logging.INFO)
+mlflow.utils.validation.MAX_PARAM_VAL_LENGTH = 1000
 
 
 class Recorder:
