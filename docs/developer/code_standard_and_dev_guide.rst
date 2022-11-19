@@ -16,7 +16,7 @@ When you submit a PR request, you can check whether your code passes the CI test
 
 1. Qlib will check the code format with black. The PR will raise error if your code does not align to the standard of Qlib(e.g. a common error is the mixed use of space and tab).
 
-   You can fix the bug by inputing the following code in the command line.
+   You can fix the bug by inputting the following code in the command line.
 
 .. code-block:: bash
 
