@@ -279,6 +279,7 @@ class MLflowRecorder(Recorder):
                 if mlflow_run.info.end_time is not None
                 else None
             )
+            self._artifact_uri = mlflow_run.info.artifact_uri
         self.async_log = None
 
     def __repr__(self):
