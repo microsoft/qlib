@@ -541,7 +541,7 @@ class Exchange:
     ) -> dict:
         """
         Generates the target position according to the weight and the cash.
-        NOTE: All the cash will assign to the tradable stock.
+        NOTE: All the cash will be assigned to the tradable stock.
         Parameter:
         weight_position : dict {stock_id : weight}; allocate cash by weight_position
             among then, weight must be in this range: 0 < weight < 1
