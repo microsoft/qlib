@@ -178,7 +178,7 @@ class SignalRecord(RecordTemp):
                 # The backend handler should be DataHandler
                 raw_label = dataset.prepare(**params)
             except AttributeError as e:
-                # The data handler is initialize with `drop_raw=True`...
+                # The data handler is initialized with `drop_raw=True`...
                 # So raw_label is not available
                 logger.warning(f"Exception: {e}")
                 raw_label = None

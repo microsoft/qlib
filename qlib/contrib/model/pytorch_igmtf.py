@@ -32,7 +32,7 @@ class IGMTF(Model):
     d_feat : int
         input dimension for each time step
     metric: str
-        the evaluate metric used in early stop
+        the evaluation metric used in early stop
     optimizer : str
         optimizer name
     GPU : str
