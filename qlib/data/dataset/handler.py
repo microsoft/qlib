@@ -347,6 +347,7 @@ class DataHandlerLP(DataHandler):
         - These processors only apply to the learning phase.
 
     Tips to improve the performance of data handler
+
     - To reduce the memory cost
 
         - `drop_raw=True`: this will modify the data inplace on raw data;
@@ -670,7 +671,7 @@ class DataHandlerLP(DataHandler):
     def cast(cls, handler: "DataHandlerLP") -> "DataHandlerLP":
         """
         Motivation
-        - A user create a datahandler in his customized package. Then he wants to share the processed handler to
+        - A user creates a datahandler in his customized package. Then he wants to share the processed handler to
           other users without introduce the package dependency and complicated data processing logic.
         - This class make it possible by casting the class to DataHandlerLP and only keep the processed data
 

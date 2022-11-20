@@ -271,7 +271,7 @@ class Exchange:
             raise NotImplementedError(f"This type of `limit_threshold` is not supported")
 
     def _update_limit(self, limit_threshold: Union[Tuple, float, None]) -> None:
-        # $close is may contain NaN, the nan indicates that the stock is not tradable at that timestamp
+        # $close may contain NaN, the nan indicates that the stock is not tradable at that timestamp
         suspended = self.quote_df["$close"].isna()
         # check limit_threshold
         limit_type = self._get_limit_type(limit_threshold)
