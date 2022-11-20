@@ -411,7 +411,7 @@ class QlibConfig(Config):
         if _logging_config:
             set_log_with_config(_logging_config)
 
-        logger = get_module_logger("Initialization", kwargs.get('logging_level', self.logging_level))
+        logger = get_module_logger("Initialization", kwargs.get("logging_level", self.logging_level))
         logger.info(f"default_conf: {default_conf}.")
 
         self.set_mode(default_conf)
