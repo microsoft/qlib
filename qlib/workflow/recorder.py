@@ -21,6 +21,8 @@ from ..log import TimeInspector, get_module_logger
 from mlflow.store.artifact.azure_blob_artifact_repo import AzureBlobArtifactRepository
 
 logger = get_module_logger("workflow", logging.INFO)
+# mlflow limits the length of log_param to 500, but this caused errors when using qrun, so we extended the mlflow limit.
+mlflow.utils.validation.MAX_PARAM_VAL_LENGTH = 1000
 
 
 class Recorder:
@@ -279,6 +281,7 @@ class MLflowRecorder(Recorder):
                 if mlflow_run.info.end_time is not None
                 else None
             )
+            self._artifact_uri = mlflow_run.info.artifact_uri
         self.async_log = None
 
     def __repr__(self):
@@ -378,14 +381,15 @@ class MLflowRecorder(Recorder):
             Recorder.STATUS_FI,
             Recorder.STATUS_FA,
         ], f"The status type {status} is not supported."
-        mlflow.end_run(status)
         self.end_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         if self.status != Recorder.STATUS_S:
             self.status = status
         if self.async_log is not None:
+            # Waiting Queue should go before mlflow.end_run. Otherwise mlflow will raise error
             with TimeInspector.logt("waiting `async_log`"):
                 self.async_log.wait()
         self.async_log = None
+        mlflow.end_run(status)
 
     def save_objects(self, local_path=None, artifact_path=None, **kwargs):
         assert self.uri is not None, "Please start the experiment and recorder first before using recorder directly."

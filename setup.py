@@ -62,7 +62,9 @@ REQUIRED = [
     "matplotlib>=3.3",
     "tables>=3.6.1",
     "pyyaml>=5.3.1",
-    "mlflow>=1.12.1",
+    # To ensure stable operation of the experiment manager, we have limited the version of mlflow,
+    # and we need to verify whether version 2.0 of mlflow can serve qlib properly.
+    "mlflow>=1.12.1, <=1.30.0",
     "tqdm",
     "loguru",
     "lightgbm>=3.3.0",
