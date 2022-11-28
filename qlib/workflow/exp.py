@@ -10,7 +10,7 @@ from mlflow.exceptions import MlflowException
 from .recorder import Recorder, MLflowRecorder
 from ..log import get_module_logger
 
-logger = get_module_logger("workflow", logging.INFO)
+logger = get_module_logger("workflow")
 
 
 class Experiment:
