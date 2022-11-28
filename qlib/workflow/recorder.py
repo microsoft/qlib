@@ -5,7 +5,6 @@ import os
 import sys
 from typing import Optional
 import mlflow
-import logging
 import shutil
 import pickle
 import tempfile
