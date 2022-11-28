@@ -8,7 +8,8 @@ from .utils import get_level_index, fetch_df_by_index, fetch_df_by_col
 
 
 class BaseHandlerStorage:
-    """Base data storage for datahandler
+    """
+    Base data storage for datahandler
     - pd.DataFrame is the default data storage format in Qlib datahandler
     - If users want to use custom data storage, they should define subclass inherited BaseHandlerStorage, and implement the following method
     """

@@ -21,6 +21,8 @@ from ..log import TimeInspector, get_module_logger
 from mlflow.store.artifact.azure_blob_artifact_repo import AzureBlobArtifactRepository
 
 logger = get_module_logger("workflow", logging.INFO)
+# mlflow limits the length of log_param to 500, but this caused errors when using qrun, so we extended the mlflow limit.
+mlflow.utils.validation.MAX_PARAM_VAL_LENGTH = 1000
 
 
 class Recorder:
@@ -279,6 +281,7 @@ class MLflowRecorder(Recorder):
                 if mlflow_run.info.end_time is not None
                 else None
             )
+            self._artifact_uri = mlflow_run.info.artifact_uri
         self.async_log = None
 
     def __repr__(self):
