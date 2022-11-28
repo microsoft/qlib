@@ -48,7 +48,7 @@ class QlibLogger(metaclass=MetaLogger):
         return self.logger.__getattribute__(name)
 
 
-class _QLibLoggerManager(object):
+class _QLibLoggerManager:
     def __init__(self):
         self._loggers = {}
 
