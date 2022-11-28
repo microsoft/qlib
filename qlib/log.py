@@ -79,6 +79,7 @@ class _QLibLoggerManager(object):
         module_logger.setLevel(level)
         return module_logger
 
+
 get_module_logger = _QLibLoggerManager()
 
 
