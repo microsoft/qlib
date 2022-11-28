@@ -117,7 +117,7 @@ class DEnsembleModel(Model, FeatureInt):
             num_boost_round=self.epochs,
             valid_sets=[dtrain, dvalid],
             valid_names=["train", "valid"],
-            callbacks=callbacks
+            callbacks=callbacks,
         )
         evals_result["train"] = list(evals_result["train"].values())[0]
         evals_result["valid"] = list(evals_result["valid"].values())[0]
