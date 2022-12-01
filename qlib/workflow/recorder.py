@@ -5,7 +5,6 @@ import os
 import sys
 from typing import Optional
 import mlflow
-import logging
 import shutil
 import pickle
 import tempfile
@@ -20,7 +19,7 @@ from qlib.utils.paral import AsyncCaller
 from ..log import TimeInspector, get_module_logger
 from mlflow.store.artifact.azure_blob_artifact_repo import AzureBlobArtifactRepository
 
-logger = get_module_logger("workflow", logging.INFO)
+logger = get_module_logger("workflow")
 # mlflow limits the length of log_param to 500, but this caused errors when using qrun, so we extended the mlflow limit.
 mlflow.utils.validation.MAX_PARAM_VAL_LENGTH = 1000
 
