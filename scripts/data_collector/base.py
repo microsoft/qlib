@@ -296,8 +296,8 @@ class Normalize:
         columns = pd.read_csv(file_path, nrows=0).columns
         df = pd.read_csv(
             file_path,
-            keep_default_na=False,
             dtype={self._symbol_field_name: str},
+            keep_default_na=False,
             na_values={col: symbol_na if col == self._symbol_field_name else default_na for col in columns},
         )
 
