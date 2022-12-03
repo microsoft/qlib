@@ -25,18 +25,22 @@ def get_mongodb() -> Database:
 
         Using qlib.init():
 
-            mongo_conf = {
-                "task_url": task_url,  # your MongoDB url
-                "task_db_name": task_db_name,  # database name
-            }
-            qlib.init(..., mongo=mongo_conf)
+            .. code-block:: python
+
+                mongo_conf = {
+                    "task_url": task_url,  # your MongoDB url
+                    "task_db_name": task_db_name,  # database name
+                }
+                qlib.init(..., mongo=mongo_conf)
 
         After qlib.init():
 
-            C["mongo"] = {
-                "task_url" : "mongodb://localhost:27017/",
-                "task_db_name" : "rolling_db"
-            }
+            .. code-block:: python
+
+                C["mongo"] = {
+                    "task_url" : "mongodb://localhost:27017/",
+                    "task_db_name" : "rolling_db"
+                }
 
     Returns:
         Database: the Database instance

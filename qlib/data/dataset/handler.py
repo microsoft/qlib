@@ -35,7 +35,7 @@ class DataHandler(Serializable):
     Example of the data:
     The multi-index of the columns is optional.
 
-    .. code-block:: python
+    .. code-block:: text
 
                                 feature                                                            label
                                 $close     $volume  Ref($close, 1)  Mean($close, 3)  $high-$low  LABEL0
@@ -671,6 +671,7 @@ class DataHandlerLP(DataHandler):
     def cast(cls, handler: "DataHandlerLP") -> "DataHandlerLP":
         """
         Motivation
+
         - A user creates a datahandler in his customized package. Then he wants to share the processed handler to
           other users without introduce the package dependency and complicated data processing logic.
         - This class make it possible by casting the class to DataHandlerLP and only keep the processed data

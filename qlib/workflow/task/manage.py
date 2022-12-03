@@ -505,8 +505,9 @@ def run_task(
     Parameters
     ----------
     task_func : Callable
-        def (task_def, **kwargs) -> <res which will be committed>
-            the function to run the task
+        def (task_def, \*\*kwargs) -> <res which will be committed>
+
+        the function to run the task
     task_pool : str
         the name of the task pool (Collection in MongoDB)
     query: dict

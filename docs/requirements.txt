@@ -4,3 +4,4 @@ numpy
 scipy
 scikit-learn
 pandas
+tianshou
