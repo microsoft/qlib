@@ -505,7 +505,7 @@ def run_task(
     Parameters
     ----------
     task_func : Callable
-        def (task_def, \*\*kwargs) -> <res which will be committed>
+        def (task_def, \**kwargs) -> <res which will be committed>
 
         the function to run the task
     task_pool : str
