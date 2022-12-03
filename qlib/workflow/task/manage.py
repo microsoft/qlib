@@ -489,7 +489,7 @@ def run_task(
     after_status: str = TaskManager.STATUS_DONE,
     **kwargs,
 ):
-    """
+    r"""
     While the task pool is not empty (has WAITING tasks), use task_func to fetch and run tasks in task_pool
 
     After running this method, here are 4 situations (before_status -> after_status):
