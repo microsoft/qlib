@@ -96,9 +96,11 @@ def indicator_analysis(df, method="mean"):
         index: Index(datetime)
     method : str, optional
         statistics method of pa/ffr, by default "mean"
+
         - if method is 'mean', count the mean statistical value of each trade indicator
         - if method is 'amount_weighted', count the deal_amount weighted mean statistical value of each trade indicator
         - if method is 'value_weighted', count the value weighted mean statistical value of each trade indicator
+
         Note: statistics method of pos is always "mean"
 
     Returns
@@ -154,6 +156,7 @@ def backtest_daily(
         E.g.
 
         .. code-block:: python
+
             # dict
             strategy = {
                 "class": "TopkDropoutStrategy",
@@ -179,7 +182,6 @@ def backtest_daily(
             #     - "ClassName":  getattr(module, "ClassName")() will be used.
             # 3) specify module path with class name
             #     - "a.b.c.ClassName" getattr(<a.b.c.module>, "ClassName")() will be used.
-
 
     executor : Union[str, dict, BaseExecutor]
         for initializing the outermost executor.

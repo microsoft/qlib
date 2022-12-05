@@ -3,7 +3,7 @@
 
 """
 The Trainer will train a list of tasks and return a list of model recorders.
-There are two steps in each Trainer including ``train``(make model recorder) and ``end_train``(modify model recorder).
+There are two steps in each Trainer including ``train`` (make model recorder) and ``end_train`` (modify model recorder).
 
 This is a concept called ``DelayTrainer``, which can be used in online simulating for parallel training.
 In ``DelayTrainer``, the first step is only to save some necessary info to model recorders, and the second step which will be finished in the end can do some concurrent and time-consuming operations such as model fitting.
@@ -242,7 +242,7 @@ class TrainerR(Trainer):
 
     def train(self, tasks: list, train_func: Callable = None, experiment_name: str = None, **kwargs) -> List[Recorder]:
         """
-        Given a list of `task`s and return a list of trained Recorder. The order can be guaranteed.
+        Given a list of `tasks` and return a list of trained Recorder. The order can be guaranteed.
 
         Args:
             tasks (list): a list of definitions based on `task` dict
@@ -315,7 +315,7 @@ class DelayTrainerR(TrainerR):
 
         Args:
             models (list): a list of Recorder, the tasks have been saved to them
-            end_train_func (Callable, optional): the end_train method which needs at least `recorder`s and `experiment_name`. Defaults to None for using self.end_train_func.
+            end_train_func (Callable, optional): the end_train method which needs at least `recorders` and `experiment_name`. Defaults to None for using self.end_train_func.
             experiment_name (str): the experiment name, None for use default name.
             kwargs: the params for end_train_func.
 
@@ -390,14 +390,14 @@ class TrainerRM(Trainer):
         **kwargs,
     ) -> List[Recorder]:
         """
-        Given a list of `task`s and return a list of trained Recorder. The order can be guaranteed.
+        Given a list of `tasks` and return a list of trained Recorder. The order can be guaranteed.
 
         This method defaults to a single process, but TaskManager offered a great way to parallel training.
         Users can customize their train_func to realize multiple processes or even multiple machines.
 
         Args:
             tasks (list): a list of definitions based on `task` dict
-            train_func (Callable): the training method which needs at least `task`s and `experiment_name`. None for the default training method.
+            train_func (Callable): the training method which needs at least `tasks` and `experiment_name`. None for the default training method.
             experiment_name (str): the experiment name, None for use default name.
             before_status (str): the tasks in before_status will be fetched and trained. Can be STATUS_WAITING, STATUS_PART_DONE.
             after_status (str): the tasks after trained will become after_status. Can be STATUS_WAITING, STATUS_PART_DONE.
@@ -470,7 +470,7 @@ class TrainerRM(Trainer):
         The multiprocessing method for `train`. It can share a same task_pool with `train` and can run in other progress or other machines.
 
         Args:
-            train_func (Callable): the training method which needs at least `task`s and `experiment_name`. None for the default training method.
+            train_func (Callable): the training method which needs at least `tasks` and `experiment_name`. None for the default training method.
             experiment_name (str): the experiment name, None for use default name.
         """
         if train_func is None:
@@ -525,7 +525,7 @@ class DelayTrainerRM(TrainerRM):
 
         Args:
             tasks (list): a list of definition based on `task` dict
-            train_func (Callable): the train method which need at least `task`s and `experiment_name`. Defaults to None for using self.train_func.
+            train_func (Callable): the train method which need at least `tasks` and `experiment_name`. Defaults to None for using self.train_func.
             experiment_name (str): the experiment name, None for use default name.
 
         Returns:
@@ -554,7 +554,7 @@ class DelayTrainerRM(TrainerRM):
 
         Args:
             recs (list): a list of Recorder, the tasks have been saved to them.
-            end_train_func (Callable, optional): the end_train method which need at least `recorder`s and `experiment_name`. Defaults to None for using self.end_train_func.
+            end_train_func (Callable, optional): the end_train method which need at least `recorders` and `experiment_name`. Defaults to None for using self.end_train_func.
             experiment_name (str): the experiment name, None for use default name.
             kwargs: the params for end_train_func.
 
@@ -596,7 +596,7 @@ class DelayTrainerRM(TrainerRM):
         The multiprocessing method for `end_train`. It can share a same task_pool with `end_train` and can run in other progress or other machines.
 
         Args:
-            end_train_func (Callable, optional): the end_train method which need at least `recorder`s and `experiment_name`. Defaults to None for using self.end_train_func.
+            end_train_func (Callable, optional): the end_train method which need at least `recorders` and `experiment_name`. Defaults to None for using self.end_train_func.
             experiment_name (str): the experiment name, None for use default name.
         """
         if end_train_func is None:
