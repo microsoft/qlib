@@ -290,6 +290,8 @@ class Normalize:
     def _executor(self, file_path: Path):
         file_path = Path(file_path)
 
+        # some symbol_field values such as TRUE, NA are decoded as True(bool), NaN(np.float) by pandas default csv parsing.
+        # manually defines dtype and na_values of the symbol_field.
         default_na = pd._libs.parsers.STR_NA_VALUES
         symbol_na = default_na.copy()
         symbol_na.remove("NA")
