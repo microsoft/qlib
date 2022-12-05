@@ -1,9 +1,9 @@
 # Crowd Source Data
 
 ## Initiative
-Public data source like yahoo is flawed, it might miss data for stock which is delisted and it might has data which is wrong. This can introduce survivorship bias into our training process.
+Public data source like yahoo is flawed, it might miss data for stock which is delisted and it might have data which is wrong. This can introduce survivorship bias into our training process.
 
-The crowd sourced data is introduced to merged data from multiple data source and cross validate against each other, so that:
+The Crowd Source Data is introduced to merged data from multiple data source and cross validate against each other, so that:
 1. We will have a more complete history record.
 2. We can identify the anomaly data and apply correction when necessary.
 
@@ -12,7 +12,7 @@ The raw data is hosted on dolthub repo: https://www.dolthub.com/repositories/che
 
 The processing script and sql is hosted on github repo: https://github.com/chenditc/investment_data
 
-The pakcaged docker runtime is hosted on dockerhub: https://hub.docker.com/repository/docker/chenditc/investment_data
+The packaged docker runtime is hosted on dockerhub: https://hub.docker.com/repository/docker/chenditc/investment_data
 
 ## How to use it in qlib
 ### Option 1: Download release bin data

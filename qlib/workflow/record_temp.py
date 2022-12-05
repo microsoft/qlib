@@ -118,6 +118,7 @@ class RecordTemp:
         """
         Check if the records is properly generated and saved.
         It is useful in following examples
+
         - checking if the depended files complete before generating new things.
         - checking if the final files is completed
 
@@ -131,7 +132,7 @@ class RecordTemp:
         Raise
         ------
         FileNotFoundError
-        : whether the records are stored properly.
+            whether the records are stored properly.
         """
         if include_self:
 
@@ -178,7 +179,7 @@ class SignalRecord(RecordTemp):
                 # The backend handler should be DataHandler
                 raw_label = dataset.prepare(**params)
             except AttributeError as e:
-                # The data handler is initialize with `drop_raw=True`...
+                # The data handler is initialized with `drop_raw=True`...
                 # So raw_label is not available
                 logger.warning(f"Exception: {e}")
                 raw_label = None

@@ -35,7 +35,7 @@ class DataHandler(Serializable):
     Example of the data:
     The multi-index of the columns is optional.
 
-    .. code-block:: python
+    .. code-block:: text
 
                                 feature                                                            label
                                 $close     $volume  Ref($close, 1)  Mean($close, 3)  $high-$low  LABEL0
@@ -137,7 +137,7 @@ class DataHandler(Serializable):
         # Setup data.
         # _data may be with multiple column index level. The outer level indicates the feature set name
         with TimeInspector.logt("Loading data"):
-            # make sure the fetch method is based on a index-sorted pd.DataFrame
+            # make sure the fetch method is based on an index-sorted pd.DataFrame
             self._data = lazy_sort_index(self.data_loader.load(self.instruments, self.start_time, self.end_time))
         # TODO: cache
 
@@ -167,7 +167,7 @@ class DataHandler(Serializable):
                 - a slice range
                 - pd.Index for specific indexes
 
-            Following conflictions may occurs
+            Following conflicts may occur
 
             - Does ["20200101", "20210101"] mean selecting this slice or these two days?
 
@@ -229,7 +229,7 @@ class DataHandler(Serializable):
         # This method is extracted for sharing in subclasses
         from .storage import BaseHandlerStorage  # pylint: disable=C0415
 
-        # Following conflictions may occurs
+        # Following conflicts may occur
         # - Does [20200101", "20210101"] mean selecting this slice or these two days?
         # To solve this issue
         #   - slice have higher priorities (except when level is none)
@@ -313,7 +313,7 @@ class DataHandler(Serializable):
         self, periods: int, min_periods: Optional[int] = None, **kwargs
     ) -> Iterator[Tuple[pd.Timestamp, pd.DataFrame]]:
         """
-        get a iterator of sliced data with given periods
+        get an iterator of sliced data with given periods
 
         Args:
             periods (int): number of periods.
@@ -412,13 +412,13 @@ class DataHandlerLP(DataHandler):
         process_type: str
             PTYPE_I = 'independent'
 
-            - self._infer will processed by infer_processors
+            - self._infer will be processed by infer_processors
 
             - self._learn will be processed by learn_processors
 
             PTYPE_A = 'append'
 
-            - self._infer will processed by infer_processors
+            - self._infer will be processed by infer_processors
 
             - self._learn will be processed by infer_processors + learn_processors
 
@@ -671,7 +671,9 @@ class DataHandlerLP(DataHandler):
     def cast(cls, handler: "DataHandlerLP") -> "DataHandlerLP":
         """
         Motivation
-        - A user create a datahandler in his customized package. Then he want to share the processed handler to other users without introduce the package dependency and complicated data processing logic.
+
+        - A user creates a datahandler in his customized package. Then he wants to share the processed handler to
+          other users without introduce the package dependency and complicated data processing logic.
         - This class make it possible by casting the class to DataHandlerLP and only keep the processed data
 
         Parameters
@@ -685,7 +687,7 @@ class DataHandlerLP(DataHandler):
             the converted processed data
         """
         new_hd: DataHandlerLP = object.__new__(DataHandlerLP)
-        new_hd.from_cast = True  # add a mark for the casted instance
+        new_hd.from_cast = True  # add a mark for the cast instance
 
         for key in list(DataHandlerLP.ATTR_MAP.values()) + [
             "instruments",

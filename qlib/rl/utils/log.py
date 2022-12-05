@@ -121,7 +121,7 @@ class LogCollector:
         """Log something with any type.
 
         As it's an "any" object, the only LogWriter accepting it is pickle.
-        Therefore pickle must be able to serialize it.
+        Therefore, pickle must be able to serialize it.
         """
         if loglevel < self._min_loglevel:
             return
@@ -243,7 +243,7 @@ class LogWriter(Generic[ObsType, ActType]):
         rewards
             A list of rewards at each step of this episode.
         contents
-            Logged contents for every steps.
+            Logged contents for every step.
         """
 
     def log_step(self, reward: float, contents: Dict[str, Any]) -> None:
@@ -285,7 +285,7 @@ class LogWriter(Generic[ObsType, ActType]):
 
             self.log_episode(self.episode_lengths[env_id], self.episode_rewards[env_id], self.episode_logs[env_id])
 
-    def on_env_reset(self, env_id: int, obs: ObsType) -> None:
+    def on_env_reset(self, env_id: int, _: ObsType) -> None:
         """Callback for finite env.
 
         Reset episode statistics. Nothing task-specific is logged here because of
@@ -321,7 +321,7 @@ class LogBuffer(LogWriter):
 
         - on_episode: Whether it's called at the end of an episode
         - on_collect: Whether it's called at the end of a collect
-        - log_buffer: the :class:`LogBbuffer`object
+        - log_buffer: the :class:`LogBbuffer` object
 
         No return value is expected.
     """

@@ -15,6 +15,7 @@ from .recorder import Recorder
 from ..log import get_module_logger
 from ..utils.exceptions import ExpAlreadyExistError
 
+
 logger = get_module_logger("workflow")
 
 
@@ -22,16 +23,25 @@ class ExpManager:
     """
     This is the `ExpManager` class for managing experiments. The API is designed similar to mlflow.
     (The link: https://mlflow.org/docs/latest/python_api/mlflow.html)
+
+    The `ExpManager` is expected to be a singleton (btw, we can have multiple `Experiment`s with different uri. user can get different experiments from different uri, and then compare records of them). Global Config (i.e. `C`)  is also a singleton.
+
+    So we try to align them together.  They share the same variable, which is called **default uri**. Please refer to `ExpManager.default_uri` for details of variable sharing.
+
+    When the user starts an experiment, the user may want to set the uri to a specific uri (it will override **default uri** during this period), and then unset the **specific uri** and fallback to the **default uri**.    `ExpManager._active_exp_uri` is that **specific uri**.
     """
 
+    active_experiment: Optional[Experiment]
+
     def __init__(self, uri: Text, default_exp_name: Optional[Text]):
-        self._current_uri = uri
+        self.default_uri = uri
+        self._active_exp_uri = None  # No active experiments. So it is set to None
         self._default_exp_name = default_exp_name
         self.active_experiment = None  # only one experiment can be active each time
-        logger.info(f"experiment manager uri is at {self._current_uri}")
+        logger.debug(f"experiment manager uri is at {self.uri}")
 
     def __repr__(self):
-        return "{name}(current_uri={curi})".format(name=self.__class__.__name__, curi=self._current_uri)
+        return "{name}(uri={uri})".format(name=self.__class__.__name__, uri=self.uri)
 
     def start_exp(
         self,
@@ -43,10 +53,12 @@ class ExpManager:
         uri: Optional[Text] = None,
         resume: bool = False,
         **kwargs,
-    ):
+    ) -> Experiment:
         """
         Start an experiment. This method includes first get_or_create an experiment, and then
         set it to be active.
+
+        Maintaining `_active_exp_uri` is included in start_exp, remaining implementation should be included in _end_exp in subclass
 
         Parameters
         ----------
@@ -67,11 +79,27 @@ class ExpManager:
         -------
         An active experiment.
         """
+        self._active_exp_uri = uri
+        # The subclass may set the underlying uri back.
+        # So setting `_active_exp_uri` come before `_start_exp`
+        return self._start_exp(
+            experiment_id=experiment_id,
+            experiment_name=experiment_name,
+            recorder_id=recorder_id,
+            recorder_name=recorder_name,
+            resume=resume,
+            **kwargs,
+        )
+
+    def _start_exp(self, *args, **kwargs) -> Experiment:
+        """Please refer to the doc of `start_exp`"""
         raise NotImplementedError(f"Please implement the `start_exp` method.")
 
     def end_exp(self, recorder_status: Text = Recorder.STATUS_S, **kwargs):
         """
         End an active experiment.
+
+        Maintaining `_active_exp_uri` is included in end_exp, remaining implementation should be included in _end_exp in subclass
 
         Parameters
         ----------
@@ -80,6 +108,12 @@ class ExpManager:
         recorder_status : str
             the status of the active recorder of the experiment.
         """
+        self._active_exp_uri = None
+        # The subclass may set the underlying uri back.
+        # So setting `_active_exp_uri` come before `_end_exp`
+        self._end_exp(recorder_status=recorder_status, **kwargs)
+
+    def _end_exp(self, recorder_status: Text = Recorder.STATUS_S, **kwargs):
         raise NotImplementedError(f"Please implement the `end_exp` method.")
 
     def create_exp(self, experiment_name: Optional[Text] = None):
@@ -254,6 +288,10 @@ class ExpManager:
             raise ValueError("The default URI is not set in qlib.config.C")
         return C.exp_manager["kwargs"]["uri"]
 
+    @default_uri.setter
+    def default_uri(self, value):
+        C.exp_manager.setdefault("kwargs", {})["uri"] = value
+
     @property
     def uri(self):
         """
@@ -263,33 +301,7 @@ class ExpManager:
         -------
         The tracking URI string.
         """
-        return self._current_uri or self.default_uri
-
-    def set_uri(self, uri: Optional[Text] = None):
-        """
-        Set the current tracking URI and the corresponding variables.
-
-        Parameters
-        ----------
-        uri  : str
-
-        """
-        if uri is None:
-            if self._current_uri is None:
-                logger.debug("No tracking URI is provided. Use the default tracking URI.")
-                self._current_uri = self.default_uri
-        else:
-            # Temporarily re-set the current uri as the uri argument.
-            self._current_uri = uri
-        # Customized features for subclasses.
-        self._set_uri()
-
-    def _set_uri(self):
-        """
-        Customized features for subclasses' set_uri function.
-        This method is designed for the underlying experiment backend storage.
-        """
-        raise NotImplementedError(f"Please implement the `_set_uri` method.")
+        return self._active_exp_uri or self.default_uri
 
     def list_experiments(self):
         """
@@ -307,33 +319,21 @@ class MLflowExpManager(ExpManager):
     Use mlflow to implement ExpManager.
     """
 
-    def __init__(self, uri: Text, default_exp_name: Optional[Text]):
-        super(MLflowExpManager, self).__init__(uri, default_exp_name)
-        self._client = None
-
-    def _set_uri(self):
-        self._client = mlflow.tracking.MlflowClient(tracking_uri=self.uri)
-        logger.info("{:}".format(self._client))
-
     @property
     def client(self):
-        # Delay the creation of mlflow client in case of creating `mlruns` folder when importing qlib
-        if self._client is None:
-            self._client = mlflow.tracking.MlflowClient(tracking_uri=self.uri)
-        return self._client
+        # Please refer to `tests/dependency_tests/test_mlflow.py::MLflowTest::test_creating_client`
+        # The test ensure the speed of create a new client
+        return mlflow.tracking.MlflowClient(tracking_uri=self.uri)
 
-    def start_exp(
+    def _start_exp(
         self,
         *,
         experiment_id: Optional[Text] = None,
         experiment_name: Optional[Text] = None,
         recorder_id: Optional[Text] = None,
         recorder_name: Optional[Text] = None,
-        uri: Optional[Text] = None,
         resume: bool = False,
     ):
-        # Set the tracking uri
-        self.set_uri(uri)
         # Create experiment
         if experiment_name is None:
             experiment_name = self._default_exp_name
@@ -345,12 +345,10 @@ class MLflowExpManager(ExpManager):
 
         return self.active_experiment
 
-    def end_exp(self, recorder_status: Text = Recorder.STATUS_S):
+    def _end_exp(self, recorder_status: Text = Recorder.STATUS_S):
         if self.active_experiment is not None:
             self.active_experiment.end(recorder_status)
             self.active_experiment = None
-        # When an experiment end, we will release the current uri.
-        self._current_uri = None
 
     def create_exp(self, experiment_name: Optional[Text] = None):
         assert experiment_name is not None
@@ -362,9 +360,7 @@ class MLflowExpManager(ExpManager):
                 raise ExpAlreadyExistError() from e
             raise e
 
-        experiment = MLflowExperiment(experiment_id, experiment_name, self.uri)
-        experiment._default_name = self._default_exp_name
-        return experiment
+        return MLflowExperiment(experiment_id, experiment_name, self.uri)
 
     def _get_exp(self, experiment_id=None, experiment_name=None):
         """

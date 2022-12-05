@@ -35,7 +35,7 @@ Simulation + DelayTrainer  When your models don't have any temporal dependence, 
                            different time segments (based on whether or not any new model is online).
 =========================  ===================================================================================
 
-Here is some pseudo code the demonstrate the workflow of each situation
+Here is some pseudo code that demonstrate the workflow of each situation
 
 For simplicity
     - Only one strategy is used in the strategy
@@ -121,7 +121,7 @@ class OnlineManager(Serializable):
         Args:
             strategies (Union[OnlineStrategy, List[OnlineStrategy]]): an instance of OnlineStrategy or a list of OnlineStrategy
             begin_time (Union[str,pd.Timestamp], optional): the OnlineManager will begin at this time. Defaults to None for using the latest date.
-            trainer (Trainer): the trainer to train task. None for using TrainerR.
+            trainer (qlib.model.trainer.Trainer): the trainer to train task. None for using TrainerR.
             freq (str, optional): data frequency. Defaults to "day".
         """
         self.logger = get_module_logger(self.__class__.__name__)

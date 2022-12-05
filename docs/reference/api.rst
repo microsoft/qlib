@@ -117,7 +117,7 @@ Model
 Strategy
 --------
 
-.. automodule:: qlib.contrib.strategy.strategy
+.. automodule:: qlib.contrib.strategy
     :members:
 
 Evaluate
@@ -255,7 +255,7 @@ Utils
 Serializable
 ------------
 
-.. automodule:: qlib.utils.serial.Serializable
+.. automodule:: qlib.utils.serial
     :members:
 
 RL

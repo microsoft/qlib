@@ -27,10 +27,10 @@ from .high_performance_ds import BaseQuote, NumpyQuote
 
 class Exchange:
     # `quote_df` is a pd.DataFrame class that contains basic information for backtesting
-    # After some processing, the data will later be maintained by `quote_cls` object for faster data retriving.
+    # After some processing, the data will later be maintained by `quote_cls` object for faster data retrieving.
     # Some conventions for `quote_df`
     # - $close is for calculating the total value at end of each day.
-    #   - if $close is None, the stock on that day is reguarded as suspended.
+    #   - if $close is None, the stock on that day is regarded as suspended.
     # - $factor is for rounding to the trading unit;
     #   - if any $factor is missing when $close exists, trading unit rounding will be disabled
     quote_df: pd.DataFrame
@@ -141,7 +141,7 @@ class Exchange:
         if deal_price is None:
             deal_price = C.deal_price
 
-        # we have some verbose information here. So logging is enable
+        # we have some verbose information here. So logging is enabled
         self.logger = get_module_logger("online operator")
 
         # TODO: the quote, trade_dates, codes are not necessary.
@@ -168,7 +168,7 @@ class Exchange:
         self.codes = codes
         # Necessary fields
         # $close is for calculating the total value at end of each day.
-        # - if $close is None, the stock on that day is reguarded as suspended.
+        # - if $close is None, the stock on that day is regarded as suspended.
         # $factor is for rounding to the trading unit
         # $change is for calculating the limit of the stock
 
@@ -271,7 +271,7 @@ class Exchange:
             raise NotImplementedError(f"This type of `limit_threshold` is not supported")
 
     def _update_limit(self, limit_threshold: Union[Tuple, float, None]) -> None:
-        # $close is may contains NaN, the nan indicates that the stock is not tradable at that timestamp
+        # $close may contain NaN, the nan indicates that the stock is not tradable at that timestamp
         suspended = self.quote_df["$close"].isna()
         # check limit_threshold
         limit_type = self._get_limit_type(limit_threshold)
@@ -356,12 +356,12 @@ class Exchange:
 
         Returns
         -------
-        True: the trading of the stock is limted (maybe hit the highest/lowest price), hence the stock is not tradable
+        True: the trading of the stock is limited (maybe hit the highest/lowest price), hence the stock is not tradable
         False: the trading of the stock is not limited, hence the stock may be tradable
         """
         # NOTE:
         # **all** is used when checking limitation.
-        # For example, the stock trading is limited in a day if every miniute is limited in a day if every miniute is limited.
+        # For example, the stock trading is limited in a day if every minute is limited in a day if every minute is limited.
         if direction is None:
             # The trading limitation is related to the trading direction
             # if the direction is not provided, then any limitation from buy or sell will result in trading limitation
@@ -385,17 +385,17 @@ class Exchange:
         # is suspended
         if stock_id in self.quote.get_all_stock():
             # suspended stocks are represented by None $close stock
-            # The $close may contains NaN,
+            # The $close may contain NaN,
             close = self.quote.get_data(stock_id, start_time, end_time, "$close")
             if close is None:
                 # if no close record exists
                 return True
             elif isinstance(close, IndexData):
-                # **any** non-NaN $close represents trading opportunity may exists
+                # **any** non-NaN $close represents trading opportunity may exist
                 #  if all returned is nan, then the stock is suspended
                 return cast(bool, cast(IndexData, close).isna().all())
             else:
-                # it is single value, make sure is is not None
+                # it is single value, make sure is not None
                 return np.isnan(close)
         else:
             # if the stock is not in the stock list, then it is not tradable and regarded as suspended
@@ -540,8 +540,8 @@ class Exchange:
         direction: OrderDir = OrderDir.BUY,
     ) -> dict:
         """
-        The generate the target position according to the weight and the cash.
-        NOTE: All the cash will assigned to the tradable stock.
+        Generates the target position according to the weight and the cash.
+        NOTE: All the cash will be assigned to the tradable stock.
         Parameter:
         weight_position : dict {stock_id : weight}; allocate cash by weight_position
             among then, weight must be in this range: 0 < weight < 1
@@ -639,7 +639,7 @@ class Exchange:
         random.shuffle(sorted_ids)
         for stock_id in sorted_ids:
 
-            # Do not generate order for the nontradable stocks
+            # Do not generate order for the non-tradable stocks
             if not self.is_stock_tradable(stock_id=stock_id, start_time=start_time, end_time=end_time):
                 continue
 

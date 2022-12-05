@@ -276,8 +276,8 @@ def model_performance_graph(
 ) -> [list, tuple]:
     """Model performance
 
-    :param pred_label: index is **pd.MultiIndex**, index name is **[instrument, datetime]**; columns names is **[score,
-    label]**. It is usually same as the label of model training(e.g. "Ref($close, -2)/Ref($close, -1) - 1").
+    :param pred_label: index is **pd.MultiIndex**, index name is **[instrument, datetime]**; columns names is **[score, label]**.
+           It is usually same as the label of model training(e.g. "Ref($close, -2)/Ref($close, -1) - 1").
 
 
             .. code-block:: python

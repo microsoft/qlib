@@ -24,11 +24,11 @@ class OnlineStrategy:
     def __init__(self, name_id: str):
         """
         Init OnlineStrategy.
-        This module **MUST** use `Trainer <../reference/api.html#Trainer>`_ to finishing model training.
+        This module **MUST** use `Trainer <../reference/api.html#qlib.model.trainer.Trainer>`_ to finishing model training.
 
         Args:
             name_id (str): a unique name or id.
-            trainer (Trainer, optional): a instance of Trainer. Defaults to None.
+            trainer (qlib.model.trainer.Trainer, optional): a instance of Trainer. Defaults to None.
         """
         self.name_id = name_id
         self.logger = get_module_logger(self.__class__.__name__)
