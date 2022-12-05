@@ -1530,6 +1530,7 @@ class TResample(ElemOperator):
         """
         Resampling the data to target frequency.
         The resample function of pandas is used.
+
         - the timestamp will be at the start of the time span after resample.
 
         Parameters
@@ -1632,10 +1633,14 @@ class OpsWrapper:
         ops_list : List[Union[Type[ExpressionOps], dict]]
             - if type(ops_list) is List[Type[ExpressionOps]], each element of ops_list represents the operator class, which should be the subclass of `ExpressionOps`.
             - if type(ops_list) is List[dict], each element of ops_list represents the config of operator, which has the following format:
-                {
-                    "class": class_name,
-                    "module_path": path,
-                }
+
+                .. code-block:: text
+
+                    {
+                        "class": class_name,
+                        "module_path": path,
+                    }
+
                 Note: `class` should be the class name of operator, `module_path` should be a python module or path of file.
         """
         for _operator in ops_list:

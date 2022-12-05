@@ -220,7 +220,8 @@ class InstrumentProvider(abc.ABC):
         ----------
         dict: if isinstance(market, str)
             dict of stockpool config.
-            {`market`=>base market name, `filter_pipe`=>list of filters}
+
+            {`market` => base market name, `filter_pipe` => list of filters}
 
             example :
 
@@ -432,9 +433,12 @@ class ExpressionProvider(abc.ABC):
             data of a certain expression
 
             The data has two types of format
+
             1) expression with datetime index
+
             2) expression with integer index
-            - because the datetime is not as good as
+
+                - because the datetime is not as good as
         """
         raise NotImplementedError("Subclass of ExpressionProvider must implement `Expression` method")
 
@@ -890,6 +894,7 @@ class LocalDatasetProvider(DatasetProvider):
             Will we align the time to calendar
             the frequency is flexible in some dataset and can't be aligned.
             For the data with fixed frequency with a shared calendar, the align data to the calendar will provides following benefits
+
             - Align queries to the same parameters, so the cache can be shared.
         """
         super().__init__()
@@ -1167,10 +1172,11 @@ class BaseProvider:
         inst_processors=[],
     ):
         """
-        Parameters:
-        -----------
+        Parameters
+        ----------
         disk_cache : int
             whether to skip(0)/use(1)/replace(2) disk_cache
+
 
         This function will try to use cache method which has a keyword `disk_cache`,
         and will use provider method if a type error is raised because the DatasetD instance
@@ -1221,10 +1227,12 @@ class ClientProvider(BaseProvider):
     """Client Provider
 
     Requesting data from server as a client. Can propose requests:
+
         - Calendar : Directly respond a list of calendars
         - Instruments (without filter): Directly respond a list/dict of instruments
         - Instruments (with filters):  Respond a list/dict of instruments
         - Features : Respond a cache uri
+
     The general workflow is described as follows:
     When the user use client provider to propose a request, the client provider will connect the server and send the request. The client will start to wait for the response. The response will be made instantly indicating whether the cache is available. The waiting procedure will terminate only when the client get the response saying `feature_available` is true.
     `BUG` : Everytime we make request for certain data we need to connect to the server, wait for the response and disconnect from it. We can't make a sequence of requests within one connection. You can refer to https://python-socketio.readthedocs.io/en/latest/client.html for documentation of python-socketIO client.

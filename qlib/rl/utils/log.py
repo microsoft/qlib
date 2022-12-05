@@ -321,7 +321,7 @@ class LogBuffer(LogWriter):
 
         - on_episode: Whether it's called at the end of an episode
         - on_collect: Whether it's called at the end of a collect
-        - log_buffer: the :class:`LogBbuffer`object
+        - log_buffer: the :class:`LogBbuffer` object
 
         No return value is expected.
     """

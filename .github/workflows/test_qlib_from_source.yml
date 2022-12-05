@@ -60,7 +60,7 @@ jobs:
     - name: Make html with sphinx
       run: |
         cd docs 
-        sphinx-build -b html . build
+        sphinx-build -W --keep-going -b html . _build
         cd ..
 
     # Check Qlib with pylint

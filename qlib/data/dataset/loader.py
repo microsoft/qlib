@@ -27,7 +27,7 @@ class DataLoader(abc.ABC):
 
         Example of the data (The multi-index of the columns is optional.):
 
-            .. code-block:: python
+            .. code-block:: text
 
                                         feature                                                             label
                                         $close     $volume     Ref($close, 1)  Mean($close, 3)  $high-$low  LABEL0
