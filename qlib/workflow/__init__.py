@@ -47,6 +47,7 @@ class QlibRecorder:
             with R.start(experiment_name='test', recorder_name='recorder_1', resume=True): # if users want to resume recorder, they have to specify the exact same name for experiment and recorder.
                 ... # further operations
 
+
         Parameters
         ----------
         experiment_id : str
@@ -204,7 +205,7 @@ class QlibRecorder:
         If user doesn't provide the id or name of the experiment, this method will try to retrieve the default experiment and
         list all the recorders of the default experiment. If the default experiment doesn't exist, the method will first
         create the default experiment, and then create a new recorder under it. (More information about the default experiment
-        can be found `here <../component/recorder.html#qlib.workflow.exp.Experiment>`_).
+        can be found `here <../component/recorder.html#qlib.workflow.exp.Experiment>`__).
 
         Here is the example code:
 
@@ -249,7 +250,7 @@ class QlibRecorder:
 
         - Else If '`create`' is False:
 
-            - If ``active experiment` exists:
+            - If `active experiment` exists:
 
                 - no id or name specified, return the active experiment.
 
@@ -294,7 +295,7 @@ class QlibRecorder:
             according to user's specification if the experiment hasn't been created before.
         start : bool
             when start is True,
-                if the experiment has not started(not activated), it will start
+            if the experiment has not started(not activated), it will start
             It is designed for R.log_params to auto start experiments
 
         Returns

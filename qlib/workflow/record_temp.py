@@ -118,6 +118,7 @@ class RecordTemp:
         """
         Check if the records is properly generated and saved.
         It is useful in following examples
+
         - checking if the depended files complete before generating new things.
         - checking if the final files is completed
 
@@ -131,7 +132,7 @@ class RecordTemp:
         Raise
         ------
         FileNotFoundError
-        : whether the records are stored properly.
+            whether the records are stored properly.
         """
         if include_self:
 

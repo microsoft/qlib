@@ -103,9 +103,13 @@ class TopkDropoutStrategy(BaseSignalStrategy):
             before sell stock , will check current.get_stock_count(order.stock_id) >= self.hold_thresh.
         only_tradable : bool
             will the strategy only consider the tradable stock when buying and selling.
+
             if only_tradable:
+
                 strategy will make decision with the tradable state of the stock info and avoid buy and sell them.
+
             else:
+
                 strategy will make buy sell decision without checking the tradable state of the stock.
         """
         super().__init__(**kwargs)
@@ -287,9 +291,11 @@ class WeightStrategyBase(BaseSignalStrategy):
             the decision of the strategy will base on the given signal
         trade_exchange : Exchange
             exchange that provides market info, used to deal order and generate report
+
             - If `trade_exchange` is None, self.trade_exchange will be set with common_infra
             - It allowes different trade_exchanges is used in different executions.
             - For example:
+
                 - In daily execution, both daily exchange and minutely are usable, but the daily exchange is recommended because it run faster.
                 - In minutely execution, the daily exchange is not usable, only the minutely exchange is recommended.
         """
@@ -303,6 +309,7 @@ class WeightStrategyBase(BaseSignalStrategy):
     def generate_target_weight_position(self, score, current, trade_start_time, trade_end_time):
         """
         Generate target position from score for this date and the current position.The cash is not considered in the position
+
         Parameters
         -----------
         score : pd.Series
@@ -355,12 +362,14 @@ class EnhancedIndexingStrategy(WeightStrategyBase):
 
     Users need to prepare their risk model data like below:
 
-    ├── /path/to/riskmodel
-    ├──── 20210101
-    ├────── factor_exp.{csv|pkl|h5}
-    ├────── factor_cov.{csv|pkl|h5}
-    ├────── specific_risk.{csv|pkl|h5}
-    ├────── blacklist.{csv|pkl|h5}  # optional
+    .. code-block:: text
+
+        ├── /path/to/riskmodel
+        ├──── 20210101
+        ├────── factor_exp.{csv|pkl|h5}
+        ├────── factor_cov.{csv|pkl|h5}
+        ├────── specific_risk.{csv|pkl|h5}
+        ├────── blacklist.{csv|pkl|h5}  # optional
 
     The risk model data can be obtained from risk data provider. You can also use
     `qlib.model.riskmodel.structured.StructuredCovEstimator` to prepare these data.

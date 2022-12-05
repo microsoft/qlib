@@ -45,7 +45,7 @@ class Collector(Serializable):
 
             {"IC": {"Xgboost": pd.Series, "LSTM": pd.Series}}
 
-            ......
+            ...
         """
         raise NotImplementedError(f"Please implement the `collect` method.")
 
@@ -58,7 +58,7 @@ class Collector(Serializable):
         Args:
             collected_dict (dict): the dict return by `collect`
             process_list (list or Callable): the list of processors or the instance of a processor to process dict.
-            The processor order is the same as the list order.
+                The processor order is the same as the list order.
                 For example: [Group1(..., Ensemble1()), Group2(..., Ensemble2())]
 
         Returns:
@@ -97,7 +97,7 @@ class MergeCollector(Collector):
         A can collect {"prediction": pd.Series} and B can collect {"IC": {"Xgboost": pd.Series, "LSTM": pd.Series}}.
         Then after this class's collect, we can collect {"A_prediction": pd.Series, "B_IC": {"Xgboost": pd.Series, "LSTM": pd.Series}}
 
-        ......
+        ...
 
     """
 
