@@ -14,11 +14,22 @@ args = parser.parse_args()
 
 np.random.seed(args.seed)
 
-path = os.path.join("data", "pickle", "backtesttest.pkl")  # TODO: rename file
+path = os.path.join("data", "pickle", "backtesttest.pkl")
 df = pickle.load(open(path, "rb")).reset_index()
 df["date"] = df["datetime"].dt.date.astype("datetime64")
 
 instruments = sorted(set(df["instrument"]))
+
+# TODO: The example is expected to be able to handle data containing missing values.
+# TODO: Currently, we just simply skip dates that contain missing data. We will add
+# TODO: this feature in the future.
+skip_dates = {}
+for instrument in instruments:
+    csv_df = pd.read_csv(os.path.join("data", "csv", f"{instrument}.csv"))
+    csv_df = csv_df[csv_df["close"].isna()]
+    dates = set([str(d).split(" ")[0] for d in csv_df["date"]])
+    skip_dates[instrument] = dates
+
 df_list = []
 for instrument in instruments:
     print(instrument)
@@ -26,6 +37,7 @@ for instrument in instruments:
     cur_df = df[df["instrument"] == instrument]
 
     dates = sorted(set([str(d).split(" ")[0] for d in cur_df["date"]]))
+    dates = [date for date in dates if date not in skip_dates[instrument]]
 
     n = args.num_order
     df_list.append(
