@@ -20,7 +20,9 @@ df["date"] = df["datetime"].dt.date.astype("datetime64")
 
 instruments = sorted(set(df["instrument"]))
 
-# Skip dates that contain missing data
+# TODO: The example is expected to be able to handle data containing missing values.
+# TODO: Currently, we just simply skip dates that contain missing data. We will add
+# TODO: this feature in the future.
 skip_dates = {}
 for instrument in instruments:
     csv_df = pd.read_csv(os.path.join("data", "csv", f"{instrument}.csv"))
