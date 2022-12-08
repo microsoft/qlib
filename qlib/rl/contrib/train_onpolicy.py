@@ -101,26 +101,32 @@ def train_and_test(
 ) -> None:
     order_root_path = Path(data_config["source"]["order_dir"])
 
+    data_granularity = simulator_config.get("data_granularity", 1)
+
     def _simulator_factory_simple(order: Order) -> SingleAssetOrderExecutionSimple:
         return SingleAssetOrderExecutionSimple(
             order=order,
             data_dir=Path(data_config["source"]["data_dir"]),
             ticks_per_step=simulator_config["time_per_step"],
+            data_granularity=data_granularity,
             deal_price_type=data_config["source"].get("deal_price_column", "close"),
             vol_threshold=simulator_config["vol_limit"],
         )
 
+    assert data_config["source"]["default_start_time"] % data_granularity == 0
+    assert data_config["source"]["default_end_time"] % data_granularity == 0
+
     train_dataset = LazyLoadDataset(
         order_file_path=order_root_path / "train",
         data_dir=Path(data_config["source"]["data_dir"]),
-        default_start_time_index=data_config["source"]["default_start_time"],
-        default_end_time_index=data_config["source"]["default_end_time"],
+        default_start_time_index=data_config["source"]["default_start_time"] // data_granularity,
+        default_end_time_index=data_config["source"]["default_end_time"] // data_granularity,
     )
     valid_dataset = LazyLoadDataset(
         order_file_path=order_root_path / "valid",
         data_dir=Path(data_config["source"]["data_dir"]),
-        default_start_time_index=data_config["source"]["default_start_time"],
-        default_end_time_index=data_config["source"]["default_end_time"],
+        default_start_time_index=data_config["source"]["default_start_time"] // data_granularity,
+        default_end_time_index=data_config["source"]["default_end_time"] // data_granularity,
     )
 
     callbacks = []
