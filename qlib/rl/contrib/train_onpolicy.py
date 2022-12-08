@@ -17,7 +17,9 @@ from qlib.rl.data.pickle_styled import load_simple_intraday_backtest_data
 from qlib.rl.interpreter import ActionInterpreter, StateInterpreter
 from qlib.rl.order_execution import SingleAssetOrderExecutionSimple
 from qlib.rl.reward import Reward
-from qlib.rl.trainer import Checkpoint, train
+from qlib.rl.trainer import Checkpoint, backtest, train
+from qlib.rl.trainer.callbacks import Callback, EarlyStopping, ValidationWriter
+from qlib.rl.utils.log import CsvWriter
 from qlib.utils import init_instance_by_config
 from tianshou.policy import BasePolicy
 from torch import nn
@@ -116,27 +118,30 @@ def train_and_test(
     assert data_config["source"]["default_start_time"] % data_granularity == 0
     assert data_config["source"]["default_end_time"] % data_granularity == 0
 
-    train_dataset = LazyLoadDataset(
-        order_file_path=order_root_path / "train",
-        data_dir=Path(data_config["source"]["data_dir"]),
-        default_start_time_index=data_config["source"]["default_start_time"] // data_granularity,
-        default_end_time_index=data_config["source"]["default_end_time"] // data_granularity,
-    )
-    valid_dataset = LazyLoadDataset(
-        order_file_path=order_root_path / "valid",
-        data_dir=Path(data_config["source"]["data_dir"]),
-        default_start_time_index=data_config["source"]["default_start_time"] // data_granularity,
-        default_end_time_index=data_config["source"]["default_end_time"] // data_granularity,
-    )
+    train_dataset, valid_dataset, test_dataset = [
+        LazyLoadDataset(
+            order_file_path=order_root_path / tag,
+            data_dir=Path(data_config["source"]["data_dir"]),
+            default_start_time_index=data_config["source"]["default_start_time"] // data_granularity,
+            default_end_time_index=data_config["source"]["default_end_time"] // data_granularity,
+        )
+        for tag in ("train", "valid", "test")
+    ]
 
-    callbacks = []
+    callbacks: List[Callback] = [ValidationWriter(dirpath=Path(trainer_config["checkpoint_path"]))]
     if "checkpoint_path" in trainer_config:
         callbacks.append(
             Checkpoint(
-                dirpath=Path(trainer_config["checkpoint_path"]),
-                every_n_iters=trainer_config["checkpoint_every_n_iters"],
+                dirpath=Path(trainer_config["checkpoint_path"]) / "checkpoints",
+                every_n_iters=trainer_config.get("checkpoint_every_n_iters", 1),
                 save_latest="copy",
             ),
+        )
+    if "earlystop_patience" in trainer_config:
+        callbacks.append(
+            EarlyStopping(
+                patience=trainer_config["earlystop_patience"],
+            )
         )
 
     trainer_kwargs = {
@@ -164,6 +169,18 @@ def train_and_test(
         initial_states=cast(List[Order], train_dataset),
         trainer_kwargs=trainer_kwargs,
         vessel_kwargs=vessel_kwargs,
+    )
+
+    backtest(
+        simulator_fn=_simulator_factory_simple,
+        state_interpreter=state_interpreter,
+        action_interpreter=action_interpreter,
+        initial_states=test_dataset,
+        policy=policy,
+        logger=CsvWriter(Path(trainer_config["checkpoint_path"])),
+        reward=reward,
+        # finite_env_type="subproc",
+        # concurrency=2,
     )
 
 

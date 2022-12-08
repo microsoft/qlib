@@ -6,6 +6,7 @@ Mimicks the hooks of Keras / PyTorch-Lightning, but tailored for the context of 
 """
 
 from __future__ import annotations
+from typing import List
 
 import copy
 import os
@@ -16,6 +17,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import numpy as np
+import pandas as pd
 import torch
 
 from qlib.log import get_module_logger
@@ -155,6 +157,12 @@ class EarlyStopping(Callback):
             if self.baseline is None or self._is_improvement(current, self.baseline):
                 self.wait = 0
 
+        msg = (
+            f"#{trainer.current_iter} current reward: {current:.4f}, best reward: {self.best:.4f} in #{self.best_iter}"
+        )
+        print(msg)
+        _logger.info(msg)
+
         # Only check after the first epoch.
         if self.wait >= self.patience and trainer.current_iter > 0:
             trainer.should_stop = True
@@ -175,6 +183,21 @@ class EarlyStopping(Callback):
 
     def _is_improvement(self, monitor_value, reference_value):
         return self.monitor_op(monitor_value - self.min_delta, reference_value)
+
+
+class ValidationWriter(Callback):
+    """Dump validation results to file."""
+
+    def __init__(self, dirpath: Path) -> None:
+        self.dirpath = dirpath
+        self.dirpath.mkdir(exist_ok=True, parents=True)
+        self.all_records: List[dict] = []
+
+    def on_validate_end(self, trainer: Trainer, vessel: TrainingVesselBase) -> None:
+        self.all_records.append(trainer.metrics)
+
+    def on_fit_end(self, trainer: Trainer, vessel: TrainingVesselBase) -> None:
+        pd.DataFrame.from_records(self.all_records).to_csv(self.dirpath / "validation_result.csv", index=True)
 
 
 class Checkpoint(Callback):

@@ -100,6 +100,9 @@ class SimpleIntradayBacktestData(BaseIntradayBacktestData):
         super(SimpleIntradayBacktestData, self).__init__()
 
         backtest = _read_pickle((data_dir if isinstance(data_dir, Path) else Path(data_dir)) / stock_id)
+        backtest = backtest.reset_index()
+        backtest["date"] = pd.to_datetime(backtest["date"])
+        backtest = backtest.set_index(["instrument", "datetime", "date"])
         backtest = backtest.loc[pd.IndexSlice[stock_id, :, date]]
 
         # No longer need for pandas >= 1.4
@@ -161,6 +164,9 @@ class IntradayProcessedData(BaseIntradayProcessedData):
         time_index: pd.Index,
     ) -> None:
         proc = _read_pickle((data_dir if isinstance(data_dir, Path) else Path(data_dir)) / stock_id)
+        proc = proc.reset_index()
+        proc["datetime"] = pd.to_datetime(proc["datetime"])
+        proc = proc.set_index(["instrument", "datetime", "date"])
         # We have to infer the names here because,
         # unfortunately they are not included in the original data.
         cnames = _infer_processed_data_column_names(feature_dim)
