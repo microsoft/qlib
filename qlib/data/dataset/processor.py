@@ -313,7 +313,7 @@ class CSZScoreNorm(Processor):
             self.fields_group = [self.fields_group]
         for g in self.fields_group:
             cols = get_group_columns(df, g)
-            df[cols] = df[cols].groupby("datetime").apply(self.zscore_func)
+            df[cols] = df[cols].groupby("datetime", group_keys=False).apply(self.zscore_func)
         return df
 
 
