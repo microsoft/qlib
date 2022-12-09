@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 from pathlib import Path
 
-__version__ = "0.8.6.99"
+__version__ = "0.9.0"
 __version__bak = __version__  # This version is backup for QlibConfig.reset_qlib_version
 import os
 from typing import Union
@@ -10,7 +10,7 @@ import yaml
 import logging
 import platform
 import subprocess
-from .log import get_module_logger, set_global_logger_level
+from .log import get_module_logger
 
 
 # init qlib
