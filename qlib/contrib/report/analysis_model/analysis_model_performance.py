@@ -135,10 +135,10 @@ def _pred_ic(pred_label: pd.DataFrame = None, methods: Sequence[str] = ("IC", "R
         ],
         axis=1,
     )
-    _ic_df = ic_df.iloc(axis=1)[[0]]
+    _ic = ic_df.iloc(axis=1)[0]
 
-    _index = _ic_df.index.get_level_values(0).astype("str").str.replace("-", "").str.slice(0, 6)
-    _monthly_ic = _ic_df.groupby(_index).mean()
+    _index = _ic.index.get_level_values(0).astype("str").str.replace("-", "").str.slice(0, 6)
+    _monthly_ic = _ic.groupby(_index).mean()
     _monthly_ic.index = pd.MultiIndex.from_arrays(
         [_monthly_ic.index.str.slice(0, 4), _monthly_ic.index.str.slice(4, 6)],
         names=["year", "month"],
@@ -165,18 +165,19 @@ def _pred_ic(pred_label: pd.DataFrame = None, methods: Sequence[str] = ("IC", "R
 
     ic_heatmap_figure = HeatmapGraph(
         _monthly_ic.unstack(),
-        layout=dict(title="Monthly IC", yaxis=dict(tickformat=",d")),
+        layout=dict(title="Monthly IC", xaxis=dict(dtick=1), yaxis=dict(tickformat="04d", dtick=1)),
         graph_kwargs=dict(xtype="array", ytype="array"),
     ).figure
 
     dist = stats.norm
-    _qqplot_fig = _plot_qq(_ic_df.iloc(axis=1)[0], dist)
+    _qqplot_fig = _plot_qq(_ic, dist)
 
     if isinstance(dist, stats.norm.__class__):
         dist_name = "Normal"
     else:
         dist_name = "Unknown"
 
+    _ic_df = _ic.to_frame("IC")
     _bin_size = ((_ic_df.max() - _ic_df.min()) / 20).min()
     _sub_graph_data = [
         (
