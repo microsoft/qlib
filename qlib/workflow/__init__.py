@@ -155,7 +155,7 @@ class QlibRecorder:
 
         The arguments of this function are not set to be rigid, and they will be different with different implementation of
         ``ExpManager`` in ``Qlib``. ``Qlib`` now provides an implementation of ``ExpManager`` with mlflow, and here is the
-        example code of the this method with the ``MLflowExpManager``:
+        example code of the method with the ``MLflowExpManager``:
 
         .. code-block:: Python
 
