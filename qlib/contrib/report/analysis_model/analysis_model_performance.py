@@ -287,7 +287,7 @@ def model_performance_graph(
     rank=False,
     graph_names: list = ["group_return", "pred_ic", "pred_autocorr"],
     show_notebook: bool = True,
-    show_nature_day=True,
+    show_nature_day: bool = False,
     **kwargs,
 ) -> [list, tuple]:
     """Model performance
