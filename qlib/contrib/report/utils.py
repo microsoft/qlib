@@ -1,6 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 import matplotlib.pyplot as plt
+import pandas as pd
 
 
 def sub_fig_generator(sub_fs=(3, 3), col_n=10, row_n=1, wspace=None, hspace=None, sharex=False, sharey=False):
@@ -43,3 +44,19 @@ def sub_fig_generator(sub_fs=(3, 3), col_n=10, row_n=1, wspace=None, hspace=None
                 res = res.item()
             yield res
         plt.show()
+
+
+def guess_plotly_rangebreaks(dt_index: pd.DatetimeIndex):
+    dt_idx = dt_index.sort_values()
+    gaps = dt_idx[1:] - dt_idx[:-1]
+    min_gap = gaps.min()
+    gaps_to_break = {}
+    for gap, d in zip(gaps, dt_idx[:-1]):
+        if gap > min_gap:
+            gaps_to_break.setdefault(gap - min_gap, []).append(d + min_gap)
+    return [dict(values=v, dvalue=int(k.total_seconds() * 1000)) for k, v in gaps_to_break.items()]
+
+
+def convert_fig_to_base64_str(fig, width=None, height=None, filetype='png'):
+    img = fig.to_image(filetype, width=width, height=height)
+    return f"data:image/{filetype};base64," + base64.b64encode(img).decode('utf8')

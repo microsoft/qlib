@@ -10,7 +10,10 @@ import matplotlib.pyplot as plt
 
 from scipy import stats
 
+from typing import Sequence
+
 from ..graph import ScatterGraph, SubplotsGraph, BarGraph, HeatmapGraph
+from ..utils import guess_plotly_rangebreaks
 
 
 def _group_return(pred_label: pd.DataFrame = None, reverse: bool = False, N: int = 5, **kwargs) -> tuple:
@@ -48,12 +51,13 @@ def _group_return(pred_label: pd.DataFrame = None, reverse: bool = False, N: int
     t_df["long-average"] = t_df["Group1"] - pred_label.groupby(level="datetime")["label"].mean()
 
     t_df = t_df.dropna(how="all")  # for days which does not contain label
-    # FIXME: support HIGH-FREQ
-    t_df.index = t_df.index.strftime("%Y-%m-%d")
     # Cumulative Return By Group
     group_scatter_figure = ScatterGraph(
         t_df.cumsum(),
-        layout=dict(title="Cumulative Return", xaxis=dict(type="category", tickangle=45)),
+        layout=dict(
+            title="Cumulative Return",
+            xaxis=dict(tickangle=45, rangebreaks=kwargs.get("rangebreaks", guess_plotly_rangebreaks(t_df.index)))
+        )
     ).figure
 
     t_df = t_df.loc[:, ["long-short", "long-average"]]
@@ -110,22 +114,30 @@ def _plot_qq(data: pd.Series = None, dist=stats.norm) -> go.Figure:
     return fig
 
 
-def _pred_ic(pred_label: pd.DataFrame = None, rank: bool = False, **kwargs) -> tuple:
+def _pred_ic(pred_label: pd.DataFrame = None, methods: Sequence[str] = ('IC', 'Rank IC'), **kwargs) -> tuple:
     """
 
-    :param pred_label:
-    :param rank:
+    :param pred_label: pd.DataFrame
+    must contain one column of realized return with name `label` and one column of predicted score names `score`.
+    :param methods: Sequence[{'IC', 'Rank IC'}]
+    IC series to plot.
+    IC is sectional pearson correlation between label and score
+    Rank IC is the spearman correlation between label and score
     :return:
     """
-    if rank:
-        ic = pred_label.groupby(level="datetime").apply(
-            lambda x: x["label"].rank(pct=True).corr(x["score"].rank(pct=True))
-        )
-    else:
-        ic = pred_label.groupby(level="datetime").apply(lambda x: x["label"].corr(x["score"]))
+    _methods_mapping = {
+        'IC': 'pearson',
+        'Rank IC': 'spearman'
+    }
+    ic_df = pd.concat([
+        pred_label.groupby(level="datetime").apply(
+            lambda x: x["label"].corr(x['score'], method=_methods_mapping[m])
+        ).rename(m) for m in methods
+    ], axis=1)
+    _ic_df = ic_df.iloc(axis=1)[[0]]
 
-    _index = ic.index.get_level_values(0).astype("str").str.replace("-", "").str.slice(0, 6)
-    _monthly_ic = ic.groupby(_index).mean()
+    _index = _ic_df.index.get_level_values(0).astype("str").str.replace("-", "").str.slice(0, 6)
+    _monthly_ic = _ic_df.groupby(_index).mean()
     _monthly_ic.index = pd.MultiIndex.from_arrays(
         [_monthly_ic.index.str.slice(0, 4), _monthly_ic.index.str.slice(4, 6)],
         names=["year", "month"],
@@ -148,8 +160,7 @@ def _pred_ic(pred_label: pd.DataFrame = None, rank: bool = False, **kwargs) -> t
 
     _monthly_ic = _monthly_ic.reindex(fill_index)
 
-    _ic_df = ic.to_frame("ic")
-    ic_bar_figure = ic_figure(_ic_df, kwargs.get("show_nature_day", True))
+    ic_bar_figure = ic_figure(ic_df, kwargs.get("show_nature_day", False))
 
     ic_heatmap_figure = HeatmapGraph(
         _monthly_ic.unstack(),
@@ -158,7 +169,7 @@ def _pred_ic(pred_label: pd.DataFrame = None, rank: bool = False, **kwargs) -> t
     ).figure
 
     dist = stats.norm
-    _qqplot_fig = _plot_qq(ic, dist)
+    _qqplot_fig = _plot_qq(_ic_df.iloc(axis=1)[0], dist)
 
     if isinstance(dist, stats.norm.__class__):
         dist_name = "Normal"
@@ -168,7 +179,7 @@ def _pred_ic(pred_label: pd.DataFrame = None, rank: bool = False, **kwargs) -> t
     _bin_size = ((_ic_df.max() - _ic_df.min()) / 20).min()
     _sub_graph_data = [
         (
-            "ic",
+            "IC",
             dict(
                 row=1,
                 col=1,
@@ -202,14 +213,16 @@ def _pred_autocorr(pred_label: pd.DataFrame, lag=1, **kwargs) -> tuple:
     pred = pred_label.copy()
     pred["score_last"] = pred.groupby(level="instrument")["score"].shift(lag)
     ac = pred.groupby(level="datetime").apply(lambda x: x["score"].rank(pct=True).corr(x["score_last"].rank(pct=True)))
-    # FIXME: support HIGH-FREQ
     _df = ac.to_frame("value")
-    _df.index = _df.index.strftime("%Y-%m-%d")
     ac_figure = ScatterGraph(
         _df,
-        layout=dict(title="Auto Correlation", xaxis=dict(type="category", tickangle=45)),
+        layout=dict(
+            title="Auto Correlation",
+            xaxis=dict(tickangle=45, rangebreaks=kwargs.get("rangebreaks", guess_plotly_rangebreaks(_df.index))),
+        ),
+
     ).figure
-    return (ac_figure,)
+    return ac_figure,
 
 
 def _pred_turnover(pred_label: pd.DataFrame, N=5, lag=1, **kwargs) -> tuple:
@@ -233,13 +246,14 @@ def _pred_turnover(pred_label: pd.DataFrame, N=5, lag=1, **kwargs) -> tuple:
             "Bottom": bottom,
         }
     )
-    # FIXME: support HIGH-FREQ
-    r_df.index = r_df.index.strftime("%Y-%m-%d")
     turnover_figure = ScatterGraph(
         r_df,
-        layout=dict(title="Top-Bottom Turnover", xaxis=dict(type="category", tickangle=45)),
+        layout=dict(
+            title="Top-Bottom Turnover",
+            xaxis=dict(tickangle=45, rangebreaks=kwargs.get("rangebreaks", guess_plotly_rangebreaks(r_df.index))),
+        ),
     ).figure
-    return (turnover_figure,)
+    return turnover_figure,
 
 
 def ic_figure(ic_df: pd.DataFrame, show_nature_day=True, **kwargs) -> go.Figure:
@@ -247,18 +261,18 @@ def ic_figure(ic_df: pd.DataFrame, show_nature_day=True, **kwargs) -> go.Figure:
 
     :param ic_df: ic DataFrame
     :param show_nature_day: whether to display the abscissa of non-trading day
+    :param **kwargs: contains some parameters to control plot style in plotly. Currently, supports
+       - `rangebreaks`: https://plotly.com/python/time-series/#Hiding-Weekends-and-Holidays
     :return: plotly.graph_objs.Figure
     """
     if show_nature_day:
         date_index = pd.date_range(ic_df.index.min(), ic_df.index.max())
         ic_df = ic_df.reindex(date_index)
-    # FIXME: support HIGH-FREQ
-    ic_df.index = ic_df.index.strftime("%Y-%m-%d")
     ic_bar_figure = BarGraph(
         ic_df,
         layout=dict(
             title="Information Coefficient (IC)",
-            xaxis=dict(type="category", tickangle=45),
+            xaxis=dict(tickangle=45, rangebreaks=kwargs.get("rangebreaks", guess_plotly_rangebreaks(ic_df.index))),
         ),
     ).figure
     return ic_bar_figure
@@ -273,6 +287,7 @@ def model_performance_graph(
     graph_names: list = ["group_return", "pred_ic", "pred_autocorr"],
     show_notebook: bool = True,
     show_nature_day=True,
+    **kwargs
 ) -> [list, tuple]:
     """Model performance
 
@@ -297,6 +312,8 @@ def model_performance_graph(
     :param graph_names: graph names; default ['cumulative_return', 'pred_ic', 'pred_autocorr', 'pred_turnover'].
     :param show_notebook: whether to display graphics in notebook, the default is `True`.
     :param show_nature_day: whether to display the abscissa of non-trading day.
+    :param **kwargs: contains some parameters to control plot style in plotly. Currently, supports
+       - `rangebreaks`: https://plotly.com/python/time-series/#Hiding-Weekends-and-Holidays
     :return: if show_notebook is True, display in notebook; else return `plotly.graph_objs.Figure` list.
     """
     figure_list = []
@@ -308,6 +325,7 @@ def model_performance_graph(
             reverse=reverse,
             rank=rank,
             show_nature_day=show_nature_day,
+            **kwargs
         )
         figure_list += fun_res
 
