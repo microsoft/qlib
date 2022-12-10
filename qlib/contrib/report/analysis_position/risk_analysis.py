@@ -121,7 +121,7 @@ def _get_risk_analysis_figure(analysis_df: pd.DataFrame) -> Iterable[py.Figure]:
         kind_map=dict(kind="BarGraph", kwargs={}),
         subplots_kwargs={"rows": 1, "cols": 4},
     ).figure
-    return _figure,
+    return (_figure,)
 
 
 def _get_monthly_risk_analysis_figure(report_normal_df: pd.DataFrame) -> Iterable[py.Figure]:
