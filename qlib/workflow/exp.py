@@ -4,13 +4,12 @@
 from typing import Dict, List, Union
 from qlib.typehint import Literal
 import mlflow
-import logging
 from mlflow.entities import ViewType
 from mlflow.exceptions import MlflowException
 from .recorder import Recorder, MLflowRecorder
 from ..log import get_module_logger
 
-logger = get_module_logger("workflow", logging.INFO)
+logger = get_module_logger("workflow")
 
 
 class Experiment:
@@ -22,7 +21,7 @@ class Experiment:
     def __init__(self, id, name):
         self.id = id
         self.name = name
-        self.active_recorder = None  # only one recorder can running each time
+        self.active_recorder = None  # only one recorder can run each time
         self._default_rec_name = "abstract_recorder"
 
     def __repr__(self):
@@ -232,7 +231,7 @@ class Experiment:
 
         Returns
         -------
-        The return type depent on `rtype`
+        The return type depends on `rtype`
             if `rtype` == "dict":
                 A dictionary (id -> recorder) of recorder information that being stored.
             elif `rtype` == "list":
@@ -249,7 +248,6 @@ class MLflowExperiment(Experiment):
     def __init__(self, id, name, uri):
         super(MLflowExperiment, self).__init__(id, name)
         self._uri = uri
-        self._default_name = None
         self._default_rec_name = "mlflow_recorder"
         self._client = mlflow.tracking.MlflowClient(tracking_uri=self._uri)
 
@@ -355,7 +353,7 @@ class MLflowExperiment(Experiment):
         Parameters
         ----------
         max_results : int
-            the number limitation of the results
+            the number limitation of the results'
         status : str
             the criteria based on status to filter results.
             `None` indicates no filtering.

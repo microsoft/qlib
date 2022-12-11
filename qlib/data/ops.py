@@ -34,10 +34,8 @@ np.seterr(invalid="ignore")
 
 
 #################### Element-Wise Operator ####################
-
 FLOAT_DTYPES = (float, np.float, np.float32, np.float64)
 CATEGORY_DTYPES = (str, "category")
-
 
 class ElemOperator(ExpressionOps):
     """Element-wise Operator
@@ -221,9 +219,7 @@ class Not(NpElemOperator):
 
     Parameters
     ----------
-    feature_left : Expression
-        feature instance
-    feature_right : Expression
+    feature : Expression
         feature instance
 
     Returns
@@ -246,8 +242,6 @@ class PairOperator(ExpressionOps):
         feature instance or numeric value
     feature_right : Expression
         feature instance or numeric value
-    func : str
-        operator function
 
     Returns
     ----------
@@ -1167,9 +1161,13 @@ class Rank(Rolling):
     def __init__(self, feature, N):
         super(Rank, self).__init__(feature, N, "rank")
 
+    # for compatiblity of python 3.7, which doesn't support pandas 1.4.0+ which implements Rolling.rank
     def _load_internal(self, instrument, start_index, end_index, *args):
         series = self.feature.load(instrument, start_index, end_index, *args)
-        # TODO: implement in Cython
+
+        rolling_or_expending = series.expanding(min_periods=1) if self.N == 0 else series.rolling(self.N, min_periods=1)
+        if hasattr(rolling_or_expending, "rank"):
+            return rolling_or_expending.rank(pct=True)
 
         def rank(x):
             if np.isnan(x[-1]):
@@ -1177,13 +1175,9 @@ class Rank(Rolling):
             x1 = x[~np.isnan(x)]
             if x1.shape[0] == 0:
                 return np.nan
-            return percentileofscore(x1, x1[-1]) / len(x1)
+            return percentileofscore(x1, x1[-1]) / 100
 
-        if self.N == 0:
-            series = series.expanding(min_periods=1).apply(rank, raw=True)
-        else:
-            series = series.rolling(self.N, min_periods=1).apply(rank, raw=True)
-        return series
+        return rolling_or_expending.apply(rank, raw=True)
 
 
 class Count(Rolling):
@@ -1353,7 +1347,7 @@ class WMA(Rolling):
         # TODO: implement in Cython
 
         def weighted_mean(x):
-            w = np.arange(len(x))
+            w = np.arange(len(x)) + 1
             w = w / w.sum()
             return np.nanmean(w * x)
 
@@ -1551,6 +1545,7 @@ class TResample(ElemOperator):
         """
         Resampling the data to target frequency.
         The resample function of pandas is used.
+
         - the timestamp will be at the start of the time span after resample.
 
         Parameters
@@ -1653,10 +1648,14 @@ class OpsWrapper:
         ops_list : List[Union[Type[ExpressionOps], dict]]
             - if type(ops_list) is List[Type[ExpressionOps]], each element of ops_list represents the operator class, which should be the subclass of `ExpressionOps`.
             - if type(ops_list) is List[dict], each element of ops_list represents the config of operator, which has the following format:
-                {
-                    "class": class_name,
-                    "module_path": path,
-                }
+
+                .. code-block:: text
+
+                    {
+                        "class": class_name,
+                        "module_path": path,
+                    }
+
                 Note: `class` should be the class name of operator, `module_path` should be a python module or path of file.
         """
         for _operator in ops_list:

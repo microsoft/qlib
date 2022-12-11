@@ -222,8 +222,8 @@ class YahooCollectorCN1d(YahooCollectorCN):
         # TODO: from MSN
         _format = "%Y%m%d"
         _begin = self.start_datetime.strftime(_format)
-        _end = (self.end_datetime + pd.Timedelta(days=-1)).strftime(_format)
-        for _index_name, _index_code in {"csi300": "000300", "csi100": "000903"}.items():
+        _end = self.end_datetime.strftime(_format)
+        for _index_name, _index_code in {"csi300": "000300", "csi100": "000903", "csi500": "000905"}.items():
             logger.info(f"get bench data: {_index_name}({_index_code})......")
             try:
                 df = pd.DataFrame(
@@ -817,6 +817,10 @@ class YahooNormalizeUS1d(YahooNormalizeUS, YahooNormalize1d):
     pass
 
 
+class YahooNormalizeUS1dExtend(YahooNormalizeUS, YahooNormalize1dExtend):
+    pass
+
+
 class YahooNormalizeUS1min(YahooNormalizeUS, YahooNormalize1minOffline):
     CALC_PAUSED_NUM = False
 
@@ -1196,7 +1200,7 @@ class Run(BaseRun):
             importlib.import_module(f"data_collector.{_region}_index.collector"), "get_instruments"
         )
         for _index in index_list:
-            get_instruments(str(qlib_data_1d_dir), _index)
+            get_instruments(str(qlib_data_1d_dir), _index, market_index=f"{_region}_index")
 
 
 if __name__ == "__main__":

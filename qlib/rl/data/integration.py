@@ -41,7 +41,7 @@ class DataWrapper:
 
     @cachetools.cached(  # type: ignore
         cache=cachetools.LRUCache(100),
-        key=lambda stock_id, date, backtest: (stock_id, date.replace(hour=0, minute=0, second=0), backtest),
+        key=lambda _, stock_id, date, backtest: (stock_id, date.replace(hour=0, minute=0, second=0), backtest),
     )
     def get(self, stock_id: str, date: pd.Timestamp, backtest: bool = False) -> pd.DataFrame:
         start_time, end_time = date.replace(hour=0, minute=0, second=0), date.replace(hour=23, minute=59, second=59)
@@ -81,10 +81,12 @@ def init_qlib(qlib_config: dict, part: str = None) -> None:
     def _convert_to_path(path: str | Path) -> Path:
         return path if isinstance(path, Path) else Path(path)
 
-    provider_uri_map = {
-        "day": _convert_to_path(qlib_config["provider_uri_day"]).as_posix(),
-        "1min": _convert_to_path(qlib_config["provider_uri_1min"]).as_posix(),
-    }
+    provider_uri_map = {}
+    if "provider_uri_day" in qlib_config:
+        provider_uri_map["day"] = _convert_to_path(qlib_config["provider_uri_day"]).as_posix()
+    if "provider_uri_1min" in qlib_config:
+        provider_uri_map["1min"] = _convert_to_path(qlib_config["provider_uri_1min"]).as_posix()
+
     qlib.init(
         region=REG_CN,
         auto_mount=False,

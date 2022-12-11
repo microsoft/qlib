@@ -16,12 +16,10 @@ from qlib.rl.utils import LogLevel
 
 from .state import SAOEMetrics, SAOEState
 
-# TODO: Integrating Qlib's native data with simulator_simple
-
-__all__ = ["SingleAssetOrderExecution"]
+__all__ = ["SingleAssetOrderExecutionSimple"]
 
 
-class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
+class SingleAssetOrderExecutionSimple(Simulator[Order, SAOEState, float]):
     """Single-asset order execution (SAOE) simulator.
 
     As there's no "calendar" in the simple simulator, ticks are used to trade.
@@ -98,6 +96,7 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
         self.ticks_for_order = self._get_ticks_slice(self.order.start_time, self.order.end_time)
 
         self.cur_time = self.ticks_for_order[0]
+        self.cur_step = 0
         # NOTE: astype(float) is necessary in some systems.
         # this will align the precision with `.to_numpy()` in `_split_exec_vol`
         self.twap_price = float(self.backtest_data.get_deal_price().loc[self.ticks_for_order].astype(float).mean())
@@ -194,11 +193,13 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
                         self.env.logger.add_any(key, value)
 
         self.cur_time = self._next_time()
+        self.cur_step += 1
 
     def get_state(self) -> SAOEState:
         return SAOEState(
             order=self.order,
             cur_time=self.cur_time,
+            cur_step=self.cur_step,
             position=self.position,
             history_exec=self.history_exec,
             history_steps=self.history_steps,

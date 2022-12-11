@@ -107,7 +107,7 @@ class FileStrTest(TestAutoData):
         )
 
         # ffr valid
-        ffr_dict = indicator_dict["1day"]["ffr"].to_dict()
+        ffr_dict = indicator_dict["1day"][0]["ffr"].to_dict()
         ffr_dict = {str(date).split()[0]: ffr_dict[date] for date in ffr_dict}
         assert np.isclose(ffr_dict["2020-01-03"], dealt_num_for_1000 / 1000)
         assert np.isclose(ffr_dict["2020-01-06"], 0)

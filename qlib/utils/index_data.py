@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 """
 Motivation of index_data
-- Pandas has a lot of user-friendly interfaces. However, integrating too much features in a single tool bring to much overhead and makes it much slower than numpy.
+- Pandas has a lot of user-friendly interfaces. However, integrating too much features in a single tool bring too much overhead and makes it much slower than numpy.
     Some users just want a simple numpy dataframe with indices and don't want such a complicated tools.
     Such users are the target of `index_data`
 

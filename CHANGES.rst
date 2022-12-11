@@ -85,7 +85,7 @@ Version 0.4.0
 -------------
 - Add `data` package that holds all data-related codes
 - Reform the data provider structure
-- Create a server for data centralized management `qlib-server<https://amc-msra.visualstudio.com/trading-algo/_git/qlib-server>`_
+- Create a server for data centralized management `qlib-server <https://amc-msra.visualstudio.com/trading-algo/_git/qlib-server>`_
 - Add a `ClientProvider` to work with server
 - Add a pluggable cache mechanism
 - Add a recursive backtracking algorithm to inspect the furthest reference date for an expression
@@ -166,12 +166,12 @@ Version 0.8.0
     - Nested decision execution framework is supported
     - There are lots of changes for daily trading, it is hard to list all of them. But a few important changes could be noticed
         - The trading limitation is more accurate;
-            - In `previous version <https://github.com/microsoft/qlib/blob/v0.7.2/qlib/contrib/backtest/exchange.py#L160>`_, longing and shorting actions share the same action.
-            - In `current version <https://github.com/microsoft/qlib/blob/7c31012b507a3823117bddcc693fc64899460b2a/qlib/backtest/exchange.py#L304>`_, the trading limitation is different between logging and shorting action.
+            - In `previous version <https://github.com/microsoft/qlib/blob/v0.7.2/qlib/contrib/backtest/exchange.py#L160>`__, longing and shorting actions share the same action.
+            - In `current version <https://github.com/microsoft/qlib/blob/7c31012b507a3823117bddcc693fc64899460b2a/qlib/backtest/exchange.py#L304>`__, the trading limitation is different between logging and shorting action.
         - The constant is different when calculating annualized metrics.
-            - `Current version <https://github.com/microsoft/qlib/blob/7c31012b507a3823117bddcc693fc64899460b2a/qlib/contrib/evaluate.py#L42>`_ uses more accurate constant than `previous version <https://github.com/microsoft/qlib/blob/v0.7.2/qlib/contrib/evaluate.py#L22>`_
-        - `A new version <https://github.com/microsoft/qlib/blob/7c31012b507a3823117bddcc693fc64899460b2a/qlib/tests/data.py#L17>`_ of data is released. Due to the unstability of Yahoo data source, the data may be different after downloading data again.
-        - Users could check out the backtesting results between  `Current version <https://github.com/microsoft/qlib/tree/7c31012b507a3823117bddcc693fc64899460b2a/examples/benchmarks>`_ and `previous version <https://github.com/microsoft/qlib/tree/v0.7.2/examples/benchmarks>`_
+            - `Current version <https://github.com/microsoft/qlib/blob/7c31012b507a3823117bddcc693fc64899460b2a/qlib/contrib/evaluate.py#L42>`_ uses more accurate constant than `previous version <https://github.com/microsoft/qlib/blob/v0.7.2/qlib/contrib/evaluate.py#L22>`__
+        - `A new version <https://github.com/microsoft/qlib/blob/7c31012b507a3823117bddcc693fc64899460b2a/qlib/tests/data.py#L17>`__ of data is released. Due to the unstability of Yahoo data source, the data may be different after downloading data again.
+        - Users could check out the backtesting results between  `Current version <https://github.com/microsoft/qlib/tree/7c31012b507a3823117bddcc693fc64899460b2a/examples/benchmarks>`__ and `previous version <https://github.com/microsoft/qlib/tree/v0.7.2/examples/benchmarks>`__
 
 
 Other Versions

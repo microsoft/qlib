@@ -12,11 +12,15 @@ class MetaTaskDataset(Serializable, metaclass=abc.ABCMeta):
     A dataset fetching the data in a meta-level.
 
     A Meta Dataset is responsible for
+
     - input tasks(e.g. Qlib tasks) and prepare meta tasks
+
         - meta task contains more information than normal tasks (e.g. input data for meta model)
 
     The learnt pattern could transfer to other meta dataset. The following cases should be supported
+
     - A meta-model trained on meta-dataset A and then applied to meta-dataset B
+
         - Some pattern are shared between meta-dataset A and B, so meta-input on meta-dataset A are used when meta model are applied on meta-dataset-B
     """
 

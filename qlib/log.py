@@ -48,33 +48,44 @@ class QlibLogger(metaclass=MetaLogger):
         return self.logger.__getattribute__(name)
 
 
-def get_module_logger(module_name, level: Optional[int] = None) -> QlibLogger:
-    """
-    Get a logger for a specific module.
+class _QLibLoggerManager:
+    def __init__(self):
+        self._loggers = {}
 
-    :param module_name: str
-        Logic module name.
-    :param level: int
-    :return: Logger
-        Logger object.
-    """
-    if level is None:
-        level = C.logging_level
+    def setLevel(self, level):
+        for logger in self._loggers.values():
+            logger.setLevel(level)
 
-    if not module_name.startswith("qlib."):
-        # Add a prefix of qlib. when the requested ``module_name`` doesn't start with ``qlib.``.
-        # If the module_name is already qlib.xxx, we do not format here. Otherwise, it will become qlib.qlib.xxx.
-        module_name = "qlib.{}".format(module_name)
+    def __call__(self, module_name, level: Optional[int] = None) -> QlibLogger:
+        """
+        Get a logger for a specific module.
 
-    # Get logger.
-    module_logger = QlibLogger(module_name)
-    module_logger.setLevel(level)
-    return module_logger
+        :param module_name: str
+            Logic module name.
+        :param level: int
+        :return: Logger
+            Logger object.
+        """
+        if level is None:
+            level = C.logging_level
+
+        if not module_name.startswith("qlib."):
+            # Add a prefix of qlib. when the requested ``module_name`` doesn't start with ``qlib.``.
+            # If the module_name is already qlib.xxx, we do not format here. Otherwise, it will become qlib.qlib.xxx.
+            module_name = "qlib.{}".format(module_name)
+
+        # Get logger.
+        module_logger = self._loggers.setdefault(module_name, QlibLogger(module_name))
+        module_logger.setLevel(level)
+        return module_logger
+
+
+get_module_logger = _QLibLoggerManager()
 
 
 class TimeInspector:
 
-    timer_logger = get_module_logger("timer", level=logging.INFO)
+    timer_logger = get_module_logger("timer")
 
     time_marks = []
 

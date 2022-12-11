@@ -16,8 +16,10 @@ class Expression(abc.ABC):
 
     Expression is designed to handle the calculation of data with the format below
     data with two dimension for each instrument,
+
     - feature
     - time:  it  could be observation time or period time.
+
         - period time is designed for Point-in-time database.  For example, the period time maybe 2014Q4, its value can observed for multiple times(different value may be observed at different time due to amendment).
     """
 
@@ -142,9 +144,12 @@ class Expression(abc.ABC):
         This function is responsible for loading feature/expression based on the expression engine.
 
         The concrete implementation will be separated into two parts:
+
         1) caching data, handle errors.
+
             - This part is shared by all the expressions and implemented in Expression
         2) processing and calculating data based on the specific expression.
+
             - This part is different in each expression and implemented in each expression
 
         Expression Engine is shared by different data.

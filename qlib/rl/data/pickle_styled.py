@@ -19,7 +19,6 @@ This file shows resemblence to qlib.backtest.high_performance_ds. We might merge
 
 from __future__ import annotations
 
-from abc import abstractmethod
 from functools import lru_cache
 from pathlib import Path
 from typing import List, Sequence, cast
@@ -30,6 +29,7 @@ import pandas as pd
 from cachetools.keys import hashkey
 
 from qlib.backtest.decision import Order, OrderDir
+from qlib.rl.data.base import BaseIntradayBacktestData, BaseIntradayProcessedData, ProcessedDataProvider
 from qlib.typehint import Literal
 
 DealPriceType = Literal["bid_or_ask", "bid_or_ask_fill", "close"]
@@ -86,41 +86,12 @@ def _read_pickle(filename_without_suffix: Path) -> pd.DataFrame:
     return pd.read_pickle(_find_pickle(filename_without_suffix))
 
 
-class BaseIntradayBacktestData:
-    """
-    Raw market data that is often used in backtesting (thus called BacktestData).
-
-    Base class for all types of backtest data. Currently, each type of simulator has its corresponding backtest
-    data type.
-    """
-
-    @abstractmethod
-    def __repr__(self) -> str:
-        raise NotImplementedError
-
-    @abstractmethod
-    def __len__(self) -> int:
-        raise NotImplementedError
-
-    @abstractmethod
-    def get_deal_price(self) -> pd.Series:
-        raise NotImplementedError
-
-    @abstractmethod
-    def get_volume(self) -> pd.Series:
-        raise NotImplementedError
-
-    @abstractmethod
-    def get_time_index(self) -> pd.DatetimeIndex:
-        raise NotImplementedError
-
-
 class SimpleIntradayBacktestData(BaseIntradayBacktestData):
     """Backtest data for simple simulator"""
 
     def __init__(
         self,
-        data_dir: Path,
+        data_dir: Path | str,
         stock_id: str,
         date: pd.Timestamp,
         deal_price: DealPriceType = "close",
@@ -128,7 +99,7 @@ class SimpleIntradayBacktestData(BaseIntradayBacktestData):
     ) -> None:
         super(SimpleIntradayBacktestData, self).__init__()
 
-        backtest = _read_pickle(data_dir / stock_id)
+        backtest = _read_pickle((data_dir if isinstance(data_dir, Path) else Path(data_dir)) / stock_id)
         backtest = backtest.loc[pd.IndexSlice[stock_id, :, date]]
 
         # No longer need for pandas >= 1.4
@@ -178,30 +149,18 @@ class SimpleIntradayBacktestData(BaseIntradayBacktestData):
         return cast(pd.DatetimeIndex, self.data.index)
 
 
-class IntradayProcessedData:
-    """Processed market data after data cleanup and feature engineering.
-
-    It contains both processed data for "today" and "yesterday", as some algorithms
-    might use the market information of the previous day to assist decision making.
-    """
-
-    today: pd.DataFrame
-    """Processed data for "today".
-    Number of records must be ``time_length``, and columns must be ``feature_dim``."""
-
-    yesterday: pd.DataFrame
-    """Processed data for "yesterday".
-    Number of records must be ``time_length``, and columns must be ``feature_dim``."""
+class IntradayProcessedData(BaseIntradayProcessedData):
+    """Subclass of IntradayProcessedData. Used to handle Dataset Handler style data."""
 
     def __init__(
         self,
-        data_dir: Path,
+        data_dir: Path | str,
         stock_id: str,
         date: pd.Timestamp,
         feature_dim: int,
         time_index: pd.Index,
     ) -> None:
-        proc = _read_pickle(data_dir / stock_id)
+        proc = _read_pickle((data_dir if isinstance(data_dir, Path) else Path(data_dir)) / stock_id)
         # We have to infer the names here because,
         # unfortunately they are not included in the original data.
         cnames = _infer_processed_data_column_names(feature_dim)
@@ -246,16 +205,38 @@ def load_simple_intraday_backtest_data(
 
 @cachetools.cached(  # type: ignore
     cache=cachetools.LRUCache(100),  # 100 * 50K = 5MB
-    key=lambda data_dir, stock_id, date, _, __: hashkey(data_dir, stock_id, date),
+    key=lambda data_dir, stock_id, date, feature_dim, time_index: hashkey(data_dir, stock_id, date),
 )
-def load_intraday_processed_data(
+def load_pickled_intraday_processed_data(
     data_dir: Path,
     stock_id: str,
     date: pd.Timestamp,
     feature_dim: int,
     time_index: pd.Index,
-) -> IntradayProcessedData:
+) -> BaseIntradayProcessedData:
     return IntradayProcessedData(data_dir, stock_id, date, feature_dim, time_index)
+
+
+class PickleProcessedDataProvider(ProcessedDataProvider):
+    def __init__(self, data_dir: Path) -> None:
+        super().__init__()
+
+        self._data_dir = data_dir
+
+    def get_data(
+        self,
+        stock_id: str,
+        date: pd.Timestamp,
+        feature_dim: int,
+        time_index: pd.Index,
+    ) -> BaseIntradayProcessedData:
+        return load_pickled_intraday_processed_data(
+            data_dir=self._data_dir,
+            stock_id=stock_id,
+            date=date,
+            feature_dim=feature_dim,
+            time_index=time_index,
+        )
 
 
 def load_orders(

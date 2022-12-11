@@ -1,4 +1,4 @@
-.. _online:
+.. _online_serving:
 
 ==============
 Online Serving
@@ -32,21 +32,25 @@ Online Manager
 
 .. automodule:: qlib.workflow.online.manager
     :members:
+    :noindex:
 
 Online Strategy
 ===============
 
 .. automodule:: qlib.workflow.online.strategy
     :members:
+    :noindex:
 
 Online Tool
 ===========
 
 .. automodule:: qlib.workflow.online.utils
     :members:
+    :noindex:
 
 Updater
 =======
 
 .. automodule:: qlib.workflow.online.update
     :members:
+    :noindex:

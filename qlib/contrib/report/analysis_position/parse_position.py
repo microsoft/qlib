@@ -39,6 +39,7 @@ def parse_position(position: dict = None) -> pd.DataFrame:
 
     result_df = pd.DataFrame()
     for _trading_date, _value in position.items():
+        _value = _value.position
         # pd_date type: pd.Timestamp
         _cash = _value.pop("cash")
         for _item in ["now_account_value"]:

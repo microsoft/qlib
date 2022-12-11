@@ -1,6 +1,5 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
-import io
 import os
 import numpy
 
@@ -25,9 +24,6 @@ def get_version(rel_path: str) -> str:
 NAME = "pyqlib"
 DESCRIPTION = "A Quantitative-research Platform"
 REQUIRES_PYTHON = ">=3.5.0"
-
-from pathlib import Path
-from shutil import copyfile
 
 VERSION = get_version("qlib/__init__.py")
 
@@ -66,7 +62,9 @@ REQUIRED = [
     "matplotlib>=3.3",
     "tables>=3.6.1",
     "pyyaml>=5.3.1",
-    "mlflow>=1.12.1",
+    # To ensure stable operation of the experiment manager, we have limited the version of mlflow,
+    # and we need to verify whether version 2.0 of mlflow can serve qlib properly.
+    "mlflow>=1.12.1, <=1.30.0",
     "tqdm",
     "loguru",
     "lightgbm>=3.3.0",
@@ -142,8 +140,16 @@ setup(
             "setuptools",
             "black",
             "pylint",
-            "mypy",
+            # Using the latest versions(0.981 and 0.982) of mypy,
+            # the error "multiprocessing.Value()" is detected in the file "qlib/rl/utils/data_queue.py",
+            # If this is fixed in a subsequent version of mypy, then we will revert to the latest version of mypy.
+            # References: https://github.com/python/typeshed/issues/8799
+            "mypy<0.981",
             "flake8",
+            # The 5.0.0 version of importlib-metadata removed the deprecated endpoint,
+            # which prevented flake8 from working properly, so we restricted the version of importlib-metadata.
+            # To help ensure the dependencies of flake8 https://github.com/python/importlib_metadata/issues/406
+            "importlib-metadata<5.0.0",
             "readthedocs_sphinx_ext",
             "cmake",
             "lxml",
