@@ -1,5 +1,6 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
+from functools import partial
 
 import pandas as pd
 
@@ -126,11 +127,13 @@ def _pred_ic(pred_label: pd.DataFrame = None, methods: Sequence[str] = ("IC", "R
     :return:
     """
     _methods_mapping = {"IC": "pearson", "Rank IC": "spearman"}
+
+    def _corr_series(x, method):
+        return x["label"].corr(x["score"], method=method)
+
     ic_df = pd.concat(
         [
-            pred_label.groupby(level="datetime")
-            .apply(lambda x: x["label"].corr(x["score"], method=_methods_mapping[m]))
-            .rename(m)
+            pred_label.groupby(level="datetime").apply(partial(_corr_series, method=_methods_mapping[m])).rename(m)
             for m in methods
         ],
         axis=1,
@@ -258,7 +261,7 @@ def _pred_turnover(pred_label: pd.DataFrame, N=5, lag=1, **kwargs) -> tuple:
 
 
 def ic_figure(ic_df: pd.DataFrame, show_nature_day=True, **kwargs) -> go.Figure:
-    """IC figure
+    r"""IC figure
 
     :param ic_df: ic DataFrame
     :param show_nature_day: whether to display the abscissa of non-trading day
@@ -290,7 +293,7 @@ def model_performance_graph(
     show_nature_day: bool = False,
     **kwargs,
 ) -> [list, tuple]:
-    """Model performance
+    r"""Model performance
 
     :param pred_label: index is **pd.MultiIndex**, index name is **[instrument, datetime]**; columns names is **[score, label]**.
            It is usually same as the label of model training(e.g. "Ref($close, -2)/Ref($close, -1) - 1").

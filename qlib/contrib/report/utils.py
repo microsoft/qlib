@@ -55,8 +55,3 @@ def guess_plotly_rangebreaks(dt_index: pd.DatetimeIndex):
         if gap > min_gap:
             gaps_to_break.setdefault(gap - min_gap, []).append(d + min_gap)
     return [dict(values=v, dvalue=int(k.total_seconds() * 1000)) for k, v in gaps_to_break.items()]
-
-
-def convert_fig_to_base64_str(fig, width=None, height=None, filetype="png"):
-    img = fig.to_image(filetype, width=width, height=height)
-    return f"data:image/{filetype};base64," + base64.b64encode(img).decode("utf8")
