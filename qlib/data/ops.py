@@ -37,6 +37,7 @@ np.seterr(invalid="ignore")
 FLOAT_DTYPES = (float, np.float, np.float32, np.float64)
 CATEGORY_DTYPES = (str, "category")
 
+
 class ElemOperator(ExpressionOps):
     """Element-wise Operator
 
