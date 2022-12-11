@@ -262,7 +262,7 @@ def ic_figure(ic_df: pd.DataFrame, show_nature_day=True, **kwargs) -> go.Figure:
 
     :param ic_df: ic DataFrame
     :param show_nature_day: whether to display the abscissa of non-trading day
-    :param **kwargs: contains some parameters to control plot style in plotly. Currently, supports
+    :param \*\*kwargs: contains some parameters to control plot style in plotly. Currently, supports
        - `rangebreaks`: https://plotly.com/python/time-series/#Hiding-Weekends-and-Holidays
     :return: plotly.graph_objs.Figure
     """
@@ -313,7 +313,7 @@ def model_performance_graph(
     :param graph_names: graph names; default ['cumulative_return', 'pred_ic', 'pred_autocorr', 'pred_turnover'].
     :param show_notebook: whether to display graphics in notebook, the default is `True`.
     :param show_nature_day: whether to display the abscissa of non-trading day.
-    :param **kwargs: contains some parameters to control plot style in plotly. Currently, supports
+    :param \*\*kwargs: contains some parameters to control plot style in plotly. Currently, supports
        - `rangebreaks`: https://plotly.com/python/time-series/#Hiding-Weekends-and-Holidays
     :return: if show_notebook is True, display in notebook; else return `plotly.graph_objs.Figure` list.
     """
