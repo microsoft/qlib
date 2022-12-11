@@ -222,8 +222,8 @@ class YahooCollectorCN1d(YahooCollectorCN):
         # TODO: from MSN
         _format = "%Y%m%d"
         _begin = self.start_datetime.strftime(_format)
-        _end = (self.end_datetime + pd.Timedelta(days=-1)).strftime(_format)
-        for _index_name, _index_code in {"csi300": "000300", "csi100": "000903"}.items():
+        _end = self.end_datetime.strftime(_format)
+        for _index_name, _index_code in {"csi300": "000300", "csi100": "000903", "csi500": "000905"}.items():
             logger.info(f"get bench data: {_index_name}({_index_code})......")
             try:
                 df = pd.DataFrame(
