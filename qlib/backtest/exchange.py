@@ -18,7 +18,7 @@ import pandas as pd
 from qlib.backtest.position import BasePosition
 
 from ..config import C
-from ..constant import REG_CN
+from ..constant import REG_CN, REG_TW
 from ..data.data import D
 from ..log import get_module_logger
 from .decision import Order, OrderDir, OrderHelper
@@ -148,10 +148,10 @@ class Exchange:
         # It is just for performance consideration.
         self.limit_type = self._get_limit_type(limit_threshold)
         if limit_threshold is None:
-            if C.region == REG_CN:
+            if C.region in [REG_CN, REG_TW]:
                 self.logger.warning(f"limit_threshold not set. The stocks hit the limit may be bought/sold")
         elif self.limit_type == self.LT_FLT and abs(cast(float, limit_threshold)) > 0.1:
-            if C.region == REG_CN:
+            if C.region in [REG_CN, REG_TW]:
                 self.logger.warning(f"limit_threshold may not be set to a reasonable value")
 
         if isinstance(deal_price, str):
