@@ -1,4 +1,4 @@
-name: Pull Request Target Labels
+name: Pull Request Labels
 on:
   pull_request_target:
     types: [opened, labeled, unlabeled, synchronize]
