@@ -10,8 +10,6 @@ jobs:
     steps:
       - id: check-labels
         uses: mheap/github-action-required-labels@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           mode: exactly
           count: 1
