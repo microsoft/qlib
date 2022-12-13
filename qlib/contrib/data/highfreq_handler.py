@@ -124,7 +124,7 @@ class HighFreqGeneralHandler(DataHandlerLP):
             "kwargs": {
                 "config": self.get_feature_config(),
                 "swap_level": False,
-                "freq": "1min",
+                "freq": "5min",
             },
         }
         super().__init__(
@@ -164,15 +164,15 @@ class HighFreqGeneralHandler(DataHandlerLP):
         fields += [get_normalized_price_feature("$high", 0)]
         fields += [get_normalized_price_feature("$low", 0)]
         fields += [get_normalized_price_feature("$close", 0)]
-        fields += [get_normalized_price_feature("$vwap", 0)]
-        names += ["$open", "$high", "$low", "$close", "$vwap"]
+        # fields += [get_normalized_price_feature("$vwap", 0)]
+        names += ["$open", "$high", "$low", "$close"]
 
         fields += [get_normalized_price_feature("$open", self.day_length)]
         fields += [get_normalized_price_feature("$high", self.day_length)]
         fields += [get_normalized_price_feature("$low", self.day_length)]
         fields += [get_normalized_price_feature("$close", self.day_length)]
-        fields += [get_normalized_price_feature("$vwap", self.day_length)]
-        names += ["$open_1", "$high_1", "$low_1", "$close_1", "$vwap_1"]
+        # fields += [get_normalized_price_feature("$vwap", self.day_length)]
+        names += ["$open_1", "$high_1", "$low_1", "$close_1"]
 
         # calculate and fill nan with 0
         fields += [
@@ -265,7 +265,7 @@ class HighFreqGeneralBacktestHandler(DataHandler):
             "kwargs": {
                 "config": self.get_feature_config(),
                 "swap_level": False,
-                "freq": "1min",
+                "freq": "5min",
             },
         }
         super().__init__(
@@ -287,10 +287,10 @@ class HighFreqGeneralBacktestHandler(DataHandler):
         ]
         names += ["$close0"]
 
-        fields += [
-            template_paused.format(template_if.format(template_fillnan.format("$close"), "$vwap")),
-        ]
-        names += ["$vwap0"]
+        # fields += [
+        #     template_paused.format(template_if.format(template_fillnan.format("$close"), "$vwap")),
+        # ]
+        # names += ["$vwap0"]
 
         fields += [template_paused.format("If(IsNull({0}), 0, {0})".format("$volume"))]
         names += ["$volume0"]

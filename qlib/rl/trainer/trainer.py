@@ -206,7 +206,8 @@ class Trainer:
         self._call_callback_hooks("on_fit_start")
 
         while not self.should_stop:
-            msg = f"Train iteration {self.current_iter + 1}/{self.max_iters}"
+            from datetime import datetime
+            msg = f"\n{datetime.now()}\tTrain iteration {self.current_iter + 1}/{self.max_iters}"
             print(msg)
             _logger.info(msg)
 

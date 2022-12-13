@@ -137,6 +137,8 @@ class SingleAssetOrderExecutionSimple(Simulator[Order, SAOEState, float]):
         ticks_position = self.position - np.cumsum(exec_vol)
 
         self.position -= exec_vol.sum()
+        if abs(self.position) < 1e-6:
+            self.position = 0.0
         if self.position < -EPS or (exec_vol < -EPS).any():
             raise ValueError(f"Execution volume is invalid: {exec_vol} (position = {self.position})")
 
