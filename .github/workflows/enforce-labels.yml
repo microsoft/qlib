@@ -13,4 +13,3 @@ jobs:
           mode: exactly
           count: 1
           labels: "bug, documentation, enhancement"
-          add_comment: true
