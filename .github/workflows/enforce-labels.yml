@@ -1,20 +1,15 @@
 name: Pull Request Labels
-on: 
-  pull_request_target:
-    types: [opened, labeled, unlabeled, synchronize]
+on:
+pull_request:
+  types: [opened, labeled, unlabeled, synchronize]
 jobs:
-  example_comment_pr:
-    permission: write-all
+  label:
     runs-on: ubuntu-latest
-    name: An example job to comment a PR
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-
-      - name: Comment PR
-        uses: thollander/actions-comment-pull-request@v1
+      - uses: mheap/github-action-required-labels@v2
+        env:
+          repo-token: "${{ secrets.GITHUB_TOKEN }}"
         with:
-          message: /
-            Hello World
-          reactions: eyes, rocket
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          mode: exactly
+          count: 1
+          labels: "bug, documentation, enhancement"
