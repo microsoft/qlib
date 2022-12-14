@@ -8,8 +8,10 @@ jobs:
     steps:
       - uses: mheap/github-action-required-labels@v2
         env:
-          repo-token: "${{ secrets.GITHUB_TOKEN }}"
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         with:
           mode: exactly
           count: 1
           labels: "bug, documentation, enhancement"
+          add_comment: true
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
