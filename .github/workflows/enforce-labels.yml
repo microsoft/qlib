@@ -14,4 +14,3 @@ jobs:
           count: 1
           labels: "bug, documentation, enhancement"
           add_comment: true
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
