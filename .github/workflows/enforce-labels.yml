@@ -17,9 +17,9 @@ jobs:
           exit_type: success
   do-other:
     runs-on: ubuntu-latest
-    needs: label
+    needs: check-labels
     steps:
       - run: echo SUCCESS
-        if: needs.label.outputs.status == 'success'
+        if: needs.check-labels.outputs.status == 'success'
       - run: echo FAILURE
-        if: needs.label.outputs.status == 'failure'
+        if: needs.check-labels.outputs.status == 'failure'
