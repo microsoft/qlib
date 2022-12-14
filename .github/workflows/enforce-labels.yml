@@ -1,5 +1,7 @@
 name: Pull Request Labels
-on: pull_request
+on: 
+  pull_request_target:
+    types: [opened, labeled, unlabeled, synchronize]
 jobs:
   example_comment_pr:
     permission: write-all
