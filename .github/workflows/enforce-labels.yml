@@ -1,7 +1,7 @@
 name: Pull Request Labels
 on:
-  pull_request_target:
-    types: [opened, labeled, unlabeled, synchronize]
+pull_request_target:
+  types: [opened, labeled, unlabeled, synchronize]
 jobs:
   label:
     runs-on: ubuntu-latest
