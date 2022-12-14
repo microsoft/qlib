@@ -1,5 +1,5 @@
 name: Pull Request Labels
-on: pull_request_target
+on: [pull_request_target]
 jobs:
   label:
     runs-on: ubuntu-latest
