@@ -1,15 +1,16 @@
-name: Pull Request Labels
+name: "Pull Request Labels"
 on:
-  pull_request_target:
-    types: [opened, labeled, unlabeled, synchronize]
+- pull_request_target
+
 jobs:
   label:
     runs-on: ubuntu-latest
     steps:
       - uses: mheap/github-action-required-labels@v2
         env:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
         with:
           mode: exactly
           count: 1
           labels: "bug, documentation, enhancement"
+          add_comment: true
