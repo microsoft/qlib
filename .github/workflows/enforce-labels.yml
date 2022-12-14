@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: label
     steps:
-      - run: echo SUCCESS
-        if: needs.label.outputs.status == 'success'
-      - run: echo FAILURE && exit 1
-        if: needs.label.outputs.status == 'failure'
+      if: needs.label.outputs.status == 'success'
+      run: echo SUCCESS
+      if: needs.label.outputs.status == 'failure'
+      run: echo FAILURE && exit 1
