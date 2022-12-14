@@ -5,10 +5,11 @@ on:
 jobs:
   label:
     runs-on: ubuntu-latest
+    outputs:
+      status: ${{ steps.check-labels.outputs.status }}
     steps:
-      - uses: mheap/github-action-required-labels@v2
-        env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+      - id: check-labels
+        uses: mheap/github-action-required-labels@v2
         with:
           mode: exactly
           count: 1
