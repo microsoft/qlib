@@ -1,6 +1,12 @@
 name: Pull Request Labels
 on:
-  - pull_request_target
+  pull_request_target:
+    types: [
+      assigned, unassigned, labeled, unlabeled, opened,
+      edited, closed, reopened, synchronize, converted_to_draft,
+      ready_for_review, locked, unlocked, review_requested, review_request_removed,
+      auto_merge_enabled, auto_merge_disabled
+    ]
 jobs:
   label:
     runs-on: ubuntu-latest
