@@ -15,5 +15,4 @@ jobs:
           count: 1
           labels: "bug, documentation, enhancement"
           exit_type: success
-      - needs: label
-        run: echo ${{ needs.label.outputs.status }}
+      - run: echo ${{ label.outputs.status }}
