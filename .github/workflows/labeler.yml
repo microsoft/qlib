@@ -3,16 +3,20 @@ on:
   pull_request:
     types: [opened, labeled, unlabeled, synchronize]
 jobs:
-  label:
+  job1:
+    label:
+      runs-on: ubuntu-latest
+      outputs:
+        status: ${{ steps.check-labels.outputs.status }}
+      steps:
+        - id: check-labels
+          uses: mheap/github-action-required-labels@v2
+          with:
+            mode: exactly
+            count: 1
+            labels: "bug, documentation, enhancement"
+            exit_type: success
+  job2:
     runs-on: ubuntu-latest
-    outputs:
-      status: ${{ steps.check-labels.outputs.status }}
-    steps:
-      - id: check-labels
-        uses: mheap/github-action-required-labels@v2
-        with:
-          mode: exactly
-          count: 1
-          labels: "bug, documentation, enhancement"
-          exit_type: success
-      - run: echo ${{ label.outputs.status }}
+    needs: job1
+    run: echo ${{ needs.job1.label.outputs.status }}
