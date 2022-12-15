@@ -15,4 +15,4 @@ jobs:
           count: 1
           labels: "bug, documentation, enhancement"
           exit_type: success
-      - run: echo ${{ label.steps[*].id }}
+      - run: echo ${{ outputs.status }}
