@@ -1,0 +1,10 @@
+documentation:
+- docs/**/*
+
+wait for triage:
+- '*'
+- .github/**/*
+- examples/**/*
+- qlib/**/*
+- scripts/**/*
+- tests/**/*
