@@ -14,9 +14,5 @@ jobs:
           mode: exactly
           count: 1
           labels: "bug, documentation, enhancement"
-          add_comment: true
           exit_type: success
-        env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-          
       - run: echo steps.check-labels.outputs.status
