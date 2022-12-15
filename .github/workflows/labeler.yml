@@ -18,8 +18,5 @@ jobs:
           exit_type: success
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-  do-other:
-    runs-on: ubuntu-latest
-    needs: label
     steps:
-      - run: echo needs.label.outputs.status
+      - run: echo steps.check-labels.outputs.status
