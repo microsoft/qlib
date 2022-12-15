@@ -1,15 +1,25 @@
-name: "Pull Request Labeler"
+name: Pull Request Labels
 on:
-  - pull_request
-
+  pull_request_target:
+    types: [opened, labeled, unlabeled, synchronize]
 jobs:
   label:
     runs-on: ubuntu-latest
+    outputs:
+      status: ${{ steps.check-labels.outputs.status }}
     steps:
-
-      # https://github.com/marketplace/actions/pr-labeler-based-on-multiple-rules
-      - uses: srvaroa/labeler@v0.8
+      - id: check-labels
+        uses: mheap/github-action-required-labels@v2
         with:
-          config_path: .github/labeler_config.yml
+          mode: exactly
+          count: 1
+          labels: "bug, documentation, enhancement"
+          add_comment: true
+          exit_type: success
         env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          repo-token: "${{ secrets.GITHUB_TOKEN }}"
+  do-other:
+    runs-on: ubuntu-latest
+    needs: label
+    steps:
+      - run: echo needs.label.outputs.status
