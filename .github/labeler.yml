@@ -3,5 +3,5 @@ documentation:
 - '*/**/*.md'
 - '*.md'
 
-wait for triage:
+waiting for triage:
 - all: ['!docs/**/*', '!*/**/*.md', '!*.md']
