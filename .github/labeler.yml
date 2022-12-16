@@ -7,6 +7,6 @@ documentation:
 - scripts/**/*.md
 - tests/**/*.md
 
-wait for triage:
+waiting for triage:
 - any['*', '.github/**/*', 'examples/**/*', 'qlib/**/*', 'scripts/**/*', 'tests/**/*']
   all['!*.md', '!.github/**/*.md', '!examples/**/*.md', '!qlib/**/*.md', '!scripts/**/*.md', '!tests/**/*.md']

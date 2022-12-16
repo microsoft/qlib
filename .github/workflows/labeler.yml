@@ -1,4 +1,4 @@
-name: "waiting for triage"
+name: "Add label automatically"
 on:
 - pull_request_target
 
