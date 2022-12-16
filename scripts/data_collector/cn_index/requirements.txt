@@ -1,5 +1,4 @@
 baostock
-logure
 fire
 requests
 pandas
