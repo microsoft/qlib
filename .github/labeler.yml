@@ -1,5 +1,11 @@
 documentation:
 - docs/**/*
+- '*.md'
+- .github/**/*.md
+- examples/**/*.md
+- qlib/**/*.md
+- scripts/**/*.md
+- tests/**/*.md
 
 wait for triage:
 - '*'
