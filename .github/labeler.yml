@@ -8,9 +8,5 @@ documentation:
 - tests/**/*.md
 
 wait for triage:
-- '*'
-- .github/**/*
-- examples/**/*
-- qlib/**/*
-- scripts/**/*
-- tests/**/*
+- any['*', '.github/**/*', 'examples/**/*', 'qlib/**/*', 'scripts/**/*', 'tests/**/*']
+  all['!*.md', '!.github/**/*.md', '!examples/**/*.md', '!qlib/**/*.md', '!scripts/**/*.md', '!tests/**/*.md']
