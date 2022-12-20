@@ -115,7 +115,7 @@ def _plot_qq(data: pd.Series = None, dist=stats.norm) -> go.Figure:
     return fig
 
 
-def _pred_ic(pred_label: pd.DataFrame = None, methods: Sequence[str] = ("IC", "Rank IC"), **kwargs) -> tuple:
+def _pred_ic(pred_label: pd.DataFrame = None, methods: Sequence[Literal["IC", "Rank IC"]] = ("IC", "Rank IC"), **kwargs) -> tuple:
     """
 
     :param pred_label: pd.DataFrame
@@ -124,6 +124,7 @@ def _pred_ic(pred_label: pd.DataFrame = None, methods: Sequence[str] = ("IC", "R
     IC series to plot.
     IC is sectional pearson correlation between label and score
     Rank IC is the spearman correlation between label and score
+    For the Monthly IC, IC histogram, IC Q-Q plot.  Only the first type of IC will be plotted.
     :return:
     """
     _methods_mapping = {"IC": "pearson", "Rank IC": "spearman"}
