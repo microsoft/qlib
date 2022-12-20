@@ -115,7 +115,7 @@ def _plot_qq(data: pd.Series = None, dist=stats.norm) -> go.Figure:
     return fig
 
 
-def _pred_ic(pred_label: pd.DataFrame = None, methods: Sequence[str] = ("IC", "Rank IC"), **kwargs) -> tuple:
+def _pred_ic(pred_label: pd.DataFrame = None, methods: Sequence[Literal["IC", "Rank IC"]] = ("IC", "Rank IC"), **kwargs) -> tuple:
     """
 
     :param pred_label: pd.DataFrame
