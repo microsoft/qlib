@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 from scipy import stats
 
 from typing import Sequence
+from qlib.typehint import Literal
 
 from ..graph import ScatterGraph, SubplotsGraph, BarGraph, HeatmapGraph
 from ..utils import guess_plotly_rangebreaks
@@ -115,12 +116,14 @@ def _plot_qq(data: pd.Series = None, dist=stats.norm) -> go.Figure:
     return fig
 
 
-def _pred_ic(pred_label: pd.DataFrame = None, methods: Sequence[Literal["IC", "Rank IC"]] = ("IC", "Rank IC"), **kwargs) -> tuple:
+def _pred_ic(
+    pred_label: pd.DataFrame = None, methods: Sequence[Literal["IC", "Rank IC"]] = ("IC", "Rank IC"), **kwargs
+) -> tuple:
     """
 
     :param pred_label: pd.DataFrame
     must contain one column of realized return with name `label` and one column of predicted score names `score`.
-    :param methods: Sequence[{'IC', 'Rank IC'}]
+    :param methods: Sequence[Literal["IC", "Rank IC"]]
     IC series to plot.
     IC is sectional pearson correlation between label and score
     Rank IC is the spearman correlation between label and score
