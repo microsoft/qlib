@@ -47,6 +47,23 @@ def sub_fig_generator(sub_fs=(3, 3), col_n=10, row_n=1, wspace=None, hspace=None
 
 
 def guess_plotly_rangebreaks(dt_index: pd.DatetimeIndex):
+    """
+    This function `guesses` the rangebreaks required to remove gaps in datetime index.
+    It basically calculates the difference between a `continuous` datetime index and index given.
+
+    For more details on `rangebreaks` params in plotly, see
+    https://plotly.com/python/reference/layout/xaxis/#layout-xaxis-rangebreaks
+
+    Parameters
+    ----------
+    dt_index: pd.DatetimeIndex
+    The datetimes of the data.
+
+    Returns
+    -------
+    the `rangebreaks` to be passed into plotly axis.
+
+    """
     dt_idx = dt_index.sort_values()
     gaps = dt_idx[1:] - dt_idx[:-1]
     min_gap = gaps.min()
