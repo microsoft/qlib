@@ -250,7 +250,7 @@ class ZScoreNorm(Processor):
                 return (x - mean_train) / std_train
             for i in range(ignore.size):
                 if not ignore[i]:
-                    x[i] = (x[i] - mean_train) / std_train
+                    x[:, i] = (x[:, i] - mean_train[i]) / std_train[i]
             return x
 
         df.loc(axis=1)[self.cols] = normalize(df[self.cols].values)
