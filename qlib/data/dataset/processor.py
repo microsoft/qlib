@@ -211,8 +211,8 @@ class MinMaxNorm(Processor):
         self.min_val = np.nanmin(df[cols].values, axis=0)
         self.max_val = np.nanmax(df[cols].values, axis=0)
         self.ignore = self.min_val == self.max_val
-        for _i in range(len(self.ignore)):
-            if self.ignore[_i]:
+        for _i, _con in enumerate(self.ignore):
+            if _con:
                 self.min_val[_i] = 0
                 self.max_val[_i] = 1
         self.cols = cols
@@ -241,8 +241,8 @@ class ZScoreNorm(Processor):
         self.mean_train = np.nanmean(df[cols].values, axis=0)
         self.std_train = np.nanstd(df[cols].values, axis=0)
         self.ignore = self.std_train == 0
-        for _i in range(len(self.ignore)):
-            if self.ignore[_i]:
+        for _i, _con in enumerate(self.ignore):
+            if _con:
                 self.std_train[_i] = 1
                 self.mean_train[_i] = 0
         self.cols = cols
