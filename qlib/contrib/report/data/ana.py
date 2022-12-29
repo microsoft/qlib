@@ -139,8 +139,8 @@ class FeaACAna(FeaAnalyser):
 
 class FeaSkewTurt(NumFeaAnalyser):
     def calc_stat_values(self):
-        self._skew = datetime_groupby_apply(self._dataset, "skew", skip_group=True)
-        self._kurt = datetime_groupby_apply(self._dataset, pd.DataFrame.kurt, skip_group=True)
+        self._skew = datetime_groupby_apply(self._dataset, "skew")
+        self._kurt = datetime_groupby_apply(self._dataset, pd.DataFrame.kurt)
 
     def plot_single(self, col, ax):
         self._skew[col].plot(ax=ax, label="skew")
