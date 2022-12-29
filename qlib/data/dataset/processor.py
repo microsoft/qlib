@@ -211,6 +211,10 @@ class MinMaxNorm(Processor):
         self.min_val = np.nanmin(df[cols].values, axis=0)
         self.max_val = np.nanmax(df[cols].values, axis=0)
         self.ignore = self.min_val == self.max_val
+        # To improve the speed, we set the value of `min_val` to `0` for the columns that do not need to be processed,
+        # and the value of `max_val` to `1`, when using `(x - min_val) / (max_val - min_val)` for uniform calculation,
+        # the columns that do not need to be processed will be calculated by `(x - 0) / (1 - 0)`,
+        # as you can see, the columns that do not need to be processed, will not be affected.
         for _i, _con in enumerate(self.ignore):
             if _con:
                 self.min_val[_i] = 0
@@ -241,6 +245,10 @@ class ZScoreNorm(Processor):
         self.mean_train = np.nanmean(df[cols].values, axis=0)
         self.std_train = np.nanstd(df[cols].values, axis=0)
         self.ignore = self.std_train == 0
+        # To improve the speed, we set the value of `std_train` to `1` for the columns that do not need to be processed,
+        # and the value of `mean_train` to `0`, when using `(x - mean_train) / std_train` for uniform calculation,
+        # the columns that do not need to be processed will be calculated by `(x - 0) / 1`,
+        # as you can see, the columns that do not need to be processed, will not be affected.
         for _i, _con in enumerate(self.ignore):
             if _con:
                 self.std_train[_i] = 1
@@ -311,7 +319,7 @@ class CSZScoreNorm(Processor):
             self.fields_group = [self.fields_group]
         for g in self.fields_group:
             cols = get_group_columns(df, g)
-            df[cols] = df[cols].groupby("datetime", group_keys=False).mean().apply(self.zscore_func)
+            df[cols] = df[cols].groupby("datetime", group_keys=False).apply(self.zscore_func)
         return df
 
 
@@ -359,8 +367,7 @@ class CSZFillna(Processor):
 
     def __call__(self, df):
         cols = get_group_columns(df, self.fields_group)
-        df.index.astype(np.datetime64)
-        df[cols] = df[cols].groupby("datetime").mean().apply(lambda x: x.fillna(x.mean()))
+        df[cols] = df[cols].groupby("datetime", group_keys=False).apply(lambda x: x.fillna(df[cols].mean()))
         return df
 
 

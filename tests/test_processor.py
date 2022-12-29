@@ -1,9 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-import io
 import unittest
-import pandas as pd
 from qlib.data import D
 from qlib.tests import TestAutoData
 from qlib.data.dataset.processor import MinMaxNorm, ZScoreNorm, CSZScoreNorm, CSZFillna
@@ -31,36 +29,18 @@ class TestProcessor(TestAutoData):
         assert (df.tail(5).iloc[:, :-1] != origin_df.tail(5).iloc[:, :-1]).all().all()
 
     def test_CSZFillna(self):
-        st = """
-        2000-01-01,1,2
-        2000-01-02,,4
-        2000-01-03,5,6
-        """
-        origin_df = pd.read_csv(io.StringIO(st), header=None)
-        origin_df.columns = ["datetime", "a", "b"]
-        origin_df.set_index("datetime", inplace=True, drop=True)
+        origin_df = D.features([self.TEST_INST], fields=["$high", "$open", "$low", "$close"])[113:118]
         df = origin_df.copy()
         CSZFillna(fields_group=None).__call__(df)
-        assert ~((origin_df == df).iloc[1, 0])
+        assert ~((origin_df == df)[1:2].all().all())
 
     def test_CSZScoreNorm(self):
-        st = """
-        2000-01-01,1,2
-        2000-01-02,3,4
-        2000-01-03,5,6
-        """
-        origin_df = pd.read_csv(io.StringIO(st), header=None)
-        origin_df.columns = ["datetime", "a", "b"]
-        origin_df.set_index("datetime", inplace=True, drop=True)
+        origin_df = D.features(D.instruments(market="csi300"), fields=["$high", "$open", "$low", "$close"])
+        origin_df = origin_df.groupby("datetime", group_keys=False).apply(lambda x: x[10:12])[50:70]
         df = origin_df.copy()
         CSZScoreNorm(fields_group=None).__call__(df)
-        assert (df == ((origin_df - origin_df.mean()).div(origin_df.std()))).all().all()
+        assert (df[2:4] == ((origin_df[2:4] - origin_df[2:4].mean()).div(origin_df[2:4].std()))).all().all()
 
 
-def suite():
-    _suite = unittest.TestSuite()
-    _suite.addTest(TestProcessor("test_MinMaxNorm"))
-    _suite.addTest(TestProcessor("test_ZScoreNorm"))
-    _suite.addTest(TestProcessor("test_CSZFillna"))
-    _suite.addTest(TestProcessor("test_CSZScoreNorm"))
-    return _suite
+if __name__ == "__main__":
+    unittest.main()
