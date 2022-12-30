@@ -244,7 +244,6 @@ class ZScoreNorm(Processor):
         cols = get_group_columns(df, self.fields_group)
         self.mean_train = np.nanmean(df[cols].values, axis=0)
         self.std_train = np.nanstd(df[cols].values, axis=0)
-        print("Processors.py", self.mean_train, self.std_train)
         self.ignore = self.std_train == 0
         # To improve the speed, we set the value of `std_train` to `1` for the columns that do not need to be processed,
         # and the value of `mean_train` to `0`, when using `(x - mean_train) / std_train` for uniform calculation,
