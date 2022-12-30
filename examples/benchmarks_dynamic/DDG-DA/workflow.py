@@ -170,7 +170,7 @@ class DDGDA:
         # 3) train and logging meta model
         with R.start(experiment_name=self.meta_exp_name):
             R.log_params(**kwargs)
-            mm = MetaModelDS(step=self.step, hist_step_n=kwargs["hist_step_n"], lr=0.001, max_epoch=200, seed=43)
+            mm = MetaModelDS(step=self.step, hist_step_n=kwargs["hist_step_n"], lr=0.001, max_epoch=100, seed=43)
             mm.fit(md)
             R.save_objects(model=mm)
 
