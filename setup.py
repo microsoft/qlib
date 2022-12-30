@@ -156,7 +156,14 @@ setup(
             "baostock",
             "yahooquery",
             "beautifulsoup4",
-            "tianshou",
+            # In version 0.4.11 of tianshou, the code:
+            # logits, hidden = self.actor(batch.obs, state=state, info=batch.info)
+            # was changed in PR787,
+            # which causes pytest errors(AttributeError: 'dict' object has no attribute 'info') in CI,
+            # so we restricted the version of tianshou.
+            # References:
+            # https://github.com/thu-ml/tianshou/releases
+            "tianshou<=0.4.10",
             "gym>=0.24",  # If you do not put gym at the end, gym will degrade causing pytest results to fail.
         ],
         "rl": [
