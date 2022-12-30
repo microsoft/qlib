@@ -29,7 +29,8 @@ class TestProcessor(TestAutoData):
         assert (df.tail(5).iloc[:, :-1] != origin_df.tail(5).iloc[:, :-1]).all().all()
 
     def test_CSZFillna(self):
-        origin_df = D.features([self.TEST_INST], fields=["$high", "$open", "$low", "$close"])[113:118]
+        origin_df = D.features(D.instruments(market="csi300"), fields=["$high", "$open", "$low", "$close"])
+        origin_df = origin_df.groupby("datetime", group_keys=False).apply(lambda x: x[97:99])[228:238]
         df = origin_df.copy()
         CSZFillna(fields_group=None).__call__(df)
         assert ~((origin_df == df)[1:2].all().all())
