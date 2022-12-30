@@ -2,6 +2,7 @@
 # Licensed under the MIT License.
 
 import unittest
+import numpy as np
 from qlib.data import D
 from qlib.tests import TestAutoData
 from qlib.data.dataset.processor import MinMaxNorm, ZScoreNorm, CSZScoreNorm, CSZFillna
@@ -17,7 +18,10 @@ class TestProcessor(TestAutoData):
         mmn = MinMaxNorm(fields_group=None, fit_start_time="2021-05-31", fit_end_time="2021-06-11")
         mmn.fit(df)
         mmn.__call__(df)
-        assert (df.tail(5).iloc[:, :-1] != origin_df.tail(5).iloc[:, :-1]).all().all()
+        min_val = np.nanmin(origin_df.values, axis=0)
+        max_val = np.nanmax(origin_df.values, axis=0)
+        origin_df.loc(axis=1)[origin_df.columns] = (origin_df.values - min_val) / (max_val - min_val)
+        assert (df.iloc[:, :-1] == origin_df.iloc[:, :-1]).all().all()
 
     def test_ZScoreNorm(self):
         origin_df = D.features([self.TEST_INST], ["$high", "$open", "$low", "$close"]).tail(10)
@@ -26,7 +30,10 @@ class TestProcessor(TestAutoData):
         zsn = ZScoreNorm(fields_group=None, fit_start_time="2021-05-31", fit_end_time="2021-06-11")
         zsn.fit(df)
         zsn.__call__(df)
-        assert (df.tail(5).iloc[:, :-1] != origin_df.tail(5).iloc[:, :-1]).all().all()
+        mean_train = np.nanmean(origin_df.values, axis=0)
+        std_train = np.nanstd(origin_df.values, axis=0)
+        origin_df.loc(axis=1)[origin_df.columns] = (origin_df.values - mean_train) / std_train
+        assert (df.iloc[:, :-1] == origin_df.iloc[:, :-1]).all().all()
 
     def test_CSZFillna(self):
         origin_df = D.features(D.instruments(market="csi300"), fields=["$high", "$open", "$low", "$close"])
