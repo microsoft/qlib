@@ -21,4 +21,4 @@ tar -zxvf qlib_bin.tar.gz -C ~/.qlib/qlib_data/cn_data --strip-components=2
 - The label horizon of the `Alpha158` dataset is set to 20.
 - The rolling time intervals are set to 20 trading days.
 - The test rolling periods are from January 2017 to August 2020.
-- The results are based on the crowd-sourced version. The Yahoo version of qlib data does not contain `VWAP`, so all related factors are missing and filled with 0, which leads to a singular matrix and makes lower-level optimization of DDG-DA can not be solved.
+- The results are based on the crowd-sourced version. The Yahoo version of qlib data does not contain `VWAP`, so all related factors are missing and filled with 0, which leads to a rank-deficient matrix (a matrix does not have full rank) and makes lower-level optimization of DDG-DA can not be solved.
