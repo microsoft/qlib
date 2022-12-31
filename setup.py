@@ -44,7 +44,7 @@ if not _CYTHON_INSTALLED:
 # What packages are required for this module to be executed?
 # `estimator` may depend on other packages. In order to reduce dependencies, it is not written here.
 REQUIRED = [
-    "numpy>=1.12.0",
+    "numpy>=1.12.0, <1.24",
     "pandas>=0.25.1",
     "scipy>=1.0.0",
     "requests>=2.18.0",
@@ -156,7 +156,14 @@ setup(
             "baostock",
             "yahooquery",
             "beautifulsoup4",
-            "tianshou",
+            # In version 0.4.11 of tianshou, the code:
+            # logits, hidden = self.actor(batch.obs, state=state, info=batch.info)
+            # was changed in PR787,
+            # which causes pytest errors(AttributeError: 'dict' object has no attribute 'info') in CI,
+            # so we restricted the version of tianshou.
+            # References:
+            # https://github.com/thu-ml/tianshou/releases
+            "tianshou<=0.4.10",
             "gym>=0.24",  # If you do not put gym at the end, gym will degrade causing pytest results to fail.
         ],
         "rl": [
