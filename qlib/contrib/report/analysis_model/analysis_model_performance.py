@@ -49,8 +49,17 @@ def _group_return(pred_label: pd.DataFrame = None, reverse: bool = False, N: int
     # Long-Short
     t_df["long-short"] = t_df["Group1"] - t_df["Group%d" % N]
 
-    # Long-Average
-    t_df["long-average"] = t_df["Group1"] - pred_label.groupby(level="datetime")["label"].mean()
+    # Long-benchmark
+    benchmark = kwargs.get("benchmark", "average")
+    if isinstance(benchmark, str) and benchmark == "average":
+        benchmark_name = benchmark
+        benchmark = pred_label.groupby(level="datetime")["label"].mean()
+    elif isinstance(benchmark, pd.Series):
+        benchmark_name = benchmark.name if bool(benchmark.name) else "benchmark"
+        benchmark = benchmark.reindex(t_df.index)
+    else:
+        raise TypeError(f"Invalid benchmark type: {type(benchmark)}")
+    t_df[f"long-{benchmark_name}"] = t_df["Group1"] - benchmark
 
     t_df = t_df.dropna(how="all")  # for days which does not contain label
     # Cumulative Return By Group
@@ -62,7 +71,7 @@ def _group_return(pred_label: pd.DataFrame = None, reverse: bool = False, N: int
         ),
     ).figure
 
-    t_df = t_df.loc[:, ["long-short", "long-average"]]
+    t_df = t_df.loc[:, ["long-short", f"long-{benchmark_name}"]]
     _bin_size = float(((t_df.max() - t_df.min()) / 20).min())
     group_hist_figure = SubplotsGraph(
         t_df,
@@ -71,7 +80,7 @@ def _group_return(pred_label: pd.DataFrame = None, reverse: bool = False, N: int
             rows=1,
             cols=2,
             print_grid=False,
-            subplot_titles=["long-short", "long-average"],
+            subplot_titles=["long-short", f"long-{benchmark_name}"],
         ),
     ).figure
 
