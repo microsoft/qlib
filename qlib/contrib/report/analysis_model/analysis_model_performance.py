@@ -179,10 +179,11 @@ def _pred_ic(
 
     ic_bar_figure = ic_figure(ic_df, kwargs.get("show_nature_day", False))
 
+    _monthly_ic_abs_max = _monthly_ic.abs().max()
     ic_heatmap_figure = HeatmapGraph(
         _monthly_ic.unstack(),
         layout=dict(title="Monthly IC", xaxis=dict(dtick=1), yaxis=dict(tickformat="04d", dtick=1)),
-        graph_kwargs=dict(xtype="array", ytype="array"),
+        graph_kwargs=dict(xtype="array", ytype="array", zmin=-_monthly_ic_abs_max, zmax=_monthly_ic_abs_max),
     ).figure
 
     dist = stats.norm
