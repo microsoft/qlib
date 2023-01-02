@@ -53,3 +53,8 @@ python -m qlib.rl.contrib.backtest --config_path ./experiment_config/backtest/co
 ```
 
 The backtest workflow will use the trained model in `checkpoints/`. The backtest summary can be found in `outputs/`.
+
+## Others
+The RL module is designed in a loosely-coupled way. Currently, RL examples are integrated with concrete business logic.
+But the core part of RL is much simpler than what you see.
+To demonstrate the simple core of RL, [a dedicated notebook](./simple_example.ipynb) for RL without business loss is created.
