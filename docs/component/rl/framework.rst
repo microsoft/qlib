@@ -43,3 +43,7 @@ As you may have noticed, a training vessel itself holds all the required compone
 With a training vessel, the trainer could finally launch the training pipeline by simple, Scikit-learn-like interfaces (i.e., ``trainer.fit()``).
 
 The API for Trainer and TrainingVessel and can be found `here <../../reference/api.html#module-qlib.rl.trainer>`__.
+
+The RL module is designed in a loosely-coupled way. Currently, RL examples are integrated with concrete business logic.
+But the core part of RL is much simpler than what you see.
+To demonstrate the simple core of RL, `a dedicated notebook <https://github.com/microsoft/qlib/tree/main/examples/rl/simple_example.ipynb>`__ for RL without business loss is created.
