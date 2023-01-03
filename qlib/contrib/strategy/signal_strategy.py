@@ -217,7 +217,7 @@ class TopkDropoutStrategy(BaseSignalStrategy):
         buy = today[: len(sell) + self.topk - len(last)]
         for code in current_stock_list:
             if not self.trade_exchange.is_stock_tradable(
-                stock_id=code, start_time=trade_start_time, end_time=trade_end_time, direction=OrderDir.BUY
+                stock_id=code, start_time=trade_start_time, end_time=trade_end_time, direction=OrderDir.SELL
             ):
                 continue
             if code in sell:
@@ -254,7 +254,7 @@ class TopkDropoutStrategy(BaseSignalStrategy):
         for code in buy:
             # check is stock suspended
             if not self.trade_exchange.is_stock_tradable(
-                stock_id=code, start_time=trade_start_time, end_time=trade_end_time
+                stock_id=code, start_time=trade_start_time, end_time=trade_end_time, direction=OrderDir.BUY
             ):
                 continue
             # buy order
