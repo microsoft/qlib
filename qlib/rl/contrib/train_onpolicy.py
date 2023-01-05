@@ -141,6 +141,7 @@ def train_and_test(
         callbacks.append(
             EarlyStopping(
                 patience=trainer_config["earlystop_patience"],
+                monitor="val/pa",
             )
         )
 
@@ -179,8 +180,8 @@ def train_and_test(
         policy=policy,
         logger=CsvWriter(Path(trainer_config["checkpoint_path"])),
         reward=reward,
-        # finite_env_type="subproc",
-        # concurrency=2,
+        finite_env_type=trainer_kwargs["finite_env_type"],
+        concurrency=trainer_kwargs["concurrency"],
     )
 
 

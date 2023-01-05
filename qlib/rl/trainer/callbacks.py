@@ -191,13 +191,16 @@ class ValidationWriter(Callback):
     def __init__(self, dirpath: Path) -> None:
         self.dirpath = dirpath
         self.dirpath.mkdir(exist_ok=True, parents=True)
-        self.all_records: List[dict] = []
+        self.train_records: List[dict] = []
+        self.valid_records: List[dict] = []
+
+    def on_train_end(self, trainer: Trainer, vessel: TrainingVesselBase) -> None:
+        self.train_records.append(trainer.metrics)
+        pd.DataFrame.from_records(self.train_records).to_csv(self.dirpath / "train_result.csv", index=True)
 
     def on_validate_end(self, trainer: Trainer, vessel: TrainingVesselBase) -> None:
-        self.all_records.append(trainer.metrics)
-
-    def on_fit_end(self, trainer: Trainer, vessel: TrainingVesselBase) -> None:
-        pd.DataFrame.from_records(self.all_records).to_csv(self.dirpath / "validation_result.csv", index=True)
+        self.valid_records.append(trainer.metrics)
+        pd.DataFrame.from_records(self.valid_records).to_csv(self.dirpath / "validation_result.csv", index=True)
 
 
 class Checkpoint(Callback):

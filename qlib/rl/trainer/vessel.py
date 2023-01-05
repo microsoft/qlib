@@ -180,6 +180,7 @@ class TrainingVessel(TrainingVesselBase):
             update_result = self.policy.update(sample_size=0, buffer=collector.buffer, **self.update_kwargs)
             res = {**col_result, **update_result}
             self.log_dict(res)
+            del collector
             return res
 
     def validate(self, vector_env: FiniteVectorEnv) -> Dict[str, Any]:
@@ -189,6 +190,7 @@ class TrainingVessel(TrainingVesselBase):
             test_collector = Collector(self.policy, vector_env)
             res = test_collector.collect(n_step=INF * len(vector_env))
             self.log_dict(res)
+            del test_collector
             return res
 
     def test(self, vector_env: FiniteVectorEnv) -> Dict[str, Any]:
@@ -198,6 +200,7 @@ class TrainingVessel(TrainingVesselBase):
             test_collector = Collector(self.policy, vector_env)
             res = test_collector.collect(n_step=INF * len(vector_env))
             self.log_dict(res)
+            del test_collector
             return res
 
     @staticmethod
