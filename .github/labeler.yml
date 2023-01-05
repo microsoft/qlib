@@ -1,0 +1,6 @@
+documentation:
+- 'docs/**/*'
+- '**/*.md'
+
+waiting for triage:
+- any: ['**/*', '!docs/**/*', '!**/*.md']

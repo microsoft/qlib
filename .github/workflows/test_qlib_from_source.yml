@@ -140,10 +140,7 @@ jobs:
 
     - name: Test workflow by config (install from source)
       run: |
-        # Version 0.52.0 of numba must be installed manually in CI, otherwise it will cause incompatibility with the latest version of numpy.
-        python -m pip install numba==0.52.0
-        # You must update numpy manually, because when installing python tools, it will try to uninstall numpy and cause CI to fail.
-        python -m pip install --upgrade numpy
+        python -m pip install numba
         python qlib/workflow/cli.py examples/benchmarks/LightGBM/workflow_config_lightgbm_Alpha158.yaml
 
     - name: Unit tests with Pytest

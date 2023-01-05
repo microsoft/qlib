@@ -75,7 +75,8 @@ class Config:
     def set_conf_from_C(self, config_c):
         self.update(**config_c.__dict__["_config"])
 
-    def register_from_C(self, config, skip_register=True):
+    @staticmethod
+    def register_from_C(config, skip_register=True):
         from .utils import set_log_with_config  # pylint: disable=C0415
 
         if C.registered and skip_register:
@@ -202,7 +203,7 @@ _default_config = {
         "task_url": "mongodb://localhost:27017/",
         "task_db_name": "default_task_db",
     },
-    # Shift minute for highfreq minite data, used in backtest
+    # Shift minute for highfreq minute data, used in backtest
     # if min_data_shift == 0, use default market time [9:30, 11:29, 1:00, 2:59]
     # if min_data_shift != 0, use shifted market time [9:30, 11:29, 1:00, 2:59] - shift*minute
     "min_data_shift": 0,

@@ -56,7 +56,7 @@ class ADARNN(Model):
         n_splits=2,
         GPU=0,
         seed=None,
-        **kwargs
+        **_
     ):
         # Set logger.
         self.logger = get_module_logger("ADARNN")
@@ -81,7 +81,7 @@ class ADARNN(Model):
         self.optimizer = optimizer.lower()
         self.loss = loss
         self.n_splits = n_splits
-        self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
+        self.device = torch.device("cuda:%d" % GPU if torch.cuda.is_available() and GPU >= 0 else "cpu")
         self.seed = seed
 
         self.logger.info(
@@ -213,7 +213,8 @@ class ADARNN(Model):
             weight_mat = self.transform_type(out_weight_list)
             return weight_mat, None
 
-    def calc_all_metrics(self, pred):
+    @staticmethod
+    def calc_all_metrics(pred):
         """pred is a pandas dataframe that has two attributes: score (pred) and label (real)"""
         res = {}
         ic = pred.groupby(level="datetime").apply(lambda x: x.label.corr(x.score))
@@ -259,8 +260,6 @@ class ADARNN(Model):
 
         save_path = get_or_create_path(save_path)
         stop_steps = 0
-        best_score = -np.inf
-        best_epoch = 0
         evals_result["train"] = []
         evals_result["valid"] = []
 
@@ -400,7 +399,7 @@ class AdaRNN(nn.Module):
         self.model_type = model_type
         self.trans_loss = trans_loss
         self.len_seq = len_seq
-        self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
+        self.device = torch.device("cuda:%d" % GPU if torch.cuda.is_available() and GPU >= 0 else "cpu")
         in_size = self.n_input
 
         features = nn.ModuleList()
@@ -499,7 +498,8 @@ class AdaRNN(nn.Module):
         res = self.softmax(weight).squeeze()
         return res
 
-    def get_features(self, output_list):
+    @staticmethod
+    def get_features(output_list):
         fea_list_src, fea_list_tar = [], []
         for fea in output_list:
             fea_list_src.append(fea[0 : fea.size(0) // 2])
@@ -561,7 +561,7 @@ class TransferLoss:
         """
         self.loss_type = loss_type
         self.input_dim = input_dim
-        self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
+        self.device = torch.device("cuda:%d" % GPU if torch.cuda.is_available() and GPU >= 0 else "cpu")
 
     def compute(self, X, Y):
         """Compute adaptation loss
@@ -676,7 +676,8 @@ class MMD_loss(nn.Module):
         self.fix_sigma = None
         self.kernel_type = kernel_type
 
-    def guassian_kernel(self, source, target, kernel_mul=2.0, kernel_num=5, fix_sigma=None):
+    @staticmethod
+    def guassian_kernel(source, target, kernel_mul=2.0, kernel_num=5, fix_sigma=None):
         n_samples = int(source.size()[0]) + int(target.size()[0])
         total = torch.cat([source, target], dim=0)
         total0 = total.unsqueeze(0).expand(int(total.size(0)), int(total.size(0)), int(total.size(1)))
@@ -691,7 +692,8 @@ class MMD_loss(nn.Module):
         kernel_val = [torch.exp(-L2_distance / bandwidth_temp) for bandwidth_temp in bandwidth_list]
         return sum(kernel_val)
 
-    def linear_mmd(self, X, Y):
+    @staticmethod
+    def linear_mmd(X, Y):
         delta = X.mean(axis=0) - Y.mean(axis=0)
         loss = delta.dot(delta.T)
         return loss

@@ -428,7 +428,7 @@ class EnhancedIndexingStrategy(WeightStrategyBase):
         specific_risk = load_dataset(root + "/" + self.specific_risk_path, index_col=[0])
 
         if not factor_exp.index.equals(specific_risk.index):
-            # NOTE: for stocks missing specific_risk, we always assume it have the highest volatility
+            # NOTE: for stocks missing specific_risk, we always assume it has the highest volatility
             specific_risk = specific_risk.reindex(factor_exp.index, fill_value=specific_risk.max())
 
         universe = factor_exp.index.tolist()

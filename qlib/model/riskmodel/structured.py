@@ -18,7 +18,7 @@ class StructuredCovEstimator(RiskModel):
     `B` is the regression coefficients matrix for all observations (row) on
     all factors (columns), and `U` is the residual matrix with shape like `X`.
 
-    Therefore the structured covariance can be estimated by
+    Therefore, the structured covariance can be estimated by
         cov(X.T) = F @ cov(B.T) @ F.T + diag(var(U))
 
     In finance domain, there are mainly three methods to design `F` [1][2]:
