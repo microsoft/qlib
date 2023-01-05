@@ -242,7 +242,7 @@ class HighFreqProvider:
         with open(path + "tmp_dataset.pkl", "rb") as f:
             new_dataset = pkl.load(f)
 
-        time_list = D.calendar(start_time=self.start_time, end_time=self.end_time, freq="5min")[::240]
+        time_list = D.calendar(start_time=self.start_time, end_time=self.end_time, freq=self.freq)[::240]
 
         def generate_dataset(times):
             if os.path.isfile(path + times.strftime("%Y-%m-%d") + ".pkl"):
@@ -285,7 +285,7 @@ class HighFreqProvider:
 
         instruments = D.instruments(market="all")
         stock_list = D.list_instruments(
-            instruments=instruments, start_time=self.start_time, end_time=self.end_time, freq="5min", as_list=True
+            instruments=instruments, start_time=self.start_time, end_time=self.end_time, freq=self.freq, as_list=True
         )
 
         def generate_dataset(stock):
