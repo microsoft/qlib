@@ -797,7 +797,7 @@ class LocalPITProvider(PITProvider):
         cur_time_int = int(cur_time.year) * 10000 + int(cur_time.month) * 100 + int(cur_time.day)
         loc = np.searchsorted(data["date"], cur_time_int, side="right")
         if loc <= 0:
-            return pd.Series()
+            return pd.Series(dtype='<f')
         last_period = data["period"][:loc].max()  # return the latest quarter
         first_period = data["period"][:loc].min()
         period_list = get_period_list(first_period, last_period, quarterly)
