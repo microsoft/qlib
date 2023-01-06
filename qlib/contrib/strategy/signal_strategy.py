@@ -77,6 +77,7 @@ class TopkDropoutStrategy(BaseSignalStrategy):
     # 1. Supporting leverage the get_range_limit result from the decision
     # 2. Supporting alter_outer_trade_decision
     # 3. Supporting checking the availability of trade decision
+    # 4. Regenerate results with forbid_all_trade_at_limit set to false and flip the default to false, as it is consistent with reality.
     def __init__(
         self,
         *,
@@ -86,6 +87,7 @@ class TopkDropoutStrategy(BaseSignalStrategy):
         method_buy="top",
         hold_thresh=1,
         only_tradable=False,
+        forbid_all_trade_at_limit=True,
         **kwargs,
     ):
         """
@@ -112,6 +114,17 @@ class TopkDropoutStrategy(BaseSignalStrategy):
             else:
 
                 strategy will make buy sell decision without checking the tradable state of the stock.
+        forbid_all_trade_at_limit : bool
+            if forbid all trades when limit_up or limit_down reached.
+
+            if forbid_all_trade_at_limit:
+
+                strategy will not do any trade when price reaches limit up/down, even not sell at limit up nor buy at
+                limit down, though allowed in reality.
+
+            else:
+
+                strategy will sell at limit up and buy ad limit down.
         """
         super().__init__(**kwargs)
         self.topk = topk
@@ -120,6 +133,7 @@ class TopkDropoutStrategy(BaseSignalStrategy):
         self.method_buy = method_buy
         self.hold_thresh = hold_thresh
         self.only_tradable = only_tradable
+        self.forbid_all_trade_at_limit = forbid_all_trade_at_limit
 
     def generate_trade_decision(self, execute_result=None):
         # get the number of trading step finished, trade_step can be [0, 1, 2, ..., trade_len - 1]
@@ -217,7 +231,10 @@ class TopkDropoutStrategy(BaseSignalStrategy):
         buy = today[: len(sell) + self.topk - len(last)]
         for code in current_stock_list:
             if not self.trade_exchange.is_stock_tradable(
-                stock_id=code, start_time=trade_start_time, end_time=trade_end_time, direction=OrderDir.SELL
+                stock_id=code,
+                start_time=trade_start_time,
+                end_time=trade_end_time,
+                direction=None if self.forbid_all_trade_at_limit else OrderDir.SELL,
             ):
                 continue
             if code in sell:
@@ -254,7 +271,10 @@ class TopkDropoutStrategy(BaseSignalStrategy):
         for code in buy:
             # check is stock suspended
             if not self.trade_exchange.is_stock_tradable(
-                stock_id=code, start_time=trade_start_time, end_time=trade_end_time, direction=OrderDir.BUY
+                stock_id=code,
+                start_time=trade_start_time,
+                end_time=trade_end_time,
+                direction=None if self.forbid_all_trade_at_limit else OrderDir.BUY,
             ):
                 continue
             # buy order
