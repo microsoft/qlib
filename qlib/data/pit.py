@@ -66,7 +66,7 @@ class PRef(P):
         self.period = period
 
     def __str__(self):
-        return f"{super().__str__()}[{self.period}]"
+        return "{}({},{})".format(type(self).__name__, self.feature, self.period)
 
     def _load_feature(self, instrument, start_index, end_index, cur_time):
         return self.feature.load(instrument, start_index, end_index, cur_time, self.period)
