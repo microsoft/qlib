@@ -372,11 +372,7 @@ class MLflowRecorder(Recorder):
                 out = subprocess.check_output(cmd, shell=True)
                 self.client.log_text(self.id, out.decode(), fname)  # this behaves same as above
             except subprocess.CalledProcessError:
-                exe_path = Path(os.path.abspath(sys.argv[0])).parent.resolve()
-                logger.info(
-                    f"Fail to log the uncommitted code of $CWD when run `{cmd}`. "
-                    f"The path to execute `{cmd}` is: `{exe_path}`."
-                )
+                logger.info(f"Fail to log the uncommitted code of $CWD({os.getcwd()}) when run {cmd}.")
 
     def end_run(self, status: str = Recorder.STATUS_S):
         assert status in [
