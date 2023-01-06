@@ -362,11 +362,10 @@ class MLflowRecorder(Recorder):
         """
         # TODO: the sub-directories maybe git repos.
         # So it will be better if we can walk the sub-directories and log the uncommitted changes.
-        root_path = Path(__file__).parent.parent.parent.resolve()
         for cmd, fname in [
-            (f"cd {str(root_path)} && git diff", "code_diff.txt"),
-            (f"cd {str(root_path)} && git status", "code_status.txt"),
-            (f"cd {str(root_path)} && git diff --cached", "code_cached.txt"),
+            ("git diff", "code_diff.txt"),
+            ("git status", "code_status.txt"),
+            ("git diff --cached", "code_cached.txt"),
         ]:
             try:
                 out = subprocess.check_output(cmd, shell=True)
