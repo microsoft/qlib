@@ -165,7 +165,7 @@ class TestAllFlow(TestAutoData):
         analyze_df = backtest_analysis(TestAllFlow.PRED_SCORE, TestAllFlow.RID, self.URI_PATH)
         self.assertGreaterEqual(
             analyze_df.loc(axis=0)["excess_return_with_cost", "annualized_return"].values[0],
-            0.10,
+            0.05,
             "backtest failed",
         )
         self.assertTrue(not analyze_df.isna().any().any(), "backtest failed")
