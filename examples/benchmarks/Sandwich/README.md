@@ -1,4 +1,4 @@
-# KRNN
+# Sandwich
 * Code: [https://github.com/microsoft/FOST/blob/main/fostool/model/sandwich.py](https://github.com/microsoft/FOST/blob/main/fostool/model/sandwich.py)
 
 
