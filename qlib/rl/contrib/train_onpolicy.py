@@ -18,7 +18,7 @@ from qlib.rl.interpreter import ActionInterpreter, StateInterpreter
 from qlib.rl.order_execution import SingleAssetOrderExecutionSimple
 from qlib.rl.reward import Reward
 from qlib.rl.trainer import Checkpoint, backtest, train
-from qlib.rl.trainer.callbacks import Callback, EarlyStopping, ValidationWriter
+from qlib.rl.trainer.callbacks import Callback, EarlyStopping, MetricsWriter
 from qlib.rl.utils.log import CsvWriter
 from qlib.utils import init_instance_by_config
 from tianshou.policy import BasePolicy
@@ -128,7 +128,7 @@ def train_and_test(
         for tag in ("train", "valid", "test")
     ]
 
-    callbacks: List[Callback] = [ValidationWriter(dirpath=Path(trainer_config["checkpoint_path"]))]
+    callbacks: List[Callback] = [MetricsWriter(dirpath=Path(trainer_config["checkpoint_path"]))]
     if "checkpoint_path" in trainer_config:
         callbacks.append(
             Checkpoint(

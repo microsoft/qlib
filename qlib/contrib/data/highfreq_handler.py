@@ -256,7 +256,7 @@ class HighFreqGeneralBacktestHandler(DataHandler):
         end_time=None,
         day_length=240,
         freq="1min",
-        columns=["$close", "$vwap", "$volume"]
+        columns=["$close", "$vwap", "$volume"],
     ):
         self.day_length = day_length
         self.columns = set(columns)

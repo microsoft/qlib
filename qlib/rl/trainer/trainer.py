@@ -6,6 +6,7 @@ from __future__ import annotations
 import collections
 import copy
 from contextlib import AbstractContextManager, contextmanager
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, OrderedDict, Sequence, TypeVar, cast
 
@@ -206,7 +207,6 @@ class Trainer:
         self._call_callback_hooks("on_fit_start")
 
         while not self.should_stop:
-            from datetime import datetime
             msg = f"\n{datetime.now()}\tTrain iteration {self.current_iter + 1}/{self.max_iters}"
             print(msg)
             _logger.info(msg)
