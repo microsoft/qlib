@@ -100,6 +100,7 @@ def train_and_test(
     action_interpreter: ActionInterpreter,
     policy: BasePolicy,
     reward: Reward,
+    run_backtest: bool,
 ) -> None:
     order_root_path = Path(data_config["source"]["order_dir"])
 
@@ -115,21 +116,22 @@ def train_and_test(
             vol_threshold=simulator_config["vol_limit"],
         )
 
-    assert data_config["source"]["default_start_time"] % data_granularity == 0
-    assert data_config["source"]["default_end_time"] % data_granularity == 0
+    assert data_config["source"]["default_start_time_index"] % data_granularity == 0
+    assert data_config["source"]["default_end_time_index"] % data_granularity == 0
 
     train_dataset, valid_dataset, test_dataset = [
         LazyLoadDataset(
             order_file_path=order_root_path / tag,
             data_dir=Path(data_config["source"]["data_dir"]),
-            default_start_time_index=data_config["source"]["default_start_time"] // data_granularity,
-            default_end_time_index=data_config["source"]["default_end_time"] // data_granularity,
+            default_start_time_index=data_config["source"]["default_start_time_index"] // data_granularity,
+            default_end_time_index=data_config["source"]["default_end_time_index"] // data_granularity,
         )
         for tag in ("train", "valid", "test")
     ]
 
-    callbacks: List[Callback] = [MetricsWriter(dirpath=Path(trainer_config["checkpoint_path"]))]
     if "checkpoint_path" in trainer_config:
+        callbacks: List[Callback] = []
+        callbacks.append(MetricsWriter(dirpath=Path(trainer_config["checkpoint_path"])))
         callbacks.append(
             Checkpoint(
                 dirpath=Path(trainer_config["checkpoint_path"]) / "checkpoints",
@@ -172,20 +174,21 @@ def train_and_test(
         vessel_kwargs=vessel_kwargs,
     )
 
-    backtest(
-        simulator_fn=_simulator_factory_simple,
-        state_interpreter=state_interpreter,
-        action_interpreter=action_interpreter,
-        initial_states=test_dataset,
-        policy=policy,
-        logger=CsvWriter(Path(trainer_config["checkpoint_path"])),
-        reward=reward,
-        finite_env_type=trainer_kwargs["finite_env_type"],
-        concurrency=trainer_kwargs["concurrency"],
-    )
+    if run_backtest:
+        backtest(
+            simulator_fn=_simulator_factory_simple,
+            state_interpreter=state_interpreter,
+            action_interpreter=action_interpreter,
+            initial_states=test_dataset,
+            policy=policy,
+            logger=CsvWriter(Path(trainer_config["checkpoint_path"])),
+            reward=reward,
+            finite_env_type=trainer_kwargs["finite_env_type"],
+            concurrency=trainer_kwargs["concurrency"],
+        )
 
 
-def main(config: dict) -> None:
+def main(config: dict, run_backtest: bool) -> None:
     if "seed" in config["runtime"]:
         seed_everything(config["runtime"]["seed"])
 
@@ -224,6 +227,7 @@ def main(config: dict) -> None:
         state_interpreter=state_interpreter,
         policy=policy,
         reward=reward,
+        run_backtest=run_backtest,
     )
 
 
@@ -235,9 +239,10 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--config_path", type=str, required=True, help="Path to the config file")
+    parser.add_argument("--run_backtest", action="store_true", help="Run backtest workflow after training is finished")
     args = parser.parse_args()
 
     with open(args.config_path, "r") as input_stream:
         config = yaml.safe_load(input_stream)
 
-    main(config)
+    main(config, run_backtest=args.run_backtest)
