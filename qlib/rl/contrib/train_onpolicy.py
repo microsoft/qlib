@@ -8,6 +8,7 @@ from typing import cast, List, Optional
 
 import numpy as np
 import pandas as pd
+import qlib
 import torch
 import yaml
 from qlib.backtest import Order
@@ -102,6 +103,8 @@ def train_and_test(
     reward: Reward,
     run_backtest: bool,
 ) -> None:
+    qlib.init()
+
     order_root_path = Path(data_config["source"]["order_dir"])
 
     data_granularity = simulator_config.get("data_granularity", 1)
