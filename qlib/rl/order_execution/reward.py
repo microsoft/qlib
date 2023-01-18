@@ -47,4 +47,3 @@ class PAPenaltyReward(Reward[SAOEState]):
         self.log("reward/pa", pa)
         self.log("reward/penalty", penalty)
         return reward * self.scale
-
