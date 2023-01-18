@@ -83,7 +83,16 @@ def _find_pickle(filename_without_suffix: Path) -> Path:
 
 @lru_cache(maxsize=10)  # 10 * 40M = 400MB
 def _read_pickle(filename_without_suffix: Path) -> pd.DataFrame:
-    return pd.read_pickle(_find_pickle(filename_without_suffix))
+    df = pd.read_pickle(_find_pickle(filename_without_suffix))
+    index_cols = df.index.names
+
+    df = df.reset_index()
+    for date_col_name in ["date", "datetime"]:
+        if date_col_name in df:
+            df[date_col_name] = pd.to_datetime(df[date_col_name])
+    df = df.set_index(index_cols)
+
+    return df
 
 
 class SimpleIntradayBacktestData(BaseIntradayBacktestData):
@@ -161,6 +170,7 @@ class IntradayProcessedData(BaseIntradayProcessedData):
         time_index: pd.Index,
     ) -> None:
         proc = _read_pickle((data_dir if isinstance(data_dir, Path) else Path(data_dir)) / stock_id)
+
         # We have to infer the names here because,
         # unfortunately they are not included in the original data.
         cnames = _infer_processed_data_column_names(feature_dim)

@@ -28,6 +28,7 @@ class HighFreqProvider:
         feature_conf: dict,
         label_conf: Optional[dict] = None,
         backtest_conf: dict = None,
+        freq: str = "1min",
         **kwargs,
     ) -> None:
         self.start_time = start_time
@@ -42,6 +43,7 @@ class HighFreqProvider:
         self.backtest_conf = backtest_conf
         self.qlib_conf = qlib_conf
         self.logger = get_module_logger("HighFreqProvider")
+        self.freq = freq
 
     def get_pre_datasets(self):
         """Generate the training, validation and test datasets for prediction
@@ -116,8 +118,8 @@ class HighFreqProvider:
         # This code used the copy-on-write feature of Linux
         # to avoid calculating the calendar multiple times in the subprocess.
         # This code may accelerate, but may be not useful on Windows and Mac Os
-        Cal.calendar(freq="1min")
-        get_calendar_day(freq="1min")
+        Cal.calendar(freq=self.freq)
+        get_calendar_day(freq=self.freq)
 
     def _gen_dataframe(self, config, datasets=["train", "valid", "test"]):
         try:
@@ -240,7 +242,7 @@ class HighFreqProvider:
         with open(path + "tmp_dataset.pkl", "rb") as f:
             new_dataset = pkl.load(f)
 
-        time_list = D.calendar(start_time=self.start_time, end_time=self.end_time, freq="1min")[::240]
+        time_list = D.calendar(start_time=self.start_time, end_time=self.end_time, freq=self.freq)[::240]
 
         def generate_dataset(times):
             if os.path.isfile(path + times.strftime("%Y-%m-%d") + ".pkl"):
@@ -283,7 +285,7 @@ class HighFreqProvider:
 
         instruments = D.instruments(market="all")
         stock_list = D.list_instruments(
-            instruments=instruments, start_time=self.start_time, end_time=self.end_time, freq="1min", as_list=True
+            instruments=instruments, start_time=self.start_time, end_time=self.end_time, freq=self.freq, as_list=True
         )
 
         def generate_dataset(stock):

@@ -113,8 +113,11 @@ class HighFreqGeneralHandler(DataHandlerLP):
         fit_end_time=None,
         drop_raw=True,
         day_length=240,
+        freq="1min",
+        columns=["$open", "$high", "$low", "$close", "$vwap"],
     ):
         self.day_length = day_length
+        self.columns = columns
 
         infer_processors = check_transform_proc(infer_processors, fit_start_time, fit_end_time)
         learn_processors = check_transform_proc(learn_processors, fit_start_time, fit_end_time)
@@ -124,7 +127,7 @@ class HighFreqGeneralHandler(DataHandlerLP):
             "kwargs": {
                 "config": self.get_feature_config(),
                 "swap_level": False,
-                "freq": "1min",
+                "freq": freq,
             },
         }
         super().__init__(
@@ -160,19 +163,13 @@ class HighFreqGeneralHandler(DataHandlerLP):
             )
             return feature_ops
 
-        fields += [get_normalized_price_feature("$open", 0)]
-        fields += [get_normalized_price_feature("$high", 0)]
-        fields += [get_normalized_price_feature("$low", 0)]
-        fields += [get_normalized_price_feature("$close", 0)]
-        fields += [get_normalized_price_feature("$vwap", 0)]
-        names += ["$open", "$high", "$low", "$close", "$vwap"]
+        for column_name in self.columns:
+            fields.append(get_normalized_price_feature(column_name, 0))
+            names.append(column_name)
 
-        fields += [get_normalized_price_feature("$open", self.day_length)]
-        fields += [get_normalized_price_feature("$high", self.day_length)]
-        fields += [get_normalized_price_feature("$low", self.day_length)]
-        fields += [get_normalized_price_feature("$close", self.day_length)]
-        fields += [get_normalized_price_feature("$vwap", self.day_length)]
-        names += ["$open_1", "$high_1", "$low_1", "$close_1", "$vwap_1"]
+        for column_name in self.columns:
+            fields.append(get_normalized_price_feature(column_name, self.day_length))
+            names.append(column_name + "_1")
 
         # calculate and fill nan with 0
         fields += [
@@ -258,14 +255,17 @@ class HighFreqGeneralBacktestHandler(DataHandler):
         start_time=None,
         end_time=None,
         day_length=240,
+        freq="1min",
+        columns=["$close", "$vwap", "$volume"],
     ):
         self.day_length = day_length
+        self.columns = set(columns)
         data_loader = {
             "class": "QlibDataLoader",
             "kwargs": {
                 "config": self.get_feature_config(),
                 "swap_level": False,
-                "freq": "1min",
+                "freq": freq,
             },
         }
         super().__init__(
@@ -279,21 +279,24 @@ class HighFreqGeneralBacktestHandler(DataHandler):
         fields = []
         names = []
 
-        template_paused = f"Cut({{0}}, {self.day_length * 2}, None)"
-        template_fillnan = "FFillNan({0})"
-        template_if = "If(IsNull({1}), {0}, {1})"
-        fields += [
-            template_paused.format(template_fillnan.format("$close")),
-        ]
-        names += ["$close0"]
+        if "$close" in self.columns:
+            template_paused = f"Cut({{0}}, {self.day_length * 2}, None)"
+            template_fillnan = "FFillNan({0})"
+            template_if = "If(IsNull({1}), {0}, {1})"
+            fields += [
+                template_paused.format(template_fillnan.format("$close")),
+            ]
+            names += ["$close0"]
 
-        fields += [
-            template_paused.format(template_if.format(template_fillnan.format("$close"), "$vwap")),
-        ]
-        names += ["$vwap0"]
+        if "$vwap" in self.columns:
+            fields += [
+                template_paused.format(template_if.format(template_fillnan.format("$close"), "$vwap")),
+            ]
+            names += ["$vwap0"]
 
-        fields += [template_paused.format("If(IsNull({0}), 0, {0})".format("$volume"))]
-        names += ["$volume0"]
+        if "$volume" in self.columns:
+            fields += [template_paused.format("If(IsNull({0}), 0, {0})".format("$volume"))]
+            names += ["$volume0"]
 
         return fields, names
 
