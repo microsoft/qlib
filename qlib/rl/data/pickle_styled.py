@@ -91,7 +91,7 @@ def _read_pickle(filename_without_suffix: Path) -> pd.DataFrame:
         if date_col_name in df:
             df[date_col_name] = pd.to_datetime(df[date_col_name])
     df = df.set_index(index_cols)
-    
+
     return df
 
 
