@@ -35,7 +35,7 @@ def _get_multi_level_executor_config(
         "class": "SimulatorExecutor",
         "module_path": "qlib.backtest.executor",
         "kwargs": {
-            "time_per_step": "1min",
+            "time_per_step": "5min",
             "verbose": False,
             "trade_type": SimulatorExecutor.TT_PARAL if cash_limit is not None else SimulatorExecutor.TT_SERIAL,
             "generate_report": generate_report,
@@ -187,7 +187,7 @@ def single_with_simulator(
         exchange_config.update(
             {
                 "codes": stocks,
-                "freq": "1min",
+                "freq": "5min",
             }
         )
 
@@ -286,7 +286,7 @@ def single_with_collect_data_loop(
     exchange_config.update(
         {
             "codes": stocks,
-            "freq": "1min",
+            "freq": "5min",
         }
     )
 

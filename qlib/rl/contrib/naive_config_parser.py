@@ -98,7 +98,7 @@ def get_backtest_config_fromfile(path: str) -> dict:
         "debug_single_day": None,
         "concurrency": -1,
         "multiplier": 1.0,
-        "output_dir": "outputs/",
+        "output_dir": "outputs_backtest/",
         "generate_report": False,
     }
     backtest_config = merge_a_into_b(a=backtest_config, b=backtest_config_default)

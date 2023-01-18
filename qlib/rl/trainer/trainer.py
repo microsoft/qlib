@@ -207,6 +207,7 @@ class Trainer:
 
         while not self.should_stop:
             from datetime import datetime
+
             msg = f"\n{datetime.now()}\tTrain iteration {self.current_iter + 1}/{self.max_iters}"
             print(msg)
             _logger.info(msg)

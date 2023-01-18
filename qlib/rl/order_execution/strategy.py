@@ -89,6 +89,7 @@ class SAOEStateAdapter:
         exchange: Exchange,
         ticks_per_step: int,
         backtest_data: IntradayBacktestData,
+        data_granularity: int = 1,
     ) -> None:
         self.position = order.amount
         self.order = order
@@ -106,11 +107,13 @@ class SAOEStateAdapter:
 
         self.cur_time = max(backtest_data.ticks_for_order[0], order.start_time)
         self.ticks_per_step = ticks_per_step
+        self.data_granularity = data_granularity
+        assert self.ticks_per_step % self.data_granularity == 0
 
     def _next_time(self) -> pd.Timestamp:
         current_loc = self.backtest_data.ticks_index.get_loc(self.cur_time)
-        next_loc = current_loc + self.ticks_per_step
-        next_loc = next_loc - next_loc % self.ticks_per_step
+        next_loc = current_loc + (self.ticks_per_step // self.data_granularity)
+        next_loc = next_loc - next_loc % (self.ticks_per_step // self.data_granularity)
         if (
             next_loc < len(self.backtest_data.ticks_index)
             and self.backtest_data.ticks_index[next_loc] < self.order.end_time
@@ -130,8 +133,8 @@ class SAOEStateAdapter:
 
         exec_vol = np.zeros(last_step_size)
         for order, _, __, ___ in execute_result:
-            idx, _ = get_day_min_idx_range(order.start_time, order.end_time, "1min", REG_CN)
-            exec_vol[idx - last_step_range[0]] = order.deal_amount
+            idx, _ = get_day_min_idx_range(order.start_time, order.end_time, f"{self.data_granularity}min", REG_CN)
+            exec_vol[idx - last_step_range[0] - 1] = order.deal_amount  # TODO: hacked.
 
         if exec_vol.sum() > self.position and exec_vol.sum() > 0.0:
             assert exec_vol.sum() < self.position + 1, f"{exec_vol} too large"
@@ -168,7 +171,9 @@ class SAOEStateAdapter:
             self.history_exec,
             self._collect_multi_order_metric(
                 order=self.order,
-                datetime=_get_all_timestamps(start_time, end_time, include_end=True),
+                datetime=_get_all_timestamps(
+                    start_time, end_time, include_end=True, granularity=ONE_MIN * self.data_granularity
+                ),
                 market_vol=market_volume,
                 market_price=market_price,
                 exec_vol=exec_vol,
@@ -296,6 +301,7 @@ class SAOEStrategy(RLStrategy):
         outer_trade_decision: BaseTradeDecision = None,
         level_infra: LevelInfrastructure = None,
         common_infra: CommonInfrastructure = None,
+        data_granularity: int = 1,
         **kwargs: Any,
     ) -> None:
         super(SAOEStrategy, self).__init__(
@@ -306,6 +312,7 @@ class SAOEStrategy(RLStrategy):
             **kwargs,
         )
 
+        self._data_granularity = data_granularity
         self.adapter_dict: Dict[tuple, SAOEStateAdapter] = {}
         self._last_step_range = (0, 0)
 
@@ -324,6 +331,7 @@ class SAOEStrategy(RLStrategy):
             exchange=self.trade_exchange,
             ticks_per_step=int(pd.Timedelta(self.trade_calendar.get_freq()) / ONE_MIN),
             backtest_data=backtest_data,
+            data_granularity=self._data_granularity,
         )
 
     def reset(self, outer_trade_decision: BaseTradeDecision = None, **kwargs: Any) -> None:
