@@ -84,10 +84,14 @@ def _find_pickle(filename_without_suffix: Path) -> Path:
 @lru_cache(maxsize=10)  # 10 * 40M = 400MB
 def _read_pickle(filename_without_suffix: Path) -> pd.DataFrame:
     df = pd.read_pickle(_find_pickle(filename_without_suffix))
+    index_cols = df.index.names
+
     df = df.reset_index()
-    df["date"] = pd.to_datetime(df["date"])
-    df["datetime"] = pd.to_datetime(df["datetime"])
-    df = df.set_index(["instrument", "datetime", "date"])
+    for date_col_name in ["date", "datetime"]:
+        if date_col_name in df:
+            df[date_col_name] = pd.to_datetime(df[date_col_name])
+    df = df.set_index(index_cols)
+    
     return df
 
 
