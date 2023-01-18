@@ -134,7 +134,7 @@ class SAOEStateAdapter:
         exec_vol = np.zeros(last_step_size)
         for order, _, __, ___ in execute_result:
             idx, _ = get_day_min_idx_range(order.start_time, order.end_time, f"{self.data_granularity}min", REG_CN)
-            exec_vol[idx - last_step_range[0] - 1] = order.deal_amount  # TODO: hacked.
+            exec_vol[idx - last_step_range[0]] = order.deal_amount
 
         if exec_vol.sum() > self.position and exec_vol.sum() > 0.0:
             assert exec_vol.sum() < self.position + 1, f"{exec_vol} too large"
