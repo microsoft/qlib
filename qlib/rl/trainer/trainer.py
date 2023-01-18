@@ -222,7 +222,7 @@ class Trainer:
             with _wrap_context(vessel.train_seed_iterator()) as iterator:
                 vector_env = self.venv_from_iterator(iterator)
                 self.vessel.train(vector_env)
-                del vector_env
+                del vector_env  # FIXME: Explicitly delete this object to avoid memory leak.
 
             self._call_callback_hooks("on_train_end")
 
@@ -233,7 +233,7 @@ class Trainer:
                 with _wrap_context(vessel.val_seed_iterator()) as iterator:
                     vector_env = self.venv_from_iterator(iterator)
                     self.vessel.validate(vector_env)
-                    del vector_env
+                    del vector_env  # FIXME: Explicitly delete this object to avoid memory leak.
 
                 self._call_callback_hooks("on_validate_end")
 
@@ -268,7 +268,7 @@ class Trainer:
         with _wrap_context(vessel.test_seed_iterator()) as iterator:
             vector_env = self.venv_from_iterator(iterator)
             self.vessel.test(vector_env)
-            del vector_env
+            del vector_env  # FIXME: Explicitly delete this object to avoid memory leak.
         self._call_callback_hooks("on_test_end")
 
     def venv_from_iterator(self, iterator: Iterable[InitialStateType]) -> FiniteVectorEnv:
