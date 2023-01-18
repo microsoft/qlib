@@ -21,13 +21,13 @@ class PAPenaltyReward(Reward[SAOEState]):
     ----------
     penalty
         The penalty for large volume in a short time.
-    zoom
+    scale
         The weight used to scale up or down the reward.
     """
 
-    def __init__(self, penalty: float = 100.0, zoom: float = 1.0) -> None:
+    def __init__(self, penalty: float = 100.0, scale: float = 1.0) -> None:
         self.penalty = penalty
-        self.zoom = zoom
+        self.scale = scale
 
     def reward(self, simulator_state: SAOEState) -> float:
         whole_order = simulator_state.order.amount
@@ -46,4 +46,5 @@ class PAPenaltyReward(Reward[SAOEState]):
 
         self.log("reward/pa", pa)
         self.log("reward/penalty", penalty)
-        return reward * self.zoom
+        return reward * self.scale
+

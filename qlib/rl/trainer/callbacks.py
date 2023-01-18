@@ -14,7 +14,7 @@ import shutil
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import Any, List, TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
@@ -26,7 +26,6 @@ from qlib.typehint import Literal
 if TYPE_CHECKING:
     from .trainer import Trainer
     from .vessel import TrainingVesselBase
-
 
 _logger = get_module_logger(__name__)
 
@@ -160,7 +159,6 @@ class EarlyStopping(Callback):
         msg = (
             f"#{trainer.current_iter} current reward: {current:.4f}, best reward: {self.best:.4f} in #{self.best_iter}"
         )
-        print(msg)
         _logger.info(msg)
 
         # Only check after the first epoch.
@@ -185,8 +183,8 @@ class EarlyStopping(Callback):
         return self.monitor_op(monitor_value - self.min_delta, reference_value)
 
 
-class ValidationWriter(Callback):
-    """Dump validation results to file."""
+class MetricsWriter(Callback):
+    """Dump training metrics to file."""
 
     def __init__(self, dirpath: Path) -> None:
         self.dirpath = dirpath
@@ -195,11 +193,11 @@ class ValidationWriter(Callback):
         self.valid_records: List[dict] = []
 
     def on_train_end(self, trainer: Trainer, vessel: TrainingVesselBase) -> None:
-        self.train_records.append(trainer.metrics)
+        self.train_records.append({k: v for k, v in trainer.metrics.items() if not k.startswith("val/")})
         pd.DataFrame.from_records(self.train_records).to_csv(self.dirpath / "train_result.csv", index=True)
 
     def on_validate_end(self, trainer: Trainer, vessel: TrainingVesselBase) -> None:
-        self.valid_records.append(trainer.metrics)
+        self.valid_records.append({k: v for k, v in trainer.metrics.items() if k.startswith("val/")})
         pd.DataFrame.from_records(self.valid_records).to_csv(self.dirpath / "validation_result.csv", index=True)
 
 

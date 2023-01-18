@@ -4,7 +4,7 @@
 """Train, test, inference utilities."""
 
 from .api import backtest, train
-from .callbacks import Checkpoint, EarlyStopping, ValidationWriter
+from .callbacks import Checkpoint, EarlyStopping, MetricsWriter
 from .trainer import Trainer
 from .vessel import TrainingVessel, TrainingVesselBase
 
@@ -14,7 +14,7 @@ __all__ = [
     "TrainingVesselBase",
     "Checkpoint",
     "EarlyStopping",
-    "ValidationWriter",
+    "MetricsWriter",
     "train",
     "backtest",
 ]

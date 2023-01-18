@@ -6,6 +6,7 @@ from __future__ import annotations
 import collections
 import copy
 from contextlib import AbstractContextManager, contextmanager
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, OrderedDict, Sequence, TypeVar, cast
 
@@ -206,10 +207,7 @@ class Trainer:
         self._call_callback_hooks("on_fit_start")
 
         while not self.should_stop:
-            from datetime import datetime
-
-            msg = f"\n{datetime.now()}\tTrain iteration {self.current_iter + 1}/{self.max_iters}"
-            print(msg)
+            msg = f"\n{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\tTrain iteration {self.current_iter + 1}/{self.max_iters}"
             _logger.info(msg)
 
             self.initialize_iter()
@@ -224,7 +222,7 @@ class Trainer:
             with _wrap_context(vessel.train_seed_iterator()) as iterator:
                 vector_env = self.venv_from_iterator(iterator)
                 self.vessel.train(vector_env)
-                del vector_env
+                del vector_env  # FIXME: Explicitly delete this object to avoid memory leak.
 
             self._call_callback_hooks("on_train_end")
 
@@ -235,7 +233,7 @@ class Trainer:
                 with _wrap_context(vessel.val_seed_iterator()) as iterator:
                     vector_env = self.venv_from_iterator(iterator)
                     self.vessel.validate(vector_env)
-                    del vector_env
+                    del vector_env  # FIXME: Explicitly delete this object to avoid memory leak.
 
                 self._call_callback_hooks("on_validate_end")
 
@@ -270,7 +268,7 @@ class Trainer:
         with _wrap_context(vessel.test_seed_iterator()) as iterator:
             vector_env = self.venv_from_iterator(iterator)
             self.vessel.test(vector_env)
-            del vector_env
+            del vector_env  # FIXME: Explicitly delete this object to avoid memory leak.
         self._call_callback_hooks("on_test_end")
 
     def venv_from_iterator(self, iterator: Iterable[InitialStateType]) -> FiniteVectorEnv:
