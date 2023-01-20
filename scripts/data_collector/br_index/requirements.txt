@@ -8,7 +8,7 @@ fire==0.4.0
 h11==0.13.0
 idna==3.3
 loguru==0.6.0
-lxml==4.8.0
+lxml==4.9.1
 multitasking==0.0.10
 numpy==1.22.2
 outcome==1.1.0
