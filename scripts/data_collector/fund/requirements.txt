@@ -7,4 +7,3 @@ tqdm
 lxml
 loguru
 yahooquery
-json
