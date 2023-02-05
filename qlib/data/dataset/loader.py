@@ -211,7 +211,7 @@ class QlibDataLoader(DLWParser):
         df = D.features(
             instruments, exprs, start_time, end_time, freq=freq, inst_processors=self.inst_processor.get(gp_name, [])
         )
-        df.columns = names
+        df.rename(columns=dict(zip(exprs, names)), inplace=True)
         if self.swap_level:
             df = df.swaplevel().sort_index()  # NOTE: if swaplevel, return <datetime, instrument>
         return df
