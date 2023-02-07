@@ -51,6 +51,18 @@ class FullHistoryObs(TypedDict):
     target: Any
     position: Any
     position_history: Any
+    
+    
+class NoReturnStateInterpreter(StateInterpreter[SAOEState, dict]):
+    """Do not return any observation. For policies that do not need inputs (for example, AllOne).
+    """
+    
+    def interpret(self, state: SAOEState) -> dict:
+        return {"DUMMY": _to_int32(1)}  # FIXME: A fake state, used to pass `check_nan_observation`
+
+    @property
+    def observation_space(self) -> spaces.Dict:
+        return spaces.Dict({"DUMMY": spaces.Box(-np.inf, np.inf, shape=(), dtype=np.int32)})  # FIXME:
 
 
 class FullHistoryStateInterpreter(StateInterpreter[SAOEState, FullHistoryObs]):

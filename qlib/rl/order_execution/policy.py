@@ -48,14 +48,19 @@ class AllOne(NonLearnablePolicy):
 
     Useful when implementing some baselines (e.g., TWAP).
     """
-
+    
+    def __init__(self, obs_space: gym.Space, action_space: gym.Space, fill_value: float | int = 1.0) -> None:
+        super().__init__(obs_space, action_space)
+        
+        self.fill_value = fill_value
+    
     def forward(
         self,
         batch: Batch,
         state: dict | Batch | np.ndarray = None,
         **kwargs: Any,
     ) -> Batch:
-        return Batch(act=np.full(len(batch), 1.0), state=state)
+        return Batch(act=np.full(len(batch), self.fill_value), state=state)
 
 
 # ppo #
