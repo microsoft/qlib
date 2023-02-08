@@ -74,18 +74,8 @@ class PPOReward(Reward[SAOEState]):
     
     def reward(self, simulator_state: SAOEState) -> float:
         if simulator_state.cur_step == self.max_step - 1 or simulator_state.position < 1e-6:
-            traded = simulator_state.order.amount - simulator_state.position
-            trade_value = sum(simulator_state.history_steps["trade_value"])
-            intraday_data = simulator_state.backtest_data.data[self.start_time_index:self.end_time_index + 1]
-            
-            if traded >= 1e-6:
-                vwap_price = trade_value / traded
-            else:
-                vwap_price = _weighted_average(  # VWAP price of the entire day
-                    val=intraday_data["$close0"].to_numpy(), 
-                    weight=intraday_data["$volume0"].to_numpy(),
-                )
-            twap_price = np.mean(intraday_data["$close0"].to_numpy())
+            vwap_price = simulator_state.metrics.trade_price
+            twap_price = simulator_state.backtest_data.get_deal_price().mean()
             
             ratio = vwap_price / twap_price if simulator_state.order.direction == OrderDir.SELL else twap_price / vwap_price
             if ratio < 1.0:
