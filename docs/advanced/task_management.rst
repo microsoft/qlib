@@ -18,7 +18,7 @@ With this module, users can run their ``task`` automatically at different period
 
 This whole process can be used in `Online Serving <../component/online.html>`_.
 
-An example of the entire process is shown `here <https://github.com/microsoft/qlib/tree/main/examples/model_rolling/task_manager_rolling.py>`_.
+An example of the entire process is shown `here <https://github.com/microsoft/qlib/tree/main/examples/model_rolling/task_manager_rolling.py>`__.
 
 Task Generating
 ===============
@@ -31,9 +31,10 @@ Here is the base class of ``TaskGen``:
 
 .. autoclass:: qlib.workflow.task.gen.TaskGen
     :members:
+    :noindex:
 
 ``Qlib`` provides a class `RollingGen <https://github.com/microsoft/qlib/tree/main/qlib/workflow/task/gen.py>`_ to generate a list of ``task`` of the dataset in different date segments.
-This class allows users to verify the effect of data from different periods on the model in one experiment. More information is `here <../reference/api.html#TaskGen>`_.
+This class allows users to verify the effect of data from different periods on the model in one experiment. More information is `here <../reference/api.html#TaskGen>`__.
 
 Task Storing
 ============
@@ -53,8 +54,9 @@ Users need to provide the MongoDB URL and database name for using ``TaskManager`
 
 .. autoclass:: qlib.workflow.task.manage.TaskManager
     :members:
+    :noindex:
 
-More information of ``Task Manager`` can be found in `here <../reference/api.html#TaskManager>`_.
+More information of ``Task Manager`` can be found in `here <../reference/api.html#TaskManager>`__.
 
 Task Training
 =============
@@ -64,11 +66,13 @@ An easy way to get the ``task_func`` is using ``qlib.model.trainer.task_train`` 
 It will run the whole workflow defined by ``task``, which includes *Model*, *Dataset*, *Record*.
 
 .. autofunction:: qlib.workflow.task.manage.run_task
+    :noindex:
 
 Meanwhile, ``Qlib`` provides a module called ``Trainer``. 
 
 .. autoclass:: qlib.model.trainer.Trainer
     :members:
+    :noindex:
 
 ``Trainer`` will train a list of tasks and return a list of model recorders.
 ``Qlib`` offer two kinds of Trainer, TrainerR is the simplest way and TrainerRM is based on TaskManager to help manager tasks lifecycle automatically. 

@@ -20,6 +20,7 @@ The base class provides the following interfaces:
 
 .. autoclass:: qlib.model.base.Model
     :members:
+    :noindex:
 
 ``Qlib`` also provides a base class `qlib.model.base.ModelFT <../reference/api.html#qlib.model.base.ModelFT>`_, which includes the method for finetuning the model.
 

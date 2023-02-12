@@ -5,6 +5,8 @@ from qlib.data.inst_processor import InstProcessor
 
 
 class Resample1minProcessor(InstProcessor):
+    """This processor tries to resample the data. It will reasmple the data from 1min freq to day freq by selecting a specific miniute"""
+
     def __init__(self, hour: int, minute: int, **kwargs):
         self.hour = hour
         self.minute = minute

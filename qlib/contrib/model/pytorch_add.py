@@ -36,7 +36,7 @@ class ADD(Model):
      d_feat : int
          input dimensions for each time step
      metric : str
-         the evaluate metric used in early stop
+         the evaluation metric used in early stop
      optimizer : str
          optimizer name
      GPU : int

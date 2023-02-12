@@ -16,12 +16,10 @@ from qlib.rl.utils import LogLevel
 
 from .state import SAOEMetrics, SAOEState
 
-# TODO: Integrating Qlib's native data with simulator_simple
-
-__all__ = ["SingleAssetOrderExecution"]
+__all__ = ["SingleAssetOrderExecutionSimple"]
 
 
-class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
+class SingleAssetOrderExecutionSimple(Simulator[Order, SAOEState, float]):
     """Single-asset order execution (SAOE) simulator.
 
     As there's no "calendar" in the simple simulator, ticks are used to trade.
@@ -38,6 +36,8 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
     ----------
     order
         The seed to start an SAOE simulator is an order.
+    data_granularity
+        Number of ticks between consecutive data entries.
     ticks_per_step
         How many ticks per step.
     data_dir
@@ -73,14 +73,17 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
         self,
         order: Order,
         data_dir: Path,
+        data_granularity: int = 1,
         ticks_per_step: int = 30,
         deal_price_type: DealPriceType = "close",
         vol_threshold: Optional[float] = None,
     ) -> None:
         super().__init__(initial=order)
 
+        assert ticks_per_step % data_granularity == 0
+
         self.order = order
-        self.ticks_per_step: int = ticks_per_step
+        self.ticks_per_step: int = ticks_per_step // data_granularity
         self.deal_price_type = deal_price_type
         self.vol_threshold = vol_threshold
         self.data_dir = data_dir
@@ -98,6 +101,7 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
         self.ticks_for_order = self._get_ticks_slice(self.order.start_time, self.order.end_time)
 
         self.cur_time = self.ticks_for_order[0]
+        self.cur_step = 0
         # NOTE: astype(float) is necessary in some systems.
         # this will align the precision with `.to_numpy()` in `_split_exec_vol`
         self.twap_price = float(self.backtest_data.get_deal_price().loc[self.ticks_for_order].astype(float).mean())
@@ -133,6 +137,8 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
         ticks_position = self.position - np.cumsum(exec_vol)
 
         self.position -= exec_vol.sum()
+        if abs(self.position) < 1e-6:
+            self.position = 0.0
         if self.position < -EPS or (exec_vol < -EPS).any():
             raise ValueError(f"Execution volume is invalid: {exec_vol} (position = {self.position})")
 
@@ -194,11 +200,13 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
                         self.env.logger.add_any(key, value)
 
         self.cur_time = self._next_time()
+        self.cur_step += 1
 
     def get_state(self) -> SAOEState:
         return SAOEState(
             order=self.order,
             cur_time=self.cur_time,
+            cur_step=self.cur_step,
             position=self.position,
             history_exec=self.history_exec,
             history_steps=self.history_steps,

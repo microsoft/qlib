@@ -96,9 +96,11 @@ def indicator_analysis(df, method="mean"):
         index: Index(datetime)
     method : str, optional
         statistics method of pa/ffr, by default "mean"
+
         - if method is 'mean', count the mean statistical value of each trade indicator
         - if method is 'amount_weighted', count the deal_amount weighted mean statistical value of each trade indicator
         - if method is 'value_weighted', count the value weighted mean statistical value of each trade indicator
+
         Note: statistics method of pos is always "mean"
 
     Returns
@@ -154,6 +156,7 @@ def backtest_daily(
         E.g.
 
         .. code-block:: python
+
             # dict
             strategy = {
                 "class": "TopkDropoutStrategy",
@@ -180,16 +183,19 @@ def backtest_daily(
             # 3) specify module path with class name
             #     - "a.b.c.ClassName" getattr(<a.b.c.module>, "ClassName")() will be used.
 
-
     executor : Union[str, dict, BaseExecutor]
         for initializing the outermost executor.
     benchmark: str
         the benchmark for reporting.
     account : Union[float, int, Position]
         information for describing how to creating the account
+
         For `float` or `int`:
+
             Using Account with only initial cash
+
         For `Position`:
+
             Using Account with a Position
     exchange_kwargs : dict
         the kwargs for initializing Exchange
@@ -283,8 +289,8 @@ def long_short_backtest(
                        NOTE: This will be faster with offline qlib.
     :return:            The result of backtest, it is represented by a dict.
                         { "long": long_returns(excess),
-                          "short": short_returns(excess),
-                          "long_short": long_short_returns}
+                        "short": short_returns(excess),
+                        "long_short": long_short_returns}
     """
     if get_level_index(pred, level="datetime") == 1:
         pred = pred.swaplevel().sort_index()

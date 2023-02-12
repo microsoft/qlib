@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 
 from typing import Dict, List, Text, Tuple, Union
+from abc import ABC
 
 from qlib.data import D
 from qlib.data.dataset import Dataset
@@ -17,11 +18,11 @@ from qlib.backtest.signal import Signal, create_signal_from
 from qlib.backtest.decision import Order, OrderDir, TradeDecisionWO
 from qlib.log import get_module_logger
 from qlib.utils import get_pre_trading_date, load_dataset
-from qlib.contrib.strategy.order_generator import OrderGenWOInteract
+from qlib.contrib.strategy.order_generator import OrderGenerator, OrderGenWOInteract
 from qlib.contrib.strategy.optimizer import EnhancedIndexingOptimizer
 
 
-class BaseSignalStrategy(BaseStrategy):
+class BaseSignalStrategy(BaseStrategy, ABC):
     def __init__(
         self,
         *,
@@ -47,7 +48,7 @@ class BaseSignalStrategy(BaseStrategy):
             - If `trade_exchange` is None, self.trade_exchange will be set with common_infra
             - It allowes different trade_exchanges is used in different executions.
             - For example:
-                - In daily execution, both daily exchange and minutely are usable, but the daily exchange is recommended because it run faster.
+                - In daily execution, both daily exchange and minutely are usable, but the daily exchange is recommended because it runs faster.
                 - In minutely execution, the daily exchange is not usable, only the minutely exchange is recommended.
 
         """
@@ -64,7 +65,7 @@ class BaseSignalStrategy(BaseStrategy):
 
     def get_risk_degree(self, trade_step=None):
         """get_risk_degree
-        Return the proportion of your total value you will used in investment.
+        Return the proportion of your total value you will use in investment.
         Dynamically risk_degree will result in Market timing.
         """
         # It will use 95% amount of your total value by default
@@ -76,6 +77,7 @@ class TopkDropoutStrategy(BaseSignalStrategy):
     # 1. Supporting leverage the get_range_limit result from the decision
     # 2. Supporting alter_outer_trade_decision
     # 3. Supporting checking the availability of trade decision
+    # 4. Regenerate results with forbid_all_trade_at_limit set to false and flip the default to false, as it is consistent with reality.
     def __init__(
         self,
         *,
@@ -85,6 +87,7 @@ class TopkDropoutStrategy(BaseSignalStrategy):
         method_buy="top",
         hold_thresh=1,
         only_tradable=False,
+        forbid_all_trade_at_limit=True,
         **kwargs,
     ):
         """
@@ -103,10 +106,25 @@ class TopkDropoutStrategy(BaseSignalStrategy):
             before sell stock , will check current.get_stock_count(order.stock_id) >= self.hold_thresh.
         only_tradable : bool
             will the strategy only consider the tradable stock when buying and selling.
+
             if only_tradable:
+
                 strategy will make decision with the tradable state of the stock info and avoid buy and sell them.
+
             else:
+
                 strategy will make buy sell decision without checking the tradable state of the stock.
+        forbid_all_trade_at_limit : bool
+            if forbid all trades when limit_up or limit_down reached.
+
+            if forbid_all_trade_at_limit:
+
+                strategy will not do any trade when price reaches limit up/down, even not sell at limit up nor buy at
+                limit down, though allowed in reality.
+
+            else:
+
+                strategy will sell at limit up and buy ad limit down.
         """
         super().__init__(**kwargs)
         self.topk = topk
@@ -115,6 +133,7 @@ class TopkDropoutStrategy(BaseSignalStrategy):
         self.method_buy = method_buy
         self.hold_thresh = hold_thresh
         self.only_tradable = only_tradable
+        self.forbid_all_trade_at_limit = forbid_all_trade_at_limit
 
     def generate_trade_decision(self, execute_result=None):
         # get the number of trading step finished, trade_step can be [0, 1, 2, ..., trade_len - 1]
@@ -157,7 +176,7 @@ class TopkDropoutStrategy(BaseSignalStrategy):
                 ]
 
         else:
-            # Otherwise, the stock will make decision with out the stock tradable info
+            # Otherwise, the stock will make decision without the stock tradable info
             def get_first_n(li, n):
                 return list(li)[:n]
 
@@ -167,7 +186,7 @@ class TopkDropoutStrategy(BaseSignalStrategy):
             def filter_stock(li):
                 return li
 
-        current_temp = copy.deepcopy(self.trade_position)
+        current_temp: Position = copy.deepcopy(self.trade_position)
         # generate order list for this adjust date
         sell_order_list = []
         buy_order_list = []
@@ -212,7 +231,10 @@ class TopkDropoutStrategy(BaseSignalStrategy):
         buy = today[: len(sell) + self.topk - len(last)]
         for code in current_stock_list:
             if not self.trade_exchange.is_stock_tradable(
-                stock_id=code, start_time=trade_start_time, end_time=trade_end_time
+                stock_id=code,
+                start_time=trade_start_time,
+                end_time=trade_end_time,
+                direction=None if self.forbid_all_trade_at_limit else OrderDir.SELL,
             ):
                 continue
             if code in sell:
@@ -240,7 +262,7 @@ class TopkDropoutStrategy(BaseSignalStrategy):
                     cash += trade_val - trade_cost
         # buy new stock
         # note the current has been changed
-        current_stock_list = current_temp.get_stock_list()
+        # current_stock_list = current_temp.get_stock_list()
         value = cash * self.risk_degree / len(buy) if len(buy) > 0 else 0
 
         # open_cost should be considered in the real trading environment, while the backtest in evaluate.py does not
@@ -249,7 +271,10 @@ class TopkDropoutStrategy(BaseSignalStrategy):
         for code in buy:
             # check is stock suspended
             if not self.trade_exchange.is_stock_tradable(
-                stock_id=code, start_time=trade_start_time, end_time=trade_end_time
+                stock_id=code,
+                start_time=trade_start_time,
+                end_time=trade_end_time,
+                direction=None if self.forbid_all_trade_at_limit else OrderDir.BUY,
             ):
                 continue
             # buy order
@@ -287,31 +312,33 @@ class WeightStrategyBase(BaseSignalStrategy):
             the decision of the strategy will base on the given signal
         trade_exchange : Exchange
             exchange that provides market info, used to deal order and generate report
+
             - If `trade_exchange` is None, self.trade_exchange will be set with common_infra
             - It allowes different trade_exchanges is used in different executions.
             - For example:
-                - In daily execution, both daily exchange and minutely are usable, but the daily exchange is recommended because it run faster.
+
+                - In daily execution, both daily exchange and minutely are usable, but the daily exchange is recommended because it runs faster.
                 - In minutely execution, the daily exchange is not usable, only the minutely exchange is recommended.
         """
         super().__init__(**kwargs)
 
         if isinstance(order_generator_cls_or_obj, type):
-            self.order_generator = order_generator_cls_or_obj()
+            self.order_generator: OrderGenerator = order_generator_cls_or_obj()
         else:
-            self.order_generator = order_generator_cls_or_obj
+            self.order_generator: OrderGenerator = order_generator_cls_or_obj
 
     def generate_target_weight_position(self, score, current, trade_start_time, trade_end_time):
         """
         Generate target position from score for this date and the current position.The cash is not considered in the position
+
         Parameters
         -----------
         score : pd.Series
             pred score for this trade date, index is stock_id, contain 'score' column.
         current : Position()
             current position.
-        trade_exchange : Exchange()
-        trade_date : pd.Timestamp
-            trade date.
+        trade_start_time: pd.Timestamp
+        trade_end_time: pd.Timestamp
         """
         raise NotImplementedError()
 
@@ -355,12 +382,14 @@ class EnhancedIndexingStrategy(WeightStrategyBase):
 
     Users need to prepare their risk model data like below:
 
-    ├── /path/to/riskmodel
-    ├──── 20210101
-    ├────── factor_exp.{csv|pkl|h5}
-    ├────── factor_cov.{csv|pkl|h5}
-    ├────── specific_risk.{csv|pkl|h5}
-    ├────── blacklist.{csv|pkl|h5}  # optional
+    .. code-block:: text
+
+        ├── /path/to/riskmodel
+        ├──── 20210101
+        ├────── factor_exp.{csv|pkl|h5}
+        ├────── factor_cov.{csv|pkl|h5}
+        ├────── specific_risk.{csv|pkl|h5}
+        ├────── blacklist.{csv|pkl|h5}  # optional
 
     The risk model data can be obtained from risk data provider. You can also use
     `qlib.model.riskmodel.structured.StructuredCovEstimator` to prepare these data.
@@ -419,7 +448,7 @@ class EnhancedIndexingStrategy(WeightStrategyBase):
         specific_risk = load_dataset(root + "/" + self.specific_risk_path, index_col=[0])
 
         if not factor_exp.index.equals(specific_risk.index):
-            # NOTE: for stocks missing specific_risk, we always assume it have the highest volatility
+            # NOTE: for stocks missing specific_risk, we always assume it has the highest volatility
             specific_risk = specific_risk.reindex(factor_exp.index, fill_value=specific_risk.max())
 
         universe = factor_exp.index.tolist()

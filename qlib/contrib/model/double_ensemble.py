@@ -30,6 +30,7 @@ class DEnsembleModel(Model, FeatureInt):
         sample_ratios=None,
         sub_weights=None,
         epochs=100,
+        early_stopping_rounds=None,
         **kwargs
     ):
         self.base_model = base_model  # "gbm" or "mlp", specifically, we use lgbm for "gbm"
@@ -59,6 +60,7 @@ class DEnsembleModel(Model, FeatureInt):
         self.params = {"objective": loss}
         self.params.update(kwargs)
         self.loss = loss
+        self.early_stopping_rounds = early_stopping_rounds
 
     def fit(self, dataset: DatasetH):
         df_train, df_valid = dataset.prepare(
@@ -103,14 +105,19 @@ class DEnsembleModel(Model, FeatureInt):
     def train_submodel(self, df_train, df_valid, weights, features):
         dtrain, dvalid = self._prepare_data_gbm(df_train, df_valid, weights, features)
         evals_result = dict()
+
+        callbacks = [lgb.log_evaluation(20), lgb.record_evaluation(evals_result)]
+        if self.early_stopping_rounds:
+            callbacks.append(lgb.early_stopping(self.early_stopping_rounds))
+            self.logger.info("Training with early_stopping...")
+
         model = lgb.train(
             self.params,
             dtrain,
             num_boost_round=self.epochs,
             valid_sets=[dtrain, dvalid],
             valid_names=["train", "valid"],
-            verbose_eval=20,
-            evals_result=evals_result,
+            callbacks=callbacks,
         )
         evals_result["train"] = list(evals_result["train"].values())[0]
         evals_result["valid"] = list(evals_result["valid"].values())[0]

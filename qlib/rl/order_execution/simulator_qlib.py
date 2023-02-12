@@ -3,17 +3,17 @@
 
 from __future__ import annotations
 
-from typing import Generator, Optional
+from typing import Generator, List, Optional
 
 import pandas as pd
-from qlib.backtest import collect_data_loop, get_strategy_executor
-from qlib.backtest.decision import Order
-from qlib.backtest.executor import NestedExecutor
-from qlib.rl.simulator import Simulator
 
-from .integration import init_qlib
-from .state import SAOEState, SAOEStateAdapter
-from .strategy import SAOEStrategy
+from qlib.backtest import collect_data_loop, get_strategy_executor
+from qlib.backtest.decision import BaseTradeDecision, Order, TradeRangeByTime
+from qlib.backtest.executor import NestedExecutor
+from qlib.rl.data.integration import init_qlib
+from qlib.rl.simulator import Simulator
+from .state import SAOEState
+from .strategy import SAOEStateAdapter, SAOEStrategy
 
 
 class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
@@ -23,30 +23,39 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
     ----------
     order
         The seed to start an SAOE simulator is an order.
-    strategy_config
-        Strategy configuration
     executor_config
         Executor configuration
     exchange_config
         Exchange configuration
     qlib_config
         Configuration used to initialize Qlib. If it is None, Qlib will not be initialized.
+    cash_limit:
+        Cash limit.
     """
 
     def __init__(
         self,
         order: Order,
-        strategy_config: dict,
         executor_config: dict,
         exchange_config: dict,
         qlib_config: dict = None,
+        cash_limit: Optional[float] = None,
     ) -> None:
         super().__init__(initial=order)
 
         assert order.start_time.date() == order.end_time.date(), "Start date and end date must be the same."
 
+        strategy_config = {
+            "class": "SingleOrderStrategy",
+            "module_path": "qlib.rl.strategy.single_order",
+            "kwargs": {
+                "order": order,
+                "trade_range": TradeRangeByTime(order.start_time.time(), order.end_time.time()),
+            },
+        }
+
         self._collect_data_loop: Optional[Generator] = None
-        self.reset(order, strategy_config, executor_config, exchange_config, qlib_config)
+        self.reset(order, strategy_config, executor_config, exchange_config, qlib_config, cash_limit)
 
     def reset(
         self,
@@ -55,6 +64,7 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
         executor_config: dict,
         exchange_config: dict,
         qlib_config: dict = None,
+        cash_limit: Optional[float] = None,
     ) -> None:
         if qlib_config is not None:
             init_qlib(qlib_config, part="skip")
@@ -65,22 +75,25 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
             strategy=strategy_config,
             executor=executor_config,
             benchmark=order.stock_id,
-            account=1e12,
+            account=cash_limit if cash_limit is not None else int(1e12),
             exchange_kwargs=exchange_config,
-            pos_type="InfPosition",
+            pos_type="Position" if cash_limit is not None else "InfPosition",
         )
 
         assert isinstance(self._executor, NestedExecutor)
 
+        self.report_dict: dict = {}
+        self.decisions: List[BaseTradeDecision] = []
         self._collect_data_loop = collect_data_loop(
             start_time=order.date,
             end_time=order.date,
             trade_strategy=strategy,
             trade_executor=self._executor,
+            return_value=self.report_dict,
         )
         assert isinstance(self._collect_data_loop, Generator)
 
-        self._last_yielded_saoe_strategy = self._iter_strategy(action=None)
+        self.step(action=None)
 
         self._order = order
 
@@ -91,17 +104,19 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
     def twap_price(self) -> float:
         return self._get_adapter().twap_price
 
-    def _iter_strategy(self, action: float = None) -> SAOEStrategy:
+    def _iter_strategy(self, action: Optional[float] = None) -> SAOEStrategy:
         """Iterate the _collect_data_loop until we get the next yield SAOEStrategy."""
         assert self._collect_data_loop is not None
 
-        strategy = next(self._collect_data_loop) if action is None else self._collect_data_loop.send(action)
-        while not isinstance(strategy, SAOEStrategy):
-            strategy = next(self._collect_data_loop) if action is None else self._collect_data_loop.send(action)
-        assert isinstance(strategy, SAOEStrategy)
-        return strategy
+        obj = next(self._collect_data_loop) if action is None else self._collect_data_loop.send(action)
+        while not isinstance(obj, SAOEStrategy):
+            if isinstance(obj, BaseTradeDecision):
+                self.decisions.append(obj)
+            obj = next(self._collect_data_loop) if action is None else self._collect_data_loop.send(action)
+        assert isinstance(obj, SAOEStrategy)
+        return obj
 
-    def step(self, action: float) -> None:
+    def step(self, action: Optional[float]) -> None:
         """Execute one step or SAOE.
 
         Parameters

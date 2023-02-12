@@ -57,7 +57,7 @@ class Alpha360(DataHandlerLP):
         fit_end_time=None,
         filter_pipe=None,
         inst_processor=None,
-        **kwargs,
+        **kwargs
     ):
         infer_processors = check_transform_proc(infer_processors, fit_start_time, fit_end_time)
         learn_processors = check_transform_proc(learn_processors, fit_start_time, fit_end_time)
@@ -67,7 +67,7 @@ class Alpha360(DataHandlerLP):
             "kwargs": {
                 "config": {
                     "feature": self.get_feature_config(),
-                    "label": kwargs.get("label", self.get_label_config()),
+                    "label": kwargs.pop("label", self.get_label_config()),
                 },
                 "filter_pipe": filter_pipe,
                 "freq": freq,
@@ -82,12 +82,14 @@ class Alpha360(DataHandlerLP):
             data_loader=data_loader,
             learn_processors=learn_processors,
             infer_processors=infer_processors,
+            **kwargs
         )
 
     def get_label_config(self):
-        return (["Ref($close, -2)/Ref($close, -1) - 1"], ["LABEL0"])
+        return ["Ref($close, -2)/Ref($close, -1) - 1"], ["LABEL0"]
 
-    def get_feature_config(self):
+    @staticmethod
+    def get_feature_config():
         # NOTE:
         # Alpha360 tries to provide a dataset with original price data
         # the original price data includes the prices and volume in the last 60 days.
@@ -99,33 +101,33 @@ class Alpha360(DataHandlerLP):
         names = []
 
         for i in range(59, 0, -1):
-            fields += ["Ref($close, %d)/$close" % (i)]
-            names += ["CLOSE%d" % (i)]
+            fields += ["Ref($close, %d)/$close" % i]
+            names += ["CLOSE%d" % i]
         fields += ["$close/$close"]
         names += ["CLOSE0"]
         for i in range(59, 0, -1):
-            fields += ["Ref($open, %d)/$close" % (i)]
-            names += ["OPEN%d" % (i)]
+            fields += ["Ref($open, %d)/$close" % i]
+            names += ["OPEN%d" % i]
         fields += ["$open/$close"]
         names += ["OPEN0"]
         for i in range(59, 0, -1):
-            fields += ["Ref($high, %d)/$close" % (i)]
-            names += ["HIGH%d" % (i)]
+            fields += ["Ref($high, %d)/$close" % i]
+            names += ["HIGH%d" % i]
         fields += ["$high/$close"]
         names += ["HIGH0"]
         for i in range(59, 0, -1):
-            fields += ["Ref($low, %d)/$close" % (i)]
-            names += ["LOW%d" % (i)]
+            fields += ["Ref($low, %d)/$close" % i]
+            names += ["LOW%d" % i]
         fields += ["$low/$close"]
         names += ["LOW0"]
         for i in range(59, 0, -1):
-            fields += ["Ref($vwap, %d)/$close" % (i)]
-            names += ["VWAP%d" % (i)]
+            fields += ["Ref($vwap, %d)/$close" % i]
+            names += ["VWAP%d" % i]
         fields += ["$vwap/$close"]
         names += ["VWAP0"]
         for i in range(59, 0, -1):
-            fields += ["Ref($volume, %d)/($volume+1e-12)" % (i)]
-            names += ["VOLUME%d" % (i)]
+            fields += ["Ref($volume, %d)/($volume+1e-12)" % i]
+            names += ["VOLUME%d" % i]
         fields += ["$volume/($volume+1e-12)"]
         names += ["VOLUME0"]
 
@@ -134,7 +136,7 @@ class Alpha360(DataHandlerLP):
 
 class Alpha360vwap(Alpha360):
     def get_label_config(self):
-        return (["Ref($vwap, -2)/Ref($vwap, -1) - 1"], ["LABEL0"])
+        return ["Ref($vwap, -2)/Ref($vwap, -1) - 1"], ["LABEL0"]
 
 
 class Alpha158(DataHandlerLP):
@@ -151,7 +153,7 @@ class Alpha158(DataHandlerLP):
         process_type=DataHandlerLP.PTYPE_A,
         filter_pipe=None,
         inst_processor=None,
-        **kwargs,
+        **kwargs
     ):
         infer_processors = check_transform_proc(infer_processors, fit_start_time, fit_end_time)
         learn_processors = check_transform_proc(learn_processors, fit_start_time, fit_end_time)
@@ -161,7 +163,7 @@ class Alpha158(DataHandlerLP):
             "kwargs": {
                 "config": {
                     "feature": self.get_feature_config(),
-                    "label": kwargs.get("label", self.get_label_config()),
+                    "label": kwargs.pop("label", self.get_label_config()),
                 },
                 "filter_pipe": filter_pipe,
                 "freq": freq,
@@ -176,6 +178,7 @@ class Alpha158(DataHandlerLP):
             infer_processors=infer_processors,
             learn_processors=learn_processors,
             process_type=process_type,
+            **kwargs
         )
 
     def get_feature_config(self):
@@ -190,7 +193,7 @@ class Alpha158(DataHandlerLP):
         return self.parse_config_to_fields(conf)
 
     def get_label_config(self):
-        return (["Ref($close, -2)/Ref($close, -1) - 1"], ["LABEL0"])
+        return ["Ref($close, -2)/Ref($close, -1) - 1"], ["LABEL0"]
 
     @staticmethod
     def parse_config_to_fields(config):
@@ -426,4 +429,4 @@ class Alpha158(DataHandlerLP):
 
 class Alpha158vwap(Alpha158):
     def get_label_config(self):
-        return (["Ref($vwap, -2)/Ref($vwap, -1) - 1"], ["LABEL0"])
+        return ["Ref($vwap, -2)/Ref($vwap, -1) - 1"], ["LABEL0"]

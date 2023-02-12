@@ -38,7 +38,7 @@ Example
 
         DIF = \frac{EMA(CLOSE, 12) - EMA(CLOSE, 26)}{CLOSE}
 
-    `DEA`means a 9-period EMA of the DIF.
+    `DEA` means a 9-period EMA of the DIF.
 
     .. math::
 

@@ -8,7 +8,6 @@ from .exp import Experiment
 from .recorder import Recorder
 from ..utils import Wrapper
 from ..utils.exceptions import RecorderInitializationError
-from qlib.config import C
 
 
 class QlibRecorder:
@@ -47,6 +46,7 @@ class QlibRecorder:
             # resume previous experiment and recorder
             with R.start(experiment_name='test', recorder_name='recorder_1', resume=True): # if users want to resume recorder, they have to specify the exact same name for experiment and recorder.
                 ... # further operations
+
 
         Parameters
         ----------
@@ -155,12 +155,12 @@ class QlibRecorder:
 
         The arguments of this function are not set to be rigid, and they will be different with different implementation of
         ``ExpManager`` in ``Qlib``. ``Qlib`` now provides an implementation of ``ExpManager`` with mlflow, and here is the
-        example code of the this method with the ``MLflowExpManager``:
+        example code of the method with the ``MLflowExpManager``:
 
         .. code-block:: Python
 
             R.log_metrics(m=2.50, step=0)
-            records = R.search_runs([experiment_id], order_by=["metrics.m DESC"])
+            records = R.search_records([experiment_id], order_by=["metrics.m DESC"])
 
         Parameters
         ----------
@@ -205,7 +205,7 @@ class QlibRecorder:
         If user doesn't provide the id or name of the experiment, this method will try to retrieve the default experiment and
         list all the recorders of the default experiment. If the default experiment doesn't exist, the method will first
         create the default experiment, and then create a new recorder under it. (More information about the default experiment
-        can be found `here <../component/recorder.html#qlib.workflow.exp.Experiment>`_).
+        can be found `here <../component/recorder.html#qlib.workflow.exp.Experiment>`__).
 
         Here is the example code:
 
@@ -250,7 +250,7 @@ class QlibRecorder:
 
         - Else If '`create`' is False:
 
-            - If ``active experiment` exists:
+            - If `active experiment` exists:
 
                 - no id or name specified, return the active experiment.
 
@@ -295,7 +295,7 @@ class QlibRecorder:
             according to user's specification if the experiment hasn't been created before.
         start : bool
             when start is True,
-                if the experiment has not started(not activated), it will start
+            if the experiment has not started(not activated), it will start
             It is designed for R.log_params to auto start experiments
 
         Returns
@@ -347,13 +347,14 @@ class QlibRecorder:
 
     def set_uri(self, uri: Optional[Text]):
         """
-        Method to reset the current uri of current experiment manager.
+        Method to reset the **default** uri of current experiment manager.
 
         NOTE:
+
         - When the uri is refer to a file path, please using the absolute path instead of strings like "~/mlruns/"
           The backend don't support strings like this.
         """
-        self.exp_manager.set_uri(uri)
+        self.exp_manager.default_uri = uri
 
     @contextmanager
     def uri_context(self, uri: Text):
@@ -369,11 +370,11 @@ class QlibRecorder:
             the temporal uri
         """
         prev_uri = self.exp_manager.default_uri
-        C.exp_manager["kwargs"]["uri"] = uri
+        self.exp_manager.default_uri = uri
         try:
             yield
         finally:
-            C.exp_manager["kwargs"]["uri"] = prev_uri
+            self.exp_manager.default_uri = prev_uri
 
     def get_recorder(
         self,

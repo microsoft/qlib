@@ -21,6 +21,7 @@ Users can easily intsall ``Qlib`` according to the following steps:
 - Before installing ``Qlib`` from source, users need to install some dependencies:
 
     .. code-block::
+
         pip install numpy
         pip install --upgrade  cython
 

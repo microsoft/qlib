@@ -1,0 +1,57 @@
+# start & end time for training/validation/test datasets
+start_time: !!str &start 2020-01-01
+end_time: !!str &end 2020-07-31
+train_end_time: !!str &tend 2020-03-31
+valid_start_time: !!str &vstart 2020-04-01
+valid_end_time: !!str &vend 2020-05-31
+test_start_time: !!str &tstart 2020-06-01
+# the instrument set
+instruments: &ins all
+# qlib related configuration
+qlib_conf:
+    provider_uri: ./data/bin # path to generated qlib bin
+    redis_port: 233
+feature_conf:
+    path: ./data/pickle/feature.pkl # output path of feature
+    class: DatasetH
+    module_path: qlib.data.dataset
+    kwargs:
+        handler:
+            class: HighFreqGeneralHandler
+            module_path: qlib.contrib.data.highfreq_handler
+            kwargs:
+                start_time: *start
+                end_time: *end
+                fit_start_time: *start
+                fit_end_time: *tend
+                instruments: *ins
+                day_length: 240 # how many minutes in one trading day
+                infer_processors:
+                - class: HighFreqNorm
+                  module_path: qlib.contrib.data.highfreq_processor
+                  kwargs:
+                    feature_save_dir: ./stat/  #  output path of statistics of features (for feature normalization)
+                    norm_groups: 
+                        price: 10
+                        volume: 2
+        segments:
+            train: !!python/tuple [*start, *tend]
+            valid: !!python/tuple [*vstart, *vend]
+            test: !!python/tuple [*tstart, *end]
+backtest_conf:
+    path: ./data/pickle/backtest.pkl # output path of backtest
+    class: DatasetH
+    module_path: qlib.data.dataset
+    kwargs:
+        handler:
+            class: HighFreqGeneralBacktestHandler
+            module_path: qlib.contrib.data.highfreq_handler
+            kwargs:
+                start_time: *start
+                end_time: *end
+                instruments: *ins
+                day_length: 240
+        segments:
+            train: !!python/tuple [*start, *tend]
+            valid: !!python/tuple [*vstart, *vend]
+            test: !!python/tuple [*tstart, *end]

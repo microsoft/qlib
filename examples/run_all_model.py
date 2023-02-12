@@ -253,7 +253,7 @@ class ModelRunner:
             default "" indicates that
         qlib_uri : str
             the uri to install qlib with pip
-            it could be url on the we or local path (NOTE: the local path must be a absolute path)
+            it could be URI on the remote or local path (NOTE: the local path must be an absolute path)
         exp_folder_name: str
             the name of the experiment folder
         wait_before_rm_env : bool

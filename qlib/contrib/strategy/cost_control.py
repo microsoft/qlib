@@ -25,12 +25,14 @@ class SoftTopkStrategy(WeightStrategyBase):
         common_infra=None,
         **kwargs,
     ):
-        """Parameter
+        """
+        Parameters
+        ----------
         topk : int
             top-N stocks to buy
         risk_degree : float
-            position percentage of total value
-            buy_method :
+            position percentage of total value buy_method:
+
                 rank_fill: assign the weight stocks that rank high first(1/topk max)
                 average_fill: assign the weight to the stocks rank high averagely.
         """
@@ -51,12 +53,19 @@ class SoftTopkStrategy(WeightStrategyBase):
         return self.risk_degree
 
     def generate_target_weight_position(self, score, current, trade_start_time, trade_end_time):
-        """Parameter:
-        score : pred score for this trade date, pd.Series, index is stock_id, contain 'score' column
-        current : current position, use Position() class
-        trade_date : trade date
-        generate target position from score for this date and the current position
-        The cache is not considered in the position
+        """
+        Parameters
+        ----------
+        score:
+            pred score for this trade date, pd.Series, index is stock_id, contain 'score' column
+        current:
+            current position, use Position() class
+        trade_date:
+            trade date
+
+            generate target position from score for this date and the current position
+
+            The cache is not considered in the position
         """
         # TODO:
         # If the current stock list is more than topk(eg. The weights are modified

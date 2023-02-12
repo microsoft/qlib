@@ -80,6 +80,7 @@ TopkDropoutStrategy
         In most cases, ``TopkDrop`` algorithm sells and buys `Drop` stocks every trading day, which yields a turnover rate of 2$\times$`Drop`/$K$.
 
         The following images illustrate a typical scenario.
+
         .. image:: ../_static/img/topk_drop.png
             :alt: Topk-Drop
 

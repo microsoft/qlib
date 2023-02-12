@@ -61,6 +61,7 @@ The ``ExpManager`` module in ``Qlib`` is responsible for managing different expe
 
 .. autoclass:: qlib.workflow.expm.ExpManager
     :members: get_exp, list_experiments
+    :noindex:
 
 For other interfaces such as `create_exp`, `delete_exp`, please refer to `Experiment Manager API <../reference/api.html#experiment-manager>`_.
 
@@ -71,6 +72,7 @@ The ``Experiment`` class is solely responsible for a single experiment, and it w
 
 .. autoclass:: qlib.workflow.exp.Experiment
     :members: get_recorder, list_recorders
+    :noindex:
 
 For other interfaces such as `search_records`, `delete_recorder`, please refer to `Experiment API <../reference/api.html#experiment>`_.
 
@@ -85,6 +87,7 @@ Here are some important APIs that are not included in the ``QlibRecorder``:
 
 .. autoclass:: qlib.workflow.recorder.Recorder
     :members: list_artifacts, list_metrics, list_params, list_tags
+    :noindex:
 
 For other interfaces such as `save_objects`, `load_object`, please refer to `Recorder API <../reference/api.html#recorder>`_.
 
@@ -107,7 +110,7 @@ Here is a simple example of what is done in ``SigAnaRecord``, which users can re
 
 - ``PortAnaRecord``: This class generates the results of `backtest`. The detailed information about `backtest` as well as the available `strategy`, users can refer to `Strategy <../component/strategy.html>`_ and `Backtest <../component/backtest.html>`_.
 
-Here is a simple exampke of what is done in ``PortAnaRecord``, which users can refer to if they want to do backtest based on their own prediction and label.
+Here is a simple example of what is done in ``PortAnaRecord``, which users can refer to if they want to do backtest based on their own prediction and label.
 
 .. code-block:: Python
 
