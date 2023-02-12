@@ -227,15 +227,6 @@ def load_pickled_intraday_processed_data(
     return IntradayProcessedData(data_dir, stock_id, date, feature_dim, time_index)
 
 
-class TeacherActionData:
-    teacher_action: pd.DataFrame
-
-    def __init__(self, teacher_action_file: Path, stock_id: str, date: pd.Timestamp) -> None:  # type: ignore
-        self.teacher_action = pd.read_pickle(teacher_action_file).loc[pd.IndexSlice[stock_id, date]]  # type: ignore
-
-
-def load_teacher_action_data(teacher_action_file: Path, stock_id: str, date: pd.Timestamp) -> TeacherActionData:  # type: ignore
-    return TeacherActionData(teacher_action_file, stock_id, date)
 class PickleProcessedDataProvider(ProcessedDataProvider):
     def __init__(self, data_dir: Path) -> None:
         super().__init__()
@@ -256,6 +247,25 @@ class PickleProcessedDataProvider(ProcessedDataProvider):
             feature_dim=feature_dim,
             time_index=time_index,
         )
+
+
+class TeacherActionData:
+    teacher_action: pd.DataFrame
+
+    def __init__(self, teacher_action_file: Path, stock_id: str, date: pd.Timestamp) -> None:  # type: ignore
+        self.teacher_action = pd.read_pickle(teacher_action_file).loc[pd.IndexSlice[stock_id, date]]  # type: ignore
+
+
+def load_teacher_action_data(teacher_action_file: Path, stock_id: str, date: pd.Timestamp) -> TeacherActionData:  # type: ignore
+    return TeacherActionData(teacher_action_file, stock_id, date)
+
+
+class TeacherActionDataProvider:
+    def __init__(self, teacher_action_file: Path) -> None:
+        self._teacher_action_file = teacher_action_file
+
+    def get_data(self, stock_id: str, date: pd.Timestamp) -> TeacherActionData:
+        return load_teacher_action_data(self._teacher_action_file, stock_id, date)
 
 
 def load_orders(
