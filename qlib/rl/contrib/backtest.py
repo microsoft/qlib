@@ -28,14 +28,14 @@ from qlib.typehint import Literal
 
 def _get_multi_level_executor_config(
     strategy_config: dict,
-    cash_limit: float = None,
+    cash_limit: float | None = None,
     generate_report: bool = False,
 ) -> dict:
     executor_config = {
         "class": "SimulatorExecutor",
         "module_path": "qlib.backtest.executor",
         "kwargs": {
-            "time_per_step": "1min",
+            "time_per_step": "5min",  # FIXME: move this into config
             "verbose": False,
             "trade_type": SimulatorExecutor.TT_PARAL if cash_limit is not None else SimulatorExecutor.TT_SERIAL,
             "generate_report": generate_report,
@@ -127,7 +127,7 @@ def single_with_simulator(
     backtest_config: dict,
     orders: pd.DataFrame,
     split: Literal["stock", "day"] = "stock",
-    cash_limit: float = None,
+    cash_limit: float | None = None,
     generate_report: bool = False,
 ) -> Union[Tuple[pd.DataFrame, dict], pd.DataFrame]:
     """Run backtest in a single thread with SingleAssetOrderExecution simulator. The orders will be executed day by day.
@@ -187,7 +187,7 @@ def single_with_simulator(
         exchange_config.update(
             {
                 "codes": stocks,
-                "freq": "1min",
+                "freq": "5min",  # FIXME: move this into config
             }
         )
 
@@ -226,7 +226,7 @@ def single_with_collect_data_loop(
     backtest_config: dict,
     orders: pd.DataFrame,
     split: Literal["stock", "day"] = "stock",
-    cash_limit: float = None,
+    cash_limit: float | None = None,
     generate_report: bool = False,
 ) -> Union[Tuple[pd.DataFrame, dict], pd.DataFrame]:
     """Run backtest in a single thread with collect_data_loop.
@@ -286,7 +286,7 @@ def single_with_collect_data_loop(
     exchange_config.update(
         {
             "codes": stocks,
-            "freq": "1min",
+            "freq": "5min",  # FIXME: move this into config
         }
     )
 

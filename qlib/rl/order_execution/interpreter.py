@@ -53,6 +53,18 @@ class FullHistoryObs(TypedDict):
     position_history: Any
 
 
+class DummyStateInterpreter(StateInterpreter[SAOEState, dict]):
+    """Dummy interpreter for policies that do not need inputs (for example, AllOne)."""
+
+    def interpret(self, state: SAOEState) -> dict:
+        # TODO: A fake state, used to pass `check_nan_observation`. Find a better way in the future.
+        return {"DUMMY": _to_int32(1)}
+
+    @property
+    def observation_space(self) -> spaces.Dict:
+        return spaces.Dict({"DUMMY": spaces.Box(-np.inf, np.inf, shape=(), dtype=np.int32)})
+
+
 class FullHistoryStateInterpreter(StateInterpreter[SAOEState, FullHistoryObs]):
     """The observation of all the history, including today (until this moment), and yesterday.
 

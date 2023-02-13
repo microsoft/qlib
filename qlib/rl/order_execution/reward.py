@@ -7,6 +7,7 @@ from typing import cast
 
 import numpy as np
 
+from qlib.backtest.decision import OrderDir
 from qlib.rl.order_execution.state import SAOEMetrics, SAOEState
 from qlib.rl.reward import Reward
 
@@ -47,3 +48,40 @@ class PAPenaltyReward(Reward[SAOEState]):
         self.log("reward/pa", pa)
         self.log("reward/penalty", penalty)
         return reward * self.scale
+
+
+class PPOReward(Reward[SAOEState]):
+    """Reward proposed by paper "An End-to-End Optimal Trade Execution Framework based on Proximal Policy Optimization".
+
+    Parameters
+    ----------
+    max_step
+        Maximum number of steps.
+    start_time_index
+        First time index that allowed to trade.
+    end_time_index
+        Last time index that allowed to trade.
+    """
+
+    def __init__(self, max_step: int, start_time_index: int = 0, end_time_index: int = 239) -> None:
+        self.max_step = max_step
+        self.start_time_index = start_time_index
+        self.end_time_index = end_time_index
+
+    def reward(self, simulator_state: SAOEState) -> float:
+        if simulator_state.cur_step == self.max_step - 1 or simulator_state.position < 1e-6:
+            vwap_price = cast(dict, simulator_state.metrics)["trade_price"]
+            twap_price = simulator_state.backtest_data.get_deal_price().mean()
+
+            if simulator_state.order.direction == OrderDir.SELL:
+                ratio = vwap_price / twap_price if twap_price != 0 else 1.0
+            else:
+                ratio = twap_price / vwap_price if vwap_price != 0 else 1.0
+            if ratio < 1.0:
+                return -1.0
+            elif ratio < 1.1:
+                return 0.0
+            else:
+                return 1.0
+        else:
+            return 0.0

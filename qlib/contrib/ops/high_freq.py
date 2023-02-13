@@ -70,7 +70,7 @@ class DayCumsum(ElemOperator):
         Otherwise, the value is zero.
     """
 
-    def __init__(self, feature, start: str = "9:30", end: str = "14:59"):
+    def __init__(self, feature, start: str = "9:30", end: str = "14:59", data_granularity: int = 1):
         self.feature = feature
         self.start = datetime.strptime(start, "%H:%M")
         self.end = datetime.strptime(end, "%H:%M")
@@ -80,15 +80,17 @@ class DayCumsum(ElemOperator):
         self.noon_open = datetime.strptime("13:00", "%H:%M")
         self.noon_close = datetime.strptime("15:00", "%H:%M")
 
-        self.start_id = time_to_day_index(self.start)
-        self.end_id = time_to_day_index(self.end)
+        self.data_granularity = data_granularity
+        self.start_id = time_to_day_index(self.start) // self.data_granularity
+        self.end_id = time_to_day_index(self.end) // self.data_granularity
+        assert 240 % self.data_granularity == 0
 
     def period_cusum(self, df):
         df = df.copy()
-        assert len(df) == 240
+        assert len(df) == 240 // self.data_granularity
         df.iloc[0 : self.start_id] = 0
         df = df.cumsum()
-        df.iloc[self.end_id + 1 : 240] = 0
+        df.iloc[self.end_id + 1 : 240 // self.data_granularity] = 0
         return df
 
     def _load_internal(self, instrument, start_index, end_index, freq):
