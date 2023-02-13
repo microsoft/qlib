@@ -28,7 +28,7 @@ from qlib.typehint import Literal
 
 def _get_multi_level_executor_config(
     strategy_config: dict,
-    cash_limit: float = None,
+    cash_limit: float | None = None,
     generate_report: bool = False,
 ) -> dict:
     executor_config = {
@@ -127,7 +127,7 @@ def single_with_simulator(
     backtest_config: dict,
     orders: pd.DataFrame,
     split: Literal["stock", "day"] = "stock",
-    cash_limit: float = None,
+    cash_limit: float | None = None,
     generate_report: bool = False,
 ) -> Union[Tuple[pd.DataFrame, dict], pd.DataFrame]:
     """Run backtest in a single thread with SingleAssetOrderExecution simulator. The orders will be executed day by day.
@@ -226,7 +226,7 @@ def single_with_collect_data_loop(
     backtest_config: dict,
     orders: pd.DataFrame,
     split: Literal["stock", "day"] = "stock",
-    cash_limit: float = None,
+    cash_limit: float | None = None,
     generate_report: bool = False,
 ) -> Union[Tuple[pd.DataFrame, dict], pd.DataFrame]:
     """Run backtest in a single thread with collect_data_loop.

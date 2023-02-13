@@ -49,7 +49,7 @@ class DataWrapper:
         return dataset.handler.fetch(pd.IndexSlice[stock_id, start_time:end_time], level=None)
 
 
-def init_qlib(qlib_config: dict, part: str = None) -> None:
+def init_qlib(qlib_config: dict, part: str | None = None) -> None:
     """Initialize necessary resource to launch the workflow, including data direction, feature columns, etc..
 
     Parameters

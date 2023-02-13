@@ -32,7 +32,7 @@ class NonLearnablePolicy(BasePolicy):
         super().__init__()
 
     def learn(self, batch: Batch, **kwargs: Any) -> Dict[str, Any]:
-        pass
+        return {}
 
     def process_fn(
         self,
@@ -40,7 +40,7 @@ class NonLearnablePolicy(BasePolicy):
         buffer: ReplayBuffer,
         indices: np.ndarray,
     ) -> Batch:
-        pass
+        return Batch({})
 
 
 class AllOne(NonLearnablePolicy):

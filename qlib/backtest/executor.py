@@ -31,8 +31,8 @@ class BaseExecutor:
         generate_portfolio_metrics: bool = False,
         verbose: bool = False,
         track_data: bool = False,
-        trade_exchange: Exchange = None,
-        common_infra: CommonInfrastructure = None,
+        trade_exchange: Exchange | None = None,
+        common_infra: CommonInfrastructure | None = None,
         settle_type: str = BasePosition.ST_NO,
         **kwargs: Any,
     ) -> None:
@@ -161,7 +161,7 @@ class BaseExecutor:
         """
         return self.level_infra.get("trade_calendar")
 
-    def reset(self, common_infra: CommonInfrastructure = None, **kwargs: Any) -> None:
+    def reset(self, common_infra: CommonInfrastructure | None = None, **kwargs: Any) -> None:
         """
         - reset `start_time` and `end_time`, used in trade calendar
         - reset `common_infra`, used to reset `trade_account`, `trade_exchange`, .etc
@@ -227,7 +227,7 @@ class BaseExecutor:
     def collect_data(
         self,
         trade_decision: BaseTradeDecision,
-        return_value: dict = None,
+        return_value: dict | None = None,
         level: int = 0,
     ) -> Generator[Any, Any, List[object]]:
         """Generator for collecting the trade decision data for rl training
@@ -327,7 +327,7 @@ class NestedExecutor(BaseExecutor):
         track_data: bool = False,
         skip_empty_decision: bool = True,
         align_range_limit: bool = True,
-        common_infra: CommonInfrastructure = None,
+        common_infra: CommonInfrastructure | None = None,
         **kwargs: Any,
     ) -> None:
         """
@@ -534,7 +534,7 @@ class SimulatorExecutor(BaseExecutor):
         generate_portfolio_metrics: bool = False,
         verbose: bool = False,
         track_data: bool = False,
-        common_infra: CommonInfrastructure = None,
+        common_infra: CommonInfrastructure | None = None,
         trade_type: str = TT_SERIAL,
         **kwargs: Any,
     ) -> None:
