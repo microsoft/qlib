@@ -562,7 +562,9 @@ class ActionWriter(LogWriter):
             for name, value in step_contents.items():
                 if name == "policy_act":
                     self.all_records[name].append(value)
-                if name in ["stock_id", "datetime"]:
+                if name == "datetime":
+                    self.all_records["date"].extend([value.date()] * len(contents))
+                if name == "stock_id":
                     self.all_records[name].extend([value] * len(contents))
             self.all_records["step"].append(step_index)
 

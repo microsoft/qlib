@@ -258,26 +258,6 @@ class TeacherActionData:
 
 def load_teacher_action_data(teacher_action_file: Path, stock_id: str, date: pd.Timestamp) -> TeacherActionData:  # type: ignore
     return TeacherActionData(teacher_action_file, stock_id, date)
-class PickleProcessedDataProvider(ProcessedDataProvider):
-    def __init__(self, data_dir: Path) -> None:
-        super().__init__()
-
-        self._data_dir = data_dir
-
-    def get_data(
-        self,
-        stock_id: str,
-        date: pd.Timestamp,
-        feature_dim: int,
-        time_index: pd.Index,
-    ) -> BaseIntradayProcessedData:
-        return load_pickled_intraday_processed_data(
-            data_dir=self._data_dir,
-            stock_id=stock_id,
-            date=date,
-            feature_dim=feature_dim,
-            time_index=time_index,
-        )
 
 
 class TeacherActionDataProvider:
