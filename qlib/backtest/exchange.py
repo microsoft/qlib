@@ -41,10 +41,10 @@ class Exchange:
         start_time: Union[pd.Timestamp, str] = None,
         end_time: Union[pd.Timestamp, str] = None,
         codes: Union[list, str] = "all",
-        deal_price: Union[str, Tuple[str, str], List[str]] = None,
+        deal_price: Union[str, Tuple[str, str], List[str], None] = None,
         subscribe_fields: list = [],
         limit_threshold: Union[Tuple[str, str], float, None] = None,
-        volume_threshold: Union[tuple, dict] = None,
+        volume_threshold: Union[tuple, dict, None] = None,
         open_cost: float = 0.0015,
         close_cost: float = 0.0025,
         min_cost: float = 5.0,
@@ -340,7 +340,7 @@ class Exchange:
         stock_id: str,
         start_time: pd.Timestamp,
         end_time: pd.Timestamp,
-        direction: int = None,
+        direction: int | None = None,
     ) -> bool:
         """
         Parameters
@@ -406,7 +406,7 @@ class Exchange:
         stock_id: str,
         start_time: pd.Timestamp,
         end_time: pd.Timestamp,
-        direction: int = None,
+        direction: int | None = None,
     ) -> bool:
         # check if stock can be traded
         return not (
@@ -421,8 +421,8 @@ class Exchange:
     def deal_order(
         self,
         order: Order,
-        trade_account: Account = None,
-        position: BasePosition = None,
+        trade_account: Account | None = None,
+        position: BasePosition | None = None,
         dealt_order_amount: Dict[str, float] = defaultdict(float),
     ) -> Tuple[float, float, float]:
         """
@@ -586,7 +586,7 @@ class Exchange:
                 )
         return amount_dict
 
-    def get_real_deal_amount(self, current_amount: float, target_amount: float, factor: float = None) -> float:
+    def get_real_deal_amount(self, current_amount: float, target_amount: float, factor: float | None = None) -> float:
         """
         Calculate the real adjust deal amount when considering the trading unit
         :param current_amount:
@@ -712,8 +712,8 @@ class Exchange:
 
     def _get_factor_or_raise_error(
         self,
-        factor: float = None,
-        stock_id: str = None,
+        factor: float | None = None,
+        stock_id: str | None = None,
         start_time: pd.Timestamp = None,
         end_time: pd.Timestamp = None,
     ) -> float:
@@ -728,8 +728,8 @@ class Exchange:
 
     def get_amount_of_trade_unit(
         self,
-        factor: float = None,
-        stock_id: str = None,
+        factor: float | None = None,
+        stock_id: str | None = None,
         start_time: pd.Timestamp = None,
         end_time: pd.Timestamp = None,
     ) -> Optional[float]:
@@ -762,8 +762,8 @@ class Exchange:
     def round_amount_by_trade_unit(
         self,
         deal_amount: float,
-        factor: float = None,
-        stock_id: str = None,
+        factor: float | None = None,
+        stock_id: str | None = None,
         start_time: pd.Timestamp = None,
         end_time: pd.Timestamp = None,
     ) -> float:
