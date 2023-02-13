@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import multiprocessing
+from multiprocessing.sharedctypes import Synchronized
 import os
 import threading
 import time
@@ -80,7 +81,7 @@ class DataQueue(Generic[T]):
         self._queue: multiprocessing.Queue = multiprocessing.Queue(maxsize=queue_maxsize)
         # Mypy 0.981 brought '"SynchronizedBase[Any]" has no attribute "value"  [attr-defined]' bug.
         # Therefore, add this type casting to pass Mypy checking.
-        self._done = cast(multiprocessing.sharedctypes.Synchronized, multiprocessing.Value("i", 0))
+        self._done = cast(Synchronized, multiprocessing.Value("i", 0))
 
     def __enter__(self) -> DataQueue:
         self.activate()
