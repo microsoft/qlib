@@ -548,7 +548,7 @@ class ActionWriter(LogWriter):
 
     all_records: dict[str, list[Any]]
 
-    def __init__(self, output_dir: Path, loglevel: int | LogLevel = LogLevel.PERIODIC) -> None:
+    def __init__(self, output_dir: Path, loglevel: int | LogLevel = LogLevel.DEBUG) -> None:
         super().__init__(loglevel)
         self.output_dir = output_dir
         self.output_dir.mkdir(exist_ok=True)
@@ -558,16 +558,19 @@ class ActionWriter(LogWriter):
         self.all_records = defaultdict(list)
 
     def log_episode(self, length: int, rewards: List[float], contents: List[Dict[str, Any]]) -> None:
-
         for step_index, step_contents in enumerate(contents):
             for name, value in step_contents.items():
-                if name in ["policy_act", "stock_id", "datetime"]:
+                if name == "policy_act":
                     self.all_records[name].append(value)
+                if name in ["stock_id", "datetime"]:
+                    self.all_records[name].extend([value] * len(contents))
             self.all_records["step"].append(step_index)
 
     def on_env_all_done(self) -> None:
         # FIXME: this is temporary
-        pd.DataFrame.from_dict(self.all_records).to_pickle(self.output_dir / "action.pkl")
+        pd.DataFrame.from_dict(self.all_records).set_index(["stock_id", "datetime"]).sort_index().to_pickle(
+            self.output_dir / "action.pkl"
+        )
 
 
 class TensorboardWriter(LogWriter):
