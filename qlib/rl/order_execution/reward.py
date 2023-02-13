@@ -50,13 +50,9 @@ class PAPenaltyReward(Reward[SAOEState]):
         return reward * self.scale
 
 
-def _weighted_average(val: np.ndarray, weight: np.ndarray):
-    return (val * weight).sum() / weight.sum()
-
-
 class PPOReward(Reward[SAOEState]):
     """Reward proposed by paper "An End-to-End Optimal Trade Execution Framework based on Proximal Policy Optimization".
-    
+
     Parameters
     ----------
     max_step
@@ -66,18 +62,21 @@ class PPOReward(Reward[SAOEState]):
     end_time_index
         Last time index that allowed to trade.
     """
-    
+
     def __init__(self, max_step: int, start_time_index: int = 0, end_time_index: int = 239) -> None:
         self.max_step = max_step
         self.start_time_index = start_time_index
         self.end_time_index = end_time_index
-    
+
     def reward(self, simulator_state: SAOEState) -> float:
         if simulator_state.cur_step == self.max_step - 1 or simulator_state.position < 1e-6:
             vwap_price = simulator_state.metrics["trade_price"]
             twap_price = simulator_state.backtest_data.get_deal_price().mean()
-            
-            ratio = vwap_price / twap_price if simulator_state.order.direction == OrderDir.SELL else twap_price / vwap_price
+
+            if simulator_state.order.direction == OrderDir.SELL:
+                ratio = vwap_price / twap_price if twap_price != 0 else 1.0
+            else:
+                ratio = twap_price / vwap_price if vwap_price != 0 else 1.0
             if ratio < 1.0:
                 return -1.0
             elif ratio < 1.1:

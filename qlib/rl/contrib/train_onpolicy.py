@@ -24,7 +24,6 @@ from qlib.rl.trainer.callbacks import Callback, EarlyStopping, MetricsWriter
 from qlib.rl.utils.log import CsvWriter
 from qlib.utils import init_instance_by_config
 from tianshou.policy import BasePolicy
-from torch import nn
 from torch.utils.data import Dataset
 
 
@@ -184,7 +183,7 @@ def train_and_test(
             default_start_time_index=data_config["source"]["default_start_time_index"] // data_granularity,
             default_end_time_index=data_config["source"]["default_end_time_index"] // data_granularity,
         )
-        
+
         backtest(
             simulator_fn=_simulator_factory_simple,
             state_interpreter=state_interpreter,
@@ -201,8 +200,8 @@ def train_and_test(
 def main(config: dict, run_training: bool, run_backtest: bool) -> None:
     if not run_training and not run_backtest:
         warnings.warn("Skip the entire job since training and backtest are both skipped.")
-        return        
-    
+        return
+
     if "seed" in config["runtime"]:
         seed_everything(config["runtime"]["seed"])
 
@@ -247,8 +246,6 @@ def main(config: dict, run_training: bool, run_backtest: bool) -> None:
 
 
 if __name__ == "__main__":
-    import warnings
-
     warnings.filterwarnings("ignore", category=DeprecationWarning)
     warnings.filterwarnings("ignore", category=RuntimeWarning)
 

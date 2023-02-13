@@ -48,12 +48,12 @@ class AllOne(NonLearnablePolicy):
 
     Useful when implementing some baselines (e.g., TWAP).
     """
-    
+
     def __init__(self, obs_space: gym.Space, action_space: gym.Space, fill_value: float | int = 1.0) -> None:
         super().__init__(obs_space, action_space)
-        
+
         self.fill_value = fill_value
-    
+
     def forward(
         self,
         batch: Batch,
