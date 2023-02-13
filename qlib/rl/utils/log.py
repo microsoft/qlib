@@ -570,7 +570,7 @@ class ActionWriter(LogWriter):
 
     def on_env_all_done(self) -> None:
         # FIXME: this is temporary
-        pd.DataFrame.from_dict(self.all_records).set_index(["stock_id", "datetime"]).sort_index().to_pickle(
+        pd.DataFrame.from_dict(self.all_records).set_index(["stock_id", "date"]).sort_index().to_pickle(
             self.output_dir / "action.pkl"
         )
 
