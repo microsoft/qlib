@@ -205,11 +205,7 @@ class OPDObsInterpreter(FullHistoryStateInterpreter):
         position_history[1 : len(state.history_steps) + 1] = state.history_steps["position"].to_numpy()
         teacher_action = self.teacher_action_data_provider.get_data(
             stock_id=state.order.stock_id, date=pd.Timestamp(state.order.start_time.date())
-        )
-
-        # teacher_action = pickle_styled.load_teacher_action_data(
-        #     self.teacher_action_file, state.order.stock_id, pd.Timestamp(state.order.start_time.date())
-        # ).teacher_action
+        ).teacher_action
 
         # The min, slice here are to make sure that indices fit into the range,
         # even after the final step of the simulator (in the done step),
