@@ -121,7 +121,11 @@ jobs:
       run: |
         mypy qlib --install-types --non-interactive || true
         mypy qlib --verbose
-
+    
+    - name: Check Qlib ipynb with nbqa
+      run: |
+        nbqa black qlib
+        
     - name: Test data downloads
       run: |
         python scripts/get_data.py qlib_data --name qlib_data_simple --target_dir ~/.qlib/qlib_data/cn_data --interval 1d --region cn
