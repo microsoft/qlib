@@ -121,6 +121,10 @@ jobs:
       run: |
         mypy qlib --install-types --non-interactive || true
         mypy qlib --verbose
+        
+    - name: Check Qlib ipynb with nbqa
+      run: |
+        nbqa black qlib
 
     - name: Test data downloads
       run: |
