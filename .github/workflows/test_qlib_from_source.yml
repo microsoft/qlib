@@ -124,7 +124,7 @@ jobs:
     
     - name: Check Qlib ipynb with nbqa
       run: |
-        nbqa black qlib
+        nbqa black .
         
     - name: Test data downloads
       run: |
