@@ -147,6 +147,8 @@ setup(
             "mypy<0.981",
             "flake8",
             "nbqa",
+            "jupyter",
+            "nbconvert",
             # The 5.0.0 version of importlib-metadata removed the deprecated endpoint,
             # which prevented flake8 from working properly, so we restricted the version of importlib-metadata.
             # To help ensure the dependencies of flake8 https://github.com/python/importlib_metadata/issues/406
