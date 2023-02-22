@@ -677,8 +677,11 @@ class YahooNormalize1min(YahooNormalize, ABC):
                 # the date sequence is consistent with 1d
                 df.set_index(self._date_field_name, inplace=True)
                 df = df.reindex(
-                    self.generate_1min_from_daily(
-                        pd.to_datetime(data_1d.reset_index()[self._date_field_name].drop_duplicates())
+                    generate_minutes_calendar_from_daily(
+                        pd.to_datetime(data_1d.reset_index()[self._date_field_name].drop_duplicates()),
+                        freq=self.kwargs["kwargs"]["interval"],
+                        am_range=self.AM_RANGE,
+                        pm_range=self.PM_RANGE,
                     )
                 )
                 df[self._symbol_field_name] = df.loc[df[self._symbol_field_name].first_valid_index()][
@@ -770,7 +773,7 @@ class YahooNormalize1minOffline(YahooNormalize1min):
             symbol field name, default is symbol
         """
         self.qlib_data_1d_dir = qlib_data_1d_dir
-        super(YahooNormalize1minOffline, self).__init__(date_field_name, symbol_field_name)
+        super(YahooNormalize1minOffline, self).__init__(date_field_name, symbol_field_name, kwargs=kwargs)
         self._all_1d_data = self._get_all_1d_data()
 
     def _get_1d_calendar_list(self) -> Iterable[pd.Timestamp]:
