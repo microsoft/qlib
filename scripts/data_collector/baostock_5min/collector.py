@@ -79,12 +79,12 @@ class BaostockCollector(BaseCollector):
         # bs.login()
         rs = bs.query_trade_dates(start_date=start, end_date=end)
         calendar_list = []
-        while (rs.error_code == '0') & rs.next():
+        while (rs.error_code == "0") & rs.next():
             calendar_list.append(rs.get_row_data())
         calendar_df = pd.DataFrame(calendar_list, columns=rs.fields)
-        trade_calendar_df = calendar_df[~calendar_df['is_trading_day'].isin(['0'])]
+        trade_calendar_df = calendar_df[~calendar_df["is_trading_day"].isin(["0"])]
         # bs.logout()
-        return trade_calendar_df['calendar_date'].values
+        return trade_calendar_df["calendar_date"].values
 
     def normalize_symbol(self, symbol: str):
         pass
@@ -100,9 +100,9 @@ class BaostockCollector(BaseCollector):
             start_date=_start,
             end_date=_end,
             frequency=frequency,
-            adjustflag="3"
+            adjustflag="3",
         )
-        while rs.error_code == '0' and rs.next():
+        while rs.error_code == "0" and rs.next():
             data_list.append(rs.get_row_data())
         result = pd.DataFrame(data_list, columns=rs.fields)
         result["date"] = pd.to_datetime(result["time"].str[:14]) - pd.Timedelta("5min")
@@ -129,7 +129,7 @@ class BaostockHS300Collector(BaostockCollector):
             # bs.login()
             for date in trade_calendar:
                 rs = bs.query_hs300_stocks(date=date)
-                while rs.error_code == '0' and rs.next():
+                while rs.error_code == "0" and rs.next():
                     hs300_stocks.append(rs.get_row_data())
                 p_bar.update()
             # bs.logout()
@@ -155,10 +155,11 @@ class BaostockHS300Collector5min(BaostockHS300Collector):
 class BaostockNormalizeHS3005min(YahooNormalizeCN, YahooNormalize1minOffline):
     AM_RANGE = ("09:30:00", "11:29:00")
     PM_RANGE = ("13:00:00", "14:59:00")
+
     def _get_calendar_list(self) -> Iterable[pd.Timestamp]:
         # return self.generate_1min_from_daily(self.calendar_list_1d)
         return generate_minutes_calendar_from_daily(
-        self.calendar_list_1d, freq="5min", am_range=self.AM_RANGE, pm_range=self.PM_RANGE
+            self.calendar_list_1d, freq="5min", am_range=self.AM_RANGE, pm_range=self.PM_RANGE
         )
 
     def symbol_to_yahoo(self, symbol):
