@@ -6,7 +6,12 @@ This folder comprises an example of Reinforcement Learning (RL) workflows for or
 
 ### Get Data
 
-TODO: Get bin-format data through AZCopy. The data should under `data/bin`.
+Use [AzCopy](https://learn.microsoft.com/en-us/azure/storage/common/storage-use-azcopy-v10) to download data:
+
+```
+azcopy copy https://qlibpublic.blob.core.windows.net/data/default/stock_data/v2/qlib_data_hs300_5min_latest.zip ./data/
+unzip ./data/qlib_data_hs300_5min_latest.zip -d ./data/bin/
+```
 
 ### Generate Pickle-Style Data
 
@@ -26,7 +31,8 @@ data
 ├── bin
 ├── orders
 ├── pickle
-└── pickle_dataframe
+├── pickle_dataframe
+└── qlib_data_hs300_5min_latest.zip
 ```
 
 ## Training
