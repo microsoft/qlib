@@ -10,6 +10,7 @@ from pathlib import Path
 DATA_PATH = Path(os.path.join("data", "pickle_dataframe", "backtest"))
 OUTPUT_PATH = Path(os.path.join("data", "orders"))
 
+
 def generate_order(stock: str, start_idx: int, end_idx: int) -> None:
     df = pd.read_pickle(DATA_PATH / f"{stock}.pkl")
     df = df.groupby("date").take(range(start_idx, end_idx)).droplevel(level=0)
