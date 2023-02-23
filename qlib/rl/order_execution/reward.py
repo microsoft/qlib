@@ -70,7 +70,12 @@ class PPOReward(Reward[SAOEState]):
 
     def reward(self, simulator_state: SAOEState) -> float:
         if simulator_state.cur_step == self.max_step - 1 or simulator_state.position < 1e-6:
-            vwap_price = cast(dict, simulator_state.metrics)["trade_price"]
+            vwap_price = cast(
+                float,
+                np.average(
+                    simulator_state.history_exec["market_price"], weights=simulator_state.history_exec["deal_amount"]
+                ),
+            )
             twap_price = simulator_state.backtest_data.get_deal_price().mean()
 
             if simulator_state.order.direction == OrderDir.SELL:
