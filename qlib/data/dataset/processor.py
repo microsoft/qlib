@@ -386,6 +386,7 @@ class TimeRangeFlt(InstProcessor):
     """
     This is a filter to filter stock.
     Only keep the data that exist from start_time to end_time (the existence in the middle is not checked.)
+    WARNING:  It may induce leakage!!!
     """
 
     def __init__(
