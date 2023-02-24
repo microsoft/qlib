@@ -395,7 +395,7 @@ class TimeRangeFlt(InstProcessor):
         end_time: Optional[Union[pd.Timestamp, str]] = None,
         freq="day",
     ):
-        # Align to calendar before fitlering
+        # Align to calendar before filtering
         cal = D.calendar(start_time=start_time, end_time=end_time, freq=freq)
         self.start_time = cal[0]
         self.end_time = cal[-1]
