@@ -393,12 +393,23 @@ class TimeRangeFlt(InstProcessor):
         self,
         start_time: Optional[Union[pd.Timestamp, str]] = None,
         end_time: Optional[Union[pd.Timestamp, str]] = None,
-        freq="day",
+        freq: str = "day",
     ):
+        """
+        Parameters
+        ----------
+        start_time : Optional[Union[pd.Timestamp, str]]
+            The data must start earlier (or equal) than `start_time`
+            None indicates data will not be filtered based on `start_time`
+        end_time : Optional[Union[pd.Timestamp, str]]
+            similar to start_time
+        freq : str
+            The frequency of the calendar
+        """
         # Align to calendar before filtering
         cal = D.calendar(start_time=start_time, end_time=end_time, freq=freq)
-        self.start_time = cal[0]
-        self.end_time = cal[-1]
+        self.start_time = None if start_time is None else cal[0]
+        self.end_time = None if end_time is None else cal[-1]
 
     def __call__(self, df: pd.DataFrame, instrument, *args, **kwargs):
         if (
