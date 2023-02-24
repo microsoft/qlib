@@ -783,7 +783,7 @@ class LocalPITProvider(PITProvider):
         index_path = C.dpm.get_data_uri() / "financial" / instrument.lower() / f"{field}.index"
         data_path = C.dpm.get_data_uri() / "financial" / instrument.lower() / f"{field}.data"
         if not (index_path.exists() and data_path.exists()):
-            raise FileNotFoundError("No file is found. Raise exception and  ")
+            raise FileNotFoundError("No file is found.")
         # NOTE: The most significant performance loss is here.
         # Does the acceleration that makes the program complicated really matters?
         # - It makes parameters of the interface complicate
@@ -797,14 +797,14 @@ class LocalPITProvider(PITProvider):
         cur_time_int = int(cur_time.year) * 10000 + int(cur_time.month) * 100 + int(cur_time.day)
         loc = np.searchsorted(data["date"], cur_time_int, side="right")
         if loc <= 0:
-            return pd.Series()
+            return pd.Series(dtype=C.pit_record_type["value"])
         last_period = data["period"][:loc].max()  # return the latest quarter
         first_period = data["period"][:loc].min()
         period_list = get_period_list(first_period, last_period, quarterly)
         if period is not None:
             # NOTE: `period` has higher priority than `start_index` & `end_index`
             if period not in period_list:
-                return pd.Series()
+                return pd.Series(dtype=C.pit_record_type["value"])
             else:
                 period_list = [period]
         else:
@@ -868,7 +868,7 @@ class LocalExpressionProvider(ExpressionProvider):
         # Ensure that each column type is consistent
         # FIXME:
         # 1) The stock data is currently float. If there is other types of data, this part needs to be re-implemented.
-        # 2) The the precision should be configurable
+        # 2) The precision should be configurable
         try:
             series = series.astype(np.float32)
         except ValueError:
