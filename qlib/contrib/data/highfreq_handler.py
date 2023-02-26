@@ -115,6 +115,7 @@ class HighFreqGeneralHandler(DataHandlerLP):
         day_length=240,
         freq="1min",
         columns=["$open", "$high", "$low", "$close", "$vwap"],
+        inst_processors=None,
     ):
         self.day_length = day_length
         self.columns = columns
@@ -128,6 +129,7 @@ class HighFreqGeneralHandler(DataHandlerLP):
                 "config": self.get_feature_config(),
                 "swap_level": False,
                 "freq": freq,
+                "inst_processors": inst_processors,
             },
         }
         super().__init__(

@@ -6,7 +6,7 @@ valid_start_time: !!str &vstart 2021-07-01
 valid_end_time: !!str &vend 2021-09-30
 test_start_time: !!str &tstart 2021-10-01
 # the instrument set
-instruments: &ins all
+instruments: &ins csi300s19_22
 # qlib related configuration
 qlib_conf:
     provider_uri: 
@@ -37,6 +37,13 @@ feature_conf:
                     norm_groups: 
                         price: 10
                         volume: 2
+                inst_processors:
+                - class: TimeRangeFlt
+                  module_path: qlib.data.dataset.processor
+                  kwargs:
+                    start_time: "2020-01-01"
+                    end_time: "2021-12-31"
+                    freq: 5min
         segments:
             train: !!python/tuple [*start, *tend]
             valid: !!python/tuple [*vstart, *vend]
@@ -56,6 +63,13 @@ backtest_conf:
                 day_length: 240
                 freq: 5min
                 columns: ["$close", "$volume"]
+                inst_processors:
+                - class: TimeRangeFlt
+                  module_path: qlib.data.dataset.processor
+                  kwargs:
+                    start_time: "2020-01-01"
+                    end_time: "2021-12-31"
+                    freq: 5min
         segments:
             train: !!python/tuple [*start, *tend]
             valid: !!python/tuple [*vstart, *vend]
