@@ -35,7 +35,7 @@ feature_conf:
                   kwargs:
                     feature_save_dir: ./stat/  #  output path of statistics of features (for feature normalization)
                     norm_groups: 
-                        price: 10
+                        price: 8
                         volume: 2
                 inst_processors:
                 - class: TimeRangeFlt

@@ -6,11 +6,8 @@ This folder comprises an example of Reinforcement Learning (RL) workflows for or
 
 ### Get Data
 
-Use [AzCopy](https://learn.microsoft.com/en-us/azure/storage/common/storage-use-azcopy-v10) to download data:
-
 ```
-azcopy copy https://qlibpublic.blob.core.windows.net/data/default/stock_data/v2/qlib_data_hs300_5min_latest.zip ./data/
-unzip ./data/qlib_data_hs300_5min_latest.zip -d ./data/bin/
+python ../../scripts/get_data.py qlib_data --target_dir ./data/bin --region hs300 --interval 5min
 ```
 
 ### Generate Pickle-Style Data
@@ -31,8 +28,7 @@ data
 ├── bin
 ├── orders
 ├── pickle
-├── pickle_dataframe
-└── qlib_data_hs300_5min_latest.zip
+└── pickle_dataframe
 ```
 
 ## Training
