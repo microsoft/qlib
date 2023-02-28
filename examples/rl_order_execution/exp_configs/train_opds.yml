@@ -43,7 +43,7 @@ network:
   class: Recurrent
   module_path: qlib.rl.order_execution.network
 policy:
-  class: PPO
+  class: PPO  # PPO, DQN
   kwargs:
     lr: 0.0001
   module_path: qlib.rl.order_execution.policy
