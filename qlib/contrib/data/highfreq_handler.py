@@ -44,7 +44,7 @@ class HighFreqHandler(DataHandlerLP):
         names = []
 
         template_if = "If(IsNull({1}), {0}, {1})"
-        template_paused = "Select(Gt($hx_paused_num, 1.001), {0})"
+        template_paused = "Select(Gt($paused_num, 1.001), {0})"
 
         def get_normalized_price_feature(price_field, shift=0):
             # norm with the close price of 237th minute of yesterday.
@@ -482,7 +482,7 @@ class HighFreqBacktestOrderHandler(DataHandler):
         names = []
 
         template_if = "If(IsNull({1}), {0}, {1})"
-        template_paused = "Select(Gt($hx_paused_num, 1.001), {0})"
+        template_paused = "Select(Gt($paused_num, 1.001), {0})"
         template_fillnan = "FFillNan({0})"
         fields += [
             template_fillnan.format(template_paused.format("$close")),
