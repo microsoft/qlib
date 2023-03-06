@@ -54,9 +54,9 @@ QlibRL provides an example of an implementation of a single asset order executio
             # number of time indexes
             total_time: 240
             # start time index
-            default_start_time: 0
+            default_start_time_index: 0
             # end time index
-            default_end_time: 240
+            default_end_time_index: 240
             proc_data_dim: 6
         num_workers: 0
         queue_size: 20
