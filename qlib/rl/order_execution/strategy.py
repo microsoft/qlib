@@ -527,7 +527,7 @@ class SAOEIntStrategy(SAOEStrategy):
             obs_batch.append({"obs": self._state_interpreter.interpret(state)})
 
         with torch.no_grad():
-            policy_out = self._policy(Batch(obs_batch))
+            policy_out = self._policy(Batch(obs_batch, info=None))
         act = policy_out.act.numpy() if torch.is_tensor(policy_out.act) else policy_out.act
         exec_vols = [self._action_interpreter.interpret(s, a) for s, a in zip(states, act)]
 
