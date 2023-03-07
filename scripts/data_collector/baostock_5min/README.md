@@ -5,8 +5,8 @@
   - get data: `python scripts/get_data.py qlib_data`
   - parameters:
     - `target_dir`: save dir, by default *~/.qlib/qlib_data/cn_data_5min*
-    - `version`: dataset version, value from [`v2`], by default `v2`
-      - `v2` end date is *2022-11*
+    - `version`: dataset version, value from [`v3`], by default `v3`
+      - `v3` end date is *2022-12*
     - `interval`: `5min`
     - `region`: `hs300`
     - `delete_old`: delete existing data from `target_dir`(*features, calendars, instruments, dataset_cache, features_cache*), value from [`True`, `False`], by default `True`
@@ -17,12 +17,12 @@
     python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/cn_data_5min --region hs300 --interval 5min
     ```
     
-### Collector *YahooFinance* data to qlib
-> collector *YahooFinance* data and *dump* into `qlib` format.
+### Collector *Baostock high frequency* data to qlib
+> collector *Baostock high frequency* data and *dump* into `qlib` format.
 > If the above ready-made data can't meet users' requirements,  users can follow this section to crawl the latest data and convert it to qlib-data.
   1. download data to csv: `python scripts/data_collector/baostock_5min/collector.py download_data`
      
-     This will download the raw data such as high, low, open, close, adjclose price from yahoo to a local directory. One file per symbol.
+     This will download the raw data such as date, symbol, open, high, low, close, volume, amount, adjustflag from baostock to a local directory. One file per symbol.
 
      - parameters:
           - `source_dir`: save the directory
@@ -55,7 +55,8 @@
             if interval==5min, qlib_data_1d_dir cannot be None, normalize 5min needs to use 1d data;
         
                 qlib_data_1d can be obtained like this:
-                    $ python scripts/get_data.py qlib_data --target_dir <qlib_data_1d_dir> --interval 1d
+                    $ python scripts/get_data.py qlib_data --target_dir <qlib_data_1d_dir> --interval 1d --version v3
+                v3 end date is 2022-12, if you want to use recent data, you can try:
                     $ python scripts/data_collector/yahoo/collector.py update_data_to_bin --qlib_data_1d_dir <qlib_data_1d_dir> --trading_date 2022-11-30
                 or:
                     download 1d data from YahooFinance
