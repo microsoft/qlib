@@ -79,7 +79,7 @@ class PPOReward(Reward[SAOEState]):
                 vwap_price = cast(
                     float,
                     np.average(
-                        simulator_state.history_exec["market_price"], 
+                        simulator_state.history_exec["market_price"],
                         weights=simulator_state.history_exec["deal_amount"],
                     ),
                 )

@@ -7,7 +7,7 @@ This folder comprises an example of Reinforcement Learning (RL) workflows for or
 ### Get Data
 
 ```
-python ../../scripts/get_data.py qlib_data --target_dir ./data/bin --region hs300 --interval 5min
+python -m qlib.run.get_data qlib_data qlib_data --target_dir ./data/bin --region hs300 --interval 5min
 ```
 
 ### Generate Pickle-Style Data
@@ -15,10 +15,10 @@ python ../../scripts/get_data.py qlib_data --target_dir ./data/bin --region hs30
 To run codes in this example, we need data in pickle format. To achieve this, run following commands (might need a few minutes to finish):
 
 ```
-python scripts/gen_pickle_data.py -c scripts/pickle_data_config.yml;
-python scripts/collect_pickle_dataframe.py;
-python scripts/gen_training_orders.py;
-python scripts/merge_orders.py;
+python scripts/gen_pickle_data.py -c scripts/pickle_data_config.yml
+python scripts/collect_pickle_dataframe.py
+python scripts/gen_training_orders.py
+python scripts/merge_orders.py
 ```
 
 When finished, the structure under `data/` should be:
@@ -50,7 +50,7 @@ Metrics, logs, and checkpoints will be stored under `outputs/opds` (configured b
 
 ## Backtest
 
-Once the training workflow has completed, the trained model can be used for the backtesting workflow. Still take OPDS as an example, once training is finished, the latest checkpoint of the model can be found at `outputs/opds/checkpoints/latest.pth`. To run backtest workflow:
+Once the training workflow has completed, the trained model can be used for the backtesting workflow. Still taking OPDS as an example, once training is finished, the latest checkpoint of the model can be found at `outputs/opds/checkpoints/latest.pth`. To run backtest workflow:
 
 1. Uncomment the `weight_file` parameter in `exp_configs/train_opds.yml` (it is commented by default). While it is possible to run the backtesting workflow without setting a checkpoint, this will lead to randomly initialized model results, thus making them meaningless.
 2. Run `python -m qlib.rl.contrib.backtest --config_path exp_configs/backtest_opds.yml`.
@@ -59,7 +59,7 @@ The backtest result is stored in `outputs/checkpoints/backtest_result.csv`.
 
 In addition to OPDS and PPO, we also provide TWAP ([Time-weighted average price](https://en.wikipedia.org/wiki/Time-weighted_average_price)) as a weak baseline. The config file for TWAP is `exp_configs/backtest_twap.yml`.
 
-### Gap between backtest and testing in training pipeline
+### Gap between backtest and training pipeline's testing
 
 It is worthy to notice that the results of the backtesting process may differ from the results of the testing process used during training.
 This is because different simulators are used to simulate market conditions during training and backtesting.

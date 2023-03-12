@@ -169,7 +169,7 @@ class DQN(DQNPolicy):
     - Auto-create model network. Supports discrete action space only.
     - Support a ``weight_file`` that supports loading checkpoint.
     """
-    
+
     def __init__(
         self,
         network: nn.Module,
@@ -186,14 +186,14 @@ class DQN(DQNPolicy):
         weight_file: Optional[Path] = None,
     ) -> None:
         assert isinstance(action_space, Discrete)
-        
+
         model = DQNModel(network, action_space.n)
         optimizer = torch.optim.Adam(
             model.parameters(),
             lr=lr,
             weight_decay=weight_decay,
         )
-        
+
         super().__init__(
             model,
             optimizer,
@@ -206,7 +206,8 @@ class DQN(DQNPolicy):
         )
         if weight_file is not None:
             set_weight(self, Trainer.get_policy_state_dict(weight_file))
-            
+
+
 # utilities: these should be put in a separate (common) file. #
 
 
