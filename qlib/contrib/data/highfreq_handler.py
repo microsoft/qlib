@@ -115,6 +115,7 @@ class HighFreqGeneralHandler(DataHandlerLP):
         day_length=240,
         freq="1min",
         columns=["$open", "$high", "$low", "$close", "$vwap"],
+        inst_processors=None,
     ):
         self.day_length = day_length
         self.columns = columns
@@ -128,6 +129,7 @@ class HighFreqGeneralHandler(DataHandlerLP):
                 "config": self.get_feature_config(),
                 "swap_level": False,
                 "freq": freq,
+                "inst_processors": inst_processors,
             },
         }
         super().__init__(
@@ -257,6 +259,7 @@ class HighFreqGeneralBacktestHandler(DataHandler):
         day_length=240,
         freq="1min",
         columns=["$close", "$vwap", "$volume"],
+        inst_processors=None,
     ):
         self.day_length = day_length
         self.columns = set(columns)
@@ -266,6 +269,7 @@ class HighFreqGeneralBacktestHandler(DataHandler):
                 "config": self.get_feature_config(),
                 "swap_level": False,
                 "freq": freq,
+                "inst_processors": inst_processors,
             },
         }
         super().__init__(
@@ -311,6 +315,7 @@ class HighFreqOrderHandler(DataHandlerLP):
         learn_processors=[],
         fit_start_time=None,
         fit_end_time=None,
+        inst_processors=None,
         drop_raw=True,
     ):
 
@@ -323,6 +328,7 @@ class HighFreqOrderHandler(DataHandlerLP):
                 "config": self.get_feature_config(),
                 "swap_level": False,
                 "freq": "1min",
+                "inst_processors": inst_processors,
             },
         }
         super().__init__(
