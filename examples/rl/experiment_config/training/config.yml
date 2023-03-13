@@ -32,8 +32,8 @@ data:
     order_dir: ./data/training_order_split
     data_dir: ./data/pickle_dataframe/backtest
     total_time: 240
-    default_start_time: 0
-    default_end_time: 240
+    default_start_time_index: 0
+    default_end_time_index: 240
     proc_data_dim: 6
   num_workers: 0
   queue_size: 20

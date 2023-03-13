@@ -53,5 +53,5 @@ strategies:
           module_path: qlib.rl.order_execution.policy
           kwargs: 
             lr: 1.0e-4
-            weight_file: ./checkpoints/latest.pth
+            weight_file: ./checkpoints/checkpoints/latest.pth
 concurrency: 5
