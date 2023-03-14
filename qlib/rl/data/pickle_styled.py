@@ -254,7 +254,7 @@ class TeacherActionData:
     step: int
 
     def __init__(self, teacher_action_file: Path, stock_id: str, date: pd.Timestamp) -> None:  # type: ignore
-        data = pd.read_pickle(teacher_action_file).loc[pd.IndexSlice[stock_id, date]]  # type: ignore
+        data = pd.read_pickle(teacher_action_file).loc[pd.IndexSlice[stock_id, date.date()]]  # type: ignore
         self.teacher_action = data["policy_act"]
         self.step = data["step"]
 

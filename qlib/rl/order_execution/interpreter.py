@@ -206,6 +206,10 @@ class OPDObsInterpreter(FullHistoryStateInterpreter):
         teacher_action = self.teacher_action_data_provider.get_data(
             stock_id=state.order.stock_id, date=pd.Timestamp(state.order.start_time.date())
         ).teacher_action
+        try:
+            this_teacher_action = teacher_action.values[state.cur_step]
+        except IndexError:
+            this_teacher_action = 0
 
         # The min, slice here are to make sure that indices fit into the range,
         # even after the final step of the simulator (in the done step),
@@ -223,7 +227,7 @@ class OPDObsInterpreter(FullHistoryStateInterpreter):
                     "target": _to_float32(state.order.amount),
                     "position": _to_float32(state.position),
                     "position_history": _to_float32(position_history[: self.max_step]),
-                    "teacher_action": _to_int32(teacher_action.values[state.cur_step]),
+                    "teacher_action": _to_int32(this_teacher_action),
                 },
             ),
         )

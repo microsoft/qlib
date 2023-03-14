@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, List, Dict, Generator, Iterable, Optional, OrderedDict, Tuple, cast
+from typing import Any, Dict, Generator, Iterable, List, Optional, OrderedDict, Tuple, cast
 
 import gym
 import numpy as np
@@ -226,7 +226,7 @@ class OPD(PPO):
                 else:
                     vf_loss = (minibatch.returns - value).pow(2).mean()
                 # calculate distillation loss
-                teacher_action = minibatch.obs["teacher_action"]
+                teacher_action = torch.tensor(minibatch.obs["teacher_action"]).long()
                 logits = out.logits
                 dis_loss = nn.functional.nll_loss(logits.log(), teacher_action)
                 # calculate regularization and overall loss
