@@ -56,7 +56,7 @@ class Alpha360(DataHandlerLP):
         fit_start_time=None,
         fit_end_time=None,
         filter_pipe=None,
-        inst_processor=None,
+        inst_processors=None,
         **kwargs
     ):
         infer_processors = check_transform_proc(infer_processors, fit_start_time, fit_end_time)
@@ -71,7 +71,7 @@ class Alpha360(DataHandlerLP):
                 },
                 "filter_pipe": filter_pipe,
                 "freq": freq,
-                "inst_processor": inst_processor,
+                "inst_processors": inst_processors,
             },
         }
 
@@ -152,7 +152,7 @@ class Alpha158(DataHandlerLP):
         fit_end_time=None,
         process_type=DataHandlerLP.PTYPE_A,
         filter_pipe=None,
-        inst_processor=None,
+        inst_processors=None,
         **kwargs
     ):
         infer_processors = check_transform_proc(infer_processors, fit_start_time, fit_end_time)
@@ -167,7 +167,7 @@ class Alpha158(DataHandlerLP):
                 },
                 "filter_pipe": filter_pipe,
                 "freq": freq,
-                "inst_processor": inst_processor,
+                "inst_processors": inst_processors,
             },
         }
         super().__init__(

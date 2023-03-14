@@ -7,6 +7,7 @@ import collections
 from types import GeneratorType
 from typing import Any, Callable, cast, Dict, Generator, List, Optional, Tuple, Union
 
+import warnings
 import numpy as np
 import pandas as pd
 import torch
@@ -89,6 +90,7 @@ class SAOEStateAdapter:
         exchange: Exchange,
         ticks_per_step: int,
         backtest_data: IntradayBacktestData,
+        data_granularity: int = 1,
     ) -> None:
         self.position = order.amount
         self.order = order
@@ -106,11 +108,13 @@ class SAOEStateAdapter:
 
         self.cur_time = max(backtest_data.ticks_for_order[0], order.start_time)
         self.ticks_per_step = ticks_per_step
+        self.data_granularity = data_granularity
+        assert self.ticks_per_step % self.data_granularity == 0
 
     def _next_time(self) -> pd.Timestamp:
         current_loc = self.backtest_data.ticks_index.get_loc(self.cur_time)
-        next_loc = current_loc + self.ticks_per_step
-        next_loc = next_loc - next_loc % self.ticks_per_step
+        next_loc = current_loc + (self.ticks_per_step // self.data_granularity)
+        next_loc = next_loc - next_loc % (self.ticks_per_step // self.data_granularity)
         if (
             next_loc < len(self.backtest_data.ticks_index)
             and self.backtest_data.ticks_index[next_loc] < self.order.end_time
@@ -130,11 +134,16 @@ class SAOEStateAdapter:
 
         exec_vol = np.zeros(last_step_size)
         for order, _, __, ___ in execute_result:
-            idx, _ = get_day_min_idx_range(order.start_time, order.end_time, "1min", REG_CN)
+            idx, _ = get_day_min_idx_range(order.start_time, order.end_time, f"{self.data_granularity}min", REG_CN)
             exec_vol[idx - last_step_range[0]] = order.deal_amount
 
         if exec_vol.sum() > self.position and exec_vol.sum() > 0.0:
-            assert exec_vol.sum() < self.position + 1, f"{exec_vol} too large"
+            if exec_vol.sum() > self.position + 1.0:
+                warnings.warn(
+                    f"Sum of execution volume is {exec_vol.sum()} which is larger than "
+                    f"position + 1.0 = {self.position} + 1.0 = {self.position + 1.0}. "
+                    f"All execution volume is scaled down linearly to ensure that their sum does not position."
+                )
             exec_vol *= self.position / (exec_vol.sum())
 
         market_volume = cast(
@@ -168,7 +177,9 @@ class SAOEStateAdapter:
             self.history_exec,
             self._collect_multi_order_metric(
                 order=self.order,
-                datetime=_get_all_timestamps(start_time, end_time, include_end=True),
+                datetime=_get_all_timestamps(
+                    start_time, end_time, include_end=True, granularity=ONE_MIN * self.data_granularity
+                ),
                 market_vol=market_volume,
                 market_price=market_price,
                 exec_vol=exec_vol,
@@ -293,9 +304,10 @@ class SAOEStrategy(RLStrategy):
     def __init__(
         self,
         policy: BasePolicy,
-        outer_trade_decision: BaseTradeDecision = None,
-        level_infra: LevelInfrastructure = None,
-        common_infra: CommonInfrastructure = None,
+        outer_trade_decision: BaseTradeDecision | None = None,
+        level_infra: LevelInfrastructure | None = None,
+        common_infra: CommonInfrastructure | None = None,
+        data_granularity: int = 1,
         **kwargs: Any,
     ) -> None:
         super(SAOEStrategy, self).__init__(
@@ -306,6 +318,7 @@ class SAOEStrategy(RLStrategy):
             **kwargs,
         )
 
+        self._data_granularity = data_granularity
         self.adapter_dict: Dict[tuple, SAOEStateAdapter] = {}
         self._last_step_range = (0, 0)
 
@@ -324,9 +337,10 @@ class SAOEStrategy(RLStrategy):
             exchange=self.trade_exchange,
             ticks_per_step=int(pd.Timedelta(self.trade_calendar.get_freq()) / ONE_MIN),
             backtest_data=backtest_data,
+            data_granularity=self._data_granularity,
         )
 
-    def reset(self, outer_trade_decision: BaseTradeDecision = None, **kwargs: Any) -> None:
+    def reset(self, outer_trade_decision: BaseTradeDecision | None = None, **kwargs: Any) -> None:
         super(SAOEStrategy, self).reset(outer_trade_decision=outer_trade_decision, **kwargs)
 
         self.adapter_dict = {}
@@ -366,7 +380,7 @@ class SAOEStrategy(RLStrategy):
 
     def generate_trade_decision(
         self,
-        execute_result: list = None,
+        execute_result: list | None = None,
     ) -> Union[BaseTradeDecision, Generator[Any, Any, BaseTradeDecision]]:
         """
         For SAOEStrategy, we need to update the `self._last_step_range` every time a decision is generated.
@@ -385,7 +399,7 @@ class SAOEStrategy(RLStrategy):
 
     def _generate_trade_decision(
         self,
-        execute_result: list = None,
+        execute_result: list | None = None,
     ) -> Union[BaseTradeDecision, Generator[Any, Any, BaseTradeDecision]]:
         raise NotImplementedError
 
@@ -399,14 +413,14 @@ class ProxySAOEStrategy(SAOEStrategy):
 
     def __init__(
         self,
-        outer_trade_decision: BaseTradeDecision = None,
-        level_infra: LevelInfrastructure = None,
-        common_infra: CommonInfrastructure = None,
+        outer_trade_decision: BaseTradeDecision | None = None,
+        level_infra: LevelInfrastructure | None = None,
+        common_infra: CommonInfrastructure | None = None,
         **kwargs: Any,
     ) -> None:
         super().__init__(None, outer_trade_decision, level_infra, common_infra, **kwargs)
 
-    def _generate_trade_decision(self, execute_result: list = None) -> Generator[Any, Any, BaseTradeDecision]:
+    def _generate_trade_decision(self, execute_result: list | None = None) -> Generator[Any, Any, BaseTradeDecision]:
         # Once the following line is executed, this ProxySAOEStrategy (self) will be yielded to the outside
         # of the entire executor, and the execution will be suspended. When the execution is resumed by `send()`,
         # the item will be captured by `exec_vol`. The outside policy could communicate with the inner
@@ -418,7 +432,7 @@ class ProxySAOEStrategy(SAOEStrategy):
 
         return TradeDecisionWO([order], self)
 
-    def reset(self, outer_trade_decision: BaseTradeDecision = None, **kwargs: Any) -> None:
+    def reset(self, outer_trade_decision: BaseTradeDecision | None = None, **kwargs: Any) -> None:
         super().reset(outer_trade_decision=outer_trade_decision, **kwargs)
 
         assert isinstance(outer_trade_decision, TradeDecisionWO)
@@ -437,9 +451,9 @@ class SAOEIntStrategy(SAOEStrategy):
         state_interpreter: dict | StateInterpreter,
         action_interpreter: dict | ActionInterpreter,
         network: dict | torch.nn.Module | None = None,
-        outer_trade_decision: BaseTradeDecision = None,
-        level_infra: LevelInfrastructure = None,
-        common_infra: CommonInfrastructure = None,
+        outer_trade_decision: BaseTradeDecision | None = None,
+        level_infra: LevelInfrastructure | None = None,
+        common_infra: CommonInfrastructure | None = None,
         **kwargs: Any,
     ) -> None:
         super(SAOEIntStrategy, self).__init__(
@@ -488,7 +502,7 @@ class SAOEIntStrategy(SAOEStrategy):
         if self._policy is not None:
             self._policy.eval()
 
-    def reset(self, outer_trade_decision: BaseTradeDecision = None, **kwargs: Any) -> None:
+    def reset(self, outer_trade_decision: BaseTradeDecision | None = None, **kwargs: Any) -> None:
         super().reset(outer_trade_decision=outer_trade_decision, **kwargs)
 
     def _generate_trade_details(self, act: np.ndarray, exec_vols: List[float]) -> pd.DataFrame:
@@ -508,7 +522,7 @@ class SAOEIntStrategy(SAOEStrategy):
                 trade_details[-1]["rl_action"] = a
         return pd.DataFrame.from_records(trade_details)
 
-    def _generate_trade_decision(self, execute_result: list = None) -> BaseTradeDecision:
+    def _generate_trade_decision(self, execute_result: list | None = None) -> BaseTradeDecision:
         states = []
         obs_batch = []
         for decision in self.outer_trade_decision.get_decision():

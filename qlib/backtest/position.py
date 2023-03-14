@@ -1,6 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+from __future__ import annotations
 
 from datetime import timedelta
 from typing import Any, Dict, List, Union
@@ -320,7 +321,7 @@ class Position(BasePosition):
             self.position[stock]["price"] = price_dict[stock]
         self.position["now_account_value"] = self.calculate_value()
 
-    def _init_stock(self, stock_id: str, amount: float, price: float = None) -> None:
+    def _init_stock(self, stock_id: str, amount: float, price: float | None = None) -> None:
         """
         initialization the stock in current position
 

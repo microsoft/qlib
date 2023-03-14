@@ -152,7 +152,9 @@ class Account:
         # trading related metrics(e.g. high-frequency trading)
         self.indicator = Indicator()
 
-    def reset(self, freq: str = None, benchmark_config: dict = None, port_metr_enabled: bool = None) -> None:
+    def reset(
+        self, freq: str | None = None, benchmark_config: dict | None = None, port_metr_enabled: bool | None = None
+    ) -> None:
         """reset freq and report of account
 
         Parameters

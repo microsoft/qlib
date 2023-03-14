@@ -104,7 +104,7 @@ class SimpleIntradayBacktestData(BaseIntradayBacktestData):
         stock_id: str,
         date: pd.Timestamp,
         deal_price: DealPriceType = "close",
-        order_dir: int = None,
+        order_dir: int | None = None,
     ) -> None:
         super(SimpleIntradayBacktestData, self).__init__()
 
@@ -208,7 +208,7 @@ def load_simple_intraday_backtest_data(
     stock_id: str,
     date: pd.Timestamp,
     deal_price: DealPriceType = "close",
-    order_dir: int = None,
+    order_dir: int | None = None,
 ) -> SimpleIntradayBacktestData:
     return SimpleIntradayBacktestData(data_dir, stock_id, date, deal_price, order_dir)
 

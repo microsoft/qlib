@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 import abc
-from typing import Union, Text
+from typing import Union, Text, Optional
 import numpy as np
 import pandas as pd
 
@@ -11,6 +11,8 @@ from ...constant import EPS
 from .utils import fetch_df_by_index
 from ...utils.serial import Serializable
 from ...utils.paral import datetime_groupby_apply
+from qlib.data.inst_processor import InstProcessor
+from qlib.data import D
 
 
 def get_group_columns(df: pd.DataFrame, group: Union[Text, None]):
@@ -378,3 +380,42 @@ class HashStockFormat(Processor):
         from .storage import HashingStockStorage  # pylint: disable=C0415
 
         return HashingStockStorage.from_df(df)
+
+
+class TimeRangeFlt(InstProcessor):
+    """
+    This is a filter to filter stock.
+    Only keep the data that exist from start_time to end_time (the existence in the middle is not checked.)
+    WARNING:  It may induce leakage!!!
+    """
+
+    def __init__(
+        self,
+        start_time: Optional[Union[pd.Timestamp, str]] = None,
+        end_time: Optional[Union[pd.Timestamp, str]] = None,
+        freq: str = "day",
+    ):
+        """
+        Parameters
+        ----------
+        start_time : Optional[Union[pd.Timestamp, str]]
+            The data must start earlier (or equal) than `start_time`
+            None indicates data will not be filtered based on `start_time`
+        end_time : Optional[Union[pd.Timestamp, str]]
+            similar to start_time
+        freq : str
+            The frequency of the calendar
+        """
+        # Align to calendar before filtering
+        cal = D.calendar(start_time=start_time, end_time=end_time, freq=freq)
+        self.start_time = None if start_time is None else cal[0]
+        self.end_time = None if end_time is None else cal[-1]
+
+    def __call__(self, df: pd.DataFrame, instrument, *args, **kwargs):
+        if (
+            df.empty
+            or (self.start_time is None or df.index.min() <= self.start_time)
+            and (self.end_time is None or df.index.max() >= self.end_time)
+        ):
+            return df
+        return df.head(0)

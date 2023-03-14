@@ -397,7 +397,7 @@ class ConsoleWriter(LogWriter):
     def __init__(
         self,
         log_every_n_episode: int = 20,
-        total_episodes: int = None,
+        total_episodes: int | None = None,
         float_format: str = ":.4f",
         counter_format: str = ":4d",
         loglevel: int | LogLevel = LogLevel.PERIODIC,

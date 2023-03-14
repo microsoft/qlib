@@ -1,6 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+from __future__ import annotations
 
 import pathlib
 from collections import OrderedDict
@@ -86,7 +87,7 @@ class PortfolioMetrics:
         self.benches: dict = OrderedDict()
         self.latest_pm_time: Optional[pd.TimeStamp] = None
 
-    def init_bench(self, freq: str = None, benchmark_config: dict = None) -> None:
+    def init_bench(self, freq: str | None = None, benchmark_config: dict | None = None) -> None:
         if freq is not None:
             self.freq = freq
         self.benchmark_config = benchmark_config
@@ -149,15 +150,15 @@ class PortfolioMetrics:
         self,
         trade_start_time: Union[str, pd.Timestamp] = None,
         trade_end_time: Union[str, pd.Timestamp] = None,
-        account_value: float = None,
-        cash: float = None,
-        return_rate: float = None,
-        total_turnover: float = None,
-        turnover_rate: float = None,
-        total_cost: float = None,
-        cost_rate: float = None,
-        stock_value: float = None,
-        bench_value: float = None,
+        account_value: float | None = None,
+        cash: float | None = None,
+        return_rate: float | None = None,
+        total_turnover: float | None = None,
+        turnover_rate: float | None = None,
+        total_cost: float | None = None,
+        cost_rate: float | None = None,
+        stock_value: float | None = None,
+        bench_value: float | None = None,
     ) -> None:
         # check data
         if None in [
