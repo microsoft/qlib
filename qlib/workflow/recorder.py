@@ -324,7 +324,7 @@ class MLflowRecorder(Recorder):
                 raise RuntimeError("This recorder is not saved in the local file system.")
 
         else:
-            raise Exception(
+            raise ValueError(
                 "Please make sure the recorder has been created and started properly before getting artifact uri."
             )
 
@@ -464,7 +464,7 @@ class MLflowRecorder(Recorder):
         if self.artifact_uri is not None:
             return self.artifact_uri
         else:
-            raise Exception(
+            raise ValueError(
                 "Please make sure the recorder has been created and started properly before getting artifact uri."
             )
 
