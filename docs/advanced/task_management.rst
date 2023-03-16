@@ -13,7 +13,7 @@ The `Workflow <../component/introduction.html>`_ part introduces how to run rese
 To automatically generate and execute different tasks, ``Task Management`` provides a whole process including `Task Generating`_, `Task Storing`_, `Task Training`_ and `Task Collecting`_. 
 With this module, users can run their ``task`` automatically at different periods, in different losses, or even by different models.The processes of task generation, model training and combine and collect data are shown in the following figure.
 
-.. image:: ../_static/img/Task-Gen-Recorder-Collector.svg
+.. image:: ../_static/img/Task-Gen-Recorder-Collector.png
     :align: center
 
 This whole process can be used in `Online Serving <../component/online.html>`_.

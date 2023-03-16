@@ -16,7 +16,7 @@ Framework
 =========
 
 
-.. image:: ../_static/img/framework.svg
+.. image:: ../_static/img/framework_all.png
     :align: center
 
 
