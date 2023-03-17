@@ -47,10 +47,6 @@ class DNNModelPytorch(Model):
         layer sizes
     lr : float
         learning rate
-    lr_decay : float
-        learning rate decay
-    lr_decay_steps : int
-        learning rate decay steps
     optimizer : str
         optimizer name
     GPU : int
@@ -64,8 +60,6 @@ class DNNModelPytorch(Model):
         batch_size=2000,
         early_stop_rounds=50,
         eval_steps=20,
-        lr_decay=0.96,
-        lr_decay_steps=100,
         optimizer="gd",
         loss="mse",
         GPU=0,
@@ -93,8 +87,6 @@ class DNNModelPytorch(Model):
         self.batch_size = batch_size
         self.early_stop_rounds = early_stop_rounds
         self.eval_steps = eval_steps
-        self.lr_decay = lr_decay
-        self.lr_decay_steps = lr_decay_steps
         self.optimizer = optimizer.lower()
         self.loss_type = loss
         if isinstance(GPU, str):
@@ -116,8 +108,6 @@ class DNNModelPytorch(Model):
             f"\nbatch_size : {batch_size}"
             f"\nearly_stop_rounds : {early_stop_rounds}"
             f"\neval_steps : {eval_steps}"
-            f"\nlr_decay : {lr_decay}"
-            f"\nlr_decay_steps : {lr_decay_steps}"
             f"\noptimizer : {optimizer}"
             f"\nloss_type : {loss}"
             f"\nseed : {seed}"
