@@ -86,7 +86,6 @@ jobs:
       # W1309: f-string-without-interpolation
       # E1102: not-callable
       # E1136: unsubscriptable-object
-      # FIXME: Due to the version change of Pylint, some code will cause W0719 error after PR 1417. W0719 is temporarily disabled in PR 1417 and should be fixed.
     # References for parameters: https://github.com/PyCQA/pylint/issues/4577#issuecomment-1000245962
     # We use sys.setrecursionlimit(2000) to make the recursion depth larger to ensure that pylint works properly (the default recursion depth is 1000).
     - name: Check Qlib with pylint
