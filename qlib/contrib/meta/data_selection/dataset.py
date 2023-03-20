@@ -77,7 +77,7 @@ class InternalData:
             get_module_logger("Internal Data").info("the data has been initialized")
         else:
             # train new models
-            assert 0 == len(recorders), "An empty experiment is required for setup `InternalData``"
+            assert 0 == len(recorders), "An empty experiment is required for setup `InternalData`"
             trainer.train(gen_task)
 
         # 2) extract the similarity matrix

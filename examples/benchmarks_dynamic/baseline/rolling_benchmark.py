@@ -1,13 +1,16 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
+from typing import Optional
 from qlib.model.ens.ensemble import RollingEnsemble
 from qlib.utils import init_instance_by_config
 import fire
 import yaml
+import pandas as pd
 from qlib import auto_init
 from pathlib import Path
 from tqdm.auto import tqdm
 from qlib.model.trainer import TrainerR
+from qlib.log import get_module_logger
 from qlib.workflow import R
 from qlib.tests.data import GetData
 
@@ -25,11 +28,36 @@ class RollingBenchmark:
 
     """
 
-    def __init__(self, rolling_exp="rolling_models", model_type="linear") -> None:
+    def __init__(
+        self,
+        rolling_exp: str = "rolling_models",
+        model_type: str = "linear",
+        h_path: Optional[str] = None,
+        train_start: Optional[str] = None,
+        test_end: Optional[str] = None,
+    ) -> None:
+        """
+        Parameters
+        ----------
+        rolling_exp : str
+            The name for the experiments for rolling
+        model_type : str
+            The model to be boosted.
+        h_path : Optional[str]
+            the dumped data handler;
+        test_end : Optional[str]
+            the test end for the data. It is typically used together with the handler
+        train_start : Optional[str]
+            the train start for the data.  It is typically used together with the handler.
+        """
         self.step = 20
         self.horizon = 20
         self.rolling_exp = rolling_exp
         self.model_type = model_type
+        self.h_path = h_path
+        self.train_start = train_start
+        self.test_end = test_end
+        self.logger = get_module_logger("RollingBenchmark")
 
     def basic_task(self):
         """For fast training rolling"""
@@ -42,6 +70,10 @@ class RollingBenchmark:
             h_path = DIRNAME / "linear_alpha158_handler_horizon{}.pkl".format(self.horizon)
         else:
             raise AssertionError("Model type is not supported!")
+
+        if self.h_path is not None:
+            h_path = Path(self.h_path)
+
         with conf_path.open("r") as f:
             conf = yaml.safe_load(f)
 
@@ -59,6 +91,15 @@ class RollingBenchmark:
 
         task["dataset"]["kwargs"]["handler"] = f"file://{h_path}"
         task["record"] = ["qlib.workflow.record_temp.SignalRecord"]
+
+        if self.train_start is not None:
+            seg = task["dataset"]["kwargs"]["segments"]["train"]
+            task["dataset"]["kwargs"]["segments"]["train"] = pd.Timestamp(self.train_start), seg[1]
+
+        if self.test_end is not None:
+            seg = task["dataset"]["kwargs"]["segments"]["test"]
+            task["dataset"]["kwargs"]["segments"]["test"] = seg[0], pd.Timestamp(self.test_end)
+        self.logger.info(task)
         return task
 
     def create_rolling_tasks(self):
