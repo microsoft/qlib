@@ -10,6 +10,7 @@ import pandas as pd
 import fire
 import sys
 import pickle
+from typing import Optional
 from qlib import auto_init
 from qlib.model.trainer import TrainerR
 from qlib.utils import init_instance_by_config
@@ -30,7 +31,7 @@ class DDGDA:
     - `rm -r mlruns`
     """
 
-    def __init__(self, sim_task_model="linear", forecast_model="linear", h_path=None, test_end=None, train_start=None):
+    def __init__(self, sim_task_model="linear", forecast_model="linear", h_path=None, test_end=None, train_start=None, task_ext_conf: Optional[dict]=None):
         self.step = 20
         # NOTE:
         # the horizon must match the meaning in the base task template
@@ -42,6 +43,7 @@ class DDGDA:
             "h_path": h_path,
             "test_end": test_end,
             "train_start": train_start,
+            "task_ext_conf": task_ext_conf,
         }
 
     def get_feature_importance(self):

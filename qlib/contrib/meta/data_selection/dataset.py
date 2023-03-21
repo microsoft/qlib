@@ -287,6 +287,15 @@ class MetaDatasetDS(MetaTaskDataset):
         assert len(self.meta_task_l) > 0, "No meta tasks found. Please check the data and setting"
 
     def _prepare_meta_ipt(self, task):
+        """
+        Please refer to `self.internal_data.setup` for detailed information about `self.internal_data.data_ic_df`
+
+        Indices with format below can be successfully sliced by  `ic_df.loc[:end, pd.IndexSlice[:, :end]]`
+
+               2021-06-21 2021-06-04 .. 2021-03-22 2021-03-08
+               2021-07-02 2021-06-18 .. 2021-04-02 None
+
+        """
         ic_df = self.internal_data.data_ic_df
 
         segs = task["dataset"]["kwargs"]["segments"]
@@ -294,15 +303,19 @@ class MetaDatasetDS(MetaTaskDataset):
         ic_df_avail = ic_df.loc[:end, pd.IndexSlice[:, :end]]
 
         # meta data set focus on the **information** instead of preprocess
-        # 1) filter the future info
-        def mask_future(s):
-            """mask future information"""
-            # from qlib.utils import get_date_by_shift
+        # 1) filter the overlap info
+        def mask_overlap(s):
+            """
+            mask overlap information
+            data after self.name[end] with self.trunc_days that contains future info are also considered as overlap info
+
+            Approximately the diagnal + horizon length of data are masked.
+            """
             start, end = s.name
             end = get_date_by_shift(trading_date=end, shift=self.trunc_days - 1, future=True)
             return s.mask((s.index >= start) & (s.index <= end))
 
-        ic_df_avail = ic_df_avail.apply(mask_future)  # apply to each col
+        ic_df_avail = ic_df_avail.apply(mask_overlap)  # apply to each col
 
         # 2) filter the info with too long periods
         total_len = self.step * self.hist_step_n

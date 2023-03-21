@@ -11,6 +11,7 @@ from pathlib import Path
 from tqdm.auto import tqdm
 from qlib.model.trainer import TrainerR
 from qlib.log import get_module_logger
+from qlib.utils.data import update_config
 from qlib.workflow import R
 from qlib.tests.data import GetData
 
@@ -35,6 +36,7 @@ class RollingBenchmark:
         h_path: Optional[str] = None,
         train_start: Optional[str] = None,
         test_end: Optional[str] = None,
+        task_ext_conf: Optional[dict] = None,
     ) -> None:
         """
         Parameters
@@ -49,6 +51,8 @@ class RollingBenchmark:
             the test end for the data. It is typically used together with the handler
         train_start : Optional[str]
             the train start for the data.  It is typically used together with the handler.
+        task_ext_conf : Optional[dict]
+            some option to update the
         """
         self.step = 20
         self.horizon = 20
@@ -58,6 +62,7 @@ class RollingBenchmark:
         self.train_start = train_start
         self.test_end = test_end
         self.logger = get_module_logger("RollingBenchmark")
+        self.task_ext_conf = task_ext_conf
 
     def basic_task(self):
         """For fast training rolling"""
@@ -83,6 +88,9 @@ class RollingBenchmark:
         ]
 
         task = conf["task"]
+
+        if self.task_ext_conf is not None:
+            task = update_config(task, self.task_ext_conf)
 
         if not h_path.exists():
             h_conf = task["dataset"]["kwargs"]["handler"]
@@ -134,7 +142,7 @@ class RollingBenchmark:
         """
         Evaluate the combined rolling results
         """
-        for rid, rec in R.list_recorders(experiment_name=self.COMB_EXP).items():
+        for _, rec in R.list_recorders(experiment_name=self.COMB_EXP).items():
             for rt_cls in SigAnaRecord, PortAnaRecord:
                 rt = rt_cls(recorder=rec, skip_existing=True)
                 rt.generate()

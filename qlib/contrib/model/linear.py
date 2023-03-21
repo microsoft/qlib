@@ -29,7 +29,7 @@ class LinearModel(Model):
     RIDGE = "ridge"
     LASSO = "lasso"
 
-    def __init__(self, estimator="ols", alpha=0.0, fit_intercept=False):
+    def __init__(self, estimator="ols", alpha=0.0, fit_intercept=False, include_valid: bool=False):
         """
         Parameters
         ----------
@@ -39,6 +39,9 @@ class LinearModel(Model):
             l1 or l2 regularization parameter
         fit_intercept : bool
             whether fit intercept
+        include_valid: bool
+            Should the validation data be included for training?
+            The validation data should be included
         """
         assert estimator in [self.OLS, self.NNLS, self.RIDGE, self.LASSO], f"unsupported estimator `{estimator}`"
         self.estimator = estimator
@@ -49,9 +52,13 @@ class LinearModel(Model):
         self.fit_intercept = fit_intercept
 
         self.coef_ = None
+        self.include_valid = include_valid
 
     def fit(self, dataset: DatasetH, reweighter: Reweighter = None):
         df_train = dataset.prepare("train", col_set=["feature", "label"], data_key=DataHandlerLP.DK_L)
+        if self.include_valid:
+            df_valid = dataset.prepare("valid", col_set=["feature", "label"], data_key=DataHandlerLP.DK_L)
+            df_train = pd.concat([df_train, df_valid])
         if df_train.empty:
             raise ValueError("Empty data from dataset, please check your dataset config.")
         if reweighter is not None:
