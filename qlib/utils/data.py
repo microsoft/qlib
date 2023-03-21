@@ -61,6 +61,8 @@ def deepcopy_basic_type(obj: object) -> object:
 
 
 S_DROP = "__DROP__"  # this is a symbol which indicates drop the value
+
+
 def update_config(base_config: dict, ext_config: Union[dict, List[dict]]):
     """
     supporting adding base config based on the ext_config
@@ -80,7 +82,7 @@ def update_config(base_config: dict, ext_config: Union[dict, List[dict]]):
 
     base_config = deepcopy(base_config)  # in case of modifying base config
 
-    for ec in (ext_config if isinstance(ext_config, (list, tuple)) else [ext_config]):
+    for ec in ext_config if isinstance(ext_config, (list, tuple)) else [ext_config]:
         for key in ec:
             if key not in base_config:
                 # if it is not in the default key, then replace it.

@@ -31,6 +31,7 @@ class DDGDA:
     before running the example, please clean your previous results with following command
     - `rm -r mlruns`
     """
+
     def __init__(
         self,
         sim_task_model: Literal["linear", "gbdt"] = "linear",
@@ -196,7 +197,9 @@ class DDGDA:
         # 3) train and logging meta model
         with R.start(experiment_name=self.meta_exp_name):
             R.log_params(**kwargs)
-            mm = MetaModelDS(step=self.step, hist_step_n=kwargs["hist_step_n"], lr=0.001, max_epoch=100, seed=43, alpha=self.alpha)
+            mm = MetaModelDS(
+                step=self.step, hist_step_n=kwargs["hist_step_n"], lr=0.001, max_epoch=100, seed=43, alpha=self.alpha
+            )
             mm.fit(md)
             R.save_objects(model=mm)
 

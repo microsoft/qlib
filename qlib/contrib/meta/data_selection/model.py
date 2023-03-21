@@ -52,7 +52,7 @@ class MetaModelDS(MetaTaskModel):
         lr=0.0001,
         max_epoch=100,
         seed=43,
-        alpha=0.,
+        alpha=0.0,
     ):
         self.step = step
         self.hist_step_n = hist_step_n

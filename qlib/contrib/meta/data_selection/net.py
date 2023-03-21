@@ -41,7 +41,7 @@ class TimeWeightMeta(SingleMetaBase):
 
 
 class PredNet(nn.Module):
-    def __init__(self, step, hist_step_n, clip_weight=None, clip_method="tanh", alpha: float=0.0):
+    def __init__(self, step, hist_step_n, clip_weight=None, clip_method="tanh", alpha: float = 0.0):
         """
         Parameters
         ----------

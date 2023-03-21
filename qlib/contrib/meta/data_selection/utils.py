@@ -52,7 +52,9 @@ class ICLoss(nn.Module):
         if len(diff_point) - 1 - skip_n <= 0:
             raise ValueError("No enough data for calculating IC")
         if skip_n > 0:
-            get_module_logger("ICLoss").info(f"{skip_n} days are skipped due to zero std or small scale of valid samples.")
+            get_module_logger("ICLoss").info(
+                f"{skip_n} days are skipped due to zero std or small scale of valid samples."
+            )
         ic_mean = ic_all / (len(diff_point) - 1 - skip_n)
         return -ic_mean  # ic loss
 

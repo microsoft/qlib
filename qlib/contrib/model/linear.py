@@ -29,7 +29,7 @@ class LinearModel(Model):
     RIDGE = "ridge"
     LASSO = "lasso"
 
-    def __init__(self, estimator="ols", alpha=0.0, fit_intercept=False, include_valid: bool=False):
+    def __init__(self, estimator="ols", alpha=0.0, fit_intercept=False, include_valid: bool = False):
         """
         Parameters
         ----------
