@@ -13,6 +13,7 @@ import pickle
 from typing import Optional
 from qlib import auto_init
 from qlib.model.trainer import TrainerR
+from qlib.typehint import Literal
 from qlib.utils import init_instance_by_config
 from qlib.workflow import R
 from qlib.tests.data import GetData
@@ -30,8 +31,24 @@ class DDGDA:
     before running the example, please clean your previous results with following command
     - `rm -r mlruns`
     """
+    def __init__(
+        self,
+        sim_task_model: Literal["linear", "gbdt"] = "linear",
+        forecast_model: Literal["linear", "gbdt"] = "linear",
+        h_path: Optional[str] = None,
+        test_end: Optional[str] = None,
+        train_start: Optional[str] = None,
+        task_ext_conf: Optional[dict] = None,
+        alpha: float = 0.0,
+    ):
+        """
 
-    def __init__(self, sim_task_model="linear", forecast_model="linear", h_path=None, test_end=None, train_start=None, task_ext_conf: Optional[dict]=None):
+        Parameters
+        ----------
+        alpha: float
+            Setting the L2 regularization for ridge
+            The `alpha` is only passed to MetaModelDS (it is not passed to sim_task_model currently..)
+        """
         self.step = 20
         # NOTE:
         # the horizon must match the meaning in the base task template
@@ -45,6 +62,7 @@ class DDGDA:
             "train_start": train_start,
             "task_ext_conf": task_ext_conf,
         }
+        self.alpha = alpha
 
     def get_feature_importance(self):
         # this must be lightGBM, because it needs to get the feature importance
@@ -178,7 +196,7 @@ class DDGDA:
         # 3) train and logging meta model
         with R.start(experiment_name=self.meta_exp_name):
             R.log_params(**kwargs)
-            mm = MetaModelDS(step=self.step, hist_step_n=kwargs["hist_step_n"], lr=0.001, max_epoch=100, seed=43)
+            mm = MetaModelDS(step=self.step, hist_step_n=kwargs["hist_step_n"], lr=0.001, max_epoch=100, seed=43, alpha=self.alpha)
             mm.fit(md)
             R.save_objects(model=mm)
 
