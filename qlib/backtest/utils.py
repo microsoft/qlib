@@ -90,6 +90,7 @@ class TradeCalendarManager:
         I think change self.trade_len = _end_index - _start_index + 1 to self.trade_len = _end_index - _start_index maybe better, but it may
         result other errors.
         """
+        
         return self.trade_step >= self.trade_len - 1
 
     def step(self) -> None:
