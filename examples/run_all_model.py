@@ -326,7 +326,7 @@ class ModelRunner:
                     f"{python_path} -m pip install light-the-torch", wait_when_err=wait_when_err
                 )  # for automatically installing torch according to the nvidia driver
                 execute(
-                    f"{env_path / 'bin' / 'ltt'} install  -r {req_path}",
+                    f"{env_path / 'bin' / 'ltt'} install --install-cmd '{python_path} -m pip install {{packages}}' -- -r {req_path}",
                     wait_when_err=wait_when_err,
                 )
             else:
@@ -356,6 +356,10 @@ class ModelRunner:
                     f"cd {env_path} && {python_path} -m pip install --upgrade --force-reinstall -e {qlib_uri}",
                     wait_when_err=wait_when_err,
                 )  # TODO: FIX ME!
+            execute(
+                f"cd {env_path} && {python_path} -m pip install -e  ~/project/qlib",
+                wait_when_err=wait_when_err,
+            )
             sys.stderr.write("\n")
             # run workflow_by_config for multiple times
             for i in range(times):
