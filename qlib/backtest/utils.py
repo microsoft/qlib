@@ -31,7 +31,7 @@ class TradeCalendarManager:
         freq: str,
         start_time: Union[str, pd.Timestamp] = None,
         end_time: Union[str, pd.Timestamp] = None,
-        level_infra: LevelInfrastructure = None,
+        level_infra: LevelInfrastructure | None = None,
     ) -> None:
         """
         Parameters
@@ -99,7 +99,7 @@ class TradeCalendarManager:
     def get_trade_step(self) -> int:
         return self.trade_step
 
-    def get_step_time(self, trade_step: int = None, shift: int = 0) -> Tuple[pd.Timestamp, pd.Timestamp]:
+    def get_step_time(self, trade_step: int | None = None, shift: int = 0) -> Tuple[pd.Timestamp, pd.Timestamp]:
         """
         Get the left and right endpoints of the trade_step'th trading interval
 

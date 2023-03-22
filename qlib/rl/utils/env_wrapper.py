@@ -99,9 +99,9 @@ class EnvWrapper(
         state_interpreter: StateInterpreter[StateType, ObsType],
         action_interpreter: ActionInterpreter[StateType, PolicyActType, ActType],
         seed_iterator: Optional[Iterable[InitialStateType]],
-        reward_fn: Reward = None,
-        aux_info_collector: AuxiliaryInfoCollector[StateType, Any] = None,
-        logger: LogCollector = None,
+        reward_fn: Reward | None = None,
+        aux_info_collector: AuxiliaryInfoCollector[StateType, Any] | None = None,
+        logger: LogCollector | None = None,
     ) -> None:
         # Assign weak reference to wrapper.
         #

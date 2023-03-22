@@ -13,9 +13,10 @@ import shutil
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import Any, List, TYPE_CHECKING
 
 import numpy as np
+import pandas as pd
 import torch
 
 from qlib.log import get_module_logger
@@ -24,7 +25,6 @@ from qlib.typehint import Literal
 if TYPE_CHECKING:
     from .trainer import Trainer
     from .vessel import TrainingVesselBase
-
 
 _logger = get_module_logger(__name__)
 
@@ -155,6 +155,11 @@ class EarlyStopping(Callback):
             if self.baseline is None or self._is_improvement(current, self.baseline):
                 self.wait = 0
 
+        msg = (
+            f"#{trainer.current_iter} current reward: {current:.4f}, best reward: {self.best:.4f} in #{self.best_iter}"
+        )
+        _logger.info(msg)
+
         # Only check after the first epoch.
         if self.wait >= self.patience and trainer.current_iter > 0:
             trainer.should_stop = True
@@ -175,6 +180,24 @@ class EarlyStopping(Callback):
 
     def _is_improvement(self, monitor_value, reference_value):
         return self.monitor_op(monitor_value - self.min_delta, reference_value)
+
+
+class MetricsWriter(Callback):
+    """Dump training metrics to file."""
+
+    def __init__(self, dirpath: Path) -> None:
+        self.dirpath = dirpath
+        self.dirpath.mkdir(exist_ok=True, parents=True)
+        self.train_records: List[dict] = []
+        self.valid_records: List[dict] = []
+
+    def on_train_end(self, trainer: Trainer, vessel: TrainingVesselBase) -> None:
+        self.train_records.append({k: v for k, v in trainer.metrics.items() if not k.startswith("val/")})
+        pd.DataFrame.from_records(self.train_records).to_csv(self.dirpath / "train_result.csv", index=True)
+
+    def on_validate_end(self, trainer: Trainer, vessel: TrainingVesselBase) -> None:
+        self.valid_records.append({k: v for k, v in trainer.metrics.items() if k.startswith("val/")})
+        pd.DataFrame.from_records(self.valid_records).to_csv(self.dirpath / "validation_result.csv", index=True)
 
 
 class Checkpoint(Callback):

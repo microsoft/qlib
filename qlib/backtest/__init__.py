@@ -40,8 +40,8 @@ def get_exchange(
     open_cost: float = 0.0015,
     close_cost: float = 0.0025,
     min_cost: float = 5.0,
-    limit_threshold: Union[Tuple[str, str], float, None] = None,
-    deal_price: Union[str, Tuple[str, str], List[str]] = None,
+    limit_threshold: Union[Tuple[str, str], float, None] | None = None,
+    deal_price: Union[str, Tuple[str, str], List[str]] | None = None,
     **kwargs: Any,
 ) -> Exchange:
     """get_exchange
@@ -284,7 +284,7 @@ def collect_data(
     account: Union[float, int, dict] = 1e9,
     exchange_kwargs: dict = {},
     pos_type: str = "Position",
-    return_value: dict = None,
+    return_value: dict | None = None,
 ) -> Generator[object, None, None]:
     """initialize the strategy and executor, then collect the trade decision data for rl training
 

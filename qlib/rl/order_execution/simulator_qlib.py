@@ -38,8 +38,8 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
         order: Order,
         executor_config: dict,
         exchange_config: dict,
-        qlib_config: dict = None,
-        cash_limit: Optional[float] = None,
+        qlib_config: dict | None = None,
+        cash_limit: float | None = None,
     ) -> None:
         super().__init__(initial=order)
 
@@ -63,7 +63,7 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
         strategy_config: dict,
         executor_config: dict,
         exchange_config: dict,
-        qlib_config: dict = None,
+        qlib_config: dict | None = None,
         cash_limit: Optional[float] = None,
     ) -> None:
         if qlib_config is not None:

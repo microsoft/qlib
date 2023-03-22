@@ -1,20 +1,21 @@
 simulator:
+  data_granularity: 5
   time_per_step: 30
   vol_limit: null
 env:
-  concurrency: 1
-  parallel_mode: dummy
+  concurrency: 48
+  parallel_mode: shmem
 action_interpreter:
   class: CategoricalActionInterpreter
   kwargs:
-    values: 14
+    values: 4
     max_step: 8
   module_path: qlib.rl.order_execution.interpreter
 state_interpreter:
   class: FullHistoryStateInterpreter
   kwargs:
-    data_dim: 6
-    data_ticks: 240
+    data_dim: 5
+    data_ticks: 48  # 48 = 240 min / 5 min
     max_step: 8
     processed_data_provider:
       class: PickleProcessedDataProvider
@@ -25,23 +26,24 @@ state_interpreter:
 reward:
   class: PAPenaltyReward
   kwargs:
-    penalty: 100.0
+    penalty: 4.0
+    scale: 0.01
   module_path: qlib.rl.order_execution.reward
 data:
   source:
-    order_dir: ./data/training_order_split
+    order_dir: ./data/orders
     data_dir: ./data/pickle_dataframe/backtest
     total_time: 240
-    default_start_time: 0
-    default_end_time: 240
-    proc_data_dim: 6
+    default_start_time_index: 0
+    default_end_time_index: 235
+    proc_data_dim: 5
   num_workers: 0
   queue_size: 20
 network:
   class: Recurrent
   module_path: qlib.rl.order_execution.network
 policy:
-  class: PPO
+  class: PPO  # PPO, DQN
   kwargs:
     lr: 0.0001
   module_path: qlib.rl.order_execution.policy
@@ -49,11 +51,11 @@ runtime:
   seed: 42
   use_cuda: false
 trainer:
-  max_epoch: 2
-  repeat_per_collect: 5
-  earlystop_patience: 2
-  episode_per_collect: 20
-  batch_size: 16
-  val_every_n_epoch: 1
-  checkpoint_path: ./checkpoints
+  max_epoch: 500
+  repeat_per_collect: 25
+  earlystop_patience: 50
+  episode_per_collect: 10000
+  batch_size: 1024
+  val_every_n_epoch: 4
+  checkpoint_path: ./outputs/opds
   checkpoint_every_n_iters: 1

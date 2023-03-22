@@ -36,6 +36,8 @@ class SingleAssetOrderExecutionSimple(Simulator[Order, SAOEState, float]):
     ----------
     order
         The seed to start an SAOE simulator is an order.
+    data_granularity
+        Number of ticks between consecutive data entries.
     ticks_per_step
         How many ticks per step.
     data_dir
@@ -71,14 +73,17 @@ class SingleAssetOrderExecutionSimple(Simulator[Order, SAOEState, float]):
         self,
         order: Order,
         data_dir: Path,
+        data_granularity: int = 1,
         ticks_per_step: int = 30,
         deal_price_type: DealPriceType = "close",
         vol_threshold: Optional[float] = None,
     ) -> None:
         super().__init__(initial=order)
 
+        assert ticks_per_step % data_granularity == 0
+
         self.order = order
-        self.ticks_per_step: int = ticks_per_step
+        self.ticks_per_step: int = ticks_per_step // data_granularity
         self.deal_price_type = deal_price_type
         self.vol_threshold = vol_threshold
         self.data_dir = data_dir
@@ -132,6 +137,8 @@ class SingleAssetOrderExecutionSimple(Simulator[Order, SAOEState, float]):
         ticks_position = self.position - np.cumsum(exec_vol)
 
         self.position -= exec_vol.sum()
+        if abs(self.position) < 1e-6:
+            self.position = 0.0
         if self.position < -EPS or (exec_vol < -EPS).any():
             raise ValueError(f"Execution volume is invalid: {exec_vol} (position = {self.position})")
 

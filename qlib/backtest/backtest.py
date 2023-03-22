@@ -55,7 +55,7 @@ def collect_data_loop(
     end_time: Union[pd.Timestamp, str],
     trade_strategy: BaseStrategy,
     trade_executor: BaseExecutor,
-    return_value: dict = None,
+    return_value: dict | None = None,
 ) -> Generator[BaseTradeDecision, Optional[BaseTradeDecision], None]:
     """Generator for collecting the trade decision data for rl training
 
