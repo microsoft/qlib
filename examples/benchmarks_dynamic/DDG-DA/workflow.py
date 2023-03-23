@@ -254,6 +254,6 @@ class DDGDA:
 
 
 if __name__ == "__main__":
-    # GetData().qlib_data(exists_skip=True)
-    auto_init(provider_uri=r"E:\qlib_data\rqdata")
+    GetData().qlib_data(exists_skip=True)
+    auto_init()
     fire.Fire(DDGDA)
