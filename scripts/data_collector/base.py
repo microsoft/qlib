@@ -61,7 +61,7 @@ class BaseCollector(abc.ABC):
         end: str
             end datetime, default None
         check_data_length: int
-            check data length, if not None and greater than 0, each symbol will be considered complete if its data length is greater than or equal to this value, otherwise it will be fetched again, the maximum number of fetches being (max_collector_count). By default None.
+            check data length, if not None and greater than 0, each symbol will be considered complete if its data length is greater than or equal to this value, otherwise it will be fetched again, the maximum number of fetches being (max_collector_count). By default, None.
         limit_nums: int
             using for debug, by default None
         """
@@ -387,7 +387,7 @@ class BaseRun(abc.ABC):
         end: str
             end datetime, default ``pd.Timestamp(datetime.datetime.now() + pd.Timedelta(days=1))``
         check_data_length: int
-            check data length, if not None and greater than 0, each symbol will be considered complete if its data length is greater than or equal to this value, otherwise it will be fetched again, the maximum number of fetches being (max_collector_count). By default None.
+            check data length, if not None and greater than 0, each symbol will be considered complete if its data length is greater than or equal to this value, otherwise it will be fetched again, the maximum number of fetches being (max_collector_count). By default, None.
         limit_nums: int
             using for debug, by default None
 

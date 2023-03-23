@@ -6,7 +6,6 @@ import fire
 import yaml
 from qlib import auto_init
 from pathlib import Path
-from tqdm.auto import tqdm
 from qlib.model.trainer import TrainerR
 from qlib.workflow import R
 from qlib.tests.data import GetData
@@ -100,7 +99,7 @@ class RollingBenchmark:
         print(f"Your evaluation results can be found in the experiment named `{self.COMB_EXP}`.")
 
     def run_all(self):
-        # the results will be  save in mlruns.
+        # the results will be saved in mlruns.
         # 1) each rolling task is saved in rolling_models
         self.train_rolling_tasks()
         # 2) combined rolling tasks and evaluation results are saved in rolling

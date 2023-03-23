@@ -48,7 +48,7 @@ class InternalData:
         """
 
         # 1) prepare the prediction of proxy models
-        perf_task_tpl = deepcopy(self.task_tpl)  # this task is supposed to contains no complicated objects
+        perf_task_tpl = deepcopy(self.task_tpl)  # this task is supposed to contain no complicated objects
 
         trainer = auto_filter_kwargs(trainer)(experiment_name=self.exp_name, **trainer_kwargs)
         # NOTE:
@@ -225,7 +225,7 @@ class MetaDatasetDS(MetaTaskDataset):
         trunc_days: int
             days to be truncated based on the test start
         rolling_ext_days: int
-            sometimes users want to train meta models for a longer test period but with smaller rolling steps for more task samples.
+            sometimes users want to train metamodels for a longer test period but with smaller rolling steps for more task samples.
             the total length of test periods will be `step + rolling_ext_days`
 
         exp_name : Union[str, InternalData]
@@ -293,7 +293,7 @@ class MetaDatasetDS(MetaTaskDataset):
         end = max(segs[k][1] for k in ("train", "valid") if k in segs)
         ic_df_avail = ic_df.loc[:end, pd.IndexSlice[:, :end]]
 
-        # meta data set focus on the **information** instead of preprocess
+        # metadata set focus on the **information** instead of preprocess
         # 1) filter the future info
         def mask_future(s):
             """mask future information"""

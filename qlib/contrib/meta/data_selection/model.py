@@ -39,7 +39,7 @@ class TimeReweighter(Reweighter):
 
 class MetaModelDS(MetaTaskModel):
     """
-    The meta-model for meta-learning-based data selection.
+    The metamodel for meta-learning-based data selection.
     """
 
     def __init__(
@@ -127,11 +127,11 @@ class MetaModelDS(MetaTaskModel):
         Parameters
         ----------
         meta_dataset : MetaDatasetDS
-            The meta-model takes the meta-dataset for its training process.
+            The metamodel takes the meta-dataset for its training process.
         """
 
         if not self.fitted:
-            for k in set(["lr", "step", "hist_step_n", "clip_method", "clip_weight", "criterion", "max_epoch"]):
+            for k in {"lr", "step", "hist_step_n", "clip_method", "clip_weight", "criterion", "max_epoch"}:
                 R.log_params(**{k: getattr(self, k)})
 
         # FIXME: get test tasks for just checking the performance

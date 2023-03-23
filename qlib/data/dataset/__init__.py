@@ -38,7 +38,7 @@ class Dataset(Serializable):
         """
         super().config(**kwargs)
 
-    def setup_data(self, **kwargs):
+    def setup_data(self, *args, **kwargs):
         """
         Setup the data.
 
@@ -53,7 +53,7 @@ class Dataset(Serializable):
         - User prepare data for model based on previous status.
         """
 
-    def prepare(self, **kwargs) -> object:
+    def prepare(self, *args, **kwargs) -> object:
         """
         The type of dataset depends on the model. (It could be pd.DataFrame, pytorch.DataLoader, etc.)
         The parameters should specify the scope for the prepared data

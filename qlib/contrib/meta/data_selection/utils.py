@@ -10,7 +10,7 @@ class ICLoss(nn.Module):
     def forward(self, pred, y, idx, skip_size=50):
         """forward.
         FIXME:
-        - Some times it will be a slightly different from the result from `pandas.corr()`
+        - Sometimes it will be a slightly different from the result from `pandas.corr()`
         - It may be caused by the precision problem of model;
 
         :param pred:

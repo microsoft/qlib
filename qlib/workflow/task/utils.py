@@ -224,7 +224,7 @@ class TimeAdjuster:
             new_seg = []
             for time_point in segment:
                 tp_idx = min(self.align_idx(time_point), test_idx - days)
-                assert tp_idx > 0
+                assert tp_idx >= 0
                 new_seg.append(self.get(tp_idx))
             return tuple(new_seg)
         else:
