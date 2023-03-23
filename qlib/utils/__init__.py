@@ -224,7 +224,7 @@ def requests_with_retry(url, retry=5, **kwargs):
         except Exception as e:
             log.warning("exception encountered {}".format(e))
             continue
-    raise Exception("ERROR: requests failed!")
+    raise TimeoutError("ERROR: requests failed!")
 
 
 #################### Parse ####################

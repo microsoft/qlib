@@ -1,15 +1,16 @@
 # start & end time for training/validation/test datasets
 start_time: !!str &start 2020-01-01
-end_time: !!str &end 2020-07-31
-train_end_time: !!str &tend 2020-03-31
-valid_start_time: !!str &vstart 2020-04-01
-valid_end_time: !!str &vend 2020-05-31
-test_start_time: !!str &tstart 2020-06-01
+end_time: !!str &end 2021-12-31
+train_end_time: !!str &tend 2021-06-30
+valid_start_time: !!str &vstart 2021-07-01
+valid_end_time: !!str &vend 2021-09-30
+test_start_time: !!str &tstart 2021-10-01
 # the instrument set
-instruments: &ins all
+instruments: &ins csi300s19_22
 # qlib related configuration
 qlib_conf:
-    provider_uri: ./data/bin # path to generated qlib bin
+    provider_uri: 
+        5min: ./data/bin # path to generated qlib bin
     redis_port: 233
 feature_conf:
     path: ./data/pickle/feature.pkl # output path of feature
@@ -26,14 +27,23 @@ feature_conf:
                 fit_end_time: *tend
                 instruments: *ins
                 day_length: 240 # how many minutes in one trading day
+                freq: 5min
+                columns: ["$open", "$high", "$low", "$close"]
                 infer_processors:
                 - class: HighFreqNorm
                   module_path: qlib.contrib.data.highfreq_processor
                   kwargs:
                     feature_save_dir: ./stat/  #  output path of statistics of features (for feature normalization)
                     norm_groups: 
-                        price: 10
+                        price: 8
                         volume: 2
+                inst_processors:
+                - class: TimeRangeFlt
+                  module_path: qlib.data.dataset.processor
+                  kwargs:
+                    start_time: "2020-01-01"
+                    end_time: "2021-12-31"
+                    freq: 5min
         segments:
             train: !!python/tuple [*start, *tend]
             valid: !!python/tuple [*vstart, *vend]
@@ -51,7 +61,17 @@ backtest_conf:
                 end_time: *end
                 instruments: *ins
                 day_length: 240
+                freq: 5min
+                columns: ["$close", "$volume"]
+                inst_processors:
+                - class: TimeRangeFlt
+                  module_path: qlib.data.dataset.processor
+                  kwargs:
+                    start_time: "2020-01-01"
+                    end_time: "2021-12-31"
+                    freq: 5min
         segments:
             train: !!python/tuple [*start, *tend]
             valid: !!python/tuple [*vstart, *vend]
             test: !!python/tuple [*tstart, *end]
+freq: 5min

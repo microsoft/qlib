@@ -7,6 +7,7 @@ import collections
 from types import GeneratorType
 from typing import Any, Callable, cast, Dict, Generator, List, Optional, Tuple, Union
 
+import warnings
 import numpy as np
 import pandas as pd
 import torch
@@ -137,7 +138,12 @@ class SAOEStateAdapter:
             exec_vol[idx - last_step_range[0]] = order.deal_amount
 
         if exec_vol.sum() > self.position and exec_vol.sum() > 0.0:
-            assert exec_vol.sum() < self.position + 1, f"{exec_vol} too large"
+            if exec_vol.sum() > self.position + 1.0:
+                warnings.warn(
+                    f"Sum of execution volume is {exec_vol.sum()} which is larger than "
+                    f"position + 1.0 = {self.position} + 1.0 = {self.position + 1.0}. "
+                    f"All execution volume is scaled down linearly to ensure that their sum does not position."
+                )
             exec_vol *= self.position / (exec_vol.sum())
 
         market_volume = cast(

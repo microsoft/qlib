@@ -333,7 +333,7 @@ class MLflowExperiment(Experiment):
                 recorder = self._get_recorder(recorder_name=recorder_name)
                 self._client.delete_run(recorder.id)
         except MlflowException as e:
-            raise Exception(
+            raise ValueError(
                 f"Error: {e}. Something went wrong when deleting recorder. Please check if the name/id of the recorder is correct."
             ) from e
 
