@@ -357,7 +357,10 @@ def backtest(backtest_config: dict, with_simulator: bool = False) -> pd.DataFram
 
     if not output_path.exists():
         os.makedirs(output_path)
-    res.to_csv(output_path / "summary.csv")
+
+    if "pa" in res.columns:
+        res["pa"] = res["pa"] * 10000.0  # align with training metrics
+    res.to_csv(output_path / "backtest_result.csv")
     return res
 
 

@@ -4,6 +4,7 @@
 import yaml
 import argparse
 import os
+import shutil
 from copy import deepcopy
 
 from qlib.contrib.data.highfreq_provider import HighFreqProvider
@@ -41,3 +42,5 @@ if __name__ == "__main__":
     if args.split == "stock" or args.split == "both":
         provider._gen_stock_dataset(deepcopy(provider.feature_conf), "feature")
         provider._gen_stock_dataset(deepcopy(provider.backtest_conf), "backtest")
+
+    shutil.rmtree("stat/", ignore_errors=True)
