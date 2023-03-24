@@ -148,7 +148,7 @@ class DDGDA:
         with self._internal_data_path.open("wb") as f:
             pickle.dump(internal_data, f)
 
-    def train_meta_model(self):
+    def train_meta_model(self, fill_method="max"):
         """
         training a meta model based on a simplified linear proxy model;
         """
@@ -182,7 +182,7 @@ class DDGDA:
             segments=0.62,  # keep test period consistent with the dataset yaml
             trunc_days=1 + self.horizon,
             hist_step_n=30,
-            fill_method="max",
+            fill_method=fill_method,
             rolling_ext_days=0,
         )
         # NOTE:
