@@ -18,7 +18,7 @@ from qlib.backtest import Order
 from qlib.backtest.decision import OrderDir
 from qlib.constant import ONE_MIN
 from qlib.rl.data.integration import init_qlib
-from qlib.rl.data.native import load_nt_intraday_processed_data
+from qlib.rl.data.native import load_handler_intraday_processed_data
 from qlib.rl.interpreter import ActionInterpreter, StateInterpreter
 from qlib.rl.order_execution import SingleAssetOrderExecutionSimple
 from qlib.rl.reward import Reward
@@ -79,7 +79,7 @@ class LazyLoadDataset(Dataset):
             # TODO: of all dates.
             if self._qlib_config is not None:
                 init_qlib(self._qlib_config, part=row["instrument"])
-            df = load_nt_intraday_processed_data(
+            df = load_handler_intraday_processed_data(
                 stock_id=row["instrument"],
                 date=date,
                 backtest=True,
@@ -122,7 +122,6 @@ def train_and_test(
             order=order,
             ticks_per_step=simulator_config["time_per_step"],
             data_granularity=data_granularity,
-            deal_price_type=data_config["source"].get("deal_price_column", "close"),
             vol_threshold=simulator_config["vol_limit"],
             qlib_config=qlib_config,
         )

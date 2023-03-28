@@ -158,8 +158,8 @@ class SimpleIntradayBacktestData(BaseIntradayBacktestData):
         return cast(pd.DatetimeIndex, self.data.index)
 
 
-class IntradayProcessedData(BaseIntradayProcessedData):
-    """Subclass of IntradayProcessedData. Used to handle Dataset Handler style data."""
+class PickleIntradayProcessedData(BaseIntradayProcessedData):
+    """Subclass of IntradayProcessedData. Used to handle pickle-styled data."""
 
     def __init__(
         self,
@@ -217,14 +217,14 @@ def load_simple_intraday_backtest_data(
     cache=cachetools.LRUCache(100),  # 100 * 50K = 5MB
     key=lambda data_dir, stock_id, date, feature_dim, time_index: hashkey(data_dir, stock_id, date),
 )
-def load_pickled_intraday_processed_data(
+def load_pickle_intraday_processed_data(
     data_dir: Path,
     stock_id: str,
     date: pd.Timestamp,
     feature_dim: int,
     time_index: pd.Index,
 ) -> BaseIntradayProcessedData:
-    return IntradayProcessedData(data_dir, stock_id, date, feature_dim, time_index)
+    return PickleIntradayProcessedData(data_dir, stock_id, date, feature_dim, time_index)
 
 
 class PickleProcessedDataProvider(ProcessedDataProvider):
@@ -240,7 +240,7 @@ class PickleProcessedDataProvider(ProcessedDataProvider):
         feature_dim: int,
         time_index: pd.Index,
     ) -> BaseIntradayProcessedData:
-        return load_pickled_intraday_processed_data(
+        return load_pickle_intraday_processed_data(
             data_dir=self._data_dir,
             stock_id=stock_id,
             date=date,

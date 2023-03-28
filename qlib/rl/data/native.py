@@ -79,13 +79,15 @@ class IntradayBacktestData(BaseIntradayBacktestData):
 
     def get_time_index(self) -> pd.DatetimeIndex:
         return pd.DatetimeIndex([e[1] for e in list(self._exchange.quote_df.index)])
-    
-    
+
+
 class DataframeIntradayBacktestData(BaseIntradayBacktestData):
     """Backtest data from dataframe"""
-    
-    def __init__(self, df: pd.DataFrame) -> None:
+
+    def __init__(self, df: pd.DataFrame, price_column: str = "$close", volume_column: str = "$volume") -> None:
         self.df = df
+        self.price_column = price_column
+        self.volume_column = volume_column
 
     def __repr__(self) -> str:
         with pd.option_context("memory_usage", False, "display.max_info_columns", 1, "display.large_repr", "info"):
@@ -95,13 +97,13 @@ class DataframeIntradayBacktestData(BaseIntradayBacktestData):
         return len(self.df)
 
     def get_deal_price(self) -> pd.Series:
-        return self.df["$close"]  # TODO: hardcoded?
+        return self.df[self.price_column]
 
     def get_volume(self) -> pd.Series:
-        return self.df["$volume"]  # TODO: hardcoded?
+        return self.df[self.volume_column]
 
     def get_time_index(self) -> pd.DatetimeIndex:
-        return self.df.index
+        return cast(pd.DatetimeIndex, self.df.index)
 
 
 @cachetools.cached(  # type: ignore
@@ -136,8 +138,8 @@ def load_backtest_data(
     return backtest_data
 
 
-class NTIntradayProcessedData(BaseIntradayProcessedData):
-    """Subclass of IntradayProcessedData. Used to handle NT style data."""
+class HandlerIntradayProcessedData(BaseIntradayProcessedData):
+    """Subclass of IntradayProcessedData. Used to handle handler (bin format) style data."""
 
     def __init__(
         self,
@@ -162,16 +164,18 @@ class NTIntradayProcessedData(BaseIntradayProcessedData):
 @cachetools.cached(  # type: ignore
     cache=cachetools.LRUCache(100),  # 100 * 50K = 5MB
 )
-def load_nt_intraday_processed_data(stock_id: str, date: pd.Timestamp, backtest: bool = False) -> NTIntradayProcessedData:
-    return NTIntradayProcessedData(stock_id, date, backtest)
+def load_handler_intraday_processed_data(
+    stock_id: str, date: pd.Timestamp, backtest: bool = False
+) -> HandlerIntradayProcessedData:
+    return HandlerIntradayProcessedData(stock_id, date, backtest)
 
 
 class NTProcessedDataProvider(ProcessedDataProvider):
     def __init__(self, backtest: bool = False) -> None:
         super().__init__()
-        
+
         self.backtest = backtest
-        
+
     def get_data(
         self,
         stock_id: str,
@@ -179,4 +183,4 @@ class NTProcessedDataProvider(ProcessedDataProvider):
         feature_dim: int,
         time_index: pd.Index,
     ) -> BaseIntradayProcessedData:
-        return load_nt_intraday_processed_data(stock_id, date, self.self.backtest)
+        return load_handler_intraday_processed_data(stock_id, date, self.backtest)
