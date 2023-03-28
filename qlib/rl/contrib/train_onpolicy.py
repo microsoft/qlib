@@ -1,5 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
+from __future__ import annotations
+
 import argparse
 import os
 import random
@@ -15,7 +17,8 @@ import yaml
 from qlib.backtest import Order
 from qlib.backtest.decision import OrderDir
 from qlib.constant import ONE_MIN
-from qlib.rl.data.pickle_styled import load_simple_intraday_backtest_data
+from qlib.rl.data.integration import init_qlib
+from qlib.rl.data.native import load_nt_intraday_processed_data
 from qlib.rl.interpreter import ActionInterpreter, StateInterpreter
 from qlib.rl.order_execution import SingleAssetOrderExecutionSimple
 from qlib.rl.reward import Reward
@@ -50,9 +53,9 @@ class LazyLoadDataset(Dataset):
     def __init__(
         self,
         order_file_path: Path,
-        data_dir: Path,
         default_start_time_index: int,
         default_end_time_index: int,
+        qlib_config: dict | None = None,
     ) -> None:
         self._default_start_time_index = default_start_time_index
         self._default_end_time_index = default_end_time_index
@@ -60,8 +63,8 @@ class LazyLoadDataset(Dataset):
         self._order_file_path = order_file_path
         self._order_df = _read_orders(order_file_path).reset_index()
 
-        self._data_dir = data_dir
         self._ticks_index: Optional[pd.DatetimeIndex] = None
+        self._qlib_config = qlib_config
 
     def __len__(self) -> int:
         return len(self._order_df)
@@ -74,12 +77,14 @@ class LazyLoadDataset(Dataset):
             # TODO: We only load ticks index once based on the assumption that ticks index of different dates
             # TODO: in one experiment are all the same. If that assumption is not hold, we need to load ticks index
             # TODO: of all dates.
-            backtest_data = load_simple_intraday_backtest_data(
-                data_dir=self._data_dir,
+            if self._qlib_config is not None:
+                init_qlib(self._qlib_config, part=row["instrument"])
+            df = load_nt_intraday_processed_data(
                 stock_id=row["instrument"],
                 date=date,
+                backtest=True,
             )
-            self._ticks_index = [t - date for t in backtest_data.get_time_index()]
+            self._ticks_index = [t - date for t in df.today.index]
 
         order = Order(
             stock_id=row["instrument"],
@@ -103,8 +108,10 @@ def train_and_test(
     reward: Reward,
     run_training: bool,
     run_backtest: bool,
+    qlib_config: dict | None = None,
 ) -> None:
-    qlib.init()
+    if qlib_config is None:
+        qlib.init()
 
     order_root_path = Path(data_config["source"]["order_dir"])
 
@@ -113,11 +120,11 @@ def train_and_test(
     def _simulator_factory_simple(order: Order) -> SingleAssetOrderExecutionSimple:
         return SingleAssetOrderExecutionSimple(
             order=order,
-            data_dir=Path(data_config["source"]["data_dir"]),
             ticks_per_step=simulator_config["time_per_step"],
             data_granularity=data_granularity,
             deal_price_type=data_config["source"].get("deal_price_column", "close"),
             vol_threshold=simulator_config["vol_limit"],
+            qlib_config=qlib_config,
         )
 
     assert data_config["source"]["default_start_time_index"] % data_granularity == 0
@@ -127,9 +134,9 @@ def train_and_test(
         train_dataset, valid_dataset = [
             LazyLoadDataset(
                 order_file_path=order_root_path / tag,
-                data_dir=Path(data_config["source"]["data_dir"]),
                 default_start_time_index=data_config["source"]["default_start_time_index"] // data_granularity,
                 default_end_time_index=data_config["source"]["default_end_time_index"] // data_granularity,
+                qlib_config=qlib_config,
             )
             for tag in ("train", "valid")
         ]
@@ -179,7 +186,6 @@ def train_and_test(
     if run_backtest:
         test_dataset = LazyLoadDataset(
             order_file_path=order_root_path / "test",
-            data_dir=Path(data_config["source"]["data_dir"]),
             default_start_time_index=data_config["source"]["default_start_time_index"] // data_granularity,
             default_end_time_index=data_config["source"]["default_end_time_index"] // data_granularity,
         )
@@ -242,6 +248,7 @@ def main(config: dict, run_training: bool, run_backtest: bool) -> None:
         reward=reward,
         run_training=run_training,
         run_backtest=run_backtest,
+        qlib_config=config.get("qlib", None),
     )
 
 

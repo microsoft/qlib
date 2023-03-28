@@ -31,7 +31,6 @@ reward:
 data:
   source:
     order_dir: ./data/orders
-    data_dir: ./data/pickle_dataframe/backtest
     total_time: 240
     default_start_time_index: 0
     default_end_time_index: 235

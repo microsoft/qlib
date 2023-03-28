@@ -10,7 +10,8 @@ import numpy as np
 import pandas as pd
 from qlib.backtest.decision import Order, OrderDir
 from qlib.constant import EPS, EPS_T, float_or_ndarray
-from qlib.rl.data.pickle_styled import DealPriceType, load_simple_intraday_backtest_data
+from qlib.rl.data.integration import init_qlib
+from qlib.rl.data.native import DataframeIntradayBacktestData, load_nt_intraday_processed_data
 from qlib.rl.simulator import Simulator
 from qlib.rl.utils import LogLevel
 
@@ -40,10 +41,10 @@ class SingleAssetOrderExecutionSimple(Simulator[Order, SAOEState, float]):
         Number of ticks between consecutive data entries.
     ticks_per_step
         How many ticks per step.
-    data_dir
-        Path to load backtest data
     vol_threshold
         Maximum execution volume (divided by market execution volume).
+    qlib_config
+        Qlib config.
     """
 
     history_exec: pd.DataFrame
@@ -72,28 +73,30 @@ class SingleAssetOrderExecutionSimple(Simulator[Order, SAOEState, float]):
     def __init__(
         self,
         order: Order,
-        data_dir: Path,
         data_granularity: int = 1,
         ticks_per_step: int = 30,
         deal_price_type: DealPriceType = "close",
         vol_threshold: Optional[float] = None,
+        qlib_config: dict | None = None,
     ) -> None:
         super().__init__(initial=order)
 
         assert ticks_per_step % data_granularity == 0
+        
+        if qlib_config is not None:
+            init_qlib(qlib_config, part=order.stock_id)
 
         self.order = order
         self.ticks_per_step: int = ticks_per_step // data_granularity
         self.deal_price_type = deal_price_type
         self.vol_threshold = vol_threshold
-        self.data_dir = data_dir
-        self.backtest_data = load_simple_intraday_backtest_data(
-            self.data_dir,
-            order.stock_id,
-            pd.Timestamp(order.start_time.date()),
-            self.deal_price_type,
-            order.direction,
+        
+        df = load_nt_intraday_processed_data(
+            stock_id=order.stock_id,
+            date=pd.Timestamp(order.start_time.date()),
+            backtest=True,
         )
+        self.backtest_data = DataframeIntradayBacktestData(df.today)
 
         self.ticks_index = self.backtest_data.get_time_index()
 

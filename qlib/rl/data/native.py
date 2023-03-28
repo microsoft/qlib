@@ -9,10 +9,20 @@ import pandas as pd
 
 from qlib.backtest import Exchange, Order
 from qlib.backtest.decision import TradeRange, TradeRangeByTime
-from qlib.rl.order_execution.utils import get_ticks_slice
-
+from qlib.constant import EPS_T
 from .base import BaseIntradayBacktestData, BaseIntradayProcessedData, ProcessedDataProvider
 from .integration import fetch_features
+
+
+def get_ticks_slice(
+    ticks_index: pd.DatetimeIndex,
+    start: pd.Timestamp,
+    end: pd.Timestamp,
+    include_end: bool = False,
+) -> pd.DatetimeIndex:
+    if not include_end:
+        end = end - EPS_T
+    return ticks_index[ticks_index.slice_indexer(start, end)]
 
 
 class IntradayBacktestData(BaseIntradayBacktestData):
@@ -69,6 +79,29 @@ class IntradayBacktestData(BaseIntradayBacktestData):
 
     def get_time_index(self) -> pd.DatetimeIndex:
         return pd.DatetimeIndex([e[1] for e in list(self._exchange.quote_df.index)])
+    
+    
+class DataframeIntradayBacktestData(BaseIntradayBacktestData):
+    """Backtest data from dataframe"""
+    
+    def __init__(self, df: pd.DataFrame) -> None:
+        self.df = df
+
+    def __repr__(self) -> str:
+        with pd.option_context("memory_usage", False, "display.max_info_columns", 1, "display.large_repr", "info"):
+            return f"{self.__class__.__name__}({self.df})"
+
+    def __len__(self) -> int:
+        return len(self.df)
+
+    def get_deal_price(self) -> pd.Series:
+        return self.df["$close"]  # TODO: hardcoded?
+
+    def get_volume(self) -> pd.Series:
+        return self.df["$volume"]  # TODO: hardcoded?
+
+    def get_time_index(self) -> pd.DatetimeIndex:
+        return self.df.index
 
 
 @cachetools.cached(  # type: ignore
