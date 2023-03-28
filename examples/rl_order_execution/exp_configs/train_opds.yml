@@ -18,7 +18,7 @@ state_interpreter:
     data_ticks: 48  # 48 = 240 min / 5 min
     max_step: 8
     processed_data_provider:
-      class: NTProcessedDataProvider
+      class: HandlerProcessedDataProvider
       kwargs: {}
       module_path: qlib.rl.data.native
   module_path: qlib.rl.order_execution.interpreter

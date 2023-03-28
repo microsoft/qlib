@@ -39,7 +39,7 @@ strategies:
           data_ticks: 48
           max_step: 8
           processed_data_provider:
-            class: NTProcessedDataProvider
+            class: HandlerProcessedDataProvider
             kwargs: {}
             module_path: qlib.rl.data.native
         module_path: qlib.rl.order_execution.interpreter

@@ -170,7 +170,7 @@ def load_handler_intraday_processed_data(
     return HandlerIntradayProcessedData(stock_id, date, backtest)
 
 
-class NTProcessedDataProvider(ProcessedDataProvider):
+class HandlerProcessedDataProvider(ProcessedDataProvider):
     def __init__(self, backtest: bool = False) -> None:
         super().__init__()
 
