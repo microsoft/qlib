@@ -18,10 +18,9 @@ state_interpreter:
     data_ticks: 48  # 48 = 240 min / 5 min
     max_step: 8
     processed_data_provider:
-      class: PickleProcessedDataProvider
-      module_path: qlib.rl.data.pickle_styled
-      kwargs:
-        data_dir: ./data/pickle_dataframe/feature
+      class: NTProcessedDataProvider
+      kwargs: {}
+      module_path: qlib.rl.data.native
   module_path: qlib.rl.order_execution.interpreter
 reward:
   class: PPOReward

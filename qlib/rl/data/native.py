@@ -110,6 +110,7 @@ class NTIntradayProcessedData(BaseIntradayProcessedData):
         self,
         stock_id: str,
         date: pd.Timestamp,
+        backtest: bool = False,
     ) -> None:
         def _drop_stock_id(df: pd.DataFrame) -> pd.DataFrame:
             df = df.reset_index()
@@ -117,8 +118,8 @@ class NTIntradayProcessedData(BaseIntradayProcessedData):
                 df = df.drop(columns=["instrument"])
             return df.set_index(["datetime"])
 
-        self.today = _drop_stock_id(fetch_features(stock_id, date))
-        self.yesterday = _drop_stock_id(fetch_features(stock_id, date, yesterday=True))
+        self.today = _drop_stock_id(fetch_features(stock_id, date, backtest=backtest))
+        self.yesterday = _drop_stock_id(fetch_features(stock_id, date, yesterday=True, backtest=backtest))
 
     def __repr__(self) -> str:
         with pd.option_context("memory_usage", False, "display.max_info_columns", 1, "display.large_repr", "info"):
@@ -128,11 +129,16 @@ class NTIntradayProcessedData(BaseIntradayProcessedData):
 @cachetools.cached(  # type: ignore
     cache=cachetools.LRUCache(100),  # 100 * 50K = 5MB
 )
-def load_nt_intraday_processed_data(stock_id: str, date: pd.Timestamp) -> NTIntradayProcessedData:
-    return NTIntradayProcessedData(stock_id, date)
+def load_nt_intraday_processed_data(stock_id: str, date: pd.Timestamp, backtest: bool = False) -> NTIntradayProcessedData:
+    return NTIntradayProcessedData(stock_id, date, backtest)
 
 
 class NTProcessedDataProvider(ProcessedDataProvider):
+    def __init__(self, backtest: bool = False) -> None:
+        super().__init__()
+        
+        self.backtest = backtest
+        
     def get_data(
         self,
         stock_id: str,
@@ -140,4 +146,4 @@ class NTProcessedDataProvider(ProcessedDataProvider):
         feature_dim: int,
         time_index: pd.Index,
     ) -> BaseIntradayProcessedData:
-        return load_nt_intraday_processed_data(stock_id, date)
+        return load_nt_intraday_processed_data(stock_id, date, self.self.backtest)
