@@ -58,11 +58,8 @@ class LazyLoadDataset(Dataset):
         self._default_start_time_index = default_start_time_index
         self._default_end_time_index = default_end_time_index
 
-        self._order_file_path = order_file_path
         self._order_df = _read_orders(order_file_path).reset_index()
-
         self._ticks_index: Optional[pd.DatetimeIndex] = None
-        
         self._data_dir = data_dir
 
     def __len__(self) -> int:
@@ -76,6 +73,7 @@ class LazyLoadDataset(Dataset):
             # TODO: We only load ticks index once based on the assumption that ticks index of different dates
             # TODO: in one experiment are all the same. If that assumption is not hold, we need to load ticks index
             # TODO: of all dates.
+            
             data = load_handler_intraday_processed_data(
                 data_dir=self._data_dir,
                 stock_id=row["instrument"],
@@ -183,6 +181,7 @@ def train_and_test(
 
     if run_backtest:
         test_dataset = LazyLoadDataset(
+            data_dir=data_config["source"]["feature_root_dir"],
             order_file_path=order_root_path / "test",
             default_start_time_index=data_config["source"]["default_start_time_index"] // data_granularity,
             default_end_time_index=data_config["source"]["default_end_time_index"] // data_granularity,
