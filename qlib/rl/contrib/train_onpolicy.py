@@ -73,7 +73,7 @@ class LazyLoadDataset(Dataset):
             # TODO: We only load ticks index once based on the assumption that ticks index of different dates
             # TODO: in one experiment are all the same. If that assumption is not hold, we need to load ticks index
             # TODO: of all dates.
-            
+
             data = load_handler_intraday_processed_data(
                 data_dir=self._data_dir,
                 stock_id=row["instrument"],

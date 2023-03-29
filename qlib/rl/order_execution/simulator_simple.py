@@ -11,7 +11,6 @@ import pandas as pd
 from pathlib import Path
 from qlib.backtest.decision import Order, OrderDir
 from qlib.constant import EPS, EPS_T, float_or_ndarray
-from qlib.rl.data.integration import init_qlib
 from qlib.rl.data.native import DataframeIntradayBacktestData, load_handler_intraday_processed_data
 from qlib.rl.simulator import Simulator
 from qlib.rl.utils import LogLevel
@@ -94,7 +93,7 @@ class SingleAssetOrderExecutionSimple(Simulator[Order, SAOEState, float]):
         self.vol_threshold = vol_threshold
 
         data = load_handler_intraday_processed_data(
-            data_dir = data_dir,
+            data_dir=data_dir,
             stock_id=order.stock_id,
             date=pd.Timestamp(order.start_time.date()),
             feature_columns_today=feature_columns_today,

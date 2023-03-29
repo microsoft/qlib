@@ -151,17 +151,18 @@ class HandlerIntradayProcessedData(BaseIntradayProcessedData):
         feature_columns_today: List[str],
         feature_columns_yesterday: List[str],
         backtest: bool = False,
-        index_only: bool = False
+        index_only: bool = False,
     ) -> None:
         def _drop_stock_id(df: pd.DataFrame) -> pd.DataFrame:
             df = df.reset_index()
             if "instrument" in df.columns:
                 df = df.drop(columns=["instrument"])
             return df.set_index(["datetime"])
-        
+
         path = os.path.join(data_dir, "backtest" if backtest else "feature", f"{stock_id}.pkl")
         start_time, end_time = date.replace(hour=0, minute=0, second=0), date.replace(hour=23, minute=59, second=59)
-        dataset = pickle.load(open(path, "rb"))
+        with open(path, "rb") as fstream:
+            dataset = pickle.load(fstream)
         data = dataset.handler.fetch(pd.IndexSlice[stock_id, start_time:end_time], level=None)
 
         if index_only:
@@ -178,24 +179,37 @@ class HandlerIntradayProcessedData(BaseIntradayProcessedData):
 
 @cachetools.cached(  # type: ignore
     cache=cachetools.LRUCache(100),  # 100 * 50K = 5MB
-    key=lambda data_dir, stock_id, date, feature_columns_today, feature_columns_yesterday, backtest, index_only: (stock_id, date, backtest, index_only),
+    key=lambda data_dir, stock_id, date, feature_columns_today, feature_columns_yesterday, backtest, index_only: (
+        stock_id,
+        date,
+        backtest,
+        index_only,
+    ),
 )
 def load_handler_intraday_processed_data(
-    data_dir: Path, stock_id: str, date: pd.Timestamp, feature_columns_today: List[str], feature_columns_yesterday: List[str], backtest: bool = False, index_only: bool = False,
+    data_dir: Path,
+    stock_id: str,
+    date: pd.Timestamp,
+    feature_columns_today: List[str],
+    feature_columns_yesterday: List[str],
+    backtest: bool = False,
+    index_only: bool = False,
 ) -> HandlerIntradayProcessedData:
-    return HandlerIntradayProcessedData(data_dir, stock_id, date, feature_columns_today, feature_columns_yesterday, backtest, index_only)
+    return HandlerIntradayProcessedData(
+        data_dir, stock_id, date, feature_columns_today, feature_columns_yesterday, backtest, index_only
+    )
 
 
 class HandlerProcessedDataProvider(ProcessedDataProvider):
     def __init__(
-        self, 
-        data_dir: str, 
+        self,
+        data_dir: str,
         feature_columns_today: List[str],
         feature_columns_yesterday: List[str],
         backtest: bool = False,
     ) -> None:
         super().__init__()
-        
+
         self.data_dir = Path(data_dir)
         self.feature_columns_today = feature_columns_today
         self.feature_columns_yesterday = feature_columns_yesterday
@@ -209,9 +223,9 @@ class HandlerProcessedDataProvider(ProcessedDataProvider):
         time_index: pd.Index,
     ) -> BaseIntradayProcessedData:
         return load_handler_intraday_processed_data(
-            self.data_dir, 
-            stock_id, 
-            date, 
+            self.data_dir,
+            stock_id,
+            date,
             self.feature_columns_today,
             self.feature_columns_yesterday,
             backtest=self.backtest,

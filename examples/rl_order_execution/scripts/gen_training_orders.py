@@ -16,7 +16,7 @@ def generate_order(stock: str, start_idx: int, end_idx: int) -> bool:
     df = dataset.handler.fetch(level=None).reset_index()
     if len(df) == 0:
         return False
-    
+
     df["date"] = df["datetime"].dt.date.astype("datetime64")
     df = df.set_index(["instrument", "datetime", "date"])
     df = df.groupby("date").take(range(start_idx, end_idx)).droplevel(level=0)
