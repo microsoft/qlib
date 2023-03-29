@@ -3,7 +3,7 @@ simulator:
   time_per_step: 30
   vol_limit: null
 env:
-  concurrency: 48
+  concurrency: 32
   parallel_mode: shmem
 action_interpreter:
   class: CategoricalActionInterpreter
@@ -64,5 +64,3 @@ trainer:
   val_every_n_epoch: 4
   checkpoint_path: ./outputs/opds
   checkpoint_every_n_iters: 1
-qlib:
-  provider_uri_5min: ./data/bin/
