@@ -14,7 +14,7 @@ OUTPUT_PATH = Path(os.path.join("data", "orders"))
 def generate_order(stock: str, start_idx: int, end_idx: int) -> bool:
     dataset = pd.read_pickle(DATA_PATH / f"{stock}.pkl")
     df = dataset.handler.fetch(level=None).reset_index()
-    if len(df) == 0:
+    if len(df) == 0 or df.isnull().values.any() or min(df["$volume0"]) < 1e-5:
         return False
 
     df["date"] = df["datetime"].dt.date.astype("datetime64")
