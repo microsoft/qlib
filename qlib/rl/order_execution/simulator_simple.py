@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from typing import Any, cast, Optional
+from typing import Any, cast, List, Optional
 
 import numpy as np
 import pandas as pd
@@ -38,15 +38,17 @@ class SingleAssetOrderExecutionSimple(Simulator[Order, SAOEState, float]):
     order
         The seed to start an SAOE simulator is an order.
     data_dir
-        Path to load backtest data
+        Path to load backtest data.
+    feature_columns_today
+        Columns of today's feature.
+    feature_columns_yesterday
+        Columns of yesterday's feature.
     data_granularity
         Number of ticks between consecutive data entries.
     ticks_per_step
         How many ticks per step.
     vol_threshold
         Maximum execution volume (divided by market execution volume).
-    qlib_config
-        Qlib config.
     """
 
     history_exec: pd.DataFrame
@@ -76,29 +78,31 @@ class SingleAssetOrderExecutionSimple(Simulator[Order, SAOEState, float]):
         self,
         order: Order,
         data_dir: Path,
+        feature_columns_today: List[str],
+        feature_columns_yesterday: List[str],
         data_granularity: int = 1,
         ticks_per_step: int = 30,
         vol_threshold: Optional[float] = None,
-        qlib_config: dict | None = None,
     ) -> None:
         super().__init__(initial=order)
 
         assert ticks_per_step % data_granularity == 0
-
-        if qlib_config is not None:
-            init_qlib(qlib_config)
 
         self.order = order
         self.data_dir = data_dir
         self.ticks_per_step: int = ticks_per_step // data_granularity
         self.vol_threshold = vol_threshold
 
-        df = load_handler_intraday_processed_data(
+        data = load_handler_intraday_processed_data(
+            data_dir = data_dir,
             stock_id=order.stock_id,
             date=pd.Timestamp(order.start_time.date()),
+            feature_columns_today=feature_columns_today,
+            feature_columns_yesterday=feature_columns_yesterday,
             backtest=True,
+            index_only=False,
         )
-        self.backtest_data = DataframeIntradayBacktestData(df.today)
+        self.backtest_data = DataframeIntradayBacktestData(data.today)
 
         self.ticks_index = self.backtest_data.get_time_index()
 

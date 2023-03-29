@@ -86,7 +86,7 @@ class IntradayBacktestData(BaseIntradayBacktestData):
 class DataframeIntradayBacktestData(BaseIntradayBacktestData):
     """Backtest data from dataframe"""
 
-    def __init__(self, df: pd.DataFrame, price_column: str = "$close", volume_column: str = "$volume") -> None:
+    def __init__(self, df: pd.DataFrame, price_column: str = "$close0", volume_column: str = "$volume0") -> None:
         self.df = df
         self.price_column = price_column
         self.volume_column = volume_column
@@ -151,6 +151,7 @@ class HandlerIntradayProcessedData(BaseIntradayProcessedData):
         feature_columns_today: List[str],
         feature_columns_yesterday: List[str],
         backtest: bool = False,
+        index_only: bool = False
     ) -> None:
         def _drop_stock_id(df: pd.DataFrame) -> pd.DataFrame:
             df = df.reset_index()
@@ -163,8 +164,12 @@ class HandlerIntradayProcessedData(BaseIntradayProcessedData):
         dataset = pickle.load(open(path, "rb"))
         data = dataset.handler.fetch(pd.IndexSlice[stock_id, start_time:end_time], level=None)
 
-        self.today = _drop_stock_id(data[feature_columns_today])
-        self.yesterday = _drop_stock_id(data[feature_columns_yesterday])
+        if index_only:
+            self.today = _drop_stock_id(data[[]])
+            self.yesterday = _drop_stock_id(data[[]])
+        else:
+            self.today = _drop_stock_id(data[feature_columns_today])
+            self.yesterday = _drop_stock_id(data[feature_columns_yesterday])
 
     def __repr__(self) -> str:
         with pd.option_context("memory_usage", False, "display.max_info_columns", 1, "display.large_repr", "info"):
@@ -173,12 +178,12 @@ class HandlerIntradayProcessedData(BaseIntradayProcessedData):
 
 @cachetools.cached(  # type: ignore
     cache=cachetools.LRUCache(100),  # 100 * 50K = 5MB
-    key=lambda data_dir, stock_id, date, feature_columns_today, feature_columns_yesterday, backtest: (stock_id, date, backtest),
+    key=lambda data_dir, stock_id, date, feature_columns_today, feature_columns_yesterday, backtest, index_only: (stock_id, date, backtest, index_only),
 )
 def load_handler_intraday_processed_data(
-    data_dir: Path, stock_id: str, date: pd.Timestamp, feature_columns_today: List[str], feature_columns_yesterday: List[str], backtest: bool = False,
+    data_dir: Path, stock_id: str, date: pd.Timestamp, feature_columns_today: List[str], feature_columns_yesterday: List[str], backtest: bool = False, index_only: bool = False,
 ) -> HandlerIntradayProcessedData:
-    return HandlerIntradayProcessedData(data_dir, stock_id, date, feature_columns_today, feature_columns_yesterday, backtest)
+    return HandlerIntradayProcessedData(data_dir, stock_id, date, feature_columns_today, feature_columns_yesterday, backtest, index_only)
 
 
 class HandlerProcessedDataProvider(ProcessedDataProvider):
@@ -210,4 +215,5 @@ class HandlerProcessedDataProvider(ProcessedDataProvider):
             self.feature_columns_today,
             self.feature_columns_yesterday,
             backtest=self.backtest,
+            index_only=False,
         )

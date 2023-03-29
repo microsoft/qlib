@@ -11,13 +11,11 @@ from typing import cast, List, Optional
 
 import numpy as np
 import pandas as pd
-import qlib
 import torch
 import yaml
 from qlib.backtest import Order
 from qlib.backtest.decision import OrderDir
 from qlib.constant import ONE_MIN
-from qlib.rl.data.integration import init_qlib
 from qlib.rl.data.native import load_handler_intraday_processed_data
 from qlib.rl.interpreter import ActionInterpreter, StateInterpreter
 from qlib.rl.order_execution import SingleAssetOrderExecutionSimple
@@ -52,10 +50,10 @@ def _read_orders(order_dir: Path) -> pd.DataFrame:
 class LazyLoadDataset(Dataset):
     def __init__(
         self,
+        data_dir: str,
         order_file_path: Path,
         default_start_time_index: int,
         default_end_time_index: int,
-        qlib_config: dict | None = None,
     ) -> None:
         self._default_start_time_index = default_start_time_index
         self._default_end_time_index = default_end_time_index
@@ -64,7 +62,8 @@ class LazyLoadDataset(Dataset):
         self._order_df = _read_orders(order_file_path).reset_index()
 
         self._ticks_index: Optional[pd.DatetimeIndex] = None
-        self._qlib_config = qlib_config
+        
+        self._data_dir = data_dir
 
     def __len__(self) -> int:
         return len(self._order_df)
@@ -77,14 +76,16 @@ class LazyLoadDataset(Dataset):
             # TODO: We only load ticks index once based on the assumption that ticks index of different dates
             # TODO: in one experiment are all the same. If that assumption is not hold, we need to load ticks index
             # TODO: of all dates.
-            if self._qlib_config is not None:
-                init_qlib(self._qlib_config)
-            df = load_handler_intraday_processed_data(
+            data = load_handler_intraday_processed_data(
+                data_dir=self._data_dir,
                 stock_id=row["instrument"],
                 date=date,
+                feature_columns_today=[],
+                feature_columns_yesterday=[],
                 backtest=True,
+                index_only=True,
             )
-            self._ticks_index = [t - date for t in df.today.index]
+            self._ticks_index = [t - date for t in data.today.index]
 
         order = Order(
             stock_id=row["instrument"],
@@ -108,11 +109,7 @@ def train_and_test(
     reward: Reward,
     run_training: bool,
     run_backtest: bool,
-    qlib_config: dict | None = None,
 ) -> None:
-    if qlib_config is None:
-        qlib.init()
-
     order_root_path = Path(data_config["source"]["order_dir"])
 
     data_granularity = simulator_config.get("data_granularity", 1)
@@ -120,10 +117,12 @@ def train_and_test(
     def _simulator_factory_simple(order: Order) -> SingleAssetOrderExecutionSimple:
         return SingleAssetOrderExecutionSimple(
             order=order,
-            ticks_per_step=simulator_config["time_per_step"],
+            data_dir=data_config["source"]["feature_root_dir"],
+            feature_columns_today=data_config["source"]["feature_columns_today"],
+            feature_columns_yesterday=data_config["source"]["feature_columns_yesterday"],
             data_granularity=data_granularity,
+            ticks_per_step=simulator_config["time_per_step"],
             vol_threshold=simulator_config["vol_limit"],
-            qlib_config=qlib_config,
         )
 
     assert data_config["source"]["default_start_time_index"] % data_granularity == 0
@@ -132,10 +131,10 @@ def train_and_test(
     if run_training:
         train_dataset, valid_dataset = [
             LazyLoadDataset(
+                data_dir=data_config["source"]["feature_root_dir"],
                 order_file_path=order_root_path / tag,
                 default_start_time_index=data_config["source"]["default_start_time_index"] // data_granularity,
                 default_end_time_index=data_config["source"]["default_end_time_index"] // data_granularity,
-                qlib_config=qlib_config,
             )
             for tag in ("train", "valid")
         ]
@@ -247,7 +246,6 @@ def main(config: dict, run_training: bool, run_backtest: bool) -> None:
         reward=reward,
         run_training=run_training,
         run_backtest=run_backtest,
-        qlib_config=config.get("qlib", None),
     )
 
 
