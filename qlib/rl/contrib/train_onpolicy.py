@@ -78,7 +78,7 @@ class LazyLoadDataset(Dataset):
             # TODO: in one experiment are all the same. If that assumption is not hold, we need to load ticks index
             # TODO: of all dates.
             if self._qlib_config is not None:
-                init_qlib(self._qlib_config, part=row["instrument"])
+                init_qlib(self._qlib_config)
             df = load_handler_intraday_processed_data(
                 stock_id=row["instrument"],
                 date=date,

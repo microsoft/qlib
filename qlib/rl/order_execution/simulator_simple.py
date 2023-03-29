@@ -8,6 +8,7 @@ from typing import Any, cast, Optional
 import numpy as np
 import pandas as pd
 
+from pathlib import Path
 from qlib.backtest.decision import Order, OrderDir
 from qlib.constant import EPS, EPS_T, float_or_ndarray
 from qlib.rl.data.integration import init_qlib
@@ -36,6 +37,8 @@ class SingleAssetOrderExecutionSimple(Simulator[Order, SAOEState, float]):
     ----------
     order
         The seed to start an SAOE simulator is an order.
+    data_dir
+        Path to load backtest data
     data_granularity
         Number of ticks between consecutive data entries.
     ticks_per_step
@@ -72,6 +75,7 @@ class SingleAssetOrderExecutionSimple(Simulator[Order, SAOEState, float]):
     def __init__(
         self,
         order: Order,
+        data_dir: Path,
         data_granularity: int = 1,
         ticks_per_step: int = 30,
         vol_threshold: Optional[float] = None,
@@ -82,9 +86,10 @@ class SingleAssetOrderExecutionSimple(Simulator[Order, SAOEState, float]):
         assert ticks_per_step % data_granularity == 0
 
         if qlib_config is not None:
-            init_qlib(qlib_config, part=order.stock_id)
+            init_qlib(qlib_config)
 
         self.order = order
+        self.data_dir = data_dir
         self.ticks_per_step: int = ticks_per_step // data_granularity
         self.vol_threshold = vol_threshold
 

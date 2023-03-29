@@ -2,16 +2,18 @@
 # Licensed under the MIT License.
 from __future__ import annotations
 
-from typing import cast
+from pathlib import Path
+from typing import cast, List
 
 import cachetools
 import pandas as pd
+import pickle
+import os
 
 from qlib.backtest import Exchange, Order
 from qlib.backtest.decision import TradeRange, TradeRangeByTime
 from qlib.constant import EPS_T
 from .base import BaseIntradayBacktestData, BaseIntradayProcessedData, ProcessedDataProvider
-from .integration import fetch_features
 
 
 def get_ticks_slice(
@@ -143,8 +145,11 @@ class HandlerIntradayProcessedData(BaseIntradayProcessedData):
 
     def __init__(
         self,
+        data_dir: Path,
         stock_id: str,
         date: pd.Timestamp,
+        feature_columns_today: List[str],
+        feature_columns_yesterday: List[str],
         backtest: bool = False,
     ) -> None:
         def _drop_stock_id(df: pd.DataFrame) -> pd.DataFrame:
@@ -152,9 +157,14 @@ class HandlerIntradayProcessedData(BaseIntradayProcessedData):
             if "instrument" in df.columns:
                 df = df.drop(columns=["instrument"])
             return df.set_index(["datetime"])
+        
+        path = os.path.join(data_dir, "backtest" if backtest else "feature", f"{stock_id}.pkl")
+        start_time, end_time = date.replace(hour=0, minute=0, second=0), date.replace(hour=23, minute=59, second=59)
+        dataset = pickle.load(open(path, "rb"))
+        data = dataset.handler.fetch(pd.IndexSlice[stock_id, start_time:end_time], level=None)
 
-        self.today = _drop_stock_id(fetch_features(stock_id, date, backtest=backtest))
-        self.yesterday = _drop_stock_id(fetch_features(stock_id, date, yesterday=True, backtest=backtest))
+        self.today = _drop_stock_id(data[feature_columns_today])
+        self.yesterday = _drop_stock_id(data[feature_columns_yesterday])
 
     def __repr__(self) -> str:
         with pd.option_context("memory_usage", False, "display.max_info_columns", 1, "display.large_repr", "info"):
@@ -163,17 +173,27 @@ class HandlerIntradayProcessedData(BaseIntradayProcessedData):
 
 @cachetools.cached(  # type: ignore
     cache=cachetools.LRUCache(100),  # 100 * 50K = 5MB
+    key=lambda data_dir, stock_id, date, feature_columns_today, feature_columns_yesterday, backtest: (stock_id, date, backtest),
 )
 def load_handler_intraday_processed_data(
-    stock_id: str, date: pd.Timestamp, backtest: bool = False
+    data_dir: Path, stock_id: str, date: pd.Timestamp, feature_columns_today: List[str], feature_columns_yesterday: List[str], backtest: bool = False,
 ) -> HandlerIntradayProcessedData:
-    return HandlerIntradayProcessedData(stock_id, date, backtest)
+    return HandlerIntradayProcessedData(data_dir, stock_id, date, feature_columns_today, feature_columns_yesterday, backtest)
 
 
 class HandlerProcessedDataProvider(ProcessedDataProvider):
-    def __init__(self, backtest: bool = False) -> None:
+    def __init__(
+        self, 
+        data_dir: str, 
+        feature_columns_today: List[str],
+        feature_columns_yesterday: List[str],
+        backtest: bool = False,
+    ) -> None:
         super().__init__()
-
+        
+        self.data_dir = Path(data_dir)
+        self.feature_columns_today = feature_columns_today
+        self.feature_columns_yesterday = feature_columns_yesterday
         self.backtest = backtest
 
     def get_data(
@@ -183,4 +203,11 @@ class HandlerProcessedDataProvider(ProcessedDataProvider):
         feature_dim: int,
         time_index: pd.Index,
     ) -> BaseIntradayProcessedData:
-        return load_handler_intraday_processed_data(stock_id, date, self.backtest)
+        return load_handler_intraday_processed_data(
+            self.data_dir, 
+            stock_id, 
+            date, 
+            self.feature_columns_today,
+            self.feature_columns_yesterday,
+            backtest=self.backtest,
+        )
