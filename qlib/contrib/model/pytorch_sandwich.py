@@ -11,21 +11,21 @@ from typing import Text, Union
 import copy
 from ...utils import get_or_create_path
 from ...log import get_module_logger
-from sklearn.preprocessing import LabelEncoder
+# from sklearn.preprocessing import LabelEncoder
 
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch_geometric.data import Data
-from collections import defaultdict
+# from torch_geometric.data import Data
+# from collections import defaultdict
 
 from ...model.base import Model
 from ...data.dataset import DatasetH
 from ...data.dataset.handler import DataHandlerLP
-from torch.utils.data import IterableDataset
+# from torch.utils.data import IterableDataset
 from torch_sparse import SparseTensor
-import functools
-import time
+# import functools
+# import time
 
 
 ########################################################################
