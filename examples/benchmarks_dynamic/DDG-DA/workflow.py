@@ -39,13 +39,22 @@ class DDGDA:
         h_path: Optional[str] = None,
         test_end: Optional[str] = None,
         train_start: Optional[str] = None,
+        meta_1st_train_end: Optional[str] = None,
         task_ext_conf: Optional[dict] = None,
         alpha: float = 0.0,
+        proxy_hd: str = "handler_proxy.pkl",
     ):
         """
 
         Parameters
         ----------
+
+        train_start: Optional[str]
+            the start datetime for data.  It is used in training start time (for both tasks & meta learing)
+        test_end: Optional[str]
+            the end datetime for data. It is used in test end time
+        meta_1st_train_end: Optional[str]
+            the datetime of training end of the first meta_task
         alpha: float
             Setting the L2 regularization for ridge
             The `alpha` is only passed to MetaModelDS (it is not passed to sim_task_model currently..)
@@ -64,6 +73,8 @@ class DDGDA:
             "task_ext_conf": task_ext_conf,
         }
         self.alpha = alpha
+        self.meta_1st_train_end = meta_1st_train_end
+        self.proxy_hd = proxy_hd
 
     def get_feature_importance(self):
         # this must be lightGBM, because it needs to get the feature importance
@@ -122,7 +133,7 @@ class DDGDA:
                 "kwargs": {"config": DIRNAME / "fea_label_df.pkl"},
             }
         )
-        handler.to_pickle(DIRNAME / "handler_proxy.pkl", dump_all=True)
+        handler.to_pickle(DIRNAME / self.proxy_hd, dump_all=True)
 
     @property
     def _internal_data_path(self):
@@ -157,15 +168,18 @@ class DDGDA:
         # - Only the dataset part is important, in current version of meta model will integrate the
         rb = RollingBenchmark(model_type=self.sim_task_model, **self.rb_kwargs)
         sim_task = rb.basic_task()
+        train_start = self.rb_kwargs.get("train_start", "2008-01-01")
+        train_end = "2010-12-31" if self.meta_1st_train_end is None else self.meta_1st_train_end
+        test_start = (pd.Timestamp(train_end) + pd.Timedelta(days=1)).strftime("%Y-%m-%d")
         proxy_forecast_model_task = {
             # "model": "qlib.contrib.model.linear.LinearModel",
             "dataset": {
                 "class": "qlib.data.dataset.DatasetH",
                 "kwargs": {
-                    "handler": f"file://{(DIRNAME / 'handler_proxy.pkl').absolute()}",
+                    "handler": f"file://{(DIRNAME / self.proxy_hd).absolute()}",
                     "segments": {
-                        "train": ("2008-01-01", "2010-12-31"),
-                        "test": ("2011-01-01", sim_task["dataset"]["kwargs"]["segments"]["test"][1]),
+                        "train": (train_start, train_end),
+                        "test": (test_start, sim_task["dataset"]["kwargs"]["segments"]["test"][1]),
                     },
                 },
             },
@@ -268,7 +282,7 @@ class DDGDA:
         rb.update_rolling_rec()
 
     def run_all(self):
-        # 1) file: handler_proxy.pkl
+        # 1) file: handler_proxy.pkl (self.proxy_hd)
         self.dump_data_for_proxy_model()
         # 2)
         # file: internal_data_s20.pkl

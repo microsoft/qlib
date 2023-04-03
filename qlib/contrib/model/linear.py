@@ -11,6 +11,7 @@ from sklearn.linear_model import LinearRegression, Ridge, Lasso
 from ...model.base import Model
 from ...data.dataset import DatasetH
 from ...data.dataset.handler import DataHandlerLP
+from qlib.log import get_module_logger
 
 
 class LinearModel(Model):
@@ -57,8 +58,11 @@ class LinearModel(Model):
     def fit(self, dataset: DatasetH, reweighter: Reweighter = None):
         df_train = dataset.prepare("train", col_set=["feature", "label"], data_key=DataHandlerLP.DK_L)
         if self.include_valid:
-            df_valid = dataset.prepare("valid", col_set=["feature", "label"], data_key=DataHandlerLP.DK_L)
-            df_train = pd.concat([df_train, df_valid])
+            try:
+                df_valid = dataset.prepare("valid", col_set=["feature", "label"], data_key=DataHandlerLP.DK_L)
+                df_train = pd.concat([df_train, df_valid])
+            except KeyError:
+                get_module_logger("LinearModel").info("include_valid=True, but valid does not exist")
         if df_train.empty:
             raise ValueError("Empty data from dataset, please check your dataset config.")
         if reweighter is not None:

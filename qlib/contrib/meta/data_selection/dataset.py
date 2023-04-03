@@ -55,8 +55,10 @@ class InternalData:
         # The handler is initialized for only once.
         if not trainer.has_worker():
             self.dh = init_task_handler(perf_task_tpl)
+            self.dh.config(dump_all=False)  # in some cases, the data handler are saved to disk with `dump_all=True`
         else:
             self.dh = init_instance_by_config(perf_task_tpl["dataset"]["kwargs"]["handler"])
+        assert self.dh.dump_all is False  # otherwise, it will save all the detailed data
 
         seg = perf_task_tpl["dataset"]["kwargs"]["segments"]
 
@@ -203,7 +205,9 @@ class MetaTaskDS(MetaTask):
                 meta_info_norm = meta_info_norm.fillna(fill_value)
             else:
                 if len(suffix) > 0:
-                    get_module_logger("MetaTaskDS").warning(f"fill_method={self.fill_method}; the info after can't be correctly parsed. Please check your parameters.")
+                    get_module_logger("MetaTaskDS").warning(
+                        f"fill_method={self.fill_method}; the info after can't be correctly parsed. Please check your parameters."
+                    )
                 fill_value = meta_info_norm.max(axis=1)
                 # fill it with row max to align with previous implementation
                 # This will magnify the data similarity when data is in daily freq
@@ -215,9 +219,7 @@ class MetaTaskDS(MetaTask):
                 # 2009-01-19    0.280603
                 #                 ...
                 # 2011-06-27    0.203773
-                meta_info_norm = meta_info_norm.T.fillna(
-                    fill_value
-                ).T
+                meta_info_norm = meta_info_norm.T.fillna(fill_value).T
         elif self.fill_method == "zero":
             # It will fillna(0.0) at the end.
             pass
