@@ -100,6 +100,7 @@ def get_backtest_config_fromfile(path: str) -> dict:
         "multiplier": 1.0,
         "output_dir": "outputs_backtest/",
         "generate_report": False,
+        "data_granularity": "1min",
     }
     backtest_config = merge_a_into_b(a=backtest_config, b=backtest_config_default)
 
