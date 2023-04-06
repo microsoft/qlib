@@ -357,11 +357,17 @@ class DataHandlerLP(DataHandler):
 
         - These processors only apply to the learning phase.
 
-    Tips to improve the performance of data handler
+    Tips for data handler
 
     - To reduce the memory cost
 
         - `drop_raw=True`: this will modify the data inplace on raw data;
+
+    - Please note processed data like `self._infer` or `self._learn` are concepts different from `segments` in Qlib's `Dataset` like "train" and "test"
+
+        - Processed data like `self._infer` or `self._learn` are underlying data processed with different processors
+        - `segments` in Qlib's `Dataset` like "train" and "test" are simply the time segmentations when querying data("train" are often before "test" in time-series).
+        - For example, you can query `data._infer` processed by `infer_processors` in the "train" time segmentation.
     """
 
     # based on `self._data`, _infer and _learn are genrated after processors
