@@ -10,7 +10,6 @@ import pandas as pd
 from typing import Text, Union
 import copy
 
-from .pytorch_gats import GATs, GATModel
 from ...utils import get_or_create_path
 from ...log import get_module_logger
 import torch
@@ -203,7 +202,7 @@ class GATs_ADD_IND(Model):
     def adjacent_matrix(self, groups):
         # get the adjacent matrix
         industries = []
-        for i, (idx, count) in enumerate(groups):
+        for i, count in groups:
             for j in range(count):
                 industries.append(i)
         industries = np.array(industries)
@@ -227,10 +226,10 @@ class GATs_ADD_IND(Model):
         groups = []
         now_industry = None
         index = []
-        for idx, (instrument, industry) in enumerate(group_by_industry):
+        for id, (instrument, industry) in enumerate(group_by_industry):
             if industry != now_industry:
                 now_industry = industry
-                groups.append((idx, 1))
+                groups.append((id, 1))
             else:
                 groups[-1] = (groups[-1][0], groups[-1][1] + 1)
             index.append(instrument_to_idx[instrument])

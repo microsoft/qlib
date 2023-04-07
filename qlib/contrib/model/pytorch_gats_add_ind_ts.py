@@ -9,7 +9,6 @@ import numpy as np
 import pandas as pd
 import copy
 
-from .pytorch_gats_ts import GATModel, GATs
 from ...utils import get_or_create_path
 from ...log import get_module_logger
 import torch
@@ -276,12 +275,12 @@ class GATs_ADD_IND(Model):
         for col_name in dl_train.idx_df.columns:
             col_data = dl_train.idx_df[col_name]
             for val in col_data:
-                if np.isnan(val) == False:
+                if np.isnan(val) is False:
                     dl_train_ind[val] = self.industry.get(col_name, -1)
         for col_name in dl_valid.idx_df.columns:
             col_data = dl_valid.idx_df[col_name]
             for val in col_data:
-                if np.isnan(val) == False:
+                if np.isnan(val) is False:
                     dl_valid_ind[val] = self.industry.get(col_name, -1)
 
         dl_train.data_arr = np.concatenate([dl_train.data_arr, dl_train_ind[:, None]], axis=1)
@@ -367,7 +366,7 @@ class GATs_ADD_IND(Model):
         for col_name in dl_test.idx_df.columns:
             col_data = dl_test.idx_df[col_name]
             for val in col_data:
-                if np.isnan(val) == False:
+                if np.isnan(val) is False:
                     dl_test_ind[val] = self.industry.get(col_name, -1)
 
         dl_test.data_arr = np.concatenate([dl_test.data_arr, dl_test_ind[:, None]], axis=1)
@@ -391,7 +390,7 @@ class GATs_ADD_IND(Model):
         return pd.Series(np.concatenate(preds), index=dl_test.get_index())
 
 
-class GATModel_ADD_IND(GATModel):
+class GATModel_ADD_IND(nn.Moudle):
     def __init__(self, d_feat=6, hidden_size=64, num_layers=2, dropout=0.0, base_model="GRU", smooth_perplexity=1.0):
         super().__init__()
 

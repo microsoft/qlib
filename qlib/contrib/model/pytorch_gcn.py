@@ -224,10 +224,10 @@ class GCN(Model):
         groups = []
         now_industry = None
         index = []
-        for idx, (instrument, industry) in enumerate(group_by_industry):
+        for id, (instrument, industry) in enumerate(group_by_industry):
             if industry != now_industry:
                 now_industry = industry
-                groups.append((idx, 1))
+                groups.append((id, 1))
             else:
                 groups[-1] = (groups[-1][0], groups[-1][1] + 1)
             index.append(instrument_to_idx[instrument])

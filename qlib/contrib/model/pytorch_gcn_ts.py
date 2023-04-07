@@ -274,12 +274,12 @@ class GCN(Model):
         for col_name in dl_train.idx_df.columns:
             col_data = dl_train.idx_df[col_name]
             for val in col_data:
-                if np.isnan(val) == False:
+                if np.isnan(val) is False:
                     dl_train_ind[val] = self.industry.get(col_name, -1)
         for col_name in dl_valid.idx_df.columns:
             col_data = dl_valid.idx_df[col_name]
             for val in col_data:
-                if np.isnan(val) == False:
+                if np.isnan(val) is False:
                     dl_valid_ind[val] = self.industry.get(col_name, -1)
 
         dl_train.data_arr = np.concatenate([dl_train.data_arr, dl_train_ind[:, None]], axis=1)
@@ -365,7 +365,7 @@ class GCN(Model):
         for col_name in dl_test.idx_df.columns:
             col_data = dl_test.idx_df[col_name]
             for val in col_data:
-                if np.isnan(val) == False:
+                if np.isnan(val) is False:
                     dl_test_ind[val] = self.industry.get(col_name, -1)
 
         dl_test.data_arr = np.concatenate([dl_test.data_arr, dl_test_ind[:, None]], axis=1)
