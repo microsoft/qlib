@@ -720,3 +720,26 @@ class DataHandlerLP(DataHandler):
         ]:
             setattr(new_hd, key, getattr(handler, key, None))
         return new_hd
+
+    @classmethod
+    def from_df(cls, df: pd.DataFrame) -> "DataHandlerLP":
+        """
+        Motivation:
+        - When user want to get a quick data handler.
+
+        The created data handler will have only one shared Dataframe without processors.
+        After creating the handler, user may often want to dump the handler for reuse
+        Here is a typical use case
+
+        .. code-block:: python
+
+            from qlib.data.dataset import DataHandlerLP
+            dh = DataHandlerLP.from_df(df)
+            dh.to_pickle(fname, dump_all=True)
+
+        TODO:
+        - The StaticDataLoader is quite slow. It don't have to copy the data again...
+
+        """
+        loader = data_loader_module.StaticDataLoader(df)
+        return cls(data_loader=loader)

@@ -2,9 +2,8 @@
 # Licensed under the MIT License.
 from __future__ import annotations
 import pandas as pd
-from typing import Union, List
+from typing import Union, List, TYPE_CHECKING
 from qlib.utils import init_instance_by_config
-from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from qlib.data.dataset import DataHandler
@@ -121,7 +120,7 @@ def convert_index_format(df: Union[pd.DataFrame, pd.Series], level: str = "datet
     return df
 
 
-def init_task_handler(task: dict) -> Union[DataHandler, None]:
+def init_task_handler(task: dict) -> DataHandler:
     """
     initialize the handler part of the task **inplace**
 
@@ -142,5 +141,6 @@ def init_task_handler(task: dict) -> Union[DataHandler, None]:
     if h_conf is not None:
         handler = init_instance_by_config(h_conf, accept_types=DataHandler)
         task["dataset"]["kwargs"]["handler"] = handler
-
         return handler
+    else:
+        raise ValueError("The task does not contains a handler part.")
