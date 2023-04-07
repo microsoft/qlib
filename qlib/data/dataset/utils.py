@@ -2,9 +2,8 @@
 # Licensed under the MIT License.
 from __future__ import annotations
 import pandas as pd
-from typing import Optional, Union, List
+from typing import Union, List, TYPE_CHECKING
 from qlib.utils import init_instance_by_config
-from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from qlib.data.dataset import DataHandler
