@@ -390,7 +390,7 @@ class GATs_ADD_IND(Model):
         return pd.Series(np.concatenate(preds), index=dl_test.get_index())
 
 
-class GATModel_ADD_IND(nn.Moudle):
+class GATModel_ADD_IND(nn.Module):
     def __init__(self, d_feat=6, hidden_size=64, num_layers=2, dropout=0.0, base_model="GRU", smooth_perplexity=1.0):
         super().__init__()
 
