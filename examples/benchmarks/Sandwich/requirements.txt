@@ -1,3 +1,2 @@
-torch==1.12.1
-CUDA==10.2
 numpy==1.23.4
+pandas==1.5.2
