@@ -69,7 +69,7 @@ The numbers shown below demonstrate the performance of the entire `workflow` of 
 | IGMTF(Wentao Xu, et al.)                  | Alpha360 | 0.0480±0.00 | 0.3589±0.02 | 0.0606±0.00 | 0.4773±0.01 | 0.0946±0.02       | 1.3509±0.25       | -0.0716±0.02 |
 | HIST(Wentao Xu, et al.)                   | Alpha360 | 0.0522±0.00 | 0.3530±0.01 | 0.0667±0.00 | 0.4576±0.01 | 0.0987±0.02       | 1.3726±0.27       | -0.0681±0.01 |
 | KRNN                                      | Alpha360 | 0.0239±0.00 | 0.1786±0.03 | 0.0309±0.00 | 0.2439±0.03 | -0.0112±0.02      | -0.1231±0.19      | -0.1770±0.06 |
-| Sandwich                                  | Alpha360 | 0.0267±0.00 | 0.1983±0.03 | 0.0354±0.00 | 0.2780±0.03 | 0.0014±0.03       | 0.0329±0.33       | -0.1711±0.08 |
+| Sandwich                                  | Alpha360 | 0.0258±0.00 | 0.1924±0.04 | 0.0337±0.00 | 0.2624±0.03 | 0.0005±0.03       | 0.0001±0.33       | -0.1752±0.05 |
 
 
 - The selected 20 features are based on the feature importance of a lightgbm-based model.
