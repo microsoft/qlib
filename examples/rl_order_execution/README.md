@@ -14,6 +14,8 @@ python -m qlib.run.get_data qlib_data qlib_data --target_dir ./data/bin --region
 
 To run codes in this example, we need data in pickle format. To achieve this, run following commands (might need a few minutes to finish):
 
+[//]: # (TODO: Instead of dumping dataframe with different format &#40;like `_gen_dataset` and `_gen_day_dataset` in `qlib/contrib/data/highfreq_provider.py`&#41;, we encourage to implement different subclass of `Dataset` and `DataHandler`. This will keep the workflow cleaner and interfaces more consistent, and move all the complexity to the subclass.)
+
 ```
 python scripts/gen_pickle_data.py -c scripts/pickle_data_config.yml
 python scripts/gen_training_orders.py
