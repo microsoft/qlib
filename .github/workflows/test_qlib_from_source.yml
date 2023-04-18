@@ -54,6 +54,7 @@ jobs:
         pip install numpy
         pip show numpy
         python -m pip install --upgrade cython
+        python -c "import sys; print(sys.path)"
         python -m pip install -e .[dev]
 
     - name: Lint with Black
