@@ -50,6 +50,9 @@ jobs:
 
     - name: Set up Python tools
       run: |
+        pip show numpy
+        pip install numpy
+        pip show numpy
         python -m pip install --upgrade cython
         python -m pip install -e .[dev]
 
