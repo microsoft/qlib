@@ -124,7 +124,7 @@ def get_all_files(folder_path, dataset, universe="") -> (str, str):
     req_path = str(Path(f"{folder_path}") / f"*.txt")
     yaml_file = glob.glob(yaml_path)
     req_file = glob.glob(req_path)
-    if len(yaml_file) == 0:
+    if (len(yaml_file) == 0) | (len(req_file) == 0):
         return None, None
     else:
         return yaml_file[0], req_file[0]
@@ -207,7 +207,7 @@ def gen_yaml_file_without_seed_kwargs(yaml_path, temp_dir):
 class ModelRunner:
     def _init_qlib(self, exp_folder_name):
         # init qlib
-        GetData().qlib_data(exists_skip=True)
+        GetData().qlib_data(target_dir="~/.qlib/qlib_data/my_data/sp500_components", region="us", exists_skip=True)
         qlib.init(
             exp_manager={
                 "class": "MLflowExpManager",
@@ -225,11 +225,11 @@ class ModelRunner:
         self,
         times=1,
         models=None,
-        dataset="Alpha360",
+        dataset="workflow_config_configurable_dataset_new",
         universe="",
         exclude=False,
         qlib_uri: str = "git+https://github.com/microsoft/qlib#egg=pyqlib",
-        exp_folder_name: str = "run_all_model_records",
+        exp_folder_name: str = "ALSTM_GATs_ALSTMEXT",
         wait_before_rm_env: bool = False,
         wait_when_err: bool = False,
     ):
@@ -326,7 +326,7 @@ class ModelRunner:
                     f"{python_path} -m pip install light-the-torch", wait_when_err=wait_when_err
                 )  # for automatically installing torch according to the nvidia driver
                 execute(
-                    f"{env_path / 'bin' / 'ltt'} install --install-cmd '{python_path} -m pip install {{packages}}' -- -r {req_path}",
+                    f"{env_path / 'bin' / 'ltt'} install -r {req_path}",
                     wait_when_err=wait_when_err,
                 )
             else:
@@ -342,6 +342,7 @@ class ModelRunner:
                     wait_when_err=wait_when_err,
                 )
                 sys.stderr.write("\n")
+                
             # install qlib
             sys.stderr.write("Installing qlib...\n")
             execute(f"{python_path} -m pip install --upgrade pip", wait_when_err=wait_when_err)  # TODO: FIX ME!

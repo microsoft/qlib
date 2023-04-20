@@ -28,6 +28,8 @@ examples/rl/checkpoints/
 examples/rl/outputs/
 examples/rl_order_execution/data/
 examples/rl_order_execution/outputs/
+examples/test_*
+tensorboard_logs/
 
 *.egg-info/
 
