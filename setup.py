@@ -130,7 +130,6 @@ setup(
     install_requires=REQUIRED,
     extras_require={
         "dev": [
-            "numpy>=1.12.0, <1.24",
             "coverage",
             "pytest>=3",
             "sphinx",
