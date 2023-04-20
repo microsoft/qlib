@@ -57,7 +57,7 @@ jobs:
         python -c "import sys; print(sys.path)"
         ls /opt/hostedtoolcache/Python/3.7.16/x64/lib/python3.7/site-packages
         python -m pip install numpy
-        python -c "import numpy"
+        python -c "import numpy as np; print(np.array([1,2,3,4]))"
         python -m pip install .[dev] --verbose
 
     - name: Lint with Black
