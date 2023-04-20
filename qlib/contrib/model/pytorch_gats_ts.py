@@ -9,12 +9,16 @@ import numpy as np
 import pandas as pd
 import copy
 from ...utils import get_or_create_path
-from ...log import get_module_logger
+from ...log import get_module_logger, get_tensorboard_logger
 import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 from torch.utils.data import Sampler
+
+from os.path import join
+from datetime import datetime
+from copy import deepcopy
 
 from .pytorch_utils import count_parameters
 from ...model.base import Model
@@ -73,6 +77,8 @@ class GATs(Model):
         optimizer="adam",
         GPU=0,
         n_jobs=10,
+        tensorboard_path="",
+        print_iter=50,
         seed=None,
         **kwargs
     ):
@@ -96,6 +102,8 @@ class GATs(Model):
         self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
         self.n_jobs = n_jobs
         self.seed = seed
+        self.tensorboard_path = tensorboard_path
+        self.print_iter = print_iter
 
         self.logger.info(
             "GATs parameters setting:"
@@ -193,11 +201,11 @@ class GATs(Model):
             daily_index, daily_count = zip(*daily_shuffle)
         return daily_index, daily_count
 
-    def train_epoch(self, data_loader):
+    def train_epoch(self, data_loader, train_loader, val_loader, epoch=0, split='train', writer=None):
 
         self.GAT_model.train()
 
-        for data in data_loader:
+        for batch_id, data in enumerate(data_loader):
 
             data = data.squeeze()
             feature = data[:, :, 0:-1].to(self.device)
@@ -210,6 +218,10 @@ class GATs(Model):
             loss.backward()
             torch.nn.utils.clip_grad_value_(self.GAT_model.parameters(), 3.0)
             self.train_optimizer.step()
+            if batch_id % self.print_iter == 0 and writer:
+                train_loss, train_score = self.test_epoch(train_loader)
+                val_loss, val_score = self.test_epoch(val_loader)
+                writer.add_scalars(f'Loss', {'train': train_loss, 'val': val_loss}, (len(data_loader) * epoch / data.size(0) + batch_id) * data.size(0))
 
     def test_epoch(self, data_loader):
 
@@ -231,7 +243,8 @@ class GATs(Model):
 
             score = self.metric_fn(pred, label)
             scores.append(score.item())
-
+        
+        self.GAT_model.train()
         return np.mean(losses), np.mean(scores)
 
     def fit(
@@ -256,7 +269,8 @@ class GATs(Model):
         valid_loader = DataLoader(dl_valid, sampler=sampler_valid, num_workers=self.n_jobs, drop_last=True)
 
         save_path = get_or_create_path(save_path)
-
+        current_time = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+        tboard_writer = get_tensorboard_logger(save_path=join(self.tensorboard_path, f"GATs_{current_time}"))
         stop_steps = 0
         train_loss = 0
         best_score = -np.inf
@@ -291,7 +305,7 @@ class GATs(Model):
         for step in range(self.n_epochs):
             self.logger.info("Epoch%d:", step)
             self.logger.info("training...")
-            self.train_epoch(train_loader)
+            self.train_epoch(train_loader, deepcopy(train_loader), valid_loader, epoch=step, split='train', writer=tboard_writer)
             self.logger.info("evaluating...")
             train_loss, train_score = self.test_epoch(train_loader)
             val_loss, val_score = self.test_epoch(valid_loader)

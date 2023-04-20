@@ -10,6 +10,7 @@ from time import time
 from contextlib import contextmanager
 
 from .config import C
+from torch.utils.tensorboard import SummaryWriter
 
 
 class MetaLogger(type):
@@ -261,3 +262,8 @@ def set_global_logger_level_cm(level: int):
     finally:
         for _handler, _level in _handler_level_map.items():
             _handler.level = _level
+
+def get_tensorboard_logger(save_path):
+    writer = SummaryWriter(log_dir=save_path)
+    
+    return writer
