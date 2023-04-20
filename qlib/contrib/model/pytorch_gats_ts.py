@@ -7,11 +7,11 @@ from __future__ import print_function
 
 import numpy as np
 import pandas as pd
-import copy
 from ...utils import get_or_create_path
 from ...log import get_module_logger, get_tensorboard_logger
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data import DataLoader
 from torch.utils.data import Sampler
@@ -171,12 +171,17 @@ class GATs(Model):
     def mse(self, pred, label):
         loss = (pred - label) ** 2
         return torch.mean(loss)
+    
+    def bce(self, pred, label):
+        return F.binary_cross_entropy_with_logits(pred, label)
 
     def loss_fn(self, pred, label):
         mask = ~torch.isnan(label)
 
         if self.loss == "mse":
             return self.mse(pred[mask], label[mask])
+        elif self.loss == "bce":
+            return self.bce(pred[mask], label[mask])
 
         raise ValueError("unknown loss `%s`" % self.loss)
 
@@ -317,7 +322,7 @@ class GATs(Model):
                 best_score = val_score
                 stop_steps = 0
                 best_epoch = step
-                best_param = copy.deepcopy(self.GAT_model.state_dict())
+                best_param = deepcopy(self.GAT_model.state_dict())
             else:
                 stop_steps += 1
                 if stop_steps >= self.early_stop:

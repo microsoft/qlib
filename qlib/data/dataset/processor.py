@@ -361,6 +361,31 @@ class CSRankNorm(Processor):
         return df
 
 
+class CSInTopK(Processor):
+    """
+    Cross Sectional ranking indicator.
+    Shows if the stock is in TopK stocks or not
+    
+    """
+
+    def __init__(self, fields_group=None, topk=50):
+        self.fields_group = fields_group
+        self.topk = topk
+
+    def __call__(self, df: pd.DataFrame):
+
+        def _process_group(x, cols, topk):
+            sort_idx = x[cols[-1]].argsort()
+            x.iloc[sort_idx[-topk:]] = 1
+            x.iloc[sort_idx[:-topk]] = 0
+            
+            return x
+            
+        cols = get_group_columns(df, self.fields_group)
+        t = df[cols].groupby("datetime").apply(lambda x: _process_group(x, cols, self.topk))
+        df[cols] = t
+        return df
+
 class CSZFillna(Processor):
     """Cross Sectional Fill Nan"""
 
