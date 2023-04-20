@@ -218,8 +218,8 @@ class ALSTM(Model):
         save_path=None,
     ):
 
-        df_train, df_valid, df_test = dataset.prepare(
-            ["train", "valid", "test"],
+        df_train, df_valid = dataset.prepare(
+            ["train", "valid"],
             col_set=["feature", "label"],
             data_key=DataHandlerLP.DK_L,
         )
