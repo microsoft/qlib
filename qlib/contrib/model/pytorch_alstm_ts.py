@@ -5,17 +5,21 @@
 from __future__ import division
 from __future__ import print_function
 
+
 import numpy as np
 import pandas as pd
 from typing import Text, Union
 import copy
 from ...utils import get_or_create_path
-from ...log import get_module_logger
+from ...log import get_module_logger, get_tensorboard_logger
 
 import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
+from os.path import join
+from datetime import datetime
+from copy import deepcopy
 
 from .pytorch_utils import count_parameters
 from ...model.base import Model
@@ -55,13 +59,15 @@ class ALSTM(Model):
         optimizer="adam",
         n_jobs=10,
         GPU=0,
+        tensorboard_path="",
+        print_iter=50,
         seed=None,
         **kwargs
     ):
         # Set logger.
         self.logger = get_module_logger("ALSTM")
         self.logger.info("ALSTM pytorch version...")
-
+ 
         # set hyper-parameters.
         self.d_feat = d_feat
         self.hidden_size = hidden_size
@@ -77,6 +83,8 @@ class ALSTM(Model):
         self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
         self.n_jobs = n_jobs
         self.seed = seed
+        self.tensorboard_path = tensorboard_path
+        self.print_iter = print_iter
 
         self.logger.info(
             "ALSTM parameters setting:"
@@ -164,11 +172,11 @@ class ALSTM(Model):
 
         raise ValueError("unknown metric `%s`" % self.metric)
 
-    def train_epoch(self, data_loader):
+    def train_epoch(self, data_loader, train_loader, val_loader, epoch=0, split='train', writer=None):
 
         self.ALSTM_model.train()
 
-        for (data, weight) in data_loader:
+        for batch_id, (data, weight) in enumerate(data_loader):
             feature = data[:, :, 0:-1].to(self.device)
             label = data[:, -1, -1].to(self.device)
 
@@ -179,6 +187,11 @@ class ALSTM(Model):
             loss.backward()
             torch.nn.utils.clip_grad_value_(self.ALSTM_model.parameters(), 3.0)
             self.train_optimizer.step()
+            if batch_id % self.print_iter == 0 and writer:
+                train_loss, train_score = self.test_epoch(train_loader)
+                val_loss, val_score = self.test_epoch(val_loader)
+                writer.add_scalars(f'Loss', {'train': train_loss, 'val': val_loss}, (len(data_loader) * epoch + batch_id) * self.batch_size)
+
 
     def test_epoch(self, data_loader):
 
@@ -200,7 +213,8 @@ class ALSTM(Model):
 
                 score = self.metric_fn(pred, label)
                 scores.append(score.item())
-
+            
+        self.ALSTM_model.train()    
         return np.mean(losses), np.mean(scores)
 
     def fit(
@@ -243,7 +257,8 @@ class ALSTM(Model):
         )
 
         save_path = get_or_create_path(save_path)
-
+        current_time = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+        tboard_writer = get_tensorboard_logger(save_path=join(self.tensorboard_path, f"ALSTM_{current_time}"))
         stop_steps = 0
         train_loss = 0
         best_score = -np.inf
@@ -257,10 +272,10 @@ class ALSTM(Model):
 
         for step in range(self.n_epochs):
             self.logger.info("Epoch%d:", step)
-            self.logger.info("training...")
-            self.train_epoch(train_loader)
+            self.logger.info("training...")                         
+            self.train_epoch(train_loader, deepcopy(train_loader), valid_loader, epoch=step, split='train', writer=tboard_writer)
             self.logger.info("evaluating...")
-            train_loss, train_score = self.test_epoch(train_loader)
+            train_loss, train_score = self.test_epoch(train_loader,)
             val_loss, val_score = self.test_epoch(valid_loader)
             self.logger.info("train %.6f, valid %.6f" % (train_score, val_score))
             evals_result["train"].append(train_score)
