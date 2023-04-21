@@ -58,6 +58,7 @@ jobs:
         ls /opt/hostedtoolcache/Python/3.7.16/x64/lib/python3.7/site-packages
         python -m pip install numpy
         python -c "import numpy as np; print(np.array([1,2,3,4]))"
+        python -m pip cache purge
         python -m pip install .[dev] --verbose
 
     - name: Lint with Black
