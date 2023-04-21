@@ -10,6 +10,7 @@ import fire
 import ruamel.yaml as yaml
 from qlib.config import C
 from qlib.model.trainer import task_train
+from qlib.utils.data import update_config
 
 
 def get_path_list(path):
@@ -50,6 +51,15 @@ def workflow(config_path, experiment_name="workflow", uri_folder="mlruns"):
     """
     with open(config_path) as fp:
         config = yaml.safe_load(fp)
+
+    base_config_path = config.get("base_config_path", None)
+    if base_config_path:
+        with open(base_config_path) as fp:
+            base_config = yaml.safe_load(fp)
+    else:
+        base_config = {}
+
+    config = update_config(base_config, config)
 
     # config the `sys` section
     sys_config(config, config_path)
