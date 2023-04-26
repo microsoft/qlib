@@ -428,7 +428,7 @@ def init_instance_by_config(
             pr = urlparse(config)
             if pr.scheme == "file":
                 pr_path = os.path.join(pr.netloc, pr.path) if bool(pr.path) else pr.netloc
-                with open(pr_path, "rb") as f:
+                with open(os.path.normpath(pr_path), "rb") as f:
                     return pickle.load(f)
         else:
             with config.open("rb") as f:
