@@ -16,7 +16,7 @@ jobs:
       matrix:
         os: [windows-latest, ubuntu-20.04, ubuntu-22.04, macos-11, macos-latest]
         # not supporting 3.6 due to annotations is not supported https://stackoverflow.com/a/52890129
-        python-version: [3.8]
+        python-version: [3.7, 3.8]
 
     steps:
     - name: Test qlib from source slow
@@ -29,7 +29,7 @@ jobs:
 
     - name: Set up Python tools
       run: |
-        python -m pip install --upgrade pip
+        python -m pip install pip==23.0.1
         # python -m pip is necessary to upgrade pip.
         pip install --upgrade cython numpy
         pip install -e .[dev]
