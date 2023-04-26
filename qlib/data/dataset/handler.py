@@ -357,11 +357,17 @@ class DataHandlerLP(DataHandler):
 
         - These processors only apply to the learning phase.
 
-    Tips to improve the performance of data handler
+    Tips for data handler
 
     - To reduce the memory cost
 
         - `drop_raw=True`: this will modify the data inplace on raw data;
+
+    - Please note processed data like `self._infer` or `self._learn` are concepts different from `segments` in Qlib's `Dataset` like "train" and "test"
+
+        - Processed data like `self._infer` or `self._learn` are underlying data processed with different processors
+        - `segments` in Qlib's `Dataset` like "train" and "test" are simply the time segmentations when querying data("train" are often before "test" in time-series).
+        - For example, you can query `data._infer` processed by `infer_processors` in the "train" time segmentation.
     """
 
     # based on `self._data`, _infer and _learn are genrated after processors
@@ -714,3 +720,26 @@ class DataHandlerLP(DataHandler):
         ]:
             setattr(new_hd, key, getattr(handler, key, None))
         return new_hd
+
+    @classmethod
+    def from_df(cls, df: pd.DataFrame) -> "DataHandlerLP":
+        """
+        Motivation:
+        - When user want to get a quick data handler.
+
+        The created data handler will have only one shared Dataframe without processors.
+        After creating the handler, user may often want to dump the handler for reuse
+        Here is a typical use case
+
+        .. code-block:: python
+
+            from qlib.data.dataset import DataHandlerLP
+            dh = DataHandlerLP.from_df(df)
+            dh.to_pickle(fname, dump_all=True)
+
+        TODO:
+        - The StaticDataLoader is quite slow. It don't have to copy the data again...
+
+        """
+        loader = data_loader_module.StaticDataLoader(df)
+        return cls(data_loader=loader)
