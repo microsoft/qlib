@@ -50,16 +50,8 @@ jobs:
 
     - name: Set up Python tools
       run: |
-        pip show numpy
-        pip install numpy
-        pip show numpy
         python -m pip install --upgrade cython
-        python -c "import sys; print(sys.path)"
-        ls /opt/hostedtoolcache/Python/3.7.16/x64/lib/python3.7/site-packages
-        python -m pip install numpy
-        python -c "import numpy as np; print(np.array([1,2,3,4]))"
-        python -m pip cache purge
-        python -m pip install .[dev] --verbose
+        python -m pip install -e .[dev]
 
     - name: Lint with Black
       run: |
