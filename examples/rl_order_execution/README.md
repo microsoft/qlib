@@ -18,7 +18,6 @@ To run codes in this example, we need data in pickle format. To achieve this, ru
 
 ```
 python scripts/gen_pickle_data.py -c scripts/pickle_data_config.yml
-python scripts/collect_pickle_dataframe.py
 python scripts/gen_training_orders.py
 python scripts/merge_orders.py
 ```
@@ -29,8 +28,7 @@ When finished, the structure under `data/` should be:
 data
 ├── bin
 ├── orders
-├── pickle
-└── pickle_dataframe
+└── pickle
 ```
 
 ## Training

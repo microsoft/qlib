@@ -55,8 +55,10 @@ class InternalData:
         # The handler is initialized for only once.
         if not trainer.has_worker():
             self.dh = init_task_handler(perf_task_tpl)
+            self.dh.config(dump_all=False)  # in some cases, the data handler are saved to disk with `dump_all=True`
         else:
             self.dh = init_instance_by_config(perf_task_tpl["dataset"]["kwargs"]["handler"])
+        assert self.dh.dump_all is False  # otherwise, it will save all the detailed data
 
         seg = perf_task_tpl["dataset"]["kwargs"]["segments"]
 
@@ -77,7 +79,7 @@ class InternalData:
             get_module_logger("Internal Data").info("the data has been initialized")
         else:
             # train new models
-            assert 0 == len(recorders), "An empty experiment is required for setup `InternalData``"
+            assert 0 == len(recorders), "An empty experiment is required for setup `InternalData`"
             trainer.train(gen_task)
 
         # 2) extract the similarity matrix
@@ -119,6 +121,7 @@ class MetaTaskDS(MetaTask):
 
     def __init__(self, task: dict, meta_info: pd.DataFrame, mode: str = MetaTask.PROC_MODE_FULL, fill_method="max"):
         """
+
         The description of the processed data
 
             time_perf: A array with shape  <hist_step_n * step, data pieces>  ->  data piece performance
@@ -132,6 +135,10 @@ class MetaTaskDS(MetaTask):
                    [0., 0., 0., ..., 0., 0., 1.],
                    [0., 0., 0., ..., 0., 0., 1.]])
 
+        Parameters
+        ----------
+        meta_info: pd.DataFrame
+            please refer to the docs of _prepare_meta_ipt for detailed explanation.
         """
         super().__init__(task, meta_info)
         self.fill_method = fill_method
@@ -180,12 +187,41 @@ class MetaTaskDS(MetaTask):
         self.processed_meta_input = data_to_tensor(self.processed_meta_input)
 
     def _get_processed_meta_info(self):
-        meta_info_norm = self.meta_info.sub(self.meta_info.mean(axis=1), axis=0)  # .fillna(0.)
-        if self.fill_method == "max":
-            meta_info_norm = meta_info_norm.T.fillna(
-                meta_info_norm.max(axis=1)
-            ).T  # fill it with row max to align with previous implementation
+        meta_info_norm = self.meta_info.sub(self.meta_info.mean(axis=1), axis=0)
+        if self.fill_method.startswith("max"):
+            suffix = self.fill_method.lstrip("max")
+            if suffix == "seg":
+                fill_value = {}
+                for col in meta_info_norm.columns:
+                    fill_value[col] = meta_info_norm.loc[meta_info_norm[col].isna(), :].dropna(axis=1).mean().max()
+                fill_value = pd.Series(fill_value).sort_index()
+                # The NaN Values are filled segment-wise. Below is an exampleof fill_value
+                # 2009-01-05  2009-02-06    0.145809
+                # 2009-02-09  2009-03-06    0.148005
+                # 2009-03-09  2009-04-03    0.090385
+                # 2009-04-07  2009-05-05    0.114318
+                # 2009-05-06  2009-06-04    0.119328
+                # ...
+                meta_info_norm = meta_info_norm.fillna(fill_value)
+            else:
+                if len(suffix) > 0:
+                    get_module_logger("MetaTaskDS").warning(
+                        f"fill_method={self.fill_method}; the info after can't be correctly parsed. Please check your parameters."
+                    )
+                fill_value = meta_info_norm.max(axis=1)
+                # fill it with row max to align with previous implementation
+                # This will magnify the data similarity when data is in daily freq
+
+                # the fill value corresponds to data like this
+                # It get a performance value for each day.
+                # The performance value are get from other models on this day
+                # 2009-01-16    0.276320
+                # 2009-01-19    0.280603
+                #                 ...
+                # 2011-06-27    0.203773
+                meta_info_norm = meta_info_norm.T.fillna(fill_value).T
         elif self.fill_method == "zero":
+            # It will fillna(0.0) at the end.
             pass
         else:
             raise NotImplementedError(f"This type of input is not supported")
@@ -286,7 +322,33 @@ class MetaDatasetDS(MetaTaskDataset):
                 logger.warning(f"ValueError: {e}")
         assert len(self.meta_task_l) > 0, "No meta tasks found. Please check the data and setting"
 
-    def _prepare_meta_ipt(self, task):
+    def _prepare_meta_ipt(self, task) -> pd.DataFrame:
+        """
+        Please refer to `self.internal_data.setup` for detailed information about `self.internal_data.data_ic_df`
+
+        Indices with format below can be successfully sliced by  `ic_df.loc[:end, pd.IndexSlice[:, :end]]`
+
+               2021-06-21 2021-06-04 .. 2021-03-22 2021-03-08
+               2021-07-02 2021-06-18 .. 2021-04-02 None
+
+        Returns
+        -------
+            a pd.DataFrame with similar content below.
+            - each column corresponds to a trained model named by the training data range
+            - each row corresponds to a day of data tested by the models of the columns
+            - The rows cells that overlaps with the data used by columns are masked
+
+
+                       2009-01-05 2009-02-09 ... 2011-04-27 2011-05-26
+                       2009-02-06 2009-03-06 ... 2011-05-25 2011-06-23
+            datetime                         ...
+            2009-01-13        NaN   0.310639 ...  -0.169057   0.137792
+            2009-01-14        NaN   0.261086 ...  -0.143567   0.082581
+            ...               ...        ... ...        ...        ...
+            2011-06-30  -0.054907  -0.020219 ...  -0.023226        NaN
+            2011-07-01  -0.075762  -0.026626 ...  -0.003167        NaN
+
+        """
         ic_df = self.internal_data.data_ic_df
 
         segs = task["dataset"]["kwargs"]["segments"]
@@ -294,15 +356,19 @@ class MetaDatasetDS(MetaTaskDataset):
         ic_df_avail = ic_df.loc[:end, pd.IndexSlice[:, :end]]
 
         # meta data set focus on the **information** instead of preprocess
-        # 1) filter the future info
-        def mask_future(s):
-            """mask future information"""
-            # from qlib.utils import get_date_by_shift
+        # 1) filter the overlap info
+        def mask_overlap(s):
+            """
+            mask overlap information
+            data after self.name[end] with self.trunc_days that contains future info are also considered as overlap info
+
+            Approximately the diagnal + horizon length of data are masked.
+            """
             start, end = s.name
             end = get_date_by_shift(trading_date=end, shift=self.trunc_days - 1, future=True)
             return s.mask((s.index >= start) & (s.index <= end))
 
-        ic_df_avail = ic_df_avail.apply(mask_future)  # apply to each col
+        ic_df_avail = ic_df_avail.apply(mask_overlap)  # apply to each col
 
         # 2) filter the info with too long periods
         total_len = self.step * self.hist_step_n
