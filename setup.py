@@ -170,7 +170,7 @@ setup(
             "gym>=0.24",  # If you do not put gym at the end, gym will degrade causing pytest results to fail.
         ],
         "rl": [
-            "tianshou",
+            "tianshou<=0.4.10",
             "torch",
         ],
     },
