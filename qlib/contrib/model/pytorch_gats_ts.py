@@ -175,13 +175,16 @@ class GATs(Model):
     def bce(self, pred, label):
         return F.binary_cross_entropy_with_logits(pred, label)
 
-    def margin_ranking(self, pred, label):
+    def margin_ranking(self, pred, label, use_mse=False):
         idx = torch.randperm(pred.size(0))
         pair_1, pair_2 = idx[::2], idx[1::2]
         if pred.size(0) % 2 == 1:
             pair_1 = pair_1[:-1]
         target = torch.sign(label[pair_1] - label[pair_2])
-        return F.margin_ranking_loss(pred[pair_1], pred[pair_2], target, margin=0, reduction='sum')
+        loss = F.margin_ranking_loss(pred[pair_1], pred[pair_2], target, margin=0, reduction='mean')
+        if use_mse:
+            loss += torch.mean(torch.sqrt((pred - label) ** 2))
+        return loss
 
     def loss_fn(self, pred, label):
         mask = ~torch.isnan(label)
@@ -192,6 +195,8 @@ class GATs(Model):
             return self.bce(pred[mask], label[mask])
         elif self.loss == "margin_ranking":
             return self.margin_ranking(pred[mask], label[mask])
+        elif self.loss == "margin_ranking_w_mse":
+            return self.margin_ranking(pred[mask], label[mask], use_mse=True)
 
         raise ValueError("unknown loss `%s`" % self.loss)
 
