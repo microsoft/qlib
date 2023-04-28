@@ -22,7 +22,7 @@ def search_file(file_path: str):
     while True:
         if (cur_path / file_path.name).exists():
             return cur_path / file_path.name
-        if str(cur_path).endswith('qlib'):
+        if str(cur_path).endswith("qlib"):
             raise FileNotFoundError("We can't find the config file: {}".format(file_path))
         cur_path = cur_path.parent
 
