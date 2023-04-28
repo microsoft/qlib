@@ -13,6 +13,20 @@ from qlib.model.trainer import task_train
 from qlib.utils.data import update_config
 
 
+def search_file(file_path: str):
+    file_path = Path(file_path)
+    if file_path.exists():
+        return file_path
+
+    cur_path = Path(__file__).absolute().resolve()
+    while True:
+        if (cur_path / file_path.name).exists():
+            return cur_path / file_path.name
+        if str(cur_path).endswith('qlib'):
+            raise FileNotFoundError("We can't find the config file: {}".format(file_path))
+        cur_path = cur_path.parent
+
+
 def get_path_list(path):
     if isinstance(path, str):
         return [path]
@@ -48,12 +62,26 @@ def workflow(config_path, experiment_name="workflow", uri_folder="mlruns"):
     This is a Qlib CLI entrance.
     User can run the whole Quant research workflow defined by a configure file
     - the code is located here ``qlib/workflow/cli.py`
+
+    User can specify a base_config file in your workflow.yml file by adding "base_config_path".
+    Qlib will load the configuration in base_config_path first, and the user only needs to update the custom fields
+    in their own workflow.yml file.
+
+    For examples:
+
+        qlib_init:
+            provider_uri: "~/.qlib/qlib_data/cn_data"
+            region: cn
+        base_config_path: "workflow_config_lightgbm_Alpha158_csi500.yaml"
+        market: csi300
+
     """
     with open(config_path) as fp:
         config = yaml.safe_load(fp)
 
     base_config_path = config.get("base_config_path", None)
     if base_config_path:
+        base_config_path = search_file(base_config_path)
         with open(base_config_path) as fp:
             base_config = yaml.safe_load(fp)
     else:
