@@ -187,6 +187,19 @@ class GATs(Model):
         
         return loss
     
+    def half_margin_ranking(self, pred, label, use_mse=False):
+        idx = torch.randperm(pred.size(0))
+        pair_1, pair_2 = idx[::2], idx[1::2]
+        if pred.size(0) % 2 == 1:
+            pair_1 = pair_1[:-1]
+        target = torch.sign(label[pair_1] - label[pair_2])
+        pred_ord = torch.sign(pred[pair_1] - pred[pair_2])
+        loss = F.margin_ranking_loss(pred[pair_1][target != pred_ord], pred[pair_2][target != pred_ord], target[target != pred_ord], margin=0.05, reduction='mean')
+        if use_mse:
+            loss += torch.mean(torch.sqrt((pred - label) ** 2))
+        
+        return loss
+    
     def precise_margin_ranking(self, pred, label, use_mse=False):
         idx = torch.randperm(pred.size(0))
         pair_1, pair_2 = idx[::2], idx[1::2]
@@ -213,6 +226,10 @@ class GATs(Model):
             return self.precise_margin_ranking(pred[mask], label[mask])
         elif self.loss == "precise_margin_ranking_w_mse":
             return self.precise_margin_ranking(pred[mask], label[mask], use_mse=True)
+        elif self.loss == "half_margin_ranking":
+            return self.half_margin_ranking(pred[mask], label[mask])
+        elif self.loss == "half_margin_ranking_w_mse":
+            return self.half_margin_ranking(pred[mask], label[mask], use_mse=True)
 
         raise ValueError("unknown loss `%s`" % self.loss)
 
