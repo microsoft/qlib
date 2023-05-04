@@ -18,7 +18,7 @@ data_handler_config: &data_handler_config
         label: day
         feature: 1min
     # with label as reference
-    inst_processor:
+    inst_processors:
         feature:
             - class: Resample1minProcessor
               module_path: features_sample.py

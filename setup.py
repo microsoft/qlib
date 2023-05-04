@@ -146,6 +146,9 @@ setup(
             # References: https://github.com/python/typeshed/issues/8799
             "mypy<0.981",
             "flake8",
+            "nbqa",
+            "jupyter",
+            "nbconvert",
             # The 5.0.0 version of importlib-metadata removed the deprecated endpoint,
             # which prevented flake8 from working properly, so we restricted the version of importlib-metadata.
             # To help ensure the dependencies of flake8 https://github.com/python/importlib_metadata/issues/406
@@ -167,7 +170,7 @@ setup(
             "gym>=0.24",  # If you do not put gym at the end, gym will degrade causing pytest results to fail.
         ],
         "rl": [
-            "tianshou",
+            "tianshou<=0.4.10",
             "torch",
         ],
     },

@@ -64,8 +64,6 @@ task:
         kwargs:
             loss: mse
             lr: 0.002
-            lr_decay: 0.96
-            lr_decay_steps: 100
             optimizer: adam
             max_steps: 8000
             batch_size: 8192

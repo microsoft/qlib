@@ -154,12 +154,7 @@ def single_with_simulator(
     -------
         If generate_report is True, return execution records and the generated report. Otherwise, return only records.
     """
-    if split == "stock":
-        stock_id = orders.iloc[0].instrument
-        init_qlib(backtest_config["qlib"], part=stock_id)
-    else:
-        day = orders.iloc[0].datetime
-        init_qlib(backtest_config["qlib"], part=day)
+    init_qlib(backtest_config["qlib"])
 
     stocks = orders.instrument.unique().tolist()
 
@@ -253,12 +248,7 @@ def single_with_collect_data_loop(
         If generate_report is True, return execution records and the generated report. Otherwise, return only records.
     """
 
-    if split == "stock":
-        stock_id = orders.iloc[0].instrument
-        init_qlib(backtest_config["qlib"], part=stock_id)
-    else:
-        day = orders.iloc[0].datetime
-        init_qlib(backtest_config["qlib"], part=day)
+    init_qlib(backtest_config["qlib"])
 
     trade_start_time = orders["datetime"].min()
     trade_end_time = orders["datetime"].max()
@@ -357,7 +347,10 @@ def backtest(backtest_config: dict, with_simulator: bool = False) -> pd.DataFram
 
     if not output_path.exists():
         os.makedirs(output_path)
-    res.to_csv(output_path / "summary.csv")
+
+    if "pa" in res.columns:
+        res["pa"] = res["pa"] * 10000.0  # align with training metrics
+    res.to_csv(output_path / "backtest_result.csv")
     return res
 
 

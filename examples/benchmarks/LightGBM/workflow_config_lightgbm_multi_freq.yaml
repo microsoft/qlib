@@ -19,7 +19,7 @@ data_handler_config: &data_handler_config
         feature_15min: 1min
         feature_day: day
     # with label as reference
-    inst_processor:
+    inst_processors:
         feature_15min:
             - class: ResampleNProcessor
               module_path: features_resample_N.py

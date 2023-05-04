@@ -415,7 +415,7 @@ class MLflowExpManager(ExpManager):
                     raise MlflowException("No valid experiment has been found.")
                 self.client.delete_experiment(experiment.experiment_id)
         except MlflowException as e:
-            raise Exception(
+            raise ValueError(
                 f"Error: {e}. Something went wrong when deleting experiment. Please check if the name/id of the experiment is correct."
             ) from e
 

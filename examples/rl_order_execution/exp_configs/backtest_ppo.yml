@@ -1,0 +1,52 @@
+order_file: ./data/orders/test_orders.pkl
+start_time: "9:30"
+end_time: "14:54"
+qlib:
+  provider_uri_5min: ./data/bin/
+exchange:
+  limit_threshold: null
+  deal_price: ["$close", "$close"]
+  volume_threshold: null
+strategies:
+  1day:
+    class: SAOEIntStrategy
+    kwargs:
+      data_granularity: 5
+      action_interpreter:
+        class: CategoricalActionInterpreter
+        kwargs:
+          max_step: 8
+          values: 4
+        module_path: qlib.rl.order_execution.interpreter
+      network:
+        class: Recurrent
+        kwargs: {}
+        module_path: qlib.rl.order_execution.network
+      policy:
+        class: PPO  # PPO, DQN
+        kwargs:
+          lr: 0.0001
+          # Restore `weight_file` once the training workflow finishes. You can change the checkpoint file you want to use.
+          # weight_file: outputs/ppo/checkpoints/latest.pth
+        module_path: qlib.rl.order_execution.policy
+      state_interpreter:
+        class: FullHistoryStateInterpreter
+        kwargs:
+          data_dim: 5
+          data_ticks: 48
+          max_step: 8
+          processed_data_provider:
+            class: HandlerProcessedDataProvider
+            kwargs:
+              data_dir: ./data/pickle/
+              feature_columns_today: ["$high", "$low", "$open", "$close", "$volume"]
+              feature_columns_yesterday: ["$high_1", "$low_1", "$open_1", "$close_1", "$volume_1"]
+            module_path: qlib.rl.data.native
+        module_path: qlib.rl.order_execution.interpreter
+    module_path: qlib.rl.order_execution.strategy
+  30min:
+    class: TWAPStrategy
+    kwargs: {}
+    module_path: qlib.contrib.strategy.rule_strategy
+concurrency: 16
+output_dir: outputs/ppo/

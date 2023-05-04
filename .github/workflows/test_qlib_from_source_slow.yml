@@ -14,7 +14,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [windows-latest, ubuntu-18.04, ubuntu-20.04, macos-11, macos-latest]
+        os: [windows-latest, ubuntu-20.04, ubuntu-22.04, macos-11, macos-latest]
         # not supporting 3.6 due to annotations is not supported https://stackoverflow.com/a/52890129
         python-version: [3.7, 3.8]
 
@@ -28,9 +28,10 @@ jobs:
         python-version: ${{ matrix.python-version }}
 
     - name: Set up Python tools
+      # pip release version 23.1 on Apr.15 2023, CI failed to run, Please refer to #1495 ofr detailed logs.
+      # The pip version has been temporarily fixed to 23.0.1
       run: |
-        python -m pip install --upgrade pip
-        # python -m pip is necessary to upgrade pip.
+        python -m pip install pip==23.0.1
         pip install --upgrade cython numpy
         pip install -e .[dev]
 
