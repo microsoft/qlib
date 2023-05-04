@@ -1,6 +1,6 @@
 #  Copyright (c) Microsoft Corporation.
 #  Licensed under the MIT License.
-
+import logging
 import sys
 import os
 from pathlib import Path
@@ -11,20 +11,9 @@ import ruamel.yaml as yaml
 from qlib.config import C
 from qlib.model.trainer import task_train
 from qlib.utils.data import update_config
+from qlib.log import get_module_logger
 
-
-def search_file(file_path: str):
-    file_path = Path(file_path)
-    if file_path.exists():
-        return file_path
-
-    cur_path = Path(__file__).absolute().resolve()
-    while True:
-        if (cur_path / file_path.name).exists():
-            return cur_path / file_path.name
-        if str(cur_path).endswith("qlib"):
-            raise FileNotFoundError("We can't find the config file: {}".format(file_path))
-        cur_path = cur_path.parent
+logger = get_module_logger("qrun", logging.INFO)
 
 
 def get_path_list(path):
@@ -72,16 +61,22 @@ def workflow(config_path, experiment_name="workflow", uri_folder="mlruns"):
         qlib_init:
             provider_uri: "~/.qlib/qlib_data/cn_data"
             region: cn
-        base_config_path: "workflow_config_lightgbm_Alpha158_csi500.yaml"
+        BASE_CONFIG_PATH: "workflow_config_lightgbm_Alpha158_csi500.yaml"
         market: csi300
 
     """
     with open(config_path) as fp:
         config = yaml.safe_load(fp)
 
-    base_config_path = config.get("base_config_path", None)
+    base_config_path = config.get("BASE_CONFIG_PATH", None)
     if base_config_path:
-        base_config_path = search_file(base_config_path)
+        logger.info(f"Use BASE_CONFIG: {base_config_path}")
+        base_config_path = Path(base_config_path)
+
+        # it will find config file in absolute path and relative path
+        if not base_config_path.exists():
+            raise FileNotFoundError(f"Can't find the BASE_CONFIG file: {base_config_path}")
+
         with open(base_config_path) as fp:
             base_config = yaml.safe_load(fp)
     else:
