@@ -147,6 +147,7 @@ _default_config = {
     "redis_host": "127.0.0.1",
     "redis_port": 6379,
     "redis_task_db": 1,
+    "redis_password": None,
     # This value can be reset via qlib.init
     "logging_level": logging.INFO,
     # Global configuration of qlib log
