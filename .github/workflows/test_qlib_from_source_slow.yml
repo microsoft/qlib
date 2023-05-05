@@ -58,5 +58,6 @@ jobs:
         command: |
           cd tests
           pwd
+          ll
           python -c "import sys; print(sys.path)"
           python -m pytest . -m "slow" --durations=0
