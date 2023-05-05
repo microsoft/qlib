@@ -635,7 +635,7 @@ class FileOrderStrategy(BaseStrategy):
             self.order_df = file
         else:
             with get_io_object(file) as f:
-                self.order_df = pd.read_csv(f, dtype={"datetime": np.str})
+                self.order_df = pd.read_csv(f, dtype={"datetime": str})
 
         self.order_df["datetime"] = self.order_df["datetime"].apply(pd.Timestamp)
         self.order_df = self.order_df.set_index(["datetime", "instrument"])
