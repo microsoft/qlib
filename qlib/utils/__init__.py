@@ -44,7 +44,7 @@ is_deprecated_lexsorted_pandas = version.parse(pd.__version__) > version.parse("
 #################### Server ####################
 def get_redis_connection():
     """get redis connection instance."""
-    return redis.StrictRedis(host=C.redis_host, port=C.redis_port, db=C.redis_task_db)
+    return redis.StrictRedis(host=C.redis_host, port=C.redis_port, db=C.redis_task_db, password=C.redis_password)
 
 
 #################### Data ####################
