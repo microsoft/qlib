@@ -56,8 +56,6 @@ jobs:
         timeout_minutes: 240
         max_attempts: 3
         command: |
+          python -c "import sys; import os; sys.path.append(os.getcwd()); print(sys.path)"
           cd tests
-          pwd
-          ls
-          python -c "import sys; print(sys.path)"
           python -m pytest . -m "slow" --durations=0
