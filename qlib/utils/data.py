@@ -109,7 +109,7 @@ def update_config(base_config: dict, ext_config: Union[dict, List[dict]]):
 
 def guess_horizon(label):
     """
-        Try to guess the horizon by parsing label
+    Try to guess the horizon by parsing label
     """
     regex = r"Ref\(\s*\$[a-zA-Z]+,\s*-(\d+)\)"
     horizon_list = [int(x) for x in re.findall(regex, label)]

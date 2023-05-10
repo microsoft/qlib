@@ -134,7 +134,7 @@ class MTSDatasetH(DatasetH):
         if horizon == 0:
             # Try to guess horizon
             if type(handler) is dict:
-                label = handler.get("kwargs", {}).get("label",[""])[0]
+                label = handler.get("kwargs", {}).get("label", [""])[0]
             else:
                 label = handler.data_loader.fields["label"][0][0]
             horizon = guess_horizon(label)
