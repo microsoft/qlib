@@ -118,17 +118,17 @@ class DataUtils(TestCase):
         init()
 
     def test_guess_horizon(self):
-        label1 = "Ref($close, -2) / Ref($close, -1) - 1"
-        result1 = guess_horizon(label1)
-        assert(result1 == 2)
+        label = "Ref($close, -2) / Ref($close, -1) - 1"
+        result = guess_horizon(label)
+        assert result == 2
 
-        label1 = "Ref($close, -5) / Ref($close, -1) - 1"
-        result1 = guess_horizon(label1)
-        assert(result1 == 5)
+        label = "Ref($close, -5) / Ref($close, -1) - 1"
+        result = guess_horizon(label)
+        assert result == 5
 
-        label1 = "Ref($close, -1) / Ref($close, -1) - 1"
-        result1 = guess_horizon(label1)
-        assert(result1 is None)
+        label = "Ref($close, -1) / Ref($close, -1) - 1"
+        result = guess_horizon(label)
+        assert result is None
 
 if __name__ == "__main__":
     unittest.main()
