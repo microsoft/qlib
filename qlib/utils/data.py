@@ -3,10 +3,12 @@
 """
 This module covers some utility functions that operate on data or basic object
 """
+import re
 from copy import deepcopy
 from typing import List, Union
-import pandas as pd
+
 import numpy as np
+import pandas as pd
 
 
 def robust_zscore(x: pd.Series, zscore=False):
@@ -103,3 +105,19 @@ def update_config(base_config: dict, ext_config: Union[dict, List[dict]]):
                     # one of then are not dict. Then replace
                     base_config[key] = ec[key]
     return base_config
+
+
+def guess_horizon(label):
+    """
+        Try to guess the horizon by parsing label
+    """
+    regex = r"Ref\(\s*\$[a-zA-Z]+,\s*-(\d+)\)"
+    horizon_list = [int(x) for x in re.findall(regex, label)]
+
+    if len(horizon_list) == 0:
+        return None
+    max_horizon = max(horizon_list)
+    # Unlikely the label doesn't use future information
+    if max_horizon < 2:
+        return None
+    return max_horizon

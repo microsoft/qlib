@@ -9,6 +9,7 @@ from qlib.config import C
 from qlib.log import TimeInspector
 from qlib.constant import REG_CN, REG_US, REG_TW
 from qlib.utils.time import cal_sam_minute as cal_sam_minute_new, get_min_cal, CN_TIME, US_TIME, TW_TIME
+from qlib.utils.data import guess_horizon
 
 REG_MAP = {REG_CN: CN_TIME, REG_US: US_TIME, REG_TW: TW_TIME}
 
@@ -111,6 +112,23 @@ class TimeUtils(TestCase):
                 for args in args_l:
                     cal_sam_minute_new(*args, region=region)
 
+class DataUtils(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        init()
+
+    def test_guess_horizon(self):
+        label1 = "Ref($close, -2) / Ref($close, -1) - 1"
+        result1 = guess_horizon(label1)
+        assert(result1 == 2)
+
+        label1 = "Ref($close, -5) / Ref($close, -1) - 1"
+        result1 = guess_horizon(label1)
+        assert(result1 == 5)
+
+        label1 = "Ref($close, -1) / Ref($close, -1) - 1"
+        result1 = guess_horizon(label1)
+        assert(result1 is None)
 
 if __name__ == "__main__":
     unittest.main()
