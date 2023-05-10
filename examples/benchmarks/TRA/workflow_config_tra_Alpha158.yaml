@@ -31,7 +31,7 @@ data_handler_config: &data_handler_config
         fields_group: label
   label: ["Ref($close, -2) / Ref($close, -1) - 1"]
 
-num_states: &num_states 3
+num_states: &num_states 5
 
 memory_mode: &memory_mode sample
 
@@ -112,7 +112,6 @@ task:
         valid: [2015-01-01, 2016-12-31]
         test: [2017-01-01, 2020-08-01]
       seq_len: 60
-      horizon: 2
       input_size:
       num_states: *num_states
       batch_size: 1024

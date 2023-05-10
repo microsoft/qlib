@@ -120,4 +120,4 @@ def guess_horizon(label):
     # Unlikely the label doesn't use future information
     if max_horizon < 2:
         return None
-    return max_horizon
+    return max_horizon + 1
