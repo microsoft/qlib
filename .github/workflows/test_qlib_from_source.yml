@@ -160,6 +160,4 @@ jobs:
         timeout_minutes: 60
         max_attempts: 3
         command: |
-          if ${{ matrix.os == 'windows-latest' }}; then set PYTHONPATH=%PYTHONPATH%;%cd%; else export PYTHONPATH=$PYTHONPATH:$(pwd); fi
-          python -c "import sys; print(sys.path)"
           python -m pytest ./tests -m "not slow" --durations=0
