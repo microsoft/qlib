@@ -58,5 +58,4 @@ jobs:
         command: |
           if ${{ matrix.os == 'windows-latest '}}; then set PYTHONPATH=%PYTHONPATH%;%cd%; else export PYTHONPATH=$PYTHONPATH:$(pwd); fi
           python -c "import sys; print(sys.path)"
-          cd tests
-          python -m pytest . -m "slow" --durations=0
+          python -m pytest ./tests -m "slow" --durations=0
