@@ -6,6 +6,7 @@ import torch
 import warnings
 import numpy as np
 import pandas as pd
+from qlib.utils.data import guess_horizon
 
 from qlib.data.dataset import DatasetH
 
@@ -130,6 +131,16 @@ class MTSDatasetH(DatasetH):
         input_size=None,
         **kwargs,
     ):
+        if horizon == 0:
+            # Try to guess horizon
+            if type(handler) is dict:
+                label = handler.get("kwargs", {}).get("label",[""])[0]
+            else:
+                label = handler.data_loader.fields["label"][0][0]
+            horizon = guess_horizon(label)
+            # Failed to guess horizon, set back to 0
+            if horizon is None:
+                horizon = 0
 
         assert num_states == 0 or horizon > 0, "please specify `horizon` to avoid data leakage"
         assert memory_mode in ["sample", "daily"], "unsupported memory mode"
