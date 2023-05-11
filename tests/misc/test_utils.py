@@ -112,7 +112,7 @@ class TimeUtils(TestCase):
                 for args in args_l:
                     cal_sam_minute_new(*args, region=region)
 
-                    
+
 class DataUtils(TestCase):
     @classmethod
     def setUpClass(cls):
