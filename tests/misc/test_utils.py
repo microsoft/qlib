@@ -111,6 +111,8 @@ class TimeUtils(TestCase):
             with TimeInspector.logt():
                 for args in args_l:
                     cal_sam_minute_new(*args, region=region)
+
+                    
 class DataUtils(TestCase):
     @classmethod
     def setUpClass(cls):
@@ -128,5 +130,7 @@ class DataUtils(TestCase):
         label = "Ref($close, -1) / Ref($close, -1) - 1"
         result = guess_horizon(label)
         assert result is None
+
+
 if __name__ == "__main__":
     unittest.main()
