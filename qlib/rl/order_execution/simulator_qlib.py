@@ -67,7 +67,7 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
         cash_limit: Optional[float] = None,
     ) -> None:
         if qlib_config is not None:
-            init_qlib(qlib_config, part="skip")
+            init_qlib(qlib_config)
 
         strategy, self._executor = get_strategy_executor(
             start_time=order.date,

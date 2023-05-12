@@ -3,8 +3,8 @@ simulator:
   time_per_step: 30
   vol_limit: null
 env:
-  concurrency: 48
-  parallel_mode: shmem
+  concurrency: 32
+  parallel_mode: dummy
 action_interpreter:
   class: CategoricalActionInterpreter
   kwargs:
@@ -18,10 +18,13 @@ state_interpreter:
     data_ticks: 48  # 48 = 240 min / 5 min
     max_step: 8
     processed_data_provider:
-      class: PickleProcessedDataProvider
-      module_path: qlib.rl.data.pickle_styled
+      class: HandlerProcessedDataProvider
       kwargs:
-        data_dir: ./data/pickle_dataframe/feature
+        data_dir: ./data/pickle/
+        feature_columns_today: ["$high", "$low", "$open", "$close", "$volume"]
+        feature_columns_yesterday: ["$high_1", "$low_1", "$open_1", "$close_1", "$volume_1"]
+        backtest: false
+      module_path: qlib.rl.data.native
   module_path: qlib.rl.order_execution.interpreter
 reward:
   class: PPOReward
@@ -33,7 +36,9 @@ reward:
 data:
   source:
     order_dir: ./data/orders
-    data_dir: ./data/pickle_dataframe/backtest
+    feature_root_dir: ./data/pickle/
+    feature_columns_today: ["$close0", "$volume0"]
+    feature_columns_yesterday: []
     total_time: 240
     default_start_time_index: 0
     default_end_time_index: 235
