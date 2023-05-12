@@ -140,8 +140,6 @@ class MTSDatasetH(DatasetH):
                 handler = init_instance_by_config(handler)
             label = handler.data_loader.fields["label"][0][0]
             horizon = guess_horizon(label)
-            if horizon is None:
-                horizon = 0
 
         assert num_states == 0 or horizon > 0, "please specify `horizon` to avoid data leakage"
         assert memory_mode in ["sample", "daily"], "unsupported memory mode"

@@ -115,9 +115,9 @@ def guess_horizon(label):
     horizon_list = [int(x) for x in re.findall(regex, label)]
 
     if len(horizon_list) == 0:
-        return None
+        return 0
     max_horizon = max(horizon_list)
     # Unlikely the label doesn't use future information
     if max_horizon < 2:
-        return None
+        return 0
     return max_horizon + 1
