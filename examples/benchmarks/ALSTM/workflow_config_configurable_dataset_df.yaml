@@ -1,11 +1,11 @@
 qlib_init:
-  provider_uri: ~/.qlib/qlib_data/my_data/sp500_components
+  provider_uri: ~/.qlib/qlib_data/my_data/gats_df
   region: us
 market: sp500
 benchmark: ^GSPC
 data_handler_config: &data_handler_config
   start_time: 2008-01-01
-  end_time: 2022-12-30
+  end_time: 2022-12-31
   fit_start_time: 2008-01-01
   fit_end_time: 2014-12-31
   instruments: ['PNW', 'MA', 'FDX', 'BEN', 'NKE', 'CSX', 'F', 'PKI', 'PHM', 'ADSK', 'JNJ', 'LMT', 'FIS', 'ITW', 'SHW', 'ADI', 
@@ -20,21 +20,23 @@ data_handler_config: &data_handler_config
                 'CNP', 'CAT', 'TXT', 'ED', 'CVX', 'SCHW', 'ETN', 'WM', 'WU', 'GOOG', 'MTB', 'SWK', 'RHI', 'KEY', 'AVB', 'GLW', 
                 'CAG', 'AEE', 'T', 'PPG', 'ORCL', 'WELL', 'AMGN', 'SPGI', 'MU', 'CBRE', 'UAA', 'WY', 'EFX', 'IVZ', 'HAL', 'OKE', 
                 'WFC', 'DUK', 'WYNN', 'WAT', 'PG', 'EA', 'NOC', 'BSX', 'NDAQ', 'LEN', 'BA', 'RTX', 'BMY', 'FMC', 'NVDA', 'WHR', 
-                'YUM', 'NEE', 'AMP', 'SO', 'EIX', 'CSCO', 'VFC', 'COP', 'EMR', 'ISRG', 'ZBH', 'AEP', 'AMAT', 'AZO', 'NOV', 
+                'YUM', 'NEE', 'AMP', 'SO', '^GSPC', 'EIX', 'CSCO', 'VFC', 'COP', 'EMR', 'ISRG', 'ZBH', 'AEP', 'AMAT', 'AZO', 'NOV', 
                 'LOW', 'MSI', 'VRSN', 'TFC', 'INTU', 'SBUX', 'NTAP', 'DRI', 'SRE', 'DE', 'EXPE', 'PAYX', 'VLO', 'FCX', 'ROK', 'AVY', 
                 'LUV', 'PH', 'SPG', 'DFS', 'CI', 'KO', 'PNC', 'CPB', 'WBA', 'MDLZ', 'TXN', 'A', 'EMN', 'HAS', 'STZ', 'D', 'ECL', 
                 'IBM', 'QCOM', 'HUM', 'HSY', 'DIS', 'DTE', 'DOV', 'INTC', 'UPS', 'CLX', 'KR', 'PCAR', 'FE', 'BKR', 'LUMN', 'MO', 
                 'APA', 'AMZN', 'NWL', 'ADM', 'BBY', 'NI', 'TJX', 'XEL', 'DVA', 'EL', 'EQR', 'EXPD', 'XRAY', 'DHI', 'CAH', 'MRK', 
                 'MSFT', 'AON', 'BIIB', 'ICE', 'L', 'SNA', 'VZ', 'TT', 'NTRS', 'BXP', 'EBAY', 'BK', 'MAS', 'MCK', 'SLB', 'FTI', 'J', 
-                'PPL', 'SYY', 'BAX', 'MCO', 'CME', 'ABT', 'ADP', 'TSN', 'MCD', 'ADBE', 'CVS', 
-                '^GSPC', 'IYW', 'IYH', 'IYC', 'IYZ', 'IYF', 'IYJ', 'IYK', 'IDU', 'IYR', 'IYM', 'IYE']
+                'PPL', 'SYY', 'BAX', 'MCO', 'CME', 'ABT', 'ADP', 'TSN', 'MCD', 'ADBE', 'CVS']
+
   infer_processors:
     - class: FilterCol
       kwargs:
         fields_group: feature
-        col_list: [RESI5, WVMA5, RSQR5, KLEN, RSQR10, CORR5, CORD5, CORR10, ROC60,
-          RESI10, VSTD5, RSQR60, CORR60, WVMA60, STD5, RSQR20, CORD60, CORD10, CORR20,
-          KLOW]
+        col_list: ['F_1', 'F_2', 'F_3', 'F_4', 'F_5', 'F_6', 'F_7', 'F_8', 'F_9', 'F_10', 'F_11', 'F_12', 'F_13', 'F_14', 'F_15',
+          'F_16', 'F_17', 'F_18', 'F_19', 'F_20', 'F_21', 'F_22', 'F_23', 'F_24', 'F_25', 'F_26', 'F_27', 'F_28', 'F_29', 'F_30',
+          'F_31', 'F_32', 'F_33', 'F_34', 'F_35', 'F_36', 'F_37', 'F_38', 'F_39', 'F_40', 'F_41', 'F_42', 'F_43', 'F_44', 'F_45',
+          'F_46', 'F_47', 'F_48', 'F_49', 'F_50', 'F_51', 'F_52', 'F_53', 'F_54', 'F_55', 'F_56', 'F_57', 'F_58', 'F_59', 'F_60',
+          'F_61', 'F_62', 'F_63', 'F_64']
     - class: RobustZScoreNorm
       kwargs:
         fields_group: feature
@@ -47,7 +49,8 @@ data_handler_config: &data_handler_config
     - class: CSRankNorm
       kwargs:
         fields_group: label
-  label: ['Ref($close, -2) / Ref($close, -1) - 1']
+  label: ['return']
+
 port_analysis_config: &port_analysis_config
   strategy:
     class: TopkDropoutStrategy
@@ -69,43 +72,24 @@ port_analysis_config: &port_analysis_config
       open_cost: 0.0005
       close_cost: 0.0015
       min_cost: 5
-      codes: ['PNW', 'MA', 'FDX', 'BEN', 'NKE', 'CSX', 'F', 'PKI', 'PHM', 'ADSK', 'JNJ', 'LMT', 'FIS', 'ITW', 'SHW', 'ADI', 
-                'PRU', 'PFG', 'USB', 'GILD', 'LIN', 'FITB', 'UNM', 'NSC', 'HIG', 'AIZ', 'BDX', 'CMS', 'DVN', 'PEP', 'PGR', 'AMT', 
-                'CMA', 'PWR', 'K', 'BKNG', 'ABC', 'CMI', 'COST', 'UNP', 'LEG', 'TROW', 'MMM', 'GD', 'CTSH', 'CMCSA', 'FISV', 
-                'ZION', 'CL', 'HPQ', 'RF', 'CHRW', 'MAR', 'WEC', 'TPR', 'APH', 'LHX', 'CINF', 'PFE', 'JPM', 'SJM', 'HD', 'JNPR', 
-                'IRM', 'RSG', 'LLY', 'KLAC', 'GIS', 'WMB', 'AIG', 'AIV', 'NRG', 'RL', 'GPC', 'XRX', 'TMO', 'UNH', 'CF', 'EOG', 
-                'PEG', 'COF', 'STT', 'LH', 'GS', 'WMT', 'C', 'HST', 'OMC', 'PLD', 'PXD', 'ROST', 'SYK', 'OXY', 'DGX', 'AAPL', 
-                'CTAS', 'GPS', 'IPG', 'GL', 'AXP', 'HON', 'KIM', 'ROP', 'AES', 'ES', 'PSA', 'AFL', 'KMB', 'CCL', 'ORLY', 'GWW', 
-                'GE', 'EXC', 'MDT', 'SEE', 'TGT', 'TRV', 'MCHP', 'WDC', 'XOM', 'HBAN', 'APD', 'MKC', 'MS', 'HES', 'ETR', 'MMC', 
-                'VNO', 'LNC', 'NEM', 'TAP', 'BAC', 'MRO', 'PEAK', 'IFF', 'AKAM', 'ALL', 'IP', 'VMC', 'FLS', 'DHR', 'MET', 'NUE', 
-                'CNP', 'CAT', 'TXT', 'ED', 'CVX', 'SCHW', 'ETN', 'WM', 'WU', 'GOOG', 'MTB', 'SWK', 'RHI', 'KEY', 'AVB', 'GLW', 
-                'CAG', 'AEE', 'T', 'PPG', 'ORCL', 'WELL', 'AMGN', 'SPGI', 'MU', 'CBRE', 'UAA', 'WY', 'EFX', 'IVZ', 'HAL', 'OKE', 
-                'WFC', 'DUK', 'WYNN', 'WAT', 'PG', 'EA', 'NOC', 'BSX', 'NDAQ', 'LEN', 'BA', 'RTX', 'BMY', 'FMC', 'NVDA', 'WHR', 
-                'YUM', 'NEE', 'AMP', 'SO', 'EIX', 'CSCO', 'VFC', 'COP', 'EMR', 'ISRG', 'ZBH', 'AEP', 'AMAT', 'AZO', 'NOV', 
-                'LOW', 'MSI', 'VRSN', 'TFC', 'INTU', 'SBUX', 'NTAP', 'DRI', 'SRE', 'DE', 'EXPE', 'PAYX', 'VLO', 'FCX', 'ROK', 'AVY', 
-                'LUV', 'PH', 'SPG', 'DFS', 'CI', 'KO', 'PNC', 'CPB', 'WBA', 'MDLZ', 'TXN', 'A', 'EMN', 'HAS', 'STZ', 'D', 'ECL', 
-                'IBM', 'QCOM', 'HUM', 'HSY', 'DIS', 'DTE', 'DOV', 'INTC', 'UPS', 'CLX', 'KR', 'PCAR', 'FE', 'BKR', 'LUMN', 'MO', 
-                'APA', 'AMZN', 'NWL', 'ADM', 'BBY', 'NI', 'TJX', 'XEL', 'DVA', 'EL', 'EQR', 'EXPD', 'XRAY', 'DHI', 'CAH', 'MRK', 
-                'MSFT', 'AON', 'BIIB', 'ICE', 'L', 'SNA', 'VZ', 'TT', 'NTRS', 'BXP', 'EBAY', 'BK', 'MAS', 'MCK', 'SLB', 'FTI', 'J', 
-                'PPL', 'SYY', 'BAX', 'MCO', 'CME', 'ABT', 'ADP', 'TSN', 'MCD', 'ADBE', 'CVS']
 task:
   model:
-    class: GATs
-    module_path: qlib.contrib.model.pytorch_gats_ts
+    class: ALSTM
+    module_path: qlib.contrib.model.pytorch_alstm_ts
     kwargs:
       d_feat: 20
       hidden_size: 64
       num_layers: 2
-      dropout: 0.5 # 0.7
-      n_epochs: 200
-      lr: 1e-4
-      weight_decay: 0.001
+      dropout: 0.8
+      n_epochs: 200 # 20
+      lr: 1e-3
       early_stop: 10
+      # batch_size: 100 # 800
       metric: loss
       loss: mse
-      base_model: LSTM
-      model_path: benchmarks/LSTM/csi300_lstm_ts.pkl
+      n_jobs: 20
       GPU: 0
+      rnn_type: GRU
       tensorboard_path: /home/ashotnanyan/qlib/tensorboard_logs
       print_iter: 50
   dataset:
@@ -113,10 +97,10 @@ task:
     module_path: qlib.data.dataset
     kwargs:
       handler:
-        class: Alpha158
-        module_path: qlib.contrib.data.handler
+        class: CustomFeaturesLabelALSTM
+        module_path: qlib.contrib.data.data_loading
         kwargs: *data_handler_config
-      segments:
+      segments: 
         train: [2008-01-01, 2014-12-31]
         valid: [2015-01-01, 2016-12-31]
         test: [2017-01-01, 2022-12-29]

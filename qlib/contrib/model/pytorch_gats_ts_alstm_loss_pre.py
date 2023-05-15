@@ -7,6 +7,7 @@ from __future__ import print_function
 
 import numpy as np
 import pandas as pd
+import copy
 from ...utils import get_or_create_path
 from ...log import get_module_logger, get_tensorboard_logger
 import torch
@@ -23,8 +24,9 @@ from copy import deepcopy
 from .pytorch_utils import count_parameters
 from ...model.base import Model
 from ...data.dataset.handler import DataHandlerLP
-from ...contrib.model.pytorch_lstm import LSTMModel
-from ...contrib.model.pytorch_gru import GRUModel
+from .pytorch_lstm import LSTMModel
+from .pytorch_gru import GRUModel
+from qlib.contrib.model.pytorch_alstm_ts import ALSTMModel
 
 
 class DailyBatchSampler(Sampler):
@@ -34,11 +36,20 @@ class DailyBatchSampler(Sampler):
         self.daily_count = pd.Series(index=self.data_source.get_index()).groupby("datetime").size().values
         self.daily_index = np.roll(np.cumsum(self.daily_count), 1)  # calculate begin index of each batch
         self.daily_index[0] = 0
+        self.k = 20 # the number of combined time-steps
 
     def __iter__(self):
-
+        a = self.daily_index[0]
+        b = self.daily_count[0]
+        a_b = np.arange(a, b)
         for idx, count in zip(self.daily_index, self.daily_count):
-            yield np.arange(idx, idx + count)
+            self.k -= 1
+            if self.k >= 0: 
+                missing = np.tile(a_b, self.k)
+                existing = np.arange(0, idx + count)
+                yield np.append(missing, existing)
+            else:
+                yield np.arange(-self.k*count, idx + count)
 
     def __len__(self):
         return len(self.data_source)
@@ -81,6 +92,7 @@ class GATs(Model):
         GPU=0,
         n_jobs=10,
         tensorboard_path="",
+        k=20, # the number of combined time-steps
         print_iter=50,
         seed=None,
         **kwargs
@@ -109,6 +121,7 @@ class GATs(Model):
         self.n_jobs = n_jobs
         self.seed = seed
         self.tensorboard_path = tensorboard_path
+        self.k = k
         self.print_iter = print_iter
 
         self.logger.info(
@@ -156,14 +169,25 @@ class GATs(Model):
             num_layers=self.num_layers,
             dropout=self.dropout,
             base_model=self.base_model,
+            k=self.k
         )
         self.logger.info("model:\n{:}".format(self.GAT_model))
         self.logger.info("model size: {:.4f} MB".format(count_parameters(self.GAT_model)))
-
+        
+        lr_customized = [
+            {"params": self.GAT_model.rnn.parameters()},
+            {"params": self.GAT_model.transformation.parameters()},
+            {"params": self.GAT_model.fc.parameters()},
+            {"params": self.GAT_model.fc_out.parameters()},
+            {"params": self.GAT_model.leaky_relu.parameters()},
+            {"params": self.GAT_model.softmax.parameters()},
+            {"params": self.GAT_model.a},
+            {"params": self.GAT_model.alstm.parameters(), "lr": self.lr}
+        ]
         if optimizer.lower() == "adam":
-            self.train_optimizer = optim.AdamW(self.GAT_model.parameters(), lr=self.lr, weight_decay=self.weight_decay)
+            self.train_optimizer = optim.AdamW(lr_customized, lr=self.lr/10, weight_decay=self.weight_decay)
         elif optimizer.lower() == "gd":
-            self.train_optimizer = optim.SGD(self.GAT_model.parameters(), lr=self.lr, weight_decay=self.weight_decay)
+            self.train_optimizer = optim.SGD(lr_customized, lr=self.lr/10, weight_decay=self.weight_decay)
         else:
             raise NotImplementedError("optimizer {} is not supported!".format(optimizer))
 
@@ -179,8 +203,8 @@ class GATs(Model):
         return torch.mean(loss)
     
     def bce(self, pred, label):
-        return F.binary_cross_entropy_with_logits(pred, label)
-
+        return F.binary_cross_entropy_with_logits(pred, label)    
+    
     def margin_ranking(self, pred, label, use_mse=False):
         idx = torch.randperm(pred.size(0))
         pair_1, pair_2 = idx[::2], idx[1::2]
@@ -225,8 +249,8 @@ class GATs(Model):
         loss = torch.sum(torch.maximum(torch.tensor(0).to(self.device), f))
         if use_mse:
             loss = (1 - lamb) * loss + lamb * torch.sum((pred - label) ** 2)
-        return loss
-
+        return loss        
+    
     def loss_fn(self, pred, label):
         mask = ~torch.isnan(label)
 
@@ -247,10 +271,9 @@ class GATs(Model):
         elif self.loss == "half_margin_ranking_w_mse":
             return self.half_margin_ranking(pred[mask], label[mask], use_mse=True)
 
-        raise ValueError("unknown loss `%s`" % self.loss)
-
+        raise ValueError("unknown loss `%s`" % self.loss)    
+    
     def metric_fn(self, pred, label):
-
         mask = torch.isfinite(label)
 
         if self.metric in ("", "loss"):
@@ -273,24 +296,24 @@ class GATs(Model):
     def train_epoch(self, data_loader, train_loader, val_loader, epoch=0, split='train', writer=None):
 
         self.GAT_model.train()
-
+        
         for batch_id, data in enumerate(data_loader):
-
+            
             data = data.squeeze()
             feature = data[:, :, 0:-1].to(self.device)
             label = data[:, -1, -1].to(self.device)
-            
-            pred = self.GAT_model(feature.float())
-            loss = self.loss_fn(pred, label)
+            label = label[-(label.shape[0] // self.k):]
+            pred_joint, pred_gats = self.GAT_model(feature.float())
+            loss = self.loss_fn(pred_joint, label) + self.loss_fn(pred_gats, label)
 
             self.train_optimizer.zero_grad()
             loss.backward()
             torch.nn.utils.clip_grad_value_(self.GAT_model.parameters(), 3.0)
             self.train_optimizer.step()
             if batch_id % self.print_iter == 0 and writer:
-                train_loss, train_score = self.test_epoch(train_loader)
-                val_loss, val_score = self.test_epoch(val_loader)
-                writer.add_scalars(f'Loss', {'train': train_loss, 'val': val_loss}, (len(data_loader) * epoch / data.size(0) + batch_id) * data.size(0))
+                train_loss, train_score = self.test_epoch(deepcopy(train_loader))
+                val_loss, val_score = self.test_epoch(deepcopy(val_loader))
+                writer.add_scalars(f'Loss', {'train': train_loss, 'val': val_loss}, (len(data_loader) * epoch / (data.size(0) / self.k) + batch_id) * (data.size(0) / self.k))
 
     def test_epoch(self, data_loader):
 
@@ -298,19 +321,19 @@ class GATs(Model):
 
         scores = []
         losses = []
-
         for data in data_loader:
 
             data = data.squeeze()
+            
             feature = data[:, :, 0:-1].to(self.device)
             # feature[torch.isnan(feature)] = 0
             label = data[:, -1, -1].to(self.device)
-
-            pred = self.GAT_model(feature.float())
-            loss = self.loss_fn(pred, label)
+            label = label[-(label.shape[0] // self.k):]
+            pred_joint, pred_gats = self.GAT_model(feature.float())
+            loss = self.loss_fn(pred_joint, label) + self.loss_fn(pred_gats, label)
             losses.append(loss.item())
 
-            score = self.metric_fn(pred, label)
+            score = self.metric_fn(pred_joint, label)
             scores.append(score.item())
         
         self.GAT_model.train()
@@ -338,8 +361,9 @@ class GATs(Model):
         valid_loader = DataLoader(dl_valid, sampler=sampler_valid, num_workers=self.n_jobs, drop_last=True)
 
         save_path = get_or_create_path(save_path)
+   
         current_time = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-        tboard_writer = get_tensorboard_logger(save_path=join(self.tensorboard_path, f"GATs_{current_time}"))
+        tboard_writer = get_tensorboard_logger(save_path=join(self.tensorboard_path, f"GATs_ALSTM_{current_time}"))
         stop_steps = 0
         train_loss = 0
         best_score = -np.inf
@@ -354,6 +378,13 @@ class GATs(Model):
             pretrained_model = GRUModel(d_feat=self.d_feat, hidden_size=self.hidden_size, num_layers=self.num_layers)
         else:
             raise ValueError("unknown base model name `%s`" % self.base_model)
+        
+        # --- pretrained gats_decay_001 ---
+        basic_gats_path = ("/home/ashotnanyan/qlib/examples/test_gats/decay_001/1/"
+                           "69bdd9a5a84c48e3a1852e76809315e1/artifacts/params_torch.pkl")
+        pretrained_gats = torch.load(basic_gats_path, map_location=self.device)
+        pretrained_gats_dict = pretrained_gats.GAT_model.state_dict()
+        # ---------------------------------
 
         if self.model_path is not None:
             self.logger.info("Loading pretrained model...")
@@ -364,6 +395,7 @@ class GATs(Model):
             k: v for k, v in pretrained_model.state_dict().items() if k in model_dict  # pylint: disable=E1135
         }
         model_dict.update(pretrained_dict)
+        model_dict.update(pretrained_gats_dict) # added by Ashot
         self.GAT_model.load_state_dict(model_dict)
         self.logger.info("Loading pretrained model Done...")
 
@@ -374,10 +406,10 @@ class GATs(Model):
         for step in range(self.n_epochs):
             self.logger.info("Epoch%d:", step)
             self.logger.info("training...")
-            self.train_epoch(train_loader, deepcopy(train_loader), valid_loader, epoch=step, split='train', writer=tboard_writer)
+            self.train_epoch(deepcopy(train_loader), deepcopy(train_loader), valid_loader, epoch=step, split='train', writer=tboard_writer)
             self.logger.info("evaluating...")
-            train_loss, train_score = self.test_epoch(train_loader)
-            val_loss, val_score = self.test_epoch(valid_loader)
+            train_loss, train_score = self.test_epoch(deepcopy(train_loader))
+            val_loss, val_score = self.test_epoch(deepcopy(valid_loader))
             self.logger.info("train %.6f, valid %.6f" % (train_score, val_score))
             evals_result["train"].append(train_score)
             evals_result["valid"].append(val_score)
@@ -386,7 +418,7 @@ class GATs(Model):
                 best_score = val_score
                 stop_steps = 0
                 best_epoch = step
-                best_param = deepcopy(self.GAT_model.state_dict())
+                best_param = copy.deepcopy(self.GAT_model.state_dict())
             else:
                 stop_steps += 1
                 if stop_steps >= self.early_stop:
@@ -417,7 +449,8 @@ class GATs(Model):
             feature = data[:, :, 0:-1].to(self.device)
 
             with torch.no_grad():
-                pred = self.GAT_model(feature.float()).detach().cpu().numpy()
+                pred, _ = self.GAT_model(feature.float())
+                pred = pred.detach().cpu().numpy()
 
             preds.append(pred)
 
@@ -425,7 +458,7 @@ class GATs(Model):
 
 
 class GATModel(nn.Module):
-    def __init__(self, d_feat=6, hidden_size=64, num_layers=2, dropout=0.0, base_model="GRU"):
+    def __init__(self, d_feat=6, hidden_size=64, num_layers=2, dropout=0.0, base_model="GRU", k=20):
         super().__init__()
 
         if base_model == "GRU":
@@ -447,36 +480,49 @@ class GATModel(nn.Module):
         else:
             raise ValueError("unknown base model name `%s`" % base_model)
 
+        self.k = k # the number of combined time-steps
+
         self.hidden_size = hidden_size
         self.d_feat = d_feat
+        self.alstm = ALSTMModel(d_feat=self.hidden_size, 
+                                hidden_size=64, 
+                                num_layers=2, 
+                                dropout=0.8, 
+                                rnn_type="GRU")
         self.transformation = nn.Linear(self.hidden_size, self.hidden_size)
         self.a = nn.Parameter(torch.randn(self.hidden_size * 2, 1))
         self.a.requires_grad = True
         self.fc = nn.Linear(self.hidden_size, self.hidden_size)
         self.fc_out = nn.Linear(hidden_size, 1)
         self.leaky_relu = nn.LeakyReLU()
-        self.softmax = nn.Softmax(dim=1)
+        self.softmax = nn.Softmax(dim=2)       
 
     def cal_attention(self, x, y):
         x = self.transformation(x)
         y = self.transformation(y)
-
-        sample_num = x.shape[0]
-        dim = x.shape[1]
-        e_x = x.expand(sample_num, sample_num, dim)
-        e_y = torch.transpose(e_x, 0, 1)
-        attention_in = torch.cat((e_x, e_y), 2).view(-1, dim * 2)
+        sample_num = x.shape[1]
+        dim = x.shape[2]
+        e_x = x.unsqueeze(dim=1)
+        e_x = e_x.expand(-1, sample_num, -1, -1)
+        e_y = torch.transpose(e_x, 1, 2)
+        attention_in = torch.cat((e_x, e_y), 3).view(-1, dim * 2)
         self.a_t = torch.t(self.a)
-        attention_out = self.a_t.mm(torch.t(attention_in)).view(sample_num, sample_num)
+        attention_out = self.a_t.mm(torch.t(attention_in)).view(-1, sample_num, sample_num)
         attention_out = self.leaky_relu(attention_out)
-        att_weight = self.softmax(attention_out)
+        att_weight = self.softmax(attention_out) # 20x300x300
         return att_weight
 
     def forward(self, x):
         out, _ = self.rnn(x)
         hidden = out[:, -1, :]
+        _, hidden_size = hidden.size()
+        hidden = hidden.view(self.k, -1, hidden_size)
         att_weight = self.cal_attention(hidden, hidden)
-        hidden = att_weight.mm(hidden) + hidden
+        hidden = att_weight.matmul(hidden) + hidden
         hidden = self.fc(hidden)
+        hidden = hidden.transpose(1, 0)
+        alstm_out = self.alstm(hidden)
+        
+        hidden = hidden[:, -1, :]
         hidden = self.leaky_relu(hidden)
-        return self.fc_out(hidden).squeeze()
+        return alstm_out, self.fc_out(hidden).squeeze()

@@ -26,8 +26,7 @@ data_handler_config: &data_handler_config
                 'IBM', 'QCOM', 'HUM', 'HSY', 'DIS', 'DTE', 'DOV', 'INTC', 'UPS', 'CLX', 'KR', 'PCAR', 'FE', 'BKR', 'LUMN', 'MO', 
                 'APA', 'AMZN', 'NWL', 'ADM', 'BBY', 'NI', 'TJX', 'XEL', 'DVA', 'EL', 'EQR', 'EXPD', 'XRAY', 'DHI', 'CAH', 'MRK', 
                 'MSFT', 'AON', 'BIIB', 'ICE', 'L', 'SNA', 'VZ', 'TT', 'NTRS', 'BXP', 'EBAY', 'BK', 'MAS', 'MCK', 'SLB', 'FTI', 'J', 
-                'PPL', 'SYY', 'BAX', 'MCO', 'CME', 'ABT', 'ADP', 'TSN', 'MCD', 'ADBE', 'CVS', 
-                '^GSPC', 'IYW', 'IYH', 'IYC', 'IYZ', 'IYF', 'IYJ', 'IYK', 'IDU', 'IYR', 'IYM', 'IYE']
+                'PPL', 'SYY', 'BAX', 'MCO', 'CME', 'ABT', 'ADP', 'TSN', 'MCD', 'ADBE', 'CVS', '^GSPC']
   infer_processors:
     - class: FilterCol
       kwargs:
@@ -91,7 +90,7 @@ port_analysis_config: &port_analysis_config
 task:
   model:
     class: GATs
-    module_path: qlib.contrib.model.pytorch_gats_ts
+    module_path: qlib.contrib.model.pytorch_gats_ts_alstm_loss_pre
     kwargs:
       d_feat: 20
       hidden_size: 64
@@ -102,12 +101,15 @@ task:
       weight_decay: 0.001
       early_stop: 10
       metric: loss
-      loss: mse
+      loss: mse # precise_margin_ranking_w_mse
+      lamb_precise_margin_ranking: 0.8
+      func_precise_margin_ranking: linear
       base_model: LSTM
       model_path: benchmarks/LSTM/csi300_lstm_ts.pkl
       GPU: 0
       tensorboard_path: /home/ashotnanyan/qlib/tensorboard_logs
-      print_iter: 50
+      k: 20 # the number of combined time-steps
+      print_iter: 300
   dataset:
     class: TSDatasetH
     module_path: qlib.data.dataset

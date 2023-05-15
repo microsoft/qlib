@@ -7,11 +7,11 @@ from __future__ import print_function
 
 import numpy as np
 import pandas as pd
+import copy
 from ...utils import get_or_create_path
 from ...log import get_module_logger, get_tensorboard_logger
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data import DataLoader
 from torch.utils.data import Sampler
@@ -43,7 +43,6 @@ class DailyBatchSampler(Sampler):
     def __len__(self):
         return len(self.data_source)
 
-
 class GATs(Model):
     """GATs Model
 
@@ -69,12 +68,9 @@ class GATs(Model):
         dropout=0.0,
         n_epochs=200,
         lr=0.001,
-        weight_decay=0, # added by Ashot
         metric="",
         early_stop=20,
         loss="mse",
-        lamb_precise_margin_ranking=0.5,
-        func_precise_margin_ranking="linear", # "cubic"
         base_model="GRU",
         model_path=None,
         optimizer="adam",
@@ -96,13 +92,10 @@ class GATs(Model):
         self.dropout = dropout
         self.n_epochs = n_epochs
         self.lr = lr
-        self.weight_decay = weight_decay # added by Ashot
         self.metric = metric
         self.early_stop = early_stop
         self.optimizer = optimizer.lower()
         self.loss = loss
-        self.lamb_precise_margin_ranking = lamb_precise_margin_ranking
-        self.func_precise_margin_ranking = func_precise_margin_ranking
         self.base_model = base_model
         self.model_path = model_path
         self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
@@ -161,9 +154,9 @@ class GATs(Model):
         self.logger.info("model size: {:.4f} MB".format(count_parameters(self.GAT_model)))
 
         if optimizer.lower() == "adam":
-            self.train_optimizer = optim.AdamW(self.GAT_model.parameters(), lr=self.lr, weight_decay=self.weight_decay)
+            self.train_optimizer = optim.Adam(self.GAT_model.parameters(), lr=self.lr)
         elif optimizer.lower() == "gd":
-            self.train_optimizer = optim.SGD(self.GAT_model.parameters(), lr=self.lr, weight_decay=self.weight_decay)
+            self.train_optimizer = optim.SGD(self.GAT_model.parameters(), lr=self.lr)
         else:
             raise NotImplementedError("optimizer {} is not supported!".format(optimizer))
 
@@ -177,75 +170,12 @@ class GATs(Model):
     def mse(self, pred, label):
         loss = (pred - label) ** 2
         return torch.mean(loss)
-    
-    def bce(self, pred, label):
-        return F.binary_cross_entropy_with_logits(pred, label)
-
-    def margin_ranking(self, pred, label, use_mse=False):
-        idx = torch.randperm(pred.size(0))
-        pair_1, pair_2 = idx[::2], idx[1::2]
-        if pred.size(0) % 2 == 1:
-            pair_1 = pair_1[:-1]
-        target = torch.sign(label[pair_1] - label[pair_2])
-        loss = F.margin_ranking_loss(pred[pair_1], pred[pair_2], target, margin=0, reduction='mean')
-        if use_mse:
-            loss += torch.mean(torch.sqrt((pred - label) ** 2))
-        
-        return loss
-    
-    def half_margin_ranking(self, pred, label, use_mse=False):
-        idx = torch.randperm(pred.size(0))
-        pair_1, pair_2 = idx[::2], idx[1::2]
-        if pred.size(0) % 2 == 1:
-            pair_1 = pair_1[:-1]
-        target = torch.sign(label[pair_1] - label[pair_2])
-        pred_ord = torch.sign(pred[pair_1] - pred[pair_2])
-        loss = F.margin_ranking_loss(pred[pair_1][target != pred_ord], pred[pair_2][target != pred_ord], target[target != pred_ord], margin=0.05, reduction='mean')
-        if use_mse:
-            loss += torch.mean(torch.sqrt((pred - label) ** 2))
-        
-        return loss
-    
-    def precise_margin_ranking(self, pred, label, use_mse=False):
-        lamb = self.lamb_precise_margin_ranking
-        idx = torch.randperm(pred.size(0))
-        pair_1, pair_2 = idx[::2], idx[1::2]
-        if pred.size(0) % 2 == 1:
-            pair_1 = pair_1[:-1]
-
-        if self.func_precise_margin_ranking == "linear":
-            f = - (label[pair_1] - label[pair_2]) * (pred[pair_1] - pred[pair_2])
-        elif self.func_precise_margin_ranking == "cubic":
-            f = - torch.sign(label[pair_1] - label[pair_2]) * \
-                torch.pow(torch.abs(label[pair_1] - label[pair_2]), 1/3) * \
-                (pred[pair_1] - pred[pair_2])
-        else:
-            print("The func_precise_margin_ranking "
-                  f"{self.func_precise_margin_ranking} is not supported!")
-        loss = torch.sum(torch.maximum(torch.tensor(0).to(self.device), f))
-        if use_mse:
-            loss = (1 - lamb) * loss + lamb * torch.sum((pred - label) ** 2)
-        return loss
 
     def loss_fn(self, pred, label):
         mask = ~torch.isnan(label)
 
         if self.loss == "mse":
             return self.mse(pred[mask], label[mask])
-        elif self.loss == "bce":
-            return self.bce(pred[mask], label[mask])
-        elif self.loss == "margin_ranking":
-            return self.margin_ranking(pred[mask], label[mask])
-        elif self.loss == "margin_ranking_w_mse":
-            return self.margin_ranking(pred[mask], label[mask], use_mse=True)
-        elif self.loss == "precise_margin_ranking":
-            return self.precise_margin_ranking(pred[mask], label[mask])
-        elif self.loss == "precise_margin_ranking_w_mse":
-            return self.precise_margin_ranking(pred[mask], label[mask], use_mse=True)
-        elif self.loss == "half_margin_ranking":
-            return self.half_margin_ranking(pred[mask], label[mask])
-        elif self.loss == "half_margin_ranking_w_mse":
-            return self.half_margin_ranking(pred[mask], label[mask], use_mse=True)
 
         raise ValueError("unknown loss `%s`" % self.loss)
 
@@ -280,7 +210,7 @@ class GATs(Model):
             feature = data[:, :, 0:-1].to(self.device)
             label = data[:, -1, -1].to(self.device)
             
-            pred = self.GAT_model(feature.float())
+            pred = self.GAT_model(feature.float())[1]
             loss = self.loss_fn(pred, label)
 
             self.train_optimizer.zero_grad()
@@ -306,7 +236,7 @@ class GATs(Model):
             # feature[torch.isnan(feature)] = 0
             label = data[:, -1, -1].to(self.device)
 
-            pred = self.GAT_model(feature.float())
+            pred = self.GAT_model(feature.float())[1]
             loss = self.loss_fn(pred, label)
             losses.append(loss.item())
 
@@ -334,9 +264,11 @@ class GATs(Model):
         sampler_train = DailyBatchSampler(dl_train)
         sampler_valid = DailyBatchSampler(dl_valid)
 
-        train_loader = DataLoader(dl_train, sampler=sampler_train, num_workers=self.n_jobs, drop_last=True)
-        valid_loader = DataLoader(dl_valid, sampler=sampler_valid, num_workers=self.n_jobs, drop_last=True)
-
+        train_loader = DataLoader(dl_train, sampler=sampler_train, num_workers=self.n_jobs, drop_last=False) 
+        # drop_last was True, changed by Ashot
+        valid_loader = DataLoader(dl_valid, sampler=sampler_valid, num_workers=self.n_jobs, drop_last=False)
+        # drop_last was True, changed by Ashot
+        
         save_path = get_or_create_path(save_path)
         current_time = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
         tboard_writer = get_tensorboard_logger(save_path=join(self.tensorboard_path, f"GATs_{current_time}"))
@@ -386,7 +318,7 @@ class GATs(Model):
                 best_score = val_score
                 stop_steps = 0
                 best_epoch = step
-                best_param = deepcopy(self.GAT_model.state_dict())
+                best_param = copy.deepcopy(self.GAT_model.state_dict())
             else:
                 stop_steps += 1
                 if stop_steps >= self.early_stop:
@@ -417,12 +349,53 @@ class GATs(Model):
             feature = data[:, :, 0:-1].to(self.device)
 
             with torch.no_grad():
-                pred = self.GAT_model(feature.float()).detach().cpu().numpy()
+                pred = self.GAT_model(feature.float())[1].detach().cpu().numpy()
 
             preds.append(pred)
-
+        
         return pd.Series(np.concatenate(preds), index=dl_test.get_index())
+    
+    def predict_df(self, dataset, segment="train"):
+        if not self.fitted:
+            raise ValueError("model is not fitted yet!")
 
+        dl = dataset.prepare(segment, col_set=["feature", "label"], data_key=DataHandlerLP.DK_I)
+        dl.config(fillna_type="ffill+bfill")
+        
+        sampler = DailyBatchSampler(dl)
+        loader = DataLoader(dl, sampler=sampler, num_workers=self.n_jobs)
+        self.GAT_model.eval()
+        preds = []
+
+        for data in loader:
+
+            data = data.squeeze()
+            feature = data[:, :, 0:-1].to(self.device) # modified by Ashot
+            label = data[:, -1, -1]
+            
+            with torch.no_grad():
+                pred = self.GAT_model(feature.float())[0].detach().cpu().numpy()
+            
+            pred = torch.tensor(pred)
+            label = label.reshape(label.size(0), 1)
+
+            pred = torch.cat((pred, label), 1)
+            preds.append(pred)
+        
+        column_names = [f"F_{i}" for i in range(1, self.hidden_size+1)]
+        column_names.append("return")
+        return pd.DataFrame(np.concatenate(preds), index=dl.get_index(), columns=column_names)
+
+    def output_df(self, dataset):
+        if not self.fitted:
+            raise ValueError("model is not fitted yet!")
+        
+        df_train = self.predict_df(dataset, segment="train")
+        df_valid = self.predict_df(dataset, segment="valid")
+        df_test = self.predict_df(dataset, segment="test")
+        
+        df = pd.concat([df_train, df_valid, df_test])
+        return df
 
 class GATModel(nn.Module):
     def __init__(self, d_feat=6, hidden_size=64, num_layers=2, dropout=0.0, base_model="GRU"):
@@ -477,6 +450,6 @@ class GATModel(nn.Module):
         hidden = out[:, -1, :]
         att_weight = self.cal_attention(hidden, hidden)
         hidden = att_weight.mm(hidden) + hidden
-        hidden = self.fc(hidden)
-        hidden = self.leaky_relu(hidden)
-        return self.fc_out(hidden).squeeze()
+        hidden_out = self.fc(hidden)
+        hidden = self.leaky_relu(hidden_out)
+        return hidden_out, self.fc_out(hidden).squeeze()
