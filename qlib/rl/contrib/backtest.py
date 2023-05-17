@@ -199,7 +199,7 @@ def single_with_simulator(
         reports.append(simulator.report_dict)
         decisions += simulator.decisions
 
-    indicator_1day_objs = [report["indicator"]["1day"][1] for report in reports]
+    indicator_1day_objs = [report["indicator_dict"]["1day"][1] for report in reports]
     indicator_info = {k: v for obj in indicator_1day_objs for k, v in obj.order_indicator_his.items()}
     records = _convert_indicator_to_dataframe(indicator_info)
     assert records is None or not np.isnan(records["ffr"]).any()
