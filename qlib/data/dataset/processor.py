@@ -14,6 +14,8 @@ from ...utils.paral import datetime_groupby_apply
 from qlib.data.inst_processor import InstProcessor
 from qlib.data import D
 
+pd.options.mode.chained_assignment = None  # default='warn'
+
 
 def get_group_columns(df: pd.DataFrame, group: Union[Text, None]):
     """
