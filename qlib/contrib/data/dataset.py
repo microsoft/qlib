@@ -134,9 +134,7 @@ class MTSDatasetH(DatasetH):
     ):
         if horizon == 0:
             # Try to guess horizon
-            if isinstance(handler, dict):
-                handler = init_instance_by_config(handler)
-            elif isinstance(handler, str):  # pickled handler
+            if isinstance(handler, (dict, str)):
                 handler = init_instance_by_config(handler)
             label = handler.data_loader.fields["label"][0][0]
             horizon = guess_horizon(label)

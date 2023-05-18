@@ -129,7 +129,7 @@ class DataUtils(TestCase):
 
         label = "Ref($close, -1) / Ref($close, -1) - 1"
         result = guess_horizon(label)
-        assert result is 0
+        assert result == 0
 
 
 if __name__ == "__main__":
