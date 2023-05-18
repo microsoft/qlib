@@ -1,5 +1,5 @@
 qlib_init:
-  provider_uri: ~/.qlib/qlib_data/my_data/sp500_components_w_etf_feat
+  provider_uri: ~/.qlib/qlib_data/my_data/sp500_components_w_etf_feat_all_fin
   region: us
 market: sp500
 benchmark: ^GSPC
@@ -27,7 +27,8 @@ data_handler_config: &data_handler_config
                 'APA', 'AMZN', 'NWL', 'ADM', 'BBY', 'NI', 'TJX', 'XEL', 'DVA', 'EL', 'EQR', 'EXPD', 'XRAY', 'DHI', 'CAH', 'MRK', 
                 'MSFT', 'AON', 'BIIB', 'ICE', 'L', 'SNA', 'VZ', 'TT', 'NTRS', 'BXP', 'EBAY', 'BK', 'MAS', 'MCK', 'SLB', 'FTI', 'J', 
                 'PPL', 'SYY', 'BAX', 'MCO', 'CME', 'ABT', 'ADP', 'TSN', 'MCD', 'ADBE', 'CVS', 
-                '^GSPC', 'IYW', 'IYH', 'IYC', 'IYZ', 'IYF', 'IYJ', 'IYK', 'IDU', 'IYR', 'IYM', 'IYE']
+                'IYW', 'IYH', 'IYC', 'IYZ', 'IYF', 'IYJ', 'IYK', 'IDU', 'IYR', 'IYM', 'IYE',
+                '^GSPC', '^VIX', 'EEM', 'HYG', 'AGG', 'GSG', 'TIP', 'DIA']
   infer_processors:
     - class: FilterCol
       kwargs:

@@ -43,6 +43,30 @@ class DailyBatchSampler(Sampler):
     def __len__(self):
         return len(self.data_source)
 
+def rank(tens, GPU=0):
+    device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
+    
+    tens = tens.squeeze()
+    
+    ranks = torch.zeros(tens.size(0)).to(device)
+    count = torch.linspace(1, tens.size(0), tens.size(0)).to(device)
+    
+    idx = torch.argsort(tens)
+    ranks[idx] = torch.div(count, tens.size(0))
+    ranks = (ranks - 0.5) * 3.46
+
+    ranks = ranks.unsqueeze(dim=1)
+    ranks = ranks.unsqueeze(dim=2)
+    return ranks
+
+def gradient_norm(model):
+    total_norm = 0
+    for p in model.parameters():
+        param_norm = p.grad.detach().data.norm(2)
+        total_norm += param_norm.item() ** 2
+    total_norm = total_norm ** 0.5   
+    return total_norm
+
 
 class GATs(Model):
     """GATs Model
@@ -208,6 +232,11 @@ class GATs(Model):
     
     def precise_margin_ranking(self, pred, label, use_mse=False):
         lamb = self.lamb_precise_margin_ranking
+        
+        # handling fractional inputs of lamb like "1/3" 
+        if isinstance(lamb, str):
+            lamb = float(lamb.split("/")[0]) / float(lamb.split("/")[1])
+        
         idx = torch.randperm(pred.size(0))
         pair_1, pair_2 = idx[::2], idx[1::2]
         if pred.size(0) % 2 == 1:
@@ -218,6 +247,101 @@ class GATs(Model):
         elif self.func_precise_margin_ranking == "cubic":
             f = - torch.sign(label[pair_1] - label[pair_2]) * \
                 torch.pow(torch.abs(label[pair_1] - label[pair_2]), 1/3) * \
+                (pred[pair_1] - pred[pair_2])
+        else:
+            print("The func_precise_margin_ranking "
+                  f"{self.func_precise_margin_ranking} is not supported!")
+        loss = torch.sum(torch.maximum(torch.tensor(0).to(self.device), f))
+        if use_mse:
+            loss = (1 - lamb) * loss + lamb * torch.sum((pred - label) ** 2)
+        return loss
+    
+    def precise_margin_ranking_paper(self, pred, label):
+        
+        idx = torch.randperm(pred.size(0))
+        pair_1, pair_2 = idx[::2], idx[1::2]
+        if pred.size(0) % 2 == 1:
+            pair_1 = pair_1[:-1]
+
+        if self.func_precise_margin_ranking == "linear":
+            f = - (label[pair_1] - label[pair_2]) * (pred[pair_1] - pred[pair_2])
+        elif self.func_precise_margin_ranking == "cubic":
+            f = - torch.sign(label[pair_1] - label[pair_2]) * \
+                torch.pow(torch.abs(label[pair_1] - label[pair_2]), 1/3) * \
+                (pred[pair_1] - pred[pair_2])
+        else:
+            print("The func_precise_margin_ranking "
+                  f"{self.func_precise_margin_ranking} is not supported!")
+        
+        loss = torch.sum(torch.maximum(torch.tensor(0).to(self.device), f))
+        
+        loss = 1000 * loss + 1 * torch.sum((pred - label) ** 2)
+
+        return loss
+    
+    def precise_margin_ranking_balance(self, pred, label):
+        k_sse = 7 # grad_norm ~ 30
+        k_mrl = 30 # grad_norm ~ 7
+        idx = torch.randperm(pred.size(0))
+        pair_1, pair_2 = idx[::2], idx[1::2]
+        if pred.size(0) % 2 == 1:
+            pair_1 = pair_1[:-1]
+
+        if self.func_precise_margin_ranking == "linear":
+            f = - (label[pair_1] - label[pair_2]) * (pred[pair_1] - pred[pair_2])
+        elif self.func_precise_margin_ranking == "cubic":
+            f = - torch.sign(label[pair_1] - label[pair_2]) * \
+                torch.pow(torch.abs(label[pair_1] - label[pair_2]), 1/3) * \
+                (pred[pair_1] - pred[pair_2])
+        else:
+            print("The func_precise_margin_ranking "
+                  f"{self.func_precise_margin_ranking} is not supported!")
+        
+        loss = torch.sum(torch.maximum(torch.tensor(0).to(self.device), f))
+        
+        loss = k_mrl * loss + k_sse * torch.sum((pred - label) ** 2)
+
+        return loss
+    
+    def precise_margin_ranking_max_min(self, pred, label):
+        # apply ranks only for precise margin ranking loss
+        lamb = self.lamb_precise_margin_ranking
+        idx = torch.randperm(pred.size(0))
+        pair_1, pair_2 = idx[::2], idx[1::2]
+        if pred.size(0) % 2 == 1:
+            pair_1 = pair_1[:-1]
+
+        # label_rank = rank(label)
+        pred_adj = pred / (torch.quantile(pred, 0.95) - torch.quantile(pred, 0.05))
+        if self.func_precise_margin_ranking == "linear":
+            f = - (label[pair_1] - label[pair_2]) * (pred_adj[pair_1] - pred_adj[pair_2])
+        elif self.func_precise_margin_ranking == "cubic":
+            f = - torch.sign(label[pair_1] - label[pair_2]) * \
+                torch.pow(torch.abs(label[pair_1] - label[pair_2]), 1/3) * \
+                (pred_adj[pair_1] - pred_adj[pair_2])
+        else:
+            print("The func_precise_margin_ranking "
+                  f"{self.func_precise_margin_ranking} is not supported!")
+        loss = torch.sum(torch.maximum(torch.tensor(0).to(self.device), f))
+        
+        loss = (1 - lamb) * loss + lamb * torch.sum((pred - label) ** 2)
+        
+        return loss
+    
+    def precise_margin_ranking_w_rank(self, pred, label, use_mse=False):
+        # apply ranks only for precise margin ranking loss
+        lamb = self.lamb_precise_margin_ranking
+        idx = torch.randperm(pred.size(0))
+        pair_1, pair_2 = idx[::2], idx[1::2]
+        if pred.size(0) % 2 == 1:
+            pair_1 = pair_1[:-1]
+
+        label_rank = rank(label)
+        if self.func_precise_margin_ranking == "linear":
+            f = - (label_rank[pair_1] - label_rank[pair_2]) * (pred[pair_1] - pred[pair_2])
+        elif self.func_precise_margin_ranking == "cubic":
+            f = - torch.sign(label_rank[pair_1] - label_rank[pair_2]) * \
+                torch.pow(torch.abs(label_rank[pair_1] - label_rank[pair_2]), 1/3) * \
                 (pred[pair_1] - pred[pair_2])
         else:
             print("The func_precise_margin_ranking "
@@ -246,6 +370,14 @@ class GATs(Model):
             return self.half_margin_ranking(pred[mask], label[mask])
         elif self.loss == "half_margin_ranking_w_mse":
             return self.half_margin_ranking(pred[mask], label[mask], use_mse=True)
+        elif self.loss == "precise_margin_ranking_w_rank":
+            return self.precise_margin_ranking_w_rank(pred[mask], label[mask], use_mse=True)
+        elif self.loss == "precise_margin_ranking_paper":
+            return self.precise_margin_ranking_paper(pred[mask], label[mask])
+        elif self.loss == "precise_margin_ranking_balance":
+            return self.precise_margin_ranking_balance(pred[mask], label[mask])
+        elif self.loss == "precise_margin_ranking_max_min":
+            return self.precise_margin_ranking_max_min(pred[mask], label[mask])
 
         raise ValueError("unknown loss `%s`" % self.loss)
 
@@ -286,11 +418,14 @@ class GATs(Model):
             self.train_optimizer.zero_grad()
             loss.backward()
             torch.nn.utils.clip_grad_value_(self.GAT_model.parameters(), 3.0)
+            grad_norm = gradient_norm(self.GAT_model)
+            # print("Gradient norm is ", grad_norm)
             self.train_optimizer.step()
             if batch_id % self.print_iter == 0 and writer:
                 train_loss, train_score = self.test_epoch(train_loader)
                 val_loss, val_score = self.test_epoch(val_loader)
-                writer.add_scalars(f'Loss', {'train': train_loss, 'val': val_loss}, (len(data_loader) * epoch / data.size(0) + batch_id) * data.size(0))
+                writer.add_scalars('Loss', {'train': train_loss, 'val': val_loss}, (len(data_loader) * epoch / data.size(0) + batch_id) * data.size(0))
+                writer.add_scalars('Grad', {'grad_norm': grad_norm}, (len(data_loader) * epoch / data.size(0) + batch_id) * data.size(0))
 
     def test_epoch(self, data_loader):
 

@@ -25,6 +25,22 @@ def Sharpe_and_Sortino(returns, target_return=0.1,  risk_free=0.001):
 
     return SP_sharpe, SP_sortino
 
+# developed by Ashot from code provided by Bilor
+def cum_returns(input_data, win_size, start, end):
+    rets_for_sharpe = []
+    idxs = input_data.index
+    i_start = idxs.get_loc(start)
+    i_end = idxs.get_loc(end)
+
+    data = input_data.iloc[i_start:i_end]
+    for i in range(win_size, data.shape[0], win_size):
+        item_1 = data.iloc[i-win_size]["Prices"]
+        item_2 = data.iloc[i]["Prices"]
+        cum_ret = item_2/item_1-1
+        rets_for_sharpe.append(cum_ret)
+
+    return rets_for_sharpe
+
 # developed by Bilor
 def granular_frame_extractor(input_data, win_size, target_return, risk_free, interval = '1y', start = "2000-01-10", end = "2022-01-14"):
     dates = []; timesteps = []; Sharpe =[]; Sortino = []; rets_for_sharpe = []
@@ -98,12 +114,20 @@ def create_ss(accounts={},
                                                       interval=interval_overall,
                                                       start=start, 
                                                       end=end)
+        ret = cum_returns(account,
+                          win_size=win_size_overall,
+                          start=start,
+                          end=end)
+        
+        ss_account["Returns"] = ret
+        ss_account_overall["Returns"] = np.prod(np.array(ret) + 1) - 1
         ss_account_overall.index = ["overall"]
+
         ss_account = pd.concat([ss_account, ss_account_overall], axis=0)
         if i == 0:
             ss_timesteps = ss_account["timesteps"]
             ss_lst.append(ss_timesteps)
-        ss_account = ss_account[["Sharpe", "Sortino"]]
+        ss_account = ss_account[["Sharpe", "Sortino", "Returns"]]
         ss_lst.append(ss_account)
     
     keys = ["timesteps"]+list(accounts.keys())
@@ -111,7 +135,7 @@ def create_ss(accounts={},
     ss = ss.reorder_levels([1, 0], axis=1)
     ss.sort_index(axis=1, level=0, inplace=True)
 
-    cols_0 = ["timesteps", "Sharpe", "Sortino"]
+    cols_0 = ["timesteps", "Returns", "Sharpe", "Sortino"]
     new_cols_0 = ss.columns.reindex(cols_0, level=0)
     ss = ss.reindex(columns=new_cols_0[0])
 
@@ -163,5 +187,4 @@ accounts = {"BENCH": account_bench,
             "GATs_ALSTM_lambda_in_one_loss": account_gats_alstm_lambda_in_one_loss,
             "GATs_lamb08_sector_feat_etf": account_gats_lamb08_sector_feat_etf}
 
-create_ss(accounts=accounts)
-
+print(create_ss(accounts=accounts))

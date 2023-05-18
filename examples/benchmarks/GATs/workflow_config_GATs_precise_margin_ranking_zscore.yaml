@@ -42,6 +42,11 @@ data_handler_config: &data_handler_config
     - class: Fillna
       kwargs:
         fields_group: feature
+  learn_processors:
+    - class: DropnaLabel
+    - class: CSZScoreNorm
+      kwargs:
+        fields_group: label
   label: ['Ref($close, -2) / Ref($close, -1) - 1']
 port_analysis_config: &port_analysis_config
   strategy:
@@ -97,7 +102,7 @@ task:
       weight_decay: 0.001
       early_stop: 10
       metric: loss
-      loss: precise_margin_ranking_max_min
+      loss: precise_margin_ranking_w_mse
       lamb_precise_margin_ranking: 0.8
       func_precise_margin_ranking: linear
       base_model: LSTM

@@ -97,11 +97,11 @@ task:
       weight_decay: 0.001
       early_stop: 10
       metric: loss
-      loss: precise_margin_ranking_max_min
+      loss: precise_margin_ranking_paper
       lamb_precise_margin_ranking: 0.8
       func_precise_margin_ranking: linear
       base_model: LSTM
-      model_path: /home/ashotnanyan/qlib/examples/benchmarks/LSTM/csi300_lstm_ts.pkl
+      model_path: benchmarks/LSTM/csi300_lstm_ts.pkl
       GPU: 0
       tensorboard_path: /home/ashotnanyan/qlib/tensorboard_logs
       print_iter: 200
