@@ -116,7 +116,9 @@ class DDGDA:
 
         feature_selected = feature_df.loc[:, col_selected.index]
 
-        feature_selected = feature_selected.groupby("datetime", group_keys=False).apply(lambda df: (df - df.mean()).div(df.std()))
+        feature_selected = feature_selected.groupby("datetime", group_keys=False).apply(
+            lambda df: (df - df.mean()).div(df.std())
+        )
         feature_selected = feature_selected.fillna(0.0)
 
         df_all = {
