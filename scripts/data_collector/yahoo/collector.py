@@ -132,12 +132,13 @@ class YahooCollector(BaseCollector):
         try:
             _resp = Ticker(symbol, asynchronous=False).history(interval=interval, start=start, end=end)
             if isinstance(_resp, pd.DataFrame):
-                if interval == '1d' and end > pd.Timestamp(datetime.datetime.now().strftime("%Y-%m-%d"),
-                                                           tz=datetime.datetime.now().astimezone().tzinfo):
+                if interval == '1d' and end > pd.Timestamp(
+                        datetime.datetime.now().strftime("%Y-%m-%d"), tz=datetime.datetime.now().astimezone().tzinfo
+                ):
                     # while _resp contains current day data, date index contains H:M:S which is different from
                     # before index format, align it here
                     resp = _resp.reset_index()
-                    resp['date'] = pd.to_datetime(resp['date']).dt.date
+                    resp['date'] = pd.to_datetime(resp["date"]).dt.date
                     return resp
                 else:
                     return _resp.reset_index()
