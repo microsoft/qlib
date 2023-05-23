@@ -19,164 +19,7 @@ import torch.optim as optim
 from ...model.base import Model
 from ...data.dataset import DatasetH
 from ...data.dataset.handler import DataHandlerLP
-
-########################################################################
-########################################################################
-########################################################################
-
-
-class CNNEncoderBase(nn.Module):
-    def __init__(self, input_dim, output_dim, kernel_size, device):
-        """Build a basic CNN encoder
-
-        Parameters
-        ----------
-        input_dim : int
-            The input dimension
-        output_dim : int
-            The output dimension
-        kernel_size : int
-            The size of convolutional kernels
-        """
-        super().__init__()
-
-        self.input_dim = input_dim
-        self.output_dim = output_dim
-        self.kernel_size = kernel_size
-        self.device = device
-
-        # set padding to ensure the same length
-        # it is correct only when kernel_size is odd, dilation is 1, stride is 1
-        self.conv = nn.Conv1d(input_dim, output_dim, kernel_size, padding=(kernel_size - 1) // 2)
-
-    def forward(self, x):
-        """
-        Parameters
-        ----------
-        x : torch.Tensor
-            input data
-
-        Returns
-        -------
-        torch.Tensor
-            Updated representations
-        """
-
-        # input shape: [batch_size, seq_len*input_dim]
-        # output shape: [batch_size, seq_len, input_dim]
-        x = x.view(x.shape[0], -1, self.input_dim).permute(0, 2, 1).to(self.device)
-        y = self.conv(x)  # [batch_size, output_dim, conved_seq_len]
-        y = y.permute(0, 2, 1)  # [batch_size, conved_seq_len, output_dim]
-
-        return y
-
-
-class KRNNEncoderBase(nn.Module):
-    def __init__(self, input_dim, output_dim, dup_num, rnn_layers, dropout, device):
-        """Build K parallel RNNs
-
-        Parameters
-        ----------
-        input_dim : int
-            The input dimension
-        output_dim : int
-            The output dimension
-        dup_num : int
-            The number of parallel RNNs
-        rnn_layers: int
-            The number of RNN layers
-        """
-        super().__init__()
-
-        self.input_dim = input_dim
-        self.output_dim = output_dim
-        self.dup_num = dup_num
-        self.rnn_layers = rnn_layers
-        self.dropout = dropout
-        self.device = device
-
-        self.rnn_modules = nn.ModuleList()
-        for _ in range(dup_num):
-            self.rnn_modules.append(nn.GRU(input_dim, output_dim, num_layers=self.rnn_layers, dropout=dropout))
-
-    def forward(self, x):
-        """
-        Parameters
-        ----------
-        x : torch.Tensor
-            Input data
-        n_id : torch.Tensor
-            Node indices
-
-        Returns
-        -------
-        torch.Tensor
-            Updated representations
-        """
-
-        # input shape: [batch_size, seq_len, input_dim]
-        # output shape: [batch_size, seq_len, output_dim]
-        # [seq_len, batch_size, input_dim]
-        batch_size, seq_len, input_dim = x.shape
-        x = x.permute(1, 0, 2).to(self.device)
-
-        hids = []
-        for rnn in self.rnn_modules:
-            h, _ = rnn(x)  # [seq_len, batch_size, output_dim]
-            hids.append(h)
-        # [seq_len, batch_size, output_dim, num_dups]
-        hids = torch.stack(hids, dim=-1)
-        hids = hids.view(seq_len, batch_size, self.output_dim, self.dup_num)
-        hids = hids.mean(dim=3)
-        hids = hids.permute(1, 0, 2)
-
-        return hids
-
-
-class CNNKRNNEncoder(nn.Module):
-    def __init__(
-        self, cnn_input_dim, cnn_output_dim, cnn_kernel_size, rnn_output_dim, rnn_dup_num, rnn_layers, dropout, device
-    ):
-        """Build an encoder composed of CNN and KRNN
-
-        Parameters
-        ----------
-        cnn_input_dim : int
-            The input dimension of CNN
-        cnn_output_dim : int
-            The output dimension of CNN
-        cnn_kernel_size : int
-            The size of convolutional kernels
-        rnn_output_dim : int
-            The output dimension of KRNN
-        rnn_dup_num : int
-            The number of parallel duplicates for KRNN
-        rnn_layers : int
-            The number of RNN layers
-        """
-        super().__init__()
-
-        self.cnn_encoder = CNNEncoderBase(cnn_input_dim, cnn_output_dim, cnn_kernel_size, device)
-        self.krnn_encoder = KRNNEncoderBase(cnn_output_dim, rnn_output_dim, rnn_dup_num, rnn_layers, dropout, device)
-
-    def forward(self, x):
-        """
-        Parameters
-        ----------
-        x : torch.Tensor
-            Input data
-        n_id : torch.Tensor
-            Node indices
-
-        Returns
-        -------
-        torch.Tensor
-            Updated representations
-        """
-        cnn_out = self.cnn_encoder(x)
-        krnn_out = self.krnn_encoder(cnn_out)
-
-        return krnn_out
+from .pytorch_krnn import CNNKRNNEncoder
 
 
 class SandwichModel(nn.Module):
@@ -457,15 +300,10 @@ class Sandwich(Model):
         return np.mean(losses), np.mean(scores)
 
     def fit(
-        self,
-        dataset: DatasetH,
-        evals_result=dict(),
-        save_path=None,
+        self, dataset: DatasetH, evals_result=dict(), save_path=None,
     ):
         df_train, df_valid, df_test = dataset.prepare(
-            ["train", "valid", "test"],
-            col_set=["feature", "label"],
-            data_key=DataHandlerLP.DK_L,
+            ["train", "valid", "test"], col_set=["feature", "label"], data_key=DataHandlerLP.DK_L,
         )
         if df_train.empty or df_valid.empty:
             raise ValueError("Empty data from dataset, please check your dataset config.")
