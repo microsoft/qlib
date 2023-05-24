@@ -116,7 +116,9 @@ class DDGDA:
 
         feature_selected = feature_df.loc[:, col_selected.index]
 
-        feature_selected = feature_selected.groupby("datetime").apply(lambda df: (df - df.mean()).div(df.std()))
+        feature_selected = feature_selected.groupby("datetime", group_keys=False).apply(
+            lambda df: (df - df.mean()).div(df.std())
+        )
         feature_selected = feature_selected.fillna(0.0)
 
         df_all = {
@@ -168,7 +170,8 @@ class DDGDA:
         # - Only the dataset part is important, in current version of meta model will integrate the
         rb = RollingBenchmark(model_type=self.sim_task_model, **self.rb_kwargs)
         sim_task = rb.basic_task()
-        train_start = self.rb_kwargs.get("train_start", "2008-01-01")
+        # the train_start for training meta model does not necessarily align with final rolling
+        train_start = "2008-01-01" if self.rb_kwargs.get("train_start") is None else self.rb_kwargs.get("train_start")
         train_end = "2010-12-31" if self.meta_1st_train_end is None else self.meta_1st_train_end
         test_start = (pd.Timestamp(train_end) + pd.Timedelta(days=1)).strftime("%Y-%m-%d")
         proxy_forecast_model_task = {
