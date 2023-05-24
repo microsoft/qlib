@@ -170,6 +170,7 @@ class DDGDA:
         # - Only the dataset part is important, in current version of meta model will integrate the
         rb = RollingBenchmark(model_type=self.sim_task_model, **self.rb_kwargs)
         sim_task = rb.basic_task()
+        # the train_start for training meta model does not necessarily align with final rolling
         train_start = "2008-01-01" if self.rb_kwargs.get("train_start") is None else self.rb_kwargs.get("train_start")
         train_end = "2010-12-31" if self.meta_1st_train_end is None else self.meta_1st_train_end
         test_start = (pd.Timestamp(train_end) + pd.Timedelta(days=1)).strftime("%Y-%m-%d")
