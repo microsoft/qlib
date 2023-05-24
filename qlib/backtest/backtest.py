@@ -56,6 +56,7 @@ def collect_data_loop(
     trade_strategy: BaseStrategy,
     trade_executor: BaseExecutor,
     return_value: dict | None = None,
+    show_progress: bool = True,
 ) -> Generator[BaseTradeDecision, Optional[BaseTradeDecision], None]:
     """Generator for collecting the trade decision data for rl training
 
@@ -74,6 +75,8 @@ def collect_data_loop(
         the outermost executor
     return_value : dict
         used for backtest_loop
+    show_progress: bool
+        whether to show execution progress
 
     Yields
     -------
@@ -83,7 +86,8 @@ def collect_data_loop(
     trade_executor.reset(start_time=start_time, end_time=end_time)
     trade_strategy.reset(level_infra=trade_executor.get_level_infra())
 
-    with tqdm(total=trade_executor.trade_calendar.get_trade_len(), desc="backtest loop") as bar:
+    disable = not show_progress
+    with tqdm(total=trade_executor.trade_calendar.get_trade_len(), desc="backtest loop", disable=disable) as bar:
         _execute_result = None
         while not trade_executor.finished():
             _trade_decision: BaseTradeDecision = trade_strategy.generate_trade_decision(_execute_result)

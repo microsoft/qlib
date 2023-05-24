@@ -42,8 +42,6 @@ class SingleAssetOrderExecutionSimple(Simulator[Order, SAOEState, float]):
         Path to load backtest data.
     feature_columns_today
         Columns of today's feature.
-    feature_columns_yesterday
-        Columns of yesterday's feature.
     data_granularity
         Number of ticks between consecutive data entries.
     ticks_per_step
@@ -80,7 +78,6 @@ class SingleAssetOrderExecutionSimple(Simulator[Order, SAOEState, float]):
         order: Order,
         data_dir: Path,
         feature_columns_today: List[str] = [],
-        feature_columns_yesterday: List[str] = [],
         data_granularity: int = 1,
         ticks_per_step: int = 30,
         vol_threshold: Optional[float] = None,
@@ -92,7 +89,6 @@ class SingleAssetOrderExecutionSimple(Simulator[Order, SAOEState, float]):
         self.order = order
         self.data_dir = data_dir
         self.feature_columns_today = feature_columns_today
-        self.feature_columns_yesterday = feature_columns_yesterday
         self.ticks_per_step: int = ticks_per_step // data_granularity
         self.vol_threshold = vol_threshold
 
@@ -127,9 +123,8 @@ class SingleAssetOrderExecutionSimple(Simulator[Order, SAOEState, float]):
                 stock_id=self.order.stock_id,
                 date=pd.Timestamp(self.order.start_time.date()),
                 feature_columns_today=self.feature_columns_today,
-                feature_columns_yesterday=self.feature_columns_yesterday,
+                feature_columns_yesterday=[],
                 backtest=True,
-                index_only=False,
             )
             return DataframeIntradayBacktestData(data.today)
         except (AttributeError, FileNotFoundError):

@@ -90,6 +90,7 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
             trade_strategy=strategy,
             trade_executor=self._executor,
             return_value=self.report_dict,
+            show_progress=False,
         )
         assert isinstance(self._collect_data_loop, Generator)
 

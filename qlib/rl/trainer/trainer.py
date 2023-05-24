@@ -208,6 +208,7 @@ class Trainer:
 
         while not self.should_stop:
             msg = f"\n{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\tTrain iteration {self.current_iter + 1}/{self.max_iters}"
+            print(msg)
             _logger.info(msg)
 
             self.initialize_iter()

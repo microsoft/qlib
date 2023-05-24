@@ -15,7 +15,7 @@ import pandas as pd
 import torch
 from joblib import Parallel, delayed
 
-from qlib.backtest import INDICATOR_METRIC, collect_data_loop, get_strategy_executor
+from qlib.backtest import INDICATOR_METRIC, collect_data_loop, get_exchange, get_strategy_executor
 from qlib.backtest.decision import BaseTradeDecision, Order, OrderDir, TradeRangeByTime
 from qlib.backtest.executor import SimulatorExecutor
 from qlib.backtest.high_performance_ds import BaseOrderIndicator
@@ -250,8 +250,6 @@ def single_with_collect_data_loop(
         If generate_report is True, return execution records and the generated report. Otherwise, return only records.
     """
 
-    init_qlib(backtest_config["qlib"])
-
     trade_start_time = orders["datetime"].min()
     trade_end_time = orders["datetime"].max()
     stocks = orders.instrument.unique().tolist()
@@ -275,13 +273,13 @@ def single_with_collect_data_loop(
         data_granularity=backtest_config["data_granularity"],
     )
 
-    exchange_config = copy.deepcopy(backtest_config["exchange"])
-    exchange_config.update(
-        {
+    exchange_config = {
+        **backtest_config["exchange"],
+        **{
             "codes": stocks,
             "freq": backtest_config["data_granularity"],
         }
-    )
+    }
 
     strategy, executor = get_strategy_executor(
         start_time=pd.Timestamp(trade_start_time),
@@ -326,6 +324,8 @@ def backtest(backtest_config: dict, with_simulator: bool = False) -> pd.DataFram
     single = single_with_simulator if with_simulator else single_with_collect_data_loop
     mp_config = {"n_jobs": backtest_config["concurrency"], "verbose": 10, "backend": "multiprocessing"}
     torch.set_num_threads(1)  # https://github.com/pytorch/pytorch/issues/17199
+
+    init_qlib(backtest_config["qlib"])
     res = Parallel(**mp_config)(
         delayed(single)(
             backtest_config=backtest_config,

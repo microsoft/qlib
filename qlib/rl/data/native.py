@@ -140,6 +140,15 @@ def load_backtest_data(
     return backtest_data
 
 
+@cachetools.cached(  # type: ignore
+    cache=cachetools.LRUCache(1000),
+    key=lambda path: path,
+)
+def _load_handler_pickle(path: str) -> object:
+    with open(path, "rb") as fstream:
+        obj = pickle.load(fstream)
+    return obj
+
 class HandlerIntradayProcessedData(BaseIntradayProcessedData):
     """Subclass of IntradayProcessedData. Used to handle handler (bin format) style data."""
 
@@ -151,7 +160,6 @@ class HandlerIntradayProcessedData(BaseIntradayProcessedData):
         feature_columns_today: List[str],
         feature_columns_yesterday: List[str],
         backtest: bool = False,
-        index_only: bool = False,
     ) -> None:
         def _drop_stock_id(df: pd.DataFrame) -> pd.DataFrame:
             df = df.reset_index()
@@ -161,31 +169,17 @@ class HandlerIntradayProcessedData(BaseIntradayProcessedData):
 
         path = os.path.join(data_dir, "backtest" if backtest else "feature", f"{stock_id}.pkl")
         start_time, end_time = date.replace(hour=0, minute=0, second=0), date.replace(hour=23, minute=59, second=59)
-        with open(path, "rb") as fstream:
-            dataset = pickle.load(fstream)
+        dataset = _load_handler_pickle(path)
         data = dataset.handler.fetch(pd.IndexSlice[stock_id, start_time:end_time], level=None)
 
-        if index_only:
-            self.today = _drop_stock_id(data[[]])
-            self.yesterday = _drop_stock_id(data[[]])
-        else:
-            self.today = _drop_stock_id(data[feature_columns_today])
-            self.yesterday = _drop_stock_id(data[feature_columns_yesterday])
+        self.today = _drop_stock_id(data[feature_columns_today])
+        self.yesterday = _drop_stock_id(data[feature_columns_yesterday])
 
     def __repr__(self) -> str:
         with pd.option_context("memory_usage", False, "display.max_info_columns", 1, "display.large_repr", "info"):
             return f"{self.__class__.__name__}({self.today}, {self.yesterday})"
 
 
-@cachetools.cached(  # type: ignore
-    cache=cachetools.LRUCache(100),  # 100 * 50K = 5MB
-    key=lambda data_dir, stock_id, date, feature_columns_today, feature_columns_yesterday, backtest, index_only: (
-        stock_id,
-        date,
-        backtest,
-        index_only,
-    ),
-)
 def load_handler_intraday_processed_data(
     data_dir: Path,
     stock_id: str,
@@ -193,10 +187,9 @@ def load_handler_intraday_processed_data(
     feature_columns_today: List[str],
     feature_columns_yesterday: List[str],
     backtest: bool = False,
-    index_only: bool = False,
 ) -> HandlerIntradayProcessedData:
     return HandlerIntradayProcessedData(
-        data_dir, stock_id, date, feature_columns_today, feature_columns_yesterday, backtest, index_only
+        data_dir, stock_id, date, feature_columns_today, feature_columns_yesterday, backtest,
     )
 
 
@@ -229,5 +222,4 @@ class HandlerProcessedDataProvider(ProcessedDataProvider):
             self.feature_columns_today,
             self.feature_columns_yesterday,
             backtest=self.backtest,
-            index_only=False,
         )
