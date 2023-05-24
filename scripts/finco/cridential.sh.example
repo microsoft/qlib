@@ -1,0 +1,3 @@
+export OPENAI_API_TYPE=azure  # This only necessary for Azure OpenAI
+export OPENAI_API_KEY=
+export OPENAI_API_BASE=
