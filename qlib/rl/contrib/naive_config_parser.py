@@ -192,13 +192,15 @@ class TrainingConfigParser:
                 "qlib": {
                     "provider_uri_1min": config["qlib"]["provider_uri_1min"],
                 },
-                "exchange": exchange_config
+                "exchange": exchange_config,
             }
 
             return ret_config
+
 
 if __name__ == "__main__":
     parser = TrainingConfigParser("/home/huoran/exp_configs/amc4th_training_refined.yml")
 
     from pprint import pprint
+
     pprint(parser.parse())

@@ -50,7 +50,7 @@ def get_executor_config(data_granularity: int = 1) -> dict:
                             "track_data": True,
                             "trade_type": "serial",
                             "verbose": False,
-                        }
+                        },
                     },
                     "inner_strategy": {
                         "class": "TWAPStrategy",
@@ -59,7 +59,7 @@ def get_executor_config(data_granularity: int = 1) -> dict:
                     },
                     "time_per_step": "30min",
                     "track_data": True,
-                }
+                },
             },
             "inner_strategy": {
                 "class": "ProxySAOEStrategy",
@@ -68,7 +68,7 @@ def get_executor_config(data_granularity: int = 1) -> dict:
             },
             "time_per_step": "1day",
             "track_data": True,
-        }
+        },
     }
 
 

@@ -278,7 +278,7 @@ def single_with_collect_data_loop(
         **{
             "codes": stocks,
             "freq": backtest_config["data_granularity"],
-        }
+        },
     }
 
     strategy, executor = get_strategy_executor(

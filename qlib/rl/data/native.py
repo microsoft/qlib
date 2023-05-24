@@ -149,6 +149,7 @@ def _load_handler_pickle(path: str) -> object:
         obj = pickle.load(fstream)
     return obj
 
+
 class HandlerIntradayProcessedData(BaseIntradayProcessedData):
     """Subclass of IntradayProcessedData. Used to handle handler (bin format) style data."""
 
@@ -189,7 +190,12 @@ def load_handler_intraday_processed_data(
     backtest: bool = False,
 ) -> HandlerIntradayProcessedData:
     return HandlerIntradayProcessedData(
-        data_dir, stock_id, date, feature_columns_today, feature_columns_yesterday, backtest,
+        data_dir,
+        stock_id,
+        date,
+        feature_columns_today,
+        feature_columns_yesterday,
+        backtest,
     )
 
 

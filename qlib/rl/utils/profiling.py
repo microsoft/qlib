@@ -2,6 +2,7 @@ import time
 from contextlib import contextmanager
 from line_profiler import LineProfiler
 
+
 @contextmanager
 def simple_perf(desc: str = ""):
     s = time.perf_counter()
@@ -17,4 +18,5 @@ def lprofile(func):
         res = lpw(*args, **kwargs)
         lp.print_stats()
         return res
+
     return wrapper

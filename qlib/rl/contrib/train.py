@@ -49,7 +49,7 @@ def get_executor_config(freq: int) -> dict:
                             "track_data": True,
                             "trade_type": "serial",
                             "verbose": False,
-                        }
+                        },
                     },
                     "inner_strategy": {
                         "class": "TWAPStrategy",
@@ -58,7 +58,7 @@ def get_executor_config(freq: int) -> dict:
                     },
                     "time_per_step": "30min",
                     "track_data": True,
-                }
+                },
             },
             "inner_strategy": {
                 "class": "ProxySAOEStrategy",
@@ -67,7 +67,7 @@ def get_executor_config(freq: int) -> dict:
             },
             "time_per_step": "1day",
             "track_data": True,
-        }
+        },
     }
 
 
@@ -168,6 +168,7 @@ def train_and_test(
 
     sim_type = simulator_config["type"]
     if sim_type == "simple":
+
         def _simulator_factory(order: Order) -> SingleAssetOrderExecutionSimple:
             simulator = SingleAssetOrderExecutionSimple(
                 order=order,
@@ -178,6 +179,7 @@ def train_and_test(
                 vol_threshold=simulator_config["vol_limit"],
             )
             return simulator
+
     elif sim_type == "full":
         init_qlib(simulator_config["qlib"])
         executor_config = get_executor_config(freq)
@@ -287,16 +289,13 @@ def main(config: dict, run_training: bool, run_backtest: bool) -> None:
         network_config = config["policy"]["network"]
         network_config["kwargs"] = {
             **network_config.get("kwargs", {}),
-            **{"obs_space": state_interpreter.observation_space}
+            **{"obs_space": state_interpreter.observation_space},
         }
         additional_policy_kwargs["network"] = init_instance_by_config(network_config)
 
     # Create policy
     policy_config = config["policy"]["policy"]
-    policy_config["kwargs"] = {
-        **policy_config.get("kwargs", {}),
-        **additional_policy_kwargs
-    }
+    policy_config["kwargs"] = {**policy_config.get("kwargs", {}), **additional_policy_kwargs}
     policy: BasePolicy = init_instance_by_config(policy_config)
 
     use_cuda = config["runtime"]["use_cuda"]
