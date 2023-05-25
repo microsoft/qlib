@@ -334,9 +334,10 @@ def vectorize_env(
 
     Parameters
     ----------
-    env_factory
-        Callable to instantiate one single ``gym.Env``.
-        All concurrent workers will have the same ``env_factory``.
+    env_factories
+        Callables to instantiate one single ``gym.Env``.
+        There should be 1 or `concurrency` env_factories. If there is 1 env_factory, all concurrent workers will have
+        the same env_factory. Otherwise, each worker will have its own env_factory.
     env_type
         dummy or subproc or shmem. Corresponding to
         `parallelism in tianshou <https://tianshou.readthedocs.io/en/master/api/tianshou.env.html#vectorenv>`_.
@@ -359,7 +360,7 @@ def vectorize_env(
         vectorize_env(env_factory, ...)
     """
     assert len(env_factories) in (1, concurrency)
-    
+
     env_type_cls_mapping: Dict[str, Type[FiniteVectorEnv]] = {
         "dummy": FiniteDummyVectorEnv,
         "subproc": FiniteSubprocVectorEnv,

@@ -49,19 +49,23 @@ class TrainingVesselBase(Generic[InitialStateType, StateType, ActType, ObsType, 
     def assign_trainer(self, trainer: Trainer) -> None:
         self.trainer = weakref.proxy(trainer)  # type: ignore
 
-    def train_seed_iterator(self) -> ContextManager[Iterable[InitialStateType]] | Iterable[InitialStateType]:
-        """Override this to create a seed iterator for training.
+    def train_seed_iterators(
+        self,
+    ) -> List[ContextManager[Iterable[InitialStateType]]] | List[Iterable[InitialStateType]]:
+        """Override this to create a seed iterators for training.
         If the iterable is a context manager, the whole training will be invoked in the with-block,
         and the iterator will be automatically closed after the training is done."""
-        raise SeedIteratorNotAvailable("Seed iterator for training is not available.")
+        raise SeedIteratorNotAvailable("Seed iterators for training is not available.")
 
-    def val_seed_iterator(self) -> ContextManager[Iterable[InitialStateType]] | Iterable[InitialStateType]:
-        """Override this to create a seed iterator for validation."""
-        raise SeedIteratorNotAvailable("Seed iterator for validation is not available.")
+    def val_seed_iterators(self) -> List[ContextManager[Iterable[InitialStateType]]] | List[Iterable[InitialStateType]]:
+        """Override this to create a seed iterators for validation."""
+        raise SeedIteratorNotAvailable("Seed iterators for validation is not available.")
 
-    def test_seed_iterator(self) -> ContextManager[Iterable[InitialStateType]] | Iterable[InitialStateType]:
-        """Override this to create a seed iterator for testing."""
-        raise SeedIteratorNotAvailable("Seed iterator for testing is not available.")
+    def test_seed_iterators(
+        self,
+    ) -> List[ContextManager[Iterable[InitialStateType]]] | List[Iterable[InitialStateType]]:
+        """Override this to create a seed iterators for testing."""
+        raise SeedIteratorNotAvailable("Seed iterators for testing is not available.")
 
     def train(self, vector_env: BaseVectorEnv) -> Dict[str, Any]:
         """Implement this to train one iteration. In RL, one iteration usually refers to one collect."""
@@ -139,26 +143,42 @@ class TrainingVessel(TrainingVesselBase):
         self.episode_per_iter = episode_per_iter
         self.update_kwargs = update_kwargs or {}
 
-    def train_seed_iterator(self) -> List[ContextManager[Iterable[InitialStateType]]] | List[Iterable[InitialStateType]]:
+    def train_seed_iterators(
+        self,
+    ) -> List[ContextManager[Iterable[InitialStateType]]] | List[Iterable[InitialStateType]]:
         if self.train_initial_states is not None:
             _logger.info(f"Training initial states collection sizes: {[len(e) for e in self.train_initial_states]}")
-            train_initial_states = [self._random_subset("train", e, self.trainer.fast_dev_run) for e in self.train_initial_states]
-            return [DataQueue(e, repeat=-1, shuffle=True) for e in train_initial_states]
-        return super().train_seed_iterator()
+            train_initial_states = [
+                self._random_subset("train", e, self.trainer.fast_dev_run) for e in self.train_initial_states
+            ]
+            iterators = [DataQueue(e, repeat=-1, shuffle=True) for e in train_initial_states]
+            return cast(List[Iterable[InitialStateType]], iterators)
+        else:
+            return super().train_seed_iterators()
 
-    def val_seed_iterator(self) -> List[ContextManager[Iterable[InitialStateType]]] | List[Iterable[InitialStateType]]:
+    def val_seed_iterators(self) -> List[ContextManager[Iterable[InitialStateType]]] | List[Iterable[InitialStateType]]:
         if self.val_initial_states is not None:
             _logger.info(f"Validation initial states collection sizes: {[len(e) for e in self.val_initial_states]}")
-            val_initial_states = [self._random_subset("val", e, self.trainer.fast_dev_run) for e in self.val_initial_states]
-            return [DataQueue(e, repeat=1) for e in val_initial_states]
-        return super().val_seed_iterator()
+            val_initial_states = [
+                self._random_subset("val", e, self.trainer.fast_dev_run) for e in self.val_initial_states
+            ]
+            iterators = [DataQueue(e, repeat=1) for e in val_initial_states]
+            return cast(List[Iterable[InitialStateType]], iterators)
+        else:
+            return super().val_seed_iterators()
 
-    def test_seed_iterator(self) -> List[ContextManager[Iterable[InitialStateType]]] | List[Iterable[InitialStateType]]:
+    def test_seed_iterators(
+        self,
+    ) -> List[ContextManager[Iterable[InitialStateType]]] | List[Iterable[InitialStateType]]:
         if self.test_initial_states is not None:
             _logger.info(f"Testing initial states collection sizes: {[len(e) for e in self.test_initial_states]}")
-            test_initial_states = [self._random_subset("test", e, self.trainer.fast_dev_run) for e in self.test_initial_states]
-            return [DataQueue(e, repeat=1) for e in test_initial_states]
-        return super().test_seed_iterator()
+            test_initial_states = [
+                self._random_subset("test", e, self.trainer.fast_dev_run) for e in self.test_initial_states
+            ]
+            iterators = [DataQueue(e, repeat=1) for e in test_initial_states]
+            return cast(List[Iterable[InitialStateType]], iterators)
+        else:
+            return super().test_seed_iterators()
 
     def train(self, vector_env: FiniteVectorEnv) -> Dict[str, Any]:
         """Create a collector and collects ``episode_per_iter`` episodes.

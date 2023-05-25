@@ -15,7 +15,7 @@ import pandas as pd
 import torch
 from joblib import Parallel, delayed
 
-from qlib.backtest import INDICATOR_METRIC, collect_data_loop, get_exchange, get_strategy_executor
+from qlib.backtest import INDICATOR_METRIC, collect_data_loop, get_strategy_executor
 from qlib.backtest.decision import BaseTradeDecision, Order, OrderDir, TradeRangeByTime
 from qlib.backtest.executor import SimulatorExecutor
 from qlib.backtest.high_performance_ds import BaseOrderIndicator

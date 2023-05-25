@@ -26,7 +26,6 @@ from typing import List, Sequence, cast
 import cachetools
 import numpy as np
 import pandas as pd
-from cachetools.keys import hashkey
 
 from qlib.backtest.decision import Order, OrderDir
 from qlib.rl.data.base import BaseIntradayBacktestData, BaseIntradayProcessedData, ProcessedDataProvider
@@ -162,7 +161,7 @@ class SimpleIntradayBacktestData(BaseIntradayBacktestData):
     cache=cachetools.LRUCache(1000),
     key=lambda path: path,
 )
-def _load_df_pickle(path: str) -> object:
+def _load_df_pickle(path: str) -> pd.DataFrame:
     df = pd.read_pickle(path)
     return df
 
@@ -184,7 +183,7 @@ class PickleIntradayProcessedData(BaseIntradayProcessedData):
         path = data_dir / ("backtest" if backtest else "feature") / f"{stock_id}.pkl"
         df = _load_df_pickle(str(path))
         df = df.loc[pd.IndexSlice[stock_id, :, date]]
-        
+
         self.today = df[feature_columns_today]
         self.yesterday = df[feature_columns_yesterday]
 
@@ -213,9 +212,9 @@ def load_pickle_intraday_processed_data(
     backtest: bool = False,
 ) -> BaseIntradayProcessedData:
     return PickleIntradayProcessedData(
-        data_dir, 
-        stock_id, 
-        date, 
+        data_dir,
+        stock_id,
+        date,
         feature_columns_today,
         feature_columns_yesterday,
         backtest,
@@ -224,8 +223,8 @@ def load_pickle_intraday_processed_data(
 
 class PickleProcessedDataProvider(ProcessedDataProvider):
     def __init__(
-        self, 
-        data_dir: Path, 
+        self,
+        data_dir: Path,
         feature_columns_today: List[str],
         feature_columns_yesterday: List[str],
         backtest: bool = False,

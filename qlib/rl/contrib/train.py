@@ -8,7 +8,7 @@ import random
 import sys
 import warnings
 from pathlib import Path
-from typing import Any, cast, List, Optional
+from typing import Callable, cast, List, Optional, Sequence
 
 import numpy as np
 import pandas as pd
@@ -16,6 +16,7 @@ import torch
 from qlib.backtest import Order
 from qlib.backtest.decision import OrderDir
 from qlib.constant import ONE_MIN
+from qlib.rl import Simulator
 from qlib.rl.contrib.naive_config_parser import TrainingConfigParser
 from qlib.rl.data.integration import init_qlib
 from qlib.rl.data.pickle_styled import load_pickle_intraday_processed_data
@@ -150,8 +151,48 @@ class LazyLoadDataset(Dataset):
 def _split_order_df_by_instrument(df: pd.DataFrame, k: int) -> List[pd.DataFrame]:
     df = df.copy()
     df["group"] = df["instrument"].apply(lambda s: hash(s) % k)
-    dfs = [df[df['group'] == i].drop(columns=["group"]) for i in range(k)]
+    dfs = [df[df["group"] == i].drop(columns=["group"]) for i in range(k)]
     return dfs
+
+
+def _get_simulator_factory(
+    sim_type: str,
+    data_dir: Path,
+    freq_min: int,
+    simulator_config: dict,
+) -> Callable[[Order], Simulator]:
+    if sim_type == "simple":
+
+        def _simulator_factory_simple(order: Order) -> SingleAssetOrderExecutionSimple:
+            simulator = SingleAssetOrderExecutionSimple(
+                order=order,
+                data_dir=data_dir,
+                feature_columns_today=simulator_config["data"]["feature_columns_today"],
+                data_granularity=freq_min,
+                ticks_per_step=simulator_config["time_per_step"],
+                vol_threshold=simulator_config["vol_limit"],
+            )
+            return simulator
+
+        return _simulator_factory_simple
+    elif sim_type == "full":
+        init_qlib(simulator_config["qlib"])
+        executor_config = get_executor_config(freq_min)
+        exchange_config = simulator_config["exchange"]
+
+        def _simulator_factory_full(order: Order) -> SingleAssetOrderExecution:
+            simulator = SingleAssetOrderExecution(
+                order=order,
+                executor_config=executor_config,
+                exchange_config={**exchange_config, **{"codes": [order.stock_id]}},
+                qlib_config=None,
+                cash_limit=None,
+            )
+            return simulator
+
+        return _simulator_factory_full
+    else:
+        raise ValueError(f"Unknown simulator type: {sim_type}")
 
 
 def train_and_test(
@@ -167,40 +208,18 @@ def train_and_test(
     run_training: bool,
     run_backtest: bool,
 ) -> None:
-    freq = _freq_str_to_int(freq)
+    freq_min: int = _freq_str_to_int(freq)
     order_root_path = Path(training_config["order_dir"])
     feature_root_dir = simulator_config["data"]["feature_root_dir"]
-    assert simulator_config["data"]["default_start_time_index"] % freq == 0
-    assert simulator_config["data"]["default_end_time_index"] % freq == 0
+    assert simulator_config["data"]["default_start_time_index"] % freq_min == 0
+    assert simulator_config["data"]["default_end_time_index"] % freq_min == 0
 
-    sim_type = simulator_config["type"]
-    if sim_type == "simple":
-
-        def _simulator_factory(order: Order) -> SingleAssetOrderExecutionSimple:
-            simulator = SingleAssetOrderExecutionSimple(
-                order=order,
-                data_dir=feature_root_dir,
-                feature_columns_today=simulator_config["data"]["feature_columns_today"],
-                data_granularity=freq,
-                ticks_per_step=simulator_config["time_per_step"],
-                vol_threshold=simulator_config["vol_limit"],
-            )
-            return simulator
-
-    elif sim_type == "full":
-        init_qlib(simulator_config["qlib"])
-        executor_config = get_executor_config(freq)
-        exchange_config = simulator_config["exchange"]
-
-        def _simulator_factory(order: Order) -> SingleAssetOrderExecution:
-            simulator = SingleAssetOrderExecution(
-                order=order,
-                executor_config=executor_config,
-                exchange_config={**exchange_config, **{"codes": [order.stock_id]}},
-                qlib_config=None,
-                cash_limit=None,
-            )
-            return simulator
+    _simulator_factory = _get_simulator_factory(
+        sim_type=simulator_config["type"],
+        data_dir=feature_root_dir,
+        freq_min=freq_min,
+        simulator_config=simulator_config,
+    )
 
     # Load orders
     load_data_tags = []
@@ -216,8 +235,8 @@ def train_and_test(
             LazyLoadDataset(
                 data_dir=feature_root_dir,
                 order_df=df,
-                default_start_time_index=simulator_config["data"]["default_start_time_index"] // freq,
-                default_end_time_index=simulator_config["data"]["default_end_time_index"] // freq,
+                default_start_time_index=simulator_config["data"]["default_start_time_index"] // freq_min,
+                default_end_time_index=simulator_config["data"]["default_end_time_index"] // freq_min,
             )
             for df in dfs
         ]
@@ -243,7 +262,7 @@ def train_and_test(
             action_interpreter=action_interpreter,
             policy=policy,
             reward=reward,
-            initial_states=cast(List[List[Order]], orders_by_tag["train"]),
+            initial_states=cast(List[Sequence[Order]], orders_by_tag["train"]),
             trainer_kwargs={
                 "max_iters": training_config["max_epoch"],
                 "finite_env_type": parallel_mode,
@@ -257,7 +276,7 @@ def train_and_test(
                     "batch_size": training_config["batch_size"],
                     "repeat": training_config["repeat_per_collect"],
                 },
-                "val_initial_states": cast(List[List[Order]], orders_by_tag["valid"]),
+                "val_initial_states": cast(List[Sequence[Order]], orders_by_tag["valid"]),
             },
         )
 
@@ -266,11 +285,11 @@ def train_and_test(
             simulator_fn=_simulator_factory,
             state_interpreter=state_interpreter,
             action_interpreter=action_interpreter,
-            initial_states=cast(List[List[Order]], orders_by_tag["test"]),
+            initial_states=cast(List[Sequence[Order]], orders_by_tag["test"]),
             policy=policy,
             logger=CsvWriter(Path(training_config["checkpoint_path"])),
             reward=reward,
-            finite_env_type=parallel_mode,
+            finite_env_type=parallel_mode,  # type: ignore[arg-type]
             concurrency=concurrency,
         )
 

@@ -207,10 +207,12 @@ class Trainer:
 
         self._call_callback_hooks("on_fit_start")
 
-        with _wrap_context(vessel.train_seed_iterator()) as train_iterators, _wrap_context(vessel.val_seed_iterator()) as valid_iterators:
+        with _wrap_context(vessel.train_seed_iterators()) as train_iterators, _wrap_context(
+            vessel.val_seed_iterators()
+        ) as valid_iterators:
             train_vector_env = self.venv_from_iterator(train_iterators)
             valid_vector_env = self.venv_from_iterator(valid_iterators)
-            
+
             while not self.should_stop:
                 msg = f"\n{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\tTrain iteration {self.current_iter + 1}/{self.max_iters}"
                 print(msg)
@@ -233,7 +235,7 @@ class Trainer:
                     # Implementation of validation loop
                     self.current_stage = "val"
                     self._call_callback_hooks("on_validate_start")
-                        
+
                     self.vessel.validate(valid_vector_env)
 
                     self._call_callback_hooks("on_validate_end")
@@ -246,7 +248,7 @@ class Trainer:
                     self.should_stop = True
 
                 self._call_callback_hooks("on_iter_end")
-                
+
             del train_vector_env  # FIXME: Explicitly delete this object to avoid memory leak.
             del valid_vector_env  # FIXME: Explicitly delete this object to avoid memory leak.
 
@@ -269,7 +271,7 @@ class Trainer:
 
         self.current_stage = "test"
         self._call_callback_hooks("on_test_start")
-        with _wrap_context(vessel.test_seed_iterator()) as iterators:
+        with _wrap_context(vessel.test_seed_iterators()) as iterators:
             vector_env = self.venv_from_iterator(iterators)
             self.vessel.test(vector_env)
             del vector_env  # FIXME: Explicitly delete this object to avoid memory leak.
