@@ -158,6 +158,15 @@ class SimpleIntradayBacktestData(BaseIntradayBacktestData):
         return cast(pd.DatetimeIndex, self.data.index)
 
 
+@cachetools.cached(  # type: ignore
+    cache=cachetools.LRUCache(1000),
+    key=lambda path: path,
+)
+def _load_df_pickle(path: str) -> object:
+    df = pd.read_pickle(path)
+    return df
+
+
 class PickleIntradayProcessedData(BaseIntradayProcessedData):
     """Subclass of IntradayProcessedData. Used to handle pickle-styled data."""
 
@@ -166,36 +175,18 @@ class PickleIntradayProcessedData(BaseIntradayProcessedData):
         data_dir: Path | str,
         stock_id: str,
         date: pd.Timestamp,
-        feature_dim: int,
-        time_index: pd.Index,
+        feature_columns_today: List[str],
+        feature_columns_yesterday: List[str],
+        backtest: bool,
     ) -> None:
-        proc = _read_pickle((data_dir if isinstance(data_dir, Path) else Path(data_dir)) / stock_id)
-
-        # We have to infer the names here because,
-        # unfortunately they are not included in the original data.
-        cnames = _infer_processed_data_column_names(feature_dim)
-
-        time_length: int = len(time_index)
-
-        try:
-            # new data format
-            proc = proc.loc[pd.IndexSlice[stock_id, :, date]]
-            assert len(proc) == time_length and len(proc.columns) == feature_dim * 2
-            proc_today = proc[cnames]
-            proc_yesterday = proc[[f"{c}_1" for c in cnames]].rename(columns=lambda c: c[:-2])
-        except (IndexError, KeyError):
-            # legacy data
-            proc = proc.loc[pd.IndexSlice[stock_id, date]]
-            assert time_length * feature_dim * 2 == len(proc)
-            proc_today = proc.to_numpy()[: time_length * feature_dim].reshape((time_length, feature_dim))
-            proc_yesterday = proc.to_numpy()[time_length * feature_dim :].reshape((time_length, feature_dim))
-            proc_today = pd.DataFrame(proc_today, index=time_index, columns=cnames)
-            proc_yesterday = pd.DataFrame(proc_yesterday, index=time_index, columns=cnames)
-
-        self.today: pd.DataFrame = proc_today
-        self.yesterday: pd.DataFrame = proc_yesterday
-        assert len(self.today.columns) == len(self.yesterday.columns) == feature_dim
-        assert len(self.today) == len(self.yesterday) == time_length
+        if isinstance(data_dir, str):
+            data_dir = Path(data_dir)
+        path = data_dir / ("backtest" if backtest else "feature") / f"{stock_id}.pkl"
+        df = _load_df_pickle(str(path))
+        df = df.loc[pd.IndexSlice[stock_id, :, date]]
+        
+        self.today = df[feature_columns_today]
+        self.yesterday = df[feature_columns_yesterday]
 
     def __repr__(self) -> str:
         with pd.option_context("memory_usage", False, "display.max_info_columns", 1, "display.large_repr", "info"):
@@ -213,25 +204,38 @@ def load_simple_intraday_backtest_data(
     return SimpleIntradayBacktestData(data_dir, stock_id, date, deal_price, order_dir)
 
 
-@cachetools.cached(  # type: ignore
-    cache=cachetools.LRUCache(100),  # 100 * 50K = 5MB
-    key=lambda data_dir, stock_id, date, feature_dim, time_index: hashkey(data_dir, stock_id, date),
-)
 def load_pickle_intraday_processed_data(
     data_dir: Path,
     stock_id: str,
     date: pd.Timestamp,
-    feature_dim: int,
-    time_index: pd.Index,
+    feature_columns_today: List[str],
+    feature_columns_yesterday: List[str],
+    backtest: bool = False,
 ) -> BaseIntradayProcessedData:
-    return PickleIntradayProcessedData(data_dir, stock_id, date, feature_dim, time_index)
+    return PickleIntradayProcessedData(
+        data_dir, 
+        stock_id, 
+        date, 
+        feature_columns_today,
+        feature_columns_yesterday,
+        backtest,
+    )
 
 
 class PickleProcessedDataProvider(ProcessedDataProvider):
-    def __init__(self, data_dir: Path) -> None:
+    def __init__(
+        self, 
+        data_dir: Path, 
+        feature_columns_today: List[str],
+        feature_columns_yesterday: List[str],
+        backtest: bool = False,
+    ) -> None:
         super().__init__()
 
         self._data_dir = data_dir
+        self._backtest = backtest
+        self._feature_columns_today = feature_columns_today
+        self._feature_columns_yesterday = feature_columns_yesterday
 
     def get_data(
         self,
@@ -244,8 +248,9 @@ class PickleProcessedDataProvider(ProcessedDataProvider):
             data_dir=self._data_dir,
             stock_id=stock_id,
             date=date,
-            feature_dim=feature_dim,
-            time_index=time_index,
+            feature_columns_today=self._feature_columns_today,
+            feature_columns_yesterday=self._feature_columns_yesterday,
+            backtest=self._backtest,
         )
 
 

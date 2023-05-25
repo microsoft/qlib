@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 import weakref
-from typing import TYPE_CHECKING, Any, Callable, ContextManager, Dict, Generic, Iterable, Sequence, TypeVar, cast
+from typing import List, TYPE_CHECKING, Any, Callable, ContextManager, Dict, Generic, Iterable, Sequence, TypeVar, cast
 
 import numpy as np
 from tianshou.data import Collector, VectorReplayBuffer
@@ -120,9 +120,9 @@ class TrainingVessel(TrainingVesselBase):
         action_interpreter: ActionInterpreter[StateType, PolicyActType, ActType],
         policy: BasePolicy,
         reward: Reward,
-        train_initial_states: Sequence[InitialStateType] | None = None,
-        val_initial_states: Sequence[InitialStateType] | None = None,
-        test_initial_states: Sequence[InitialStateType] | None = None,
+        train_initial_states: List[Sequence[InitialStateType]] | None = None,
+        val_initial_states: List[Sequence[InitialStateType]] | None = None,
+        test_initial_states: List[Sequence[InitialStateType]] | None = None,
         buffer_size: int = 20000,
         episode_per_iter: int = 1000,
         update_kwargs: Dict[str, Any] = cast(Dict[str, Any], None),
@@ -132,33 +132,32 @@ class TrainingVessel(TrainingVesselBase):
         self.action_interpreter = action_interpreter
         self.policy = policy
         self.reward = reward
-        self.train_initial_states = train_initial_states
-        self.val_initial_states = val_initial_states
-        self.test_initial_states = test_initial_states
+        self.train_initial_states = None if train_initial_states is None else train_initial_states
+        self.val_initial_states = None if val_initial_states is None else val_initial_states
+        self.test_initial_states = None if test_initial_states is None else test_initial_states
         self.buffer_size = buffer_size
         self.episode_per_iter = episode_per_iter
         self.update_kwargs = update_kwargs or {}
 
-    def train_seed_iterator(self) -> ContextManager[Iterable[InitialStateType]] | Iterable[InitialStateType]:
+    def train_seed_iterator(self) -> List[ContextManager[Iterable[InitialStateType]]] | List[Iterable[InitialStateType]]:
         if self.train_initial_states is not None:
-            _logger.info("Training initial states collection size: %d", len(self.train_initial_states))
-            # Implement fast_dev_run here.
-            train_initial_states = self._random_subset("train", self.train_initial_states, self.trainer.fast_dev_run)
-            return DataQueue(train_initial_states, repeat=-1, shuffle=True)
+            _logger.info(f"Training initial states collection sizes: {[len(e) for e in self.train_initial_states]}")
+            train_initial_states = [self._random_subset("train", e, self.trainer.fast_dev_run) for e in self.train_initial_states]
+            return [DataQueue(e, repeat=-1, shuffle=True) for e in train_initial_states]
         return super().train_seed_iterator()
 
-    def val_seed_iterator(self) -> ContextManager[Iterable[InitialStateType]] | Iterable[InitialStateType]:
+    def val_seed_iterator(self) -> List[ContextManager[Iterable[InitialStateType]]] | List[Iterable[InitialStateType]]:
         if self.val_initial_states is not None:
-            _logger.info("Validation initial states collection size: %d", len(self.val_initial_states))
-            val_initial_states = self._random_subset("val", self.val_initial_states, self.trainer.fast_dev_run)
-            return DataQueue(val_initial_states, repeat=1)
+            _logger.info(f"Validation initial states collection sizes: {[len(e) for e in self.val_initial_states]}")
+            val_initial_states = [self._random_subset("val", e, self.trainer.fast_dev_run) for e in self.val_initial_states]
+            return [DataQueue(e, repeat=1) for e in val_initial_states]
         return super().val_seed_iterator()
 
-    def test_seed_iterator(self) -> ContextManager[Iterable[InitialStateType]] | Iterable[InitialStateType]:
+    def test_seed_iterator(self) -> List[ContextManager[Iterable[InitialStateType]]] | List[Iterable[InitialStateType]]:
         if self.test_initial_states is not None:
-            _logger.info("Testing initial states collection size: %d", len(self.test_initial_states))
-            test_initial_states = self._random_subset("test", self.test_initial_states, self.trainer.fast_dev_run)
-            return DataQueue(test_initial_states, repeat=1)
+            _logger.info(f"Testing initial states collection sizes: {[len(e) for e in self.test_initial_states]}")
+            test_initial_states = [self._random_subset("test", e, self.trainer.fast_dev_run) for e in self.test_initial_states]
+            return [DataQueue(e, repeat=1) for e in test_initial_states]
         return super().test_seed_iterator()
 
     def train(self, vector_env: FiniteVectorEnv) -> Dict[str, Any]:

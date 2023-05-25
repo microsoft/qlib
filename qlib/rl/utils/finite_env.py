@@ -311,7 +311,7 @@ class FiniteShmemVectorEnv(FiniteVectorEnv, ShmemVectorEnv):
 
 
 def vectorize_env(
-    env_factory: Callable[..., gym.Env],
+    env_factories: List[Callable[..., gym.Env]],
     env_type: FiniteEnvType,
     concurrency: int,
     logger: LogWriter | List[LogWriter],
@@ -358,6 +358,8 @@ def vectorize_env(
         def env_factory(): ...
         vectorize_env(env_factory, ...)
     """
+    assert len(env_factories) in (1, concurrency)
+    
     env_type_cls_mapping: Dict[str, Type[FiniteVectorEnv]] = {
         "dummy": FiniteDummyVectorEnv,
         "subproc": FiniteSubprocVectorEnv,
@@ -366,4 +368,7 @@ def vectorize_env(
 
     finite_env_cls = env_type_cls_mapping[env_type]
 
-    return finite_env_cls(logger, [env_factory for _ in range(concurrency)])
+    if len(env_factories) == 1:
+        return finite_env_cls(logger, [env_factories[0] for _ in range(concurrency)])
+    else:
+        return finite_env_cls(logger, env_factories)
