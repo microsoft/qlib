@@ -184,7 +184,7 @@ def _get_simulator_factory(
             simulator = SingleAssetOrderExecution(
                 order=order,
                 executor_config=executor_config,
-                exchange_config={**exchange_config, **{"codes": [order.stock_id]}},
+                exchange_config=exchange_config,  # `codes` will be set in SingleAssetOrderExecution.__init__()
                 qlib_config=None,
                 cash_limit=None,
             )

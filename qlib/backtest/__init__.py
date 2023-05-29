@@ -179,7 +179,7 @@ def get_strategy_executor(
     executor: Union[str, dict, object, Path],
     benchmark: Optional[str] = "SH000300",
     account: Union[float, int, dict] = 1e9,
-    exchange_kwargs: dict = {},
+    exchange_kwargs: Union[dict, Exchange] = {},  # TODO: rename parameter
     pos_type: str = "Position",
 ) -> Tuple[BaseStrategy, BaseExecutor]:
 
@@ -197,12 +197,15 @@ def get_strategy_executor(
         pos_type=pos_type,
     )
 
-    exchange_kwargs = copy.copy(exchange_kwargs)
-    if "start_time" not in exchange_kwargs:
-        exchange_kwargs["start_time"] = start_time
-    if "end_time" not in exchange_kwargs:
-        exchange_kwargs["end_time"] = end_time
-    trade_exchange = get_exchange(**exchange_kwargs)
+    if isinstance(exchange_kwargs, Exchange):
+        trade_exchange = exchange_kwargs
+    else:
+        exchange_kwargs = copy.copy(exchange_kwargs)
+        if "start_time" not in exchange_kwargs:
+            exchange_kwargs["start_time"] = start_time
+        if "end_time" not in exchange_kwargs:
+            exchange_kwargs["end_time"] = end_time
+        trade_exchange = get_exchange(**exchange_kwargs)
 
     common_infra = CommonInfrastructure(trade_account=trade_account, trade_exchange=trade_exchange)
     trade_strategy = init_instance_by_config(strategy, accept_types=BaseStrategy)
