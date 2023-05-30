@@ -56,7 +56,8 @@ def create_chat_completion(
             model=cfg.model,
             messages=messages,
         )
-    return response
+    resp = response.choices[0].message["content"]
+    return resp
 
 if __name__ == "__main__":
     create_chat_completion()
