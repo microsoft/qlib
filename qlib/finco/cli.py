@@ -1,6 +1,7 @@
 import fire
 from qlib.finco.task import WorkflowManager
 from dotenv import load_dotenv
+from qlib import auto_init
 
 
 def main(prompt=None):
@@ -10,4 +11,5 @@ def main(prompt=None):
 
 
 if __name__ == "__main__":
+    auto_init()
     fire.Fire(main)

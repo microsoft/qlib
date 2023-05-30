@@ -124,10 +124,10 @@ class WorkflowTask(Task):
     def interact(self) -> Any:
         assert self.executed == True, "The workflow task has not been executed yet"
         ## TODO use logger
-        print(
+        self.logger.info(
             f"The workflow has been determined to be ---{self._context_manager.get_context('workflow')}---"
         )
-        print(
+        self.logger.info(
             "Enter 'y' to authorise command,'s' to run self-feedback commands, "
             "'n' to exit program, or enter feedback for WorkflowTask"
         )
