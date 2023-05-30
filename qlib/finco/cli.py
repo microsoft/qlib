@@ -1,8 +1,10 @@
 import fire
 from qlib.finco.task import WorkflowManager
+from dotenv import load_dotenv
 
 
 def main(prompt):
+    load_dotenv(verbose=True, override=True)
     wm = WorkflowManager()
     wm.run(prompt)
 
