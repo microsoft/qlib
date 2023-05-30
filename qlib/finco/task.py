@@ -1,3 +1,5 @@
+import os
+
 from pathlib import Path
 from typing import Any, List
 from qlib.typehint import Literal
@@ -58,6 +60,30 @@ class SLTask(PlanTask):
 class ActionTask(Task):
     def execute(self) -> Literal["fail", "success"]:
         return "success"
+
+
+class SummarizeTask(Task):
+    def execution(self) -> Any:
+        output_path = ''
+
+    def parse2txt(self, path) -> List:
+        file_list = []
+        path = Path.cwd().joinpath(path)
+        for root, dirs, files in os.walk(path):
+            for filename in files:
+                file_path = os.path.join(root, filename)
+                print(file_path)
+                file_list.append(file_path)
+
+        result = []
+        for file in file_list:
+            postfix = file.split('.')[-1]
+            if postfix in ['txt', 'py', 'log']:
+                with open(file) as f:
+                    content = f.read()
+                    print(content)
+                    result.append({'postfix': postfix, 'content': content})
+        return result
 
 
 class WorkflowManager:
