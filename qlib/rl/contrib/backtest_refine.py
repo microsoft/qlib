@@ -267,7 +267,7 @@ def backtest(backtest_config: dict, with_simulator: bool = False) -> pd.DataFram
         if "pa" in res.columns:
             res["pa"] = res["pa"] * 10000.0  # align with training metrics
         res.to_csv(output_path / "backtest_result.csv")
-        return res
+        # return res  # TODO
 
 
 if __name__ == "__main__":

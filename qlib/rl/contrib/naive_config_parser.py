@@ -1,6 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+import copy
 import os
 import platform
 import shutil
@@ -92,7 +93,7 @@ class BacktestConfigParser:
             if "output_dir" not in task:
                 task["output_dir"] = os.path.join("outputs_backtest", task["name"])
             if "exchange" not in task:
-                task["exchange"] = self._exchange_config
+                task["exchange"] = copy.deepcopy(self._exchange_config)
             else:
                 task["exchange"] = self._complete_exchange_config(task["exchange"])
             task_config.append(task)
