@@ -177,7 +177,7 @@ class Exchange:
 
         necessary_fields = {self.buy_price, self.sell_price, "$close", "$change", "$factor", "$volume"}
         if self.limit_type == self.LT_TP_EXP:
-            assert isinstance(limit_threshold, tuple)
+            assert isinstance(limit_threshold, tuple) or (isinstance(limit_threshold, list) and len(limit_threshold) == 2)
             for exp in limit_threshold:
                 necessary_fields.add(exp)
         all_fields = list(necessary_fields | set(vol_lt_fields) | set(subscribe_fields))
@@ -263,6 +263,9 @@ class Exchange:
         """get limit type"""
         if isinstance(limit_threshold, tuple):
             return self.LT_TP_EXP
+        if isinstance(limit_threshold, list):
+            assert len(limit_threshold) == 2
+            return self.LT_TP_EXP
         elif isinstance(limit_threshold, float):
             return self.LT_FLT
         elif limit_threshold is None:
@@ -325,7 +328,7 @@ class Exchange:
 
         assert isinstance(volume_threshold, dict)
         for key, vol_limit in volume_threshold.items():
-            assert isinstance(vol_limit, tuple)
+            assert isinstance(vol_limit, tuple) or (isinstance(vol_limit, list) and len(vol_limit) == 2)
             fields.add(vol_limit[1])
 
             if key in ("buy", "all"):
@@ -803,7 +806,7 @@ class Exchange:
 
         vol_limit_num: List[float] = []
         for limit in vol_limit:
-            assert isinstance(limit, tuple)
+            assert isinstance(limit, tuple) or (isinstance(limit, list) and len(limit) == 2)
             if limit[0] == "current":
                 limit_value = self.quote.get_data(
                     order.stock_id,

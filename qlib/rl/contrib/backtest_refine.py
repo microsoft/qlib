@@ -16,13 +16,12 @@ import torch
 from joblib import Parallel, delayed
 
 from qlib.backtest import INDICATOR_METRIC, collect_data_loop, get_strategy_executor
-from qlib.backtest.decision import BaseTradeDecision, Order, OrderDir, TradeRangeByTime
+from qlib.backtest.decision import BaseTradeDecision, TradeRangeByTime
 from qlib.backtest.executor import SimulatorExecutor
 from qlib.backtest.high_performance_ds import BaseOrderIndicator
-from qlib.rl.contrib.naive_config_parser import get_backtest_config_fromfile
+from qlib.rl.contrib.naive_config_parser import BacktestConfigParser
 from qlib.rl.contrib.utils import read_order_file
 from qlib.rl.data.integration import init_qlib
-from qlib.rl.order_execution.simulator_qlib import SingleAssetOrderExecution
 from qlib.typehint import Literal
 
 
@@ -124,105 +123,13 @@ def _generate_report(
     return report
 
 
-def single_with_simulator(
-    backtest_config: dict,
-    orders: pd.DataFrame,
-    split: Literal["stock", "day"] = "stock",
-    cash_limit: float | None = None,
-    generate_report: bool = False,
-) -> Union[Tuple[pd.DataFrame, dict], pd.DataFrame]:
-    """Run backtest in a single thread with SingleAssetOrderExecution simulator. The orders will be executed day by day.
-    A new simulator will be created and used for every single-day order.
-
-    Parameters
-    ----------
-    backtest_config:
-        Backtest config
-    orders:
-        Orders to be executed. Example format:
-                 datetime instrument  amount  direction
-            0  2020-06-01       INST   600.0          0
-            1  2020-06-02       INST   700.0          1
-            ...
-    split
-        Method to split orders. If it is "stock", split orders by stock. If it is "day", split orders by date.
-    cash_limit
-        Limitation of cash.
-    generate_report
-        Whether to generate reports.
-
-    Returns
-    -------
-        If generate_report is True, return execution records and the generated report. Otherwise, return only records.
-    """
-    init_qlib(backtest_config["qlib"])
-
-    stocks = orders.instrument.unique().tolist()
-
-    reports = []
-    decisions = []
-    for _, row in orders.iterrows():
-        date = pd.Timestamp(row["datetime"])
-        start_time = pd.Timestamp(backtest_config["start_time"]).replace(year=date.year, month=date.month, day=date.day)
-        end_time = pd.Timestamp(backtest_config["end_time"]).replace(year=date.year, month=date.month, day=date.day)
-        order = Order(
-            stock_id=row["instrument"],
-            amount=row["amount"],
-            direction=OrderDir(row["direction"]),
-            start_time=start_time,
-            end_time=end_time,
-        )
-
-        executor_config = _get_multi_level_executor_config(
-            strategy_config=backtest_config["strategies"],
-            cash_limit=cash_limit,
-            generate_report=generate_report,
-            data_granularity=backtest_config["data_granularity"],
-        )
-
-        exchange_config = copy.deepcopy(backtest_config["exchange"])
-        exchange_config.update(
-            {
-                "codes": stocks,
-                "freq": backtest_config["data_granularity"],
-            }
-        )
-
-        simulator = SingleAssetOrderExecution(
-            order=order,
-            executor_config=executor_config,
-            exchange_config=exchange_config,
-            qlib_config=None,
-            cash_limit=None,
-        )
-
-        reports.append(simulator.report_dict)
-        decisions += simulator.decisions
-
-    indicator_1day_objs = [report["indicator_dict"]["1day"][1] for report in reports]
-    indicator_info = {k: v for obj in indicator_1day_objs for k, v in obj.order_indicator_his.items()}
-    records = _convert_indicator_to_dataframe(indicator_info)
-    assert records is None or not np.isnan(records["ffr"]).any()
-
-    if generate_report:
-        _report = _generate_report(decisions, [report["indicator"] for report in reports])
-
-        if split == "stock":
-            stock_id = orders.iloc[0].instrument
-            report = {stock_id: _report}
-        else:
-            day = orders.iloc[0].datetime
-            report = {day: _report}
-
-        return records, report
-    else:
-        return records
-
-
 def single_with_collect_data_loop(
-    backtest_config: dict,
     orders: pd.DataFrame,
+    time_range: Tuple[str, str],
+    exchange_config: dict,
+    strategy_config: dict,
     split: Literal["stock", "day"] = "stock",
+    data_granularity: str = "1min",
     cash_limit: float | None = None,
     generate_report: bool = False,
 ) -> Union[Tuple[pd.DataFrame, dict], pd.DataFrame]:
@@ -254,38 +161,38 @@ def single_with_collect_data_loop(
     trade_end_time = orders["datetime"].max()
     stocks = orders.instrument.unique().tolist()
 
-    strategy_config = {
+    top_strategy_config = {
         "class": "FileOrderStrategy",
         "module_path": "qlib.contrib.strategy.rule_strategy",
         "kwargs": {
             "file": orders,
             "trade_range": TradeRangeByTime(
-                pd.Timestamp(backtest_config["start_time"]).time(),
-                pd.Timestamp(backtest_config["end_time"]).time(),
+                pd.Timestamp(time_range[0]).time(),
+                pd.Timestamp(time_range[1]).time(),
             ),
         },
     }
 
-    executor_config = _get_multi_level_executor_config(
-        strategy_config=backtest_config["strategies"],
+    top_executor_config = _get_multi_level_executor_config(
+        strategy_config=strategy_config,
         cash_limit=cash_limit,
         generate_report=generate_report,
-        data_granularity=backtest_config["data_granularity"],
+        data_granularity=data_granularity,
     )
 
     exchange_config = {
-        **backtest_config["exchange"],
+        **exchange_config,
         **{
             "codes": stocks,
-            "freq": backtest_config["data_granularity"],
+            "freq": data_granularity,
         },
     }
 
     strategy, executor = get_strategy_executor(
         start_time=pd.Timestamp(trade_start_time),
         end_time=pd.Timestamp(trade_end_time) + pd.DateOffset(1),
-        strategy=strategy_config,
-        executor=executor_config,
+        strategy=top_strategy_config,
+        executor=top_executor_config,
         benchmark=None,
         account=cash_limit if cash_limit is not None else int(1e12),
         exchange_kwargs=exchange_config,
@@ -313,48 +220,54 @@ def single_with_collect_data_loop(
 
 
 def backtest(backtest_config: dict, with_simulator: bool = False) -> pd.DataFrame:
-    order_df = read_order_file(backtest_config["order_file"])
-
-    cash_limit = backtest_config["exchange"].pop("cash_limit")
-    generate_report = backtest_config.pop("generate_report")
-
-    stock_pool = order_df["instrument"].unique().tolist()
-    stock_pool.sort()
-
-    single = single_with_simulator if with_simulator else single_with_collect_data_loop
-    mp_config = {"n_jobs": backtest_config["concurrency"], "verbose": 10, "backend": "multiprocessing"}
+    init_qlib(backtest_config["simulator"]["qlib"])
     torch.set_num_threads(1)  # https://github.com/pytorch/pytorch/issues/17199
-
-    init_qlib(backtest_config["qlib"])
-    res = Parallel(**mp_config)(
-        delayed(single)(
-            backtest_config=backtest_config,
-            orders=order_df[order_df["instrument"] == stock].copy(),
-            split="stock",
-            cash_limit=cash_limit,
-            generate_report=generate_report,
+    
+    single = single_with_collect_data_loop
+    mp_config = {"n_jobs": backtest_config["runtime"]["concurrency"], "verbose": 10, "backend": "multiprocessing"}
+    
+    for task_config in backtest_config["tasks"]:
+        order_df = read_order_file(task_config["order_file"])
+        exchange_config = task_config["exchange"]
+        cash_limit = exchange_config.pop("cash_limit")
+        generate_report = backtest_config["runtime"]["generate_report"]
+        
+        stock_pool = order_df["instrument"].unique().tolist()
+        stock_pool.sort()
+    
+        #
+        res = Parallel(**mp_config)(
+            delayed(single)(
+                orders=order_df[order_df["instrument"] == stock].copy(),
+                time_range=task_config["time_range"],
+                exchange_config=task_config["exchange"],
+                strategy_config=backtest_config["strategies"],
+                split="stock",
+                data_granularity=task_config["data_granularity"],
+                cash_limit=cash_limit,
+                generate_report=generate_report,
+            )
+            for stock in stock_pool
         )
-        for stock in stock_pool
-    )
-
-    output_path = Path(backtest_config["output_dir"])
-    if generate_report:
-        with (output_path / "report.pkl").open("wb") as f:
-            report = {}
-            for r in res:
-                report.update(r[1])
-            pickle.dump(report, f)
-        res = pd.concat([r[0] for r in res], 0)
-    else:
-        res = pd.concat(res)
-
-    if not output_path.exists():
-        os.makedirs(output_path)
-
-    if "pa" in res.columns:
-        res["pa"] = res["pa"] * 10000.0  # align with training metrics
-    res.to_csv(output_path / "backtest_result.csv")
-    return res
+    
+        #
+        output_path = Path(task_config["output_dir"])
+        os.makedirs(output_path, exist_ok=True)
+        
+        if generate_report:
+            with (output_path / "report.pkl").open("wb") as f:
+                report = {}
+                for r in res:
+                    report.update(r[1])
+                pickle.dump(report, f)
+            res = pd.concat([r[0] for r in res], 0)
+        else:
+            res = pd.concat(res)
+            
+        if "pa" in res.columns:
+            res["pa"] = res["pa"] * 10000.0  # align with training metrics
+        res.to_csv(output_path / "backtest_result.csv")
+        return res
 
 
 if __name__ == "__main__":
@@ -374,9 +287,11 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    config = get_backtest_config_fromfile(args.config_path)
-    if args.n_jobs is not None:
-        config["concurrency"] = args.n_jobs
+
+    config_parser = BacktestConfigParser(args.config_path)
+    config = config_parser.parse()
+    if args.n_jobs is not None:  # Overwrite concurrency
+        config["runtime"]["concurrency"] = args.n_jobs
 
     backtest(
         backtest_config=config,

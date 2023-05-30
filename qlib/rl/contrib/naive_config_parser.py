@@ -30,7 +30,7 @@ def check_file_exist(filename: str, msg_tmpl: str = 'file "{}" does not exist') 
         raise FileNotFoundError(msg_tmpl.format(filename))
 
 
-def parse_backtest_config(path: str) -> dict:
+def load_config(path: str) -> dict:
     abs_path = os.path.abspath(path)
     check_file_exist(abs_path)
 
@@ -65,51 +65,63 @@ def parse_backtest_config(path: str) -> dict:
             base_file_name = [base_file_name]
 
         for f in base_file_name:
-            base_config = parse_backtest_config(os.path.join(os.path.dirname(abs_path), f))
+            base_config = load_config(os.path.join(os.path.dirname(abs_path), f))
             config = merge_a_into_b(a=config, b=base_config)
 
     return config
 
 
-def _convert_all_list_to_tuple(config: dict) -> dict:
-    for k, v in config.items():
-        if isinstance(v, list):
-            config[k] = tuple(v)
-        elif isinstance(v, dict):
-            config[k] = _convert_all_list_to_tuple(v)
-    return config
+class BacktestConfigParser:
+    def __init__(self, path: str) -> None:
+        self.raw_config = load_config(path)
+        
+    def parse(self) -> dict:
+        self._simulator_config = self._parse_simulator()
+        self._exchange_config = self._simulator_config.pop("exchange")
+        config = {
+            "strategies": self.raw_config["strategies"],
+            "runtime": self.raw_config["runtime"],
+            "tasks": self._parse_tasks(),
+            "simulator": self._simulator_config,
+        }
+        return config
+        
+    def _parse_tasks(self) -> dict:
+        task_config = []
+        for task in self.raw_config["tasks"]:
+            if "output_dir" not in task:
+                task["output_dir"] = os.path.join("outputs_backtest", task["name"])
+            if "exchange" not in task:
+                task["exchange"] = self._exchange_config
+            else:
+                task["exchange"] = self._complete_exchange_config(task["exchange"])
+            task_config.append(task)
+        
+        return task_config
+    
+    def _complete_exchange_config(self, exchange_config: dict) -> dict:
+        exchange_config_default = {
+            "open_cost": 0.0005,
+            "close_cost": 0.0015,
+            "min_cost": 5.0,
+            "trade_unit": 100.0,
+            "cash_limit": None,
+        }
+        exchange_config = merge_a_into_b(a=exchange_config, b=exchange_config_default)
+        return exchange_config
+    
+    def _parse_simulator(self) -> dict:
+        config = self.raw_config["simulator"]
 
-
-def get_backtest_config_fromfile(path: str) -> dict:
-    backtest_config = parse_backtest_config(path)
-
-    exchange_config_default = {
-        "open_cost": 0.0005,
-        "close_cost": 0.0015,
-        "min_cost": 5.0,
-        "trade_unit": 100.0,
-        "cash_limit": None,
-    }
-    backtest_config["exchange"] = merge_a_into_b(a=backtest_config["exchange"], b=exchange_config_default)
-    backtest_config["exchange"] = _convert_all_list_to_tuple(backtest_config["exchange"])
-
-    backtest_config_default = {
-        "debug_single_stock": None,
-        "debug_single_day": None,
-        "concurrency": -1,
-        "multiplier": 1.0,
-        "output_dir": "outputs_backtest/",
-        "generate_report": False,
-        "data_granularity": "1min",
-    }
-    backtest_config = merge_a_into_b(a=backtest_config, b=backtest_config_default)
-
-    return backtest_config
+        return {
+            "qlib": config["qlib"],
+            "exchange": self._complete_exchange_config(config["exchange"]),
+        }
 
 
 class TrainingConfigParser:
     def __init__(self, path: str) -> None:
-        self.raw_config = parse_backtest_config(path)
+        self.raw_config = load_config(path)
 
     def parse(self) -> dict:
         return {
@@ -179,7 +191,7 @@ class TrainingConfigParser:
                 "trade_unit": 100.0,
                 # "cash_limit": None,
             }
-            exchange_config = {**exchange_config_default, **_convert_all_list_to_tuple(config["exchange"])}
+            exchange_config = {**exchange_config_default, **config["exchange"]}
             exchange_config["freq"] = self.raw_config["general"].get("freq", "1min")
 
             ret_config = {
