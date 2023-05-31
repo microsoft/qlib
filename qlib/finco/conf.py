@@ -13,7 +13,7 @@ class Config():
     def __init__(self):
         self.use_azure = os.getenv("USE_AZURE") == "True"
         self.temperature = 0.5 if os.getenv("TEMPERATURE") is None else float(os.getenv("TEMPERATURE"))
-        self.max_tokens = 8000 if os.getenv("MAX_TOKENS") is None else int(os.getenv("MAX_TOKENS"))
+        self.max_tokens = 800 if os.getenv("MAX_TOKENS") is None else int(os.getenv("MAX_TOKENS"))
         
         self.openai_api_key = os.getenv("OPENAI_API_KEY")
         self.use_azure = os.getenv("USE_AZURE") == "True"
@@ -22,3 +22,5 @@ class Config():
         self.model = os.getenv("MODEL") or ("gpt-35-turbo" if self.use_azure else "gpt-3.5-turbo")
 
         self.max_retry = os.getenv("MAX_RETRY")
+
+        self.continous_mode = os.getenv("CONTINOUS_MODE") == "True" if os.getenv("CONTINOUS_MODE") is not None else False

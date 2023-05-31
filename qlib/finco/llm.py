@@ -1,3 +1,4 @@
+import time
 import openai
 from typing import Optional
 from qlib.finco.conf import Config
@@ -25,6 +26,7 @@ def try_create_chat_completion(max_retry=10, **kwargs):
         except openai.error.RateLimitError as e:
             print(e)
             print(f"Retrying {i+1}th time...")
+            time.sleep(1)
             continue
     raise Exception(f"Failed to create chat completion after {max_retry} retries.")
 
@@ -56,7 +58,8 @@ def create_chat_completion(
             model=cfg.model,
             messages=messages,
         )
-    return response
+    resp = response.choices[0].message["content"]
+    return resp
 
 if __name__ == "__main__":
     create_chat_completion()
