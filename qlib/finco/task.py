@@ -29,16 +29,9 @@ class Task():
         - Edit Task: it is supposed to edit the code base directly.
     """
 
-    
-    TASK_TYPE_WORKFLOW = 0
-    TASK_TYPE_PLAN = 1
-    TASK_TYPE_ACTION = 2
-    TASK_TYPE_SUMMARIZE = 3
-
     ## all subclass should implement this method to determine task type
     @abc.abstractclassmethod
-    def __init__(self, task_type) -> None:
-        self.task_type = task_type
+    def __init__(self) -> None:
         self._context_manager = None
         self.executed = False
     
@@ -65,7 +58,7 @@ class Task():
 class WorkflowTask(Task):
     """This task is supposed to be the first task of the workflow"""
     def __init__(self,) -> None:
-        super().__init__(Task.TASK_TYPE_WORKFLOW)
+        super().__init__()
         self.__DEFAULT_WORKFLOW_SYSTEM_PROMPT = """
         Your task is to determine the workflow in Qlib (supervised learning or reinforcemtn learning) ensureing the workflow can meet the user's requirements.
 
@@ -131,7 +124,11 @@ class WorkflowTask(Task):
             "Enter 'y' to authorise command,'s' to run self-feedback commands, "
             "'n' to exit program, or enter feedback for WorkflowTask"
         )
-        answer = input()
+        try:
+            answer = input("You answer is:")
+        except KeyboardInterrupt:
+            self.logger.info("User has exited the program")
+            exit()
         if answer.lower().strip() == "y":
             return
         else:
@@ -145,7 +142,7 @@ class PlanTask(Task):
 
 class SLTask(PlanTask):
     def __init__(self,) -> None:
-        super().__init__(Task.TASK_TYPE_PLAN)
+        super().__init__()
 
     def exeute(self):
         """
@@ -156,7 +153,7 @@ class SLTask(PlanTask):
     
 class RLTask(PlanTask):
     def __init__(self,) -> None:
-        super().__init__(Task.TASK_TYPE_PLAN)
+        super().__init__()
     def exeute(self):
         """
         return a list of interested tasks
@@ -242,15 +239,16 @@ class WorkflowManager:
         task_list = [WorkflowTask()]
         while len(task_list):
             """task list is not long, so sort it is not a big problem"""
-            task_list = sorted(task_list, key=lambda x: x.task_type)
+            """TODO: sort the task list based on the priority of the task"""
+            # task_list = sorted(task_list, key=lambda x: x.task_type)
             t = task_list.pop(0)
             t.assign_context_manager(self._context)
             res = t.execute()
             if not cfg.continous_mode:
                 res = t.interact()
-            if t.task_type == Task.TASK_TYPE_WORKFLOW or t.task_type == Task.TASK_TYPE_PLAN:
+            if isinstance(t.task_type, WorkflowTask) or isinstance(t.task_type, PlanTask):
                 task_list.extend(res)
-            elif t.task_type == Task.TASK_TYPE_ACTION:
+            elif isinstance(t.task_type, ActionTask):
                 if res != "success":
                     ...
                     # TODO: handle the unexpected execution Error
