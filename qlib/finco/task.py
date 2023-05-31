@@ -145,7 +145,7 @@ class SLPlanTask(PlanTask):
         self.__DEFAULT_WORKFLOW_SYSTEM_PROMPT = """
 Your task is to determine the 5 crucial components in Qlib (Dataset, Model, Record, Strategy, Backtest) ensuring the workflow can meet the user's requirements.
 
-For each component, you first point out whether to use default module in Qlib or implement the new module (Default or Personized). Default module means modules which can be directed called from config file without additional implementation. Personized module means new python class is implemented and called from config file. You should always provide the reason why you choose the component.
+For each component, you first point out whether to use default module in Qlib or implement the new module (Default or Personized). Default module means the class has already be implemented by Qlib which can be found in document and source code. Default class can be directed called from config file without additional implementation. Personized module means new python class is implemented and called from config file. You should always provide the reason of your choice.
 
 The user will provide the requirements, you will provide only the output the choice in exact format specified below with no explanation or conversation. You only response 5 components in the order of dataset, model, record, strategy, backtest with no other addition.
 
@@ -235,7 +235,7 @@ Your task is to write the config of target component in Qlib(Dataset, Model, Rec
 
 Config means the yaml file in Qlib. You can find the default config in qlib/contrib/config_template. You can also find the config in Qlib document.
 
-The user has provided the requirements and made plan and reason to each component. You should strictly follow user's plan and you should provide the reason of your hyperparameter choices if exist and some suggestion if user wants to finetune the hyperparameters after the config. Default means you should only use classes in Qlib without any other new code while Personized has no such restriction.
+The user has provided the requirements and made plan and reason to each component. You should strictly follow user's plan and you should provide the reason of your hyperparameter choices if exist and some suggestion if user wants to finetune the hyperparameters after the config. Default means you should only use classes in Qlib without any other new code while Personized has no such restriction. class in Qlib means Qlib has implemented the class and you can find it in Qlib document or source code.
 
 You only need to write the config of the target component in the exact format specified below with no explanation or conversation.
 
@@ -313,7 +313,7 @@ target component: {{target_component}}
         res = re.search(r"Config:(.*)Reason:(.*)Improve suggestion:(.*)", response, re.S)
         assert res is not None and len(res.groups()) == 3, "The response of config action task is not in the correct format"
 
-        config = re.search(r"```yaml(.*)```", res.group(1))
+        config = re.search(r"```yaml(.*)```", res.group(1), re.S)
         assert config is not None, "The config part of config action task response is not in the correct format"
         config = config.group(1)
         reason = res.group(2)
