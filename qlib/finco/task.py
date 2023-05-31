@@ -168,10 +168,54 @@ class ActionTask(Task):
    
 
 class SummarizeTask(Task):
-    def execution(self) -> Any:
-        output_path = ''
+    __DEFAULT_OUTPUT_PATH = "./"
 
-    def parse2txt(self, path) -> List:
+    __DEFAULT_WORKFLOW_SYSTEM_PROMPT = """
+    Your task is to help user to analysis the output of qlib, your information including the strategy's backtest index 
+    and runtime log. You may receive some scripts of the code as well, you can use them to analysis the output. 
+    If there are any abnormal areas in the log or scripts, please also point them out.
+    
+    Example output 1:
+    The backtest indexes show that your strategy's max draw down is a bit large, 
+    You can try diversifying your positions across different assets.
+    """
+    __DEFAULT_WORKFLOW_USER_PROMPT = "Here is my information: '{{information}}'\n{{user_prompt}}"
+    __DEFAULT_USER_PROMPT = "Please summarize them and give me some advice."
+
+    def __init__(self):
+        super().__init__()
+
+    def execution(self) -> Any:
+        user_prompt = self._context_manager.get_context("user_prompt")
+        user_prompt = user_prompt if user_prompt is not None else self.__DEFAULT_USER_PROMPT
+        system_prompt = self.__DEFAULT_WORKFLOW_SYSTEM_PROMPT
+        output_path = self._context_manager.get_context("output_path")
+        output_path = output_path if output_path is not None else self.__DEFAULT_OUTPUT_PATH
+        information = self.parse2txt(output_path)
+
+        prompt_workflow_selection = Template(self.__DEFAULT_WORKFLOW_USER_PROMPT).render(information=information,
+                                                                                         user_prompt=user_prompt)
+        messages = [
+            {
+                "role": "system",
+                "content": system_prompt,
+            },
+            {
+                "role": "user",
+                "content": prompt_workflow_selection,
+            },
+        ]
+        response = try_create_chat_completion(messages=messages)
+        return response
+
+    def summarize(self) -> str:
+        return ''
+
+    def interact(self) -> Any:
+        return
+
+    @staticmethod
+    def parse2txt(path) -> List:
         file_list = []
         path = Path.cwd().joinpath(path)
         for root, dirs, files in os.walk(path):
@@ -189,4 +233,3 @@ class SummarizeTask(Task):
                     print(content)
                     result.append({'postfix': postfix, 'content': content})
         return result
-
