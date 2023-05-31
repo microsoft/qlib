@@ -1,5 +1,5 @@
 import fire
-from qlib.finco.task import WorkflowManager
+from qlib.finco.workflow import WorkflowManager
 from dotenv import load_dotenv
 from qlib import auto_init
 
