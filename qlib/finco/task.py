@@ -466,16 +466,51 @@ class SummarizeTask(Task):
     __DEFAULT_OUTPUT_PATH = "./"
 
     __DEFAULT_WORKFLOW_SYSTEM_PROMPT = """
-    Your task is to help user to analysis the output of qlib, your information including the strategy's backtest index 
-    and runtime log. You may receive some scripts of the code as well, you can use them to analysis the output. 
+    You are an expert in quant domain.
+    Your task is to help user to analysis the output of qlib, your main focus is on the backtesting metrics of 
+    user strategies. Warnings reported during runtime can be ignored if deemed appropriate.
+    your information including the strategy's backtest log and runtime log. 
+    You may receive some scripts of the codes as well, you can use them to analysis the output.
+    At the same time, you can also use your knowledge of the Microsoft/Qlib project and finance to complete your tasks.
     If there are any abnormal areas in the log or scripts, please also point them out.
     
     Example output 1:
-    The backtest indexes show that your strategy's max draw down is a bit large, 
+    The matrix in log shows that your strategy's max draw down is a bit large, based on your annualized return, 
+    your strategy has a relatively low Sharpe ratio. Here are a few suggestions:
     You can try diversifying your positions across different assets.
+    
+    Example output 2:
+    The output log shows the result of running `qlib` with `LinearModel` strategy on the Chinese stock market CSI 300 
+    from 2008-01-01 to 2020-08-01, based on the Alpha158 data handler from 2015-01-01. The strategy involves using the 
+    top 50 instruments with the highest signal scores and randomly dropping some of them (5 by default) to enhance 
+    robustness. The backtesting result is shown in the table below:
+        
+        | Metrics | Value |
+        | ------- | ----- |
+        | IC | 0.040 |
+        | ICIR | 0.312 |
+        | Long-Avg Ann Return | 0.093 |
+        | Long-Avg Ann Sharpe | 0.462 |
+        | Long-Short Ann Return | 0.245 |
+        | Long-Short Ann Sharpe | 4.098 |
+        | Rank IC | 0.048 |
+        | Rank ICIR | 0.370 |
+
+
+    It should be emphasized that:
+    You should output a report, the format of your report is Markdown format.
+    Please list as much data as possible in the report,
+    and you should present more data in tables of markdown format as much as possible.
+    The numbers in the report do not need to have too many significant figures.
+    You can add subheadings and paragraphs in Markdown for readability.
+    You can bold or use other formatting options to highlight keywords in the main text.
     """
     __DEFAULT_WORKFLOW_USER_PROMPT = "Here is my information: '{{information}}'\n{{user_prompt}}"
     __DEFAULT_USER_PROMPT = "Please summarize them and give me some advice."
+
+    # TODO: 2048 is close to exceed GPT token limit
+    __MAX_LENGTH_OF_FILE = 2048
+    __DEFAULT_REPORT_NAME = 'finCoReport.md'
 
     def __init__(self):
         super().__init__()
@@ -486,22 +521,17 @@ class SummarizeTask(Task):
         system_prompt = self.__DEFAULT_WORKFLOW_SYSTEM_PROMPT
         output_path = self._context_manager.get_context("output_path")
         output_path = output_path if output_path is not None else self.__DEFAULT_OUTPUT_PATH
-        information = self.parse2txt(output_path)
+        file_info = self.get_info_from_file(output_path)
+        context_info = self.get_info_from_context()
 
+        information = context_info + file_info
         prompt_workflow_selection = Template(self.__DEFAULT_WORKFLOW_USER_PROMPT).render(information=information,
                                                                                          user_prompt=user_prompt)
-        messages = [
-            {
-                "role": "system",
-                "content": system_prompt,
-            },
-            {
-                "role": "user",
-                "content": prompt_workflow_selection,
-            },
-        ]
-        response = try_create_chat_completion(messages=messages)
-        return response
+
+        response = APIBackend().build_messages_and_create_chat_completion(user_prompt=prompt_workflow_selection,
+                                                                          system_prompt=system_prompt)
+        self.save_markdown(content=response)
+        return []
 
     def summarize(self) -> str:
         return ''
@@ -509,22 +539,42 @@ class SummarizeTask(Task):
     def interact(self) -> Any:
         return
 
-    @staticmethod
-    def parse2txt(path) -> List:
+    def get_info_from_file(self, path) -> List:
+        """
+        read specific type of files under path
+        """
         file_list = []
-        path = Path.cwd().joinpath(path)
+        path = Path.cwd().joinpath(path).resolve()
         for root, dirs, files in os.walk(path):
             for filename in files:
                 file_path = os.path.join(root, filename)
-                print(file_path)
                 file_list.append(file_path)
 
         result = []
         for file in file_list:
             postfix = file.split('.')[-1]
-            if postfix in ['txt', 'py', 'log']:
+            if postfix in ['py', 'log', 'yaml']:
                 with open(file) as f:
                     content = f.read()
-                    print(content)
-                    result.append({'postfix': postfix, 'content': content})
+                    self.logger.info(f"file to summarize: {file}")
+                    # in case of too large file
+                    # TODO: Perhaps summarization method instead of truncation would be a better approach
+                    result.append({'file': file, 'content': content[:self.__MAX_LENGTH_OF_FILE]})
+
         return result
+
+    def get_info_from_context(self):
+        context = []
+        # TODO: get all keys from context?
+        for key in ["user_prompt", "chat_history", "Dataset_plan", "Model_plan", "Record_plan",
+                    "Strategy_plan", "Backtest_plan"]:
+            c = self._context_manager.get_context(key=key)
+            if c is not None:
+                c = str(c)
+                context.append({key: c[:self.__MAX_LENGTH_OF_FILE]})
+        return context
+
+    def save_markdown(self, content: str):
+        with open(self.__DEFAULT_REPORT_NAME, "w") as f:
+            f.write(content)
+        self.logger.info(f"report has saved to {self.__DEFAULT_REPORT_NAME}")
