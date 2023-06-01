@@ -7,9 +7,11 @@ import abc
 import re
 import logging
 import subprocess
+import platform
 
 from qlib.log import get_module_logger
 from qlib.finco.llm import APIBackend
+from qlib.finco.tpl import get_tpl_path
 
 
 class Task:
@@ -203,6 +205,11 @@ components:
             "Backtest": re.compile("Backtest: \((.*?)\) (.*?)$"),
         }
         new_task = []
+        # 1) create a workspace
+        # TODO: we have to make choice between `sl` and  `sl-cfg`
+        new_task.append(CMDTask(cmd_intention=f"Copy folder from {get_tpl_path() / 'sl'} to {self._context_manager.get_context('workspace')}"))
+
+        # 2) CURD on the workspace
         for name, regex in regex_dict.items():
             res = re.search(regex, response)
             if not res:
@@ -216,23 +223,6 @@ components:
                 elif res.group(1) == "Personized":
                     new_task.extend([ConfigActionTask(name), ImplementActionTask(name)])
         return new_task
-
-
-class CMDTask:
-    """This CMD task is responsible for ensuring compatibility across different operating systems."""
-
-    def __init__(self, cmd: str, cwd=None):
-        self.cwd = cwd
-        self.cmd = cmd
-        self._output = None
-
-    def execute(self):
-        # TODO: compatibility across different operating systems.
-        self._output = subprocess.check_output(self.cmd, shell=True, cwd=self.cwd)
-        return []
-
-    def summarize(self):
-        self
 
 
 class RLPlanTask(PlanTask):
@@ -253,6 +243,44 @@ class RLPlanTask(PlanTask):
 
 class ActionTask(Task):
     pass
+
+
+class CMDTask(ActionTask):
+    """
+    This CMD task is responsible for ensuring compatibility across different operating systems.
+    """
+    __DEFAULT_WORKFLOW_SYSTEM_PROMPT = """
+You are an expert system administrator.
+Your task is to convert the user's intention into a specific runnable command for a particular system.
+Example input:
+- User intention: Copy the folder from  a/b/c to d/e/f
+- User OS: Linux
+Example output:
+cp -r a/b/c d/e/f
+"""
+    __DEFAULT_WORKFLOW_USER_PROMPT = """
+Example input:
+- User intention: "{{cmd_intention}}"
+- User OS: "{{user_os}}"
+Example output:
+"""
+
+    def __init__(self, cmd_intention: str, cwd=None):
+        self.cwd = cwd
+        self.cmd_intention = cmd_intention
+        self._output = None
+
+    def execute(self):
+        prompt = Template(self.__DEFAULT_WORKFLOW_USER_PROMPT).render(cmd_intention=self.cmd_intention,
+                                                                      user_os=platform.system())
+        response = APIBackend().build_messages_and_create_chat_completion(prompt, self.__DEFAULT_WORKFLOW_SYSTEM_PROMPT)
+        self._output = subprocess.check_output(response, shell=True, cwd=self.cwd)
+        return []
+
+    def summarize(self):
+        if self._output is not None:
+            # TODO: it will be overrides by later commands
+            self._context_manager.set_context(self.__class__.__name__, self._output.decode("utf8"))
 
 
 class ConfigActionTask(ActionTask):
@@ -508,7 +536,7 @@ target component: {{target_component}}
 
 
 class SummarizeTask(Task):
-    __DEFAULT_OUTPUT_PATH = "./"
+    __DEFAULT_WORKSPACE = "./"
 
     __DEFAULT_WORKFLOW_SYSTEM_PROMPT = """
     You are an expert in quant domain.
@@ -564,9 +592,9 @@ class SummarizeTask(Task):
         user_prompt = self._context_manager.get_context("user_prompt")
         user_prompt = user_prompt if user_prompt is not None else self.__DEFAULT_USER_PROMPT
         system_prompt = self.__DEFAULT_WORKFLOW_SYSTEM_PROMPT
-        output_path = self._context_manager.get_context("output_path")
-        output_path = output_path if output_path is not None else self.__DEFAULT_OUTPUT_PATH
-        file_info = self.get_info_from_file(output_path)
+        workspace = self._context_manager.get_context("workspace")
+        workspace = workspace if workspace is not None else self.__DEFAULT_WORKSPACE
+        file_info = self.get_info_from_file(workspace)
         context_info = self.get_info_from_context()
 
         information = context_info + file_info
