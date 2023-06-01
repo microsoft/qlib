@@ -51,7 +51,7 @@ class WorkflowManager:
         else:
             self._output_path = Path(output_path)
         self._context = WorkflowContextManager()
-        self.default_user_prompt = "Please help me build a low turnover strategy that focus more on longterm return in China a stock market."
+        self.default_user_prompt = "Please help me build a low turnover strategy that focus more on longterm return in China a stock market. I want to construct a new dataset covers longer history"
 
     def set_context(self, key, value):
         """Direct call set_context method of the context manager"""
@@ -93,7 +93,7 @@ class WorkflowManager:
             self.set_context("user_prompt", prompt)
 
         # NOTE: list may not be enough for general task list
-        task_list = [WorkflowTask()]
+        task_list = [WorkflowTask(), SummarizeTask()]
         while len(task_list):
             # task list is not long, so sort it is not a big problem
             # TODO: sort the task list based on the priority of the task
@@ -104,12 +104,8 @@ class WorkflowManager:
             if not cfg.continous_mode:
                 res = t.interact()
             t.summarize()
-            if isinstance(t, WorkflowTask) or isinstance(t, PlanTask):
-                task_list.extend(res)
-            elif isinstance(t, ActionTask):
-                if res != "success":
-                    ...
-                    # TODO: handle the unexpected execution Error
+            if isinstance(t, WorkflowTask) or isinstance(t, PlanTask) or isinstance(t, ActionTask):
+                task_list = res + task_list
             else:
                 raise NotImplementedError("Unsupported action type")
         return self._output_path
