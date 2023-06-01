@@ -37,7 +37,7 @@ class TestSummarize(unittest.TestCase):
 
     def test_parse2txt(self):
         task = SummarizeTask()
-        resp = task.parse2txt('')
+        resp = task.get_info_from_file('')
         print(resp)
 
 

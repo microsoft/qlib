@@ -104,7 +104,8 @@ class WorkflowManager:
             if not cfg.continous_mode:
                 res = t.interact()
             t.summarize()
-            if isinstance(t, WorkflowTask) or isinstance(t, PlanTask) or isinstance(t, ActionTask):
+            if isinstance(t, WorkflowTask) or isinstance(t, PlanTask) or isinstance(t, ActionTask) \
+                    or isinstance(t, SummarizeTask):
                 task_list = res + task_list
             else:
                 raise NotImplementedError("Unsupported action type")

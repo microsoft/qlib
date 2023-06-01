@@ -508,7 +508,8 @@ class SummarizeTask(Task):
     __DEFAULT_WORKFLOW_USER_PROMPT = "Here is my information: '{{information}}'\n{{user_prompt}}"
     __DEFAULT_USER_PROMPT = "Please summarize them and give me some advice."
 
-    __MAX_LENGTH_OF_FILE = 9192
+    # TODO: 2048 is close to exceed GPT token limit
+    __MAX_LENGTH_OF_FILE = 2048
     __DEFAULT_REPORT_NAME = 'finCoReport.md'
 
     def __init__(self):
@@ -520,23 +521,17 @@ class SummarizeTask(Task):
         system_prompt = self.__DEFAULT_WORKFLOW_SYSTEM_PROMPT
         output_path = self._context_manager.get_context("output_path")
         output_path = output_path if output_path is not None else self.__DEFAULT_OUTPUT_PATH
-        information = self.parse2txt(output_path)
+        file_info = self.get_info_from_file(output_path)
+        context_info = self.get_info_from_context()
 
+        information = context_info + file_info
         prompt_workflow_selection = Template(self.__DEFAULT_WORKFLOW_USER_PROMPT).render(information=information,
                                                                                          user_prompt=user_prompt)
-        messages = [
-            {
-                "role": "system",
-                "content": system_prompt,
-            },
-            {
-                "role": "user",
-                "content": prompt_workflow_selection,
-            },
-        ]
-        response = try_create_chat_completion(messages=messages)
+
+        response = APIBackend().build_messages_and_create_chat_completion(user_prompt=prompt_workflow_selection,
+                                                                          system_prompt=system_prompt)
         self.save_markdown(content=response)
-        return response
+        return []
 
     def summarize(self) -> str:
         return ''
@@ -544,7 +539,7 @@ class SummarizeTask(Task):
     def interact(self) -> Any:
         return
 
-    def parse2txt(self, path) -> List:
+    def get_info_from_file(self, path) -> List:
         """
         read specific type of files under path
         """
@@ -553,22 +548,33 @@ class SummarizeTask(Task):
         for root, dirs, files in os.walk(path):
             for filename in files:
                 file_path = os.path.join(root, filename)
-                print(f"file to summarize: {file_path}")
                 file_list.append(file_path)
 
         result = []
         for file in file_list:
             postfix = file.split('.')[-1]
-            if postfix in ['txt', 'py', 'log', 'yaml']:
+            if postfix in ['py', 'log', 'yaml']:
                 with open(file) as f:
                     content = f.read()
+                    self.logger.info(f"file to summarize: {file}")
                     # in case of too large file
                     # TODO: Perhaps summarization method instead of truncation would be a better approach
-                    result.append({'postfix': postfix, 'content': content[:self.__MAX_LENGTH_OF_FILE]})
-        print(result)
+                    result.append({'file': file, 'content': content[:self.__MAX_LENGTH_OF_FILE]})
+
         return result
+
+    def get_info_from_context(self):
+        context = []
+        # TODO: get all keys from context?
+        for key in ["user_prompt", "chat_history", "Dataset_plan", "Model_plan", "Record_plan",
+                    "Strategy_plan", "Backtest_plan"]:
+            c = self._context_manager.get_context(key=key)
+            if c is not None:
+                c = str(c)
+                context.append({key: c[:self.__MAX_LENGTH_OF_FILE]})
+        return context
 
     def save_markdown(self, content: str):
         with open(self.__DEFAULT_REPORT_NAME, "w") as f:
             f.write(content)
-        print(f"report has saved to {self.__DEFAULT_REPORT_NAME}")
+        self.logger.info(f"report has saved to {self.__DEFAULT_REPORT_NAME}")
