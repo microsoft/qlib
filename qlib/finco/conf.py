@@ -4,6 +4,10 @@ from pydantic import (BaseSettings)
 import os
 
 class Config():
+    """
+    This config is for fast demo purpose.
+    Please use BaseSettings insetead in the future
+    """
     _instance = None
     def __new__(cls, *args, **kwargs):  
         if cls._instance is None:  

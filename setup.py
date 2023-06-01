@@ -173,6 +173,10 @@ setup(
             "tianshou<=0.4.10",
             "torch",
         ],
+        "finco": [
+            "openapi",
+            "pydantic", # Please add it to basic requirements after the design of pydantic is state.
+        ]
     },
     include_package_data=True,
     classifiers=[
