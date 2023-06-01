@@ -21,6 +21,6 @@ class Config():
         self.azure_api_version = os.getenv("AZURE_API_VERSION")
         self.model = os.getenv("MODEL") or ("gpt-35-turbo" if self.use_azure else "gpt-3.5-turbo")
 
-        self.max_retry = os.getenv("MAX_RETRY")
+        self.max_retry = int(os.getenv("MAX_RETRY")) if os.getenv("MAX_RETRY") is not None else None
 
         self.continous_mode = os.getenv("CONTINOUS_MODE") == "True" if os.getenv("CONTINOUS_MODE") is not None else False

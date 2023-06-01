@@ -26,7 +26,7 @@ def try_create_chat_completion(max_retry=10, **kwargs):
         except openai.error.RateLimitError as e:
             print(e)
             print(f"Retrying {i+1}th time...")
-            time.sleep(1)
+            time.sleep(2)
             continue
     raise Exception(f"Failed to create chat completion after {max_retry} retries.")
 
