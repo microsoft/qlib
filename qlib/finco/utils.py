@@ -2,6 +2,8 @@ import json
 from qlib.finco.llm import try_create_chat_completion
 from qlib.finco.conf import Config
 from qlib.log import get_module_logger
+from pathlib import Path
+
 
 def parse_json(response):
     try:
