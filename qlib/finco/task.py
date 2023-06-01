@@ -8,7 +8,7 @@ import re
 import logging
 
 from qlib.log import get_module_logger
-from qlib.finco.utils import build_messages_and_create_chat_completion
+from qlib.finco.llm import APIBackend
 
 class Task():
     """
@@ -100,9 +100,7 @@ workflow: reinforcement learning
         prompt_workflow_selection = Template(
             self.__DEFAULT_WORKFLOW_USER_PROMPT
         ).render(user_prompt=user_prompt)
-        response = build_messages_and_create_chat_completion(prompt_workflow_selection, self.__DEFAULT_WORKFLOW_SYSTEM_PROMPT)
-        # TODO: use the above line instead of the following line before release!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        # response = 'workflow: supervised learning'
+        response = APIBackend().build_messages_and_create_chat_completion(prompt_workflow_selection, self.__DEFAULT_WORKFLOW_SYSTEM_PROMPT)
         self.save_chat_history_to_context_manager(prompt_workflow_selection, response, self.__DEFAULT_WORKFLOW_SYSTEM_PROMPT)
         workflow = response.split(":")[1].strip().lower()
         self.executed = True
@@ -179,10 +177,7 @@ components:
         prompt_plan_all = Template(
             self.__DEFAULT_WORKFLOW_USER_PROMPT
         ).render(user_prompt=user_prompt)
-        response = build_messages_and_create_chat_completion(prompt_plan_all, self.__DEFAULT_WORKFLOW_SYSTEM_PROMPT)
-        # TODO: use upper lines instead of the following line before release!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        # response = "components:\n- Dataset: (Default) I will use the default dataset module in Qlib. Because it is a suitable dataset to get a long-term return in China A stock market.\n\n- Model: (Personized) I will implement a CustomTransformerModel inherited from qlib.model.base and use the transformer model with 10 MLP layers before the head. Because it meets the user's requirement of using transformer model with 10 MLP layers before the head to achieve better long-term return.\n\n- Record: (Default) I will use SignalRecord in qlib.workflow.record_temp and SigAnaRecord in qlib.workflow.record_temp to save all the signals and the analysis results. Because user needs to check the metrics to determine whether the system meets the requirements.\n\n- Strategy: (Default) I will use TopkDropoutStrategy in qlib.contrib.strategy. Because it is a more robust strategy which saves turnover fee.\n\n- Backtest: (Default) I will use the default backtest module in Qlib. Because it can tell the user a more real performance result of the model we build."
-
+        response = APIBackend().build_messages_and_create_chat_completion(prompt_plan_all, self.__DEFAULT_WORKFLOW_SYSTEM_PROMPT)
         self.save_chat_history_to_context_manager(prompt_plan_all, response, self.__DEFAULT_WORKFLOW_SYSTEM_PROMPT)
         if "components" not in response:
             self.logger.warning("The response is not in the correct format, which probably means the answer is not correct")
@@ -310,19 +305,7 @@ target component: {{target_component}}
             backtest_plan=prompt_element_dict["Backtest_plan"],
             target_component=self.target_componet
         )
-        response = build_messages_and_create_chat_completion(config_prompt, self.__DEFAULT_CONFIG_ACTION_SYSTEM_PROMPT)
-        # TODO use the upper lines to replace the following lines after debug
-        # if self.target_componet == "Dataset":
-        #     response = 'Config:\n```yaml\ndataset:\n    class: FeatureDataset\n    module_path: qlib.data.dataset\n    kwargs:\n        handler_config:\n            class: Alpha360\n            module_path: qlib.contrib.data.handler\n        segment:\n            train:\n                start_time: 2010-01-01\n                end_time: 2017-12-31\n            valid:\n                start_time: 2018-01-01\n                end_time: 2018-12-31\n            test:\n                start_time: 2019-01-01\n                end_time: 2019-12-31\n        scenario: Alpha360\n        feature:\n            label: \n                class: RegressionLabel\n                module_path: qlib.contrib.data.label\n                kwargs:\n                    label_name: f01\n                    direction: 1\n            transform:\n                class: Sequence\n                module_path: qlib.contrib.transform\n                kwargs:\n                    len_seq: 10\n                    step: 5\n                    mode: slide\n                    group: single\n            custom:\n                transform:\n                    class: CustomTransform\n                    module_path: qlib.contrib.data.transform\n                    kwargs:\n                        # customized feature processing for your features\n                        ma_windows:[5,10,20]\n                        macd_windows:[5,10,20]\n                        rsi_windows:[5,10]\n        train_loader:\n            class: PyTorchLoader\n            module_path: qlib.data.dataloader\n            kwargs:\n                batch_size: 4096\n                num_workers: 1\n        valid_loader:\n            class: PyTorchLoader\n            module_path: qlib.data.dataloader\n            kwargs:\n                batch_size: 4096\n                num_workers: 1   \n```   \nReason: I use the FeatureDataset class because the user did not provide the csv data format and we can assume the data is in the default format of Qlib. The FeatureDataset loads data by segment and we can choose the segment of train, valid and test for our model. In addition, I use the customized transform to process the features. With the customized transform, we could add more feature engineering procedures according to our own requirements.\n\nImprove suggestion: Since you are trying to build a low turnover strategy, you may consider using the subseries selection method to improve the efficiency of your model. Moreover, you can fine-tune the parameters in the customized transform according to your own requirements.'
-        # elif self.target_componet == "Model":
-        #     response = "Config:\n```yaml\nmodel:\nclass: CustomTransformerModel\nmodule_path: user_module.CustomModel \nkwargs:\n    transformer_stack_kwargs:\n        num_heads: 8\n        num_layers: 6\n        hidden_dim: 256\n        dropout: 0.1\n    mlp_last_dim: 128\n    mlp_activation: relu\n    mlp_layers: 10\n```\n`user_module` should be replaced with your own module path where you define the `CustomTransformerModel`.\n\nReason: \n- `CustomTransformerModel` is used to meet the user's requirement of using a transformer model with 10 MLP layers before the head, which might capture long-term signals more effectively.\n- `num_heads` and `num_layers` are set to 8 and 6 respectively as they are commonly used values in transformer model for financial time series, and they allow the model to capture complex patterns in the data with sufficient capacity.\n- `hidden_dim` is set to 256 to control the model's capacity, balance the computational efficiency, and avoid overfitting to the training data.\n- `mlp_last_dim` is set to 128 to avoid too much dimensionality reduction, and the activation function `relu` is commonly used in financial time series modeling.\n- `mlp_layers` is set to 10 to satisfy the user's requirement of using 10 MLP layers before the head, and it provides the model with enough capacity to capture long-term signals.\n\nImprove suggestion: \n- You can try to adjust the transformer stack hyperparameters, such as `num_heads`, `num_layers`, `hidden_dim`, or the MLP hyperparameters, such as `mlp_last_dim`, `mlp_activation`, `mlp_layers`, to improve the model's performance.\n- You can also try experimenting with different optimizers (`Adam`, `SGD`, etc.) or learning rates to optimize the training procedure.\n- Fine-tuning the hyperparameters may be based on observing the validation metrics and balancing computational efficiency with model performance."
-        # elif self.target_componet == "Record":
-        #     response = 'Config:\n```yaml\nrecord:\nclass: SignalRecord\nmodule_path: qlib.workflow.record_temp\nkwargs:\n    mode: "train"\n    dump_path: "./dump_dir/"\n    std_q: 10\n    max_keep_days: 365\n    clear_cache: True\n```\nReason: I choose the SignalRecord because it saves all the signals and is suitable for the task of building a low turnover strategy with a focus on long-term return. The std_q and max_keep_days are set to 10 and 365 respectively to enable the system to remove signals that are not performing well and keep signals that are performing well for up to a year. The clear_cache setting is set to True to ensure that the cache is cleared before each new run.\nImprove suggestion: Since the user wants to focus on long-term return, it might be worth considering increasing the max_keep_days value to 730 to keep signals for up to two years. Also, it is worth considering using a more advanced record module such as SigAnaRecord or MetaRecord to get more detailed analysis results.'
-        # elif self.target_componet == "Strategy":
-        #     response = 'Config:\n```yaml\nstrategy:\nclass: TopkDropoutStrategy\nmodule_path: qlib.contrib.strategy.strategy\nkwargs:\n    topk: 20\n    threshold: 0.025\n    max_orders: 5\n    dropout: 0.25\n    warmup_length: 100\n```\nReason: Since the user wants a low turnover strategy, I choose TopkDropoutStrategy as it saves turnover fee. The hyperparameters are set to default in Qlib, which is suitable for general use.\nImprove suggestion: For a more customized strategy, the user can try adjusting the hyperparameters of TopkDropoutStrategy, such as increasing the topk value to expand the stock pool, or modifying the threshold to adjust the confidence level of the model. Additionally, the user can explore other strategies in `qlib.contrib.strategy` module to achieve better long-term return.'
-        # elif self.target_componet == "Backtest":
-        #     response = 'Config:\n```yaml\nbacktest:\nclass: NormalBacktest\nmodule_path: qlib.backtest.backtest\nkwargs:\n    start_time: "2008-01-01"\n    end_time: "2021-12-31"\n    rebalance_period: "month"\n    benchmark: "SH000300"\n    trade_cost: 0.0015\n    min_cost: 5\n    return_mean: false\n```\nReason: I choose the default NormalBacktest in Qlib because it is a straightforward backtest method for evaluating long-term investment strategies. It has a reasonable trade cost and can perform monthly rebalance, making it suitable for evaluating the low turnover strategy that the user requires.\n\nImprove suggestion: If the user wants to fine-tune the performance of the backtest, they can consider adjusting the trade cost and minimum cost (min_cost) parameters to better reflect their trading environment. Additionally, they may experiment with other backtest methods in Qlib, such as LongShortBacktest or DelayEvalBacktest, to see if they can further improve the performance of their strategy.'
-        
+        response = APIBackend().build_messages_and_create_chat_completion(config_prompt, self.__DEFAULT_CONFIG_ACTION_SYSTEM_PROMPT)
         self.save_chat_history_to_context_manager(config_prompt, response, self.__DEFAULT_CONFIG_ACTION_SYSTEM_PROMPT)
         res = re.search(r"Config:(.*)Reason:(.*)Improve suggestion:(.*)", response, re.S)
         assert res is not None and len(res.groups()) == 3, "The response of config action task is not in the correct format"
@@ -459,7 +442,7 @@ target component: {{target_component}}
             target_component=self.target_component,
             user_config=config
         )
-        response = build_messages_and_create_chat_completion(implement_prompt, self.__DEFAULT_IMPLEMENT_ACTION_SYSTEM_PROMPT)
+        response = APIBackend().build_messages_and_create_chat_completion(implement_prompt, self.__DEFAULT_IMPLEMENT_ACTION_SYSTEM_PROMPT)
         self.save_chat_history_to_context_manager(implement_prompt, response, self.__DEFAULT_IMPLEMENT_ACTION_SYSTEM_PROMPT)
 
         res = re.search(r"Code:(.*)Explanation:(.*)Modified config:(.*)", response, re.S)
