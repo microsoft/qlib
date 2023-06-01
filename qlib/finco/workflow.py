@@ -18,9 +18,7 @@ class WorkflowContextManager:
 
     def set_context(self, key, value):
         if key in self.context:
-            self.logger.warning(
-                "The key already exists in the context, the value will be overwritten"
-            )
+            self.logger.warning("The key already exists in the context, the value will be overwritten")
         self.context[key] = value
 
     def get_context(self, key):
@@ -45,12 +43,13 @@ class WorkflowContextManager:
 class WorkflowManager:
     """This manange the whole task automation workflow including tasks and actions"""
 
-    def __init__(self, name="project", output_path=None) -> None:
+    def __init__(self, output_path=None) -> None:
         if output_path is None:
-            self._output_path = Path.cwd() / name
+            self._output_path = Path.cwd() / "finco_workspace"
         else:
             self._output_path = Path(output_path)
         self._context = WorkflowContextManager()
+        self._context.set_context("output_path", self._output_path)
         self.default_user_prompt = "Please help me build a low turnover strategy that focus more on longterm return in China a stock market. I want to construct a new dataset covers longer history"
 
     def set_context(self, key, value):
@@ -104,8 +103,8 @@ class WorkflowManager:
             if not cfg.continous_mode:
                 res = t.interact()
             t.summarize()
-            if isinstance(t, WorkflowTask) or isinstance(t, PlanTask) or isinstance(t, ActionTask):
+            if isinstance(t, (WorkflowTask, PlanTask, ActionTask)):
                 task_list = res + task_list
             else:
-                raise NotImplementedError("Unsupported action type")
+                raise NotImplementedError(f"Unsupported Task type {t}")
         return self._output_path

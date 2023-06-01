@@ -6,11 +6,13 @@ from jinja2 import Template
 import abc
 import re
 import logging
+import subprocess
 
 from qlib.log import get_module_logger
 from qlib.finco.llm import APIBackend
 
-class Task():
+
+class Task:
     """
     The user's intention, which was initially represented by a prompt, is achieved through a sequence of tasks.
     This class doesn't have to be abstract, but it is abstract in the sense that it is not supposed to be instantiated directly because it doesn't have any implementation.
@@ -30,8 +32,8 @@ class Task():
     def __init__(self) -> None:
         self._context_manager = None
         self.executed = False
-        self.logger : logging.Logger = get_module_logger(f"finco.{self.__class__.__name__}")
-    
+        self.logger: logging.Logger = get_module_logger(f"finco.{self.__class__.__name__}")
+
     def summarize(self) -> str:
         """After the execution of the task, it is supposed to generated some context about the execution"""
         """This function might be converted to abstract method in the future"""
@@ -41,7 +43,7 @@ class Task():
         """assign the workflow context manager to the task"""
         """then all tasks can use this context manager to share the same context"""
         self._context_manager = context_manager
-    
+
     def save_chat_history_to_context_manager(self, user_input, response, system_prompt):
         chat_history = self._context_manager.get_context("chat_history")
         if chat_history is None:
@@ -63,12 +65,14 @@ class Task():
         """All sub classes should implement the interact method to determine the next task"""
         """In continous mode, this method will not be called and the next task will be determined by the execution method only"""
         raise NotImplementedError("The interact method is not implemented, but workflow not in continous mode")
-    
 
 
 class WorkflowTask(Task):
     """This task is supposed to be the first task of the workflow"""
-    def __init__(self,) -> None:
+
+    def __init__(
+        self,
+    ) -> None:
         super().__init__()
         self.__DEFAULT_WORKFLOW_SYSTEM_PROMPT = """
 Your task is to determine the workflow in Qlib (supervised learning or reinforcement learning) ensuring the workflow can meet the user's requirements.
@@ -94,14 +98,18 @@ workflow: reinforcement learning
             "Response only with the output in the exact format specified in the system prompt, with no explanation or conversation.\n"
         )
 
-    def execute(self,) -> List[Task]:
+    def execute(
+        self,
+    ) -> List[Task]:
         """make the choice which main workflow (RL, SL) will be used"""
         user_prompt = self._context_manager.get_context("user_prompt")
-        prompt_workflow_selection = Template(
-            self.__DEFAULT_WORKFLOW_USER_PROMPT
-        ).render(user_prompt=user_prompt)
-        response = APIBackend().build_messages_and_create_chat_completion(prompt_workflow_selection, self.__DEFAULT_WORKFLOW_SYSTEM_PROMPT)
-        self.save_chat_history_to_context_manager(prompt_workflow_selection, response, self.__DEFAULT_WORKFLOW_SYSTEM_PROMPT)
+        prompt_workflow_selection = Template(self.__DEFAULT_WORKFLOW_USER_PROMPT).render(user_prompt=user_prompt)
+        response = APIBackend().build_messages_and_create_chat_completion(
+            prompt_workflow_selection, self.__DEFAULT_WORKFLOW_SYSTEM_PROMPT
+        )
+        self.save_chat_history_to_context_manager(
+            prompt_workflow_selection, response, self.__DEFAULT_WORKFLOW_SYSTEM_PROMPT
+        )
         workflow = response.split(":")[1].strip().lower()
         self.executed = True
         self._context_manager.set_context("workflow", workflow)
@@ -111,7 +119,7 @@ workflow: reinforcement learning
             return [RLPlanTask()]
         else:
             raise ValueError(f"The workflow: {workflow} is not supported")
-    
+
     def interact(self) -> Any:
         assert self.executed == True, "The workflow task has not been executed yet"
         ## TODO use logger
@@ -132,13 +140,16 @@ workflow: reinforcement learning
         else:
             # TODO add self feedback
             raise ValueError("The input cannot be interpreted as a valid input")
-        
+
 
 class PlanTask(Task):
     pass
 
+
 class SLPlanTask(PlanTask):
-    def __init__(self,) -> None:
+    def __init__(
+        self,
+    ) -> None:
         super().__init__()
         self.__DEFAULT_WORKFLOW_SYSTEM_PROMPT = """
 Your task is to determine the 5 crucial components in Qlib (Dataset, Model, Record, Strategy, Backtest) ensuring the workflow can meet the user's requirements.
@@ -174,20 +185,22 @@ components:
 
         user_prompt = self._context_manager.get_context("user_prompt")
         assert user_prompt is not None, "The user prompt is not provided"
-        prompt_plan_all = Template(
-            self.__DEFAULT_WORKFLOW_USER_PROMPT
-        ).render(user_prompt=user_prompt)
-        response = APIBackend().build_messages_and_create_chat_completion(prompt_plan_all, self.__DEFAULT_WORKFLOW_SYSTEM_PROMPT)
+        prompt_plan_all = Template(self.__DEFAULT_WORKFLOW_USER_PROMPT).render(user_prompt=user_prompt)
+        response = APIBackend().build_messages_and_create_chat_completion(
+            prompt_plan_all, self.__DEFAULT_WORKFLOW_SYSTEM_PROMPT
+        )
         self.save_chat_history_to_context_manager(prompt_plan_all, response, self.__DEFAULT_WORKFLOW_SYSTEM_PROMPT)
         if "components" not in response:
-            self.logger.warning("The response is not in the correct format, which probably means the answer is not correct")
-        
+            self.logger.warning(
+                "The response is not in the correct format, which probably means the answer is not correct"
+            )
+
         regex_dict = {
-            "Dataset":re.compile("Dataset: \((.*?)\) (.*?)\n"),
-            "Model":re.compile("Model: \((.*?)\) (.*?)\n"),
-            "Record":re.compile("Record: \((.*?)\) (.*?)\n"),
-            "Strategy":re.compile("Strategy: \((.*?)\) (.*?)\n"),
-            "Backtest":re.compile("Backtest: \((.*?)\) (.*?)$"),
+            "Dataset": re.compile("Dataset: \((.*?)\) (.*?)\n"),
+            "Model": re.compile("Model: \((.*?)\) (.*?)\n"),
+            "Record": re.compile("Record: \((.*?)\) (.*?)\n"),
+            "Strategy": re.compile("Strategy: \((.*?)\) (.*?)\n"),
+            "Backtest": re.compile("Backtest: \((.*?)\) (.*?)$"),
         }
         new_task = []
         for name, regex in regex_dict.items():
@@ -203,9 +216,29 @@ components:
                 elif res.group(1) == "Personized":
                     new_task.extend([ConfigActionTask(name), ImplementActionTask(name)])
         return new_task
-    
+
+
+class CMDTask:
+    """This CMD task is responsible for ensuring compatibility across different operating systems."""
+
+    def __init__(self, cmd: str, cwd=None):
+        self.cwd = cwd
+        self.cmd = cmd
+        self._output = None
+
+    def execute(self):
+        # TODO: compatibility across different operating systems.
+        self._output = subprocess.check_output(self.cmd, shell=True, cwd=self.cwd)
+        return []
+
+    def summarize(self):
+        self
+
+
 class RLPlanTask(PlanTask):
-    def __init__(self,) -> None:
+    def __init__(
+        self,
+    ) -> None:
         super().__init__()
         self.logger.error("The RL task is not implemented yet")
         exit()
@@ -220,6 +253,7 @@ class RLPlanTask(PlanTask):
 
 class ActionTask(Task):
     pass
+
 
 class ConfigActionTask(ActionTask):
     def __init__(self, component) -> None:
@@ -268,8 +302,7 @@ Reason: I choose the hyperparameters above because they are the default hyperpar
 Improve suggestion: You can try to tune the num_leaves in range [100, 300], max_depth in [5, 10], learning_rate in [0.01, 1] and other hyperparameters in the config. Since you're trying to get a long tern return, if you have enough computation resource, you can try to use a larger num_leaves and max_depth and a smaller learning_rate.
         """
 
-        self.__CONFIG_ACTION_SYSTEM_PROMPT_TEMPLATE = (
-"""
+        self.__CONFIG_ACTION_SYSTEM_PROMPT_TEMPLATE = """
 user requirement: {{user_requirement}}
 user plan:
 - Dataset: ({{dataset_decision}}) {{dataset_plan}}
@@ -279,7 +312,6 @@ user plan:
 - Backtest: ({{backtest_decision}}) {{backtest_plan}}
 target component: {{target_component}}
 """
-        )
 
     def execute(self):
         user_prompt = self._context_manager.get_context("user_prompt")
@@ -288,7 +320,7 @@ target component: {{target_component}}
         for component in component_list:
             prompt_element_dict[f"{component}_decision"] = self._context_manager.get_context(f"{component}_decision")
             prompt_element_dict[f"{component}_plan"] = self._context_manager.get_context(f"{component}_plan")
-        
+
         assert None not in prompt_element_dict.values(), "Some decision or plan is not set by plan maker"
 
         config_prompt = Template(self.__CONFIG_ACTION_SYSTEM_PROMPT_TEMPLATE).render(
@@ -303,12 +335,16 @@ target component: {{target_component}}
             strategy_plan=prompt_element_dict["Strategy_plan"],
             backtest_decision=prompt_element_dict["Backtest_decision"],
             backtest_plan=prompt_element_dict["Backtest_plan"],
-            target_component=self.target_componet
+            target_component=self.target_componet,
         )
-        response = APIBackend().build_messages_and_create_chat_completion(config_prompt, self.__DEFAULT_CONFIG_ACTION_SYSTEM_PROMPT)
+        response = APIBackend().build_messages_and_create_chat_completion(
+            config_prompt, self.__DEFAULT_CONFIG_ACTION_SYSTEM_PROMPT
+        )
         self.save_chat_history_to_context_manager(config_prompt, response, self.__DEFAULT_CONFIG_ACTION_SYSTEM_PROMPT)
         res = re.search(r"Config:(.*)Reason:(.*)Improve suggestion:(.*)", response, re.S)
-        assert res is not None and len(res.groups()) == 3, "The response of config action task is not in the correct format"
+        assert (
+            res is not None and len(res.groups()) == 3
+        ), "The response of config action task is not in the correct format"
 
         config = re.search(r"```yaml(.*)```", res.group(1), re.S)
         assert config is not None, "The config part of config action task response is not in the correct format"
@@ -396,7 +432,7 @@ dataset:
         csv_path: path/to/your/csv/data
 ```
     """
-        self.__DEFAULT_IMPLEMENT_ACTION_USER_PROMPT = ("""
+        self.__DEFAULT_IMPLEMENT_ACTION_USER_PROMPT = """
 user requirement: {{user_requirement}}
 user plan:
 - Dataset: ({{dataset_decision}}) {{dataset_plan}}
@@ -409,8 +445,8 @@ User config:
 {{user_config}}
 ```
 target component: {{target_component}}
-        """)
-    
+        """
+
     def execute(self):
         """
         return a list of interested tasks
@@ -423,7 +459,7 @@ target component: {{target_component}}
         for component in component_list:
             prompt_element_dict[f"{component}_decision"] = self._context_manager.get_context(f"{component}_decision")
             prompt_element_dict[f"{component}_plan"] = self._context_manager.get_context(f"{component}_plan")
-        
+
         assert None not in prompt_element_dict.values(), "Some decision or plan is not set by plan maker"
         config = self._context_manager.get_context(f"{self.target_component}_config")
 
@@ -440,20 +476,28 @@ target component: {{target_component}}
             backtest_decision=prompt_element_dict["Backtest_decision"],
             backtest_plan=prompt_element_dict["Backtest_plan"],
             target_component=self.target_component,
-            user_config=config
+            user_config=config,
         )
-        response = APIBackend().build_messages_and_create_chat_completion(implement_prompt, self.__DEFAULT_IMPLEMENT_ACTION_SYSTEM_PROMPT)
-        self.save_chat_history_to_context_manager(implement_prompt, response, self.__DEFAULT_IMPLEMENT_ACTION_SYSTEM_PROMPT)
+        response = APIBackend().build_messages_and_create_chat_completion(
+            implement_prompt, self.__DEFAULT_IMPLEMENT_ACTION_SYSTEM_PROMPT
+        )
+        self.save_chat_history_to_context_manager(
+            implement_prompt, response, self.__DEFAULT_IMPLEMENT_ACTION_SYSTEM_PROMPT
+        )
 
         res = re.search(r"Code:(.*)Explanation:(.*)Modified config:(.*)", response, re.S)
-        assert res is not None and len(res.groups()) == 3, f"The response of implement action task of component {self.target_component} is not in the correct format"
+        assert (
+            res is not None and len(res.groups()) == 3
+        ), f"The response of implement action task of component {self.target_component} is not in the correct format"
 
         code = re.search(r"```python(.*)```", res.group(1), re.S)
         assert code is not None, "The code part of implementation action task response is not in the correct format"
         code = code.group(1)
         explanation = res.group(2)
         modified_config = re.search(r"```yaml(.*)```", res.group(3), re.S)
-        assert modified_config is not None, "The modified config part of implementation action task response is not in the correct format"
+        assert (
+            modified_config is not None
+        ), "The modified config part of implementation action task response is not in the correct format"
         modified_config = modified_config.group(1)
 
         self._context_manager.set_context(f"{self.target_component}_code", code)
@@ -461,6 +505,7 @@ target component: {{target_component}}
         self._context_manager.set_context(f"{self.target_component}_modified_config", modified_config)
 
         return []
+
 
 class SummarizeTask(Task):
     __DEFAULT_OUTPUT_PATH = "./"
@@ -488,8 +533,9 @@ class SummarizeTask(Task):
         output_path = output_path if output_path is not None else self.__DEFAULT_OUTPUT_PATH
         information = self.parse2txt(output_path)
 
-        prompt_workflow_selection = Template(self.__DEFAULT_WORKFLOW_USER_PROMPT).render(information=information,
-                                                                                         user_prompt=user_prompt)
+        prompt_workflow_selection = Template(self.__DEFAULT_WORKFLOW_USER_PROMPT).render(
+            information=information, user_prompt=user_prompt
+        )
         messages = [
             {
                 "role": "system",
@@ -500,11 +546,11 @@ class SummarizeTask(Task):
                 "content": prompt_workflow_selection,
             },
         ]
-        response = try_create_chat_completion(messages=messages)
+        response = APIBackend().build_messages_and_create_chat_completion(prompt_workflow_selection, system_prompt)
         return response
 
     def summarize(self) -> str:
-        return ''
+        return ""
 
     def interact(self) -> Any:
         return
@@ -521,10 +567,10 @@ class SummarizeTask(Task):
 
         result = []
         for file in file_list:
-            postfix = file.split('.')[-1]
-            if postfix in ['txt', 'py', 'log']:
+            postfix = file.split(".")[-1]
+            if postfix in ["txt", "py", "log"]:
                 with open(file) as f:
                     content = f.read()
                     print(content)
-                    result.append({'postfix': postfix, 'content': content})
+                    result.append({"postfix": postfix, "content": content})
         return result

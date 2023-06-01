@@ -1,6 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 from pathlib import Path
+
 DIRNAME = Path(__file__).absolute().resolve().parent
 
 
