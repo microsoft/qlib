@@ -1,8 +1,10 @@
 import os
 
 from pathlib import Path
-from typing import Any, List
+import io
+from typing import Any, List, Union
 from jinja2 import Template
+import ruamel.yaml as yaml
 import abc
 import re
 import logging
@@ -207,7 +209,11 @@ components:
         new_task = []
         # 1) create a workspace
         # TODO: we have to make choice between `sl` and  `sl-cfg`
-        new_task.append(CMDTask(cmd_intention=f"Copy folder from {get_tpl_path() / 'sl'} to {self._context_manager.get_context('workspace')}"))
+        new_task.append(
+            CMDTask(
+                cmd_intention=f"Copy folder from {get_tpl_path() / 'sl'} to {self._context_manager.get_context('workspace')}"
+            )
+        )
 
         # 2) CURD on the workspace
         for name, regex in regex_dict.items():
@@ -249,6 +255,7 @@ class CMDTask(ActionTask):
     """
     This CMD task is responsible for ensuring compatibility across different operating systems.
     """
+
     __DEFAULT_WORKFLOW_SYSTEM_PROMPT = """
 You are an expert system administrator.
 Your task is to convert the user's intention into a specific runnable command for a particular system.
@@ -271,8 +278,9 @@ Example output:
         self._output = None
 
     def execute(self):
-        prompt = Template(self.__DEFAULT_WORKFLOW_USER_PROMPT).render(cmd_intention=self.cmd_intention,
-                                                                      user_os=platform.system())
+        prompt = Template(self.__DEFAULT_WORKFLOW_USER_PROMPT).render(
+            cmd_intention=self.cmd_intention, user_os=platform.system()
+        )
         response = APIBackend().build_messages_and_create_chat_completion(prompt, self.__DEFAULT_WORKFLOW_SYSTEM_PROMPT)
         self._output = subprocess.check_output(response, shell=True, cwd=self.cwd)
         return []
@@ -533,6 +541,43 @@ target component: {{target_component}}
         self._context_manager.set_context(f"{self.target_component}_modified_config", modified_config)
 
         return []
+
+
+class YamlEditTask(ActionTask):
+    """This yaml edit task will replace a specific component directly"""
+
+    def __init__(self, file: Union[str, Path], module_path: str, updated_content: str):
+        """
+
+        Parameters
+        ----------
+        file
+            a target file that needs to be modified
+        module_path
+            the path to the section that needs to be replaced with `updated_content`
+        updated_content
+            The content to replace the original content in `module_path`
+        """
+        self.p = Path(file)
+        self.module_path = module_path
+        self.updated_content = updated_content
+
+    def execute(self):
+        # 1) read original and new content
+        with self.p.open("r") as f:
+            config = yaml.safe_load(f)
+        update_config = yaml.safe_load(io.StringIO(self.updated_content))
+
+        # 2) locate the module
+        focus = config
+        module_list = self.module_path.split(".")
+        for k in module_list[:-1]:
+            focus = focus[k]
+
+        # 3) replace the module and save
+        focus[module_list[-1]] = update_config
+        with self.p.open("w") as f:
+            yaml.dump(config, f)
 
 
 class SummarizeTask(Task):

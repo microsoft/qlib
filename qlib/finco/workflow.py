@@ -55,7 +55,6 @@ class WorkflowManager:
         self._context.set_context("workspace", self._workspace)
         self.default_user_prompt = "Please help me build a low turnover strategy that focus more on longterm return in China a stock market. I want to construct a new dataset covers longer history"
 
-
     def _confirm_and_rm(self):
         # if workspace exists, please confirm and remove it. Otherwise exit.
         if self._workspace.exists():
