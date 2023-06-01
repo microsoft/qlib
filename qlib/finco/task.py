@@ -171,16 +171,25 @@ class SummarizeTask(Task):
     __DEFAULT_OUTPUT_PATH = "./"
 
     __DEFAULT_WORKFLOW_SYSTEM_PROMPT = """
-    Your task is to help user to analysis the output of qlib, your information including the strategy's backtest index 
-    and runtime log. You may receive some scripts of the code as well, you can use them to analysis the output. 
+    Your task is to help user to analysis the output of qlib, your main focus is on the backtesting metrics of 
+    user strategies. Warnings reported during runtime can be ignored if deemed appropriate.
+    your information including the strategy's backtest log and runtime log. 
+    You may receive some scripts of the codes as well, you can use them to analysis the output.
+    At the same time, you can also use your knowledge of the Microsoft/Qlib project and finance to complete your tasks.
     If there are any abnormal areas in the log or scripts, please also point them out.
     
     Example output 1:
-    The backtest indexes show that your strategy's max draw down is a bit large, 
+    The matrix in log shows that your strategy's max draw down is a bit large, based on your annualized return, 
+    your strategy has a relatively low Sharpe ratio. Here are a few suggestions:
     You can try diversifying your positions across different assets.
+    
+    Example output 2:
+    Your strategy's backtesting metrics look very good. We suggest you try it out in live trading. Good luck to you!
     """
     __DEFAULT_WORKFLOW_USER_PROMPT = "Here is my information: '{{information}}'\n{{user_prompt}}"
     __DEFAULT_USER_PROMPT = "Please summarize them and give me some advice."
+
+    __MAX_LENGTH_OF_FILE = 9192
 
     def __init__(self):
         super().__init__()
@@ -214,10 +223,12 @@ class SummarizeTask(Task):
     def interact(self) -> Any:
         return
 
-    @staticmethod
-    def parse2txt(path) -> List:
+    def parse2txt(self, path) -> List:
+        """
+        read specific type of files under path
+        """
         file_list = []
-        path = Path.cwd().joinpath(path)
+        path = Path.cwd().joinpath(path).resolve()
         for root, dirs, files in os.walk(path):
             for filename in files:
                 file_path = os.path.join(root, filename)
@@ -227,9 +238,11 @@ class SummarizeTask(Task):
         result = []
         for file in file_list:
             postfix = file.split('.')[-1]
-            if postfix in ['txt', 'py', 'log']:
+            if postfix in ['txt', 'py', 'log', 'yaml']:
                 with open(file) as f:
                     content = f.read()
-                    print(content)
-                    result.append({'postfix': postfix, 'content': content})
+                    # in case of too large file
+                    # TODO: Perhaps summarization method instead of truncation would be a better approach
+                    result.append({'postfix': postfix, 'content': content[:self.__MAX_LENGTH_OF_FILE]})
+        print(result)
         return result

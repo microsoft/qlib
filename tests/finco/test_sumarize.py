@@ -1,5 +1,6 @@
 import unittest
 from dotenv import load_dotenv
+# pydantic support load_dotenv,   so load_dotenv will be deprecated in the future.
 
 from qlib.finco.task import SummarizeTask
 from qlib.finco.workflow import WorkflowContextManager
@@ -11,7 +12,9 @@ class TestSummarize(unittest.TestCase):
 
     def test_execution(self):
         task = SummarizeTask()
-        task.assign_context_manager(WorkflowContextManager())
+        context = WorkflowContextManager()
+        context.set_context('output_path', '../../examples/benchmarks/Linear')
+        task.assign_context_manager(context)
         resp = task.execution()
         print(resp)
 
