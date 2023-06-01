@@ -57,13 +57,14 @@ kwargs:
 """
         t = YamlEditTask(p_new, "task.model", updated_content)
         t.execute()
+        # NOTE: the formmat is changed by ruamel.yaml, so it can't be compared by text directly..
         # print the diff between p and p_new with difflib
-        with p.open("r") as fp:
-            content = fp.read()
-        with p_new.open("r") as fp:
-            content_new = fp.read()
-        for line in difflib.unified_diff(content, content_new, fromfile="original", tofile="new", lineterm=""):
-            print(line)
+        # with p.open("r") as fp:
+        #     content = fp.read()
+        # with p_new.open("r") as fp:
+        #     content_new = fp.read()
+        # for line in difflib.unified_diff(content, content_new, fromfile="original", tofile="new", lineterm=""):
+        #     print(line)
 
 
 if __name__ == "__main__":
