@@ -173,6 +173,12 @@ setup(
             "tianshou<=0.4.10",
             "torch",
         ],
+        "finco": [
+            # finco is not necessary for all Qlib users; So a single require section is used for it.
+            "openapi",
+            "pydantic",  # Please add it to basic requirements after the design of pydantic is state.
+            "python-dotenv",  # I don't think this is necessary if we use pydantic.
+        ],
     },
     include_package_data=True,
     classifiers=[

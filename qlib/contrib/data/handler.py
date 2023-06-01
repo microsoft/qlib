@@ -59,7 +59,7 @@ class Alpha360(DataHandlerLP):
         fit_end_time=None,
         filter_pipe=None,
         inst_processors=None,
-        data_loader: Optional[dict]=None,
+        data_loader: Optional[dict] = None,
         **kwargs
     ):
         infer_processors = check_transform_proc(infer_processors, fit_start_time, fit_end_time)
@@ -158,7 +158,7 @@ class Alpha158(DataHandlerLP):
         process_type=DataHandlerLP.PTYPE_A,
         filter_pipe=None,
         inst_processors=None,
-        data_loader: Optional[dict]=None,
+        data_loader: Optional[dict] = None,
         **kwargs
     ):
         infer_processors = check_transform_proc(infer_processors, fit_start_time, fit_end_time)

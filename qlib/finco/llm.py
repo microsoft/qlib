@@ -23,8 +23,10 @@ class APIBackend(Singleton):
             self.debug_mode = True
             cwd = os.getcwd()
             self.cache_file_location = os.path.join(cwd, "prompt_cache.json")
-            self.cache = json.load(open(self.cache_file_location, "r")) if os.path.exists(self.cache_file_location) else {}
-    
+            self.cache = (
+                json.load(open(self.cache_file_location, "r")) if os.path.exists(self.cache_file_location) else {}
+            )
+
     def build_messages_and_create_chat_completion(self, user_prompt, system_prompt=None):
         """build the messages to avoid implementing several redundant lines of code"""
         cfg = Config()
@@ -64,11 +66,11 @@ class APIBackend(Singleton):
     def create_chat_completion(
         self,
         messages,
-        model = None,
+        model=None,
         temperature: float = None,
         max_tokens: Optional[int] = None,
     ) -> str:
-        
+
         if self.debug_mode:
             if messages[1]["content"] in self.cache:
                 return self.cache[messages[1]["content"]]
@@ -77,7 +79,7 @@ class APIBackend(Singleton):
             temperature = self.cfg.temperature
         if max_tokens is None:
             max_tokens = self.cfg.max_tokens
-        
+
         if self.cfg.use_azure:
             response = openai.ChatCompletion.create(
                 engine=self.cfg.model,

@@ -1,5 +1,7 @@
+import sys
 import copy
 from pathlib import Path
+import shutil
 
 from qlib.log import get_module_logger
 from qlib.finco.conf import Config
@@ -18,9 +20,7 @@ class WorkflowContextManager:
 
     def set_context(self, key, value):
         if key in self.context:
-            self.logger.warning(
-                "The key already exists in the context, the value will be overwritten"
-            )
+            self.logger.warning("The key already exists in the context, the value will be overwritten")
         self.context[key] = value
 
     def get_context(self, key):
@@ -45,13 +45,31 @@ class WorkflowContextManager:
 class WorkflowManager:
     """This manange the whole task automation workflow including tasks and actions"""
 
-    def __init__(self, name="project", output_path=None) -> None:
-        if output_path is None:
-            self._output_path = Path.cwd() / name
+    def __init__(self, workspace=None) -> None:
+        if workspace is None:
+            self._workspace = Path.cwd() / "finco_workspace"
         else:
-            self._output_path = Path(output_path)
+            self._workspace = Path(workspace)
+        self._confirm_and_rm()
         self._context = WorkflowContextManager()
+        self._context.set_context("workspace", self._workspace)
         self.default_user_prompt = "Please help me build a low turnover strategy that focus more on longterm return in China a stock market. I want to construct a new dataset covers longer history"
+
+
+    def _confirm_and_rm(self):
+        # if workspace exists, please confirm and remove it. Otherwise exit.
+        if self._workspace.exists():
+            flag = input(
+                f"Will be deleted: "
+                f"\n\t{self._workspace}"
+                f"\nIf you do not need to delete {self._workspace}, please change the workspace dir or rename existing files "
+                f"\nAre you sure you want to delete, yes(Y/y), no (N/n):"
+            )
+            if str(flag) not in ["Y", "y"]:
+                sys.exit()
+            else:
+                # remove self._workspace
+                shutil.rmtree(self._workspace)
 
     def set_context(self, key, value):
         """Direct call set_context method of the context manager"""
@@ -104,9 +122,8 @@ class WorkflowManager:
             if not cfg.continous_mode:
                 res = t.interact()
             t.summarize()
-            if isinstance(t, WorkflowTask) or isinstance(t, PlanTask) or isinstance(t, ActionTask) \
-                    or isinstance(t, SummarizeTask):
+            if isinstance(t, (WorkflowTask, PlanTask, ActionTask, SummarizeTask)):
                 task_list = res + task_list
             else:
-                raise NotImplementedError("Unsupported action type")
-        return self._output_path
+                raise NotImplementedError(f"Unsupported Task type {t}")
+        return self._workspace

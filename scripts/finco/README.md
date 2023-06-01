@@ -2,9 +2,10 @@
 
 # Requirements
 
+
+Use following install command to complete the project.
 ```
-pydantic
-openai
+pip install -e '.[finco]'
 ```
 
 
