@@ -1,19 +1,14 @@
 # TODO: use pydantic for other modules in Qlib
 from pydantic import (BaseSettings)
+from qlib.finco.utils import Singleton
 
 import os
 
-class Config():
+class Config(Singleton):
     """
     This config is for fast demo purpose.
     Please use BaseSettings insetead in the future
     """
-    _instance = None
-    def __new__(cls, *args, **kwargs):  
-        if cls._instance is None:  
-            cls._instance = super().__new__(cls, *args, **kwargs)  
-        return cls._instance  
-  
     def __init__(self):
         self.use_azure = os.getenv("USE_AZURE") == "True"
         self.temperature = 0.5 if os.getenv("TEMPERATURE") is None else float(os.getenv("TEMPERATURE"))
@@ -28,3 +23,4 @@ class Config():
         self.max_retry = int(os.getenv("MAX_RETRY")) if os.getenv("MAX_RETRY") is not None else None
 
         self.continous_mode = os.getenv("CONTINOUS_MODE") == "True" if os.getenv("CONTINOUS_MODE") is not None else False
+        self.debug_mode = os.getenv("DEBUG_MODE") == "True" if os.getenv("DEBUG_MODE") is not None else False
