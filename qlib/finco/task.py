@@ -171,6 +171,7 @@ class SummarizeTask(Task):
     __DEFAULT_OUTPUT_PATH = "./"
 
     __DEFAULT_WORKFLOW_SYSTEM_PROMPT = """
+    You are an expert in quant domain.
     Your task is to help user to analysis the output of qlib, your main focus is on the backtesting metrics of 
     user strategies. Warnings reported during runtime can be ignored if deemed appropriate.
     your information including the strategy's backtest log and runtime log. 
@@ -184,12 +185,36 @@ class SummarizeTask(Task):
     You can try diversifying your positions across different assets.
     
     Example output 2:
-    Your strategy's backtesting metrics look very good. We suggest you try it out in live trading. Good luck to you!
+    The output log shows the result of running `qlib` with `LinearModel` strategy on the Chinese stock market CSI 300 
+    from 2008-01-01 to 2020-08-01, based on the Alpha158 data handler from 2015-01-01. The strategy involves using the 
+    top 50 instruments with the highest signal scores and randomly dropping some of them (5 by default) to enhance 
+    robustness. The backtesting result is shown in the table below:
+        
+        | Metrics | Value |
+        | ------- | ----- |
+        | IC | 0.040 |
+        | ICIR | 0.312 |
+        | Long-Avg Ann Return | 0.093 |
+        | Long-Avg Ann Sharpe | 0.462 |
+        | Long-Short Ann Return | 0.245 |
+        | Long-Short Ann Sharpe | 4.098 |
+        | Rank IC | 0.048 |
+        | Rank ICIR | 0.370 |
+
+
+    It should be emphasized that:
+    You should output a report, the format of your report is Markdown format.
+    Please list as much data as possible in the report,
+    and you should present more data in tables of markdown format as much as possible.
+    The numbers in the report do not need to have too many significant figures.
+    You can add subheadings and paragraphs in Markdown for readability.
+    You can bold or use other formatting options to highlight keywords in the main text.
     """
     __DEFAULT_WORKFLOW_USER_PROMPT = "Here is my information: '{{information}}'\n{{user_prompt}}"
     __DEFAULT_USER_PROMPT = "Please summarize them and give me some advice."
 
     __MAX_LENGTH_OF_FILE = 9192
+    __DEFAULT_REPORT_NAME = 'finCoReport.md'
 
     def __init__(self):
         super().__init__()
@@ -215,6 +240,7 @@ class SummarizeTask(Task):
             },
         ]
         response = try_create_chat_completion(messages=messages)
+        self.save_markdown(content=response)
         return response
 
     def summarize(self) -> str:
@@ -232,7 +258,7 @@ class SummarizeTask(Task):
         for root, dirs, files in os.walk(path):
             for filename in files:
                 file_path = os.path.join(root, filename)
-                print(file_path)
+                print(f"file to summarize: {file_path}")
                 file_list.append(file_path)
 
         result = []
@@ -246,3 +272,8 @@ class SummarizeTask(Task):
                     result.append({'postfix': postfix, 'content': content[:self.__MAX_LENGTH_OF_FILE]})
         print(result)
         return result
+
+    def save_markdown(self, content: str):
+        with open(self.__DEFAULT_REPORT_NAME, "w") as f:
+            f.write(content)
+        print(f"report has saved to {self.__DEFAULT_REPORT_NAME}")
