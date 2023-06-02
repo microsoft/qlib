@@ -258,6 +258,46 @@ class FiniteVectorEnv(BaseVectorEnv):
 
         return np.stack(obs)
 
+    def step2(
+        self,
+        action: np.ndarray,
+        id: int | List[int] | np.ndarray | None = None,
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        assert not self._zombie
+        wrapped_id = self._wrap_id(id)
+        id2idx = {i: k for k, i in enumerate(wrapped_id)}
+        request_id = list(filter(lambda i: i in self._alive_env_ids, wrapped_id))
+        result = {}
+
+        # ask super to step alive envs and remap to current index
+        if request_id:
+            valid_act = np.stack([action[id2idx[i]] for i in request_id])
+            tmp = super().step(valid_act, request_id)
+            
+            for obs_next, rew, done, info in zip(*tmp):
+                obs_next = self._postproc_env_obs(obs_next)
+                result[info["env_id"]] = [obs_next, rew, done, info]
+                
+        # logging
+        for i, r in result.items():
+            if i in self._alive_env_ids and r[0] is not None:
+                for logger in self._logger:
+                    logger.on_env_step(i, *r)
+                    
+        for _, reward, __, info in result.values():
+            self._set_default_info(info)
+            self._set_default_rew(reward)
+        for r in result.values():
+            if r[0] is None:
+                r[0] = self._get_default_obs()
+            if r[1] is None:
+                r[1] = self._get_default_rew()
+            if r[3] is None:
+                r[3] = self._get_default_info()
+        
+        ret = list(map(np.stack, zip(*result.values())))
+        return cast(Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray], ret)
+    
     def step(
         self,
         action: np.ndarray,
