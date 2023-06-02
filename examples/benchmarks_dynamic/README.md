@@ -8,15 +8,17 @@ The table below shows the performances of different solutions on different forec
 Here is the [crowd sourced version of qlib data](data_collector/crowd_source/README.md): https://github.com/chenditc/investment_data/releases
 ```bash
 wget https://github.com/chenditc/investment_data/releases/download/20220720/qlib_bin.tar.gz
+mkdir -p ~/.qlib/qlib_data/cn_data
 tar -zxvf qlib_bin.tar.gz -C ~/.qlib/qlib_data/cn_data --strip-components=2
+rm -f qlib_bin.tar.gz
 ```
 
 | Model Name       | Dataset | IC | ICIR | Rank IC | Rank ICIR | Annualized Return | Information Ratio | Max Drawdown |
-|------------------|---------|----|------|---------|-----------|-------------------|-------------------|--------------|
-| RR[Linear]       |Alpha158 |0.089|0.577|0.102    |0.627      |0.093              |1.458              |-0.073        |
-| DDG-DA[Linear]   |Alpha158 |0.096|0.636|0.107    |0.677      |0.067              |0.996              |-0.091        |
-| RR[LightGBM]     |Alpha158 |0.082|0.589|0.091    |0.626      |0.077              |1.320              |-0.091        |
-| DDG-DA[LightGBM] |Alpha158 |0.085|0.658|0.094    |0.686      |0.115              |1.792              |-0.068        |
+|------------------|---------|------|------|---------|-----------|-------------------|-------------------|--------------|
+| RR[Linear]       |Alpha158 |0.0945|0.5989|0.1069   |0.6495     |0.0857             |1.3682             |-0.0986       |
+| DDG-DA[Linear]   |Alpha158 |0.0983|0.6157|0.1108   |0.6646     |0.0764             |1.1904             |-0.0769       |
+| RR[LightGBM]     |Alpha158 |0.0816|0.5887|0.0912   |0.6263     |0.0771             |1.3196             |-0.0909       |
+| DDG-DA[LightGBM] |Alpha158 |0.0878|0.6185|0.0975   |0.6524     |0.1261             |2.0096             |-0.0744       |
 
 - The label horizon of the `Alpha158` dataset is set to 20.
 - The rolling time intervals are set to 20 trading days.
