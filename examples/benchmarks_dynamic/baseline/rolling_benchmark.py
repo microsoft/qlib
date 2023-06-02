@@ -67,11 +67,12 @@ class RollingBenchmark:
     def basic_task(self):
         """For fast training rolling"""
         if self.model_type == "gbdt":
-            conf_path = DIRNAME.parent.parent / "benchmarks" / "LightGBM" / "workflow_config_lightgbm_Alpha158.yaml"
+            conf_path = DIRNAME / "workflow_config_lightgbm_Alpha158.yaml"
             # dump the processed data on to disk for later loading to speed up the processing
             h_path = DIRNAME / "lightgbm_alpha158_handler_horizon{}.pkl".format(self.horizon)
         elif self.model_type == "linear":
-            conf_path = DIRNAME.parent.parent / "benchmarks" / "Linear" / "workflow_config_linear_Alpha158.yaml"
+            # We use ridge regression to stabilize the performance
+            conf_path = DIRNAME / "workflow_config_linear_Alpha158.yaml"
             h_path = DIRNAME / "linear_alpha158_handler_horizon{}.pkl".format(self.horizon)
         else:
             raise AssertionError("Model type is not supported!")
