@@ -41,7 +41,7 @@ class DDGDA:
         train_start: Optional[str] = None,
         meta_1st_train_end: Optional[str] = None,
         task_ext_conf: Optional[dict] = None,
-        alpha: float = 0.0,
+        alpha: float = 0.01,
         proxy_hd: str = "handler_proxy.pkl",
     ):
         """
