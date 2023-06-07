@@ -10,7 +10,7 @@ def simple_perf(desc: str = "", out_path: str = None) -> Generator[None, None, N
     s = time.perf_counter()
     yield
     e = time.perf_counter()
-    msg = f"{desc}: {(e - s) * 1000.0} ms"
+    msg = f"{desc}: {(e - s) * 1000.0:.4f} ms"
     
     if out_path is not None:
         with open(out_path, "a") as fstream:

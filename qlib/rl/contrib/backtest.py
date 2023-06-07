@@ -200,7 +200,7 @@ def single_with_collect_data_loop(
     )
 
     report_dict: dict = {}
-    decisions = list(collect_data_loop(trade_start_time, trade_end_time, strategy, executor, report_dict))
+    decisions = list(collect_data_loop(trade_start_time, trade_end_time, strategy, executor, report_dict, show_progress=False))
 
     indicator_dict = cast(INDICATOR_METRIC, report_dict.get("indicator_dict"))
     records = _convert_indicator_to_dataframe(indicator_dict["1day"][1].order_indicator_his)
@@ -275,6 +275,7 @@ if __name__ == "__main__":
 
     warnings.filterwarnings("ignore", category=DeprecationWarning)
     warnings.filterwarnings("ignore", category=RuntimeWarning)
+    warnings.filterwarnings("ignore", category=FutureWarning)
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--config_path", type=str, required=True, help="Path to the config file")
