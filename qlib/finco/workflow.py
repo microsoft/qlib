@@ -6,7 +6,7 @@ import shutil
 from qlib.log import get_module_logger
 from qlib.finco.conf import Config
 from qlib.finco.utils import parse_json
-from qlib.finco.task import WorkflowTask, PlanTask, ActionTask, SummarizeTask
+from qlib.finco.task import WorkflowTask, PlanTask, ActionTask, SummarizeTask, RecorderTask
 
 
 class WorkflowContextManager:
@@ -110,7 +110,7 @@ class WorkflowManager:
             self.set_context("user_prompt", prompt)
 
         # NOTE: list may not be enough for general task list
-        task_list = [WorkflowTask(), SummarizeTask()]
+        task_list = [WorkflowTask(), RecorderTask(), SummarizeTask()]
         while len(task_list):
             # task list is not long, so sort it is not a big problem
             # TODO: sort the task list based on the priority of the task

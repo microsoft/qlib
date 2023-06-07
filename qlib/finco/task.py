@@ -14,7 +14,7 @@ import platform
 from qlib.log import get_module_logger
 from qlib.finco.llm import APIBackend
 from qlib.finco.tpl import get_tpl_path
-
+from qlib.workflow.record_temp import HFSignalRecord, SignalRecord
 
 class Task:
     """
@@ -244,6 +244,45 @@ class RLPlanTask(PlanTask):
         return a list of interested tasks
         Copy the template project maybe a part of the task
         """
+        return []
+
+
+class RecorderTask(Task):
+    """
+    This CMD task is responsible for ensuring compatibility across different operating systems.
+    """
+
+    __RECORDERS = {HFSignalRecord.__name__: HFSignalRecord, SignalRecord.__name__: SignalRecord}
+    __RECORDERS_DOCS = {k: v.__doc__ for (k, v) in __RECORDERS.items()}
+
+    __DEFAULT_WORKFLOW_SYSTEM_PROMPT = f"""
+        You are an expert system administrator.
+        Your task is to select the best analysis class based on user intent from this list:
+        {__RECORDERS_DOCS}
+        
+        Example1:
+        
+    """
+
+    __DEFAULT_WORKFLOW_USER_PROMPT = """{{user_prompt}}"""
+
+    def __init__(self):
+        super().__init__()
+        self._output = None
+
+    def execute(self):
+        prompt = Template(self.__DEFAULT_WORKFLOW_USER_PROMPT).render(
+            user_prompt=self._context_manager.get_context("user_prompt"))
+        response = APIBackend().build_messages_and_create_chat_completion(prompt, self.__DEFAULT_WORKFLOW_SYSTEM_PROMPT)
+
+        regex = re.compile("Analysis: \((.*?)\) (.*?)\n")
+        analyses = re.search(regex, response)
+        if isinstance(analyses, list):
+            tasks = [self.__RECORDERS.get(a)() for a in analyses]
+            for task in tasks:
+                resp = task.analysis()
+                self._context_manager.set_context(task.__class__.__name__, resp)
+
         return []
 
 
