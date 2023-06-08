@@ -674,6 +674,11 @@ class SummarizeTask(Task):
     your strategy has a relatively low Sharpe ratio. Here are a few suggestions:
     You can try diversifying your positions across different assets.
     
+    Images:
+
+    ![HFAnalyzer](file:///D:/Codes/NLP/qlib/finco/finco_workspace/HFAnalyzer.jpeg)
+
+    
     Example output 2:
     The output log shows the result of running `qlib` with `LinearModel` strategy on the Chinese stock market CSI 300 
     from 2008-01-01 to 2020-08-01, based on the Alpha158 data handler from 2015-01-01. The strategy involves using the 
@@ -699,9 +704,14 @@ class SummarizeTask(Task):
     The numbers in the report do not need to have too many significant figures.
     You can add subheadings and paragraphs in Markdown for readability.
     You can bold or use other formatting options to highlight keywords in the main text.
+    You should display images I offered in markdown using the appropriate image format.
     """
-    __DEFAULT_WORKFLOW_USER_PROMPT = "Here is my information: '{{information}}'\n{{user_prompt}}"
-    __DEFAULT_USER_PROMPT = "Please summarize them and give me some advice."
+    __DEFAULT_WORKFLOW_USER_PROMPT = "Here is my information: '{{information}}'\n" \
+                                     "My intention is: {{user_prompt}}. Please provide me with a summary and " \
+                                     "recommendation based on my intention and the information I have provided."\
+                                     "There are some figures which absolute path are: {{figure_path}}, " \
+                                     "You must display these images in markdown using the appropriate image format."
+    __DEFAULT_USER_PROMPT = "Summarize the information I offered and give me some advice."
 
     # TODO: 2048 is close to exceed GPT token limit
     __MAX_LENGTH_OF_FILE = 2048
@@ -709,22 +719,29 @@ class SummarizeTask(Task):
 
     def __init__(self):
         super().__init__()
+        self.workspace = self.__DEFAULT_WORKSPACE
 
     def execute(self) -> Any:
+        workspace = self._context_manager.get_context("workspace")
+        if workspace is not None:
+            self.workspace = workspace
+
         user_prompt = self._context_manager.get_context("user_prompt")
         user_prompt = user_prompt if user_prompt is not None else self.__DEFAULT_USER_PROMPT
         system_prompt = self.__DEFAULT_WORKFLOW_SYSTEM_PROMPT
-        workspace = self._context_manager.get_context("workspace")
-        workspace = workspace if workspace is not None else self.__DEFAULT_WORKSPACE
+
         file_info = self.get_info_from_file(workspace)
-        context_info = self.get_info_from_context()
+        context_info = []  # too long context make response unstable.
+        figure_path = self.get_figure_path()
 
         information = context_info + file_info
         prompt_workflow_selection = Template(self.__DEFAULT_WORKFLOW_USER_PROMPT).render(
-            information=information, user_prompt=user_prompt
+            information=information, figure_path=figure_path, user_prompt=user_prompt
         )
 
-        response = APIBackend().build_messages_and_create_chat_completion(
+        be = APIBackend()
+        be.debug_mode = False
+        response = be.build_messages_and_create_chat_completion(
             user_prompt=prompt_workflow_selection, system_prompt=system_prompt
         )
         self.save_markdown(content=response)
@@ -778,9 +795,18 @@ class SummarizeTask(Task):
                 context.append({key: c[: self.__MAX_LENGTH_OF_FILE]})
         return context
 
+    def get_figure_path(self):
+        file_list = []
+
+        for root, dirs, files in os.walk(Path(self.workspace)):
+            for filename in files:
+                postfix = filename.split(".")[-1]
+                if postfix in ['jpeg']:
+                    file_path = os.path.join(root, filename)
+                    file_list.append(file_path)
+        return file_list
+
     def save_markdown(self, content: str):
-        workspace = self._context_manager.get_context("workspace")
-        workspace = workspace if workspace is not None else self.__DEFAULT_WORKSPACE
-        with open(Path.joinpath(workspace, self.__DEFAULT_REPORT_NAME), "w") as f:
+        with open(Path(self.workspace).joinpath(self.__DEFAULT_REPORT_NAME), "w") as f:
             f.write(content)
         self.logger.info(f"report has saved to {self.__DEFAULT_REPORT_NAME}")

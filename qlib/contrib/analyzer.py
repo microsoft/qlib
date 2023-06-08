@@ -65,8 +65,10 @@ class HFAnalyzer(AnalyzerTemp):
         plt.table(cellText=table, loc='center')
         plt.axis('off')
         plt.savefig(self.workspace.joinpath('HFAnalyzerTable.jpeg'))
+        plt.clf()
 
-        plt.plot(np.arange(0, len(pred)), pred.iloc[:, 0], np.arange(0, len(label)), label.iloc[:, 0])
+        plt.scatter(np.arange(0, len(pred)), pred.iloc[:, 0])
+        plt.scatter(np.arange(0, len(label)), label.iloc[:, 0])
         plt.title('HFAnalyzer')
         plt.savefig(self.workspace.joinpath('HFAnalyzer.jpeg'))
 
