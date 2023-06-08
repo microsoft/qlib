@@ -15,6 +15,10 @@ from qlib.log import get_module_logger
 from qlib.finco.llm import APIBackend
 from qlib.finco.tpl import get_tpl_path
 from qlib.workflow.record_temp import HFSignalRecord, SignalRecord
+from qlib.contrib.analyzer import HFAnalyzer, SignalAnalyzer
+from qlib.utils import init_instance_by_config
+from qlib.workflow import R
+
 
 class Task:
     """
@@ -249,22 +253,29 @@ class RLPlanTask(PlanTask):
 
 class RecorderTask(Task):
     """
-    This CMD task is responsible for ensuring compatibility across different operating systems.
+    This Recorder task is responsible for analysing data such as index and distribution.
     """
 
-    __RECORDERS = {HFSignalRecord.__name__: HFSignalRecord, SignalRecord.__name__: SignalRecord}
-    __RECORDERS_DOCS = {k: v.__doc__ for (k, v) in __RECORDERS.items()}
+    __ANALYZERS_PROJECT = {HFAnalyzer.__name__: HFSignalRecord, SignalAnalyzer.__name__: SignalRecord}
+    __ANALYZERS_DOCS = {HFAnalyzer.__name__: HFAnalyzer.__doc__, SignalAnalyzer.__name__: SignalAnalyzer.__doc__}
+    # __ANALYZERS_PROJECT = {SignalAnalyzer.__name__: SignalRecord}
+    # __ANALYZERS_DOCS = {SignalAnalyzer.__name__: SignalAnalyzer.__doc__}
 
     __DEFAULT_WORKFLOW_SYSTEM_PROMPT = f"""
         You are an expert system administrator.
         Your task is to select the best analysis class based on user intent from this list:
-        {__RECORDERS_DOCS}
+        {list(__ANALYZERS_DOCS.keys())}
+        Their description are:
+        {__ANALYZERS_DOCS}
         
-        Example1:
+        Response only with the Analyser name provided above with no explanation or conversation. if there are more than
+        one analyser, separate them by ","
         
     """
 
-    __DEFAULT_WORKFLOW_USER_PROMPT = """{{user_prompt}}"""
+    __DEFAULT_WORKFLOW_USER_PROMPT = """{{user_prompt}}, 
+    The analyzers you select should separate by ",", such as: "HFAnalyzer", "SignalAnalyzer"
+    """
 
     def __init__(self):
         super().__init__()
@@ -273,14 +284,40 @@ class RecorderTask(Task):
     def execute(self):
         prompt = Template(self.__DEFAULT_WORKFLOW_USER_PROMPT).render(
             user_prompt=self._context_manager.get_context("user_prompt"))
-        response = APIBackend().build_messages_and_create_chat_completion(prompt, self.__DEFAULT_WORKFLOW_SYSTEM_PROMPT)
+        be = APIBackend()
+        be.debug_mode = False
+        response = be.build_messages_and_create_chat_completion(prompt, self.__DEFAULT_WORKFLOW_SYSTEM_PROMPT)
 
-        regex = re.compile("Analysis: \((.*?)\) (.*?)\n")
-        analyses = re.search(regex, response)
-        if isinstance(analyses, list):
-            tasks = [self.__RECORDERS.get(a)() for a in analyses]
+        # it's better to move to another Task
+        workflow_config = self._context_manager.get_context("workflow_config") \
+            if self._context_manager.get_context("workflow_config") else "workflow_config.yaml"
+        workspace = self._context_manager.get_context('workspace')
+        with workspace.joinpath(workflow_config).open() as f:
+            workflow = yaml.safe_load(f)
+
+        model = init_instance_by_config(workflow["task"]["model"])
+        dataset = init_instance_by_config(workflow["task"]["dataset"])
+
+        with R.start(experiment_name="finCo"):
+            model.fit(dataset)
+            R.save_objects(trained_model=model)
+
+            # prediction
+            recorder = R.get_recorder()
+            sr = SignalRecord(model, dataset, recorder)
+            sr.generate()
+
+        analysers = response.split(',')
+        if isinstance(analysers, list):
+            self.logger.info(f"selected analysers: {analysers}")
+            tasks = []
+            for analyser in analysers:
+                if analyser in self.__ANALYZERS_PROJECT.keys():
+                    tasks.append(self.__ANALYZERS_PROJECT.get(analyser)(workspace=workspace, model=model,
+                                                                        dataset=dataset, recorder=recorder))
+
             for task in tasks:
-                resp = task.analysis()
+                resp = task.analyse()
                 self._context_manager.set_context(task.__class__.__name__, resp)
 
         return []
@@ -327,7 +364,8 @@ Example output:
     def summarize(self):
         if self._output is not None:
             # TODO: it will be overrides by later commands
-            self._context_manager.set_context(self.__class__.__name__, self._output.decode("utf8"))
+            # utf8 can't decode normally on Windows
+            self._context_manager.set_context(self.__class__.__name__, self._output.decode("ANSI"))
 
 
 class ConfigActionTask(ActionTask):
@@ -741,6 +779,8 @@ class SummarizeTask(Task):
         return context
 
     def save_markdown(self, content: str):
-        with open(self.__DEFAULT_REPORT_NAME, "w") as f:
+        workspace = self._context_manager.get_context("workspace")
+        workspace = workspace if workspace is not None else self.__DEFAULT_WORKSPACE
+        with open(Path.joinpath(workspace, self.__DEFAULT_REPORT_NAME), "w") as f:
             f.write(content)
         self.logger.info(f"report has saved to {self.__DEFAULT_REPORT_NAME}")
