@@ -3,9 +3,9 @@ import time
 import openai
 import json
 from typing import Optional
-from qlib.log import get_module_logger
 from qlib.finco.conf import Config
 from qlib.finco.utils import Singleton
+from qlib.finco.log import FinCoLog
 
 
 class APIBackend(Singleton):
@@ -47,7 +47,10 @@ class APIBackend(Singleton):
                 "content": user_prompt,
             },
         ]
+        fcl = FinCoLog()
         response = self.try_create_chat_completion(messages=messages)
+        fcl.log_message(messages)
+        fcl.info(response)
         return response
 
     def try_create_chat_completion(self, max_retry=10, **kwargs):

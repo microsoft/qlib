@@ -7,6 +7,7 @@ from qlib.log import get_module_logger
 from qlib.finco.conf import Config
 from qlib.finco.utils import parse_json
 from qlib.finco.task import WorkflowTask, PlanTask, ActionTask, SummarizeTask, RecorderTask
+from qlib.finco.log import FinCoLog
 
 
 class WorkflowContextManager:
@@ -54,6 +55,7 @@ class WorkflowManager:
         self._context = WorkflowContextManager()
         self._context.set_context("workspace", self._workspace)
         self.default_user_prompt = "Please help me build a low turnover strategy that focus more on longterm return in China a stock market. I want to construct a new dataset covers longer history"
+        self.fco = FinCoLog()
 
     def _confirm_and_rm(self):
         # if workspace exists, please confirm and remove it. Otherwise exit.
@@ -112,6 +114,7 @@ class WorkflowManager:
         # NOTE: list may not be enough for general task list
         task_list = [WorkflowTask(), RecorderTask(), SummarizeTask()]
         while len(task_list):
+            self.fco.info(f"Current Task List: {task_list}")
             # task list is not long, so sort it is not a big problem
             # TODO: sort the task list based on the priority of the task
             # task_list = sorted(task_list, key=lambda x: x.task_type)

@@ -283,15 +283,19 @@ class RecorderTask(Task):
 
     def execute(self):
         prompt = Template(self.__DEFAULT_WORKFLOW_USER_PROMPT).render(
-            user_prompt=self._context_manager.get_context("user_prompt"))
+            user_prompt=self._context_manager.get_context("user_prompt")
+        )
         be = APIBackend()
         be.debug_mode = False
         response = be.build_messages_and_create_chat_completion(prompt, self.__DEFAULT_WORKFLOW_SYSTEM_PROMPT)
 
         # it's better to move to another Task
-        workflow_config = self._context_manager.get_context("workflow_config") \
-            if self._context_manager.get_context("workflow_config") else "workflow_config.yaml"
-        workspace = self._context_manager.get_context('workspace')
+        workflow_config = (
+            self._context_manager.get_context("workflow_config")
+            if self._context_manager.get_context("workflow_config")
+            else "workflow_config.yaml"
+        )
+        workspace = self._context_manager.get_context("workspace")
         with workspace.joinpath(workflow_config).open() as f:
             workflow = yaml.safe_load(f)
 
@@ -307,14 +311,17 @@ class RecorderTask(Task):
             sr = SignalRecord(model, dataset, recorder)
             sr.generate()
 
-        analysers = response.split(',')
+        analysers = response.split(",")
         if isinstance(analysers, list):
             self.logger.info(f"selected analysers: {analysers}")
             tasks = []
             for analyser in analysers:
                 if analyser in self.__ANALYZERS_PROJECT.keys():
-                    tasks.append(self.__ANALYZERS_PROJECT.get(analyser)(workspace=workspace, model=model,
-                                                                        dataset=dataset, recorder=recorder))
+                    tasks.append(
+                        self.__ANALYZERS_PROJECT.get(analyser)(
+                            workspace=workspace, model=model, dataset=dataset, recorder=recorder
+                        )
+                    )
 
             for task in tasks:
                 resp = task.analyse()
@@ -706,11 +713,13 @@ class SummarizeTask(Task):
     You can bold or use other formatting options to highlight keywords in the main text.
     You should display images I offered in markdown using the appropriate image format.
     """
-    __DEFAULT_WORKFLOW_USER_PROMPT = "Here is my information: '{{information}}'\n" \
-                                     "My intention is: {{user_prompt}}. Please provide me with a summary and " \
-                                     "recommendation based on my intention and the information I have provided."\
-                                     "There are some figures which absolute path are: {{figure_path}}, " \
-                                     "You must display these images in markdown using the appropriate image format."
+    __DEFAULT_WORKFLOW_USER_PROMPT = (
+        "Here is my information: '{{information}}'\n"
+        "My intention is: {{user_prompt}}. Please provide me with a summary and "
+        "recommendation based on my intention and the information I have provided."
+        "There are some figures which absolute path are: {{figure_path}}, "
+        "You must display these images in markdown using the appropriate image format."
+    )
     __DEFAULT_USER_PROMPT = "Summarize the information I offered and give me some advice."
 
     # TODO: 2048 is close to exceed GPT token limit
@@ -801,9 +810,9 @@ class SummarizeTask(Task):
         for root, dirs, files in os.walk(Path(self.workspace)):
             for filename in files:
                 postfix = filename.split(".")[-1]
-                if postfix in ['jpeg']:
+                if postfix in ["jpeg"]:
                     file_path = os.path.join(root, filename)
-                    file_list.append(file_path)
+                    file_list.append(str(Path(file_path).relative_to(self.workspace)))
         return file_list
 
     def save_markdown(self, content: str):
