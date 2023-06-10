@@ -571,7 +571,7 @@ class MultiPassPortAnaRecord(PortAnaRecord):
     - port_analysis.pkl : The last risk analysis of your portfolio, returned by `qlib/contrib/evaluate.py:risk_analysis`
     - multi_pass_port_analysis.pkl: The aggregated risk analysis data from port_analysis.pkl
     """
-    depend_cls = None
+    depend_cls = SignalRecord
 
     def __init__(
         self,
@@ -615,6 +615,7 @@ class MultiPassPortAnaRecord(PortAnaRecord):
             if self.shuffle_init_score:
                 self.random_init()
                 
+            # Not check for cache file list
             super()._generate(**kwargs)
             
             for _analysis_freq in self.risk_analysis_freq:
@@ -638,7 +639,7 @@ class MultiPassPortAnaRecord(PortAnaRecord):
             
             # Only look at "annualized_return" and "information_ratio"
             multi_pass_port_analysis_df = multi_pass_port_analysis_df.loc[(slice(None),["annualized_return", "information_ratio"]),:]
-            print(multi_pass_port_analysis_df)
+            pprint(multi_pass_port_analysis_df)
             
             # Save new df
             self.save(**{f"multi_pass_port_analysis_{_analysis_freq}.pkl": multi_pass_port_analysis_df})
@@ -650,3 +651,12 @@ class MultiPassPortAnaRecord(PortAnaRecord):
                 "mean_std": multi_pass_port_analysis_df["mean_std"].unstack().T.to_dict(),
             })
             self.recorder.log_metrics(**metrics)
+
+    def list(self):
+        list_path = []
+        for _analysis_freq in self.risk_analysis_freq:
+            if _analysis_freq in self.all_freq:
+                list_path.append(f"multi_pass_port_analysis_{_analysis_freq}.pkl")
+            else:
+                warnings.warn(f"risk_analysis freq {_analysis_freq} is not found")
+        return list_path
