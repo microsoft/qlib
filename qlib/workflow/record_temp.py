@@ -563,13 +563,14 @@ class MultiPassPortAnaRecord(PortAnaRecord):
     If shuffle_init_score enabled, the prediction score of the first backtest date will be shuffled, so that initial position will be random.
     The shuffle_init_score will only works when the signal is used as <PRED> placeholder. The placeholder will be replaced by pred.pkl saved in recorder.
 
-    The following files will be stored in recorder.
-
-    - report_normal.pkl & positions_normal.pkl:
-
-        - The return report and detailed positions of the backtest, returned by `qlib/contrib/evaluate.py:backtest`
-    - port_analysis.pkl : The last risk analysis of your portfolio, returned by `qlib/contrib/evaluate.py:risk_analysis`
-    - multi_pass_port_analysis.pkl: The aggregated risk analysis data from port_analysis.pkl
+    Parameters
+    ----------
+    recorder : Recorder
+        The recorder used to save the backtest results.
+    pass_num : int
+        The number of backtest passes.
+    shuffle_init_score : bool
+        Whether to shuffle the prediction score of the first backtest date.
     """
     depend_cls = SignalRecord
 
@@ -580,6 +581,16 @@ class MultiPassPortAnaRecord(PortAnaRecord):
         shuffle_init_score=True,
         **kwargs
     ):
+        """
+        Parameters
+        ----------
+        recorder : Recorder
+            The recorder used to save the backtest results.
+        pass_num : int
+            The number of backtest passes.
+        shuffle_init_score : bool
+            Whether to shuffle the prediction score of the first backtest date.
+        """
         self.pass_num = pass_num
         self.shuffle_init_score = shuffle_init_score
         
@@ -587,12 +598,14 @@ class MultiPassPortAnaRecord(PortAnaRecord):
         
         # Save original strategy so that pred df can be replaced in next generate
         self.original_strategy = deepcopy_basic_type(self.strategy_config)
+        if isinstance(self.original_strategy, dict) and ("signal" in self.original_strategy.get("kwargs", {})):
+            self.original_strategy["kwargs"]["signal"] = "<PRED>"
 
     def random_init(self):
         pred_df = self.load("pred.pkl")
         
         all_pred_dates = pred_df.index.get_level_values("datetime")
-        bt_start_date = self.backtest_config.get("start_time")
+        bt_start_date = pd.to_datetime(self.backtest_config.get("start_time"))
         if bt_start_date is None:
             first_bt_pred_date = all_pred_dates.min()
         else:
