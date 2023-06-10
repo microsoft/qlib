@@ -4,6 +4,7 @@
 import logging
 import warnings
 import pandas as pd
+import numpy as np
 from pprint import pprint
 from typing import Union, List, Optional
 
@@ -554,3 +555,98 @@ class PortAnaRecord(ACRecordTemp):
             else:
                 warnings.warn(f"indicator_analysis freq {_analysis_freq} is not found")
         return list_path
+
+class MultiPassPortAnaRecord(PortAnaRecord):
+    """
+    This is the Multiple Pass Portfolio Analysis Record class that run backtest multiple times and generates the analysis results such as those of backtest. This class inherits the ``PortAnaRecord`` class.
+
+    If shuffle_init_score enabled, the prediction score of the first backtest date will be shuffled, so that initial position will be random.
+    The shuffle_init_score will only works when the signal is used as <PRED> placeholder. The placeholder will be replaced by pred.pkl saved in recorder.
+
+    The following files will be stored in recorder.
+
+    - report_normal.pkl & positions_normal.pkl:
+
+        - The return report and detailed positions of the backtest, returned by `qlib/contrib/evaluate.py:backtest`
+    - port_analysis.pkl : The last risk analysis of your portfolio, returned by `qlib/contrib/evaluate.py:risk_analysis`
+    - multi_pass_port_analysis.pkl: The aggregated risk analysis data from port_analysis.pkl
+    """
+    depend_cls = None
+
+    def __init__(
+        self,
+        recorder,
+        pass_num=10,
+        shuffle_init_score=True,
+        **kwargs
+    ):
+        self.pass_num = pass_num
+        self.shuffle_init_score = shuffle_init_score
+        
+        super().__init__(recorder, **kwargs)
+        
+        # Save original strategy so that pred df can be replaced in next generate
+        self.original_strategy = deepcopy_basic_type(self.strategy_config)
+
+    def random_init(self):
+        pred_df = self.load("pred.pkl")
+        
+        all_pred_dates = pred_df.index.get_level_values("datetime")
+        bt_start_date = self.backtest_config.get("start_time")
+        if bt_start_date is None:
+            first_bt_pred_date = all_pred_dates.min()
+        else:
+            first_bt_pred_date = all_pred_dates[all_pred_dates >= bt_start_date].min()
+            
+        # Shuffle the first backtest date's pred score
+        first_date_score = pred_df.loc[first_bt_pred_date]["score"]
+        np.random.shuffle(first_date_score.values)
+        
+        # Reset strategy so that pred df can be replaced in next generate
+        self.strategy_config = deepcopy_basic_type(self.original_strategy)
+        
+        self.save(**{"pred.pkl": pred_df})
+
+    def _generate(self, **kwargs):
+        risk_analysis_df_map = {}
+
+        # Collect each frequency's analysis df as df list
+        for i in range(self.pass_num):
+            if self.shuffle_init_score:
+                self.random_init()
+                
+            super()._generate(**kwargs)
+            
+            for _analysis_freq in self.risk_analysis_freq:
+                risk_analysis_df_list = risk_analysis_df_map.get(_analysis_freq, [])
+                risk_analysis_df_map[_analysis_freq] = risk_analysis_df_list
+
+                analysis_df = self.load(f"port_analysis_{_analysis_freq}.pkl")
+                analysis_df["run_id"] = i
+                risk_analysis_df_list.append(analysis_df)
+        
+        # Concat df list
+        for _analysis_freq in self.risk_analysis_freq:
+            combined_df = pd.concat(risk_analysis_df_map[_analysis_freq])
+        
+            # Calculate return and information ratio's mean, std and mean/std
+            multi_pass_port_analysis_df = combined_df.groupby(level=[0,1]).apply(lambda x: pd.Series({
+                "mean": x["risk"].mean(), 
+                "std": x["risk"].std(),
+                "mean_std": x["risk"].mean() / x["risk"].std()
+            }))
+            
+            # Only look at "annualized_return" and "information_ratio"
+            multi_pass_port_analysis_df = multi_pass_port_analysis_df.loc[(slice(None),["annualized_return", "information_ratio"]),:]
+            print(multi_pass_port_analysis_df)
+            
+            # Save new df
+            self.save(**{f"multi_pass_port_analysis_{_analysis_freq}.pkl": multi_pass_port_analysis_df})
+
+            # Log metrics
+            metrics = flatten_dict({
+                "mean": multi_pass_port_analysis_df["mean"].unstack().T.to_dict(),
+                "std": multi_pass_port_analysis_df["std"].unstack().T.to_dict(),
+                "mean_std": multi_pass_port_analysis_df["mean_std"].unstack().T.to_dict(),
+            })
+            self.recorder.log_metrics(**metrics)
