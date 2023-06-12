@@ -20,7 +20,7 @@ def train(
     simulator_fn: Callable[[InitialStateType], Simulator],
     state_interpreter: StateInterpreter,
     action_interpreter: ActionInterpreter,
-    initial_states: Sequence[InitialStateType],
+    initial_states: List[Sequence[InitialStateType]],
     policy: BasePolicy,
     reward: Reward,
     vessel_kwargs: Dict[str, Any],
@@ -39,7 +39,9 @@ def train(
     action_interpreter
         Interprets the policy actions.
     initial_states
-        Initial states to iterate over. Every state will be run exactly once.
+        List of Initial state iterators to iterate over. There should be 1 or `concurrency` initial state iterators in
+        the list. If there is only 1 initial state iterator, this iterator will be shared by all workers and every
+        state will be run exactly once. Otherwise, every worker will have its own iterator.
     policy
         Policy to train against.
     reward
@@ -67,7 +69,7 @@ def backtest(
     simulator_fn: Callable[[InitialStateType], Simulator],
     state_interpreter: StateInterpreter,
     action_interpreter: ActionInterpreter,
-    initial_states: Sequence[InitialStateType],
+    initial_states: List[Sequence[InitialStateType]],
     policy: BasePolicy,
     logger: LogWriter | List[LogWriter],
     reward: Reward | None = None,
@@ -87,7 +89,9 @@ def backtest(
     action_interpreter
         Interprets the policy actions.
     initial_states
-        Initial states to iterate over. Every state will be run exactly once.
+        List of Initial state iterators to iterate over. There should be 1 or `concurrency` initial state iterators in
+        the list. If there is only 1 initial state iterator, this iterator will be shared by all workers and every
+        state will be run exactly once. Otherwise, every worker will have its own iterator.
     policy
         Policy to test against.
     logger

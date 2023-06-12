@@ -5,8 +5,9 @@ from __future__ import annotations
 
 import collections
 import copy
-from contextlib import AbstractContextManager, contextmanager
+from contextlib import AbstractContextManager, ExitStack, contextmanager
 from datetime import datetime
+from functools import partial
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, OrderedDict, Sequence, TypeVar, cast
 
@@ -206,46 +207,50 @@ class Trainer:
 
         self._call_callback_hooks("on_fit_start")
 
-        while not self.should_stop:
-            msg = f"\n{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\tTrain iteration {self.current_iter + 1}/{self.max_iters}"
-            print(msg)
-            _logger.info(msg)
+        with _wrap_context(vessel.train_seed_iterators()) as train_iterators, _wrap_context(
+            vessel.val_seed_iterators()
+        ) as valid_iterators:
+            train_vector_env = self.venv_from_iterator(train_iterators)
+            valid_vector_env = self.venv_from_iterator(valid_iterators)
 
-            self.initialize_iter()
+            while not self.should_stop:
+                msg = f"\n{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\tTrain iteration {self.current_iter + 1}/{self.max_iters}"
+                print(msg)
+                _logger.info(msg)
 
-            self._call_callback_hooks("on_iter_start")
+                self.initialize_iter()
 
-            self.current_stage = "train"
-            self._call_callback_hooks("on_train_start")
+                self._call_callback_hooks("on_iter_start")
 
-            # TODO
-            # Add a feature that supports reloading the training environment every few iterations.
-            with _wrap_context(vessel.train_seed_iterator()) as iterator:
-                vector_env = self.venv_from_iterator(iterator)
-                self.vessel.train(vector_env)
-                del vector_env  # FIXME: Explicitly delete this object to avoid memory leak.
+                self.current_stage = "train"
+                self._call_callback_hooks("on_train_start")
 
-            self._call_callback_hooks("on_train_end")
+                # TODO
+                # Add a feature that supports reloading the training environment every few iterations.
+                self.vessel.train(train_vector_env)
 
-            if self.val_every_n_iters is not None and (self.current_iter + 1) % self.val_every_n_iters == 0:
-                # Implementation of validation loop
-                self.current_stage = "val"
-                self._call_callback_hooks("on_validate_start")
-                with _wrap_context(vessel.val_seed_iterator()) as iterator:
-                    vector_env = self.venv_from_iterator(iterator)
-                    self.vessel.validate(vector_env)
-                    del vector_env  # FIXME: Explicitly delete this object to avoid memory leak.
+                self._call_callback_hooks("on_train_end")
 
-                self._call_callback_hooks("on_validate_end")
+                if self.val_every_n_iters is not None and (self.current_iter + 1) % self.val_every_n_iters == 0:
+                    # Implementation of validation loop
+                    self.current_stage = "val"
+                    self._call_callback_hooks("on_validate_start")
 
-            # This iteration is considered complete.
-            # Bumping the current iteration counter.
-            self.current_iter += 1
+                    self.vessel.validate(valid_vector_env)
 
-            if self.max_iters is not None and self.current_iter >= self.max_iters:
-                self.should_stop = True
+                    self._call_callback_hooks("on_validate_end")
 
-            self._call_callback_hooks("on_iter_end")
+                # This iteration is considered complete.
+                # Bumping the current iteration counter.
+                self.current_iter += 1
+
+                if self.max_iters is not None and self.current_iter >= self.max_iters:
+                    self.should_stop = True
+
+                self._call_callback_hooks("on_iter_end")
+
+            del train_vector_env  # FIXME: Explicitly delete this object to avoid memory leak.
+            del valid_vector_env  # FIXME: Explicitly delete this object to avoid memory leak.
 
         self._call_callback_hooks("on_fit_end")
 
@@ -266,16 +271,16 @@ class Trainer:
 
         self.current_stage = "test"
         self._call_callback_hooks("on_test_start")
-        with _wrap_context(vessel.test_seed_iterator()) as iterator:
-            vector_env = self.venv_from_iterator(iterator)
+        with _wrap_context(vessel.test_seed_iterators()) as iterators:
+            vector_env = self.venv_from_iterator(iterators)
             self.vessel.test(vector_env)
             del vector_env  # FIXME: Explicitly delete this object to avoid memory leak.
         self._call_callback_hooks("on_test_end")
 
-    def venv_from_iterator(self, iterator: Iterable[InitialStateType]) -> FiniteVectorEnv:
+    def venv_from_iterator(self, iterators: List[Iterable[InitialStateType]]) -> FiniteVectorEnv:
         """Create a vectorized environment from iterator and the training vessel."""
 
-        def env_factory():
+        def env_factory(iterator):
             # FIXME: state_interpreter and action_interpreter are stateful (having a weakref of env),
             # and could be thread unsafe.
             # I'm not sure whether it's a design flaw.
@@ -301,7 +306,7 @@ class Trainer:
             )
 
         return vectorize_env(
-            env_factory,
+            [partial(env_factory, iterator=it) for it in iterators],
             self.finite_env_type,
             self.concurrency,
             self.loggers,
@@ -335,8 +340,11 @@ class Trainer:
 @contextmanager
 def _wrap_context(obj):
     """Make any object a (possibly dummy) context manager."""
-
-    if isinstance(obj, AbstractContextManager):
+    if isinstance(obj, list) and isinstance(obj[0], AbstractContextManager):
+        with ExitStack() as stack:
+            yield [stack.enter_context(e) for e in obj]
+            stack.pop_all().close()
+    elif isinstance(obj, AbstractContextManager):
         # obj has __enter__ and __exit__
         with obj as ctx:
             yield ctx

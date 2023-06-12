@@ -8,7 +8,7 @@ import random
 import sys
 import warnings
 from pathlib import Path
-from typing import Any, cast, List, Optional
+from typing import Callable, cast, List, Optional, Sequence
 
 import numpy as np
 import pandas as pd
@@ -16,9 +16,10 @@ import torch
 from qlib.backtest import Order
 from qlib.backtest.decision import OrderDir
 from qlib.constant import ONE_MIN
+from qlib.rl import Simulator
 from qlib.rl.contrib.naive_config_parser import TrainingConfigParser
 from qlib.rl.data.integration import init_qlib
-from qlib.rl.data.native import _load_handler_pickle, load_handler_intraday_processed_data
+from qlib.rl.data.pickle_styled import load_pickle_intraday_processed_data
 from qlib.rl.interpreter import ActionInterpreter, StateInterpreter
 from qlib.rl.order_execution import SingleAssetOrderExecutionSimple
 from qlib.rl.order_execution.simulator_qlib import SingleAssetOrderExecution
@@ -103,14 +104,14 @@ class LazyLoadDataset(Dataset):
     def __init__(
         self,
         data_dir: str,
-        order_file_path: Path,
+        order_df: pd.DataFrame,
         default_start_time_index: int,
         default_end_time_index: int,
     ) -> None:
         self._default_start_time_index = default_start_time_index
         self._default_end_time_index = default_end_time_index
 
-        self._order_df = _read_orders(order_file_path).reset_index()
+        self._order_df = order_df
         self._ticks_index: Optional[pd.DatetimeIndex] = None
         self._data_dir = Path(data_dir)
 
@@ -126,7 +127,7 @@ class LazyLoadDataset(Dataset):
             # TODO: in one experiment are all the same. If that assumption is not hold, we need to load ticks index
             # TODO: of all dates.
 
-            data = load_handler_intraday_processed_data(
+            data = load_pickle_intraday_processed_data(
                 data_dir=self._data_dir,
                 stock_id=row["instrument"],
                 date=date,
@@ -147,6 +148,53 @@ class LazyLoadDataset(Dataset):
         return order
 
 
+def _split_order_df_by_instrument(df: pd.DataFrame, k: int) -> List[pd.DataFrame]:
+    df = df.copy()
+    df["group"] = df["instrument"].apply(lambda s: hash(s) % k)
+    dfs = [df[df["group"] == i].drop(columns=["group"]) for i in range(k)]
+    return dfs
+
+
+def _get_simulator_factory(
+    sim_type: str,
+    data_dir: Path,
+    freq_min: int,
+    simulator_config: dict,
+) -> Callable[[Order], Simulator]:
+    if sim_type == "simple":
+
+        def _simulator_factory_simple(order: Order) -> SingleAssetOrderExecutionSimple:
+            simulator = SingleAssetOrderExecutionSimple(
+                order=order,
+                data_dir=data_dir,
+                feature_columns_today=simulator_config["data"]["feature_columns_today"],
+                data_granularity=freq_min,
+                ticks_per_step=simulator_config["time_per_step"],
+                vol_threshold=simulator_config["vol_limit"],
+            )
+            return simulator
+
+        return _simulator_factory_simple
+    elif sim_type == "full":
+        init_qlib(simulator_config["qlib"])
+        executor_config = get_executor_config(freq_min)
+        exchange_config = simulator_config["exchange"]
+
+        def _simulator_factory_full(order: Order) -> SingleAssetOrderExecution:
+            simulator = SingleAssetOrderExecution(
+                order=order,
+                executor_config=executor_config,
+                exchange_config=exchange_config,  # `codes` will be set in SingleAssetOrderExecution.__init__()
+                qlib_config=None,
+                cash_limit=None,
+            )
+            return simulator
+
+        return _simulator_factory_full
+    else:
+        raise ValueError(f"Unknown simulator type: {sim_type}")
+
+
 def train_and_test(
     freq: str,
     concurrency: int,
@@ -160,52 +208,41 @@ def train_and_test(
     run_training: bool,
     run_backtest: bool,
 ) -> None:
-    freq = _freq_str_to_int(freq)
+    freq_min: int = _freq_str_to_int(freq)
     order_root_path = Path(training_config["order_dir"])
     feature_root_dir = simulator_config["data"]["feature_root_dir"]
-    assert simulator_config["data"]["default_start_time_index"] % freq == 0
-    assert simulator_config["data"]["default_end_time_index"] % freq == 0
+    assert simulator_config["data"]["default_start_time_index"] % freq_min == 0
+    assert simulator_config["data"]["default_end_time_index"] % freq_min == 0
 
-    sim_type = simulator_config["type"]
-    if sim_type == "simple":
+    _simulator_factory = _get_simulator_factory(
+        sim_type=simulator_config["type"],
+        data_dir=feature_root_dir,
+        freq_min=freq_min,
+        simulator_config=simulator_config,
+    )
 
-        def _simulator_factory(order: Order) -> SingleAssetOrderExecutionSimple:
-            simulator = SingleAssetOrderExecutionSimple(
-                order=order,
-                data_dir=feature_root_dir,
-                feature_columns_today=simulator_config["data"]["feature_columns_today"],
-                data_granularity=freq,
-                ticks_per_step=simulator_config["time_per_step"],
-                vol_threshold=simulator_config["vol_limit"],
-            )
-            return simulator
-
-    elif sim_type == "full":
-        init_qlib(simulator_config["qlib"])
-        executor_config = get_executor_config(freq)
-        exchange_config = simulator_config["exchange"]
-
-        def _simulator_factory(order: Order) -> SingleAssetOrderExecution:
-            simulator = SingleAssetOrderExecution(
-                order=order,
-                executor_config=executor_config,
-                exchange_config={**exchange_config, **{"codes": [order.stock_id]}},
-                qlib_config=None,
-                cash_limit=None,
-            )
-            return simulator
-
+    # Load orders
+    load_data_tags = []
+    orders_by_tag = {}
     if run_training:
-        train_dataset, valid_dataset = [
+        load_data_tags += ["train", "valid"]
+    if run_backtest:
+        load_data_tags += ["test"]
+    for tag in load_data_tags:
+        order_df = _read_orders(order_root_path / tag).reset_index()
+        dfs = _split_order_df_by_instrument(order_df, concurrency)
+        datasets = [
             LazyLoadDataset(
                 data_dir=feature_root_dir,
-                order_file_path=order_root_path / tag,
-                default_start_time_index=simulator_config["data"]["default_start_time_index"] // freq,
-                default_end_time_index=simulator_config["data"]["default_end_time_index"] // freq,
+                order_df=df,
+                default_start_time_index=simulator_config["data"]["default_start_time_index"] // freq_min,
+                default_end_time_index=simulator_config["data"]["default_end_time_index"] // freq_min,
             )
-            for tag in ("train", "valid")
+            for df in dfs
         ]
+        orders_by_tag[tag] = datasets
 
+    if run_training:
         callbacks: List[Callback] = [
             MetricsWriter(dirpath=Path(training_config["checkpoint_path"])),
             Checkpoint(
@@ -225,7 +262,7 @@ def train_and_test(
             action_interpreter=action_interpreter,
             policy=policy,
             reward=reward,
-            initial_states=cast(List[Order], train_dataset),
+            initial_states=cast(List[Sequence[Order]], orders_by_tag["train"]),
             trainer_kwargs={
                 "max_iters": training_config["max_epoch"],
                 "finite_env_type": parallel_mode,
@@ -239,27 +276,20 @@ def train_and_test(
                     "batch_size": training_config["batch_size"],
                     "repeat": training_config["repeat_per_collect"],
                 },
-                "val_initial_states": valid_dataset,
+                "val_initial_states": cast(List[Sequence[Order]], orders_by_tag["valid"]),
             },
         )
 
     if run_backtest:
-        test_dataset = LazyLoadDataset(
-            data_dir=feature_root_dir,
-            order_file_path=order_root_path / "test",
-            default_start_time_index=simulator_config["data"]["default_start_time_index"] // freq,
-            default_end_time_index=simulator_config["data"]["default_end_time_index"] // freq,
-        )
-
         backtest(
             simulator_fn=_simulator_factory,
             state_interpreter=state_interpreter,
             action_interpreter=action_interpreter,
-            initial_states=test_dataset,
+            initial_states=cast(List[Sequence[Order]], orders_by_tag["test"]),
             policy=policy,
             logger=CsvWriter(Path(training_config["checkpoint_path"])),
             reward=reward,
-            finite_env_type=parallel_mode,
+            finite_env_type=parallel_mode,  # type: ignore[arg-type]
             concurrency=concurrency,
         )
 

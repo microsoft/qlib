@@ -13,6 +13,7 @@ import os
 from qlib.backtest import Exchange, Order
 from qlib.backtest.decision import TradeRange, TradeRangeByTime
 from qlib.constant import EPS_T
+from qlib.data.dataset import DatasetH
 from .base import BaseIntradayBacktestData, BaseIntradayProcessedData, ProcessedDataProvider
 
 
@@ -144,7 +145,7 @@ def load_backtest_data(
     cache=cachetools.LRUCache(1000),
     key=lambda path: path,
 )
-def _load_handler_pickle(path: str) -> object:
+def _load_handler_pickle(path: str) -> DatasetH:
     with open(path, "rb") as fstream:
         obj = pickle.load(fstream)
     return obj

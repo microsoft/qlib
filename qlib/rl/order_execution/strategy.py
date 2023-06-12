@@ -451,6 +451,7 @@ class SAOEIntStrategy(SAOEStrategy):
         state_interpreter: dict | StateInterpreter,
         action_interpreter: dict | ActionInterpreter,
         network: dict | torch.nn.Module | None = None,
+        immediate_addition: bool = False,
         outer_trade_decision: BaseTradeDecision | None = None,
         level_infra: LevelInfrastructure | None = None,
         common_infra: CommonInfrastructure | None = None,
@@ -501,9 +502,12 @@ class SAOEIntStrategy(SAOEStrategy):
 
         if self._policy is not None:
             self._policy.eval()
+        
+        self.immediate_addition = immediate_addition
 
     def reset(self, outer_trade_decision: BaseTradeDecision | None = None, **kwargs: Any) -> None:
         super().reset(outer_trade_decision=outer_trade_decision, **kwargs)
+        self.trade_amount_planned = collections.defaultdict(float)
 
     def _generate_trade_details(self, act: np.ndarray, exec_vols: List[float]) -> pd.DataFrame:
         assert hasattr(self.outer_trade_decision, "order_list")
@@ -539,9 +543,15 @@ class SAOEIntStrategy(SAOEStrategy):
 
         oh = self.trade_exchange.get_order_helper()
         order_list = []
-        for decision, exec_vol in zip(self.outer_trade_decision.get_decision(), exec_vols):
+        for decision, exec_vol, state in zip(self.outer_trade_decision.get_decision(), exec_vols, states):
+            order = cast(Order, decision)
+            if self.immediate_addition:
+                self.trade_amount_planned[order.stock_id] += exec_vol
+                amount_planned = self.trade_amount_planned[order.stock_id]
+                amount_finished = order.amount - state.position
+                exec_vol = min(state.position, amount_planned - amount_finished)
+            
             if exec_vol != 0:
-                order = cast(Order, decision)
                 order_list.append(oh.create(order.stock_id, exec_vol, order.direction))
 
         return TradeDecisionWithDetails(

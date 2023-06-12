@@ -258,6 +258,46 @@ class FiniteVectorEnv(BaseVectorEnv):
 
         return np.stack(obs)
 
+    def step2(
+        self,
+        action: np.ndarray,
+        id: int | List[int] | np.ndarray | None = None,
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        assert not self._zombie
+        wrapped_id = self._wrap_id(id)
+        id2idx = {i: k for k, i in enumerate(wrapped_id)}
+        request_id = list(filter(lambda i: i in self._alive_env_ids, wrapped_id))
+        result = {}
+
+        # ask super to step alive envs and remap to current index
+        if request_id:
+            valid_act = np.stack([action[id2idx[i]] for i in request_id])
+            tmp = super().step(valid_act, request_id)
+            
+            for obs_next, rew, done, info in zip(*tmp):
+                obs_next = self._postproc_env_obs(obs_next)
+                result[info["env_id"]] = [obs_next, rew, done, info]
+                
+        # logging
+        for i, r in result.items():
+            if i in self._alive_env_ids and r[0] is not None:
+                for logger in self._logger:
+                    logger.on_env_step(i, *r)
+                    
+        for _, reward, __, info in result.values():
+            self._set_default_info(info)
+            self._set_default_rew(reward)
+        for r in result.values():
+            if r[0] is None:
+                r[0] = self._get_default_obs()
+            if r[1] is None:
+                r[1] = self._get_default_rew()
+            if r[3] is None:
+                r[3] = self._get_default_info()
+        
+        ret = list(map(np.stack, zip(*result.values())))
+        return cast(Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray], ret)
+    
     def step(
         self,
         action: np.ndarray,
@@ -311,7 +351,7 @@ class FiniteShmemVectorEnv(FiniteVectorEnv, ShmemVectorEnv):
 
 
 def vectorize_env(
-    env_factory: Callable[..., gym.Env],
+    env_factories: List[Callable[..., gym.Env]],
     env_type: FiniteEnvType,
     concurrency: int,
     logger: LogWriter | List[LogWriter],
@@ -334,9 +374,10 @@ def vectorize_env(
 
     Parameters
     ----------
-    env_factory
-        Callable to instantiate one single ``gym.Env``.
-        All concurrent workers will have the same ``env_factory``.
+    env_factories
+        Callables to instantiate one single ``gym.Env``.
+        There should be 1 or `concurrency` env_factories. If there is 1 env_factory, all concurrent workers will have
+        the same env_factory. Otherwise, each worker will have its own env_factory.
     env_type
         dummy or subproc or shmem. Corresponding to
         `parallelism in tianshou <https://tianshou.readthedocs.io/en/master/api/tianshou.env.html#vectorenv>`_.
@@ -358,6 +399,8 @@ def vectorize_env(
         def env_factory(): ...
         vectorize_env(env_factory, ...)
     """
+    assert len(env_factories) in (1, concurrency)
+
     env_type_cls_mapping: Dict[str, Type[FiniteVectorEnv]] = {
         "dummy": FiniteDummyVectorEnv,
         "subproc": FiniteSubprocVectorEnv,
@@ -366,4 +409,7 @@ def vectorize_env(
 
     finite_env_cls = env_type_cls_mapping[env_type]
 
-    return finite_env_cls(logger, [env_factory for _ in range(concurrency)])
+    if len(env_factories) == 1:
+        return finite_env_cls(logger, [env_factories[0] for _ in range(concurrency)])
+    else:
+        return finite_env_cls(logger, env_factories)

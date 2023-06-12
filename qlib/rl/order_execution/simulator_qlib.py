@@ -4,10 +4,11 @@
 from __future__ import annotations
 
 from typing import Generator, List, Optional
+import cachetools
 
 import pandas as pd
 
-from qlib.backtest import collect_data_loop, get_strategy_executor
+from qlib.backtest import collect_data_loop, Exchange, get_exchange, get_strategy_executor
 from qlib.backtest.decision import BaseTradeDecision, Order, TradeRangeByTime
 from qlib.backtest.executor import NestedExecutor
 from qlib.rl.data.integration import init_qlib
@@ -15,6 +16,18 @@ from qlib.rl.simulator import Simulator
 from .state import SAOEState
 from .strategy import SAOEStateAdapter, SAOEStrategy
 
+
+@cachetools.cached(  # type: ignore
+    cache=cachetools.LRUCache(1000),
+    key=lambda order, _: order.stock_id,
+)
+def _create_exchange(order: Order, exchange_config: dict) -> Exchange:
+    exchange_kwargs = {
+        **exchange_config,
+        "codes": [order.stock_id],
+    }
+    return get_exchange(**exchange_kwargs)
+    
 
 class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
     """Single-asset order execution (SAOE) simulator which is implemented based on Qlib backtest tools.
@@ -76,7 +89,7 @@ class SingleAssetOrderExecution(Simulator[Order, SAOEState, float]):
             executor=executor_config,
             benchmark=order.stock_id,
             account=cash_limit if cash_limit is not None else int(1e12),
-            exchange_kwargs=exchange_config,
+            exchange_kwargs=_create_exchange(order, exchange_config),
             pos_type="Position" if cash_limit is not None else "InfPosition",
         )
 

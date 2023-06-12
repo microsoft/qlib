@@ -12,7 +12,8 @@ from pathlib import Path
 from qlib.backtest.decision import Order, OrderDir
 from qlib.constant import EPS, EPS_T, float_or_ndarray
 from qlib.rl.data.base import BaseIntradayBacktestData
-from qlib.rl.data.native import DataframeIntradayBacktestData, load_handler_intraday_processed_data
+from qlib.rl.data.native import DataframeIntradayBacktestData
+from qlib.rl.data.pickle_styled import load_pickle_intraday_processed_data
 from qlib.rl.data.pickle_styled import load_simple_intraday_backtest_data
 from qlib.rl.simulator import Simulator
 from qlib.rl.utils import LogLevel
@@ -118,7 +119,7 @@ class SingleAssetOrderExecutionSimple(Simulator[Order, SAOEState, float]):
 
     def get_backtest_data(self) -> BaseIntradayBacktestData:
         try:
-            data = load_handler_intraday_processed_data(
+            data = load_pickle_intraday_processed_data(
                 data_dir=self.data_dir,
                 stock_id=self.order.stock_id,
                 date=pd.Timestamp(self.order.start_time.date()),
