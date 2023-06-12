@@ -83,9 +83,11 @@ class WorkflowTask(Task):
     ) -> None:
         super().__init__()
         self.__DEFAULT_WORKFLOW_SYSTEM_PROMPT = """
-Your task is to determine the workflow in Qlib (supervised learning or reinforcement learning) ensuring the workflow can meet the user's requirements.
+Your goal is to determine the appropriate workflow (supervised learning or reinforcement learning) for a given user requirement in Qlib. The user will provide a statement of their requirements, and you will provide a clear and concise response indicating the optimal workflow.
 
-The user will provide the requirements, you will provide only the output the choice in exact format specified below with no explanation or conversation.
+Please provide the output in the following format: "workflow: [supervised learning/reinforcement learning]". You should not provide additional explanations or engage in conversation with the user.
+
+Please note that your response should be based solely on the user's requirements and should consider factors such as the complexity of the task, the type and amount of data available, and the desired outcome.
 
 Example input 1:
 Help me build a low turnover quant investment strategy that focus more on long turn return in China a stock market.
@@ -160,7 +162,7 @@ class SLPlanTask(PlanTask):
     ) -> None:
         super().__init__()
         self.__DEFAULT_WORKFLOW_SYSTEM_PROMPT = """
-Your task is to determine the 5 crucial components in Qlib (Dataset, Model, Record, Strategy, Backtest) ensuring the workflow can meet the user's requirements.
+Your task is to design the 5 crucial components in Qlib (Dataset, Model, Record, Strategy, Backtest) ensuring the workflow can meet the user's requirements.
 
 For each component, you first point out whether to use default module in Qlib or implement the new module (Default or Personized). Default module means the class has already be implemented by Qlib which can be found in document and source code. Default class can be directed called from config file without additional implementation. Personized module means new python class is implemented and called from config file. You should always provide the reason of your choice.
 
@@ -383,11 +385,11 @@ class ConfigActionTask(ActionTask):
         self.__DEFAULT_CONFIG_ACTION_SYSTEM_PROMPT = """
 Your task is to write the config of target component in Qlib(Dataset, Model, Record, Strategy, Backtest).
 
-Config means the yaml file in Qlib. You can find the default config in qlib/contrib/config_template. You can also find the config in Qlib document.
+Config means the yaml file in Qlib. You can find the default config in qlib/contrib/config_template. You can also find the config in Qlib document. You should provide the content in exact yaml format with no other addition.
 
 The user has provided the requirements and made plan and reason to each component. You should strictly follow user's plan and you should provide the reason of your hyperparameter choices if exist and some suggestion if user wants to finetune the hyperparameters after the config. Default means you should only use classes in Qlib without any other new code while Personized has no such restriction. class in Qlib means Qlib has implemented the class and you can find it in Qlib document or source code.
 
-Config, Reason and Improve suggestion should always be provided.
+"Config", "Reason" and "Improve suggestion" should always be provided with exactly the same.
 
 You only need to write the config of the target component in the exact format specified below with no explanation or conversation.
 
@@ -405,18 +407,18 @@ Example output:
 Config:
 ```yaml
 model:
-class: LGBModel
-module_path: qlib.contrib.model.gbdt
-kwargs:
-    loss: mse
-    colsample_bytree: 0.8879
-    learning_rate: 0.2
-    subsample: 0.8789
-    lambda_l1: 205.6999
-    lambda_l2: 580.9768
-    max_depth: 8
-    num_leaves: 210
-    num_threads: 20
+    class: LGBModel
+    module_path: qlib.contrib.model.gbdt
+    kwargs:
+        loss: mse
+        colsample_bytree: 0.8879
+        learning_rate: 0.2
+        subsample: 0.8789
+        lambda_l1: 205.6999
+        lambda_l2: 580.9768
+        max_depth: 8
+        num_leaves: 210
+        num_threads: 20
 ```
 Reason: I choose the hyperparameters above because they are the default hyperparameters in Qlib and they are more robust than other hyperparameters.
 Improve suggestion: You can try to tune the num_leaves in range [100, 300], max_depth in [5, 10], learning_rate in [0.01, 1] and other hyperparameters in the config. Since you're trying to get a long tern return, if you have enough computation resource, you can try to use a larger num_leaves and max_depth and a smaller learning_rate.
@@ -487,9 +489,9 @@ Your task is to write python code and give some reasonable explanation. The code
 
 The user has provided the requirements and made plan and reason to each component. You should strictly follow user's plan. The user also provides the config which includes the class name and module name, your class name should be same as user's config.
 
-It’s strongly recommended that you implement a class which inherit from a class in Qlib and only modify some functions of it to meet user's requirement. After the code, you should write the explanation of your code. It contains the core idea of your code. Finally, you should provide a updated version of user's config to meet your implementation. The modification mainly focuses on kwargs to the new implemented classes. You can output same config as user input is nothing needs to change.
+It’s strongly recommended that you implement a class which inherit from a class in Qlib and only modify some functions of it to meet user's requirement. After the code, you should write the explanation of your code. It contains the core idea of your code. Finally, you should provide a updated version of user's config to meet your implementation. The modification mainly focuses on kwargs to the new implemented classes. You can output same config as user input is nothing needs to change.  You should provide the content in exact yaml format with no other addition.
 
-You response should always contain "Code", "Explanation", "Modified config".
+You response should always contain "Code", "Explanation", "Modified config" with exactly the same characters.
 
 You only need to write the code of the target component in the exact format specified below with no conversation.
 
