@@ -14,9 +14,8 @@ logger = get_module_logger("analysis", logging.INFO)
 
 
 class AnalyzerTemp:
-
     def __init__(self, workspace=None, **kwargs):
-        self.workspace = Path(workspace) if workspace else './'
+        self.workspace = Path(workspace) if workspace else "./"
 
     def analyse(self, **kwargs):
         """
@@ -62,15 +61,15 @@ class HFAnalyzer(AnalyzerTemp):
         )
 
         table = [[k, v] for (k, v) in metrics.items()]
-        plt.table(cellText=table, loc='center')
-        plt.axis('off')
-        plt.savefig(self.workspace.joinpath('HFAnalyzerTable.jpeg'))
+        plt.table(cellText=table, loc="center")
+        plt.axis("off")
+        plt.savefig(self.workspace.joinpath("HFAnalyzerTable.jpeg"))
         plt.clf()
 
         plt.scatter(np.arange(0, len(pred)), pred.iloc[:, 0])
         plt.scatter(np.arange(0, len(label)), label.iloc[:, 0])
-        plt.title('HFAnalyzer')
-        plt.savefig(self.workspace.joinpath('HFAnalyzer.jpeg'))
+        plt.title("HFAnalyzer")
+        plt.savefig(self.workspace.joinpath("HFAnalyzer.jpeg"))
 
 
 class SignalAnalyzer(AnalyzerTemp):
@@ -99,7 +98,7 @@ class SignalAnalyzer(AnalyzerTemp):
                 logger.warning(f"Exception: {e}")
                 raw_label = None
         plt.hist(raw_label)
-        plt.title('SignalAnalyzer')
-        plt.savefig(self.workspace.joinpath('signalAnalysis.jpeg'))
+        plt.title("SignalAnalyzer")
+        plt.savefig(self.workspace.joinpath("signalAnalysis.jpeg"))
 
         return raw_label
