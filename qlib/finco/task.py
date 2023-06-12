@@ -802,7 +802,7 @@ class SummarizeTask(Task):
             for filename in files:
                 postfix = filename.split(".")[-1]
                 if postfix in ['jpeg']:
-                    file_path = os.path.join(root, filename)
+                    file_path = os.path.join('./', filename)
                     file_list.append(file_path)
         return file_list
 
