@@ -18,7 +18,7 @@ from ..utils import fill_placeholder, flatten_dict, class_casting, get_date_by_s
 from ..utils.time import Freq
 from ..utils.data import deepcopy_basic_type
 from ..contrib.eva.alpha import calc_ic, calc_long_short_return, calc_long_short_prec
-
+from qlib.contrib.analyzer import HFAnalyzer, SignalAnalyzer
 
 logger = get_module_logger("workflow", logging.INFO)
 
@@ -156,16 +156,20 @@ class RecordTemp:
                 with class_casting(self, self.depend_cls):
                     self.check(include_self=True)
 
+    def analyse(self):
+        raise NotImplementedError(f"Please implement the `analysis` method.")
+
 
 class SignalRecord(RecordTemp):
     """
     This is the Signal Record class that generates the signal prediction. This class inherits the ``RecordTemp`` class.
     """
 
-    def __init__(self, model=None, dataset=None, recorder=None):
+    def __init__(self, model=None, dataset=None, recorder=None, workspace=None):
         super().__init__(recorder=recorder)
         self.model = model
         self.dataset = dataset
+        self.workspace = workspace
 
     @staticmethod
     def generate_label(dataset):
@@ -203,6 +207,10 @@ class SignalRecord(RecordTemp):
         if isinstance(self.dataset, DatasetH):
             raw_label = self.generate_label(self.dataset)
             self.save(**{"label.pkl": raw_label})
+
+    def analyse(self):
+        res = SignalAnalyzer(workspace=self.workspace).analyse(dataset=self.dataset)
+        return res
 
     def list(self):
         return ["pred.pkl", "label.pkl"]
@@ -245,8 +253,9 @@ class HFSignalRecord(SignalRecord):
     artifact_path = "hg_sig_analysis"
     depend_cls = SignalRecord
 
-    def __init__(self, recorder, **kwargs):
+    def __init__(self, recorder, workspace=None, **kwargs):
         super().__init__(recorder=recorder)
+        self.workspace = workspace
 
     def generate(self):
         pred = self.load("pred.pkl")
@@ -279,6 +288,12 @@ class HFSignalRecord(SignalRecord):
         self.recorder.log_metrics(**metrics)
         self.save(**objects)
         pprint(metrics)
+
+    def analyse(self):
+        pred = self.load("pred.pkl")
+        raw_label = self.load("label.pkl")
+        res = HFAnalyzer(workspace=self.workspace).analyse(pred=pred, label=raw_label)
+        return res
 
     def list(self):
         return ["ic.pkl", "ric.pkl", "long_pre.pkl", "short_pre.pkl", "long_short_r.pkl", "long_avg_r.pkl"]

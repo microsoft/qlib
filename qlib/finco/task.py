@@ -14,6 +14,10 @@ import platform
 from qlib.log import get_module_logger
 from qlib.finco.llm import APIBackend
 from qlib.finco.tpl import get_tpl_path
+from qlib.workflow.record_temp import HFSignalRecord, SignalRecord
+from qlib.contrib.analyzer import HFAnalyzer, SignalAnalyzer
+from qlib.utils import init_instance_by_config
+from qlib.workflow import R
 
 
 class Task:
@@ -247,6 +251,85 @@ class RLPlanTask(PlanTask):
         return []
 
 
+class RecorderTask(Task):
+    """
+    This Recorder task is responsible for analysing data such as index and distribution.
+    """
+
+    __ANALYZERS_PROJECT = {HFAnalyzer.__name__: HFSignalRecord, SignalAnalyzer.__name__: SignalRecord}
+    __ANALYZERS_DOCS = {HFAnalyzer.__name__: HFAnalyzer.__doc__, SignalAnalyzer.__name__: SignalAnalyzer.__doc__}
+    # __ANALYZERS_PROJECT = {SignalAnalyzer.__name__: SignalRecord}
+    # __ANALYZERS_DOCS = {SignalAnalyzer.__name__: SignalAnalyzer.__doc__}
+
+    __DEFAULT_WORKFLOW_SYSTEM_PROMPT = f"""
+        You are an expert system administrator.
+        Your task is to select the best analysis class based on user intent from this list:
+        {list(__ANALYZERS_DOCS.keys())}
+        Their description are:
+        {__ANALYZERS_DOCS}
+        
+        Response only with the Analyser name provided above with no explanation or conversation. if there are more than
+        one analyser, separate them by ","
+        
+    """
+
+    __DEFAULT_WORKFLOW_USER_PROMPT = """{{user_prompt}}, 
+    The analyzers you select should separate by ",", such as: "HFAnalyzer", "SignalAnalyzer"
+    """
+
+    def __init__(self):
+        super().__init__()
+        self._output = None
+
+    def execute(self):
+        prompt = Template(self.__DEFAULT_WORKFLOW_USER_PROMPT).render(
+            user_prompt=self._context_manager.get_context("user_prompt")
+        )
+        be = APIBackend()
+        be.debug_mode = False
+        response = be.build_messages_and_create_chat_completion(prompt, self.__DEFAULT_WORKFLOW_SYSTEM_PROMPT)
+
+        # it's better to move to another Task
+        workflow_config = (
+            self._context_manager.get_context("workflow_config")
+            if self._context_manager.get_context("workflow_config")
+            else "workflow_config.yaml"
+        )
+        workspace = self._context_manager.get_context("workspace")
+        with workspace.joinpath(workflow_config).open() as f:
+            workflow = yaml.safe_load(f)
+
+        model = init_instance_by_config(workflow["task"]["model"])
+        dataset = init_instance_by_config(workflow["task"]["dataset"])
+
+        with R.start(experiment_name="finCo"):
+            model.fit(dataset)
+            R.save_objects(trained_model=model)
+
+            # prediction
+            recorder = R.get_recorder()
+            sr = SignalRecord(model, dataset, recorder)
+            sr.generate()
+
+        analysers = response.split(",")
+        if isinstance(analysers, list):
+            self.logger.info(f"selected analysers: {analysers}")
+            tasks = []
+            for analyser in analysers:
+                if analyser in self.__ANALYZERS_PROJECT.keys():
+                    tasks.append(
+                        self.__ANALYZERS_PROJECT.get(analyser)(
+                            workspace=workspace, model=model, dataset=dataset, recorder=recorder
+                        )
+                    )
+
+            for task in tasks:
+                resp = task.analyse()
+                self._context_manager.set_context(task.__class__.__name__, resp)
+
+        return []
+
+
 class ActionTask(Task):
     pass
 
@@ -288,7 +371,8 @@ Example output:
     def summarize(self):
         if self._output is not None:
             # TODO: it will be overrides by later commands
-            self._context_manager.set_context(self.__class__.__name__, self._output.decode("utf8"))
+            # utf8 can't decode normally on Windows
+            self._context_manager.set_context(self.__class__.__name__, self._output.decode("ANSI"))
 
 
 class ConfigActionTask(ActionTask):
@@ -597,6 +681,11 @@ class SummarizeTask(Task):
     your strategy has a relatively low Sharpe ratio. Here are a few suggestions:
     You can try diversifying your positions across different assets.
     
+    Images:
+
+    ![HFAnalyzer](file:///D:/Codes/NLP/qlib/finco/finco_workspace/HFAnalyzer.jpeg)
+
+    
     Example output 2:
     The output log shows the result of running `qlib` with `LinearModel` strategy on the Chinese stock market CSI 300 
     from 2008-01-01 to 2020-08-01, based on the Alpha158 data handler from 2015-01-01. The strategy involves using the 
@@ -622,9 +711,16 @@ class SummarizeTask(Task):
     The numbers in the report do not need to have too many significant figures.
     You can add subheadings and paragraphs in Markdown for readability.
     You can bold or use other formatting options to highlight keywords in the main text.
+    You should display images I offered in markdown using the appropriate image format.
     """
-    __DEFAULT_WORKFLOW_USER_PROMPT = "Here is my information: '{{information}}'\n{{user_prompt}}"
-    __DEFAULT_USER_PROMPT = "Please summarize them and give me some advice."
+    __DEFAULT_WORKFLOW_USER_PROMPT = (
+        "Here is my information: '{{information}}'\n"
+        "My intention is: {{user_prompt}}. Please provide me with a summary and "
+        "recommendation based on my intention and the information I have provided."
+        "There are some figures which absolute path are: {{figure_path}}, "
+        "You must display these images in markdown using the appropriate image format."
+    )
+    __DEFAULT_USER_PROMPT = "Summarize the information I offered and give me some advice."
 
     # TODO: 2048 is close to exceed GPT token limit
     __MAX_LENGTH_OF_FILE = 2048
@@ -632,22 +728,29 @@ class SummarizeTask(Task):
 
     def __init__(self):
         super().__init__()
+        self.workspace = self.__DEFAULT_WORKSPACE
 
     def execute(self) -> Any:
+        workspace = self._context_manager.get_context("workspace")
+        if workspace is not None:
+            self.workspace = workspace
+
         user_prompt = self._context_manager.get_context("user_prompt")
         user_prompt = user_prompt if user_prompt is not None else self.__DEFAULT_USER_PROMPT
         system_prompt = self.__DEFAULT_WORKFLOW_SYSTEM_PROMPT
-        workspace = self._context_manager.get_context("workspace")
-        workspace = workspace if workspace is not None else self.__DEFAULT_WORKSPACE
+
         file_info = self.get_info_from_file(workspace)
-        context_info = self.get_info_from_context()
+        context_info = []  # too long context make response unstable.
+        figure_path = self.get_figure_path()
 
         information = context_info + file_info
         prompt_workflow_selection = Template(self.__DEFAULT_WORKFLOW_USER_PROMPT).render(
-            information=information, user_prompt=user_prompt
+            information=information, figure_path=figure_path, user_prompt=user_prompt
         )
 
-        response = APIBackend().build_messages_and_create_chat_completion(
+        be = APIBackend()
+        be.debug_mode = False
+        response = be.build_messages_and_create_chat_completion(
             user_prompt=prompt_workflow_selection, system_prompt=system_prompt
         )
         self.save_markdown(content=response)
@@ -701,7 +804,18 @@ class SummarizeTask(Task):
                 context.append({key: c[: self.__MAX_LENGTH_OF_FILE]})
         return context
 
+    def get_figure_path(self):
+        file_list = []
+
+        for root, dirs, files in os.walk(Path(self.workspace)):
+            for filename in files:
+                postfix = filename.split(".")[-1]
+                if postfix in ["jpeg"]:
+                    file_path = os.path.join("./", filename)
+                    file_list.append(str(Path(file_path).relative_to(self.workspace)))
+        return file_list
+
     def save_markdown(self, content: str):
-        with open(self.__DEFAULT_REPORT_NAME, "w") as f:
+        with open(Path(self.workspace).joinpath(self.__DEFAULT_REPORT_NAME), "w") as f:
             f.write(content)
         self.logger.info(f"report has saved to {self.__DEFAULT_REPORT_NAME}")
