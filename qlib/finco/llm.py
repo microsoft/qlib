@@ -50,7 +50,7 @@ class APIBackend(Singleton):
         fcl = FinCoLog()
         response = self.try_create_chat_completion(messages=messages)
         fcl.log_message(messages)
-        fcl.info(response)
+        fcl.log_response(response)
         return response
 
     def try_create_chat_completion(self, max_retry=10, **kwargs):

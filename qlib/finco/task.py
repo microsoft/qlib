@@ -19,6 +19,7 @@ from qlib.workflow.record_temp import HFSignalRecord, SignalRecord
 from qlib.contrib.analyzer import HFAnalyzer, SignalAnalyzer
 from qlib.utils import init_instance_by_config
 from qlib.workflow import R
+from qlib.finco.log import FinCoLog
 
 
 class Task:
@@ -42,14 +43,15 @@ class Task:
         self._context_manager = None
         self.prompt_template = PormptTemplate()
         self.executed = False
-        self.logger: logging.Logger = get_module_logger(
-            f"finco.{self.__class__.__name__}"
-        )
+        # self.logger: logging.Logger = get_module_logger(
+        #     f"finco.{self.__class__.__name__}"
+        # )
+        self.logger = FinCoLog()
 
     def summarize(self) -> str:
         """After the execution of the task, it is supposed to generated some context about the execution"""
         """This function might be converted to abstract method in the future"""
-        self.logger.info("The method has nothing to summarize")
+        self.logger.info(f"{self.__class__.__name__}: The task has nothing to summarize", plain=True)
 
     def assign_context_manager(self, context_manager):
         """assign the workflow context manager to the task"""
@@ -90,6 +92,14 @@ class Task:
     def user(self):
         return self.prompt_template.__getattribute__(self.__class__.__name__ + "_user")
 
+    @staticmethod
+    def confirm(prompt: str):
+        answer = input(prompt)
+        return answer
+
+    def __str__(self):
+        return self.__class__.__name__
+
 
 class WorkflowTask(Task):
     """This task is supposed to be the first task of the workflow"""
@@ -114,6 +124,10 @@ class WorkflowTask(Task):
         workflow = response.split(":")[1].strip().lower()
         self.executed = True
         self._context_manager.set_context("workflow", workflow)
+        answer = self.confirm(f"I select this workflow: {workflow}\n"
+                              f"Are you sure you want to use? yes(Y/y), no(N/n):")
+        if str(answer) not in ["Y", "y"]:
+            return []
         if workflow == "supervised learning":
             return [SLPlanTask()]
         elif workflow == "reinforcement learning":
@@ -254,32 +268,36 @@ class RecorderTask(Task):
                 ANALYZERS_DOCS=self.__ANALYZERS_DOCS,
             ),
         )
-
-        # it's better to move to another Task
-        workflow_config = (
-            self._context_manager.get_context("workflow_config")
-            if self._context_manager.get_context("workflow_config")
-            else "workflow_config.yaml"
-        )
-        workspace = self._context_manager.get_context("workspace")
-        with workspace.joinpath(workflow_config).open() as f:
-            workflow = yaml.safe_load(f)
-
-        model = init_instance_by_config(workflow["task"]["model"])
-        dataset = init_instance_by_config(workflow["task"]["dataset"])
-
-        with R.start(experiment_name="finCo"):
-            model.fit(dataset)
-            R.save_objects(trained_model=model)
-
-            # prediction
-            recorder = R.get_recorder()
-            sr = SignalRecord(model, dataset, recorder)
-            sr.generate()
-
         analysers = response.split(",")
-        if isinstance(analysers, list):
-            self.logger.info(f"selected analysers: {analysers}")
+
+        answer = self.confirm(f"I select these analysers: {analysers}\nAre you sure you want to use? yes(Y/y), no(N/n):")
+        if str(answer) not in ["Y", "y"]:
+            analysers = []
+
+        if isinstance(analysers, list) and len(analysers):
+            self.logger.info(f"selected analysers: {analysers}", plain=True)
+            # it's better to move to another Task
+            workflow_config = (
+                self._context_manager.get_context("workflow_config")
+                if self._context_manager.get_context("workflow_config")
+                else "workflow_config.yaml"
+            )
+            workspace = self._context_manager.get_context("workspace")
+            with workspace.joinpath(workflow_config).open() as f:
+                workflow = yaml.safe_load(f)
+
+            model = init_instance_by_config(workflow["task"]["model"])
+            dataset = init_instance_by_config(workflow["task"]["dataset"])
+
+            with R.start(experiment_name="finCo"):
+                model.fit(dataset)
+                R.save_objects(trained_model=model)
+
+                # prediction
+                recorder = R.get_recorder()
+                sr = SignalRecord(model, dataset, recorder)
+                sr.generate()
+
             tasks = []
             for analyser in analysers:
                 if analyser in self.__ANALYZERS_PROJECT.keys():
@@ -578,7 +596,7 @@ class SummarizeTask(Task):
             if postfix in ["py", "log", "yaml"]:
                 with open(file) as f:
                     content = f.read()
-                    self.logger.info(f"file to summarize: {file}")
+                    self.logger.info(f"file to summarize: {file}", plain=True)
                     # in case of too large file
                     # TODO: Perhaps summarization method instead of truncation would be a better approach
                     result.append(
@@ -612,11 +630,10 @@ class SummarizeTask(Task):
             for filename in files:
                 postfix = filename.split(".")[-1]
                 if postfix in ["jpeg"]:
-                    file_path = os.path.join(root, filename)
-                    file_list.append(str(Path(file_path).relative_to(self.workspace)))
+                    file_list.append(str(Path(self.workspace).joinpath(filename)))
         return file_list
 
     def save_markdown(self, content: str):
         with open(Path(self.workspace).joinpath(self.__DEFAULT_REPORT_NAME), "w") as f:
             f.write(content)
-        self.logger.info(f"report has saved to {self.__DEFAULT_REPORT_NAME}")
+        self.logger.info(f"report has saved to {self.__DEFAULT_REPORT_NAME}", plain=True)
