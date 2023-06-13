@@ -20,6 +20,7 @@ from qlib.contrib.analyzer import HFAnalyzer, SignalAnalyzer
 from qlib.utils import init_instance_by_config
 from qlib.workflow import R
 
+COMPONENT_LIST = ["Dataset", "DataHandler", "Model", "Record", "Strategy", "Backtest"]
 
 class Task:
     """
@@ -175,6 +176,7 @@ class SLPlanTask(PlanTask):
 
         regex_dict = {
             "Dataset": re.compile("Dataset: \((.*?)\) (.*?)\n"),
+            "DataHandler": re.compile("DataHandler: \((.*?)\) (.*?)\n"),
             "Model": re.compile("Model: \((.*?)\) (.*?)\n"),
             "Record": re.compile("Record: \((.*?)\) (.*?)\n"),
             "Strategy": re.compile("Strategy: \((.*?)\) (.*?)\n"),
@@ -332,17 +334,24 @@ class CMDTask(ActionTask):
                 self.__class__.__name__, self._output.decode("ANSI")
             )
 
+class DifferentiatedComponentActionTask(ActionTask):
+    @property
+    def system(self):
+        return self.prompt_template.__getattribute__(self.__class__.__name__ + "_system_" + self.target_component)
+    
+    @property
+    def user(self):
+        return self.prompt_template.__getattribute__(self.__class__.__name__ + "_user_" + self.target_component)
 
-class ConfigActionTask(ActionTask):
+class ConfigActionTask(DifferentiatedComponentActionTask):
     def __init__(self, component) -> None:
         super().__init__()
-        self.target_componet = component
-
+        self.target_component = component
+    
     def execute(self):
         user_prompt = self._context_manager.get_context("user_prompt")
-        component_list = ["Dataset", "Model", "Record", "Strategy", "Backtest"]
         prompt_element_dict = dict()
-        for component in component_list:
+        for component in COMPONENT_LIST:
             prompt_element_dict[
                 f"{component}_decision"
             ] = self._context_manager.get_context(f"{component}_decision")
@@ -356,17 +365,8 @@ class ConfigActionTask(ActionTask):
 
         config_prompt = self.user.render(
             user_requirement=user_prompt,
-            dataset_decision=prompt_element_dict["Dataset_decision"],
-            dataset_plan=prompt_element_dict["Dataset_plan"],
-            model_decision=prompt_element_dict["Model_decision"],
-            model_plan=prompt_element_dict["Model_plan"],
-            record_decision=prompt_element_dict["Record_decision"],
-            record_plan=prompt_element_dict["Record_plan"],
-            strategy_decision=prompt_element_dict["Strategy_decision"],
-            strategy_plan=prompt_element_dict["Strategy_plan"],
-            backtest_decision=prompt_element_dict["Backtest_decision"],
-            backtest_plan=prompt_element_dict["Backtest_plan"],
-            target_component=self.target_componet,
+            decision=prompt_element_dict[f"{self.target_component}_decision"],
+            plan=prompt_element_dict[f"{self.target_component}_plan"],
         )
         response = APIBackend().build_messages_and_create_chat_completion(
             config_prompt, self.system.render()
@@ -389,18 +389,19 @@ class ConfigActionTask(ActionTask):
         reason = res.group(2)
         improve_suggestion = res.group(3)
 
-        self._context_manager.set_context(f"{self.target_componet}_config", config)
-        self._context_manager.set_context(f"{self.target_componet}_reason", reason)
+        self._context_manager.set_context(f"{self.target_component}_config", config)
+        self._context_manager.set_context(f"{self.target_component}_reason", reason)
         self._context_manager.set_context(
-            f"{self.target_componet}_improve_suggestion", improve_suggestion
+            f"{self.target_component}_improve_suggestion", improve_suggestion
         )
         return []
 
 
-class ImplementActionTask(ActionTask):
+class ImplementActionTask(DifferentiatedComponentActionTask):
     def __init__(self, target_component) -> None:
         super().__init__()
         self.target_component = target_component
+        assert COMPONENT_LIST.index(self.target_component) <= 2, "The target component is not in dataset datahandler and model"
 
     def execute(self):
         """
@@ -409,9 +410,8 @@ class ImplementActionTask(ActionTask):
         """
 
         user_prompt = self._context_manager.get_context("user_prompt")
-        component_list = ["Dataset", "Model", "Record", "Strategy", "Backtest"]
         prompt_element_dict = dict()
-        for component in component_list:
+        for component in COMPONENT_LIST:
             prompt_element_dict[
                 f"{component}_decision"
             ] = self._context_manager.get_context(f"{component}_decision")
@@ -426,17 +426,8 @@ class ImplementActionTask(ActionTask):
 
         implement_prompt = self.user.render(
             user_requirement=user_prompt,
-            dataset_decision=prompt_element_dict["Dataset_decision"],
-            dataset_plan=prompt_element_dict["Dataset_plan"],
-            model_decision=prompt_element_dict["Model_decision"],
-            model_plan=prompt_element_dict["Model_plan"],
-            record_decision=prompt_element_dict["Record_decision"],
-            record_plan=prompt_element_dict["Record_plan"],
-            strategy_decision=prompt_element_dict["Strategy_decision"],
-            strategy_plan=prompt_element_dict["Strategy_plan"],
-            backtest_decision=prompt_element_dict["Backtest_decision"],
-            backtest_plan=prompt_element_dict["Backtest_plan"],
-            target_component=self.target_component,
+            decision=prompt_element_dict[f"{self.target_component}_decision"],
+            plan=prompt_element_dict[f"{self.target_component}_plan"],
             user_config=config,
         )
         response = APIBackend().build_messages_and_create_chat_completion(

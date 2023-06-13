@@ -23,30 +23,32 @@ WorkflowTask_user : |-
   Response only with the output in the exact format specified in the system prompt, with no explanation or conversation.
 
 SLPlanTask_system : |-
-  Your task is to design the 5 crucial components in Qlib (Dataset, Model, Record, Strategy, Backtest) ensuring the workflow can meet the user's requirements.
+  Your task is to design the 6 crucial components in Qlib (Dataset, DataHandler, Model, Record, Strategy, Backtest) ensuring the workflow can meet the user's requirements.
 
   For each component, you first point out whether to use default module in Qlib or implement the new module (Default or Personized). Default module means the class has already be implemented by Qlib which can be found in document and source code. Default class can be directed called from config file without additional implementation. Personized module means new python class is implemented and called from config file. You should always provide the reason of your choice.
 
-  The user will provide the requirements, you will provide only the output the choice in exact format specified below with no explanation or conversation. You only response 5 components in the order of dataset, model, record, strategy, backtest with no other addition.
+  The user will provide the requirements, you will provide only the output the choice in exact format specified below with no explanation or conversation. You only response 6 components in the order of dataset, handler, model, record, strategy, backtest with no other addition.
 
   Example input:
   Help me build a low turnover quant investment strategy that focus more on long turn return in China a stock market. I have some data in csv format and I want to merge them with the data in Qlib.
 
   Example output:
   components:
-  - Dataset: (Personized) I will implement a CustomDataset inherited from qlib.data.dataset and exposed a api to load user's csv file. I will check the format of user's data and align them with Qlib data. Because it is a suitable dataset to get a long turn return in China A stock market.
+  - Dataset: (Personized) I will implement a CustomDataset inherited from DatasetH in qlib.data.dataset and merge the user-provided CSV data with the existing Qlib data. Because this will allow the user to leverage both their custom data and Qlib's data for the China A stock market.
 
-  - Model: (Default) I will use LGBModel in qlib.contrib.model.gbdt and choose more robust hyperparameters to focus on long-term return. Because tree model is more stable than NN models and is more unlikely to be over converged.
+  - DataHandler: (Personized) I will implement a CustomDataHandler inherited from Alpha360 in qlib.contrib.data.handler to handle the merged dataset from the custom dataset. Because it is necessary to handle the combined data from Qlib's Alpha360 and the user's CSV file.
 
-  - Record: (Default) I will use SignalRecord in qlib.workflow.record_temp and SigAnaRecord in qlib.workflow.record_temp to save all the signals and the analysis results. Because user needs to check the metrics to determine whether the system meets the requirements.
+  - Model: (Default) I will use LGBModel in qlib.contrib.model.gbdt for the low turnover strategy. Because it is a popular and efficient model for quant investment strategies and can capture long-term patterns in the data.
 
-  - Strategy: (Default) I will use TopkDropoutStrategy in qlib.contrib.strategy. Because it is a more robust strategy which saves turnover fee.
+  - Record: (Default) I will use SignalRecord in qlib.workflow.record_temp and SigAnaRecord in qlib.workflow.record_temp to save all the signals and the analysis results. Because the user needs to check the metrics to determine whether the system meets the requirements.
+
+  - Strategy: (Default) I will use TopkDropoutStrategy in qlib.contrib.strategy. Because it is a more robust strategy which saves turnover fee and focuses on long-term return.
 
   - Backtest: (Default) I will use the default backtest module in Qlib. Because it can tell the user a more real performance result of the model we build.
 
 SLPlanTask_user : |-
   User input: '{{user_prompt}}'
-  Please provide the 5 crucial components in Qlib (dataset, model, record, strategy, backtest) ensureing the workflow can meet the user's requirements.
+  Please provide the 6 crucial components in Qlib (Dataset, DataHandler, Model, Record, Strategy, Backtest) ensureing the workflow can meet the user's requirements.
   Response only with the output in the exact format specified in the system prompt, with no explanation or conversation.
 
 RecorderTask_system : |-
@@ -79,54 +81,30 @@ CMDTask_user : |-
   Example output:
 
 ConfigActionTask_system : |-
-  Your task is to write the config of target component in Qlib(Dataset, Model, Record, Strategy, Backtest).
+  Your task is to write the config of the target component in Qlib(Dataset, DataHandler, Model, Record, Strategy, Backtest).
 
   Config means the yaml file in Qlib. You can find the default config in qlib/contrib/config_template. You can also find the config in Qlib document. You should provide the content in exact yaml format with no other addition.
 
   The user has provided the requirements and made plan and reason to each component. You should strictly follow user's plan and you should provide the reason of your hyperparameter choices if exist and some suggestion if user wants to finetune the hyperparameters after the config. Default means you should only use classes in Qlib without any other new code while Personized has no such restriction. class in Qlib means Qlib has implemented the class and you can find it in Qlib document or source code.
 
-  "Config", "Reason" and "Improve suggestion" should always be provided with exactly the same.
+  "Config", "Reason" and "Improve suggestion" should always be provided with exactly the same letters.
+
+  {{target_component_desc}}
 
   You only need to write the config of the target component in the exact format specified below with no explanation or conversation.
 
   Example input:
   user requirement: Help me build a low turnover quant investment strategy that focus more on long turn return in China a stock market. I have some data in csv format and I want to merge them with the data in Qlib.
   user plan:
-  - Dataset: (Personized) I will implement a CustomDataset imherited from qlib.data.dataset and exposed a api to load user's csv file. I will check the format of user's data and align them with Qlib data. Because it is a suitable dataset to get a long turn return in China A stock market.
-  - Model: (Default) I will use LGBModel in qlib.contrib.model.gbdt and choose more robust hyperparameters to focus on long-term return. Because tree model is more stable than NN models and is more unlikely to be over converged.
-  - Record: (Default) I will use SignalRecord in qlib.workflow.record_temp and SigAnaRecord in qlib.workflow.record_temp to save all the signals and the analysis results. Because user needs to check the metrics to determine whether the system meets the requirements.
-  - Strategy: (Default) I will use TopkDropoutStrategy in qlib.contrib.strategy. Because it is a more robust strategy which saves turnover fee.
-  - Backtest: (Default) I will use the default backtest module in Qlib. Because it can tell the user a more real performance result of the model we build.
-  target component: Model
-
+  {{target_component_example_input}}
+  target component: {{target_component}}
   Example output:
-  Config:
-  ```yaml
-  model:
-      class: LGBModel
-      module_path: qlib.contrib.model.gbdt
-      kwargs:
-          loss: mse
-          colsample_bytree: 0.8879
-          learning_rate: 0.2
-          subsample: 0.8789
-          lambda_l1: 205.6999
-          lambda_l2: 580.9768
-          max_depth: 8
-          num_leaves: 210
-          num_threads: 20
-  ```
-  Reason: I choose the hyperparameters above because they are the default hyperparameters in Qlib and they are more robust than other hyperparameters.
-  Improve suggestion: You can try to tune the num_leaves in range [100, 300], max_depth in [5, 10], learning_rate in [0.01, 1] and other hyperparameters in the config. Since you're trying to get a long tern return, if you have enough computation resource, you can try to use a larger num_leaves and max_depth and a smaller learning_rate.
+  {{target_component_example_output}}
 
 ConfigActionTask_user : |-
-  user requirement: {{user_requirement}}
+  user requirement: {% raw %}{{user_requirement}}{% endraw %}
   user plan:
-  - Dataset: ({{dataset_decision}}) {{dataset_plan}}
-  - Model: ({{model_decision}}) {{model_plan}}
-  - Record: ({{record_decision}}) {{record_plan}}
-  - Strategy: ({{strategy_decision}}) {{strategy_plan}}
-  - Backtest: ({{backtest_decision}}) {{backtest_plan}}
+  - {{target_component}}: {% raw %}({{decision}}) {{plan}}{% endraw %}
   target component: {{target_component}}
 
 ImplementActionTask_system : |-
@@ -136,20 +114,22 @@ ImplementActionTask_system : |-
 
   It’s strongly recommended that you implement a class which inherit from a class in Qlib and only modify some functions of it to meet user's requirement. After the code, you should write the explanation of your code. It contains the core idea of your code. Finally, you should provide a updated version of user's config to meet your implementation. The modification mainly focuses on kwargs to the new implemented classes. You can output same config as user input is nothing needs to change.  You should provide the content in exact yaml format with no other addition.
 
+  {{target_component_desc}}
+
   You response should always contain "Code", "Explanation", "Modified config" with exactly the same characters.
 
   You only need to write the code of the target component in the exact format specified below with no conversation.
 
   Example input:
-  user requirement: Help me build a low turnover quant investment strategy that focus more on long turn return in China a stock market. I have some data in csv format and I want to merge them with the data in Qlib.
+  user requirement: Help me build a low turnover quant investment strategy that focus more on long turn return in China a stock market. I have some data in csv format and I want to merge them with the data in Qlib and I want to use tranformer model with 3 more mlp layer before head.
   user plan:
-  - Dataset: (Personized) I will implement a CustomDataset imherited from qlib.data.dataset and exposed a api to load user's csv file. I will check the format of user's data and align them with Qlib data. Because it is a suitable dataset to get a long turn return in China A stock market.
-  - Model: (Default) I will use LGBModel in qlib.contrib.model.gbdt and choose more robust hyperparameters to focus on long-term return. Because tree model is more stable than NN models and is more unlikely to be over converged.
-  - Record: (Default) I will use SignalRecord in qlib.workflow.record_temp and SigAnaRecord in qlib.workflow.record_temp to save all the signals and the analysis results. Because user needs to check the metrics to determine whether the system meets the requirements.
-  - Strategy: (Default) I will use TopkDropoutStrategy in qlib.contrib.strategy. Because it is a more robust strategy which saves turnover fee.
-  - Backtest: (Default) I will use the default backtest module in Qlib. Because it can tell the user a more real performance result of the model we build.
+  {{target_component_example_user_plan}}
+  - Dataset: (Personized) I will implement a CustomDataset inherited from DatasetH in qlib.data.dataset and merge the user-provided CSV data with the existing Qlib data. Because this will allow the user to leverage both their custom data and Qlib's data for the China A stock market.
+  - DataHandler: (Personized) I will implement a CustomDataHandler inherited from Alpha360 in qlib.contrib.data.handler to handle the merged dataset from the custom dataset. Because it is necessary to handle the combined data from Qlib's Alpha360 and the user's CSV file.
+  - Model: (Personized) I will implement a custom tranformer model inherited from nn.Module in torch to meet the user's requirement of using a transformer model with 3 more MLP layers before the head. Because there is no default transformer model in Qlib that fulfills the user's requirement.
   User config:
   ```yaml
+  {{target_component_example_user_config}}
   dataset:  
       class: CustomDataset  
       module_path: path.to.your.custom_dataset_module  
@@ -160,8 +140,9 @@ ImplementActionTask_system : |-
               kwargs:  
                   csv_path: path/to/your/csv/data  
   ```
-  target component: Dataset
+  target component: {{target_component}}
   Example output:
+  {{target_component_example_output}}
   Code:
   ```python
   import pandas as pd
@@ -200,16 +181,12 @@ ImplementActionTask_system : |-
   ```
 
 ImplementActionTask_user : |-
-  user requirement: {{user_requirement}}
+  user requirement: {% raw %}{{user_requirement}}{% endraw %}
   user plan:
-  - Dataset: ({{dataset_decision}}) {{dataset_plan}}
-  - Model: ({{model_decision}}) {{model_plan}}
-  - Record: ({{record_decision}}) {{record_plan}}
-  - Strategy: ({{strategy_decision}}) {{strategy_plan}}
-  - Backtest: ({{backtest_decision}}) {{backtest_plan}}
+  - {{target_component}}: {% raw %}({{decision}}) {{plan}}{% endraw %}
   User config:
   ```yaml
-  {{user_config}}
+  {% raw %}{{user_config}}{% endraw %}
   ```
   target component: {{target_component}}
 
@@ -261,3 +238,331 @@ SummarizeTask_system : |-
 SummarizeTask_user : |-
   Here is my information: '{{information}}'
   My intention is: {{user_prompt}}. Please provide me with a summary and   recommendation based on my intention and the information I have provided. There are some figures which absolute path are: {{figure_path}}, You must display these images in markdown using the appropriate image format.
+
+mods:
+  ConfigActionTask_system:
+    Dataset:
+      target_component : |-
+        Dataset
+      target_component_desc : |-
+        The Dataset config always contains a class name and the module_path. You should make sure the class exists in module_path if user plans to use default module in qlib. You should pick a reasonable segments to verify the power of the strategy.
+
+        You should not write the handler part since it will be determined independently.
+      target_component_example_input : |-
+        - Dataset: (Personized) I will implement a CustomDataset inherited from DatasetH in qlib.data.dataset and merge the user-provided CSV data with the existing Qlib data. Because this will allow the user to leverage both their custom data and Qlib's data for the China A stock market.
+      target_component_example_output : |-
+        Config:
+        ```yaml
+        dataset:  
+            class: CustomDataset  
+            module_path: your_custom_module_path  
+            kwargs:
+                train_start: 2008-01-01  
+                train_end: 2014-12-31  
+                valid_start: 2015-01-01  
+                valid_end: 2016-12-31  
+                test_start: 2017-01-01  
+                test_end: 2020-12-31  
+                freq: D  
+                max_len: 200  
+                benchmark: SH000300  
+        ```
+        Reason: I choose the segments above because they can help to verify the power of the strategy. The train, valid, and test segments are separated in different periods to avoid overfitting and make sure the model can capture long-term patterns in the data.
+
+        Improve suggestion: You can try to adjust the train, valid, and test segments to see how the model performs in different periods. Also, you can try different values for max_len and freq to see if it affects the performance of the strategy.
+
+    DataHandler:
+      target_component : |-
+        DataHandler
+      target_component_desc : |-
+        The DataHandler config always contains a class name and the module_path. You should make sure the class exists in module_path if user plans to use default module in qlib. You should pick a reasonable model class meet the user's requirements.
+
+        If you decide to use Alpha158 or Alpha360, you can modify the dataloader in the kwargs of the datahandler to choose your own feature and label using expressions and change the preprocess functions.
+      target_component_example_input : |-
+        - DataHandler: (Personized) I will implement a CustomDataHandler inherited from Alpha360 in qlib.contrib.data.handler to handle the merged dataset from the custom dataset. Because it is necessary to handle the combined data from Qlib's Alpha360 and the user's CSV file.
+      target_component_example_output : |-
+        Config:
+        ```yaml
+        handler:  
+            class: CustomDataHandler  
+            module_path: your_custom_module_path  
+            kwargs:  
+                instruments: all  
+                start_time: 2008-01-01  
+                end_time: 2020-12-31  
+                freq: D  
+                infer_processors:  
+                    - class: FilterCol  
+                      kwargs:  
+                          fields: "!{REMOVE}"  
+                    - class: DropnaCol  
+                      kwargs:  
+                          fields: "!{REMOVE}"  
+                    - class: Normalize  
+                      kwargs:  
+                          fields: "!{REMOVE}"  
+                features:  
+                    - class: ExpressionD  
+                      kwargs:  
+                        expr: "MA({close}, 200)"  
+                    - class: ExpressionD  
+                      kwargs:  
+                        expr: "EMA({close}, 100)"  
+                    - class: ExpressionD  
+                      kwargs:  
+                        expr: "BBANDS({close}, 50)"  
+                    - class: ExpressionD  
+                      kwargs:  
+                        expr: "ROC({close}, 252)"  
+                    - class: ExpressionD  
+                      kwargs:  
+                        expr: "AD({high}, {low}, {close}, {volume})"  
+                    - class: ExpressionD  
+                      kwargs:  
+                        expr: "OBV({close}, {volume})"  
+                    - class: ExpressionD  
+                      kwargs:  
+                        expr: "MFI({high}, {low}, {close}, {volume}, 14)"  
+                labels:  
+                    - class: ExpressionD  
+                      kwargs:  
+                        expr: "CSRank({close})"  
+        ```
+        Reason: The selected features include long-term moving averages (MA200 and EMA100), Bollinger Bands with a 50-day window, rate of change (ROC) for the past 252 trading days (approximately one year), accumulation/distribution line (AD), on-balance volume (OBV), and money flow index (MFI) with a 14-day window. These features are more focused on long-term trends and could potentially help achieve long-term returns.
+        
+        Improve suggestion: You can try to add more features or adjust the parameters of the existing features to see if it improves the performance of the model. You can also experiment with different labels, such as using the future return or the cross-sectional rank of the future return as the label.
+    
+    Model:
+      target_component : |-
+        Model
+      target_component_desc : |-
+        The Dataset config always contains a class name and the module_path. You should make sure the class exists in module_path if user plans to use default module in qlib. You should pick a reasonable model class meet the user's requirements.
+
+        You should also pick the kwargs carefully to try to get the model with best performance.
+      target_component_example_input : |-
+        - Model: (Default) I will use LGBModel in qlib.contrib.model.gbdt for the low turnover strategy. Because it is a popular and efficient model for quant investment strategies and can capture long-term patterns in the data.
+      target_component_example_output : |-
+        Config:
+        ```yaml
+        model:  
+            class: LGBModel  
+            module_path: qlib.contrib.model.gbdt  
+            kwargs:  
+                loss: mse  
+                colsample_bytree: 0.8879  
+                learning_rate: 0.2  
+                subsample: 0.8789  
+                lambda_l1: 205.6999  
+                lambda_l2: 580.9768  
+                max_depth: 8  
+                num_leaves: 210  
+                num_threads: 20  
+        ```
+        Reason: I choose the hyperparameters above because they are the default hyperparameters in Qlib and they are more robust than other hyperparameters.
+        
+        Improve suggestion: You can try to tune the num_leaves in range [100, 300], max_depth in [5, 10], learning_rate in [0.01, 1] and other hyperparameters in the config. Since you're trying to get a long tern return, if you have enough computation resource, you can try to use a larger num_leaves and max_depth and a smaller learning_rate.
+    
+    Record:
+      target_component : |-
+        Record
+      target_component_desc : |-
+        The Record config contains several class name and corresponding module_path. You should make sure the class exists in module_path.
+      target_component_example_input : |-
+        - Record: (Default) I will use SignalRecord in qlib.workflow.record_temp and SigAnaRecord in qlib.workflow.record_temp to save all the signals and the analysis results. Because the user needs to check the metrics to determine whether the system meets the requirements.
+      target_component_example_output : |-
+        Config:
+        ```yaml
+        record: 
+            - class: SignalRecord
+                module_path: qlib.workflow.record_temp
+            - class: SigAnaRecord
+                module_path: qlib.workflow.record_temp
+        ```
+        Reason: I choose SignalRecord and SigAnaRecord because they can save all the signals and the analysis results, which will help the user check the metrics and determine whether the system meets the requirements.
+        Improve suggestion: The default record classes should be sufficient for your needs. If you need additional information or metrics, you can consider implementing your own custom record class.
+    
+    Strategy:
+      target_component : |-
+        Strategy
+      target_component_desc : |-
+        The Strategy config always contains a class name and corresponding module_path. You should make sure the class exists in module_path.
+        
+        You should pick reasonable kwargs to meet the user's requirements.
+      target_component_example_input : |-
+        - Strategy: (Default) I will use TopkDropoutStrategy in qlib.contrib.strategy. Because it is a more robust strategy which saves turnover fee and focuses on long-term return.
+      target_component_example_output : |-
+        Config:
+        ```yaml
+        strategy:
+            class: TopkDropoutStrategy
+            module_path: qlib.contrib.strategy
+            kwargs:
+                topk: 50
+                n_drop: 5
+        ```
+        Reason: I choose the topk and n_drop parameters because they are reasonable default values for a low turnover strategy that focuses on long-term returns. Topk selects the top 50 stocks with the highest scores, and n_drop drops the bottom 5 stocks from the existing portfolio to reduce turnover.
+        Improve suggestion: You can try to adjust the topk parameter in the range [30, 100] and n_drop parameter in the range [1, 10] to find the optimal balance between portfolio diversification and turnover.
+    
+    Backtest:
+      target_component : |-
+        Backtest
+      target_component_desc : |-
+        You should pick reasonable parameters to meet the user's requirements. You should always provide the config even user never mentioned this component.
+      target_component_example_input : |-
+        - Backtest: (Default) I will use the default backtest module in Qlib. Because it can tell the user a more real performance result of the model we build.
+      target_component_example_output : |-
+        Config:
+        ```yaml
+        backtest:  
+            start_time: 2017-01-01  
+            end_time: 2020-12-31  
+            account: 1000000  
+            benchmark: SH000300  
+            exchange_kwargs:  
+                freq: day  
+                limit_threshold: 0.095  
+                deal_price: close  
+                open_cost: 0.0005  
+                close_cost: 0.0015  
+                min_cost: 5
+        ```
+        Reason: I choose the backtest parameters above because they are suitable for a low turnover strategy focusing on long-term returns in the China A stock market. The start and end times are set to cover a 4-year period, which is reasonable for a long-term strategy. The account value is set to 1,000,000 as a starting point, and the benchmark is set to SH000300, which represents the China A stock market.
+        Improve suggestion: You can try different time ranges for the backtest to evaluate the performance of the strategy in different market conditions. Also, you can adjust the costs (open_cost, close_cost, and min_cost) to better reflect the actual trading costs in the China A stock market.
+    
+  ConfigActionTask_user:
+    Dataset:
+      target_component : |-
+        Dataset
+    DataHandler:
+      target_component : |-
+        DataHandler
+    Model:
+      target_component : |-
+        Model
+    Record:
+      target_component : |-
+        Record
+    Strategy:
+      target_component : |-
+        Strategy
+    Backtest:
+      target_component : |-
+        Backtest
+    
+  ImplementActionTask_system:
+    Dataset:
+      target_component : |-
+        Dataset
+      target_component_desc : |-
+        You should Inherit the class to DatasetH and try to maintain the API for other modules to call directly.
+      target_component_example_output : |-
+        Code:
+        ```python
+        import pandas as pd  
+        from qlib.data.dataset import DatasetH  
+          
+        class CustomDataset(DatasetH):  
+            def __init__(self, handler, csv_path):  
+                super().__init__(handler)  
+                self.csv_data = pd.read_csv(csv_path)  
+          
+            def prepare(self, *args, **kwargs):  
+                super().prepare(*args, **kwargs)  
+                self._data = self._data.merge(self.csv_data, on=["date", "instrument"], how="left")
+        ```
+        Explanation:
+        In this implementation, the CustomDataset class inherits from DatasetH and takes the handler and csv_path as arguments. The prepare method is overridden to merge the csv data with Qlib data after calling the parent's prepare method.
+        Modified config:
+        ```yaml
+        dataset:  
+            class: CustomDataset  
+            module_path: custom_dataset  
+        ```
+    
+    DataHandler:
+      target_component : |-
+        DataHandler
+      target_component_desc : |-
+        You should Inherit the class to Alpha360, Alpha158 or DataHandlerLP and try to maintain the API for other modules to call directly. You can change some of the functions to meet user's requirement, but you should not change the API.
+      target_component_example_output : |-
+        Code:
+        ```python
+        import pandas as pd  
+        from qlib.contrib.data.handler import Alpha360  
+          
+        class CustomDataHandler(Alpha360):  
+            def __init__(self, csv_path, **kwargs):  
+                super().__init__(**kwargs)  
+                self.csv_data = pd.read_csv(csv_path)  
+          
+            def load_all(self):  
+                qlib_data = super().load_all()  
+                merged_data = qlib_data.merge(self.csv_data, on=["date", "instrument"], how="left")  
+                return merged_data  
+        ```
+        Explanation:
+        The CustomDataHandler class inherits from Alpha360 and merges the CSV data with Qlib data. It overrides the load_all method to perform the merging.
+        Modified config:
+        ```yaml
+        handler:  
+            class: CustomDataHandler  
+            module_path: custom_data_handler  
+            kwargs:  
+                csv_path: path/to/your/csv/data
+        ```
+    
+    Model:
+      target_component : |-
+        Model
+      target_component_desc : |-
+        Model component not only contain a model itself, it is a class inherited from BaseModel from qlib.model containing apis of fit and predict. 
+      target_component_example_output : |-
+        Code:
+        ```python
+        import torch.nn as nn  
+        from qlib.contrib.model.pytorch_transformer import TransformerModel  
+          
+          
+        class CustomTransformerModel(TransformerModel):  
+            def __init__(self, d_feat, n_head=8, num_layers=6, d_model=64, d_ff=2048, dropout=0.1, **kwargs):  
+                super().__init__(d_feat, n_head, num_layers, d_model, d_ff, dropout)  
+          
+                # Add the additional MLP layers before the head  
+                self.model = nn.Sequential(  
+                    self.model,  
+                    nn.Linear(d_model, d_model),  
+                    nn.ReLU(),  
+                    nn.Linear(d_model, d_model),  
+                    nn.ReLU(),  
+                    nn.Linear(d_model, d_model),  
+                    nn.ReLU(),  
+                    nn.Linear(d_model, 1),  # Add the head layer to the model  
+                )  
+        ```
+        Explanation:
+        In this implementation, the CustomTransformerModel class inherits from the TransformerModel class in qlib.contrib.model.pytorch_transformer. We override the __init__ method to add the additional MLP layers to the existing self.model. The forward method from the parent class will automatically apply the updated self.model layers, including the head layer.
+        Modified config:
+        ```yaml
+        model:  
+            class: CustomTransformerModel  
+            module_path: path.to.your.custom_transformer_model_module  
+            kwargs:  
+                d_feat: 16  
+                n_head: 8  
+                num_layers: 6  
+                d_model: 64  
+                d_ff: 2048  
+                dropout: 0.1  
+        ```
+  
+  ImplementActionTask_user:
+    Dataset:
+      target_component : |-
+        Dataset
+    DataHandler:
+      target_component : |-
+        DataHandler
+    Model:
+      target_component : |-
+        Model
+
