@@ -110,6 +110,7 @@ class WorkflowManager:
             self.set_context("user_prompt", self.default_user_prompt)
         else:
             self.set_context("user_prompt", prompt)
+        self.fco.info(f"user_prompt: {self.get_context().get_context('user_prompt')}", title="Start")
 
         # NOTE: list may not be enough for general task list
         task_list = [WorkflowTask(), RecorderTask(), SummarizeTask()]
@@ -122,7 +123,7 @@ class WorkflowManager:
             # task_list = sorted(task_list, key=lambda x: x.task_type)
             t = task_list.pop(0)
             self.fco.info(f"Task finished: {[str(task) for task in task_finished]}",
-                          f"Task list: {task_list_info}",
+                          f"Task in queue: {task_list_info}",
                           f"Executing task: {str(t)}",
                           title="Task")
 
