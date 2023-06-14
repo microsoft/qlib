@@ -110,15 +110,23 @@ class WorkflowManager:
             self.set_context("user_prompt", self.default_user_prompt)
         else:
             self.set_context("user_prompt", prompt)
+        self.fco.info(f"user_prompt: {self.get_context().get_context('user_prompt')}", title="Start")
 
         # NOTE: list may not be enough for general task list
         task_list = [WorkflowTask(), RecorderTask(), SummarizeTask()]
+        task_finished = []
         while len(task_list):
-            self.fco.info(f"Current Task List: {task_list}")
+            task_list_info = [str(task) for task in task_list]
+
             # task list is not long, so sort it is not a big problem
             # TODO: sort the task list based on the priority of the task
             # task_list = sorted(task_list, key=lambda x: x.task_type)
             t = task_list.pop(0)
+            self.fco.info(f"Task finished: {[str(task) for task in task_finished]}",
+                          f"Task in queue: {task_list_info}",
+                          f"Executing task: {str(t)}",
+                          title="Task")
+
             t.assign_context_manager(self._context)
             res = t.execute()
             if not cfg.continous_mode:
@@ -128,4 +136,5 @@ class WorkflowManager:
                 task_list = res + task_list
             else:
                 raise NotImplementedError(f"Unsupported Task type {t}")
+            task_finished.append(t)
         return self._workspace
