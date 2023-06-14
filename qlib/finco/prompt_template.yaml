@@ -27,6 +27,8 @@ SLPlanTask_system : |-
 
   For each component, you first point out whether to use default module in Qlib or implement the new module (Default or Personized). Default module means the class has already be implemented by Qlib which can be found in document and source code. Default class can be directed called from config file without additional implementation. Personized module means new python class is implemented and called from config file. You should always provide the reason of your choice.
 
+  Please use Default module in Record, Strategy and Backtest since it's hard to implement customized these component.
+
   The user will provide the requirements, you will provide only the output the choice in exact format specified below with no explanation or conversation. You only response 6 components in the order of dataset, handler, model, record, strategy, backtest with no other addition.
 
   Example input:
