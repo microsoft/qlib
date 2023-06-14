@@ -34,6 +34,7 @@ def formatting_log(logger, title="Info"):
     """
     length = {"Start": 120, "Task": 120, "Info": 60}.get(title, 60)
     color, bold = (LogColors.YELLOW, LogColors.BOLD) if title in ["Start", "Info", "Task"] else (LogColors.CYAN, "")
+    logger.info("")
     logger.info(f"{color}{bold}{'-'} {title} {'-' * (length - len(title))}{LogColors.END}")
     yield
     logger.info("")
