@@ -124,61 +124,13 @@ ImplementActionTask_system : |-
   user requirement: Help me build a low turnover quant investment strategy that focus more on long turn return in China a stock market. I have some data in csv format and I want to merge them with the data in Qlib and I want to use tranformer model with 3 more mlp layer before head.
   user plan:
   {{target_component_example_user_plan}}
-  - Dataset: (Personized) I will implement a CustomDataset inherited from DatasetH in qlib.data.dataset and merge the user-provided CSV data with the existing Qlib data. Because this will allow the user to leverage both their custom data and Qlib's data for the China A stock market.
-  - DataHandler: (Personized) I will implement a CustomDataHandler inherited from Alpha360 in qlib.contrib.data.handler to handle the merged dataset from the custom dataset. Because it is necessary to handle the combined data from Qlib's Alpha360 and the user's CSV file.
-  - Model: (Personized) I will implement a custom tranformer model inherited from nn.Module in torch to meet the user's requirement of using a transformer model with 3 more MLP layers before the head. Because there is no default transformer model in Qlib that fulfills the user's requirement.
   User config:
   ```yaml
-  {{target_component_example_user_config}}
-  dataset:  
-      class: CustomDataset  
-      module_path: path.to.your.custom_dataset_module  
-      kwargs:  
-          handler:  
-              class: CSVMergeHandler  
-              module_path: path.to.your.csv_merge_handler_module  
-              kwargs:  
-                  csv_path: path/to/your/csv/data  
+  {{target_component_example_user_config}} 
   ```
   target component: {{target_component}}
   Example output:
   {{target_component_example_output}}
-  Code:
-  ```python
-  import pandas as pd
-  from qlib.data.dataset import DatasetH
-  from qlib.data.dataset.handler import DataHandlerLP
-
-
-  class CSVMergeHandler(DataHandlerLP):
-      def __init__(self, csv_path, **kwargs):
-          super().__init__(**kwargs)
-          self.csv_data = pd.read_csv(csv_path)
-
-      def load_all(self):
-          qlib_data = super().load_all()
-          merged_data = qlib_data.merge(self.csv_data, on=["date", "instrument"], how="left")
-          return merged_data
-
-
-  class CustomDataset(DatasetH):
-      def __init__(self, handler):
-          super().__init__(handler)
-  ```
-  Explanation:
-  In this implementation, the CSVMergeHandler class inherits from DataHandlerLP and overrides the load_all method to merge the csv data with Qlib data. The CustomDataset class inherits from DatasetH and takes the handler as an argument.
-  Modified config:
-  ```yaml
-  dataset:  
-      class: CustomDataset  
-      module_path: custom_dataset  
-      kwargs:  
-          handler:  
-              class: CSVMergeHandler  
-              module_path: custom_dataset  
-              kwargs:  
-                  csv_path: path/to/your/csv/data
-  ```
 
 ImplementActionTask_user : |-
   user requirement: {% raw %}{{user_requirement}}{% endraw %}
