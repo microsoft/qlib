@@ -53,7 +53,7 @@ SLPlanTask_user : |-
   Please provide the 6 crucial components in Qlib (Dataset, DataHandler, Model, Record, Strategy, Backtest) ensureing the workflow can meet the user's requirements.
   Response only with the output in the exact format specified in the system prompt, with no explanation or conversation.
 
-RecorderTask_system : |-
+AnalysisTask_system : |-
   You are an expert system administrator.
   Your task is to select the best analysis class based on user intent from this list:
   {{ANALYZERS_list}}
@@ -63,7 +63,7 @@ RecorderTask_system : |-
   Response only with the Analyser name provided above with no explanation or conversation. if there are more than
   one analyser, separate them by ","
 
-RecorderTask_user : |-
+AnalysisTask_user : |-
   {{user_prompt}}, 
   The analyzers you select should separate by ",", such as: "HFAnalyzer", "SignalAnalyzer"
 
