@@ -132,7 +132,7 @@ class WorkflowTask(Task):
             f"The workflow has been determined to be: "
             f"{LogColors().render(workflow, color=LogColors.YELLOW, style=LogColors.BOLD)}\n"
             f"Enter 'y' to authorise command,'s' to run self-feedback commands, "
-            f"'n' to exit program, or enter feedback for WorkflowTask"
+            f"'n' to exit program, or enter feedback for WorkflowTask: "
         )
         if confirm is False:
             return []
