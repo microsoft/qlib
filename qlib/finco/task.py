@@ -3,15 +3,12 @@ import os
 from pathlib import Path
 import io
 from typing import Any, List, Union
-from jinja2 import Template
 import ruamel.yaml as yaml
 import abc
 import re
-import logging
 import subprocess
 import platform
 
-from qlib.log import get_module_logger
 from qlib.finco.llm import APIBackend
 from qlib.finco.tpl import get_tpl_path
 from qlib.finco.prompt_template import PormptTemplate
@@ -19,9 +16,11 @@ from qlib.workflow.record_temp import HFSignalRecord, SignalRecord
 from qlib.contrib.analyzer import HFAnalyzer, SignalAnalyzer
 from qlib.utils import init_instance_by_config
 from qlib.workflow import R
-from qlib.finco.log import FinCoLog
+from qlib.finco.log import FinCoLog, LogColors
+from qlib.finco.conf import Config
 
 COMPONENT_LIST = ["Dataset", "DataHandler", "Model", "Record", "Strategy", "Backtest"]
+
 
 class Task:
     """
@@ -44,9 +43,7 @@ class Task:
         self._context_manager = None
         self.prompt_template = PormptTemplate()
         self.executed = False
-        # self.logger: logging.Logger = get_module_logger(
-        #     f"finco.{self.__class__.__name__}"
-        # )
+        self.continuous = Config().continuous_mode
         self.logger = FinCoLog()
 
     def summarize(self) -> str:
@@ -74,14 +71,28 @@ class Task:
         """All sub classes should implement the execute method to determine the next task"""
         raise NotImplementedError
 
-    @abc.abstractclassmethod
-    def interact(self) -> Any:
-        """The user can interact with the task"""
-        """All sub classes should implement the interact method to determine the next task"""
-        """In continous mode, this method will not be called and the next task will be determined by the execution method only"""
-        raise NotImplementedError(
-            "The interact method is not implemented, but workflow not in continous mode"
-        )
+    def interact(self, prompt: str, **kwargs) -> Any:
+        """
+            The user can interact with the task. This method only handle business in current task. It will return True
+            while continuous is True. This method will return user input if input cannot be parsed as 'yes' or 'no'.
+            @return True, False, str
+        """
+        self.logger.info(title="Interact")
+        if self.continuous:
+            return True
+
+        try:
+            answer = input(prompt)
+        except KeyboardInterrupt:
+            self.logger.info("User has exited the program.")
+            exit()
+
+        if answer.lower().strip() in ["y", "yes"]:
+            return True
+        elif answer.lower().strip() in ["n", "no"]:
+            return False
+        else:
+            return answer
 
     @property
     def system(self):
@@ -93,11 +104,6 @@ class Task:
     def user(self):
         return self.prompt_template.__getattribute__(self.__class__.__name__ + "_user")
 
-    @staticmethod
-    def confirm(prompt: str):
-        answer = input(prompt)
-        return answer
-
     def __str__(self):
         return self.__class__.__name__
 
@@ -105,14 +111,10 @@ class Task:
 class WorkflowTask(Task):
     """This task is supposed to be the first task of the workflow"""
 
-    def __init__(
-        self,
-    ) -> None:
+    def __init__(self) -> None:
         super().__init__()
 
-    def execute(
-        self,
-    ) -> List[Task]:
+    def execute(self) -> List[Task]:
         """make the choice which main workflow (RL, SL) will be used"""
         user_prompt = self._context_manager.get_context("user_prompt")
         prompt_workflow_selection = self.user.render(user_prompt=user_prompt)
@@ -125,10 +127,16 @@ class WorkflowTask(Task):
         workflow = response.split(":")[1].strip().lower()
         self.executed = True
         self._context_manager.set_context("workflow", workflow)
-        answer = self.confirm(f"I select this workflow: {workflow}\n"
-                              f"Are you sure you want to use? yes(Y/y), no(N/n):")
-        if str(answer) not in ["Y", "y"]:
+
+        confirm = self.interact(
+            f"The workflow has been determined to be: "
+            f"{LogColors().render(workflow, color=LogColors.YELLOW, style=LogColors.BOLD)}\n"
+            f"Enter 'y' to authorise command,'s' to run self-feedback commands, "
+            f"'n' to exit program, or enter feedback for WorkflowTask: "
+        )
+        if confirm is False:
             return []
+
         if workflow == "supervised learning":
             return [SLPlanTask()]
         elif workflow == "reinforcement learning":
@@ -136,43 +144,18 @@ class WorkflowTask(Task):
         else:
             raise ValueError(f"The workflow: {workflow} is not supported")
 
-    def interact(self) -> Any:
-        assert self.executed == True, "The workflow task has not been executed yet"
-        ## TODO use logger
-        self.logger.info(
-            f"The workflow has been determined to be ---{self._context_manager.get_context('workflow')}---"
-        )
-        self.logger.info(
-            "Enter 'y' to authorise command,'s' to run self-feedback commands, "
-            "'n' to exit program, or enter feedback for WorkflowTask"
-        )
-        try:
-            answer = input("You answer is:")
-        except KeyboardInterrupt:
-            self.logger.info("User has exited the program")
-            exit()
-        if answer.lower().strip() == "y":
-            return
-        else:
-            # TODO add self feedback
-            raise ValueError("The input cannot be interpreted as a valid input")
-
 
 class PlanTask(Task):
     pass
 
 
 class SLPlanTask(PlanTask):
-    def __init__(
-        self,
-    ) -> None:
+    def __init__(self,) -> None:
         super().__init__()
 
     def execute(self):
         workflow = self._context_manager.get_context("workflow")
-        assert (
-            workflow == "supervised learning"
-        ), "The workflow is not supervised learning"
+        assert (workflow == "supervised learning"), "The workflow is not supervised learning"
 
         user_prompt = self._context_manager.get_context("user_prompt")
         assert user_prompt is not None, "The user prompt is not provided"
@@ -223,7 +206,7 @@ class SLPlanTask(PlanTask):
 
 class RLPlanTask(PlanTask):
     def __init__(
-        self,
+            self,
     ) -> None:
         super().__init__()
         self.logger.error("The RL task is not implemented yet")
@@ -242,6 +225,51 @@ class RecorderTask(Task):
     This Recorder task is responsible for analysing data such as index and distribution.
     """
 
+    def __init__(self):
+        super().__init__()
+
+    def execute(self):
+        workflow_config = (
+            self._context_manager.get_context("workflow_config")
+            if self._context_manager.get_context("workflow_config")
+            else "workflow_config.yaml"
+        )
+        workspace = self._context_manager.get_context("workspace")
+        workflow_path = workspace.joinpath(workflow_config)
+        with workflow_path.open() as f:
+            workflow = yaml.safe_load(f)
+
+        confirm = self.interact(f"I select this workflow file: "
+                                f"{LogColors().render(workflow_path, color=LogColors.YELLOW, style=LogColors.BOLD)}\n"
+                                f"{yaml.dump(workflow, default_flow_style=False)}"
+                                f"Are you sure you want to use? yes(Y/y), no(N/n):")
+        if confirm is False:
+            return []
+
+        model = init_instance_by_config(workflow["task"]["model"])
+        dataset = init_instance_by_config(workflow["task"]["dataset"])
+
+        with R.start(experiment_name="finCo"):
+            model.fit(dataset)
+            R.save_objects(trained_model=model)
+
+            # prediction
+            recorder = R.get_recorder()
+            sr = SignalRecord(model, dataset, recorder)
+            sr.generate()
+
+        self._context_manager.set_context("model", model)
+        self._context_manager.set_context("dataset", dataset)
+        self._context_manager.set_context("recorder", recorder)
+
+        return [AnalysisTask()]
+
+
+class AnalysisTask(Task):
+    """
+    This Recorder task is responsible for analysing data such as index and distribution.
+    """
+
     __ANALYZERS_PROJECT = {
         HFAnalyzer.__name__: HFSignalRecord,
         SignalAnalyzer.__name__: SignalRecord,
@@ -250,12 +278,9 @@ class RecorderTask(Task):
         HFAnalyzer.__name__: HFAnalyzer.__doc__,
         SignalAnalyzer.__name__: SignalAnalyzer.__doc__,
     }
-    # __ANALYZERS_PROJECT = {SignalAnalyzer.__name__: SignalRecord}
-    # __ANALYZERS_DOCS = {SignalAnalyzer.__name__: SignalAnalyzer.__doc__}
 
     def __init__(self):
         super().__init__()
-        self._output = None
 
     def execute(self):
         prompt = self.user.render(
@@ -263,52 +288,38 @@ class RecorderTask(Task):
         )
         be = APIBackend()
         be.debug_mode = False
-        response = be.build_messages_and_create_chat_completion(
-            prompt,
-            self.system.render(
-                ANALYZERS_list=list(self.__ANALYZERS_DOCS.keys()),
-                ANALYZERS_DOCS=self.__ANALYZERS_DOCS,
-            ),
-        )
-        analysers = response.split(",")
 
-        answer = self.confirm(f"I select these analysers: {analysers}\nAre you sure you want to use? yes(Y/y), no(N/n):")
-        if str(answer) not in ["Y", "y"]:
-            analysers = []
+        while True:
+            response = be.build_messages_and_create_chat_completion(
+                prompt,
+                self.system.render(
+                    ANALYZERS_list=list(self.__ANALYZERS_DOCS.keys()),
+                    ANALYZERS_DOCS=self.__ANALYZERS_DOCS,
+                ),
+            )
+            analysers = response.split(",")
+            confirm = self.interact(f"I select these analysers: {analysers}\n"
+                                    f"Are you sure you want to use? yes(Y/y), no(N/n) or prompt:")
+            if confirm is False:
+                analysers = []
+                break
+            elif confirm is True:
+                break
+            else:
+                prompt = confirm
 
         if isinstance(analysers, list) and len(analysers):
             self.logger.info(f"selected analysers: {analysers}", plain=True)
-            # it's better to move to another Task
-            workflow_config = (
-                self._context_manager.get_context("workflow_config")
-                if self._context_manager.get_context("workflow_config")
-                else "workflow_config.yaml"
-            )
-            workspace = self._context_manager.get_context("workspace")
-            with workspace.joinpath(workflow_config).open() as f:
-                workflow = yaml.safe_load(f)
-
-            model = init_instance_by_config(workflow["task"]["model"])
-            dataset = init_instance_by_config(workflow["task"]["dataset"])
-
-            with R.start(experiment_name="finCo"):
-                model.fit(dataset)
-                R.save_objects(trained_model=model)
-
-                # prediction
-                recorder = R.get_recorder()
-                sr = SignalRecord(model, dataset, recorder)
-                sr.generate()
 
             tasks = []
             for analyser in analysers:
                 if analyser in self.__ANALYZERS_PROJECT.keys():
                     tasks.append(
                         self.__ANALYZERS_PROJECT.get(analyser)(
-                            workspace=workspace,
-                            model=model,
-                            dataset=dataset,
-                            recorder=recorder,
+                            workspace=self._context_manager.get_context("workspace"),
+                            model=self._context_manager.get_context("model"),
+                            dataset=self._context_manager.get_context("dataset"),
+                            recorder=self._context_manager.get_context("recorder"),
                         )
                     )
 
@@ -352,20 +363,22 @@ class CMDTask(ActionTask):
                 self.__class__.__name__, self._output.decode("ANSI")
             )
 
+
 class DifferentiatedComponentActionTask(ActionTask):
     @property
     def system(self):
         return self.prompt_template.__getattribute__(self.__class__.__name__ + "_system_" + self.target_component)
-    
+
     @property
     def user(self):
         return self.prompt_template.__getattribute__(self.__class__.__name__ + "_user_" + self.target_component)
+
 
 class ConfigActionTask(DifferentiatedComponentActionTask):
     def __init__(self, component) -> None:
         super().__init__()
         self.target_component = component
-    
+
     def execute(self):
         user_prompt = self._context_manager.get_context("user_prompt")
         prompt_element_dict = dict()
@@ -378,7 +391,7 @@ class ConfigActionTask(DifferentiatedComponentActionTask):
             ] = self._context_manager.get_context(f"{component}_plan")
 
         assert (
-            None not in prompt_element_dict.values()
+                None not in prompt_element_dict.values()
         ), "Some decision or plan is not set by plan maker"
 
         config_prompt = self.user.render(
@@ -562,6 +575,8 @@ class SummarizeTask(Task):
             user_prompt=prompt_workflow_selection, system_prompt=self.system.render()
         )
         self.save_markdown(content=response)
+        self.logger.info(f"Report has saved to {self.__DEFAULT_REPORT_NAME}", title="End")
+
         return []
 
     def summarize(self) -> str:
@@ -627,4 +642,3 @@ class SummarizeTask(Task):
     def save_markdown(self, content: str):
         with open(Path(self.workspace).joinpath(self.__DEFAULT_REPORT_NAME), "w") as f:
             f.write(content)
-        self.logger.info(f"report has saved to {self.__DEFAULT_REPORT_NAME}", plain=True)
