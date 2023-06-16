@@ -80,6 +80,7 @@ class FileCalendarStorage(FileStorageMixin, CalendarStorage):
         self._provider_uri = None if provider_uri is None else C.DataPathManager.format_provider_uri(provider_uri)
         self.enable_read_cache = True  # TODO: make it configurable
         self.region = C["region"]
+        (Path(self.uri.parent) / self.file_name).mkdir(parents=True, exist_ok=True)
 
     @property
     def file_name(self) -> str:
@@ -200,6 +201,7 @@ class FileInstrumentStorage(FileStorageMixin, InstrumentStorage):
         super(FileInstrumentStorage, self).__init__(market, freq, **kwargs)
         self._provider_uri = None if provider_uri is None else C.DataPathManager.format_provider_uri(provider_uri)
         self.file_name = f"{market.lower()}.txt"
+        (Path(self.uri.parent) / self.file_name).mkdir(parents=True, exist_ok=True)
 
     def _read_instrument(self) -> Dict[InstKT, InstVT]:
         if not self.uri.exists():
@@ -289,6 +291,7 @@ class FileFeatureStorage(FileStorageMixin, FeatureStorage):
         super(FileFeatureStorage, self).__init__(instrument, field, freq, **kwargs)
         self._provider_uri = None if provider_uri is None else C.DataPathManager.format_provider_uri(provider_uri)
         self.file_name = f"{instrument.lower()}/{field.lower()}.{freq.lower()}.bin"
+        (Path(self.uri.parent) / self.file_name).mkdir(parents=True, exist_ok=True)
 
     def clear(self):
         with self.uri.open("wb") as _:
