@@ -91,7 +91,7 @@ class FileCalendarStorage(FileStorageMixin, CalendarStorage):
         """the freq to read from file"""
         if not hasattr(self, "_freq_file_cache"):
             freq = Freq(self.freq)
-            if freq not in self.support_freq:
+            if self.support_freq and freq not in self.support_freq:
                 # NOTE: uri
                 #   1. If `uri` does not exist
                 #       - Get the `min_uri` of the closest `freq` under the same "directory" as the `uri`
