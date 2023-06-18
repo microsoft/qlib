@@ -236,7 +236,6 @@ class FileInstrumentStorage(FileStorageMixin, InstrumentStorage):
         df.loc[:, [self.SYMBOL_FIELD_NAME, self.INSTRUMENT_START_FIELD, self.INSTRUMENT_END_FIELD]].to_csv(
             self.uri, header=False, sep=self.INSTRUMENT_SEP, index=False
         )
-        df.to_csv(self.uri, sep="\t", encoding="utf-8", header=False, index=False)
 
     def clear(self) -> None:
         self._write_instrument(data={})
