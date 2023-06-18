@@ -5,6 +5,7 @@ import logging
 import warnings
 import pandas as pd
 import numpy as np
+from tqdm import trange
 from pprint import pprint
 from typing import Union, List, Optional
 
@@ -231,9 +232,16 @@ class ACRecordTemp(RecordTemp):
         except FileNotFoundError:
             logger.warning("The dependent data does not exists. Generation skipped.")
             return
-        return self._generate(*args, **kwargs)
+        artifact_dict = self._generate(*args, **kwargs)
+        if isinstance(artifact_dict, dict):
+            self.save(**artifact_dict)
+        return artifact_dict
 
-    def _generate(self, *args, **kwargs):
+    def _generate(self, *args, **kwargs) -> dict[str, object]:
+        """
+        Run the concrete generating task, return the dictionary of the generated results.
+        The caller method will save the results to the recorder.
+        """
         raise NotImplementedError(f"Please implement the `_generate` method")
 
 
@@ -337,8 +345,8 @@ class SigAnaRecord(ACRecordTemp):
                 }
             )
         self.recorder.log_metrics(**metrics)
-        self.save(**objects)
         pprint(metrics)
+        return objects
 
     def list(self):
         paths = ["ic.pkl", "ric.pkl"]
@@ -469,17 +477,18 @@ class PortAnaRecord(ACRecordTemp):
         if self.backtest_config["end_time"] is None:
             self.backtest_config["end_time"] = get_date_by_shift(dt_values.max(), 1)
 
+        artifact_objects = {}
         # custom strategy and get backtest
         portfolio_metric_dict, indicator_dict = normal_backtest(
             executor=self.executor_config, strategy=self.strategy_config, **self.backtest_config
         )
         for _freq, (report_normal, positions_normal) in portfolio_metric_dict.items():
-            self.save(**{f"report_normal_{_freq}.pkl": report_normal})
-            self.save(**{f"positions_normal_{_freq}.pkl": positions_normal})
+            artifact_objects.update({f"report_normal_{_freq}.pkl": report_normal})
+            artifact_objects.update({f"positions_normal_{_freq}.pkl": positions_normal})
 
         for _freq, indicators_normal in indicator_dict.items():
-            self.save(**{f"indicators_normal_{_freq}.pkl": indicators_normal[0]})
-            self.save(**{f"indicators_normal_{_freq}_obj.pkl": indicators_normal[1]})
+            artifact_objects.update({f"indicators_normal_{_freq}.pkl": indicators_normal[0]})
+            artifact_objects.update({f"indicators_normal_{_freq}_obj.pkl": indicators_normal[1]})
 
         for _analysis_freq in self.risk_analysis_freq:
             if _analysis_freq not in portfolio_metric_dict:
@@ -501,7 +510,7 @@ class PortAnaRecord(ACRecordTemp):
                 analysis_dict = flatten_dict(analysis_df["risk"].unstack().T.to_dict())
                 self.recorder.log_metrics(**{f"{_analysis_freq}.{k}": v for k, v in analysis_dict.items()})
                 # save results
-                self.save(**{f"port_analysis_{_analysis_freq}.pkl": analysis_df})
+                artifact_objects.update({f"port_analysis_{_analysis_freq}.pkl": analysis_df})
                 logger.info(
                     f"Portfolio analysis record 'port_analysis_{_analysis_freq}.pkl' has been saved as the artifact of the Experiment {self.recorder.experiment_id}"
                 )
@@ -526,12 +535,13 @@ class PortAnaRecord(ACRecordTemp):
                 analysis_dict = analysis_df["value"].to_dict()
                 self.recorder.log_metrics(**{f"{_analysis_freq}.{k}": v for k, v in analysis_dict.items()})
                 # save results
-                self.save(**{f"indicator_analysis_{_analysis_freq}.pkl": analysis_df})
+                artifact_objects.update({f"indicator_analysis_{_analysis_freq}.pkl": analysis_df})
                 logger.info(
                     f"Indicator analysis record 'indicator_analysis_{_analysis_freq}.pkl' has been saved as the artifact of the Experiment {self.recorder.experiment_id}"
                 )
                 pprint(f"The following are analysis results of indicators({_analysis_freq}).")
                 pprint(analysis_df)
+        return artifact_objects
 
     def list(self):
         list_path = []
@@ -593,8 +603,8 @@ class MultiPassPortAnaRecord(PortAnaRecord):
 
         # Save original strategy so that pred df can be replaced in next generate
         self.original_strategy = deepcopy_basic_type(self.strategy_config)
-        if isinstance(self.original_strategy, dict) and ("signal" in self.original_strategy.get("kwargs", {})):
-            self.original_strategy["kwargs"]["signal"] = "<PRED>"
+        if (not isinstance(self.original_strategy, dict)) or ("signal" not in self.original_strategy.get("kwargs", {}))):
+            raise Exception("MultiPassPortAnaRecord require the passed in strategy to be a dict and contains ['kwargs']['signal'] field")
 
     def random_init(self):
         pred_df = self.load("pred.pkl")
@@ -610,30 +620,30 @@ class MultiPassPortAnaRecord(PortAnaRecord):
         first_date_score = pred_df.loc[first_bt_pred_date]["score"]
         np.random.shuffle(first_date_score.values)
 
-        # Reset strategy so that pred df can be replaced in next generate
+        # Use shuffled signal as the strategy signal
         self.strategy_config = deepcopy_basic_type(self.original_strategy)
-
-        self.save(**{"pred.pkl": pred_df})
+        self.strategy_config["kwargs"]["signal"] = pred_df
 
     def _generate(self, **kwargs):
         risk_analysis_df_map = {}
 
         # Collect each frequency's analysis df as df list
-        for i in range(self.pass_num):
+        for i in trange(self.pass_num):
             if self.shuffle_init_score:
                 self.random_init()
 
             # Not check for cache file list
-            super()._generate(**kwargs)
+            single_run_artifacts = super()._generate(**kwargs)
 
             for _analysis_freq in self.risk_analysis_freq:
                 risk_analysis_df_list = risk_analysis_df_map.get(_analysis_freq, [])
                 risk_analysis_df_map[_analysis_freq] = risk_analysis_df_list
 
-                analysis_df = self.load(f"port_analysis_{_analysis_freq}.pkl")
+                analysis_df = single_run_artifacts[f"port_analysis_{_analysis_freq}.pkl"]
                 analysis_df["run_id"] = i
                 risk_analysis_df_list.append(analysis_df)
 
+        result_artifacts = {}
         # Concat df list
         for _analysis_freq in self.risk_analysis_freq:
             combined_df = pd.concat(risk_analysis_df_map[_analysis_freq])
@@ -652,7 +662,7 @@ class MultiPassPortAnaRecord(PortAnaRecord):
             pprint(multi_pass_port_analysis_df)
 
             # Save new df
-            self.save(**{f"multi_pass_port_analysis_{_analysis_freq}.pkl": multi_pass_port_analysis_df})
+            result_artifacts.update({f"multi_pass_port_analysis_{_analysis_freq}.pkl": multi_pass_port_analysis_df})
 
             # Log metrics
             metrics = flatten_dict(
@@ -663,6 +673,7 @@ class MultiPassPortAnaRecord(PortAnaRecord):
                 }
             )
             self.recorder.log_metrics(**metrics)
+        return result_artifacts
 
     def list(self):
         list_path = []
