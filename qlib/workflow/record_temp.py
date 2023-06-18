@@ -603,8 +603,10 @@ class MultiPassPortAnaRecord(PortAnaRecord):
 
         # Save original strategy so that pred df can be replaced in next generate
         self.original_strategy = deepcopy_basic_type(self.strategy_config)
-        if (not isinstance(self.original_strategy, dict)) or ("signal" not in self.original_strategy.get("kwargs", {}))):
-            raise Exception("MultiPassPortAnaRecord require the passed in strategy to be a dict and contains ['kwargs']['signal'] field")
+        if not isinstance(self.original_strategy, dict):
+            raise Exception("MultiPassPortAnaRecord require the passed in strategy to be a dict")
+        if "signal" not in self.original_strategy.get("kwargs", {}):
+            raise Exception("MultiPassPortAnaRecord require the passed in strategy to have signal as a parameter")
 
     def random_init(self):
         pred_df = self.load("pred.pkl")
