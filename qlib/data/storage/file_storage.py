@@ -322,7 +322,7 @@ class FileFeatureStorage(FileStorageMixin, FeatureStorage):
                 # rewrite
                 with self.uri.open("rb+") as fp:
                     _old_data = np.fromfile(fp, dtype="<f")
-                    _old_index = _old_data[0]
+                    _old_index = int(_old_data[0])
                     _old_df = pd.DataFrame(
                         _old_data[1:], index=range(_old_index, _old_index + len(_old_data) - 1), columns=["old"]
                     )
