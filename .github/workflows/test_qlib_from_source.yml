@@ -130,9 +130,8 @@ jobs:
     - name: Test data downloads
       run: |
         python scripts/get_data.py qlib_data --name qlib_data_simple --target_dir ~/.qlib/qlib_data/cn_data --interval 1d --region cn
-        azcopy copy https://qlibpublic.blob.core.windows.net/data/rl tests/.data/data --recursive
-        # azcopy copy https://qlibpublic.blob.core.windows.net/data/rl /tmp/qlibpublic/data --recursive
-        # mv /tmp/qlibpublic/data tests/.data
+        wget http://fintech.msra.cn/stock_data/downloads/rl.zip
+        unzip -n rl.zip -d tests/.data
 
     - name: Install Lightgbm for MacOS
       if: ${{ matrix.os == 'macos-11' || matrix.os == 'macos-latest' }}
