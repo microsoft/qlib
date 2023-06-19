@@ -330,7 +330,7 @@ class FileFeatureStorage(FileStorageMixin, FeatureStorage):
                     _new_df = pd.DataFrame(data_array, index=range(index, index + len(data_array)), columns=["new"])
                     _df = pd.concat([_old_df, _new_df], sort=False, axis=1)
                     _df = _df.reindex(range(_df.index.min(), _df.index.max() + 1))
-                    _df["new"].fillna(_df["old"]).values.astype("<f").tofile(fp)
+                    np.hstack([_old_index, _df["new"].fillna(_df["old"]).values]).astype("<f").tofile(fp)
 
     @property
     def start_index(self) -> Union[int, None]:
