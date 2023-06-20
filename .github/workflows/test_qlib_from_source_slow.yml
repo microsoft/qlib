@@ -27,7 +27,6 @@ jobs:
       if: matrix.os != 'macos-latest' || ( matrix.os == 'macos-latest' && matrix.python != '3.7' )
       with:
         python-version: ${{ matrix.python }}
-      uses: actions/setup-python@v4
       if: matrix.os == 'macos-latest' && matrix.python == '3.7'
       with:
         python-version: "3.7.16"
