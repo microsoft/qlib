@@ -35,6 +35,11 @@ jobs:
         pip install --upgrade cython numpy
         pip install -e .[dev]
 
+    - name: Installing pytorch for macos
+      if: ${{ matrix.os == 'macos-11' || matrix.os == 'macos-latest' }}
+      run: |
+        python -m pip install bz2file
+
     - name: Downloads dependencies data
       run: |
         python scripts/get_data.py qlib_data --name qlib_data_simple --target_dir ~/.qlib/qlib_data/cn_data --interval 1d --region cn

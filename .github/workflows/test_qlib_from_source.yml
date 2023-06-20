@@ -37,6 +37,7 @@ jobs:
       if: ${{ matrix.os == 'macos-11' || matrix.os == 'macos-latest' }}
       run: |
         python -m pip install torch torchvision torchaudio
+        python -m pip install bz2file
 
     - name: Installing pytorch for ubuntu
       if: ${{ matrix.os == 'ubuntu-20.04' || matrix.os == 'ubuntu-22.04' }}
@@ -51,7 +52,7 @@ jobs:
     - name: Set up Python tools
       run: |
         python -m pip install pip==23.0
-        python -m pip install cython
+        python -m pip install --upgrade cython
         python -m pip install -e .[dev]
 
     - name: Lint with Black
