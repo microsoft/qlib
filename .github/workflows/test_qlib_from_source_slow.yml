@@ -19,7 +19,7 @@ jobs:
         python-version: [3.7, 3.8]
 
     steps:
-    - name: Test qlib from source slow
+      name: Test qlib from source slow
       uses: actions/checkout@v3
 
     # Since version 3.7 of python for MacOS is installed in CI, version 3.7.17, this version causes "_bz not found error".
