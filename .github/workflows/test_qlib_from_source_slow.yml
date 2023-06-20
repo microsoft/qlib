@@ -24,8 +24,13 @@ jobs:
 
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v4
+      if: matrix.os != 'macos-latest' || ( matrix.os == 'macos-latest' && matrix.python != '3.7' )
       with:
-        python-version: ${{ matrix.python-version }}
+        python-version: ${{ matrix.python }}
+      uses: actions/setup-python@v4
+      if: matrix.os == 'macos-latest' && matrix.python == '3.7'
+      with:
+        python-version: "3.7.16"
 
     - name: Set up Python tools
       # pip release version 23.1 on Apr.15 2023, CI failed to run, Please refer to #1495 ofr detailed logs.
