@@ -23,19 +23,19 @@ jobs:
       uses: actions/checkout@v3
 
     - name: Set up Python ${{ matrix.python-version }}
-      if: (matrix.os == 'macos-latest' && matrix.python == '3.7') || (matrix.os == 'macos-11' && matrix.python == '3.7')
+      if: (matrix.os == 'macos-latest' && matrix.python-version == '3.7') || (matrix.os == 'macos-11' && matrix.python-version == '3.7')
       uses: actions/setup-python@v4
       with:
         python-version: "3.7.16"
 
     - name: Set up Python ${{ matrix.python-version }}
-      if: (matrix.os == 'macos-latest' && matrix.python == '3.8') || (matrix.os == 'macos-11' && matrix.python == '3.8')
+      if: (matrix.os == 'macos-latest' && matrix.python-version == '3.8') || (matrix.os == 'macos-11' && matrix.python-version == '3.8')
       uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
 
     - name: Set up Python ${{ matrix.python-version }}
-      if: (matrix.os == 'windows-latest' || matrix.os == 'ubuntu-20.04' || matrix.os == 'ubuntu-22.04') && (matrix.python == '3.7' || matrix.python == '3.8')
+      if: (matrix.os == 'windows-latest' || matrix.os == 'ubuntu-20.04' || matrix.os == 'ubuntu-22.04') && (matrix.python-version == '3.7' || matrix.python-version == '3.8')
       uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
