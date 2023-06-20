@@ -165,6 +165,43 @@ class GetData:
             file_name = _get_file_name("latest")
         self._download_data(file_name.lower(), target_dir, delete_old, dataset_version=version)
 
+    def rl_data(
+        self,
+        target_dir="~/.qlib/qlib_data/cn_data",
+        version=None,
+        delete_old=True,
+        exists_skip=False,
+    ):
+        """download cn qlib data from remote
+
+        Parameters
+        ----------
+        target_dir: str
+            data save directory
+        version: str
+            data version, value from [v1, ...], by default None(use script to specify version)
+        delete_old: bool
+            delete an existing directory, by default True
+        exists_skip: bool
+            exists skip, by default False
+
+        Examples
+        ---------
+        # get 1d data
+        python get_data.py rl_data --target_dir ~/.qlib/qlib_data/cn_data
+        -------
+
+        """
+        if exists_skip and exists_qlib_data(target_dir):
+            logger.warning(
+                f"Data already exists: {target_dir}, the data download will be skipped\n"
+                f"\tIf downloading is required: `exists_skip=False` or `change target_dir`"
+            )
+            return
+
+        file_name = "rl.zip"
+        self._download_data(file_name.lower(), target_dir, delete_old, dataset_version=version)
+
     def csv_data_cn(self, target_dir="~/.qlib/csv_data/cn_data"):
         """download cn csv data from remote
 

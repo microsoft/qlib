@@ -140,14 +140,11 @@ jobs:
     - name: Test data downloads
       run: |
         python scripts/get_data.py qlib_data --name qlib_data_simple --target_dir ~/.qlib/qlib_data/cn_data --interval 1d --region cn
-        curl -O "http://fintech.msra.cn/stock_data/downloads/rl.zip"
-        mkdir -p /tmp/qlibpublic/data/rl
-        unzip -n rl.zip -d /tmp/qlibpublic/data/rl
-        # mv /tmp/qlibpublic/data tests/.data
+        python scripts/get_data.py rl_data --target_dir tests/.data
     
     - name: test
       run: |
-        echo "$(ls /tmp)"
+        echo "$(ls ./tests)"
         echo "Current working directory: $(pwd)"
 
     - name: Install Lightgbm for MacOS
