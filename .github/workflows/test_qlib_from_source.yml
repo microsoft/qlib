@@ -147,9 +147,8 @@ jobs:
     
     - name: test
       run: |
-        echo ${{ ls /tmp }}
-        echo ${{ pwd }}
-
+        echo "$(ls /tmp)"
+        echo "Current working directory: $(pwd)"
 
     - name: Install Lightgbm for MacOS
       if: ${{ matrix.os == 'macos-11' || matrix.os == 'macos-latest' }}
