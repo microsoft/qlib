@@ -60,7 +60,6 @@ jobs:
 
     - name: Set up Python tools
       run: |
-        python -m pip install pip==23.0
         python -m pip install --upgrade cython
         python -m pip install -e .[dev]
 

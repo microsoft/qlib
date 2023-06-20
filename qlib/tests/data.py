@@ -167,7 +167,7 @@ class GetData:
 
     def rl_data(
         self,
-        target_dir="~/.qlib/qlib_data/cn_data",
+        target_dir="~/.qlib/qlib_data/rl_data",
         version=None,
         delete_old=True,
         exists_skip=False,
@@ -187,8 +187,8 @@ class GetData:
 
         Examples
         ---------
-        # get 1d data
-        python get_data.py rl_data --target_dir ~/.qlib/qlib_data/cn_data
+        # get rl data
+        python get_data.py rl_data --target_dir ~/.qlib/qlib_data/rl_data
         -------
 
         """
