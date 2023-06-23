@@ -1,10 +1,11 @@
 import sys
 import copy
-from pathlib import Path
 import shutil
+from pathlib import Path
 
 from qlib.finco.task import WorkflowTask, PlanTask, ActionTask, SummarizeTask, RecorderTask, AnalysisTask
 from qlib.finco.log import FinCoLog, LogColors
+from qlib.finco.utils import similarity
 
 
 class WorkflowContextManager:
@@ -38,6 +39,16 @@ class WorkflowContextManager:
         """return a deep copy of the context"""
         """TODO: do we need to return a deep copy?"""
         return copy.deepcopy(self.context)
+
+    def retrieve(self, query: str) -> dict:
+        if query in self.context.keys():
+            return {query: self.context.get(query)}
+
+        scores = {}
+        for k, v in self.context.items():
+            scores.update({k: max(similarity(query, k), similarity(query, v))})
+        max_score_key = max(scores, key=scores.get)
+        return {max_score_key: self.context.get(max_score_key)}
 
 
 class WorkflowManager:

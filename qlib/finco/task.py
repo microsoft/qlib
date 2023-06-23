@@ -282,6 +282,12 @@ class AnalysisTask(Task):
     def __init__(self):
         super().__init__()
 
+    def assign_context_manager(self, context_manager):
+        # todo: add docstring to context temperature, perhaps store them in non runtime place is better.
+        self._context_manager = context_manager
+        for k, v in self.__ANALYZERS_DOCS.items():
+            self._context_manager.set_context(k, v)
+
     def execute(self):
         prompt = self.user.render(
             user_prompt=self._context_manager.get_context("user_prompt")
@@ -325,7 +331,7 @@ class AnalysisTask(Task):
 
             for task in tasks:
                 resp = task.analyse()
-                self._context_manager.set_context(task.__class__.__name__, resp)
+                self._context_manager.set_context(resp, task.__class__.__doc__)
 
         return []
 
@@ -582,9 +588,6 @@ class SummarizeTask(Task):
     def summarize(self) -> str:
         return ""
 
-    def interact(self) -> Any:
-        return
-
     def get_info_from_file(self, path) -> List:
         """
         read specific type of files under path
@@ -594,11 +597,11 @@ class SummarizeTask(Task):
         for root, dirs, files in os.walk(path):
             for filename in files:
                 file_path = os.path.join(root, filename)
-                file_list.append(file_path)
+                file_list.append(Path(file_path))
 
         result = []
         for file in file_list:
-            postfix = file.split(".")[-1]
+            postfix = file.name.split(".")[-1]
             if postfix in ["py", "log", "yaml"]:
                 with open(file) as f:
                     content = f.read()
@@ -606,7 +609,8 @@ class SummarizeTask(Task):
                     # in case of too large file
                     # TODO: Perhaps summarization method instead of truncation would be a better approach
                     result.append(
-                        {"file": file, "content": content[: self.__MAX_LENGTH_OF_FILE]}
+                        {"file": file.name, "content": content[: self.__MAX_LENGTH_OF_FILE],
+                         "additional": self._context_manager.retrieve(file.name)}
                     )
 
         return result
@@ -636,7 +640,9 @@ class SummarizeTask(Task):
             for filename in files:
                 postfix = filename.split(".")[-1]
                 if postfix in ["jpeg"]:
-                    file_list.append(str(Path(self.workspace).joinpath(filename)))
+                    description = self._context_manager.retrieve(filename)
+                    file_list.append({"file_name": filename, "description": description,
+                                      "path": str(Path(self.workspace).joinpath(filename))})
         return file_list
 
     def save_markdown(self, content: str):

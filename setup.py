@@ -178,6 +178,8 @@ setup(
             "openapi",
             "pydantic",  # Please add it to basic requirements after the design of pydantic is state.
             "python-dotenv",  # I don't think this is necessary if we use pydantic.
+            "fuzzywuzzy",
+            "python-Levenshtein"    # not necessary but accelerate fuzzywuzzy calculation
         ],
     },
     include_package_data=True,
