@@ -44,6 +44,7 @@ class WorkflowContextManager:
         if query in self.context.keys():
             return {query: self.context.get(query)}
 
+        # Note: retrieve information from context by string similarity maybe abandon in future
         scores = {}
         for k, v in self.context.items():
             scores.update({k: max(similarity(query, k), similarity(query, v))})
