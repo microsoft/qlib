@@ -35,6 +35,8 @@ class AnalyzerTemp:
 class HFAnalyzer(AnalyzerTemp):
     """
     This is the Signal Analysis class that generates the analysis results such as IC and IR.
+
+    default output image filename is "HFAnalyzerTable.jpeg"
     """
 
     def __init__(self, **kwargs):
@@ -70,11 +72,14 @@ class HFAnalyzer(AnalyzerTemp):
         plt.scatter(np.arange(0, len(label)), label.iloc[:, 0])
         plt.title("HFAnalyzer")
         plt.savefig(self.workspace.joinpath("HFAnalyzer.jpeg"))
+        return "HFAnalyzer.jpeg"
 
 
 class SignalAnalyzer(AnalyzerTemp):
     """
     This is the Signal Analysis class that generates the analysis results such as IC and IR.
+
+    default output image filename is "signalAnalysis.jpeg"
     """
 
     def __init__(self, **kwargs):
@@ -101,4 +106,4 @@ class SignalAnalyzer(AnalyzerTemp):
         plt.title("SignalAnalyzer")
         plt.savefig(self.workspace.joinpath("signalAnalysis.jpeg"))
 
-        return raw_label
+        return "signalAnalysis.jpeg"

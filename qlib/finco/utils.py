@@ -1,5 +1,7 @@
 import json
 
+from fuzzywuzzy import fuzz
+
 
 class Singleton:
     _instance = None
@@ -17,3 +19,11 @@ def parse_json(response):
         pass
 
     raise Exception(f"Failed to parse response: {response}, please report it or help us to fix it.")
+
+
+def similarity(text1, text2):
+    text1 = text1 if isinstance(text1, str) else ""
+    text2 = text2 if isinstance(text2, str) else ""
+
+    # Maybe we can use other similarity algorithm such as tfidf
+    return fuzz.ratio(text1, text2)
