@@ -32,11 +32,6 @@ class GetData:
         """
         self.delete_zip_file = delete_zip_file
 
-    def normalize_dataset_version(self, dataset_version: str = None):
-        if dataset_version is None:
-            dataset_version = self.DATASET_VERSION
-        return dataset_version
-
     def merge_remote_url(self, file_name: str):
         fernet = Fernet(self.KEY)
         token = fernet.decrypt(self.TOKEN).decode()
