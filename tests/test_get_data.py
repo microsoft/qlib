@@ -42,7 +42,7 @@ class TestGetData(unittest.TestCase):
         self.assertFalse(df.dropna().empty, "get qlib data failed")
 
     def test_1_csv_data(self):
-        GetData().csv_data_cn(SOURCE_DIR)
+        GetData().download_data(file_name="csv_data_cn.zip", target_dir=SOURCE_DIR)
         stock_name = set(map(lambda x: x.name[:-4].upper(), SOURCE_DIR.glob("*.csv")))
         self.assertEqual(len(stock_name), 85, "get csv data failed")
 
