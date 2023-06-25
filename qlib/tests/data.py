@@ -181,7 +181,7 @@ class GetData:
         qlib_version = ".".join(re.findall(r"(\d+)\.+", qlib.__version__))
 
         def _get_file_name_with_version(qlib_version, dataset_version):
-            dataset_version = 'v2' if dataset_version is None else dataset_version
+            dataset_version = "v2" if dataset_version is None else dataset_version
             file_name_with_version = f"{dataset_version}/{name}_{region.lower()}_{interval.lower()}_{qlib_version}.zip"
             return file_name_with_version
 
