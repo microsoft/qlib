@@ -3,7 +3,7 @@ import copy
 import shutil
 from pathlib import Path
 
-from qlib.finco.task import WorkflowTask, PlanTask, ActionTask, SummarizeTask, RecorderTask, AnalysisTask
+from qlib.finco.task import WorkflowTask, SummarizeTask, TrainTask, BackForwardTask
 from qlib.finco.log import FinCoLog, LogColors
 from qlib.finco.utils import similarity
 
@@ -15,6 +15,7 @@ class WorkflowContextManager:
 
     def __init__(self) -> None:
         self.context = {}
+        self.epoch = 0
         self.logger = FinCoLog()
 
     def set_context(self, key, value):
@@ -51,9 +52,12 @@ class WorkflowContextManager:
         max_score_key = max(scores, key=scores.get)
         return {max_score_key: self.context.get(max_score_key)}
 
+    def clear(self):
+        self.context = {}
+
 
 class WorkflowManager:
-    """This manange the whole task automation workflow including tasks and actions"""
+    """This manage the whole task automation workflow including tasks and actions"""
 
     def __init__(self, workspace=None) -> None:
         self.logger = FinCoLog()
@@ -123,30 +127,31 @@ class WorkflowManager:
             self.set_context("user_prompt", prompt)
         self.logger.info(f"user_prompt: {self.get_context().get_context('user_prompt')}", title="Start")
 
-        # NOTE: list may not be enough for general task list
-        task_list = [WorkflowTask(), RecorderTask(), SummarizeTask()]
-        task_finished = []
-        while len(task_list):
-            task_list_info = [str(task) for task in task_list]
+        # todo: add early stop condition
+        for i in range(10):
+            # NOTE: list may not be enough for general task list
+            task_list = [WorkflowTask(), TrainTask(), SummarizeTask(), BackForwardTask()]
+            task_finished = []
+            while len(task_list):
+                task_list_info = [str(task) for task in task_list]
 
-            # task list is not long, so sort it is not a big problem
-            # TODO: sort the task list based on the priority of the task
-            # task_list = sorted(task_list, key=lambda x: x.task_type)
-            t = task_list.pop(0)
-            self.logger.info(f"Task finished: {[str(task) for task in task_finished]}",
-                             f"Task in queue: {task_list_info}",
-                             f"Executing task: {str(t)}",
-                             title="Task")
+                # task list is not long, so sort it is not a big problem
+                # TODO: sort the task list based on the priority of the task
+                # task_list = sorted(task_list, key=lambda x: x.task_type)
+                t = task_list.pop(0)
+                self.logger.info(f"Task finished: {[str(task) for task in task_finished]}",
+                                 f"Task in queue: {task_list_info}",
+                                 f"Executing task: {str(t)}",
+                                 title="Task")
 
-            t.assign_context_manager(self._context)
-            res = t.execute()
-            t.summarize()
-            task_finished.append(t)
-            self.logger.plain_info(f"{str(t)} finished.\n\n\n")
+                t.assign_context_manager(self._context)
+                res = t.execute()
+                t.summarize()
+                task_finished.append(t)
+                self._context.set_context("task_finished", task_finished)
+                self.logger.plain_info(f"{str(t)} finished.\n\n\n")
 
-            for _ in res:
-                if not isinstance(t, (WorkflowTask, PlanTask, ActionTask, RecorderTask, AnalysisTask, SummarizeTask)):
-                    raise NotImplementedError(f"Unsupported Task type {_}")
-            task_list = res + task_list
+                task_list = res + task_list
 
+            self._context.epoch += 1
         return self._workspace

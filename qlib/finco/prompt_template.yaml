@@ -193,6 +193,13 @@ SummarizeTask_user : |-
   Here is my information: '{{information}}'
   My intention is: {{user_prompt}}. Please provide me with a summary and   recommendation based on my intention and the information I have provided. There are some figures which absolute path are: {{figure_path}}, You must display these images in markdown using the appropriate image format.
 
+BackForwardTask_system : |-
+  Your task is adjusting system prompt in each task to fulfill user's intention
+
+BackForwardTask_user : |-
+  Here is the final summary: '{{summary}}'
+  Tasks I have run are: {{task_finished}}, {{task}}'s system prompt is: {{system}}. User's intention is: {{user_prompt}}. you will adjust it to:
+
 mods:
   ConfigActionTask_system:
     Dataset:
@@ -382,7 +389,7 @@ mods:
         ```
         Reason: I choose the backtest parameters above because they are suitable for a low turnover strategy focusing on long-term returns in the China A stock market. The start and end times are set to cover a 4-year period, which is reasonable for a long-term strategy. The account value is set to 1,000,000 as a starting point, and the benchmark is set to SH000300, which represents the China A stock market.
         Improve suggestion: You can try different time ranges for the backtest to evaluate the performance of the strategy in different market conditions. Also, you can adjust the costs (open_cost, close_cost, and min_cost) to better reflect the actual trading costs in the China A stock market.
-    
+
   ConfigActionTask_user:
     Dataset:
       target_component : |-
@@ -402,7 +409,7 @@ mods:
     Backtest:
       target_component : |-
         Backtest
-    
+
   ImplementActionTask_system:
     Dataset:
       target_component : |-
