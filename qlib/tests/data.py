@@ -37,21 +37,47 @@ class GetData:
             dataset_version = self.DATASET_VERSION
         return dataset_version
 
-    def merge_remote_url(self, file_name: str, dataset_version: str = None):
+    def merge_remote_url(self, file_name: str):
         fernet = Fernet(self.KEY)
         token = fernet.decrypt(self.TOKEN).decode()
-        return f"{self.REMOTE_URL}/{self.normalize_dataset_version(dataset_version)}/{file_name}{token}"
+        return f"{self.REMOTE_URL}/{file_name}{token}"
 
-    def _download_data(
-        self, file_name: str, target_dir: [Path, str], delete_old: bool = True, dataset_version: str = None
+    def download_data(
+        self, file_name: str, target_dir: [Path, str], delete_old: bool = True
     ):
+        """
+        Download the specified file to the target folder.
+
+        Parameters
+        ----------
+        target_dir: str
+            data save directory
+        file_name: str
+            dataset name, value from [rl_data, csv_data_cn, ...]
+        delete_old: bool
+            delete an existing directory, by default True
+
+        Examples
+        ---------
+        # get rl data
+        python get_data.py download_data --file_name rl_data --target_dir ~/.qlib/qlib_data/rl_data
+
+        # get cn csv data
+        python get_data.py download_data --file_name csv_data_cn --target_dir ~/.qlib/csv_data/cn_data
+        -------
+
+        """
         target_dir = Path(target_dir).expanduser()
         target_dir.mkdir(exist_ok=True, parents=True)
         # saved file name
-        _target_file_name = datetime.datetime.now().strftime("%Y%m%d%H%M%S") + "_" + file_name
+        if "/" in file_name:
+            _target_file_name = datetime.datetime.now().strftime("%Y%m%d%H%M%S") + "_" + file_name.split("/")[1]
+        else:
+            file_name += ".zip"
+            _target_file_name = datetime.datetime.now().strftime("%Y%m%d%H%M%S") + "_" + file_name
         target_path = target_dir.joinpath(_target_file_name)
 
-        url = self.merge_remote_url(file_name, dataset_version)
+        url = self.merge_remote_url(file_name)
         resp = requests.get(url, stream=True, timeout=60)
         resp.raise_for_status()
         if resp.status_code != 200:
@@ -73,7 +99,7 @@ class GetData:
             target_path.unlink()
 
     def check_dataset(self, file_name: str, dataset_version: str = None):
-        url = self.merge_remote_url(file_name, dataset_version)
+        url = self.merge_remote_url(file_name)
         resp = requests.get(url, stream=True, timeout=60)
         status = True
         if resp.status_code == 404:
@@ -160,30 +186,14 @@ class GetData:
 
         qlib_version = ".".join(re.findall(r"(\d+)\.+", qlib.__version__))
 
-        def _get_file_name(v):
-            if name.lower() == "qlib_data" or name.lower() == "qlib_data_simple":
-                return f"{name}_{region}_{interval}_{v}.zip"
-            if name.lower() == "rl_data":
-                return f"{name}.zip"
+        def _get_file_name_with_version(v):
+            file_name = self.QLIB_DATA_NAME.format(
+                dataset_name=name, region=region.lower(), interval=interval.lower(), qlib_version=v
+            )
+            file_name_with_version = f"{self.normalize_dataset_version(version)}/{file_name}"
+            return file_name_with_version
 
-        file_name = _get_file_name(qlib_version)
-        if not self.check_dataset(file_name, version):
-            file_name = _get_file_name("latest")
-        self._download_data(file_name.lower(), target_dir, delete_old, dataset_version=version)
-
-    def csv_data_cn(self, target_dir="~/.qlib/csv_data/cn_data"):
-        """download cn csv data from remote
-
-        Parameters
-        ----------
-        target_dir: str
-            data save directory
-
-        Examples
-        ---------
-        python get_data.py csv_data_cn --target_dir ~/.qlib/csv_data/cn_data
-        -------
-
-        """
-        file_name = "csv_data_cn.zip"
-        self._download_data(file_name, target_dir)
+        file_name = _get_file_name_with_version(qlib_version)
+        if not self.check_dataset(file_name):
+            file_name = _get_file_name_with_version("latest")
+        self.download_data(file_name.lower(), target_dir, delete_old)
