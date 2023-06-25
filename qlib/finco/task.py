@@ -409,7 +409,6 @@ class CMDTask(ActionTask):
         response = APIBackend().build_messages_and_create_chat_completion(
             prompt, self.system.render()
         )
-        response = 'xcopy /E /I "D:/Codes/NLP/qlibFivele/qlib/finco/tpl/sl" "D:/Codes/NLP/qlibFivele/qlib/finco/finco_workspace"'
         self._output = subprocess.check_output(response, shell=True, cwd=self.cwd)
         return []
 
