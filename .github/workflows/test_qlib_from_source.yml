@@ -139,7 +139,7 @@ jobs:
     - name: Test data downloads
       run: |
         python scripts/get_data.py qlib_data --name qlib_data_simple --target_dir ~/.qlib/qlib_data/cn_data --interval 1d --region cn
-        python scripts/get_data.py download_data --file_name rl_data --target_dir tests/.data/rl
+        python scripts/get_data.py download_data --file_name rl_data.zip --target_dir tests/.data/rl
 
     - name: Install Lightgbm for MacOS
       if: ${{ matrix.os == 'macos-11' || matrix.os == 'macos-latest' }}
