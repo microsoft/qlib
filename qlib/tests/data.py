@@ -11,12 +11,15 @@ import datetime
 from tqdm import tqdm
 from pathlib import Path
 from loguru import logger
+from cryptography.fernet import Fernet
 from qlib.utils import exists_qlib_data
 
 
 class GetData:
     DATASET_VERSION = "v2"
-    REMOTE_URL = "http://fintech.msra.cn/stock_data/downloads"
+    REMOTE_URL = "https://qlibpublic.blob.core.windows.net/data/default/stock_data"
+    TOKEN = "gAAAAABkl9cedDk0lDdzxZgl70vAhIu3obr3wPqZiIXibQSYA5yCTr8FN1gZ_8XSthRAYucwEkq76ahFg10F_NFrCSroeGNczB1kouajJiEvlGlO389pZRXV4GDmDe3pbETXzEipSbXNGyw3oYF3t2TIulxLkTio7xI6-980EhIdy56oU_cuHqhSnaOlXfJwM0kGnTHNiTeWbLDlq1GWtbXuY5ZACvkVDBcmkO36CMv5qIgQ_iLmk3ZsFq96CYyJCbsDCgCKIX7R"
+    KEY = "EYcA8cgorA8X9OhyMwVfuFxn_1W3jGk6jCbs3L2oPoA="
     QLIB_DATA_NAME = "{dataset_name}_{region}_{interval}_{qlib_version}.zip"
 
     def __init__(self, delete_zip_file=False):
@@ -35,7 +38,9 @@ class GetData:
         return dataset_version
 
     def merge_remote_url(self, file_name: str, dataset_version: str = None):
-        return f"{self.REMOTE_URL}/{self.normalize_dataset_version(dataset_version)}/{file_name}"
+        fernet = Fernet(self.KEY)
+        token = fernet.decrypt(self.TOKEN).decode()
+        return f"{self.REMOTE_URL}/{self.normalize_dataset_version(dataset_version)}/{file_name}{token}"
 
     def _download_data(
         self, file_name: str, target_dir: [Path, str], delete_old: bool = True, dataset_version: str = None
@@ -156,50 +161,14 @@ class GetData:
         qlib_version = ".".join(re.findall(r"(\d+)\.+", qlib.__version__))
 
         def _get_file_name(v):
-            return self.QLIB_DATA_NAME.format(
-                dataset_name=name, region=region.lower(), interval=interval.lower(), qlib_version=v
-            )
+            if name.lower() == "qlib_data" or name.lower() == "qlib_data_simple":
+                return f"{name}_{region}_{interval}_{v}.zip"
+            if name.lower() == "rl_data":
+                return f"{name}.zip"
 
         file_name = _get_file_name(qlib_version)
         if not self.check_dataset(file_name, version):
             file_name = _get_file_name("latest")
-        self._download_data(file_name.lower(), target_dir, delete_old, dataset_version=version)
-
-    def rl_data(
-        self,
-        target_dir="~/.qlib/qlib_data/rl_data",
-        version=None,
-        delete_old=True,
-        exists_skip=False,
-    ):
-        """download cn qlib data from remote
-
-        Parameters
-        ----------
-        target_dir: str
-            data save directory
-        version: str
-            data version, value from [v1, ...], by default None(use script to specify version)
-        delete_old: bool
-            delete an existing directory, by default True
-        exists_skip: bool
-            exists skip, by default False
-
-        Examples
-        ---------
-        # get rl data
-        python get_data.py rl_data --target_dir ~/.qlib/qlib_data/rl_data
-        -------
-
-        """
-        if exists_skip and exists_qlib_data(target_dir):
-            logger.warning(
-                f"Data already exists: {target_dir}, the data download will be skipped\n"
-                f"\tIf downloading is required: `exists_skip=False` or `change target_dir`"
-            )
-            return
-
-        file_name = "rl.zip"
         self._download_data(file_name.lower(), target_dir, delete_old, dataset_version=version)
 
     def csv_data_cn(self, target_dir="~/.qlib/csv_data/cn_data"):
