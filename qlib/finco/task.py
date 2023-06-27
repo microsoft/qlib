@@ -12,7 +12,7 @@ import platform
 from qlib.finco.llm import APIBackend
 from qlib.finco.tpl import get_tpl_path
 from qlib.finco.prompt_template import PromptTemplate
-from qlib.workflow.record_temp import HFSignalRecord, SignalRecord, PortAnaRecord
+from qlib.workflow.record_temp import HFSignalRecord, SignalRecord
 from qlib.contrib.analyzer import HFAnalyzer, SignalAnalyzer
 from qlib.utils import init_instance_by_config
 from qlib.workflow import R
@@ -96,11 +96,11 @@ class Task:
 
     @property
     def system(self):
-        return self.prompt_template.__dict__.get(self.__class__.__name__ + "_system", "")
+        return self.prompt_template.get(self.__class__.__name__ + "_system")
 
     @property
     def user(self):
-        return self.prompt_template.__dict__.get(self.__class__.__name__ + "_user", "")
+        return self.prompt_template.get(self.__class__.__name__ + "_user")
 
     def __str__(self):
         return self.__class__.__name__
@@ -225,6 +225,7 @@ class TrainTask(Task):
 
     def __init__(self):
         super().__init__()
+        self._output = None
 
     def execute(self):
         workflow_config = (
@@ -232,37 +233,7 @@ class TrainTask(Task):
             if self._context_manager.get_context("workflow_config")
             else "workflow_config.yaml"
         )
-        workspace = self._context_manager.get_context("workspace")
-        workflow_path = workspace.joinpath(workflow_config)
-        with workflow_path.open() as f:
-            workflow = yaml.safe_load(f)
 
-        model = init_instance_by_config(workflow["task"]["model"])
-        dataset = init_instance_by_config(workflow["task"]["dataset"])
-
-        with R.start(experiment_name="finCo"):
-            model.fit(dataset)
-
-        self._context_manager.set_context("model", model)
-        self._context_manager.set_context("dataset", dataset)
-
-        return [RecorderTask()]
-
-
-class RecorderTask(Task):
-    """
-    This Recorder task is responsible for analysing data such as index and distribution.
-    """
-
-    def __init__(self):
-        super().__init__()
-
-    def execute(self):
-        workflow_config = (
-            self._context_manager.get_context("workflow_config")
-            if self._context_manager.get_context("workflow_config")
-            else "workflow_config.yaml"
-        )
         workspace = self._context_manager.get_context("workspace")
         workflow_path = workspace.joinpath(workflow_config)
         with workflow_path.open() as f:
@@ -275,45 +246,18 @@ class RecorderTask(Task):
         if confirm is False:
             return []
 
-        model = self._context_manager.get_context("model")
-        dataset = self._context_manager.get_context("dataset")
-
-        with R.start(experiment_name="finCo", resume=True):
-            # prediction
-            recorder = R.get_recorder()
-            sr = SignalRecord(model, dataset, recorder)
-            sr.generate()
-
-        return [BackTestTask()]
-
-
-class BackTestTask(Task):
-    """
-    This task is used for backtesting based on the model and dataset provided.
-    """
-
-    def __init__(self):
-        super().__init__()
-
-    def execute(self):
-        workflow_config = (
-            self._context_manager.get_context("workflow_config")
-            if self._context_manager.get_context("workflow_config")
-            else "workflow_config.yaml"
-        )
-        workspace = self._context_manager.get_context("workspace")
-        workflow_path = workspace.joinpath(workflow_config)
-        with workflow_path.open() as f:
-            workflow = yaml.safe_load(f)
-
-        with R.start(experiment_name="finCo", resume=True):
-            recorder = R.get_recorder()
-
-            #  portfolio-based analysis: backtest
-            par = PortAnaRecord(recorder, workflow["port_analysis_config"], "day")
-            par.generate()
+        command = f"qrun {workflow_path}"
+        self._output = subprocess.check_output(command, shell=True)
 
         return [AnalysisTask()]
+
+    def summarize(self):
+        if self._output is not None:
+            # TODO: it will be overrides by later commands
+            # utf8 can't decode normally on Windows
+            self._context_manager.set_context(
+                self.__class__.__name__, self._output.decode("ANSI")
+            )
 
 
 class AnalysisTask(Task):
@@ -368,15 +312,30 @@ class AnalysisTask(Task):
         if isinstance(analysers, list) and len(analysers):
             self.logger.info(f"selected analysers: {analysers}", plain=True)
 
+            workflow_config = (
+                self._context_manager.get_context("workflow_config")
+                if self._context_manager.get_context("workflow_config")
+                else "workflow_config.yaml"
+            )
+            workspace = self._context_manager.get_context("workspace")
+            workflow_path = workspace.joinpath(workflow_config)
+            with workflow_path.open() as f:
+                workflow = yaml.safe_load(f)
+
+            experiment_name = workflow["experiment_name"] if "experiment_name" in workflow else "workflow"
+
+            model = init_instance_by_config(workflow["task"]["model"])
+            dataset = init_instance_by_config(workflow["task"]["dataset"])
+
             tasks = []
             for analyser in analysers:
                 if analyser in self.__ANALYZERS_PROJECT.keys():
                     tasks.append(
                         self.__ANALYZERS_PROJECT.get(analyser)(
-                            workspace=self._context_manager.get_context("workspace"),
-                            model=self._context_manager.get_context("model"),
-                            dataset=self._context_manager.get_context("dataset"),
-                            recorder=self._context_manager.get_context("recorder"),
+                            workspace=workspace,
+                            model=model,
+                            dataset=dataset,
+                            recorder=R.get_recorder(experiment_name=experiment_name),
                         )
                     )
 
@@ -702,38 +661,4 @@ class SummarizeTask(Task):
     def save_markdown(self, content: str):
         with open(Path(self.workspace).joinpath(self.__DEFAULT_REPORT_NAME), "w") as f:
             f.write(content)
-
-
-class BackForwardTask(Task):
-    """
-    This task is used to finetune prompt and rerun the workflow.
-    """
-
-    def __init__(self):
-        super().__init__()
-
-    def execute(self):
-        workspace = self._context_manager.get_context("workspace")
-        task_finished = self._context_manager.get_context("task_finished")
-
-        user_prompt = self._context_manager.get_context("user_prompt")
-        summary = self._context_manager.get_context("summary")
-
-        for task in task_finished:
-            prompt_workflow_selection = self.user.render(
-                summary=summary, task_finished=[str(task) for task in task_finished],
-                task=task.__class__, system=task.system, user_prompt=user_prompt
-            )
-
-            response = APIBackend().build_messages_and_create_chat_completion(
-                user_prompt=prompt_workflow_selection, system_prompt=self.system.render()
-            )
-
-            # todo: response assertion
-            self.prompt_template.update(key=f"{task.__class__.__name__}_system", value=response)
-
-        self.prompt_template.save(Path.joinpath(workspace, f"prompts/checkpoint_{self._context_manager.epoch}.yml"))
-        self._context_manager.clear()
-
-        return []
 
