@@ -399,7 +399,7 @@ Qlib now supports reinforcement learning, a feature designed to model continuous
 Here is a list of solutions built on `Qlib` categorized by scenarios.
 
 ### [RL for order execution](examples/rl_order_execution)
-[Here](https://qlib.readthedocs.io/en/latest/component/rl/overall.html#order-execution) is the introduction of this scenario
+[Here](https://qlib.readthedocs.io/en/latest/component/rl/overall.html#order-execution) is the introduction of this scenario.  All the methods below are compared [here](examples/rl_order_execution).
 - [TWAP](examples/rl_order_execution/exp_configs/backtest_twap.yml)
 - [PPO: "An End-to-End Optimal Trade Execution Framework based on Proximal Policy Optimization", IJCAL 2020](examples/rl_order_execution/exp_configs/backtest_ppo.yml)
 - [OPDS: "Universal Trading for Order Execution with Oracle Policy Distillation", AAAI 2021](examples/rl_order_execution/exp_configs/backtest_opds.yml)
