@@ -56,6 +56,7 @@ class ALSTM(Model):
         n_jobs=10,
         GPU=0,
         seed=None,
+        rnn_type="GRU",
         **kwargs
     ):
         # Set logger.
@@ -77,6 +78,7 @@ class ALSTM(Model):
         self.device = torch.device("cuda:%d" % (GPU) if torch.cuda.is_available() and GPU >= 0 else "cpu")
         self.n_jobs = n_jobs
         self.seed = seed
+        self.rnn_type = rnn_type
 
         self.logger.info(
             "ALSTM parameters setting:"
@@ -122,6 +124,7 @@ class ALSTM(Model):
             hidden_size=self.hidden_size,
             num_layers=self.num_layers,
             dropout=self.dropout,
+            rnn_type=self.rnn_type,
         )
         self.logger.info("model:\n{:}".format(self.ALSTM_model))
         self.logger.info("model size: {:.4f} MB".format(count_parameters(self.ALSTM_model)))
