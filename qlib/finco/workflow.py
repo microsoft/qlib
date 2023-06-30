@@ -8,6 +8,7 @@ from qlib.finco.prompt_template import PromptTemplate, Template
 from qlib.finco.log import FinCoLog, LogColors
 from qlib.finco.utils import similarity
 from qlib.finco.llm import APIBackend
+from qlib.finco.conf import Config
 
 
 class WorkflowContextManager:
@@ -71,16 +72,17 @@ class WorkflowManager:
             self._workspace = Path.cwd() / "finco_workspace"
         else:
             self._workspace = Path(workspace)
+        self.conf = Config()
         self._confirm_and_rm()
 
         self.prompt_template = PromptTemplate()
         self.context = WorkflowContextManager()
         self.context.set_context("workspace", self._workspace)
-        self.default_user_prompt = "Please help me build a low turnover strategy that focus more on longterm return in China a stock market. Please help to pick one third of the factors in Alpha360 and use lightGBM model."
+        self.default_user_prompt = "Please help me build a low turnover strategy that focus more on longterm return in China A csi800. Please help to use lightgbm model."
 
     def _confirm_and_rm(self):
         # if workspace exists, please confirm and remove it. Otherwise exit.
-        if self._workspace.exists():
+        if self._workspace.exists() and not self.conf.continuous_mode:
             self.logger.info(title="Interact")
             flag = input(
                 LogColors().render(
@@ -95,6 +97,8 @@ class WorkflowManager:
             else:
                 # remove self._workspace
                 shutil.rmtree(self._workspace)
+        elif self._workspace.exists() and self.conf.continuous_mode:
+            shutil.rmtree(self._workspace)
 
     def set_context(self, key, value):
         """Direct call set_context method of the context manager"""
