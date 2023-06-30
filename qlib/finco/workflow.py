@@ -78,7 +78,7 @@ class WorkflowManager:
         self.prompt_template = PromptTemplate()
         self.context = WorkflowContextManager()
         self.context.set_context("workspace", self._workspace)
-        self.default_user_prompt = "Please help me build a low turnover strategy that focus more on longterm return in China A csi800. Please help to use GRU model."
+        self.default_user_prompt = "Please help me build a low turnover strategy that focus more on longterm return in China A csi800. Please help to use lightgbm model."
 
     def _confirm_and_rm(self):
         # if workspace exists, please confirm and remove it. Otherwise exit.

@@ -509,7 +509,7 @@ class ConfigActionTask(ActionTask):
             yaml_config = yaml.safe_load(io.StringIO(config))
         except yaml.YAMLError as e:
             self.logger.info(f"Yaml file is not in the correct format: {e}")
-            return_tasks = [ConfigActionTask(self.target_component, reconfig=True, error=str(e))]
+            return_tasks = [HyperparameterActionTask(self.target_component, regenerate=True, error=str(e)),  ConfigActionTask(self.target_component, reconfig=True, error=str(e))]
             return return_tasks
         
         if self.target_component == "DataHandler":
@@ -763,7 +763,7 @@ class SummarizeTask(Task):
 
         self._context_manager.set_context("summary", response)
         be.debug_mode = bak_debug_mode
-        
+
         self.save_markdown(content=response)
         self.logger.info(f"Report has saved to {self.__DEFAULT_REPORT_NAME}", title="End")
 
