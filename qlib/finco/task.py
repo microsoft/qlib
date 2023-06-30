@@ -11,10 +11,9 @@ import platform
 
 from qlib.finco.llm import APIBackend
 from qlib.finco.tpl import get_tpl_path
-from qlib.finco.prompt_template import PormptTemplate
+from qlib.finco.prompt_template import PromptTemplate
 from qlib.workflow.record_temp import HFSignalRecord, SignalRecord
 from qlib.contrib.analyzer import HFAnalyzer, SignalAnalyzer
-from qlib.utils import init_instance_by_config
 from qlib.workflow import R
 from qlib.finco.log import FinCoLog, LogColors
 from qlib.finco.conf import Config
@@ -41,7 +40,7 @@ class Task:
 
     def __init__(self) -> None:
         self._context_manager = None
-        self.prompt_template = PormptTemplate()
+        self.prompt_template = PromptTemplate()
         self.executed = False
         self.continuous = Config().continuous_mode
         self.logger = FinCoLog()
@@ -96,13 +95,11 @@ class Task:
 
     @property
     def system(self):
-        return self.prompt_template.__getattribute__(
-            self.__class__.__name__ + "_system"
-        )
+        return self.prompt_template.get(self.__class__.__name__ + "_system")
 
     @property
     def user(self):
-        return self.prompt_template.__getattribute__(self.__class__.__name__ + "_user")
+        return self.prompt_template.get(self.__class__.__name__ + "_user")
 
     def __str__(self):
         return self.__class__.__name__
@@ -150,7 +147,7 @@ class PlanTask(Task):
 
 
 class SLPlanTask(PlanTask):
-    def __init__(self,) -> None:
+    def __init__(self, ) -> None:
         super().__init__()
 
     def execute(self):
@@ -220,13 +217,14 @@ class RLPlanTask(PlanTask):
         return []
 
 
-class RecorderTask(Task):
+class TrainTask(Task):
     """
-    This Recorder task is responsible for analysing data such as index and distribution.
+    This train task is responsible for training model configure by yaml file.
     """
 
     def __init__(self):
         super().__init__()
+        self._output = None
 
     def execute(self):
         workflow_config = (
@@ -234,6 +232,7 @@ class RecorderTask(Task):
             if self._context_manager.get_context("workflow_config")
             else "workflow_config.yaml"
         )
+
         workspace = self._context_manager.get_context("workspace")
         workflow_path = workspace.joinpath(workflow_config)
         with workflow_path.open() as f:
@@ -246,23 +245,18 @@ class RecorderTask(Task):
         if confirm is False:
             return []
 
-        model = init_instance_by_config(workflow["task"]["model"])
-        dataset = init_instance_by_config(workflow["task"]["dataset"])
-
-        with R.start(experiment_name="finCo"):
-            model.fit(dataset)
-            R.save_objects(trained_model=model)
-
-            # prediction
-            recorder = R.get_recorder()
-            sr = SignalRecord(model, dataset, recorder)
-            sr.generate()
-
-        self._context_manager.set_context("model", model)
-        self._context_manager.set_context("dataset", dataset)
-        self._context_manager.set_context("recorder", recorder)
+        command = f"qrun {workflow_path}"
+        self._output = subprocess.check_output(command, shell=True, cwd=workspace)
 
         return [AnalysisTask()]
+
+    def summarize(self):
+        if self._output is not None:
+            # TODO: it will be overrides by later commands
+            # utf8 can't decode normally on Windows
+            self._context_manager.set_context(
+                self.__class__.__name__, self._output.decode("ANSI")
+            )
 
 
 class AnalysisTask(Task):
@@ -271,8 +265,8 @@ class AnalysisTask(Task):
     """
 
     __ANALYZERS_PROJECT = {
-        HFAnalyzer.__name__: HFSignalRecord,
-        SignalAnalyzer.__name__: SignalRecord,
+        HFAnalyzer.__name__: HFAnalyzer,
+        SignalAnalyzer.__name__: SignalAnalyzer,
     }
     __ANALYZERS_DOCS = {
         HFAnalyzer.__name__: HFAnalyzer.__doc__,
@@ -303,7 +297,7 @@ class AnalysisTask(Task):
                     ANALYZERS_DOCS=self.__ANALYZERS_DOCS,
                 ),
             )
-            analysers = response.split(",")
+            analysers = response.replace(" ", "").split(",")
             confirm = self.interact(f"I select these analysers: {analysers}\n"
                                     f"Are you sure you want to use? yes(Y/y), no(N/n) or prompt:")
             if confirm is False:
@@ -317,15 +311,26 @@ class AnalysisTask(Task):
         if isinstance(analysers, list) and len(analysers):
             self.logger.info(f"selected analysers: {analysers}", plain=True)
 
+            workflow_config = (
+                self._context_manager.get_context("workflow_config")
+                if self._context_manager.get_context("workflow_config")
+                else "workflow_config.yaml"
+            )
+            workspace = self._context_manager.get_context("workspace")
+            workflow_path = workspace.joinpath(workflow_config)
+            with workflow_path.open() as f:
+                workflow = yaml.safe_load(f)
+
+            experiment_name = workflow["experiment_name"] if "experiment_name" in workflow else "workflow"
+            R.set_uri(Path.joinpath(workspace, 'mlruns').as_uri())
+
             tasks = []
             for analyser in analysers:
                 if analyser in self.__ANALYZERS_PROJECT.keys():
                     tasks.append(
                         self.__ANALYZERS_PROJECT.get(analyser)(
-                            workspace=self._context_manager.get_context("workspace"),
-                            model=self._context_manager.get_context("model"),
-                            dataset=self._context_manager.get_context("dataset"),
-                            recorder=self._context_manager.get_context("recorder"),
+                            recorder=R.get_recorder(experiment_name=experiment_name),
+                            output_dir=workspace
                         )
                     )
 
@@ -575,11 +580,14 @@ class SummarizeTask(Task):
             information=information, figure_path=figure_path, user_prompt=user_prompt
         )
 
+        # todo: remove 'be' after test
         be = APIBackend()
         be.debug_mode = False
         response = be.build_messages_and_create_chat_completion(
             user_prompt=prompt_workflow_selection, system_prompt=self.system.render()
         )
+
+        self._context_manager.set_context("summary", response)
         self.save_markdown(content=response)
         self.logger.info(f"Report has saved to {self.__DEFAULT_REPORT_NAME}", title="End")
 

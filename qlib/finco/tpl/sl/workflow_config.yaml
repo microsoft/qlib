@@ -1,6 +1,7 @@
 qlib_init:
     provider_uri: "~/.qlib/qlib_data/cn_data"
     region: cn
+experiment_name: finCo
 market: &market csi300
 benchmark: &benchmark SH000300
 data_handler_config: &data_handler_config
@@ -14,7 +15,7 @@ port_analysis_config: &port_analysis_config
         class: TopkDropoutStrategy
         module_path: qlib.contrib.strategy
         kwargs:
-            model: <MODEL> 
+            model: <MODEL>
             dataset: <DATASET>
             topk: 50
             n_drop: 5

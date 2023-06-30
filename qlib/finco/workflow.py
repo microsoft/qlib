@@ -3,9 +3,11 @@ import copy
 import shutil
 from pathlib import Path
 
-from qlib.finco.task import WorkflowTask, PlanTask, ActionTask, SummarizeTask, RecorderTask, AnalysisTask
+from qlib.finco.task import WorkflowTask, SummarizeTask, TrainTask
+from qlib.finco.prompt_template import PromptTemplate, Template
 from qlib.finco.log import FinCoLog, LogColors
 from qlib.finco.utils import similarity
+from qlib.finco.llm import APIBackend
 
 
 class WorkflowContextManager:
@@ -51,9 +53,16 @@ class WorkflowContextManager:
         max_score_key = max(scores, key=scores.get)
         return {max_score_key: self.context.get(max_score_key)}
 
+    def clear(self, reserve: list = None):
+        if reserve is None:
+            reserve = []
+
+        _context = {k: self.get_context(k) for k in reserve}
+        self.context = _context
+
 
 class WorkflowManager:
-    """This manange the whole task automation workflow including tasks and actions"""
+    """This manage the whole task automation workflow including tasks and actions"""
 
     def __init__(self, workspace=None) -> None:
         self.logger = FinCoLog()
@@ -63,8 +72,10 @@ class WorkflowManager:
         else:
             self._workspace = Path(workspace)
         self._confirm_and_rm()
-        self._context = WorkflowContextManager()
-        self._context.set_context("workspace", self._workspace)
+
+        self.prompt_template = PromptTemplate()
+        self.context = WorkflowContextManager()
+        self.context.set_context("workspace", self._workspace)
         self.default_user_prompt = "Please help me build a low turnover strategy that focus more on longterm return in China a stock market. Please help to pick one third of the factors in Alpha360 and use lightGBM model."
 
     def _confirm_and_rm(self):
@@ -87,10 +98,10 @@ class WorkflowManager:
 
     def set_context(self, key, value):
         """Direct call set_context method of the context manager"""
-        self._context.set_context(key, value)
+        self.context.set_context(key, value)
 
     def get_context(self) -> WorkflowContextManager:
-        return self._context
+        return self.context
 
     def run(self, prompt: str) -> Path:
         """
@@ -124,7 +135,7 @@ class WorkflowManager:
         self.logger.info(f"user_prompt: {self.get_context().get_context('user_prompt')}", title="Start")
 
         # NOTE: list may not be enough for general task list
-        task_list = [WorkflowTask(), RecorderTask(), SummarizeTask()]
+        task_list = [WorkflowTask(), TrainTask(), SummarizeTask()]
         task_finished = []
         while len(task_list):
             task_list_info = [str(task) for task in task_list]
@@ -138,15 +149,51 @@ class WorkflowManager:
                              f"Executing task: {str(t)}",
                              title="Task")
 
-            t.assign_context_manager(self._context)
+            t.assign_context_manager(self.context)
             res = t.execute()
             t.summarize()
             task_finished.append(t)
+            self.context.set_context("task_finished", task_finished)
             self.logger.plain_info(f"{str(t)} finished.\n\n\n")
 
-            for _ in res:
-                if not isinstance(t, (WorkflowTask, PlanTask, ActionTask, RecorderTask, AnalysisTask, SummarizeTask)):
-                    raise NotImplementedError(f"Unsupported Task type {_}")
             task_list = res + task_list
 
         return self._workspace
+
+
+class LearnManager:
+
+    def __init__(self):
+        self.epoch = 0
+        self.wm = WorkflowManager()
+
+    def run(self, prompt):
+
+        # todo: add early stop condition
+        for i in range(10):
+            self.wm.run(prompt)
+            self.learn()
+            self.epoch += 1
+
+    def learn(self):
+        workspace = self.wm.context.get_context("workspace")
+        task_finished = self.wm.context.get_context("task_finished")
+
+        user_prompt = self.wm.context.get_context("user_prompt")
+        summary = self.wm.context.get_context("summary")
+
+        for task in task_finished:
+            prompt_workflow_selection = task.user.render(
+                summary=summary, task_finished=[str(task) for task in task_finished],
+                task=task.__class__, system=task.system, user_prompt=user_prompt
+            )
+
+            response = APIBackend().build_messages_and_create_chat_completion(
+                user_prompt=prompt_workflow_selection, system_prompt=task.system.render()
+            )
+
+            # todo: response assertion
+            task.prompt_template.update(key=f"{task.__class__.__name__}_system", value=Template(response))
+
+        self.wm.prompt_template.save(Path.joinpath(workspace, f"prompts/checkpoint_{self.epoch}.yml"))
+        self.wm.context.clear(reserve=["workspace"])
