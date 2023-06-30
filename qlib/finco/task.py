@@ -14,7 +14,6 @@ from qlib.finco.tpl import get_tpl_path
 from qlib.finco.prompt_template import PromptTemplate
 from qlib.workflow.record_temp import HFSignalRecord, SignalRecord
 from qlib.contrib.analyzer import HFAnalyzer, SignalAnalyzer
-from qlib.utils import init_instance_by_config
 from qlib.workflow import R
 from qlib.finco.log import FinCoLog, LogColors
 from qlib.finco.conf import Config
@@ -148,7 +147,7 @@ class PlanTask(Task):
 
 
 class SLPlanTask(PlanTask):
-    def __init__(self,) -> None:
+    def __init__(self, ) -> None:
         super().__init__()
 
     def execute(self):
@@ -247,7 +246,7 @@ class TrainTask(Task):
             return []
 
         command = f"qrun {workflow_path}"
-        self._output = subprocess.check_output(command, shell=True)
+        self._output = subprocess.check_output(command, shell=True, cwd=workspace)
 
         return [AnalysisTask()]
 
@@ -266,8 +265,8 @@ class AnalysisTask(Task):
     """
 
     __ANALYZERS_PROJECT = {
-        HFAnalyzer.__name__: HFSignalRecord,
-        SignalAnalyzer.__name__: SignalRecord,
+        HFAnalyzer.__name__: HFAnalyzer,
+        SignalAnalyzer.__name__: SignalAnalyzer,
     }
     __ANALYZERS_DOCS = {
         HFAnalyzer.__name__: HFAnalyzer.__doc__,
@@ -298,7 +297,7 @@ class AnalysisTask(Task):
                     ANALYZERS_DOCS=self.__ANALYZERS_DOCS,
                 ),
             )
-            analysers = response.split(",")
+            analysers = response.replace(" ", "").split(",")
             confirm = self.interact(f"I select these analysers: {analysers}\n"
                                     f"Are you sure you want to use? yes(Y/y), no(N/n) or prompt:")
             if confirm is False:
@@ -323,19 +322,15 @@ class AnalysisTask(Task):
                 workflow = yaml.safe_load(f)
 
             experiment_name = workflow["experiment_name"] if "experiment_name" in workflow else "workflow"
-
-            model = init_instance_by_config(workflow["task"]["model"])
-            dataset = init_instance_by_config(workflow["task"]["dataset"])
+            R.set_uri(Path.joinpath(workspace, 'mlruns').as_uri())
 
             tasks = []
             for analyser in analysers:
                 if analyser in self.__ANALYZERS_PROJECT.keys():
                     tasks.append(
                         self.__ANALYZERS_PROJECT.get(analyser)(
-                            workspace=workspace,
-                            model=model,
-                            dataset=dataset,
                             recorder=R.get_recorder(experiment_name=experiment_name),
+                            output_dir=workspace
                         )
                     )
 
@@ -661,4 +656,3 @@ class SummarizeTask(Task):
     def save_markdown(self, content: str):
         with open(Path(self.workspace).joinpath(self.__DEFAULT_REPORT_NAME), "w") as f:
             f.write(content)
-
