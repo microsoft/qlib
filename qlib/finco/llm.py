@@ -27,7 +27,7 @@ class APIBackend(Singleton):
                 json.load(open(self.cache_file_location, "r")) if os.path.exists(self.cache_file_location) else {}
             )
 
-    def build_messages_and_create_chat_completion(self, user_prompt, system_prompt=None):
+    def build_messages_and_create_chat_completion(self, user_prompt, system_prompt=None, former_messages=[], **kwargs):
         """build the messages to avoid implementing several redundant lines of code"""
         cfg = Config()
         # TODO: system prompt should always be provided. In development stage we can use default value
@@ -35,20 +35,23 @@ class APIBackend(Singleton):
             try:
                 system_prompt = cfg.system_prompt
             except AttributeError:
-                get_module_logger("finco").warning("system_prompt is not set, using default value.")
+                FinCoLog().warning("system_prompt is not set, using default value.")
                 system_prompt = "You are an AI assistant who helps to answer user's questions about finance."
         messages = [
             {
                 "role": "system",
                 "content": system_prompt,
-            },
+            }
+        ]
+        messages.extend(former_messages[-1*cfg.max_past_message_include:])
+        messages.append(
             {
                 "role": "user",
                 "content": user_prompt,
-            },
-        ]
+            }
+        )
         fcl = FinCoLog()
-        response = self.try_create_chat_completion(messages=messages)
+        response = self.try_create_chat_completion(messages=messages, **kwargs)
         fcl.log_message(messages)
         fcl.log_response(response)
         return response
@@ -59,7 +62,7 @@ class APIBackend(Singleton):
             try:
                 response = self.create_chat_completion(**kwargs)
                 return response
-            except openai.error.RateLimitError as e:
+            except (openai.error.RateLimitError, openai.error.Timeout) as e:
                 print(e)
                 print(f"Retrying {i+1}th time...")
                 time.sleep(1)
@@ -75,8 +78,9 @@ class APIBackend(Singleton):
     ) -> str:
 
         if self.debug_mode:
-            if messages[1]["content"] in self.cache:
-                return self.cache[messages[1]["content"]]
+            key = json.dumps(messages)
+            if key in self.cache:
+                return self.cache[key]
 
         if temperature is None:
             temperature = self.cfg.temperature
@@ -96,6 +100,6 @@ class APIBackend(Singleton):
             )
         resp = response.choices[0].message["content"]
         if self.debug_mode:
-            self.cache[messages[1]["content"]] = resp
+            self.cache[key] = resp
             json.dump(self.cache, open(self.cache_file_location, "w"))
         return resp

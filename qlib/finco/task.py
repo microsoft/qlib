@@ -8,6 +8,7 @@ import abc
 import re
 import subprocess
 import platform
+import inspect
 
 from qlib.finco.llm import APIBackend
 from qlib.finco.tpl import get_tpl_path
@@ -55,13 +56,16 @@ class Task:
         """then all tasks can use this context manager to share the same context"""
         self._context_manager = context_manager
 
-    def save_chat_history_to_context_manager(self, user_input, response, system_prompt):
+    def save_chat_history_to_context_manager(self, user_input, response, system_prompt, target_component="None"):
         chat_history = self._context_manager.get_context("chat_history")
         if chat_history is None:
-            chat_history = []
-        chat_history.append({"role": "system", "content": system_prompt})
-        chat_history.append({"role": "user", "content": user_input})
-        chat_history.append({"role": "assistant", "content": response})
+            chat_history = {}
+        if self.__class__.__name__ not in chat_history:
+            chat_history[self.__class__.__name__] = {}
+        if target_component not in chat_history[self.__class__.__name__]:
+            chat_history[self.__class__.__name__][target_component] = [{"role": "system", "content": system_prompt}]
+        chat_history[self.__class__.__name__][target_component].append({"role": "user", "content": user_input})
+        chat_history[self.__class__.__name__][target_component].append({"role": "assistant", "content": response})
         self._context_manager.update_context("chat_history", chat_history)
 
     @abc.abstractclassmethod
@@ -147,8 +151,10 @@ class PlanTask(Task):
 
 
 class SLPlanTask(PlanTask):
-    def __init__(self, ) -> None:
+    def __init__(self, replan=False, error=None) -> None:
         super().__init__()
+        self.replan = replan
+        self.error = error
 
     def execute(self):
         workflow = self._context_manager.get_context("workflow")
@@ -157,25 +163,23 @@ class SLPlanTask(PlanTask):
         user_prompt = self._context_manager.get_context("user_prompt")
         assert user_prompt is not None, "The user prompt is not provided"
         prompt_plan_all = self.user.render(user_prompt=user_prompt)
+        former_messages = []
+        if self.replan:
+            prompt_plan_all = f"your choice of predefined classes cannot be initialized.\nPlease rewrite the plan and answer with exact required format in system prompt and reply with no more explainations.\nThe error message: {self.error}. Please correct the former answer accordingly."
+            former_messages = self._context_manager.get_context("chat_history")[self.__class__.__name__]['None'][1:]
         response = APIBackend().build_messages_and_create_chat_completion(
-            prompt_plan_all, self.system.render()
+            prompt_plan_all, self.system.render(), former_messages=former_messages
         )
         self.save_chat_history_to_context_manager(
             prompt_plan_all, response, self.system.render()
         )
-        if "components" not in response:
+        if "components" not in response.lower():
             self.logger.warning(
                 "The response is not in the correct format, which probably means the answer is not correct"
             )
-
-        regex_dict = {
-            "Dataset": re.compile("Dataset: \((.*?)\) (.*?)\n"),
-            "DataHandler": re.compile("DataHandler: \((.*?)\) (.*?)\n"),
-            "Model": re.compile("Model: \((.*?)\) (.*?)\n"),
-            "Record": re.compile("Record: \((.*?)\) (.*?)\n"),
-            "Strategy": re.compile("Strategy: \((.*?)\) (.*?)\n"),
-            "Backtest": re.compile("Backtest: \((.*?)\) (.*?)$"),
-        }
+        
+        decision_pattern = re.compile("\((.*?)\)")
+        class_pattern = re.compile("{(.*?)}-{(.*?)}")
         new_task = []
         # 1) create a workspace
         # TODO: we have to make choice between `sl` and  `sl-cfg`
@@ -186,18 +190,31 @@ class SLPlanTask(PlanTask):
         )
 
         # 2) CURD on the workspace
-        for name, regex in regex_dict.items():
-            res = re.search(regex, response)
-            if not res:
-                self.logger.error(f"The search for {name} decision failed")
-            else:
-                self._context_manager.set_context(f"{name}_decision", res.group(1))
-                self._context_manager.set_context(f"{name}_plan", res.group(2))
-                assert res.group(1) in ["Default", "Personized"]
-                if res.group(1) == "Default":
-                    new_task.append(ConfigActionTask(name))
-                elif res.group(1) == "Personized":
-                    new_task.extend([ConfigActionTask(name), ImplementActionTask(name)])
+        for name in COMPONENT_LIST:
+            target_line = [line for line in response.split("\n") if name in line]
+            assert len(target_line) == 1, f"The {name} is not found in the response"
+            target_line = target_line[0].strip("- ")
+            decision = re.search(decision_pattern, target_line)
+            assert decision is not None, f"The decision of {name} is not found"
+            decision = decision.group(1)
+            classes = re.findall(class_pattern, target_line)
+            try:
+                for module_path, class_name in classes:
+                    exec(f"from {module_path} import {class_name}")
+            except ImportError as e:
+                self.logger.warning(f"The {class_name} is not found in {module_path}")
+                return [SLPlanTask(replan=True, error=str(e))]
+            self._context_manager.set_context(f"{name}_decision", decision)
+            self._context_manager.set_context(f"{name}_classes", classes)
+            self._context_manager.set_context(f"{name}_plan", target_line)
+
+            assert decision in ["Default", "Personized"], f"The decision of {name} is not correct"
+            if decision == "Default":
+                new_task.extend([HyperparameterActionTask(name), ConfigActionTask(name), YamlEditTask(name)])
+            elif decision == "Personized":
+                # TODO open ImplementActionTask to let GPT write code
+                new_task.extend([HyperparameterActionTask(name), ConfigActionTask(name), YamlEditTask(name)])
+                # new_task.extend([HyperparameterActionTask(name), ConfigActionTask(name), ImplementActionTask(name), CodeDumpTask(name), YamlEditTask(name)])
         return new_task
 
 
@@ -385,53 +402,68 @@ class DifferentiatedComponentActionTask(ActionTask):
         return self.prompt_template.__getattribute__(self.__class__.__name__ + "_user_" + self.target_component)
 
 
-class ConfigActionTask(DifferentiatedComponentActionTask):
-    def __init__(self, component) -> None:
+class HyperparameterActionTask(ActionTask):
+    def __init__(self, component, regenerate=False, error=None) -> None:
         super().__init__()
         self.target_component = component
+        self.regenerate = regenerate
+        self.error = error
 
     def execute(self):
         user_prompt = self._context_manager.get_context("user_prompt")
-        prompt_element_dict = dict()
-        for component in COMPONENT_LIST:
-            prompt_element_dict[
-                f"{component}_decision"
-            ] = self._context_manager.get_context(f"{component}_decision")
-            prompt_element_dict[
-                f"{component}_plan"
-            ] = self._context_manager.get_context(f"{component}_plan")
 
-        assert (
-                None not in prompt_element_dict.values()
-        ), "Some decision or plan is not set by plan maker"
+        target_component_decision = self._context_manager.get_context(f"{self.target_component}_decision")
+        target_component_plan = self._context_manager.get_context(f"{self.target_component}_plan")
+        target_component_classes = self._context_manager.get_context(f"{self.target_component}_classes")
 
-        config_prompt = self.user.render(
+        for module_path, class_name in target_component_classes:
+            exec(f"from {module_path} import {class_name}")
+
+        assert target_component_decision is not None, "target component decision is not set by plan maker"
+        assert target_component_plan is not None, "target component plan is not set by plan maker"
+        assert target_component_classes is not None, "target component classes is not set by plan maker"
+
+        system_prompt = self.system.render(target_module=self.target_component, choice=target_component_decision, classes=target_component_classes)
+        
+        target_component_classes_and_hyperparameters = []
+        for module_path, class_name in target_component_classes:
+            exec(f"from {module_path} import {class_name}")
+            hyperparameters = [hyperparameter for hyperparameter in {name: param for name, param in inspect.signature(eval(class_name).__init__).parameters.items() if name != "self" and name != "kwargs"}.keys()]
+            if class_name == "LGBModel":
+                hyperparameters.extend([ "boosting_type", "num_leaves", "max_depth", "learning_rate", "n_estimators", "objective", "class_weight", "min_split_gain", "min_child_weight", "min_child_samples", "subsample", "subsample_freq", "colsample_bytree", "reg_alpha", "reg_lambda", "random_state", "n_jobs", "silent", "importance_type", "early_stopping_round", "metric", "num_class", "is_unbalance", "bagging_seed", "verbosity", ])
+            elif class_name == "SignalRecord":
+                hyperparameters.remove("model")
+                hyperparameters.remove("dataset")
+                hyperparameters.remove("recorder")
+            target_component_classes_and_hyperparameters.append((module_path, class_name, hyperparameters))
+        user_prompt = self.user.render(
             user_requirement=user_prompt,
-            decision=prompt_element_dict[f"{self.target_component}_decision"],
-            plan=prompt_element_dict[f"{self.target_component}_plan"],
+            target_component_plan=target_component_plan,
+            target_component=self.target_component,
+            target_component_classes_and_hyperparameters=target_component_classes_and_hyperparameters
         )
+        former_messages = []
+        if self.regenerate:
+            user_prompt = f"your hyperparameter cannot be initialized, may be caused by wrong format of the value or wrong name or some value is not supported in Qlib.\nPlease rewrite the hyperparameters and answer with exact required format in system prompt and reply with no more explainations.\nThe error message: {self.error}. Please correct the former answer accordingly.\nHyperparameters, Reason and Improve suggestion should always be included."
+            former_messages = self._context_manager.get_context("chat_history")[self.__class__.__name__][self.target_component][1:]
         response = APIBackend().build_messages_and_create_chat_completion(
-            config_prompt, self.system.render()
+            user_prompt, system_prompt, former_messages=former_messages
         )
         self.save_chat_history_to_context_manager(
-            config_prompt, response, self.system.render()
+            user_prompt, response, system_prompt, self.target_component
         )
         res = re.search(
-            r"Config:(.*)Reason:(.*)Improve suggestion:(.*)", response, re.S
+            r"(?i)Hyperparameters:(.*)Reason:(.*)Improve suggestion:(.*)", response, re.S
         )
         assert (
             res is not None and len(res.groups()) == 3
         ), "The response of config action task is not in the correct format"
 
-        config = re.search(r"```yaml(.*)```", res.group(1), re.S)
-        assert (
-            config is not None
-        ), "The config part of config action task response is not in the correct format"
-        config = config.group(1)
+        hyperparameters = res.group(1)
         reason = res.group(2)
         improve_suggestion = res.group(3)
 
-        self._context_manager.set_context(f"{self.target_component}_config", config)
+        self._context_manager.set_context(f"{self.target_component}_hyperparameters", hyperparameters)
         self._context_manager.set_context(f"{self.target_component}_reason", reason)
         self._context_manager.set_context(
             f"{self.target_component}_improve_suggestion", improve_suggestion
@@ -439,11 +471,83 @@ class ConfigActionTask(DifferentiatedComponentActionTask):
         return []
 
 
+class ConfigActionTask(ActionTask):
+    def __init__(self, component, reconfig=False, error=None) -> None:
+        super().__init__()
+        self.target_component = component
+        self.reconfig = reconfig
+        self.error = error
+    
+    def execute(self):
+        user_prompt = self._context_manager.get_context("user_prompt")
+
+        target_component_decision = self._context_manager.get_context(f"{self.target_component}_decision")
+        target_component_plan = self._context_manager.get_context(f"{self.target_component}_plan")
+        target_component_classes = self._context_manager.get_context(f"{self.target_component}_classes")
+        target_component_hyperparameters = self._context_manager.get_context(f"{self.target_component}_hyperparameters")
+
+        system_prompt = self.system.render(target_module=self.target_component, choice=target_component_decision, classes=target_component_classes)
+        user_prompt = self.user.render(
+            user_requirement=user_prompt,
+            target_component_plan=target_component_plan,
+            target_component=self.target_component,
+            target_component_hyperparameters=target_component_hyperparameters
+        )
+        former_messages = []
+        if self.reconfig and user_prompt == self._context_manager.get_context("chat_history")[self.__class__.__name__][self.target_component][-2]["content"]:
+            user_prompt = f"your config cannot be converted to YAML, may be caused by wrong format. Please rewrite the yaml and answer with exact required format in system prompt and reply with no more explainations.\nerror message: {self.error}\n"
+            former_messages = self._context_manager.get_context("chat_history")[self.__class__.__name__][self.target_component][1:]
+        response = APIBackend().build_messages_and_create_chat_completion(
+            user_prompt, system_prompt, former_messages=former_messages
+        )
+        self.save_chat_history_to_context_manager(
+            user_prompt, response, system_prompt, self.target_component
+        )
+        config = re.search(r"```yaml(.*)```", response, re.S).group(1)
+
+        try:
+            yaml_config = yaml.safe_load(io.StringIO(config))
+        except yaml.YAMLError as e:
+            self.logger.info(f"Yaml file is not in the correct format: {e}")
+            return_tasks = [ConfigActionTask(self.target_component, reconfig=True, error=str(e))]
+            return return_tasks
+        
+        if self.target_component == "DataHandler":
+            for processor in yaml_config['handler']['kwargs']['infer_processors']:
+                if "kwargs" in processor and "fields_group" in processor["kwargs"]:
+                    del processor["kwargs"]['fields_group']
+            for processor in yaml_config['handler']['kwargs']['learn_processors']:
+                if "kwargs" in processor and "fields_group" in processor["kwargs"]:
+                    del processor["kwargs"]['fields_group']
+            
+            if 'freq' in yaml_config['handler']['kwargs'] and yaml_config['handler']['kwargs']['freq'] == '1d':
+                yaml_config['handler']['kwargs']['freq'] = "day"
+        
+        def remove_default(config):
+            if isinstance(config, dict):
+                for key in list(config.keys()):
+                    if isinstance(config[key], str):
+                        if config[key].lower() == "default":
+                            del config[key]
+                    else:
+                        remove_default(config[key])
+            elif isinstance(config, list):
+                for item in config:
+                    remove_default(item)
+        remove_default(yaml_config)
+
+        self._context_manager.set_context(f"{self.target_component}_config", yaml_config)
+        return []
+
+    
+
+
 class ImplementActionTask(DifferentiatedComponentActionTask):
-    def __init__(self, target_component) -> None:
+    def __init__(self, target_component, reimplement=False) -> None:
         super().__init__()
         self.target_component = target_component
         assert COMPONENT_LIST.index(self.target_component) <= 2, "The target component is not in dataset datahandler and model"
+        self.reimplement = reimplement
 
     def execute(self):
         """
@@ -472,11 +576,15 @@ class ImplementActionTask(DifferentiatedComponentActionTask):
             plan=prompt_element_dict[f"{self.target_component}_plan"],
             user_config=config,
         )
+        former_messages = []
+        if self.reimplement:
+            implement_prompt = "your code seems wrong, please re-implement it and answer with exact required format and reply with no more explainations.\n"
+            former_messages = self._context_manager.get_context("chat_history")[self.__class__.__name__][self.target_component][1:]
         response = APIBackend().build_messages_and_create_chat_completion(
-            implement_prompt, self.system.render()
+            implement_prompt, self.system.render(), former_messages=former_messages
         )
         self.save_chat_history_to_context_manager(
-            implement_prompt, response, self.system.render()
+            implement_prompt, response, self.system.render(), self.target_component
         )
 
         res = re.search(
@@ -512,7 +620,7 @@ class ImplementActionTask(DifferentiatedComponentActionTask):
 class YamlEditTask(ActionTask):
     """This yaml edit task will replace a specific component directly"""
 
-    def __init__(self, file: Union[str, Path], module_path: str, updated_content: str):
+    def __init__(self, target_component: str):
         """
 
         Parameters
@@ -524,27 +632,92 @@ class YamlEditTask(ActionTask):
         updated_content
             The content to replace the original content in `module_path`
         """
-        self.p = Path(file)
-        self.module_path = module_path
-        self.updated_content = updated_content
+        super().__init__()
+        self.target_component = target_component
+        self.target_config_key = {
+            "Dataset": "dataset",
+            "DataHandler": "handler",
+            "Model": "model",
+            "Strategy": "strategy",
+            "Record": "record",
+            "Backtest": "backtest",
+        }[self.target_component]
+    
+    def replace_key_value_recursive(self, target_dict, target_key, new_value):
+        res = False
+        if isinstance(target_dict, dict):  
+            for key, value in target_dict.items():  
+                if key == target_key:  
+                    target_dict[key] = new_value
+                    res = True
+                else:  
+                    res = res | self.replace_key_value_recursive(value, target_key, new_value)  
+        elif isinstance(target_dict, list):  
+            for item in target_dict:  
+                res = res | self.replace_key_value_recursive(item, target_key, new_value) 
+        return res
+
 
     def execute(self):
         # 1) read original and new content
-        with self.p.open("r") as f:
-            config = yaml.safe_load(f)
-        update_config = yaml.safe_load(io.StringIO(self.updated_content))
+        self.original_config_location = Path(os.path.join(self._context_manager.get_context('workspace'), "workflow_config.yaml"))
+        with self.original_config_location.open("r") as f:
+            target_config = yaml.safe_load(f)
+        update_config = self._context_manager.get_context(f'{self.target_component}_modified_config')
+        if update_config is None:
+            update_config = self._context_manager.get_context(f'{self.target_component}_config')
+            
+        # 2) modify the module_path if code is implemented by finco
+        # TODO because we skip code writing part, so we mute this step to avoid error
+        # if self._context_manager.get_context(f'{self.target_component}_decision') == "Personized":
+        #     workspace = self._context_manager.get_context(f'workspace').name
+        #     module_path = f"qlib.finco.{workspace}.{self.target_component}_code"
+        #     if "module_path" in update_config[self.target_config_key]:
+        #         update_config[self.target_config_key]["module_path"] = module_path
 
-        # 2) locate the module
-        focus = config
-        module_list = self.module_path.split(".")
-        for k in module_list[:-1]:
-            focus = focus[k]
+        # TODO here's small trick, we only update dataset and datahandler in the whole, so we skip dataset update and update both of them when datahandler is set. Because model may not set datahandler in dataset config, then we may not find 'handler' in the new config, this trick can be updated in the future.
+        if self.target_component == "Dataset":
+            return []
+        elif self.target_component == "DataHandler":
+            dataset_update_config = self._context_manager.get_context(f'Dataset_modified_config')
+            if dataset_update_config is None:
+                dataset_update_config = self._context_manager.get_context(f'Dataset_config')
+            dataset_update_config['dataset']['kwargs']['handler'] = update_config['handler']
+            update_config = dataset_update_config
+            real_target_config_key = "dataset"
+        else:
+            real_target_config_key = self.target_config_key
 
-        # 3) replace the module and save
-        focus[module_list[-1]] = update_config
-        with self.p.open("w") as f:
-            yaml.dump(config, f)
 
+
+        # 3) replace the module
+        assert isinstance(update_config, dict) and real_target_config_key in update_config, "The config file is not in the correct format"
+        assert self.replace_key_value_recursive(target_config, real_target_config_key, update_config[real_target_config_key]), "Replace of the yaml file failed."
+        
+        
+        # 4) save the config file
+        with self.original_config_location.open("w") as f:
+            yaml.dump(target_config, f)
+
+        return []
+
+class CodeDumpTask(ActionTask):
+    def __init__(self, target_component) -> None:
+        super().__init__()
+        self.target_component = target_component
+    
+    def execute(self):
+        code = self._context_manager.get_context(f'{self.target_component}_code')
+        assert code is not None, "The code is not set"
+        
+        with open(os.path.join(self._context_manager.get_context('workspace'), f'{self.target_component}_code.py'), 'w') as f:
+            f.write(code)
+        
+        try:
+            exec(f"from qlib.finco.{os.path.basename(self._context_manager.get_context('workspace'))}.{self.target_component}_code import *")
+        except (ImportError, AttributeError, SyntaxError):
+            return [ImplementActionTask(self.target_component, reimplement=True), CodeDumpTask(self.target_component)]
+        return []
 
 class SummarizeTask(Task):
     __DEFAULT_WORKSPACE = "./"
@@ -582,12 +755,15 @@ class SummarizeTask(Task):
 
         # todo: remove 'be' after test
         be = APIBackend()
+        bak_debug_mode = be.debug_mode
         be.debug_mode = False
         response = be.build_messages_and_create_chat_completion(
             user_prompt=prompt_workflow_selection, system_prompt=self.system.render()
         )
 
         self._context_manager.set_context("summary", response)
+        be.debug_mode = bak_debug_mode
+        
         self.save_markdown(content=response)
         self.logger.info(f"Report has saved to {self.__DEFAULT_REPORT_NAME}", title="End")
 

@@ -17,11 +17,6 @@ class PromptTemplate(Singleton):
                 continue
             self.__setattr__(k, Template(v))
 
-        for target_name, module_to_render_params in _template["mods"].items():
-            for module_name, params in module_to_render_params.items():
-                self.__setattr__(f"{target_name}_{module_name}",
-                                 Template(self.__getattribute__(target_name).render(**params)))
-
     def get(self, key: str):
         return self.__dict__.get(key, Template(""))
 
