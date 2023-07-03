@@ -62,7 +62,7 @@ class APIBackend(Singleton):
             try:
                 response = self.create_chat_completion(**kwargs)
                 return response
-            except (openai.error.RateLimitError, openai.error.Timeout) as e:
+            except (openai.error.RateLimitError, openai.error.Timeout, openai.error.APIError) as e:
                 print(e)
                 print(f"Retrying {i+1}th time...")
                 time.sleep(1)
